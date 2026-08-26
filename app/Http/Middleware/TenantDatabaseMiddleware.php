@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use Closure;
+use Igniter\Flame\Setting\DatabaseSettingStore;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Config;
@@ -37,6 +38,8 @@ class TenantDatabaseMiddleware
         DB::reconnect('tenant');
         DB::setDefaultConnection('tenant');
 
+        $this->bindTenantSettingContext($tenantInfo);
+
         $request->attributes->set('tenant', $tenantInfo);
         app()->instance('tenant', $tenantInfo);
 
@@ -58,6 +61,45 @@ class TenantDatabaseMiddleware
         }
 
         return $response;
+    }
+
+    /**
+     * Rebind TastyIgniter settings after the tenant database becomes the
+     * default connection. System boot may resolve settings before request
+     * middleware runs, and Flame otherwise uses one process-wide cache key.
+     *
+     * Give each tenant its own cache key and force localization to resolve
+     * again inside the correct tenant context.
+     */
+    private function bindTenantSettingContext(object $tenantInfo): void
+    {
+        $tenantDatabase = strtolower(trim((string)($tenantInfo->database ?? '')));
+        if ($tenantDatabase === '') {
+            return;
+        }
+
+        $cacheSuffix = sha1($tenantDatabase);
+
+        // Remove any setting instances/drivers that may have been created during
+        // boot while the central connection was still the default connection.
+        foreach (['system.setting', 'system.parameter', 'setting.manager'] as $abstract) {
+            app()->forgetInstance($abstract);
+        }
+
+        $settingStore = new DatabaseSettingStore(app('db'), app('cache.store'));
+        $settingStore->setCacheKey('igniter.setting.system.tenant.'.$cacheSuffix);
+        $settingStore->setExtraColumns(['sort' => 'config']);
+        app()->instance('system.setting', $settingStore);
+
+        $parameterStore = new DatabaseSettingStore(app('db'), app('cache.store'));
+        $parameterStore->setCacheKey('igniter.setting.parameters.tenant.'.$cacheSuffix);
+        $parameterStore->setExtraColumns(['sort' => 'prefs']);
+        app()->instance('system.parameter', $parameterStore);
+
+        // System\ServiceProvider has a resolving callback for this singleton;
+        // resolving it again reloads localization.locale/supportedLocales from
+        // the tenant-scoped setting store above.
+        app()->forgetInstance('translator.localization');
     }
 
     private function extractTenantFromDomain(Request $request): ?string

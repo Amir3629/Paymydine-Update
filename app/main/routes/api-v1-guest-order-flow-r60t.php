@@ -152,7 +152,7 @@ $pmdR60tPayload = static function ($order, array $context, string $origin, strin
 ) {
     $payload = json_decode($formatTableOrderResponse(null, $order, $context)->getContent(), true) ?: [];
 
-    if ($origin === 'guest_self' && trim($guestSessionId) !== '') {
+    if (in_array($origin, ['guest_self', 'staff_shared'], true) && trim($guestSessionId) !== '') {
         [$invoicePointer, $privateSessionKey] = $pmdR60tEnsurePrivateInvoicePointer($order, $guestSessionId);
         if ($privateSessionKey !== '') {
             // Reuse the proven fulfilment-status recovery + canonical invoice token
@@ -169,7 +169,9 @@ $pmdR60tPayload = static function ($order, array $context, string $origin, strin
 
     $payload['orderOrigin'] = $origin;
     $payload['source'] = $origin;
-    $payload['canSplit'] = $origin === 'staff_shared';
+    $remainingForPayment = max(0, (float)($order->order_total ?? 0) - (float)($order->settled_amount ?? 0));
+    $payload['canSplit'] = $origin === 'staff_shared' && $remainingForPayment > 0.0001;
+    $payload['remainingPayableAmount'] = round($remainingForPayment, 4);
     $payload['paymentRequiredBeforeKitchen'] = $origin === 'guest_self';
     $payload['kitchenReleased'] = $origin === 'staff_shared' || (int)($order->processed ?? 0) === 1;
     return $payload;
@@ -440,15 +442,57 @@ Route::get('/guest-orders/state', function (\Illuminate\Http\Request $request) u
         // Never expose another guest's legacy QR round as a shared table bill.
         if ($pmdR60tIsLegacyGuestRound($order)) continue;
 
-        // Staff/Cashier/Waiter orders are shared only while money remains due.
-        // Once fully settled, a later scanner must not inherit an old staff bill.
+        // PMD_R68B_SHARED_STAFF_VISIT_HISTORY
+        // Payment completion never ends the physical visit. Keep this staff bill
+        // in the current visit as payment/history; the explicit table release is
+        // the only lifecycle boundary.
         $total = max(0, (float)($order->order_total ?? 0));
         $settled = max(0, (float)($order->settled_amount ?? 0));
         $settlement = strtolower(trim((string)($order->settlement_status ?? '')));
         $financiallyOpen = !in_array($settlement, ['paid', 'settled', 'cancelled', 'canceled', 'failed', 'refunded', 'void', 'voided'], true)
             && ($total <= 0 || $settled < $total - 0.0001);
-        if (!$financiallyOpen) continue;
-        $shared[] = $pmdR60tPayload($order, $context, 'staff_shared');
+
+        $belongsToCurrentVisit = true;
+        try {
+            $physicalTableId = max(0, (int)($context['table']->table_id ?? $context['table']->id ?? 0));
+            if ($physicalTableId > 0 && \Illuminate\Support\Facades\Schema::hasTable('pmd_table_status_history')) {
+                $historyColumns = \Illuminate\Support\Facades\Schema::getColumnListing('pmd_table_status_history');
+                if (in_array('table_id', $historyColumns, true) && in_array('created_at', $historyColumns, true)) {
+                    $releaseQuery = DB::table('pmd_table_status_history')->where('table_id', $physicalTableId);
+                    $releaseQuery->where(function ($history) use ($historyColumns) {
+                        $added = false;
+                        if (in_array('reason', $historyColumns, true)) {
+                            $history->whereIn('reason', [
+                                'customer_left',
+                                'customer_left_skip_cleaning',
+                                'cashier_manual_free',
+                                'cleaning_complete',
+                            ]);
+                            $added = true;
+                        }
+                        if (in_array('new_status', $historyColumns, true)) {
+                            if ($added) $history->orWhereIn('new_status', ['cleaning', 'available']);
+                            else $history->whereIn('new_status', ['cleaning', 'available']);
+                            $added = true;
+                        }
+                        if (!$added) $history->whereRaw('1 = 0');
+                    });
+                    $lastReleaseAt = $releaseQuery->orderByDesc('created_at')->value('created_at');
+                    $lastReleaseTs = $lastReleaseAt ? (strtotime((string)$lastReleaseAt) ?: 0) : 0;
+                    $orderCreatedTs = !empty($order->created_at) ? (strtotime((string)$order->created_at) ?: 0) : 0;
+                    if ($lastReleaseTs > 1787723959 && $orderCreatedTs > 0) {
+                        $belongsToCurrentVisit = $orderCreatedTs > $lastReleaseTs;
+                    }
+                }
+            }
+        } catch (\Throwable $ignored) {
+            // Legacy fallback: never resurrect a fully-paid historical bill if
+            // lifecycle history cannot be resolved.
+            $belongsToCurrentVisit = $financiallyOpen;
+        }
+
+        if (!$belongsToCurrentVisit) continue;
+        $shared[] = $pmdR60tPayload($order, $context, 'staff_shared', $guestSessionId);
     }
 
     // PMD_R64_FINAL_SELF_HISTORY_INVOICE_TABLE_LIFECYCLE

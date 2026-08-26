@@ -933,4 +933,337 @@ document.documentElement.classList.add(
     </div>
 </div>
 
+    {{-- PMD_CASHIER_SETTINGS_LAUNCHER_V107 --}}
+    <style id="pmd-cashier-settings-launcher-v107-style">
+        /* PMD_CASHIER_SETTINGS_LAUNCHER_CENTER_R2 */
+        #pmd-cashier-settings-launcher-v107 {
+            position:fixed!important;
+            left:calc(50% + 44px)!important;
+            bottom:58px!important;
+            z-index:490!important;
+            display:flex!important;
+            align-items:center!important;
+            justify-content:center!important;
+            width:auto!important;
+            min-width:0!important;
+            max-width:none!important;
+            margin:0!important;
+            padding:0!important;
+            border:0!important;
+            background:transparent!important;
+            transform:translateX(-50%)!important;
+            overflow:visible!important;
+        }
+
+        #pmd-cashier-settings-launcher-v107,
+        #pmd-cashier-settings-launcher-v107 * {
+            box-sizing:border-box;
+        }
+
+        #pmd-cashier-settings-launcher-v107 .pmd-cashier-launcher-v107__button {
+            position:relative!important;
+            display:flex!important;
+            align-items:center!important;
+            justify-content:center!important;
+            gap:8px!important;
+            width:184px!important;
+            min-width:184px!important;
+            max-width:184px!important;
+            height:44px!important;
+            min-height:44px!important;
+            max-height:44px!important;
+            margin:0!important;
+            padding:5px 10px 5px 6px!important;
+            border:1px solid #d8e4e8!important;
+            border-radius:14px!important;
+            background:#fff!important;
+            color:#053a32!important;
+            box-shadow:0 7px 22px rgba(5,58,50,.10)!important;
+            cursor:pointer!important;
+            font:inherit!important;
+            text-align:left!important;
+            line-height:1!important;
+            overflow:hidden!important;
+        }
+
+        #pmd-cashier-settings-launcher-v107 .pmd-cashier-launcher-v107__button:hover,
+        #pmd-cashier-settings-launcher-v107 .pmd-cashier-launcher-v107__button:focus-visible {
+            border-color:#b8d3cb;
+            box-shadow:0 0 0 3px rgba(5,58,50,.08),0 8px 24px rgba(5,58,50,.12);
+            outline:none;
+        }
+
+        #pmd-cashier-settings-launcher-v107 .pmd-cashier-launcher-v107__brand {
+            display:grid!important;
+            place-items:center!important;
+            flex:0 0 32px!important;
+            width:32px!important;
+            min-width:32px!important;
+            max-width:32px!important;
+            height:32px!important;
+            min-height:32px!important;
+            max-height:32px!important;
+            margin:0!important;
+            border-radius:9px!important;
+            background:#f5faf7!important;
+            overflow:hidden!important;
+        }
+
+        #pmd-cashier-settings-launcher-v107 .pmd-cashier-launcher-v107__brand img {
+            display:block;
+            width:27px;
+            height:27px;
+            object-fit:contain;
+        }
+
+        #pmd-cashier-settings-launcher-v107 .pmd-cashier-launcher-v107__label {
+            position:static!important;
+            display:block!important;
+            flex:0 1 auto!important;
+            width:auto!important;
+            min-width:0!important;
+            height:auto!important;
+            margin:0!important;
+            padding:0!important;
+            color:#102f42!important;
+            font-size:13.5px!important;
+            line-height:1!important;
+            font-weight:900!important;
+            white-space:nowrap!important;
+            transform:none!important;
+        }
+
+        #pmd-cashier-settings-launcher-v107 .pmd-cashier-launcher-v107__chevron {
+            flex:0 0 16px;
+            width:16px;
+            height:16px;
+            color:#6b7f88;
+            transition:transform .16s ease;
+        }
+
+        #pmd-cashier-settings-launcher-v107[data-open="1"] .pmd-cashier-launcher-v107__chevron {
+            transform:rotate(180deg);
+        }
+
+        #pmd-cashier-settings-launcher-v107 .pmd-cashier-launcher-v107__menu {
+            position:absolute!important;
+            left:50%!important;
+            bottom:54px!important;
+            width:292px!important;
+            margin:0!important;
+            padding:7px!important;
+            border:1px solid #d8e4e8!important;
+            border-radius:16px!important;
+            background:#fff!important;
+            box-shadow:0 18px 46px rgba(5,35,43,.18)!important;
+            transform:translateX(-50%)!important;
+        }
+
+        #pmd-cashier-settings-launcher-v107 .pmd-cashier-launcher-v107__menu[hidden] {
+            display:none!important;
+        }
+
+        #pmd-cashier-settings-launcher-v107 .pmd-cashier-launcher-v107__download {
+            display:flex;
+            align-items:center;
+            gap:10px;
+            min-height:52px;
+            padding:7px 9px;
+            border:0;
+            border-radius:11px;
+            color:#102f42;
+            text-decoration:none!important;
+        }
+
+        #pmd-cashier-settings-launcher-v107 .pmd-cashier-launcher-v107__download:hover,
+        #pmd-cashier-settings-launcher-v107 .pmd-cashier-launcher-v107__download:focus-visible {
+            background:#f4f8f7;
+            outline:none;
+        }
+
+        #pmd-cashier-settings-launcher-v107 .pmd-cashier-launcher-v107__platform {
+            display:grid;
+            place-items:center;
+            flex:0 0 36px;
+            width:36px;
+            height:36px;
+            border-radius:10px;
+            background:#f7fafb;
+            overflow:hidden;
+        }
+
+        #pmd-cashier-settings-launcher-v107 .pmd-cashier-launcher-v107__platform svg {
+            display:block;
+            width:24px;
+            height:24px;
+        }
+
+        #pmd-cashier-settings-launcher-v107 .pmd-cashier-launcher-v107__platform--windows {
+            color:#0078d4;
+            background:#eef7ff;
+        }
+
+        #pmd-cashier-settings-launcher-v107 .pmd-cashier-launcher-v107__platform--apple {
+            color:#000;
+            background:#f5f5f5;
+        }
+
+        #pmd-cashier-settings-launcher-v107 .pmd-cashier-launcher-v107__platform--intel {
+            color:#0071c5;
+            background:#eef7ff;
+            font-family:Arial,Helvetica,sans-serif;
+            font-size:13px;
+            font-weight:900;
+            letter-spacing:-.7px;
+            text-transform:lowercase;
+        }
+
+        #pmd-cashier-settings-launcher-v107 .pmd-cashier-launcher-v107__copy {
+            min-width:0;
+        }
+
+        #pmd-cashier-settings-launcher-v107 .pmd-cashier-launcher-v107__copy strong,
+        #pmd-cashier-settings-launcher-v107 .pmd-cashier-launcher-v107__copy small {
+            display:block;
+        }
+
+        #pmd-cashier-settings-launcher-v107 .pmd-cashier-launcher-v107__copy strong {
+            margin:0 0 3px;
+            color:#102f42;
+            font-size:13.5px;
+            line-height:1.15;
+            font-weight:900;
+        }
+
+        #pmd-cashier-settings-launcher-v107 .pmd-cashier-launcher-v107__copy small {
+            color:#6b7f88;
+            font-size:11px;
+            line-height:1.2;
+        }
+
+        @media(max-width:820px) {
+            #pmd-cashier-settings-launcher-v107 {
+                left:50%!important;
+                bottom:22px!important;
+                transform:translateX(-50%)!important;
+            }
+
+            #pmd-cashier-settings-launcher-v107 .pmd-cashier-launcher-v107__menu {
+                width:min(292px,calc(100vw - 28px))!important;
+            }
+        }
+    </style>
+
+    <section
+        id="pmd-cashier-settings-launcher-v107"
+        aria-label="Cashier App downloads"
+        data-open="0"
+    >
+        <div
+            class="pmd-cashier-launcher-v107__menu"
+            id="pmd-cashier-launcher-menu-v107"
+            hidden
+        >
+            <a
+                class="pmd-cashier-launcher-v107__download"
+                href="https://github.com/Amir3629/Paymydine-Update/releases/download/pmd-cashier-v1-preview/PayMyDine-Cashier-Setup-1.0.7.exe"
+                target="_blank"
+                rel="noopener noreferrer"
+            >
+                <span class="pmd-cashier-launcher-v107__platform pmd-cashier-launcher-v107__platform--windows" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M2.4 4.6 10.6 3.5v7.8H2.4V4.6Zm9.2-1.25L21.6 2v9.3h-10V3.35ZM2.4 12.3h8.2v7.9l-8.2-1.15V12.3Zm9.2 0h10v9.45l-10-1.4V12.3Z"/>
+                    </svg>
+                </span>
+                <span class="pmd-cashier-launcher-v107__copy">
+                    <strong>Windows 10 / 11</strong>
+                    <small>Download .exe</small>
+                </span>
+            </a>
+
+            <a
+                class="pmd-cashier-launcher-v107__download"
+                href="https://github.com/Amir3629/Paymydine-Update/releases/download/pmd-cashier-v1-preview/PayMyDine-Cashier-1.0.7-mac-arm64.dmg"
+                target="_blank"
+                rel="noopener noreferrer"
+            >
+                <span class="pmd-cashier-launcher-v107__platform pmd-cashier-launcher-v107__platform--apple" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M15.55 2.1c.08 1.45-.49 2.55-1.2 3.35-.77.86-1.93 1.52-3.06 1.43-.1-1.39.4-2.46 1.13-3.27.74-.83 1.98-1.48 3.13-1.51ZM19.36 17.1c-.57 1.29-.84 1.86-1.58 3-.99 1.51-2.39 3.4-4.12 3.42-1.53.02-1.93-1-4.01-.99-2.08.01-2.52 1.02-4.05.99-1.72-.03-3.04-1.72-4.03-3.23C-1.2 16.05-1.49 11.08.22 8.46c1.22-1.86 3.13-2.95 4.92-2.95 1.83 0 2.98 1 4.49 1 1.47 0 2.36-1 4.47-1 1.59 0 3.28.87 4.5 2.37-3.95 2.17-3.31 7.82.76 9.22Z" transform="translate(2 0) scale(.82)"/>
+                    </svg>
+                </span>
+                <span class="pmd-cashier-launcher-v107__copy">
+                    <strong>Mac · Apple Silicon</strong>
+                    <small>M1 / M2 / M3 / M4</small>
+                </span>
+            </a>
+
+            <a
+                class="pmd-cashier-launcher-v107__download"
+                href="https://github.com/Amir3629/Paymydine-Update/releases/download/pmd-cashier-v1-preview/PayMyDine-Cashier-1.0.7-mac-x64.dmg"
+                target="_blank"
+                rel="noopener noreferrer"
+            >
+                <span class="pmd-cashier-launcher-v107__platform pmd-cashier-launcher-v107__platform--intel" aria-hidden="true">intel</span>
+                <span class="pmd-cashier-launcher-v107__copy">
+                    <strong>Mac · Intel</strong>
+                    <small>Intel x64</small>
+                </span>
+            </a>
+        </div>
+
+        <button
+            type="button"
+            class="pmd-cashier-launcher-v107__button"
+            id="pmd-cashier-launcher-button-v107"
+            aria-haspopup="menu"
+            aria-controls="pmd-cashier-launcher-menu-v107"
+            aria-expanded="false"
+        >
+            <span class="pmd-cashier-launcher-v107__brand" aria-hidden="true">
+                <img src="/brand/paymydine-logo.svg" alt="">
+            </span>
+            <span class="pmd-cashier-launcher-v107__label">Cashier App</span>
+            <svg class="pmd-cashier-launcher-v107__chevron" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="m5 7.5 5 5 5-5"/>
+            </svg>
+        </button>
+    </section>
+
+    <script id="pmd-cashier-settings-launcher-v107-script">
+    (function () {
+        'use strict';
+
+        var root = document.getElementById('pmd-cashier-settings-launcher-v107');
+        var button = document.getElementById('pmd-cashier-launcher-button-v107');
+        var menu = document.getElementById('pmd-cashier-launcher-menu-v107');
+
+        if (!root || !button || !menu) return;
+
+        function setOpen(open) {
+            root.setAttribute('data-open', open ? '1' : '0');
+            button.setAttribute('aria-expanded', open ? 'true' : 'false');
+            menu.hidden = !open;
+        }
+
+        button.addEventListener('click', function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+            setOpen(root.getAttribute('data-open') !== '1');
+        });
+
+        menu.addEventListener('click', function (event) {
+            event.stopPropagation();
+        });
+
+        document.addEventListener('click', function () {
+            setOpen(false);
+        });
+
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') setOpen(false);
+        });
+    }());
+    </script>
+
 <script defer src="/app/admin/assets/js/pmd-settings-center-v1.js?v={{ $pmdSettingsCenterJsVersion }}"></script>

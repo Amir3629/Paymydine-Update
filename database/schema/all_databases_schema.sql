@@ -1,5 +1,5 @@
 -- PayMyDine schema-only dump
--- Generated UTC: Wed Aug 26 13:38:20 UTC 2026
+-- Generated UTC: Wed Aug 26 16:05:21 UTC 2026
 -- Source server: vps-252f1bc4
 -- DATA ROWS ARE NOT INCLUDED
 
@@ -3615,7 +3615,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-26 13:38:21
+-- Dump completed on 2026-08-26 16:05:21
 
 -- ==================================================
 -- DATABASE: mimoza
@@ -6563,7 +6563,7 @@ CREATE TABLE `ti_settings` (
   `serialized` tinyint(1) DEFAULT NULL,
   PRIMARY KEY (`setting_id`),
   UNIQUE KEY `ti_settings_sort_item_unique` (`sort`,`item`)
-) ENGINE=InnoDB AUTO_INCREMENT=517 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=518 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
@@ -7285,7 +7285,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-26 13:38:21
+-- Dump completed on 2026-08-26 16:05:21
 
 -- ==================================================
 -- DATABASE: rosana
@@ -9886,7 +9886,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-26 13:38:21
+-- Dump completed on 2026-08-26 16:05:22
 -- WARNING: Database 'persian' not found or not accessible.
 
 -- ==================================================
@@ -11909,4 +11909,4 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-26 13:38:21
+-- Dump completed on 2026-08-26 16:05:22

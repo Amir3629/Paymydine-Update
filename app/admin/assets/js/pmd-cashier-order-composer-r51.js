@@ -418,6 +418,7 @@
           '<div class="pmd-pos-payment-body">',
             '<section class="pmd-pos-payment-main">',
               '<div class="pmd-pos-payment-balance" data-pos-payment-balance></div>',
+              '<div class="pmd-coc-payment-ledger" data-coc-payment-ledger hidden></div>',
 
               '<div class="pmd-pos-payment-block">',
                 '<div class="pmd-pos-payment-block-title"><b>Split / part payment</b><span>Choose what this payer pays now</span></div>',
@@ -425,7 +426,7 @@
                   '<button type="button" class="is-active" data-split-mode="full">Full</button>',
                   '<button type="button" data-split-mode="equal">Equal</button>',
                   '<button type="button" data-split-mode="items">By items</button>',
-                  '<button type="button" data-split-mode="custom">Custom amount</button>',
+                  '<button type="button" data-split-mode="custom">Custom</button>',
                 '</div>',
                 '<div class="pmd-pos-split-panel" data-pos-split-panel></div>',
               '</div>',
@@ -636,7 +637,31 @@
         return;
       }
 
-      var primaryAction = event.target.closest('[data-coc-primary]');
+      var settlementViewAction = event.target.closest('[data-coc-settlement-view]');
+    if (settlementViewAction) {
+      event.preventDefault();
+      event.stopPropagation();
+
+      var settlementReview = rootQuery('[data-coc-settlement-review]');
+      if (settlementReview) {
+        settlementReview.setAttribute(
+          'data-mode',
+          settlementViewAction.getAttribute('data-coc-settlement-view') || 'balance'
+        );
+        renderSettlementReview();
+      }
+      return;
+    }
+
+    var finalInvoiceAction = event.target.closest('[data-coc-final-invoice]');
+    if (finalInvoiceAction) {
+      event.preventDefault();
+      event.stopPropagation();
+      openInvoice();
+      return;
+    }
+
+    var primaryAction = event.target.closest('[data-coc-primary]');
 
       if (primaryAction) {
         event.preventDefault();
@@ -1811,6 +1836,7 @@
             '<b data-coc-total>€0.00</b>',
           '</div>',
         '</div>',
+        '<div class="pmd-coc__settlement-review" data-coc-settlement-review hidden></div>',
         '<div class="pmd-coc__rail-actions">',
           '<button type="button" class="pmd-coc__secondary" data-coc-secondary-action data-coc-cancel-enabled="0">Close</button>',
           '<button type="button" class="pmd-coc__send pmd-coc__primary" data-coc-primary disabled>Confirm</button>',
@@ -2563,7 +2589,7 @@
     if (totalLabel) {
       totalLabel.textContent =
         state.activeOrderId
-          ? 'Current bill'
+          ? 'Order total'
           : (
               state.deliveryMode
                 ? 'Delivery total'
@@ -3041,7 +3067,259 @@
   }
 
 
+  // PMD_R69_CASHIER_SETTLEMENT_REVIEW
+  // Read-only presentation adapter over the canonical Payment V3 summary.
+  // No settlement calculation is duplicated here.
+  function pmdR69SettlementSnapshot() {
+    var summary =
+      state.payment && state.payment.summary
+        ? state.payment.summary
+        : null;
+
+    var settlement =
+      summary && summary.settlement
+        ? summary.settlement
+        : null;
+
+    var activeOrderId = num(state.activeOrderId, 0);
+
+    if (!activeOrderId || !settlement) {
+      return null;
+    }
+
+    var summaryOrder = summary.order || {};
+    var summaryOrderId = num(
+      summaryOrder.order_id != null
+        ? summaryOrder.order_id
+        : summaryOrder.id,
+      0
+    );
+
+    if (
+      summaryOrderId > 0 &&
+      summaryOrderId !== activeOrderId
+    ) {
+      return null;
+    }
+
+    var total = num(
+      settlement.order_total,
+      num(summaryOrder.order_total, existingTotal())
+    );
+
+    if (total <= 0) {
+      total = existingTotal();
+    }
+
+    var paid = num(
+      settlement.settled_amount,
+      num(
+        settlement.settledAmount,
+        num(summaryOrder.settled_amount, 0)
+      )
+    );
+
+    var remaining = num(
+      settlement.remaining_amount,
+      num(
+        settlement.remainingAmount,
+        Math.max(0, total - paid)
+      )
+    );
+
+    total = Math.max(0, roundMoney(total));
+    paid = Math.max(0, roundMoney(paid));
+    remaining = Math.max(0, roundMoney(remaining));
+
+    if (total > 0 && paid > total) {
+      paid = total;
+    }
+
+    var status =
+      total > 0 && remaining <= 0.005
+        ? 'paid'
+        : paid > 0.005
+          ? 'partial'
+          : 'unpaid';
+
+    return {
+      orderId: activeOrderId,
+      total: total,
+      paid: paid,
+      remaining: remaining,
+      status: status,
+      transactions: Array.isArray(summary.transactions)
+        ? summary.transactions
+        : []
+    };
+  }
+
+  function pmdR69StatusLabel(status) {
+    if (status === 'paid') return 'Paid';
+    if (status === 'partial') return 'Part paid';
+    return 'Unpaid';
+  }
+
+  function pmdR69ReceiptLinks(snapshot) {
+    return snapshot.transactions
+      .filter(function (tx) {
+        return !!(tx && tx.receipt_url);
+      })
+      .slice(0, 2)
+      .map(function (tx, index) {
+        var amount = num(tx.amount, 0);
+        var method = String(
+          tx.payment_method || tx.method || 'Payment'
+        ).replace(/_/g, ' ');
+
+        var label =
+          'Receipt ' + (index + 1) +
+          (amount > 0 ? ' · ' + money(amount) : '');
+
+        return [
+          '<a class="pmd-coc__settlement-receipt" ',
+            'href="', esc(tx.receipt_url), '" ',
+            'target="_blank" rel="noopener noreferrer">',
+            '<span>', esc(method), '</span>',
+            '<b>', esc(label), '</b>',
+          '</a>'
+        ].join('');
+      })
+      .join('');
+  }
+
+  // PMD_R70_CASHIER_COMPACT_SETTLEMENT_SWITCHER
+  // Keep financial context tiny in the order rail. Unpaid orders need no
+  // extra card; partial/paid orders get a small Balance/Receipts switcher.
+  function renderSettlementReview() {
+    var snapshot = pmdR69SettlementSnapshot();
+    var ledger = rootQuery('[data-coc-payment-ledger]');
+    var review = rootQuery('[data-coc-settlement-review]');
+
+    // In Cashier mode Payment V3 renders paymentPayable() in this hero. The
+    // value is the amount for this payer now, not the whole order total.
+    var payNowLabel = rootQuery(
+      '[data-pos-payment-balance] .pmd-pos-balance-hero > span'
+    );
+    if (payNowLabel) payNowLabel.textContent = 'Pay now';
+
+    if (!snapshot) {
+      if (ledger) {
+        ledger.hidden = true;
+        ledger.innerHTML = '';
+      }
+
+      if (review) {
+        review.hidden = true;
+        review.innerHTML = '';
+      }
+
+      return;
+    }
+
+    var label = pmdR69StatusLabel(snapshot.status);
+
+    // Payment modal: one slim financial context strip, never a second card grid.
+    if (ledger) {
+      if (snapshot.paid > 0.005 || snapshot.status === 'paid') {
+        ledger.hidden = false;
+        ledger.innerHTML = [
+          '<span class="pmd-coc-payment-ledger__status is-',
+            snapshot.status,
+          '">', esc(label), '</span>',
+          '<span>Order <b>', money(snapshot.total), '</b></span>',
+          '<span>Paid <b>', money(snapshot.paid), '</b></span>',
+          '<span>Left <b>', money(snapshot.remaining), '</b></span>'
+        ].join('');
+      } else {
+        ledger.hidden = true;
+        ledger.innerHTML = '';
+      }
+    }
+
+    if (!review) return;
+
+    var receipts = snapshot.transactions.filter(function (tx) {
+      return !!(tx && tx.receipt_url);
+    });
+
+    // No redundant Payment card for a completely untouched/unpaid order.
+    if (snapshot.status === 'unpaid' && receipts.length === 0) {
+      review.hidden = true;
+      review.innerHTML = '';
+      review.removeAttribute('data-mode');
+      return;
+    }
+
+    var mode = review.getAttribute('data-mode');
+    if (mode !== 'receipts') mode = 'balance';
+    if (mode === 'receipts' && receipts.length === 0) mode = 'balance';
+    review.setAttribute('data-mode', mode);
+
+    var progressMax = snapshot.total > 0 ? snapshot.total : 1;
+    var receiptLinks = pmdR69ReceiptLinks(snapshot);
+
+    var balancePane = [
+      '<div class="pmd-coc__settlement-pane" data-coc-settlement-pane="balance"',
+        mode === 'balance' ? '' : ' hidden',
+      '>',
+        '<progress value="', snapshot.paid, '" max="', progressMax, '"></progress>',
+        '<div class="pmd-coc__settlement-balance-copy">',
+          '<span><b>', money(snapshot.paid), '</b> paid of ', money(snapshot.total), '</span>',
+          '<strong>',
+            snapshot.status === 'paid'
+              ? 'Settled'
+              : money(snapshot.remaining) + ' left',
+          '</strong>',
+        '</div>',
+      '</div>'
+    ].join('');
+
+    var receiptsPane = receipts.length > 0
+      ? [
+          '<div class="pmd-coc__settlement-pane pmd-coc__settlement-receipts" ',
+            'data-coc-settlement-pane="receipts"',
+            mode === 'receipts' ? '' : ' hidden',
+          '>',
+            receiptLinks,
+          '</div>'
+        ].join('')
+      : '';
+
+    var invoiceAction = snapshot.status === 'paid'
+      ? '<button type="button" class="pmd-coc__settlement-switch-action is-invoice" data-coc-final-invoice>Invoice</button>'
+      : '';
+
+    review.hidden = false;
+    review.innerHTML = [
+      '<div class="pmd-coc__settlement-compact-head">',
+        '<span class="pmd-coc__settlement-pill is-', snapshot.status, '">',
+          esc(label),
+        '</span>',
+        '<strong>',
+          snapshot.status === 'paid'
+            ? money(snapshot.paid) + ' settled'
+            : money(snapshot.remaining) + ' remaining',
+        '</strong>',
+      '</div>',
+      '<div class="pmd-coc__settlement-switch">',
+        '<button type="button" class="pmd-coc__settlement-switch-action',
+          mode === 'balance' ? ' is-active' : '',
+        '" data-coc-settlement-view="balance">Balance</button>',
+        receipts.length > 0
+          ? '<button type="button" class="pmd-coc__settlement-switch-action' +
+              (mode === 'receipts' ? ' is-active' : '') +
+              '" data-coc-settlement-view="receipts">Receipts</button>'
+          : '',
+        invoiceAction,
+      '</div>',
+      balancePane,
+      receiptsPane
+    ].join('');
+  }
+
   function updateFooter() {
+    renderSettlementReview();
     var primary =
       rootQuery('[data-coc-primary]');
 
@@ -4353,7 +4631,10 @@
         closeCart: function () {
           closeComposer(true);
         },
-        refreshData: refreshData
+        refreshData: async function (silent) {
+          await refreshData(silent);
+          renderSettlementReview();
+        }
       });
 
     state.paymentApi.bindPayment();
@@ -4398,7 +4679,8 @@
 
     try {
       await setupPaymentModule();
-      state.paymentApi.openPayment();
+      await state.paymentApi.openPayment();
+    renderSettlementReview();
     } catch (error) {
       toast(
         error.message ||

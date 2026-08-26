@@ -846,8 +846,6 @@ class Pmdsettings extends AdminController
                 'id' => 'devices', 'eyebrow' => '', 'title' => 'Devices & Hardware', 'description' => '',
                 'items' => [
                     $this->item('Devices', 'KDS, POS terminals, cash drawers, biometric devices and connected screens.', 'monitor', admin_url('pmddevices'), ''),
-                    // PMD_CASHIER_DESKTOP_SETTINGS_SHORTCUT_R1
-                    $this->item('Cashier desktop app', 'Install the main Cashier app for Windows or Mac with local printer and cash-drawer support.', 'monitor', admin_url('pmddevices').'#cashier-desktop-app', 'Windows & Mac'),
                 ],
             ],
             [

@@ -9320,6 +9320,12 @@ html.pmd-waiter-dashboard-active
 <script src="/app/admin/assets/js/pmd-settings-family-header-v18.js?v=20260820_103303"></script>
 <!-- PMD_SETTINGS_FAMILY_HEADER_V18_RUNTIME_END -->
 
+<!-- PMD_OVERLAY_CONSOLE_PROVEN_REAL_ADMIN_LAYOUT_V4 -->
+<script
+    id="pmd-overlay-single-visual-plane-v4-script"
+    src="/app/admin/assets/js/pmd-overlay-single-visual-plane-v4.js?v=20260826-console-proven-real-layout"
+></script>
+<!-- /PMD_OVERLAY_CONSOLE_PROVEN_REAL_ADMIN_LAYOUT_V4 -->
 </body>
 </html>
 

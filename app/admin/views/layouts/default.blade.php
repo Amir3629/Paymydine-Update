@@ -454,64 +454,10 @@ html.pmd-new-pages-antiflash-v40:not(.pmd-new-pages-antiflash-rendered-v40):not(
 
     <script src="/app/admin/assets/js/pmd-admin-universal-client-list-v1.js?v=50" defer></script>
 
-<!-- PMD_OVERLAY_GLASS_AUTHORITY_TRUE_LAST_V2 -->
-<link id="pmd-overlay-glass-authority-v2-link" rel="stylesheet" href="/app/admin/assets/css/pmd-overlay-glass-authority-v2.css?v=20260826-v2">
-<script id="pmd-overlay-glass-authority-v2-runtime">
-(function(){
-  'use strict';
-  if (window.PMD_OVERLAY_GLASS_AUTHORITY_V2) return;
-  window.PMD_OVERLAY_GLASS_AUTHORITY_V2 = true;
-  var BG = 'rgba(255, 255, 255, 0.04)';
-  var selector = [
-    '.modal-backdrop',
-    '.offcanvas-backdrop',
-    '.swal2-container.swal2-backdrop-show',
-    '.pmd-reservation-composer-backdrop-v1',
-    '[class*="pmd-"][class*="backdrop"]:not([class*="tour"])',
-    '.pmd-pos-modal.is-show',
-    '.pmd-pos-payment-modal.is-show',
-    '.pmd-modal[data-pmd-create-modal]:not([hidden])',
-    '.pmd-modal[data-pmd-edit-modal]:not([hidden])',
-    '#pmd-side-menu2-backdrop'
-  ].join(',');
 
-  function normalize(el){
-    if (!el || !el.matches || !el.matches(selector)) return;
-    el.style.setProperty('background', BG, 'important');
-    el.style.setProperty('background-color', BG, 'important');
-    el.style.setProperty('backdrop-filter', 'blur(8px)', 'important');
-    el.style.setProperty('-webkit-backdrop-filter', 'blur(8px)', 'important');
-    el.style.setProperty('filter', 'none', 'important');
-    el.style.setProperty('-webkit-filter', 'none', 'important');
-  }
 
-  function normalizeVisible(){
-    try { document.querySelectorAll(selector).forEach(normalize); } catch (e) {}
-  }
-
-  /* Event-driven inline-important repair: no polling and no MutationObserver.
-     Every V2 backdrop receives this animation when it becomes visible. */
-  document.addEventListener('animationstart', function(e){
-    if (e && e.animationName === 'pmdOverlayGlassInV2') normalize(e.target);
-  }, true);
-
-  document.addEventListener('shown.bs.modal', function(){ normalizeVisible(); }, true);
-  document.addEventListener('show.bs.modal', function(){ normalizeVisible(); }, true);
-  document.addEventListener('click', function(){ normalizeVisible(); }, false);
-
-  window.addEventListener('load', function(){
-    normalizeVisible();
-    var link=document.getElementById('pmd-overlay-glass-authority-v2-link');
-    if (link && link.parentNode) link.parentNode.appendChild(link);
-  }, {once:true});
-
-  normalizeVisible();
-})();
-</script>
-<!-- /PMD_OVERLAY_GLASS_AUTHORITY_TRUE_LAST_V2 -->
-
-<!-- PMD_OVERLAY_RUNTIME_AUTHORITY_V3 -->
-<script id="pmd-overlay-runtime-authority-v3-script" src="/app/admin/assets/js/pmd-overlay-runtime-authority-v3.js?v=20260826-v3"></script>
-<!-- /PMD_OVERLAY_RUNTIME_AUTHORITY_V3 -->
+<!-- PMD_OVERLAY_SINGLE_VISUAL_PLANE_V4 -->
+<script id="pmd-overlay-single-visual-plane-v4-script" src="/app/admin/assets/js/pmd-overlay-single-visual-plane-v4.js?v=20260826-console-proven-v4"></script>
+<!-- /PMD_OVERLAY_SINGLE_VISUAL_PLANE_V4 -->
 </body>
 </html>

@@ -920,3 +920,298 @@ body .pmd-pos-payment-modal
         grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     }
 }
+
+
+/* PMD_R68B_CASHIER_SPLIT_POLISH */
+.pmd-pos-payment-modal [data-pos-cashier-split-tabs] {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  width: 100%;
+  margin-top: 10px;
+}
+
+.pmd-pos-payment-modal [data-pos-cashier-split-tabs] > button {
+  min-height: 54px;
+  padding: 10px 12px;
+  border: 1px solid #c9dce5;
+  border-radius: 14px;
+  background: #ffffff;
+  color: #143247;
+  font: inherit;
+  font-weight: 800;
+  line-height: 1.15;
+  text-align: center;
+  white-space: normal;
+  transition: border-color .14s ease, background-color .14s ease, color .14s ease, box-shadow .14s ease;
+}
+
+.pmd-pos-payment-modal [data-pos-cashier-split-tabs] > button:hover {
+  border-color: #14836f;
+}
+
+.pmd-pos-payment-modal [data-pos-cashier-split-tabs] > button.is-active {
+  border-color: #0b816c;
+  background: #eaf7f3;
+  color: #086b5a;
+  box-shadow: inset 0 0 0 1px #0b816c;
+}
+
+.pmd-pos-payment-modal [data-pos-split-panel] {
+  margin-top: 10px;
+}
+
+.pmd-pos-payment-modal [data-pos-split-panel] .pmd-pos-split-equal,
+.pmd-pos-payment-modal [data-pos-split-panel] .pmd-pos-split-custom,
+.pmd-pos-payment-modal [data-pos-split-panel] .pmd-pos-split-items {
+  border-radius: 14px;
+  background: #f5f9fb;
+}
+
+@media (max-width: 640px) {
+  .pmd-pos-payment-modal [data-pos-cashier-split-tabs] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* PMD_R70_CASHIER_COMPACT_SETTLEMENT_SWITCHER_UI */
+
+/* Split tabs remain one-line touch targets. */
+.pmd-pos-payment-modal [data-pos-cashier-split-tabs] > button {
+  min-height: 50px !important;
+  padding: 9px 10px !important;
+  white-space: nowrap !important;
+  line-height: 1 !important;
+}
+
+/* One slim financial context row inside the Pay modal. */
+.pmd-coc-payment-ledger:not([hidden]) {
+  display: flex !important;
+  align-items: center;
+  gap: 12px;
+  min-height: 42px;
+  padding: 8px 12px;
+  border: 1px solid #cfe3dd;
+  border-radius: 12px;
+  background: #f7fbfa;
+  overflow-x: auto;
+}
+
+.pmd-coc-payment-ledger > span {
+  flex: 0 0 auto;
+  color: #637b89;
+  font-size: 10px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.pmd-coc-payment-ledger > span b {
+  color: #17384c;
+  font-size: 11px;
+}
+
+.pmd-coc-payment-ledger__status {
+  min-height: 26px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900 !important;
+}
+
+.pmd-coc-payment-ledger__status.is-partial {
+  color: #936000 !important;
+  background: #fff4d3;
+}
+
+.pmd-coc-payment-ledger__status.is-paid {
+  color: #08745a !important;
+  background: #e6f6f0;
+}
+
+/* Tip/Coupon ends before Cash received starts. */
+.pmd-coc .pmd-pos-adjustments:not([hidden]) {
+  padding-bottom: 18px !important;
+  margin-bottom: 8px !important;
+  gap: 18px !important;
+}
+
+.pmd-coc .pmd-pos-adjustments:not([hidden]) + [data-pos-collection-fields] {
+  margin-top: 6px !important;
+}
+
+/* No large payment card. The settlement surface exists only after activity. */
+.pmd-coc__settlement-review:not([hidden]) {
+  display: grid;
+  gap: 7px;
+  margin-top: 10px;
+}
+
+.pmd-coc__settlement-compact-head {
+  min-height: 34px;
+  padding: 0 2px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.pmd-coc__settlement-compact-head > strong {
+  color: #17384c;
+  font-size: 11px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.pmd-coc__settlement-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 25px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-size: 9.5px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.pmd-coc__settlement-pill.is-partial {
+  color: #936000;
+  background: #fff4d3;
+}
+
+.pmd-coc__settlement-pill.is-paid {
+  color: #08745a;
+  background: #e6f6f0;
+}
+
+/* Small segmented switcher: Balance / Receipts / Invoice. */
+.pmd-coc__settlement-switch {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  gap: 3px;
+  padding: 3px;
+  border-radius: 11px;
+  background: #edf3f5;
+}
+
+.pmd-coc__settlement-switch-action {
+  min-width: 0;
+  min-height: 34px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #607785;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.pmd-coc__settlement-switch-action.is-active {
+  background: #fff;
+  color: #17384c;
+  box-shadow: 0 1px 4px rgba(17, 48, 66, .08);
+}
+
+.pmd-coc__settlement-switch-action.is-invoice {
+  color: #08745a;
+}
+
+/* Switched content stays tiny. */
+.pmd-coc__settlement-pane:not([hidden]) {
+  display: grid;
+  gap: 7px;
+  padding: 8px 10px;
+  border: 1px solid #e0eaee;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.pmd-coc__settlement-pane progress {
+  width: 100%;
+  height: 6px;
+  border: 0;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.pmd-coc__settlement-pane progress::-webkit-progress-bar {
+  background: #e8eff2;
+  border-radius: 999px;
+}
+
+.pmd-coc__settlement-pane progress::-webkit-progress-value {
+  background: #0c7a62;
+  border-radius: 999px;
+}
+
+.pmd-coc__settlement-pane progress::-moz-progress-bar {
+  background: #0c7a62;
+  border-radius: 999px;
+}
+
+.pmd-coc__settlement-balance-copy {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: #6c818e;
+  font-size: 9.5px;
+  font-weight: 700;
+}
+
+.pmd-coc__settlement-balance-copy b,
+.pmd-coc__settlement-balance-copy strong {
+  color: #17384c;
+  font-weight: 900;
+}
+
+.pmd-coc__settlement-receipts {
+  gap: 5px !important;
+}
+
+.pmd-coc__settlement-receipt {
+  min-height: 34px;
+  padding: 6px 8px;
+  border: 1px solid #dde8ec;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: #17384c;
+  text-decoration: none;
+  background: #fbfdfe;
+}
+
+.pmd-coc__settlement-receipt span {
+  color: #748995;
+  font-size: 9px;
+  text-transform: capitalize;
+}
+
+.pmd-coc__settlement-receipt b {
+  font-size: 9.5px;
+  font-weight: 900;
+}
+
+@media (max-width: 620px) {
+  .pmd-coc-payment-ledger:not([hidden]) {
+    gap: 9px;
+  }
+
+  .pmd-coc__settlement-compact-head {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .pmd-coc__settlement-balance-copy {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 3px;
+  }
+}
+
