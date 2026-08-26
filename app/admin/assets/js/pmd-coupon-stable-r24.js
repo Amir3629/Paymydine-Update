@@ -14,20 +14,18 @@
         return String(window.location.pathname || '').replace(/\/+$/, '') === '/admin/coupons';
     }
 
-    function localeCopy() {
-        var match = document.cookie.match(/(?:^|; )pmd_admin_locale=([^;]+)/);
-        var locale = String((match && match[1]) || document.documentElement.lang || 'en').toLowerCase();
-
-        if (locale.indexOf('de') === 0) {
-            return {
-                title: 'Neuen Gutschein / Karte anlegen',
-                help: 'Gutschein, Geschenkkarte oder Voucher erstellen.'
-            };
+    function platformText(key, fallback) {
+        var runtime = window.PMDPlatformMessages;
+        if (runtime && typeof runtime.t === 'function') {
+            return runtime.t(key, {}, fallback);
         }
+        return fallback;
+    }
 
+    function localeCopy() {
         return {
-            title: 'Add new coupon / card',
-            help: 'Create a coupon, gift card or voucher.'
+            title: platformText('coupons.smart_add.title', 'Add new coupon / card'),
+            help: platformText('coupons.smart_add.help', 'Create a coupon, gift card or voucher.')
         };
     }
 
@@ -179,7 +177,7 @@
         observeRefreshZone(root);
 
         window.PMDCouponStableR24 = {
-            version: '24.0.0',
+            version: '24.1.0-platform-i18n',
             install: function () { return installCard(root); }
         };
 
