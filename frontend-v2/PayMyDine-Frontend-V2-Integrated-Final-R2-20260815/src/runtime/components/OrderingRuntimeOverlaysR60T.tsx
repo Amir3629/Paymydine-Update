@@ -26,9 +26,10 @@ export function RuntimeOverlays() {
 
     const apply = () => {
       document.querySelectorAll<HTMLElement>('[data-pmd-direct-kitchen-send="r33b"]').forEach((button) => {
+        const label = runtime.orderLoading ? copy.preparing : copy.payPlace
         button.setAttribute('data-pmd-ordering-flow', 'r60t-pay-first')
-        button.setAttribute('aria-label', runtime.orderLoading ? copy.preparing : copy.payPlace)
-        button.textContent = runtime.orderLoading ? copy.preparing : copy.payPlace
+        button.setAttribute('aria-label', label)
+        if ((button.textContent || '').trim() !== label) button.textContent = label
       })
 
       const root = document.querySelector<HTMLElement>('[data-pmd-table-round-flow="r27"]')
