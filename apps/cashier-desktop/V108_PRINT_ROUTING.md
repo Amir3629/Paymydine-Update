@@ -13,3 +13,5 @@ V1.0.8 keeps the existing local hardware architecture and closes the native-prin
 - Cash-drawer payment dedupe, truthful hardware diagnostics, offline printer preflight, fullscreen behavior, and PayMyDine branding remain unchanged.
 
 The live deployment also injects `pmd-desktop-print-bridge-v108.js` into the standalone customer invoice page so its Print / reprint button calls the trusted Desktop bridge instead of falling back to `window.print()` when running inside PayMyDine Cashier.
+
+Clean release validation is intentionally triggered from the current-main-based V1.0.8 branch.
