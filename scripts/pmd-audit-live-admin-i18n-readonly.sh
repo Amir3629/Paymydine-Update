@@ -72,6 +72,34 @@ grep -nE \
   2>/dev/null || true
 
 echo
+printf '%s\n' '===== 4B. WAITER DASHBOARD SCRIPT AUTHORITIES ====='
+waiter_view="$LIVE/app/admin/views/waiter_dashboard_new.blade.php"
+if [[ -f "$waiter_view" ]]; then
+  grep -oE 'app/admin/assets/js/pmd-waiter-[A-Za-z0-9._-]+\.js' "$waiter_view" \
+    | sort -u \
+    | while IFS= read -r rel_asset; do
+        [[ -n "$rel_asset" ]] || continue
+        live_asset="$LIVE/$rel_asset"
+        printf '\n[%s]\n' "$rel_asset"
+        if [[ -f "$live_asset" ]]; then
+          printf 'LIVE  '; sha256sum "$live_asset"
+          printf 'UI_LITERAL_HINTS  '
+          grep -Ec '(textContent|innerHTML|placeholder|aria-label|title)[^;]{0,180}[A-Za-z]{3,}' "$live_asset" 2>/dev/null || true
+        else
+          echo 'LIVE  MISSING'
+        fi
+        url="${BASE_URL}/${rel_asset}?pmd_i18n_audit=$(date +%s)"
+        if body="$(curl -fsSL --max-time 20 "$url" 2>/dev/null)"; then
+          printf 'SERVED_SHA256  %s\n' "$(printf '%s' "$body" | sha256sum | awk '{print $1}')"
+        else
+          echo 'SERVED_SHA256  FETCH_FAILED'
+        fi
+      done
+else
+  echo 'waiter_dashboard_new.blade.php not found.'
+fi
+
+echo
 printf '%s\n' '===== 5. LANGUAGE DATABASE STATE (READ ONLY) ====='
 if [[ -f "$LIVE/artisan" ]]; then
   php "$LIVE/artisan" tinker --execute='
