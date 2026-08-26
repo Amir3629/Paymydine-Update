@@ -41,8 +41,14 @@ return [
     'nav.settings' => 'Settings',
     'nav.account_actions' => 'Account actions',
     'nav.logout' => 'Logout',
+    'nav.logout_confirm' => 'Are you sure you want to log out?',
     'nav.open_navigation' => 'Open navigation',
     'nav.close_navigation' => 'Close navigation',
+
+    'coupons.smart_add.title' => 'Add new coupon / card',
+    'coupons.smart_add.help' => 'Create a coupon, gift card or voucher.',
+    'coupons.total_codes' => 'Codes',
+    'coupons.type.voucher' => 'Voucher',
 
     'waiter.dashboard.title' => 'Waiter POS',
 
