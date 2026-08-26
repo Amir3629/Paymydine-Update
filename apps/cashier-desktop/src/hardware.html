@@ -20,7 +20,7 @@
     .row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
     button { min-height: 43px; border: 1px solid #cbd9e3; border-radius: 11px; background: #fff; color: #17324d; padding: 0 15px; font-weight: 800; cursor: pointer; }
     button.primary { background: #163a5f; color: #fff; border-color: #163a5f; }
-    button:disabled { opacity: .55; cursor: wait; }
+    button:disabled { opacity: .48; cursor: not-allowed; }
     .switch { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-top: 16px; padding-top: 16px; border-top: 1px solid #edf2f5; }
     .switch input { width: 20px; height: 20px; }
     details { margin-top: 16px; }
@@ -29,6 +29,9 @@
     .status.ok { background: #ecf8f1; color: #23613e; }
     .status.error { background: #fff0ef; color: #9f2d28; }
     .printer-meta { font-size: 12px; color: #778c9d; margin-top: 7px; }
+    .virtual-note { margin-top: 14px; border: 1px solid #b9d6ef; background: #eef7ff; border-radius: 12px; padding: 14px; color: #294f6d; line-height: 1.5; }
+    .virtual-note strong { display:block; margin-bottom:4px; color:#173f63; }
+    [hidden] { display:none !important; }
   </style>
 </head>
 <body>
@@ -42,31 +45,48 @@
     </div>
 
     <section class="card">
-      <h2>Receipt printer</h2>
-      <p class="muted">Choose the receipt printer installed on this computer. PayMyDine can print directly after a successful Cashier payment.</p>
-      <label for="printer">Receipt printer</label>
-      <select id="printer"><option value="">Loading printers…</option></select>
-      <div class="printer-meta" id="printer-meta"></div>
-      <div class="row">
-        <button id="refresh">Find printers</button>
-        <button id="test-print">Test print</button>
+      <h2>Print output</h2>
+      <p class="muted">Use a real receipt printer at the restaurant, or Virtual PDF when testing without hardware.</p>
+      <label for="output-mode">Output mode</label>
+      <select id="output-mode">
+        <option value="physical">Physical receipt printer</option>
+        <option value="pdf">PayMyDine Virtual PDF — Debug / Preview</option>
+      </select>
+
+      <div id="physical-printer-fields">
+        <label for="printer">Receipt printer</label>
+        <select id="printer"><option value="">Loading printers…</option></select>
+        <div class="printer-meta" id="printer-meta"></div>
+        <div class="row">
+          <button id="refresh">Find printers</button>
+        </div>
       </div>
+
+      <div class="virtual-note" id="virtual-note" hidden>
+        <strong>No physical printer is used.</strong>
+        Receipt and Invoice jobs are rendered by the same authenticated Electron print window, saved as PDF in <b>Desktop / PayMyDine Print Tests</b>, and opened automatically. Cash drawer commands are disabled in this mode.
+      </div>
+
+      <div class="row">
+        <button id="test-print">Test output</button>
+      </div>
+
       <div class="switch">
         <div>
           <strong>Print receipt automatically after payment</strong>
-          <div class="muted">Every successful Cashier payment prints once. Reprint stays available from the order.</div>
+          <div class="muted">Every successful Cashier payment prints once. In Virtual PDF mode, it creates one PDF instead.</div>
         </div>
         <input type="checkbox" id="auto-print" checked>
       </div>
     </section>
 
-    <section class="card">
+    <section class="card" id="drawer-card">
       <h2>Cash drawer</h2>
-      <p class="muted">PayMyDine sends an ESC/POS kick through the selected receipt printer. The drawer cable normally plugs into the printer's DK / DRAWER port.</p>
+      <p class="muted">PayMyDine sends an ESC/POS kick through the selected receipt printer. Virtual PDF mode never touches drawer hardware.</p>
       <div class="switch">
         <div>
           <strong>Open automatically after cash payment</strong>
-          <div class="muted">Only successful Cash payments trigger this. Card payments never open the drawer.</div>
+          <div class="muted">Only successful Cash payments trigger this in Physical printer mode. Card payments never open the drawer.</div>
         </div>
         <input type="checkbox" id="auto-open" checked>
       </div>
