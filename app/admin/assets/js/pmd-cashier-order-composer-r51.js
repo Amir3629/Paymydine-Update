@@ -352,7 +352,7 @@
       );
       // PMD_CASHIER_R60D_PAYMENT_CSS_OWNER
       ensureStyle(
-        '/app/admin/assets/css/pmd-cashier-payment-clean-v1.css?v=20260825-r60d',
+        '/app/admin/assets/css/pmd-cashier-payment-clean-v1.css?v=20260826-r67',
         'data-pmd-coc-payment-clean-style'
       );
 
@@ -369,7 +369,7 @@
         try {
           await loadFreshScript(
             '/app/admin/assets/js/pmd-waiter-pos-payment-v3.js',
-            'cashier-payment-v3-r60e-20260825'
+            'cashier-payment-v3-r67-20260826'
           );
         } finally {
           try {
@@ -388,7 +388,7 @@
       ) {
         await loadFreshScript(
           '/app/admin/assets/js/pmd-waiter-pos-payment-v3.js',
-          'cashier-payment-v3-r60e-final'
+          'cashier-payment-v3-r67-final'
         );
       }
 
@@ -435,12 +435,12 @@
               '<div class="pmd-pos-payment-balance" data-pos-payment-balance></div>',
 
               '<div class="pmd-pos-payment-block">',
-                '<div class="pmd-pos-payment-block-title"><b>Split bill</b><span>Choose what this payer covers</span></div>',
+                '<div class="pmd-pos-payment-block-title"><b>Split / part payment</b><span>Choose what this payer pays now</span></div>',
                 '<div class="pmd-pos-split-tabs" data-pos-split-tabs>',
-                  '<button type="button" class="is-active" data-split-mode="full">Full bill</button>',
-                  '<button type="button" data-split-mode="equal">Equally</button>',
+                  '<button type="button" class="is-active" data-split-mode="full">Full</button>',
+                  '<button type="button" data-split-mode="equal">Equal</button>',
                   '<button type="button" data-split-mode="items">By items</button>',
-                  '<button type="button" data-split-mode="custom">Custom</button>',
+                  '<button type="button" data-split-mode="custom">Custom amount</button>',
                 '</div>',
                 '<div class="pmd-pos-split-panel" data-pos-split-panel></div>',
               '</div>',

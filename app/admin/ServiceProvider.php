@@ -54,6 +54,21 @@ class ServiceProvider extends AppServiceProvider
         $this->registerActivityTypes();
         $this->registerMailTemplates();
         $this->registerSchedule();
+
+        // PMD_ADMIN_SESSION_ISOLATION_GLOBAL_KERNEL_V3
+        // The Flame HTTP kernel is the real HTTP authority. Install this as
+        // GLOBAL middleware so it executes before route middleware, including
+        // StartSession. The middleware itself is path-gated to admin surfaces.
+        $this->app[Kernel::class]->prependMiddleware(
+            \App\Http\Middleware\PmdAdminSessionIsolation::class
+        );
+
+        // PMD_ADMIN_TENANT_AUTH_CONTEXT_REAL_KERNEL_V4
+        // Execute before route middleware so /admin/login and every AdminAuth
+        // check use the restaurant database selected from the central registry.
+        $this->app[Kernel::class]->prependMiddleware(
+            \App\Http\Middleware\PmdAdminTenantAuthContext::class
+        );
         // PMD_SUPERADMIN_RECOVERY_R1_START
         // RETIRED_BY_PMD_SUPERADMIN_R2
         //

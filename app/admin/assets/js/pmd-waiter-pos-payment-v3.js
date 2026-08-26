@@ -456,13 +456,14 @@
               var item = unpaid.find(function (row) { return String(row.order_menu_id) === String(input.dataset.payItem); });
               var max = item ? toNumber(item.unpaid_quantity, 0) : 0;
               state.payment.itemQuantities[String(input.dataset.payItem)] = Math.max(0, Math.min(max, toNumber(input.value, 0)));
+              renderPaymentBalance();
               renderPaymentTotals();
             };
           });
         } else {
           panel.innerHTML = '<div class="pmd-pos-custom-row"><label><span class="pmd-pos-payment-block-title"><b>Amount</b><span>Max ' + money(remaining) + '</span></span><input type="number" min="0.01" max="' + esc(remaining) + '" step="0.01" class="pmd-pos-payment-input" data-custom-payment value="' + esc(state.payment.customAmount) + '" placeholder="0.00"></label><b>' + money(paymentBaseAmount()) + '</b></div>';
           var custom = $('[data-custom-payment]', panel);
-          if (custom) custom.oninput = function () { state.payment.customAmount = custom.value; renderPaymentTotals(); };
+          if (custom) custom.oninput = function () { state.payment.customAmount = custom.value; renderPaymentBalance(); renderPaymentTotals(); };
         }
       }
 

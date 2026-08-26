@@ -1513,7 +1513,31 @@ function CheckoutSheet() {
   const copy = r27FlowCopy(locale)
   const multiCopy = r32MultiOrderCopy(locale)
   const directCopy = r33DirectOrderCopy(locale)
-  const [tab, setTab] = useState<'orders' | 'payment' | 'split'>('orders')
+
+  // PMD_R63_SINGLE_OPEN_SELF_ORDER
+  // Self-only QR checkout is not a table-bill selector. It owns one canonical
+  // private order directly. The legacy table/multi-order UI remains available
+  // only when a real Staff/Cashier/Waiter shared bill exists.
+  const hasSharedStaffOrders = useMemo(() => tableOrders.some((order) =>
+    String((order as any)?.orderOrigin || '') === 'staff_shared'
+  ), [tableOrders])
+  // PMD_R64_FINAL_SELF_HISTORY_INVOICE_TABLE_LIFECYCLE
+  // PMD_R65_ORDERS_SWITCH_PHYSICAL_FLOOR_AUTHORITY
+  const selfOrders = useMemo(() => tableOrders.filter((order) =>
+    String((order as any)?.orderOrigin || '') === 'guest_self'
+  ), [tableOrders])
+  const directSelfOrder = useMemo(() => {
+    if (hasSharedStaffOrders) return null
+    if (
+      selectedOrder
+      && String((selectedOrder as any)?.orderOrigin || '') === 'guest_self'
+      && selectedOrder.totals.remainingAmount > 0
+    ) return selectedOrder
+    return selfOrders.find((order) => order.totals.remainingAmount > 0) || null
+  }, [hasSharedStaffOrders, selectedOrder, selfOrders])
+  const selfHistoryOnly = !hasSharedStaffOrders && !directSelfOrder && selfOrders.length > 0
+
+  const [tab, setTab] = useState<'orders' | 'payment' | 'split'>(() => directSelfOrder ? 'payment' : 'orders')
   const [selectedPaymentOrderIds, setSelectedPaymentOrderIds] = useState<number[]>(() =>
     selectedOrder?.orderId && selectedOrder.totals.remainingAmount > 0 ? [selectedOrder.orderId] : [],
   )
@@ -1531,7 +1555,17 @@ function CheckoutSheet() {
     && order.totals.remainingAmount > 0
     && order.items.some((item) => item.guestSessionId === guestSessionId && item.unpaidQuantity > 0),
   ) || null, [guestSessionId, tableOrders])
-  const title = tab === 'orders' ? copy.tableOrders : tab === 'payment' ? labels.payment : labels.splitBill
+
+  useEffect(() => {
+    if (directSelfOrder) setTab('payment')
+    else if (selfHistoryOnly) setTab('orders')
+  }, [directSelfOrder?.orderId, selfHistoryOnly])
+
+  const title = directSelfOrder
+    ? labels.payment
+    : selfHistoryOnly
+      ? copy.tableOrders
+      : tab === 'orders' ? copy.tableOrders : tab === 'payment' ? labels.payment : labels.splitBill
   const canPaySelected = Boolean(selectedOrder?.orderId && selectedOrder.totals.remainingAmount > 0)
 
   const chooseForPayment = (order: TableOrderState, target: 'payment' | 'split' = 'payment') => {
@@ -1559,16 +1593,29 @@ function CheckoutSheet() {
     selectOrder(next[next.length - 1] || null)
   }
 
-  return (
-    <PanelShell title={title} subtitle={selectedOrder?.orderNumber ? `#${selectedOrder.orderNumber}` : (tableDisplay || labels.tableOrder)}>
-      <div className={styles.stack} data-pmd-table-round-flow="r27">
-        <div className={styles.tabs}>
-          <button className={`${styles.tab} ${tab === 'orders' ? styles.tabActive : ''}`} type="button" onClick={() => setTab('orders')}><Utensils /> {copy.tableOrders}</button>
-          <button className={`${styles.tab} ${tab === 'payment' ? styles.tabActive : ''}`} type="button" onClick={() => setTab('payment')}><CreditCard /> {labels.payment}</button>
-          <button className={`${styles.tab} ${tab === 'split' ? styles.tabActive : ''}`} type="button" onClick={() => setTab('split')}><Split /> {labels.splitBill}</button>
-        </div>
+  const renderedOrder = directSelfOrder || (selfHistoryOnly ? null : selectedOrder)
 
-        {tab === 'orders' && (
+  return (
+    <PanelShell title={title} subtitle={renderedOrder?.orderNumber ? `#${renderedOrder.orderNumber}` : (tableDisplay || labels.tableOrder)}>
+      <div className={styles.stack} data-pmd-table-round-flow="r27">
+        {!directSelfOrder && (
+          <div className={`${styles.tabs} ${selfHistoryOnly ? styles.tabsTwo : ''}`}>
+            {selfHistoryOnly ? (
+              <>
+                <button className={`${styles.tab} ${styles.tabActive}`} type="button" onClick={() => setTab('orders')}><Utensils /> {copy.tableOrders}</button>
+                <button className={styles.tab} type="button" onClick={continueOrdering}><Plus /> {labels.continueMenu}</button>
+              </>
+            ) : (
+              <>
+                <button className={`${styles.tab} ${tab === 'orders' ? styles.tabActive : ''}`} type="button" onClick={() => setTab('orders')}><Utensils /> {copy.tableOrders}</button>
+                <button className={`${styles.tab} ${tab === 'payment' ? styles.tabActive : ''}`} type="button" onClick={() => setTab('payment')}><CreditCard /> {labels.payment}</button>
+                <button className={`${styles.tab} ${tab === 'split' ? styles.tabActive : ''}`} type="button" onClick={() => setTab('split')}><Split /> {labels.splitBill}</button>
+              </>
+            )}
+          </div>
+        )}
+
+        {!directSelfOrder && (selfHistoryOnly || tab === 'orders') && (
           <>
             {cart.length > 0 && (
               <div className={styles.orderCard}>
@@ -1599,7 +1646,7 @@ function CheckoutSheet() {
               </section>
             )}
 
-            {!currentDraft && <button className={styles.secondary} type="button" onClick={continueOrdering}>{labels.continueMenu}</button>}
+            {!selfHistoryOnly && !currentDraft && <button className={styles.secondary} type="button" onClick={continueOrdering}>{labels.continueMenu}</button>}
 
             {orderingGuestCount > 1 && tableOrders.some((order) => order.totals.remainingAmount > 0) && (
               <section className={styles.orderCard} data-pmd-multi-guest-payment-hint="r33b">
@@ -1640,63 +1687,80 @@ function CheckoutSheet() {
           </>
         )}
 
-        {tab === 'payment' && (
-          <>
-            {tableOrders.length > 1 && (
-              <>
-                <div className={styles.invoicePicker} data-pmd-multi-order-picker="r32" aria-label={multiCopy.selectOrders}>
-                  {tableOrders.map((order) => {
-                    const payable = Boolean(order.orderId && order.totals.remainingAmount > 0)
-                    const active = payable
-                      ? selectedPaymentOrderIds.includes(order.orderId!)
-                      : selectedPaymentOrderIds.length === 0 && selectedOrderId === order.orderId
-                    return (
-                      <button
-                        key={order.orderId || order.orderNumber || 'order'}
-                        type="button"
-                        className={active ? styles.selected : ''}
-                        aria-pressed={active}
-                        onClick={() => togglePaymentOrder(order)}
-                      >
-                        #{order.orderNumber || order.orderId} · {formatCurrency(order.totals.remainingAmount)}
-                      </button>
-                    )
-                  })}
-                </div>
-                {selectedPaymentOrders.length > 0 && (
-                  <div className={styles.multiOrderSelectionSummary} data-pmd-multi-order-selection="r32">
-                    <span>{selectedPaymentOrders.length} {multiCopy.ordersSelected}</span>
-                    <strong>{multiCopy.combined}: {formatCurrency(selectedPaymentTotal)}</strong>
+        {!selfHistoryOnly && tab === 'payment' && (
+          directSelfOrder ? (
+            <>
+              <OrderTimeline order={directSelfOrder} />
+              {directSelfOrder.totals.remainingAmount > 0 ? (
+                <PaymentPanel key={`${directSelfOrder.orderId}-direct-self-payment`} order={directSelfOrder} mode="payment" guestSessionId={guestSessionId} />
+              ) : (
+                <>
+                  <div className={`${styles.statusMessage} ${styles.statusSuccess}`}>
+                    #{directSelfOrder.orderNumber || directSelfOrder.orderId} · {copy.paymentComplete} · {operationalStatusLabel(directSelfOrder, labels, copy)}
                   </div>
-                )}
-              </>
-            )}
+                  <InvoiceDownloadButton order={directSelfOrder} />
+                  <PaidOrderReviewCard key={directSelfOrder.orderId || directSelfOrder.orderNumber || 'paid-self-order'} order={directSelfOrder} />
+                </>
+              )}
+            </>
+          ) : (
+            <>
+              {tableOrders.length > 1 && (
+                <>
+                  <div className={styles.invoicePicker} data-pmd-multi-order-picker="r32" aria-label={multiCopy.selectOrders}>
+                    {tableOrders.map((order) => {
+                      const payable = Boolean(order.orderId && order.totals.remainingAmount > 0)
+                      const active = payable
+                        ? selectedPaymentOrderIds.includes(order.orderId!)
+                        : selectedPaymentOrderIds.length === 0 && selectedOrderId === order.orderId
+                      return (
+                        <button
+                          key={order.orderId || order.orderNumber || 'order'}
+                          type="button"
+                          className={active ? styles.selected : ''}
+                          aria-pressed={active}
+                          onClick={() => togglePaymentOrder(order)}
+                        >
+                          #{order.orderNumber || order.orderId} · {formatCurrency(order.totals.remainingAmount)}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  {selectedPaymentOrders.length > 0 && (
+                    <div className={styles.multiOrderSelectionSummary} data-pmd-multi-order-selection="r32">
+                      <span>{selectedPaymentOrders.length} {multiCopy.ordersSelected}</span>
+                      <strong>{multiCopy.combined}: {formatCurrency(selectedPaymentTotal)}</strong>
+                    </div>
+                  )}
+                </>
+              )}
 
-            {selectedPaymentOrders.length > 1 ? (
-              <MultiOrderPaymentPanel orders={selectedPaymentOrders} guestSessionId={guestSessionId} />
-            ) : selectedPaymentOrders.length === 1 ? (
-              <>
-                <OrderTimeline order={selectedPaymentOrders[0]} />
-                <PaymentPanel key={`${selectedPaymentOrders[0].orderId}-payment`} order={selectedPaymentOrders[0]} mode="payment" guestSessionId={guestSessionId} />
-              </>
-            ) : !selectedOrder ? (
-              <div className={styles.empty}>{multiCopy.selectOrders}</div>
-            ) : selectedOrder.totals.remainingAmount > 0 ? (
-              <div className={styles.empty}>{multiCopy.selectOrders}</div>
-            ) : (
-              <>
-                <OrderTimeline order={selectedOrder} />
-                <div className={`${styles.statusMessage} ${styles.statusSuccess}`}>
-                  #{selectedOrder.orderNumber || selectedOrder.orderId} · {copy.paymentComplete} · {operationalStatusLabel(selectedOrder, labels, copy)}
-                </div>
-                <InvoiceDownloadButton order={selectedOrder} />
-                <PaidOrderReviewCard key={selectedOrder.orderId || selectedOrder.orderNumber || 'paid-order'} order={selectedOrder} />
-              </>
-            )}
-          </>
+              {selectedPaymentOrders.length > 1 ? (
+                <MultiOrderPaymentPanel orders={selectedPaymentOrders} guestSessionId={guestSessionId} />
+              ) : selectedPaymentOrders.length === 1 ? (
+                <>
+                  <OrderTimeline order={selectedPaymentOrders[0]} />
+                  <PaymentPanel key={`${selectedPaymentOrders[0].orderId}-payment`} order={selectedPaymentOrders[0]} mode="payment" guestSessionId={guestSessionId} />
+                </>
+              ) : !selectedOrder ? (
+                <div className={styles.empty}>{multiCopy.selectOrders}</div>
+              ) : selectedOrder.totals.remainingAmount > 0 ? (
+                <div className={styles.empty}>{multiCopy.selectOrders}</div>
+              ) : (
+                <>
+                  <OrderTimeline order={selectedOrder} />
+                  <div className={`${styles.statusMessage} ${styles.statusSuccess}`}>
+                    #{selectedOrder.orderNumber || selectedOrder.orderId} · {copy.paymentComplete} · {operationalStatusLabel(selectedOrder, labels, copy)}
+                  </div>
+                  <InvoiceDownloadButton order={selectedOrder} />
+                  <PaidOrderReviewCard key={selectedOrder.orderId || selectedOrder.orderNumber || 'paid-order'} order={selectedOrder} />
+                </>
+              )}
+            </>
+          )
         )}
 
-        {tab === 'split' && (
+        {!selfHistoryOnly && !directSelfOrder && tab === 'split' && (
           <>
             {tableOrders.length > 1 && (
               <div className={styles.invoicePicker}>

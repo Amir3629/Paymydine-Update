@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect } from 'react'
 import { RuntimeOverlays as BaseRuntimeOverlays } from './RuntimeOverlays'
 import { useMenuRuntime } from '@/src/runtime/MenuRuntimeContext'
 
@@ -17,10 +17,9 @@ function copyFor(locale: string) {
 // Scenario presentation only. Payment, coupon, tip, provider and invoice owners
 // remain inside the proven RuntimeOverlays/payment components.
 // React-owned child nodes are never rewritten here.
+// PMD_R64_FINAL_SELF_HISTORY_INVOICE_TABLE_LIFECYCLE
 export function RuntimeOverlays() {
   const runtime = useMenuRuntime()
-  const autoOpenedPaymentFor = useRef<number | null>(null)
-
   useEffect(() => {
     const copy = copyFor(runtime.locale)
     document.querySelectorAll<HTMLElement>('[data-pmd-direct-kitchen-send="r33b"]').forEach((button) => {
@@ -34,34 +33,13 @@ export function RuntimeOverlays() {
     if (!root) return
     root.setAttribute('data-pmd-ordering-flow', 'r60t')
 
-    const selected = runtime.selectedOrder as any
-    const isSelfOrder = selected?.orderOrigin === 'guest_self'
+    const currentSelected = runtime.selectedOrder as any
+    const isSelfOrder = currentSelected?.orderOrigin === 'guest_self'
+    const hasSharedStaffOrder = runtime.tableOrders.some((order: any) => order?.orderOrigin === 'staff_shared')
     root.setAttribute('data-pmd-r60t-self-order', isSelfOrder ? 'true' : 'false')
+    root.setAttribute('data-pmd-r60t-has-staff-shared', hasSharedStaffOrder ? 'true' : 'false')
 
-    const tabBar = root.firstElementChild as HTMLElement | null
-    const tabButtons = tabBar ? Array.from(tabBar.querySelectorAll<HTMLButtonElement>(':scope > button')) : []
-    const paymentTab = tabButtons[1]
-    const splitTab = tabButtons[2]
-
-    if (splitTab) {
-      splitTab.toggleAttribute('aria-hidden', isSelfOrder)
-      splitTab.toggleAttribute('disabled', isSelfOrder)
-    }
-
-    if (
-      isSelfOrder
-      && Number(selected?.orderId || 0) > 0
-      && Number(selected?.totals?.remainingAmount || 0) > 0
-      && runtime.overlay === 'checkout'
-      && autoOpenedPaymentFor.current !== Number(selected.orderId)
-      && paymentTab
-    ) {
-      autoOpenedPaymentFor.current = Number(selected.orderId)
-      paymentTab.click()
-    }
-
-    if (!isSelfOrder) autoOpenedPaymentFor.current = null
-  }, [runtime.locale, runtime.orderLoading, runtime.overlay, runtime.selectedOrder])
+  }, [runtime.locale, runtime.orderLoading, runtime.overlay, runtime.selectedOrder, runtime.tableOrders])
 
   return (
     <>
@@ -73,17 +51,6 @@ export function RuntimeOverlays() {
           content: attr(data-pmd-r60t-label);
           font-size: 0.95rem;
           line-height: 1.2;
-        }
-        [data-pmd-ordering-flow="r60t"][data-pmd-r60t-self-order="true"] > :first-child {
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 0.5rem;
-        }
-        [data-pmd-ordering-flow="r60t"][data-pmd-r60t-self-order="true"] > :first-child > button {
-          min-height: 3rem;
-          font-size: 0.82rem;
-        }
-        [data-pmd-ordering-flow="r60t"][data-pmd-r60t-self-order="true"] > :first-child > button:nth-child(3) {
-          display: none;
         }
         [data-pmd-ordering-flow="r60t"] article[data-pmd-order-id] > :last-child {
           grid-template-columns: minmax(0, 1fr);

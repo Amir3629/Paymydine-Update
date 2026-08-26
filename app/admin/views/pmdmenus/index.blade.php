@@ -5,10 +5,12 @@
     $canManageCategories = !empty($pmdMenuManagerCanManageCategories);
     $canDeleteCategories = !empty($pmdMenuManagerCanDeleteCategories);
     $canManageCombos = !empty($pmdMenuManagerCanManageCombos);
-    $hasCombos = !empty($pmdMenuManagerHasCombos) || count($combos) > 0;
+    // PMD_MENU_COMBO_CATEGORY_SINGLE_AUTHORITY_V1
+    $comboCategoryId = (int)($pmdMenuManagerComboCategoryId ?? 0);
+    $comboCategoryName = trim((string)($pmdMenuManagerComboCategoryName ?? ''));
     $stats = $pmdMenuManagerStats ?? ['total' => 0, 'published' => 0, 'stock_out' => 0, 'foods' => 0, 'combos' => 0];
     $disabledCount = max(0, (int)$stats['total'] - (int)$stats['published']);
-    $categoryCount = (is_countable($categories) ? count($categories) : 0) + ($hasCombos ? 1 : 0);
+    $categoryCount = is_countable($categories) ? count($categories) : 0;
     $totalCatalogueCards = count($cards) + count($combos);
 
     // PMD_MENU_HEADER_SERVER_COUNT_V2
@@ -99,6 +101,7 @@
     data-pmd-menu-manager
     data-pmd-combo-builder="0"
     data-pmd-can-manage-combos="{{ $canManageCombos ? '1' : '0' }}"
+    data-pmd-combo-category-id="{{ $comboCategoryId > 0 ? $comboCategoryId : '' }}"
     data-pmd-can-delete-categories="{{ $canDeleteCategories ? '1' : '0' }}"
     data-pmd-category-context="all"
 >
@@ -757,6 +760,7 @@
                     type="button"
                     data-pmd-category-filter="{{ (int)$category->category_id }}"
                     data-pmd-category-id="{{ (int)$category->category_id }}"
+                    data-pmd-category-kind="{{ strtolower(trim((string)($category->pmd_kind ?? 'regular'))) }}"
                     @if($canManageCategories) data-pmd-category-sortable @endif
                 >
                     <span class="pmd-menu-manager__category-label">{{ $category->name }}</span>
@@ -777,9 +781,6 @@
                     @endif
                 </button>
             @endforeach
-            @if($hasCombos)
-                <button type="button" data-pmd-category-filter="combos" data-pmd-category-fixed>{{ $pmdT('combos') }}</button>
-            @endif
             @if($canManageCategories)
                 <button
                     type="button"
@@ -920,7 +921,7 @@
                     data-pmd-menu-card
                     data-item-type="combo"
                     data-combo-id="{{ (int)$combo['id'] }}"
-                    data-category-ids="combos"
+                    data-category-ids="{{ $comboCategoryId > 0 ? $comboCategoryId : '' }}"
                     data-stock-out="0"
                     data-published="{{ $combo['combo_status'] ? '1' : '0' }}"
                     data-combo-selectable="0"
@@ -959,7 +960,7 @@
                                 @endforeach
                             </div>
                         @endif
-                        <span class="pmd-menu-card__category">{{ $pmdT('combos') }}</span>
+                        <span class="pmd-menu-card__category">{{ $comboCategoryName !== '' ? $comboCategoryName : $pmdT('combos') }}</span>
                         @if(!$combo['combo_status'])<span class="pmd-menu-card__visibility">{{ $pmdT('disabled') }}</span>@endif
                     </div>
 

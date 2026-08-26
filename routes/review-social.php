@@ -117,20 +117,35 @@ use Illuminate\Support\Facades\DB;
             return response('Invoice session not found', 404);
         }
 
-        $submittedDraft = \Illuminate\Support\Facades\DB::table('pmd_table_order_drafts')
+        // PMD_R64_FINAL_SELF_HISTORY_INVOICE_TABLE_LIFECYCLE
+        // Multiple submitted pointers can exist for one canonical order (for
+        // example a private QR invoice pointer plus older compatibility rows).
+        // The existing HMAC token itself identifies the correct session key.
+        $submittedDrafts = \Illuminate\Support\Facades\DB::table('pmd_table_order_drafts')
             ->where('status', 'submitted')
             ->where('order_id', $orderId)
             ->orderByDesc('id')
-            ->first();
-        $sessionKey = trim((string)($submittedDraft->session_key ?? ''));
-        if (!$submittedDraft || $sessionKey === '') return response('Invoice session not found', 404);
+            ->limit(80)
+            ->get();
+        if ($submittedDrafts->isEmpty()) return response('Invoice session not found', 404);
 
-        $expectedToken = hash_hmac(
-            'sha256',
-            $request->getHost().'|'.$orderId.'|'.$sessionKey,
-            (string)config('app.key')
-        );
-        if (!hash_equals($expectedToken, $token)) return response('Invalid invoice token', 403);
+        $submittedDraft = null;
+        $sessionKey = '';
+        foreach ($submittedDrafts as $candidate) {
+            $candidateKey = trim((string)($candidate->session_key ?? ''));
+            if ($candidateKey === '') continue;
+            $candidateToken = hash_hmac(
+                'sha256',
+                $request->getHost().'|'.$orderId.'|'.$candidateKey,
+                (string)config('app.key')
+            );
+            if (hash_equals($candidateToken, $token)) {
+                $submittedDraft = $candidate;
+                $sessionKey = $candidateKey;
+                break;
+            }
+        }
+        if (!$submittedDraft || $sessionKey === '') return response('Invalid invoice token', 403);
 
         $order = \Admin\Models\Orders_model::query()->where('order_id', $orderId)->first();
         if (!$order) return response('Invoice not found', 404);

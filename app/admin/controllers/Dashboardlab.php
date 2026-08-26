@@ -1423,22 +1423,45 @@ class Dashboardlab extends AdminController
                 ?? ''
             )));
 
+            // PMD_R65_ORDERS_SWITCH_PHYSICAL_FLOOR_AUTHORITY
+            // Physical table occupancy is independent from kitchen/payment state.
+            // If the canonical table row provides operational_status, it owns the
+            // available/occupied/cleaning/reserved decision. Order-derived status
+            // is compatibility fallback only for legacy rows without that field.
+            $operationalStatus = strtolower(trim((string)(
+                $raw['operational_status']
+                ?? $raw['table_operational_status']
+                ?? ''
+            )));
+            if ($operationalStatus === 'free') $operationalStatus = 'available';
+            $hasOperationalAuthority = in_array(
+                $operationalStatus,
+                ['available', 'occupied', 'cleaning', 'reserved'],
+                true
+            );
+
             $waiterCall = $rawStatus === 'waiter-call'
                 || $this->floorBool($raw['waiter_call'] ?? false)
                 || $this->floorBool($raw['needs_waiter'] ?? false)
                 || $this->floorBool($raw['call_waiter'] ?? false);
 
-            $cleaning = $rawStatus === 'cleaning'
-                || $this->floorBool($raw['cleaning_required'] ?? false)
-                || $this->floorBool($raw['needs_cleaning'] ?? false);
+            $cleaning = $hasOperationalAuthority
+                ? $operationalStatus === 'cleaning'
+                : ($rawStatus === 'cleaning'
+                    || $this->floorBool($raw['cleaning_required'] ?? false)
+                    || $this->floorBool($raw['needs_cleaning'] ?? false));
 
-            $reserved = $rawStatus === 'reserved'
-                || $this->floorBool($raw['reserved'] ?? false)
-                || $this->floorBool($raw['is_reserved'] ?? false);
+            $reserved = $hasOperationalAuthority
+                ? $operationalStatus === 'reserved'
+                : ($rawStatus === 'reserved'
+                    || $this->floorBool($raw['reserved'] ?? false)
+                    || $this->floorBool($raw['is_reserved'] ?? false));
 
-            $occupied = $rawStatus === 'occupied'
-                || count($linkedOrders) > 0
-                || (int)($raw['open_orders'] ?? 0) > 0;
+            $occupied = $hasOperationalAuthority
+                ? $operationalStatus === 'occupied'
+                : ($rawStatus === 'occupied'
+                    || count($linkedOrders) > 0
+                    || (int)($raw['open_orders'] ?? 0) > 0);
 
             $note = trim((string)(
                 $custom['note']

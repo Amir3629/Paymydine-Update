@@ -131,7 +131,10 @@ class VrPaymentApiClient
         return $this->request(
             'GET',
             '/api/v2.0/payment/transactions/'.$transactionId.'/payment-method-configurations',
-            ['integrationMode' => $integrationMode]
+            [
+                'integrationMode' => $integrationMode,
+                'expand' => 'paymentMethod', // PMD_VR_AVAILABLE_METHOD_EXPAND_R1_4_3
+            ]
         );
     }
 

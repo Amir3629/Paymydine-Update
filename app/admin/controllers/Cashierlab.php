@@ -131,6 +131,12 @@ class Cashierlab extends PmdCleanWorkspaceControllerV1
             $quickFloorBootstrap =
                 $quickShared->floorBootstrap();
 
+            // PMD_R66_SHARED_FLOOR_PHYSICAL_STATUS_AUTHORITY
+            $quickFloorBootstrap =
+                $this->pmdApplyPhysicalOperationalStatusAuthority(
+                    $quickFloorBootstrap
+                );
+
             $quickRegistry =
                 $this->pmdSharedFloorRegistrySnapshot(
                     $quickLocationId

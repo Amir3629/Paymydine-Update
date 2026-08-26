@@ -1,5 +1,7 @@
 <?php
 
+// PMD_R61_TABLE_VISIT_LEASE
+
                 // Single source of truth for menu: see Route::get('/menu', ...) at top of this v1 group (with DetectTenant + combos).
 
                 Route::get('/categories', function () {
@@ -51,13 +53,15 @@
                 });
 
                 // Valet request endpoint (simplified to match waiter-call & table-notes)
-                Route::post('/valet-request', function (\Illuminate\Http\Request $request) {
+                Route::post('/valet-request', function (\Illuminate\Http\Request $request) use ($pmdR61GuestActionLeaseValid, $pmdR61ExpiredAction) {
                     $data = $request->validate([
                         'table_id'      => 'required|string',
                         'name'          => 'required|string|max:120',
                         'license_plate' => 'required|string|max:60',
                         'car_make'      => 'nullable|string|max:60',
                     ]);
+
+                    if (!$pmdR61GuestActionLeaseValid($data['table_id'])) return $pmdR61ExpiredAction();
 
                     // Get table info from database to get correct table_name
                     $tableInfo = \App\Helpers\TableHelper::getTableInfo($data['table_id']);
@@ -89,7 +93,7 @@
                 });
 
                 // --- Waiter Call ------------------------------------------------------------
-                Route::post('/waiter-call', function (\Illuminate\Http\Request $request) {
+                Route::post('/waiter-call', function (\Illuminate\Http\Request $request) use ($pmdR61GuestActionLeaseValid, $pmdR61ExpiredAction) {
                     // Accept both table_id and tableId; msg optional
                     $payload = $request->validate([
                         'table_id' => 'nullable|string',
@@ -101,6 +105,8 @@
                     if (!$table) {
                         return response()->json(['ok' => false, 'error' => 'table_id is required'], 422);
                     }
+
+                    if (!$pmdR61GuestActionLeaseValid($table)) return $pmdR61ExpiredAction();
 
                     // Get table info from database to get correct table_name
                     $tableInfo = \App\Helpers\TableHelper::getTableInfo($table);
@@ -127,7 +133,7 @@
                 });
 
                 // --- Table Note --------------------------------------------------------------
-                Route::post('/table-notes', function (\Illuminate\Http\Request $request) {
+                Route::post('/table-notes', function (\Illuminate\Http\Request $request) use ($pmdR61GuestActionLeaseValid, $pmdR61ExpiredAction) {
                     $payload = $request->validate([
                         'table_id' => 'nullable|string',
                         'tableId'  => 'nullable|string',
@@ -143,6 +149,8 @@
                     $tableInfo = \App\Helpers\TableHelper::getTableInfo($table);
                     $tableName = $tableInfo ? $tableInfo['table_name'] : "Table {$table}";
                     $tableOnly = $table;
+
+                    if (!$pmdR61GuestActionLeaseValid($table)) return $pmdR61ExpiredAction();
 
                     $id = DB::table('notifications')->insertGetId([
                         'type'       => 'table_note',

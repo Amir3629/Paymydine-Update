@@ -190,6 +190,7 @@
 .statusSuccess { background: rgba(33, 151, 98, .12); color: #1d8a5c; }
 .statusError { background: rgba(181, 65, 65, .12); color: #b54141; }
 .tabs { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: .35rem; border: 1px solid var(--pmd-line, rgba(0,0,0,.12)); border-radius: 999px; padding: .3rem; }
+.tabsTwo { grid-template-columns: repeat(2, minmax(0,1fr)); } /* PMD_R65_ORDERS_SWITCH_PHYSICAL_FLOOR_AUTHORITY */
 .tab { min-height: 2.5rem; border: 0; border-radius: 999px; background: transparent; color: inherit; font-size: .73rem; font-weight: 800; cursor: pointer; }
 .tabActive { background: var(--pmd-accent, #111); color: var(--pmd-accentText, #fff); }
 .orderCard { display: grid; gap: .7rem; border: 1px solid var(--pmd-line, rgba(0,0,0,.13)); border-radius: 1.1rem; padding: .9rem; background: var(--pmd-soft, rgba(0,0,0,.03)); }

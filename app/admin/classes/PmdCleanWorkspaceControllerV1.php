@@ -1526,6 +1526,17 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
             }
         }
 
+        // PMD_R66_SHARED_FLOOR_PHYSICAL_STATUS_AUTHORITY
+        // Payment/KDS state is not physical occupancy. Re-apply the canonical
+        // tables.operational_status after all Floor view-preference transforms
+        // so first paint and pmd_live snapshots share the same physical owner.
+        if ($this->pmdUsesFloor()) {
+            $floorBootstrap =
+                $this->pmdApplyPhysicalOperationalStatusAuthority(
+                    $floorBootstrap
+                );
+        }
+
         $pmdSharedFloorLocationId = $this->pmdUsesFloor()
             ? $this->pmdFloorTableManagerLocationId()
             : 0;
@@ -1704,6 +1715,223 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
         }
 
         return $this->makeView($key.'lab/index');
+    }
+
+    /**
+     * PMD_R66_SHARED_FLOOR_PHYSICAL_STATUS_AUTHORITY
+     *
+     * One physical table-status owner for every clean shared Floor.
+     * Financial settlement and KDS readiness may remove an order from the open
+     * order feed, but they may never make the physical table available.
+     * `available` is trusted only when the canonical tables row says so after an
+     * explicit staff lifecycle transition.
+     */
+    protected function pmdApplyPhysicalOperationalStatusAuthority(
+        array $bootstrap
+    ): array {
+        try {
+            if (
+                !\Illuminate\Support\Facades\Schema::hasTable('tables')
+                || !\Illuminate\Support\Facades\Schema::hasColumn(
+                    'tables',
+                    'operational_status'
+                )
+            ) {
+                return $bootstrap;
+            }
+
+            $columns =
+                \Illuminate\Support\Facades\Schema::getColumnListing(
+                    'tables'
+                );
+
+            $pk = in_array('table_id', $columns, true)
+                ? 'table_id'
+                : (in_array('id', $columns, true) ? 'id' : null);
+
+            if (!$pk) return $bootstrap;
+
+            $select = [$pk, 'operational_status'];
+            foreach (['table_no', 'pos_table_label'] as $column) {
+                if (in_array($column, $columns, true)) {
+                    $select[] = $column;
+                }
+            }
+
+            $byId = [];
+            $byLabel = [];
+
+            foreach (
+                \Illuminate\Support\Facades\DB::table('tables')
+                    ->get(array_values(array_unique($select)))
+                as $table
+            ) {
+                $status = strtolower(trim((string)(
+                    $table->operational_status ?? ''
+                )));
+                if ($status === 'free') $status = 'available';
+
+                if (!in_array(
+                    $status,
+                    ['available', 'occupied', 'cleaning', 'reserved'],
+                    true
+                )) {
+                    continue;
+                }
+
+                $id = (int)($table->{$pk} ?? 0);
+                if ($id > 0) $byId[$id] = $status;
+
+                foreach (['table_no', 'pos_table_label'] as $column) {
+                    if (!in_array($column, $columns, true)) continue;
+                    $label = strtolower(trim((string)(
+                        $table->{$column} ?? ''
+                    )));
+                    if ($label !== '') $byLabel[$label] = $status;
+                }
+            }
+
+            if (!$byId && !$byLabel) return $bootstrap;
+
+            $priority = [
+                'available' => 1,
+                'occupied' => 2,
+                'reserved' => 3,
+                'cleaning' => 4,
+            ];
+
+            $resolve = static function (array $row) use (
+                $byId,
+                $byLabel,
+                $priority
+            ): ?string {
+                // Merged Floor cards inherit the strongest physical state from
+                // their canonical member table ids.
+                $memberStatuses = [];
+                foreach ((array)($row['member_ids'] ?? []) as $memberId) {
+                    $memberId = (int)$memberId;
+                    if ($memberId > 0 && isset($byId[$memberId])) {
+                        $memberStatuses[] = $byId[$memberId];
+                    }
+                }
+                if ($memberStatuses) {
+                    usort(
+                        $memberStatuses,
+                        static fn ($left, $right) =>
+                            ($priority[$right] ?? 0)
+                            <=> ($priority[$left] ?? 0)
+                    );
+                    return $memberStatuses[0];
+                }
+
+                // Explicit canonical DB identities first.
+                foreach (
+                    ['dbTableId', 'db_table_id', 'table_id']
+                    as $key
+                ) {
+                    $id = (int)($row[$key] ?? 0);
+                    if ($id > 0 && isset($byId[$id])) {
+                        return $byId[$id];
+                    }
+                }
+
+                // `id` is accepted only if it actually exists in the canonical
+                // DB-id map. We never infer that a displayed table number is an id.
+                $rowId = (int)($row['id'] ?? 0);
+                if ($rowId > 0 && isset($byId[$rowId])) {
+                    return $byId[$rowId];
+                }
+
+                // Exact display-label matching is a separate label lookup, not
+                // a DB-id conversion.
+                foreach (
+                    [
+                        'table_no',
+                        'table_number',
+                        'number',
+                        'pos_table_label',
+                    ] as $key
+                ) {
+                    $label = strtolower(trim((string)(
+                        $row[$key] ?? ''
+                    )));
+                    if ($label !== '' && isset($byLabel[$label])) {
+                        return $byLabel[$label];
+                    }
+                }
+
+                return null;
+            };
+
+            $applyRows = static function ($rows) use ($resolve): array {
+                if (!is_array($rows)) return [];
+
+                foreach ($rows as &$row) {
+                    if (!is_array($row)) continue;
+                    $physical = $resolve($row);
+                    if ($physical === null) continue;
+
+                    $row['operational_status'] = $physical;
+                    $row['table_operational_status'] = $physical;
+                    $row['physical_status'] = $physical;
+
+                    $current = strtolower(trim((string)(
+                        $row['status'] ?? ''
+                    )));
+                    $hasAttention = in_array(
+                        $current,
+                        ['attention', 'waiter-call'],
+                        true
+                    )
+                        || !empty($row['waiter_call'])
+                        || trim((string)($row['note'] ?? '')) !== '';
+
+                    // Attention can decorate an occupied table. Otherwise the
+                    // canonical physical state owns the Floor colour outright.
+                    if (!$hasAttention) {
+                        $row['status'] = $physical;
+                    }
+                }
+                unset($row);
+
+                return array_values($rows);
+            };
+
+            if (array_key_exists('display_tables', $bootstrap)) {
+                $bootstrap['display_tables'] = $applyRows(
+                    $bootstrap['display_tables']
+                );
+            }
+
+            if (is_array($bootstrap['data'] ?? null)) {
+                if (is_array($bootstrap['data']['tables'] ?? null)) {
+                    $bootstrap['data']['tables'] = $applyRows(
+                        $bootstrap['data']['tables']
+                    );
+                }
+
+                if (is_array(
+                    $bootstrap['data']['sections']['floor_plan']['tables']
+                    ?? null
+                )) {
+                    $bootstrap['data']['sections']['floor_plan']['tables'] =
+                        $applyRows(
+                            $bootstrap['data']['sections']['floor_plan']['tables']
+                        );
+                }
+            }
+
+            return $bootstrap;
+        } catch (\Throwable $error) {
+            logger()->warning(
+                'Shared Floor physical status authority overlay failed',
+                [
+                    'workspace' => $this->pmdWorkspaceKey(),
+                    'message' => $error->getMessage(),
+                ]
+            );
+            return $bootstrap;
+        }
     }
 
     protected function pmdWorkspaceTitle(string $locale): string

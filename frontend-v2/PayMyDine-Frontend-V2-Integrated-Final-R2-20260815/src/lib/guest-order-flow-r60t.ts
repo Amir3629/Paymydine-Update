@@ -15,6 +15,19 @@ export type GuestOrdersState = {
   updatedAt: string | null
 }
 
+// PMD_R61_TABLE_VISIT_LEASE
+export class GuestTableSessionError extends Error {
+  code: string
+  status: number
+
+  constructor(message: string, code: string, status: number) {
+    super(message)
+    this.name = 'GuestTableSessionError'
+    this.code = code
+    this.status = status
+  }
+}
+
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, {
     credentials: 'same-origin',
@@ -22,7 +35,14 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
     ...init,
   })
   const data = await response.json().catch(() => ({}))
-  if (!response.ok || data?.success === false) throw new Error(String(data?.error || data?.message || `HTTP ${response.status}`))
+  if (!response.ok || data?.success === false) {
+    const code = String(data?.code || '')
+    const message = String(data?.error || data?.message || `HTTP ${response.status}`)
+    if (response.status === 409 || response.status === 410 || code === 'TABLE_SESSION_EXPIRED' || code === 'SESSION_ROTATION_REQUIRED') {
+      throw new GuestTableSessionError(message, code || `HTTP_${response.status}`, response.status)
+    }
+    throw new Error(message)
+  }
   return data as T
 }
 
@@ -115,10 +135,23 @@ function normalizeOrder(payload: any): GuestOrderState {
   }
 }
 
+
+export async function activateGuestTableSession(table: TableContext, guestSessionId: string, scanQr: string): Promise<void> {
+  await request('/api/v1/guest-orders/activate', {
+    method: 'POST',
+    body: JSON.stringify({
+      ...Object.fromEntries(paramsForTable(table)),
+      guest_session_id: guestSessionId,
+      qr: scanQr,
+    }),
+  })
+}
+
 export async function fetchGuestOrdersState(table: TableContext, guestSessionId: string): Promise<GuestOrdersState> {
   const params = paramsForTable(table)
   params.set('guest_session_id', guestSessionId)
   const payload = await request<any>(`/api/v1/guest-orders/state?${params.toString()}`)
+  if (payload?.sessionExpired) throw new GuestTableSessionError('This table visit has ended. Scan the table QR again.', 'TABLE_SESSION_EXPIRED', 410)
   const selfOrders = Array.isArray(payload?.selfOrders) ? payload.selfOrders.map(normalizeOrder) : []
   const sharedStaffOrders = Array.isArray(payload?.sharedStaffOrders) ? payload.sharedStaffOrders.map(normalizeOrder) : []
   return {

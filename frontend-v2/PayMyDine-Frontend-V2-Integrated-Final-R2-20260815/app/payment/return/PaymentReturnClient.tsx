@@ -36,6 +36,7 @@ export default function PaymentReturnClient() {
   const [state, setState] = useState<State>('checking')
   const [message, setMessage] = useState('Verifying your payment with PayMyDine…')
   const [returnTo, setReturnTo] = useState('/')
+  const [returnResolved, setReturnResolved] = useState(false) // PMD_VR_RETURN_RESUME_R1_4_4
   const params = useMemo(
     () => new URLSearchParams(typeof window === 'undefined' ? '' : window.location.search),
     [],
@@ -51,6 +52,7 @@ export default function PaymentReturnClient() {
       const pending = foundPending?.pending || null
       const fallback = safeReturnPath(pending?.returnTo || params.get('return_to') || '/')
       setReturnTo(fallback)
+      setReturnResolved(true)
 
       if (!provider || !pending) {
         setState('pending')
@@ -186,6 +188,22 @@ export default function PaymentReturnClient() {
     void run()
     return () => { cancelled = true }
   }, [params])
+
+  // PMD_VR_RETURN_RESUME_R1_4_4
+  // VR Payment Lightbox intentionally redirects the top-level window to successUrl
+  // or failedUrl after processing. Keep the canonical /payment/return verification
+  // authority, then resume the original PayMyDine table URL in the SAME tab.
+  // window.location.replace prevents Back from re-entering the provider return page.
+  useEffect(() => {
+    if (!returnResolved || (state !== 'paid' && state !== 'cancelled')) return
+    if (!returnTo || returnTo.startsWith('/payment/return')) return
+
+    const timer = window.setTimeout(() => {
+      window.location.replace(returnTo)
+    }, state === 'paid' ? 900 : 500)
+
+    return () => window.clearTimeout(timer)
+  }, [returnResolved, returnTo, state])
 
   const Icon = state === 'paid'
     ? CheckCircle2

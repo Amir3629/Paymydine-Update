@@ -53,10 +53,28 @@ class Pmdmenus extends AdminController
         if (Schema::hasColumn('categories', 'status')) {
             $categories->where('status', 1);
         }
+        // PMD_MENU_COMBO_CATEGORY_SINGLE_AUTHORITY_V1
+        // A Combination category is a real categories row (pmd_kind=combos).
+        // Do not create or present a second synthetic "Combos" category.
+        $pmdCategoryColumnsV1 = ['category_id', 'name'];
+        if (Schema::hasColumn('categories', 'pmd_kind')) {
+            $pmdCategoryColumnsV1[] = 'pmd_kind';
+        }
+
         $categories = $categories
             ->orderByRaw('COALESCE(priority, 999999) ASC')
             ->orderBy('name', 'asc')
-            ->get(['category_id', 'name']);
+            ->get($pmdCategoryColumnsV1);
+
+        $pmdMenuComboCategoryV1 = $categories->first(static function ($category) {
+            return strtolower(trim((string)($category->pmd_kind ?? 'regular'))) === 'combos';
+        });
+        $pmdMenuComboCategoryIdV1 = $pmdMenuComboCategoryV1
+            ? (int)$pmdMenuComboCategoryV1->category_id
+            : 0;
+        $pmdMenuComboCategoryNameV1 = $pmdMenuComboCategoryV1
+            ? trim((string)$pmdMenuComboCategoryV1->name)
+            : '';
 
         $allergens = collect();
         if (Schema::hasTable('allergens')) {
@@ -336,6 +354,8 @@ class Pmdmenus extends AdminController
         $this->vars['pmdMenuManagerAllergens'] = $allergens;
         $this->vars['pmdMenuManagerCombos'] = $comboCards;
         $this->vars['pmdMenuManagerComboCatalog'] = $comboCatalog;
+        $this->vars['pmdMenuManagerComboCategoryId'] = $pmdMenuComboCategoryIdV1;
+        $this->vars['pmdMenuManagerComboCategoryName'] = $pmdMenuComboCategoryNameV1;
         $this->vars['pmdMenuManagerCanManageCategories'] = (bool)$canManageCategories;
         $this->vars['pmdMenuManagerCanDeleteCategories'] = (bool)$canDeleteCategories;
         $this->vars['pmdMenuManagerCanManageCombos'] = (bool)$canManageCombos;

@@ -103,6 +103,23 @@
     return document.querySelector('[data-pmd-menu-manager]');
   }
 
+  // PMD_MENU_COMBO_CATEGORY_SINGLE_AUTHORITY_V1
+  // Combination products belong to the one real pmd_kind=combos category.
+  // Keep a legacy-string fallback only for rollback/backward-compatible DOM.
+  function comboCategoryFilter() {
+    var node = manager();
+    if (!node) return 'all';
+    var id = String(node.dataset.pmdComboCategoryId || '').trim();
+    if (id) return id;
+    return node.querySelector('[data-pmd-category-filter="combos"]') ? 'combos' : 'all';
+  }
+
+  function isComboCategory(value) {
+    var text = String(value == null ? '' : value);
+    var current = comboCategoryFilter();
+    return text === 'combos' || (current !== 'all' && text === current);
+  }
+
   function readJson(id) {
     var node = document.getElementById(id);
     if (!node) return {};
@@ -809,7 +826,7 @@
     var node = manager();
     if (!node || node.dataset.pmdCanManageCombos === '0') return;
     comboBuilderRestoreCategory = filterState.category;
-    if (filterState.category === 'combos') filterState.category = 'all';
+    if (isComboCategory(filterState.category)) filterState.category = 'all';
     selectedComboFoodIds.clear();
     node.dataset.pmdComboBuilder = '1';
     node.querySelectorAll('[data-pmd-menu-card]').forEach(function (card) { card.classList.remove('is-combo-selected'); });
@@ -937,7 +954,7 @@
     setStatus(tr('saving', 'Saving...'));
     try {
       var result = await backend('/admin/combos', 'onPmdMenuManagerSaveV12', formData);
-      await refreshManager('combos');
+      await refreshManager(comboCategoryFilter());
       setStatus(tr('saved', 'Saved'), 'ok');
       setBusy(false);
       closeModal();
@@ -986,7 +1003,7 @@
     setStatus(tr('deleting', 'Deleting...'));
     try {
       await backend(target.kind === 'combo' ? '/admin/combos' : '/admin/menus', 'onPmdMenuManagerDeleteV129', formData);
-      var refreshTarget = target.kind === 'combo' && filterState.category === 'combos' ? 'combos' : filterState.category;
+      var refreshTarget = target.kind === 'combo' && isComboCategory(filterState.category) ? comboCategoryFilter() : filterState.category;
       await refreshManager(refreshTarget);
       setStatus(target.kind === 'combo' ? tr('combo_deleted', 'Combo deleted') : tr('food_deleted', 'Food deleted'), 'ok');
       setBusy(false);
@@ -2046,7 +2063,7 @@
     sortStatus('');
 
     if (
-      filterState.category === 'combos'
+      isComboCategory(filterState.category)
     ) {
       sortKind = 'combo';
     } else {
@@ -2137,7 +2154,7 @@
 
     if (
       sortScopeCategory === 'all'
-      || sortScopeCategory === 'combos'
+      || isComboCategory(sortScopeCategory)
     ) {
       sortScopeFoodIds = [];
       return;
@@ -2154,7 +2171,7 @@
 
     if (
       sortScopeCategory === 'all'
-      || sortScopeCategory === 'combos'
+      || isComboCategory(sortScopeCategory)
       || !sortScopeFoodIds.length
     ) {
       return captureSortOrder('food');
@@ -2236,7 +2253,7 @@
       if (
         sortKind === 'food'
         && sortScopeCategory !== 'all'
-        && sortScopeCategory !== 'combos'
+        && !isComboCategory(sortScopeCategory)
       ) {
         /*
          * Normalize the live DOM to the exact sequence that
@@ -3690,7 +3707,7 @@
     if (category && node.contains(category)) {
       if (sortMode) return;
       var categoryValue = category.getAttribute('data-pmd-category-filter') || 'all';
-      if (isComboBuilder() && categoryValue === 'combos') return;
+      if (isComboBuilder() && isComboCategory(categoryValue)) return;
       filterState.category = categoryValue;
       node.querySelectorAll('[data-pmd-category-filter]').forEach(function (button) {
         button.classList.toggle('is-active', button === category);
