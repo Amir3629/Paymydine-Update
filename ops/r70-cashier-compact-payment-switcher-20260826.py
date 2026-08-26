@@ -70,6 +70,13 @@ if r70_marker not in s:
     var ledger = rootQuery('[data-coc-payment-ledger]');
     var review = rootQuery('[data-coc-settlement-review]');
 
+    // In Cashier mode Payment V3 renders paymentPayable() in this hero. The
+    // value is the amount for this payer now, not the whole order total.
+    var payNowLabel = rootQuery(
+      '[data-pos-payment-balance] .pmd-pos-balance-hero > span'
+    );
+    if (payNowLabel) payNowLabel.textContent = 'Pay now';
+
     if (!snapshot) {
       if (ledger) {
         ledger.hidden = true;
@@ -529,5 +536,6 @@ print('- Balance / Receipts switch inline inside the order rail')
 print('- Review bill button and duplicate large modal entry removed')
 print('- Invoice appears only as a small action after full settlement')
 print('- Pay modal settlement context reduced to one slim strip')
+print('- cashier payment amount is labelled Pay now, not Total')
 print('- Payment V3 implementation hash unchanged:', payment_hash_after)
 print('Next: php artisan view:clear && sudo systemctl reload php8.3-fpm')
