@@ -67,7 +67,7 @@ export function MenuRuntimeProvider({
   )
 }
 
-export function useMenuRuntime(): any {
+export function useMenuRuntime(): ReturnType<typeof useBaseMenuRuntime> {
   const base = useBaseMenuRuntime()
   const isR60tActive = !base.isPreview && Boolean(base.bootstrap.features.tableOrdering && (base.bootstrap.table.id || base.bootstrap.table.number || base.bootstrap.table.qr))
   const [flowGuestSessionId, setFlowGuestSessionId] = useState('')
