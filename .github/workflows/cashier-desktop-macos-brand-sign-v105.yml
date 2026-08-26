@@ -43,8 +43,9 @@ jobs:
           grep -q '"version": "1.0.5"' package.json
           grep -q '"icon": "build/icon.svg"' package.json
           grep -q '"icon": "build/AppIcon.icon"' package.json
-          grep -q '"solid": "srgb:1.00000,1.00000,1.00000,1.00000"' build/AppIcon.icon/icon.json
+          grep -q '"automatic-gradient": "extended-gray:1.00000,1.00000"' build/AppIcon.icon/icon.json
           grep -q '"image-name": "PayMyDine.svg"' build/AppIcon.icon/icon.json
+          grep -q '"translucency"' build/AppIcon.icon/icon.json
           if grep -q '"notarize"' package.json; then
             echo 'REFUSED: classic V1.0.5 must not require notarization'
             exit 1
@@ -236,7 +237,7 @@ jobs:
           test -s release/PayMyDine-Cashier-1.0.5-mac-arm64.dmg
           test -s release/PayMyDine-Cashier-1.0.5-mac-x64.dmg
           tag='pmd-cashier-v1-preview'
-          notes='PayMyDine Cashier V1.0.5. Preserves Virtual PDF and physical printing. Windows keeps the official PayMyDine icon. macOS 26 now receives a native Icon Composer / Assets.car app icon with a pure-white enclosure and the official PayMyDine mark, removing the Tahoe legacy gray icon-jail fallback.'
+          notes='PayMyDine Cashier V1.0.5. Preserves Virtual PDF and physical printing. Windows keeps the official PayMyDine icon. macOS 26 now receives a native Icon Composer / Assets.car app icon with a white enclosure and the official PayMyDine mark, removing the Tahoe legacy gray icon-jail fallback.'
           if gh release view "$tag" --repo "$GH_REPO" >/dev/null 2>&1; then
             gh release upload "$tag" release/* --clobber --repo "$GH_REPO"
             gh release edit "$tag" --target "$GITHUB_SHA" --prerelease --title 'PayMyDine Cashier V1 Preview' --notes "$notes" --repo "$GH_REPO"
