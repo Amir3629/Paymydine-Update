@@ -68,8 +68,8 @@ class TenantDatabaseMiddleware
      * default connection. System boot may resolve settings before request
      * middleware runs, and Flame otherwise uses one process-wide cache key.
      *
-     * Give each tenant its own cache key and force localization/translator
-     * singletons to resolve again inside the correct tenant context.
+     * Give each tenant its own cache key and force localization to resolve
+     * again inside the correct tenant context.
      */
     private function bindTenantSettingContext(object $tenantInfo): void
     {
@@ -80,8 +80,8 @@ class TenantDatabaseMiddleware
 
         $cacheSuffix = sha1($tenantDatabase);
 
-        // Remove any instances/drivers that may have been created during boot
-        // while the central connection was still the default connection.
+        // Remove any setting instances/drivers that may have been created during
+        // boot while the central connection was still the default connection.
         foreach (['system.setting', 'system.parameter', 'setting.manager'] as $abstract) {
             app()->forgetInstance($abstract);
         }
@@ -96,10 +96,10 @@ class TenantDatabaseMiddleware
         $parameterStore->setExtraColumns(['sort' => 'prefs']);
         app()->instance('system.parameter', $parameterStore);
 
-        // Localization config is populated through a resolving callback that
-        // reads setting(). Re-resolve it after the tenant setting store exists.
+        // System\ServiceProvider has a resolving callback for this singleton;
+        // resolving it again reloads localization.locale/supportedLocales from
+        // the tenant-scoped setting store above.
         app()->forgetInstance('translator.localization');
-        app()->forgetInstance('translator');
     }
 
     private function extractTenantFromDomain(Request $request): ?string
