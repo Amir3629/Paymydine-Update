@@ -36,6 +36,7 @@ jobs:
         run: |
           set -euo pipefail
           npm run check
+          npm run patch:v106
           npm run brand:icon
           grep -q '"version": "1.0.6"' package.json
           grep -q 'PMD_CASHIER_HARDWARE_TRUTH_V106' src/hardware.js
@@ -43,6 +44,7 @@ jobs:
           grep -q 'PMD_CASHIER_FULLSCREEN_V106' src/main.js
           grep -q 'assertPrinterAvailable' src/hardware.js
           grep -q 'fullscreen: true' src/main.js
+          grep -q 'patch-chain-v106.js' package.json
           grep -q 'after-sign-mac-v106.js' package.json
           test -s build/AppIcon.icon/icon.json
           test -s build/AppIcon.icon/Assets/PayMyDine.svg
@@ -67,6 +69,7 @@ jobs:
             'README.md',
             'scripts/apply-v104.js',
             'scripts/apply-v106.js',
+            'scripts/patch-chain-v106.js',
             'scripts/fetch-brand-icon.js',
             'scripts/after-sign-mac-v106.js',
             'src/main.js',
@@ -140,6 +143,7 @@ jobs:
             README.md
             scripts/apply-v104.js
             scripts/apply-v106.js
+            scripts/patch-chain-v106.js
             scripts/fetch-brand-icon.js
             scripts/after-sign-mac-v106.js
             src/main.js
