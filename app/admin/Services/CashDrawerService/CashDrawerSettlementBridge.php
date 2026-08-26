@@ -24,6 +24,13 @@ class CashDrawerSettlementBridge
             return self::skipped('not_cash');
         }
 
+        // PMD_DESKTOP_HARDWARE_OWNER_R1
+        // The Electron Cashier owns the local printer/drawer when this flag is
+        // present. Never queue a second legacy Connector drawer command.
+        if (filter_var($payload['desktop_hardware_managed'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
+            return self::skipped('desktop_hardware_managed');
+        }
+
         if ($transactionId < 1) {
             return self::failed('missing_transaction', 'Cash payment was recorded but no transaction id was available for drawer dedupe.');
         }

@@ -693,6 +693,14 @@ trait PmdWaiterPosSaveEndpoint
                 );
         }
 
+        // PMD_DELIVERY_BUSINESS_TIME_V1
+        // Delivery order_date/order_time use the same Berlin
+        // restaurant business boundary as Cashierlab.
+        $businessNow =
+            \Carbon\Carbon::now(
+                'Europe/Berlin'
+            );
+
         $data = [
             'location_id' =>
                 $locationId ?: 1,
@@ -713,10 +721,10 @@ trait PmdWaiterPosSaveEndpoint
                 0,
 
             'order_date' =>
-                date('Y-m-d'),
+                $businessNow->toDateString(),
 
             'order_time' =>
-                date('H:i:s'),
+                $businessNow->format('H:i:s'),
 
             'order_time_is_asap' =>
                 1,

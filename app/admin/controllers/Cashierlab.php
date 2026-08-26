@@ -55,7 +55,7 @@ class Cashierlab extends PmdCleanWorkspaceControllerV1
             '//'.request()->getHost()
             .'/app/admin/assets/js/'
             .'pmd-cashier-r45-actions.js'
-            .'?v=20260826-r60t'
+            .'?v=20260826-cashier-live-kds-v1'
         );
 
         $this->addCss(
@@ -648,6 +648,155 @@ HTML;
                 $maps = $this->tableReferenceMaps($tables);
                 $statusMap = $this->orderStatusMap();
 
+                /*
+                 * PMD_CASHIER_ACTIVE_VISIT_CARRYOVER_V1
+                 *
+                 * Current is an operational surface, not merely a
+                 * calendar report.
+                 *
+                 * A physical table visit that is still occupied/open
+                 * must not disappear when Berlin crosses midnight.
+                 *
+                 * We only widen Today's Current query by ONE prior
+                 * business day, and rows from that widened day are
+                 * accepted only when their canonical table is still
+                 * operationally active.
+                 *
+                 * History is never widened.
+                 */
+                $activeCarryoverTableIds = [];
+
+                foreach ($tables as $tableRow) {
+                    if (!is_array($tableRow)) {
+                        continue;
+                    }
+
+                    $rawTable = is_array(
+                        $tableRow['raw'] ?? null
+                    )
+                        ? $tableRow['raw']
+                        : [];
+
+                    $tableId = (int)(
+                        $tableRow['dbTableId']
+                        ?? $tableRow['table_id']
+                        ?? $tableRow['id']
+                        ?? $rawTable['table_id']
+                        ?? $rawTable['id']
+                        ?? 0
+                    );
+
+                    if ($tableId < 1) {
+                        continue;
+                    }
+
+                    $operationalStatus = strtolower(
+                        trim(
+                            (string)(
+                                $tableRow['operational_status']
+                                ?? $tableRow['table_operational_status']
+                                ?? $tableRow['table_status']
+                                ?? $rawTable['operational_status']
+                                ?? $rawTable['table_operational_status']
+                                ?? ''
+                            )
+                        )
+                    );
+
+                    $presentationStatus = strtolower(
+                        trim(
+                            (string)(
+                                $tableRow['status']
+                                ?? $rawTable['status']
+                                ?? ''
+                            )
+                        )
+                    );
+
+                    $openOrderCount = max(
+                        0,
+                        (int)(
+                            $tableRow['open_orders']
+                            ?? $tableRow['open_order_count']
+                            ?? $rawTable['open_orders']
+                            ?? $rawTable['open_order_count']
+                            ?? 0
+                        )
+                    );
+
+                    if (
+                        $operationalStatus === 'occupied'
+                        || $presentationStatus === 'occupied'
+                        || $openOrderCount > 0
+                    ) {
+                        $activeCarryoverTableIds[$tableId] = true;
+                    }
+                }
+
+                /*
+                 * Also consume the active-order payload itself.
+                 * This protects Current if an older table payload
+                 * does not yet expose open_orders on each row.
+                 */
+                $activeOrderRows = [];
+
+                if (
+                    is_array(
+                        $base['sections']['active_orders']
+                        ?? null
+                    )
+                ) {
+                    $activeOrderRows = array_values(
+                        $base['sections']['active_orders']
+                    );
+                } elseif (
+                    is_array(
+                        $base['orders']
+                        ?? null
+                    )
+                ) {
+                    $activeOrderRows = array_values(
+                        $base['orders']
+                    );
+                }
+
+                foreach ($activeOrderRows as $activeOrderRow) {
+                    if (!is_array($activeOrderRow)) {
+                        continue;
+                    }
+
+                    $activeTableId = (int)(
+                        $activeOrderRow['table_id']
+                        ?? $activeOrderRow['db_table_id']
+                        ?? 0
+                    );
+
+                    if ($activeTableId > 0) {
+                        $activeCarryoverTableIds[
+                            $activeTableId
+                        ] = true;
+                    }
+                }
+
+                $businessToday = Carbon::now(
+                    'Europe/Berlin'
+                )->startOfDay();
+
+                $carryoverEnabled =
+                    !$historyMode
+                    && $dateColumn === 'order_date'
+                    && $from->toDateString()
+                        === $to->toDateString()
+                    && $from->toDateString()
+                        === $businessToday->toDateString()
+                    && !empty(
+                        $activeCarryoverTableIds
+                    );
+
+                $queryFrom = $carryoverEnabled
+                    ? $from->copy()->subDay()
+                    : $from->copy();
+
                 // PMD_CASHIER_CURRENT_HISTORY_SPLIT_R46
                 // The explicit Manual FREE operation log is the durable visit boundary.
                 // Payment alone never moves an order to History.
@@ -687,7 +836,7 @@ HTML;
 
                 if ($dateColumn === 'order_date') {
                     $query
-                        ->where($dateColumn, '>=', $from->toDateString())
+                        ->where($dateColumn, '>=', $queryFrom->toDateString())
                         ->where($dateColumn, '<=', $to->toDateString());
                 } else {
                     /*
@@ -695,7 +844,7 @@ HTML;
                      * UTC; convert Berlin business boundaries to UTC.
                      */
                     $query->whereBetween($dateColumn, [
-                        $from->copy()->startOfDay()->utc()->format('Y-m-d H:i:s'),
+                        $queryFrom->copy()->startOfDay()->utc()->format('Y-m-d H:i:s'),
                         $to->copy()->endOfDay()->utc()->format('Y-m-d H:i:s'),
                     ]);
                 }
@@ -708,11 +857,36 @@ HTML;
 
                 $sourceRows = 0;
                 $unmappedRows = 0;
+                $carryoverRows = 0;
                 $rows = [];
 
                 foreach ($query->limit(500)->get() as $order) {
                     $sourceRows++;
                     $row = (array)$order;
+
+                    $rowBusinessDate = '';
+
+                    if ($dateColumn === 'order_date') {
+                        $rowBusinessDate = substr(
+                            trim(
+                                (string)(
+                                    $row[$dateColumn]
+                                    ?? ''
+                                )
+                            ),
+                            0,
+                            10
+                        );
+                    }
+
+                    $outsideSelectedRange =
+                        $rowBusinessDate !== ''
+                        && (
+                            $rowBusinessDate
+                                < $from->toDateString()
+                            || $rowBusinessDate
+                                > $to->toDateString()
+                        );
 
                     $orderId = (int)($row[$primaryKey] ?? 0);
                     if ($orderId < 1) {
@@ -817,12 +991,42 @@ HTML;
                             (string)\Admin\Models\Orders_model::DELIVERY
                         );
 
-                    $pmdDeliveryEnded =
+                    /*
+                     * PMD_CASHIER_DELIVERY_KDS_READY_GATE_V1
+                     *
+                     * Delivery has independent kitchen and payment
+                     * lifecycles.
+                     *
+                     * Payment alone must never remove a Delivery
+                     * from Current while KDS is still preparing it.
+                     *
+                     * KDS displays canonical order status
+                     * "Delivery" as "Ready".
+                     *
+                     * A Delivery leaves Current only after BOTH:
+                     *   1. kitchen fulfillment is Ready or beyond
+                     *   2. financial settlement is complete
+                     *
+                     * Cancellation remains independently historical.
+                     */
+                    $pmdDeliveryReady =
                         $pmdIsDelivery
-                        && (
-                            $pmdHistoryPaid
-                            || $pmdHistoryClosed
+                        && in_array(
+                            $pmdHistoryStatus,
+                            [
+                                'delivery',
+                                'ready',
+                                'delivered',
+                                'complete',
+                                'completed',
+                                'finished',
+                            ],
+                            true
                         );
+
+                    $pmdDeliveryEnded =
+                        $pmdDeliveryReady
+                        && $pmdHistoryPaid;
 
                     $pmdHistoryEnded =
                         $isReleasedVisit
@@ -842,6 +1046,34 @@ HTML;
                         $tableColumn,
                         $maps
                     );
+
+                    /*
+                     * Carryover rows are NOT general prior-day orders.
+                     *
+                     * They survive only while the canonical physical
+                     * table is still active.
+                     */
+                    if ($outsideSelectedRange) {
+                        $carryoverTableId = (int)(
+                            is_array($table)
+                                ? ($table['id'] ?? 0)
+                                : 0
+                        );
+
+                        if (
+                            !$carryoverEnabled
+                            || $carryoverTableId < 1
+                            || !isset(
+                                $activeCarryoverTableIds[
+                                    $carryoverTableId
+                                ]
+                            )
+                        ) {
+                            continue;
+                        }
+
+                        $carryoverRows++;
+                    }
 
                     /*
                      * PMD_CASHIER_LAB_UNMAPPED_ORDER_KEEP_V2_1
@@ -991,6 +1223,12 @@ HTML;
                         'unmapped_rows' => $unmappedRows,
                         'date_column' => $dateColumn,
                         'table_column' => $tableColumn,
+                        'query_from' => $queryFrom->toDateString(),
+                        'carryover_enabled' => $carryoverEnabled ? 1 : 0,
+                        'carryover_active_tables' => count(
+                            $activeCarryoverTableIds
+                        ),
+                        'carryover_rows' => $carryoverRows,
                         'limit' => 500,
                     ],
                 ];
@@ -1040,7 +1278,10 @@ HTML;
                 'note' => 'Hinweis',
                 'empty_title' => 'Keine Bestellungen in diesem Zeitraum',
                 'empty_text' => 'Für den ausgewählten Zeitraum wurden keine Tischbestellungen gefunden.',
+                // PMD_CASHIER_KDS_STATUS_LABELS_V1
                 'status_open' => 'Offen',
+                'status_received' => 'Eingegangen',
+                'status_preparing' => 'In Vorbereitung',
                 'status_partial' => 'Teilbezahlt',
                 'status_progress' => 'In Bearbeitung',
                 'status_ready' => 'Bereit',
@@ -1080,6 +1321,8 @@ HTML;
                 'empty_title' => 'No orders in this date range',
                 'empty_text' => 'No table orders were found for the selected date range.',
                 'status_open' => 'Open',
+                'status_received' => 'Received',
+                'status_preparing' => 'Preparing',
                 'status_partial' => 'Part paid',
                 'status_progress' => 'In progress',
                 'status_ready' => 'Ready',
@@ -1207,12 +1450,37 @@ HTML;
                 $statusKey = 'problem';
             } elseif ($isClosed) {
                 $statusKey = 'closed';
-            } elseif (preg_match('/ready/', $statusRaw)) {
+            // PMD_CASHIER_KDS_DELIVERY_READY_LABEL_V1
+            } elseif (
+                $statusRaw === 'delivery'
+                || preg_match('/ready/', $statusRaw)
+            ) {
                 $statusKey = 'ready';
             } elseif (preg_match('/served|delivered/', $statusRaw)) {
                 $statusKey = 'served';
-            } elseif (preg_match('/kitchen|cook|prepar|process|received|sent/', $statusRaw)) {
-                $statusKey = 'progress';
+            } elseif (
+                in_array(
+                    $statusRaw,
+                    [
+                        'received',
+                        'accepted',
+                        'confirmed',
+                    ],
+                    true
+                )
+                || preg_match(
+                    '/receive/',
+                    $statusRaw
+                )
+            ) {
+                $statusKey = 'received';
+            } elseif (
+                preg_match(
+                    '/kitchen|cook|prepar|process|sent/',
+                    $statusRaw
+                )
+            ) {
+                $statusKey = 'preparing';
             } else {
                 $statusKey = 'open';
             }

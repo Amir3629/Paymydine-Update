@@ -532,12 +532,33 @@
 
         .order-note + .order-note { margin-top: 5px; }
 
+        /* PMD_KDS_CARD_TAP_PREPARING_READY_ONLY_V1
+         * One explicit completion action.
+         * The card itself is the Preparing action.
+         */
         .order-status-buttons {
             display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-columns: minmax(0, 1fr);
             gap: 9px;
-            min-height: 46px;
+            min-height: 54px;
             margin-top: 14px;
+        }
+
+        .order-status-buttons .status-btn {
+            height: 54px;
+            font-size: 15px;
+        }
+
+        .order-card.status-received,
+        .order-card.status-new,
+        .order-card.status-unknown {
+            cursor: pointer;
+        }
+
+        .order-card.status-received:hover,
+        .order-card.status-new:hover,
+        .order-card.status-unknown:hover {
+            border-color: #c6d9d2;
         }
 
         .status-btn {
@@ -893,21 +914,57 @@
                                     aria-current="true"
                                 >Canceled</button>
                             @else
-                                @foreach($statuses as $status)
+                                @php
+                                    $pmdReadyStatus = collect($statuses)->first(function ($status) {
+                                        $name = strtolower(
+                                            trim(
+                                                (string)(
+                                                    $status['status_name']
+                                                    ?? ''
+                                                )
+                                            )
+                                        );
+
+                                        return $name === 'ready'
+                                            || $name === 'delivery';
+                                    });
+                                @endphp
+
+                                @if($pmdReadyStatus)
                                     @php
-                                        $statusName = (string)$status['status_name'];
-                                        $statusClass = strtolower(preg_replace('/[^a-z0-9]+/i', '-', $statusName));
-                                        $isCurrentStatus = (int)$status['status_id'] === (int)$order['status_id'];
+                                        $pmdReadyStatusId =
+                                            (int)(
+                                                $pmdReadyStatus[
+                                                    'status_id'
+                                                ]
+                                                ?? 0
+                                            );
+
+                                        $pmdReadyStatusName =
+                                            (string)(
+                                                $pmdReadyStatus[
+                                                    'status_name'
+                                                ]
+                                                ?? 'Ready'
+                                            );
+
+                                        $pmdReadyCurrent =
+                                            $pmdReadyStatusId
+                                            === (int)$order[
+                                                'status_id'
+                                            ];
                                     @endphp
+
                                     <button
                                         type="button"
-                                        class="status-btn status-{{ trim($statusClass, '-') }} {{ $isCurrentStatus ? 'is-current' : '' }}"
+                                        class="status-btn status-ready {{ $pmdReadyCurrent ? 'is-current' : '' }}"
                                         data-kds-status-button
                                         data-order-id="{{ $order['order_id'] }}"
-                                        data-status-id="{{ $status['status_id'] }}"
-                                        data-status-name="{{ $statusName }}"
-                                        @if($isCurrentStatus) disabled aria-current="true" @endif>{{ $statusName }}</button>
-                                @endforeach
+                                        data-status-id="{{ $pmdReadyStatusId }}"
+                                        data-status-name="{{ $pmdReadyStatusName }}"
+                                        @if($pmdReadyCurrent) disabled aria-current="true" @endif
+                                    >Ready</button>
+                                @endif
                             @endif
                         </div>
                     @endif
@@ -1182,6 +1239,34 @@
         return 'status-unknown';
     }
 
+    function workflowStatusV1(kind) {
+        if (!Array.isArray(statuses)) {
+            return null;
+        }
+
+        return statuses.find(status => {
+            const name =
+                String(
+                    status
+                    && status.status_name
+                    || ''
+                ).toLowerCase();
+
+            if (kind === 'preparing') {
+                return name.includes('prepar');
+            }
+
+            if (kind === 'ready') {
+                return (
+                    name.includes('ready')
+                    || name.includes('delivery')
+                );
+            }
+
+            return false;
+        }) || null;
+    }
+
     function getTimerClassV12(createdAt) {
         const minutes = Math.floor(Math.max(0, Math.floor(Date.now() / 1000) - parseDateToTimestampV1(createdAt)) / 60);
         if (minutes > 15) return 'is-late';
@@ -1244,6 +1329,18 @@
                     canChangeStatus
                     && Array.isArray(statuses)
                         ? statuses
+                            .filter(status => {
+                                const name =
+                                    String(
+                                        status.status_name
+                                        || ''
+                                    ).toLowerCase();
+
+                                return (
+                                    name.includes('ready')
+                                    || name.includes('delivery')
+                                );
+                            })
                             .map(
                                 status =>
                                     statusButtonHtmlV1(
@@ -1509,6 +1606,71 @@
             return;
         }
 
+        const card =
+            event.target
+            && event.target.closest
+                ? event.target.closest(
+                    '.order-card[data-order-id]'
+                  )
+                : null;
+
+        if (card && canChangeStatus) {
+            const currentStatusName =
+                String(
+                    card.dataset.statusName
+                    || ''
+                ).toLowerCase();
+
+            const alreadyPreparing =
+                currentStatusName.includes(
+                    'prepar'
+                );
+
+            const alreadyReady =
+                currentStatusName.includes(
+                    'ready'
+                )
+                || currentStatusName.includes(
+                    'delivery'
+                );
+
+            const cancelled =
+                isCancelledStatusV1(
+                    currentStatusName
+                );
+
+            const preparing =
+                workflowStatusV1(
+                    'preparing'
+                );
+
+            if (
+                !alreadyPreparing
+                && !alreadyReady
+                && !cancelled
+                && preparing
+            ) {
+                event.preventDefault();
+
+                updateOrderStatusV1(
+                    Number(
+                        card.dataset.orderId
+                        || 0
+                    ),
+                    Number(
+                        preparing.status_id
+                        || 0
+                    ),
+                    String(
+                        preparing.status_name
+                        || 'Preparing'
+                    )
+                );
+
+                return;
+            }
+        }
+
         if (event.target.closest('#kds-zoom-out')) stepZoomV1(-1);
         if (event.target.closest('#kds-zoom-in')) stepZoomV1(1);
     });
@@ -1580,6 +1742,8 @@
                 soundNewOrderQueuedUntilUnlocked: true,
                 soundUnlocked: audioUnlockedV12,
                 directStatusActions: true,
+                cardClickStartsPreparing: true,
+                visibleStatusButtons: ['Ready'],
                 readyLeavesKdsImmediately: true,
                 undoWindowMs: undoWindowMsV12,
                 undoAvailable: !!undoStateV12,

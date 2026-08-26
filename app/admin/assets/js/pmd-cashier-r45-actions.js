@@ -428,12 +428,123 @@
     }
   }, true);
 
+  /* PMD_CASHIER_LIVE_ORDER_SECTION_SYNC_V1
+   * KDS/payment/order invalidation reaches the existing Live Dashboard.
+   * Reuse the canonical server-rendered operational section so Current /
+   * History and status badges update without a manual page refresh.
+   *
+   * No new poller.
+   * No duplicated card renderer.
+   */
+  var liveOrdersRefreshPromise = null;
+
+  function refreshOrdersSectionFromLive() {
+    var section =
+      document.getElementById(
+        'pmd-cashier-current-orders-v2'
+      );
+
+    if (!section) {
+      return Promise.resolve(null);
+    }
+
+    if (
+      !window.PMDOperationalDateRangeV1 ||
+      typeof window.PMDOperationalDateRangeV1
+        .refresh !== 'function'
+    ) {
+      return Promise.resolve(null);
+    }
+
+    if (liveOrdersRefreshPromise) {
+      return liveOrdersRefreshPromise;
+    }
+
+    /*
+     * R48 caches the opposite Current/History view for speed.
+     * A real server invalidation makes that warm copy stale.
+     */
+    if (
+      window.PMDCashierHistoryFastR48 &&
+      typeof window.PMDCashierHistoryFastR48
+        .clear === 'function'
+    ) {
+      window.PMDCashierHistoryFastR48.clear();
+    }
+
+    liveOrdersRefreshPromise =
+      Promise.resolve()
+        .then(function () {
+          return window
+            .PMDOperationalDateRangeV1
+            .refresh(
+              window.location.href
+            );
+        })
+        .then(function (nextSection) {
+          /*
+           * The section replacement creates a fresh toolbar button.
+           * Reapply the canonical current Floor selection.
+           */
+          if (
+            window.PMDCashierFreeTableR60T &&
+            typeof window
+              .PMDCashierFreeTableR60T
+              .sync === 'function'
+          ) {
+            window
+              .PMDCashierFreeTableR60T
+              .sync();
+          } else {
+            syncFreeTableToolbar();
+          }
+
+          return nextSection;
+        })
+        .catch(function (error) {
+          console.warn(
+            '[PMD Cashier] live orders section refresh failed',
+            error
+          );
+
+          return null;
+        })
+        .finally(function () {
+          liveOrdersRefreshPromise = null;
+        });
+
+    return liveOrdersRefreshPromise;
+  }
+
+  window.addEventListener(
+    'pmd:dashboard:live-data',
+    function (event) {
+      var detail =
+        event && event.detail
+          ? event.detail
+          : {};
+
+      if (
+        String(
+          detail.workspace
+          || ''
+        ) !== 'cashier'
+      ) {
+        return;
+      }
+
+      refreshOrdersSectionFromLive();
+    }
+  );
+
   window.PMDCashierR45Actions = {
     version: '45.2.0-r60l',
     openOrder: openOrder,
     freeTable: freeTable,
     syncFreeTableToolbar:
-      syncFreeTableToolbar
+      syncFreeTableToolbar,
+    refreshOrdersSection:
+      refreshOrdersSectionFromLive
   };
 
   window.addEventListener(

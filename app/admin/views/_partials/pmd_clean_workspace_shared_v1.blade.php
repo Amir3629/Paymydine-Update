@@ -30,14 +30,20 @@
     $pmdCleanWorkspaceAccountantSurface =
         (($pmdCleanWorkspaceKey ?? '') === 'accountant');
 
+    // PMD_CASHIER_HEADER_NOTIFICATION_ONLY_V1
+    // Cashier header keeps Notification only.
     $pmdCleanWorkspaceHeaderCalendarVisible =
-        !$pmdCleanWorkspaceAccountantSurface;
+        !$pmdCleanWorkspaceAccountantSurface
+        && !$pmdCleanWorkspaceCashierSurface;
 
 
     // PMD_CLEAN_WORKSPACE_CANONICAL_RESERVATION_COMPOSER_SURFACE_V1
     // Cashier may create a reservation, but it must not become a ReservationsLab
     // Calendar/Hour surface. Only the exact Reservations2 Composer is shared.
     $pmdCleanWorkspaceComposerSurface = $pmdCleanWorkspaceReservationsSurface || $pmdCleanWorkspaceCashierSurface;
+    $pmdCleanWorkspaceHeaderCreateVisible =
+        $pmdCleanWorkspaceComposerSurface
+        && !$pmdCleanWorkspaceCashierSurface;
 
     // PMD_CLEAN_WORKSPACE_CALENDAR_COMPOSER_RUNTIME_V1
     // Manager loads the canonical Composer for Calendar/Hour actions,
@@ -550,7 +556,7 @@ html body.page.pmd-clean-workspace-page #pmd-dashboard-lab {
                 </button>
             @endif
 
-            @if($pmdCleanWorkspaceComposerSurface)
+            @if($pmdCleanWorkspaceHeaderCreateVisible)
                 <button
                     type="button"
                     id="pmd-reservations-lab-header-create-v1"
@@ -586,6 +592,7 @@ html body.page.pmd-clean-workspace-page #pmd-dashboard-lab {
             </a>
             @endif
 
+            @if(!$pmdCleanWorkspaceCashierSurface)
             {{-- PMD_MAIN_HEADER_NOTIFICATION_GAP_R67_NODE_START --}}
             <span
                 data-pmd-main-header-notification-gap-r67=""
@@ -597,6 +604,7 @@ html body.page.pmd-clean-workspace-page #pmd-dashboard-lab {
                 ></span>
             </span>
             {{-- PMD_MAIN_HEADER_NOTIFICATION_GAP_R67_NODE_END --}}
+            @endif
             <span
                 class="pmd-owner-notif-slot pmd-dashboard-lab__notif-slot"
                 data-pmd-dashboard-lab-notif-slot

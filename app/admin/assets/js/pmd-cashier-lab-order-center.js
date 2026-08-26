@@ -21,6 +21,8 @@
     posHost: null,
     posApi: null,
     documentFrame: null,
+    documentUrl: '',
+    documentKind: '',
     voidDialog: null,
     voidTarget: null,
     dirty: false
@@ -879,6 +881,8 @@
 
     shell.classList.remove('is-document');
     state.documentFrame = null;
+    state.documentUrl = '';
+    state.documentKind = '';
 
     var title = shell.querySelector(
       '[data-pmd-r37-title]'
@@ -1402,6 +1406,8 @@
 
     shell.classList.add('is-document');
     state.documentFrame = null;
+    state.documentUrl = url;
+    state.documentKind = kind;
 
     title.textContent =
       (
@@ -1441,7 +1447,7 @@
       '<button type="button" ',
         'class="pmd-cashier-order-center__action is-primary" ',
         'data-pmd-r37-action="document-print" disabled>',
-        'Print',
+        'Print / reprint',
       '</button>',
       '<button type="button" ',
         'class="pmd-cashier-order-center__action" ',
@@ -1533,7 +1539,50 @@
     }
   }
 
-  function printDocument() {
+  // PMD_DESKTOP_DIRECT_PRINT_R1
+  async function printDocument() {
+    var printButton = state.shell
+      ? state.shell.querySelector('[data-pmd-r37-action="document-print"]')
+      : null;
+
+    var desktop = window.PayMyDineDesktop
+      && window.PayMyDineDesktop.isDesktopApp
+        ? window.PayMyDineDesktop
+        : null;
+
+    if (desktop && state.documentUrl) {
+      if (printButton) {
+        printButton.disabled = true;
+        printButton.textContent = 'Printing…';
+      }
+
+      try {
+        var absoluteUrl = new URL(
+          state.documentUrl,
+          window.location.origin
+        ).toString();
+        var result = await desktop.printReceiptUrl(absoluteUrl);
+        if (printButton) {
+          printButton.textContent = 'Printed';
+          window.setTimeout(function () {
+            if (!printButton.isConnected) return;
+            printButton.textContent = 'Print / reprint';
+          }, 1200);
+        }
+        return result;
+      } catch (error) {
+        console.error('[PMD] Desktop direct print failed', error);
+        if (printButton) {
+          printButton.textContent = 'Print failed — retry';
+        }
+        return null;
+      } finally {
+        if (printButton && printButton.isConnected) {
+          printButton.disabled = false;
+        }
+      }
+    }
+
     if (
       !state.documentFrame
       || !state.documentFrame.contentWindow
@@ -2045,6 +2094,8 @@
     close: closeCenter,
 
     refresh: loadDetails,
+
+    printCurrentDocument: printDocument,
 
     inspect: function () {
       return {

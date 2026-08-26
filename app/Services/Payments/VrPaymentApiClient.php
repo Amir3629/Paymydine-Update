@@ -380,7 +380,7 @@ class VrPaymentApiClient
 
         $headers = [
             'Authorization' => 'Bearer '.$this->jwt($method, $requestPath),
-            'Accept' => 'application/json',
+            'Accept' => str_ends_with($path, '/payment-page-url') ? '*/*' : 'application/json', // PMD_VR_PAYMENT_PAGE_ACCEPT_R1_3
         ];
         if ($spaceScoped) {
             $headers['space'] = (string)$this->config['space_id'];

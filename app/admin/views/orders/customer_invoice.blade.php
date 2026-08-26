@@ -549,7 +549,25 @@ $auto=(string)$pmdSetting('invoice_auto_print_dialog','0')==='1';
         <div class="xs muted center">{{ $footerText }}</div>
     @endif
 </div>
-<button class="print-btn" onclick="window.print()">Print receipt</button>
+<!-- PMD_DESKTOP_INVOICE_REPRINT_R1 -->
+<button class="print-btn" onclick="return window.pmdPrintReceipt(event)">Print / reprint receipt</button>
+<script>
+window.pmdPrintReceipt = function (event) {
+    if (event) event.preventDefault();
+    try {
+        if (
+            window.parent && window.parent !== window &&
+            window.parent.PMDCashierOrderCenter &&
+            typeof window.parent.PMDCashierOrderCenter.printCurrentDocument === 'function'
+        ) {
+            window.parent.PMDCashierOrderCenter.printCurrentDocument();
+            return false;
+        }
+    } catch (error) {}
+    window.print();
+    return false;
+};
+</script>
 @if($auto)<script>window.addEventListener('load',function(){setTimeout(function(){window.print();},250);});</script>@endif
 <script src="/app/admin/assets/js/pmd-waiter-v98-single-source.js?v=98"></script>
 

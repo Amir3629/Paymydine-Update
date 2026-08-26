@@ -130,6 +130,7 @@ class VRPaymentGatewayService
         }
 
         $sync = $this->syncTerminalDevices($audit['terminals'] ?? [], $config);
+        $methodSync = $this->syncAssignedMethodStatuses((array)($audit['available_method_codes'] ?? [])); // PMD_VR_METHOD_STATUS_SYNC_R1_3
         $this->forgetReadinessCache($config);
 
         return [
@@ -145,6 +146,7 @@ class VRPaymentGatewayService
             'wero_ready' => (bool)($audit['wero_ready'] ?? false),
             'terminal_count' => (int)($audit['terminal_count'] ?? 0),
             'terminal_sync' => $sync,
+            'method_sync' => $methodSync,
         ];
     }
 
@@ -369,6 +371,36 @@ class VRPaymentGatewayService
     public function verifyWebhookSignatureDetailed(string $rawBody, ?string $signatureHeader): array
     {
         return (new VrPaymentApiClient($this->getConfig()))->verifyWebhookSignature($rawBody, $signatureHeader);
+    }
+
+    public function syncAssignedMethodStatuses(array $availableMethodCodes): array
+    {
+        $ready = array_values(array_unique(array_filter(array_map(
+            static fn ($code): string => strtolower(trim((string)$code)),
+            $availableMethodCodes
+        ))));
+        $updated = [];
+
+        foreach (Payments_model::query()->whereIn('code', self::SUPPORTED_METHODS)->get() as $row) {
+            $data = method_exists($row, 'getConfigData') ? (array)$row->getConfigData() : (is_array($row->data) ? (array)$row->data : []);
+            $assigned = strtolower(trim((string)($row->provider_code ?? $data['provider_code'] ?? '')));
+            if ($assigned !== 'vr_payment') continue;
+
+            $code = strtolower(trim((string)$row->code));
+            $desired = in_array($code, $ready, true) ? 1 : 0;
+            if ((int)$row->status !== $desired) {
+                $row->status = $desired;
+                $row->save();
+            }
+            $updated[$code] = $desired;
+        }
+
+        return [
+            'ok' => true,
+            'provider' => 'vr_payment',
+            'ready_codes' => $ready,
+            'method_statuses' => $updated,
+        ];
     }
 
     public function syncTerminalDevices(?array $terminals = null, ?array $config = null): array

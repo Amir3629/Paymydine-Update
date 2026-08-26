@@ -62,6 +62,91 @@
         };
       }
 
+      // PMD_DESKTOP_AUTO_RECEIPT_R1
+      // Electron is the local hardware authority only when the trusted preload
+      // bridge exists. Normal browser sessions keep their existing behavior.
+      function desktopBridge() {
+        return window.PayMyDineDesktop
+          && window.PayMyDineDesktop.isDesktopApp
+          ? window.PayMyDineDesktop
+          : null;
+      }
+
+      function latestDesktopReceiptUrl() {
+        var transactions = state.payment.summary
+          && Array.isArray(state.payment.summary.transactions)
+            ? state.payment.summary.transactions
+            : [];
+        var row = transactions.find(function (transaction) {
+          return transaction && transaction.receipt_url;
+        });
+        return row ? String(row.receipt_url) : '';
+      }
+
+      function desktopPrintStoreKey() {
+        return 'pmd_desktop_printed_payment_keys_v1';
+      }
+
+      function desktopPrintedKeys() {
+        try {
+          var parsed = JSON.parse(
+            window.localStorage.getItem(desktopPrintStoreKey()) || '[]'
+          );
+          return Array.isArray(parsed) ? parsed.map(String) : [];
+        } catch (error) {
+          return [];
+        }
+      }
+
+      function desktopWasPrinted(key) {
+        return desktopPrintedKeys().indexOf(String(key || '')) !== -1;
+      }
+
+      function desktopRememberPrinted(key) {
+        key = String(key || '');
+        if (!key) return;
+        try {
+          var keys = desktopPrintedKeys().filter(function (row) {
+            return row !== key;
+          });
+          keys.push(key);
+          window.localStorage.setItem(
+            desktopPrintStoreKey(),
+            JSON.stringify(keys.slice(-100))
+          );
+        } catch (error) {}
+      }
+
+      function desktopAbsoluteUrl(rawUrl) {
+        return new URL(String(rawUrl || ''), window.location.origin).toString();
+      }
+
+      async function notifyDesktopPaymentSuccess(meta) {
+        var bridge = desktopBridge();
+        if (!bridge || !meta) return;
+
+        var receiptUrl = String(meta.receiptUrl || '');
+        var key = String(meta.key || receiptUrl || '');
+        if (!receiptUrl || !key || desktopWasPrinted(key)) return;
+
+        try {
+          var config = await bridge.getConfig();
+          if (config && config.autoPrintReceipt === false) return;
+
+          await bridge.printReceiptUrl(
+            desktopAbsoluteUrl(receiptUrl)
+          );
+          desktopRememberPrinted(key);
+          toast('Receipt printed');
+        } catch (error) {
+          toast(
+            'Payment recorded, but receipt could not print: '
+              + ((error && error.message) || 'Unknown print error'),
+            true
+          );
+        }
+      }
+
       // PMD_CASHIER_LOCAL_POS_IDENTITY_R1
       var pmdLocalPosIdentityPromise = null;
       async function resolveLocalPosIdentity() {
@@ -674,8 +759,9 @@
         state.payment.submitting = true;
         renderPaymentTotals();
         var summary = state.payment.summary;
+        var paymentKey = state.payment.idempotencyKey;
         try {
-          var localPosIdentity = state.payment.method === 'cash'
+          var localPosIdentity = state.payment.method === 'cash' && !desktopBridge()
             ? await resolveLocalPosIdentity()
             : null;
           var json = await fetchJson(paymentSettleUrl(), {
@@ -685,6 +771,7 @@
               idempotency_key: state.payment.idempotencyKey,
               payment_method: state.payment.method,
               pos_device_code: localPosIdentity && localPosIdentity.device_code ? String(localPosIdentity.device_code) : null,
+              desktop_hardware_managed: !!desktopBridge(),
               provider_code: state.payment.method === 'external_terminal' ? 'external_terminal' : null,
               split_mode: state.payment.splitMode,
               amount: paymentBaseAmount(),
@@ -700,6 +787,13 @@
             })
           });
           state.payment.summary = json.summary || state.payment.summary;
+          void notifyDesktopPaymentSuccess({
+            key: paymentKey,
+            paymentMethod: state.payment.method,
+            receiptUrl: json.receipt_url,
+            settlementStatus: json.settlement_status,
+            orderId: state.activeOrderId
+          });
           state.payment.idempotencyKey = uid('pay');
           renderPayment();
           toast(json.message || 'Payment recorded');
@@ -787,6 +881,14 @@
         var status = String(result && result.status ? result.status : '').toLowerCase();
         if (status === 'paid') {
           await loadPaymentSummary(true);
+          var desktopReceiptUrl = latestDesktopReceiptUrl();
+          void notifyDesktopPaymentSuccess({
+            key: desktopReceiptUrl || ('terminal:' + state.activeOrderId + ':' + (state.payment.terminalAttemptId || 'paid')),
+            paymentMethod: 'direct_terminal',
+            receiptUrl: desktopReceiptUrl,
+            settlementStatus: 'paid',
+            orderId: state.activeOrderId
+          });
           await refreshData(true);
           toast('Payment approved.');
           showSuccess('Payment approved.');

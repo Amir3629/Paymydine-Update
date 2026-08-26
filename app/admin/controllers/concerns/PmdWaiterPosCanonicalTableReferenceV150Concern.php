@@ -26,6 +26,13 @@ trait PmdWaiterPosCanonicalTableReferenceV150Concern
             $locationId = (int)(DB::table('locations')->value('location_id') ?: 1);
         }
 
+        // PMD_BUSINESS_TIME_ORDER_CREATION_V1
+        //
+        // order_date/order_time are restaurant business fields.
+        // They must use the same Europe/Berlin day boundary as
+        // Cashierlab instead of the VPS/PHP system timezone.
+        $businessNow = \Carbon\Carbon::now('Europe/Berlin');
+
         $data = [
             'location_id' => $locationId ?: 1,
             'table_id' => (int)$table['id'],
@@ -34,8 +41,8 @@ trait PmdWaiterPosCanonicalTableReferenceV150Concern
             'payment' => 'qr_pay_later',
             'settlement_status' => 'unpaid',
             'settled_amount' => 0,
-            'order_date' => date('Y-m-d'),
-            'order_time' => date('H:i:s'),
+            'order_date' => $businessNow->toDateString(),
+            'order_time' => $businessNow->format('H:i:s'),
             'order_time_is_asap' => 1,
             'processed' => $mode === 'send' ? 1 : 0,
             'first_name' => 'Table',

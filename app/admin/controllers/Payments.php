@@ -379,14 +379,28 @@ class Payments extends \Admin\Classes\AdminController
             $model->setConfigData($data);
             $model->provider_code = $providerCode;
 
-            // PMD_METHOD_PROVIDER_IS_ENABLEMENT_R1
-            // The compact owner editor has only Name + Provider. For provider-
-            // backed methods, choosing a provider offers the method; choosing
-            // Not offered disables it. Cash methods keep their own status.
+            // PMD_VR_METHOD_RUNTIME_ENABLEMENT_R1_3
+            // Provider assignment is the enablement authority. VR Payment has
+            // one extra gate: the method must be discovered as active in the
+            // merchant Space before it is offered to guests.
             if (!in_array((string)$model->code, ['cod', 'cash'], true)) {
-                $model->status = $providerCode ? 1 : 0;
-                if (!$providerCode) {
+                if ($providerCode === null) {
+                    $model->status = 0;
                     $model->is_default = 0;
+                } elseif ($providerCode === 'vr_payment') {
+                    try {
+                        $model->status = (new \Admin\Classes\VRPaymentGatewayService())
+                            ->isMethodReady((string)$model->code) ? 1 : 0;
+                    } catch (\Throwable $error) {
+                        \Log::warning('PMD_VR_METHOD_RUNTIME_ENABLEMENT_FAILED', [
+                            'method' => (string)$model->code,
+                            'message' => $error->getMessage(),
+                        ]);
+                        $model->status = 0;
+                    }
+                    if (!$model->status) $model->is_default = 0;
+                } else {
+                    $model->status = 1;
                 }
             }
         }
