@@ -20,7 +20,7 @@ for name, path in FILES.items():
 
 backup = Path('/root') / f'paymydine-r61-table-session-{datetime.now().strftime("%Y%m%d_%H%M%S")}'
 backup.mkdir(parents=True, exist_ok=True)
-for name, path in FILES.items():
+for path in FILES.values():
     target = backup / path.relative_to(APP)
     target.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(path, target)
@@ -43,17 +43,18 @@ def replace_after(text: str, anchor: str, old: str, new: str, label: str) -> str
         raise SystemExit(f'STOP {label}: target not found after anchor')
     return text[:pos] + new + text[pos + len(old):]
 
-# ---------------------------------------------------------------------------
-# 1) Physical table authority: bump a tenant-scoped lifecycle epoch when the
-#    guest leaves (cleaning) or the table becomes available.
-# ---------------------------------------------------------------------------
+# 1) Physical table authority: rotate lifecycle epoch when guests leave/free table.
 p = FILES['table_state']
 text = p.read_text(encoding='utf-8')
 if MARKER not in text:
     text = replace_once(
         text,
-        "use Illuminate\\Support\\Facades\\DB;\nuse Illuminate\\Support\\Facades\\Schema;",
-        "use Illuminate\\Support\\Facades\\DB;\nuse Illuminate\\Support\\Facades\\Schema;\nuse Illuminate\\Support\\Facades\\Cache;\nuse App\\Helpers\\TenantHelper;",
+        r"use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;",
+        r"use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Cache;
+use App\Helpers\TenantHelper;",
         'table-state imports',
     )
     old = """                $this->writeHistory($tableId, $effectiveOld, $next, $reason, null, [
@@ -65,7 +66,7 @@ if MARKER not in text:
 
                 return [
 """
-    new = """                $this->writeHistory($tableId, $effectiveOld, $next, $reason, null, [
+    new = r"""                $this->writeHistory($tableId, $effectiveOld, $next, $reason, null, [
                     'source' => 'waiter_floor_v154',
                     'stored_old_status' => $storedOld,
                     'derived_occupied' => $derivedOccupied,
@@ -86,7 +87,7 @@ if MARKER not in text:
                                 'reason' => $reason,
                             ]
                         );
-                    } catch (\\Throwable $ignored) {
+                    } catch (\Throwable $ignored) {
                     }
                 }
 
@@ -98,10 +99,7 @@ if MARKER not in text:
 else:
     print('Physical table lifecycle authority already patched')
 
-# ---------------------------------------------------------------------------
-# 2) R60T backend: QR activation issues an HttpOnly table lease. Order state
-#    and prepare require a lease from the current table lifecycle epoch.
-# ---------------------------------------------------------------------------
+# 2) R60T backend: QR activation issues an HttpOnly table lease.
 p = FILES['r60t_backend']
 text = p.read_text(encoding='utf-8')
 if MARKER not in text:
@@ -198,7 +196,10 @@ Route::post('/guest-orders/activate', function (\Illuminate\Http\Request $reques
     $existingToken = trim((string)$request->cookie($cookieName, ''));
     $existingLease = null;
     if ($existingToken !== '') {
-        try { $existingLease = \Illuminate\Support\Facades\Cache::get($pmdR60tLeaseKey($tableId, $existingToken)); } catch (\Throwable $ignored) {}
+        try {
+            $existingLease = \Illuminate\Support\Facades\Cache::get($pmdR60tLeaseKey($tableId, $existingToken));
+        } catch (\Throwable $ignored) {
+        }
     }
     $existingCurrent = is_array($existingLease)
         && hash_equals((string)$epoch['id'], (string)($existingLease['epoch_id'] ?? ''))
@@ -281,11 +282,7 @@ Route::post('/guest-orders/activate', function (\Illuminate\Http\Request $reques
 else:
     print('R60T backend already lifecycle-patched')
 
-# ---------------------------------------------------------------------------
-# 3) Existing guest service endpoints: when the R60T guard cookie exists,
-#    Waiter Call / Note / Valet require the current table lease. Legacy clients
-#    that never entered R60T remain unchanged.
-# ---------------------------------------------------------------------------
+# 3) Guest service endpoints: R60T-scanned browsers require current lease.
 p = FILES['guest_actions']
 text = p.read_text(encoding='utf-8')
 if MARKER not in text:
@@ -314,14 +311,12 @@ if MARKER not in text:
                     if ((string)request()->cookie('pmd_r60t_guard', '') !== '1') return true;
                     $tableId = $pmdR60tGuestActionTableId($tableRef);
                     if ($tableId < 1) return false;
-                    $cookieName = 'pmd_r60t_lease_'.$tableId;
-                    $token = trim((string)request()->cookie($cookieName, ''));
+                    $token = trim((string)request()->cookie('pmd_r60t_lease_'.$tableId, ''));
                     if ($token === '') return false;
-                    $epochDefault = ['id' => 'legacy'];
                     try {
                         $epoch = \Illuminate\Support\Facades\Cache::get(
                             \App\Helpers\TenantHelper::scopedCacheKey('pmd:r60t:table-epoch:'.$tableId),
-                            $epochDefault
+                            ['id' => 'legacy']
                         );
                         $epochId = is_array($epoch) ? (string)($epoch['id'] ?? 'legacy') : (string)$epoch;
                         $lease = \Illuminate\Support\Facades\Cache::get(
@@ -347,8 +342,8 @@ if MARKER not in text:
 
     text = replace_once(
         text,
-        "Route::post('/valet-request', function (\\Illuminate\\Http\\Request $request) {",
-        "Route::post('/valet-request', function (\\Illuminate\\Http\\Request $request) use ($pmdR60tGuestActionLeaseValid, $pmdR60tGuestActionExpired) {",
+        r"Route::post('/valet-request', function (\Illuminate\Http\Request $request) {",
+        r"Route::post('/valet-request', function (\Illuminate\Http\Request $request) use ($pmdR60tGuestActionLeaseValid, $pmdR60tGuestActionExpired) {",
         'valet closure guard deps',
     )
     text = replace_after(
@@ -361,8 +356,8 @@ if MARKER not in text:
 
     text = replace_once(
         text,
-        "Route::post('/waiter-call', function (\\Illuminate\\Http\\Request $request) {",
-        "Route::post('/waiter-call', function (\\Illuminate\\Http\\Request $request) use ($pmdR60tGuestActionLeaseValid, $pmdR60tGuestActionExpired) {",
+        r"Route::post('/waiter-call', function (\Illuminate\Http\Request $request) {",
+        r"Route::post('/waiter-call', function (\Illuminate\Http\Request $request) use ($pmdR60tGuestActionLeaseValid, $pmdR60tGuestActionExpired) {",
         'waiter closure guard deps',
     )
     text = replace_after(
@@ -375,8 +370,8 @@ if MARKER not in text:
 
     text = replace_once(
         text,
-        "Route::post('/table-notes', function (\\Illuminate\\Http\\Request $request) {",
-        "Route::post('/table-notes', function (\\Illuminate\\Http\\Request $request) use ($pmdR60tGuestActionLeaseValid, $pmdR60tGuestActionExpired) {",
+        r"Route::post('/table-notes', function (\Illuminate\Http\Request $request) {",
+        r"Route::post('/table-notes', function (\Illuminate\Http\Request $request) use ($pmdR60tGuestActionLeaseValid, $pmdR60tGuestActionExpired) {",
         'note closure guard deps',
     )
     text = replace_after(
@@ -391,13 +386,19 @@ if MARKER not in text:
 else:
     print('Guest actions already lifecycle-patched')
 
-# ---------------------------------------------------------------------------
 # 4) R60T client: explicit QR activation and typed lifecycle errors.
-# ---------------------------------------------------------------------------
 p = FILES['r60t_client']
 text = p.read_text(encoding='utf-8')
 if MARKER not in text:
-    marker_block = """
+    state_type = """export type GuestOrdersState = {
+  success: boolean
+  selfOrders: GuestOrderState[]
+  sharedStaffOrders: GuestOrderState[]
+  orders: GuestOrderState[]
+  updatedAt: string | null
+}
+"""
+    error_class = """
 // PMD_R60T_TABLE_LIFECYCLE_R61
 export class GuestTableSessionError extends Error {
   code: string
@@ -411,15 +412,7 @@ export class GuestTableSessionError extends Error {
   }
 }
 """
-    insert_after = """export type GuestOrdersState = {
-  success: boolean
-  selfOrders: GuestOrderState[]
-  sharedStaffOrders: GuestOrderState[]
-  orders: GuestOrderState[]
-  updatedAt: string | null
-}
-"""
-    text = replace_once(text, insert_after, insert_after + marker_block, 'r60t client error class')
+    text = replace_once(text, state_type, state_type + error_class, 'r60t client error class')
 
     old_request = """  const data = await response.json().catch(() => ({}))
   if (!response.ok || data?.success === false) throw new Error(String(data?.error || data?.message || `HTTP ${response.status}`))
@@ -463,10 +456,7 @@ export async function activateGuestTableSession(table: TableContext, guestSessio
 else:
     print('R60T client already lifecycle-patched')
 
-# ---------------------------------------------------------------------------
-# 5) Smart runtime: consume ?qr once, preserve active rollout sessions, rotate
-#    after release, clear old order/cart UI when the table lease expires.
-# ---------------------------------------------------------------------------
+# 5) Smart runtime: consume ?qr once and rotate guest id after a released table.
 p = FILES['smart_runtime']
 text = p.read_text(encoding='utf-8')
 if MARKER not in text:
@@ -592,11 +582,12 @@ function consumeQrCredentialFromUrl(): void {
 """
     text = replace_once(text, old_catch, new_catch, 'smart runtime expired state handling')
 
-    old_deps = """  }, [base.bootstrap.table, flowGuestSessionId, isR60tActive])
-"""
-    new_deps = """  }, [base.bootstrap.table, base.clearCart, base.closeOverlay, flowExpiredKey, flowGuestSessionId, isR60tActive])
-"""
-    text = replace_once(text, old_deps, new_deps, 'smart runtime refresh deps')
+    text = replace_once(
+        text,
+        "  }, [base.bootstrap.table, flowGuestSessionId, isR60tActive])\n",
+        "  }, [base.bootstrap.table, base.clearCart, base.closeOverlay, flowExpiredKey, flowGuestSessionId, isR60tActive])\n",
+        'smart runtime refresh deps',
+    )
 
     old_confirm_catch = """    } catch (error) {
       base.notify('error', error instanceof Error ? error.message : base.labels.error)
@@ -615,12 +606,12 @@ function consumeQrCredentialFromUrl(): void {
     } finally {
 """
     text = replace_once(text, old_confirm_catch, new_confirm_catch, 'smart runtime prepare expired handling')
-
-    old_confirm_deps = """  }, [base, flowGuestSessionId, isR60tActive, refreshFlow])
-"""
-    new_confirm_deps = """  }, [base, flowExpiredKey, flowGuestSessionId, isR60tActive, refreshFlow])
-"""
-    text = replace_once(text, old_confirm_deps, new_confirm_deps, 'smart runtime confirm deps')
+    text = replace_once(
+        text,
+        "  }, [base, flowGuestSessionId, isR60tActive, refreshFlow])\n",
+        "  }, [base, flowExpiredKey, flowGuestSessionId, isR60tActive, refreshFlow])\n",
+        'smart runtime confirm deps',
+    )
 
     p.write_text(text, encoding='utf-8')
     print('Patched Smart runtime table-session expiry + rescan rotation')
