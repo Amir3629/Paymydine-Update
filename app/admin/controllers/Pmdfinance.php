@@ -197,10 +197,29 @@ class Pmdfinance extends AdminController
                 'user_id' => ['label' => 'User ID'],
                 'auth_key' => ['label' => 'Auth Key', 'secret' => true],
                 'webhook_signing_key' => ['label' => 'Webhook Signing Key', 'secret' => true],
-                'preferred_integration_mode' => ['label' => 'Preferred Integration', 'type' => 'select', 'default' => 'payment_page', 'options' => ['payment_page' => 'Hosted Payment Page']],
-                'api_endpoint' => ['label' => 'Terminal API Endpoint'],
-                'merchant_id' => ['label' => 'Terminal Merchant ID'],
-                'terminal_id' => ['label' => 'Terminal Device ID'],
+                // PMD_VR_LIGHTBOX_ADMIN_TRUTH_R1_4_1
+                'preferred_integration_mode' => [
+                    'label' => 'Default / legacy integration',
+                    'type' => 'select',
+                    'default' => 'lightbox',
+                    'options' => [
+                        'lightbox' => 'Lightbox (embedded overlay)',
+                        'payment_page' => 'Hosted Payment Page',
+                    ],
+                    'help' => 'PayMyDine Frontend V2 requests Lightbox per transaction. Hosted Payment Page remains the safe fallback when VR Payment does not expose a Lightbox configuration for that transaction/method.',
+                ],
+                'api_endpoint' => [
+                    'label' => 'Terminal API Endpoint (legacy / optional)',
+                    'help' => 'Leave blank for the canonical VR Payment Cloud Till flow. PMD uses the same VR Web Service API and Space credentials to discover terminals.',
+                ],
+                'merchant_id' => [
+                    'label' => 'Terminal Merchant ID (legacy / optional)',
+                    'help' => 'Not required by the canonical Space-scoped Cloud Till API. Keep only if VR Payment support gives you a separate merchant identifier for a certified terminal setup.',
+                ],
+                'terminal_id' => [
+                    'label' => 'Terminal ID override (optional)',
+                    'help' => 'First provision/link a terminal under VR Payment Space > Payment > Terminals. If Test saved connection reports terminal_count=0, there is no terminal device available for PMD to test yet.',
+                ],
             ],
         ];
     }

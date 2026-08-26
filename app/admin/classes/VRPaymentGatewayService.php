@@ -268,6 +268,97 @@ class VRPaymentGatewayService
         }
         if (is_array($updated['data'] ?? null)) $transaction = (array)$updated['data'];
 
+        // PMD_VR_LIGHTBOX_CHECKOUT_R1_4
+        // Lightbox is opt-in so legacy/shared checkout callers keep their proven
+        // Payment Page redirect contract. The frontend-v2 client explicitly asks
+        // for lightbox and we fall back to Payment Page if the tenant/method does
+        // not expose a usable lightbox configuration.
+        $requestedIntegration = strtolower(trim((string)(
+            $payload['integration_preference']
+            ?? $payload['integration_mode']
+            ?? $payload['checkout_flow']
+            ?? ''
+        )));
+        if (
+            in_array($requestedIntegration, ['lightbox', 'embedded'], true)
+            && in_array($method, ['card', 'wero', 'apple_pay', 'google_pay'], true)
+        ) {
+            $lightboxMethodId = null;
+            $available = $client->availablePaymentMethodConfigurations($transactionId, 'lightbox');
+            if ($available['ok'] ?? false) {
+                $rows = $client->normalizeMethodConfigurations((array)($available['data'] ?? []));
+                $lightboxCandidates = array_map(static fn (array $row): array => [
+                    'id' => (int)($row['id'] ?? 0),
+                    'code' => (string)($row['pmd_method_code'] ?? ''),
+                    'active' => (bool)($row['active'] ?? true),
+                ], $rows);
+                foreach ($rows as $row) {
+                    $candidateId = (int)($row['id'] ?? 0);
+                    if ($candidateId <= 0 || !($row['active'] ?? true)) continue;
+                    $candidateCode = strtolower(trim((string)($row['pmd_method_code'] ?? '')));
+                    // PMD_VR_LIGHTBOX_METHOD_ID_MATCH_R1_4_2
+                    // allowedIds was built only from the selected PMD method before the
+                    // transaction was created. Some transaction-scoped VR responses do
+                    // not expand paymentMethod names, so their candidateCode can be empty.
+                    // In that case the selected-method ID allow-list is the authoritative
+                    // and still exact match. Only fall back to code matching if no IDs exist.
+                    $candidateMatchesSelectedMethod = $allowedIds
+                        ? in_array($candidateId, $allowedIds, true)
+                        : $candidateCode === $method;
+                    if ($candidateMatchesSelectedMethod) {
+                        $lightboxMethodId = $candidateId;
+                        break;
+                    }
+                }
+            }
+
+            if ($lightboxMethodId !== null) {
+                $lightboxScript = $client->lightboxJavascriptUrl($transactionId);
+                $scriptUrl = ($lightboxScript['ok'] ?? false)
+                    ? $this->extractStringResult($lightboxScript['data'] ?? null)
+                    : '';
+
+                if ($scriptUrl !== '') {
+                    PaymentLogger::info('VR_PAYMENT_LIGHTBOX_READY', [
+                        'provider' => 'vr_payment',
+                        'payment_method' => $method,
+                        'transaction_id' => $transactionId,
+                        'payment_method_configuration_id' => $lightboxMethodId,
+                        'merchant_reference' => $merchantReference,
+                    ]);
+
+                    return [
+                        'success' => true,
+                        'provider' => 'vr_payment',
+                        'method' => $method,
+                        'flow' => 'lightbox',
+                        'script_url' => $scriptUrl,
+                        'payment_method_configuration_id' => $lightboxMethodId,
+                        'redirect_url' => null,
+                        'fallback_flow' => 'payment_page',
+                        'merchant_reference' => $merchantReference,
+                        'session_id' => (string)$transactionId,
+                        'transaction_id' => (string)$transactionId,
+                        'provider_reference' => (string)$transactionId,
+                        'status' => $client->normalizeTransactionStatus($transaction),
+                        'raw_status' => $transaction['state'] ?? null,
+                    ];
+                }
+            }
+
+            PaymentLogger::info('VR_PAYMENT_LIGHTBOX_FALLBACK', [
+                'provider' => 'vr_payment',
+                'payment_method' => $method,
+                'requested_integration' => $requestedIntegration,
+                'transaction_id' => $transactionId,
+                'available_api_ok' => (bool)($available['ok'] ?? false),
+                'lightbox_configuration_found' => $lightboxMethodId !== null,
+                'available_http_status' => $available['status'] ?? null,
+                'allowed_method_ids' => $allowedIds,
+                'lightbox_candidates' => $lightboxCandidates ?? [],
+            ]);
+        }
+
         $page = $client->paymentPageUrl($transactionId);
         if (!($page['ok'] ?? false)) {
             return $this->businessError(
@@ -297,7 +388,9 @@ class VRPaymentGatewayService
             'success' => true,
             'provider' => 'vr_payment',
             'method' => $method,
+            'flow' => 'redirect',
             'redirect_url' => $redirectUrl,
+            'fallback_flow' => null,
             'merchant_reference' => $merchantReference,
             'session_id' => (string)$transactionId,
             'transaction_id' => (string)$transactionId,

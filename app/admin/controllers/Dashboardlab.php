@@ -78,9 +78,9 @@ class Dashboardlab extends AdminController
 
         // Route-scoped copy of the LIVE Floor V1 core only. Appended legacy
         // observer/retry patches are excluded; first geometry comes from Blade.
-        $this->addJs('js/pmd-dashboard-lab-exact-floor-v1.js?v=20260826-floor-core-controls-v3');
+        $this->addJs('js/pmd-dashboard-lab-exact-floor-v1.js');
         // Same coordinator used by Manager/Cashier/Reservations shared Floor.
-        $this->addJs('js/pmd-shared-floor-multi-floor-v1.js?v=20260826-floor-core-controls-v3');
+        $this->addJs('js/pmd-shared-floor-multi-floor-v1.js');
 
         // Clean route-scoped Analytics renderer. Dashboard2 remains data-only.
         $this->addJs('js/pmd-dashboard-lab-analytics-v1.js');

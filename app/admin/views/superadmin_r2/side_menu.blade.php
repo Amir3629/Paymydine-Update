@@ -31,12 +31,12 @@
 
         <a class="pmd-sm2__item {{ $pmdSuperActive(['superadmin/health']) ? 'is-active' : '' }}" href="/superadmin/health">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13h4l2-6 4 12 2-6h4"/></svg>
-            <span class="pmd-sm2__label">Restaurant Health</span>
+            <span class="pmd-sm2__label">Status</span>
         </a>
 
         <a class="pmd-sm2__item {{ $pmdSuperActive(['superadmin/location-requests']) ? 'is-active' : '' }}" href="/superadmin/location-requests">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s6-5.3 6-11a6 6 0 1 0 -12 0c0 5.7 6 11 6 11z"/><circle cx="12" cy="10" r="2"/></svg>
-            <span class="pmd-sm2__label">Location Requests</span>
+            <span class="pmd-sm2__label">Locations</span>
         </a>
 
         <a class="pmd-sm2__item {{ $pmdSuperActive(['superadmin/settings']) ? 'is-active' : '' }}" href="/superadmin/settings">

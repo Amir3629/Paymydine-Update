@@ -40,6 +40,15 @@
             @endforeach
         </div>
         <div class="pmd-inline-note">Credentials are sent only to the existing <strong>Payments</strong> backend. Blank secret fields keep the current stored secret.</div>
+        @if($code === 'vr_payment')
+            {{-- PMD_VR_PROVIDER_RUNTIME_GUIDE_R1_4_2 --}}
+            <div class="pmd-inline-note" style="margin-top:12px">
+                <strong>VR Payment runtime guide</strong><br>
+                Guest checkout: Frontend V2 requests <strong>Lightbox</strong>. Hosted Payment Page is only the safe fallback when VR Payment does not expose a usable Lightbox configuration for the selected transaction/method.<br><br>
+                Terminal test: open VR Payment <strong>Space → Payment → Terminals</strong>, provision/link a real or provider-issued test terminal, then run <strong>Test saved connection</strong> here. PayMyDine will not offer a terminal payment test until <code>terminal_count ≥ 1</code>.<br><br>
+                Apple Pay / Google Pay: disabled means the current VR Space did not expose that wallet. Configure/activate the wallet with VR Payment first, then run <strong>Test saved connection</strong>. PayMyDine intentionally does not fake-enable unavailable wallets.
+            </div>
+        @endif
         <div style="margin-top:12px"><button type="button" class="pmd-settings-inline-action" data-pmd-inline-action="onTestProviderConnection">Test saved connection</button></div>
         <pre class="pmd-inline-result" data-pmd-inline-result hidden></pre>
     </section>

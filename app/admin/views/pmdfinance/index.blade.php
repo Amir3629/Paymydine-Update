@@ -68,7 +68,24 @@
                     <div class="pmd-owner-list">
                         @forelse($methods as $method)
                             <div class="pmd-owner-list-row">
-                                <div><strong>{{ $method->name ?: ucfirst(str_replace('_',' ',(string)$method->code)) }}</strong><small>{{ $method->description ?: strtoupper((string)$method->code) }}</small></div>
+                                {{-- PMD_VR_METHOD_RUNTIME_TRUTH_UI_R1_4_1 --}}
+                                @php
+                                    $methodCode = strtolower((string)$method->code);
+                                    $methodProvider = strtolower((string)($method->provider_code ?: ''));
+                                    $methodHint = $method->description ?: strtoupper((string)$method->code);
+                                    if ($methodProvider === 'vr_payment') {
+                                        if (in_array($methodCode, ['apple_pay', 'google_pay'], true)) {
+                                            $methodHint = !empty($method->status)
+                                                ? 'VR Payment wallet available in this Space.'
+                                                : 'Unavailable in the current VR Payment Space. Activate/configure this wallet with VR Payment first; PMD will not fake-enable it.';
+                                        } elseif ($methodCode === 'card') {
+                                            $methodHint = 'VR Payment card checkout — Lightbox first, hosted page only as a provider fallback.';
+                                        } elseif ($methodCode === 'wero') {
+                                            $methodHint = 'VR Payment Wero checkout — Lightbox first, hosted page only as a provider fallback.';
+                                        }
+                                    }
+                                @endphp
+                                <div><strong>{{ $method->name ?: ucfirst(str_replace('_',' ',(string)$method->code)) }}</strong><small>{{ $methodHint }}</small></div>
                                 <div class="pmd-owner-meta">Provider: {{ $method->provider_code ?: '—' }}</div>
                                 <div class="pmd-owner-status {{ !empty($method->status) ? 'is-active' : '' }}">{{ !empty($method->status) ? 'Enabled' : 'Disabled' }}</div>
                                 <button type="button" class="pmd-owner-action" data-pmd-inline-open="finance:method:{{ $method->code }}">Edit</button>

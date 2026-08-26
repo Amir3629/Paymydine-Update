@@ -26,7 +26,7 @@ import {
 } from 'lucide-react'
 import type { CartOptionSelection, MenuItem, PaymentMethod, TableOrderState } from '@/src/domain/model'
 import type { ExistingOrderPaymentAllocation } from '@/src/lib/client-api'
-import { callWaiter, clearPendingProviderPayment, finalizeExistingOrderPayment, payExistingOrder, prepareSplitPaymentIntent, startHostedProviderPayment, validateCoupon, downloadPaidInvoice,
+import { callWaiter, clearPendingProviderPayment, finalizeExistingOrderPayment, launchVrPaymentLightbox, payExistingOrder, prepareSplitPaymentIntent, startHostedProviderPayment, validateCoupon, downloadPaidInvoice,
   submitReview,
   settleExistingOrderGroup,
   type SplitPaymentIntent,
@@ -408,7 +408,7 @@ function r27FlowCopy(locale: string): R27FlowCopy {
 function OrderTimeline({ order }: { order: TableOrderState }) {
   const { labels } = useMenuRuntime()
   const statusText = `${order.statusName || ''} ${order.deliveryStatus || ''} ${order.status || ''}`.toLowerCase()
-  const stage = /ready|complete|on.?way|delivered/.test(statusText) ? 2 : /prepar|cook|kitchen/.test(statusText) ? 1 : 0
+  const stage = /ready|complete|on.?way|delivered|delivery/.test(statusText) ? 2 : /prepar|cook|kitchen/.test(statusText) ? 1 : 0
   const stages = [
     { label: labels.received, icon: CheckCircle2 },
     { label: labels.preparing, icon: ChefHat },
@@ -437,7 +437,7 @@ function operationalStatusLabel(order: TableOrderState, labels: { received: stri
   const raw = String(order.deliveryStatus || order.statusName || '').trim()
   const normalized = raw.toLowerCase().replace(/[\s_]+/g, '-')
   if (!raw || /^(paid|settled|payment-open|payment-complete|payment-completed|partially-paid|partial|unpaid)$/.test(normalized)) return copy.sentToKitchen
-  if (/ready|complete|completed|delivered/.test(normalized)) return labels.ready
+  if (/ready|complete|completed|delivered|delivery/.test(normalized)) return labels.ready
   if (/prepar|cook|kitchen/.test(normalized)) return labels.preparing
   if (/received|new|pending/.test(normalized)) return labels.received
   return raw
@@ -794,6 +794,8 @@ function PaymentPanel({ order, mode, guestSessionId }: { order: TableOrderState;
   const [itemQuantities, setItemQuantities] = useState<Record<number, number>>({})
   const [methodKey, setMethodKey] = useState(bootstrap.payments[0] ? paymentMethodKey(bootstrap.payments[0]) : '')
   const [tipPercent, setTipPercent] = useState(0)
+  const [customTipPercent, setCustomTipPercent] = useState(15)
+  const [customTipActive, setCustomTipActive] = useState(false)
   const [couponCode, setCouponCode] = useState('')
   const [couponDiscount, setCouponDiscount] = useState(0)
   const [busy, setBusy] = useState(false)
@@ -938,6 +940,8 @@ function PaymentPanel({ order, mode, guestSessionId }: { order: TableOrderState;
           payerLabel: intent.payerLabel,
           items: intent.providerItems,
         })
+        // PMD_VR_LIGHTBOX_RUNTIME_R1_4
+        if (await launchVrPaymentLightbox(response)) { setMessage('VR Payment opened securely.'); return }
         if (response.redirectUrl) { window.location.assign(response.redirectUrl); return }
         if (response.immediateReference) {
           await payExistingOrder({
@@ -971,6 +975,7 @@ function PaymentPanel({ order, mode, guestSessionId }: { order: TableOrderState;
           .filter((item) => item.unpaidQuantity > 0)
           .map((item) => ({ id: String(item.orderMenuId || item.menuId), name: item.name, quantity: item.unpaidQuantity, price: item.price * grossRatio })),
       })
+      if (await launchVrPaymentLightbox(response)) { setMessage('VR Payment opened securely.'); return }
       if (response.redirectUrl) { window.location.assign(response.redirectUrl); return }
       if (response.immediateReference) {
         if (settlementMode === 'pay-existing') {
@@ -1034,17 +1039,38 @@ function PaymentPanel({ order, mode, guestSessionId }: { order: TableOrderState;
         </div>
       )}
       {bootstrap.features.tips && (
-        <div className={styles.segmented}>
-          {(bootstrap.tips.presets.length ? bootstrap.tips.presets : [0, 5, 10]).slice(0, 4).map((value) => (
-            <button key={value} type="button" className={tipPercent === value ? styles.selected : ''} onClick={() => setTipPercent(value)}>{value}% {labels.tip}</button>
-          ))}
+        <div className={styles.stack}>
+          <div className={styles.segmented}>
+            {(bootstrap.tips.presets.length ? bootstrap.tips.presets : [0, 5, 10]).slice(0, 3).map((value) => (
+              <button key={value} type="button" className={!customTipActive && tipPercent === value ? styles.selected : ''} onClick={() => { setCustomTipActive(false); setTipPercent(value) }}>{value}% {labels.tip}</button>
+            ))}
+            <button type="button" className={customTipActive ? styles.selected : ''} onClick={() => { setCustomTipActive(true); setTipPercent(customTipPercent) }}>Custom</button>
+          </div>
+          {customTipActive && (
+            <label className={styles.label}>Custom tip %
+              <input
+                className={styles.input}
+                type="number"
+                min={0}
+                max={100}
+                step={1}
+                inputMode="decimal"
+                value={customTipPercent}
+                onChange={(event) => {
+                  const next = Math.min(100, Math.max(0, Number(event.target.value) || 0))
+                  setCustomTipPercent(next)
+                  setTipPercent(next)
+                }}
+              />
+            </label>
+          )}
         </div>
       )}
       {paymentChoices.length > 0 ? (
         <div className={styles.methodGrid}>
           {paymentChoices.map((entry) => {
             const key = paymentMethodKey(entry)
-            return <button key={key} type="button" className={`${styles.method} ${methodKey === key ? styles.methodSelected : ''}`} onClick={() => { setMethodKey(key); setMessage('') }}>{entry.code === 'cash' || entry.code === 'cod' ? <Receipt /> : <CreditCard />} {entry.name}</button>
+            return <button key={key} type="button" className={`${styles.method} ${methodKey === key ? styles.methodSelected : ''}`} onClick={() => { setMethodKey(key); setMessage('') }}>{entry.code === 'cash' || entry.code === 'cod' ? <Receipt /> : <CreditCard />} {entry.code === 'cash' || entry.code === 'cod' ? 'Cash' : entry.name}</button>
           })}
         </div>
       ) : <div className={`${styles.statusMessage} ${styles.statusError}`}>{labels.noPaymentMethods}</div>}
@@ -1387,7 +1413,7 @@ function MultiOrderPaymentPanel({ orders, guestSessionId }: { orders: TableOrder
         <div className={styles.methodGrid}>
           {paymentChoices.map((entry) => {
             const key = paymentMethodKey(entry)
-            return <button key={key} type="button" className={`${styles.method} ${methodKey === key ? styles.methodSelected : ''}`} onClick={() => { setMethodKey(key); setMessage('') }}>{entry.code === 'cash' || entry.code === 'cod' ? <Receipt /> : <CreditCard />} {entry.name}</button>
+            return <button key={key} type="button" className={`${styles.method} ${methodKey === key ? styles.methodSelected : ''}`} onClick={() => { setMethodKey(key); setMessage('') }}>{entry.code === 'cash' || entry.code === 'cod' ? <Receipt /> : <CreditCard />} {entry.code === 'cash' || entry.code === 'cod' ? 'Cash' : entry.name}</button>
           })}
         </div>
       ) : <div className={`${styles.statusMessage} ${styles.statusError}`}>{labels.noPaymentMethods}</div>}

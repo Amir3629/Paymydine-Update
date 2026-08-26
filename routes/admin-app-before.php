@@ -2291,17 +2291,81 @@ Route::group([
 
     $registerVRPaymentSessionRoute = function (string $methodCode, string $path) use ($resolveRuntimeMethodCollection, $persistVRPaymentSession) {
         Route::post($path, function (\Illuminate\Http\Request $request) use ($methodCode, $resolveRuntimeMethodCollection, $persistVRPaymentSession) {
-            $payload = $request->validate([
+            // PMD_VR_CREATE_SESSION_VALIDATION_R1_4_2
+            // Frontend V2 owns the checkout URLs. Validate the transport payload
+            // without Laravel's stricter URL rule rejecting otherwise valid encoded
+            // return URLs; then enforce http/https + host explicitly below.
+            $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
                 'amount' => 'required|numeric|min:0.01',
                 'currency' => 'required|string|size:3',
-                'return_url' => 'required|url',
-                'cancel_url' => 'required|url',
+                'return_url' => 'required|string|max:2048',
+                'cancel_url' => 'nullable|string|max:2048',
                 'locale' => 'nullable|string|max:10',
                 'country_code' => 'nullable|string|max:3',
                 'merchant_customer_id' => 'nullable|string|max:120',
                 'merchant_reference' => 'nullable|string|max:191',
                 'items' => 'nullable|array',
+                'integration_preference' => 'nullable|string|in:lightbox,embedded,payment_page',
+                'order_id' => 'nullable|integer|min:1',
+                'guest_session_id' => 'nullable|string|max:191',
+                'payment_intent_token' => 'nullable|string|max:191',
+                'selected_items' => 'nullable|array',
+                'payer_label' => 'nullable|string|max:191',
+                'tip_amount' => 'nullable|numeric|min:0',
+                'coupon_code' => 'nullable|string|max:191',
+                'coupon_discount' => 'nullable|numeric|min:0',
+                'table_id' => 'nullable',
+                'table_no' => 'nullable',
+                'qr' => 'nullable|string|max:191',
+                'provider' => 'nullable|string|max:64',
+                'payment_method' => 'nullable|string|max:64',
             ]);
+            if ($validator->fails()) {
+                $validationErrors = $validator->errors()->toArray();
+                \Illuminate\Support\Facades\Log::warning('VR_PAYMENT_CREATE_SESSION_VALIDATION_FAILED_R1_4_2', [
+                    'host' => request()->getHost(),
+                    'method' => $methodCode,
+                    'errors' => $validationErrors,
+                    'received_keys' => array_values(array_keys($request->all())),
+                ]);
+                return response()->json([
+                    'success' => false,
+                    'provider' => 'vr_payment',
+                    'method' => $methodCode,
+                    'business_error' => true,
+                    'error_code' => 'vr_payment_request_invalid',
+                    'error' => 'VR Payment checkout request is invalid.',
+                    'diagnostic_stage' => 'request_validation',
+                    'validation_errors' => $validationErrors,
+                ], 422);
+            }
+            $payload = $validator->validated();
+            $payload['return_url'] = trim((string)$payload['return_url']);
+            $payload['cancel_url'] = trim((string)($payload['cancel_url'] ?? '')) ?: $payload['return_url'];
+            foreach (['return_url', 'cancel_url'] as $urlField) {
+                $urlValue = (string)$payload[$urlField];
+                $parts = parse_url($urlValue);
+                $scheme = strtolower((string)($parts['scheme'] ?? ''));
+                $host = trim((string)($parts['host'] ?? ''));
+                if (!is_array($parts) || !in_array($scheme, ['http', 'https'], true) || $host === '') {
+                    \Illuminate\Support\Facades\Log::warning('VR_PAYMENT_CREATE_SESSION_VALIDATION_FAILED_R1_4_2', [
+                        'host' => request()->getHost(),
+                        'method' => $methodCode,
+                        'url_field' => $urlField,
+                        'reason' => 'invalid_http_url',
+                    ]);
+                    return response()->json([
+                        'success' => false,
+                        'provider' => 'vr_payment',
+                        'method' => $methodCode,
+                        'business_error' => true,
+                        'error_code' => 'vr_payment_return_url_invalid',
+                        'error' => 'VR Payment return URL is invalid.',
+                        'diagnostic_stage' => 'request_validation',
+                        'validation_errors' => [$urlField => ['A valid HTTP(S) URL is required.']],
+                    ], 422);
+                }
+            }
 
             $runtimeCollection = $resolveRuntimeMethodCollection(true);
             $runtimeMethods = collect($runtimeCollection['methods'] ?? [])->keyBy('code');
@@ -2329,6 +2393,15 @@ Route::group([
                 ], 422);
             }
 
+            \Illuminate\Support\Facades\Log::info('VR_PAYMENT_CREATE_SESSION_REQUEST_R1_4_2', [
+                'host' => request()->getHost(),
+                'method' => $methodCode,
+                'integration_preference' => (string)($payload['integration_preference'] ?? 'payment_page'),
+                'amount' => (float)$payload['amount'],
+                'currency' => strtoupper((string)$payload['currency']),
+                'return_host' => (string)(parse_url((string)$payload['return_url'], PHP_URL_HOST) ?: ''),
+                'cancel_host' => (string)(parse_url((string)$payload['cancel_url'], PHP_URL_HOST) ?: ''),
+            ]);
             $service = app(\Admin\Classes\VRPaymentGatewayService::class);
             $result = $service->createRedirectSession([
                 'method' => $methodCode,
@@ -2340,6 +2413,8 @@ Route::group([
                 'country_code' => strtoupper((string)($payload['country_code'] ?? 'DE')),
                 'merchant_customer_id' => (string)($payload['merchant_customer_id'] ?? 'PMD-VR-CHECKOUT'),
                 'merchant_reference' => (string)($payload['merchant_reference'] ?? ''),
+                'integration_preference' => (string)($payload['integration_preference'] ?? 'payment_page'), // PMD_VR_LIGHTBOX_ROUTE_FORWARD_R1_4_2
+                'order_id' => isset($payload['order_id']) ? (int)$payload['order_id'] : null,
                 'items' => (array)($payload['items'] ?? []),
             ]);
 
@@ -2354,6 +2429,16 @@ Route::group([
                     'amount' => (float)$payload['amount'],
                     'currency' => strtoupper((string)$payload['currency']),
                     'raw_snapshot' => $result,
+                ]);
+                $result['diagnostic_stage'] = $result['diagnostic_stage'] ?? 'vr_service';
+                \Illuminate\Support\Facades\Log::warning('VR_PAYMENT_CREATE_SESSION_SERVICE_FAILED_R1_4_2', [
+                    'host' => request()->getHost(),
+                    'method' => $methodCode,
+                    'integration_preference' => (string)($payload['integration_preference'] ?? 'payment_page'),
+                    'error_code' => $result['error_code'] ?? null,
+                    'error' => $result['error'] ?? $result['message'] ?? null,
+                    'provider_http_status' => $result['provider_http_status'] ?? null,
+                    'transaction_id' => $result['transaction_id'] ?? null,
                 ]);
                 return response()->json($result, 422);
             }

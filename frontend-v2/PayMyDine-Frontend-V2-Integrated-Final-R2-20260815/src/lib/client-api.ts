@@ -670,11 +670,71 @@ export type HostedProviderPaymentInput = {
   items?: Array<{ id: string; name: string; quantity: number; price: number }>
 }
 
+// PMD_VR_LIGHTBOX_CLIENT_R1_4
 export type HostedProviderPaymentResult = {
   provider: string
   redirectUrl: string | null
   immediateReference: string | null
+  flow: 'redirect' | 'lightbox' | 'unknown'
+  scriptUrl: string | null
+  paymentMethodConfigurationId: number | null
   raw: any
+}
+
+const vrPaymentScriptLoads = new Map<string, Promise<void>>()
+
+async function loadVrPaymentScript(url: string): Promise<void> {
+  if (typeof window === 'undefined') throw new Error('VR Payment can only open in the browser.')
+  const parsed = new URL(url, window.location.origin)
+  if (parsed.protocol !== 'https:') throw new Error('VR Payment returned an insecure checkout script URL.')
+
+  const key = parsed.toString()
+  const existing = vrPaymentScriptLoads.get(key)
+  if (existing) return existing
+
+  const load = new Promise<void>((resolve, reject) => {
+    const prior = Array.from(document.scripts).find((entry) => entry.src === key)
+    if (prior) {
+      if ((window as any).LightboxCheckoutHandler?.startPayment) { resolve(); return }
+      prior.addEventListener('load', () => resolve(), { once: true })
+      prior.addEventListener('error', () => reject(new Error('VR Payment checkout script failed to load.')), { once: true })
+      return
+    }
+
+    const script = document.createElement('script')
+    script.src = key
+    script.async = true
+    script.dataset.pmdVrPayment = 'lightbox-r1-4'
+    script.onload = () => resolve()
+    script.onerror = () => reject(new Error('VR Payment checkout script failed to load.'))
+    document.head.appendChild(script)
+  })
+  vrPaymentScriptLoads.set(key, load)
+  try {
+    await load
+  } catch (error) {
+    vrPaymentScriptLoads.delete(key)
+    throw error
+  }
+}
+
+export async function launchVrPaymentLightbox(result: HostedProviderPaymentResult): Promise<boolean> {
+  const provider = String(result.provider || '').trim().toLowerCase().replace(/[\s-]+/g, '_')
+  if (provider !== 'vr_payment' || result.flow !== 'lightbox') return false
+  if (!result.scriptUrl || !result.paymentMethodConfigurationId) {
+    throw new Error('VR Payment lightbox session is incomplete.')
+  }
+
+  await loadVrPaymentScript(result.scriptUrl)
+  const handler = (window as any).LightboxCheckoutHandler
+  if (!handler || typeof handler.startPayment !== 'function') {
+    throw new Error('VR Payment lightbox could not be initialized.')
+  }
+
+  handler.startPayment(result.paymentMethodConfigurationId, (error?: unknown) => {
+    console.error('[PMD_VR_LIGHTBOX_ERROR]', error || 'VR Payment lightbox reported an error.')
+  })
+  return true
 }
 
 function normalizeProviderCode(methodCode: string, providerCode: string | null | undefined): string {
@@ -848,6 +908,7 @@ export async function startHostedProviderPayment(input: HostedProviderPaymentInp
     payer_label: input.payerLabel,
     payment_intent_token: input.paymentIntentToken || null,
     items: input.items || [],
+    integration_preference: requestedProvider === 'vr_payment' || requestedProvider === 'vrpayment' ? 'lightbox' : undefined,
   }
 
   const endpoint = hostedCheckoutEndpoint(input.methodCode, requestedProvider)
@@ -872,10 +933,21 @@ export async function startHostedProviderPayment(input: HostedProviderPaymentInp
   const pending = buildPendingProviderPayment(provider, merchantReference, input, data, returnTo)
   savePendingProviderPayment(pending)
 
+  const redirectUrl = providerRedirect(data)
+  const rawFlow = String(data?.flow || '').trim().toLowerCase()
+  const flow: HostedProviderPaymentResult['flow'] = rawFlow === 'lightbox'
+    ? 'lightbox'
+    : redirectUrl
+      ? 'redirect'
+      : 'unknown'
+
   return {
     provider,
-    redirectUrl: providerRedirect(data),
+    redirectUrl,
     immediateReference: providerReference(data),
+    flow,
+    scriptUrl: data?.script_url ? String(data.script_url) : null,
+    paymentMethodConfigurationId: Number(data?.payment_method_configuration_id || 0) || null,
     raw: data,
   }
 }

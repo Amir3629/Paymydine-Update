@@ -155,7 +155,7 @@ class SuperAdminR2Controller extends AdminController
             ]);
 
             return redirect('/superadmin/new')
-                ->with('warning', 'Restaurant creation could not be completed. Nothing was intentionally activated. Please retry; if it repeats, check Restaurant Health.')
+                ->with('warning', 'Restaurant creation could not be completed. Nothing was intentionally activated. Please retry; if it repeats, check Status.')
                 ->withInput();
         }
     }
@@ -193,7 +193,7 @@ class SuperAdminR2Controller extends AdminController
             if (!$readiness['ok']) {
                 DB::connection('mysql')->table('tenants')->where('id',$tenant->id)->update(['status'=>'disabled','updated_at'=>now()]);
                 return redirect('/superadmin/new')->with('warning',
-                    'Cannot activate '.$tenant->name.' yet: '.implode('; ', $readiness['issues']).'. Use Restaurant Health → Retry provisioning.'
+                    'Cannot activate '.$tenant->name.' yet: '.implode('; ', $readiness['issues']).'. Use Status → Retry provisioning.'
                 );
             }
         }

@@ -169,6 +169,17 @@ class VrPaymentApiClient
         return $this->request('GET', '/api/v2.0/payment/transactions/'.$transactionId.'/payment-page-url');
     }
 
+    // PMD_VR_LIGHTBOX_API_R1_4
+    public function iframeJavascriptUrl(int $transactionId): array
+    {
+        return $this->request('GET', '/api/v2.0/payment/transactions/'.$transactionId.'/iframe-javascript-url');
+    }
+
+    public function lightboxJavascriptUrl(int $transactionId): array
+    {
+        return $this->request('GET', '/api/v2.0/payment/transactions/'.$transactionId.'/lightbox-javascript-url');
+    }
+
     public function performTerminalTransaction(int $terminalId, int $transactionId, string $language = 'de-DE'): array
     {
         return $this->request(
@@ -380,7 +391,7 @@ class VrPaymentApiClient
 
         $headers = [
             'Authorization' => 'Bearer '.$this->jwt($method, $requestPath),
-            'Accept' => str_ends_with($path, '/payment-page-url') ? '*/*' : 'application/json', // PMD_VR_PAYMENT_PAGE_ACCEPT_R1_3
+            'Accept' => (str_ends_with($path, '/payment-page-url') || str_ends_with($path, '/lightbox-javascript-url') || str_ends_with($path, '/iframe-javascript-url')) ? '*/*' : 'application/json', // PMD_VR_PAYMENT_PAGE_ACCEPT_R1_3 PMD_VR_STRING_ENDPOINT_ACCEPT_R1_4
         ];
         if ($spaceScoped) {
             $headers['space'] = (string)$this->config['space_id'];

@@ -1,7 +1,7 @@
 @extends('admin::superadmin_r2.layout')
-@section('title','Restaurant Health')
+@section('title','Status')
 @section('content')
-<div class="hero"><div><h2>Restaurant health</h2></div></div>
+<div class="hero"><div><h2>Status</h2></div></div>
 <div class="card"><div class="table-wrap"><table><thead><tr><th>Restaurant</th><th>Database</th><th>DNS</th><th>TLS</th><th>Subscription</th><th>Status</th><th>Recovery</th></tr></thead><tbody>
 @forelse($rows as $row)
 <tr>

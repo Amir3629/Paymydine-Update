@@ -31,7 +31,7 @@
 @endpush
 
 @section('content')
-<div class="pmd-overview-hero"><h2>Platform overview</h2></div>
+<div class="pmd-overview-hero"><h2>Overview</h2></div>
 
 <div class="pmd-kpis">
     <div class="pmd-kpi total">

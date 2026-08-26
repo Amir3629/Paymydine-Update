@@ -7,7 +7,7 @@
 </style>
 @endpush
 @section('content')
-<div class="hero"><div><h2>Platform settings</h2></div></div>
+<div class="hero"><div><h2>Settings</h2></div></div>
 <div class="pmd-settings-shell">
     <div class="card pmd-settings-card">
         <form method="POST" action="https://paymydine.com/superadmin/settings/save">

@@ -1,12 +1,12 @@
 @extends('admin::superadmin_r2.layout')
-@section('title','Location Requests')
+@section('title','Locations')
 @push('head')
 <style>
     .pmd-location-card{padding:20px}.pmd-location-card table{min-width:900px}.pmd-location-card th,.pmd-location-card td{padding:16px 15px}
 </style>
 @endpush
 @section('content')
-<div class="hero"><div><h2>Location requests</h2></div></div>
+<div class="hero"><div><h2>Locations</h2></div></div>
 <div class="card pmd-location-card">
     <div class="table-wrap">
         <table>
