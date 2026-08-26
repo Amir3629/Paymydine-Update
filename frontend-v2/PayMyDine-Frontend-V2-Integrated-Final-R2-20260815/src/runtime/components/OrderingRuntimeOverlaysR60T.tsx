@@ -74,8 +74,25 @@ export function RuntimeOverlays() {
           font-size: 0.95rem;
           line-height: 1.2;
         }
+        [data-pmd-ordering-flow="r60t"][data-pmd-r60t-self-order="true"] > :first-child {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 0.5rem;
+        }
+        [data-pmd-ordering-flow="r60t"][data-pmd-r60t-self-order="true"] > :first-child > button {
+          min-height: 3rem;
+          font-size: 0.82rem;
+        }
         [data-pmd-ordering-flow="r60t"][data-pmd-r60t-self-order="true"] > :first-child > button:nth-child(3) {
           display: none;
+        }
+        [data-pmd-ordering-flow="r60t"] article[data-pmd-order-id] > :last-child {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        [data-pmd-ordering-flow="r60t"] article[data-pmd-order-id] > :last-child > button:first-child {
+          display: none;
+        }
+        [data-pmd-ordering-flow="r60t"] article[data-pmd-order-id] > :last-child > button {
+          width: 100%;
         }
         [data-pmd-ordering-flow="r60t"] [data-pmd-multi-order-picker="r32"],
         [data-pmd-ordering-flow="r60t"] [data-pmd-multi-order-selection="r32"],
