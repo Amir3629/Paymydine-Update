@@ -18,6 +18,14 @@ $pmdR60tIsGuestSelfOrder = static function ($order): bool {
     return str_contains((string)($order->comment ?? ''), '[pmd_origin:guest_self]');
 };
 
+$pmdR60tIsLegacyGuestRound = static function ($order): bool {
+    $comment = (string)($order->comment ?? '');
+    return str_contains($comment, '[table_session:')
+        || str_contains($comment, '[table_draft_id:')
+        || str_contains($comment, 'Table Round')
+        || str_contains($comment, 'Table Draft Basket');
+};
+
 $pmdR60tOrderBelongsToGuest = static function ($order, string $guestSessionId): bool {
     if (!$order || trim($guestSessionId) === '') return false;
     return str_contains((string)($order->comment ?? ''), '[submitted_by:'.trim($guestSessionId).']');
@@ -105,6 +113,7 @@ Route::get('/guest-orders/state', function (\Illuminate\Http\Request $request) u
     $resolveTableDraftContext,
     $pmdR60tContextCandidates,
     $pmdR60tIsGuestSelfOrder,
+    $pmdR60tIsLegacyGuestRound,
     $pmdR60tOrderBelongsToGuest,
     $pmdR60tReleasePaidGuestOrder,
     $pmdR60tPayload
@@ -142,15 +151,17 @@ Route::get('/guest-orders/state', function (\Illuminate\Http\Request $request) u
             continue;
         }
 
-        // Staff/Cashier/Waiter orders stay table-shared. Only expose financially open
-        // orders, plus recently paid shared orders while the table visit remains occupied.
+        // Never expose another guest's legacy QR round as a shared table bill.
+        if ($pmdR60tIsLegacyGuestRound($order)) continue;
+
+        // Staff/Cashier/Waiter orders are shared only while money remains due.
+        // Once fully settled, a later scanner must not inherit an old staff bill.
         $total = max(0, (float)($order->order_total ?? 0));
         $settled = max(0, (float)($order->settled_amount ?? 0));
         $settlement = strtolower(trim((string)($order->settlement_status ?? '')));
-        $financiallyOpen = !in_array($settlement, ['cancelled', 'canceled', 'failed', 'refunded', 'void', 'voided'], true)
+        $financiallyOpen = !in_array($settlement, ['paid', 'settled', 'cancelled', 'canceled', 'failed', 'refunded', 'void', 'voided'], true)
             && ($total <= 0 || $settled < $total - 0.0001);
-        $tableOccupied = strtolower(trim((string)($context['table']->operational_status ?? ''))) === 'occupied';
-        if (!$financiallyOpen && !$tableOccupied) continue;
+        if (!$financiallyOpen) continue;
         $shared[] = $pmdR60tPayload($order, $context, 'staff_shared');
     }
 
@@ -188,7 +199,7 @@ Route::post('/guest-orders/prepare', function (\Illuminate\Http\Request $request
         ->first(['orders.*', 'statuses.status_name']);
     if ($existing) return response()->json($pmdR60tPayload($existing, $context, 'guest_self'));
 
-    $orderId = DB::transaction(function () use ($context, $request, $guestSessionId, $confirmationId, $confirmationMarker, $items) {
+    $orderId = DB::transaction(function () use ($context, $request, $guestSessionId, $confirmationMarker, $items) {
         $resolvedTotals = pmd_table_order_calculate_totals($items);
         $total = (float)$resolvedTotals['total'];
         $lastOrderId = (int)(DB::table('orders')->orderByDesc('order_id')->lockForUpdate()->value('order_id') ?? 0);
