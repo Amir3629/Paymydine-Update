@@ -72,6 +72,7 @@ return [
     'waiter.pos.already_sent' => 'Already sent',
     'waiter.pos.back_to_floor' => '← Back to floor',
     'waiter.pos.clear_cart' => 'Clear cart',
+    'waiter.pos.close_cart' => 'Close cart',
     'waiter.pos.close_payment' => 'Close payment',
     'waiter.pos.compact_list_view' => 'Compact list view',
     'waiter.pos.current_order' => 'Current order',
