@@ -59,34 +59,26 @@ def bump_asset(text, filename, version):
 
 
 # ---------------------------------------------------------------------------
-# 1) Cashier presentation: Invoice-only customer UX.
-#    Transaction/receipt evidence remains internal for audit and German
-#    Belegausgabepflicht; the visible Cashier surface uses only “Invoice”.
+# 1) Cashier customer-facing UX: Invoices only.
+#    The underlying receipt/transaction pointer remains internal for audit.
 # ---------------------------------------------------------------------------
 s = COMPOSER.read_text(encoding='utf-8')
 if 'PMD_R70_CASHIER_COMPACT_SETTLEMENT_SWITCHER' not in s:
     raise SystemExit('STOP R70 compact settlement switcher is not installed')
 
-r71_marker = 'PMD_R71_GERMANY_INVOICE_ONLY'
-if r71_marker not in s:
-    # Visible tab label only. Internal data-mode can remain "receipts" so we do
-    # not disturb the proven R70 state machine.
-    old = '>Receipts</button>'
-    new = '>Invoices</button>'
-    if old not in s:
+if 'PMD_R71_GERMANY_INVOICE_ONLY' not in s:
+    if '>Receipts</button>' not in s:
         raise SystemExit('STOP R70 Receipts switch label not found')
-    s = s.replace(old, new, 1)
+    s = s.replace('>Receipts</button>', '>Invoices</button>', 1)
 
-    # Rework the existing link helper without changing the settlement engine.
     fn_start = s.find('  function pmdR69ReceiptLinks(snapshot) {')
     fn_end = s.find('  function renderSettlementReview() {', fn_start)
     if fn_start < 0 or fn_end < 0:
         raise SystemExit('STOP R69 invoice-link helper boundaries not found')
 
     new_helper = r'''  // PMD_R71_GERMANY_INVOICE_ONLY
-  // Customer/Cashier presentation says Invoice. The underlying receipt_url is
-  // retained as an internal compatibility/audit pointer; split-invoice is the
-  // visible document route.
+  // Visible document = Invoice. receipt_url remains a hidden compatibility /
+  // audit pointer; the Cashier follows the split-invoice alias.
   function pmdR69ReceiptLinks(snapshot) {
     return snapshot.transactions
       .filter(function (tx) {
@@ -128,8 +120,8 @@ COMPOSER.write_text(s, encoding='utf-8')
 
 
 # ---------------------------------------------------------------------------
-# 2) Canonical payment summary/settlement responses expose invoice_url while
-#    preserving receipt_url internally for compatibility/audit.
+# 2) Canonical payment APIs expose invoice_url, but receipt_url stays available
+#    internally for backwards compatibility/audit evidence.
 # ---------------------------------------------------------------------------
 php = SUMMARY.read_text(encoding='utf-8')
 old = "'receipt_url' => '/admin/orders/split-receipt/'.(int)($r['id'] ?? 0),"
@@ -140,14 +132,12 @@ if "'invoice_url' => '/admin/orders/split-invoice/'" not in php:
 SUMMARY.write_text(php, encoding='utf-8')
 
 php = SETTLE.read_text(encoding='utf-8')
-# Duplicate/idempotent response.
 old = "'receipt_url' => '/admin/orders/split-receipt/'.(int)$existing->id,"
 new = """'receipt_url' => '/admin/orders/split-receipt/'.(int)$existing->id,
                     'invoice_url' => '/admin/orders/split-invoice/'.(int)$existing->id,"""
 if "'invoice_url' => '/admin/orders/split-invoice/'.(int)$existing->id" not in php:
     php = replace_once(php, old, new, 'duplicate settlement invoice_url')
 
-# New-payment response.
 old = "'receipt_url' => '/admin/orders/split-receipt/'.$result['transaction_id'],"
 new = """'receipt_url' => '/admin/orders/split-receipt/'.$result['transaction_id'],
                 'invoice_url' => '/admin/orders/split-invoice/'.$result['transaction_id'],"""
@@ -157,8 +147,8 @@ SETTLE.write_text(php, encoding='utf-8')
 
 
 # ---------------------------------------------------------------------------
-# 3) Add a true /split-invoice route by cloning the proven transaction loader.
-#    The legacy split-receipt route remains available internally.
+# 3) True /split-invoice route. Clone the proven transaction/allocation loader,
+#    then render the same document view in Invoice mode.
 # ---------------------------------------------------------------------------
 php = ROUTES.read_text(encoding='utf-8')
 invoice_marker = '// PMD_SPLIT_INVOICE_GERMANY_R71'
@@ -171,33 +161,37 @@ if invoice_marker not in php:
         raise SystemExit('STOP split receipt route boundaries not found')
 
     receipt_block = php[start:end]
-    clone = receipt_block
-    clone = clone.replace(
+    clone = receipt_block.replace(
         start_marker,
-        invoice_marker + '\n// Germany customer-facing invoice transport over the canonical payment transaction.'
+        invoice_marker + '\n// Customer-facing German split invoice over the canonical payment transaction.',
+        1,
     )
     clone = clone.replace(
         "Route::get('admin/orders/split-receipt/{transactionId}'",
         "Route::get('admin/orders/split-invoice/{transactionId}'",
-        1
+        1,
     )
     clone = clone.replace('Split receipt is not available', 'Split invoice is not available')
-    clone = clone.replace('Receipt allocation transaction column is unavailable', 'Invoice allocation transaction column is unavailable')
+    clone = clone.replace(
+        'Receipt allocation transaction column is unavailable',
+        'Invoice allocation transaction column is unavailable',
+    )
     view_anchor = "return view('admin::orders.split_receipt', ["
     if view_anchor not in clone:
         raise SystemExit('STOP split invoice view anchor not found')
     clone = clone.replace(
         view_anchor,
         view_anchor + "\n        'invoiceMode' => true,",
-        1
+        1,
     )
     php = php[:end] + clone + '\n' + php[end:]
 ROUTES.write_text(php, encoding='utf-8')
 
 
 # ---------------------------------------------------------------------------
-# 4) Split transaction document: Invoice presentation with tenant logo and a
-#    unique split-invoice number. Internal receipt route still renders Receipt.
+# 4) Split document presentation: Invoice title, unique split number, tenant
+#    logo embedded locally, and compact VAT summary. Receipt mode is preserved
+#    for internal/legacy use.
 # ---------------------------------------------------------------------------
 blade = SPLIT_VIEW.read_text(encoding='utf-8')
 if 'PMD_R71_SPLIT_INVOICE_PRESENTATION' not in blade:
@@ -239,7 +233,9 @@ if 'PMD_R71_SPLIT_INVOICE_PRESENTATION' not in blade:
         if ($path === '' || preg_match('#^https?://#i', $path)) return '';
         $clean = preg_replace('#[?#].*$#', '', $path);
         $relative = $clean;
-        if (strpos($relative, '/api/media/') === 0) $relative = substr($relative, strlen('/api/media/'));
+        if (strpos($relative, '/api/media/') === 0) {
+            $relative = substr($relative, strlen('/api/media/'));
+        }
         $relative = ltrim($relative, '/');
         $base = base_path('assets/media/attachments/public');
         $candidate = $base.'/'.$relative;
@@ -247,7 +243,9 @@ if 'PMD_R71_SPLIT_INVOICE_PRESENTATION' not in blade:
             $name = basename($relative);
             if ($name !== '' && is_dir($base)) {
                 try {
-                    $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($base, RecursiveDirectoryIterator::SKIP_DOTS));
+                    $it = new RecursiveIteratorIterator(
+                        new RecursiveDirectoryIterator($base, RecursiveDirectoryIterator::SKIP_DOTS)
+                    );
                     foreach ($it as $file) {
                         if ($file->isFile() && $file->getFilename() === $name) {
                             $candidate = $file->getPathname();
@@ -277,7 +275,9 @@ if 'PMD_R71_SPLIT_INVOICE_PRESENTATION' not in blade:
     $splitInvoiceNoR71 = $invoicePrefixR71.'S'.(int)($transaction->id ?? 0);
     $taxRateR71 = max(0, (float)$pmdInvoiceSetting('tax_percentage', 0));
     $grossPaidR71 = max(0, (float)($transaction->amount ?? 0));
-    $netPaidR71 = $taxRateR71 > 0 ? round($grossPaidR71 / (1 + ($taxRateR71 / 100)), 2) : $grossPaidR71;
+    $netPaidR71 = $taxRateR71 > 0
+        ? round($grossPaidR71 / (1 + ($taxRateR71 / 100)), 2)
+        : $grossPaidR71;
     $vatPaidR71 = max(0, round($grossPaidR71 - $netPaidR71, 2));
 @endphp
 
@@ -287,29 +287,41 @@ if 'PMD_R71_SPLIT_INVOICE_PRESENTATION' not in blade:
     blade = blade.replace(
         '<title>Split Payment Receipt #{{ (int)$transaction->id }}</title>',
         '<title>{{ $invoiceMode ? (\'Invoice \' . $splitInvoiceNoR71) : (\'Split Payment Receipt #\' . (int)$transaction->id) }}</title>',
-        1
+        1,
     )
 
-    old_header = '''    <div class="header">\n        <h2 style="margin:0;">Split Payment Receipt</h2>\n        <div class="muted">Transaction #{{ (int)$transaction->id }}</div>'''
-    new_header = '''    <div class="header">\n        @if($invoiceMode && $logoUrlR71 !== '')\n            <div style="text-align:center;margin-bottom:10px;"><img src="{{ $logoUrlR71 }}" alt="logo" style="max-height:52px;max-width:220px;object-fit:contain;"></div>\n        @endif\n        @if($invoiceMode && $siteNameR71 !== '')\n            <div style="text-align:center;font-weight:800;font-size:16px;margin-bottom:4px;">{{ $siteNameR71 }}</div>\n        @endif\n        <h2 style="margin:0;">{{ $invoiceMode ? 'Invoice' : 'Split Payment Receipt' }}</h2>\n        @if($invoiceMode)\n            <div class="muted">Invoice #{{ $splitInvoiceNoR71 }}</div>\n        @endif\n        <div class="muted">Transaction #{{ (int)$transaction->id }}</div>'''
-    if old_header not in blade:
-        raise SystemExit('STOP split document header target not found')
-    blade = blade.replace(old_header, new_header, 1)
+    heading = '        <h2 style="margin:0;">Split Payment Receipt</h2>'
+    if heading not in blade:
+        raise SystemExit('STOP split document heading target not found')
+    heading_replacement = '''        @if($invoiceMode && $logoUrlR71 !== '')
+            <div style="text-align:center;margin-bottom:10px;"><img src="{{ $logoUrlR71 }}" alt="logo" style="max-height:52px;max-width:220px;object-fit:contain;"></div>
+        @endif
+        @if($invoiceMode && $siteNameR71 !== '')
+            <div style="text-align:center;font-weight:800;font-size:16px;margin-bottom:4px;">{{ $siteNameR71 }}</div>
+        @endif
+        <h2 style="margin:0;">{{ $invoiceMode ? 'Invoice' : 'Split Payment Receipt' }}</h2>
+        @if($invoiceMode)
+            <div class="muted">Invoice #{{ $splitInvoiceNoR71 }}</div>
+        @endif'''
+    blade = blade.replace(heading, heading_replacement, 1)
 
-    # Invoice-only tax summary, based on the tenant's current canonical VAT
-    # setting. Existing allocation/item lines remain the source for what was paid.
-    summary_anchor = '''        <div class="summary-row">\n            <span>Amount paid</span>\n            <strong>{{ currency_format((float)$transaction->amount) }}</strong>\n        </div>'''
-    invoice_summary = summary_anchor + '''\n        @if($invoiceMode && $taxRateR71 > 0)\n            <div class="summary-row"><span>Net</span><span>{{ currency_format($netPaidR71) }}</span></div>\n            <div class="summary-row"><span>VAT {{ rtrim(rtrim(number_format($taxRateR71, 2, '.', ''), '0'), '.') }}%</span><span>{{ currency_format($vatPaidR71) }}</span></div>\n        @endif'''
-    if summary_anchor not in blade:
-        raise SystemExit('STOP split document amount summary target not found')
-    blade = blade.replace(summary_anchor, invoice_summary, 1)
+    status_anchor = '''        <div class="summary-row">
+            <span>Transaction status</span>'''
+    if status_anchor not in blade:
+        raise SystemExit('STOP split document transaction-status target not found')
+    tax_block = '''        @if($invoiceMode && $taxRateR71 > 0)
+            <div class="summary-row"><span>Net</span><span>{{ currency_format($netPaidR71) }}</span></div>
+            <div class="summary-row"><span>VAT {{ rtrim(rtrim(number_format($taxRateR71, 2, '.', ''), '0'), '.') }}%</span><span>{{ currency_format($vatPaidR71) }}</span></div>
+        @endif
+'''
+    blade = blade.replace(status_anchor, tax_block + status_anchor, 1)
 
 SPLIT_VIEW.write_text(blade, encoding='utf-8')
 
 
 # ---------------------------------------------------------------------------
-# 5) Final customer invoice logo: embed tenant /api/media image bytes so print
-#    rendering never depends on a second HTTP image request.
+# 5) Final customer invoice logo: embed /api/media tenant bytes into the HTML.
+#    This removes the intermittent second-request failure during print/render.
 # ---------------------------------------------------------------------------
 blade = CUSTOMER_INVOICE.read_text(encoding='utf-8')
 if 'PMD_R71_EMBEDDED_INVOICE_LOGO' not in blade:
@@ -318,9 +330,6 @@ if 'PMD_R71_EMBEDDED_INVOICE_LOGO' not in blade:
             $logoUrl = preg_match('#^https?://#i', $logoPath) ? $logoPath : uploads_url($logoPath);
         }'''
     new_logo = r'''        // PMD_R71_EMBEDDED_INVOICE_LOGO
-        // /api/media logos are tenant-owned local media. Embed the bytes in the
-        // invoice HTML so browser/print timing, cookies or route rewriting can
-        // never make the logo disappear.
         $embedInvoiceLogo = function ($path) {
             $path = trim((string)$path);
             if ($path === '' || preg_match('#^https?://#i', $path)) return '';
@@ -365,36 +374,28 @@ if 'PMD_R71_EMBEDDED_INVOICE_LOGO' not in blade:
     if old_logo not in blade:
         raise SystemExit('STOP customer invoice logo target not found')
     blade = blade.replace(old_logo, new_logo, 1)
-
-    blade = blade.replace(
-        '>Print / reprint receipt</button>',
-        '>Print invoice</button>',
-        1
-    )
-
+    blade = blade.replace('>Print / reprint receipt</button>', '>Print invoice</button>', 1)
 CUSTOMER_INVOICE.write_text(blade, encoding='utf-8')
 
 
 # ---------------------------------------------------------------------------
-# 6) Cache-bust real Cashier assets.
+# 6) Cache-bust actual Cashier assets.
 # ---------------------------------------------------------------------------
 php = CASHIER.read_text(encoding='utf-8')
 php = bump_asset(
     php,
     'pmd-cashier-order-composer-r51.js',
-    '20260826-r71-germany-invoice-only'
+    '20260826-r71-germany-invoice-only',
 )
 php = bump_asset(
     php,
     'pmd-cashier-lab-order-center.css',
-    '20260826-r71-germany-invoice-only'
+    '20260826-r71-germany-invoice-only',
 )
 CASHIER.write_text(php, encoding='utf-8')
 
-# Optional tiny CSS wording/spacing owner; no extra visual card is created.
 css = CSS.read_text(encoding='utf-8')
-marker = 'PMD_R71_GERMANY_INVOICE_ONLY_UI'
-if marker not in css:
+if 'PMD_R71_GERMANY_INVOICE_ONLY_UI' not in css:
     css += r'''
 
 /* PMD_R71_GERMANY_INVOICE_ONLY_UI */
@@ -409,7 +410,7 @@ CSS.write_text(css, encoding='utf-8')
 
 
 # ---------------------------------------------------------------------------
-# Validation. Payment V3 must remain byte-for-byte unchanged.
+# Validation. Payment V3 remains untouched.
 # ---------------------------------------------------------------------------
 def run(cmd):
     print('+', ' '.join(cmd))
@@ -431,8 +432,8 @@ print('Backup:', backup)
 print('- Cashier UI says Invoices, not Receipts')
 print('- one split invoice link per recorded partial payment')
 print('- internal receipt/transaction evidence preserved for audit compatibility')
-print('- full invoice remains available after full settlement')
-print('- split/final invoice logos embed tenant media bytes when local')
-print('- Print / reprint receipt renamed to Print invoice on customer invoice')
+print('- final invoice remains available after full settlement')
+print('- split and final invoice logos embed tenant media bytes when local')
+print('- customer invoice action says Print invoice')
 print('- Payment V3 implementation hash unchanged:', payment_hash_after)
 print('Next: php artisan view:clear && sudo systemctl reload php8.3-fpm')
