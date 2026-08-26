@@ -256,15 +256,18 @@ def patch_runtime_overlays(path: Path) -> None:
     import_replacement = "import { callWaiter, clearPendingProviderPayment, finalizeExistingOrderPayment, launchVrPaymentLightbox, payExistingOrder, prepareSplitPaymentIntent, startHostedProviderPayment, validateCoupon, downloadPaidInvoice,\n"
     text = replace_once(text, import_anchor, import_replacement, "RuntimeOverlays client-api import")
 
-    response_anchor = "        if (response.redirectUrl) { window.location.assign(response.redirectUrl); return }\n"
-    lightbox_check = "        // PMD_VR_LIGHTBOX_RUNTIME_R1_4\n        if (await launchVrPaymentLightbox(response)) { setMessage('VR Payment opened securely.'); return }\n        if (response.redirectUrl) { window.location.assign(response.redirectUrl); return }\n"
+    # Include the preceding newline in these anchors so indentation is matched
+    # exactly. Without it, the 6-space full-payment anchor is also a substring
+    # of the 8-space split-payment line and produces a false duplicate count.
+    response_anchor = "\n        if (response.redirectUrl) { window.location.assign(response.redirectUrl); return }\n"
+    lightbox_check = "\n        // PMD_VR_LIGHTBOX_RUNTIME_R1_4\n        if (await launchVrPaymentLightbox(response)) { setMessage('VR Payment opened securely.'); return }\n        if (response.redirectUrl) { window.location.assign(response.redirectUrl); return }\n"
     count = text.count(response_anchor)
     if count != 1:
         fail(f"RuntimeOverlays split redirect anchor expected once, found {count}")
     text = text.replace(response_anchor, lightbox_check, 1)
 
-    full_anchor = "      if (response.redirectUrl) { window.location.assign(response.redirectUrl); return }\n"
-    full_replacement = "      if (await launchVrPaymentLightbox(response)) { setMessage('VR Payment opened securely.'); return }\n      if (response.redirectUrl) { window.location.assign(response.redirectUrl); return }\n"
+    full_anchor = "\n      if (response.redirectUrl) { window.location.assign(response.redirectUrl); return }\n"
+    full_replacement = "\n      if (await launchVrPaymentLightbox(response)) { setMessage('VR Payment opened securely.'); return }\n      if (response.redirectUrl) { window.location.assign(response.redirectUrl); return }\n"
     count = text.count(full_anchor)
     if count != 1:
         fail(f"RuntimeOverlays full redirect anchor expected once, found {count}")
