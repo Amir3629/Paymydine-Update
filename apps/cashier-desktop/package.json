@@ -35,7 +35,7 @@
       "artifactName": "PayMyDine-Cashier-Setup-${version}.${ext}"
     },
     "mac": {
-      "icon": "build/icon.svg",
+      "icon": "build/AppIcon.icon",
       "target": ["dmg", "zip"],
       "category": "public.app-category.business",
       "artifactName": "PayMyDine-Cashier-${version}-mac-${arch}.${ext}"
