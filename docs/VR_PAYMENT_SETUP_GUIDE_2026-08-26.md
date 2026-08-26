@@ -16,29 +16,39 @@ Tenant: `moon.paymydine.com`
 
 PayMyDine must not fake-enable a wallet or terminal that VR Payment does not expose for the current Space.
 
-## Why Card and Wero were still leaving PayMyDine after R1.4
+## Card / Wero Lightbox status
 
-Frontend V2 was correctly sending `integration_preference=lightbox`, but the Laravel `create-session` route used `$request->validate(...)` and did not validate that field. Laravel therefore dropped it before `VRPaymentGatewayService::createRedirectSession()` received the payload.
+Frontend V2 sends `integration_preference=lightbox` for VR Payment Card and Wero.
 
-R1.4.1 fixes this route bridge and also makes the Lightbox payment-method selection exact: Wero can only select the Wero configuration and Card can only select the Card configuration.
+R1.4 added the VR Lightbox API/client integration, but the Laravel `create-session` route rebuilt a new service payload and did not forward `integration_preference` into `VRPaymentGatewayService::createRedirectSession()`.
 
-Expected behavior after R1.4.1:
+R1.4.1 added the field to route validation, but that alone was not sufficient because the validated field was still omitted from the array passed to the service. R1.4.1 also made transaction-scoped method matching too strict by requiring a normalized method code even when VR Payment may return a transaction-scoped configuration without expanded payment-method naming.
+
+R1.4.2 fixes both issues:
 
 1. Frontend V2 asks for `lightbox`.
-2. Backend creates the VR transaction.
-3. Backend asks VR Payment for transaction-scoped payment-method configurations with `integrationMode=lightbox`.
-4. If the selected method has a Lightbox configuration, backend returns the VR Lightbox JavaScript URL + the exact method configuration ID.
-5. Frontend loads the VR JavaScript and calls `LightboxCheckoutHandler.startPayment(...)`.
-6. If VR Payment does not expose a usable Lightbox configuration for that transaction/method, PMD deliberately falls back to the hosted Payment Page.
-7. Payment completion is still verified by the backend/provider status before settlement.
+2. The Laravel route validates and explicitly forwards `integration_preference` to the VR service.
+3. Backend creates the VR transaction with the selected method's tenant-scoped configuration IDs.
+4. Backend asks VR Payment for transaction-scoped payment-method configurations with `integrationMode=lightbox`.
+5. When VR returns a configuration whose ID belongs to the selected method allow-list, PMD accepts it even if the transaction-scoped response omits an expanded method name.
+6. Backend returns the VR Lightbox JavaScript URL + the selected configuration ID.
+7. Frontend loads the VR JavaScript and calls `LightboxCheckoutHandler.startPayment(...)`.
+8. If VR Payment does not expose a usable Lightbox configuration/script for that transaction, PMD deliberately falls back to the hosted Payment Page.
+9. Payment completion is still verified by backend/provider status before settlement.
 
-After a browser test, inspect:
+R1.4.2 also adds stage-specific diagnostics for HTTP 422 failures. After a browser test, inspect:
 
 ```bash
-grep -E 'VR_PAYMENT_LIGHTBOX_(READY|FALLBACK)' /var/www/paymydine/storage/logs/laravel.log | tail -20
+grep -E 'VR_PAYMENT_CREATE_SESSION_(REQUEST|VALIDATION_FAILED|SERVICE_FAILED)_R1_4_2|VR_PAYMENT_LIGHTBOX_(READY|FALLBACK)' /var/www/paymydine/storage/logs/laravel.log | tail -50
 ```
 
-`VR_PAYMENT_LIGHTBOX_READY` means PMD received a valid Lightbox configuration and script URL. `VR_PAYMENT_LIGHTBOX_FALLBACK` means VR did not expose a usable Lightbox configuration for that transaction/method (or the related API call failed), so the hosted page was used intentionally.
+Interpretation:
+
+- `VR_PAYMENT_CREATE_SESSION_REQUEST_R1_4_2`: route accepted the request and shows which integration mode was forwarded.
+- `VR_PAYMENT_CREATE_SESSION_VALIDATION_FAILED_R1_4_2`: the request was rejected before the VR service; the log contains the exact validation field(s).
+- `VR_PAYMENT_CREATE_SESSION_SERVICE_FAILED_R1_4_2`: the request reached the VR service but transaction/provider handling failed.
+- `VR_PAYMENT_LIGHTBOX_READY`: PMD received a usable VR Lightbox configuration and JavaScript URL.
+- `VR_PAYMENT_LIGHTBOX_FALLBACK`: VR did not expose a usable Lightbox configuration/script, so hosted Payment Page fallback was used intentionally.
 
 Official Lightbox documentation:
 
