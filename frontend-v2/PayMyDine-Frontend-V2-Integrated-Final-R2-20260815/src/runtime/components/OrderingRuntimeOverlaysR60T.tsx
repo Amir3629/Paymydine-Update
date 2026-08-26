@@ -69,7 +69,7 @@ export function RuntimeOverlays() {
         [data-pmd-ordering-flow="r60t"] [data-pmd-multi-order-selection="r32"],
         [data-pmd-ordering-flow="r60t"] [data-pmd-multi-order-payment="r32"],
         [data-pmd-ordering-flow="r60t"] [data-pmd-multi-guest-payment-hint="r33b"] {
-          display: none !important;
+          display: none;
         }
       `}</style>
       <BaseRuntimeOverlays />
