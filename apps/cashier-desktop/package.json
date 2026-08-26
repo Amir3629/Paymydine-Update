@@ -1,15 +1,15 @@
 {
   "name": "paymydine-cashier-desktop",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "private": true,
-  "description": "PayMyDine universal cashier desktop app with truthful hardware diagnostics, fullscreen cashier, physical printer/cash drawer support and Virtual PDF debugging",
+  "description": "PayMyDine universal cashier desktop app with branded hardware setup, truthful hardware diagnostics, fullscreen cashier, physical printer/cash drawer support and Virtual PDF debugging",
   "main": "src/main.js",
   "scripts": {
     "patch:v104": "node scripts/apply-v104.js",
     "patch:v106": "node scripts/patch-chain-v106.js",
     "brand:icon": "node scripts/fetch-brand-icon.js",
-    "dev": "npm run patch:v106 && electron .",
-    "start": "npm run patch:v106 && electron .",
+    "dev": "npm run patch:v106 && npm run brand:icon && electron .",
+    "start": "npm run patch:v106 && npm run brand:icon && electron .",
     "check": "npm run patch:v106 && node --check scripts/patch-chain-v106.js && node --check scripts/fetch-brand-icon.js && node --check scripts/apply-v106.js && node --check scripts/after-sign-mac-v106.js && node --check src/main.js && node --check src/preload.js && node --check src/setup.js && node --check src/hardware.js && node --check src/receipt.js && node --check src/hardware-page.js && node --check src/offline.js",
     "dist:win": "npm run patch:v106 && npm run brand:icon && electron-builder --win nsis",
     "dist:mac": "npm run patch:v106 && npm run brand:icon && electron-builder --mac dmg zip"
