@@ -1,0 +1,40 @@
+
+/* PMD_R67I_CASHIER_SPLIT_FINAL_AUTHORITY */
+
+/*
+ * Cashier-only final authority.
+ * This deliberately loads after the generic staff-payment stylesheet.
+ */
+
+body:has(#pmd-cashier-order-composer-v1)
+.pmd-pos-payment-modal
+.pmd-pos-payment-block:has([data-pos-split-tabs]) {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+body:has(#pmd-cashier-order-composer-v1)
+.pmd-pos-payment-modal
+.pmd-pos-split-tabs {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 8px !important;
+  width: 100% !important;
+}
+
+body:has(#pmd-cashier-order-composer-v1)
+.pmd-pos-payment-modal
+.pmd-pos-split-panel {
+  display: block !important;
+  width: 100% !important;
+  margin-top: 10px !important;
+}
+
+@media (max-width: 640px) {
+  body:has(#pmd-cashier-order-composer-v1)
+  .pmd-pos-payment-modal
+  .pmd-pos-split-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}

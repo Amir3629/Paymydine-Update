@@ -454,22 +454,27 @@ if (!function_exists('pmd_menu_highlights_response_20260607')) {
                 $category->kind = $kind;
             }
 
-            if (count($combos) > 0) {
-                $hasCombosCategory = false;
-                foreach ($categories as $cat) {
-                    if ($cat->name === 'Combos') {
-                        $hasCombosCategory = true;
-                        break;
-                    }
+            // PMD_FRONTEND_COMBO_CATEGORY_SINGLE_AUTHORITY_V1
+            // Combination navigation is owned by the real categories row whose
+            // pmd_kind is "combos". Never append a second synthetic "Combos"
+            // category beside an editable Combination category.
+            //
+            // Keep the raw SQL label "Combos" only as a legacy fallback for
+            // tenants that do not yet have a real combination category. When a
+            // real category exists, canonicalize every combo item to that ID/name.
+            $pmdRealComboCategory = null;
+            foreach ($categories as $cat) {
+                $pmdComboKind = strtolower(trim((string)($cat->pmd_kind ?? $cat->kind ?? 'regular')));
+                if ($pmdComboKind === 'combos') {
+                    $pmdRealComboCategory = $cat;
+                    break;
                 }
-                if (!$hasCombosCategory) {
-                    $categories[] = (object)[
-                        'id' => 'combos',
-                        'name' => 'Combos',
-                        'priority' => 999,
-                        'pmd_kind' => 'combos',
-                        'kind' => 'combos',
-                    ];
+            }
+
+            if ($pmdRealComboCategory !== null && count($combos) > 0) {
+                foreach ($combos as $combo) {
+                    $combo->category_id = $pmdRealComboCategory->id;
+                    $combo->category_name = $pmdRealComboCategory->name;
                 }
             }
 

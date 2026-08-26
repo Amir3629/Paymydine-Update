@@ -352,44 +352,27 @@
       );
       // PMD_CASHIER_R60D_PAYMENT_CSS_OWNER
       ensureStyle(
-        '/app/admin/assets/css/pmd-cashier-payment-clean-v1.css?v=20260826-r67',
+        '/app/admin/assets/css/pmd-cashier-payment-clean-v1.css?v=20260826-r67h',
         'data-pmd-coc-payment-clean-style'
       );
 
-      // PMD_CASHIER_PAYMENT_FRESH_R56B
-      //
-      // Cashier must not reuse a stale V3 object left by
-      // an earlier global asset.
-      if (
-        !window.PMDWaiterPOSPaymentV2 ||
-        window.PMDWaiterPOSPaymentV2.__pmdCashierR56B !== true
-      ) {
-        window.__PMDCashierForcePaymentV3R56B = true;
+      // PMD_R67E_CASHIER_SPLIT_PAYMENT_AUTHORITY
+      // Cashier always gets a fresh canonical V3 module and the
+      // current Cashier-aware staff policy. This prevents a stale
+      // globally loaded policy from hiding partial/split payment.
+      window.__PMDCashierForcePaymentV3R56B = true;
 
-        try {
-          await loadFreshScript(
-            '/app/admin/assets/js/pmd-waiter-pos-payment-v3.js',
-            'cashier-payment-v3-r67-20260826'
-          );
-        } finally {
-          try {
-            delete window.__PMDCashierForcePaymentV3R56B;
-          } catch (_) {
-            window.__PMDCashierForcePaymentV3R56B = false;
-          }
-        }
-      }
-
-      // The Cashier must install V3 itself if global asset ordering has not
-      // established it yet. An old PMDWaiterPOSPaymentV2 global is NOT enough.
-      if (
-        !window.PMDWaiterPOSPaymentV2 ||
-        window.PMDWaiterPOSPaymentV2.__pmdV3 !== true
-      ) {
+      try {
         await loadFreshScript(
           '/app/admin/assets/js/pmd-waiter-pos-payment-v3.js',
-          'cashier-payment-v3-r67-final'
+          'cashier-payment-v3-r67h-20260826'
         );
+      } finally {
+        try {
+          delete window.__PMDCashierForcePaymentV3R56B;
+        } catch (_) {
+          window.__PMDCashierForcePaymentV3R56B = false;
+        }
       }
 
       if (
@@ -397,20 +380,22 @@
         window.PMDWaiterPOSPaymentV2.__pmdV3 !== true ||
         typeof window.PMDWaiterPOSPaymentV2.install !== 'function'
       ) {
-        throw new Error('Canonical staff Payment V3 is unavailable.');
-      }
-
-      // If a policy tag executed earlier against an old module, execute the
-      // same canonical policy once more against the now-authoritative V3.
-      if (!window.PMDWaiterPOSPaymentV2.__pmdPolicyWrapped) {
-        await loadFreshScript(
-          '/app/admin/assets/js/pmd-waiter-pos-payment-policy-v2.js',
-          'cashier-payment-policy-r60e-20260825'
+        throw new Error(
+          'Canonical staff Payment V3 is unavailable.'
         );
       }
 
+      window.PMDWaiterPOSPaymentV2.__pmdPolicyWrapped = false;
+
+      await loadFreshScript(
+        '/app/admin/assets/js/pmd-waiter-pos-payment-policy-v2.js',
+        'cashier-payment-policy-r67h-20260826'
+      );
+
       if (!window.PMDWaiterPOSPaymentV2.__pmdPolicyWrapped) {
-        throw new Error('Canonical staff payment policy is unavailable.');
+        throw new Error(
+          'Canonical staff payment policy is unavailable.'
+        );
       }
     })();
 
@@ -436,7 +421,7 @@
 
               '<div class="pmd-pos-payment-block">',
                 '<div class="pmd-pos-payment-block-title"><b>Split / part payment</b><span>Choose what this payer pays now</span></div>',
-                '<div class="pmd-pos-split-tabs" data-pos-split-tabs>',
+                '<div class="pmd-pos-split-tabs" data-pos-cashier-split-tabs>',
                   '<button type="button" class="is-active" data-split-mode="full">Full</button>',
                   '<button type="button" data-split-mode="equal">Equal</button>',
                   '<button type="button" data-split-mode="items">By items</button>',

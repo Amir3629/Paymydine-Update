@@ -160,6 +160,21 @@
       '@media(max-width:820px){.pmd-pos-workspace{width:100%!important}.pmd-pos-catalog{width:100%!important}}';
   }
 
+  /* PMD_OVERLAY_GLASS_SHADOW_AUTHORITY_V2
+     Global document CSS cannot cross the Waiter POS Shadow DOM boundary.
+     Append the exact same visual contract after all POS CSS inside that root. */
+  function overlayGlassShadowCssV2() {
+    return [
+      ':host{--pmd-overlay-v2-bg:rgba(255,255,255,.04);--pmd-overlay-v2-blur:8px;--pmd-overlay-v2-duration:180ms}',
+      '@keyframes pmdOverlayGlassInV2{from{opacity:0;background-color:rgba(255,255,255,0);backdrop-filter:blur(0);-webkit-backdrop-filter:blur(0)}to{opacity:1;background-color:var(--pmd-overlay-v2-bg);backdrop-filter:blur(var(--pmd-overlay-v2-blur));-webkit-backdrop-filter:blur(var(--pmd-overlay-v2-blur))}}',
+      '@keyframes pmdOverlayCardInV2{from{opacity:0;transform:translateY(6px) scale(.985)}to{opacity:1;transform:none}}',
+      '.pmd-pos-detail-backdrop,[class*="pmd-"][class*="backdrop"]:not([class*="tour"]){background:var(--pmd-overlay-v2-bg)!important;background-color:var(--pmd-overlay-v2-bg)!important;opacity:1!important;filter:none!important;backdrop-filter:blur(var(--pmd-overlay-v2-blur))!important;-webkit-backdrop-filter:blur(var(--pmd-overlay-v2-blur))!important;animation:pmdOverlayGlassInV2 var(--pmd-overlay-v2-duration) ease both!important}',
+      '.pmd-pos-modal.is-show,.pmd-pos-payment-modal.is-show{background:var(--pmd-overlay-v2-bg)!important;background-color:var(--pmd-overlay-v2-bg)!important;opacity:1!important;backdrop-filter:blur(var(--pmd-overlay-v2-blur))!important;-webkit-backdrop-filter:blur(var(--pmd-overlay-v2-blur))!important;animation:pmdOverlayGlassInV2 var(--pmd-overlay-v2-duration) ease both!important}',
+      '.pmd-pos-detail-card,.pmd-pos-modal-card,.pmd-pos-payment-dialog{filter:none!important;-webkit-filter:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;animation:pmdOverlayCardInV2 var(--pmd-overlay-v2-duration) cubic-bezier(.2,.8,.2,1) both!important}',
+      '@media(prefers-reduced-motion:reduce){.pmd-pos-detail-backdrop,.pmd-pos-modal.is-show,.pmd-pos-payment-modal.is-show,.pmd-pos-detail-card,.pmd-pos-modal-card,.pmd-pos-payment-dialog{animation:none!important;transition:none!important}}'
+    ].join('');
+  }
+
   function loadingHtml(tableNo) {
     var safeTable = String(tableNo || '').replace(/[<>&"']/g, '');
     return '<style>' + shadowBaseCss() + '</style>' +
@@ -264,7 +279,8 @@
         shadowBaseCss() + '\n' +
         posCss + '\n' +
         detailsCss + '\n' +
-        dashboardCss +
+        dashboardCss + '\n' +
+        overlayGlassShadowCssV2() +
         '</style>' +
         json.html;
 

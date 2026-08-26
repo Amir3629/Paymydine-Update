@@ -656,3 +656,43 @@ button {
 
 
 /* PMD_CASHIER_PAYMENT_R60D_OWNER_END */
+
+/* PMD_R67B_CASHIER_SPLIT_FORCE_VISIBLE */
+.pmd-coc .pmd-pos-payment-modal .pmd-pos-payment-block:has([data-pos-split-tabs]) {
+  display: block !important;
+}
+
+
+/* PMD_R67H_CASHIER_SPLIT_FINAL */
+
+/*
+ * Cashierlab owns this UI through #pmd-cashier-order-composer-v1.
+ * The payment modal may be mounted outside a dedicated cashier
+ * overlay, so scope it to the presence of the Cashier owner.
+ */
+body:has(#pmd-cashier-order-composer-v1)
+.pmd-pos-payment-block:has([data-pos-split-tabs]) {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+body:has(#pmd-cashier-order-composer-v1)
+.pmd-pos-split-tabs {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+body:has(#pmd-cashier-order-composer-v1)
+.pmd-pos-split-panel {
+  display: block;
+  margin-top: 10px;
+}
+
+@media (max-width: 720px) {
+  body:has(#pmd-cashier-order-composer-v1)
+  .pmd-pos-split-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

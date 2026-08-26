@@ -184,4 +184,6 @@
   'Admin\\Requests\\Reservation' => 'app/admin/requests/Reservation.php',
   'Admin\\Requests\\ReservationComposer' => 'app/admin/requests/ReservationComposer.php',
   'Admin\\Controllers\\combos' => 'app/admin/controllers/Combos.php',
+  'System\\Controllers\\settings' => 'app/system/controllers/Settings.php',
+  'Admin\\Controllers\\PmdWaiterTableStateV154' => 'app/admin/controllers/PmdWaiterTableStateV154.php',
 );

@@ -148,8 +148,12 @@
       "name": "pmd-cashier-payment-clean-v1-css"
     },
     {
-      "path": "css/pmd-payment-simple-v1.css",
+      "path": "css/pmd-payment-simple-r67g.css",
       "name": "pmd-payment-simple-v1-css"
+    },
+    {
+      "path": "css/pmd-cashier-split-r67i.css",
+      "name": "pmd-cashier-split-r67i-css"
     }
   ],
   "script": [
@@ -162,7 +166,7 @@
       "name": "pmd-waiter-pos-payment-v3-js"
     },
     {
-      "path": "js/pmd-waiter-pos-payment-policy-v2.js",
+      "path": "js/pmd-waiter-pos-payment-policy-r67g.js",
       "name": "pmd-waiter-pos-payment-policy-v2-js"
     },
     {

@@ -884,3 +884,39 @@ body.pmd-cashier-order-center-open {
   width: min(900px, 100%);
 }
 
+
+/* PMD_R67J_CASHIER_SPLIT_VISIBLE_FINAL */
+
+/*
+ * Cashier Order Center owns this route.
+ * Generic staff CSS may hide Split, but Cashier must expose
+ * the existing canonical partial/split settlement engine.
+ */
+body .pmd-pos-payment-modal
+.pmd-pos-payment-block:has([data-pos-split-tabs]) {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+body .pmd-pos-payment-modal
+.pmd-pos-split-tabs {
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+    width: 100% !important;
+}
+
+body .pmd-pos-payment-modal
+.pmd-pos-split-panel {
+    display: block !important;
+    width: 100% !important;
+    margin-top: 10px !important;
+}
+
+@media (max-width: 640px) {
+    body .pmd-pos-payment-modal
+    .pmd-pos-split-tabs {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+}

@@ -1,0 +1,143 @@
+/* ============================================================
+   PMD_OVERLAY_GLASS_AUTHORITY_V2
+
+   Final internal-platform visual contract for full-screen cards/modals.
+   This file is intentionally loaded at the END of the rendered layouts,
+   not from the early global asset manifest.
+
+   Backdrop: clear light wash + 8px blur + 180ms entrance.
+   Card: sharp + same 180ms scale/fade entrance.
+   Dropdowns, small popovers and guided tours are intentionally excluded.
+   ============================================================ */
+
+:root {
+  --pmd-overlay-v2-bg: rgba(255, 255, 255, .04);
+  --pmd-overlay-v2-blur: 8px;
+  --pmd-overlay-v2-duration: 180ms;
+  --pmd-overlay-v2-ease: cubic-bezier(.2,.8,.2,1);
+}
+
+@keyframes pmdOverlayGlassInV2 {
+  from {
+    opacity: 0;
+    background-color: rgba(255,255,255,0);
+    backdrop-filter: blur(0);
+    -webkit-backdrop-filter: blur(0);
+  }
+  to {
+    opacity: 1;
+    background-color: var(--pmd-overlay-v2-bg);
+    backdrop-filter: blur(var(--pmd-overlay-v2-blur));
+    -webkit-backdrop-filter: blur(var(--pmd-overlay-v2-blur));
+  }
+}
+
+@keyframes pmdOverlayCardInV2 {
+  from { opacity: 0; transform: translateY(6px) scale(.985); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Bootstrap / Offcanvas */
+html body .modal-backdrop,
+html body .offcanvas-backdrop,
+html body .modal-backdrop.show,
+html body .offcanvas-backdrop.show,
+/* SweetAlert */
+html body .swal2-container.swal2-backdrop-show,
+/* Reservations */
+html body .pmd-reservation-composer-backdrop-v1,
+html body .pmd-reservation-composer-backdrop-v1.show,
+/* Every PMD element whose semantic role is a backdrop */
+html body [class*="pmd-"][class*="backdrop"]:not([class*="tour"]) {
+  background: var(--pmd-overlay-v2-bg) !important;
+  background-color: var(--pmd-overlay-v2-bg) !important;
+  opacity: 1 !important;
+  filter: none !important;
+  -webkit-filter: none !important;
+  backdrop-filter: blur(var(--pmd-overlay-v2-blur)) !important;
+  -webkit-backdrop-filter: blur(var(--pmd-overlay-v2-blur)) !important;
+  animation: pmdOverlayGlassInV2 var(--pmd-overlay-v2-duration) ease both !important;
+}
+
+/* Full-screen containers that paint their own background instead of a child backdrop. */
+html body .pmd-pos-modal.is-show,
+html body .pmd-pos-payment-modal.is-show,
+html body .pmd-modal[data-pmd-create-modal]:not([hidden]),
+html body .pmd-modal[data-pmd-edit-modal]:not([hidden]),
+html body #pmd-side-menu2-backdrop {
+  background: var(--pmd-overlay-v2-bg) !important;
+  background-color: var(--pmd-overlay-v2-bg) !important;
+  opacity: 1 !important;
+  backdrop-filter: blur(var(--pmd-overlay-v2-blur)) !important;
+  -webkit-backdrop-filter: blur(var(--pmd-overlay-v2-blur)) !important;
+  animation: pmdOverlayGlassInV2 var(--pmd-overlay-v2-duration) ease both !important;
+}
+
+/* Cashier R51 uses pseudo-element painters instead of its retired backdrop nodes. */
+html body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc::before,
+html body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc .pmd-coc-product::before {
+  background: var(--pmd-overlay-v2-bg) !important;
+  background-color: var(--pmd-overlay-v2-bg) !important;
+  opacity: 1 !important;
+  backdrop-filter: blur(var(--pmd-overlay-v2-blur)) !important;
+  -webkit-backdrop-filter: blur(var(--pmd-overlay-v2-blur)) !important;
+  animation: pmdOverlayGlassInV2 var(--pmd-overlay-v2-duration) ease both !important;
+}
+
+/* One card entrance language. Only the top-level dialog/card animates. */
+html body .modal.show > .modal-dialog,
+html body #pmd-reservation-composer-v1.show .modal-dialog,
+html body .swal2-popup,
+html body .pmd-modal-card,
+html body .pmd-settings-inline-card,
+html body .pmd-device-v6-card,
+html body .pmd-menu-modal__card,
+html body .pmd-menu-category-manager-r25__card,
+html body .pmd-smart-category-modal__card,
+html body .pmd-coupon-modal__card,
+html body .pmd-provider-modal__dialog,
+html body .pmd-pos-detail-card,
+html body .pmd-pos-modal-card,
+html body .pmd-pos-payment-dialog,
+html body .pmd-cashier-order-center__dialog,
+html body .pmd-cashier-pos-overlay__panel,
+html body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc .pmd-coc__dialog,
+html body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc .pmd-coc-product__dialog,
+html body .pmd-floor-registry-manager__card,
+html body .pmd-floor-table-manager__card {
+  filter: none !important;
+  -webkit-filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  animation: pmdOverlayCardInV2 var(--pmd-overlay-v2-duration) var(--pmd-overlay-v2-ease) both !important;
+}
+
+/* Do not fight the confirm modal's own closing lifecycle. */
+html body:has(#adminConfirmModal.modal-closing) .modal-backdrop {
+  opacity: 0 !important;
+  backdrop-filter: blur(0) !important;
+  -webkit-backdrop-filter: blur(0) !important;
+  animation: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html body .modal-backdrop,
+  html body .offcanvas-backdrop,
+  html body .swal2-container.swal2-backdrop-show,
+  html body .pmd-reservation-composer-backdrop-v1,
+  html body [class*="pmd-"][class*="backdrop"]:not([class*="tour"]),
+  html body .pmd-pos-modal.is-show,
+  html body .pmd-pos-payment-modal.is-show,
+  html body .pmd-modal[data-pmd-create-modal]:not([hidden]),
+  html body .pmd-modal[data-pmd-edit-modal]:not([hidden]),
+  html body #pmd-side-menu2-backdrop,
+  html body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc::before,
+  html body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc .pmd-coc-product::before,
+  html body .modal-dialog,
+  html body .swal2-popup,
+  html body [class*="pmd-"][class*="card"],
+  html body [class*="pmd-"][class*="dialog"] {
+    animation: none !important;
+    transition: none !important;
+  }
+}

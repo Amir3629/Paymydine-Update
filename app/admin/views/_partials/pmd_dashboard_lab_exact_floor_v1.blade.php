@@ -246,6 +246,103 @@
         return $pmdFloorKey($pmdResolveDisplayFloorName($table)) === $pmdFloorKey($pmdFloorActiveName);
     }));
 
+    /* PMD_FLOOR_ONE_ROW_SERVER_FIRST_PAINT_V1
+     *
+     * One-row is a display-only projection. The canonical Full Floor x/y stay
+     * untouched in $floorBootstrap; only the already-filtered server DOM cards
+     * receive the same geometry that calibrateOneRow() applies in the Exact
+     * Floor runtime. This removes the refresh jump from saved Full Floor x/y
+     * to the One-row positions after JavaScript mounts.
+     *
+     * Keep these constants identical to pmd-dashboard-lab-exact-floor-v1.js:
+     *   horizontal padding: 24
+     *   vertical padding:   22
+     *   normal card:        108 x 88
+     *   merged row card:    270 x 104
+     *   gap:                18
+     */
+    $pmdOneRowServerRequiredWidth = null;
+    $pmdOneRowServerRequiredHeight = null;
+
+    if ($floorMode === 'row' && $displayTables) {
+        $pmdOneRowOrder = [];
+
+        foreach ($displayTables as $pmdOneRowIndex => $pmdOneRowTable) {
+            if (!is_array($pmdOneRowTable)) continue;
+
+            $pmdOneRowLabel = '';
+            foreach (['number', 'table_number', 'table_no', 'name', 'label'] as $pmdOneRowField) {
+                $pmdOneRowCandidate = trim((string)($pmdOneRowTable[$pmdOneRowField] ?? ''));
+                if ($pmdOneRowCandidate !== '') {
+                    $pmdOneRowLabel = $pmdOneRowCandidate;
+                    break;
+                }
+            }
+
+            $pmdOneRowNumber = PHP_INT_MAX;
+            if (preg_match('/\d+/', $pmdOneRowLabel, $pmdOneRowMatch)) {
+                $pmdOneRowNumber = (int)$pmdOneRowMatch[0];
+            }
+
+            $pmdOneRowOrder[] = [
+                'index' => (int)$pmdOneRowIndex,
+                'number' => $pmdOneRowNumber,
+            ];
+        }
+
+        usort($pmdOneRowOrder, static function (array $first, array $second): int {
+            $numberCompare = $first['number'] <=> $second['number'];
+            return $numberCompare !== 0
+                ? $numberCompare
+                : ($first['index'] <=> $second['index']);
+        });
+
+        $pmdOneRowHorizontalPadding = 24.0;
+        $pmdOneRowVerticalPadding = 22.0;
+        $pmdOneRowGap = 18.0;
+        $pmdOneRowCursorLeft = $pmdOneRowHorizontalPadding;
+        $pmdOneRowMaximumHeight = 0.0;
+
+        foreach ($pmdOneRowOrder as $pmdOneRowEntry) {
+            $pmdOneRowIndex = (int)$pmdOneRowEntry['index'];
+            if (!isset($displayTables[$pmdOneRowIndex]) || !is_array($displayTables[$pmdOneRowIndex])) {
+                continue;
+            }
+
+            $pmdOneRowMerged = !empty($displayTables[$pmdOneRowIndex]['is_merged']);
+            $pmdOneRowWidth = $pmdOneRowMerged ? 270.0 : 108.0;
+            $pmdOneRowHeight = $pmdOneRowMerged ? 104.0 : 88.0;
+
+            // Cards are permanently transform: translate(-50%, -50%), so x/y
+            // are centers, exactly like calibrateOneRow().
+            $displayTables[$pmdOneRowIndex]['x'] =
+                $pmdOneRowCursorLeft + ($pmdOneRowWidth / 2.0);
+            $displayTables[$pmdOneRowIndex]['y'] =
+                $pmdOneRowVerticalPadding + ($pmdOneRowHeight / 2.0);
+            $displayTables[$pmdOneRowIndex]['w'] = $pmdOneRowWidth;
+            $displayTables[$pmdOneRowIndex]['h'] = $pmdOneRowHeight;
+
+            $pmdOneRowCursorLeft += $pmdOneRowWidth + $pmdOneRowGap;
+            $pmdOneRowMaximumHeight = max($pmdOneRowMaximumHeight, $pmdOneRowHeight);
+        }
+
+        $pmdOneRowContentRight = $pmdOneRowOrder
+            ? ($pmdOneRowCursorLeft - $pmdOneRowGap)
+            : $pmdOneRowHorizontalPadding;
+
+        $pmdOneRowServerRequiredWidth = max(
+            1000.0,
+            $pmdOneRowContentRight + $pmdOneRowHorizontalPadding
+        );
+
+        $pmdOneRowServerRequiredHeight = max(
+            146.0,
+            $pmdOneRowVerticalPadding
+                + $pmdOneRowMaximumHeight
+                + $pmdOneRowVerticalPadding
+        );
+    }
+
     /* PMD_FLOOR_TABLE_FEATURES_V1_4_2
      * Server-first icons come from the same canonical Floor bootstrap data.
      */
@@ -612,6 +709,15 @@
     $canvasWidth = 1000.0;
     $canvasHeight = $floorMode === 'row' ? 146.0 : 560.0;
 
+    if ($floorMode === 'row') {
+        if (is_numeric($pmdOneRowServerRequiredWidth)) {
+            $canvasWidth = max($canvasWidth, (float)$pmdOneRowServerRequiredWidth);
+        }
+        if (is_numeric($pmdOneRowServerRequiredHeight)) {
+            $canvasHeight = max($canvasHeight, (float)$pmdOneRowServerRequiredHeight);
+        }
+    }
+
     foreach ($displayTables as $table) {
         if (!is_array($table)) {
             continue;
@@ -635,6 +741,13 @@
             ? max(146, $canvasHeight)
             : max(560, $canvasHeight)
     );
+
+    // In One row, fill the visible viewport on first paint while preserving
+    // a wider scroll canvas when the row content needs it. JavaScript later
+    // resolves the same max(viewport, content) width numerically.
+    $pmdFloorServerCanvasWidthCss = $floorMode === 'row'
+        ? 'max(100%, '.$canvasWidth.'px)'
+        : $canvasWidth.'px';
 
     $pmdFloorBootstrapData = is_array($floorBootstrap['data'] ?? null)
         ? $floorBootstrap['data']
@@ -942,7 +1055,7 @@
         <div class="pmd-floor-v1__empty" data-floor-empty {{ count($displayTables) ? 'hidden' : '' }}>No tables match this view.</div>
 
         <div class="pmd-floor-v1__canvas-wrap" data-floor-scroll style="height:{{ $floorMode === 'row' ? $canvasHeight : 560 }}px;min-height:{{ $floorMode === 'row' ? $canvasHeight : 560 }}px;max-height:{{ $floorMode === 'row' ? $canvasHeight : 560 }}px">
-            <div class="pmd-floor-v1__canvas" data-floor-canvas style="width:{{ $canvasWidth }}px;min-width:{{ $canvasWidth }}px;height:{{ $canvasHeight }}px;min-height:{{ $canvasHeight }}px;transform:scale({{ $floorMode === 'row' ? 1 : $floorZoom }})">
+            <div class="pmd-floor-v1__canvas" data-floor-canvas style="width:{{ $pmdFloorServerCanvasWidthCss }};min-width:{{ $pmdFloorServerCanvasWidthCss }};height:{{ $canvasHeight }}px;min-height:{{ $canvasHeight }}px;transform:scale({{ $floorMode === 'row' ? 1 : $floorZoom }})">
                 @foreach($displayTables as $table)
                     @php
                         $status = (string)($table['status'] ?? 'available');
@@ -1091,7 +1204,7 @@
                 class="pmd-floor-registry-manager__backdrop"
                 data-pmd-floor-manage-close
                 aria-label="{{ $pmdFloorManageText['cancel'] }}"
-                style="position:fixed!important;inset:0!important;z-index:1!important;width:100vw!important;height:100vh!important;border:0!important;background:rgba(15,35,54,.42)!important;opacity:1!important;filter:none!important;-webkit-filter:none!important;"
+                style="position:fixed!important;inset:0!important;z-index:1!important;width:100vw!important;height:100vh!important;border:0!important;background:rgba(255,255,255,.04)!important;opacity:1!important;filter:none!important;-webkit-filter:none!important;"
             ></button>
 
             <section
@@ -1198,7 +1311,7 @@
         </div>
 
         <div class="pmd-floor-registry-manager" data-pmd-floor-add-panel hidden style="position:fixed!important;inset:0!important;z-index:2147483646!important;isolation:isolate!important;opacity:1!important;filter:none!important;-webkit-filter:none!important;">
-            <button type="button" class="pmd-floor-registry-manager__backdrop" data-pmd-floor-add-close aria-label="{{ $pmdFloorRegistryText['cancel'] }}" style="position:fixed!important;inset:0!important;z-index:1!important;width:100vw!important;height:100vh!important;border:0!important;background:rgba(15,35,54,.42)!important;opacity:1!important;filter:none!important;-webkit-filter:none!important;"></button>
+            <button type="button" class="pmd-floor-registry-manager__backdrop" data-pmd-floor-add-close aria-label="{{ $pmdFloorRegistryText['cancel'] }}" style="position:fixed!important;inset:0!important;z-index:1!important;width:100vw!important;height:100vh!important;border:0!important;background:rgba(255,255,255,.04)!important;opacity:1!important;filter:none!important;-webkit-filter:none!important;"></button>
             <section class="pmd-floor-registry-manager__card" role="dialog" aria-modal="true" aria-labelledby="pmd-floor-registry-manager-title-v1" style="position:relative!important;z-index:2!important;background:#fff!important;background-color:#fff!important;opacity:1!important;filter:none!important;-webkit-filter:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;">
                 <header class="pmd-floor-registry-manager__header">
                     <div>
