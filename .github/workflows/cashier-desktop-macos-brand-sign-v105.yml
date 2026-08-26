@@ -1,4 +1,4 @@
-name: PayMyDine Cashier V1.0.5 Classic macOS + Brand
+name: PayMyDine Cashier V1.0.5 Tahoe Native Icon + Brand
 
 on:
   workflow_dispatch:
@@ -30,7 +30,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Verify V1.0.5 source and canonical brand icon
+      - name: Verify V1.0.5 source and native macOS icon package
         working-directory: apps/cashier-desktop
         shell: bash
         run: |
@@ -38,14 +38,18 @@ jobs:
           npm run check
           npm run brand:icon
           test -s build/icon.svg
-          grep -Eqi '<svg([[:space:]]|>)' build/icon.svg
+          test -s build/AppIcon.icon/icon.json
+          test -s build/AppIcon.icon/Assets/PayMyDine.svg
           grep -q '"version": "1.0.5"' package.json
           grep -q '"icon": "build/icon.svg"' package.json
+          grep -q '"icon": "build/AppIcon.icon"' package.json
+          grep -q '"solid": "srgb:1.00000,1.00000,1.00000,1.00000"' build/AppIcon.icon/icon.json
+          grep -q '"image-name": "PayMyDine.svg"' build/AppIcon.icon/icon.json
           if grep -q '"notarize"' package.json; then
             echo 'REFUSED: classic V1.0.5 must not require notarization'
             exit 1
           fi
-          echo 'V105_CLASSIC_BRAND_CONTRACT=PASS'
+          echo 'V105_TAHOE_NATIVE_ICON_CONTRACT=PASS'
 
   build-windows:
     needs: contract-test
@@ -81,7 +85,7 @@ jobs:
             Authorization = "Bearer $env:GH_TOKEN"
             Accept = 'application/vnd.github+json'
             'X-GitHub-Api-Version' = '2022-11-28'
-            'User-Agent' = 'PayMyDine-Cashier-V105-Classic-Build'
+            'User-Agent' = 'PayMyDine-Cashier-V105-Native-Icon-Build'
           }
           foreach ($relative in $files) {
             $encodedPath = ($relative -split '/' | ForEach-Object { [uri]::EscapeDataString($_) }) -join '/'
@@ -114,8 +118,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        arch: [arm64, x64]
-    runs-on: macos-14
+        include:
+          - arch: arm64
+            runner: macos-26
+          - arch: x64
+            runner: macos-26-intel
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 45
     steps:
       - name: Download Cashier app files through GitHub API
@@ -152,7 +160,7 @@ jobs:
               -H "Authorization: Bearer $GH_TOKEN" \
               -H "Accept: application/vnd.github+json" \
               -H "X-GitHub-Api-Version: 2022-11-28" \
-              -H "User-Agent: PayMyDine-Cashier-V105-Classic-macOS-Build" \
+              -H "User-Agent: PayMyDine-Cashier-V105-Tahoe-macOS-Build" \
               "$api" \
               | python3 -c 'import sys,json,base64; d=json.load(sys.stdin); sys.stdout.buffer.write(base64.b64decode(d["content"]))' \
               > "$destination"
@@ -160,33 +168,45 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Verify Xcode 26 tooling
+        shell: bash
+        run: |
+          set -euo pipefail
+          sw_vers
+          xcodebuild -version
+          xcrun actool --version
       - name: Install dependencies
         working-directory: apps/cashier-desktop
         run: npm install
       - name: Syntax check
         working-directory: apps/cashier-desktop
         run: npm run check
-      - name: Build branded macOS app using proven classic packaging
+      - name: Build macOS app with native Tahoe Icon Composer asset
         working-directory: apps/cashier-desktop
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
         run: npm run dist:mac -- --${{ matrix.arch }}
-      - name: Verify branded icon is inside packaged app
+      - name: Verify native Tahoe app icon is packaged
         working-directory: apps/cashier-desktop
         shell: bash
         run: |
           set -euo pipefail
           app_path="$(find dist -type d -name 'PayMyDine Cashier.app' -print -quit)"
           test -n "$app_path"
-          icon_path="$(find "$app_path/Contents/Resources" -maxdepth 1 -type f -name '*.icns' -print -quit)"
-          test -n "$icon_path"
-          test -s "$icon_path"
+          test -s "$app_path/Contents/Resources/Assets.car"
+          icon_name="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIconName' "$app_path/Contents/Info.plist")"
+          test "$icon_name" = 'Icon'
+          legacy_icon="$(find "$app_path/Contents/Resources" -maxdepth 1 -type f -name '*.icns' -print -quit)"
+          test -n "$legacy_icon"
+          test -s "$legacy_icon"
           dmg_path="dist/PayMyDine-Cashier-1.0.5-mac-${{ matrix.arch }}.dmg"
           test -s "$dmg_path"
           echo "PACKAGED_APP=$app_path"
-          echo "PACKAGED_ICON=$icon_path"
+          echo "CFBundleIconName=$icon_name"
+          echo "ASSET_CATALOG=$app_path/Contents/Resources/Assets.car"
+          echo "LEGACY_ICON=$legacy_icon"
           echo "DMG=$dmg_path"
-          echo 'V105_MAC_CLASSIC_BRAND=PASS'
+          echo 'V105_MAC_TAHOE_NATIVE_ICON=PASS'
       - uses: actions/upload-artifact@v4
         with:
           name: pmd-v105-macos-${{ matrix.arch }}
@@ -205,7 +225,7 @@ jobs:
           pattern: pmd-v105-*
           path: release
           merge-multiple: true
-      - name: Publish branded V1.0.5 classic packages
+      - name: Publish branded V1.0.5 native-icon packages
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -216,11 +236,11 @@ jobs:
           test -s release/PayMyDine-Cashier-1.0.5-mac-arm64.dmg
           test -s release/PayMyDine-Cashier-1.0.5-mac-x64.dmg
           tag='pmd-cashier-v1-preview'
-          notes='PayMyDine Cashier V1.0.5. Preserves V1.0.4 Virtual PDF / Print Debug Mode and physical printing, uses the official PayMyDine brand icon, and restores the previously proven classic unsigned macOS packaging path for arm64 and x64.'
+          notes='PayMyDine Cashier V1.0.5. Preserves Virtual PDF and physical printing. Windows keeps the official PayMyDine icon. macOS 26 now receives a native Icon Composer / Assets.car app icon with a pure-white enclosure and the official PayMyDine mark, removing the Tahoe legacy gray icon-jail fallback.'
           if gh release view "$tag" --repo "$GH_REPO" >/dev/null 2>&1; then
             gh release upload "$tag" release/* --clobber --repo "$GH_REPO"
             gh release edit "$tag" --target "$GITHUB_SHA" --prerelease --title 'PayMyDine Cashier V1 Preview' --notes "$notes" --repo "$GH_REPO"
           else
             gh release create "$tag" release/* --target "$GITHUB_SHA" --prerelease --title 'PayMyDine Cashier V1 Preview' --notes "$notes" --repo "$GH_REPO"
           fi
-          echo 'PMD_V105_CLASSIC_RELEASE_PUBLISHED'
+          echo 'PMD_V105_NATIVE_ICON_RELEASE_PUBLISHED'
