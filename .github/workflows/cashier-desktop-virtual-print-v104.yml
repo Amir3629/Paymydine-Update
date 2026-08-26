@@ -8,12 +8,6 @@ on:
     paths:
       - 'apps/cashier-desktop/**'
       - '.github/workflows/cashier-desktop-virtual-print-v104.yml'
-  pull_request:
-    branches:
-      - main
-    paths:
-      - 'apps/cashier-desktop/**'
-      - '.github/workflows/cashier-desktop-virtual-print-v104.yml'
 
 permissions:
   contents: read
@@ -135,7 +129,6 @@ jobs:
           if-no-files-found: error
 
   publish-preview:
-    if: github.event_name != 'pull_request'
     needs: [contract-test, build-windows, build-macos]
     runs-on: ubuntu-latest
     permissions:
