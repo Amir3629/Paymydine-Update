@@ -1,0 +1,163 @@
+name: PayMyDine Cashier V1.0.7 Settings + Brand
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/cashier-desktop-settings-brand-v107
+    paths:
+      - 'apps/cashier-desktop/**'
+      - '.github/workflows/cashier-desktop-v107.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'apps/cashier-desktop/**'
+      - '.github/workflows/cashier-desktop-v107.yml'
+
+permissions:
+  contents: read
+
+env:
+  PMD_BRAND_LOGO_URL: https://tomo.paymydine.com/brand/paymydine-logo.svg
+
+jobs:
+  contract-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify V1.0.7 source contract
+        working-directory: apps/cashier-desktop
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run check
+          npm run brand:icon
+          grep -q '"version": "1.0.7"' package.json
+          grep -q 'PMD_CASHIER_HARDWARE_BRAND_V107' src/hardware.html
+          grep -q 'PMD_CASHIER_SETUP_BRAND_V107' src/setup.html
+          grep -q 'PMD_CASHIER_BRANDED_LOCAL_UI_V107' scripts/fetch-brand-icon.js
+          grep -q '#053a32' src/hardware.html
+          grep -q '#d9b76a' src/hardware.html
+          test -s src/paymydine-logo.svg
+          test -s build/AppIcon.icon/icon.json
+          test -s build/icon.svg
+          echo 'PMD_V107_BRAND_CONTRACT=PASS'
+
+  build-windows:
+    needs: contract-test
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        working-directory: apps/cashier-desktop
+        run: npm install
+      - name: Syntax and contract
+        working-directory: apps/cashier-desktop
+        run: npm run check
+      - name: Build Windows installer
+        working-directory: apps/cashier-desktop
+        run: npm run dist:win
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pmd-v107-windows
+          path: apps/cashier-desktop/dist/PayMyDine-Cashier-Setup-1.0.7.exe
+          if-no-files-found: error
+
+  build-macos:
+    needs: contract-test
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm64
+            runner: macos-26
+          - arch: x64
+            runner: macos-26-intel
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify macOS tooling
+        shell: bash
+        run: |
+          set -euo pipefail
+          sw_vers
+          xcodebuild -version
+          xcrun actool --version
+      - name: Install dependencies
+        working-directory: apps/cashier-desktop
+        run: npm install
+      - name: Syntax check
+        working-directory: apps/cashier-desktop
+        run: npm run check
+      - name: Build macOS app
+        working-directory: apps/cashier-desktop
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: npm run dist:mac -- --${{ matrix.arch }}
+      - name: Verify branded local UI and final bundle signature
+        working-directory: apps/cashier-desktop
+        shell: bash
+        run: |
+          set -euo pipefail
+          app_path="$(find dist -type d -name 'PayMyDine Cashier.app' -print -quit)"
+          test -n "$app_path"
+          test -s "$app_path/Contents/Resources/app.asar"
+          test -s "$app_path/Contents/Resources/Assets.car"
+          codesign --verify --deep --strict --verbose=2 "$app_path"
+          dmg_path="dist/PayMyDine-Cashier-1.0.7-mac-${{ matrix.arch }}.dmg"
+          test -s "$dmg_path"
+          echo "PACKAGED_APP=$app_path"
+          echo "DMG=$dmg_path"
+          echo 'PMD_V107_MAC_BUNDLE_SIGNATURE=VALID'
+          echo 'Gatekeeper assessment is informational until Developer ID credentials exist:'
+          spctl --assess --type execute --verbose=4 "$app_path" || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pmd-v107-macos-${{ matrix.arch }}
+          path: apps/cashier-desktop/dist/PayMyDine-Cashier-1.0.7-mac-${{ matrix.arch }}.dmg
+          if-no-files-found: error
+
+  publish-preview:
+    if: github.event_name != 'pull_request'
+    needs: [contract-test, build-windows, build-macos]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: pmd-v107-*
+          path: release
+          merge-multiple: true
+      - name: Publish V1.0.7 packages
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          test -s release/PayMyDine-Cashier-Setup-1.0.7.exe
+          test -s release/PayMyDine-Cashier-1.0.7-mac-arm64.dmg
+          test -s release/PayMyDine-Cashier-1.0.7-mac-x64.dmg
+          tag='pmd-cashier-v1-preview'
+          notes='PayMyDine Cashier V1.0.7: PayMyDine-branded local setup and hardware UI using the Cashier green/gold visual authority, official bundled logo, truthful hardware diagnostics, fullscreen cashier and Virtual PDF.'
+          if gh release view "$tag" --repo "$GH_REPO" >/dev/null 2>&1; then
+            gh release upload "$tag" release/* --clobber --repo "$GH_REPO"
+            gh release edit "$tag" --target "$GITHUB_SHA" --prerelease --title 'PayMyDine Cashier V1 Preview' --notes "$notes" --repo "$GH_REPO"
+          else
+            gh release create "$tag" release/* --target "$GITHUB_SHA" --prerelease --title 'PayMyDine Cashier V1 Preview' --notes "$notes" --repo "$GH_REPO"
+          fi
+          echo 'PMD_V107_RELEASE_PUBLISHED'
