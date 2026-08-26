@@ -38,11 +38,7 @@
       "icon": "build/icon.svg",
       "target": ["dmg", "zip"],
       "category": "public.app-category.business",
-      "artifactName": "PayMyDine-Cashier-${version}-mac-${arch}.${ext}",
-      "hardenedRuntime": true,
-      "entitlements": "build/entitlements.mac.plist",
-      "entitlementsInherit": "build/entitlements.mac.inherit.plist",
-      "notarize": true
+      "artifactName": "PayMyDine-Cashier-${version}-mac-${arch}.${ext}"
     },
     "nsis": {
       "oneClick": false,
