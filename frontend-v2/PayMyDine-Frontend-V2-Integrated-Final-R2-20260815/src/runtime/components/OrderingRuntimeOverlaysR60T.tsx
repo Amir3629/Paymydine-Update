@@ -1,6 +1,6 @@
 'use client'
 
-import { useLayoutEffect, useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { RuntimeOverlays as BaseRuntimeOverlays } from './RuntimeOverlays'
 import { useMenuRuntime } from '@/src/runtime/MenuRuntimeContext'
 
@@ -29,7 +29,7 @@ export function RuntimeOverlays() {
   // becomes authoritative ensures that state starts with the actual QR order.
   const overlayKey = selectedSelfOrderId > 0 ? `r60t-self-${selectedSelfOrderId}` : 'r60t-base'
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     const copy = copyFor(runtime.locale)
     document.querySelectorAll<HTMLElement>('[data-pmd-direct-kitchen-send="r33b"]').forEach((button) => {
       const label = runtime.orderLoading ? copy.preparing : copy.payPlace
