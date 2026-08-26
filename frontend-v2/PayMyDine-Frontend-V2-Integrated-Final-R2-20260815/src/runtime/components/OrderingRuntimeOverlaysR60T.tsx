@@ -16,7 +16,7 @@ function copyFor(locale: string) {
 // PMD_ORDERING_FLOW_REVOLUTION_R60T
 // Scenario presentation only. Payment, coupon, tip, provider and invoice owners
 // remain inside the proven RuntimeOverlays/payment components.
-// No DOM observer or timing loop is used here.
+// React-owned child nodes are never rewritten here.
 export function RuntimeOverlays() {
   const runtime = useMenuRuntime()
   const autoOpenedPaymentFor = useRef<number | null>(null)
@@ -26,8 +26,8 @@ export function RuntimeOverlays() {
     document.querySelectorAll<HTMLElement>('[data-pmd-direct-kitchen-send="r33b"]').forEach((button) => {
       const label = runtime.orderLoading ? copy.preparing : copy.payPlace
       button.setAttribute('data-pmd-ordering-flow', 'r60t-pay-first')
+      button.setAttribute('data-pmd-r60t-label', label)
       button.setAttribute('aria-label', label)
-      if ((button.textContent || '').trim() !== label) button.textContent = label
     })
 
     const root = document.querySelector<HTMLElement>('[data-pmd-table-round-flow="r27"]')
@@ -36,13 +36,14 @@ export function RuntimeOverlays() {
 
     const selected = runtime.selectedOrder as any
     const isSelfOrder = selected?.orderOrigin === 'guest_self'
+    root.setAttribute('data-pmd-r60t-self-order', isSelfOrder ? 'true' : 'false')
+
     const tabBar = root.firstElementChild as HTMLElement | null
     const tabButtons = tabBar ? Array.from(tabBar.querySelectorAll<HTMLButtonElement>(':scope > button')) : []
     const paymentTab = tabButtons[1]
     const splitTab = tabButtons[2]
 
     if (splitTab) {
-      splitTab.style.display = isSelfOrder ? 'none' : ''
       splitTab.toggleAttribute('aria-hidden', isSelfOrder)
       splitTab.toggleAttribute('disabled', isSelfOrder)
     }
@@ -65,6 +66,17 @@ export function RuntimeOverlays() {
   return (
     <>
       <style>{`
+        [data-pmd-direct-kitchen-send="r33b"][data-pmd-ordering-flow="r60t-pay-first"] {
+          font-size: 0;
+        }
+        [data-pmd-direct-kitchen-send="r33b"][data-pmd-ordering-flow="r60t-pay-first"]::after {
+          content: attr(data-pmd-r60t-label);
+          font-size: 0.95rem;
+          line-height: 1.2;
+        }
+        [data-pmd-ordering-flow="r60t"][data-pmd-r60t-self-order="true"] > :first-child > button:nth-child(3) {
+          display: none;
+        }
         [data-pmd-ordering-flow="r60t"] [data-pmd-multi-order-picker="r32"],
         [data-pmd-ordering-flow="r60t"] [data-pmd-multi-order-selection="r32"],
         [data-pmd-ordering-flow="r60t"] [data-pmd-multi-order-payment="r32"],
