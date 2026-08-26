@@ -16,7 +16,7 @@ function copyFor(locale: string) {
 // PMD_ORDERING_FLOW_REVOLUTION_R60T
 // Scenario presentation only. Payment, coupon, tip, provider and invoice owners
 // remain inside the proven RuntimeOverlays/payment components.
-// No MutationObserver or timing loop is used here.
+// No DOM observer or timing loop is used here.
 export function RuntimeOverlays() {
   const runtime = useMenuRuntime()
   const autoOpenedPaymentFor = useRef<number | null>(null)
