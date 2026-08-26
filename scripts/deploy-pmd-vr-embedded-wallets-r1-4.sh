@@ -62,7 +62,8 @@ grep -Fq 'availablePaymentMethodConfigurations' "$ROOT/$CLIENT_REL" || { echo "E
 grep -Fq 'startHostedProviderPayment' "$FRONT_ROOT/$FRONT_CLIENT_REL" || { echo "ERROR: frontend hosted payment authority missing"; exit 12; }
 echo "R1_3_CONTRACT=OK"
 
-echo "========== STAGE LIVE AUTHORITIES =========="nmkdir -p "$STAGE/app/Services/Payments" "$STAGE/app/admin/classes" "$STAGE/frontend"
+echo "========== STAGE LIVE AUTHORITIES =========="
+mkdir -p "$STAGE/app/Services/Payments" "$STAGE/app/admin/classes" "$STAGE/frontend"
 cp "$ROOT/$CLIENT_REL" "$STAGE/$CLIENT_REL"
 cp "$ROOT/$SERVICE_REL" "$STAGE/$SERVICE_REL"
 cp "$FRONT_ROOT/$FRONT_CLIENT_REL" "$STAGE/frontend/client-api.ts"
@@ -101,8 +102,8 @@ grep -Fq 'PMD_VR_STRING_ENDPOINT_ACCEPT_R1_4' "$STAGE/$CLIENT_REL"
 grep -Fq 'PMD_VR_LIGHTBOX_CHECKOUT_R1_4' "$STAGE/$SERVICE_REL"
 grep -Fq 'PMD_VR_LIGHTBOX_CLIENT_R1_4' "$STAGE/frontend/client-api.ts"
 grep -Fq 'PMD_VR_LIGHTBOX_RUNTIME_R1_4' "$STAGE/frontend/RuntimeOverlays.tsx"
-grep -Fq "integration_preference" "$STAGE/frontend/client-api.ts"
-grep -Fq "LightboxCheckoutHandler" "$STAGE/frontend/client-api.ts"
+grep -Fq 'integration_preference' "$STAGE/frontend/client-api.ts"
+grep -Fq 'LightboxCheckoutHandler' "$STAGE/frontend/client-api.ts"
 echo "STATIC_PREFLIGHT=OK"
 
 echo "========== ISOLATED FRONTEND BUILD =========="
@@ -117,9 +118,8 @@ sudo -u ubuntu -H env FRONT_STAGE="$FRONT_STAGE" bash -c '
   npm run build -- --webpack
 '
 [ -d "$FRONT_STAGE/.next" ] || { echo "ERROR: frontend build produced no .next"; exit 13; }
-for marker in PMD_VR_LIGHTBOX_CLIENT_R1_4 PMD_VR_LIGHTBOX_RUNTIME_R1_4; do
-  grep -Rsl --binary-files=text "$marker" "$FRONT_STAGE/.next" >/dev/null 2>&1 || { echo "ERROR: compiled frontend missing $marker"; exit 14; }
-done
+grep -Rsl --binary-files=text 'LightboxCheckoutHandler' "$FRONT_STAGE/.next" >/dev/null 2>&1 || { echo "ERROR: compiled frontend missing VR Lightbox runtime"; exit 14; }
+grep -Rsl --binary-files=text 'integration_preference' "$FRONT_STAGE/.next" >/dev/null 2>&1 || { echo "ERROR: compiled frontend missing VR integration preference"; exit 15; }
 echo "FRONTEND_BUILD=OK"
 
 echo "========== BACKUP =========="
@@ -181,7 +181,7 @@ for row in rows:
     if str(row.get("name", "")) == name:
         print(str(row.get("pm2_env", {}).get("status", ""))); break
 ')"
-[ "$STATUS" = "online" ] || { echo "ERROR: frontend status=$STATUS"; exit 15; }
+[ "$STATUS" = "online" ] || { echo "ERROR: frontend status=$STATUS"; exit 16; }
 echo "FRONTEND_STATUS=$STATUS"
 
 echo "========== MOON VR TRUTH CHECK =========="
@@ -219,7 +219,7 @@ PHP
 echo "========== HTTP SMOKE =========="
 FRONT_HTTP="$(curl -ksS -o /dev/null -w '%{http_code}' "$FRONT_URL" || true)"
 echo "FRONTEND_HTTP=$FRONT_HTTP"
-[ "$FRONT_HTTP" = "200" ] || { echo "ERROR: frontend smoke failed"; exit 16; }
+[ "$FRONT_HTTP" = "200" ] || { echo "ERROR: frontend smoke failed"; exit 17; }
 
 trap - EXIT
 
