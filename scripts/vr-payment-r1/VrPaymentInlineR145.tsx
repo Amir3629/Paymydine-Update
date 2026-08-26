@@ -103,6 +103,8 @@ function validationMessages(result: unknown): string[] {
 
 export function VrPaymentInline(props: Props) {
   // PMD_VR_IFRAME_COMPONENT_R1_4_5
+  // RuntimeOverlays gives this component a key containing method/order/amount/split
+  // inputs. One mount therefore owns exactly one VR transaction + iframe handler.
   const copy = useMemo(() => copyFor(props.methodCode, props.locale), [props.locale, props.methodCode])
   const mountIdRef = useRef(`pmd-vr-iframe-${props.orderId}-${Math.random().toString(36).slice(2, 10)}`)
   const handlerRef = useRef<VrPaymentIframeHandler | null>(null)
@@ -215,24 +217,10 @@ export function VrPaymentInline(props: Props) {
         keepalive: true,
       }).catch(() => undefined)
     }
-  }, [
-    copy.unavailable,
-    props.amount,
-    props.couponCode,
-    props.couponDiscount,
-    props.currency,
-    props.guestSessionId,
-    props.items,
-    props.methodCode,
-    props.orderId,
-    props.payerLabel,
-    props.prepareSplitIntent,
-    props.providerCode,
-    props.selectedItems,
-    props.settlementMode,
-    props.table,
-    props.tipAmount,
-  ])
+    // One component mount intentionally owns one immutable provider session.
+    // RuntimeOverlays remounts this component by key whenever material inputs change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const pay = () => {
     if (!ready || busy) return
