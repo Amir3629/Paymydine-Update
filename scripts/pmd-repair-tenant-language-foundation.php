@@ -8,14 +8,14 @@ declare(strict_types=1);
  * Dry-run by default. Nothing is written unless --apply is supplied.
  *
  * Usage:
- *   php scripts/pmd-repair-tenant-language-foundation.php --tenant=mimoza.paymydine.com
- *   php scripts/pmd-repair-tenant-language-foundation.php --tenant=mimoza.paymydine.com --apply
+ *   PMD_ROOT=/var/www/paymydine php /tmp/pmd-repair-tenant-language-foundation.php --tenant=mimoza.paymydine.com
+ *   PMD_ROOT=/var/www/paymydine php /tmp/pmd-repair-tenant-language-foundation.php --tenant=mimoza.paymydine.com --apply
  */
 
 $options = getopt('', ['tenant:', 'apply']);
 $tenantDomain = strtolower(trim((string)($options['tenant'] ?? 'mimoza.paymydine.com')));
 $apply = array_key_exists('apply', $options);
-$root = dirname(__DIR__);
+$root = rtrim((string)(getenv('PMD_ROOT') ?: dirname(__DIR__)), '/');
 
 if (!is_file($root.'/vendor/autoload.php') || !is_file($root.'/bootstrap/app.php')) {
     fwrite(STDERR, "ERROR: Invalid PayMyDine root: {$root}\n");
