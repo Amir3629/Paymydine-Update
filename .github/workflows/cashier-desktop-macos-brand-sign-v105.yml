@@ -1,4 +1,4 @@
-name: PayMyDine Cashier V1.0.5 Branded Signed macOS
+name: PayMyDine Cashier V1.0.5 Classic macOS + Brand
 
 on:
   workflow_dispatch:
@@ -41,11 +41,11 @@ jobs:
           grep -Eqi '<svg([[:space:]]|>)' build/icon.svg
           grep -q '"version": "1.0.5"' package.json
           grep -q '"icon": "build/icon.svg"' package.json
-          grep -q '"hardenedRuntime": true' package.json
-          grep -q '"notarize": true' package.json
-          grep -q 'com.apple.security.cs.allow-jit' build/entitlements.mac.plist
-          grep -q 'com.apple.security.cs.allow-jit' build/entitlements.mac.inherit.plist
-          echo 'V105_BRAND_AND_MAC_CONTRACT=PASS'
+          if grep -q '"notarize"' package.json; then
+            echo 'REFUSED: classic V1.0.5 must not require notarization'
+            exit 1
+          fi
+          echo 'V105_CLASSIC_BRAND_CONTRACT=PASS'
 
   build-windows:
     needs: contract-test
@@ -81,7 +81,7 @@ jobs:
             Authorization = "Bearer $env:GH_TOKEN"
             Accept = 'application/vnd.github+json'
             'X-GitHub-Api-Version' = '2022-11-28'
-            'User-Agent' = 'PayMyDine-Cashier-V105-Build'
+            'User-Agent' = 'PayMyDine-Cashier-V105-Classic-Build'
           }
           foreach ($relative in $files) {
             $encodedPath = ($relative -split '/' | ForEach-Object { [uri]::EscapeDataString($_) }) -join '/'
@@ -109,9 +109,8 @@ jobs:
           path: apps/cashier-desktop/dist/PayMyDine-Cashier-Setup-1.0.5.exe
           if-no-files-found: error
 
-  macos-packaging-smoke:
+  build-macos:
     needs: contract-test
-    if: github.event_name == 'pull_request'
     strategy:
       fail-fast: false
       matrix:
@@ -119,19 +118,60 @@ jobs:
     runs-on: macos-14
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - name: Download Cashier app files through GitHub API
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PMD_REPOSITORY: ${{ github.repository }}
+          PMD_REF: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          root="$PWD/apps/cashier-desktop"
+          mkdir -p "$root/src" "$root/scripts"
+          files=(
+            package.json
+            README.md
+            scripts/apply-v104.js
+            scripts/fetch-brand-icon.js
+            src/main.js
+            src/preload.js
+            src/hardware.js
+            src/receipt.js
+            src/setup.html
+            src/setup.js
+            src/hardware.html
+            src/hardware-page.js
+            src/offline.html
+            src/offline.js
+          )
+          for relative in "${files[@]}"; do
+            destination="$root/$relative"
+            mkdir -p "$(dirname "$destination")"
+            api="https://api.github.com/repos/$PMD_REPOSITORY/contents/apps/cashier-desktop/$relative?ref=$PMD_REF"
+            curl -fsSL \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              -H "User-Agent: PayMyDine-Cashier-V105-Classic-macOS-Build" \
+              "$api" \
+              | python3 -c 'import sys,json,base64; d=json.load(sys.stdin); sys.stdout.buffer.write(base64.b64decode(d["content"]))' \
+              > "$destination"
+          done
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
       - name: Install dependencies
         working-directory: apps/cashier-desktop
         run: npm install
-      - name: Build branded unsigned PR smoke package only
+      - name: Syntax check
+        working-directory: apps/cashier-desktop
+        run: npm run check
+      - name: Build branded macOS app using proven classic packaging
         working-directory: apps/cashier-desktop
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-        run: npm run dist:mac -- --${{ matrix.arch }} --config.mac.notarize=false
-      - name: Verify PayMyDine icon was packaged
+        run: npm run dist:mac -- --${{ matrix.arch }}
+      - name: Verify branded icon is inside packaged app
         working-directory: apps/cashier-desktop
         shell: bash
         run: |
@@ -141,96 +181,21 @@ jobs:
           icon_path="$(find "$app_path/Contents/Resources" -maxdepth 1 -type f -name '*.icns' -print -quit)"
           test -n "$icon_path"
           test -s "$icon_path"
+          dmg_path="dist/PayMyDine-Cashier-1.0.5-mac-${{ matrix.arch }}.dmg"
+          test -s "$dmg_path"
           echo "PACKAGED_APP=$app_path"
           echo "PACKAGED_ICON=$icon_path"
-          echo 'V105_MAC_BRAND_SMOKE=PASS'
-
-  build-macos-signed:
-    needs: contract-test
-    if: github.event_name != 'pull_request'
-    strategy:
-      fail-fast: false
-      matrix:
-        arch: [arm64, x64]
-    runs-on: macos-14
-    timeout-minutes: 60
-    env:
-      CSC_LINK: ${{ secrets.MAC_CSC_LINK || secrets.CSC_LINK }}
-      CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD || secrets.CSC_KEY_PASSWORD }}
-      APPLE_ID: ${{ secrets.APPLE_ID }}
-      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-      - name: Refuse unsigned or unnotarized release build
-        shell: bash
-        run: |
-          set -euo pipefail
-          missing=0
-          for name in CSC_LINK CSC_KEY_PASSWORD APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID; do
-            if [ -z "${!name:-}" ]; then
-              echo "MISSING_REQUIRED_SECRET=$name"
-              missing=1
-            fi
-          done
-          if [ "$missing" -ne 0 ]; then
-            echo 'PMD_MAC_RELEASE_REFUSED: Apple Developer signing/notarization secrets are not configured.'
-            exit 1
-          fi
-          echo 'PMD_MAC_SIGNING_SECRETS_PRESENT'
-      - name: Install dependencies
-        working-directory: apps/cashier-desktop
-        run: npm install
-      - name: Build, Developer-ID sign and notarize macOS DMG
-        working-directory: apps/cashier-desktop
-        run: npm run dist:mac -- --${{ matrix.arch }}
-      - name: Gate release on code signature, Gatekeeper and stapled ticket
-        working-directory: apps/cashier-desktop
-        shell: bash
-        run: |
-          set -euo pipefail
-          app_path="$(find dist -type d -name 'PayMyDine Cashier.app' -print -quit)"
-          dmg_path="$(find dist -type f -name 'PayMyDine-Cashier-1.0.5-mac-${{ matrix.arch }}.dmg' -print -quit)"
-          test -n "$app_path"
-          test -n "$dmg_path"
-
-          codesign --verify --deep --strict --verbose=2 "$app_path"
-          codesign -dv --verbose=4 "$app_path" 2>&1 | tee /tmp/pmd-v105-codesign.txt
-          grep -q 'Authority=Developer ID Application' /tmp/pmd-v105-codesign.txt
-          spctl --assess --type execute --verbose=4 "$app_path"
-          xcrun stapler validate "$app_path"
-
-          mount_dir="$(mktemp -d)"
-          cleanup() {
-            hdiutil detach "$mount_dir" -quiet >/dev/null 2>&1 || true
-            rmdir "$mount_dir" >/dev/null 2>&1 || true
-          }
-          trap cleanup EXIT
-          hdiutil attach "$dmg_path" -nobrowse -readonly -mountpoint "$mount_dir" -quiet
-          mounted_app="$mount_dir/PayMyDine Cashier.app"
-          test -d "$mounted_app"
-          codesign --verify --deep --strict --verbose=2 "$mounted_app"
-          spctl --assess --type execute --verbose=4 "$mounted_app"
-          xcrun stapler validate "$mounted_app"
-          icon_path="$(find "$mounted_app/Contents/Resources" -maxdepth 1 -type f -name '*.icns' -print -quit)"
-          test -n "$icon_path"
-          test -s "$icon_path"
-          echo "SIGNED_DMG=$dmg_path"
-          echo "SIGNED_APP=$mounted_app"
-          echo "BRANDED_ICON=$icon_path"
-          echo 'PMD_MAC_SIGNED_NOTARIZED_STAPLED=PASS'
+          echo "DMG=$dmg_path"
+          echo 'V105_MAC_CLASSIC_BRAND=PASS'
       - uses: actions/upload-artifact@v4
         with:
-          name: pmd-v105-macos-${{ matrix.arch }}-signed
+          name: pmd-v105-macos-${{ matrix.arch }}
           path: apps/cashier-desktop/dist/PayMyDine-Cashier-1.0.5-mac-${{ matrix.arch }}.dmg
           if-no-files-found: error
 
   publish-preview:
     if: github.event_name != 'pull_request'
-    needs: [contract-test, build-windows, build-macos-signed]
+    needs: [contract-test, build-windows, build-macos]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -240,7 +205,7 @@ jobs:
           pattern: pmd-v105-*
           path: release
           merge-multiple: true
-      - name: Publish V1.0.5 only after signed/notarized Mac gates pass
+      - name: Publish branded V1.0.5 classic packages
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -251,10 +216,11 @@ jobs:
           test -s release/PayMyDine-Cashier-1.0.5-mac-arm64.dmg
           test -s release/PayMyDine-Cashier-1.0.5-mac-x64.dmg
           tag='pmd-cashier-v1-preview'
-          notes='PayMyDine Cashier V1.0.5. Uses the canonical PayMyDine SVG brand icon instead of the Electron default icon. macOS artifacts are Developer ID signed, Apple notarized, Gatekeeper-assessed and stapled before publication. V1.0.4 Virtual PDF / Print Debug Mode and physical printing behavior are preserved.'
+          notes='PayMyDine Cashier V1.0.5. Preserves V1.0.4 Virtual PDF / Print Debug Mode and physical printing, uses the official PayMyDine brand icon, and restores the previously proven classic unsigned macOS packaging path for arm64 and x64.'
           if gh release view "$tag" --repo "$GH_REPO" >/dev/null 2>&1; then
             gh release upload "$tag" release/* --clobber --repo "$GH_REPO"
             gh release edit "$tag" --target "$GITHUB_SHA" --prerelease --title 'PayMyDine Cashier V1 Preview' --notes "$notes" --repo "$GH_REPO"
           else
             gh release create "$tag" release/* --target "$GITHUB_SHA" --prerelease --title 'PayMyDine Cashier V1 Preview' --notes "$notes" --repo "$GH_REPO"
           fi
+          echo 'PMD_V105_CLASSIC_RELEASE_PUBLISHED'
