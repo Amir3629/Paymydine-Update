@@ -99,8 +99,72 @@ $pmdR60tContextCandidates = static function (array $context): array {
     ], static fn($value) => $value !== null && trim((string)$value) !== '')));
 };
 
-$pmdR60tPayload = static function ($order, array $context, string $origin) use ($formatTableOrderResponse) {
+// Keep the canonical paid-invoice security contract without bringing back the
+// old shared guest draft. This row has no table/QR identity, so table-state
+// discovery cannot expose a private self-order to another scanner.
+$pmdR60tEnsurePrivateInvoicePointer = static function ($order, string $guestSessionId) use ($pmdRoundEnsureSchema): array {
+    $orderId = (int)($order->order_id ?? 0);
+    $guestSessionId = trim($guestSessionId);
+    if ($orderId < 1 || $guestSessionId === '') return [null, ''];
+
+    try {
+        $pmdRoundEnsureSchema();
+        $sessionKey = 'pmds_r60t_'.substr(hash('sha256', request()->getHost().'|'.$orderId.'|'.$guestSessionId), 0, 32);
+        $pointer = DB::table('pmd_table_order_drafts')
+            ->where('status', 'submitted')
+            ->where('order_id', $orderId)
+            ->where('session_key', $sessionKey)
+            ->orderByDesc('id')
+            ->first();
+        if ($pointer) return [$pointer, $sessionKey];
+
+        $id = DB::table('pmd_table_order_drafts')->insertGetId([
+            'table_id' => null,
+            'table_no' => null,
+            'table_name' => null,
+            'qr' => null,
+            'session_key' => $sessionKey,
+            'status' => 'submitted',
+            'order_id' => $orderId,
+            'payload' => json_encode([
+                'source' => 'r60t_private_invoice_pointer',
+                'guest_hash' => hash('sha256', $guestSessionId),
+            ], JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        return [DB::table('pmd_table_order_drafts')->where('id', $id)->first(), $sessionKey];
+    } catch (\Throwable $e) {
+        \Log::warning('PMD R60T private invoice pointer failed', [
+            'order_id' => $orderId,
+            'message' => $e->getMessage(),
+        ]);
+        return [null, ''];
+    }
+};
+
+$pmdR60tPayload = static function ($order, array $context, string $origin, string $guestSessionId = '') use (
+    $formatTableOrderResponse,
+    $pmdRoundAugmentOrderPayload,
+    $pmdR60tEnsurePrivateInvoicePointer
+) {
     $payload = json_decode($formatTableOrderResponse(null, $order, $context)->getContent(), true) ?: [];
+
+    if ($origin === 'guest_self' && trim($guestSessionId) !== '') {
+        [$invoicePointer, $privateSessionKey] = $pmdR60tEnsurePrivateInvoicePointer($order, $guestSessionId);
+        if ($privateSessionKey !== '') {
+            // Reuse the proven fulfilment-status recovery + canonical invoice token
+            // generation. This does not alter payment/provider/invoice implementation.
+            $payload = $pmdRoundAugmentOrderPayload(
+                $payload,
+                $order,
+                $invoicePointer,
+                $context,
+                $privateSessionKey
+            );
+        }
+    }
+
     $payload['orderOrigin'] = $origin;
     $payload['source'] = $origin;
     $payload['canSplit'] = $origin === 'staff_shared';
@@ -147,7 +211,7 @@ Route::get('/guest-orders/state', function (\Illuminate\Http\Request $request) u
                 ->leftJoin('statuses', 'orders.status_id', '=', 'statuses.status_id')
                 ->where('orders.order_id', (int)$order->order_id)
                 ->first(['orders.*', 'statuses.status_name']);
-            if ($order) $self[] = $pmdR60tPayload($order, $context, 'guest_self');
+            if ($order) $self[] = $pmdR60tPayload($order, $context, 'guest_self', $guestSessionId);
             continue;
         }
 
@@ -197,7 +261,7 @@ Route::post('/guest-orders/prepare', function (\Illuminate\Http\Request $request
         ->where('orders.comment', 'like', '%'.$confirmationMarker.'%')
         ->where('orders.comment', 'like', '%[submitted_by:'.$guestSessionId.']%')
         ->first(['orders.*', 'statuses.status_name']);
-    if ($existing) return response()->json($pmdR60tPayload($existing, $context, 'guest_self'));
+    if ($existing) return response()->json($pmdR60tPayload($existing, $context, 'guest_self', $guestSessionId));
 
     $orderId = DB::transaction(function () use ($context, $request, $guestSessionId, $confirmationMarker, $items) {
         $resolvedTotals = pmd_table_order_calculate_totals($items);
@@ -253,5 +317,5 @@ Route::post('/guest-orders/prepare', function (\Illuminate\Http\Request $request
         ->leftJoin('statuses', 'orders.status_id', '=', 'statuses.status_id')
         ->where('orders.order_id', $orderId)
         ->first(['orders.*', 'statuses.status_name']);
-    return response()->json($pmdR60tPayload($order, $context, 'guest_self'), 201);
+    return response()->json($pmdR60tPayload($order, $context, 'guest_self', $guestSessionId), 201);
 });
