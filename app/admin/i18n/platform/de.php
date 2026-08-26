@@ -39,8 +39,14 @@ return [
     'nav.settings' => 'Einstellungen',
     'nav.account_actions' => 'Kontoaktionen',
     'nav.logout' => 'Abmelden',
+    'nav.logout_confirm' => 'Möchtest du dich wirklich abmelden?',
     'nav.open_navigation' => 'Navigation öffnen',
     'nav.close_navigation' => 'Navigation schließen',
+
+    'coupons.smart_add.title' => 'Neuen Gutschein / Karte anlegen',
+    'coupons.smart_add.help' => 'Gutschein, Geschenkkarte oder Wertgutschein erstellen.',
+    'coupons.total_codes' => 'Gutscheincodes',
+    'coupons.type.voucher' => 'Wertgutschein',
 
     'waiter.dashboard.title' => 'Kellner-POS',
 
