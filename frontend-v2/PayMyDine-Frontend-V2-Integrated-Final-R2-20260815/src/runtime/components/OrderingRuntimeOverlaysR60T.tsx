@@ -67,10 +67,12 @@ export function RuntimeOverlays() {
 
       if (!isSelfOrder && !isSharedStaffOrder) autoOpenedPaymentFor.current = null
 
-      // Self-orders are intentionally never eligible for multi-order/table combining.
-      // Shared Staff/Cashier orders retain those existing controls and Split Bill.
+      // R60T intentionally removes the old "combine several table orders" layer.
+      // One private guest order is paid as one order; one shared Staff/Cashier bill
+      // is paid or split as that bill. This removes complexity without touching any
+      // underlying payment method, coupon, tip, provider, or invoice implementation.
       root.querySelectorAll<HTMLElement>('[data-pmd-multi-order-picker="r32"], [data-pmd-multi-order-selection="r32"], [data-pmd-multi-order-payment="r32"], [data-pmd-multi-guest-payment-hint="r33b"]').forEach((element) => {
-        element.style.display = isSelfOrder ? 'none' : ''
+        element.style.display = 'none'
       })
     }
 
