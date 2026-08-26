@@ -6,6 +6,7 @@ TEST_HOST="${TEST_HOST:-moon.paymydine.com}"
 BRANCH="feature/cashier-desktop-macos-brand-sign-v105"
 VIEW="app/admin/views/pmddevices/index.blade.php"
 PATCH="deploy/pmd-cashier-desktop-v105-classic-downloads-patch.py"
+WORKFLOW=".github/workflows/cashier-desktop-macos-brand-sign-v105.yml"
 TAG="pmd-cashier-v1-preview"
 REPO="Amir3629/Paymydine-Update"
 
@@ -16,6 +17,7 @@ STAGE="$(mktemp -d /tmp/pmd-cashier-v105-stage.XXXXXX)"
 BACKUP=""
 ACTIVATED=0
 SOURCE_SHA=""
+BUILD_SOURCE_SHA=""
 
 cleanup() { rm -rf "$STAGE"; }
 trap cleanup EXIT
@@ -68,15 +70,18 @@ echo "admin=$ADMIN_CODE root=$ROOT_CODE"
 log "2. FETCH REVIEWED BRANCH WITHOUT MOVING LIVE HEAD"
 git fetch origin "$BRANCH" || refuse "git fetch failed"
 SOURCE_SHA="$(git rev-parse FETCH_HEAD)"
+BUILD_SOURCE_SHA="$(git log -1 --format=%H FETCH_HEAD -- apps/cashier-desktop "$WORKFLOW")"
 echo "SOURCE_SHA=$SOURCE_SHA"
+echo "BUILD_SOURCE_SHA=$BUILD_SOURCE_SHA"
+[[ -n "$BUILD_SOURCE_SHA" ]] || refuse "could not determine latest Cashier build source commit"
 
-log "3. REQUIRE RELEASE FROM THIS EXACT SOURCE"
+log "3. REQUIRE RELEASE FROM LATEST CASHIER BUILD SOURCE"
 RELEASE_TARGET="$(curl -fsSL --max-time 30 "https://api.github.com/repos/$REPO/releases/tags/$TAG" \
   | python3 -c 'import json,sys; print(json.load(sys.stdin).get("target_commitish", ""))' \
   || true)"
 echo "RELEASE_TARGET=$RELEASE_TARGET"
 [[ -n "$RELEASE_TARGET" ]] || refuse "release metadata unavailable"
-[[ "$RELEASE_TARGET" == "$SOURCE_SHA" ]] || refuse "release is not built from latest reviewed V1.0.5 source yet"
+[[ "$RELEASE_TARGET" == "$BUILD_SOURCE_SHA" ]] || refuse "release is not built from latest Cashier/icon source yet"
 
 asset_ok "PayMyDine-Cashier-Setup-1.0.5.exe" || refuse "Windows V1.0.5 release asset is not ready"
 asset_ok "PayMyDine-Cashier-1.0.5-mac-arm64.dmg" || refuse "Mac Apple Silicon V1.0.5 release asset is not ready"
