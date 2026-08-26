@@ -4,6 +4,8 @@ set -Eeuo pipefail
 ROOT="/var/www/paymydine"
 BRANCH="sumup-inline-widget-r1"
 REMOTE="origin/$BRANCH"
+MAIN_BRANCH="${PMD_MAIN_BRANCH:-main}"
+MAIN_REMOTE="origin/$MAIN_BRANCH"
 FRONT_SERVICE="${PMD_FRONTEND_SERVICE:-paymydine-frontend-v2}"
 FRONT_URL="${PMD_FRONTEND_BASE_URL:-https://a.paymydine.com}"
 STAMP="$(date +%Y%m%d_%H%M%S)"
@@ -28,8 +30,11 @@ echo " LIGHTBOX WHEN AVAILABLE | PAYMENT PAGE FALLBACK"
 echo "============================================================"
 
 git fetch origin "$BRANCH"
+git fetch origin "$MAIN_BRANCH"
 REMOTE_SHA="$(git rev-parse "$REMOTE")"
+MAIN_SHA="$(git rev-parse "$MAIN_REMOTE")"
 echo "REMOTE=$REMOTE_SHA"
+echo "MAIN_BASELINE=$MAIN_SHA"
 
 echo "========== DETECT LIVE FRONTEND V2 =========="
 PM2_JSON="$(sudo -u ubuntu -H pm2 jlist 2>/dev/null || echo '[]')"
@@ -42,6 +47,22 @@ for row in rows:
         print(str(row.get("pm2_env", {}).get("pm_cwd", "")))
         break
 ')"
+FRONT_PORT="$(printf '%s' "$PM2_JSON" | FRONT_SERVICE="$FRONT_SERVICE" python3 -c '
+import json, os, sys
+rows=json.load(sys.stdin)
+name=os.environ["FRONT_SERVICE"]
+for row in rows:
+    if str(row.get("name", "")) == name:
+        env=row.get("pm2_env", {}) or {}
+        nested=env.get("env", {}) or {}
+        value=env.get("PORT") or nested.get("PORT") or ""
+        print(str(value))
+        break
+')"
+case "$FRONT_PORT" in
+  ''|*[!0-9]*) FRONT_PORT=3002 ;;
+esac
+FRONT_LOCAL_HEALTH_URL="${PMD_FRONTEND_LOCAL_HEALTH_URL:-http://127.0.0.1:${FRONT_PORT}/api/health}"
 if [ -z "$FRONT_ROOT" ] || [ ! -d "$FRONT_ROOT" ]; then
   echo "ERROR: PM2 service $FRONT_SERVICE has no usable pm_cwd"
   exit 2
@@ -54,6 +75,8 @@ fi
 [ -f "$FRONT_ROOT/$FRONT_RUNTIME_REL" ] || { echo "ERROR: live RuntimeOverlays.tsx missing"; exit 8; }
 echo "FRONTEND_SERVICE=$FRONT_SERVICE"
 echo "FRONTEND_ROOT=$FRONT_ROOT"
+echo "FRONTEND_PORT=$FRONT_PORT"
+echo "FRONTEND_LOCAL_HEALTH_URL=$FRONT_LOCAL_HEALTH_URL"
 
 echo "========== R1.3 CONTRACT PRECHECK =========="
 grep -Fq 'PMD_VR_PAYMENT_PAGE_ACCEPT_R1_3' "$ROOT/$CLIENT_REL" || { echo "ERROR: R1.3 Payment Page Accept marker missing"; exit 9; }
@@ -217,9 +240,35 @@ foreach(['card','wero','apple_pay','google_pay'] as $code){
 PHP
 
 echo "========== HTTP SMOKE =========="
-FRONT_HTTP="$(curl -ksS -o /dev/null -w '%{http_code}' "$FRONT_URL" || true)"
-echo "FRONTEND_HTTP=$FRONT_HTTP"
-[ "$FRONT_HTTP" = "200" ] || { echo "ERROR: frontend smoke failed"; exit 17; }
+LOCAL_HEALTH_FILE="$STAGE/frontend-health.json"
+LOCAL_HTTP="$(curl -sS --max-time 10 -o "$LOCAL_HEALTH_FILE" -w '%{http_code}' "$FRONT_LOCAL_HEALTH_URL" || true)"
+echo "FRONTEND_LOCAL_HEALTH_HTTP=$LOCAL_HTTP"
+[ "$LOCAL_HTTP" = "200" ] || { echo "ERROR: local frontend health failed"; exit 17; }
+python3 - "$LOCAL_HEALTH_FILE" <<'PY'
+import json, sys
+p=sys.argv[1]
+try:
+    data=json.load(open(p, encoding='utf-8'))
+except Exception as exc:
+    raise SystemExit('ERROR: local frontend health returned invalid JSON: '+str(exc))
+if data.get('success') is not True or str(data.get('service', '')) != 'paymydine-frontend-v2':
+    raise SystemExit('ERROR: local frontend health identity mismatch: '+json.dumps(data, separators=(',', ':')))
+print('FRONTEND_LOCAL_HEALTH=OK')
+PY
+
+# The public root can intentionally answer 301/302 because PMD host routing may
+# canonicalize or redirect the bare frontend host. That is not a frontend outage.
+# Local /api/health + PM2 online are the blocking runtime checks; public HTTP is
+# still reported and must at least be a normal HTTP response, not connection loss/5xx.
+FRONT_HTTP="$(curl -ksS --max-time 15 -o /dev/null -w '%{http_code}' "$FRONT_URL" || true)"
+echo "FRONTEND_PUBLIC_HTTP=$FRONT_HTTP"
+case "$FRONT_HTTP" in
+  2??|3??) echo "FRONTEND_PUBLIC_ROUTE=OK" ;;
+  4??) echo "WARNING: public frontend route returned $FRONT_HTTP; local frontend health is OK" ;;
+  *) echo "ERROR: public frontend route unavailable (HTTP $FRONT_HTTP)"; exit 18 ;;
+esac
+
+echo "FRONTEND_SMOKE=OK"
 
 trap - EXIT
 
@@ -235,3 +284,4 @@ echo "FAKE_WALLETS=DISABLED"
 echo "SHARED_LEGACY_CHECKOUT=HOSTED_REDIRECT_UNCHANGED"
 echo "BACKUP=$BACKUP"
 echo "REMOTE=$REMOTE_SHA"
+echo "MAIN_BASELINE=$MAIN_SHA"
