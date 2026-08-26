@@ -1445,11 +1445,11 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
             && !request()->is('admin/reservationslab*')
             && !request()->is('admin/cashierlab*')
         ) {
-            $this->addJs('js/pmd-dashboard-lab-exact-floor-v1.js');
+            $this->addJs('js/pmd-dashboard-lab-exact-floor-v1.js?v=20260826-floor-core-controls-v3');
         }
 
         if ($this->pmdUsesFloor()) {
-            $this->addJs('js/pmd-shared-floor-multi-floor-v1.js');
+            $this->addJs('js/pmd-shared-floor-multi-floor-v1.js?v=20260826-floor-core-controls-v3');
         }
 
         $this->applyMenuContext();

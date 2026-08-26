@@ -47,7 +47,7 @@ class Cashierlab extends PmdCleanWorkspaceControllerV1
             '//'.request()->getHost()
             .'/app/admin/assets/js/'
             .'pmd-cashier-order-composer-r51.js'
-            .'?v=20260825-r60s'
+            .'?v=20260826-history-cache-sync-v1'
         );
         // PMD_CASHIER_R45_ACTION_AUTHORITY
         // New filename intentionally bypasses any stale R37/R44 browser cache.
@@ -62,7 +62,7 @@ class Cashierlab extends PmdCleanWorkspaceControllerV1
             '//'.request()->getHost()
             .'/app/admin/assets/css/'
             .'pmd-cashier-lab-order-center.css'
-            .'?v=20260825-r60s'
+            .'?v=20260826-paid-history-compact-v4'
         );
         // PMD_CASHIER_VISUAL_AUTHORITY_R51
         $this->addCss(
@@ -75,7 +75,7 @@ class Cashierlab extends PmdCleanWorkspaceControllerV1
             '//'.request()->getHost()
             .'/app/admin/assets/js/'
             .'pmd-cashier-lab-order-center.js'
-            .'?v=20260825-r60s'
+            .'?v=20260826-paid-history-compact-v4'
         );
     }
 
@@ -511,11 +511,76 @@ HTML;
         return 'admin::_partials.pmd_cashier_lab_current_orders_v1';
     }
 
+    /*
+     * PMD_CASHIER_FLOOR_SAVE_HANDLER_V3
+     *
+     * Cashier already owns/authorizes this workspace route. The old shared
+     * Floor POST target is an Owner Dashboard route and has historically
+     * returned 403 on non-owner surfaces. Keep the existing robust tenant DB
+     * persistence implementation as the single writer, but invoke it through
+     * the already-authorized Cashier AJAX handler.
+     */
+    public function onPmdCashierFloorLayoutSave()
+    {
+        if (!$this->pmdUsesFloor()) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'This workspace has no Floor.',
+            ], 422);
+        }
+
+        try {
+            return app(
+                \Admin\Controllers\PmdOwnerDashboardCleanV1::class
+            )->saveFloorLayout();
+        } catch (\Throwable $error) {
+            logger()->error(
+                'Cashier shared Floor layout save bridge failed',
+                [
+                    'type' => get_class($error),
+                    'message' => $error->getMessage(),
+                ]
+            );
+
+            return response()->json([
+                'ok' => false,
+                'message' => $error->getMessage(),
+                'type' => get_class($error),
+            ], 500);
+        }
+    }
+
     protected function pmdPrepareWorkspaceVars(
         PmdCleanWorkspaceSharedV1 $shared,
         string $locale,
         array $floorBootstrap
     ): void {
+
+        /* PMD_CASHIER_FLOOR_SAVE_ENDPOINT_V3
+         * Keep layout GET on the canonical shared endpoint. Only POST save is
+         * routed through this Cashier controller's authorized AJAX handler.
+         */
+        $pmdCashierFloorBootstrap =
+            is_array(
+                $this->vars['pmdCleanWorkspaceFloorBootstrap']
+                ?? null
+            )
+                ? $this->vars['pmdCleanWorkspaceFloorBootstrap']
+                : $floorBootstrap;
+
+        if (!isset($pmdCashierFloorBootstrap['endpoints'])
+            || !is_array($pmdCashierFloorBootstrap['endpoints'])) {
+            $pmdCashierFloorBootstrap['endpoints'] = [];
+        }
+
+        $pmdCashierFloorBootstrap['endpoints']['layout_save'] =
+            request()->url();
+
+        $pmdCashierFloorBootstrap['endpoints']['layout_save_handler'] =
+            'onPmdCashierFloorLayoutSave';
+
+        $this->vars['pmdCleanWorkspaceFloorBootstrap'] =
+            $pmdCashierFloorBootstrap;
 
         /*
          * PMD_CASHIER_RESERVATION_CALENDAR_PAYLOAD_V1
@@ -1028,10 +1093,35 @@ HTML;
                         $pmdDeliveryReady
                         && $pmdHistoryPaid;
 
+                    /* PMD_CASHIER_PAID_PHYSICAL_HISTORY_V4
+                     * Paid physical bill -> History.
+                     * Physical table stays occupied until Set table free.
+                     * Delivery keeps its existing Ready + Paid gate.
+                     */
+                    /*
+                     * PMD_CASHIER_PAID_IS_HISTORY_V5
+                     *
+                     * Financial lifecycle is simple:
+                     *
+                     * FULLY PAID = HISTORY
+                     *
+                     * This applies equally to:
+                     * - physical table orders
+                     * - Delivery orders
+                     *
+                     * KDS Received / Preparing / Ready remains an
+                     * operational status + notification concern only.
+                     *
+                     * Physical table occupancy remains independent
+                     * and still requires explicit Set table free.
+                     */
+                    $pmdPaidEnded =
+                        $pmdHistoryPaid;
+
                     $pmdHistoryEnded =
                         $isReleasedVisit
                         || $pmdHistoryCancelled
-                        || $pmdDeliveryEnded;
+                        || $pmdPaidEnded;
 
                     if (
                         $historyMode

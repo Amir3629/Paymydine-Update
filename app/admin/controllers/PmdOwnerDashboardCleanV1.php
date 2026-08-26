@@ -117,7 +117,119 @@ try {
              *
              * Save must use the same tenant database and physical table.
              */
+            /* PMD_FLOOR_TENANT_SAVE_RESOLVER_V4B
+             *
+             * Floor reads are tenant-aware, but this legacy writer can be
+             * reached from admin routes where the default DB is still the
+             * central paymydine database. Resolve the restaurant from the
+             * canonical central tenants registry, then use the same dedicated
+             * tenant connection contract as TenantDatabaseMiddleware.
+             *
+             * If registry resolution is unavailable, keep the existing
+             * connection/candidate fallback below rather than guessing.
+             */
             $db = DB::connection();
+            $pmdRegistryTenantDatabase = null;
+            $pmdRegistryTenantDomain = null;
+
+            try {
+                $pmdHost = strtolower(trim((string)request()->getHost()));
+                $pmdSubdomain = strtolower(
+                    trim(explode('.', $pmdHost)[0] ?? '')
+                );
+
+                $pmdCentral = DB::connection('mysql');
+                $pmdTenantQuery = $pmdCentral
+                    ->table('tenants')
+                    ->where(function ($query) use (
+                        $pmdHost,
+                        $pmdSubdomain
+                    ) {
+                        $query->where('domain', $pmdHost);
+
+                        if ($pmdSubdomain !== '') {
+                            $query
+                                ->orWhere('domain', $pmdSubdomain)
+                                ->orWhere(
+                                    'domain',
+                                    'like',
+                                    $pmdSubdomain.'.%'
+                                );
+                        }
+                    });
+
+                $pmdTenant = $pmdTenantQuery->first();
+
+                if (
+                    $pmdTenant
+                    && !empty($pmdTenant->database)
+                ) {
+                    $pmdTenantStatus = strtolower(
+                        trim((string)($pmdTenant->status ?? 'active'))
+                    );
+
+                    if (
+                        $pmdTenantStatus !== ''
+                        && $pmdTenantStatus !== 'active'
+                    ) {
+                        throw new \RuntimeException(
+                            'Tenant is not active for Floor layout save.'
+                        );
+                    }
+
+                    $pmdRegistryTenantDatabase =
+                        (string)$pmdTenant->database;
+                    $pmdRegistryTenantDomain =
+                        (string)($pmdTenant->domain ?? $pmdHost);
+
+                    \Illuminate\Support\Facades\Config::set(
+                        'database.connections.tenant.database',
+                        $pmdRegistryTenantDatabase
+                    );
+
+                    foreach (
+                        [
+                            'host' => 'db_host',
+                            'port' => 'db_port',
+                            'username' => 'db_user',
+                            'password' => 'db_pass',
+                        ]
+                        as $configKey => $tenantKey
+                    ) {
+                        $value = $pmdTenant->{$tenantKey} ?? null;
+
+                        if ($value !== null && $value !== '') {
+                            \Illuminate\Support\Facades\Config::set(
+                                'database.connections.tenant.'.$configKey,
+                                $value
+                            );
+                        }
+                    }
+
+                    DB::purge('tenant');
+                    DB::reconnect('tenant');
+                    $db = DB::connection('tenant');
+
+                    logger()->info(
+                        'PMD Floor layout save resolved tenant DB',
+                        [
+                            'host' => $pmdHost,
+                            'tenant_domain' => $pmdRegistryTenantDomain,
+                            'tenant_database' =>
+                                $pmdRegistryTenantDatabase,
+                            'connection' => $db->getName(),
+                        ]
+                    );
+                }
+            } catch (\Throwable $pmdTenantError) {
+                logger()->warning(
+                    'PMD Floor tenant registry resolution unavailable; using existing fallback',
+                    [
+                        'host' => request()->getHost(),
+                        'message' => $pmdTenantError->getMessage(),
+                    ]
+                );
+            }
 
             $quoteIdentifier = function ($value) {
                 return '`'.str_replace('`', '``', (string)$value).'`';
@@ -163,6 +275,10 @@ try {
             $environmentTenant = getenv('PMD_TENANT_DB') ?: null;
 
             $databaseCandidates = [];
+
+            if ($pmdRegistryTenantDatabase) {
+                $databaseCandidates[] = $pmdRegistryTenantDatabase;
+            }
 
             if ($environmentTenant) {
                 $databaseCandidates[] = $environmentTenant;

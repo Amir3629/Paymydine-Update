@@ -693,6 +693,8 @@
     id="pmd-r2-shared-floor-canvas-v310"
     class="pmd-floor-v1 pmd-dashboard-lab-exact-floor-v1{{ $floorMode === 'row' ? ' is-strip-mode is-strip-calibrated' : '' }}"
     data-pmd-floor
+    {{-- PMD_FLOOR_LAYOUT_EDIT_OWNER_MANAGER_ONLY_V2 --}}
+    data-pmd-floor-layout-edit-allowed="{{ $pmdFloorCanManageTables ? '1' : '0' }}"
     data-pmd-dashboard-lab-exact-floor="v1"
     data-pmd-active-floor-id="{{ $pmdFloorActiveId }}"
     data-pmd-active-floor-name="{{ $pmdFloorActiveName }}"
@@ -700,6 +702,11 @@
     data-mode="full"
     data-data-url="{{ $endpoints['data'] ?? admin_url('pmd-waiter-dashboard-v9-tenant-data') }}"
     data-layout-url="{{ $endpoints['layout'] ?? admin_url('pmd-owner-dashboard-floor-layout') }}"
+    {{-- PMD_SHARED_FLOOR_LAYOUT_SAVE_TRANSPORT_V3 --}}
+    data-layout-save-url="{{ $endpoints['layout_save'] ?? ($endpoints['layout'] ?? admin_url('pmd-owner-dashboard-floor-layout')) }}"
+    @if(!empty($endpoints['layout_save_handler']))
+    data-layout-save-handler="{{ $endpoints['layout_save_handler'] }}"
+    @endif
     data-state-url="{{ $endpoints['state'] ?? admin_url('pmd-floor-v1/state') }}"
     data-pmd-reservation-busy-url="{{ request()->url() }}"
     data-pmd-reservation-busy-handler="onPmdFloorReservationBusyWindows"
@@ -845,10 +852,12 @@
             @endphp
 
                         {{-- PMD_FLOOR_EDIT_SERVER_FIRST_R51 --}}
+            @if($pmdFloorCanManageTables)
 <button type="button" class="pmd-r2-floor-tool-v316" data-pmd-r2-tool="edit" aria-pressed="false" aria-label="{{ $pmdFloorLayoutEditLabel }}" title="{{ $pmdFloorLayoutEditLabel }}">
                 <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4l10.5-10.5a2.8 2.8 0 0 0-4-4L4 16v4"></path><path d="M13.5 6.5l4 4"></path></svg>
                 <span>{{ $pmdFloorLayoutEditLabel }}</span>
             </button>
+            @endif
 
             <button type="button" class="pmd-r2-floor-tool-v316" data-pmd-r2-tool="zoom-out" aria-label="Zoom out" title="Zoom out">
                 <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"></circle><path d="M15.5 15.5 21 21M7.5 10.5h6"></path></svg>
@@ -902,8 +911,10 @@
         </div>
 
         <div class="pmd-floor-v1__toolbar" role="toolbar" aria-label="Native Floor controls">
+            @if($pmdFloorCanManageTables)
             <button type="button" data-floor-edit aria-pressed="false" title="Edit layout">Edit</button>
             <button type="button" data-floor-save hidden title="Save layout">Save</button>
+            @endif
             <button type="button" data-floor-merge aria-pressed="false" title="Merge tables">Merge</button>
             <button type="button" data-floor-zoom-out aria-label="Zoom out">−</button>
             <button type="button" data-floor-fit aria-label="Fit floor">Fit</button>

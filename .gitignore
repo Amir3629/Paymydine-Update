@@ -37,6 +37,10 @@ build/
 coverage/
 .cache/
 
+# Temporary PayMyDine deployment staging
+frontend-v2/.pmd-*-stage.*/
+frontend-v2/.pmd-*-stage-*/
+
 # Tests / Playwright runtime
 test-results/
 playwright-report/

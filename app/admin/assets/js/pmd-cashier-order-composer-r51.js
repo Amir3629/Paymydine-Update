@@ -4578,6 +4578,16 @@
       );
 
       if (latestSection && current) {
+        // PMD_CASHIER_HISTORY_CACHE_INVALIDATION_V1
+        // A payment/save can change Current and History at the same moment.
+        // R48 must not serve the 30-second warm copy after this server refresh.
+        if (
+          window.PMDCashierHistoryFastR48 &&
+          typeof window.PMDCashierHistoryFastR48.clear === 'function'
+        ) {
+          window.PMDCashierHistoryFastR48.clear();
+        }
+
         current.replaceWith(latestSection);
         refreshCashierBridgeWidgets();
       }

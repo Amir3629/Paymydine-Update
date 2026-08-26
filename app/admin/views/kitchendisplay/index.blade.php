@@ -513,13 +513,13 @@
         }
 
         .order-notes-title {
-            margin-bottom: 5px;
+            margin-bottom: 6px;
             color: var(--pmd-kds-muted);
-            font-size: 10px;
-            line-height: 1;
-            font-weight: 900;
-            letter-spacing: .08em;
-            text-transform: uppercase;
+            font-size: 12px;
+            line-height: 1.2;
+            font-weight: 800;
+            letter-spacing: 0;
+            text-transform: none;
         }
 
         .order-note {
@@ -895,11 +895,40 @@
                         @endforeach
                     </div>
 
-                    @if(count($order['notes']) > 0)
+                    @php
+                        $pmdKdsDisplayNotes = collect((array)($order['notes'] ?? []))
+                            ->map(function ($note) {
+                                $text = trim((string)($note['note'] ?? ''));
+
+                                $text = preg_replace(
+                                    '/^\s*Waiter POS\s*[·•-]\s*Sent to kitchen\s*(?:Order note|Item note(?:\s*[—-]\s*[^:]+)?)\s*:\s*/iu',
+                                    '',
+                                    $text
+                                );
+
+                                $text = preg_replace(
+                                    '/^\s*\[Cashier Delivery\]\s*/iu',
+                                    '',
+                                    (string)$text
+                                );
+
+                                $text = preg_replace(
+                                    '/^\s*Order note\s*:\s*/iu',
+                                    '',
+                                    (string)$text
+                                );
+
+                                return trim((string)$text);
+                            })
+                            ->filter(fn ($text) => $text !== '')
+                            ->values();
+                    @endphp
+
+                    @if($pmdKdsDisplayNotes->isNotEmpty())
                         <div class="order-notes">
-                            <div class="order-notes-title">Order note</div>
-                            @foreach($order['notes'] as $note)
-                                <div class="order-note">{{ $note['note'] }}</div>
+                            <div class="order-notes-title">Note</div>
+                            @foreach($pmdKdsDisplayNotes as $pmdKdsDisplayNote)
+                                <div class="order-note">{{ $pmdKdsDisplayNote }}</div>
                             @endforeach
                         </div>
                     @endif
@@ -1017,27 +1046,55 @@
     const masonryRowUnitV11 = 4;
 
     function layoutMasonryV11() {
+        // PMD_KDS_STABLE_MASONRY_SCROLL_V1
+        // Never collapse every card to span 1 before measurement.
+        // The previous reset changed the total grid height on every 5s refresh
+        // and on every status update, which made the browser jump upward.
         const grid = document.getElementById('orders-grid');
         if (!grid || grid.querySelector('.empty-state')) return;
 
-        const cards = Array.from(grid.querySelectorAll('.order-card[data-order-id]'));
+        const cards = Array.from(
+            grid.querySelectorAll('.order-card[data-order-id]')
+        );
         if (!cards.length) return;
 
         const styles = getComputedStyle(grid);
-        const rowUnit = Math.max(1, parseFloat(styles.gridAutoRows) || masonryRowUnitV11);
-        const visualGap = Math.max(0, parseFloat(styles.columnGap) || 0);
+        const rowUnit = Math.max(
+            1,
+            parseFloat(styles.gridAutoRows) || masonryRowUnitV11
+        );
+        const visualGap = Math.max(
+            0,
+            parseFloat(styles.columnGap) || 0
+        );
 
-        // Reset spans first so every ticket is measured at its true content height.
-        cards.forEach(card => {
-            card.style.removeProperty('--pmd-kds-masonry-span');
-            card.style.gridRowEnd = 'span 1';
+        // Because cards use align-self:start, their box height remains their
+        // intrinsic content height even while an existing grid span is active.
+        // Measure first, then write only spans that actually changed.
+        const spans = cards.map(card => {
+            const rectHeight = card.getBoundingClientRect().height;
+            const contentHeight = Number(card.scrollHeight || 0);
+            const height = Math.max(rectHeight, contentHeight);
+
+            return Math.max(
+                1,
+                Math.ceil((height + visualGap) / rowUnit)
+            );
         });
 
-        // One synchronous layout read, then only style writes. No timer/observer repair loop.
-        const spans = cards.map(card => Math.max(1, Math.ceil((card.getBoundingClientRect().height + visualGap) / rowUnit)));
         cards.forEach((card, index) => {
-            card.style.setProperty('--pmd-kds-masonry-span', String(spans[index]));
-            card.style.gridRowEnd = `span ${spans[index]}`;
+            const next = String(spans[index]);
+            const current = String(
+                card.style.getPropertyValue('--pmd-kds-masonry-span') || ''
+            ).trim();
+
+            if (current === next) return;
+
+            card.style.setProperty(
+                '--pmd-kds-masonry-span',
+                next
+            );
+            card.style.gridRowEnd = `span ${next}`;
         });
     }
 
@@ -1210,6 +1267,28 @@
         })[char]);
     }
 
+    // PMD_KDS_SIMPLE_NOTE_PRESENTATION_V2
+    function cleanKdsNoteV2(value) {
+        let text = String(value == null ? '' : value).trim();
+
+        text = text.replace(
+            /^\s*Waiter POS\s*[·•-]\s*Sent to kitchen\s*(?:Order note|Item note(?:\s*[—-]\s*[^:]+)?)\s*:\s*/i,
+            ''
+        );
+
+        text = text.replace(
+            /^\s*\[Cashier Delivery\]\s*/i,
+            ''
+        );
+
+        text = text.replace(
+            /^\s*Order note\s*:\s*/i,
+            ''
+        );
+
+        return text.trim();
+    }
+
     function parseDateToTimestampV1(value) {
         if (typeof value === 'number' && Number.isFinite(value)) return value;
         const parsed = Date.parse(String(value || ''));
@@ -1316,7 +1395,11 @@
             return `<section class="order-item"><div class="item-header"><div class="item-name">${escapeHtmlV1(item.name)}</div><div class="item-quantity">${Math.max(0, Number(item.quantity || 0))}×</div></div>${modifiers ? `<div class="item-modifiers">${modifiers}</div>` : ''}${comment}</section>`;
         }).join('');
 
-        const notes = (Array.isArray(order.notes) ? order.notes : []).map(note => `<div class="order-note">${escapeHtmlV1(note.note)}</div>`).join('');
+        const notes = (Array.isArray(order.notes) ? order.notes : [])
+            .map(note => cleanKdsNoteV2(note && note.note))
+            .filter(Boolean)
+            .map(noteText => `<div class="order-note">${escapeHtmlV1(noteText)}</div>`)
+            .join('');
         const cancelled =
             isCancelledStatusV1(
                 order.status_name
@@ -1360,7 +1443,7 @@
         return `<article class="order-card ${getWorkflowClassV12(order.status_name)}" data-order-id="${Number(order.order_id || 0)}" data-status-id="${Number(order.status_id || 0)}" data-status-name="${escapeHtmlV1(order.status_name || '')}">
             <div class="order-header"><div><div class="order-number">#${Number(order.order_id || 0)}</div><div class="order-table">${escapeHtmlV1(order.order_type_name)}</div></div><div class="order-time"><span class="order-time-label">Time elapsed</span><span class="order-elapsed ${getTimerClassV12(order.created_at)}" data-created="${created}">${formatElapsedV1(created)}</span></div></div>
             <div class="order-items">${itemsHtml}</div>
-            ${notes ? `<div class="order-notes"><div class="order-notes-title">Order note</div>${notes}</div>` : ''}
+            ${notes ? `<div class="order-notes"><div class="order-notes-title">Note</div>${notes}</div>` : ''}
             ${buttons ? `<div class="${buttonsClass}">${buttons}</div>` : ''}
         </article>`;
     }

@@ -175,6 +175,18 @@
         'data-layout-url'
       );
 
+    // PMD_CASHIER_FLOOR_SAVE_BRIDGE_V3
+    // Layout GET and layout SAVE may have different route/permission owners.
+    var layoutSaveUrl =
+      root.getAttribute(
+        'data-layout-save-url'
+      ) || layoutUrl;
+
+    var layoutSaveHandler =
+      root.getAttribute(
+        'data-layout-save-handler'
+      ) || '';
+
     var stateUrl =
       root.getAttribute(
         'data-state-url'
@@ -2808,7 +2820,8 @@ function saveLayout() {
         '[PMD Floor] Saving layout',
         {
           sequence: state.saveSequence,
-          endpoint: layoutUrl,
+          endpoint: layoutSaveUrl,
+          handler: layoutSaveHandler || null,
           csrfFound: Boolean(
             document.querySelector(
               'meta[name="csrf-token"]'
@@ -2834,16 +2847,25 @@ function saveLayout() {
         return Promise.resolve(null);
       }
 
-      return fetchJson(
-        layoutUrl,
-        {
-          method: 'POST',
+      var layoutSaveOptions = {
+        method: 'POST',
 
-          body:
-            JSON.stringify({
-              tables: tables
-            })
-        }
+        body:
+          JSON.stringify({
+            tables: tables
+          })
+      };
+
+      if (layoutSaveHandler) {
+        layoutSaveOptions.headers = {
+          'X-IGNITER-REQUEST-HANDLER':
+            layoutSaveHandler
+        };
+      }
+
+      return fetchJson(
+        layoutSaveUrl,
+        layoutSaveOptions
       )
         .then(function (payload) {
           /*
@@ -2919,7 +2941,8 @@ function saveLayout() {
             {
               sequence:
                 state.saveSequence,
-              endpoint: layoutUrl,
+              endpoint: layoutSaveUrl,
+              handler: layoutSaveHandler || null,
               csrfFound: Boolean(
                 document.querySelector(
                   'meta[name="csrf-token"]'
@@ -3306,6 +3329,59 @@ function saveLayout() {
       if (edit) {
         edit.hidden =
           state.editing;
+      }
+
+      // PMD_FLOOR_CORE_VISIBLE_EDIT_STATE_V3
+      // Exact Floor is the single Edit/Save state owner. The visible toolbar
+      // mirrors that state only when the server granted layout-edit capability.
+      var visibleEdit =
+        root.querySelector(
+          '[data-pmd-r2-tool="edit"]'
+        );
+
+      if (visibleEdit) {
+        var label =
+          visibleEdit.querySelector('span');
+
+        if (!visibleEdit.dataset.pmdFloorEditIdleLabel) {
+          visibleEdit.dataset.pmdFloorEditIdleLabel =
+            clean(
+              label
+                ? label.textContent
+                : visibleEdit.textContent
+            ) || 'Edit layout';
+        }
+
+        var idleLabel =
+          visibleEdit.dataset.pmdFloorEditIdleLabel;
+
+        var isGerman =
+          idleLabel.toLowerCase().indexOf(
+            'layout bearbeiten'
+          ) !== -1;
+
+        var visibleLabel =
+          state.editing
+            ? (isGerman ? 'Layout speichern' : 'Save layout')
+            : idleLabel;
+
+        if (label) {
+          label.textContent = visibleLabel;
+        }
+
+        visibleEdit.setAttribute(
+          'aria-pressed',
+          state.editing ? 'true' : 'false'
+        );
+        visibleEdit.setAttribute(
+          'aria-label',
+          visibleLabel
+        );
+        visibleEdit.title = visibleLabel;
+        visibleEdit.classList.toggle(
+          'is-active',
+          state.editing
+        );
       }
     }
 
@@ -6834,6 +6910,44 @@ function saveLayout() {
           load();
         }
 
+        // PMD_FLOOR_CORE_VISIBLE_EDIT_COMMAND_V3
+        // The visible toolbar command is handled by the same runtime that owns
+        // drag/save. No Shared-Floor proxy or hidden-button click is required.
+        var visibleLayoutEdit =
+          event.target.closest(
+            '[data-pmd-r2-tool="edit"]'
+          );
+
+        if (visibleLayoutEdit) {
+          if (
+            root.getAttribute(
+              'data-pmd-floor-layout-edit-allowed'
+            ) !== '1'
+          ) {
+            return;
+          }
+
+          event.preventDefault();
+          event.stopPropagation();
+
+          if (
+            typeof event.stopImmediatePropagation === 'function'
+          ) {
+            event.stopImmediatePropagation();
+          }
+
+          if (state.editing) {
+            saveLayout();
+          } else {
+            if (state.stripMode) {
+              setStripMode(false);
+            }
+            setEditing(true);
+          }
+
+          return;
+        }
+
         if (
           event.target.closest(
             '[data-floor-edit]'
@@ -6883,9 +6997,10 @@ function saveLayout() {
           return;
         }
 
+        // PMD_FLOOR_CORE_VISIBLE_ZOOM_COMMAND_V3
         if (
           event.target.closest(
-            '[data-floor-zoom-in]'
+            '[data-floor-zoom-in], [data-pmd-r2-tool="zoom-in"]'
           )
         ) {
           state.userHasChangedZoom = true;
@@ -6912,7 +7027,7 @@ function saveLayout() {
 
         if (
           event.target.closest(
-            '[data-floor-zoom-out]'
+            '[data-floor-zoom-out], [data-pmd-r2-tool="zoom-out"]'
           )
         ) {
           state.userHasChangedZoom = true;

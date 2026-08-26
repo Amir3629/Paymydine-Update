@@ -1,5 +1,6 @@
 /* =========================================================
    PMD CASHIER ORDER CENTER
+   PMD_CASHIER_ORDER_CENTER_COMPACT_HISTORY_V4
    Cashier-only visual authority.
    Does not own ordering/payment business logic.
    ========================================================= */
@@ -41,7 +42,7 @@ body.pmd-cashier-order-center-open {
   z-index: 1;
   display: flex;
   flex-direction: column;
-  width: min(1040px, 100%);
+  width: min(560px, 100%);
   max-height: calc(100vh - 36px);
   overflow: hidden;
   border: 1px solid #cfe0ed;
@@ -55,7 +56,7 @@ body.pmd-cashier-order-center-open {
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  padding: 20px 22px 16px;
+  padding: 14px 16px 12px;
   border-bottom: 1px solid #dce8f0;
   background: #fff;
 }
@@ -77,7 +78,7 @@ body.pmd-cashier-order-center-open {
 .pmd-cashier-order-center__identity h2 {
   margin: 0;
   color: #102a43;
-  font-size: 23px;
+  font-size: 19px;
   font-weight: 900;
   line-height: 1.15;
 }
@@ -106,8 +107,8 @@ body.pmd-cashier-order-center-open {
 }
 
 .pmd-cashier-order-center__body {
-  min-height: 260px;
-  padding: 18px 22px 22px;
+  min-height: 0;
+  padding: 12px 16px 14px;
   overflow: auto;
 }
 
@@ -839,3 +840,47 @@ body.pmd-cashier-order-center-open {
 }
 
 /* PMD_CASHIER_R60S_HIDE_MUTATION_NOTICE_END */
+
+/* Paid History is intentionally compact and read-only. */
+.pmd-cashier-order-center.is-paid-history
+.pmd-cashier-order-center__money {
+  grid-template-columns: 1fr;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.pmd-cashier-order-center.is-paid-history
+.pmd-cashier-order-center__money > div:nth-child(n+2),
+.pmd-cashier-order-center.is-paid-history
+.pmd-cashier-order-center__breakdown,
+.pmd-cashier-order-center.is-paid-history
+.pmd-cashier-order-center__mutation-lock {
+  display: none;
+}
+
+.pmd-cashier-order-center.is-paid-history
+.pmd-cashier-order-center__section {
+  margin-top: 10px;
+  padding: 12px;
+  border-radius: 14px;
+}
+
+.pmd-cashier-order-center.is-paid-history
+.pmd-cashier-order-center__section:has(.pmd-cashier-order-center__note:empty) {
+  display: none;
+}
+
+.pmd-cashier-order-center.is-paid-history
+.pmd-cashier-order-center__footer
+[data-pmd-r37-action="refresh"],
+.pmd-cashier-order-center.is-paid-history
+.pmd-cashier-order-center__footer
+[data-pmd-r37-close] {
+  display: none;
+}
+
+.pmd-cashier-order-center.is-document
+.pmd-cashier-order-center__dialog {
+  width: min(900px, 100%);
+}
+

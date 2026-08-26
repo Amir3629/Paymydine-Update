@@ -2,6 +2,7 @@
   'use strict';
 
   // PMD_CASHIER_ORDER_CENTER_UI_R50
+  // PMD_CASHIER_ORDER_CENTER_COMPACT_HISTORY_V4
 
   // PMD_CASHIER_ORDER_CENTER_R37C
   // Operational/payment separation + inline documents.
@@ -90,7 +91,6 @@
       '<section class="pmd-cashier-order-center__dialog" role="dialog" aria-modal="true" aria-labelledby="pmd-cashier-r37-title">',
         '<header class="pmd-cashier-order-center__header">',
           '<div class="pmd-cashier-order-center__identity">',
-            '<span class="pmd-cashier-order-center__eyebrow">Cashier · Order center</span>',
             '<h2 id="pmd-cashier-r37-title" data-pmd-r37-title>Order</h2>',
             '<p data-pmd-r37-subtitle></p>',
           '</div>',
@@ -852,6 +852,11 @@
       .replace(/\s+/g, ' ')
       .trim();
 
+    cardMeta = cardMeta
+      .replace(new RegExp('^#' + String(state.orderId) + '\\s*'), '')
+      .replace(/^[·\s]+|[·\s]+$/g, '')
+      .trim();
+
     var settlementStatus = String(
       settlement.status
       || paymentOrder.settlement_status
@@ -877,8 +882,20 @@
         : Math.max(0, total - paid)
     );
 
+    var paidComplete =
+      settlementStatus === 'paid'
+      || (
+        total > 0
+        && due <= 0.0001
+        && paid >= (total - 0.009)
+      );
+
     var shell = ensureShell();
 
+    shell.classList.toggle(
+      'is-paid-history',
+      paidComplete
+    );
     shell.classList.remove('is-document');
     state.documentFrame = null;
     state.documentUrl = '';
@@ -901,10 +918,10 @@
     );
 
     title.textContent =
-      tableLabel + ' · Order #' + state.orderId;
+      tableLabel + ' · #' + state.orderId;
 
-    subtitle.textContent =
-      cardMeta || ('Order #' + state.orderId);
+    subtitle.textContent = cardMeta;
+    subtitle.hidden = !cardMeta;
 
     var itemHtml = visibleItems.length
       ? visibleItems.map(function (item) {
@@ -1188,13 +1205,11 @@
     body.innerHTML = [
       '<div class="pmd-cashier-order-center__status-row">',
         '<span class="pmd-cashier-order-center__pill">',
-          'Order status · ',
           esc(operationalStatus),
         '</span>',
         '<span class="pmd-cashier-order-center__pill is-',
           esc(settlementStatus),
         '">',
-          'Payment · ',
           esc(
             paymentLabel(
               settlementStatus
@@ -1230,7 +1245,7 @@
 
       '<section class="pmd-cashier-order-center__section">',
         '<div class="pmd-cashier-order-center__section-head">',
-          '<strong>Order items</strong>',
+          '<strong>Items</strong>',
           '<span>',
             esc(visibleItems.length),
             ' lines',
@@ -1248,14 +1263,14 @@
         '<p class="pmd-cashier-order-center__note">',
           esc(
             orderNote
-            || 'No customer/service note.'
+            || ''
           ),
         '</p>',
       '</section>',
 
       '<section class="pmd-cashier-order-center__section">',
         '<div class="pmd-cashier-order-center__section-head">',
-          '<strong>Payment history</strong>',
+          '<strong>Payment</strong>',
           '<span>',
             esc(transactions.length),
             transactions.length === 1
@@ -1418,8 +1433,8 @@
       + ' · Order #'
       + state.orderId;
 
-    subtitle.textContent =
-      'Cashier Order Center · stays on this page';
+    subtitle.textContent = '';
+    subtitle.hidden = true;
 
     body.innerHTML = [
       '<div class="pmd-cashier-order-center__loading">',
@@ -1651,7 +1666,13 @@
   async function loadDetails() {
     if (!state.orderId) return;
 
-    renderLoading();
+    var shell = ensureShell();
+
+    // PMD_CASHIER_ORDER_CENTER_STABLE_REFRESH_V4
+    // Keep completed content visible during live refresh.
+    if (shell.hidden) {
+      renderLoading();
+    }
 
     try {
       var results = await Promise.allSettled([

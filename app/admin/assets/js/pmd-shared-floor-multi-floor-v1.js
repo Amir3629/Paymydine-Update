@@ -1690,76 +1690,9 @@
       );
     }
 
-    root.addEventListener(
-      'click',
-      function (event) {
-        var button =
-          event.target.closest(
-            '[data-pmd-r2-tool="edit"]'
-          );
-
-        if (
-          !button ||
-          !root.contains(button)
-        ) {
-          return;
-        }
-
-        var route =
-          String(
-            window.location.pathname || ''
-          ).replace(/\/+$/, '');
-
-        if (
-          route !== '/admin/dashboardlab' &&
-          route !== '/admin/managerlab'
-        ) {
-          return;
-        }
-
-        var runtime =
-          root.__pmdFloorV1;
-
-        var current =
-          runtime &&
-          typeof runtime.getState === 'function'
-            ? runtime.getState()
-            : null;
-
-        if (!current) {
-          console.warn(
-            '[PMD Shared Floor] Floor runtime is not ready for Edit layout.'
-          );
-
-          return;
-        }
-
-        var nativeButton =
-          root.querySelector(
-            current.editing
-              ? '[data-floor-save]'
-              : '[data-floor-edit]'
-          );
-
-        if (
-          !nativeButton ||
-          nativeButton === button
-        ) {
-          console.warn(
-            '[PMD Shared Floor] Canonical Floor edit/save control unavailable.'
-          );
-
-          return;
-        }
-
-        event.preventDefault();
-        event.stopPropagation();
-
-        nativeButton.click();
-
-        syncLayoutEditButton();
-      }
-    );
+    // PMD_SHARED_FLOOR_CORE_COMMAND_OWNER_V3
+    // Visible Edit/Save/Zoom commands are owned directly by Exact Floor.
+    // Shared Floor coordinates floors/registry only.
 
     window.addEventListener(
       'pmd:floor:updated',
