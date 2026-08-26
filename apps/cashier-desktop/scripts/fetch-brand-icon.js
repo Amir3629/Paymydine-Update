@@ -12,54 +12,85 @@ const macAssetsDir = path.join(macIconDir, 'Assets');
 const macLogoOutput = path.join(macAssetsDir, 'PayMyDine.svg');
 const macJsonOutput = path.join(macIconDir, 'icon.json');
 
-function addWhiteLegacyBackground(svg) {
+function getSvgMetrics(svg) {
   const svgTag = svg.match(/<svg\b[^>]*>/i);
   if (!svgTag) {
     throw new Error('Official PayMyDine logo SVG has no opening <svg> tag.');
   }
 
   const viewBoxMatch = svgTag[0].match(/\bviewBox\s*=\s*["']([^"']+)["']/i);
-  let rect = '<rect data-pmd-app-icon-background="white" x="0" y="0" width="100%" height="100%" fill="#ffffff"/>';
-
   if (viewBoxMatch) {
     const values = viewBoxMatch[1]
       .trim()
       .split(/[\s,]+/)
       .map((value) => Number(value));
-
-    if (values.length === 4 && values.every(Number.isFinite)) {
-      const [x, y, width, height] = values;
-      rect = `<rect data-pmd-app-icon-background="white" x="${x}" y="${y}" width="${width}" height="${height}" fill="#ffffff"/>`;
+    if (values.length === 4 && values.every(Number.isFinite) && values[2] > 0 && values[3] > 0) {
+      return { svgTag: svgTag[0], x: values[0], y: values[1], width: values[2], height: values[3] };
     }
   }
 
-  return svg.replace(svgTag[0], `${svgTag[0]}\n  ${rect}`);
+  const widthMatch = svgTag[0].match(/\bwidth\s*=\s*["']([0-9.]+)/i);
+  const heightMatch = svgTag[0].match(/\bheight\s*=\s*["']([0-9.]+)/i);
+  const width = widthMatch ? Number(widthMatch[1]) : 0;
+  const height = heightMatch ? Number(heightMatch[1]) : 0;
+  if (width > 0 && height > 0) {
+    return { svgTag: svgTag[0], x: 0, y: 0, width, height };
+  }
+
+  throw new Error('Official PayMyDine logo SVG has no usable viewBox/size.');
 }
 
-function buildMacIconComposerJSON() {
+function addWhiteLegacyBackground(svg, metrics) {
+  const rect = `<rect data-pmd-app-icon-background="white" x="${metrics.x}" y="${metrics.y}" width="${metrics.width}" height="${metrics.height}" fill="#ffffff"/>`;
+  return svg.replace(metrics.svgTag, `${metrics.svgTag}\n  ${rect}`);
+}
+
+function buildMacIconComposerJSON(metrics) {
+  const artworkSize = Math.max(metrics.width, metrics.height);
+  const scale = Number(((0.78 * 1024) / artworkSize).toFixed(6));
+
   return {
-    fill: {
-      solid: 'srgb:1.00000,1.00000,1.00000,1.00000',
-    },
-    'color-space-for-untagged-svg-colors': 'srgb',
+    'fill-specializations': [
+      {
+        value: {
+          'automatic-gradient': 'extended-gray:1.00000,1.00000',
+        },
+      },
+      {
+        appearance: 'dark',
+        value: {
+          'automatic-gradient': 'extended-gray:1.00000,1.00000',
+        },
+      },
+    ],
     groups: [
       {
-        name: 'PayMyDine',
-        lighting: 'individual',
         layers: [
           {
-            name: 'PayMyDine Logo',
-            'image-name': 'PayMyDine.svg',
+            'blend-mode': 'normal',
             glass: false,
+            hidden: false,
+            'image-name': 'PayMyDine.svg',
+            name: 'PayMyDine Logo',
+            opacity: 1,
             position: {
-              scale: 0.74,
+              scale,
               'translation-in-points': [0, 0],
             },
           },
         ],
+        shadow: {
+          kind: 'none',
+          opacity: 1,
+        },
+        translucency: {
+          enabled: false,
+          value: 0.5,
+        },
       },
     ],
     'supported-platforms': {
+      circles: ['watchOS'],
       squares: 'shared',
     },
   };
@@ -87,19 +118,22 @@ async function main() {
     throw new Error('Official PayMyDine logo SVG is unexpectedly small. Refusing build.');
   }
 
+  const metrics = getSvgMetrics(sourceSvg);
+
   fs.rmSync(macIconDir, { recursive: true, force: true });
   fs.mkdirSync(buildDir, { recursive: true });
   fs.mkdirSync(macAssetsDir, { recursive: true });
 
-  // Windows/legacy macOS fallback keeps a conventional opaque white canvas.
-  const legacySvg = addWhiteLegacyBackground(sourceSvg);
+  // Windows/legacy fallback keeps the conventional white canvas.
+  const legacySvg = addWhiteLegacyBackground(sourceSvg, metrics);
   fs.writeFileSync(legacyOutput, legacySvg, 'utf8');
 
-  // macOS 26 Tahoe uses an Icon Composer asset. The logo stays transparent and
-  // the system enclosure itself receives the pure-white fill, avoiding the
-  // legacy gray icon-jail frame plus inner white square.
+  // Tahoe gets the transparent mark as artwork and a pure-white native
+  // Icon Composer enclosure, so macOS no longer places the legacy artwork in
+  // the gray compatibility squircle.
   fs.writeFileSync(macLogoOutput, sourceSvg, 'utf8');
-  fs.writeFileSync(macJsonOutput, `${JSON.stringify(buildMacIconComposerJSON(), null, 2)}\n`, 'utf8');
+  const iconDefinition = buildMacIconComposerJSON(metrics);
+  fs.writeFileSync(macJsonOutput, `${JSON.stringify(iconDefinition, null, 2)}\n`, 'utf8');
 
   const digest = crypto
     .createHash('sha256')
@@ -111,6 +145,7 @@ async function main() {
   console.log('PMD_LEGACY_ICON_BACKGROUND=#FFFFFF');
   console.log('PMD_MAC_ICON_FORMAT=ICON_COMPOSER');
   console.log('PMD_MAC_ICON_ENCLOSURE_BACKGROUND=#FFFFFF');
+  console.log(`PMD_MAC_ICON_SCALE=${iconDefinition.groups[0].layers[0].position.scale}`);
   console.log(`PMD_BRAND_ICON_SHA256=${digest}`);
   console.log(`PMD_LEGACY_ICON_PATH=${legacyOutput}`);
   console.log(`PMD_MAC_ICON_PATH=${macIconDir}`);
