@@ -23,6 +23,21 @@
     $pmdClockTimezone = '';
     $pmdClockTimezoneSource = '';
 
+    $pmdClockValidTimezone = function ($value) {
+        $candidate = trim((string)$value);
+
+        if ($candidate === '') {
+            return '';
+        }
+
+        try {
+            new \DateTimeZone($candidate);
+            return $candidate;
+        } catch (\Throwable $error) {
+            return '';
+        }
+    };
+
     try {
         $pmdClockLocation = \Admin\Facades\AdminLocation::current();
 
@@ -34,7 +49,9 @@
             }
 
             foreach (['timezone', 'location_timezone'] as $pmdClockField) {
-                $pmdClockCandidate = trim((string)($pmdClockLocation->{$pmdClockField} ?? ''));
+                $pmdClockCandidate = $pmdClockValidTimezone(
+                    $pmdClockLocation->{$pmdClockField} ?? ''
+                );
 
                 if ($pmdClockCandidate !== '') {
                     $pmdClockTimezone = $pmdClockCandidate;
@@ -45,9 +62,11 @@
 
             if ($pmdClockTimezone === '') {
                 try {
-                    $pmdClockCandidate = trim((string)\Admin\Models\LocationOption::onLocation(
-                        $pmdClockLocation
-                    )->get('timezone', ''));
+                    $pmdClockCandidate = $pmdClockValidTimezone(
+                        \Admin\Models\LocationOption::onLocation(
+                            $pmdClockLocation
+                        )->get('timezone', '')
+                    );
 
                     if ($pmdClockCandidate !== '') {
                         $pmdClockTimezone = $pmdClockCandidate;
@@ -63,7 +82,9 @@
     }
 
     if ($pmdClockTimezone === '') {
-        $pmdClockCandidate = trim((string)setting('pmd_market_timezone'));
+        $pmdClockCandidate = $pmdClockValidTimezone(
+            setting('pmd_market_timezone')
+        );
 
         if ($pmdClockCandidate !== '') {
             $pmdClockTimezone = $pmdClockCandidate;
@@ -72,7 +93,9 @@
     }
 
     if ($pmdClockTimezone === '') {
-        $pmdClockCandidate = trim((string)setting('timezone'));
+        $pmdClockCandidate = $pmdClockValidTimezone(
+            setting('timezone')
+        );
 
         if ($pmdClockCandidate !== '') {
             $pmdClockTimezone = $pmdClockCandidate;
@@ -81,15 +104,17 @@
     }
 
     if ($pmdClockTimezone === '') {
-        $pmdClockTimezone = trim((string)config('app.timezone', 'UTC')) ?: 'UTC';
-        $pmdClockTimezoneSource = 'app-fallback';
-    }
+        $pmdClockCandidate = $pmdClockValidTimezone(
+            config('app.timezone', 'UTC')
+        );
 
-    try {
-        new \DateTimeZone($pmdClockTimezone);
-    } catch (\Throwable $pmdClockTimezoneError) {
-        $pmdClockTimezone = 'UTC';
-        $pmdClockTimezoneSource = 'invalid-fallback-utc';
+        $pmdClockTimezone = $pmdClockCandidate !== ''
+            ? $pmdClockCandidate
+            : 'UTC';
+
+        $pmdClockTimezoneSource = $pmdClockCandidate !== ''
+            ? 'app-fallback'
+            : 'utc-fallback';
     }
 
     $pmdClockConfig = [
