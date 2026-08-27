@@ -30,12 +30,12 @@ final class PaymobOmanRuntimeService
         $methods = [];
 
         foreach ($this->markets->methodsForCountry('OM') as $variantCode => $definition) {
-            $integrationKey = (string)($definition['paymob_integration_key'] ?? '');
-            $integrationId = trim((string)($config['integration_ids'][$integrationKey] ?? ''));
+            $resolved = $this->configuredIntegrationForDefinition($definition, $config);
 
             $methods[$variantCode] = array_merge($definition, [
-                'integration_configured' => $integrationId !== '',
-                'integration_id' => $integrationId !== '' ? $integrationId : null,
+                'integration_configured' => $resolved['integration_id'] !== null,
+                'integration_id' => $resolved['integration_id'],
+                'integration_source' => $resolved['source'],
                 // Configuration is not merchant capability discovery. We only know
                 // the method is usable after Paymob has enabled the Integration ID.
                 'merchant_enablement_verified' => false,
@@ -138,6 +138,7 @@ final class PaymobOmanRuntimeService
             'amount_minor' => $amountMinor,
             'selected_market_methods' => $resolvedMethods['variants'],
             'selected_canonical_methods' => $resolvedMethods['canonical_methods'],
+            'integration_sources' => $resolvedMethods['integration_sources'],
         ]);
     }
 
@@ -249,6 +250,7 @@ final class PaymobOmanRuntimeService
         $config = $this->client->config();
         $ids = [];
         $canonical = [];
+        $sources = [];
 
         foreach ($variants as $variantCode) {
             $definition = $this->markets->method($variantCode);
@@ -259,9 +261,8 @@ final class PaymobOmanRuntimeService
                 return ['ok' => false, 'message' => "Payment method '{$variantCode}' is not provided by Paymob Oman."];
             }
 
-            $integrationKey = (string)($definition['paymob_integration_key'] ?? '');
-            $integrationId = trim((string)($config['integration_ids'][$integrationKey] ?? ''));
-            if ($integrationId === '' || !ctype_digit($integrationId)) {
+            $resolved = $this->configuredIntegrationForDefinition($definition, $config);
+            if ($resolved['integration_id'] === null) {
                 return [
                     'ok' => false,
                     'message' => "Paymob Integration ID for {$definition['label']} is not configured for the selected environment.",
@@ -269,8 +270,9 @@ final class PaymobOmanRuntimeService
                 ];
             }
 
-            $ids[] = (int)$integrationId;
+            $ids[] = (int)$resolved['integration_id'];
             $canonical[] = (string)$definition['canonical_method'];
+            $sources[$variantCode] = $resolved['source'];
         }
 
         return [
@@ -278,7 +280,33 @@ final class PaymobOmanRuntimeService
             'variants' => $variants,
             'canonical_methods' => array_values(array_unique($canonical)),
             'integration_ids' => array_values(array_unique($ids)),
+            'integration_sources' => $sources,
         ];
+    }
+
+    /**
+     * Paymob's public Oman catalogue lists OmanNet inside the Cards family.
+     * Some merchant dashboards may therefore expose OmanNet under the normal card
+     * Integration ID instead of a separate Integration ID. PMD keeps a separate
+     * OmanNet UI identity but accepts a dedicated omannet ID when present and falls
+     * back to the card ID when that is the merchant account contract.
+     */
+    private function configuredIntegrationForDefinition(array $definition, array $config): array
+    {
+        $integrationKey = (string)($definition['paymob_integration_key'] ?? '');
+        $direct = trim((string)($config['integration_ids'][$integrationKey] ?? ''));
+        if ($direct !== '' && ctype_digit($direct)) {
+            return ['integration_id' => (int)$direct, 'source' => $integrationKey];
+        }
+
+        if ((string)($definition['canonical_method'] ?? '') === 'omannet') {
+            $card = trim((string)($config['integration_ids']['card'] ?? ''));
+            if ($card !== '' && ctype_digit($card)) {
+                return ['integration_id' => (int)$card, 'source' => 'card_fallback_for_omannet'];
+            }
+        }
+
+        return ['integration_id' => null, 'source' => null];
     }
 
     private function normalizeBillingData(array $input): array
