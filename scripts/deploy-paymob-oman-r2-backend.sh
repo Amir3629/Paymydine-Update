@@ -16,6 +16,7 @@ FILES=(
   "app/Services/Payments/PaymobOmanConnectionService.php"
   "app/Services/Payments/PaymobOmanRuntimeService.php"
   "app/Services/Payments/PaymobOmanTenantCatalogService.php"
+  "app/Services/TerminalPayments/PaymobOmanTerminalProvider.php"
   "docs/paymob-oman/BACKEND_R2.md"
 )
 
@@ -97,6 +98,9 @@ echo
 echo "Terminal safety state:"
 grep -n "remote_terminal_api\|pmd_terminal_runtime\|waiting_for_paymob_oman_ecr_terminal_contract" \
   app/Services/Payments/PaymentMarketRegistry.php || true
+
+grep -n "fake terminal success is disabled\|remote terminal charging is disabled" \
+  app/Services/TerminalPayments/PaymobOmanTerminalProvider.php || true
 
 echo
 echo "NOTE: This deploy installs backend code only. It does not seed a tenant catalogue, save credentials, enable Paymob, or create a payment."
