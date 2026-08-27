@@ -42,7 +42,6 @@
     .pmd-market-preview{grid-column:1/-1;border:1px solid #dfeae6;border-radius:16px;background:#f8fbfa;padding:16px 17px}
     .pmd-market-preview-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}.pmd-market-preview-head strong{font-size:15px}.pmd-market-code{font-size:12px;font-weight:800;color:#2d6655;background:#e7f2ee;border-radius:999px;padding:5px 9px}
     .pmd-market-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.pmd-market-item{padding:10px 11px;border:1px solid #e8efec;border-radius:11px;background:#fff}.pmd-market-item b{display:block;font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:#73857f;margin-bottom:4px}.pmd-market-item span{font-size:13px;color:#24443a;line-height:1.45}
-    .pmd-market-note{margin:11px 0 0;font-size:12px;line-height:1.5;color:#667b74}
     body.pmd-modal-open{overflow:hidden}
     @media(max-width:1000px){.pmd-registry-toolbar{align-items:flex-start;flex-direction:column}.pmd-registry-toolbar .filters{justify-content:flex-start}.tenant-actions{min-width:300px}}
     @media(max-width:820px){.pmd-tenant-hero{align-items:flex-start}.pmd-modal{padding:10px}.pmd-modal-card{width:100%;max-height:94vh;border-radius:20px}.pmd-modal-body .field-grid{grid-template-columns:1fr}.pmd-modal-body .field.full,.pmd-market-preview{grid-column:auto}.pmd-market-grid{grid-template-columns:1fr}}
@@ -255,11 +254,6 @@
         var found='';Object.keys(marketProfiles).some(function(code){if(String(marketProfiles[code].country_name||'').toUpperCase()===value){found=code;return true}return false});
         return found||'DE';
     }
-    function terminalSummary(profile){
-        var providers=profile.terminal_providers||{};var parts=[];
-        Object.keys(providers).forEach(function(code){var state=providers[code]||{};var label=code==='vr_payment'?'VR Payment':(code==='paymob'?'Paymob':code.charAt(0).toUpperCase()+code.slice(1));parts.push(label+' — '+String(state.status||'catalogued').replace(/_/g,' '))});
-        return parts.length?parts.join(' · '):'No terminal provider configured';
-    }
     function renderMarket(root){
         if(!root)return;var select=root.querySelector('[data-pmd-market-country]');var preview=root.querySelector('[data-pmd-market-preview]');if(!select||!preview)return;
         var code=countryCode(select.value);if(select.value!==code)select.value=code;var p=marketProfiles[code];if(!p){preview.innerHTML='';return}
@@ -273,8 +267,7 @@
             '<div class="pmd-market-item"><b>Languages</b><span>'+escapeHtml(langs||'Framework fallback')+'</span></div>'+
             '<div class="pmd-market-item"><b>Payment providers</b><span>'+escapeHtml(providers||'None')+'</span></div>'+
             '<div class="pmd-market-item" style="grid-column:1/-1"><b>Payment methods</b><span>'+escapeHtml(methods||'None')+'</span></div>'+
-            '<div class="pmd-market-item" style="grid-column:1/-1"><b>Terminal policy</b><span>'+escapeHtml(terminalSummary(p))+'</span></div>'+
-            '</div><p class="pmd-market-note">Country controls regional platform defaults. Opening hours, taxes, provider credentials and merchant activation remain restaurant-specific and are never auto-guessed.</p>';
+            '</div>';
     }
     function fillEdit(data){
         var map={'[data-pmd-edit-id]':'id','[data-pmd-edit-name]':'name','[data-pmd-edit-email]':'email','[data-pmd-edit-phone]':'phone','[data-pmd-edit-start]':'start','[data-pmd-edit-end]':'end','[data-pmd-edit-type]':'type','[data-pmd-edit-description]':'description'};
