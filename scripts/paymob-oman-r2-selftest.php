@@ -14,6 +14,7 @@ use App\Services\Payments\MoneyMinorUnitConverter;
 use App\Services\Payments\PaymentMarketRegistry;
 use App\Services\Payments\PaymobApiClient;
 use App\Services\Payments\PaymobOmanConfigSchema;
+use App\Services\Payments\PaymobOmanRuntimeService;
 
 $failures = [];
 $assert = static function (bool $condition, string $message) use (&$failures): void {
@@ -61,6 +62,19 @@ $assert(($safe['api_base_url'] ?? null) === PaymobApiClient::OMAN_BASE_URL, 'Pay
 $assert(($safe['currency'] ?? null) === 'OMR', 'Paymob Oman default currency must be OMR.');
 $assert(($client->validateConfiguration(false)['ok'] ?? true) === false, 'Empty credentials must fail closed.');
 
+// Paymob documents OmanNet inside the Cards family. When no dedicated OmanNet
+// integration exists, PMD must keep the separate OmanNet UI identity but allow the
+// tenant's Cards Integration ID to be used as the provider integration.
+$fallbackRuntime = new PaymobOmanRuntimeService([
+    'transaction_mode' => 'test',
+    'test_integration_id_card' => '12345',
+]);
+$fallbackState = $fallbackRuntime->state();
+$omannetState = (array)($fallbackState['methods']['om_omannet'] ?? []);
+$assert(($omannetState['integration_configured'] ?? false) === true, 'OmanNet must detect the configured Cards Integration ID fallback.');
+$assert(($omannetState['integration_id'] ?? null) === 12345, 'OmanNet card fallback Integration ID mismatch.');
+$assert(($omannetState['integration_source'] ?? null) === 'card_fallback_for_omannet', 'OmanNet fallback source must be explicit.');
+
 if ($failures) {
     fwrite(STDERR, "PAYMOB OMAN R2 SELFTEST FAILED\n");
     foreach ($failures as $failure) fwrite(STDERR, " - {$failure}\n");
@@ -70,4 +84,5 @@ if ($failures) {
 echo "PAYMOB OMAN R2 SELFTEST OK\n";
 echo "OMR: 8.500 -> ".$money->toMinor('8.500', 'OMR')." minor units\n";
 echo "Methods: ".implode(', ', array_keys($markets->methodsForCountry('OM')))."\n";
+echo "OmanNet fallback: Cards Integration ID can be reused when no dedicated OmanNet ID exists\n";
 echo "Terminal runtime: blocked until Paymob Oman POS/ECR API contract is received\n";
