@@ -140,6 +140,10 @@
       "name": "pmd-finance-market-r4-css"
     },
     {
+      "path": "css/pmd-finance-first-paint-r5.css",
+      "name": "pmd-finance-first-paint-r5-css"
+    },
+    {
       "path": "css/pmd-menu-all-foods-r27.css",
       "name": "pmd-menu-all-foods-r27-css"
     },
