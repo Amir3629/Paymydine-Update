@@ -2,6 +2,7 @@
 
 use Admin\Controllers\SuperAdminR2Controller;
 use Admin\Controllers\SuperAdminR2DashboardController;
+use App\Http\Middleware\ApplySuperAdminTenantCountryProfile;
 use App\Http\Middleware\SuperAdminAuth;
 use App\Http\Middleware\SuperAdminCanonicalHost;
 use Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware;
@@ -86,11 +87,13 @@ Route::middleware(['web', SuperAdminCanonicalHost::class])
             Route::get('/superadmin/new', [SuperAdminR2Controller::class, 'restaurants'])
                 ->name('pmd.superadmin.restaurants');
             Route::post('/superadmin/new/store', [SuperAdminR2Controller::class, 'store'])
+                ->middleware(ApplySuperAdminTenantCountryProfile::class)
                 ->name('pmd.superadmin.store');
             Route::get('/superadmin/tenants/{id}/edit', [SuperAdminR2Controller::class, 'edit'])
                 ->whereNumber('id')
                 ->name('pmd.superadmin.tenants.edit');
             Route::post('/superadmin/tenants/update', [SuperAdminR2Controller::class, 'update'])
+                ->middleware(ApplySuperAdminTenantCountryProfile::class)
                 ->name('pmd.superadmin.tenants.update');
             Route::post('/superadmin/tenants/status', [SuperAdminR2Controller::class, 'status'])
                 ->name('pmd.superadmin.tenants.status');
