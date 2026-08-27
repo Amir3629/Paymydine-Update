@@ -2,13 +2,14 @@
 
 namespace App\Services\Payments;
 
+use Illuminate\Support\Facades\Crypt;
+
 /**
- * PMD_PAYMOB_OMAN_CONFIG_SCHEMA_R1
+ * PMD_PAYMOB_OMAN_CONFIG_SCHEMA_R2
  *
  * One backend definition for Paymob Oman provider settings.
- * Pmdfinance may render this schema later; Payments.php remains save/validation
- * authority. No credential in this class is a global/shared PMD credential.
- * Every restaurant/tenant stores its own merchant configuration.
+ * Every restaurant/tenant owns its own Paymob merchant configuration.
+ * Secret values are encrypted before they are stored in the payment provider row.
  */
 final class PaymobOmanConfigSchema
 {
@@ -16,6 +17,7 @@ final class PaymobOmanConfigSchema
     public const COUNTRY_CODE = 'OM';
     public const REGION_CODE = 'OMN';
     public const CURRENCY = 'OMR';
+    private const ENCRYPTED_PREFIX = 'pmdenc:v1:';
 
     public function fields(): array
     {
@@ -48,9 +50,9 @@ final class PaymobOmanConfigSchema
                 'help' => 'OMR uses 3 minor digits: 1 OMR = 1000 baisa.',
             ],
 
-            'test_secret_key' => $this->secret('Test Secret Key', 'sk_test_*; used server-side for Intention and post-payment APIs.'),
-            'test_public_key' => $this->text('Test Public Key', 'pk_test_*; safe to use only where Paymob checkout requires the public key.'),
-            'test_api_key' => $this->secret('Test API Key', 'Used server-side for Transaction Inquiry authentication and connection testing.'),
+            'test_secret_key' => $this->secret('Test Secret Key', 'Server-side Secret Key used for Intention and post-payment APIs.'),
+            'test_public_key' => $this->text('Test Public Key', 'Public Key used only where Paymob checkout requires it.'),
+            'test_api_key' => $this->secret('Test API Key', 'Server-side API Key used for transaction inquiry and connection testing.'),
             'test_hmac_secret' => $this->secret('Test HMAC Secret', 'Used only to verify Paymob callbacks. Never expose it to the browser.'),
             'test_integration_id_card' => $this->integrationId('Cards (Oman) - Test Integration ID'),
             'test_integration_id_omannet' => $this->omannetIntegrationId('OmanNet (Oman) - Test Integration ID'),
@@ -59,7 +61,7 @@ final class PaymobOmanConfigSchema
 
             'live_secret_key' => $this->secret('Live Secret Key', 'Production Secret Key. Keep blank until Paymob has approved the merchant for Live.'),
             'live_public_key' => $this->text('Live Public Key', 'Production Public Key.'),
-            'live_api_key' => $this->secret('Live API Key', 'Production Transaction Inquiry/API authentication key.'),
+            'live_api_key' => $this->secret('Live API Key', 'Production transaction inquiry/API authentication key.'),
             'live_hmac_secret' => $this->secret('Live HMAC Secret', 'Production callback HMAC secret.'),
             'live_integration_id_card' => $this->integrationId('Cards (Oman) - Live Integration ID'),
             'live_integration_id_omannet' => $this->omannetIntegrationId('OmanNet (Oman) - Live Integration ID'),
@@ -74,7 +76,7 @@ final class PaymobOmanConfigSchema
                     'unified_checkout' => 'Unified Checkout (recommended first)',
                     'pixel' => 'Pixel embedded checkout (enable after QA)',
                 ],
-                'help' => 'PMD R1 uses Unified Checkout first. Pixel can be enabled after browser/device QA.',
+                'help' => 'PMD uses Unified Checkout first. Pixel can be enabled after browser/device QA.',
             ],
             'connection_status' => [
                 'label' => 'Connection status',
@@ -115,11 +117,52 @@ final class PaymobOmanConfigSchema
     }
 
     /**
-     * Convert a saved provider payload into the exact configuration consumed by
-     * PaymobApiClient. Direct legacy names remain accepted by the client as fallback.
+     * Prepare admin input for durable provider storage.
+     * Blank secret fields preserve the existing encrypted secret. The special
+     * literal __clear__ explicitly removes a secret.
      */
+    public function prepareForStorage(array $incoming, array $current = []): array
+    {
+        $result = $current;
+        $knownFields = array_keys($this->fields());
+
+        foreach ($knownFields as $field) {
+            if (!array_key_exists($field, $incoming)) continue;
+
+            $value = $incoming[$field];
+            if (in_array($field, $this->secretFields(), true)) {
+                $text = is_scalar($value) ? trim((string)$value) : '';
+                if ($text === '') continue;
+                if (strtolower($text) === '__clear__') {
+                    $result[$field] = '';
+                    continue;
+                }
+                $result[$field] = $this->encryptSecret($text);
+                continue;
+            }
+
+            $result[$field] = is_string($value) ? trim($value) : $value;
+        }
+
+        $mode = strtolower(trim((string)($result['transaction_mode'] ?? 'test')));
+        $result['transaction_mode'] = in_array($mode, ['test', 'live'], true) ? $mode : 'test';
+        $result['country_code'] = self::COUNTRY_CODE;
+        $result['provider_region'] = self::REGION_CODE;
+        $result['api_base_url'] = PaymobApiClient::OMAN_BASE_URL;
+        $result['currency'] = self::CURRENCY;
+
+        return $result;
+    }
+
+    /** Convert stored encrypted values into the exact runtime configuration. */
     public function runtimeConfig(array $saved): array
     {
+        foreach ($this->secretFields() as $field) {
+            if (array_key_exists($field, $saved)) {
+                $saved[$field] = $this->decryptSecret((string)$saved[$field]);
+            }
+        }
+
         $mode = strtolower(trim((string)($saved['transaction_mode'] ?? $saved['mode'] ?? 'test')));
         if (!in_array($mode, ['test', 'live'], true)) $mode = 'test';
 
@@ -131,6 +174,24 @@ final class PaymobOmanConfigSchema
             'api_base_url' => PaymobApiClient::OMAN_BASE_URL,
             'currency' => self::CURRENCY,
         ]);
+    }
+
+    /** Safe values for the admin browser. No secret is ever returned. */
+    public function safeAdminConfig(array $saved): array
+    {
+        $safe = [];
+        foreach ($this->fields() as $field => $definition) {
+            if (in_array($field, $this->secretFields(), true)) continue;
+            if (array_key_exists($field, $saved)) $safe[$field] = $saved[$field];
+            elseif (array_key_exists('default', $definition)) $safe[$field] = $definition['default'];
+        }
+
+        $safe['secret_present'] = [];
+        foreach ($this->secretFields() as $field) {
+            $safe['secret_present'][$field] = trim((string)($saved[$field] ?? '')) !== '';
+        }
+
+        return $safe;
     }
 
     public function validationRules(): array
@@ -174,6 +235,29 @@ final class PaymobOmanConfigSchema
         ];
     }
 
+    private function encryptSecret(string $value): string
+    {
+        if ($value === '') return '';
+        if (str_starts_with($value, self::ENCRYPTED_PREFIX)) return $value;
+        return self::ENCRYPTED_PREFIX.Crypt::encryptString($value);
+    }
+
+    private function decryptSecret(string $value): string
+    {
+        if ($value === '') return '';
+        if (!str_starts_with($value, self::ENCRYPTED_PREFIX)) {
+            // Backward-compatible with any R1/R2 plaintext test value. The next
+            // admin save automatically migrates it into encrypted storage.
+            return $value;
+        }
+
+        try {
+            return (string)Crypt::decryptString(substr($value, strlen(self::ENCRYPTED_PREFIX)));
+        } catch (\Throwable) {
+            return '';
+        }
+    }
+
     private function secret(string $label, string $help): array
     {
         return ['label' => $label, 'secret' => true, 'help' => $help];
@@ -196,7 +280,7 @@ final class PaymobOmanConfigSchema
     {
         return [
             'label' => $label,
-            'help' => 'Optional. Paymob documents OmanNet inside the Cards family. If your Oman dashboard gives OmanNet its own Integration ID, enter it here; otherwise PMD can reuse the Cards Integration ID.',
+            'help' => 'Optional. If the Oman merchant dashboard gives OmanNet its own Integration ID, enter it here; otherwise PMD can reuse the Cards Integration ID.',
         ];
     }
 }
