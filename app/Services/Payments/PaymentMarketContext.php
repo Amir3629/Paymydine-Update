@@ -2,42 +2,30 @@
 
 namespace App\Services\Payments;
 
-use Admin\Models\Locations_model;
+use App\Services\Platform\LocationPlatformContext;
 
 /**
- * PMD_PAYMENT_MARKET_CONTEXT_R1
+ * PMD_PAYMENT_MARKET_CONTEXT_R2
  *
- * Resolves the payment market from the current tenant restaurant/location.
- * The source of truth is the location country relation (iso_code_2), not a
- * browser locale, currency guess, hostname guess, or provider credential.
+ * Payment-specific facade over LocationPlatformContext. Country is no longer a
+ * payment-owned concept: the location platform context is the source of truth.
  */
 final class PaymentMarketContext
 {
     private PaymentMarketRegistry $registry;
+    private LocationPlatformContext $platformContext;
 
-    public function __construct(?PaymentMarketRegistry $registry = null)
-    {
+    public function __construct(
+        ?PaymentMarketRegistry $registry = null,
+        ?LocationPlatformContext $platformContext = null
+    ) {
         $this->registry = $registry ?: new PaymentMarketRegistry();
+        $this->platformContext = $platformContext ?: new LocationPlatformContext();
     }
 
     public function countryCode(?int $locationId = null): ?string
     {
-        try {
-            $location = $locationId
-                ? Locations_model::query()->find($locationId)
-                : Locations_model::getDefault();
-
-            if (!$location) return null;
-
-            $address = method_exists($location, 'getAddress') ? (array)$location->getAddress() : [];
-            $country = $this->registry->normalizeCountry(
-                (string)($address['iso_code_2'] ?? $address['iso_code_3'] ?? $address['country'] ?? '')
-            );
-
-            return $country !== '' ? $country : null;
-        } catch (\Throwable $error) {
-            return null;
-        }
+        return $this->platformContext->countryCode($locationId);
     }
 
     public function market(?int $locationId = null): ?array
@@ -57,14 +45,17 @@ final class PaymentMarketContext
 
     public function state(?int $locationId = null): array
     {
-        $country = $this->countryCode($locationId);
+        $platform = $this->platformContext->state($locationId);
+        $country = $platform['country_code'] ?? null;
         $market = $this->registry->market($country);
 
         return [
+            'location_id' => $platform['location_id'] ?? null,
             'country_code' => $country,
-            'resolved' => $country !== null,
+            'resolved' => (bool)($platform['resolved'] ?? false),
             'market_supported' => $market !== null,
             'market' => $market,
+            'platform_profile_version' => $platform['profile_version'] ?? null,
         ];
     }
 }
