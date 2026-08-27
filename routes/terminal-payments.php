@@ -45,6 +45,32 @@ Route::post('/'.trim((string)config('system.adminUri', 'admin'), '/').'/terminal
     ->name('pmd.sumup.terminal.callback');
 
 Route::middleware(['web'])->prefix(config('system.adminUri', 'admin'))->group(function () {
+    // PMD_LOCATION_CLOCK_STATE_ROUTE_R9
+    // Read-only. Header Blade stays presentation-only; timezone/database work
+    // happens here after the Admin request has a valid tenant/location context.
+    Route::get('/location-clock/state', function (\App\Services\Platform\LocationClockStateService $clock) {
+        $user = \Admin\Facades\AdminAuth::getUser();
+        if (!$user) {
+            return response()->json(['ok' => false, 'message' => 'Unauthenticated.'], 401);
+        }
+
+        try {
+            $response = response()->json([
+                'ok' => true,
+                'clock' => $clock->state(),
+            ]);
+            $response->headers->set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+            $response->headers->set('Pragma', 'no-cache');
+            return $response;
+        } catch (\Throwable $error) {
+            report($error);
+            return response()->json([
+                'ok' => false,
+                'message' => 'Location clock state is unavailable.',
+            ], 500);
+        }
+    })->name('pmd.location-clock.state');
+
     Route::get('/payment-providers', [\Admin\Controllers\PaymentProviders::class, 'index'])
         ->name('pmd.payment-providers.index');
     Route::get('/payment-providers/state', [\Admin\Controllers\PaymentProviders::class, 'state'])
