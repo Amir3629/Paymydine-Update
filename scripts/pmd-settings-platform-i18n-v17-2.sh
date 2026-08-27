@@ -50,16 +50,16 @@ anchor = 'git show "origin/$BRANCH:scripts/pmd-settings-dynamic-i18n-v17.py" > "
 if text.count(anchor) != 1:
     raise SystemExit('ERROR=V17_2_PATCHER_LOAD_ANCHOR_MISMATCH')
 
-injection = anchor + r'''python3 - "$PATCHER" <<'PYFIX'
+injection = anchor + r"""python3 - "$PATCHER" <<'PYFIX'
 from pathlib import Path
 import sys
 
 path = Path(sys.argv[1])
 text = path.read_text(encoding='utf-8')
-old = '''    text = one(text, "        '<span>' + esc(label) + '</span>',", "        '<span>' + settingsHtml(label) + '</span>',", 'provider field label')
+old = r'''    text = one(text, "        '<span>' + esc(label) + '</span>',", "        '<span>' + settingsHtml(label) + '</span>',", 'provider field label')
 '''
-new = '''    field_start = text.find('  function field(label, key, type, value, placeholder, readonly, help) {')
-    field_end = text.find('\\n  function envButton(key, label) {', field_start)
+new = r'''    field_start = text.find('  function field(label, key, type, value, placeholder, readonly, help) {')
+    field_end = text.find('\n  function envButton(key, label) {', field_start)
     if field_start < 0 or field_end < 0:
         die('provider field function anchors missing')
     field_block = text[field_start:field_end]
@@ -76,7 +76,7 @@ if text.count(old) != 1:
 path.write_text(text.replace(old, new, 1), encoding='utf-8')
 print('V17_2_TEMP_DYNAMIC_PATCHER_HARDENED=1')
 PYFIX
-'''
+"""
 path.write_text(text.replace(anchor, injection, 1), encoding='utf-8')
 print('V17_2_TEMP_WRAPPER_HARDENED=1')
 PY
