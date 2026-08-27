@@ -18,6 +18,7 @@ FILES=(
   "app/Services/Payments/PaymobOmanTenantCatalogService.php"
   "app/Services/TerminalPayments/PaymobOmanTerminalProvider.php"
   "docs/paymob-oman/BACKEND_R2.md"
+  "scripts/paymob-oman-r2-selftest.php"
 )
 
 cd "$APP_DIR"
@@ -72,6 +73,10 @@ for path in "${FILES[@]}"; do
     *.php) php -l "$path" ;;
   esac
 done
+
+# Pure backend invariants: market separation, OMR minor units, config fields,
+# fail-closed terminal state and empty-credential behavior.
+php scripts/paymob-oman-r2-selftest.php
 
 if [ -f artisan ]; then
   php artisan optimize:clear || sudo php artisan optimize:clear || true
