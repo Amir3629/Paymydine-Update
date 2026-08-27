@@ -6,6 +6,8 @@ use Admin\Classes\AdminController;
 use Admin\Facades\AdminMenu;
 use Admin\Facades\Template;
 use Admin\Models\Payments_model;
+use App\Services\Platform\CountryPlatformProfileRegistry;
+use App\Services\Platform\LocationPlatformContext;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
@@ -42,14 +44,58 @@ class Pmdfinance extends AdminController
             logger()->warning('PMD finance payment summary failed', ['message' => $error->getMessage()]);
         }
 
-        $methods = $payments->filter(fn ($row) => in_array((string)$row->code, self::METHOD_CODES, true))->values();
-        $providers = $payments->filter(fn ($row) => in_array((string)$row->code, self::PROVIDER_CODES, true))->values();
+        // PMD_FINANCE_MARKET_FIRST_PAINT_R5
+        // Render the correct location-market catalogue in the initial HTML. R4
+        // used JavaScript to hide the legacy/global fallback until market state
+        // arrived; that retained the old list height and caused a large white
+        // refresh flash. LocationPlatformContext is now first-paint authority too.
+        $market = [];
+        $countryCode = '';
+        $methodCodes = self::METHOD_CODES;
+        $providerCodes = self::PROVIDER_CODES;
+        $methodDefinitions = [];
+
+        try {
+            $market = app(LocationPlatformContext::class)->state();
+            if (!empty($market['resolved']) && !empty($market['country_code']) && !empty($market['profile'])) {
+                $countryCode = strtoupper((string)$market['country_code']);
+            }
+        } catch (\Throwable $error) {
+            logger()->warning('PMD finance first-paint market resolution failed', ['message' => $error->getMessage()]);
+        }
+
+        if ($countryCode === CountryPlatformProfileRegistry::OMAN) {
+            $profile = (array)($market['profile'] ?? []);
+            $paymentProfile = (array)($profile['payments'] ?? []);
+            $methodDefinitions = (array)($paymentProfile['methods'] ?? []);
+            $methodCodes = array_values(array_keys($methodDefinitions));
+            $providerCodes = array_values(array_keys((array)($paymentProfile['providers'] ?? [])));
+            $this->bodyClass = trim($this->bodyClass.' pmd-finance-market-om');
+        } elseif ($countryCode === CountryPlatformProfileRegistry::GERMANY) {
+            // Germany keeps the mature canonical storage/runtime rows. Only add
+            // a first-paint market marker; do not remap its proven payment flow.
+            $this->bodyClass = trim($this->bodyClass.' pmd-finance-market-de');
+        }
+
+        $methods = $payments->filter(fn ($row) => in_array((string)$row->code, $methodCodes, true))->values();
+        $providers = $payments->filter(fn ($row) => in_array((string)$row->code, $providerCodes, true))->values();
         $providerLabels = $providers->mapWithKeys(fn ($row) => [
             (string)$row->code => (string)($row->name ?: ucfirst(str_replace('_', ' ', (string)$row->code))),
         ])->all();
+
         $methodProviders = [];
         foreach ($methods as $method) {
-            $methodProviders[(string)$method->code] = collect(Payments_model::supportedProvidersForMethod((string)$method->code))
+            $methodCode = (string)$method->code;
+
+            if ($countryCode === CountryPlatformProfileRegistry::OMAN) {
+                $definition = (array)($methodDefinitions[$methodCode] ?? []);
+                $methodProviders[$methodCode] = collect((array)($definition['provider_candidates'] ?? []))
+                    ->mapWithKeys(fn ($code) => [(string)$code => $providerLabels[(string)$code] ?? ucfirst(str_replace('_', ' ', (string)$code))])
+                    ->all();
+                continue;
+            }
+
+            $methodProviders[$methodCode] = collect(Payments_model::supportedProvidersForMethod($methodCode))
                 ->mapWithKeys(fn ($code) => [(string)$code => $providerLabels[(string)$code] ?? ucfirst(str_replace('_', ' ', (string)$code))])
                 ->all();
         }
@@ -62,6 +108,11 @@ class Pmdfinance extends AdminController
             'provider_secret_fields' => $this->inlineProviderSecretFields(),
             'settings' => $this->financeSettings(),
             'fiskaly' => $this->fiskalyPayload(),
+            'market' => [
+                'country_code' => $countryCode !== '' ? $countryCode : null,
+                'location_id' => $market['location_id'] ?? null,
+                'profile_version' => $market['profile_version'] ?? null,
+            ],
         ];
 
         return $this->makeView('pmdfinance/index');
