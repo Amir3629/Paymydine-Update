@@ -53,7 +53,7 @@ final class PaymobOmanConfigSchema
             'test_api_key' => $this->secret('Test API Key', 'Used server-side for Transaction Inquiry authentication and connection testing.'),
             'test_hmac_secret' => $this->secret('Test HMAC Secret', 'Used only to verify Paymob callbacks. Never expose it to the browser.'),
             'test_integration_id_card' => $this->integrationId('Cards (Oman) - Test Integration ID'),
-            'test_integration_id_omannet' => $this->integrationId('OmanNet (Oman) - Test Integration ID'),
+            'test_integration_id_omannet' => $this->omannetIntegrationId('OmanNet (Oman) - Test Integration ID'),
             'test_integration_id_apple_pay' => $this->integrationId('Apple Pay (Oman) - Test Integration ID'),
             'test_integration_id_google_pay' => $this->integrationId('Google Pay (Oman) - Test Integration ID'),
 
@@ -62,7 +62,7 @@ final class PaymobOmanConfigSchema
             'live_api_key' => $this->secret('Live API Key', 'Production Transaction Inquiry/API authentication key.'),
             'live_hmac_secret' => $this->secret('Live HMAC Secret', 'Production callback HMAC secret.'),
             'live_integration_id_card' => $this->integrationId('Cards (Oman) - Live Integration ID'),
-            'live_integration_id_omannet' => $this->integrationId('OmanNet (Oman) - Live Integration ID'),
+            'live_integration_id_omannet' => $this->omannetIntegrationId('OmanNet (Oman) - Live Integration ID'),
             'live_integration_id_apple_pay' => $this->integrationId('Apple Pay (Oman) - Live Integration ID'),
             'live_integration_id_google_pay' => $this->integrationId('Google Pay (Oman) - Live Integration ID'),
 
@@ -189,6 +189,14 @@ final class PaymobOmanConfigSchema
         return [
             'label' => $label,
             'help' => 'Leave blank when Paymob has not enabled this payment method for this merchant account.',
+        ];
+    }
+
+    private function omannetIntegrationId(string $label): array
+    {
+        return [
+            'label' => $label,
+            'help' => 'Optional. Paymob documents OmanNet inside the Cards family. If your Oman dashboard gives OmanNet its own Integration ID, enter it here; otherwise PMD can reuse the Cards Integration ID.',
         ];
     }
 }
