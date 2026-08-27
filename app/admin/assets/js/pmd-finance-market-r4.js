@@ -207,7 +207,24 @@
     if (title) title.textContent = 'Payment choices for this Oman location only.';
   }
 
-  function applyMarketVisibility() {
+  function upgradeServerActions() {
+    if (!state || state.country_code !== 'OM') return;
+
+    var providerButton = document.querySelector('[data-pmd-inline-open="finance:provider:paymob"]');
+    if (providerButton) {
+      providerButton.removeAttribute('data-pmd-inline-open');
+      providerButton.setAttribute('data-pmd-r4-paymob', '');
+    }
+
+    (state.methods || []).forEach(function (method) {
+      var button = document.querySelector('[data-pmd-inline-open="finance:method:' + method.code + '"]');
+      if (!button) return;
+      button.removeAttribute('data-pmd-inline-open');
+      button.setAttribute('data-pmd-r4-method', method.code);
+    });
+  }
+
+  function applyMarketVisibility(updateCopy) {
     if (!state) return;
     var fiskaly = document.getElementById('fiskaly');
     if (fiskaly) fiskaly.hidden = !state.fiskaly_visible;
@@ -217,6 +234,8 @@
       var row = fiskalyToggle.closest('.pmd-owner-setting-row');
       if (row) row.hidden = !state.fiskaly_visible;
     }
+
+    if (updateCopy === false) return;
 
     var actions = document.querySelector('#payment-methods .pmd-owner-card__actions');
     if (actions && state.country_code === 'OM') {
@@ -296,13 +315,20 @@
     return config;
   }
 
-  async function reload() {
+  async function reload(options) {
+    options = options || {};
+    var shouldRender = options.render !== false;
+
     state = await request('/admin/payment-market/state');
-    if (state.country_code === 'OM') {
+
+    if (shouldRender && state.country_code === 'OM') {
       renderOmanProvider();
       renderOmanMethods();
+    } else {
+      upgradeServerActions();
     }
-    applyMarketVisibility();
+
+    applyMarketVisibility(shouldRender);
     markReady();
     return state;
   }
@@ -424,7 +450,11 @@
     ensureStyle();
     bind();
     try {
-      await reload();
+      // PMD_FINANCE_ZERO_TEXT_SWAP_R6
+      // The server already resolved the correct location-market catalogue. Fetch
+      // state for modal actions/readiness, but do not replace visible copy/rows on
+      // initial load. User-triggered Save/Test calls still render fresh state.
+      await reload({render:false});
       console.info('[PMD Finance Market R4]', {
         country: state.country_code,
         currency: state.currency && state.currency.code,
@@ -439,7 +469,7 @@
   }
 
   window.PMDFinanceMarketR4 = {
-    version: '4.1.0',
+    version: '4.2.0',
     reload: reload,
     getState: function () { return state; },
     openPaymob: openPaymob
