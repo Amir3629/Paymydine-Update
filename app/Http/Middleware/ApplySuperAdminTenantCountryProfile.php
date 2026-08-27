@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 /**
- * PMD_SUPERADMIN_COUNTRY_PROFILE_MIDDLEWARE_R1
+ * PMD_SUPERADMIN_COUNTRY_PROFILE_MIDDLEWARE_R2
  *
  * Makes /superadmin/new Country a real provisioning input instead of a label.
  * The canonical country is written centrally by the existing controller, then
@@ -35,12 +35,17 @@ final class ApplySuperAdminTenantCountryProfile
 
         $response = $next($request);
 
+        // Critical safety gate: create/update validation failures use withErrors().
+        // Never resolve by submitted DB/domain after that, because a duplicate input
+        // could point at an EXISTING tenant and accidentally change its market.
+        if (session()->has('errors')) {
+            return $response;
+        }
+
         try {
-            $tenant = $this->resolveTenant($request);
+            $tenant = $this->resolvePersistedTenant($request);
             if (!$tenant) return $response;
 
-            // Ensure central registry is canonical even when a legacy controller path
-            // accepted a code/name variant.
             DB::connection('mysql')->table('tenants')->where('id', $tenant->id)->update([
                 'country' => (string)$profile['country_name'],
                 'updated_at' => now(),
@@ -53,7 +58,7 @@ final class ApplySuperAdminTenantCountryProfile
             if ($warningCount > 0) {
                 session()->flash(
                     'warning',
-                    $profile['country_name'].' profile applied with '.$warningCount.' readiness warning(s). Check language/currency/provider readiness before launch.'
+                    $profile['country_name'].' profile applied with '.$warningCount.' readiness warning(s). Check language/provider readiness before launch.'
                 );
             }
 
@@ -61,6 +66,7 @@ final class ApplySuperAdminTenantCountryProfile
                 'tenant_id' => (int)$tenant->id,
                 'database' => (string)$tenant->database,
                 'country_code' => (string)$profile['country_code'],
+                'foundation' => (array)($result['foundation'] ?? []),
                 'warnings' => (array)($result['warnings'] ?? []),
             ]);
         } catch (\Throwable $error) {
@@ -80,27 +86,18 @@ final class ApplySuperAdminTenantCountryProfile
         return $response;
     }
 
-    private function resolveTenant(Request $request)
+    private function resolvePersistedTenant(Request $request)
     {
+        // Update path: controller validation succeeded, so this ID was persisted.
         if ($request->filled('id')) {
-            $tenant = DB::connection('mysql')->table('tenants')->where('id', (int)$request->input('id'))->first();
-            if ($tenant) return $tenant;
+            return DB::connection('mysql')->table('tenants')->where('id', (int)$request->input('id'))->first();
         }
 
+        // Create path: lifecycle owns database uniqueness. Only resolve the exact
+        // canonical DB name after successful controller execution.
         $database = trim(str_replace([' ', '-'], '_', (string)$request->input('database', '')));
-        if ($database !== '') {
-            $tenant = DB::connection('mysql')->table('tenants')->where('database', $database)->first();
-            if ($tenant) return $tenant;
-        }
+        if ($database === '') return null;
 
-        $domain = strtolower(trim((string)$request->input('domain', '')));
-        $domain = preg_replace('#^https?://#i', '', $domain) ?? $domain;
-        $domain = preg_replace('~[/?#].*$~', '', $domain) ?? $domain;
-        if ($domain !== '' && !str_contains($domain, '.')) $domain .= '.paymydine.com';
-        if ($domain !== '') {
-            return DB::connection('mysql')->table('tenants')->whereRaw('LOWER(domain) = ?', [$domain])->first();
-        }
-
-        return null;
+        return DB::connection('mysql')->table('tenants')->where('database', $database)->first();
     }
 }
