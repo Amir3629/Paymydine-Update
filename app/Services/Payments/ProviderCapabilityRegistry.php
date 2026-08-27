@@ -16,6 +16,7 @@ final class ProviderCapabilityRegistry
     public const METHOD_CARD = 'card';
     public const METHOD_APPLE_PAY = 'apple_pay';
     public const METHOD_GOOGLE_PAY = 'google_pay';
+    public const METHOD_OMANNET = 'omannet';
     public const METHOD_WERO = 'wero';
     public const METHOD_PAYPAL = 'paypal';
     public const METHOD_KLARNA = 'klarna';
@@ -137,6 +138,32 @@ final class ProviderCapabilityRegistry
                     self::METHOD_WERO,
                     self::METHOD_PAYPAL,
                 ],
+            ],
+            'paymob' => [
+                'label' => 'Paymob',
+                // Public Paymob docs confirm online API checkout, payment links,
+                // refunds and callback/webhook flows. In-person/POS is intentionally
+                // not marked here until Paymob Oman supplies the merchant-specific
+                // terminal/ECR API contract needed by PMD.
+                'capabilities' => [
+                    self::CAPABILITY_ONLINE_PAYMENTS,
+                    self::CAPABILITY_REFUNDS,
+                    self::CAPABILITY_PAYMENT_LINKS,
+                    self::CAPABILITY_WEBHOOKS,
+                ],
+                // Catalogue availability only. Paymob explicitly states that
+                // merchant-account enablement varies, so PMD must later intersect
+                // this list with tenant/runtime discovery before offering methods.
+                'payment_methods' => [
+                    self::METHOD_CARD,
+                    self::METHOD_OMANNET,
+                    self::METHOD_APPLE_PAY,
+                    self::METHOD_GOOGLE_PAY,
+                ],
+                // R1 scaffold only: no method becomes assignable until the actual
+                // Intention + checkout + verified HMAC webhook flow is implemented.
+                'implemented_capabilities' => [],
+                'implemented_payment_methods' => [],
             ],
             'worldline' => [
                 'label' => 'Worldline',
