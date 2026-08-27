@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * PMD_TENANT_PLATFORM_PROFILE_R3
+ * PMD_TENANT_PLATFORM_PROFILE_R4
  *
  * Applies one country profile to the current tenant's default location and
  * tenant-global framework defaults. LocationPlatformContext remains runtime
@@ -59,7 +59,7 @@ final class TenantPlatformProfileService
 
         $this->saveFrameworkSettings($framework, $warnings);
         $this->persistPlatformMetadata($profile, $defaultLocationId, $languageState, $warnings);
-        $this->disableForeignRegionalPaymentRows($countryCode);
+        $this->disableForeignPaymentRows($countryCode);
 
         $regionalCatalogue = null;
         try {
@@ -241,7 +241,14 @@ final class TenantPlatformProfileService
         DB::table('settings')->updateOrInsert($where, $payload);
     }
 
-    private function disableForeignRegionalPaymentRows(string $countryCode): void
+    /**
+     * Country changes are fail-closed. Rows from the other market are retained so
+     * credentials/history are recoverable, but they cannot remain offered after a
+     * location switches market. Oman additionally disables the legacy global
+     * Germany-oriented provider/method catalogue copied from the tenant template;
+     * its online runtime must use the isolated om_* rows instead.
+     */
+    private function disableForeignPaymentRows(string $countryCode): void
     {
         try {
             $model = new Payments_model();
@@ -250,13 +257,36 @@ final class TenantPlatformProfileService
             $schema = $connection->getSchemaBuilder();
             if (!$schema->hasTable($table)) return;
 
-            $foreignCodes = $countryCode === CountryPlatformProfileRegistry::OMAN
-                ? ['de_card', 'de_apple_pay', 'de_google_pay', 'de_wero', 'de_paypal', 'de_cash']
-                : ['om_card', 'om_omannet', 'om_apple_pay', 'om_google_pay', 'om_cash', 'paymob'];
+            if ($countryCode === CountryPlatformProfileRegistry::OMAN) {
+                $foreignCodes = [
+                    // Explicit Germany regional rows.
+                    'de_card', 'de_apple_pay', 'de_google_pay', 'de_wero', 'de_paypal', 'de_cash',
+                    // Legacy/global online methods copied from the old template.
+                    'card', 'apple_pay', 'google_pay', 'wero', 'paypal', 'cod', 'cash',
+                    // Non-Oman providers. `paypal` may be a shared legacy row and
+                    // is intentionally included above as well.
+                    'stripe', 'worldline', 'sumup', 'square', 'vr_payment',
+                ];
+            } else {
+                $foreignCodes = [
+                    'om_card', 'om_omannet', 'om_apple_pay', 'om_google_pay', 'om_cash', 'paymob',
+                ];
+            }
 
             $columns = $schema->getColumnListing($table);
             if (!in_array('status', $columns, true)) return;
-            $connection->table($table)->whereIn('code', $foreignCodes)->update(['status' => 0]);
+
+            $foreignCodes = array_values(array_unique($foreignCodes));
+            $affected = $connection->table($table)
+                ->whereIn('code', $foreignCodes)
+                ->where('status', '!=', 0)
+                ->update(['status' => 0]);
+
+            Log::info('PMD_TENANT_PLATFORM_FOREIGN_PAYMENTS_DISABLED_R4', [
+                'country_code' => $countryCode,
+                'affected_rows' => (int)$affected,
+                'codes' => $foreignCodes,
+            ]);
         } catch (\Throwable $error) {
             Log::warning('PMD_TENANT_PLATFORM_FOREIGN_PAYMENT_DISABLE_WARNING', ['message' => $error->getMessage()]);
         }
