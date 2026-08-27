@@ -48,6 +48,7 @@
     {"path": "css/pmd-sumup-self-service-v1.css", "name": "pmd-sumup-self-service-v1-css"},
     {"path": "css/pmd-cashier-order-clean-v1.css", "name": "pmd-cashier-order-clean-v1-css"},
     {"path": "css/pmd-payment-provider-catalogue-v1.css", "name": "pmd-payment-provider-catalogue-v1-css"},
+    {"path": "css/pmd-finance-market-r4.css", "name": "pmd-finance-market-r4-css"},
     {"path": "css/pmd-menu-all-foods-r27.css", "name": "pmd-menu-all-foods-r27-css"},
     {"path": "css/pmd-menu-all-foods-r28.css", "name": "pmd-menu-all-foods-r28-css"},
     {"path": "css/pmd-cashier-payment-clean-v1.css", "name": "pmd-cashier-payment-clean-v1-css"},
