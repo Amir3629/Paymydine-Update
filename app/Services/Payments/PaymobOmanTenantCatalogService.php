@@ -3,18 +3,13 @@
 namespace App\Services\Payments;
 
 use Admin\Models\Payments_model;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 /**
- * PMD_PAYMOB_OMAN_TENANT_CATALOG_R1
+ * PMD_PAYMOB_OMAN_TENANT_CATALOG_R2
  *
- * Idempotently installs the Oman-specific payment catalogue into the current tenant.
- * It is intentionally NOT run globally: German/other tenants must not receive Oman
- * method rows simply because PMD supports the Oman market.
- *
- * Safety invariant: every created method/provider starts disabled and no credential
- * or provider assignment is copied from another tenant.
+ * Provider-specific layer for Paymob Oman. Country-specific method identities are
+ * installed by TenantRegionalPaymentCatalogService; this service adds Paymob and
+ * Paymob-specific metadata only. Cash must never become a Paymob-owned method.
  */
 final class PaymobOmanTenantCatalogService
 {
@@ -52,6 +47,7 @@ final class PaymobOmanTenantCatalogService
         $columns = $schema->getColumnListing($table);
         $created = [];
         $updated = [];
+        $paymobMethods = $this->paymobMethods();
 
         $providerCode = PaymobOmanConfigSchema::PROVIDER_CODE;
         $providerMeta = [
@@ -59,7 +55,7 @@ final class PaymobOmanTenantCatalogService
             'market_country' => 'OM',
             'provider_region' => 'OMN',
             'currency' => 'OMR',
-            'supported_methods' => ['om_card', 'om_omannet', 'om_apple_pay', 'om_google_pay'],
+            'supported_methods' => array_keys($paymobMethods),
         ];
 
         if (!$connection->table($table)->where('code', $providerCode)->exists()) {
@@ -73,27 +69,30 @@ final class PaymobOmanTenantCatalogService
             ));
             $created[] = $providerCode;
         } else {
-            $updated[] = $this->ensureMarketMetadata($connection, $table, $columns, $providerCode, $providerMeta);
+            $changed = $this->ensureMarketMetadata($connection, $table, $columns, $providerCode, $providerMeta);
+            if ($changed) $updated[] = $providerCode;
         }
 
         $priority = 70;
-        foreach ($this->markets->methodsForCountry('OM') as $variantCode => $definition) {
+        foreach ($paymobMethods as $variantCode => $definition) {
             $meta = [
                 'kind' => 'regional_method',
                 'market_country' => 'OM',
                 'provider_region' => 'OMN',
                 'currency' => 'OMR',
                 'canonical_method' => (string)$definition['canonical_method'],
-                'provider_code' => 'paymob',
+                'provider_candidates' => ['paymob'],
                 'paymob_integration_key' => (string)$definition['paymob_integration_key'],
                 'brands' => array_values((array)($definition['brands'] ?? [])),
             ];
 
             if ($connection->table($table)->where('code', $variantCode)->exists()) {
-                $updated[] = $this->ensureMarketMetadata($connection, $table, $columns, $variantCode, $meta);
+                $changed = $this->ensureMarketMetadata($connection, $table, $columns, $variantCode, $meta);
+                if ($changed) $updated[] = $variantCode;
                 continue;
             }
 
+            // Compatibility fallback when the generic regional catalogue has not run.
             $connection->table($table)->insert($this->insertPayload(
                 $columns,
                 $variantCode,
@@ -112,10 +111,24 @@ final class PaymobOmanTenantCatalogService
             'country_code' => $country ?: 'OM',
             'table' => $table,
             'created' => $created,
-            'updated' => array_values(array_filter($updated)),
+            'updated' => array_values(array_unique($updated)),
+            'supported_paymob_methods' => array_keys($paymobMethods),
+            'cash_provider_owned' => false,
             'all_new_rows_enabled' => false,
-            'message' => 'Paymob Oman tenant catalogue is installed. All new rows remain Not offered until merchant credentials and Integration IDs are verified.',
+            'message' => 'Paymob Oman provider metadata is installed. Regional methods remain Not offered until credentials and Integration IDs are verified.',
         ];
+    }
+
+    private function paymobMethods(): array
+    {
+        return array_filter(
+            $this->markets->methodsForCountry('OM'),
+            static function (array $definition): bool {
+                $providers = array_values((array)($definition['provider_candidates'] ?? []));
+                $key = trim((string)($definition['paymob_integration_key'] ?? ''));
+                return in_array('paymob', $providers, true) && $key !== '';
+            }
+        );
     }
 
     private function insertPayload(
@@ -148,35 +161,31 @@ final class PaymobOmanTenantCatalogService
         return $payload;
     }
 
-    private function ensureMarketMetadata($connection, string $table, array $columns, string $code, array $required): ?string
+    private function ensureMarketMetadata($connection, string $table, array $columns, string $code, array $required): bool
     {
         $jsonColumn = in_array('meta', $columns, true)
             ? 'meta'
             : (in_array('data', $columns, true) ? 'data' : null);
-        if (!$jsonColumn) return null;
+        if (!$jsonColumn) return false;
 
         $row = $connection->table($table)->where('code', $code)->first();
-        if (!$row) return null;
+        if (!$row) return false;
 
         $current = [];
         $raw = $row->{$jsonColumn} ?? null;
-        if (is_array($raw)) {
-            $current = $raw;
-        } elseif (is_string($raw) && trim($raw) !== '') {
+        if (is_array($raw)) $current = $raw;
+        elseif (is_string($raw) && trim($raw) !== '') {
             $decoded = json_decode($raw, true);
             if (is_array($decoded)) $current = $decoded;
         }
 
         $merged = array_merge($current, $required);
-        if ($merged === $current) return null;
+        if ($merged === $current) return false;
 
-        $update = [
-            $jsonColumn => json_encode($merged, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '{}',
-        ];
+        $update = [$jsonColumn => json_encode($merged, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '{}'];
         if (in_array('updated_at', $columns, true)) $update['updated_at'] = now();
         if (in_array('date_updated', $columns, true)) $update['date_updated'] = now();
         $connection->table($table)->where('code', $code)->update($update);
-
-        return $code;
+        return true;
     }
 }
