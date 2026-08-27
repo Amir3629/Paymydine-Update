@@ -1,0 +1,15 @@
+{
+  "settings": {},
+  "reports": {
+    "Active": "Aktiv",
+    "In progress": "In Bearbeitung",
+    "Manual": "Manuell",
+    "Biometric": "Biometrisch",
+    "Fingerprint": "Fingerabdruck",
+    "Checked In": "Eingestempelt",
+    "Checked Out": "Ausgestempelt",
+    "Abandoned": "Abgebrochen",
+    "Auto Checkout": "Automatisch ausgestempelt",
+    "Unknown": "Unbekannt"
+  }
+}
