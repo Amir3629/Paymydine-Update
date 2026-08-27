@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 /**
- * PMD_SUPERADMIN_TENANT_MARKET_R1
+ * PMD_SUPERADMIN_TENANT_MARKET_R2
  *
  * Central-control-plane bridge for applying a country profile to one tenant DB.
  * Always restores the central database connection before returning/throwing.
@@ -28,7 +28,19 @@ final class SuperAdminTenantMarketService
             DB::purge('mysql');
             DB::reconnect('mysql');
 
-            $result = (new TenantPlatformProfileService())->apply($country);
+            $profiles = new CountryPlatformProfileRegistry();
+            $profile = $profiles->requireProfile($country);
+
+            // Countries/currencies are safe regional catalogue data. Ensure them
+            // before applying the profile so Oman can really become OMR/Asia-Muscat
+            // even when the old TastyIgniter template did not ship an OMR row.
+            $foundation = (new TenantRegionalFoundationService())->ensure($profile);
+            if (!($foundation['ok'] ?? false)) {
+                throw new \RuntimeException('Regional country/currency foundation could not be prepared.');
+            }
+
+            $result = (new TenantPlatformProfileService($profiles))->apply((string)$profile['country_code']);
+            $result['foundation'] = $foundation;
             $result['database'] = $database;
             return $result;
         } finally {
