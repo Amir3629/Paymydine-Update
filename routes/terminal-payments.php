@@ -50,6 +50,19 @@ Route::middleware(['web'])->prefix(config('system.adminUri', 'admin'))->group(fu
     Route::get('/payment-providers/state', [\Admin\Controllers\PaymentProviders::class, 'state'])
         ->name('pmd.payment-providers.state');
 
+    // PMD_PAYMENT_MARKET_SETTINGS_R4
+    // Finance UI reads only the current LocationPlatformContext and therefore
+    // never mixes Oman providers/methods into Germany (or vice versa).
+    Route::get('/payment-market/state', [\Admin\Controllers\PaymentMarketSettings::class, 'state'])
+        ->name('pmd.payment-market.state');
+    Route::post('/payment-market/paymob/save', [\Admin\Controllers\PaymentMarketSettings::class, 'savePaymob'])
+        ->name('pmd.payment-market.paymob.save');
+    Route::post('/payment-market/paymob/test', [\Admin\Controllers\PaymentMarketSettings::class, 'testPaymob'])
+        ->name('pmd.payment-market.paymob.test');
+    Route::post('/payment-market/methods/{code}', [\Admin\Controllers\PaymentMarketSettings::class, 'saveMethod'])
+        ->where('code', '[A-Za-z0-9_-]+')
+        ->name('pmd.payment-market.methods.save');
+
     // Provider-connection aliases. Devices should only pair/manage hardware;
     // provider credentials live under Payments > Providers.
     Route::get('/payment-providers/sumup/state', [\Admin\Controllers\SumupTerminalSettings::class, 'state']);
