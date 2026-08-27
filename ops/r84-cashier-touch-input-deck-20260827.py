@@ -43,7 +43,7 @@ def bump_asset(text, filename, version):
 
 # ------------------------------------------------------------------
 # 1. Cashier payment markup: balanced cash controls + reusable touch deck.
-#    The canonical Payment V3 implementation remains untouched.
+#    Canonical Payment V3 implementation remains untouched.
 # ------------------------------------------------------------------
 composer = COMPOSER.read_text(encoding='utf-8')
 
@@ -61,7 +61,7 @@ old_cash_input = (
     "autocomplete=\"off\" class=\"pmd-pos-payment-input "
     "pmd-cashier-cash-input\" data-pos-cash-received>',"
 )
-new_cash_input = r'''                    '<div class="pmd-cashier-cash-input-wrap">',
+new_cash_input = '''                    '<div class="pmd-cashier-cash-input-wrap">',
                       '<input type="text" inputmode="decimal" autocomplete="off" class="pmd-pos-payment-input pmd-cashier-cash-input" data-pos-cash-received>',
                       '<button type="button" class="pmd-cashier-cash-clear" data-cash-action="clear" aria-label="Clear cash received">×</button>',
                     '</div>','''
@@ -74,11 +74,11 @@ if 'class="pmd-cashier-cash-input-wrap"' not in composer:
 
 alpha_marker = 'data-touch-alpha-keypad'
 if alpha_marker not in composer:
-    alpha_anchor = r'''                      '<button type="button" data-cash-action="backspace" aria-label="Backspace">⌫</button>',
+    alpha_anchor = '''                      '<button type="button" data-cash-action="backspace" aria-label="Backspace">⌫</button>',
                     '</div>',
 
                     '<div class="pmd-cashier-tenders">','''
-    alpha_markup = r'''                      '<button type="button" data-cash-action="backspace" aria-label="Backspace">⌫</button>',
+    alpha_markup = '''                      '<button type="button" data-cash-action="backspace" aria-label="Backspace">⌫</button>',
                     '</div>',
 
                     '<div class="pmd-cashier-alpha-keypad" data-touch-alpha-keypad hidden>',
@@ -561,7 +561,6 @@ bind_pattern = re.compile(
     r"  function bindCashKeypad\(root\) \{.*?\n  \}\n\n(?=  function )",
     re.S,
 )
-
 matches = list(bind_pattern.finditer(composer))
 if len(matches) != 1:
     raise SystemExit(
@@ -569,7 +568,6 @@ if len(matches) != 1:
     )
 composer = bind_pattern.sub(new_bind + '\n', composer, count=1)
 
-# Fresh Cashier-only visual asset key.
 composer = bump_asset(
     composer,
     'pmd-cashier-payment-clean-v1.css',
@@ -592,29 +590,31 @@ if marker_r84 not in css:
         )
     css = css.replace(marker_r83, marker_r84, 1)
 
+    owner_pos = css.find(marker_r84)
     compact_marker = '/* Compact height profile for common laptop/embedded frames. */'
-    compact_pos = css.find(compact_marker)
-    if compact_pos < 0:
-        raise SystemExit('STOP compact profile marker not found')
+    compact_pos = css.find(compact_marker, owner_pos)
+    if owner_pos < 0 or compact_pos < 0:
+        raise SystemExit('STOP R84 owner/compact profile marker not found')
 
-    before = css[:compact_pos]
+    head = css[:owner_pos]
+    normal = css[owner_pos:compact_pos]
     after = css[compact_pos:]
 
     old_tender_grid = (
         'grid-template-columns: repeat(5, minmax(0, 1fr)) !important;'
     )
-    tender_count = before.count(old_tender_grid)
+    tender_count = normal.count(old_tender_grid)
     if tender_count != 1:
         raise SystemExit(
-            'STOP tender grid target count: ' + str(tender_count)
+            'STOP R84 tender grid target count: ' + str(tender_count)
         )
-    before = before.replace(
+    normal = normal.replace(
         old_tender_grid,
         'grid-template-columns: repeat(4, minmax(0, 1fr)) !important;',
         1,
     )
 
-    additions = r'''
+    additions = '''
 
 /* R84 touch-first Cashier input deck. */
 body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
@@ -763,7 +763,7 @@ body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
 }
 '''
 
-    css = before.rstrip() + additions + '\n\n' + after
+    css = head + normal.rstrip() + additions + '\n\n' + after
     PAYMENT_CSS.write_text(css, encoding='utf-8')
 
 
