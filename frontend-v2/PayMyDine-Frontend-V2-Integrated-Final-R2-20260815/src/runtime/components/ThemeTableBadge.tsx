@@ -45,6 +45,90 @@ export function ThemeTableBadge() {
     }
   }, [tableDisplay])
 
+  // PMD_THEME_TABLE_BADGE_CENTER_CLEARANCE_R74B
+  //
+  // Keep the table pill centered. On compact screens, measure the
+  // real rendered geometry and move hero copy down ONLY when the
+  // centered pill would overlap the Welcome / restaurant-name area.
+  useEffect(() => {
+    if (!host || !tableDisplay) return
+
+    const mobile = window.matchMedia('(max-width: 680px)')
+    const heading = host.querySelector<HTMLElement>(
+      '[data-pmd-hero-restaurant-name="r47"]',
+    )
+    const copy = heading?.parentElement
+
+    if (!heading || !copy) return
+
+    let frame = 0
+
+    const resetClearance = () => {
+      copy.classList.remove(styles.copyClearance)
+      copy.style.removeProperty('--pmd-table-badge-clearance')
+      delete copy.dataset.pmdTableBadgeClearance
+    }
+
+    const measureClearance = () => {
+      window.cancelAnimationFrame(frame)
+
+      frame = window.requestAnimationFrame(() => {
+        // Always measure from the theme's natural/original position.
+        resetClearance()
+
+        if (!mobile.matches) return
+
+        const badge = host.querySelector<HTMLElement>(
+          '[data-pmd-table-badge="hero"]',
+        )
+
+        if (!badge) return
+
+        const welcome = heading.previousElementSibling instanceof HTMLElement
+          ? heading.previousElementSibling
+          : heading
+
+        const badgeRect = badge.getBoundingClientRect()
+        const welcomeRect = welcome.getBoundingClientRect()
+
+        // Preserve a small visual breathing gap below the centered pill.
+        const requiredClearance = Math.ceil(
+          badgeRect.bottom + 10 - welcomeRect.top,
+        )
+
+        if (requiredClearance <= 0) return
+
+        // Collision corrections should stay modest. This is not a
+        // redesign of the hero composition.
+        const clearance = Math.min(64, requiredClearance)
+
+        copy.style.setProperty(
+          '--pmd-table-badge-clearance',
+          `${clearance}px`,
+        )
+        copy.dataset.pmdTableBadgeClearance = String(clearance)
+        copy.classList.add(styles.copyClearance)
+      })
+    }
+
+    measureClearance()
+
+    const observer = new ResizeObserver(measureClearance)
+    observer.observe(host)
+    observer.observe(copy)
+
+    window.addEventListener('resize', measureClearance, { passive: true })
+    mobile.addEventListener('change', measureClearance)
+
+    return () => {
+      window.cancelAnimationFrame(frame)
+      observer.disconnect()
+      window.removeEventListener('resize', measureClearance)
+      mobile.removeEventListener('change', measureClearance)
+      resetClearance()
+    }
+  }, [host, tableDisplay])
+
   if (!host || !tableDisplay) return null
 
   return createPortal(

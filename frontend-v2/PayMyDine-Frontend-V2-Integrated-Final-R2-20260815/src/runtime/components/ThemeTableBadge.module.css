@@ -40,27 +40,28 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* PMD_THEME_TABLE_BADGE_MOBILE_SAFE_R74
+/* PMD_THEME_TABLE_BADGE_CENTER_CLEARANCE_R74B
  *
- * The ten V2 themes switch to their mobile hero contract at
- * approximately 680px. Match that breakpoint here too.
+ * Keep the table pill centered on every device.
  *
- * On compact/mobile heroes, keep the table context in a dedicated
- * top-left corner instead of top-center. This prevents the badge
- * from covering Welcome / restaurant-name copy in themes whose
- * hero text moves upward on narrow screens.
+ * On mobile we do NOT guess a fixed text offset.
+ * ThemeTableBadge measures the real rendered pill and Welcome
+ * position. Only when they actually collide does the hero copy
+ * receive a small downward translation.
  *
- * Physical left is deliberate: Ember uses the upper-right corner
- * for its temperature treatment on mobile.
- *
- * Desktop/tablet presentation remains top-center.
+ * Individual `translate` deliberately composes with themes that
+ * already use `transform: translateY(...)` for hero positioning.
  */
+.copyClearance {
+  translate: 0 var(--pmd-table-badge-clearance, 0px);
+}
+
 @media (max-width: 680px) {
   .badge {
-    top: .7rem;
-    left: .75rem;
+    top: .6rem;
+    left: 50%;
     right: auto;
-    transform: none;
+    transform: translateX(-50%);
 
     min-height: 28px;
     max-width: calc(100% - 1.5rem);

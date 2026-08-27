@@ -970,7 +970,7 @@
     </section>
 </div>
 
-<script type="application/json" id="pmd-menu-manager-i18n">{!! json_encode($pmdMenuCopy[$pmdMenuLocale], JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT) !!}</script>
+<script type="application/json" id="pmd-menu-manager-i18n">{!! json_encode($pmdMenuCopy, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT) !!}</script>
 <script type="application/json" id="pmd-menu-manager-catalog">{!! json_encode($pmdMenuManagerCatalog ?? [], JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT) !!}</script>
 <script type="application/json" id="pmd-menu-manager-combo-catalog">{!! json_encode($pmdMenuManagerComboCatalog ?? [], JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT) !!}</script>
 
