@@ -30,15 +30,11 @@ final class TenantPlatformProfileService
         $warnings = [];
 
         $countryId = $this->resolveCountryId($profile);
-        if (!$countryId) {
-            $warnings[] = 'Country row was not found in the tenant countries catalogue.';
-        }
+        if (!$countryId) $warnings[] = 'Country row was not found in the tenant countries catalogue.';
 
         $currencyCode = (string)$profile['currency']['code'];
         $currencyAvailable = $this->currencyExists($currencyCode);
-        if (!$currencyAvailable) {
-            $warnings[] = 'Currency '.$currencyCode.' is not installed/enabled in this tenant.';
-        }
+        if (!$currencyAvailable) $warnings[] = 'Currency '.$currencyCode.' is not installed/enabled in this tenant.';
 
         $languageState = $this->resolveLanguages((array)$profile['languages']);
         if (!empty($languageState['missing'])) {
@@ -74,8 +70,6 @@ final class TenantPlatformProfileService
         $providerCatalog = null;
         if ($countryCode === CountryPlatformProfileRegistry::OMAN) {
             try {
-                // Provider-specific Paymob metadata is layered on top of the generic
-                // Oman regional method catalogue. Cash remains platform-owned.
                 $providerCatalog = (new PaymobOmanTenantCatalogService())->ensureCurrentTenant(false);
             } catch (\Throwable $error) {
                 $warnings[] = 'Paymob Oman catalogue could not be prepared: '.$error->getMessage();
@@ -175,9 +169,7 @@ final class TenantPlatformProfileService
 
         try {
             $settingId = (int)setting('default_location_id', 0);
-            if ($settingId > 0 && DB::table('locations')->where('location_id', $settingId)->exists()) {
-                return $settingId;
-            }
+            if ($settingId > 0 && DB::table('locations')->where('location_id', $settingId)->exists()) return $settingId;
         } catch (\Throwable $ignored) {
         }
 
@@ -202,11 +194,11 @@ final class TenantPlatformProfileService
             $warnings[] = 'Framework settings manager warning: '.$error->getMessage();
         }
 
+        // Settings_model reads PHP-serialized arrays. Never replace an array
+        // framework setting (for example supported_languages) with JSON.
         if (!Schema::hasTable('settings')) return;
         foreach ($settings as $item => $value) {
-            $encoded = is_array($value)
-                ? json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
-                : (string)$value;
+            $encoded = is_array($value) ? serialize($value) : (string)$value;
             DB::table('settings')->updateOrInsert(['item' => $item], ['value' => $encoded]);
         }
     }
