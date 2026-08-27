@@ -28,6 +28,13 @@ final class PaymentMarketSettings extends AdminController
 {
     protected $requiredPermissions = 'Site.Settings';
 
+    /**
+     * Fail closed until PMD order checkout -> Paymob callback -> idempotent shared
+     * settlement is wired and sandbox-verified. Admin credential setup/testing is
+     * already safe; guest offering is deliberately not.
+     */
+    private const PAYMOB_GUEST_RUNTIME_READY = false;
+
     public function state(
         LocationPlatformContext $context,
         ProviderCapabilityRegistry $capabilities,
@@ -64,6 +71,7 @@ final class PaymentMarketSettings extends AdminController
                 $item['admin_config'] = $paymobSchema->safeAdminConfig($saved);
                 $item['connection'] = $paymobConnection->state();
                 $item['fields'] = $this->publicFieldSchema($paymobSchema);
+                $item['guest_runtime_ready'] = self::PAYMOB_GUEST_RUNTIME_READY;
             }
 
             $providers[] = $item;
@@ -94,6 +102,8 @@ final class PaymentMarketSettings extends AdminController
                 'enabled' => (bool)($row->status ?? false),
                 'is_default' => (bool)($row->is_default ?? false),
                 'brands' => array_values((array)($definition['brands'] ?? [])),
+                'guest_runtime_ready' => !in_array(PaymobOmanConfigSchema::PROVIDER_CODE, (array)($definition['provider_candidates'] ?? []), true)
+                    || self::PAYMOB_GUEST_RUNTIME_READY,
             ];
         }
 
@@ -101,8 +111,14 @@ final class PaymentMarketSettings extends AdminController
         if ($country === CountryPlatformProfileRegistry::OMAN) {
             try {
                 $paymobRuntime = (new PaymobOmanRuntimeService($paymobConnection->runtimeConfig()))->state();
+                $paymobRuntime['guest_runtime_ready'] = self::PAYMOB_GUEST_RUNTIME_READY;
             } catch (\Throwable $error) {
-                $paymobRuntime = ['provider' => 'paymob', 'methods' => [], 'error' => $error->getMessage()];
+                $paymobRuntime = [
+                    'provider' => 'paymob',
+                    'methods' => [],
+                    'guest_runtime_ready' => self::PAYMOB_GUEST_RUNTIME_READY,
+                    'error' => $error->getMessage(),
+                ];
             }
         }
 
@@ -120,6 +136,7 @@ final class PaymentMarketSettings extends AdminController
             'providers' => $providers,
             'methods' => $methods,
             'paymob_runtime' => $paymobRuntime,
+            'paymob_guest_runtime_ready' => self::PAYMOB_GUEST_RUNTIME_READY,
             'fiskaly_visible' => $country === CountryPlatformProfileRegistry::GERMANY,
         ]);
     }
@@ -150,35 +167,34 @@ final class PaymentMarketSettings extends AdminController
 
         $current = method_exists($row, 'getConfigData') ? (array)$row->getConfigData() : [];
         $stored = $schema->prepareForStorage($validator->validated(), $current);
-        $enable = filter_var($request->input('enabled', false), FILTER_VALIDATE_BOOLEAN);
+        $requestedEnable = filter_var($request->input('enabled', false), FILTER_VALIDATE_BOOLEAN);
 
-        if ($enable) {
-            $readiness = $schema->readiness($stored);
-            if (!($readiness['ready'] ?? false)) {
-                return response()->json([
-                    'ok' => false,
-                    'message' => (string)($readiness['structural']['message'] ?? 'Complete the Paymob configuration before enabling it.'),
-                    'readiness' => $readiness,
-                ], 422);
-            }
+        if ($requestedEnable && !self::PAYMOB_GUEST_RUNTIME_READY) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Paymob credentials can be saved and tested now, but guest payments remain locked until the PMD checkout/callback settlement runtime is completed and sandbox-verified.',
+                'guest_runtime_ready' => false,
+            ], 409);
         }
 
         $row->setConfigData($stored);
-        $row->status = $enable ? 1 : 0;
+        // Configuration can be stored/tested now, but provider offering remains
+        // disabled until the guarded runtime flag is deliberately released.
+        $row->status = self::PAYMOB_GUEST_RUNTIME_READY && $requestedEnable ? 1 : 0;
         $row->is_default = 0;
         $row->save();
 
         Log::info('PMD_PAYMOB_OMAN_ADMIN_SAVED_R4', [
-            'enabled' => $enable,
+            'enabled' => (bool)$row->status,
             'mode' => $stored['transaction_mode'] ?? 'test',
             'country_code' => 'OM',
+            'guest_runtime_ready' => self::PAYMOB_GUEST_RUNTIME_READY,
         ]);
 
         return response()->json([
             'ok' => true,
-            'message' => $enable
-                ? 'Paymob Oman configuration saved and enabled.'
-                : 'Paymob Oman configuration saved. Provider remains disabled.',
+            'message' => 'Paymob Oman configuration saved. You can test the API connection; guest offering remains locked until the settlement runtime passes sandbox QA.',
+            'guest_runtime_ready' => self::PAYMOB_GUEST_RUNTIME_READY,
         ]);
     }
 
@@ -209,6 +225,7 @@ final class PaymentMarketSettings extends AdminController
             'connected' => (bool)($result['connected'] ?? $ok),
             'market' => 'Oman',
             'currency' => 'OMR',
+            'guest_runtime_ready' => self::PAYMOB_GUEST_RUNTIME_READY,
             'state' => $result['state'] ?? null,
         ], $ok ? 200 : 422);
     }
@@ -247,6 +264,14 @@ final class PaymentMarketSettings extends AdminController
 
         if ($enabled && $candidates && $provider === '') {
             return response()->json(['ok' => false, 'message' => 'Select a provider before offering this payment method.'], 422);
+        }
+
+        if ($enabled && $provider === PaymobOmanConfigSchema::PROVIDER_CODE && !self::PAYMOB_GUEST_RUNTIME_READY) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Paymob guest payment methods remain locked until checkout/callback settlement is completed and sandbox-verified.',
+                'guest_runtime_ready' => false,
+            ], 409);
         }
 
         if ($enabled && $provider === PaymobOmanConfigSchema::PROVIDER_CODE) {
