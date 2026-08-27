@@ -1,0 +1,246 @@
+/*
+ * PMD_NEW_TENANT_ONBOARDING_R7
+ * Compact, actionable setup states for restaurants that have not completed
+ * their basic Menu / Table prerequisites yet.
+ */
+
+/* -------------------------------------------------------------
+   Cashier / New order: missing menu
+   ------------------------------------------------------------- */
+.pmd-coc.pmd-coc--setup-empty .pmd-coc__dialog {
+  width: min(760px, calc(100vw - 32px)) !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: calc(100dvh - 40px) !important;
+  grid-template-rows: auto minmax(0, 1fr) auto !important;
+}
+
+.pmd-coc.pmd-coc--setup-empty .pmd-coc__tablebar {
+  display: none !important;
+}
+
+.pmd-coc.pmd-coc--setup-empty .pmd-coc__main {
+  min-height: 390px !important;
+  grid-template-columns: 1fr !important;
+  place-items: center !important;
+  overflow: auto !important;
+  padding: 28px !important;
+}
+
+.pmd-coc-error.pmd-setup-empty-state {
+  box-sizing: border-box !important;
+  width: min(560px, 100%) !important;
+  min-height: 0 !important;
+  height: auto !important;
+  margin: auto !important;
+  padding: 30px 32px !important;
+  border: 1px solid #d5e5df !important;
+  border-radius: 22px !important;
+  background:
+    radial-gradient(circle at 10% 0%, rgba(109, 214, 164, .13), transparent 34%),
+    #fff !important;
+  box-shadow: 0 18px 48px rgba(17, 50, 43, .09) !important;
+  display: grid !important;
+  justify-items: center !important;
+  align-content: center !important;
+  gap: 9px !important;
+  text-align: center !important;
+}
+
+.pmd-setup-empty-state__icon {
+  width: 58px;
+  height: 58px;
+  margin-bottom: 4px;
+  border: 1px solid #cce4db;
+  border-radius: 18px;
+  background: #eff8f4;
+  color: #075c4b;
+  display: grid;
+  place-items: center;
+}
+
+.pmd-setup-empty-state__icon svg {
+  width: 27px;
+  height: 27px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.pmd-setup-empty-state__eyebrow {
+  margin-top: 3px;
+  color: #668079;
+  font-size: 10px;
+  line-height: 1.2;
+  font-weight: 900;
+  letter-spacing: .095em;
+}
+
+.pmd-coc-error.pmd-setup-empty-state > strong {
+  color: #123d32 !important;
+  font-size: 22px !important;
+  line-height: 1.2 !important;
+  font-weight: 900 !important;
+  letter-spacing: -.02em !important;
+}
+
+.pmd-coc-error.pmd-setup-empty-state > p {
+  max-width: 470px !important;
+  margin: 2px auto 4px !important;
+  color: #687d77 !important;
+  font-size: 13px !important;
+  line-height: 1.55 !important;
+  font-weight: 650 !important;
+}
+
+.pmd-setup-empty-state__actions {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.pmd-setup-empty-state__primary,
+.pmd-setup-empty-state__secondary {
+  box-sizing: border-box;
+  min-height: 44px !important;
+  margin: 0 !important;
+  padding: 0 17px !important;
+  border-radius: 12px !important;
+  font-size: 13px !important;
+  font-weight: 850 !important;
+  line-height: 42px !important;
+  text-decoration: none !important;
+  cursor: pointer;
+}
+
+.pmd-setup-empty-state__primary {
+  border: 1px solid #0a5c4a !important;
+  background: #0a5c4a !important;
+  color: #fff !important;
+  box-shadow: 0 8px 18px rgba(10, 92, 74, .14);
+}
+
+.pmd-setup-empty-state__secondary {
+  border: 1px solid #ccded8 !important;
+  background: #fff !important;
+  color: #244c42 !important;
+}
+
+/* -------------------------------------------------------------
+   Reservation composer: no tables in a new tenant
+   ------------------------------------------------------------- */
+#pmd-reservation-composer-v1 .pmd-table-setup-card-r7 {
+  box-sizing: border-box;
+  grid-column: 1 / -1;
+  margin-top: 10px;
+  padding: 14px 15px;
+  border: 1px solid #d7e6df;
+  border-radius: 16px;
+  background: #f7fbf9;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 13px;
+}
+
+#pmd-reservation-composer-v1 .pmd-table-setup-card-r7__icon {
+  width: 44px;
+  height: 44px;
+  border: 1px solid #cde2da;
+  border-radius: 13px;
+  background: #fff;
+  color: #0b5e4d;
+  display: grid;
+  place-items: center;
+}
+
+#pmd-reservation-composer-v1 .pmd-table-setup-card-r7__icon svg {
+  width: 23px;
+  height: 23px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+#pmd-reservation-composer-v1 .pmd-table-setup-card-r7__copy {
+  min-width: 0;
+}
+
+#pmd-reservation-composer-v1 .pmd-table-setup-card-r7__copy > span {
+  display: block;
+  margin-bottom: 2px;
+  color: #73877f;
+  font-size: 9px;
+  line-height: 1.2;
+  font-weight: 900;
+  letter-spacing: .08em;
+}
+
+#pmd-reservation-composer-v1 .pmd-table-setup-card-r7__copy > strong {
+  display: block;
+  color: #153e34;
+  font-size: 14px;
+  line-height: 1.3;
+  font-weight: 900;
+}
+
+#pmd-reservation-composer-v1 .pmd-table-setup-card-r7__copy > p {
+  margin: 3px 0 0;
+  color: #71847e;
+  font-size: 11px;
+  line-height: 1.45;
+  font-weight: 650;
+}
+
+#pmd-reservation-composer-v1 .pmd-table-setup-card-r7__action {
+  min-height: 42px;
+  padding: 0 15px;
+  border: 1px solid #0a5c4a;
+  border-radius: 11px;
+  background: #0a5c4a;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 850;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+#pmd-reservation-composer-v1 .pmd-table-setup-message-r7 {
+  border-color: #dbe8e3 !important;
+  background: #f7fbf9 !important;
+  color: #527067 !important;
+}
+
+@media (max-width: 720px) {
+  .pmd-coc.pmd-coc--setup-empty .pmd-coc__dialog {
+    width: calc(100vw - 20px) !important;
+  }
+
+  .pmd-coc.pmd-coc--setup-empty .pmd-coc__main {
+    min-height: 340px !important;
+    padding: 16px !important;
+  }
+
+  .pmd-coc-error.pmd-setup-empty-state {
+    padding: 24px 18px !important;
+  }
+
+  #pmd-reservation-composer-v1 .pmd-table-setup-card-r7 {
+    grid-template-columns: 42px minmax(0, 1fr);
+  }
+
+  #pmd-reservation-composer-v1 .pmd-table-setup-card-r7__action {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+}
