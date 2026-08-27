@@ -5,7 +5,107 @@
     $profileImage = $faviconPath
         ? asset('assets/media/uploads/'.ltrim($faviconPath, '/'))
         : $defaultAvatar;
+
+    /*
+     * PMD_LOCATION_LIVE_CLOCK_CONFIG_R8
+     *
+     * Timezone truth order:
+     *   1) active location model / location option
+     *   2) market timezone
+     *   3) tenant timezone
+     *   4) app timezone
+     *
+     * The visible clock never falls back to the browser timezone.
+     */
+    $pmdClockLocation = null;
+    $pmdClockLocationId = null;
+    $pmdClockLocationName = trim((string)$userPanel->getLocationName());
+    $pmdClockTimezone = '';
+    $pmdClockTimezoneSource = '';
+
+    try {
+        $pmdClockLocation = \Admin\Facades\AdminLocation::current();
+
+        if ($pmdClockLocation) {
+            $pmdClockLocationId = (int)$pmdClockLocation->location_id;
+
+            if ($pmdClockLocationName === '') {
+                $pmdClockLocationName = trim((string)$pmdClockLocation->location_name);
+            }
+
+            foreach (['timezone', 'location_timezone'] as $pmdClockField) {
+                $pmdClockCandidate = trim((string)($pmdClockLocation->{$pmdClockField} ?? ''));
+
+                if ($pmdClockCandidate !== '') {
+                    $pmdClockTimezone = $pmdClockCandidate;
+                    $pmdClockTimezoneSource = 'location-model';
+                    break;
+                }
+            }
+
+            if ($pmdClockTimezone === '') {
+                try {
+                    $pmdClockCandidate = trim((string)\Admin\Models\LocationOption::onLocation(
+                        $pmdClockLocation
+                    )->get('timezone', ''));
+
+                    if ($pmdClockCandidate !== '') {
+                        $pmdClockTimezone = $pmdClockCandidate;
+                        $pmdClockTimezoneSource = 'location-option';
+                    }
+                } catch (\Throwable $pmdClockLocationOptionError) {
+                    // Continue to tenant/market timezone.
+                }
+            }
+        }
+    } catch (\Throwable $pmdClockLocationError) {
+        $pmdClockLocation = null;
+    }
+
+    if ($pmdClockTimezone === '') {
+        $pmdClockCandidate = trim((string)setting('pmd_market_timezone'));
+
+        if ($pmdClockCandidate !== '') {
+            $pmdClockTimezone = $pmdClockCandidate;
+            $pmdClockTimezoneSource = 'market-setting';
+        }
+    }
+
+    if ($pmdClockTimezone === '') {
+        $pmdClockCandidate = trim((string)setting('timezone'));
+
+        if ($pmdClockCandidate !== '') {
+            $pmdClockTimezone = $pmdClockCandidate;
+            $pmdClockTimezoneSource = 'tenant-setting';
+        }
+    }
+
+    if ($pmdClockTimezone === '') {
+        $pmdClockTimezone = trim((string)config('app.timezone', 'UTC')) ?: 'UTC';
+        $pmdClockTimezoneSource = 'app-fallback';
+    }
+
+    try {
+        new \DateTimeZone($pmdClockTimezone);
+    } catch (\Throwable $pmdClockTimezoneError) {
+        $pmdClockTimezone = 'UTC';
+        $pmdClockTimezoneSource = 'invalid-fallback-utc';
+    }
+
+    $pmdClockConfig = [
+        'version' => '8.0.0',
+        'timezone' => $pmdClockTimezone,
+        'timezoneSource' => $pmdClockTimezoneSource,
+        'locationId' => $pmdClockLocationId,
+        'locationName' => $pmdClockLocationName,
+    ];
 @endphp
+<script id="pmd-location-live-clock-config-r8">
+window.PMDLocationClockConfigR8 = {!! json_encode(
+    $pmdClockConfig,
+    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+) !!};
+</script>
 <li class="nav-item dropdown pmd-topbar-user-item">
     <a href="#" class="nav-link pmd-header-tooltip-target" data-bs-toggle="dropdown" aria-label="Account" data-pmd-tooltip-label="Account" data-no-tooltip="1">
         <img
