@@ -2,14 +2,19 @@
 
 declare(strict_types=1);
 
-$root = dirname(__DIR__);
+use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\DB;
+
+$root = getcwd();
+if (!is_string($root) || !is_file($root.'/bootstrap/autoload.php') || !is_file($root.'/bootstrap/app.php')) {
+    fwrite(STDERR, "ERROR=Run this audit from the PayMyDine repository root\n");
+    exit(2);
+}
+
 require $root.'/bootstrap/autoload.php';
 $app = require $root.'/bootstrap/app.php';
 $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
 $kernel->bootstrap();
-
-use Illuminate\Support\Facades\Config;
-use Illuminate\Support\Facades\DB;
 
 function out(string $key, $value): void
 {
