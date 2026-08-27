@@ -9,17 +9,16 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * PMD_TENANT_PLATFORM_PROFILE_R2
+ * PMD_TENANT_PLATFORM_PROFILE_R3
  *
- * Applies the Superadmin-selected country to the tenant's DEFAULT location and
- * tenant-global framework defaults. Runtime features should still resolve the
- * actual LocationPlatformContext so additional locations can diverge later.
+ * Applies one country profile to the current tenant's default location and
+ * tenant-global framework defaults. LocationPlatformContext remains runtime
+ * authority for location-scoped features.
  */
 final class TenantPlatformProfileService
 {
-    public function __construct(
-        private ?CountryPlatformProfileRegistry $profiles = null
-    ) {
+    public function __construct(private ?CountryPlatformProfileRegistry $profiles = null)
+    {
         $this->profiles = $profiles ?: new CountryPlatformProfileRegistry();
     }
 
@@ -29,15 +28,17 @@ final class TenantPlatformProfileService
         $countryCode = (string)$profile['country_code'];
         $warnings = [];
 
-        $countryId = $this->resolveCountryId($profile);
-        if (!$countryId) $warnings[] = 'Country row was not found in the tenant countries catalogue.';
+        // Safe catalogue data can be materialized. This makes OMR real even on
+        // legacy tenant templates which never shipped an OMR currency row.
+        $foundation = (new TenantRegionalFoundationService())->ensure($profile);
+        if (!($foundation['ok'] ?? false)) {
+            throw new \RuntimeException('Regional country/currency foundation could not be prepared.');
+        }
 
+        $countryId = (int)($foundation['country']['country_id'] ?? 0) ?: null;
         $currencyCode = (string)$profile['currency']['code'];
-        $currencyAvailable = $this->currencyExists($currencyCode);
-        if (!$currencyAvailable) $warnings[] = 'Currency '.$currencyCode.' is not installed/enabled in this tenant.';
-
         $languageState = $this->resolveLanguages((array)$profile['languages']);
-        if (!empty($languageState['missing'])) {
+        if ($languageState['missing']) {
             $warnings[] = 'Market language packs not enabled: '.implode(', ', $languageState['missing']).'.';
         }
 
@@ -48,29 +49,29 @@ final class TenantPlatformProfileService
             $warnings[] = 'No default restaurant location was found; tenant defaults were still saved.';
         }
 
-        $frameworkSettings = [
+        $framework = [
             'timezone' => (string)$profile['timezone'],
             'default_language' => (string)$languageState['default'],
             'supported_languages' => array_values($languageState['enabled']),
+            'default_currency_code' => $currencyCode,
         ];
-        if ($countryId) $frameworkSettings['country_id'] = $countryId;
-        if ($currencyAvailable) $frameworkSettings['default_currency_code'] = $currencyCode;
+        if ($countryId) $framework['country_id'] = $countryId;
 
-        $this->saveFrameworkSettings($frameworkSettings, $warnings);
+        $this->saveFrameworkSettings($framework, $warnings);
         $this->persistPlatformMetadata($profile, $defaultLocationId, $languageState, $warnings);
         $this->disableForeignRegionalPaymentRows($countryCode);
 
-        $regionalCatalog = null;
+        $regionalCatalogue = null;
         try {
-            $regionalCatalog = (new TenantRegionalPaymentCatalogService($this->profiles))->ensureForCountry($countryCode);
+            $regionalCatalogue = (new TenantRegionalPaymentCatalogService($this->profiles))->ensureForCountry($countryCode);
         } catch (\Throwable $error) {
             $warnings[] = 'Regional payment catalogue could not be prepared: '.$error->getMessage();
         }
 
-        $providerCatalog = null;
+        $providerCatalogue = null;
         if ($countryCode === CountryPlatformProfileRegistry::OMAN) {
             try {
-                $providerCatalog = (new PaymobOmanTenantCatalogService())->ensureCurrentTenant(false);
+                $providerCatalogue = (new PaymobOmanTenantCatalogService())->ensureCurrentTenant(false);
             } catch (\Throwable $error) {
                 $warnings[] = 'Paymob Oman catalogue could not be prepared: '.$error->getMessage();
             }
@@ -86,11 +87,12 @@ final class TenantPlatformProfileService
             'timezone' => $profile['timezone'],
             'currency' => $profile['currency'],
             'languages' => $languageState,
+            'foundation' => $foundation,
             'payments' => [
                 'providers' => array_keys((array)$profile['payments']['providers']),
                 'methods' => array_keys((array)$profile['payments']['methods']),
-                'regional_catalogue' => $regionalCatalog,
-                'provider_catalogue' => $providerCatalog,
+                'regional_catalogue' => $regionalCatalogue,
+                'provider_catalogue' => $providerCatalogue,
             ],
             'terminals' => $profile['terminals'],
             'warnings' => $warnings,
@@ -107,33 +109,6 @@ final class TenantPlatformProfileService
         return $state;
     }
 
-    private function resolveCountryId(array $profile): ?int
-    {
-        if (!Schema::hasTable('countries')) return null;
-
-        $row = DB::table('countries')->where(function ($q) use ($profile) {
-            if (Schema::hasColumn('countries', 'iso_code_2')) {
-                $q->orWhereRaw('UPPER(iso_code_2) = ?', [strtoupper((string)$profile['country_code'])]);
-            }
-            if (Schema::hasColumn('countries', 'iso_code_3')) {
-                $q->orWhereRaw('UPPER(iso_code_3) = ?', [strtoupper((string)$profile['country_iso3'])]);
-            }
-            if (Schema::hasColumn('countries', 'country_name')) {
-                $q->orWhereRaw('LOWER(country_name) = ?', [strtolower((string)$profile['country_name'])]);
-            }
-        })->first();
-
-        return $row && isset($row->country_id) ? (int)$row->country_id : null;
-    }
-
-    private function currencyExists(string $currencyCode): bool
-    {
-        if (!Schema::hasTable('currencies') || !Schema::hasColumn('currencies', 'currency_code')) return false;
-        $query = DB::table('currencies')->whereRaw('UPPER(currency_code) = ?', [strtoupper($currencyCode)]);
-        if (Schema::hasColumn('currencies', 'currency_status')) $query->where('currency_status', 1);
-        return $query->exists();
-    }
-
     private function resolveLanguages(array $config): array
     {
         $eligible = array_values(array_unique(array_filter(array_map(
@@ -145,7 +120,9 @@ final class TenantPlatformProfileService
         if (Schema::hasTable('languages') && Schema::hasColumn('languages', 'code')) {
             $query = DB::table('languages')->whereIn('code', $eligible);
             if (Schema::hasColumn('languages', 'status')) $query->where('status', 1);
-            $enabled = $query->pluck('code')->map(static fn ($code) => strtolower((string)$code))->values()->all();
+            $enabled = $query->pluck('code')
+                ->map(static fn ($code) => strtolower((string)$code))
+                ->values()->all();
         }
 
         $preferred = strtolower(trim((string)($config['default'] ?? 'en')));
@@ -169,7 +146,9 @@ final class TenantPlatformProfileService
 
         try {
             $settingId = (int)setting('default_location_id', 0);
-            if ($settingId > 0 && DB::table('locations')->where('location_id', $settingId)->exists()) return $settingId;
+            if ($settingId > 0 && DB::table('locations')->where('location_id', $settingId)->exists()) {
+                return $settingId;
+            }
         } catch (\Throwable $ignored) {
         }
 
@@ -194,12 +173,8 @@ final class TenantPlatformProfileService
             $warnings[] = 'Framework settings manager warning: '.$error->getMessage();
         }
 
-        // Settings_model reads PHP-serialized arrays. Never replace an array
-        // framework setting (for example supported_languages) with JSON.
-        if (!Schema::hasTable('settings')) return;
         foreach ($settings as $item => $value) {
-            $encoded = is_array($value) ? serialize($value) : (string)$value;
-            DB::table('settings')->updateOrInsert(['item' => $item], ['value' => $encoded]);
+            $this->upsertSetting($item, $value, is_array($value));
         }
     }
 
@@ -237,8 +212,33 @@ final class TenantPlatformProfileService
                 $warnings[] = 'Could not encode platform metadata item '.$item.'.';
                 continue;
             }
-            DB::table('settings')->updateOrInsert(['item' => $item], ['value' => (string)$value]);
+            $this->upsertSetting($item, (string)$value, false);
         }
+    }
+
+    /**
+     * Match TastyIgniter's real settings storage contract:
+     * unique key = sort + item, arrays are PHP-serialized, and the serialized
+     * column is populated when present. This also supports newer schemas where
+     * some of those legacy columns may have been removed.
+     */
+    private function upsertSetting(string $item, $value, bool $serialized): void
+    {
+        if (!Schema::hasTable('settings')) return;
+        $columns = Schema::getColumnListing('settings');
+
+        $where = ['item' => $item];
+        if (in_array('sort', $columns, true)) $where['sort'] = 'config';
+
+        $payload = [
+            'value' => $serialized ? serialize($value) : (string)$value,
+        ];
+        if (in_array('serialized', $columns, true)) $payload['serialized'] = $serialized ? 1 : 0;
+        if (in_array('updated_at', $columns, true)) $payload['updated_at'] = now();
+        if (in_array('date_updated', $columns, true)) $payload['date_updated'] = now();
+
+        if (in_array('sort', $columns, true)) $payload['sort'] = 'config';
+        DB::table('settings')->updateOrInsert($where, $payload);
     }
 
     private function disableForeignRegionalPaymentRows(string $countryCode): void
@@ -247,13 +247,14 @@ final class TenantPlatformProfileService
             $model = new Payments_model();
             $table = $model->getTable();
             $connection = $model->getConnection();
-            if (!$connection->getSchemaBuilder()->hasTable($table)) return;
+            $schema = $connection->getSchemaBuilder();
+            if (!$schema->hasTable($table)) return;
 
             $foreignCodes = $countryCode === CountryPlatformProfileRegistry::OMAN
                 ? ['de_card', 'de_apple_pay', 'de_google_pay', 'de_wero', 'de_paypal', 'de_cash']
                 : ['om_card', 'om_omannet', 'om_apple_pay', 'om_google_pay', 'om_cash', 'paymob'];
 
-            $columns = $connection->getSchemaBuilder()->getColumnListing($table);
+            $columns = $schema->getColumnListing($table);
             if (!in_array('status', $columns, true)) return;
             $connection->table($table)->whereIn('code', $foreignCodes)->update(['status' => 0]);
         } catch (\Throwable $error) {
