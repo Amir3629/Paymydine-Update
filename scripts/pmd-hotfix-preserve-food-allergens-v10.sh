@@ -49,7 +49,7 @@ if text.count(validation_anchor) != 1:
 text = text.replace(validation_anchor, validation_replacement, 1)
 
 ids_anchor = "        $allergenIds = array_values(array_unique(array_map('intval', (array)($clean['allergen_ids'] ?? []))));\n"
-ids_replacement = ids_anchor + "        // PMD_MENU_ALLERGEN_PRESERVE_ON_MISSING_V10\n        // Missing field is not permission to erase persisted allergen relations.\n        // The active PMD Menu form sends allergen_ids_present=1 so an intentional\n        // all-unchecked state still clears relations explicitly.\n        $allergenIdsPresent = filter_var(\n            $clean['allergen_ids_present'] ?? false,\n            FILTER_VALIDATE_BOOLEAN\n        );\n"
+ids_replacement = ids_anchor + "        // PMD_MENU_ALLERGEN_PRESERVE_ON_MISSING_V10\n        // Missing field is not permission to erase persisted allergen relations.\n        // The active PMD Menu form sends allergen_ids_present=1 so an intentional\n        // all-unchecked state still clears relations explicitly. Older callers that\n        // actually send allergen_ids remain compatible even without the new marker.\n        $allergenIdsPresent = filter_var(\n            $clean['allergen_ids_present'] ?? false,\n            FILTER_VALIDATE_BOOLEAN\n        ) || request()->has('allergen_ids');\n"
 if text.count(ids_anchor) != 1:
     raise SystemExit('ERROR=Allergen ID normalization anchor mismatch')
 text = text.replace(ids_anchor, ids_replacement, 1)
@@ -61,7 +61,7 @@ if text.count(use_anchor) != 1:
 text = text.replace(use_anchor, use_replacement, 1)
 
 sync_anchor = "                $menu->addMenuCategories($categoryIds);\n                $menu->addMenuAllergens($allergenIds);\n"
-sync_replacement = "                $menu->addMenuCategories($categoryIds);\n\n                if ($allergenIdsPresent) {\n                    // Explicit active-form ownership: selected IDs sync; an\n                    // explicit empty selection intentionally clears all.\n                    $menu->addMenuAllergens($allergenIds);\n                } elseif ($menuId) {\n                    // Legacy/partial callers may omit allergen_ids entirely.\n                    // Preserve persisted relations instead of sync([]).\n                    \\Log::warning('PMD_MENU_ALLERGEN_SYNC_SKIPPED_MISSING_MARKER_V10', [\n                        'menu_id' => (int)$menuId,\n                        'path' => request()->path(),\n                        'handler' => (string)request()->header('X-IGNITER-REQUEST-HANDLER', ''),\n                    ]);\n                }\n"
+sync_replacement = "                $menu->addMenuCategories($categoryIds);\n\n                if ($allergenIdsPresent) {\n                    // Explicit ownership: selected IDs sync; the active form's\n                    // explicit all-unchecked marker intentionally clears all.\n                    $menu->addMenuAllergens($allergenIds);\n                } elseif ($menuId) {\n                    // Legacy/partial callers may omit allergen_ids entirely.\n                    // Preserve persisted relations instead of sync([]).\n                    \\Log::warning('PMD_MENU_ALLERGEN_SYNC_SKIPPED_MISSING_MARKER_V10', [\n                        'menu_id' => (int)$menuId,\n                        'path' => request()->path(),\n                        'handler' => (string)request()->header('X-IGNITER-REQUEST-HANDLER', ''),\n                    ]);\n                }\n"
 if text.count(sync_anchor) != 1:
     raise SystemExit('ERROR=Allergen sync anchor mismatch')
 text = text.replace(sync_anchor, sync_replacement, 1)
@@ -104,6 +104,7 @@ echo "[2/5] Validating candidates before ANY write..."
 php -l "$TMP/Menus.php"
 grep -Fq 'PMD_MENU_ALLERGEN_PRESERVE_ON_MISSING_V10' "$TMP/Menus.php"
 grep -Fq "'allergen_ids_present' => ['nullable', 'boolean']" "$TMP/Menus.php"
+grep -Fq "request()->has('allergen_ids')" "$TMP/Menus.php"
 grep -Fq 'if ($allergenIdsPresent)' "$TMP/Menus.php"
 grep -Fq 'PMD_MENU_ALLERGEN_SYNC_SKIPPED_MISSING_MARKER_V10' "$TMP/Menus.php"
 grep -Fq 'name="allergen_ids_present" value="1"' "$TMP/modal.blade.php"
@@ -125,10 +126,12 @@ done
 echo "[4/5] Verifying live save contract..."
 grep -Fq 'PMD_MENU_ALLERGEN_PRESERVE_ON_MISSING_V10' "$CONTROLLER"
 grep -Fq "'allergen_ids_present' => ['nullable', 'boolean']" "$CONTROLLER"
+grep -Fq "request()->has('allergen_ids')" "$CONTROLLER"
 grep -Fq 'if ($allergenIdsPresent)' "$CONTROLLER"
 grep -Fq 'name="allergen_ids_present" value="1"' "$MODAL"
 echo "ALLERGEN_MISSING_FIELD_PRESERVE_OK=1"
 echo "ALLERGEN_EXPLICIT_CLEAR_CONTRACT_OK=1"
+echo "ALLERGEN_LEGACY_SELECTED_IDS_COMPAT_OK=1"
 
 echo "[5/5] Read-only code assertions..."
 python3 - "$CONTROLLER" "$MODAL" <<'PY'
@@ -139,6 +142,7 @@ modal = Path(sys.argv[2]).read_text(encoding='utf-8')
 print('CONTROLLER_MARKER=' + ('1' if 'PMD_MENU_ALLERGEN_PRESERVE_ON_MISSING_V10' in controller else '0'))
 print('FORM_MARKER=' + ('1' if 'name="allergen_ids_present" value="1"' in modal else '0'))
 print('GUARDED_SYNC=' + ('1' if 'if ($allergenIdsPresent)' in controller else '0'))
+print('LEGACY_IDS_COMPAT=' + ('1' if "request()->has('allergen_ids')" in controller else '0'))
 print('READ_ONLY_ASSERTIONS_OK=1')
 PY
 
