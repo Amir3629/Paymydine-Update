@@ -71,22 +71,65 @@ try {
         $currency = DB::table('currencies')->whereRaw('UPPER(currency_code) = ?', ['OMR'])->first();
     }
 
+    $requiredRegionalCodes = [
+        'paymob',
+        'om_card',
+        'om_omannet',
+        'om_apple_pay',
+        'om_google_pay',
+        'om_cash',
+    ];
+
+    // These are never valid active provider/method rows for an Oman online
+    // market. `cash`/`cod` are deliberately excluded from this foreign list:
+    // the R4 Oman Cash bridge may reuse one providerless canonical cash row.
+    $foreignCodes = [
+        'stripe',
+        'worldline',
+        'sumup',
+        'square',
+        'vr_payment',
+        'card',
+        'apple_pay',
+        'google_pay',
+        'wero',
+        'paypal',
+        'de_card',
+        'de_apple_pay',
+        'de_google_pay',
+        'de_wero',
+        'de_paypal',
+        'de_cash',
+    ];
+
     $paymentRows = [];
+    $paymentMap = [];
     $paymobSafe = null;
+    $paymentTable = null;
+
     try {
         $model = new Payments_model();
-        $table = $model->getTable();
+        $paymentTable = $model->getTable();
         $connection = $model->getConnection();
-        if ($connection->getSchemaBuilder()->hasTable($table)) {
-            $codes = ['paymob', 'om_card', 'om_omannet', 'om_apple_pay', 'om_google_pay', 'om_cash', 'card', 'apple_pay', 'google_pay', 'cash', 'cod'];
-            $rows = $connection->table($table)->whereIn('code', $codes)->orderBy('code')->get();
+        if ($connection->getSchemaBuilder()->hasTable($paymentTable)) {
+            $codes = array_values(array_unique(array_merge(
+                $requiredRegionalCodes,
+                $foreignCodes,
+                ['cash', 'cod']
+            )));
+
+            $rows = $connection->table($paymentTable)->whereIn('code', $codes)->orderBy('code')->get();
             foreach ($rows as $row) {
-                $paymentRows[] = [
+                $item = [
                     'code' => (string)($row->code ?? ''),
                     'name' => (string)($row->name ?? ''),
                     'enabled' => (bool)($row->status ?? false),
-                    'provider_code' => isset($row->provider_code) && trim((string)$row->provider_code) !== '' ? (string)$row->provider_code : null,
+                    'provider_code' => isset($row->provider_code) && trim((string)$row->provider_code) !== ''
+                        ? (string)$row->provider_code
+                        : null,
                 ];
+                $paymentRows[] = $item;
+                $paymentMap[$item['code']] = $item;
             }
 
             $paymob = Payments_model::query()->where('code', 'paymob')->first();
@@ -99,6 +142,32 @@ try {
     } catch (\Throwable $error) {
         $paymentRows = [['error' => $error->getMessage()]];
     }
+
+    $missingRegional = array_values(array_filter(
+        $requiredRegionalCodes,
+        static fn (string $code): bool => !isset($paymentMap[$code])
+    ));
+
+    $foreignEnabled = array_values(array_map(
+        static fn (array $row): string => (string)$row['code'],
+        array_filter(
+            array_values($paymentMap),
+            static fn (array $row): bool => in_array((string)$row['code'], $foreignCodes, true)
+                && (bool)$row['enabled']
+        )
+    ));
+
+    $regionalEnabled = array_values(array_map(
+        static fn (array $row): string => (string)$row['code'],
+        array_filter(
+            array_values($paymentMap),
+            static fn (array $row): bool => in_array((string)$row['code'], $requiredRegionalCodes, true)
+                && (bool)$row['enabled']
+        )
+    ));
+
+    $paymobExists = isset($paymentMap['paymob']);
+    $paymobProviderEnabled = (bool)($paymentMap['paymob']['enabled'] ?? false);
 
     $report = [
         'tenant' => [
@@ -124,7 +193,21 @@ try {
             'enabled' => (bool)($currency->currency_status ?? false),
             'iso_numeric' => (int)($currency->iso_numeric ?? 0),
         ] : ['exists' => false],
+        'payment_isolation' => [
+            'table' => $paymentTable,
+            'required_regional_codes' => $requiredRegionalCodes,
+            'missing_regional' => $missingRegional,
+            'foreign_enabled' => $foreignEnabled,
+            'regional_enabled' => $regionalEnabled,
+            'paymob_exists' => $paymobExists,
+            // R4 intentionally expects false until checkout/callback settlement
+            // is completed and sandbox verified.
+            'paymob_provider_enabled' => $paymobProviderEnabled,
+            'paymob_guest_runtime_expected_locked' => true,
+        ],
         'payments' => $paymentRows,
+        // No secret value is present here. Only non-secret fields and booleans
+        // indicating whether a secret is stored.
         'paymob_admin_safe' => $paymobSafe,
     ];
 
@@ -135,10 +218,20 @@ try {
         && (string)($settings['timezone'] ?? '') === 'Asia/Muscat'
         && strtoupper((string)($settings['default_currency_code'] ?? '')) === 'OMR'
         && ($currency !== null)
+        && strtoupper((string)($currency->currency_code ?? '')) === 'OMR'
         && (int)($currency->decimal_position ?? 0) === 3
-        && (bool)($currency->currency_status ?? false);
+        && (bool)($currency->currency_status ?? false)
+        && $paymobExists
+        && $missingRegional === []
+        && $foreignEnabled === []
+        // Until the guarded settlement runtime is released, Paymob must not be
+        // enabled for guests merely because credentials/catalogue exist.
+        && $paymobProviderEnabled === false;
 
-    echo $ok ? "\nMARKET AUDIT: OK (Oman)\n" : "\nMARKET AUDIT: CHECK REQUIRED\n";
+    echo $ok
+        ? "\nMARKET AUDIT: OK (Oman isolated; Paymob guest runtime locked)\n"
+        : "\nMARKET AUDIT: CHECK REQUIRED\n";
+
     exit($ok ? 0 : 1);
 } finally {
     Config::set('database.connections.mysql.database', $centralDatabase);
