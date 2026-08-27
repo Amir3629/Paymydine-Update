@@ -212,10 +212,30 @@
         var modal = $('[data-pos-payment-modal]');
         if (!modal) return;
 
+        state.payment.open = true;
+
         if (cashierMode) {
-          modal.classList.add(
+          // PMD_R77_CASHIER_PAYMENT_RENDER_BEFORE_SHOW
+          // Build the complete Cashier payment UI while the modal is closed.
+          // The user sees one finished frame instead of hidden -> mounted ->
+          // rendered -> requestAnimationFrame reveal.
+          modal.classList.remove(
+            'is-show',
             'pmd-payment-is-preparing'
           );
+          modal.setAttribute(
+            'aria-hidden',
+            'true'
+          );
+
+          await loadPaymentSummary(true);
+
+          modal.classList.add('is-show');
+          modal.setAttribute(
+            'aria-hidden',
+            'false'
+          );
+          return;
         }
 
         modal.classList.add('is-show');
@@ -224,19 +244,7 @@
           'false'
         );
 
-        state.payment.open = true;
-
         await loadPaymentSummary(true);
-
-        if (cashierMode) {
-          window.requestAnimationFrame(
-            function () {
-              modal.classList.remove(
-                'pmd-payment-is-preparing'
-              );
-            }
-          );
-        }
       }
 
       function closePayment() {

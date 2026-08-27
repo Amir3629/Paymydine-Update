@@ -445,6 +445,227 @@ Route::get('admin/orders/split-receipt/{transactionId}', function ($transactionI
     ]);
 });
 
+// PMD_SPLIT_INVOICE_GERMANY_R71
+// Customer-facing German split invoice over the canonical payment transaction.
+Route::get('admin/orders/split-invoice/{transactionId}', function ($transactionId) {
+    if (!\Illuminate\Support\Facades\Schema::hasTable('order_payment_transactions')
+        || !\Illuminate\Support\Facades\Schema::hasTable('order_payment_transaction_items')) {
+        abort(404, 'Split invoice is not available');
+    }
+
+    $transactionId = (int)$transactionId;
+
+    $transaction = \Illuminate\Support\Facades\DB::table(
+        'order_payment_transactions'
+    )
+        ->where('id', $transactionId)
+        ->first();
+
+    if (!$transaction) {
+        abort(404, 'Transaction not found');
+    }
+
+    $order = \Illuminate\Support\Facades\DB::table('orders')
+        ->where('order_id', (int)$transaction->order_id)
+        ->first();
+
+    $tableName = null;
+
+    if ($order && is_numeric($order->order_type ?? null)) {
+        $tableRow = \Illuminate\Support\Facades\DB::table('tables')
+            ->where('table_id', (int)$order->order_type)
+            ->first();
+
+        if ($tableRow) {
+            $tableName = $tableRow->table_name
+                ?: ('Table '.$tableRow->table_no);
+        }
+    }
+
+    if (!$tableName) {
+        $tableName = (string)($order->order_type ?? '');
+    }
+
+    $allocationMeta = pmdResolveSplitAllocationColumn();
+    $allocationColumn = (string)$allocationMeta['column'];
+    $allocationMode = (string)$allocationMeta['mode'];
+
+    $allocationColumns =
+        \Illuminate\Support\Facades\Schema::getColumnListing(
+            'order_payment_transaction_items'
+        );
+
+    $transactionColumn = in_array(
+        'transaction_id',
+        $allocationColumns,
+        true
+    )
+        ? 'transaction_id'
+        : (
+            in_array(
+                'payment_transaction_id',
+                $allocationColumns,
+                true
+            )
+                ? 'payment_transaction_id'
+                : null
+        );
+
+    if (!$transactionColumn) {
+        abort(
+            500,
+            'Invoice allocation transaction column is unavailable'
+        );
+    }
+
+    /*
+     * Do not use SQL aliases here.
+     * Tenant table prefixes can rewrite builder aliases and leave raw
+     * identifiers pointing at a different name.
+     */
+    $allocationRows =
+        \Illuminate\Support\Facades\DB::table(
+            'order_payment_transaction_items'
+        )
+            ->where($transactionColumn, $transactionId)
+            ->get();
+
+    $items = $allocationRows
+        ->map(function ($row) use (
+            $allocationColumn,
+            $allocationMode,
+            $transaction
+        ) {
+            $data = (array)$row;
+
+            $allocationKey = (int)(
+                $data[$allocationColumn] ?? 0
+            );
+
+            $menu = null;
+
+            if ($allocationKey > 0) {
+                $menuQuery =
+                    \Illuminate\Support\Facades\DB::table(
+                        'order_menus'
+                    )
+                        ->where(
+                            'order_id',
+                            (int)$transaction->order_id
+                        );
+
+                if ($allocationMode === 'menu_id_legacy') {
+                    $menuQuery->where(
+                        'menu_id',
+                        $allocationKey
+                    );
+                } else {
+                    $menuQuery->where(
+                        'order_menu_id',
+                        $allocationKey
+                    );
+                }
+
+                $menu = $menuQuery->first();
+            }
+
+            $quantity = (float)(
+                $data['quantity_paid']
+                ?? $data['quantity']
+                ?? $data['qty']
+                ?? 0
+            );
+
+            if ($quantity <= 0) {
+                $quantity = 1.0;
+            }
+
+            $unitPrice = null;
+
+            foreach (['unit_price', 'price'] as $field) {
+                if (
+                    array_key_exists($field, $data)
+                    && is_numeric($data[$field])
+                ) {
+                    $unitPrice = (float)$data[$field];
+                    break;
+                }
+            }
+
+            if ($unitPrice === null && $menu) {
+                $menuQuantity = (float)(
+                    $menu->quantity ?? 0
+                );
+
+                $menuSubtotal = (float)(
+                    $menu->subtotal ?? 0
+                );
+
+                $unitPrice = $menuQuantity > 0
+                    ? round(
+                        $menuSubtotal / $menuQuantity,
+                        4
+                    )
+                    : (float)($menu->price ?? 0);
+            }
+
+            $unitPrice = (float)($unitPrice ?? 0);
+
+            $lineTotal = null;
+
+            foreach (['line_total', 'amount'] as $field) {
+                if (
+                    array_key_exists($field, $data)
+                    && is_numeric($data[$field])
+                ) {
+                    $lineTotal = (float)$data[$field];
+                    break;
+                }
+            }
+
+            if ($lineTotal === null) {
+                $lineTotal = round(
+                    $unitPrice * $quantity,
+                    4
+                );
+            }
+
+            return (object)[
+                'allocation_key' => $allocationKey,
+                'quantity_paid' => $quantity,
+                'unit_price' => $unitPrice,
+                'line_total' => (float)$lineTotal,
+                'name' => (string)(
+                    $menu->name ?? 'Item'
+                ),
+                'order_menu_id' => (int)(
+                    $menu->order_menu_id ?? (
+                        $allocationMode === 'menu_id_legacy'
+                            ? 0
+                            : $allocationKey
+                    )
+                ),
+                'menu_id' => (int)(
+                    $menu->menu_id ?? (
+                        $allocationMode === 'menu_id_legacy'
+                            ? $allocationKey
+                            : 0
+                    )
+                ),
+            ];
+        })
+        ->values();
+
+    return view('admin::orders.split_receipt', [
+        'invoiceMode' => true,
+        'transaction' => $transaction,
+        'order' => $order,
+        'tableName' => $tableName,
+        'items' => $items,
+    ]);
+});
+
+
 // PMD_CASHIER_INLINE_CANONICAL_INVOICE_R37C
 // Thin Admin transport adapter only.
 // Visual/data authority remains admin::orders.customer_invoice.

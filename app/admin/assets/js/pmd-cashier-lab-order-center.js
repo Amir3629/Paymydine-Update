@@ -123,6 +123,18 @@
         return;
       }
 
+      if (type === 'composer-open') {
+        event.preventDefault();
+        openCashierComposerR73(false);
+        return;
+      }
+
+      if (type === 'composer-payment') {
+        event.preventDefault();
+        openCashierComposerR73(true);
+        return;
+      }
+
       if (type === 'items') {
         event.preventDefault();
         openPos('items');
@@ -207,6 +219,49 @@
       state.trigger.focus();
     }
   }
+
+  // PMD_R73_ORDER_CENTER_SINGLE_CLICK_OWNER
+  function openCashierComposerR73(openPaymentAfter) {
+    var api = window.PMDCashierOrderComposerV1;
+
+    if (!api || typeof api.openEdit !== 'function') {
+      renderError(new Error('Cashier Order Composer is unavailable.'));
+      return;
+    }
+
+    var orderId = Number(state.orderId || 0);
+    if (!orderId) return;
+
+    var opening;
+
+    try {
+      // openEdit reveals the native Composer shell before its first await.
+      // Start it first, then hide Order Center: no blank-frame blink.
+      opening = Promise.resolve(api.openEdit(orderId));
+    } catch (error) {
+      renderError(error);
+      return;
+    }
+
+    closeCenter();
+
+    opening.then(function (opened) {
+      if (!opened || !openPaymentAfter) return;
+
+      // Reuse the Composer's own primary action. With an active unpaid/partial
+      // order and no unsent cart, that canonical action is Pay.
+      var primary = document.querySelector(
+        '#pmd-cashier-order-composer-v1 [data-coc-primary]'
+      );
+
+      if (primary && !primary.disabled) {
+        primary.click();
+      }
+    }).catch(function (error) {
+      console.error('[PMD R73] Composer transition failed', error);
+    });
+  }
+
 
   function renderLoading() {
     var body = ensureShell().querySelector('[data-pmd-r37-body]');
@@ -300,6 +355,9 @@
       + Math.abs(amount).toFixed(2);
   }
 
+  // PMD_R72_CASHIER_VERTICAL_ORDER_REVIEW
+  // R71 made split invoices the customer-facing document. Keep the old
+  // function name only as an internal compatibility shim for R37 callers.
   function latestReceiptUrl() {
     var transactions =
       state.payment
@@ -308,10 +366,21 @@
         : [];
 
     var row = transactions.find(function (transaction) {
-      return transaction && transaction.receipt_url;
+      return transaction && (transaction.invoice_url || transaction.receipt_url);
     });
 
-    return row ? String(row.receipt_url) : '';
+    if (!row) return '';
+
+    var url = String(row.invoice_url || row.receipt_url || '');
+
+    if (url.indexOf('/admin/orders/split-receipt/') >= 0) {
+      url = url.replace(
+        '/admin/orders/split-receipt/',
+        '/admin/orders/split-invoice/'
+      );
+    }
+
+    return url;
   }
 
   function parseVoidAudit(value) {
@@ -1293,20 +1362,15 @@
     var canOpenPos = !!tableKey;
     var receiptUrl = latestReceiptUrl();
 
-    footer.innerHTML = [
-      '<button type="button" ',
-        'class="pmd-cashier-order-center__action" ',
-        'data-pmd-r37-action="refresh">',
-        'Refresh',
-      '</button>',
+    var canOpenComposer = !paidComplete;
 
-      canOpenPos
-      && itemsMutable
+    footer.innerHTML = [
+      canOpenComposer
         ? [
             '<button type="button" ',
-              'class="pmd-cashier-order-center__action" ',
-              'data-pmd-r37-action="items">',
-              'Add / increase items',
+              'class="pmd-cashier-order-center__action is-primary" ',
+              'data-pmd-r37-action="composer-open">',
+              'Open order',
             '</button>'
           ].join('')
         : '',
@@ -1316,18 +1380,8 @@
         ? [
             '<button type="button" ',
               'class="pmd-cashier-order-center__action is-payment" ',
-              'data-pmd-r37-action="payment">',
+              'data-pmd-r37-action="composer-payment">',
               'Take payment',
-            '</button>'
-          ].join('')
-        : '',
-
-      receiptUrl
-        ? [
-            '<button type="button" ',
-              'class="pmd-cashier-order-center__action" ',
-              'data-pmd-r37-action="receipt">',
-              'Receipt',
             '</button>'
           ].join('')
         : '',
@@ -1337,6 +1391,16 @@
             '<button type="button" ',
               'class="pmd-cashier-order-center__action is-primary" ',
               'data-pmd-r37-action="invoice">',
+              'Final invoice',
+            '</button>'
+          ].join('')
+        : '',
+
+      receiptUrl
+        ? [
+            '<button type="button" ',
+              'class="pmd-cashier-order-center__action" ',
+              'data-pmd-r37-action="receipt">',
               'Invoice',
             '</button>'
           ].join('')
@@ -1425,11 +1489,7 @@
     state.documentKind = kind;
 
     title.textContent =
-      (
-        isReceipt
-          ? 'Receipt'
-          : 'Invoice'
-      )
+      (isReceipt ? 'Invoice' : 'Final invoice')
       + ' · Order #'
       + state.orderId;
 
@@ -1441,8 +1501,8 @@
         '<div>',
           '<strong>Loading ',
             isReceipt
-              ? 'receipt'
-              : 'invoice',
+              ? 'invoice'
+              : 'final invoice',
             '…',
           '</strong>',
           '<br>',
@@ -1462,7 +1522,7 @@
       '<button type="button" ',
         'class="pmd-cashier-order-center__action is-primary" ',
         'data-pmd-r37-action="document-print" disabled>',
-        'Print / reprint',
+        'Print invoice',
       '</button>',
       '<button type="button" ',
         'class="pmd-cashier-order-center__action" ',
@@ -1506,8 +1566,8 @@
         'pmd-cashier-order-center__document-frame';
 
       frame.title = isReceipt
-        ? 'Receipt preview'
-        : 'Invoice preview';
+        ? 'Invoice preview'
+        : 'Final invoice preview';
 
       frame.setAttribute(
         'sandbox',
@@ -1536,8 +1596,8 @@
           '<div>',
             '<strong>',
               isReceipt
-                ? 'Receipt could not be loaded.'
-                : 'Invoice could not be loaded.',
+                ? 'Invoice could not be loaded.'
+                : 'Final invoice could not be loaded.',
             '</strong>',
             '<br>',
             '<small>',

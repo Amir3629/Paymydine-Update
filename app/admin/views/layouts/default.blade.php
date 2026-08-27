@@ -457,7 +457,7 @@ html.pmd-new-pages-antiflash-v40:not(.pmd-new-pages-antiflash-rendered-v40):not(
 
 
 <!-- PMD_OVERLAY_SINGLE_VISUAL_PLANE_V4 -->
-<script id="pmd-overlay-single-visual-plane-v4-script" src="/app/admin/assets/js/pmd-overlay-single-visual-plane-v4.js?v=20260826-console-proven-v4"></script>
+<script id="pmd-overlay-single-visual-plane-v4-script" src="/app/admin/assets/js/pmd-overlay-single-visual-plane-v4.js?v=20260826-r76-cashier-payment-stable"></script>
 <!-- /PMD_OVERLAY_SINGLE_VISUAL_PLANE_V4 -->
 </body>
 </html>

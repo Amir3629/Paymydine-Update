@@ -14,7 +14,6 @@
 
   module.install = function (ctx) {
     var api = originalInstall(ctx);
-    var originalOpenPayment = api.openPayment;
     var originalRender = api.renderPayment;
     var originalBind = api.bindPayment;
     var root = ctx.root;
@@ -376,24 +375,9 @@
       simplifyCashierPresentation();
     }
 
-    // V3 intentionally opens the modal before it fetches the fresh settlement
-    // summary. On a fast screen that creates one visible frame of unrendered
-    // payment markup. Keep the modal invisible until the first authoritative
-    // summary/render cycle has completed, then reveal it on the next paint.
-    api.openPayment = async function () {
-      var modal = root.querySelector('[data-pos-payment-modal]');
-      if (modal) modal.classList.add('pmd-payment-is-preparing');
-
-      try {
-        return await originalOpenPayment();
-      } finally {
-        if (modal) {
-          window.requestAnimationFrame(function () {
-            modal.classList.remove('pmd-payment-is-preparing');
-          });
-        }
-      }
-    };
+    // PMD_R75_PAYMENT_OPEN_SINGLE_OWNER
+    // Payment V3 owns the preparing/reveal lifecycle. This policy
+    // only normalizes and presents the DOM after V3 renders it.
 
     api.renderPayment = function () {
       normalizeStaffFlow();

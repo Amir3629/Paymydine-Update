@@ -8403,6 +8403,13 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
 </script>
 <!-- PMD_SETTINGS_FAMILY_HEADER_V18_PREBOOT_END -->
 
+<!-- PMD_ADMIN_PRIMARY_DARK_GREEN_AUTHORITY_V2 -->
+<link
+    rel="stylesheet"
+    id="pmd-admin-primary-dark-green-authority-v2"
+    href="/app/admin/assets/css/pmd-admin-primary-dark-green-authority-v2.css?v=20260826-dark-green-authority-v2"
+>
+<!-- /PMD_ADMIN_PRIMARY_DARK_GREEN_AUTHORITY_V2 -->
 </head>
 <script>
     // SMART FIX: Force dropdown alignment WITHOUT breaking Bootstrap animations
@@ -9323,7 +9330,7 @@ html.pmd-waiter-dashboard-active
 <!-- PMD_OVERLAY_CONSOLE_PROVEN_REAL_ADMIN_LAYOUT_V4 -->
 <script
     id="pmd-overlay-single-visual-plane-v4-script"
-    src="/app/admin/assets/js/pmd-overlay-single-visual-plane-v4.js?v=20260826-console-proven-real-layout"
+    src="/app/admin/assets/js/pmd-overlay-single-visual-plane-v4.js?v=20260826-console-proven-modal-chrome-dark-green-v1"
 ></script>
 <!-- /PMD_OVERLAY_CONSOLE_PROVEN_REAL_ADMIN_LAYOUT_V4 -->
 </body>

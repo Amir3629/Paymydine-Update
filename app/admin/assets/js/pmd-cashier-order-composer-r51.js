@@ -352,7 +352,7 @@
       );
       // PMD_CASHIER_R60D_PAYMENT_CSS_OWNER
       ensureStyle(
-        '/app/admin/assets/css/pmd-cashier-payment-clean-v1.css?v=20260826-r67h',
+        '/app/admin/assets/css/pmd-cashier-payment-clean-v1.css?v=20260827-r80-workspace-fit',
         'data-pmd-coc-payment-clean-style'
       );
 
@@ -365,7 +365,7 @@
       try {
         await loadFreshScript(
           '/app/admin/assets/js/pmd-waiter-pos-payment-v3.js',
-          'cashier-payment-v3-r67h-20260826'
+          'cashier-payment-v3-r77-20260826'
         );
       } finally {
         try {
@@ -389,7 +389,7 @@
 
       await loadFreshScript(
         '/app/admin/assets/js/pmd-waiter-pos-payment-policy-v2.js',
-        'cashier-payment-policy-r67h-20260826'
+        'cashier-payment-policy-r75-20260826'
       );
 
       if (!window.PMDWaiterPOSPaymentV2.__pmdPolicyWrapped) {
@@ -3160,25 +3160,34 @@
     return 'Unpaid';
   }
 
+  // PMD_R71_GERMANY_INVOICE_ONLY
+  // Visible document = Invoice. receipt_url remains a hidden compatibility /
+  // audit pointer; the Cashier follows the split-invoice alias.
   function pmdR69ReceiptLinks(snapshot) {
     return snapshot.transactions
       .filter(function (tx) {
-        return !!(tx && tx.receipt_url);
+        return !!(tx && (tx.invoice_url || tx.receipt_url));
       })
-      .slice(0, 2)
+      .slice(0, 6)
       .map(function (tx, index) {
         var amount = num(tx.amount, 0);
         var method = String(
           tx.payment_method || tx.method || 'Payment'
         ).replace(/_/g, ' ');
-
+        var invoiceUrl = String(tx.invoice_url || tx.receipt_url || '');
+        if (invoiceUrl.indexOf('/admin/orders/split-receipt/') >= 0) {
+          invoiceUrl = invoiceUrl.replace(
+            '/admin/orders/split-receipt/',
+            '/admin/orders/split-invoice/'
+          );
+        }
         var label =
-          'Receipt ' + (index + 1) +
+          'Invoice ' + (index + 1) +
           (amount > 0 ? ' · ' + money(amount) : '');
 
         return [
           '<a class="pmd-coc__settlement-receipt" ',
-            'href="', esc(tx.receipt_url), '" ',
+            'href="', esc(invoiceUrl), '" ',
             'target="_blank" rel="noopener noreferrer">',
             '<span>', esc(method), '</span>',
             '<b>', esc(label), '</b>',
@@ -3188,9 +3197,6 @@
       .join('');
   }
 
-  // PMD_R70_CASHIER_COMPACT_SETTLEMENT_SWITCHER
-  // Keep financial context tiny in the order rail. Unpaid orders need no
-  // extra card; partial/paid orders get a small Balance/Receipts switcher.
   function renderSettlementReview() {
     var snapshot = pmdR69SettlementSnapshot();
     var ledger = rootQuery('[data-coc-payment-ledger]');
@@ -3309,7 +3315,7 @@
         receipts.length > 0
           ? '<button type="button" class="pmd-coc__settlement-switch-action' +
               (mode === 'receipts' ? ' is-active' : '') +
-              '" data-coc-settlement-view="receipts">Receipts</button>'
+              '" data-coc-settlement-view="receipts">Invoices</button>'
           : '',
         invoiceAction,
       '</div>',

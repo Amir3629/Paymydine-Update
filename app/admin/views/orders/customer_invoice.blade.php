@@ -68,9 +68,47 @@
         $siteLogoPath = $resolveLogoPath($pmdSetting('site_logo'));
         $dashboardLogoPath = $resolveLogoPath($pmdSetting('dashboard_logo'));
         $logoPath = $invoiceLogoPath !== '' ? $invoiceLogoPath : ($siteLogoPath !== '' ? $siteLogoPath : $dashboardLogoPath);
+        // PMD_R71_EMBEDDED_INVOICE_LOGO
+        $embedInvoiceLogo = function ($path) {
+            $path = trim((string)$path);
+            if ($path === '' || preg_match('#^https?://#i', $path)) return '';
+            $clean = preg_replace('~[?#].*$~', '', $path);
+            $relative = $clean;
+            if (strpos($relative, '/api/media/') === 0) {
+                $relative = substr($relative, strlen('/api/media/'));
+            }
+            $relative = ltrim($relative, '/');
+            $base = base_path('assets/media/attachments/public');
+            $candidate = $base.'/'.$relative;
+            if (!is_file($candidate)) {
+                $name = basename($relative);
+                if ($name !== '' && is_dir($base)) {
+                    try {
+                        $it = new RecursiveIteratorIterator(
+                            new RecursiveDirectoryIterator($base, RecursiveDirectoryIterator::SKIP_DOTS)
+                        );
+                        foreach ($it as $file) {
+                            if ($file->isFile() && $file->getFilename() === $name) {
+                                $candidate = $file->getPathname();
+                                break;
+                            }
+                        }
+                    } catch (\Throwable $e) {}
+                }
+            }
+            if (!is_file($candidate) || !is_readable($candidate)) return '';
+            $mime = @mime_content_type($candidate) ?: 'image/png';
+            $bytes = @file_get_contents($candidate);
+            if ($bytes === false || $bytes === '') return '';
+            return 'data:'.$mime.';base64,'.base64_encode($bytes);
+        };
+
         $logoUrl = '';
         if ($logoPath !== '') {
-            $logoUrl = preg_match('#^https?://#i', $logoPath) ? $logoPath : uploads_url($logoPath);
+            $embeddedLogo = $embedInvoiceLogo($logoPath);
+            $logoUrl = $embeddedLogo !== ''
+                ? $embeddedLogo
+                : (preg_match('#^https?://#i', $logoPath) ? $logoPath : uploads_url($logoPath));
         }
     @endphp
     <style>
@@ -550,7 +588,7 @@ $auto=(string)$pmdSetting('invoice_auto_print_dialog','0')==='1';
     @endif
 </div>
 <!-- PMD_DESKTOP_INVOICE_REPRINT_R1 -->
-<button class="print-btn" onclick="return window.pmdPrintReceipt(event)">Print / reprint receipt</button>
+<button class="print-btn" onclick="return window.pmdPrintReceipt(event)">Print invoice</button>
 <script>
 window.pmdPrintReceipt = function (event) {
     if (event) event.preventDefault();
@@ -582,5 +620,8 @@ window.pmdPrintReceipt = function (event) {
 <script defer src="/app/admin/assets/js/pmd-admin-final-single-logo-v20.js?v=20260625_154925"></script>
 <!-- /PMD_ADMIN_FINAL_SINGLE_LOGO_V20 -->
 
+
+<!-- PMD_DESKTOP_STANDALONE_PRINT_BRIDGE_V108 -->
+<script defer src="/app/admin/assets/js/pmd-desktop-print-bridge-v108.js?v=108"></script>
 </body>
 </html>

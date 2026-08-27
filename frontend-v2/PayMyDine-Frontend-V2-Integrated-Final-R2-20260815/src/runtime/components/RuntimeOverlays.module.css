@@ -56,7 +56,112 @@
 }
 .close svg { width: 1.05rem; }
 .scroll { overflow: auto; overscroll-behavior: contain; padding: 1.1rem; }
-.heroImage { width: 100%; aspect-ratio: 16 / 10; border-radius: 1.1rem; object-fit: cover; background: var(--pmd-soft, #eee); }
+/* PMD_FOOD_DETAIL_IMAGE_PAN_R73
+ * Shared food-detail image behavior across all ten themes.
+ *
+ * IMPORTANT:
+ * Animation begins only AFTER the actual image has loaded.
+ * This prevents slow/mobile image loading from consuming part
+ * of the animation before the customer can see it.
+ *
+ * No extra request.
+ * No preload.
+ * No JavaScript timer.
+ * No zoom.
+ * No loop.
+ */
+
+/*
+ * Resting/start position before image-ready state.
+ * Desktop begins from the full left.
+ */
+.heroImage {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  border-radius: 1.1rem;
+  object-fit: cover;
+  object-position: 0% 50%;
+  background: var(--pmd-soft, #eee);
+}
+
+/*
+ * Desktop:
+ * Approved R73 geometry and duration remain unchanged.
+ * The only improvement is load synchronization.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .heroImage[data-pmd-food-image-ready='true']:not([data-pmd-food-placeholder='true']) {
+    animation:
+      pmdFoodDetailImagePanR73
+      2.4s
+      cubic-bezier(.22, .61, .36, 1)
+      both;
+  }
+}
+
+@keyframes pmdFoodDetailImagePanR73 {
+  from {
+    object-position: 0% 50%;
+  }
+
+  to {
+    object-position: 50% 50%;
+  }
+}
+
+/*
+ * Mobile R73 smart pan.
+ *
+ * Strong near-center tuning remains unchanged.
+ *
+ * IMPORTANT:
+ * Treat coarse-pointer / touch devices as mobile too, even when
+ * their CSS viewport is wider than 759px (for example landscape).
+ */
+@media (max-width: 759px), (hover: none) and (pointer: coarse) {
+  .heroImage {
+    --pmd-food-pan-start: 28%;
+    object-position: var(--pmd-food-pan-start) 50%;
+  }
+}
+
+/*
+ * PMD R73 MOBILE SLOW LOCK
+ *
+ * 16 seconds deliberately creates a very slow cinematic drift.
+ * The gentle symmetric curve removes the abrupt start/stop feel.
+ *
+ * Desktop mouse devices keep the existing desktop R73 behavior.
+ */
+@media
+  (prefers-reduced-motion: no-preference) and (max-width: 759px),
+  (prefers-reduced-motion: no-preference) and (hover: none) and (pointer: coarse) {
+  .heroImage[data-pmd-food-image-ready='true']:not([data-pmd-food-placeholder='true']) {
+    animation:
+      pmdFoodDetailImagePanMobileR73
+      16s
+      cubic-bezier(.45, 0, .55, 1)
+      both;
+  }
+}
+
+@keyframes pmdFoodDetailImagePanMobileR73 {
+  from {
+    object-position: var(--pmd-food-pan-start, 28%) 50%;
+  }
+
+  to {
+    object-position: 50% 50%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .heroImage {
+    object-position: 50% 50%;
+    animation: none !important;
+  }
+}
+
 .itemTop { display: grid; gap: 1rem; }
 .itemTitleRow { display: flex; align-items: start; justify-content: space-between; gap: 1rem; }
 .itemTitleRow h3 { margin: 0; font-size: 1.5rem; line-height: 1.08; }

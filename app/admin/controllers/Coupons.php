@@ -55,7 +55,7 @@ class Coupons extends AdminController
         'configFile' => 'coupons_model',
     ];
 
-    protected $requiredPermissions = 'Admin';
+    protected $requiredPermissions = ['Admin', 'PMD.Workspace.Owner', 'PMD.Workspace.Manager'];
 
     public function __construct()
     {

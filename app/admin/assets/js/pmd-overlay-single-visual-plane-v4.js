@@ -261,6 +261,19 @@
     if (!el || el.nodeType !== 1 || !isVisible(el)) return false;
     if (el.classList && el.classList.contains(PLANE_CLASS)) return false;
 
+    // PMD_R76_CASHIER_PAYMENT_SKIP_GLOBAL_VISUAL_PLANE
+    // Cashier Composer is already a modal visual plane. Its nested Payment
+    // modal must not receive a second 180ms blur/fade/scale animation from
+    // this global Admin equalizer, otherwise Safari/desktop shows a blink.
+    if (
+      el.matches &&
+      el.matches('.pmd-pos-payment-modal') &&
+      el.closest &&
+      el.closest('#pmd-cashier-order-composer-v1.pmd-coc')
+    ) {
+      return false;
+    }
+
     try {
       if (el.matches(explicitRootSelector)) return true;
     } catch (_) {}
@@ -411,12 +424,13 @@
     animatedOpenRoots.add(root);
 
     try {
-      plane.animate(
+      // PMD_OVERLAY_IMMEDIATE_BLUR_V1B
+    plane.animate(
         [
-          { opacity: 0, backdropFilter: 'blur(0px)', WebkitBackdropFilter: 'blur(0px)' },
+          { opacity: 0.28, backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' },
           { opacity: 1, backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }
         ],
-        { duration: DURATION, easing: 'ease-out' }
+        { duration: 90, easing: 'ease-out' }
       );
     } catch (_) {}
 
@@ -687,4 +701,1250 @@
   console.log('✅ PMD GLOBAL MODAL CONSOLE EQUALIZER ACTIVE');
   console.log(window[API].contract);
   console.log('Use PMDGlobalModalConsoleEqualizer.report() while a card is open.');
+})();
+
+/*
+ * PMD_MODAL_CHROME_AUTHORITY_V1_DARK_GREEN_PROVEN
+ *
+ * Productionized from the browser-proven Modal Chrome Equalizer
+ * plus the approved PMD dark-green primary-button treatment.
+ *
+ * Scope:
+ * - modal/card roots already owned by PMDGlobalModalConsoleEqualizer
+ * - document DOM
+ * - open Shadow DOM
+ *
+ * Excludes:
+ * - dropdowns
+ * - popovers
+ * - tours
+ * - tab controls
+ * - quantity/stepper micro-controls
+ */
+(() => {
+    'use strict';
+
+    const API =
+        'PMDModalChromeAuthorityV1';
+
+    const STYLE_ID =
+        'pmd-modal-chrome-authority-v1-style';
+
+    const ROOT =
+        '[data-pmd-console-eq-root="1"]';
+
+    const CARD =
+        '[data-pmd-console-eq-card="1"]';
+
+    const TITLE_ATTR =
+        'data-pmd-modal-ui-title';
+
+    const CLOSE_ATTR =
+        'data-pmd-modal-ui-close';
+
+    const BUTTON_ATTR =
+        'data-pmd-modal-ui-button';
+
+
+    if (
+        window[API] &&
+        typeof window[API].destroy === 'function'
+    ) {
+        try {
+            window[API].destroy();
+        } catch (_) {}
+    }
+
+
+    const TOKENS = {
+        ink: '#092f2b',
+        text: '#10283d',
+        muted: '#637b96',
+
+        green: '#075f4f',
+        greenStrong: '#064b40',
+
+        line: 'rgba(96,190,232,.50)',
+        lineSoft: 'rgba(96,190,232,.28)',
+
+        danger: '#b42318',
+        dangerSoft: '#fff1f0',
+
+        shadow:
+            '0 28px 80px rgba(12,39,58,.16)',
+
+        radius: '22px',
+        buttonRadius: '14px',
+        buttonHeight: '44px'
+    };
+
+
+    const observed = new Map();
+    const injected = new WeakSet();
+
+    let scheduled = false;
+    let destroyed = false;
+
+
+    function cssText() {
+        return `
+
+${ROOT} ${CARD} {
+    border:
+        1px solid ${TOKENS.line} !important;
+
+    border-radius:
+        ${TOKENS.radius} !important;
+
+    background:
+        #fff !important;
+
+    box-shadow:
+        ${TOKENS.shadow} !important;
+
+    color:
+        ${TOKENS.text} !important;
+}
+
+
+/* =========================================================
+   TITLE
+   ========================================================= */
+
+${ROOT} [${TITLE_ATTR}="1"] {
+    margin-top:
+        0 !important;
+
+    margin-bottom:
+        0 !important;
+
+    color:
+        ${TOKENS.ink} !important;
+
+    font-size:
+        22px !important;
+
+    line-height:
+        1.15 !important;
+
+    font-weight:
+        900 !important;
+
+    letter-spacing:
+        -.03em !important;
+}
+
+
+/* =========================================================
+   UNIVERSAL CLOSE X
+   ========================================================= */
+
+${ROOT} [${CLOSE_ATTR}="1"] {
+    position:
+        relative !important;
+
+    width:
+        44px !important;
+
+    min-width:
+        44px !important;
+
+    max-width:
+        44px !important;
+
+    height:
+        44px !important;
+
+    min-height:
+        44px !important;
+
+    max-height:
+        44px !important;
+
+    margin:
+        0 !important;
+
+    padding:
+        0 !important;
+
+    display:
+        inline-grid !important;
+
+    place-items:
+        center !important;
+
+    flex:
+        0 0 44px !important;
+
+    border:
+        1px solid ${TOKENS.line} !important;
+
+    border-radius:
+        14px !important;
+
+    background:
+        #fff !important;
+
+    background-image:
+        none !important;
+
+    color:
+        ${TOKENS.ink} !important;
+
+    box-shadow:
+        0 10px 24px
+        rgba(12,39,58,.045) !important;
+
+    font-size:
+        0 !important;
+
+    line-height:
+        1 !important;
+
+    text-decoration:
+        none !important;
+
+    cursor:
+        pointer !important;
+}
+
+
+${ROOT} [${CLOSE_ATTR}="1"]::before,
+${ROOT} [${CLOSE_ATTR}="1"]::after {
+    content:
+        "" !important;
+
+    position:
+        absolute !important;
+
+    left:
+        50% !important;
+
+    top:
+        50% !important;
+
+    width:
+        18px !important;
+
+    height:
+        2px !important;
+
+    border:
+        0 !important;
+
+    border-radius:
+        999px !important;
+
+    background:
+        currentColor !important;
+
+    transform-origin:
+        center !important;
+
+    pointer-events:
+        none !important;
+}
+
+
+${ROOT} [${CLOSE_ATTR}="1"]::before {
+    transform:
+        translate(-50%,-50%)
+        rotate(45deg) !important;
+}
+
+
+${ROOT} [${CLOSE_ATTR}="1"]::after {
+    transform:
+        translate(-50%,-50%)
+        rotate(-45deg) !important;
+}
+
+
+${ROOT} [${CLOSE_ATTR}="1"] > svg,
+${ROOT} [${CLOSE_ATTR}="1"] > i,
+${ROOT} [${CLOSE_ATTR}="1"] > span {
+    visibility:
+        hidden !important;
+}
+
+
+/* =========================================================
+   PRIMARY
+   APPROVED DARK GREEN
+   ========================================================= */
+
+${ROOT} [${BUTTON_ATTR}="primary"] {
+    min-height:
+        ${TOKENS.buttonHeight} !important;
+
+    padding:
+        0 16px !important;
+
+    border:
+        1px solid #064b40 !important;
+
+    border-radius:
+        ${TOKENS.buttonRadius} !important;
+
+    background:
+        linear-gradient(
+            90deg,
+            #020d0a 0%,
+            #043d34 10%,
+            #064b40 24%,
+            #075f4f 42%,
+            #08705d 50%,
+            #075f4f 58%,
+            #064b40 76%,
+            #043d34 90%,
+            #020d0a 100%
+        ) !important;
+
+    background-image:
+        linear-gradient(
+            90deg,
+            #020d0a 0%,
+            #043d34 10%,
+            #064b40 24%,
+            #075f4f 42%,
+            #08705d 50%,
+            #075f4f 58%,
+            #064b40 76%,
+            #043d34 90%,
+            #020d0a 100%
+        ) !important;
+
+    color:
+        #fff !important;
+
+    font-size:
+        13px !important;
+
+    font-weight:
+        850 !important;
+
+    line-height:
+        1 !important;
+
+    letter-spacing:
+        .01em !important;
+
+    box-shadow:
+        inset 0 1px 0
+            rgba(255,255,255,.10),
+        inset 0 -1px 0
+            rgba(0,0,0,.22),
+        0 8px 18px
+            rgba(2,45,37,.18),
+        0 2px 5px
+            rgba(0,0,0,.10) !important;
+
+    text-shadow:
+        0 1px 1px
+        rgba(0,0,0,.20) !important;
+
+    text-decoration:
+        none !important;
+
+    transition:
+        transform 150ms ease,
+        box-shadow 150ms ease,
+        filter 150ms ease !important;
+}
+
+
+${ROOT} [${BUTTON_ATTR}="primary"]:hover {
+    border-color:
+        #043d34 !important;
+
+    background:
+        linear-gradient(
+            90deg,
+            #010806 0%,
+            #03352d 10%,
+            #054c40 24%,
+            #066956 42%,
+            #087762 50%,
+            #066956 58%,
+            #054c40 76%,
+            #03352d 90%,
+            #010806 100%
+        ) !important;
+
+    background-image:
+        linear-gradient(
+            90deg,
+            #010806 0%,
+            #03352d 10%,
+            #054c40 24%,
+            #066956 42%,
+            #087762 50%,
+            #066956 58%,
+            #054c40 76%,
+            #03352d 90%,
+            #010806 100%
+        ) !important;
+
+    box-shadow:
+        inset 0 1px 0
+            rgba(255,255,255,.12),
+        inset 0 -1px 0
+            rgba(0,0,0,.25),
+        0 10px 22px
+            rgba(2,45,37,.22),
+        0 3px 7px
+            rgba(0,0,0,.12) !important;
+
+    filter:
+        brightness(1.025) !important;
+
+    transform:
+        translateY(-1px) !important;
+}
+
+
+${ROOT} [${BUTTON_ATTR}="primary"]:active {
+    transform:
+        translateY(0) !important;
+
+    box-shadow:
+        inset 0 2px 5px
+            rgba(0,0,0,.22),
+        0 4px 10px
+            rgba(2,45,37,.16) !important;
+
+    filter:
+        brightness(.96) !important;
+}
+
+
+${ROOT} [${BUTTON_ATTR}="primary"]:focus-visible {
+    outline:
+        none !important;
+
+    box-shadow:
+        0 0 0 3px
+            rgba(7,95,79,.16),
+        inset 0 1px 0
+            rgba(255,255,255,.10),
+        0 8px 18px
+            rgba(2,45,37,.18) !important;
+}
+
+
+/* =========================================================
+   SECONDARY
+   ========================================================= */
+
+${ROOT} [${BUTTON_ATTR}="secondary"] {
+    min-height:
+        ${TOKENS.buttonHeight} !important;
+
+    padding:
+        0 16px !important;
+
+    border:
+        1px solid
+        rgba(7,95,79,.22) !important;
+
+    border-radius:
+        ${TOKENS.buttonRadius} !important;
+
+    background:
+        #fff !important;
+
+    background-image:
+        none !important;
+
+    color:
+        ${TOKENS.green} !important;
+
+    font-size:
+        13px !important;
+
+    font-weight:
+        850 !important;
+
+    line-height:
+        1 !important;
+
+    letter-spacing:
+        .01em !important;
+
+    box-shadow:
+        0 10px 24px
+        rgba(12,39,58,.045) !important;
+
+    text-decoration:
+        none !important;
+}
+
+
+${ROOT} [${BUTTON_ATTR}="secondary"]:hover,
+${ROOT} [${BUTTON_ATTR}="secondary"]:focus-visible {
+    background:
+        #edf8f4 !important;
+
+    border-color:
+        rgba(7,95,79,.42) !important;
+
+    color:
+        ${TOKENS.greenStrong} !important;
+}
+
+
+/* =========================================================
+   DANGER
+   ========================================================= */
+
+${ROOT} [${BUTTON_ATTR}="danger"] {
+    min-height:
+        ${TOKENS.buttonHeight} !important;
+
+    padding:
+        0 16px !important;
+
+    border:
+        1px solid
+        rgba(180,35,24,.18) !important;
+
+    border-radius:
+        ${TOKENS.buttonRadius} !important;
+
+    background:
+        ${TOKENS.dangerSoft} !important;
+
+    background-image:
+        none !important;
+
+    color:
+        ${TOKENS.danger} !important;
+
+    font-size:
+        13px !important;
+
+    font-weight:
+        850 !important;
+
+    line-height:
+        1 !important;
+
+    letter-spacing:
+        .01em !important;
+
+    box-shadow:
+        none !important;
+
+    text-decoration:
+        none !important;
+}
+
+
+${ROOT} [${BUTTON_ATTR}][disabled],
+${ROOT} [${BUTTON_ATTR}][aria-disabled="true"] {
+    opacity:
+        .55 !important;
+
+    cursor:
+        not-allowed !important;
+}
+`;
+    }
+
+
+    function inject(rootNode) {
+        if (
+            !rootNode ||
+            injected.has(rootNode)
+        ) {
+            return;
+        }
+
+        const style =
+            document.createElement('style');
+
+        if (rootNode === document) {
+
+            document
+                .getElementById(STYLE_ID)
+                ?.remove();
+
+            style.id = STYLE_ID;
+
+        } else {
+
+            style.setAttribute(
+                'data-pmd-modal-chrome-authority-style',
+                '1'
+            );
+        }
+
+        style.textContent =
+            cssText();
+
+        (
+            rootNode === document
+                ? (
+                    document.head ||
+                    document.documentElement
+                )
+                : rootNode
+        ).appendChild(style);
+
+        injected.add(rootNode);
+    }
+
+
+    function visible(el) {
+        if (
+            !el ||
+            !el.isConnected ||
+            !el.getBoundingClientRect
+        ) {
+            return false;
+        }
+
+        const cs =
+            getComputedStyle(el);
+
+        const r =
+            el.getBoundingClientRect();
+
+        return (
+            cs.display !== 'none' &&
+            cs.visibility !== 'hidden' &&
+            Number(cs.opacity || 1) > .01 &&
+            r.width > 2 &&
+            r.height > 2
+        );
+    }
+
+
+    function text(el) {
+        return String(
+            el?.innerText ||
+            el?.textContent ||
+            el?.value ||
+            ''
+        )
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+
+    function semantic(el) {
+        return [
+            el?.id || '',
+
+            typeof el?.className === 'string'
+                ? el.className
+                : '',
+
+            el?.getAttribute?.('name') || '',
+
+            el?.getAttribute?.('aria-label') || '',
+
+            el?.getAttribute?.('title') || '',
+
+            text(el)
+
+        ]
+            .join(' ')
+            .toLowerCase();
+    }
+
+
+    function chooseTitle(card) {
+        const rect =
+            card.getBoundingClientRect();
+
+        const selectors = [
+            '.modal-title',
+
+            '[class*="__title"]',
+            '[class*="-title"]',
+
+            '[class*="heading"] h1',
+            '[class*="heading"] h2',
+            '[class*="heading"] h3',
+
+            'header h1',
+            'header h2',
+            'header h3',
+
+            'h1',
+            'h2',
+            'h3'
+        ].join(',');
+
+
+        const candidates =
+            Array
+                .from(
+                    card.querySelectorAll(
+                        selectors
+                    )
+                )
+                .filter(el => {
+
+                    if (!visible(el)) {
+                        return false;
+                    }
+
+                    const r =
+                        el.getBoundingClientRect();
+
+                    /*
+                     * Only the main card heading.
+                     * Do not restyle section headings
+                     * further down the form.
+                     */
+                    if (
+                        r.top >
+                        rect.top + 170
+                    ) {
+                        return false;
+                    }
+
+                    const fs =
+                        parseFloat(
+                            getComputedStyle(el)
+                                .fontSize
+                        ) || 0;
+
+                    return fs >= 15;
+                });
+
+
+        candidates.sort(
+            (a, b) =>
+                a.getBoundingClientRect().top -
+                b.getBoundingClientRect().top
+        );
+
+
+        return candidates[0] || null;
+    }
+
+
+    function isClose(el, card) {
+        if (!visible(el)) {
+            return false;
+        }
+
+        const r =
+            el.getBoundingClientRect();
+
+        const cr =
+            card.getBoundingClientRect();
+
+        if (
+            r.top >
+            cr.top + 170
+        ) {
+            return false;
+        }
+
+        const s =
+            semantic(el);
+
+        if (
+            /close|dismiss|modal-close|dialog-close/
+                .test(s)
+        ) {
+            return true;
+        }
+
+        const t =
+            text(el).toLowerCase();
+
+        return (
+            t === '×' ||
+            t === '✕' ||
+            t === '✖' ||
+            t === 'x'
+        );
+    }
+
+
+    function isExcludedMicroControl(el) {
+        const s =
+            semantic(el);
+
+        const t =
+            text(el).trim();
+
+        if (
+            el.closest(
+                [
+                    '[role="tablist"]',
+                    '.dropdown-menu',
+                    '[class*="popover"]',
+                    '[class*="tour"]',
+
+                    '[class*="quantity"]',
+                    '[class*="stepper"]',
+                    '[class*="counter"]',
+
+                    '[data-qty]',
+                    '[data-quantity]'
+                ].join(',')
+            )
+        ) {
+            return true;
+        }
+
+        if (
+            /qty|quantity|stepper|increment|decrement/
+                .test(s)
+        ) {
+            return true;
+        }
+
+        if (
+            /^(\+|−|-|–|—|‹|›|<|>)$/
+                .test(t)
+        ) {
+            return true;
+        }
+
+        return false;
+    }
+
+
+    function classifyButton(el) {
+        const s =
+            semantic(el);
+
+
+        if (
+            /delete|remove|void|refund|destroy/
+                .test(s)
+        ) {
+            return 'danger';
+        }
+
+
+        if (
+            /primary|save|confirm|create|update|submit|apply|continue|complete|done|pay|charge|add\b|yes\b/
+                .test(s)
+        ) {
+            return 'primary';
+        }
+
+
+        return 'secondary';
+    }
+
+
+    function buttonCandidates(card) {
+        return Array.from(
+            card.querySelectorAll(
+                [
+                    'button',
+                    'a.btn',
+                    'a[class*="button"]',
+                    'a[class*="btn"]',
+                    'input[type="submit"]',
+                    'input[type="button"]'
+                ].join(',')
+            )
+        );
+    }
+
+
+    function normalizeCard(card) {
+        if (
+            !card ||
+            !visible(card)
+        ) {
+            return;
+        }
+
+
+        card
+            .querySelectorAll(
+                `[${TITLE_ATTR}]`
+            )
+            .forEach(el =>
+                el.removeAttribute(
+                    TITLE_ATTR
+                )
+            );
+
+
+        card
+            .querySelectorAll(
+                `[${CLOSE_ATTR}]`
+            )
+            .forEach(el =>
+                el.removeAttribute(
+                    CLOSE_ATTR
+                )
+            );
+
+
+        card
+            .querySelectorAll(
+                `[${BUTTON_ATTR}]`
+            )
+            .forEach(el =>
+                el.removeAttribute(
+                    BUTTON_ATTR
+                )
+            );
+
+
+        const title =
+            chooseTitle(card);
+
+        if (title) {
+            title.setAttribute(
+                TITLE_ATTR,
+                '1'
+            );
+        }
+
+
+        buttonCandidates(card)
+            .forEach(btn => {
+
+                if (
+                    isClose(
+                        btn,
+                        card
+                    )
+                ) {
+                    btn.setAttribute(
+                        CLOSE_ATTR,
+                        '1'
+                    );
+
+                    return;
+                }
+
+
+                if (
+                    isExcludedMicroControl(
+                        btn
+                    )
+                ) {
+                    return;
+                }
+
+
+                const r =
+                    btn.getBoundingClientRect();
+
+                if (
+                    r.width < 34 ||
+                    r.height < 28
+                ) {
+                    return;
+                }
+
+
+                btn.setAttribute(
+                    BUTTON_ATTR,
+                    classifyButton(btn)
+                );
+            });
+    }
+
+
+    function discoverShadow(rootNode) {
+        if (
+            !rootNode?.querySelectorAll
+        ) {
+            return;
+        }
+
+
+        rootNode
+            .querySelectorAll('*')
+            .forEach(el => {
+
+                if (el.shadowRoot) {
+                    observe(
+                        el.shadowRoot
+                    );
+                }
+            });
+    }
+
+
+    function scan(rootNode) {
+        if (
+            destroyed ||
+            !rootNode?.querySelectorAll
+        ) {
+            return;
+        }
+
+
+        inject(rootNode);
+
+
+        rootNode
+            .querySelectorAll(
+                `${ROOT} ${CARD}`
+            )
+            .forEach(
+                normalizeCard
+            );
+
+
+        discoverShadow(
+            rootNode
+        );
+    }
+
+
+    function schedule() {
+        if (
+            scheduled ||
+            destroyed
+        ) {
+            return;
+        }
+
+
+        scheduled = true;
+
+
+        requestAnimationFrame(() => {
+
+            scheduled = false;
+
+
+            observed.forEach(
+                (_, rootNode) =>
+                    scan(rootNode)
+            );
+        });
+    }
+
+
+    function observe(rootNode) {
+        if (
+            !rootNode ||
+            observed.has(rootNode)
+        ) {
+            return;
+        }
+
+
+        inject(rootNode);
+
+
+        const target =
+            rootNode === document
+                ? document.documentElement
+                : rootNode;
+
+
+        const mo =
+            new MutationObserver(
+                schedule
+            );
+
+
+        mo.observe(
+            target,
+            {
+                subtree: true,
+                childList: true,
+                attributes: true,
+
+                attributeFilter: [
+                    'class',
+                    'style',
+                    'hidden',
+                    'aria-hidden',
+                    'aria-label'
+                ]
+            }
+        );
+
+
+        observed.set(
+            rootNode,
+            mo
+        );
+
+
+        scan(
+            rootNode
+        );
+    }
+
+
+    function report() {
+        const rows = [];
+
+
+        observed.forEach(
+            (_, rootNode) => {
+
+                rootNode
+                    .querySelectorAll?.(
+                        `${ROOT} ${CARD}`
+                    )
+                    .forEach(card => {
+
+                        if (!visible(card)) {
+                            return;
+                        }
+
+
+                        rows.push({
+                            card:
+                                card.className ||
+                                card.id ||
+                                card.tagName,
+
+                            title:
+                                text(
+                                    card.querySelector(
+                                        `[${TITLE_ATTR}="1"]`
+                                    )
+                                ) || '-',
+
+                            closeButtons:
+                                card.querySelectorAll(
+                                    `[${CLOSE_ATTR}="1"]`
+                                ).length,
+
+                            primary:
+                                card.querySelectorAll(
+                                    `[${BUTTON_ATTR}="primary"]`
+                                ).length,
+
+                            secondary:
+                                card.querySelectorAll(
+                                    `[${BUTTON_ATTR}="secondary"]`
+                                ).length,
+
+                            danger:
+                                card.querySelectorAll(
+                                    `[${BUTTON_ATTR}="danger"]`
+                                ).length,
+
+                            domRoot:
+                                rootNode === document
+                                    ? 'document'
+                                    : 'shadow'
+                        });
+                    });
+            }
+        );
+
+
+        console.table(
+            rows
+        );
+
+
+        return rows;
+    }
+
+
+    function destroy() {
+        destroyed = true;
+
+
+        observed.forEach(
+            (mo, rootNode) => {
+
+                try {
+                    mo.disconnect();
+                } catch (_) {}
+
+
+                try {
+                    rootNode
+                        .querySelectorAll?.(
+                            [
+                                `[${TITLE_ATTR}]`,
+                                `[${CLOSE_ATTR}]`,
+                                `[${BUTTON_ATTR}]`
+                            ].join(',')
+                        )
+                        .forEach(el => {
+
+                            el.removeAttribute(
+                                TITLE_ATTR
+                            );
+
+                            el.removeAttribute(
+                                CLOSE_ATTR
+                            );
+
+                            el.removeAttribute(
+                                BUTTON_ATTR
+                            );
+                        });
+
+
+                    rootNode
+                        .querySelectorAll?.(
+                            '[data-pmd-modal-chrome-authority-style]'
+                        )
+                        .forEach(
+                            el => el.remove()
+                        );
+
+                } catch (_) {}
+            }
+        );
+
+
+        document
+            .getElementById(
+                STYLE_ID
+            )
+            ?.remove();
+
+
+        observed.clear();
+
+
+        delete window[API];
+    }
+
+
+    window[API] = {
+        version:
+            '1.0.0',
+
+        run:
+            schedule,
+
+        report:
+            report,
+
+        destroy:
+            destroy,
+
+        tokens:
+            TOKENS
+    };
+
+
+    observe(
+        document
+    );
+
+
+    discoverShadow(
+        document
+    );
+
+
+    schedule();
+
+
+    console.log(
+        '✅ PMD MODAL CHROME AUTHORITY V1 ACTIVE'
+    );
 })();

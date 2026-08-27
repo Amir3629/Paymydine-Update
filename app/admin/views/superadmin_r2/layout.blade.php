@@ -92,6 +92,14 @@
         @media(max-width:560px){.stats{display:flex;overflow:auto}.stat{min-width:180px}}
     </style>
     @stack('head')
+
+<!-- PMD_ADMIN_PRIMARY_DARK_GREEN_AUTHORITY_V2 -->
+<link
+    rel="stylesheet"
+    id="pmd-admin-primary-dark-green-authority-v2"
+    href="/app/admin/assets/css/pmd-admin-primary-dark-green-authority-v2.css?v=20260826-dark-green-authority-v2"
+>
+<!-- /PMD_ADMIN_PRIMARY_DARK_GREEN_AUTHORITY_V2 -->
 </head>
 <body>
 @include('admin::superadmin_r2.side_menu')
@@ -136,7 +144,7 @@
 
 
 <!-- PMD_OVERLAY_SINGLE_VISUAL_PLANE_V4 -->
-<script id="pmd-overlay-single-visual-plane-v4-script" src="/app/admin/assets/js/pmd-overlay-single-visual-plane-v4.js?v=20260826-console-proven-v4"></script>
+<script id="pmd-overlay-single-visual-plane-v4-script" src="/app/admin/assets/js/pmd-overlay-single-visual-plane-v4.js?v=20260826-console-proven-modal-chrome-dark-green-v1"></script>
 <!-- /PMD_OVERLAY_SINGLE_VISUAL_PLANE_V4 -->
 </body>
 </html>

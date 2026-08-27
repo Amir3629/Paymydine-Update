@@ -16,6 +16,7 @@ App::before(function () {
                     return response()->json([
                         'ok' => false,
                         'message' => 'Authentication required.',
+                        'source' => 'tenant-db-v4',
                     ], 401);
                 }
 
@@ -23,57 +24,77 @@ App::before(function () {
                     (string)request()->input('code', '')
                 ));
 
-                /*
-                 * Only English and German are allowed.
-                 */
                 if (!in_array($code, ['en', 'de'], true)) {
                     return response()->json([
                         'ok' => false,
                         'message' => 'Unsupported language.',
+                        'source' => 'tenant-db-v4',
                     ], 422);
                 }
 
-                $language =
-                    \System\Models\Languages_model::query()
-                        ->where('code', $code)
-                        ->where('status', 1)
-                        ->first();
+                $db = \Illuminate\Support\Facades\DB::connection('tenant');
+                $tenantDatabase = (string)$db->getDatabaseName();
+                $boundTenant = app()->bound('tenant') ? app('tenant') : null;
+                $boundTenantDatabase = $boundTenant->database ?? null;
+
+                $language = $db->table('languages')
+                    ->whereRaw('BINARY code = ?', [$code])
+                    ->where('status', 1)
+                    ->first();
 
                 if (!$language) {
+                    $visibleLanguages = $db->table('languages')
+                        ->orderBy('language_id')
+                        ->get(['language_id', 'code', 'name', 'status'])
+                        ->map(function ($row) {
+                            return (array)$row;
+                        })
+                        ->all();
+
                     return response()->json([
                         'ok' => false,
-                        'message' => 'Language is not enabled.',
-                    ], 404);
+                        'message' => 'Language row not visible on tenant connection.',
+                        'source' => 'tenant-db-v4',
+                        'diagnostic' => [
+                            'requested_code' => $code,
+                            'host' => request()->getHost(),
+                            'default_connection' => \Illuminate\Support\Facades\DB::getDefaultConnection(),
+                            'tenant_database' => $tenantDatabase,
+                            'bound_tenant_database' => $boundTenantDatabase,
+                            'visible_languages' => $visibleLanguages,
+                        ],
+                    ], 409);
                 }
 
-                /*
-                 * Save to the staff profile when possible.
-                 */
+                $localization = app('translator.localization');
+                $localeResult = $localization->setLocale($code, true);
+
+                if ($localeResult === false) {
+                    return response()->json([
+                        'ok' => false,
+                        'message' => 'Locale rejected by localization config.',
+                        'source' => 'tenant-db-v4',
+                        'diagnostic' => [
+                            'requested_code' => $code,
+                            'tenant_database' => $tenantDatabase,
+                            'localization_locale' => config('localization.locale'),
+                            'supported_locales' => config('localization.supportedLocales'),
+                        ],
+                    ], 409);
+                }
+
                 $staff = $auth->staff();
-
                 if ($staff) {
-                    $staff->language_id =
-                        $language->getKey();
+                    if (method_exists($staff, 'setConnection')) {
+                        $staff->setConnection('tenant');
+                    }
 
+                    $staff->language_id = (int)$language->language_id;
                     $staff->save();
                 }
 
-                /*
-                 * Also update the current request/session.
-                 */
                 app()->setLocale($code);
 
-                if (app()->bound('translator.localization')) {
-                    app('translator.localization')->setLocale(
-                        $code,
-                        true
-                    );
-                }
-
-                /*
-                 * The cookie is the final authority.
-                 * It persists for one year.
-                 */
                 $cookie = cookie(
                     'pmd_admin_locale',
                     $code,
@@ -86,13 +107,12 @@ App::before(function () {
                     'Lax'
                 );
 
-                return response()
-                    ->json([
-                        'ok' => true,
-                        'locale' => $code,
-                        'name' => $language->name,
-                    ])
-                    ->withCookie($cookie);
+                return response()->json([
+                    'ok' => true,
+                    'locale' => $code,
+                    'name' => $language->name,
+                    'source' => 'tenant-db-v4',
+                ])->withCookie($cookie);
             }
         )->name('pmd.language.switch.v3');
     });

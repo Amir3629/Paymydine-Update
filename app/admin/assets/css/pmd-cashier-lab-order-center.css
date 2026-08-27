@@ -1215,3 +1215,13 @@ body .pmd-pos-payment-modal
   }
 }
 
+
+
+/* PMD_R71_GERMANY_INVOICE_ONLY_UI */
+.pmd-coc__settlement-receipts .pmd-coc__settlement-receipt {
+  text-decoration: none;
+}
+.pmd-coc__settlement-receipts .pmd-coc__settlement-receipt b {
+  color: #08745a;
+}
+

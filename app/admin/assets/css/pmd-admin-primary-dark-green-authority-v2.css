@@ -1,0 +1,384 @@
+/*
+ * PMD_ADMIN_PRIMARY_DARK_GREEN_AUTHORITY_V2
+ *
+ * Final Admin primary-button paint authority.
+ *
+ * Purpose:
+ * - override legacy blue-buttons-override.css
+ * - keep primary/save/create/confirm buttons PMD dark green
+ * - NEVER turn blue on hover/focus/active
+ * - preserve secondary/danger semantics
+ */
+
+:root {
+    --pmd-primary-green-edge: #020d0a;
+    --pmd-primary-green-deep: #043d34;
+    --pmd-primary-green-strong: #064b40;
+    --pmd-primary-green: #075f4f;
+    --pmd-primary-green-center: #08705d;
+    --pmd-primary-green-hover-center: #087762;
+
+    --bs-primary: #075f4f !important;
+    --bs-primary-rgb: 7,95,79 !important;
+
+    --bs-success: #075f4f !important;
+    --bs-success-rgb: 7,95,79 !important;
+}
+
+
+/*
+ * High specificity is intentional.
+ * Legacy blue CSS contains many !important contextual rules.
+ */
+
+
+/* =========================================================
+   PRIMARY / SUCCESS
+   ========================================================= */
+
+html body .btn.btn-primary.btn-primary,
+html body .btn.btn-success.btn-success,
+
+html body button.btn-primary.btn-primary,
+html body button.btn-success.btn-success,
+
+html body a.btn-primary.btn-primary,
+html body a.btn-success.btn-success,
+
+html body input.btn-primary.btn-primary,
+html body input.btn-success.btn-success,
+
+html body
+[data-pmd-console-eq-root="1"]
+[data-pmd-modal-ui-button="primary"] {
+
+    background-color:
+        #075f4f !important;
+
+    background-image:
+        linear-gradient(
+            90deg,
+
+            #020d0a 0%,
+            #043d34 10%,
+            #064b40 24%,
+
+            #075f4f 42%,
+            #08705d 50%,
+            #075f4f 58%,
+
+            #064b40 76%,
+            #043d34 90%,
+            #020d0a 100%
+        ) !important;
+
+    border-color:
+        #064b40 !important;
+
+    color:
+        #ffffff !important;
+
+    text-shadow:
+        0 1px 1px
+        rgba(0,0,0,.20) !important;
+
+    box-shadow:
+        inset 0 1px 0
+            rgba(255,255,255,.10),
+
+        inset 0 -1px 0
+            rgba(0,0,0,.22),
+
+        0 8px 18px
+            rgba(2,45,37,.18),
+
+        0 2px 5px
+            rgba(0,0,0,.10) !important;
+}
+
+
+/* =========================================================
+   HOVER
+   NO BLUE
+   ========================================================= */
+
+html body .btn.btn-primary.btn-primary:hover,
+html body .btn.btn-success.btn-success:hover,
+
+html body button.btn-primary.btn-primary:hover,
+html body button.btn-success.btn-success:hover,
+
+html body a.btn-primary.btn-primary:hover,
+html body a.btn-success.btn-success:hover,
+
+html body input.btn-primary.btn-primary:hover,
+html body input.btn-success.btn-success:hover,
+
+html body
+[data-pmd-console-eq-root="1"]
+[data-pmd-modal-ui-button="primary"]:hover {
+
+    background-color:
+        #066956 !important;
+
+    background-image:
+        linear-gradient(
+            90deg,
+
+            #010806 0%,
+            #03352d 10%,
+            #054c40 24%,
+
+            #066956 42%,
+            #087762 50%,
+            #066956 58%,
+
+            #054c40 76%,
+            #03352d 90%,
+            #010806 100%
+        ) !important;
+
+    border-color:
+        #043d34 !important;
+
+    color:
+        #ffffff !important;
+
+    transform:
+        translateY(-1px) !important;
+
+    filter:
+        brightness(1.025) !important;
+
+    box-shadow:
+        inset 0 1px 0
+            rgba(255,255,255,.12),
+
+        inset 0 -1px 0
+            rgba(0,0,0,.25),
+
+        0 10px 22px
+            rgba(2,45,37,.22),
+
+        0 3px 7px
+            rgba(0,0,0,.12) !important;
+}
+
+
+/* =========================================================
+   FOCUS
+   NO BLUE
+   ========================================================= */
+
+html body .btn.btn-primary.btn-primary:focus,
+html body .btn.btn-success.btn-success:focus,
+
+html body .btn.btn-primary.btn-primary:focus-visible,
+html body .btn.btn-success.btn-success:focus-visible,
+
+html body button.btn-primary.btn-primary:focus,
+html body button.btn-success.btn-success:focus,
+
+html body a.btn-primary.btn-primary:focus,
+html body a.btn-success.btn-success:focus,
+
+html body
+[data-pmd-console-eq-root="1"]
+[data-pmd-modal-ui-button="primary"]:focus,
+
+html body
+[data-pmd-console-eq-root="1"]
+[data-pmd-modal-ui-button="primary"]:focus-visible {
+
+    background-color:
+        #075f4f !important;
+
+    background-image:
+        linear-gradient(
+            90deg,
+
+            #020d0a 0%,
+            #043d34 10%,
+            #064b40 24%,
+
+            #075f4f 42%,
+            #08705d 50%,
+            #075f4f 58%,
+
+            #064b40 76%,
+            #043d34 90%,
+            #020d0a 100%
+        ) !important;
+
+    border-color:
+        #064b40 !important;
+
+    color:
+        #ffffff !important;
+
+    outline:
+        none !important;
+
+    box-shadow:
+        0 0 0 3px
+            rgba(7,95,79,.16),
+
+        inset 0 1px 0
+            rgba(255,255,255,.10),
+
+        0 8px 18px
+            rgba(2,45,37,.18) !important;
+}
+
+
+/* =========================================================
+   ACTIVE / CLICK
+   ========================================================= */
+
+html body .btn.btn-primary.btn-primary:active,
+html body .btn.btn-success.btn-success:active,
+
+html body .btn.btn-primary.btn-primary.active,
+html body .btn.btn-success.btn-success.active,
+
+html body button.btn-primary.btn-primary:active,
+html body button.btn-success.btn-success:active,
+
+html body a.btn-primary.btn-primary:active,
+html body a.btn-success.btn-success:active,
+
+html body
+[data-pmd-console-eq-root="1"]
+[data-pmd-modal-ui-button="primary"]:active {
+
+    background-color:
+        #064b40 !important;
+
+    background-image:
+        linear-gradient(
+            90deg,
+
+            #010806 0%,
+            #03352d 14%,
+            #054c40 30%,
+
+            #064b40 50%,
+
+            #054c40 70%,
+            #03352d 86%,
+            #010806 100%
+        ) !important;
+
+    border-color:
+        #03352d !important;
+
+    color:
+        #ffffff !important;
+
+    transform:
+        translateY(0) !important;
+
+    filter:
+        brightness(.96) !important;
+
+    box-shadow:
+        inset 0 2px 5px
+            rgba(0,0,0,.22),
+
+        0 4px 10px
+            rgba(2,45,37,.16) !important;
+}
+
+
+/* =========================================================
+   OUTLINE PRIMARY / SUCCESS
+   ========================================================= */
+
+html body
+.btn.btn-outline-primary.btn-outline-primary,
+
+html body
+.btn.btn-outline-success.btn-outline-success {
+
+    background:
+        transparent !important;
+
+    border-color:
+        #075f4f !important;
+
+    color:
+        #075f4f !important;
+
+    box-shadow:
+        none !important;
+}
+
+
+html body
+.btn.btn-outline-primary.btn-outline-primary:hover,
+
+html body
+.btn.btn-outline-success.btn-outline-success:hover {
+
+    background-color:
+        #075f4f !important;
+
+    background-image:
+        linear-gradient(
+            90deg,
+
+            #020d0a 0%,
+            #043d34 12%,
+            #064b40 28%,
+
+            #075f4f 50%,
+
+            #064b40 72%,
+            #043d34 88%,
+            #020d0a 100%
+        ) !important;
+
+    border-color:
+        #064b40 !important;
+
+    color:
+        #ffffff !important;
+}
+
+
+/* =========================================================
+   DISABLED
+   ========================================================= */
+
+html body .btn.btn-primary.btn-primary:disabled,
+html body .btn.btn-success.btn-success:disabled,
+
+html body .btn.btn-primary.btn-primary.disabled,
+html body .btn.btn-success.btn-success.disabled {
+
+    background-color:
+        #52776f !important;
+
+    background-image:
+        linear-gradient(
+            90deg,
+            #344f49,
+            #52776f,
+            #344f49
+        ) !important;
+
+    border-color:
+        #52776f !important;
+
+    color:
+        rgba(255,255,255,.72) !important;
+
+    transform:
+        none !important;
+
+    box-shadow:
+        none !important;
+
+    filter:
+        none !important;
+}

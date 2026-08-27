@@ -74,6 +74,11 @@ function ItemDialog({ item }: { item: MenuItem }) {
   const [quantity, setQuantity] = useState(1)
   const [selected, setSelected] = useState<Record<string, string[]>>(() => initialSelections(item))
   const [error, setError] = useState('')
+  // PMD_FOOD_DETAIL_IMAGE_LOAD_SYNC_R73
+  // Store the URL that has genuinely finished loading.
+  // This makes R73 start when pixels are available instead of
+  // when the <img> element merely mounts.
+  const [heroReadySrc, setHeroReadySrc] = useState('')
 
   const selections = useMemo<CartOptionSelection[]>(() => item.options.flatMap((group) => {
     const ids = selected[group.id] || []
@@ -125,7 +130,56 @@ function ItemDialog({ item }: { item: MenuItem }) {
     >
       <div className={styles.itemTop}>
         {/* PMD_FOOD_PLACEHOLDER_DATA_R3 */}
-        {item.imageUrl && <img className={styles.heroImage} data-pmd-food-placeholder={item.imageUrl.includes('/brand/paymydine-logo.svg') ? 'true' : undefined} src={item.imageUrl} alt={item.name} width={960} height={600} />}
+        {item.imageUrl && (
+          <img
+            className={styles.heroImage}
+            data-pmd-food-placeholder={item.imageUrl.includes('/brand/paymydine-logo.svg') ? 'true' : undefined}
+            data-pmd-food-image-ready={heroReadySrc === item.imageUrl ? 'true' : undefined}
+            // PMD_FOOD_DETAIL_SMART_PAN_R73
+            onLoad={(event) => {
+              const image = event.currentTarget
+              const naturalWidth = Math.max(1, image.naturalWidth || 1)
+              const naturalHeight = Math.max(1, image.naturalHeight || 1)
+
+              const sourceRatio = naturalWidth / naturalHeight
+              const frameRatio = 16 / 10
+
+              // Horizontal overflow created by object-fit: cover.
+              const overflowRatio = Math.max(0, sourceRatio / frameRatio - 1)
+
+              // PMD R73 near-center tuning.
+              //
+              // Keep the REAL visible travel around only 4% of the
+              // modal image width. This makes different source widths
+              // feel much more consistent.
+              //
+              // Normal image: minimum start 28%.
+              // Wide image: automatically moves closer to center.
+              // Ultra-wide: may start as close as 48%.
+              const targetVisibleTravel = 0.04
+
+              const calculatedStart = overflowRatio > 0
+                ? (0.5 - (targetVisibleTravel / overflowRatio)) * 100
+                : 28
+
+              const panStart = Math.max(
+                28,
+                Math.min(48, calculatedStart),
+              )
+
+              image.style.setProperty(
+                '--pmd-food-pan-start',
+                `${panStart.toFixed(2)}%`,
+              )
+
+              setHeroReadySrc(String(item.imageUrl || ''))
+            }}
+            src={item.imageUrl}
+            alt={item.name}
+            width={960}
+            height={600}
+          />
+        )}
         <div className={styles.itemTitleRow}><h3>{item.name}</h3><span className={styles.price}>{formatCurrency(item.price)}</span></div>
         <p className={styles.description}>{item.description}</p>
         <FoodDetails item={item} />

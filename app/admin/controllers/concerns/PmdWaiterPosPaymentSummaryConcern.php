@@ -267,6 +267,7 @@ trait PmdWaiterPosPaymentSummaryConcern
                 'payer_label' => (string)($r['payer_label'] ?? ''),
                 'paid_at' => (string)($r['paid_at'] ?? $r['created_at'] ?? ''),
                 'receipt_url' => '/admin/orders/split-receipt/'.(int)($r['id'] ?? 0),
+                'invoice_url' => '/admin/orders/split-invoice/'.(int)($r['id'] ?? 0),
             ];
             foreach (['tip_amount', 'coupon_discount', 'coupon_code', 'provider_code', 'notes', 'cash_received', 'change_due'] as $field) {
                 if (in_array($field, $columns, true)) {

@@ -39,6 +39,7 @@ trait PmdWaiterPosSettleEndpoint
                     'transaction_id' => (int)$existing->id,
                     'summary' => $fresh ? $this->buildPaymentSummary($fresh) : null,
                     'receipt_url' => '/admin/orders/split-receipt/'.(int)$existing->id,
+                    'invoice_url' => '/admin/orders/split-invoice/'.(int)$existing->id,
                     'table_release' => $tableRelease,
                 ]);
             }
@@ -244,6 +245,7 @@ trait PmdWaiterPosSettleEndpoint
                     : 'Partial payment recorded.',
                 'transaction_id' => $result['transaction_id'],
                 'receipt_url' => '/admin/orders/split-receipt/'.$result['transaction_id'],
+                'invoice_url' => '/admin/orders/split-invoice/'.$result['transaction_id'],
                 'paid_amount' => $result['paid_amount'],
                 'settled_base_amount' => $result['settled_base_amount'],
                 'tip_amount' => $result['tip_amount'],

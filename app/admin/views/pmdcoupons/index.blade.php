@@ -1,3 +1,5 @@
+{{-- PMD_PLATFORM_I18N_COUPONS_V1 --}}
+@include('admin::_partials.pmd_platform_messages')
 @php
     $cards = $pmdCouponCards ?? [];
     $catalog = $pmdCouponCatalog ?? [];
@@ -39,10 +41,10 @@
         ],
         'de' => [
             'title' => 'Gutscheine', 'header' => 'Gutschein-Kopfbereich', 'actions' => 'Gutschein-Aktionen', 'create' => 'Gutschein / Karte erstellen', 'notifications' => 'Benachrichtigungen',
-            'overview' => 'Gutscheinübersicht', 'total' => 'Codes', 'total_help' => 'Gutscheine + Karten', 'active' => 'Aktiv', 'active_help' => 'Jetzt verwendbar',
+            'overview' => 'Gutscheinübersicht', 'total' => 'Gutscheincodes', 'total_help' => 'Gutscheine + Karten', 'active' => 'Aktiv', 'active_help' => 'Jetzt verwendbar',
             'redemptions' => 'Einlösungen', 'redemptions_help' => 'Erfolgreiche Nutzungen', 'stored_balance' => 'Guthaben', 'stored_balance_help' => 'Geschenkkarten + Guthaben',
             'search' => 'Name oder Code suchen...', 'status_filter' => 'Statusfilter', 'all' => 'Alle', 'active_only' => 'Aktiv', 'inactive' => 'Inaktiv',
-            'types' => 'Gutscheinarten', 'all_types' => 'Alle Arten', 'coupon' => 'Gutschein', 'gift_card' => 'Geschenkkarte', 'voucher' => 'Voucher', 'credit' => 'Guthaben', 'comp' => 'Kulanz',
+            'types' => 'Gutscheinarten', 'all_types' => 'Alle Arten', 'coupon' => 'Gutschein', 'gift_card' => 'Geschenkkarte', 'voucher' => 'Wertgutschein', 'credit' => 'Guthaben', 'comp' => 'Kulanz',
             'no_description' => 'Keine Beschreibung', 'discount' => 'Rabatt', 'balance' => 'Guthaben', 'min_order' => 'Mindestwert', 'uses' => 'Nutzungen', 'unlimited' => 'Unbegrenzt',
             'expires' => 'Gültig bis', 'no_expiry' => 'Kein Ablaufdatum', 'expired' => 'Abgelaufen', 'disabled' => 'Deaktiviert', 'enabled' => 'Aktiv', 'created' => 'Erstellt',
             'disable' => 'Deaktivieren', 'enable' => 'Aktivieren', 'edit' => 'Bearbeiten', 'copy_code' => 'Code kopieren', 'copied' => 'Kopiert',

@@ -1,9 +1,95 @@
+@php
+    // PMD_R71_SPLIT_INVOICE_PRESENTATION
+    $invoiceMode = (bool)($invoiceMode ?? false);
+
+    $pmdInvoiceSetting = function ($key, $default = null) {
+        try {
+            $row = \Illuminate\Support\Facades\DB::table('settings')
+                ->where('item', $key)
+                ->orderByDesc('setting_id')
+                ->first();
+            if ($row && $row->value !== null && $row->value !== '') {
+                $value = $row->value;
+                if ((int)($row->serialized ?? 0) === 1 && is_string($value)) {
+                    $decoded = @unserialize($value);
+                    if ($decoded !== false || $value === 'b:0;') $value = $decoded;
+                }
+                return $value;
+            }
+        } catch (\Throwable $e) {}
+        try { return setting($key, $default); } catch (\Throwable $e) { return $default; }
+    };
+
+    $resolveLogoPathR71 = function ($val) {
+        if (is_string($val)) return trim($val);
+        if (is_array($val)) return trim((string)($val['path'] ?? $val['publicUrl'] ?? $val['url'] ?? ''));
+        if (is_object($val)) return trim((string)($val->path ?? $val->publicUrl ?? $val->url ?? ''));
+        return '';
+    };
+
+    $logoPathR71 = $resolveLogoPathR71($pmdInvoiceSetting('invoice_logo'));
+    if ($logoPathR71 === '') $logoPathR71 = $resolveLogoPathR71($pmdInvoiceSetting('site_logo'));
+    if ($logoPathR71 === '') $logoPathR71 = $resolveLogoPathR71($pmdInvoiceSetting('dashboard_logo'));
+
+    $embedTenantMediaR71 = function ($path) {
+        $path = trim((string)$path);
+        if ($path === '' || preg_match('#^https?://#i', $path)) return '';
+        $clean = preg_replace('~[?#].*$~', '', $path);
+        $relative = $clean;
+        if (strpos($relative, '/api/media/') === 0) {
+            $relative = substr($relative, strlen('/api/media/'));
+        }
+        $relative = ltrim($relative, '/');
+        $base = base_path('assets/media/attachments/public');
+        $candidate = $base.'/'.$relative;
+        if (!is_file($candidate)) {
+            $name = basename($relative);
+            if ($name !== '' && is_dir($base)) {
+                try {
+                    $it = new RecursiveIteratorIterator(
+                        new RecursiveDirectoryIterator($base, RecursiveDirectoryIterator::SKIP_DOTS)
+                    );
+                    foreach ($it as $file) {
+                        if ($file->isFile() && $file->getFilename() === $name) {
+                            $candidate = $file->getPathname();
+                            break;
+                        }
+                    }
+                } catch (\Throwable $e) {}
+            }
+        }
+        if (!is_file($candidate) || !is_readable($candidate)) return '';
+        $mime = @mime_content_type($candidate) ?: 'image/png';
+        $bytes = @file_get_contents($candidate);
+        if ($bytes === false || $bytes === '') return '';
+        return 'data:'.$mime.';base64,'.base64_encode($bytes);
+    };
+
+    $logoDataR71 = $embedTenantMediaR71($logoPathR71);
+    $logoUrlR71 = $logoDataR71 !== ''
+        ? $logoDataR71
+        : ($logoPathR71 !== ''
+            ? (preg_match('#^https?://#i', $logoPathR71) ? $logoPathR71 : uploads_url($logoPathR71))
+            : '');
+
+    $siteNameR71 = trim((string)$pmdInvoiceSetting('site_name', ''));
+    $invoicePrefixR71 = trim((string)$pmdInvoiceSetting('invoice_prefix', 'INV-'));
+    if ($invoicePrefixR71 === '' || $invoicePrefixR71 === 'custom') $invoicePrefixR71 = 'INV-';
+    $splitInvoiceNoR71 = $invoicePrefixR71.'S'.(int)($transaction->id ?? 0);
+    $taxRateR71 = max(0, (float)$pmdInvoiceSetting('tax_percentage', 0));
+    $grossPaidR71 = max(0, (float)($transaction->amount ?? 0));
+    $netPaidR71 = $taxRateR71 > 0
+        ? round($grossPaidR71 / (1 + ($taxRateR71 / 100)), 2)
+        : $grossPaidR71;
+    $vatPaidR71 = max(0, round($grossPaidR71 - $netPaidR71, 2));
+@endphp
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Split Payment Receipt #{{ (int)$transaction->id }}</title>
+    <title>{{ $invoiceMode ? ('Invoice ' . $splitInvoiceNoR71) : ('Split Payment Receipt #' . (int)$transaction->id) }}</title>
     <style>
         body { font-family: Arial, sans-serif; color: #222; margin: 24px; }
         .header { margin-bottom: 16px; }
@@ -387,7 +473,16 @@ section.pmd962-hero,
 </head>
 <body>
     <div class="header">
-        <h2 style="margin:0;">Split Payment Receipt</h2>
+        @if($invoiceMode && $logoUrlR71 !== '')
+            <div style="text-align:center;margin-bottom:10px;"><img src="{{ $logoUrlR71 }}" alt="logo" style="max-height:52px;max-width:220px;object-fit:contain;"></div>
+        @endif
+        @if($invoiceMode && $siteNameR71 !== '')
+            <div style="text-align:center;font-weight:800;font-size:16px;margin-bottom:4px;">{{ $siteNameR71 }}</div>
+        @endif
+        <h2 style="margin:0;">{{ $invoiceMode ? 'Invoice' : 'Split Payment Receipt' }}</h2>
+        @if($invoiceMode)
+            <div class="muted">Invoice #{{ $splitInvoiceNoR71 }}</div>
+        @endif
         <div class="muted">Transaction #{{ (int)$transaction->id }}</div>
         <div class="muted">Order #{{ (int)($order->order_id ?? 0) }} | Table: {{ $tableName ?: 'N/A' }}</div>
         <div class="muted">Paid at: {{ $transaction->paid_at ?: $transaction->created_at }}</div>
@@ -420,6 +515,10 @@ section.pmd962-hero,
             <span>Amount paid</span>
             <strong>{{ currency_format((float)$transaction->amount) }}</strong>
         </div>
+        @if($invoiceMode && $taxRateR71 > 0)
+            <div class="summary-row"><span>Net</span><span>{{ currency_format($netPaidR71) }}</span></div>
+            <div class="summary-row"><span>VAT {{ rtrim(rtrim(number_format($taxRateR71, 2, '.', ''), '0'), '.') }}%</span><span>{{ currency_format($vatPaidR71) }}</span></div>
+        @endif
         <div class="summary-row">
             <span>Transaction status</span>
             <strong>{{ ucfirst((string)($transaction->settlement_status ?? 'partial')) }}</strong>
