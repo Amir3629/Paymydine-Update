@@ -148,6 +148,10 @@
       "name": "pmd-new-tenant-onboarding-r7-css"
     },
     {
+      "path": "css/pmd-location-live-clock-r8.css",
+      "name": "pmd-location-live-clock-r8-css"
+    },
+    {
       "path": "css/pmd-menu-all-foods-r27.css",
       "name": "pmd-menu-all-foods-r27-css"
     },
@@ -184,6 +188,10 @@
     {
       "path": "js/pmd-admin-favicon-final-r21.js",
       "name": "pmd-admin-favicon-final-r21-js"
+    },
+    {
+      "path": "js/pmd-location-live-clock-r8.js",
+      "name": "pmd-location-live-clock-r8-js"
     },
     {
       "path": "js/pmd-coupon-stable-r24.js",
