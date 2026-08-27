@@ -14,6 +14,16 @@
     return /^\/admin\/pmdfinance\/?$/.test(location.pathname);
   }
 
+  function markReady() {
+    document.body.classList.remove('pmd-finance-market-r4-failed');
+    document.body.classList.add('pmd-finance-market-r4-ready');
+  }
+
+  function markFailed() {
+    document.body.classList.remove('pmd-finance-market-r4-ready');
+    document.body.classList.add('pmd-finance-market-r4-failed');
+  }
+
   function csrf() {
     var meta = document.querySelector('meta[name="csrf-token"]');
     return meta ? String(meta.content || '') : '';
@@ -70,6 +80,7 @@
       '.pmd-r4-body{padding:22px}.pmd-r4-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 16px}.pmd-r4-field{display:grid;gap:7px}.pmd-r4-field.full{grid-column:1/-1}.pmd-r4-field label{font-size:13px;font-weight:800;color:#526961}.pmd-r4-field input,.pmd-r4-field select{width:100%;height:48px;border:1px solid #d8e5e0;border-radius:12px;background:#fff;padding:10px 12px;color:#17372f}.pmd-r4-field input[readonly]{background:#f7faf9;color:#647a72}.pmd-r4-field small{font-size:12px;line-height:1.45;color:#72847e}',
       '.pmd-r4-section{margin:0 0 20px}.pmd-r4-section h4{margin:0 0 12px;font-size:15px;color:#17372f}.pmd-r4-divider{height:1px;background:#edf2f0;margin:20px 0}',
       '.pmd-r4-toggle{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:13px 14px;border:1px solid #e3ece9;border-radius:13px;background:#f9fbfa}.pmd-r4-toggle strong{font-size:14px}.pmd-r4-toggle input{width:20px;height:20px}',
+      '.pmd-r4-safe-note{padding:13px 14px;border:1px solid #d7e7e1;border-radius:13px;background:#f6faf8;color:#31584c;font-size:13px;line-height:1.55}.pmd-r4-safe-note strong{display:block;color:#17372f;margin-bottom:3px}',
       '.pmd-r4-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:20px;padding-top:17px;border-top:1px solid #edf2f0}.pmd-r4-actions-right{display:flex;gap:10px}.pmd-r4-btn{min-height:42px;border:1px solid #d6e4df;border-radius:11px;background:#fff;color:#17372f;padding:9px 15px;font-weight:800;cursor:pointer}.pmd-r4-btn.primary{background:#123d32;border-color:#123d32;color:#fff}.pmd-r4-btn:disabled{opacity:.55;cursor:not-allowed}',
       '.pmd-r4-status{font-size:13px;color:#60756d}.pmd-r4-status.ok{color:#067647}.pmd-r4-status.error{color:#b42318}',
       '.pmd-r4-method-hint{display:block;margin-top:4px;color:#72847e;font-size:12px}.pmd-r4-method-chips{display:flex;gap:6px;flex-wrap:wrap}.pmd-r4-method-chip{display:inline-flex;padding:5px 8px;border:1px solid #dce8e4;border-radius:999px;background:#fff;font-size:11px;font-weight:750;color:#36584e}',
@@ -122,6 +133,10 @@
     if (!modal) return;
     modal.querySelectorAll('button,input,select').forEach(function (node) {
       if (node.hasAttribute('data-pmd-r4-close')) return;
+      if (!busy && node.hasAttribute('data-pmd-r4-static-disabled')) {
+        node.disabled = true;
+        return;
+      }
       node.disabled = busy || node.hasAttribute('readonly');
     });
   }
@@ -134,9 +149,9 @@
   function paymobConnectionLabel(provider) {
     var connection = provider && provider.connection ? provider.connection : {};
     var status = String(connection.connection_status || 'Not tested');
-    if (provider && provider.enabled) return 'Enabled';
     if (/connected/i.test(status)) return 'Connected';
-    if (provider && provider.admin_config && Object.keys(provider.admin_config).length) return 'Setup saved';
+    var present = provider && provider.admin_config && provider.admin_config.secret_present ? provider.admin_config.secret_present : {};
+    if (Object.keys(present).some(function (key) { return !!present[key]; })) return 'Setup saved';
     return 'Not configured';
   }
 
@@ -155,7 +170,7 @@
       '<div class="pmd-owner-list-row">' +
       '<div><strong>Paymob</strong><small>Oman online payment provider · OMR</small></div>' +
       '<div class="pmd-r4-method-chips">' + chips + '</div>' +
-      '<div class="pmd-owner-status ' + (provider.enabled ? 'is-active' : '') + '">' + esc(paymobConnectionLabel(provider)) + '</div>' +
+      '<div class="pmd-owner-status">' + esc(paymobConnectionLabel(provider)) + '</div>' +
       '<button type="button" class="pmd-owner-action" data-pmd-r4-paymob>Configure</button>' +
       '</div></div>';
 
@@ -174,8 +189,8 @@
       var hint = '';
       if (method.provider_candidates.indexOf('paymob') !== -1) {
         hint = runtime && runtime.integration_configured
-          ? 'Paymob Integration ID configured.'
-          : 'Configure the Paymob Integration ID before enabling this method.';
+          ? 'Paymob Integration ID configured. Guest offering remains locked until checkout settlement QA is complete.'
+          : 'Configure the Paymob Integration ID. Guest offering remains locked until checkout settlement QA is complete.';
       } else {
         hint = 'Restaurant cash payment for Oman.';
       }
@@ -253,9 +268,11 @@
       }).join('');
     }
 
-    var html = '<section class="pmd-r4-section">' +
-      '<div class="pmd-r4-toggle"><div><strong>Provider enabled</strong><small style="display:block;margin-top:3px;color:#72847e">Enable only after the required Oman credentials and Integration IDs are saved.</small></div><input type="checkbox" data-pmd-r4-paymob-enabled ' + (provider.enabled ? 'checked' : '') + '></div>' +
-      '</section>' +
+    var runtimeNote = provider.guest_runtime_ready
+      ? '<div class="pmd-r4-toggle"><div><strong>Provider enabled</strong><small style="display:block;margin-top:3px;color:#72847e">Enable only after the required Oman credentials and Integration IDs are saved.</small></div><input type="checkbox" data-pmd-r4-paymob-enabled ' + (provider.enabled ? 'checked' : '') + '></div>'
+      : '<div class="pmd-r4-safe-note"><strong>Configuration & API testing</strong>You can save Test/Live credentials and Integration IDs now. Guest payment offering is intentionally locked until the PMD checkout → verified callback → shared settlement path passes sandbox QA.</div>';
+
+    var html = '<section class="pmd-r4-section">' + runtimeNote + '</section>' +
       '<section class="pmd-r4-section"><h4>Market & environment</h4><div class="pmd-r4-grid">' + group(['transaction_mode','country_code','api_base_url','currency','checkout_experience']) + '</div></section>' +
       '<div class="pmd-r4-divider"></div>' +
       '<section class="pmd-r4-section"><h4>Test / Sandbox</h4><div class="pmd-r4-grid">' + group(['test_secret_key','test_public_key','test_api_key','test_hmac_secret','test_integration_id_card','test_integration_id_omannet','test_integration_id_apple_pay','test_integration_id_google_pay']) + '</div></section>' +
@@ -286,6 +303,7 @@
       renderOmanMethods();
     }
     applyMarketVisibility();
+    markReady();
     return state;
   }
 
@@ -294,7 +312,8 @@
     setBusy(true);
     setModalStatus('Saving…');
     try {
-      var enabled = !!modalBody.querySelector('[data-pmd-r4-paymob-enabled]').checked;
+      var enabledControl = modalBody.querySelector('[data-pmd-r4-paymob-enabled]');
+      var enabled = !!(enabledControl && enabledControl.checked);
       var payload = await request('/admin/payment-market/paymob/save', {
         method: 'POST',
         body: JSON.stringify({enabled: enabled, config: collectPaymobConfig()})
@@ -341,16 +360,20 @@
     }
 
     var runtime = state.paymob_runtime && state.paymob_runtime.methods ? state.paymob_runtime.methods[method.code] : null;
-    var readiness = candidates.indexOf('paymob') !== -1
+    var paymobBacked = candidates.indexOf('paymob') !== -1;
+    var runtimeLocked = paymobBacked && !method.guest_runtime_ready;
+    var readiness = paymobBacked
       ? (runtime && runtime.integration_configured ? 'Paymob Integration ID is configured.' : 'Paymob Integration ID is not configured yet.')
       : 'No provider connection is required.';
+    if (runtimeLocked) readiness += ' Guest offering is still locked pending settlement sandbox QA.';
 
+    var enabledAttr = runtimeLocked ? ' disabled data-pmd-r4-static-disabled="1"' : '';
     var html = '<div class="pmd-r4-grid">' +
       '<div class="pmd-r4-field full"><label>Payment method</label><input type="text" value="' + esc(method.label) + '" readonly></div>' +
       '<div class="pmd-r4-field full"><label>Provider</label>' + providerControl + '<small>' + esc(readiness) + '</small></div>' +
       '</div>' +
       '<div class="pmd-r4-divider"></div>' +
-      '<div class="pmd-r4-toggle"><div><strong>Offer to guests</strong><small style="display:block;margin-top:3px;color:#72847e">Disabled methods remain configured but are not offered.</small></div><input type="checkbox" data-pmd-r4-method-enabled ' + (method.enabled ? 'checked' : '') + '></div>' +
+      '<div class="pmd-r4-toggle"><div><strong>Offer to guests</strong><small style="display:block;margin-top:3px;color:#72847e">' + (runtimeLocked ? 'Locked until Paymob checkout settlement passes sandbox QA.' : 'Disabled methods remain configured but are not offered.') + '</small></div><input type="checkbox" data-pmd-r4-method-enabled ' + (method.enabled ? 'checked' : '') + enabledAttr + '></div>' +
       '<div class="pmd-r4-actions"><span class="pmd-r4-status" data-pmd-r4-status></span><div class="pmd-r4-actions-right"><button type="button" class="pmd-r4-btn primary" data-pmd-r4-method-save="' + esc(method.code) + '">Save method</button></div></div>';
 
     openModal(method.label, html);
@@ -367,7 +390,7 @@
         method: 'POST',
         body: JSON.stringify({
           provider_code: providerField ? String(providerField.value || '') : '',
-          enabled: !!(enabledField && enabledField.checked)
+          enabled: !!(enabledField && enabledField.checked && !enabledField.disabled)
         })
       });
       setModalStatus(payload.message || 'Saved', 'ok');
@@ -406,17 +429,20 @@
         country: state.country_code,
         currency: state.currency && state.currency.code,
         providers: state.provider_codes,
-        methods: (state.methods || []).map(function (m) { return m.code; })
+        methods: (state.methods || []).map(function (m) { return m.code; }),
+        paymobGuestRuntimeReady: state.paymob_guest_runtime_ready
       });
     } catch (error) {
+      markFailed();
       console.error('[PMD Finance Market R4] failed', error);
     }
   }
 
   window.PMDFinanceMarketR4 = {
-    version: '4.0.0',
+    version: '4.1.0',
     reload: reload,
-    getState: function () { return state; }
+    getState: function () { return state; },
+    openPaymob: openPaymob
   };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount, {once:true});
