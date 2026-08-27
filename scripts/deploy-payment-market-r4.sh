@@ -230,12 +230,17 @@ if [ -n "$TARGET_TENANT" ]; then
   if [ "$APPLY_STATUS" -eq 0 ]; then
     echo "- Market profile re-apply passed for: $TARGET_TENANT"
   else
-    echo "- WARNING: market profile re-apply needs review for: $TARGET_TENANT (exit $APPLY_STATUS)"
+    echo "- ERROR: market profile re-apply failed for: $TARGET_TENANT (exit $APPLY_STATUS)"
   fi
   if [ "$AUDIT_STATUS" -eq 0 ]; then
     echo "- Market audit passed for: $TARGET_TENANT"
   else
-    echo "- WARNING: market audit needs review for: $TARGET_TENANT (exit $AUDIT_STATUS)"
+    echo "- ERROR: market audit failed for: $TARGET_TENANT (exit $AUDIT_STATUS)"
+  fi
+
+  if [ "$APPLY_STATUS" -ne 0 ] || [ "$AUDIT_STATUS" -ne 0 ]; then
+    echo "R4 target verification failed. Review the output above before opening guest payments." >&2
+    exit 5
   fi
 else
   echo "- Optional repair: php scripts/apply-location-market-r4.php omantest.paymydine.com"
