@@ -40,7 +40,11 @@
   try { boot = JSON.parse(bootNode.textContent || '{}') || {}; } catch (error) { boot = {}; }
 
   var strings = boot.strings || {};
-  var locale = String(boot.locale || 'en').toLowerCase() === 'de' ? 'de' : 'en';
+  // PMD_RESERVATIONS_SCHEDULE_PLATFORM_I18N_V8
+  var locale = (window.PMDPlatformMessages && typeof window.PMDPlatformMessages.locale === 'function')
+    ? String(window.PMDPlatformMessages.locale() || 'en').toLowerCase()
+    : String(boot.locale || document.documentElement.lang || 'en').toLowerCase();
+  locale = locale.indexOf('de') === 0 ? 'de' : 'en';
   var localeTag = String(boot.locale_tag || (locale === 'de' ? 'de-DE' : 'en-GB'));
 
   /*
@@ -51,195 +55,15 @@
    * Preserve unknown backend/service keys, but do not allow
    * stale strings from another locale to override UI labels.
    */
-  var pmdCalendarLocaleStrings = {
-    en: {
-      reservation: 'Reservation',
-      reservations: 'Reservations',
-      reservation_lower: 'reservation',
-      reservations_title: 'Reservations',
+  var PMD_RESERVATION_MESSAGE_KEYS = {"all":"reservations.schedule.all","assign_later":"reservations.schedule.assign_later","auto_assign":"reservations.schedule.auto_assign","availability_requirements":"reservations.schedule.availability_requirements","available":"reservations.schedule.available","booking":"reservations.schedule.booking","bookings":"reservations.schedule.bookings","calendar":"reservations.schedule.calendar","cancel":"reservations.schedule.cancel","check_availability":"reservations.schedule.check_availability","checking":"reservations.schedule.checking","choose_tables":"reservations.schedule.choose_tables","close":"reservations.schedule.close","date":"reservations.schedule.date","day_note":"reservations.schedule.day_note","delete":"reservations.schedule.delete","duration":"reservations.schedule.duration","edit_reservation":"reservations.schedule.edit_reservation","email_optional":"reservations.schedule.email_optional","event":"reservations.schedule.event","events":"reservations.schedule.events","future_only":"reservations.schedule.future_only","guest":"reservations.schedule.guest","guests":"reservations.schedule.guests","load_failed":"reservations.schedule.load_failed","loading":"reservations.schedule.loading","month":"reservations.schedule.month","name":"reservations.schedule.name","new_reservation":"reservations.schedule.new_reservation","next":"reservations.schedule.next","no_reservations":"reservations.schedule.no_reservations","no_table":"reservations.schedule.no_table","not_available":"reservations.schedule.not_available","note":"reservations.schedule.note","notes":"reservations.schedule.notes","open":"reservations.schedule.open","outside_opening_hours":"reservations.schedule.outside_opening_hours","past_slot":"reservations.schedule.past_slot","phone_optional":"reservations.schedule.phone_optional","previous":"reservations.schedule.previous","recommended_tables":"reservations.schedule.recommended_tables","reservation":"reservations.schedule.reservation","reservation_lower":"reservations.schedule.reservation_lower","reservations":"reservations.schedule.reservations","reservations_title":"reservations.schedule.reservations_title","restaurant_closed":"reservations.schedule.restaurant_closed","save":"reservations.schedule.save","save_failed":"reservations.schedule.save_failed","save_note":"reservations.schedule.save_note","scheduled":"reservations.schedule.scheduled","table":"reservations.schedule.table","table_assignment":"reservations.schedule.table_assignment","tables":"reservations.schedule.tables","time":"reservations.schedule.time","time_not_set":"reservations.schedule.time_not_set","time_slots":"reservations.schedule.time_slots","write_note":"reservations.schedule.write_note","year":"reservations.schedule.year"};
 
-      new_reservation: 'New reservation',
-      edit_reservation: 'Edit reservation',
-
-      name: 'Name',
-      phone_optional: 'Phone (optional)',
-      email_optional: 'Email (optional)',
-
-      guests: 'Guests',
-      guest: 'Guest',
-
-      date: 'Reservation date',
-      time: 'Reservation time',
-      duration: 'Duration',
-
-      table_assignment: 'Table assignment',
-      auto_assign: 'Auto assign',
-      choose_tables: 'Choose table(s)',
-      assign_later: 'Assign later',
-
-      tables: 'Tables',
-      table: 'Table',
-      no_table: 'No table',
-
-      check_availability: 'Check availability',
-
-      notes: 'Notes',
-      note: 'Note',
-
-      event: 'Event',
-      events: 'Events',
-
-      calendar: 'Calendar',
-
-      year: 'Year',
-      month: 'Month',
-      all: 'All',
-
-      previous: 'Previous',
-      next: 'Next',
-
-      day_note: 'Day note',
-      write_note: 'Write a note for this day',
-
-      delete: 'Delete',
-      cancel: 'Cancel',
-      close: 'Close',
-
-      save_note: 'Save note',
-      save: 'Save reservation',
-
-      loading: 'Loading reservation…',
-      checking: 'Checking availability…',
-
-      available: 'Available',
-      not_available: 'Not available',
-
-      availability_requirements:
-        'Choose date, time, duration and guests.',
-
-      recommended_tables: 'Recommended tables',
-      no_reservations: 'No reservations',
-
-      booking: 'Reservation',
-      bookings: 'Reservations',
-
-      time_slots: 'Time slots',
-      time_not_set: 'Time not set',
-
-      open: 'Open',
-      scheduled: 'Scheduled',
-
-      load_failed: 'Request failed.',
-
-      save_failed:
-        'The reservation could not be saved.',
-
-      past_slot: 'Past time',
-
-      future_only:
-        'Reservations cannot be created in the past.',
-
-      restaurant_closed: 'Restaurant closed',
-
-      outside_opening_hours:
-        'Outside opening hours'
-    },
-
-    de: {
-      reservation: 'Reservierung',
-      reservations: 'Reservierungen',
-      reservation_lower: 'Reservierung',
-      reservations_title: 'Reservierungen',
-
-      new_reservation: 'Neue Reservierung',
-      edit_reservation: 'Reservierung bearbeiten',
-
-      name: 'Name',
-      phone_optional: 'Telefon (optional)',
-      email_optional: 'E-Mail (optional)',
-
-      guests: 'Gäste',
-      guest: 'Gast',
-
-      date: 'Reservierungsdatum',
-      time: 'Reservierungszeit',
-      duration: 'Dauer',
-
-      table_assignment: 'Tischzuweisung',
-      auto_assign: 'Automatisch zuweisen',
-      choose_tables: 'Tisch(e) auswählen',
-      assign_later: 'Später zuweisen',
-
-      tables: 'Tische',
-      table: 'Tisch',
-      no_table: 'Kein Tisch',
-
-      check_availability: 'Verfügbarkeit prüfen',
-
-      notes: 'Notizen',
-      note: 'Notiz',
-
-      event: 'Ereignis',
-      events: 'Ereignisse',
-
-      calendar: 'Kalender',
-
-      year: 'Jahr',
-      month: 'Monat',
-      all: 'Alle',
-
-      previous: 'Zurück',
-      next: 'Weiter',
-
-      day_note: 'Tagesnotiz',
-
-      write_note:
-        'Notiz für diesen Tag schreiben',
-
-      delete: 'Löschen',
-      cancel: 'Abbrechen',
-      close: 'Schließen',
-
-      save_note: 'Notiz speichern',
-      save: 'Reservierung speichern',
-
-      loading: 'Reservierung wird geladen…',
-      checking: 'Verfügbarkeit wird geprüft…',
-
-      available: 'Verfügbar',
-      not_available: 'Nicht verfügbar',
-
-      availability_requirements:
-        'Datum, Uhrzeit, Dauer und Gäste auswählen.',
-
-      recommended_tables: 'Empfohlene Tische',
-      no_reservations: 'Keine Reservierungen',
-
-      booking: 'Reservierung',
-      bookings: 'Reservierungen',
-
-      time_slots: 'Zeitfenster',
-      time_not_set: 'Keine Uhrzeit',
-
-      open: 'Öffnen',
-      scheduled: 'Geplant',
-
-      load_failed: 'Anfrage fehlgeschlagen.',
-
-      save_failed:
-        'Die Reservierung konnte nicht gespeichert werden.',
-
-      past_slot: 'Vergangene Uhrzeit',
-
-      future_only:
-        'Reservierungen können nicht in der Vergangenheit erstellt werden.',
-
-      restaurant_closed: 'Restaurant geschlossen',
-
-      outside_opening_hours:
-        'Außerhalb der Öffnungszeiten'
+  function pmdReservationT(property, fallback) {
+    var key = PMD_RESERVATION_MESSAGE_KEYS[property] || '';
+    if (key && window.PMDPlatformMessages && typeof window.PMDPlatformMessages.t === 'function') {
+      return window.PMDPlatformMessages.t(key, {}, fallback == null ? property : fallback);
     }
-  };
+    return fallback == null ? property : fallback;
+  }
 
   if (
     !strings
@@ -249,15 +73,8 @@
     strings = {};
   }
 
-  var pmdCalendarLocaleOwnedStrings =
-    pmdCalendarLocaleStrings[locale]
-    || pmdCalendarLocaleStrings.en;
-
-  Object.keys(
-    pmdCalendarLocaleOwnedStrings
-  ).forEach(function (key) {
-    strings[key] =
-      pmdCalendarLocaleOwnedStrings[key];
+  Object.keys(PMD_RESERVATION_MESSAGE_KEYS).forEach(function (property) {
+    strings[property] = pmdReservationT(property, strings[property] || property);
   });
 
   /*

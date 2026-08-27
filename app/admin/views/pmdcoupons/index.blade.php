@@ -1,13 +1,10 @@
 {{-- PMD_PLATFORM_I18N_COUPONS_V1 --}}
-@include('admin::_partials.pmd_platform_messages')
 @php
     $cards = $pmdCouponCards ?? [];
     $catalog = $pmdCouponCatalog ?? [];
     $stats = $pmdCouponStats ?? ['total' => 0, 'active' => 0, 'redemptions' => 0, 'stored_balance' => 0];
-
-    $pmdCouponLocale = strtolower(trim((string)request()->cookie('pmd_admin_locale', app()->getLocale())));
-    $pmdCouponLocale = str_starts_with($pmdCouponLocale, 'de') ? 'de' : 'en';
-
+    // PMD_COUPON_MANAGER_PLATFORM_I18N_V8
+    $pmdCouponLocale = \Admin\Classes\PmdPlatformI18n::currentLocale();
     // PMD_COUPON_HEADER_SERVER_COUNT_V2
     try {
         $pmdCouponHeaderServerCountV2 =
@@ -18,49 +15,7 @@
         $pmdCouponHeaderServerCountV2 = 0;
     }
 
-    $pmdCouponCopy = [
-        'en' => [
-            'title' => 'Coupons', 'header' => 'Coupon header', 'actions' => 'Coupon actions', 'create' => 'Create coupon / card', 'notifications' => 'Notifications',
-            'overview' => 'Coupon overview', 'total' => 'Codes', 'total_help' => 'Coupons + cards', 'active' => 'Active', 'active_help' => 'Usable right now',
-            'redemptions' => 'Redemptions', 'redemptions_help' => 'Successful uses', 'stored_balance' => 'Stored balance', 'stored_balance_help' => 'Gift cards + credits',
-            'search' => 'Search name or code...', 'status_filter' => 'Status filter', 'all' => 'All', 'active_only' => 'Active', 'inactive' => 'Inactive',
-            'types' => 'Coupon types', 'all_types' => 'All types', 'coupon' => 'Coupon', 'gift_card' => 'Gift card', 'voucher' => 'Voucher', 'credit' => 'Credit', 'comp' => 'Comp',
-            'no_description' => 'No description', 'discount' => 'Discount', 'balance' => 'Balance', 'min_order' => 'Min. order', 'uses' => 'Uses', 'unlimited' => 'Unlimited',
-            'expires' => 'Expires', 'no_expiry' => 'No expiry', 'expired' => 'Expired', 'disabled' => 'Disabled', 'enabled' => 'Enabled', 'created' => 'Created',
-            'disable' => 'Disable', 'enable' => 'Enable', 'edit' => 'Edit', 'copy_code' => 'Copy code', 'copied' => 'Copied',
-            'empty' => 'No coupons or cards yet', 'empty_help' => 'Create the first code and it will appear here.', 'no_results' => 'No coupons match these filters.',
-            'modal_create' => 'Create coupon / card', 'modal_edit' => 'Edit coupon / card', 'close' => 'Close', 'cancel' => 'Cancel', 'save' => 'Save', 'saving' => 'Saving...', 'saved' => 'Saved',
-            'delete' => 'Delete', 'delete_permanently' => 'Delete permanently', 'delete_confirm' => 'Delete this coupon/card permanently? This cannot be undone.', 'deleting' => 'Deleting...', 'deleted' => 'Deleted',
-            'basic' => 'Basic information', 'basic_help' => 'Name, code and the kind of value this code provides.', 'card_type' => 'Type', 'name' => 'Name', 'code' => 'Code', 'generate' => 'Generate', 'description' => 'Description',
-            'discount_section' => 'Discount', 'discount_help' => 'Choose a fixed amount or a percentage discount.', 'fixed' => 'Fixed amount', 'percentage' => 'Percentage', 'discount_value' => 'Discount value',
-            'balance_section' => 'Stored value', 'balance_help' => 'Starting balance for a new gift card, credit or comp.', 'starting_balance' => 'Starting balance', 'current_balance' => 'Current balance',
-            'gift_options' => 'Gift card options', 'gift_options_help' => 'Only applies to gift cards.', 'purchasable' => 'Purchasable', 'purchase_price' => 'Purchase price', 'reloadable' => 'Reloadable', 'transferable' => 'Transferable',
-            'rules' => 'Usage rules', 'rules_help' => 'Keep only the limits that are useful for this code.', 'minimum_order' => 'Minimum order', 'max_redemptions' => 'Maximum redemptions', 'per_customer' => 'Per customer', 'zero_unlimited' => '0 = unlimited', 'expiry_date' => 'Expiry date',
-            'status' => 'Active', 'status_help' => 'Inactive codes stay saved but cannot be used.', 'code_help' => 'Leave blank and PMD generates a unique code.',
-            'save_error' => 'Could not save this coupon/card.', 'delete_error' => 'Could not delete this coupon/card.', 'toggle_error' => 'Could not change status.', 'refresh_error' => 'Saved, but the coupon workspace could not refresh.',
-        ],
-        'de' => [
-            'title' => 'Gutscheine', 'header' => 'Gutschein-Kopfbereich', 'actions' => 'Gutschein-Aktionen', 'create' => 'Gutschein / Karte erstellen', 'notifications' => 'Benachrichtigungen',
-            'overview' => 'Gutscheinübersicht', 'total' => 'Gutscheincodes', 'total_help' => 'Gutscheine + Karten', 'active' => 'Aktiv', 'active_help' => 'Jetzt verwendbar',
-            'redemptions' => 'Einlösungen', 'redemptions_help' => 'Erfolgreiche Nutzungen', 'stored_balance' => 'Guthaben', 'stored_balance_help' => 'Geschenkkarten + Guthaben',
-            'search' => 'Name oder Code suchen...', 'status_filter' => 'Statusfilter', 'all' => 'Alle', 'active_only' => 'Aktiv', 'inactive' => 'Inaktiv',
-            'types' => 'Gutscheinarten', 'all_types' => 'Alle Arten', 'coupon' => 'Gutschein', 'gift_card' => 'Geschenkkarte', 'voucher' => 'Wertgutschein', 'credit' => 'Guthaben', 'comp' => 'Kulanz',
-            'no_description' => 'Keine Beschreibung', 'discount' => 'Rabatt', 'balance' => 'Guthaben', 'min_order' => 'Mindestwert', 'uses' => 'Nutzungen', 'unlimited' => 'Unbegrenzt',
-            'expires' => 'Gültig bis', 'no_expiry' => 'Kein Ablaufdatum', 'expired' => 'Abgelaufen', 'disabled' => 'Deaktiviert', 'enabled' => 'Aktiv', 'created' => 'Erstellt',
-            'disable' => 'Deaktivieren', 'enable' => 'Aktivieren', 'edit' => 'Bearbeiten', 'copy_code' => 'Code kopieren', 'copied' => 'Kopiert',
-            'empty' => 'Noch keine Gutscheine oder Karten', 'empty_help' => 'Erstelle den ersten Code. Er erscheint anschließend hier.', 'no_results' => 'Keine Gutscheine entsprechen diesen Filtern.',
-            'modal_create' => 'Gutschein / Karte erstellen', 'modal_edit' => 'Gutschein / Karte bearbeiten', 'close' => 'Schließen', 'cancel' => 'Abbrechen', 'save' => 'Speichern', 'saving' => 'Wird gespeichert...', 'saved' => 'Gespeichert',
-            'delete' => 'Löschen', 'delete_permanently' => 'Endgültig löschen', 'delete_confirm' => 'Diesen Gutschein / diese Karte endgültig löschen? Dies kann nicht rückgängig gemacht werden.', 'deleting' => 'Wird gelöscht...', 'deleted' => 'Gelöscht',
-            'basic' => 'Grundinformationen', 'basic_help' => 'Name, Code und die Art des Werts, den dieser Code bietet.', 'card_type' => 'Art', 'name' => 'Name', 'code' => 'Code', 'generate' => 'Generieren', 'description' => 'Beschreibung',
-            'discount_section' => 'Rabatt', 'discount_help' => 'Wähle einen festen Betrag oder einen prozentualen Rabatt.', 'fixed' => 'Fester Betrag', 'percentage' => 'Prozent', 'discount_value' => 'Rabattwert',
-            'balance_section' => 'Guthaben', 'balance_help' => 'Startguthaben für eine neue Geschenkkarte, ein Guthaben oder eine Kulanzkarte.', 'starting_balance' => 'Startguthaben', 'current_balance' => 'Aktuelles Guthaben',
-            'gift_options' => 'Geschenkkarten-Optionen', 'gift_options_help' => 'Gilt nur für Geschenkkarten.', 'purchasable' => 'Kaufbar', 'purchase_price' => 'Kaufpreis', 'reloadable' => 'Aufladbar', 'transferable' => 'Übertragbar',
-            'rules' => 'Nutzungsregeln', 'rules_help' => 'Lege nur die Grenzen fest, die für diesen Code sinnvoll sind.', 'minimum_order' => 'Mindestbestellwert', 'max_redemptions' => 'Maximale Einlösungen', 'per_customer' => 'Pro Gast', 'zero_unlimited' => '0 = unbegrenzt', 'expiry_date' => 'Ablaufdatum',
-            'status' => 'Aktiv', 'status_help' => 'Inaktive Codes bleiben gespeichert, können aber nicht verwendet werden.', 'code_help' => 'Leer lassen und PMD erzeugt einen eindeutigen Code.',
-            'save_error' => 'Gutschein / Karte konnte nicht gespeichert werden.', 'delete_error' => 'Gutschein / Karte konnte nicht gelöscht werden.', 'toggle_error' => 'Status konnte nicht geändert werden.', 'refresh_error' => 'Gespeichert, aber die Gutscheinansicht konnte nicht aktualisiert werden.',
-        ],
-    ];
-    $pmdT = static fn(string $key) => $pmdCouponCopy[$pmdCouponLocale][$key] ?? $pmdCouponCopy['en'][$key] ?? $key;
+    $pmdT = static fn(string $key): string => \Admin\Classes\PmdPlatformI18n::translate('coupons.manager.'.strtolower($key), [], $pmdCouponLocale, $key);
     $typeLabel = static fn(string $type) => $pmdT($type);
     $statusSearch = static fn(array $item) => $item['is_active'] ? 'active' : 'inactive';
 @endphp

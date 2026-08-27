@@ -20,6 +20,15 @@
     var root = ctx.root;
     var state = ctx.state;
 
+    // PMD_PAYMENT_POLICY_PLATFORM_I18N_V4
+    function pmdT(key, fallback, replacements) {
+      var runtime = window.PMDPlatformMessages;
+      if (runtime && typeof runtime.t === 'function') {
+        return runtime.t(key, replacements || {}, fallback || key);
+      }
+      return fallback || key;
+    }
+
     var cashierOverlay = !!(
       root &&
       root.closest &&
@@ -96,8 +105,8 @@
       if (title) {
         title.textContent =
           cashierMode
-            ? 'Payment method'
-            : 'How will they pay?';
+            ? pmdT('shared.payment_method', 'Payment method')
+            : pmdT('payment.method_question', 'How will they pay?');
       }
 
       forceHidden(note, true);
@@ -119,11 +128,11 @@
         var note = button.querySelector('small');
 
         if (key === 'cash') {
-          if (title) title.textContent = 'Cash';
-          if (note) note.textContent = 'Cash payment';
+          if (title) title.textContent = pmdT('payment.cash', 'Cash');
+          if (note) note.textContent = pmdT('payment.cash_payment', 'Cash payment');
         } else {
-          if (title) title.textContent = 'Terminal';
-          if (note) note.textContent = 'Pay on a connected terminal';
+          if (title) title.textContent = pmdT('payment.terminal', 'Terminal');
+          if (note) note.textContent = pmdT('payment.pay_connected_terminal', 'Pay on a connected terminal');
         }
 
         if (cashierMode) {
@@ -207,10 +216,9 @@
         title.textContent =
           order.order_id
             ? (
-                'Order #' +
-                order.order_id
+                pmdT('payment.order_number', 'Order #:id', {id: order.order_id})
               )
-            : 'Pay';
+            : pmdT('payment.pay', 'Pay');
       }
 
       var balance =
@@ -231,7 +239,7 @@
 
         if (label) {
           label.textContent =
-            'Total';
+            pmdT('payment.total', 'Total');
         }
 
         forceHidden(
@@ -285,7 +293,7 @@
             'Checking terminal…'
         ) {
           payButton.textContent =
-            'Pay';
+            pmdT('payment.pay', 'Pay');
         }
       }
     }
@@ -307,8 +315,8 @@
 
       var title = terminalBox.querySelector('.pmd-pos-terminal-title b');
       var subtitle = terminalBox.querySelector('.pmd-pos-terminal-title span');
-      if (title) title.textContent = buttons.length > 1 ? 'Choose terminal' : 'Terminal';
-      if (subtitle && buttons.length <= 1 && subtitle.textContent === 'Ready') {
+      if (title) title.textContent = buttons.length > 1 ? pmdT('payment.choose_terminal', 'Choose terminal') : pmdT('payment.terminal', 'Terminal');
+      if (subtitle && buttons.length <= 1 && subtitle.textContent === pmdT('payment.ready', 'Ready')) {
         subtitle.textContent = '';
       }
 
@@ -322,7 +330,7 @@
 
       if (payButton && offline) {
         payButton.disabled = true;
-        payButton.textContent = 'Terminal offline';
+        payButton.textContent = pmdT('payment.terminal_offline', 'Terminal offline');
       }
 
       var existing = terminalBox.querySelector('[data-pmd-simple-terminal-status]');
@@ -332,7 +340,7 @@
         var status = document.createElement('div');
         status.dataset.pmdSimpleTerminalStatus = '1';
         status.className = 'pmd-pos-terminal-simple-status is-offline';
-        status.textContent = 'This terminal is offline. Turn it on or choose another terminal.';
+        status.textContent = pmdT('payment.terminal_offline_help', 'This terminal is offline. Turn it on or choose another terminal.');
         terminalBox.appendChild(status);
       }
     }

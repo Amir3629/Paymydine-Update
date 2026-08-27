@@ -18,6 +18,15 @@
     install: function (ctx) {
       var state = ctx.state;
 
+      // PMD_PAYMENT_PLATFORM_I18N_V4
+      function pmdT(key, fallback, replacements) {
+        var runtime = window.PMDPlatformMessages;
+        if (runtime && typeof runtime.t === 'function') {
+          return runtime.t(key, replacements || {}, fallback || key);
+        }
+        return fallback || key;
+      }
+
       var cashierMode = !!(
         ctx.pmdCashierAdjustments ||
         ctx.pmdCashier
@@ -137,7 +146,7 @@
             desktopAbsoluteUrl(receiptUrl)
           );
           desktopRememberPrinted(key);
-          toast('Receipt printed');
+          toast(pmdT('payment.receipt_printed', 'Receipt printed'));
         } catch (error) {
           toast(
             'Payment recorded, but receipt could not print: '
@@ -206,8 +215,8 @@
       }
 
       async function openPayment() {
-        if (!state.activeOrderId) return toast('Save the order before taking payment.', true);
-        if (state.cart && state.cart.length) return toast('Save new items before taking payment.', true);
+        if (!state.activeOrderId) return toast(pmdT('payment.save_order_first', 'Save the order before taking payment.'), true);
+        if (state.cart && state.cart.length) return toast(pmdT('payment.save_items_first', 'Save new items before taking payment.'), true);
         resetPaymentState();
         var modal = $('[data-pos-payment-modal]');
         if (!modal) return;
@@ -265,9 +274,9 @@
           var remaining = paymentRemaining();
           if (state.payment.cashReceived === '') state.payment.cashReceived = roundMoney(remaining).toFixed(2);
           renderPayment();
-          if (!silent) toast('Payment status updated');
+          if (!silent) toast(pmdT('payment.status_updated', 'Payment status updated'));
         } catch (error) {
-          toast(error.message || 'Could not load payment details.', true);
+          toast(error.message || pmdT('payment.load_error', 'Could not load payment details.'), true);
         } finally {
           state.payment.loading = false;
           renderPayment();
@@ -393,7 +402,7 @@
           container.innerHTML =
             '<div class="pmd-pos-balance-card is-remaining pmd-pos-balance-hero">' +
               // PMD_PAYMENT_V3_R60E_STABLE_BALANCE
-              '<span>Total</span>' +
+              '<span>' + esc(pmdT('payment.total', 'Total')) + '</span>' +
               '<b>' +
                 money(paymentPayable()) +
               '</b>' +
@@ -406,7 +415,7 @@
         } else {
           container.innerHTML =
             '<div class="pmd-pos-balance-card is-remaining pmd-pos-balance-hero">' +
-              '<span>Amount due</span>' +
+              '<span>' + esc(pmdT('payment.amount_due', 'Amount due')) + '</span>' +
               '<b>' +
                 money(settlement.remaining_amount) +
               '</b>' +
@@ -445,7 +454,7 @@
         });
         var remaining = paymentRemaining();
         if (state.payment.splitMode === 'full') {
-          panel.innerHTML = '<div class="pmd-pos-split-equal"><div><strong>Full balance</strong><small>Pay everything remaining on this order.</small></div><b>' + money(remaining) + '</b></div>';
+          panel.innerHTML = '<div class="pmd-pos-split-equal"><div><strong>' + esc(pmdT('payment.full_balance', 'Full balance')) + '</strong><small>' + esc(pmdT('payment.pay_remaining', 'Pay everything remaining on this order.')) + '</small></div><b>' + money(remaining) + '</b></div>';
         } else if (state.payment.splitMode === 'equal') {
           panel.innerHTML = '<div class="pmd-pos-split-equal"><div><strong>One of ' + state.payment.equalPeople + ' equal shares</strong><small>Reopen payment for the next payer.</small></div><div class="pmd-pos-split-stepper"><button type="button" data-equal-minus>−</button><b>' + state.payment.equalPeople + '</b><button type="button" data-equal-plus>+</button></div></div>';
           var minus = $('[data-equal-minus]', panel);
@@ -484,9 +493,9 @@
 
         // Staff checkout is intentionally limited to the two actions a waiter needs.
         // Online methods remain available to guests in the digital-menu checkout.
-        var methods = [{key: 'cash', name: 'Cash', note: 'Cash payment'}];
+        var methods = [{key: 'cash', name: pmdT('payment.cash', 'Cash'), note: pmdT('payment.cash_payment', 'Cash payment')}];
         if (terminalProviders().length) {
-          methods.push({key: 'direct_terminal', name: 'Terminal', note: 'Pay on a connected terminal'});
+          methods.push({key: 'direct_terminal', name: pmdT('payment.terminal', 'Terminal'), note: pmdT('payment.pay_connected_terminal', 'Pay on a connected terminal')});
         }
 
         container.innerHTML = methods.map(function (method) {
@@ -542,7 +551,7 @@
                       ? 'Choose where the customer pays'
                       : 'Ready'
                   )
-                : 'No terminal online';
+                : pmdT('payment.no_terminal_online', 'No terminal online');
 
             terminalBox.setAttribute(
               'aria-busy',
@@ -551,12 +560,12 @@
                 : 'false'
             );
 
-            terminalBox.innerHTML = '<div class="pmd-pos-terminal-title"><b>' + (providers.length > 1 ? 'Choose terminal' : 'Terminal') + '</b><span>' + esc(subtitle) + '</span></div><div class="pmd-pos-terminal-provider-row">' + providers.map(function (provider) {
+            terminalBox.innerHTML = '<div class="pmd-pos-terminal-title"><b>' + (providers.length > 1 ? pmdT('payment.choose_terminal', 'Choose terminal') : pmdT('payment.terminal', 'Terminal')) + '</b><span>' + esc(subtitle) + '</span></div><div class="pmd-pos-terminal-provider-row">' + providers.map(function (provider) {
               var id = provider.terminal_device_id || '';
               var status = String(provider.terminal_status || 'unknown').toLowerCase();
               var isOnline = status === 'online';
               var active = state.payment.providerCode === provider.provider_code && String(state.payment.terminalDeviceId || '') === String(id);
-              return '<button type="button" data-terminal-provider="' + esc(provider.provider_code) + '" data-terminal-device-id="' + esc(id) + '" class="' + (active ? 'is-active ' : '') + (isOnline ? 'is-online' : 'is-offline') + '" ' + (!isOnline ? 'disabled' : '') + '><span>' + esc(provider.name || 'Terminal') + '</span><small><i></i>' + esc(isOnline ? 'Online' : status) + '</small></button>';
+              return '<button type="button" data-terminal-provider="' + esc(provider.provider_code) + '" data-terminal-device-id="' + esc(id) + '" class="' + (active ? 'is-active ' : '') + (isOnline ? 'is-online' : 'is-offline') + '" ' + (!isOnline ? 'disabled' : '') + '><span>' + esc(provider.name || 'Terminal') + '</span><small><i></i>' + esc(isOnline ? pmdT('payment.online', 'Online') : status) + '</small></button>';
             }).join('') + '</div>';
 
             $$('[data-terminal-provider]', terminalBox).forEach(function (button) {
@@ -618,7 +627,7 @@
         var change = Math.max(0, roundMoney(cashReceived - payable));
         if (changeBox) {
           changeBox.hidden = state.payment.method !== 'cash' || cashReceived < payable;
-          if (!changeBox.hidden) changeBox.textContent = 'Change: ' + money(change);
+          if (!changeBox.hidden) changeBox.textContent = pmdT('payment.change', 'Change: :amount', {amount: money(change)});
         }
         if (copy) copy.hidden = true;
         if (refresh) refresh.hidden = !state.payment.terminalAttemptId;
@@ -626,13 +635,13 @@
         if (payButton) {
           var chosen = selectedTerminal();
           if (cashierMode) {
-            payButton.textContent = 'Pay';
+            payButton.textContent = pmdT('payment.pay', 'Pay');
           } else if (direct) {
-            if (state.payment.terminalStatusRefreshing) payButton.textContent = 'Checking terminal…';
-            else if (!chosen) payButton.textContent = 'No terminal online';
+            if (state.payment.terminalStatusRefreshing) payButton.textContent = pmdT('payment.checking_terminal', 'Checking terminal…');
+            else if (!chosen) payButton.textContent = pmdT('payment.no_terminal_online', 'No terminal online');
             else payButton.textContent = 'Charge ' + money(payable);
           } else {
-            payButton.textContent = 'Record cash';
+            payButton.textContent = pmdT('payment.record_cash', 'Record cash');
           }
 
           var canCollect = state.payment.summary && state.payment.summary.permissions && state.payment.summary.permissions.can_collect_payment;

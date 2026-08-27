@@ -23,6 +23,15 @@
 
   var PMD_MENU_FALLBACK_IMAGE = '/brand/paymydine-logo.svg';
 
+  // PMD_CASHIER_PLATFORM_I18N_V4
+  function pmdT(key, fallback, replacements) {
+    var runtime = window.PMDPlatformMessages;
+    if (runtime && typeof runtime.t === 'function') {
+      return runtime.t(key, replacements || {}, fallback || key);
+    }
+    return fallback || key;
+  }
+
   var state = {
     shell: null,
     open: false,
@@ -352,7 +361,7 @@
       );
       // PMD_CASHIER_R60D_PAYMENT_CSS_OWNER
       ensureStyle(
-        '/app/admin/assets/css/pmd-cashier-payment-clean-v1.css?v=20260827-r80-workspace-fit',
+        '/app/admin/assets/css/pmd-cashier-payment-clean-v1.css?v=20260827-r83-taller-touch-targets',
         'data-pmd-coc-payment-clean-style'
       );
 
@@ -408,11 +417,11 @@
         '<div class="pmd-pos-payment-dialog" role="dialog" aria-modal="true" aria-labelledby="pmd-coc-payment-title">',
           '<header class="pmd-pos-payment-head">',
             '<div>',
-              '<span class="pmd-pos-payment-eyebrow">PAYMENT CENTER</span>',
-              '<h2 id="pmd-coc-payment-title">Pay</h2>',
+              '<span class="pmd-pos-payment-eyebrow">' + esc(pmdT('waiter.payment.center', 'PAYMENT CENTER')) + '</span>',
+              '<h2 id="pmd-coc-payment-title">' + esc(pmdT('payment.title', 'Pay')) + '</h2>',
               '<p data-pos-payment-subtitle></p>',
             '</div>',
-            '<button type="button" class="pmd-pos-payment-close" data-pos-payment-close aria-label="Close payment">×</button>',
+            '<button type="button" class="pmd-pos-payment-close" data-pos-payment-close aria-label="' + esc(pmdT('waiter.pos.close_payment', 'Close payment')) + '">×</button>',
           '</header>',
 
           '<div class="pmd-pos-payment-body">',
@@ -421,18 +430,18 @@
               '<div class="pmd-coc-payment-ledger" data-coc-payment-ledger hidden></div>',
 
               '<div class="pmd-pos-payment-block">',
-                '<div class="pmd-pos-payment-block-title"><b>Split / part payment</b><span>Choose what this payer pays now</span></div>',
+                '<div class="pmd-pos-payment-block-title"><b>' + esc(pmdT('payment.split_part', 'Split / part payment')) + '</b><span>' + esc(pmdT('payment.choose_payer_now', 'Choose what this payer pays now')) + '</span></div>',
                 '<div class="pmd-pos-split-tabs" data-pos-cashier-split-tabs>',
-                  '<button type="button" class="is-active" data-split-mode="full">Full</button>',
-                  '<button type="button" data-split-mode="equal">Equal</button>',
-                  '<button type="button" data-split-mode="items">By items</button>',
-                  '<button type="button" data-split-mode="custom">Custom</button>',
+                  '<button type="button" class="is-active" data-split-mode="full">' + esc(pmdT('payment.full', 'Full')) + '</button>',
+                  '<button type="button" data-split-mode="equal">' + esc(pmdT('payment.equal', 'Equal')) + '</button>',
+                  '<button type="button" data-split-mode="items">' + esc(pmdT('waiter.payment.by_items', 'By items')) + '</button>',
+                  '<button type="button" data-split-mode="custom">' + esc(pmdT('shared.custom', 'Custom')) + '</button>',
                 '</div>',
                 '<div class="pmd-pos-split-panel" data-pos-split-panel></div>',
               '</div>',
 
               '<div class="pmd-pos-payment-block">',
-                '<div class="pmd-pos-payment-block-title"><b>Payment method</b><span>Only configured methods are shown</span></div>',
+                '<div class="pmd-pos-payment-block-title"><b>' + esc(pmdT('shared.payment_method', 'Payment method')) + '</b><span>Only configured methods are shown</span></div>',
                 '<div class="pmd-pos-method-grid" data-pos-methods></div>',
                 '<div class="pmd-pos-online-box" data-pos-online-box hidden></div>',
                 '<div class="pmd-pos-terminal-box" data-pos-terminal-box hidden></div>',
@@ -440,21 +449,21 @@
 
               '<div class="pmd-pos-payment-block pmd-pos-adjustments">',
                 '<div>',
-                  '<div class="pmd-pos-payment-block-title"><b>Tip</b><span>Optional</span></div>',
+                  '<div class="pmd-pos-payment-block-title"><b>' + esc(pmdT('shared.tip', 'Tip')) + '</b><span>Optional</span></div>',
                   '<div class="pmd-pos-tip-buttons" data-pos-tip-buttons>',
-                    '<button type="button" class="is-active" data-tip-percent="0">No tip</button>',
+                    '<button type="button" class="is-active" data-tip-percent="0">' + esc(pmdT('waiter.payment.no_tip', 'No tip')) + '</button>',
                     '<button type="button" data-tip-percent="5">5%</button>',
                     '<button type="button" data-tip-percent="10">10%</button>',
-                    '<button type="button" data-tip-percent="custom">Custom</button>',
+                    '<button type="button" data-tip-percent="custom">' + esc(pmdT('shared.custom', 'Custom')) + '</button>',
                   '</div>',
-                  '<input type="number" min="0" step="0.01" class="pmd-pos-payment-input" data-pos-custom-tip placeholder="Custom tip" hidden>',
+                  '<input type="number" min="0" step="0.01" class="pmd-pos-payment-input" data-pos-custom-tip placeholder="' + esc(pmdT('waiter.payment.custom_tip', 'Custom tip')) + '" hidden>',
                 '</div>',
 
                 '<div>',
-                  '<div class="pmd-pos-payment-block-title"><b>Coupon</b><span>Full remaining balance only</span></div>',
+                  '<div class="pmd-pos-payment-block-title"><b>' + esc(pmdT('shared.coupon', 'Coupon')) + '</b><span>Full remaining balance only</span></div>',
                   '<div class="pmd-pos-coupon-row">',
-                    '<input type="text" class="pmd-pos-payment-input" data-pos-coupon-code placeholder="Coupon code" autocomplete="off">',
-                    '<button type="button" data-pos-coupon-apply>Apply</button>',
+                    '<input type="text" class="pmd-pos-payment-input" data-pos-coupon-code placeholder="' + esc(pmdT('waiter.payment.coupon_code', 'Coupon code')) + '" autocomplete="off">',
+                    '<button type="button" data-pos-coupon-apply>' + esc(pmdT('shared.apply', 'Apply')) + '</button>',
                   '</div>',
                   '<div class="pmd-pos-coupon-result" data-pos-coupon-result></div>',
                 '</div>',
@@ -465,52 +474,47 @@
                   '<label><span>Payer / guest label</span><input type="text" class="pmd-pos-payment-input" data-pos-payer-label placeholder="Guest 1, Anna, Seat 2…"></label>',
                   '<label data-pos-reference-field hidden><span>Terminal approval / receipt reference</span><input type="text" class="pmd-pos-payment-input" data-pos-payment-reference placeholder="Required for external terminal"></label>',
                   '<div class="pmd-cashier-cash-field" data-pos-cash-field>',
-                    '<div class="pmd-cashier-cash-title">Cash received</div>',
-
-                    '<input type="text" inputmode="decimal" autocomplete="off" class="pmd-pos-payment-input pmd-cashier-cash-input" data-pos-cash-received>',
-
-                    '<div class="pmd-cashier-keypad" data-cash-keypad>',
-                      '<button type="button" data-cash-key="1">1</button>',
-                      '<button type="button" data-cash-key="2">2</button>',
-                      '<button type="button" data-cash-key="3">3</button>',
-
-                      '<button type="button" data-cash-key="4">4</button>',
-                      '<button type="button" data-cash-key="5">5</button>',
-                      '<button type="button" data-cash-key="6">6</button>',
-
-                      '<button type="button" data-cash-key="7">7</button>',
-                      '<button type="button" data-cash-key="8">8</button>',
-                      '<button type="button" data-cash-key="9">9</button>',
-
-                      '<button type="button" data-cash-action="decimal">.</button>',
-                      '<button type="button" data-cash-key="0">0</button>',
-                      '<button type="button" data-cash-action="backspace" aria-label="Backspace">⌫</button>',
-                    '</div>',
-
-                    '<div class="pmd-cashier-tenders">',
-                      '<button type="button" data-cash-action="exact">Exact</button>',
-                      '<button type="button" data-cash-tender="5">€5</button>',
-                      '<button type="button" data-cash-tender="10">€10</button>',
-                      '<button type="button" data-cash-tender="20">€20</button>',
-                      '<button type="button" data-cash-tender="50">€50</button>',
-                    '</div>',
+                '<div class="pmd-cashier-cash-left">',
+                  '<div class="pmd-cashier-cash-title">Cash received</div>',
+                  '<input type="text" inputmode="decimal" autocomplete="off" class="pmd-pos-payment-input pmd-cashier-cash-input" data-pos-cash-received>',
+                  '<div class="pmd-cashier-tenders">',
+                    '<button type="button" data-cash-action="exact">Exact</button>',
+                    '<button type="button" data-cash-tender="5">€5</button>',
+                    '<button type="button" data-cash-tender="10">€10</button>',
+                    '<button type="button" data-cash-tender="20">€20</button>',
+                    '<button type="button" data-cash-tender="50">€50</button>',
                   '</div>',
                 '</div>',
+                '<div class="pmd-cashier-keypad" data-cash-keypad>',
+                  '<button type="button" data-cash-key="1">1</button>',
+                  '<button type="button" data-cash-key="2">2</button>',
+                  '<button type="button" data-cash-key="3">3</button>',
+                  '<button type="button" data-cash-key="4">4</button>',
+                  '<button type="button" data-cash-key="5">5</button>',
+                  '<button type="button" data-cash-key="6">6</button>',
+                  '<button type="button" data-cash-key="7">7</button>',
+                  '<button type="button" data-cash-key="8">8</button>',
+                  '<button type="button" data-cash-key="9">9</button>',
+                  '<button type="button" data-cash-action="decimal">.</button>',
+                  '<button type="button" data-cash-key="0">0</button>',
+                  '<button type="button" data-cash-action="backspace" aria-label="Backspace">⌫</button>',
+                '</div>',
+              '</div>',
                 '<label class="pmd-pos-confirm-row" data-pos-external-confirm-row hidden><input type="checkbox" data-pos-external-confirm> I confirm the external terminal approved this exact amount.</label>',
               '</div>',
             '</section>',
 
             '<aside class="pmd-pos-payment-summary">',
-              '<h3>Payment summary</h3>',
+              '<h3>' + esc(pmdT('shared.payment_summary', 'Payment summary')) + '</h3>',
               '<div data-pos-payment-totals></div>',
               '<div class="pmd-pos-change-box" data-pos-change-box hidden></div>',
-              '<button type="button" class="pmd-pos-pay-button" data-pos-pay-button>Pay</button>',
-              '<button type="button" class="pmd-pos-payment-secondary" data-pos-copy-link>Copy customer payment link</button>',
-              '<button type="button" class="pmd-pos-payment-secondary" data-pos-refresh-payment>Refresh payment status</button>',
+              '<button type="button" class="pmd-pos-pay-button" data-pos-pay-button>' + esc(pmdT('payment.pay', 'Pay')) + '</button>',
+              '<button type="button" class="pmd-pos-payment-secondary" data-pos-copy-link>' + esc(pmdT('waiter.payment.copy_link', 'Copy customer payment link')) + '</button>',
+              '<button type="button" class="pmd-pos-payment-secondary" data-pos-refresh-payment>' + esc(pmdT('waiter.payment.refresh_status', 'Refresh payment status')) + '</button>',
               '<p class="pmd-pos-payment-safety">Online and direct-terminal payments are never marked successful without provider confirmation.</p>',
 
               '<div class="pmd-pos-payment-history-wrap">',
-                '<div class="pmd-pos-payment-block-title"><b>Payment history</b><span data-pos-payment-history-count></span></div>',
+                '<div class="pmd-pos-payment-block-title"><b>' + esc(pmdT('shared.payment_history', 'Payment history')) + '</b><span data-pos-payment-history-count></span></div>',
                 '<div class="pmd-pos-payment-history" data-pos-payment-history></div>',
               '</div>',
             '</aside>',
@@ -535,11 +539,11 @@
       '<section class="pmd-coc__dialog" role="dialog" aria-modal="true" aria-labelledby="pmd-coc-title">',
         '<header class="pmd-coc__head">',
           '<div class="pmd-coc__head-copy">',
-            '<span class="pmd-coc__eyebrow">CASHIER · ORDER COMPOSER</span>',
-            '<h2 id="pmd-coc-title" data-coc-title>New order</h2>',
-            '<p data-coc-subtitle>Select a table and add items.</p>',
+            '<span class="pmd-coc__eyebrow">' + esc(pmdT('cashier.order_composer', 'CASHIER · ORDER COMPOSER')) + '</span>',
+            '<h2 id="pmd-coc-title" data-coc-title>' + esc(pmdT('cashier.new_order', 'New order')) + '</h2>',
+            '<p data-coc-subtitle>' + esc(pmdT('cashier.select_table_add_items', 'Select a table and add items.')) + '</p>',
           '</div>',
-          '<button type="button" class="pmd-coc__close" data-coc-close aria-label="Close">×</button>',
+          '<button type="button" class="pmd-coc__close" data-coc-close aria-label="' + esc(pmdT('shared.close', 'Close')) + '">×</button>',
         '</header>',
 
         '<div class="pmd-coc__tablebar">',
@@ -913,7 +917,7 @@
     });
 
     select.innerHTML = [
-      '<option value="">Delivery / no table</option>'
+      '<option value="">' + esc(pmdT('cashier.delivery_no_table', 'Delivery / no table')) + '</option>'
     ].concat(
       state.tables.map(function (table) {
         return [
@@ -1796,14 +1800,14 @@
          * Existing/sent items and unsent items no longer occupy
          * two permanent vertical sections.
          */
-        '<div class="pmd-coc__rail-switch" role="tablist" aria-label="Order items">',
+        '<div class="pmd-coc__rail-switch" role="tablist" aria-label="' + esc(pmdT('cashier.order_items', 'Order items')) + '">',
           '<button type="button" data-coc-rail-view="new" role="tab">',
-            '<span>New items</span>',
+            '<span>' + esc(pmdT('cashier.new_items', 'New items')) + '</span>',
             '<b data-coc-new-count>0</b>',
           '</button>',
 
           '<button type="button" data-coc-rail-view="sent" role="tab">',
-            '<span>Sent items</span>',
+            '<span>' + esc(pmdT('cashier.sent_items', 'Sent items')) + '</span>',
             '<b data-coc-sent-count>0</b>',
           '</button>',
         '</div>',
@@ -1817,8 +1821,8 @@
         '</section>',
 
         '<label class="pmd-coc__note">',
-          '<span>Note</span>',
-          '<textarea data-coc-note maxlength="1000" placeholder="Add note…"></textarea>',
+          '<span>' + esc(pmdT('cashier.note', 'Note')) + '</span>',
+          '<textarea data-coc-note maxlength="1000" placeholder="' + esc(pmdT('cashier.add_note', 'Add note…')) + '"></textarea>',
         '</label>',
 
         /*
@@ -2327,8 +2331,8 @@
       box.innerHTML = [
         '<div class="pmd-coc-cart-empty">',
           '<div>',
-            '<strong>No new items</strong>',
-            '<span>Choose food from the menu.</span>',
+            '<strong>' + esc(pmdT('cashier.no_new_items', 'No new items')) + '</strong>',
+            '<span>' + esc(pmdT('cashier.choose_food_menu', 'Choose food from the menu.')) + '</span>',
           '</div>',
         '</div>'
       ].join('');
@@ -2592,8 +2596,8 @@
           ? 'Order total'
           : (
               state.deliveryMode
-                ? 'Delivery total'
-                : 'Pending total'
+                ? pmdT('cashier.delivery_total', 'Delivery total')
+                : pmdT('cashier.pending_total', 'Pending total')
             );
     }
 

@@ -186,4 +186,10 @@
   'Admin\\Controllers\\combos' => 'app/admin/controllers/Combos.php',
   'System\\Controllers\\settings' => 'app/system/controllers/Settings.php',
   'Admin\\Controllers\\PmdWaiterTableStateV154' => 'app/admin/controllers/PmdWaiterTableStateV154.php',
+  'Admin\\Controllers\\pmdreports' => 'app/admin/controllers/Pmdreports.php',
+  'Admin\\Controllers\\dashboard2' => 'app/admin/controllers/Dashboard2.php',
+  'Admin\\Widgets\\Lists' => 'app/admin/widgets/Lists.php',
+  'Admin\\Widgets\\Filter' => 'app/admin/widgets/Filter.php',
+  'Admin\\Widgets\\SearchBox' => 'app/admin/widgets/SearchBox.php',
+  'Admin\\Classes\\PmdPlatformI18n' => 'app/admin/classes/PmdPlatformI18n.php',
 );

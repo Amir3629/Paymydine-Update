@@ -40,14 +40,43 @@
   font-variant-numeric: tabular-nums;
 }
 
-@media (max-width: 640px) {
+/* PMD_THEME_TABLE_BADGE_MOBILE_SAFE_R74
+ *
+ * The ten V2 themes switch to their mobile hero contract at
+ * approximately 680px. Match that breakpoint here too.
+ *
+ * On compact/mobile heroes, keep the table context in a dedicated
+ * top-left corner instead of top-center. This prevents the badge
+ * from covering Welcome / restaurant-name copy in themes whose
+ * hero text moves upward on narrow screens.
+ *
+ * Physical left is deliberate: Ember uses the upper-right corner
+ * for its temperature treatment on mobile.
+ *
+ * Desktop/tablet presentation remains top-center.
+ */
+@media (max-width: 680px) {
   .badge {
-    top: .6rem;
+    top: .7rem;
+    left: .75rem;
+    right: auto;
+    transform: none;
+
     min-height: 28px;
+    max-width: calc(100% - 1.5rem);
     gap: 5px;
     padding: 4px 9px;
   }
 
-  .badge span { font-size: 8px; }
-  .badge strong { font-size: 12px; }
+  .badge span {
+    font-size: 8px;
+  }
+
+  .badge strong {
+    min-width: 0;
+    max-width: 8rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 12px;
+  }
 }

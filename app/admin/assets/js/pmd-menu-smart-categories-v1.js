@@ -29,112 +29,15 @@
   var smartSelectionBusy = false;
   var combinationSelectionCategory = null;
 
-  var copy = {
-    en: {
-      eyebrow: 'Menu categories',
-      createTitle: 'Create category',
-      editTitle: 'Edit category',
-      name: 'Category name',
-      nameHelp: 'Name the category exactly as guests should see it.',
-      type: 'Category purpose',
-      typeHelp: 'Normal category is the default. Choose a special purpose only when you need one.',
-      chef: "Chef's recommendation",
-      bestseller: 'Bestsellers',
-      combos: 'Combinations',
-      locked: 'Category purpose is locked after creation. Name and order stay editable.',
-      alreadyExists: 'Already created',
-      defaultChef: "Chef's Recommendations",
-      defaultBest: 'Bestsellers',
-      defaultCombos: 'Combinations',
-      addChef: 'Add chef recommendation',
-      addBest: 'Add bestseller',
-      addCombo: 'Add combination',
-      addHelpChef: 'Choose foods from All Foods.',
-      addHelpBest: 'Choose foods from All Foods.',
-      addHelpCombo: 'Build a combination from All Foods.',
-      addFood: 'Add new food item',
-      addFoodHelp: 'Create a new food item.',
-      addFoodHelpCategory: 'Create a new food item in {category}.',
-      selectFoods: 'Select foods',
-      selectFoodsHelp: 'Choose one or more foods, then add the selection.',
-      addSelected: 'Add selected',
-      addingSelected: 'Adding selected...',
-      selectedCount: '{count} selected - add to {category}',
-      selectComboFoodsHelp: 'Choose at least 2 foods, then build the combination.',
-      buildCombination: 'Build combination',
-      comboSelectedCount: '{count} selected - continue to combination details',
-      removeCategory: 'Remove category',
-      editCategory: 'Edit category',
-      removingCategory: 'Removing...',
-      removeConfirm: 'Remove \"{name}\"? Foods and combinations will stay in the menu. Only this category will be removed.',
-      allFoodsSortHint: '',
-      cancel: 'Cancel',
-      save: 'Save category',
-      saving: 'Saving...',
-      saved: 'Saved',
-      saveFailed: 'Category could not be saved.',
-      selectionFailed: 'Selection could not be saved.',
-      selectionUnavailable: 'All Foods selection is not available for this account yet.',
-      comboUnavailable: 'Combination tools are not available for this account yet.',
-      deleteConfirm: 'Delete this special category? Foods and combinations will not be deleted.',
-      deleteFailed: 'Category could not be deleted.',
-      loadFailed: 'Smart category data could not be loaded.'
-    },
-    de: {
-      eyebrow: 'Menukategorien',
-      createTitle: 'Kategorie erstellen',
-      editTitle: 'Kategorie bearbeiten',
-      name: 'Kategoriename',
-      nameHelp: 'Der Name wird Gasten genau so angezeigt.',
-      type: 'Kategoriezweck',
-      typeHelp: 'Eine normale Kategorie ist der Standard. Wahle nur bei Bedarf einen speziellen Zweck.',
-      chef: 'Empfehlung des Kuchenchefs',
-      bestseller: 'Bestseller',
-      combos: 'Kombinationen',
-      locked: 'Der Kategoriezweck ist nach dem Erstellen gesperrt. Name und Reihenfolge bleiben bearbeitbar.',
-      alreadyExists: 'Bereits erstellt',
-      defaultChef: 'Empfehlungen des Kuchenchefs',
-      defaultBest: 'Bestseller',
-      defaultCombos: 'Kombinationen',
-      addChef: 'Chef-Empfehlung hinzufugen',
-      addBest: 'Bestseller hinzufugen',
-      addCombo: 'Kombination hinzufugen',
-      addHelpChef: 'Speisen aus Alle Speisen auswahlen.',
-      addHelpBest: 'Speisen aus Alle Speisen auswahlen.',
-      addHelpCombo: 'Eine Kombination aus Alle Speisen erstellen.',
-      addFood: 'Neue Speise hinzufugen',
-      addFoodHelp: 'Erstelle eine neue Speise.',
-      addFoodHelpCategory: 'Erstelle eine neue Speise in {category}.',
-      selectFoods: 'Speisen auswahlen',
-      selectFoodsHelp: 'Wahle eine oder mehrere Speisen und fuge die Auswahl hinzu.',
-      addSelected: 'Auswahl hinzufugen',
-      addingSelected: 'Auswahl wird hinzugefugt...',
-      selectedCount: '{count} ausgewahlt - zu {category} hinzufugen',
-      selectComboFoodsHelp: 'Wahle mindestens 2 Speisen und erstelle danach die Kombination.',
-      buildCombination: 'Kombination erstellen',
-      comboSelectedCount: '{count} ausgewahlt - weiter zu den Kombinationsdetails',
-      removeCategory: 'Kategorie entfernen',
-      editCategory: 'Kategorie bearbeiten',
-      removingCategory: 'Wird entfernt...',
-      removeConfirm: 'Kategorie \"{name}\" entfernen? Speisen und Kombinationen bleiben erhalten. Nur diese Kategorie wird entfernt.',
-      allFoodsSortHint: '',
-      cancel: 'Abbrechen',
-      save: 'Kategorie speichern',
-      saving: 'Speichern...',
-      saved: 'Gespeichert',
-      saveFailed: 'Kategorie konnte nicht gespeichert werden.',
-      selectionFailed: 'Auswahl konnte nicht gespeichert werden.',
-      selectionUnavailable: 'Die Auswahl Alle Speisen ist fur dieses Konto noch nicht verfugbar.',
-      comboUnavailable: 'Kombinationswerkzeuge sind fur dieses Konto noch nicht verfugbar.',
-      deleteConfirm: 'Diese spezielle Kategorie loschen? Speisen und Kombinationen werden nicht geloscht.',
-      deleteFailed: 'Kategorie konnte nicht geloscht werden.',
-      loadFailed: 'Smart-Kategoriedaten konnten nicht geladen werden.'
-    }
-  };
-
-  var localeMatch = document.cookie.match(/(?:^|; )pmd_admin_locale=([^;]+)/);
-  var locale = String((localeMatch && localeMatch[1]) || document.documentElement.lang || 'en').toLowerCase();
-  var t = copy[locale.indexOf('de') === 0 ? 'de' : 'en'];
+  // PMD_MENU_SMART_PLATFORM_I18N_GLOBAL_V1
+  var smartMessageKeys = {"addBest":"menu.smart.add_best","addChef":"menu.smart.add_chef","addCombo":"menu.smart.add_combo","addFood":"menu.smart.add_food","addFoodHelp":"menu.smart.add_food_help","addFoodHelpCategory":"menu.smart.add_food_help_category","addHelpBest":"menu.smart.add_help_best","addHelpChef":"menu.smart.add_help_chef","addHelpCombo":"menu.smart.add_help_combo","addSelected":"menu.smart.add_selected","addingSelected":"menu.smart.adding_selected","allFoodsSortHint":"","alreadyExists":"menu.smart.already_exists","bestseller":"menu.smart.bestseller","buildCombination":"menu.smart.build_combination","cancel":"menu.smart.cancel","chef":"menu.smart.chef","comboSelectedCount":"menu.smart.combo_selected_count","comboUnavailable":"menu.smart.combo_unavailable","combos":"menu.smart.combos","createTitle":"menu.smart.create_title","defaultBest":"menu.smart.default_best","defaultChef":"menu.smart.default_chef","defaultCombos":"menu.smart.default_combos","deleteConfirm":"menu.smart.delete_confirm","deleteFailed":"menu.smart.delete_failed","editCategory":"menu.smart.edit_category","editTitle":"menu.smart.edit_title","eyebrow":"menu.smart.eyebrow","loadFailed":"menu.smart.load_failed","locked":"menu.smart.locked","name":"menu.smart.name","nameHelp":"menu.smart.name_help","removeCategory":"menu.smart.remove_category","removeConfirm":"menu.smart.remove_confirm","removingCategory":"menu.smart.removing_category","save":"menu.smart.save","saveFailed":"menu.smart.save_failed","saved":"menu.smart.saved","saving":"menu.smart.saving","selectComboFoodsHelp":"menu.smart.select_combo_foods_help","selectFoods":"menu.smart.select_foods","selectFoodsHelp":"menu.smart.select_foods_help","selectedCount":"menu.smart.selected_count","selectionFailed":"menu.smart.selection_failed","selectionUnavailable":"menu.smart.selection_unavailable","type":"menu.smart.type","typeHelp":"menu.smart.type_help"};
+  var t = Object.create(null);
+  Object.keys(smartMessageKeys).forEach(function (property) {
+    var key = smartMessageKeys[property];
+    t[property] = (window.PMDPlatformMessages && typeof window.PMDPlatformMessages.t === 'function')
+      ? window.PMDPlatformMessages.t(key, {}, key)
+      : key;
+  });
 
   function escapeHtml(value) {
     return String(value == null ? '' : value)

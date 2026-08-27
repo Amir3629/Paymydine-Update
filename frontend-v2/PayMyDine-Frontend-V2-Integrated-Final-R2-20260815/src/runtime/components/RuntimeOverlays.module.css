@@ -72,80 +72,59 @@
  */
 
 /*
- * Resting/start position before image-ready state.
- * Desktop begins from the full left.
+ * PMD R73 UNIFIED DEVICE MOTION
+ *
+ * PC and mobile intentionally use the exact same food-detail
+ * image behavior.
+ *
+ * The inline --pmd-food-pan-start value is calculated after
+ * image load from the source aspect ratio:
+ *
+ * normal image    -> at least 28%
+ * wide image      -> nearer center
+ * ultra-wide      -> up to 48%
+ *
+ * Every device then moves from that smart start to 50%.
+ *
+ * Duration: 10.5s
+ * Easing:   immediate smooth start, gentle finish
+ *
+ * No zoom.
+ * No loop.
+ * No preload.
+ * No extra request.
  */
 .heroImage {
   width: 100%;
   aspect-ratio: 16 / 10;
   border-radius: 1.1rem;
   object-fit: cover;
-  object-position: 0% 50%;
+
+  /*
+   * Safe fallback used before/onLoad.
+   * The existing R73 onLoad logic replaces this variable
+   * with the smart value for the actual source image.
+   */
+  --pmd-food-pan-start: 28%;
+  object-position: var(--pmd-food-pan-start) 50%;
+
   background: var(--pmd-soft, #eee);
 }
 
 /*
- * Desktop:
- * Approved R73 geometry and duration remain unchanged.
- * The only improvement is load synchronization.
+ * One animation authority for BOTH PC and mobile.
  */
 @media (prefers-reduced-motion: no-preference) {
   .heroImage[data-pmd-food-image-ready='true']:not([data-pmd-food-placeholder='true']) {
     animation:
       pmdFoodDetailImagePanR73
-      2.4s
-      cubic-bezier(.22, .61, .36, 1)
+      10.5s
+      cubic-bezier(.25, .20, .40, 1)
       both;
   }
 }
 
 @keyframes pmdFoodDetailImagePanR73 {
-  from {
-    object-position: 0% 50%;
-  }
-
-  to {
-    object-position: 50% 50%;
-  }
-}
-
-/*
- * Mobile R73 smart pan.
- *
- * Strong near-center tuning remains unchanged.
- *
- * IMPORTANT:
- * Treat coarse-pointer / touch devices as mobile too, even when
- * their CSS viewport is wider than 759px (for example landscape).
- */
-@media (max-width: 759px), (hover: none) and (pointer: coarse) {
-  .heroImage {
-    --pmd-food-pan-start: 28%;
-    object-position: var(--pmd-food-pan-start) 50%;
-  }
-}
-
-/*
- * PMD R73 MOBILE SLOW LOCK
- *
- * 16 seconds deliberately creates a very slow cinematic drift.
- * The gentle symmetric curve removes the abrupt start/stop feel.
- *
- * Desktop mouse devices keep the existing desktop R73 behavior.
- */
-@media
-  (prefers-reduced-motion: no-preference) and (max-width: 759px),
-  (prefers-reduced-motion: no-preference) and (hover: none) and (pointer: coarse) {
-  .heroImage[data-pmd-food-image-ready='true']:not([data-pmd-food-placeholder='true']) {
-    animation:
-      pmdFoodDetailImagePanMobileR73
-      16s
-      cubic-bezier(.45, 0, .55, 1)
-      both;
-  }
-}
-
-@keyframes pmdFoodDetailImagePanMobileR73 {
   from {
     object-position: var(--pmd-food-pan-start, 28%) 50%;
   }

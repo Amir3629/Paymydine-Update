@@ -6,89 +6,22 @@
   var section = document.getElementById('pmd-r2-reservation-kpis-v307');
   if (!section) return;
 
+  // PMD_KPI_PLATFORM_I18N_V8
   function locale() {
-    var value = String(window.PMD_ADMIN_LOCALE || document.documentElement.lang || 'en').toLowerCase();
-    return value.indexOf('de') === 0 ? 'de' : 'en';
+    if (window.PMDPlatformMessages && typeof window.PMDPlatformMessages.locale === 'function') {
+      return String(window.PMDPlatformMessages.locale() || 'en').toLowerCase();
+    }
+    return String(document.documentElement.lang || 'en').toLowerCase();
   }
 
-  var COPY = {
-    en: {
-      revenue: 'Revenue from paid or settled orders for the selected period.',
-      guests: 'Guests actually recorded on served orders. 0 means no usable guest sample yet.',
-      turnover: 'Average duration of completed table visits. 0 means no completed visit sample yet.',
-      channels: 'Number of dine-in orders compared with takeaway orders.',
-      kitchen: 'Average time from kitchen start or receipt until ready or served.',
-      occupancy: 'Percentage of enabled tables that are occupied right now.',
-      menu: 'How much of the active menu is currently available to sell.',
-      tips: 'Tips recorded on paid or settled orders.',
-      live_orders: 'Orders that are currently active in service.',
-      open_alerts: 'Operational issues that currently need manager attention.',
-      occupied_tables: 'Tables currently marked occupied on the visible Floor.',
-      upcoming_reservations: 'Reservations still expected to arrive.',
-      reservations_today: 'Active reservations scheduled for today.',
-      upcoming_arrivals: 'Future active reservations that are still expected to arrive.',
-      pending_confirmations: 'Reservations that still need confirmation.',
-      available_tables: 'Tables currently available for reservation or service.',
-      table_occupancy: 'Percentage of enabled tables that are currently occupied.',
-      no_show_rate: 'Share of reservations where the guest did not arrive.',
-      cancellation_rate: 'Share of reservations that were cancelled.',
-      average_party_size: 'Average number of guests per reservation.',
-      reservation_tables: 'Tables included in the reservation workspace.',
-      total_seats: 'Total seats/capacity reported by Reservations. It is not labeled as currently free seats.',
-      average_turn_time: 'Average time a completed table visit occupied its table.',
-      waiting_list: 'Guests or parties currently on the waiting list.',
-      revpash: 'Revenue per available seat hour: revenue compared with available seating time.',
-      open_bills: 'Bills that are not yet financially closed.',
-      average_settlement_time: 'Average time until an order or bill becomes settled.',
-      shift_payments: 'Payments recorded in the current cashier shift.',
-      failed_transactions: 'Payment attempts that failed or were declined.',
-      cash_percent: 'Cash payments as a percentage of all payments.',
-      vat: 'VAT recorded on the relevant settled sales.',
-      gross_to_net: 'Gross sales compared with the net amount after discounts and adjustments.',
-      total_loss: 'Value of voids, refunds, and other loss adjustments.',
-      payment_method: 'The payment method used most often in the selected period.',
-      average_checks: 'Average value of settled orders or checks.',
-      tips_to_share: 'Tips currently marked to be shared.'
-    },
-    de: {
-      revenue: 'Umsatz aus bezahlten oder abgerechneten Bestellungen im gewählten Zeitraum.',
-      guests: 'Tatsächlich in Bestellungen erfasste Gäste. 0 bedeutet: noch keine nutzbare Gast-Stichprobe.',
-      turnover: 'Durchschnittliche Dauer abgeschlossener Tischbesuche. 0 bedeutet: noch kein abgeschlossener Besuch.',
-      channels: 'Vergleich der Anzahl Vor-Ort- und Mitnahme-Bestellungen.',
-      kitchen: 'Durchschnittliche Zeit vom Küchenstart bis Bereit oder Serviert.',
-      occupancy: 'Anteil der aktivierten Tische, die aktuell belegt sind.',
-      menu: 'Wie viel des aktiven Menüs aktuell verkauft werden kann.',
-      tips: 'Erfasstes Trinkgeld aus bezahlten oder abgerechneten Bestellungen.',
-      live_orders: 'Bestellungen, die im laufenden Service aktiv sind.',
-      open_alerts: 'Operative Punkte, die aktuell Aufmerksamkeit des Managers brauchen.',
-      occupied_tables: 'Tische, die im sichtbaren Floor aktuell als belegt markiert sind.',
-      upcoming_reservations: 'Reservierungen, deren Ankunft noch erwartet wird.',
-      reservations_today: 'Aktive Reservierungen, die für heute geplant sind.',
-      upcoming_arrivals: 'Künftige aktive Reservierungen, deren Ankunft noch erwartet wird.',
-      pending_confirmations: 'Reservierungen, die noch bestätigt werden müssen.',
-      available_tables: 'Tische, die aktuell für Reservierung oder Service verfügbar sind.',
-      table_occupancy: 'Anteil der aktivierten Tische, die aktuell belegt sind.',
-      no_show_rate: 'Anteil der Reservierungen, bei denen die Gäste nicht erschienen sind.',
-      cancellation_rate: 'Anteil der Reservierungen, die storniert wurden.',
-      average_party_size: 'Durchschnittliche Gästezahl pro Reservierung.',
-      reservation_tables: 'Tische, die im Reservierungsbereich enthalten sind.',
-      total_seats: 'Von Reservierungen gemeldete Sitzplatzanzahl/Kapazität. Sie ist nicht als aktuell freie Sitzplätze gekennzeichnet.',
-      average_turn_time: 'Durchschnittliche Dauer eines abgeschlossenen Tischbesuchs.',
-      waiting_list: 'Gäste oder Gruppen, die aktuell auf der Warteliste stehen.',
-      revpash: 'Umsatz pro verfügbarer Sitzplatzstunde.',
-      open_bills: 'Rechnungen, die finanziell noch nicht abgeschlossen sind.',
-      average_settlement_time: 'Durchschnittliche Zeit bis eine Bestellung oder Rechnung abgerechnet ist.',
-      shift_payments: 'Zahlungen, die in der aktuellen Kassenschicht erfasst wurden.',
-      failed_transactions: 'Zahlungsversuche, die fehlgeschlagen oder abgelehnt wurden.',
-      cash_percent: 'Barzahlungen als Anteil aller Zahlungen.',
-      vat: 'Erfasste MwSt. der relevanten abgerechneten Verkäufe.',
-      gross_to_net: 'Bruttoumsatz im Vergleich zum Nettobetrag nach Rabatten und Anpassungen.',
-      total_loss: 'Wert von Stornos, Rückerstattungen und Verlustanpassungen.',
-      payment_method: 'Die im gewählten Zeitraum am häufigsten verwendete Zahlungsart.',
-      average_checks: 'Durchschnittlicher Wert abgerechneter Bestellungen oder Rechnungen.',
-      tips_to_share: 'Trinkgeld, das aktuell zur Verteilung markiert ist.'
+  function pmdT(key, fallback, replacements) {
+    if (window.PMDPlatformMessages && typeof window.PMDPlatformMessages.t === 'function') {
+      return window.PMDPlatformMessages.t(key, replacements || {}, fallback == null ? key : fallback);
     }
-  };
+    return fallback == null ? key : fallback;
+  }
+
+  var PMD_KPI_MESSAGE_KEYS = {"available_tables":"kpi.info.available_tables","average_checks":"kpi.info.average_checks","average_party_size":"kpi.info.average_party_size","average_settlement_time":"kpi.info.average_settlement_time","average_turn_time":"kpi.info.average_turn_time","cancellation_rate":"kpi.info.cancellation_rate","cash_percent":"kpi.info.cash_percent","channels":"kpi.info.channels","failed_transactions":"kpi.info.failed_transactions","gross_to_net":"kpi.info.gross_to_net","guests":"kpi.info.guests","kitchen":"kpi.info.kitchen","live_orders":"kpi.info.live_orders","menu":"kpi.info.menu","no_show_rate":"kpi.info.no_show_rate","occupancy":"kpi.info.occupancy","occupied_tables":"kpi.info.occupied_tables","open_alerts":"kpi.info.open_alerts","open_bills":"kpi.info.open_bills","payment_method":"kpi.info.payment_method","pending_confirmations":"kpi.info.pending_confirmations","reservation_tables":"kpi.info.reservation_tables","reservations_today":"kpi.info.reservations_today","revenue":"kpi.info.revenue","revpash":"kpi.info.revpash","shift_payments":"kpi.info.shift_payments","table_occupancy":"kpi.info.table_occupancy","tips":"kpi.info.tips","tips_to_share":"kpi.info.tips_to_share","total_loss":"kpi.info.total_loss","total_seats":"kpi.info.total_seats","turnover":"kpi.info.turnover","upcoming_arrivals":"kpi.info.upcoming_arrivals","upcoming_reservations":"kpi.info.upcoming_reservations","vat":"kpi.info.vat","waiting_list":"kpi.info.waiting_list"};
 
   function canonicalKey(raw) {
     var key = String(raw || '').toLowerCase();
@@ -117,15 +50,13 @@
   }
 
   function explanation(card) {
-    var lang = locale();
     var key = canonicalKey(card.getAttribute('data-pmd-dashboard2-kpi'));
-    var copy = COPY[lang][key];
+    var messageKey = PMD_KPI_MESSAGE_KEYS[key] || '';
+    var copy = messageKey ? pmdT(messageKey, '') : '';
     if (copy) return copy;
     var title = card.querySelector('.pmd-r2-kpi-v2401-title');
     var name = title ? String(title.textContent || '').trim() : key;
-    return lang === 'de'
-      ? 'Diese KPI zeigt den aktuellen Wert für ' + name + '.'
-      : 'This KPI shows the current value for ' + name + '.';
+    return pmdT('kpi.info.fallback', 'This KPI shows the current value for :name.', {name: name});
   }
 
   function close(card) {
@@ -153,9 +84,8 @@
   }
 
   function syncLabels() {
-    var lang = locale();
     Array.prototype.forEach.call(section.querySelectorAll('[data-pmd-kpi-info-button]'), function (button) {
-      var label = lang === 'de' ? 'Info zu dieser KPI' : 'About this KPI';
+      var label = pmdT('kpi.info.about', 'About this KPI');
       button.setAttribute('aria-label', label);
       button.setAttribute('title', label);
     });

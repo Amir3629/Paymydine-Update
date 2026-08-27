@@ -6,6 +6,8 @@
     - German pages are hidden before first paint.
     - External catalogue/runtime reveal the page after the first translation.
 --}}
+{{-- PMD_PLATFORM_MESSAGES_GLOBAL_V1 --}}
+@include('admin::_partials.pmd_platform_messages')
 @php
     $pmdAdminLocale = strtolower(trim((string)request()->cookie(
         'pmd_admin_locale',

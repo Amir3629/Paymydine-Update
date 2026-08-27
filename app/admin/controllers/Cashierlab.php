@@ -47,7 +47,7 @@ class Cashierlab extends PmdCleanWorkspaceControllerV1
             '//'.request()->getHost()
             .'/app/admin/assets/js/'
             .'pmd-cashier-order-composer-r51.js'
-            .'?v=20260827-r80-payment-workspace-fit'
+            .'?v=20260827-r83-payment-taller'
         );
         // PMD_CASHIER_R45_ACTION_AUTHORITY
         // New filename intentionally bypasses any stale R37/R44 browser cache.
@@ -69,7 +69,7 @@ class Cashierlab extends PmdCleanWorkspaceControllerV1
             '//'.request()->getHost()
             .'/app/admin/assets/css/'
             .'pmd-cashier-ui-r51.css'
-            .'?v=20260826-r75-wide-stable-payment'
+            .'?v=20260827-r81b-payment-real-wide'
         );
         $this->addJs(
             '//'.request()->getHost()
