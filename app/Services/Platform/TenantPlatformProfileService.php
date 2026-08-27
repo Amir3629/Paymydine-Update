@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * PMD_TENANT_PLATFORM_PROFILE_R1
+ * PMD_TENANT_PLATFORM_PROFILE_R2
  *
  * Applies the Superadmin-selected country to the tenant's DEFAULT location and
  * tenant-global framework defaults. Runtime features should still resolve the
@@ -64,12 +64,19 @@ final class TenantPlatformProfileService
         $this->persistPlatformMetadata($profile, $defaultLocationId, $languageState, $warnings);
         $this->disableForeignRegionalPaymentRows($countryCode);
 
-        $paymentCatalog = null;
+        $regionalCatalog = null;
+        try {
+            $regionalCatalog = (new TenantRegionalPaymentCatalogService($this->profiles))->ensureForCountry($countryCode);
+        } catch (\Throwable $error) {
+            $warnings[] = 'Regional payment catalogue could not be prepared: '.$error->getMessage();
+        }
+
+        $providerCatalog = null;
         if ($countryCode === CountryPlatformProfileRegistry::OMAN) {
             try {
-                // Country has already been applied to the default location. False makes
-                // this robust against static location caches in the same request.
-                $paymentCatalog = (new PaymobOmanTenantCatalogService())->ensureCurrentTenant(false);
+                // Provider-specific Paymob metadata is layered on top of the generic
+                // Oman regional method catalogue. Cash remains platform-owned.
+                $providerCatalog = (new PaymobOmanTenantCatalogService())->ensureCurrentTenant(false);
             } catch (\Throwable $error) {
                 $warnings[] = 'Paymob Oman catalogue could not be prepared: '.$error->getMessage();
             }
@@ -88,7 +95,8 @@ final class TenantPlatformProfileService
             'payments' => [
                 'providers' => array_keys((array)$profile['payments']['providers']),
                 'methods' => array_keys((array)$profile['payments']['methods']),
-                'catalogue' => $paymentCatalog,
+                'regional_catalogue' => $regionalCatalog,
+                'provider_catalogue' => $providerCatalog,
             ],
             'terminals' => $profile['terminals'],
             'warnings' => $warnings,
@@ -109,8 +117,7 @@ final class TenantPlatformProfileService
     {
         if (!Schema::hasTable('countries')) return null;
 
-        $query = DB::table('countries');
-        $row = $query->where(function ($q) use ($profile) {
+        $row = DB::table('countries')->where(function ($q) use ($profile) {
             if (Schema::hasColumn('countries', 'iso_code_2')) {
                 $q->orWhereRaw('UPPER(iso_code_2) = ?', [strtoupper((string)$profile['country_code'])]);
             }
@@ -181,10 +188,9 @@ final class TenantPlatformProfileService
     private function applyCountryToLocation(int $locationId, int $countryId): void
     {
         if (!Schema::hasColumn('locations', 'location_country_id')) return;
-        DB::table('locations')->where('location_id', $locationId)->update([
-            'location_country_id' => $countryId,
-            'updated_at' => now(),
-        ]);
+        $update = ['location_country_id' => $countryId];
+        if (Schema::hasColumn('locations', 'updated_at')) $update['updated_at'] = now();
+        DB::table('locations')->where('location_id', $locationId)->update($update);
     }
 
     private function saveFrameworkSettings(array $settings, array &$warnings): void
@@ -196,7 +202,6 @@ final class TenantPlatformProfileService
             $warnings[] = 'Framework settings manager warning: '.$error->getMessage();
         }
 
-        // Keep the physical table aligned even when the settings manager is stale.
         if (!Schema::hasTable('settings')) return;
         foreach ($settings as $item => $value) {
             $encoded = is_array($value)
