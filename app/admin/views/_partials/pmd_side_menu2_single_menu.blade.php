@@ -142,6 +142,10 @@
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v15h-16z"/><path d="M8 3v4M16 3v4M4 10h16"/><path d="M8 14h3M13 14h3M8 17h3"/></svg>
             <span class="pmd-sm2__label">{{ $pmdSm2T('nav.shifts', 'Shifts') }}</span>
         </a>
+        <a class="pmd-sm2__item {{ $pmdActive(['people']) ? 'is-active' : '' }}" href="{{ admin_url('people') }}">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0M16 5a3 3 0 0 1 0 6M17 14a5 5 0 0 1 4 5"/></svg>
+            <span class="pmd-sm2__label">{{ $pmdSm2T('nav.people', 'People') }}</span>
+        </a>
         @endif
         <a class="pmd-sm2__item {{ $pmdActive(['coupons']) ? 'is-active' : '' }}" href="{{ admin_url('coupons') }}">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5v2M15 11v2M15 17v2M5 5h14a2 2 0 0 1 2 2v3a2 2 0 0 0 0 4v3a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-3a2 2 0 0 0 0 -4v-3a2 2 0 0 1 2 -2"/></svg>

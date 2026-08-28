@@ -221,10 +221,10 @@
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c1.8 3 5 4.6 5 9a5 5 0 0 1-10 0c0-2.3 1.2-4.4 3.5-6.5.2 2 1 3 1.5 3.5 1.2-1.4 1.2-3.7 0-6z"></path></svg>
                 <span>Peak time</span>
             </button>
-            <button type="button" class="pmd-shifts__header-button is-soft" data-pmd-team-open aria-label="Restaurant team">
+            <a class="pmd-shifts__header-button is-soft" href="{{ admin_url('people') }}" aria-label="People">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"></circle><path d="M3 20a6 6 0 0 1 12 0M16 5a3 3 0 0 1 0 6M17 14a5 5 0 0 1 4 5"></path></svg>
-                <span>Team</span>
-            </button>
+                <span>People</span>
+            </a>
             @if($ready)
                 <button type="button" class="pmd-shifts__header-button" data-pmd-shift-open data-date="{{ $selectedDay->toDateString() }}">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>

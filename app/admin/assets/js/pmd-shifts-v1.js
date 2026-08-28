@@ -555,7 +555,7 @@
       return '' +
         '<th scope="col" class="pmd-shifts-resource-person">' +
           '<span class="pmd-shifts-resource-person__avatar">' + escapeHtml(personInitials(person.name)) + '</span>' +
-          '<span class="pmd-shifts-resource-person__copy"><strong>' + escapeHtml(person.name || 'Team member') + '</strong><small>' + escapeHtml(person.role || 'Team') + '</small></span>' +
+          '<span class="pmd-shifts-resource-person__copy"><a class="pmd-shifts-resource-person__link" href="/admin/people?person=' + Number(person.id || 0) + '">' + escapeHtml(person.name || 'Team member') + '</a><small>' + escapeHtml(person.role || 'Team') + '</small></span>' +
           '<span class="pmd-shifts-resource-person__source' + (person.has_access ? ' is-access' : '') + '">' + (person.has_access ? 'PMD access' : 'Restaurant team') + '</span>' +
         '</th>';
     }).join('') + fillerIndexes.map(function () {

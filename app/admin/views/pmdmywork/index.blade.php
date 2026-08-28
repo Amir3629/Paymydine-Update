@@ -66,7 +66,8 @@
                 <header><div><span>Status</span><h2>My requests</h2></div></header>
                 <div class="pmd-my-work__request-list">
                     @forelse($requests as $request)
-                        <article><div><strong>{{ ucfirst(str_replace('_',' ',(string)$request->request_type)) }}</strong><small>{{ \Carbon\Carbon::parse($request->created_at)->format('d M · H:i') }}</small><p>{{ $request->message }}</p>@if($request->manager_reply)<em>{{ $request->manager_reply }}</em>@endif</div><span class="is-{{ $request->status }}">{{ ucfirst((string)$request->status) }}</span></article>
+                        @php $pmdManagerMessage = (string)$request->request_type === 'manager_message'; @endphp
+                        <article class="{{ $pmdManagerMessage ? 'is-manager-message' : '' }}"><div><strong>{{ $pmdManagerMessage ? 'Manager' : ucfirst(str_replace('_',' ',(string)$request->request_type)) }}</strong><small>{{ \Carbon\Carbon::parse($request->created_at)->format('d M · H:i') }}</small><p>{{ $request->message }}</p>@if($request->manager_reply)<em>{{ $request->manager_reply }}</em>@endif</div>@if(!$pmdManagerMessage)<span class="is-{{ $request->status }}">{{ ucfirst((string)$request->status) }}</span>@endif</article>
                     @empty
                         <div class="pmd-my-work__empty">No requests yet.</div>
                     @endforelse

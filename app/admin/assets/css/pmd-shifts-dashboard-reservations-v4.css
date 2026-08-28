@@ -396,3 +396,7 @@ body.pmd-shifts-page .pmd-shifts__capacity-card .pmd-shifts__capacity-section:la
   body.pmd-shifts-page .pmd-shifts__team-access-fields .is-password{grid-column:auto}
   body.pmd-shifts-page .pmd-shifts__capacity-card .pmd-shifts__form-grid,body.pmd-shifts-page .pmd-shifts__capacity-card .pmd-shifts__capacity-section:last-child .pmd-shifts__form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
+
+/* PMD_SHIFTS_PERSON_PROFILE_LINK_V12 */
+body.pmd-shifts-page .pmd-shifts-resource-person__link{display:block;overflow:hidden;color:#18364c;font-size:11px;font-weight:900;text-decoration:none;text-overflow:ellipsis;white-space:nowrap}
+body.pmd-shifts-page .pmd-shifts-resource-person__link:hover{color:#08745c;text-decoration:underline}
