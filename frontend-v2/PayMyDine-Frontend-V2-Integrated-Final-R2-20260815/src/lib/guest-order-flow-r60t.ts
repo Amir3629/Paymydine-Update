@@ -5,6 +5,11 @@ type GuestOrderState = TableOrderState & {
   canSplit?: boolean
   paymentRequiredBeforeKitchen?: boolean
   kitchenReleased?: boolean
+  kitchenPhase?: string
+  remainingPrepMinutes?: number | null
+  etaExtensionCount?: number
+  etaTakingLonger?: boolean
+  showCustomerEta?: boolean
 }
 
 export type GuestOrdersState = {
@@ -98,6 +103,9 @@ function normalizeOrder(payload: any): GuestOrderState {
     subtotal: Number(group?.subtotal || 0),
   })) : []
 
+  const remainingPrepRaw = payload?.remaining_prep_minutes ?? payload?.remainingPrepMinutes
+  const etaExtensionRaw = payload?.eta_extension_count ?? payload?.etaExtensionCount
+
   return {
     success: payload?.success !== false,
     status: String(payload?.status || (remainingAmount > 0 ? 'awaiting_payment' : 'submitted')),
@@ -132,6 +140,13 @@ function normalizeOrder(payload: any): GuestOrderState {
     canSplit: Boolean(payload?.canSplit),
     paymentRequiredBeforeKitchen: Boolean(payload?.paymentRequiredBeforeKitchen),
     kitchenReleased: Boolean(payload?.kitchenReleased),
+    kitchenPhase: String(payload?.kitchenPhase || payload?.kitchen_phase || (payload?.kitchenReleased ? 'received' : 'payment_hold')),
+    remainingPrepMinutes: remainingPrepRaw == null ? null : Math.max(0, Number(remainingPrepRaw || 0)),
+    etaExtensionCount: Math.max(0, Number(etaExtensionRaw || 0)),
+    etaTakingLonger: Boolean(payload?.etaTakingLonger || payload?.eta_taking_longer),
+    showCustomerEta: payload?.show_customer_eta === undefined && payload?.showCustomerEta === undefined
+      ? true
+      : Boolean(payload?.show_customer_eta ?? payload?.showCustomerEta),
   }
 }
 
