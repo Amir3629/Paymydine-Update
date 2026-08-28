@@ -1,0 +1,63 @@
+name: PMD185 Shifts connected QA
+
+on:
+  push:
+    branches:
+      - feature/kitchen-operations-foundation-185
+  workflow_dispatch:
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: PHP syntax
+        run: |
+          php -l app/admin/controllers/Shifts.php
+          php -l app/Services/OrderEtaService.php
+
+      - name: JavaScript syntax
+        run: node --check app/admin/assets/js/pmd-shifts-v1.js
+
+      - name: Product invariants
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          VIEW="app/admin/views/pmdshifts/index.blade.php"
+          TODAY="app/admin/views/_partials/pmd_kitchen_today_team_v1.blade.php"
+          CSS="app/admin/assets/css/pmd-shifts-dashboard-reservations-v4.css"
+          ETA="app/Services/OrderEtaService.php"
+
+          grep -F 'KITCHEN TEAM TODAY' "$TODAY"
+          ! grep -F 'Who is in the Kitchen today?' "$TODAY"
+          ! grep -F 'No shift plan yet. Quick confirm now, or plan the week later.' "$TODAY"
+          grep -F 'name="confirmation_scope" value="kitchen"' "$TODAY"
+          grep -F 'name="present_ids[]"' "$TODAY"
+
+          grep -F "'scheduled_today', 'present_now', 'missing_now', 'month_hours'" "$VIEW"
+          grep -F 'data-pmd-shifts-kpi-menu-button' "$VIEW"
+          grep -F 'data-pmd-shift-day-open' "$VIEW"
+          ! grep -F 'pmd-shifts__calendar-add' "$VIEW"
+          grep -F 'data-pmd-shifts-hour-host' "$VIEW"
+          grep -F 'data-pmd-capacity-open' "$VIEW"
+          grep -F 'name="peak_enabled"' "$VIEW"
+
+          grep -F 'grid-template-columns:repeat(4,minmax(0,1fr))' "$CSS"
+          grep -F -- '--kpi-bg:#dbcbd3' "$CSS"
+          grep -F -- '--kpi-bg:#fb60fd' "$CSS"
+          grep -F -- '--kpi-bg:#ffdb57' "$CSS"
+          grep -F -- '--kpi-bg:#35afd1' "$CSS"
+
+          grep -F 'pmd_kitchen_peak_enabled' "$ETA"
+          grep -F '$peakTimeBuffer = max(0, $configuredPeakBuffer - $kitchenLoadBuffer);' "$ETA"
+          grep -F '$kitchenPressureBuffer = $kitchenLoadBuffer + $peakTimeBuffer;' "$ETA"
+
+          grep -F "\$scope === 'kitchen'" app/admin/controllers/Shifts.php
+          grep -F "where('department', 'kitchen')" app/admin/controllers/Shifts.php
+
+      - name: Diff whitespace
+        run: git diff --check e68380407dc975abae0f199af269eb51ded54b7a...HEAD
