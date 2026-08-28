@@ -12,6 +12,10 @@
     $stats = $data['stats'] ?? [];
     $departments = $data['departments'] ?? [];
     $capacity = $data['capacity'] ?? [];
+    $accessRoles = collect($data['access_roles'] ?? []);
+    $accessStaff = collect($data['access_staff'] ?? []);
+    $teamRequests = collect($data['team_requests'] ?? []);
+    $defaultAccessRole = $accessRoles->first(fn($role) => strtolower((string)$role->code) === \Admin\Services\PmdDefaultStaffRoleService::TEAM_MEMBER) ?: $accessRoles->first();
     $byDay = $shifts->groupBy(fn($s) => \Carbon\Carbon::parse($s->shift_date)->toDateString());
     $returnTo = request()->getRequestUri();
 
@@ -167,13 +171,17 @@
         if (count($kpiSelection) === 4) break;
     }
 
-    $bootPeople = $people->map(function($person) use ($departments) {
+    $bootPeople = $people->map(function($person) use ($departments, $accessStaff) {
+        $staff = !empty($person->staff_id) ? $accessStaff->get((int)$person->staff_id) : null;
         return [
             'id' => (int)$person->id,
             'name' => (string)$person->display_name,
             'role' => (string)($person->job_role ?: ($departments[$person->department] ?? 'Team')),
             'department' => (string)($person->department ?? 'other'),
             'has_access' => !empty($person->staff_id),
+            'staff_id' => !empty($person->staff_id) ? (int)$person->staff_id : null,
+            'username' => $staff && $staff->user ? (string)$staff->user->username : '',
+            'staff_role_id' => $staff ? (int)$staff->staff_role_id : null,
         ];
     })->values();
 
@@ -280,9 +288,9 @@
                         <span><i class="is-missing">!</i>Missing</span>
                     </div>
                     <div class="pmd-yc__month-nav">
-                        <a href="{{ admin_url('shifts') }}?month={{ $monthStart->copy()->subMonth()->startOfMonth()->toDateString() }}" aria-label="Previous month">←</a>
-                        <strong>{{ $monthStart->format('F Y') }}</strong>
-                        <a href="{{ admin_url('shifts') }}?month={{ $monthStart->copy()->addMonth()->startOfMonth()->toDateString() }}" aria-label="Next month">→</a>
+                        <a data-pmd-shifts-month-nav href="{{ admin_url('shifts') }}?month={{ $monthStart->copy()->subMonth()->startOfMonth()->toDateString() }}" aria-label="Previous month">←</a>
+                        <strong data-pmd-shifts-month-title>{{ $monthStart->format('F Y') }}</strong>
+                        <a data-pmd-shifts-month-nav href="{{ admin_url('shifts') }}?month={{ $monthStart->copy()->addMonth()->startOfMonth()->toDateString() }}" aria-label="Next month">→</a>
                     </div>
                     <div class="pmd-yc__toolbar-right">
                         <div class="pmd-yc__view-switch"><button type="button" class="is-active" data-pmd-shifts-calendar-back>Month</button><button type="button" data-pmd-shifts-open-selected-day>Day</button></div>
@@ -396,17 +404,33 @@
                     <button type="button" class="pmd-shifts__modal-close" data-pmd-team-close aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
                 </header>
                 <div class="pmd-shifts__team-layout">
-                    <form class="pmd-shifts__team-form" method="post" action="{{ admin_url('shifts/saveperson') }}" data-pmd-team-form>
+                    <form class="pmd-shifts__team-form" method="post" action="{{ admin_url('shifts/saveperson') }}" data-pmd-team-form data-default-access-role="{{ (int)optional($defaultAccessRole)->staff_role_id }}">
                         @csrf
                         <input type="hidden" name="id" value="" data-pmd-team-person-id>
                         <input type="hidden" name="return_to" value="{{ $returnTo }}">
-                        <div class="pmd-shifts__team-form-head"><strong data-pmd-team-form-title>Add person</strong><button type="button" data-pmd-team-new>New</button></div>
+                        <div class="pmd-shifts__team-form-head"><strong data-pmd-team-form-title>Add team member</strong><button type="button" data-pmd-team-new>New</button></div>
                         <label><span>Name</span><input required maxlength="128" name="display_name" data-pmd-team-name placeholder="e.g. Anna"></label>
-                        <label><span>Role <small>optional</small></span><input maxlength="64" name="job_role" data-pmd-team-role placeholder="e.g. Waiter, Cashier, Chef"></label>
-                        <label><span>Area <small>optional</small></span><select name="department" data-pmd-team-department>
-                            @foreach($departments as $departmentKey => $departmentLabel)<option value="{{ $departmentKey }}">{{ $departmentLabel }}</option>@endforeach
-                        </select></label>
-                        <button type="submit" class="pmd-shifts__button">Save person</button>
+                        <div class="pmd-shifts__team-identity-row">
+                            <label><span>Job role <small>optional</small></span><input maxlength="64" name="job_role" data-pmd-team-role placeholder="e.g. Bartender, Chef"></label>
+                            <label><span>Area <small>optional</small></span><select name="department" data-pmd-team-department>
+                                @foreach($departments as $departmentKey => $departmentLabel)<option value="{{ $departmentKey }}">{{ $departmentLabel }}</option>@endforeach
+                            </select></label>
+                        </div>
+
+                        <label class="pmd-shifts__team-access-toggle">
+                            <input type="checkbox" name="give_access" value="1" checked data-pmd-team-access-toggle>
+                            <span><strong>Give PMD login</strong><small>Recommended for My Work. Turn off for roster-only people.</small></span>
+                        </label>
+
+                        <div class="pmd-shifts__team-access-fields" data-pmd-team-access-fields>
+                            <label><span>Username</span><input maxlength="32" name="username" autocomplete="off" data-pmd-team-username placeholder="anna"></label>
+                            <label><span>Access role</span><select name="staff_role_id" data-pmd-team-access-role>
+                                @foreach($accessRoles as $accessRole)<option value="{{ (int)$accessRole->staff_role_id }}">{{ $accessRole->name }}</option>@endforeach
+                            </select></label>
+                            <label class="is-password"><span>Password <small data-pmd-team-password-hint>required for new login</small></span><span class="pmd-shifts__team-password-row"><input type="password" minlength="6" maxlength="32" name="password" autocomplete="new-password" data-pmd-team-password><button type="button" data-pmd-team-password-generate>Generate</button></span></label>
+                            <small class="pmd-shifts__team-access-note">Team Member = personal My Work only. Choose Waiter/Cashier/KDS/etc only when operational access is actually needed.</small>
+                        </div>
+                        <button type="submit" class="pmd-shifts__button">Save member</button>
                     </form>
 
                     <section class="pmd-shifts__team-list" aria-label="Restaurant team members">
@@ -421,6 +445,9 @@
                                     data-name="{{ $person->display_name }}"
                                     data-role="{{ $person->job_role ?? '' }}"
                                     data-department="{{ $person->department ?? 'other' }}"
+                                    data-has-access="{{ !empty($person->staff_id) ? '1' : '0' }}"
+                                    data-username="{{ !empty($person->staff_id) && $accessStaff->get((int)$person->staff_id) && $accessStaff->get((int)$person->staff_id)->user ? $accessStaff->get((int)$person->staff_id)->user->username : '' }}"
+                                    data-staff-role-id="{{ !empty($person->staff_id) && $accessStaff->get((int)$person->staff_id) ? (int)$accessStaff->get((int)$person->staff_id)->staff_role_id : '' }}"
                                 >
                                     <span class="pmd-shifts__team-person-avatar">{{ strtoupper(substr(trim((string)$person->display_name),0,1)) }}</span>
                                     <span><strong>{{ $person->display_name }}</strong><small>{{ $person->job_role ?: ($departments[$person->department] ?? 'Team') }}</small></span>
@@ -428,6 +455,23 @@
                                 </button>
                             @empty
                                 <div class="pmd-shifts__team-empty">No people yet. Add the first person with only a name.</div>
+                            @endforelse
+                        </div>
+                    </section>
+
+                    <section class="pmd-shifts__team-requests" aria-label="Pending team requests">
+                        <header><strong>Requests</strong><span>{{ $teamRequests->count() ? $teamRequests->count().' pending' : 'Nothing waiting' }}</span></header>
+                        <div class="pmd-shifts__team-request-list">
+                            @forelse($teamRequests as $teamRequest)
+                                <article class="pmd-shifts__team-request">
+                                    <div><strong>{{ $teamRequest->person_name ?: 'Team member' }}</strong><small>{{ ucfirst(str_replace('_',' ',(string)$teamRequest->request_type)) }}@if($teamRequest->date_from) · {{ \Carbon\Carbon::parse($teamRequest->date_from)->format('d M') }}@endif</small><p>{{ $teamRequest->message ?: 'No note' }}</p></div>
+                                    <div class="pmd-shifts__team-request-actions">
+                                        <form method="post" action="{{ admin_url('shifts/handlerequest') }}">@csrf<input type="hidden" name="id" value="{{ (int)$teamRequest->id }}"><input type="hidden" name="decision" value="approved"><input type="hidden" name="return_to" value="{{ $returnTo }}"><button type="submit">Approve</button></form>
+                                        <form method="post" action="{{ admin_url('shifts/handlerequest') }}">@csrf<input type="hidden" name="id" value="{{ (int)$teamRequest->id }}"><input type="hidden" name="decision" value="declined"><input type="hidden" name="return_to" value="{{ $returnTo }}"><button type="submit" class="is-decline">Decline</button></form>
+                                    </div>
+                                </article>
+                            @empty
+                                <div class="pmd-shifts__team-empty">No pending shift, leave or manager-message requests.</div>
                             @endforelse
                         </div>
                     </section>

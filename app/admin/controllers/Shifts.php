@@ -132,6 +132,28 @@ class Shifts extends AdminController
         $veryBusyThreshold = $this->settingInt('eta_very_busy_item_threshold', 25, 2, 1000);
         if ($veryBusyThreshold <= $busyThreshold) $veryBusyThreshold = min(1000, $busyThreshold + 1);
 
+        $accessRoleService = app(PmdDefaultStaffRoleService::class);
+        $accessRoles = collect($accessRoleService->ensure())
+            ->reject(fn ($role) => strtolower((string)$role->code) === PmdDefaultStaffRoleService::OWNER)
+            ->values();
+        $accessStaff = Staffs_model::with(['role', 'user'])
+            ->whereNotSuperUser()
+            ->orderBy('staff_name')
+            ->get()
+            ->keyBy('staff_id');
+
+        $teamRequests = collect();
+        if (Schema::hasTable('pmd_staff_requests')) {
+            $teamRequests = DB::table('pmd_staff_requests as request')
+                ->leftJoin('pmd_operational_people as person', 'person.id', '=', 'request.person_id')
+                ->where('request.location_id', $locationId)
+                ->where('request.status', 'pending')
+                ->select(['request.*', 'person.display_name as person_name'])
+                ->orderByDesc('request.created_at')
+                ->limit(20)
+                ->get();
+        }
+
         $this->vars['pmdShifts'] = [
             'ready' => $ready,
             'location_id' => $locationId,
@@ -149,6 +171,9 @@ class Shifts extends AdminController
             'week_end' => $weekEnd,
             'departments' => ['kitchen' => 'Kitchen', 'floor' => 'Floor', 'bar' => 'Bar', 'reception' => 'Reception', 'other' => 'Other'],
             'roles' => $workforce->roleOptions(),
+            'access_roles' => $accessRoles,
+            'access_staff' => $accessStaff,
+            'team_requests' => $teamRequests,
             'current_shift' => $currentShift,
             'current_people' => $currentPeople,
             'current_confirmed' => (bool)$currentConfirmed,
@@ -175,62 +200,109 @@ class Shifts extends AdminController
         return $this->makeView('pmdshifts/index');
     }
 
-    /** Compatibility endpoint. New people should normally be created from Team. */
+    /**
+     * Unified Team editor. Operational identity remains separate from PMD access,
+     * but an Owner/Manager can create both in one quick form.
+     */
     public function saveperson()
     {
         $this->assertOwnerOrManager();
         $this->requireReady();
-        $input = request()->all();
-        $validator = Validator::make($input, [
-            'id' => ['nullable', 'integer', 'min:1'],
-            'display_name' => ['required', 'string', 'min:2', 'max:128'],
-            'department' => ['nullable', 'in:kitchen,floor,bar,reception,other'],
-            'job_role' => ['nullable', 'string', 'max:64'],
-            'station_slug' => ['nullable', 'string', 'max:80'],
-            'staff_id' => ['nullable', 'integer', 'min:1'],
-        ]);
-        if ($validator->fails()) throw new ValidationException($validator);
-        $clean = $validator->validated();
+
         $locationId = $this->locationId();
-        $id = (int)($clean['id'] ?? 0);
+        $id = max(0, (int)request()->input('id', 0));
         $existing = $id > 0
             ? DB::table('pmd_operational_people')->where('id', $id)->where('location_id', $locationId)->first()
             : null;
+        if ($id > 0 && !$existing) abort(404);
 
-        // PMD_SHIFTS_SIMPLE_PERSON_EDITOR_V8
-        // Shifts edits only operational identity. If access/station fields were
-        // not posted, preserve the advanced values already owned by Team & Access.
-        $linkedStaffId = request()->exists('staff_id')
-            ? (!empty($clean['staff_id']) ? (int)$clean['staff_id'] : null)
-            : ($existing && !empty($existing->staff_id) ? (int)$existing->staff_id : null);
-        if ($linkedStaffId) {
-            $validStaff = Staffs_model::whereNotSuperUser()->where('staff_status', 1)->where('staff_id', $linkedStaffId)->exists();
-            if (!$validStaff) throw ValidationException::withMessages(['staff_id' => 'Choose an active PMD staff account.']);
-        }
+        $existingStaff = $existing && !empty($existing->staff_id)
+            ? Staffs_model::with(['role', 'user'])->whereNotSuperUser()->find((int)$existing->staff_id)
+            : null;
+        $wantsAccess = request()->boolean('give_access') || (bool)$existingStaff;
 
-        $stationSlug = request()->exists('station_slug')
-            ? (trim((string)($clean['station_slug'] ?? '')) ?: null)
-            : ($existing ? ($existing->station_slug ?? null) : null);
+        $roleService = app(PmdDefaultStaffRoleService::class);
+        $managedRoles = collect($roleService->ensure())
+            ->reject(fn ($role) => strtolower((string)$role->code) === PmdDefaultStaffRoleService::OWNER)
+            ->keyBy('staff_role_id');
 
-        $values = [
-            'location_id' => $locationId,
-            'staff_id' => $linkedStaffId,
-            'display_name' => trim((string)$clean['display_name']),
-            'department' => trim((string)($clean['department'] ?? '')) ?: 'other',
-            'job_role' => trim((string)($clean['job_role'] ?? '')) ?: null,
-            'station_slug' => $stationSlug,
-            'is_active' => 1,
-            'updated_at' => now(),
+        $input = [
+            'display_name' => trim((string)request()->input('display_name', '')),
+            'department' => trim((string)request()->input('department', '')),
+            'job_role' => trim((string)request()->input('job_role', '')),
+            'staff_role_id' => max(0, (int)request()->input('staff_role_id', 0)),
+            'username' => trim((string)request()->input('username', '')),
+            'password' => (string)request()->input('password', ''),
         ];
 
-        if ($id > 0) {
-            DB::table('pmd_operational_people')->where('id', $id)->where('location_id', $locationId)->update($values);
-        } else {
-            $values['created_at'] = now();
-            DB::table('pmd_operational_people')->insert($values);
+        $userId = $existingStaff && $existingStaff->user ? (int)$existingStaff->user->user_id : 0;
+        $rules = [
+            'display_name' => ['required', 'string', 'min:2', 'max:128'],
+            'department' => ['nullable', 'in:kitchen,floor,bar,reception,other'],
+            'job_role' => ['nullable', 'string', 'max:64'],
+        ];
+        if ($wantsAccess) {
+            $rules['staff_role_id'] = ['required', 'integer', function ($attribute, $value, $fail) use ($managedRoles) {
+                if (!$managedRoles->has((int)$value)) $fail('Choose a PMD access role.');
+            }];
+            $rules['username'] = [
+                'required', 'alpha_dash', 'between:2,32',
+                'unique:users,username'.($userId ? ','.$userId.',user_id' : ''),
+            ];
+            $rules['password'] = [$existingStaff ? 'nullable' : 'required', 'between:6,32'];
         }
 
-        return $this->redirectBackToSchedule('Person saved.');
+        $validator = Validator::make($input, $rules);
+        if ($validator->fails()) throw new ValidationException($validator);
+        $clean = $validator->validated();
+
+        DB::transaction(function () use ($existing, $existingStaff, $wantsAccess, $clean, $locationId, $id) {
+            $linkedStaffId = $existingStaff ? (int)$existingStaff->staff_id : null;
+
+            if ($wantsAccess) {
+                $member = $existingStaff ?: new Staffs_model();
+                $member->staff_name = $clean['display_name'];
+                $member->staff_role_id = (int)$clean['staff_role_id'];
+                $member->staff_status = 1;
+                $member->sale_permission = 1;
+                if (!$member->staff_email || !$member->exists) {
+                    $member->staff_email = $this->technicalStaffEmail($clean['username']);
+                }
+                $member->save();
+
+                $user = [
+                    'username' => $clean['username'],
+                    'super_user' => false,
+                    'send_invite' => false,
+                    'activate' => true,
+                ];
+                if (($clean['password'] ?? '') !== '') $user['password'] = $clean['password'];
+                $member->addStaffUser($user);
+                if ($locationId > 0) $member->addStaffLocations([$locationId]);
+                $member->addStaffGroups([]);
+                $linkedStaffId = (int)$member->staff_id;
+            }
+
+            $values = [
+                'location_id' => $locationId,
+                'staff_id' => $linkedStaffId,
+                'display_name' => $clean['display_name'],
+                'department' => trim((string)($clean['department'] ?? '')) ?: 'other',
+                'job_role' => trim((string)($clean['job_role'] ?? '')) ?: null,
+                'station_slug' => $existing ? ($existing->station_slug ?? null) : null,
+                'is_active' => 1,
+                'updated_at' => now(),
+            ];
+
+            if ($id > 0) {
+                DB::table('pmd_operational_people')->where('id', $id)->where('location_id', $locationId)->update($values);
+            } else {
+                $values['created_at'] = now();
+                DB::table('pmd_operational_people')->insert($values);
+            }
+        });
+
+        return $this->redirectBackToSchedule($wantsAccess ? 'Team member and PMD access saved.' : 'Team member saved.');
     }
 
     public function removeperson()
@@ -245,6 +317,40 @@ class Shifts extends AdminController
                 ->update(['is_active' => 0, 'updated_at' => now()]);
         }
         return $this->redirectBackToSchedule('Person removed from the active roster.');
+    }
+
+    public function handlerequest()
+    {
+        $this->assertOwnerOrManager();
+        if (!Schema::hasTable('pmd_staff_requests')) abort(503, 'Staff request schema is not ready.');
+
+        $validator = Validator::make(request()->all(), [
+            'id' => ['required', 'integer', 'min:1'],
+            'decision' => ['required', 'in:approved,declined'],
+            'manager_reply' => ['nullable', 'string', 'max:1000'],
+        ]);
+        if ($validator->fails()) throw new ValidationException($validator);
+        $clean = $validator->validated();
+
+        $row = DB::table('pmd_staff_requests')
+            ->where('id', (int)$clean['id'])
+            ->where('location_id', $this->locationId())
+            ->where('status', 'pending')
+            ->first();
+        if (!$row) abort(404);
+
+        $staffId = 0;
+        try { $staffId = (int)optional(AdminAuth::getUser()->staff)->staff_id; } catch (\Throwable $error) {}
+
+        DB::table('pmd_staff_requests')->where('id', (int)$row->id)->update([
+            'status' => $clean['decision'],
+            'manager_reply' => trim((string)($clean['manager_reply'] ?? '')) ?: null,
+            'handled_by_staff_id' => $staffId ?: null,
+            'handled_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return $this->redirectBackToSchedule('Team request updated.');
     }
 
     public function saveshift()
@@ -656,6 +762,13 @@ class Shifts extends AdminController
     {
         $value = trim($value);
         return preg_match('/^(?:[01]\\d|2[0-3]):[0-5]\\d$/', $value) ? $value : $default;
+    }
+
+    private function technicalStaffEmail(string $username): string
+    {
+        $local = strtolower(trim(preg_replace('/[^a-z0-9._-]+/i', '-', $username), '-'));
+        if ($local === '') $local = 'staff';
+        return 'pmd-'.$local.'@staff.local';
     }
 
     private function redirectBackToSchedule(string $message)

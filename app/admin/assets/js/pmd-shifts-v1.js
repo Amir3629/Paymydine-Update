@@ -17,7 +17,14 @@
   var teamNameInput = teamModal && teamModal.querySelector('[data-pmd-team-name]');
   var teamRoleInput = teamModal && teamModal.querySelector('[data-pmd-team-role]');
   var teamDepartmentInput = teamModal && teamModal.querySelector('[data-pmd-team-department]');
+  var teamAccessToggle = teamModal && teamModal.querySelector('[data-pmd-team-access-toggle]');
+  var teamAccessFields = teamModal && teamModal.querySelector('[data-pmd-team-access-fields]');
+  var teamUsernameInput = teamModal && teamModal.querySelector('[data-pmd-team-username]');
+  var teamAccessRoleInput = teamModal && teamModal.querySelector('[data-pmd-team-access-role]');
+  var teamPasswordInput = teamModal && teamModal.querySelector('[data-pmd-team-password]');
+  var teamPasswordHint = teamModal && teamModal.querySelector('[data-pmd-team-password-hint]');
   var teamFormTitle = teamModal && teamModal.querySelector('[data-pmd-team-form-title]');
+  var teamUsernameTouched = false;
   var form = modal && modal.querySelector('[data-pmd-shift-form]');
   var title = modal && modal.querySelector('[data-pmd-shift-modal-title]');
   var idInput = modal && modal.querySelector('[data-pmd-shift-id]');
@@ -60,19 +67,19 @@
   }
 
   function loadExactSharedUiCss() {
-    if (document.querySelector('link[data-pmd-shifts-exact-ui-v9]')) return;
+    if (document.querySelector('link[data-pmd-shifts-exact-ui-v10]')) return;
     var base = document.querySelector('link[href*="pmd-shifts-v1.css"]');
-    var href = '/app/admin/assets/css/pmd-shifts-dashboard-reservations-v4.css?v=9';
+    var href = '/app/admin/assets/css/pmd-shifts-dashboard-reservations-v4.css?v=10';
     if (base && base.getAttribute('href')) {
       href = base.getAttribute('href').replace(
         /pmd-shifts-v1\.css(?:\?[^#]*)?/,
-        'pmd-shifts-dashboard-reservations-v4.css?v=9'
+        'pmd-shifts-dashboard-reservations-v4.css?v=10'
       );
     }
     var link = document.createElement('link');
     link.rel = 'stylesheet';
     link.href = href;
-    link.setAttribute('data-pmd-shifts-exact-ui-v9', '');
+    link.setAttribute('data-pmd-shifts-exact-ui-v10', '');
     document.head.appendChild(link);
   }
 
@@ -128,6 +135,9 @@
     });
 
     modal.hidden = false;
+    modal.scrollTop = 0;
+    var modalBody = modal.querySelector('.pmd-shifts__modal-body');
+    if (modalBody) modalBody.scrollTop = 0;
     modal.setAttribute('aria-hidden', 'false');
     setScrollLock(true);
     window.setTimeout(function () {
@@ -148,6 +158,9 @@
     if (!capacityModal) return;
     lastTrigger = trigger || null;
     capacityModal.hidden = false;
+    capacityModal.scrollTop = 0;
+    var capacityBody = capacityModal.querySelector('.pmd-shifts__modal-body');
+    if (capacityBody) capacityBody.scrollTop = 0;
     capacityModal.setAttribute('aria-hidden', 'false');
     setScrollLock(true);
   }
@@ -161,12 +174,30 @@
     lastTrigger = null;
   }
 
+  function syncTeamAccessFields() {
+    if (!teamAccessFields || !teamAccessToggle) return;
+    teamAccessFields.hidden = !teamAccessToggle.checked;
+    teamAccessFields.querySelectorAll('input,select').forEach(function (field) { field.disabled = !teamAccessToggle.checked; });
+  }
+
+  function suggestedUsername(name) {
+    var value = String(name || '').trim().toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '');
+    value = value.replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 28);
+    return value || 'team-member';
+  }
+
   function resetTeamForm() {
     if (!teamForm) return;
     teamForm.reset();
     if (teamIdInput) teamIdInput.value = '';
     if (teamDepartmentInput) teamDepartmentInput.value = 'other';
-    if (teamFormTitle) teamFormTitle.textContent = 'Add person';
+    if (teamFormTitle) teamFormTitle.textContent = 'Add team member';
+    if (teamAccessToggle) { teamAccessToggle.checked = true; teamAccessToggle.disabled = false; }
+    if (teamAccessRoleInput) teamAccessRoleInput.value = teamForm.getAttribute('data-default-access-role') || teamAccessRoleInput.value;
+    if (teamPasswordInput) teamPasswordInput.value = '';
+    if (teamPasswordHint) teamPasswordHint.textContent = 'required for new login';
+    teamUsernameTouched = false;
+    syncTeamAccessFields();
   }
 
   function openTeam(trigger, personNode) {
@@ -178,9 +209,20 @@
       if (teamNameInput) teamNameInput.value = personNode.getAttribute('data-name') || '';
       if (teamRoleInput) teamRoleInput.value = personNode.getAttribute('data-role') || '';
       if (teamDepartmentInput) teamDepartmentInput.value = personNode.getAttribute('data-department') || 'other';
-      if (teamFormTitle) teamFormTitle.textContent = 'Edit person';
+      var hasAccess = personNode.getAttribute('data-has-access') === '1';
+      if (teamAccessToggle) { teamAccessToggle.checked = hasAccess; teamAccessToggle.disabled = hasAccess; }
+      if (teamUsernameInput) teamUsernameInput.value = personNode.getAttribute('data-username') || suggestedUsername(personNode.getAttribute('data-name'));
+      if (teamAccessRoleInput && personNode.getAttribute('data-staff-role-id')) teamAccessRoleInput.value = personNode.getAttribute('data-staff-role-id');
+      if (teamPasswordInput) teamPasswordInput.value = '';
+      if (teamPasswordHint) teamPasswordHint.textContent = hasAccess ? 'leave blank to keep current password' : 'required for new login';
+      if (teamFormTitle) teamFormTitle.textContent = 'Edit team member';
+      teamUsernameTouched = hasAccess;
+      syncTeamAccessFields();
     }
     teamModal.hidden = false;
+    teamModal.scrollTop = 0;
+    var teamCard = teamModal.querySelector('.pmd-shifts__team-card');
+    if (teamCard) teamCard.scrollTop = 0;
     teamModal.setAttribute('aria-hidden', 'false');
     setScrollLock(true);
     window.setTimeout(function () { if (teamNameInput) teamNameInput.focus(); }, 0);
@@ -471,6 +513,10 @@
 
     var shifts = shiftsForDate(key);
     var people = schedulingPeople();
+    var availableWidth = Math.max(980, host.getBoundingClientRect().width || root.getBoundingClientRect().width || 980);
+    var visualColumnCount = Math.max(4, Math.min(6, Math.floor((availableWidth - 110) / 248)));
+    var fillerCount = Math.max(0, visualColumnCount - people.length);
+    var fillerIndexes = Array.from({length: fillerCount}, function (_, index) { return index; });
     var rowCount = 40;
     var dayStart = 360;
     var schedules = {};
@@ -494,6 +540,8 @@
           '<span class="pmd-shifts-resource-person__copy"><strong>' + escapeHtml(person.name || 'Team member') + '</strong><small>' + escapeHtml(person.role || 'Team') + '</small></span>' +
           '<span class="pmd-shifts-resource-person__source' + (person.has_access ? ' is-access' : '') + '">' + (person.has_access ? 'PMD access' : 'Restaurant team') + '</span>' +
         '</th>';
+    }).join('') + fillerIndexes.map(function () {
+      return '<th scope="col" class="pmd-shifts-resource-person is-filler" aria-hidden="true"></th>';
     }).join('');
 
     var bodyRows = [];
@@ -513,7 +561,8 @@
             '<button type="button" class="pmd-shifts-resource-empty" data-pmd-person-slot-create data-person-id="' + Number(person.id || 0) + '" data-date="' + escapeHtml(key) + '" data-time="' + slotTime + '" aria-label="Add ' + escapeHtml(person.name || 'team member') + ' at ' + slotTime + '"><span>+</span></button>' +
           '</td>';
       }).join('');
-      bodyRows.push('<tr><th scope="row" class="pmd-shifts-resource-time"><strong>' + slotTime + '</strong><span>' + (rowIndex % 2 === 0 ? 'hour' : 'half') + '</span></th>' + cells + '</tr>');
+      var fillerCells = fillerIndexes.map(function () { return '<td class="pmd-shifts-resource-cell is-filler" aria-hidden="true"></td>'; }).join('');
+      bodyRows.push('<tr><th scope="row" class="pmd-shifts-resource-time"><strong>' + slotTime + '</strong><span>' + (rowIndex % 2 === 0 ? 'hour' : 'half') + '</span></th>' + cells + fillerCells + '</tr>');
     }
 
     var emptyState = people.length ? '' : '' +
@@ -578,11 +627,57 @@
     } catch (error) {}
   }
 
+
+  function parseEmbeddedJson(doc, id) {
+    try {
+      var node = doc.getElementById(id);
+      return JSON.parse((node && node.textContent) || '{}') || {};
+    } catch (error) {
+      return {};
+    }
+  }
+
+  function refreshVisibleKpis() {
+    visibleKpiCards().forEach(function (card) {
+      var key = card.getAttribute('data-pmd-shifts-kpi-key') || '';
+      if (key && kpiCards[key]) applyKpi(card, key);
+    });
+  }
+
+  function loadCalendarUrl(url, pushHistory) {
+    var frame = root.querySelector('[data-pmd-shifts-calendar-frame]');
+    if (!frame) return Promise.reject(new Error('Calendar frame missing'));
+    frame.classList.add('is-loading');
+    return fetch(url, {credentials: 'same-origin', headers: {'X-Requested-With': 'XMLHttpRequest'}})
+      .then(function (response) {
+        if (!response.ok) throw new Error('Calendar request failed');
+        return response.text();
+      })
+      .then(function (html) {
+        var doc = new DOMParser().parseFromString(html, 'text/html');
+        var nextFrame = doc.querySelector('[data-pmd-shifts-calendar-frame]');
+        if (!nextFrame) throw new Error('Calendar response missing frame');
+        frame.innerHTML = nextFrame.innerHTML;
+        boot = parseEmbeddedJson(doc, 'pmd-shifts-bootstrap');
+        kpiCards = parseEmbeddedJson(doc, 'pmd-shifts-kpi-data');
+        refreshVisibleKpis();
+        var calendar = root.querySelector('[data-pmd-shifts-calendar]');
+        var host = root.querySelector('[data-pmd-shifts-hour-host]');
+        if (calendar) calendar.classList.remove('is-timeslot-screen');
+        if (host) host.hidden = true;
+        frame.hidden = false;
+        if (pushHistory !== false) history.pushState({pmdShiftsMonth: true}, '', url);
+        return boot;
+      })
+      .finally(function () { frame.classList.remove('is-loading'); });
+  }
+
   function changeHourDay(delta) {
     var next = shiftedDate(boot.selected_day, delta);
     if (monthKey(next) !== String(boot.month || '')) {
       var base = (boot.urls && boot.urls.shifts) || window.location.pathname;
-      window.location.href = base + '?month=' + encodeURIComponent(monthKey(next)) + '&day=' + encodeURIComponent(next) + '#pmd-shift-day';
+      var url = base + '?month=' + encodeURIComponent(monthKey(next));
+      loadCalendarUrl(url, false).then(function () { renderHourView(next); }).catch(function () { window.location.href = url + '&day=' + encodeURIComponent(next) + '#pmd-shift-day'; });
       return;
     }
     renderHourView(next);
@@ -603,10 +698,37 @@
     formNode.submit();
   }
 
+  if (teamAccessToggle) teamAccessToggle.addEventListener('change', syncTeamAccessFields);
+  if (teamUsernameInput) teamUsernameInput.addEventListener('input', function () { teamUsernameTouched = true; });
+  if (teamNameInput) teamNameInput.addEventListener('input', function () {
+    if (teamUsernameInput && !teamUsernameTouched) teamUsernameInput.value = suggestedUsername(teamNameInput.value);
+  });
+  window.addEventListener('popstate', function () {
+    if (!root.querySelector('[data-pmd-shifts-calendar-frame]')) return;
+    loadCalendarUrl(window.location.href, false).catch(function () {});
+  });
+
   loadExactSharedUiCss();
   syncKpiMenus();
 
   document.addEventListener('click', function (event) {
+    var monthNav = event.target.closest('[data-pmd-shifts-month-nav]');
+    if (monthNav && root.contains(monthNav)) {
+      event.preventDefault();
+      loadCalendarUrl(monthNav.href, true).catch(function () { window.location.href = monthNav.href; });
+      return;
+    }
+
+    var generatePassword = event.target.closest('[data-pmd-team-password-generate]');
+    if (generatePassword && teamModal && teamModal.contains(generatePassword)) {
+      event.preventDefault();
+      var alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
+      var password = '';
+      for (var p = 0; p < 12; p += 1) password += alphabet.charAt(Math.floor(Math.random() * alphabet.length));
+      if (teamPasswordInput) { teamPasswordInput.value = password; teamPasswordInput.type = 'text'; teamPasswordInput.focus(); teamPasswordInput.select(); }
+      return;
+    }
+
     var kpiButton = event.target.closest('[data-pmd-shifts-kpi-menu-button]');
     if (kpiButton && root.contains(kpiButton)) {
       event.preventDefault();
