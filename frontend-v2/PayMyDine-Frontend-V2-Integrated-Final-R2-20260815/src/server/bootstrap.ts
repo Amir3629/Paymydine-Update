@@ -81,6 +81,7 @@ export async function loadCustomerBootstrap(query: BootstrapQuery): Promise<Cust
     categoriesPayload,
     themePayload,
     paymentsPayload,
+    paymobCatalogPayload,
     tablePayload,
     orderPayload,
     taxApiPayload,
@@ -92,6 +93,10 @@ export async function loadCustomerBootstrap(query: BootstrapQuery): Promise<Cust
     fetchBackendJsonOrNull<any>('/api/v1/categories', requestOptions),
     fetchBackendJsonOrNull<any>('/api/v1/frontend-theme-v2', requestOptions),
     fetchBackendJsonOrNull<any>('/api/v1/payments', requestOptions),
+    // PMD_PAYMOB_OMAN_BOOTSTRAP_R11
+    // Supplemental market endpoint keeps the mature Germany payment resolver
+    // untouched while Oman exposes only its location-scoped Paymob methods.
+    fetchBackendJsonOrNull<any>('/api/v1/payments/paymob/catalog', requestOptions),
     tableId || tableNo || qr ? fetchBackendJsonOrNull<any>(`/api/v1/table-info${tableLookup}`, requestOptions) : Promise.resolve(null),
     tableId || tableNo || qr ? fetchBackendJsonOrNull<any>(`/api/v1/table-order-draft${draftLookup}`, requestOptions) : Promise.resolve(null),
     fetchBackendJsonOrNull<any>('/api/v1/vat-settings', requestOptions),
@@ -152,7 +157,18 @@ export async function loadCustomerBootstrap(query: BootstrapQuery): Promise<Cust
   )
   const theme = normalizeTheme(resolvedThemePayload, previewId)
   const table = normalizeTable(tablePayload, { tableId, tableNo, qr })
-  const paymentMethods = normalizePayments(paymentsPayload)
+
+  const legacyPaymentMethods = normalizePayments(paymentsPayload)
+  const paymobPaymentMethods = paymobCatalogPayload?.active_market
+    ? normalizePayments(paymobCatalogPayload?.methods || [])
+    : []
+  const paymentMethods = Array.from(
+    new Map(
+      [...legacyPaymentMethods, ...paymobPaymentMethods]
+        .map((method) => [`${method.code}:${method.providerCode || 'default'}`, method]),
+    ).values(),
+  ).sort((a, b) => Number(a.priority || 0) - Number(b.priority || 0))
+
   const locale = String(query.locale || settingsLocale(settings)).toLowerCase()
   const activeOrder = normalizeOrder(orderPayload)
 
