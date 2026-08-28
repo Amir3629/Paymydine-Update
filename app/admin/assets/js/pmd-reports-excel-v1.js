@@ -1,6 +1,13 @@
 (function () {
   'use strict';
 
+  // PMD_SETTINGS_REPORTS_PLATFORM_I18N_V16_1
+  function reportText(value) {
+    var runtime = window.PMDPlatformMessages;
+    value = String(value == null ? '' : value);
+    return runtime && typeof runtime.fromEnglish === 'function' ? runtime.fromEnglish(value, 'reports.', value) : value;
+  }
+
   var root = document.querySelector('[data-pmd-report-page]');
   if (!root) return;
 
@@ -11,8 +18,8 @@
   var downloadCount = 0;
   var lastFilename = null;
 
-  button.setAttribute('aria-label', 'Download this report as Excel');
-  button.setAttribute('title', 'Download Excel');
+  button.setAttribute('aria-label', reportText('Download this report as Excel'));
+  button.setAttribute('title', reportText('Download Excel'));
   button.dataset.pmdReportExportFormat = 'xlsx';
   button.dataset.pmdExcelReady = '1';
 
@@ -192,11 +199,11 @@
     var headerTitle = root.querySelector('.pmd-report-header h1');
 
     return {
-      title: cleanText(tableData.title || (headerTitle ? headerTitle.textContent : 'Owner report')).trim(),
+      title: cleanText(tableData.title || (headerTitle ? headerTitle.textContent : reportText('Owner report'))).trim(),
       period: cleanText(sourceMeta[2] ? sourceMeta[2].textContent : (activePeriod ? activePeriod.textContent : '')).trim(),
       timezone: cleanText(sourceMeta[1] ? sourceMeta[1].textContent : '').trim(),
       currency: cleanText(sourceMeta[0] ? sourceMeta[0].textContent : root.getAttribute('data-pmd-report-currency') || 'EUR').trim(),
-      source: cleanText(source ? source.textContent : 'Dashboard2 canonical analytics source.').trim(),
+      source: cleanText(source ? source.textContent : reportText('Dashboard2 canonical analytics source.')).trim(),
       type: cleanText(tableData.type || root.getAttribute('data-pmd-report-type') || 'report').trim()
     };
   }
@@ -215,11 +222,11 @@
     sheetRows.push(rowXml(rowNumber++, titleValues, titleValues.map(function (_, i) { return i === 0 ? 1 : 0; }), 24));
 
     [
-      ['Period', meta.period || '—'],
-      ['Timezone', meta.timezone || '—'],
-      ['Currency', meta.currency || '—'],
-      ['Generated', new Date().toISOString()],
-      ['Data authority', meta.source || '—']
+      [reportText('Period'), meta.period || '—'],
+      [reportText('Timezone'), meta.timezone || '—'],
+      [reportText('Currency'), meta.currency || '—'],
+      [reportText('Generated'), new Date().toISOString()],
+      [reportText('Data authority'), meta.source || '—']
     ].forEach(function (pair) {
       var values = new Array(maxColumns).fill('');
       values[0] = pair[0];
@@ -243,7 +250,7 @@
         sheetRows.push(rowXml(rowNumber++, values, values.map(function () { return 3; })));
       });
     } else {
-      sheetRows.push(rowXml(rowNumber++, ['No matching report rows'], [3]));
+      sheetRows.push(rowXml(rowNumber++, [reportText('No matching report rows')], [3]));
     }
 
     var lastRow = rowNumber - 1;
@@ -304,7 +311,7 @@
         name: 'xl/workbook.xml',
         data: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
           '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
-            '<sheets><sheet name="Report" sheetId="1" r:id="rId1"/></sheets>' +
+            '<sheets><sheet name="' + xmlEscape(reportText('Report')) + '" sheetId="1" r:id="rId1"/></sheets>' +
           '</workbook>'
       },
       {

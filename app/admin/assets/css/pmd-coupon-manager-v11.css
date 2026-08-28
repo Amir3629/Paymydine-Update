@@ -1450,3 +1450,41 @@ html body.pmd-coupon-manager-page #pmd-coupon-manager-main
     animation: none !important;
 }
 /* PMD_COUPON_NOTIFICATION_BADGE_V13_END */
+
+/* PMD_COUPON_KPI_AUTOFIT_R79
+ *
+ * KPI values keep the existing approved size whenever they fit.
+ * JavaScript only reduces the font-size for a specific value when its
+ * rendered width would cross the right edge of its own KPI card.
+ *
+ * This bounded flex/grid contract is also a hard visual safety net:
+ * no currency value can paint outside the card while fitting occurs.
+ */
+.pmd-coupon-kpi__copy {
+  flex: 1 1 0%;
+  width: 0;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.pmd-coupon-kpi__copy > strong {
+  min-width: 0;
+  max-width: 100%;
+  justify-self: end;
+  font-variant-numeric: tabular-nums;
+}
+
+/* PMD_COUPON_KPI_CARD_BOUNDARY_R79B
+ *
+ * The KPI card itself is the visual boundary.
+ * Even before JavaScript fitting completes, nothing may paint
+ * beyond the rounded card.
+ */
+.pmd-coupon-kpi {
+  overflow: hidden;
+}
+/* PMD_COUPON_KPI_CARD_BOUNDARY_R79B END */
+/* PMD_COUPON_KPI_AUTOFIT_R79 END */
+

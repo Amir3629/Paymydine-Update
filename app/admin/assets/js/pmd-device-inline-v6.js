@@ -1,6 +1,15 @@
 (function () {
   'use strict';
 
+  // PMD_SETTINGS_REPORTS_PLATFORM_I18N_V16
+  function settingsText(value) {
+    var runtime = window.PMDPlatformMessages;
+    value = String(value == null ? '' : value);
+    return runtime && typeof runtime.fromEnglish === 'function'
+      ? runtime.fromEnglish(value, 'settings.', value)
+      : value;
+  }
+
   var page = document.getElementById('pmd-devices-page');
   var modal = document.querySelector('[data-pmd-device-modal]');
   if (!page || !modal) return;
@@ -98,14 +107,14 @@
     try {
       var health = await localConnectorGet('/health', 1600);
       if (health.paired) {
-        drawerLocalStatus(form, 'Connected on this PC' + (health.display_name ? ' - ' + health.display_name : '') + '.', 'online');
+        drawerLocalStatus(form, settingsText('Connected on this PC') + (health.display_name ? ' - ' + health.display_name : '') + '.', 'online');
       } else {
-        drawerLocalStatus(form, 'Connector is running but not paired. Download the connector again.', 'warning');
+        drawerLocalStatus(form, settingsText('Connector is running but not paired. Download the connector again.'), 'warning');
       }
       return health;
     } catch (error) {
-      drawerLocalStatus(form, 'Not connected on this PC. Download and run the PayMyDine connector once.', 'offline');
-      if (!quiet) setStatus('Connector not detected on this PC.', 'error');
+      drawerLocalStatus(form, settingsText('Not connected on this PC. Download and run the PayMyDine connector once.'), 'offline');
+      if (!quiet) setStatus(settingsText('Connector not detected on this PC.'), 'error');
       return null;
     }
   }
@@ -114,12 +123,12 @@
     var setup = drawerSetupForm(form);
     var select = setup && setup.querySelector('[data-pmd-local-printer-select]');
     if (!select) return;
-    setStatus('Finding printers...');
+    setStatus(settingsText('Finding printers...'));
     var data;
     try {
       data = await localConnectorGet('/printers', 5000);
     } catch (error) {
-      drawerLocalStatus(form, 'Connector is not available. Install it first, then try again.', 'offline');
+      drawerLocalStatus(form, settingsText('Connector is not available. Install it first, then try again.'), 'offline');
       setStatus(error && error.message ? error.message : 'Could not read printers.', 'error');
       return;
     }
@@ -132,17 +141,17 @@
     if (!printers.length) {
       var empty = document.createElement('option');
       empty.value = '';
-      empty.textContent = 'No available Windows printers found';
+      empty.textContent = settingsText('No available Windows printers found');
       select.appendChild(empty);
       syncDrawerPrinterInputs(form);
-      setStatus('No available printer was found.', 'error');
+      setStatus(settingsText('No available printer was found.'), 'error');
       return;
     }
 
     printers.forEach(function (printer) {
       var option = document.createElement('option');
       option.value = String(printer.name);
-      option.textContent = String(printer.name) + (printer.default ? ' (Default)' : '') + (printer.port ? ' - ' + printer.port : '');
+      option.textContent = String(printer.name) + (printer.default ? ' (' + settingsText('Default') + ')' : '') + (printer.port ? ' - ' + printer.port : '');
       select.appendChild(option);
     });
 
@@ -151,8 +160,8 @@
       || printers[0];
     select.value = preferred ? String(preferred.name) : '';
     syncDrawerPrinterInputs(form);
-    drawerLocalStatus(form, 'Connected. Printer list loaded from this PC.', 'online');
-    setStatus('Printers found. Choose the receipt printer, then click Use this printer.', 'ok');
+    drawerLocalStatus(form, settingsText('Connected. Printer list loaded from this PC.'), 'online');
+    setStatus(settingsText('Printers found. Choose the receipt printer, then click Use this printer.'), 'ok');
   }
 
   function initDrawerSimpleSetup(form) {
@@ -187,7 +196,7 @@
     lastTrigger = trigger || document.activeElement;
     modalBody.replaceChildren(template.content.cloneNode(true));
     var form = currentForm();
-    var title = form && form.getAttribute('data-pmd-modal-title') || 'Device settings';
+    var title = form && form.getAttribute('data-pmd-modal-title') || settingsText('Device settings');
     var mode = form && form.getAttribute('data-pmd-device-mode') || 'view';
 
     if (modalTitle) modalTitle.textContent = title;
@@ -271,7 +280,7 @@
       headers: {'X-Requested-With': 'XMLHttpRequest', 'X-PMD-DEVICE-REFRESH': '1'},
       cache: 'no-store'
     });
-    if (!response.ok) throw new Error('Saved, but the Devices list could not refresh (' + response.status + ')');
+    if (!response.ok) throw new Error(settingsText('Saved, but the Devices list could not refresh') + ' (' + response.status + ')');
 
     var html = await response.text();
     var doc = new DOMParser().parseFromString(html, 'text/html');
@@ -298,7 +307,7 @@
 
     var confirmText = button && button.getAttribute('data-pmd-confirm');
     if (confirmText && !window.confirm(confirmText)) return;
-    if (deleting && !confirmText && !window.confirm('Delete this device configuration?')) return;
+    if (deleting && !confirmText && !window.confirm(settingsText('Delete this device configuration?'))) return;
 
     var formData = new FormData(form);
     appendExtra(button, formData);
@@ -331,7 +340,7 @@
       if (kind === 'kds' && handler === form.getAttribute('data-pmd-save-handler')) {
         var stationId = Number(data && data.station_id || 0);
         if (!data || data.ok !== true || stationId < 1) {
-          throw new Error('KDS station save was not confirmed by the server.');
+          throw new Error(settingsText('KDS station save was not confirmed by the server.'));
         }
       }
 
@@ -346,13 +355,13 @@
       showResult(data.raw && Object.keys(data).length === 1 ? data.raw : data);
       if (kind === 'drawers' && handler === 'onApplyLocalPrinter') {
         drawerLocalStatus(form, 'Printer saved for this POS.', 'online');
-        setStatus('Printer saved.', 'ok');
+        setStatus(settingsText('Printer saved.'), 'ok');
       } else if (kind === 'drawers' && handler === 'onTestPrintLocal') {
-        setStatus('Test print sent.', 'ok');
+        setStatus(settingsText('Test print sent.'), 'ok');
       } else if (kind === 'drawers' && (handler === 'onTestConnection' || handler === 'onOpenDrawer')) {
-        setStatus('Drawer test sent.', 'ok');
+        setStatus(settingsText('Drawer test sent.'), 'ok');
       } else {
-        setStatus('Done', 'ok');
+        setStatus(settingsText('Done'), 'ok');
       }
     } catch (error) {
       var message = error && error.message ? error.message : 'Request failed';
@@ -380,7 +389,7 @@
 
     var connectorDownload = event.target.closest('[data-pmd-connector-download]');
     if (connectorDownload && modal.contains(connectorDownload)) {
-      drawerLocalStatus(currentForm(), 'Download started. Run the file on this PC, then click Check connection.', 'installing');
+      drawerLocalStatus(currentForm(), settingsText('Download started. Run the file on this PC, then click Check connection.'), 'installing');
     }
 
     var opener = event.target.closest('[data-pmd-device-open]');

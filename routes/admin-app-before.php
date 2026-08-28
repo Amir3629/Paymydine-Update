@@ -352,6 +352,997 @@ App::before(function () {
         Route::get('cash_drawers/windows_connector/{id}', [\Admin\Controllers\CashDrawers::class, 'windowsConnector']);
         Route::get('cash_drawers/windows_connector_agent/{id}', [\Admin\Controllers\CashDrawers::class, 'windowsConnectorAgent']);
 
+        // PMD_ADMIN_SERVER_NATIVE_URLS_R81E
+        //
+        // Browser URL is canonical from the FIRST HTTP request.
+        //
+        // Existing controller implementation paths are invoked internally
+        // with a duplicated Request bound temporarily into the container.
+        //
+        // Browser:
+        //   /admin/managerdashboard
+        //
+        // Controller/runtime logical request:
+        //   /admin/managerlab
+        //
+        // No external redirect is performed.
+
+        $__pmdCleanPathR81E =
+            static function (
+                string $path
+            ): string {
+                $adminUri = trim(
+                    (string)config(
+                        'system.adminUri',
+                        'admin'
+                    ),
+                    '/'
+                );
+
+                $path =
+                    rtrim(
+                        $path,
+                        '/'
+                    );
+
+                if ($path === '') {
+                    $path = '/';
+                }
+
+                $prefix =
+                    '/'.$adminUri.'/';
+
+                if (
+                    strpos(
+                        $path,
+                        $prefix
+                    ) !== 0
+                ) {
+                    return $path;
+                }
+
+                $relative = substr(
+                    $path,
+                    strlen($prefix)
+                );
+
+                $exact = [
+                    'dashboardlab' =>
+                        'ownerdashboard',
+
+                    'managerlab' =>
+                        'managerdashboard',
+
+                    'accountantlab' =>
+                        'accountantdashboard',
+
+                    'cashierlab' =>
+                        'orders',
+
+                    'reservationslab' =>
+                        'reservations',
+
+                    'pmdmenus' =>
+                        'menu',
+
+                    'pmdsettings' =>
+                        'settings',
+
+                    'pmdsettings/restaurant' =>
+                        'settings/restaurant',
+
+                    'pmdsettings/frontend' =>
+                        'settings/customer-menu',
+
+                    'pmdmenu' =>
+                        'settings/menu-checkout',
+
+                    'pmdcustomer' =>
+                        'settings/customers',
+
+                    'pmdteam' =>
+                        'settings/team',
+
+                    'pmddevices' =>
+                        'settings/devices',
+
+                    'pmdfinance' =>
+                        'settings/finance',
+
+                    'pmdbrand' =>
+                        'settings/brand',
+
+                    'pmdadvanced' =>
+                        'settings/advanced',
+
+                    'pmdsmartcategories' =>
+                        'smartcategories',
+
+                    'pmdreports' =>
+                        'reports/sales',
+
+                    'pmdreporttips' =>
+                        'reports/tips',
+
+                    'pmdreportchannels' =>
+                        'reports/channels',
+                ];
+
+                if (
+                    isset(
+                        $exact[$relative]
+                    )
+                ) {
+                    return
+                        $prefix.
+                        $exact[$relative];
+                }
+
+                $prefixMap = [
+                    'pmdmenus/' =>
+                        'menu/',
+
+                    'pmdmenu/' =>
+                        'settings/menu-checkout/',
+
+                    'pmdcustomer/' =>
+                        'settings/customers/',
+
+                    'pmdteam/' =>
+                        'settings/team/',
+
+                    'pmddevices/' =>
+                        'settings/devices/',
+
+                    'pmdfinance/' =>
+                        'settings/finance/',
+
+                    'pmdbrand/' =>
+                        'settings/brand/',
+
+                    'pmdadvanced/' =>
+                        'settings/advanced/',
+
+                    'pmdsmartcategories/' =>
+                        'smartcategories/',
+
+                    'pmdreports/' =>
+                        'reports/',
+                ];
+
+                foreach (
+                    $prefixMap
+                    as $old => $new
+                ) {
+                    if (
+                        strpos(
+                            $relative,
+                            $old
+                        ) === 0
+                    ) {
+                        return
+                            $prefix.
+                            $new.
+                            substr(
+                                $relative,
+                                strlen($old)
+                            );
+                    }
+                }
+
+                if (
+                    strpos(
+                        $relative,
+                        'pmdsettings/restaurant/'
+                    ) === 0
+                ) {
+                    return
+                        $prefix.
+                        'settings/restaurant/'.
+                        substr(
+                            $relative,
+                            strlen(
+                                'pmdsettings/restaurant/'
+                            )
+                        );
+                }
+
+                if (
+                    strpos(
+                        $relative,
+                        'pmdsettings/frontend/'
+                    ) === 0
+                ) {
+                    return
+                        $prefix.
+                        'settings/customer-menu/'.
+                        substr(
+                            $relative,
+                            strlen(
+                                'pmdsettings/frontend/'
+                            )
+                        );
+                }
+
+                return $path;
+            };
+
+        $__pmdRunInternalR81E =
+            static function (
+                Request $outer,
+                string $target,
+                string $mode = 'canonical'
+            ) use (
+                $__pmdCleanPathR81E
+            ) {
+                $adminUri = trim(
+                    (string)config(
+                        'system.adminUri',
+                        'admin'
+                    ),
+                    '/'
+                );
+
+                $target = trim(
+                    $target,
+                    '/'
+                );
+
+                $internalPath =
+                    '/'.$adminUri.'/'.$target;
+
+                $query =
+                    trim(
+                        (string)$outer
+                            ->getQueryString()
+                    );
+
+                $internalUri =
+                    $internalPath;
+
+                if ($query !== '') {
+                    $internalUri .=
+                        '?'.$query;
+                }
+
+                $server =
+                    $outer->server->all();
+
+                $server[
+                    'REQUEST_URI'
+                ] =
+                    $internalUri;
+
+                $server[
+                    'PATH_INFO'
+                ] =
+                    $internalPath;
+
+                $internal =
+                    $outer->duplicate(
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        $server
+                    );
+
+                $internal->attributes->set(
+                    'pmd_browser_path_r81e',
+                    trim(
+                        (string)$outer->path(),
+                        '/'
+                    )
+                );
+
+                $internal->attributes->set(
+                    'pmd_internal_path_r81e',
+                    trim(
+                        $internalPath,
+                        '/'
+                    )
+                );
+
+                if (
+                    $outer->hasSession()
+                    && method_exists(
+                        $internal,
+                        'setLaravelSession'
+                    )
+                ) {
+                    $internal->setLaravelSession(
+                        $outer->session()
+                    );
+                }
+
+                if (
+                    method_exists(
+                        $internal,
+                        'setUserResolver'
+                    )
+                    && method_exists(
+                        $outer,
+                        'getUserResolver'
+                    )
+                ) {
+                    $internal->setUserResolver(
+                        $outer->getUserResolver()
+                    );
+                }
+
+                if (
+                    method_exists(
+                        $internal,
+                        'setRouteResolver'
+                    )
+                    && method_exists(
+                        $outer,
+                        'getRouteResolver'
+                    )
+                ) {
+                    $internal->setRouteResolver(
+                        $outer->getRouteResolver()
+                    );
+                }
+
+                $originalRequest =
+                    app('request');
+
+                app()->instance(
+                    'request',
+                    $internal
+                );
+
+                \Illuminate\Support\Facades\Facade
+                    ::clearResolvedInstance(
+                        'request'
+                    );
+
+                try {
+                    $result =
+                        app(
+                            \System\Classes\Controller::class
+                        )->runAdmin(
+                            $target
+                        );
+
+                    if (
+                        !(
+                            $result instanceof
+                            \Symfony\Component\HttpFoundation\Response
+                        )
+                        && $result instanceof
+                            \Illuminate\Contracts\Support\Renderable
+                    ) {
+                        $result =
+                            $result->render();
+                    }
+                } finally {
+                    app()->instance(
+                        'request',
+                        $originalRequest
+                    );
+
+                    \Illuminate\Support\Facades\Facade
+                        ::clearResolvedInstance(
+                            'request'
+                        );
+                }
+
+                if (
+                    $result instanceof
+                    \Symfony\Component\HttpFoundation\Response
+                ) {
+                    $response =
+                        $result;
+                } else {
+                    $response =
+                        response(
+                            $result
+                        );
+                }
+
+                /*
+                 * Controllers may redirect to one of their internal PMD/Lab
+                 * implementation URLs.
+                 *
+                 * Rewrite Location BEFORE it reaches the browser.
+                 */
+                $location =
+                    trim(
+                        (string)$response
+                            ->headers
+                            ->get(
+                                'Location',
+                                ''
+                            )
+                    );
+
+                if ($location !== '') {
+                    $locationHost =
+                        parse_url(
+                            $location,
+                            PHP_URL_HOST
+                        );
+
+                    if (
+                        !is_string(
+                            $locationHost
+                        )
+                        || $locationHost === ''
+                        || strcasecmp(
+                            $locationHost,
+                            $outer->getHost()
+                        ) === 0
+                    ) {
+                        $locationPath =
+                            parse_url(
+                                $location,
+                                PHP_URL_PATH
+                            );
+
+                        if (
+                            is_string(
+                                $locationPath
+                            )
+                        ) {
+                            $cleanPath =
+                                $__pmdCleanPathR81E(
+                                    $locationPath
+                                );
+
+                            if (
+                                $cleanPath !==
+                                $locationPath
+                            ) {
+                                $next =
+                                    $cleanPath;
+
+                                $locationQuery =
+                                    parse_url(
+                                        $location,
+                                        PHP_URL_QUERY
+                                    );
+
+                                if (
+                                    is_string(
+                                        $locationQuery
+                                    )
+                                    && $locationQuery !== ''
+                                ) {
+                                    $next .=
+                                        '?'.
+                                        $locationQuery;
+                                }
+
+                                $locationFragment =
+                                    parse_url(
+                                        $location,
+                                        PHP_URL_FRAGMENT
+                                    );
+
+                                if (
+                                    is_string(
+                                        $locationFragment
+                                    )
+                                    && $locationFragment !== ''
+                                ) {
+                                    $next .=
+                                        '#'.
+                                        $locationFragment;
+                                }
+
+                                if (
+                                    preg_match(
+                                        '#^https?://#i',
+                                        $location
+                                    )
+                                ) {
+                                    $next =
+                                        $outer
+                                            ->getSchemeAndHttpHost()
+                                        .$next;
+                                }
+
+                                $response
+                                    ->headers
+                                    ->set(
+                                        'Location',
+                                        $next
+                                    );
+
+                                $response
+                                    ->headers
+                                    ->set(
+                                        'X-PMD-Canonical-Location-Rewrite',
+                                        'R81E'
+                                    );
+                            }
+                        }
+                    }
+                }
+
+                $response->headers->set(
+                    'X-PMD-Server-Canonical',
+                    $mode === 'canonical'
+                        ? 'R81E'
+                        : 'R81E-LEGACY'
+                );
+
+                return $response;
+            };
+
+        $__pmdIsDocumentR81E =
+            static function (
+                Request $request
+            ): bool {
+                if (
+                    $request->ajax()
+                    || $request->wantsJson()
+                    || $request->expectsJson()
+                ) {
+                    return false;
+                }
+
+                if (
+                    $request->isMethod(
+                        'HEAD'
+                    )
+                ) {
+                    return true;
+                }
+
+                $dest = strtolower(
+                    trim(
+                        (string)$request
+                            ->headers
+                            ->get(
+                                'Sec-Fetch-Dest',
+                                ''
+                            )
+                    )
+                );
+
+                if ($dest !== '') {
+                    return
+                        $dest ===
+                        'document';
+                }
+
+                $accept = strtolower(
+                    (string)$request
+                        ->headers
+                        ->get(
+                            'Accept',
+                            ''
+                        )
+                );
+
+                return
+                    $accept === ''
+                    || strpos(
+                        $accept,
+                        'text/html'
+                    ) !== false
+                    || strpos(
+                        $accept,
+                        'application/xhtml+xml'
+                    ) !== false;
+            };
+
+        $__pmdRefererIsCleanR81E =
+            static function (
+                Request $request,
+                string $clean
+            ): bool {
+                $referer =
+                    trim(
+                        (string)$request
+                            ->headers
+                            ->get(
+                                'Referer',
+                                ''
+                            )
+                    );
+
+                if ($referer === '') {
+                    return false;
+                }
+
+                $refererPath =
+                    parse_url(
+                        $referer,
+                        PHP_URL_PATH
+                    );
+
+                if (
+                    !is_string(
+                        $refererPath
+                    )
+                ) {
+                    return false;
+                }
+
+                $adminUri = trim(
+                    (string)config(
+                        'system.adminUri',
+                        'admin'
+                    ),
+                    '/'
+                );
+
+                return
+                    rtrim(
+                        $refererPath,
+                        '/'
+                    )
+                    ===
+                    '/'.$adminUri.'/'.
+                    trim(
+                        $clean,
+                        '/'
+                    );
+            };
+
+        $__pmdCurrentWorkspaceQueryR81E =
+            static function (
+                Request $request
+            ): bool {
+                foreach (
+                    [
+                        'pmd_live',
+                        '_pmd_live',
+                        'pmd_from',
+                        'pmd_to',
+                        'pmd_cashier_quick',
+                    ]
+                    as $key
+                ) {
+                    if (
+                        $request->has(
+                            $key
+                        )
+                    ) {
+                        return true;
+                    }
+                }
+
+                return false;
+            };
+
+        /*
+         * Role dashboards.
+         */
+        $__pmdDashboardRoutesR81E = [
+            'ownerdashboard' =>
+                'dashboardlab',
+
+            'managerdashboard' =>
+                'managerlab',
+
+            'accountantdashboard' =>
+                'accountantlab',
+        ];
+
+        foreach (
+            $__pmdDashboardRoutesR81E
+            as $clean => $target
+        ) {
+            Route::any(
+                $clean,
+                static function (
+                    Request $request
+                ) use (
+                    $__pmdRunInternalR81E,
+                    $target
+                ) {
+                    return
+                        $__pmdRunInternalR81E(
+                            $request,
+                            $target
+                        );
+                }
+            );
+        }
+
+        /*
+         * Clean non-collision prefixes.
+         */
+        $__pmdPrefixRoutesR81E = [
+            'menu' =>
+                'pmdmenus',
+
+            'settings/restaurant' =>
+                'pmdsettings/restaurant',
+
+            'settings/customer-menu' =>
+                'pmdsettings/frontend',
+
+            'settings/menu-checkout' =>
+                'pmdmenu',
+
+            'settings/customers' =>
+                'pmdcustomer',
+
+            'settings/team' =>
+                'pmdteam',
+
+            'settings/devices' =>
+                'pmddevices',
+
+            'settings/finance' =>
+                'pmdfinance',
+
+            'settings/brand' =>
+                'pmdbrand',
+
+            'settings/advanced' =>
+                'pmdadvanced',
+
+            'smartcategories' =>
+                'pmdsmartcategories',
+        ];
+
+        foreach (
+            $__pmdPrefixRoutesR81E
+            as $clean => $target
+        ) {
+            Route::any(
+                $clean,
+                static function (
+                    Request $request
+                ) use (
+                    $__pmdRunInternalR81E,
+                    $target
+                ) {
+                    return
+                        $__pmdRunInternalR81E(
+                            $request,
+                            $target
+                        );
+                }
+            );
+
+            Route::any(
+                $clean.'/{pmdTailR81E}',
+                static function (
+                    Request $request,
+                    string $pmdTailR81E
+                ) use (
+                    $__pmdRunInternalR81E,
+                    $target
+                ) {
+                    return
+                        $__pmdRunInternalR81E(
+                            $request,
+                            $target.'/'.
+                            trim(
+                                $pmdTailR81E,
+                                '/'
+                            )
+                        );
+                }
+            )->where(
+                'pmdTailR81E',
+                '.*'
+            );
+        }
+
+        /*
+         * Collision routes.
+         *
+         * These three names are also historical native backend authorities:
+         *
+         *   orders
+         *   reservations
+         *   settings
+         *
+         * Browser document = current canonical workspace.
+         * Existing backend AJAX without a clean-workspace referer = legacy.
+         */
+        Route::any(
+            'orders',
+            static function (
+                Request $request
+            ) use (
+                $__pmdRunInternalR81E,
+                $__pmdIsDocumentR81E,
+                $__pmdRefererIsCleanR81E,
+                $__pmdCurrentWorkspaceQueryR81E
+            ) {
+                $current =
+                    (
+                        (
+                            $request->isMethod(
+                                'GET'
+                            )
+                            || $request->isMethod(
+                                'HEAD'
+                            )
+                        )
+                        && $__pmdIsDocumentR81E(
+                            $request
+                        )
+                    )
+                    || $__pmdRefererIsCleanR81E(
+                        $request,
+                        'orders'
+                    )
+                    || $__pmdCurrentWorkspaceQueryR81E(
+                        $request
+                    );
+
+                return
+                    $__pmdRunInternalR81E(
+                        $request,
+                        $current
+                            ? 'cashierlab'
+                            : 'orders',
+                        $current
+                            ? 'canonical'
+                            : 'legacy'
+                    );
+            }
+        );
+
+        Route::any(
+            'reservations',
+            static function (
+                Request $request
+            ) use (
+                $__pmdRunInternalR81E,
+                $__pmdIsDocumentR81E,
+                $__pmdRefererIsCleanR81E,
+                $__pmdCurrentWorkspaceQueryR81E
+            ) {
+                $current =
+                    (
+                        (
+                            $request->isMethod(
+                                'GET'
+                            )
+                            || $request->isMethod(
+                                'HEAD'
+                            )
+                        )
+                        && $__pmdIsDocumentR81E(
+                            $request
+                        )
+                    )
+                    || $__pmdRefererIsCleanR81E(
+                        $request,
+                        'reservations'
+                    )
+                    || $__pmdCurrentWorkspaceQueryR81E(
+                        $request
+                    );
+
+                return
+                    $__pmdRunInternalR81E(
+                        $request,
+                        $current
+                            ? 'reservationslab'
+                            : 'reservations',
+                        $current
+                            ? 'canonical'
+                            : 'legacy'
+                    );
+            }
+        );
+
+        Route::any(
+            'settings',
+            static function (
+                Request $request
+            ) use (
+                $__pmdRunInternalR81E,
+                $__pmdIsDocumentR81E,
+                $__pmdRefererIsCleanR81E
+            ) {
+                $current =
+                    (
+                        (
+                            $request->isMethod(
+                                'GET'
+                            )
+                            || $request->isMethod(
+                                'HEAD'
+                            )
+                        )
+                        && $__pmdIsDocumentR81E(
+                            $request
+                        )
+                    )
+                    || $__pmdRefererIsCleanR81E(
+                        $request,
+                        'settings'
+                    );
+
+                return
+                    $__pmdRunInternalR81E(
+                        $request,
+                        $current
+                            ? 'pmdsettings'
+                            : 'settings',
+                        $current
+                            ? 'canonical'
+                            : 'legacy'
+                    );
+            }
+        );
+
+        /*
+         * Reports.
+         *
+         * /reports is canonical Sales instead of the obsolete
+         * Pmdreports::index redirect.
+         */
+        Route::any(
+            'reports',
+            static function (
+                Request $request
+            ) use (
+                $__pmdRunInternalR81E
+            ) {
+                return
+                    $__pmdRunInternalR81E(
+                        $request,
+                        'pmdreports/sales'
+                    );
+            }
+        );
+
+        Route::any(
+            'reports/tips',
+            static function (
+                Request $request
+            ) use (
+                $__pmdRunInternalR81E
+            ) {
+                return
+                    $__pmdRunInternalR81E(
+                        $request,
+                        'pmdreporttips'
+                    );
+            }
+        );
+
+        Route::any(
+            'reports/channels',
+            static function (
+                Request $request
+            ) use (
+                $__pmdRunInternalR81E
+            ) {
+                return
+                    $__pmdRunInternalR81E(
+                        $request,
+                        'pmdreportchannels'
+                    );
+            }
+        );
+
+        Route::any(
+            'reports/{pmdReportTypeR81E}',
+            static function (
+                Request $request,
+                string $pmdReportTypeR81E
+            ) use (
+                $__pmdRunInternalR81E
+            ) {
+                return
+                    $__pmdRunInternalR81E(
+                        $request,
+                        'pmdreports/'.
+                        $pmdReportTypeR81E
+                    );
+            }
+        )->where(
+            'pmdReportTypeR81E',
+            'sales|hourly|categories|payments|transactions|alerts|liveorders|topitems|reviews|reservations|attendance'
+        );
+
         // Other pages
         Route::any('{slug}', 'System\Classes\Controller@runAdmin')
             ->where('slug', '(.*)?');

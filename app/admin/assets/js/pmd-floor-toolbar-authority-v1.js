@@ -26,7 +26,7 @@
     '/admin/cashierlab': true
   };
 
-  var route = String(window.location.pathname || '').replace(/\/+$/, '');
+  var route = String((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : window.location.pathname) || '').replace(/\/+$/, '');
   if (!ROUTES[route]) return;
 
   var booted = false;

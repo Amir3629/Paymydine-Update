@@ -38,7 +38,7 @@
     );
 
     var cashierRoute =
-      String(window.location.pathname || '') ===
+      String((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : window.location.pathname) || '') ===
       '/admin/cashierlab';
 
     var cashierMode =

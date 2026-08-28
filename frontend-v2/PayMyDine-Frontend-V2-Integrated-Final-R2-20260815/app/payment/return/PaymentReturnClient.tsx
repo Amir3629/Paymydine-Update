@@ -32,6 +32,35 @@ function safeReturnPath(value: string | null | undefined): string {
   }
 }
 
+// PMD_POST_PAYMENT_REVIEW_RESUME_R75
+//
+// Provider payments leave the menu page, so React overlay state is lost.
+// Remember only the successfully settled order ids for this SAME browser tab.
+// MenuRuntimeContext consumes this one-shot marker after the canonical table
+// state confirms the order is fully paid.
+//
+// This does NOT create a second review implementation. It only restores the
+// existing shared PaidOrderReviewCard after returning from the provider.
+const POST_PAYMENT_REVIEW_RESUME_KEY = 'pmd-v2:post-payment-review-resume'
+
+function rememberPostPaymentReview(orderIds: Array<number | null | undefined>) {
+  const normalized = Array.from(new Set(
+    orderIds
+      .map((value) => Math.max(0, Math.trunc(Number(value || 0))))
+      .filter((value) => value > 0),
+  ))
+
+  try {
+    window.sessionStorage.setItem(
+      POST_PAYMENT_REVIEW_RESUME_KEY,
+      JSON.stringify({
+        orderIds: normalized,
+        createdAt: Date.now(),
+      }),
+    )
+  } catch {}
+}
+
 export default function PaymentReturnClient() {
   const [state, setState] = useState<State>('checking')
   const [message, setMessage] = useState('Verifying your payment with PayMyDine…')
@@ -96,6 +125,9 @@ export default function PaymentReturnClient() {
               providerCode: pending.providerCode || provider,
               paymentReference: reference,
             })
+            rememberPostPaymentReview(
+              groupedAllocations.map((entry) => entry.orderId),
+            )
             clearPendingProviderPayment(provider)
             setState('paid')
             setMessage(`Payment confirmed. ${groupedAllocations.length} selected table orders have been updated.`)
@@ -119,6 +151,7 @@ export default function PaymentReturnClient() {
                 paymentIntentToken: pending.paymentIntentToken,
                 guestSessionId: null,
               })
+              rememberPostPaymentReview([pending.orderId])
               clearPendingProviderPayment(provider)
               setState('paid')
               setMessage('Payment confirmed. Your split payment was recorded successfully.')
@@ -163,6 +196,10 @@ export default function PaymentReturnClient() {
           for (let attempt = 0; attempt < 8; attempt += 1) {
             const order = await fetchTableOrder(pending.table)
             if (order.paymentStatus === 'paid' || order.totals.remainingAmount <= 0) {
+              rememberPostPaymentReview([
+                pending.orderId,
+                ...(pending.orderAllocations || []).map((entry) => entry.orderId),
+              ])
               clearPendingProviderPayment(provider)
               setState('paid')
               setMessage('Payment confirmed. The shared table order has been updated for every guest.')

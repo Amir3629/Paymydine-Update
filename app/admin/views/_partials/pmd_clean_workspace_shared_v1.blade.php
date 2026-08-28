@@ -653,7 +653,7 @@ html body.page.pmd-clean-workspace-page #pmd-dashboard-lab {
     (function () {
       'use strict';
 
-      var route = String(window.location.pathname || '').replace(/\/+$/, '');
+      var route = String((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : window.location.pathname) || '').replace(/\/+$/, '');
       if (route !== @json($pmdCleanWorkspacePath)) return;
 
       function setImportant(node, property, value) {
@@ -1334,7 +1334,7 @@ html.pmd-clean-workspace-standalone-v3 #pmd-r2-clean-header .pmd-clean-workspace
 <script id="pmd-clean-workspace-language-runtime-v3">
 (function(){'use strict';var b=document.getElementById('pmd-clean-workspace-language-v3');if(!b||b.dataset.ready==='1')return;b.dataset.ready='1';
 function token(){var m=document.querySelector('meta[name="csrf-token"]');if(m&&m.content)return m.content;var i=document.querySelector('input[name="_token"]');return i?i.value:''}
-b.addEventListener('click',async function(e){e.preventDefault();if(b.disabled)return;var endpoint=b.getAttribute('data-endpoint');var next=String(b.getAttribute('data-next')||'').toLowerCase();if(!endpoint||(next!=='en'&&next!=='de'))return;b.disabled=true;try{var body=new URLSearchParams();body.set('code',next);var tok=token();if(tok)body.set('_token',tok);var h={'Accept':'application/json','Content-Type':'application/x-www-form-urlencoded; charset=UTF-8','X-Requested-With':'XMLHttpRequest'};if(tok)h['X-CSRF-TOKEN']=tok;var r=await fetch(endpoint,{method:'POST',credentials:'same-origin',cache:'no-store',headers:h,body:body.toString()});var d={};try{d=await r.json()}catch(ignore){}if(!r.ok||d.ok!==true)throw new Error(d.message||('Language switch failed: HTTP '+r.status));window.location.href=window.location.pathname+window.location.search+window.location.hash}catch(err){b.disabled=false;console.error('[PMD Clean Language]',err)}},false);
+b.addEventListener('click',async function(e){e.preventDefault();if(b.disabled)return;var endpoint=b.getAttribute('data-endpoint');var next=String(b.getAttribute('data-next')||'').toLowerCase();if(!endpoint||(next!=='en'&&next!=='de'))return;b.disabled=true;try{var body=new URLSearchParams();body.set('code',next);var tok=token();if(tok)body.set('_token',tok);var h={'Accept':'application/json','Content-Type':'application/x-www-form-urlencoded; charset=UTF-8','X-Requested-With':'XMLHttpRequest'};if(tok)h['X-CSRF-TOKEN']=tok;var r=await fetch(endpoint,{method:'POST',credentials:'same-origin',cache:'no-store',headers:h,body:body.toString()});var d={};try{d=await r.json()}catch(ignore){}if(!r.ok||d.ok!==true)throw new Error(d.message||('Language switch failed: HTTP '+r.status));window.location.href=(window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : window.location.pathname)+window.location.search+window.location.hash}catch(err){b.disabled=false;console.error('[PMD Clean Language]',err)}},false);
 })();
 </script>
 @endif

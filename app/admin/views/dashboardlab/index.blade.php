@@ -457,7 +457,7 @@
     (function () {
       'use strict';
 
-      var route = String(window.location.pathname || '').replace(/\/+$/, '');
+      var route = String((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : window.location.pathname) || '').replace(/\/+$/, '');
       if (route !== '/admin/dashboardlab') return;
 
       function setImportant(node, property, value) {

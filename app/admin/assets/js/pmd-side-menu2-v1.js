@@ -21,7 +21,7 @@
 
   /* Manager keeps the full operational menu, but Settings is not a Manager
      workspace. Server authorization independently rejects the URL. */
-  if (roleDashboardRoute === 'managerlab') {
+  if (roleDashboardRoute === 'managerdashboard') {
     Array.prototype.slice.call(
       menu.querySelectorAll('a[href]')
     ).forEach(function (link) {
@@ -35,7 +35,7 @@
         path = link.getAttribute('href') || '';
       }
 
-      if (/\/admin\/pmdsettings\/?$/.test(path)) {
+      if (/\/admin\/(?:pmdsettings|settings)\/?$/.test(path)) {
         (link.closest('li') || link).remove();
       }
     });

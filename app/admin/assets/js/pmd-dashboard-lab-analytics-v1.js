@@ -6,7 +6,7 @@
    * component root supplies its route endpoint; Dashboard Lab keeps its exact
    * original endpoint by default.
    */
-  var path = String(window.location.pathname || '').replace(/\/+$/, '');
+  var path = String((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : window.location.pathname) || '').replace(/\/+$/, '');
   if (['/admin/dashboardlab', '/admin/managerlab', '/admin/accountantlab'].indexOf(path) === -1) return;
 
   var root = document.getElementById('pmd-dashboard-lab-analytics-v1');

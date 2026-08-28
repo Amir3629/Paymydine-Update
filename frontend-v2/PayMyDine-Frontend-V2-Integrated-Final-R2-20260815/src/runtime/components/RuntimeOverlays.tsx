@@ -797,6 +797,21 @@ function SubmittedOrderCard({ order, selected, onSelect, onPay }: {
         <button className={styles.secondary} type="button" onClick={onSelect}>{copy.viewOrder}</button>
         {canPay ? <button className={styles.primary} type="button" onClick={onPay}><CreditCard /> {labels.pay}</button> : <InvoiceDownloadButton order={order} />}
       </div>
+
+      {/* PMD_PAID_HISTORY_REVIEW_R75B
+       *
+       * Paid provider returns land in the Sent orders/history view.
+       * R30 already owns review submission; this only mounts that
+       * existing card for the currently selected fully-paid order.
+       *
+       * Do not render reviews for every historical order at once.
+       */}
+      {!canPay && selected ? (
+        <PaidOrderReviewCard
+          key={order.orderId || order.orderNumber || 'paid-history-order'}
+          order={order}
+        />
+      ) : null}
     </article>
   )
 }

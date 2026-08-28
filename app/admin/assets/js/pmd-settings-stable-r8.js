@@ -8,7 +8,7 @@
 (function () {
   'use strict';
 
-  var path = String(window.location.pathname || '').replace(/\/+$/, '');
+  var path = String((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : window.location.pathname) || '').replace(/\/+$/, '');
 
   function setText(node, value) {
     if (node && String(node.textContent || '') !== value) {

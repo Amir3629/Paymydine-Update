@@ -58,7 +58,7 @@
                             @if($insightUrl !== '')
                                 <div class="pmd-dashboard-lab-analytics__toolbar">
                                     <a href="{{ $insightUrl }}" aria-label="{{ (string)($insight['title'] ?? $insightKey) }}">
-                                        <span class="pmd-dashboard-lab-toolbar-icon" aria-hidden="true">&#8599;</span>
+                                        <svg class="pmd-dashboard-lab-toolbar-detail-icon-v15" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round" style="display:block!important;width:16px!important;min-width:16px!important;max-width:16px!important;height:16px!important;min-height:16px!important;max-height:16px!important;flex:0 0 16px!important;margin:0!important;padding:0!important;"><path d="M9 4H4v5"></path><path d="M15 4h5v5"></path><path d="M20 15v5h-5"></path><path d="M9 20H4v-5"></path></svg>
                                     </a>
                                 </div>
                             @endif

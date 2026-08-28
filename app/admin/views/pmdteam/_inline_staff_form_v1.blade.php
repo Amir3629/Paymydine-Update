@@ -1,4 +1,11 @@
 @php
+    // PMD_SETTINGS_REPORTS_PLATFORM_I18N_V16
+    $pmdSettingsText = $pmdSettingsText ?? static function ($value) {
+        return \Admin\Classes\PmdPlatformI18n::fromEnglish((string)$value, 'settings.');
+    };
+@endphp
+
+@php
     $mode = $mode ?? 'create';
     $member = $member ?? null;
     $isEdit = $mode === 'edit' && $member;
@@ -20,14 +27,14 @@
     <section class="pmd-inline-section">
         <div class="pmd-inline-section__head">
             <h3>{{ $title }}</h3>
-            <p>Choose what this staff member is, then create their login.</p>
+            <p>{{ $pmdSettingsText('Choose what this staff member is, then create their login.') }}</p>
         </div>
 
         <div class="pmd-inline-grid">
             <div class="pmd-inline-field pmd-inline-field--full">
-                <label>Role</label>
+                <label>{{ $pmdSettingsText('Role') }}</label>
                 <select name="staff_role_id" required autofocus>
-                    <option value="">Choose role</option>
+                    <option value="">{{ $pmdSettingsText('Choose role') }}</option>
                     @foreach($roles as $role)
                         <option
                             value="{{ $role->staff_role_id }}"
@@ -35,11 +42,11 @@
                         >{{ $role->name }}</option>
                     @endforeach
                 </select>
-                <small>Default roles are locked. KDS roles include the station name.</small>
+                <small>{{ $pmdSettingsText('Default roles are locked. KDS roles include the station name.') }}</small>
             </div>
 
             <div class="pmd-inline-field">
-                <label>Name</label>
+                <label>{{ $pmdSettingsText('Name') }}</label>
                 <input
                     type="text"
                     name="staff_name"
@@ -52,7 +59,7 @@
             </div>
 
             <div class="pmd-inline-field">
-                <label>Username</label>
+                <label>{{ $pmdSettingsText('Username') }}</label>
                 <input
                     type="text"
                     name="username"
@@ -76,7 +83,7 @@
                     {{ $isEdit ? '' : 'required' }}
                 >
                 @if($isEdit)
-                    <small>Leave blank to keep the current password.</small>
+                    <small>{{ $pmdSettingsText('Leave blank to keep the current password.') }}</small>
                 @endif
             </div>
         </div>

@@ -1,0 +1,65 @@
+/*
+ * PMD_FINANCE_FIRST_PAINT_R5
+ *
+ * The Finance controller now renders the correct market catalogue on the
+ * server. Do not hide whole provider/method card bodies while the R4 state API
+ * refreshes connection/readiness details; doing so preserves the height of the
+ * legacy fallback and produces a large white flash on refresh.
+ */
+
+html body.pmd-finance-settings-page #pmd-finance-page #payment-providers .pmd-owner-card__body,
+html body.pmd-finance-settings-page #pmd-finance-page #payment-methods .pmd-owner-card__body {
+    visibility: visible !important;
+    opacity: 1 !important;
+    transition: none !important;
+    animation: none !important;
+}
+
+/* Oman never paints Germany-only fiscal UI, even before market JS runs. */
+html body.pmd-finance-settings-page.pmd-finance-market-om #pmd-finance-page #fiskaly {
+    display: none !important;
+}
+
+/*
+ * Finance header: remove the decorative vertical divider immediately to the
+ * left of the notification button. Keep the bell itself and its 46x46 button.
+ * Higher specificity intentionally beats the later inline V18 first-paint CSS.
+ */
+html.pmd-settings-family-v18-route body.pmd-finance-settings-page
+.pmd-owner-header .pmd-settings-family-notif-slot-v18 {
+    width: 46px !important;
+    min-width: 46px !important;
+    max-width: 46px !important;
+    flex: 0 0 46px !important;
+}
+
+html.pmd-settings-family-v18-route body.pmd-finance-settings-page
+.pmd-owner-header .pmd-settings-family-notif-slot-v18::before {
+    content: none !important;
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    background: none !important;
+}
+
+/* V17 compatibility in case a stale compiled view still carries the old slot. */
+html.pmd-settings-family-v17-route body.pmd-finance-settings-page
+.pmd-owner-header .pmd-settings-family-notif-slot-v17,
+html.pmd-settings-family-v17-route body.pmd-finance-settings-page
+.pmd-owner-header .pmd-owner-notif-slot {
+    width: 46px !important;
+    min-width: 46px !important;
+    max-width: 46px !important;
+    flex: 0 0 46px !important;
+}
+
+html.pmd-settings-family-v17-route body.pmd-finance-settings-page
+.pmd-owner-header .pmd-settings-family-notif-slot-v17::before,
+html.pmd-settings-family-v17-route body.pmd-finance-settings-page
+.pmd-owner-header .pmd-owner-notif-slot::before,
+html.pmd-settings-family-v17-route body.pmd-finance-settings-page
+.pmd-owner-header__actions:has(> #notif-root)::before {
+    content: none !important;
+    display: none !important;
+    background: none !important;
+}

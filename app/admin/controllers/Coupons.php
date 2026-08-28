@@ -64,8 +64,8 @@ class Coupons extends AdminController
         $this->bodyClass = trim(($this->bodyClass ?? '').' pmd-settings-suite pmd-owner-settings-page pmd-coupon-manager-page pmd-coupon-manager-v1 pmd-coupon-manager-v11');
         $this->addCss('css/pmd-owner-settings-v1.css');
         $this->addCss('css/pmd-settings-suite-first-paint-v1.css');
-        $this->addCss('css/pmd-coupon-manager-v11.css');
-        $this->addJs('js/pmd-coupon-manager-v11.js');
+        $this->addCss('css/pmd-coupon-manager-v13.css');
+        $this->addJs('js/pmd-coupon-manager-v13.js');
 
         AdminMenu::setContext('coupons', 'marketing');
     }

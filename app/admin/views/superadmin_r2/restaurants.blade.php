@@ -1,6 +1,14 @@
 @extends('admin::superadmin_r2.layout')
 @section('title','Restaurants')
 
+@php
+    $pmdPlatformProfiles = app(\App\Services\Platform\CountryPlatformProfileRegistry::class);
+    $pmdCountryOptions = $pmdPlatformProfiles->countryOptions();
+    $pmdMarketProfiles = $pmdPlatformProfiles->publicProfiles();
+    $pmdCreateCountry = $pmdPlatformProfiles->normalizeCountry(old('_pmd_form') === 'create' ? old('country','DE') : 'DE');
+    if (!isset($pmdCountryOptions[$pmdCreateCountry])) $pmdCreateCountry = 'DE';
+@endphp
+
 @push('head')
 <style>
     .pmd-tenant-hero{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 0 18px}
@@ -9,8 +17,8 @@
     .pmd-registry-toolbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:14px}
     .pmd-registry-toolbar .card-head{margin:0}.pmd-registry-toolbar .card-head h3{font-size:19px}
     .pmd-registry-toolbar .filters{justify-content:flex-end}
-    .pmd-registry-table table{min-width:980px}.pmd-registry-table th,.pmd-registry-table td{padding:16px 14px}
-    .pmd-registry-table th:nth-child(3),.pmd-registry-table th:nth-child(4),.pmd-registry-table td:nth-child(3),.pmd-registry-table td:nth-child(4){white-space:nowrap;width:110px}
+    .pmd-registry-table table{min-width:1160px}.pmd-registry-table th,.pmd-registry-table td{padding:16px 14px}
+    .pmd-registry-table th:nth-child(4),.pmd-registry-table th:nth-child(5),.pmd-registry-table td:nth-child(4),.pmd-registry-table td:nth-child(5){white-space:nowrap;width:110px}
     .tenant-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap;min-width:340px}
     .tenant-actions form{margin:0}.tenant-status-form{display:flex;align-items:center;gap:8px}
     .tenant-status-form select{height:44px;min-width:118px;border:1px solid #d6e4df;border-radius:11px;padding:0 12px;background:#fff;color:var(--ink);font-size:14px}
@@ -19,7 +27,7 @@
     .pmd-page-summary{font-size:13px;color:var(--muted);font-weight:700}
     .pmd-page-links{display:flex;align-items:center;gap:7px;flex-wrap:wrap}.pmd-page-link{min-width:40px;height:40px;padding:0 12px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:10px;background:#fff;color:#36534b;font-size:13px;font-weight:800}.pmd-page-link:hover{background:#eef5f2}.pmd-page-link.active{border-color:#123d32;background:#123d32;color:#fff}.pmd-page-link.disabled{opacity:.45;pointer-events:none}
     .pmd-modal[hidden]{display:none!important}.pmd-modal{position:fixed;inset:0;z-index:13050;display:grid;place-items:center;padding:22px;background:rgba(4,20,17,.32);backdrop-filter:blur(7px)}
-    .pmd-modal-card{width:min(760px,calc(100vw - 32px));max-height:min(90vh,860px);overflow:auto;background:#fff;border:1px solid var(--line);border-radius:22px;box-shadow:0 24px 70px rgba(5,32,27,.2)}
+    .pmd-modal-card{width:min(820px,calc(100vw - 32px));max-height:min(92vh,900px);overflow:auto;background:#fff;border:1px solid var(--line);border-radius:22px;box-shadow:0 24px 70px rgba(5,32,27,.2)}
     .pmd-modal-head{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:20px 22px;background:#fff;border-bottom:1px solid #edf2f0}
     .pmd-modal-head h3{margin:0;font-size:22px}.pmd-modal-close{display:grid;place-items:center;flex:0 0 42px;width:42px;height:42px;border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--ink);cursor:pointer;font-size:24px;line-height:1}
     .pmd-modal-body{padding:22px}.pmd-modal-body .field-grid{gap:15px 16px;align-items:start}.pmd-modal-body .field{align-content:start}.pmd-modal-body .field input,.pmd-modal-body .field select{height:50px;min-height:50px}.pmd-modal-body .field textarea{min-height:105px}
@@ -30,9 +38,13 @@
     .pmd-domain-suffix{flex:0 0 auto;padding:0 13px 0 3px;color:#526961;font-size:14px;font-weight:800;white-space:nowrap;user-select:none}
     .pmd-modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px;padding-top:17px;border-top:1px solid #edf2f0}.pmd-modal-actions .btn{min-width:132px}
     .pmd-edit-domain{display:flex;align-items:center;height:50px;padding:0 14px;border:1px solid #e0ebe7;border-radius:12px;background:#f7faf9;color:#667a73;font-size:14px;font-weight:700}
+    .pmd-market-cell{display:flex;flex-direction:column;gap:3px}.pmd-market-cell strong{font-size:14px}.pmd-market-cell span{font-size:12px;color:var(--muted);white-space:nowrap}
+    .pmd-market-preview{grid-column:1/-1;border:1px solid #dfeae6;border-radius:16px;background:#f8fbfa;padding:16px 17px}
+    .pmd-market-preview-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}.pmd-market-preview-head strong{font-size:15px}.pmd-market-code{font-size:12px;font-weight:800;color:#2d6655;background:#e7f2ee;border-radius:999px;padding:5px 9px}
+    .pmd-market-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.pmd-market-item{padding:10px 11px;border:1px solid #e8efec;border-radius:11px;background:#fff}.pmd-market-item b{display:block;font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:#73857f;margin-bottom:4px}.pmd-market-item span{font-size:13px;color:#24443a;line-height:1.45}
     body.pmd-modal-open{overflow:hidden}
     @media(max-width:1000px){.pmd-registry-toolbar{align-items:flex-start;flex-direction:column}.pmd-registry-toolbar .filters{justify-content:flex-start}.tenant-actions{min-width:300px}}
-    @media(max-width:820px){.pmd-tenant-hero{align-items:flex-start}.pmd-modal{padding:10px}.pmd-modal-card{width:100%;max-height:94vh;border-radius:20px}.pmd-modal-body .field-grid{grid-template-columns:1fr}.pmd-modal-body .field.full{grid-column:auto}}
+    @media(max-width:820px){.pmd-tenant-hero{align-items:flex-start}.pmd-modal{padding:10px}.pmd-modal-card{width:100%;max-height:94vh;border-radius:20px}.pmd-modal-body .field-grid{grid-template-columns:1fr}.pmd-modal-body .field.full,.pmd-market-preview{grid-column:auto}.pmd-market-grid{grid-template-columns:1fr}}
     @media(max-width:560px){.pmd-tenant-hero{flex-direction:column}.pmd-tenant-hero .btn{width:100%}.pmd-registry-toolbar .filters{width:100%}.pmd-registry-toolbar .filters input{flex:1;min-width:160px}.pmd-pagination{align-items:flex-start;flex-direction:column}.pmd-domain-suffix{font-size:13px;padding-right:10px}}
 </style>
 @endpush
@@ -60,12 +72,23 @@
 
     <div class="table-wrap pmd-registry-table">
         <table>
-            <thead><tr><th>Restaurant</th><th>Domain</th><th>From</th><th>To</th><th>Status</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Restaurant</th><th>Domain</th><th>Market</th><th>From</th><th>To</th><th>Status</th><th>Actions</th></tr></thead>
             <tbody>
             @forelse($tenants as $tenant)
+                @php $pmdTenantProfile = $pmdPlatformProfiles->profile($tenant->country ?? ''); @endphp
                 <tr>
                     <td><span class="tenant-name">{{ $tenant->name }}</span><span class="sub">{{ $tenant->email }}</span></td>
                     <td>{{ $tenant->domain }}</td>
+                    <td>
+                        <div class="pmd-market-cell">
+                            <strong>{{ $pmdTenantProfile['country_name'] ?? ($tenant->country ?: 'Unresolved') }}</strong>
+                            @if($pmdTenantProfile)
+                                <span>{{ $pmdTenantProfile['currency']['code'] }} · {{ $pmdTenantProfile['timezone'] }}</span>
+                            @else
+                                <span>Profile not configured</span>
+                            @endif
+                        </div>
+                    </td>
                     <td>{{ $tenant->start }}</td>
                     <td>{{ $tenant->end }}</td>
                     <td><span class="badge {{ $tenant->status==='active'?'ok':($tenant->status==='removed'?'warn':'bad') }}">{{ $tenant->status }}</span></td>
@@ -102,7 +125,7 @@
                     </td>
                 </tr>
             @empty
-                <tr><td colspan="6" class="empty">No restaurants found.</td></tr>
+                <tr><td colspan="7" class="empty">No restaurants found.</td></tr>
             @endforelse
             </tbody>
         </table>
@@ -148,10 +171,18 @@
                     </div>
                     <div class="field"><label>Email</label><input type="email" name="email" value="{{ old('_pmd_form') === 'create' ? old('email') : '' }}" required></div>
                     <div class="field"><label>Phone</label><input name="phone" value="{{ old('_pmd_form') === 'create' ? old('phone') : '' }}" required></div>
-                    <div class="field"><label>Country</label><input name="country" value="{{ old('_pmd_form') === 'create' ? old('country','Germany') : 'Germany' }}" required></div>
+                    <div class="field">
+                        <label>Country / platform market</label>
+                        <select name="country" required data-pmd-market-country>
+                            @foreach($pmdCountryOptions as $code => $label)
+                                <option value="{{ $code }}" {{ $pmdCreateCountry === $code ? 'selected' : '' }}>{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </div>
                     <div class="field"><label>Start date</label><input type="date" name="start" value="{{ old('_pmd_form') === 'create' ? old('start',now()->toDateString()) : now()->toDateString() }}" required></div>
                     <div class="field"><label>End date</label><input type="date" name="end" value="{{ old('_pmd_form') === 'create' ? old('end',now()->addYear()->toDateString()) : now()->addYear()->toDateString() }}" required></div>
                     <div class="field full"><label>Description</label><textarea name="description">{{ old('_pmd_form') === 'create' ? old('description') : '' }}</textarea></div>
+                    <div class="pmd-market-preview" data-pmd-market-preview></div>
                 </div>
                 <div class="pmd-modal-actions"><button class="btn btn-soft" type="button" data-pmd-close-create>Cancel</button><button class="btn btn-primary" type="submit">Create restaurant</button></div>
             </form>
@@ -176,10 +207,18 @@
                     <div class="field"><label>Domain</label><div class="pmd-edit-domain" data-pmd-edit-domain></div></div>
                     <div class="field"><label>Email</label><input type="email" name="email" required data-pmd-edit-email></div>
                     <div class="field"><label>Phone</label><input name="phone" required data-pmd-edit-phone></div>
-                    <div class="field"><label>Country</label><input name="country" required data-pmd-edit-country></div>
+                    <div class="field">
+                        <label>Country / platform market</label>
+                        <select name="country" required data-pmd-edit-country data-pmd-market-country>
+                            @foreach($pmdCountryOptions as $code => $label)
+                                <option value="{{ $code }}">{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </div>
                     <div class="field"><label>Start date</label><input type="date" name="start" required data-pmd-edit-start></div>
                     <div class="field"><label>End date</label><input type="date" name="end" required data-pmd-edit-end></div>
                     <div class="field full"><label>Description</label><textarea name="description" data-pmd-edit-description></textarea></div>
+                    <div class="pmd-market-preview" data-pmd-market-preview></div>
                 </div>
                 <div class="pmd-modal-actions"><button class="btn btn-soft" type="button" data-pmd-close-edit>Cancel</button><button class="btn btn-primary" type="submit">Save restaurant</button></div>
             </form>
@@ -191,6 +230,7 @@
 @push('scripts')
 <script>
 (function(){
+    var marketProfiles=@json($pmdMarketProfiles);
     var createModal=document.querySelector('[data-pmd-create-modal]');
     var editModal=document.querySelector('[data-pmd-edit-modal]');
     var createForm=createModal&&createModal.querySelector('[data-pmd-create-form]');
@@ -198,66 +238,69 @@
     var databaseInput=createModal&&createModal.querySelector('[data-pmd-database]');
     var domainInput=createModal&&createModal.querySelector('[data-pmd-domain]');
     var domainSlugInput=createModal&&createModal.querySelector('[data-pmd-domain-slug]');
-    var editForm=editModal&&editModal.querySelector('[data-pmd-edit-form]');
 
     function databaseFromName(value){return String(value||'').trim().replace(/[^A-Za-z0-9_]+/g,'_').replace(/^_+|_+$/g,'').slice(0,64)}
     function domainFromSlug(value){return String(value||'').trim().toLowerCase().replace(/^https?:\/\//,'').replace(/\/.*$/,'').replace(/\.paymydine\.com$/,'').replace(/[^a-z0-9-]+/g,'-').replace(/-+/g,'-').replace(/^-+|-+$/g,'').slice(0,63)}
     function syncDatabase(){if(nameInput&&databaseInput)databaseInput.value=databaseFromName(nameInput.value)}
     function syncDomain(){if(!domainSlugInput||!domainInput)return;var slug=domainFromSlug(domainSlugInput.value);domainSlugInput.value=slug;domainInput.value=slug?slug+'.paymydine.com':''}
     function setBodyLock(){document.body.classList.toggle('pmd-modal-open',!!document.querySelector('.pmd-modal:not([hidden])'))}
-    function openModal(modal,focusTarget){if(!modal)return;modal.hidden=false;modal.setAttribute('aria-hidden','false');setBodyLock();setTimeout(function(){if(focusTarget)focusTarget.focus();},0)}
+    function openModal(modal,focusTarget){if(!modal)return;modal.hidden=false;modal.setAttribute('aria-hidden','false');setBodyLock();renderMarket(modal);setTimeout(function(){if(focusTarget)focusTarget.focus();},0)}
     function closeModal(modal){if(!modal)return;modal.hidden=true;modal.setAttribute('aria-hidden','true');setBodyLock()}
     function editField(selector){return editModal?editModal.querySelector(selector):null}
+    function escapeHtml(value){return String(value==null?'':value).replace(/[&<>'"]/g,function(ch){return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#039;','"':'&quot;'}[ch]})}
+    function countryCode(value){
+        value=String(value||'').trim().toUpperCase();
+        if(marketProfiles[value])return value;
+        var found='';Object.keys(marketProfiles).some(function(code){if(String(marketProfiles[code].country_name||'').toUpperCase()===value){found=code;return true}return false});
+        return found||'DE';
+    }
+    function renderMarket(root){
+        if(!root)return;var select=root.querySelector('[data-pmd-market-country]');var preview=root.querySelector('[data-pmd-market-preview]');if(!select||!preview)return;
+        var code=countryCode(select.value);if(select.value!==code)select.value=code;var p=marketProfiles[code];if(!p){preview.innerHTML='';return}
+        var langs=((p.languages&&p.languages.eligible)||[]).map(function(x){return String(x).toUpperCase()}).join(', ');
+        var methods=(p.payment_methods||[]).join(', ');
+        var providers=(p.payment_providers||[]).map(function(x){return x==='paymob'?'Paymob':(x==='vr_payment'?'VR Payment':x.charAt(0).toUpperCase()+x.slice(1))}).join(', ');
+        preview.innerHTML='<div class="pmd-market-preview-head"><strong>'+escapeHtml(p.country_name)+' platform profile</strong><span class="pmd-market-code">'+escapeHtml(code)+'</span></div>'+
+            '<div class="pmd-market-grid">'+
+            '<div class="pmd-market-item"><b>Timezone</b><span>'+escapeHtml(p.timezone)+'</span></div>'+
+            '<div class="pmd-market-item"><b>Currency</b><span>'+escapeHtml(p.currency.code)+' · '+escapeHtml(p.currency.minor_exponent)+' minor decimals</span></div>'+
+            '<div class="pmd-market-item"><b>Languages</b><span>'+escapeHtml(langs||'Framework fallback')+'</span></div>'+
+            '<div class="pmd-market-item"><b>Payment providers</b><span>'+escapeHtml(providers||'None')+'</span></div>'+
+            '<div class="pmd-market-item" style="grid-column:1/-1"><b>Payment methods</b><span>'+escapeHtml(methods||'None')+'</span></div>'+
+            '</div>';
+    }
     function fillEdit(data){
-        var map={
-            '[data-pmd-edit-id]':'id','[data-pmd-edit-name]':'name','[data-pmd-edit-email]':'email','[data-pmd-edit-phone]':'phone','[data-pmd-edit-country]':'country','[data-pmd-edit-start]':'start','[data-pmd-edit-end]':'end','[data-pmd-edit-type]':'type','[data-pmd-edit-description]':'description'
-        };
+        var map={'[data-pmd-edit-id]':'id','[data-pmd-edit-name]':'name','[data-pmd-edit-email]':'email','[data-pmd-edit-phone]':'phone','[data-pmd-edit-start]':'start','[data-pmd-edit-end]':'end','[data-pmd-edit-type]':'type','[data-pmd-edit-description]':'description'};
         Object.keys(map).forEach(function(selector){var el=editField(selector);if(el)el.value=data[map[selector]]||''});
+        var country=editField('[data-pmd-edit-country]');if(country)country.value=countryCode(data.country);
         var domain=editField('[data-pmd-edit-domain]');if(domain)domain.textContent=data.domain||'';
         var title=editModal&&editModal.querySelector('#pmd-edit-title');if(title)title.textContent=data.name?'Edit '+data.name:'Edit restaurant';
+        renderMarket(editModal);
     }
 
     if(nameInput)nameInput.addEventListener('input',syncDatabase);
     if(domainSlugInput){domainSlugInput.addEventListener('input',syncDomain);domainSlugInput.addEventListener('blur',syncDomain)}
     if(createForm)createForm.addEventListener('submit',function(){syncDatabase();syncDomain()});
+    document.querySelectorAll('[data-pmd-market-country]').forEach(function(select){select.addEventListener('change',function(){renderMarket(select.closest('.pmd-modal'))})});
 
     document.addEventListener('click',function(e){
-        var createOpen=e.target.closest('[data-pmd-open-create]');
-        if(createOpen){e.preventDefault();openModal(createModal,nameInput);return}
+        var createOpen=e.target.closest('[data-pmd-open-create]');if(createOpen){e.preventDefault();openModal(createModal,nameInput);return}
         if(e.target.closest('[data-pmd-close-create]')){e.preventDefault();closeModal(createModal);return}
         var editOpen=e.target.closest('[data-pmd-open-edit]');
-        if(editOpen){
-            e.preventDefault();
-            fillEdit({id:editOpen.dataset.id,name:editOpen.dataset.name,domain:editOpen.dataset.domain,email:editOpen.dataset.email,phone:editOpen.dataset.phone,country:editOpen.dataset.country,start:editOpen.dataset.start,end:editOpen.dataset.end,type:editOpen.dataset.type,description:editOpen.dataset.description});
-            openModal(editModal,editField('[data-pmd-edit-name]'));
-            return;
-        }
+        if(editOpen){e.preventDefault();fillEdit({id:editOpen.dataset.id,name:editOpen.dataset.name,domain:editOpen.dataset.domain,email:editOpen.dataset.email,phone:editOpen.dataset.phone,country:editOpen.dataset.country,start:editOpen.dataset.start,end:editOpen.dataset.end,type:editOpen.dataset.type,description:editOpen.dataset.description});openModal(editModal,editField('[data-pmd-edit-name]'));return}
         if(e.target.closest('[data-pmd-close-edit]')){e.preventDefault();closeModal(editModal);return}
-        if(e.target===createModal)closeModal(createModal);
-        if(e.target===editModal)closeModal(editModal);
+        if(e.target===createModal)closeModal(createModal);if(e.target===editModal)closeModal(editModal);
     });
     document.addEventListener('keydown',function(e){if(e.key!=='Escape')return;if(createModal&&!createModal.hidden)closeModal(createModal);if(editModal&&!editModal.hidden)closeModal(editModal)});
-    syncDomain();
+    syncDomain();renderMarket(createModal);
 
     @if(old('_pmd_form') === 'create')
         openModal(createModal,nameInput);
     @elseif(old('_pmd_form') === 'edit')
         @php
-            $pmdOldEdit = [
-                'id' => old('id'),
-                'name' => old('name'),
-                'domain' => old('domain'),
-                'email' => old('email'),
-                'phone' => old('phone'),
-                'country' => old('country'),
-                'start' => old('start'),
-                'end' => old('end'),
-                'type' => old('type','People'),
-                'description' => old('description'),
-            ];
+            $pmdOldEdit = ['id'=>old('id'),'name'=>old('name'),'domain'=>old('domain'),'email'=>old('email'),'phone'=>old('phone'),'country'=>old('country'),'start'=>old('start'),'end'=>old('end'),'type'=>old('type','People'),'description'=>old('description')];
         @endphp
-        fillEdit(@json($pmdOldEdit));
-        openModal(editModal,editField('[data-pmd-edit-name]'));
+        fillEdit(@json($pmdOldEdit));openModal(editModal,editField('[data-pmd-edit-name]'));
     @endif
 })();
 </script>

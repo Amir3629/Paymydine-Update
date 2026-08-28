@@ -8,6 +8,7 @@ use Admin\Facades\Template;
 
 class Pmdcustomer extends AdminController
 {
+    // PMD_SETTINGS_REPORTS_PLATFORM_I18N_V16_2
     protected $requiredPermissions = 'Site.Settings';
 
     public function __construct()
@@ -22,8 +23,8 @@ class Pmdcustomer extends AdminController
 
     public function index()
     {
-        Template::setTitle('Customer accounts');
-        Template::setHeading('Customer accounts');
+        Template::setTitle(\Admin\Classes\PmdPlatformI18n::fromEnglish('Customer accounts', 'settings.'));
+        Template::setHeading(\Admin\Classes\PmdPlatformI18n::fromEnglish('Customer accounts', 'settings.'));
 
         $emails = $this->settingValue('registration_email', []);
         if (!is_array($emails)) {
@@ -53,8 +54,8 @@ class Pmdcustomer extends AdminController
         ]);
         setting()->save();
 
-        flash()->success('Customer account settings saved.');
-        return ['#pmd-owner-save-status' => '<span>Saved</span>'];
+        flash()->success(\Admin\Classes\PmdPlatformI18n::fromEnglish('Customer account settings saved.', 'settings.'));
+        return ['#pmd-owner-save-status' => '<span>'.\Admin\Classes\PmdPlatformI18n::fromEnglish('Saved', 'settings.').'</span>'];
     }
 
     protected function settingValue(string $key, $fallback = null)

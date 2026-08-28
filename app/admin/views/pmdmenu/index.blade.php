@@ -1,3 +1,10 @@
+@php
+    // PMD_SETTINGS_REPORTS_PLATFORM_I18N_V16
+    $pmdSettingsText = $pmdSettingsText ?? static function ($value) {
+        return \Admin\Classes\PmdPlatformI18n::fromEnglish((string)$value, 'settings.');
+    };
+@endphp
+
 <style id="pmd-menu-critical-v3">
 html,
 body,
@@ -109,10 +116,10 @@ body:has(#pmd-menu-checkout)
 <div id="pmd-menu-checkout" class="pmd-menu-checkout" data-pmd-menu-checkout>
     <header class="pmd-menu-header" id="pmd-menu-header">
         <div class="pmd-menu-header__left">
-            <a class="pmd-menu-header-button pmd-menu-back" href="{{ admin_url('pmdsettings') }}" aria-label="Back to Settings" title="Back to Settings">
+            <a class="pmd-menu-header-button pmd-menu-back" href="{{ admin_url('pmdsettings') }}" aria-label="{{ $pmdSettingsText('Back to Settings') }}" title="{{ $pmdSettingsText('Back to Settings') }}">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg>
             </a>
-            <h1>Menu & checkout</h1>
+            <h1>{{ $pmdSettingsText('Menu & checkout') }}</h1>
         </div>
 
         <div class="pmd-menu-header__actions" data-pmd-menu-header-actions>
@@ -123,8 +130,8 @@ body:has(#pmd-menu-checkout)
                 type="submit"
                 form="pmd-menu-checkout-form"
                 class="pmd-menu-header-button pmd-menu-save-icon"
-                aria-label="Save changes"
-                title="Save changes"
+                aria-label="{{ $pmdSettingsText('Save changes') }}"
+                title="{{ $pmdSettingsText('Save changes') }}"
             >
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
             </button>
@@ -144,21 +151,21 @@ body:has(#pmd-menu-checkout)
                         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h7"></path></svg>
                     </div>
                     <div>
-                        <h2>Menu highlights</h2>
-                        <p>Control Chef’s Recommendations, Best Sellers and where highlight sections appear.</p>
+                        <h2>{{ $pmdSettingsText('Menu highlights') }}</h2>
+                        <p>{{ $pmdSettingsText('Control Chef’s Recommendations, Best Sellers and where highlight sections appear.') }}</p>
                     </div>
                 </div>
 
                 <div class="pmd-menu-card__body pmd-menu-settings-grid">
                     <div class="pmd-menu-setting-panel">
-                        <div class="pmd-menu-setting-panel__title">Highlight sections</div>
+                        <div class="pmd-menu-setting-panel__title">{{ $pmdSettingsText('Highlight sections') }}</div>
 
                         <div class="pmd-menu-setting-row">
                             <div>
-                                <strong>Chef’s Recommendations</strong>
-                                <p>Show a dedicated Chef’s Recommendations section on the guest menu.</p>
+                                <strong>{{ $pmdSettingsText('Chef’s Recommendations') }}</strong>
+                                <p>{{ $pmdSettingsText('Show a dedicated Chef’s Recommendations section on the guest menu.') }}</p>
                             </div>
-                            <label class="pmd-menu-switch" aria-label="Enable Chef’s Recommendations">
+                            <label class="pmd-menu-switch" aria-label="{{ $pmdSettingsText('Enable Chef’s Recommendations') }}">
                                 <input type="checkbox" name="menu_checkout[pmd_menu_highlights_enable_chef_recommendations_section]" value="1" {{ $checked('pmd_menu_highlights_enable_chef_recommendations_section') ? 'checked' : '' }}>
                                 <span></span>
                             </label>
@@ -166,46 +173,46 @@ body:has(#pmd-menu-checkout)
 
                         <div class="pmd-menu-setting-row">
                             <div>
-                                <strong>Best Sellers</strong>
-                                <p>Show a dedicated Best Sellers section on the guest menu.</p>
+                                <strong>{{ $pmdSettingsText('Best Sellers') }}</strong>
+                                <p>{{ $pmdSettingsText('Show a dedicated Best Sellers section on the guest menu.') }}</p>
                             </div>
-                            <label class="pmd-menu-switch" aria-label="Enable Best Sellers">
+                            <label class="pmd-menu-switch" aria-label="{{ $pmdSettingsText('Enable Best Sellers') }}">
                                 <input type="checkbox" name="menu_checkout[pmd_menu_highlights_enable_best_sellers_section]" value="1" {{ $checked('pmd_menu_highlights_enable_best_sellers_section') ? 'checked' : '' }}>
                                 <span></span>
                             </label>
                         </div>
 
                         <label class="pmd-menu-field">
-                            <span>Section placement</span>
+                            <span>{{ $pmdSettingsText('Section placement') }}</span>
                             <select name="menu_checkout[pmd_menu_highlights_section_placement]">
-                                <option value="hidden" {{ ($pmdMenuCheckout['pmd_menu_highlights_section_placement'] ?? 'hidden') === 'hidden' ? 'selected' : '' }}>Hidden</option>
-                                <option value="top" {{ ($pmdMenuCheckout['pmd_menu_highlights_section_placement'] ?? '') === 'top' ? 'selected' : '' }}>Top of menu</option>
-                                <option value="after_categories" {{ ($pmdMenuCheckout['pmd_menu_highlights_section_placement'] ?? '') === 'after_categories' ? 'selected' : '' }}>After categories filter</option>
+                                <option value="hidden" {{ ($pmdMenuCheckout['pmd_menu_highlights_section_placement'] ?? 'hidden') === 'hidden' ? 'selected' : '' }}>{{ $pmdSettingsText('Hidden') }}</option>
+                                <option value="top" {{ ($pmdMenuCheckout['pmd_menu_highlights_section_placement'] ?? '') === 'top' ? 'selected' : '' }}>{{ $pmdSettingsText('Top of menu') }}</option>
+                                <option value="after_categories" {{ ($pmdMenuCheckout['pmd_menu_highlights_section_placement'] ?? '') === 'after_categories' ? 'selected' : '' }}>{{ $pmdSettingsText('After categories filter') }}</option>
                             </select>
                         </label>
 
                         <div class="pmd-menu-field-grid">
                             <label class="pmd-menu-field">
-                                <span>Max Chef items</span>
+                                <span>{{ $pmdSettingsText('Max Chef items') }}</span>
                                 <input type="number" min="1" max="24" name="menu_checkout[pmd_menu_highlights_max_chef_recommendation_items]" value="{{ $pmdMenuCheckout['pmd_menu_highlights_max_chef_recommendation_items'] ?? 8 }}">
                             </label>
                             <label class="pmd-menu-field">
-                                <span>Max Best Seller items</span>
+                                <span>{{ $pmdSettingsText('Max Best Seller items') }}</span>
                                 <input type="number" min="1" max="24" name="menu_checkout[pmd_menu_highlights_max_best_seller_items]" value="{{ $pmdMenuCheckout['pmd_menu_highlights_max_best_seller_items'] ?? 8 }}">
                             </label>
                         </div>
                     </div>
 
                     <div class="pmd-menu-setting-panel">
-                        <div class="pmd-menu-setting-panel__title">Labels</div>
+                        <div class="pmd-menu-setting-panel__title">{{ $pmdSettingsText('Labels') }}</div>
 
                         <label class="pmd-menu-field">
-                            <span>Chef badge label</span>
+                            <span>{{ $pmdSettingsText('Chef badge label') }}</span>
                             <input type="text" maxlength="80" name="menu_checkout[pmd_menu_highlights_chef_recommendation_label]" value="{{ $pmdMenuCheckout['pmd_menu_highlights_chef_recommendation_label'] ?? 'Chef’s Choice' }}">
                         </label>
 
                         <label class="pmd-menu-field">
-                            <span>Best Seller badge label</span>
+                            <span>{{ $pmdSettingsText('Best Seller badge label') }}</span>
                             <input type="text" maxlength="80" name="menu_checkout[pmd_menu_highlights_best_seller_label]" value="{{ $pmdMenuCheckout['pmd_menu_highlights_best_seller_label'] ?? 'Best Seller' }}">
                         </label>
                     </div>
@@ -220,8 +227,8 @@ body:has(#pmd-menu-checkout)
                         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5z"></path><path d="M8 8h8M8 12h8M8 16h5"></path></svg>
                     </div>
                     <div>
-                        <h2>Badges</h2>
-                        <p>Choose how Chef’s Choice and Best Seller badges appear on menu cards and product modals.</p>
+                        <h2>{{ $pmdSettingsText('Badges') }}</h2>
+                        <p>{{ $pmdSettingsText('Choose how Chef’s Choice and Best Seller badges appear on menu cards and product modals.') }}</p>
                     </div>
                 </div>
 
@@ -229,8 +236,8 @@ body:has(#pmd-menu-checkout)
                     <div class="pmd-menu-setting-panel">
                         <div class="pmd-menu-setting-row">
                             <div>
-                                <strong>Show badges on menu cards</strong>
-                                <p>Display highlight badges directly on guest-facing item cards.</p>
+                                <strong>{{ $pmdSettingsText('Show badges on menu cards') }}</strong>
+                                <p>{{ $pmdSettingsText('Display highlight badges directly on guest-facing item cards.') }}</p>
                             </div>
                             <label class="pmd-menu-switch">
                                 <input type="checkbox" name="menu_checkout[pmd_menu_highlights_show_badges_on_cards]" value="1" {{ $checked('pmd_menu_highlights_show_badges_on_cards') ? 'checked' : '' }}>
@@ -240,8 +247,8 @@ body:has(#pmd-menu-checkout)
 
                         <div class="pmd-menu-setting-row">
                             <div>
-                                <strong>Show badges in product modal</strong>
-                                <p>Display highlight badges when guests open an item.</p>
+                                <strong>{{ $pmdSettingsText('Show badges in product modal') }}</strong>
+                                <p>{{ $pmdSettingsText('Display highlight badges when guests open an item.') }}</p>
                             </div>
                             <label class="pmd-menu-switch">
                                 <input type="checkbox" name="menu_checkout[pmd_menu_highlights_show_badges_in_modal]" value="1" {{ $checked('pmd_menu_highlights_show_badges_in_modal') ? 'checked' : '' }}>
@@ -251,8 +258,8 @@ body:has(#pmd-menu-checkout)
 
                         <div class="pmd-menu-setting-row">
                             <div>
-                                <strong>Show badge text on cards</strong>
-                                <p>Show the badge label text together with the badge on menu cards.</p>
+                                <strong>{{ $pmdSettingsText('Show badge text on cards') }}</strong>
+                                <p>{{ $pmdSettingsText('Show the badge label text together with the badge on menu cards.') }}</p>
                             </div>
                             <label class="pmd-menu-switch">
                                 <input type="checkbox" name="menu_checkout[pmd_menu_highlights_show_badge_text_on_cards]" value="1" {{ $checked('pmd_menu_highlights_show_badge_text_on_cards') ? 'checked' : '' }}>
@@ -262,8 +269,8 @@ body:has(#pmd-menu-checkout)
 
                         <div class="pmd-menu-setting-row">
                             <div>
-                                <strong>Show badge text in modal</strong>
-                                <p>Show the badge label text inside the product modal.</p>
+                                <strong>{{ $pmdSettingsText('Show badge text in modal') }}</strong>
+                                <p>{{ $pmdSettingsText('Show the badge label text inside the product modal.') }}</p>
                             </div>
                             <label class="pmd-menu-switch">
                                 <input type="checkbox" name="menu_checkout[pmd_menu_highlights_show_badge_text_in_modal]" value="1" {{ $checked('pmd_menu_highlights_show_badge_text_in_modal') ? 'checked' : '' }}>
@@ -274,30 +281,30 @@ body:has(#pmd-menu-checkout)
 
                     <div class="pmd-menu-setting-panel">
                         <label class="pmd-menu-field">
-                            <span>Badge display mode</span>
+                            <span>{{ $pmdSettingsText('Badge display mode') }}</span>
                             <select name="menu_checkout[pmd_menu_highlights_badge_display_mode]">
-                                <option value="priority_only" {{ ($pmdMenuCheckout['pmd_menu_highlights_badge_display_mode'] ?? 'priority_only') === 'priority_only' ? 'selected' : '' }}>Priority only — Chef’s Choice over Best Seller</option>
-                                <option value="show_all" {{ ($pmdMenuCheckout['pmd_menu_highlights_badge_display_mode'] ?? '') === 'show_all' ? 'selected' : '' }}>Show all matching badges</option>
+                                <option value="priority_only" {{ ($pmdMenuCheckout['pmd_menu_highlights_badge_display_mode'] ?? 'priority_only') === 'priority_only' ? 'selected' : '' }}>{{ $pmdSettingsText('Priority only — Chef’s Choice over Best Seller') }}</option>
+                                <option value="show_all" {{ ($pmdMenuCheckout['pmd_menu_highlights_badge_display_mode'] ?? '') === 'show_all' ? 'selected' : '' }}>{{ $pmdSettingsText('Show all matching badges') }}</option>
                             </select>
                         </label>
 
                         <label class="pmd-menu-field">
-                            <span>Badge style</span>
+                            <span>{{ $pmdSettingsText('Badge style') }}</span>
                             <select name="menu_checkout[pmd_menu_highlights_badge_style]">
-                                <option value="minimal_circle" {{ ($pmdMenuCheckout['pmd_menu_highlights_badge_style'] ?? '') === 'minimal_circle' ? 'selected' : '' }}>Minimal circle</option>
-                                <option value="corner_ribbon" {{ ($pmdMenuCheckout['pmd_menu_highlights_badge_style'] ?? 'corner_ribbon') === 'corner_ribbon' ? 'selected' : '' }}>Corner ribbon</option>
-                                <option value="soft_pill" {{ ($pmdMenuCheckout['pmd_menu_highlights_badge_style'] ?? '') === 'soft_pill' ? 'selected' : '' }}>Soft pill</option>
-                                <option value="luxury_label" {{ ($pmdMenuCheckout['pmd_menu_highlights_badge_style'] ?? '') === 'luxury_label' ? 'selected' : '' }}>Luxury label</option>
+                                <option value="minimal_circle" {{ ($pmdMenuCheckout['pmd_menu_highlights_badge_style'] ?? '') === 'minimal_circle' ? 'selected' : '' }}>{{ $pmdSettingsText('Minimal circle') }}</option>
+                                <option value="corner_ribbon" {{ ($pmdMenuCheckout['pmd_menu_highlights_badge_style'] ?? 'corner_ribbon') === 'corner_ribbon' ? 'selected' : '' }}>{{ $pmdSettingsText('Corner ribbon') }}</option>
+                                <option value="soft_pill" {{ ($pmdMenuCheckout['pmd_menu_highlights_badge_style'] ?? '') === 'soft_pill' ? 'selected' : '' }}>{{ $pmdSettingsText('Soft pill') }}</option>
+                                <option value="luxury_label" {{ ($pmdMenuCheckout['pmd_menu_highlights_badge_style'] ?? '') === 'luxury_label' ? 'selected' : '' }}>{{ $pmdSettingsText('Luxury label') }}</option>
                             </select>
                         </label>
 
                         <label class="pmd-menu-field">
-                            <span>Badge position</span>
+                            <span>{{ $pmdSettingsText('Badge position') }}</span>
                             <select name="menu_checkout[pmd_menu_highlights_badge_position]">
-                                <option value="image_top_left" {{ ($pmdMenuCheckout['pmd_menu_highlights_badge_position'] ?? 'image_top_left') === 'image_top_left' ? 'selected' : '' }}>Image top left</option>
-                                <option value="image_top_right" {{ ($pmdMenuCheckout['pmd_menu_highlights_badge_position'] ?? '') === 'image_top_right' ? 'selected' : '' }}>Image top right</option>
-                                <option value="title_inline" {{ ($pmdMenuCheckout['pmd_menu_highlights_badge_position'] ?? '') === 'title_inline' ? 'selected' : '' }}>Inline with title</option>
-                                <option value="hidden" {{ ($pmdMenuCheckout['pmd_menu_highlights_badge_position'] ?? '') === 'hidden' ? 'selected' : '' }}>Hidden on cards</option>
+                                <option value="image_top_left" {{ ($pmdMenuCheckout['pmd_menu_highlights_badge_position'] ?? 'image_top_left') === 'image_top_left' ? 'selected' : '' }}>{{ $pmdSettingsText('Image top left') }}</option>
+                                <option value="image_top_right" {{ ($pmdMenuCheckout['pmd_menu_highlights_badge_position'] ?? '') === 'image_top_right' ? 'selected' : '' }}>{{ $pmdSettingsText('Image top right') }}</option>
+                                <option value="title_inline" {{ ($pmdMenuCheckout['pmd_menu_highlights_badge_position'] ?? '') === 'title_inline' ? 'selected' : '' }}>{{ $pmdSettingsText('Inline with title') }}</option>
+                                <option value="hidden" {{ ($pmdMenuCheckout['pmd_menu_highlights_badge_position'] ?? '') === 'hidden' ? 'selected' : '' }}>{{ $pmdSettingsText('Hidden on cards') }}</option>
                             </select>
                         </label>
                     </div>
@@ -312,18 +319,18 @@ body:has(#pmd-menu-checkout)
                         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v12H7l-3 3Z"></path><path d="M8 9h8M8 13h5"></path></svg>
                     </div>
                     <div>
-                        <h2>Checkout & reviews</h2>
-                        <p>Control what guests see after checkout and whether the reviews experience is available.</p>
+                        <h2>{{ $pmdSettingsText('Checkout & reviews') }}</h2>
+                        <p>{{ $pmdSettingsText('Control what guests see after checkout and whether the reviews experience is available.') }}</p>
                     </div>
                 </div>
 
                 <div class="pmd-menu-card__body pmd-menu-card__body--settings">
                     <div class="pmd-menu-setting-row">
                         <div>
-                            <strong>Ask for a review after checkout</strong>
-                            <p>Show the review-sharing prompt after a guest completes checkout.</p>
+                            <strong>{{ $pmdSettingsText('Ask for a review after checkout') }}</strong>
+                            <p>{{ $pmdSettingsText('Show the review-sharing prompt after a guest completes checkout.') }}</p>
                         </div>
-                        <label class="pmd-menu-switch" aria-label="Ask for a review after checkout">
+                        <label class="pmd-menu-switch" aria-label="{{ $pmdSettingsText('Ask for a review after checkout') }}">
                             <input type="checkbox" name="menu_checkout[review_prompt_enabled]" value="1" {{ !empty($pmdMenuCheckout['review_prompt_enabled']) ? 'checked' : '' }}>
                             <span></span>
                         </label>
@@ -331,10 +338,10 @@ body:has(#pmd-menu-checkout)
 
                     <div class="pmd-menu-setting-row">
                         <div>
-                            <strong>Enable the reviews experience</strong>
-                            <p>Allow the guest-facing menu to expose the restaurant reviews experience.</p>
+                            <strong>{{ $pmdSettingsText('Enable the reviews experience') }}</strong>
+                            <p>{{ $pmdSettingsText('Allow the guest-facing menu to expose the restaurant reviews experience.') }}</p>
                         </div>
-                        <label class="pmd-menu-switch" aria-label="Enable reviews experience">
+                        <label class="pmd-menu-switch" aria-label="{{ $pmdSettingsText('Enable reviews experience') }}">
                             <input type="checkbox" name="menu_checkout[reviews_enabled]" value="1" {{ !empty($pmdMenuCheckout['reviews_enabled']) ? 'checked' : '' }}>
                             <span></span>
                         </label>

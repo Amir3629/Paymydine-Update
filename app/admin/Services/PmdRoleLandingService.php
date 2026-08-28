@@ -12,35 +12,35 @@ namespace Admin\Services;
 class PmdRoleLandingService
 {
     private const ROLE_MAP = [
-        'pmd-owner' => 'dashboardlab',
-        'owner' => 'dashboardlab',
+        'pmd-owner' => 'ownerdashboard',
+        'owner' => 'ownerdashboard',
 
-        'pmd-manager' => 'managerlab',
-        'manager' => 'managerlab',
+        'pmd-manager' => 'managerdashboard',
+        'manager' => 'managerdashboard',
 
-        'pmd-cashier' => 'cashierlab',
-        'cashier' => 'cashierlab',
+        'pmd-cashier' => 'orders',
+        'cashier' => 'orders',
 
         // PMD product decision: Waiter and Cashier share the Cashier workspace.
-        'pmd-waiter' => 'cashierlab',
-        'waiter' => 'cashierlab',
+        'pmd-waiter' => 'orders',
+        'waiter' => 'orders',
 
-        'pmd-accountant' => 'accountantlab',
-        'accountant' => 'accountantlab',
+        'pmd-accountant' => 'accountantdashboard',
+        'accountant' => 'accountantdashboard',
 
-        'pmd-reservation' => 'reservationslab',
-        'pmd-reservations' => 'reservationslab',
-        'reservation' => 'reservationslab',
-        'reservations' => 'reservationslab',
+        'pmd-reservation' => 'reservations',
+        'pmd-reservations' => 'reservations',
+        'reservation' => 'reservations',
+        'reservations' => 'reservations',
     ];
 
     private const USERNAME_FALLBACK_MAP = [
-        'mehdiowner' => 'dashboardlab',
-        'mehdimanager' => 'managerlab',
-        'mehdiwaiter' => 'cashierlab',
-        'mehdicashier' => 'cashierlab',
-        'mehdiaccountant' => 'accountantlab',
-        'mehdireservations' => 'reservationslab',
+        'mehdiowner' => 'ownerdashboard',
+        'mehdimanager' => 'managerdashboard',
+        'mehdiwaiter' => 'orders',
+        'mehdicashier' => 'orders',
+        'mehdiaccountant' => 'accountantdashboard',
+        'mehdireservations' => 'reservations',
     ];
 
     public function routeFor($user): ?string
@@ -51,7 +51,7 @@ class PmdRoleLandingService
         // The native /admin/dashboard is retired. Super users land in the
         // owner workspace instead of rendering the legacy native dashboard.
         if (method_exists($user, 'isSuperUser') && $user->isSuperUser())
-            return 'dashboardlab';
+            return 'ownerdashboard';
 
         try {
             $staff = $user->staff;

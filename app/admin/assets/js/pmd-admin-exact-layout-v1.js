@@ -2,7 +2,7 @@
   'use strict';
 
   var path = String(
-    window.location && window.location.pathname || ''
+    window.location && (window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : window.location.pathname) || ''
   );
 
   var normalizedPath = path.replace(/\/+$/, '') || '/';

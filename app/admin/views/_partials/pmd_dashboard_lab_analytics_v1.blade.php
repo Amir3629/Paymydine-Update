@@ -1255,7 +1255,7 @@
                 <div class="pmd-dashboard-lab-analytics__toolbar" role="group" aria-label="Sales over time controls">
                     <button type="button" class="{{ $analyticsChartMode === 'line' ? 'is-active' : '' }}" data-pmd-lab-chart-mode="line" aria-pressed="{{ $analyticsChartMode === 'line' ? 'true' : 'false' }}" aria-label="{{ $pmdLabLongLineV82 }}" title="{{ $pmdLabLongLineV82 }}">{{ $pmdLabShortLineV82 }}</button>
                     <button type="button" class="{{ $analyticsChartMode === 'bar' ? 'is-active' : '' }}" data-pmd-lab-chart-mode="bar" aria-pressed="{{ $analyticsChartMode === 'bar' ? 'true' : 'false' }}" aria-label="{{ $pmdLabLongBarV82 }}" title="{{ $pmdLabLongBarV82 }}">{{ $pmdLabShortBarV82 }}</button>
-                    <a href="{{ admin_url('pmdreports/sales') }}" aria-label="Open Sales over time details"><span class="pmd-dashboard-lab-toolbar-icon" aria-hidden="true">&#8599;</span></a>
+                    <a href="{{ admin_url('pmdreports/sales') }}" aria-label="Open Sales over time details"><svg class="pmd-dashboard-lab-toolbar-detail-icon-v15" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round" style="display:block!important;width:16px!important;min-width:16px!important;max-width:16px!important;height:16px!important;min-height:16px!important;max-height:16px!important;flex:0 0 16px!important;margin:0!important;padding:0!important;"><path d="M9 4H4v5"></path><path d="M15 4h5v5"></path><path d="M20 15v5h-5"></path><path d="M9 20H4v-5"></path></svg></a>
                 </div>
             </header>
             <!-- PMD_DASHBOARD_LAB_CUSTOM_VERTICAL_RANGE_V7_3 -->
@@ -1301,7 +1301,7 @@
                     <button type="button" data-pmd-lab-period="today" aria-pressed="false" aria-label="{{ $pmdLabLongDayV82 }}" title="{{ $pmdLabLongDayV82 }}">{{ $pmdLabShortDayV82 }}</button>
                     <button type="button" data-pmd-lab-period="week" aria-pressed="false" aria-label="{{ $pmdLabLongWeekV82 }}" title="{{ $pmdLabLongWeekV82 }}">{{ $pmdLabShortWeekV82 }}</button>
                     <button type="button" class="is-active" data-pmd-lab-period="month" aria-pressed="true" aria-label="{{ $pmdLabLongMonthV82 }}" title="{{ $pmdLabLongMonthV82 }}">{{ $pmdLabShortMonthV82 }}</button>
-                    <a href="{{ admin_url('pmdreports/categories') }}" aria-label="Open Sales by category details"><span class="pmd-dashboard-lab-toolbar-icon" aria-hidden="true">&#8599;</span></a>
+                    <a href="{{ admin_url('pmdreports/categories') }}" aria-label="Open Sales by category details"><svg class="pmd-dashboard-lab-toolbar-detail-icon-v15" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round" style="display:block!important;width:16px!important;min-width:16px!important;max-width:16px!important;height:16px!important;min-height:16px!important;max-height:16px!important;flex:0 0 16px!important;margin:0!important;padding:0!important;"><path d="M9 4H4v5"></path><path d="M15 4h5v5"></path><path d="M20 15v5h-5"></path><path d="M9 20H4v-5"></path></svg></a>
                 </div>
             </header>
             <div class="pmd-dashboard-lab-analytics__body" data-pmd-lab-widget-body data-pmd-lab-state="{{ $analyticsState }}">{!! $analyticsBody('categorySales') !!}</div>
@@ -1311,7 +1311,7 @@
             <header>
                 <h3>Sales by hour</h3>
                 <div class="pmd-dashboard-lab-analytics__toolbar">
-                    <a href="{{ admin_url('pmdreports/hourly') }}" aria-label="Open Sales by hour details"><span class="pmd-dashboard-lab-toolbar-icon" aria-hidden="true">&#8599;</span></a>
+                    <a href="{{ admin_url('pmdreports/hourly') }}" aria-label="Open Sales by hour details"><svg class="pmd-dashboard-lab-toolbar-detail-icon-v15" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round" style="display:block!important;width:16px!important;min-width:16px!important;max-width:16px!important;height:16px!important;min-height:16px!important;max-height:16px!important;flex:0 0 16px!important;margin:0!important;padding:0!important;"><path d="M9 4H4v5"></path><path d="M15 4h5v5"></path><path d="M20 15v5h-5"></path><path d="M9 20H4v-5"></path></svg></a>
                 </div>
             </header>
             <!-- PMD_DASHBOARD_LAB_CUSTOM_VERTICAL_RANGE_V7_3 -->
@@ -1357,7 +1357,7 @@
                     <button type="button" data-pmd-lab-period="today" aria-pressed="false" aria-label="{{ $pmdLabLongDayV82 }}" title="{{ $pmdLabLongDayV82 }}">{{ $pmdLabShortDayV82 }}</button>
                     <button type="button" data-pmd-lab-period="week" aria-pressed="false" aria-label="{{ $pmdLabLongWeekV82 }}" title="{{ $pmdLabLongWeekV82 }}">{{ $pmdLabShortWeekV82 }}</button>
                     <button type="button" class="is-active" data-pmd-lab-period="month" aria-pressed="true" aria-label="{{ $pmdLabLongMonthV82 }}" title="{{ $pmdLabLongMonthV82 }}">{{ $pmdLabShortMonthV82 }}</button>
-                    <a href="{{ admin_url('pmdreports/payments') }}" aria-label="Open Payment methods details"><span class="pmd-dashboard-lab-toolbar-icon" aria-hidden="true">&#8599;</span></a>
+                    <a href="{{ admin_url('pmdreports/payments') }}" aria-label="Open Payment methods details"><svg class="pmd-dashboard-lab-toolbar-detail-icon-v15" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round" style="display:block!important;width:16px!important;min-width:16px!important;max-width:16px!important;height:16px!important;min-height:16px!important;max-height:16px!important;flex:0 0 16px!important;margin:0!important;padding:0!important;"><path d="M9 4H4v5"></path><path d="M15 4h5v5"></path><path d="M20 15v5h-5"></path><path d="M9 20H4v-5"></path></svg></a>
                 </div>
             </header>
             <div class="pmd-dashboard-lab-analytics__body" data-pmd-lab-widget-body data-pmd-lab-state="{{ $analyticsState }}">{!! $analyticsBody('paymentMethods') !!}</div>
@@ -1367,7 +1367,7 @@
             <header>
                 <h3>Recent transactions</h3>
                 <div class="pmd-dashboard-lab-analytics__toolbar">
-                    <a href="{{ admin_url('pmdreports/transactions') }}" aria-label="Open Recent transactions details"><span class="pmd-dashboard-lab-toolbar-icon" aria-hidden="true">&#8599;</span></a>
+                    <a href="{{ admin_url('pmdreports/transactions') }}" aria-label="Open Recent transactions details"><svg class="pmd-dashboard-lab-toolbar-detail-icon-v15" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round" style="display:block!important;width:16px!important;min-width:16px!important;max-width:16px!important;height:16px!important;min-height:16px!important;max-height:16px!important;flex:0 0 16px!important;margin:0!important;padding:0!important;"><path d="M9 4H4v5"></path><path d="M15 4h5v5"></path><path d="M20 15v5h-5"></path><path d="M9 20H4v-5"></path></svg></a>
                 </div>
             </header>
             <div class="pmd-dashboard-lab-analytics__body" data-pmd-lab-widget-body data-pmd-lab-state="{{ $analyticsState }}">{!! $analyticsBody('recentTransactions') !!}</div>
@@ -1386,7 +1386,7 @@
             <header>
                 <h3>Alerts</h3>
                 <div class="pmd-dashboard-lab-analytics__toolbar">
-                    <a href="{{ admin_url('pmdreports/alerts') }}" aria-label="Open Alerts details"><span class="pmd-dashboard-lab-toolbar-icon" aria-hidden="true">&#8599;</span></a>
+                    <a href="{{ admin_url('pmdreports/alerts') }}" aria-label="Open Alerts details"><svg class="pmd-dashboard-lab-toolbar-detail-icon-v15" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round" style="display:block!important;width:16px!important;min-width:16px!important;max-width:16px!important;height:16px!important;min-height:16px!important;max-height:16px!important;flex:0 0 16px!important;margin:0!important;padding:0!important;"><path d="M9 4H4v5"></path><path d="M15 4h5v5"></path><path d="M20 15v5h-5"></path><path d="M9 20H4v-5"></path></svg></a>
                 </div>
             </header>
             <div
@@ -1453,7 +1453,7 @@
                     <span class="pmd-dashboard-lab-live-heading__label" data-pmd-lab-live-heading-label>{{ $pmdLabLiveCountV82 === 1 ? $pmdLabLiveSingularV82 : $pmdLabLivePluralV82 }}</span>
                 </h3>
                 <div class="pmd-dashboard-lab-analytics__toolbar">
-                    <a href="{{ admin_url('pmdreports/liveorders') }}" aria-label="Open Live orders details"><span class="pmd-dashboard-lab-toolbar-icon" aria-hidden="true">&#8599;</span></a>
+                    <a href="{{ admin_url('pmdreports/liveorders') }}" aria-label="Open Live orders details"><svg class="pmd-dashboard-lab-toolbar-detail-icon-v15" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round" style="display:block!important;width:16px!important;min-width:16px!important;max-width:16px!important;height:16px!important;min-height:16px!important;max-height:16px!important;flex:0 0 16px!important;margin:0!important;padding:0!important;"><path d="M9 4H4v5"></path><path d="M15 4h5v5"></path><path d="M20 15v5h-5"></path><path d="M9 20H4v-5"></path></svg></a>
                 </div>
             </header>
             <div class="pmd-dashboard-lab-analytics__body" data-pmd-lab-widget-body data-pmd-lab-state="{{ $analyticsState }}">{!! $analyticsBody('liveOperations') !!}</div>
@@ -1466,7 +1466,7 @@
                     <button type="button" data-pmd-lab-period="today" aria-pressed="false" aria-label="{{ $pmdLabLongDayV82 }}" title="{{ $pmdLabLongDayV82 }}">{{ $pmdLabShortDayV82 }}</button>
                     <button type="button" data-pmd-lab-period="week" aria-pressed="false" aria-label="{{ $pmdLabLongWeekV82 }}" title="{{ $pmdLabLongWeekV82 }}">{{ $pmdLabShortWeekV82 }}</button>
                     <button type="button" class="is-active" data-pmd-lab-period="month" aria-pressed="true" aria-label="{{ $pmdLabLongMonthV82 }}" title="{{ $pmdLabLongMonthV82 }}">{{ $pmdLabShortMonthV82 }}</button>
-                    <a href="{{ admin_url('pmdreportchannels') }}" aria-label="Open Order channels details"><span class="pmd-dashboard-lab-toolbar-icon" aria-hidden="true">&#8599;</span></a>
+                    <a href="{{ admin_url('pmdreportchannels') }}" aria-label="Open Order channels details"><svg class="pmd-dashboard-lab-toolbar-detail-icon-v15" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round" style="display:block!important;width:16px!important;min-width:16px!important;max-width:16px!important;height:16px!important;min-height:16px!important;max-height:16px!important;flex:0 0 16px!important;margin:0!important;padding:0!important;"><path d="M9 4H4v5"></path><path d="M15 4h5v5"></path><path d="M20 15v5h-5"></path><path d="M9 20H4v-5"></path></svg></a>
                 </div>
             </header>
             <div class="pmd-dashboard-lab-analytics__body" data-pmd-lab-widget-body data-pmd-lab-state="{{ $analyticsState }}">{!! $analyticsBody('channelSplit') !!}</div>
@@ -1479,7 +1479,7 @@
                     <button type="button" data-pmd-lab-period="today" aria-pressed="false" aria-label="{{ $pmdLabLongDayV82 }}" title="{{ $pmdLabLongDayV82 }}">{{ $pmdLabShortDayV82 }}</button>
                     <button type="button" data-pmd-lab-period="week" aria-pressed="false" aria-label="{{ $pmdLabLongWeekV82 }}" title="{{ $pmdLabLongWeekV82 }}">{{ $pmdLabShortWeekV82 }}</button>
                     <button type="button" class="is-active" data-pmd-lab-period="month" aria-pressed="true" aria-label="{{ $pmdLabLongMonthV82 }}" title="{{ $pmdLabLongMonthV82 }}">{{ $pmdLabShortMonthV82 }}</button>
-                    <a href="{{ admin_url('pmdreports/topitems') }}" aria-label="Open Top-selling items details"><span class="pmd-dashboard-lab-toolbar-icon" aria-hidden="true">&#8599;</span></a>
+                    <a href="{{ admin_url('pmdreports/topitems') }}" aria-label="Open Top-selling items details"><svg class="pmd-dashboard-lab-toolbar-detail-icon-v15" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round" style="display:block!important;width:16px!important;min-width:16px!important;max-width:16px!important;height:16px!important;min-height:16px!important;max-height:16px!important;flex:0 0 16px!important;margin:0!important;padding:0!important;"><path d="M9 4H4v5"></path><path d="M15 4h5v5"></path><path d="M20 15v5h-5"></path><path d="M9 20H4v-5"></path></svg></a>
                 </div>
             </header>
             <div class="pmd-dashboard-lab-analytics__body" data-pmd-lab-widget-body data-pmd-lab-state="{{ $analyticsState }}">{!! $analyticsBody('topItems') !!}</div>
@@ -1489,7 +1489,7 @@
             <header>
                 <h3>Tips summary</h3>
                 <div class="pmd-dashboard-lab-analytics__toolbar">
-                    <a href="{{ admin_url('pmdreporttips') }}" aria-label="Open Tips summary details"><span class="pmd-dashboard-lab-toolbar-icon" aria-hidden="true">&#8599;</span></a>
+                    <a href="{{ admin_url('pmdreporttips') }}" aria-label="Open Tips summary details"><svg class="pmd-dashboard-lab-toolbar-detail-icon-v15" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round" style="display:block!important;width:16px!important;min-width:16px!important;max-width:16px!important;height:16px!important;min-height:16px!important;max-height:16px!important;flex:0 0 16px!important;margin:0!important;padding:0!important;"><path d="M9 4H4v5"></path><path d="M15 4h5v5"></path><path d="M20 15v5h-5"></path><path d="M9 20H4v-5"></path></svg></a>
                 </div>
             </header>
             <div class="pmd-dashboard-lab-analytics__body" data-pmd-lab-widget-body data-pmd-lab-state="{{ $analyticsState }}">{!! $analyticsBody('tips') !!}</div>
@@ -1502,7 +1502,7 @@
                     <span class="pmd-dashboard-lab-review-heading__label" data-pmd-lab-review-heading-label>{{ ((int)(($analyticsLast30['reviews']['count'] ?? 0)) === 1) ? 'review today' : 'reviews today' }}</span>
                 </h3>
                 <div class="pmd-dashboard-lab-analytics__toolbar">
-                    <a href="{{ admin_url('pmdreports/reviews') }}" aria-label="Open reviews details"><span class="pmd-dashboard-lab-toolbar-icon" aria-hidden="true">&#8599;</span></a>
+                    <a href="{{ admin_url('pmdreports/reviews') }}" aria-label="Open reviews details"><svg class="pmd-dashboard-lab-toolbar-detail-icon-v15" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round" style="display:block!important;width:16px!important;min-width:16px!important;max-width:16px!important;height:16px!important;min-height:16px!important;max-height:16px!important;flex:0 0 16px!important;margin:0!important;padding:0!important;"><path d="M9 4H4v5"></path><path d="M15 4h5v5"></path><path d="M20 15v5h-5"></path><path d="M9 20H4v-5"></path></svg></a>
                 </div>
             </header>
             <div class="pmd-dashboard-lab-analytics__body" data-pmd-lab-widget-body data-pmd-lab-state="{{ $analyticsState }}">{!! $analyticsBody('reviews') !!}</div>
@@ -1515,7 +1515,7 @@
                     <span class="pmd-dashboard-lab-event-heading__label" data-pmd-lab-event-heading-label>Upcoming events</span>
                 </h3>
                 <div class="pmd-dashboard-lab-analytics__toolbar">
-                    <a href="{{ admin_url('pmdreports/reservations') }}" aria-label="Open Upcoming events details"><span class="pmd-dashboard-lab-toolbar-icon" aria-hidden="true">&#8599;</span></a>
+                    <a href="{{ admin_url('pmdreports/reservations') }}" aria-label="Open Upcoming events details"><svg class="pmd-dashboard-lab-toolbar-detail-icon-v15" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round" style="display:block!important;width:16px!important;min-width:16px!important;max-width:16px!important;height:16px!important;min-height:16px!important;max-height:16px!important;flex:0 0 16px!important;margin:0!important;padding:0!important;"><path d="M9 4H4v5"></path><path d="M15 4h5v5"></path><path d="M20 15v5h-5"></path><path d="M9 20H4v-5"></path></svg></a>
                 </div>
             </header>
             <div class="pmd-dashboard-lab-analytics__body" data-pmd-lab-widget-body data-pmd-lab-state="{{ $analyticsState }}">{!! $analyticsBody('calendarEvents') !!}</div>

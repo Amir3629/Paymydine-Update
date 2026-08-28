@@ -1,6 +1,19 @@
 (function () {
   'use strict';
 
+  // PMD_SETTINGS_DYNAMIC_I18N_V17
+  function settingsText(value) {
+    var runtime = window.PMDPlatformMessages;
+    value = String(value == null ? '' : value);
+    return runtime && typeof runtime.fromEnglish === 'function'
+      ? runtime.fromEnglish(value, 'settings.', value)
+      : value;
+  }
+
+  function settingsHtml(value) {
+    return esc(settingsText(value));
+  }
+
   if (window.PMDSumupSelfServiceV1) return;
 
   var state = {
@@ -84,16 +97,16 @@
   }
 
   function statusLabel(snapshot) {
-    if (snapshot.connection_status === 'connected') return 'Connected';
-    if (snapshot.connection_status === 'error') return 'Needs attention';
-    if (snapshot.configured) return 'Connection not tested';
-    return 'Not connected';
+    if (snapshot.connection_status === 'connected') return settingsText('Connected');
+    if (snapshot.connection_status === 'error') return settingsText('Needs attention');
+    if (snapshot.configured) return settingsText('Connection not tested');
+    return settingsText('Not connected');
   }
 
   function environmentLabel(snapshot) {
-    var name = state.environment === 'production' ? 'Production' : 'Test';
+    var name = settingsText(state.environment === 'production' ? 'Production' : 'Test');
     var merchant = String(snapshot && snapshot.merchant_code ? snapshot.merchant_code : '').trim();
-    return name + ' environment' + (merchant ? ' · Merchant ' + merchant : '');
+    return name + ' ' + settingsText('environment') + (merchant ? ' · ' + settingsText('Merchant') + ' ' + merchant : '');
   }
 
   function normalizePairingCode(value) {
@@ -105,14 +118,14 @@
       '<section class="pmd-sumup-panel pmd-sumup-pair-panel" data-pmd-sumup-pair-section>',
         '<div class="pmd-sumup-panel-head">',
           '<div>',
-            '<b>Add terminal</b>',
-            '<span>Enter the temporary Cloud API pairing code shown on the Solo.</span>',
+            '<b>' + settingsHtml('Add terminal') + '</b>',
+            '<span>' + settingsHtml('Enter the temporary Cloud API pairing code shown on the Solo.') + '</span>',
           '</div>',
         '</div>',
         '<div class="pmd-sumup-pair">',
-          '<label><span>Pairing code</span><input data-sumup-pair-code maxlength="18" placeholder="XXXXXXXXX" autocomplete="off" autocapitalize="characters" spellcheck="false"></label>',
-          '<label><span>Terminal name (optional)</span><input data-sumup-pair-label maxlength="191" placeholder="Front Desk, Bar, Terrace…" autocomplete="off"></label>',
-          '<button type="button" class="is-primary" data-sumup-pair ' + (state.busy ? 'disabled' : '') + '>Pair terminal</button>',
+          '<label><span>' + settingsHtml('Pairing code') + '</span><input data-sumup-pair-code maxlength="18" placeholder="XXXXXXXXX" autocomplete="off" autocapitalize="characters" spellcheck="false"></label>',
+          '<label><span>' + settingsHtml('Terminal name (optional)') + '</span><input data-sumup-pair-label maxlength="191" placeholder="Front Desk, Bar, Terrace…" autocomplete="off"></label>',
+          '<button type="button" class="is-primary" data-sumup-pair ' + (state.busy ? 'disabled' : '') + '>' + settingsHtml('Pair terminal') + '</button>',
         '</div>',
       '</section>'
     ].join('');
@@ -125,14 +138,14 @@
       '<article class="pmd-sumup-terminal">',
         '<div class="pmd-sumup-terminal-icon">▣</div>',
         '<div class="pmd-sumup-terminal-copy">',
-          '<b>' + esc(terminal.label || 'SumUp terminal') + '</b>',
+          '<b>' + esc(terminal.label || settingsText('SumUp terminal')) + '</b>',
           '<span class="' + (online ? 'is-online' : 'is-offline') + '"><i></i>' +
-            (online ? 'Online' : esc(String(terminal.status || 'Offline').toLowerCase())) +
+            (online ? settingsHtml('Online') : settingsHtml(String(terminal.status || 'Offline').toLowerCase())) +
           '</span>',
         '</div>',
         '<div class="pmd-sumup-terminal-actions">',
-          '<button type="button" data-sumup-terminal-test="' + esc(terminal.terminal_device_id) + '" ' + (state.busy ? 'disabled' : '') + '>Test</button>',
-          '<button type="button" class="is-danger" data-sumup-terminal-remove="' + esc(terminal.terminal_device_id) + '" ' + (state.busy ? 'disabled' : '') + '>Remove</button>',
+          '<button type="button" data-sumup-terminal-test="' + esc(terminal.terminal_device_id) + '" ' + (state.busy ? 'disabled' : '') + '>' + settingsHtml('Test') + '</button>',
+          '<button type="button" class="is-danger" data-sumup-terminal-remove="' + esc(terminal.terminal_device_id) + '" ' + (state.busy ? 'disabled' : '') + '>' + settingsHtml('Remove') + '</button>',
         '</div>',
       '</article>'
     ].join('');
@@ -142,11 +155,11 @@
     return [
       '<section class="pmd-sumup-panel pmd-sumup-terminal-list-panel">',
         '<div class="pmd-sumup-panel-head">',
-          '<div><b>Terminals</b><span>Cashiers and Waiters can choose between these terminals when more than one is available.</span></div>',
+          '<div><b>' + settingsHtml('Terminals') + '</b><span>' + settingsHtml('Cashiers and Waiters can choose between these terminals when more than one is available.') + '</span></div>',
         '</div>',
         terminals.length
           ? '<div class="pmd-sumup-terminals">' + terminals.map(terminalRow).join('') + '</div>'
-          : '<div class="pmd-sumup-empty">No terminal paired in this environment yet.</div>',
+          : '<div class="pmd-sumup-empty">' + settingsHtml('No terminal paired in this environment yet.') + '</div>',
       '</section>'
     ].join('');
   }
@@ -156,12 +169,12 @@
       '<section class="pmd-sumup-panel is-muted">',
         '<div class="pmd-sumup-panel-head">',
           '<div>',
-            '<b>Connect SumUp first</b>',
-            '<span>Provider credentials are managed under Payments & finance.</span>',
+            '<b>' + settingsHtml('Connect SumUp first') + '</b>',
+            '<span>' + settingsHtml('Provider credentials are managed under Payments & finance.') + '</span>',
           '</div>',
         '</div>',
         '<div class="pmd-sumup-actions">',
-          '<a class="is-primary" href="/admin/pmdfinance#payment-providers">Manage SumUp connection</a>',
+          '<a class="is-primary" href="/admin/pmdfinance#payment-providers">' + settingsHtml('Manage SumUp connection') + '</a>',
         '</div>',
       '</section>'
     ].join('');
@@ -171,7 +184,7 @@
     if (!state.root) return;
 
     if (!state.data) {
-      state.root.innerHTML = '<div class="pmd-sumup-loading">Loading terminal settings…</div>';
+      state.root.innerHTML = '<div class="pmd-sumup-loading">' + settingsHtml('Loading terminal settings…') + '</div>';
       return;
     }
 
@@ -184,8 +197,8 @@
     state.root.innerHTML = [
       '<div class="pmd-sumup-head">',
         '<div>',
-          '<span class="pmd-sumup-kicker">PAYMENT TERMINALS</span>',
-          '<h2>SumUp terminals</h2>',
+          '<span class="pmd-sumup-kicker">' + settingsHtml('PAYMENT TERMINALS') + '</span>',
+          '<h2>' + settingsHtml('SumUp terminals') + '</h2>',
           '<span class="pmd-sumup-head-meta">' + esc(environmentLabel(cfg)) + '</span>',
         '</div>',
         '<div class="pmd-sumup-state ' + (connected ? 'is-good' : '') + '"><span></span>' + esc(statusLabel(cfg)) + '</div>',
@@ -234,7 +247,7 @@
     try {
       await fn();
     } catch (error) {
-      state.message = error.message || 'Terminal request failed.';
+      state.message = settingsText(error && error.message ? error.message : 'Terminal request failed.');
       state.error = true;
     } finally {
       state.busy = false;
@@ -249,7 +262,7 @@
     var terminalLabel = labelInput ? String(labelInput.value || '').trim() : '';
 
     if (!/^[A-Z0-9]{8,9}$/.test(pairingCode)) {
-      state.message = 'Enter the 8 or 9 character pairing code shown on the Solo.';
+      state.message = settingsText('Enter the 8 or 9 character pairing code shown on the Solo.');
       state.error = true;
       render();
       var nextInput = state.root.querySelector('[data-sumup-pair-code]');
@@ -269,7 +282,7 @@
       });
 
       state.data = json.state;
-      state.message = json.message || 'Terminal paired.';
+      state.message = settingsText(json.message || 'Terminal paired.');
     });
   }
 
@@ -282,12 +295,12 @@
       });
 
       state.data = json.state;
-      state.message = json.message || 'Terminal tested.';
+      state.message = settingsText(json.message || 'Terminal tested.');
     });
   }
 
   async function removeTerminal(id) {
-    if (!window.confirm('Remove this SumUp terminal from PayMyDine?')) return;
+    if (!window.confirm(settingsText('Remove this SumUp terminal from PayMyDine?'))) return;
 
     await act(async function () {
       var json = await request('/admin/pmddevices/sumup/readers/' + encodeURIComponent(String(id)), {
@@ -297,7 +310,7 @@
       });
 
       state.data = json.state;
-      state.message = json.message || 'Terminal removed.';
+      state.message = settingsText(json.message || 'Terminal removed.');
     });
   }
 
@@ -318,7 +331,7 @@
       // Environment/auth problems are product configuration problems, not
       // transient reader noise. Surface them immediately so the restaurant
       // does not waste fresh five-minute pairing codes on the wrong merchant.
-      state.message = error && error.message ? error.message : 'Could not verify the SumUp terminal environment.';
+      state.message = settingsText(error && error.message ? error.message : 'Could not verify the SumUp terminal environment.');
       state.error = true;
     }
   }
@@ -332,7 +345,7 @@
       state.environment = chooseEnvironment();
       render();
     } catch (error) {
-      state.root.innerHTML = '<div class="pmd-sumup-message is-error">' + esc(error.message || 'Could not load terminal settings.') + '</div>';
+      state.root.innerHTML = '<div class="pmd-sumup-message is-error">' + esc(settingsText(error && error.message ? error.message : 'Could not load terminal settings.')) + '</div>';
     }
   }
 
@@ -353,7 +366,7 @@
   }
 
   function guardLegacyTerminalEditor(event) {
-    if (!/^\/admin\/pmddevices(?:\/|$)/.test(location.pathname)) return;
+    if (!/^\/admin\/pmddevices(?:\/|$)/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname))) return;
 
     var trigger = event.target && event.target.closest
       ? event.target.closest('[data-pmd-device-open]')
@@ -372,7 +385,7 @@
   }
 
   function mount() {
-    if (!/^\/admin\/pmddevices(?:\/|$)/.test(location.pathname)) return;
+    if (!/^\/admin\/pmddevices(?:\/|$)/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname))) return;
 
     var section = document.getElementById('payment-terminals');
     if (!section) return;

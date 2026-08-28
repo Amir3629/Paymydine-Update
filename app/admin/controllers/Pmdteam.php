@@ -21,6 +21,7 @@ use Illuminate\Validation\ValidationException;
  */
 class Pmdteam extends AdminController
 {
+    // PMD_SETTINGS_REPORTS_PLATFORM_I18N_V16_2
     protected $requiredPermissions = 'Site.Settings';
 
     public function __construct()
@@ -39,8 +40,8 @@ class Pmdteam extends AdminController
 
     public function index()
     {
-        Template::setTitle('Team & access');
-        Template::setHeading('Team & access');
+        Template::setTitle(\Admin\Classes\PmdPlatformI18n::fromEnglish('Team & access', 'settings.'));
+        Template::setHeading(\Admin\Classes\PmdPlatformI18n::fromEnglish('Team & access', 'settings.'));
 
         $roleService = app(PmdDefaultStaffRoleService::class);
         $managedRoles = collect($roleService->ensure())->keyBy('staff_role_id');
@@ -91,7 +92,7 @@ class Pmdteam extends AdminController
         $rules = [
             'staff_role_id' => ['required', 'integer', function ($attribute, $value, $fail) use ($managedRoles) {
                 if (!$managedRoles->has((int)$value)) {
-                    $fail('Choose one of the default staff roles.');
+                    $fail(\Admin\Classes\PmdPlatformI18n::fromEnglish('Choose one of the default staff roles.', 'settings.'));
                 }
             }],
             'staff_name' => [
@@ -147,7 +148,7 @@ class Pmdteam extends AdminController
             $member->addStaffGroups([]);
         });
 
-        flash()->success($staffId ? 'Staff member updated.' : 'Staff member added.');
+        flash()->success(\Admin\Classes\PmdPlatformI18n::fromEnglish($staffId ? 'Staff member updated.' : 'Staff member added.', 'settings.'));
         return ['ok' => true];
     }
 

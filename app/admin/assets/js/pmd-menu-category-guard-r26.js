@@ -8,7 +8,7 @@
 (function () {
     'use strict';
 
-    var pagePath = String(window.location.pathname || '').replace(/\/+$/, '');
+    var pagePath = String((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : window.location.pathname) || '').replace(/\/+$/, '');
     if (pagePath !== '/admin/pmdmenus') return;
 
     var state = null;

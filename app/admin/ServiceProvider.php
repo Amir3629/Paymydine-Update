@@ -69,6 +69,15 @@ class ServiceProvider extends AppServiceProvider
         $this->app[Kernel::class]->prependMiddleware(
             \App\Http\Middleware\PmdAdminTenantAuthContext::class
         );
+
+        // PMD_ADMIN_PAGE_RETIREMENT_R77
+        //
+        // One global URL-surface authority for retired Admin pages.
+        // H pages: document navigation only, preserving backend/AJAX.
+        // X pages: every GET/HEAD is retired.
+        $this->app[Kernel::class]->prependMiddleware(
+            \App\Http\Middleware\PmdAdminRetiredPagesR77::class
+        );
         // PMD_SUPERADMIN_RECOVERY_R1_START
         // RETIRED_BY_PMD_SUPERADMIN_R2
         //
@@ -538,15 +547,6 @@ class ServiceProvider extends AppServiceProvider
                         ],
                     ],
                 ],
-                // PMD_ADMIN_QUICK_MODE_MENU_ITEM_20260616
-                'quick_mode' => [
-                    'priority' => 998,
-                    'class' => 'tools',
-                    'href' => admin_url('quick-mode?preview=pmdquick2026'),
-                    'title' => '⚡ Quick Mode',
-                    'permission' => 'Admin.Orders',
-                ],
-
                 'system' => [
                     'priority' => 999,
                     'class' => 'system',

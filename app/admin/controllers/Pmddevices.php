@@ -22,6 +22,7 @@ use Illuminate\Support\Facades\Schema;
  */
 class Pmddevices extends AdminController
 {
+    // PMD_SETTINGS_REPORTS_PLATFORM_I18N_V16_2
     protected $requiredPermissions = 'Site.Settings';
 
     public function __construct()
@@ -43,8 +44,8 @@ class Pmddevices extends AdminController
 
     public function index()
     {
-        Template::setTitle('Devices & hardware');
-        Template::setHeading('Devices & hardware');
+        Template::setTitle(\Admin\Classes\PmdPlatformI18n::fromEnglish('Devices & hardware', 'settings.'));
+        Template::setHeading(\Admin\Classes\PmdPlatformI18n::fromEnglish('Devices & hardware', 'settings.'));
 
         $pos = $this->safeCollection(Pos_devices_model::class, 'pos_devices', 'name');
         $terminals = $this->safeCollection(Terminal_devices_model::class, 'terminal_devices', 'terminal_device_id');

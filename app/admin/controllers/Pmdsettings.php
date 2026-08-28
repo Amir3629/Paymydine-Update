@@ -19,6 +19,7 @@ use Illuminate\Validation\ValidationException;
  */
 class Pmdsettings extends AdminController
 {
+    // PMD_SETTINGS_REPORTS_PLATFORM_I18N_V16_2
     protected $requiredPermissions = 'Site.Settings';
 
     public function __construct()
@@ -37,15 +38,16 @@ class Pmdsettings extends AdminController
         } else {
             $this->addCss('css/pmd-settings-center-v1.css');
         }
-        $this->addCss('css/pmd-settings-suite-first-paint-v1.css');
+        // PMD_SETTINGS_SINGLE_FONT_AUTHORITY_R87A
+        $this->addCss('css/pmd-settings-suite-first-paint-v2.css');
 
         AdminMenu::setContext('settings', 'system');
     }
 
     public function index()
     {
-        Template::setTitle('Settings');
-        Template::setHeading('Settings');
+        Template::setTitle(\Admin\Classes\PmdPlatformI18n::fromEnglish('Settings', 'settings.'));
+        Template::setHeading(\Admin\Classes\PmdPlatformI18n::fromEnglish('Settings', 'settings.'));
 
         $locationId = $this->currentLocationId();
 
@@ -59,8 +61,8 @@ class Pmdsettings extends AdminController
 
     public function restaurant()
     {
-        Template::setTitle('Restaurant profile');
-        Template::setHeading('Restaurant profile');
+        Template::setTitle(\Admin\Classes\PmdPlatformI18n::fromEnglish('Restaurant profile', 'settings.'));
+        Template::setHeading(\Admin\Classes\PmdPlatformI18n::fromEnglish('Restaurant profile', 'settings.'));
 
         $locationId = $this->currentLocationId();
 
@@ -80,8 +82,8 @@ class Pmdsettings extends AdminController
     /* PMD_FRONTEND_SETTINGS_V2_CONTROLLER */
     public function frontend()
     {
-        Template::setTitle('Customer menu & themes');
-        Template::setHeading('Customer menu & themes');
+        Template::setTitle(\Admin\Classes\PmdPlatformI18n::fromEnglish('Customer menu & themes', 'settings.'));
+        Template::setHeading(\Admin\Classes\PmdPlatformI18n::fromEnglish('Customer menu & themes', 'settings.'));
         $this->vars['pmdFrontend'] = $this->frontendExperiencePayload();
         return $this->makeView('pmdsettings/frontend');
     }
@@ -162,9 +164,9 @@ class Pmdsettings extends AdminController
             $this->resolvedRestaurantIdentityR25(true);
         });
 
-        flash()->success('Customer menu settings saved.');
+        flash()->success(\Admin\Classes\PmdPlatformI18n::fromEnglish('Customer menu settings saved.', 'settings.'));
         return [
-            '#pmd-frontend-save-status' => '<span class="pmd-frontend-save-status is-success">Saved</span>',
+            '#pmd-frontend-save-status' => '<span class="pmd-frontend-save-status is-success">'.\Admin\Classes\PmdPlatformI18n::fromEnglish('Saved', 'settings.').'</span>',
         ];
     }
 
@@ -305,17 +307,17 @@ class Pmdsettings extends AdminController
         $input = (array)post('pmd_identity', []);
         $siteName = trim((string)($input['site_name'] ?? ''));
         if ($siteName === '' || mb_strlen($siteName) > 191) {
-            throw new \RuntimeException('Restaurant name is required and must be 191 characters or fewer.');
+            throw new \RuntimeException(\Admin\Classes\PmdPlatformI18n::fromEnglish('Restaurant name is required and must be 191 characters or fewer.', 'settings.'));
         }
 
         $settings = ['site_name' => $siteName];
         $file = request()->file('pmd_restaurant_logo');
         if ($file) {
             if (!$file->isValid()) {
-                throw new \RuntimeException('The uploaded logo could not be read.');
+                throw new \RuntimeException(\Admin\Classes\PmdPlatformI18n::fromEnglish('The uploaded logo could not be read.', 'settings.'));
             }
             if ((int)$file->getSize() > 5 * 1024 * 1024) {
-                throw new \RuntimeException('Restaurant logo must be 5 MB or smaller.');
+                throw new \RuntimeException(\Admin\Classes\PmdPlatformI18n::fromEnglish('Restaurant logo must be 5 MB or smaller.', 'settings.'));
             }
             $mime = strtolower((string)$file->getMimeType());
             $extensions = [
@@ -324,11 +326,11 @@ class Pmdsettings extends AdminController
                 'image/webp' => 'webp',
             ];
             if (!isset($extensions[$mime])) {
-                throw new \RuntimeException('Restaurant logo must be PNG, JPG or WEBP.');
+                throw new \RuntimeException(\Admin\Classes\PmdPlatformI18n::fromEnglish('Restaurant logo must be PNG, JPG or WEBP.', 'settings.'));
             }
             $directory = base_path('assets/media/attachments/public');
             if (!is_dir($directory) && !@mkdir($directory, 0755, true) && !is_dir($directory)) {
-                throw new \RuntimeException('Unable to create the PayMyDine media directory.');
+                throw new \RuntimeException(\Admin\Classes\PmdPlatformI18n::fromEnglish('Unable to create the PayMyDine media directory.', 'settings.'));
             }
             $filename = 'pmd_restaurant_logo_'.date('Ymd_His').'_'.bin2hex(random_bytes(6)).'.'.$extensions[$mime];
             $file->move($directory, $filename);
@@ -341,9 +343,9 @@ class Pmdsettings extends AdminController
         }
         $this->persistSettingsDirectR25($settings);
 
-        flash()->success('Restaurant identity saved.');
+        flash()->success(\Admin\Classes\PmdPlatformI18n::fromEnglish('Restaurant identity saved.', 'settings.'));
         return [
-            '#pmd-restaurant-identity-status-r11' => '<span class="pmd-identity-r11__status">Saved</span>',
+            '#pmd-restaurant-identity-status-r11' => '<span class="pmd-identity-r11__status">'.\Admin\Classes\PmdPlatformI18n::fromEnglish('Saved', 'settings.').'</span>',
         ];
     }
 
@@ -389,17 +391,17 @@ class Pmdsettings extends AdminController
         // PMD_NATIVE_MULTIPART_LOGO_UPLOAD_R22_CONTROLLER
         $file = request()->file('pmd_restaurant_logo');
         if (!$file) return null;
-        if (!$file->isValid()) throw new \RuntimeException('The uploaded restaurant logo could not be read.');
+        if (!$file->isValid()) throw new \RuntimeException(\Admin\Classes\PmdPlatformI18n::fromEnglish('The uploaded restaurant logo could not be read.', 'settings.'));
         if ((int)$file->getSize() <= 0 || (int)$file->getSize() > 5 * 1024 * 1024) {
-            throw new \RuntimeException('Restaurant logo must be between 1 byte and 5 MB.');
+            throw new \RuntimeException(\Admin\Classes\PmdPlatformI18n::fromEnglish('Restaurant logo must be between 1 byte and 5 MB.', 'settings.'));
         }
         $mime = strtolower((string)$file->getMimeType());
         $extensions = ['image/png'=>'png', 'image/jpeg'=>'jpg', 'image/webp'=>'webp'];
-        if (!isset($extensions[$mime])) throw new \RuntimeException('Restaurant logo must be PNG, JPG or WEBP.');
+        if (!isset($extensions[$mime])) throw new \RuntimeException(\Admin\Classes\PmdPlatformI18n::fromEnglish('Restaurant logo must be PNG, JPG or WEBP.', 'settings.'));
 
         $directory = base_path('assets/media/attachments/public');
         if (!is_dir($directory) && !@mkdir($directory, 0755, true) && !is_dir($directory)) {
-            throw new \RuntimeException('Unable to create the PayMyDine media directory.');
+            throw new \RuntimeException(\Admin\Classes\PmdPlatformI18n::fromEnglish('Unable to create the PayMyDine media directory.', 'settings.'));
         }
         $filename = 'pmd_restaurant_logo_'.date('Ymd_His').'_'.bin2hex(random_bytes(6)).'.'.$extensions[$mime];
         $file->move($directory, $filename);
@@ -407,7 +409,7 @@ class Pmdsettings extends AdminController
         @chmod($stored, 0644);
         if (!$this->restaurantLogoIsValidFileR22($stored)) {
             @unlink($stored);
-            throw new \RuntimeException('Restaurant logo upload was received but the stored image failed validation.');
+            throw new \RuntimeException(\Admin\Classes\PmdPlatformI18n::fromEnglish('Restaurant logo upload was received but the stored image failed validation.', 'settings.'));
         }
         return '/api/media/'.$filename;
     }
@@ -437,7 +439,7 @@ class Pmdsettings extends AdminController
     protected function persistSettingsDirectR25(array $values): void
     {
         if (!Schema::hasTable('settings')) {
-            throw new \RuntimeException('Tenant settings table is unavailable.');
+            throw new \RuntimeException(\Admin\Classes\PmdPlatformI18n::fromEnglish('Tenant settings table is unavailable.', 'settings.'));
         }
 
         $columns = Schema::getColumnListing('settings');
@@ -703,10 +705,10 @@ class Pmdsettings extends AdminController
             }
         });
 
-        flash()->success('Restaurant profile saved.');
+        flash()->success(\Admin\Classes\PmdPlatformI18n::fromEnglish('Restaurant profile saved.', 'settings.'));
 
         return [
-            '#pmd-profile-save-status' => '<span class="pmd-profile-save-status is-success">Saved</span>',
+            '#pmd-profile-save-status' => '<span class="pmd-profile-save-status is-success">'.\Admin\Classes\PmdPlatformI18n::fromEnglish('Saved', 'settings.').'</span>',
         ];
     }
 
@@ -822,36 +824,41 @@ class Pmdsettings extends AdminController
     protected function groups(int $locationId): array
     {
         return [
+            // PMD_SETTINGS_SERVER_COPY_AUTHORITY_R88A
+            // Visible Settings landing copy is final in server HTML.
+            // CSS and canonical href changes must not alter the wording.
             [
                 'id' => 'restaurant', 'eyebrow' => '', 'title' => 'Restaurant', 'description' => '',
                 'items' => [
-                    $this->item('Restaurant profile', 'Name, contact, address, opening hours, website and social links.', 'restaurant', admin_url('pmdsettings/restaurant'), ''),
+                    $this->item('Restaurant profile', 'Manage your restaurant details.', 'restaurant', admin_url('pmdsettings/restaurant'), ''),
                 ],
             ],
             [
                 'id' => 'guest', 'eyebrow' => '', 'title' => 'Menu & Guest Experience', 'description' => '',
                 'items' => [
-                    $this->item('Customer menu & themes', 'QR menu theme, languages, waiter, valet, ordering, split bill, tips, coupons and social visibility.', 'palette', admin_url('pmdsettings/frontend'), ''),
-                    $this->item('Menu & checkout', 'Guest-facing menu, highlights, review prompt and checkout experience.', 'menu', admin_url('pmdmenu'), ''),
+                    $this->item('Customer menu theme', 'Choose your digital menu theme.', 'palette', admin_url('pmdsettings/frontend'), ''),
+                    // PMD_SETTINGS_REMOVE_MENU_CHECKOUT_CARD_R85
+                    // Intentionally not exposed in the Settings Center.
+                    // Pmdmenu remains available only as an internal/compatibility authority.
                     $this->item('Customer accounts', 'Guest registration and account communication settings.', 'user', admin_url('pmdcustomer'), ''),
                 ],
             ],
             [
                 'id' => 'team', 'eyebrow' => '', 'title' => 'Team & Access', 'description' => '',
                 'items' => [
-                    $this->item('Team & access', 'Staff, roles, permissions, login and PIN policies in one place.', 'users', admin_url('pmdteam'), ''),
+                    $this->item('Team & access', 'Manage staff and access.', 'users', admin_url('pmdteam'), ''),
                 ],
             ],
             [
                 'id' => 'devices', 'eyebrow' => '', 'title' => 'Devices & Hardware', 'description' => '',
                 'items' => [
-                    $this->item('Devices', 'KDS, POS terminals, cash drawers, biometric devices and connected screens.', 'monitor', admin_url('pmddevices'), ''),
+                    $this->item('Devices', 'Manage your connected devices.', 'monitor', admin_url('pmddevices'), ''),
                 ],
             ],
             [
                 'id' => 'finance', 'eyebrow' => '', 'title' => 'Payments & Finance', 'description' => '',
                 'items' => [
-                    $this->item('Payments & finance', 'Payment methods, VAT, invoicing and Fiskaly / TSE configuration in one place.', 'card', admin_url('pmdfinance'), ''),
+                    $this->item('Payments & finance', 'Set payments, tax and invoices.', 'card', admin_url('pmdfinance'), ''),
                 ],
             ],
             [

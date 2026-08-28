@@ -9,6 +9,8 @@
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-pos-product-details-v3.css') }}?v=27">
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-pos-polish-v26.css') }}?v=27" data-pmd-pos-polish-v26-style>
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-pos-simple-v27.css') }}?v=27" data-pmd-pos-simple-v27-style>
+    {{-- PMD_WAITER_PLATFORM_MESSAGES_V14: standalone page uses the same canonical platform payload. --}}
+    @include('admin::_partials.pmd_platform_messages')
 </head>
 <body class="pmd-waiter-pos-page">
 {!! $shell !!}

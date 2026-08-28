@@ -1,3 +1,10 @@
+@php
+    // PMD_SETTINGS_REPORTS_PLATFORM_I18N_V16
+    $pmdSettingsText = $pmdSettingsText ?? static function ($value) {
+        return \Admin\Classes\PmdPlatformI18n::fromEnglish((string)$value, 'settings.');
+    };
+@endphp
+
 <style id="pmd-frontend-settings-critical-v1">
 html,
 body,
@@ -51,20 +58,20 @@ body,
 <div id="pmd-frontend-settings" class="pmd-frontend-settings" data-pmd-frontend-settings>
     <header class="pmd-frontend-header">
         <div class="pmd-frontend-header__left">
-            <a class="pmd-frontend-icon-button" href="{{ admin_url('pmdsettings') }}" aria-label="Back to Settings" title="Back to Settings">
+            <a class="pmd-frontend-icon-button" href="{{ admin_url('pmdsettings') }}" aria-label="{{ $pmdSettingsText('Back to Settings') }}" title="{{ $pmdSettingsText('Back to Settings') }}">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg>
             </a>
             <div>
-                <h1>Customer menu & themes</h1>
-                <p>Choose the QR menu design and control the guest experience.</p>
+                <h1>{{ $pmdSettingsText('Customer menu & themes') }}</h1>
+                <p>{{ $pmdSettingsText('Choose the QR menu design and control the guest experience.') }}</p>
             </div>
         </div>
         <div class="pmd-frontend-header__actions">
             @include('admin::_partials.pmd_settings_family_notification_placeholder_v18')
 
             <span id="pmd-frontend-save-status"></span>
-            <a class="pmd-frontend-secondary-button" href="{{ root_url('/') }}" target="_blank" rel="noopener">Open customer menu</a>
-            <button type="submit" form="pmd-frontend-settings-form" class="pmd-frontend-save-icon" aria-label="Save changes" title="Save changes">
+            <a class="pmd-frontend-secondary-button" href="{{ root_url('/') }}" target="_blank" rel="noopener">{{ $pmdSettingsText('Open customer menu') }}</a>
+            <button type="submit" form="pmd-frontend-settings-form" class="pmd-frontend-save-icon" aria-label="{{ $pmdSettingsText('Save changes') }}" title="{{ $pmdSettingsText('Save changes') }}">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
             </button>
         </div>
@@ -76,7 +83,7 @@ body,
                 <div class="pmd-frontend-card__header">
                     <span class="pmd-frontend-section-icon is-violet"><svg viewBox="0 0 24 24"><path d="M4 20h16M6 16l3-9 3 6 3-9 3 12"></path></svg></span>
                     <div>
-                        <h2>Theme</h2>
+                        <h2>{{ $pmdSettingsText('Theme') }}</h2>
                         <p>Select exactly one customer menu. V2 renders this theme server-side before first paint.</p>
                     </div>
                 </div>
@@ -93,7 +100,7 @@ body,
                                 </span>
                                 <span class="pmd-theme-option__copy">
                                     <strong>{{ $theme['name'] }}</strong>
-                                    <small>{{ $theme['type'] }}</small>
+                                    <small>{{ $pmdSettingsText($theme['type']) }}</small>
                                 </span>
                                 <span class="pmd-theme-option__check"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"></path></svg></span>
                             </label>
@@ -108,7 +115,7 @@ body,
                 <div class="pmd-frontend-card__header">
                     <span class="pmd-frontend-section-icon is-blue"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"></path></svg></span>
                     <div>
-                        <h2>Languages</h2>
+                        <h2>{{ $pmdSettingsText('Languages') }}</h2>
                         <p>Languages guests can switch to. Menu translations still depend on translated content in the restaurant data.</p>
                     </div>
                 </div>
@@ -130,7 +137,7 @@ body,
                 <div class="pmd-frontend-card__header">
                     <span class="pmd-frontend-section-icon is-emerald"><svg viewBox="0 0 24 24"><path d="M5 4h14v12H9l-4 4V4Z"></path><path d="M9 9h6M9 12h4"></path></svg></span>
                     <div>
-                        <h2>QR guest experience</h2>
+                        <h2>{{ $pmdSettingsText('QR guest experience') }}</h2>
                         <p>Only controls features that belong in the dine-in QR journey.</p>
                     </div>
                 </div>
@@ -150,21 +157,21 @@ body,
                     <div class="pmd-toggle-grid">
                         @foreach($toggles as $toggle)
                             <label class="pmd-toggle-row">
-                                <span class="pmd-toggle-row__copy"><strong>{{ $toggle['label'] }}</strong><small>{{ $toggle['desc'] }}</small></span>
+                                <span class="pmd-toggle-row__copy"><strong>{{ $pmdSettingsText($toggle['label']) }}</strong><small>{{ $pmdSettingsText($toggle['desc']) }}</small></span>
                                 <span class="pmd-switch"><input type="checkbox" name="frontend[{{ $toggle['key'] }}]" value="1" {{ !empty($frontend[$toggle['key']]) ? 'checked' : '' }}><i></i></span>
                             </label>
                         @endforeach
                     </div>
                     <div class="pmd-subcard" style="margin-top:16px" data-pmd-service-charge-r35>
-                        <strong>Service cost</strong>
+                        <strong>{{ $pmdSettingsText('Service cost') }}</strong>
                         <p style="margin:.35rem 0 .8rem;color:#667085">Applied only to new QR table orders after this setting is saved. Existing orders keep their frozen totals.</p>
                         <div class="pmd-field-grid">
-                            <label class="pmd-field"><span>Type</span><select name="frontend[service_charge_type]">
-                                <option value="percentage" {{ ($frontend['service_charge_type'] ?? 'percentage') === 'percentage' ? 'selected' : '' }}>Percentage</option>
-                                <option value="fixed" {{ ($frontend['service_charge_type'] ?? 'percentage') === 'fixed' ? 'selected' : '' }}>Fixed amount</option>
+                            <label class="pmd-field"><span>{{ $pmdSettingsText('Type') }}</span><select name="frontend[service_charge_type]">
+                                <option value="percentage" {{ ($frontend['service_charge_type'] ?? 'percentage') === 'percentage' ? 'selected' : '' }}>{{ $pmdSettingsText('Percentage') }}</option>
+                                <option value="fixed" {{ ($frontend['service_charge_type'] ?? 'percentage') === 'fixed' ? 'selected' : '' }}>{{ $pmdSettingsText('Fixed amount') }}</option>
                             </select></label>
-                            <label class="pmd-field"><span>Value</span><input type="number" min="0" step="0.01" name="frontend[service_charge_value]" value="{{ $frontend['service_charge_value'] ?? 0 }}"></label>
-                            <label class="pmd-field"><span>Checkout / invoice label</span><input type="text" maxlength="191" name="frontend[service_charge_label]" value="{{ $frontend['service_charge_label'] ?? 'Service charge' }}"></label>
+                            <label class="pmd-field"><span>{{ $pmdSettingsText('Value') }}</span><input type="number" min="0" step="0.01" name="frontend[service_charge_value]" value="{{ $frontend['service_charge_value'] ?? 0 }}"></label>
+                            <label class="pmd-field"><span>{{ $pmdSettingsText('Checkout / invoice label') }}</span><input type="text" maxlength="191" name="frontend[service_charge_label]" value="{{ $frontend['service_charge_label'] ?? 'Service charge' }}"></label>
                         </div>
                     </div>
                 </div>
@@ -176,7 +183,7 @@ body,
                 <div class="pmd-frontend-card__header">
                     <span class="pmd-frontend-section-icon is-rose"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3a15 15 0 0 1 0 18"></path></svg></span>
                     <div>
-                        <h2>Website & featured social link</h2>
+                        <h2>{{ $pmdSettingsText('Website & featured social link') }}</h2>
                         <p>These destinations are optional. General restaurant social links also remain available in Restaurant profile.</p>
                     </div>
                 </div>
@@ -184,23 +191,23 @@ body,
                     <div class="pmd-frontend-two-col">
                         <div class="pmd-subcard">
                             <label class="pmd-toggle-row is-compact">
-                                <span class="pmd-toggle-row__copy"><strong>Website shortcut</strong><small>Show the restaurant website shortcut in themes that support it.</small></span>
+                                <span class="pmd-toggle-row__copy"><strong>{{ $pmdSettingsText('Website shortcut') }}</strong><small>Show the restaurant website shortcut in themes that support it.</small></span>
                                 <span class="pmd-switch"><input type="checkbox" name="frontend[website_enabled]" value="1" {{ !empty($frontend['website_enabled']) ? 'checked' : '' }}><i></i></span>
                             </label>
-                            <label class="pmd-field"><span>Website URL</span><input type="url" name="frontend[website_url]" value="{{ $frontend['website_url'] ?? '' }}" placeholder="https://restaurant.com"></label>
+                            <label class="pmd-field"><span>{{ $pmdSettingsText('Website URL') }}</span><input type="url" name="frontend[website_url]" value="{{ $frontend['website_url'] ?? '' }}" placeholder="https://restaurant.com"></label>
                         </div>
                         <div class="pmd-subcard">
                             <label class="pmd-toggle-row is-compact">
-                                <span class="pmd-toggle-row__copy"><strong>Featured social shortcut</strong><small>Show one featured social or review destination.</small></span>
+                                <span class="pmd-toggle-row__copy"><strong>{{ $pmdSettingsText('Featured social shortcut') }}</strong><small>Show one featured social or review destination.</small></span>
                                 <span class="pmd-switch"><input type="checkbox" name="frontend[featured_social_enabled]" value="1" {{ !empty($frontend['featured_social_enabled']) ? 'checked' : '' }}><i></i></span>
                             </label>
                             <div class="pmd-field-grid">
-                                <label class="pmd-field"><span>Platform</span><select name="frontend[featured_social_platform]">
+                                <label class="pmd-field"><span>{{ $pmdSettingsText('Platform') }}</span><select name="frontend[featured_social_platform]">
                                     @foreach(['instagram'=>'Instagram','facebook'=>'Facebook','trustpilot'=>'Trustpilot','reviews'=>'Reviews page','website'=>'Website / custom'] as $key=>$label)
                                         <option value="{{ $key }}" {{ ($frontend['featured_social_platform'] ?? 'instagram') === $key ? 'selected' : '' }}>{{ $label }}</option>
                                     @endforeach
                                 </select></label>
-                                <label class="pmd-field"><span>URL</span><input type="url" name="frontend[featured_social_url]" value="{{ $frontend['featured_social_url'] ?? '' }}" placeholder="https://..."></label>
+                                <label class="pmd-field"><span>{{ $pmdSettingsText('URL') }}</span><input type="url" name="frontend[featured_social_url]" value="{{ $frontend['featured_social_url'] ?? '' }}" placeholder="https://..."></label>
                             </div>
                         </div>
                     </div>
@@ -209,15 +216,15 @@ body,
         </section>
 
         <details class="pmd-frontend-advanced">
-            <summary>Compatibility options</summary>
+            <summary>{{ $pmdSettingsText('Compatibility options') }}</summary>
             <div class="pmd-frontend-card pmd-frontend-card--nested">
                 <div class="pmd-frontend-card__body">
                     <div class="pmd-frontend-two-col">
-                        <label class="pmd-field"><span>Kazen category layout</span><select name="frontend[kazen_menu_layout]">
-                            <option value="tabs" {{ ($frontend['kazen_menu_layout'] ?? 'tabs') === 'tabs' ? 'selected' : '' }}>Category tabs + item list</option>
-                            <option value="accordion" {{ ($frontend['kazen_menu_layout'] ?? 'tabs') === 'accordion' ? 'selected' : '' }}>Accordion categories</option>
-                        </select><small>This only affects Kazen compatibility behavior.</small></label>
-                        <div class="pmd-compat-note"><strong>Theme colors</strong><p>V2 themes keep their own isolated visual system. Legacy global primary/accent color overrides are intentionally not exposed here because they would reintroduce cross-theme styling.</p></div>
+                        <label class="pmd-field"><span>{{ $pmdSettingsText('Kazen category layout') }}</span><select name="frontend[kazen_menu_layout]">
+                            <option value="tabs" {{ ($frontend['kazen_menu_layout'] ?? 'tabs') === 'tabs' ? 'selected' : '' }}>{{ $pmdSettingsText('Category tabs + item list') }}</option>
+                            <option value="accordion" {{ ($frontend['kazen_menu_layout'] ?? 'tabs') === 'accordion' ? 'selected' : '' }}>{{ $pmdSettingsText('Accordion categories') }}</option>
+                        </select><small>{{ $pmdSettingsText('This only affects Kazen compatibility behavior.') }}</small></label>
+                        <div class="pmd-compat-note"><strong>{{ $pmdSettingsText('Theme colors') }}</strong><p>V2 themes keep their own isolated visual system. Legacy global primary/accent color overrides are intentionally not exposed here because they would reintroduce cross-theme styling.</p></div>
                     </div>
                 </div>
             </div>
@@ -226,7 +233,7 @@ body,
         <div class="pmd-frontend-bottom-save">
             <button type="submit" class="pmd-frontend-primary-button">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
-                <span>Save frontend settings</span>
+                <span>{{ $pmdSettingsText('Save frontend settings') }}</span>
             </button>
         </div>
     </form>

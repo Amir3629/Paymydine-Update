@@ -1,6 +1,19 @@
 (function () {
   'use strict';
 
+  // PMD_SETTINGS_DYNAMIC_I18N_V17
+  function settingsText(value) {
+    var runtime = window.PMDPlatformMessages;
+    value = String(value == null ? '' : value);
+    return runtime && typeof runtime.fromEnglish === 'function'
+      ? runtime.fromEnglish(value, 'settings.', value)
+      : value;
+  }
+
+  function settingsHtml(value) {
+    return esc(settingsText(value));
+  }
+
   if (window.PMDPaymentProviderCatalogueV3) return;
 
   var root = null;
@@ -63,7 +76,7 @@
       webhooks: 'Webhooks',
       oauth: 'Connect account'
     };
-    return map[value] || value;
+    return settingsText(map[value] || value);
   }
 
   function methodLabel(value) {
@@ -77,7 +90,7 @@
       sepa_debit: 'SEPA Direct Debit',
       cash_app: 'Cash App Pay'
     };
-    return map[value] || value;
+    return settingsText(map[value] || value);
   }
 
   function provider(code) {
@@ -94,7 +107,7 @@
 
   function chips(values, formatter) {
     values = Array.isArray(values) ? values : [];
-    if (!values.length) return '<span class="pmd-provider-muted">Not enabled yet</span>';
+    if (!values.length) return '<span class="pmd-provider-muted">' + settingsHtml('Not enabled yet') + '</span>';
     return '<div class="pmd-provider-chips">' + values.map(function (value) {
       return '<span>' + esc(formatter(value)) + '</span>';
     }).join('') + '</div>';
@@ -129,10 +142,10 @@
   }
 
   function sumupStatus(snapshot) {
-    if (snapshot.connection_status === 'connected') return 'Connected';
-    if (snapshot.connection_status === 'error') return 'Needs attention';
-    if (snapshot.configured) return 'Saved, not tested';
-    return 'Not connected';
+    if (snapshot.connection_status === 'connected') return settingsText('Connected');
+    if (snapshot.connection_status === 'error') return settingsText('Needs attention');
+    if (snapshot.configured) return settingsText('Saved, not tested');
+    return settingsText('Not connected');
   }
 
   function sumupStatusClass(snapshot) {
@@ -151,16 +164,18 @@
       var snapshot = sumupSnapshot(key);
       var count = Array.isArray(snapshot.terminals) ? snapshot.terminals.length : 0;
       if (snapshot.connection_status === 'connected') {
-        return (key === 'production' ? 'Production' : 'Test') + ' connected' + (count ? ' · ' + count + ' terminal' + (count === 1 ? '' : 's') : '');
+        var environmentLabel = settingsText(key === 'production' ? 'Production' : 'Test');
+        return environmentLabel + ' ' + settingsText('connected') +
+          (count ? ' · ' + count + ' ' + settingsText(count === 1 ? 'terminal' : 'terminals') : '');
       }
-      if (snapshot.configured) return 'Connection saved; test it before taking payments.';
-      return 'Connect this restaurant\'s SumUp account, then pair its terminals.';
+      if (snapshot.configured) return settingsText('Connection saved; test it before taking payments.');
+      return settingsText("Connect this restaurant's SumUp account, then pair its terminals.");
     }
 
     var readyMethods = definition.implemented_payment_methods || [];
     var readyCapabilities = definition.implemented_capabilities || [];
-    if (readyMethods.length || readyCapabilities.length) return 'Part of this provider flow already exists in PayMyDine.';
-    return 'Provider adapter is not enabled yet.';
+    if (readyMethods.length || readyCapabilities.length) return settingsText('Part of this provider flow already exists in PayMyDine.');
+    return settingsText('Provider adapter is not enabled yet.');
   }
 
   function providerStatus(definition) {
@@ -175,7 +190,7 @@
 
     var ready = (definition.implemented_payment_methods || []).length ||
       (definition.implemented_capabilities || []).length;
-    return {label: ready ? 'Partly ready' : 'Next', className: ready ? 'is-partial' : ''};
+    return {label: settingsText(ready ? 'Partly ready' : 'Next'), className: ready ? 'is-partial' : ''};
   }
 
   function renderProviderRow(definition) {
@@ -196,8 +211,8 @@
       : chips(capabilities, capabilityLabel);
 
     var action = code === 'sumup'
-      ? '<button type="button" class="pmd-provider-configure" data-provider-configure="sumup">Configure</button>'
-      : '<button type="button" class="pmd-provider-configure" data-pmd-inline-open="finance:provider:' + esc(code) + '">Configure</button>';
+      ? '<button type="button" class="pmd-provider-configure" data-provider-configure="sumup">' + settingsHtml('Configure') + '</button>'
+      : '<button type="button" class="pmd-provider-configure" data-pmd-inline-open="finance:provider:' + esc(code) + '">' + settingsHtml('Configure') + '</button>';
 
     return [
       '<article class="pmd-provider-row" id="provider-' + esc(code) + '">',
@@ -236,9 +251,9 @@
   function field(label, key, type, value, placeholder, readonly, help) {
     return [
       '<label class="pmd-provider-modal-field">',
-        '<span>' + esc(label) + '</span>',
-        '<input data-provider-sumup-field="' + esc(key) + '" type="' + esc(type) + '" value="' + esc(value || '') + '" placeholder="' + esc(placeholder || '') + '" ' + (readonly ? 'readonly ' : '') + 'autocomplete="off">',
-        help ? '<small>' + esc(help) + '</small>' : '',
+        '<span>' + settingsHtml(label) + '</span>',
+        '<input data-provider-sumup-field="' + esc(key) + '" type="' + esc(type) + '" value="' + esc(value || '') + '" placeholder="' + esc(placeholder ? settingsText(placeholder) : '') + '" ' + (readonly ? 'readonly ' : '') + 'autocomplete="off">',
+        help ? '<small>' + settingsHtml(help) + '</small>' : '',
       '</label>'
     ].join('');
   }
@@ -249,17 +264,17 @@
     var active = sumup && sumup.active_environment === key;
     return [
       '<button type="button" data-provider-sumup-env="' + key + '" class="' + (environment === key ? 'is-active' : '') + '">',
-        '<span>' + esc(label) + '</span>',
-        connected ? '<small><i></i>' + (active ? 'Active' : 'Connected') + '</small>' : '<small>' + (snapshot.configured ? 'Saved' : 'Not connected') + '</small>',
+        '<span>' + settingsHtml(label) + '</span>',
+        connected ? '<small><i></i>' + settingsHtml(active ? 'Active' : 'Connected') + '</small>' : '<small>' + settingsHtml(snapshot.configured ? 'Saved' : 'Not connected') + '</small>',
       '</button>'
     ].join('');
   }
 
   function terminalSummary(snapshot) {
     var terminals = Array.isArray(snapshot.terminals) ? snapshot.terminals : [];
-    if (!terminals.length) return '<span>No terminal paired in this environment.</span>';
+    if (!terminals.length) return '<span>' + settingsHtml('No terminal paired in this environment.') + '</span>';
     var online = terminals.filter(function (terminal) { return !!terminal.online; }).length;
-    return '<span>' + terminals.length + ' terminal' + (terminals.length === 1 ? '' : 's') + ' · ' + online + ' online</span>';
+    return '<span>' + terminals.length + ' ' + settingsHtml(terminals.length === 1 ? 'terminal' : 'terminals') + ' · ' + online + ' ' + settingsHtml('online') + '</span>';
   }
 
   function renderSumupModal() {
@@ -279,59 +294,59 @@
 
     host.innerHTML = [
       '<div class="pmd-provider-modal" role="presentation">',
-        '<button type="button" class="pmd-provider-modal__backdrop" aria-label="Close" data-provider-modal-close></button>',
+        '<button type="button" class="pmd-provider-modal__backdrop" aria-label="' + settingsHtml('Close') + '" data-provider-modal-close></button>',
         '<section class="pmd-provider-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="pmd-sumup-modal-title">',
           '<header class="pmd-provider-modal__header">',
             '<div>',
-              '<span class="pmd-provider-modal__kicker">PAYMENT PROVIDER</span>',
-              '<h2 id="pmd-sumup-modal-title">Configure SumUp</h2>',
-              '<p>Connect this restaurant\'s own SumUp account. Test and production credentials stay separate.</p>',
+              '<span class="pmd-provider-modal__kicker">' + settingsHtml('PAYMENT PROVIDER') + '</span>',
+              '<h2 id="pmd-sumup-modal-title">' + settingsHtml('Configure SumUp') + '</h2>',
+              '<p>' + settingsHtml("Connect this restaurant's own SumUp account. Test and production credentials stay separate.") + '</p>',
             '</div>',
-            '<button type="button" class="pmd-provider-modal__close" data-provider-modal-close aria-label="Close">×</button>',
+            '<button type="button" class="pmd-provider-modal__close" data-provider-modal-close aria-label="' + settingsHtml('Close') + '">×</button>',
           '</header>',
           '<div class="pmd-provider-modal__body">',
             '<div class="pmd-provider-modal__summary">',
-              '<div><strong>' + esc(sumupStatus(snapshot)) + '</strong><span>' + (environment === 'production' ? 'Production' : 'Test') + ' environment</span></div>',
+              '<div><strong>' + esc(sumupStatus(snapshot)) + '</strong><span>' + settingsHtml(environment === 'production' ? 'Production' : 'Test') + ' ' + settingsHtml('environment') + '</span></div>',
               statusBadge(sumupStatus(snapshot), sumupStatusClass(snapshot)),
             '</div>',
-            '<div class="pmd-provider-env-tabs" role="tablist" aria-label="SumUp environment">',
+            '<div class="pmd-provider-env-tabs" role="tablist" aria-label="' + settingsHtml('SumUp environment') + '">',
               envButton('test', 'Test'),
               envButton('production', 'Production'),
             '</div>',
             message ? '<div class="pmd-provider-modal-message ' + (messageError ? 'is-error' : 'is-success') + '">' + esc(message) + '</div>' : '',
             '<section class="pmd-provider-modal-section">',
-              '<div class="pmd-provider-modal-section__head"><div><strong>Connection</strong><span>' + (environment === 'test' ? 'Use the restaurant\'s SumUp sandbox credentials.' : 'Use the restaurant\'s live SumUp credentials.') + '</span></div>' + (active === environment ? '<em>Used for payments</em>' : '') + '</div>',
+              '<div class="pmd-provider-modal-section__head"><div><strong>' + settingsHtml('Connection') + '</strong><span>' + settingsHtml(environment === 'test' ? "Use the restaurant's SumUp sandbox credentials." : "Use the restaurant's live SumUp credentials.") + '</span></div>' + (active === environment ? '<em>' + settingsHtml('Used for payments') + '</em>' : '') + '</div>',
               '<div class="pmd-provider-modal-fields">',
                 field('Secret API Key', 'api-key', 'password', '', savedApi ? 'Saved — leave blank to keep it' : 'Enter Secret API Key', false, savedApi ? 'A secret is already stored for this environment.' : ''),
                 field('Affiliate Key', 'affiliate-key', 'password', '', savedAffiliate ? 'Saved — leave blank to keep it' : 'Enter Affiliate Key', false, savedAffiliate ? 'A key is already stored for this environment.' : ''),
                 field('Merchant Code', 'merchant-code', 'text', snapshot.merchant_code || '', 'Merchant code', false, 'Can be resolved automatically when the API key allows it.'),
                 field('PayMyDine App ID', 'app-id', 'text', appId, '', true, 'Managed by PayMyDine.'),
               '</div>',
-              '<p class="pmd-provider-modal-security">Saved secrets stay inside the current restaurant tenant and are never shown back in the browser.</p>',
+              '<p class="pmd-provider-modal-security">' + settingsHtml('Saved secrets stay inside the current restaurant tenant and are never shown back in the browser.') + '</p>',
             '</section>',
             '<section class="pmd-provider-modal-section is-compact">',
               '<div class="pmd-provider-modal-section__head">',
-                '<div><strong>Terminals</strong>' + terminalSummary(snapshot) + '</div>',
-                '<a class="pmd-provider-modal-link" href="/admin/pmddevices#payment-terminals">Manage terminals</a>',
+                '<div><strong>' + settingsHtml('Terminals') + '</strong>' + terminalSummary(snapshot) + '</div>',
+                '<a class="pmd-provider-modal-link" href="/admin/pmddevices#payment-terminals">' + settingsHtml('Manage terminals') + '</a>',
               '</div>',
             '</section>',
             '<section class="pmd-provider-modal-section is-compact">',
-              '<div class="pmd-provider-modal-section__head"><div><strong>Available in PayMyDine</strong><span>Only flows already implemented by PayMyDine are shown here.</span></div></div>',
+              '<div class="pmd-provider-modal-section__head"><div><strong>' + settingsHtml('Available in PayMyDine') + '</strong><span>' + settingsHtml('Only flows already implemented by PayMyDine are shown here.') + '</span></div></div>',
               '<div class="pmd-provider-modal-ready">',
-                '<div><span>Capabilities</span>' + chips(definition.implemented_capabilities || [], capabilityLabel) + '</div>',
-                '<div><span>Payment methods</span>' + chips(definition.implemented_payment_methods || [], methodLabel) + '</div>',
+                '<div><span>' + settingsHtml('Capabilities') + '</span>' + chips(definition.implemented_capabilities || [], capabilityLabel) + '</div>',
+                '<div><span>' + settingsHtml('Payment methods') + '</span>' + chips(definition.implemented_payment_methods || [], methodLabel) + '</div>',
               '</div>',
             '</section>',
             snapshot.last_error ? '<div class="pmd-provider-modal-message is-error">' + esc(snapshot.last_error) + '</div>' : '',
           '</div>',
           '<footer class="pmd-provider-modal__footer">',
             '<div class="pmd-provider-modal__footer-left">',
-              snapshot.configured ? '<button type="button" class="pmd-provider-secondary" data-provider-sumup-test ' + (busy ? 'disabled' : '') + '>Test saved connection</button>' : '',
-              connected && active !== environment ? '<button type="button" class="pmd-provider-secondary" data-provider-sumup-activate ' + (busy ? 'disabled' : '') + '>Use for payments</button>' : '',
+              snapshot.configured ? '<button type="button" class="pmd-provider-secondary" data-provider-sumup-test ' + (busy ? 'disabled' : '') + '>' + settingsHtml('Test saved connection') + '</button>' : '',
+              connected && active !== environment ? '<button type="button" class="pmd-provider-secondary" data-provider-sumup-activate ' + (busy ? 'disabled' : '') + '>' + settingsHtml('Use for payments') + '</button>' : '',
             '</div>',
             '<div class="pmd-provider-modal__footer-right">',
-              '<button type="button" class="pmd-provider-secondary" data-provider-modal-close ' + (busy ? 'disabled' : '') + '>Cancel</button>',
-              '<button type="button" class="pmd-provider-primary" data-provider-sumup-save ' + (busy ? 'disabled' : '') + '>' + (busy ? 'Working…' : 'Save & test connection') + '</button>',
+              '<button type="button" class="pmd-provider-secondary" data-provider-modal-close ' + (busy ? 'disabled' : '') + '>' + settingsHtml('Cancel') + '</button>',
+              '<button type="button" class="pmd-provider-primary" data-provider-sumup-save ' + (busy ? 'disabled' : '') + '>' + settingsHtml(busy ? 'Working…' : 'Save & test connection') + '</button>',
             '</div>',
           '</footer>',
         '</section>',
@@ -389,7 +404,7 @@
     try {
       await action();
     } catch (error) {
-      message = error && error.message ? error.message : 'Provider request failed.';
+      message = settingsText(error && error.message ? error.message : 'Provider request failed.');
       messageError = true;
     } finally {
       busy = false;
@@ -407,7 +422,7 @@
         body: JSON.stringify(form)
       });
       sumup = payload.state;
-      message = payload.message || 'Connected to SumUp.';
+      message = settingsText(payload.message || 'Connected to SumUp.');
       messageError = false;
     });
   }
@@ -421,7 +436,7 @@
         body: JSON.stringify({environment: env})
       });
       sumup = payload.state;
-      message = payload.message || 'SumUp connection is working.';
+      message = settingsText(payload.message || 'SumUp connection is working.');
       messageError = false;
     });
   }
@@ -435,7 +450,7 @@
         body: JSON.stringify({environment: env})
       });
       sumup = payload.state;
-      message = payload.message || 'Environment activated.';
+      message = settingsText(payload.message || 'Environment activated.');
       messageError = false;
     });
   }
@@ -483,7 +498,7 @@
   }
 
   function mount() {
-    if (!/^\/admin\/pmdfinance\/?$/.test(location.pathname)) return;
+    if (!/^\/admin\/pmdfinance\/?$/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname))) return;
     root = document.querySelector('[data-pmd-payment-provider-catalogue]');
     if (!root) return;
 
@@ -493,7 +508,7 @@
       var fallback = root.querySelector('[data-pmd-provider-fallback]');
       var warning = document.createElement('div');
       warning.className = 'pmd-provider-modal-message is-error';
-      warning.textContent = error && error.message ? error.message : 'Provider connections could not be loaded.';
+      warning.textContent = settingsText(error && error.message ? error.message : 'Provider connections could not be loaded.');
       if (fallback) root.insertBefore(warning, fallback);
       else root.appendChild(warning);
     });

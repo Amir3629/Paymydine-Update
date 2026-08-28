@@ -132,6 +132,21 @@
     return typeof value === 'string' && value !== '' ? value : (fallback || key);
   }
 
+  // PMD_ALLERGEN_DISPLAY_I18N_V14
+  function platformTr(key, fallback) {
+    var runtime = window.PMDPlatformMessages;
+    if (runtime && typeof runtime.t === 'function') {
+      return runtime.t(key, {}, fallback || key);
+    }
+    return fallback || key;
+  }
+
+  function allergenDisplayName(name) {
+    var raw = String(name == null ? '' : name).trim();
+    var slug = raw.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+    return slug ? platformTr('allergen.' + slug, raw) : raw;
+  }
+
   function allergenIconMarkup(name) {
     var key = String(name || '').trim().toLowerCase();
     if (key.indexOf('celery') !== -1) return '<path d="M12 21V9"></path><path d="M12 13c-4 0-7-2.5-7-6 4 0 7 2.5 7 6z"></path><path d="M12 10c0-3.5 2.5-6 6-6 0 3.5-2.5 6-6 6z"></path>';
@@ -589,7 +604,7 @@
           chip.className = 'pmd-combo-derived__allergen';
           chip.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true">' + allergenIconMarkup(name) + '</svg>';
           var text = document.createElement('b');
-          text.textContent = name;
+          text.textContent = allergenDisplayName(name);
           chip.appendChild(text);
           comboDerivedAllergens.appendChild(chip);
         });
@@ -4256,7 +4271,7 @@
     var id = params.get('pmd_id');
     if (mode === 'create') openFoodCreate(null);
     if (mode === 'edit' && id) openFoodEdit(id, null);
-    if (mode) history.replaceState(null, '', window.location.pathname + window.location.hash);
+    if (mode) history.replaceState(null, '', (window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : window.location.pathname) + window.location.hash);
   })();
 
   window.PMDMenuManagerV1 = {

@@ -1,3 +1,10 @@
+@php
+    // PMD_SETTINGS_REPORTS_PLATFORM_I18N_V16
+    $pmdSettingsText = $pmdSettingsText ?? static function ($value) {
+        return \Admin\Classes\PmdPlatformI18n::fromEnglish((string)$value, 'settings.');
+    };
+@endphp
+
 <style id="pmd-restaurant-profile-critical-v2">
 html,
 body,
@@ -43,10 +50,10 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
 <div id="pmd-restaurant-profile" class="pmd-restaurant-profile" data-pmd-restaurant-profile>
     <header class="pmd-profile-header" id="pmd-profile-header">
         <div class="pmd-profile-header__left">
-            <a class="pmd-profile-header-button pmd-profile-back" href="{{ admin_url('pmdsettings') }}" aria-label="Back to Settings" title="Back to Settings">
+            <a class="pmd-profile-header-button pmd-profile-back" href="{{ admin_url('pmdsettings') }}" aria-label="{{ $pmdSettingsText('Back to Settings') }}" title="{{ $pmdSettingsText('Back to Settings') }}">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg>
             </a>
-            <h1>Restaurant profile</h1>
+            <h1>{{ $pmdSettingsText('Restaurant profile') }}</h1>
         </div>
 
         <div class="pmd-profile-header__actions" data-pmd-profile-header-actions>
@@ -57,8 +64,8 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                 type="submit"
                 form="pmd-restaurant-profile-form"
                 class="pmd-profile-header-button pmd-profile-save-icon"
-                aria-label="Save changes"
-                title="Save changes"
+                aria-label="{{ $pmdSettingsText('Save changes') }}"
+                title="{{ $pmdSettingsText('Save changes') }}"
             >
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
             </button>
@@ -87,21 +94,21 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21h18M5 21V8l7-4 7 4v13M9 11h.01M15 11h.01M9 15h.01M15 15h.01"></path></svg>
                     </div>
                     <div>
-                        <h2>Restaurant details</h2>
-                        <p>Shown on your digital menu.</p>
+                        <h2>{{ $pmdSettingsText('Restaurant details') }}</h2>
+                        <p>{{ $pmdSettingsText('Shown on your digital menu.') }}</p>
                     </div>
                 </div>
 
                 <div class="pmd-profile-card__body">
                     <div class="pmd-profile-grid pmd-profile-grid--2">
                         <label class="pmd-profile-field pmd-profile-field--wide">
-                            <span>Restaurant name</span>
+                            <span>{{ $pmdSettingsText('Restaurant name') }}</span>
                             <input type="text" name="profile[name]" value="{{ $pmdProfile['name'] ?? '' }}" maxlength="191" required>
                         </label>
 
                         {{-- PMD_RESTAURANT_IDENTITY_UNIFIED_R19 --}}
                         <label class="pmd-profile-field pmd-profile-field--wide pmd-profile-logo-field-r19">
-                            <span>Restaurant logo</span>
+                            <span>{{ $pmdSettingsText('Restaurant logo') }}</span>
                             <div class="pmd-profile-logo-uploader-r19">
                                 <div class="pmd-profile-logo-input-r19">
                                     <input
@@ -110,11 +117,11 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                                         name="pmd_restaurant_logo"
                                         accept="image/png,image/jpeg,image/webp"
                                     >
-                                    <small class="pmd-profile-logo-help-r19">PNG, JPG or WEBP · max 5 MB.</small>
+                                    <small class="pmd-profile-logo-help-r19">{{ $pmdSettingsText('PNG, JPG or WEBP · max 5 MB.') }}</small>
                                     {{-- PMD_RESTAURANT_LOGO_REMOVE_R20 --}}
                                     <label class="pmd-profile-logo-remove-r20">
                                         <input type="checkbox" name="profile[remove_logo]" value="1">
-                                        <span>Remove logo</span>
+                                        <span>{{ $pmdSettingsText('Remove logo') }}</span>
                                     </label>
                                     @if(!empty($pmdProfile['site_logo']))
                                         <small class="pmd-profile-logo-source-r20">Current backend value: {{ $pmdProfile['site_logo'] }}</small>
@@ -122,21 +129,21 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                                 </div>
                                 <div id="pmd-restaurant-logo-preview-r19" class="pmd-profile-logo-preview-r19" data-pmd-logo-preview-r24="{{ $pmdProfile['site_logo_preview'] ?? '' }}">
                                     @if(!empty($pmdProfile['site_logo_preview']))
-                                        <img src="{{ $pmdProfile['site_logo_preview'] }}" alt="Current restaurant logo" data-pmd-current-restaurant-logo="r24">
+                                        <img src="{{ $pmdProfile['site_logo_preview'] }}" alt="{{ $pmdSettingsText('Current restaurant logo') }}" data-pmd-current-restaurant-logo="r24">
                                     @else
-                                        <span class="pmd-profile-logo-empty-r19">No restaurant logo selected</span>
+                                        <span class="pmd-profile-logo-empty-r19">{{ $pmdSettingsText('No restaurant logo selected') }}</span>
                                     @endif
                                 </div>
                             </div>
                         </label>
 
                         <label class="pmd-profile-field">
-                            <span>Public email</span>
+                            <span>{{ $pmdSettingsText('Public email') }}</span>
                             <input type="email" name="profile[email]" value="{{ $pmdProfile['email'] ?? '' }}" maxlength="191">
                         </label>
 
                         <label class="pmd-profile-field">
-                            <span>Phone</span>
+                            <span>{{ $pmdSettingsText('Phone') }}</span>
                             <input type="text" name="profile[telephone]" value="{{ $pmdProfile['telephone'] ?? '' }}" maxlength="64">
                         </label>
                     </div>
@@ -151,35 +158,35 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"></path><circle cx="12" cy="10" r="2.5"></circle></svg>
                     </div>
                     <div>
-                        <h2>Address</h2>
-                        <p>Physical location details shown to guests and staff.</p>
+                        <h2>{{ $pmdSettingsText('Address') }}</h2>
+                        <p>{{ $pmdSettingsText('Physical location details shown to guests and staff.') }}</p>
                     </div>
                 </div>
 
                 <div class="pmd-profile-card__body">
                     <div class="pmd-profile-grid pmd-profile-grid--2">
                         <label class="pmd-profile-field">
-                            <span>Address line 1</span>
+                            <span>{{ $pmdSettingsText('Address line 1') }}</span>
                             <input type="text" name="profile[address_1]" value="{{ $pmdProfile['address_1'] ?? '' }}" maxlength="191">
                         </label>
 
                         <label class="pmd-profile-field">
-                            <span>Address line 2</span>
+                            <span>{{ $pmdSettingsText('Address line 2') }}</span>
                             <input type="text" name="profile[address_2]" value="{{ $pmdProfile['address_2'] ?? '' }}" maxlength="191">
                         </label>
 
                         <label class="pmd-profile-field">
-                            <span>City</span>
+                            <span>{{ $pmdSettingsText('City') }}</span>
                             <input type="text" name="profile[city]" value="{{ $pmdProfile['city'] ?? '' }}" maxlength="120">
                         </label>
 
                         <label class="pmd-profile-field">
-                            <span>State / region</span>
+                            <span>{{ $pmdSettingsText('State / region') }}</span>
                             <input type="text" name="profile[state]" value="{{ $pmdProfile['state'] ?? '' }}" maxlength="120">
                         </label>
 
                         <label class="pmd-profile-field">
-                            <span>Postcode</span>
+                            <span>{{ $pmdSettingsText('Postcode') }}</span>
                             <input type="text" name="profile[postcode]" value="{{ $pmdProfile['postcode'] ?? '' }}" maxlength="32">
                         </label>
                     </div>
@@ -194,8 +201,8 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
                     </div>
                     <div>
-                        <h2>Opening hours</h2>
-                        <p>The shared restaurant schedule for reservations and availability.</p>
+                        <h2>{{ $pmdSettingsText('Opening hours') }}</h2>
+                        <p>{{ $pmdSettingsText('The shared restaurant schedule for reservations and availability.') }}</p>
                     </div>
                 </div>
 
@@ -205,11 +212,11 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                             <div class="pmd-profile-day-card" data-pmd-hours-row>
                                 <div class="pmd-profile-day-card__top">
                                     <div>
-                                        <strong>{{ $day['label'] }}</strong>
+                                        <strong>{{ $pmdSettingsText($day['label']) }}</strong>
                                         <span data-pmd-hours-state>{{ !empty($day['enabled']) ? 'Open' : 'Closed' }}</span>
                                     </div>
 
-                                    <label class="pmd-profile-switch" aria-label="{{ $day['label'] }} open">
+                                    <label class="pmd-profile-switch" aria-label="{{ $pmdSettingsText($day['label']) }} open">
                                         <input
                                             type="checkbox"
                                             name="hours[{{ $day['weekday'] }}][enabled]"
@@ -223,7 +230,7 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
 
                                 <div class="pmd-profile-day-card__times">
                                     <label class="pmd-profile-time">
-                                        <span>Opens</span>
+                                        <span>{{ $pmdSettingsText('Opens') }}</span>
                                         <input
                                             type="time"
                                             name="hours[{{ $day['weekday'] }}][opening_time]"
@@ -234,7 +241,7 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                                     </label>
 
                                     <label class="pmd-profile-time">
-                                        <span>Closes</span>
+                                        <span>{{ $pmdSettingsText('Closes') }}</span>
                                         <input
                                             type="time"
                                             name="hours[{{ $day['weekday'] }}][closing_time]"
@@ -258,8 +265,8 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"></path></svg>
                     </div>
                     <div>
-                        <h2>Website & social links</h2>
-                        <p>Shown to guests on your digital menu.</p>
+                        <h2>{{ $pmdSettingsText('Website & social links') }}</h2>
+                        <p>{{ $pmdSettingsText('Shown to guests on your digital menu.') }}</p>
                     </div>
                 </div>
 
@@ -289,10 +296,10 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                                                 <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"></path></svg>
                                             @endif
                                         </div>
-                                        <strong>{{ $social['label'] }}</strong>
+                                        <strong>{{ $pmdSettingsText($social['label']) }}</strong>
                                     </div>
 
-                                    <label class="pmd-profile-switch" aria-label="Enable {{ $social['label'] }}">
+                                    <label class="pmd-profile-switch" aria-label="Enable {{ $pmdSettingsText($social['label']) }}">
                                         <input
                                             type="checkbox"
                                             name="profile[{{ $social['key'] }}_enabled]"
@@ -304,7 +311,7 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                                 </div>
 
                                 <label class="pmd-profile-field">
-                                    <span class="sr-only">{{ $social['label'] }} URL</span>
+                                    <span class="sr-only">{{ $pmdSettingsText($social['label']) }} URL</span>
                                     <input
                                         type="url"
                                         name="profile[{{ $social['key'] }}_url]"
@@ -323,7 +330,7 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
         <div class="pmd-profile-bottom-save">
             <button type="submit" class="pmd-profile-bottom-save__button">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
-                <span>Save changes</span>
+                <span>{{ $pmdSettingsText('Save changes') }}</span>
             </button>
         </div>
     </form>

@@ -28,6 +28,21 @@
     });
   }
 
+  // PMD_ALLERGEN_DISPLAY_I18N_V14
+  function platformTr(key, fallback) {
+    var runtime = window.PMDPlatformMessages;
+    if (runtime && typeof runtime.t === 'function') {
+      return runtime.t(key, {}, fallback || key);
+    }
+    return fallback || key;
+  }
+
+  function allergenDisplayName(name) {
+    var raw = String(name == null ? '' : name).trim();
+    var slug = raw.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+    return slug ? platformTr('allergen.' + slug, raw) : raw;
+  }
+
   function money(api, value) {
     var symbol = (api && api.state && api.state.settings && api.state.settings.currency) || '€';
     return symbol + toNumber(value).toFixed(2);
@@ -161,9 +176,9 @@
       var allergenBox = $('[data-pos-detail-allergens]');
       if (allergenBox) {
         allergenBox.hidden = allergens.length < 1;
-        allergenBox.innerHTML = allergens.length ? '<div class="pmd-pos-detail-section-title"><span>Allergen information</span><small>Check with the guest before ordering</small></div><div class="pmd-pos-detail-allergen-list">' + allergens.map(function (allergen) {
+        allergenBox.innerHTML = allergens.length ? '<div class="pmd-pos-detail-section-title"><span>' + esc(platformTr('waiter.product_details.allergen_information', 'Allergen information')) + '</span><small>' + esc(platformTr('waiter.product_details.allergen_help', 'Check with the guest before ordering')) + '</small></div><div class="pmd-pos-detail-allergen-list">' + allergens.map(function (allergen) {
           var name = typeof allergen === 'string' ? allergen : (allergen.name || 'Allergen');
-          return '<span>' + esc(name) + '</span>';
+          return '<span>' + esc(allergenDisplayName(name)) + '</span>';
         }).join('') + '</div>' : '';
       }
 

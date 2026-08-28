@@ -1,4 +1,11 @@
 @php
+    // PMD_SETTINGS_REPORTS_PLATFORM_I18N_V16
+    $pmdSettingsText = $pmdSettingsText ?? static function ($value) {
+        return \Admin\Classes\PmdPlatformI18n::fromEnglish((string)$value, 'settings.');
+    };
+@endphp
+
+@php
     $catalog = $pmdDeviceModalCatalog ?? [];
     $idFor = function ($kind, $record) {
         if (!$record) return null;
@@ -44,21 +51,21 @@
 </div>
 
 <div class="pmd-device-v6-modal" data-pmd-device-modal hidden aria-hidden="true">
-    <button type="button" class="pmd-device-v6-backdrop" data-pmd-device-close aria-label="Close"></button>
+    <button type="button" class="pmd-device-v6-backdrop" data-pmd-device-close aria-label="{{ $pmdSettingsText('Close') }}"></button>
     <section class="pmd-device-v6-card" role="dialog" aria-modal="true" aria-labelledby="pmd-device-v6-modal-title">
         <header class="pmd-device-v6-card__header">
-            <h2 id="pmd-device-v6-modal-title" data-pmd-device-modal-title>Device settings</h2>
-            <button type="button" class="pmd-device-v6-close" data-pmd-device-close aria-label="Close" title="Close">
+            <h2 id="pmd-device-v6-modal-title" data-pmd-device-modal-title>{{ $pmdSettingsText('Device settings') }}</h2>
+            <button type="button" class="pmd-device-v6-close" data-pmd-device-close aria-label="{{ $pmdSettingsText('Close') }}" title="{{ $pmdSettingsText('Close') }}">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg>
             </button>
         </header>
         <div class="pmd-device-v6-card__body" data-pmd-device-modal-body></div>
         <footer class="pmd-device-v6-card__footer">
             <span class="pmd-device-v6-status" data-pmd-device-status aria-live="polite"></span>
-            <button type="button" class="pmd-device-v6-delete" data-pmd-device-delete hidden>Delete</button>
+            <button type="button" class="pmd-device-v6-delete" data-pmd-device-delete hidden>{{ $pmdSettingsText('Delete') }}</button>
             <span class="pmd-device-v6-footer-spacer"></span>
-            <button type="button" class="pmd-device-v6-secondary" data-pmd-device-close>Cancel</button>
-            <button type="button" class="pmd-device-v6-save" data-pmd-device-save>Save</button>
+            <button type="button" class="pmd-device-v6-secondary" data-pmd-device-close>{{ $pmdSettingsText('Cancel') }}</button>
+            <button type="button" class="pmd-device-v6-save" data-pmd-device-save>{{ $pmdSettingsText('Save') }}</button>
         </footer>
     </section>
 </div>

@@ -91,6 +91,9 @@ type MenuRuntimeValue = {
 
 const MenuRuntimeContext = createContext<MenuRuntimeValue | null>(null)
 
+// PMD_POST_PAYMENT_REVIEW_RESUME_R75
+const POST_PAYMENT_REVIEW_RESUME_KEY = 'pmd-v2:post-payment-review-resume'
+
 function optionKey(item: MenuItem, options: CartOptionSelection[]): string {
   const suffix = options
     .slice()
@@ -210,6 +213,7 @@ export function MenuRuntimeProvider({ bootstrap, children }: { bootstrap: Custom
   const [toast, setToast] = useState<ToastState>(null)
   const toastTimer = useRef<number | null>(null)
   const cartHydrated = useRef(false)
+  const postPaymentReviewHandled = useRef(false)
 
   const labels = useMemo(() => getLabels(locale), [locale])
   const direction = isRtlLocale(locale) ? 'rtl' : 'ltr'
@@ -463,6 +467,99 @@ export function MenuRuntimeProvider({ bootstrap, children }: { bootstrap: Custom
       document.removeEventListener('visibilitychange', onVisibility)
     }
   }, [bootstrap.table.id, bootstrap.table.number, bootstrap.table.qr, isPreview, refreshOrder])
+
+  // PMD_POST_PAYMENT_REVIEW_RESUME_R75
+  //
+  // Hosted/provider payment returns remount the menu, so the checkout overlay
+  // naturally starts closed. Once the normal table-order polling confirms the
+  // exact returned order is fully paid, reopen the existing checkout authority
+  // on that order. RuntimeOverlays then renders the existing R30 review card.
+  //
+  // The marker is:
+  // - same-tab only (sessionStorage)
+  // - one-shot
+  // - ignored after ten minutes
+  // - never used to mark an order paid; backend table state remains authority.
+  useEffect(() => {
+    if (isPreview || postPaymentReviewHandled.current || tableOrders.length === 0) return
+
+    let marker: {
+      orderIds?: number[]
+      createdAt?: number
+    } | null = null
+
+    try {
+      const raw = window.sessionStorage.getItem(
+        POST_PAYMENT_REVIEW_RESUME_KEY,
+      )
+
+      if (!raw) return
+
+      marker = JSON.parse(raw)
+    } catch {
+      try {
+        window.sessionStorage.removeItem(
+          POST_PAYMENT_REVIEW_RESUME_KEY,
+        )
+      } catch {}
+
+      postPaymentReviewHandled.current = true
+      return
+    }
+
+    const createdAt = Number(marker?.createdAt || 0)
+
+    if (
+      !Number.isFinite(createdAt)
+      || createdAt <= 0
+      || Date.now() - createdAt > 10 * 60 * 1000
+    ) {
+      try {
+        window.sessionStorage.removeItem(
+          POST_PAYMENT_REVIEW_RESUME_KEY,
+        )
+      } catch {}
+
+      postPaymentReviewHandled.current = true
+      return
+    }
+
+    const requestedIds = Array.isArray(marker?.orderIds)
+      ? Array.from(new Set(
+          marker.orderIds
+            .map((value) => Math.max(0, Math.trunc(Number(value || 0))))
+            .filter((value) => value > 0),
+        ))
+      : []
+
+    const isPaid = (order: TableOrderState) =>
+      order.paymentStatus === 'paid'
+      || order.totals.remainingAmount <= 0
+
+    const target = requestedIds.length > 0
+      ? tableOrders.find((order) =>
+          isPaid(order)
+          && requestedIds.includes(
+            Math.max(0, Math.trunc(Number(order.orderId || 0))),
+          ),
+        )
+      : tableOrders.find(isPaid)
+
+    // Settlement may still be propagating. Keep the marker and let the normal
+    // table-order polling retry this effect when fresh order state arrives.
+    if (!target?.orderId) return
+
+    postPaymentReviewHandled.current = true
+
+    try {
+      window.sessionStorage.removeItem(
+        POST_PAYMENT_REVIEW_RESUME_KEY,
+      )
+    } catch {}
+
+    setSelectedOrderId(target.orderId)
+    setOverlay('checkout')
+  }, [isPreview, tableOrders])
 
   // PMD_DIRECT_KITCHEN_SEND_R33B
   // The public UI still calls the legacy context method name for compatibility,

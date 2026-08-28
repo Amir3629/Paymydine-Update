@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\DB;
  */
 trait PmdreportsAttendanceConcern
 {
+    // PMD_SETTINGS_REPORTS_PLATFORM_I18N_V16_2
     protected function attendancePayload(Carbon $start, Carbon $end, string $period = 'today'): array
     {
         $locationId = (int)($this->locationId() ?? 0);
@@ -172,13 +173,13 @@ trait PmdreportsAttendanceConcern
             $activeSessions = (int)($onlineRow['session_count'] ?? 0);
             $online = $onlineIds->contains($staffId);
             $username = trim((string)optional($user)->username);
-            $role = trim((string)optional($staff->role)->name) ?: 'Staff';
+            $role = trim((string)optional($staff->role)->name) ?: $this->pmdReportText('Staff');
 
             $params = array_merge($this->periodQueryParams($period), ['staff_id' => $staffId]);
             $directory[] = [
                 'staff_id' => $staffId,
                 'user_id' => (int)optional($user)->getKey(),
-                'name' => trim((string)$staff->staff_name) ?: 'Staff',
+                'name' => trim((string)$staff->staff_name) ?: $this->pmdReportText('Staff'),
                 'username' => $username !== '' ? $username : '—',
                 'role' => $role,
                 'online' => $online,
@@ -190,7 +191,7 @@ trait PmdreportsAttendanceConcern
                 'attendance_shifts' => $staffAttendance->count(),
                 'worked_hours_value' => round($workedHours, 2),
                 'worked_hours' => number_format($workedHours, 2).' h',
-                'last_activity' => $lastActivity ? $lastActivity->format('d M Y · H:i') : 'No tracked activity',
+                'last_activity' => $lastActivity ? $lastActivity->format($this->pmdReportIsGerman() ? 'd.m.Y · H:i' : 'd M Y · H:i') : 'No tracked activity',
                 'detail_url' => admin_url('pmdreports/attendance').'?'.http_build_query($params),
             ];
 
@@ -304,8 +305,8 @@ trait PmdreportsAttendanceConcern
         $endAt = $logout ?: ($online ? $now : $expires);
 
         return [
-            'login' => $login ? $login->format('d M Y · H:i') : '—',
-            'end' => $online ? 'Online now' : ($endAt ? $endAt->format('d M Y · H:i') : '—'),
+            'login' => $login ? $login->format($this->pmdReportIsGerman() ? 'd.m.Y · H:i' : 'd M Y · H:i') : '—',
+            'end' => $online ? 'Online now' : ($endAt ? $endAt->format($this->pmdReportIsGerman() ? 'd.m.Y · H:i' : 'd M Y · H:i') : '—'),
             'duration' => $this->attendanceDuration((int)$metric['seconds']),
             'status' => $online ? 'Online' : ($logout ? 'Logged out' : 'Expired'),
             'ip' => trim((string)($session->ip_address ?? '')) ?: '—',
@@ -326,11 +327,11 @@ trait PmdreportsAttendanceConcern
             : ($checkOut ? 'checked_out' : 'checked_in');
 
         return [
-            'staff' => trim((string)optional($record->staff)->staff_name) ?: 'Staff',
-            'role' => trim((string)optional(optional($record->staff)->role)->name) ?: 'Staff',
-            'check_in' => $checkIn ? $checkIn->format('d M Y · H:i') : '—',
-            'check_out' => $checkOut ? $checkOut->format('d M Y · H:i') : 'Active',
-            'worked' => $checkOut ? number_format($hours, 2).' h' : 'In progress',
+            'staff' => trim((string)optional($record->staff)->staff_name) ?: $this->pmdReportText('Staff'),
+            'role' => trim((string)optional(optional($record->staff)->role)->name) ?: $this->pmdReportText('Staff'),
+            'check_in' => $checkIn ? $checkIn->format($this->pmdReportIsGerman() ? 'd.m.Y · H:i' : 'd M Y · H:i') : '—',
+            'check_out' => $checkOut ? $checkOut->format($this->pmdReportIsGerman() ? 'd.m.Y · H:i' : 'd M Y · H:i') : $this->pmdReportText('Active'),
+            'worked' => $checkOut ? number_format($hours, 2).' h' : $this->pmdReportText('In progress'),
             'verification' => $this->attendanceLabel($verification ?: 'manual'),
             'device' => trim((string)optional($record->device)->name)
                 ?: $this->attendanceLabel((string)($record->device_type ?? 'manual')),
@@ -366,6 +367,12 @@ trait PmdreportsAttendanceConcern
     {
         $seconds = max(0, $seconds);
         $minutes = intdiv($seconds, 60);
+        if ($this->pmdReportIsGerman()) {
+            if ($minutes < 60) return $minutes.' Min.';
+            $hours = intdiv($minutes, 60);
+            $remaining = $minutes % 60;
+            return $remaining > 0 ? $hours.' Std. '.$remaining.' Min.' : $hours.' Std.';
+        }
         if ($minutes < 60) return $minutes.' min';
         $hours = intdiv($minutes, 60);
         $remaining = $minutes % 60;
@@ -384,6 +391,6 @@ trait PmdreportsAttendanceConcern
     protected function attendanceLabel(string $value): string
     {
         $value = trim(str_replace(['_', '-'], ' ', $value));
-        return $value === '' ? '—' : ucwords($value);
+        return $value === '' ? '—' : $this->pmdReportText(ucwords($value));
     }
 }

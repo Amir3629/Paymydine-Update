@@ -103,7 +103,7 @@
       }
 
       var currentPath =
-        cleanPath(window.location.pathname);
+        cleanPath((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : window.location.pathname));
 
       var targetPath =
         cleanPath(link.href);
@@ -126,7 +126,7 @@
 
 
   var currentPath =
-    cleanPath(window.location.pathname);
+    cleanPath((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : window.location.pathname));
 
   if (!isDetailPath(currentPath)) {
     return;
@@ -653,7 +653,7 @@
 
       route:
         cleanPath(
-          window.location.pathname
+          (window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : window.location.pathname)
         ),
 
       header:

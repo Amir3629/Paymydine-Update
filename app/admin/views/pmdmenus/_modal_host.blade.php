@@ -1,4 +1,5 @@
 @php
+    // PMD_ALLERGEN_DISPLAY_I18N_V14
     $pmdMenuAllergenIcon = static function ($name) {
         $key = mb_strtolower(trim((string)$name));
         if (str_contains($key, 'celery')) return '<path d="M12 21V9"></path><path d="M12 13c-4 0-7-2.5-7-6 4 0 7 2.5 7 6z"></path><path d="M12 10c0-3.5 2.5-6 6-6 0 3.5-2.5 6-6 6z"></path>';
@@ -37,6 +38,7 @@
                 <form class="pmd-menu-form" data-pmd-menu-form enctype="multipart/form-data">
                     <input type="hidden" name="_token" value="{{ csrf_token() }}">
                     <input type="hidden" name="menu_id" value="" data-pmd-menu-id>
+                    <input type="hidden" name="allergen_ids_present" value="1">
 
                     <section class="pmd-menu-form__section">
                         <div class="pmd-menu-form__image-row">
@@ -146,7 +148,7 @@
                                     <input type="checkbox" name="allergen_ids[]" value="{{ (int)$allergen->allergen_id }}" data-pmd-menu-allergen-choice>
                                     <span>
                                         <svg viewBox="0 0 24 24" aria-hidden="true">{!! $pmdMenuAllergenIcon($allergen->name) !!}</svg>
-                                        <b>{{ $allergen->name }}</b>
+                                        <b>{{ $pmdAllergenLabel($allergen->name) }}</b>
                                     </span>
                                 </label>
                             @endforeach

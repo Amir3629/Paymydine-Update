@@ -159,6 +159,10 @@ class AdminController extends BaseController
         // Set an instance of the admin user
         $this->setUser(AdminAuth::user());
 
+        // PMD_ADMIN_SERVER_NATIVE_URLS_R81E
+        // Browser URL is canonical at routing time; no History correction
+        // asset is registered here.
+
         $this->fireSystemEvent('admin.controller.beforeInit');
 
         // @deprecated This event will be deprecated soon, use controller.beforeInit

@@ -285,6 +285,12 @@
     if (nextCopy && currentCopy) currentCopy.textContent = nextCopy.textContent;
     reloadDataFromDom();
 
+    // PMD_COUPON_KPI_AUTOFIT_R79
+    // The refresh zone includes the KPI row, so observe and fit the
+    // newly rendered nodes again after save/toggle/delete refreshes.
+    observeCouponKpiRow();
+    scheduleCouponKpiFit();
+
     var searchInput = q('[data-pmd-coupon-search]');
     if (searchInput) searchInput.value = state.search;
     qa('[data-pmd-type-filter]').forEach(function (button) { button.classList.toggle('is-active', button.getAttribute('data-pmd-type-filter') === state.type); });
@@ -479,10 +485,190 @@
     };
   }
 
+  // PMD_COUPON_KPI_AUTOFIT_R79
+  //
+  // Currency formatting can produce materially wider values than simple
+  // integer KPIs. Keep the normal CSS font size unless the ACTUAL rendered
+  // value crosses its own copy boundary; then shrink only that value.
+  //
+  // No fixed currency assumptions and no per-currency hacks.
+  var pmdKpiFitFrame = 0;
+  var pmdKpiResizeObserver = null;
+
+  // PMD_COUPON_KPI_CARD_BOUNDARY_R79B
+  function measureCouponKpiText(value) {
+    if (!value) return 0;
+
+    try {
+      var range = document.createRange();
+      range.selectNodeContents(value);
+
+      var rect = range.getBoundingClientRect();
+
+      if (typeof range.detach === 'function') {
+        range.detach();
+      }
+
+      return rect.width || 0;
+    } catch (error) {
+      return value.scrollWidth || 0;
+    }
+  }
+
+  function fitCouponKpiValues() {
+    qa('.pmd-coupon-kpi__copy > strong').forEach(function (value) {
+      var card = value.closest('.pmd-coupon-kpi');
+
+      if (!card) return;
+
+      // Reset to the canonical CSS typography before every measurement.
+      value.style.removeProperty('font-size');
+      value.style.removeProperty('letter-spacing');
+      value.removeAttribute('data-pmd-kpi-fit');
+
+      var computed = window.getComputedStyle(value);
+      var fontSize = parseFloat(computed.fontSize) || 34;
+
+      // Keep legibility, but allow extreme currencies/numbers to fit.
+      var minFontSize = 11;
+      var safetyGap = 4;
+
+      for (var step = 0; step < 40; step += 1) {
+        var cardRect = card.getBoundingClientRect();
+        var cardStyle = window.getComputedStyle(card);
+
+        var rightPadding =
+          parseFloat(cardStyle.paddingRight)
+          || 18;
+
+        var valueRect = value.getBoundingClientRect();
+
+        var availableWidth = Math.max(
+          1,
+          cardRect.right
+            - rightPadding
+            - valueRect.left
+            - safetyGap
+        );
+
+        var textWidth = measureCouponKpiText(value);
+
+        if (
+          textWidth <= availableWidth
+          || fontSize <= minFontSize
+        ) {
+          break;
+        }
+
+        fontSize -= 1;
+
+        value.style.setProperty(
+          'font-size',
+          fontSize + 'px'
+        );
+      }
+
+      // One proportional final correction for unusually long values.
+      var finalCardRect = card.getBoundingClientRect();
+      var finalCardStyle = window.getComputedStyle(card);
+
+      var finalRightPadding =
+        parseFloat(finalCardStyle.paddingRight)
+        || 18;
+
+      var finalValueRect = value.getBoundingClientRect();
+
+      var finalAvailable = Math.max(
+        1,
+        finalCardRect.right
+          - finalRightPadding
+          - finalValueRect.left
+          - safetyGap
+      );
+
+      var finalTextWidth = measureCouponKpiText(value);
+
+      if (
+        finalTextWidth > finalAvailable
+        && finalTextWidth > 0
+      ) {
+        var ratio = finalAvailable / finalTextWidth;
+
+        fontSize = Math.max(
+          9,
+          Math.floor(fontSize * ratio * 0.97)
+        );
+
+        value.style.setProperty(
+          'font-size',
+          fontSize + 'px'
+        );
+
+        value.style.setProperty(
+          'letter-spacing',
+          '-.055em'
+        );
+      }
+
+      value.setAttribute(
+        'data-pmd-kpi-fit',
+        String(Math.round(fontSize))
+      );
+    });
+  }
+
+  function scheduleCouponKpiFit() {
+    window.cancelAnimationFrame(pmdKpiFitFrame);
+
+    pmdKpiFitFrame = window.requestAnimationFrame(
+      fitCouponKpiValues
+    );
+  }
+
+  function observeCouponKpiRow() {
+    if (!window.ResizeObserver) return;
+
+    if (!pmdKpiResizeObserver) {
+      pmdKpiResizeObserver = new ResizeObserver(
+        scheduleCouponKpiFit
+      );
+    }
+
+    pmdKpiResizeObserver.disconnect();
+
+    var row = q('.pmd-coupon-kpis');
+    if (row) {
+      pmdKpiResizeObserver.observe(row);
+    }
+  }
+
+  function mountCouponKpiAutoFit() {
+    scheduleCouponKpiFit();
+    observeCouponKpiRow();
+
+    window.addEventListener(
+      'resize',
+      scheduleCouponKpiFit,
+      {passive: true}
+    );
+
+    // Web-font metrics can change after first paint.
+    if (
+      document.fonts
+      && document.fonts.ready
+      && typeof document.fonts.ready.then === 'function'
+    ) {
+      document.fonts.ready.then(
+        scheduleCouponKpiFit
+      );
+    }
+  }
+
   function init() {
     reloadDataFromDom();
     mountNotificationIntoHeader();
     handleLegacyOpen();
+    mountCouponKpiAutoFit();
     window.PMDCouponManagerV1 = {
       version: VERSION,
       samePageCreateEdit: true,

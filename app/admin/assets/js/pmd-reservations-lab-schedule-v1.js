@@ -7,7 +7,7 @@
 (function () {
   'use strict';
 
-  var route = String(window.location.pathname || '').replace(/\/+$/, '');
+  var route = String((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : window.location.pathname) || '').replace(/\/+$/, '');
   /*
    * PMD_RESERVATIONSLAB_MANAGERLAB_SHARED_HOST_V3
    *

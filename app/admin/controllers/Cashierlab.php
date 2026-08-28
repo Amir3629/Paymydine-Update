@@ -362,7 +362,7 @@ class Cashierlab extends PmdCleanWorkspaceControllerV1
     source: 'existing-dashboardwaiternew',
     inspect: function () {
       return {
-        route: window.location.pathname,
+        route: (window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : window.location.pathname),
         mobile: mobile ? mobile.matches : null,
         waiterLauncher:
           !!document.querySelector('[data-pmd-waiter-v2-root]'),

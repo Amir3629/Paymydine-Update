@@ -143,6 +143,35 @@
     var requestSerial = 0;
     var activeController = null;
 
+    // PMD_ADMIN_CANONICAL_BROWSER_URLS_R81C
+    //
+    // Browser History uses clean aliases, but this component's
+    // server fetch must keep using the current internal workspace
+    // controller for collision routes.
+    function pmdInternalRangeUrlR81C(value) {
+        var url = new URL(
+            value,
+            window.location.href
+        );
+
+        var path = String(
+            url.pathname || ''
+        ).replace(/\\/+$/, '');
+
+        if (path === '/admin/orders') {
+            url.pathname =
+                '/admin/cashierlab';
+        } else if (
+            path ===
+            '/admin/reservations'
+        ) {
+            url.pathname =
+                '/admin/reservationslab';
+        }
+
+        return url;
+    }
+
     function owningSection(node) {
         return node && node.closest
             ? node.closest('[data-pmd-ops-kind]')
@@ -323,7 +352,12 @@
             : null;
         if (!section) return;
 
-        swapRange(new URL(window.location.href), section, {
+        swapRange(
+            pmdInternalRangeUrlR81C(
+                window.location.href
+            ),
+            section,
+            {
             updateHistory: false,
             fallbackNavigation: false
         });
@@ -333,7 +367,12 @@
         version: '1.0.1',
         refresh: function (url) {
             var section = document.querySelector('[data-pmd-ops-kind]');
-            return swapRange(new URL(url || window.location.href, window.location.href), section, {
+            return swapRange(
+                pmdInternalRangeUrlR81C(
+                    url || window.location.href
+                ),
+                section,
+                {
                 updateHistory: false,
                 fallbackNavigation: false
             });
@@ -368,7 +407,7 @@
     'use strict';
 
     if (window.PMDCashierHistoryFastR48) return;
-    if (String(window.location.pathname || '').replace(/\/+$/, '') !== '/admin/cashierlab') return;
+    if (String((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : window.location.pathname) || '').replace(/\/+$/, '') !== '/admin/cashierlab') return;
 
     var CACHE_TTL_MS = 30000;
     var cache = Object.create(null);

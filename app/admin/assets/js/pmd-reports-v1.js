@@ -1,6 +1,15 @@
 (function () {
   'use strict';
 
+  // PMD_SETTINGS_REPORTS_PLATFORM_I18N_V16
+  function reportText(value) {
+    var runtime = window.PMDPlatformMessages;
+    value = String(value == null ? '' : value);
+    return runtime && typeof runtime.fromEnglish === 'function'
+      ? runtime.fromEnglish(value, 'reports.', value)
+      : value;
+  }
+
   var root = document.querySelector('[data-pmd-report-page]');
   if (!root) return;
 
@@ -84,7 +93,7 @@
 
   function emptyChart() {
     if (!chartRoot) return;
-    chartRoot.innerHTML = '<div class="pmd-report-empty pmd-report-empty--inside"><strong>No chart data</strong><span>There is no activity to plot for this report window.</span></div>';
+    chartRoot.innerHTML = '<div class="pmd-report-empty pmd-report-empty--inside"><strong>' + escapeHtml(reportText('No chart data')) + '</strong><span>' + escapeHtml(reportText('There is no activity to plot for this report window.')) + '</span></div>';
   }
 
   function svgNode(name, attrs) {
@@ -116,7 +125,7 @@
     var svg = svgNode('svg', {
       viewBox: '0 0 ' + width + ' ' + height,
       role: 'img',
-      'aria-label': (tableData.title || 'Owner report') + ' chart'
+      'aria-label': (tableData.title || reportText('Owner report')) + ' ' + reportText('chart')
     });
 
     for (var i = 0; i <= 4; i++) {
@@ -247,7 +256,7 @@
     });
 
     var html = '<div class="pmd-report-donut-layout">';
-    html += '<div class="pmd-report-donut" role="img" aria-label="' + escapeHtml(tableData.title || 'Distribution') + ' distribution" style="background:conic-gradient(' + stops.join(',') + ')"></div>';
+    html += '<div class="pmd-report-donut" role="img" aria-label="' + escapeHtml(tableData.title || reportText('Distribution')) + ' ' + escapeHtml(reportText('distribution')) + stops.join(',') + ')"></div>';
     html += '<div class="pmd-report-donut-legend">';
 
     labels.forEach(function (label, index) {
@@ -423,7 +432,7 @@
     customLink.dataset.pmdCustomRangeToggle = '1';
     customLink.setAttribute('aria-haspopup', 'dialog');
     customLink.setAttribute('aria-expanded', 'false');
-    customLink.title = 'Choose a custom date range';
+    customLink.title = reportText('Choose a custom date range');
 
     if (!customRangePanel) {
       var current = new URL(window.location.href);
@@ -439,7 +448,7 @@
       customRangePanel.dataset.pmdCustomRangePanel = 'body-portal-v1';
       customRangePanel.hidden = true;
       customRangePanel.setAttribute('role', 'dialog');
-      customRangePanel.setAttribute('aria-label', 'Custom report date range');
+      customRangePanel.setAttribute('aria-label', reportText('Custom report date range'));
       customRangePanel.style.cssText = [
         'position:fixed',
         'left:12px',
@@ -459,22 +468,22 @@
 
       customRangePanel.innerHTML = '' +
         '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px">' +
-          '<div><strong style="display:block;color:#17332c;font-size:12px;font-weight:800">Custom date range</strong>' +
-          '<span style="display:block;margin-top:3px;color:#7b8985;font-size:10px;line-height:1.35">Choose inclusive start and end dates.</span></div>' +
-          '<button type="button" data-pmd-custom-close aria-label="Close" style="width:28px;height:28px;flex:0 0 28px;border:1px solid #e0e9e6;border-radius:8px;background:#fff;color:#61716c;font-size:18px;line-height:1;cursor:pointer">×</button>' +
+          '<div><strong style="display:block;color:#17332c;font-size:12px;font-weight:800">' + escapeHtml(reportText('Custom date range')) + '</strong>' +
+          '<span style="display:block;margin-top:3px;color:#7b8985;font-size:10px;line-height:1.35">' + escapeHtml(reportText('Choose inclusive start and end dates.')) + '</span></div>' +
+          '<button type="button" data-pmd-custom-close aria-label="' + escapeHtml(reportText('Close')) + '" style="width:28px;height:28px;flex:0 0 28px;border:1px solid #e0e9e6;border-radius:8px;background:#fff;color:#61716c;font-size:18px;line-height:1;cursor:pointer">×</button>' +
         '</div>' +
         '<div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px">' +
-          '<label style="display:grid;gap:5px;color:#6b7b76;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.04em">From' +
+          '<label style="display:grid;gap:5px;color:#6b7b76;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.04em">' + escapeHtml(reportText('From')) + '' +
             '<input type="date" data-pmd-custom-from style="width:100%;min-width:0;height:38px;box-sizing:border-box;border:1px solid #d6e5e1;border-radius:9px;background:#fff;color:#263b35;padding:0 9px;font:inherit;font-size:11px;font-weight:650">' +
           '</label>' +
-          '<label style="display:grid;gap:5px;color:#6b7b76;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.04em">To' +
+          '<label style="display:grid;gap:5px;color:#6b7b76;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.04em">' + escapeHtml(reportText('To')) + '' +
             '<input type="date" data-pmd-custom-to style="width:100%;min-width:0;height:38px;box-sizing:border-box;border:1px solid #d6e5e1;border-radius:9px;background:#fff;color:#263b35;padding:0 9px;font:inherit;font-size:11px;font-weight:650">' +
           '</label>' +
         '</div>' +
         '<div data-pmd-custom-error hidden style="margin-top:8px;color:#b42318;font-size:10.5px;font-weight:650"></div>' +
         '<div style="display:flex;justify-content:flex-end;gap:7px;margin-top:12px">' +
-          '<button type="button" data-pmd-custom-cancel style="height:34px;padding:0 11px;border:1px solid #d6e5e1;border-radius:9px;background:#fff;color:#586964;font-size:10.5px;font-weight:750;cursor:pointer">Cancel</button>' +
-          '<button type="button" data-pmd-custom-apply style="height:34px;padding:0 13px;border:1px solid #07805f;border-radius:9px;background:#07805f;color:#fff;font-size:10.5px;font-weight:800;cursor:pointer">Apply range</button>' +
+          '<button type="button" data-pmd-custom-cancel style="height:34px;padding:0 11px;border:1px solid #d6e5e1;border-radius:9px;background:#fff;color:#586964;font-size:10.5px;font-weight:750;cursor:pointer">' + escapeHtml(reportText('Cancel')) + '</button>' +
+          '<button type="button" data-pmd-custom-apply style="height:34px;padding:0 13px;border:1px solid #07805f;border-radius:9px;background:#07805f;color:#fff;font-size:10.5px;font-weight:800;cursor:pointer">' + escapeHtml(reportText('Apply range')) + '</button>' +
         '</div>';
 
       var fromInput = customRangePanel.querySelector('[data-pmd-custom-from]');
@@ -500,7 +509,7 @@
         var to = toInput.value;
 
         if (!isDateValue(from) || !isDateValue(to)) {
-          errorNode.textContent = 'Please choose both dates.';
+          errorNode.textContent = reportText('Please choose both dates.');
           errorNode.hidden = false;
           return;
         }
@@ -604,7 +613,7 @@
       else main.prepend(error);
     }
 
-    error.innerHTML = '<strong>Report unavailable</strong><span>' + escapeHtml(message) + '</span>';
+    error.innerHTML = '<strong>' + escapeHtml(reportText('Report unavailable')) + '</strong><span>' + escapeHtml(message) + '</span>';
   }
 
   function renderStats(stats) {
@@ -622,7 +631,7 @@
     if (!section) {
       section = document.createElement('section');
       section.className = 'pmd-report-stats';
-      section.setAttribute('aria-label', 'Summary');
+      section.setAttribute('aria-label', reportText('Summary'));
 
       var error = main.querySelector('.pmd-report-error');
       var switcher = main.querySelector('.pmd-report-switcher');
@@ -650,7 +659,7 @@
     var focus = root.querySelector('.pmd-report-focus-list');
     if (focus) {
       if (!visible.length) {
-        focus.innerHTML = '<div class="pmd-report-empty pmd-report-empty--inside"><strong>No activity yet</strong><span>There are no matching rows for this report window.</span></div>';
+        focus.innerHTML = '<div class="pmd-report-empty pmd-report-empty--inside"><strong>' + escapeHtml(reportText('No activity yet')) + '</strong><span>' + escapeHtml(reportText('There are no matching rows for this report window.')) + '</span></div>';
       } else {
         focus.innerHTML = visible.map(function (row) {
           return '<div class="pmd-report-focus-row">' +
@@ -666,7 +675,7 @@
     var operational = root.querySelector('.pmd-report-operational-grid');
     if (operational) {
       if (!visible.length) {
-        operational.innerHTML = '<div class="pmd-report-empty pmd-report-empty--inside"><strong>No activity yet</strong><span>There are no matching source rows for this report.</span></div>';
+        operational.innerHTML = '<div class="pmd-report-empty pmd-report-empty--inside"><strong>' + escapeHtml(reportText('No activity yet')) + '</strong><span>' + escapeHtml(reportText('There are no matching source rows for this report.')) + '</span></div>';
       } else {
         operational.innerHTML = visible.map(function (row) {
           return '<article class="pmd-report-operational-row">' +
@@ -696,7 +705,7 @@
 
       body.innerHTML = '<div class="pmd-report-table-wrap"><table class="pmd-report-table"><thead><tr>' + head + '</tr></thead><tbody>' + content + '</tbody></table></div>';
     } else {
-      body.innerHTML = '<div class="pmd-report-empty"><strong>No data for this view</strong><span>There is no matching source activity for the selected report window.</span></div>';
+      body.innerHTML = '<div class="pmd-report-empty"><strong>' + escapeHtml(reportText('No data for this view')) + '</strong><span>' + escapeHtml(reportText('There is no matching source activity for the selected report window.')) + '</span></div>';
     }
 
     var card = body.closest('.pmd-report-card');
@@ -705,7 +714,7 @@
       if (!copy.dataset.pmdReportBaseCopy) {
         copy.dataset.pmdReportBaseCopy = copy.textContent.replace(/\s*·\s*[\d,]+\s+rows?\s*$/i, '').trim();
       }
-      copy.textContent = copy.dataset.pmdReportBaseCopy + ' · ' + rows.length + ' row' + (rows.length === 1 ? '' : 's');
+      copy.textContent = copy.dataset.pmdReportBaseCopy + ' · ' + rows.length + ' ' + reportText(rows.length === 1 ? 'row' : 'rows');
     }
   }
 
@@ -714,7 +723,7 @@
     if (!source) return;
 
     var sourceText = source.querySelector('.pmd-report-source__copy span');
-    if (sourceText) sourceText.textContent = report.source || 'Dashboard2 canonical analytics source.';
+    if (sourceText) sourceText.textContent = report.source || reportText('Dashboard2 canonical analytics source.');
 
     var meta = source.querySelectorAll('.pmd-report-source-meta span');
     var currency = report.currency && report.currency.code ? report.currency.code : currencyCode();
@@ -783,7 +792,7 @@
 
     tableData = {
       type: report.type || root.getAttribute('data-pmd-report-type') || 'report',
-      title: report.title || 'Owner report',
+      title: report.title || reportText('Owner report'),
       columns: columns,
       rows: rows
     };
@@ -1006,9 +1015,22 @@
     var rootType = String(root.getAttribute('data-pmd-report-type') || '');
     var currentPath = current.pathname.replace(/\/+$/, '');
     var routeMatches =
-      (rootType === 'channels' && currentPath === '/admin/pmdreportchannels') ||
-      (rootType === 'tips' && currentPath === '/admin/pmdreporttips') ||
-      currentPath === '/admin/pmdreports/' + rootType;
+      (
+        rootType === 'channels'
+        && (
+          currentPath === '/admin/pmdreportchannels'
+          || currentPath === '/admin/reports/channels'
+        )
+      )
+      || (
+        rootType === 'tips'
+        && (
+          currentPath === '/admin/pmdreporttips'
+          || currentPath === '/admin/reports/tips'
+        )
+      )
+      || currentPath === '/admin/pmdreports/' + rootType
+      || currentPath === '/admin/reports/' + rootType;
 
     if (!routeMatches) {
       window.location.reload();

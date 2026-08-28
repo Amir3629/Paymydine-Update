@@ -12,6 +12,7 @@ use Illuminate\Validation\ValidationException;
 
 class Pmdadvanced extends AdminController
 {
+    // PMD_SETTINGS_REPORTS_PLATFORM_I18N_V16_2
     protected $requiredPermissions = 'Site.Settings';
 
     public function __construct()
@@ -28,8 +29,8 @@ class Pmdadvanced extends AdminController
 
     public function index()
     {
-        Template::setTitle('Advanced settings');
-        Template::setHeading('Advanced settings');
+        Template::setTitle(\Admin\Classes\PmdPlatformI18n::fromEnglish('Advanced settings', 'settings.'));
+        Template::setHeading(\Admin\Classes\PmdPlatformI18n::fromEnglish('Advanced settings', 'settings.'));
 
         try {
             $settings = $this->payload();
@@ -174,9 +175,9 @@ class Pmdadvanced extends AdminController
         setting()->set($values);
         setting()->save();
 
-        flash()->success('Advanced settings saved.');
+        flash()->success(\Admin\Classes\PmdPlatformI18n::fromEnglish('Advanced settings saved.', 'settings.'));
 
-        return ['#pmd-owner-save-status' => '<span>Saved</span>'];
+        return ['#pmd-owner-save-status' => '<span>'.\Admin\Classes\PmdPlatformI18n::fromEnglish('Saved', 'settings.').'</span>'];
     }
 
     protected function payload(): array

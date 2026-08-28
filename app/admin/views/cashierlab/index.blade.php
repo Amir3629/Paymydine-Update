@@ -54,7 +54,12 @@
     var url = new URL(window.location.href);
 
     if (
-      String(url.pathname).replace(/\/+$/, '') !== '/admin/cashierlab'
+      [
+        '/admin/cashierlab',
+        '/admin/orders'
+      ].indexOf(
+        String(url.pathname).replace(/\/+$/, '')
+      ) === -1
       || url.searchParams.get('pmd_cashier_quick') === '1'
     ) {
       return;

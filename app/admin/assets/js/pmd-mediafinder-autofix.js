@@ -1,7 +1,7 @@
 /* PMD_MEDIAFIX_ROUTE_GUARD_V51_START */
 (function () {
 
-  var __pmdPath = String((window.location && window.location.pathname) || '');
+  var __pmdPath = String((window.location && (window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : window.location.pathname)) || '');
   var __pmdSkip =
     __pmdPath === '/admin/pmdsettings/restaurant' ||
     __pmdPath === '/admin/kds_stations' ||
@@ -26,12 +26,12 @@
 
 
 /* PMD_DISABLE_CUSTOM_MEDIA_ON_SETTINGS_START */
-if (!(/\/admin\/settings(?:\/|$)|\/admin\/media_manager(?:\/|$)/.test(window.location.pathname || ""))) {
+if (!(/\/admin\/settings(?:\/|$)|\/admin\/media_manager(?:\/|$)/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : window.location.pathname) || ""))) {
 (function () {
   'use strict';
 
     // PMD_NATIVE_MEDIA_CONTEXT_GUARD
-    var pmdNativeMediaPath = window.location && window.location.pathname ? window.location.pathname : '';
+    var pmdNativeMediaPath = window.location && (window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : window.location.pathname) ? (window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : window.location.pathname) : '';
     if (/\/admin\/settings(\/|$)/.test(pmdNativeMediaPath) || /\/admin\/media_manager(\/|$)/.test(pmdNativeMediaPath)) {
         if (window.console) console.log('[PMD] custom media helper skipped on native settings/media manager page:', pmdNativeMediaPath);
         return;

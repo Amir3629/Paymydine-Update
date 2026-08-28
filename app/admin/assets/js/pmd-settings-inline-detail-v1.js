@@ -1,6 +1,15 @@
 (function () {
   'use strict';
 
+  // PMD_SETTINGS_REPORTS_PLATFORM_I18N_V16
+  function settingsText(value) {
+    var runtime = window.PMDPlatformMessages;
+    value = String(value == null ? '' : value);
+    return runtime && typeof runtime.fromEnglish === 'function'
+      ? runtime.fromEnglish(value, 'settings.', value)
+      : value;
+  }
+
   function boot() {
     var modal = document.querySelector('[data-pmd-inline-modal]');
     var templates = document.querySelector('[data-pmd-inline-templates]');
@@ -89,7 +98,7 @@
       bodyNode.replaceChildren(template.content.cloneNode(true));
       var form = currentForm();
       if (!form) return false;
-      if (titleNode) titleNode.textContent = form.getAttribute('data-pmd-inline-title') || 'Settings';
+      if (titleNode) titleNode.textContent = form.getAttribute('data-pmd-inline-title') || settingsText('Settings');
       setStatus('');
       setBusy(false);
       modal.hidden = false;
@@ -149,7 +158,7 @@
         headers: {'X-Requested-With': 'XMLHttpRequest', 'X-PMD-SETTINGS-INLINE-REFRESH': '1'},
         cache: 'no-store'
       });
-      if (!response.ok) throw new Error('Saved, but this settings section could not refresh (' + response.status + ')');
+      if (!response.ok) throw new Error(settingsText('Saved, but this settings section could not refresh') + ' (' + response.status + ')');
       var html = await response.text();
       var doc = new DOMParser().parseFromString(html, 'text/html');
       selectors.forEach(function (selector) {
@@ -192,14 +201,14 @@
         if (payload.X_IGNITER_ERROR_MESSAGE) throw new Error(payload.X_IGNITER_ERROR_MESSAGE);
 
         if (closeAfter) {
-          setStatus('Saved', 'ok');
+          setStatus(settingsText('Saved'), 'ok');
           await refreshSelectors(form);
           setBusy(false);
           closeModal();
           return;
         }
         displayResult(payload.raw && Object.keys(payload).length === 1 ? payload.raw : payload);
-        setStatus('Done', 'ok');
+        setStatus(settingsText('Done'), 'ok');
       } catch (error) {
         var msg = error && error.message ? error.message : 'Request failed';
         setStatus(msg, 'error');

@@ -136,6 +136,22 @@
       "name": "pmd-payment-provider-catalogue-v1-css"
     },
     {
+      "path": "css/pmd-finance-market-r4.css",
+      "name": "pmd-finance-market-r4-css"
+    },
+    {
+      "path": "css/pmd-finance-first-paint-r5.css",
+      "name": "pmd-finance-first-paint-r5-css"
+    },
+    {
+      "path": "css/pmd-new-tenant-onboarding-r7.css",
+      "name": "pmd-new-tenant-onboarding-r7-css"
+    },
+    {
+      "path": "css/pmd-location-live-clock-r10.css",
+      "name": "pmd-location-live-clock-r10-css"
+    },
+    {
       "path": "css/pmd-menu-all-foods-r27.css",
       "name": "pmd-menu-all-foods-r27-css"
     },
@@ -172,6 +188,10 @@
     {
       "path": "js/pmd-admin-favicon-final-r21.js",
       "name": "pmd-admin-favicon-final-r21-js"
+    },
+    {
+      "path": "js/pmd-location-live-clock-r10.js",
+      "name": "pmd-location-live-clock-r10-js"
     },
     {
       "path": "js/pmd-coupon-stable-r24.js",
@@ -246,8 +266,16 @@
       "name": "pmd-sumup-self-service-v1-js"
     },
     {
+      "path": "js/pmd-new-tenant-onboarding-r7.js",
+      "name": "pmd-new-tenant-onboarding-r7-js"
+    },
+    {
       "path": "js/pmd-payment-provider-catalogue-v1.js",
       "name": "pmd-payment-provider-catalogue-v1-js"
+    },
+    {
+      "path": "js/pmd-finance-market-r4.js",
+      "name": "pmd-finance-market-r4-js"
     },
     {
       "path": "js/pmd-sumup-inline-wallet-settings-v1.js",

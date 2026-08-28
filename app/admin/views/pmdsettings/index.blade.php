@@ -1,4 +1,11 @@
 @php
+    // PMD_SETTINGS_REPORTS_PLATFORM_I18N_V16
+    $pmdSettingsText = $pmdSettingsText ?? static function ($value) {
+        return \Admin\Classes\PmdPlatformI18n::fromEnglish((string)$value, 'settings.');
+    };
+@endphp
+
+@php
     /*
      * PMD_SETTINGS_CONTENT_HASH_ASSETS
      *
@@ -257,8 +264,14 @@ document.documentElement.classList.add(
 );
 </script>
 
-<link rel="stylesheet" href="/app/admin/assets/css/pmd-settings-center-v1.css?v={{ $pmdSettingsCenterCssVersion }}">
-<link rel="stylesheet" href="/app/admin/assets/css/pmd-settings-suite-first-paint-v1.css?v={{ $pmdSettingsSuiteCssVersion }}">
+{{-- PMD_SETTINGS_SINGLE_CSS_OWNER_R86
+     pmd-settings-center-v1.css and
+     pmd-settings-suite-first-paint-v1.css are already registered
+     by Pmdsettings::__construct() in the document head.
+
+     Do not load them again inside the rendered page:
+     the duplicate late stylesheets caused a second style/repaint pass.
+--}}
 
 @php
     /*
@@ -336,12 +349,12 @@ document.documentElement.classList.add(
     <header
         id="pmd-settings-clean-header"
         class="pmd-owner-header pmd-dashboard-lab__dashboard2-header"
-        aria-label="Settings header"
+        aria-label="{{ $pmdSettingsText('Settings header') }}"
         data-pmd-settings-server-header-v11
     >
         <div class="pmd-owner-header__left">
             <h1 class="pmd-settings-clean-title">
-                Settings
+                {{ $pmdSettingsText('Settings') }}
             </h1>
         </div>
 
@@ -373,9 +386,9 @@ document.documentElement.classList.add(
                     type="search"
                     class="pmd-settings-search"
                     data-pmd-settings-search
-                    placeholder="Search settings..."
+                    placeholder="{{ $pmdSettingsText('Search settings...') }}"
                     autocomplete="off"
-                    aria-label="Search settings"
+                    aria-label="{{ $pmdSettingsText('Search settings') }}"
                 >
 
                 <kbd>⌘ K</kbd>
@@ -854,7 +867,7 @@ document.documentElement.classList.add(
             {{-- PMD_SETTINGS_REMOVE_TOP_SCHEDULE_V9
      Opening hours now live inside Restaurant Profile. --}}
 
-            @foreach(($pmdSettingsGroups ?? []) as $group)
+            @foreach(\Admin\Classes\PmdPlatformI18n::translateStructure(($pmdSettingsGroups ?? []), 'settings.') as $group)
                 <section
                     id="pmd-settings-{{ $group['id'] }}"
                     class="pmd-settings-group"
@@ -926,8 +939,8 @@ document.documentElement.classList.add(
             @endforeach
 
             <div class="pmd-settings-empty" data-pmd-settings-empty hidden>
-                <span>No matching settings</span>
-                <small>Try another search term.</small>
+                <span>{{ $pmdSettingsText('No matching settings') }}</span>
+                <small>{{ $pmdSettingsText('Try another search term.') }}</small>
             </div>
         </main>
     </div>
@@ -1223,7 +1236,7 @@ document.documentElement.classList.add(
             <span class="pmd-cashier-launcher-v107__brand" aria-hidden="true">
                 <img src="/brand/paymydine-logo.svg" alt="">
             </span>
-            <span class="pmd-cashier-launcher-v107__label">Cashier App</span>
+            <span class="pmd-cashier-launcher-v107__label">{{ $pmdSettingsText('Cashier App') }}</span>
             <svg class="pmd-cashier-launcher-v107__chevron" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <path d="m5 7.5 5 5 5-5"/>
             </svg>

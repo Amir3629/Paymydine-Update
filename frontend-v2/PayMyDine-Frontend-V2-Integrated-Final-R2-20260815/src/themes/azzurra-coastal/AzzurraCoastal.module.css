@@ -22,7 +22,7 @@
 .calloutRow .call { background: #0f5f91; color: #fff; }
 .call span { display: grid; gap: .1rem; }
 .call small { font-size: .68rem; font-weight: 600; }
-.search { display: flex; align-items: center; gap: .65rem; border: 1px solid rgba(15,95,145,.18); border-radius: 999px; padding: .8rem 1rem; background: #fff; }
+.search { display: flex; align-items: center; gap: .65rem; margin-top: 1rem; border: 1px solid rgba(15,95,145,.18); border-radius: 999px; padding: .8rem 1rem; background: #fff; }
 .search svg { width: 1rem; }
 .search input { width: 100%; border: 0; outline: 0; background: transparent; color: #173a55; }
 .categories { display: flex; gap: .7rem; overflow-x: auto; padding: 1.2rem .2rem; scrollbar-width: none; }
@@ -92,10 +92,34 @@
 /* PMD_STABLE_BOTTOM_ACTIONS_R17C */
 .dock button[aria-disabled="true"]{opacity:.52;filter:saturate(.55)}
 
-/* PMD HERO MOBILE R45 TARGETED OVERRIDES */
+/* PMD_AZZURRA_MOBILE_HERO_R76
+ *
+ * Mobile Azzurra needs a different focal composition from desktop:
+ *
+ * - keep the approved 19rem hero height
+ * - move the crop toward the right so the seafood dish remains visible
+ * - remove only the oversized lower white decorative wave on mobile
+ * - preserve the upper coastal wave for text contrast
+ *
+ * Desktop hero composition remains unchanged.
+ */
 @media (max-width: 680px) {
-  .hero, .hero > img { min-height: 19rem; height: 19rem; }
-  .hero > img { object-position: center 45%; }
-  .heroCopy { top: 45%; }
+  .hero,
+  .hero > img {
+    min-height: 19rem;
+    height: 19rem;
+  }
+
+  .hero > img {
+    object-position: 82% 45%;
+  }
+
+  .waveTwo {
+    display: none;
+  }
+
+  .heroCopy {
+    top: 45%;
+  }
 }
-/* PMD HERO MOBILE R45 TARGETED OVERRIDES END */
+/* PMD_AZZURRA_MOBILE_HERO_R76 END */

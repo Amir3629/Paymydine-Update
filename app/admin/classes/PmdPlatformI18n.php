@@ -114,6 +114,40 @@ final class PmdPlatformI18n
     /**
      * @param array<string,scalar|null> $replace
      */
+
+    // PMD_SETTINGS_REPORTS_PLATFORM_I18N_V16
+    public static function fromEnglish(
+        string $value,
+        string $prefix = '',
+        array $replace = [],
+        ?string $locale = null,
+        ?string $fallback = null
+    ): string {
+        if ($value === '') return $fallback ?? $value;
+        $prefix = trim($prefix);
+        static $sourceIndexes = [];
+        if (!array_key_exists($prefix, $sourceIndexes)) {
+            $index = [];
+            foreach (self::messages('en') as $key => $source) {
+                if ($prefix !== '' && !str_starts_with((string)$key, $prefix)) continue;
+                if (is_string($source) && $source !== '' && !array_key_exists($source, $index)) $index[$source] = (string)$key;
+            }
+            $sourceIndexes[$prefix] = $index;
+        }
+        $key = $sourceIndexes[$prefix][$value] ?? null;
+        if (!$key) return $fallback ?? $value;
+        return self::translate($key, $replace, $locale, $fallback ?? $value);
+    }
+
+    public static function translateStructure($value, string $prefix = '', ?string $locale = null)
+    {
+        if (is_string($value)) return self::fromEnglish($value, $prefix, [], $locale, $value);
+        if (!is_array($value)) return $value;
+        $translated = [];
+        foreach ($value as $key => $item) $translated[$key] = self::translateStructure($item, $prefix, $locale);
+        return $translated;
+    }
+
     public static function translate(
         string $key,
         array $replace = [],

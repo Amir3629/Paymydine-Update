@@ -16,6 +16,30 @@
     }
 
     $pmdT = static fn(string $key): string => \Admin\Classes\PmdPlatformI18n::translate('coupons.manager.'.strtolower($key), [], $pmdCouponLocale, $key);
+
+    // PMD_COUPON_JS_COPY_I18N_R78B
+    // Browser-side labels are generated from the same canonical
+    // platform translation authority used by the Blade UI.
+    $pmdCouponJsCopy = [];
+    foreach ([
+        'copied',
+        'delete',
+        'delete_confirm',
+        'delete_error',
+        'delete_permanently',
+        'deleting',
+        'modal_create',
+        'modal_edit',
+        'notifications',
+        'refresh_error',
+        'save',
+        'save_error',
+        'saved',
+        'saving',
+        'toggle_error',
+    ] as $pmdCouponJsCopyKey) {
+        $pmdCouponJsCopy[$pmdCouponJsCopyKey] = $pmdT($pmdCouponJsCopyKey);
+    }
     $typeLabel = static fn(string $type) => $pmdT($type);
     $statusSearch = static fn(array $item) => $item['is_active'] ? 'active' : 'inactive';
 @endphp
@@ -699,4 +723,4 @@
 @include('pmdcoupons._modal_host', ['pmdT' => $pmdT, 'pmdCouponLocale' => $pmdCouponLocale])
 
 <script type="application/json" id="pmd-coupon-manager-catalog">{!! json_encode($catalog, JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE) !!}</script>
-<script type="application/json" id="pmd-coupon-manager-copy">{!! json_encode($pmdCouponCopy[$pmdCouponLocale], JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE) !!}</script>
+<script type="application/json" id="pmd-coupon-manager-copy">{!! json_encode($pmdCouponJsCopy, JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE) !!}</script>

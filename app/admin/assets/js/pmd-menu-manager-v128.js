@@ -1757,7 +1757,7 @@
     var id = params.get('pmd_id');
     if (mode === 'create') openFoodCreate(null);
     if (mode === 'edit' && id) openFoodEdit(id, null);
-    if (mode) history.replaceState(null, '', window.location.pathname + window.location.hash);
+    if (mode) history.replaceState(null, '', (window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : window.location.pathname) + window.location.hash);
   })();
 
   window.PMDMenuManagerV1 = {

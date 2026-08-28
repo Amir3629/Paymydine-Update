@@ -1,6 +1,19 @@
 (function () {
   'use strict';
 
+  // PMD_SETTINGS_DYNAMIC_I18N_V17
+  function settingsText(value) {
+    var runtime = window.PMDPlatformMessages;
+    value = String(value == null ? '' : value);
+    return runtime && typeof runtime.fromEnglish === 'function'
+      ? runtime.fromEnglish(value, 'settings.', value)
+      : value;
+  }
+
+  function settingsHtml(value) {
+    return esc(settingsText(value));
+  }
+
   if (window.PMDSumupInlineWalletSettingsV1) return;
 
   function csrf() {
@@ -48,10 +61,10 @@
       reader.onload = function () {
         var result = String(reader.result || '');
         var comma = result.indexOf(',');
-        if (comma < 0) return reject(new Error('Could not read the verification file.'));
+        if (comma < 0) return reject(new Error(settingsText('Could not read the verification file.')));
         resolve(result.slice(comma + 1));
       };
-      reader.onerror = function () { reject(new Error('Could not read the verification file.')); };
+      reader.onerror = function () { reject(new Error(settingsText('Could not read the verification file.'))); };
       reader.readAsDataURL(file);
     });
   }
@@ -69,20 +82,20 @@
     wrapper.className = 'pmd-provider-modal-field';
 
     var title = document.createElement('span');
-    title.textContent = label;
+    title.textContent = settingsText(label);
     wrapper.appendChild(title);
 
     var input = document.createElement('input');
     input.type = 'text';
     input.value = value || '';
-    input.placeholder = placeholder || '';
+    input.placeholder = placeholder ? settingsText(placeholder) : '';
     input.autocomplete = 'off';
     input.setAttribute('data-pmd-sumup-wallet-field', key);
     wrapper.appendChild(input);
 
     if (help) {
       var small = document.createElement('small');
-      small.textContent = help;
+      small.textContent = settingsText(help);
       wrapper.appendChild(small);
     }
     return wrapper;
@@ -107,9 +120,9 @@
     head.className = 'pmd-provider-modal-section__head';
     var headCopy = document.createElement('div');
     var strong = document.createElement('strong');
-    strong.textContent = 'Online Card & Wallets';
+    strong.textContent = settingsText('Online Card & Wallets');
     var span = document.createElement('span');
-    span.textContent = 'Card / Wallet uses the embedded SumUp Payment Widget. Standalone Apple Pay and Google Pay use SumUp Swift Checkout buttons inside the same PayMyDine checkout card, so wallet selection never falls back to card fields.';
+    span.textContent = settingsText("Card / Wallet uses the embedded SumUp Payment Widget. Standalone Apple Pay and Google Pay use SumUp Swift Checkout buttons inside the same PayMyDine checkout card, so wallet selection never falls back to card fields.");
     headCopy.appendChild(strong);
     headCopy.appendChild(span);
     head.appendChild(headCopy);
@@ -146,13 +159,13 @@
     var appleDomain = document.createElement('label');
     appleDomain.className = 'pmd-provider-modal-field';
     var appleDomainTitle = document.createElement('span');
-    appleDomainTitle.textContent = 'Apple Pay Domain';
+    appleDomainTitle.textContent = settingsText('Apple Pay Domain');
     var appleDomainInput = document.createElement('input');
     appleDomainInput.type = 'text';
     appleDomainInput.value = location.hostname;
     appleDomainInput.readOnly = true;
     var appleDomainHelp = document.createElement('small');
-    appleDomainHelp.textContent = 'PayMyDine serves the verification file automatically on this tenant domain.';
+    appleDomainHelp.textContent = settingsText("PayMyDine serves the verification file automatically on this tenant domain.");
     appleDomain.appendChild(appleDomainTitle);
     appleDomain.appendChild(appleDomainInput);
     appleDomain.appendChild(appleDomainHelp);
@@ -161,13 +174,13 @@
     var appleFile = document.createElement('label');
     appleFile.className = 'pmd-provider-modal-field';
     var appleFileTitle = document.createElement('span');
-    appleFileTitle.textContent = 'Apple Pay Verification File';
+    appleFileTitle.textContent = settingsText('Apple Pay Verification File');
     var appleFileInput = document.createElement('input');
     appleFileInput.type = 'file';
     appleFileInput.setAttribute('data-pmd-extensionless-file', 'allowed');
     appleFileInput.setAttribute('data-pmd-sumup-apple-domain-file', '1');
     var appleFileHelp = document.createElement('small');
-    appleFileHelp.textContent = 'Choose the file exactly as downloaded from SumUp. It normally has no file extension. No VPS upload is needed.';
+    appleFileHelp.textContent = settingsText("Choose the file exactly as downloaded from SumUp. It normally has no file extension. No VPS upload is needed.");
     appleFile.appendChild(appleFileTitle);
     appleFile.appendChild(appleFileInput);
     appleFile.appendChild(appleFileHelp);
@@ -179,7 +192,7 @@
     var appleUpload = document.createElement('button');
     appleUpload.type = 'button';
     appleUpload.className = 'pmd-provider-secondary';
-    appleUpload.textContent = 'Upload & verify Apple Pay file';
+    appleUpload.textContent = settingsText('Upload & verify Apple Pay file');
     appleUpload.setAttribute('data-pmd-sumup-apple-domain-upload', '1');
     var appleStatus = document.createElement('span');
     appleStatus.className = 'pmd-provider-muted';
@@ -193,22 +206,22 @@
       credentials: 'same-origin',
       cache: 'no-store'
     }).then(function (response) {
-      if (response.ok) appleStatus.textContent = 'Verification file is hosted for ' + location.hostname + '.';
+      if (response.ok) appleStatus.textContent = settingsText('Verification file is hosted for') + ' ' + location.hostname + '.';
     }).catch(function () {});
 
     appleUpload.addEventListener('click', async function () {
       if (appleUpload.disabled) return;
       var file = appleFileInput.files && appleFileInput.files[0];
       if (!file) {
-        appleStatus.textContent = 'Choose the verification file downloaded from SumUp first.';
+        appleStatus.textContent = settingsText('Choose the verification file downloaded from SumUp first.');
         return;
       }
       if (file.size < 64 || file.size > 131072) {
-        appleStatus.textContent = 'Verification file size looks invalid.';
+        appleStatus.textContent = settingsText('Verification file size looks invalid.');
         return;
       }
       appleUpload.disabled = true;
-      appleStatus.textContent = 'Uploading…';
+      appleStatus.textContent = settingsText('Uploading…');
       try {
         var encoded = await fileToBase64(file);
         var latest = currentSnapshot();
@@ -220,10 +233,10 @@
           credentials: 'same-origin',
           cache: 'no-store'
         });
-        if (!verify.ok) throw new Error('File saved, but public verification URL returned HTTP ' + verify.status + '.');
-        appleStatus.textContent = 'Hosted for ' + String(saved.domain || location.hostname) + '. Next: add this exact domain in SumUp → Payment wallets and continue verification.';
+        if (!verify.ok) throw new Error(settingsText('File saved, but public verification URL returned HTTP') + ' ' + verify.status + '.');
+        appleStatus.textContent = settingsText('Hosted for') + ' ' + String(saved.domain || location.hostname) + '. ' + settingsText('Next: add this exact domain in SumUp → Payment wallets and continue verification.');
       } catch (error) {
-        appleStatus.textContent = error && error.message ? error.message : 'Could not host the Apple Pay verification file.';
+        appleStatus.textContent = settingsText(error && error.message ? error.message : 'Could not host the Apple Pay verification file.');
       } finally {
         appleUpload.disabled = false;
       }
@@ -231,7 +244,7 @@
 
     var note = document.createElement('p');
     note.className = 'pmd-provider-modal-security';
-    note.textContent = 'Apple Pay: download the verification file from SumUp once, upload it here, then register this exact tenant domain in SumUp. PayMyDine hosts the public .well-known URL automatically. Google Pay production still requires Google web approval and a Google Merchant ID. Wero is not a SumUp online method.';
+    note.textContent = settingsText("Apple Pay: download the verification file from SumUp once, upload it here, then register this exact tenant domain in SumUp. PayMyDine hosts the public .well-known URL automatically. Google Pay production still requires Google web approval and a Google Merchant ID. Wero is not a SumUp online method.");
     section.appendChild(note);
 
     var actions = document.createElement('div');
@@ -239,7 +252,7 @@
     var save = document.createElement('button');
     save.type = 'button';
     save.className = 'pmd-provider-secondary';
-    save.textContent = 'Save wallet settings';
+    save.textContent = settingsText('Save wallet settings');
     save.setAttribute('data-pmd-sumup-wallet-save', '1');
     var status = document.createElement('span');
     status.className = 'pmd-provider-muted';
@@ -263,7 +276,7 @@
       var merchantName = section.querySelector('[data-pmd-sumup-wallet-field="google-pay-merchant-name"]');
       var walletPublicKey = section.querySelector('[data-pmd-sumup-wallet-field="sumup-wallet-public-key"]');
       save.disabled = true;
-      status.textContent = 'Saving…';
+      status.textContent = settingsText('Saving…');
       try {
         await postJson('/admin/payment-providers/sumup/connection', {
           environment: latest.env,
@@ -274,11 +287,11 @@
           google_pay_merchant_name: merchantName ? String(merchantName.value || '').trim() : '',
           sumup_wallet_public_key: walletPublicKey ? String(walletPublicKey.value || '').trim() : ''
         });
-        status.textContent = 'Saved';
+        status.textContent = settingsText('Saved');
         var catalogue = window.PMDPaymentProviderCatalogueV3 || window.PMDPaymentProviderCatalogueV2;
         if (catalogue && typeof catalogue.reload === 'function') await catalogue.reload();
       } catch (error) {
-        status.textContent = error && error.message ? error.message : 'Could not save wallet settings.';
+        status.textContent = settingsText(error && error.message ? error.message : 'Could not save wallet settings.');
       } finally {
         save.disabled = false;
       }

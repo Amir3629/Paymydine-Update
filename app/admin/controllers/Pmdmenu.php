@@ -14,6 +14,7 @@ use Admin\Facades\Template;
  */
 class Pmdmenu extends AdminController
 {
+    // PMD_SETTINGS_REPORTS_PLATFORM_I18N_V16_2
     protected $requiredPermissions = 'Site.Settings';
 
     protected $highlightDefaults = [
@@ -60,8 +61,8 @@ class Pmdmenu extends AdminController
 
     public function index()
     {
-        Template::setTitle('Menu & checkout');
-        Template::setHeading('Menu & checkout');
+        Template::setTitle(\Admin\Classes\PmdPlatformI18n::fromEnglish('Menu & checkout', 'settings.'));
+        Template::setHeading(\Admin\Classes\PmdPlatformI18n::fromEnglish('Menu & checkout', 'settings.'));
 
         $this->vars['pmdMenuCheckout'] = array_merge(
             $this->highlightValues(),
@@ -116,10 +117,10 @@ class Pmdmenu extends AdminController
         setting()->set($values);
         setting()->save();
 
-        flash()->success('Menu & checkout settings saved.');
+        flash()->success(\Admin\Classes\PmdPlatformI18n::fromEnglish('Menu & checkout settings saved.', 'settings.'));
 
         return [
-            '#pmd-menu-save-status' => '<span class="pmd-menu-save-status is-success">Saved</span>',
+            '#pmd-menu-save-status' => '<span class="pmd-menu-save-status is-success">'.\Admin\Classes\PmdPlatformI18n::fromEnglish('Saved', 'settings.').'</span>',
         ];
     }
 

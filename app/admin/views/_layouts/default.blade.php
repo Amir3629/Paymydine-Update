@@ -1,3 +1,661 @@
+{{-- PMD_ADMIN_TITLE_EARLY_AUTH_R84A
+     Authenticated Admin title must exist before the large
+     legacy Admin bootstrap begins.
+
+     Only the existing proven R82 title block moved.
+     No other HTML, CSS or JS ordering changed.
+     R83 response surgery remains retired.
+--}}
+{{-- PMD_ADMIN_TITLE_SERVER_FIRST_PAINT_R82
+         Browser tab branding must be correct in the original HTML.
+         Do not expose the legacy site_name/TastyIgniter first and
+         repair it later with JavaScript.
+
+         This is Admin-only. Public restaurant site naming is untouched.
+    --}}
+    @php
+        $pmdAdminDocumentBrandR82 = 'PayMyDine';
+        $pageTitle = trim(
+            (string)Template::getTitle()
+        );
+    @endphp
+
+    @if($pageTitle === '')
+        <title>{{ $pmdAdminDocumentBrandR82 }}</title>
+    @else
+        <title>{{ $pageTitle }}@lang('admin::lang.site_title_separator'){{ $pmdAdminDocumentBrandR82 }}</title>
+    @endif
+{{-- PMD_ADMIN_SERVER_NATIVE_URLS_R81E --}}
+<script id="pmd-admin-server-native-urls-r81e">
+(function () {
+    'use strict';
+
+    if (
+        window.PMDAdminCanonicalURLR81E
+    ) {
+        return;
+    }
+
+    var cleanToInternal = {
+        '/admin/ownerdashboard':
+            '/admin/dashboardlab',
+
+        '/admin/managerdashboard':
+            '/admin/managerlab',
+
+        '/admin/accountantdashboard':
+            '/admin/accountantlab',
+
+        '/admin/orders':
+            '/admin/cashierlab',
+
+        '/admin/reservations':
+            '/admin/reservationslab',
+
+        '/admin/menu':
+            '/admin/pmdmenus',
+
+        '/admin/settings':
+            '/admin/pmdsettings',
+
+        '/admin/settings/restaurant':
+            '/admin/pmdsettings/restaurant',
+
+        '/admin/settings/customer-menu':
+            '/admin/pmdsettings/frontend',
+
+        '/admin/settings/menu-checkout':
+            '/admin/pmdmenu',
+
+        '/admin/settings/customers':
+            '/admin/pmdcustomer',
+
+        '/admin/settings/team':
+            '/admin/pmdteam',
+
+        '/admin/settings/devices':
+            '/admin/pmddevices',
+
+        '/admin/settings/finance':
+            '/admin/pmdfinance',
+
+        '/admin/settings/brand':
+            '/admin/pmdbrand',
+
+        '/admin/settings/advanced':
+            '/admin/pmdadvanced',
+
+        '/admin/smartcategories':
+            '/admin/pmdsmartcategories',
+
+        '/admin/reports':
+            '/admin/pmdreports/sales',
+
+        '/admin/reports/tips':
+            '/admin/pmdreporttips',
+
+        '/admin/reports/channels':
+            '/admin/pmdreportchannels'
+    };
+
+    var internalToClean = {
+        '/admin/dashboardlab':
+            '/admin/ownerdashboard',
+
+        '/admin/managerlab':
+            '/admin/managerdashboard',
+
+        '/admin/accountantlab':
+            '/admin/accountantdashboard',
+
+        '/admin/cashierlab':
+            '/admin/orders',
+
+        '/admin/reservationslab':
+            '/admin/reservations',
+
+        '/admin/pmdmenus':
+            '/admin/menu',
+
+        '/admin/pmdsettings':
+            '/admin/settings',
+
+        '/admin/pmdsettings/restaurant':
+            '/admin/settings/restaurant',
+
+        '/admin/pmdsettings/frontend':
+            '/admin/settings/customer-menu',
+
+        '/admin/pmdmenu':
+            '/admin/settings/menu-checkout',
+
+        '/admin/pmdcustomer':
+            '/admin/settings/customers',
+
+        '/admin/pmdteam':
+            '/admin/settings/team',
+
+        '/admin/pmddevices':
+            '/admin/settings/devices',
+
+        '/admin/pmdfinance':
+            '/admin/settings/finance',
+
+        '/admin/pmdbrand':
+            '/admin/settings/brand',
+
+        '/admin/pmdadvanced':
+            '/admin/settings/advanced',
+
+        '/admin/pmdsmartcategories':
+            '/admin/smartcategories',
+
+        '/admin/pmdreports':
+            '/admin/reports/sales',
+
+        '/admin/pmdreporttips':
+            '/admin/reports/tips',
+
+        '/admin/pmdreportchannels':
+            '/admin/reports/channels'
+    };
+
+    function normalized(value) {
+        var path =
+            String(
+                value || ''
+            )
+            .split('?')[0]
+            .split('#')[0]
+            .replace(/\/+$/, '');
+
+        return path || '/';
+    }
+
+    function logicalPath(value) {
+        var path =
+            normalized(
+                typeof value === 'undefined'
+                    ? window.location.pathname
+                    : value
+            );
+
+        if (cleanToInternal[path]) {
+            return cleanToInternal[path];
+        }
+
+        if (
+            path.indexOf(
+                '/admin/reports/'
+            ) === 0
+        ) {
+            var report =
+                path.slice(
+                    '/admin/reports/'.length
+                );
+
+            if (report === 'tips') {
+                return '/admin/pmdreporttips';
+            }
+
+            if (report === 'channels') {
+                return '/admin/pmdreportchannels';
+            }
+
+            return (
+                '/admin/pmdreports/'
+                + report
+            );
+        }
+
+        var cleanPrefixes = [
+            [
+                '/admin/menu/',
+                '/admin/pmdmenus/'
+            ],
+            [
+                '/admin/settings/menu-checkout/',
+                '/admin/pmdmenu/'
+            ],
+            [
+                '/admin/settings/customers/',
+                '/admin/pmdcustomer/'
+            ],
+            [
+                '/admin/settings/team/',
+                '/admin/pmdteam/'
+            ],
+            [
+                '/admin/settings/devices/',
+                '/admin/pmddevices/'
+            ],
+            [
+                '/admin/settings/finance/',
+                '/admin/pmdfinance/'
+            ],
+            [
+                '/admin/settings/brand/',
+                '/admin/pmdbrand/'
+            ],
+            [
+                '/admin/settings/advanced/',
+                '/admin/pmdadvanced/'
+            ],
+            [
+                '/admin/smartcategories/',
+                '/admin/pmdsmartcategories/'
+            ],
+            [
+                '/admin/settings/restaurant/',
+                '/admin/pmdsettings/restaurant/'
+            ],
+            [
+                '/admin/settings/customer-menu/',
+                '/admin/pmdsettings/frontend/'
+            ]
+        ];
+
+        for (
+            var i = 0;
+            i < cleanPrefixes.length;
+            i += 1
+        ) {
+            var pair =
+                cleanPrefixes[i];
+
+            if (
+                path.indexOf(
+                    pair[0]
+                ) === 0
+            ) {
+                return (
+                    pair[1]
+                    + path.slice(
+                        pair[0].length
+                    )
+                );
+            }
+        }
+
+        return path;
+    }
+
+    function cleanPath(value) {
+        var path =
+            normalized(value);
+
+        if (internalToClean[path]) {
+            return internalToClean[path];
+        }
+
+        if (
+            path.indexOf(
+                '/admin/pmdreports/'
+            ) === 0
+        ) {
+            return (
+                '/admin/reports/'
+                + path.slice(
+                    '/admin/pmdreports/'.length
+                )
+            );
+        }
+
+        var internalPrefixes = [
+            [
+                '/admin/pmdmenus/',
+                '/admin/menu/'
+            ],
+            [
+                '/admin/pmdmenu/',
+                '/admin/settings/menu-checkout/'
+            ],
+            [
+                '/admin/pmdcustomer/',
+                '/admin/settings/customers/'
+            ],
+            [
+                '/admin/pmdteam/',
+                '/admin/settings/team/'
+            ],
+            [
+                '/admin/pmddevices/',
+                '/admin/settings/devices/'
+            ],
+            [
+                '/admin/pmdfinance/',
+                '/admin/settings/finance/'
+            ],
+            [
+                '/admin/pmdbrand/',
+                '/admin/settings/brand/'
+            ],
+            [
+                '/admin/pmdadvanced/',
+                '/admin/settings/advanced/'
+            ],
+            [
+                '/admin/pmdsmartcategories/',
+                '/admin/smartcategories/'
+            ],
+            [
+                '/admin/pmdsettings/restaurant/',
+                '/admin/settings/restaurant/'
+            ],
+            [
+                '/admin/pmdsettings/frontend/',
+                '/admin/settings/customer-menu/'
+            ]
+        ];
+
+        for (
+            var i = 0;
+            i < internalPrefixes.length;
+            i += 1
+        ) {
+            var pair =
+                internalPrefixes[i];
+
+            if (
+                path.indexOf(
+                    pair[0]
+                ) === 0
+            ) {
+                return (
+                    pair[1]
+                    + path.slice(
+                        pair[0].length
+                    )
+                );
+            }
+        }
+
+        return path;
+    }
+
+    function cleanUrl(value) {
+        if (
+            value === null
+            || typeof value === 'undefined'
+        ) {
+            return value;
+        }
+
+        try {
+            var url =
+                new URL(
+                    String(value),
+                    window.location.href
+                );
+
+            if (
+                url.origin !==
+                window.location.origin
+            ) {
+                return value;
+            }
+
+            var nextPath =
+                cleanPath(
+                    url.pathname
+                );
+
+            if (
+                nextPath ===
+                normalized(
+                    url.pathname
+                )
+            ) {
+                return value;
+            }
+
+            return (
+                nextPath
+                + url.search
+                + url.hash
+            );
+        } catch (error) {
+            return value;
+        }
+    }
+
+    var nativePush =
+        window.history
+        && window.history.pushState
+            ? window.history.pushState.bind(
+                window.history
+            )
+            : null;
+
+    var nativeReplace =
+        window.history
+        && window.history.replaceState
+            ? window.history.replaceState.bind(
+                window.history
+            )
+            : null;
+
+    if (nativePush) {
+        window.history.pushState =
+            function (
+                state,
+                title,
+                url
+            ) {
+                return nativePush(
+                    state,
+                    title,
+                    cleanUrl(url)
+                );
+            };
+    }
+
+    if (nativeReplace) {
+        window.history.replaceState =
+            function (
+                state,
+                title,
+                url
+            ) {
+                return nativeReplace(
+                    state,
+                    title,
+                    cleanUrl(url)
+                );
+            };
+    }
+
+    function rewriteAnchor(node) {
+        if (
+            !node
+            || !node.closest
+        ) {
+            return;
+        }
+
+        var anchor =
+            node.closest(
+                'a[href]'
+            );
+
+        if (!anchor) {
+            return;
+        }
+
+        var href =
+            anchor.getAttribute(
+                'href'
+            );
+
+        if (
+            !href
+            || href.charAt(0) === '#'
+            || href.indexOf(
+                'javascript:'
+            ) === 0
+        ) {
+            return;
+        }
+
+        var next =
+            cleanUrl(href);
+
+        if (
+            next !== href
+            && next !== null
+            && typeof next !== 'undefined'
+        ) {
+            anchor.setAttribute(
+                'href',
+                next
+            );
+        }
+    }
+
+    function rewriteForm(form) {
+        if (
+            !form
+            || String(
+                form.tagName || ''
+            ).toLowerCase() !== 'form'
+        ) {
+            return;
+        }
+
+        var action =
+            form.getAttribute(
+                'action'
+            );
+
+        if (
+            action === null
+            || String(action).trim() === ''
+        ) {
+            return;
+        }
+
+        var next =
+            cleanUrl(action);
+
+        if (
+            next !== action
+            && next !== null
+            && typeof next !== 'undefined'
+        ) {
+            form.setAttribute(
+                'action',
+                next
+            );
+        }
+    }
+
+    [
+        'pointerdown',
+        'mousedown',
+        'click',
+        'auxclick'
+    ].forEach(
+        function (type) {
+            document.addEventListener(
+                type,
+                function (event) {
+                    rewriteAnchor(
+                        event.target
+                    );
+                },
+                true
+            );
+        }
+    );
+
+    document.addEventListener(
+        'submit',
+        function (event) {
+            rewriteForm(
+                event.target
+            );
+        },
+        true
+    );
+
+    function cleanInitialNavigation() {
+        Array.prototype.forEach.call(
+            document.querySelectorAll(
+                'a[href]'
+            ),
+            rewriteAnchor
+        );
+
+        Array.prototype.forEach.call(
+            document.forms || [],
+            rewriteForm
+        );
+    }
+
+    if (
+        document.readyState ===
+        'loading'
+    ) {
+        document.addEventListener(
+            'DOMContentLoaded',
+            cleanInitialNavigation,
+            {
+                once: true
+            }
+        );
+    } else {
+        cleanInitialNavigation();
+    }
+
+    window.PMDAdminCanonicalURLR81E = {
+        version:
+            '1.0.0-server-native',
+
+        serverNative:
+            true,
+
+        logicalPath:
+            logicalPath,
+
+        cleanPath:
+            cleanPath,
+
+        inspect:
+            function () {
+                return {
+                    version:
+                        '1.0.0-server-native',
+
+                    serverNative:
+                        true,
+
+                    browserPath:
+                        String(
+                            window.location.pathname
+                            || ''
+                        ),
+
+                    logicalInternalPath:
+                        logicalPath(),
+
+                    readyState:
+                        document.readyState
+                };
+            }
+    };
+
+    if (
+        document.documentElement
+    ) {
+        document.documentElement
+            .setAttribute(
+                'data-pmd-server-native-url-r81e',
+                '1'
+            );
+    }
+})();
+</script>
+
 
 
 
@@ -13,7 +671,7 @@
 @unless (request()->is('admin/reservations2'))
 <script id="pmd-waiter-dashboard-v56-pause-read-refresh-edit-script">
 (function () {
-  if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
+  if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname) + location.search + location.hash)) return;
   if (window.PMD_WAITER_DASHBOARD_V56_PAUSE_READ_REFRESH_EDIT) return;
   window.PMD_WAITER_DASHBOARD_V56_PAUSE_READ_REFRESH_EDIT = true;
 
@@ -258,7 +916,7 @@
 @unless (request()->is('admin/reservations2'))
 <script id="pmd-waiter-dashboard-v50-real-floor-drag-clamp-script">
 (function () {
-  if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
+  if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname) + location.search + location.hash)) return;
   if (window.PMD_WAITER_DASHBOARD_V50_REAL_FLOOR_DRAG_CLAMP) return;
   window.PMD_WAITER_DASHBOARD_V50_REAL_FLOOR_DRAG_CLAMP = true;
 
@@ -783,7 +1441,7 @@ html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root {
 @if(request()->is('admin/dashboardwaiter*'))
 <script id="pmd-waiter-dashboard-v61-stable-kiosk-no-jump-script">
 (function () {
-  if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
+  if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname) + location.search + location.hash)) return;
   if (window.PMD_WAITER_DASHBOARD_V61_STABLE_KIOSK_NO_JUMP) return;
   window.PMD_WAITER_DASHBOARD_V61_STABLE_KIOSK_NO_JUMP = true;
 
@@ -1193,7 +1851,7 @@ html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root {
 @if(request()->is('admin/dashboardwaiter*'))
 <script id="pmd-waiter-dashboard-v65-remove-sidebar-dom-script">
 (function () {
-  if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
+  if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname) + location.search + location.hash)) return;
   if (window.PMD_WAITER_DASHBOARD_V65_REMOVE_SIDEBAR_DOM) return;
   window.PMD_WAITER_DASHBOARD_V65_REMOVE_SIDEBAR_DOM = true;
 
@@ -1508,7 +2166,7 @@ html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root {
 @if(request()->is('admin/dashboardwaiter*'))
 <script id="pmd-waiter-dashboard-v69-remove-owner-floor-ghost-script">
 (function () {
-  if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
+  if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname) + location.search + location.hash)) return;
   if (window.PMD_WAITER_DASHBOARD_V69_REMOVE_OWNER_FLOOR_GHOST) return;
   window.PMD_WAITER_DASHBOARD_V69_REMOVE_OWNER_FLOOR_GHOST = true;
 
@@ -1748,7 +2406,7 @@ html.pmd-dashboardwaiter-kiosk-page .pmd-final-sidebar-logo-img-v20 {
 @if(request()->is('admin/dashboardwaiter*'))
 <script id="pmd-waiter-dashboard-v70-remove-404-wrapper-logo-ghost-script">
 (function () {
-  if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
+  if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname) + location.search + location.hash)) return;
   if (window.PMD_WAITER_DASHBOARD_V70_REMOVE_404_WRAPPER_LOGO_GHOST) return;
   window.PMD_WAITER_DASHBOARD_V70_REMOVE_404_WRAPPER_LOGO_GHOST = true;
 
@@ -2004,7 +2662,7 @@ html.pmd-dashboardwaiter-kiosk-page [data-pmd-v74-owner-blocked="1"] {
 @if(request()->is('admin/dashboardwaiter*'))
 <script id="pmd-waiter-dashboard-v74-inside-top-padding-script">
 (function () {
-  if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
+  if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname) + location.search + location.hash)) return;
   if (window.PMD_WAITER_DASHBOARD_V74_INSIDE_TOP_PADDING) return;
   window.PMD_WAITER_DASHBOARD_V74_INSIDE_TOP_PADDING = true;
 
@@ -2505,7 +3163,7 @@ html.pmd-dashboardreservation-page .pmd-final-admin-logo-v20 {
 
 <script id="pmd-dashboardreservation-v3-script">
 (function () {
-  if (!/\/admin\/dashboardreservation(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
+  if (!/\/admin\/dashboardreservation(?:$|[?#])/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname) + location.search + location.hash)) return;
   if (window.PMD_DASHBOARD_RESERVATION_V3_STABLE_NO_JUMP) return;
   window.PMD_DASHBOARD_RESERVATION_V3_STABLE_NO_JUMP = true;
 
@@ -2838,7 +3496,7 @@ html.pmd-dashboardreservation-page #pmd-reservation-dashboard-root .pmd-res-toas
 
 <script id="pmd-dashboardreservation-v7-button-polish-script">
 (function () {
-  if (!/\/admin\/dashboardreservation(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
+  if (!/\/admin\/dashboardreservation(?:$|[?#])/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname) + location.search + location.hash)) return;
   if (window.PMD_DASHBOARD_RESERVATION_V7_BUTTON_POLISH) return;
   window.PMD_DASHBOARD_RESERVATION_V7_BUTTON_POLISH = true;
 
@@ -3286,7 +3944,7 @@ html.pmd-dashboardreservation-page #pmd-reservation-dashboard-root .pmd-res-toas
 @unless (request()->is('admin/reservations2'))
 <script id="pmd-waiter-dashboard-v35-clean-rewrite-card-header-script">
 (function () {
-  if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
+  if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname) + location.search + location.hash)) return;
   if (window.PMD_WAITER_DASHBOARD_V35_CLEAN_REWRITE_CARD_HEADER) return;
   window.PMD_WAITER_DASHBOARD_V35_CLEAN_REWRITE_CARD_HEADER = true;
 
@@ -3796,7 +4454,7 @@ html.pmd-owner-clean-v113-active .pmd-v15-shell,
 <script>
 (function () {
   try {
-    var p = String(location.pathname || '').replace(/\/+$/, '');
+    var p = String((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname) || '').replace(/\/+$/, '');
     if (p === '/admin/dashboard' || p.indexOf('/admin/dashboard/') === 0) {
       var h = document.documentElement;
       h.classList.add(
@@ -3973,12 +4631,7 @@ html.pmd-owner-v69-no-loader .pmd-v36-span-2 {
     {!! get_metas() !!}
     <meta name="csrf-token" content="{{ csrf_token() }}">
     {!! get_favicon() !!}
-    @empty($pageTitle = Template::getTitle())
-        <title>{{setting('site_name')}}</title>
-    @else
-        <title>{{ $pageTitle }}@lang('admin::lang.site_title_separator'){{setting('site_name')}}</title>
-    @endempty
-    {{-- Use asset combiner to ensure all widget CSS files are included --}}
+        {{-- Use asset combiner to ensure all widget CSS files are included --}}
     {!! get_style_tags() !!}
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/notifications.css') }}">
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/push-notifications.css') }}">
@@ -5116,7 +5769,7 @@ section.pmd962-hero,
   var MARK = 'PMD_KDS_INDEX_V130_INLINE_ADVANCED_NO_FLASH';
 
   function isKdsIndex() {
-    return location.pathname.replace(/\/+$/, '') === '/admin/kds_stations';
+    return (window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname).replace(/\/+$/, '') === '/admin/kds_stations';
   }
 
   if (!isKdsIndex()) return;
@@ -5431,7 +6084,7 @@ section.pmd962-hero,
       '/admin/payments'
     ];
 
-    var path = window.location.pathname.replace(/\/+$/, '');
+    var path = (window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : window.location.pathname).replace(/\/+$/, '');
 
     if (supported.indexOf(path) !== -1) {
       document.documentElement.classList.add('pmd-new-pages-antiflash-v40');
@@ -5476,7 +6129,7 @@ html.pmd-new-pages-antiflash-v40:not(.pmd-new-pages-antiflash-rendered-v40):not(
 <!-- PMD_WAITER_DASHBOARD_V5_WORKFLOW_UI_START -->
 <script id="pmd-waiter-dashboard-v5-boot">
 (function () {
-  if (/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test(location.pathname + location.search + location.hash)) {
+  if (/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname) + location.search + location.hash)) {
     document.documentElement.classList.add('pmd-waiter-dashboard-active');
   }
 })();
@@ -6121,7 +6774,7 @@ html.pmd-waiter-dashboard-active body {
   ];
 
   function isPage() {
-    return /(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test(location.pathname + location.search + location.hash);
+    return /(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname) + location.search + location.hash);
   }
 
   function esc(v) {
@@ -8228,7 +8881,11 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
 
 
     function isDetail(path) {
-        path = clean(path);
+        path = clean(
+            window.PMDAdminCanonicalURLR81E
+                ? window.PMDAdminCanonicalURLR81E.logicalPath(path)
+                : path
+        );
 
         if (
             path === '/admin/pmdsettings/restaurant' ||
@@ -8251,7 +8908,11 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
 
 
     function isSettingsNavigation(path) {
-        path = clean(path);
+        path = clean(
+            window.PMDAdminCanonicalURLR81E
+                ? window.PMDAdminCanonicalURLR81E.logicalPath(path)
+                : path
+        );
 
         return (
             path === '/admin/pmdsettings' ||
@@ -8269,7 +8930,7 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
 
 
     var path =
-        clean(window.location.pathname);
+        clean((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : window.location.pathname));
 
 
     if (isDetail(path)) {
@@ -8860,7 +9521,7 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
 <!-- PMD_DASHBOARD_LOGO_INVOICE_SYNC_PROMPT_V1_START -->
 <script id="pmd-dashboard-logo-invoice-sync-prompt-v1">
 (function () {
-    if (!/\/admin\/settings\/edit\/general(?:$|[?#\/])/.test(window.location.pathname)) {
+    if (!/\/admin\/settings\/edit\/general(?:$|[?#\/])/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : window.location.pathname))) {
         return;
     }
 
@@ -8995,7 +9656,7 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
 
 <script>
 (function(){
- if(!/admin\/settings\/edit\/setup/.test(window.location.pathname)) return;
+ if(!/admin\/settings\/edit\/setup/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : window.location.pathname))) return;
  function v(n){var e=document.querySelector('[name="setting['+n+']"]'); return e?e.value:'';}
  function on(){
   var p=document.getElementById('pmd-invoice-preview'); if(!p) return;
@@ -9523,10 +10184,10 @@ html.pmd-waiter-dashboard-active
    * This is an obsolete Waiter authority. The real Waiter page still
    * uses it where appropriate, but Reservations2 uses V175c–V191.
    */
-  if (/^\/admin\/reservations2\/?$/.test(location.pathname)) return;
+  if (/^\/admin\/reservations2\/?$/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname))) return;
 
 (function () {
-  if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
+  if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname) + location.search + location.hash)) return;
   if (window.PMD_WAITER_DASHBOARD_V36_STATUS_COLORS_SELECT_DRAGFIX) return;
   window.PMD_WAITER_DASHBOARD_V36_STATUS_COLORS_SELECT_DRAGFIX = true;
 
@@ -10147,10 +10808,10 @@ html.pmd-waiter-dashboard-active
    * This is an obsolete Waiter authority. The real Waiter page still
    * uses it where appropriate, but Reservations2 uses V175c–V191.
    */
-  if (/^\/admin\/reservations2\/?$/.test(location.pathname)) return;
+  if (/^\/admin\/reservations2\/?$/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname))) return;
 
 (function () {
-  if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
+  if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname) + location.search + location.hash)) return;
   if (window.PMD_WAITER_DASHBOARD_V40_AUTHORITATIVE_COMPACT_MERGE) return;
   window.PMD_WAITER_DASHBOARD_V40_AUTHORITATIVE_COMPACT_MERGE = true;
 
@@ -10668,10 +11329,10 @@ html.pmd-waiter-dashboard-active
    * This is an obsolete Waiter authority. The real Waiter page still
    * uses it where appropriate, but Reservations2 uses V175c–V191.
    */
-  if (/^\/admin\/reservations2\/?$/.test(location.pathname)) return;
+  if (/^\/admin\/reservations2\/?$/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname))) return;
 
 (function () {
-  if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
+  if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname) + location.search + location.hash)) return;
   if (window.PMD_WAITER_DASHBOARD_V41_FLAT_BOARD_FRAMES) return;
   window.PMD_WAITER_DASHBOARD_V41_FLAT_BOARD_FRAMES = true;
 
@@ -10805,10 +11466,10 @@ html.pmd-waiter-dashboard-active
    * This is an obsolete Waiter authority. The real Waiter page still
    * uses it where appropriate, but Reservations2 uses V175c–V191.
    */
-  if (/^\/admin\/reservations2\/?$/.test(location.pathname)) return;
+  if (/^\/admin\/reservations2\/?$/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname))) return;
 
 (function () {
-  if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
+  if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname) + location.search + location.hash)) return;
   if (window.PMD_WAITER_DASHBOARD_V43_RESTORE_INNER_FLOOR_FRAME) return;
   window.PMD_WAITER_DASHBOARD_V43_RESTORE_INNER_FLOOR_FRAME = true;
 
@@ -10977,10 +11638,10 @@ html.pmd-waiter-dashboard-active
    * This is an obsolete Waiter authority. The real Waiter page still
    * uses it where appropriate, but Reservations2 uses V175c–V191.
    */
-  if (/^\/admin\/reservations2\/?$/.test(location.pathname)) return;
+  if (/^\/admin\/reservations2\/?$/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname))) return;
 
 (function () {
-  if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
+  if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname) + location.search + location.hash)) return;
   if (window.PMD_WAITER_DASHBOARD_V44_FLOOR_ICON_SIZE_FIX) return;
   window.PMD_WAITER_DASHBOARD_V44_FLOOR_ICON_SIZE_FIX = true;
 
@@ -11086,10 +11747,10 @@ html.pmd-waiter-dashboard-active
    * This is an obsolete Waiter authority. The real Waiter page still
    * uses it where appropriate, but Reservations2 uses V175c–V191.
    */
-  if (/^\/admin\/reservations2\/?$/.test(location.pathname)) return;
+  if (/^\/admin\/reservations2\/?$/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname))) return;
 
 (function () {
-  if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
+  if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname) + location.search + location.hash)) return;
   if (window.PMD_WAITER_DASHBOARD_V46_FLOOR_MAP_TRUE_WHITE) return;
   window.PMD_WAITER_DASHBOARD_V46_FLOOR_MAP_TRUE_WHITE = true;
 
@@ -11233,10 +11894,10 @@ html.pmd-waiter-dashboard-active
    * This is an obsolete Waiter authority. The real Waiter page still
    * uses it where appropriate, but Reservations2 uses V175c–V191.
    */
-  if (/^\/admin\/reservations2\/?$/.test(location.pathname)) return;
+  if (/^\/admin\/reservations2\/?$/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname))) return;
 
 (function () {
-  if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
+  if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname) + location.search + location.hash)) return;
   if (window.PMD_WAITER_DASHBOARD_V47_COMPACT_TABLE_VISUAL_CLEANUP) return;
   window.PMD_WAITER_DASHBOARD_V47_COMPACT_TABLE_VISUAL_CLEANUP = true;
 
@@ -11332,10 +11993,10 @@ html.pmd-waiter-dashboard-active
    * This is an obsolete Waiter authority. The real Waiter page still
    * uses it where appropriate, but Reservations2 uses V175c–V191.
    */
-  if (/^\/admin\/reservations2\/?$/.test(location.pathname)) return;
+  if (/^\/admin\/reservations2\/?$/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname))) return;
 
 (function () {
-  if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
+  if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname) + location.search + location.hash)) return;
   if (window.PMD_WAITER_DASHBOARD_V48_TITLE_CLEANUP_ICONS) return;
   window.PMD_WAITER_DASHBOARD_V48_TITLE_CLEANUP_ICONS = true;
 
@@ -11494,10 +12155,10 @@ html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root.pmd-w89-compact .
    * This is an obsolete Waiter authority. The real Waiter page still
    * uses it where appropriate, but Reservations2 uses V175c–V191.
    */
-  if (/^\/admin\/reservations2\/?$/.test(location.pathname)) return;
+  if (/^\/admin\/reservations2\/?$/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname))) return;
 
 (function () {
-  if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
+  if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname) + location.search + location.hash)) return;
   if (window.PMD_WAITER_DASHBOARD_V89_FLOOR_POSITION_LOCK) return;
   window.PMD_WAITER_DASHBOARD_V89_FLOOR_POSITION_LOCK = true;
 
@@ -11900,10 +12561,10 @@ html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root .pmd-v18-merged-t
    * This is an obsolete Waiter authority. The real Waiter page still
    * uses it where appropriate, but Reservations2 uses V175c–V191.
    */
-  if (/^\/admin\/reservations2\/?$/.test(location.pathname)) return;
+  if (/^\/admin\/reservations2\/?$/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname))) return;
 
 (function () {
-  if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
+  if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname) + location.search + location.hash)) return;
   if (window.PMD_WAITER_DASHBOARD_V105_REMOVE_MERGE_FEATURE) return;
   window.PMD_WAITER_DASHBOARD_V105_REMOVE_MERGE_FEATURE = true;
 

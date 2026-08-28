@@ -175,12 +175,12 @@ class PmdDefaultStaffRoleService
     {
         $code = strtolower(trim($code));
         $map = [
-            self::OWNER => 'dashboardlab', 'owner' => 'dashboardlab',
-            self::MANAGER => 'managerlab', 'manager' => 'managerlab',
-            self::CASHIER => 'cashierlab', 'cashier' => 'cashierlab',
-            self::WAITER => 'cashierlab', 'waiter' => 'cashierlab',
-            self::ACCOUNTANT => 'accountantlab', 'accountant' => 'accountantlab',
-            self::RESERVATIONS => 'reservationslab', 'reservation' => 'reservationslab', 'reservations' => 'reservationslab',
+            self::OWNER => 'ownerdashboard', 'owner' => 'ownerdashboard',
+            self::MANAGER => 'managerdashboard', 'manager' => 'managerdashboard',
+            self::CASHIER => 'orders', 'cashier' => 'orders',
+            self::WAITER => 'orders', 'waiter' => 'orders',
+            self::ACCOUNTANT => 'accountantdashboard', 'accountant' => 'accountantdashboard',
+            self::RESERVATIONS => 'reservations', 'reservation' => 'reservations', 'reservations' => 'reservations',
         ];
         if (isset($map[$code])) return $map[$code];
         if (str_starts_with($code, self::KDS_PREFIX)) {
@@ -198,6 +198,126 @@ class PmdDefaultStaffRoleService
     {
         $code = strtolower(trim($code));
         $path = trim(strtolower($path), '/');
+
+        // PMD_ADMIN_SERVER_NATIVE_URLS_R81E
+        //
+        // Permission policy remains based on the proven internal route
+        // vocabulary. Clean public routes are normalized before comparison.
+        $pmdCleanExactR81E = [
+            'admin/ownerdashboard' =>
+                'admin/dashboardlab',
+
+            'admin/managerdashboard' =>
+                'admin/managerlab',
+
+            'admin/accountantdashboard' =>
+                'admin/accountantlab',
+
+            'admin/orders' =>
+                'admin/cashierlab',
+
+            'admin/reservations' =>
+                'admin/reservationslab',
+
+            'admin/menu' =>
+                'admin/pmdmenus',
+
+            'admin/settings' =>
+                'admin/pmdsettings',
+
+            'admin/settings/restaurant' =>
+                'admin/pmdsettings/restaurant',
+
+            'admin/settings/customer-menu' =>
+                'admin/pmdsettings/frontend',
+
+            'admin/settings/menu-checkout' =>
+                'admin/pmdmenu',
+
+            'admin/settings/customers' =>
+                'admin/pmdcustomer',
+
+            'admin/settings/team' =>
+                'admin/pmdteam',
+
+            'admin/settings/devices' =>
+                'admin/pmddevices',
+
+            'admin/settings/finance' =>
+                'admin/pmdfinance',
+
+            'admin/settings/brand' =>
+                'admin/pmdbrand',
+
+            'admin/settings/advanced' =>
+                'admin/pmdadvanced',
+
+            'admin/smartcategories' =>
+                'admin/pmdsmartcategories',
+
+            'admin/reports' =>
+                'admin/pmdreports/sales',
+
+            'admin/reports/tips' =>
+                'admin/pmdreporttips',
+
+            'admin/reports/channels' =>
+                'admin/pmdreportchannels',
+        ];
+
+        if (
+            isset(
+                $pmdCleanExactR81E[$path]
+            )
+        ) {
+            $path =
+                $pmdCleanExactR81E[
+                    $path
+                ];
+        } elseif (
+            str_starts_with(
+                $path,
+                'admin/reports/'
+            )
+        ) {
+            $path =
+                'admin/pmdreports/'.
+                substr(
+                    $path,
+                    strlen(
+                        'admin/reports/'
+                    )
+                );
+        } elseif (
+            str_starts_with(
+                $path,
+                'admin/settings/devices/'
+            )
+        ) {
+            $path =
+                'admin/pmddevices/'.
+                substr(
+                    $path,
+                    strlen(
+                        'admin/settings/devices/'
+                    )
+                );
+        } elseif (
+            str_starts_with(
+                $path,
+                'admin/settings/team/'
+            )
+        ) {
+            $path =
+                'admin/pmdteam/'.
+                substr(
+                    $path,
+                    strlen(
+                        'admin/settings/team/'
+                    )
+                );
+        }
+
         if (!$this->isManagedCode($code)) return true;
         if ($code === self::OWNER) return true;
 

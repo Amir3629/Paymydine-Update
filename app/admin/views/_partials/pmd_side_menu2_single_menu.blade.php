@@ -1,10 +1,43 @@
 {{-- PMD_SIDE_MENU2_SINGLE_MARKUP_V1 --}}
 @php
     $pmdSingleMenuPath = trim(request()->path(), '/');
-    $pmdActive = function ($paths) use ($pmdSingleMenuPath) {
+
+    // PMD_ADMIN_SERVER_NATIVE_URLS_R81E
+    //
+    // The controller receives the internal logical path, while the browser
+    // remains on its clean canonical path.
+    $pmdSingleMenuBrowserPath = trim(
+        (string)request()->attributes->get(
+            'pmd_browser_path_r81e',
+            $pmdSingleMenuPath
+        ),
+        '/'
+    );
+
+    $pmdActive = function ($paths) use (
+        $pmdSingleMenuPath,
+        $pmdSingleMenuBrowserPath
+    ) {
         foreach ((array) $paths as $path) {
-            if ($pmdSingleMenuPath === 'admin/'.$path || str_starts_with($pmdSingleMenuPath, 'admin/'.$path.'/')) return true;
+            foreach (
+                [
+                    $pmdSingleMenuPath,
+                    $pmdSingleMenuBrowserPath,
+                ]
+                as $candidate
+            ) {
+                if (
+                    $candidate === 'admin/'.$path
+                    || str_starts_with(
+                        $candidate,
+                        'admin/'.$path.'/'
+                    )
+                ) {
+                    return true;
+                }
+            }
         }
+
         return false;
     };
     $pmdSm2Locale = strtolower((string)request()->cookie('pmd_admin_locale', app()->getLocale()));
@@ -35,8 +68,8 @@
      * role lookup. Owner gets Manager + Accountant; Manager gets Accountant.
      * These are navigation links only and do not grant target permissions.
      */
-    $pmdSm2IsOwnerNav = $pmdSm2DashboardRoute === 'dashboardlab';
-    $pmdSm2IsManagerNav = $pmdSm2DashboardRoute === 'managerlab';
+    $pmdSm2IsOwnerNav = $pmdSm2DashboardRoute === 'ownerdashboard';
+    $pmdSm2IsManagerNav = $pmdSm2DashboardRoute === 'managerdashboard';
     $pmdSm2FloorManagementSurface = in_array(
         $pmdSingleMenuPath,
         ['admin/dashboardlab', 'admin/managerlab'],
@@ -83,24 +116,24 @@
         </a>
 
         @if($pmdSm2IsOwnerNav)
-        <a class="pmd-sm2__item {{ $pmdActive(['managerlab']) ? 'is-active' : '' }}" href="{{ admin_url('managerlab') }}" data-pmd-role-workspace-shortcut="manager">
+        <a class="pmd-sm2__item {{ $pmdActive(['managerlab']) ? 'is-active' : '' }}" href="{{ admin_url('managerdashboard') }}" data-pmd-role-workspace-shortcut="manager">
             <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0M16 5a3 3 0 0 1 0 6M17 14a5 5 0 0 1 4 5"/></svg>
             <span class="pmd-sm2__label">{{ $pmdSm2T('nav.manager', 'Manager') }}</span>
         </a>
         @endif
 
         @if($pmdSm2IsOwnerNav || $pmdSm2IsManagerNav)
-        <a class="pmd-sm2__item {{ $pmdActive(['accountantlab']) ? 'is-active' : '' }}" href="{{ admin_url('accountantlab') }}" data-pmd-role-workspace-shortcut="accountant">
+        <a class="pmd-sm2__item {{ $pmdActive(['accountantlab']) ? 'is-active' : '' }}" href="{{ admin_url('accountantdashboard') }}" data-pmd-role-workspace-shortcut="accountant">
             <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h2M14 11h2M8 15h2M14 15h2M8 19h8"/></svg>
             <span class="pmd-sm2__label">{{ $pmdSm2T('nav.accountant', 'Accountant') }}</span>
         </a>
         @endif
 
-        <a class="pmd-sm2__item {{ $pmdSm2OrdersIsActive ? 'is-active' : '' }}" href="{{ admin_url('cashierlab') }}">
+        <a class="pmd-sm2__item {{ $pmdSm2OrdersIsActive ? 'is-active' : '' }}" href="{{ admin_url('orders') }}">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.331 8h11.339a2 2 0 0 1 1.977 2.304l-1.255 8.152a3 3 0 0 1 -2.966 2.544h-6.852a3 3 0 0 1 -2.965 -2.544l-1.255 -8.152a2 2 0 0 1 1.977 -2.304"/><path d="M9 11v-5a3 3 0 0 1 6 0v5"/></svg>
             <span class="pmd-sm2__label">{{ $pmdSm2T('nav.orders', 'Orders') }}</span>
         </a>
-        <a class="pmd-sm2__item {{ $pmdSm2ReservationsIsActive ? 'is-active' : '' }}" href="{{ admin_url('reservationslab') }}">
+        <a class="pmd-sm2__item {{ $pmdSm2ReservationsIsActive ? 'is-active' : '' }}" href="{{ admin_url('reservations') }}">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2z"/><path d="M16 3v4M8 3v4M4 11h16M8 15h2v2h-2z"/></svg>
             <span class="pmd-sm2__label">{{ $pmdSm2T('nav.reservations', 'Reservations') }}</span>
         </a>
@@ -109,12 +142,12 @@
             <span class="pmd-sm2__label">{{ $pmdSm2T('nav.coupons_gifts', 'Coupons & Gifts') }}</span>
         </a>
 
-        <a class="pmd-sm2__item {{ $pmdActive(['pmdmenus', 'menus']) ? 'is-active' : '' }}" href="{{ admin_url('pmdmenus') }}">
+        <a class="pmd-sm2__item {{ $pmdActive(['pmdmenus', 'menus']) ? 'is-active' : '' }}" href="{{ admin_url('menu') }}">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 3v12h-5c-.023-3.681.184-7.406 5-12M19 15v6M8 4v17M5 4v3a3 3 0 1 0 6 0V4"/></svg>
             <span class="pmd-sm2__label">{{ $pmdSm2T('nav.menu', 'Menu') }}</span>
         </a>
 
-        <a class="pmd-sm2__item {{ $pmdActive(['pmdsettings', 'pmddevices', 'pmdteam', 'pmdfinance', 'pmdadvanced', 'languages', 'currencies']) ? 'is-active' : '' }}" href="{{ admin_url('pmdsettings') }}">
+        <a class="pmd-sm2__item {{ $pmdActive(['pmdsettings', 'pmddevices', 'pmdteam', 'pmdfinance', 'pmdadvanced', 'languages', 'currencies']) ? 'is-active' : '' }}" href="{{ admin_url('settings') }}">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06-2.12 2.12-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V20h-3v-.08a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06-2.12-2.12.06-.06A1.65 1.65 0 0 0 7.2 15a1.65 1.65 0 0 0-1.51-1H5.6v-3h.09A1.65 1.65 0 0 0 7.2 10a1.65 1.65 0 0 0-.33-1.82l-.06-.06L8.93 6l.06.06A1.65 1.65 0 0 0 10.8 6.4a1.65 1.65 0 0 0 1-1.51V4.8h3v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06 2.12 2.12-.06.06A1.65 1.65 0 0 0 19.4 10a1.65 1.65 0 0 0 1.51 1H21v3h-.09A1.65 1.65 0 0 0 19.4 15z"/></svg>
             <span class="pmd-sm2__label">{{ $pmdSm2T('nav.settings', 'Settings') }}</span>
         </a>

@@ -1,3 +1,10 @@
+@php
+    // PMD_SETTINGS_REPORTS_PLATFORM_I18N_V16
+    $pmdSettingsText = $pmdSettingsText ?? static function ($value) {
+        return \Admin\Classes\PmdPlatformI18n::fromEnglish((string)$value, 'settings.');
+    };
+@endphp
+
 <style id="pmd-team-v2-first-paint">
 html,body,.page,.page-wrapper,.page-content,.content-wrapper,.container,.container-fluid,#pmd-team-access{background:#f8fbfd!important}
 .navbar-top,.navbar-fixed-top{display:none!important}
@@ -26,10 +33,10 @@ html,body,.page,.page-wrapper,.page-content,.content-wrapper,.container,.contain
 <div id="pmd-team-access" data-pmd-team-access>
     <header class="pmd-team-header" id="pmd-team-header">
         <div class="pmd-team-header__left">
-            <a class="pmd-team-btn" href="{{ admin_url('pmdsettings') }}" aria-label="Back">
+            <a class="pmd-team-btn" href="{{ admin_url('pmdsettings') }}" aria-label="{{ $pmdSettingsText('Back') }}">
                 <svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"></path></svg>
             </a>
-            <h1>Team & access</h1>
+            <h1>{{ $pmdSettingsText('Team & access') }}</h1>
         </div>
         <div class="pmd-team-header__actions" data-pmd-team-actions>
             @include('admin::_partials.pmd_settings_family_notification_placeholder_v18')
@@ -40,18 +47,18 @@ html,body,.page,.page-wrapper,.page-content,.content-wrapper,.container,.contain
         <div class="pmd-team-card">
             <div class="pmd-team-card__header">
                 <div>
-                    <h2>Team members</h2>
-                    <p>Simple staff accounts with one locked product role.</p>
+                    <h2>{{ $pmdSettingsText('Team members') }}</h2>
+                    <p>{{ $pmdSettingsText('Simple staff accounts with one locked product role.') }}</p>
                 </div>
                 <div class="pmd-team-header-actions">
-                    <button type="button" class="pmd-team-action" data-pmd-inline-open="team:staff:create">Add staff member</button>
+                    <button type="button" class="pmd-team-action" data-pmd-inline-open="team:staff:create">{{ $pmdSettingsText('Add staff member') }}</button>
                 </div>
             </div>
 
             <div class="pmd-team-stats">
-                <div class="pmd-team-stat"><span>Team members</span><strong>{{ (int)$stats['total'] }}</strong></div>
-                <div class="pmd-team-stat"><span>Active</span><strong>{{ (int)$stats['active'] }}</strong></div>
-                <div class="pmd-team-stat"><span>Default roles</span><strong>{{ (int)$stats['roles'] }}</strong></div>
+                <div class="pmd-team-stat"><span>{{ $pmdSettingsText('Team members') }}</span><strong>{{ (int)$stats['total'] }}</strong></div>
+                <div class="pmd-team-stat"><span>{{ $pmdSettingsText('Active') }}</span><strong>{{ (int)$stats['active'] }}</strong></div>
+                <div class="pmd-team-stat"><span>{{ $pmdSettingsText('Default roles') }}</span><strong>{{ (int)$stats['roles'] }}</strong></div>
             </div>
 
             <div class="pmd-team-list">
@@ -76,8 +83,8 @@ html,body,.page,.page-wrapper,.page-content,.content-wrapper,.container,.contain
         <div class="pmd-team-card">
             <div class="pmd-team-card__header">
                 <div>
-                    <h2>Default roles</h2>
-                    <p>These roles are product defaults and cannot be edited here.</p>
+                    <h2>{{ $pmdSettingsText('Default roles') }}</h2>
+                    <p>{{ $pmdSettingsText('These roles are product defaults and cannot be edited here.') }}</p>
                 </div>
             </div>
             <div class="pmd-team-grid">
@@ -85,7 +92,7 @@ html,body,.page,.page-wrapper,.page-content,.content-wrapper,.container,.contain
                     <div class="pmd-team-panel">
                         <strong>{{ $role->name }}</strong>
                         <p>{{ $role->description }}</p>
-                        <span class="pmd-team-lock">Locked default</span>
+                        <span class="pmd-team-lock">{{ $pmdSettingsText('Locked default') }}</span>
                     </div>
                 @endforeach
             </div>

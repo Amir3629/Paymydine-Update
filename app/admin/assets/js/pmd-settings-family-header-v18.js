@@ -34,7 +34,7 @@
 
 
   var path =
-    cleanPath(window.location.pathname);
+    cleanPath((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : window.location.pathname));
 
   if (!allowed(path)) {
     return;

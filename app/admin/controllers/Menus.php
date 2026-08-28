@@ -124,6 +124,7 @@ class Menus extends AdminController
             'is_halal' => ['nullable', 'boolean'],
             'is_vegetarian' => ['nullable', 'boolean'],
             'is_vegan' => ['nullable', 'boolean'],
+            'allergen_ids_present' => ['nullable', 'boolean'],
             'allergen_ids' => ['nullable', 'array'],
             'allergen_ids.*' => ['integer', 'min:1', 'distinct'],
             'calories' => ['nullable', 'integer', 'min:0', 'max:5000'],
@@ -151,6 +152,15 @@ class Menus extends AdminController
             $categoryIds = [(int)$clean['category_id']];
         }
         $allergenIds = array_values(array_unique(array_map('intval', (array)($clean['allergen_ids'] ?? []))));
+        // PMD_MENU_ALLERGEN_PRESERVE_ON_MISSING_V10
+        // Missing field is not permission to erase persisted allergen relations.
+        // The active PMD Menu form sends allergen_ids_present=1 so an intentional
+        // all-unchecked state still clears relations explicitly. Older callers that
+        // actually send allergen_ids remain compatible even without the new marker.
+        $allergenIdsPresent = filter_var(
+            $clean['allergen_ids_present'] ?? false,
+            FILTER_VALIDATE_BOOLEAN
+        ) || request()->has('allergen_ids');
 
         if ($categoryIds) {
             $validCategoryIds = Categories_model::query()
@@ -208,7 +218,7 @@ class Menus extends AdminController
         }
 
         try {
-            $saved = DB::transaction(function () use ($clean, $menuId, $categoryIds, $allergenIds, $uploadedRelative) {
+            $saved = DB::transaction(function () use ($clean, $menuId, $categoryIds, $allergenIds, $allergenIdsPresent, $uploadedRelative) {
                 $menu = $menuId ? Menus_model::query()->find($menuId) : new Menus_model;
                 if ($menuId && !$menu) {
                     throw new \RuntimeException('Menu item not found.');
@@ -248,7 +258,20 @@ class Menus extends AdminController
 
                 $menu->save();
                 $menu->addMenuCategories($categoryIds);
-                $menu->addMenuAllergens($allergenIds);
+
+                if ($allergenIdsPresent) {
+                    // Explicit ownership: selected IDs sync; the active form's
+                    // explicit all-unchecked marker intentionally clears all.
+                    $menu->addMenuAllergens($allergenIds);
+                } elseif ($menuId) {
+                    // Legacy/partial callers may omit allergen_ids entirely.
+                    // Preserve persisted relations instead of sync([]).
+                    \Log::warning('PMD_MENU_ALLERGEN_SYNC_SKIPPED_MISSING_MARKER_V10', [
+                        'menu_id' => (int)$menuId,
+                        'path' => request()->path(),
+                        'handler' => (string)request()->header('X-IGNITER-REQUEST-HANDLER', ''),
+                    ]);
+                }
 
                 // PMD_FOOD_UPLOAD_PERSISTENCE_R32
                 if ($uploadedRelative) {

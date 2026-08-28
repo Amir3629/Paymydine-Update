@@ -45,10 +45,48 @@ Route::post('/'.trim((string)config('system.adminUri', 'admin'), '/').'/terminal
     ->name('pmd.sumup.terminal.callback');
 
 Route::middleware(['web'])->prefix(config('system.adminUri', 'admin'))->group(function () {
+    // PMD_LOCATION_CLOCK_STATE_ROUTE_R9
+    // Read-only. Shared Header Blade remains presentation-only.
+    Route::get('/location-clock/state', function (\App\Services\Platform\LocationClockStateService $clock) {
+        $user = \Admin\Facades\AdminAuth::getUser();
+        if (!$user) {
+            return response()->json(['ok' => false, 'message' => 'Unauthenticated.'], 401);
+        }
+
+        try {
+            $response = response()->json([
+                'ok' => true,
+                'clock' => $clock->state(),
+            ]);
+            $response->headers->set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+            $response->headers->set('Pragma', 'no-cache');
+            return $response;
+        } catch (\Throwable $error) {
+            report($error);
+            return response()->json([
+                'ok' => false,
+                'message' => 'Location clock state is unavailable.',
+            ], 500);
+        }
+    })->name('pmd.location-clock.state');
+
     Route::get('/payment-providers', [\Admin\Controllers\PaymentProviders::class, 'index'])
         ->name('pmd.payment-providers.index');
     Route::get('/payment-providers/state', [\Admin\Controllers\PaymentProviders::class, 'state'])
         ->name('pmd.payment-providers.state');
+
+    // PMD_PAYMENT_MARKET_SETTINGS_R4
+    // Finance UI reads only the current LocationPlatformContext and therefore
+    // never mixes Oman providers/methods into Germany (or vice versa).
+    Route::get('/payment-market/state', [\Admin\Controllers\PaymentMarketSettings::class, 'state'])
+        ->name('pmd.payment-market.state');
+    Route::post('/payment-market/paymob/save', [\Admin\Controllers\PaymentMarketSettings::class, 'savePaymob'])
+        ->name('pmd.payment-market.paymob.save');
+    Route::post('/payment-market/paymob/test', [\Admin\Controllers\PaymentMarketSettings::class, 'testPaymob'])
+        ->name('pmd.payment-market.paymob.test');
+    Route::post('/payment-market/methods/{code}', [\Admin\Controllers\PaymentMarketSettings::class, 'saveMethod'])
+        ->where('code', '[A-Za-z0-9_-]+')
+        ->name('pmd.payment-market.methods.save');
 
     // Provider-connection aliases. Devices should only pair/manage hardware;
     // provider credentials live under Payments > Providers.

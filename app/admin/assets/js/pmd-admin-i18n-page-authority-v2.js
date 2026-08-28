@@ -4,7 +4,7 @@
     // PMD_CLEAN_ROLE_WORKSPACE_I18N_PAGE_SKIP_V1
     // These role workspaces render their EN/DE copy server-first. Do not boot
     // the observer/RAF page-translator that owns Dashboard2/Reservations2/DashboardLab.
-    if (/^\/admin\/(?:managerlab|accountantlab|cashierlab|reservationslab)(?:\/|$)/.test(String(location.pathname || ''))) {
+    if (/^\/admin\/(?:managerlab|accountantlab|cashierlab|reservationslab)(?:\/|$)/.test(String((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname) || ''))) {
         return;
     }
 
@@ -166,7 +166,7 @@
     };
 
     function routeAllowed() {
-        return allowedRoutes.indexOf(location.pathname) !== -1;
+        return allowedRoutes.indexOf((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname)) !== -1;
     }
 
     function locale() {
@@ -519,7 +519,7 @@
 
         return {
             version: VERSION,
-            route: location.pathname,
+            route: (window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname),
             routeAllowed: routeAllowed(),
             locale: locale(),
             runtimeLocale:
