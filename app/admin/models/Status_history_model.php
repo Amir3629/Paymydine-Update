@@ -2,8 +2,13 @@
 
 namespace Admin\Models;
 
+use App\Services\PmdKitchenEtaLifecycleService;
 use Carbon\Carbon;
 use Igniter\Flame\Database\Model;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
+use Throwable;
 
 /**
  * Status History Model Class
@@ -25,8 +30,8 @@ class Status_history_model extends Model
 
     public $relation = [
         'belongsTo' => [
-            'staff' => 'Admin\\Models\\Staffs_model',
-            'status' => ['Admin\\Models\\Statuses_model', 'status_id'],
+            'staff' => 'Admin\Models\Staffs_model',
+            'status' => ['Admin\Models\Statuses_model', 'status_id'],
         ],
         'morphTo' => [
             'object' => [],
@@ -61,8 +66,8 @@ class Status_history_model extends Model
     }
 
     /**
-     * @param \\Igniter\\Flame\\Database\\Model|mixed $status
-     * @param \\Igniter\\Flame\\Database\\Model|mixed $object
+     * @param \Igniter\Flame\Database\Model|mixed $status
+     * @param \Igniter\Flame\Database\Model|mixed $object
      * @param array $options
      * @return static|bool
      */
@@ -100,7 +105,7 @@ class Status_history_model extends Model
                 $orderId = (int)$object->getKey();
                 $statusName = trim((string)($status->status_name ?? $model->status_name ?? ''));
                 $normalized = strtolower($statusName);
-                $lifecycle = app(\\App\\Services\\PmdKitchenEtaLifecycleService::class);
+                $lifecycle = app(PmdKitchenEtaLifecycleService::class);
 
                 // A repeated Received/Accepted transition usually means staff sent
                 // additional food on an already active order. Recalculate the
@@ -109,8 +114,8 @@ class Status_history_model extends Model
                     || strpos($normalized, 'accepted') !== false
                     || strpos($normalized, 'confirmed') !== false;
                 $alreadyReleased = $isReceived
-                    && \\Illuminate\\Support\\Facades\\Schema::hasColumn('orders', 'kitchen_released_at')
-                    && \\Illuminate\\Support\\Facades\\DB::table('orders')
+                    && Schema::hasColumn('orders', 'kitchen_released_at')
+                    && DB::table('orders')
                         ->where('order_id', $orderId)
                         ->whereNotNull('kitchen_released_at')
                         ->exists();
@@ -121,8 +126,8 @@ class Status_history_model extends Model
                     $lifecycle->onKitchenStatus($orderId, $statusName);
                 }
             }
-        } catch (\\Throwable $error) {
-            \\Log::warning('PMD_KITCHEN_STATUS_LIFECYCLE_FAILED', [
+        } catch (Throwable $error) {
+            Log::warning('PMD_KITCHEN_STATUS_LIFECYCLE_FAILED', [
                 'order_id' => (int)$object->getKey(),
                 'status_id' => (int)$statusId,
                 'message' => $error->getMessage(),
