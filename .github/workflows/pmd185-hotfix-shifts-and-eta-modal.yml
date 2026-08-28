@@ -1,0 +1,233 @@
+name: PMD185 hotfix shifts render and ETA modal
+
+on:
+  push:
+    branches:
+      - feature/kitchen-operations-foundation-185
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/kitchen-operations-foundation-185
+          fetch-depth: 0
+
+      - name: Patch Shifts Blade compatibility and compact ETA modal
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          view = Path('app/admin/views/pmdshifts/index.blade.php')
+          text = view.read_text()
+          pattern = re.compile(
+              r'    <script type="application/json" id="pmd-shifts-kpi-data">@json\(\$kpiCards\)</script>\n'
+              r'    <script type="application/json" id="pmd-shifts-bootstrap">@json\(\[\n.*?\n    \]\)</script>',
+              re.S,
+          )
+          replacement = '''    @php
+              // TastyIgniter's legacy Blade compiler cannot safely parse a nested
+              // array literal inside @json(...). Build the payload in plain PHP
+              // and echo only pre-encoded JSON into the script tags.
+              $pmdShiftsJsonFlags = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
+              $pmdShiftsBootstrapPayload = [
+                  'selected_day' => $selectedDay->toDateString(),
+                  'month' => $monthStart->toDateString(),
+                  'open_hour_on_boot' => request()->filled('day'),
+                  'people' => $bootPeople,
+                  'shifts' => $bootShifts,
+                  'csrf' => csrf_token(),
+                  'urls' => [
+                      'shifts' => admin_url('shifts'),
+                      'remove' => admin_url('shifts/removeshift'),
+                  ],
+              ];
+              $pmdShiftsKpiJson = json_encode($kpiCards, $pmdShiftsJsonFlags) ?: '{}';
+              $pmdShiftsBootstrapJson = json_encode($pmdShiftsBootstrapPayload, $pmdShiftsJsonFlags) ?: '{}';
+          @endphp
+          <script type="application/json" id="pmd-shifts-kpi-data">{!! $pmdShiftsKpiJson !!}</script>
+          <script type="application/json" id="pmd-shifts-bootstrap">{!! $pmdShiftsBootstrapJson !!}</script>'''
+          text2, n = pattern.subn(replacement, text, count=1)
+          if n != 1:
+              raise SystemExit('Could not locate the legacy nested @json Shifts bootstrap block')
+          if '@json([' in text2:
+              raise SystemExit('Nested @json([ still exists in Shifts view')
+          view.write_text(text2)
+
+          js = Path('app/admin/assets/js/pmd-menu-prep-presets.js')
+          text = js.read_text()
+          pattern = re.compile(r'  function buildModal\(\) \{.*?\n  function openSettings\(\) \{', re.S)
+          replacement = r'''  function buildModal() {
+            if (modal) return modal;
+
+            modal = document.createElement('div');
+            modal.className = 'pmd-menu-modal pmd-menu-kitchen-settings-modal';
+            modal.setAttribute('data-pmd-kitchen-settings-modal', '');
+            modal.setAttribute('role', 'dialog');
+            modal.setAttribute('aria-modal', 'true');
+            modal.setAttribute('aria-labelledby', 'pmd-kitchen-settings-title');
+            modal.setAttribute('aria-hidden', 'true');
+            modal.hidden = true;
+
+            var token = csrfToken();
+            modal.innerHTML = ''
+              + '<div class="pmd-menu-modal__backdrop" data-pmd-kitchen-settings-close></div>'
+              + '<section class="pmd-menu-modal__card pmd-menu-kitchen-settings-card" role="document">'
+              + '  <header class="pmd-menu-modal__header">'
+              + '    <div><span class="pmd-menu-modal__eyebrow">Kitchen</span><h2 id="pmd-kitchen-settings-title">Preparation & ETA</h2></div>'
+              + '    <button type="button" class="pmd-menu-modal__close" data-pmd-kitchen-settings-close aria-label="Close">'
+              + '      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg>'
+              + '    </button>'
+              + '  </header>'
+              + '  <form class="pmd-menu-kitchen-settings-form" method="post" action="' + saveUrl + '">'
+              + '    <input type="hidden" name="_token" value="' + token.replace(/&/g, '&amp;').replace(/"/g, '&quot;') + '">'
+              + '    <div class="pmd-menu-modal__body">'
+              + '      <label class="pmd-menu-kitchen-visibility-line">'
+              + '        <span>Show ETA to guests</span>'
+              + '        <span class="pmd-menu-switch"><input type="checkbox" name="show_customer_eta" value="1" data-pmd-kitchen-show-eta><span></span></span>'
+              + '      </label>'
+              + '      <section class="pmd-menu-form__section">'
+              + '        <div class="pmd-menu-form__section-head"><h3>If an order needs more time</h3><p>Near the promised time, if the Kitchen has not marked the order Ready, PMD can extend the guest ETA.</p></div>'
+              + '        <label class="pmd-menu-field pmd-menu-kitchen-extension-field"><span>Extra minutes</span><input type="number" name="extension_minutes" min="1" max="120" step="1" inputmode="numeric" data-pmd-kitchen-extension-minutes></label>'
+              + '        <div class="pmd-menu-kitchen-eta-presets" data-pmd-kitchen-eta-presets>'
+              + '          <button type="button" data-pmd-kitchen-eta-preset data-minutes="5" aria-pressed="false">+5 min</button>'
+              + '          <button type="button" data-pmd-kitchen-eta-preset data-minutes="10" aria-pressed="false">+10 min</button>'
+              + '          <button type="button" data-pmd-kitchen-eta-preset data-minutes="15" aria-pressed="false">+15 min</button>'
+              + '          <button type="button" data-pmd-kitchen-eta-preset data-minutes="20" aria-pressed="false">+20 min</button>'
+              + '        </div>'
+              + '        <p class="pmd-menu-kitchen-settings-hint">PMD checks close to the deadline. Repeated misses stop moving the promise and show “Taking longer than expected” instead.</p>'
+              + '      </section>'
+              + '    </div>'
+              + '    <footer class="pmd-menu-modal__footer">'
+              + '      <span class="pmd-menu-modal__status">Kitchen timing stays automatic behind the scenes.</span>'
+              + '      <div class="pmd-menu-modal__buttons">'
+              + '        <button type="button" class="pmd-menu-modal__cancel" data-pmd-kitchen-settings-close>Cancel</button>'
+              + '        <button type="submit" class="pmd-menu-modal__save">Save settings</button>'
+              + '      </div>'
+              + '    </footer>'
+              + '  </form>'
+              + '</section>';
+
+            document.body.appendChild(modal);
+
+            modal.addEventListener('click', function (event) {
+              if (event.target.closest('[data-pmd-kitchen-settings-close]')) closeSettings();
+            });
+
+            var extensionInput = modal.querySelector('[data-pmd-kitchen-extension-minutes]');
+            var presetButtons = Array.prototype.slice.call(modal.querySelectorAll('[data-pmd-kitchen-eta-preset]'));
+
+            presetButtons.forEach(function (button) {
+              button.addEventListener('click', function () {
+                if (!extensionInput) return;
+                extensionInput.value = String(Number(button.getAttribute('data-minutes') || 10));
+                syncExtensionPresets();
+                extensionInput.dispatchEvent(new Event('change', {bubbles: true}));
+              });
+            });
+
+            if (extensionInput) {
+              extensionInput.addEventListener('input', syncExtensionPresets);
+              extensionInput.addEventListener('change', function () {
+                var value = Math.round(Number(extensionInput.value || 10));
+                extensionInput.value = String(Math.max(1, Math.min(120, value)));
+                syncExtensionPresets();
+              });
+            }
+
+            return modal;
+          }
+
+          function syncExtensionPresets() {
+            if (!modal) return;
+            var extensionInput = modal.querySelector('[data-pmd-kitchen-extension-minutes]');
+            var value = extensionInput ? Number(extensionInput.value || 0) : 0;
+            modal.querySelectorAll('[data-pmd-kitchen-eta-preset]').forEach(function (button) {
+              var selected = Number(button.getAttribute('data-minutes') || 0) === value;
+              button.classList.toggle('is-active', selected);
+              button.setAttribute('aria-pressed', selected ? 'true' : 'false');
+            });
+          }
+
+          function applySettings(data) {
+            buildModal();
+            var showEta = modal.querySelector('[data-pmd-kitchen-show-eta]');
+            var extensionInput = modal.querySelector('[data-pmd-kitchen-extension-minutes]');
+            var extension = Math.max(1, Math.min(120, Math.round(Number(data && data.extension_minutes || 10))));
+
+            if (showEta) showEta.checked = Boolean(data && data.show_customer_eta);
+            if (extensionInput) extensionInput.value = String(extension);
+            syncExtensionPresets();
+          }
+
+          function openSettings() {'''
+          text2, n = pattern.subn(replacement, text, count=1)
+          if n != 1:
+              raise SystemExit('Could not locate Kitchen settings modal JS block')
+          forbidden = [
+              'Guest preparation estimates',
+              'Show preparation estimates',
+              'data-pmd-kitchen-custom-radio',
+              'data-pmd-kitchen-custom-minutes',
+              '>Custom<',
+          ]
+          for needle in forbidden:
+              if needle in text2:
+                  raise SystemExit(f'Old ETA modal UI still present: {needle}')
+          js.write_text(text2)
+
+          css = Path('app/admin/assets/css/pmd-menu-prep-presets.css')
+          text = css.read_text()
+          marker = '/* PMD_KITCHEN_TIMING_COMPACT_V2 */'
+          if marker in text:
+              text = text.split(marker, 1)[0].rstrip() + '\n'
+          text += r'''
+          /* PMD_KITCHEN_TIMING_COMPACT_V2 */
+          .pmd-menu-manager-page .pmd-menu-kitchen-settings-card{width:min(700px,calc(100vw - 32px))}
+          .pmd-menu-manager-page .pmd-menu-kitchen-visibility-line{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin:0 2px 12px;color:#274940;font-size:12px;font-weight:820;cursor:pointer}
+          .pmd-menu-manager-page .pmd-menu-kitchen-extension-field{width:min(210px,100%);margin:0 0 12px}
+          .pmd-menu-manager-page .pmd-menu-kitchen-eta-presets{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+          .pmd-menu-manager-page .pmd-menu-kitchen-eta-presets button{display:flex;min-height:48px;align-items:center;justify-content:center;padding:8px 10px;border:1px solid #cfe0ed;border-radius:11px;background:#fff;color:#274940;font:inherit;font-size:12px;font-weight:850;cursor:pointer;transition:background .15s ease,border-color .15s ease,color .15s ease,box-shadow .15s ease}
+          .pmd-menu-manager-page .pmd-menu-kitchen-eta-presets button:hover{border-color:#a8ccc0;background:#f7fbf9}
+          .pmd-menu-manager-page .pmd-menu-kitchen-eta-presets button.is-active,.pmd-menu-manager-page .pmd-menu-kitchen-eta-presets button[aria-pressed="true"]{border-color:#79bda8;background:#edf9f4;color:#075c47;box-shadow:0 0 0 3px rgba(7,92,71,.08)}
+          .pmd-menu-manager-page .pmd-menu-kitchen-eta-presets button:focus-visible{outline:2px solid rgba(7,95,79,.2);outline-offset:2px}
+          @media(max-width:760px){.pmd-menu-manager-page .pmd-menu-kitchen-eta-presets{grid-template-columns:repeat(2,minmax(0,1fr))}.pmd-menu-manager-page .pmd-menu-kitchen-visibility-line{justify-content:space-between}}
+          '''.strip() + '\n'
+          css.write_text(text)
+          PY
+
+      - name: Verify fixes
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          node --check app/admin/assets/js/pmd-menu-prep-presets.js
+          ! grep -F '@json([' app/admin/views/pmdshifts/index.blade.php
+          grep -F '$pmdShiftsBootstrapJson' app/admin/views/pmdshifts/index.blade.php
+          grep -F 'data-pmd-kitchen-extension-minutes' app/admin/assets/js/pmd-menu-prep-presets.js
+          grep -F 'data-pmd-kitchen-eta-preset' app/admin/assets/js/pmd-menu-prep-presets.js
+          ! grep -F 'Guest preparation estimates' app/admin/assets/js/pmd-menu-prep-presets.js
+          ! grep -F 'data-pmd-kitchen-custom-radio' app/admin/assets/js/pmd-menu-prep-presets.js
+          grep -F 'PMD_KITCHEN_TIMING_COMPACT_V2' app/admin/assets/css/pmd-menu-prep-presets.css
+          git diff --check
+
+      - name: Commit product hotfix
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            app/admin/views/pmdshifts/index.blade.php \
+            app/admin/assets/js/pmd-menu-prep-presets.js \
+            app/admin/assets/css/pmd-menu-prep-presets.css
+          git commit -m 'Fix Shifts Blade render and simplify ETA modal (#185)'
+          git push origin HEAD:feature/kitchen-operations-foundation-185
