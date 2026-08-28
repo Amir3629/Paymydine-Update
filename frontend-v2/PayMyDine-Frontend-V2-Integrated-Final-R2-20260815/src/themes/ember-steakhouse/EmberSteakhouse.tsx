@@ -7,6 +7,7 @@ import { ResponsiveRestaurantName } from '@/src/runtime/components/ResponsiveRes
 import { DietaryBadges, LanguageSelect, PlatformFooter, QuickAddButton, RestaurantLogo, SocialLinks, HeaderValetButton } from '@/src/runtime/components/SharedPieces'
 import { RuntimeOverlays } from '@/src/runtime/components/RuntimeOverlays'
 import { ThemeBottomToolBar } from '@/src/runtime/components/ThemeBottomToolBar'
+import { formatPrepTime } from '@/src/runtime/prep-time'
 import styles from './EmberSteakhouse.module.css'
 
 export default function EmberSteakhouse() {
@@ -62,7 +63,7 @@ export default function EmberSteakhouse() {
               <p>{item.description}</p>
               <DietaryBadges item={item} compact />
               <div className={styles.details}>
-                <span>{item.prepTimeMinutes ? `${item.prepTimeMinutes} min` : 'Fire finished'}</span>
+                <span>{item.prepTimeMinutes ? formatPrepTime(item.prepTimeMinutes) : 'Fire finished'}</span>
                 <strong>{formatCurrency(item.price)}</strong>
                 <QuickAddButton item={item} />
               </div>
