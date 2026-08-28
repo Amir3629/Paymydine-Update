@@ -33,6 +33,7 @@
     <form class="pmd-kitchen-today__form" method="post" action="{{ admin_url('shifts/confirm') }}">
         @csrf
         <input type="hidden" name="shift_id" value="{{ (int)$pmdTodayShift->id }}">
+        <input type="hidden" name="confirmation_scope" value="kitchen">
         <input type="hidden" name="return_to" value="{{ $pmdTodayReturn }}">
 
         <div class="pmd-kitchen-today__people" aria-label="Kitchen team for this shift">
