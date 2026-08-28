@@ -15,6 +15,80 @@
     $byDay = $shifts->groupBy(fn($s) => \Carbon\Carbon::parse($s->shift_date)->toDateString());
     $returnTo = request()->getRequestUri();
 
+    // PMD_SHIFTS_MONTH_TEAM_SUMMARY_V8
+    // A month cell shows the team that matters operationally: the active Shift
+    // for today, otherwise the next Shift today, and the first planned Shift on
+    // other dates. The cell stays intentionally compact (max five role rows).
+    $pmdShiftMinutes = static function ($value) {
+        $value = trim((string)$value);
+        if ($value === '') return null;
+        $parts = explode(':', $value);
+        if (count($parts) < 2) return null;
+        return ((int)$parts[0] * 60) + (int)$parts[1];
+    };
+
+    $pmdRelevantShiftForDay = static function ($date, $dayShifts) use ($pmdShiftMinutes) {
+        $ordered = collect($dayShifts)->sortBy(function ($shift) use ($pmdShiftMinutes) {
+            $start = $pmdShiftMinutes($shift->starts_at ?? null);
+            return $start === null ? 9999 : $start;
+        })->values();
+        if ($ordered->isEmpty()) return null;
+
+        $day = \Carbon\Carbon::parse($date)->startOfDay();
+        if (!$day->isToday()) return $ordered->first();
+
+        $nowMinutes = ((int)now()->format('H') * 60) + (int)now()->format('i');
+        foreach ($ordered as $shift) {
+            $start = $pmdShiftMinutes($shift->starts_at ?? null);
+            $end = $pmdShiftMinutes($shift->ends_at ?? null);
+            if ($start === null) $start = 0;
+            if ($end === null) $end = 1440;
+            if ($end <= $start) $end += 1440;
+            if ($nowMinutes >= $start && $nowMinutes < $end) return $shift;
+        }
+        foreach ($ordered as $shift) {
+            $start = $pmdShiftMinutes($shift->starts_at ?? null);
+            if ($start !== null && $start > $nowMinutes) return $shift;
+        }
+        return $ordered->last();
+    };
+
+    $pmdShiftTeamRows = static function ($shift) {
+        if (!$shift) return [];
+        $groups = [
+            'Kitchen' => [],
+            'Waiters' => [],
+            'Cashier' => [],
+            'Bar' => [],
+            'Other' => [],
+        ];
+        foreach (collect($shift->people ?? []) as $person) {
+            $name = trim((string)($person->display_name_snapshot ?? ''));
+            if ($name === '') continue;
+            $department = strtolower(trim((string)($person->department_snapshot ?? 'other')));
+            $role = strtolower(trim((string)($person->job_role_snapshot ?? '')));
+
+            if ($department === 'kitchen') $group = 'Kitchen';
+            elseif (str_contains($role, 'cashier') || str_contains($role, 'till')) $group = 'Cashier';
+            elseif (str_contains($role, 'waiter') || str_contains($role, 'server') || $department === 'floor') $group = 'Waiters';
+            elseif ($department === 'bar' || str_contains($role, 'bartender') || $role === 'bar') $group = 'Bar';
+            else $group = 'Other';
+
+            if (!in_array($name, $groups[$group], true)) $groups[$group][] = $name;
+        }
+
+        $rows = [];
+        foreach ($groups as $label => $names) {
+            if (!$names) continue;
+            $visible = array_slice($names, 0, 3);
+            $text = implode(', ', $visible);
+            if (count($names) > 3) $text .= ' +'.(count($names) - 3);
+            $rows[] = ['label' => $label, 'names' => $text];
+            if (count($rows) >= 5) break;
+        }
+        return $rows;
+    };
+
     $pmdShiftIcon = static function ($name) {
         $paths = [
             'calendar' => '<path d="M4 5h16v15H4zM8 3v4M16 3v4M4 10h16"></path>',
@@ -139,10 +213,10 @@
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c1.8 3 5 4.6 5 9a5 5 0 0 1-10 0c0-2.3 1.2-4.4 3.5-6.5.2 2 1 3 1.5 3.5 1.2-1.4 1.2-3.7 0-6z"></path></svg>
                 <span>Peak time</span>
             </button>
-            <a class="pmd-shifts__header-button is-soft" href="{{ admin_url('settings/team') }}">
+            <button type="button" class="pmd-shifts__header-button is-soft" data-pmd-team-open aria-label="Restaurant team">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"></circle><path d="M3 20a6 6 0 0 1 12 0M16 5a3 3 0 0 1 0 6M17 14a5 5 0 0 1 4 5"></path></svg>
                 <span>Team</span>
-            </a>
+            </button>
             @if($ready)
                 <button type="button" class="pmd-shifts__header-button" data-pmd-shift-open data-date="{{ $selectedDay->toDateString() }}">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
@@ -229,24 +303,37 @@
                                     $dayShifts = collect($byDay->get($date, collect()));
                                     $inMonth = $day->month === $monthStart->month;
                                 @endphp
-                                <a
+                                @php
+                                    $focusShift = $pmdRelevantShiftForDay($date, $dayShifts);
+                                    $teamRows = $pmdShiftTeamRows($focusShift);
+                                    $focusTime = $focusShift
+                                        ? (($focusShift->starts_at ? substr((string)$focusShift->starts_at,0,5) : 'All day').($focusShift->ends_at ? '–'.substr((string)$focusShift->ends_at,0,5) : ''))
+                                        : '';
+                                @endphp
+                                <div
                                     class="pmd-yc-day {{ !$inMonth ? 'is-outside' : '' }} {{ $day->isToday() ? 'is-today' : '' }}"
-                                    href="{{ admin_url('shifts') }}?month={{ $monthStart->toDateString() }}&day={{ $date }}#pmd-shift-day"
                                     data-pmd-shift-day-open
                                     data-date="{{ $date }}"
-                                    aria-label="Open {{ $day->format('F j') }} hour view"
+                                    tabindex="0"
+                                    aria-label="Open {{ $day->format('F j') }} staff schedule"
                                 >
                                     <span class="pmd-yc-day__number">{{ $day->format('j') }}</span>
-                                    <span class="pmd-yc-day__operations">
-                                        @foreach($dayShifts->take(3) as $shift)
-                                            @php $shiftPeople = collect($shift->people ?? []); @endphp
-                                            <span class="pmd-r2-yc-entry is-shift">
-                                                {{ $shift->starts_at ? substr((string)$shift->starts_at,0,5) : 'All day' }}{{ $shift->ends_at ? '–'.substr((string)$shift->ends_at,0,5) : '' }} · {{ $shift->label }} · {{ $shiftPeople->count() }}
-                                            </span>
-                                        @endforeach
-                                        @if($dayShifts->count() > 3)<span class="pmd-shifts-yc-more">+{{ $dayShifts->count()-3 }} more</span>@endif
+                                    <span class="pmd-yc-day__operations pmd-shifts-yc-team-summary">
+                                        @if($focusShift)
+                                            <span class="pmd-shifts-yc-context">{{ $focusTime }}</span>
+                                            @foreach($teamRows as $teamRow)
+                                                <button
+                                                    type="button"
+                                                    class="pmd-shifts-yc-team-row"
+                                                    data-pmd-calendar-shift-edit="{{ (int)$focusShift->id }}"
+                                                    title="Edit {{ $focusShift->label }}"
+                                                ><strong>{{ $teamRow['label'] }}:</strong><span>{{ $teamRow['names'] }}</span></button>
+                                            @endforeach
+                                        @elseif($dayShifts->isNotEmpty())
+                                            <span class="pmd-shifts-yc-context">{{ $dayShifts->count() }} planned shifts</span>
+                                        @endif
                                     </span>
-                                </a>
+                                </div>
                             @endforeach
                         </div>
                     </section>
@@ -298,6 +385,57 @@
                         <button type="submit" class="pmd-shifts__button">Save shift</button>
                     </footer>
                 </form>
+            </section>
+        </div>
+
+        <div class="pmd-shifts__modal" data-pmd-team-modal hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="pmd-team-modal-title">
+            <button type="button" class="pmd-shifts__modal-backdrop" data-pmd-team-close tabindex="-1" aria-label="Close"></button>
+            <section class="pmd-shifts__modal-card pmd-shifts__team-card" role="document">
+                <header class="pmd-shifts__modal-header">
+                    <div><span class="pmd-shifts__eyebrow">Restaurant team</span><h2 id="pmd-team-modal-title">Team</h2></div>
+                    <button type="button" class="pmd-shifts__modal-close" data-pmd-team-close aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
+                </header>
+                <div class="pmd-shifts__team-layout">
+                    <form class="pmd-shifts__team-form" method="post" action="{{ admin_url('shifts/saveperson') }}" data-pmd-team-form>
+                        @csrf
+                        <input type="hidden" name="id" value="" data-pmd-team-person-id>
+                        <input type="hidden" name="return_to" value="{{ $returnTo }}">
+                        <div class="pmd-shifts__team-form-head"><strong data-pmd-team-form-title>Add person</strong><button type="button" data-pmd-team-new>New</button></div>
+                        <label><span>Name</span><input required maxlength="128" name="display_name" data-pmd-team-name placeholder="e.g. Anna"></label>
+                        <label><span>Role <small>optional</small></span><input maxlength="64" name="job_role" data-pmd-team-role placeholder="e.g. Waiter, Cashier, Chef"></label>
+                        <label><span>Area <small>optional</small></span><select name="department" data-pmd-team-department>
+                            @foreach($departments as $departmentKey => $departmentLabel)<option value="{{ $departmentKey }}">{{ $departmentLabel }}</option>@endforeach
+                        </select></label>
+                        <button type="submit" class="pmd-shifts__button">Save person</button>
+                    </form>
+
+                    <section class="pmd-shifts__team-list" aria-label="Restaurant team members">
+                        <header><strong>{{ $people->count() }} people</strong><span>Click a person to edit.</span></header>
+                        <div class="pmd-shifts__team-list-scroll">
+                            @forelse($people as $person)
+                                <button
+                                    type="button"
+                                    class="pmd-shifts__team-person"
+                                    data-pmd-team-edit
+                                    data-person-id="{{ (int)$person->id }}"
+                                    data-name="{{ $person->display_name }}"
+                                    data-role="{{ $person->job_role ?? '' }}"
+                                    data-department="{{ $person->department ?? 'other' }}"
+                                >
+                                    <span class="pmd-shifts__team-person-avatar">{{ strtoupper(substr(trim((string)$person->display_name),0,1)) }}</span>
+                                    <span><strong>{{ $person->display_name }}</strong><small>{{ $person->job_role ?: ($departments[$person->department] ?? 'Team') }}</small></span>
+                                    @if(!empty($person->staff_id))<em>PMD access</em>@endif
+                                </button>
+                            @empty
+                                <div class="pmd-shifts__team-empty">No people yet. Add the first person with only a name.</div>
+                            @endforelse
+                        </div>
+                    </section>
+                </div>
+                <footer class="pmd-shifts__modal-footer pmd-shifts__team-footer">
+                    <a href="{{ admin_url('settings/team') }}">Advanced access accounts</a>
+                    <button type="button" class="pmd-shifts__button is-soft" data-pmd-team-close>Done</button>
+                </footer>
             </section>
         </div>
 

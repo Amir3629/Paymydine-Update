@@ -192,12 +192,25 @@ class Shifts extends AdminController
         if ($validator->fails()) throw new ValidationException($validator);
         $clean = $validator->validated();
         $locationId = $this->locationId();
+        $id = (int)($clean['id'] ?? 0);
+        $existing = $id > 0
+            ? DB::table('pmd_operational_people')->where('id', $id)->where('location_id', $locationId)->first()
+            : null;
 
-        $linkedStaffId = !empty($clean['staff_id']) ? (int)$clean['staff_id'] : null;
+        // PMD_SHIFTS_SIMPLE_PERSON_EDITOR_V8
+        // Shifts edits only operational identity. If access/station fields were
+        // not posted, preserve the advanced values already owned by Team & Access.
+        $linkedStaffId = request()->exists('staff_id')
+            ? (!empty($clean['staff_id']) ? (int)$clean['staff_id'] : null)
+            : ($existing && !empty($existing->staff_id) ? (int)$existing->staff_id : null);
         if ($linkedStaffId) {
             $validStaff = Staffs_model::whereNotSuperUser()->where('staff_status', 1)->where('staff_id', $linkedStaffId)->exists();
             if (!$validStaff) throw ValidationException::withMessages(['staff_id' => 'Choose an active PMD staff account.']);
         }
+
+        $stationSlug = request()->exists('station_slug')
+            ? (trim((string)($clean['station_slug'] ?? '')) ?: null)
+            : ($existing ? ($existing->station_slug ?? null) : null);
 
         $values = [
             'location_id' => $locationId,
@@ -205,12 +218,11 @@ class Shifts extends AdminController
             'display_name' => trim((string)$clean['display_name']),
             'department' => trim((string)($clean['department'] ?? '')) ?: 'other',
             'job_role' => trim((string)($clean['job_role'] ?? '')) ?: null,
-            'station_slug' => trim((string)($clean['station_slug'] ?? '')) ?: null,
+            'station_slug' => $stationSlug,
             'is_active' => 1,
             'updated_at' => now(),
         ];
 
-        $id = (int)($clean['id'] ?? 0);
         if ($id > 0) {
             DB::table('pmd_operational_people')->where('id', $id)->where('location_id', $locationId)->update($values);
         } else {
@@ -218,7 +230,7 @@ class Shifts extends AdminController
             DB::table('pmd_operational_people')->insert($values);
         }
 
-        return redirect(admin_url('settings/team'))->with('success', 'Person saved.');
+        return $this->redirectBackToSchedule('Person saved.');
     }
 
     public function removeperson()
@@ -232,7 +244,7 @@ class Shifts extends AdminController
                 ->where('location_id', $this->locationId())
                 ->update(['is_active' => 0, 'updated_at' => now()]);
         }
-        return redirect(admin_url('settings/team'))->with('success', 'Person removed from the active roster.');
+        return $this->redirectBackToSchedule('Person removed from the active roster.');
     }
 
     public function saveshift()

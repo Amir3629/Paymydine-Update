@@ -11,6 +11,13 @@
 
   var modal = root.querySelector('[data-pmd-shift-modal]');
   var capacityModal = root.querySelector('[data-pmd-capacity-modal]');
+  var teamModal = root.querySelector('[data-pmd-team-modal]');
+  var teamForm = teamModal && teamModal.querySelector('[data-pmd-team-form]');
+  var teamIdInput = teamModal && teamModal.querySelector('[data-pmd-team-person-id]');
+  var teamNameInput = teamModal && teamModal.querySelector('[data-pmd-team-name]');
+  var teamRoleInput = teamModal && teamModal.querySelector('[data-pmd-team-role]');
+  var teamDepartmentInput = teamModal && teamModal.querySelector('[data-pmd-team-department]');
+  var teamFormTitle = teamModal && teamModal.querySelector('[data-pmd-team-form-title]');
   var form = modal && modal.querySelector('[data-pmd-shift-form]');
   var title = modal && modal.querySelector('[data-pmd-shift-modal-title]');
   var idInput = modal && modal.querySelector('[data-pmd-shift-id]');
@@ -53,19 +60,19 @@
   }
 
   function loadExactSharedUiCss() {
-    if (document.querySelector('link[data-pmd-shifts-exact-ui-v7]')) return;
+    if (document.querySelector('link[data-pmd-shifts-exact-ui-v8]')) return;
     var base = document.querySelector('link[href*="pmd-shifts-v1.css"]');
-    var href = '/app/admin/assets/css/pmd-shifts-dashboard-reservations-v4.css?v=7';
+    var href = '/app/admin/assets/css/pmd-shifts-dashboard-reservations-v4.css?v=8';
     if (base && base.getAttribute('href')) {
       href = base.getAttribute('href').replace(
         /pmd-shifts-v1\.css(?:\?[^#]*)?/,
-        'pmd-shifts-dashboard-reservations-v4.css?v=7'
+        'pmd-shifts-dashboard-reservations-v4.css?v=8'
       );
     }
     var link = document.createElement('link');
     link.rel = 'stylesheet';
     link.href = href;
-    link.setAttribute('data-pmd-shifts-exact-ui-v7', '');
+    link.setAttribute('data-pmd-shifts-exact-ui-v8', '');
     document.head.appendChild(link);
   }
 
@@ -132,7 +139,7 @@
     if (!modal) return;
     modal.hidden = true;
     modal.setAttribute('aria-hidden', 'true');
-    if (!capacityModal || capacityModal.hidden) setScrollLock(false);
+    if ((!capacityModal || capacityModal.hidden) && (!teamModal || teamModal.hidden)) setScrollLock(false);
     if (lastTrigger && typeof lastTrigger.focus === 'function') lastTrigger.focus();
     lastTrigger = null;
   }
@@ -149,7 +156,41 @@
     if (!capacityModal) return;
     capacityModal.hidden = true;
     capacityModal.setAttribute('aria-hidden', 'true');
-    if (!modal || modal.hidden) setScrollLock(false);
+    if ((!modal || modal.hidden) && (!teamModal || teamModal.hidden)) setScrollLock(false);
+    if (lastTrigger && typeof lastTrigger.focus === 'function') lastTrigger.focus();
+    lastTrigger = null;
+  }
+
+  function resetTeamForm() {
+    if (!teamForm) return;
+    teamForm.reset();
+    if (teamIdInput) teamIdInput.value = '';
+    if (teamDepartmentInput) teamDepartmentInput.value = 'other';
+    if (teamFormTitle) teamFormTitle.textContent = 'Add person';
+  }
+
+  function openTeam(trigger, personNode) {
+    if (!teamModal) return;
+    lastTrigger = trigger || null;
+    resetTeamForm();
+    if (personNode) {
+      if (teamIdInput) teamIdInput.value = personNode.getAttribute('data-person-id') || '';
+      if (teamNameInput) teamNameInput.value = personNode.getAttribute('data-name') || '';
+      if (teamRoleInput) teamRoleInput.value = personNode.getAttribute('data-role') || '';
+      if (teamDepartmentInput) teamDepartmentInput.value = personNode.getAttribute('data-department') || 'other';
+      if (teamFormTitle) teamFormTitle.textContent = 'Edit person';
+    }
+    teamModal.hidden = false;
+    teamModal.setAttribute('aria-hidden', 'false');
+    setScrollLock(true);
+    window.setTimeout(function () { if (teamNameInput) teamNameInput.focus(); }, 0);
+  }
+
+  function closeTeam() {
+    if (!teamModal) return;
+    teamModal.hidden = true;
+    teamModal.setAttribute('aria-hidden', 'true');
+    if ((!modal || modal.hidden) && (!capacityModal || capacityModal.hidden)) setScrollLock(false);
     if (lastTrigger && typeof lastTrigger.focus === 'function') lastTrigger.focus();
     lastTrigger = null;
   }
@@ -596,6 +637,32 @@
 
     if (activeKpiMenu && !activeKpiMenu.contains(event.target)) closeKpiMenu();
 
+    var teamOpen = event.target.closest('[data-pmd-team-open]');
+    if (teamOpen) {
+      event.preventDefault();
+      openTeam(teamOpen, null);
+      return;
+    }
+    var teamClose = event.target.closest('[data-pmd-team-close]');
+    if (teamClose) {
+      event.preventDefault();
+      closeTeam();
+      return;
+    }
+    var teamEdit = event.target.closest('[data-pmd-team-edit]');
+    if (teamEdit) {
+      event.preventDefault();
+      openTeam(teamEdit, teamEdit);
+      return;
+    }
+    var teamNew = event.target.closest('[data-pmd-team-new]');
+    if (teamNew) {
+      event.preventDefault();
+      resetTeamForm();
+      if (teamNameInput) teamNameInput.focus();
+      return;
+    }
+
     var capacityOpen = event.target.closest('[data-pmd-capacity-open]');
     if (capacityOpen) {
       event.preventDefault();
@@ -606,6 +673,15 @@
     if (capacityClose) {
       event.preventDefault();
       closeCapacity();
+      return;
+    }
+
+    var calendarShiftEdit = event.target.closest('[data-pmd-calendar-shift-edit]');
+    if (calendarShiftEdit && root.contains(calendarShiftEdit)) {
+      event.preventDefault();
+      event.stopPropagation();
+      var calendarShift = findShift(calendarShiftEdit.getAttribute('data-pmd-calendar-shift-edit'));
+      if (calendarShift) openModal(calendarShiftEdit, valuesFromShift(calendarShift));
       return;
     }
 
@@ -705,10 +781,16 @@
   });
 
   document.addEventListener('keydown', function (event) {
+    if ((event.key === 'Enter' || event.key === ' ') && event.target && event.target.matches && event.target.matches('[data-pmd-shift-day-open]')) {
+      event.preventDefault();
+      renderHourView(event.target.getAttribute('data-date') || '');
+      return;
+    }
     if (event.key !== 'Escape') return;
     closeKpiMenu();
     if (modal && !modal.hidden) closeModal();
     if (capacityModal && !capacityModal.hidden) closeCapacity();
+    if (teamModal && !teamModal.hidden) closeTeam();
   });
 
   if (boot.open_hour_on_boot && boot.selected_day) {
