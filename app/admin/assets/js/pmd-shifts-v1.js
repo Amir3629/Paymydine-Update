@@ -25,6 +25,7 @@
   var teamPasswordHint = teamModal && teamModal.querySelector('[data-pmd-team-password-hint]');
   var teamFormTitle = teamModal && teamModal.querySelector('[data-pmd-team-form-title]');
   var teamUsernameTouched = false;
+  var teamHasExistingAccess = false;
   var form = modal && modal.querySelector('[data-pmd-shift-form]');
   var title = modal && modal.querySelector('[data-pmd-shift-modal-title]');
   var idInput = modal && modal.querySelector('[data-pmd-shift-id]');
@@ -67,19 +68,19 @@
   }
 
   function loadExactSharedUiCss() {
-    if (document.querySelector('link[data-pmd-shifts-exact-ui-v10]')) return;
+    if (document.querySelector('link[data-pmd-shifts-exact-ui-v11]')) return;
     var base = document.querySelector('link[href*="pmd-shifts-v1.css"]');
-    var href = '/app/admin/assets/css/pmd-shifts-dashboard-reservations-v4.css?v=10';
+    var href = '/app/admin/assets/css/pmd-shifts-dashboard-reservations-v4.css?v=11';
     if (base && base.getAttribute('href')) {
       href = base.getAttribute('href').replace(
         /pmd-shifts-v1\.css(?:\?[^#]*)?/,
-        'pmd-shifts-dashboard-reservations-v4.css?v=10'
+        'pmd-shifts-dashboard-reservations-v4.css?v=11'
       );
     }
     var link = document.createElement('link');
     link.rel = 'stylesheet';
     link.href = href;
-    link.setAttribute('data-pmd-shifts-exact-ui-v10', '');
+    link.setAttribute('data-pmd-shifts-exact-ui-v11', '');
     document.head.appendChild(link);
   }
 
@@ -186,8 +187,12 @@
 
   function syncTeamAccessFields() {
     if (!teamAccessFields || !teamAccessToggle) return;
-    teamAccessFields.hidden = !teamAccessToggle.checked;
-    teamAccessFields.querySelectorAll('input,select').forEach(function (field) { field.disabled = !teamAccessToggle.checked; });
+    var enabled = !!teamAccessToggle.checked;
+    teamAccessFields.hidden = !enabled;
+    teamAccessFields.querySelectorAll('input,select').forEach(function (field) { field.disabled = !enabled; });
+    if (teamUsernameInput) teamUsernameInput.required = enabled;
+    if (teamAccessRoleInput) teamAccessRoleInput.required = enabled;
+    if (teamPasswordInput) teamPasswordInput.required = enabled && !teamHasExistingAccess;
   }
 
   function suggestedUsername(name) {
@@ -207,6 +212,7 @@
     if (teamPasswordInput) teamPasswordInput.value = '';
     if (teamPasswordHint) teamPasswordHint.textContent = 'required for new login';
     teamUsernameTouched = false;
+    teamHasExistingAccess = false;
     syncTeamAccessFields();
   }
 
@@ -221,6 +227,7 @@
       if (teamRoleInput) teamRoleInput.value = personNode.getAttribute('data-role') || '';
       if (teamDepartmentInput) teamDepartmentInput.value = personNode.getAttribute('data-department') || 'other';
       var hasAccess = personNode.getAttribute('data-has-access') === '1';
+      teamHasExistingAccess = hasAccess;
       if (teamAccessToggle) { teamAccessToggle.checked = hasAccess; teamAccessToggle.disabled = hasAccess; }
       if (teamUsernameInput) teamUsernameInput.value = personNode.getAttribute('data-username') || suggestedUsername(personNode.getAttribute('data-name'));
       if (teamAccessRoleInput && personNode.getAttribute('data-staff-role-id')) teamAccessRoleInput.value = personNode.getAttribute('data-staff-role-id');

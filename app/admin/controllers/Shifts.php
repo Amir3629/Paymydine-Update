@@ -242,6 +242,10 @@ class Shifts extends AdminController
             'job_role' => ['nullable', 'string', 'max:64'],
         ];
         if ($wantsAccess) {
+            // Mirror the canonical Team account guard before touching the DB.
+            // This converts duplicate staff names into a normal form error
+            // instead of allowing a lower-level account save to explode.
+            $rules['display_name'][] = 'unique:staffs,staff_name'.($existingStaff ? ','.(int)$existingStaff->staff_id.',staff_id' : '');
             $rules['staff_role_id'] = ['required', 'integer', function ($attribute, $value, $fail) use ($managedRoles) {
                 if (!$managedRoles->has((int)$value)) $fail('Choose a PMD access role.');
             }];
@@ -252,11 +256,18 @@ class Shifts extends AdminController
             $rules['password'] = [$existingStaff ? 'nullable' : 'required', 'between:6,32'];
         }
 
-        $validator = Validator::make($input, $rules);
-        if ($validator->fails()) throw new ValidationException($validator);
+        $validator = Validator::make($input, $rules, [
+            'display_name.unique' => 'That name already has a PMD account. Use Advanced to manage the existing account.',
+            'username.unique' => 'That username is already in use.',
+            'password.required' => 'Add a password for the new PMD login.',
+        ]);
+        if ($validator->fails()) {
+            return $this->redirectTeamFailure($validator->errors()->first());
+        }
         $clean = $validator->validated();
 
-        DB::transaction(function () use ($existing, $existingStaff, $wantsAccess, $clean, $locationId, $id) {
+        try {
+            DB::transaction(function () use ($existing, $existingStaff, $wantsAccess, $clean, $locationId, $id) {
             $linkedStaffId = $existingStaff ? (int)$existingStaff->staff_id : null;
 
             if ($wantsAccess) {
@@ -294,15 +305,22 @@ class Shifts extends AdminController
                 'updated_at' => now(),
             ];
 
-            if ($id > 0) {
-                DB::table('pmd_operational_people')->where('id', $id)->where('location_id', $locationId)->update($values);
-            } else {
-                $values['created_at'] = now();
-                DB::table('pmd_operational_people')->insert($values);
-            }
-        });
+                if ($id > 0) {
+                    DB::table('pmd_operational_people')->where('id', $id)->where('location_id', $locationId)->update($values);
+                } else {
+                    $values['created_at'] = now();
+                    DB::table('pmd_operational_people')->insert($values);
+                }
+            });
+        } catch (\Throwable $error) {
+            // A bad account edge-case must never surface as a raw HTTP 500
+            // from the Owner's simple Team form. Keep the transaction atomic,
+            // report the real exception server-side, and return a clean error.
+            report($error);
+            return $this->redirectTeamFailure('Could not save this member. Check the name, username and password, then try again.');
+        }
 
-        return $this->redirectBackToSchedule($wantsAccess ? 'Team member and PMD access saved.' : 'Team member saved.');
+        return $this->redirectBackToSchedule($wantsAccess ? 'Member + login saved.' : 'Member saved.');
     }
 
     public function removeperson()
@@ -771,6 +789,13 @@ class Shifts extends AdminController
         $local = strtolower(trim(preg_replace('/[^a-z0-9._-]+/i', '-', $username), '-'));
         if ($local === '') $local = 'staff';
         return 'pmd-'.$local.'@staff.local';
+    }
+
+    private function redirectTeamFailure(string $message)
+    {
+        $back = trim((string)request()->input('return_to', ''));
+        $target = ($back !== '' && str_starts_with($back, '/admin/')) ? $back : admin_url('shifts');
+        return redirect($target)->with('error', $message)->withInput();
     }
 
     private function redirectBackToSchedule(string $message)

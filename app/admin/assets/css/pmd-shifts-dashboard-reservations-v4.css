@@ -11,16 +11,16 @@
 body.pmd-shifts-page #pmd-r2-reservation-kpis-v307.pmd-shifts-exact-kpis{
   display:grid!important;
   grid-template-columns:repeat(4,minmax(0,1fr))!important;
-  gap:14px!important;
+  gap:9px!important;
   width:min(1480px,100%)!important;
-  margin:14px auto!important;
-  padding:0 0 8px!important;
+  margin:8px auto!important;
+  padding:0 0 4px!important;
   overflow:visible!important;
 }
 body.pmd-shifts-page #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card{
-  min-height:118px!important;
-  border-width:2px!important;
-  box-shadow:0 3px 0 rgba(8,35,48,.24)!important;
+  min-height:84px!important;
+  border-width:1px!important;
+  box-shadow:none!important;
 }
 body.pmd-shifts-page #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-icon{
   background:rgba(255,255,255,.86)!important;
@@ -33,8 +33,8 @@ body.pmd-shifts-page #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-more{
   color:var(--kpi-accent)!important;
 }
 body.pmd-shifts-page #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-title{font-weight:850!important}
-body.pmd-shifts-page #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-value{font-size:30px!important}
-body.pmd-shifts-page #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-description{opacity:.9!important}
+body.pmd-shifts-page #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-value{font-size:23px!important}
+body.pmd-shifts-page #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-description{display:none!important}
 
 /* Same exact identity palette used by the live Owner Dashboard. */
 body.pmd-shifts-page .pmd-r2-kpi-v2401-card[data-pmd-kpi-v2401-tone="mauve"]{
@@ -274,7 +274,7 @@ body.pmd-shifts-page .pmd-shifts-yc-team-row{display:grid;width:100%;min-width:0
 body.pmd-shifts-page .pmd-shifts-yc-team-row:hover,body.pmd-shifts-page .pmd-shifts-yc-team-row:focus-visible{border-color:#b9d9cb;background:#eef9f4;outline:none}
 body.pmd-shifts-page .pmd-shifts-yc-team-row strong{font-size:8.5px;font-weight:900;color:#5f746e;text-transform:uppercase;letter-spacing:.02em}
 body.pmd-shifts-page .pmd-shifts-yc-team-row span{display:block;min-width:0;overflow:hidden;color:#173752;font-size:9.5px;font-weight:800;text-overflow:ellipsis;white-space:nowrap}
-body.pmd-shifts-page .pmd-shifts__team-card{width:min(1080px,calc(100vw - 30px))!important}
+body.pmd-shifts-page .pmd-shifts__team-card{width:min(860px,calc(100vw - 24px))}
 body.pmd-shifts-page .pmd-shifts__team-layout{display:grid;grid-template-columns:minmax(280px,340px) minmax(250px,1fr) minmax(250px,1fr);gap:16px;padding:18px}
 body.pmd-shifts-page .pmd-shifts__team-form{display:grid;align-content:start;gap:12px;padding:16px;border:1px solid #d8e5ec;border-radius:16px;background:#f8fbfd}
 body.pmd-shifts-page .pmd-shifts__team-form-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
@@ -330,3 +330,69 @@ body.pmd-shifts-page .pmd-r2-yc-calendar-frame{transition:opacity .12s ease}
 
 /* PMD_SHIFTS_TEAM_GEOMETRY_V10 */
 @media(max-width:1100px) and (min-width:761px){body.pmd-shifts-page .pmd-shifts__team-layout{grid-template-columns:minmax(280px,340px) minmax(0,1fr)}body.pmd-shifts-page .pmd-shifts__team-requests{grid-column:1/-1}}
+
+
+/* PMD_SHIFTS_COMPACT_OPERATIONS_V11 */
+body.pmd-shifts-page .pmd-shifts__modal{padding:12px}
+body.pmd-shifts-page .pmd-shifts__modal-card{border-radius:16px;background:#fff;box-shadow:0 24px 70px rgba(6,28,24,.18)}
+body.pmd-shifts-page .pmd-shifts__modal-card:not(.pmd-shifts__team-card):not(.pmd-shifts__capacity-card){width:min(760px,calc(100vw - 24px))}
+body.pmd-shifts-page .pmd-shifts__modal-header{padding:11px 14px}
+body.pmd-shifts-page .pmd-shifts__modal-header h2{font-size:19px}
+body.pmd-shifts-page .pmd-shifts__modal-close{width:36px;height:36px;border-radius:10px}
+body.pmd-shifts-page .pmd-shifts__eyebrow{display:none}
+body.pmd-shifts-page .pmd-shifts__modal-body{padding:12px}
+body.pmd-shifts-page .pmd-shifts__modal-footer{padding:9px 12px}
+body.pmd-shifts-page .pmd-shifts__preset-row{gap:6px;margin-bottom:9px}
+body.pmd-shifts-page .pmd-shifts__preset-row button{min-height:32px;padding:0 10px}
+body.pmd-shifts-page .pmd-shifts__form-grid{gap:8px;padding:0;border:0;border-radius:0;background:transparent}
+body.pmd-shifts-page .pmd-shifts__form-grid label{gap:4px}
+body.pmd-shifts-page .pmd-shifts__form-grid input{height:40px;border-radius:9px}
+body.pmd-shifts-page .pmd-shifts__form-grid textarea{min-height:52px;padding:8px 10px;border-radius:9px}
+body.pmd-shifts-page .pmd-shifts__person-picker{grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:6px;margin-top:10px;padding:10px 0 0;border:0;border-top:1px solid #e4ece9;border-radius:0;background:transparent}
+body.pmd-shifts-page .pmd-shifts__person-picker legend{padding:0 0 4px}
+body.pmd-shifts-page .pmd-shifts__person-picker legend small{display:none}
+body.pmd-shifts-page .pmd-shifts__person-option{padding:7px 8px;border-radius:9px}
+body.pmd-shifts-page .pmd-shifts__button{min-height:36px;border-radius:10px}
+
+body.pmd-shifts-page .pmd-shifts__team-card{max-height:calc(100dvh - 24px)}
+body.pmd-shifts-page .pmd-shifts__team-layout{grid-template-columns:minmax(300px,330px) minmax(0,1fr);gap:0;padding:12px}
+body.pmd-shifts-page .pmd-shifts__team-form{gap:8px;padding:0 12px 0 0;border:0;border-radius:0;background:transparent}
+body.pmd-shifts-page .pmd-shifts__team-form-head{min-height:30px}
+body.pmd-shifts-page .pmd-shifts__team-form-head strong{font-size:13px}
+body.pmd-shifts-page .pmd-shifts__team-form input,body.pmd-shifts-page .pmd-shifts__team-form select{height:38px;padding:0 10px;border-radius:9px;font-size:12px}
+body.pmd-shifts-page .pmd-shifts__team-identity-row{gap:7px}
+body.pmd-shifts-page .pmd-shifts__team-access-toggle{grid-template-columns:auto 1fr;gap:8px;padding:8px 0;border:0;border-top:1px solid #e4ece9;border-bottom:1px solid #e4ece9;border-radius:0;background:transparent}
+body.pmd-shifts-page .pmd-shifts__team-access-toggle small{display:none}
+body.pmd-shifts-page .pmd-shifts__team-access-fields{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;padding:0;border:0;border-radius:0;background:transparent}
+body.pmd-shifts-page .pmd-shifts__team-access-fields .is-password{grid-column:1/-1}
+body.pmd-shifts-page .pmd-shifts__team-access-fields label>span small{display:none}
+body.pmd-shifts-page .pmd-shifts__team-access-note{display:none}
+body.pmd-shifts-page .pmd-shifts__team-list{padding-left:12px;border-left:1px solid #e4ece9;gap:7px}
+body.pmd-shifts-page .pmd-shifts__team-list>header{min-height:30px;align-items:center;padding:0}
+body.pmd-shifts-page .pmd-shifts__team-list>header span{display:none}
+body.pmd-shifts-page .pmd-shifts__team-list-scroll{gap:5px;max-height:360px;padding:0}
+body.pmd-shifts-page .pmd-shifts__team-person{grid-template-columns:32px minmax(0,1fr) auto;gap:8px;padding:7px 8px;border-radius:9px}
+body.pmd-shifts-page .pmd-shifts__team-person-avatar{width:30px;height:30px;border-radius:8px}
+body.pmd-shifts-page .pmd-shifts__team-empty{padding:10px;border-radius:9px;font-size:10px}
+body.pmd-shifts-page .pmd-shifts__team-requests{grid-column:1/-1;margin-top:10px;padding-top:10px;border-top:1px solid #e4ece9}
+body.pmd-shifts-page .pmd-shifts__team-requests.is-empty{display:none}
+body.pmd-shifts-page .pmd-shifts__team-footer a{font-size:9.5px}
+
+body.pmd-shifts-page .pmd-shifts__capacity-card{width:min(640px,calc(100vw - 24px))}
+body.pmd-shifts-page .pmd-shifts__capacity-section{gap:8px;padding:0;border:0;border-radius:0;background:transparent}
+body.pmd-shifts-page .pmd-shifts__capacity-section+.pmd-shifts__capacity-section{margin-top:10px;padding-top:10px;border-top:1px solid #e4ece9}
+body.pmd-shifts-page .pmd-shifts__capacity-copy{display:block}
+body.pmd-shifts-page .pmd-shifts__capacity-copy small{display:none}
+body.pmd-shifts-page .pmd-shifts__capacity-toggle{padding:0;border:0;background:transparent}
+body.pmd-shifts-page .pmd-shifts__capacity-toggle small{display:none}
+body.pmd-shifts-page .pmd-shifts__capacity-card .pmd-shifts__form-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+body.pmd-shifts-page .pmd-shifts__capacity-card .pmd-shifts__capacity-section:last-child .pmd-shifts__form-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+
+@media(max-width:760px){
+  body.pmd-shifts-page .pmd-shifts__team-layout{grid-template-columns:1fr;gap:12px;padding:10px}
+  body.pmd-shifts-page .pmd-shifts__team-form{padding:0}
+  body.pmd-shifts-page .pmd-shifts__team-list{padding:10px 0 0;border-left:0;border-top:1px solid #e4ece9}
+  body.pmd-shifts-page .pmd-shifts__team-access-fields{grid-template-columns:1fr}
+  body.pmd-shifts-page .pmd-shifts__team-access-fields .is-password{grid-column:auto}
+  body.pmd-shifts-page .pmd-shifts__capacity-card .pmd-shifts__form-grid,body.pmd-shifts-page .pmd-shifts__capacity-card .pmd-shifts__capacity-section:last-child .pmd-shifts__form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
