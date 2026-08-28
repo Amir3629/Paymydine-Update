@@ -1,34 +1,90 @@
+/* PMD_SHIFTS_CONNECTED_WORKSPACE_V5
+ * Four configurable Owner-Dashboard KPI cards.
+ * Reservations-style month -> hour workflow.
+ * Shift team editing always reuses the canonical Save Shift form.
+ */
 (function () {
   'use strict';
 
   var root = document.querySelector('[data-pmd-shifts-root]');
-  var modal = document.querySelector('[data-pmd-shift-modal]');
-  if (!root || !modal) return;
+  if (!root) return;
 
-  var form = modal.querySelector('[data-pmd-shift-form]');
-  var title = modal.querySelector('[data-pmd-shift-modal-title]');
-  var idInput = modal.querySelector('[data-pmd-shift-id]');
-  var dateInput = modal.querySelector('[data-pmd-shift-date-input]');
-  var labelInput = modal.querySelector('[data-pmd-shift-label]');
-  var startInput = modal.querySelector('[data-pmd-shift-start]');
-  var endInput = modal.querySelector('[data-pmd-shift-end]');
-  var notesInput = modal.querySelector('[data-pmd-shift-notes]');
-  var personInputs = Array.prototype.slice.call(modal.querySelectorAll('[data-pmd-shift-person]'));
+  var modal = root.querySelector('[data-pmd-shift-modal]');
+  var capacityModal = root.querySelector('[data-pmd-capacity-modal]');
+  var form = modal && modal.querySelector('[data-pmd-shift-form]');
+  var title = modal && modal.querySelector('[data-pmd-shift-modal-title]');
+  var idInput = modal && modal.querySelector('[data-pmd-shift-id]');
+  var dateInput = modal && modal.querySelector('[data-pmd-shift-date-input]');
+  var labelInput = modal && modal.querySelector('[data-pmd-shift-label]');
+  var startInput = modal && modal.querySelector('[data-pmd-shift-start]');
+  var endInput = modal && modal.querySelector('[data-pmd-shift-end]');
+  var notesInput = modal && modal.querySelector('[data-pmd-shift-notes]');
+  var personInputs = modal
+    ? Array.prototype.slice.call(modal.querySelectorAll('[data-pmd-shift-person]'))
+    : [];
   var lastTrigger = null;
+  var activeKpiMenu = null;
+
+  var boot = {};
+  var kpiCards = {};
+  try {
+    var bootNode = document.getElementById('pmd-shifts-bootstrap');
+    boot = JSON.parse((bootNode && bootNode.textContent) || '{}') || {};
+  } catch (error) {
+    boot = {};
+  }
+  try {
+    var kpiNode = document.getElementById('pmd-shifts-kpi-data');
+    kpiCards = JSON.parse((kpiNode && kpiNode.textContent) || '{}') || {};
+  } catch (error) {
+    kpiCards = {};
+  }
+
+  function escapeHtml(value) {
+    return String(value == null ? '' : value).replace(/[&<>"']/g, function (character) {
+      return {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+      }[character];
+    });
+  }
+
+  function loadExactSharedUiCss() {
+    if (document.querySelector('link[data-pmd-shifts-exact-ui-v5]')) return;
+    var base = document.querySelector('link[href*="pmd-shifts-v1.css"]');
+    var href = '/app/admin/assets/css/pmd-shifts-dashboard-reservations-v4.css?v=5';
+    if (base && base.getAttribute('href')) {
+      href = base.getAttribute('href').replace(
+        /pmd-shifts-v1\.css(?:\?[^#]*)?/,
+        'pmd-shifts-dashboard-reservations-v4.css?v=5'
+      );
+    }
+    var link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = href;
+    link.setAttribute('data-pmd-shifts-exact-ui-v5', '');
+    document.head.appendChild(link);
+  }
 
   function setScrollLock(locked) {
-    document.documentElement.style.overflow = locked ? 'hidden' : '';
-    document.body.style.overflow = locked ? 'hidden' : '';
+    var value = locked ? 'hidden' : '';
+    document.documentElement.style.overflow = value;
+    document.body.style.overflow = value;
   }
 
   function clearPresets() {
+    if (!modal) return;
     modal.querySelectorAll('[data-pmd-shift-preset]').forEach(function (button) {
       button.classList.remove('is-active');
     });
   }
 
   function resetForm(date) {
-    if (form) form.reset();
+    if (!form) return;
+    form.reset();
     if (idInput) idInput.value = '';
     if (dateInput) dateInput.value = date || '';
     if (labelInput) labelInput.value = 'Dinner';
@@ -40,21 +96,26 @@
   }
 
   function openModal(trigger, values) {
+    if (!modal) return;
     lastTrigger = trigger || null;
     values = values || {};
-    resetForm(values.date || new Date().toISOString().slice(0, 10));
+    resetForm(values.date || boot.selected_day || new Date().toISOString().slice(0, 10));
 
-    if (values.id && idInput) idInput.value = values.id;
-    if (values.label && labelInput) labelInput.value = values.label;
+    if (values.id && idInput) idInput.value = String(values.id);
+    if (values.date && dateInput) dateInput.value = String(values.date);
+    if (values.label && labelInput) labelInput.value = String(values.label);
     if (values.start !== undefined && startInput) startInput.value = values.start || '';
     if (values.end !== undefined && endInput) endInput.value = values.end || '';
     if (values.notes !== undefined && notesInput) notesInput.value = values.notes || '';
     if (title) title.textContent = values.id ? 'Edit shift' : 'Add shift';
 
-    var selectedPeople = String(values.people || '')
-      .split(',')
-      .map(function (value) { return value.trim(); })
-      .filter(Boolean);
+    var selectedPeople = Array.isArray(values.person_ids)
+      ? values.person_ids.map(String)
+      : String(values.people || '')
+          .split(',')
+          .map(function (value) { return value.trim(); })
+          .filter(Boolean);
+
     personInputs.forEach(function (input) {
       input.checked = selectedPeople.indexOf(String(input.value)) !== -1;
     });
@@ -68,311 +129,482 @@
   }
 
   function closeModal() {
+    if (!modal) return;
     modal.hidden = true;
     modal.setAttribute('aria-hidden', 'true');
-    setScrollLock(false);
+    if (!capacityModal || capacityModal.hidden) setScrollLock(false);
     if (lastTrigger && typeof lastTrigger.focus === 'function') lastTrigger.focus();
     lastTrigger = null;
   }
 
-  function valuesFromTrigger(trigger) {
-    return {
-      id: trigger.getAttribute('data-id') || '',
-      date: trigger.getAttribute('data-date') || '',
-      label: trigger.getAttribute('data-label') || '',
-      start: trigger.getAttribute('data-start') || '',
-      end: trigger.getAttribute('data-end') || '',
-      notes: trigger.getAttribute('data-notes') || '',
-      people: trigger.getAttribute('data-people') || ''
-    };
+  function openCapacity(trigger) {
+    if (!capacityModal) return;
+    lastTrigger = trigger || null;
+    capacityModal.hidden = false;
+    capacityModal.setAttribute('aria-hidden', 'false');
+    setScrollLock(true);
   }
 
-  function loadExactSharedUiCss() {
-    if (document.querySelector('link[data-pmd-shifts-exact-ui-v4]')) return;
-    var base = document.querySelector('link[href*="pmd-shifts-v1.css"]');
-    var href = '/app/admin/assets/css/pmd-shifts-dashboard-reservations-v4.css?v=4';
-    if (base && base.getAttribute('href')) {
-      href = base.getAttribute('href').replace(/pmd-shifts-v1\.css(?:\?[^#]*)?/, 'pmd-shifts-dashboard-reservations-v4.css?v=4');
+  function closeCapacity() {
+    if (!capacityModal) return;
+    capacityModal.hidden = true;
+    capacityModal.setAttribute('aria-hidden', 'true');
+    if (!modal || modal.hidden) setScrollLock(false);
+    if (lastTrigger && typeof lastTrigger.focus === 'function') lastTrigger.focus();
+    lastTrigger = null;
+  }
+
+  function findShift(id) {
+    var numeric = Number(id || 0);
+    var shifts = Array.isArray(boot.shifts) ? boot.shifts : [];
+    for (var index = 0; index < shifts.length; index += 1) {
+      if (Number(shifts[index].id || 0) === numeric) return shifts[index];
     }
-    var link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = href;
-    link.setAttribute('data-pmd-shifts-exact-ui-v4', '');
-    document.head.appendChild(link);
+    return null;
   }
 
-  function countMonthShifts() {
-    var total = 0;
-    root.querySelectorAll('.pmd-shifts__calendar-day:not(.is-outside)').forEach(function (day) {
-      total += day.querySelectorAll('[data-pmd-shift-edit]').length;
-      var more = day.querySelector('.pmd-shifts__calendar-more');
-      if (more) {
-        var match = String(more.textContent || '').match(/\+(\d+)/);
-        if (match) total += Number(match[1] || 0);
-      }
-    });
-    return total;
+  function valuesFromShift(shift) {
+    shift = shift || {};
+    return {
+      id: shift.id || '',
+      date: shift.date || boot.selected_day || '',
+      label: shift.label || 'Shift',
+      start: shift.start || '',
+      end: shift.end || '',
+      notes: shift.notes || '',
+      person_ids: (Array.isArray(shift.people) ? shift.people : [])
+        .map(function (person) { return person && person.person_id; })
+        .filter(Boolean)
+    };
   }
 
   function iconMarkup(name) {
     var icons = {
       calendar: '<path d="M4 5h16v15H4zM8 3v4M16 3v4M4 10h16"></path>',
-      users: '<circle cx="9" cy="8" r="3"></circle><path d="M3 20a6 6 0 0 1 12 0M16 5a3 3 0 0 1 0 6M17 14a5 5 0 0 1 4 5"></path>',
-      timer: '<circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l3 2M9 2h6M12 2v3"></path>'
+      check: '<path d="m5 12 4 4L19 6"></path>',
+      alert: '<circle cx="12" cy="12" r="9"></circle><path d="M12 8v5M12 17h.01"></path>',
+      timer: '<circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l3 2M9 2h6M12 2v3"></path>',
+      layers: '<path d="m12 3 9 5-9 5-9-5 9-5zM3 12l9 5 9-5M3 16l9 5 9-5"></path>',
+      days: '<rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M8 3v4M16 3v4M3 10h18M8 14h.01M12 14h.01M16 14h.01"></path>',
+      users: '<circle cx="9" cy="8" r="3"></circle><path d="M3 20a6 6 0 0 1 12 0M16 5a3 3 0 0 1 0 6M17 14a5 5 0 0 1 4 5"></path>'
     };
     return icons[name] || icons.calendar;
   }
 
-  function appendKpiCard(container, titleText, valueText, description, tone, icon) {
-    var article = document.createElement('article');
-    article.className = 'pmd-shifts__kpi pmd-shifts__kpi-generated';
-    article.setAttribute('data-pmd-shifts-generated-kpi', '');
-    article.innerHTML = ''
-      + '<span class="pmd-shifts__kpi-icon"><svg viewBox="0 0 24 24" aria-hidden="true">' + iconMarkup(icon) + '</svg></span>'
-      + '<div><small>' + titleText + '</small><strong>' + valueText + '</strong><span>' + description + '</span></div>';
-    article.setAttribute('data-pmd-kpi-v2401-tone', tone);
-    container.appendChild(article);
+  function kpiSection() {
+    return root.querySelector('[data-pmd-shifts-kpis]');
   }
 
-  function closeKpiMenus(except) {
-    root.querySelectorAll('[data-pmd-shift-kpi-menu]').forEach(function (menu) {
-      if (except && menu === except) return;
-      menu.hidden = true;
-      var card = menu.closest('.pmd-r2-kpi-v2401-card');
-      var button = card && card.querySelector('[data-pmd-shift-kpi-menu-button]');
-      if (button) button.setAttribute('aria-expanded', 'false');
-    });
-  }
-
-  function enhanceKpis() {
-    var container = root.querySelector('.pmd-shifts__kpis');
-    if (!container || container.getAttribute('data-pmd-shifts-kpis-v4') === 'ready') return;
-
-    var monthShifts = countMonthShifts();
-    appendKpiCard(container, 'Month shifts', String(monthShifts), 'planned shifts in this month', 'orange', 'calendar');
-    appendKpiCard(container, 'Active team', String(personInputs.length), 'people available for scheduling', 'blue', 'users');
-
-    container.id = 'pmd-r2-reservation-kpis-v307';
-    container.classList.add('pmd-r2-kpis-v2401', 'pmd-dashboard2-kpis-v2', 'pmd-shifts-exact-kpis');
-    container.setAttribute('data-pmd-shifts-kpis-v4', 'ready');
-
-    var tones = ['blue', 'green', 'red', 'purple', 'orange', 'blue'];
-    var explanations = [
-      'Unique people planned across today’s shifts.',
-      'People confirmed present in the active shift. This stays neutral until the shift is confirmed.',
-      'People confirmed missing from the active shift. PMD never guesses this before confirmation.',
-      'Total planned person-hours in the selected month from shifts that have start/end times and named people.',
-      'Number of planned shifts inside the selected month.',
-      'Active restaurant people available in Team for shift planning. A PMD login is not required.'
-    ];
-
-    Array.prototype.slice.call(container.children).forEach(function (card, index) {
-      var icon = card.querySelector('.pmd-shifts__kpi-icon');
-      var copy = card.querySelector(':scope > div');
-      var titleNode = copy && copy.querySelector('small');
-      var valueNode = copy && copy.querySelector('strong');
-      var descriptionNode = copy && copy.querySelector(':scope > span');
-      var titleText = titleNode ? String(titleNode.textContent || '').trim() : 'Shift KPI';
-
-      card.classList.add('pmd-r2-kpi-v2401-card');
-      card.setAttribute('data-pmd-kpi-v2401-tone', tones[index] || 'green');
-      if (icon) icon.classList.add('pmd-r2-kpi-v2401-icon');
-      if (copy) copy.classList.add('pmd-r2-kpi-v2401-copy');
-      if (titleNode) titleNode.classList.add('pmd-r2-kpi-v2401-title');
-      if (valueNode) valueNode.classList.add('pmd-r2-kpi-v2401-value');
-      if (descriptionNode) descriptionNode.classList.add('pmd-r2-kpi-v2401-description');
-
-      if (!card.querySelector('[data-pmd-shift-kpi-menu-button]')) {
-        var more = document.createElement('button');
-        more.type = 'button';
-        more.className = 'pmd-r2-kpi-v2401-more';
-        more.setAttribute('data-pmd-shift-kpi-menu-button', '');
-        more.setAttribute('aria-label', 'About ' + titleText);
-        more.setAttribute('aria-haspopup', 'menu');
-        more.setAttribute('aria-expanded', 'false');
-        more.innerHTML = '<span></span><span></span><span></span>';
-
-        var menu = document.createElement('div');
-        menu.className = 'pmd-r2-kpi-v2401-menu pmd-shifts-kpi-menu';
-        menu.setAttribute('data-pmd-shift-kpi-menu', '');
-        menu.setAttribute('role', 'menu');
-        menu.hidden = true;
-        menu.innerHTML = ''
-          + '<span class="pmd-dashboard-lab__kpi-menu-heading">About this KPI</span>'
-          + '<div class="pmd-shifts-kpi-menu-copy"><strong>' + titleText + '</strong><span>' + (explanations[index] || 'Shift planning metric.') + '</span></div>';
-        card.appendChild(more);
-        card.appendChild(menu);
-      }
-    });
-  }
-
-  function enhanceCalendar() {
-    var section = root.querySelector('.pmd-shifts__calendar-card');
-    if (!section || section.getAttribute('data-pmd-shifts-calendar-v4') === 'ready') return;
-
-    var oldHead = section.querySelector('.pmd-shifts__section-head');
-    var oldWeekdays = section.querySelector('.pmd-shifts__calendar-weekdays');
-    var oldGrid = section.querySelector('.pmd-shifts__calendar');
-    if (!oldHead || !oldWeekdays || !oldGrid) return;
-
-    var titleText = (oldHead.querySelector('h2') && oldHead.querySelector('h2').textContent || '').trim();
-    var navLinks = Array.prototype.slice.call(oldHead.querySelectorAll('.pmd-shifts__calendar-nav a'));
-    var prevHref = navLinks[0] ? navLinks[0].getAttribute('href') : '#';
-    var todayHref = navLinks[1] ? navLinks[1].getAttribute('href') : '#';
-    var nextHref = navLinks[2] ? navLinks[2].getAttribute('href') : '#';
-    var selectedAdd = oldGrid.querySelector('.pmd-shifts__calendar-day.is-selected [data-pmd-shift-open]');
-    var selectedDate = selectedAdd ? selectedAdd.getAttribute('data-date') : '';
-
-    Array.prototype.slice.call(oldGrid.children).forEach(function (day) {
-      var outside = day.classList.contains('is-outside');
-      var today = day.classList.contains('is-today');
-      var selected = day.classList.contains('is-selected');
-      var dayLink = day.querySelector('.pmd-shifts__calendar-day-link');
-      var number = day.querySelector('.pmd-shifts__date-number');
-      var editButtons = Array.prototype.slice.call(day.querySelectorAll('[data-pmd-shift-edit]'));
-      var more = day.querySelector('.pmd-shifts__calendar-more');
-      var add = day.querySelector('[data-pmd-shift-open]');
-      var openHref = dayLink ? dayLink.getAttribute('href') : '#';
-      var openLabel = dayLink ? dayLink.getAttribute('aria-label') : 'Open day';
-      var numberText = number ? String(number.textContent || '').trim() : '';
-
-      day.className = 'pmd-yc-day' + (outside ? ' is-outside' : '') + (today ? ' is-today' : '') + (selected ? ' is-selected' : '');
-      day.innerHTML = '';
-
-      var open = document.createElement('a');
-      open.className = 'pmd-shifts-yc-day-open';
-      open.href = openHref || '#';
-      open.setAttribute('aria-label', openLabel || 'Open day');
-      day.appendChild(open);
-
-      var numberNode = document.createElement('span');
-      numberNode.className = 'pmd-yc-day__number';
-      numberNode.textContent = numberText;
-      day.appendChild(numberNode);
-
-      var operations = document.createElement('div');
-      operations.className = 'pmd-yc-day__operations';
-      editButtons.forEach(function (button) {
-        var time = button.querySelector('span');
-        var name = button.querySelector('strong');
-        var label = ((time ? time.textContent : '') + ' · ' + (name ? name.textContent : '')).trim();
-        button.className = 'pmd-r2-yc-entry is-shift';
-        button.textContent = label;
-        operations.appendChild(button);
+  function visibleKpiCards() {
+    var section = kpiSection();
+    if (!section) return [];
+    return Array.prototype.slice.call(section.querySelectorAll('[data-pmd-shifts-kpi-slot]'))
+      .sort(function (left, right) {
+        return Number(left.getAttribute('data-pmd-shifts-kpi-slot')) - Number(right.getAttribute('data-pmd-shifts-kpi-slot'));
       });
-      if (more) {
-        more.className = 'pmd-shifts-yc-more';
-        operations.appendChild(more);
-      }
-      day.appendChild(operations);
+  }
 
-      if (add) {
-        add.className = 'pmd-shifts-yc-add';
-        add.textContent = '+';
-        day.appendChild(add);
-      }
+  function selectedKpiKeys() {
+    return visibleKpiCards().map(function (card) {
+      return card.getAttribute('data-pmd-shifts-kpi-key') || '';
     });
-
-    oldWeekdays.className = 'pmd-yc-weekdays';
-    oldGrid.className = 'pmd-yc-days';
-
-    var toolbar = document.createElement('div');
-    toolbar.className = 'pmd-yc__toolbar';
-    toolbar.innerHTML = ''
-      + '<div class="pmd-yc__legend">'
-      + '  <span><i class="is-shift">S</i>Shift</span>'
-      + '  <span><i class="is-confirmed">✓</i>Confirmed</span>'
-      + '  <span><i class="is-missing">!</i>Missing</span>'
-      + '</div>'
-      + '<div class="pmd-yc__month-nav">'
-      + '  <a href="' + (prevHref || '#') + '" aria-label="Previous month">←</a>'
-      + '  <strong>' + titleText + '</strong>'
-      + '  <a href="' + (nextHref || '#') + '" aria-label="Next month">→</a>'
-      + '</div>'
-      + '<div class="pmd-yc__toolbar-right">'
-      + '  <div class="pmd-yc__view-switch"><a href="#" class="is-active" data-pmd-shifts-month-view>Month</a><a href="#pmd-shift-day">Day</a></div>'
-      + '  <a href="' + (todayHref || '#') + '">Today</a>'
-      + '</div>';
-
-    var frame = document.createElement('div');
-    frame.className = 'pmd-r2-yc-calendar-frame';
-    frame.setAttribute('data-r2-yc-calendar-frame', '');
-    frame.appendChild(toolbar);
-
-    var months = document.createElement('main');
-    months.className = 'pmd-yc__months';
-
-    var month = document.createElement('section');
-    month.className = 'pmd-yc-month is-month-view';
-    var monthHead = document.createElement('header');
-    monthHead.className = 'pmd-yc-month__head';
-    monthHead.innerHTML = '<h2>' + titleText + '</h2>';
-    var monthAdd = document.createElement('button');
-    monthAdd.type = 'button';
-    monthAdd.className = 'pmd-shifts-yc-month-add';
-    monthAdd.setAttribute('data-pmd-shift-open', '');
-    monthAdd.setAttribute('data-date', selectedDate || new Date().toISOString().slice(0, 10));
-    monthAdd.textContent = '+ Shift';
-    monthHead.appendChild(monthAdd);
-
-    month.appendChild(monthHead);
-    month.appendChild(oldWeekdays);
-    month.appendChild(oldGrid);
-    months.appendChild(month);
-    frame.appendChild(months);
-
-    section.innerHTML = '';
-    section.id = 'pmd-r2-calendar-surface-v160';
-    section.className = 'pmd-shifts-reservations-calendar is-visible is-month-mode';
-    section.setAttribute('data-pmd-shifts-calendar-v4', 'ready');
-    section.appendChild(frame);
   }
 
-  function enhanceExactSharedUi() {
-    loadExactSharedUiCss();
-    enhanceKpis();
-    enhanceCalendar();
+  function closeKpiMenu() {
+    if (!activeKpiMenu) return;
+    var menu = activeKpiMenu;
+    var card = menu.closest('[data-pmd-shifts-kpi-slot]');
+    var button = card && card.querySelector('[data-pmd-shifts-kpi-menu-button]');
+    menu.hidden = true;
+    activeKpiMenu = null;
+    if (button) button.setAttribute('aria-expanded', 'false');
   }
 
-  enhanceExactSharedUi();
+  function syncKpiMenus() {
+    var selected = selectedKpiKeys();
+    visibleKpiCards().forEach(function (card) {
+      var current = card.getAttribute('data-pmd-shifts-kpi-key') || '';
+      card.querySelectorAll('[data-pmd-shifts-kpi-option]').forEach(function (option) {
+        var key = option.getAttribute('data-pmd-shifts-kpi-option') || '';
+        var isCurrent = key === current;
+        var duplicate = selected.indexOf(key) !== -1 && !isCurrent;
+        option.disabled = duplicate;
+        option.classList.toggle('is-selected', isCurrent);
+        var small = option.querySelector('small');
+        var check = option.querySelector('.pmd-r2-kpi-v2401-check');
+        if (small) small.textContent = isCurrent ? 'Visible in this card' : (duplicate ? 'Already visible' : 'Show in this card');
+        if (check) check.textContent = isCurrent ? '✓' : '';
+      });
+    });
+  }
+
+  function persistKpis() {
+    var keys = selectedKpiKeys();
+    document.cookie = 'pmd_shifts_kpis=' + encodeURIComponent(keys.join(',')) + '; Path=/admin; Max-Age=31536000; SameSite=Lax';
+    try {
+      localStorage.setItem('pmd.shifts.kpis.v1', JSON.stringify(keys));
+    } catch (error) {
+      // Cookie is enough for server-first paint.
+    }
+  }
+
+  function applyKpi(card, key) {
+    var data = kpiCards[key];
+    if (!card || !data) return;
+    card.setAttribute('data-pmd-shifts-kpi-key', key);
+    card.setAttribute('data-pmd-kpi-v2401-tone', data.tone || 'cyan');
+    var icon = card.querySelector('.pmd-r2-kpi-v2401-icon');
+    var titleNode = card.querySelector('.pmd-r2-kpi-v2401-title');
+    var valueNode = card.querySelector('.pmd-r2-kpi-v2401-value');
+    var descriptionNode = card.querySelector('.pmd-r2-kpi-v2401-description');
+    if (icon) icon.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true">' + iconMarkup(data.icon) + '</svg>';
+    if (titleNode) titleNode.textContent = data.title || key;
+    if (valueNode) valueNode.textContent = data.value == null ? '0' : String(data.value);
+    if (descriptionNode) descriptionNode.textContent = data.description || '';
+    persistKpis();
+    syncKpiMenus();
+  }
+
+  function parseDateKey(key) {
+    var parts = String(key || '').split('-').map(Number);
+    if (parts.length !== 3 || !parts[0] || !parts[1] || !parts[2]) return null;
+    return new Date(parts[0], parts[1] - 1, parts[2], 12, 0, 0, 0);
+  }
+
+  function dateKey(date) {
+    function pad(value) { return String(value).padStart(2, '0'); }
+    return date.getFullYear() + '-' + pad(date.getMonth() + 1) + '-' + pad(date.getDate());
+  }
+
+  function shiftedDate(key, amount) {
+    var date = parseDateKey(key);
+    if (!date) return key;
+    date.setDate(date.getDate() + amount);
+    return dateKey(date);
+  }
+
+  function monthKey(key) {
+    var date = parseDateKey(key);
+    if (!date) return '';
+    return dateKey(new Date(date.getFullYear(), date.getMonth(), 1, 12, 0, 0, 0));
+  }
+
+  function formattedDate(key) {
+    var date = parseDateKey(key);
+    if (!date) return key;
+    try {
+      return new Intl.DateTimeFormat(document.documentElement.lang || 'en-GB', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      }).format(date);
+    } catch (error) {
+      return key;
+    }
+  }
+
+  function minuteValue(clock, fallback) {
+    var match = String(clock || '').match(/^([01]\d|2[0-3]):([0-5]\d)$/);
+    if (!match) return fallback;
+    return Number(match[1]) * 60 + Number(match[2]);
+  }
+
+  function minuteLabel(value) {
+    var minutes = Number(value || 0) % 1440;
+    if (minutes < 0) minutes += 1440;
+    return String(Math.floor(minutes / 60)).padStart(2, '0') + ':' + String(minutes % 60).padStart(2, '0');
+  }
+
+  function shiftsForDate(key) {
+    return (Array.isArray(boot.shifts) ? boot.shifts : []).filter(function (shift) {
+      return String(shift.date || '') === String(key || '');
+    }).sort(function (left, right) {
+      return minuteValue(left.start, 9999) - minuteValue(right.start, 9999);
+    });
+  }
+
+  function shiftWindow(shift) {
+    var start = minuteValue(shift.start, 360);
+    var end = minuteValue(shift.end, 1560);
+    if (!shift.start && !shift.end) return {start: 360, end: 1560};
+    if (!shift.start) start = 360;
+    if (!shift.end) end = Math.min(1560, start + 8 * 60);
+    if (end <= start) end += 1440;
+    return {start: start, end: end};
+  }
+
+  function activeAt(shift, cursor) {
+    var window = shiftWindow(shift);
+    return cursor >= window.start && cursor < window.end;
+  }
+
+  function uniquePeople(shifts) {
+    var map = {};
+    shifts.forEach(function (shift) {
+      (Array.isArray(shift.people) ? shift.people : []).forEach(function (person) {
+        var key = person && (person.person_id || ('name:' + person.name));
+        if (!key) return;
+        map[String(key)] = person;
+      });
+    });
+    return Object.keys(map).map(function (key) { return map[key]; });
+  }
+
+  function shiftChip(shift) {
+    var people = Array.isArray(shift.people) ? shift.people : [];
+    var names = people.map(function (person) {
+      return '<span class="pmd-shifts-hour-person"><strong>' + escapeHtml(person.name || 'Team') + '</strong><small>' + escapeHtml(person.role || 'Team') + '</small></span>';
+    }).join('');
+    if (!names) names = '<span class="pmd-shifts-hour-empty-team">No people assigned</span>';
+
+    var time = shift.start || 'All day';
+    if (shift.end) time += '–' + shift.end;
+
+    return '' +
+      '<article class="pmd-shifts-hour-chip' + (shift.confirmed ? ' is-confirmed' : '') + '">' +
+        '<div class="pmd-shifts-hour-chip__head">' +
+          '<div><strong>' + escapeHtml(shift.label || 'Shift') + '</strong><span>' + escapeHtml(time) + '</span></div>' +
+          '<button type="button" data-pmd-shift-manage="' + Number(shift.id || 0) + '">Manage team</button>' +
+        '</div>' +
+        '<div class="pmd-shifts-hour-chip__people">' + names + '</div>' +
+      '</article>';
+  }
+
+  function totalScheduledHours(shifts) {
+    var total = 0;
+    shifts.forEach(function (shift) {
+      var window = shiftWindow(shift);
+      var people = Array.isArray(shift.people) ? shift.people.length : 0;
+      total += Math.max(0, window.end - window.start) / 60 * people;
+    });
+    return Math.round(total * 10) / 10;
+  }
+
+  function updateCalendarSelection(key) {
+    root.querySelectorAll('[data-pmd-shift-day-open]').forEach(function (day) {
+      day.classList.toggle('is-selected', day.getAttribute('data-date') === key);
+    });
+  }
+
+  function renderHourView(key) {
+    var host = root.querySelector('[data-pmd-shifts-hour-host]');
+    var frame = root.querySelector('[data-pmd-shifts-calendar-frame]');
+    var calendar = root.querySelector('[data-pmd-shifts-calendar]');
+    if (!host || !frame || !calendar) return;
+
+    key = key || boot.selected_day || new Date().toISOString().slice(0, 10);
+    boot.selected_day = key;
+    updateCalendarSelection(key);
+
+    var shifts = shiftsForDate(key);
+    var people = uniquePeople(shifts);
+    var rows = [];
+    for (var cursor = 360; cursor < 1560; cursor += 30) {
+      var active = shifts.filter(function (shift) { return activeAt(shift, cursor); });
+      var slotTime = minuteLabel(cursor);
+      var content = active.length
+        ? active.map(shiftChip).join('')
+        : '<div class="pmd-r2-timeslot__free"><i></i><span>No team scheduled</span></div>';
+      rows.push('' +
+        '<section class="pmd-r2-timeslot ' + (active.length ? 'has-bookings' : 'is-empty') + '">' +
+          '<div class="pmd-r2-timeslot__time"><strong>' + slotTime + '</strong><span>' + (active.length ? active.length + ' shift' + (active.length === 1 ? '' : 's') : 'Available') + '</span></div>' +
+          '<div class="pmd-r2-timeslot__content">' + content +
+            '<button type="button" class="pmd-r2-timeslot__create-button" data-pmd-shift-slot-create data-date="' + escapeHtml(key) + '" data-time="' + slotTime + '" aria-label="Add shift at ' + slotTime + '">+</button>' +
+          '</div>' +
+        '</section>');
+    }
+
+    var splitIndex = Math.ceil(rows.length / 2);
+    host.innerHTML = '' +
+      '<div class="pmd-r2-timeslot-screen">' +
+        '<header class="pmd-r2-day-view__header">' +
+          '<button type="button" class="pmd-r2-timeslot-screen__back" data-pmd-shifts-calendar-back>Calendar</button>' +
+          '<div class="pmd-r2-day-view__date-nav">' +
+            '<button type="button" class="pmd-r2-day-view__month-button" data-pmd-shifts-prev-day aria-label="Previous day">‹</button>' +
+            '<div class="pmd-r2-day-view__title"><h2>' + escapeHtml(formattedDate(key)) + '</h2></div>' +
+            '<button type="button" class="pmd-r2-day-view__month-button" data-pmd-shifts-next-day aria-label="Next day">›</button>' +
+          '</div>' +
+          '<div class="pmd-r2-day-view__summary">' +
+            '<span><strong>' + shifts.length + '</strong> shifts</span>' +
+            '<span><strong>' + people.length + '</strong> people</span>' +
+            '<span><strong>' + totalScheduledHours(shifts) + '</strong> staff hours</span>' +
+            '<button type="button" class="pmd-shifts-hour-header-action" data-pmd-shift-open data-date="' + escapeHtml(key) + '">+ Shift</button>' +
+            '<button type="button" class="pmd-shifts-hour-header-action is-soft" data-pmd-copy-week>Copy week</button>' +
+          '</div>' +
+        '</header>' +
+        '<div class="pmd-r2-day-board__timeline pmd-r2-day-board__timeline--two-columns">' +
+          '<div class="pmd-r2-day-board__column pmd-r2-day-board__column--first">' + rows.slice(0, splitIndex).join('') + '</div>' +
+          '<div class="pmd-r2-day-board__column pmd-r2-day-board__column--second">' + rows.slice(splitIndex).join('') + '</div>' +
+        '</div>' +
+      '</div>';
+
+    frame.hidden = true;
+    host.hidden = false;
+    calendar.classList.add('is-timeslot-screen');
+    var monthButton = root.querySelector('[data-pmd-shifts-calendar-back]');
+    if (monthButton && monthButton.closest('.pmd-yc__view-switch')) monthButton.classList.remove('is-active');
+
+    try {
+      var url = new URL(window.location.href);
+      url.searchParams.set('month', monthKey(key));
+      url.searchParams.set('day', key);
+      url.hash = 'pmd-shift-day';
+      history.replaceState(null, '', url.toString());
+    } catch (error) {
+      // Navigation fallback remains on every calendar cell.
+    }
+  }
+
+  function showCalendar() {
+    var host = root.querySelector('[data-pmd-shifts-hour-host]');
+    var frame = root.querySelector('[data-pmd-shifts-calendar-frame]');
+    var calendar = root.querySelector('[data-pmd-shifts-calendar]');
+    if (!host || !frame || !calendar) return;
+    host.hidden = true;
+    frame.hidden = false;
+    calendar.classList.remove('is-timeslot-screen');
+    root.querySelectorAll('[data-pmd-shifts-calendar-back]').forEach(function (button) {
+      if (button.closest('.pmd-yc__view-switch')) button.classList.add('is-active');
+    });
+    try {
+      var url = new URL(window.location.href);
+      url.searchParams.delete('day');
+      url.hash = '';
+      history.replaceState(null, '', url.toString());
+    } catch (error) {}
+  }
+
+  function changeHourDay(delta) {
+    var next = shiftedDate(boot.selected_day, delta);
+    if (monthKey(next) !== String(boot.month || '')) {
+      var base = (boot.urls && boot.urls.shifts) || window.location.pathname;
+      window.location.href = base + '?month=' + encodeURIComponent(monthKey(next)) + '&day=' + encodeURIComponent(next) + '#pmd-shift-day';
+      return;
+    }
+    renderHourView(next);
+  }
+
+  function submitRemoveShift(id) {
+    var shift = findShift(id);
+    if (!shift || !window.confirm('Remove this shift?')) return;
+    var formNode = document.createElement('form');
+    formNode.method = 'post';
+    formNode.action = (boot.urls && boot.urls.remove) || '';
+    formNode.style.display = 'none';
+    formNode.innerHTML = '' +
+      '<input type="hidden" name="_token" value="' + escapeHtml(boot.csrf || '') + '">' +
+      '<input type="hidden" name="id" value="' + Number(id || 0) + '">' +
+      '<input type="hidden" name="return_to" value="' + escapeHtml(window.location.pathname + window.location.search) + '">';
+    document.body.appendChild(formNode);
+    formNode.submit();
+  }
+
+  loadExactSharedUiCss();
+  syncKpiMenus();
 
   document.addEventListener('click', function (event) {
-    var kpiButton = event.target.closest('[data-pmd-shift-kpi-menu-button]');
-    if (kpiButton) {
+    var kpiButton = event.target.closest('[data-pmd-shifts-kpi-menu-button]');
+    if (kpiButton && root.contains(kpiButton)) {
       event.preventDefault();
       event.stopPropagation();
-      var card = kpiButton.closest('.pmd-r2-kpi-v2401-card');
-      var menu = card && card.querySelector('[data-pmd-shift-kpi-menu]');
-      if (menu) {
-        var opening = menu.hidden;
-        closeKpiMenus(menu);
-        menu.hidden = !opening;
-        kpiButton.setAttribute('aria-expanded', opening ? 'true' : 'false');
+      var card = kpiButton.closest('[data-pmd-shifts-kpi-slot]');
+      var menu = card && card.querySelector('[data-pmd-shifts-kpi-menu]');
+      if (!menu) return;
+      var opening = menu.hidden;
+      closeKpiMenu();
+      if (opening) {
+        menu.hidden = false;
+        activeKpiMenu = menu;
+        kpiButton.setAttribute('aria-expanded', 'true');
       }
       return;
     }
 
-    if (!event.target.closest('[data-pmd-shift-kpi-menu]')) closeKpiMenus();
-
-    var monthView = event.target.closest('[data-pmd-shifts-month-view]');
-    if (monthView) {
+    var kpiOption = event.target.closest('[data-pmd-shifts-kpi-option]');
+    if (kpiOption && root.contains(kpiOption) && !kpiOption.disabled) {
       event.preventDefault();
-      var calendar = document.getElementById('pmd-r2-calendar-surface-v160');
-      if (calendar) calendar.scrollIntoView({behavior: 'smooth', block: 'start'});
+      event.stopPropagation();
+      var optionCard = kpiOption.closest('[data-pmd-shifts-kpi-slot]');
+      var key = kpiOption.getAttribute('data-pmd-shifts-kpi-option') || '';
+      closeKpiMenu();
+      applyKpi(optionCard, key);
+      return;
+    }
+
+    if (activeKpiMenu && !activeKpiMenu.contains(event.target)) closeKpiMenu();
+
+    var capacityOpen = event.target.closest('[data-pmd-capacity-open]');
+    if (capacityOpen) {
+      event.preventDefault();
+      openCapacity(capacityOpen);
+      return;
+    }
+    var capacityClose = event.target.closest('[data-pmd-capacity-close]');
+    if (capacityClose) {
+      event.preventDefault();
+      closeCapacity();
+      return;
+    }
+
+    var day = event.target.closest('[data-pmd-shift-day-open]');
+    if (day && root.contains(day)) {
+      event.preventDefault();
+      renderHourView(day.getAttribute('data-date') || '');
+      return;
+    }
+
+    var calendarBack = event.target.closest('[data-pmd-shifts-calendar-back]');
+    if (calendarBack && root.contains(calendarBack)) {
+      event.preventDefault();
+      showCalendar();
+      return;
+    }
+
+    var selectedDay = event.target.closest('[data-pmd-shifts-open-selected-day]');
+    if (selectedDay && root.contains(selectedDay)) {
+      event.preventDefault();
+      renderHourView(boot.selected_day || '');
+      return;
+    }
+
+    if (event.target.closest('[data-pmd-shifts-prev-day]')) {
+      event.preventDefault();
+      changeHourDay(-1);
+      return;
+    }
+    if (event.target.closest('[data-pmd-shifts-next-day]')) {
+      event.preventDefault();
+      changeHourDay(1);
+      return;
+    }
+
+    var manage = event.target.closest('[data-pmd-shift-manage]');
+    if (manage) {
+      event.preventDefault();
+      var managedShift = findShift(manage.getAttribute('data-pmd-shift-manage'));
+      if (managedShift) openModal(manage, valuesFromShift(managedShift));
+      return;
+    }
+
+    var slotCreate = event.target.closest('[data-pmd-shift-slot-create]');
+    if (slotCreate) {
+      event.preventDefault();
+      var start = slotCreate.getAttribute('data-time') || '';
+      var startMinutes = minuteValue(start, 0);
+      openModal(slotCreate, {
+        date: slotCreate.getAttribute('data-date') || boot.selected_day || '',
+        label: 'Shift',
+        start: start,
+        end: minuteLabel(startMinutes + 4 * 60)
+      });
       return;
     }
 
     var add = event.target.closest('[data-pmd-shift-open]');
     if (add) {
       event.preventDefault();
-      openModal(add, {date: add.getAttribute('data-date') || ''});
-      return;
-    }
-
-    var edit = event.target.closest('[data-pmd-shift-edit]');
-    if (edit) {
-      event.preventDefault();
-      openModal(edit, valuesFromTrigger(edit));
+      openModal(add, {date: add.getAttribute('data-date') || boot.selected_day || ''});
       return;
     }
 
@@ -391,13 +623,32 @@
       if (labelInput) labelInput.value = preset.getAttribute('data-pmd-shift-preset') || 'Shift';
       if (startInput) startInput.value = preset.getAttribute('data-start') || '';
       if (endInput) endInput.value = preset.getAttribute('data-end') || '';
+      return;
+    }
+
+    var copyWeek = event.target.closest('[data-pmd-copy-week]');
+    if (copyWeek) {
+      event.preventDefault();
+      var copyForm = root.querySelector('[data-pmd-copy-week-form]');
+      if (copyForm) copyForm.submit();
+      return;
+    }
+
+    var remove = event.target.closest('[data-pmd-shift-remove]');
+    if (remove) {
+      event.preventDefault();
+      submitRemoveShift(remove.getAttribute('data-pmd-shift-remove'));
     }
   });
 
   document.addEventListener('keydown', function (event) {
-    if (event.key === 'Escape') {
-      closeKpiMenus();
-      if (!modal.hidden) closeModal();
-    }
+    if (event.key !== 'Escape') return;
+    closeKpiMenu();
+    if (modal && !modal.hidden) closeModal();
+    if (capacityModal && !capacityModal.hidden) closeCapacity();
   });
+
+  if (boot.open_hour_on_boot && boot.selected_day) {
+    renderHourView(boot.selected_day);
+  }
 })();
