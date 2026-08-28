@@ -58,9 +58,13 @@ try {
             $result = $service->reconcile($attempt);
             $adjustments = [];
             if (($result['settled_by_backend'] ?? false) && is_array($result['settlements'] ?? null)) {
+                $attemptId = (int)($result['attempt']['id'] ?? $attempt->id ?? 0);
                 foreach ($result['settlements'] as $settlement) {
                     if (!is_array($settlement) || empty($settlement['order_id'])) continue;
-                    $adjustments[] = $adjuster->finalizeIfPaid((int)$settlement['order_id']);
+                    $adjustments[] = $adjuster->finalizeIfPaid(
+                        (int)$settlement['order_id'],
+                        $attemptId > 0 ? $attemptId : null
+                    );
                 }
             }
 
