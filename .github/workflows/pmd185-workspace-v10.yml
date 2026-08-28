@@ -54,21 +54,22 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
-          expected="$(cat <<'EOF'
-app/admin/Services/PmdDefaultStaffRoleService.php
-app/admin/assets/css/pmd-my-work-v1.css
-app/admin/assets/css/pmd-shifts-dashboard-reservations-v4.css
-app/admin/assets/css/pmd-shifts-v1.css
-app/admin/assets/js/pmd-shifts-v1.js
-app/admin/controllers/Mywork.php
-app/admin/controllers/Shifts.php
-app/admin/views/pmdmywork/index.blade.php
-app/admin/views/pmdshifts/index.blade.php
-app/system/database/migrations/2026_08_28_235500_create_pmd_staff_requests.php
-EOF
-)"
-          actual="$(git diff --name-only | sort)"
-          test "$actual" = "$(printf '%s\n' "$expected" | sort)"
+          expected=(
+            app/admin/Services/PmdDefaultStaffRoleService.php
+            app/admin/assets/css/pmd-my-work-v1.css
+            app/admin/assets/css/pmd-shifts-dashboard-reservations-v4.css
+            app/admin/assets/css/pmd-shifts-v1.css
+            app/admin/assets/js/pmd-shifts-v1.js
+            app/admin/controllers/Mywork.php
+            app/admin/controllers/Shifts.php
+            app/admin/views/pmdmywork/index.blade.php
+            app/admin/views/pmdshifts/index.blade.php
+            app/system/database/migrations/2026_08_28_235500_create_pmd_staff_requests.php
+          )
+          mapfile -t actual < <(git diff --name-only | sort)
+          mapfile -t wanted < <(printf '%s\n' "${expected[@]}" | sort)
+          test "${#actual[@]}" -eq "${#wanted[@]}"
+          for i in "${!wanted[@]}"; do test "${actual[$i]}" = "${wanted[$i]}"; done
 
       - name: Commit reviewed product files
         run: |
