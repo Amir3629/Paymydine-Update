@@ -9,7 +9,6 @@ use Admin\Facades\AdminMenu;
 use Admin\Facades\Template;
 use Admin\Models\Staffs_model;
 use Admin\Services\PmdDefaultStaffRoleService;
-use App\Services\PmdKitchenEtaLifecycleService;
 use App\Services\PmdKitchenOperationsSchemaService;
 use App\Services\PmdKitchenWorkforceService;
 use Carbon\Carbon;
@@ -19,10 +18,11 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
 /**
- * PMD Shifts V2
+ * PMD Shifts V3
  *
- * Team owns people. This surface owns schedule planning and today's attendance
- * confirmation. ETA consumes only aggregate Kitchen staffing from the same data.
+ * Team owns people. Shifts owns schedule planning and attendance confirmation.
+ * ETA consumes aggregate Kitchen staffing plus the simple Kitchen capacity
+ * settings exposed from this workspace.
  */
 class Shifts extends AdminController
 {
@@ -34,6 +34,7 @@ class Shifts extends AdminController
         $this->bodyClass = trim(($this->bodyClass ?? '').' pmd-settings-suite pmd-shifts-page');
         $this->addCss('css/pmd-settings-suite-first-paint-v1.css');
         $this->addCss('css/pmd-shifts-v1.css');
+        $this->addCss('css/pmd-shifts-dashboard-reservations-v4.css');
         $this->addJs('js/pmd-shifts-v1.js');
         AdminMenu::setContext('dashboard');
     }
@@ -127,6 +128,10 @@ class Shifts extends AdminController
         $calendarDays = collect(range(0, $calendarStart->diffInDays($calendarEnd)))
             ->map(fn ($offset) => $calendarStart->copy()->addDays($offset));
 
+        $busyThreshold = $this->settingInt('eta_busy_item_threshold', 10, 1, 500);
+        $veryBusyThreshold = $this->settingInt('eta_very_busy_item_threshold', 25, 2, 1000);
+        if ($veryBusyThreshold <= $busyThreshold) $veryBusyThreshold = min(1000, $busyThreshold + 1);
+
         $this->vars['pmdShifts'] = [
             'ready' => $ready,
             'location_id' => $locationId,
@@ -155,12 +160,22 @@ class Shifts extends AdminController
                 'month_shifts' => $monthShifts->count(),
                 'scheduled_days' => $monthShifts->pluck('shift_date')->map(fn ($d) => Carbon::parse($d)->toDateString())->unique()->count(),
             ],
+            'capacity' => [
+                'busy_item_threshold' => $busyThreshold,
+                'very_busy_item_threshold' => $veryBusyThreshold,
+                'busy_extra_minutes' => $this->settingInt('eta_busy_extra_minutes', 5, 0, 120),
+                'very_busy_extra_minutes' => $this->settingInt('eta_very_busy_extra_minutes', 10, 0, 240),
+                'peak_enabled' => $this->settingBool('pmd_kitchen_peak_enabled', false),
+                'peak_start' => $this->settingTime('pmd_kitchen_peak_start', '18:00'),
+                'peak_end' => $this->settingTime('pmd_kitchen_peak_end', '21:00'),
+                'peak_extra_minutes' => $this->settingInt('pmd_kitchen_peak_extra_minutes', 5, 0, 120),
+            ],
         ];
 
         return $this->makeView('pmdshifts/index');
     }
 
-    /** Compatibility endpoint. New people should be created from Team. */
+    /** Compatibility endpoint. New people should normally be created from Team. */
     public function saveperson()
     {
         $this->assertOwnerOrManager();
@@ -464,26 +479,56 @@ class Shifts extends AdminController
         return redirect(admin_url('shifts'))->with('success', 'Today’s team confirmed.');
     }
 
-    /** Kitchen ETA settings are edited from Menu, kept here as write authority. */
+    /** Simple Owner-facing Kitchen capacity and ETA write authority. */
     public function saveeta()
     {
         $this->assertOwnerOrManager();
-        $extension = (int)request()->input('extension_minutes', 10);
-        if (!in_array($extension, [5, 10, 15, 20], true)) {
-            $extension = max(1, min(120, (int)request()->input('custom_extension_minutes', $extension)));
+
+        $values = [];
+
+        // Compatibility with the existing ETA visibility/extension form. Only
+        // write these values if that form actually supplied the relevant input.
+        if (request()->has('show_customer_eta_present')) {
+            $values['enable_customer_eta'] = !empty(request()->input('show_customer_eta')) ? 1 : 0;
         }
 
-        setting()->set([
-            'enable_customer_eta' => !empty(request()->input('show_customer_eta')) ? 1 : 0,
-            'smart_eta_enabled' => 1,
-            'pmd_eta_late_extension_minutes' => $extension,
-            'pmd_eta_auto_extension_cap' => 2,
-        ]);
-        setting()->save();
+        if (request()->has('extension_minutes') || request()->has('custom_extension_minutes')) {
+            $extension = (int)request()->input('extension_minutes', 10);
+            if (!in_array($extension, [5, 10, 15, 20], true)) {
+                $extension = max(1, min(120, (int)request()->input('custom_extension_minutes', $extension)));
+            }
+            $values['pmd_eta_late_extension_minutes'] = $extension;
+            $values['pmd_eta_auto_extension_cap'] = 2;
+            $values['smart_eta_enabled'] = 1;
+        }
+
+        if (request()->has('busy_item_threshold') || request()->has('very_busy_item_threshold')) {
+            $busy = max(1, min(500, (int)request()->input('busy_item_threshold', 10)));
+            $veryBusy = max($busy + 1, min(1000, (int)request()->input('very_busy_item_threshold', max(25, $busy + 1))));
+
+            $values['eta_busy_item_threshold'] = $busy;
+            $values['eta_very_busy_item_threshold'] = $veryBusy;
+            $values['eta_busy_extra_minutes'] = max(0, min(120, (int)request()->input('busy_extra_minutes', 5)));
+            $values['eta_very_busy_extra_minutes'] = max(0, min(240, (int)request()->input('very_busy_extra_minutes', 10)));
+            $values['smart_eta_enabled'] = 1;
+        }
+
+        if (request()->has('peak_enabled_present')) {
+            $values['pmd_kitchen_peak_enabled'] = !empty(request()->input('peak_enabled')) ? 1 : 0;
+            $values['pmd_kitchen_peak_start'] = $this->cleanClock((string)request()->input('peak_start', '18:00'), '18:00');
+            $values['pmd_kitchen_peak_end'] = $this->cleanClock((string)request()->input('peak_end', '21:00'), '21:00');
+            $values['pmd_kitchen_peak_extra_minutes'] = max(0, min(120, (int)request()->input('peak_extra_minutes', 5)));
+            $values['smart_eta_enabled'] = 1;
+        }
+
+        if ($values) {
+            setting()->set($values);
+            setting()->save();
+        }
 
         $back = trim((string)request()->input('return_to', ''));
         if ($back !== '' && str_starts_with($back, '/admin/')) return redirect($back)->with('success', 'Kitchen timing settings saved.');
-        return redirect(admin_url('menu'))->with('success', 'Kitchen timing settings saved.');
+        return redirect(admin_url('shifts'))->with('success', 'Kitchen timing settings saved.');
     }
 
     private function assertOwnerOrManager(): void
@@ -552,6 +597,41 @@ class Shifts extends AdminController
         $parts = explode(':', $value);
         if (count($parts) < 2) return null;
         return max(0, min(1439, ((int)$parts[0] * 60) + (int)$parts[1]));
+    }
+
+    private function settingValue(string $key, $default)
+    {
+        try {
+            if (!Schema::hasTable('settings')) return $default;
+            $query = DB::table('settings')->where('item', $key);
+            if (Schema::hasColumn('settings', 'setting_id')) $query->orderByDesc('setting_id');
+            $value = $query->value('value');
+            return ($value === null || $value === '') ? $default : $value;
+        } catch (\Throwable $error) {
+            return $default;
+        }
+    }
+
+    private function settingInt(string $key, int $default, int $min, int $max): int
+    {
+        return max($min, min($max, (int)$this->settingValue($key, $default)));
+    }
+
+    private function settingBool(string $key, bool $default): bool
+    {
+        $value = $this->settingValue($key, $default ? 1 : 0);
+        return in_array(strtolower(trim((string)$value)), ['1', 'true', 'yes', 'on'], true);
+    }
+
+    private function settingTime(string $key, string $default): string
+    {
+        return $this->cleanClock((string)$this->settingValue($key, $default), $default);
+    }
+
+    private function cleanClock(string $value, string $default): string
+    {
+        $value = trim($value);
+        return preg_match('/^(?:[01]\\d|2[0-3]):[0-5]\\d$/', $value) ? $value : $default;
     }
 
     private function redirectBackToSchedule(string $message)
