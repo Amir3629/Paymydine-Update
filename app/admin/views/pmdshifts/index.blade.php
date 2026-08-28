@@ -99,6 +99,7 @@
             'name' => (string)$person->display_name,
             'role' => (string)($person->job_role ?: ($departments[$person->department] ?? 'Team')),
             'department' => (string)($person->department ?? 'other'),
+            'has_access' => !empty($person->staff_id),
         ];
     })->values();
 

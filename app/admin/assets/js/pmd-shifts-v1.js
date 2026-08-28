@@ -53,19 +53,19 @@
   }
 
   function loadExactSharedUiCss() {
-    if (document.querySelector('link[data-pmd-shifts-exact-ui-v6]')) return;
+    if (document.querySelector('link[data-pmd-shifts-exact-ui-v7]')) return;
     var base = document.querySelector('link[href*="pmd-shifts-v1.css"]');
-    var href = '/app/admin/assets/css/pmd-shifts-dashboard-reservations-v4.css?v=6';
+    var href = '/app/admin/assets/css/pmd-shifts-dashboard-reservations-v4.css?v=7';
     if (base && base.getAttribute('href')) {
       href = base.getAttribute('href').replace(
         /pmd-shifts-v1\.css(?:\?[^#]*)?/,
-        'pmd-shifts-dashboard-reservations-v4.css?v=6'
+        'pmd-shifts-dashboard-reservations-v4.css?v=7'
       );
     }
     var link = document.createElement('link');
     link.rel = 'stylesheet';
     link.href = href;
-    link.setAttribute('data-pmd-shifts-exact-ui-v6', '');
+    link.setAttribute('data-pmd-shifts-exact-ui-v7', '');
     document.head.appendChild(link);
   }
 
@@ -339,36 +339,67 @@
     return cursor >= window.start && cursor < window.end;
   }
 
-  function uniquePeople(shifts) {
-    var map = {};
-    shifts.forEach(function (shift) {
-      (Array.isArray(shift.people) ? shift.people : []).forEach(function (person) {
-        var key = person && (person.person_id || ('name:' + person.name));
-        if (!key) return;
-        map[String(key)] = person;
-      });
+  function schedulingPeople() {
+    var people = Array.isArray(boot.people) ? boot.people.slice() : [];
+    var departmentOrder = {kitchen: 0, floor: 1, bar: 2, reception: 3, other: 4};
+    return people.sort(function (left, right) {
+      var leftDepartment = departmentOrder[String(left.department || 'other')];
+      var rightDepartment = departmentOrder[String(right.department || 'other')];
+      if (leftDepartment === undefined) leftDepartment = 4;
+      if (rightDepartment === undefined) rightDepartment = 4;
+      if (leftDepartment !== rightDepartment) return leftDepartment - rightDepartment;
+      return String(left.name || '').localeCompare(String(right.name || ''));
     });
-    return Object.keys(map).map(function (key) { return map[key]; });
   }
 
-  function shiftChip(shift) {
-    var people = Array.isArray(shift.people) ? shift.people : [];
-    var names = people.map(function (person) {
-      return '<span class="pmd-shifts-hour-person"><strong>' + escapeHtml(person.name || 'Team') + '</strong><small>' + escapeHtml(person.role || 'Team') + '</small></span>';
-    }).join('');
-    if (!names) names = '<span class="pmd-shifts-hour-empty-team">No people assigned</span>';
+  function personInitials(name) {
+    var parts = String(name || 'Team').trim().split(/\s+/).filter(Boolean);
+    return (parts.slice(0, 2).map(function (part) { return part.charAt(0).toUpperCase(); }).join('') || 'T');
+  }
 
+  function shiftHasPerson(shift, personId) {
+    return (Array.isArray(shift.people) ? shift.people : []).some(function (person) {
+      return Number(person && person.person_id || 0) === Number(personId || 0);
+    });
+  }
+
+  function resourceEntriesForPerson(person, shifts) {
+    var dayStart = 360;
+    var rowCount = 40;
+    return shifts.filter(function (shift) {
+      return shiftHasPerson(shift, person.id);
+    }).map(function (shift) {
+      var window = shiftWindow(shift);
+      var startRow = Math.max(0, Math.floor((window.start - dayStart) / 30));
+      var endRow = Math.min(rowCount, Math.ceil((window.end - dayStart) / 30));
+      if (endRow <= startRow) endRow = Math.min(rowCount, startRow + 1);
+      return {
+        shift: shift,
+        startRow: startRow,
+        endRow: endRow,
+        span: Math.max(1, endRow - startRow)
+      };
+    }).filter(function (entry) {
+      return entry.startRow < rowCount && entry.endRow > 0;
+    }).sort(function (left, right) {
+      return left.startRow - right.startRow;
+    });
+  }
+
+  function resourceShiftButton(entry, person) {
+    var shift = entry.shift || {};
     var time = shift.start || 'All day';
     if (shift.end) time += '–' + shift.end;
-
+    var attendance = (Array.isArray(shift.people) ? shift.people : []).find(function (assigned) {
+      return Number(assigned && assigned.person_id || 0) === Number(person.id || 0);
+    });
+    var state = String(attendance && attendance.attendance || 'planned').toLowerCase();
     return '' +
-      '<article class="pmd-shifts-hour-chip' + (shift.confirmed ? ' is-confirmed' : '') + '">' +
-        '<div class="pmd-shifts-hour-chip__head">' +
-          '<div><strong>' + escapeHtml(shift.label || 'Shift') + '</strong><span>' + escapeHtml(time) + '</span></div>' +
-          '<button type="button" data-pmd-shift-manage="' + Number(shift.id || 0) + '">Manage team</button>' +
-        '</div>' +
-        '<div class="pmd-shifts-hour-chip__people">' + names + '</div>' +
-      '</article>';
+      '<button type="button" class="pmd-shifts-resource-shift' + (shift.confirmed ? ' is-confirmed' : '') + (state === 'absent' ? ' is-absent' : '') + '" data-pmd-shift-manage="' + Number(shift.id || 0) + '">' +
+        '<span class="pmd-shifts-resource-shift__label">' + escapeHtml(shift.label || 'Shift') + '</span>' +
+        '<strong>' + escapeHtml(time) + '</strong>' +
+        '<small>' + escapeHtml(person.role || 'Team') + '</small>' +
+      '</button>';
   }
 
   function totalScheduledHours(shifts) {
@@ -398,26 +429,61 @@
     updateCalendarSelection(key);
 
     var shifts = shiftsForDate(key);
-    var people = uniquePeople(shifts);
-    var rows = [];
-    for (var cursor = 360; cursor < 1560; cursor += 30) {
-      var active = shifts.filter(function (shift) { return activeAt(shift, cursor); });
-      var slotTime = minuteLabel(cursor);
-      var content = active.length
-        ? active.map(shiftChip).join('')
-        : '<div class="pmd-r2-timeslot__free"><i></i><span>No team scheduled</span></div>';
-      rows.push('' +
-        '<section class="pmd-r2-timeslot ' + (active.length ? 'has-bookings' : 'is-empty') + '">' +
-          '<div class="pmd-r2-timeslot__time"><strong>' + slotTime + '</strong><span>' + (active.length ? active.length + ' shift' + (active.length === 1 ? '' : 's') : 'Available') + '</span></div>' +
-          '<div class="pmd-r2-timeslot__content">' + content +
-            '<button type="button" class="pmd-r2-timeslot__create-button" data-pmd-shift-slot-create data-date="' + escapeHtml(key) + '" data-time="' + slotTime + '" aria-label="Add shift at ' + slotTime + '">+</button>' +
-          '</div>' +
-        '</section>');
+    var people = schedulingPeople();
+    var rowCount = 40;
+    var dayStart = 360;
+    var schedules = {};
+
+    people.forEach(function (person) {
+      var entries = resourceEntriesForPerson(person, shifts);
+      var starts = {};
+      var covered = {};
+      entries.forEach(function (entry) {
+        if (!starts[entry.startRow]) starts[entry.startRow] = [];
+        starts[entry.startRow].push(entry);
+        for (var row = entry.startRow + 1; row < entry.endRow; row += 1) covered[row] = true;
+      });
+      schedules[String(person.id)] = {starts: starts, covered: covered};
+    });
+
+    var headerCells = people.map(function (person) {
+      return '' +
+        '<th scope="col" class="pmd-shifts-resource-person">' +
+          '<span class="pmd-shifts-resource-person__avatar">' + escapeHtml(personInitials(person.name)) + '</span>' +
+          '<span class="pmd-shifts-resource-person__copy"><strong>' + escapeHtml(person.name || 'Team member') + '</strong><small>' + escapeHtml(person.role || 'Team') + '</small></span>' +
+          '<span class="pmd-shifts-resource-person__source' + (person.has_access ? ' is-access' : '') + '">' + (person.has_access ? 'PMD access' : 'Restaurant team') + '</span>' +
+        '</th>';
+    }).join('');
+
+    var bodyRows = [];
+    for (var rowIndex = 0; rowIndex < rowCount; rowIndex += 1) {
+      var slotMinutes = dayStart + rowIndex * 30;
+      var slotTime = minuteLabel(slotMinutes);
+      var cells = people.map(function (person) {
+        var schedule = schedules[String(person.id)] || {starts: {}, covered: {}};
+        if (schedule.covered[rowIndex]) return '';
+        var entries = schedule.starts[rowIndex] || [];
+        if (entries.length) {
+          var span = Math.max.apply(null, entries.map(function (entry) { return entry.span; }));
+          return '<td class="pmd-shifts-resource-cell is-scheduled" rowspan="' + span + '"><div class="pmd-shifts-resource-cell__stack">' + entries.map(function (entry) { return resourceShiftButton(entry, person); }).join('') + '</div></td>';
+        }
+        return '' +
+          '<td class="pmd-shifts-resource-cell is-empty">' +
+            '<button type="button" class="pmd-shifts-resource-empty" data-pmd-person-slot-create data-person-id="' + Number(person.id || 0) + '" data-date="' + escapeHtml(key) + '" data-time="' + slotTime + '" aria-label="Add ' + escapeHtml(person.name || 'team member') + ' at ' + slotTime + '"><span>+</span></button>' +
+          '</td>';
+      }).join('');
+      bodyRows.push('<tr><th scope="row" class="pmd-shifts-resource-time"><strong>' + slotTime + '</strong><span>' + (rowIndex % 2 === 0 ? 'hour' : 'half') + '</span></th>' + cells + '</tr>');
     }
 
-    var splitIndex = Math.ceil(rows.length / 2);
+    var emptyState = people.length ? '' : '' +
+      '<div class="pmd-shifts-resource-empty-state">' +
+        '<strong>No restaurant team members yet</strong>' +
+        '<span>Add people in Team first. A name is enough; PMD login is optional.</span>' +
+        '<a href="/admin/settings/team">Open Team</a>' +
+      '</div>';
+
     host.innerHTML = '' +
-      '<div class="pmd-r2-timeslot-screen">' +
+      '<div class="pmd-r2-timeslot-screen pmd-shifts-resource-screen">' +
         '<header class="pmd-r2-day-view__header">' +
           '<button type="button" class="pmd-r2-timeslot-screen__back" data-pmd-shifts-calendar-back>Calendar</button>' +
           '<div class="pmd-r2-day-view__date-nav">' +
@@ -427,16 +493,14 @@
           '</div>' +
           '<div class="pmd-r2-day-view__summary">' +
             '<span><strong>' + shifts.length + '</strong> shifts</span>' +
-            '<span><strong>' + people.length + '</strong> people</span>' +
+            '<span><strong>' + people.length + '</strong> team</span>' +
             '<span><strong>' + totalScheduledHours(shifts) + '</strong> staff hours</span>' +
             '<button type="button" class="pmd-shifts-hour-header-action" data-pmd-shift-open data-date="' + escapeHtml(key) + '">+ Shift</button>' +
             '<button type="button" class="pmd-shifts-hour-header-action is-soft" data-pmd-copy-week>Copy week</button>' +
           '</div>' +
         '</header>' +
-        '<div class="pmd-r2-day-board__timeline pmd-r2-day-board__timeline--two-columns">' +
-          '<div class="pmd-r2-day-board__column pmd-r2-day-board__column--first">' + rows.slice(0, splitIndex).join('') + '</div>' +
-          '<div class="pmd-r2-day-board__column pmd-r2-day-board__column--second">' + rows.slice(splitIndex).join('') + '</div>' +
-        '</div>' +
+        emptyState +
+        (people.length ? '<div class="pmd-shifts-resource-scroll"><table class="pmd-shifts-resource-table"><thead><tr><th scope="col" class="pmd-shifts-resource-corner"><span>Time</span></th>' + headerCells + '</tr></thead><tbody>' + bodyRows.join('') + '</tbody></table></div>' : '') +
       '</div>';
 
     frame.hidden = true;
@@ -451,9 +515,7 @@
       url.searchParams.set('day', key);
       url.hash = 'pmd-shift-day';
       history.replaceState(null, '', url.toString());
-    } catch (error) {
-      // Navigation fallback remains on every calendar cell.
-    }
+    } catch (error) {}
   }
 
   function showCalendar() {
@@ -587,16 +649,17 @@
       return;
     }
 
-    var slotCreate = event.target.closest('[data-pmd-shift-slot-create]');
-    if (slotCreate) {
+    var personSlotCreate = event.target.closest('[data-pmd-person-slot-create]');
+    if (personSlotCreate) {
       event.preventDefault();
-      var start = slotCreate.getAttribute('data-time') || '';
-      var startMinutes = minuteValue(start, 0);
-      openModal(slotCreate, {
-        date: slotCreate.getAttribute('data-date') || boot.selected_day || '',
+      var personStart = personSlotCreate.getAttribute('data-time') || '';
+      var personStartMinutes = minuteValue(personStart, 0);
+      openModal(personSlotCreate, {
+        date: personSlotCreate.getAttribute('data-date') || boot.selected_day || '',
         label: 'Shift',
-        start: start,
-        end: minuteLabel(startMinutes + 4 * 60)
+        start: personStart,
+        end: minuteLabel(personStartMinutes + 4 * 60),
+        person_ids: [Number(personSlotCreate.getAttribute('data-person-id') || 0)]
       });
       return;
     }
