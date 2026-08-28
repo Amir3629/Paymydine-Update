@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 
 APP_DIR="${APP_DIR:-/var/www/paymydine}"
-BRANCH="${PMD_BRANCH:-origin/feature/paymob-oman-r1}"
+AUDITED_COMMIT="c341668bc0f23f5b231abf76468316e27aafe07f"
 TMP="/tmp/pmd-paymob-oman-r11-core-$$.sh"
 
 cleanup() {
@@ -13,16 +13,19 @@ trap cleanup EXIT
 cd "$APP_DIR"
 
 echo "=== PMD PAYMOB OMAN ONLINE R11 FINAL WRAPPER ==="
-echo "Branch: $BRANCH"
+echo "Audited source commit: $AUDITED_COMMIT"
 
 git fetch origin feature/paymob-oman-r1
 
-git show "$BRANCH:scripts/deploy-paymob-oman-online-runtime-r11.sh" > "$TMP"
+# Ensure the pinned source object is locally available after fetch.
+git cat-file -e "$AUDITED_COMMIT^{commit}"
+
+git show "$AUDITED_COMMIT:scripts/deploy-paymob-oman-online-runtime-r11.sh" > "$TMP"
 
 # PMD_PAYMOB_OMAN_R11_FINAL_WRAPPER
-# The backup directory is root-owned. Keep the transient new-file rollback list
-# in the user-owned staging directory instead, while all real backups remain in
-# /var/backups/paymydine.
+# 1) Pin R11 source files to the audited commit even if the shared branch moves.
+# 2) The backup directory is root-owned. Keep the transient new-file rollback
+#    list in the user-owned staging directory; real backups stay in /var/backups.
 python3 - "$TMP" <<'PY'
 from pathlib import Path
 import sys
@@ -47,11 +50,11 @@ chmod +x "$TMP"
 grep -q 'NEW_FILES="$STAGE_ROOT/new-files.txt"' "$TMP"
 grep -q 'PMD PAYMOB OMAN ONLINE RUNTIME R11' "$TMP"
 
-echo "R11 final wrapper permission fix: OK"
+echo "R11 final wrapper source pin + permission fix: OK"
 echo
 
 set +e
-bash "$TMP" "$@"
+PMD_BRANCH="$AUDITED_COMMIT" bash "$TMP" "$@"
 RC=$?
 set -e
 
