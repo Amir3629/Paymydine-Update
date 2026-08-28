@@ -33,7 +33,7 @@
             @csrf
             <label><span>Name</span><input required maxlength="128" name="display_name" placeholder="Name"></label>
             <label><span>Role</span><input maxlength="64" name="job_role" placeholder="Bartender, Chef…"></label>
-            <label><span>Area</span><select name="department">@foreach($departments as $key => $label)<option value="{{ $key }}">{{ $label }}</option>@endforeach</select></label>
+            <label><span>Area</span><select name="department">@foreach($departments as $key => $label)<option value="{{ $key }}" {{ $key === 'other' ? 'selected' : '' }}>{{ $label }}</option>@endforeach</select></label>
             <button type="submit">Add</button>
             <button type="button" class="is-cancel" data-pmd-people-add-cancel>Cancel</button>
         </form>
@@ -108,7 +108,7 @@
                                     @if(!$fromManager)<small>{{ ucfirst(str_replace('_',' ',(string)$request->request_type)) }} · {{ ucfirst((string)$request->status) }}</small>@endif
                                 </div>
                                 @if($request->manager_reply)<div class="pmd-people__bubble is-reply"><span>Manager</span><p>{{ $request->manager_reply }}</p></div>@endif
-                                @if(!$fromManager && (string)$request->status === 'pending')
+                                @if(!$fromManager && in_array((string)$request->request_type, ['shift_change','time_off'], true) && (string)$request->status === 'pending')
                                     <div class="pmd-people__request-actions">
                                         <form method="post" action="{{ admin_url('people/handlerequest') }}">@csrf<input type="hidden" name="id" value="{{ (int)$request->id }}"><input type="hidden" name="person_id" value="{{ (int)$person->id }}"><input type="hidden" name="decision" value="approved"><button type="submit">Approve</button></form>
                                         <form method="post" action="{{ admin_url('people/handlerequest') }}">@csrf<input type="hidden" name="id" value="{{ (int)$request->id }}"><input type="hidden" name="person_id" value="{{ (int)$person->id }}"><input type="hidden" name="decision" value="declined"><button type="submit" class="is-decline">Decline</button></form>
