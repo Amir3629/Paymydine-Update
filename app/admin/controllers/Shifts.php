@@ -10,6 +10,7 @@ use Admin\Facades\Template;
 use Admin\Models\Staffs_model;
 use Admin\Services\PmdDefaultStaffRoleService;
 use App\Services\PmdKitchenEtaLifecycleService;
+use App\Services\PmdKitchenOperationsSchemaService;
 use App\Services\PmdKitchenWorkforceService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -18,8 +19,10 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
 /**
- * PMD People & Shifts.
- * Lightweight restaurant operations only; never payroll or access/RBAC.
+ * PMD Shifts V2
+ *
+ * Team owns people. This surface owns schedule planning and today's attendance
+ * confirmation. ETA consumes only aggregate Kitchen staffing from the same data.
  */
 class Shifts extends AdminController
 {
@@ -38,28 +41,36 @@ class Shifts extends AdminController
     public function index()
     {
         $this->assertOwnerOrManager();
-        Template::setTitle('People & shifts');
-        Template::setHeading('People & shifts');
+        Template::setTitle('Shifts');
+        Template::setHeading('Shifts');
 
         $locationId = $this->locationId();
-        $weekStart = $this->weekStart();
-        $weekEnd = $weekStart->copy()->addDays(6);
+        $selectedDay = $this->selectedDay();
+        $monthStart = $this->monthStart($selectedDay);
+        $monthEnd = $monthStart->copy()->endOfMonth();
+        $calendarStart = $monthStart->copy()->startOfWeek(Carbon::MONDAY)->startOfDay();
+        $calendarEnd = $monthEnd->copy()->endOfWeek(Carbon::SUNDAY)->endOfDay();
+        $weekStart = $selectedDay->copy()->startOfWeek(Carbon::MONDAY)->startOfDay();
+        $weekEnd = $weekStart->copy()->addDays(6)->endOfDay();
 
         $people = collect();
         $shifts = collect();
-        if ($this->ready()) {
+        $ready = $this->ready();
+
+        if ($ready) {
             $people = DB::table('pmd_operational_people')
                 ->where('location_id', $locationId)
                 ->where('is_active', 1)
-                ->orderByRaw("CASE department WHEN 'kitchen' THEN 0 ELSE 1 END")
+                ->orderByRaw("CASE department WHEN 'kitchen' THEN 0 WHEN 'floor' THEN 1 WHEN 'bar' THEN 2 WHEN 'reception' THEN 3 ELSE 4 END")
                 ->orderBy('display_name')
                 ->get();
 
             $shifts = DB::table('pmd_operational_shifts')
                 ->where('location_id', $locationId)
-                ->whereBetween('shift_date', [$weekStart->toDateString(), $weekEnd->toDateString()])
+                ->whereBetween('shift_date', [$calendarStart->toDateString(), $calendarEnd->toDateString()])
                 ->whereNotIn('status', ['cancelled', 'canceled'])
                 ->orderBy('shift_date')
+                ->orderByRaw('CASE WHEN starts_at IS NULL THEN 1 ELSE 0 END')
                 ->orderBy('starts_at')
                 ->orderBy('id')
                 ->get();
@@ -68,6 +79,7 @@ class Shifts extends AdminController
             $assignments = $ids
                 ? DB::table('pmd_operational_shift_people')->whereIn('shift_id', $ids)->orderBy('id')->get()->groupBy('shift_id')
                 : collect();
+
             $shifts = $shifts->map(function ($shift) use ($assignments) {
                 $shift->people = ($assignments->get($shift->id) ?: collect())->values();
                 return $shift;
@@ -75,39 +87,80 @@ class Shifts extends AdminController
         }
 
         $workforce = app(PmdKitchenWorkforceService::class);
-        $eta = app(PmdKitchenEtaLifecycleService::class);
-        $staffOptions = collect();
-        try {
-            $staffOptions = Staffs_model::with('role')
-                ->whereNotSuperUser()
-                ->where('staff_status', 1)
-                ->orderBy('staff_name')
+        $currentShift = $ready ? $workforce->currentShift($locationId) : null;
+        $currentPeople = collect();
+        if ($currentShift) {
+            $currentPeople = DB::table('pmd_operational_shift_people')
+                ->where('shift_id', (int)$currentShift->id)
+                ->orderBy('id')
                 ->get();
-        } catch (\Throwable $error) {
-            $staffOptions = collect();
         }
 
+        $todayDate = now()->toDateString();
+        $todayShifts = $shifts->filter(fn ($shift) => Carbon::parse($shift->shift_date)->toDateString() === $todayDate)->values();
+        $todayAssignments = $todayShifts->flatMap(fn ($shift) => collect($shift->people ?? []));
+        $todayUnique = $todayAssignments
+            ->map(fn ($row) => $row->person_id ? 'p:'.(int)$row->person_id : 'n:'.strtolower(trim((string)$row->display_name_snapshot)))
+            ->filter()->unique();
+
+        $presentCurrent = $currentPeople->filter(function ($row) {
+            return in_array(strtolower((string)$row->attendance_status), ['present', 'replacement'], true);
+        })->count();
+        $missingCurrent = $currentPeople->filter(fn ($row) => strtolower((string)$row->attendance_status) === 'absent')->count();
+        $currentConfirmed = $currentShift && (!empty($currentShift->confirmed_at) || strtolower((string)$currentShift->status) === 'confirmed');
+
+        $scheduledHoursMonth = 0.0;
+        foreach ($shifts as $shift) {
+            $date = Carbon::parse($shift->shift_date);
+            if (!$date->betweenIncluded($monthStart, $monthEnd)) continue;
+            $start = $this->minutesOfDay($shift->starts_at ?? null);
+            $end = $this->minutesOfDay($shift->ends_at ?? null);
+            if ($start === null || $end === null) continue;
+            if ($end <= $start) $end += 1440;
+            $assigned = collect($shift->people ?? [])->count();
+            if ($assigned < 1) continue;
+            $scheduledHoursMonth += (($end - $start) / 60) * $assigned;
+        }
+
+        $monthShifts = $shifts->filter(fn ($shift) => Carbon::parse($shift->shift_date)->betweenIncluded($monthStart, $monthEnd))->values();
+        $selectedDayShifts = $shifts->filter(fn ($shift) => Carbon::parse($shift->shift_date)->toDateString() === $selectedDay->toDateString())->values();
+        $calendarDays = collect(range(0, $calendarStart->diffInDays($calendarEnd)))
+            ->map(fn ($offset) => $calendarStart->copy()->addDays($offset));
+
         $this->vars['pmdShifts'] = [
-            'ready' => $this->ready(),
+            'ready' => $ready,
             'location_id' => $locationId,
-            'week_start' => $weekStart,
-            'week_end' => $weekEnd,
             'people' => $people,
             'shifts' => $shifts,
-            'roles' => $workforce->roleOptions(),
+            'month_shifts' => $monthShifts,
+            'selected_day_shifts' => $selectedDayShifts,
+            'calendar_days' => $calendarDays,
+            'month_start' => $monthStart,
+            'month_end' => $monthEnd,
+            'calendar_start' => $calendarStart,
+            'calendar_end' => $calendarEnd,
+            'selected_day' => $selectedDay,
+            'week_start' => $weekStart,
+            'week_end' => $weekEnd,
             'departments' => ['kitchen' => 'Kitchen', 'floor' => 'Floor', 'bar' => 'Bar', 'reception' => 'Reception', 'other' => 'Other'],
-            'staff_options' => $staffOptions,
-            'today' => $workforce->todayCard($locationId),
-            'eta' => [
-                'show' => $this->boolSetting('enable_customer_eta', true),
-                'extension_minutes' => $eta->extensionMinutes(),
-                'extension_cap' => $eta->extensionCap(),
+            'roles' => $workforce->roleOptions(),
+            'current_shift' => $currentShift,
+            'current_people' => $currentPeople,
+            'current_confirmed' => (bool)$currentConfirmed,
+            'stats' => [
+                'scheduled_today' => $todayUnique->count(),
+                'present_now' => $currentConfirmed ? $presentCurrent : null,
+                'missing_now' => $currentConfirmed ? $missingCurrent : null,
+                'month_hours' => round($scheduledHoursMonth, 1),
+                'month_shifts' => $monthShifts->count(),
+                'scheduled_days' => $monthShifts->pluck('shift_date')->map(fn ($d) => Carbon::parse($d)->toDateString())->unique()->count(),
             ],
         ];
 
         return $this->makeView('pmdshifts/index');
     }
 
+    /** Compatibility endpoint. New people should be created from Team. */
     public function saveperson()
     {
         $this->assertOwnerOrManager();
@@ -116,9 +169,9 @@ class Shifts extends AdminController
         $validator = Validator::make($input, [
             'id' => ['nullable', 'integer', 'min:1'],
             'display_name' => ['required', 'string', 'min:2', 'max:128'],
-            'department' => ['required', 'in:kitchen,floor,bar,reception,other'],
+            'department' => ['nullable', 'in:kitchen,floor,bar,reception,other'],
             'job_role' => ['nullable', 'string', 'max:64'],
-            'station_slug' => ['nullable', 'string', 'max:64'],
+            'station_slug' => ['nullable', 'string', 'max:80'],
             'staff_id' => ['nullable', 'integer', 'min:1'],
         ]);
         if ($validator->fails()) throw new ValidationException($validator);
@@ -129,21 +182,13 @@ class Shifts extends AdminController
         if ($linkedStaffId) {
             $validStaff = Staffs_model::whereNotSuperUser()->where('staff_status', 1)->where('staff_id', $linkedStaffId)->exists();
             if (!$validStaff) throw ValidationException::withMessages(['staff_id' => 'Choose an active PMD staff account.']);
-
-            $duplicate = DB::table('pmd_operational_people')
-                ->where('location_id', $locationId)
-                ->where('staff_id', $linkedStaffId)
-                ->where('is_active', 1);
-            $editingId = (int)($clean['id'] ?? 0);
-            if ($editingId > 0) $duplicate->where('id', '!=', $editingId);
-            if ($duplicate->exists()) throw ValidationException::withMessages(['staff_id' => 'That PMD account is already linked to another active roster person.']);
         }
 
         $values = [
             'location_id' => $locationId,
             'staff_id' => $linkedStaffId,
             'display_name' => trim((string)$clean['display_name']),
-            'department' => (string)$clean['department'],
+            'department' => trim((string)($clean['department'] ?? '')) ?: 'other',
             'job_role' => trim((string)($clean['job_role'] ?? '')) ?: null,
             'station_slug' => trim((string)($clean['station_slug'] ?? '')) ?: null,
             'is_active' => 1,
@@ -158,7 +203,7 @@ class Shifts extends AdminController
             DB::table('pmd_operational_people')->insert($values);
         }
 
-        return redirect(admin_url('shifts'))->with('success', 'Person saved.');
+        return redirect(admin_url('settings/team'))->with('success', 'Person saved.');
     }
 
     public function removeperson()
@@ -172,7 +217,7 @@ class Shifts extends AdminController
                 ->where('location_id', $this->locationId())
                 ->update(['is_active' => 0, 'updated_at' => now()]);
         }
-        return redirect(admin_url('shifts'))->with('success', 'Person removed from the active roster.');
+        return redirect(admin_url('settings/team'))->with('success', 'Person removed from the active roster.');
     }
 
     public function saveshift()
@@ -186,6 +231,7 @@ class Shifts extends AdminController
             'label' => ['required', 'string', 'max:64'],
             'starts_at' => ['nullable', 'date_format:H:i'],
             'ends_at' => ['nullable', 'date_format:H:i'],
+            'notes' => ['nullable', 'string', 'max:2000'],
             'person_ids' => ['nullable', 'array'],
             'person_ids.*' => ['integer', 'min:1'],
         ]);
@@ -199,7 +245,7 @@ class Shifts extends AdminController
             $values = [
                 'location_id' => $locationId,
                 'shift_date' => Carbon::parse($clean['shift_date'])->toDateString(),
-                'label' => trim((string)$clean['label']) ?: 'Full day',
+                'label' => trim((string)$clean['label']) ?: 'Shift',
                 'starts_at' => !empty($clean['starts_at']) ? $clean['starts_at'].':00' : null,
                 'ends_at' => !empty($clean['ends_at']) ? $clean['ends_at'].':00' : null,
                 'status' => 'planned',
@@ -208,6 +254,9 @@ class Shifts extends AdminController
                 'confirmed_by_staff_id' => null,
                 'updated_at' => now(),
             ];
+            if (Schema::hasColumn('pmd_operational_shifts', 'notes')) {
+                $values['notes'] = trim((string)($clean['notes'] ?? '')) ?: null;
+            }
 
             if ($id > 0) {
                 $exists = DB::table('pmd_operational_shifts')->where('id', $id)->where('location_id', $locationId)->exists();
@@ -234,8 +283,8 @@ class Shifts extends AdminController
                         'shift_id' => $shiftId,
                         'person_id' => (int)$person->id,
                         'display_name_snapshot' => (string)$person->display_name,
-                        'department_snapshot' => (string)($person->department ?: 'kitchen'),
-                        'job_role_snapshot' => (string)($person->job_role ?: 'Kitchen'),
+                        'department_snapshot' => (string)($person->department ?: 'other'),
+                        'job_role_snapshot' => trim((string)($person->job_role ?? '')) ?: null,
                         'attendance_status' => 'planned',
                         'is_replacement' => 0,
                         'created_at' => now(),
@@ -246,7 +295,7 @@ class Shifts extends AdminController
             }
         });
 
-        return redirect(admin_url('shifts').'?week='.$this->weekStart()->toDateString())->with('success', 'Shift saved.');
+        return $this->redirectBackToSchedule('Shift saved.');
     }
 
     public function removeshift()
@@ -260,7 +309,7 @@ class Shifts extends AdminController
                 ->where('location_id', $this->locationId())
                 ->update(['status' => 'cancelled', 'updated_at' => now()]);
         }
-        return redirect(admin_url('shifts'))->with('success', 'Shift removed.');
+        return $this->redirectBackToSchedule('Shift removed.');
     }
 
     public function copyweek()
@@ -268,10 +317,15 @@ class Shifts extends AdminController
         $this->assertOwnerOrManager();
         $this->requireReady();
         $locationId = $this->locationId();
-        $from = $this->weekStart();
+        $raw = trim((string)request()->input('week', ''));
+        try {
+            $from = ($raw !== '' ? Carbon::parse($raw) : $this->selectedDay())->startOfWeek(Carbon::MONDAY)->startOfDay();
+        } catch (\Throwable $error) {
+            $from = now()->startOfWeek(Carbon::MONDAY)->startOfDay();
+        }
         $to = $from->copy()->addWeek();
 
-        DB::transaction(function () use ($locationId, $from, $to) {
+        DB::transaction(function () use ($locationId, $from) {
             $source = DB::table('pmd_operational_shifts')
                 ->where('location_id', $locationId)
                 ->whereBetween('shift_date', [$from->toDateString(), $from->copy()->addDays(6)->toDateString()])
@@ -279,8 +333,7 @@ class Shifts extends AdminController
                 ->orderBy('id')->get();
 
             foreach ($source as $shift) {
-                $sourceDate = Carbon::parse($shift->shift_date);
-                $targetDate = $sourceDate->copy()->addWeek()->toDateString();
+                $targetDate = Carbon::parse($shift->shift_date)->addWeek()->toDateString();
                 $duplicate = DB::table('pmd_operational_shifts')
                     ->where('location_id', $locationId)
                     ->whereDate('shift_date', $targetDate)
@@ -289,7 +342,7 @@ class Shifts extends AdminController
                     ->exists();
                 if ($duplicate) continue;
 
-                $newId = (int)DB::table('pmd_operational_shifts')->insertGetId([
+                $insert = [
                     'location_id' => $locationId,
                     'shift_date' => $targetDate,
                     'label' => (string)$shift->label,
@@ -301,7 +354,9 @@ class Shifts extends AdminController
                     'confirmed_by_staff_id' => null,
                     'created_at' => now(),
                     'updated_at' => now(),
-                ]);
+                ];
+                if (Schema::hasColumn('pmd_operational_shifts', 'notes')) $insert['notes'] = $shift->notes ?? null;
+                $newId = (int)DB::table('pmd_operational_shifts')->insertGetId($insert);
 
                 $rows = DB::table('pmd_operational_shift_people')->where('shift_id', (int)$shift->id)->orderBy('id')->get();
                 foreach ($rows as $row) {
@@ -309,7 +364,7 @@ class Shifts extends AdminController
                         'shift_id' => $newId,
                         'person_id' => $row->person_id,
                         'display_name_snapshot' => (string)$row->display_name_snapshot,
-                        'department_snapshot' => (string)($row->department_snapshot ?: 'kitchen'),
+                        'department_snapshot' => (string)($row->department_snapshot ?: 'other'),
                         'job_role_snapshot' => $row->job_role_snapshot,
                         'attendance_status' => 'planned',
                         'is_replacement' => 0,
@@ -320,7 +375,7 @@ class Shifts extends AdminController
             }
         });
 
-        return redirect(admin_url('shifts').'?week='.$to->toDateString())->with('success', 'Week copied.');
+        return redirect(admin_url('shifts').'?month='.$to->copy()->startOfMonth()->toDateString().'&day='.$to->toDateString().'#pmd-shift-day')->with('success', 'Week copied.');
     }
 
     public function confirm()
@@ -332,7 +387,7 @@ class Shifts extends AdminController
 
         DB::transaction(function () use ($locationId, &$shiftId) {
             if ($shiftId < 1) {
-                $shiftId = (int)DB::table('pmd_operational_shifts')->insertGetId([
+                $insert = [
                     'location_id' => $locationId,
                     'shift_date' => now()->toDateString(),
                     'label' => 'Today',
@@ -344,7 +399,9 @@ class Shifts extends AdminController
                     'confirmed_by_staff_id' => null,
                     'created_at' => now(),
                     'updated_at' => now(),
-                ]);
+                ];
+                if (Schema::hasColumn('pmd_operational_shifts', 'notes')) $insert['notes'] = null;
+                $shiftId = (int)DB::table('pmd_operational_shifts')->insertGetId($insert);
             }
 
             $shift = DB::table('pmd_operational_shifts')->where('id', $shiftId)->where('location_id', $locationId)->lockForUpdate()->first();
@@ -367,7 +424,6 @@ class Shifts extends AdminController
                 $existingPersonIds = $rows->pluck('person_id')->map('intval')->filter()->unique()->all();
                 $replacementPeople = DB::table('pmd_operational_people')
                     ->where('location_id', $locationId)
-                    ->where('department', 'kitchen')
                     ->where('is_active', 1)
                     ->whereIn('id', $replacementPersonIds)
                     ->get();
@@ -377,8 +433,8 @@ class Shifts extends AdminController
                         'shift_id' => $shiftId,
                         'person_id' => (int)$person->id,
                         'display_name_snapshot' => (string)$person->display_name,
-                        'department_snapshot' => 'kitchen',
-                        'job_role_snapshot' => (string)($person->job_role ?: 'Kitchen'),
+                        'department_snapshot' => (string)($person->department ?: 'other'),
+                        'job_role_snapshot' => trim((string)($person->job_role ?? '')) ?: null,
                         'attendance_status' => 'replacement',
                         'is_replacement' => 1,
                         'created_at' => now(),
@@ -408,6 +464,7 @@ class Shifts extends AdminController
         return redirect(admin_url('shifts'))->with('success', 'Today’s team confirmed.');
     }
 
+    /** Kitchen ETA settings are edited from Menu, kept here as write authority. */
     public function saveeta()
     {
         $this->assertOwnerOrManager();
@@ -424,7 +481,9 @@ class Shifts extends AdminController
         ]);
         setting()->save();
 
-        return redirect(admin_url('shifts'))->with('success', 'Kitchen ETA settings saved.');
+        $back = trim((string)request()->input('return_to', ''));
+        if ($back !== '' && str_starts_with($back, '/admin/')) return redirect($back)->with('success', 'Kitchen timing settings saved.');
+        return redirect(admin_url('menu'))->with('success', 'Kitchen timing settings saved.');
     }
 
     private function assertOwnerOrManager(): void
@@ -439,12 +498,12 @@ class Shifts extends AdminController
 
     private function ready(): bool
     {
-        return app(PmdKitchenWorkforceService::class)->ready();
+        return app(PmdKitchenOperationsSchemaService::class)->ready();
     }
 
     private function requireReady(): void
     {
-        if (!$this->ready()) abort(503, 'Kitchen Operations migration has not been applied yet.');
+        if (!$this->ready()) abort(503, 'Kitchen Operations tenant schema has not been applied yet.');
     }
 
     private function locationId(): int
@@ -466,27 +525,43 @@ class Shifts extends AdminController
         }
     }
 
-    private function weekStart(): Carbon
+    private function selectedDay(): Carbon
     {
-        $raw = trim((string)request()->input('week', ''));
+        $raw = trim((string)request()->input('day', ''));
         try {
-            return ($raw !== '' ? Carbon::parse($raw) : now())->startOfWeek(Carbon::MONDAY)->startOfDay();
+            return ($raw !== '' ? Carbon::parse($raw) : now())->startOfDay();
         } catch (\Throwable $error) {
-            return now()->startOfWeek(Carbon::MONDAY)->startOfDay();
+            return now()->startOfDay();
         }
     }
 
-    private function boolSetting(string $key, bool $fallback): bool
+    private function monthStart(Carbon $selectedDay): Carbon
     {
+        $raw = trim((string)request()->input('month', ''));
         try {
-            if (!Schema::hasTable('settings')) return $fallback;
-            $query = DB::table('settings')->where('item', $key);
-            if (Schema::hasColumn('settings', 'setting_id')) $query->orderByDesc('setting_id');
-            $value = $query->value('value');
-            if ($value === null || $value === '') return $fallback;
-            return in_array(strtolower((string)$value), ['1', 'true', 'yes', 'on'], true);
+            return ($raw !== '' ? Carbon::parse($raw) : $selectedDay->copy())->startOfMonth()->startOfDay();
         } catch (\Throwable $error) {
-            return $fallback;
+            return $selectedDay->copy()->startOfMonth()->startOfDay();
         }
+    }
+
+    private function minutesOfDay($value): ?int
+    {
+        $value = trim((string)$value);
+        if ($value === '') return null;
+        $parts = explode(':', $value);
+        if (count($parts) < 2) return null;
+        return max(0, min(1439, ((int)$parts[0] * 60) + (int)$parts[1]));
+    }
+
+    private function redirectBackToSchedule(string $message)
+    {
+        $back = trim((string)request()->input('return_to', ''));
+        if ($back !== '' && str_starts_with($back, '/admin/')) return redirect($back)->with('success', $message);
+
+        $day = trim((string)request()->input('shift_date', '')) ?: now()->toDateString();
+        try { $month = Carbon::parse($day)->startOfMonth()->toDateString(); }
+        catch (\Throwable $error) { $month = now()->startOfMonth()->toDateString(); }
+        return redirect(admin_url('shifts').'?month='.$month.'&day='.$day.'#pmd-shift-day')->with('success', $message);
     }
 }
