@@ -399,8 +399,14 @@ class Shifts extends AdminController
         $this->requireReady();
         $locationId = $this->locationId();
         $shiftId = max(0, (int)request()->input('shift_id', 0));
+        $scope = strtolower(trim((string)request()->input('confirmation_scope', 'all')));
+        if (!in_array($scope, ['all', 'kitchen'], true)) $scope = 'all';
 
-        DB::transaction(function () use ($locationId, &$shiftId) {
+        // The compact Dashboard card is Kitchen-only and is never allowed to
+        // create an ad-hoc fallback Shift. It confirms the existing plan only.
+        if ($scope === 'kitchen' && $shiftId < 1) abort(422, 'Choose a planned Kitchen shift first.');
+
+        DB::transaction(function () use ($locationId, &$shiftId, $scope) {
             if ($shiftId < 1) {
                 $insert = [
                     'location_id' => $locationId,
@@ -422,7 +428,10 @@ class Shifts extends AdminController
             $shift = DB::table('pmd_operational_shifts')->where('id', $shiftId)->where('location_id', $locationId)->lockForUpdate()->first();
             if (!$shift) abort(404);
 
-            $rows = DB::table('pmd_operational_shift_people')->where('shift_id', $shiftId)->get();
+            $allRows = DB::table('pmd_operational_shift_people')->where('shift_id', $shiftId)->get();
+            $rows = $scope === 'kitchen'
+                ? $allRows->filter(fn ($row) => strtolower((string)$row->department_snapshot) === 'kitchen')->values()
+                : $allRows;
             $everything = (bool)request()->input('everything_as_planned', false);
             $presentIds = array_values(array_unique(array_map('intval', (array)request()->input('present_ids', []))));
 
@@ -436,11 +445,12 @@ class Shifts extends AdminController
 
             $replacementPersonIds = array_values(array_unique(array_filter(array_map('intval', (array)request()->input('replacement_person_ids', [])))));
             if ($replacementPersonIds) {
-                $existingPersonIds = $rows->pluck('person_id')->map('intval')->filter()->unique()->all();
+                $existingPersonIds = $allRows->pluck('person_id')->map('intval')->filter()->unique()->all();
                 $replacementPeople = DB::table('pmd_operational_people')
                     ->where('location_id', $locationId)
                     ->where('is_active', 1)
                     ->whereIn('id', $replacementPersonIds)
+                    ->when($scope === 'kitchen', fn ($query) => $query->where('department', 'kitchen'))
                     ->get();
                 foreach ($replacementPeople as $person) {
                     if (in_array((int)$person->id, $existingPersonIds, true)) continue;
@@ -459,10 +469,12 @@ class Shifts extends AdminController
             }
 
             $quick = [];
-            foreach (PmdKitchenWorkforceService::KITCHEN_ROLES as $role) {
-                $key = 'quick_'.strtolower(trim(preg_replace('/[^a-z0-9]+/i', '_', $role), '_'));
-                $count = max(0, min(100, (int)request()->input($key, 0)));
-                if ($count > 0) $quick[$role] = $count;
+            if ($scope === 'all') {
+                foreach (PmdKitchenWorkforceService::KITCHEN_ROLES as $role) {
+                    $key = 'quick_'.strtolower(trim(preg_replace('/[^a-z0-9]+/i', '_', $role), '_'));
+                    $count = max(0, min(100, (int)request()->input($key, 0)));
+                    if ($count > 0) $quick[$role] = $count;
+                }
             }
 
             DB::table('pmd_operational_shifts')->where('id', $shiftId)->update([
