@@ -6,6 +6,7 @@ use Admin\Classes\PermissionManager;
 use Admin\Classes\Widgets;
 use Igniter\Flame\Foundation\Providers\AppServiceProvider;
 use Igniter\Flame\Setting\Facades\Setting;
+use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\View;
 use Main\Classes\ThemeManager;
@@ -24,6 +25,9 @@ class ServiceProvider extends AppServiceProvider
     public function boot()
     {
         parent::boot('main');
+
+        // PMD_KITCHEN_OPERATIONS_FOUNDATION_R1
+        $this->loadRoutesFrom(base_path('/app/main/routes/pmd-kitchen-operations-v1.php'));
 
         View::share('site_name', Setting::get('site_name'));
         View::share('site_logo', Setting::get('site_logo'));
@@ -45,6 +49,13 @@ class ServiceProvider extends AppServiceProvider
     public function register()
     {
         parent::register('main');
+
+        // Small, path-gated response enhancer for current PMD admin surfaces.
+        // It never changes KDS interaction; it only adds today's-team/ETA/prep
+        // presentation to existing pages.
+        $this->app[Kernel::class]->appendMiddleware(
+            \App\Http\Middleware\PmdKitchenOperationsUiMiddleware::class
+        );
 
         $this->registerComponents();
 
