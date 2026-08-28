@@ -66,8 +66,15 @@ jobs:
             app/admin/views/pmdshifts/index.blade.php
             app/system/database/migrations/2026_08_28_235500_create_pmd_staff_requests.php
           )
-          mapfile -t actual < <(git diff --name-only | sort)
+          mapfile -t actual < <(
+            {
+              git diff --name-only
+              git ls-files --others --exclude-standard
+            } | grep -v '^\.github/' | sort -u
+          )
           mapfile -t wanted < <(printf '%s\n' "${expected[@]}" | sort)
+          printf 'Product files found:\n'
+          printf ' - %s\n' "${actual[@]}"
           test "${#actual[@]}" -eq "${#wanted[@]}"
           for i in "${!wanted[@]}"; do test "${actual[$i]}" = "${wanted[$i]}"; done
 
