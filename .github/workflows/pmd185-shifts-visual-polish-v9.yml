@@ -31,7 +31,7 @@ jobs:
           node --check app/admin/assets/js/pmd-shifts-v1.js
           git diff --check
           grep -F 'PMD_SHIFTS_POLISHED_SCHEDULE_CANVAS_V9' app/admin/assets/css/pmd-shifts-dashboard-reservations-v4.css
-          grep -F 'pointer-events:auto!important' app/admin/assets/css/pmd-shifts-dashboard-reservations-v4.css
+          ! grep -F 'pmd-yc-day__operations{display:grid!important;gap:4px!important;margin-top:8px!important;min-width:0!important;pointer-events:none!important}' app/admin/assets/css/pmd-shifts-dashboard-reservations-v4.css
           grep -F 'pmd-shifts-dashboard-reservations-v4.css?v=9' app/admin/assets/js/pmd-shifts-v1.js
           test "$(git diff --name-only | wc -l)" -eq 2
           git diff --name-only | grep -Fx 'app/admin/assets/css/pmd-shifts-dashboard-reservations-v4.css'
