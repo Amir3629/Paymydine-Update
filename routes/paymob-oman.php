@@ -21,10 +21,14 @@ Route::post('/api/v1/payments/paymob/callback', function (Request $request, Paym
 
     if (($result['settled_by_backend'] ?? false) && is_array($result['settlements'] ?? null)) {
         $adjuster = app(PaymobOmanFinancialAdjustmentService::class);
+        $attemptId = (int)($result['attempt']['id'] ?? 0);
         $result['financial_adjustments'] = [];
         foreach ($result['settlements'] as $settlement) {
             if (!is_array($settlement) || empty($settlement['order_id'])) continue;
-            $result['financial_adjustments'][] = $adjuster->finalizeIfPaid((int)$settlement['order_id']);
+            $result['financial_adjustments'][] = $adjuster->finalizeIfPaid(
+                (int)$settlement['order_id'],
+                $attemptId > 0 ? $attemptId : null
+            );
         }
     }
 
@@ -92,10 +96,14 @@ Route::group([
 
         if (($result['settled_by_backend'] ?? false) && is_array($result['settlements'] ?? null)) {
             $adjuster = app(PaymobOmanFinancialAdjustmentService::class);
+            $attemptId = (int)($result['attempt']['id'] ?? 0);
             $result['financial_adjustments'] = [];
             foreach ($result['settlements'] as $settlement) {
                 if (!is_array($settlement) || empty($settlement['order_id'])) continue;
-                $result['financial_adjustments'][] = $adjuster->finalizeIfPaid((int)$settlement['order_id']);
+                $result['financial_adjustments'][] = $adjuster->finalizeIfPaid(
+                    (int)$settlement['order_id'],
+                    $attemptId > 0 ? $attemptId : null
+                );
             }
         }
 
