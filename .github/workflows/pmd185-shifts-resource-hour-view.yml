@@ -1,0 +1,341 @@
+name: PMD185 Shifts staff-column hour view
+
+on:
+  push:
+    branches:
+      - feature/kitchen-operations-foundation-185
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/kitchen-operations-foundation-185
+          fetch-depth: 0
+
+      - name: Patch resource scheduler hour view
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 <<'PY'
+          from pathlib import Path
+
+          blade_path = Path('app/admin/views/pmdshifts/index.blade.php')
+          js_path = Path('app/admin/assets/js/pmd-shifts-v1.js')
+          css_path = Path('app/admin/assets/css/pmd-shifts-dashboard-reservations-v4.css')
+
+          blade = blade_path.read_text()
+          old = """            'role' => (string)($person->job_role ?: ($departments[$person->department] ?? 'Team')),
+            'department' => (string)($person->department ?? 'other'),
+"""
+          new = """            'role' => (string)($person->job_role ?: ($departments[$person->department] ?? 'Team')),
+            'department' => (string)($person->department ?? 'other'),
+            'has_access' => !empty($person->staff_id),
+"""
+          if old not in blade:
+              raise SystemExit('bootPeople authority block not found')
+          blade = blade.replace(old, new, 1)
+          blade_path.write_text(blade)
+
+          js = js_path.read_text()
+          start = js.index('  function uniquePeople(shifts) {')
+          end = js.index('  function totalScheduledHours(shifts) {', start)
+          helpers = r'''  function schedulingPeople() {
+    var people = Array.isArray(boot.people) ? boot.people.slice() : [];
+    var departmentOrder = {kitchen: 0, floor: 1, bar: 2, reception: 3, other: 4};
+    return people.sort(function (left, right) {
+      var leftDepartment = departmentOrder[String(left.department || 'other')] ?? 4;
+      var rightDepartment = departmentOrder[String(right.department || 'other')] ?? 4;
+      if (leftDepartment !== rightDepartment) return leftDepartment - rightDepartment;
+      return String(left.name || '').localeCompare(String(right.name || ''));
+    });
+  }
+
+  function personInitials(name) {
+    var parts = String(name || 'Team').trim().split(/\s+/).filter(Boolean);
+    return (parts.slice(0, 2).map(function (part) { return part.charAt(0).toUpperCase(); }).join('') || 'T');
+  }
+
+  function shiftHasPerson(shift, personId) {
+    return (Array.isArray(shift.people) ? shift.people : []).some(function (person) {
+      return Number(person && person.person_id || 0) === Number(personId || 0);
+    });
+  }
+
+  function resourceEntriesForPerson(person, shifts) {
+    var dayStart = 360;
+    var rowCount = 40;
+    return shifts.filter(function (shift) {
+      return shiftHasPerson(shift, person.id);
+    }).map(function (shift) {
+      var window = shiftWindow(shift);
+      var startRow = Math.max(0, Math.floor((window.start - dayStart) / 30));
+      var endRow = Math.min(rowCount, Math.ceil((window.end - dayStart) / 30));
+      if (endRow <= startRow) endRow = Math.min(rowCount, startRow + 1);
+      return {
+        shift: shift,
+        startRow: startRow,
+        endRow: endRow,
+        span: Math.max(1, endRow - startRow)
+      };
+    }).filter(function (entry) {
+      return entry.startRow < rowCount && entry.endRow > 0;
+    }).sort(function (left, right) {
+      return left.startRow - right.startRow;
+    });
+  }
+
+  function resourceShiftButton(entry, person) {
+    var shift = entry.shift || {};
+    var time = shift.start || 'All day';
+    if (shift.end) time += '–' + shift.end;
+    var attendance = (Array.isArray(shift.people) ? shift.people : []).find(function (assigned) {
+      return Number(assigned && assigned.person_id || 0) === Number(person.id || 0);
+    });
+    var state = String(attendance && attendance.attendance || 'planned').toLowerCase();
+    return '' +
+      '<button type="button" class="pmd-shifts-resource-shift' + (shift.confirmed ? ' is-confirmed' : '') + (state === 'absent' ? ' is-absent' : '') + '" data-pmd-shift-manage="' + Number(shift.id || 0) + '">' +
+        '<span class="pmd-shifts-resource-shift__label">' + escapeHtml(shift.label || 'Shift') + '</span>' +
+        '<strong>' + escapeHtml(time) + '</strong>' +
+        '<small>' + escapeHtml(person.role || 'Team') + '</small>' +
+      '</button>';
+  }
+
+'''
+          js = js[:start] + helpers + js[end:]
+
+          start = js.index('  function renderHourView(key) {')
+          end = js.index('  function showCalendar() {', start)
+          render = r'''  function renderHourView(key) {
+    var host = root.querySelector('[data-pmd-shifts-hour-host]');
+    var frame = root.querySelector('[data-pmd-shifts-calendar-frame]');
+    var calendar = root.querySelector('[data-pmd-shifts-calendar]');
+    if (!host || !frame || !calendar) return;
+
+    key = key || boot.selected_day || new Date().toISOString().slice(0, 10);
+    boot.selected_day = key;
+    updateCalendarSelection(key);
+
+    var shifts = shiftsForDate(key);
+    var people = schedulingPeople();
+    var rowCount = 40;
+    var dayStart = 360;
+    var schedules = {};
+
+    people.forEach(function (person) {
+      var entries = resourceEntriesForPerson(person, shifts);
+      var starts = {};
+      var covered = {};
+      entries.forEach(function (entry) {
+        if (!starts[entry.startRow]) starts[entry.startRow] = [];
+        starts[entry.startRow].push(entry);
+        for (var row = entry.startRow + 1; row < entry.endRow; row += 1) covered[row] = true;
+      });
+      schedules[String(person.id)] = {starts: starts, covered: covered};
+    });
+
+    var headerCells = people.map(function (person) {
+      return '' +
+        '<th scope="col" class="pmd-shifts-resource-person">' +
+          '<span class="pmd-shifts-resource-person__avatar">' + escapeHtml(personInitials(person.name)) + '</span>' +
+          '<span class="pmd-shifts-resource-person__copy"><strong>' + escapeHtml(person.name || 'Team member') + '</strong><small>' + escapeHtml(person.role || 'Team') + '</small></span>' +
+          '<span class="pmd-shifts-resource-person__source' + (person.has_access ? ' is-access' : '') + '">' + (person.has_access ? 'PMD access' : 'Restaurant team') + '</span>' +
+        '</th>';
+    }).join('');
+
+    var bodyRows = [];
+    for (var rowIndex = 0; rowIndex < rowCount; rowIndex += 1) {
+      var slotMinutes = dayStart + rowIndex * 30;
+      var slotTime = minuteLabel(slotMinutes);
+      var cells = people.map(function (person) {
+        var schedule = schedules[String(person.id)] || {starts: {}, covered: {}};
+        if (schedule.covered[rowIndex]) return '';
+        var entries = schedule.starts[rowIndex] || [];
+        if (entries.length) {
+          var span = Math.max.apply(null, entries.map(function (entry) { return entry.span; }));
+          return '<td class="pmd-shifts-resource-cell is-scheduled" rowspan="' + span + '"><div class="pmd-shifts-resource-cell__stack">' + entries.map(function (entry) { return resourceShiftButton(entry, person); }).join('') + '</div></td>';
+        }
+        return '' +
+          '<td class="pmd-shifts-resource-cell is-empty">' +
+            '<button type="button" class="pmd-shifts-resource-empty" data-pmd-person-slot-create data-person-id="' + Number(person.id || 0) + '" data-date="' + escapeHtml(key) + '" data-time="' + slotTime + '" aria-label="Add ' + escapeHtml(person.name || 'team member') + ' at ' + slotTime + '"><span>+</span></button>' +
+          '</td>';
+      }).join('');
+      bodyRows.push('<tr><th scope="row" class="pmd-shifts-resource-time"><strong>' + slotTime + '</strong><span>' + (rowIndex % 2 === 0 ? 'hour' : 'half') + '</span></th>' + cells + '</tr>');
+    }
+
+    var emptyState = people.length ? '' : '' +
+      '<div class="pmd-shifts-resource-empty-state">' +
+        '<strong>No restaurant team members yet</strong>' +
+        '<span>Add people in Team first. A name is enough; PMD login is optional.</span>' +
+        '<a href="/admin/settings/team">Open Team</a>' +
+      '</div>';
+
+    host.innerHTML = '' +
+      '<div class="pmd-r2-timeslot-screen pmd-shifts-resource-screen">' +
+        '<header class="pmd-r2-day-view__header">' +
+          '<button type="button" class="pmd-r2-timeslot-screen__back" data-pmd-shifts-calendar-back>Calendar</button>' +
+          '<div class="pmd-r2-day-view__date-nav">' +
+            '<button type="button" class="pmd-r2-day-view__month-button" data-pmd-shifts-prev-day aria-label="Previous day">‹</button>' +
+            '<div class="pmd-r2-day-view__title"><h2>' + escapeHtml(formattedDate(key)) + '</h2></div>' +
+            '<button type="button" class="pmd-r2-day-view__month-button" data-pmd-shifts-next-day aria-label="Next day">›</button>' +
+          '</div>' +
+          '<div class="pmd-r2-day-view__summary">' +
+            '<span><strong>' + shifts.length + '</strong> shifts</span>' +
+            '<span><strong>' + people.length + '</strong> team</span>' +
+            '<span><strong>' + totalScheduledHours(shifts) + '</strong> staff hours</span>' +
+            '<button type="button" class="pmd-shifts-hour-header-action" data-pmd-shift-open data-date="' + escapeHtml(key) + '">+ Shift</button>' +
+            '<button type="button" class="pmd-shifts-hour-header-action is-soft" data-pmd-copy-week>Copy week</button>' +
+          '</div>' +
+        '</header>' +
+        emptyState +
+        (people.length ? '<div class="pmd-shifts-resource-scroll"><table class="pmd-shifts-resource-table"><thead><tr><th scope="col" class="pmd-shifts-resource-corner"><span>Time</span></th>' + headerCells + '</tr></thead><tbody>' + bodyRows.join('') + '</tbody></table></div>' : '') +
+      '</div>';
+
+    frame.hidden = true;
+    host.hidden = false;
+    calendar.classList.add('is-timeslot-screen');
+    var monthButton = root.querySelector('[data-pmd-shifts-calendar-back]');
+    if (monthButton && monthButton.closest('.pmd-yc__view-switch')) monthButton.classList.remove('is-active');
+
+    try {
+      var url = new URL(window.location.href);
+      url.searchParams.set('month', monthKey(key));
+      url.searchParams.set('day', key);
+      url.hash = 'pmd-shift-day';
+      history.replaceState(null, '', url.toString());
+    } catch (error) {
+      // Navigation fallback remains on every calendar cell.
+    }
+  }
+
+'''
+          js = js[:start] + render + js[end:]
+
+          needle = """    var slotCreate = event.target.closest('[data-pmd-shift-slot-create]');
+    if (slotCreate) {
+      event.preventDefault();
+      var start = slotCreate.getAttribute('data-time') || '';
+      var startMinutes = minuteValue(start, 0);
+      openModal(slotCreate, {
+        date: slotCreate.getAttribute('data-date') || boot.selected_day || '',
+        label: 'Shift',
+        start: start,
+        end: minuteLabel(startMinutes + 4 * 60)
+      });
+      return;
+    }
+
+"""
+          replacement = """    var personSlotCreate = event.target.closest('[data-pmd-person-slot-create]');
+    if (personSlotCreate) {
+      event.preventDefault();
+      var personStart = personSlotCreate.getAttribute('data-time') || '';
+      var personStartMinutes = minuteValue(personStart, 0);
+      openModal(personSlotCreate, {
+        date: personSlotCreate.getAttribute('data-date') || boot.selected_day || '',
+        label: 'Shift',
+        start: personStart,
+        end: minuteLabel(personStartMinutes + 4 * 60),
+        person_ids: [Number(personSlotCreate.getAttribute('data-person-id') || 0)]
+      });
+      return;
+    }
+
+"""
+          if needle not in js:
+              raise SystemExit('legacy timeslot create handler not found')
+          js = js.replace(needle, replacement, 1)
+          js = js.replace('pmd-shifts-dashboard-reservations-v4.css?v=6', 'pmd-shifts-dashboard-reservations-v4.css?v=7')
+          js = js.replace('data-pmd-shifts-exact-ui-v6', 'data-pmd-shifts-exact-ui-v7')
+          js_path.write_text(js)
+
+          css = css_path.read_text()
+          marker = '/* PMD_SHIFTS_STAFF_COLUMN_HOUR_VIEW_V7 */'
+          if marker not in css:
+              css += r'''
+
+/* PMD_SHIFTS_STAFF_COLUMN_HOUR_VIEW_V7
+ * Reservations keeps the surrounding day-view language. The scheduling body is
+ * resource-first: one column per restaurant person and one row per 30 minutes.
+ */
+body.pmd-shifts-page .pmd-shifts-resource-scroll{width:100%;overflow:auto;border:1px solid #d7e4ec;border-radius:18px;background:#fff;max-height:calc(100dvh - 190px)}
+body.pmd-shifts-page .pmd-shifts-resource-table{width:max(100%,calc(92px + var(--pmd-resource-columns,1)*190px));min-width:100%;border-collapse:separate;border-spacing:0;table-layout:fixed;background:#fff;color:#102a43}
+body.pmd-shifts-page .pmd-shifts-resource-table th,body.pmd-shifts-page .pmd-shifts-resource-table td{border-right:1px solid #e1e9ef;border-bottom:1px solid #e1e9ef}
+body.pmd-shifts-page .pmd-shifts-resource-table thead th{position:sticky;top:0;z-index:8;height:76px;background:#f8fbfd}
+body.pmd-shifts-page .pmd-shifts-resource-corner{left:0;z-index:12!important;width:92px;min-width:92px;padding:0 14px;text-align:left;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.05em;color:#71849a}
+body.pmd-shifts-page .pmd-shifts-resource-time{position:sticky;left:0;z-index:6;width:92px;min-width:92px;height:46px;padding:7px 12px;background:#f8fbfd;text-align:left;vertical-align:middle}
+body.pmd-shifts-page .pmd-shifts-resource-time strong,body.pmd-shifts-page .pmd-shifts-resource-time span{display:block}
+body.pmd-shifts-page .pmd-shifts-resource-time strong{font-size:13px;font-weight:900;color:#102a43}
+body.pmd-shifts-page .pmd-shifts-resource-time span{margin-top:2px;font-size:9px;font-weight:750;color:#9aabb8;text-transform:uppercase}
+body.pmd-shifts-page .pmd-shifts-resource-person{min-width:190px;padding:10px 12px;text-align:left;vertical-align:middle}
+body.pmd-shifts-page .pmd-shifts-resource-person__avatar{display:inline-grid;width:34px;height:34px;place-items:center;float:left;margin-right:9px;border:1px solid #cfe0ed;border-radius:11px;background:#eef7fd;color:#173752;font-size:11px;font-weight:900}
+body.pmd-shifts-page .pmd-shifts-resource-person__copy{display:block;min-width:0;padding-top:1px}
+body.pmd-shifts-page .pmd-shifts-resource-person__copy strong,body.pmd-shifts-page .pmd-shifts-resource-person__copy small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+body.pmd-shifts-page .pmd-shifts-resource-person__copy strong{font-size:12px;font-weight:900;color:#102a43}
+body.pmd-shifts-page .pmd-shifts-resource-person__copy small{margin-top:2px;font-size:9.5px;font-weight:750;color:#71849a}
+body.pmd-shifts-page .pmd-shifts-resource-person__source{display:inline-flex;margin-top:5px;padding:2px 6px;border-radius:999px;background:#f2f5f7;color:#72828e;font-size:8px;font-weight:850;text-transform:uppercase;letter-spacing:.03em}
+body.pmd-shifts-page .pmd-shifts-resource-person__source.is-access{background:#edf9f4;color:#075c47}
+body.pmd-shifts-page .pmd-shifts-resource-cell{height:46px;padding:0;background:#fff;vertical-align:top}
+body.pmd-shifts-page .pmd-shifts-resource-cell.is-empty:hover{background:#f8fbfd}
+body.pmd-shifts-page .pmd-shifts-resource-empty{display:grid;width:100%;height:45px;place-items:center;border:0;background:transparent;color:#b0bec7;cursor:pointer}
+body.pmd-shifts-page .pmd-shifts-resource-empty span{display:grid;width:24px;height:24px;place-items:center;border:1px solid transparent;border-radius:8px;font-size:17px;font-weight:800;opacity:0;transition:opacity .12s ease,border-color .12s ease,background .12s ease,color .12s ease}
+body.pmd-shifts-page .pmd-shifts-resource-cell.is-empty:hover .pmd-shifts-resource-empty span,body.pmd-shifts-page .pmd-shifts-resource-empty:focus-visible span{opacity:1;border-color:#cfe0ed;background:#fff;color:#075c47}
+body.pmd-shifts-page .pmd-shifts-resource-cell.is-scheduled{padding:4px;background:#f4f9ff}
+body.pmd-shifts-page .pmd-shifts-resource-cell__stack{display:grid;height:100%;gap:4px}
+body.pmd-shifts-page .pmd-shifts-resource-shift{display:flex;width:100%;height:100%;min-height:38px;flex-direction:column;align-items:flex-start;justify-content:flex-start;padding:9px 10px;border:1px solid #9fc8e5;border-left:4px solid #2f80ed;border-radius:10px;background:#eaf3ff;color:#173752;text-align:left;cursor:pointer;overflow:hidden}
+body.pmd-shifts-page .pmd-shifts-resource-shift:hover{border-color:#6eadd8;background:#e2efff}
+body.pmd-shifts-page .pmd-shifts-resource-shift.is-confirmed{border-color:#8bcbb4;border-left-color:#20a36f;background:#eefaf5;color:#155442}
+body.pmd-shifts-page .pmd-shifts-resource-shift.is-absent{border-color:#efb3b7;border-left-color:#d6424b;background:#fff0f1;color:#862a31}
+body.pmd-shifts-page .pmd-shifts-resource-shift__label{display:block;max-width:100%;overflow:hidden;font-size:9px;font-weight:900;text-overflow:ellipsis;text-transform:uppercase;letter-spacing:.035em;white-space:nowrap}
+body.pmd-shifts-page .pmd-shifts-resource-shift strong{display:block;margin-top:4px;font-size:12px;font-weight:900}
+body.pmd-shifts-page .pmd-shifts-resource-shift small{display:block;margin-top:4px;max-width:100%;overflow:hidden;font-size:9.5px;font-weight:750;opacity:.76;text-overflow:ellipsis;white-space:nowrap}
+body.pmd-shifts-page .pmd-shifts-resource-empty-state{display:grid;justify-items:start;gap:5px;padding:22px;border:1px dashed #cfdde7;border-radius:16px;background:#fff;color:#71849a}
+body.pmd-shifts-page .pmd-shifts-resource-empty-state strong{color:#173752;font-size:14px}
+body.pmd-shifts-page .pmd-shifts-resource-empty-state span{font-size:11px}
+body.pmd-shifts-page .pmd-shifts-resource-empty-state a{margin-top:6px;color:#075c47;font-size:11px;font-weight:850;text-decoration:none}
+@media(max-width:900px){body.pmd-shifts-page .pmd-shifts-resource-person{min-width:165px}body.pmd-shifts-page .pmd-shifts-resource-scroll{max-height:calc(100dvh - 150px)}}
+'''
+          css_path.write_text(css)
+          PY
+
+      - name: QA staff-column scheduler
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          JS="app/admin/assets/js/pmd-shifts-v1.js"
+          CSS="app/admin/assets/css/pmd-shifts-dashboard-reservations-v4.css"
+          BLADE="app/admin/views/pmdshifts/index.blade.php"
+          node --check "$JS"
+          grep -F "'has_access' => !empty(\$person->staff_id)" "$BLADE" >/dev/null
+          grep -F 'function schedulingPeople()' "$JS" >/dev/null
+          grep -F 'pmd-shifts-resource-table' "$JS" >/dev/null
+          grep -F 'data-pmd-person-slot-create' "$JS" >/dev/null
+          grep -F 'person_ids: [Number(personSlotCreate.getAttribute' "$JS" >/dev/null
+          grep -F 'PMD_SHIFTS_STAFF_COLUMN_HOUR_VIEW_V7' "$CSS" >/dev/null
+          grep -F 'pmd-shifts-dashboard-reservations-v4.css?v=7' "$JS" >/dev/null
+          if grep -F 'active.map(shiftChip)' "$JS" >/dev/null; then
+            echo 'ERROR: repeated per-slot shift rendering still exists.'
+            exit 1
+          fi
+          git diff --check
+          echo 'Staff-column Shifts hour view PASS.'
+
+      - name: Commit reviewed product files
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add \
+            app/admin/views/pmdshifts/index.blade.php \
+            app/admin/assets/js/pmd-shifts-v1.js \
+            app/admin/assets/css/pmd-shifts-dashboard-reservations-v4.css
+          git diff --cached --quiet && { echo 'No product changes to commit.'; exit 0; }
+          git commit -m "Refine Shifts hour view by team member (#185)"
+          git push origin HEAD:feature/kitchen-operations-foundation-185
