@@ -2,6 +2,7 @@
 
 import type { MenuItem } from '@/src/domain/model'
 import { useMenuRuntime } from '@/src/runtime/MenuRuntimeContext'
+import { formatPrepTime } from '@/src/runtime/prep-time'
 import styles from './FoodDetails.module.css'
 
 type FoodGlyphKind =
@@ -123,7 +124,7 @@ export function FoodDetails({ item }: { item: MenuItem }) {
   ].filter(Boolean) as Array<{ key: FoodGlyphKind; label: string; value: string }> : []
 
   if (item.prepTimeMinutes != null) {
-    nutrients.push({ key: 'prep', label: copy.prep, value: `${metric(item.prepTimeMinutes)} min` })
+    nutrients.push({ key: 'prep', label: copy.prep, value: formatPrepTime(item.prepTimeMinutes) })
   }
 
   if (!diets.length && !allergens.length && !nutrients.length) return null
