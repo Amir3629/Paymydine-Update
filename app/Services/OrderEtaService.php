@@ -29,6 +29,9 @@ class OrderEtaService
             1,
             1000
         );
+        if ($veryBusyItemThreshold <= $busyItemThreshold) {
+            $veryBusyItemThreshold = min(1000, $busyItemThreshold + 1);
+        }
 
         $busyExtra = self::intSetting('eta_busy_extra_minutes', 5, 0, 240);
         $veryBusyExtra = self::intSetting('eta_very_busy_extra_minutes', 10, 0, 240);
@@ -73,6 +76,7 @@ class OrderEtaService
         $activeItemCount = 0;
         $activeWorkloadMinutes = 0;
         $kitchenLoadBuffer = 0;
+        $busyLevel = 'normal';
 
         if ($smart) {
             $load = self::activeKitchenLoad($locationId, $defaultPrep, (int)($options['exclude_order_id'] ?? 0));
@@ -82,11 +86,28 @@ class OrderEtaService
             $activeWorkloadMinutes = (int)$load['active_workload_minutes'];
 
             if ($activeItemCount >= $veryBusyItemThreshold) {
+                $busyLevel = 'very_busy';
                 $kitchenLoadBuffer = $veryBusyExtra;
             } elseif ($activeItemCount >= $busyItemThreshold) {
+                $busyLevel = 'busy';
                 $kitchenLoadBuffer = $busyExtra;
             }
         }
+
+        // Peak Time is an optional restaurant-known rush window. It is not a
+        // second penalty layer: the effective Kitchen pressure is the larger of
+        // the observed live-load buffer and the configured Peak buffer.
+        $peak = $smart ? self::peakTimeContext() : [
+            'enabled' => false,
+            'active' => false,
+            'start' => '18:00',
+            'end' => '21:00',
+            'extra_minutes' => 0,
+            'timezone' => null,
+        ];
+        $configuredPeakBuffer = $peak['active'] ? (int)$peak['extra_minutes'] : 0;
+        $peakTimeBuffer = max(0, $configuredPeakBuffer - $kitchenLoadBuffer);
+        $kitchenPressureBuffer = $kitchenLoadBuffer + $peakTimeBuffer;
 
         $staff = self::staffBuffer($locationId);
         $staffBuffer = (int)$staff['staff_buffer_minutes'];
@@ -98,7 +119,7 @@ class OrderEtaService
         ];
         $paceBuffer = (int)$pace['pace_buffer_minutes'];
 
-        $eta = $base + $quantityBuffer + $kitchenLoadBuffer + $staffBuffer + $paceBuffer;
+        $eta = $base + $quantityBuffer + $kitchenPressureBuffer + $staffBuffer + $paceBuffer;
         $eta = max(10, min($maxMinutes, $eta));
         $eta = self::roundUp($eta, $roundTo);
 
@@ -108,11 +129,22 @@ class OrderEtaService
             'base_minutes' => $base,
             'quantity_buffer_minutes' => $quantityBuffer,
             'kitchen_load_buffer_minutes' => $kitchenLoadBuffer,
+            'kitchen_pressure_buffer_minutes' => $kitchenPressureBuffer,
             'active_order_count' => $activeOrderCount,
             'active_item_count' => $activeItemCount,
             'active_workload_minutes' => $activeWorkloadMinutes,
             'busy_source' => 'items',
+            'busy_level' => $busyLevel,
+            'busy_item_threshold' => $busyItemThreshold,
+            'very_busy_item_threshold' => $veryBusyItemThreshold,
             'smart_eta_enabled' => $smart,
+            'peak_time_enabled' => (bool)$peak['enabled'],
+            'peak_time_active' => (bool)$peak['active'],
+            'peak_time_start' => (string)$peak['start'],
+            'peak_time_end' => (string)$peak['end'],
+            'peak_time_configured_buffer_minutes' => $configuredPeakBuffer,
+            'peak_time_buffer_minutes' => $peakTimeBuffer,
+            'peak_time_timezone' => $peak['timezone'],
             'checked_in_staff_count' => $staff['checked_in_staff_count'],
             'expected_kitchen_staff' => $staff['expected_kitchen_staff'],
             'staff_buffer_minutes' => $staffBuffer,
@@ -365,6 +397,63 @@ class OrderEtaService
         }
 
         return $result;
+    }
+
+    protected static function peakTimeContext(): array
+    {
+        $enabled = self::boolSetting('pmd_kitchen_peak_enabled', false);
+        $start = self::clockSetting('pmd_kitchen_peak_start', '18:00');
+        $end = self::clockSetting('pmd_kitchen_peak_end', '21:00');
+        $extra = self::intSetting('pmd_kitchen_peak_extra_minutes', 5, 0, 120);
+        $timezone = self::stringSetting('timezone', (string)config('app.timezone', 'UTC'), 100);
+
+        try {
+            $clock = now($timezone)->format('H:i');
+        } catch (Throwable $e) {
+            $timezone = (string)config('app.timezone', 'UTC');
+            $clock = now()->format('H:i');
+        }
+
+        return [
+            'enabled' => $enabled,
+            'active' => $enabled && self::clockInsideWindow($clock, $start, $end),
+            'start' => $start,
+            'end' => $end,
+            'extra_minutes' => $extra,
+            'timezone' => $timezone,
+        ];
+    }
+
+    protected static function clockInsideWindow(string $clock, string $start, string $end): bool
+    {
+        if ($start === $end) return true;
+        if ($start < $end) return $clock >= $start && $clock < $end;
+        return $clock >= $start || $clock < $end;
+    }
+
+    protected static function clockSetting(string $key, string $default): string
+    {
+        $value = self::stringSetting($key, $default, 5);
+        return preg_match('/^(?:[01]\\d|2[0-3]):[0-5]\\d$/', $value) ? $value : $default;
+    }
+
+    protected static function stringSetting(string $key, string $default, int $maxLength = 500): string
+    {
+        try {
+            if (!self::tableExists('settings')) return $default;
+
+            $value = DB::table('settings')
+                ->where('item', $key)
+                ->orderByDesc(self::columnExists('settings', 'setting_id') ? 'setting_id' : 'item')
+                ->value('value');
+
+            if ($value === null || $value === '') return $default;
+            $value = trim((string)$value);
+            if ($value === '') return $default;
+            return function_exists('mb_substr') ? mb_substr($value, 0, $maxLength) : substr($value, 0, $maxLength);
+        } catch (Throwable $e) {
+            return $default;
+        }
     }
 
     protected static function intSetting(string $key, int $default, int $min = 0, int $max = 9999): int
