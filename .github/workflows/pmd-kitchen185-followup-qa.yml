@@ -1,0 +1,50 @@
+name: PMD Kitchen 185 Follow-up QA
+
+on:
+  push:
+    branches:
+      - feature/kitchen-operations-foundation-185
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: PHP syntax
+        run: |
+          php -l app/Services/PmdKitchenOperationsSchemaService.php
+          php -l app/admin/controllers/Kitchensettings.php
+          php -l app/admin/controllers/Pmdteam.php
+          php -l app/admin/controllers/Shifts.php
+          php -l app/admin/database/migrations/2026_08_28_231500_ensure_pmd_kitchen_operations_foundation_on_tenants.php
+          php -l app/system/database/migrations/2026_08_28_230000_create_pmd_kitchen_operations_foundation.php
+
+      - name: Admin JavaScript syntax
+        run: |
+          node --check app/admin/assets/js/pmd-menu-prep-presets.js
+          node --check app/admin/assets/js/pmd-shifts-v1.js
+
+      - name: Product invariants
+        run: |
+          set -e
+          grep -F 'border-color:#79bda8;background:#edf9f4;color:#075c47;box-shadow:0 0 0 3px rgba(7,92,71,.08)' app/admin/assets/css/pmd-menu-prep-presets.css
+          ! grep -F "content:'✓'" app/admin/assets/css/pmd-menu-prep-presets.css
+          ! grep -F 'transform:translateY' app/admin/assets/css/pmd-menu-prep-presets.css
+          grep -F 'Only a name is required.' app/admin/views/pmdteam/_inline_roster_person_form_v1.blade.php
+          ! grep -F 'name="username"' app/admin/views/pmdteam/_inline_roster_person_form_v1.blade.php
+          ! grep -F 'name="password"' app/admin/views/pmdteam/_inline_roster_person_form_v1.blade.php
+          grep -F 'Monthly schedule' app/admin/views/pmdshifts/index.blade.php
+          grep -F 'Day & hour view' app/admin/views/pmdshifts/index.blade.php
+          grep -F 'Start of shift check' app/admin/views/pmdshifts/index.blade.php
+          ! grep -F 'Migration required' app/admin/views/pmdshifts/index.blade.php
+          ! grep -F 'pmd-kitchen-eta' app/admin/views/pmdshifts/index.blade.php
+          grep -F "app(PmdKitchenOperationsSchemaService::class)->ready()" app/admin/controllers/Shifts.php
+          grep -F "service->ensure('pmd_kitchen_schema_tenant')" app/admin/database/migrations/2026_08_28_231500_ensure_pmd_kitchen_operations_foundation_on_tenants.php
+          grep -F 'data-pmd-kitchen-settings-trigger' app/admin/assets/js/pmd-menu-prep-presets.js
+          grep -F "/kitchensettings/settingsjson" app/admin/assets/js/pmd-menu-prep-presets.js
+
+      - name: Diff whitespace check
+        run: git diff --check b01fce46fbeb5f97caf77fd56da2cce0bf8d9247...HEAD
