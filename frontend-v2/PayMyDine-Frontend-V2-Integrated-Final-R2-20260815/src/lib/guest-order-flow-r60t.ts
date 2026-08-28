@@ -5,6 +5,10 @@ type GuestOrderState = TableOrderState & {
   canSplit?: boolean
   paymentRequiredBeforeKitchen?: boolean
   kitchenReleased?: boolean
+  remainingPrepMinutes?: number | null
+  etaTakingLonger?: boolean
+  showCustomerEta?: boolean
+  kitchenPhase?: string | null
 }
 
 export type GuestOrdersState = {
@@ -126,6 +130,12 @@ function normalizeOrder(payload: any): GuestOrderState {
       ? null
       : Math.max(0, Number(payload?.prep_time_minutes ?? payload?.preparation_time ?? payload?.estimated_prep_minutes ?? payload?.eta_minutes ?? 0)),
     estimatedReadyAt: payload?.estimated_ready_at || payload?.estimatedReadyAt || payload?.ready_at || payload?.eta || null,
+    remainingPrepMinutes: payload?.remaining_prep_minutes == null ? null : Math.max(0, Number(payload.remaining_prep_minutes || 0)),
+    etaTakingLonger: Boolean(payload?.etaTakingLonger || payload?.eta_taking_longer),
+    showCustomerEta: payload?.show_customer_eta == null && payload?.showCustomerEta == null
+      ? true
+      : Boolean(payload?.show_customer_eta ?? payload?.showCustomerEta),
+    kitchenPhase: payload?.kitchenPhase || payload?.kitchen_phase || null,
     createdAt: payload?.created_at || payload?.order_created_at || payload?.createdAt || null,
     updatedAt: payload?.updatedAt || payload?.updated_at || null,
     orderOrigin: payload?.orderOrigin === 'staff_shared' ? 'staff_shared' : 'guest_self',

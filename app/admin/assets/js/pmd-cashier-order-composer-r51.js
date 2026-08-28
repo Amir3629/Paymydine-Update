@@ -32,6 +32,16 @@
     return fallback || key;
   }
 
+  function prepTimeLabel(minutes) {
+    var value = Math.max(0, Math.round(Number(minutes) || 0));
+    if (!value) return '';
+    if (value === 10) return '5–10 min';
+    if (value === 20) return '10–20 min';
+    if (value === 30) return '20–30 min';
+    if (value === 45) return '30–45 min';
+    return '~' + value + ' min';
+  }
+
   var state = {
     shell: null,
     open: false,
@@ -2024,7 +2034,7 @@
 
             '<div class="pmd-coc-food__facts">',
               num(item.prep_minutes, 0) > 0
-                ? '<span>' + esc(item.prep_minutes) + ' min</span>'
+                ? '<span>' + esc(prepTimeLabel(item.prep_minutes)) + '</span>'
                 : '',
 
               item.calories != null && item.calories !== ''
@@ -3485,7 +3495,7 @@
       ['Carbs', item.carbs != null && item.carbs !== '' ? item.carbs + ' g' : ''],
       ['Fat', item.fat != null && item.fat !== '' ? item.fat + ' g' : ''],
       ['Sugar', item.sugar != null && item.sugar !== '' ? item.sugar + ' g' : ''],
-      ['Preparation', num(item.prep_minutes, 0) > 0 ? item.prep_minutes + ' min' : '']
+      ['Preparation', num(item.prep_minutes, 0) > 0 ? prepTimeLabel(item.prep_minutes) : '']
     ].forEach(function (row) {
       if (row[1] !== '') {
         nutrition.push(row);

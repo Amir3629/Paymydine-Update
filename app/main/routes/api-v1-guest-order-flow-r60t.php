@@ -52,9 +52,20 @@ $pmdR60tMarkTableOccupied = static function (array $context): void {
 
 $pmdR60tReleasePaidGuestOrder = static function ($order, array $context) use ($pmdR60tOrderPaid, $pmdR60tIsGuestSelfOrder, $pmdR60tMarkTableOccupied): bool {
     if (!$order || !$pmdR60tIsGuestSelfOrder($order) || !$pmdR60tOrderPaid($order)) return false;
-    if ((int)($order->processed ?? 0) === 1) return true;
 
-    return DB::transaction(function () use ($order, $context, $pmdR60tMarkTableOccupied) {
+    if ((int)($order->processed ?? 0) === 1) {
+        try {
+            app(\App\Services\PmdKitchenEtaLifecycleService::class)->releaseOrder(
+                (int)$order->order_id,
+                null,
+                isset($order->location_id) ? (int)$order->location_id : null,
+                'guest_paid_release_recovery'
+            );
+        } catch (\Throwable $ignored) {}
+        return true;
+    }
+
+    $released = DB::transaction(function () use ($order, $context, $pmdR60tMarkTableOccupied) {
         $fresh = DB::table('orders')->where('order_id', (int)$order->order_id)->lockForUpdate()->first();
         if (!$fresh) return false;
         $total = max(0, (float)($fresh->order_total ?? 0));
@@ -88,6 +99,24 @@ $pmdR60tReleasePaidGuestOrder = static function ($order, array $context) use ($p
         }
         return true;
     });
+
+    if ($released) {
+        try {
+            app(\App\Services\PmdKitchenEtaLifecycleService::class)->releaseOrder(
+                (int)$order->order_id,
+                null,
+                isset($order->location_id) ? (int)$order->location_id : null,
+                'guest_paid_release'
+            );
+        } catch (\Throwable $etaError) {
+            \Log::warning('PMD R60T kitchen ETA release failed', [
+                'order_id' => (int)$order->order_id,
+                'message' => $etaError->getMessage(),
+            ]);
+        }
+    }
+
+    return (bool)$released;
 };
 
 $pmdR60tContextCandidates = static function (array $context): array {
@@ -174,6 +203,38 @@ $pmdR60tPayload = static function ($order, array $context, string $origin, strin
     $payload['remainingPayableAmount'] = round($remainingForPayment, 4);
     $payload['paymentRequiredBeforeKitchen'] = $origin === 'guest_self';
     $payload['kitchenReleased'] = $origin === 'staff_shared' || (int)($order->processed ?? 0) === 1;
+
+    if ($payload['kitchenReleased']) {
+        try {
+            $eta = app(\App\Services\PmdKitchenEtaLifecycleService::class)->stateForOrder($order, true);
+            if (!empty($eta['available'])) {
+                $payload['eta_minutes'] = $eta['eta_minutes'];
+                $payload['estimated_prep_minutes'] = $eta['eta_minutes'];
+                $payload['remaining_prep_minutes'] = $eta['remaining_minutes'];
+                $payload['estimated_ready_at'] = $eta['estimated_ready_at'];
+                $payload['eta_extension_count'] = $eta['eta_extension_count'];
+                $payload['etaTakingLonger'] = (bool)$eta['taking_longer'];
+                $payload['kitchenPhase'] = $eta['phase'];
+                $payload['kitchen_released_at'] = $eta['kitchen_released_at'];
+                $payload['preparing_at'] = $eta['preparing_at'];
+                $payload['ready_at'] = $eta['ready_at'];
+                $payload['show_customer_eta'] = (bool)$eta['show_customer_eta'];
+            }
+        } catch (\Throwable $etaError) {
+            \Log::warning('PMD R60T ETA payload failed', [
+                'order_id' => (int)($order->order_id ?? 0),
+                'message' => $etaError->getMessage(),
+            ]);
+        }
+    } else {
+        // A payment-held guest order has no kitchen promise yet.
+        $payload['eta_minutes'] = null;
+        $payload['estimated_prep_minutes'] = null;
+        $payload['remaining_prep_minutes'] = null;
+        $payload['estimated_ready_at'] = null;
+        $payload['kitchenPhase'] = 'payment_hold';
+    }
+
     return $payload;
 };
 

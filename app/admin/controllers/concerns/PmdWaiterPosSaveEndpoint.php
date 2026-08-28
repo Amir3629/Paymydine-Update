@@ -133,6 +133,14 @@ trait PmdWaiterPosSaveEndpoint
                 ];
             });
 
+            if (($result['mode'] ?? '') === 'send' && !empty($result['order_id'])) {
+                $result['eta'] = $this->pmdKitchenEtaAfterSendV1(
+                    (int)$result['order_id'],
+                    $cart,
+                    'waiter_table_send'
+                );
+            }
+
             return response()->json($result);
         } catch (ValidationException $e) {
             return response()->json([
@@ -592,6 +600,14 @@ trait PmdWaiterPosSaveEndpoint
                     }
                 );
 
+            if (($result['mode'] ?? '') === 'send' && !empty($result['order_id'])) {
+                $result['eta'] = $this->pmdKitchenEtaAfterSendV1(
+                    (int)$result['order_id'],
+                    $cart,
+                    'cashier_delivery_send'
+                );
+            }
+
             return response()->json(
                 $result
             );
@@ -633,6 +649,36 @@ trait PmdWaiterPosSaveEndpoint
                 ],
                 500
             );
+        }
+    }
+
+    protected function pmdKitchenEtaAfterSendV1(int $orderId, array $cart, string $reason): array
+    {
+        try {
+            $items = [];
+            foreach ($cart as $row) {
+                if (!is_array($row)) continue;
+                $menuId = (int)($row['menu_id'] ?? $row['id'] ?? 0);
+                if ($menuId < 1) continue;
+                $items[] = [
+                    'menu_id' => $menuId,
+                    'quantity' => max(1, (int)($row['quantity'] ?? $row['qty'] ?? 1)),
+                ];
+            }
+
+            return app(\App\Services\PmdKitchenEtaLifecycleService::class)->onItemsSent(
+                $orderId,
+                $items,
+                null,
+                $reason
+            );
+        } catch (\Throwable $error) {
+            \Log::warning('PMD staff order ETA release failed', [
+                'order_id' => $orderId,
+                'reason' => $reason,
+                'message' => $error->getMessage(),
+            ]);
+            return [];
         }
     }
 

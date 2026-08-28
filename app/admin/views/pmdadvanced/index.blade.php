@@ -80,17 +80,14 @@
                             </div>
                         </div>
                         <div class="pmd-owner-panel">
-                            <h3>{{ $pmdSettingsText('Smart ETA') }}</h3>
-                            @foreach(['enable_customer_eta'=>'Show ETA to customers','smart_eta_enabled'=>'Enable Smart ETA','eta_use_staff_attendance'=>'Use staff attendance'] as $key=>$label)
-                                <div class="pmd-owner-setting-row"><div class="pmd-owner-setting-copy"><strong>{{ $pmdSettingsText($label) }}</strong></div><label class="pmd-owner-switch"><input type="checkbox" name="advanced[{{ $key }}]" value="1" {{ $checked($s[$key] ?? 0) ? 'checked' : '' }}><span></span></label></div>
-                            @endforeach
-                            <div class="pmd-owner-form-grid">
-                                @foreach([
-                                    'eta_default_prep_minutes'=>'Default prep min','eta_order_load_window_minutes'=>'Load window min','eta_busy_item_threshold'=>'Busy item threshold','eta_very_busy_item_threshold'=>'Very busy threshold','eta_busy_extra_minutes'=>'Busy extra min','eta_very_busy_extra_minutes'=>'Very busy extra min','eta_expected_kitchen_staff'=>'Expected kitchen staff','eta_understaffed_extra_minutes'=>'Understaffed extra min','eta_round_to_nearest_minutes'=>'Round to min','eta_max_minutes'=>'Maximum ETA min'
-                                ] as $key=>$label)
-                                    <div class="pmd-owner-field"><label>{{ $pmdSettingsText($label) }}</label><input type="number" name="advanced[{{ $key }}]" value="{{ $s[$key] ?? 0 }}"></div>
-                                @endforeach
-                                <div class="pmd-owner-field pmd-owner-field--full"><label>{{ $pmdSettingsText('ETA hint text') }}</label><textarea name="advanced[eta_hint_text]">{{ $s['eta_hint_text'] ?? '' }}</textarea></div>
+                            <h3>{{ $pmdSettingsText('Preparation & ETA') }}</h3>
+                            <p>{{ $pmdSettingsText('Kitchen ETA is now managed in one simple workspace. Food preparation ranges, today’s Kitchen team, live KDS progress and automatic delay handling work together without technical threshold settings.') }}</p>
+                            <div class="pmd-owner-setting-row">
+                                <div class="pmd-owner-setting-copy">
+                                    <strong>{{ $pmdSettingsText('Open Kitchen preparation & ETA') }}</strong>
+                                    <small>{{ $pmdSettingsText('The previous Smart ETA tuning controls remain preserved internally for compatibility.') }}</small>
+                                </div>
+                                <a class="pmd-owner-header-button" href="{{ admin_url('shifts') }}#pmd-kitchen-eta">{{ $pmdSettingsText('Open') }}</a>
                             </div>
                         </div>
                     </div>

@@ -102,6 +102,15 @@ function metric(value: number): string {
   return Number.isInteger(value) ? String(value) : String(Math.round(value * 10) / 10)
 }
 
+function prepTimeLabel(value: number): string {
+  const rounded = Math.round(value)
+  if (rounded === 10) return '5–10 min'
+  if (rounded === 20) return '10–20 min'
+  if (rounded === 30) return '20–30 min'
+  if (rounded === 45) return '30–45 min'
+  return `~${metric(value)} min`
+}
+
 export function FoodDetails({ item }: { item: MenuItem }) {
   const { locale } = useMenuRuntime()
   const copy = foodInfoCopy(locale)
@@ -123,7 +132,7 @@ export function FoodDetails({ item }: { item: MenuItem }) {
   ].filter(Boolean) as Array<{ key: FoodGlyphKind; label: string; value: string }> : []
 
   if (item.prepTimeMinutes != null) {
-    nutrients.push({ key: 'prep', label: copy.prep, value: `${metric(item.prepTimeMinutes)} min` })
+    nutrients.push({ key: 'prep', label: copy.prep, value: prepTimeLabel(item.prepTimeMinutes) })
   }
 
   if (!diets.length && !allergens.length && !nutrients.length) return null

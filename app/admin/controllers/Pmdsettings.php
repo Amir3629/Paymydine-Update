@@ -837,6 +837,7 @@ class Pmdsettings extends AdminController
                 'id' => 'guest', 'eyebrow' => '', 'title' => 'Menu & Guest Experience', 'description' => '',
                 'items' => [
                     $this->item('Customer menu theme', 'Choose your digital menu theme.', 'palette', admin_url('pmdsettings/frontend'), ''),
+                    $this->item('Preparation & ETA', 'Food prep ranges, Kitchen team signal and simple live ETA controls.', 'timer', admin_url('shifts').'#pmd-kitchen-eta', ''),
                     // PMD_SETTINGS_REMOVE_MENU_CHECKOUT_CARD_R85
                     // Intentionally not exposed in the Settings Center.
                     // Pmdmenu remains available only as an internal/compatibility authority.
@@ -847,6 +848,7 @@ class Pmdsettings extends AdminController
                 'id' => 'team', 'eyebrow' => '', 'title' => 'Team & Access', 'description' => '',
                 'items' => [
                     $this->item('Team & access', 'Manage staff and access.', 'users', admin_url('pmdteam'), ''),
+                    $this->item('People & shifts', 'Plan operational roles and confirm who is in the Kitchen today.', 'users', admin_url('shifts'), ''),
                 ],
             ],
             [

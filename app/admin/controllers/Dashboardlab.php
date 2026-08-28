@@ -57,6 +57,7 @@ class Dashboardlab extends AdminController
 
         // Lab route geometry + placement only.
         $this->addCss('css/pmd-dashboard-lab-v1.css');
+        $this->addCss('css/pmd-kitchen-today-team-v1.css');
 
         /* PMD_DASHBOARD_LAB_STEP3_EXACT_RESERVATIONS_FLOOR_ASSETS_V1 */
         // The same LIVE visual authorities used by Reservations2.
@@ -132,6 +133,14 @@ class Dashboardlab extends AdminController
         $this->vars['pmdDashboardLabKpiOrder'] = self::KPI_ORDER;
         $this->vars['pmdDashboardLabKpiPayloadVersion'] =
             (string)($payload['version'] ?? 'unknown');
+
+        try {
+            $pmdKitchenLocationId = (int)app(PmdRoleDashboardDataV1::class)->resolveWorkspaceLocation();
+            $this->vars['pmdKitchenTodayTeam'] = app(\App\Services\PmdKitchenWorkforceService::class)
+                ->todayCard(max(1, $pmdKitchenLocationId));
+        } catch (\Throwable $error) {
+            $this->vars['pmdKitchenTodayTeam'] = ['ready' => false];
+        }
 
         /* PMD_DASHBOARD_LAB_STEP3_EXACT_RESERVATIONS_FLOOR_V1 */
         $floorBootstrap = $this->resolveFloorBootstrap();

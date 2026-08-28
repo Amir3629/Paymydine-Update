@@ -33,6 +33,7 @@
     data-pmd-dashboard-lab-step="4"
     data-pmd-dashboard-lab-kpi-render="server-first-paint"
 >
+    @include('admin::_partials.pmd_kitchen_today_team_v1')
     {{-- PMD_DASHBOARD_LAB_HEADER_NOTIFICATION_V5 --}}
     <style id="pmd-dashboard-lab-header-v5-critical">
       html body.pmd-dashboard-lab-page

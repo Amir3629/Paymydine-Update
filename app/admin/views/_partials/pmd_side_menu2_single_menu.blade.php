@@ -137,6 +137,12 @@
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2z"/><path d="M16 3v4M8 3v4M4 11h16M8 15h2v2h-2z"/></svg>
             <span class="pmd-sm2__label">{{ $pmdSm2T('nav.reservations', 'Reservations') }}</span>
         </a>
+        @if($pmdSm2IsOwnerNav || $pmdSm2IsManagerNav)
+        <a class="pmd-sm2__item {{ $pmdActive(['shifts']) ? 'is-active' : '' }}" href="{{ admin_url('shifts') }}">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v15h-16z"/><path d="M8 3v4M16 3v4M4 10h16"/><path d="M8 14h3M13 14h3M8 17h3"/></svg>
+            <span class="pmd-sm2__label">{{ $pmdSm2T('nav.shifts', 'Shifts') }}</span>
+        </a>
+        @endif
         <a class="pmd-sm2__item {{ $pmdActive(['coupons']) ? 'is-active' : '' }}" href="{{ admin_url('coupons') }}">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5v2M15 11v2M15 17v2M5 5h14a2 2 0 0 1 2 2v3a2 2 0 0 0 0 4v3a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-3a2 2 0 0 0 0 -4v-3a2 2 0 0 1 2 -2"/></svg>
             <span class="pmd-sm2__label">{{ $pmdSm2T('nav.coupons_gifts', 'Coupons & Gifts') }}</span>

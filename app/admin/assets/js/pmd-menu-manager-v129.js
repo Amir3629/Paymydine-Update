@@ -365,7 +365,7 @@
     foodForm.reset();
     setField('[data-pmd-menu-id]', '');
     var prep = foodForm.querySelector('[data-pmd-menu-prep-time]');
-    if (prep) prep.value = '15';
+    if (prep) prep.value = '20';
     if (imageInput) imageInput.value = '';
     setImagePreview('');
     setStatus('');
@@ -383,7 +383,7 @@
     setField('[data-pmd-menu-carbs]', item.carbs);
     setField('[data-pmd-menu-fat]', item.fat);
     setField('[data-pmd-menu-sugar]', item.sugar);
-    setField('[data-pmd-menu-prep-time]', item.prep_time_minutes === null ? 15 : item.prep_time_minutes);
+    setField('[data-pmd-menu-prep-time]', item.prep_time_minutes === null ? 20 : item.prep_time_minutes);
     setCheckboxes('[data-pmd-menu-category-choice]', item.category_ids || []);
     setCheckboxes('[data-pmd-menu-allergen-choice]', item.allergen_ids || []);
 
