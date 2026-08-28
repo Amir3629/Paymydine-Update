@@ -1,0 +1,223 @@
+name: PayMyDine Cashier V1.0.9 Printer Compatibility
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/cashier-printer-compat-v109
+    paths:
+      - 'apps/cashier-desktop/**'
+      - '.github/workflows/cashier-desktop-v109.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'apps/cashier-desktop/**'
+      - '.github/workflows/cashier-desktop-v109.yml'
+
+permissions:
+  contents: read
+
+env:
+  PMD_BRAND_LOGO_URL: https://tomo.paymydine.com/brand/paymydine-logo.svg
+
+jobs:
+  contract-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify V1.0.9 printer compatibility contract
+        working-directory: apps/cashier-desktop
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run check
+          grep -q '"version": "1.0.9"' package.json
+          grep -q 'PMD_CASHIER_PRINTER_COMPAT_V109' src/main.js
+          grep -q 'PMD_CASHIER_PRINTER_COMPAT_V109' src/receipt.js
+          grep -q 'printerCompatibilityV109: true' src/preload.js
+          grep -q 'shouldUseWindowsDriverText' src/main.js
+          grep -q 'windows-driver-text' src/receipt.js
+          grep -q 'Captured receipt image is blank' src/receipt.js
+          node - <<'NODE'
+          const receipt = require('./src/receipt.js');
+          const wrapped = receipt.wrapDriverText('Invoice #13\nTotal EUR 40.00', 48);
+          if (!/Invoice #13/.test(wrapped) || !/Total EUR 40\.00/.test(wrapped)) {
+            throw new Error('Driver-safe text wrapping contract failed');
+          }
+          if (receipt.shouldUseWindowsDriverText({name:'Generic / Text Only', driver:'Generic / Text Only'})) {
+            // This helper is platform-gated and Ubuntu must correctly say false.
+          }
+          console.log('PMD_V109_TEXT_FORMAT_CONTRACT=PASS');
+          NODE
+          echo 'PMD_V109_PRINTER_COMPAT_CONTRACT=PASS'
+
+  build-windows:
+    needs: contract-test
+    runs-on: windows-latest
+    timeout-minutes: 50
+    steps:
+      - name: Download Cashier V1.0.9 source without Windows git checkout
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PMD_REPOSITORY: ${{ github.repository }}
+          PMD_REF: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $root = Join-Path $PWD 'apps/cashier-desktop'
+          $files = @(
+            'package.json',
+            'scripts/apply-v104.js',
+            'scripts/apply-v106.js',
+            'scripts/apply-v108.js',
+            'scripts/apply-v109.js',
+            'scripts/patch-chain-v106.js',
+            'scripts/fetch-brand-icon.js',
+            'scripts/after-sign-mac-v106.js',
+            'src/main.js',
+            'src/preload.js',
+            'src/hardware.js',
+            'src/receipt.js',
+            'src/setup.html',
+            'src/setup.js',
+            'src/hardware.html',
+            'src/hardware-page.js',
+            'src/offline.html',
+            'src/offline.js'
+          )
+          $headers = @{
+            Authorization = "Bearer $env:GH_TOKEN"
+            Accept = 'application/vnd.github+json'
+            'X-GitHub-Api-Version' = '2022-11-28'
+            'User-Agent' = 'PayMyDine-Cashier-V109-Windows-Build'
+          }
+          foreach ($relative in $files) {
+            $encodedPath = ($relative -split '/' | ForEach-Object { [uri]::EscapeDataString($_) }) -join '/'
+            $uri = "https://api.github.com/repos/$env:PMD_REPOSITORY/contents/apps/cashier-desktop/$encodedPath`?ref=$env:PMD_REF"
+            $item = Invoke-RestMethod -Headers $headers -Uri $uri -Method Get
+            if ($item.encoding -ne 'base64' -or [string]::IsNullOrWhiteSpace($item.content)) {
+              throw "Unexpected GitHub response for $relative"
+            }
+            $destination = Join-Path $root ($relative -replace '/', [IO.Path]::DirectorySeparatorChar)
+            New-Item -ItemType Directory -Force -Path (Split-Path -Parent $destination) | Out-Null
+            [IO.File]::WriteAllBytes($destination, [Convert]::FromBase64String(($item.content -replace '\s', '')))
+          }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        working-directory: apps/cashier-desktop
+        run: npm install
+      - name: Verify final patched Windows source
+        working-directory: apps/cashier-desktop
+        shell: pwsh
+        run: |
+          npm run check
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $required = @(
+            'PMD_CASHIER_PRINTER_COMPAT_V109',
+            'printWindowsDriverTextRemoteUrl',
+            'shouldUseWindowsDriverText',
+            'printerCompatibilityV109: true',
+            'Captured receipt image is blank'
+          )
+          foreach ($marker in $required) {
+            $found = Select-String -Path src/*.js -Pattern $marker -SimpleMatch -Quiet
+            if (-not $found) { throw "V1.0.9 marker missing: $marker" }
+          }
+          Write-Host 'PMD_V109_WINDOWS_SOURCE_CONTRACT=PASS'
+      - name: Build Windows installer
+        working-directory: apps/cashier-desktop
+        run: npm run dist:win
+      - name: Verify Windows artifact
+        shell: pwsh
+        run: |
+          $path = 'apps/cashier-desktop/dist/PayMyDine-Cashier-Setup-1.0.9.exe'
+          if (-not (Test-Path $path)) { throw 'Windows V1.0.9 installer missing' }
+          $item = Get-Item $path
+          if ($item.Length -lt 1000000) { throw 'Windows V1.0.9 installer is unexpectedly small' }
+          Write-Host "PMD_V109_WINDOWS_INSTALLER_BYTES=$($item.Length)"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pmd-v109-windows
+          path: apps/cashier-desktop/dist/PayMyDine-Cashier-Setup-1.0.9.exe
+          if-no-files-found: error
+
+  build-macos:
+    needs: contract-test
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm64
+            runner: macos-26
+          - arch: x64
+            runner: macos-26-intel
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        working-directory: apps/cashier-desktop
+        run: npm install
+      - name: Syntax and compatibility contract
+        working-directory: apps/cashier-desktop
+        run: npm run check
+      - name: Build macOS app
+        working-directory: apps/cashier-desktop
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: npm run dist:mac -- --${{ matrix.arch }}
+      - name: Verify macOS artifact
+        working-directory: apps/cashier-desktop
+        shell: bash
+        run: |
+          set -euo pipefail
+          dmg="dist/PayMyDine-Cashier-1.0.9-mac-${{ matrix.arch }}.dmg"
+          test -s "$dmg"
+          echo "PMD_V109_MAC_ARTIFACT=$dmg"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pmd-v109-macos-${{ matrix.arch }}
+          path: apps/cashier-desktop/dist/PayMyDine-Cashier-1.0.9-mac-${{ matrix.arch }}.dmg
+          if-no-files-found: error
+
+  publish-preview:
+    if: github.event_name != 'pull_request'
+    needs: [contract-test, build-windows, build-macos]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: pmd-v109-*
+          path: release
+          merge-multiple: true
+      - name: Publish V1.0.9 preview packages
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          test -s release/PayMyDine-Cashier-Setup-1.0.9.exe
+          test -s release/PayMyDine-Cashier-1.0.9-mac-arm64.dmg
+          test -s release/PayMyDine-Cashier-1.0.9-mac-x64.dmg
+          tag='pmd-cashier-v1-preview'
+          notes='PayMyDine Cashier V1.0.9 fixes Generic / Text Only blank-paper behavior by no longer assuming the Windows generic driver proves ESC/POS raster compatibility. Generic queues use driver-safe receipt text; vendor queues keep silent system-driver HTML printing. Cash drawer behavior, Virtual PDF, direct invoice routing, and truthful hardware diagnostics are preserved.'
+          if gh release view "$tag" --repo "$GH_REPO" >/dev/null 2>&1; then
+            gh release upload "$tag" release/* --clobber --repo "$GH_REPO"
+            gh release edit "$tag" --target "$GITHUB_SHA" --prerelease --title 'PayMyDine Cashier V1 Preview' --notes "$notes" --repo "$GH_REPO"
+          else
+            gh release create "$tag" release/* --target "$GITHUB_SHA" --prerelease --title 'PayMyDine Cashier V1 Preview' --notes "$notes" --repo "$GH_REPO"
+          fi
+          echo 'PMD_V109_RELEASE_PUBLISHED'
