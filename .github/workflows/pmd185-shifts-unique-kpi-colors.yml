@@ -1,0 +1,133 @@
+name: PMD185 Shifts unique KPI colors
+
+on:
+  push:
+    branches:
+      - feature/kitchen-operations-foundation-185
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/kitchen-operations-foundation-185
+          fetch-depth: 0
+
+      - name: Patch Shifts KPI color authority
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 <<'PY'
+          from pathlib import Path
+
+          css_path = Path('app/admin/assets/css/pmd-shifts-dashboard-reservations-v4.css')
+          js_path = Path('app/admin/assets/js/pmd-shifts-v1.js')
+
+          css = css_path.read_text()
+          marker = '/* PMD_SHIFTS_UNIQUE_OWNER_KPI_COLORS_V6 */'
+          if marker not in css:
+              css += r'''
+
+/* PMD_SHIFTS_UNIQUE_OWNER_KPI_COLORS_V6
+ * The shared Reservations KPI stylesheet carries a green default with an ID selector.
+ * Shifts owns its KPI identity palette, so use a stronger selector and direct paint
+ * properties. Tone stays attached to the KPI key and therefore follows the 3-dot swap.
+ */
+body.pmd-shifts-page #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-kpi-v2401-tone="mauve"]{
+  --kpi-bg:#dbcbd3!important;--kpi-border:#8a737f!important;--kpi-accent:#33272d!important;
+  background:#dbcbd3!important;border-color:#8a737f!important;color:#33272d!important;
+}
+body.pmd-shifts-page #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-kpi-v2401-tone="magenta"]{
+  --kpi-bg:#fb60fd!important;--kpi-border:#9d1fa0!important;--kpi-accent:#360737!important;
+  background:#fb60fd!important;border-color:#9d1fa0!important;color:#360737!important;
+}
+body.pmd-shifts-page #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-kpi-v2401-tone="yellow"]{
+  --kpi-bg:#ffdb57!important;--kpi-border:#a47f00!important;--kpi-accent:#332600!important;
+  background:#ffdb57!important;border-color:#a47f00!important;color:#332600!important;
+}
+body.pmd-shifts-page #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-kpi-v2401-tone="cyan"]{
+  --kpi-bg:#35afd1!important;--kpi-border:#087493!important;--kpi-accent:#062b36!important;
+  background:#35afd1!important;border-color:#087493!important;color:#062b36!important;
+}
+body.pmd-shifts-page #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-kpi-v2401-tone="orange"]{
+  --kpi-bg:#ff8811!important;--kpi-border:#a54d00!important;--kpi-accent:#351800!important;
+  background:#ff8811!important;border-color:#a54d00!important;color:#351800!important;
+}
+body.pmd-shifts-page #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-kpi-v2401-tone="green"]{
+  --kpi-bg:#21cb72!important;--kpi-border:#087b4b!important;--kpi-accent:#062c22!important;
+  background:#21cb72!important;border-color:#087b4b!important;color:#062c22!important;
+}
+body.pmd-shifts-page #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-kpi-v2401-tone="blue"]{
+  --kpi-bg:#4388e8!important;--kpi-border:#1855ad!important;--kpi-accent:#071f46!important;
+  background:#4388e8!important;border-color:#1855ad!important;color:#071f46!important;
+}
+'''
+          css_path.write_text(css)
+
+          js = js_path.read_text()
+          old_href = 'pmd-shifts-dashboard-reservations-v4.css?v=5'
+          if old_href not in js and 'pmd-shifts-dashboard-reservations-v4.css?v=6' not in js:
+              raise SystemExit('Expected Shifts CSS cache version not found')
+          js = js.replace(old_href, 'pmd-shifts-dashboard-reservations-v4.css?v=6')
+          js = js.replace('data-pmd-shifts-exact-ui-v5', 'data-pmd-shifts-exact-ui-v6')
+          js_path.write_text(js)
+          PY
+
+      - name: QA exact KPI palette contract
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          node --check app/admin/assets/js/pmd-shifts-v1.js
+          python3 <<'PY'
+          from pathlib import Path
+          import re
+
+          css = Path('app/admin/assets/css/pmd-shifts-dashboard-reservations-v4.css').read_text()
+          js = Path('app/admin/assets/js/pmd-shifts-v1.js').read_text()
+          blade = Path('app/admin/views/pmdshifts/index.blade.php').read_text()
+
+          marker = 'PMD_SHIFTS_UNIQUE_OWNER_KPI_COLORS_V6'
+          assert marker in css
+          assert 'pmd-shifts-dashboard-reservations-v4.css?v=6' in js
+
+          expected = {
+              'mauve': '#dbcbd3',
+              'magenta': '#fb60fd',
+              'yellow': '#ffdb57',
+              'cyan': '#35afd1',
+              'orange': '#ff8811',
+              'green': '#21cb72',
+              'blue': '#4388e8',
+          }
+          assert len(set(expected.values())) == len(expected)
+          for tone, color in expected.items():
+              selector = f'data-pmd-kpi-v2401-tone="{tone}"'
+              assert selector in css, tone
+              assert f'background:{color}!important' in css, tone
+
+          # Initial four KPI identities must remain distinct.
+          initial = re.findall(r"'tone'\s*=>\s*'([^']+)'", blade)
+          assert initial[:4] == ['mauve', 'magenta', 'yellow', 'cyan'], initial[:4]
+          assert len(set(initial)) == len(initial), initial
+          print('Unique KPI palette PASS:', ', '.join(initial))
+          PY
+          git diff --check
+
+      - name: Commit reviewed product files
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add \
+            app/admin/assets/css/pmd-shifts-dashboard-reservations-v4.css \
+            app/admin/assets/js/pmd-shifts-v1.js
+          git diff --cached --quiet && { echo 'No product changes to commit.'; exit 0; }
+          git commit -m "Fix Shifts KPI palette uniqueness (#185)"
+          git push origin HEAD:feature/kitchen-operations-foundation-185
