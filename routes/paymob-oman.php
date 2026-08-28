@@ -4,6 +4,7 @@ use App\Http\Middleware\DetectTenant;
 use App\Http\Middleware\TenantDatabaseMiddleware;
 use App\Services\Payments\PaymobOmanCallbackService;
 use App\Services\Payments\PaymobOmanCheckoutService;
+use App\Services\Payments\PaymobOmanFinancialAdjustmentService;
 use App\Services\Payments\PaymobOmanGuestCatalogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -17,6 +18,16 @@ use Illuminate\Support\Facades\Route;
  */
 Route::post('/api/v1/payments/paymob/callback', function (Request $request, PaymobOmanCallbackService $service) {
     $result = $service->handleCallback((array)$request->all(), $request->query('hmac'));
+
+    if (($result['settled_by_backend'] ?? false) && is_array($result['settlements'] ?? null)) {
+        $adjuster = app(PaymobOmanFinancialAdjustmentService::class);
+        $result['financial_adjustments'] = [];
+        foreach ($result['settlements'] as $settlement) {
+            if (!is_array($settlement) || empty($settlement['order_id'])) continue;
+            $result['financial_adjustments'][] = $adjuster->finalizeIfPaid((int)$settlement['order_id']);
+        }
+    }
+
     $status = (int)($result['http_status'] ?? (($result['ok'] ?? false) ? 200 : 422));
     unset($result['http_status']);
     return response()->json($result, $status);
@@ -78,6 +89,16 @@ Route::group([
             return response()->json(['ok' => false, 'message' => 'Paymob payment reference is required.'], 422);
         }
         $result = $service->status($reference);
+
+        if (($result['settled_by_backend'] ?? false) && is_array($result['settlements'] ?? null)) {
+            $adjuster = app(PaymobOmanFinancialAdjustmentService::class);
+            $result['financial_adjustments'] = [];
+            foreach ($result['settlements'] as $settlement) {
+                if (!is_array($settlement) || empty($settlement['order_id'])) continue;
+                $result['financial_adjustments'][] = $adjuster->finalizeIfPaid((int)$settlement['order_id']);
+            }
+        }
+
         $status = (int)($result['http_status'] ?? (($result['ok'] ?? false) ? 200 : 422));
         unset($result['http_status']);
         return response()->json($result, $status);
