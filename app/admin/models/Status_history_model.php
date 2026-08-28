@@ -25,8 +25,8 @@ class Status_history_model extends Model
 
     public $relation = [
         'belongsTo' => [
-            'staff' => 'Admin\Models\Staffs_model',
-            'status' => ['Admin\Models\Statuses_model', 'status_id'],
+            'staff' => 'Admin\\Models\\Staffs_model',
+            'status' => ['Admin\\Models\\Statuses_model', 'status_id'],
         ],
         'morphTo' => [
             'object' => [],
@@ -61,8 +61,8 @@ class Status_history_model extends Model
     }
 
     /**
-     * @param \Igniter\Flame\Database\Model|mixed $status
-     * @param \Igniter\Flame\Database\Model|mixed $object
+     * @param \\Igniter\\Flame\\Database\\Model|mixed $status
+     * @param \\Igniter\\Flame\\Database\\Model|mixed $object
      * @param array $options
      * @return static|bool
      */
@@ -97,14 +97,32 @@ class Status_history_model extends Model
         // the existing Ready action.
         try {
             if ($model->isForOrder()) {
+                $orderId = (int)$object->getKey();
                 $statusName = trim((string)($status->status_name ?? $model->status_name ?? ''));
-                app(\App\Services\PmdKitchenEtaLifecycleService::class)->onKitchenStatus(
-                    (int)$object->getKey(),
-                    $statusName
-                );
+                $normalized = strtolower($statusName);
+                $lifecycle = app(\\App\\Services\\PmdKitchenEtaLifecycleService::class);
+
+                // A repeated Received/Accepted transition usually means staff sent
+                // additional food on an already active order. Recalculate the
+                // current due time conservatively while preserving eta_initial_minutes.
+                $isReceived = strpos($normalized, 'received') !== false
+                    || strpos($normalized, 'accepted') !== false
+                    || strpos($normalized, 'confirmed') !== false;
+                $alreadyReleased = $isReceived
+                    && \\Illuminate\\Support\\Facades\\Schema::hasColumn('orders', 'kitchen_released_at')
+                    && \\Illuminate\\Support\\Facades\\DB::table('orders')
+                        ->where('order_id', $orderId)
+                        ->whereNotNull('kitchen_released_at')
+                        ->exists();
+
+                if ($alreadyReleased) {
+                    $lifecycle->onItemsSent($orderId, [], null, 'repeat_received_status');
+                } else {
+                    $lifecycle->onKitchenStatus($orderId, $statusName);
+                }
             }
-        } catch (\Throwable $error) {
-            \Log::warning('PMD_KITCHEN_STATUS_LIFECYCLE_FAILED', [
+        } catch (\\Throwable $error) {
+            \\Log::warning('PMD_KITCHEN_STATUS_LIFECYCLE_FAILED', [
                 'order_id' => (int)$object->getKey(),
                 'status_id' => (int)$statusId,
                 'message' => $error->getMessage(),
