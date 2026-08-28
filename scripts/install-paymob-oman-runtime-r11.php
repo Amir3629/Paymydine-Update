@@ -53,6 +53,7 @@ try {
         'principal_amount','tip_amount','coupon_discount','payable_amount','amount_minor',
         'currency','order_allocations','provider_intention_id','provider_order_id',
         'provider_transaction_id','client_secret_ciphertext','status','settled_at',
+        'financial_adjustment_state',
     ];
     $actualColumns = Schema::getColumnListing(PaymobOmanPaymentAttemptService::TABLE);
     $missingColumns = array_values(array_diff($requiredColumns, $actualColumns));
@@ -69,7 +70,7 @@ try {
 
     $report = [
         'ok' => true,
-        'version' => '11.0.0',
+        'version' => '11.1.0',
         'tenant' => [
             'id' => (int)($tenant->id ?? 0),
             'domain' => (string)$tenant->domain,
