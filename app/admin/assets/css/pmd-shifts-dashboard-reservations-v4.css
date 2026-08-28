@@ -274,8 +274,8 @@ body.pmd-shifts-page .pmd-shifts-yc-team-row{display:grid;width:100%;min-width:0
 body.pmd-shifts-page .pmd-shifts-yc-team-row:hover,body.pmd-shifts-page .pmd-shifts-yc-team-row:focus-visible{border-color:#b9d9cb;background:#eef9f4;outline:none}
 body.pmd-shifts-page .pmd-shifts-yc-team-row strong{font-size:8.5px;font-weight:900;color:#5f746e;text-transform:uppercase;letter-spacing:.02em}
 body.pmd-shifts-page .pmd-shifts-yc-team-row span{display:block;min-width:0;overflow:hidden;color:#173752;font-size:9.5px;font-weight:800;text-overflow:ellipsis;white-space:nowrap}
-body.pmd-shifts-page .pmd-shifts__team-card{width:min(880px,calc(100vw - 28px))!important}
-body.pmd-shifts-page .pmd-shifts__team-layout{display:grid;grid-template-columns:minmax(250px,320px) minmax(0,1fr);gap:18px;padding:18px}
+body.pmd-shifts-page .pmd-shifts__team-card{width:min(1080px,calc(100vw - 30px))!important}
+body.pmd-shifts-page .pmd-shifts__team-layout{display:grid;grid-template-columns:minmax(280px,340px) minmax(250px,1fr) minmax(250px,1fr);gap:16px;padding:18px}
 body.pmd-shifts-page .pmd-shifts__team-form{display:grid;align-content:start;gap:12px;padding:16px;border:1px solid #d8e5ec;border-radius:16px;background:#f8fbfd}
 body.pmd-shifts-page .pmd-shifts__team-form-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
 body.pmd-shifts-page .pmd-shifts__team-form-head strong{font-size:14px;font-weight:900;color:#17342f}
@@ -327,3 +327,6 @@ body.pmd-shifts-page .pmd-shifts-resource-cell.is-filler{background:#fff}
 body.pmd-shifts-page .pmd-shifts-resource-cell.is-filler:hover{background:#fff}
 body.pmd-shifts-page .pmd-r2-yc-calendar-frame.is-loading{opacity:.58;pointer-events:none}
 body.pmd-shifts-page .pmd-r2-yc-calendar-frame{transition:opacity .12s ease}
+
+/* PMD_SHIFTS_TEAM_GEOMETRY_V10 */
+@media(max-width:1100px) and (min-width:761px){body.pmd-shifts-page .pmd-shifts__team-layout{grid-template-columns:minmax(280px,340px) minmax(0,1fr)}body.pmd-shifts-page .pmd-shifts__team-requests{grid-column:1/-1}}
