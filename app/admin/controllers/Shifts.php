@@ -702,7 +702,9 @@ class Shifts extends AdminController
 
     private function selectedDay(): Carbon
     {
-        $raw = trim((string)request()->input('day', ''));
+        $day = trim((string)request()->input('day', ''));
+        $month = trim((string)request()->input('month', ''));
+        $raw = $day !== '' ? $day : $month;
         try {
             return ($raw !== '' ? Carbon::parse($raw) : now())->startOfDay();
         } catch (\Throwable $error) {

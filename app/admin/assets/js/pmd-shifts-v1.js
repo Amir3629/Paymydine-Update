@@ -89,6 +89,14 @@
     document.body.style.overflow = value;
   }
 
+  function syncReturnTo(container) {
+    if (!container) return;
+    var value = window.location.pathname + window.location.search;
+    container.querySelectorAll('input[name="return_to"]').forEach(function (input) {
+      input.value = value;
+    });
+  }
+
   function clearPresets() {
     if (!modal) return;
     modal.querySelectorAll('[data-pmd-shift-preset]').forEach(function (button) {
@@ -112,6 +120,7 @@
   function openModal(trigger, values) {
     if (!modal) return;
     lastTrigger = trigger || null;
+    syncReturnTo(modal);
     values = values || {};
     resetForm(values.date || boot.selected_day || new Date().toISOString().slice(0, 10));
 
@@ -157,6 +166,7 @@
   function openCapacity(trigger) {
     if (!capacityModal) return;
     lastTrigger = trigger || null;
+    syncReturnTo(capacityModal);
     capacityModal.hidden = false;
     capacityModal.scrollTop = 0;
     var capacityBody = capacityModal.querySelector('.pmd-shifts__modal-body');
@@ -203,6 +213,7 @@
   function openTeam(trigger, personNode) {
     if (!teamModal) return;
     lastTrigger = trigger || null;
+    syncReturnTo(teamModal);
     resetTeamForm();
     if (personNode) {
       if (teamIdInput) teamIdInput.value = personNode.getAttribute('data-person-id') || '';
