@@ -112,9 +112,10 @@ jobs:
         working-directory: frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815
         shell: bash
         run: |
-          set -uo pipefail
+          set +e
           output="$(npm run source:audit 2>&1)"
           status=$?
+          set -e
           printf '%s\n' "$output"
           if [ "$status" -eq 0 ]; then
             exit 0
