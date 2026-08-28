@@ -1,54 +1,126 @@
 (function () {
   'use strict';
-  function one(sel, root) { return (root || document).querySelector(sel); }
-  function all(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
-  document.addEventListener('click', function (event) {
-    var toggle = event.target.closest('[data-pmd-shifts-toggle]');
-    if (toggle) {
-      var target = document.getElementById(toggle.getAttribute('data-pmd-shifts-toggle'));
-      if (target) target.hidden = !target.hidden;
-      return;
-    }
-    var add = event.target.closest('[data-pmd-shift-date]');
-    if (add) {
-      var form = one('#shift-form');
-      if (!form) return;
-      form.hidden = false;
-      var date = one('[data-pmd-shift-date-input]', form);
-      if (date) date.value = add.getAttribute('data-pmd-shift-date') || '';
-      form.scrollIntoView({behavior: 'smooth', block: 'nearest'});
-      return;
-    }
-    var cancel = event.target.closest('[data-pmd-shift-cancel]');
-    if (cancel) {
-      var shiftForm = one('#shift-form');
-      if (shiftForm) shiftForm.hidden = true;
-      return;
-    }
-    var preset = event.target.closest('[data-pmd-shift-preset]');
-    if (preset) {
-      var root = one('#shift-form');
-      if (!root) return;
-      var label = one('[data-pmd-shift-label]', root);
-      var start = one('[data-pmd-shift-start]', root);
-      var end = one('[data-pmd-shift-end]', root);
-      if (label) label.value = preset.getAttribute('data-pmd-shift-preset') || '';
-      if (start) start.value = preset.getAttribute('data-start') || '';
-      if (end) end.value = preset.getAttribute('data-end') || '';
-    }
-  });
-  var custom = one('.pmd-shifts__custom-min');
-  if (custom) {
-    custom.addEventListener('focus', function () {
-      var radio = one('input[name="extension_minutes"][value="0"]');
-      if (radio) radio.checked = true;
+
+  var root = document.querySelector('[data-pmd-shifts-root]');
+  var modal = document.querySelector('[data-pmd-shift-modal]');
+  if (!root || !modal) return;
+
+  var form = modal.querySelector('[data-pmd-shift-form]');
+  var title = modal.querySelector('[data-pmd-shift-modal-title]');
+  var idInput = modal.querySelector('[data-pmd-shift-id]');
+  var dateInput = modal.querySelector('[data-pmd-shift-date-input]');
+  var labelInput = modal.querySelector('[data-pmd-shift-label]');
+  var startInput = modal.querySelector('[data-pmd-shift-start]');
+  var endInput = modal.querySelector('[data-pmd-shift-end]');
+  var notesInput = modal.querySelector('[data-pmd-shift-notes]');
+  var personInputs = Array.prototype.slice.call(modal.querySelectorAll('[data-pmd-shift-person]'));
+  var lastTrigger = null;
+
+  function setScrollLock(locked) {
+    document.documentElement.style.overflow = locked ? 'hidden' : '';
+    document.body.style.overflow = locked ? 'hidden' : '';
+  }
+
+  function clearPresets() {
+    modal.querySelectorAll('[data-pmd-shift-preset]').forEach(function (button) {
+      button.classList.remove('is-active');
     });
   }
-  all('[data-pmd-eta-presets] input[type="radio"]').forEach(function (radio) {
-    radio.addEventListener('change', function () {
-      if (custom) custom.disabled = radio.value !== '0';
+
+  function resetForm(date) {
+    if (form) form.reset();
+    if (idInput) idInput.value = '';
+    if (dateInput) dateInput.value = date || '';
+    if (labelInput) labelInput.value = 'Dinner';
+    if (startInput) startInput.value = '';
+    if (endInput) endInput.value = '';
+    if (notesInput) notesInput.value = '';
+    personInputs.forEach(function (input) { input.checked = false; });
+    clearPresets();
+  }
+
+  function openModal(trigger, values) {
+    lastTrigger = trigger || null;
+    values = values || {};
+    resetForm(values.date || new Date().toISOString().slice(0, 10));
+
+    if (values.id && idInput) idInput.value = values.id;
+    if (values.label && labelInput) labelInput.value = values.label;
+    if (values.start !== undefined && startInput) startInput.value = values.start || '';
+    if (values.end !== undefined && endInput) endInput.value = values.end || '';
+    if (values.notes !== undefined && notesInput) notesInput.value = values.notes || '';
+    if (title) title.textContent = values.id ? 'Edit shift' : 'Add shift';
+
+    var selectedPeople = String(values.people || '')
+      .split(',')
+      .map(function (value) { return value.trim(); })
+      .filter(Boolean);
+    personInputs.forEach(function (input) {
+      input.checked = selectedPeople.indexOf(String(input.value)) !== -1;
     });
+
+    modal.hidden = false;
+    modal.setAttribute('aria-hidden', 'false');
+    setScrollLock(true);
+    window.setTimeout(function () {
+      if (labelInput) labelInput.focus();
+    }, 0);
+  }
+
+  function closeModal() {
+    modal.hidden = true;
+    modal.setAttribute('aria-hidden', 'true');
+    setScrollLock(false);
+    if (lastTrigger && typeof lastTrigger.focus === 'function') lastTrigger.focus();
+    lastTrigger = null;
+  }
+
+  function valuesFromTrigger(trigger) {
+    return {
+      id: trigger.getAttribute('data-id') || '',
+      date: trigger.getAttribute('data-date') || '',
+      label: trigger.getAttribute('data-label') || '',
+      start: trigger.getAttribute('data-start') || '',
+      end: trigger.getAttribute('data-end') || '',
+      notes: trigger.getAttribute('data-notes') || '',
+      people: trigger.getAttribute('data-people') || ''
+    };
+  }
+
+  document.addEventListener('click', function (event) {
+    var add = event.target.closest('[data-pmd-shift-open]');
+    if (add) {
+      event.preventDefault();
+      openModal(add, {date: add.getAttribute('data-date') || ''});
+      return;
+    }
+
+    var edit = event.target.closest('[data-pmd-shift-edit]');
+    if (edit) {
+      event.preventDefault();
+      openModal(edit, valuesFromTrigger(edit));
+      return;
+    }
+
+    var close = event.target.closest('[data-pmd-shift-close]');
+    if (close) {
+      event.preventDefault();
+      closeModal();
+      return;
+    }
+
+    var preset = event.target.closest('[data-pmd-shift-preset]');
+    if (preset) {
+      event.preventDefault();
+      clearPresets();
+      preset.classList.add('is-active');
+      if (labelInput) labelInput.value = preset.getAttribute('data-pmd-shift-preset') || 'Shift';
+      if (startInput) startInput.value = preset.getAttribute('data-start') || '';
+      if (endInput) endInput.value = preset.getAttribute('data-end') || '';
+    }
   });
-  var selected = one('[data-pmd-eta-presets] input[type="radio"]:checked');
-  if (custom && selected) custom.disabled = selected.value !== '0';
+
+  document.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape' && !modal.hidden) closeModal();
+  });
 })();
