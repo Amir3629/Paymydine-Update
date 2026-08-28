@@ -10,17 +10,10 @@ use Igniter\Flame\Database\Model;
  */
 class Status_history_model extends Model
 {
-    /**
-     * @var string The database table name
-     */
     protected $table = 'status_history';
-
     protected $primaryKey = 'status_history_id';
-
     protected $guarded = [];
-
     protected $appends = ['staff_name', 'status_name', 'notified', 'date_added_since'];
-
     public $timestamps = true;
 
     protected $casts = [
@@ -81,7 +74,6 @@ class Status_history_model extends Model
         $model = new static;
         $model->status_id = $statusId;
         $model->object_id = $object->getKey();
-
         $model->object_type = $object->getMorphClass();
         $model->staff_id = array_get($options, 'staff_id');
         $model->comment = array_get($options, 'comment', $status->status_comment);
@@ -92,12 +84,32 @@ class Status_history_model extends Model
 
         $model->save();
 
-        // Update using query to prevent model events from firing
+        // Update using query to prevent model events from firing.
         $object->newQuery()->where($object->getKeyName(), $object->getKey())->update([
             'status_id' => $statusId,
             'status_updated_at' => Carbon::now(),
         ]);
-      //  dd($object);
+
+        // PMD_KITCHEN_OPERATIONS_FOUNDATION_R1
+        // Status history is already the canonical KDS/Waiter workflow authority.
+        // Record kitchen timing facts from the same transition without changing
+        // any KDS interaction. Received-card tap remains Preparing; Ready remains
+        // the existing Ready action.
+        try {
+            if ($model->isForOrder()) {
+                $statusName = trim((string)($status->status_name ?? $model->status_name ?? ''));
+                app(\App\Services\PmdKitchenEtaLifecycleService::class)->onKitchenStatus(
+                    (int)$object->getKey(),
+                    $statusName
+                );
+            }
+        } catch (\Throwable $error) {
+            \Log::warning('PMD_KITCHEN_STATUS_LIFECYCLE_FAILED', [
+                'order_id' => (int)$object->getKey(),
+                'status_id' => (int)$statusId,
+                'message' => $error->getMessage(),
+            ]);
+        }
 
         return $model;
     }
@@ -106,10 +118,6 @@ class Status_history_model extends Model
     {
         return $this->object_type === Orders_model::make()->getMorphClass();
     }
-
-    //
-    //
-    //
 
     public function scopeApplyRelated($query, $model)
     {
