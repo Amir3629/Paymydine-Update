@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Services\Payments\PaymobOmanCallbackService;
+use App\Services\Payments\PaymobOmanFinancialAdjustmentService;
 use App\Services\Payments\PaymobOmanPaymentAttemptService;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\Config;
@@ -50,16 +51,26 @@ try {
         ->get();
 
     $service = app(PaymobOmanCallbackService::class);
+    $adjuster = app(PaymobOmanFinancialAdjustmentService::class);
     $results = [];
     foreach ($rows as $attempt) {
         try {
             $result = $service->reconcile($attempt);
+            $adjustments = [];
+            if (($result['settled_by_backend'] ?? false) && is_array($result['settlements'] ?? null)) {
+                foreach ($result['settlements'] as $settlement) {
+                    if (!is_array($settlement) || empty($settlement['order_id'])) continue;
+                    $adjustments[] = $adjuster->finalizeIfPaid((int)$settlement['order_id']);
+                }
+            }
+
             $results[] = [
                 'reference' => (string)$attempt->special_reference,
                 'before' => (string)$attempt->status,
                 'after' => (string)($result['status'] ?? 'unknown'),
                 'provider_paid' => (bool)($result['provider_paid'] ?? false),
                 'settled_by_backend' => (bool)($result['settled_by_backend'] ?? false),
+                'financial_adjustments' => $adjustments,
                 'ok' => (bool)($result['ok'] ?? false),
             ];
         } catch (Throwable $error) {
