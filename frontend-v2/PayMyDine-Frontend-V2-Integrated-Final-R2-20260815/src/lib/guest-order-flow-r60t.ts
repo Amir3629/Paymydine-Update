@@ -150,6 +150,35 @@ function normalizeOrder(payload: any): GuestOrderState {
   }
 }
 
+function mergeKitchenEta(order: GuestOrderState, state: any): GuestOrderState {
+  if (!state) return order
+  return {
+    ...order,
+    prepTimeMinutes: state.eta_minutes == null ? order.prepTimeMinutes : Math.max(0, Number(state.eta_minutes || 0)),
+    estimatedReadyAt: state.estimated_ready_at || order.estimatedReadyAt || null,
+    kitchenReleased: Boolean(state.kitchen_released),
+    kitchenPhase: String(state.phase || order.kitchenPhase || 'not_released'),
+    remainingPrepMinutes: state.remaining_minutes == null ? null : Math.max(0, Number(state.remaining_minutes || 0)),
+    etaExtensionCount: Math.max(0, Number(state.eta_extension_count || 0)),
+    etaTakingLonger: Boolean(state.taking_longer),
+    showCustomerEta: state.show_customer_eta === undefined ? order.showCustomerEta : Boolean(state.show_customer_eta),
+    statusName: state.phase === 'ready' ? 'Ready' : order.statusName,
+  }
+}
+
+async function enrichSelfOrdersWithKitchenEta(orders: GuestOrderState[], guestSessionId: string): Promise<GuestOrderState[]> {
+  const ids = orders.map((order) => Number(order.orderId || 0)).filter(Boolean)
+  if (!ids.length || !guestSessionId) return orders
+  try {
+    const params = new URLSearchParams({ order_ids: ids.join(','), guest_session_id: guestSessionId })
+    const payload = await request<any>(`/api/v1/pmd-kitchen/eta?${params.toString()}`)
+    const states = payload?.orders || {}
+    return orders.map((order) => mergeKitchenEta(order, states[String(order.orderId || '')]))
+  } catch {
+    // ETA enrichment must never break the proven order/payment/history state.
+    return orders
+  }
+}
 
 export async function activateGuestTableSession(table: TableContext, guestSessionId: string, scanQr: string): Promise<void> {
   await request('/api/v1/guest-orders/activate', {
@@ -167,7 +196,8 @@ export async function fetchGuestOrdersState(table: TableContext, guestSessionId:
   params.set('guest_session_id', guestSessionId)
   const payload = await request<any>(`/api/v1/guest-orders/state?${params.toString()}`)
   if (payload?.sessionExpired) throw new GuestTableSessionError('This table visit has ended. Scan the table QR again.', 'TABLE_SESSION_EXPIRED', 410)
-  const selfOrders = Array.isArray(payload?.selfOrders) ? payload.selfOrders.map(normalizeOrder) : []
+  const rawSelfOrders = Array.isArray(payload?.selfOrders) ? payload.selfOrders.map(normalizeOrder) : []
+  const selfOrders = await enrichSelfOrdersWithKitchenEta(rawSelfOrders, guestSessionId)
   const sharedStaffOrders = Array.isArray(payload?.sharedStaffOrders) ? payload.sharedStaffOrders.map(normalizeOrder) : []
   return {
     success: payload?.success !== false,
