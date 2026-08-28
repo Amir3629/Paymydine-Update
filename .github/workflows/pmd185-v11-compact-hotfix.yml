@@ -19,7 +19,11 @@ jobs:
           fetch-depth: 0
 
       - name: Apply V11 patch
-        run: python3 .github/pmd185_v11_compact_fix.py
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 .github/pmd185_v11_compact_fix.py
+          sed -i 's/[[:space:]]\+$//' app/admin/views/pmdshifts/index.blade.php
 
       - name: Backend and JS syntax
         shell: bash
@@ -35,7 +39,7 @@ jobs:
           set -Eeuo pipefail
           grep -F "unique:staffs,staff_name" app/admin/controllers/Shifts.php
           grep -F "redirectTeamFailure" app/admin/controllers/Shifts.php
-          grep -F "return $this->redirectTeamFailure($validator->errors()->first());" app/admin/controllers/Shifts.php
+          grep -F 'return $this->redirectTeamFailure($validator->errors()->first());' app/admin/controllers/Shifts.php
           grep -F "teamPasswordInput.required = enabled && !teamHasExistingAccess" app/admin/assets/js/pmd-shifts-v1.js
           grep -F "teamUsernameInput.required = enabled" app/admin/assets/js/pmd-shifts-v1.js
           grep -F "pmd-shifts-dashboard-reservations-v4.css?v=11" app/admin/assets/js/pmd-shifts-v1.js
