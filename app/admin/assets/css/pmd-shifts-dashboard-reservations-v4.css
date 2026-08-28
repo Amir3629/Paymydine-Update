@@ -189,3 +189,36 @@ body.pmd-shifts-page .pmd-shifts__capacity-section .pmd-shifts__form-grid label 
   body.pmd-shifts-page #pmd-r2-reservation-kpis-v307.pmd-shifts-exact-kpis{grid-auto-columns:82%!important}
   body.pmd-shifts-page .pmd-r2-timeslot{grid-template-columns:70px minmax(0,1fr)!important}
 }
+
+/* PMD_SHIFTS_UNIQUE_OWNER_KPI_COLORS_V6
+ * Shifts owns KPI identity. Stronger selector + direct paint prevents the
+ * shared Reservations green default from flattening every visible KPI.
+ */
+body.pmd-shifts-page #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-kpi-v2401-tone="mauve"]{
+  --kpi-bg:#dbcbd3!important;--kpi-border:#8a737f!important;--kpi-accent:#33272d!important;
+  background:#dbcbd3!important;border-color:#8a737f!important;color:#33272d!important;
+}
+body.pmd-shifts-page #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-kpi-v2401-tone="magenta"]{
+  --kpi-bg:#fb60fd!important;--kpi-border:#9d1fa0!important;--kpi-accent:#360737!important;
+  background:#fb60fd!important;border-color:#9d1fa0!important;color:#360737!important;
+}
+body.pmd-shifts-page #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-kpi-v2401-tone="yellow"]{
+  --kpi-bg:#ffdb57!important;--kpi-border:#a47f00!important;--kpi-accent:#332600!important;
+  background:#ffdb57!important;border-color:#a47f00!important;color:#332600!important;
+}
+body.pmd-shifts-page #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-kpi-v2401-tone="cyan"]{
+  --kpi-bg:#35afd1!important;--kpi-border:#087493!important;--kpi-accent:#062b36!important;
+  background:#35afd1!important;border-color:#087493!important;color:#062b36!important;
+}
+body.pmd-shifts-page #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-kpi-v2401-tone="orange"]{
+  --kpi-bg:#ff8811!important;--kpi-border:#a54d00!important;--kpi-accent:#351800!important;
+  background:#ff8811!important;border-color:#a54d00!important;color:#351800!important;
+}
+body.pmd-shifts-page #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-kpi-v2401-tone="green"]{
+  --kpi-bg:#21cb72!important;--kpi-border:#087b4b!important;--kpi-accent:#062c22!important;
+  background:#21cb72!important;border-color:#087b4b!important;color:#062c22!important;
+}
+body.pmd-shifts-page #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card[data-pmd-kpi-v2401-tone="blue"]{
+  --kpi-bg:#4388e8!important;--kpi-border:#1855ad!important;--kpi-accent:#071f46!important;
+  background:#4388e8!important;border-color:#1855ad!important;color:#071f46!important;
+}

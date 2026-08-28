@@ -53,19 +53,19 @@
   }
 
   function loadExactSharedUiCss() {
-    if (document.querySelector('link[data-pmd-shifts-exact-ui-v5]')) return;
+    if (document.querySelector('link[data-pmd-shifts-exact-ui-v6]')) return;
     var base = document.querySelector('link[href*="pmd-shifts-v1.css"]');
-    var href = '/app/admin/assets/css/pmd-shifts-dashboard-reservations-v4.css?v=5';
+    var href = '/app/admin/assets/css/pmd-shifts-dashboard-reservations-v4.css?v=6';
     if (base && base.getAttribute('href')) {
       href = base.getAttribute('href').replace(
         /pmd-shifts-v1\.css(?:\?[^#]*)?/,
-        'pmd-shifts-dashboard-reservations-v4.css?v=5'
+        'pmd-shifts-dashboard-reservations-v4.css?v=6'
       );
     }
     var link = document.createElement('link');
     link.rel = 'stylesheet';
     link.href = href;
-    link.setAttribute('data-pmd-shifts-exact-ui-v5', '');
+    link.setAttribute('data-pmd-shifts-exact-ui-v6', '');
     document.head.appendChild(link);
   }
 
