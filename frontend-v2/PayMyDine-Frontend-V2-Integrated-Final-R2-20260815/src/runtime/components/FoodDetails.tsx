@@ -131,8 +131,13 @@ export function FoodDetails({ item }: { item: MenuItem }) {
     nutrition.sugar != null ? { key: 'sugar' as const, label: copy.sugar, value: `${metric(nutrition.sugar)} g` } : null,
   ].filter(Boolean) as Array<{ key: FoodGlyphKind; label: string; value: string }> : []
 
-  if (item.prepTimeMinutes != null) {
-    nutrients.push({ key: 'prep', label: copy.prep, value: prepTimeLabel(item.prepTimeMinutes) })
+  // The prep_time_minutes column historically defaulted existing/unconfigured
+  // menu rows to 15. Keep that useful as an internal ETA fallback, but do not
+  // present it to guests as if the restaurant explicitly configured a prep time.
+  const prepMinutes = Number(item.prepTimeMinutes || 0)
+  const hasConfiguredPrepTime = Number.isFinite(prepMinutes) && prepMinutes > 0 && Math.round(prepMinutes) !== 15
+  if (hasConfiguredPrepTime) {
+    nutrients.push({ key: 'prep', label: copy.prep, value: prepTimeLabel(prepMinutes) })
   }
 
   if (!diets.length && !allergens.length && !nutrients.length) return null
