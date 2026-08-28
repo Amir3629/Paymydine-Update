@@ -347,8 +347,12 @@
         </form>
     @endif
 
-    <script type="application/json" id="pmd-shifts-kpi-data">@json($kpiCards)</script>
-    <script type="application/json" id="pmd-shifts-bootstrap">@json([
+    @php
+    // TastyIgniter's legacy Blade compiler cannot safely parse a nested
+    // array literal inside @json(...). Build the payload in plain PHP
+    // and echo only pre-encoded JSON into the script tags.
+    $pmdShiftsJsonFlags = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
+    $pmdShiftsBootstrapPayload = [
         'selected_day' => $selectedDay->toDateString(),
         'month' => $monthStart->toDateString(),
         'open_hour_on_boot' => request()->filled('day'),
@@ -359,5 +363,10 @@
             'shifts' => admin_url('shifts'),
             'remove' => admin_url('shifts/removeshift'),
         ],
-    ])</script>
+    ];
+    $pmdShiftsKpiJson = json_encode($kpiCards, $pmdShiftsJsonFlags) ?: '{}';
+    $pmdShiftsBootstrapJson = json_encode($pmdShiftsBootstrapPayload, $pmdShiftsJsonFlags) ?: '{}';
+@endphp
+<script type="application/json" id="pmd-shifts-kpi-data">{!! $pmdShiftsKpiJson !!}</script>
+<script type="application/json" id="pmd-shifts-bootstrap">{!! $pmdShiftsBootstrapJson !!}</script>
 </div>

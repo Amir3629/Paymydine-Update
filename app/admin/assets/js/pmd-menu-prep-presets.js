@@ -139,104 +139,109 @@
   }
 
   function buildModal() {
-    if (modal) return modal;
+  if (modal) return modal;
 
-    modal = document.createElement('div');
-    modal.className = 'pmd-menu-modal pmd-menu-kitchen-settings-modal';
-    modal.setAttribute('data-pmd-kitchen-settings-modal', '');
-    modal.setAttribute('role', 'dialog');
-    modal.setAttribute('aria-modal', 'true');
-    modal.setAttribute('aria-labelledby', 'pmd-kitchen-settings-title');
-    modal.setAttribute('aria-hidden', 'true');
-    modal.hidden = true;
+  modal = document.createElement('div');
+  modal.className = 'pmd-menu-modal pmd-menu-kitchen-settings-modal';
+  modal.setAttribute('data-pmd-kitchen-settings-modal', '');
+  modal.setAttribute('role', 'dialog');
+  modal.setAttribute('aria-modal', 'true');
+  modal.setAttribute('aria-labelledby', 'pmd-kitchen-settings-title');
+  modal.setAttribute('aria-hidden', 'true');
+  modal.hidden = true;
 
-    var token = csrfToken();
-    modal.innerHTML = ''
-      + '<div class="pmd-menu-modal__backdrop" data-pmd-kitchen-settings-close></div>'
-      + '<section class="pmd-menu-modal__card pmd-menu-kitchen-settings-card" role="document">'
-      + '  <header class="pmd-menu-modal__header">'
-      + '    <div><span class="pmd-menu-modal__eyebrow">Kitchen</span><h2 id="pmd-kitchen-settings-title">Preparation & ETA</h2></div>'
-      + '    <button type="button" class="pmd-menu-modal__close" data-pmd-kitchen-settings-close aria-label="Close">'
-      + '      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg>'
-      + '    </button>'
-      + '  </header>'
-      + '  <form class="pmd-menu-kitchen-settings-form" method="post" action="' + saveUrl + '">'
-      + '    <input type="hidden" name="_token" value="' + token.replace(/&/g, '&amp;').replace(/"/g, '&quot;') + '">'
-      + '    <div class="pmd-menu-modal__body">'
-      + '      <section class="pmd-menu-form__section">'
-      + '        <div class="pmd-menu-form__section-head"><h3>Guest preparation estimates</h3><p>Show food preparation ranges before ordering and the live ETA after the order reaches Kitchen.</p></div>'
-      + '        <label class="pmd-menu-form__setting-row pmd-menu-kitchen-setting-row">'
-      + '          <span><strong>Show preparation estimates</strong><small>Turn this off if the restaurant does not want to show timing to guests.</small></span>'
-      + '          <span class="pmd-menu-switch"><input type="checkbox" name="show_customer_eta" value="1" data-pmd-kitchen-show-eta><span></span></span>'
-      + '        </label>'
-      + '      </section>'
-      + '      <section class="pmd-menu-form__section">'
-      + '        <div class="pmd-menu-form__section-head"><h3>If an order needs more time</h3><p>Near the promised time, if the Kitchen has not marked the order Ready, PMD can extend the guest ETA once more.</p></div>'
-      + '        <div class="pmd-menu-kitchen-eta-presets" data-pmd-kitchen-eta-presets>'
-      + '          <label><input type="radio" name="extension_minutes" value="5"><span>+5 min</span></label>'
-      + '          <label><input type="radio" name="extension_minutes" value="10"><span>+10 min</span></label>'
-      + '          <label><input type="radio" name="extension_minutes" value="15"><span>+15 min</span></label>'
-      + '          <label><input type="radio" name="extension_minutes" value="20"><span>+20 min</span></label>'
-      + '          <label><input type="radio" name="extension_minutes" value="0" data-pmd-kitchen-custom-radio><span>Custom</span></label>'
-      + '        </div>'
-      + '        <label class="pmd-menu-field pmd-menu-kitchen-custom-field"><span>Custom minutes</span><input type="number" name="custom_extension_minutes" min="1" max="120" step="1" inputmode="numeric" data-pmd-kitchen-custom-minutes></label>'
-      + '        <p class="pmd-menu-kitchen-settings-hint">PMD checks close to the deadline. Repeated misses stop moving the promise and show “Taking longer than expected” instead.</p>'
-      + '      </section>'
-      + '    </div>'
-      + '    <footer class="pmd-menu-modal__footer">'
-      + '      <span class="pmd-menu-modal__status">Kitchen timing stays automatic behind the scenes.</span>'
-      + '      <div class="pmd-menu-modal__buttons">'
-      + '        <button type="button" class="pmd-menu-modal__cancel" data-pmd-kitchen-settings-close>Cancel</button>'
-      + '        <button type="submit" class="pmd-menu-modal__save">Save settings</button>'
-      + '      </div>'
-      + '    </footer>'
-      + '  </form>'
-      + '</section>';
+  var token = csrfToken();
+  modal.innerHTML = ''
+    + '<div class="pmd-menu-modal__backdrop" data-pmd-kitchen-settings-close></div>'
+    + '<section class="pmd-menu-modal__card pmd-menu-kitchen-settings-card" role="document">'
+    + '  <header class="pmd-menu-modal__header">'
+    + '    <div><span class="pmd-menu-modal__eyebrow">Kitchen</span><h2 id="pmd-kitchen-settings-title">Preparation & ETA</h2></div>'
+    + '    <button type="button" class="pmd-menu-modal__close" data-pmd-kitchen-settings-close aria-label="Close">'
+    + '      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg>'
+    + '    </button>'
+    + '  </header>'
+    + '  <form class="pmd-menu-kitchen-settings-form" method="post" action="' + saveUrl + '">'
+    + '    <input type="hidden" name="_token" value="' + token.replace(/&/g, '&amp;').replace(/"/g, '&quot;') + '">'
+    + '    <div class="pmd-menu-modal__body">'
+    + '      <label class="pmd-menu-kitchen-visibility-line">'
+    + '        <span>Show ETA to guests</span>'
+    + '        <span class="pmd-menu-switch"><input type="checkbox" name="show_customer_eta" value="1" data-pmd-kitchen-show-eta><span></span></span>'
+    + '      </label>'
+    + '      <section class="pmd-menu-form__section">'
+    + '        <div class="pmd-menu-form__section-head"><h3>If an order needs more time</h3><p>Near the promised time, if the Kitchen has not marked the order Ready, PMD can extend the guest ETA.</p></div>'
+    + '        <label class="pmd-menu-field pmd-menu-kitchen-extension-field"><span>Extra minutes</span><input type="number" name="extension_minutes" min="1" max="120" step="1" inputmode="numeric" data-pmd-kitchen-extension-minutes></label>'
+    + '        <div class="pmd-menu-kitchen-eta-presets" data-pmd-kitchen-eta-presets>'
+    + '          <button type="button" data-pmd-kitchen-eta-preset data-minutes="5" aria-pressed="false">+5 min</button>'
+    + '          <button type="button" data-pmd-kitchen-eta-preset data-minutes="10" aria-pressed="false">+10 min</button>'
+    + '          <button type="button" data-pmd-kitchen-eta-preset data-minutes="15" aria-pressed="false">+15 min</button>'
+    + '          <button type="button" data-pmd-kitchen-eta-preset data-minutes="20" aria-pressed="false">+20 min</button>'
+    + '        </div>'
+    + '        <p class="pmd-menu-kitchen-settings-hint">PMD checks close to the deadline. Repeated misses stop moving the promise and show “Taking longer than expected” instead.</p>'
+    + '      </section>'
+    + '    </div>'
+    + '    <footer class="pmd-menu-modal__footer">'
+    + '      <span class="pmd-menu-modal__status">Kitchen timing stays automatic behind the scenes.</span>'
+    + '      <div class="pmd-menu-modal__buttons">'
+    + '        <button type="button" class="pmd-menu-modal__cancel" data-pmd-kitchen-settings-close>Cancel</button>'
+    + '        <button type="submit" class="pmd-menu-modal__save">Save settings</button>'
+    + '      </div>'
+    + '    </footer>'
+    + '  </form>'
+    + '</section>';
 
-    document.body.appendChild(modal);
+  document.body.appendChild(modal);
 
-    modal.addEventListener('click', function (event) {
-      if (event.target.closest('[data-pmd-kitchen-settings-close]')) closeSettings();
+  modal.addEventListener('click', function (event) {
+    if (event.target.closest('[data-pmd-kitchen-settings-close]')) closeSettings();
+  });
+
+  var extensionInput = modal.querySelector('[data-pmd-kitchen-extension-minutes]');
+  var presetButtons = Array.prototype.slice.call(modal.querySelectorAll('[data-pmd-kitchen-eta-preset]'));
+
+  presetButtons.forEach(function (button) {
+    button.addEventListener('click', function () {
+      if (!extensionInput) return;
+      extensionInput.value = String(Number(button.getAttribute('data-minutes') || 10));
+      syncExtensionPresets();
+      extensionInput.dispatchEvent(new Event('change', {bubbles: true}));
     });
+  });
 
-    var customMinutes = modal.querySelector('[data-pmd-kitchen-custom-minutes]');
-    var customRadio = modal.querySelector('[data-pmd-kitchen-custom-radio]');
-    if (customMinutes && customRadio) {
-      customMinutes.addEventListener('focus', function () {
-        customRadio.checked = true;
-        syncCustomState();
-      });
-    }
-
-    modal.querySelectorAll('input[name="extension_minutes"]').forEach(function (radio) {
-      radio.addEventListener('change', syncCustomState);
+  if (extensionInput) {
+    extensionInput.addEventListener('input', syncExtensionPresets);
+    extensionInput.addEventListener('change', function () {
+      var value = Math.round(Number(extensionInput.value || 10));
+      extensionInput.value = String(Math.max(1, Math.min(120, value)));
+      syncExtensionPresets();
     });
-
-    return modal;
   }
 
-  function syncCustomState() {
-    if (!modal) return;
-    var customMinutes = modal.querySelector('[data-pmd-kitchen-custom-minutes]');
-    var selected = modal.querySelector('input[name="extension_minutes"]:checked');
-    if (customMinutes) customMinutes.disabled = !selected || selected.value !== '0';
-  }
+  return modal;
+}
 
-  function applySettings(data) {
-    buildModal();
-    var showEta = modal.querySelector('[data-pmd-kitchen-show-eta]');
-    var customMinutes = modal.querySelector('[data-pmd-kitchen-custom-minutes]');
-    var extension = Math.max(1, Number(data && data.extension_minutes || 10));
-    var standard = [5, 10, 15, 20].indexOf(extension) !== -1;
-    var radio = modal.querySelector('input[name="extension_minutes"][value="' + (standard ? extension : 0) + '"]');
+function syncExtensionPresets() {
+  if (!modal) return;
+  var extensionInput = modal.querySelector('[data-pmd-kitchen-extension-minutes]');
+  var value = extensionInput ? Number(extensionInput.value || 0) : 0;
+  modal.querySelectorAll('[data-pmd-kitchen-eta-preset]').forEach(function (button) {
+    var selected = Number(button.getAttribute('data-minutes') || 0) === value;
+    button.classList.toggle('is-active', selected);
+    button.setAttribute('aria-pressed', selected ? 'true' : 'false');
+  });
+}
 
-    if (showEta) showEta.checked = Boolean(data && data.show_customer_eta);
-    if (radio) radio.checked = true;
-    if (customMinutes) customMinutes.value = String(Math.round(extension));
-    syncCustomState();
-  }
+function applySettings(data) {
+  buildModal();
+  var showEta = modal.querySelector('[data-pmd-kitchen-show-eta]');
+  var extensionInput = modal.querySelector('[data-pmd-kitchen-extension-minutes]');
+  var extension = Math.max(1, Math.min(120, Math.round(Number(data && data.extension_minutes || 10))));
 
-  function openSettings() {
+  if (showEta) showEta.checked = Boolean(data && data.show_customer_eta);
+  if (extensionInput) extensionInput.value = String(extension);
+  syncExtensionPresets();
+}
+
+function openSettings() {
     buildModal();
     if (lastSettings) applySettings(lastSettings);
     modal.hidden = false;
