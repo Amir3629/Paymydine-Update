@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Schema;
  */
 final class PaymobOmanPaymentAttemptService
 {
-    public const VERSION = '11.0.0';
+    public const VERSION = '11.1.0';
     public const TABLE = 'pmd_paymob_payment_attempts';
 
     public function ensureSchema(): void
@@ -51,6 +51,9 @@ final class PaymobOmanPaymentAttemptService
                 $table->text('last_error')->nullable();
                 $table->longText('provider_response')->nullable();
                 $table->longText('callback_summary')->nullable();
+                // Per-order map is required because one Paymob Intention can settle
+                // several PMD orders in a grouped table payment.
+                $table->longText('financial_adjustment_state')->nullable();
                 $table->timestamp('provider_call_started_at')->nullable();
                 $table->timestamp('callback_received_at')->nullable();
                 $table->timestamp('reconciled_at')->nullable();
@@ -70,6 +73,7 @@ final class PaymobOmanPaymentAttemptService
             'client_secret_ciphertext' => fn (Blueprint $table) => $table->longText('client_secret_ciphertext')->nullable(),
             'canonical_transaction_id' => fn (Blueprint $table) => $table->unsignedBigInteger('canonical_transaction_id')->nullable()->index(),
             'callback_summary' => fn (Blueprint $table) => $table->longText('callback_summary')->nullable(),
+            'financial_adjustment_state' => fn (Blueprint $table) => $table->longText('financial_adjustment_state')->nullable(),
             'reconciled_at' => fn (Blueprint $table) => $table->timestamp('reconciled_at')->nullable(),
             'settled_at' => fn (Blueprint $table) => $table->timestamp('settled_at')->nullable(),
         ];
@@ -116,6 +120,7 @@ final class PaymobOmanPaymentAttemptService
             'selected_items' => $this->json($data['selected_items'] ?? []),
             'order_allocations' => $this->json($data['order_allocations'] ?? []),
             'integration_ids' => $this->json($data['integration_ids'] ?? []),
+            'financial_adjustment_state' => $this->json([]),
             'status' => 'created',
             'expires_at' => $data['expires_at'] ?? now()->addMinutes(30),
             'created_at' => now(),
@@ -283,9 +288,15 @@ final class PaymobOmanPaymentAttemptService
         return array_values(array_filter($rows, 'is_array'));
     }
 
+    public function financialAdjustmentState(object $attempt): array
+    {
+        return $this->decodeJson($attempt->financial_adjustment_state ?? null);
+    }
+
     public function safeState(object $attempt): array
     {
         return [
+            'id' => (int)$attempt->id,
             'reference' => (string)$attempt->special_reference,
             'order_id' => (int)$attempt->order_id,
             'method_variant' => (string)$attempt->method_variant,
