@@ -1,0 +1,90 @@
+name: PMD185 Shifts workspace v10
+
+on:
+  push:
+    branches:
+      - feature/kitchen-operations-foundation-185
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-qa:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/kitchen-operations-foundation-185
+          fetch-depth: 0
+
+      - name: Apply workspace v10
+        run: python3 .github/pmd185_workspace_v10.py
+
+      - name: PHP and JavaScript syntax
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          php -l app/admin/Services/PmdDefaultStaffRoleService.php
+          php -l app/admin/controllers/Shifts.php
+          php -l app/admin/controllers/Mywork.php
+          php -l app/system/database/migrations/2026_08_28_235500_create_pmd_staff_requests.php
+          node --check app/admin/assets/js/pmd-shifts-v1.js
+
+      - name: Product invariants
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git diff --check
+          grep -F "public const TEAM_MEMBER = 'pmd-team-member';" app/admin/Services/PmdDefaultStaffRoleService.php
+          grep -F "self::TEAM_MEMBER => 'mywork'" app/admin/Services/PmdDefaultStaffRoleService.php
+          grep -F "if (\$is('mywork')) return true;" app/admin/Services/PmdDefaultStaffRoleService.php
+          grep -F "PMD_MY_WORK_V1" app/admin/controllers/Mywork.php
+          grep -F "pmd_staff_requests" app/system/database/migrations/2026_08_28_235500_create_pmd_staff_requests.php
+          grep -F "data-pmd-shifts-month-nav" app/admin/views/pmdshifts/index.blade.php
+          grep -F "function loadCalendarUrl" app/admin/assets/js/pmd-shifts-v1.js
+          grep -F "var fillerCount" app/admin/assets/js/pmd-shifts-v1.js
+          grep -F "data-pmd-team-access-toggle" app/admin/views/pmdshifts/index.blade.php
+          grep -F "data-pmd-team-password-generate" app/admin/views/pmdshifts/index.blade.php
+          grep -F "PMD_SHIFTS_FULL_SHEET_AND_ASYNC_MONTH_V10" app/admin/assets/css/pmd-shifts-dashboard-reservations-v4.css
+          grep -F "PMD_SHIFTS_UNIFIED_TEAM_MODAL_V10" app/admin/assets/css/pmd-shifts-v1.css
+          grep -F "pmd-shifts-dashboard-reservations-v4.css?v=10" app/admin/assets/js/pmd-shifts-v1.js
+
+      - name: Scope guard
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          expected="$(cat <<'EOF'
+app/admin/Services/PmdDefaultStaffRoleService.php
+app/admin/assets/css/pmd-my-work-v1.css
+app/admin/assets/css/pmd-shifts-dashboard-reservations-v4.css
+app/admin/assets/css/pmd-shifts-v1.css
+app/admin/assets/js/pmd-shifts-v1.js
+app/admin/controllers/Mywork.php
+app/admin/controllers/Shifts.php
+app/admin/views/pmdmywork/index.blade.php
+app/admin/views/pmdshifts/index.blade.php
+app/system/database/migrations/2026_08_28_235500_create_pmd_staff_requests.php
+EOF
+)"
+          actual="$(git diff --name-only | sort)"
+          test "$actual" = "$(printf '%s\n' "$expected" | sort)"
+
+      - name: Commit reviewed product files
+        run: |
+          set -Eeuo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            app/admin/Services/PmdDefaultStaffRoleService.php \
+            app/admin/assets/css/pmd-my-work-v1.css \
+            app/admin/assets/css/pmd-shifts-dashboard-reservations-v4.css \
+            app/admin/assets/css/pmd-shifts-v1.css \
+            app/admin/assets/js/pmd-shifts-v1.js \
+            app/admin/controllers/Mywork.php \
+            app/admin/controllers/Shifts.php \
+            app/admin/views/pmdmywork/index.blade.php \
+            app/admin/views/pmdshifts/index.blade.php \
+            app/system/database/migrations/2026_08_28_235500_create_pmd_staff_requests.php
+          git commit -m 'Unify Shifts team access and add My Work workspace (#185)'
+          git push origin HEAD:feature/kitchen-operations-foundation-185
