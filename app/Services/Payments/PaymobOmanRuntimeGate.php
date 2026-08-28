@@ -7,14 +7,15 @@ namespace App\Services\Payments;
  *
  * Production guest offering remains locked until real Paymob Oman sandbox QA
  * proves checkout, callback, duplicate delivery, reconciliation and refunds.
- * A temporary TEST-only QA arm can be enabled explicitly from the server env.
+ * A temporary TEST-only QA arm can be enabled explicitly from server config.
  */
 final class PaymobOmanRuntimeGate
 {
-    public const VERSION = '11.0.0';
+    public const VERSION = '11.1.0';
 
     public static function guestReady(): bool
     {
+        // Deliberately code-locked until real Paymob Oman sandbox certification.
         return false;
     }
 
@@ -23,7 +24,9 @@ final class PaymobOmanRuntimeGate
         $mode = strtolower(trim((string)($runtimeConfig['mode'] ?? $runtimeConfig['transaction_mode'] ?? 'test')));
         if ($mode !== 'test') return false;
 
-        $raw = env('PMD_PAYMOB_OMAN_SANDBOX_QA', false);
+        // Config indirection survives Laravel/TastyIgniter config caching. The
+        // underlying config/paymob_oman.php reads PMD_PAYMOB_OMAN_SANDBOX_QA.
+        $raw = config('paymob_oman.sandbox_qa', false);
         return filter_var($raw, FILTER_VALIDATE_BOOLEAN);
     }
 
