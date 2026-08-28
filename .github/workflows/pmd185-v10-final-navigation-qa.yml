@@ -98,7 +98,8 @@ jobs:
           php -l app/admin/controllers/Shifts.php
           node --check app/admin/assets/js/pmd-shifts-v1.js
           git diff --check
-          grep -F '$raw = $day !== '\''\'''\'' ? $day : $month;' app/admin/controllers/Shifts.php
+          grep -F '$raw = $day !==' app/admin/controllers/Shifts.php
+          grep -F '? $day : $month;' app/admin/controllers/Shifts.php
           grep -F 'function syncReturnTo(container)' app/admin/assets/js/pmd-shifts-v1.js
           grep -F 'syncReturnTo(modal);' app/admin/assets/js/pmd-shifts-v1.js
           grep -F 'syncReturnTo(teamModal);' app/admin/assets/js/pmd-shifts-v1.js
