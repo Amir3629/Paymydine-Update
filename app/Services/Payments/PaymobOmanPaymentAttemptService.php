@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Schema;
  */
 final class PaymobOmanPaymentAttemptService
 {
-    public const VERSION = '11.1.0';
+    public const VERSION = '11.2.0';
     public const TABLE = 'pmd_paymob_payment_attempts';
 
     public function ensureSchema(): void
@@ -246,13 +246,48 @@ final class PaymobOmanPaymentAttemptService
             }
         }
 
+        // PMD_PAYMOB_OMAN_ADJUST_BEFORE_SETTLED_R11
+        // A provider charge must not be labeled fully consumed until every order
+        // allocation has also received its idempotent tip/coupon/final-total update.
+        // If this stage fails, leave the attempt reconciliation-required so the
+        // same verified provider transaction can resume safely on callback retry or
+        // the background inquiry sweep.
+        $financialAdjustments = [];
+        try {
+            $adjuster = new PaymobOmanFinancialAdjustmentService();
+            foreach ($settlementResults as $result) {
+                if (!is_array($result) || empty($result['order_id'])) continue;
+                $adjustment = $adjuster->finalizeIfPaid((int)$result['order_id'], $id);
+                if (!($adjustment['ok'] ?? false)) {
+                    throw new \RuntimeException('Paymob canonical financial adjustment did not complete.');
+                }
+                $financialAdjustments[] = $adjustment;
+            }
+        } catch (\Throwable $error) {
+            $this->markReconciliation(
+                $id,
+                'reconciliation_required',
+                'Verified Paymob transaction was canonically recorded but financial adjustment requires reconciliation.',
+                [
+                    'provider_transaction_id' => (string)$providerTransactionId,
+                    'settlements' => $settlementResults,
+                    'financial_adjustments' => $financialAdjustments,
+                    'adjustment_error' => mb_substr($error->getMessage(), 0, 500),
+                ]
+            );
+            throw $error;
+        }
+
         $this->update($id, [
             'provider_transaction_id' => $this->nullableString($providerTransactionId, 191),
             'canonical_transaction_id' => $primaryTransactionId,
             'status' => 'settled',
             'settled_at' => now(),
             'last_error' => null,
-            'callback_summary' => $this->json(['settlements' => $settlementResults]),
+            'callback_summary' => $this->json([
+                'settlements' => $settlementResults,
+                'financial_adjustments' => $financialAdjustments,
+            ]),
         ]);
     }
 
