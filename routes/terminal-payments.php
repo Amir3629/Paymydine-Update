@@ -139,3 +139,6 @@ Route::middleware(['web'])->prefix(config('system.adminUri', 'admin'))->group(fu
     Route::post('/pmddevices/sumup/readers/{terminalId}/test', [\Admin\Controllers\SumupTerminalSettings::class, 'testReader'])->where('terminalId', '[0-9]+');
     Route::delete('/pmddevices/sumup/readers/{terminalId}', [\Admin\Controllers\SumupTerminalSettings::class, 'removeReader'])->where('terminalId', '[0-9]+');
 });
+
+// PMD_PAYMOB_OMAN_ROUTE_LOADER_R11
+require_once __DIR__.'/paymob-oman.php';
