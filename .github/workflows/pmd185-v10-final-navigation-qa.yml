@@ -1,0 +1,118 @@
+name: PMD185 Shifts v10 final navigation QA
+
+on:
+  push:
+    branches:
+      - feature/kitchen-operations-foundation-185
+
+permissions:
+  contents: write
+
+jobs:
+  final-polish:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/kitchen-operations-foundation-185
+          fetch-depth: 0
+
+      - name: Apply navigation edge-case fixes
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          controller = Path('app/admin/controllers/Shifts.php')
+          text = controller.read_text()
+          old = """    private function selectedDay(): Carbon
+              {
+                  $raw = trim((string)request()->input('day', ''));
+                  try {
+                      return ($raw !== '' ? Carbon::parse($raw) : now())->startOfDay();
+                  } catch (\\Throwable $error) {
+                      return now()->startOfDay();
+                  }
+              }
+          """
+          new = """    private function selectedDay(): Carbon
+              {
+                  $day = trim((string)request()->input('day', ''));
+                  $month = trim((string)request()->input('month', ''));
+                  $raw = $day !== '' ? $day : $month;
+                  try {
+                      return ($raw !== '' ? Carbon::parse($raw) : now())->startOfDay();
+                  } catch (\\Throwable $error) {
+                      return now()->startOfDay();
+                  }
+              }
+          """
+          if old not in text:
+              raise SystemExit('selectedDay authority not found')
+          controller.write_text(text.replace(old, new, 1))
+
+          js_path = Path('app/admin/assets/js/pmd-shifts-v1.js')
+          js = js_path.read_text()
+          anchor = """  function setScrollLock(locked) {
+              var value = locked ? 'hidden' : '';
+              document.documentElement.style.overflow = value;
+              document.body.style.overflow = value;
+            }
+          """
+          replacement = """  function setScrollLock(locked) {
+              var value = locked ? 'hidden' : '';
+              document.documentElement.style.overflow = value;
+              document.body.style.overflow = value;
+            }
+
+            function syncReturnTo(container) {
+              if (!container) return;
+              var value = window.location.pathname + window.location.search;
+              container.querySelectorAll('input[name=\"return_to\"]').forEach(function (input) {
+                input.value = value;
+              });
+            }
+          """
+          if anchor not in js:
+              raise SystemExit('scroll lock authority not found')
+          js = js.replace(anchor, replacement, 1)
+
+          for old_call, new_call, label in [
+              ("    lastTrigger = trigger || null;\n    values = values || {};", "    lastTrigger = trigger || null;\n    syncReturnTo(modal);\n    values = values || {};", 'shift modal'),
+              ("    lastTrigger = trigger || null;\n    capacityModal.hidden = false;", "    lastTrigger = trigger || null;\n    syncReturnTo(capacityModal);\n    capacityModal.hidden = false;", 'capacity modal'),
+              ("    lastTrigger = trigger || null;\n    resetTeamForm();", "    lastTrigger = trigger || null;\n    syncReturnTo(teamModal);\n    resetTeamForm();", 'team modal'),
+          ]:
+              if old_call not in js:
+                  raise SystemExit(label + ' authority not found')
+              js = js.replace(old_call, new_call, 1)
+
+          js_path.write_text(js)
+          PY
+
+      - name: QA
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          php -l app/admin/controllers/Shifts.php
+          node --check app/admin/assets/js/pmd-shifts-v1.js
+          git diff --check
+          grep -F '$raw = $day !== '\''\'''\'' ? $day : $month;' app/admin/controllers/Shifts.php
+          grep -F 'function syncReturnTo(container)' app/admin/assets/js/pmd-shifts-v1.js
+          grep -F 'syncReturnTo(modal);' app/admin/assets/js/pmd-shifts-v1.js
+          grep -F 'syncReturnTo(teamModal);' app/admin/assets/js/pmd-shifts-v1.js
+          grep -F 'syncReturnTo(capacityModal);' app/admin/assets/js/pmd-shifts-v1.js
+          mapfile -t changed < <(git diff --name-only | sort)
+          test "${#changed[@]}" -eq 2
+          test "${changed[0]}" = 'app/admin/assets/js/pmd-shifts-v1.js'
+          test "${changed[1]}" = 'app/admin/controllers/Shifts.php'
+
+      - name: Commit final product fixes
+        run: |
+          set -Eeuo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add app/admin/assets/js/pmd-shifts-v1.js app/admin/controllers/Shifts.php
+          git commit -m 'Fix async Shifts month edit return context (#185)'
+          git push origin HEAD:feature/kitchen-operations-foundation-185
