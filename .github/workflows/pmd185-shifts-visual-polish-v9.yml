@@ -22,6 +22,7 @@ jobs:
         run: |
           sed -i 's/;pointer-events:auto!important}/}/g' .github/pmd185_polish_shift_canvas_v9.py
           python3 .github/pmd185_polish_shift_canvas_v9.py
+          git checkout -- .github/pmd185_polish_shift_canvas_v9.py
           sed -i 's/data-pmd-shifts-exact-ui-v8/data-pmd-shifts-exact-ui-v9/g' app/admin/assets/js/pmd-shifts-v1.js
 
       - name: QA
