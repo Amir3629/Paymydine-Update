@@ -1,0 +1,87 @@
+name: PMD185 People workspace V12
+
+on:
+  push:
+    branches:
+      - feature/kitchen-operations-foundation-185
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-qa:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/kitchen-operations-foundation-185
+          fetch-depth: 0
+
+      - name: Apply V12 People workspace
+        run: python3 .github/pmd185_v12_people_hub.py
+
+      - name: Syntax and diff safety
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          php -l app/admin/controllers/People.php
+          node --check app/admin/assets/js/pmd-shifts-v1.js
+          git diff --check
+
+      - name: Product invariants
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          grep -F "class People extends AdminController" app/admin/controllers/People.php
+          grep -F "Roster-first save" app/admin/controllers/People.php
+          grep -F "request_type' => 'manager_message'" app/admin/controllers/People.php
+          grep -F "admin_url('people/saveperson')" app/admin/views/pmdpeople/index.blade.php
+          grep -F "admin_url('people/saveaccess')" app/admin/views/pmdpeople/index.blade.php
+          grep -F "admin_url('people/sendmessage')" app/admin/views/pmdpeople/index.blade.php
+          grep -F ">Schedule<" app/admin/views/pmdpeople/index.blade.php
+          grep -F ">Messages<" app/admin/views/pmdpeople/index.blade.php
+          grep -F ">Access<" app/admin/views/pmdpeople/index.blade.php
+          grep -F "Access only" app/admin/views/pmdpeople/index.blade.php
+          grep -F "href=\"{{ admin_url('people') }}\"" app/admin/views/pmdshifts/index.blade.php
+          grep -F "PMD_SHIFTS_PERSON_PROFILE_LINK_V12" app/admin/assets/css/pmd-shifts-dashboard-reservations-v4.css
+          grep -F "/admin/people?person=" app/admin/assets/js/pmd-shifts-v1.js
+          grep -F "nav.people" app/admin/views/_partials/pmd_side_menu2_single_menu.blade.php
+          grep -F "manager_message" app/admin/views/pmdmywork/index.blade.php
+
+      - name: Exact product scope
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          mapfile -t changed < <(git diff --name-only | sort)
+          printf '%s\n' "${changed[@]}"
+          test "${#changed[@]}" -eq 8
+          expected=(
+            "app/admin/assets/css/pmd-people-v1.css"
+            "app/admin/assets/css/pmd-shifts-dashboard-reservations-v4.css"
+            "app/admin/assets/js/pmd-shifts-v1.js"
+            "app/admin/controllers/People.php"
+            "app/admin/views/_partials/pmd_side_menu2_single_menu.blade.php"
+            "app/admin/views/pmdmywork/index.blade.php"
+            "app/admin/views/pmdpeople/index.blade.php"
+            "app/admin/views/pmdshifts/index.blade.php"
+          )
+          for i in "${!expected[@]}"; do test "${changed[$i]}" = "${expected[$i]}"; done
+
+      - name: Commit reviewed V12 product files
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            app/admin/assets/css/pmd-people-v1.css \
+            app/admin/assets/css/pmd-shifts-dashboard-reservations-v4.css \
+            app/admin/assets/js/pmd-shifts-v1.js \
+            app/admin/controllers/People.php \
+            app/admin/views/_partials/pmd_side_menu2_single_menu.blade.php \
+            app/admin/views/pmdmywork/index.blade.php \
+            app/admin/views/pmdpeople/index.blade.php \
+            app/admin/views/pmdshifts/index.blade.php
+          git commit -m 'Add simple People workspace and per-person profiles (#185)'
+          git push origin HEAD:feature/kitchen-operations-foundation-185
