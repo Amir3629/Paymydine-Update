@@ -257,7 +257,7 @@
         var name = button.querySelector('strong');
         var label = ((time ? time.textContent : '') + ' · ' + (name ? name.textContent : '')).trim();
         button.className = 'pmd-r2-yc-entry is-shift';
-        button.innerHTML = label;
+        button.textContent = label;
         operations.appendChild(button);
       });
       if (more) {
