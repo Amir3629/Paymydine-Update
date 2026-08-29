@@ -19,7 +19,19 @@ jobs:
           fetch-depth: 0
 
       - name: Apply V17 operations changes
-        run: python3 .github/pmd185_shifts_operations_v17.py
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('.github/pmd185_shifts_operations_v17.py')
+          text = path.read_text()
+          start = text.index('# Preserve pause in the legacy copy-week endpoint even though the UI button is removed.')
+          end = text.index('SHIFT_CONTROLLER.write_text', start)
+          replacement = '''# Preserve pause in the legacy copy-week endpoint even though the UI button is removed.\nphp = replace_once(\n    php,\n    "                if (Schema::hasColumn('pmd_operational_shifts', 'notes')) $insert['notes'] = $shift->notes ?? null;",\n    "                if (Schema::hasColumn('pmd_operational_shifts', 'notes')) $insert['notes'] = $shift->notes ?? null;\\n                if (Schema::hasColumn('pmd_operational_shifts', 'break_minutes')) $insert['break_minutes'] = max(0, min(240, (int)($shift->break_minutes ?? 0)));",\n    'copy week pause',\n)\n'''
+          path.write_text(text[:start] + replacement + text[end:])
+          PY
+          python3 .github/pmd185_shifts_operations_v17.py
 
       - name: QA V17 operations changes
         shell: bash
