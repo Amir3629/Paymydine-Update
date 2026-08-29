@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Admin\Facades\AdminAuth;
 use Admin\Services\PmdDefaultStaffRoleService;
+use App\Services\PmdGermanWorkRulesService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -82,9 +83,10 @@ class PmdStaffPortalController extends Controller
                 ->where('assignment.person_id', (int)$person->id)
                 ->whereBetween('shift.shift_date', [$from, $to])
                 ->whereNotIn('shift.status', ['cancelled', 'canceled'])
-                ->select(['shift.id','shift.shift_date','shift.label','shift.starts_at','shift.ends_at','shift.status','assignment.attendance_status'])
+                ->select(['shift.id','shift.shift_date','shift.label','shift.starts_at','shift.ends_at','shift.break_minutes','shift.status','assignment.attendance_status'])
                 ->orderBy('shift.shift_date')->orderBy('shift.starts_at')->get();
         }
+        $workRuleWarnings = app(PmdGermanWorkRulesService::class)->analyze($shifts);
 
         $openShifts = collect();
         if (Schema::hasTable('pmd_operational_shifts') && Schema::hasTable('pmd_operational_shift_people')) {
@@ -150,7 +152,7 @@ class PmdStaffPortalController extends Controller
         }
 
         return view('pmd-staff-portal.index', compact(
-            'person','shifts','openShifts','requests','managementRequests','groups','messages','activeGroup','teamMembers','chatReady','roleCode','workspaceRoute','canManage'
+            'person','shifts','openShifts','requests','managementRequests','groups','messages','activeGroup','teamMembers','chatReady','roleCode','workspaceRoute','canManage','workRuleWarnings'
         ) + ['requestsReady' => Schema::hasTable('pmd_staff_requests'), 'staffId' => $staffId]);
     }
 
@@ -180,9 +182,10 @@ class PmdStaffPortalController extends Controller
             if (!$ownsShift) return redirect('/staff#requests')->with('error', 'Choose one of your own shifts.');
         }
         if ($shiftId && $type === 'cover_shift') {
-            $isOpen = DB::table('pmd_operational_shifts as shift')->leftJoin('pmd_operational_shift_people as assignment', 'assignment.shift_id', '=', 'shift.id')
-                ->where('shift.id', $shiftId)->where('shift.location_id', $locationId)->groupBy('shift.id')->havingRaw('COUNT(assignment.id) = 0')->exists();
-            if (!$isOpen) return redirect('/staff#open-shifts')->with('error', 'That shift is no longer open.');
+            $openShift = DB::table('pmd_operational_shifts as shift')->leftJoin('pmd_operational_shift_people as assignment', 'assignment.shift_id', '=', 'shift.id')
+                ->where('shift.id', $shiftId)->where('shift.location_id', $locationId)->whereNotIn('shift.status', ['cancelled', 'canceled'])
+                ->groupBy('shift.id')->havingRaw('COUNT(assignment.id) = 0')->select('shift.id')->first();
+            if (!$openShift) return redirect('/staff#open-shifts')->with('error', 'That shift is no longer open.');
         }
 
         $dateFrom = !empty($clean['date_from']) ? Carbon::parse($clean['date_from'])->toDateString() : null;
@@ -237,15 +240,51 @@ class PmdStaffPortalController extends Controller
         $row = DB::table('pmd_staff_requests')->where('id',(int)$clean['id'])->where('location_id',$locationId)->where('status','pending')->first();
         if (!$row) abort(404);
 
-        DB::transaction(function () use ($row, $clean) {
+        DB::transaction(function () use ($row, $clean, $locationId) {
             if ($clean['decision'] === 'approved' && (string)$row->request_type === 'cover_shift' && $row->shift_id && $row->person_id) {
-                $exists = DB::table('pmd_operational_shift_people')->where('shift_id',(int)$row->shift_id)->where('person_id',(int)$row->person_id)->exists();
-                if (!$exists) {
-                    $p = DB::table('pmd_operational_people')->where('id',(int)$row->person_id)->first();
-                    if ($p) DB::table('pmd_operational_shift_people')->insert(['shift_id'=>(int)$row->shift_id,'person_id'=>(int)$p->id,'display_name_snapshot'=>(string)$p->display_name,'department_snapshot'=>(string)($p->department ?: 'other'),'job_role_snapshot'=>$p->job_role ?: null,'attendance_status'=>'planned','created_at'=>now(),'updated_at'=>now()]);
-                }
+                $shift = DB::table('pmd_operational_shifts')->where('id',(int)$row->shift_id)->where('location_id',$locationId)->lockForUpdate()->first();
+                if (!$shift || in_array(strtolower((string)$shift->status), ['cancelled','canceled'], true)) abort(409, 'That shift is no longer available.');
+
+                $occupied = DB::table('pmd_operational_shift_people')->where('shift_id',(int)$row->shift_id)->exists();
+                if ($occupied) abort(409, 'That shift has already been assigned.');
+
+                $p = DB::table('pmd_operational_people')->where('id',(int)$row->person_id)->where('location_id',$locationId)->where('is_active',1)->first();
+                if (!$p) abort(409, 'That team member is no longer active.');
+
+                DB::table('pmd_operational_shift_people')->insert([
+                    'shift_id'=>(int)$row->shift_id,
+                    'person_id'=>(int)$p->id,
+                    'display_name_snapshot'=>(string)$p->display_name,
+                    'department_snapshot'=>(string)($p->department ?: 'other'),
+                    'job_role_snapshot'=>trim((string)($p->job_role ?? '')) ?: null,
+                    'attendance_status'=>'planned',
+                    'is_replacement'=>0,
+                    'created_at'=>now(),
+                    'updated_at'=>now(),
+                ]);
+
+                DB::table('pmd_staff_requests')
+                    ->where('location_id',$locationId)
+                    ->where('request_type','cover_shift')
+                    ->where('shift_id',(int)$row->shift_id)
+                    ->where('status','pending')
+                    ->where('id','!=',(int)$row->id)
+                    ->update([
+                        'status'=>'declined',
+                        'manager_reply'=>'Another team member was assigned to this open shift.',
+                        'handled_by_staff_id'=>$this->staffId(),
+                        'handled_at'=>now(),
+                        'updated_at'=>now(),
+                    ]);
             }
-            DB::table('pmd_staff_requests')->where('id',(int)$row->id)->update(['status'=>$clean['decision'],'manager_reply'=>trim((string)($clean['manager_reply'] ?? '')) ?: null,'handled_by_staff_id'=>$this->staffId(),'handled_at'=>now(),'updated_at'=>now()]);
+
+            DB::table('pmd_staff_requests')->where('id',(int)$row->id)->update([
+                'status'=>$clean['decision'],
+                'manager_reply'=>trim((string)($clean['manager_reply'] ?? '')) ?: null,
+                'handled_by_staff_id'=>$this->staffId(),
+                'handled_at'=>now(),
+                'updated_at'=>now(),
+            ]);
         });
         return redirect('/staff#management')->with('success', 'Request updated.');
     }
