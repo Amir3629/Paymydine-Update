@@ -32,6 +32,10 @@ class PmdRoleLandingService
         'pmd-reservations' => 'reservations',
         'reservation' => 'reservations',
         'reservations' => 'reservations',
+
+        'pmd-team-member' => 'mywork',
+        'team-member' => 'mywork',
+        'team member' => 'mywork',
     ];
 
     private const USERNAME_FALLBACK_MAP = [

@@ -28,55 +28,10 @@ class Mywork extends AdminController
 
     public function index()
     {
-        Template::setTitle('My Work');
-        Template::setHeading('My Work');
-
-        $locationId = $this->locationId();
-        $staffId = $this->staffId();
-        $person = null;
-        if ($staffId > 0 && Schema::hasTable('pmd_operational_people')) {
-            $person = DB::table('pmd_operational_people')
-                ->where('location_id', $locationId)
-                ->where('staff_id', $staffId)
-                ->where('is_active', 1)
-                ->first();
-        }
-
-        $shifts = collect();
-        if ($person && Schema::hasTable('pmd_operational_shift_people') && Schema::hasTable('pmd_operational_shifts')) {
-            $from = now()->subMonth()->startOfDay()->toDateString();
-            $to = now()->addMonths(2)->endOfDay()->toDateString();
-            $shifts = DB::table('pmd_operational_shift_people as assignment')
-                ->join('pmd_operational_shifts as shift', 'shift.id', '=', 'assignment.shift_id')
-                ->where('shift.location_id', $locationId)
-                ->where('assignment.person_id', (int)$person->id)
-                ->whereBetween('shift.shift_date', [$from, $to])
-                ->whereNotIn('shift.status', ['cancelled', 'canceled'])
-                ->select(['shift.id', 'shift.shift_date', 'shift.label', 'shift.starts_at', 'shift.ends_at', 'shift.status', 'assignment.attendance_status'])
-                ->orderBy('shift.shift_date')
-                ->orderBy('shift.starts_at')
-                ->get();
-        }
-
-        $requests = collect();
-        if ($staffId > 0 && Schema::hasTable('pmd_staff_requests')) {
-            $requests = DB::table('pmd_staff_requests')
-                ->where('location_id', $locationId)
-                ->where('staff_id', $staffId)
-                ->orderByDesc('created_at')
-                ->limit(20)
-                ->get();
-        }
-
-        $this->vars['pmdMyWork'] = [
-            'staff_id' => $staffId,
-            'person' => $person,
-            'shifts' => $shifts,
-            'requests' => $requests,
-            'requests_ready' => Schema::hasTable('pmd_staff_requests'),
-        ];
-
-        return $this->makeView('pmdmywork/index');
+        // PMD_STAFF_PORTAL_COMPAT_V1
+        // Keep the old authenticated route as a bridge only. Staff work lives
+        // on the standalone /staff surface with no Admin chrome.
+        return redirect('/staff');
     }
 
     public function saverequest()
@@ -131,7 +86,7 @@ class Mywork extends AdminController
             'updated_at' => now(),
         ]);
 
-        return redirect(admin_url('mywork'))->with('success', 'Request sent to your manager.');
+        return redirect('/staff#messages')->with('success', 'Request sent to your manager.');
     }
 
     private function staffId(): int

@@ -260,7 +260,7 @@ class People extends AdminController
             return $this->error('Could not save PMD access. Check the username/password and try again.', $personId, 'access');
         }
 
-        return redirect(admin_url('people').'?person='.$personId.'#access')->with('success', 'PMD access saved.');
+        return redirect(admin_url('people').'?person='.$personId.'#access')->with('success', 'PMD access saved. Staff sign in at /staff/login.');
     }
 
     public function sendmessage()

@@ -21,6 +21,7 @@
         <div><span>Team</span><h1>People</h1></div>
         <div class="pmd-people__top-actions">
             <a href="{{ admin_url('shifts') }}">Shifts</a>
+            <a href="{{ url('/staff/login') }}" target="_blank" rel="noopener">Staff Portal</a>
             <button type="button" data-pmd-people-add>+ Person</button>
         </div>
     </header>
@@ -143,6 +144,7 @@
                         <form class="pmd-people__form" method="post" action="{{ admin_url('people/saveaccess') }}">
                             @csrf<input type="hidden" name="person_id" value="{{ (int)$person->id }}">
                             <strong>PMD login <em>{{ $access ? 'Active' : 'Optional' }}</em></strong>
+                            <div class="pmd-people__hint">Staff sign in at <a href="{{ url('/staff/login') }}" target="_blank" rel="noopener">{{ url('/staff/login') }}</a>. This is separate from the Owner/Manager Admin workspace.</div>
                             <label><span>Username</span><input required maxlength="32" autocomplete="off" name="username" value="{{ $access && $access->user ? $access->user->username : '' }}" placeholder="username"></label>
                             <label><span>Access</span><select required name="staff_role_id">@foreach($roles as $role)<option value="{{ (int)$role->staff_role_id }}" {{ $access ? ((int)$access->staff_role_id === (int)$role->staff_role_id ? 'selected' : '') : ($defaultRole && (int)$defaultRole->staff_role_id === (int)$role->staff_role_id ? 'selected' : '') }}>{{ $role->name }}</option>@endforeach</select></label>
                             <label><span>Password {{ $access ? '· leave blank to keep' : '' }}</span><input {{ $access ? '' : 'required' }} minlength="6" maxlength="32" type="password" autocomplete="new-password" name="password"></label>
