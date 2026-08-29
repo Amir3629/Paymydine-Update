@@ -1,0 +1,121 @@
+name: PMD185 Shifts Operations V17
+
+on:
+  push:
+    branches:
+      - feature/kitchen-operations-foundation-185
+
+permissions:
+  contents: write
+
+jobs:
+  qa-and-commit:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/kitchen-operations-foundation-185
+          fetch-depth: 0
+
+      - name: Apply V17 operations changes
+        run: python3 .github/pmd185_shifts_operations_v17.py
+
+      - name: QA V17 operations changes
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          php -l app/admin/controllers/Shifts.php
+          php -l app/admin/controllers/Pmdmenus.php
+          php -l app/Services/PmdKitchenOperationsSchemaService.php
+          php -l app/system/database/migrations/2026_08_29_160000_add_break_minutes_to_pmd_operational_shifts.php
+          node --check app/admin/assets/js/pmd-shifts-v1.js
+          git diff --check
+
+          SHIFT_VIEW="app/admin/views/pmdshifts/index.blade.php"
+          SHIFT_JS="app/admin/assets/js/pmd-shifts-v1.js"
+          SHIFT_CSS="app/admin/assets/css/pmd-shifts-dashboard-reservations-v4.css"
+          MENU_VIEW="app/admin/views/pmdmenus/index.blade.php"
+          MENU_CSS="app/admin/assets/css/pmd-menu-manager-v129.css"
+          SHIFT_PHP="app/admin/controllers/Shifts.php"
+          MENU_PHP="app/admin/controllers/Pmdmenus.php"
+          SCHEMA="app/Services/PmdKitchenOperationsSchemaService.php"
+          MIG="app/system/database/migrations/2026_08_29_160000_add_break_minutes_to_pmd_operational_shifts.php"
+
+          # Shifts: 24-hour rota, centered nav, no Copy week / no Kitchen capacity UI.
+          grep -F "pmd-shifts-dashboard-reservations-v4.css?v=17" "$SHIFT_JS"
+          grep -F "var dayEnd = 1800;" "$SHIFT_JS"
+          grep -F "var total = 1440;" "$SHIFT_JS"
+          grep -F "value < 1800" "$SHIFT_JS"
+          grep -F "repeat(48,minmax(0,1fr))" "$SHIFT_CSS"
+          grep -F "min-width:1900px!important" "$SHIFT_CSS"
+          grep -F "grid-template-columns:minmax(0,1fr) auto minmax(0,1fr)!important" "$SHIFT_CSS"
+          ! grep -F "data-pmd-copy-week" "$SHIFT_VIEW"
+          ! grep -F "data-pmd-copy-week" "$SHIFT_JS"
+          ! grep -F "data-pmd-capacity-open" "$SHIFT_VIEW"
+          ! grep -F "data-pmd-capacity-modal" "$SHIFT_VIEW"
+
+          # Shift default: 8h + real persisted custom pause, 30 minutes by default.
+          grep -F "data-pmd-shift-duration=\"480\"" "$SHIFT_VIEW"
+          grep -F "data-pmd-shift-break-default=\"30\"" "$SHIFT_VIEW"
+          grep -F "name=\"break_minutes\"" "$SHIFT_VIEW"
+          grep -F "personStartMinutes + 8 * 60" "$SHIFT_JS"
+          grep -F "break_minutes: 30" "$SHIFT_JS"
+          grep -F "'break_minutes' => ['nullable', 'integer', 'min:0', 'max:240']" "$SHIFT_PHP"
+          grep -F "Schema::hasColumn('pmd_operational_shifts', 'break_minutes')" "$SHIFT_PHP"
+          grep -F "workedMinutes" "$SHIFT_PHP"
+
+          # Unified Shifts member creation now always includes PMD credentials.
+          grep -F "PMD_SHIFTS_MEMBER_LOGIN_REQUIRED_V17" "$SHIFT_PHP"
+          grep -F '$wantsAccess = true;' "$SHIFT_PHP"
+          ! grep -F "data-pmd-team-access-toggle" "$SHIFT_VIEW"
+          grep -F "name=\"give_access\" value=\"1\"" "$SHIFT_VIEW"
+          grep -F "Set password" "$SHIFT_VIEW"
+
+          # Kitchen Capacity moved to Menu workspace, retaining existing save authority.
+          grep -F "pmdMenuManagerKitchenCapacity" "$MENU_PHP"
+          grep -F "data-pmd-menu-capacity-open" "$MENU_VIEW"
+          grep -F "data-pmd-menu-capacity-modal" "$MENU_VIEW"
+          grep -F "admin_url('shifts/saveeta')" "$MENU_VIEW"
+          grep -F "PMD_MENU_KITCHEN_CAPACITY_V17" "$MENU_CSS"
+
+          # Additive pause schema only; historical shifts remain zero pause until edited.
+          grep -F "break_minutes" "$SCHEMA"
+          grep -F "default(0)" "$MIG"
+          grep -F "dropColumn('break_minutes')" "$MIG"
+
+          mapfile -t changed < <(git diff --name-only | sort)
+          printf '%s\n' "${changed[@]}"
+          test "${#changed[@]}" -eq 9
+          expected=(
+            "app/Services/PmdKitchenOperationsSchemaService.php"
+            "app/admin/assets/css/pmd-menu-manager-v129.css"
+            "app/admin/assets/css/pmd-shifts-dashboard-reservations-v4.css"
+            "app/admin/assets/js/pmd-shifts-v1.js"
+            "app/admin/controllers/Pmdmenus.php"
+            "app/admin/controllers/Shifts.php"
+            "app/admin/views/pmdmenus/index.blade.php"
+            "app/admin/views/pmdshifts/index.blade.php"
+            "app/system/database/migrations/2026_08_29_160000_add_break_minutes_to_pmd_operational_shifts.php"
+          )
+          for i in "${!expected[@]}"; do test "${changed[$i]}" = "${expected[$i]}"; done
+
+      - name: Commit V17 product files
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            app/Services/PmdKitchenOperationsSchemaService.php \
+            app/admin/assets/css/pmd-menu-manager-v129.css \
+            app/admin/assets/css/pmd-shifts-dashboard-reservations-v4.css \
+            app/admin/assets/js/pmd-shifts-v1.js \
+            app/admin/controllers/Pmdmenus.php \
+            app/admin/controllers/Shifts.php \
+            app/admin/views/pmdmenus/index.blade.php \
+            app/admin/views/pmdshifts/index.blade.php \
+            app/system/database/migrations/2026_08_29_160000_add_break_minutes_to_pmd_operational_shifts.php
+          git commit -m 'Finalize Shifts credentials pause and capacity placement (#185)'
+          git push origin HEAD:feature/kitchen-operations-foundation-185
