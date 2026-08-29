@@ -56,7 +56,7 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
-          mapfile -t changed < <(git status --porcelain | cut -c4- | sort)
+          mapfile -t changed < <(git status --porcelain -uall | cut -c4- | sort)
           printf '%s\n' "${changed[@]}"
           test "${#changed[@]}" -eq 10
           expected=(
