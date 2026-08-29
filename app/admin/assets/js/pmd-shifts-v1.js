@@ -33,6 +33,7 @@
   var labelInput = modal && modal.querySelector('[data-pmd-shift-label]');
   var startInput = modal && modal.querySelector('[data-pmd-shift-start]');
   var endInput = modal && modal.querySelector('[data-pmd-shift-end]');
+  var breakInput = modal && modal.querySelector('[data-pmd-shift-break]');
   var notesInput = modal && modal.querySelector('[data-pmd-shift-notes]');
   var personInputs = modal
     ? Array.prototype.slice.call(modal.querySelectorAll('[data-pmd-shift-person]'))
@@ -68,19 +69,19 @@
   }
 
   function loadExactSharedUiCss() {
-    if (document.querySelector('link[data-pmd-shifts-exact-ui-v16]')) return;
+    if (document.querySelector('link[data-pmd-shifts-exact-ui-v17]')) return;
     var base = document.querySelector('link[href*="pmd-shifts-v1.css"]');
-    var href = '/app/admin/assets/css/pmd-shifts-dashboard-reservations-v4.css?v=16';
+    var href = '/app/admin/assets/css/pmd-shifts-dashboard-reservations-v4.css?v=17';
     if (base && base.getAttribute('href')) {
       href = base.getAttribute('href').replace(
         /pmd-shifts-v1\.css(?:\?[^#]*)?/,
-        'pmd-shifts-dashboard-reservations-v4.css?v=16'
+        'pmd-shifts-dashboard-reservations-v4.css?v=17'
       );
     }
     var link = document.createElement('link');
     link.rel = 'stylesheet';
     link.href = href;
-    link.setAttribute('data-pmd-shifts-exact-ui-v16', '');
+    link.setAttribute('data-pmd-shifts-exact-ui-v17', '');
     document.head.appendChild(link);
   }
 
@@ -110,9 +111,10 @@
     form.reset();
     if (idInput) idInput.value = '';
     if (dateInput) dateInput.value = date || '';
-    if (labelInput) labelInput.value = 'Dinner';
-    if (startInput) startInput.value = '';
-    if (endInput) endInput.value = '';
+    if (labelInput) labelInput.value = 'Shift';
+    if (startInput) startInput.value = '09:00';
+    if (endInput) endInput.value = '17:00';
+    if (breakInput) breakInput.value = '30';
     if (notesInput) notesInput.value = '';
     personInputs.forEach(function (input) { input.checked = false; });
     clearPresets();
@@ -130,6 +132,7 @@
     if (values.label && labelInput) labelInput.value = String(values.label);
     if (values.start !== undefined && startInput) startInput.value = values.start || '';
     if (values.end !== undefined && endInput) endInput.value = values.end || '';
+    if (values.break_minutes !== undefined && breakInput) breakInput.value = String(values.break_minutes == null ? 30 : values.break_minutes);
     if (values.notes !== undefined && notesInput) notesInput.value = values.notes || '';
     if (title) title.textContent = values.id ? 'Edit shift' : 'Add shift';
 
@@ -186,13 +189,12 @@
   }
 
   function syncTeamAccessFields() {
-    if (!teamAccessFields || !teamAccessToggle) return;
-    var enabled = !!teamAccessToggle.checked;
-    teamAccessFields.hidden = !enabled;
-    teamAccessFields.querySelectorAll('input,select').forEach(function (field) { field.disabled = !enabled; });
-    if (teamUsernameInput) teamUsernameInput.required = enabled;
-    if (teamAccessRoleInput) teamAccessRoleInput.required = enabled;
-    if (teamPasswordInput) teamPasswordInput.required = enabled && !teamHasExistingAccess;
+    if (!teamAccessFields) return;
+    teamAccessFields.hidden = false;
+    teamAccessFields.querySelectorAll('input,select').forEach(function (field) { field.disabled = false; });
+    if (teamUsernameInput) teamUsernameInput.required = true;
+    if (teamAccessRoleInput) teamAccessRoleInput.required = true;
+    if (teamPasswordInput) teamPasswordInput.required = !teamHasExistingAccess;
   }
 
   function suggestedUsername(name) {
@@ -207,7 +209,6 @@
     if (teamIdInput) teamIdInput.value = '';
     if (teamDepartmentInput) teamDepartmentInput.value = 'other';
     if (teamFormTitle) teamFormTitle.textContent = 'Add team member';
-    if (teamAccessToggle) { teamAccessToggle.checked = false; teamAccessToggle.disabled = false; }
     if (teamAccessRoleInput) teamAccessRoleInput.value = teamForm.getAttribute('data-default-access-role') || teamAccessRoleInput.value;
     if (teamPasswordInput) teamPasswordInput.value = '';
     if (teamPasswordHint) teamPasswordHint.textContent = 'required for new login';
@@ -228,7 +229,6 @@
       if (teamDepartmentInput) teamDepartmentInput.value = personNode.getAttribute('data-department') || 'other';
       var hasAccess = personNode.getAttribute('data-has-access') === '1';
       teamHasExistingAccess = hasAccess;
-      if (teamAccessToggle) { teamAccessToggle.checked = hasAccess; teamAccessToggle.disabled = hasAccess; }
       if (teamUsernameInput) teamUsernameInput.value = personNode.getAttribute('data-username') || suggestedUsername(personNode.getAttribute('data-name'));
       if (teamAccessRoleInput && personNode.getAttribute('data-staff-role-id')) teamAccessRoleInput.value = personNode.getAttribute('data-staff-role-id');
       if (teamPasswordInput) teamPasswordInput.value = '';
@@ -311,6 +311,7 @@
       start: shift.start || '',
       end: shift.end || '',
       notes: shift.notes || '',
+      break_minutes: Number(shift.break_minutes == null ? 0 : shift.break_minutes),
       person_ids: (Array.isArray(shift.people) ? shift.people : [])
         .map(function (person) { return person && person.person_id; })
         .filter(Boolean)
@@ -504,7 +505,7 @@
 
   function finalTimelineWindow(shift) {
     var dayStart = 360;
-    var dayEnd = 1560;
+    var dayEnd = 1800;
     var window = shiftWindow(shift);
     var start = Math.max(dayStart, window.start);
     var end = Math.min(dayEnd, window.end);
@@ -514,7 +515,7 @@
 
   function finalShiftMarkup(shift, person) {
     var window = finalTimelineWindow(shift);
-    var total = 1200;
+    var total = 1440;
     var left = ((window.start - 360) / total) * 100;
     var width = ((window.end - window.start) / total) * 100;
     var time = shift.start || 'All day';
@@ -535,7 +536,7 @@
 
   function finalTimeScaleMarkup() {
     var labels = [];
-    for (var value = 360; value <= 1560; value += 120) {
+    for (var value = 360; value <= 1800; value += 120) {
       labels.push('<span>' + escapeHtml(minuteLabel(value)) + '</span>');
     }
     return labels.join('');
@@ -543,7 +544,7 @@
 
   function finalSlotMarkup(person, key) {
     var slots = [];
-    for (var value = 360; value < 1560; value += 30) {
+    for (var value = 360; value < 1800; value += 30) {
       var time = minuteLabel(value);
       slots.push(
         '<button type="button" class="pmd-shifts-final-slot" data-pmd-person-slot-create' +
@@ -577,9 +578,6 @@
 
     key = key || boot.selected_day || new Date().toISOString().slice(0, 10);
     boot.selected_day = key;
-
-    var copyWeekInput = root.querySelector('[data-pmd-copy-week-form] input[name="week"]');
-    if (copyWeekInput) copyWeekInput.value = weekStartKey(key);
 
     var globalAddShift = root.querySelector('.pmd-shifts__header [data-pmd-shift-open]');
     if (globalAddShift) globalAddShift.setAttribute('data-date', key);
@@ -627,7 +625,6 @@
               '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M8 3v4M16 3v4M3 10h18"></path></svg>' +
               '<input type="date" data-pmd-shifts-date-input value="' + escapeHtml(key) + '" aria-label="Choose date">' +
             '</label>' +
-            '<button type="button" class="pmd-shifts-final-soft" data-pmd-copy-week>Copy week</button>' +
           '</div>' +
         '</header>' +
         emptyState +
@@ -709,8 +706,12 @@
     formNode.submit();
   }
 
-  if (teamAccessToggle) teamAccessToggle.addEventListener('change', syncTeamAccessFields);
   if (teamUsernameInput) teamUsernameInput.addEventListener('input', function () { teamUsernameTouched = true; });
+  if (startInput) startInput.addEventListener('change', function () {
+    if (!idInput || !idInput.value) {
+      if (endInput) endInput.value = minuteLabel(minuteValue(startInput.value, 9 * 60) + 8 * 60);
+    }
+  });
   if (teamNameInput) teamNameInput.addEventListener('input', function () {
     if (teamUsernameInput && !teamUsernameTouched) teamUsernameInput.value = suggestedUsername(teamNameInput.value);
   });
@@ -845,7 +846,8 @@
         date: personSlotCreate.getAttribute('data-date') || boot.selected_day || '',
         label: 'Shift',
         start: personStart,
-        end: minuteLabel(personStartMinutes + 4 * 60),
+        end: minuteLabel(personStartMinutes + 8 * 60),
+        break_minutes: 30,
         person_ids: [Number(personSlotCreate.getAttribute('data-person-id') || 0)]
       });
       return;
@@ -865,6 +867,21 @@
       return;
     }
 
+    var durationQuick = event.target.closest('[data-pmd-shift-duration]');
+    if (durationQuick && modal && modal.contains(durationQuick)) {
+      event.preventDefault();
+      var duration = Math.max(30, Number(durationQuick.getAttribute('data-pmd-shift-duration') || 480));
+      if (startInput && endInput) endInput.value = minuteLabel(minuteValue(startInput.value, 9 * 60) + duration);
+      return;
+    }
+
+    var breakQuick = event.target.closest('[data-pmd-shift-break-default]');
+    if (breakQuick && modal && modal.contains(breakQuick)) {
+      event.preventDefault();
+      if (breakInput) breakInput.value = String(Math.max(0, Number(breakQuick.getAttribute('data-pmd-shift-break-default') || 30)));
+      return;
+    }
+
     var preset = event.target.closest('[data-pmd-shift-preset]');
     if (preset) {
       event.preventDefault();
@@ -873,14 +890,6 @@
       if (labelInput) labelInput.value = preset.getAttribute('data-pmd-shift-preset') || 'Shift';
       if (startInput) startInput.value = preset.getAttribute('data-start') || '';
       if (endInput) endInput.value = preset.getAttribute('data-end') || '';
-      return;
-    }
-
-    var copyWeek = event.target.closest('[data-pmd-copy-week]');
-    if (copyWeek) {
-      event.preventDefault();
-      var copyForm = root.querySelector('[data-pmd-copy-week-form]');
-      if (copyForm) copyForm.submit();
       return;
     }
 

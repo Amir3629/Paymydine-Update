@@ -914,3 +914,72 @@ body.pmd-shifts-page.is-day-loading .pmd-shifts-final-screen{
     grid-template-columns:180px minmax(900px,1fr)!important;
   }
 }
+
+/* PMD_SHIFTS_OPERATIONAL_FINAL_V17
+ * Centered day navigation and explicit 24h horizontal rota geometry.
+ */
+body.pmd-shifts-page .pmd-shifts-final-toolbar{
+  position:relative!important;
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) auto minmax(0,1fr)!important;
+  align-items:center!important;
+}
+body.pmd-shifts-page .pmd-shifts-final-date{
+  grid-column:2!important;
+  justify-self:center!important;
+}
+body.pmd-shifts-page .pmd-shifts-final-date h2{
+  text-align:center!important;
+}
+body.pmd-shifts-page .pmd-shifts-final-actions{
+  grid-column:3!important;
+  justify-self:end!important;
+}
+body.pmd-shifts-page .pmd-shifts-final-scroll{
+  overflow-x:auto!important;
+  overflow-y:hidden!important;
+  overscroll-behavior-x:contain!important;
+  scrollbar-gutter:stable!important;
+  -webkit-overflow-scrolling:touch!important;
+}
+body.pmd-shifts-page .pmd-shifts-final-board{
+  min-width:1900px!important;
+}
+body.pmd-shifts-page .pmd-shifts-final-scale-row,
+body.pmd-shifts-page .pmd-shifts-final-row{
+  grid-template-columns:220px minmax(1680px,1fr)!important;
+}
+body.pmd-shifts-page .pmd-shifts-final-scale{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:0!important;
+}
+body.pmd-shifts-page .pmd-shifts-final-track{
+  background:
+    repeating-linear-gradient(to right,transparent 0,transparent calc(4.1666667% - 1px),#edf2f5 calc(4.1666667% - 1px),#edf2f5 4.1666667%),
+    #fff!important;
+}
+body.pmd-shifts-page .pmd-shifts-final-slots{
+  grid-template-columns:repeat(48,minmax(0,1fr))!important;
+}
+body.pmd-shifts-page .pmd-shifts__shift-quick-row{
+  margin-bottom:2px!important;
+}
+body.pmd-shifts-page .pmd-shifts__team-access-fields.is-required{
+  display:grid!important;
+}
+@media(max-width:820px){
+  body.pmd-shifts-page .pmd-shifts-final-toolbar{
+    display:flex!important;
+    flex-direction:column!important;
+  }
+  body.pmd-shifts-page .pmd-shifts-final-date,
+  body.pmd-shifts-page .pmd-shifts-final-actions{
+    justify-self:auto!important;
+  }
+  body.pmd-shifts-page .pmd-shifts-final-scale-row,
+  body.pmd-shifts-page .pmd-shifts-final-row{
+    grid-template-columns:180px minmax(1680px,1fr)!important;
+  }
+}

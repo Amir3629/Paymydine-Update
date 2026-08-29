@@ -111,6 +111,7 @@ class Shifts extends AdminController
         $currentConfirmed = $currentShift && (!empty($currentShift->confirmed_at) || strtolower((string)$currentShift->status) === 'confirmed');
 
         $scheduledHoursMonth = 0.0;
+        $hasBreakMinutes = $ready && Schema::hasColumn('pmd_operational_shifts', 'break_minutes');
         foreach ($shifts as $shift) {
             $date = Carbon::parse($shift->shift_date);
             if (!$date->betweenIncluded($monthStart, $monthEnd)) continue;
@@ -120,7 +121,9 @@ class Shifts extends AdminController
             if ($end <= $start) $end += 1440;
             $assigned = collect($shift->people ?? [])->count();
             if ($assigned < 1) continue;
-            $scheduledHoursMonth += (($end - $start) / 60) * $assigned;
+            $breakMinutes = $hasBreakMinutes ? max(0, min(240, (int)($shift->break_minutes ?? 0))) : 0;
+            $workedMinutes = max(0, ($end - $start) - $breakMinutes);
+            $scheduledHoursMonth += ($workedMinutes / 60) * $assigned;
         }
 
         $monthShifts = $shifts->filter(fn ($shift) => Carbon::parse($shift->shift_date)->betweenIncluded($monthStart, $monthEnd))->values();
@@ -219,7 +222,10 @@ class Shifts extends AdminController
         $existingStaff = $existing && !empty($existing->staff_id)
             ? Staffs_model::with(['role', 'user'])->whereNotSuperUser()->find((int)$existing->staff_id)
             : null;
-        $wantsAccess = request()->boolean('give_access') || (bool)$existingStaff;
+        // PMD_SHIFTS_MEMBER_LOGIN_REQUIRED_V17
+        // Every newly saved restaurant member must have a PMD login. Existing
+        // linked members keep their current password unless a new one is supplied.
+        $wantsAccess = true;
 
         $roleService = app(PmdDefaultStaffRoleService::class);
         $managedRoles = collect($roleService->ensure())
@@ -383,6 +389,7 @@ class Shifts extends AdminController
             'starts_at' => ['nullable', 'date_format:H:i'],
             'ends_at' => ['nullable', 'date_format:H:i'],
             'notes' => ['nullable', 'string', 'max:2000'],
+            'break_minutes' => ['nullable', 'integer', 'min:0', 'max:240'],
             'person_ids' => ['nullable', 'array'],
             'person_ids.*' => ['integer', 'min:1'],
         ]);
@@ -407,6 +414,9 @@ class Shifts extends AdminController
             ];
             if (Schema::hasColumn('pmd_operational_shifts', 'notes')) {
                 $values['notes'] = trim((string)($clean['notes'] ?? '')) ?: null;
+            }
+            if (Schema::hasColumn('pmd_operational_shifts', 'break_minutes')) {
+                $values['break_minutes'] = max(0, min(240, (int)($clean['break_minutes'] ?? 30)));
             }
 
             if ($id > 0) {
@@ -507,6 +517,7 @@ class Shifts extends AdminController
                     'updated_at' => now(),
                 ];
                 if (Schema::hasColumn('pmd_operational_shifts', 'notes')) $insert['notes'] = $shift->notes ?? null;
+                if (Schema::hasColumn('pmd_operational_shifts', 'break_minutes')) $insert['break_minutes'] = max(0, min(240, (int)($shift->break_minutes ?? 0)));
                 $newId = (int)DB::table('pmd_operational_shifts')->insertGetId($insert);
 
                 $rows = DB::table('pmd_operational_shift_people')->where('shift_id', (int)$shift->id)->orderBy('id')->get();

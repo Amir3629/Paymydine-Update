@@ -11,7 +11,6 @@
     $currentConfirmed = !empty($data['current_confirmed']);
     $stats = $data['stats'] ?? [];
     $departments = $data['departments'] ?? [];
-    $capacity = $data['capacity'] ?? [];
     $accessRoles = collect($data['access_roles'] ?? []);
     $accessStaff = collect($data['access_staff'] ?? []);
     $teamRequests = collect($data['team_requests'] ?? []);
@@ -200,6 +199,7 @@
             'start' => $shift->starts_at ? substr((string)$shift->starts_at, 0, 5) : '',
             'end' => $shift->ends_at ? substr((string)$shift->ends_at, 0, 5) : '',
             'notes' => (string)($shift->notes ?? ''),
+            'break_minutes' => isset($shift->break_minutes) ? max(0, min(240, (int)$shift->break_minutes)) : 0,
             'confirmed' => !empty($shift->confirmed_at) || strtolower((string)$shift->status) === 'confirmed',
             'people' => $shiftPeople,
         ];
@@ -231,9 +231,6 @@
             <button type="button" class="pmd-shifts__header-icon" data-pmd-team-scroll aria-label="Members" title="Members">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"></circle><path d="M3 20a6 6 0 0 1 12 0M16 5a3 3 0 0 1 0 6M17 14a5 5 0 0 1 4 5"></path></svg>
                 <span class="pmd-shifts__header-count">{{ $people->count() }}</span>
-            </button>
-            <button type="button" class="pmd-shifts__header-icon" data-pmd-capacity-open aria-label="Kitchen capacity" title="Kitchen capacity">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c1.8 3 5 4.6 5 9a5 5 0 0 1-10 0c0-2.3 1.2-4.4 3.5-6.5.2 2 1 3 1.5 3.5 1.2-1.4 1.2-3.7 0-6z"></path></svg>
             </button>
             @if($ready)
                 <button type="button" class="pmd-shifts__header-icon is-primary" data-pmd-shift-open data-date="{{ $selectedDay->toDateString() }}" aria-label="Add shift" title="Add shift">
@@ -327,11 +324,11 @@
                         <span class="pmd-shifts-team-row__avatar">{{ strtoupper(substr(trim((string)$person->display_name),0,1)) }}</span>
                         <span class="pmd-shifts-team-row__person"><strong>{{ $person->display_name }}</strong><small>{{ $person->job_role ?: 'Team member' }}</small></span>
                         <span class="pmd-shifts-team-row__meta"><small>Area</small><strong>{{ $departments[$person->department] ?? ucfirst((string)$person->department) }}</strong></span>
-                        <span class="pmd-shifts-team-row__meta"><small>Login</small><strong>{{ $personAccess && $personAccess->user ? $personAccess->user->username : 'No login' }}</strong></span>
+                        <span class="pmd-shifts-team-row__meta"><small>Login</small><strong>{{ $personAccess && $personAccess->user ? $personAccess->user->username : 'Set password' }}</strong></span>
                         <span class="pmd-shifts-team-row__chevron">›</span>
                     </button>
                 @empty
-                    <div class="pmd-shifts-team-panel__empty"><strong>No members yet</strong><span>Use + Member. A name is enough.</span></div>
+                    <div class="pmd-shifts-team-panel__empty"><strong>No members yet</strong><span>Use + Member to create the account.</span></div>
                 @endforelse
             </div>
         </section>
@@ -349,16 +346,16 @@
                     <input type="hidden" name="id" value="" data-pmd-shift-id>
                     <input type="hidden" name="return_to" value="{{ $returnTo }}">
                     <div class="pmd-shifts__modal-body">
-                        <div class="pmd-shifts__preset-row">
-                            <button type="button" data-pmd-shift-preset="Lunch" data-start="11:00" data-end="16:00">Lunch</button>
-                            <button type="button" data-pmd-shift-preset="Dinner" data-start="17:00" data-end="23:00">Dinner</button>
-                            <button type="button" data-pmd-shift-preset="Full day" data-start="" data-end="">Full day</button>
+                        <div class="pmd-shifts__preset-row pmd-shifts__shift-quick-row">
+                            <button type="button" data-pmd-shift-duration="480">8 hours</button>
+                            <button type="button" data-pmd-shift-break-default="30">30 min Pause</button>
                         </div>
                         <div class="pmd-shifts__form-grid">
                             <label><span>Date</span><input required type="date" name="shift_date" value="{{ $selectedDay->toDateString() }}" data-pmd-shift-date-input></label>
                             <label><span>Shift name</span><input required maxlength="64" name="label" value="Dinner" data-pmd-shift-label></label>
                             <label><span>Start</span><input type="time" name="starts_at" data-pmd-shift-start></label>
                             <label><span>End</span><input type="time" name="ends_at" data-pmd-shift-end></label>
+                            <label><span>Pause (min)</span><input type="number" name="break_minutes" min="0" max="240" step="5" value="30" data-pmd-shift-break></label>
                             <label class="is-full"><span>Note</span><textarea name="notes" maxlength="2000" rows="2" data-pmd-shift-notes placeholder="Optional note"></textarea></label>
                         </div>
                         <fieldset class="pmd-shifts__person-picker">
@@ -401,16 +398,13 @@
                             @foreach($departments as $departmentKey => $departmentLabel)<option value="{{ $departmentKey }}">{{ $departmentLabel }}</option>@endforeach
                         </select></label>
                     </div>
-                    <label class="pmd-shifts__team-access-toggle">
-                        <input type="checkbox" name="give_access" value="1" data-pmd-team-access-toggle>
-                        <span><strong>Create PMD login</strong></span>
-                    </label>
-                    <div class="pmd-shifts__team-access-fields" data-pmd-team-access-fields hidden>
-                        <label><span>Username</span><input maxlength="32" name="username" autocomplete="off" data-pmd-team-username></label>
-                        <label><span>Access</span><select name="staff_role_id" data-pmd-team-access-role>
+                    <input type="hidden" name="give_access" value="1">
+                    <div class="pmd-shifts__team-access-fields is-required" data-pmd-team-access-fields>
+                        <label><span>Username</span><input maxlength="32" name="username" autocomplete="off" required data-pmd-team-username></label>
+                        <label><span>Access</span><select name="staff_role_id" required data-pmd-team-access-role>
                             @foreach($accessRoles as $accessRole)<option value="{{ (int)$accessRole->staff_role_id }}">{{ $accessRole->name }}</option>@endforeach
                         </select></label>
-                        <label class="is-password"><span>Password <small data-pmd-team-password-hint>required</small></span><span class="pmd-shifts__team-password-row"><input type="password" minlength="6" maxlength="32" name="password" autocomplete="new-password" data-pmd-team-password><button type="button" data-pmd-team-password-generate>Generate</button></span></label>
+                        <label class="is-password"><span>Password <small data-pmd-team-password-hint>required</small></span><span class="pmd-shifts__team-password-row"><input type="password" minlength="6" maxlength="32" name="password" autocomplete="new-password" required data-pmd-team-password><button type="button" data-pmd-team-password-generate>Generate</button></span></label>
                     </div>
                     <footer class="pmd-shifts__modal-footer pmd-shifts__team-editor-footer">
                         <button type="button" class="pmd-shifts__button is-soft" data-pmd-team-close>Cancel</button>
@@ -419,52 +413,6 @@
                 </form>
             </section>
         </div>
-
-        <div class="pmd-shifts__modal" data-pmd-capacity-modal hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="pmd-capacity-modal-title">
-            <button type="button" class="pmd-shifts__modal-backdrop" data-pmd-capacity-close tabindex="-1" aria-label="Close"></button>
-            <section class="pmd-shifts__modal-card pmd-shifts__capacity-card" role="document">
-                <header class="pmd-shifts__modal-header">
-                    <div><h2 id="pmd-capacity-modal-title">Kitchen capacity</h2></div>
-                    <button type="button" class="pmd-shifts__modal-close" data-pmd-capacity-close aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
-                </header>
-                <form class="pmd-shifts__modal-form" method="post" action="{{ admin_url('shifts/saveeta') }}">
-                    @csrf
-                    <input type="hidden" name="return_to" value="{{ $returnTo }}">
-                    <div class="pmd-shifts__modal-body">
-                        <section class="pmd-shifts__capacity-section">
-                            <div class="pmd-shifts__capacity-copy"><strong>Live load</strong></div>
-                            <div class="pmd-shifts__form-grid">
-                                <label><span>Busy at</span><input type="number" name="busy_item_threshold" min="1" max="500" value="{{ (int)($capacity['busy_item_threshold'] ?? 10) }}"></label>
-                                <label><span>+ minutes</span><input type="number" name="busy_extra_minutes" min="0" max="120" value="{{ (int)($capacity['busy_extra_minutes'] ?? 5) }}"></label>
-                                <label><span>Very busy at</span><input type="number" name="very_busy_item_threshold" min="2" max="1000" value="{{ (int)($capacity['very_busy_item_threshold'] ?? 25) }}"></label>
-                                <label><span>+ minutes</span><input type="number" name="very_busy_extra_minutes" min="0" max="240" value="{{ (int)($capacity['very_busy_extra_minutes'] ?? 10) }}"></label>
-                            </div>
-                        </section>
-                        <section class="pmd-shifts__capacity-section">
-                            <label class="pmd-shifts__capacity-toggle">
-                                <input type="hidden" name="peak_enabled_present" value="1">
-                                <input type="checkbox" name="peak_enabled" value="1" {{ !empty($capacity['peak_enabled']) ? 'checked' : '' }}>
-                                <span><strong>Peak time</strong></span>
-                            </label>
-                            <div class="pmd-shifts__form-grid">
-                                <label><span>Starts</span><input type="time" name="peak_start" value="{{ $capacity['peak_start'] ?? '18:00' }}"></label>
-                                <label><span>Ends</span><input type="time" name="peak_end" value="{{ $capacity['peak_end'] ?? '21:00' }}"></label>
-                                <label><span>Buffer (min)</span><input type="number" name="peak_extra_minutes" min="0" max="120" value="{{ (int)($capacity['peak_extra_minutes'] ?? 5) }}"></label>
-                            </div>
-                        </section>
-                    </div>
-                    <footer class="pmd-shifts__modal-footer">
-                        <button type="button" class="pmd-shifts__button is-soft" data-pmd-capacity-close>Cancel</button>
-                        <button type="submit" class="pmd-shifts__button">Save</button>
-                    </footer>
-                </form>
-            </section>
-        </div>
-
-        <form data-pmd-copy-week-form method="post" action="{{ admin_url('shifts/copyweek') }}" hidden>
-            @csrf
-            <input type="hidden" name="week" value="{{ $weekStart->toDateString() }}">
-        </form>
     @endif
 
     @php

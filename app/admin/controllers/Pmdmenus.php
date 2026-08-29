@@ -362,6 +362,23 @@ class Pmdmenus extends AdminController
         $this->vars['pmdMenuManagerCanDeleteCategories'] = (bool)$canDeleteCategories;
         $this->vars['pmdMenuManagerCanManageCombos'] = (bool)$canManageCombos;
         $this->vars['pmdMenuManagerHasCombos'] = $hasCombos;
+        $pmdCanManageKitchenCapacityV17 = in_array($pmdMenuManagerRole, ['owner', 'manager'], true);
+        $pmdBusyThresholdV17 = $this->pmdSettingIntV17('eta_busy_item_threshold', 10, 1, 500);
+        $pmdVeryBusyThresholdV17 = $this->pmdSettingIntV17('eta_very_busy_item_threshold', 25, 2, 1000);
+        if ($pmdVeryBusyThresholdV17 <= $pmdBusyThresholdV17) $pmdVeryBusyThresholdV17 = min(1000, $pmdBusyThresholdV17 + 1);
+
+        $this->vars['pmdMenuManagerCanManageKitchenCapacity'] = $pmdCanManageKitchenCapacityV17;
+        $this->vars['pmdMenuManagerKitchenCapacity'] = [
+            'busy_item_threshold' => $pmdBusyThresholdV17,
+            'very_busy_item_threshold' => $pmdVeryBusyThresholdV17,
+            'busy_extra_minutes' => $this->pmdSettingIntV17('eta_busy_extra_minutes', 5, 0, 120),
+            'very_busy_extra_minutes' => $this->pmdSettingIntV17('eta_very_busy_extra_minutes', 10, 0, 240),
+            'peak_enabled' => $this->pmdSettingBoolV17('pmd_kitchen_peak_enabled', false),
+            'peak_start' => $this->pmdSettingTimeV17('pmd_kitchen_peak_start', '18:00'),
+            'peak_end' => $this->pmdSettingTimeV17('pmd_kitchen_peak_end', '21:00'),
+            'peak_extra_minutes' => $this->pmdSettingIntV17('pmd_kitchen_peak_extra_minutes', 5, 0, 120),
+        ];
+
         $this->vars['pmdMenuManagerStats'] = [
             'total' => count($cards) + count($comboCards),
             'published' => $publishedFoods + $publishedCombos,
@@ -371,6 +388,36 @@ class Pmdmenus extends AdminController
         ];
 
         return $this->makeView('pmdmenus/index');
+    }
+
+    private function pmdSettingValueV17(string $key, $default)
+    {
+        try {
+            if (!Schema::hasTable('settings')) return $default;
+            $query = DB::table('settings')->where('item', $key);
+            if (Schema::hasColumn('settings', 'setting_id')) $query->orderByDesc('setting_id');
+            $value = $query->value('value');
+            return ($value === null || $value === '') ? $default : $value;
+        } catch (\Throwable $error) {
+            return $default;
+        }
+    }
+
+    private function pmdSettingIntV17(string $key, int $default, int $min, int $max): int
+    {
+        return max($min, min($max, (int)$this->pmdSettingValueV17($key, $default)));
+    }
+
+    private function pmdSettingBoolV17(string $key, bool $default): bool
+    {
+        $value = $this->pmdSettingValueV17($key, $default ? 1 : 0);
+        return in_array(strtolower(trim((string)$value)), ['1', 'true', 'yes', 'on'], true);
+    }
+
+    private function pmdSettingTimeV17(string $key, string $default): string
+    {
+        $value = trim((string)$this->pmdSettingValueV17($key, $default));
+        return preg_match('/^(?:[01]\d|2[0-3]):[0-5]\d$/', $value) ? $value : $default;
     }
 
     protected function comboDerivedProfile(array $items, array $catalog): array

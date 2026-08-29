@@ -71,6 +71,12 @@ class PmdKitchenOperationsSchemaService
             });
         }
 
+        if ($schema->hasTable('pmd_operational_shifts') && !$schema->hasColumn('pmd_operational_shifts', 'break_minutes')) {
+            $schema->table('pmd_operational_shifts', function (Blueprint $table) {
+                $table->unsignedSmallInteger('break_minutes')->default(0)->after('ends_at');
+            });
+        }
+
         if (!$schema->hasTable('pmd_operational_shift_people')) {
             $schema->create('pmd_operational_shift_people', function (Blueprint $table) {
                 $table->bigIncrements('id');
