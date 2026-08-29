@@ -9,7 +9,8 @@
 | 2) assets combiner
 | 3) /api and /api/v1 modules
 | 4) public theme/VAT/coupon routes
-| 5) Next.js proxy catch-all last
+| 5) PMD Staff Portal routes
+| 6) Next.js proxy catch-all last
 |--------------------------------------------------------------------------
 */
 
@@ -27,6 +28,13 @@ App::before(function () {
         require_once __DIR__.'/coupon.php';
 
         require_once __DIR__.'/main-public-compat.php';
+
+        // PMD_STAFF_PORTAL_BEFORE_NEXT_PROXY_V3
+        // /staff is an application surface, never a guest menu route. Register
+        // it before the public frontend catch-all so tenant hosts do not proxy
+        // Staff Portal requests to Next.js.
+        require_once base_path('routes/pmd-staff-portal-v1.php');
+
         require_once __DIR__.'/next-proxy.php';
     });
 });
