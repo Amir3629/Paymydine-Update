@@ -27,6 +27,10 @@ App::before(function () {
         require_once __DIR__.'/coupon.php';
 
         require_once __DIR__.'/main-public-compat.php';
+
+        // PMD_STAFF_PORTAL_V1_PUBLIC_ROUTE_LOADER
+        require_once base_path('routes/pmd-staff-portal-v1.php');
+
         require_once __DIR__.'/next-proxy.php';
     });
 });
