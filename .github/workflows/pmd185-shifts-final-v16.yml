@@ -19,7 +19,15 @@ jobs:
           fetch-depth: 0
 
       - name: Apply final Shifts rota V16
-        run: python3 .github/pmd185_shifts_final_v16.py
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 .github/pmd185_shifts_final_v16.py
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('app/admin/assets/css/pmd-shifts-dashboard-reservations-v4.css')
+          path.write_text(path.read_text().rstrip() + '\n')
+          PY
 
       - name: QA final Shifts rota V16
         shell: bash
