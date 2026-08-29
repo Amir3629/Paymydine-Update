@@ -25,7 +25,7 @@ html,body,.page,.page-wrapper,.page-content,.content-wrapper,.container,.contain
         </div>
         <div class="pmd-team-header__actions" data-pmd-team-actions>
             <a class="pmd-team-header-link" href="{{ admin_url('shifts') }}"><svg viewBox="0 0 24 24"><path d="M4 5h16v15H4z"></path><path d="M8 3v4M16 3v4M4 10h16"></path></svg><span>{{ $pmdSettingsText('Shifts') }}</span></a>
-            <a class="pmd-team-header-link" href="{{ url('/staff/login') }}" target="_blank" rel="noopener"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path></svg><span>{{ $pmdSettingsText('Staff Portal') }}</span></a>
+            <a class="pmd-team-header-link" href="{{ admin_url('login') }}?destination=staff" target="_blank" rel="noopener"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path></svg><span>{{ $pmdSettingsText('Staff Portal') }}</span></a>
             @include('admin::_partials.pmd_settings_family_notification_placeholder_v18')
         </div>
     </header>
