@@ -6,6 +6,7 @@
     $groups = collect($groups ?? []);
     $messages = collect($messages ?? []);
     $teamMembers = collect($teamMembers ?? []);
+    $workRuleWarnings = $workRuleWarnings ?? [];
     $today = now()->startOfDay();
     $upcoming = $shifts->filter(fn($s) => \Carbon\Carbon::parse($s->shift_date)->endOfDay()->gte($today))->values();
     $next = $upcoming->first();
@@ -96,7 +97,8 @@
                 <header><div><span>Schedule</span><h2>My shifts</h2></div><b>{{ $upcoming->count() }}</b></header>
                 <div class="pmd-staff-shifts">
                     @forelse($upcoming->take(8) as $shift)
-                        <article><time><strong>{{ \Carbon\Carbon::parse($shift->shift_date)->format('d') }}</strong><small>{{ \Carbon\Carbon::parse($shift->shift_date)->format('M') }}</small></time><div><strong>{{ $shift->label ?: 'Shift' }}</strong><span>{{ $shift->starts_at ? substr((string)$shift->starts_at,0,5) : 'All day' }}@if($shift->ends_at) – {{ substr((string)$shift->ends_at,0,5) }}@endif</span></div><button type="button" data-pmd-request-shift="{{ (int)$shift->id }}">Change</button></article>
+                        @php $rule = $workRuleWarnings[(int)$shift->id] ?? null; @endphp
+                        <article><time><strong>{{ \Carbon\Carbon::parse($shift->shift_date)->format('d') }}</strong><small>{{ \Carbon\Carbon::parse($shift->shift_date)->format('M') }}</small></time><div><strong>{{ $shift->label ?: 'Shift' }}</strong><span>{{ $shift->starts_at ? substr((string)$shift->starts_at,0,5) : 'All day' }}@if($shift->ends_at) – {{ substr((string)$shift->ends_at,0,5) }}@endif@if(isset($shift->break_minutes) && (int)$shift->break_minutes > 0) · {{ (int)$shift->break_minutes }}m break @endif@if($rule && !empty($rule['warnings'])) · ⚠ {{ $rule['warnings'][0]['message'] }}@endif</span></div><button type="button" data-pmd-request-shift="{{ (int)$shift->id }}">Change</button></article>
                     @empty<div class="pmd-staff-empty">No upcoming shifts.</div>@endforelse
                 </div>
             </section>
