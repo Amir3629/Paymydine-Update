@@ -65,7 +65,6 @@ class PmdStaffPortalV5Controller extends PmdStaffPortalController
 
             $shifts = $shiftQuery
                 ->orderBy('shift.shift_date')
-                ->orderByRaw('CASE WHEN shift.starts_at IS NULL THEN 1 ELSE 0 END')
                 ->orderBy('shift.starts_at')
                 ->orderBy('shift.id')
                 ->get()
@@ -81,7 +80,6 @@ class PmdStaffPortalV5Controller extends PmdStaffPortalController
             $this->addBreakSelect($nextQuery);
             $nextShift = $nextQuery
                 ->orderBy('shift.shift_date')
-                ->orderByRaw('CASE WHEN shift.starts_at IS NULL THEN 1 ELSE 0 END')
                 ->orderBy('shift.starts_at')
                 ->orderBy('shift.id')
                 ->first();
@@ -194,7 +192,7 @@ class PmdStaffPortalV5Controller extends PmdStaffPortalController
                 ->where('group.is_active', 1)
                 ->where('member.staff_id', $staffId)
                 ->select(['group.id','group.name','group.group_type'])
-                ->orderByRaw("CASE group.group_type WHEN 'team' THEN 0 ELSE 1 END")
+                ->orderByDesc('group.group_type')
                 ->orderBy('group.name')
                 ->get();
 
