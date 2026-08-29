@@ -642,15 +642,42 @@
     profileClosers.forEach(function (button) { button.addEventListener('click', function () { setProfile(false); }); });
     document.addEventListener('keydown', function (event) { if (event.key === 'Escape' && profileModal && !profileModal.hidden) setProfile(false); });
 
+    // PMD_STAFF_AVATAR_SAFARI_STATE_V1
+    // Safari can report complete=true while naturalWidth is transiently 0 during
+    // decode/cache revalidation. Never convert that transient state into a
+    // permanent fallback: a later load event must always restore the image.
     root.querySelectorAll('[data-pmd-avatar-image]').forEach(function (img) {
-        function fallback() {
+        var holder = img.parentElement;
+        var fallbackNode = holder ? holder.querySelector('[data-pmd-avatar-fallback]') : null;
+
+        function showImage() {
+            img.hidden = false;
+            if (fallbackNode) fallbackNode.hidden = true;
+        }
+
+        function showFallback() {
             img.hidden = true;
-            var holder = img.parentElement;
-            var fallbackNode = holder ? holder.querySelector('[data-pmd-avatar-fallback]') : null;
             if (fallbackNode) fallbackNode.hidden = false;
         }
-        img.addEventListener('error', fallback);
-        if (img.complete && img.naturalWidth === 0) fallback();
+
+        function syncAvatar() {
+            if (!img.complete) return;
+            if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+                showImage();
+                return;
+            }
+
+            // Give Safari one more paint/decode turn before treating the image
+            // as failed. The error event remains the primary failure authority.
+            window.setTimeout(function () {
+                if (!img.complete) return;
+                if (img.naturalWidth > 0 && img.naturalHeight > 0) showImage();
+            }, 120);
+        }
+
+        img.addEventListener('load', showImage);
+        img.addEventListener('error', showFallback);
+        syncAvatar();
     });
 
     var avatarInput = root.querySelector('[data-pmd-avatar-input]');
