@@ -9,6 +9,22 @@ import { RuntimeOverlays } from '@/src/runtime/components/RuntimeOverlays'
 import { ThemeBottomToolBar } from '@/src/runtime/components/ThemeBottomToolBar'
 import styles from './EmberSteakhouse.module.css'
 
+function hasConfiguredPrepTime(value: number | null | undefined): boolean {
+  const rounded = Math.round(Number(value || 0))
+  // 15 is the historical database default for untouched menu rows. It remains
+  // useful internally as an ETA fallback but should not look guest-configured.
+  return rounded > 0 && rounded !== 15
+}
+
+function prepTimeLabel(value: number | null | undefined): string {
+  const rounded = Math.round(Number(value || 0))
+  if (rounded === 10) return '5–10 min'
+  if (rounded === 20) return '10–20 min'
+  if (rounded === 30) return '20–30 min'
+  if (rounded === 45) return '30–45 min'
+  return rounded > 0 ? `~${rounded} min` : ''
+}
+
 export default function EmberSteakhouse() {
   const {
     bootstrap, labels, categories, selectedCategory, setSelectedCategory, visibleItems,
@@ -62,7 +78,7 @@ export default function EmberSteakhouse() {
               <p>{item.description}</p>
               <DietaryBadges item={item} compact />
               <div className={styles.details}>
-                <span>{item.prepTimeMinutes ? `${item.prepTimeMinutes} min` : 'Fire finished'}</span>
+                {hasConfiguredPrepTime(item.prepTimeMinutes) && <span>{prepTimeLabel(item.prepTimeMinutes)}</span>}
                 <strong>{formatCurrency(item.price)}</strong>
                 <QuickAddButton item={item} />
               </div>

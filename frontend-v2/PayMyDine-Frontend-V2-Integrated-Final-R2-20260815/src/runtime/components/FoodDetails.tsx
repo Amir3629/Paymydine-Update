@@ -102,6 +102,15 @@ function metric(value: number): string {
   return Number.isInteger(value) ? String(value) : String(Math.round(value * 10) / 10)
 }
 
+function prepTimeLabel(value: number): string {
+  const rounded = Math.round(value)
+  if (rounded === 10) return '5–10 min'
+  if (rounded === 20) return '10–20 min'
+  if (rounded === 30) return '20–30 min'
+  if (rounded === 45) return '30–45 min'
+  return `~${metric(value)} min`
+}
+
 export function FoodDetails({ item }: { item: MenuItem }) {
   const { locale } = useMenuRuntime()
   const copy = foodInfoCopy(locale)
@@ -122,8 +131,13 @@ export function FoodDetails({ item }: { item: MenuItem }) {
     nutrition.sugar != null ? { key: 'sugar' as const, label: copy.sugar, value: `${metric(nutrition.sugar)} g` } : null,
   ].filter(Boolean) as Array<{ key: FoodGlyphKind; label: string; value: string }> : []
 
-  if (item.prepTimeMinutes != null) {
-    nutrients.push({ key: 'prep', label: copy.prep, value: `${metric(item.prepTimeMinutes)} min` })
+  // The prep_time_minutes column historically defaulted existing/unconfigured
+  // menu rows to 15. Keep that useful as an internal ETA fallback, but do not
+  // present it to guests as if the restaurant explicitly configured a prep time.
+  const prepMinutes = Number(item.prepTimeMinutes || 0)
+  const hasConfiguredPrepTime = Number.isFinite(prepMinutes) && prepMinutes > 0 && Math.round(prepMinutes) !== 15
+  if (hasConfiguredPrepTime) {
+    nutrients.push({ key: 'prep', label: copy.prep, value: prepTimeLabel(prepMinutes) })
   }
 
   if (!diets.length && !allergens.length && !nutrients.length) return null

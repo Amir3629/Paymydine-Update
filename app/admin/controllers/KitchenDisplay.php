@@ -14,6 +14,8 @@ use System\Models\Settings_model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Response;
+use Illuminate\Support\Facades\Schema;
+use App\Services\PmdKitchenEtaLifecycleService;
 
 /**
  * Kitchen Display Controller
@@ -296,6 +298,22 @@ class KitchenDisplay extends AdminController
                 \Log::warning('Failed to create KDS notification: '.$e->getMessage());
             }
 
+            // Preserve the existing KDS interaction: received card tap is the
+            // Preparing action; Ready remains the only visible status button.
+            // The lifecycle service records timing around that canonical status.
+            $etaState = [];
+            try {
+                $etaState = app(PmdKitchenEtaLifecycleService::class)->onKitchenStatus(
+                    (int)$orderId,
+                    (string)$newStatus->status_name
+                );
+            } catch (\Throwable $etaError) {
+                \Log::warning('PMD KDS ETA lifecycle update failed', [
+                    'order_id' => $orderId,
+                    'message' => $etaError->getMessage(),
+                ]);
+            }
+
             return Response::json([
                 'success' => true,
                 'message' => 'Status updated successfully',
@@ -305,6 +323,7 @@ class KitchenDisplay extends AdminController
                 'status_id' => $statusId,
                 'status_name' => (string)$newStatus->status_name,
                 'display_status_name' => $newStatus->status_name === 'Preparation' ? 'Preparing' : ($newStatus->status_name === 'Delivery' ? 'Ready' : (string)$newStatus->status_name),
+                'eta' => $etaState,
             ]);
         } catch (\Throwable $e) {
             \Log::error('KDS status update failed', [
@@ -451,6 +470,15 @@ class KitchenDisplay extends AdminController
     {
         $query = Orders_model::with(['status', 'location', 'order_notes'])
             ->whereIn('status_id', $this->pmdKitchenStatusIdsV82());
+
+        // Guest self-orders remain payment-held with processed=0. They are not
+        // Kitchen work until the paid-release path flips processed to 1.
+        try {
+            if (Schema::hasColumn('orders', 'processed')) {
+                $query->where('processed', 1);
+            }
+        } catch (\Throwable $ignored) {
+        }
 
         $locationId = $this->pmdKdsStationLocationIdV134();
         if ($locationId) {
@@ -644,6 +672,39 @@ class KitchenDisplay extends AdminController
             'items' => [],
             'notes' => []
         ];
+
+        try {
+            $etaService = app(PmdKitchenEtaLifecycleService::class);
+            $etaState = $etaService->stateForOrder($order, false);
+            if (
+                !empty($etaState['available'])
+                && ($etaState['phase'] ?? '') === 'not_released'
+                && (!isset($order->processed) || (int)$order->processed === 1)
+            ) {
+                $etaState = $etaService->releaseOrder((int)$order->order_id, null, (int)($order->location_id ?? 1), 'kds_visible_recovery');
+            }
+            // Reconcile only tickets close to the current deadline. This keeps
+            // the 5-second KDS refresh cheap for the rest of the queue.
+            if (
+                !empty($etaState['available'])
+                && $etaState['phase'] !== 'ready'
+                && $etaState['phase'] !== 'cancelled'
+                && $etaState['remaining_minutes'] !== null
+                && (int)$etaState['remaining_minutes'] <= 5
+            ) {
+                $etaState = $etaService->reconcile((int)$order->order_id);
+            }
+            if (!empty($etaState['available'])) {
+                $orderData['eta'] = $etaState;
+                $orderData['eta_minutes'] = $etaState['eta_minutes'];
+                $orderData['remaining_prep_minutes'] = $etaState['remaining_minutes'];
+                $orderData['estimated_ready_at'] = $etaState['estimated_ready_at'];
+                $orderData['eta_extension_count'] = $etaState['eta_extension_count'];
+                $orderData['eta_taking_longer'] = $etaState['taking_longer'];
+            }
+        } catch (\Throwable $etaError) {
+            $orderData['eta'] = null;
+        }
 
         // Get order items with modifiers
         $items = $this->pmdGetOrderMenusWithOptionsFastV83($order);

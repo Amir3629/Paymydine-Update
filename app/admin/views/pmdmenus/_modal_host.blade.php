@@ -170,7 +170,20 @@
                             <label class="pmd-menu-field"><span>{{ $pmdT('carbs') }}</span><input type="number" name="carbs" min="0" max="1000" step="0.1" inputmode="decimal" data-pmd-menu-carbs></label>
                             <label class="pmd-menu-field"><span>{{ $pmdT('fat') }}</span><input type="number" name="fat" min="0" max="1000" step="0.1" inputmode="decimal" data-pmd-menu-fat></label>
                             <label class="pmd-menu-field"><span>{{ $pmdT('sugar') }}</span><input type="number" name="sugar" min="0" max="1000" step="0.1" inputmode="decimal" data-pmd-menu-sugar></label>
-                            <label class="pmd-menu-field"><span>{{ $pmdT('prep_time') }}</span><input type="number" name="prep_time_minutes" min="0" max="240" step="1" inputmode="numeric" value="15" data-pmd-menu-prep-time></label>
+                            <div class="pmd-menu-field pmd-menu-field--prep-time" data-pmd-prep-field>
+                                <span>{{ $pmdT('prep_time') }}</span>
+                                <div class="pmd-menu-prep-presets" role="group" aria-label="{{ $pmdT('prep_time') }}">
+                                    <button type="button" data-pmd-prep-preset data-store="10"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l3 2M9 2h6M12 2v3"></path></svg><span>5–10 min</span></button>
+                                    <button type="button" data-pmd-prep-preset data-store="20"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l3 2M9 2h6M12 2v3"></path></svg><span>10–20 min</span></button>
+                                    <button type="button" data-pmd-prep-preset data-store="30"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l3 2M9 2h6M12 2v3"></path></svg><span>20–30 min</span></button>
+                                    <button type="button" data-pmd-prep-preset data-store="45"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l3 2M9 2h6M12 2v3"></path></svg><span>30–45 min</span></button>
+                                    <button type="button" data-pmd-prep-custom>Custom</button>
+                                </div>
+                                <label class="pmd-menu-prep-custom" data-pmd-prep-custom-wrap hidden>
+                                    <span>Custom minutes</span>
+                                    <input type="number" name="prep_time_minutes" min="1" max="240" step="1" inputmode="numeric" value="20" data-pmd-menu-prep-time>
+                                </label>
+                            </div>
                         </div>
                     </section>
                 </form>

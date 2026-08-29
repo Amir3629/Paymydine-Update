@@ -27,6 +27,7 @@ class Managerlab extends PmdCleanWorkspaceControllerV1
         $this->addCss('css/pmd-dashboard-lab-analytics-v1.css');
         $this->addCss('css/pmd-role-dashboard-v1.css');
         $this->addCss('css/pmd-manager-online-staff-v1.css');
+        $this->addCss('css/pmd-kitchen-today-team-v1.css');
         $this->addJs('js/pmd-dashboard-lab-analytics-v1.js');
     }
 
@@ -124,6 +125,12 @@ class Managerlab extends PmdCleanWorkspaceControllerV1
         $this->vars['pmdRoleInsightCards'] = [];
         $this->vars['pmdManagerOnlineStaff'] =
             $this->managerOnlineStaffSnapshot($shared->locationId(), $locale);
+        try {
+            $this->vars['pmdKitchenTodayTeam'] = app(\App\Services\PmdKitchenWorkforceService::class)
+                ->todayCard(max(1, (int)$shared->locationId()));
+        } catch (\Throwable $error) {
+            $this->vars['pmdKitchenTodayTeam'] = ['ready' => false];
+        }
         $this->installManagerKpis($bundle, $locale, $shared);
     }
 

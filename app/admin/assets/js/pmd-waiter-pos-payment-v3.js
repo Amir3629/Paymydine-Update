@@ -142,7 +142,18 @@
           var config = await bridge.getConfig();
           if (config && config.autoPrintReceipt === false) return;
 
-          await bridge.printReceiptUrl(
+          // PMD_DESKTOP_PRINT_DRIVER_COMPAT_V109
+          var printCall =
+            bridge.printerCompatibilityV109 === true
+            && typeof bridge.printReceiptUrl === 'function'
+              ? bridge.printReceiptUrl
+              : (
+                  typeof bridge.printUrl === 'function'
+                    ? bridge.printUrl
+                    : bridge.printReceiptUrl
+                );
+          await printCall.call(
+            bridge,
             desktopAbsoluteUrl(receiptUrl)
           );
           desktopRememberPrinted(key);

@@ -1636,7 +1636,19 @@
           state.documentUrl,
           window.location.origin
         ).toString();
-        var result = await desktop.printReceiptUrl(absoluteUrl);
+        // PMD_DESKTOP_PRINT_DRIVER_COMPAT_V109
+        // Installed V1.0.7/V1.0.8: prefer the Windows/macOS driver path.
+        // V1.0.9+: let the app choose its verified printer compatibility path.
+        var printCall =
+          desktop.printerCompatibilityV109 === true
+          && typeof desktop.printReceiptUrl === 'function'
+            ? desktop.printReceiptUrl
+            : (
+                typeof desktop.printUrl === 'function'
+                  ? desktop.printUrl
+                  : desktop.printReceiptUrl
+              );
+        var result = await printCall.call(desktop, absoluteUrl);
         if (printButton) {
           printButton.textContent = 'Printed';
           window.setTimeout(function () {

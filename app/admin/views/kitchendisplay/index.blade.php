@@ -398,6 +398,19 @@
         .order-elapsed.is-warning { color: var(--pmd-kds-warning); }
         .order-elapsed.is-late { color: var(--pmd-kds-danger); }
 
+        .pmd-kds-eta {
+            display: block;
+            margin-top: 7px;
+            color: var(--pmd-kds-brand-dark);
+            font-size: 12px;
+            line-height: 1.2;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+
+        .pmd-kds-eta.is-adjusted { color: var(--pmd-kds-warning); }
+        .pmd-kds-eta.is-late { color: var(--pmd-kds-danger); }
+
         .order-items {
             display: grid;
             gap: 10px;
@@ -864,6 +877,19 @@
                         <div class="order-time">
                             <span class="order-time-label">Time elapsed</span>
                             <span class="order-elapsed {{ $timerClass }}" data-created="{{ $order['created_at']->timestamp }}">{{ $order['elapsed_time'] }}</span>
+                            @if(!empty($order['eta']))
+                                @php
+                                    $pmdEtaRemaining = $order['eta']['remaining_minutes'] ?? null;
+                                    $pmdEtaAdjusted = (int)($order['eta']['eta_extension_count'] ?? 0) > 0;
+                                    $pmdEtaLate = !empty($order['eta']['taking_longer']);
+                                @endphp
+                                <span class="pmd-kds-eta {{ $pmdEtaLate ? 'is-late' : ($pmdEtaAdjusted ? 'is-adjusted' : '') }}">
+                                    @if($pmdEtaLate)Taking longer
+                                    @elseif($order['eta']['phase'] === 'ready')Ready
+                                    @elseif($pmdEtaRemaining !== null)ETA {{ (int)$pmdEtaRemaining }} min{{ $pmdEtaAdjusted ? ' · adjusted' : '' }}
+                                    @endif
+                                </span>
+                            @endif
                         </div>
                     </div>
 
@@ -1365,6 +1391,10 @@
         return JSON.stringify({
             table: order.order_type_name || '',
             status: Number(order.status_id || 0),
+            etaMinutes: order.eta_minutes == null ? null : Number(order.eta_minutes),
+            etaRemaining: order.remaining_prep_minutes == null ? null : Number(order.remaining_prep_minutes),
+            etaExtensions: Number(order.eta_extension_count || 0),
+            etaTakingLonger: !!order.eta_taking_longer,
             items: Array.isArray(order.items) ? order.items : [],
             notes: Array.isArray(order.notes) ? order.notes : []
         });
@@ -1382,6 +1412,21 @@
             data-status-id="${statusId}"
             data-status-name="${escapeHtmlV1(rawName)}"
             ${current ? 'disabled aria-current="true"' : ''}>${escapeHtmlV1(rawName)}</button>`;
+    }
+
+    function renderEtaV1(order) {
+        const eta = order && order.eta ? order.eta : {};
+        const phase = String(eta.phase || '');
+        const remaining = eta.remaining_minutes != null
+            ? Number(eta.remaining_minutes)
+            : (order.remaining_prep_minutes != null ? Number(order.remaining_prep_minutes) : null);
+        const extensions = Number(eta.eta_extension_count != null ? eta.eta_extension_count : (order.eta_extension_count || 0));
+        const takingLonger = !!(eta.taking_longer || order.eta_taking_longer);
+        if (takingLonger) return '<span class="pmd-kds-eta is-late">Taking longer</span>';
+        if (phase === 'ready') return '<span class="pmd-kds-eta">Ready</span>';
+        if (!Number.isFinite(remaining)) return '';
+        const adjusted = extensions > 0;
+        return `<span class="pmd-kds-eta${adjusted ? ' is-adjusted' : ''}">ETA ${Math.max(0, Math.ceil(remaining))} min${adjusted ? ' · adjusted' : ''}</span>`;
     }
 
     function renderOrderCardV1(order) {
@@ -1441,7 +1486,7 @@
                 : 'order-status-buttons';
 
         return `<article class="order-card ${getWorkflowClassV12(order.status_name)}" data-order-id="${Number(order.order_id || 0)}" data-status-id="${Number(order.status_id || 0)}" data-status-name="${escapeHtmlV1(order.status_name || '')}">
-            <div class="order-header"><div><div class="order-number">#${Number(order.order_id || 0)}</div><div class="order-table">${escapeHtmlV1(order.order_type_name)}</div></div><div class="order-time"><span class="order-time-label">Time elapsed</span><span class="order-elapsed ${getTimerClassV12(order.created_at)}" data-created="${created}">${formatElapsedV1(created)}</span></div></div>
+            <div class="order-header"><div><div class="order-number">#${Number(order.order_id || 0)}</div><div class="order-table">${escapeHtmlV1(order.order_type_name)}</div></div><div class="order-time"><span class="order-time-label">Time elapsed</span><span class="order-elapsed ${getTimerClassV12(order.created_at)}" data-created="${created}">${formatElapsedV1(created)}</span>${renderEtaV1(order)}</div></div>
             <div class="order-items">${itemsHtml}</div>
             ${notes ? `<div class="order-notes"><div class="order-notes-title">Note</div>${notes}</div>` : ''}
             ${buttons ? `<div class="${buttonsClass}">${buttons}</div>` : ''}

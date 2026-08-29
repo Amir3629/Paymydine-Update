@@ -16,6 +16,7 @@ class PmdDefaultStaffRoleService
     public const WAITER = 'pmd-waiter';
     public const ACCOUNTANT = 'pmd-accountant';
     public const RESERVATIONS = 'pmd-reservations';
+    public const TEAM_MEMBER = 'pmd-team-member';
     public const KDS_PREFIX = 'pmd-kds:';
 
     private const PMD_OWNER_WORKSPACE = 'PMD.Workspace.Owner';
@@ -126,6 +127,14 @@ class PmdDefaultStaffRoleService
                     'Admin.Reservations' => 1,
                 ],
             ],
+            [
+                'code' => self::TEAM_MEMBER,
+                'name' => 'Team Member',
+                'description' => 'Personal My Work profile only. No operational workspace access.',
+                'permissions' => [
+                    'Admin.Dashboard' => 1,
+                ],
+            ],
         ];
 
         foreach ($this->kdsStations() as $station) {
@@ -152,6 +161,7 @@ class PmdDefaultStaffRoleService
             self::WAITER,
             self::ACCOUNTANT,
             self::RESERVATIONS,
+            self::TEAM_MEMBER,
         ], true) || str_starts_with($code, self::KDS_PREFIX);
     }
 
@@ -181,6 +191,7 @@ class PmdDefaultStaffRoleService
             self::WAITER => 'orders', 'waiter' => 'orders',
             self::ACCOUNTANT => 'accountantdashboard', 'accountant' => 'accountantdashboard',
             self::RESERVATIONS => 'reservations', 'reservation' => 'reservations', 'reservations' => 'reservations',
+            self::TEAM_MEMBER => 'mywork', 'team-member' => 'mywork',
         ];
         if (isset($map[$code])) return $map[$code];
         if (str_starts_with($code, self::KDS_PREFIX)) {
@@ -330,6 +341,10 @@ class PmdDefaultStaffRoleService
         $is = function (string $route) use ($path): bool {
             return $path === 'admin/'.$route || str_starts_with($path, 'admin/'.$route.'/');
         };
+
+        // Every PMD account owns a personal My Work page, regardless of operational role.
+        if ($is('mywork')) return true;
+        if ($code === self::TEAM_MEMBER) return $is('mywork');
 
         if ($code === self::MANAGER) {
             if ($is('dashboardlab')) return false;

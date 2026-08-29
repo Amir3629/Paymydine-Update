@@ -12,6 +12,8 @@
     $disabledCount = max(0, (int)$stats['total'] - (int)$stats['published']);
     $categoryCount = is_countable($categories) ? count($categories) : 0;
     $totalCatalogueCards = count($cards) + count($combos);
+    $kitchenCapacity = $pmdMenuManagerKitchenCapacity ?? [];
+    $canManageKitchenCapacity = !empty($pmdMenuManagerCanManageKitchenCapacity);
 
     // PMD_MENU_HEADER_SERVER_COUNT_V2
     try {
@@ -147,6 +149,21 @@
                 </svg>
             </button>
         @endif
+
+        @if($canManageKitchenCapacity)
+            <button
+                type="button"
+                class="pmd-dashboard-lab__header-action"
+                data-pmd-menu-capacity-open
+                aria-label="Kitchen capacity"
+                title="Kitchen capacity"
+            >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M12 3c1.8 3 5 4.6 5 9a5 5 0 0 1-10 0c0-2.3 1.2-4.4 3.5-6.5.2 2 1 3 1.5 3.5 1.2-1.4 1.2-3.7 0-6z"></path>
+                </svg>
+            </button>
+        @endif
+
 
 
             <span
@@ -979,6 +996,68 @@
 
         <div class="pmd-menu-manager__no-results" data-pmd-menu-no-results hidden>{{ $pmdT('no_results') }}</div>
     </section>
+
+
+@if($canManageKitchenCapacity)
+<div class="pmd-menu-capacity-modal" data-pmd-menu-capacity-modal hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="pmd-menu-capacity-title">
+    <button type="button" class="pmd-menu-capacity-modal__backdrop" data-pmd-menu-capacity-close tabindex="-1" aria-label="Close"></button>
+    <section class="pmd-menu-capacity-card" role="document">
+        <header class="pmd-menu-capacity-card__header">
+            <h2 id="pmd-menu-capacity-title">Kitchen capacity</h2>
+            <button type="button" data-pmd-menu-capacity-close aria-label="Close">×</button>
+        </header>
+        <form method="post" action="{{ admin_url('shifts/saveeta') }}">
+            @csrf
+            <input type="hidden" name="return_to" value="{{ request()->getRequestUri() }}">
+            <div class="pmd-menu-capacity-card__body">
+                <div class="pmd-menu-capacity-grid">
+                    <label><span>Busy at</span><input type="number" name="busy_item_threshold" min="1" max="500" value="{{ (int)($kitchenCapacity['busy_item_threshold'] ?? 10) }}"></label>
+                    <label><span>+ minutes</span><input type="number" name="busy_extra_minutes" min="0" max="120" value="{{ (int)($kitchenCapacity['busy_extra_minutes'] ?? 5) }}"></label>
+                    <label><span>Very busy at</span><input type="number" name="very_busy_item_threshold" min="2" max="1000" value="{{ (int)($kitchenCapacity['very_busy_item_threshold'] ?? 25) }}"></label>
+                    <label><span>+ minutes</span><input type="number" name="very_busy_extra_minutes" min="0" max="240" value="{{ (int)($kitchenCapacity['very_busy_extra_minutes'] ?? 10) }}"></label>
+                </div>
+                <label class="pmd-menu-capacity-toggle">
+                    <input type="hidden" name="peak_enabled_present" value="1">
+                    <input type="checkbox" name="peak_enabled" value="1" {{ !empty($kitchenCapacity['peak_enabled']) ? 'checked' : '' }}>
+                    <span>Peak time</span>
+                </label>
+                <div class="pmd-menu-capacity-grid">
+                    <label><span>Starts</span><input type="time" name="peak_start" value="{{ $kitchenCapacity['peak_start'] ?? '18:00' }}"></label>
+                    <label><span>Ends</span><input type="time" name="peak_end" value="{{ $kitchenCapacity['peak_end'] ?? '21:00' }}"></label>
+                    <label><span>Peak buffer</span><input type="number" name="peak_extra_minutes" min="0" max="120" value="{{ (int)($kitchenCapacity['peak_extra_minutes'] ?? 5) }}"></label>
+                </div>
+            </div>
+            <footer class="pmd-menu-capacity-card__footer">
+                <button type="button" class="is-soft" data-pmd-menu-capacity-close>Cancel</button>
+                <button type="submit">Save</button>
+            </footer>
+        </form>
+    </section>
+</div>
+<script data-pmd-menu-capacity-v17>
+(function () {
+  'use strict';
+  var modal = document.querySelector('[data-pmd-menu-capacity-modal]');
+  if (!modal) return;
+  function openModal() {
+    modal.hidden = false;
+    modal.setAttribute('aria-hidden', 'false');
+    document.documentElement.style.overflow = 'hidden';
+  }
+  function closeModal() {
+    modal.hidden = true;
+    modal.setAttribute('aria-hidden', 'true');
+    document.documentElement.style.overflow = '';
+  }
+  document.addEventListener('click', function (event) {
+    if (event.target.closest('[data-pmd-menu-capacity-open]')) { event.preventDefault(); openModal(); return; }
+    if (event.target.closest('[data-pmd-menu-capacity-close]')) { event.preventDefault(); closeModal(); }
+  });
+  document.addEventListener('keydown', function (event) { if (event.key === 'Escape' && !modal.hidden) closeModal(); });
+})();
+</script>
+@endif
+
 </div>
 
 <script type="application/json" id="pmd-menu-manager-i18n">{!! json_encode($pmdMenuCopy, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT) !!}</script>

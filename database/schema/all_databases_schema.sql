@@ -1,5 +1,5 @@
 -- PayMyDine schema-only dump
--- Generated UTC: Fri Aug 28 14:31:03 UTC 2026
+-- Generated UTC: Sat Aug 29 14:17:01 UTC 2026
 -- Source server: vps-252f1bc4
 -- DATA ROWS ARE NOT INCLUDED
 
@@ -1853,7 +1853,7 @@ CREATE TABLE `ti_migrations` (
   `migration` varchar(128) NOT NULL,
   `batch` int(11) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=198 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=204 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -2105,12 +2105,23 @@ CREATE TABLE `ti_orders` (
   `settlement_method` varchar(50) DEFAULT NULL,
   `settlement_reference` varchar(255) DEFAULT NULL,
   `settled_at` datetime DEFAULT NULL,
+  `kitchen_released_at` timestamp NULL DEFAULT NULL,
+  `kitchen_preparing_at` timestamp NULL DEFAULT NULL,
+  `kitchen_ready_at` timestamp NULL DEFAULT NULL,
+  `eta_initial_minutes` smallint(5) unsigned DEFAULT NULL,
+  `eta_due_at` timestamp NULL DEFAULT NULL,
+  `eta_extension_count` tinyint(3) unsigned NOT NULL DEFAULT 0,
+  `eta_last_extended_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`order_id`),
   UNIQUE KEY `unique_stripe_payment_intent_id` (`stripe_payment_intent_id`),
   KEY `ti_orders_hash_index` (`hash`),
   KEY `idx_orders_stripe_payment_intent_id` (`stripe_payment_intent_id`),
   KEY `ti_orders_settlement_status_index` (`settlement_status`),
-  KEY `pmd_kds_orders_status_created_v83` (`status_id`,`created_at`)
+  KEY `pmd_kds_orders_status_created_v83` (`status_id`,`created_at`),
+  KEY `ti_orders_kitchen_released_at_index` (`kitchen_released_at`),
+  KEY `ti_orders_kitchen_preparing_at_index` (`kitchen_preparing_at`),
+  KEY `ti_orders_kitchen_ready_at_index` (`kitchen_ready_at`),
+  KEY `ti_orders_eta_due_at_index` (`eta_due_at`)
 ) ENGINE=InnoDB AUTO_INCREMENT=210 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -2325,6 +2336,106 @@ CREATE TABLE `ti_pmd_admin_presence_sessions` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `ti_pmd_operational_people`
+--
+
+DROP TABLE IF EXISTS `ti_pmd_operational_people`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_pmd_operational_people` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `location_id` bigint(20) unsigned NOT NULL DEFAULT 1,
+  `staff_id` bigint(20) unsigned DEFAULT NULL,
+  `display_name` varchar(128) NOT NULL,
+  `department` varchar(32) NOT NULL DEFAULT 'kitchen',
+  `job_role` varchar(64) DEFAULT NULL,
+  `station_slug` varchar(80) DEFAULT NULL,
+  `is_active` tinyint(1) NOT NULL DEFAULT 1,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `pmd_people_location_department_active_idx` (`location_id`,`department`,`is_active`),
+  KEY `pmd_people_location_staff_idx` (`location_id`,`staff_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_pmd_operational_shift_people`
+--
+
+DROP TABLE IF EXISTS `ti_pmd_operational_shift_people`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_pmd_operational_shift_people` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `shift_id` bigint(20) unsigned NOT NULL,
+  `person_id` bigint(20) unsigned DEFAULT NULL,
+  `display_name_snapshot` varchar(128) NOT NULL,
+  `department_snapshot` varchar(32) NOT NULL DEFAULT 'kitchen',
+  `job_role_snapshot` varchar(64) DEFAULT NULL,
+  `attendance_status` varchar(20) NOT NULL DEFAULT 'planned',
+  `is_replacement` tinyint(1) NOT NULL DEFAULT 0,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `pmd_ops_shift_person_unique` (`shift_id`,`person_id`),
+  KEY `pmd_ops_shift_people_state_idx` (`shift_id`,`department_snapshot`,`attendance_status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_pmd_operational_shifts`
+--
+
+DROP TABLE IF EXISTS `ti_pmd_operational_shifts`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_pmd_operational_shifts` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `location_id` bigint(20) unsigned NOT NULL DEFAULT 1,
+  `shift_date` date NOT NULL,
+  `label` varchar(64) NOT NULL DEFAULT 'Shift',
+  `starts_at` time DEFAULT NULL,
+  `ends_at` time DEFAULT NULL,
+  `break_minutes` smallint(5) unsigned NOT NULL DEFAULT 0,
+  `status` varchar(20) NOT NULL DEFAULT 'planned',
+  `quick_counts_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`quick_counts_json`)),
+  `confirmed_at` timestamp NULL DEFAULT NULL,
+  `confirmed_by_staff_id` bigint(20) unsigned DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `pmd_ops_shift_location_date_status_idx` (`location_id`,`shift_date`,`status`),
+  KEY `pmd_ops_shift_confirmed_idx` (`location_id`,`confirmed_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_pmd_order_eta_events`
+--
+
+DROP TABLE IF EXISTS `ti_pmd_order_eta_events`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_pmd_order_eta_events` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `order_id` bigint(20) unsigned NOT NULL,
+  `location_id` bigint(20) unsigned NOT NULL DEFAULT 1,
+  `event_type` varchar(32) NOT NULL,
+  `reason` varchar(96) DEFAULT NULL,
+  `previous_eta_minutes` smallint(5) unsigned DEFAULT NULL,
+  `new_eta_minutes` smallint(5) unsigned DEFAULT NULL,
+  `extension_minutes` smallint(5) unsigned NOT NULL DEFAULT 0,
+  `snapshot_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`snapshot_json`)),
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `pmd_eta_event_order_time_idx` (`order_id`,`created_at`),
+  KEY `pmd_eta_event_location_type_time_idx` (`location_id`,`event_type`,`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `ti_pmd_reservation_preferences`
 --
 
@@ -2335,6 +2446,36 @@ CREATE TABLE `ti_pmd_reservation_preferences` (
   `reservation_id` bigint(20) unsigned NOT NULL,
   `table_features` longtext NOT NULL,
   PRIMARY KEY (`reservation_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_pmd_staff_requests`
+--
+
+DROP TABLE IF EXISTS `ti_pmd_staff_requests`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_pmd_staff_requests` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `location_id` bigint(20) unsigned NOT NULL,
+  `staff_id` bigint(20) unsigned NOT NULL,
+  `person_id` bigint(20) unsigned DEFAULT NULL,
+  `request_type` varchar(32) NOT NULL,
+  `shift_id` bigint(20) unsigned DEFAULT NULL,
+  `date_from` date DEFAULT NULL,
+  `date_to` date DEFAULT NULL,
+  `message` text DEFAULT NULL,
+  `status` varchar(24) NOT NULL DEFAULT 'pending',
+  `manager_reply` text DEFAULT NULL,
+  `handled_by_staff_id` bigint(20) unsigned DEFAULT NULL,
+  `handled_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `pmd_staff_requests_location_status_idx` (`location_id`,`status`),
+  KEY `pmd_staff_requests_staff_status_idx` (`staff_id`,`status`),
+  KEY `pmd_staff_requests_person_created_idx` (`person_id`,`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -3262,6 +3403,7 @@ DROP TABLE IF EXISTS `ti_terminal_devices`;
 CREATE TABLE `ti_terminal_devices` (
   `terminal_device_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
   `provider_code` varchar(50) NOT NULL,
+  `environment` varchar(20) DEFAULT NULL,
   `location_id` int(10) unsigned DEFAULT NULL,
   `affiliate_key` varchar(191) DEFAULT NULL,
   `reader_id` varchar(191) DEFAULT NULL,
@@ -3275,7 +3417,8 @@ CREATE TABLE `ti_terminal_devices` (
   PRIMARY KEY (`terminal_device_id`),
   KEY `ti_terminal_devices_provider_code_index` (`provider_code`),
   KEY `ti_terminal_devices_location_id_index` (`location_id`),
-  KEY `ti_terminal_devices_reader_id_index` (`reader_id`)
+  KEY `ti_terminal_devices_reader_id_index` (`reader_id`),
+  KEY `ti_terminal_devices_environment_index` (`environment`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -3297,6 +3440,37 @@ CREATE TABLE `ti_terminal_devices_platform` (
   `updated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_terminal_provider_configs`
+--
+
+DROP TABLE IF EXISTS `ti_terminal_provider_configs`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_terminal_provider_configs` (
+  `terminal_provider_config_id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `provider_code` varchar(50) NOT NULL,
+  `environment` varchar(20) NOT NULL DEFAULT 'production',
+  `api_base_url` varchar(191) NOT NULL DEFAULT 'https://api.sumup.com',
+  `access_token_encrypted` longtext DEFAULT NULL,
+  `affiliate_key_encrypted` longtext DEFAULT NULL,
+  `merchant_code` varchar(191) DEFAULT NULL,
+  `app_id` varchar(191) DEFAULT NULL,
+  `is_active` tinyint(1) NOT NULL DEFAULT 0,
+  `connection_status` varchar(30) NOT NULL DEFAULT 'not_configured',
+  `last_tested_at` timestamp NULL DEFAULT NULL,
+  `last_error` text DEFAULT NULL,
+  `metadata` longtext DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`terminal_provider_config_id`),
+  UNIQUE KEY `terminal_provider_env_unique` (`provider_code`,`environment`),
+  KEY `ti_terminal_provider_configs_provider_code_index` (`provider_code`),
+  KEY `ti_terminal_provider_configs_environment_index` (`environment`),
+  KEY `ti_terminal_provider_configs_is_active_index` (`is_active`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -3615,7 +3789,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-28 14:31:04
+-- Dump completed on 2026-08-29 14:17:01
 
 -- ==================================================
 -- DATABASE: mimoza
@@ -5812,12 +5986,23 @@ CREATE TABLE `ti_orders` (
   `settlement_reference` varchar(255) DEFAULT NULL,
   `settled_at` datetime DEFAULT NULL,
   `guest_count` tinyint(3) unsigned DEFAULT NULL,
+  `kitchen_released_at` timestamp NULL DEFAULT NULL,
+  `kitchen_preparing_at` timestamp NULL DEFAULT NULL,
+  `kitchen_ready_at` timestamp NULL DEFAULT NULL,
+  `eta_initial_minutes` smallint(5) unsigned DEFAULT NULL,
+  `eta_due_at` timestamp NULL DEFAULT NULL,
+  `eta_extension_count` tinyint(3) unsigned NOT NULL DEFAULT 0,
+  `eta_last_extended_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`order_id`),
   KEY `ti_orders_hash_index` (`hash`),
   KEY `idx_orders_stripe_payment_intent_id` (`stripe_payment_intent_id`),
   KEY `idx_orders_fiskaly_status` (`fiskaly_status`),
   KEY `idx_orders_fiskaly_transaction_id_ref` (`fiskaly_transaction_id_ref`),
-  KEY `ti_orders_settlement_status_index` (`settlement_status`)
+  KEY `ti_orders_settlement_status_index` (`settlement_status`),
+  KEY `ti_orders_kitchen_released_at_index` (`kitchen_released_at`),
+  KEY `ti_orders_kitchen_preparing_at_index` (`kitchen_preparing_at`),
+  KEY `ti_orders_kitchen_ready_at_index` (`kitchen_ready_at`),
+  KEY `ti_orders_eta_due_at_index` (`eta_due_at`)
 ) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -5979,7 +6164,7 @@ CREATE TABLE `ti_pmd_admin_presence_sessions` (
   KEY `ti_pmd_admin_presence_sessions_last_seen_at_index` (`last_seen_at`),
   KEY `ti_pmd_admin_presence_sessions_expires_at_index` (`expires_at`),
   KEY `ti_pmd_admin_presence_sessions_logout_at_index` (`logout_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=106 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=107 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -6020,6 +6205,106 @@ CREATE TABLE `ti_pmd_guest_payment_intents` (
   KEY `ti_pmd_guest_payment_intents_transaction_id_index` (`transaction_id`),
   KEY `ti_pmd_guest_payment_intents_expires_at_index` (`expires_at`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_pmd_operational_people`
+--
+
+DROP TABLE IF EXISTS `ti_pmd_operational_people`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_pmd_operational_people` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `location_id` bigint(20) unsigned NOT NULL DEFAULT 1,
+  `staff_id` bigint(20) unsigned DEFAULT NULL,
+  `display_name` varchar(128) NOT NULL,
+  `department` varchar(32) NOT NULL DEFAULT 'other',
+  `job_role` varchar(64) DEFAULT NULL,
+  `station_slug` varchar(80) DEFAULT NULL,
+  `is_active` tinyint(1) NOT NULL DEFAULT 1,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `pmd_people_location_department_active_idx` (`location_id`,`department`,`is_active`),
+  KEY `pmd_people_location_staff_idx` (`location_id`,`staff_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_pmd_operational_shift_people`
+--
+
+DROP TABLE IF EXISTS `ti_pmd_operational_shift_people`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_pmd_operational_shift_people` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `shift_id` bigint(20) unsigned NOT NULL,
+  `person_id` bigint(20) unsigned DEFAULT NULL,
+  `display_name_snapshot` varchar(128) NOT NULL,
+  `department_snapshot` varchar(32) NOT NULL DEFAULT 'other',
+  `job_role_snapshot` varchar(64) DEFAULT NULL,
+  `attendance_status` varchar(20) NOT NULL DEFAULT 'planned',
+  `is_replacement` tinyint(1) NOT NULL DEFAULT 0,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `pmd_ops_shift_person_unique` (`shift_id`,`person_id`),
+  KEY `pmd_ops_shift_people_state_idx` (`shift_id`,`department_snapshot`,`attendance_status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_pmd_operational_shifts`
+--
+
+DROP TABLE IF EXISTS `ti_pmd_operational_shifts`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_pmd_operational_shifts` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `location_id` bigint(20) unsigned NOT NULL DEFAULT 1,
+  `shift_date` date NOT NULL,
+  `label` varchar(64) NOT NULL DEFAULT 'Shift',
+  `starts_at` time DEFAULT NULL,
+  `ends_at` time DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `status` varchar(20) NOT NULL DEFAULT 'planned',
+  `quick_counts_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`quick_counts_json`)),
+  `confirmed_at` timestamp NULL DEFAULT NULL,
+  `confirmed_by_staff_id` bigint(20) unsigned DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `pmd_ops_shift_location_date_status_idx` (`location_id`,`shift_date`,`status`),
+  KEY `pmd_ops_shift_confirmed_idx` (`location_id`,`confirmed_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_pmd_order_eta_events`
+--
+
+DROP TABLE IF EXISTS `ti_pmd_order_eta_events`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_pmd_order_eta_events` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `order_id` bigint(20) unsigned NOT NULL,
+  `location_id` bigint(20) unsigned NOT NULL DEFAULT 1,
+  `event_type` varchar(32) NOT NULL,
+  `reason` varchar(96) DEFAULT NULL,
+  `previous_eta_minutes` smallint(5) unsigned DEFAULT NULL,
+  `new_eta_minutes` smallint(5) unsigned DEFAULT NULL,
+  `extension_minutes` smallint(5) unsigned NOT NULL DEFAULT 0,
+  `snapshot_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`snapshot_json`)),
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `pmd_eta_event_order_time_idx` (`order_id`,`created_at`),
+  KEY `pmd_eta_event_location_type_time_idx` (`location_id`,`event_type`,`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -6810,7 +7095,7 @@ CREATE TABLE `ti_staff_roles` (
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`staff_role_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=19 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=20 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -7285,7 +7570,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-28 14:31:04
+-- Dump completed on 2026-08-29 14:17:02
 
 -- ==================================================
 -- DATABASE: rosana
@@ -9886,7 +10171,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-28 14:31:04
+-- Dump completed on 2026-08-29 14:17:02
 -- WARNING: Database 'persian' not found or not accessible.
 
 -- ==================================================
@@ -11300,8 +11585,19 @@ CREATE TABLE `ti_orders` (
   `settlement_method` varchar(50) DEFAULT NULL,
   `settlement_reference` varchar(255) DEFAULT NULL,
   `settled_at` datetime DEFAULT NULL,
+  `kitchen_released_at` timestamp NULL DEFAULT NULL,
+  `kitchen_preparing_at` timestamp NULL DEFAULT NULL,
+  `kitchen_ready_at` timestamp NULL DEFAULT NULL,
+  `eta_initial_minutes` smallint(5) unsigned DEFAULT NULL,
+  `eta_due_at` timestamp NULL DEFAULT NULL,
+  `eta_extension_count` tinyint(3) unsigned NOT NULL DEFAULT 0,
+  `eta_last_extended_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`order_id`),
-  KEY `ti_orders_hash_index` (`hash`)
+  KEY `ti_orders_hash_index` (`hash`),
+  KEY `ti_orders_kitchen_released_at_index` (`kitchen_released_at`),
+  KEY `ti_orders_kitchen_preparing_at_index` (`kitchen_preparing_at`),
+  KEY `ti_orders_kitchen_ready_at_index` (`kitchen_ready_at`),
+  KEY `ti_orders_eta_due_at_index` (`eta_due_at`)
 ) ENGINE=InnoDB AUTO_INCREMENT=191 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -11400,6 +11696,106 @@ CREATE TABLE `ti_payments` (
   PRIMARY KEY (`payment_id`),
   UNIQUE KEY `ti_payments_code_unique` (`code`)
 ) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_pmd_operational_people`
+--
+
+DROP TABLE IF EXISTS `ti_pmd_operational_people`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_pmd_operational_people` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `location_id` bigint(20) unsigned NOT NULL DEFAULT 1,
+  `staff_id` bigint(20) unsigned DEFAULT NULL,
+  `display_name` varchar(128) NOT NULL,
+  `department` varchar(32) NOT NULL DEFAULT 'other',
+  `job_role` varchar(64) DEFAULT NULL,
+  `station_slug` varchar(80) DEFAULT NULL,
+  `is_active` tinyint(1) NOT NULL DEFAULT 1,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `pmd_people_location_department_active_idx` (`location_id`,`department`,`is_active`),
+  KEY `pmd_people_location_staff_idx` (`location_id`,`staff_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_pmd_operational_shift_people`
+--
+
+DROP TABLE IF EXISTS `ti_pmd_operational_shift_people`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_pmd_operational_shift_people` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `shift_id` bigint(20) unsigned NOT NULL,
+  `person_id` bigint(20) unsigned DEFAULT NULL,
+  `display_name_snapshot` varchar(128) NOT NULL,
+  `department_snapshot` varchar(32) NOT NULL DEFAULT 'other',
+  `job_role_snapshot` varchar(64) DEFAULT NULL,
+  `attendance_status` varchar(20) NOT NULL DEFAULT 'planned',
+  `is_replacement` tinyint(1) NOT NULL DEFAULT 0,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `pmd_ops_shift_person_unique` (`shift_id`,`person_id`),
+  KEY `pmd_ops_shift_people_state_idx` (`shift_id`,`department_snapshot`,`attendance_status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_pmd_operational_shifts`
+--
+
+DROP TABLE IF EXISTS `ti_pmd_operational_shifts`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_pmd_operational_shifts` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `location_id` bigint(20) unsigned NOT NULL DEFAULT 1,
+  `shift_date` date NOT NULL,
+  `label` varchar(64) NOT NULL DEFAULT 'Shift',
+  `starts_at` time DEFAULT NULL,
+  `ends_at` time DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `status` varchar(20) NOT NULL DEFAULT 'planned',
+  `quick_counts_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`quick_counts_json`)),
+  `confirmed_at` timestamp NULL DEFAULT NULL,
+  `confirmed_by_staff_id` bigint(20) unsigned DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `pmd_ops_shift_location_date_status_idx` (`location_id`,`shift_date`,`status`),
+  KEY `pmd_ops_shift_confirmed_idx` (`location_id`,`confirmed_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_pmd_order_eta_events`
+--
+
+DROP TABLE IF EXISTS `ti_pmd_order_eta_events`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_pmd_order_eta_events` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `order_id` bigint(20) unsigned NOT NULL,
+  `location_id` bigint(20) unsigned NOT NULL DEFAULT 1,
+  `event_type` varchar(32) NOT NULL,
+  `reason` varchar(96) DEFAULT NULL,
+  `previous_eta_minutes` smallint(5) unsigned DEFAULT NULL,
+  `new_eta_minutes` smallint(5) unsigned DEFAULT NULL,
+  `extension_minutes` smallint(5) unsigned NOT NULL DEFAULT 0,
+  `snapshot_json` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`snapshot_json`)),
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `pmd_eta_event_order_time_idx` (`order_id`,`created_at`),
+  KEY `pmd_eta_event_location_type_time_idx` (`location_id`,`event_type`,`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -11909,4 +12305,4 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-28 14:31:05
+-- Dump completed on 2026-08-29 14:17:02

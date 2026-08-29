@@ -622,6 +622,6 @@ window.pmdPrintReceipt = function (event) {
 
 
 <!-- PMD_DESKTOP_STANDALONE_PRINT_BRIDGE_V108 -->
-<script defer src="/app/admin/assets/js/pmd-desktop-print-bridge-v108.js?v=108"></script>
+<script defer src="/app/admin/assets/js/pmd-desktop-print-bridge-v108.js?v=109"></script>
 </body>
 </html>

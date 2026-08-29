@@ -1,3 +1,5 @@
+@include('admin::_partials.pmd_kitchen_today_team_v1')
+
 {{-- PMD_MANAGER_DASHBOARD_V3_5_2
      Exact Owner analytics first; one Manager-only online-staff card after ALL analytics cards.
      The six V3.5 role insight cards are intentionally not rendered. --}}
