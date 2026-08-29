@@ -52,6 +52,9 @@ require_once __DIR__.'/routes/menu-helpers.php';
 require_once __DIR__.'/routes/main-app-before.php';
 require_once __DIR__.'/routes/worldline-public.php';
 
+// PMD_STAFF_PORTAL_V1_PUBLIC_ROUTE_LOADER
+require_once base_path('routes/pmd-staff-portal-v1.php');
+
 
 
 // PMD_REAL_DASHBOARD_DATA_V2_ROUTE_START
