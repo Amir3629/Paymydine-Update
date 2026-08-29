@@ -204,6 +204,11 @@
             'people' => $shiftPeople,
         ];
     })->values();
+    try {
+        $pmdShiftsNotificationCount = app(\Admin\Services\PmdNotificationCountV1::class)->currentNewCount();
+    } catch (\Throwable $error) {
+        $pmdShiftsNotificationCount = 0;
+    }
 @endphp
 
 <div id="pmd-shifts" class="pmd-shifts" data-pmd-shifts-root>
@@ -216,19 +221,23 @@
                 <h1>Shifts</h1>
             </div>
         </div>
-        <div class="pmd-shifts__header-actions">
-            <button type="button" class="pmd-shifts__header-button is-soft" data-pmd-capacity-open aria-label="Kitchen capacity & peak time">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c1.8 3 5 4.6 5 9a5 5 0 0 1-10 0c0-2.3 1.2-4.4 3.5-6.5.2 2 1 3 1.5 3.5 1.2-1.4 1.2-3.7 0-6z"></path></svg>
-                <span>Peak time</span>
-            </button>
-            <a class="pmd-shifts__header-button is-soft" href="{{ admin_url('people') }}" aria-label="People">
+        <div class="pmd-shifts__header-actions" aria-label="Shift actions">
+            <span class="pmd-shifts__notification-slot" data-pmd-shifts-notification-slot aria-label="Notifications">
+                <span class="pmd-shifts__notification-fallback" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                    @if($pmdShiftsNotificationCount > 0)<em>{{ $pmdShiftsNotificationCount }}</em>@endif
+                </span>
+            </span>
+            <button type="button" class="pmd-shifts__header-icon" data-pmd-team-scroll aria-label="Members" title="Members">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"></circle><path d="M3 20a6 6 0 0 1 12 0M16 5a3 3 0 0 1 0 6M17 14a5 5 0 0 1 4 5"></path></svg>
-                <span>People</span>
-            </a>
+                <span class="pmd-shifts__header-count">{{ $people->count() }}</span>
+            </button>
+            <button type="button" class="pmd-shifts__header-icon" data-pmd-capacity-open aria-label="Kitchen capacity" title="Kitchen capacity">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c1.8 3 5 4.6 5 9a5 5 0 0 1-10 0c0-2.3 1.2-4.4 3.5-6.5.2 2 1 3 1.5 3.5 1.2-1.4 1.2-3.7 0-6z"></path></svg>
+            </button>
             @if($ready)
-                <button type="button" class="pmd-shifts__header-button" data-pmd-shift-open data-date="{{ $selectedDay->toDateString() }}">
+                <button type="button" class="pmd-shifts__header-icon is-primary" data-pmd-shift-open data-date="{{ $selectedDay->toDateString() }}" aria-label="Add shift" title="Add shift">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
-                    <span>Add shift</span>
                 </button>
             @endif
         </div>
@@ -351,6 +360,41 @@
             <section id="pmd-shift-day" class="pmd-r2-yc-selected pmd-shifts-hour-host" data-pmd-shifts-hour-host hidden></section>
         </section>
 
+        {{-- PMD_SHIFTS_SIMPLE_TEAM_WORKSPACE_V14 --}}
+        <section id="pmd-shifts-team-panel" class="pmd-shifts-team-panel" data-pmd-shifts-team-panel aria-label="Restaurant members">
+            <header class="pmd-shifts-team-panel__header">
+                <div><h2>Team</h2><span>{{ $people->count() }} members</span></div>
+                <button type="button" class="pmd-shifts-team-panel__add" data-pmd-team-open>+ Member</button>
+            </header>
+            <div class="pmd-shifts-team-panel__list">
+                @forelse($people as $person)
+                    @php $personAccess = !empty($person->staff_id) ? $accessStaff->get((int)$person->staff_id) : null; @endphp
+                    <button
+                        type="button"
+                        class="pmd-shifts-team-row"
+                        data-pmd-team-edit
+                        data-pmd-team-panel-person-id="{{ (int)$person->id }}"
+                        data-person-id="{{ (int)$person->id }}"
+                        data-name="{{ $person->display_name }}"
+                        data-role="{{ $person->job_role ?? '' }}"
+                        data-department="{{ $person->department ?? 'other' }}"
+                        data-has-access="{{ !empty($person->staff_id) ? '1' : '0' }}"
+                        data-username="{{ $personAccess && $personAccess->user ? $personAccess->user->username : '' }}"
+                        data-staff-role-id="{{ $personAccess ? (int)$personAccess->staff_role_id : '' }}"
+                    >
+                        <span class="pmd-shifts-team-row__avatar">{{ strtoupper(substr(trim((string)$person->display_name),0,1)) }}</span>
+                        <span class="pmd-shifts-team-row__person"><strong>{{ $person->display_name }}</strong><small>{{ $person->job_role ?: 'Team member' }}</small></span>
+                        <span class="pmd-shifts-team-row__meta"><small>Area</small><strong>{{ $departments[$person->department] ?? ucfirst((string)$person->department) }}</strong></span>
+                        <span class="pmd-shifts-team-row__meta"><small>Login</small><strong>{{ $personAccess && $personAccess->user ? $personAccess->user->username : 'No login' }}</strong></span>
+                        <span class="pmd-shifts-team-row__chevron">›</span>
+                    </button>
+                @empty
+                    <div class="pmd-shifts-team-panel__empty"><strong>No members yet</strong><span>Use + Member. A name is enough.</span></div>
+                @endforelse
+            </div>
+        </section>
+
+
         <div class="pmd-shifts__modal" data-pmd-shift-modal hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="pmd-shift-modal-title">
             <button type="button" class="pmd-shifts__modal-backdrop" data-pmd-shift-close tabindex="-1" aria-label="Close"></button>
             <section class="pmd-shifts__modal-card" role="document">
@@ -384,7 +428,7 @@
                                     <span><strong>{{ $person->display_name }}</strong><small>{{ $person->job_role ?: ($departments[$person->department] ?? 'Team') }}</small></span>
                                 </label>
                             @empty
-                                <div class="pmd-shifts__picker-empty">No restaurant people yet. <a href="{{ admin_url('settings/team') }}">Add people in Team</a>.</div>
+                                <div class="pmd-shifts__picker-empty">No members yet. <a href="#pmd-shifts-team-panel" data-pmd-team-scroll>Add a member below</a>.</div>
                             @endforelse
                         </fieldset>
                     </div>
@@ -398,88 +442,39 @@
 
         <div class="pmd-shifts__modal" data-pmd-team-modal hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="pmd-team-modal-title">
             <button type="button" class="pmd-shifts__modal-backdrop" data-pmd-team-close tabindex="-1" aria-label="Close"></button>
-            <section class="pmd-shifts__modal-card pmd-shifts__team-card" role="document">
+            <section class="pmd-shifts__modal-card pmd-shifts__team-card pmd-shifts__team-editor-card" role="document">
                 <header class="pmd-shifts__modal-header">
-                    <div><h2 id="pmd-team-modal-title">Team</h2></div>
+                    <div><h2 id="pmd-team-modal-title">Member</h2></div>
                     <button type="button" class="pmd-shifts__modal-close" data-pmd-team-close aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
                 </header>
-                <div class="pmd-shifts__team-layout">
-                    <form class="pmd-shifts__team-form" method="post" action="{{ admin_url('shifts/saveperson') }}" data-pmd-team-form data-default-access-role="{{ (int)optional($defaultAccessRole)->staff_role_id }}">
-                        @csrf
-                        <input type="hidden" name="id" value="" data-pmd-team-person-id>
-                        <input type="hidden" name="return_to" value="{{ $returnTo }}">
-                        <div class="pmd-shifts__team-form-head"><strong data-pmd-team-form-title>New member</strong><button type="button" data-pmd-team-new>Clear</button></div>
-                        <label><span>Name</span><input required maxlength="128" name="display_name" data-pmd-team-name placeholder="e.g. Anna"></label>
-                        <div class="pmd-shifts__team-identity-row">
-                            <label><span>Role</span><input maxlength="64" name="job_role" data-pmd-team-role placeholder="Bartender, Chef…"></label>
-                            <label><span>Area</span><select name="department" data-pmd-team-department>
-                                @foreach($departments as $departmentKey => $departmentLabel)<option value="{{ $departmentKey }}">{{ $departmentLabel }}</option>@endforeach
-                            </select></label>
-                        </div>
-
-                        <label class="pmd-shifts__team-access-toggle">
-                            <input type="checkbox" name="give_access" value="1" checked data-pmd-team-access-toggle>
-                            <span><strong>PMD login</strong></span>
-                        </label>
-
-                        <div class="pmd-shifts__team-access-fields" data-pmd-team-access-fields>
-                            <label><span>Username</span><input maxlength="32" name="username" autocomplete="off" data-pmd-team-username placeholder="anna"></label>
-                            <label><span>Access</span><select name="staff_role_id" data-pmd-team-access-role>
-                                @foreach($accessRoles as $accessRole)<option value="{{ (int)$accessRole->staff_role_id }}">{{ $accessRole->name }}</option>@endforeach
-                            </select></label>
-                            <label class="is-password"><span>Password <small data-pmd-team-password-hint>required for new login</small></span><span class="pmd-shifts__team-password-row"><input type="password" minlength="6" maxlength="32" name="password" autocomplete="new-password" data-pmd-team-password><button type="button" data-pmd-team-password-generate>Generate</button></span></label>
-
-                        </div>
-                        <button type="submit" class="pmd-shifts__button">Save</button>
-                    </form>
-
-                    <section class="pmd-shifts__team-list" aria-label="Restaurant team members">
-                        <header><strong>{{ $people->count() }} people</strong></header>
-                        <div class="pmd-shifts__team-list-scroll">
-                            @forelse($people as $person)
-                                <button
-                                    type="button"
-                                    class="pmd-shifts__team-person"
-                                    data-pmd-team-edit
-                                    data-person-id="{{ (int)$person->id }}"
-                                    data-name="{{ $person->display_name }}"
-                                    data-role="{{ $person->job_role ?? '' }}"
-                                    data-department="{{ $person->department ?? 'other' }}"
-                                    data-has-access="{{ !empty($person->staff_id) ? '1' : '0' }}"
-                                    data-username="{{ !empty($person->staff_id) && $accessStaff->get((int)$person->staff_id) && $accessStaff->get((int)$person->staff_id)->user ? $accessStaff->get((int)$person->staff_id)->user->username : '' }}"
-                                    data-staff-role-id="{{ !empty($person->staff_id) && $accessStaff->get((int)$person->staff_id) ? (int)$accessStaff->get((int)$person->staff_id)->staff_role_id : '' }}"
-                                >
-                                    <span class="pmd-shifts__team-person-avatar">{{ strtoupper(substr(trim((string)$person->display_name),0,1)) }}</span>
-                                    <span><strong>{{ $person->display_name }}</strong><small>{{ $person->job_role ?: ($departments[$person->department] ?? 'Team') }}</small></span>
-                                    @if(!empty($person->staff_id))<em>PMD access</em>@endif
-                                </button>
-                            @empty
-                                <div class="pmd-shifts__team-empty">No people yet. Add the first person with only a name.</div>
-                            @endforelse
-                        </div>
-                    </section>
-
-                    <section class="pmd-shifts__team-requests {{ $teamRequests->isEmpty() ? 'is-empty' : '' }}" aria-label="Pending team requests">
-                        <header><strong>Requests</strong><span>{{ $teamRequests->count() ? $teamRequests->count().' pending' : 'Nothing waiting' }}</span></header>
-                        <div class="pmd-shifts__team-request-list">
-                            @forelse($teamRequests as $teamRequest)
-                                <article class="pmd-shifts__team-request">
-                                    <div><strong>{{ $teamRequest->person_name ?: 'Team member' }}</strong><small>{{ ucfirst(str_replace('_',' ',(string)$teamRequest->request_type)) }}@if($teamRequest->date_from) · {{ \Carbon\Carbon::parse($teamRequest->date_from)->format('d M') }}@endif</small><p>{{ $teamRequest->message ?: 'No note' }}</p></div>
-                                    <div class="pmd-shifts__team-request-actions">
-                                        <form method="post" action="{{ admin_url('shifts/handlerequest') }}">@csrf<input type="hidden" name="id" value="{{ (int)$teamRequest->id }}"><input type="hidden" name="decision" value="approved"><input type="hidden" name="return_to" value="{{ $returnTo }}"><button type="submit">Approve</button></form>
-                                        <form method="post" action="{{ admin_url('shifts/handlerequest') }}">@csrf<input type="hidden" name="id" value="{{ (int)$teamRequest->id }}"><input type="hidden" name="decision" value="declined"><input type="hidden" name="return_to" value="{{ $returnTo }}"><button type="submit" class="is-decline">Decline</button></form>
-                                    </div>
-                                </article>
-                            @empty
-                                <div class="pmd-shifts__team-empty">No pending shift, leave or manager-message requests.</div>
-                            @endforelse
-                        </div>
-                    </section>
-                </div>
-                <footer class="pmd-shifts__modal-footer pmd-shifts__team-footer">
-                    <a href="{{ admin_url('settings/team') }}">Advanced</a>
-                    <button type="button" class="pmd-shifts__button is-soft" data-pmd-team-close>Done</button>
-                </footer>
+                <form class="pmd-shifts__team-form pmd-shifts__team-editor" method="post" action="{{ admin_url('shifts/saveperson') }}" data-pmd-team-form data-default-access-role="{{ (int)optional($defaultAccessRole)->staff_role_id }}">
+                    @csrf
+                    <input type="hidden" name="id" value="" data-pmd-team-person-id>
+                    <input type="hidden" name="return_to" value="{{ $returnTo }}">
+                    <div class="pmd-shifts__team-form-head"><strong data-pmd-team-form-title>Add member</strong></div>
+                    <label><span>Name</span><input required maxlength="128" name="display_name" data-pmd-team-name placeholder="Anna"></label>
+                    <div class="pmd-shifts__team-identity-row">
+                        <label><span>Role</span><input maxlength="64" name="job_role" data-pmd-team-role placeholder="Chef, Waiter…"></label>
+                        <label><span>Area</span><select name="department" data-pmd-team-department>
+                            @foreach($departments as $departmentKey => $departmentLabel)<option value="{{ $departmentKey }}">{{ $departmentLabel }}</option>@endforeach
+                        </select></label>
+                    </div>
+                    <label class="pmd-shifts__team-access-toggle">
+                        <input type="checkbox" name="give_access" value="1" data-pmd-team-access-toggle>
+                        <span><strong>Create PMD login</strong></span>
+                    </label>
+                    <div class="pmd-shifts__team-access-fields" data-pmd-team-access-fields hidden>
+                        <label><span>Username</span><input maxlength="32" name="username" autocomplete="off" data-pmd-team-username></label>
+                        <label><span>Access</span><select name="staff_role_id" data-pmd-team-access-role>
+                            @foreach($accessRoles as $accessRole)<option value="{{ (int)$accessRole->staff_role_id }}">{{ $accessRole->name }}</option>@endforeach
+                        </select></label>
+                        <label class="is-password"><span>Password <small data-pmd-team-password-hint>required</small></span><span class="pmd-shifts__team-password-row"><input type="password" minlength="6" maxlength="32" name="password" autocomplete="new-password" data-pmd-team-password><button type="button" data-pmd-team-password-generate>Generate</button></span></label>
+                    </div>
+                    <footer class="pmd-shifts__modal-footer pmd-shifts__team-editor-footer">
+                        <button type="button" class="pmd-shifts__button is-soft" data-pmd-team-close>Cancel</button>
+                        <button type="submit" class="pmd-shifts__button">Save member</button>
+                    </footer>
+                </form>
             </section>
         </div>
 

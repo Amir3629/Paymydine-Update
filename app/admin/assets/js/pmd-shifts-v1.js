@@ -68,19 +68,19 @@
   }
 
   function loadExactSharedUiCss() {
-    if (document.querySelector('link[data-pmd-shifts-exact-ui-v11]')) return;
+    if (document.querySelector('link[data-pmd-shifts-exact-ui-v14]')) return;
     var base = document.querySelector('link[href*="pmd-shifts-v1.css"]');
-    var href = '/app/admin/assets/css/pmd-shifts-dashboard-reservations-v4.css?v=11';
+    var href = '/app/admin/assets/css/pmd-shifts-dashboard-reservations-v4.css?v=14';
     if (base && base.getAttribute('href')) {
       href = base.getAttribute('href').replace(
         /pmd-shifts-v1\.css(?:\?[^#]*)?/,
-        'pmd-shifts-dashboard-reservations-v4.css?v=11'
+        'pmd-shifts-dashboard-reservations-v4.css?v=14'
       );
     }
     var link = document.createElement('link');
     link.rel = 'stylesheet';
     link.href = href;
-    link.setAttribute('data-pmd-shifts-exact-ui-v11', '');
+    link.setAttribute('data-pmd-shifts-exact-ui-v14', '');
     document.head.appendChild(link);
   }
 
@@ -207,7 +207,7 @@
     if (teamIdInput) teamIdInput.value = '';
     if (teamDepartmentInput) teamDepartmentInput.value = 'other';
     if (teamFormTitle) teamFormTitle.textContent = 'Add team member';
-    if (teamAccessToggle) { teamAccessToggle.checked = true; teamAccessToggle.disabled = false; }
+    if (teamAccessToggle) { teamAccessToggle.checked = false; teamAccessToggle.disabled = false; }
     if (teamAccessRoleInput) teamAccessRoleInput.value = teamForm.getAttribute('data-default-access-role') || teamAccessRoleInput.value;
     if (teamPasswordInput) teamPasswordInput.value = '';
     if (teamPasswordHint) teamPasswordHint.textContent = 'required for new login';
@@ -244,6 +244,44 @@
     teamModal.setAttribute('aria-hidden', 'false');
     setScrollLock(true);
     window.setTimeout(function () { if (teamNameInput) teamNameInput.focus(); }, 0);
+  }
+
+  function mountHeaderNotification() {
+    var slot = root.querySelector('[data-pmd-shifts-notification-slot]');
+    var notificationRoot = document.getElementById('notif-root');
+    if (!slot || !notificationRoot) return false;
+    if (!slot.contains(notificationRoot)) {
+      slot.innerHTML = '';
+      slot.appendChild(notificationRoot);
+    }
+    notificationRoot.classList.add('pmd-shifts__notification-root');
+    var trigger = notificationRoot.querySelector('#notifDropdown');
+    if (trigger) {
+      trigger.setAttribute('aria-label', 'Notifications');
+      trigger.setAttribute('title', 'Notifications');
+    }
+    return true;
+  }
+
+  function ensureHeaderNotification() {
+    var attempts = 0;
+    function tryMount() {
+      if (mountHeaderNotification()) return;
+      attempts += 1;
+      if (attempts < 20) window.setTimeout(tryMount, 150);
+    }
+    tryMount();
+  }
+
+  function scrollToTeamPanel(personId) {
+    var panel = root.querySelector('[data-pmd-shifts-team-panel]');
+    if (!panel) return;
+    panel.scrollIntoView({behavior: 'smooth', block: 'start'});
+    if (!personId) return;
+    var row = panel.querySelector('[data-pmd-team-panel-person-id="' + Number(personId || 0) + '"]');
+    if (!row) return;
+    row.classList.add('is-focused');
+    window.setTimeout(function () { row.classList.remove('is-focused'); }, 1600);
   }
 
   function closeTeam() {
@@ -555,7 +593,7 @@
       return '' +
         '<th scope="col" class="pmd-shifts-resource-person">' +
           '<span class="pmd-shifts-resource-person__avatar">' + escapeHtml(personInitials(person.name)) + '</span>' +
-          '<span class="pmd-shifts-resource-person__copy"><a class="pmd-shifts-resource-person__link" href="/admin/people?person=' + Number(person.id || 0) + '">' + escapeHtml(person.name || 'Team member') + '</a><small>' + escapeHtml(person.role || 'Team') + '</small></span>' +
+          '<span class="pmd-shifts-resource-person__copy"><button type="button" class="pmd-shifts-resource-person__link" data-pmd-team-scroll-person="' + Number(person.id || 0) + '">' + escapeHtml(person.name || 'Team member') + '</button><small>' + escapeHtml(person.role || 'Team') + '</small></span>' +
           '<span class="pmd-shifts-resource-person__source' + (person.has_access ? ' is-access' : '') + '">' + (person.has_access ? 'PMD access' : 'Restaurant team') + '</span>' +
         '</th>';
     }).join('') + fillerIndexes.map(function () {
@@ -587,7 +625,7 @@
       '<div class="pmd-shifts-resource-empty-state">' +
         '<strong>No restaurant team members yet</strong>' +
         '<span>Add people in Team first. A name is enough; PMD login is optional.</span>' +
-        '<a href="/admin/settings/team">Open Team</a>' +
+        '<button type="button" data-pmd-team-scroll>Open Team</button>' +
       '</div>';
 
     host.innerHTML = '' +
@@ -728,6 +766,7 @@
 
   loadExactSharedUiCss();
   syncKpiMenus();
+  ensureHeaderNotification();
 
   document.addEventListener('click', function (event) {
     var monthNav = event.target.closest('[data-pmd-shifts-month-nav]');
@@ -776,6 +815,19 @@
     }
 
     if (activeKpiMenu && !activeKpiMenu.contains(event.target)) closeKpiMenu();
+
+    var teamScrollPerson = event.target.closest('[data-pmd-team-scroll-person]');
+    if (teamScrollPerson) {
+      event.preventDefault();
+      scrollToTeamPanel(teamScrollPerson.getAttribute('data-pmd-team-scroll-person'));
+      return;
+    }
+    var teamScroll = event.target.closest('[data-pmd-team-scroll]');
+    if (teamScroll) {
+      event.preventDefault();
+      scrollToTeamPanel(null);
+      return;
+    }
 
     var teamOpen = event.target.closest('[data-pmd-team-open]');
     if (teamOpen) {
