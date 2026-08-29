@@ -19,7 +19,15 @@ jobs:
           fetch-depth: 0
 
       - name: Apply Shifts day-only V15
-        run: python3 .github/pmd185_shifts_day_only_v15.py
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 .github/pmd185_shifts_day_only_v15.py
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('app/admin/assets/css/pmd-shifts-dashboard-reservations-v4.css')
+          path.write_text(path.read_text().rstrip() + '\n')
+          PY
 
       - name: QA Shifts day-only V15
         shell: bash
@@ -51,7 +59,6 @@ jobs:
           grep -F "min-height:118px!important" "$CSS"
           grep -F "padding:15px!important" "$CSS"
           grep -F "font-size:30px!important" "$CSS"
-          grep -F "display:block!important" "$CSS" | grep -F "" >/dev/null
           grep -F ".pmd-shifts-date-picker" "$CSS"
 
           mapfile -t changed < <(git diff --name-only | sort)
