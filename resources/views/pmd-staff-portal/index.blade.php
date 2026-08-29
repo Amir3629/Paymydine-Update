@@ -20,13 +20,13 @@
     <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
     <meta name="robots" content="noindex,nofollow">
     <title>Staff Portal · PayMyDine</title>
-    <link rel="shortcut icon" href="/app/admin/assets/images/pmd-brand-mark.svg?v=pmd-staff-v3">
-    <link rel="stylesheet" href="/app/admin/assets/css/pmd-staff-portal-v1.css?v=3">
+    <link rel="shortcut icon" href="/app/admin/assets/images/pmd-brand-mark.svg?v=pmd-staff-v4">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-staff-portal-v1.css?v=4">
 </head>
 <body class="pmd-staff-portal-page">
 <div class="pmd-staff-app" data-pmd-staff-portal>
     <header class="pmd-staff-topbar">
-        <a href="/staff" class="pmd-staff-brand" aria-label="PayMyDine Staff Portal">
+        <a href="{{ admin_url('mywork') }}" class="pmd-staff-brand" aria-label="PayMyDine Staff Portal">
             <img src="/app/admin/assets/images/pmd-brand-full.svg" alt="PayMyDine">
             <span>Staff Portal</span>
         </a>
@@ -41,7 +41,7 @@
                 <span class="pmd-staff-person__avatar">{{ strtoupper(mb_substr((string)$person->display_name,0,1)) }}</span>
                 <div><strong>{{ $person->display_name }}</strong><small>{{ $person->job_role ?: 'Team member' }}</small></div>
             </div>
-            <form method="post" action="/staff/logout">@csrf<button type="submit" class="pmd-staff-signout" aria-label="Sign out"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 8l4 4-4 4M18 12H8M8 5V4a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1"></path></svg><span>Sign out</span></button></form>
+            <form method="post" action="{{ admin_url('mywork/stafflogout') }}">@csrf<button type="submit" class="pmd-staff-signout" aria-label="Sign out"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 8l4 4-4 4M18 12H8M8 5V4a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1"></path></svg><span>Sign out</span></button></form>
         </div>
     </header>
 
@@ -71,14 +71,14 @@
                 @if(!empty($chatReady))
                     <div class="pmd-staff-group-list">
                         @foreach($groups as $group)
-                            <a href="/staff?group={{ (int)$group->id }}#chat" class="{{ $activeGroup && (int)$activeGroup->id === (int)$group->id ? 'is-active' : '' }}">
+                            <a href="{{ admin_url('mywork') }}?group={{ (int)$group->id }}#chat" class="{{ $activeGroup && (int)$activeGroup->id === (int)$group->id ? 'is-active' : '' }}">
                                 <span class="pmd-staff-group-avatar">{{ strtoupper(mb_substr((string)$group->name,0,1)) }}</span>
                                 <div><strong>{{ $group->name }}</strong><small>{{ $group->group_type === 'team' ? 'Everyone in this restaurant' : 'Private staff group' }}</small></div>
                                 <svg class="pmd-staff-chevron" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg>
                             </a>
                         @endforeach
                     </div>
-                    <form method="post" action="/staff/groups" class="pmd-staff-group-create" data-pmd-group-form hidden>
+                    <form method="post" action="{{ admin_url('mywork/creategroup') }}" class="pmd-staff-group-create" data-pmd-group-form hidden>
                         @csrf
                         <label><span>Group name</span><input name="name" maxlength="96" required placeholder="Kitchen team"></label>
                         <div class="pmd-staff-group-members">
@@ -109,7 +109,7 @@
                 @endforelse
             </div>
             @if(!empty($chatReady) && $activeGroup)
-                <form method="post" action="/staff/chat/message" class="pmd-staff-composer">
+                <form method="post" action="{{ admin_url('mywork/sendmessage') }}" class="pmd-staff-composer">
                     @csrf<input type="hidden" name="group_id" value="{{ (int)$activeGroup->id }}">
                     <textarea name="message" rows="1" maxlength="4000" required placeholder="Message {{ $activeGroup->name }}…"></textarea>
                     <button type="submit" aria-label="Send message"><svg viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4zM22 2 11 13"></path></svg><span>Send</span></button>
@@ -143,7 +143,7 @@
                 </header>
                 <div class="pmd-staff-open-shifts">
                     @foreach($openShifts as $shift)
-                        <article><div><strong>{{ \Carbon\Carbon::parse($shift->shift_date)->format('D, d M') }}</strong><small>{{ $shift->starts_at ? substr((string)$shift->starts_at,0,5) : 'All day' }}@if($shift->ends_at) – {{ substr((string)$shift->ends_at,0,5) }}@endif · {{ $shift->label ?: 'Shift' }}</small></div><form method="post" action="/staff/request">@csrf<input type="hidden" name="request_type" value="cover_shift"><input type="hidden" name="shift_id" value="{{ (int)$shift->id }}"><input type="hidden" name="message" value="I can take this open shift."><button type="submit">I can work</button></form></article>
+                        <article><div><strong>{{ \Carbon\Carbon::parse($shift->shift_date)->format('D, d M') }}</strong><small>{{ $shift->starts_at ? substr((string)$shift->starts_at,0,5) : 'All day' }}@if($shift->ends_at) – {{ substr((string)$shift->ends_at,0,5) }}@endif · {{ $shift->label ?: 'Shift' }}</small></div><form method="post" action="{{ admin_url('mywork/saverequest') }}">@csrf<input type="hidden" name="request_type" value="cover_shift"><input type="hidden" name="shift_id" value="{{ (int)$shift->id }}"><input type="hidden" name="message" value="I can take this open shift."><button type="submit">I can work</button></form></article>
                     @endforeach
                 </div>
             </section>
@@ -155,7 +155,7 @@
                     @if($pending)<b class="pmd-staff-count">{{ $pending }}</b>@endif
                 </header>
                 @if(!empty($requestsReady))
-                    <form method="post" action="/staff/request" class="pmd-staff-request-form" data-pmd-staff-request-form>
+                    <form method="post" action="{{ admin_url('mywork/saverequest') }}" class="pmd-staff-request-form" data-pmd-staff-request-form>
                         @csrf<input type="hidden" name="request_type" value="time_off" data-pmd-request-type><input type="hidden" name="shift_id" value="" data-pmd-request-shift-id>
                         <div class="pmd-staff-request-types"><button type="button" class="is-active" data-pmd-request-type-button="time_off">Time off</button><button type="button" data-pmd-request-type-button="shift_change">Shift change</button><button type="button" data-pmd-request-type-button="sick">Sick</button></div>
                         <div class="pmd-staff-dates" data-pmd-request-dates><label><span>From</span><input type="date" name="date_from"></label><label><span>To</span><input type="date" name="date_to"></label></div>
@@ -181,7 +181,7 @@
                 <div class="pmd-staff-management-links"><a href="{{ admin_url('shifts') }}"><svg viewBox="0 0 24 24"><path d="M4 5h16v15H4zM8 3v4M16 3v4M4 10h16"></path></svg><span>Open Shifts</span></a><a href="{{ admin_url('settings/team') }}"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"></circle><path d="M3 20a6 6 0 0 1 12 0M16 5a3 3 0 0 1 0 6M17 14a5 5 0 0 1 4 5"></path></svg><span>Manage Team</span></a></div>
                 <div class="pmd-staff-management-list">
                     @forelse($managementRequests as $item)
-                        <article><div><strong>{{ $item->person_name ?: 'Team member' }}</strong><small>{{ $requestLabels[$item->request_type] ?? ucfirst(str_replace('_',' ',$item->request_type)) }} · {{ \Carbon\Carbon::parse($item->created_at)->format('d M H:i') }}</small><p>{{ $item->message }}</p></div><form method="post" action="/staff/request/handle">@csrf<input type="hidden" name="id" value="{{ (int)$item->id }}"><button name="decision" value="approved" type="submit">Approve</button><button name="decision" value="declined" type="submit" class="is-decline">Decline</button></form></article>
+                        <article><div><strong>{{ $item->person_name ?: 'Team member' }}</strong><small>{{ $requestLabels[$item->request_type] ?? ucfirst(str_replace('_',' ',$item->request_type)) }} · {{ \Carbon\Carbon::parse($item->created_at)->format('d M H:i') }}</small><p>{{ $item->message }}</p></div><form method="post" action="{{ admin_url('mywork/handlerequest') }}">@csrf<input type="hidden" name="id" value="{{ (int)$item->id }}"><button name="decision" value="approved" type="submit">Approve</button><button name="decision" value="declined" type="submit" class="is-decline">Decline</button></form></article>
                     @empty<div class="pmd-staff-empty"><strong>All caught up</strong><span>Nothing is waiting for approval.</span></div>@endforelse
                 </div>
             </section>
