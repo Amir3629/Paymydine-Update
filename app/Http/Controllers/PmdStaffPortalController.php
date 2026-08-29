@@ -77,14 +77,28 @@ class PmdStaffPortalController extends Controller
         if (Schema::hasTable('pmd_operational_shift_people') && Schema::hasTable('pmd_operational_shifts')) {
             $from = now()->subMonths(2)->startOfMonth()->toDateString();
             $to = now()->addMonths(3)->endOfMonth()->toDateString();
-            $shifts = DB::table('pmd_operational_shift_people as assignment')
+            $shiftQuery = DB::table('pmd_operational_shift_people as assignment')
                 ->join('pmd_operational_shifts as shift', 'shift.id', '=', 'assignment.shift_id')
                 ->where('shift.location_id', $locationId)
                 ->where('assignment.person_id', (int)$person->id)
                 ->whereBetween('shift.shift_date', [$from, $to])
                 ->whereNotIn('shift.status', ['cancelled', 'canceled'])
-                ->select(['shift.id','shift.shift_date','shift.label','shift.starts_at','shift.ends_at','shift.break_minutes','shift.status','assignment.attendance_status'])
-                ->orderBy('shift.shift_date')->orderBy('shift.starts_at')->get();
+                ->select(['shift.id','shift.shift_date','shift.label','shift.starts_at','shift.ends_at','shift.status','assignment.attendance_status']);
+
+            // PMD_STAFF_PORTAL_BREAK_SCHEMA_COMPAT_V1
+            // Main already ships the additive break_minutes migration, but a
+            // tenant can temporarily lag behind that schema. Match Shifts.php:
+            // use the real value when present and never 500 on an older tenant.
+            if (Schema::hasColumn('pmd_operational_shifts', 'break_minutes')) {
+                $shiftQuery->addSelect('shift.break_minutes');
+            } else {
+                $shiftQuery->addSelect(DB::raw('0 as break_minutes'));
+            }
+
+            $shifts = $shiftQuery
+                ->orderBy('shift.shift_date')
+                ->orderBy('shift.starts_at')
+                ->get();
         }
         $workRuleWarnings = app(PmdGermanWorkRulesService::class)->analyze($shifts);
 
