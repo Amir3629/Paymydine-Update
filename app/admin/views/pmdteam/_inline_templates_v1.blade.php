@@ -3,7 +3,7 @@
     $roster = collect($pmdTeam['roster'] ?? []);
     $departments = $pmdTeam['departments'] ?? [];
     $operationalRoles = $pmdTeam['operational_roles'] ?? [];
-    $staffOptions = collect($pmdTeam['staff_options'] ?? []);
+    $staffById = collect($pmdTeam['staff_by_id'] ?? []);
 @endphp
 <div id="pmd-team-inline-templates" data-pmd-inline-templates hidden>
     @if(!empty($pmdTeam['roster_ready']))
@@ -11,32 +11,25 @@
             @include('admin::pmdteam._inline_roster_person_form_v1', [
                 'mode'=>'create',
                 'person'=>null,
+                'member'=>null,
                 'departments'=>$departments,
                 'operationalRoles'=>$operationalRoles,
-                'staffOptions'=>$staffOptions,
+                'roles'=>$roles,
             ])
         </template>
 
         @foreach($roster as $person)
+            @php $member = !empty($person->staff_id) ? $staffById->get((int)$person->staff_id) : null; @endphp
             <template data-pmd-inline-template="team:person:edit:{{ $person->id }}">
                 @include('admin::pmdteam._inline_roster_person_form_v1', [
                     'mode'=>'edit',
                     'person'=>$person,
+                    'member'=>$member,
                     'departments'=>$departments,
                     'operationalRoles'=>$operationalRoles,
-                    'staffOptions'=>$staffOptions,
+                    'roles'=>$roles,
                 ])
             </template>
         @endforeach
     @endif
-
-    <template data-pmd-inline-template="team:staff:create">
-        @include('admin::pmdteam._inline_staff_form_v1', ['mode'=>'create','member'=>null,'roles'=>$roles])
-    </template>
-
-    @foreach($staff as $member)
-        <template data-pmd-inline-template="team:staff:edit:{{ $member->staff_id }}">
-            @include('admin::pmdteam._inline_staff_form_v1', ['mode'=>'edit','member'=>$member,'roles'=>$roles])
-        </template>
-    @endforeach
 </div>
