@@ -1,9 +1,10 @@
 @php
-    // PMD_LOGIN_WORKSPACE_V2
+    // PMD_LOGIN_WORKSPACE_V3
     // Logged-out language is browser-local. After successful login the saved
     // staff language remains authoritative in Admin\Controllers\Login.
     $pmdLoginLocale = strtolower(trim((string)request()->cookie('pmd_admin_locale', app()->getLocale())));
     $pmdLoginLocale = in_array($pmdLoginLocale, ['en', 'de'], true) ? $pmdLoginLocale : 'en';
+    $pmdLoginDestination = input('destination') === 'staff' ? 'staff' : 'workspace';
     app()->setLocale($pmdLoginLocale);
     if (app()->bound('translator.localization')) {
         app('translator.localization')->setLocale($pmdLoginLocale, false);
@@ -43,7 +44,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
     <meta name="robots" content="noindex,nofollow">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <link rel="shortcut icon" href="/app/admin/assets/images/pmd-brand-mark.svg?v=pmd-login-workspace-v2">
+    <link rel="shortcut icon" href="/app/admin/assets/images/pmd-brand-mark.svg?v=pmd-login-workspace-v3">
     <title>{{ $pmdLoginCopy['title'] }}</title>
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/dashboard.css') }}?ver=3.2.3">
     <style>
@@ -58,8 +59,8 @@
         .pmd-login-brand img{display:block;width:300px;max-width:100%;height:190px;object-fit:contain}
         .pmd-login-title{margin:0 0 16px;text-align:center;font-size:20px;font-weight:850;letter-spacing:-.025em}
         .pmd-login-mode{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin:0 auto 22px;padding:4px;border:1px solid #e2e9e6;border-radius:13px;background:#f3f7f5}
-        .pmd-login-mode span,.pmd-login-mode a{min-height:40px;display:flex;align-items:center;justify-content:center;gap:7px;padding:0 10px;border-radius:10px;color:#60706e;font-size:12px;font-weight:850;text-decoration:none}
-        .pmd-login-mode span{background:#fff;color:var(--pmd-jade);box-shadow:0 2px 9px rgba(6,47,42,.08)}
+        .pmd-login-mode a{min-height:40px;display:flex;align-items:center;justify-content:center;gap:7px;padding:0 10px;border-radius:10px;color:#60706e;font-size:12px;font-weight:850;text-decoration:none}
+        .pmd-login-mode a.is-active{background:#fff;color:var(--pmd-jade);box-shadow:0 2px 9px rgba(6,47,42,.08)}
         .pmd-login-mode a:hover{background:#e9f4ef;color:var(--pmd-jade)}
         .pmd-login-mode svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
         .pmd-login-notice{margin:0 0 16px;padding:12px 14px;border:1px solid rgba(180,35,24,.22);border-left:4px solid var(--pmd-danger);border-radius:13px;background:#fff2f1;color:#7a271a;font-size:12px;line-height:1.45}
@@ -91,17 +92,17 @@
     <button type="button" class="pmd-login-language" data-pmd-login-language="{{ $pmdLoginNextLocale }}" title="{{ $pmdLoginCopy['switch_title'] }}" aria-label="{{ $pmdLoginCopy['switch_title'] }}">{{ strtoupper($pmdLoginNextLocale) }}</button>
 
     <div class="pmd-login-brand">
-        <img src="{{ asset('app/admin/assets/images/pmd-login-logo.svg') }}?v=pmd-login-workspace-v2" alt="PayMyDine">
+        <img src="{{ asset('app/admin/assets/images/pmd-login-logo.svg') }}?v=pmd-login-workspace-v3" alt="PayMyDine">
     </div>
 
     <h1 class="pmd-login-title">@lang('admin::lang.login.text_title')</h1>
 
     <nav class="pmd-login-mode" aria-label="Login destination">
-        <span aria-current="page">
+        <a href="{{ admin_url('login') }}" class="{{ $pmdLoginDestination === 'workspace' ? 'is-active' : '' }}" @if($pmdLoginDestination === 'workspace') aria-current="page" @endif>
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM8 9h8M8 13h5"></path></svg>
             {{ $pmdLoginCopy['workspace'] }}
-        </span>
-        <a href="/staff/login">
+        </a>
+        <a href="{{ admin_url('login') }}?destination=staff" class="{{ $pmdLoginDestination === 'staff' ? 'is-active' : '' }}" @if($pmdLoginDestination === 'staff') aria-current="page" @endif>
             <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"></circle><path d="M3 20a6 6 0 0 1 12 0M16 5a3 3 0 0 1 0 6M17 14a5 5 0 0 1 4 5"></path></svg>
             {{ $pmdLoginCopy['staff'] }}
         </a>
@@ -123,6 +124,8 @@
         'method' => 'POST',
         'data-request' => 'onLogin',
     ]) !!}
+        <input type="hidden" name="destination" value="{{ $pmdLoginDestination }}">
+
         <label class="pmd-login-field">
             <span>@lang('admin::lang.login.label_username')</span>
             <input type="text" name="username" id="input-username" autocomplete="username" placeholder="{{ $pmdLoginCopy['username_placeholder'] }}" value="{{ old('username') }}" required autofocus>
