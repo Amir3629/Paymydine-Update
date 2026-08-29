@@ -3,8 +3,16 @@
 use App\Http\Controllers\PmdStaffPortalController;
 use Illuminate\Support\Facades\Route;
 
-/** PMD_STAFF_PORTAL_V2 */
-App::before(function () {
+/**
+ * PMD_STAFF_PORTAL_V3
+ *
+ * Register the Staff Portal as a real Laravel/TastyIgniter web surface before
+ * the public Next.js menu catch-all. The constant guard lets Admin and Main
+ * both require this file without ever registering the routes twice.
+ */
+if (!defined('PMD_STAFF_PORTAL_ROUTES_V3')) {
+    define('PMD_STAFF_PORTAL_ROUTES_V3', true);
+
     Route::group(['middleware' => ['web']], function () {
         Route::get('/staff/login', [PmdStaffPortalController::class, 'login'])->name('pmd.staff.login');
         Route::post('/staff/login', [PmdStaffPortalController::class, 'authenticate'])->middleware('throttle:8,15')->name('pmd.staff.authenticate');
@@ -15,4 +23,4 @@ App::before(function () {
         Route::post('/staff/chat/message', [PmdStaffPortalController::class, 'sendChatMessage'])->middleware('throttle:120,1')->name('pmd.staff.chat.message');
         Route::post('/staff/logout', [PmdStaffPortalController::class, 'logout'])->name('pmd.staff.logout');
     });
-});
+}
