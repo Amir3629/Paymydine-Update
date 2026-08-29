@@ -39,11 +39,19 @@ class PmdKitchenOperationsSchemaService
                 $table->string('department', 32)->default('other');
                 $table->string('job_role', 64)->nullable();
                 $table->string('station_slug', 80)->nullable();
+                $table->string('avatar_path', 500)->nullable();
                 $table->boolean('is_active')->default(true);
                 $table->timestamps();
 
                 $table->index(['location_id', 'department', 'is_active'], 'pmd_people_location_department_active_idx');
                 $table->index(['location_id', 'staff_id'], 'pmd_people_location_staff_idx');
+            });
+        } elseif (!$schema->hasColumn('pmd_operational_people', 'avatar_path')) {
+            // PMD_STAFF_PORTAL_PROFILE_SCHEMA_V1
+            // Private storage path only; the Staff Portal serves bytes through
+            // an authenticated same-tenant endpoint instead of exposing files.
+            $schema->table('pmd_operational_people', function (Blueprint $table) {
+                $table->string('avatar_path', 500)->nullable()->after('station_slug');
             });
         }
 
