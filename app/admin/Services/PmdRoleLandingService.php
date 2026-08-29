@@ -52,6 +52,8 @@ class PmdRoleLandingService
         if (!$user)
             return null;
 
+        // The native /admin/dashboard is retired. Super users land in the
+        // owner workspace instead of rendering the legacy native dashboard.
         if (method_exists($user, 'isSuperUser') && $user->isSuperUser())
             return 'ownerdashboard';
 
@@ -76,9 +78,11 @@ class PmdRoleLandingService
                     return self::ROLE_MAP[$name];
             }
         } catch (\Throwable $error) {
+            // Fall through to the known test-account map, then null.
         }
 
         $username = strtolower(trim((string)($user->username ?? '')));
+
         return self::USERNAME_FALLBACK_MAP[$username] ?? null;
     }
 }
