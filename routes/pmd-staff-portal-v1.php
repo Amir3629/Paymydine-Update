@@ -17,12 +17,16 @@ if (!defined('PMD_STAFF_PORTAL_ROUTES_V3')) {
     Route::group(['middleware' => ['web']], function () {
         $adminUri = '/'.trim((string)config('system.adminUri', 'admin'), '/');
 
-        // PMD_STAFF_AVATAR_BINARY_RESPONSE_V1
-        // Keep the explicit V5 route, but use the proven base avatar responder
-        // which returns Symfony's BinaryFileResponse via response()->file().
+        // PMD_STAFF_AVATAR_BINARY_RESPONSE_V2
+        // Keep the explicit V5 route and proven response()->file() responder.
+        // Re-assert private caching after BinaryFileResponse preparation so
+        // authenticated staff photos are never advertised as public cache data.
         Route::get($adminUri.'/mywork/avatar/{person}', function ($person) {
             request()->query->set('person', max(1, (int)$person));
-            return app(PmdStaffPortalController::class)->avatar(request());
+            $response = app(PmdStaffPortalController::class)->avatar(request());
+            $response->setPrivate();
+            $response->setMaxAge(86400);
+            return $response;
         })->where('person', '[1-9][0-9]*')->name('pmd.staff.avatar.v5');
 
         Route::get('/staff/login', [PmdStaffPortalController::class, 'login'])->name('pmd.staff.login');
