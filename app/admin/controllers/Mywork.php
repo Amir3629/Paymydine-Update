@@ -7,7 +7,7 @@ use Admin\Facades\AdminMenu;
 use App\Http\Controllers\PmdStaffPortalController;
 use Illuminate\Http\RedirectResponse;
 
-/** PMD_MY_WORK_STAFF_PORTAL_V2 */
+/** PMD_MY_WORK_STAFF_PORTAL_V3 */
 class Mywork extends AdminController
 {
     protected $requiredPermissions = null;
@@ -47,14 +47,26 @@ class Mywork extends AdminController
         return $this->portalResponse('sendChatMessage');
     }
 
+    /** PMD_MY_WORK_SELF_PROFILE_V1 */
+    public function updateprofile()
+    {
+        return $this->portalResponse('updateProfile');
+    }
+
+    /** Private same-tenant avatar response; no redirect canonicalization needed. */
+    public function avatar()
+    {
+        return $this->portalResponse('avatar');
+    }
+
     public function stafflogout()
     {
         return $this->portalResponse('logout', false);
     }
 
     /**
-     * Reuse one Staff Portal application authority for chat, shifts and
-     * requests. Mywork only owns the canonical Admin URL boundary.
+     * Reuse one Staff Portal application authority for chat, shifts, requests
+     * and self-profile. Mywork only owns the canonical Admin URL boundary.
      */
     private function portalResponse(string $method, bool $withRequest = true)
     {
@@ -73,10 +85,9 @@ class Mywork extends AdminController
     /**
      * PMD_MY_WORK_CANONICAL_REDIRECT_V1
      *
-     * The Staff Portal controller predates the Admin-owned canonical surface
-     * and can still return legacy /staff redirects after POST actions. Keep
-     * all flash/session payload on the original RedirectResponse and only
-     * replace its Location header.
+     * The shared Staff Portal controller still uses legacy /staff redirects
+     * internally. Keep flash/session payload on the original RedirectResponse
+     * and replace only its Location header with the Admin-owned authority.
      */
     private function canonicalizePortalRedirect(RedirectResponse $response): void
     {
