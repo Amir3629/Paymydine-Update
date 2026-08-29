@@ -146,7 +146,10 @@ class PmdStaffPortalController extends Controller
             $groups = DB::table('pmd_staff_chat_groups as group')
                 ->join('pmd_staff_chat_group_members as member', 'member.group_id', '=', 'group.id')
                 ->where('group.location_id', $locationId)->where('group.is_active', 1)->where('member.staff_id', $staffId)
-                ->select(['group.id','group.name','group.group_type'])->orderByRaw("CASE group.group_type WHEN 'team' THEN 0 ELSE 1 END")->orderBy('group.name')->get();
+                ->select(['group.id','group.name','group.group_type'])
+                ->orderByDesc('group.group_type')
+                ->orderBy('group.name')
+                ->get();
 
             $activeGroupId = max(0, (int)$request->query('group', 0));
             $activeGroup = $groups->firstWhere('id', $activeGroupId) ?: $groups->first();
