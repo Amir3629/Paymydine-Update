@@ -41,10 +41,10 @@ class Login extends \Admin\Classes\AdminController
 
         Template::setTitle(lang('admin::lang.login.text_title'));
 
-        // Return standalone login page (same design as superadmin)
-        // Use view() helper directly since we're not using the default layout
-        // View is located at app/admin/views/auth/login_standalone.blade.php
-        return view('auth.login_standalone');
+        // PMD_LOGIN_WORKSPACE_V2
+        // One clean login surface exposes Workspace and Staff Portal without
+        // changing the existing AdminAuth login authority.
+        return view('auth.login_workspace_v2');
     }
 
     public function reset()
