@@ -17,10 +17,12 @@ if (!defined('PMD_STAFF_PORTAL_ROUTES_V3')) {
     Route::group(['middleware' => ['web']], function () {
         $adminUri = '/'.trim((string)config('system.adminUri', 'admin'), '/');
 
-        // PMD_STAFF_AVATAR_PRIORITY_ROUTE_V1
+        // PMD_STAFF_AVATAR_BINARY_RESPONSE_V1
+        // Keep the explicit V5 route, but use the proven base avatar responder
+        // which returns Symfony's BinaryFileResponse via response()->file().
         Route::get($adminUri.'/mywork/avatar/{person}', function ($person) {
             request()->query->set('person', max(1, (int)$person));
-            return app(PmdStaffPortalV5Controller::class)->avatar(request());
+            return app(PmdStaffPortalController::class)->avatar(request());
         })->where('person', '[1-9][0-9]*')->name('pmd.staff.avatar.v5');
 
         Route::get('/staff/login', [PmdStaffPortalController::class, 'login'])->name('pmd.staff.login');
