@@ -104,13 +104,15 @@ class PmdStaffPortalController extends Controller
 
         $openShifts = collect();
         if (Schema::hasTable('pmd_operational_shifts') && Schema::hasTable('pmd_operational_shift_people')) {
+            // PMD_STAFF_PORTAL_OPEN_SHIFT_ALIAS_SAFE_V1
+            // TastyIgniter prefixes table aliases (assignment -> ti_assignment).
+            // Query-builder whereNull is prefix-aware; raw HAVING expressions are not.
             $openShifts = DB::table('pmd_operational_shifts as shift')
                 ->leftJoin('pmd_operational_shift_people as assignment', 'assignment.shift_id', '=', 'shift.id')
                 ->where('shift.location_id', $locationId)
                 ->whereDate('shift.shift_date', '>=', now()->toDateString())
                 ->whereNotIn('shift.status', ['cancelled', 'canceled'])
-                ->groupBy('shift.id','shift.shift_date','shift.label','shift.starts_at','shift.ends_at')
-                ->havingRaw('COUNT(assignment.id) = 0')
+                ->whereNull('assignment.id')
                 ->select(['shift.id','shift.shift_date','shift.label','shift.starts_at','shift.ends_at'])
                 ->orderBy('shift.shift_date')->orderBy('shift.starts_at')->limit(20)->get();
         }
@@ -196,9 +198,16 @@ class PmdStaffPortalController extends Controller
             if (!$ownsShift) return redirect('/staff#requests')->with('error', 'Choose one of your own shifts.');
         }
         if ($shiftId && $type === 'cover_shift') {
-            $openShift = DB::table('pmd_operational_shifts as shift')->leftJoin('pmd_operational_shift_people as assignment', 'assignment.shift_id', '=', 'shift.id')
-                ->where('shift.id', $shiftId)->where('shift.location_id', $locationId)->whereNotIn('shift.status', ['cancelled', 'canceled'])
-                ->groupBy('shift.id')->havingRaw('COUNT(assignment.id) = 0')->select('shift.id')->first();
+            // Same prefix-safe open-shift test used by index(). Avoid raw alias
+            // expressions so tenant table prefixes are always applied correctly.
+            $openShift = DB::table('pmd_operational_shifts as shift')
+                ->leftJoin('pmd_operational_shift_people as assignment', 'assignment.shift_id', '=', 'shift.id')
+                ->where('shift.id', $shiftId)
+                ->where('shift.location_id', $locationId)
+                ->whereNotIn('shift.status', ['cancelled', 'canceled'])
+                ->whereNull('assignment.id')
+                ->select('shift.id')
+                ->first();
             if (!$openShift) return redirect('/staff#open-shifts')->with('error', 'That shift is no longer open.');
         }
 
