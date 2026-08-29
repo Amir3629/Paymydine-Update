@@ -462,3 +462,115 @@ body.pmd-shifts-page .pmd-shifts-resource-empty-state button{display:inline-flex
   body.pmd-shifts-page .pmd-shifts__team-editor .pmd-shifts__team-identity-row,body.pmd-shifts-page .pmd-shifts__team-editor .pmd-shifts__team-access-fields{grid-template-columns:1fr!important}
   body.pmd-shifts-page .pmd-shifts__team-editor .pmd-shifts__team-access-fields .is-password{grid-column:auto!important}
 }
+
+/* PMD_SHIFTS_DAY_ONLY_WORKSPACE_V15
+ * Shifts is one Dienstplan surface. No PMD month calendar is rendered.
+ * KPI geometry matches the canonical configurable Dashboard cards exactly.
+ */
+body.pmd-shifts-page #pmd-r2-reservation-kpis-v307.pmd-shifts-exact-kpis{
+  gap:14px!important;
+  margin:16px auto 0!important;
+  padding:0 2px 8px!important;
+}
+body.pmd-shifts-page #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-card{
+  grid-template-columns:52px minmax(0,1fr) 34px!important;
+  gap:13px!important;
+  min-height:118px!important;
+  padding:15px!important;
+  border-radius:18px!important;
+}
+body.pmd-shifts-page #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-icon{
+  width:52px!important;
+  height:52px!important;
+  border-radius:15px!important;
+}
+body.pmd-shifts-page #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-value{
+  font-size:30px!important;
+}
+body.pmd-shifts-page #pmd-r2-reservation-kpis-v307 .pmd-r2-kpi-v2401-description{
+  display:block!important;
+  margin:6px 0 0!important;
+  font-size:11px!important;
+  line-height:1.2!important;
+}
+
+body.pmd-shifts-page .pmd-shifts-day-surface{
+  display:block!important;
+  width:min(1480px,100%)!important;
+  min-width:0!important;
+  margin:0 auto 18px!important;
+  padding:0!important;
+}
+body.pmd-shifts-page .pmd-shifts-day-surface .pmd-shifts-hour-host{
+  display:block!important;
+  width:100%!important;
+  min-width:0!important;
+  margin:0!important;
+}
+body.pmd-shifts-page .pmd-shifts-day-header{
+  grid-template-columns:minmax(300px,1fr) auto!important;
+  margin:0 0 14px!important;
+}
+body.pmd-shifts-page .pmd-shifts-day-header .pmd-r2-day-view__date-nav{
+  justify-content:flex-start!important;
+}
+body.pmd-shifts-page .pmd-shifts-day-header .pmd-r2-day-view__title{
+  text-align:left!important;
+}
+body.pmd-shifts-page .pmd-shifts-date-picker{
+  position:relative!important;
+  display:inline-grid!important;
+  place-items:center!important;
+  flex:0 0 38px!important;
+  width:38px!important;
+  min-width:38px!important;
+  height:38px!important;
+  margin:0!important;
+  padding:0!important;
+  border:1px solid #d4e1ea!important;
+  border-radius:11px!important;
+  background:#fff!important;
+  color:#23405b!important;
+  cursor:pointer!important;
+  overflow:hidden!important;
+}
+body.pmd-shifts-page .pmd-shifts-date-picker svg{
+  display:block!important;
+  width:18px!important;
+  height:18px!important;
+  fill:none!important;
+  stroke:currentColor!important;
+  stroke-width:1.9!important;
+  stroke-linecap:round!important;
+  stroke-linejoin:round!important;
+  pointer-events:none!important;
+}
+body.pmd-shifts-page .pmd-shifts-date-picker input{
+  position:absolute!important;
+  inset:0!important;
+  width:100%!important;
+  height:100%!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  opacity:0!important;
+  cursor:pointer!important;
+}
+body.pmd-shifts-page .pmd-shifts-date-picker:hover{
+  border-color:#9fb9ca!important;
+  background:#f7fbfd!important;
+}
+@media(max-width:900px){
+  body.pmd-shifts-page .pmd-shifts-day-header{
+    grid-template-columns:1fr!important;
+  }
+  body.pmd-shifts-page .pmd-shifts-day-header .pmd-r2-day-view__date-nav{
+    justify-content:center!important;
+  }
+  body.pmd-shifts-page .pmd-shifts-day-header .pmd-r2-day-view__title{
+    text-align:center!important;
+  }
+  body.pmd-shifts-page .pmd-shifts-day-header .pmd-r2-day-view__summary{
+    justify-content:center!important;
+  }
+}

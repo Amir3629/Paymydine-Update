@@ -68,19 +68,19 @@
   }
 
   function loadExactSharedUiCss() {
-    if (document.querySelector('link[data-pmd-shifts-exact-ui-v14]')) return;
+    if (document.querySelector('link[data-pmd-shifts-exact-ui-v15]')) return;
     var base = document.querySelector('link[href*="pmd-shifts-v1.css"]');
-    var href = '/app/admin/assets/css/pmd-shifts-dashboard-reservations-v4.css?v=14';
+    var href = '/app/admin/assets/css/pmd-shifts-dashboard-reservations-v4.css?v=15';
     if (base && base.getAttribute('href')) {
       href = base.getAttribute('href').replace(
         /pmd-shifts-v1\.css(?:\?[^#]*)?/,
-        'pmd-shifts-dashboard-reservations-v4.css?v=14'
+        'pmd-shifts-dashboard-reservations-v4.css?v=15'
       );
     }
     var link = document.createElement('link');
     link.rel = 'stylesheet';
     link.href = href;
-    link.setAttribute('data-pmd-shifts-exact-ui-v14', '');
+    link.setAttribute('data-pmd-shifts-exact-ui-v15', '');
     document.head.appendChild(link);
   }
 
@@ -551,21 +551,26 @@
     return Math.round(total * 10) / 10;
   }
 
-  function updateCalendarSelection(key) {
-    root.querySelectorAll('[data-pmd-shift-day-open]').forEach(function (day) {
-      day.classList.toggle('is-selected', day.getAttribute('data-date') === key);
-    });
+  function weekStartKey(key) {
+    var date = parseDateKey(key);
+    if (!date) return key;
+    var mondayOffset = (date.getDay() + 6) % 7;
+    date.setDate(date.getDate() - mondayOffset);
+    return dateKey(date);
   }
 
   function renderHourView(key) {
     var host = root.querySelector('[data-pmd-shifts-hour-host]');
-    var frame = root.querySelector('[data-pmd-shifts-calendar-frame]');
-    var calendar = root.querySelector('[data-pmd-shifts-calendar]');
-    if (!host || !frame || !calendar) return;
+    if (!host) return;
 
     key = key || boot.selected_day || new Date().toISOString().slice(0, 10);
     boot.selected_day = key;
-    updateCalendarSelection(key);
+
+    var copyWeekInput = root.querySelector('[data-pmd-copy-week-form] input[name="week"]');
+    if (copyWeekInput) copyWeekInput.value = weekStartKey(key);
+
+    var globalAddShift = root.querySelector('.pmd-shifts__header [data-pmd-shift-open]');
+    if (globalAddShift) globalAddShift.setAttribute('data-date', key);
 
     var shifts = shiftsForDate(key);
     var people = schedulingPeople();
@@ -630,8 +635,7 @@
 
     host.innerHTML = '' +
       '<div class="pmd-r2-timeslot-screen pmd-shifts-resource-screen">' +
-        '<header class="pmd-r2-day-view__header">' +
-          '<button type="button" class="pmd-r2-timeslot-screen__back" data-pmd-shifts-calendar-back>Calendar</button>' +
+        '<header class="pmd-r2-day-view__header pmd-shifts-day-header">' +
           '<div class="pmd-r2-day-view__date-nav">' +
             '<button type="button" class="pmd-r2-day-view__month-button" data-pmd-shifts-prev-day aria-label="Previous day">‹</button>' +
             '<div class="pmd-r2-day-view__title"><h2>' + escapeHtml(formattedDate(key)) + '</h2></div>' +
@@ -641,6 +645,10 @@
             '<span><strong>' + shifts.length + '</strong> shifts</span>' +
             '<span><strong>' + people.length + '</strong> team</span>' +
             '<span><strong>' + totalScheduledHours(shifts) + '</strong> staff hours</span>' +
+            '<label class="pmd-shifts-date-picker" title="Choose date">' +
+              '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M8 3v4M16 3v4M3 10h18"></path></svg>' +
+              '<input type="date" data-pmd-shifts-date-input value="' + escapeHtml(key) + '" aria-label="Choose date">' +
+            '</label>' +
             '<button type="button" class="pmd-shifts-hour-header-action" data-pmd-shift-open data-date="' + escapeHtml(key) + '">+ Shift</button>' +
             '<button type="button" class="pmd-shifts-hour-header-action is-soft" data-pmd-copy-week>Copy week</button>' +
           '</div>' +
@@ -649,94 +657,34 @@
         (people.length ? '<div class="pmd-shifts-resource-scroll"><table class="pmd-shifts-resource-table"><thead><tr><th scope="col" class="pmd-shifts-resource-corner"><span>Time</span></th>' + headerCells + '</tr></thead><tbody>' + bodyRows.join('') + '</tbody></table></div>' : '') +
       '</div>';
 
-    frame.hidden = true;
     host.hidden = false;
-    calendar.classList.add('is-timeslot-screen');
-    var monthButton = root.querySelector('[data-pmd-shifts-calendar-back]');
-    if (monthButton && monthButton.closest('.pmd-yc__view-switch')) monthButton.classList.remove('is-active');
 
     try {
       var url = new URL(window.location.href);
       url.searchParams.set('month', monthKey(key));
       url.searchParams.set('day', key);
-      url.hash = 'pmd-shift-day';
-      history.replaceState(null, '', url.toString());
-    } catch (error) {}
-  }
-
-  function showCalendar() {
-    var host = root.querySelector('[data-pmd-shifts-hour-host]');
-    var frame = root.querySelector('[data-pmd-shifts-calendar-frame]');
-    var calendar = root.querySelector('[data-pmd-shifts-calendar]');
-    if (!host || !frame || !calendar) return;
-    host.hidden = true;
-    frame.hidden = false;
-    calendar.classList.remove('is-timeslot-screen');
-    root.querySelectorAll('[data-pmd-shifts-calendar-back]').forEach(function (button) {
-      if (button.closest('.pmd-yc__view-switch')) button.classList.add('is-active');
-    });
-    try {
-      var url = new URL(window.location.href);
-      url.searchParams.delete('day');
       url.hash = '';
       history.replaceState(null, '', url.toString());
     } catch (error) {}
   }
 
+  function dayPageUrl(key) {
+    var base = (boot.urls && boot.urls.shifts) || window.location.pathname;
+    return base + '?month=' + encodeURIComponent(monthKey(key)) + '&day=' + encodeURIComponent(key);
+  }
 
-  function parseEmbeddedJson(doc, id) {
-    try {
-      var node = doc.getElementById(id);
-      return JSON.parse((node && node.textContent) || '{}') || {};
-    } catch (error) {
-      return {};
+  function openHourDay(key) {
+    key = String(key || '');
+    if (!parseDateKey(key)) return;
+    if (monthKey(key) !== String(boot.month || '')) {
+      window.location.href = dayPageUrl(key);
+      return;
     }
-  }
-
-  function refreshVisibleKpis() {
-    visibleKpiCards().forEach(function (card) {
-      var key = card.getAttribute('data-pmd-shifts-kpi-key') || '';
-      if (key && kpiCards[key]) applyKpi(card, key);
-    });
-  }
-
-  function loadCalendarUrl(url, pushHistory) {
-    var frame = root.querySelector('[data-pmd-shifts-calendar-frame]');
-    if (!frame) return Promise.reject(new Error('Calendar frame missing'));
-    frame.classList.add('is-loading');
-    return fetch(url, {credentials: 'same-origin', headers: {'X-Requested-With': 'XMLHttpRequest'}})
-      .then(function (response) {
-        if (!response.ok) throw new Error('Calendar request failed');
-        return response.text();
-      })
-      .then(function (html) {
-        var doc = new DOMParser().parseFromString(html, 'text/html');
-        var nextFrame = doc.querySelector('[data-pmd-shifts-calendar-frame]');
-        if (!nextFrame) throw new Error('Calendar response missing frame');
-        frame.innerHTML = nextFrame.innerHTML;
-        boot = parseEmbeddedJson(doc, 'pmd-shifts-bootstrap');
-        kpiCards = parseEmbeddedJson(doc, 'pmd-shifts-kpi-data');
-        refreshVisibleKpis();
-        var calendar = root.querySelector('[data-pmd-shifts-calendar]');
-        var host = root.querySelector('[data-pmd-shifts-hour-host]');
-        if (calendar) calendar.classList.remove('is-timeslot-screen');
-        if (host) host.hidden = true;
-        frame.hidden = false;
-        if (pushHistory !== false) history.pushState({pmdShiftsMonth: true}, '', url);
-        return boot;
-      })
-      .finally(function () { frame.classList.remove('is-loading'); });
+    renderHourView(key);
   }
 
   function changeHourDay(delta) {
-    var next = shiftedDate(boot.selected_day, delta);
-    if (monthKey(next) !== String(boot.month || '')) {
-      var base = (boot.urls && boot.urls.shifts) || window.location.pathname;
-      var url = base + '?month=' + encodeURIComponent(monthKey(next));
-      loadCalendarUrl(url, false).then(function () { renderHourView(next); }).catch(function () { window.location.href = url + '&day=' + encodeURIComponent(next) + '#pmd-shift-day'; });
-      return;
-    }
-    renderHourView(next);
+    openHourDay(shiftedDate(boot.selected_day, delta));
   }
 
   function submitRemoveShift(id) {
@@ -759,23 +707,11 @@
   if (teamNameInput) teamNameInput.addEventListener('input', function () {
     if (teamUsernameInput && !teamUsernameTouched) teamUsernameInput.value = suggestedUsername(teamNameInput.value);
   });
-  window.addEventListener('popstate', function () {
-    if (!root.querySelector('[data-pmd-shifts-calendar-frame]')) return;
-    loadCalendarUrl(window.location.href, false).catch(function () {});
-  });
-
   loadExactSharedUiCss();
   syncKpiMenus();
   ensureHeaderNotification();
 
   document.addEventListener('click', function (event) {
-    var monthNav = event.target.closest('[data-pmd-shifts-month-nav]');
-    if (monthNav && root.contains(monthNav)) {
-      event.preventDefault();
-      loadCalendarUrl(monthNav.href, true).catch(function () { window.location.href = monthNav.href; });
-      return;
-    }
-
     var generatePassword = event.target.closest('[data-pmd-team-password-generate]');
     if (generatePassword && teamModal && teamModal.contains(generatePassword)) {
       event.preventDefault();
@@ -868,36 +804,6 @@
       return;
     }
 
-    var calendarShiftEdit = event.target.closest('[data-pmd-calendar-shift-edit]');
-    if (calendarShiftEdit && root.contains(calendarShiftEdit)) {
-      event.preventDefault();
-      event.stopPropagation();
-      var calendarShift = findShift(calendarShiftEdit.getAttribute('data-pmd-calendar-shift-edit'));
-      if (calendarShift) openModal(calendarShiftEdit, valuesFromShift(calendarShift));
-      return;
-    }
-
-    var day = event.target.closest('[data-pmd-shift-day-open]');
-    if (day && root.contains(day)) {
-      event.preventDefault();
-      renderHourView(day.getAttribute('data-date') || '');
-      return;
-    }
-
-    var calendarBack = event.target.closest('[data-pmd-shifts-calendar-back]');
-    if (calendarBack && root.contains(calendarBack)) {
-      event.preventDefault();
-      showCalendar();
-      return;
-    }
-
-    var selectedDay = event.target.closest('[data-pmd-shifts-open-selected-day]');
-    if (selectedDay && root.contains(selectedDay)) {
-      event.preventDefault();
-      renderHourView(boot.selected_day || '');
-      return;
-    }
-
     if (event.target.closest('[data-pmd-shifts-prev-day]')) {
       event.preventDefault();
       changeHourDay(-1);
@@ -972,12 +878,15 @@
     }
   });
 
+  document.addEventListener('change', function (event) {
+    var dateInput = event.target && event.target.closest
+      ? event.target.closest('[data-pmd-shifts-date-input]')
+      : null;
+    if (!dateInput || !root.contains(dateInput)) return;
+    openHourDay(dateInput.value);
+  });
+
   document.addEventListener('keydown', function (event) {
-    if ((event.key === 'Enter' || event.key === ' ') && event.target && event.target.matches && event.target.matches('[data-pmd-shift-day-open]')) {
-      event.preventDefault();
-      renderHourView(event.target.getAttribute('data-date') || '');
-      return;
-    }
     if (event.key !== 'Escape') return;
     closeKpiMenu();
     if (modal && !modal.hidden) closeModal();

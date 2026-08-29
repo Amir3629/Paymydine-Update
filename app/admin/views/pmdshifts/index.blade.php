@@ -288,76 +288,18 @@
             @endforeach
         </section>
 
-        <section id="pmd-r2-calendar-surface-v160" class="pmd-shifts-reservations-calendar is-visible is-month-mode" data-pmd-shifts-calendar>
-            <div class="pmd-r2-yc-calendar-frame" data-pmd-shifts-calendar-frame>
-                <div class="pmd-yc__toolbar">
-                    <div class="pmd-yc__legend">
-                        <span><i class="is-shift">S</i>Shift</span>
-                        <span><i class="is-confirmed">✓</i>Confirmed</span>
-                        <span><i class="is-missing">!</i>Missing</span>
-                    </div>
-                    <div class="pmd-yc__month-nav">
-                        <a data-pmd-shifts-month-nav href="{{ admin_url('shifts') }}?month={{ $monthStart->copy()->subMonth()->startOfMonth()->toDateString() }}" aria-label="Previous month">←</a>
-                        <strong data-pmd-shifts-month-title>{{ $monthStart->format('F Y') }}</strong>
-                        <a data-pmd-shifts-month-nav href="{{ admin_url('shifts') }}?month={{ $monthStart->copy()->addMonth()->startOfMonth()->toDateString() }}" aria-label="Next month">→</a>
-                    </div>
-                    <div class="pmd-yc__toolbar-right">
-                        <div class="pmd-yc__view-switch"><button type="button" class="is-active" data-pmd-shifts-calendar-back>Month</button><button type="button" data-pmd-shifts-open-selected-day>Day</button></div>
-                        <a href="{{ admin_url('shifts') }}?month={{ now()->startOfMonth()->toDateString() }}">Today</a>
-                    </div>
-                </div>
-
-                <main class="pmd-yc__months">
-                    <section class="pmd-yc-month is-month-view">
-                        <div class="pmd-yc-month__head"><h2>{{ $monthStart->format('F Y') }}</h2></div>
-                        <div class="pmd-yc-weekdays" aria-hidden="true">
-                            @foreach(['Mon','Tue','Wed','Thu','Fri','Sat','Sun'] as $weekday)<span>{{ $weekday }}</span>@endforeach
-                        </div>
-                        <div class="pmd-yc-days">
-                            @foreach($calendarDays as $day)
-                                @php
-                                    $date = $day->toDateString();
-                                    $dayShifts = collect($byDay->get($date, collect()));
-                                    $inMonth = $day->month === $monthStart->month;
-                                @endphp
-                                @php
-                                    $focusShift = $pmdRelevantShiftForDay($date, $dayShifts);
-                                    $teamRows = $pmdShiftTeamRows($focusShift);
-                                    $focusTime = $focusShift
-                                        ? (($focusShift->starts_at ? substr((string)$focusShift->starts_at,0,5) : 'All day').($focusShift->ends_at ? '–'.substr((string)$focusShift->ends_at,0,5) : ''))
-                                        : '';
-                                @endphp
-                                <div
-                                    class="pmd-yc-day {{ !$inMonth ? 'is-outside' : '' }} {{ $day->isToday() ? 'is-today' : '' }}"
-                                    data-pmd-shift-day-open
-                                    data-date="{{ $date }}"
-                                    tabindex="0"
-                                    aria-label="Open {{ $day->format('F j') }} staff schedule"
-                                >
-                                    <span class="pmd-yc-day__number">{{ $day->format('j') }}</span>
-                                    <span class="pmd-yc-day__operations pmd-shifts-yc-team-summary">
-                                        @if($focusShift)
-                                            <span class="pmd-shifts-yc-context">{{ $focusTime }}</span>
-                                            @foreach($teamRows as $teamRow)
-                                                <button
-                                                    type="button"
-                                                    class="pmd-shifts-yc-team-row"
-                                                    data-pmd-calendar-shift-edit="{{ (int)$focusShift->id }}"
-                                                    title="Edit {{ $focusShift->label }}"
-                                                ><strong>{{ $teamRow['label'] }}:</strong><span>{{ $teamRow['names'] }}</span></button>
-                                            @endforeach
-                                        @elseif($dayShifts->isNotEmpty())
-                                            <span class="pmd-shifts-yc-context">{{ $dayShifts->count() }} planned shifts</span>
-                                        @endif
-                                    </span>
-                                </div>
-                            @endforeach
-                        </div>
-                    </section>
-                </main>
-            </div>
-
-            <section id="pmd-shift-day" class="pmd-r2-yc-selected pmd-shifts-hour-host" data-pmd-shifts-hour-host hidden></section>
+        {{-- PMD_SHIFTS_DAY_ONLY_WORKSPACE_V15 --}}
+        <section
+            id="pmd-shifts-day-surface"
+            class="pmd-shifts-day-surface"
+            data-pmd-shifts-day-surface
+            aria-label="Daily shift plan"
+        >
+            <section
+                id="pmd-shift-day"
+                class="pmd-r2-yc-selected pmd-shifts-hour-host"
+                data-pmd-shifts-hour-host
+            ></section>
         </section>
 
         {{-- PMD_SHIFTS_SIMPLE_TEAM_WORKSPACE_V14 --}}
@@ -533,7 +475,7 @@
     $pmdShiftsBootstrapPayload = [
         'selected_day' => $selectedDay->toDateString(),
         'month' => $monthStart->toDateString(),
-        'open_hour_on_boot' => request()->filled('day'),
+        'open_hour_on_boot' => true,
         'people' => $bootPeople,
         'shifts' => $bootShifts,
         'csrf' => csrf_token(),
