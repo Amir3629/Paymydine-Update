@@ -41,18 +41,18 @@ jobs:
           grep -F "pmd-shifts-dashboard-reservations-v4.css?v=14" app/admin/assets/js/pmd-shifts-v1.js
           grep -F "PMD_SHIFTS_SIMPLE_TEAM_WORKSPACE_V14" app/admin/assets/css/pmd-shifts-dashboard-reservations-v4.css
 
+          # Staff Portal route files must be restored to the exact production V13 state.
           cmp app/admin/routes.php <(git show 915086d9ec6f53699abd7031af58d9a39cead6ad:app/admin/routes.php)
           cmp app/main/routes.php <(git show 915086d9ec6f53699abd7031af58d9a39cead6ad:app/main/routes.php)
 
           mapfile -t changed < <(git diff --name-only | sort)
           printf '%s\n' "${changed[@]}"
-          test "${#changed[@]}" -eq 5
+          test "${#changed[@]}" -eq 4
           expected=(
             "app/admin/assets/css/pmd-shifts-dashboard-reservations-v4.css"
             "app/admin/assets/js/pmd-shifts-v1.js"
             "app/admin/routes.php"
             "app/admin/views/pmdshifts/index.blade.php"
-            "app/main/routes.php"
           )
           for i in "${!expected[@]}"; do test "${changed[$i]}" = "${expected[$i]}"; done
 
@@ -66,7 +66,6 @@ jobs:
             app/admin/assets/css/pmd-shifts-dashboard-reservations-v4.css \
             app/admin/assets/js/pmd-shifts-v1.js \
             app/admin/routes.php \
-            app/admin/views/pmdshifts/index.blade.php \
-            app/main/routes.php
+            app/admin/views/pmdshifts/index.blade.php
           git commit -m 'Simplify Shifts header and inline member workflow (#185)'
           git push origin HEAD:feature/kitchen-operations-foundation-185
