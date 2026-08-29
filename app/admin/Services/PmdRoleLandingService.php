@@ -3,10 +3,11 @@
 namespace Admin\Services;
 
 /**
- * PMD_ROLE_LANDING_SERVICE_V3
+ * PMD_ROLE_LANDING_SERVICE_V2
  *
  * One server-side authority for PMD admin landing workspaces.
  * It only chooses a destination; target controllers keep their own permissions.
+ * V2 adds one exact KDS landing per station role code.
  */
 class PmdRoleLandingService
 {
@@ -14,23 +15,24 @@ class PmdRoleLandingService
         'pmd-owner' => 'ownerdashboard',
         'owner' => 'ownerdashboard',
 
-        // Use the current internal implementation route here. R81E immediately
-        // canonicalizes the browser URL to /admin/managerdashboard. Keeping the
-        // internal route as the navigation identity also prevents the old V1
-        // side-menu script from incorrectly hiding Settings for Managers.
-        'pmd-manager' => 'managerlab',
-        'manager' => 'managerlab',
+        'pmd-manager' => 'managerdashboard',
+        'manager' => 'managerdashboard',
 
         'pmd-cashier' => 'orders',
         'cashier' => 'orders',
+
+        // PMD product decision: Waiter and Cashier share the Cashier workspace.
         'pmd-waiter' => 'orders',
         'waiter' => 'orders',
+
         'pmd-accountant' => 'accountantdashboard',
         'accountant' => 'accountantdashboard',
+
         'pmd-reservation' => 'reservations',
         'pmd-reservations' => 'reservations',
         'reservation' => 'reservations',
         'reservations' => 'reservations',
+
         'pmd-team-member' => 'mywork',
         'team-member' => 'mywork',
         'team member' => 'mywork',
@@ -38,7 +40,7 @@ class PmdRoleLandingService
 
     private const USERNAME_FALLBACK_MAP = [
         'mehdiowner' => 'ownerdashboard',
-        'mehdimanager' => 'managerlab',
+        'mehdimanager' => 'managerdashboard',
         'mehdiwaiter' => 'orders',
         'mehdicashier' => 'orders',
         'mehdiaccountant' => 'accountantdashboard',
@@ -47,23 +49,34 @@ class PmdRoleLandingService
 
     public function routeFor($user): ?string
     {
-        if (!$user) return null;
-        if (method_exists($user, 'isSuperUser') && $user->isSuperUser()) return 'ownerdashboard';
+        if (!$user)
+            return null;
+
+        if (method_exists($user, 'isSuperUser') && $user->isSuperUser())
+            return 'ownerdashboard';
 
         try {
             $staff = $user->staff;
             $role = $staff ? $staff->role : null;
+
             if ($role) {
                 $code = strtolower(trim((string)($role->code ?? '')));
                 $name = strtolower(trim((string)($role->name ?? '')));
+
                 if (str_starts_with($code, PmdDefaultStaffRoleService::KDS_PREFIX)) {
                     $slug = trim(substr($code, strlen(PmdDefaultStaffRoleService::KDS_PREFIX)));
-                    if ($slug !== '') return 'kitchendisplay/'.$slug;
+                    if ($slug !== '')
+                        return 'kitchendisplay/'.$slug;
                 }
-                if ($code !== '' && isset(self::ROLE_MAP[$code])) return self::ROLE_MAP[$code];
-                if ($name !== '' && isset(self::ROLE_MAP[$name])) return self::ROLE_MAP[$name];
+
+                if ($code !== '' && isset(self::ROLE_MAP[$code]))
+                    return self::ROLE_MAP[$code];
+
+                if ($name !== '' && isset(self::ROLE_MAP[$name]))
+                    return self::ROLE_MAP[$name];
             }
-        } catch (\Throwable $error) {}
+        } catch (\Throwable $error) {
+        }
 
         $username = strtolower(trim((string)($user->username ?? '')));
         return self::USERNAME_FALLBACK_MAP[$username] ?? null;
