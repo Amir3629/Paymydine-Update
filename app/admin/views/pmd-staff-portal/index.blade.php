@@ -125,13 +125,31 @@
                 </header>
                 <div class="pmd-staff-shifts">
                     @forelse($upcoming->take(8) as $shift)
-                        @php $rule = $workRuleWarnings[(int)$shift->id] ?? null; @endphp
+                        @php
+                            $rule = $workRuleWarnings[(int)$shift->id] ?? null;
+                        @endphp
                         <article>
                             <time><strong>{{ \Carbon\Carbon::parse($shift->shift_date)->format('d') }}</strong><small>{{ \Carbon\Carbon::parse($shift->shift_date)->format('M') }}</small></time>
-                            <div><strong>{{ $shift->label ?: 'Shift' }}</strong><span>{{ $shift->starts_at ? substr((string)$shift->starts_at,0,5) : 'All day' }}@if($shift->ends_at) – {{ substr((string)$shift->ends_at,0,5) }}@endif@if(isset($shift->break_minutes) && (int)$shift->break_minutes > 0) · {{ (int)$shift->break_minutes }}m break @endif</span>@if($rule && !empty($rule['warnings']))<small class="pmd-staff-rule-warning">{{ $rule['warnings'][0]['message'] }}</small>@endif</div>
+                            <div>
+                                <strong>{{ $shift->label ?: 'Shift' }}</strong>
+                                <span>
+                                    {{ $shift->starts_at ? substr((string)$shift->starts_at,0,5) : 'All day' }}
+                                    @if($shift->ends_at)
+                                        – {{ substr((string)$shift->ends_at,0,5) }}
+                                    @endif
+                                    @if(isset($shift->break_minutes) && (int)$shift->break_minutes > 0)
+                                        · {{ (int)$shift->break_minutes }}m break
+                                    @endif
+                                </span>
+                                @if($rule && !empty($rule['warnings']))
+                                    <small class="pmd-staff-rule-warning">{{ $rule['warnings'][0]['message'] }}</small>
+                                @endif
+                            </div>
                             <button type="button" data-pmd-request-shift="{{ (int)$shift->id }}">Change</button>
                         </article>
-                    @empty<div class="pmd-staff-empty"><strong>No upcoming shifts</strong><span>Your next shifts will appear here.</span></div>@endforelse
+                    @empty
+                        <div class="pmd-staff-empty"><strong>No upcoming shifts</strong><span>Your next shifts will appear here.</span></div>
+                    @endforelse
                 </div>
             </section>
 
