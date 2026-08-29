@@ -4,10 +4,10 @@ namespace Admin\Controllers;
 
 use Admin\Classes\AdminController;
 use Admin\Facades\AdminMenu;
-use App\Http\Controllers\PmdStaffPortalController;
+use App\Http\Controllers\PmdStaffPortalV5Controller;
 use Illuminate\Http\RedirectResponse;
 
-/** PMD_MY_WORK_STAFF_PORTAL_V3 */
+/** PMD_MY_WORK_STAFF_PORTAL_V5 */
 class Mywork extends AdminController
 {
     protected $requiredPermissions = null;
@@ -47,13 +47,12 @@ class Mywork extends AdminController
         return $this->portalResponse('sendChatMessage');
     }
 
-    /** PMD_MY_WORK_SELF_PROFILE_V1 */
     public function updateprofile()
     {
         return $this->portalResponse('updateProfile');
     }
 
-    /** Private same-tenant avatar response; no redirect canonicalization needed. */
+    /** Fallback dynamic action. V5 also has an explicit priority avatar route. */
     public function avatar()
     {
         return $this->portalResponse('avatar');
@@ -65,12 +64,12 @@ class Mywork extends AdminController
     }
 
     /**
-     * Reuse one Staff Portal application authority for chat, shifts, requests
-     * and self-profile. Mywork only owns the canonical Admin URL boundary.
+     * V5 overrides month/report/avatar/shift ownership while inheriting the
+     * already-proven chat, profile save, group and management actions from V4.
      */
     private function portalResponse(string $method, bool $withRequest = true)
     {
-        $portal = app(PmdStaffPortalController::class);
+        $portal = app(PmdStaffPortalV5Controller::class);
         $response = $withRequest
             ? $portal->{$method}(request())
             : $portal->{$method}();
