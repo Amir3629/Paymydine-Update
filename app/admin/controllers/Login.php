@@ -33,6 +33,12 @@ class Login extends \Admin\Classes\AdminController
     public function index()
     {
         if (AdminAuth::isLogged()) {
+            // PMD_LOGIN_DESTINATION_V3
+            // Staff Portal is the existing authenticated /admin/mywork surface,
+            // never a public route owned by the guest-menu/Next proxy.
+            if ($this->pmdRequestedDestination() === 'staff')
+                return $this->redirect('mywork');
+
             if ($landing = $this->pmdRoleLandingRoute())
                 return $this->redirect($landing);
 
@@ -41,10 +47,9 @@ class Login extends \Admin\Classes\AdminController
 
         Template::setTitle(lang('admin::lang.login.text_title'));
 
-        // Return standalone login page (same design as superadmin)
-        // Use view() helper directly since we're not using the default layout
-        // View is located at app/admin/views/auth/login_standalone.blade.php
-        return view('auth.login_standalone');
+        // PMD_LOGIN_WORKSPACE_V3
+        // One AdminAuth login surface exposes two post-login destinations.
+        return view('auth.login_workspace_v2');
     }
 
     public function reset()
@@ -77,6 +82,14 @@ class Login extends \Admin\Classes\AdminController
     {
         return app(\Admin\Services\PmdRoleLandingService::class)
             ->routeFor(AdminAuth::getUser());
+    }
+
+    /** PMD_LOGIN_DESTINATION_V3 */
+    private function pmdRequestedDestination(): string
+    {
+        return strtolower(trim((string)input('destination'))) === 'staff'
+            ? 'staff'
+            : 'workspace';
     }
 
     public function onLogin()
@@ -116,6 +129,12 @@ class Login extends \Admin\Classes\AdminController
                 'message' => $error->getMessage(),
             ]);
         }
+
+        // PMD_LOGIN_DESTINATION_V3
+        // A user who intentionally chose Staff Portal always enters My Work;
+        // Workspace selection keeps the canonical role landing below.
+        if ($this->pmdRequestedDestination() === 'staff')
+            return $this->redirect('mywork');
 
         // PMD_ROLE_LANDING_REDIRECT_V1
         // Core operational roles always land in their own workspace.

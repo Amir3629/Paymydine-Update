@@ -7,7 +7,7 @@ use Admin\Models\Staff_roles_model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-/** PMD_DEFAULT_STAFF_ROLES_V3 */
+/** PMD_DEFAULT_STAFF_ROLES_V4 */
 class PmdDefaultStaffRoleService
 {
     public const OWNER = 'pmd-owner';
@@ -84,7 +84,7 @@ class PmdDefaultStaffRoleService
             [
                 'code' => self::MANAGER,
                 'name' => 'Manager',
-                'description' => 'Full operational access, without Owner dashboard or Settings.',
+                'description' => 'Full PMD access except the Owner dashboard.',
                 'permissions' => $managerPermissions,
             ],
             [
@@ -130,7 +130,7 @@ class PmdDefaultStaffRoleService
             [
                 'code' => self::TEAM_MEMBER,
                 'name' => 'Team Member',
-                'description' => 'Personal My Work profile only. No operational workspace access.',
+                'description' => 'Staff Portal only. No operational PMD workspace or side menu.',
                 'permissions' => [
                     'Admin.Dashboard' => 1,
                 ],
@@ -141,7 +141,7 @@ class PmdDefaultStaffRoleService
             $definitions[] = [
                 'code' => self::KDS_PREFIX.$station['slug'],
                 'name' => 'KDS — '.$station['name'],
-                'description' => 'KDS only: /admin/kitchendisplay/'.$station['slug'],
+                'description' => 'KDS station only: /admin/kitchendisplay/'.$station['slug'].'. No side menu.',
                 'permissions' => [
                     self::PMD_KDS_WORKSPACE => 1,
                     'Admin.KitchenDisplay' => 1,
@@ -347,11 +347,7 @@ class PmdDefaultStaffRoleService
         if ($code === self::TEAM_MEMBER) return $is('mywork');
 
         if ($code === self::MANAGER) {
-            if ($is('dashboardlab')) return false;
-            foreach (['pmdsettings','pmdadvanced','pmdbrand','pmdcustomer','pmdteam','pmddevices','pmdfinance'] as $route) {
-                if ($is($route)) return false;
-            }
-            return true;
+            return !$is('dashboardlab');
         }
 
         if ($code === self::CASHIER || $code === self::WAITER) {

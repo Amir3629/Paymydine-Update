@@ -19,9 +19,8 @@
         ).replace(/^\/+|\/+$/g, '')
       : '';
 
-  /* Manager keeps the full operational menu, but Settings is not a Manager
-     workspace. Server authorization independently rejects the URL. */
-  if (roleDashboardRoute === 'managerdashboard') {
+  /* Manager now has Settings access; keep this old removal block inert. */
+  if (false && roleDashboardRoute === 'managerdashboard') {
     Array.prototype.slice.call(
       menu.querySelectorAll('a[href]')
     ).forEach(function (link) {

@@ -357,6 +357,11 @@ class PmdAdminRetiredPagesR77
             'pmdteam' =>
                 'settings/team',
 
+            // PMD_UNIFIED_TEAM_V1: old People browser workspace now resolves
+            // to the single Team authority. Write/backend descendants remain untouched.
+            'people' =>
+                'settings/team',
+
             'pmddevices' =>
                 'settings/devices',
 
