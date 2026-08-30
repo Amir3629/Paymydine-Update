@@ -10,7 +10,7 @@ use Closure;
 use Illuminate\Http\Request;
 
 /**
- * PMD_SITE_ACCESS_MANAGE_TRUST_V2
+ * PMD_SITE_ACCESS_MANAGE_TRUST_V3
  *
  * Bootstrap is allowed once to Owner/Manager before the first hub exists.
  * After policy activation, trust configuration itself requires workplace proof
@@ -45,24 +45,46 @@ class PmdSiteAccessManageTrustMiddleware
         // Before the first hub exists there is no stronger device proof to use;
         // an authenticated Owner/Manager is the controlled bootstrap authority.
         if (!$site->policyEnabled($locationId)) {
-            return $next($request);
+            return $this->afterTrustedAction($request, $next($request));
         }
 
         $hub = $site->currentHub($request, $locationId);
         if ($hub) {
             $site->touchDevice((int)$hub->id);
-            return $next($request);
+            return $this->afterTrustedAction($request, $next($request));
         }
 
         if (
             $site->isWorkspaceVerified($locationId)
             && app(PmdSiteAccessSessionBindingService::class)->isBoundToCurrentUser()
         ) {
-            return $next($request);
+            return $this->afterTrustedAction($request, $next($request));
         }
 
         return $request->expectsJson()
             ? response()->json(['ok' => false, 'message' => 'Restaurant verification is required to change device trust.'], 403)
             : redirect(admin_url('siteaccess'))->with('error', 'Verify at the restaurant before changing trusted devices or recovery codes.');
+    }
+
+    private function afterTrustedAction(Request $request, $response)
+    {
+        // PMD_SITE_ACCESS_HUB_MARKER_V1
+        // Non-secret marker only. The real hub credential remains HttpOnly. This
+        // prevents every ordinary Admin browser from probing the heartbeat API.
+        if ($request->routeIs('pmd.siteaccess.hub.activate') && method_exists($response, 'withCookie')) {
+            $response->withCookie(cookie(
+                'pmd_site_hub_marker_v1',
+                '1',
+                60 * 24 * 365 * 3,
+                '/',
+                null,
+                $request->isSecure(),
+                false,
+                false,
+                'Lax'
+            ));
+        }
+
+        return $response;
     }
 }
