@@ -2,6 +2,7 @@
 
 use Admin\Controllers\Siteaccess;
 use Admin\Facades\AdminAuth;
+use App\Http\Controllers\PmdCashierTrustedDeviceResumeController;
 use App\Http\Controllers\PmdFirstWorkplaceDeviceController;
 use App\Http\Controllers\PmdLoginWorkplaceVerifyController;
 use App\Http\Controllers\PmdRestaurantSignInApprovalController;
@@ -18,7 +19,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 
-/** PMD_SITE_ACCESS_ROUTES_V12 */
+/** PMD_SITE_ACCESS_ROUTES_V13 */
 if (!defined('PMD_SITE_ACCESS_ROUTES_V1')) {
     define('PMD_SITE_ACCESS_ROUTES_V1', true);
 
@@ -33,6 +34,13 @@ if (!defined('PMD_SITE_ACCESS_ROUTES_V1')) {
         Route::post('siteaccess/login-verify', PmdLoginWorkplaceVerifyController::class)
             ->middleware('throttle:120,1')
             ->name('pmd.siteaccess.login.verify');
+
+        // A remembered Main Restaurant Device may satisfy Workplace Access only
+        // for the Cashier role. Every other non-Owner role still uses a fresh
+        // code/QR/direct approval on each new password login.
+        Route::post('siteaccess/cashier-resume', PmdCashierTrustedDeviceResumeController::class)
+            ->middleware('throttle:30,1')
+            ->name('pmd.siteaccess.cashier.resume');
 
         Route::post('siteaccess/verify', [Siteaccess::class, 'verify'])
             ->middleware('throttle:120,1')
