@@ -1,5 +1,5 @@
 @php
-    // PMD_LOGIN_WORKPLACE_V8
+    // PMD_LOGIN_WORKPLACE_V9
     $locale = strtolower(trim((string)request()->cookie('pmd_admin_locale', app()->getLocale())));
     $locale = in_array($locale, ['en', 'de'], true) ? $locale : 'en';
     $security = isset($pmdLoginSecurity) && is_array($pmdLoginSecurity) ? $pmdLoginSecurity : null;
@@ -33,12 +33,12 @@
             'code' => '6-stelliger Code',
             'connect' => 'Verbinden',
             'verify' => 'Bestätigen',
-            'workplace_title' => 'Restaurant bestätigen',
-            'workplace_text' => 'Gib den Code ein, der in PayMyDine beim Kassierer, Owner oder Manager angezeigt wird, scanne dort den QR-Code oder warte auf direkte Freigabe.',
+            'workplace_title' => 'Restaurant-Freigabe',
+            'workplace_text' => 'Code eingeben oder QR scannen.',
             'scan' => 'QR scannen',
             'stop_scan' => 'Kamera schließen',
             'camera_unavailable' => 'Der QR-Scanner ist in diesem Browser nicht verfügbar. Nutze den 6-stelligen Code.',
-            'waiting' => 'Oder warte auf direkte Freigabe durch Kassierer, Owner oder Manager…',
+            'waiting' => 'Oder auf Freigabe warten.',
             'expired' => 'Diese Anfrage ist abgelaufen. Bitte erneut anmelden.',
         ]
         : [
@@ -61,12 +61,12 @@
             'code' => '6-digit code',
             'connect' => 'Connect',
             'verify' => 'Verify',
-            'workplace_title' => 'Verify restaurant access',
-            'workplace_text' => 'Enter the code shown in PayMyDine on the Cashier, Owner or Manager screen, scan its QR, or wait for them to approve you directly.',
+            'workplace_title' => 'Restaurant approval',
+            'workplace_text' => 'Enter code or scan QR.',
             'scan' => 'Scan QR',
             'stop_scan' => 'Close camera',
             'camera_unavailable' => 'QR scanning is not available in this browser. Use the 6-digit code instead.',
-            'waiting' => 'Or wait for direct approval from the Cashier, Owner or Manager…',
+            'waiting' => 'Or wait for approval.',
             'expired' => 'This request expired. Sign in again.',
         ];
 @endphp
@@ -78,27 +78,27 @@
     <meta name="robots" content="noindex,nofollow">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Login - PayMyDine</title>
-    <link rel="shortcut icon" href="/app/admin/assets/images/pmd-brand-mark.svg?v=pmd-login-v8">
+    <link rel="shortcut icon" href="/app/admin/assets/images/pmd-brand-mark.svg?v=pmd-login-v9">
     <style>
         :root{--jade:#063f36;--jade-dark:#032d27;--gold:#c89b4a;--line:#e1e9e6;--text:#122321;--muted:#6d7b78;--danger:#b42318}
-        *{box-sizing:border-box}html,body{margin:0;min-height:100%}
-        body{min-height:100vh;display:grid;place-items:center;padding:22px 14px;background:radial-gradient(circle at 50% 8%,rgba(200,155,74,.16),transparent 31%),linear-gradient(180deg,#011714 0%,#032c27 100%);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--text);-webkit-font-smoothing:antialiased}
-        .card{position:relative;width:min(470px,100%);padding:22px 32px 30px;border:1px solid rgba(200,155,74,.35);border-radius:23px;background:#fff;box-shadow:0 28px 80px rgba(0,25,22,.35)}
+        *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%}
+        body{min-height:100vh;min-height:100dvh;overflow:auto;padding:14px;background:radial-gradient(circle at 50% 8%,rgba(200,155,74,.16),transparent 31%),linear-gradient(180deg,#011714 0%,#032c27 100%);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--text);-webkit-font-smoothing:antialiased}
+        .card{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(470px,calc(100vw - 28px));max-height:calc(100vh - 28px);max-height:calc(100dvh - 28px);overflow:auto;padding:22px 32px 30px;border:1px solid rgba(200,155,74,.35);border-radius:23px;background:#fff;box-shadow:0 28px 80px rgba(0,25,22,.35)}
         .lang{position:absolute;right:14px;top:14px;width:43px;height:39px;border:1px solid #dfd1b8;border-radius:11px;background:#fffaf1;color:var(--jade);font:inherit;font-size:12px;font-weight:900;cursor:pointer}
         .brand{height:160px;display:grid;place-items:center;margin:-12px 42px 4px}.brand img{width:260px;max-width:100%;height:154px;object-fit:contain}
         .form{display:grid;gap:14px}.field{display:grid;gap:6px}.field>span{font-size:11px;font-weight:850}.input{position:relative}.field input{width:100%;height:48px;padding:0 13px;border:1px solid var(--line);border-radius:13px;background:#fff;color:var(--text);font:inherit;font-size:14px;outline:none}.field input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(200,155,74,.13)}.field input[type=password]{padding-right:46px}.toggle{position:absolute;right:5px;top:5px;width:38px;height:38px;border:0;border-radius:10px;background:transparent;color:#74827f;cursor:pointer}.toggle:hover{background:#f2f7f5}
         .submit,.secondary{height:49px;display:flex;align-items:center;justify-content:center;border-radius:13px;font:inherit;font-size:14px;font-weight:900;cursor:pointer;text-decoration:none}.submit{border:1px solid var(--jade);background:var(--jade);color:#fff}.submit:hover{background:var(--jade-dark)}.secondary{border:1px solid var(--line);background:#f8fbfa;color:var(--jade)}
         .forgot{color:var(--jade);font-size:11px;font-weight:800;text-decoration:none}.error{color:var(--danger);font-size:10px;font-weight:750}.success,.notice{margin-bottom:14px;padding:11px 12px;border-radius:12px;font-size:11px;line-height:1.4}.success{border:1px solid #bfe4d4;background:#f1faf6;color:#146948}.notice{border:1px solid #f0c6c1;background:#fff3f2;color:#8b2c25}.notice strong{display:block;margin-bottom:2px}
-        .security-head{text-align:center;margin:-2px 0 17px}.security-head h1{margin:0 0 6px;color:#0c2c28;font-size:22px;letter-spacing:-.035em}.security-head p{margin:0 auto;max-width:360px;color:var(--muted);font-size:11px;line-height:1.5}.qrbox{display:grid;place-items:center;min-height:218px;padding:10px;border:1px solid #d3e6e0;border-radius:16px;background:#f5fbf9}.qrbox svg{display:block;width:205px!important;height:205px!important;max-width:100%}.qr-fallback{padding:24px;text-align:center;color:var(--muted);font-size:11px}.code-input{text-align:center;font-size:25px!important;font-weight:900;letter-spacing:.3em;font-variant-numeric:tabular-nums;padding-left:calc(13px + .3em)!important}.secret{border:1px solid var(--line);border-radius:12px;background:#f8fbfa;padding:10px 12px}.secret summary{cursor:pointer;color:#536461;font-size:10px;font-weight:850}.secret-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px;margin-top:9px}.secret-row input{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px}.copy{height:48px;padding:0 12px;border:1px solid var(--line);border-radius:13px;background:#fff;color:var(--jade);font:inherit;font-size:10px;font-weight:900;cursor:pointer}
-        .security-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}.wait{min-height:18px;text-align:center;color:#71807c;font-size:10px;font-weight:750}.workplace-note{text-align:center;color:#87938f;font-size:9px;line-height:1.45}
+        .security-head{text-align:center;margin:-2px 0 17px}.security-head h1{margin:0 0 6px;color:#0c2c28;font-size:22px;letter-spacing:-.035em}.security-head p{margin:0 auto;max-width:300px;color:var(--muted);font-size:11px;line-height:1.45}.qrbox{display:grid;place-items:center;min-height:218px;padding:10px;border:1px solid #d3e6e0;border-radius:16px;background:#f5fbf9}.qrbox svg{display:block;width:205px!important;height:205px!important;max-width:100%}.qr-fallback{padding:24px;text-align:center;color:var(--muted);font-size:11px}.code-input{text-align:center;font-size:25px!important;font-weight:900;letter-spacing:.3em;font-variant-numeric:tabular-nums;padding-left:calc(13px + .3em)!important}.secret{border:1px solid var(--line);border-radius:12px;background:#f8fbfa;padding:10px 12px}.secret summary{cursor:pointer;color:#536461;font-size:10px;font-weight:850}.secret-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px;margin-top:9px}.secret-row input{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px}.copy{height:48px;padding:0 12px;border:1px solid var(--line);border-radius:13px;background:#fff;color:var(--jade);font:inherit;font-size:10px;font-weight:900;cursor:pointer}
+        .security-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}.wait{min-height:18px;text-align:center;color:#71807c;font-size:10px;font-weight:750}
         .scanner{position:fixed;inset:0;z-index:30;display:grid;place-items:center;padding:18px;background:rgba(0,22,19,.82);backdrop-filter:blur(7px)}.scanner[hidden]{display:none}.scanner-card{width:min(430px,100%);padding:15px;border-radius:18px;background:#fff}.scanner video{display:block;width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:13px;background:#071d1a}.scanner-foot{display:grid;gap:9px;margin-top:11px}.scanner-message{color:var(--muted);font-size:11px;text-align:center}
-        @media(max-width:540px){body{padding:12px 9px}.card{padding:20px 18px 25px;border-radius:20px}.brand{height:135px;margin:-5px 38px 3px}.brand img{height:130px}.qrbox{min-height:195px}.qrbox svg{width:185px!important;height:185px!important}.security-actions{grid-template-columns:1fr}}
+        @media(max-width:540px){body{padding:10px}.card{width:calc(100vw - 18px);max-height:calc(100dvh - 18px);padding:20px 18px 25px;border-radius:20px}.brand{height:135px;margin:-5px 38px 3px}.brand img{height:130px}.qrbox{min-height:195px}.qrbox svg{width:185px!important;height:185px!important}.security-actions{grid-template-columns:1fr}}
     </style>
 </head>
 <body>
 <main class="card" @if($securityMode === 'workplace' && !empty($security['expires_at'])) data-pmd-workplace-login data-expires-at="{{ $security['expires_at'] }}" @endif>
     <button type="button" class="lang" data-lang="{{ $nextLocale }}">{{ strtoupper($nextLocale) }}</button>
-    <div class="brand"><img src="{{ asset('app/admin/assets/images/pmd-login-logo.svg') }}?v=pmd-login-v8" alt="PayMyDine"></div>
+    <div class="brand"><img src="{{ asset('app/admin/assets/images/pmd-login-logo.svg') }}?v=pmd-login-v9" alt="PayMyDine"></div>
 
     @if(input('reset') === 'success')
         <div class="success">{{ $copy['reset'] }}</div>
@@ -187,7 +187,6 @@
             </div>
         </form>
         <div class="wait" data-pmd-workplace-status>{{ $copy['waiting'] }}</div>
-        <div class="workplace-note">The restaurant code changes automatically and is shown only inside authorized PayMyDine screens.</div>
     @endif
 </main>
 
@@ -255,6 +254,29 @@
         var csrf = csrfNode ? csrfNode.getAttribute('content') : '';
         var finished = false;
 
+        // PMD_CASHIER_TRUSTED_DEVICE_RESUME_CLIENT_V1
+        // Only a Cashier on a remembered Main Restaurant Device can succeed here.
+        // 403/409 simply means use the normal code/QR/direct-approval flow.
+        function tryCashierResume() {
+            if (!csrf || finished) return;
+            fetch('{{ admin_url('siteaccess/cashier-resume') }}', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'X-CSRF-TOKEN': csrf,
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            }).then(function (response) {
+                if (!response.ok) return null;
+                return response.json();
+            }).then(function (payload) {
+                if (!payload || !payload.ok || !payload.redirect) return;
+                finished = true;
+                window.location.assign(payload.redirect);
+            }).catch(function () {});
+        }
+
         function finalize() {
             if (finished) return;
             finished = true;
@@ -302,6 +324,7 @@
             }).catch(function () {});
         }
 
+        tryCashierResume();
         poll();
         window.setInterval(poll, 1600);
     }
