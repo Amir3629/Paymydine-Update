@@ -4,6 +4,12 @@ use App\Http\Controllers\PmdStaffPortalController;
 use App\Http\Controllers\PmdStaffPortalV5Controller;
 use Illuminate\Support\Facades\Route;
 
+// PMD_SITE_ACCESS_ROUTE_LOADER_V1
+// app/admin/routes.php already requires this compact auth module before the
+// legacy Admin catch-all. Keep Site Access in its own route file/authority while
+// reusing that known-good early loader rather than adding another catch-all hack.
+require_once base_path('routes/pmd-site-access-v1.php');
+
 /**
  * PMD_STAFF_PORTAL_V5_ROUTES
  *
@@ -18,9 +24,6 @@ if (!defined('PMD_STAFF_PORTAL_ROUTES_V3')) {
         $adminUri = '/'.trim((string)config('system.adminUri', 'admin'), '/');
 
         // PMD_STAFF_AVATAR_BINARY_RESPONSE_V2
-        // Keep the explicit V5 route and proven response()->file() responder.
-        // Re-assert private caching after BinaryFileResponse preparation so
-        // authenticated staff photos are never advertised as public cache data.
         Route::get($adminUri.'/mywork/avatar/{person}', function ($person) {
             request()->query->set('person', max(1, (int)$person));
             $response = app(PmdStaffPortalController::class)->avatar(request());
