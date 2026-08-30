@@ -170,6 +170,10 @@
     {
       "path": "css/pmd-cashier-split-r67i.css",
       "name": "pmd-cashier-split-r67i-css"
+    },
+    {
+      "path": "css/pmd-shifts-modal-v18.css",
+      "name": "pmd-shifts-modal-v18-css"
     }
   ],
   "script": [
@@ -280,6 +284,10 @@
     {
       "path": "js/pmd-sumup-inline-wallet-settings-v1.js",
       "name": "pmd-sumup-inline-wallet-settings-v1-js"
+    },
+    {
+      "path": "js/pmd-site-access-hub-v12.js",
+      "name": "pmd-site-access-hub-v12-js"
     }
   ]
 }

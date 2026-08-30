@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use System\Models\Themes_model;
 
+/** PMD_NEW_TENANT_WORKPLACE_SECURITY_V1 */
 class SuperAdminTenantLifecycleService
 {
     private const TEMPLATE_DB = 'newtenantdb';
@@ -38,6 +39,15 @@ class SuperAdminTenantLifecycleService
         'pmd_billing_group_orders',
         'pmd_billing_group_payments',
         'pmd_admin_presence_sessions',
+
+        // Workplace security is tenant-secret state. The schema may come from
+        // the template, but device tokens, challenges, MFA and recovery material
+        // must NEVER be copied from one restaurant into another.
+        'pmd_site_access_devices',
+        'pmd_site_access_challenges',
+        'pmd_site_access_events',
+        'pmd_site_access_recovery_codes',
+        'pmd_owner_mfa',
 
         // Reservations / floor / service activity
         'reservations',
@@ -249,8 +259,13 @@ class SuperAdminTenantLifecycleService
             DB::purge('mysql');
             DB::reconnect('mysql');
 
+            // Do not trust the template to contain today's security schema. New
+            // tenants must be security-ready at birth even when newtenantdb is
+            // older than the application code currently deployed.
+            $this->ensureWorkplaceSecuritySchema();
+
             // Defense in depth: even if the template changes or an old copy path
-            // reappears, visible restaurant/business data is removed before READY.
+            // reappears, visible restaurant/business/security data is removed.
             $this->sanitizeTenantBusinessData();
 
             // Intentionally DO NOT create a default Cashier/floor table. A new
@@ -271,6 +286,39 @@ class SuperAdminTenantLifecycleService
             $this->applyTenantIdentity($data);
         } finally {
             $this->restoreCentralConnection($centralDatabase);
+        }
+    }
+
+    /** PMD_NEW_TENANT_SITE_ACCESS_SCHEMA_V1 */
+    private function ensureWorkplaceSecuritySchema(): void
+    {
+        $siteMigration = base_path(
+            'app/system/database/migrations/2026_08_30_103000_create_pmd_site_access_tables.php'
+        );
+        $ownerMigration = base_path(
+            'app/system/database/migrations/2026_08_30_123000_create_pmd_owner_mfa_table.php'
+        );
+
+        if (!is_file($siteMigration) || !is_file($ownerMigration)) {
+            throw new \RuntimeException('Workplace security migration files are missing.');
+        }
+
+        require_once $siteMigration;
+        require_once $ownerMigration;
+
+        (new \System\Database\Migrations\CreatePmdSiteAccessTables())->up();
+        (new \System\Database\Migrations\CreatePmdOwnerMfaTable())->up();
+
+        foreach ([
+            'pmd_site_access_devices',
+            'pmd_site_access_challenges',
+            'pmd_site_access_events',
+            'pmd_site_access_recovery_codes',
+            'pmd_owner_mfa',
+        ] as $table) {
+            if (!Schema::connection('mysql')->hasTable($table)) {
+                throw new \RuntimeException('New tenant security schema missing table: '.$table);
+            }
         }
     }
 
@@ -306,8 +354,6 @@ class SuperAdminTenantLifecycleService
         $displayName = $domainLabel !== '' ? $domainLabel : 'PayMyDine';
         $logoUrl = $domain !== '' ? 'https://'.$domain.self::DEFAULT_LOGO_PATH : self::DEFAULT_LOGO_PATH;
 
-        // Keep framework settings and the physical tenant settings table aligned.
-        // This runs after theme activation so template branding cannot win later.
         try {
             setting()->set([
                 'site_name' => $displayName,

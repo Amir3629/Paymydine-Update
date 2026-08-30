@@ -47,6 +47,13 @@ class Pmddevices extends AdminController
         Template::setTitle(\Admin\Classes\PmdPlatformI18n::fromEnglish('Devices & hardware', 'settings.'));
         Template::setHeading(\Admin\Classes\PmdPlatformI18n::fromEnglish('Devices & hardware', 'settings.'));
 
+        // PMD_WORKPLACE_ACCESS_DEVICES_ENTRY_V2
+        Template::setButton('Workplace Access', [
+            'class' => 'btn btn-primary',
+            'role' => 'button',
+            'href' => admin_url('siteaccess/hub'),
+        ]);
+
         $pos = $this->safeCollection(Pos_devices_model::class, 'pos_devices', 'name');
         $terminals = $this->safeCollection(Terminal_devices_model::class, 'terminal_devices', 'terminal_device_id');
         $drawers = $this->safeCollection(Cash_drawers_model::class, 'cash_drawers', 'name');
