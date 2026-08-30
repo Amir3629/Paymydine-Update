@@ -10,11 +10,11 @@ use Closure;
 use Illuminate\Http\Request;
 
 /**
- * PMD_SITE_ACCESS_MANAGE_TRUST_V3
+ * PMD_SITE_ACCESS_MANAGE_TRUST_V4
  *
- * Bootstrap is allowed once to Owner/Manager before the first hub exists.
- * After policy activation, trust configuration itself requires workplace proof
- * bound to the same PMD user or the current physical trusted hub.
+ * The first Site Access hub is the restaurant root of trust, so bootstrap is
+ * Owner-only. After activation, Owner/Manager trust changes require workplace
+ * proof bound to the same user or the current physical trusted hub.
  */
 class PmdSiteAccessManageTrustMiddleware
 {
@@ -42,23 +42,50 @@ class PmdSiteAccessManageTrustMiddleware
         $locationId = (int)$identity['location_id'];
         if ($locationId < 1) abort(403);
 
-        // Before the first hub exists there is no stronger device proof to use;
-        // an authenticated Owner/Manager is the controlled bootstrap authority.
-        if (!$site->policyEnabled($locationId)) {
-            return $this->afterTrustedAction($request, $next($request));
+        $policyWasEnabled = $site->policyEnabled($locationId);
+
+        // Before the first hub exists there is no stronger device proof to use.
+        // Only the Owner may create that initial restaurant root of trust.
+        if (!$policyWasEnabled) {
+            if ($role !== PmdDefaultStaffRoleService::OWNER) {
+                return redirect(admin_url('siteaccess/hub'))->with(
+                    'error',
+                    'The restaurant Owner must activate the first Site Access hub.'
+                );
+            }
+
+            return $this->afterTrustedAction(
+                $request,
+                $next($request),
+                $site,
+                $identity,
+                false
+            );
         }
 
         $hub = $site->currentHub($request, $locationId);
         if ($hub) {
             $site->touchDevice((int)$hub->id);
-            return $this->afterTrustedAction($request, $next($request));
+            return $this->afterTrustedAction(
+                $request,
+                $next($request),
+                $site,
+                $identity,
+                true
+            );
         }
 
         if (
             $site->isWorkspaceVerified($locationId)
             && app(PmdSiteAccessSessionBindingService::class)->isBoundToCurrentUser()
         ) {
-            return $this->afterTrustedAction($request, $next($request));
+            return $this->afterTrustedAction(
+                $request,
+                $next($request),
+                $site,
+                $identity,
+                true
+            );
         }
 
         return $request->expectsJson()
@@ -66,12 +93,21 @@ class PmdSiteAccessManageTrustMiddleware
             : redirect(admin_url('siteaccess'))->with('error', 'Verify at the restaurant before changing trusted devices or recovery codes.');
     }
 
-    private function afterTrustedAction(Request $request, $response)
-    {
+    private function afterTrustedAction(
+        Request $request,
+        $response,
+        PmdSiteAccessService $site,
+        array $identity,
+        bool $policyWasEnabled
+    ) {
+        if (!$request->routeIs('pmd.siteaccess.hub.activate')) {
+            return $response;
+        }
+
         // PMD_SITE_ACCESS_HUB_MARKER_V1
         // Non-secret marker only. The real hub credential remains HttpOnly. This
         // prevents every ordinary Admin browser from probing the heartbeat API.
-        if ($request->routeIs('pmd.siteaccess.hub.activate') && method_exists($response, 'withCookie')) {
+        if (method_exists($response, 'withCookie')) {
             $response->withCookie(cookie(
                 'pmd_site_hub_marker_v1',
                 '1',
@@ -83,6 +119,33 @@ class PmdSiteAccessManageTrustMiddleware
                 false,
                 'Lax'
             ));
+        }
+
+        // PMD_SITE_ACCESS_BOOTSTRAP_RECOVERY_V1
+        // The first successful Hub activation must never start enforcement
+        // without an emergency path. Generate raw codes exactly once and flash
+        // them to the next Hub page; only their keyed hashes remain in the DB.
+        if (
+            !$policyWasEnabled
+            && $site->policyEnabled((int)$identity['location_id'])
+        ) {
+            try {
+                $codes = $site->generateRecoveryCodes($request);
+                session()->flash('pmd_site_access_new_recovery_codes', $codes);
+            } catch (\Throwable $error) {
+                logger()->critical('PMD Site Access recovery bootstrap failed after Hub activation', [
+                    'message' => $error->getMessage(),
+                    'location_id' => (int)$identity['location_id'],
+                ]);
+
+                // Do not silently hide this exceptional state. The Hub is already
+                // activated, so the next page must tell the Owner to generate the
+                // recovery set manually before relying on Site Access.
+                session()->flash(
+                    'error',
+                    'Site Access Hub was activated, but emergency recovery codes could not be generated automatically. Generate them now before leaving this device.'
+                );
+            }
         }
 
         return $response;
