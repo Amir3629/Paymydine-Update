@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Admin\Facades\AdminAuth;
+use App\Services\PmdRestaurantApprovalPresenceService;
 use App\Services\PmdSiteAccessService;
 use App\Services\PmdSiteAccessSessionBindingService;
 use App\Services\PmdWorkplaceCodeService;
@@ -11,7 +12,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
-/** PMD_LOGIN_WORKPLACE_VERIFY_V1 */
+/** PMD_LOGIN_WORKPLACE_VERIFY_V2 */
 class PmdLoginWorkplaceVerifyController
 {
     public function __invoke(Request $request)
@@ -56,8 +57,19 @@ class PmdLoginWorkplaceVerifyController
             return redirect(admin_url('login'))->with('error', 'The 6-digit code is not correct.');
         }
 
-        if (!$site->hasOnlineHub($locationId)) {
-            return redirect(admin_url('login'))->with('error', 'The restaurant Cashier device is offline.');
+        // The code must actually be visible on an authorized PMD screen now.
+        // A trusted restaurant hub proves this directly. Remote Owner/Manager
+        // screens create only a short cache presence while their approval card
+        // is open/active; they never become permanent trusted devices.
+        $authorityVisible = $site->hasOnlineHub($locationId)
+            || app(PmdRestaurantApprovalPresenceService::class)
+                ->recentlyVisible($locationId);
+
+        if (!$authorityVisible) {
+            return redirect(admin_url('login'))->with(
+                'error',
+                'Open Team sign-in on the restaurant Cashier, Owner or Manager screen and use its current code.'
+            );
         }
 
         DB::table('pmd_site_access_challenges')
@@ -70,6 +82,7 @@ class PmdLoginWorkplaceVerifyController
 
         $site->audit('workplace_code_verified', true, $identity, null, (int)$challenge->id, $request, [
             'surface' => 'canonical_login',
+            'authority_visible' => true,
         ]);
 
         try {
