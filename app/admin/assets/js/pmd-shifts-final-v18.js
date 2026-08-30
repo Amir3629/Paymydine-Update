@@ -73,23 +73,23 @@
     if (!role || /^(team|team member|staff|employee)$/.test(role)) {
       return {family:'team_member', rank:20};
     }
-    if (/\b(waiter|server|service|runner|floor)\b/.test(text) || department === 'floor' && !/cashier|bar/.test(text)) {
-      return {family:'waiter', rank:30};
-    }
-    if (/\b(cashier|till|checkout|pos)\b/.test(text)) {
+    if (/\b(cashier|till|checkout|pos)\b/.test(role)) {
       return {family:'cashier', rank:40};
     }
-    if (/\b(reservation|reservations|reception|host|front desk)\b/.test(text) || department === 'reception') {
+    if (/\b(reservation|reservations|reception|host|front desk)\b/.test(role) || department === 'reception') {
       return {family:'reservations', rank:50};
     }
-    if (/\b(manager|supervisor|owner)\b/.test(text)) {
+    if (/\b(manager|supervisor|owner)\b/.test(role)) {
       return {family:'manager', rank:60};
     }
-    if (/\b(bar|bartender|barman|barmaid)\b/.test(text) || department === 'bar') {
+    if (/\b(bar|bartender|barman|barmaid)\b/.test(role) || department === 'bar') {
       return {family:'bar', rank:70};
     }
-    if (/\b(accountant|accounting|finance|bookkeep)\b/.test(text)) {
+    if (/\b(accountant|accounting|finance|bookkeep)\b/.test(role)) {
       return {family:'accountant', rank:80};
+    }
+    if (/\b(waiter|server|service|runner|floor)\b/.test(role) || department === 'floor') {
+      return {family:'waiter', rank:30};
     }
     return {family:'other', rank:90};
   }
