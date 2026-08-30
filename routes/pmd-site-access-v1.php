@@ -4,6 +4,7 @@ use Admin\Controllers\Siteaccess;
 use Admin\Facades\AdminAuth;
 use App\Http\Controllers\PmdFirstWorkplaceDeviceController;
 use App\Http\Controllers\PmdLoginWorkplaceVerifyController;
+use App\Http\Controllers\PmdRestaurantSignInApprovalController;
 use App\Http\Controllers\PmdSiteAccessHubDataController;
 use App\Http\Controllers\PmdSiteAccessSessionPingController;
 use App\Http\Middleware\PmdSiteAccessBindVerificationMiddleware;
@@ -17,7 +18,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 
-/** PMD_SITE_ACCESS_ROUTES_V11 */
+/** PMD_SITE_ACCESS_ROUTES_V12 */
 if (!defined('PMD_SITE_ACCESS_ROUTES_V1')) {
     define('PMD_SITE_ACCESS_ROUTES_V1', true);
 
@@ -43,6 +44,20 @@ if (!defined('PMD_SITE_ACCESS_ROUTES_V1')) {
         Route::get('siteaccess/session/ping', PmdSiteAccessSessionPingController::class)
             ->middleware('throttle:30,1')
             ->name('pmd.siteaccess.session.ping');
+
+        // PMD_RESTAURANT_SIGNIN_TRANSPORT_V1
+        // Hidden under the Cashier route vocabulary so the existing managed-role
+        // path guard can transport Cashier requests. The controller is still the
+        // final authority and permits only Owner, Manager, or trusted Cashier.
+        Route::get('cashierlab/_pmd/signin/data', [PmdRestaurantSignInApprovalController::class, 'data'])
+            ->middleware('throttle:120,1')
+            ->name('pmd.restaurant.signin.data');
+        Route::post('cashierlab/_pmd/signin/approve', [PmdRestaurantSignInApprovalController::class, 'approve'])
+            ->middleware('throttle:60,1')
+            ->name('pmd.restaurant.signin.approve');
+        Route::post('cashierlab/_pmd/signin/decline', [PmdRestaurantSignInApprovalController::class, 'decline'])
+            ->middleware('throttle:60,1')
+            ->name('pmd.restaurant.signin.decline');
 
         // Legacy Owner MFA routes remain for old links; canonical password login
         // renders Authenticator setup/verification inside /admin/login.
