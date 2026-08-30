@@ -1,4 +1,4 @@
-/* PMD_SITE_ACCESS_HUB_RUNTIME_V1 */
+/* PMD_SITE_ACCESS_HUB_RUNTIME_V2 */
 (function () {
     'use strict';
 
@@ -19,8 +19,14 @@
         document.cookie = cookie;
     }
 
-    // The hub page itself is server-authoritative. Once it renders a trusted
-    // online hub, expose only a non-secret JS marker for cross-page heartbeat.
+    function clearMarker() {
+        var cookie = 'pmd_site_hub_marker_v1=; Path=/; Max-Age=0; SameSite=Lax';
+        if (window.location.protocol === 'https:') cookie += '; Secure';
+        document.cookie = cookie;
+    }
+
+    // Normal Admin pages can rediscover a marker only if the server-rendered
+    // page explicitly identifies this browser as an active Site Access hub.
     if (document.querySelector('[data-pmd-hub-online]')) setMarker();
     if (!hasMarker()) return;
 
@@ -44,7 +50,10 @@
                 'X-Requested-With': 'XMLHttpRequest'
             }
         }).then(function (response) {
-            if (response.status === 401 || response.status === 403) stopped = true;
+            if (response.status === 401 || response.status === 403) {
+                stopped = true;
+                clearMarker();
+            }
         }).catch(function () {});
     }
 
