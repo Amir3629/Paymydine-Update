@@ -3,18 +3,15 @@
 namespace App\Services;
 
 use Admin\Facades\AdminAuth;
+use Admin\Services\PmdDefaultStaffRoleService;
 use Illuminate\Http\Request;
 
 /**
- * PMD_WORKPLACE_GATE_V6
+ * PMD_WORKPLACE_GATE_V7
  *
- * Once the restaurant activates Workplace Access, every tenant Admin surface -
- * including My Work / Staff Portal - requires fresh workplace verification.
- * Personal devices are never a substitute for restaurant proof.
- *
- * During first Owner bootstrap, password authentication alone is deliberately
- * incomplete: while inline Owner MFA is pending, normal Admin navigation is
- * redirected back to the canonical /admin/login security step.
+ * One canonical security surface: /admin/login.
+ * A trusted Cashier/POS exposes proof, but never silently becomes proof for a
+ * fresh password session. Every fresh login completes an explicit second step.
  */
 class PmdSiteAccessWorkspaceGateService
 {
@@ -25,9 +22,6 @@ class PmdSiteAccessWorkspaceGateService
         $site = app(PmdSiteAccessService::class);
         if (!$site->ready()) return null;
 
-        // PMD_WORK_SESSION_ABSOLUTE_EXPIRY_V1
-        // Only an already-verified session has this timestamp. Fresh password
-        // logins clear old verification state before beginning step-up.
         $workSession = app(PmdWorkSessionPolicyService::class);
         if (session()->has(PmdSiteAccessService::SESSION_VERIFIED_UNTIL) && $workSession->isExpired()) {
             try {
@@ -45,23 +39,22 @@ class PmdSiteAccessWorkspaceGateService
 
         $identity = $site->identity();
         $locationId = (int)$identity['location_id'];
-        if ($identity['user_id'] < 1 || $identity['staff_id'] < 1 || $locationId < 1) return null;
+        $roleService = app(PmdDefaultStaffRoleService::class);
+        $role = $roleService->roleCodeForUser($identity['user']);
+        $isOwner = $role === PmdDefaultStaffRoleService::OWNER;
+
+        if ($identity['user_id'] < 1 || $locationId < 1) return null;
+        if ($identity['staff_id'] < 1 && !$isOwner) return null;
 
         $relative = $this->relativeAdminPath($request);
-
-        // Language switching is account preference, not operational access.
         if (str_starts_with($relative, '_pmd/language-switch')) return null;
 
-        // PMD_INLINE_OWNER_MFA_BOOTSTRAP_GATE_V1
-        // The password-authenticated Owner is not allowed to browse Workspace
-        // while the canonical Login page is waiting for Authenticator setup or
-        // verification. Siteaccess stays reachable so an already-enrolled Owner
-        // may explicitly choose the restaurant Workplace Code instead.
+        // Password-authenticated Owner may browse only the canonical Login and
+        // security/setup routes until personal TOTP is complete.
         if (session()->has('pmd_login_owner_security_v1')) {
             foreach (['login', 'logout', 'siteaccess', '_assets'] as $allowed) {
                 if ($relative === $allowed || str_starts_with($relative, $allowed.'/')) return null;
             }
-
             return redirect(admin_url('login'));
         }
 
@@ -71,44 +64,50 @@ class PmdSiteAccessWorkspaceGateService
         $workspaceVerified = $site->isWorkspaceVerified($locationId)
             && $binding->isBoundToCurrentUser();
 
-        // Authentication, Workplace Access itself, static assets and logout must
-        // remain reachable or a user could be trapped behind the gate.
         foreach (['siteaccess', 'login', 'logout', '_assets'] as $allowed) {
             if ($relative === $allowed || str_starts_with($relative, $allowed.'/')) return null;
         }
 
-        // The trusted restaurant Admin/Cashier device is itself workplace proof.
-        $hub = $site->currentHub($request, $locationId);
-        if ($hub) {
-            $site->touchDevice((int)$hub->id);
-            if (!$workspaceVerified) {
-                $site->markWorkspaceVerified($locationId, 'trusted_workplace_device', (int)$hub->id);
-                $binding->bindCurrentUser();
-                $policy = $workSession->apply($identity);
-                $site->audit('workplace_auto_verified', true, $identity, (int)$hub->id, null, $request, [
-                    'path' => $relative,
-                    'session_until' => $policy['expires_at']->toIso8601String(),
-                    'session_reason' => $policy['reason'],
-                ]);
-            }
-            return null;
-        }
-
         if ($workspaceVerified) return null;
 
-        // My Work and Workspace use the SAME restaurant verification authority.
-        // There is intentionally no persistent personal-phone bypass.
+        // Existing request always returns to the same Login card. This prevents a
+        // trusted-hub cookie from auto-verifying a password-only session.
         $pending = $site->challengeForSession();
-        if (!$pending || $pending->purpose !== PmdSiteAccessService::PURPOSE_WORKSPACE) {
-            $target = $this->safeTarget($request, $identity['user'], $relative);
-            $pending = $site->beginChallenge(
-                PmdSiteAccessService::PURPOSE_WORKSPACE,
-                $target,
-                $request
-            );
+        if ($pending && $pending->purpose === PmdSiteAccessService::PURPOSE_WORKSPACE) {
+            return redirect(admin_url('login'));
         }
 
-        return $pending ? redirect(admin_url('siteaccess')) : null;
+        $target = $this->safeTarget($request, $role, $relative);
+
+        // The bootstrap Super User may have no Staff row. Owner TOTP is therefore
+        // queued directly and remains independent from staff_id.
+        if ($isOwner && app(PmdOwnerTotpService::class)->enabled((int)$identity['user_id'])) {
+            session()->put('pmd_login_owner_security_v1', [
+                'mode' => 'verify',
+                'user_id' => (int)$identity['user_id'],
+                'location_id' => $locationId,
+                'session_id' => (string)session()->getId(),
+                'created_at' => time(),
+            ]);
+            session()->put('pmd_owner_totp_after_v1', $target);
+            return redirect(admin_url('login'));
+        }
+
+        if ($identity['staff_id'] < 1) {
+            return redirect(admin_url('login'))
+                ->with('error', 'This account is not assigned to a restaurant role.');
+        }
+
+        $challengeRequest = $request->duplicate(null, null, null, []);
+        $pending = $site->beginChallenge(
+            PmdSiteAccessService::PURPOSE_WORKSPACE,
+            $target,
+            $challengeRequest
+        );
+
+        return $pending
+            ? redirect(admin_url('login'))
+            : redirect(admin_url('login'))->with('error', 'Restaurant verification could not be started.');
     }
 
     private function relativeAdminPath(Request $request): string
@@ -120,21 +119,11 @@ class PmdSiteAccessWorkspaceGateService
         return $path;
     }
 
-    private function safeTarget(Request $request, $user, string $relative): string
+    private function safeTarget(Request $request, string $role, string $relative): string
     {
-        // Never replay a blocked POST/PUT/DELETE after step-up.
-        if ($request->isMethod('GET')) return $request->fullUrl();
+        if ($request->isMethod('GET') && $relative !== '') return $request->fullUrl();
 
-        if ($relative === 'mywork' || str_starts_with($relative, 'mywork/')) {
-            return admin_url('mywork');
-        }
-
-        try {
-            $route = app(\Admin\Services\PmdRoleLandingService::class)->routeFor($user);
-            if ($route) return admin_url($route);
-        } catch (\Throwable $error) {
-        }
-
-        return admin_url('dashboard');
+        $route = app(PmdDefaultStaffRoleService::class)->routeForRoleCode($role);
+        return $route ? admin_url($route) : admin_url('login');
     }
 }
