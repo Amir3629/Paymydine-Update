@@ -6,6 +6,7 @@ use Admin\Facades\AdminAuth;
 use Admin\Facades\Template;
 use Admin\Models\Staffs_model;
 use Admin\Models\Users_model;
+use Admin\Services\PmdDefaultStaffRoleService;
 use Admin\Traits\ValidatesForm;
 use App\Services\PmdSiteAccessService;
 use Igniter\Flame\Exception\ValidationException;
@@ -34,14 +35,13 @@ class Login extends \Admin\Classes\AdminController
     public function index()
     {
         if (AdminAuth::isLogged()) {
-            // PMD_SITE_ACCESS_LOGIN_V1
-            // A password-authenticated session that is waiting for workplace
-            // verification must never skip the step-up page by revisiting login.
+            // PMD_WORKPLACE_LOGIN_V2
+            // A password-authenticated session waiting for restaurant proof must
+            // never skip the second step by revisiting the login page.
             if (session()->has(PmdSiteAccessService::SESSION_PENDING)) {
                 return redirect(admin_url('siteaccess'));
             }
 
-            // PMD_LOGIN_DESTINATION_V3
             if ($this->pmdRequestedDestination() === 'staff')
                 return $this->redirect('mywork');
 
@@ -53,9 +53,8 @@ class Login extends \Admin\Classes\AdminController
 
         Template::setTitle(lang('admin::lang.login.text_title'));
 
-        // PMD_LOGIN_WORKSPACE_V4
-        // One AdminAuth login surface exposes Workspace/Staff destinations and
-        // Site Access is the shared step-up authority after password success.
+        // One tenant-locked login surface. Workspace and Staff Portal are only
+        // destinations; both require fresh workplace verification after password.
         return view('auth.login_workspace_v2');
     }
 
@@ -135,24 +134,53 @@ class Login extends \Admin\Classes\AdminController
             ? admin_url('mywork')
             : $workspaceTarget;
 
-        // PMD_SITE_ACCESS_LOGIN_V1
-        // Staff Portal: first untrusted personal browser is paired at restaurant.
-        // Workspace: requires restaurant verification unless this browser itself
-        // is the activated trusted Site Access POS hub.
+        // PMD_WORKPLACE_LOGIN_ALL_USERS_V1
+        // Username/password is tenant-scoped identity only. Once Workplace Access
+        // is active, EVERY restaurant-facing login (Workspace or Staff Portal)
+        // needs fresh restaurant proof. Personal phones are never permanently
+        // trusted for off-site Staff Portal access.
         try {
             $siteAccess = app(PmdSiteAccessService::class);
-            $purpose = $destination === 'staff'
-                ? PmdSiteAccessService::PURPOSE_PAIR_STAFF
-                : PmdSiteAccessService::PURPOSE_WORKSPACE;
-            $challenge = $siteAccess->beginChallenge($purpose, $target, request());
+            $identity = $siteAccess->identity();
+            $locationId = (int)$identity['location_id'];
+
+            // First-day bootstrap: after the schema exists but before the first
+            // workplace device is activated, only the Owner may enter and create
+            // the restaurant root of trust. Manager/Staff cannot use password-only
+            // access during this bootstrap window.
+            if ($siteAccess->ready() && $locationId > 0 && !$siteAccess->policyEnabled($locationId)) {
+                $role = app(PmdDefaultStaffRoleService::class)->roleCodeForUser(AdminAuth::getUser());
+                if ($role !== PmdDefaultStaffRoleService::OWNER) {
+                    try {
+                        AdminAuth::logout();
+                    } catch (\Throwable $logoutError) {
+                    }
+                    session()->invalidate();
+                    session()->regenerateToken();
+                    throw new ValidationException([
+                        'username' => 'The restaurant Owner must activate Workplace Access on a restaurant device before team logins are allowed.',
+                    ]);
+                }
+            }
+
+            // Use one workplace-verification purpose for both destinations. The
+            // destination only controls where the user lands after verification.
+            $challenge = $siteAccess->beginChallenge(
+                PmdSiteAccessService::PURPOSE_WORKSPACE,
+                $target,
+                request()
+            );
+
             if ($challenge) {
                 return redirect(admin_url('siteaccess'));
             }
+        } catch (ValidationException $error) {
+            throw $error;
         } catch (\Throwable $error) {
-            // Rollout safety: Site Access never blocks password login before the
-            // additive schema/hub is known-good. Once a challenge is created,
-            // the global pending-session gate prevents bypass.
-            logger()->warning('PMD Site Access login step-up skipped', [
+            // Rollout safety before a restaurant activates its first workplace
+            // device. Unexpected Site Access failures must not silently mutate
+            // tenant state; the request is logged for diagnosis.
+            logger()->warning('PMD Workplace Access login step-up skipped', [
                 'user_id' => (int)optional(AdminAuth::getUser())->getKey(),
                 'message' => $error->getMessage(),
             ]);
