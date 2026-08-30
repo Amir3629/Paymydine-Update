@@ -153,7 +153,7 @@
     },
     {
       "path": "css/pmd-menu-all-foods-r27.css",
-      "name": "pmd-menu-all-foods-r27-css"
+      "name": "pmd-menu-all-foods-v27-css"
     },
     {
       "path": "css/pmd-menu-all-foods-r28.css",
@@ -286,8 +286,8 @@
       "name": "pmd-sumup-inline-wallet-settings-v1-js"
     },
     {
-      "path": "js/pmd-site-access-hub-v8.js",
-      "name": "pmd-site-access-hub-v8-js"
+      "path": "js/pmd-site-access-hub-v9.js",
+      "name": "pmd-site-access-hub-v9-js"
     }
   ]
 }
