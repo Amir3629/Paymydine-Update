@@ -156,7 +156,7 @@
             @if($localCodeDisplay)
                 <div class="local-code"><span>{{ $copy['local_code'] }}</span><strong>{{ $localCodeDisplay }}</strong></div>
             @endif
-            <form method="post" action="{{ admin_url('siteaccess/verify') }}" class="form" autocomplete="one-time-code">
+            <form method="post" action="{{ admin_url('siteaccess/login-verify') }}" class="form" autocomplete="one-time-code">
                 @csrf
                 <label class="field"><span>{{ $copy['code'] }}</span><input id="pmd-workplace-code" class="code-input" name="code" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" placeholder="000000" required autofocus></label>
                 <div class="security-actions"><button type="submit" class="submit">{{ $copy['verify'] }}</button><button type="button" class="secondary" data-pmd-scan>{{ $copy['scan'] }}</button></div>
