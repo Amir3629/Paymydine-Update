@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 /**
- * PMD_SITE_ACCESS_V1
+ * PMD_SITE_ACCESS_V2
  *
  * One tenant-scoped authority for workplace verification and personal-device
  * pairing. Raw device tokens and recovery codes never enter the database.
@@ -45,6 +45,7 @@ class PmdSiteAccessService
         }
     }
 
+    /** PMD_SITE_ACCESS_IDENTITY_V2 */
     public function identity($user = null): array
     {
         $user = $user ?: AdminAuth::getUser();
@@ -72,6 +73,38 @@ class PmdSiteAccessService
             try {
                 $location = $staff->locations()->orderBy('location_id')->first();
                 $locationId = (int)($location->location_id ?? 0);
+            } catch (\Throwable $error) {
+            }
+        }
+
+        // Fresh tenant bootstrap may use the framework Super User before a Staff
+        // row exists. Resolve the current/first enabled tenant location so Owner
+        // MFA cannot be skipped merely because staff_id is still null.
+        if ($locationId < 1 && $user) {
+            try {
+                $current = \Admin\Facades\AdminLocation::getId();
+                if ((int)$current > 0) $locationId = (int)$current;
+            } catch (\Throwable $error) {
+            }
+        }
+
+        if (
+            $locationId < 1
+            && $user
+            && method_exists($user, 'isSuperUser')
+            && $user->isSuperUser()
+        ) {
+            try {
+                if (Schema::hasTable('locations')) {
+                    $query = DB::table('locations');
+                    $columns = Schema::getColumnListing('locations');
+                    if (in_array('location_status', $columns, true)) {
+                        $query->where('location_status', 1);
+                    }
+                    $locationId = (int)$query
+                        ->orderBy('location_id')
+                        ->value('location_id');
+                }
             } catch (\Throwable $error) {
             }
         }
@@ -151,10 +184,6 @@ class PmdSiteAccessService
         ]);
     }
 
-    /**
-     * Bind the current browser to a configured POS record as a trusted site hub.
-     * Returns [device, raw_token].
-     */
     public function activateHub(int $posDeviceId, Request $request): array
     {
         if (!$this->ready()) throw new \RuntimeException('Site Access schema is not ready.');
@@ -436,10 +465,6 @@ class PmdSiteAccessService
         return $updated > 0;
     }
 
-    /**
-     * Complete an approved challenge for the logged-in user.
-     * Returns ['redirect'=>..., 'staff_device_token'=>?].
-     */
     public function finalizeCurrent(Request $request): array
     {
         $identity = $this->identity();
@@ -541,10 +566,6 @@ class PmdSiteAccessService
         ]);
     }
 
-    /**
-     * Global Admin gate. It deliberately acts only on sessions that Login has
-     * marked pending, so rollout cannot lock existing production sessions.
-     */
     public function gateResponse(Request $request)
     {
         if (!$this->ready() || !AdminAuth::isLogged()) return null;
@@ -559,7 +580,7 @@ class PmdSiteAccessService
             if ($relative === $allowed || str_starts_with($relative, $allowed.'/')) return null;
         }
 
-        return redirect(admin_url('siteaccess'));
+        return redirect(admin_url('login'));
     }
 
     public function generateRecoveryCodes(Request $request): array
