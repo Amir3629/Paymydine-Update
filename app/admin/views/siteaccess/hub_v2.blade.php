@@ -11,8 +11,8 @@
     <meta name="robots" content="noindex,nofollow">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Workplace Access · PayMyDine</title>
-    <link rel="shortcut icon" href="/app/admin/assets/images/pmd-brand-mark.svg?v=pmd-workplace-v2">
-    <link rel="stylesheet" href="/app/admin/assets/css/pmd-workplace-access-v2.css?v=2">
+    <link rel="shortcut icon" href="/app/admin/assets/images/pmd-brand-mark.svg?v=pmd-workplace-v3">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-workplace-access-v2.css?v=3">
 </head>
 <body class="pmd-workplace-access">
 <header class="pmd-wa-top">
@@ -27,12 +27,8 @@
 </header>
 
 <main class="pmd-wa-main">
-    @if(session('error'))
-        <div class="pmd-wa-flash is-error">{{ session('error') }}</div>
-    @endif
-    @if(session('success'))
-        <div class="pmd-wa-flash is-success">{{ session('success') }}</div>
-    @endif
+    @if(session('error'))<div class="pmd-wa-flash is-error">{{ session('error') }}</div>@endif
+    @if(session('success'))<div class="pmd-wa-flash is-success">{{ session('success') }}</div>@endif
 
     @if(!$ready)
         <section class="pmd-wa-card">
@@ -53,15 +49,20 @@
             <div class="pmd-wa-body">
                 @if($canConfigure)
                     <div class="pmd-wa-stack">
-                        <div class="pmd-wa-note"><strong>No POS setup is required first.</strong><br>This browser itself becomes the restaurant's trusted Workplace Access device. After activation, every Workspace and Staff Portal login from other devices needs the fresh 6-digit workplace code.</div>
-                        <form method="post" action="{{ admin_url('siteaccess/hub/activate') }}">
-                            @csrf
-                            <button type="submit" class="pmd-wa-primary" style="width:100%">Activate Workplace Access on this device</button>
-                        </form>
-                        <p class="pmd-wa-muted">Only the Owner can perform the first activation. PMD will immediately create emergency recovery codes for the Owner.</p>
+                        @if($canRecovery && !$ownerTotpEnabled)
+                            <div class="pmd-wa-note"><strong>Owner Authenticator is required first.</strong><br>Connect Google Authenticator, Microsoft Authenticator, 1Password or another TOTP app. This is free and does not use SMS.</div>
+                            <a class="pmd-wa-primary" href="{{ admin_url('siteaccess/owner-mfa/setup') }}">Connect Owner Authenticator</a>
+                        @else
+                            <div class="pmd-wa-note"><strong>No POS record is required first.</strong><br>This browser itself becomes the restaurant's trusted Workplace Access device. After activation, every Workspace and Staff Portal login needs a fresh restaurant proof.</div>
+                            <form method="post" action="{{ admin_url('siteaccess/hub/activate') }}">
+                                @csrf
+                                <button type="submit" class="pmd-wa-primary" style="width:100%">Activate Workplace Access on this device</button>
+                            </form>
+                            <p class="pmd-wa-muted">PMD will immediately create one-time Owner recovery codes. Save them somewhere private.</p>
+                        @endif
                     </div>
                 @else
-                    <div class="pmd-wa-empty"><strong>Owner setup required</strong><span>The restaurant Owner must activate Workplace Access on the restaurant device before team logins are allowed.</span></div>
+                    <div class="pmd-wa-empty"><strong>Owner setup required</strong><span>The restaurant Owner must finish Authenticator and Workplace Access setup before team logins are allowed.</span></div>
                 @endif
             </div>
         </section>
@@ -70,13 +71,13 @@
             <header class="pmd-wa-head">
                 <span class="pmd-wa-eyebrow">Restaurant workplace code</span>
                 <h1>Use this code to sign in</h1>
-                <p>Anyone signing in to Workspace or Staff Portal on another device must enter this fresh code after their username and password.</p>
+                <p>Anyone signing in to Workspace or Staff Portal must use a fresh restaurant proof after their password. The Owner may instead use their personal Authenticator app.</p>
                 <span class="pmd-wa-domain">{{ $tenantHost }}</span>
             </header>
             <div class="pmd-wa-body pmd-wa-stack">
                 <div class="pmd-wa-codebox">
                     <span class="pmd-wa-code-label">WORKPLACE CODE</span>
-                    <strong class="pmd-wa-code" data-pmd-workplace-code>{{ $workplaceCode['code'] ?? '------' }}</strong>
+                    <strong class="pmd-wa-code" data-pmd-workplace-code>{{ isset($workplaceCode['code']) ? substr($workplaceCode['code'],0,3).' '.substr($workplaceCode['code'],3) : '--- ---' }}</strong>
                     <span class="pmd-wa-code-time">Changes in <b data-pmd-workplace-countdown>{{ $workplaceCode['expires_in'] ?? 30 }}</b>s</span>
                 </div>
 
@@ -85,9 +86,7 @@
                 @if($recoveryCodes)
                     <div class="pmd-wa-flash is-success"><strong>Save these Owner recovery codes now.</strong> They are shown only once. Do not store them on a staff device.</div>
                     <div class="pmd-wa-recovery">
-                        @foreach($recoveryCodes as $code)
-                            <code>{{ $code }}</code>
-                        @endforeach
+                        @foreach($recoveryCodes as $code)<code>{{ $code }}</code>@endforeach
                     </div>
                 @endif
 
@@ -95,16 +94,18 @@
                     <div class="pmd-wa-row" style="margin-bottom:10px">
                         <div>
                             <strong>Login requests</strong>
-                            <div class="pmd-wa-muted">Optional direct approval if someone cannot type the code.</div>
+                            <div class="pmd-wa-muted">When someone enters their password, their request appears here. They can type the Workplace Code, scan their QR, or you can approve directly.</div>
                         </div>
                     </div>
                     <div class="pmd-wa-request-list" data-pmd-pending-list>
                         @forelse($pending as $item)
-                            <article class="pmd-wa-request" data-challenge-id="{{ (int)$item->id }}">
-                                <div>
+                            <article class="pmd-wa-request is-with-qr" data-challenge-id="{{ (int)$item->id }}">
+                                <div class="pmd-wa-request-copy">
                                     <strong>{{ $item->staff_name ?: 'Team member' }}</strong>
                                     <small>{{ $item->requested_device_name ?: 'Browser device' }} · expires {{ \Carbon\Carbon::parse($item->expires_at)->format('H:i:s') }}</small>
+                                    <span class="pmd-wa-request-code">Use Workplace Code above</span>
                                 </div>
+                                <img class="pmd-wa-request-qr" src="{{ admin_url('siteaccess/hub/qr/'.(int)$item->id) }}" alt="Login QR for {{ $item->staff_name ?: 'team member' }}">
                                 <div class="pmd-wa-request-actions">
                                     <form method="post" action="{{ admin_url('siteaccess/hub/approve') }}">@csrf<input type="hidden" name="challenge_id" value="{{ (int)$item->id }}"><button class="approve" type="submit">Approve</button></form>
                                     <form method="post" action="{{ admin_url('siteaccess/hub/decline') }}">@csrf<input type="hidden" name="challenge_id" value="{{ (int)$item->id }}"><button class="decline" type="submit">Decline</button></form>
@@ -119,6 +120,16 @@
                 <details class="pmd-wa-advanced">
                     <summary>Advanced · trusted devices & recovery</summary>
                     <div style="margin-top:14px">
+                        @if($canRecovery)
+                            <div class="pmd-wa-device">
+                                <div>
+                                    <strong>Owner Authenticator</strong>
+                                    <small>{{ $ownerTotpEnabled ? 'Connected · can verify Owner remotely without SMS' : 'Not connected' }}</small>
+                                </div>
+                                @if(!$ownerTotpEnabled)<a class="pmd-wa-secondary" href="{{ admin_url('siteaccess/owner-mfa/setup') }}" style="min-height:34px;padding:0 10px;font-size:11px">Connect</a>@endif
+                            </div>
+                        @endif
+
                         @foreach($devices as $device)
                             <div class="pmd-wa-device">
                                 <div>
@@ -158,6 +169,10 @@
             return {'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c];
         });
     }
+    function formatCode(value) {
+        var clean = String(value || '').replace(/\D+/g, '').slice(0,6);
+        return clean.length === 6 ? clean.slice(0,3) + ' ' + clean.slice(3) : '--- ---';
+    }
 
     function renderPending(items) {
         if (!list) return;
@@ -167,21 +182,20 @@
         }
         list.innerHTML = items.map(function (item) {
             var id = Number(item.id || 0);
-            return '<article class="pmd-wa-request" data-challenge-id="'+id+'">'
-                +'<div><strong>'+escapeHtml(item.staff_name || 'Team member')+'</strong><small>'+escapeHtml(item.device_name || 'Browser device')+' · short-lived login request</small></div>'
+            return '<article class="pmd-wa-request is-with-qr" data-challenge-id="'+id+'">'
+                +'<div class="pmd-wa-request-copy"><strong>'+escapeHtml(item.staff_name || 'Team member')+'</strong><small>'+escapeHtml(item.device_name || 'Browser device')+' · short-lived login request</small><span class="pmd-wa-request-code">Use Workplace Code above</span></div>'
+                +'<img class="pmd-wa-request-qr" src="'+escapeHtml(item.qr_image_url || '')+'" alt="Login QR">'
                 +'<div class="pmd-wa-request-actions"><form method="post" action="{{ admin_url('siteaccess/hub/approve') }}"><input type="hidden" name="_token" value="'+escapeHtml(token)+'"><input type="hidden" name="challenge_id" value="'+id+'"><button class="approve" type="submit">Approve</button></form>'
                 +'<form method="post" action="{{ admin_url('siteaccess/hub/decline') }}"><input type="hidden" name="_token" value="'+escapeHtml(token)+'"><input type="hidden" name="challenge_id" value="'+id+'"><button class="decline" type="submit">Decline</button></form></div></article>';
         }).join('');
     }
 
     function refresh() {
-        fetch('{{ admin_url('siteaccess/hub/data') }}', {
-            credentials: 'same-origin',
-            headers: {'Accept':'application/json','Cache-Control':'no-cache'}
-        }).then(function (response) { return response.json(); })
+        fetch('{{ admin_url('siteaccess/hub/data') }}', {credentials:'same-origin',headers:{'Accept':'application/json','Cache-Control':'no-cache'}})
+          .then(function (response) { return response.json(); })
           .then(function (payload) {
               if (!payload || !payload.ok) return;
-              if (code) code.textContent = String(payload.workplace_code || '------');
+              if (code) code.textContent = formatCode(payload.workplace_code);
               if (countdown) countdown.textContent = String(payload.code_expires_in || 0);
               renderPending(payload.pending || []);
           }).catch(function () {});
@@ -189,13 +203,12 @@
 
     function heartbeat() {
         fetch('{{ admin_url('siteaccess/hub/heartbeat') }}', {
-            method:'POST',
-            credentials:'same-origin',
+            method:'POST', credentials:'same-origin',
             headers:{'X-CSRF-TOKEN':token,'Accept':'application/json'}
         }).then(function (response) { return response.json(); })
           .then(function (payload) {
               if (!payload || !payload.ok) return;
-              if (code) code.textContent = String(payload.workplace_code || '------');
+              if (code) code.textContent = formatCode(payload.workplace_code);
               if (countdown) countdown.textContent = String(payload.code_expires_in || 0);
           }).catch(function () {});
     }
