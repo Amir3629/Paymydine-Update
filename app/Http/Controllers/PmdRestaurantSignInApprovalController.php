@@ -13,7 +13,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
-/** PMD_RESTAURANT_SIGNIN_APPROVAL_V1 */
+/** PMD_RESTAURANT_SIGNIN_APPROVAL_V2 */
 class PmdRestaurantSignInApprovalController
 {
     public function data(Request $request): JsonResponse
@@ -21,11 +21,11 @@ class PmdRestaurantSignInApprovalController
         $authority = $this->authority($request);
         if (!$authority) return $this->forbidden();
 
-        /** @var PmdSiteAccessService $site */
-        $site = $authority['site'];
         $identity = $authority['identity'];
         $locationId = (int)$identity['location_id'];
 
+        // This is intentionally cache-only presence. The UI polls frequently;
+        // do not create a database audit row for every display refresh.
         app(PmdRestaurantApprovalPresenceService::class)->touch($locationId);
 
         $code = app(PmdWorkplaceCodeService::class)->current($locationId);
@@ -73,20 +73,6 @@ class PmdRestaurantSignInApprovalController
                 ];
             })
             ->values();
-
-        $site->audit(
-            'restaurant_approval_screen_visible',
-            true,
-            $identity,
-            $authority['device_id'],
-            null,
-            $request,
-            [
-                'authority' => $authority['method'],
-                'role' => $authority['role'],
-                'pending_count' => $pending->count(),
-            ]
-        );
 
         return response()->json([
             'ok' => true,
