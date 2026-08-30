@@ -9,14 +9,19 @@ use Admin\Models\Users_model;
 use Admin\Services\PmdDefaultStaffRoleService;
 use Admin\Traits\ValidatesForm;
 use App\Services\PmdOwnerTotpService;
+use App\Services\PmdSiteAccessQrService;
 use App\Services\PmdSiteAccessService;
+use App\Services\PmdSiteAccessSessionBindingService;
 use App\Services\PmdWorkSessionPolicyService;
 use Igniter\Flame\Exception\ValidationException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 
 class Login extends \Admin\Classes\AdminController
 {
     use ValidatesForm;
+
+    private const PMD_OWNER_SECURITY_SESSION = 'pmd_login_owner_security_v1';
 
     protected $requireAuthentication = false;
 
@@ -27,6 +32,8 @@ class Login extends \Admin\Classes\AdminController
         parent::__construct();
         $this->middleware('throttle:'.config('system.authRateLimiter', '8,15'))->only([
             'onLogin',
+            'onOwnerMfaConfirm',
+            'onOwnerMfaVerify',
             'onRequestResetPassword',
             'onResetPassword',
         ]);
@@ -35,6 +42,19 @@ class Login extends \Admin\Classes\AdminController
     public function index()
     {
         if (AdminAuth::isLogged()) {
+            if (session()->has(self::PMD_OWNER_SECURITY_SESSION)) {
+                $security = $this->pmdOwnerSecurityViewState();
+                if ($security) {
+                    Template::setTitle('Owner security - PayMyDine');
+                    return view('auth.login_workplace_v3', [
+                        'pmdLoginSecurity' => $security,
+                    ]);
+                }
+
+                $this->pmdInvalidateIncompleteSecurityLogin();
+                return redirect(admin_url('login'));
+            }
+
             if (session()->has(PmdSiteAccessService::SESSION_PENDING)) {
                 return redirect(admin_url('siteaccess'));
             }
@@ -94,11 +114,13 @@ class Login extends \Admin\Classes\AdminController
         }
 
         session()->regenerate();
+        session()->forget(self::PMD_OWNER_SECURITY_SESSION);
 
-        // PMD_LOGIN_CLEAR_OLD_WORK_SESSION_V1
+        // PMD_LOGIN_CLEAR_OLD_WORK_SESSION_V2
         try {
             app(PmdSiteAccessService::class)->clearVerification();
             app(PmdWorkSessionPolicyService::class)->clear();
+            app(PmdOwnerTotpService::class)->clearSessionVerification();
         } catch (\Throwable $error) {
         }
 
@@ -122,12 +144,11 @@ class Login extends \Admin\Classes\AdminController
             : (input('redirect') ? (string)input('redirect') : admin_url('dashboard'));
         $target = $destination === 'staff' ? admin_url('mywork') : $workspaceTarget;
 
-        // PMD_WORKPLACE_LOGIN_ALL_USERS_V5
-        // Password proves tenant identity. A second proof is always explicit:
-        // - team/cashier users enter the Workplace Code shown by the restaurant POS
-        // - Owner can alternatively enter their personal Authenticator TOTP
-        // Even when this browser is itself the trusted POS, Login deliberately
-        // creates the challenge instead of silently auto-verifying the hub cookie.
+        // PMD_WORKPLACE_LOGIN_ALL_USERS_V6
+        // Password is step one. Owner Authenticator is rendered as step two inside
+        // the SAME canonical /admin/login surface. Team members continue to the
+        // restaurant Workplace Code flow. The trusted POS never silently skips
+        // the explicit second factor on a fresh password login.
         try {
             $siteAccess = app(PmdSiteAccessService::class);
             $identity = $siteAccess->identity();
@@ -152,18 +173,16 @@ class Login extends \Admin\Classes\AdminController
 
                 session()->put(PmdSiteAccessService::SESSION_DESTINATION, 'workspace');
                 session()->put('pmd_owner_totp_after_v1', admin_url('siteaccess/hub'));
+                $this->pmdQueueOwnerSecurityStep(
+                    $ownerTotp->enabled($userId) ? 'verify' : 'setup',
+                    $identity
+                );
 
-                if (!$ownerTotp->enabled($userId)) {
-                    return redirect(admin_url('siteaccess/owner-mfa/setup'));
-                }
-
-                return redirect(admin_url('siteaccess/owner-mfa'));
+                return redirect(admin_url('login'));
             }
 
             // Remove only the hub cookie from the synthetic challenge request so
             // PmdSiteAccessService cannot auto-pass the second factor at login.
-            // The real request/session remains untouched and Siteaccess can still
-            // detect that this is the trusted POS to display its local code.
             $challengeRequest = request()->duplicate(null, null, null, []);
             $challenge = $siteAccess->beginChallenge(
                 PmdSiteAccessService::PURPOSE_WORKSPACE,
@@ -171,7 +190,17 @@ class Login extends \Admin\Classes\AdminController
                 $challengeRequest
             );
 
-            if ($challenge) return redirect(admin_url('siteaccess'));
+            if ($challenge) {
+                // Owner can use personal TOTP without leaving /admin/login.
+                // A link in step two still allows falling back to Workplace Code.
+                if ($isOwner && $ownerTotp->ready() && $ownerTotp->enabled($userId)) {
+                    session()->put('pmd_owner_totp_after_v1', $target);
+                    $this->pmdQueueOwnerSecurityStep('verify', $identity);
+                    return redirect(admin_url('login'));
+                }
+
+                return redirect(admin_url('siteaccess'));
+            }
         } catch (ValidationException $error) {
             throw $error;
         } catch (\Throwable $error) {
@@ -185,6 +214,218 @@ class Login extends \Admin\Classes\AdminController
         if ($landing) return $this->redirect($landing);
         if ($redirectUrl = input('redirect')) return $this->redirect($redirectUrl);
         return $this->redirectIntended('dashboard');
+    }
+
+    /** PMD_LOGIN_INLINE_OWNER_MFA_V1 */
+    public function onOwnerMfaConfirm()
+    {
+        [$state, $identity] = $this->pmdRequireOwnerSecurityStep('setup');
+        $data = post();
+        $this->validate($data, [
+            'code' => ['required', 'regex:/^[0-9]{6}$/'],
+        ], [], [
+            'code' => 'Authenticator code',
+        ]);
+
+        $totp = app(PmdOwnerTotpService::class);
+        if (!$totp->confirmEnrollment(
+            (int)$identity['user_id'],
+            (int)$identity['location_id'],
+            (string)array_get($data, 'code', '')
+        )) {
+            throw new ValidationException([
+                'code' => 'That Authenticator code is not valid. Check the phone time and try again.',
+            ]);
+        }
+
+        app(PmdSiteAccessService::class)->audit(
+            'owner_totp_enrolled',
+            true,
+            $identity,
+            null,
+            null,
+            request(),
+            ['surface' => 'canonical_login']
+        );
+
+        session()->forget(self::PMD_OWNER_SECURITY_SESSION);
+        session()->forget('pmd_owner_totp_after_v1');
+
+        return redirect(admin_url('siteaccess/hub'))
+            ->with('success', 'Owner Authenticator connected. Now activate Workplace Access on the restaurant device.');
+    }
+
+    public function onOwnerMfaVerify()
+    {
+        [$state, $identity] = $this->pmdRequireOwnerSecurityStep('verify');
+        $data = post();
+        $this->validate($data, [
+            'code' => ['required', 'regex:/^[0-9]{6}$/'],
+        ], [], [
+            'code' => 'Authenticator code',
+        ]);
+
+        $totp = app(PmdOwnerTotpService::class);
+        if (!$totp->verify((int)$identity['user_id'], (string)array_get($data, 'code', ''))) {
+            app(PmdSiteAccessService::class)->audit(
+                'owner_totp_failed',
+                false,
+                $identity,
+                null,
+                null,
+                request(),
+                ['surface' => 'canonical_login']
+            );
+            throw new ValidationException([
+                'code' => 'The Authenticator code is not correct or was already used.',
+            ]);
+        }
+
+        $service = app(PmdSiteAccessService::class);
+        $pending = (array)session()->get(PmdSiteAccessService::SESSION_PENDING, []);
+        $challenge = $service->challengeForSession();
+        $target = (string)session()->pull('pmd_owner_totp_after_v1', '');
+        if ($target === '') $target = (string)($pending['redirect'] ?? admin_url('dashboard'));
+
+        if ($challenge && (int)$challenge->user_id === (int)$identity['user_id']) {
+            DB::table('pmd_site_access_challenges')->where('id', $challenge->id)->update([
+                'status' => 'used',
+                'approved_at' => $challenge->approved_at ?: now(),
+                'used_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        $service->markWorkspaceVerified((int)$identity['location_id'], 'owner_totp', 0);
+        app(PmdSiteAccessSessionBindingService::class)->bindCurrentUser();
+        $policy = app(PmdWorkSessionPolicyService::class)->apply($identity);
+        session()->forget(PmdSiteAccessService::SESSION_PENDING);
+        session()->forget(self::PMD_OWNER_SECURITY_SESSION);
+
+        $service->audit(
+            'owner_totp_verified',
+            true,
+            $identity,
+            null,
+            $challenge ? (int)$challenge->id : null,
+            request(),
+            [
+                'surface' => 'canonical_login',
+                'session_until' => $policy['expires_at']->toIso8601String(),
+                'session_reason' => $policy['reason'],
+            ]
+        );
+
+        return redirect($target)->with('success', 'Owner Authenticator verified.');
+    }
+
+    private function pmdQueueOwnerSecurityStep(string $mode, array $identity): void
+    {
+        session()->put(self::PMD_OWNER_SECURITY_SESSION, [
+            'mode' => $mode === 'setup' ? 'setup' : 'verify',
+            'user_id' => (int)($identity['user_id'] ?? 0),
+            'location_id' => (int)($identity['location_id'] ?? 0),
+            'session_id' => (string)session()->getId(),
+            'created_at' => time(),
+        ]);
+    }
+
+    private function pmdOwnerSecurityViewState(): ?array
+    {
+        $state = (array)session()->get(self::PMD_OWNER_SECURITY_SESSION, []);
+        $identity = $this->pmdOwnerIdentity();
+        if (!$identity || !$this->pmdOwnerSecurityStateMatches($state, $identity)) return null;
+
+        $mode = (string)($state['mode'] ?? '');
+        $security = [
+            'mode' => $mode,
+            'destination' => (string)session()->get(PmdSiteAccessService::SESSION_DESTINATION, 'workspace'),
+            'can_use_workplace' => app(PmdSiteAccessService::class)->policyEnabled((int)$identity['location_id']),
+            'secret' => null,
+            'qr_svg' => null,
+        ];
+
+        if ($mode === 'setup') {
+            $totp = app(PmdOwnerTotpService::class);
+            if (!$totp->ready() || $totp->enabled((int)$identity['user_id'])) return null;
+
+            $enrollment = $totp->enrollment((int)$identity['user_id'], (int)$identity['location_id']);
+            $security['secret'] = (string)$enrollment['secret'];
+
+            try {
+                // Render the SVG directly into canonical Login. No secondary IMG
+                // request means no broken-image state if a route/session layer moves.
+                $security['qr_svg'] = app(PmdSiteAccessQrService::class)->svg(
+                    $totp->provisioningUri($enrollment),
+                    5
+                );
+            } catch (\Throwable $error) {
+                logger()->warning('PMD inline Owner Authenticator QR render failed', [
+                    'user_id' => (int)$identity['user_id'],
+                    'message' => $error->getMessage(),
+                ]);
+            }
+        } elseif ($mode !== 'verify') {
+            return null;
+        }
+
+        return $security;
+    }
+
+    private function pmdRequireOwnerSecurityStep(string $mode): array
+    {
+        $state = (array)session()->get(self::PMD_OWNER_SECURITY_SESSION, []);
+        $identity = $this->pmdOwnerIdentity();
+
+        if (
+            !$identity
+            || !$this->pmdOwnerSecurityStateMatches($state, $identity)
+            || (string)($state['mode'] ?? '') !== $mode
+        ) {
+            throw new ValidationException([
+                'code' => 'This security step expired. Sign in again.',
+            ]);
+        }
+
+        return [$state, $identity];
+    }
+
+    private function pmdOwnerSecurityStateMatches(array $state, array $identity): bool
+    {
+        $createdAt = (int)($state['created_at'] ?? 0);
+        return in_array((string)($state['mode'] ?? ''), ['setup', 'verify'], true)
+            && (int)($state['user_id'] ?? 0) === (int)$identity['user_id']
+            && (int)($state['location_id'] ?? 0) === (int)$identity['location_id']
+            && hash_equals((string)($state['session_id'] ?? ''), (string)session()->getId())
+            && $createdAt > (time() - 900);
+    }
+
+    private function pmdOwnerIdentity(): ?array
+    {
+        if (!AdminAuth::isLogged()) return null;
+
+        try {
+            $service = app(PmdSiteAccessService::class);
+            $identity = $service->identity();
+            $role = app(PmdDefaultStaffRoleService::class)->roleCodeForUser($identity['user']);
+            if ($role !== PmdDefaultStaffRoleService::OWNER) return null;
+            if ((int)$identity['user_id'] < 1 || (int)$identity['location_id'] < 1) return null;
+            return $identity;
+        } catch (\Throwable $error) {
+            return null;
+        }
+    }
+
+    private function pmdInvalidateIncompleteSecurityLogin(): void
+    {
+        session()->forget(self::PMD_OWNER_SECURITY_SESSION);
+        try {
+            app(PmdOwnerTotpService::class)->clearSessionVerification();
+            AdminAuth::logout();
+        } catch (\Throwable $error) {
+        }
+        session()->invalidate();
+        session()->regenerateToken();
     }
 
     private function pmdAbortBootstrapLogin(string $message): void
