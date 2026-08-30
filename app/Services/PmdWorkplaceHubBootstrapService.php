@@ -7,11 +7,11 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 /**
- * PMD_WORKPLACE_HUB_BOOTSTRAP_V1
+ * PMD_WORKPLACE_HUB_BOOTSTRAP_V2
  *
  * The first trusted workplace device must not depend on a separately-created
- * POS record. The Owner may bootstrap the browser currently open inside the
- * restaurant; later trusted devices still require an already-verified context.
+ * POS record or Staff row. A tenant bootstrap Super User is an Owner authority
+ * and may activate the browser currently open inside the restaurant.
  */
 class PmdWorkplaceHubBootstrapService
 {
@@ -24,8 +24,8 @@ class PmdWorkplaceHubBootstrapService
 
         $identity = $site->identity();
         $locationId = (int)$identity['location_id'];
-        if ($identity['staff_id'] < 1 || $locationId < 1) {
-            throw new \RuntimeException('A Team identity and restaurant location are required.');
+        if ((int)$identity['user_id'] < 1 || $locationId < 1) {
+            throw new \RuntimeException('A restaurant Owner and location are required.');
         }
 
         $role = app(PmdDefaultStaffRoleService::class)->roleCodeForUser($identity['user']);
@@ -40,6 +40,16 @@ class PmdWorkplaceHubBootstrapService
             PmdDefaultStaffRoleService::MANAGER,
         ], true)) {
             throw new \RuntimeException('Only an Owner or Manager can add a trusted workplace device.');
+        }
+
+        // Managers are normal Team identities. A staff-less identity is allowed
+        // only for the bootstrap Owner Super User.
+        if (
+            $alreadyEnabled
+            && $role !== PmdDefaultStaffRoleService::OWNER
+            && (int)$identity['staff_id'] < 1
+        ) {
+            throw new \RuntimeException('A Team identity is required to add a trusted workplace device.');
         }
 
         $rawToken = bin2hex(random_bytes(32));
@@ -60,7 +70,7 @@ class PmdWorkplaceHubBootstrapService
                 'workplace_code_display',
             ]),
             'platform_info' => json_encode($platform),
-            'paired_by_staff_id' => $identity['staff_id'],
+            'paired_by_staff_id' => (int)$identity['staff_id'] ?: null,
             'paired_at' => now(),
             'last_seen_at' => now(),
             'created_at' => now(),
