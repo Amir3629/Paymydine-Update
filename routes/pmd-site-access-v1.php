@@ -2,16 +2,25 @@
 
 use Admin\Controllers\Siteaccess;
 use Admin\Facades\AdminAuth;
+use App\Http\Middleware\PmdSiteAccessGateMiddleware;
 use App\Services\PmdSiteAccessQrService;
 use App\Services\PmdSiteAccessQrTokenService;
 use App\Services\PmdSiteAccessService;
+use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 
-/** PMD_SITE_ACCESS_ROUTES_V2 */
+/** PMD_SITE_ACCESS_ROUTES_V3 */
 if (!defined('PMD_SITE_ACCESS_ROUTES_V1')) {
     define('PMD_SITE_ACCESS_ROUTES_V1', true);
+
+    // PMD_SITE_ACCESS_WEB_GATE_INSTALL_V1
+    // Appended after Laravel's normal web middleware (including StartSession).
+    // The middleware itself is path-gated to tenant /admin surfaces, so public
+    // frontend routes remain untouched. This covers both legacy catch-all Admin
+    // controllers and explicit Admin APIs/KDS routes registered earlier.
+    app(Kernel::class)->appendMiddlewareToGroup('web', PmdSiteAccessGateMiddleware::class);
 
     Route::group([
         'middleware' => ['web'],
@@ -21,10 +30,9 @@ if (!defined('PMD_SITE_ACCESS_ROUTES_V1')) {
         Route::post('siteaccess/verify', [Siteaccess::class, 'verify'])->middleware('throttle:12,1')->name('pmd.siteaccess.verify');
         Route::post('siteaccess/finalize', [Siteaccess::class, 'finalize'])->middleware('throttle:30,1')->name('pmd.siteaccess.finalize');
         Route::get('siteaccess/status', [Siteaccess::class, 'status'])->middleware('throttle:60,1')->name('pmd.siteaccess.status');
-        Route::get('siteaccess/qr', [Siteaccess::class, 'qr'])->middleware('throttle:20,1')->name('pmd.siteaccess.qr');
         Route::post('siteaccess/recovery', [Siteaccess::class, 'recovery'])->middleware('throttle:8,15')->name('pmd.siteaccess.recovery');
 
-        // PMD_SITE_ACCESS_SIGNED_QR_V1
+        // PMD_SITE_ACCESS_SIGNED_QR_V2
         // QR is generated locally; the encoded link is an 80-bit truncated HMAC
         // bound to one 90-second challenge and the authenticated requester.
         Route::get('siteaccess/hub/qr/{challenge}', function ($challenge, Request $request) {
