@@ -22,16 +22,12 @@ use Illuminate\Support\Facades\Schema;
  */
 class Pmddevices extends AdminController
 {
-    // PMD_SETTINGS_REPORTS_PLATFORM_I18N_V16_2
     protected $requiredPermissions = 'Site.Settings';
 
     public function __construct()
     {
         parent::__construct();
 
-        // PMD_DEVICE_SETTINGS_INLINE_V6
-        // /admin/pmddevices is the only visible Devices UI. Create/Edit is handled
-        // by one smooth in-page modal card; child routes only redirect back here.
         $this->bodyClass = trim(($this->bodyClass ?? '').' pmd-settings-suite pmd-owner-settings-page pmd-devices-settings-page pmd-device-inline-v6');
         $this->addCss('css/pmd-owner-settings-v1.css');
         $this->addCss('css/pmd-settings-suite-first-paint-v1.css');
@@ -46,6 +42,13 @@ class Pmddevices extends AdminController
     {
         Template::setTitle(\Admin\Classes\PmdPlatformI18n::fromEnglish('Devices & hardware', 'settings.'));
         Template::setHeading(\Admin\Classes\PmdPlatformI18n::fromEnglish('Devices & hardware', 'settings.'));
+
+        // PMD_SITE_ACCESS_DEVICES_ENTRY_V1
+        Template::setButton('Site Access', [
+            'class' => 'btn btn-primary',
+            'role' => 'button',
+            'href' => admin_url('siteaccess/hub'),
+        ]);
 
         $pos = $this->safeCollection(Pos_devices_model::class, 'pos_devices', 'name');
         $terminals = $this->safeCollection(Terminal_devices_model::class, 'terminal_devices', 'terminal_device_id');
@@ -75,8 +78,6 @@ class Pmddevices extends AdminController
             ],
         ];
 
-        // One server-rendered modal catalog. Existing device controllers remain
-        // the POST/AJAX authority; this only supplies values/options to the card.
         $this->vars['pmdDeviceModalCatalog'] = [
             'pos' => $this->buildDevicePage('pos', 'list', null),
             'terminals' => $this->buildDevicePage('terminals', 'list', null),
@@ -139,7 +140,7 @@ class Pmddevices extends AdminController
             'pmd_device' => $kind,
             'pmd_mode' => $mode,
             'pmd_id' => $recordId,
-        ], static fn($value) => $value !== null && $value !== ''));
+        ], static fn($value) => $value !== null && $value !== '')));
 
         return redirect(admin_url('pmddevices').'?'.$query.'#'.$section);
     }
