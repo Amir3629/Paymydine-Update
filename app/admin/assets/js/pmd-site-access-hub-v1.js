@@ -1,4 +1,4 @@
-/* PMD_WORKPLACE_HUB_RUNTIME_V5 */
+/* PMD_WORKPLACE_HUB_RUNTIME_V6 */
 (function () {
     'use strict';
 
@@ -19,8 +19,6 @@
         document.cookie = cookie;
     }
 
-    // Only successful server-side activation creates this non-secret marker.
-    // The actual workplace credential remains HttpOnly and server-validated.
     if (!hasMarker()) return;
 
     var adminPrefix = path.indexOf('/admin/') >= 0
@@ -48,13 +46,11 @@
 
     function mountCodeLink() {
         if (codeLink && document.documentElement.contains(codeLink)) return codeLink;
-
         var existing = document.querySelector('[data-pmd-workplace-code-link]');
         if (existing) {
             codeLink = existing;
             return codeLink;
         }
-
         var container = findActionContainer();
         if (!container) return null;
 
@@ -66,7 +62,7 @@
         link.style.fontVariantNumeric = 'tabular-nums';
         link.style.fontWeight = '800';
         link.textContent = 'Workplace code';
-        link.title = 'Current restaurant workplace login code';
+        link.title = 'Current restaurant Workplace Code';
         container.appendChild(link);
         codeLink = link;
         return link;
@@ -76,15 +72,16 @@
         if (!payload || !payload.ok) return;
         var link = mountCodeLink();
         if (!link) return;
-        link.textContent = formatCode(payload.workplace_code);
+        var waiting = Array.isArray(payload.pending) ? payload.pending.length : 0;
+        link.textContent = formatCode(payload.workplace_code) + (waiting ? ' · ' + waiting + ' login waiting' : '');
         if (payload.code_expires_in) {
-            link.title = 'Workplace code · changes in ' + String(payload.code_expires_in) + 's';
+            link.title = 'Workplace Code · changes in ' + String(payload.code_expires_in) + 's'
+                + (waiting ? ' · open to see QR / approve' : '');
         }
     }
 
     function heartbeat() {
         if (stopped || document.visibilityState === 'hidden' || !token) return;
-
         fetch(heartbeatUrl, {
             method: 'POST',
             credentials: 'same-origin',
