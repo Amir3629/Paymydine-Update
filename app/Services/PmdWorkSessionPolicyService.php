@@ -7,11 +7,12 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * PMD_WORK_SESSION_POLICY_V1
+ * PMD_WORK_SESSION_POLICY_V2
  *
  * Absolute access window for restaurant users:
- * - scheduled work: until the last applicable shift end + 1 hour
- * - login after the scheduled window, or no schedule: until restaurant-day 06:00
+ * - current scheduled work: until that shift end + 1 hour
+ * - before work: until the nearest next shift end + 1 hour
+ * - login after the scheduled grace window, or no schedule: until restaurant-day 06:00
  *
  * This is independent from Laravel's generic idle session lifetime.
  */
@@ -89,7 +90,8 @@ class PmdWorkSessionPolicyService
                 ->whereNotIn('status', ['cancelled', 'canceled'])
                 ->get(['id', 'shift_date', 'starts_at', 'ends_at']);
 
-            $applicable = [];
+            $current = [];
+            $upcoming = [];
             foreach ($shifts as $shift) {
                 if (!$shift->shift_date || !$shift->starts_at || !$shift->ends_at) continue;
 
@@ -97,35 +99,49 @@ class PmdWorkSessionPolicyService
                 $end = Carbon::parse($shift->shift_date.' '.$shift->ends_at, $now->getTimezone());
                 if ($end->lessThanOrEqualTo($start)) $end->addDay();
 
-                // Shift must belong to the current restaurant-day window. An
-                // overnight shift starting before 06:00 can still belong to the
-                // previous restaurant day and is included by its actual times.
                 if ($end->lessThanOrEqualTo($restaurantStart) || $start->greaterThanOrEqualTo($boundary)) continue;
 
-                $graceEnd = $end->copy()->addHour();
-                if ($now->lessThanOrEqualTo($graceEnd)) {
-                    $applicable[] = [
-                        'id' => (int)$shift->id,
-                        'grace_end' => $graceEnd,
-                    ];
+                $row = [
+                    'id' => (int)$shift->id,
+                    'start' => $start,
+                    'grace_end' => $end->copy()->addHour(),
+                ];
+
+                if ($now->greaterThanOrEqualTo($start) && $now->lessThanOrEqualTo($row['grace_end'])) {
+                    $current[] = $row;
+                } elseif ($start->greaterThan($now)) {
+                    $upcoming[] = $row;
                 }
             }
 
-            if (!$applicable) return $fallback;
+            if ($current) {
+                usort($current, static function ($a, $b) {
+                    return $a['grace_end']->timestamp <=> $b['grace_end']->timestamp;
+                });
+                $selected = end($current);
+                return [
+                    'expires_at' => $selected['grace_end'],
+                    'reason' => 'shift_plus_one_hour',
+                    'shift_ids' => [(int)$selected['id']],
+                ];
+            }
 
-            usort($applicable, static function ($a, $b) {
-                return $a['grace_end']->timestamp <=> $b['grace_end']->timestamp;
-            });
-            $last = end($applicable);
+            if ($upcoming) {
+                usort($upcoming, static function ($a, $b) {
+                    return $a['start']->timestamp <=> $b['start']->timestamp;
+                });
+                $selected = $upcoming[0];
+                return [
+                    'expires_at' => $selected['grace_end'],
+                    'reason' => 'next_shift_plus_one_hour',
+                    'shift_ids' => [(int)$selected['id']],
+                ];
+            }
 
-            return [
-                'expires_at' => $last['grace_end'],
-                'reason' => 'shift_plus_one_hour',
-                'shift_ids' => array_values(array_map(
-                    static fn ($row) => (int)$row['id'],
-                    $applicable
-                )),
-            ];
+            // The scheduled window is over (or there is no current-day shift).
+            // A fresh login now is treated as overtime/unplanned work and lasts
+            // only until the current restaurant day closes at 06:00.
+            return $fallback;
         } catch (\Throwable $error) {
             logger()->warning('PMD work-session policy fallback', [
                 'staff_id' => $staffId,
