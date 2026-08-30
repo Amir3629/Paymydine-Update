@@ -170,4 +170,5 @@
   'Admin\\Classes\\PaymentGateways' => 'app/admin/classes/PaymentGateways.php',
   'Igniter\\PayRegister\\Payments\\Mollie' => 'extensions/igniter/payregister/payments/Mollie.php',
   'Main\\Template\\Partial' => 'app/main/template/Partial.php',
+  'Admin\\Controllers\\accountantlab' => 'app/admin/controllers/Accountantlab.php',
 );
