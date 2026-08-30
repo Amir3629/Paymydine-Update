@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * PMD_OWNER_TOTP_V2
+ * PMD_OWNER_TOTP_V3
  *
  * Provider-free RFC 6238 TOTP for the restaurant Owner. Compatible with
  * Google Authenticator, Microsoft Authenticator, 1Password and other
@@ -17,6 +17,7 @@ class PmdOwnerTotpService
 {
     public const TABLE = 'pmd_owner_mfa';
     public const SESSION_ENROLLMENT = 'pmd_owner_totp_enrollment_v1';
+    public const SESSION_VERIFIED = 'pmd_owner_totp_session_v1';
     public const STEP_SECONDS = 30;
     private const DIGITS = 6;
     private const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
@@ -131,6 +132,7 @@ class PmdOwnerTotpService
         }
 
         session()->forget(self::SESSION_ENROLLMENT);
+        $this->markSessionVerified($userId, $locationId, 'enrollment');
         return true;
     }
 
@@ -160,12 +162,42 @@ class PmdOwnerTotpService
             'last_used_step' => $matchedStep,
             'updated_at' => now(),
         ]);
+
+        $identity = app(PmdSiteAccessService::class)->identity();
+        $locationId = (int)($identity['location_id'] ?? 0);
+        if ($locationId < 1) return false;
+        $this->markSessionVerified($userId, $locationId, 'verify');
         return true;
+    }
+
+    /** Current password-login session has completed Owner TOTP recently. */
+    public function sessionVerified(int $userId, int $locationId, int $maxAgeSeconds = 600): bool
+    {
+        if ($userId < 1 || $locationId < 1) return false;
+        $proof = (array)session()->get(self::SESSION_VERIFIED, []);
+        return (int)($proof['user_id'] ?? 0) === $userId
+            && (int)($proof['location_id'] ?? 0) === $locationId
+            && (int)($proof['verified_at'] ?? 0) > (time() - max(30, $maxAgeSeconds));
+    }
+
+    public function clearSessionVerification(): void
+    {
+        session()->forget(self::SESSION_VERIFIED);
     }
 
     public function resetEnrollment(): void
     {
         session()->forget(self::SESSION_ENROLLMENT);
+    }
+
+    private function markSessionVerified(int $userId, int $locationId, string $method): void
+    {
+        session()->put(self::SESSION_VERIFIED, [
+            'user_id' => $userId,
+            'location_id' => $locationId,
+            'method' => $method,
+            'verified_at' => time(),
+        ]);
     }
 
     private function matchingStep(string $secret, string $input): ?int
