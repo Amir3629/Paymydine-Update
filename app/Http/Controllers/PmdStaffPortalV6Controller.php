@@ -227,9 +227,15 @@ class PmdStaffPortalV6Controller extends PmdStaffPortalV5Controller
             }
         }
 
-        $last = DB::table('staff_attendance')
+        $lastQuery = DB::table('staff_attendance')
             ->where('staff_id', $staffId)
-            ->whereNotNull('check_out_time')
+            ->whereNotNull('check_out_time');
+        if (Schema::hasColumn('staff_attendance', 'location_id')) {
+            $lastQuery->where(function ($q) use ($locationId) {
+                $q->where('location_id', $locationId)->orWhereNull('location_id');
+            });
+        }
+        $last = $lastQuery
             ->orderByDesc('check_out_time')
             ->orderByDesc('attendance_id')
             ->first();
