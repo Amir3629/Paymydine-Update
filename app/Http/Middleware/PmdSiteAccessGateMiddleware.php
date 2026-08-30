@@ -2,16 +2,18 @@
 
 namespace App\Http\Middleware;
 
+use Admin\Facades\AdminAuth;
+use App\Services\PmdSiteAccessService;
 use App\Services\PmdSiteAccessWorkspaceGateService;
 use Closure;
 use Illuminate\Http\Request;
 
 /**
- * PMD_SITE_ACCESS_WEB_GATE_V1
+ * PMD_SITE_ACCESS_WEB_GATE_V2
  *
- * Added to the END of Laravel's web middleware group from the Site Access route
- * module. StartSession and tenant selection have already happened by the time
- * this runs. The policy service is path-gated to tenant /admin surfaces.
+ * Before first activation rollout remains fail-open so deploying schema/code
+ * cannot brick an existing restaurant. Once a trusted workplace device exists,
+ * security failures fail closed instead of bypassing the second factor.
  */
 class PmdSiteAccessGateMiddleware
 {
@@ -28,12 +30,30 @@ class PmdSiteAccessGateMiddleware
             $gate = app(PmdSiteAccessWorkspaceGateService::class)->gateResponse($request);
             if ($gate) return $gate;
         } catch (\Throwable $error) {
-            // Rollout safety. Site Access is disabled until an explicit hub exists,
-            // and a service failure must never brick an existing restaurant Admin.
-            logger()->warning('PMD Site Access web gate skipped', [
+            logger()->error('PMD Workplace Access gate failed', [
                 'message' => $error->getMessage(),
                 'path' => $request->path(),
             ]);
+
+            // PMD_WORKPLACE_GATE_FAIL_CLOSED_V1
+            // If the restaurant already activated Workplace Access, never turn a
+            // service error into password-only access. Before activation we keep
+            // the rollout-safe behavior so code/schema installation cannot lock
+            // an existing tenant.
+            try {
+                $site = app(PmdSiteAccessService::class);
+                if (AdminAuth::isLogged() && $site->ready() && $site->policyEnabled()) {
+                    return response(
+                        'Workplace security verification is temporarily unavailable. Please try again.',
+                        503,
+                        ['Cache-Control' => 'no-store']
+                    );
+                }
+            } catch (\Throwable $policyError) {
+                logger()->error('PMD Workplace Access policy-state check failed', [
+                    'message' => $policyError->getMessage(),
+                ]);
+            }
         }
 
         return $next($request);
