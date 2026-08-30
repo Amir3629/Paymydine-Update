@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use Admin\Facades\AdminAuth;
+use Admin\Services\PmdDefaultStaffRoleService;
 use App\Services\PmdOperationalRosterReconciler;
 use App\Services\PmdSiteAccessService;
 use App\Services\PmdSiteAccessWorkspaceGateService;
@@ -51,13 +52,22 @@ class PmdSiteAccessGateMiddleware
 
         // Reconcile old access-only Staff/User accounts before Shifts reads its
         // operational people list. This is location scoped and idempotent.
-        if (strtolower($relative) === 'shifts' && AdminAuth::isLogged()) {
+        if (
+            strtolower($relative) === 'shifts'
+            && AdminAuth::isLogged()
+            && in_array(strtoupper((string)$request->method()), ['GET', 'HEAD'], true)
+            && $this->isDocumentRequest($request)
+        ) {
             try {
-                $identity = app(PmdSiteAccessService::class)->identity();
-                $locationId = (int)($identity['location_id'] ?? 0);
-                if ($locationId > 0) {
-                    app(PmdOperationalRosterReconciler::class)
-                        ->reconcileLocation($locationId);
+                $role = app(PmdDefaultStaffRoleService::class)
+                    ->roleCodeForUser(AdminAuth::getUser());
+                if (in_array($role, [PmdDefaultStaffRoleService::OWNER, PmdDefaultStaffRoleService::MANAGER], true)) {
+                    $identity = app(PmdSiteAccessService::class)->identity();
+                    $locationId = (int)($identity['location_id'] ?? 0);
+                    if ($locationId > 0) {
+                        app(PmdOperationalRosterReconciler::class)
+                            ->reconcileLocation($locationId);
+                    }
                 }
             } catch (\Throwable $error) {
                 logger()->warning('PMD legacy roster reconciliation failed', [
