@@ -5,15 +5,19 @@ namespace Admin\Controllers;
 use Admin\Classes\AdminController;
 use Admin\Facades\AdminAuth;
 use Admin\Services\PmdDefaultStaffRoleService;
+use App\Services\PmdOwnerTotpService;
+use App\Services\PmdSiteAccessQrService;
 use App\Services\PmdSiteAccessService;
+use App\Services\PmdSiteAccessSessionBindingService;
 use App\Services\PmdWorkplaceCodeService;
 use App\Services\PmdWorkplaceHubBootstrapService;
+use App\Services\PmdWorkSessionPolicyService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
-/** PMD_WORKPLACE_ACCESS_CONTROLLER_V2 */
+/** PMD_WORKPLACE_ACCESS_CONTROLLER_V3 */
 class Siteaccess extends AdminController
 {
     protected $requiredPermissions = null;
@@ -31,6 +35,9 @@ class Siteaccess extends AdminController
 
         $service = app(PmdSiteAccessService::class);
         $identity = $service->identity();
+        $role = app(PmdDefaultStaffRoleService::class)->roleCodeForUser($identity['user']);
+        $isOwner = $role === PmdDefaultStaffRoleService::OWNER;
+        $ownerTotp = app(PmdOwnerTotpService::class);
 
         if (!$service->ready()) {
             return view('siteaccess/index_v2', [
@@ -39,10 +46,16 @@ class Siteaccess extends AdminController
                 'identity' => $identity,
                 'onlineHub' => false,
                 'canRecover' => false,
+                'isOwner' => $isOwner,
+                'ownerTotpEnabled' => false,
+                'localWorkplaceCode' => null,
             ]);
         }
 
-        if ($service->currentHub($request, $identity['location_id']) && !$service->challengeForSession()) {
+        $hub = $service->currentHub($request, (int)$identity['location_id']);
+        if ($hub) $service->touchDevice((int)$hub->id);
+
+        if ($hub && !$service->challengeForSession()) {
             return redirect(admin_url('siteaccess/hub'));
         }
 
@@ -52,14 +65,20 @@ class Siteaccess extends AdminController
             return redirect($destination === 'staff' ? admin_url('mywork') : admin_url('dashboard'));
         }
 
-        $role = app(PmdDefaultStaffRoleService::class)->roleCodeForUser($identity['user']);
+        $localWorkplaceCode = null;
+        if ($hub && (int)$identity['location_id'] > 0) {
+            $localWorkplaceCode = app(PmdWorkplaceCodeService::class)->current((int)$identity['location_id']);
+        }
 
         return view('siteaccess/index_v2', [
             'ready' => true,
             'challenge' => $challenge,
             'identity' => $identity,
             'onlineHub' => $service->hasOnlineHub((int)$identity['location_id']),
-            'canRecover' => $role === PmdDefaultStaffRoleService::OWNER,
+            'canRecover' => $isOwner,
+            'isOwner' => $isOwner,
+            'ownerTotpEnabled' => $isOwner && $ownerTotp->enabled((int)$identity['user_id']),
+            'localWorkplaceCode' => $localWorkplaceCode,
         ]);
     }
 
@@ -132,7 +151,9 @@ class Siteaccess extends AdminController
         if (!AdminAuth::isLogged()) return response()->json(['ok' => false, 'message' => 'Authentication required.'], 401);
 
         try {
-            $result = app(PmdSiteAccessService::class)->finalizeCurrent($request);
+            $service = app(PmdSiteAccessService::class);
+            $result = $service->finalizeCurrent($request);
+            $this->bindAndApplySessionPolicy($service);
             return response()->json(['ok' => true, 'redirect' => $result['redirect']]);
         } catch (\Throwable $error) {
             return response()->json(['ok' => false, 'message' => $error->getMessage()], 409);
@@ -198,9 +219,142 @@ class Siteaccess extends AdminController
         }
 
         $pending = (array)session()->get(PmdSiteAccessService::SESSION_PENDING, []);
+        $this->bindAndApplySessionPolicy($service);
         session()->forget(PmdSiteAccessService::SESSION_PENDING);
         return redirect((string)($pending['redirect'] ?? admin_url('dashboard')))
             ->with('success', 'Emergency Workplace Access verified.');
+    }
+
+    // PMD_OWNER_AUTHENTICATOR_V1
+    public function ownermfasetup(Request $request = null)
+    {
+        $request = $request ?: request();
+        $identity = $this->ownerIdentity();
+        if (!$identity) return redirect(admin_url('login'));
+
+        $totp = app(PmdOwnerTotpService::class);
+        if (!$totp->ready()) {
+            return redirect(admin_url('login'))->with('error', 'Owner Authenticator storage is not ready.');
+        }
+        if ($totp->enabled((int)$identity['user_id'])) {
+            return redirect(admin_url('siteaccess/owner-mfa'));
+        }
+
+        $enrollment = $totp->enrollment((int)$identity['user_id'], (int)$identity['location_id']);
+        return view('siteaccess/owner_mfa', [
+            'mode' => 'setup',
+            'identity' => $identity,
+            'secret' => (string)$enrollment['secret'],
+        ]);
+    }
+
+    public function ownermfaqr(Request $request = null)
+    {
+        $request = $request ?: request();
+        $identity = $this->ownerIdentity();
+        if (!$identity) return response('Owner authentication required.', 401);
+
+        $totp = app(PmdOwnerTotpService::class);
+        $enrollment = $totp->enrollment((int)$identity['user_id'], (int)$identity['location_id']);
+
+        try {
+            $svg = app(PmdSiteAccessQrService::class)->svg($totp->provisioningUri($enrollment), 6);
+        } catch (\Throwable $error) {
+            report($error);
+            return response('Authenticator QR unavailable.', 500);
+        }
+
+        return response($svg, 200)
+            ->header('Content-Type', 'image/svg+xml; charset=UTF-8')
+            ->header('Cache-Control', 'no-store, private, max-age=0')
+            ->header('X-Content-Type-Options', 'nosniff');
+    }
+
+    public function ownermfaconfirm(Request $request = null)
+    {
+        $request = $request ?: request();
+        $identity = $this->ownerIdentity();
+        if (!$identity) return redirect(admin_url('login'));
+
+        $totp = app(PmdOwnerTotpService::class);
+        if (!$totp->confirmEnrollment(
+            (int)$identity['user_id'],
+            (int)$identity['location_id'],
+            (string)$request->input('code', '')
+        )) {
+            return redirect(admin_url('siteaccess/owner-mfa/setup'))
+                ->with('error', 'That Authenticator code is not valid. Check the phone time and try again.');
+        }
+
+        app(PmdSiteAccessService::class)->audit(
+            'owner_totp_enrolled',
+            true,
+            $identity,
+            null,
+            null,
+            $request
+        );
+
+        return redirect(admin_url('siteaccess/hub'))
+            ->with('success', 'Owner Authenticator connected. Now activate Workplace Access on the restaurant device.');
+    }
+
+    public function ownermfa(Request $request = null)
+    {
+        $request = $request ?: request();
+        $identity = $this->ownerIdentity();
+        if (!$identity) return redirect(admin_url('login'));
+
+        $totp = app(PmdOwnerTotpService::class);
+        if (!$totp->enabled((int)$identity['user_id'])) {
+            return redirect(admin_url('siteaccess/owner-mfa/setup'));
+        }
+
+        return view('siteaccess/owner_mfa', [
+            'mode' => 'verify',
+            'identity' => $identity,
+        ]);
+    }
+
+    public function ownermfaverify(Request $request = null)
+    {
+        $request = $request ?: request();
+        $identity = $this->ownerIdentity();
+        if (!$identity) return redirect(admin_url('login'));
+
+        $totp = app(PmdOwnerTotpService::class);
+        if (!$totp->verify((int)$identity['user_id'], (string)$request->input('code', ''))) {
+            app(PmdSiteAccessService::class)->audit('owner_totp_failed', false, $identity, null, null, $request);
+            return redirect(admin_url('siteaccess/owner-mfa'))
+                ->with('error', 'The Authenticator code is not correct or was already used.');
+        }
+
+        $service = app(PmdSiteAccessService::class);
+        $pending = (array)session()->get(PmdSiteAccessService::SESSION_PENDING, []);
+        $challenge = $service->challengeForSession();
+        $target = (string)session()->pull('pmd_owner_totp_after_v1', '');
+        if ($target === '') $target = (string)($pending['redirect'] ?? admin_url('dashboard'));
+
+        if ($challenge && (int)$challenge->user_id === (int)$identity['user_id']) {
+            DB::table('pmd_site_access_challenges')->where('id', $challenge->id)->update([
+                'status' => 'used',
+                'approved_at' => $challenge->approved_at ?: now(),
+                'used_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        $service->markWorkspaceVerified((int)$identity['location_id'], 'owner_totp', 0);
+        app(PmdSiteAccessSessionBindingService::class)->bindCurrentUser();
+        $policy = app(PmdWorkSessionPolicyService::class)->apply($identity);
+        session()->forget(PmdSiteAccessService::SESSION_PENDING);
+
+        $service->audit('owner_totp_verified', true, $identity, null, $challenge ? (int)$challenge->id : null, $request, [
+            'session_until' => $policy['expires_at']->toIso8601String(),
+            'session_reason' => $policy['reason'],
+        ]);
+
+        return redirect($target)->with('success', 'Owner Authenticator verified.');
     }
 
     public function hub(Request $request = null)
@@ -237,6 +391,7 @@ class Siteaccess extends AdminController
                 ? $service->activeDevices($locationId)
                 : collect(),
             'recoveryCodes' => (array)session()->pull('pmd_site_access_new_recovery_codes', []),
+            'ownerTotpEnabled' => app(PmdOwnerTotpService::class)->enabled((int)$identity['user_id']),
         ]);
     }
 
@@ -246,9 +401,31 @@ class Siteaccess extends AdminController
         if (!AdminAuth::isLogged()) return redirect(admin_url('login'));
 
         try {
+            $service = app(PmdSiteAccessService::class);
+            $identity = $service->identity();
+            $locationId = (int)$identity['location_id'];
+            $wasEnabled = $service->policyEnabled($locationId);
+            $role = app(PmdDefaultStaffRoleService::class)->roleCodeForUser($identity['user']);
+
+            if (
+                !$wasEnabled
+                && $role === PmdDefaultStaffRoleService::OWNER
+                && !app(PmdOwnerTotpService::class)->enabled((int)$identity['user_id'])
+            ) {
+                return redirect(admin_url('siteaccess/owner-mfa/setup'))
+                    ->with('error', 'Connect the Owner Authenticator before activating the first restaurant device.');
+            }
+
             [$device, $rawToken] = app(PmdWorkplaceHubBootstrapService::class)->activate($request);
+
+            if (!$wasEnabled) {
+                $codes = $service->generateRecoveryCodes($request);
+                session()->flash('pmd_site_access_new_recovery_codes', $codes);
+            }
+
             return redirect(admin_url('siteaccess/hub'))
                 ->withCookie($this->hubCookie($rawToken, $request))
+                ->withCookie($this->hubMarkerCookie($request))
                 ->with('success', 'Workplace Access is active on this restaurant device.');
         } catch (\Throwable $error) {
             return redirect(admin_url('siteaccess/hub'))->with('error', $error->getMessage());
@@ -297,6 +474,7 @@ class Siteaccess extends AdminController
                 'purpose' => (string)$item->purpose,
                 'device_name' => (string)($item->requested_device_name ?: 'Browser device'),
                 'qr_url' => (string)$item->qr_url,
+                'qr_image_url' => admin_url('siteaccess/hub/qr/'.(int)$item->id),
                 'expires_at' => (string)$item->expires_at,
             ];
         })->values();
@@ -353,14 +531,37 @@ class Siteaccess extends AdminController
     {
         try {
             $result = $service->finalizeCurrent($request);
+            $this->bindAndApplySessionPolicy($service);
             return redirect((string)$result['redirect'])->with('success', 'Workplace Access verified.');
         } catch (\Throwable $error) {
             return redirect(admin_url('siteaccess'))->with('error', $error->getMessage());
         }
     }
 
+    private function bindAndApplySessionPolicy(PmdSiteAccessService $service): array
+    {
+        $identity = $service->identity();
+        app(PmdSiteAccessSessionBindingService::class)->bindCurrentUser();
+        return app(PmdWorkSessionPolicyService::class)->apply($identity);
+    }
+
+    private function ownerIdentity(): ?array
+    {
+        if (!AdminAuth::isLogged()) return null;
+        $identity = app(PmdSiteAccessService::class)->identity();
+        $role = app(PmdDefaultStaffRoleService::class)->roleCodeForUser($identity['user']);
+        if ($role !== PmdDefaultStaffRoleService::OWNER) abort(403);
+        if ((int)$identity['user_id'] < 1 || (int)$identity['location_id'] < 1) abort(403);
+        return $identity;
+    }
+
     private function hubCookie(string $token, Request $request)
     {
         return cookie(PmdSiteAccessService::HUB_COOKIE, $token, 60 * 24 * 365 * 3, '/', null, $request->isSecure(), true, false, 'Lax');
+    }
+
+    private function hubMarkerCookie(Request $request)
+    {
+        return cookie('pmd_site_hub_marker_v1', '1', 60 * 24 * 365 * 3, '/', null, $request->isSecure(), false, false, 'Lax');
     }
 }
