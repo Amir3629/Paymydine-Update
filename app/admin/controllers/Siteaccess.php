@@ -4,15 +4,16 @@ namespace Admin\Controllers;
 
 use Admin\Classes\AdminController;
 use Admin\Facades\AdminAuth;
-use Admin\Models\Pos_devices_model;
 use Admin\Services\PmdDefaultStaffRoleService;
 use App\Services\PmdSiteAccessService;
+use App\Services\PmdWorkplaceCodeService;
+use App\Services\PmdWorkplaceHubBootstrapService;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
-/** PMD_SITE_ACCESS_CONTROLLER_V1 */
+/** PMD_WORKPLACE_ACCESS_CONTROLLER_V2 */
 class Siteaccess extends AdminController
 {
     protected $requiredPermissions = null;
@@ -32,7 +33,7 @@ class Siteaccess extends AdminController
         $identity = $service->identity();
 
         if (!$service->ready()) {
-            return view('siteaccess/index', [
+            return view('siteaccess/index_v2', [
                 'ready' => false,
                 'challenge' => null,
                 'identity' => $identity,
@@ -53,13 +54,12 @@ class Siteaccess extends AdminController
 
         $role = app(PmdDefaultStaffRoleService::class)->roleCodeForUser($identity['user']);
 
-        return view('siteaccess/index', [
+        return view('siteaccess/index_v2', [
             'ready' => true,
             'challenge' => $challenge,
             'identity' => $identity,
             'onlineHub' => $service->hasOnlineHub((int)$identity['location_id']),
-            'canRecover' => $role === PmdDefaultStaffRoleService::OWNER
-                && $challenge->purpose === PmdSiteAccessService::PURPOSE_WORKSPACE,
+            'canRecover' => $role === PmdDefaultStaffRoleService::OWNER,
         ]);
     }
 
@@ -69,8 +69,59 @@ class Siteaccess extends AdminController
         if (!AdminAuth::isLogged()) return redirect(admin_url('login'));
 
         $service = app(PmdSiteAccessService::class);
-        [$ok, $error] = $service->verifyChallengeCode((string)$request->input('code', ''), $request);
-        if (!$ok) return redirect(admin_url('siteaccess'))->with('error', $error);
+        $identity = $service->identity();
+        $challenge = $service->challengeForSession();
+
+        if (!$challenge || (int)$challenge->user_id !== (int)$identity['user_id']) {
+            return redirect(admin_url('siteaccess'))->with('error', 'No active workplace verification request.');
+        }
+
+        if ($challenge->status !== 'pending') {
+            return redirect(admin_url('siteaccess'))->with('error', 'This workplace verification request is no longer pending.');
+        }
+
+        if (Carbon::parse($challenge->expires_at)->isPast()) {
+            return redirect(admin_url('siteaccess'))->with('error', 'This request expired. Sign in again.');
+        }
+
+        $attempts = (int)$challenge->attempts + 1;
+        DB::table('pmd_site_access_challenges')
+            ->where('id', $challenge->id)
+            ->update(['attempts' => $attempts, 'updated_at' => now()]);
+
+        if ($attempts > 8) {
+            DB::table('pmd_site_access_challenges')
+                ->where('id', $challenge->id)
+                ->update(['status' => 'declined', 'updated_at' => now()]);
+
+            $service->audit('workplace_code_locked', false, $identity, null, (int)$challenge->id, $request);
+            return redirect(admin_url('siteaccess'))->with('error', 'Too many attempts. Sign in again.');
+        }
+
+        $locationId = (int)$challenge->location_id;
+        $valid = app(PmdWorkplaceCodeService::class)->verify(
+            $locationId,
+            (string)$request->input('code', '')
+        );
+
+        if (!$valid) {
+            $service->audit('workplace_code_failed', false, $identity, null, (int)$challenge->id, $request);
+            return redirect(admin_url('siteaccess'))->with('error', 'The workplace code is not correct. Check the code shown on the restaurant Admin/Cashier.');
+        }
+
+        if (!$service->hasOnlineHub($locationId)) {
+            return redirect(admin_url('siteaccess'))->with('error', 'The restaurant Workplace Access device is offline. Open PMD on the restaurant Admin/Cashier first.');
+        }
+
+        DB::table('pmd_site_access_challenges')
+            ->where('id', $challenge->id)
+            ->update([
+                'status' => 'approved',
+                'approved_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+        $service->audit('workplace_code_verified', true, $identity, null, (int)$challenge->id, $request);
 
         return $this->finalizeResponse($service, $request);
     }
@@ -82,11 +133,7 @@ class Siteaccess extends AdminController
 
         try {
             $result = app(PmdSiteAccessService::class)->finalizeCurrent($request);
-            $response = response()->json(['ok' => true, 'redirect' => $result['redirect']]);
-            if (!empty($result['staff_device_token'])) {
-                $response->withCookie($this->staffDeviceCookie($result['staff_device_token'], $request));
-            }
-            return $response;
+            return response()->json(['ok' => true, 'redirect' => $result['redirect']]);
         } catch (\Throwable $error) {
             return response()->json(['ok' => false, 'message' => $error->getMessage()], 409);
         }
@@ -127,7 +174,7 @@ class Siteaccess extends AdminController
             return redirect(admin_url('siteaccess'))->with('error', 'This QR code expired or is not valid.');
         }
         if (!$service->hasOnlineHub((int)$identity['location_id'])) {
-            return redirect(admin_url('siteaccess'))->with('error', 'Open Site Access on the restaurant Cashier and try again.');
+            return redirect(admin_url('siteaccess'))->with('error', 'Open Workplace Access on the restaurant Admin/Cashier and try again.');
         }
 
         DB::table('pmd_site_access_challenges')->where('id', $sessionChallenge->id)->update([
@@ -153,7 +200,7 @@ class Siteaccess extends AdminController
         $pending = (array)session()->get(PmdSiteAccessService::SESSION_PENDING, []);
         session()->forget(PmdSiteAccessService::SESSION_PENDING);
         return redirect((string)($pending['redirect'] ?? admin_url('dashboard')))
-            ->with('success', 'Emergency Site Access verified.');
+            ->with('success', 'Emergency Workplace Access verified.');
     }
 
     public function hub(Request $request = null)
@@ -163,25 +210,31 @@ class Siteaccess extends AdminController
 
         $service = app(PmdSiteAccessService::class);
         $identity = $service->identity();
-        $hub = $service->currentHub($request, $identity['location_id']);
+        $locationId = (int)$identity['location_id'];
+        $hub = $service->currentHub($request, $locationId);
         if ($hub) $service->touchDevice((int)$hub->id);
 
         $role = app(PmdDefaultStaffRoleService::class)->roleCodeForUser($identity['user']);
-        $canConfigure = in_array($role, [PmdDefaultStaffRoleService::OWNER, PmdDefaultStaffRoleService::MANAGER], true);
-        $posDevices = collect();
-        if ($canConfigure && Schema::hasTable('pos_devices')) {
-            $posDevices = Pos_devices_model::query()->orderBy('name')->get();
+        $policyEnabled = $service->ready() && $locationId > 0 && $service->policyEnabled($locationId);
+        $canConfigure = $policyEnabled
+            ? in_array($role, [PmdDefaultStaffRoleService::OWNER, PmdDefaultStaffRoleService::MANAGER], true)
+            : $role === PmdDefaultStaffRoleService::OWNER;
+
+        $workplaceCode = null;
+        if ($hub && $locationId > 0) {
+            $workplaceCode = app(PmdWorkplaceCodeService::class)->current($locationId);
         }
 
-        return view('siteaccess/hub', [
+        return view('siteaccess/hub_v2', [
             'ready' => $service->ready(),
             'identity' => $identity,
             'hub' => $hub,
             'canConfigure' => $canConfigure,
-            'posDevices' => $posDevices,
+            'policyEnabled' => $policyEnabled,
+            'workplaceCode' => $workplaceCode,
             'pending' => $hub ? $service->pendingChallengesForHub($request) : collect(),
-            'devices' => $service->ready() && $identity['location_id'] > 0
-                ? $service->activeDevices((int)$identity['location_id'])
+            'devices' => $service->ready() && $locationId > 0
+                ? $service->activeDevices($locationId)
                 : collect(),
             'recoveryCodes' => (array)session()->pull('pmd_site_access_new_recovery_codes', []),
         ]);
@@ -192,12 +245,11 @@ class Siteaccess extends AdminController
         $request = $request ?: request();
         if (!AdminAuth::isLogged()) return redirect(admin_url('login'));
 
-        $posDeviceId = max(0, (int)$request->input('pos_device_id', 0));
         try {
-            [$device, $rawToken] = app(PmdSiteAccessService::class)->activateHub($posDeviceId, $request);
+            [$device, $rawToken] = app(PmdWorkplaceHubBootstrapService::class)->activate($request);
             return redirect(admin_url('siteaccess/hub'))
                 ->withCookie($this->hubCookie($rawToken, $request))
-                ->with('success', 'This POS is now a trusted Site Access hub.');
+                ->with('success', 'Workplace Access is active on this restaurant device.');
         } catch (\Throwable $error) {
             return redirect(admin_url('siteaccess/hub'))->with('error', $error->getMessage());
         }
@@ -210,10 +262,18 @@ class Siteaccess extends AdminController
 
         $service = app(PmdSiteAccessService::class);
         $identity = $service->identity();
-        $hub = $service->currentHub($request, $identity['location_id']);
-        if (!$hub) return response()->json(['ok' => false, 'message' => 'This browser is not a trusted hub.'], 403);
+        $locationId = (int)$identity['location_id'];
+        $hub = $service->currentHub($request, $locationId);
+        if (!$hub) return response()->json(['ok' => false, 'message' => 'This browser is not a trusted workplace device.'], 403);
         $service->touchDevice((int)$hub->id);
-        return response()->json(['ok' => true, 'at' => now()->toIso8601String()])->header('Cache-Control', 'no-store');
+        $code = app(PmdWorkplaceCodeService::class)->current($locationId);
+
+        return response()->json([
+            'ok' => true,
+            'at' => now()->toIso8601String(),
+            'workplace_code' => $code['code'],
+            'code_expires_in' => $code['expires_in'],
+        ])->header('Cache-Control', 'no-store');
     }
 
     public function hubdata(Request $request = null): JsonResponse
@@ -223,10 +283,12 @@ class Siteaccess extends AdminController
 
         $service = app(PmdSiteAccessService::class);
         $identity = $service->identity();
-        $hub = $service->currentHub($request, $identity['location_id']);
+        $locationId = (int)$identity['location_id'];
+        $hub = $service->currentHub($request, $locationId);
         if (!$hub) return response()->json(['ok' => false], 403);
         $service->touchDevice((int)$hub->id);
 
+        $code = app(PmdWorkplaceCodeService::class)->current($locationId);
         $pending = $service->pendingChallengesForHub($request)->map(function ($item) {
             return [
                 'id' => (int)$item->id,
@@ -234,13 +296,17 @@ class Siteaccess extends AdminController
                 'staff_name' => (string)($item->staff_name ?: 'Team member'),
                 'purpose' => (string)$item->purpose,
                 'device_name' => (string)($item->requested_device_name ?: 'Browser device'),
-                'display_code' => (string)$item->display_code,
                 'qr_url' => (string)$item->qr_url,
                 'expires_at' => (string)$item->expires_at,
             ];
         })->values();
 
-        return response()->json(['ok' => true, 'pending' => $pending])->header('Cache-Control', 'no-store');
+        return response()->json([
+            'ok' => true,
+            'workplace_code' => $code['code'],
+            'code_expires_in' => $code['expires_in'],
+            'pending' => $pending,
+        ])->header('Cache-Control', 'no-store');
     }
 
     public function approve(Request $request = null)
@@ -249,7 +315,7 @@ class Siteaccess extends AdminController
         $id = max(0, (int)$request->input('challenge_id', 0));
         $ok = AdminAuth::isLogged() && app(PmdSiteAccessService::class)->approveChallenge($id, $request);
         if ($request->expectsJson()) return response()->json(['ok' => $ok], $ok ? 200 : 422);
-        return redirect(admin_url('siteaccess/hub'))->with($ok ? 'success' : 'error', $ok ? 'Access request approved.' : 'Could not approve this request.');
+        return redirect(admin_url('siteaccess/hub'))->with($ok ? 'success' : 'error', $ok ? 'Login request approved.' : 'Could not approve this login request.');
     }
 
     public function decline(Request $request = null)
@@ -258,7 +324,7 @@ class Siteaccess extends AdminController
         $id = max(0, (int)$request->input('challenge_id', 0));
         $ok = AdminAuth::isLogged() && app(PmdSiteAccessService::class)->declineChallenge($id, $request);
         if ($request->expectsJson()) return response()->json(['ok' => $ok], $ok ? 200 : 422);
-        return redirect(admin_url('siteaccess/hub'))->with($ok ? 'success' : 'error', $ok ? 'Access request declined.' : 'Could not decline this request.');
+        return redirect(admin_url('siteaccess/hub'))->with($ok ? 'success' : 'error', $ok ? 'Login request declined.' : 'Could not decline this login request.');
     }
 
     public function recoverycodes(Request $request = null)
@@ -287,11 +353,7 @@ class Siteaccess extends AdminController
     {
         try {
             $result = $service->finalizeCurrent($request);
-            $response = redirect((string)$result['redirect'])->with('success', 'Site Access verified.');
-            if (!empty($result['staff_device_token'])) {
-                $response->withCookie($this->staffDeviceCookie($result['staff_device_token'], $request));
-            }
-            return $response;
+            return redirect((string)$result['redirect'])->with('success', 'Workplace Access verified.');
         } catch (\Throwable $error) {
             return redirect(admin_url('siteaccess'))->with('error', $error->getMessage());
         }
@@ -300,10 +362,5 @@ class Siteaccess extends AdminController
     private function hubCookie(string $token, Request $request)
     {
         return cookie(PmdSiteAccessService::HUB_COOKIE, $token, 60 * 24 * 365 * 3, '/', null, $request->isSecure(), true, false, 'Lax');
-    }
-
-    private function staffDeviceCookie(string $token, Request $request)
-    {
-        return cookie(PmdSiteAccessService::STAFF_DEVICE_COOKIE, $token, 60 * 24 * 365, '/', null, $request->isSecure(), true, false, 'Lax');
     }
 }
