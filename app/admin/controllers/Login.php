@@ -7,6 +7,7 @@ use Admin\Facades\Template;
 use Admin\Models\Staffs_model;
 use Admin\Models\Users_model;
 use Admin\Traits\ValidatesForm;
+use App\Services\PmdSiteAccessService;
 use Igniter\Flame\Exception\ValidationException;
 use Illuminate\Support\Facades\Mail;
 
@@ -33,9 +34,14 @@ class Login extends \Admin\Classes\AdminController
     public function index()
     {
         if (AdminAuth::isLogged()) {
+            // PMD_SITE_ACCESS_LOGIN_V1
+            // A password-authenticated session that is waiting for workplace
+            // verification must never skip the step-up page by revisiting login.
+            if (session()->has(PmdSiteAccessService::SESSION_PENDING)) {
+                return redirect(admin_url('siteaccess'));
+            }
+
             // PMD_LOGIN_DESTINATION_V3
-            // Staff Portal is the existing authenticated /admin/mywork surface,
-            // never a public route owned by the guest-menu/Next proxy.
             if ($this->pmdRequestedDestination() === 'staff')
                 return $this->redirect('mywork');
 
@@ -47,8 +53,9 @@ class Login extends \Admin\Classes\AdminController
 
         Template::setTitle(lang('admin::lang.login.text_title'));
 
-        // PMD_LOGIN_WORKSPACE_V3
-        // One AdminAuth login surface exposes two post-login destinations.
+        // PMD_LOGIN_WORKSPACE_V4
+        // One AdminAuth login surface exposes Workspace/Staff destinations and
+        // Site Access is the shared step-up authority after password success.
         return view('auth.login_workspace_v2');
     }
 
@@ -72,19 +79,12 @@ class Login extends \Admin\Classes\AdminController
         return $this->makeView('auth/reset');
     }
 
-    /**
-     * PMD_ROLE_LANDING_REDIRECT_V2
-     *
-     * One shared role-landing authority is used by Login, /admin/dashboard
-     * and the Side Menu so these three entry points cannot drift apart.
-     */
     private function pmdRoleLandingRoute(): ?string
     {
         return app(\Admin\Services\PmdRoleLandingService::class)
             ->routeFor(AdminAuth::getUser());
     }
 
-    /** PMD_LOGIN_DESTINATION_V3 */
     private function pmdRequestedDestination(): string
     {
         return strtolower(trim((string)input('destination'))) === 'staff'
@@ -113,14 +113,8 @@ class Login extends \Admin\Classes\AdminController
             throw new ValidationException(['username' => lang('admin::lang.login.alert_username_not_found')]);
 
         session()->regenerate();
-
-        // PMD_LOGIN_ACCOUNT_LOCALE_V1
-        // The account's saved admin language wins after authentication.
         $this->pmdQueueAccountLocale();
 
-        // PMD_ADMIN_SESSION_PRESENCE_V1
-        // Presence is registered only AFTER successful authentication and
-        // session regeneration. Failure here must never block a valid login.
         try {
             app(\Admin\Services\PmdAdminPresenceService::class)->loginCurrentSession();
         } catch (\Throwable $error) {
@@ -130,15 +124,44 @@ class Login extends \Admin\Classes\AdminController
             ]);
         }
 
-        // PMD_LOGIN_DESTINATION_V3
-        // A user who intentionally chose Staff Portal always enters My Work;
-        // Workspace selection keeps the canonical role landing below.
-        if ($this->pmdRequestedDestination() === 'staff')
+        $destination = $this->pmdRequestedDestination();
+        session()->put(PmdSiteAccessService::SESSION_DESTINATION, $destination);
+
+        $landing = $this->pmdRoleLandingRoute();
+        $workspaceTarget = $landing
+            ? admin_url($landing)
+            : (input('redirect') ? (string)input('redirect') : admin_url('dashboard'));
+        $target = $destination === 'staff'
+            ? admin_url('mywork')
+            : $workspaceTarget;
+
+        // PMD_SITE_ACCESS_LOGIN_V1
+        // Staff Portal: first untrusted personal browser is paired at restaurant.
+        // Workspace: requires restaurant verification unless this browser itself
+        // is the activated trusted Site Access POS hub.
+        try {
+            $siteAccess = app(PmdSiteAccessService::class);
+            $purpose = $destination === 'staff'
+                ? PmdSiteAccessService::PURPOSE_PAIR_STAFF
+                : PmdSiteAccessService::PURPOSE_WORKSPACE;
+            $challenge = $siteAccess->beginChallenge($purpose, $target, request());
+            if ($challenge) {
+                return redirect(admin_url('siteaccess'));
+            }
+        } catch (\Throwable $error) {
+            // Rollout safety: Site Access never blocks password login before the
+            // additive schema/hub is known-good. Once a challenge is created,
+            // the global pending-session gate prevents bypass.
+            logger()->warning('PMD Site Access login step-up skipped', [
+                'user_id' => (int)optional(AdminAuth::getUser())->getKey(),
+                'message' => $error->getMessage(),
+            ]);
+        }
+
+        if ($destination === 'staff')
             return $this->redirect('mywork');
 
-        // PMD_ROLE_LANDING_REDIRECT_V1
-        // Core operational roles always land in their own workspace.
-        if ($landing = $this->pmdRoleLandingRoute())
+        if ($landing)
             return $this->redirect($landing);
 
         if ($redirectUrl = input('redirect'))
