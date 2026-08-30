@@ -1,10 +1,25 @@
 @php
-    // PMD_LOGIN_WORKPLACE_V9
+    // PMD_LOGIN_WORKPLACE_V10
     $locale = strtolower(trim((string)request()->cookie('pmd_admin_locale', app()->getLocale())));
     $locale = in_array($locale, ['en', 'de'], true) ? $locale : 'en';
     $security = isset($pmdLoginSecurity) && is_array($pmdLoginSecurity) ? $pmdLoginSecurity : null;
     $securityMode = $security ? (string)($security['mode'] ?? '') : '';
-    $securityActive = in_array($securityMode, ['setup', 'verify', 'workplace'], true);
+
+    // PMD_OWNER_RECOVERY_CODES_INLINE_V1
+    // The controller keeps the canonical Owner security session in a valid
+    // verify state and stores plaintext recovery codes only in this short-lived
+    // server session package so they can be shown once on the same Login card.
+    $recoveryDisplay = (array)session()->get('pmd_owner_recovery_codes_once_v1', []);
+    $recoveryDisplayValid = !empty($recoveryDisplay['codes'])
+        && hash_equals((string)($recoveryDisplay['session_id'] ?? ''), (string)session()->getId())
+        && (int)($recoveryDisplay['created_at'] ?? 0) > (time() - 900);
+    if ($recoveryDisplayValid) {
+        $security = is_array($security) ? $security : [];
+        $securityMode = 'recovery_codes';
+        $security['recovery_codes'] = array_values((array)$recoveryDisplay['codes']);
+    }
+
+    $securityActive = in_array($securityMode, ['setup', 'verify', 'workplace', 'recovery_codes'], true);
 
     app()->setLocale($locale);
     if (app()->bound('translator.localization')) {
@@ -40,6 +55,16 @@
             'camera_unavailable' => 'Der QR-Scanner ist in diesem Browser nicht verfügbar. Nutze den 6-stelligen Code.',
             'waiting' => 'Oder auf Freigabe warten.',
             'expired' => 'Diese Anfrage ist abgelaufen. Bitte erneut anmelden.',
+            'recovery_use' => 'Notfallcode verwenden',
+            'recovery_title' => 'Notfallzugang',
+            'recovery_text' => 'Gespeicherten Einmalcode eingeben.',
+            'recovery_code' => 'Notfallcode',
+            'recovery_back' => 'Authenticator verwenden',
+            'recovery_save_title' => 'Notfallcodes speichern',
+            'recovery_save_text' => 'Offline aufbewahren. Jeder Code gilt einmal.',
+            'recovery_copy' => 'Codes kopieren',
+            'recovery_copied' => 'Kopiert',
+            'recovery_saved' => 'Ich habe sie gespeichert',
         ]
         : [
             'username' => 'Username',
@@ -68,6 +93,16 @@
             'camera_unavailable' => 'QR scanning is not available in this browser. Use the 6-digit code instead.',
             'waiting' => 'Or wait for approval.',
             'expired' => 'This request expired. Sign in again.',
+            'recovery_use' => 'Use emergency code',
+            'recovery_title' => 'Emergency access',
+            'recovery_text' => 'Enter one saved one-time code.',
+            'recovery_code' => 'Emergency code',
+            'recovery_back' => 'Use Authenticator',
+            'recovery_save_title' => 'Save emergency codes',
+            'recovery_save_text' => 'Keep them offline. Each code works once.',
+            'recovery_copy' => 'Copy codes',
+            'recovery_copied' => 'Copied',
+            'recovery_saved' => 'I saved them',
         ];
 @endphp
 <!doctype html>
@@ -78,27 +113,29 @@
     <meta name="robots" content="noindex,nofollow">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Login - PayMyDine</title>
-    <link rel="shortcut icon" href="/app/admin/assets/images/pmd-brand-mark.svg?v=pmd-login-v9">
+    <link rel="shortcut icon" href="/app/admin/assets/images/pmd-brand-mark.svg?v=pmd-login-v10">
     <style>
         :root{--jade:#063f36;--jade-dark:#032d27;--gold:#c89b4a;--line:#e1e9e6;--text:#122321;--muted:#6d7b78;--danger:#b42318}
         *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%}
         body{min-height:100vh;min-height:100dvh;overflow:auto;padding:14px;background:radial-gradient(circle at 50% 8%,rgba(200,155,74,.16),transparent 31%),linear-gradient(180deg,#011714 0%,#032c27 100%);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--text);-webkit-font-smoothing:antialiased}
         .card{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(470px,calc(100vw - 28px));max-height:calc(100vh - 28px);max-height:calc(100dvh - 28px);overflow:auto;padding:22px 32px 30px;border:1px solid rgba(200,155,74,.35);border-radius:23px;background:#fff;box-shadow:0 28px 80px rgba(0,25,22,.35)}
+        .card.is-security{min-height:560px;padding-top:24px;padding-bottom:34px}
         .lang{position:absolute;right:14px;top:14px;width:43px;height:39px;border:1px solid #dfd1b8;border-radius:11px;background:#fffaf1;color:var(--jade);font:inherit;font-size:12px;font-weight:900;cursor:pointer}
         .brand{height:160px;display:grid;place-items:center;margin:-12px 42px 4px}.brand img{width:260px;max-width:100%;height:154px;object-fit:contain}
+        .card.is-security .brand{height:180px;margin:-8px 42px 28px}.card.is-security .brand img{height:166px}
         .form{display:grid;gap:14px}.field{display:grid;gap:6px}.field>span{font-size:11px;font-weight:850}.input{position:relative}.field input{width:100%;height:48px;padding:0 13px;border:1px solid var(--line);border-radius:13px;background:#fff;color:var(--text);font:inherit;font-size:14px;outline:none}.field input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(200,155,74,.13)}.field input[type=password]{padding-right:46px}.toggle{position:absolute;right:5px;top:5px;width:38px;height:38px;border:0;border-radius:10px;background:transparent;color:#74827f;cursor:pointer}.toggle:hover{background:#f2f7f5}
         .submit,.secondary{height:49px;display:flex;align-items:center;justify-content:center;border-radius:13px;font:inherit;font-size:14px;font-weight:900;cursor:pointer;text-decoration:none}.submit{border:1px solid var(--jade);background:var(--jade);color:#fff}.submit:hover{background:var(--jade-dark)}.secondary{border:1px solid var(--line);background:#f8fbfa;color:var(--jade)}
         .forgot{color:var(--jade);font-size:11px;font-weight:800;text-decoration:none}.error{color:var(--danger);font-size:10px;font-weight:750}.success,.notice{margin-bottom:14px;padding:11px 12px;border-radius:12px;font-size:11px;line-height:1.4}.success{border:1px solid #bfe4d4;background:#f1faf6;color:#146948}.notice{border:1px solid #f0c6c1;background:#fff3f2;color:#8b2c25}.notice strong{display:block;margin-bottom:2px}
-        .security-head{text-align:center;margin:-2px 0 17px}.security-head h1{margin:0 0 6px;color:#0c2c28;font-size:22px;letter-spacing:-.035em}.security-head p{margin:0 auto;max-width:300px;color:var(--muted);font-size:11px;line-height:1.45}.qrbox{display:grid;place-items:center;min-height:218px;padding:10px;border:1px solid #d3e6e0;border-radius:16px;background:#f5fbf9}.qrbox svg{display:block;width:205px!important;height:205px!important;max-width:100%}.qr-fallback{padding:24px;text-align:center;color:var(--muted);font-size:11px}.code-input{text-align:center;font-size:25px!important;font-weight:900;letter-spacing:.3em;font-variant-numeric:tabular-nums;padding-left:calc(13px + .3em)!important}.secret{border:1px solid var(--line);border-radius:12px;background:#f8fbfa;padding:10px 12px}.secret summary{cursor:pointer;color:#536461;font-size:10px;font-weight:850}.secret-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px;margin-top:9px}.secret-row input{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px}.copy{height:48px;padding:0 12px;border:1px solid var(--line);border-radius:13px;background:#fff;color:var(--jade);font:inherit;font-size:10px;font-weight:900;cursor:pointer}
-        .security-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}.wait{min-height:18px;text-align:center;color:#71807c;font-size:10px;font-weight:750}
+        .security-head{text-align:center;margin:-2px 0 20px}.security-head h1{margin:0 0 6px;color:#0c2c28;font-size:22px;letter-spacing:-.035em}.security-head p{margin:0 auto;max-width:300px;color:var(--muted);font-size:11px;line-height:1.45}.qrbox{display:grid;place-items:center;min-height:218px;padding:10px;border:1px solid #d3e6e0;border-radius:16px;background:#f5fbf9}.qrbox svg{display:block;width:205px!important;height:205px!important;max-width:100%}.qr-fallback{padding:24px;text-align:center;color:var(--muted);font-size:11px}.code-input{text-align:center;font-size:25px!important;font-weight:900;letter-spacing:.3em;font-variant-numeric:tabular-nums;padding-left:calc(13px + .3em)!important}.secret{border:1px solid var(--line);border-radius:12px;background:#f8fbfa;padding:10px 12px}.secret summary{cursor:pointer;color:#536461;font-size:10px;font-weight:850}.secret-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px;margin-top:9px}.secret-row input{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px}.copy{height:48px;padding:0 12px;border:1px solid var(--line);border-radius:13px;background:#fff;color:var(--jade);font:inherit;font-size:10px;font-weight:900;cursor:pointer}
+        .security-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}.wait{min-height:18px;text-align:center;color:#71807c;font-size:10px;font-weight:750}.text-action{width:100%;margin-top:13px;padding:5px;border:0;background:transparent;color:#536b65;font:inherit;font-size:10px;font-weight:850;cursor:pointer}.text-action:hover{color:var(--jade);text-decoration:underline}.recovery-panel[hidden]{display:none}.recovery-input{text-align:center;text-transform:uppercase;font-family:ui-monospace,SFMono-Regular,Menlo,monospace!important;font-size:20px!important;font-weight:850;letter-spacing:.12em}.recovery-list{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}.recovery-item{padding:10px 9px;border:1px solid #dce7e4;border-radius:11px;background:#f8fbfa;text-align:center;color:#183a33;font:800 13px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.04em}.recovery-actions{display:grid;gap:9px}.copy-recovery{height:44px;border:1px solid var(--line);border-radius:12px;background:#f8fbfa;color:var(--jade);font:inherit;font-size:11px;font-weight:900;cursor:pointer}
         .scanner{position:fixed;inset:0;z-index:30;display:grid;place-items:center;padding:18px;background:rgba(0,22,19,.82);backdrop-filter:blur(7px)}.scanner[hidden]{display:none}.scanner-card{width:min(430px,100%);padding:15px;border-radius:18px;background:#fff}.scanner video{display:block;width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:13px;background:#071d1a}.scanner-foot{display:grid;gap:9px;margin-top:11px}.scanner-message{color:var(--muted);font-size:11px;text-align:center}
-        @media(max-width:540px){body{padding:10px}.card{width:calc(100vw - 18px);max-height:calc(100dvh - 18px);padding:20px 18px 25px;border-radius:20px}.brand{height:135px;margin:-5px 38px 3px}.brand img{height:130px}.qrbox{min-height:195px}.qrbox svg{width:185px!important;height:185px!important}.security-actions{grid-template-columns:1fr}}
+        @media(max-width:540px){body{padding:10px}.card{width:calc(100vw - 18px);max-height:calc(100dvh - 18px);padding:20px 18px 25px;border-radius:20px}.card.is-security{min-height:min(540px,calc(100dvh - 18px));padding-bottom:27px}.brand{height:135px;margin:-5px 38px 3px}.brand img{height:130px}.card.is-security .brand{height:145px;margin:-3px 38px 20px}.card.is-security .brand img{height:138px}.qrbox{min-height:195px}.qrbox svg{width:185px!important;height:185px!important}.security-actions{grid-template-columns:1fr}.recovery-list{grid-template-columns:1fr 1fr}}
     </style>
 </head>
 <body>
-<main class="card" @if($securityMode === 'workplace' && !empty($security['expires_at'])) data-pmd-workplace-login data-expires-at="{{ $security['expires_at'] }}" @endif>
+<main class="card{{ $securityActive ? ' is-security' : '' }}" @if($securityMode === 'workplace' && !empty($security['expires_at'])) data-pmd-workplace-login data-expires-at="{{ $security['expires_at'] }}" @endif>
     <button type="button" class="lang" data-lang="{{ $nextLocale }}">{{ strtoupper($nextLocale) }}</button>
-    <div class="brand"><img src="{{ asset('app/admin/assets/images/pmd-login-logo.svg') }}?v=pmd-login-v9" alt="PayMyDine"></div>
+    <div class="brand"><img src="{{ asset('app/admin/assets/images/pmd-login-logo.svg') }}?v=pmd-login-v10" alt="PayMyDine"></div>
 
     @if(input('reset') === 'success')
         <div class="success">{{ $copy['reset'] }}</div>
@@ -152,26 +189,57 @@
                     <button class="copy" type="button" data-copy-secret data-copy-label="{{ $copy['copy'] }}" data-copied-label="{{ $copy['copied'] }}">{{ $copy['copy'] }}</button>
                 </div>
             </details>
-            {!! form_open(['id'=>'pmd-security-form','class'=>'form','role'=>'form','method'=>'POST','data-request'=>'onOwnerMfaConfirm']) !!}
+            <form id="pmd-security-form" class="form" method="post" action="{{ admin_url('siteaccess/owner-security/setup-confirm') }}">
+                @csrf
                 <label class="field">
                     <span>{{ $copy['code'] }}</span>
                     <input class="code-input" data-security-code name="code" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" placeholder="000000" required autofocus>
-                    {!! form_error('code', '<small class="error">', '</small>') !!}
                 </label>
-                <button type="submit" class="submit" data-attach-loading>{{ $copy['connect'] }}</button>
-            {!! form_close() !!}
+                <button type="submit" class="submit">{{ $copy['connect'] }}</button>
+            </form>
         </div>
 
     @elseif($securityMode === 'verify')
-        <section class="security-head"><h1>{{ $copy['verify_title'] }}</h1><p>{{ $copy['verify_text'] }}</p></section>
-        {!! form_open(['id'=>'pmd-security-form','class'=>'form','role'=>'form','method'=>'POST','data-request'=>'onOwnerMfaVerify']) !!}
-            <label class="field">
-                <span>{{ $copy['code'] }}</span>
-                <input class="code-input" data-security-code name="code" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" placeholder="000000" required autofocus>
-                {!! form_error('code', '<small class="error">', '</small>') !!}
-            </label>
-            <button type="submit" class="submit" data-attach-loading>{{ $copy['verify'] }}</button>
-        {!! form_close() !!}
+        <div data-owner-totp-panel>
+            <section class="security-head"><h1>{{ $copy['verify_title'] }}</h1><p>{{ $copy['verify_text'] }}</p></section>
+            <form id="pmd-security-form" class="form" method="post" action="{{ admin_url('siteaccess/owner-security/verify') }}">
+                @csrf
+                <label class="field">
+                    <span>{{ $copy['code'] }}</span>
+                    <input class="code-input" data-security-code name="code" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" placeholder="000000" required autofocus>
+                </label>
+                <button type="submit" class="submit">{{ $copy['verify'] }}</button>
+            </form>
+            <button type="button" class="text-action" data-owner-recovery-open>{{ $copy['recovery_use'] }}</button>
+        </div>
+
+        <div class="recovery-panel" data-owner-recovery-panel hidden>
+            <section class="security-head"><h1>{{ $copy['recovery_title'] }}</h1><p>{{ $copy['recovery_text'] }}</p></section>
+            <form class="form" method="post" action="{{ admin_url('siteaccess/owner-security/recover') }}">
+                @csrf
+                <label class="field">
+                    <span>{{ $copy['recovery_code'] }}</span>
+                    <input class="recovery-input" data-owner-recovery-input name="recovery_code" type="text" autocomplete="one-time-code" maxlength="9" placeholder="XXXX-XXXX" required>
+                </label>
+                <button type="submit" class="submit">{{ $copy['continue'] }}</button>
+            </form>
+            <button type="button" class="text-action" data-owner-recovery-back>{{ $copy['recovery_back'] }}</button>
+        </div>
+
+    @elseif($securityMode === 'recovery_codes')
+        <section class="security-head"><h1>{{ $copy['recovery_save_title'] }}</h1><p>{{ $copy['recovery_save_text'] }}</p></section>
+        <div class="recovery-list" data-owner-recovery-codes>
+            @foreach((array)($security['recovery_codes'] ?? []) as $recoveryCode)
+                <div class="recovery-item" data-recovery-code>{{ $recoveryCode }}</div>
+            @endforeach
+        </div>
+        <div class="recovery-actions">
+            <button type="button" class="copy-recovery" data-copy-recovery data-copy-label="{{ $copy['recovery_copy'] }}" data-copied-label="{{ $copy['recovery_copied'] }}">{{ $copy['recovery_copy'] }}</button>
+            <form method="post" action="{{ admin_url('siteaccess/owner-security/recovery-codes-saved') }}">
+                @csrf
+                <button type="submit" class="submit" style="width:100%">{{ $copy['recovery_saved'] }}</button>
+            </form>
+        </div>
 
     @else
         <section class="security-head"><h1>{{ $copy['workplace_title'] }}</h1><p>{{ $copy['workplace_text'] }}</p></section>
@@ -231,6 +299,28 @@
         });
     });
 
+    var recoveryInput = document.querySelector('[data-owner-recovery-input]');
+    if (recoveryInput) recoveryInput.addEventListener('input', function () {
+        var clean = String(recoveryInput.value || '').toUpperCase().replace(/[^A-F0-9]/g, '').slice(0, 8);
+        recoveryInput.value = clean.length > 4 ? clean.slice(0, 4) + '-' + clean.slice(4) : clean;
+    });
+
+    var ownerTotpPanel = document.querySelector('[data-owner-totp-panel]');
+    var ownerRecoveryPanel = document.querySelector('[data-owner-recovery-panel]');
+    var recoveryOpen = document.querySelector('[data-owner-recovery-open]');
+    var recoveryBack = document.querySelector('[data-owner-recovery-back]');
+    if (recoveryOpen && ownerTotpPanel && ownerRecoveryPanel) recoveryOpen.addEventListener('click', function () {
+        ownerTotpPanel.hidden = true;
+        ownerRecoveryPanel.hidden = false;
+        if (recoveryInput) recoveryInput.focus();
+    });
+    if (recoveryBack && ownerTotpPanel && ownerRecoveryPanel) recoveryBack.addEventListener('click', function () {
+        ownerRecoveryPanel.hidden = true;
+        ownerTotpPanel.hidden = false;
+        var input = ownerTotpPanel.querySelector('[data-security-code]');
+        if (input) input.focus();
+    });
+
     var copy = document.querySelector('[data-copy-secret]');
     var secret = document.getElementById('pmd-owner-secret');
     if (copy && secret) copy.addEventListener('click', function () {
@@ -244,6 +334,23 @@
             navigator.clipboard.writeText(String(secret.value || '')).then(done).catch(function () { secret.select(); });
         } else {
             secret.select();
+        }
+    });
+
+    var copyRecovery = document.querySelector('[data-copy-recovery]');
+    if (copyRecovery) copyRecovery.addEventListener('click', function () {
+        var values = Array.prototype.map.call(document.querySelectorAll('[data-recovery-code]'), function (node) {
+            return String(node.textContent || '').trim();
+        }).filter(Boolean);
+        if (!values.length) return;
+        var done = function () {
+            copyRecovery.textContent = copyRecovery.getAttribute('data-copied-label') || 'Copied';
+            window.setTimeout(function () {
+                copyRecovery.textContent = copyRecovery.getAttribute('data-copy-label') || 'Copy codes';
+            }, 1300);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(values.join('\n')).then(done).catch(function () {});
         }
     });
 
@@ -397,7 +504,7 @@
 if (window.jQuery) {
     jQuery.ajaxSetup({headers:{'X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]').getAttribute('content')}});
     (function ($) {
-        var form = $('#edit-form, #pmd-security-form');
+        var form = $('#edit-form');
         var notice = document.getElementById('pmd-login-notice');
         if (!form.length || !notice) return;
         function show(message) {
