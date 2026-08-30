@@ -3,6 +3,7 @@
 use Admin\Controllers\Siteaccess;
 use Admin\Facades\AdminAuth;
 use App\Http\Middleware\PmdSiteAccessGateMiddleware;
+use App\Http\Middleware\PmdSiteAccessManageTrustMiddleware;
 use App\Services\PmdSiteAccessQrService;
 use App\Services\PmdSiteAccessQrTokenService;
 use App\Services\PmdSiteAccessService;
@@ -11,7 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 
-/** PMD_SITE_ACCESS_ROUTES_V3 */
+/** PMD_SITE_ACCESS_ROUTES_V4 */
 if (!defined('PMD_SITE_ACCESS_ROUTES_V1')) {
     define('PMD_SITE_ACCESS_ROUTES_V1', true);
 
@@ -111,12 +112,18 @@ if (!defined('PMD_SITE_ACCESS_ROUTES_V1')) {
         })->middleware('throttle:20,1')->name('pmd.siteaccess.q.short');
 
         Route::get('siteaccess/hub', [Siteaccess::class, 'hub'])->name('pmd.siteaccess.hub');
-        Route::post('siteaccess/hub/activate', [Siteaccess::class, 'activatehub'])->middleware('throttle:10,5')->name('pmd.siteaccess.hub.activate');
+        Route::post('siteaccess/hub/activate', [Siteaccess::class, 'activatehub'])
+            ->middleware([PmdSiteAccessManageTrustMiddleware::class, 'throttle:10,5'])
+            ->name('pmd.siteaccess.hub.activate');
         Route::post('siteaccess/hub/heartbeat', [Siteaccess::class, 'heartbeat'])->middleware('throttle:120,1')->name('pmd.siteaccess.hub.heartbeat');
         Route::get('siteaccess/hub/data', [Siteaccess::class, 'hubdata'])->middleware('throttle:120,1')->name('pmd.siteaccess.hub.data');
         Route::post('siteaccess/hub/approve', [Siteaccess::class, 'approve'])->middleware('throttle:60,1')->name('pmd.siteaccess.hub.approve');
         Route::post('siteaccess/hub/decline', [Siteaccess::class, 'decline'])->middleware('throttle:60,1')->name('pmd.siteaccess.hub.decline');
-        Route::post('siteaccess/recovery-codes', [Siteaccess::class, 'recoverycodes'])->middleware('throttle:4,15')->name('pmd.siteaccess.recoverycodes');
-        Route::post('siteaccess/device/revoke', [Siteaccess::class, 'revokedevice'])->middleware('throttle:20,1')->name('pmd.siteaccess.device.revoke');
+        Route::post('siteaccess/recovery-codes', [Siteaccess::class, 'recoverycodes'])
+            ->middleware([PmdSiteAccessManageTrustMiddleware::class, 'throttle:4,15'])
+            ->name('pmd.siteaccess.recoverycodes');
+        Route::post('siteaccess/device/revoke', [Siteaccess::class, 'revokedevice'])
+            ->middleware([PmdSiteAccessManageTrustMiddleware::class, 'throttle:20,1'])
+            ->name('pmd.siteaccess.device.revoke');
     });
 }
