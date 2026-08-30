@@ -8,7 +8,9 @@ use Admin\Models\Staffs_model;
 use Admin\Models\Users_model;
 use Admin\Services\PmdDefaultStaffRoleService;
 use Admin\Traits\ValidatesForm;
+use App\Services\PmdOwnerTotpService;
 use App\Services\PmdSiteAccessService;
+use App\Services\PmdWorkSessionPolicyService;
 use Igniter\Flame\Exception\ValidationException;
 use Illuminate\Support\Facades\Mail;
 
@@ -35,7 +37,7 @@ class Login extends \Admin\Classes\AdminController
     public function index()
     {
         if (AdminAuth::isLogged()) {
-            // PMD_WORKPLACE_LOGIN_V2
+            // PMD_WORKPLACE_LOGIN_V3
             // A password-authenticated session waiting for restaurant proof must
             // never skip the second step by revisiting the login page.
             if (session()->has(PmdSiteAccessService::SESSION_PENDING)) {
@@ -54,8 +56,9 @@ class Login extends \Admin\Classes\AdminController
         Template::setTitle(lang('admin::lang.login.text_title'));
 
         // PMD_LOGIN_WORKPLACE_VIEW_V3
-        // Restaurant is fixed by the tenant hostname; both destinations show
-        // that lock and explain the required second-step workplace code.
+        // Restaurant is fixed by the tenant hostname. Team logins use the
+        // restaurant Workplace Code; the Owner may alternatively use their
+        // personal Authenticator app after it has been enrolled.
         return view('auth.login_workplace_v3');
     }
 
@@ -113,6 +116,16 @@ class Login extends \Admin\Classes\AdminController
             throw new ValidationException(['username' => lang('admin::lang.login.alert_username_not_found')]);
 
         session()->regenerate();
+
+        // PMD_LOGIN_CLEAR_OLD_WORK_SESSION_V1
+        // A fresh password login must never inherit an older user's workplace
+        // verification/deadline from the same browser session.
+        try {
+            app(PmdSiteAccessService::class)->clearVerification();
+            app(PmdWorkSessionPolicyService::class)->clear();
+        } catch (\Throwable $error) {
+        }
+
         $this->pmdQueueAccountLocale();
 
         try {
@@ -135,39 +148,43 @@ class Login extends \Admin\Classes\AdminController
             ? admin_url('mywork')
             : $workspaceTarget;
 
-        // PMD_WORKPLACE_LOGIN_ALL_USERS_V2
-        // Username/password is tenant-scoped identity only. Once Workplace Access
-        // is active, EVERY restaurant-facing login (Workspace or Staff Portal)
-        // needs fresh restaurant proof. Personal phones are never permanently
-        // trusted for off-site Staff Portal access.
+        // PMD_WORKPLACE_LOGIN_ALL_USERS_V4
+        // Password proves tenant identity. Restaurant access is a second proof:
+        // - team members use the fresh Workplace Code/approval from Cashier/POS
+        // - the Owner may use their personal RFC6238 Authenticator app instead
+        // - first-day bootstrap requires Owner Authenticator enrollment first.
         try {
             $siteAccess = app(PmdSiteAccessService::class);
             $identity = $siteAccess->identity();
             $locationId = (int)$identity['location_id'];
+            $userId = (int)$identity['user_id'];
+            $role = app(PmdDefaultStaffRoleService::class)->roleCodeForUser(AdminAuth::getUser());
+            $isOwner = $role === PmdDefaultStaffRoleService::OWNER;
+            $ownerTotp = app(PmdOwnerTotpService::class);
 
-            // First-day bootstrap: after the schema exists but before the first
-            // workplace device is activated, only the Owner may continue. The
-            // Owner is sent directly to setup instead of entering Workspace first.
             if ($siteAccess->ready() && $locationId > 0 && !$siteAccess->policyEnabled($locationId)) {
-                $role = app(PmdDefaultStaffRoleService::class)->roleCodeForUser(AdminAuth::getUser());
-                if ($role !== PmdDefaultStaffRoleService::OWNER) {
-                    try {
-                        AdminAuth::logout();
-                    } catch (\Throwable $logoutError) {
-                    }
-                    session()->invalidate();
-                    session()->regenerateToken();
-                    throw new ValidationException([
-                        'username' => 'The restaurant Owner must activate Workplace Access on a restaurant device before team logins are allowed.',
-                    ]);
+                if (!$isOwner) {
+                    $this->pmdAbortBootstrapLogin(
+                        'The restaurant Owner must finish Authenticator and Workplace Access setup before team logins are allowed.'
+                    );
+                }
+
+                if (!$ownerTotp->ready()) {
+                    $this->pmdAbortBootstrapLogin(
+                        'Owner Authenticator storage is not ready yet. Complete the PMD security setup before logging in.'
+                    );
                 }
 
                 session()->put(PmdSiteAccessService::SESSION_DESTINATION, 'workspace');
-                return redirect(admin_url('siteaccess/hub'));
+                session()->put('pmd_owner_totp_after_v1', admin_url('siteaccess/hub'));
+
+                if (!$ownerTotp->enabled($userId)) {
+                    return redirect(admin_url('siteaccess/owner-mfa/setup'));
+                }
+
+                return redirect(admin_url('siteaccess/owner-mfa'));
             }
 
-            // Use one workplace-verification purpose for both destinations. The
-            // destination only controls where the user lands after verification.
             $challenge = $siteAccess->beginChallenge(
                 PmdSiteAccessService::PURPOSE_WORKSPACE,
                 $target,
@@ -180,9 +197,6 @@ class Login extends \Admin\Classes\AdminController
         } catch (ValidationException $error) {
             throw $error;
         } catch (\Throwable $error) {
-            // Rollout safety before a restaurant activates its first workplace
-            // device. Unexpected Site Access failures must not silently mutate
-            // tenant state; the request is logged for diagnosis.
             logger()->warning('PMD Workplace Access login step-up skipped', [
                 'user_id' => (int)optional(AdminAuth::getUser())->getKey(),
                 'message' => $error->getMessage(),
@@ -199,6 +213,18 @@ class Login extends \Admin\Classes\AdminController
             return $this->redirect($redirectUrl);
 
         return $this->redirectIntended('dashboard');
+    }
+
+    private function pmdAbortBootstrapLogin(string $message): void
+    {
+        try {
+            AdminAuth::logout();
+        } catch (\Throwable $logoutError) {
+        }
+        session()->invalidate();
+        session()->regenerateToken();
+
+        throw new ValidationException(['username' => $message]);
     }
 
     /** PMD_LOGIN_ACCOUNT_LOCALE_V1 */
