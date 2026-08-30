@@ -1,5 +1,5 @@
 @php
-    // PMD_LOGIN_WORKPLACE_V3
+    // PMD_LOGIN_WORKPLACE_V4
     $locale = strtolower(trim((string)request()->cookie('pmd_admin_locale', app()->getLocale())));
     $locale = in_array($locale, ['en', 'de'], true) ? $locale : 'en';
     $destination = input('destination') === 'staff' ? 'staff' : 'workspace';
@@ -25,7 +25,7 @@
             'failed_text' => 'Prüfe Benutzername und Passwort und versuche es erneut.',
             'restaurant' => 'Restaurant',
             'locked' => 'Dieser Login ist fest mit diesem Restaurant verbunden.',
-            'workplace' => 'Nach dem Passwort ist ein aktueller 6-stelliger Arbeitsplatz-Code vom Restaurant-Admin oder Kassengerät erforderlich.',
+            'workplace' => 'Nach dem Passwort folgt die Sicherheitsprüfung: Team-Mitglieder nutzen den aktuellen 6-stelligen Workplace Code vom Restaurant-Admin/Kassengerät. Der Owner kann alternativ seine persönliche Authenticator-App verwenden.',
             'switch_title' => 'Auf Englisch wechseln',
             'reset' => 'Dein Passwort wurde aktualisiert. Du kannst dich jetzt anmelden.',
         ]
@@ -43,7 +43,7 @@
             'failed_text' => 'Check your username and password and try again.',
             'restaurant' => 'Restaurant',
             'locked' => 'This login is locked to this restaurant.',
-            'workplace' => 'After your password, a fresh 6-digit Workplace Code from the restaurant Admin or Cashier device is required.',
+            'workplace' => 'After your password comes security verification: team members use the fresh 6-digit Workplace Code from the restaurant Admin/Cashier. The Owner may alternatively use their personal Authenticator app.',
             'switch_title' => 'Switch to German',
             'reset' => 'Your password has been updated. You can now sign in.',
         ];
@@ -56,7 +56,7 @@
     <meta name="robots" content="noindex,nofollow">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $copy['title'] }}</title>
-    <link rel="shortcut icon" href="/app/admin/assets/images/pmd-brand-mark.svg?v=pmd-login-workplace-v3">
+    <link rel="shortcut icon" href="/app/admin/assets/images/pmd-brand-mark.svg?v=pmd-login-workplace-v4">
     <style>
         :root{--jade:#063f36;--jade-dark:#032d27;--gold:#c89b4a;--line:#e1e9e6;--text:#122321;--muted:#6d7b78;--danger:#b42318}
         *{box-sizing:border-box}html,body{margin:0;min-height:100%}
@@ -76,7 +76,7 @@
 <main class="card">
     <button type="button" class="lang" data-lang="{{ $nextLocale }}" title="{{ $copy['switch_title'] }}">{{ strtoupper($nextLocale) }}</button>
 
-    <div class="brand"><img src="{{ asset('app/admin/assets/images/pmd-login-logo.svg') }}?v=pmd-login-workplace-v3" alt="PayMyDine"></div>
+    <div class="brand"><img src="{{ asset('app/admin/assets/images/pmd-login-logo.svg') }}?v=pmd-login-workplace-v4" alt="PayMyDine"></div>
     <h1>@lang('admin::lang.login.text_title')</h1>
 
     <nav class="modes" aria-label="Login destination">
@@ -91,6 +91,7 @@
     <div class="workplace">{{ $copy['workplace'] }}</div>
 
     @if(input('reset') === 'success')<div class="success">{{ $copy['reset'] }}</div>@endif
+    @if(input('session') === 'work-expired')<div class="notice"><strong>Work session ended</strong><span>Please sign in again to continue working.</span></div>@endif
     <div id="pmd-login-notice" class="notice" role="alert" aria-live="polite" hidden><strong>{{ $copy['failed_title'] }}</strong><span>{{ $copy['failed_text'] }}</span></div>
 
     {!! form_open(['id'=>'edit-form','class'=>'form','role'=>'form','method'=>'POST','data-request'=>'onLogin']) !!}
