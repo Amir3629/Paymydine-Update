@@ -21,7 +21,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 
-/** PMD_SITE_ACCESS_ROUTES_V15 */
+/** PMD_SITE_ACCESS_ROUTES_V16 */
 if (!defined('PMD_SITE_ACCESS_ROUTES_V1')) {
     define('PMD_SITE_ACCESS_ROUTES_V1', true);
 
@@ -36,6 +36,64 @@ if (!defined('PMD_SITE_ACCESS_ROUTES_V1')) {
         Route::post('siteaccess/login-verify', PmdLoginWorkplaceVerifyController::class)
             ->middleware('throttle:120,1')
             ->name('pmd.siteaccess.login.verify');
+
+        // PMD_LOGIN_SECURITY_BACK_V1
+        // Security-step Back is a real cancellation, not browser history. It
+        // closes the pending challenge, clears incomplete verification state,
+        // logs out the password-authenticated user and returns to clean Login.
+        Route::post('siteaccess/login-cancel', function () {
+            $site = app(PmdSiteAccessService::class);
+
+            if (AdminAuth::isLogged()) {
+                try {
+                    $challenge = $site->challengeForSession();
+                    if ($challenge && in_array((string)$challenge->status, ['pending', 'approved'], true)) {
+                        DB::table('pmd_site_access_challenges')
+                            ->where('id', (int)$challenge->id)
+                            ->update([
+                                'status' => 'declined',
+                                'updated_at' => now(),
+                            ]);
+                    }
+                } catch (\Throwable $error) {
+                }
+
+                try {
+                    $site->clearVerification();
+                } catch (\Throwable $error) {
+                }
+
+                try {
+                    app(\App\Services\PmdWorkSessionPolicyService::class)->clear();
+                } catch (\Throwable $error) {
+                }
+
+                try {
+                    $totp = app(\App\Services\PmdOwnerTotpService::class);
+                    $totp->clearSessionVerification();
+                    $totp->resetEnrollment();
+                } catch (\Throwable $error) {
+                }
+
+                session()->forget([
+                    'pmd_login_owner_security_v1',
+                    PmdSiteAccessService::SESSION_PENDING,
+                    PmdSiteAccessService::SESSION_DESTINATION,
+                    'pmd_owner_totp_after_v1',
+                    'pmd_owner_recovery_codes_once_v1',
+                ]);
+
+                try {
+                    AdminAuth::logout();
+                } catch (\Throwable $error) {
+                }
+            }
+
+            session()->invalidate();
+            session()->regenerateToken();
+
+            return redirect(admin_url('login'));
+        })->name('pmd.siteaccess.login.cancel');
 
         // A remembered Main Restaurant Device may satisfy Workplace Access only
         // for the Cashier role. Every other non-Owner role still uses a fresh
