@@ -45,6 +45,9 @@ class PmdShiftAttendanceLiveController
         $dayStart = $day->copy()->setTime(6, 0, 0);
         $dayEnd = $dayStart->copy()->addDay();
         $now = now();
+        $openRecordEnd = $now->lt($dayStart)
+            ? $dayStart->copy()
+            : ($now->lt($dayEnd) ? $now->copy() : $dayEnd->copy());
 
         $people = DB::table('pmd_operational_people')
             ->where('location_id', $locationId)
@@ -111,7 +114,7 @@ class PmdShiftAttendanceLiveController
             foreach ($personRecords as $record) {
                 try {
                     $in = Carbon::parse($record->check_in_time);
-                    $out = $record->check_out_time ? Carbon::parse($record->check_out_time) : ($day->isSameDay($now) ? $now->copy() : $dayEnd->copy());
+                    $out = $record->check_out_time ? Carbon::parse($record->check_out_time) : $openRecordEnd->copy();
                     $from = $in->gt($dayStart) ? $in : $dayStart->copy();
                     $to = $out->lt($dayEnd) ? $out : $dayEnd->copy();
                     if ($to->gt($from)) $workedSeconds += $from->diffInSeconds($to);
@@ -135,7 +138,7 @@ class PmdShiftAttendanceLiveController
                     }
                 } catch (\Throwable $error) {
                 }
-            } elseif ($open) {
+            } elseif ($open && $dayStart->lte($now)) {
                 $state = 'open';
                 try { $label = 'Open session · '.Carbon::parse($open->check_in_time)->format('H:i'); } catch (\Throwable $error) { $label = 'Open session'; }
             } elseif ($workedSeconds > 0) {
