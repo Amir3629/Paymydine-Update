@@ -2,6 +2,7 @@
 
 use Admin\Controllers\Siteaccess;
 use Admin\Facades\AdminAuth;
+use App\Http\Controllers\PmdSiteAccessSessionPingController;
 use App\Http\Middleware\PmdSiteAccessBindVerificationMiddleware;
 use App\Http\Middleware\PmdSiteAccessGateMiddleware;
 use App\Http\Middleware\PmdSiteAccessManageTrustMiddleware;
@@ -13,7 +14,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 
-/** PMD_SITE_ACCESS_ROUTES_V7 */
+/** PMD_SITE_ACCESS_ROUTES_V8 */
 if (!defined('PMD_SITE_ACCESS_ROUTES_V1')) {
     define('PMD_SITE_ACCESS_ROUTES_V1', true);
 
@@ -29,19 +30,15 @@ if (!defined('PMD_SITE_ACCESS_ROUTES_V1')) {
         Route::get('siteaccess/status', [Siteaccess::class, 'status'])->middleware('throttle:60,1')->name('pmd.siteaccess.status');
         Route::post('siteaccess/recovery', [Siteaccess::class, 'recovery'])->middleware('throttle:8,15')->name('pmd.siteaccess.recovery');
 
-        // PMD_WORK_SESSION_KEEPALIVE_ROUTE_V1
-        // Every request still passes the absolute-work-session gate first. This
-        // only prevents Laravel's generic idle GC from ending an otherwise valid
-        // shift/day session before its PMD deadline.
-        Route::get('siteaccess/session/ping', function () {
-            if (!AdminAuth::isLogged()) return response()->json(['ok' => false], 401);
-            return response()->json([
-                'ok' => true,
-                'verified_until' => session()->get(PmdSiteAccessService::SESSION_VERIFIED_UNTIL),
-            ])->header('Cache-Control', 'no-store');
-        })->middleware('throttle:30,1')->name('pmd.siteaccess.session.ping');
+        // PMD_WORK_SESSION_KEEPALIVE_ROUTE_V2
+        // The absolute PMD deadline gate still runs before this controller. The
+        // endpoint only keeps a still-valid Admin session from expiring by idle GC.
+        Route::get('siteaccess/session/ping', PmdSiteAccessSessionPingController::class)
+            ->middleware('throttle:30,1')
+            ->name('pmd.siteaccess.session.ping');
 
-        // PMD_OWNER_AUTHENTICATOR_ROUTES_V1
+        // Legacy Owner MFA routes remain available for backward compatibility.
+        // The canonical password flow now renders Owner MFA inside /admin/login.
         Route::get('siteaccess/owner-mfa/setup', [Siteaccess::class, 'ownermfasetup'])->name('pmd.siteaccess.owner_mfa.setup');
         Route::get('siteaccess/owner-mfa/qr', [Siteaccess::class, 'ownermfaqr'])->middleware('throttle:60,1')->name('pmd.siteaccess.owner_mfa.qr');
         Route::post('siteaccess/owner-mfa/confirm', [Siteaccess::class, 'ownermfaconfirm'])->middleware('throttle:8,15')->name('pmd.siteaccess.owner_mfa.confirm');
