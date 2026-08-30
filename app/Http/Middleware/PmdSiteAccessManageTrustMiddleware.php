@@ -10,7 +10,7 @@ use App\Services\PmdSiteAccessSessionBindingService;
 use Closure;
 use Illuminate\Http\Request;
 
-/** PMD_SITE_ACCESS_MANAGE_TRUST_V6 */
+/** PMD_SITE_ACCESS_MANAGE_TRUST_V7 */
 class PmdSiteAccessManageTrustMiddleware
 {
     public function handle(Request $request, Closure $next)
@@ -46,14 +46,22 @@ class PmdSiteAccessManageTrustMiddleware
                 );
             }
 
-            // PMD_WORKPLACE_BOOTSTRAP_LIVE_OWNER_TOTP_V1
-            // Having TOTP enrolled is not enough. The current regenerated login
-            // session must have just proven the Owner's Authenticator code.
+            // Enrollment alone is not sufficient. If the short-lived proof has
+            // expired, queue the same canonical /admin/login TOTP step again.
             if (!app(PmdOwnerTotpService::class)->sessionVerified($userId, $locationId)) {
+                session()->put('pmd_login_owner_security_v1', [
+                    'mode' => 'verify',
+                    'user_id' => $userId,
+                    'location_id' => $locationId,
+                    'session_id' => (string)session()->getId(),
+                    'created_at' => time(),
+                ]);
+                session()->put('pmd_owner_totp_after_v1', admin_url('siteaccess/hub'));
+
                 return $request->expectsJson()
                     ? response()->json(['ok' => false, 'message' => 'Owner Authenticator verification is required.'], 403)
-                    : redirect(admin_url('siteaccess/owner-mfa'))
-                        ->with('error', 'Verify the Owner Authenticator before activating the first restaurant device.');
+                    : redirect(admin_url('login'))
+                        ->with('error', 'Enter your current Authenticator code to continue.');
             }
 
             return $this->afterTrustedAction($request, $next($request), $site, $identity, false);
@@ -74,7 +82,7 @@ class PmdSiteAccessManageTrustMiddleware
 
         return $request->expectsJson()
             ? response()->json(['ok' => false, 'message' => 'Restaurant verification is required to change device trust.'], 403)
-            : redirect(admin_url('siteaccess'))->with('error', 'Verify at the restaurant before changing trusted devices or recovery codes.');
+            : redirect(admin_url('login'))->with('error', 'Verify restaurant access before changing trusted devices or recovery codes.');
     }
 
     private function afterTrustedAction(
@@ -100,7 +108,6 @@ class PmdSiteAccessManageTrustMiddleware
             ));
         }
 
-        // PMD_SITE_ACCESS_BOOTSTRAP_RECOVERY_V2
         if (
             !$policyWasEnabled
             && $site->policyEnabled((int)$identity['location_id'])
