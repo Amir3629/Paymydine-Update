@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * PMD_OWNER_TOTP_V1
+ * PMD_OWNER_TOTP_V2
  *
  * Provider-free RFC 6238 TOTP for the restaurant Owner. Compatible with
  * Google Authenticator, Microsoft Authenticator, 1Password and other
@@ -75,13 +75,22 @@ class PmdOwnerTotpService
         $secret = strtoupper(trim((string)($enrollment['secret'] ?? '')));
         if ($secret === '') throw new \RuntimeException('Authenticator enrollment is missing.');
 
-        $tenant = strtolower(trim((string)request()->getHost()));
-        $tenant = explode('.', $tenant)[0] ?: 'restaurant';
-        $label = rawurlencode('PayMyDine:'.$tenant);
+        // PMD_OWNER_TOTP_SHORT_QR_LABEL_V1
+        // The local QR encoder is intentionally small and provider-free. Keep
+        // the account label deterministic but short regardless of tenant-domain
+        // length, while the Authenticator app still displays issuer PayMyDine.
+        $tenantHash = strtoupper(substr(hash('sha256', strtolower((string)request()->getHost())), 0, 6));
+        $label = 'PMD-'.$tenantHash;
 
-        return 'otpauth://totp/'.$label
+        $uri = 'otpauth://totp/'.$label
             .'?secret='.rawurlencode($secret)
             .'&issuer=PayMyDine&digits=6&period=30';
+
+        if (strlen($uri) > 106) {
+            throw new \RuntimeException('Authenticator QR payload is too long.');
+        }
+
+        return $uri;
     }
 
     public function confirmEnrollment(int $userId, int $locationId, string $code): bool
