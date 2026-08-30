@@ -13,11 +13,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 
-/** PMD_SITE_ACCESS_ROUTES_V6 */
+/** PMD_SITE_ACCESS_ROUTES_V7 */
 if (!defined('PMD_SITE_ACCESS_ROUTES_V1')) {
     define('PMD_SITE_ACCESS_ROUTES_V1', true);
 
-    // PMD_SITE_ACCESS_WEB_GATE_INSTALL_V1
     app(Kernel::class)->appendMiddlewareToGroup('web', PmdSiteAccessGateMiddleware::class);
 
     Route::group([
@@ -30,20 +29,24 @@ if (!defined('PMD_SITE_ACCESS_ROUTES_V1')) {
         Route::get('siteaccess/status', [Siteaccess::class, 'status'])->middleware('throttle:60,1')->name('pmd.siteaccess.status');
         Route::post('siteaccess/recovery', [Siteaccess::class, 'recovery'])->middleware('throttle:8,15')->name('pmd.siteaccess.recovery');
 
+        // PMD_WORK_SESSION_KEEPALIVE_ROUTE_V1
+        // Every request still passes the absolute-work-session gate first. This
+        // only prevents Laravel's generic idle GC from ending an otherwise valid
+        // shift/day session before its PMD deadline.
+        Route::get('siteaccess/session/ping', function () {
+            if (!AdminAuth::isLogged()) return response()->json(['ok' => false], 401);
+            return response()->json([
+                'ok' => true,
+                'verified_until' => session()->get(PmdSiteAccessService::SESSION_VERIFIED_UNTIL),
+            ])->header('Cache-Control', 'no-store');
+        })->middleware('throttle:30,1')->name('pmd.siteaccess.session.ping');
+
         // PMD_OWNER_AUTHENTICATOR_ROUTES_V1
-        Route::get('siteaccess/owner-mfa/setup', [Siteaccess::class, 'ownermfasetup'])
-            ->name('pmd.siteaccess.owner_mfa.setup');
-        Route::get('siteaccess/owner-mfa/qr', [Siteaccess::class, 'ownermfaqr'])
-            ->middleware('throttle:60,1')
-            ->name('pmd.siteaccess.owner_mfa.qr');
-        Route::post('siteaccess/owner-mfa/confirm', [Siteaccess::class, 'ownermfaconfirm'])
-            ->middleware('throttle:8,15')
-            ->name('pmd.siteaccess.owner_mfa.confirm');
-        Route::get('siteaccess/owner-mfa', [Siteaccess::class, 'ownermfa'])
-            ->name('pmd.siteaccess.owner_mfa');
-        Route::post('siteaccess/owner-mfa/verify', [Siteaccess::class, 'ownermfaverify'])
-            ->middleware('throttle:8,15')
-            ->name('pmd.siteaccess.owner_mfa.verify');
+        Route::get('siteaccess/owner-mfa/setup', [Siteaccess::class, 'ownermfasetup'])->name('pmd.siteaccess.owner_mfa.setup');
+        Route::get('siteaccess/owner-mfa/qr', [Siteaccess::class, 'ownermfaqr'])->middleware('throttle:60,1')->name('pmd.siteaccess.owner_mfa.qr');
+        Route::post('siteaccess/owner-mfa/confirm', [Siteaccess::class, 'ownermfaconfirm'])->middleware('throttle:8,15')->name('pmd.siteaccess.owner_mfa.confirm');
+        Route::get('siteaccess/owner-mfa', [Siteaccess::class, 'ownermfa'])->name('pmd.siteaccess.owner_mfa');
+        Route::post('siteaccess/owner-mfa/verify', [Siteaccess::class, 'ownermfaverify'])->middleware('throttle:8,15')->name('pmd.siteaccess.owner_mfa.verify');
 
         // PMD_SITE_ACCESS_SIGNED_QR_V2
         Route::get('siteaccess/hub/qr/{challenge}', function ($challenge, Request $request) {
@@ -51,7 +54,7 @@ if (!defined('PMD_SITE_ACCESS_ROUTES_V1')) {
             $site = app(PmdSiteAccessService::class);
             $identity = $site->identity();
             $hub = $site->currentHub($request, $identity['location_id']);
-            if (!$hub) return response('Trusted Site Access hub required.', 403);
+            if (!$hub) return response('Trusted Workplace Access device required.', 403);
             $site->touchDevice((int)$hub->id);
 
             $record = DB::table('pmd_site_access_challenges')
