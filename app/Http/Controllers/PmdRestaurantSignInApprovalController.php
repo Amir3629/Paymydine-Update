@@ -13,7 +13,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
-/** PMD_RESTAURANT_SIGNIN_APPROVAL_V2 */
+/** PMD_RESTAURANT_SIGNIN_APPROVAL_V3 */
 class PmdRestaurantSignInApprovalController
 {
     public function data(Request $request): JsonResponse
@@ -200,14 +200,18 @@ class PmdRestaurantSignInApprovalController
         );
 
         if ($role === PmdDefaultStaffRoleService::OWNER) {
-            // Remote Owner authority exists only after the personal TOTP login
-            // for this exact session. The Owner's TOTP is never exposed to staff.
-            if ($method !== 'owner_totp') return null;
+            // PMD_OWNER_RECOVERY_APPROVAL_AUTHORITY_V1
+            // A one-time Owner recovery code is a full emergency second factor for
+            // this bound PMD session, just like personal TOTP. It never creates a
+            // permanent trusted browser and remains auditable as owner_recovery.
+            if (!in_array($method, ['owner_totp', 'owner_recovery'], true)) return null;
             return [
                 'site' => $site,
                 'identity' => $identity,
                 'role' => $role,
-                'method' => 'owner_totp_session',
+                'method' => $method === 'owner_recovery'
+                    ? 'owner_recovery_session'
+                    : 'owner_totp_session',
                 'device_id' => null,
             ];
         }
