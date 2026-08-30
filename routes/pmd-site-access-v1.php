@@ -2,6 +2,7 @@
 
 use Admin\Controllers\Siteaccess;
 use Admin\Facades\AdminAuth;
+use App\Http\Controllers\PmdLoginWorkplaceVerifyController;
 use App\Http\Controllers\PmdSiteAccessHubDataController;
 use App\Http\Controllers\PmdSiteAccessSessionPingController;
 use App\Http\Middleware\PmdSiteAccessBindVerificationMiddleware;
@@ -15,7 +16,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 
-/** PMD_SITE_ACCESS_ROUTES_V9 */
+/** PMD_SITE_ACCESS_ROUTES_V10 */
 if (!defined('PMD_SITE_ACCESS_ROUTES_V1')) {
     define('PMD_SITE_ACCESS_ROUTES_V1', true);
 
@@ -27,31 +28,33 @@ if (!defined('PMD_SITE_ACCESS_ROUTES_V1')) {
     ], function () {
         Route::get('siteaccess', [Siteaccess::class, 'index'])->name('pmd.siteaccess');
 
-        // PMD_WORKPLACE_VERIFY_SHARED_NAT_V1
-        // Restaurant devices commonly share one public IP. The per-challenge
-        // controller limit (8 attempts / 90s challenge) is the brute-force guard;
-        // keep the IP-level limiter high enough not to lock coworkers out.
-        Route::post('siteaccess/verify', [Siteaccess::class, 'verify'])->middleware('throttle:120,1')->name('pmd.siteaccess.verify');
+        // Canonical Login factor-2 endpoint. Restaurant devices commonly share
+        // one NAT IP; the per-challenge 8-attempt lock remains the brute-force
+        // authority while this outer limiter prevents coworker lockouts.
+        Route::post('siteaccess/login-verify', PmdLoginWorkplaceVerifyController::class)
+            ->middleware('throttle:120,1')
+            ->name('pmd.siteaccess.login.verify');
+
+        // Legacy verification endpoint kept only for backward compatibility.
+        Route::post('siteaccess/verify', [Siteaccess::class, 'verify'])
+            ->middleware('throttle:120,1')
+            ->name('pmd.siteaccess.verify');
         Route::post('siteaccess/finalize', [Siteaccess::class, 'finalize'])->middleware('throttle:30,1')->name('pmd.siteaccess.finalize');
         Route::get('siteaccess/status', [Siteaccess::class, 'status'])->middleware('throttle:60,1')->name('pmd.siteaccess.status');
         Route::post('siteaccess/recovery', [Siteaccess::class, 'recovery'])->middleware('throttle:8,15')->name('pmd.siteaccess.recovery');
 
-        // PMD_WORK_SESSION_KEEPALIVE_ROUTE_V2
-        // The absolute PMD deadline gate still runs before this controller. The
-        // endpoint only keeps a still-valid Admin session from expiring by idle GC.
         Route::get('siteaccess/session/ping', PmdSiteAccessSessionPingController::class)
             ->middleware('throttle:30,1')
             ->name('pmd.siteaccess.session.ping');
 
-        // Legacy Owner MFA routes remain available for backward compatibility.
-        // The canonical password flow now renders Owner MFA inside /admin/login.
+        // Legacy Owner MFA routes remain for old links; normal password login
+        // renders Authenticator setup/verification inside /admin/login.
         Route::get('siteaccess/owner-mfa/setup', [Siteaccess::class, 'ownermfasetup'])->name('pmd.siteaccess.owner_mfa.setup');
         Route::get('siteaccess/owner-mfa/qr', [Siteaccess::class, 'ownermfaqr'])->middleware('throttle:60,1')->name('pmd.siteaccess.owner_mfa.qr');
         Route::post('siteaccess/owner-mfa/confirm', [Siteaccess::class, 'ownermfaconfirm'])->middleware('throttle:8,15')->name('pmd.siteaccess.owner_mfa.confirm');
         Route::get('siteaccess/owner-mfa', [Siteaccess::class, 'ownermfa'])->name('pmd.siteaccess.owner_mfa');
         Route::post('siteaccess/owner-mfa/verify', [Siteaccess::class, 'ownermfaverify'])->middleware('throttle:8,15')->name('pmd.siteaccess.owner_mfa.verify');
 
-        // PMD_SITE_ACCESS_SIGNED_QR_V2
         Route::get('siteaccess/hub/qr/{challenge}', function ($challenge, Request $request) {
             if (!AdminAuth::isLogged()) return response('Authentication required.', 401);
             $site = app(PmdSiteAccessService::class);
@@ -82,6 +85,8 @@ if (!defined('PMD_SITE_ACCESS_ROUTES_V1')) {
                 ->header('X-Content-Type-Options', 'nosniff');
         })->where('challenge', '[1-9][0-9]*')->middleware('throttle:120,1')->name('pmd.siteaccess.hub.qr');
 
+        // Exact pending-request QR. Scanning on the Login card never trusts the
+        // phone permanently; it completes only this 90-second challenge.
         Route::get('siteaccess/q', function (Request $request) {
             if (!AdminAuth::isLogged()) return redirect(admin_url('login'));
             $site = app(PmdSiteAccessService::class);
@@ -91,11 +96,11 @@ if (!defined('PMD_SITE_ACCESS_ROUTES_V1')) {
             $sessionChallenge = $site->challengeForSession();
             $identity = $site->identity();
 
-            if (!$challenge || !$sessionChallenge || (int)$challenge->id !== (int)$sessionChallenge->id || (int)$challenge->user_id !== $identity['user_id']) {
-                return redirect(admin_url('siteaccess'))->with('error', 'This Workplace Access QR is not valid for your current login.');
+            if (!$challenge || !$sessionChallenge || (int)$challenge->id !== (int)$sessionChallenge->id || (int)$challenge->user_id !== (int)$identity['user_id']) {
+                return redirect(admin_url('login'))->with('error', 'This QR is not valid for your current login.');
             }
             if (!$site->hasOnlineHub((int)$challenge->location_id)) {
-                return redirect(admin_url('siteaccess'))->with('error', 'The restaurant Workplace Access device is offline.');
+                return redirect(admin_url('login'))->with('error', 'The restaurant Cashier device is offline.');
             }
 
             DB::table('pmd_site_access_challenges')->where('id', $challenge->id)->update([
@@ -103,15 +108,17 @@ if (!defined('PMD_SITE_ACCESS_ROUTES_V1')) {
                 'approved_at' => now(),
                 'updated_at' => now(),
             ]);
-            $site->audit('challenge_qr_verified', true, $identity, null, (int)$challenge->id, $request);
+            $site->audit('challenge_qr_verified', true, $identity, null, (int)$challenge->id, $request, [
+                'surface' => 'canonical_login_camera',
+            ]);
 
             try {
                 $result = $site->finalizeCurrent($request);
                 app(\App\Services\PmdSiteAccessSessionBindingService::class)->bindCurrentUser();
                 app(\App\Services\PmdWorkSessionPolicyService::class)->apply($site->identity());
-                return redirect((string)$result['redirect'])->with('success', 'Workplace Access verified.');
+                return redirect((string)$result['redirect'])->with('success', 'Security verified.');
             } catch (\Throwable $error) {
-                return redirect(admin_url('siteaccess'))->with('error', $error->getMessage());
+                return redirect(admin_url('login'))->with('error', $error->getMessage());
             }
         })->middleware('throttle:20,1')->name('pmd.siteaccess.q.short');
 
