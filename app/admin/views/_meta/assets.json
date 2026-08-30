@@ -286,8 +286,8 @@
       "name": "pmd-sumup-inline-wallet-settings-v1-js"
     },
     {
-      "path": "js/pmd-site-access-hub-v10.js",
-      "name": "pmd-site-access-hub-v10-js"
+      "path": "js/pmd-site-access-hub-v11.js",
+      "name": "pmd-site-access-hub-v11-js"
     }
   ]
 }
