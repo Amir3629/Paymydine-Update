@@ -9,6 +9,7 @@ use App\Http\Controllers\PmdOwnerEmergencyAccessController;
 use App\Http\Controllers\PmdRestaurantSignInApprovalController;
 use App\Http\Controllers\PmdSiteAccessHubDataController;
 use App\Http\Controllers\PmdSiteAccessSessionPingController;
+use App\Http\Middleware\PmdOwnerSecuritySessionThrottleMiddleware;
 use App\Http\Middleware\PmdSiteAccessBindVerificationMiddleware;
 use App\Http\Middleware\PmdSiteAccessGateMiddleware;
 use App\Http\Middleware\PmdSiteAccessManageTrustMiddleware;
@@ -20,7 +21,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 
-/** PMD_SITE_ACCESS_ROUTES_V14 */
+/** PMD_SITE_ACCESS_ROUTES_V15 */
 if (!defined('PMD_SITE_ACCESS_ROUTES_V1')) {
     define('PMD_SITE_ACCESS_ROUTES_V1', true);
 
@@ -43,21 +44,21 @@ if (!defined('PMD_SITE_ACCESS_ROUTES_V1')) {
             ->middleware('throttle:30,1')
             ->name('pmd.siteaccess.cashier.resume');
 
-        // PMD_OWNER_EMERGENCY_LOGIN_ROUTES_V1
-        // Canonical Owner setup/verification remains on /admin/login. These POST
-        // endpoints keep the UI on that same card while adding one-time offline
-        // recovery codes as the emergency path when the Authenticator phone is lost.
+        // PMD_OWNER_EMERGENCY_LOGIN_ROUTES_V2
+        // Do not use Laravel's generic IP throttle here. Restaurant users commonly
+        // share one NAT/public IP, so an 8/15 IP bucket can be consumed by unrelated
+        // PMD traffic and lock the Owner out. Secret-checking routes instead share
+        // an eight-attempt guard bound to this authenticated password-login session.
         Route::post('siteaccess/owner-security/setup-confirm', [PmdOwnerEmergencyAccessController::class, 'confirm'])
-            ->middleware('throttle:8,15')
+            ->middleware(PmdOwnerSecuritySessionThrottleMiddleware::class)
             ->name('pmd.siteaccess.owner_security.confirm');
         Route::post('siteaccess/owner-security/verify', [PmdOwnerEmergencyAccessController::class, 'verify'])
-            ->middleware('throttle:8,15')
+            ->middleware(PmdOwnerSecuritySessionThrottleMiddleware::class)
             ->name('pmd.siteaccess.owner_security.verify');
         Route::post('siteaccess/owner-security/recover', [PmdOwnerEmergencyAccessController::class, 'recover'])
-            ->middleware('throttle:8,15')
+            ->middleware(PmdOwnerSecuritySessionThrottleMiddleware::class)
             ->name('pmd.siteaccess.owner_security.recover');
         Route::post('siteaccess/owner-security/recovery-codes-saved', [PmdOwnerEmergencyAccessController::class, 'codesSaved'])
-            ->middleware('throttle:8,15')
             ->name('pmd.siteaccess.owner_security.codes_saved');
 
         Route::post('siteaccess/verify', [Siteaccess::class, 'verify'])
