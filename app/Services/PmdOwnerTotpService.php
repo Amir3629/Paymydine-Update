@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * PMD_OWNER_TOTP_V4
+ * PMD_OWNER_TOTP_V5
  *
  * Provider-free RFC 6238 TOTP for the restaurant Owner. Compatible with
  * Google Authenticator, Microsoft Authenticator, 1Password and other
@@ -76,13 +76,22 @@ class PmdOwnerTotpService
         $secret = strtoupper(trim((string)($enrollment['secret'] ?? '')));
         if ($secret === '') throw new \RuntimeException('Authenticator enrollment is missing.');
 
-        // PMD_OWNER_TOTP_SHORT_QR_LABEL_V1
-        $tenantHash = strtoupper(substr(hash('sha256', strtolower((string)request()->getHost())), 0, 6));
-        $label = 'PMD-'.$tenantHash;
+        // PMD_OWNER_TOTP_TENANT_LABEL_V2
+        // Human-readable Authenticator identity: PayMyDine + tenant/domain slug.
+        // Example: mimoza.paymydine.com -> PayMyDine : Mimoza.
+        // The former PMD-<hash> label was intentionally short, but confusing.
+        $issuer = 'PayMyDine';
+        $account = $this->authenticatorAccountLabel(
+            (int)($enrollment['location_id'] ?? 0)
+        );
+        $label = $issuer.':'.$account;
 
-        $uri = 'otpauth://totp/'.$label
+        // Google Authenticator and other standard TOTP apps default to SHA1,
+        // six digits and a 30-second period. Omitting those default parameters
+        // keeps the QR compact while allowing a useful tenant name in the label.
+        $uri = 'otpauth://totp/'.rawurlencode($label)
             .'?secret='.rawurlencode($secret)
-            .'&issuer=PayMyDine&digits=6&period=30';
+            .'&issuer='.rawurlencode($issuer);
 
         if (strlen($uri) > 106) {
             throw new \RuntimeException('Authenticator QR payload is too long.');
@@ -186,6 +195,43 @@ class PmdOwnerTotpService
     public function resetEnrollment(): void
     {
         session()->forget(self::SESSION_ENROLLMENT);
+    }
+
+    private function authenticatorAccountLabel(int $locationId): string
+    {
+        $host = strtolower(trim((string)request()->getHost()));
+        $account = '';
+
+        // Canonical PMD tenant domains should show the tenant slug directly.
+        // mimoza.paymydine.com -> Mimoza
+        if (preg_match('/^([a-z0-9-]+)\.paymydine\.com$/i', $host, $match)) {
+            $account = (string)$match[1];
+        }
+
+        // Custom domains use the restaurant/location name when available.
+        if ($account === '' && $locationId > 0) {
+            try {
+                if (Schema::hasTable('locations')) {
+                    $account = trim((string)DB::table('locations')
+                        ->where('location_id', $locationId)
+                        ->value('location_name'));
+                }
+            } catch (\Throwable $error) {
+                $account = '';
+            }
+        }
+
+        if ($account === '') {
+            $account = $host !== '' ? $host : 'Restaurant';
+        }
+
+        // Keep the OTP URI compact and portable across Authenticator apps.
+        $account = preg_replace('/[^A-Za-z0-9._-]+/', '-', $account);
+        $account = trim(preg_replace('/-+/', '-', (string)$account), '-._');
+        if ($account === '') $account = 'Restaurant';
+
+        $account = substr($account, 0, 15);
+        return ucfirst($account);
     }
 
     private function markSessionVerified(int $userId, int $locationId, string $method): void
