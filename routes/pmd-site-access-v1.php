@@ -5,6 +5,7 @@ use Admin\Facades\AdminAuth;
 use App\Http\Controllers\PmdCashierTrustedDeviceResumeController;
 use App\Http\Controllers\PmdFirstWorkplaceDeviceController;
 use App\Http\Controllers\PmdLoginWorkplaceVerifyController;
+use App\Http\Controllers\PmdOwnerEmergencyAccessController;
 use App\Http\Controllers\PmdRestaurantSignInApprovalController;
 use App\Http\Controllers\PmdSiteAccessHubDataController;
 use App\Http\Controllers\PmdSiteAccessSessionPingController;
@@ -19,7 +20,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 
-/** PMD_SITE_ACCESS_ROUTES_V13 */
+/** PMD_SITE_ACCESS_ROUTES_V14 */
 if (!defined('PMD_SITE_ACCESS_ROUTES_V1')) {
     define('PMD_SITE_ACCESS_ROUTES_V1', true);
 
@@ -41,6 +42,23 @@ if (!defined('PMD_SITE_ACCESS_ROUTES_V1')) {
         Route::post('siteaccess/cashier-resume', PmdCashierTrustedDeviceResumeController::class)
             ->middleware('throttle:30,1')
             ->name('pmd.siteaccess.cashier.resume');
+
+        // PMD_OWNER_EMERGENCY_LOGIN_ROUTES_V1
+        // Canonical Owner setup/verification remains on /admin/login. These POST
+        // endpoints keep the UI on that same card while adding one-time offline
+        // recovery codes as the emergency path when the Authenticator phone is lost.
+        Route::post('siteaccess/owner-security/setup-confirm', [PmdOwnerEmergencyAccessController::class, 'confirm'])
+            ->middleware('throttle:8,15')
+            ->name('pmd.siteaccess.owner_security.confirm');
+        Route::post('siteaccess/owner-security/verify', [PmdOwnerEmergencyAccessController::class, 'verify'])
+            ->middleware('throttle:8,15')
+            ->name('pmd.siteaccess.owner_security.verify');
+        Route::post('siteaccess/owner-security/recover', [PmdOwnerEmergencyAccessController::class, 'recover'])
+            ->middleware('throttle:8,15')
+            ->name('pmd.siteaccess.owner_security.recover');
+        Route::post('siteaccess/owner-security/recovery-codes-saved', [PmdOwnerEmergencyAccessController::class, 'codesSaved'])
+            ->middleware('throttle:8,15')
+            ->name('pmd.siteaccess.owner_security.codes_saved');
 
         Route::post('siteaccess/verify', [Siteaccess::class, 'verify'])
             ->middleware('throttle:120,1')
