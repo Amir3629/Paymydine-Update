@@ -284,6 +284,14 @@
     {
       "path": "js/pmd-sumup-inline-wallet-settings-v1.js",
       "name": "pmd-sumup-inline-wallet-settings-v1-js"
+    },
+    {
+      "path": "js/pmd-site-access-hub-v12.js",
+      "name": "pmd-site-access-hub-v12-js"
+    },
+    {
+      "path": "js/pmd-shifts-live-attendance-v1.js",
+      "name": "pmd-shifts-live-attendance-v1-js"
     }
   ]
 }

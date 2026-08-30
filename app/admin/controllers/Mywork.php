@@ -4,10 +4,10 @@ namespace Admin\Controllers;
 
 use Admin\Classes\AdminController;
 use Admin\Facades\AdminMenu;
-use App\Http\Controllers\PmdStaffPortalV5Controller;
+use App\Http\Controllers\PmdStaffPortalV6Controller;
 use Illuminate\Http\RedirectResponse;
 
-/** PMD_MY_WORK_STAFF_PORTAL_V5 */
+/** PMD_MY_WORK_STAFF_PORTAL_V6 */
 class Mywork extends AdminController
 {
     protected $requiredPermissions = null;
@@ -52,6 +52,17 @@ class Mywork extends AdminController
         return $this->portalResponse('updateProfile');
     }
 
+    /** PMD_STAFF_PORTAL_TIME_CLOCK_ACTIONS_V1 */
+    public function clockin()
+    {
+        return $this->portalResponse('clockIn');
+    }
+
+    public function clockout()
+    {
+        return $this->portalResponse('clockOut');
+    }
+
     /** Fallback dynamic action. V5 also has an explicit priority avatar route. */
     public function avatar()
     {
@@ -64,12 +75,12 @@ class Mywork extends AdminController
     }
 
     /**
-     * V5 overrides month/report/avatar/shift ownership while inheriting the
-     * already-proven chat, profile save, group and management actions from V4.
+     * V6 adds canonical attendance clocking while V5 continues to own the
+     * month/report/avatar/shift layer and inherited V4 chat/profile actions.
      */
     private function portalResponse(string $method, bool $withRequest = true)
     {
-        $portal = app(PmdStaffPortalV5Controller::class);
+        $portal = app(PmdStaffPortalV6Controller::class);
         $response = $withRequest
             ? $portal->{$method}(request())
             : $portal->{$method}();
