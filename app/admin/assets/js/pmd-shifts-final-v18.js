@@ -195,10 +195,11 @@
     return true;
   }
 
-  function removeLateDuplicateCss() {
-    Array.prototype.forEach.call(document.querySelectorAll('link[data-pmd-shifts-exact-ui-v17]'), function (link) {
-      link.remove();
-    });
+  // IMPORTANT: V17 is the live Shifts visual authority, not a disposable
+  // duplicate. Removing it blanks/hides legacy containers that V17 explicitly
+  // reveals and lays out. V18 layers on top of it and must preserve the link.
+  function preserveSharedUiCss() {
+    return document.querySelector('link[data-pmd-shifts-exact-ui-v17]');
   }
 
   function scheduleDecorate() {
@@ -209,7 +210,7 @@
         normalizeKpiMenus();
         removeRetiredTeamSurfaces();
         mountNotification();
-        removeLateDuplicateCss();
+        preserveSharedUiCss();
       }, delay);
     });
   }
@@ -218,7 +219,7 @@
   captureMemberMap();
   normalizeKpiMenus();
   removeRetiredTeamSurfaces();
-  removeLateDuplicateCss();
+  preserveSharedUiCss();
   decorateRota();
 
   if (!mountNotification()) {
