@@ -2,14 +2,15 @@
 
 namespace App\Services;
 
+use App\Services\Platform\LocationPlatformContext;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * PMD_WORK_SESSION_POLICY_V3
+ * PMD_WORK_SESSION_POLICY_V4
  *
- * Absolute access window for restaurant users:
+ * Absolute access window in the restaurant location timezone:
  * - fresh login during a scheduled shift: shift end + 1 hour
  * - fresh login before work: nearest next shift end + 1 hour
  * - fresh login after the scheduled shift ended, or no schedule: restaurant day 06:00
@@ -32,6 +33,7 @@ class PmdWorkSessionPolicyService
         session()->put(self::SESSION_POLICY, [
             'reason' => $policy['reason'],
             'shift_ids' => $policy['shift_ids'],
+            'timezone' => $policy['timezone'],
             'expires_at' => $policy['expires_at']->toIso8601String(),
         ]);
 
@@ -40,15 +42,19 @@ class PmdWorkSessionPolicyService
 
     public function policy(array $identity, ?Carbon $now = null): array
     {
-        $now = $now ? $now->copy() : now();
-        $boundary = $this->nextRestaurantBoundary($now);
         $locationId = (int)($identity['location_id'] ?? 0);
         $staffId = (int)($identity['staff_id'] ?? 0);
+        $timezone = $this->restaurantTimezone($locationId);
+        $now = $now
+            ? $now->copy()->setTimezone($timezone)
+            : Carbon::now($timezone);
+        $boundary = $this->nextRestaurantBoundary($now);
 
         $fallback = [
             'expires_at' => $boundary,
             'reason' => 'restaurant_day_overtime_or_unscheduled',
             'shift_ids' => [],
+            'timezone' => $timezone,
         ];
 
         if ($locationId < 1 || $staffId < 1) return $fallback;
@@ -96,8 +102,8 @@ class PmdWorkSessionPolicyService
             foreach ($shifts as $shift) {
                 if (!$shift->shift_date || !$shift->starts_at || !$shift->ends_at) continue;
 
-                $start = Carbon::parse($shift->shift_date.' '.$shift->starts_at, $now->getTimezone());
-                $end = Carbon::parse($shift->shift_date.' '.$shift->ends_at, $now->getTimezone());
+                $start = Carbon::parse($shift->shift_date.' '.$shift->starts_at, $timezone);
+                $end = Carbon::parse($shift->shift_date.' '.$shift->ends_at, $timezone);
                 if ($end->lessThanOrEqualTo($start)) $end->addDay();
 
                 if ($end->lessThanOrEqualTo($restaurantStart) || $start->greaterThanOrEqualTo($boundary)) continue;
@@ -128,6 +134,7 @@ class PmdWorkSessionPolicyService
                     'expires_at' => $selected['grace_end'],
                     'reason' => 'shift_plus_one_hour',
                     'shift_ids' => [(int)$selected['id']],
+                    'timezone' => $timezone,
                 ];
             }
 
@@ -140,6 +147,7 @@ class PmdWorkSessionPolicyService
                     'expires_at' => $selected['grace_end'],
                     'reason' => 'next_shift_plus_one_hour',
                     'shift_ids' => [(int)$selected['id']],
+                    'timezone' => $timezone,
                 ];
             }
 
@@ -148,6 +156,7 @@ class PmdWorkSessionPolicyService
             logger()->warning('PMD work-session policy fallback', [
                 'staff_id' => $staffId,
                 'location_id' => $locationId,
+                'timezone' => $timezone,
                 'message' => $error->getMessage(),
             ]);
             return $fallback;
@@ -169,6 +178,26 @@ class PmdWorkSessionPolicyService
     public function clear(): void
     {
         session()->forget(self::SESSION_POLICY);
+    }
+
+    private function restaurantTimezone(int $locationId): string
+    {
+        try {
+            $timezone = trim((string)app(LocationPlatformContext::class)->timezone($locationId));
+            if ($timezone !== '') {
+                new \DateTimeZone($timezone);
+                return $timezone;
+            }
+        } catch (\Throwable $error) {
+        }
+
+        $fallback = trim((string)config('app.timezone', 'UTC')) ?: 'UTC';
+        try {
+            new \DateTimeZone($fallback);
+            return $fallback;
+        } catch (\Throwable $error) {
+            return 'UTC';
+        }
     }
 
     private function nextRestaurantBoundary(Carbon $now): Carbon
