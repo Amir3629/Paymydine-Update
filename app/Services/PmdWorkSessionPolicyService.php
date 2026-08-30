@@ -7,14 +7,15 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * PMD_WORK_SESSION_POLICY_V2
+ * PMD_WORK_SESSION_POLICY_V3
  *
  * Absolute access window for restaurant users:
- * - current scheduled work: until that shift end + 1 hour
- * - before work: until the nearest next shift end + 1 hour
- * - login after the scheduled grace window, or no schedule: until restaurant-day 06:00
+ * - fresh login during a scheduled shift: shift end + 1 hour
+ * - fresh login before work: nearest next shift end + 1 hour
+ * - fresh login after the scheduled shift ended, or no schedule: restaurant day 06:00
  *
- * This is independent from Laravel's generic idle session lifetime.
+ * Therefore an existing shift session receives its one-hour grace, while a new
+ * login after shift end is treated as overtime/unplanned work for that day.
  */
 class PmdWorkSessionPolicyService
 {
@@ -46,7 +47,7 @@ class PmdWorkSessionPolicyService
 
         $fallback = [
             'expires_at' => $boundary,
-            'reason' => 'restaurant_day',
+            'reason' => 'restaurant_day_overtime_or_unscheduled',
             'shift_ids' => [],
         ];
 
@@ -104,10 +105,14 @@ class PmdWorkSessionPolicyService
                 $row = [
                     'id' => (int)$shift->id,
                     'start' => $start,
+                    'end' => $end,
                     'grace_end' => $end->copy()->addHour(),
                 ];
 
-                if ($now->greaterThanOrEqualTo($start) && $now->lessThanOrEqualTo($row['grace_end'])) {
+                // A NEW login counts as scheduled only until the actual shift end.
+                // The +1 hour is the lifetime granted to that session, not a new
+                // login window after the employee's scheduled work already ended.
+                if ($now->greaterThanOrEqualTo($start) && $now->lessThanOrEqualTo($end)) {
                     $current[] = $row;
                 } elseif ($start->greaterThan($now)) {
                     $upcoming[] = $row;
@@ -116,7 +121,7 @@ class PmdWorkSessionPolicyService
 
             if ($current) {
                 usort($current, static function ($a, $b) {
-                    return $a['grace_end']->timestamp <=> $b['grace_end']->timestamp;
+                    return $a['end']->timestamp <=> $b['end']->timestamp;
                 });
                 $selected = end($current);
                 return [
@@ -138,9 +143,6 @@ class PmdWorkSessionPolicyService
                 ];
             }
 
-            // The scheduled window is over (or there is no current-day shift).
-            // A fresh login now is treated as overtime/unplanned work and lasts
-            // only until the current restaurant day closes at 06:00.
             return $fallback;
         } catch (\Throwable $error) {
             logger()->warning('PMD work-session policy fallback', [
