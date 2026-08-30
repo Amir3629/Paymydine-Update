@@ -5,15 +5,16 @@ namespace App\Http\Middleware;
 use Admin\Facades\AdminAuth;
 use Admin\Services\PmdDefaultStaffRoleService;
 use App\Services\PmdSiteAccessService;
+use App\Services\PmdSiteAccessSessionBindingService;
 use Closure;
 use Illuminate\Http\Request;
 
 /**
- * PMD_SITE_ACCESS_MANAGE_TRUST_V1
+ * PMD_SITE_ACCESS_MANAGE_TRUST_V2
  *
  * Bootstrap is allowed once to Owner/Manager before the first hub exists.
  * After policy activation, trust configuration itself requires workplace proof
- * so a remote Manager cannot revoke the last hub to disable enforcement.
+ * bound to the same PMD user or the current physical trusted hub.
  */
 class PmdSiteAccessManageTrustMiddleware
 {
@@ -53,7 +54,10 @@ class PmdSiteAccessManageTrustMiddleware
             return $next($request);
         }
 
-        if ($site->isWorkspaceVerified($locationId)) {
+        if (
+            $site->isWorkspaceVerified($locationId)
+            && app(PmdSiteAccessSessionBindingService::class)->isBoundToCurrentUser()
+        ) {
             return $next($request);
         }
 
