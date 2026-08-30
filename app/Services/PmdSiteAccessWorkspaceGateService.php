@@ -6,11 +6,15 @@ use Admin\Facades\AdminAuth;
 use Illuminate\Http\Request;
 
 /**
- * PMD_WORKPLACE_GATE_V4
+ * PMD_WORKPLACE_GATE_V5
  *
  * Once the restaurant activates Workplace Access, every tenant Admin surface -
  * including My Work / Staff Portal - requires fresh workplace verification.
- * Personal devices are never a substitute for physical restaurant proof.
+ * Personal devices are never a substitute for restaurant proof.
+ *
+ * Verified sessions are absolute and shift-aware: scheduled users keep access
+ * until shift end + 1 hour; overtime/no-schedule logins use the restaurant-day
+ * boundary. An expired verified session is logged out, not silently extended.
  */
 class PmdSiteAccessWorkspaceGateService
 {
@@ -20,6 +24,24 @@ class PmdSiteAccessWorkspaceGateService
 
         $site = app(PmdSiteAccessService::class);
         if (!$site->ready()) return null;
+
+        // PMD_WORK_SESSION_ABSOLUTE_EXPIRY_V1
+        // Only an already-verified session has this timestamp. Fresh password
+        // logins clear old verification state before beginning step-up.
+        $workSession = app(PmdWorkSessionPolicyService::class);
+        if (session()->has(PmdSiteAccessService::SESSION_VERIFIED_UNTIL) && $workSession->isExpired()) {
+            try {
+                $site->clearVerification();
+                $workSession->clear();
+                AdminAuth::logout();
+            } catch (\Throwable $error) {
+            }
+            session()->invalidate();
+            session()->regenerateToken();
+
+            return redirect(admin_url('login?session=work-expired'))
+                ->with('error', 'Your work session ended. Sign in again to continue.');
+        }
 
         $identity = $site->identity();
         $locationId = (int)$identity['location_id'];
@@ -48,8 +70,11 @@ class PmdSiteAccessWorkspaceGateService
             if (!$workspaceVerified) {
                 $site->markWorkspaceVerified($locationId, 'trusted_workplace_device', (int)$hub->id);
                 $binding->bindCurrentUser();
+                $policy = $workSession->apply($identity);
                 $site->audit('workplace_auto_verified', true, $identity, (int)$hub->id, null, $request, [
                     'path' => $relative,
+                    'session_until' => $policy['expires_at']->toIso8601String(),
+                    'session_reason' => $policy['reason'],
                 ]);
             }
             return null;
