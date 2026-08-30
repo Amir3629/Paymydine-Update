@@ -6,7 +6,7 @@ use Admin\Facades\AdminAuth;
 use Illuminate\Http\Request;
 
 /**
- * PMD_SITE_ACCESS_WORKSPACE_GATE_V2
+ * PMD_SITE_ACCESS_WORKSPACE_GATE_V3
  *
  * Request-level enforcement once a restaurant has explicitly activated its
  * first Site Access hub. Personal Staff Portal trust and workplace trust stay
@@ -27,11 +27,13 @@ class PmdSiteAccessWorkspaceGateService
         if ($identity['user_id'] < 1 || $identity['staff_id'] < 1 || $locationId < 1) return null;
         if (!$site->policyEnabled($locationId)) return null;
 
+        $binding = app(PmdSiteAccessSessionBindingService::class);
+        $workspaceVerified = $site->isWorkspaceVerified($locationId)
+            && $binding->isBoundToCurrentUser();
+
         $relative = $this->relativeAdminPath($request);
 
         // Language switching is account preference, not operational Workspace.
-        // Both current and legacy language-switch routes must stay available to
-        // a paired Staff Portal device without forcing workplace verification.
         if (str_starts_with($relative, '_pmd/language-switch')) return null;
 
         // Authentication, Site Access itself, static assets and logout must stay
@@ -45,8 +47,9 @@ class PmdSiteAccessWorkspaceGateService
         $hub = $site->currentHub($request, $locationId);
         if ($hub) {
             $site->touchDevice((int)$hub->id);
-            if (!$site->isWorkspaceVerified($locationId)) {
+            if (!$workspaceVerified) {
                 $site->markWorkspaceVerified($locationId, 'trusted_site_hub', (int)$hub->id);
+                $binding->bindCurrentUser();
                 $site->audit('workspace_auto_verified', true, $identity, (int)$hub->id, null, $request, [
                     'path' => $relative,
                 ]);
@@ -57,8 +60,8 @@ class PmdSiteAccessWorkspaceGateService
         $isMyWork = $relative === 'mywork' || str_starts_with($relative, 'mywork/');
 
         if ($isMyWork) {
-            // A workplace-verified session can always open personal My Work.
-            if ($site->isWorkspaceVerified($locationId)) return null;
+            // A user-bound workplace session can always open personal My Work.
+            if ($workspaceVerified) return null;
 
             // Otherwise only the employee's paired personal device is allowed
             // off-site. Revoking the device takes effect on the next request.
@@ -78,7 +81,7 @@ class PmdSiteAccessWorkspaceGateService
         }
 
         // Everything else under tenant /admin is operational Workspace.
-        if ($site->isWorkspaceVerified($locationId)) return null;
+        if ($workspaceVerified) return null;
 
         $pending = $site->challengeForSession();
         if (!$pending || $pending->purpose !== PmdSiteAccessService::PURPOSE_WORKSPACE) {
