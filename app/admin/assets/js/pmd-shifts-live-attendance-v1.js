@@ -11,7 +11,7 @@
     var style = document.createElement('style');
     style.setAttribute('data-pmd-shifts-live-style', '');
     style.textContent = '' +
-      'body.pmd-shifts-page .pmd-shifts-final-shift{min-width:0!important;max-width:none!important;width:auto!important;align-content:center!important;grid-template-rows:auto auto!important;gap:3px!important;padding:7px 10px!important;line-height:1.15!important;}' +
+      'body.pmd-shifts-page .pmd-shifts-final-shift{align-content:center!important;grid-template-rows:auto auto!important;gap:3px!important;padding:7px 10px!important;line-height:1.15!important;}' +
       'body.pmd-shifts-page .pmd-shifts-final-shift strong{display:block!important;margin:0!important;font-size:12px!important;line-height:1.2!important;font-variant-numeric:tabular-nums!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;}' +
       'body.pmd-shifts-page .pmd-shifts-final-shift span{display:block!important;margin:0!important;font-size:10px!important;line-height:1.2!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;}' +
       'body.pmd-shifts-page .pmd-shifts-live-state{display:inline-flex!important;width:max-content!important;max-width:100%!important;min-height:18px!important;align-items:center!important;margin-top:4px!important;padding:2px 7px!important;border:1px solid #d9e5e2!important;border-radius:999px!important;background:#f4f8f7!important;color:#657973!important;font-size:9px!important;font-weight:850!important;line-height:1.15!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;}' +
@@ -142,13 +142,27 @@
       }, 80);
     }
 
+    function hasRenderedBoardMutation(mutations) {
+      return mutations.some(function (mutation) {
+        var nodes = Array.prototype.slice.call(mutation.addedNodes || []).concat(Array.prototype.slice.call(mutation.removedNodes || []));
+        return nodes.some(function (node) {
+          if (!node || node.nodeType !== 1) return false;
+          if (node.matches && node.matches('.pmd-shifts-final-screen,.pmd-shifts-final-row,.pmd-shifts-final-shift')) return true;
+          return !!(node.querySelector && node.querySelector('.pmd-shifts-final-screen,.pmd-shifts-final-row,.pmd-shifts-final-shift'));
+        });
+      });
+    }
+
     repairGeometry();
     fetchAttendance(true);
 
     var host = root.querySelector('[data-pmd-shifts-hour-host]') || root;
-    var observer = new MutationObserver(function () {
+    var observer = new MutationObserver(function (mutations) {
+      // Ignore our own attendance badge changes; react only when the canonical
+      // Shifts renderer replaces the day board or its shift buttons.
+      if (!hasRenderedBoardMutation(mutations)) return;
       lastFetchKey = '';
-      refreshSoon(false);
+      refreshSoon(true);
     });
     observer.observe(host, {childList:true,subtree:true});
 
