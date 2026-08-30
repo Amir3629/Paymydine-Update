@@ -1,4 +1,5 @@
 @php
+    // PMD_WORKPLACE_HUB_VIEW_V4
     $roleCode = app(\Admin\Services\PmdDefaultStaffRoleService::class)->roleCodeForUser($identity['user'] ?? null);
     $canRecovery = $roleCode === \Admin\Services\PmdDefaultStaffRoleService::OWNER;
     $tenantHost = request()->getHost();
@@ -11,8 +12,12 @@
     <meta name="robots" content="noindex,nofollow">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Workplace Access · PayMyDine</title>
-    <link rel="shortcut icon" href="/app/admin/assets/images/pmd-brand-mark.svg?v=pmd-workplace-v3">
-    <link rel="stylesheet" href="/app/admin/assets/css/pmd-workplace-access-v2.css?v=3">
+    <link rel="shortcut icon" href="/app/admin/assets/images/pmd-brand-mark.svg?v=pmd-workplace-v4">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-workplace-access-v2.css?v=4">
+    <style>
+        .pmd-wa-request-qr svg{display:block;width:100%!important;height:100%!important}
+        .pmd-wa-brief{margin:7px 0 0;color:#6d7c79;font-size:13px}
+    </style>
 </head>
 <body class="pmd-workplace-access">
 <header class="pmd-wa-top">
@@ -35,44 +40,42 @@
             <header class="pmd-wa-head">
                 <span class="pmd-wa-eyebrow">Workplace Access</span>
                 <h1>Setup is not ready</h1>
-                <p>The Workplace Access database setup must be completed before this restaurant can turn on workplace verification.</p>
+                <p>Finish the Workplace Access database setup first.</p>
             </header>
         </section>
     @elseif(!$hub)
         <section class="pmd-wa-card">
             <header class="pmd-wa-head">
-                <span class="pmd-wa-eyebrow">One-time restaurant setup</span>
+                <span class="pmd-wa-eyebrow">One-time setup</span>
                 <h1>Turn on Workplace Access</h1>
-                <p>Do this once on a device that stays inside the restaurant, such as the main Admin computer, Cashier or POS.</p>
-                <span class="pmd-wa-domain">Restaurant locked · {{ $tenantHost }}</span>
+                <p>Use a browser that stays inside the restaurant, normally the Cashier/POS.</p>
+                <span class="pmd-wa-domain">{{ $tenantHost }}</span>
             </header>
             <div class="pmd-wa-body">
                 @if($canConfigure)
                     <div class="pmd-wa-stack">
                         @if($canRecovery && !$ownerTotpEnabled)
-                            <div class="pmd-wa-note"><strong>Owner Authenticator is required first.</strong><br>Connect Google Authenticator, Microsoft Authenticator, 1Password or another TOTP app. This is free and does not use SMS.</div>
-                            <a class="pmd-wa-primary" href="{{ admin_url('siteaccess/owner-mfa/setup') }}">Connect Owner Authenticator</a>
+                            <div class="pmd-wa-note"><strong>Connect Owner Authenticator first.</strong></div>
+                            <a class="pmd-wa-primary" href="{{ admin_url('login') }}">Back to Login</a>
                         @else
-                            <div class="pmd-wa-note"><strong>No POS record is required first.</strong><br>This browser itself becomes the restaurant's trusted Workplace Access device. After activation, every Workspace and Staff Portal login needs a fresh restaurant proof.</div>
                             <form method="post" action="{{ admin_url('siteaccess/hub/activate') }}">
                                 @csrf
-                                <button type="submit" class="pmd-wa-primary" style="width:100%">Activate Workplace Access on this device</button>
+                                <button type="submit" class="pmd-wa-primary" style="width:100%">Activate on this restaurant device</button>
                             </form>
-                            <p class="pmd-wa-muted">PMD will immediately create one-time Owner recovery codes. Save them somewhere private.</p>
+                            <p class="pmd-wa-muted">Owner recovery codes are created once after activation.</p>
                         @endif
                     </div>
                 @else
-                    <div class="pmd-wa-empty"><strong>Owner setup required</strong><span>The restaurant Owner must finish Authenticator and Workplace Access setup before team logins are allowed.</span></div>
+                    <div class="pmd-wa-empty"><strong>Owner setup required</strong><span>The Owner must finish setup first.</span></div>
                 @endif
             </div>
         </section>
     @else
         <section class="pmd-wa-card">
             <header class="pmd-wa-head">
-                <span class="pmd-wa-eyebrow">Restaurant workplace code</span>
-                <h1>Use this code to sign in</h1>
-                <p>Anyone signing in to Workspace or Staff Portal must use a fresh restaurant proof after their password. The Owner may instead use their personal Authenticator app.</p>
-                <span class="pmd-wa-domain">{{ $tenantHost }}</span>
+                <span class="pmd-wa-eyebrow">Restaurant security</span>
+                <h1>Workplace Code</h1>
+                <p class="pmd-wa-brief">Use this after password. Owner may use Authenticator instead.</p>
             </header>
             <div class="pmd-wa-body pmd-wa-stack">
                 <div class="pmd-wa-codebox">
@@ -81,10 +84,10 @@
                     <span class="pmd-wa-code-time">Changes in <b data-pmd-workplace-countdown>{{ $workplaceCode['expires_in'] ?? 30 }}</b>s</span>
                 </div>
 
-                <div class="pmd-wa-status is-online">This restaurant device is trusted and online</div>
+                <div class="pmd-wa-status is-online">Restaurant device online</div>
 
                 @if($recoveryCodes)
-                    <div class="pmd-wa-flash is-success"><strong>Save these Owner recovery codes now.</strong> They are shown only once. Do not store them on a staff device.</div>
+                    <div class="pmd-wa-flash is-success"><strong>Save the Owner recovery codes now.</strong> They are shown only once.</div>
                     <div class="pmd-wa-recovery">
                         @foreach($recoveryCodes as $code)<code>{{ $code }}</code>@endforeach
                     </div>
@@ -94,25 +97,35 @@
                     <div class="pmd-wa-row" style="margin-bottom:10px">
                         <div>
                             <strong>Login requests</strong>
-                            <div class="pmd-wa-muted">When someone enters their password, their request appears here. They can type the Workplace Code, scan their QR, or you can approve directly.</div>
+                            <div class="pmd-wa-muted">Approve here, or give the person the Workplace Code above.</div>
                         </div>
                     </div>
                     <div class="pmd-wa-request-list" data-pmd-pending-list>
                         @forelse($pending as $item)
+                            @php
+                                $qrSvg = null;
+                                try {
+                                    $qrSvg = app(\App\Services\PmdSiteAccessQrService::class)->svg(
+                                        app(\App\Services\PmdSiteAccessQrTokenService::class)->signedUrl($item),
+                                        3
+                                    );
+                                } catch (\Throwable $qrError) {
+                                    $qrSvg = null;
+                                }
+                            @endphp
                             <article class="pmd-wa-request is-with-qr" data-challenge-id="{{ (int)$item->id }}">
                                 <div class="pmd-wa-request-copy">
                                     <strong>{{ $item->staff_name ?: 'Team member' }}</strong>
-                                    <small>{{ $item->requested_device_name ?: 'Browser device' }} · expires {{ \Carbon\Carbon::parse($item->expires_at)->format('H:i:s') }}</small>
-                                    <span class="pmd-wa-request-code">Use Workplace Code above</span>
+                                    <small>{{ $item->requested_device_name ?: 'Browser device' }}</small>
                                 </div>
-                                <img class="pmd-wa-request-qr" src="{{ admin_url('siteaccess/hub/qr/'.(int)$item->id) }}" alt="Login QR for {{ $item->staff_name ?: 'team member' }}">
+                                <div class="pmd-wa-request-qr">@if($qrSvg){!! $qrSvg !!}@else QR @endif</div>
                                 <div class="pmd-wa-request-actions">
                                     <form method="post" action="{{ admin_url('siteaccess/hub/approve') }}">@csrf<input type="hidden" name="challenge_id" value="{{ (int)$item->id }}"><button class="approve" type="submit">Approve</button></form>
                                     <form method="post" action="{{ admin_url('siteaccess/hub/decline') }}">@csrf<input type="hidden" name="challenge_id" value="{{ (int)$item->id }}"><button class="decline" type="submit">Decline</button></form>
                                 </div>
                             </article>
                         @empty
-                            <div class="pmd-wa-empty"><strong>No one is waiting</strong><span>New login requests appear here automatically.</span></div>
+                            <div class="pmd-wa-empty"><strong>No login requests</strong></div>
                         @endforelse
                     </div>
                 </section>
@@ -124,9 +137,8 @@
                             <div class="pmd-wa-device">
                                 <div>
                                     <strong>Owner Authenticator</strong>
-                                    <small>{{ $ownerTotpEnabled ? 'Connected · can verify Owner remotely without SMS' : 'Not connected' }}</small>
+                                    <small>{{ $ownerTotpEnabled ? 'Connected' : 'Not connected' }}</small>
                                 </div>
-                                @if(!$ownerTotpEnabled)<a class="pmd-wa-secondary" href="{{ admin_url('siteaccess/owner-mfa/setup') }}" style="min-height:34px;padding:0 10px;font-size:11px">Connect</a>@endif
                             </div>
                         @endif
 
@@ -177,14 +189,15 @@
     function renderPending(items) {
         if (!list) return;
         if (!items || !items.length) {
-            list.innerHTML = '<div class="pmd-wa-empty"><strong>No one is waiting</strong><span>New login requests appear here automatically.</span></div>';
+            list.innerHTML = '<div class="pmd-wa-empty"><strong>No login requests</strong></div>';
             return;
         }
         list.innerHTML = items.map(function (item) {
             var id = Number(item.id || 0);
+            var qr = typeof item.qr_svg === 'string' && item.qr_svg.indexOf('<svg') >= 0 ? item.qr_svg : 'QR';
             return '<article class="pmd-wa-request is-with-qr" data-challenge-id="'+id+'">'
-                +'<div class="pmd-wa-request-copy"><strong>'+escapeHtml(item.staff_name || 'Team member')+'</strong><small>'+escapeHtml(item.device_name || 'Browser device')+' · short-lived login request</small><span class="pmd-wa-request-code">Use Workplace Code above</span></div>'
-                +'<img class="pmd-wa-request-qr" src="'+escapeHtml(item.qr_image_url || '')+'" alt="Login QR">'
+                +'<div class="pmd-wa-request-copy"><strong>'+escapeHtml(item.staff_name || 'Team member')+'</strong><small>'+escapeHtml(item.device_name || 'Browser device')+'</small></div>'
+                +'<div class="pmd-wa-request-qr">'+qr+'</div>'
                 +'<div class="pmd-wa-request-actions"><form method="post" action="{{ admin_url('siteaccess/hub/approve') }}"><input type="hidden" name="_token" value="'+escapeHtml(token)+'"><input type="hidden" name="challenge_id" value="'+id+'"><button class="approve" type="submit">Approve</button></form>'
                 +'<form method="post" action="{{ admin_url('siteaccess/hub/decline') }}"><input type="hidden" name="_token" value="'+escapeHtml(token)+'"><input type="hidden" name="challenge_id" value="'+id+'"><button class="decline" type="submit">Decline</button></form></div></article>';
         }).join('');
@@ -214,7 +227,7 @@
     }
 
     refresh(); heartbeat();
-    window.setInterval(refresh, 2500);
+    window.setInterval(refresh, 4000);
     window.setInterval(heartbeat, 30000);
 })();
 </script>
