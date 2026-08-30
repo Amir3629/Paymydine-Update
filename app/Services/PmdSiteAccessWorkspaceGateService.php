@@ -6,15 +6,15 @@ use Admin\Facades\AdminAuth;
 use Illuminate\Http\Request;
 
 /**
- * PMD_WORKPLACE_GATE_V5
+ * PMD_WORKPLACE_GATE_V6
  *
  * Once the restaurant activates Workplace Access, every tenant Admin surface -
  * including My Work / Staff Portal - requires fresh workplace verification.
  * Personal devices are never a substitute for restaurant proof.
  *
- * Verified sessions are absolute and shift-aware: scheduled users keep access
- * until shift end + 1 hour; overtime/no-schedule logins use the restaurant-day
- * boundary. An expired verified session is logged out, not silently extended.
+ * During first Owner bootstrap, password authentication alone is deliberately
+ * incomplete: while inline Owner MFA is pending, normal Admin navigation is
+ * redirected back to the canonical /admin/login security step.
  */
 class PmdSiteAccessWorkspaceGateService
 {
@@ -46,16 +46,30 @@ class PmdSiteAccessWorkspaceGateService
         $identity = $site->identity();
         $locationId = (int)$identity['location_id'];
         if ($identity['user_id'] < 1 || $identity['staff_id'] < 1 || $locationId < 1) return null;
-        if (!$site->policyEnabled($locationId)) return null;
-
-        $binding = app(PmdSiteAccessSessionBindingService::class);
-        $workspaceVerified = $site->isWorkspaceVerified($locationId)
-            && $binding->isBoundToCurrentUser();
 
         $relative = $this->relativeAdminPath($request);
 
         // Language switching is account preference, not operational access.
         if (str_starts_with($relative, '_pmd/language-switch')) return null;
+
+        // PMD_INLINE_OWNER_MFA_BOOTSTRAP_GATE_V1
+        // The password-authenticated Owner is not allowed to browse Workspace
+        // while the canonical Login page is waiting for Authenticator setup or
+        // verification. Siteaccess stays reachable so an already-enrolled Owner
+        // may explicitly choose the restaurant Workplace Code instead.
+        if (session()->has('pmd_login_owner_security_v1')) {
+            foreach (['login', 'logout', 'siteaccess', '_assets'] as $allowed) {
+                if ($relative === $allowed || str_starts_with($relative, $allowed.'/')) return null;
+            }
+
+            return redirect(admin_url('login'));
+        }
+
+        if (!$site->policyEnabled($locationId)) return null;
+
+        $binding = app(PmdSiteAccessSessionBindingService::class);
+        $workspaceVerified = $site->isWorkspaceVerified($locationId)
+            && $binding->isBoundToCurrentUser();
 
         // Authentication, Workplace Access itself, static assets and logout must
         // remain reachable or a user could be trapped behind the gate.
