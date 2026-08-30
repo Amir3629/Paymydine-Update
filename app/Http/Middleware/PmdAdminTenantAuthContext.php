@@ -2,16 +2,15 @@
 
 namespace App\Http\Middleware;
 
-use App\Services\PmdSiteAccessService;
+use App\Services\PmdSiteAccessWorkspaceGateService;
 use Closure;
 use Illuminate\Http\Request;
 
 /**
- * PMD_ADMIN_TENANT_AUTH_CONTEXT_V5
+ * PMD_ADMIN_TENANT_AUTH_CONTEXT_V6
  *
- * Keep the canonical tenant resolver, then enforce Site Access only for a
- * session that Login has explicitly marked pending. Restaurants without an
- * activated hub and existing sessions are unaffected during rollout.
+ * Select the tenant DB first, then apply the request-level Site Access policy.
+ * Site Access remains inactive until a restaurant explicitly activates a hub.
  */
 class PmdAdminTenantAuthContext
 {
@@ -24,14 +23,14 @@ class PmdAdminTenantAuthContext
         return app(TenantDatabaseMiddleware::class)->handle(
             $request,
             function (Request $tenantRequest) use ($next) {
-                if (class_exists(PmdSiteAccessService::class)) {
+                if (class_exists(PmdSiteAccessWorkspaceGateService::class)) {
                     try {
-                        $gate = app(PmdSiteAccessService::class)->gateResponse($tenantRequest);
+                        $gate = app(PmdSiteAccessWorkspaceGateService::class)->gateResponse($tenantRequest);
                         if ($gate) return $gate;
                     } catch (\Throwable $error) {
-                        // Fail open while schema is being rolled out. Login only
-                        // creates pending sessions after service readiness checks.
-                        logger()->warning('PMD Site Access gate skipped', [
+                        // Rollout safety: a schema/service failure cannot brick an
+                        // existing restaurant Admin. Policy starts only after hub activation.
+                        logger()->warning('PMD Site Access Workspace gate skipped', [
                             'message' => $error->getMessage(),
                             'path' => $tenantRequest->path(),
                         ]);
@@ -50,15 +49,11 @@ class PmdAdminTenantAuthContext
             return false;
         }
 
-        // Combined/static admin assets do not need a tenant DB lookup.
         if (str_starts_with($path, 'admin/_assets/')) {
             return false;
         }
 
         $host = strtolower(trim((string)$request->getHost()));
-
-        // Only restaurant subdomains are tenant-admin surfaces.
-        // paymydine.com/superadmin stays central and never enters this branch.
         return (bool)preg_match('/^[a-z0-9-]+\\.paymydine\\.com$/', $host);
     }
 }
