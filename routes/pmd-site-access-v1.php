@@ -2,6 +2,7 @@
 
 use Admin\Controllers\Siteaccess;
 use Admin\Facades\AdminAuth;
+use App\Http\Middleware\PmdSiteAccessBindVerificationMiddleware;
 use App\Http\Middleware\PmdSiteAccessGateMiddleware;
 use App\Http\Middleware\PmdSiteAccessManageTrustMiddleware;
 use App\Services\PmdSiteAccessQrService;
@@ -12,7 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 
-/** PMD_SITE_ACCESS_ROUTES_V4 */
+/** PMD_SITE_ACCESS_ROUTES_V5 */
 if (!defined('PMD_SITE_ACCESS_ROUTES_V1')) {
     define('PMD_SITE_ACCESS_ROUTES_V1', true);
 
@@ -24,7 +25,7 @@ if (!defined('PMD_SITE_ACCESS_ROUTES_V1')) {
     app(Kernel::class)->appendMiddlewareToGroup('web', PmdSiteAccessGateMiddleware::class);
 
     Route::group([
-        'middleware' => ['web'],
+        'middleware' => ['web', PmdSiteAccessBindVerificationMiddleware::class],
         'prefix' => config('system.adminUri', 'admin'),
     ], function () {
         Route::get('siteaccess', [Siteaccess::class, 'index'])->name('pmd.siteaccess');
