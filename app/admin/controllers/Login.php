@@ -53,9 +53,10 @@ class Login extends \Admin\Classes\AdminController
 
         Template::setTitle(lang('admin::lang.login.text_title'));
 
-        // One tenant-locked login surface. Workspace and Staff Portal are only
-        // destinations; both require fresh workplace verification after password.
-        return view('auth.login_workspace_v2');
+        // PMD_LOGIN_WORKPLACE_VIEW_V3
+        // Restaurant is fixed by the tenant hostname; both destinations show
+        // that lock and explain the required second-step workplace code.
+        return view('auth.login_workplace_v3');
     }
 
     public function reset()
