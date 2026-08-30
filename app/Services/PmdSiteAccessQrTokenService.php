@@ -2,9 +2,10 @@
 
 namespace App\Services;
 
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
-/** PMD_SITE_ACCESS_QR_TOKEN_V1 */
+/** PMD_SITE_ACCESS_QR_TOKEN_V2 */
 class PmdSiteAccessQrTokenService
 {
     public function signedUrl($challenge): string
@@ -19,7 +20,7 @@ class PmdSiteAccessQrTokenService
     {
         if ($id < 1 || $signature === '') return null;
         $challenge = DB::table('pmd_site_access_challenges')->where('id', $id)->first();
-        if (!$challenge || $challenge->status !== 'pending' || now()->gte($challenge->expires_at)) return null;
+        if (!$challenge || $challenge->status !== 'pending' || Carbon::parse($challenge->expires_at)->isPast()) return null;
         $expected = $this->signature($id, (int)$challenge->location_id, (string)$challenge->public_id);
         return hash_equals($expected, strtolower(trim($signature))) ? $challenge : null;
     }
