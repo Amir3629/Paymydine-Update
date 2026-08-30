@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * PMD_OWNER_TOTP_V3
+ * PMD_OWNER_TOTP_V4
  *
  * Provider-free RFC 6238 TOTP for the restaurant Owner. Compatible with
  * Google Authenticator, Microsoft Authenticator, 1Password and other
@@ -77,9 +77,6 @@ class PmdOwnerTotpService
         if ($secret === '') throw new \RuntimeException('Authenticator enrollment is missing.');
 
         // PMD_OWNER_TOTP_SHORT_QR_LABEL_V1
-        // The local QR encoder is intentionally small and provider-free. Keep
-        // the account label deterministic but short regardless of tenant-domain
-        // length, while the Authenticator app still displays issuer PayMyDine.
         $tenantHash = strtoupper(substr(hash('sha256', strtolower((string)request()->getHost())), 0, 6));
         $label = 'PMD-'.$tenantHash;
 
@@ -170,13 +167,14 @@ class PmdOwnerTotpService
         return true;
     }
 
-    /** Current password-login session has completed Owner TOTP recently. */
+    /** Current regenerated password-login session completed Owner TOTP recently. */
     public function sessionVerified(int $userId, int $locationId, int $maxAgeSeconds = 600): bool
     {
         if ($userId < 1 || $locationId < 1) return false;
         $proof = (array)session()->get(self::SESSION_VERIFIED, []);
         return (int)($proof['user_id'] ?? 0) === $userId
             && (int)($proof['location_id'] ?? 0) === $locationId
+            && hash_equals((string)($proof['session_id'] ?? ''), (string)session()->getId())
             && (int)($proof['verified_at'] ?? 0) > (time() - max(30, $maxAgeSeconds));
     }
 
@@ -195,6 +193,7 @@ class PmdOwnerTotpService
         session()->put(self::SESSION_VERIFIED, [
             'user_id' => $userId,
             'location_id' => $locationId,
+            'session_id' => (string)session()->getId(),
             'method' => $method,
             'verified_at' => time(),
         ]);
