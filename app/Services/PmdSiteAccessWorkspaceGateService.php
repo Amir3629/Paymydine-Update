@@ -7,7 +7,7 @@ use Admin\Services\PmdDefaultStaffRoleService;
 use Illuminate\Http\Request;
 
 /**
- * PMD_WORKPLACE_GATE_V7
+ * PMD_WORKPLACE_GATE_V8
  *
  * One canonical security surface: /admin/login.
  * A trusted Cashier/POS exposes proof, but never silently becomes proof for a
@@ -49,8 +49,6 @@ class PmdSiteAccessWorkspaceGateService
         $relative = $this->relativeAdminPath($request);
         if (str_starts_with($relative, '_pmd/language-switch')) return null;
 
-        // Password-authenticated Owner may browse only the canonical Login and
-        // security/setup routes until personal TOTP is complete.
         if (session()->has('pmd_login_owner_security_v1')) {
             foreach (['login', 'logout', 'siteaccess', '_assets'] as $allowed) {
                 if ($relative === $allowed || str_starts_with($relative, $allowed.'/')) return null;
@@ -58,7 +56,19 @@ class PmdSiteAccessWorkspaceGateService
             return redirect(admin_url('login'));
         }
 
-        if (!$site->policyEnabled($locationId)) return null;
+        // First-day bootstrap is not complete until a restaurant device has been
+        // explicitly activated. TOTP enrollment alone must not open Workspace.
+        if (!$site->policyEnabled($locationId)) {
+            foreach (['login', 'logout', 'siteaccess', '_assets'] as $allowed) {
+                if ($relative === $allowed || str_starts_with($relative, $allowed.'/')) return null;
+            }
+
+            if ($isOwner && app(PmdOwnerTotpService::class)->enabled((int)$identity['user_id'])) {
+                return redirect(admin_url('siteaccess/hub'));
+            }
+
+            return redirect(admin_url('login'));
+        }
 
         $binding = app(PmdSiteAccessSessionBindingService::class);
         $workspaceVerified = $site->isWorkspaceVerified($locationId)
@@ -70,8 +80,6 @@ class PmdSiteAccessWorkspaceGateService
 
         if ($workspaceVerified) return null;
 
-        // Existing request always returns to the same Login card. This prevents a
-        // trusted-hub cookie from auto-verifying a password-only session.
         $pending = $site->challengeForSession();
         if ($pending && $pending->purpose === PmdSiteAccessService::PURPOSE_WORKSPACE) {
             return redirect(admin_url('login'));
@@ -79,8 +87,6 @@ class PmdSiteAccessWorkspaceGateService
 
         $target = $this->safeTarget($request, $role, $relative);
 
-        // The bootstrap Super User may have no Staff row. Owner TOTP is therefore
-        // queued directly and remains independent from staff_id.
         if ($isOwner && app(PmdOwnerTotpService::class)->enabled((int)$identity['user_id'])) {
             session()->put('pmd_login_owner_security_v1', [
                 'mode' => 'verify',
