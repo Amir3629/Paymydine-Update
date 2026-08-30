@@ -18,7 +18,7 @@ use Igniter\Flame\Exception\ValidationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 
-/** PMD_LOGIN_CANONICAL_V7 */
+/** PMD_LOGIN_CANONICAL_V8 */
 class Login extends \Admin\Classes\AdminController
 {
     use ValidatesForm;
@@ -171,7 +171,6 @@ class Login extends \Admin\Classes\AdminController
         session()->regenerate();
         session()->forget(self::PMD_OWNER_SECURITY_SESSION);
 
-        // Fresh password login never inherits a previous user's proof.
         try {
             app(PmdSiteAccessService::class)->clearVerification();
             app(PmdWorkSessionPolicyService::class)->clear();
@@ -179,8 +178,6 @@ class Login extends \Admin\Classes\AdminController
         } catch (\Throwable $error) {
         }
 
-        // A PMD role is mandatory. Unknown/unmanaged accounts deliberately look
-        // like bad credentials instead of falling into the retired dashboard.
         $landing = $this->pmdRoleLandingRoute();
         if (!$landing) {
             $this->pmdAbortInvalidAccount();
@@ -203,8 +200,10 @@ class Login extends \Admin\Classes\AdminController
             ]);
         }
 
-        // PMD_WORKPLACE_LOGIN_ALL_USERS_V7
-        // Every second factor is rendered on the SAME /admin/login card.
+        // PMD_WORKPLACE_LOGIN_ALL_USERS_V8
+        // Every configured second factor is rendered on the SAME /admin/login
+        // card. Once Site Access storage exists, exceptions fail closed here;
+        // only untouched legacy tenants with no schema retain rollout fallback.
         try {
             $siteAccess = app(PmdSiteAccessService::class);
             $identity = $siteAccess->identity();
@@ -215,13 +214,15 @@ class Login extends \Admin\Classes\AdminController
             $isOwner = $role === PmdDefaultStaffRoleService::OWNER;
             $ownerTotp = app(PmdOwnerTotpService::class);
 
-            // Legacy tenants that have not received the additive Site Access
-            // schema remain rollout-safe. New tenants are provisioned with it.
-            if (!$siteAccess->ready() || !$ownerTotp->ready()) {
-                logger()->warning('PMD Workplace Access schema not ready for login', [
+            if (!$siteAccess->ready()) {
+                logger()->warning('PMD Workplace Access schema not installed for legacy tenant login', [
                     'host' => request()->getHost(),
                     'user_id' => $userId,
                 ]);
+            } elseif (!$ownerTotp->ready()) {
+                $this->pmdAbortBootstrapLogin(
+                    'Restaurant security is temporarily unavailable. Try again shortly.'
+                );
             } elseif ($locationId < 1) {
                 $this->pmdAbortBootstrapLogin(
                     'Restaurant security is not ready for this account.'
@@ -241,23 +242,15 @@ class Login extends \Admin\Classes\AdminController
 
                 return redirect(admin_url('login'));
             } else {
-                // Owner uses the personal Authenticator by default. This also
-                // covers the bootstrap Super User, which may have no Staff row.
                 if ($isOwner) {
-                    if (!$ownerTotp->enabled($userId)) {
-                        session()->put('pmd_owner_totp_after_v1', $target);
-                        $this->pmdQueueOwnerSecurityStep('setup', $identity);
-                    } else {
-                        session()->put('pmd_owner_totp_after_v1', $target);
-                        $this->pmdQueueOwnerSecurityStep('verify', $identity);
-                    }
-
+                    session()->put('pmd_owner_totp_after_v1', $target);
+                    $this->pmdQueueOwnerSecurityStep(
+                        $ownerTotp->enabled($userId) ? 'verify' : 'setup',
+                        $identity
+                    );
                     return redirect(admin_url('login'));
                 }
 
-                // A trusted Cashier browser must still perform an explicit fresh
-                // second factor after a fresh password. Remove hub cookies only
-                // from challenge creation, not from the real browser session.
                 $challengeRequest = request()->duplicate(null, null, null, []);
                 $challenge = $siteAccess->beginChallenge(
                     PmdSiteAccessService::PURPOSE_WORKSPACE,
@@ -276,14 +269,24 @@ class Login extends \Admin\Classes\AdminController
         } catch (ValidationException $error) {
             throw $error;
         } catch (\Throwable $error) {
-            logger()->warning('PMD Workplace Access login step-up skipped', [
+            logger()->error('PMD Workplace Access login step-up failed', [
                 'user_id' => (int)optional(AdminAuth::getUser())->getKey(),
                 'message' => $error->getMessage(),
             ]);
+
+            try {
+                $site = app(PmdSiteAccessService::class);
+                if ($site->ready()) {
+                    $this->pmdAbortBootstrapLogin(
+                        'Restaurant security is temporarily unavailable. Try again shortly.'
+                    );
+                }
+            } catch (ValidationException $closed) {
+                throw $closed;
+            } catch (\Throwable $stateError) {
+            }
         }
 
-        // Rollout-safe fallback only for legacy tenants whose schema has not yet
-        // been installed. Role routing still remains strict.
         return $destination === 'staff'
             ? $this->redirect('mywork')
             : $this->redirect($landing);
@@ -652,7 +655,7 @@ class Login extends \Admin\Classes\AdminController
 
         $data = ['staff_name' => $user->staff->staff_name];
         Mail::queue('admin::_mail.password_reset', $data, function ($message) use ($user) {
-            $message->to($user->staff->staff_email, $user->staff->staff_name);
+            $message->to($user->staff->staff_email, $user->staff_name);
         });
 
         flash()->success(lang('admin::lang.login.alert_success_reset'));
