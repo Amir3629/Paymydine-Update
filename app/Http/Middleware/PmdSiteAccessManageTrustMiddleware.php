@@ -4,12 +4,13 @@ namespace App\Http\Middleware;
 
 use Admin\Facades\AdminAuth;
 use Admin\Services\PmdDefaultStaffRoleService;
+use App\Services\PmdOwnerTotpService;
 use App\Services\PmdSiteAccessService;
 use App\Services\PmdSiteAccessSessionBindingService;
 use Closure;
 use Illuminate\Http\Request;
 
-/** PMD_SITE_ACCESS_MANAGE_TRUST_V5 */
+/** PMD_SITE_ACCESS_MANAGE_TRUST_V6 */
 class PmdSiteAccessManageTrustMiddleware
 {
     public function handle(Request $request, Closure $next)
@@ -32,7 +33,8 @@ class PmdSiteAccessManageTrustMiddleware
         if (!in_array($role, [PmdDefaultStaffRoleService::OWNER, PmdDefaultStaffRoleService::MANAGER], true)) abort(403);
 
         $locationId = (int)$identity['location_id'];
-        if ($locationId < 1) abort(403);
+        $userId = (int)$identity['user_id'];
+        if ($locationId < 1 || $userId < 1) abort(403);
 
         $policyWasEnabled = $site->policyEnabled($locationId);
 
@@ -42,6 +44,16 @@ class PmdSiteAccessManageTrustMiddleware
                     'error',
                     'The restaurant Owner must activate the first Workplace Access device.'
                 );
+            }
+
+            // PMD_WORKPLACE_BOOTSTRAP_LIVE_OWNER_TOTP_V1
+            // Having TOTP enrolled is not enough. The current regenerated login
+            // session must have just proven the Owner's Authenticator code.
+            if (!app(PmdOwnerTotpService::class)->sessionVerified($userId, $locationId)) {
+                return $request->expectsJson()
+                    ? response()->json(['ok' => false, 'message' => 'Owner Authenticator verification is required.'], 403)
+                    : redirect(admin_url('siteaccess/owner-mfa'))
+                        ->with('error', 'Verify the Owner Authenticator before activating the first restaurant device.');
             }
 
             return $this->afterTrustedAction($request, $next($request), $site, $identity, false);
@@ -89,9 +101,6 @@ class PmdSiteAccessManageTrustMiddleware
         }
 
         // PMD_SITE_ACCESS_BOOTSTRAP_RECOVERY_V2
-        // Generate only if the activation controller did not already create the
-        // first recovery set. Re-generating would invalidate the codes we are
-        // about to show the Owner.
         if (
             !$policyWasEnabled
             && $site->policyEnabled((int)$identity['location_id'])
