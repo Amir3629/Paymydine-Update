@@ -1,4 +1,4 @@
-/* PMD_WORKPLACE_HUB_RUNTIME_V6 */
+/* PMD_WORKPLACE_HUB_RUNTIME_V7 */
 (function () {
     'use strict';
 
@@ -6,6 +6,30 @@
     var path = String(window.location.pathname || '');
     var adminMatch = path.match(/^\/(?:[^/]+\/)?admin(?:\/|$)/) || path.match(/^\/admin(?:\/|$)/);
     if (!adminMatch) return;
+
+    var adminPrefix = path.indexOf('/admin/') >= 0
+        ? path.slice(0, path.indexOf('/admin/') + '/admin'.length)
+        : '/admin';
+    var sessionPingUrl = adminPrefix + '/siteaccess/session/ping';
+
+    // PMD_WORK_SESSION_KEEPALIVE_V1
+    // Laravel's generic session has a 9h idle envelope. Active Admin browsers
+    // ping only the tenant Site Access endpoint so shift/day absolute deadlines
+    // remain the authority. The server gate logs out before this route once the
+    // verified deadline has passed, so the ping can never extend that deadline.
+    function sessionPing() {
+        fetch(sessionPingUrl, {
+            credentials: 'same-origin',
+            headers: {
+                'Accept': 'application/json',
+                'Cache-Control': 'no-cache',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        }).catch(function () {});
+    }
+
+    sessionPing();
+    window.setInterval(sessionPing, 300000);
 
     function hasMarker() {
         return String(document.cookie || '').split(';').some(function (part) {
@@ -21,9 +45,6 @@
 
     if (!hasMarker()) return;
 
-    var adminPrefix = path.indexOf('/admin/') >= 0
-        ? path.slice(0, path.indexOf('/admin/') + '/admin'.length)
-        : '/admin';
     var heartbeatUrl = adminPrefix + '/siteaccess/hub/heartbeat';
     var dataUrl = adminPrefix + '/siteaccess/hub/data';
     var hubUrl = adminPrefix + '/siteaccess/hub';
@@ -128,6 +149,7 @@
 
     document.addEventListener('visibilitychange', function () {
         if (document.visibilityState === 'visible') {
+            sessionPing();
             heartbeat();
             refreshCode();
         }
