@@ -1,4 +1,4 @@
-/* PMD_SITE_ACCESS_HUB_RUNTIME_V2 */
+/* PMD_SITE_ACCESS_HUB_RUNTIME_V3 */
 (function () {
     'use strict';
 
@@ -25,11 +25,6 @@
         document.cookie = cookie;
     }
 
-    // Normal Admin pages can rediscover a marker only if the server-rendered
-    // page explicitly identifies this browser as an active Site Access hub.
-    if (document.querySelector('[data-pmd-hub-online]')) setMarker();
-    if (!hasMarker()) return;
-
     var adminPrefix = path.indexOf('/admin/') >= 0
         ? path.slice(0, path.indexOf('/admin/') + '/admin'.length)
         : '/admin';
@@ -38,28 +33,15 @@
     var csrf = document.querySelector('meta[name="csrf-token"]');
     var token = csrf ? String(csrf.getAttribute('content') || '') : '';
     var stopped = false;
-
-    function heartbeat() {
-        if (stopped || document.visibilityState === 'hidden') return;
-        fetch(heartbeatUrl, {
-            method: 'POST',
-            credentials: 'same-origin',
-            headers: {
-                'X-CSRF-TOKEN': token,
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        }).then(function (response) {
-            if (response.status === 401 || response.status === 403) {
-                stopped = true;
-                clearMarker();
-            }
-        }).catch(function () {});
-    }
+    var shortcutMounted = false;
 
     function mountOrdersShortcut() {
+        if (shortcutMounted) return;
         if (!/^\/[^/]*admin\/orders(?:\/|$)/.test(path) && !/^\/admin\/orders(?:\/|$)/.test(path)) return;
-        if (document.querySelector('[data-pmd-site-access-orders-link]')) return;
+        if (document.querySelector('[data-pmd-site-access-orders-link]')) {
+            shortcutMounted = true;
+            return;
+        }
 
         var container = document.querySelector('.page-title-section .btn-toolbar')
             || document.querySelector('.page-title-section .page-actions')
@@ -73,10 +55,37 @@
         link.style.marginLeft = '8px';
         link.textContent = 'Site Access';
         container.appendChild(link);
+        shortcutMounted = true;
     }
 
+    function heartbeat() {
+        if (stopped || document.visibilityState === 'hidden') return;
+        fetch(heartbeatUrl, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'X-CSRF-TOKEN': token,
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        }).then(function (response) {
+            if (response.ok) {
+                setMarker();
+                mountOrdersShortcut();
+                return;
+            }
+            if (response.status === 401 || response.status === 403) {
+                stopped = true;
+                clearMarker();
+            }
+        }).catch(function () {});
+    }
+
+    // If a marker already exists, the shortcut can render immediately. If not,
+    // one server probe discovers whether this browser still holds the HttpOnly
+    // Site Access hub token. Non-hub browsers stop after the first 403.
+    if (hasMarker()) mountOrdersShortcut();
     heartbeat();
-    mountOrdersShortcut();
     window.setInterval(heartbeat, 30000);
     document.addEventListener('visibilitychange', function () {
         if (document.visibilityState === 'visible') heartbeat();
