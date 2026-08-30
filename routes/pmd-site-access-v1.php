@@ -2,6 +2,7 @@
 
 use Admin\Controllers\Siteaccess;
 use Admin\Facades\AdminAuth;
+use App\Http\Controllers\PmdFirstWorkplaceDeviceController;
 use App\Http\Controllers\PmdLoginWorkplaceVerifyController;
 use App\Http\Controllers\PmdSiteAccessHubDataController;
 use App\Http\Controllers\PmdSiteAccessSessionPingController;
@@ -16,7 +17,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 
-/** PMD_SITE_ACCESS_ROUTES_V10 */
+/** PMD_SITE_ACCESS_ROUTES_V11 */
 if (!defined('PMD_SITE_ACCESS_ROUTES_V1')) {
     define('PMD_SITE_ACCESS_ROUTES_V1', true);
 
@@ -28,14 +29,10 @@ if (!defined('PMD_SITE_ACCESS_ROUTES_V1')) {
     ], function () {
         Route::get('siteaccess', [Siteaccess::class, 'index'])->name('pmd.siteaccess');
 
-        // Canonical Login factor-2 endpoint. Restaurant devices commonly share
-        // one NAT IP; the per-challenge 8-attempt lock remains the brute-force
-        // authority while this outer limiter prevents coworker lockouts.
         Route::post('siteaccess/login-verify', PmdLoginWorkplaceVerifyController::class)
             ->middleware('throttle:120,1')
             ->name('pmd.siteaccess.login.verify');
 
-        // Legacy verification endpoint kept only for backward compatibility.
         Route::post('siteaccess/verify', [Siteaccess::class, 'verify'])
             ->middleware('throttle:120,1')
             ->name('pmd.siteaccess.verify');
@@ -47,7 +44,7 @@ if (!defined('PMD_SITE_ACCESS_ROUTES_V1')) {
             ->middleware('throttle:30,1')
             ->name('pmd.siteaccess.session.ping');
 
-        // Legacy Owner MFA routes remain for old links; normal password login
+        // Legacy Owner MFA routes remain for old links; canonical password login
         // renders Authenticator setup/verification inside /admin/login.
         Route::get('siteaccess/owner-mfa/setup', [Siteaccess::class, 'ownermfasetup'])->name('pmd.siteaccess.owner_mfa.setup');
         Route::get('siteaccess/owner-mfa/qr', [Siteaccess::class, 'ownermfaqr'])->middleware('throttle:60,1')->name('pmd.siteaccess.owner_mfa.qr');
@@ -85,8 +82,6 @@ if (!defined('PMD_SITE_ACCESS_ROUTES_V1')) {
                 ->header('X-Content-Type-Options', 'nosniff');
         })->where('challenge', '[1-9][0-9]*')->middleware('throttle:120,1')->name('pmd.siteaccess.hub.qr');
 
-        // Exact pending-request QR. Scanning on the Login card never trusts the
-        // phone permanently; it completes only this 90-second challenge.
         Route::get('siteaccess/q', function (Request $request) {
             if (!AdminAuth::isLogged()) return redirect(admin_url('login'));
             $site = app(PmdSiteAccessService::class);
@@ -122,7 +117,13 @@ if (!defined('PMD_SITE_ACCESS_ROUTES_V1')) {
             }
         })->middleware('throttle:20,1')->name('pmd.siteaccess.q.short');
 
-        Route::get('siteaccess/hub', [Siteaccess::class, 'hub'])->name('pmd.siteaccess.hub');
+        // The standalone hub page is retired from normal UX. The first Owner
+        // Authenticator verification automatically makes that exact browser the
+        // restaurant's main security device, then returns to the requested PMD area.
+        Route::get('siteaccess/hub', PmdFirstWorkplaceDeviceController::class)
+            ->name('pmd.siteaccess.hub');
+
+        // Kept for backward compatibility / explicit advanced trust operations.
         Route::post('siteaccess/hub/activate', [Siteaccess::class, 'activatehub'])
             ->middleware([PmdSiteAccessManageTrustMiddleware::class, 'throttle:10,5'])
             ->name('pmd.siteaccess.hub.activate');
