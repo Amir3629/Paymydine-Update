@@ -135,7 +135,7 @@ class Login extends \Admin\Classes\AdminController
             ? admin_url('mywork')
             : $workspaceTarget;
 
-        // PMD_WORKPLACE_LOGIN_ALL_USERS_V1
+        // PMD_WORKPLACE_LOGIN_ALL_USERS_V2
         // Username/password is tenant-scoped identity only. Once Workplace Access
         // is active, EVERY restaurant-facing login (Workspace or Staff Portal)
         // needs fresh restaurant proof. Personal phones are never permanently
@@ -146,9 +146,8 @@ class Login extends \Admin\Classes\AdminController
             $locationId = (int)$identity['location_id'];
 
             // First-day bootstrap: after the schema exists but before the first
-            // workplace device is activated, only the Owner may enter and create
-            // the restaurant root of trust. Manager/Staff cannot use password-only
-            // access during this bootstrap window.
+            // workplace device is activated, only the Owner may continue. The
+            // Owner is sent directly to setup instead of entering Workspace first.
             if ($siteAccess->ready() && $locationId > 0 && !$siteAccess->policyEnabled($locationId)) {
                 $role = app(PmdDefaultStaffRoleService::class)->roleCodeForUser(AdminAuth::getUser());
                 if ($role !== PmdDefaultStaffRoleService::OWNER) {
@@ -162,6 +161,9 @@ class Login extends \Admin\Classes\AdminController
                         'username' => 'The restaurant Owner must activate Workplace Access on a restaurant device before team logins are allowed.',
                     ]);
                 }
+
+                session()->put(PmdSiteAccessService::SESSION_DESTINATION, 'workspace');
+                return redirect(admin_url('siteaccess/hub'));
             }
 
             // Use one workplace-verification purpose for both destinations. The
