@@ -10,7 +10,7 @@ use App\Services\PmdWorkplaceCodeService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
-/** PMD_WORKPLACE_CASHIER_DATA_V1 */
+/** PMD_WORKPLACE_CASHIER_DATA_V2 */
 class PmdSiteAccessHubDataController
 {
     public function __invoke(Request $request): JsonResponse
@@ -31,12 +31,15 @@ class PmdSiteAccessHubDataController
             return response()->json(['ok' => false], 403);
         }
 
-        $code = app(PmdWorkplaceCodeService::class)->current($locationId);
+        $site->touchDevice((int)$hub->id);
+
+        // Kept for backward compatibility with older Cashier runtimes.
+        $workplaceCode = app(PmdWorkplaceCodeService::class)->current($locationId);
         $qr = app(PmdSiteAccessQrService::class);
         $tokens = app(PmdSiteAccessQrTokenService::class);
 
         $pending = $site->pendingChallengesForHub($request)
-            ->take(6)
+            ->take(8)
             ->map(function ($item) use ($qr, $tokens) {
                 $svg = null;
                 try {
@@ -52,6 +55,7 @@ class PmdSiteAccessHubDataController
                     'id' => (int)$item->id,
                     'staff_name' => (string)($item->staff_name ?: 'Team member'),
                     'device_name' => (string)($item->requested_device_name ?: 'Browser device'),
+                    'request_code' => (string)($item->display_code ?? ''),
                     'expires_at' => (string)$item->expires_at,
                     'qr_svg' => $svg,
                 ];
@@ -60,8 +64,8 @@ class PmdSiteAccessHubDataController
 
         return response()->json([
             'ok' => true,
-            'workplace_code' => (string)$code['code'],
-            'code_expires_in' => (int)$code['expires_in'],
+            'workplace_code' => (string)$workplaceCode['code'],
+            'code_expires_in' => (int)$workplaceCode['expires_in'],
             'pending' => $pending,
         ])->header('Cache-Control', 'no-store');
     }
