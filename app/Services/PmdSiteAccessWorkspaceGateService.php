@@ -3,11 +3,10 @@
 namespace App\Services;
 
 use Admin\Facades\AdminAuth;
-use Admin\Services\PmdDefaultStaffRoleService;
 use Illuminate\Http\Request;
 
 /**
- * PMD_SITE_ACCESS_WORKSPACE_GATE_V1
+ * PMD_SITE_ACCESS_WORKSPACE_GATE_V2
  *
  * Request-level enforcement once a restaurant has explicitly activated its
  * first Site Access hub. Personal Staff Portal trust and workplace trust stay
@@ -30,9 +29,14 @@ class PmdSiteAccessWorkspaceGateService
 
         $relative = $this->relativeAdminPath($request);
 
+        // Language switching is account preference, not operational Workspace.
+        // Both current and legacy language-switch routes must stay available to
+        // a paired Staff Portal device without forcing workplace verification.
+        if (str_starts_with($relative, '_pmd/language-switch')) return null;
+
         // Authentication, Site Access itself, static assets and logout must stay
         // reachable or a user could be trapped behind the gate.
-        foreach (['siteaccess', 'login', 'logout', '_assets', '_pmd/language-switch'] as $allowed) {
+        foreach (['siteaccess', 'login', 'logout', '_assets'] as $allowed) {
             if ($relative === $allowed || str_starts_with($relative, $allowed.'/')) return null;
         }
 
