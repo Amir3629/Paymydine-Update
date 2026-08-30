@@ -12,8 +12,8 @@
     <meta name="robots" content="noindex,nofollow">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Workplace verification · PayMyDine</title>
-    <link rel="shortcut icon" href="/app/admin/assets/images/pmd-brand-mark.svg?v=pmd-workplace-v2">
-    <link rel="stylesheet" href="/app/admin/assets/css/pmd-workplace-access-v2.css?v=2">
+    <link rel="shortcut icon" href="/app/admin/assets/images/pmd-brand-mark.svg?v=pmd-workplace-v3">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-workplace-access-v2.css?v=3">
 </head>
 <body class="pmd-workplace-access">
 <header class="pmd-wa-top">
@@ -21,35 +21,38 @@
         <img src="https://mimoza.paymydine.com/brand/paymydine-logo.svg" alt="PayMyDine">
         <span>{{ $destinationLabel }}</span>
     </a>
-    <div class="pmd-wa-actions">
-        <span class="pmd-wa-link">{{ $staffName }}</span>
-    </div>
+    <div class="pmd-wa-actions"><span class="pmd-wa-link">{{ $staffName }}</span></div>
 </header>
 
 <main class="pmd-wa-main is-login">
     <section class="pmd-wa-card" data-pmd-workplace-verify @if($challenge) data-expires-at="{{ \Carbon\Carbon::parse($challenge->expires_at)->toIso8601String() }}" @endif>
         <header class="pmd-wa-head">
             <span class="pmd-wa-eyebrow">Step 2 of 2</span>
-            <h1>Enter the workplace code</h1>
-            <p>Your password is correct. To finish signing in, enter the 6-digit code shown on the restaurant Admin or Cashier device.</p>
+            <h1>Verify restaurant access</h1>
+            <p>Your password is correct. Finish signing in with the restaurant Workplace Code. The Owner can alternatively use their personal Authenticator app.</p>
             <span class="pmd-wa-domain">Restaurant locked · {{ $tenantHost }}</span>
         </header>
 
         <div class="pmd-wa-body">
-            @if(session('error'))
-                <div class="pmd-wa-flash is-error">{{ session('error') }}</div>
-            @endif
-            @if(session('success'))
-                <div class="pmd-wa-flash is-success">{{ session('success') }}</div>
-            @endif
+            @if(session('error'))<div class="pmd-wa-flash is-error">{{ session('error') }}</div>@endif
+            @if(session('success'))<div class="pmd-wa-flash is-success">{{ session('success') }}</div>@endif
 
             @if(!$ready)
-                <div class="pmd-wa-note">Workplace Access is not ready for this restaurant. Ask the restaurant Owner to finish setup on the restaurant device.</div>
+                <div class="pmd-wa-note">Workplace Access is not ready for this restaurant. Ask the restaurant Owner to finish setup.</div>
             @elseif(!$challenge)
                 <div class="pmd-wa-empty"><strong>No verification request</strong><span>Return to login and start again.</span></div>
                 <div style="margin-top:14px"><a class="pmd-wa-primary" href="{{ admin_url('login') }}">Back to login</a></div>
             @else
                 <div class="pmd-wa-stack">
+                    @if($localWorkplaceCode)
+                        <div class="pmd-wa-note"><strong>This is the trusted restaurant device.</strong><br>Use the code shown below to complete this Cashier/Admin login.</div>
+                        <div class="pmd-wa-codebox">
+                            <span class="pmd-wa-code-label">WORKPLACE CODE</span>
+                            <strong class="pmd-wa-code">{{ substr($localWorkplaceCode['code'],0,3) }} {{ substr($localWorkplaceCode['code'],3) }}</strong>
+                            <span class="pmd-wa-code-time">Changes in {{ $localWorkplaceCode['expires_in'] }}s</span>
+                        </div>
+                    @endif
+
                     <div class="pmd-wa-status {{ $onlineHub ? 'is-online' : '' }}" data-pmd-hub-state>
                         {{ $onlineHub ? 'Restaurant device online' : 'Waiting for the restaurant Admin/Cashier device' }}
                     </div>
@@ -63,19 +66,24 @@
                         <button class="pmd-wa-primary" type="submit">Continue to {{ $destinationLabel }}</button>
                     </form>
 
-                    <p class="pmd-wa-muted">The code changes automatically on the restaurant device. This login request expires in <strong data-pmd-countdown>01:30</strong>.</p>
+                    @if($isOwner && $ownerTotpEnabled)
+                        <div class="pmd-wa-divider"><span>Owner alternative</span></div>
+                        <a class="pmd-wa-secondary" href="{{ admin_url('siteaccess/owner-mfa') }}">Use my Authenticator app instead</a>
+                    @endif
+
+                    <p class="pmd-wa-muted">This login request expires in <strong data-pmd-countdown>01:30</strong>. Workplace codes rotate every 30 seconds.</p>
 
                     <details class="pmd-wa-advanced">
-                        <summary>Other verification options</summary>
+                        <summary>Other restaurant verification option</summary>
                         <div class="pmd-wa-stack" style="margin-top:14px">
-                            <div class="pmd-wa-status" data-pmd-approval-state>Or ask the restaurant device to approve this login directly.</div>
-                            <p class="pmd-wa-muted">The restaurant can also scan/approve the exact login request. Approval and QR are short-lived and do not permanently trust this phone.</p>
+                            <div class="pmd-wa-status" data-pmd-approval-state>Ask the Cashier/Admin to approve this exact login request.</div>
+                            <p class="pmd-wa-muted">The request also appears with a QR on the trusted restaurant device. Approval is short-lived and never permanently trusts this phone.</p>
                         </div>
                     </details>
 
                     @if($canRecover)
                         <details class="pmd-wa-advanced">
-                            <summary>Owner emergency access</summary>
+                            <summary>Owner emergency recovery</summary>
                             <form method="post" action="{{ admin_url('siteaccess/recovery') }}" class="pmd-wa-form" style="margin-top:14px">
                                 @csrf
                                 <label class="pmd-wa-field">
@@ -120,15 +128,13 @@
         finished = true;
         if (state) state.textContent = 'Approved. Finishing sign-in…';
         fetch('{{ admin_url('siteaccess/finalize') }}', {
-            method: 'POST',
-            credentials: 'same-origin',
+            method: 'POST', credentials: 'same-origin',
             headers: {'X-CSRF-TOKEN': token, 'Accept': 'application/json'}
         }).then(function (response) { return response.json(); })
           .then(function (payload) {
               if (!payload || !payload.ok) throw new Error(payload && payload.message ? payload.message : 'Could not finish verification.');
               window.location.assign(payload.redirect);
-          })
-          .catch(function (error) {
+          }).catch(function (error) {
               finished = false;
               if (state) state.textContent = error.message || 'Could not finish verification.';
           });
@@ -137,8 +143,7 @@
     function poll() {
         if (finished) return;
         fetch('{{ admin_url('siteaccess/status') }}', {
-            credentials: 'same-origin',
-            headers: {'Accept':'application/json','Cache-Control':'no-cache'}
+            credentials: 'same-origin', headers: {'Accept':'application/json','Cache-Control':'no-cache'}
         }).then(function (response) { return response.json(); })
           .then(function (payload) {
               if (!payload || !payload.ok) return;
