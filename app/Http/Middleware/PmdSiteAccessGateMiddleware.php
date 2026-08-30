@@ -196,17 +196,18 @@ class PmdSiteAccessGateMiddleware
                 1
             ) ?? $html;
 
-            // Server-first final assets. The board is hidden only until the same
-            // synchronous decoration pass applies role ordering/colors; a safety
-            // fallback reveals it even if a browser extension blocks the JS file.
+            // V17 is still the base visual authority for the connected Shifts
+            // DOM. Load it server-first and keep V18 as the final scoped layer.
+            // Do not hide the board while JS decorates: rendering must fail open.
+            // The server V17 link intentionally uses a different marker so even
+            // a stale cached V18 JS cannot remove this authority stylesheet.
             $critical = <<<'HTML'
-<style id="pmd-shifts-v18-critical">html.pmd-shifts-v18-booting body.pmd-shifts-page .pmd-shifts-final-board{visibility:hidden!important}html.pmd-shifts-v18-ready body.pmd-shifts-page .pmd-shifts-final-board{visibility:visible!important}</style>
-<script id="pmd-shifts-v18-boot">document.documentElement.classList.add('pmd-shifts-v18-booting');window.setTimeout(function(){document.documentElement.classList.add('pmd-shifts-v18-ready')},1800);</script>
-<link rel="stylesheet" href="/app/admin/assets/css/pmd-shifts-final-v18.css?v=18">
+<link rel="stylesheet" data-pmd-shifts-server-ui-v17 href="/app/admin/assets/css/pmd-shifts-dashboard-reservations-v4.css?v=17">
+<link rel="stylesheet" href="/app/admin/assets/css/pmd-shifts-final-v18.css?v=18.1">
 HTML;
-            $script = '<script src="/app/admin/assets/js/pmd-shifts-final-v18.js?v=18"></script>';
+            $script = '<script src="/app/admin/assets/js/pmd-shifts-final-v18.js?v=18.1"></script>';
 
-            if (stripos($html, 'pmd-shifts-final-v18.css') === false) {
+            if (stripos($html, 'pmd-shifts-server-ui-v17') === false || stripos($html, 'pmd-shifts-final-v18.css') === false) {
                 $html = preg_replace('#</head>#i', $critical."\n</head>", $html, 1) ?? $html;
             }
             if (stripos($html, 'pmd-shifts-final-v18.js') === false) {
