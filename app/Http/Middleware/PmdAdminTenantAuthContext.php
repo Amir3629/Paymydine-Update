@@ -2,18 +2,16 @@
 
 namespace App\Http\Middleware;
 
+use App\Services\PmdSiteAccessService;
 use Closure;
 use Illuminate\Http\Request;
 
 /**
- * PMD_ADMIN_TENANT_AUTH_CONTEXT_V4
+ * PMD_ADMIN_TENANT_AUTH_CONTEXT_V5
  *
- * The legacy /admin catch-all route only carries the web group. AdminAuth is
- * resolved by AdminController before page actions run, so the tenant database
- * must already be selected before the route/controller pipeline starts.
- *
- * Reuse the canonical TenantDatabaseMiddleware as the single tenant resolver.
- * Super Admin is intentionally excluded and remains on the central database.
+ * Keep the canonical tenant resolver, then enforce Site Access only for a
+ * session that Login has explicitly marked pending. Restaurants without an
+ * activated hub and existing sessions are unaffected during rollout.
  */
 class PmdAdminTenantAuthContext
 {
@@ -23,7 +21,26 @@ class PmdAdminTenantAuthContext
             return $next($request);
         }
 
-        return app(TenantDatabaseMiddleware::class)->handle($request, $next);
+        return app(TenantDatabaseMiddleware::class)->handle(
+            $request,
+            function (Request $tenantRequest) use ($next) {
+                if (class_exists(PmdSiteAccessService::class)) {
+                    try {
+                        $gate = app(PmdSiteAccessService::class)->gateResponse($tenantRequest);
+                        if ($gate) return $gate;
+                    } catch (\Throwable $error) {
+                        // Fail open while schema is being rolled out. Login only
+                        // creates pending sessions after service readiness checks.
+                        logger()->warning('PMD Site Access gate skipped', [
+                            'message' => $error->getMessage(),
+                            'path' => $tenantRequest->path(),
+                        ]);
+                    }
+                }
+
+                return $next($tenantRequest);
+            }
+        );
     }
 
     private function isTenantAdminRequest(Request $request): bool
