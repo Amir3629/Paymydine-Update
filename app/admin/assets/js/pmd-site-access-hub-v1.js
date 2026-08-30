@@ -1,4 +1,4 @@
-/* PMD_SITE_ACCESS_HUB_RUNTIME_V3 */
+/* PMD_SITE_ACCESS_HUB_RUNTIME_V4 */
 (function () {
     'use strict';
 
@@ -13,17 +13,15 @@
         });
     }
 
-    function setMarker() {
-        var cookie = MARKER + '; Path=/; Max-Age=94608000; SameSite=Lax';
-        if (window.location.protocol === 'https:') cookie += '; Secure';
-        document.cookie = cookie;
-    }
-
     function clearMarker() {
         var cookie = 'pmd_site_hub_marker_v1=; Path=/; Max-Age=0; SameSite=Lax';
         if (window.location.protocol === 'https:') cookie += '; Secure';
         document.cookie = cookie;
     }
+
+    // Only a successful server-side Hub activation creates this non-secret
+    // marker. Ordinary Admin browsers therefore make zero Site Access probes.
+    if (!hasMarker()) return;
 
     var adminPrefix = path.indexOf('/admin/') >= 0
         ? path.slice(0, path.indexOf('/admin/') + '/admin'.length)
@@ -60,6 +58,8 @@
 
     function heartbeat() {
         if (stopped || document.visibilityState === 'hidden') return;
+        if (!token) return;
+
         fetch(heartbeatUrl, {
             method: 'POST',
             credentials: 'same-origin',
@@ -69,11 +69,7 @@
                 'X-Requested-With': 'XMLHttpRequest'
             }
         }).then(function (response) {
-            if (response.ok) {
-                setMarker();
-                mountOrdersShortcut();
-                return;
-            }
+            if (response.ok) return;
             if (response.status === 401 || response.status === 403) {
                 stopped = true;
                 clearMarker();
@@ -81,10 +77,7 @@
         }).catch(function () {});
     }
 
-    // If a marker already exists, the shortcut can render immediately. If not,
-    // one server probe discovers whether this browser still holds the HttpOnly
-    // Site Access hub token. Non-hub browsers stop after the first 403.
-    if (hasMarker()) mountOrdersShortcut();
+    mountOrdersShortcut();
     heartbeat();
     window.setInterval(heartbeat, 30000);
     document.addEventListener('visibilitychange', function () {
