@@ -2,6 +2,7 @@
 
 use Admin\Controllers\Siteaccess;
 use Admin\Facades\AdminAuth;
+use App\Http\Controllers\PmdSiteAccessHubDataController;
 use App\Http\Controllers\PmdSiteAccessSessionPingController;
 use App\Http\Middleware\PmdSiteAccessBindVerificationMiddleware;
 use App\Http\Middleware\PmdSiteAccessGateMiddleware;
@@ -14,7 +15,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 
-/** PMD_SITE_ACCESS_ROUTES_V8 */
+/** PMD_SITE_ACCESS_ROUTES_V9 */
 if (!defined('PMD_SITE_ACCESS_ROUTES_V1')) {
     define('PMD_SITE_ACCESS_ROUTES_V1', true);
 
@@ -25,7 +26,12 @@ if (!defined('PMD_SITE_ACCESS_ROUTES_V1')) {
         'prefix' => config('system.adminUri', 'admin'),
     ], function () {
         Route::get('siteaccess', [Siteaccess::class, 'index'])->name('pmd.siteaccess');
-        Route::post('siteaccess/verify', [Siteaccess::class, 'verify'])->middleware('throttle:12,1')->name('pmd.siteaccess.verify');
+
+        // PMD_WORKPLACE_VERIFY_SHARED_NAT_V1
+        // Restaurant devices commonly share one public IP. The per-challenge
+        // controller limit (8 attempts / 90s challenge) is the brute-force guard;
+        // keep the IP-level limiter high enough not to lock coworkers out.
+        Route::post('siteaccess/verify', [Siteaccess::class, 'verify'])->middleware('throttle:120,1')->name('pmd.siteaccess.verify');
         Route::post('siteaccess/finalize', [Siteaccess::class, 'finalize'])->middleware('throttle:30,1')->name('pmd.siteaccess.finalize');
         Route::get('siteaccess/status', [Siteaccess::class, 'status'])->middleware('throttle:60,1')->name('pmd.siteaccess.status');
         Route::post('siteaccess/recovery', [Siteaccess::class, 'recovery'])->middleware('throttle:8,15')->name('pmd.siteaccess.recovery');
@@ -114,7 +120,7 @@ if (!defined('PMD_SITE_ACCESS_ROUTES_V1')) {
             ->middleware([PmdSiteAccessManageTrustMiddleware::class, 'throttle:10,5'])
             ->name('pmd.siteaccess.hub.activate');
         Route::post('siteaccess/hub/heartbeat', [Siteaccess::class, 'heartbeat'])->middleware('throttle:120,1')->name('pmd.siteaccess.hub.heartbeat');
-        Route::get('siteaccess/hub/data', [Siteaccess::class, 'hubdata'])->middleware('throttle:120,1')->name('pmd.siteaccess.hub.data');
+        Route::get('siteaccess/hub/data', PmdSiteAccessHubDataController::class)->middleware('throttle:120,1')->name('pmd.siteaccess.hub.data');
         Route::post('siteaccess/hub/approve', [Siteaccess::class, 'approve'])->middleware('throttle:60,1')->name('pmd.siteaccess.hub.approve');
         Route::post('siteaccess/hub/decline', [Siteaccess::class, 'decline'])->middleware('throttle:60,1')->name('pmd.siteaccess.hub.decline');
         Route::post('siteaccess/recovery-codes', [Siteaccess::class, 'recoverycodes'])
