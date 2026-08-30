@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\PmdShiftAttendanceLiveController;
 use App\Http\Controllers\PmdStaffPortalController;
 use Illuminate\Support\Facades\Route;
 
@@ -7,7 +8,7 @@ use Illuminate\Support\Facades\Route;
 require_once base_path('routes/pmd-site-access-v1.php');
 
 /**
- * PMD_STAFF_PORTAL_V6_ROUTES
+ * PMD_STAFF_PORTAL_V7_ROUTES
  *
  * Canonical Staff Portal authority is /admin/login?destination=staff ->
  * /admin/mywork. Public /staff is navigation compatibility only; it must never
@@ -28,6 +29,12 @@ if (!defined('PMD_STAFF_PORTAL_ROUTES_V3')) {
             $response->setMaxAge(86400);
             return $response;
         })->where('person', '[1-9][0-9]*')->name('pmd.staff.avatar.v5');
+
+        // PMD_SHIFT_ATTENDANCE_LIVE_ROUTE_V1
+        // Read-only actual-presence overlay for the Owner/Manager Shifts board.
+        Route::get($adminUri.'/_pmd/shifts/attendance-v1', PmdShiftAttendanceLiveController::class)
+            ->middleware('throttle:60,1')
+            ->name('pmd.shifts.attendance.live.v1');
 
         // PMD_PUBLIC_STAFF_AUTH_RETIRED_V1
         Route::get('/staff/login', function () use ($adminUri) {
