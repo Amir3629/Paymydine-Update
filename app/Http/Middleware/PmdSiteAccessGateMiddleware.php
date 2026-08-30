@@ -138,7 +138,7 @@ class PmdSiteAccessGateMiddleware
 
         // Remove Team from Side Menu in the first server response; no CSS hiding.
         $html = preg_replace(
-            '#<a\\b(?=[^>]*class="[^"]*pmd-sm2__item[^"]*")(?=[^>]*href="[^"]*/admin/settings/team(?:[?#][^"]*)?")[^>]*>.*?</a>#is',
+            '~<a\\b(?=[^>]*class="[^"]*pmd-sm2__item[^"]*")(?=[^>]*href="[^"]*/admin/settings/team(?:[?#][^"]*)?")[^>]*>.*?</a>~is',
             '',
             $html
         ) ?? $html;
@@ -146,7 +146,7 @@ class PmdSiteAccessGateMiddleware
         // Give Shifts its own calendar-clock identity instead of the generic
         // calendar-list icon.
         $html = preg_replace_callback(
-            '#(<a\\b(?=[^>]*class="[^"]*pmd-sm2__item[^"]*")(?=[^>]*href="[^"]*/admin/shifts(?:[?#][^"]*)?")[^>]*>)(.*?)(</a>)#is',
+            '~(<a\\b(?=[^>]*class="[^"]*pmd-sm2__item[^"]*")(?=[^>]*href="[^"]*/admin/shifts(?:[?#][^"]*)?")[^>]*>)(.*?)(</a>)~is',
             function ($match) {
                 $body = preg_replace(
                     '#<svg\\b[^>]*>.*?</svg>#is',
