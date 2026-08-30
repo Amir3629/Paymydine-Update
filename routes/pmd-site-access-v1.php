@@ -13,15 +13,11 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 
-/** PMD_SITE_ACCESS_ROUTES_V5 */
+/** PMD_SITE_ACCESS_ROUTES_V6 */
 if (!defined('PMD_SITE_ACCESS_ROUTES_V1')) {
     define('PMD_SITE_ACCESS_ROUTES_V1', true);
 
     // PMD_SITE_ACCESS_WEB_GATE_INSTALL_V1
-    // Appended after Laravel's normal web middleware (including StartSession).
-    // The middleware itself is path-gated to tenant /admin surfaces, so public
-    // frontend routes remain untouched. This covers both legacy catch-all Admin
-    // controllers and explicit Admin APIs/KDS routes registered earlier.
     app(Kernel::class)->appendMiddlewareToGroup('web', PmdSiteAccessGateMiddleware::class);
 
     Route::group([
@@ -34,9 +30,22 @@ if (!defined('PMD_SITE_ACCESS_ROUTES_V1')) {
         Route::get('siteaccess/status', [Siteaccess::class, 'status'])->middleware('throttle:60,1')->name('pmd.siteaccess.status');
         Route::post('siteaccess/recovery', [Siteaccess::class, 'recovery'])->middleware('throttle:8,15')->name('pmd.siteaccess.recovery');
 
+        // PMD_OWNER_AUTHENTICATOR_ROUTES_V1
+        Route::get('siteaccess/owner-mfa/setup', [Siteaccess::class, 'ownermfasetup'])
+            ->name('pmd.siteaccess.owner_mfa.setup');
+        Route::get('siteaccess/owner-mfa/qr', [Siteaccess::class, 'ownermfaqr'])
+            ->middleware('throttle:60,1')
+            ->name('pmd.siteaccess.owner_mfa.qr');
+        Route::post('siteaccess/owner-mfa/confirm', [Siteaccess::class, 'ownermfaconfirm'])
+            ->middleware('throttle:8,15')
+            ->name('pmd.siteaccess.owner_mfa.confirm');
+        Route::get('siteaccess/owner-mfa', [Siteaccess::class, 'ownermfa'])
+            ->name('pmd.siteaccess.owner_mfa');
+        Route::post('siteaccess/owner-mfa/verify', [Siteaccess::class, 'ownermfaverify'])
+            ->middleware('throttle:8,15')
+            ->name('pmd.siteaccess.owner_mfa.verify');
+
         // PMD_SITE_ACCESS_SIGNED_QR_V2
-        // QR is generated locally; the encoded link is an 80-bit truncated HMAC
-        // bound to one 90-second challenge and the authenticated requester.
         Route::get('siteaccess/hub/qr/{challenge}', function ($challenge, Request $request) {
             if (!AdminAuth::isLogged()) return response('Authentication required.', 401);
             $site = app(PmdSiteAccessService::class);
@@ -77,10 +86,10 @@ if (!defined('PMD_SITE_ACCESS_ROUTES_V1')) {
             $identity = $site->identity();
 
             if (!$challenge || !$sessionChallenge || (int)$challenge->id !== (int)$sessionChallenge->id || (int)$challenge->user_id !== $identity['user_id']) {
-                return redirect(admin_url('siteaccess'))->with('error', 'This Site Access QR is not valid for your current login.');
+                return redirect(admin_url('siteaccess'))->with('error', 'This Workplace Access QR is not valid for your current login.');
             }
             if (!$site->hasOnlineHub((int)$challenge->location_id)) {
-                return redirect(admin_url('siteaccess'))->with('error', 'The restaurant Site Access hub is offline.');
+                return redirect(admin_url('siteaccess'))->with('error', 'The restaurant Workplace Access device is offline.');
             }
 
             DB::table('pmd_site_access_challenges')->where('id', $challenge->id)->update([
@@ -92,21 +101,9 @@ if (!defined('PMD_SITE_ACCESS_ROUTES_V1')) {
 
             try {
                 $result = $site->finalizeCurrent($request);
-                $response = redirect((string)$result['redirect'])->with('success', 'Site Access verified.');
-                if (!empty($result['staff_device_token'])) {
-                    $response->withCookie(cookie(
-                        PmdSiteAccessService::STAFF_DEVICE_COOKIE,
-                        $result['staff_device_token'],
-                        60 * 24 * 365,
-                        '/',
-                        null,
-                        $request->isSecure(),
-                        true,
-                        false,
-                        'Lax'
-                    ));
-                }
-                return $response;
+                app(\App\Services\PmdSiteAccessSessionBindingService::class)->bindCurrentUser();
+                app(\App\Services\PmdWorkSessionPolicyService::class)->apply($site->identity());
+                return redirect((string)$result['redirect'])->with('success', 'Workplace Access verified.');
             } catch (\Throwable $error) {
                 return redirect(admin_url('siteaccess'))->with('error', $error->getMessage());
             }
