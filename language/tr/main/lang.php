@@ -1,5 +1,14 @@
 <?php
 
-// PayMyDine Turkish language pack bridge.
-// Unspecified native TastyIgniter strings fall back to English.
-return [];
+declare(strict_types=1);
+
+use Admin\Classes\PmdPlatformI18n;
+
+// Bridge only. Turkish wording is owned exclusively by:
+// app/admin/i18n/platform/tr.php
+$english = require base_path('app/main/language/en/lang.php');
+
+return PmdPlatformI18n::mergeNativeTree(
+    is_array($english) ? $english : [],
+    PmdPlatformI18n::nativeOverlay('main', 'tr')
+);
