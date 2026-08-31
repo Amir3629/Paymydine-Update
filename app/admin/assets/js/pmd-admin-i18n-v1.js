@@ -6,9 +6,14 @@
         return;
     }
 
+    var VERSION = '2.0.0';
     var html = document.documentElement;
-    var locale = String(window.PMD_ADMIN_LOCALE || 'en').toLowerCase();
-    var catalogue = window.PMD_ADMIN_I18N_DE || {};
+    var locale = String(window.PMD_ADMIN_LOCALE || 'en').trim().toLowerCase();
+    var messages = window.PMD_PLATFORM_MESSAGES || {};
+    var englishMessages = window.PMD_PLATFORM_MESSAGES_ENGLISH || {};
+    var legacyGermanCatalogue = locale === 'de'
+        ? (window.PMD_ADMIN_I18N_DE || {})
+        : {};
     var normalized = Object.create(null);
     var observer = null;
     var translating = false;
@@ -21,92 +26,181 @@
             .trim();
     }
 
-    function addCatalogueEntries() {
-        Object.keys(catalogue).forEach(function (source) {
-            var target = catalogue[source];
-            var cleanSource = normalize(source);
+    function addEntry(source, target) {
+        var cleanSource = normalize(source);
 
-            if (!cleanSource || typeof target !== 'string' || !target.trim()) {
-                return;
-            }
+        if (!cleanSource || typeof target !== 'string' || !target.trim()) {
+            return;
+        }
 
-            normalized[cleanSource] = target;
-            normalized[cleanSource.replace(/\u2019/g, "'")] = target;
-            normalized[cleanSource.replace(/'/g, '\u2019')] = target;
+        normalized[cleanSource] = target;
+        normalized[cleanSource.replace(/\u2019/g, "'")] = target;
+        normalized[cleanSource.replace(/'/g, '\u2019')] = target;
+    }
+
+    function addCanonicalEntries() {
+        Object.keys(englishMessages).forEach(function (key) {
+            var source = englishMessages[key];
+            var target = messages[key];
+
+            if (typeof source !== 'string' || typeof target !== 'string') return;
+            if (!source.trim() || !target.trim() || source === target) return;
+
+            addEntry(source, target);
         });
+
+        // Locale files may own compatibility strings that originate in native
+        // TastyIgniter or old PayMyDine markup and therefore have no PMD key yet.
+        Object.keys(messages).forEach(function (key) {
+            if (key.indexOf('literal::') !== 0) return;
+            addEntry(key.slice('literal::'.length), messages[key]);
+        });
+    }
+
+    function addLegacyGermanEntries() {
+        Object.keys(legacyGermanCatalogue).forEach(function (source) {
+            addEntry(source, legacyGermanCatalogue[source]);
+        });
+    }
+
+    function exact(value) {
+        var clean = normalize(value);
+
+        if (!clean) return '';
+
+        return normalized[clean]
+            || normalized[clean.replace(/\u2019/g, "'")]
+            || normalized[clean.replace(/'/g, '\u2019')]
+            || '';
+    }
+
+    function replaceTokens(template, replacements) {
+        var output = String(template || '');
+
+        Object.keys(replacements || {}).forEach(function (token) {
+            output = output.split(token).join(String(replacements[token]));
+        });
+
+        return output;
+    }
+
+    function compatPattern(key, replacements) {
+        var template = messages[key];
+
+        if (typeof template !== 'string' || !template.trim()) {
+            return '';
+        }
+
+        return replaceTokens(template, replacements || {});
     }
 
     function translatePattern(value) {
         var match;
-        var result = value;
+        var translatedBase;
+        var counted;
+        var pattern;
 
-        match = result.match(/^Order\s+#?(\d+)$/i);
-        if (match) return 'Bestellung #' + match[1];
-
-        match = result.match(/^Table\s+(\d+)$/i);
-        if (match) return 'Tisch ' + match[1];
-
-        match = result.match(/^(\d+)\s+Guests?$/i);
-        if (match) return match[1] + ' Gäste';
-
-        match = result.match(/^(\d+)\s+Bookings?$/i);
-        if (match) return match[1] + ' Reservierungen';
-
-        match = result.match(/^(\d+)\s+Reservations?$/i);
-        if (match) return match[1] + ' Reservierungen';
-
-        match = result.match(/^(\d+)\s+Orders?$/i);
-        if (match) return match[1] + ' Bestellungen';
-
-        match = result.match(/^(\d+)\s+Tables?$/i);
-        if (match) return match[1] + ' Tische';
-
-        /* PMD_DASHBOARD_LAB_DYNAMIC_I18N_V6
-         * Reuse the central catalogue for count-prefixed text such as
-         * "0 samples", "3 live orders" and "0 reviews today".
-         */
-        match = result.match(/^(\d+)\s+(.+)$/);
+        match = value.match(/^Order\s+#?(\d+)$/i);
         if (match) {
-            var countedTarget = normalized[normalize(match[2])];
-            if (countedTarget) return match[1] + ' ' + countedTarget;
+            pattern = compatPattern('compat.pattern.order_number', { ':id': match[1] });
+            if (pattern) return pattern;
+            translatedBase = exact('Order');
+            if (translatedBase) return translatedBase + ' #' + match[1];
         }
 
-        match = result.match(/^long open tables\s+\(>\s*(\d+)\s*min\)$/i);
+        match = value.match(/^Table\s+(\d+)$/i);
         if (match) {
-            return lookup('long open tables') + ' (> ' + match[1] + ' Min.)';
+            pattern = compatPattern('compat.pattern.table_number', { ':id': match[1] });
+            if (pattern) return pattern;
+            translatedBase = exact('Table');
+            if (translatedBase) return translatedBase + ' ' + match[1];
         }
 
-        if (result.indexOf(' · ') !== -1) {
-            return result.split(' · ').map(function (part) {
+        match = value.match(/^(\d+)\s+Guests?$/i);
+        if (match) {
+            pattern = compatPattern('compat.pattern.guest_count', { ':count': match[1] });
+            if (pattern) return pattern;
+            counted = exact('Guests') || exact('Guest');
+            if (counted) return match[1] + ' ' + counted;
+        }
+
+        match = value.match(/^(\d+)\s+Bookings?$/i);
+        if (match) {
+            pattern = compatPattern('compat.pattern.booking_count', { ':count': match[1] });
+            if (pattern) return pattern;
+            counted = exact('Bookings') || exact('Booking');
+            if (counted) return match[1] + ' ' + counted;
+        }
+
+        match = value.match(/^(\d+)\s+Reservations?$/i);
+        if (match) {
+            pattern = compatPattern('compat.pattern.reservation_count', { ':count': match[1] });
+            if (pattern) return pattern;
+            counted = exact('Reservations') || exact('Reservation');
+            if (counted) return match[1] + ' ' + counted;
+        }
+
+        match = value.match(/^(\d+)\s+Orders?$/i);
+        if (match) {
+            pattern = compatPattern('compat.pattern.order_count', { ':count': match[1] });
+            if (pattern) return pattern;
+            counted = exact('Orders') || exact('Order');
+            if (counted) return match[1] + ' ' + counted;
+        }
+
+        match = value.match(/^(\d+)\s+Tables?$/i);
+        if (match) {
+            pattern = compatPattern('compat.pattern.table_count', { ':count': match[1] });
+            if (pattern) return pattern;
+            counted = exact('Tables') || exact('Table');
+            if (counted) return match[1] + ' ' + counted;
+        }
+
+        match = value.match(/^(\d+)\s+(.+)$/);
+        if (match) {
+            counted = exact(match[2]);
+            if (counted) return match[1] + ' ' + counted;
+        }
+
+        match = value.match(/^long open tables\s+\(>\s*(\d+)\s*min\)$/i);
+        if (match) {
+            pattern = compatPattern('compat.pattern.long_open_minutes', {
+                ':minutes': match[1]
+            });
+            if (pattern) return pattern;
+        }
+
+        match = value.match(/^Page\s+(\d+)\s+of\s+(\d+)$/i);
+        if (match) {
+            pattern = compatPattern('compat.pattern.page_of', {
+                ':page': match[1],
+                ':pages': match[2]
+            });
+            if (pattern) return pattern;
+        }
+
+        if (value.indexOf(' · ') !== -1) {
+            return value.split(' · ').map(function (part) {
                 return lookup(normalize(part));
             }).join(' · ');
         }
 
-        match = result.match(/^Page\s+(\d+)\s+of\s+(\d+)$/i);
-        if (match) return 'Seite ' + match[1] + ' von ' + match[2];
-
-        if (result.indexOf(' • ') !== -1) {
-            return result.split(' • ').map(function (part) {
+        if (value.indexOf(' • ') !== -1) {
+            return value.split(' • ').map(function (part) {
                 return lookup(normalize(part));
             }).join(' • ');
         }
 
-        result = result.replace(/\bOrder\s+#?(\d+)\b/gi, 'Bestellung #$1');
-        result = result.replace(/\bTable\s+(\d+)\b/gi, 'Tisch $1');
-
-        return result;
+        return value;
     }
 
     function lookup(value) {
         var clean = normalize(value);
         var direct;
 
-        if (!clean || locale !== 'de') return value;
+        if (!clean || locale === 'en') return value;
 
-        direct = normalized[clean];
-        if (direct) return direct;
-
-        direct = normalized[clean.replace(/\u2019/g, "'")];
+        direct = exact(clean);
         if (direct) return direct;
 
         return translatePattern(clean);
@@ -122,7 +216,8 @@
             'code',
             'pre',
             '[contenteditable="true"]',
-            '[data-pmd-no-translate]'
+            '[data-pmd-no-translate]',
+            '[data-pmd-i18n-skip]'
         ].join(',')));
     }
 
@@ -144,7 +239,7 @@
         if (!clean) return;
 
         translated = lookup(clean);
-        if (!translated || translated === clean) return;
+        if (!translated || translated === clean || translated === original) return;
 
         leading = (original.match(/^\s*/) || [''])[0];
         trailing = (original.match(/\s*$/) || [''])[0];
@@ -195,7 +290,7 @@
         var walker;
         var node;
 
-        if (!root || locale !== 'de') return;
+        if (!root || locale === 'en') return;
 
         if (root.nodeType === Node.TEXT_NODE) {
             translateTextNode(root);
@@ -228,7 +323,7 @@
     }
 
     function observe() {
-        if (!document.body || locale !== 'de') return;
+        if (!document.body || locale === 'en') return;
 
         if (!observer) {
             observer = new MutationObserver(function (mutations) {
@@ -286,6 +381,11 @@
     function run() {
         if (!document.body) return;
 
+        if (locale === 'en') {
+            reveal();
+            return;
+        }
+
         if (observer) observer.disconnect();
 
         translating = true;
@@ -302,18 +402,19 @@
         });
     }
 
-    addCatalogueEntries();
+    addCanonicalEntries();
+    addLegacyGermanEntries();
 
     window.PMDAdminI18n = {
-        version: '1.0.0',
+        version: VERSION,
         locale: function () { return locale; },
-        entries: function () { return Object.keys(catalogue).length; },
+        entries: function () { return Object.keys(normalized).length; },
         translate: lookup,
         run: run,
         reveal: reveal
     };
 
-    if (locale !== 'de') {
+    if (locale === 'en') {
         reveal();
     } else {
         revealTimer = window.setTimeout(reveal, 4000);
@@ -330,9 +431,10 @@
     window.addEventListener('load', run, { once: true });
 
     console.info('[PMD Admin I18n] Ready', {
-        version: window.PMDAdminI18n.version,
+        version: VERSION,
         locale: locale,
-        entries: Object.keys(catalogue).length,
+        entries: Object.keys(normalized).length,
+        catalogueDriven: true,
         noFlash: true
     });
 })();
