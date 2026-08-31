@@ -1038,10 +1038,6 @@ body.pmd-shifts-page .pmd-shifts__notification-root #notifDropdown{border-radius
 /* PMD_SHIFTS_CANONICAL_VISUAL_V2
  * Static first paint, truthful connected-shift lanes, and normal Owner bell.
  */
-body.pmd-shifts-page .page-content,
-body.pmd-shifts-page .page-wrapper,
-body.pmd-shifts-page .page-title{animation:none!important;transition:none!important}
-body.pmd-shifts-page .page-content{opacity:1!important;transform:none!important;filter:none!important}
 body.pmd-shifts-page #pmd-shifts{scroll-behavior:auto!important}
 body.pmd-shifts-page .pmd-shifts-final-shift-group__segments{position:absolute!important;inset:4px 5px 4px 7px!important;display:block!important;min-width:0!important;pointer-events:none!important}
 body.pmd-shifts-page .pmd-shifts-final-shift-segment{position:absolute!important;display:grid!important;align-content:center!important;min-width:24px!important;margin:0!important;padding:2px 6px!important;box-sizing:border-box!important;border:1px solid var(--pmd-role-border)!important;border-radius:6px!important;background:rgba(255,255,255,.82)!important;color:var(--pmd-role-text)!important;overflow:hidden!important;cursor:pointer!important;pointer-events:auto!important}
@@ -1507,5 +1503,147 @@ body.pmd-shifts-page .pmd-shifts__team-editor-footer{
   .pmd-shifts__team-editor
   .pmd-shifts__team-access-fields{
     grid-template-columns:minmax(0,1fr)!important;
+  }
+}
+/*
+ * Canonical Shifts shell
+ *
+ * This is the sole owner of /admin/shifts wrapper/content geometry. These
+ * scoped !important declarations are required to beat legacy global admin
+ * shell and smooth-transitions declarations without changing other pages.
+ */
+html:has(body.pmd-shifts-page),
+html:has(body.pmd-shifts-page) body.pmd-shifts-page {
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow-x: hidden !important;
+  background: #f8fbfd !important;
+}
+
+@media (min-width: 768px) {
+  html.pmd-sm2-collapsed body.pmd-shifts-page .page-wrapper {
+    left: calc(var(--pmd-sm2-gap, 14px) + var(--pmd-sm2-collapsed, 72px)) !important;
+    width: calc(100vw - var(--pmd-sm2-gap, 14px) - var(--pmd-sm2-collapsed, 72px)) !important;
+  }
+
+  html.pmd-sm2-expanded body.pmd-shifts-page .page-wrapper {
+    left: calc(var(--pmd-sm2-gap, 14px) + var(--pmd-sm2-expanded, 184px)) !important;
+    width: calc(100vw - var(--pmd-sm2-gap, 14px) - var(--pmd-sm2-expanded, 184px)) !important;
+  }
+}
+
+body.pmd-shifts-page .page-wrapper {
+  position: absolute !important;
+  top: 0 !important;
+  right: auto !important;
+  bottom: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow-x: hidden !important;
+  box-sizing: border-box !important;
+  background: #f8fbfd !important;
+  transform: none !important;
+  transition: none !important;
+  animation: none !important;
+}
+
+body.pmd-shifts-page .page-content {
+  position: relative !important;
+  inset: 0 auto auto 0 !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 14px !important;
+  overflow-x: hidden !important;
+  box-sizing: border-box !important;
+  background: #f8fbfd !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: none !important;
+  transition: none !important;
+  animation: none !important;
+}
+
+body.pmd-shifts-page .page-content > *,
+body.pmd-shifts-page #pmd-shifts,
+body.pmd-shifts-page .pmd-shifts,
+body.pmd-shifts-page .pmd-shifts-final-screen,
+body.pmd-shifts-page .pmd-shifts-final-board,
+body.pmd-shifts-page .pmd-shifts-final-row,
+body.pmd-shifts-page .pmd-shifts-final-person,
+body.pmd-shifts-page .pmd-shifts-final-track {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: none !important;
+  transition: none !important;
+  animation: none !important;
+}
+
+body.pmd-shifts-page .navbar-top,
+body.pmd-shifts-page .navbar-fixed-top,
+body.pmd-shifts-page .page-title-section {
+  display: none !important;
+  visibility: hidden !important;
+  min-height: 0 !important;
+  height: 0 !important;
+  max-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  overflow: hidden !important;
+  animation: none !important;
+  transition: none !important;
+}
+
+body.pmd-shifts-page [data-pmd-shifts-day-surface],
+body.pmd-shifts-page [data-pmd-shifts-hour-host] {
+  min-height: 0 !important;
+}
+
+body.pmd-shifts-page .pmd-shifts-final-scale-row {
+  height: auto !important;
+  min-height: 42px !important;
+  max-height: none !important;
+}
+
+body.pmd-shifts-page .pmd-shifts-final-row,
+body.pmd-shifts-page .pmd-shifts-final-person,
+body.pmd-shifts-page .pmd-shifts-final-track {
+  height: auto !important;
+  min-height: 72px !important;
+  max-height: none !important;
+}
+
+body.pmd-shifts-page .pmd-shifts-final-row {
+  border-bottom: 0 !important;
+}
+
+body.pmd-shifts-page .pmd-shifts-final-slots,
+body.pmd-shifts-page .pmd-shifts-final-shifts {
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+}
+
+body.pmd-shifts-page .pmd-shifts-final-row:not(:last-child) > .pmd-shifts-final-person,
+body.pmd-shifts-page .pmd-shifts-final-row:not(:last-child) > .pmd-shifts-final-track {
+  border-bottom: 1px solid #dfe8ee !important;
+}
+
+@media (max-width: 767px) {
+  body.pmd-shifts-page .page-wrapper {
+    left: 0 !important;
+    width: 100vw !important;
+  }
+
+  body.pmd-shifts-page .page-content {
+    padding-right: 10px !important;
+    padding-left: 10px !important;
   }
 }
