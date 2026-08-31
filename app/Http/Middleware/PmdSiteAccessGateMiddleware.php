@@ -3,8 +3,6 @@
 namespace App\Http\Middleware;
 
 use Admin\Facades\AdminAuth;
-use Admin\Services\PmdDefaultStaffRoleService;
-use App\Services\PmdOperationalRosterReconciler;
 use App\Services\PmdSiteAccessService;
 use App\Services\PmdSiteAccessWorkspaceGateService;
 use App\Services\PmdTrustedLoginDeviceService;
@@ -12,16 +10,16 @@ use Closure;
 use Illuminate\Http\Request;
 
 /**
- * PMD_SITE_ACCESS_WEB_GATE_V3
+ * PMD_SITE_ACCESS_WEB_GATE_V2
+ * PMD_TRUSTED_DEVICE_LOGIN_GATE_V1
  *
- * Security remains fail-closed after Workplace Access activation. V3 also
- * provides the server-first consolidation requested for Team/Shifts:
- * - trusted login devices skip repeat OTP/approval for the same user/browser;
- * - old Staff/User accounts are reconciled into the operational roster before
- *   the Shifts controller reads people;
- * - retired Team navigation/settings surfaces are removed from server HTML;
- * - Shifts final CSS/JS are present in the first response, avoiding refresh
- *   flashes from late stylesheet injection.
+ * Security-only middleware. It never rewrites admin HTML.
+ *
+ * Before first Workplace Access activation rollout remains fail-open so schema
+ * installation cannot brick an existing restaurant. Once the security policy
+ * is active, failures fail closed. A browser that has already completed the
+ * configured second factor for this exact user + restaurant may resume that
+ * verification on later password logins from the same trusted browser.
  */
 class PmdSiteAccessGateMiddleware
 {
@@ -34,56 +32,17 @@ class PmdSiteAccessGateMiddleware
             return $next($request);
         }
 
-        $relative = $path === $admin
-            ? ''
-            : (str_starts_with($path, $admin.'/') ? substr($path, strlen($admin) + 1) : $path);
-
-        // The browser Team pages are retired. Write/AJAX endpoints remain intact
-        // for compatibility while Shifts becomes the single Team authority.
-        if (
-            in_array(strtoupper((string)$request->method()), ['GET', 'HEAD'], true)
-            && in_array(strtolower($relative), ['settings/team', 'pmdteam', 'people'], true)
-            && $this->isDocumentRequest($request)
-        ) {
-            return redirect(admin_url('shifts'), 302)
-                ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
-                ->header('X-PMD-Team-Authority', 'shifts');
-        }
-
-        // Reconcile old access-only Staff/User accounts before Shifts reads its
-        // operational people list. This is location scoped and idempotent.
-        if (
-            strtolower($relative) === 'shifts'
-            && AdminAuth::isLogged()
-            && in_array(strtoupper((string)$request->method()), ['GET', 'HEAD'], true)
-            && $this->isDocumentRequest($request)
-        ) {
-            try {
-                $role = app(PmdDefaultStaffRoleService::class)
-                    ->roleCodeForUser(AdminAuth::getUser());
-                if (in_array($role, [PmdDefaultStaffRoleService::OWNER, PmdDefaultStaffRoleService::MANAGER], true)) {
-                    $identity = app(PmdSiteAccessService::class)->identity();
-                    $locationId = (int)($identity['location_id'] ?? 0);
-                    if ($locationId > 0) {
-                        app(PmdOperationalRosterReconciler::class)
-                            ->reconcileLocation($locationId);
-                    }
-                }
-            } catch (\Throwable $error) {
-                logger()->warning('PMD legacy roster reconciliation failed', [
-                    'message' => $error->getMessage(),
-                    'path' => $request->path(),
-                ]);
-            }
-        }
-
-        // A previously verified browser resumes before Login can render another
-        // OTP / restaurant-approval card.
+        // PMD_TRUSTED_DEVICE_RESUME_V1
+        // Login.php deliberately clears session verification after every fresh
+        // password login. If this browser was verified previously for the same
+        // user and location, restore the workspace verification before the OTP /
+        // approval card can render. Unknown/new/revoked browsers fall through to
+        // the normal security flow.
         try {
             if (AdminAuth::isLogged()) {
-                $trustedResume = app(PmdTrustedLoginDeviceService::class)
+                $trusted = app(PmdTrustedLoginDeviceService::class)
                     ->resumeIfPossible($request);
-                if ($trustedResume) return $trustedResume;
+                if ($trusted) return $trusted;
             }
         } catch (\Throwable $error) {
             logger()->warning('PMD trusted login resume check failed', [
@@ -102,6 +61,10 @@ class PmdSiteAccessGateMiddleware
             ]);
 
             // PMD_WORKPLACE_GATE_FAIL_CLOSED_V1
+            // If the restaurant already activated Workplace Access, never turn a
+            // service error into password-only access. Before activation we keep
+            // rollout-safe behavior so code/schema installation cannot lock an
+            // existing tenant.
             try {
                 $site = app(PmdSiteAccessService::class);
                 if (AdminAuth::isLogged() && $site->ready() && $site->policyEnabled()) {
@@ -120,8 +83,9 @@ class PmdSiteAccessGateMiddleware
 
         $response = $next($request);
 
-        // Once a genuine second-factor session has been completed and bound to
-        // the current user, remember this exact browser for later logins.
+        // PMD_TRUSTED_DEVICE_REMEMBER_V1
+        // Only a genuinely verified + session-bound response can create or renew
+        // the persistent browser token. Merely knowing the password never does.
         try {
             $response = app(PmdTrustedLoginDeviceService::class)
                 ->rememberVerifiedResponse($request, $response);
@@ -132,102 +96,6 @@ class PmdSiteAccessGateMiddleware
             ]);
         }
 
-        return $this->finalizeAdminHtml($request, $response, strtolower($relative));
-    }
-
-    private function finalizeAdminHtml(Request $request, $response, string $relative)
-    {
-        if (!$this->isDocumentRequest($request)) return $response;
-        if (!method_exists($response, 'getContent') || !method_exists($response, 'setContent')) return $response;
-
-        $type = strtolower((string)$response->headers->get('Content-Type', ''));
-        if ($type !== '' && !str_contains($type, 'text/html')) return $response;
-
-        $html = (string)$response->getContent();
-        if ($html === '' || stripos($html, '<html') === false) return $response;
-
-        // Remove Team from Side Menu in the first server response; no CSS hiding.
-        $html = preg_replace(
-            '~<a\\b(?=[^>]*class="[^"]*pmd-sm2__item[^"]*")(?=[^>]*href="[^"]*/admin/settings/team(?:[?#][^"]*)?")[^>]*>.*?</a>~is',
-            '',
-            $html
-        ) ?? $html;
-
-        // Give Shifts its own calendar-clock identity instead of the generic
-        // calendar-list icon.
-        $html = preg_replace_callback(
-            '~(<a\\b(?=[^>]*class="[^"]*pmd-sm2__item[^"]*")(?=[^>]*href="[^"]*/admin/shifts(?:[?#][^"]*)?")[^>]*>)(.*?)(</a>)~is',
-            function ($match) {
-                $body = preg_replace(
-                    '#<svg\\b[^>]*>.*?</svg>#is',
-                    '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 9h18"/><circle cx="12" cy="14" r="3"/><path d="M12 12.5V14l1 1"/></svg>',
-                    $match[2],
-                    1
-                );
-                return $match[1].$body.$match[3];
-            },
-            $html,
-            1
-        ) ?? $html;
-
-        // Team & Access is no longer a Settings destination.
-        if ($relative === 'settings' || $relative === 'pmdsettings') {
-            $html = preg_replace(
-                '#<section\\b[^>]*id="pmd-settings-team"[^>]*>.*?</section>#is',
-                '',
-                $html,
-                1
-            ) ?? $html;
-        }
-
-        if ($relative === 'shifts') {
-            // Retire the Members header shortcut and large Team panel before
-            // either can receive a browser paint.
-            $html = preg_replace(
-                '#<button\\b(?=[^>]*class="[^"]*pmd-shifts__header-icon[^"]*")(?=[^>]*data-pmd-team-scroll(?:="")?)[^>]*>.*?</button>#is',
-                '',
-                $html,
-                1
-            ) ?? $html;
-            $html = preg_replace(
-                '#<section\\b[^>]*id="pmd-shifts-team-panel"[^>]*>.*?</section>#is',
-                '',
-                $html,
-                1
-            ) ?? $html;
-
-            // V17 is still the base visual authority for the connected Shifts
-            // DOM. Load it server-first and keep V18 as the final scoped layer.
-            // Do not hide the board while JS decorates: rendering must fail open.
-            // The server V17 link intentionally uses a different marker so even
-            // a stale cached V18 JS cannot remove this authority stylesheet.
-            $critical = <<<'HTML'
-<link rel="stylesheet" data-pmd-shifts-server-ui-v17 href="/app/admin/assets/css/pmd-shifts-dashboard-reservations-v4.css?v=17">
-<link rel="stylesheet" href="/app/admin/assets/css/pmd-shifts-final-v18.css?v=18.1">
-HTML;
-            $script = '<script src="/app/admin/assets/js/pmd-shifts-final-v18.js?v=18.1"></script>';
-
-            if (stripos($html, 'pmd-shifts-server-ui-v17') === false || stripos($html, 'pmd-shifts-final-v18.css') === false) {
-                $html = preg_replace('#</head>#i', $critical."\n</head>", $html, 1) ?? $html;
-            }
-            if (stripos($html, 'pmd-shifts-final-v18.js') === false) {
-                $html = preg_replace('#</body>#i', $script."\n</body>", $html, 1) ?? $html;
-            }
-        }
-
-        $response->setContent($html);
         return $response;
-    }
-
-    private function isDocumentRequest(Request $request): bool
-    {
-        if ($request->isMethod('HEAD')) return true;
-        if ($request->ajax() || $request->expectsJson()) return false;
-
-        $fetchDest = strtolower(trim((string)$request->headers->get('Sec-Fetch-Dest', '')));
-        if (in_array($fetchDest, ['document', 'iframe'], true)) return true;
-
-        $accept = strtolower((string)$request->headers->get('Accept', ''));
-        return $accept === '' || str_contains($accept, 'text/html');
     }
 }
