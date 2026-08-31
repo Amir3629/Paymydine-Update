@@ -103,6 +103,10 @@
     $pmdIsSettingsSuiteRoute = $pmdIsSettingsSuiteRoute || $pmdIsDeviceSettingsSuiteRoute;
 
 
+    /* PMD_SHIFTS_STATIC_SHELL_ROUTE_V14 */
+    $pmdIsShiftsStaticShell = $pmdPath === 'admin/shifts';
+
+
     $pmdActive = function ($paths) use ($pmdPath) {
         foreach ((array) $paths as $path) {
             if (
@@ -129,6 +133,12 @@
                 : 'collapsed';
     } catch (error) {}
 
+    // PMD_SM2_EXCLUSIVE_STATE_BEFORE_PAINT_V15
+    document.documentElement.classList.remove(
+        'pmd-sm2-expanded',
+        'pmd-sm2-collapsed'
+    );
+
     document.documentElement.classList.add(
         state === 'expanded'
             ? 'pmd-sm2-expanded'
@@ -142,6 +152,12 @@
     @if($pmdIsSettingsSuiteRoute)
     document.documentElement.classList.add(
         'pmd-settings-suite-route-v5'
+    );
+    @endif
+
+    @if($pmdIsShiftsStaticShell)
+    document.documentElement.classList.add(
+        'pmd-shifts-static-shell-v14'
     );
     @endif
 
@@ -543,6 +559,120 @@
 </style>
 <!-- PMD_GLOBAL_MENU_CRITICAL_GEOMETRY_V6_END -->
 
+
+@if($pmdIsShiftsStaticShell)
+<!-- PMD_SHIFTS_STATIC_SHELL_FIRST_PAINT_V14_START -->
+<style id="pmd-shifts-static-shell-first-paint-v14">
+
+html.pmd-shifts-static-shell-v14,
+html.pmd-shifts-static-shell-v14 body {
+  margin:0!important;
+  padding:0!important;
+  background:#f8fbfd!important;
+  overflow-x:hidden!important;
+}
+
+html.pmd-shifts-static-shell-v14 .page-wrapper {
+  position:absolute!important;
+  top:0!important;
+  bottom:auto!important;
+  left:86px!important;
+  right:auto!important;
+  width:calc(100vw - 86px)!important;
+  min-width:0!important;
+  max-width:none!important;
+  margin:0!important;
+  padding:0!important;
+  box-sizing:border-box!important;
+  overflow-x:hidden!important;
+  z-index:1!important;
+  transform:none!important;
+  transition:none!important;
+  animation:none!important;
+}
+
+html.pmd-shifts-static-shell-v14.pmd-sm2-expanded
+.page-wrapper {
+  left:198px!important;
+  width:calc(100vw - 198px)!important;
+}
+
+html.pmd-shifts-static-shell-v14 .page-content {
+  position:relative!important;
+  left:0!important;
+  right:auto!important;
+  top:0!important;
+  width:100%!important;
+  min-width:0!important;
+  max-width:none!important;
+  margin:0!important;
+  padding-left:14px!important;
+  padding-right:14px!important;
+  box-sizing:border-box!important;
+  overflow-x:hidden!important;
+  background:#f8fbfd!important;
+  opacity:1!important;
+  visibility:visible!important;
+  transform:none!important;
+  transition:none!important;
+  animation:none!important;
+}
+
+html.pmd-shifts-static-shell-v14 .page-content > * {
+  box-sizing:border-box!important;
+  min-width:0!important;
+  max-width:100%!important;
+}
+
+html.pmd-shifts-static-shell-v14 .navbar-top,
+html.pmd-shifts-static-shell-v14 .navbar-fixed-top,
+html.pmd-shifts-static-shell-v14 .page-title-section {
+  display:none!important;
+  visibility:hidden!important;
+  opacity:0!important;
+  min-height:0!important;
+  height:0!important;
+  max-height:0!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  overflow:hidden!important;
+  transition:none!important;
+  animation:none!important;
+}
+
+@media(max-width:767px) {
+
+  html.pmd-shifts-static-shell-v14 .page-wrapper,
+  html.pmd-shifts-static-shell-v14.pmd-sm2-expanded
+  .page-wrapper {
+    left:0!important;
+    width:100vw!important;
+  }
+
+  html.pmd-shifts-static-shell-v14 .page-content {
+    padding-left:10px!important;
+    padding-right:10px!important;
+  }
+
+}
+
+
+
+  /* PMD_SHIFTS_DUAL_STATE_GUARD_V15
+   * If old authorities momentarily expose both state classes,
+   * visible collapsed Side Menu geometry wins.
+   */
+  html.pmd-shifts-static-shell-v14.pmd-sm2-expanded.pmd-sm2-collapsed
+  .page-wrapper {
+    left:86px!important;
+    right:auto!important;
+    width:calc(100vw - 86px)!important;
+  }
+
+</style>
+<!-- PMD_SHIFTS_STATIC_SHELL_FIRST_PAINT_V14_END -->
+@endif
 
 <!-- PMD_SM2_ZERO_REFRESH_TRANSITION_V8_START -->
 <style id="pmd-sm2-global-shell-transition-v8">

@@ -7,6 +7,7 @@ use Admin\Services\PmdDefaultStaffRoleService;
 use App\Services\PmdOwnerTotpService;
 use App\Services\PmdSiteAccessService;
 use App\Services\PmdSiteAccessSessionBindingService;
+use App\Services\PmdTrustedLoginDeviceService;
 use App\Services\PmdWorkplaceHubBootstrapService;
 use App\Services\PmdWorkSessionPolicyService;
 use Illuminate\Http\Request;
@@ -90,6 +91,13 @@ class PmdFirstWorkplaceDeviceController
                     'session_reason' => $policy['reason'],
                 ]
             );
+
+            // PMD_FIRST_OWNER_DIRECT_TRUST_V16_FINAL
+            app(PmdTrustedLoginDeviceService::class)
+                ->trustAfterVerifiedSecondFactor(
+                    $request,
+                    $identity
+                );
 
             return redirect($target)
                 ->withCookie($this->hubCookie($rawToken, $request))

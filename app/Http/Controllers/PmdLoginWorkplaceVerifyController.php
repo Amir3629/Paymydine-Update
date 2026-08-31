@@ -6,6 +6,7 @@ use Admin\Facades\AdminAuth;
 use App\Services\PmdRestaurantApprovalPresenceService;
 use App\Services\PmdSiteAccessService;
 use App\Services\PmdSiteAccessSessionBindingService;
+use App\Services\PmdTrustedLoginDeviceService;
 use App\Services\PmdWorkplaceCodeService;
 use App\Services\PmdWorkSessionPolicyService;
 use Carbon\Carbon;
@@ -93,7 +94,19 @@ class PmdLoginWorkplaceVerifyController
                 'session_until' => $policy['expires_at']->toIso8601String(),
                 'session_reason' => $policy['reason'],
             ]);
-            return redirect((string)$result['redirect'])->with('success', 'Security verified.');
+            // PMD_STAFF_TRUST_EXACT_SUCCESS_V3
+            // PMD_STAFF_DIRECT_TRUST_V16_FINAL
+            app(PmdTrustedLoginDeviceService::class)
+                ->trustAfterVerifiedSecondFactor(
+                    $request,
+                    $identity
+                );
+
+            $response = redirect((string)$result['redirect'])
+                ->with('success', 'Security verified.');
+
+            return app(PmdTrustedLoginDeviceService::class)
+                ->rememberVerifiedResponse($request, $response);
         } catch (\Throwable $error) {
             return redirect(admin_url('login'))->with('error', $error->getMessage());
         }

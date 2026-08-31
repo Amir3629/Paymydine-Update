@@ -149,6 +149,33 @@ class SmoothPageTransitions {
     
     init() {
         if (!this.contentArea) return;
+
+        const pmdPath = String(
+            window.location.pathname || ''
+        ).replace(/\/+$/, '');
+
+        if (pmdPath === '/admin/shifts') {
+            // PMD_SHIFTS_NO_SMOOTH_TRANSITION_V13
+            this.contentArea.style.setProperty(
+                'transition',
+                'none',
+                'important'
+            );
+
+            this.contentArea.style.setProperty(
+                'opacity',
+                '1',
+                'important'
+            );
+
+            this.contentArea.style.setProperty(
+                'transform',
+                'none',
+                'important'
+            );
+
+            return;
+        }
         
         // Add transition styles to content area
         this.contentArea.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
@@ -189,6 +216,7 @@ class SmoothPageTransitions {
         // SPECIAL: Don't intercept certain pages that need full reload
         const noAjaxPages = [
             '/admin/dashboard',
+            '/admin/shifts',
             '/admin',
             'dashboard',
             '/orders',

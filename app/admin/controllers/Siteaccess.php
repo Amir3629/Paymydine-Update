@@ -9,6 +9,7 @@ use App\Services\PmdOwnerTotpService;
 use App\Services\PmdSiteAccessQrService;
 use App\Services\PmdSiteAccessService;
 use App\Services\PmdSiteAccessSessionBindingService;
+use App\Services\PmdTrustedLoginDeviceService;
 use App\Services\PmdWorkplaceCodeService;
 use App\Services\PmdWorkplaceHubBootstrapService;
 use App\Services\PmdWorkSessionPolicyService;
@@ -154,6 +155,13 @@ class Siteaccess extends AdminController
             $service = app(PmdSiteAccessService::class);
             $result = $service->finalizeCurrent($request);
             $this->bindAndApplySessionPolicy($service);
+
+            // PMD_SITEACCESS_JSON_DIRECT_TRUST_V16_FINAL
+            app(PmdTrustedLoginDeviceService::class)
+                ->trustAfterVerifiedSecondFactor(
+                    $request,
+                    $service->identity()
+                );
             return response()->json(['ok' => true, 'redirect' => $result['redirect']]);
         } catch (\Throwable $error) {
             return response()->json(['ok' => false, 'message' => $error->getMessage()], 409);
@@ -354,6 +362,13 @@ class Siteaccess extends AdminController
             'session_reason' => $policy['reason'],
         ]);
 
+        // PMD_SITEACCESS_OWNER_DIRECT_TRUST_V16_FINAL
+        app(PmdTrustedLoginDeviceService::class)
+            ->trustAfterVerifiedSecondFactor(
+                $request,
+                $identity
+            );
+
         return redirect($target)->with('success', 'Owner Authenticator verified.');
     }
 
@@ -532,6 +547,13 @@ class Siteaccess extends AdminController
         try {
             $result = $service->finalizeCurrent($request);
             $this->bindAndApplySessionPolicy($service);
+
+            // PMD_SITEACCESS_FINALIZE_DIRECT_TRUST_V16_FINAL
+            app(PmdTrustedLoginDeviceService::class)
+                ->trustAfterVerifiedSecondFactor(
+                    $request,
+                    $service->identity()
+                );
             return redirect((string)$result['redirect'])->with('success', 'Workplace Access verified.');
         } catch (\Throwable $error) {
             return redirect(admin_url('siteaccess'))->with('error', $error->getMessage());

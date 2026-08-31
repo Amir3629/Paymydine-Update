@@ -32,6 +32,21 @@ class PmdSiteAccessGateMiddleware
             return $next($request);
         }
 
+        // PMD_TRUSTED_COOKIE_SURVIVES_LOGOUT_V3
+        // Capture only an already-valid trusted browser before downstream
+        // logout/session invalidation. Ordinary Sign out must not revoke it.
+        $trustedDeviceBeforeResponse = null;
+
+        try {
+            if (AdminAuth::isLogged()) {
+                $trustedDeviceBeforeResponse =
+                    app(PmdTrustedLoginDeviceService::class)
+                        ->current($request);
+            }
+        } catch (\Throwable $error) {
+            $trustedDeviceBeforeResponse = null;
+        }
+
         // PMD_TRUSTED_DEVICE_RESUME_V1
         // Login.php deliberately clears session verification after every fresh
         // password login. If this browser was verified previously for the same
@@ -94,6 +109,21 @@ class PmdSiteAccessGateMiddleware
                 'message' => $error->getMessage(),
                 'path' => $request->path(),
             ]);
+        }
+
+        if ($trustedDeviceBeforeResponse) {
+            try {
+                $response = app(PmdTrustedLoginDeviceService::class)
+                    ->renewExistingCookie($request, $response);
+            } catch (\Throwable $error) {
+                logger()->warning(
+                    'PMD trusted cookie logout preservation failed',
+                    [
+                        'message' => $error->getMessage(),
+                        'path' => $request->path(),
+                    ]
+                );
+            }
         }
 
         return $response;

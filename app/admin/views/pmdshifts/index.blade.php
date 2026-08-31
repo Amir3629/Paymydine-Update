@@ -286,15 +286,15 @@
             id="pmd-shifts-day-surface"
             class="pmd-shifts-day-surface"
             data-pmd-shifts-day-surface
-            {{-- PMD_SHIFTS_ROW_COUNT_FIRST_PAINT_V12 --}}
-            style="--pmd-shifts-row-count: {{ max(1, (int)$people->count()) }};"
             aria-label="Daily shift plan"
         >
             <section
                 id="pmd-shift-day"
                 class="pmd-r2-yc-selected pmd-shifts-hour-host"
                 data-pmd-shifts-hour-host
-            ></section>
+            >
+                @include('admin::pmdshifts._server_rota_v13')
+            </section>
         </section>
         {{-- PMD_SHIFTS_CANONICAL_TEAM_SURFACE_V1: Team editing lives in the existing modal; no duplicate lower panel. --}}
 

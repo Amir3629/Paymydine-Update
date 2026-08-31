@@ -7,6 +7,7 @@ use Admin\Services\PmdDefaultStaffRoleService;
 use App\Services\PmdOwnerTotpService;
 use App\Services\PmdSiteAccessService;
 use App\Services\PmdSiteAccessSessionBindingService;
+use App\Services\PmdTrustedLoginDeviceService;
 use App\Services\PmdWorkSessionPolicyService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -121,11 +122,24 @@ class PmdOwnerEmergencyAccessController
             ]
         );
 
+        // PMD_OWNER_TRUST_EXACT_SUCCESS_V3
+        $trustedLogin = app(PmdTrustedLoginDeviceService::class);
+
+        // PMD_OWNER_DIRECT_TRUST_V16_FINAL
+        app(PmdTrustedLoginDeviceService::class)
+            ->trustAfterVerifiedSecondFactor(
+                $request,
+                $identity
+            );
+
         $codes = $this->prepareRecoveryCodes($site, $identity, $request);
         if ($codes) {
             $this->queueRecoveryCodes($identity, $target, $codes);
             session()->forget(self::AFTER_SESSION);
-            return redirect(admin_url('login'));
+            $response = redirect(admin_url('login'));
+
+            return $trustedLogin
+                ->rememberVerifiedResponse($request, $response);
         }
 
         session()->forget([
@@ -133,7 +147,11 @@ class PmdOwnerEmergencyAccessController
             self::RECOVERY_DISPLAY_SESSION,
             self::AFTER_SESSION,
         ]);
-        return redirect($target)->with('success', 'Security verified.');
+        $response = redirect($target)
+            ->with('success', 'Security verified.');
+
+        return $trustedLogin
+            ->rememberVerifiedResponse($request, $response);
     }
 
     public function recover(Request $request)

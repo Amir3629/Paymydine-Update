@@ -5,11 +5,12 @@ namespace App\Services;
 use Admin\Facades\AdminAuth;
 use Admin\Services\PmdDefaultStaffRoleService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * PMD_TRUSTED_LOGIN_DEVICE_V2
+ * PMD_TRUSTED_LOGIN_DEVICE_V3
  *
  * After one genuine second-factor success, this exact browser becomes trusted
  * for the same user + restaurant. Later password logins on that browser resume
@@ -62,8 +63,125 @@ class PmdTrustedLoginDeviceService
      * login token, create one. Existing trusted devices get a rolling cookie
      * renewal so normal passage of time does not unexpectedly ask for TOTP.
      */
+    /**
+     * PMD_TRUSTED_DIRECT_SECOND_FACTOR_V16
+     *
+     * Call ONLY from a successful second-factor endpoint.
+     * This deliberately does not re-check workspace/session state:
+     * the calling endpoint has just cryptographically/operationally
+     * verified the user.
+     */
+    public function trustAfterVerifiedSecondFactor(
+        Request $request,
+        ?array $identity = null
+    ): bool {
+        if (!$this->ready() || !AdminAuth::isLogged()) return false;
+
+        try {
+            $site = app(PmdSiteAccessService::class);
+            $identity = $identity ?: $site->identity();
+
+            $userId = (int)($identity['user_id'] ?? 0);
+            $locationId = (int)($identity['location_id'] ?? 0);
+
+            if ($userId < 1 || $locationId < 1) {
+                logger()->warning('PMD trusted direct verification has incomplete identity', [
+                    'user_id' => $userId,
+                    'location_id' => $locationId,
+                ]);
+                return false;
+            }
+
+            $existing = $this->current($request, $identity);
+
+            if ($existing) {
+                $this->touch((int)$existing->id);
+
+                $raw = trim((string)$request->cookie(self::COOKIE, ''));
+
+                if ($raw !== '') {
+                    Cookie::queue($this->cookie($raw, $request));
+                }
+
+                $request->attributes->set(
+                    'pmd_trusted_direct_second_factor_v16',
+                    true
+                );
+
+                return true;
+            }
+
+            [$device, $rawToken] = $this->create($identity, $request);
+
+            if (!$device || $rawToken === '') {
+                logger()->error('PMD trusted direct device creation returned empty result', [
+                    'user_id' => $userId,
+                    'location_id' => $locationId,
+                ]);
+                return false;
+            }
+
+            Cookie::queue($this->cookie($rawToken, $request));
+
+            $request->attributes->set(
+                'pmd_trusted_direct_token_v16',
+                $rawToken
+            );
+
+            $request->attributes->set(
+                'pmd_trusted_direct_second_factor_v16',
+                true
+            );
+
+            $site->audit(
+                'trusted_login_device_created',
+                true,
+                $identity,
+                (int)$device->id,
+                null,
+                $request,
+                [
+                    'kind' => self::KIND,
+                    'source' => 'direct_second_factor_v16',
+                ]
+            );
+
+            return true;
+        } catch (\Throwable $error) {
+            logger()->error('PMD trusted direct second-factor creation failed', [
+                'message' => $error->getMessage(),
+            ]);
+
+            return false;
+        }
+    }
+
     public function rememberVerifiedResponse(Request $request, $response)
     {
+        // PMD_TRUSTED_DIRECT_COOKIE_ATTACH_V16
+        // A genuine second-factor endpoint may already have created the
+        // trusted DB row. Attach that exact token to the final response
+        // without running the old workspace guards again.
+        $directToken = trim((string)$request->attributes->get(
+            'pmd_trusted_direct_token_v16',
+            ''
+        ));
+
+        if (
+            $directToken !== ''
+            && method_exists($response, 'withCookie')
+        ) {
+            return $response->withCookie(
+                $this->cookie($directToken, $request)
+            );
+        }
+        if ($request->attributes->get(
+            'pmd_trusted_direct_second_factor_v16'
+        )) return $response;
+        // PMD_TRUSTED_DIRECT_SECOND_FACTOR_V3
+        // A successful security controller may already have attached
+        // the cookie. Never create a duplicate trusted-device record.
+        if ($this->responseHasTrustedCookie($response)) return $response;
         if (!$this->ready() || !AdminAuth::isLogged()) return $response;
 
         $site = app(PmdSiteAccessService::class);
@@ -248,12 +366,30 @@ class PmdTrustedLoginDeviceService
         ];
     }
 
-    private function renewExistingCookie(Request $request, $response)
+    public function renewExistingCookie(Request $request, $response)
     {
         if (!method_exists($response, 'withCookie')) return $response;
         $raw = trim((string)$request->cookie(self::COOKIE, ''));
         if ($raw === '') return $response;
         return $response->withCookie($this->cookie($raw, $request));
+    }
+
+    private function responseHasTrustedCookie($response): bool
+    {
+        try {
+            if (!is_object($response) || !isset($response->headers)) {
+                return false;
+            }
+
+            foreach ($response->headers->getCookies() as $cookie) {
+                if ($cookie && $cookie->getName() === self::COOKIE) {
+                    return true;
+                }
+            }
+        } catch (\Throwable $error) {
+        }
+
+        return false;
     }
 
     private function touch(int $deviceId): void

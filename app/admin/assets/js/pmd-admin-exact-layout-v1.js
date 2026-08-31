@@ -76,8 +76,13 @@
     return normalizedPath === '/admin/dashboard2';
   }
 
+  // PMD_SHIFTS_STATIC_LAYOUT_V14
+  function isShifts() {
+    return normalizedPath === '/admin/shifts';
+  }
+
   function isStaticBootRoute() {
-    return isSettingsSuite() || isDashboard2();
+    return isSettingsSuite() || isDashboard2() || isShifts();
   }
 
   function runtimeTransitionsReady() {
@@ -139,7 +144,7 @@
 
     var settingsSuite = isSettingsSuite();
     var dashboard2 = isDashboard2();
-    var staticBootRoute = settingsSuite || dashboard2;
+    var staticBootRoute = settingsSuite || dashboard2 || isShifts();
     var animateShell = Boolean(options.animate);
 
     var gap = settingsSuite
@@ -205,6 +210,13 @@
       setImportant(page.wrapper, 'transition', shellTransition);
     } else {
       setImportant(page.wrapper, 'position', 'absolute');
+
+      // PMD_SHIFTS_RUNTIME_TOP_V15
+      if (isShifts()) {
+        setImportant(page.wrapper, 'top', '0px');
+        setImportant(page.wrapper, 'bottom', 'auto');
+      }
+
       setImportant(page.wrapper, 'left', measuredMenuRight + 'px');
       setImportant(page.wrapper, 'right', 'auto');
       setImportant(page.wrapper, 'margin-left', '0px');
