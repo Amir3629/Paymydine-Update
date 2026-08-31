@@ -127,6 +127,21 @@ try:
             new_group_style,
             'Lock connected coverage to its actual timeline span',
         )
+
+        old_notification_lookup = "    var notificationRoot = document.getElementById('notif-root');\n    if (!slot || !notificationRoot) return false;\n"
+        new_notification_lookup = """    var notificationRoot = slot && slot.querySelector('#notif-root');
+    if (!notificationRoot) notificationRoot = document.getElementById('notif-root');
+    if (!slot || !notificationRoot) return false;
+    document.querySelectorAll('#notif-root').forEach(function (candidate) {
+      if (candidate !== notificationRoot) candidate.remove();
+    });
+"""
+        js = replace_exact(
+            js,
+            old_notification_lookup,
+            new_notification_lookup,
+            'Give Shifts one local notification root owner',
+        )
     else:
         print('ALREADY: Shifts browser interaction V3')
 
@@ -217,7 +232,6 @@ body.pmd-shifts-page .pmd-shifts-final-shift-segment{
     else:
         print('ALREADY: Shifts canonical visual V3')
 
-    # Give the modified canonical source assets fresh immutable delivery names.
     js_hash = hashlib.sha256(js.encode('utf-8')).hexdigest()[:12]
     css_hash = hashlib.sha256(css.encode('utf-8')).hexdigest()[:12]
     js_name = f'pmd-shifts-canonical-{js_hash}.js'
@@ -241,6 +255,7 @@ body.pmd-shifts-page .pmd-shifts-final-shift-segment{
         ('PMD_SHIFTS_REAL_NOTIFICATION_V1', view, 'view'),
         ("@include('admin::_partials.notification_bell')", view, 'view'),
         ('PMD_SHIFTS_CANONICAL_INTERACTION_V3', js, 'js'),
+        ('candidate !== notificationRoot', js, 'js'),
         ('% !important;width:', js, 'js'),
         ('PMD_SHIFTS_CANONICAL_VISUAL_V3', css, 'css'),
         (js_name, controller, 'controller'),
