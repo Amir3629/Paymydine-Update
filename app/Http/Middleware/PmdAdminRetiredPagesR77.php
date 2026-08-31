@@ -354,13 +354,15 @@ class PmdAdminRetiredPagesR77
             'pmdcustomer' =>
                 'settings/customers',
 
+            // PMD_SHIFTS_SINGLE_TEAM_AUTHORITY_V1
             'pmdteam' =>
-                'settings/team',
+                'shifts',
 
-            // PMD_UNIFIED_TEAM_V1: old People browser workspace now resolves
-            // to the single Team authority. Write/backend descendants remain untouched.
             'people' =>
-                'settings/team',
+                'shifts',
+
+            'settings/team' =>
+                'shifts',
 
             'pmddevices' =>
                 'settings/devices',

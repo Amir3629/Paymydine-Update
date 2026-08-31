@@ -7,7 +7,7 @@ use Admin\Models\Staff_roles_model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-/** PMD_DEFAULT_STAFF_ROLES_V4 */
+/** PMD_DEFAULT_STAFF_ROLES_V5 */
 class PmdDefaultStaffRoleService
 {
     public const OWNER = 'pmd-owner';
@@ -16,7 +16,8 @@ class PmdDefaultStaffRoleService
     public const WAITER = 'pmd-waiter';
     public const ACCOUNTANT = 'pmd-accountant';
     public const RESERVATIONS = 'pmd-reservations';
-    public const TEAM_MEMBER = 'pmd-team-member';
+    public const TEAM_MEMBER = 'pmd-team-member'; // compatibility code; display name is Kitchen Staff
+    public const SONSTIGE = 'pmd-sonstige';
     public const KDS_PREFIX = 'pmd-kds:';
 
     private const PMD_OWNER_WORKSPACE = 'PMD.Workspace.Owner';
@@ -129,8 +130,16 @@ class PmdDefaultStaffRoleService
             ],
             [
                 'code' => self::TEAM_MEMBER,
-                'name' => 'Team Member',
-                'description' => 'Staff Portal only. No operational PMD workspace or side menu.',
+                'name' => 'Kitchen Staff',
+                'description' => 'Kitchen staff portal only. No operational PMD workspace or side menu.',
+                'permissions' => [
+                    'Admin.Dashboard' => 1,
+                ],
+            ],
+            [
+                'code' => self::SONSTIGE,
+                'name' => 'Sonstige',
+                'description' => 'Other staff portal only. No operational PMD workspace or side menu.',
                 'permissions' => [
                     'Admin.Dashboard' => 1,
                 ],
@@ -162,6 +171,7 @@ class PmdDefaultStaffRoleService
             self::ACCOUNTANT,
             self::RESERVATIONS,
             self::TEAM_MEMBER,
+            self::SONSTIGE,
         ], true) || str_starts_with($code, self::KDS_PREFIX);
     }
 
@@ -191,7 +201,8 @@ class PmdDefaultStaffRoleService
             self::WAITER => 'orders', 'waiter' => 'orders',
             self::ACCOUNTANT => 'accountantdashboard', 'accountant' => 'accountantdashboard',
             self::RESERVATIONS => 'reservations', 'reservation' => 'reservations', 'reservations' => 'reservations',
-            self::TEAM_MEMBER => 'mywork', 'team-member' => 'mywork',
+            self::TEAM_MEMBER => 'mywork', 'team-member' => 'mywork', 'team member' => 'mywork', 'kitchen staff' => 'mywork',
+            self::SONSTIGE => 'mywork', 'sonstige' => 'mywork',
         ];
         if (isset($map[$code])) return $map[$code];
         if (str_starts_with($code, self::KDS_PREFIX)) {
@@ -344,7 +355,7 @@ class PmdDefaultStaffRoleService
 
         // Every PMD account owns a personal My Work page, regardless of operational role.
         if ($is('mywork')) return true;
-        if ($code === self::TEAM_MEMBER) return $is('mywork');
+        if (in_array($code, [self::TEAM_MEMBER, self::SONSTIGE], true)) return $is('mywork');
 
         if ($code === self::MANAGER) {
             return !$is('dashboardlab');

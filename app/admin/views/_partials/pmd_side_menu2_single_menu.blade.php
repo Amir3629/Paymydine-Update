@@ -138,13 +138,10 @@
             <span class="pmd-sm2__label">{{ $pmdSm2T('nav.reservations', 'Reservations') }}</span>
         </a>
         @if($pmdSm2IsOwnerNav || $pmdSm2IsManagerNav)
+        {{-- PMD_SHIFTS_CANONICAL_NAV_V1 --}}
         <a class="pmd-sm2__item {{ $pmdActive(['shifts']) ? 'is-active' : '' }}" href="{{ admin_url('shifts') }}">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v15h-16z"/><path d="M8 3v4M16 3v4M4 10h16"/><path d="M8 14h3M13 14h3M8 17h3"/></svg>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 9h18"/><circle cx="12" cy="14" r="3"/><path d="M12 12.5V14l1 1"/></svg>
             <span class="pmd-sm2__label">{{ $pmdSm2T('nav.shifts', 'Shifts') }}</span>
-        </a>
-        <a class="pmd-sm2__item {{ $pmdActive(['pmdteam']) ? 'is-active' : '' }}" href="{{ admin_url('settings/team') }}">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0M16 5a3 3 0 0 1 0 6M17 14a5 5 0 0 1 4 5"/></svg>
-            <span class="pmd-sm2__label">{{ $pmdSm2T('nav.team', 'Team') }}</span>
         </a>
         @endif
         <a class="pmd-sm2__item {{ $pmdActive(['coupons']) ? 'is-active' : '' }}" href="{{ admin_url('coupons') }}">
@@ -157,7 +154,7 @@
             <span class="pmd-sm2__label">{{ $pmdSm2T('nav.menu', 'Menu') }}</span>
         </a>
 
-        <a class="pmd-sm2__item {{ $pmdActive(['pmdsettings', 'pmddevices', 'pmdteam', 'pmdfinance', 'pmdadvanced', 'languages', 'currencies']) ? 'is-active' : '' }}" href="{{ admin_url('settings') }}">
+        <a class="pmd-sm2__item {{ $pmdActive(['pmdsettings', 'pmddevices', 'pmdfinance', 'pmdadvanced', 'languages', 'currencies']) ? 'is-active' : '' }}" href="{{ admin_url('settings') }}">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06-2.12 2.12-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V20h-3v-.08a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06-2.12-2.12.06-.06A1.65 1.65 0 0 0 7.2 15a1.65 1.65 0 0 0-1.51-1H5.6v-3h.09A1.65 1.65 0 0 0 7.2 10a1.65 1.65 0 0 0-.33-1.82l-.06-.06L8.93 6l.06.06A1.65 1.65 0 0 0 10.8 6.4a1.65 1.65 0 0 0 1-1.51V4.8h3v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06 2.12 2.12-.06.06A1.65 1.65 0 0 0 19.4 10a1.65 1.65 0 0 0 1.51 1H21v3h-.09A1.65 1.65 0 0 0 19.4 15z"/></svg>
             <span class="pmd-sm2__label">{{ $pmdSm2T('nav.settings', 'Settings') }}</span>
         </a>

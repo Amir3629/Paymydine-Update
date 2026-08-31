@@ -1,5 +1,5 @@
 -- PayMyDine schema-only dump
--- Generated UTC: Sun Aug 30 22:15:34 UTC 2026
+-- Generated UTC: Mon Aug 31 13:01:44 UTC 2026
 -- Source server: vps-252f1bc4
 -- DATA ROWS ARE NOT INCLUDED
 
@@ -1853,7 +1853,7 @@ CREATE TABLE `ti_migrations` (
   `migration` varchar(128) NOT NULL,
   `batch` int(11) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=205 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=210 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -2350,6 +2350,7 @@ CREATE TABLE `ti_pmd_operational_people` (
   `department` varchar(32) NOT NULL DEFAULT 'kitchen',
   `job_role` varchar(64) DEFAULT NULL,
   `station_slug` varchar(80) DEFAULT NULL,
+  `avatar_path` varchar(500) DEFAULT NULL,
   `is_active` tinyint(1) NOT NULL DEFAULT 1,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
@@ -2436,6 +2437,30 @@ CREATE TABLE `ti_pmd_order_eta_events` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `ti_pmd_owner_mfa`
+--
+
+DROP TABLE IF EXISTS `ti_pmd_owner_mfa`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_pmd_owner_mfa` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `user_id` bigint(20) unsigned NOT NULL,
+  `staff_id` bigint(20) unsigned DEFAULT NULL,
+  `mfa_type` varchar(16) NOT NULL DEFAULT 'totp',
+  `secret_encrypted` text NOT NULL,
+  `last_used_step` bigint(20) unsigned DEFAULT NULL,
+  `confirmed_at` timestamp NULL DEFAULT NULL,
+  `disabled_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `ti_pmd_owner_mfa_user_id_unique` (`user_id`),
+  KEY `pmd_owner_mfa_staff_idx` (`staff_id`,`disabled_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `ti_pmd_reservation_preferences`
 --
 
@@ -2446,6 +2471,120 @@ CREATE TABLE `ti_pmd_reservation_preferences` (
   `reservation_id` bigint(20) unsigned NOT NULL,
   `table_features` longtext NOT NULL,
   PRIMARY KEY (`reservation_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_pmd_site_access_challenges`
+--
+
+DROP TABLE IF EXISTS `ti_pmd_site_access_challenges`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_pmd_site_access_challenges` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `public_id` char(36) NOT NULL,
+  `location_id` bigint(20) unsigned NOT NULL,
+  `user_id` bigint(20) unsigned NOT NULL,
+  `staff_id` bigint(20) unsigned DEFAULT NULL,
+  `purpose` varchar(32) NOT NULL,
+  `status` varchar(24) NOT NULL DEFAULT 'pending',
+  `code_hash` char(64) NOT NULL,
+  `requested_device_name` varchar(128) DEFAULT NULL,
+  `requested_ip` varchar(45) DEFAULT NULL,
+  `requested_user_agent` text DEFAULT NULL,
+  `approved_by_device_id` bigint(20) unsigned DEFAULT NULL,
+  `approved_by_staff_id` bigint(20) unsigned DEFAULT NULL,
+  `approved_at` timestamp NULL DEFAULT NULL,
+  `expires_at` timestamp NOT NULL,
+  `used_at` timestamp NULL DEFAULT NULL,
+  `attempts` smallint(5) unsigned NOT NULL DEFAULT 0,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `ti_pmd_site_access_challenges_public_id_unique` (`public_id`),
+  KEY `pmd_site_challenges_location_status_idx` (`location_id`,`status`,`expires_at`),
+  KEY `pmd_site_challenges_user_status_idx` (`user_id`,`status`),
+  KEY `pmd_site_challenges_staff_status_idx` (`staff_id`,`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_pmd_site_access_devices`
+--
+
+DROP TABLE IF EXISTS `ti_pmd_site_access_devices`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_pmd_site_access_devices` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `location_id` bigint(20) unsigned NOT NULL,
+  `user_id` bigint(20) unsigned DEFAULT NULL,
+  `device_kind` varchar(32) NOT NULL,
+  `staff_id` bigint(20) unsigned DEFAULT NULL,
+  `pos_device_id` bigint(20) unsigned DEFAULT NULL,
+  `device_name` varchar(128) NOT NULL,
+  `token_hash` char(64) NOT NULL,
+  `capabilities` text DEFAULT NULL,
+  `platform_info` text DEFAULT NULL,
+  `paired_by_staff_id` bigint(20) unsigned DEFAULT NULL,
+  `paired_at` timestamp NULL DEFAULT NULL,
+  `last_seen_at` timestamp NULL DEFAULT NULL,
+  `revoked_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `ti_pmd_site_access_devices_token_hash_unique` (`token_hash`),
+  KEY `pmd_site_devices_location_kind_idx` (`location_id`,`device_kind`,`revoked_at`),
+  KEY `pmd_site_devices_staff_kind_idx` (`staff_id`,`device_kind`,`revoked_at`),
+  KEY `pmd_site_devices_pos_kind_idx` (`pos_device_id`,`device_kind`),
+  KEY `pmd_site_devices_user_location_kind_idx` (`user_id`,`location_id`,`device_kind`,`revoked_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_pmd_site_access_events`
+--
+
+DROP TABLE IF EXISTS `ti_pmd_site_access_events`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_pmd_site_access_events` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `location_id` bigint(20) unsigned DEFAULT NULL,
+  `user_id` bigint(20) unsigned DEFAULT NULL,
+  `staff_id` bigint(20) unsigned DEFAULT NULL,
+  `device_id` bigint(20) unsigned DEFAULT NULL,
+  `challenge_id` bigint(20) unsigned DEFAULT NULL,
+  `event_type` varchar(64) NOT NULL,
+  `success` tinyint(1) NOT NULL DEFAULT 1,
+  `ip_address` varchar(45) DEFAULT NULL,
+  `user_agent` text DEFAULT NULL,
+  `metadata` text DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `pmd_site_events_location_created_idx` (`location_id`,`created_at`),
+  KEY `pmd_site_events_staff_created_idx` (`staff_id`,`created_at`),
+  KEY `pmd_site_events_type_created_idx` (`event_type`,`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_pmd_site_access_recovery_codes`
+--
+
+DROP TABLE IF EXISTS `ti_pmd_site_access_recovery_codes`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_pmd_site_access_recovery_codes` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `location_id` bigint(20) unsigned NOT NULL,
+  `user_id` bigint(20) unsigned NOT NULL,
+  `code_hash` char(64) NOT NULL,
+  `used_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `pmd_site_recovery_user_idx` (`location_id`,`user_id`,`used_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -3452,7 +3591,7 @@ CREATE TABLE `ti_tenants` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `unique_domain` (`domain`(191)),
   UNIQUE KEY `unique_database` (`database`(191))
-) ENGINE=MyISAM AUTO_INCREMENT=61 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=62 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -3851,7 +3990,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-30 22:15:34
+-- Dump completed on 2026-08-31 13:01:45
 
 -- ==================================================
 -- DATABASE: mimoza
@@ -7632,7 +7771,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-30 22:15:35
+-- Dump completed on 2026-08-31 13:01:45
 
 -- ==================================================
 -- DATABASE: rosana
@@ -10233,7 +10372,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-30 22:15:35
+-- Dump completed on 2026-08-31 13:01:45
 -- WARNING: Database 'persian' not found or not accessible.
 
 -- ==================================================
@@ -12367,4 +12506,4 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-30 22:15:35
+-- Dump completed on 2026-08-31 13:01:46

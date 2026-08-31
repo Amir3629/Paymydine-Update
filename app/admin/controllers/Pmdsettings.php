@@ -53,7 +53,11 @@ class Pmdsettings extends AdminController
 
         $this->vars['pmdSettingsLocationId'] = $locationId;
         $this->vars['pmdSettingsOpeningHours'] = $this->openingHours($locationId);
-        $this->vars['pmdSettingsGroups'] = $this->groups($locationId);
+        // PMD_SETTINGS_NO_TEAM_CARD_V1: Team/member authority is Shifts.
+        $this->vars['pmdSettingsGroups'] = collect($this->groups($locationId))
+            ->reject(fn ($group) => strtolower((string)($group['id'] ?? '')) === 'team')
+            ->values()
+            ->all();
         $this->vars['pmdSettingsHealth'] = [];
 
         return $this->makeView('pmdsettings/index');

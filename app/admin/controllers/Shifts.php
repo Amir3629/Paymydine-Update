@@ -10,6 +10,7 @@ use Admin\Facades\Template;
 use Admin\Models\Staffs_model;
 use Admin\Services\PmdDefaultStaffRoleService;
 use App\Services\PmdKitchenOperationsSchemaService;
+use App\Services\PmdOperationalRosterReconciler;
 use App\Services\PmdKitchenWorkforceService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -33,9 +34,11 @@ class Shifts extends AdminController
         parent::__construct();
         $this->bodyClass = trim(($this->bodyClass ?? '').' pmd-settings-suite pmd-shifts-page');
         $this->addCss('css/pmd-settings-suite-first-paint-v1.css');
+        $this->addCss('css/pmd-shifts-first-paint-v12.css');
         $this->addCss('css/pmd-shifts-v1.css');
-        $this->addCss('css/pmd-shifts-dashboard-reservations-v4.css');
-        $this->addJs('js/pmd-shifts-v1.js');
+        // PMD_SHIFTS_FINGERPRINTED_ASSETS_V1
+        $this->addCss('css/pmd-shifts-canonical-92a6ad0051a5.css');
+        $this->addJs('js/pmd-shifts-canonical-a4734567d99b.js');
         AdminMenu::setContext('dashboard');
     }
 
@@ -59,6 +62,32 @@ class Shifts extends AdminController
         $ready = $this->ready();
 
         if ($ready) {
+            // PMD_SHIFTS_CANONICAL_ROSTER_V1
+            // Existing enabled Staff/User logins must be real operational people
+            // before the rota reads the location roster. Failure is non-fatal so
+            // one legacy account can never blank the whole Shifts workspace.
+            try {
+                app(PmdOperationalRosterReconciler::class)->reconcileLocation($locationId);
+            } catch (\Throwable $error) {
+                logger()->warning('PMD Shifts roster reconciliation failed', [
+                    'location_id' => $locationId,
+                    'message' => $error->getMessage(),
+                ]);
+            }
+
+            // PMD_SHIFTS_COALESCE_RECONFIRM_V1
+            // Enforce one continuous shift for an identical assigned team.
+            // Legacy overlaps/touching shifts are collapsed before rendering;
+            // changing schedule geometry invalidates the previous confirmation.
+            try {
+                $this->coalesceShiftRange($locationId, $calendarStart, $calendarEnd);
+            } catch (\Throwable $error) {
+                logger()->warning('PMD Shifts overlap normalization failed', [
+                    'location_id' => $locationId,
+                    'message' => $error->getMessage(),
+                ]);
+            }
+
             $people = DB::table('pmd_operational_people')
                 ->where('location_id', $locationId)
                 ->where('is_active', 1)
@@ -234,7 +263,6 @@ class Shifts extends AdminController
 
         $input = [
             'display_name' => trim((string)request()->input('display_name', '')),
-            'department' => trim((string)request()->input('department', '')),
             'job_role' => trim((string)request()->input('job_role', '')),
             'staff_role_id' => max(0, (int)request()->input('staff_role_id', 0)),
             'username' => trim((string)request()->input('username', '')),
@@ -244,8 +272,7 @@ class Shifts extends AdminController
         $userId = $existingStaff && $existingStaff->user ? (int)$existingStaff->user->user_id : 0;
         $rules = [
             'display_name' => ['required', 'string', 'min:2', 'max:128'],
-            'department' => ['nullable', 'in:kitchen,floor,bar,reception,other'],
-            'job_role' => ['nullable', 'string', 'max:64'],
+            'job_role' => ['required', 'string', 'min:2', 'max:64'],
         ];
         if ($wantsAccess) {
             // Mirror the canonical Team account guard before touching the DB.
@@ -304,8 +331,9 @@ class Shifts extends AdminController
                 'location_id' => $locationId,
                 'staff_id' => $linkedStaffId,
                 'display_name' => $clean['display_name'],
-                'department' => trim((string)($clean['department'] ?? '')) ?: 'other',
-                'job_role' => trim((string)($clean['job_role'] ?? '')) ?: null,
+                // PMD_SHIFTS_ROLE_ONLY_MEMBER_V1
+                'department' => $this->departmentForMemberRole((string)($clean['job_role'] ?? '')),
+                'job_role' => trim((string)($clean['job_role'] ?? '')) ?: 'Sonstige',
                 'station_slug' => $existing ? ($existing->station_slug ?? null) : null,
                 'is_active' => 1,
                 'updated_at' => now(),
@@ -397,12 +425,20 @@ class Shifts extends AdminController
         $clean = $validator->validated();
         $locationId = $this->locationId();
         $personIds = array_values(array_unique(array_map('intval', (array)($clean['person_ids'] ?? []))));
+        sort($personIds);
+        $message = 'Shift saved.';
 
-        DB::transaction(function () use ($clean, $locationId, $personIds) {
+        // PMD_SHIFTS_EXTEND_EXISTING_V1
+        // One team cannot have stacked records for continuous coverage. Save the
+        // requested record first, then collapse identical-team overlap/touching
+        // records into the earliest continuous shift. Any schedule change resets
+        // confirmation/attendance to planned so the team must be confirmed again.
+        DB::transaction(function () use ($clean, $locationId, $personIds, &$message) {
             $id = (int)($clean['id'] ?? 0);
+            $shiftDate = Carbon::parse($clean['shift_date'])->toDateString();
             $values = [
                 'location_id' => $locationId,
-                'shift_date' => Carbon::parse($clean['shift_date'])->toDateString(),
+                'shift_date' => $shiftDate,
                 'label' => trim((string)$clean['label']) ?: 'Shift',
                 'starts_at' => !empty($clean['starts_at']) ? $clean['starts_at'].':00' : null,
                 'ends_at' => !empty($clean['ends_at']) ? $clean['ends_at'].':00' : null,
@@ -420,7 +456,10 @@ class Shifts extends AdminController
             }
 
             if ($id > 0) {
-                $exists = DB::table('pmd_operational_shifts')->where('id', $id)->where('location_id', $locationId)->exists();
+                $exists = DB::table('pmd_operational_shifts')
+                    ->where('id', $id)
+                    ->where('location_id', $locationId)
+                    ->exists();
                 if (!$exists) abort(404);
                 DB::table('pmd_operational_shifts')->where('id', $id)->update($values);
                 $shiftId = $id;
@@ -454,9 +493,161 @@ class Shifts extends AdminController
                 }
                 if ($rows) DB::table('pmd_operational_shift_people')->insert($rows);
             }
+
+            $merged = $this->coalesceShiftRange(
+                $locationId,
+                Carbon::parse($shiftDate)->startOfDay(),
+                Carbon::parse($shiftDate)->endOfDay()
+            );
+            if ($merged > 0) {
+                $message = 'Existing shift extended. Team confirmation is required again.';
+            }
         });
 
-        return $this->redirectBackToSchedule('Shift saved.');
+        return $this->redirectBackToSchedule($message);
+    }
+
+    private function coalesceShiftRange(int $locationId, Carbon $from, Carbon $to): int
+    {
+        if ($locationId < 1) return 0;
+
+        $shifts = DB::table('pmd_operational_shifts')
+            ->where('location_id', $locationId)
+            ->whereBetween('shift_date', [$from->toDateString(), $to->toDateString()])
+            ->whereNotIn('status', ['cancelled', 'canceled'])
+            ->whereNotNull('starts_at')
+            ->whereNotNull('ends_at')
+            ->orderBy('shift_date')
+            ->orderBy('starts_at')
+            ->orderBy('id')
+            ->get();
+
+        if ($shifts->count() < 2) return 0;
+
+        $shiftIds = $shifts->pluck('id')->map('intval')->all();
+        $assignments = DB::table('pmd_operational_shift_people')
+            ->whereIn('shift_id', $shiftIds)
+            ->whereNotNull('person_id')
+            ->orderBy('person_id')
+            ->get()
+            ->groupBy('shift_id');
+
+        $buckets = [];
+        foreach ($shifts as $shift) {
+            $personIds = collect($assignments->get($shift->id) ?: [])
+                ->pluck('person_id')
+                ->map('intval')
+                ->filter()
+                ->unique()
+                ->sort()
+                ->values()
+                ->all();
+            if (!$personIds) continue;
+
+            $window = $this->shiftWindowMinutes($shift->starts_at, $shift->ends_at);
+            if (!$window) continue;
+
+            $key = Carbon::parse($shift->shift_date)->toDateString().'|'.implode(',', $personIds);
+            $buckets[$key][] = [
+                'shift' => $shift,
+                'start' => $window['start'],
+                'end' => $window['end'],
+            ];
+        }
+
+        $mergedCount = 0;
+        foreach ($buckets as $items) {
+            usort($items, function ($left, $right) {
+                if ($left['start'] !== $right['start']) return $left['start'] <=> $right['start'];
+                return (int)$left['shift']->id <=> (int)$right['shift']->id;
+            });
+
+            $cluster = [];
+            $clusterStart = null;
+            $clusterEnd = null;
+
+            foreach ($items as $item) {
+                if (!$cluster || $item['start'] <= $clusterEnd) {
+                    $cluster[] = $item;
+                    $clusterStart = $clusterStart === null ? $item['start'] : min($clusterStart, $item['start']);
+                    $clusterEnd = $clusterEnd === null ? $item['end'] : max($clusterEnd, $item['end']);
+                    continue;
+                }
+
+                $mergedCount += $this->collapseShiftCluster($cluster, (int)$clusterStart, (int)$clusterEnd);
+                $cluster = [$item];
+                $clusterStart = $item['start'];
+                $clusterEnd = $item['end'];
+            }
+
+            if ($cluster) {
+                $mergedCount += $this->collapseShiftCluster($cluster, (int)$clusterStart, (int)$clusterEnd);
+            }
+        }
+
+        return $mergedCount;
+    }
+
+    private function collapseShiftCluster(array $cluster, int $start, int $end): int
+    {
+        if (count($cluster) < 2) return 0;
+
+        $canonical = $cluster[0]['shift'];
+        $canonicalId = (int)$canonical->id;
+        $redundantIds = array_values(array_filter(array_map(
+            fn ($item) => (int)$item['shift']->id,
+            array_slice($cluster, 1)
+        )));
+
+        DB::table('pmd_operational_shifts')
+            ->where('id', $canonicalId)
+            ->update([
+                'starts_at' => $this->shiftMinuteToDbTime($start),
+                'ends_at' => $this->shiftMinuteToDbTime($end),
+                'status' => 'planned',
+                'quick_counts_json' => null,
+                'confirmed_at' => null,
+                'confirmed_by_staff_id' => null,
+                'updated_at' => now(),
+            ]);
+
+        DB::table('pmd_operational_shift_people')
+            ->where('shift_id', $canonicalId)
+            ->update([
+                'attendance_status' => 'planned',
+                'is_replacement' => 0,
+                'updated_at' => now(),
+            ]);
+
+        if ($redundantIds) {
+            DB::table('pmd_operational_shifts')
+                ->whereIn('id', $redundantIds)
+                ->update([
+                    'status' => 'cancelled',
+                    'quick_counts_json' => null,
+                    'confirmed_at' => null,
+                    'confirmed_by_staff_id' => null,
+                    'updated_at' => now(),
+                ]);
+        }
+
+        return count($redundantIds);
+    }
+
+    private function shiftWindowMinutes($startsAt, $endsAt): ?array
+    {
+        $start = $this->minutesOfDay($startsAt);
+        $end = $this->minutesOfDay($endsAt);
+        if ($start === null || $end === null) return null;
+        if ($end <= $start) $end += 1440;
+        return ['start' => $start, 'end' => $end];
+    }
+
+    private function shiftMinuteToDbTime(int $minutes): string
+    {
+        $minutes %= 1440;
+        if ($minutes < 0) $minutes += 1440;
+        return sprintf('%02d:%02d:00', intdiv($minutes, 60), $minutes % 60);
     }
 
     public function removeshift()
@@ -793,6 +984,18 @@ class Shifts extends AdminController
     {
         $value = trim($value);
         return preg_match('/^(?:[01]\\d|2[0-3]):[0-5]\\d$/', $value) ? $value : $default;
+    }
+
+
+    private function departmentForMemberRole(string $jobRole): string
+    {
+        $role = strtolower(trim((string)preg_replace('/[_-]+/', ' ', $jobRole)));
+        $role = trim((string)preg_replace('/\s+/', ' ', $role));
+        if (str_contains($role, 'kitchen') || str_contains($role, 'chef') || str_contains($role, 'cook') || str_contains($role, 'kds') || str_contains($role, 'dish') || str_contains($role, 'prep') || str_contains($role, 'boh')) return 'kitchen';
+        if (str_contains($role, 'bartender') || str_contains($role, 'barman') || str_contains($role, 'barmaid') || $role === 'bar') return 'bar';
+        if (str_contains($role, 'reservation') || str_contains($role, 'reception') || str_contains($role, 'host') || str_contains($role, 'front desk')) return 'reception';
+        if (str_contains($role, 'waiter') || str_contains($role, 'server') || str_contains($role, 'service') || str_contains($role, 'runner') || str_contains($role, 'floor') || str_contains($role, 'cashier') || str_contains($role, 'till') || str_contains($role, 'checkout') || $role === 'pos') return 'floor';
+        return 'other';
     }
 
     private function technicalStaffEmail(string $username): string

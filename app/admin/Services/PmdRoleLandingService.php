@@ -3,7 +3,7 @@
 namespace Admin\Services;
 
 /**
- * PMD_ROLE_LANDING_SERVICE_V2
+ * PMD_ROLE_LANDING_SERVICE_V3
  *
  * One server-side authority for PMD admin landing workspaces.
  * It only chooses a destination; target controllers keep their own permissions.
@@ -36,6 +36,9 @@ class PmdRoleLandingService
         'pmd-team-member' => 'mywork',
         'team-member' => 'mywork',
         'team member' => 'mywork',
+        'kitchen staff' => 'mywork',
+        'pmd-sonstige' => 'mywork',
+        'sonstige' => 'mywork',
     ];
 
     private const USERNAME_FALLBACK_MAP = [

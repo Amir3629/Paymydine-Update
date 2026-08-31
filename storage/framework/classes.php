@@ -171,4 +171,12 @@
   'Igniter\\PayRegister\\Payments\\Mollie' => 'extensions/igniter/payregister/payments/Mollie.php',
   'Main\\Template\\Partial' => 'app/main/template/Partial.php',
   'Admin\\Controllers\\accountantlab' => 'app/admin/controllers/Accountantlab.php',
+  'Admin\\Models\\Menu_combos_model' => 'app/admin/models/Menu_combos_model.php',
+  'Admin\\Models\\Menu_combo_items_model' => 'app/admin/models/Menu_combo_items_model.php',
+  'Admin\\Controllers\\pmdsmartcategories' => 'app/admin/controllers/Pmdsmartcategories.php',
+  'Admin\\Controllers\\menus' => 'app/admin/controllers/Menus.php',
+  'Admin\\Controllers\\pmdallfoods' => 'app/admin/controllers/Pmdallfoods.php',
+  'Admin\\Controllers\\coupons' => 'app/admin/controllers/Coupons.php',
+  'Admin\\Models\\Coupons_model' => 'app/admin/models/Coupons_model.php',
+  'Admin\\Controllers\\kitchensettings' => 'app/admin/controllers/Kitchensettings.php',
 );
