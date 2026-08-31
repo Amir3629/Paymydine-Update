@@ -9,16 +9,21 @@ namespace Admin\Classes;
  *
  * ONE-FILE-PER-LOCALE CONTRACT
  * ----------------------------
- * Every PayMyDine-owned translation for a locale lives in exactly one file:
+ * Every translated word owned by a locale lives in exactly one file:
  *
  *   app/admin/i18n/platform/<locale>.php
  *
- * Flat string keys in that file are the PMD/custom UI catalogue. The optional
- * __native section contains complete overlays for TastyIgniter's native
- * admin/main/system language trees. The required language/<locale>/*/lang.php
- * files are bridges only and must not own translated copy themselves.
+ * The locale file may contain:
+ * - __source: English source string => translated string. This is the primary
+ *   vocabulary and is shared by PMD/custom UI and native TastyIgniter copy.
+ * - flat PMD keys: optional context-specific overrides for canonical PMD keys.
+ * - __native: optional context-specific nested overlays for admin/main/system.
  *
- * This class never changes Laravel/TastyIgniter locale state.
+ * Required language/<locale>/*/lang.php files are bridges only. They contain
+ * no translated copy and resolve their English framework tree through this
+ * one master catalogue.
+ *
+ * This class never mutates Laravel/TastyIgniter locale state.
  */
 final class PmdPlatformI18n
 {
@@ -27,6 +32,9 @@ final class PmdPlatformI18n
 
     /** @var array<string,array<string,string>> */
     private static array $messages = [];
+
+    /** @var array<string,array<string,string>> */
+    private static array $sourceMaps = [];
 
     /** @var string[]|null */
     private static ?array $locales = null;
@@ -75,11 +83,6 @@ final class PmdPlatformI18n
             : ($available[0] ?? 'en');
     }
 
-    /**
-     * Read the already-resolved application locale. The existing PMD cookie is
-     * accepted only as migration compatibility input; this class does not
-     * write the cookie or call setLocale().
-     */
     public static function currentLocale(): string
     {
         $fallback = function_exists('app') && app()->bound('config')
@@ -116,6 +119,28 @@ final class PmdPlatformI18n
     }
 
     /** @return array<string,string> */
+    public static function sourceMap(?string $locale = null): array
+    {
+        $locale = self::normalizeLocale($locale ?? self::currentLocale());
+        if (isset(self::$sourceMaps[$locale])) {
+            return self::$sourceMaps[$locale];
+        }
+
+        $raw = self::catalogue($locale)['__source'] ?? [];
+        $clean = [];
+        if (is_array($raw)) {
+            foreach ($raw as $source => $target) {
+                if (!is_string($source) || $source === '' || !is_scalar($target)) {
+                    continue;
+                }
+                $clean[$source] = (string)$target;
+            }
+        }
+
+        return self::$sourceMaps[$locale] = $clean;
+    }
+
+    /** @return array<string,string> */
     public static function messages(?string $locale = null): array
     {
         $locale = self::normalizeLocale($locale ?? self::currentLocale());
@@ -123,10 +148,21 @@ final class PmdPlatformI18n
             return self::$messages[$locale];
         }
 
+        $catalogue = self::catalogue($locale);
         $clean = [];
-        foreach (self::catalogue($locale) as $key => $value) {
-            // Reserved metadata/bridge sections start with __ and arrays are
-            // never exposed as PMD string messages.
+
+        // English remains the canonical key/source authority.
+        if ($locale !== 'en') {
+            $sourceMap = self::sourceMap($locale);
+            foreach (self::messages('en') as $key => $english) {
+                if (array_key_exists($english, $sourceMap)) {
+                    $clean[$key] = $sourceMap[$english];
+                }
+            }
+        }
+
+        // Context-specific PMD key overrides win over source-string mappings.
+        foreach ($catalogue as $key => $value) {
             if (!is_string($key) || str_starts_with($key, '__') || !is_scalar($value)) {
                 continue;
             }
@@ -136,13 +172,7 @@ final class PmdPlatformI18n
         return self::$messages[$locale] = $clean;
     }
 
-    /**
-     * Return the locale-owned native TastyIgniter overlay for one scope.
-     * Scope is deliberately closed so a language file cannot read arbitrary
-     * application paths through this API.
-     *
-     * @return array<string,mixed>
-     */
+    /** @return array<string,mixed> */
     public static function nativeOverlay(string $scope, ?string $locale = null): array
     {
         $scope = strtolower(trim($scope));
@@ -161,10 +191,52 @@ final class PmdPlatformI18n
     }
 
     /**
-     * Recursively overlay translated native values over the canonical English
-     * language tree. Missing entries remain English by design; the audit tool
-     * is responsible for preventing an incomplete locale from being shipped.
+     * Translate every scalar English string in a native framework tree through
+     * the locale's __source map, then apply the optional path-specific overlay.
+     * This keeps Turkish words out of language/tr/* bridge files while still
+     * satisfying TastyIgniter's native file layout.
      *
+     * @param array<string|int,mixed> $source
+     * @return array<string|int,mixed>
+     */
+    public static function translateNativeTree(array $source, string $scope, ?string $locale = null): array
+    {
+        $locale = self::normalizeLocale($locale ?? self::currentLocale());
+        if ($locale === 'en') {
+            return $source;
+        }
+
+        $sourceMap = self::sourceMap($locale);
+        $translated = self::translateNativeValues($source, $sourceMap);
+
+        return self::mergeNativeTree(
+            $translated,
+            self::nativeOverlay($scope, $locale)
+        );
+    }
+
+    /**
+     * @param array<string|int,mixed> $values
+     * @param array<string,string> $sourceMap
+     * @return array<string|int,mixed>
+     */
+    private static function translateNativeValues(array $values, array $sourceMap): array
+    {
+        foreach ($values as $key => $value) {
+            if (is_array($value)) {
+                $values[$key] = self::translateNativeValues($value, $sourceMap);
+                continue;
+            }
+
+            if (is_string($value) && array_key_exists($value, $sourceMap)) {
+                $values[$key] = $sourceMap[$value];
+            }
+        }
+
+        return $values;
+    }
+
+    /**
      * @param array<string|int,mixed> $source
      * @param array<string|int,mixed> $overlay
      * @return array<string|int,mixed>
@@ -177,7 +249,6 @@ final class PmdPlatformI18n
                 continue;
             }
 
-            // Never add arbitrary unknown branches to framework language data.
             if (array_key_exists($key, $source)) {
                 $source[$key] = $translated;
             }
@@ -228,7 +299,7 @@ final class PmdPlatformI18n
     ): string {
         $locale = self::normalizeLocale($locale ?? self::currentLocale());
         $messages = self::messages($locale);
-        $english = $locale === 'en' ? $messages : self::messages('en');
+        $english = self::messages('en');
 
         $value = $messages[$key] ?? $english[$key] ?? $fallback ?? $key;
 
