@@ -36,8 +36,7 @@ class Shifts extends AdminController
         $this->bodyClass = trim(($this->bodyClass ?? '').' pmd-shifts-page');
         $this->addCss('css/pmd-shifts-v1.css');
         // PMD_SHIFTS_FINGERPRINTED_ASSETS_V1
-        $this->addCss('css/pmd-shifts-canonical-92a6ad0051a5.css');
-        $this->addCss('css/pmd-shifts-first-paint-v15.css');
+        $this->addCss('css/pmd-shifts-canonical-7a0bf627db7e.css');
         $this->addJs('js/pmd-shifts-canonical-b4d2e55c5e6d.js');
         AdminMenu::setContext('dashboard');
     }

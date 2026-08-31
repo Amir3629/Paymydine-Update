@@ -27,6 +27,8 @@
     path.indexOf('/admin/dashboardkitchen') === 0 ||
     path.indexOf('/admin/kds') === 0 ||
     path.indexOf('/admin/quick-mode') === 0 ||
+    /* Shifts owns its complete shell geometry in its head-loaded stylesheet. */
+    path.indexOf('/admin/shifts') === 0 ||
     path.indexOf('/admin/reservations2') === 0 ||
     /* PMD_DASHBOARD_LAB_EXACT_LAYOUT_BYPASS_V1 */
     path.indexOf('/admin/dashboardlab') === 0 ||
@@ -76,13 +78,8 @@
     return normalizedPath === '/admin/dashboard2';
   }
 
-  // PMD_SHIFTS_STATIC_LAYOUT_V14
-  function isShifts() {
-    return normalizedPath === '/admin/shifts';
-  }
-
   function isStaticBootRoute() {
-    return isSettingsSuite() || isDashboard2() || isShifts();
+    return isSettingsSuite() || isDashboard2();
   }
 
   function runtimeTransitionsReady() {
@@ -144,7 +141,7 @@
 
     var settingsSuite = isSettingsSuite();
     var dashboard2 = isDashboard2();
-    var staticBootRoute = settingsSuite || dashboard2 || isShifts();
+    var staticBootRoute = settingsSuite || dashboard2;
     var animateShell = Boolean(options.animate);
 
     var gap = settingsSuite
@@ -210,12 +207,6 @@
       setImportant(page.wrapper, 'transition', shellTransition);
     } else {
       setImportant(page.wrapper, 'position', 'absolute');
-
-      // PMD_SHIFTS_RUNTIME_TOP_V15
-      if (isShifts()) {
-        setImportant(page.wrapper, 'top', '0px');
-        setImportant(page.wrapper, 'bottom', 'auto');
-      }
 
       setImportant(page.wrapper, 'left', measuredMenuRight + 'px');
       setImportant(page.wrapper, 'right', 'auto');
