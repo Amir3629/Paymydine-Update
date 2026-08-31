@@ -14,7 +14,7 @@
         app()->getLocale()
     )));
 
-    if (!in_array($pmdAdminLocale, ['en', 'de'], true)) {
+    if (!in_array($pmdAdminLocale, ['en', 'de', 'tr'], true)) {
         $pmdAdminLocale = 'en';
     }
 

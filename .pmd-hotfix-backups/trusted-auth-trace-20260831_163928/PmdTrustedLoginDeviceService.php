@@ -75,25 +75,7 @@ class PmdTrustedLoginDeviceService
         Request $request,
         ?array $identity = null
     ): bool {
-        // PMD_TRUST_TRACE_TEMP_20260831
-        $traceReady = $this->ready();
-        $traceLogged = AdminAuth::isLogged();
-
-        logger()->warning('PMD TRUST TRACE enter', [
-            'ready' => $traceReady,
-            'logged' => $traceLogged,
-            'path' => $request->path(),
-        ]);
-
-        if (!$traceReady || !$traceLogged) {
-            logger()->warning('PMD TRUST TRACE early guard', [
-                'ready' => $traceReady,
-                'logged' => $traceLogged,
-                'path' => $request->path(),
-            ]);
-
-            return false;
-        }
+        if (!$this->ready() || !AdminAuth::isLogged()) return false;
 
         try {
             $site = app(PmdSiteAccessService::class);
@@ -101,13 +83,6 @@ class PmdTrustedLoginDeviceService
 
             $userId = (int)($identity['user_id'] ?? 0);
             $locationId = (int)($identity['location_id'] ?? 0);
-
-            logger()->warning('PMD TRUST TRACE identity', [
-                'user_id' => $userId,
-                'location_id' => $locationId,
-                'staff_id' => (int)($identity['staff_id'] ?? 0),
-                'path' => $request->path(),
-            ]);
 
             if ($userId < 1 || $locationId < 1) {
                 logger()->warning('PMD trusted direct verification has incomplete identity', [
@@ -118,14 +93,6 @@ class PmdTrustedLoginDeviceService
             }
 
             $existing = $this->current($request, $identity);
-
-            logger()->warning('PMD TRUST TRACE current', [
-                'existing' => (bool)$existing,
-                'existing_id' => (int)($existing->id ?? 0),
-                'user_id' => $userId,
-                'location_id' => $locationId,
-                'path' => $request->path(),
-            ]);
 
             if ($existing) {
                 $this->touch((int)$existing->id);
@@ -144,21 +111,7 @@ class PmdTrustedLoginDeviceService
                 return true;
             }
 
-            logger()->warning('PMD TRUST TRACE before create', [
-                'user_id' => $userId,
-                'location_id' => $locationId,
-                'path' => $request->path(),
-            ]);
-
             [$device, $rawToken] = $this->create($identity, $request);
-
-            logger()->warning('PMD TRUST TRACE after create', [
-                'device_id' => (int)($device->id ?? 0),
-                'token_created' => $rawToken !== '',
-                'user_id' => $userId,
-                'location_id' => $locationId,
-                'path' => $request->path(),
-            ]);
 
             if (!$device || $rawToken === '') {
                 logger()->error('PMD trusted direct device creation returned empty result', [

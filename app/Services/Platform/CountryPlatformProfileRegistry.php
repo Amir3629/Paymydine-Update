@@ -22,9 +22,10 @@ namespace App\Services\Platform;
  */
 final class CountryPlatformProfileRegistry
 {
-    public const VERSION = '1.0.0';
+    public const VERSION = '1.1.0';
     public const GERMANY = 'DE';
     public const OMAN = 'OM';
+    public const TURKEY = 'TR';
 
     public function profiles(): array
     {
@@ -78,6 +79,42 @@ final class CountryPlatformProfileRegistry
                         'vr_payment' => ['pmd_remote_runtime' => true, 'status' => 'implemented'],
                         'worldline' => ['pmd_remote_runtime' => false, 'status' => 'not_certified'],
                     ],
+                ],
+            ],
+
+            self::TURKEY => [
+                'country_code' => 'TR',
+                'country_iso3' => 'TUR',
+                'country_name' => 'Türkiye',
+                'calling_code' => '+90',
+                'timezone' => 'Europe/Istanbul',
+                'week_start' => 'monday',
+                'date_format_hint' => 'DD.MM.YYYY',
+                'currency' => [
+                    'code' => 'TRY',
+                    'minor_exponent' => 2,
+                ],
+                'languages' => [
+                    'default' => 'tr',
+                    'fallback' => 'en',
+                    'eligible' => ['tr', 'en'],
+                    'locale_tags' => ['tr-TR', 'en-TR'],
+                ],
+                'operations' => [
+                    'business_hours_policy' => 'location_owned',
+                    'reservation_timezone' => 'Europe/Istanbul',
+                    'reporting_timezone' => 'Europe/Istanbul',
+                    'tax_policy' => 'restaurant_configured',
+                ],
+                // Turkey is deliberately payment-empty until a provider is
+                // selected and integrated in a separate, reviewed change.
+                'payments' => [
+                    'currency' => 'TRY',
+                    'providers' => [],
+                    'methods' => [],
+                ],
+                'terminals' => [
+                    'providers' => [],
                 ],
             ],
 
@@ -197,12 +234,16 @@ final class CountryPlatformProfileRegistry
 
     public function normalizeCountry(?string $country): string
     {
-        $value = strtoupper(trim((string)$country));
+        $raw = trim((string)$country);
+        $value = function_exists('mb_strtoupper')
+            ? mb_strtoupper($raw, 'UTF-8')
+            : strtoupper($raw);
         if ($value === '') return '';
 
         return match ($value) {
             'DE', 'DEU', 'GERMANY', 'DEUTSCHLAND' => self::GERMANY,
             'OM', 'OMN', 'OMAN', 'SULTANATE OF OMAN' => self::OMAN,
+            'TR', 'TUR', 'TURKEY', 'TURKIYE', 'TÜRKİYE', 'TÜRKIYE' => self::TURKEY,
             default => $value,
         };
     }

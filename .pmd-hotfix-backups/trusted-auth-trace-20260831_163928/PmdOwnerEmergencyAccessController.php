@@ -125,27 +125,12 @@ class PmdOwnerEmergencyAccessController
         // PMD_OWNER_TRUST_EXACT_SUCCESS_V3
         $trustedLogin = app(PmdTrustedLoginDeviceService::class);
 
-        // PMD_OWNER_TRUST_TRACE_TEMP_20260831
-        logger()->warning('PMD OWNER TRUST TRACE before', [
-            'logged' => AdminAuth::isLogged(),
-            'user_id' => (int)($identity['user_id'] ?? 0),
-            'location_id' => (int)($identity['location_id'] ?? 0),
-            'path' => $request->path(),
-        ]);
-
-        $trustedResult = app(PmdTrustedLoginDeviceService::class)
+        // PMD_OWNER_DIRECT_TRUST_V16_FINAL
+        app(PmdTrustedLoginDeviceService::class)
             ->trustAfterVerifiedSecondFactor(
                 $request,
                 $identity
             );
-
-        logger()->warning('PMD OWNER TRUST TRACE after', [
-            'result' => $trustedResult,
-            'logged' => AdminAuth::isLogged(),
-            'user_id' => (int)($identity['user_id'] ?? 0),
-            'location_id' => (int)($identity['location_id'] ?? 0),
-            'path' => $request->path(),
-        ]);
 
         $codes = $this->prepareRecoveryCodes($site, $identity, $request);
         if ($codes) {

@@ -179,4 +179,6 @@
   'Admin\\Controllers\\coupons' => 'app/admin/controllers/Coupons.php',
   'Admin\\Models\\Coupons_model' => 'app/admin/models/Coupons_model.php',
   'Admin\\Controllers\\kitchensettings' => 'app/admin/controllers/Kitchensettings.php',
+  'Admin\\Controllers\\pmdfinance' => 'app/admin/controllers/Pmdfinance.php',
+  'Admin\\Controllers\\PaymentProviders' => 'app/admin/controllers/PaymentProviders.php',
 );

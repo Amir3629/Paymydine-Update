@@ -1,8 +1,44 @@
 {{-- PMD GLOBAL SIDE MENU 2 AUTHORITY --}}
 @include('admin::_partials.pmd_side_menu2_global')
 
-{{-- PMD_SIDEBAR_LANGUAGE_DIRECT_TOGGLE_20260807 --}}
+{{-- PMD_SIDEBAR_LANGUAGE_MARKET_TOGGLE_R2 --}}
 @php
+    $pmdMarketCode = strtoupper(trim(
+        (string)setting('pmd_market_country_code', 'DE')
+    ));
+
+    $pmdMarketProfile =
+        (new \App\Services\Platform\CountryPlatformProfileRegistry())
+            ->profile($pmdMarketCode);
+
+    $pmdEligibleLocales = array_values(array_unique(array_filter(array_map(
+        static fn ($code) => strtolower(trim((string)$code)),
+        (array)($pmdMarketProfile['languages']['eligible'] ?? ['en'])
+    ))));
+
+    $pmdEnabledLocales = [];
+    try {
+        $pmdEnabledLocales = \Illuminate\Support\Facades\DB::connection('tenant')
+            ->table('languages')
+            ->whereIn('code', $pmdEligibleLocales)
+            ->where('status', 1)
+            ->pluck('code')
+            ->map(static fn ($code) => strtolower(trim((string)$code)))
+            ->values()
+            ->all();
+    } catch (\Throwable $ignored) {
+        $pmdEnabledLocales = [];
+    }
+
+    $pmdAvailableLocales = array_values(array_intersect(
+        $pmdEligibleLocales,
+        $pmdEnabledLocales
+    ));
+
+    if (!$pmdAvailableLocales) {
+        $pmdAvailableLocales = $pmdEligibleLocales ?: ['en'];
+    }
+
     $pmdCurrentLocale = strtolower(
         (string)request()->cookie(
             'pmd_admin_locale',
@@ -10,22 +46,38 @@
         )
     );
 
-    if (!in_array(
-        $pmdCurrentLocale,
-        ['en', 'de'],
-        true
-    )) {
-        $pmdCurrentLocale = 'en';
+    if (!in_array($pmdCurrentLocale, $pmdAvailableLocales, true)) {
+        $pmdPreferredLocale = strtolower(trim(
+            (string)($pmdMarketProfile['languages']['default'] ?? 'en')
+        ));
+
+        $pmdCurrentLocale = in_array($pmdPreferredLocale, $pmdAvailableLocales, true)
+            ? $pmdPreferredLocale
+            : (string)$pmdAvailableLocales[0];
     }
 
-    $pmdNextLocale =
-        $pmdCurrentLocale === 'de'
-            ? 'en'
-            : 'de';
+    $pmdNextLocale = $pmdCurrentLocale;
+    foreach ($pmdAvailableLocales as $pmdCandidateLocale) {
+        if ($pmdCandidateLocale !== $pmdCurrentLocale) {
+            $pmdNextLocale = $pmdCandidateLocale;
+            break;
+        }
+    }
+
+    $pmdLanguageNames = [
+        'en' => 'English',
+        'de' => 'Deutsch',
+        'tr' => 'Türkçe',
+        'ar' => 'العربية',
+    ];
+
+    $pmdNextLanguageLabel =
+        $pmdLanguageNames[$pmdNextLocale]
+        ?? strtoupper($pmdNextLocale);
 
     $pmdLanguageEndpoint = url(
         config('system.adminUri', 'admin')
-        .'/_pmd/language-switch-v3'
+        .'/_pmd/market-language-switch-r2'
     );
 @endphp
 
@@ -452,7 +504,7 @@ html.pmd-sm2-expanded
         type="button"
         id="pmd-language-trigger"
         aria-label="Switch language to {{ strtoupper($pmdNextLocale) }}"
-        title="Switch to {{ $pmdNextLocale === 'de' ? 'Deutsch' : 'English' }}"
+        title="Switch to {{ $pmdNextLanguageLabel }}"
     >
         <span
             class="pmd-language-v13__collapsed-code"
@@ -498,7 +550,7 @@ html.pmd-sm2-expanded
         <span
             class="pmd-language-v13__expanded-label"
         >
-            {{ $pmdNextLocale === 'de' ? 'Deutsch' : 'English' }}
+            {{ $pmdNextLanguageLabel }}
         </span>
     </button>
 </div>
@@ -755,8 +807,7 @@ html.pmd-sm2-expanded
                 }
 
                 if (
-                    nextLocale !== 'de'
-                    && nextLocale !== 'en'
+                    !/^[a-z]{2,3}(?:-[a-z0-9]{2,8})?$/.test(nextLocale)
                 ) {
                     console.error(
                         '[PMD Language] Invalid next locale',
@@ -884,6 +935,8 @@ html.pmd-sm2-expanded
     }
 })();
 </script>
+{{-- PMD_TURKISH_ADMIN_I18N_R3_LOADER --}}
+<script src="/app/admin/assets/js/pmd-admin-i18n-tr-v1.js?v=20260831-r3"></script>
 {{-- PMD_SIDEBAR_LANGUAGE_DIRECT_TOGGLE_20260807_END --}}
 
 
