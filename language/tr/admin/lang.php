@@ -8,7 +8,8 @@ use Admin\Classes\PmdPlatformI18n;
 // app/admin/i18n/platform/tr.php
 $english = require base_path('app/admin/language/en/lang.php');
 
-return PmdPlatformI18n::mergeNativeTree(
+return PmdPlatformI18n::translateNativeTree(
     is_array($english) ? $english : [],
-    PmdPlatformI18n::nativeOverlay('admin', 'tr')
+    'admin',
+    'tr'
 );
