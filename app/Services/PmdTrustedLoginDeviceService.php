@@ -9,17 +9,22 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * PMD_TRUSTED_LOGIN_DEVICE_V1
+ * PMD_TRUSTED_LOGIN_DEVICE_V2
  *
- * A successful second-factor verification may remember this exact browser as a
- * user + restaurant scoped trusted login device. The browser holds only a
- * random HttpOnly token; the database stores only its HMAC hash. Revoking the
- * device invalidates the token immediately.
+ * After one genuine second-factor success, this exact browser becomes trusted
+ * for the same user + restaurant. Later password logins on that browser resume
+ * security without asking for TOTP / workplace approval again.
+ *
+ * The browser stores only a random HttpOnly token. The database stores only its
+ * HMAC hash. Trust survives ordinary login/session expiry and is renewed while
+ * the device is used. Clearing browser data, changing browser/profile, or
+ * revoking the DB device makes the next login require security again.
  */
 class PmdTrustedLoginDeviceService
 {
     public const COOKIE = 'pmd_trusted_login_v1';
     public const KIND = 'trusted_login';
+    private const COOKIE_MINUTES = 60 * 24 * 365 * 10;
 
     public function ready(): bool
     {
@@ -54,7 +59,8 @@ class PmdTrustedLoginDeviceService
 
     /**
      * If a verified workspace response does not yet have a persistent trusted
-     * login token, create one and attach its HttpOnly cookie to that response.
+     * login token, create one. Existing trusted devices get a rolling cookie
+     * renewal so normal passage of time does not unexpectedly ask for TOTP.
      */
     public function rememberVerifiedResponse(Request $request, $response)
     {
@@ -79,7 +85,7 @@ class PmdTrustedLoginDeviceService
         $existing = $this->current($request, $identity);
         if ($existing) {
             $this->touch((int)$existing->id);
-            return $response;
+            return $this->renewExistingCookie($request, $response);
         }
 
         if (!method_exists($response, 'withCookie')) return $response;
@@ -102,7 +108,8 @@ class PmdTrustedLoginDeviceService
 
     /**
      * Resume a fresh password login before the OTP/restaurant-approval screen is
-     * rendered. Returns null when the current browser is not a trusted device.
+     * rendered. Returns null when this browser is new, revoked, or belongs to a
+     * different user/location.
      */
     public function resumeIfPossible(Request $request)
     {
@@ -115,10 +122,6 @@ class PmdTrustedLoginDeviceService
         $userId = (int)($identity['user_id'] ?? 0);
         $locationId = (int)($identity['location_id'] ?? 0);
         if ($userId < 1 || $locationId < 1) return null;
-        if (!$site->policyEnabled($locationId)) return null;
-
-        $device = $this->current($request, $identity);
-        if (!$device) return null;
 
         $ownerSecurity = (array)session()->get('pmd_login_owner_security_v1', []);
         $pending = (array)session()->get(PmdSiteAccessService::SESSION_PENDING, []);
@@ -127,6 +130,13 @@ class PmdTrustedLoginDeviceService
         $hasPendingOwner = !empty($ownerSecurity['user_id'])
             && (int)$ownerSecurity['user_id'] === $userId
             && (int)($ownerSecurity['location_id'] ?? 0) === $locationId;
+
+        // Never bypass the Owner's initial TOTP enrollment / first restaurant
+        // activation. Trusted-device resume is only valid after policy activation.
+        if (!$site->policyEnabled($locationId)) return null;
+
+        $device = $this->current($request, $identity);
+        if (!$device) return null;
 
         $hasPendingWorkspace = $challenge
             && (int)$challenge->user_id === $userId
@@ -204,8 +214,10 @@ class PmdTrustedLoginDeviceService
             ]
         );
 
-        return redirect($target)
+        $response = redirect($target)
             ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+
+        return $this->renewExistingCookie($request, $response);
     }
 
     private function create(array $identity, Request $request): array
@@ -236,6 +248,14 @@ class PmdTrustedLoginDeviceService
         ];
     }
 
+    private function renewExistingCookie(Request $request, $response)
+    {
+        if (!method_exists($response, 'withCookie')) return $response;
+        $raw = trim((string)$request->cookie(self::COOKIE, ''));
+        if ($raw === '') return $response;
+        return $response->withCookie($this->cookie($raw, $request));
+    }
+
     private function touch(int $deviceId): void
     {
         if ($deviceId < 1) return;
@@ -253,7 +273,7 @@ class PmdTrustedLoginDeviceService
         return cookie(
             self::COOKIE,
             $token,
-            60 * 24 * 365 * 3,
+            self::COOKIE_MINUTES,
             '/',
             null,
             $request->isSecure(),
