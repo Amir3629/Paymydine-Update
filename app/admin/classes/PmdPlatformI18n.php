@@ -5,14 +5,26 @@ declare(strict_types=1);
 namespace Admin\Classes;
 
 /**
- * Canonical PayMyDine-owned Admin UI translation reader.
+ * Canonical PayMyDine platform translation reader.
  *
- * Native TastyIgniter copy remains owned by native lang() keys. This class owns
- * only PMD/custom platform copy under app/admin/i18n/platform/<locale>.php.
- * It never mutates Laravel/TastyIgniter locale state.
+ * ONE-FILE-PER-LOCALE CONTRACT
+ * ----------------------------
+ * Every PayMyDine-owned translation for a locale lives in exactly one file:
+ *
+ *   app/admin/i18n/platform/<locale>.php
+ *
+ * Flat string keys in that file are the PMD/custom UI catalogue. The optional
+ * __native section contains complete overlays for TastyIgniter's native
+ * admin/main/system language trees. The required language/<locale>/*/lang.php
+ * files are bridges only and must not own translated copy themselves.
+ *
+ * This class never changes Laravel/TastyIgniter locale state.
  */
 final class PmdPlatformI18n
 {
+    /** @var array<string,array<string,mixed>> */
+    private static array $catalogues = [];
+
     /** @var array<string,array<string,string>> */
     private static array $messages = [];
 
@@ -65,7 +77,7 @@ final class PmdPlatformI18n
 
     /**
      * Read the already-resolved application locale. The existing PMD cookie is
-     * accepted only as a migration compatibility input; this class does not
+     * accepted only as migration compatibility input; this class does not
      * write the cookie or call setLocale().
      */
     public static function currentLocale(): string
@@ -86,6 +98,23 @@ final class PmdPlatformI18n
         return self::normalizeLocale($candidate);
     }
 
+    /** @return array<string,mixed> */
+    public static function catalogue(?string $locale = null): array
+    {
+        $locale = self::normalizeLocale($locale ?? self::currentLocale());
+        if (isset(self::$catalogues[$locale])) {
+            return self::$catalogues[$locale];
+        }
+
+        $path = self::directory().'/'.$locale.'.php';
+        $catalogue = is_file($path) ? require $path : [];
+        if (!is_array($catalogue)) {
+            $catalogue = [];
+        }
+
+        return self::$catalogues[$locale] = $catalogue;
+    }
+
     /** @return array<string,string> */
     public static function messages(?string $locale = null): array
     {
@@ -94,15 +123,11 @@ final class PmdPlatformI18n
             return self::$messages[$locale];
         }
 
-        $path = self::directory().'/'.$locale.'.php';
-        $messages = is_file($path) ? require $path : [];
-        if (!is_array($messages)) {
-            $messages = [];
-        }
-
         $clean = [];
-        foreach ($messages as $key => $value) {
-            if (!is_string($key) || !is_scalar($value)) {
+        foreach (self::catalogue($locale) as $key => $value) {
+            // Reserved metadata/bridge sections start with __ and arrays are
+            // never exposed as PMD string messages.
+            if (!is_string($key) || str_starts_with($key, '__') || !is_scalar($value)) {
                 continue;
             }
             $clean[$key] = (string)$value;
@@ -112,10 +137,56 @@ final class PmdPlatformI18n
     }
 
     /**
-     * @param array<string,scalar|null> $replace
+     * Return the locale-owned native TastyIgniter overlay for one scope.
+     * Scope is deliberately closed so a language file cannot read arbitrary
+     * application paths through this API.
+     *
+     * @return array<string,mixed>
      */
+    public static function nativeOverlay(string $scope, ?string $locale = null): array
+    {
+        $scope = strtolower(trim($scope));
+        if (!in_array($scope, ['admin', 'main', 'system'], true)) {
+            throw new \InvalidArgumentException('Unsupported PMD native language scope: '.$scope);
+        }
 
-    // PMD_SETTINGS_REPORTS_PLATFORM_I18N_V16
+        $catalogue = self::catalogue($locale);
+        $native = $catalogue['__native'] ?? [];
+        if (!is_array($native)) {
+            return [];
+        }
+
+        $overlay = $native[$scope] ?? [];
+        return is_array($overlay) ? $overlay : [];
+    }
+
+    /**
+     * Recursively overlay translated native values over the canonical English
+     * language tree. Missing entries remain English by design; the audit tool
+     * is responsible for preventing an incomplete locale from being shipped.
+     *
+     * @param array<string|int,mixed> $source
+     * @param array<string|int,mixed> $overlay
+     * @return array<string|int,mixed>
+     */
+    public static function mergeNativeTree(array $source, array $overlay): array
+    {
+        foreach ($overlay as $key => $translated) {
+            if (is_array($translated) && isset($source[$key]) && is_array($source[$key])) {
+                $source[$key] = self::mergeNativeTree($source[$key], $translated);
+                continue;
+            }
+
+            // Never add arbitrary unknown branches to framework language data.
+            if (array_key_exists($key, $source)) {
+                $source[$key] = $translated;
+            }
+        }
+
+        return $source;
+    }
+
+    /** @param array<string,scalar|null> $replace */
     public static function fromEnglish(
         string $value,
         string $prefix = '',
@@ -148,6 +219,7 @@ final class PmdPlatformI18n
         return $translated;
     }
 
+    /** @param array<string,scalar|null> $replace */
     public static function translate(
         string $key,
         array $replace = [],
