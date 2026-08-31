@@ -585,7 +585,7 @@
   }
 
   html.pmd-side-menu2-global-page.pmd-sm2-runtime-ready
-    .page-wrapper,
+    body:not(.pmd-shifts-page) .page-wrapper,
 
   html.pmd-side-menu2-global-page.pmd-sm2-runtime-ready
     .navbar-top,

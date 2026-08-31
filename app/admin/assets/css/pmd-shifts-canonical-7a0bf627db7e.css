@@ -1521,14 +1521,9 @@ html:has(body.pmd-shifts-page) body.pmd-shifts-page {
 }
 
 @media (min-width: 768px) {
-  html.pmd-sm2-collapsed body.pmd-shifts-page .page-wrapper {
-    left: calc(var(--pmd-sm2-gap, 14px) + var(--pmd-sm2-collapsed, 72px)) !important;
-    width: calc(100vw - var(--pmd-sm2-gap, 14px) - var(--pmd-sm2-collapsed, 72px)) !important;
-  }
-
-  html.pmd-sm2-expanded body.pmd-shifts-page .page-wrapper {
-    left: calc(var(--pmd-sm2-gap, 14px) + var(--pmd-sm2-expanded, 184px)) !important;
-    width: calc(100vw - var(--pmd-sm2-gap, 14px) - var(--pmd-sm2-expanded, 184px)) !important;
+  body.pmd-shifts-page .page-wrapper {
+    left: calc(var(--pmd-admin-gap, 14px) + var(--pmd-sm2-panel, 72px)) !important;
+    width: calc(100vw - var(--pmd-admin-gap, 14px) - var(--pmd-sm2-panel, 72px)) !important;
   }
 }
 
