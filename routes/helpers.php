@@ -130,3 +130,8 @@ if (!function_exists('pmd_table_order_totals_from_order')) {
         return ['subtotal' => round($subtotal, 4), 'tax' => round($tax, 4), 'total' => round($total, 4), 'rows' => $rows];
     }
 }
+
+// PMD_MARKET_LANGUAGE_SWITCH_R1_LOADER
+if (file_exists(base_path('routes/pmd-market-language-switch-r1.php'))) {
+    require_once base_path('routes/pmd-market-language-switch-r1.php');
+}
