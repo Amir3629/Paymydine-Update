@@ -1,0 +1,54 @@
+/* PMD_SHIFTS_FIRST_PAINT_STABLE_V13
+ * The first Dienstplan is server-rendered. Keep refresh static, restore the
+ * canonical 72px row geometry, and make horizontal row separators explicit.
+ */
+html body.pmd-shifts-page{background:#f8fbfd!important}
+body.pmd-shifts-page .page-wrapper,
+body.pmd-shifts-page .page-content,
+body.pmd-shifts-page .page-title,
+body.pmd-shifts-page #pmd-shifts,
+body.pmd-shifts-page [data-pmd-shifts-day-surface],
+body.pmd-shifts-page [data-pmd-shifts-hour-host],
+body.pmd-shifts-page .pmd-shifts-final-screen{
+  opacity:1!important;
+  visibility:visible!important;
+  transform:none!important;
+  filter:none!important;
+  animation:none!important;
+  transition:none!important;
+}
+body.pmd-shifts-page [data-pmd-shifts-day-surface],
+body.pmd-shifts-page [data-pmd-shifts-hour-host]{min-height:0!important}
+body.pmd-shifts-page .pmd-shifts-final-scale-row{
+  height:auto!important;
+  min-height:42px!important;
+  max-height:none!important;
+}
+body.pmd-shifts-page .pmd-shifts-final-row{
+  height:auto!important;
+  min-height:72px!important;
+  max-height:none!important;
+  border-bottom:0!important;
+}
+body.pmd-shifts-page .pmd-shifts-final-person,
+body.pmd-shifts-page .pmd-shifts-final-track{
+  height:auto!important;
+  min-height:72px!important;
+  max-height:none!important;
+}
+body.pmd-shifts-page .pmd-shifts-final-slots,
+body.pmd-shifts-page .pmd-shifts-final-shifts{
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+}
+body.pmd-shifts-page .pmd-shifts-final-row:not(:last-child)>.pmd-shifts-final-person,
+body.pmd-shifts-page .pmd-shifts-final-row:not(:last-child)>.pmd-shifts-final-track{
+  border-bottom:1px solid #dfe8ee!important;
+}
+body.pmd-shifts-page.is-day-loading .pmd-shifts-final-screen,
+body.pmd-shifts-page.is-transitioning .page-content,
+body.pmd-shifts-page .page-content.is-transitioning{
+  opacity:1!important;
+  transform:none!important;
+}
