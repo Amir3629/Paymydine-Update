@@ -37,6 +37,7 @@ final class TenantPlatformProfileService
 
         $countryId = (int)($foundation['country']['country_id'] ?? 0) ?: null;
         $currencyCode = (string)$profile['currency']['code'];
+        $this->ensureMarketLanguages($countryCode, (array)$profile['languages'], $warnings);
         $languageState = $this->resolveLanguages((array)$profile['languages']);
         if ($languageState['missing']) {
             $warnings[] = 'Market language packs not enabled: '.implode(', ', $languageState['missing']).'.';
@@ -107,6 +108,55 @@ final class TenantPlatformProfileService
         ]);
 
         return $state;
+    }
+
+    /**
+     * Turkey ships as a real Turkish + English market. Register those tenant
+     * language rows only when the corresponding code assets exist, and disable
+     * non-market rows for Turkey so the admin switch cannot leak DE/AR choices.
+     */
+    private function ensureMarketLanguages(string $countryCode, array $config, array &$warnings): void
+    {
+        if (!Schema::hasTable('languages') || !Schema::hasColumn('languages', 'code')) return;
+
+        $eligible = array_values(array_unique(array_filter(array_map(
+            static fn ($code) => strtolower(trim((string)$code)),
+            (array)($config['eligible'] ?? [])
+        ))));
+        if (!$eligible) return;
+
+        $columns = Schema::getColumnListing('languages');
+        $names = [
+            'en' => ['name' => 'English', 'idiom' => 'english'],
+            'tr' => ['name' => 'Türkçe', 'idiom' => 'turkish'],
+            'de' => ['name' => 'Deutsch', 'idiom' => 'german'],
+            'ar' => ['name' => 'العربية', 'idiom' => 'arabic'],
+        ];
+
+        foreach ($eligible as $code) {
+            $hasPack = $code === 'en'
+                || (is_dir(base_path('language/'.$code)) && is_file(base_path('app/admin/i18n/platform/'.$code.'.php')));
+            if (!$hasPack) {
+                $warnings[] = 'Language assets are missing for '.$code.'.';
+                continue;
+            }
+
+            $definition = $names[$code] ?? ['name' => strtoupper($code), 'idiom' => $code];
+            $payload = [];
+            if (in_array('name', $columns, true)) $payload['name'] = $definition['name'];
+            if (in_array('idiom', $columns, true)) $payload['idiom'] = $definition['idiom'];
+            if (in_array('image', $columns, true)) $payload['image'] = '';
+            if (in_array('status', $columns, true)) $payload['status'] = 1;
+            if (in_array('can_delete', $columns, true)) $payload['can_delete'] = $code === 'en' ? 0 : 1;
+            if (in_array('updated_at', $columns, true)) $payload['updated_at'] = now();
+            if (in_array('created_at', $columns, true)) $payload['created_at'] = now();
+
+            DB::table('languages')->updateOrInsert(['code' => $code], $payload);
+        }
+
+        if ($countryCode === CountryPlatformProfileRegistry::TURKEY && in_array('status', $columns, true)) {
+            DB::table('languages')->whereNotIn('code', $eligible)->where('status', '!=', 0)->update(['status' => 0]);
+        }
     }
 
     private function resolveLanguages(array $config): array
@@ -266,10 +316,22 @@ final class TenantPlatformProfileService
                     // Non-Oman providers. `paypal` may be a shared legacy row and
                     // is intentionally included above as well.
                     'stripe', 'worldline', 'sumup', 'square', 'vr_payment',
+                    // Turkey remains payment-empty.
+                    'tr_card', 'tr_cash',
+                ];
+            } elseif ($countryCode === CountryPlatformProfileRegistry::TURKEY) {
+                // Turkey intentionally has NO payment integration yet. Disable
+                // every known regional/provider/global row copied from templates.
+                $foreignCodes = [
+                    'de_card', 'de_apple_pay', 'de_google_pay', 'de_wero', 'de_paypal', 'de_cash',
+                    'om_card', 'om_omannet', 'om_apple_pay', 'om_google_pay', 'om_cash',
+                    'card', 'apple_pay', 'google_pay', 'wero', 'paypal', 'cod', 'cash',
+                    'stripe', 'worldline', 'sumup', 'square', 'vr_payment', 'paymob',
                 ];
             } else {
                 $foreignCodes = [
                     'om_card', 'om_omannet', 'om_apple_pay', 'om_google_pay', 'om_cash', 'paymob',
+                    'tr_card', 'tr_cash',
                 ];
             }
 
