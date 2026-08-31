@@ -67,8 +67,11 @@ class Ownerboard extends AdminController
          * One clean Ownerboard presentation/runtime.
          */
         $this->addCss('css/pmd-ownerboard-v2.css');
+        // PMD_OWNERBOARD_WORKPLACE_APPROVAL_V1
+        $this->addCss('css/pmd-ownerboard-workplace-access-v1.css');
         $this->addJs('js/pmd-floor-v1.js');
         $this->addJs('js/pmd-ownerboard-v2.js');
+        $this->addJs('js/pmd-ownerboard-workplace-access-v1.js');
 
         AdminMenu::setContext('dashboard');
     }
@@ -432,4 +435,3 @@ class Ownerboard extends AdminController
         );
     }
 }
-

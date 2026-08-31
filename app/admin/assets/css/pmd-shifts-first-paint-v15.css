@@ -141,8 +141,6 @@ body.pmd-shifts-page .pmd-shifts-final-board {
   transform:none!important;
 }
 
-
-
 /* PMD_SHIFTS_REAL_TOP_ZERO_V15 */
 body.pmd-shifts-page .page-content {
   padding-top:0!important;
@@ -159,4 +157,35 @@ body.pmd-shifts-page .pmd-shifts-final-row {
   transition:none!important;
   animation:none!important;
   transform:none!important;
+}
+
+/* PMD_SHIFTS_ROSTER_VERTICAL_SCROLL_FINAL
+ * The current Shifts shell is intentionally positioned independently from the
+ * document by the legacy/static admin layout. With a large roster that means
+ * document height cannot be relied on to expose every person row. The rota is
+ * therefore the scroll owner in both axes, just like a planning grid should be.
+ * Horizontal timeline behavior is preserved; vertical rows can now always be
+ * reached, with the time scale pinned while the team list moves beneath it.
+ */
+body.pmd-shifts-page .pmd-shifts-final-scroll {
+  max-height:64dvh!important;
+  overflow-x:auto!important;
+  overflow-y:auto!important;
+  overscroll-behavior-x:contain!important;
+  overscroll-behavior-y:contain!important;
+  scrollbar-gutter:stable!important;
+  -webkit-overflow-scrolling:touch!important;
+}
+
+body.pmd-shifts-page .pmd-shifts-final-scale-row {
+  position:sticky!important;
+  top:0!important;
+  z-index:30!important;
+  background:#f8fbfd!important;
+}
+
+@media(max-width:767px) {
+  body.pmd-shifts-page .pmd-shifts-final-scroll {
+    max-height:58dvh!important;
+  }
 }
