@@ -159,9 +159,61 @@ class Pmdintelligence extends AdminController
         );
     }
 
+    private function restaurantIdentity(): array
+    {
+        $user = AdminAuth::getUser();
+        $staff = $user ? $user->staff : null;
+        $locationId = $this->readAuthority()->canonicalLocationId();
+        $restaurantName = null;
+
+        try {
+            if ($locationId) {
+                $restaurantName = DB::table('locations')
+                    ->where('location_id', (int)$locationId)
+                    ->value('location_name');
+            }
+        } catch (Throwable $error) {
+            $restaurantName = null;
+        }
+
+        $role = null;
+        try {
+            $role = $staff ? $staff->role : null;
+        } catch (Throwable $error) {
+            $role = null;
+        }
+
+        $roleCode = strtolower(trim((string)($role->code ?? '')));
+        $roleName = trim((string)($role->name ?? ''));
+        $personName = trim((string)($staff->staff_name ?? ''));
+        if ($personName === '') {
+            $personName = trim((string)($user->username ?? ''));
+        }
+
+        $ownerText = strtolower(trim($roleCode.' '.$roleName));
+
+        return [
+            'restaurant_name' => trim((string)$restaurantName) ?: 'this restaurant',
+            'signed_in_name' => $personName ?: null,
+            'signed_in_role' => $roleName ?: ($roleCode ?: null),
+            'is_owner' => str_contains($ownerText, 'owner'),
+        ];
+    }
+
     private function aiTools(): array
     {
         return [
+            'restaurant_identity' => [
+                'description' => 'Read only the safe display identity of the current restaurant and signed-in PMD user. Use this only when a friendly personalized restaurant reference would improve the answer. Never infer that the signed-in person is the owner unless is_owner is true.',
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => (object)[],
+                    'additionalProperties' => false,
+                ],
+                'handler' => function () {
+                    return $this->restaurantIdentity();
+                },
+            ],
             'owner_kpis' => [
                 'description' => 'Read the canonical Dashboard2 owner KPI snapshot for the current restaurant location. Use this for revenue, guests, turnover, channels, kitchen time, occupancy, menu availability and tips.',
                 'parameters' => [
