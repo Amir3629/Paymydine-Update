@@ -6,6 +6,7 @@
  * It runs the guarded fixture generator, then:
  * - clamps any synthetic same-day timestamps that would otherwise land a few
  *   minutes in the future when the script is executed shortly after midnight;
+ * - gives synthetic categories non-conflicting nested-tree positions;
  * - attaches synthetic menu/category rows explicitly to TOMO location 1 when
  *   the legacy locationables pivot exists.
  *
@@ -69,6 +70,34 @@ if ($ids) {
     }
 }
 
+$fixtureCategories = Schema::hasTable('categories') && hasCol('categories', 'name')
+    ? DB::table('categories')
+        ->where('name', 'like', PMD_FIXTURE_PREFIX.'%')
+        ->orderBy('category_id')
+        ->pluck('category_id')->map('intval')->all()
+    : [];
+
+$categoryPositions = 0;
+if (
+    $fixtureCategories
+    && hasCol('categories', 'nest_left')
+    && hasCol('categories', 'nest_right')
+) {
+    $maxRight = (int)DB::table('categories')
+        ->whereNotIn('category_id', $fixtureCategories)
+        ->max('nest_right');
+    $cursor = max(0, $maxRight) + 1;
+
+    foreach ($fixtureCategories as $categoryId) {
+        DB::table('categories')->where('category_id', $categoryId)->update([
+            'nest_left' => $cursor,
+            'nest_right' => $cursor + 1,
+        ]);
+        $cursor += 2;
+        $categoryPositions++;
+    }
+}
+
 $locationLinks = 0;
 if (
     Schema::hasTable('locationables')
@@ -80,12 +109,6 @@ if (
         ? DB::table('menus')
             ->where('menu_name', 'like', PMD_FIXTURE_PREFIX.'%')
             ->pluck('menu_id')->map('intval')->all()
-        : [];
-
-    $fixtureCategories = Schema::hasTable('categories') && hasCol('categories', 'name')
-        ? DB::table('categories')
-            ->where('name', 'like', PMD_FIXTURE_PREFIX.'%')
-            ->pluck('category_id')->map('intval')->all()
         : [];
 
     foreach ([
@@ -113,4 +136,5 @@ if (
 
 echo "FINALIZE_RESULT=PASS\n";
 echo "TIMESTAMPS_CLAMPED_TO_NOW=".implode(',', $updates)."\n";
+echo "CATEGORY_TREE_POSITIONS_NORMALIZED={$categoryPositions}\n";
 echo "LOCATIONABLE_LINKS_CREATED={$locationLinks}\n";
