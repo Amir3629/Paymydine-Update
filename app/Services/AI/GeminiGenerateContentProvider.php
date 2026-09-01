@@ -160,13 +160,17 @@ final class GeminiGenerateContentProvider implements AiProvider
                 $arguments = [];
             }
 
+            $argumentsJson = $arguments === []
+                ? '{}'
+                : json_encode(
+                    $arguments,
+                    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+                );
+
             $calls[] = [
                 'call_id' => (string)($functionCall['id'] ?? ''),
                 'name' => $name,
-                'arguments' => json_encode(
-                    $arguments,
-                    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
-                ),
+                'arguments' => $argumentsJson,
                 'raw' => $functionCall,
             ];
         }
