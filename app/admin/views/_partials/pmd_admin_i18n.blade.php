@@ -1,10 +1,10 @@
 {{--
     PMD_ADMIN_I18N_V1
 
-    Clean global EN/DE boot layer.
+    Clean global Admin locale boot layer.
     - Locale authority: pmd_admin_locale cookie, then current app locale.
-    - German pages are hidden before first paint.
-    - External catalogue/runtime reveal the page after the first translation.
+    - Supported PMD Admin locales are discovered from app/admin/i18n/platform.
+    - Non-English pages are hidden before first paint until translation runtime.
 --}}
 {{-- PMD_PLATFORM_MESSAGES_GLOBAL_V1 --}}
 @include('admin::_partials.pmd_platform_messages')
@@ -14,8 +14,14 @@
         app()->getLocale()
     )));
 
-    if (!in_array($pmdAdminLocale, ['en', 'de', 'tr'], true)) {
-        $pmdAdminLocale = 'en';
+    // PMD_ADMIN_DYNAMIC_LOCALE_REGISTRY_AR_R1
+    // Do not maintain a second hard-coded EN/DE/TR whitelist here. A reviewed
+    // canonical catalogue file is the source of truth for PMD Admin support.
+    $pmdAvailableAdminLocales = \Admin\Classes\PmdPlatformI18n::availableLocales();
+    if (!in_array($pmdAdminLocale, $pmdAvailableAdminLocales, true)) {
+        $pmdAdminLocale = in_array('en', $pmdAvailableAdminLocales, true)
+            ? 'en'
+            : (string)($pmdAvailableAdminLocales[0] ?? 'en');
     }
 
     app()->setLocale($pmdAdminLocale);
@@ -182,7 +188,17 @@
         window.PMD_ADMIN_LOCALE
     );
 
-    if (window.PMD_ADMIN_LOCALE === 'de') {
+    // PMD_ADMIN_RTL_AR_R1
+    document.documentElement.setAttribute(
+        'dir',
+        window.PMD_ADMIN_LOCALE === 'ar' ? 'rtl' : 'ltr'
+    );
+    document.documentElement.classList.toggle(
+        'pmd-admin-rtl',
+        window.PMD_ADMIN_LOCALE === 'ar'
+    );
+
+    if (window.PMD_ADMIN_LOCALE !== 'en') {
         document.documentElement.classList.add(
             'pmd-i18n-pending'
         );
