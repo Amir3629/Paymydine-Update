@@ -3,6 +3,7 @@
 namespace Tests\Unit;
 
 use App\Services\AI\AiRedactor;
+use App\Services\AI\GeminiGenerateContentProvider;
 use App\Services\AI\OpenAiResponsesProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -56,5 +57,62 @@ class PmdAiFoundationTest extends TestCase
         $this->assertCount(1, $calls);
         $this->assertSame('owner_kpis', $calls[0]['name']);
         $this->assertSame('{}', $calls[0]['arguments']);
+    }
+
+    public function test_gemini_provider_extracts_text(): void
+    {
+        $provider = new GeminiGenerateContentProvider();
+        $text = $provider->outputText([
+            'candidates' => [[
+                'content' => [
+                    'role' => 'model',
+                    'parts' => [[
+                        'text' => 'PMD_GEMINI_OK',
+                        'thoughtSignature' => 'encrypted-signature',
+                    ]],
+                ],
+            ]],
+        ]);
+
+        $this->assertSame('PMD_GEMINI_OK', $text);
+    }
+
+    public function test_gemini_provider_preserves_function_call_id_and_thought_signature(): void
+    {
+        $provider = new GeminiGenerateContentProvider();
+        $response = [
+            'candidates' => [[
+                'content' => [
+                    'role' => 'model',
+                    'parts' => [[
+                        'functionCall' => [
+                            'id' => 'fc_123',
+                            'name' => 'owner_kpis',
+                            'args' => [],
+                        ],
+                        'thoughtSignature' => 'encrypted-signature',
+                    ]],
+                ],
+            ]],
+        ];
+
+        $calls = $provider->functionCalls($response);
+        $history = $provider->modelHistoryItems($response);
+        $toolResult = $provider->toolResultItem(
+            $calls[0],
+            ['revenue' => 42]
+        );
+
+        $this->assertCount(1, $calls);
+        $this->assertSame('fc_123', $calls[0]['call_id']);
+        $this->assertSame('owner_kpis', $calls[0]['name']);
+        $this->assertSame('{}', $calls[0]['arguments']);
+        $this->assertSame(
+            'encrypted-signature',
+            $history[0]['content']['parts'][0]['thoughtSignature']
+        );
+        $this->assertSame('fc_123', $toolResult['call_id']);
+        $this->assertSame('owner_kpis', $toolResult['name']);
+        $this->assertSame(42, $toolResult['response']['result']['revenue']);
     }
 }
