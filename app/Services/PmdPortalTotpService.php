@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Schema;
  * - separate from Owner restaurant-security MFA and Workplace approval
  * - enrollment secret is encrypted even while stored in the server-side session
  * - recovery codes are hash-stored, single-use, and force a fresh enrollment
+ * - recovery codes must be explicitly acknowledged before normal Portal use
  * - TOTP time-steps are replay-protected
  */
 class PmdPortalTotpService
@@ -38,6 +39,7 @@ class PmdPortalTotpService
     {
         try {
             return Schema::hasTable(self::TABLE)
+                && Schema::hasColumn(self::TABLE, 'recovery_acknowledged_at')
                 && Schema::hasTable(self::RECOVERY_TABLE);
         } catch (\Throwable $error) {
             return false;
@@ -185,6 +187,17 @@ class PmdPortalTotpService
                 ->get();
 
             $primary = $records->first();
+            $values = [
+                'staff_id' => $staffId ?: null,
+                'mfa_type' => 'totp',
+                'secret_encrypted' => Crypt::encryptString($secret),
+                'last_used_step' => $matchedStep,
+                'confirmed_at' => $now,
+                'recovery_acknowledged_at' => null,
+                'disabled_at' => null,
+                'updated_at' => $now,
+            ];
+
             if ($primary) {
                 DB::table(self::TABLE)
                     ->where('user_id', $userId)
@@ -193,28 +206,13 @@ class PmdPortalTotpService
 
                 DB::table(self::TABLE)
                     ->where('id', (int)$primary->id)
-                    ->update([
-                        'staff_id' => $staffId ?: null,
-                        'mfa_type' => 'totp',
-                        'secret_encrypted' => Crypt::encryptString($secret),
-                        'last_used_step' => $matchedStep,
-                        'confirmed_at' => $now,
-                        'disabled_at' => null,
-                        'updated_at' => $now,
-                    ]);
+                    ->update($values);
             } else {
-                DB::table(self::TABLE)->insert([
+                DB::table(self::TABLE)->insert(array_merge($values, [
                     'user_id' => $userId,
-                    'staff_id' => $staffId ?: null,
                     'location_id' => $locationId,
-                    'mfa_type' => 'totp',
-                    'secret_encrypted' => Crypt::encryptString($secret),
-                    'last_used_step' => $matchedStep,
-                    'confirmed_at' => $now,
-                    'disabled_at' => null,
                     'created_at' => $now,
-                    'updated_at' => $now,
-                ]);
+                ]));
             }
 
             return $this->replaceRecoveryCodes($userId, $now);
@@ -250,6 +248,48 @@ class PmdPortalTotpService
         ]);
 
         $this->markSessionVerified($userId, $locationId, 'verify');
+        return true;
+    }
+
+    public function needsRecoveryAcknowledgement(int $userId): bool
+    {
+        if (!$this->ready() || $userId < 1) return false;
+        $record = $this->activeRecord($userId, false);
+        return $record && empty($record->recovery_acknowledged_at);
+    }
+
+    /**
+     * If a browser closed before saving recovery codes, hashes cannot be turned
+     * back into plaintext. After the next successful TOTP we replace them with a
+     * fresh set and show that new set before allowing normal Portal use.
+     */
+    public function ensureRecoveryCodesForDisplay(int $userId): array
+    {
+        if (!$this->ready() || $userId < 1) return [];
+
+        $existing = $this->recoveryCodesForDisplay();
+        if ($existing) return $existing;
+
+        $codes = DB::transaction(function () use ($userId) {
+            return $this->replaceRecoveryCodes($userId, now());
+        });
+        $this->storeRecoveryDisplay($codes);
+        return $codes;
+    }
+
+    public function acknowledgeRecoveryCodes(int $userId): bool
+    {
+        if (!$this->ready() || $userId < 1) return false;
+        if (!$this->recoveryCodesForDisplay()) return false;
+
+        $record = $this->activeRecord($userId, false);
+        if (!$record) return false;
+
+        DB::table(self::TABLE)->where('id', (int)$record->id)->update([
+            'recovery_acknowledged_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $this->clearRecoveryDisplay();
         return true;
     }
 
@@ -375,14 +415,14 @@ class PmdPortalTotpService
 
     private function activeRecord(int $userId, bool $collapseDuplicates = false)
     {
-        $query = DB::table(self::TABLE)
+        $record = DB::table(self::TABLE)
             ->where('user_id', $userId)
             ->whereNotNull('confirmed_at')
             ->whereNull('disabled_at')
             ->orderByDesc('updated_at')
-            ->orderByDesc('id');
+            ->orderByDesc('id')
+            ->first();
 
-        $record = $query->first();
         if (!$record || !$collapseDuplicates) return $record;
 
         try {
@@ -400,7 +440,7 @@ class PmdPortalTotpService
         return $record;
     }
 
-    private function replaceRecoveryCodes($userId, $now): array
+    private function replaceRecoveryCodes(int $userId, $now): array
     {
         DB::table(self::RECOVERY_TABLE)->where('user_id', $userId)->delete();
 
@@ -495,7 +535,9 @@ class PmdPortalTotpService
         $value = preg_replace('/[^A-Za-z0-9._-]+/', '-', trim($value));
         $value = trim(preg_replace('/-+/', '-', (string)$value), '-._');
         if ($value === '') $value = 'staff';
-        return substr($value, 0, 24);
+        // Keep the complete otpauth URI safely inside the dedicated Version 6-L
+        // QR payload budget even when both username and tenant names are long.
+        return substr($value, 0, 20);
     }
 
     private function matchingStep(string $secret, string $input): ?int
