@@ -23,7 +23,7 @@ FILES=(
 )
 
 EXPECTED=(
-  '151082954cfa20cd063ea42cd09d21a2e18b64ae'
+  'd23af21fdef807ba030833ee858e24cc17cd4071'
   'd54ee31746204df4dde33fd23349c7da13805802'
   '46d172a624252ea4499c95cd93e483918a798e1e'
 )
@@ -59,16 +59,22 @@ for i in "${!FILES[@]}"; do
 done
 
 echo '======================================================'
-echo '2/7 PREFLIGHT SYNTAX + CANONICAL ARABIC PARITY'
+echo '2/7 PREFLIGHT SYNTAX + STAGED PLATFORM I18N AUDIT'
 echo '======================================================'
 php -l "$WORK/app/admin/i18n/platform/ar.php"
 php -l "$WORK/scripts/pmd-sync-oman-admin-language-r1.php"
-# ar.php intentionally inherits canonical English. Mirror live en.php into the
-# staged catalogue directory so the staged require has the same dependency.
-cp "$ROOT/app/admin/i18n/platform/en.php" "$WORK/app/admin/i18n/platform/en.php"
-php -r '$en=require $argv[1]; $ar=require $argv[2]; $missing=array_diff(array_keys($en),array_keys($ar)); if($missing){fwrite(STDERR,"Arabic canonical missing keys: ".count($missing).PHP_EOL); exit(31);} echo "Arabic canonical key parity: ".count($en).PHP_EOL;' \
-  "$WORK/app/admin/i18n/platform/en.php" \
-  "$WORK/app/admin/i18n/platform/ar.php"
+
+# Audit the candidate Arabic catalogue BEFORE touching live source. Mirror the
+# currently installed non-Arabic catalogues and audit script into the temp root,
+# while keeping the downloaded Arabic file as the staged candidate.
+mkdir -p "$WORK/scripts" "$WORK/app/admin/i18n/platform"
+cp "$ROOT/scripts/pmd-audit-platform-i18n.php" "$WORK/scripts/pmd-audit-platform-i18n.php"
+for locale_file in "$ROOT"/app/admin/i18n/platform/*.php; do
+  locale_name="$(basename "$locale_file")"
+  [[ "$locale_name" == 'ar.php' ]] && continue
+  cp "$locale_file" "$WORK/app/admin/i18n/platform/$locale_name"
+done
+php "$WORK/scripts/pmd-audit-platform-i18n.php"
 
 echo '======================================================'
 echo '3/7 BACKUP + INSTALL ONLY ADMIN LANGUAGE SOURCE'
