@@ -9,10 +9,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Throwable;
 
-// This App service is loaded through Composer PSR-4, while the canonical data
-// authorities live in the Admin module controller namespace. Load the complete
-// inheritance chain explicitly so service/CLI resolution never depends on a
-// controller route having been touched first.
 require_once base_path('app/admin/controllers/Reservations.php');
 require_once base_path('app/admin/controllers/Reservations2.php');
 require_once base_path('app/admin/controllers/Dashboard2.php');
@@ -20,12 +16,6 @@ require_once base_path('app/admin/controllers/Pmdreports.php');
 
 /**
  * Thin, read-only bridge over PMD's existing Dashboard2/Pmdreports authority.
- *
- * The constructor intentionally does not call Pmdreports::__construct(). This
- * class is never rendered as an Admin page; skipping the parent UI constructor
- * prevents Reservations/Dashboard/Reports assets from being registered on the
- * PMD Intelligence workspace while preserving the proven protected data
- * methods inherited from Pmdreports/Dashboard2.
  */
 final class PmdReadAuthority extends Pmdreports
 {
@@ -73,25 +63,21 @@ final class PmdReadAuthority extends Pmdreports
             $start = $now->copy()->startOfDay();
         }
 
-        return $this->reportPayload(
-            $report,
-            $start,
-            $now,
-            $period,
-            null
-        );
+        return $this->reportPayload($report, $start, $now, $period, null);
     }
 
-    /**
-     * Read a canonical PMD report for an explicit restaurant-local date range.
-     */
     public function reportRange(
         string $report,
         string $startDate,
         string $endDate
     ): array {
         $this->assertReport($report, self::HISTORICAL_REPORTS);
-        [$start, $end] = $this->validatedRange($startDate, $endDate, 366);
+        [$start, $end] = $this->validatedRange(
+            $startDate,
+            $endDate,
+            366,
+            $report === 'reservations'
+        );
 
         return $this->reportPayload(
             $report,
@@ -111,7 +97,7 @@ final class PmdReadAuthority extends Pmdreports
      */
     public function orderIntegrityRange(string $startDate, string $endDate): array
     {
-        [$start, $end] = $this->validatedRange($startDate, $endDate, 366);
+        [$start, $end] = $this->validatedRange($startDate, $endDate, 366, false);
         $locationId = (int)($this->locationId() ?: 0);
 
         if ($locationId < 1 || !Schema::hasTable('orders')) {
@@ -205,10 +191,7 @@ final class PmdReadAuthority extends Pmdreports
             : null;
 
         $tips = null;
-        if (
-            $settledIds->isNotEmpty()
-            && Schema::hasTable('order_totals')
-        ) {
+        if ($settledIds->isNotEmpty() && Schema::hasTable('order_totals')) {
             $totalColumns = Schema::getColumnListing('order_totals');
             if (count(array_diff(['order_id', 'code', 'value'], $totalColumns)) === 0) {
                 $tips = round((float)DB::table('order_totals')
@@ -289,7 +272,7 @@ final class PmdReadAuthority extends Pmdreports
      */
     public function workforceScheduleRange(string $startDate, string $endDate): array
     {
-        [$start, $end] = $this->validatedRange($startDate, $endDate, 90);
+        [$start, $end] = $this->validatedRange($startDate, $endDate, 90, true);
         $locationId = (int)($this->locationId() ?: 0);
 
         if (
@@ -406,37 +389,31 @@ final class PmdReadAuthority extends Pmdreports
         }
     }
 
-    private function validatedRange(string $startDate, string $endDate, int $maxDays): array
-    {
+    private function validatedRange(
+        string $startDate,
+        string $endDate,
+        int $maxDays,
+        bool $allowFuture
+    ): array {
         $timezone = $this->restaurantTimezone();
         $start = $this->parseLocalDate($startDate, $timezone)->startOfDay();
         $end = $this->parseLocalDate($endDate, $timezone)->endOfDay();
 
         if ($end->lt($start)) {
             throw new InvalidArgumentException(
-                'Historical report end_date must be on or after start_date.'
+                'Date range end_date must be on or after start_date.'
             );
         }
 
         if ($start->diffInDays($end) > $maxDays) {
-            throw new InvalidArgumentException(
-                'Historical report range is too large.'
-            );
+            throw new InvalidArgumentException('Date range is too large.');
         }
 
         $now = Carbon::now($timezone);
-        if ($start->gt($now)) {
-            // Workforce schedules are allowed to include the future; callers
-            // with future support pass a future end but not a future-only start
-            // through workforceScheduleRange below by using today's start.
-            if ($maxDays !== 90) {
-                throw new InvalidArgumentException(
-                    'Historical report start_date cannot be in the future.'
-                );
-            }
+        if (!$allowFuture && $start->gt($now)) {
+            throw new InvalidArgumentException('Historical report start_date cannot be in the future.');
         }
-
-        if ($maxDays !== 90 && $end->gt($now)) {
+        if (!$allowFuture && $end->gt($now)) {
             $end = $now->copy();
         }
 
@@ -447,23 +424,17 @@ final class PmdReadAuthority extends Pmdreports
     {
         $value = trim($value);
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
-            throw new InvalidArgumentException(
-                'Historical report dates must use YYYY-MM-DD.'
-            );
+            throw new InvalidArgumentException('Report dates must use YYYY-MM-DD.');
         }
 
         try {
             $date = Carbon::createFromFormat('!Y-m-d', $value, $timezone);
         } catch (Throwable $error) {
-            throw new InvalidArgumentException(
-                'Historical report date is invalid.'
-            );
+            throw new InvalidArgumentException('Report date is invalid.');
         }
 
         if (!$date || $date->format('Y-m-d') !== $value) {
-            throw new InvalidArgumentException(
-                'Historical report date is invalid.'
-            );
+            throw new InvalidArgumentException('Report date is invalid.');
         }
 
         return $date;
