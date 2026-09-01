@@ -201,4 +201,5 @@
   'System\\Models\\Mail_templates_model' => 'app/system/models/Mail_templates_model.php',
   'System\\Models\\Mail_layouts_model' => 'app/system/models/Mail_layouts_model.php',
   'System\\Models\\Mail_partials_model' => 'app/system/models/Mail_partials_model.php',
+  'Admin\\Controllers\\pmdintelligence' => 'app/admin/controllers/Pmdintelligence.php',
 );
