@@ -22,6 +22,10 @@ return [
         '/'
     ),
     'gemini_thinking_level' => env('PMD_AI_GEMINI_THINKING_LEVEL', 'low'),
+    'gemini_force_ipv4' => filter_var(
+        env('PMD_AI_GEMINI_FORCE_IPV4', true),
+        FILTER_VALIDATE_BOOLEAN
+    ),
 
     'request_timeout_seconds' => (int)env('PMD_AI_TIMEOUT_SECONDS', 25),
     'max_output_tokens' => (int)env('PMD_AI_MAX_OUTPUT_TOKENS', 1400),
