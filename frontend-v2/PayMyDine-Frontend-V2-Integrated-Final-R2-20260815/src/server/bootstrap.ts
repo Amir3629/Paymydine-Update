@@ -1,6 +1,7 @@
 import 'server-only'
 
 import type { CustomerBootstrap } from '@/src/domain/model'
+import { supportedUiLocales } from '@/src/lib/i18n'
 import { normalizeThemeId, type ThemeId } from '@/src/themes/catalog'
 import { fetchBackendJsonOrNull } from './backend'
 import { createMockBootstrap } from './mock-bootstrap'
@@ -47,16 +48,33 @@ function settingsLocale(settings: any): string {
 }
 
 function enabledLocales(settings: any, theme: any, fallback: string): string[] {
-  const raw = theme?.pmd_v2_enabled_languages || theme?.data?.pmd_v2_enabled_languages || settings?.enabled_languages || settings?.data?.enabled_languages || settings?.locales || settings?.data?.locales
+  const raw = theme?.pmd_v2_enabled_languages
+    || theme?.data?.pmd_v2_enabled_languages
+    || settings?.enabled_languages
+    || settings?.data?.enabled_languages
+    || settings?.locales
+    || settings?.data?.locales
+    || settings?.supported_languages
+    || settings?.data?.supported_languages
+
   const list = Array.isArray(raw)
     ? raw
     : typeof raw === 'string'
       ? raw.split(',')
       : []
-  const normalized = list.map((value: unknown) => String(value).trim().toLowerCase()).filter(Boolean)
-  const supported = new Set(['en', 'de', 'fa', 'tr', 'ja'])
+
+  const normalized = list
+    .map((value: unknown) => String(value).trim().toLowerCase().split('-')[0])
+    .filter(Boolean)
+
+  // PMD_CUSTOMER_LANGUAGE_REGISTRY_R1
+  // The dictionaries themselves own customer UI capability. Adding another UI
+  // pack no longer requires maintaining a second hard-coded whitelist here.
+  const supported = new Set(supportedUiLocales)
   const configured = normalized.filter((value: string) => supported.has(value))
-  const base = supported.has(fallback) ? fallback : 'en'
+  const fallbackBase = String(fallback || 'en').trim().toLowerCase().split('-')[0] || 'en'
+  const base = supported.has(fallbackBase) ? fallbackBase : 'en'
+
   return Array.from(new Set([base, ...(configured.length ? configured : ['en', 'de'])]))
 }
 
