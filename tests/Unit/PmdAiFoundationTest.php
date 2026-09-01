@@ -103,6 +103,13 @@ class PmdAiFoundationTest extends TestCase
             ['revenue' => 42]
         );
 
+        $translate = new \ReflectionMethod(
+            GeminiGenerateContentProvider::class,
+            'translateInput'
+        );
+        $translate->setAccessible(true);
+        $replayed = $translate->invoke($provider, $history);
+
         $this->assertCount(1, $calls);
         $this->assertSame('fc_123', $calls[0]['call_id']);
         $this->assertSame('owner_kpis', $calls[0]['name']);
@@ -110,6 +117,14 @@ class PmdAiFoundationTest extends TestCase
         $this->assertSame(
             'encrypted-signature',
             $history[0]['content']['parts'][0]['thoughtSignature']
+        );
+        $this->assertInstanceOf(
+            \stdClass::class,
+            $replayed[0]['parts'][0]['functionCall']['args']
+        );
+        $this->assertStringContainsString(
+            '"args":{}',
+            json_encode($replayed[0])
         );
         $this->assertSame('fc_123', $toolResult['call_id']);
         $this->assertSame('owner_kpis', $toolResult['name']);
@@ -178,6 +193,10 @@ class PmdAiFoundationTest extends TestCase
         $this->assertCount(3, $contents);
         $this->assertSame('model', $contents[1]['role']);
         $this->assertSame('sig-parallel', $contents[1]['parts'][0]['thoughtSignature']);
+        $this->assertInstanceOf(
+            \stdClass::class,
+            $contents[1]['parts'][0]['functionCall']['args']
+        );
         $this->assertSame('user', $contents[2]['role']);
         $this->assertCount(2, $contents[2]['parts']);
         $this->assertSame(
