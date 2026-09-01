@@ -157,10 +157,34 @@ const ja: UiLabels = {
   welcomeTo: 'ようこそ', browseOrderEnjoy: '選ぶ · 注文する · 楽しむ',
 }
 
-const dictionaries: Record<string, UiLabels> = { en, de, fa, tr, ja }
+// PMD_CUSTOMER_ARABIC_UI_R1
+const ar: UiLabels = {
+  menu: 'القائمة', search: 'ابحث عن الأطباق والمشروبات', all: 'الكل', table: 'الطاولة', language: 'اللغة', valet: 'صف السيارات',
+  callWaiter: 'استدعاء النادل', note: 'ملاحظة', notePlaceholder: 'اكتب ملاحظة لفريق المطعم…', noteRequired: 'يرجى إدخال ملاحظة قبل الإرسال.', noteTooLong: 'يرجى إبقاء الملاحظة أقل من 1000 حرف.', social: 'التواصل الاجتماعي', cart: 'طلبي',
+  tableOrder: 'طلب الطاولة', checkout: 'الدفع', add: 'إضافة', unavailable: 'غير متاح', vegan: 'نباتي بالكامل', vegetarian: 'نباتي', halal: 'حلال',
+  allergens: 'مسببات الحساسية', nutrition: 'القيم الغذائية', calories: 'السعرات الحرارية', quantity: 'الكمية', options: 'الخيارات',
+  close: 'إغلاق', send: 'إرسال', confirmItems: 'تأكيد عناصري', submitKitchen: 'إرسال طلب الطاولة إلى المطبخ', orderStatus: 'حالة الطلب',
+  received: 'تم الاستلام', preparing: 'قيد التحضير', ready: 'جاهز لطاولتك', payment: 'الدفع', splitBill: 'تقسيم الفاتورة', equalSplit: 'تقسيم بالتساوي',
+  itemSplit: 'حسب الأصناف', shareSplit: 'حسب الحصص', people: 'الأشخاص', selectItems: 'اختر الأصناف', tip: 'إكرامية', coupon: 'قسيمة', apply: 'تطبيق',
+  pay: 'ادفع', cash: 'نقداً', waiterConfirm: 'هل تريد إشعار نادل لهذه الطاولة؟',
+  valetName: 'اسمك', licensePlate: 'رقم لوحة السيارة', carMake: 'نوع / طراز السيارة', requestValet: 'طلب خدمة صف السيارات', emptyCart: 'سلة طلبك فارغة.',
+  continueMenu: 'متابعة الطلب', total: 'الإجمالي', remaining: 'المتبقي', paid: 'مدفوع', pending: 'قيد الانتظار', service: 'الخدمة', added: 'تمت الإضافة',
+  success: 'تم', error: 'حدث خطأ', poweredBy: 'بدعم من PayMyDine', estimatedReady: 'الوقت المتوقع للجاهزية', minutes: 'د',
+  noPaymentMethods: 'لا توجد طرق دفع مفعّلة حالياً لهذا المطعم.', paymentSessionReady: 'تم إنشاء جلسة الدفع.',
+  scanTableQr: 'امسح رمز QR الخاص بطاولتك لتقديم طلب.', browseOnly: 'يمكنك تصفح القائمة هنا. يبدأ الطلب من رمز QR صالح للطاولة.',
+  welcomeTo: 'مرحباً بكم في', browseOrderEnjoy: 'تصفح · اطلب · استمتع',
+}
+
+const dictionaries: Record<string, UiLabels> = { en, de, fa, tr, ja, ar }
+
+// One customer UI dictionary is the capability registry. Server bootstrap reads
+// this export instead of maintaining a second locale whitelist.
+export const supportedUiLocales: readonly string[] = Object.freeze(Object.keys(dictionaries))
 
 export function getLabels(locale: string): UiLabels {
-  return dictionaries[locale.toLowerCase()] ?? en
+  const exact = String(locale || '').trim().toLowerCase()
+  const base = exact.split('-')[0] || 'en'
+  return dictionaries[exact] ?? dictionaries[base] ?? en
 }
 
 export function isRtlLocale(locale: string): boolean {
