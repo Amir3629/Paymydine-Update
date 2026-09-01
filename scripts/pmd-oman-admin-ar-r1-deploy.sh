@@ -48,8 +48,11 @@ echo '2/7 PREFLIGHT SYNTAX + CANONICAL ARABIC PARITY'
 echo '======================================================'
 php -l "$WORK/app/admin/i18n/platform/ar.php"
 php -l "$WORK/scripts/pmd-sync-oman-admin-language-r1.php"
+# ar.php intentionally inherits canonical English. Mirror live en.php into the
+# staged catalogue directory so the staged require has the same dependency.
+cp "$ROOT/app/admin/i18n/platform/en.php" "$WORK/app/admin/i18n/platform/en.php"
 php -r '$en=require $argv[1]; $ar=require $argv[2]; $missing=array_diff(array_keys($en),array_keys($ar)); if($missing){fwrite(STDERR,"Arabic canonical missing keys: ".count($missing).PHP_EOL); exit(31);} echo "Arabic canonical key parity: ".count($en).PHP_EOL;' \
-  "$ROOT/app/admin/i18n/platform/en.php" \
+  "$WORK/app/admin/i18n/platform/en.php" \
   "$WORK/app/admin/i18n/platform/ar.php"
 
 echo '======================================================'
