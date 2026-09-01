@@ -6,7 +6,10 @@
  * Usage from repository root:
  *   php scripts/pmd-ai-openai-smoke.php
  *
- * It reads OPENAI_API_KEY through Laravel config and never prints the key.
+ * OPENAI_API_KEY may come from Laravel config or an exported environment
+ * variable for this one process. The key is never printed. The environment
+ * override also lets this smoke run safely before changing a production
+ * config cache.
  */
 
 require dirname(__DIR__).'/vendor/autoload.php';
@@ -14,13 +17,38 @@ $app = require dirname(__DIR__).'/bootstrap/app.php';
 $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
 $kernel->bootstrap();
 
+$processKey = getenv('OPENAI_API_KEY');
+if (is_string($processKey) && trim($processKey) !== '') {
+    config(['pmd_ai.openai_api_key' => trim($processKey)]);
+}
+
+$processModel = getenv('PMD_AI_MODEL');
+if (is_string($processModel) && trim($processModel) !== '') {
+    config(['pmd_ai.model' => trim($processModel)]);
+}
+
+$processBaseUrl = getenv('OPENAI_BASE_URL');
+config([
+    'pmd_ai.openai_base_url' => rtrim(
+        is_string($processBaseUrl) && trim($processBaseUrl) !== ''
+            ? trim($processBaseUrl)
+            : (string)config('pmd_ai.openai_base_url', 'https://api.openai.com/v1'),
+        '/'
+    ),
+    'pmd_ai.request_timeout_seconds' => max(
+        3,
+        (int)(getenv('PMD_AI_TIMEOUT_SECONDS') ?: config('pmd_ai.request_timeout_seconds', 25))
+    ),
+    'pmd_ai.store_provider_response' => false,
+]);
+
 $keyPresent = trim((string)config('pmd_ai.openai_api_key', '')) !== '';
 echo 'OPENAI_API_KEY: '.($keyPresent ? 'PRESENT' : 'MISSING').PHP_EOL;
 echo 'PMD_AI_ENABLED: '.((bool)config('pmd_ai.enabled', false) ? 'true' : 'false').PHP_EOL;
 echo 'PMD_AI_MODEL: '.(string)config('pmd_ai.model', 'gpt-5.6-luna').PHP_EOL;
 
 if (!$keyPresent) {
-    fwrite(STDERR, 'Smoke test stopped: configure OPENAI_API_KEY server-side first.'.PHP_EOL);
+    fwrite(STDERR, 'Smoke test stopped: provide OPENAI_API_KEY server-side or export it for this shell process.'.PHP_EOL);
     exit(2);
 }
 
