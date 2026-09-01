@@ -72,6 +72,9 @@ final class GeminiGenerateContentProvider implements AiProvider
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_CONNECTTIMEOUT => min(8, $timeout),
             CURLOPT_TIMEOUT => $timeout,
+            CURLOPT_IPRESOLVE => (bool)config('pmd_ai.gemini_force_ipv4', true)
+                ? CURL_IPRESOLVE_V4
+                : CURL_IPRESOLVE_WHATEVER,
             CURLOPT_HTTPHEADER => [
                 'x-goog-api-key: '.$key,
                 'x-goog-api-client: paymydine-ai/1.0',
