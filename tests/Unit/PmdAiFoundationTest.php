@@ -115,4 +115,78 @@ class PmdAiFoundationTest extends TestCase
         $this->assertSame('owner_kpis', $toolResult['name']);
         $this->assertSame(42, $toolResult['response']['result']['revenue']);
     }
+
+    public function test_gemini_parallel_function_responses_are_grouped_in_one_user_turn(): void
+    {
+        $provider = new GeminiGenerateContentProvider();
+
+        $translate = new \ReflectionMethod(
+            GeminiGenerateContentProvider::class,
+            'translateInput'
+        );
+        $translate->setAccessible(true);
+
+        $contents = $translate->invoke($provider, [
+            [
+                'role' => 'user',
+                'content' => 'How are we performing today?',
+            ],
+            [
+                'type' => 'gemini_model_content',
+                'content' => [
+                    'role' => 'model',
+                    'parts' => [
+                        [
+                            'functionCall' => [
+                                'id' => 'fc_kpis',
+                                'name' => 'owner_kpis',
+                                'args' => [],
+                            ],
+                            'thoughtSignature' => 'sig-parallel',
+                        ],
+                        [
+                            'functionCall' => [
+                                'id' => 'fc_sales',
+                                'name' => 'report_snapshot',
+                                'args' => [
+                                    'report' => 'sales',
+                                    'period' => 'today',
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+            [
+                'type' => 'gemini_function_response',
+                'call_id' => 'fc_kpis',
+                'name' => 'owner_kpis',
+                'response' => [
+                    'result' => ['revenue' => 42],
+                ],
+            ],
+            [
+                'type' => 'gemini_function_response',
+                'call_id' => 'fc_sales',
+                'name' => 'report_snapshot',
+                'response' => [
+                    'result' => ['sales' => 42],
+                ],
+            ],
+        ]);
+
+        $this->assertCount(3, $contents);
+        $this->assertSame('model', $contents[1]['role']);
+        $this->assertSame('sig-parallel', $contents[1]['parts'][0]['thoughtSignature']);
+        $this->assertSame('user', $contents[2]['role']);
+        $this->assertCount(2, $contents[2]['parts']);
+        $this->assertSame(
+            'fc_kpis',
+            $contents[2]['parts'][0]['functionResponse']['id']
+        );
+        $this->assertSame(
+            'fc_sales',
+            $contents[2]['parts'][1]['functionResponse']['id']
+        );
+    }
 }
