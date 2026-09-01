@@ -9,6 +9,9 @@ final class AiRedactor
         'authorization', 'cookie', 'card_number', 'pan', 'cvv', 'cvc',
         'iban', 'account_number', 'email', 'phone', 'telephone',
         'mobile', 'address', 'ip_address', 'device_token',
+        'customer_name', 'guest_name', 'first_name', 'last_name',
+        'customer_id', 'guest_id', 'transaction_ref', 'payment_ref',
+        'payment_reference', 'processor_reference', 'provider_reference',
     ];
 
     public function forModel($value, $key = null)
