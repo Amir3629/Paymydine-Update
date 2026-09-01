@@ -23,12 +23,20 @@ class CreatePmdPortalMfaTable extends Migration
                 $table->text('secret_encrypted');
                 $table->unsignedBigInteger('last_used_step')->nullable();
                 $table->timestamp('confirmed_at')->nullable();
+                $table->timestamp('recovery_acknowledged_at')->nullable();
                 $table->timestamp('disabled_at')->nullable();
                 $table->timestamps();
 
                 $table->unique(['user_id', 'location_id'], 'pmd_portal_mfa_user_location_uq');
                 $table->index(['staff_id', 'disabled_at'], 'pmd_portal_mfa_staff_idx');
                 $table->index(['user_id', 'disabled_at'], 'pmd_portal_mfa_user_active_idx');
+            });
+        } elseif (!Schema::hasColumn('pmd_portal_mfa', 'recovery_acknowledged_at')) {
+            // Existing V1/V2 tenants are upgraded in place. A null value means
+            // the user must be shown a fresh set of recovery codes after their
+            // next successful personal TOTP verification.
+            Schema::table('pmd_portal_mfa', function (Blueprint $table) {
+                $table->timestamp('recovery_acknowledged_at')->nullable()->after('confirmed_at');
             });
         }
 
