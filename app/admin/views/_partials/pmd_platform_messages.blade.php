@@ -13,6 +13,16 @@
     $pmdPlatformRuntimeVersion = is_file($pmdPlatformRuntime)
         ? (string)filemtime($pmdPlatformRuntime)
         : '1';
+
+    // PMD_ADMIN_AR_COMPLETE_RUNTIME_R10
+    // Arabic gets one late, locale-neutral re-apply authority so legacy PMD
+    // widgets that inject stable English platform copy after first paint are
+    // translated from the same canonical catalogue. No restaurant/customer
+    // content lives in this runtime.
+    $pmdArabicRuntime = base_path('app/admin/assets/js/pmd-admin-ar-complete-r10.js');
+    $pmdArabicRuntimeVersion = is_file($pmdArabicRuntime)
+        ? (string)filemtime($pmdArabicRuntime)
+        : '1';
 @endphp
 <script id="pmd-platform-messages-boot">
 window.PMD_PLATFORM_MESSAGES_LOCALE = @json($pmdPlatformLocale);
@@ -26,3 +36,9 @@ if (window.PMD_PLATFORM_MESSAGES_LOCALE !== 'en') {
 }
 </script>
 <script src="/app/admin/assets/js/pmd-platform-messages.js?v={{ $pmdPlatformRuntimeVersion }}"></script>
+@if ($pmdPlatformLocale === 'ar')
+<script
+    src="/app/admin/assets/js/pmd-admin-ar-complete-r10.js?v={{ $pmdArabicRuntimeVersion }}"
+    defer
+></script>
+@endif

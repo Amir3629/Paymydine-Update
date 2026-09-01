@@ -5,18 +5,19 @@ declare(strict_types=1);
 /*
  * Canonical PayMyDine-owned Admin UI copy (Arabic).
  *
- * PMD_OMAN_ADMIN_AR_R1
+ * PMD_OMAN_ADMIN_AR_COMPLETE_R10
  *
- * This catalogue deliberately inherits the complete English key set first so
- * Arabic can be enabled without missing-key failures. Arabic-owned strings
- * below override the canonical English source. Remaining inherited strings are
- * safe English fallbacks until reviewed Arabic wording is added; key parity is
- * therefore guaranteed while translation coverage can grow monotonically.
+ * English remains the structural key authority. Arabic wording is owned by
+ * this base catalogue plus the reviewed R10 modules in app/admin/i18n/arabic.
+ * This keeps canonical key parity while allowing large Arabic coverage to stay
+ * maintainable by product area. Stable legacy PMD copy lives as literal::*
+ * entries in the R10 compatibility module; restaurant/customer content is
+ * intentionally excluded from every platform catalogue.
  */
 
 $english = require __DIR__.'/en.php';
 
-return array_replace($english, [
+$base = [
     'shared.add_item' => 'إضافة عنصر',
     'shared.apply' => 'تطبيق',
     'shared.cancel' => 'إلغاء',
@@ -125,4 +126,18 @@ return array_replace($english, [
     'cashier.cannot_cancel_settlement' => 'لا يمكن إلغاء هذا الطلب في حالة التسوية الحالية.',
     'cashier.confirm' => 'تأكيد',
     'cashier.confirming' => 'جارٍ التأكيد…',
-]);
+];
+
+$coverage = [];
+$coverageFiles = glob(dirname(__DIR__).'/arabic/r10-*.php') ?: [];
+sort($coverageFiles, SORT_STRING);
+
+foreach ($coverageFiles as $coverageFile) {
+    $module = require $coverageFile;
+    if (!is_array($module)) {
+        throw new RuntimeException('Arabic Admin coverage module must return an array: '.$coverageFile);
+    }
+    $coverage = array_replace($coverage, $module);
+}
+
+return array_replace($english, $base, $coverage);
