@@ -3,15 +3,15 @@
 namespace Admin\Traits;
 
 use Admin\Facades\AdminAuth;
+use App\Services\PmdPortalQrService;
 use App\Services\PmdPortalTotpService;
-use App\Services\PmdSiteAccessQrService;
 use App\Services\PmdSiteAccessService;
 use App\Services\PmdSiteAccessSessionBindingService;
 use App\Services\PmdWorkSessionPolicyService;
 use Igniter\Flame\Exception\ValidationException;
 use Illuminate\Support\Facades\DB;
 
-/** PMD_PORTAL_PERSONAL_MFA_LOGIN_V1 */
+/** PMD_PORTAL_PERSONAL_MFA_LOGIN_V2 */
 trait HandlesPortalMfa
 {
     private const PMD_PORTAL_SECURITY_SESSION = 'pmd_login_portal_security_v1';
@@ -24,36 +24,33 @@ trait HandlesPortalMfa
 
         $security = $this->pmdPortalMfaSecurityViewState();
         if (!$security) {
-            return $this->pmdPortalMfaAbortToLogin(
-                'This Portal security step expired. Sign in again.'
-            );
+            return $this->pmdPortalMfaAbortToLogin('This Portal security step expired. Sign in again.');
         }
 
-        return view('auth.login_portal_mfa_v1', [
-            'pmdPortalSecurity' => $security,
-        ]);
+        return response()
+            ->view('auth.login_portal_mfa_v1', ['pmdPortalSecurity' => $security])
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate, private')
+            ->header('Pragma', 'no-cache')
+            ->header('Referrer-Policy', 'no-referrer')
+            ->header('X-Frame-Options', 'DENY');
     }
 
-    /**
-     * Start personal MFA for a username ending in "portal". No Workplace
-     * challenge is created, so there is nothing for Owner/Admin to approve.
-     */
     private function pmdBeginPortalMfa(): void
     {
         if (!AdminAuth::isLogged()) {
-            throw new ValidationException([
-                'username' => 'Portal sign-in expired. Sign in again.',
-            ]);
+            throw new ValidationException(['username' => 'Portal sign-in expired. Sign in again.']);
         }
 
         $site = app(PmdSiteAccessService::class);
         $identity = $site->identity();
         $userId = (int)($identity['user_id'] ?? 0);
+        $staffId = (int)($identity['staff_id'] ?? 0);
         $locationId = (int)($identity['location_id'] ?? 0);
 
-        if ($userId < 1 || $locationId < 1) {
+        // PMD_PORTAL_REQUIRE_STAFF_PROFILE_V2
+        if ($userId < 1 || $staffId < 1 || $locationId < 1) {
             throw new ValidationException([
-                'username' => 'Portal security is not ready for this account.',
+                'username' => 'This account needs an active Team profile before Staff Portal can be used.',
             ]);
         }
 
@@ -64,11 +61,10 @@ trait HandlesPortalMfa
             ]);
         }
 
-        // A Portal login must never leave/reuse a restaurant approval challenge.
         $this->pmdPortalCancelWorkspaceChallenge();
-
         $portal->clearSessionVerification();
         $portal->resetEnrollment();
+        $portal->clearRecoveryDisplay();
         session()->forget(self::PMD_PORTAL_ATTEMPTS_SESSION);
 
         $mode = $portal->enabled($userId, $locationId) ? 'verify' : 'setup';
@@ -87,9 +83,7 @@ trait HandlesPortalMfa
         $this->pmdPortalMfaAssertAttemptBudget();
 
         $data = post();
-        $this->validate($data, [
-            'code' => ['required', 'regex:/^[0-9]{6}$/'],
-        ], [], [
+        $this->validate($data, ['code' => ['required', 'regex:/^[0-9]{6}$/']], [], [
             'code' => 'Authenticator code',
         ]);
 
@@ -107,8 +101,13 @@ trait HandlesPortalMfa
             ]);
         }
 
+        $state['mode'] = 'recovery_codes';
+        $state['created_at'] = time();
+        session()->put(self::PMD_PORTAL_SECURITY_SESSION, $state);
+        session()->forget(self::PMD_PORTAL_ATTEMPTS_SESSION);
+
         $this->pmdPortalMfaAudit('portal_totp_enrolled', $identity);
-        return $this->pmdFinishPortalMfa($identity);
+        return redirect(admin_url('login'));
     }
 
     public function onPortalMfaVerify()
@@ -117,9 +116,7 @@ trait HandlesPortalMfa
         $this->pmdPortalMfaAssertAttemptBudget();
 
         $data = post();
-        $this->validate($data, [
-            'code' => ['required', 'regex:/^[0-9]{6}$/'],
-        ], [], [
+        $this->validate($data, ['code' => ['required', 'regex:/^[0-9]{6}$/']], [], [
             'code' => 'Authenticator code',
         ]);
 
@@ -141,6 +138,69 @@ trait HandlesPortalMfa
         return $this->pmdFinishPortalMfa($identity);
     }
 
+    public function onPortalMfaBeginRecovery()
+    {
+        [$state, $identity] = $this->pmdRequirePortalMfaStep('verify');
+        $state['mode'] = 'recover';
+        $state['created_at'] = time();
+        session()->put(self::PMD_PORTAL_SECURITY_SESSION, $state);
+        session()->forget(self::PMD_PORTAL_ATTEMPTS_SESSION);
+        $this->pmdPortalMfaAudit('portal_recovery_started', $identity);
+        return redirect(admin_url('login'));
+    }
+
+    public function onPortalMfaRecover()
+    {
+        [$state, $identity] = $this->pmdRequirePortalMfaStep('recover');
+        $this->pmdPortalMfaAssertAttemptBudget();
+
+        $data = post();
+        $this->validate($data, [
+            'recovery_code' => ['required', 'regex:/^[A-Za-z0-9 -]{8,20}$/'],
+        ], [], ['recovery_code' => 'Recovery code']);
+
+        $portal = app(PmdPortalTotpService::class);
+        $ok = $portal->recoverToNewEnrollment(
+            (int)$identity['user_id'],
+            (string)array_get($data, 'recovery_code', '')
+        );
+
+        if (!$ok) {
+            $this->pmdPortalMfaRecordFailure();
+            throw new ValidationException([
+                'recovery_code' => 'That recovery code is not valid or was already used.',
+            ]);
+        }
+
+        $state['mode'] = 'setup';
+        $state['created_at'] = time();
+        session()->put(self::PMD_PORTAL_SECURITY_SESSION, $state);
+        session()->forget(self::PMD_PORTAL_ATTEMPTS_SESSION);
+        $this->pmdPortalMfaAudit('portal_recovery_code_used_factor_reset', $identity);
+        return redirect(admin_url('login'));
+    }
+
+    public function onPortalMfaBackToVerify()
+    {
+        [$state] = $this->pmdRequirePortalMfaStep('recover');
+        $state['mode'] = 'verify';
+        $state['created_at'] = time();
+        session()->put(self::PMD_PORTAL_SECURITY_SESSION, $state);
+        session()->forget(self::PMD_PORTAL_ATTEMPTS_SESSION);
+        return redirect(admin_url('login'));
+    }
+
+    public function onPortalMfaRecoveryCodesContinue()
+    {
+        [$state, $identity] = $this->pmdRequirePortalMfaStep('recovery_codes');
+        $portal = app(PmdPortalTotpService::class);
+        if (!$portal->recoveryCodesForDisplay()) {
+            throw new ValidationException(['code' => 'Recovery codes expired. Sign in again.']);
+        }
+        $portal->clearRecoveryDisplay();
+        return $this->pmdFinishPortalMfa($identity);
+    }
+
     public function onPortalMfaCancel()
     {
         return $this->pmdPortalMfaAbortToLogin();
@@ -156,21 +216,20 @@ trait HandlesPortalMfa
             if (!$portal->ensureReady()) return null;
 
             $mode = (string)($state['mode'] ?? '');
-            if (!in_array($mode, ['setup', 'verify'], true)) return null;
+            if (!in_array($mode, ['setup', 'verify', 'recover', 'recovery_codes'], true)) return null;
 
             $security = [
                 'mode' => $mode,
                 'username' => (string)($identity['user']->username ?? 'staff'),
-                'secret' => null,
+                'manual_secret' => null,
                 'qr_svg' => null,
+                'recovery_codes' => [],
             ];
 
             if ($mode === 'setup') {
-                if ($portal->enabled(
-                    (int)$identity['user_id'],
-                    (int)$identity['location_id']
-                )) {
+                if ($portal->enabled((int)$identity['user_id'], (int)$identity['location_id'])) {
                     $state['mode'] = 'verify';
+                    $state['created_at'] = time();
                     session()->put(self::PMD_PORTAL_SECURITY_SESSION, $state);
                     $security['mode'] = 'verify';
                     return $security;
@@ -181,34 +240,32 @@ trait HandlesPortalMfa
                     (int)$identity['location_id'],
                     (string)($identity['user']->username ?? 'staff')
                 );
-                $security['secret'] = (string)$enrollment['secret'];
+                $security['manual_secret'] = $portal->enrollmentSecret($enrollment);
 
                 try {
-                    $security['qr_svg'] = app(PmdSiteAccessQrService::class)->svg(
-                        $portal->provisioningUri($enrollment),
-                        5
-                    );
+                    $security['qr_svg'] = app(PmdPortalQrService::class)
+                        ->svg($portal->provisioningUri($enrollment), 5);
                 } catch (\Throwable $error) {
                     logger()->warning('PMD Portal Authenticator QR render failed', [
                         'user_id' => (int)$identity['user_id'],
                         'message' => $error->getMessage(),
                     ]);
                 }
-            } elseif (!$portal->enabled(
-                (int)$identity['user_id'],
-                (int)$identity['location_id']
-            )) {
-                $state['mode'] = 'setup';
-                $state['created_at'] = time();
-                session()->put(self::PMD_PORTAL_SECURITY_SESSION, $state);
-                return $this->pmdPortalMfaSecurityViewState();
+            } elseif ($mode === 'verify' || $mode === 'recover') {
+                if (!$portal->enabled((int)$identity['user_id'], (int)$identity['location_id'])) {
+                    $state['mode'] = 'setup';
+                    $state['created_at'] = time();
+                    session()->put(self::PMD_PORTAL_SECURITY_SESSION, $state);
+                    return $this->pmdPortalMfaSecurityViewState();
+                }
+            } elseif ($mode === 'recovery_codes') {
+                $security['recovery_codes'] = $portal->recoveryCodesForDisplay();
+                if (!$security['recovery_codes']) return null;
             }
 
             return $security;
         } catch (\Throwable $error) {
-            logger()->warning('PMD Portal MFA view state failed', [
-                'message' => $error->getMessage(),
-            ]);
+            logger()->warning('PMD Portal MFA view state failed', ['message' => $error->getMessage()]);
             return null;
         }
     }
@@ -216,17 +273,9 @@ trait HandlesPortalMfa
     private function pmdRequirePortalMfaStep(string $mode): array
     {
         [$state, $identity] = $this->pmdPortalMfaStateAndIdentity();
-
-        if (
-            !$state
-            || !$identity
-            || (string)($state['mode'] ?? '') !== $mode
-        ) {
-            throw new ValidationException([
-                'code' => 'This Portal security step expired. Sign in again.',
-            ]);
+        if (!$state || !$identity || (string)($state['mode'] ?? '') !== $mode) {
+            throw new ValidationException(['code' => 'This Portal security step expired. Sign in again.']);
         }
-
         return [$state, $identity];
     }
 
@@ -237,12 +286,9 @@ trait HandlesPortalMfa
         $state = (array)session()->get(self::PMD_PORTAL_SECURITY_SESSION, []);
         $createdAt = (int)($state['created_at'] ?? 0);
         if (
-            !in_array((string)($state['mode'] ?? ''), ['setup', 'verify'], true)
+            !in_array((string)($state['mode'] ?? ''), ['setup', 'verify', 'recover', 'recovery_codes'], true)
             || $createdAt <= (time() - 900)
-            || !hash_equals(
-                (string)($state['session_id'] ?? ''),
-                (string)session()->getId()
-            )
+            || !hash_equals((string)($state['session_id'] ?? ''), (string)session()->getId())
         ) {
             return [null, null];
         }
@@ -269,31 +315,27 @@ trait HandlesPortalMfa
         $locationId = (int)($identity['location_id'] ?? 0);
         $portal = app(PmdPortalTotpService::class);
 
-        if (!$portal->sessionVerified($userId, $locationId, 120)) {
-            throw new ValidationException([
-                'code' => 'Portal security verification expired. Try again.',
-            ]);
+        if (!$portal->sessionVerified($userId, $locationId, 900)) {
+            throw new ValidationException(['code' => 'Portal security verification expired. Try again.']);
         }
 
-        // Personal Portal TOTP satisfies this live session only. It does not
-        // create any Workplace challenge or dashboard approval. Persistent
-        // trusted-login creation is disabled for destination=staff.
         $site = app(PmdSiteAccessService::class);
         $site->markWorkspaceVerified($locationId, 'portal_totp', 0);
         app(PmdSiteAccessSessionBindingService::class)->bindCurrentUser();
         $policy = app(PmdWorkSessionPolicyService::class)->apply($identity);
+
         session()->put(PmdSiteAccessService::SESSION_DESTINATION, 'staff');
         session()->forget(self::PMD_PORTAL_SECURITY_SESSION);
         session()->forget(self::PMD_PORTAL_ATTEMPTS_SESSION);
         $portal->resetEnrollment();
+        $portal->clearRecoveryDisplay();
 
         $this->pmdPortalMfaAudit('portal_login_verified', $identity, [
             'session_until' => $policy['expires_at']->toIso8601String(),
             'session_reason' => $policy['reason'],
         ]);
 
-        return redirect(admin_url('mywork'))
-            ->with('success', 'Portal security verified.');
+        return redirect(admin_url('mywork'))->with('success', 'Portal security verified.');
     }
 
     private function pmdPortalMfaAbortToLogin(?string $message = null)
@@ -304,18 +346,12 @@ trait HandlesPortalMfa
             $portal = app(PmdPortalTotpService::class);
             $portal->clearSessionVerification();
             $portal->resetEnrollment();
+            $portal->clearRecoveryDisplay();
         } catch (\Throwable $error) {
         }
 
-        try {
-            app(PmdSiteAccessService::class)->clearVerification();
-        } catch (\Throwable $error) {
-        }
-
-        try {
-            app(PmdWorkSessionPolicyService::class)->clear();
-        } catch (\Throwable $error) {
-        }
+        try { app(PmdSiteAccessService::class)->clearVerification(); } catch (\Throwable $error) {}
+        try { app(PmdWorkSessionPolicyService::class)->clear(); } catch (\Throwable $error) {}
 
         session()->forget([
             self::PMD_PORTAL_SECURITY_SESSION,
@@ -323,11 +359,7 @@ trait HandlesPortalMfa
             PmdSiteAccessService::SESSION_DESTINATION,
         ]);
 
-        try {
-            AdminAuth::logout();
-        } catch (\Throwable $error) {
-        }
-
+        try { AdminAuth::logout(); } catch (\Throwable $error) {}
         session()->invalidate();
         session()->regenerateToken();
 
@@ -341,21 +373,14 @@ trait HandlesPortalMfa
             $site = app(PmdSiteAccessService::class);
             if ($site->ready()) {
                 $challenge = $site->challengeForSession();
-                if (
-                    $challenge
-                    && in_array((string)$challenge->status, ['pending', 'approved'], true)
-                ) {
+                if ($challenge && in_array((string)$challenge->status, ['pending', 'approved'], true)) {
                     DB::table('pmd_site_access_challenges')
                         ->where('id', (int)$challenge->id)
-                        ->update([
-                            'status' => 'declined',
-                            'updated_at' => now(),
-                        ]);
+                        ->update(['status' => 'declined', 'updated_at' => now()]);
                 }
             }
         } catch (\Throwable $error) {
         }
-
         session()->forget(PmdSiteAccessService::SESSION_PENDING);
     }
 
@@ -366,17 +391,12 @@ trait HandlesPortalMfa
         $count = (int)($attempts['count'] ?? 0);
 
         if ($startedAt <= 0 || $startedAt <= (time() - 900)) {
-            session()->put(self::PMD_PORTAL_ATTEMPTS_SESSION, [
-                'started_at' => time(),
-                'count' => 0,
-            ]);
+            session()->put(self::PMD_PORTAL_ATTEMPTS_SESSION, ['started_at' => time(), 'count' => 0]);
             return;
         }
 
         if ($count >= 8) {
-            throw new ValidationException([
-                'code' => 'Too many Authenticator attempts. Sign in again after 15 minutes.',
-            ]);
+            throw new ValidationException(['code' => 'Too many security attempts. Sign in again after 15 minutes.']);
         }
     }
 
@@ -384,29 +404,23 @@ trait HandlesPortalMfa
     {
         $attempts = (array)session()->get(self::PMD_PORTAL_ATTEMPTS_SESSION, []);
         $startedAt = (int)($attempts['started_at'] ?? 0);
-
         if ($startedAt <= 0 || $startedAt <= (time() - 900)) {
             $startedAt = time();
             $count = 0;
         } else {
             $count = (int)($attempts['count'] ?? 0);
         }
-
         session()->put(self::PMD_PORTAL_ATTEMPTS_SESSION, [
             'started_at' => $startedAt,
             'count' => $count + 1,
         ]);
     }
 
-    private function pmdPortalMfaAudit(
-        string $event,
-        array $identity,
-        array $meta = []
-    ): void {
+    private function pmdPortalMfaAudit(string $event, array $identity, array $meta = []): void
+    {
         try {
             $site = app(PmdSiteAccessService::class);
             if (!$site->ready()) return;
-
             $site->audit(
                 $event,
                 true,
