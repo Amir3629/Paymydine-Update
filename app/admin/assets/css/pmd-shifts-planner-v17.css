@@ -1,0 +1,240 @@
+/* PMD_SHIFTS_PLANNER_V17 */
+
+/* Narrow the sticky Team rail without changing the 24-hour timeline width. */
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-scale-row,
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-row {
+  grid-template-columns:190px minmax(1680px,1fr)!important;
+}
+
+/* One real quick-create target per hour. The track background is already hourly. */
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-slots {
+  grid-template-columns:repeat(24,minmax(0,1fr))!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-slot {
+  position:relative!important;
+  width:100%!important;
+  height:100%!important;
+  min-width:0!important;
+  border:0!important;
+  background:transparent!important;
+  cursor:pointer!important;
+  padding:0!important;
+  overflow:visible!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-slot > span {
+  position:absolute!important;
+  left:50%!important;
+  top:50%!important;
+  width:34px!important;
+  height:34px!important;
+  margin:-17px 0 0 -17px!important;
+  display:grid!important;
+  place-items:center!important;
+  border:1px solid #c7dbe5!important;
+  border-radius:11px!important;
+  background:#fff!important;
+  color:#08785f!important;
+  font-size:22px!important;
+  font-weight:800!important;
+  line-height:1!important;
+  opacity:0!important;
+  pointer-events:none!important;
+  box-shadow:none!important;
+  transform:none!important;
+  transition:none!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-slot:hover > span,
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-slot:focus-visible > span {
+  opacity:1!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-slot:hover {
+  background:rgba(0,145,112,.035)!important;
+}
+
+/* V15F is retired in V17; hide a stale floating indicator if a browser kept one. */
+body.pmd-shifts-page .pmd-shifts-slot-plus-v15-fast {
+  display:none!important;
+}
+
+/* Optional shift name. */
+body.pmd-shifts-page #pmd-shifts [data-pmd-shift-label]::placeholder {
+  color:#9aa9b4!important;
+}
+
+/* Inline time controls: always visible inside the Add/Edit Shift card. */
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-inline-time-v17 {
+  margin-top:8px!important;
+  border:1px solid #d7e5eb!important;
+  border-radius:18px!important;
+  background:#fbfdfd!important;
+  overflow:hidden!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-inline-time-v17__summary {
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:12px!important;
+  padding:10px 14px!important;
+  border-bottom:1px solid #e5eef2!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-inline-time-v17__summary strong {
+  color:#10364a!important;
+  font-size:18px!important;
+  font-weight:800!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-inline-time-v17__summary small {
+  color:#6f8392!important;
+  font-size:11px!important;
+  font-weight:700!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-inline-time-v17__wheel {
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) 24px minmax(0,1fr) minmax(72px,.72fr)!important;
+  gap:6px!important;
+  align-items:center!important;
+  padding:10px!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-inline-time-v17__separator {
+  text-align:center!important;
+  color:#0b6d59!important;
+  font-size:24px!important;
+  font-weight:900!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-inline-time-v17__column {
+  height:132px!important;
+  overflow-y:auto!important;
+  overscroll-behavior:contain!important;
+  scroll-snap-type:y proximity!important;
+  scrollbar-width:thin!important;
+  padding:44px 2px!important;
+  border-radius:14px!important;
+  background:#fff!important;
+  border:1px solid #e4edf1!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-inline-time-v17__item {
+  width:100%!important;
+  height:40px!important;
+  display:grid!important;
+  place-items:center!important;
+  scroll-snap-align:center!important;
+  border:0!important;
+  border-radius:10px!important;
+  background:transparent!important;
+  color:#718394!important;
+  font-size:16px!important;
+  font-weight:800!important;
+  cursor:pointer!important;
+  box-shadow:none!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-inline-time-v17__item.is-selected {
+  background:#e8f7f2!important;
+  color:#08755e!important;
+  box-shadow:inset 0 0 0 1px #a8d9c9!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-native-time-v17 {
+  position:absolute!important;
+  width:1px!important;
+  height:1px!important;
+  opacity:0!important;
+  pointer-events:none!important;
+}
+
+/* Break presets and German statutory-minimum hint. */
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-break-panel-v17 {
+  margin-top:8px!important;
+  padding:12px!important;
+  border:1px solid #dbe7ec!important;
+  border-radius:16px!important;
+  background:#fbfdfd!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-break-panel-v17__meta {
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:10px!important;
+  margin-bottom:9px!important;
+  color:#617887!important;
+  font-size:11px!important;
+  font-weight:700!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-break-panel-v17__minimum {
+  display:inline-flex!important;
+  align-items:center!important;
+  min-height:26px!important;
+  padding:0 9px!important;
+  border-radius:999px!important;
+  background:#eaf7f3!important;
+  color:#076e59!important;
+  font-weight:800!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-break-panel-v17__buttons {
+  display:flex!important;
+  flex-wrap:wrap!important;
+  gap:7px!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-break-choice-v17 {
+  min-height:36px!important;
+  padding:0 13px!important;
+  border:1px solid #ccdfe7!important;
+  border-radius:999px!important;
+  background:#fff!important;
+  color:#24485a!important;
+  font-size:12px!important;
+  font-weight:800!important;
+  cursor:pointer!important;
+  box-shadow:none!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-break-choice-v17.is-selected {
+  border-color:#0c8369!important;
+  background:#e9f8f3!important;
+  color:#076c58!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-break-choice-v17:disabled {
+  opacity:.38!important;
+  cursor:not-allowed!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-break-custom-v17 {
+  margin-top:9px!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:8px!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-break-custom-v17[hidden] {
+  display:none!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-break-custom-v17 input {
+  width:110px!important;
+}
+
+@media(max-width:900px) {
+  body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-scale-row,
+  body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-row {
+    grid-template-columns:174px minmax(1680px,1fr)!important;
+  }
+
+  body.pmd-shifts-page #pmd-shifts .pmd-shifts-inline-time-v17__wheel {
+    grid-template-columns:minmax(0,1fr) 18px minmax(0,1fr) 68px!important;
+  }
+}
