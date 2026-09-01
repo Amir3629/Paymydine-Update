@@ -96,10 +96,68 @@ class TenantDatabaseMiddleware
         $parameterStore->setExtraColumns(['sort' => 'prefs']);
         app()->instance('system.parameter', $parameterStore);
 
-        // System\ServiceProvider has a resolving callback for this singleton;
-        // resolving it again reloads localization.locale/supportedLocales from
-        // the tenant-scoped setting store above.
+        // PMD_TENANT_LOCALIZATION_CONFIG_R1
+        // Do not depend on a later service-container resolving callback to
+        // repair localization config after the tenant switch. The global Admin
+        // tenant middleware executes before the web group's Localization
+        // middleware, so populate the request's localization authority directly
+        // from this tenant-scoped setting store before Localization is resolved.
+        $defaultLocale = strtolower(trim((string)$settingStore->get(
+            'default_language',
+            Config::get('app.locale', 'en')
+        )));
+        if ($defaultLocale === '') {
+            $defaultLocale = 'en';
+        }
+
+        $supportedLocales = $this->normalizeSupportedLocales(
+            $settingStore->get('supported_languages', [])
+        );
+        if (!$supportedLocales) {
+            $supportedLocales = [$defaultLocale];
+        } elseif (!in_array($defaultLocale, $supportedLocales, true)) {
+            array_unshift($supportedLocales, $defaultLocale);
+            $supportedLocales = array_values(array_unique($supportedLocales));
+        }
+
+        Config::set('localization.locale', $defaultLocale);
+        Config::set('localization.supportedLocales', $supportedLocales);
+        Config::set(
+            'localization.detectBrowserLocale',
+            (bool)$settingStore->get('detect_language', false)
+        );
+
+        // Recreate Localization after the tenant config above is authoritative.
         app()->forgetInstance('translator.localization');
+
+        Log::info('[TenantDatabaseMiddleware] bound tenant localization config', [
+            'tenant_db' => $tenantInfo->database ?? null,
+            'default_locale' => $defaultLocale,
+            'supported_locales' => $supportedLocales,
+            'setting_cache_key' => 'igniter.setting.system.tenant.'.$cacheSuffix,
+        ]);
+    }
+
+    private function normalizeSupportedLocales($value): array
+    {
+        if (is_string($value)) {
+            $decoded = @unserialize($value);
+            if (is_array($decoded)) {
+                $value = $decoded;
+            } else {
+                $json = json_decode($value, true);
+                $value = is_array($json) ? $json : explode(',', $value);
+            }
+        }
+
+        if (!is_array($value)) {
+            return [];
+        }
+
+        return array_values(array_unique(array_filter(array_map(
+            static fn ($locale) => strtolower(trim((string)$locale)),
+            $value
+        ))));
     }
 
     private function extractTenantFromDomain(Request $request): ?string
