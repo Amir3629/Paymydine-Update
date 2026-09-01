@@ -121,8 +121,9 @@ trait HandlesPortalMfa
         ]);
 
         $portal = app(PmdPortalTotpService::class);
+        $userId = (int)$identity['user_id'];
         $ok = $portal->verify(
-            (int)$identity['user_id'],
+            $userId,
             (int)$identity['location_id'],
             (string)array_get($data, 'code', '')
         );
@@ -135,6 +136,23 @@ trait HandlesPortalMfa
         }
 
         $this->pmdPortalMfaAudit('portal_totp_verified', $identity);
+
+        // Existing V1/V2 enrollments and interrupted first-time setups must not
+        // silently continue without a usable recovery path. After a genuine TOTP
+        // success, generate a fresh set and require explicit acknowledgement.
+        if ($portal->needsRecoveryAcknowledgement($userId)) {
+            if (!$portal->ensureRecoveryCodesForDisplay($userId)) {
+                throw new ValidationException([
+                    'code' => 'Recovery codes could not be prepared. Try again.',
+                ]);
+            }
+            $state['mode'] = 'recovery_codes';
+            $state['created_at'] = time();
+            session()->put(self::PMD_PORTAL_SECURITY_SESSION, $state);
+            session()->forget(self::PMD_PORTAL_ATTEMPTS_SESSION);
+            return redirect(admin_url('login'));
+        }
+
         return $this->pmdFinishPortalMfa($identity);
     }
 
@@ -194,10 +212,15 @@ trait HandlesPortalMfa
     {
         [$state, $identity] = $this->pmdRequirePortalMfaStep('recovery_codes');
         $portal = app(PmdPortalTotpService::class);
-        if (!$portal->recoveryCodesForDisplay()) {
-            throw new ValidationException(['code' => 'Recovery codes expired. Sign in again.']);
+        $userId = (int)$identity['user_id'];
+
+        if (!$portal->acknowledgeRecoveryCodes($userId)) {
+            throw new ValidationException([
+                'code' => 'Recovery codes expired. Verify your Authenticator again.',
+            ]);
         }
-        $portal->clearRecoveryDisplay();
+
+        $this->pmdPortalMfaAudit('portal_recovery_codes_acknowledged', $identity);
         return $this->pmdFinishPortalMfa($identity);
     }
 
@@ -218,6 +241,8 @@ trait HandlesPortalMfa
             $mode = (string)($state['mode'] ?? '');
             if (!in_array($mode, ['setup', 'verify', 'recover', 'recovery_codes'], true)) return null;
 
+            $userId = (int)$identity['user_id'];
+            $locationId = (int)$identity['location_id'];
             $security = [
                 'mode' => $mode,
                 'username' => (string)($identity['user']->username ?? 'staff'),
@@ -227,7 +252,7 @@ trait HandlesPortalMfa
             ];
 
             if ($mode === 'setup') {
-                if ($portal->enabled((int)$identity['user_id'], (int)$identity['location_id'])) {
+                if ($portal->enabled($userId, $locationId)) {
                     $state['mode'] = 'verify';
                     $state['created_at'] = time();
                     session()->put(self::PMD_PORTAL_SECURITY_SESSION, $state);
@@ -236,8 +261,8 @@ trait HandlesPortalMfa
                 }
 
                 $enrollment = $portal->enrollment(
-                    (int)$identity['user_id'],
-                    (int)$identity['location_id'],
+                    $userId,
+                    $locationId,
                     (string)($identity['user']->username ?? 'staff')
                 );
                 $security['manual_secret'] = $portal->enrollmentSecret($enrollment);
@@ -247,19 +272,25 @@ trait HandlesPortalMfa
                         ->svg($portal->provisioningUri($enrollment), 5);
                 } catch (\Throwable $error) {
                     logger()->warning('PMD Portal Authenticator QR render failed', [
-                        'user_id' => (int)$identity['user_id'],
+                        'user_id' => $userId,
                         'message' => $error->getMessage(),
                     ]);
                 }
             } elseif ($mode === 'verify' || $mode === 'recover') {
-                if (!$portal->enabled((int)$identity['user_id'], (int)$identity['location_id'])) {
+                if (!$portal->enabled($userId, $locationId)) {
                     $state['mode'] = 'setup';
                     $state['created_at'] = time();
                     session()->put(self::PMD_PORTAL_SECURITY_SESSION, $state);
                     return $this->pmdPortalMfaSecurityViewState();
                 }
             } elseif ($mode === 'recovery_codes') {
+                if (!$portal->needsRecoveryAcknowledgement($userId)) {
+                    return null;
+                }
                 $security['recovery_codes'] = $portal->recoveryCodesForDisplay();
+                if (!$security['recovery_codes']) {
+                    $security['recovery_codes'] = $portal->ensureRecoveryCodesForDisplay($userId);
+                }
                 if (!$security['recovery_codes']) return null;
             }
 
@@ -317,6 +348,11 @@ trait HandlesPortalMfa
 
         if (!$portal->sessionVerified($userId, $locationId, 900)) {
             throw new ValidationException(['code' => 'Portal security verification expired. Try again.']);
+        }
+        if ($portal->needsRecoveryAcknowledgement($userId)) {
+            throw new ValidationException([
+                'code' => 'Save and acknowledge your personal recovery codes before opening Portal.',
+            ]);
         }
 
         $site = app(PmdSiteAccessService::class);
