@@ -174,7 +174,7 @@ class Pmdintelligence extends AdminController
                 },
             ],
             'report_snapshot' => [
-                'description' => 'Read one canonical PMD owner report for the current location. Use for detailed sales, hourly sales, categories, payments, transactions, alerts, live orders, top items, reviews, reservations or attendance.',
+                'description' => 'Read one canonical PMD owner report for the current location for today or the current calendar month only. Do not use this tool to answer a named historical month or historical date range.',
                 'parameters' => [
                     'type' => 'object',
                     'properties' => [
@@ -194,6 +194,35 @@ class Pmdintelligence extends AdminController
                     return $this->readAuthority()->reportSnapshot(
                         (string)($arguments['report'] ?? ''),
                         (string)($arguments['period'] ?? 'today')
+                    );
+                },
+            ],
+            'report_range' => [
+                'description' => 'Read a canonical PMD report for an explicit historical restaurant-local date range. Use this whenever the user names a past day, month, year, or date range such as August 2026. Convert the requested range to exact YYYY-MM-DD start_date and end_date. Never relabel current-month data as a historical period.',
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'report' => [
+                            'type' => 'string',
+                            'enum' => ['sales', 'hourly', 'categories', 'payments', 'transactions', 'topitems', 'reservations'],
+                        ],
+                        'start_date' => [
+                            'type' => 'string',
+                            'description' => 'Restaurant-local start date in YYYY-MM-DD format.',
+                        ],
+                        'end_date' => [
+                            'type' => 'string',
+                            'description' => 'Restaurant-local end date in YYYY-MM-DD format.',
+                        ],
+                    ],
+                    'required' => ['report', 'start_date', 'end_date'],
+                    'additionalProperties' => false,
+                ],
+                'handler' => function (array $arguments) {
+                    return $this->readAuthority()->reportRange(
+                        (string)($arguments['report'] ?? ''),
+                        (string)($arguments['start_date'] ?? ''),
+                        (string)($arguments['end_date'] ?? '')
                     );
                 },
             ],
@@ -222,6 +251,8 @@ class Pmdintelligence extends AdminController
         if (
             strpos($message, 'a question is required') !== false
             || strpos($message, 'question is too long') !== false
+            || strpos($message, 'historical report') !== false
+            || strpos($message, 'yyyy-mm-dd') !== false
         ) {
             return 422;
         }
@@ -265,6 +296,12 @@ class Pmdintelligence extends AdminController
         }
         if (strpos($lower, 'canonical restaurant location') !== false) {
             return 'Select a restaurant location before using PMD Intelligence.';
+        }
+        if (
+            strpos($lower, 'historical report') !== false
+            || strpos($lower, 'yyyy-mm-dd') !== false
+        ) {
+            return $message;
         }
         if (
             strpos($lower, 'no credits') !== false
