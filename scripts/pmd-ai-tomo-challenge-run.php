@@ -3,10 +3,13 @@
 /**
  * Safe entrypoint for PMD AI TOMO challenge fixtures.
  *
- * It runs the guarded fixture generator, then clamps any synthetic same-day
- * timestamps that would otherwise land a few minutes in the future when the
- * script is executed shortly after midnight. Use this file, not the lower-level
- * generator, for normal create/replace runs.
+ * It runs the guarded fixture generator, then:
+ * - clamps any synthetic same-day timestamps that would otherwise land a few
+ *   minutes in the future when the script is executed shortly after midnight;
+ * - attaches synthetic menu/category rows explicitly to TOMO location 1 when
+ *   the legacy locationables pivot exists.
+ *
+ * Use this file, not the lower-level generator, for normal create runs.
  */
 
 require __DIR__.'/pmd-ai-tomo-challenge-fixtures.php';
@@ -56,5 +59,48 @@ if ($ids) {
     }
 }
 
+$locationLinks = 0;
+if (
+    Schema::hasTable('locationables')
+    && hasCol('locationables', 'location_id')
+    && hasCol('locationables', 'locationable_type')
+    && hasCol('locationables', 'locationable_id')
+) {
+    $fixtureMenus = Schema::hasTable('menus') && hasCol('menus', 'menu_name')
+        ? DB::table('menus')
+            ->where('menu_name', 'like', PMD_FIXTURE_PREFIX.'%')
+            ->pluck('menu_id')->map('intval')->all()
+        : [];
+
+    $fixtureCategories = Schema::hasTable('categories') && hasCol('categories', 'name')
+        ? DB::table('categories')
+            ->where('name', 'like', PMD_FIXTURE_PREFIX.'%')
+            ->pluck('category_id')->map('intval')->all()
+        : [];
+
+    foreach ([
+        'menus' => $fixtureMenus,
+        'categories' => $fixtureCategories,
+    ] as $type => $fixtureIds) {
+        foreach ($fixtureIds as $fixtureId) {
+            $exists = DB::table('locationables')
+                ->where('location_id', 1)
+                ->where('locationable_type', $type)
+                ->where('locationable_id', $fixtureId)
+                ->exists();
+
+            if (!$exists) {
+                DB::table('locationables')->insert([
+                    'location_id' => 1,
+                    'locationable_type' => $type,
+                    'locationable_id' => $fixtureId,
+                ]);
+                $locationLinks++;
+            }
+        }
+    }
+}
+
 echo "FINALIZE_RESULT=PASS\n";
 echo "TIMESTAMPS_CLAMPED_TO_NOW=".implode(',', $updates)."\n";
+echo "LOCATIONABLE_LINKS_CREATED={$locationLinks}\n";
