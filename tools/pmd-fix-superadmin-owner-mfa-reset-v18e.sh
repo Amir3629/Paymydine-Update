@@ -121,8 +121,8 @@ echo "========================================"
 
 php -l "$TMP"
 grep -Fq "PMD_SUPERADMIN_OWNER_MFA_RESET_V18E" "$TMP"
-grep -Fq "->table('users')" "$TMP"
-grep -Fq "->where('super_user', 1)" "$TMP"
+grep -Fq -- "->table('users')" "$TMP"
+grep -Fq -- "->where('super_user', 1)" "$TMP"
 if grep -Fq "join('staffs as staff'" "$TMP"; then
     echo "STOP: staff join still exists"
     exit 30
@@ -158,8 +158,8 @@ echo "========================================"
 
 php -l "$FILE"
 grep -nF "PMD_SUPERADMIN_OWNER_MFA_RESET_V18E" "$FILE"
-grep -nF "->table('users')" "$FILE"
-grep -nF "->where('super_user', 1)" "$FILE"
+grep -nF -- "->table('users')" "$FILE"
+grep -nF -- "->where('super_user', 1)" "$FILE"
 if grep -Fq "join('staffs as staff'" "$FILE"; then
     echo "STOP: staff join exists in live service"
     exit 32
