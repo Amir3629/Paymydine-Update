@@ -2,6 +2,7 @@
 set -euo pipefail
 
 FEATURE_REF="${PMD_AI_FEATURE_REF:-origin/feature/pmd-intelligence-openai-v1-20260901}"
+USE_SUDO="${PMD_AI_USE_SUDO:-0}"
 
 if ! git rev-parse --git-dir >/dev/null 2>&1; then
   echo "RESULT: FAIL"
@@ -82,12 +83,66 @@ for path in "${ai_paths[@]}"; do
   fi
 done
 
-if [[ "$permission_blockers" -gt 0 ]]; then
+if [[ "$permission_blockers" -gt 0 && "$USE_SUDO" != "1" ]]; then
   echo "INSTALL_RESULT: BLOCKED_BY_PERMISSIONS"
   echo "PERMISSION_BLOCKERS: $permission_blockers"
   echo "No AI target files were written by this installer run."
+  echo "If the ownership audit is expected, rerun with PMD_AI_USE_SUDO=1; only new AI paths will use sudo install."
   exit 6
 fi
+
+if [[ "$permission_blockers" -gt 0 && "$USE_SUDO" == "1" ]]; then
+  if ! command -v sudo >/dev/null 2>&1; then
+    echo "INSTALL_RESULT: BLOCKED_BY_PERMISSIONS"
+    echo "ERROR: PMD_AI_USE_SUDO=1 requested but sudo is unavailable"
+    exit 6
+  fi
+  echo "Requesting sudo authorization for new AI target paths only."
+  sudo -v
+fi
+
+nearest_existing_dir() {
+  local path="$1"
+  local ancestor
+  ancestor="$(dirname "$path")"
+  while [[ ! -d "$ancestor" && "$ancestor" != "." && "$ancestor" != "/" ]]; do
+    ancestor="$(dirname "$ancestor")"
+  done
+  printf '%s\n' "$ancestor"
+}
+
+ensure_parent_dir() {
+  local path="$1"
+  local parent ancestor owner group mode
+  parent="$(dirname "$path")"
+  [[ -d "$parent" ]] && return 0
+
+  ancestor="$(nearest_existing_dir "$path")"
+  owner="$(stat -c '%U' "$ancestor")"
+  group="$(stat -c '%G' "$ancestor")"
+  mode="$(stat -c '%a' "$ancestor")"
+
+  if [[ "$USE_SUDO" == "1" ]]; then
+    sudo install -d -o "$owner" -g "$group" -m "$mode" "$parent"
+  else
+    install -d -m "$mode" "$parent"
+  fi
+}
+
+install_new_file() {
+  local src="$1"
+  local path="$2"
+  local parent owner group
+  parent="$(dirname "$path")"
+  owner="$(stat -c '%U' "$parent")"
+  group="$(stat -c '%G' "$parent")"
+
+  if [[ "$USE_SUDO" == "1" ]]; then
+    sudo install -o "$owner" -g "$group" -m 0644 "$src" "$path"
+  else
+    install -m 0644 "$src" "$path"
+  fi
+}
 
 echo "===== INSTALLING NEW AI FILES ONLY ====="
 for path in "${ai_paths[@]}"; do
@@ -110,8 +165,15 @@ for path in "${ai_paths[@]}"; do
     exit 5
   fi
 
-  mkdir -p "$(dirname "$path")"
-  install -m 0644 "$src" "$path"
+  ensure_parent_dir "$path"
+  install_new_file "$src" "$path"
+
+  live_blob="$(git hash-object -- "$path")"
+  if [[ "$live_blob" != "$feature_blob" ]]; then
+    echo "RESULT: FAIL"
+    echo "ERROR: installed hash mismatch: $path"
+    exit 7
+  fi
   echo "INSTALLED $path"
 done
 
