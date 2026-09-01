@@ -17,7 +17,7 @@ use Throwable;
 /**
  * PMD Intelligence V1
  *
- * Clean read-only owner operations copilot UI. Data access is delegated to
+ * Read-only owner operations copilot. Data access is delegated to
  * PmdReadAuthority so this page does not inherit Dashboard/Reservations/Reports
  * UI constructors or their asset stacks.
  */
@@ -28,9 +28,18 @@ class Pmdintelligence extends AdminController
     public function __construct()
     {
         parent::__construct();
-        $this->bodyClass = trim(($this->bodyClass ?? '').' pmd-intelligence-page');
+
+        // Use the same first-paint shell and owner UI authority as the current
+        // PMD Menu / Settings family. Intelligence owns only route-local layout.
+        $this->bodyClass = trim(
+            ($this->bodyClass ?? '')
+            .' pmd-settings-suite pmd-owner-settings-page pmd-intelligence-page'
+        );
+        $this->addCss('css/pmd-owner-settings-v1.css');
+        $this->addCss('css/pmd-settings-suite-first-paint-v1.css');
         $this->addCss('css/pmd-intelligence-v1.css');
         $this->addJs('js/pmd-intelligence-v1.js');
+
         AdminMenu::setContext('dashboard');
     }
 
@@ -84,12 +93,11 @@ class Pmdintelligence extends AdminController
                 'location_id' => $context->locationId,
             ]);
 
-            $status = strpos($error->getMessage(), 'disabled') !== false ? 503 : 422;
             return response()->json([
                 'ok' => false,
                 'run_id' => $context->runId,
                 'message' => $this->safePublicError($error),
-            ], $status)->withHeaders([
+            ], $this->safePublicStatus($error))->withHeaders([
                 'Cache-Control' => 'private, no-store, max-age=0',
             ]);
         }
@@ -205,21 +213,72 @@ class Pmdintelligence extends AdminController
         ];
     }
 
+    private function safePublicStatus(Throwable $error): int
+    {
+        $message = strtolower($error->getMessage());
+
+        if (strpos($message, 'question') !== false) {
+            return 422;
+        }
+
+        if (strpos($message, 'disabled') !== false) {
+            return 503;
+        }
+
+        if (
+            strpos($message, 'credit') !== false
+            || strpos($message, 'billing') !== false
+            || strpos($message, 'quota') !== false
+            || strpos($message, 'rate limit') !== false
+            || strpos($message, 'api key') !== false
+            || strpos($message, 'authentication') !== false
+            || strpos($message, 'transport failed') !== false
+        ) {
+            return 503;
+        }
+
+        return 502;
+    }
+
     private function safePublicError(Throwable $error): string
     {
         $message = $error->getMessage();
+        $lower = strtolower($message);
+
         if (strpos($message, 'OPENAI_API_KEY') !== false) {
             return 'OpenAI is not configured on the server.';
         }
-        if (strpos($message, 'disabled') !== false) {
+        if (strpos($lower, 'disabled') !== false) {
             return 'PMD Intelligence is currently disabled on the server.';
         }
-        if (strpos($message, 'canonical restaurant location') !== false) {
+        if (strpos($lower, 'canonical restaurant location') !== false) {
             return 'Select a restaurant location before using PMD Intelligence.';
         }
-        if (strpos($message, 'Question') !== false || strpos($message, 'question') !== false) {
+        if (
+            strpos($lower, 'no credits') !== false
+            || strpos($lower, 'credit') !== false
+            || strpos($lower, 'billing') !== false
+            || strpos($lower, 'quota') !== false
+        ) {
+            return 'OpenAI API credit is unavailable for this project. Add API credits or replace the server project key, then try again.';
+        }
+        if (
+            strpos($lower, 'incorrect api key') !== false
+            || strpos($lower, 'invalid api key') !== false
+            || strpos($lower, 'authentication') !== false
+        ) {
+            return 'OpenAI rejected the server project key. Replace it with a valid API key, then try again.';
+        }
+        if (strpos($lower, 'rate limit') !== false) {
+            return 'OpenAI is temporarily rate limited. Try again shortly.';
+        }
+        if (strpos($lower, 'transport failed') !== false) {
+            return 'PMD Intelligence cannot reach OpenAI right now. Try again shortly.';
+        }
+        if (strpos($lower, 'question') !== false) {
             return $message;
         }
-        return 'PMD Intelligence could not complete this request safely. Check the server log using the run ID.';
+
+        return 'PMD Intelligence could not complete this request. Check the server log using the run ID.';
     }
 }
