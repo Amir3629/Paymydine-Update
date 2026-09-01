@@ -3,23 +3,22 @@
 declare(strict_types=1);
 
 /*
- * PMD_PLATFORM_I18N_PARITY_AUDIT_V1
+ * PMD_PLATFORM_I18N_PARITY_AUDIT_V2
  *
- * Source of truth for PayMyDine-owned UI copy:
+ * Source of truth for PayMyDine-owned Admin UI copy:
  *   app/admin/i18n/platform/en.php
  *
- * Every supported platform locale must define every canonical English key.
+ * Every installed Admin locale file is discovered automatically and must define
+ * every canonical English key. Adding a future full Admin language therefore
+ * requires no audit-script whitelist change.
+ *
  * Locale-only compatibility entries are allowed under:
  *   literal::*
  *   compat.pattern.*
- *
- * Run:
- *   php scripts/pmd-audit-platform-i18n.php
  */
 
 $root = dirname(__DIR__);
 $dir = $root.'/app/admin/i18n/platform';
-$locales = ['en', 'de', 'tr'];
 $catalogues = [];
 $failed = false;
 
@@ -62,6 +61,21 @@ function placeholders(string $value): array
     return $tokens;
 }
 
+$paths = glob($dir.'/*.php') ?: [];
+$locales = array_values(array_unique(array_map(
+    static fn (string $path): string => strtolower((string)pathinfo($path, PATHINFO_FILENAME)),
+    $paths
+)));
+sort($locales);
+
+if (!in_array('en', $locales, true)) {
+    fwrite(STDERR, "[FAIL] Canonical English Admin catalogue is missing.\n");
+    exit(2);
+}
+
+// Keep English first in diagnostics, then audit every discovered translated pack.
+$locales = array_values(array_unique(array_merge(['en'], array_diff($locales, ['en']))));
+
 try {
     foreach ($locales as $locale) {
         $catalogues[$locale] = loadCatalogue($dir.'/'.$locale.'.php');
@@ -78,7 +92,7 @@ $english = array_filter(
 );
 $canonicalKeys = array_keys($english);
 
-foreach (['de', 'tr'] as $locale) {
+foreach (array_values(array_diff($locales, ['en'])) as $locale) {
     $localeCanonical = array_filter(
         $catalogues[$locale],
         static fn ($value, $key): bool => !isCompatibilityKey((string)$key),
@@ -132,20 +146,24 @@ foreach (['de', 'tr'] as $locale) {
     }
 }
 
-$turkishLiterals = array_filter(
-    $catalogues['tr'],
-    static fn ($value, $key): bool => str_starts_with((string)$key, 'literal::'),
-    ARRAY_FILTER_USE_BOTH
-);
-$turkishPatterns = array_filter(
-    $catalogues['tr'],
-    static fn ($value, $key): bool => str_starts_with((string)$key, 'compat.pattern.'),
-    ARRAY_FILTER_USE_BOTH
-);
-
+echo '[INFO] Admin locale packs discovered: '.implode(', ', $locales).PHP_EOL;
 echo '[INFO] EN canonical entries: '.count($canonicalKeys).PHP_EOL;
-echo '[INFO] TR legacy/native compatibility literals: '.count($turkishLiterals).PHP_EOL;
-echo '[INFO] TR dynamic compatibility patterns: '.count($turkishPatterns).PHP_EOL;
+
+if (isset($catalogues['tr'])) {
+    $turkishLiterals = array_filter(
+        $catalogues['tr'],
+        static fn ($value, $key): bool => str_starts_with((string)$key, 'literal::'),
+        ARRAY_FILTER_USE_BOTH
+    );
+    $turkishPatterns = array_filter(
+        $catalogues['tr'],
+        static fn ($value, $key): bool => str_starts_with((string)$key, 'compat.pattern.'),
+        ARRAY_FILTER_USE_BOTH
+    );
+
+    echo '[INFO] TR legacy/native compatibility literals: '.count($turkishLiterals).PHP_EOL;
+    echo '[INFO] TR dynamic compatibility patterns: '.count($turkishPatterns).PHP_EOL;
+}
 
 if ($failed) {
     fwrite(STDERR, "PMD platform i18n audit FAILED.\n");
