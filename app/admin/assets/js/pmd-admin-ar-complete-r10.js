@@ -26,6 +26,7 @@
     var blockedRegistrations = 0;
     var blockedLegacyTimers = 0;
     var disconnectedAuthorities = 0;
+    var removedLegacyListeners = 0;
     var suppressedPublicRuns = 0;
 
     var originalDocumentAddEventListener = document.addEventListener;
@@ -194,9 +195,29 @@
         }
     }
 
+    function removePageAuthorityListeners() {
+        var authority = window.PMDAdminI18nPageAuthorityV2;
+        var refresh;
+
+        if (!authority || typeof authority.refresh !== 'function') return false;
+        refresh = authority.refresh;
+
+        try {
+            document.removeEventListener('ajaxUpdateComplete', refresh, true);
+            document.removeEventListener('ajaxPromiseDone', refresh, true);
+            window.removeEventListener('load', refresh, false);
+            removedLegacyListeners += 3;
+            return true;
+        } catch (error) {
+            return false;
+        }
+    }
+
     function disconnectLegacyAuthorities() {
-        // Dashboard page-authority treats non-DE/TR as English and owns a
-        // full-document observer. Arabic is already owned by canonical i18n.
+        // Dashboard page-authority treats non-DE/TR as English and owns both a
+        // full-document observer and AJAX/load full-scan listeners. Arabic is
+        // already owned by canonical i18n, so remove both forms of authority.
+        removePageAuthorityListeners();
         disconnectAuthority('PMDAdminI18nPageAuthorityV2', 'destroy');
 
         // Residual R7/R8 were useful during catalogue discovery, but their
@@ -216,6 +237,15 @@
         originalRun = api.run;
 
         try {
+            // PMD_ADMIN_AR_CANONICAL_AJAX_LISTENER_REMOVAL_R13
+            // Defensive removal in case the temporary registration guard was
+            // not early enough in a browser. removeEventListener receives the
+            // exact same canonical run() function object used at registration.
+            document.removeEventListener('ajaxUpdateComplete', originalRun, true);
+            document.removeEventListener('ajaxPromiseDone', originalRun, true);
+            window.removeEventListener('load', originalRun, false);
+            removedLegacyListeners += 3;
+
             api.runFull = function () {
                 return originalRun.apply(api, arguments);
             };
@@ -444,6 +474,7 @@
                 blockedRegistrations: blockedRegistrations,
                 blockedLegacyTimers: blockedLegacyTimers,
                 disconnectedAuthorities: disconnectedAuthorities,
+                removedLegacyListeners: removedLegacyListeners,
                 suppressedPublicRuns: suppressedPublicRuns,
                 canonicalRunWrapped: canonicalRunWrapped,
                 coverageReloadStarted: coverageReloadStarted,
