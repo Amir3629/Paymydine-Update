@@ -38,7 +38,7 @@ c890d3026bbf6ea0aa2531940b842f2b8a322c4e install app/admin/i18n/arabic/r10-05-se
 571b4fe837cd16616ab7fc5fedd2faff8a06ebfc install app/admin/i18n/arabic/r10-07-reports-detail.php
 c54282149d8aae2b3301870cceb6d9071b4568c4 install app/admin/i18n/arabic/r10-08-runtime-floor-shifts.php
 94d5a78b53e692d5ecab4729f86f8d14c4d9967f install app/admin/i18n/arabic/r10-09-literals.php
-950b1a9f2097e7a525d0935bcab118a3664a2d22 install app/admin/i18n/arabic/r10-10-r11-corrections.php
+384275bf90ab4696deaee7ea0fe472b8b5da532f install app/admin/i18n/arabic/r10-10-r11-corrections.php
 65a87c67d592441ec4cd896744e629d320e18515 install app/admin/assets/js/pmd-admin-ar-complete-r10.js
 b9cb3bdc695eb192f55e30c3cd1c2fa7ed0f9589 install app/admin/views/_partials/pmd_platform_messages.blade.php
 f119f7655c0388e818dcb04559567533cfbaa65c install scripts/pmd-audit-admin-ar-r10.php
