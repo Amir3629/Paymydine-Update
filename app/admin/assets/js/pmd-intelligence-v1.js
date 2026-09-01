@@ -16,7 +16,9 @@
         restaurant_identity: 'Restaurant profile',
         owner_kpis: 'Live restaurant KPIs',
         report_snapshot: 'Current PMD report',
-        report_range: 'Historical PMD report',
+        report_range: 'Date-range PMD report',
+        order_integrity_range: 'Order data check',
+        workforce_schedule_range: 'Shift schedule',
         kitchen_workforce: 'Kitchen workforce'
     };
 
