@@ -1,11 +1,11 @@
 (function () {
     'use strict';
 
-    // PMD_ADMIN_AR_COMPLETE_RUNTIME_R10
+    // PMD_ADMIN_AR_COMPLETE_RUNTIME_R12_PERF
     // Arabic-only late authority. The canonical catalogue remains the wording
-    // authority; this runtime only re-applies the locale-neutral translator
-    // after legacy PMD widgets inject stable English platform copy.
-    var VERSION = '10.0.0';
+    // authority. R12 deliberately coalesces late re-apply work so dynamic Admin
+    // pages do not repeatedly full-scan the DOM during clocks/AJAX updates.
+    var VERSION = '12.0.0-perf';
     var locale = String(
         window.PMD_PLATFORM_MESSAGES_LOCALE ||
         window.PMD_ADMIN_LOCALE ||
@@ -18,6 +18,11 @@
     var timers = [];
     var analyticsRefreshStarted = false;
     var runCount = 0;
+    var requestedCount = 0;
+    var coalescedCount = 0;
+    var translateTimer = null;
+    var lastTranslateAt = 0;
+    var MIN_TRANSLATE_INTERVAL_MS = 220;
 
     function enforceDocumentLocale() {
         document.documentElement.setAttribute('lang', 'ar');
@@ -34,10 +39,36 @@
         ) {
             window.PMDAdminI18n.run();
             runCount += 1;
+            lastTranslateAt = Date.now();
             return true;
         }
 
         return false;
+    }
+
+    // PMD_ADMIN_AR_TRANSLATE_COALESCE_R12
+    // One late full pass per burst at most. The canonical PMDAdminI18n
+    // MutationObserver already translates individual added/changed nodes.
+    function requestTranslate(delay) {
+        var now = Date.now();
+        var wait = Math.max(0, Number(delay || 0));
+        var sinceLast = now - lastTranslateAt;
+
+        requestedCount += 1;
+
+        if (sinceLast < MIN_TRANSLATE_INTERVAL_MS) {
+            wait = Math.max(wait, MIN_TRANSLATE_INTERVAL_MS - sinceLast);
+        }
+
+        if (translateTimer !== null) {
+            coalescedCount += 1;
+            return;
+        }
+
+        translateTimer = window.setTimeout(function () {
+            translateTimer = null;
+            translate();
+        }, wait);
     }
 
     function refreshAnalyticsForArabicDates() {
@@ -68,17 +99,17 @@
         try {
             Promise.resolve(window.PMDDashboardLabAnalyticsV1.refresh())
                 .then(function () {
-                    translate();
+                    requestTranslate(80);
                 })
                 .catch(function (error) {
                     console.warn(
-                        '[PMD Admin Arabic R10] analytics locale refresh skipped',
+                        '[PMD Admin Arabic R12] analytics locale refresh skipped',
                         error
                     );
                 });
         } catch (error) {
             console.warn(
-                '[PMD Admin Arabic R10] analytics locale refresh skipped',
+                '[PMD Admin Arabic R12] analytics locale refresh skipped',
                 error
             );
         }
@@ -88,19 +119,18 @@
         timers.push(window.setTimeout(callback, delay));
     }
 
-    function runWave() {
-        [0, 60, 180, 400, 800, 1400, 2400, 3800].forEach(function (delay) {
-            schedule(delay, function () {
-                translate();
-                if (delay >= 180) refreshAnalyticsForArabicDates();
-            });
-        });
+    function initialPass() {
+        // One safety pass after the normal global translator has booted. R10
+        // used eight full-body waves here; the shared observer makes them
+        // redundant and very expensive on large Admin workspaces.
+        requestTranslate(0);
+        schedule(260, refreshAnalyticsForArabicDates);
     }
 
     function onAsyncContent() {
-        schedule(0, translate);
-        schedule(80, translate);
-        schedule(260, translate);
+        // AJAX libraries may emit several completion events for one visual
+        // update. Coalesce all of them into one delayed safety pass.
+        requestTranslate(90);
     }
 
     function visibleEnglishPlatformCopy() {
@@ -139,7 +169,7 @@
     window.PMDAdminArabicR10 = {
         version: VERSION,
         run: function () {
-            translate();
+            requestTranslate(0);
             refreshAnalyticsForArabicDates();
             return window.PMDAdminArabicR10.audit();
         },
@@ -155,6 +185,8 @@
                 locale: String(document.documentElement.lang || ''),
                 direction: String(document.documentElement.dir || ''),
                 runCount: runCount,
+                requestedCount: requestedCount,
+                coalescedCount: coalescedCount,
                 analyticsRefreshStarted: analyticsRefreshStarted,
                 canonicalAudit: canonical,
                 criticalEnglishCount: visibleEnglish.length,
@@ -169,9 +201,9 @@
     enforceDocumentLocale();
 
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', runWave, {once: true});
+        document.addEventListener('DOMContentLoaded', initialPass, {once: true});
     } else {
-        runWave();
+        initialPass();
     }
 
     document.addEventListener('ajaxUpdateComplete', onAsyncContent, true);
@@ -179,14 +211,15 @@
     document.addEventListener('pageContentLoaded', onAsyncContent, true);
     window.addEventListener('pageshow', onAsyncContent, false);
     window.addEventListener('load', function () {
-        onAsyncContent();
-        schedule(300, refreshAnalyticsForArabicDates);
+        requestTranslate(90);
+        schedule(260, refreshAnalyticsForArabicDates);
     }, {once: true});
 
-    console.info('[PMD Admin Arabic R10] Ready', {
+    console.info('[PMD Admin Arabic R12] Ready', {
         version: VERSION,
         locale: locale,
         catalogueDriven: true,
-        rtl: true
+        rtl: true,
+        coalescedLateTranslation: true
     });
 })();
