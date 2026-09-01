@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -Eeuo pipefail
+umask 077
 
 SHA="${1:?Usage: $0 <commit-sha> [root]}"
 ROOT="${2:-/var/www/paymydine}"
@@ -7,21 +8,61 @@ FRONTEND="$ROOT/frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815"
 PMD_SERVICE="${PMD_SERVICE:-paymydine-frontend-v2}"
 PMD_PORT="${PMD_PORT:-3002}"
 BASE_URL="https://raw.githubusercontent.com/Amir3629/Paymydine-Update/${SHA}"
-STAGE="/tmp/pmd-oman-ar-en-r1-${$}"
-BACKUP="/home/ubuntu/pmd-backups/oman-ar-en-r1-$(date +%Y%m%d_%H%M%S)"
-
-cleanup() {
-  rm -rf "$STAGE"
-}
-trap cleanup EXIT
+STAMP="$(date -u +%Y%m%d_%H%M%S)"
+DOWNLOAD_STAGE="/tmp/pmd-oman-ar-en-r1-download-$$"
+BUILD_STAGE="$ROOT/storage/pmd-oman-ar-en-r1-stage-${STAMP}-$$"
+V2_STAGE="$BUILD_STAGE/v2"
+BACKUP="/home/ubuntu/pmd-backups/oman-ar-en-r1-${STAMP}"
+activation_started=0
+db_sync_started=0
+rollback_running=0
 
 fail() {
   echo "ERROR: $*" >&2
   exit 1
 }
 
+rollback() {
+  [[ "$rollback_running" == '0' ]] || return 0
+  rollback_running=1
+  set +e
+  echo "Activation failed before tenant language writes; restoring source/build from $BACKUP" >&2
+
+  if [[ -f "$BACKUP/new-files.txt" ]]; then
+    while IFS= read -r rel; do
+      [[ -n "$rel" ]] && sudo rm -f "$ROOT/$rel"
+    done < "$BACKUP/new-files.txt"
+  fi
+
+  if [[ -d "$BACKUP/files" ]]; then
+    sudo cp -a "$BACKUP/files/." "$ROOT/"
+  fi
+
+  if [[ -d "$BACKUP/next.previous" ]]; then
+    sudo rm -rf "$FRONTEND/.next"
+    sudo mv "$BACKUP/next.previous" "$FRONTEND/.next"
+  fi
+
+  sudo -u ubuntu -H pm2 restart "$PMD_SERVICE" --update-env >/dev/null 2>&1 || true
+  echo "Rollback attempted. Backup: $BACKUP" >&2
+  set -e
+}
+
+on_exit() {
+  rc=$?
+  if [[ "$rc" != '0' && "$activation_started" == '1' && "$db_sync_started" == '0' ]]; then
+    rollback
+  fi
+  rm -rf "$DOWNLOAD_STAGE"
+  if [[ "$rc" == '0' ]]; then
+    sudo rm -rf "$BUILD_STAGE" >/dev/null 2>&1 || true
+  fi
+  exit "$rc"
+}
+trap on_exit EXIT
+
 cd "$ROOT"
-mkdir -p "$STAGE"
+mkdir -p "$DOWNLOAD_STAGE"
 
 paths=(
   'app/Services/Platform/PlatformLanguageRegistry.php'
@@ -59,11 +100,11 @@ base_sha['scripts/pmd-sync-oman-customer-languages-r1.php']='-'
 final_sha['scripts/pmd-sync-oman-customer-languages-r1.php']='a6e3ba7f7f6d811ba6331280310af486d79ce55f'
 
 printf '\n======================================================\n'
-printf '1/8 DOWNLOAD + VERIFY IMMUTABLE OMAN LANGUAGE FILES\n'
+printf '1/9 DOWNLOAD + VERIFY IMMUTABLE OMAN LANGUAGE FILES\n'
 printf '======================================================\n'
 
 for path in "${paths[@]}"; do
-  staged="$STAGE/$path"
+  staged="$DOWNLOAD_STAGE/$path"
   mkdir -p "$(dirname "$staged")"
   curl -fL --retry 3 --connect-timeout 20 "$BASE_URL/$path" -o "$staged"
   actual="$(git hash-object "$staged")"
@@ -75,7 +116,7 @@ for path in "${paths[@]}"; do
 done
 
 printf '\n======================================================\n'
-printf '2/8 PREFLIGHT CURRENT VPS SOURCE - NO WRITES YET\n'
+printf '2/9 PREFLIGHT CURRENT VPS SOURCE - NO WRITES YET\n'
 printf '======================================================\n'
 
 for path in "${paths[@]}"; do
@@ -104,23 +145,87 @@ done
 echo 'VPS source preflight: OK'
 
 printf '\n======================================================\n'
-printf '3/8 BACKUP + INSTALL ONLY THE AUDITED FILES\n'
+printf '3/9 PHP SYNTAX + BASELINE FRONTEND HEALTH\n'
 printf '======================================================\n'
 
-mkdir -p "$BACKUP"
+for file in \
+  app/Services/Platform/PlatformLanguageRegistry.php \
+  app/Services/Platform/TenantCustomerLanguageService.php \
+  app/Services/Platform/SuperAdminTenantMarketService.php \
+  language/ar/admin/lang.php \
+  language/ar/main/lang.php \
+  language/ar/system/lang.php \
+  scripts/pmd-audit-platform-i18n.php \
+  scripts/pmd-sync-oman-customer-languages-r1.php; do
+  php -l "$DOWNLOAD_STAGE/$file"
+done
+
+[[ -d "$FRONTEND" ]] || fail "Frontend V2 directory missing: $FRONTEND"
+[[ -f "$FRONTEND/package.json" ]] || fail 'Frontend V2 package.json missing.'
+[[ -d "$FRONTEND/node_modules" ]] || fail 'Frontend V2 node_modules is missing.'
+
+pm2_json="$(sudo -u ubuntu -H pm2 jlist)"
+pm2_cwd="$(printf '%s' "$pm2_json" | PMD_SERVICE="$PMD_SERVICE" php -r '$j=json_decode(stream_get_contents(STDIN),true); foreach($j?:[] as $p){if(($p["name"]??"")===getenv("PMD_SERVICE")){echo $p["pm2_env"]["pm_cwd"]??""; exit;}}')"
+pm2_status="$(printf '%s' "$pm2_json" | PMD_SERVICE="$PMD_SERVICE" php -r '$j=json_decode(stream_get_contents(STDIN),true); foreach($j?:[] as $p){if(($p["name"]??"")===getenv("PMD_SERVICE")){echo $p["pm2_env"]["status"]??""; exit;}}')"
+[[ "$pm2_cwd" == "$FRONTEND" ]] || fail "PM2 cwd mismatch for $PMD_SERVICE: $pm2_cwd"
+[[ "$pm2_status" == 'online' ]] || fail "PM2 service is not online before deployment: $pm2_status"
+curl -fsS --connect-timeout 5 --max-time 15 "http://127.0.0.1:${PMD_PORT}/api/health" >/dev/null
+
+echo 'Baseline Frontend V2 health: OK'
+
+printf '\n======================================================\n'
+printf '4/9 STAGE + BUILD FRONTEND V2 OFFLINE FROM LIVE .next\n'
+printf '======================================================\n'
+
+sudo mkdir -p "$V2_STAGE"
+sudo chown -R ubuntu:ubuntu "$BUILD_STAGE"
+
+tar -C "$FRONTEND" --exclude='./node_modules' --exclude='./.next' -cf - . | tar -C "$V2_STAGE" -xf -
+cp -al "$FRONTEND/node_modules" "$V2_STAGE/node_modules"
+cp "$DOWNLOAD_STAGE/frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815/src/lib/i18n.ts" "$V2_STAGE/src/lib/i18n.ts"
+cp "$DOWNLOAD_STAGE/frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815/src/server/bootstrap.ts" "$V2_STAGE/src/server/bootstrap.ts"
+
+(
+  cd "$V2_STAGE"
+  npm run build
+)
+
+[[ -d "$V2_STAGE/.next" ]] || fail 'Staged Frontend V2 build did not produce .next.'
+echo "Staged Frontend V2 build: OK ($V2_STAGE)"
+
+printf '\n======================================================\n'
+printf '5/9 BACKUP + ACTIVATE AUDITED SOURCE AND STAGED BUILD\n'
+printf '======================================================\n'
+
+mkdir -p "$BACKUP/files"
+: > "$BACKUP/new-files.txt"
+
 for path in "${paths[@]}"; do
   target="$ROOT/$path"
-  staged="$STAGE/$path"
+  if [[ -f "$target" ]]; then
+    current="$(git hash-object "$target")"
+    if [[ "$current" != "${final_sha[$path]}" ]]; then
+      mkdir -p "$BACKUP/files/$(dirname "$path")"
+      cp -a "$target" "$BACKUP/files/$path"
+    fi
+  else
+    printf '%s\n' "$path" >> "$BACKUP/new-files.txt"
+  fi
+done
+
+if [[ -d "$FRONTEND/.next" ]]; then
+  sudo mv "$FRONTEND/.next" "$BACKUP/next.previous"
+fi
+
+activation_started=1
+
+for path in "${paths[@]}"; do
+  target="$ROOT/$path"
+  staged="$DOWNLOAD_STAGE/$path"
   final="${final_sha[$path]}"
 
   if [[ -f "$target" ]] && [[ "$(git hash-object "$target")" == "$final" ]]; then
-    echo "Already current: $path"
     continue
-  fi
-
-  if [[ -f "$target" ]]; then
-    mkdir -p "$BACKUP/$(dirname "$path")"
-    cp -a "$target" "$BACKUP/$path"
   fi
 
   sudo mkdir -p "$(dirname "$target")"
@@ -128,21 +233,16 @@ for path in "${paths[@]}"; do
   [[ "$(git hash-object "$target")" == "$final" ]] || fail "installed blob mismatch for $path"
 done
 
+sudo mv "$V2_STAGE/.next" "$FRONTEND/.next"
+
+php scripts/pmd-audit-platform-i18n.php
+php artisan optimize:clear >/dev/null 2>&1 || true
+
 echo "Backup: $BACKUP"
 
 printf '\n======================================================\n'
-printf '4/8 PHP + LANGUAGE ARCHITECTURE CHECKS\n'
+printf '6/9 VERIFY LANGUAGE ARCHITECTURE AFTER ACTIVATION\n'
 printf '======================================================\n'
-
-php -l app/Services/Platform/PlatformLanguageRegistry.php
-php -l app/Services/Platform/TenantCustomerLanguageService.php
-php -l app/Services/Platform/SuperAdminTenantMarketService.php
-php -l language/ar/admin/lang.php
-php -l language/ar/main/lang.php
-php -l language/ar/system/lang.php
-php -l scripts/pmd-audit-platform-i18n.php
-php -l scripts/pmd-sync-oman-customer-languages-r1.php
-php scripts/pmd-audit-platform-i18n.php
 
 php -r '
 require "bootstrap/autoload.php";
@@ -150,7 +250,7 @@ $app=require "bootstrap/app.php";
 $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 $r=new App\Services\Platform\PlatformLanguageRegistry();
 $p=(new App\Services\Platform\CountryPlatformProfileRegistry())->requireProfile("OM");
-if (!$r->marketPackReady("ar")) { fwrite(STDERR,"Arabic market pack not ready\n"); exit(31); }
+if (!$r->marketPackReady("ar")) { fwrite(STDERR,"Arabic customer pack not ready\n"); exit(31); }
 if ($r->direction("ar") !== "rtl") { fwrite(STDERR,"Arabic direction is not RTL\n"); exit(32); }
 if (($p["languages"]["eligible"] ?? []) !== ["en","ar"]) { fwrite(STDERR,"Oman eligible languages are not en,ar\n"); exit(33); }
 echo "Oman language architecture: EN + AR / RTL OK\n";
@@ -161,49 +261,38 @@ grep -q "supportedUiLocales" "$FRONTEND/src/lib/i18n.ts"
 grep -q "supportedUiLocales" "$FRONTEND/src/server/bootstrap.ts"
 
 printf '\n======================================================\n'
-printf '5/8 BUILD FRONTEND V2 BEFORE ENABLING ARABIC TENANTS\n'
+printf '7/9 RESTART + VERIFY LIVE FRONTEND V2\n'
 printf '======================================================\n'
-
-[[ -d "$FRONTEND" ]] || fail "Frontend V2 directory missing: $FRONTEND"
-[[ -f "$FRONTEND/package.json" ]] || fail 'Frontend V2 package.json missing.'
-command -v npm >/dev/null 2>&1 || fail 'npm is unavailable.'
-
-sudo -u ubuntu -H bash -lc "cd '$FRONTEND' && npm run build"
-
-printf '\n======================================================\n'
-printf '6/8 RESTART + VERIFY LIVE FRONTEND V2\n'
-printf '======================================================\n'
-
-command -v pm2 >/dev/null 2>&1 || fail 'pm2 is unavailable.'
-pm2_json="$(sudo -u ubuntu -H pm2 jlist)"
-pm2_cwd="$(printf '%s' "$pm2_json" | PMD_SERVICE="$PMD_SERVICE" php -r '$j=json_decode(stream_get_contents(STDIN),true); foreach($j?:[] as $p){if(($p["name"]??"")===getenv("PMD_SERVICE")){echo $p["pm2_env"]["pm_cwd"]??""; exit;}}')"
-pm2_status="$(printf '%s' "$pm2_json" | PMD_SERVICE="$PMD_SERVICE" php -r '$j=json_decode(stream_get_contents(STDIN),true); foreach($j?:[] as $p){if(($p["name"]??"")===getenv("PMD_SERVICE")){echo $p["pm2_env"]["status"]??""; exit;}}')"
-
-[[ "$pm2_cwd" == "$FRONTEND" ]] || fail "PM2 cwd mismatch for $PMD_SERVICE: $pm2_cwd"
-[[ "$pm2_status" == 'online' ]] || fail "PM2 service is not online before restart: $pm2_status"
 
 sudo -u ubuntu -H pm2 restart "$PMD_SERVICE" --update-env >/dev/null
-sleep 3
 
-pm2_json="$(sudo -u ubuntu -H pm2 jlist)"
-pm2_status="$(printf '%s' "$pm2_json" | PMD_SERVICE="$PMD_SERVICE" php -r '$j=json_decode(stream_get_contents(STDIN),true); foreach($j?:[] as $p){if(($p["name"]??"")===getenv("PMD_SERVICE")){echo $p["pm2_env"]["status"]??""; exit;}}')"
-[[ "$pm2_status" == 'online' ]] || fail "PM2 service failed to return online: $pm2_status"
-
-curl -fsS --connect-timeout 5 --max-time 15 "http://127.0.0.1:${PMD_PORT}/api/health" >/dev/null
+for attempt in 1 2 3 4 5 6; do
+  if curl -fsS --connect-timeout 5 --max-time 15 "http://127.0.0.1:${PMD_PORT}/api/health" >/dev/null; then
+    break
+  fi
+  sleep 2
+  [[ "$attempt" != '6' ]] || fail 'Frontend V2 health failed after restart.'
+done
 
 echo "Frontend V2 live on port $PMD_PORT: OK"
 
 printf '\n======================================================\n'
-printf '7/8 OMAN TENANT DRY-RUN\n'
+printf '8/9 OMAN TENANT LANGUAGE DRY-RUN\n'
 printf '======================================================\n'
 
 php scripts/pmd-sync-oman-customer-languages-r1.php
 
 printf '\n======================================================\n'
-printf '8/8 APPLY + VERIFY OMAN ENGLISH / ARABIC\n'
+printf '9/9 APPLY + VERIFY ALL OMAN ENGLISH / ARABIC SETTINGS\n'
 printf '======================================================\n'
 
+# From this point a failure may mean some tenant settings were already written.
+# Keep the Arabic-capable source/build active; the sync is idempotent and can be rerun.
+db_sync_started=1
 php scripts/pmd-sync-oman-customer-languages-r1.php --apply
+
+db_sync_started=0
+activation_started=0
 
 printf '\n======================================================\n'
 printf 'OMAN EN + AR CUSTOMER LANGUAGE R1 COMPLETE\n'
@@ -213,3 +302,4 @@ echo 'Arabic customer UI is RTL.'
 echo 'Admin Arabic is intentionally not exposed until a complete canonical Admin Arabic catalogue exists.'
 echo 'Restaurant-created menu/category names were not auto-translated or modified.'
 echo 'No payment/currency/order/reservation/business data was changed.'
+echo "Backup: $BACKUP"
