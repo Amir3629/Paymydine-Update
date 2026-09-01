@@ -38,6 +38,7 @@ class Pmdintelligence extends AdminController
         $this->addCss('css/pmd-owner-settings-v1.css');
         $this->addCss('css/pmd-settings-suite-first-paint-v1.css');
         $this->addCss('css/pmd-intelligence-v1.css');
+        $this->addJs('js/pmd-owner-settings-v1.js');
         $this->addJs('js/pmd-intelligence-v1.js');
 
         AdminMenu::setContext('dashboard');
