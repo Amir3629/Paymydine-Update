@@ -80,6 +80,20 @@
         || ($pmdSm2DashboardRoute !== 'cashierlab' && $pmdActive(['cashierlab']));
     $pmdSm2ReservationsIsActive = $pmdActive(['reservations', 'reservations2'])
         || ($pmdSm2DashboardRoute !== 'reservationslab' && $pmdActive(['reservationslab']));
+
+    /* PMD_SIDE_MENU_AI_V1
+     * Navigation visibility follows the same Admin.Dashboard permission as the
+     * PMD Intelligence controller. This link grants no additional authority.
+     */
+    $pmdSm2AiVisible = false;
+    try {
+        $pmdSm2AiUser = \Admin\Facades\AdminAuth::getUser();
+        $pmdSm2AiVisible = $pmdSm2AiUser
+            && $pmdSm2AiUser->hasPermission('Admin.Dashboard');
+    } catch (\Throwable $pmdSm2AiError) {
+        $pmdSm2AiVisible = false;
+    }
+    $pmdSm2AiIsActive = $pmdActive(['pmdintelligence']);
 @endphp
 
 {{-- PMD_FLOOR_MANAGEMENT_SURFACE_VISIBILITY_V1
@@ -114,6 +128,13 @@
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l-2 0l9 -9l9 9l-2 0"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7"/><path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6"/></svg>
             <span class="pmd-sm2__label">{{ $pmdSm2T('nav.dashboard', 'Dashboard') }}</span>
         </a>
+
+        @if($pmdSm2AiVisible)
+        <a class="pmd-sm2__item {{ $pmdSm2AiIsActive ? 'is-active' : '' }}" href="{{ admin_url('pmdintelligence') }}" data-pmd-ai-nav>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/><circle cx="12" cy="12" r="3.5"/></svg>
+            <span class="pmd-sm2__label">{{ $pmdSm2T('nav.ai', 'AI') }}</span>
+        </a>
+        @endif
 
         @if($pmdSm2IsOwnerNav)
         <a class="pmd-sm2__item {{ $pmdActive(['managerlab']) ? 'is-active' : '' }}" href="{{ admin_url('managerdashboard') }}" data-pmd-role-workspace-shortcut="manager">
