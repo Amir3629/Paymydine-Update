@@ -36,6 +36,10 @@ function safeParam(value: string | null | undefined): string | null {
   return /^[A-Za-z0-9_.:-]{1,128}$/.test(clean) ? clean : null
 }
 
+function localeCode(value: unknown): string {
+  return String(value || 'en').trim().toLowerCase().split('-')[0] || 'en'
+}
+
 function queryString(entries: Record<string, string | null | undefined>): string {
   const params = new URLSearchParams()
   for (const [key, value] of Object.entries(entries)) if (value) params.set(key, value)
@@ -63,19 +67,18 @@ function enabledLocales(settings: any, theme: any, fallback: string): string[] {
       ? raw.split(',')
       : []
 
-  const normalized = list
-    .map((value: unknown) => String(value).trim().toLowerCase().split('-')[0])
-    .filter(Boolean)
+  const normalized = list.map(localeCode).filter(Boolean)
 
   // PMD_CUSTOMER_LANGUAGE_REGISTRY_R1
   // The dictionaries themselves own customer UI capability. Adding another UI
   // pack no longer requires maintaining a second hard-coded whitelist here.
   const supported = new Set(supportedUiLocales)
   const configured = normalized.filter((value: string) => supported.has(value))
-  const fallbackBase = String(fallback || 'en').trim().toLowerCase().split('-')[0] || 'en'
-  const base = supported.has(fallbackBase) ? fallbackBase : 'en'
+  const candidates = configured.length ? configured : ['en', 'de'].filter((value) => supported.has(value))
+  const fallbackBase = localeCode(fallback)
+  const base = candidates.includes(fallbackBase) ? fallbackBase : (candidates[0] || 'en')
 
-  return Array.from(new Set([base, ...(configured.length ? configured : ['en', 'de'])]))
+  return Array.from(new Set([base, ...candidates]))
 }
 
 export async function loadCustomerBootstrap(query: BootstrapQuery): Promise<CustomerBootstrap> {
@@ -171,7 +174,9 @@ export async function loadCustomerBootstrap(query: BootstrapQuery): Promise<Cust
   const theme = normalizeTheme(resolvedThemePayload, previewId)
   const table = normalizeTable(tablePayload, { tableId, tableNo, qr })
   const paymentMethods = normalizePayments(paymentsPayload)
-  const locale = String(query.locale || settingsLocale(settings)).toLowerCase()
+  const configuredLocales = enabledLocales(settings, resolvedThemePayload, settingsLocale(settings))
+  const requestedLocale = localeCode(query.locale || settingsLocale(settings))
+  const locale = configuredLocales.includes(requestedLocale) ? requestedLocale : configuredLocales[0]
   const activeOrder = normalizeOrder(orderPayload)
 
   return {
@@ -179,7 +184,7 @@ export async function loadCustomerBootstrap(query: BootstrapQuery): Promise<Cust
     tenant: { id: host.split('.')[0] || 'default', slug: host.split('.')[0] || 'default', host },
     restaurant: { ...restaurantInfo, locale },
     theme,
-    locales: { defaultLocale: locale, enabledLocales: enabledLocales(settings, resolvedThemePayload, locale) },
+    locales: { defaultLocale: locale, enabledLocales: configuredLocales },
     socialLinks: normalizeSocial(settings, resolvedThemePayload),
     features: normalizeFeatures(settings, resolvedThemePayload),
     tax: normalizeTax(taxApiPayload || taxLegacyPayload || settings),
