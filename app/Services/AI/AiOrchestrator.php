@@ -47,6 +47,7 @@ final class AiOrchestrator
         }
 
         $this->budget->consume($context);
+        $safeQuestion = (string)$this->redactor->forModel($question, 'user_question');
 
         $toolDefinitions = [];
         foreach ($tools as $name => $tool) {
@@ -77,7 +78,7 @@ final class AiOrchestrator
         ]);
 
         $input = [
-            ['role' => 'user', 'content' => $question],
+            ['role' => 'user', 'content' => $safeQuestion],
         ];
         $maxCalls = max(1, (int)config('pmd_ai.max_tool_calls', 6));
         $callsMade = 0;
@@ -88,6 +89,7 @@ final class AiOrchestrator
 
         $this->audit->write('run_started', $context, [
             'question_length' => mb_strlen($question),
+            'question_redacted' => $safeQuestion !== $question,
             'tool_names' => array_keys($tools),
         ]);
 
@@ -136,8 +138,6 @@ final class AiOrchestrator
                     ];
                 }
 
-                // Carry the assistant output forward exactly once, then attach one
-                // function_call_output for each requested tool call.
                 foreach ((array)($lastResponse['output'] ?? []) as $outputItem) {
                     $input[] = $outputItem;
                 }
