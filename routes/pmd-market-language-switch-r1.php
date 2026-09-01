@@ -1,6 +1,7 @@
 <?php
 
 use App\Services\Platform\CountryPlatformProfileRegistry;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 
@@ -31,13 +32,33 @@ App::before(function () {
                     ], 401);
                 }
 
+                $normalizeLocales = static function ($value): array {
+                    if (is_string($value)) {
+                        $decoded = @unserialize($value);
+                        if (is_array($decoded)) {
+                            $value = $decoded;
+                        } else {
+                            $json = json_decode($value, true);
+                            $value = is_array($json) ? $json : explode(',', $value);
+                        }
+                    }
+
+                    if (!is_array($value)) {
+                        return [];
+                    }
+
+                    return array_values(array_unique(array_filter(array_map(
+                        static fn ($locale) => strtolower(trim((string)$locale)),
+                        $value
+                    ))));
+                };
+
                 $requested = strtolower(trim((string)request()->input('code', '')));
                 $countryCode = strtoupper(trim((string)setting('pmd_market_country_code', 'DE')));
                 $profile = (new CountryPlatformProfileRegistry())->profile($countryCode);
-                $eligible = array_values(array_unique(array_filter(array_map(
-                    static fn ($code) => strtolower(trim((string)$code)),
+                $eligible = $normalizeLocales(
                     (array)($profile['languages']['eligible'] ?? ['en'])
-                ))));
+                );
 
                 if (!in_array($requested, $eligible, true)) {
                     return response()->json([
@@ -50,6 +71,7 @@ App::before(function () {
                 }
 
                 $db = DB::connection('tenant');
+                $tenantDatabase = (string)$db->getDatabaseName();
                 $language = $db->table('languages')
                     ->whereRaw('BINARY code = ?', [$requested])
                     ->where('status', 1)
@@ -62,16 +84,78 @@ App::before(function () {
                         'source' => 'market-language-r2',
                         'market' => $countryCode,
                         'requested_code' => $requested,
+                        'tenant_database' => $tenantDatabase,
                     ], 409);
                 }
 
                 $localization = app('translator.localization');
-                if ($localization->setLocale($requested, true) === false) {
-                    return response()->json([
-                        'ok' => false,
-                        'message' => 'Locale rejected by localization config.',
-                        'source' => 'market-language-r2',
-                    ], 409);
+                $localeResult = $localization->setLocale($requested, true);
+
+                // PMD_MARKET_LANGUAGE_SWITCH_RUNTIME_REBIND_R3
+                // The tenant DB row and market profile are already authoritative
+                // above. If Flame still carries an earlier localization config,
+                // rebind it from this tenant's own settings and retry the SAME
+                // Localization::setLocale validation; never bypass isValid().
+                if ($localeResult === false) {
+                    $settingSupportedBefore = $normalizeLocales(setting('supported_languages', []));
+                    $configSupportedBefore = $normalizeLocales(Config::get('localization.supportedLocales', []));
+                    $runtimeSupportedBefore = method_exists($localization, 'supportedLocales')
+                        ? $normalizeLocales($localization->supportedLocales())
+                        : [];
+
+                    $tenantAuthorizesRequested = in_array($requested, $settingSupportedBefore, true);
+
+                    if ($tenantAuthorizesRequested) {
+                        $defaultLocale = strtolower(trim((string)setting(
+                            'default_language',
+                            Config::get('app.locale', 'en')
+                        )));
+                        if ($defaultLocale === '') {
+                            $defaultLocale = 'en';
+                        }
+
+                        $supportedLocales = $settingSupportedBefore;
+                        if (!in_array($defaultLocale, $supportedLocales, true)) {
+                            array_unshift($supportedLocales, $defaultLocale);
+                            $supportedLocales = array_values(array_unique($supportedLocales));
+                        }
+
+                        Config::set('localization.locale', $defaultLocale);
+                        Config::set('localization.supportedLocales', $supportedLocales);
+                        Config::set(
+                            'localization.detectBrowserLocale',
+                            (bool)setting('detect_language', false)
+                        );
+
+                        app()->forgetInstance('translator.localization');
+                        $localization = app('translator.localization');
+                        $localeResult = $localization->setLocale($requested, true);
+                    }
+
+                    if ($localeResult === false) {
+                        return response()->json([
+                            'ok' => false,
+                            'message' => 'Locale rejected by localization config.',
+                            'source' => 'market-language-r2-runtime-rebind-r3',
+                            'diagnostic' => [
+                                'host' => request()->getHost(),
+                                'requested_code' => $requested,
+                                'market' => $countryCode,
+                                'eligible' => $eligible,
+                                'tenant_database' => $tenantDatabase,
+                                'default_connection' => DB::getDefaultConnection(),
+                                'setting_supported_before' => $settingSupportedBefore,
+                                'config_supported_before' => $configSupportedBefore,
+                                'runtime_supported_before' => $runtimeSupportedBefore,
+                                'setting_supported_after' => $normalizeLocales(setting('supported_languages', [])),
+                                'config_supported_after' => $normalizeLocales(Config::get('localization.supportedLocales', [])),
+                                'runtime_supported_after' => method_exists($localization, 'supportedLocales')
+                                    ? $normalizeLocales($localization->supportedLocales())
+                                    : [],
+                                'tenant_authorizes_requested' => $tenantAuthorizesRequested,
+                            ],
+                        ], 409);
+                    }
                 }
 
                 $staff = $auth->staff();
@@ -88,7 +172,7 @@ App::before(function () {
                     'locale' => $requested,
                     'name' => $language->name,
                     'market' => $countryCode,
-                    'source' => 'market-language-r2',
+                    'source' => 'market-language-r2-runtime-rebind-r3',
                 ])->withCookie(cookie(
                     'pmd_admin_locale',
                     $requested,
