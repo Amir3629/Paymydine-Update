@@ -7,18 +7,18 @@ use Throwable;
 
 final class AiOrchestrator
 {
-    private OpenAiResponsesProvider $provider;
+    private AiProvider $provider;
     private AiAuditLogger $audit;
     private AiRedactor $redactor;
     private AiBudgetService $budget;
 
     public function __construct(
-        ?OpenAiResponsesProvider $provider = null,
+        ?AiProvider $provider = null,
         ?AiAuditLogger $audit = null,
         ?AiRedactor $redactor = null,
         ?AiBudgetService $budget = null
     ) {
-        $this->provider = $provider ?: new OpenAiResponsesProvider();
+        $this->provider = $provider ?: $this->resolveProvider();
         $this->audit = $audit ?: new AiAuditLogger();
         $this->redactor = $redactor ?: new AiRedactor();
         $this->budget = $budget ?: new AiBudgetService();
@@ -28,10 +28,6 @@ final class AiOrchestrator
     {
         if (!(bool)config('pmd_ai.enabled', false)) {
             throw new RuntimeException('PMD Intelligence is disabled. Set PMD_AI_ENABLED=true on the server after validation.');
-        }
-
-        if ((string)config('pmd_ai.provider', 'openai') !== 'openai') {
-            throw new RuntimeException('PMD Intelligence V1 currently requires PMD_AI_PROVIDER=openai.');
         }
 
         if ($context->locationId === null || $context->locationId < 1) {
@@ -88,6 +84,8 @@ final class AiOrchestrator
         $lastResponse = null;
 
         $this->audit->write('run_started', $context, [
+            'provider' => $this->provider->name(),
+            'model' => (string)config('pmd_ai.model', ''),
             'question_length' => mb_strlen($question),
             'question_redacted' => $safeQuestion !== $question,
             'tool_names' => array_keys($tools),
@@ -96,7 +94,7 @@ final class AiOrchestrator
         try {
             while (true) {
                 $request = [
-                    'model' => (string)config('pmd_ai.model', 'gpt-5.6-luna'),
+                    'model' => (string)config('pmd_ai.model', ''),
                     'instructions' => $instructions,
                     'input' => $input,
                     'tools' => $toolDefinitions,
@@ -106,21 +104,24 @@ final class AiOrchestrator
                 ];
 
                 $result = $this->provider->create($request);
-                $lastResponse = $result['body'];
+                $lastResponse = (array)$result['body'];
                 $latencyMs += (int)$result['latency_ms'];
                 if (!empty($result['request_id'])) {
-                    $requestIds[] = $result['request_id'];
+                    $requestIds[] = (string)$result['request_id'];
                 }
 
                 $calls = $this->provider->functionCalls($lastResponse);
                 if (!$calls) {
                     $answer = $this->provider->outputText($lastResponse);
                     if ($answer === '') {
-                        throw new RuntimeException('OpenAI returned no answer text.');
+                        throw new RuntimeException(
+                            ucfirst($this->provider->name()).' returned no answer text.'
+                        );
                     }
 
-                    $usage = (array)($lastResponse['usage'] ?? []);
+                    $usage = $this->provider->usage($lastResponse);
                     $this->audit->write('run_completed', $context, [
+                        'provider' => $this->provider->name(),
                         'tool_trace' => $toolTrace,
                         'provider_request_ids' => $requestIds,
                         'latency_ms' => $latencyMs,
@@ -131,15 +132,16 @@ final class AiOrchestrator
                         'ok' => true,
                         'run_id' => $context->runId,
                         'answer' => $answer,
-                        'model' => (string)($lastResponse['model'] ?? config('pmd_ai.model')),
+                        'provider' => $this->provider->name(),
+                        'model' => $this->provider->responseModel($lastResponse),
                         'tool_trace' => $toolTrace,
                         'usage' => $usage,
                         'latency_ms' => $latencyMs,
                     ];
                 }
 
-                foreach ((array)($lastResponse['output'] ?? []) as $outputItem) {
-                    $input[] = $outputItem;
+                foreach ($this->provider->modelHistoryItems($lastResponse) as $historyItem) {
+                    $input[] = $historyItem;
                 }
 
                 foreach ($calls as $call) {
@@ -148,12 +150,12 @@ final class AiOrchestrator
                         throw new RuntimeException('AI tool-call limit reached safely.');
                     }
 
-                    $name = $call['name'];
+                    $name = (string)($call['name'] ?? '');
                     if (!isset($tools[$name]) || !is_callable($tools[$name]['handler'] ?? null)) {
                         throw new RuntimeException('Model requested an unavailable tool.');
                     }
 
-                    $arguments = json_decode($call['arguments'], true);
+                    $arguments = json_decode((string)($call['arguments'] ?? '{}'), true);
                     if (!is_array($arguments)) {
                         $arguments = [];
                     }
@@ -184,15 +186,12 @@ final class AiOrchestrator
                         'duration_ms' => (int)round((microtime(true) - $started) * 1000),
                     ];
 
-                    $input[] = [
-                        'type' => 'function_call_output',
-                        'call_id' => $call['call_id'],
-                        'output' => json_encode($output, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
-                    ];
+                    $input[] = $this->provider->toolResultItem($call, $output);
                 }
             }
         } catch (Throwable $error) {
             $this->audit->write('run_failed', $context, [
+                'provider' => $this->provider->name(),
                 'tool_trace' => $toolTrace,
                 'provider_request_ids' => $requestIds,
                 'latency_ms' => $latencyMs,
@@ -201,5 +200,22 @@ final class AiOrchestrator
             ]);
             throw $error;
         }
+    }
+
+    private function resolveProvider(): AiProvider
+    {
+        $provider = strtolower(trim((string)config('pmd_ai.provider', 'openai')));
+
+        if ($provider === 'openai') {
+            return new OpenAiResponsesProvider();
+        }
+
+        if ($provider === 'gemini') {
+            return new GeminiGenerateContentProvider();
+        }
+
+        throw new RuntimeException(
+            'Unsupported PMD AI provider. Use PMD_AI_PROVIDER=openai or gemini.'
+        );
     }
 }
