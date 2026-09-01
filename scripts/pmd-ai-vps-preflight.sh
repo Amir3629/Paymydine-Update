@@ -31,6 +31,9 @@ trap 'rm -f "$TMP_INDEX" "$DIFF_FILE" "$EXTRA_FILE"' EXIT
 # Load origin/main into an isolated temporary index. The repository's real
 # index, staged changes and working tree are never modified by this script.
 GIT_INDEX_FILE="$TMP_INDEX" git read-tree "$BASE_REF"
+# A fresh temporary index has no worktree stat cache. Refresh it before
+# diff-files or Git can falsely report every tracked path as modified.
+GIT_INDEX_FILE="$TMP_INDEX" git update-index -q --refresh >/dev/null 2>&1 || true
 GIT_INDEX_FILE="$TMP_INDEX" git diff-files --name-status > "$DIFF_FILE" || true
 GIT_INDEX_FILE="$TMP_INDEX" git ls-files --others --exclude-standard > "$EXTRA_FILE" || true
 
@@ -119,7 +122,7 @@ for path in "${ai_paths[@]}"; do
 done
 
 echo
-echo "===== IMPORTANT ACTUAL MISMATCHES vs $BASE_REF ====="
+echo "===== RELEVANT WORKTREE CONTENT DIFFS vs $BASE_REF ====="
 awk -F '\t' '
   $2 ~ /^(composer\.json|app\/Http\/(Kernel\.php|Middleware\/)|app\/Services\/|app\/admin\/(classes\/AdminController\.php|ServiceProvider\.php|controllers\/|routes\.php)|routes\/)/ { print }
 ' "$DIFF_FILE" | head -200 || true
