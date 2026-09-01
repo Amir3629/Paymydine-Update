@@ -101,7 +101,7 @@ return array_replace($english, [
     'payment.item_available' => ':quantity متاح · :price',
     'payment.backspace' => 'حذف',
     'payment.exact' => 'المبلغ بالضبط',
-    'payment.one_payment' => 'دفعة واحدة',
+    'payment.one_payment' => ':count دفعة',
     'payment.many_payments' => ':count دفعات',
     'payment.method_question' => 'كيف سيدفع العميل؟',
     'payment.terminal_offline_help' => 'جهاز الدفع غير متصل. شغّله أو اختر جهازاً آخر.',
