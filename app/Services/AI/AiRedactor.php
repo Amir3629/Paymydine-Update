@@ -30,9 +30,10 @@ final class AiRedactor
         }
 
         if (is_string($value)) {
-            // Defense in depth for obvious emails and long payment-card-like digit runs.
             $value = preg_replace('/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i', '[REDACTED_EMAIL]', $value);
             $value = preg_replace('/(?<!\d)(?:\d[ -]?){13,19}(?!\d)/', '[REDACTED_NUMBER]', $value);
+            $value = preg_replace('/\bsk-[A-Za-z0-9_\-]{12,}\b/', '[REDACTED_API_KEY]', $value);
+            $value = preg_replace('/\bBearer\s+[A-Za-z0-9._\-]{12,}\b/i', 'Bearer [REDACTED]', $value);
         }
 
         return $value;
