@@ -4,6 +4,7 @@
 declare(strict_types=1);
 
 use App\Services\Platform\CountryPlatformProfileRegistry;
+use Igniter\Flame\Setting\DatabaseSettingStore;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
@@ -22,6 +23,7 @@ Usage:
 Without --apply this is read-only.
 With --apply it only enables the Arabic Admin language row and the framework
 supported_languages setting for matching Oman tenants. English stays default.
+The tenant-scoped TastyIgniter setting cache is refreshed after each write.
 
 TXT;
     exit(0);
@@ -88,11 +90,12 @@ foreach ($targets as $tenant) {
 }
 
 if (!$apply) {
-    echo "\nDRY-RUN COMPLETE. No database writes were made.\n";
+    echo "\nDRY-RUN COMPLETE. No database writes or cache changes were made.\n";
     exit(0);
 }
 
 $centralDatabase = (string)Config::get('database.connections.mysql.database');
+$originalDefaultConnection = DB::getDefaultConnection();
 $failures = 0;
 $results = [];
 
@@ -104,6 +107,7 @@ foreach ($targets as $tenant) {
         Config::set('database.connections.mysql.database', $database);
         DB::purge('mysql');
         DB::reconnect('mysql');
+        DB::setDefaultConnection('mysql');
 
         if (!Schema::connection('mysql')->hasTable('languages')) {
             throw new RuntimeException('Tenant languages table is missing.');
@@ -141,23 +145,39 @@ foreach ($targets as $tenant) {
             $decoded = json_decode($supportedRaw, true);
             $supported = is_array($decoded) ? $decoded : array_filter(array_map('trim', explode(',', $supportedRaw)));
         }
-        $supported = array_values(array_map(static fn ($v) => strtolower((string)$v), $supported));
+        $supported = normalizeLocales($supported);
+
+        $runtime = refreshTenantSettingCache($database);
+        $runtimeSupported = normalizeLocales($runtime['supported_languages'] ?? []);
+        $runtimeDefault = strtolower(trim((string)($runtime['default_language'] ?? '')));
 
         $ok = $language
             && (!property_exists($language, 'status') || (int)$language->status === 1)
             && (string)($settings['default_language'] ?? '') === 'en'
             && in_array('en', $supported, true)
-            && in_array('ar', $supported, true);
+            && in_array('ar', $supported, true)
+            && $runtimeDefault === 'en'
+            && in_array('en', $runtimeSupported, true)
+            && in_array('ar', $runtimeSupported, true);
 
-        if (!$ok) throw new RuntimeException('Post-sync Admin Arabic verification failed.');
+        if (!$ok) throw new RuntimeException('Post-sync Admin Arabic runtime verification failed.');
 
-        echo "[OK] {$tenantDomain}: Admin languages = en,ar; default = en\n";
-        $results[] = ['domain' => $tenantDomain, 'database' => $database, 'ok' => true, 'supported_languages' => $supported];
+        echo "[OK] {$tenantDomain}: Admin languages = en,ar; runtime cache = en,ar; default = en\n";
+        $results[] = [
+            'domain' => $tenantDomain,
+            'database' => $database,
+            'ok' => true,
+            'supported_languages' => $supported,
+            'runtime_supported_languages' => $runtimeSupported,
+            'runtime_default_language' => $runtimeDefault,
+            'setting_cache_key' => $runtime['cache_key'],
+        ];
     } catch (Throwable $error) {
         $failures++;
         fwrite(STDERR, "[FAIL] {$tenantDomain}: {$error->getMessage()}\n");
         $results[] = ['domain' => $tenantDomain, 'database' => $database, 'ok' => false, 'error' => $error->getMessage()];
     } finally {
+        DB::setDefaultConnection($originalDefaultConnection);
         Config::set('database.connections.mysql.database', $centralDatabase);
         DB::purge('mysql');
         DB::reconnect('mysql');
@@ -178,7 +198,8 @@ if ($failures) {
 }
 
 echo "\nOMAN ADMIN ARABIC LANGUAGE SYNC: OK\n";
-echo "Only Admin language registry/settings were changed.\n";
+echo "Tenant-scoped Admin localization caches were refreshed and verified.\n";
+echo "Only Admin language registry/settings/cache were changed.\n";
 echo "No payment/currency/order/reservation/menu/category/business data was changed.\n";
 
 function upsertSetting(string $item, $value, bool $serialized): void
@@ -194,4 +215,48 @@ function upsertSetting(string $item, $value, bool $serialized): void
     if (in_array('date_updated', $columns, true)) $payload['date_updated'] = now();
 
     DB::connection('mysql')->table('settings')->updateOrInsert($where, $payload);
+}
+
+function refreshTenantSettingCache(string $database): array
+{
+    $cacheKey = 'igniter.setting.system.tenant.'.sha1(strtolower(trim($database)));
+    $cache = app('cache.store');
+
+    // Direct SQL writes bypass DatabaseSettingStore::write(), so explicitly
+    // invalidate the exact tenant cache key used by TenantDatabaseMiddleware.
+    $cache->forget($cacheKey);
+
+    foreach (['system.setting', 'system.parameter', 'setting.manager', 'translator.localization'] as $abstract) {
+        app()->forgetInstance($abstract);
+    }
+
+    $store = new DatabaseSettingStore(app('db'), $cache);
+    $store->setCacheKey($cacheKey);
+    $store->setExtraColumns(['sort' => 'config']);
+
+    return [
+        'cache_key' => $cacheKey,
+        'supported_languages' => $store->get('supported_languages', []),
+        'default_language' => $store->get('default_language', 'en'),
+    ];
+}
+
+function normalizeLocales($value): array
+{
+    if (is_string($value)) {
+        $decoded = @unserialize($value);
+        if (is_array($decoded)) {
+            $value = $decoded;
+        } else {
+            $json = json_decode($value, true);
+            $value = is_array($json) ? $json : explode(',', $value);
+        }
+    }
+
+    if (!is_array($value)) return [];
+
+    return array_values(array_unique(array_filter(array_map(
+        static fn ($locale) => strtolower(trim((string)$locale)),
+        $value
+    ))));
 }
