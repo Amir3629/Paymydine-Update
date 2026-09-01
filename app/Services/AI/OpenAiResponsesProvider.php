@@ -4,7 +4,7 @@ namespace App\Services\AI;
 
 use RuntimeException;
 
-final class OpenAiResponsesProvider
+final class OpenAiResponsesProvider implements AiProvider
 {
     public function create(array $payload): array
     {
@@ -102,5 +102,37 @@ final class OpenAiResponsesProvider
             ];
         }
         return $calls;
+    }
+
+    public function modelHistoryItems(array $response): array
+    {
+        return array_values((array)($response['output'] ?? []));
+    }
+
+    public function toolResultItem(array $call, $output): array
+    {
+        return [
+            'type' => 'function_call_output',
+            'call_id' => (string)($call['call_id'] ?? ''),
+            'output' => json_encode(
+                $output,
+                JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+            ),
+        ];
+    }
+
+    public function usage(array $response): array
+    {
+        return (array)($response['usage'] ?? []);
+    }
+
+    public function responseModel(array $response): string
+    {
+        return (string)($response['model'] ?? config('pmd_ai.model', 'gpt-5.6-luna'));
+    }
+
+    public function name(): string
+    {
+        return 'openai';
     }
 }
