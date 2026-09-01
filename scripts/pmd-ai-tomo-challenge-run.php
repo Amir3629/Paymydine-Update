@@ -9,19 +9,29 @@
  * - attaches synthetic menu/category rows explicitly to TOMO location 1 when
  *   the legacy locationables pivot exists.
  *
- * Use this file, not the lower-level generator, for normal create runs.
+ * This runner intentionally rejects --replace. To refresh fixtures, run the
+ * separately scoped cleanup script first, then run this creator again.
  */
-
-require __DIR__.'/pmd-ai-tomo-challenge-fixtures.php';
 
 if (PHP_SAPI !== 'cli') exit(2);
 
-$options = getopt('', ['apply','cleanup','replace','tenant:','location:','confirm:']);
-if (!array_key_exists('apply', $options) || array_key_exists('cleanup', $options)) {
+$runnerOptions = getopt('', ['apply','cleanup','replace','tenant:','location:','confirm:']);
+if (array_key_exists('replace', $runnerOptions)) {
+    fwrite(STDERR, "STOP: --replace is disabled in the safe runner. Run pmd-ai-tomo-challenge-cleanup.php first, then create again.\n");
+    exit(21);
+}
+if (array_key_exists('cleanup', $runnerOptions)) {
+    fwrite(STDERR, "STOP: use scripts/pmd-ai-tomo-challenge-cleanup.php for cleanup.\n");
+    exit(22);
+}
+
+require __DIR__.'/pmd-ai-tomo-challenge-fixtures.php';
+
+if (!array_key_exists('apply', $runnerOptions)) {
     return;
 }
 
-if (($options['tenant'] ?? '') !== 'tomo' || (int)($options['location'] ?? 0) !== 1) {
+if (($runnerOptions['tenant'] ?? '') !== 'tomo' || (int)($runnerOptions['location'] ?? 0) !== 1) {
     fwrite(STDERR, "FINALIZE_RESULT=STOP_WRONG_SCOPE\n");
     exit(20);
 }
