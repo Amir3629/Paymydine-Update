@@ -28,6 +28,17 @@ EXPECTED=(
   '46d172a624252ea4499c95cd93e483918a798e1e'
 )
 
+if [[ "$(id -u)" -eq 0 ]]; then
+  SUDO=()
+else
+  command -v sudo >/dev/null 2>&1 || {
+    echo 'ERROR: sudo is required to write the live PayMyDine source tree.' >&2
+    exit 3
+  }
+  sudo -v
+  SUDO=(sudo)
+fi
+
 echo '======================================================'
 echo '1/7 DOWNLOAD + VERIFY OMAN ADMIN ARABIC R1'
 echo '======================================================'
@@ -64,10 +75,10 @@ for file in "${FILES[@]}"; do
     mkdir -p "$BACKUP/$(dirname "$file")"
     cp -a "$ROOT/$file" "$BACKUP/$file"
   fi
-  mkdir -p "$ROOT/$(dirname "$file")"
-  install -m 0644 "$WORK/$file" "$ROOT/$file"
+  "${SUDO[@]}" install -d -m 0755 "$ROOT/$(dirname "$file")"
+  "${SUDO[@]}" install -m 0644 "$WORK/$file" "$ROOT/$file"
 done
-chmod +x "$ROOT/scripts/pmd-sync-oman-admin-language-r1.php"
+"${SUDO[@]}" chmod +x "$ROOT/scripts/pmd-sync-oman-admin-language-r1.php"
 echo "Backup: $BACKUP"
 
 echo '======================================================'
@@ -89,7 +100,11 @@ php scripts/pmd-sync-oman-admin-language-r1.php --apply
 echo '======================================================'
 echo '7/7 CLEAR VIEWS + FINAL MARKERS'
 echo '======================================================'
-sudo -u www-data php artisan view:clear
+if [[ "$(id -u)" -eq 0 ]]; then
+  sudo -u www-data php artisan view:clear
+else
+  sudo -u www-data php artisan view:clear
+fi
 
 grep -n 'PMD_ADMIN_DYNAMIC_LOCALE_REGISTRY_AR_R1' app/admin/views/_partials/pmd_admin_i18n.blade.php
 grep -n 'PMD_ADMIN_RTL_AR_R1' app/admin/views/_partials/pmd_admin_i18n.blade.php
