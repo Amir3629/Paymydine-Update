@@ -269,8 +269,8 @@
   min-height: 285px;
   color: #263a34;
   font-size: 13px;
-  line-height: 1.65;
-  white-space: pre-wrap;
+  line-height: 1.58;
+  white-space: normal;
 }
 
 .pmd-ai-answer.is-empty {
@@ -291,6 +291,116 @@
   background: #fff7f6;
   color: #9a332c;
   text-align: left;
+}
+
+.pmd-ai-answer-heading {
+  margin: 18px 0 8px;
+  color: #10211d;
+  font-size: 14px;
+  font-weight: 850;
+  line-height: 1.3;
+}
+
+.pmd-ai-answer-heading:first-child {
+  margin-top: 0;
+}
+
+h4.pmd-ai-answer-heading {
+  font-size: 12px;
+}
+
+.pmd-ai-answer-copy,
+.pmd-ai-answer-highlight {
+  margin: 0 0 9px;
+}
+
+.pmd-ai-answer-highlight {
+  padding: 10px 12px;
+  border: 1px solid #dce8e5;
+  border-radius: 11px;
+  background: #f8fbfa;
+  color: #30443e;
+}
+
+.pmd-ai-answer-copy strong,
+.pmd-ai-answer-highlight strong,
+.pmd-ai-answer-list strong {
+  color: #10211d;
+  font-weight: 820;
+}
+
+.pmd-ai-answer code {
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: #f0f5f3;
+  color: #40554f;
+  font-size: 11px;
+}
+
+.pmd-ai-answer-list {
+  margin: 6px 0 12px;
+  padding-left: 20px;
+}
+
+.pmd-ai-answer-list li {
+  margin: 0 0 6px;
+  padding-left: 2px;
+}
+
+.pmd-ai-divider {
+  height: 1px;
+  margin: 14px 0;
+  border: 0;
+  background: #e7efec;
+}
+
+.pmd-ai-mini-chart {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0 16px;
+  padding: 13px 14px;
+  border: 1px solid #dce8e5;
+  border-radius: 12px;
+  background: #fbfdfc;
+}
+
+.pmd-ai-bar-row {
+  display: grid;
+  grid-template-columns: minmax(72px, .65fr) minmax(90px, 1.35fr) auto;
+  gap: 9px;
+  align-items: center;
+  min-width: 0;
+}
+
+.pmd-ai-bar-label {
+  overflow: hidden;
+  color: #5f716b;
+  font-size: 10px;
+  font-weight: 760;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pmd-ai-bar-track {
+  height: 7px;
+  overflow: hidden;
+  display: block;
+  border-radius: 999px;
+  background: #e6efec;
+}
+
+.pmd-ai-bar-fill {
+  height: 100%;
+  display: block;
+  border-radius: inherit;
+  background: #169579;
+}
+
+.pmd-ai-bar-value {
+  color: #334a43;
+  font-size: 10px;
+  font-weight: 800;
+  white-space: nowrap;
 }
 
 .pmd-ai-evidence {
@@ -395,6 +505,15 @@
 
   .pmd-ai-actions button[type="submit"] {
     width: 100%;
+  }
+
+  .pmd-ai-bar-row {
+    grid-template-columns: 72px minmax(70px, 1fr);
+  }
+
+  .pmd-ai-bar-value {
+    grid-column: 2;
+    white-space: normal;
   }
 
   .pmd-ai-boundaries {
