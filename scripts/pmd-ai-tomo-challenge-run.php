@@ -26,10 +26,9 @@ if (($options['tenant'] ?? '') !== 'tomo' || (int)($options['location'] ?? 0) !=
 $cutoff = \Carbon\Carbon::now('Europe/Berlin')->subMinute();
 $now = \Carbon\Carbon::now('Europe/Berlin');
 $ids = taggedOrderIds();
+$updates = [];
 
 if ($ids) {
-    $updates = [];
-
     if (hasCol('orders', 'settled_at')) {
         DB::table('orders')
             ->whereIn('order_id', $ids)
@@ -57,7 +56,5 @@ if ($ids) {
     }
 }
 
-app('cache')->flush();
-
 echo "FINALIZE_RESULT=PASS\n";
-echo "TIMESTAMPS_CLAMPED_TO_NOW=".implode(',', $updates ?? [])."\n";
+echo "TIMESTAMPS_CLAMPED_TO_NOW=".implode(',', $updates)."\n";
