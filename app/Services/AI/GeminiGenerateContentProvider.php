@@ -236,11 +236,47 @@ final class GeminiGenerateContentProvider implements AiProvider
     private function translateInput(array $input): array
     {
         $contents = [];
+        $pendingFunctionParts = [];
+
+        // Gemini requires responses to parallel function calls from one model
+        // turn to be grouped together in the immediately following user turn.
+        $flushFunctionResponses = static function () use (&$contents, &$pendingFunctionParts): void {
+            if (!$pendingFunctionParts) {
+                return;
+            }
+
+            $contents[] = [
+                'role' => 'user',
+                'parts' => $pendingFunctionParts,
+            ];
+            $pendingFunctionParts = [];
+        };
 
         foreach ($input as $item) {
             if (!is_array($item)) {
                 continue;
             }
+
+            if (($item['type'] ?? null) === 'gemini_function_response') {
+                $functionResponse = [
+                    'name' => (string)($item['name'] ?? ''),
+                    'response' => is_array($item['response'] ?? null)
+                        ? $item['response']
+                        : ['result' => $item['response'] ?? null],
+                ];
+
+                $callId = trim((string)($item['call_id'] ?? ''));
+                if ($callId !== '') {
+                    $functionResponse['id'] = $callId;
+                }
+
+                $pendingFunctionParts[] = [
+                    'functionResponse' => $functionResponse,
+                ];
+                continue;
+            }
+
+            $flushFunctionResponses();
 
             if (isset($item['role']) && array_key_exists('content', $item)) {
                 $text = trim((string)$item['content']);
@@ -262,30 +298,10 @@ final class GeminiGenerateContentProvider implements AiProvider
                 if (is_array($content)) {
                     $contents[] = $content;
                 }
-                continue;
-            }
-
-            if (($item['type'] ?? null) === 'gemini_function_response') {
-                $functionResponse = [
-                    'name' => (string)($item['name'] ?? ''),
-                    'response' => is_array($item['response'] ?? null)
-                        ? $item['response']
-                        : ['result' => $item['response'] ?? null],
-                ];
-
-                $callId = trim((string)($item['call_id'] ?? ''));
-                if ($callId !== '') {
-                    $functionResponse['id'] = $callId;
-                }
-
-                $contents[] = [
-                    'role' => 'user',
-                    'parts' => [[
-                        'functionResponse' => $functionResponse,
-                    ]],
-                ];
             }
         }
+
+        $flushFunctionResponses();
 
         if (!$contents) {
             throw new RuntimeException('Gemini request has no conversation content.');
