@@ -15,6 +15,12 @@
     var messages = window.PMD_PLATFORM_MESSAGES || {};
     var busy = false;
     var observer = null;
+    var observerRaf = null;
+    var pendingMutations = [];
+    var fullRunTimer = null;
+    var fullRunCount = 0;
+    var observerFlushCount = 0;
+    var observerMutationCount = 0;
 
     var sourceToKey = {"Floor guide":"r3.floor_guide","Occupied / open order":"r3.occupied_open_order","Enabled Admin accounts for this restaurant location. Open a person to review their Admin-session and time-clock history for the selected date range.":"r3.report_admin_accounts_help","Total VAT collected / this month":"r3.total_vat_month","Gross to net":"r3.gross_to_net","Total loss (voids + refunds)":"r3.total_loss","Cash percent / Total payments":"r3.cash_percent","Open bills / unpaid tables":"r3.open_bills","Average bill settlement time":"r3.avg_settlement","Failed / declined transactions":"r3.failed_declined","Restaurant profile":"r3.restaurant_profile","Manage your restaurant details.":"r3.manage_restaurant","Customer menu theme":"r3.customer_menu_theme","Choose your digital menu theme.":"r3.choose_menu_theme","Devices":"r3.devices","Manage your connected devices.":"r3.manage_devices","Payments & finance":"r3.payments_finance","Set payments, tax and invoices.":"r3.set_payments_tax","Web site & social links":"r3.website_social","Shown to guests on your digital menu.":"r3.shown_guests_menu","Google / Maps":"r3.google_maps","Save changes":"r3.save_changes","TABLE QR":"r3.table_qr","Choose your QR design":"r3.choose_qr_design","Choose QR design":"r3.choose_qr_design_aria","Pick one of 10 print-ready designs. Your table link stays exactly the same.":"r3.qr_pick_design","Preparing 10 designs…":"r3.preparing_designs","Download this design":"r3.download_design","Choose design & download":"r3.choose_design_download","Choose from 10 branded restaurant templates before downloading.":"r3.choose_templates_help","preview":"r3.preview","QR code":"r3.qr_code","QR Code for":"r3.qr_code_for","Classic White":"r3.qr_classic_white","Midnight":"r3.qr_midnight","Emerald":"r3.qr_emerald","Warm Bistro":"r3.qr_warm_bistro","Ocean Blue":"r3.qr_ocean_blue","Maximum Scan":"r3.qr_max_scan","Gold Dining":"r3.qr_gold_dining","Coral Welcome":"r3.qr_coral_welcome","Table Tent":"r3.qr_table_tent","Botanical":"r3.qr_botanical","Clean, bright and easy to print.":"r3.qr_desc_classic","Premium dark table card.":"r3.qr_desc_midnight","Fresh PayMyDine green style.":"r3.qr_desc_emerald","Warm restaurant table presentation.":"r3.qr_desc_bistro","Modern blue hospitality card.":"r3.qr_desc_ocean","Black and white, no center overlay.":"r3.qr_desc_mono","Elegant dark and gold finish.":"r3.qr_desc_gold","Friendly and colourful.":"r3.qr_desc_coral","Bold header for counter or table stands.":"r3.qr_desc_tent","Soft natural restaurant style.":"r3.qr_desc_botanical","SCAN • ORDER • ENJOY":"r3.scan_order_enjoy","SCAN TO VIEW MENU":"r3.scan_menu","Point your camera at the QR code to open the menu":"r3.point_camera","Powered by":"r3.powered_by","Shifts":"r3.shifts","Previous day":"r3.previous_day","Next day":"r3.next_day","Add team member":"r3.add_member","Edit team member":"r3.edit_member","Edit member":"r3.edit_member_short","Choose date":"r3.choose_date","No team members yet":"r3.no_team","Team member":"r3.team_member","All day":"r3.all_day","Edit shift":"r3.edit_shift","Add shift":"r3.add_shift","click to edit":"r3.click_edit","click to edit/remove":"r3.click_edit_remove","Connected coverage":"r3.connected_coverage","editable shifts":"r3.editable_shifts","Visible in this card":"r3.visible_card","Already visible":"r3.already_visible","Show in this card":"r3.show_card","required for new login":"r3.required_new_login","leave blank to keep current password":"r3.keep_password","Notifications":"r3.notifications","Break (minutes)":"r3.break_minutes","Save shift":"r3.save_shift","Delete shift":"r3.delete_shift","Main Floor":"r3.main_floor","+ Member":"r3.add_member_short","Back":"r3.back","Shift actions":"r3.shift_actions","Shift KPIs":"r3.shift_kpis","Kitchen Operations update is not active on this restaurant yet.":"r3.kitchen_update_inactive","Run the latest PMD migration once. Existing restaurant data is not changed.":"r3.run_latest_migration","Scheduled today":"r3.scheduled_today","people across today’s shifts":"r3.people_today_shifts","Present now":"r3.present_now","confirmed for the active shift":"r3.confirmed_active_shift","confirm from Dashboard at shift start":"r3.confirm_dashboard_start","Missing now":"r3.missing_now","only known after team confirmation":"r3.known_after_confirmation","Month shifts":"r3.month_shifts","Scheduled days":"r3.scheduled_days","days with at least one planned shift":"r3.days_planned_shift","Active team":"r3.active_team","people available for shift planning":"r3.people_shift_planning","Kitchen":"r3.kitchen","Waiters":"r3.waiters","Cashier":"r3.cashier","Bar":"r3.bar","Other":"r3.other","hours":"r3.hours","planned shifts in":"r3.planned_shifts_in","shifts":"r3.shifts_count_word","scheduled days":"r3.scheduled_days_word","No enabled menu categories":"r3.no_enabled_menu_categories","No tables match this view.":"r3.no_tables_match"};
 
@@ -113,7 +119,7 @@
         }
 
         var monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-        var localeTag = locale === 'tr' ? 'tr-TR' : (locale === 'de' ? 'de-DE' : 'en-US');
+        var localeTag = locale === 'tr' ? 'tr-TR' : (locale === 'de' ? 'de-DE' : (locale === 'ar' ? 'ar-OM' : 'en-US'));
         document.querySelectorAll('.pmd-r2-kpi-v2401-title,.pmd-r2-kpi-v2401-description').forEach(function (node) {
             var value = String(node.textContent || '').replace(/\s+/g,' ').trim();
             var monthHours = value.match(/^([A-Za-z]+) hours$/);
@@ -221,6 +227,7 @@
         if (!document.body) return;
         if (busy) return;
         busy = true;
+        fullRunCount += 1;
         try {
             walk(document.body);
             patchShifts();
@@ -232,12 +239,10 @@
         }
     }
 
-    function startObserver() {
-        if (!document.body || observer) return;
-        observer = new MutationObserver(function () {
-            if (busy) return;
-            window.requestAnimationFrame(run);
-        });
+    // PMD_ADMIN_COVERAGE_INCREMENTAL_OBSERVER_R12
+    // Never turn a clock tick / text mutation into walk(document.body).
+    function observeBody() {
+        if (!observer || !document.body) return;
         observer.observe(document.body, {
             childList: true,
             subtree: true,
@@ -245,6 +250,73 @@
             attributes: true,
             attributeFilter: ['title','aria-label','placeholder','data-original-title','data-title']
         });
+    }
+
+    function flushObserverMutations() {
+        var mutations = pendingMutations.splice(0, pendingMutations.length);
+        var structuralChange = false;
+        observerRaf = null;
+
+        if (!mutations.length || busy || !document.body) return;
+
+        if (observer) observer.disconnect();
+        busy = true;
+        observerFlushCount += 1;
+
+        try {
+            mutations.forEach(function (mutation) {
+                if (mutation.type === 'characterData') {
+                    translateTextNode(mutation.target);
+                    return;
+                }
+
+                if (mutation.type === 'attributes') {
+                    translateAttributes(mutation.target);
+                    return;
+                }
+
+                if (mutation.type === 'childList') {
+                    if (mutation.addedNodes && mutation.addedNodes.length) {
+                        structuralChange = true;
+                        mutation.addedNodes.forEach(function (node) {
+                            walk(node);
+                        });
+                    }
+                }
+            });
+
+            if (structuralChange) {
+                patchShifts();
+                patchReports();
+                patchAnalyticsButtons();
+                patchMenuRecovery();
+            }
+        } finally {
+            busy = false;
+            observeBody();
+        }
+    }
+
+    function startObserver() {
+        if (!document.body || observer) return;
+        observer = new MutationObserver(function (mutations) {
+            if (busy || !mutations || !mutations.length) return;
+
+            observerMutationCount += mutations.length;
+            Array.prototype.push.apply(pendingMutations, mutations);
+
+            if (observerRaf !== null) return;
+            observerRaf = window.requestAnimationFrame(flushObserverMutations);
+        });
+        observeBody();
+    }
+
+    function requestRun(delay) {
+        if (fullRunTimer !== null) return;
+        fullRunTimer = window.setTimeout(function () {
+            fullRunTimer = null;
+            run();
+        }, Math.max(0, Number(delay || 0)));
     }
 
     // PMD_ADMIN_DYNAMIC_CATALOGUE_AUDIT_R4
@@ -298,14 +370,27 @@
         return {version:'4.0.0-dynamic', locale:locale, count:leftovers.length, leftovers:leftovers};
     }
 
-    window.PMDAdminCoverageR3 = {version:'3.1.0-clean', run:run, audit:audit};
+    window.PMDAdminCoverageR3 = {
+        version:'3.2.0-perf',
+        run:run,
+        audit:audit,
+        perf:function () {
+            return {
+                fullRunCount: fullRunCount,
+                observerFlushCount: observerFlushCount,
+                observerMutationCount: observerMutationCount,
+                pendingMutations: pendingMutations.length,
+                incrementalObserver: true
+            };
+        }
+    };
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', function () { run(); startObserver(); }, {once:true});
     } else {
         run(); startObserver();
     }
-    window.addEventListener('load', run, {once:true});
-    document.addEventListener('ajaxUpdateComplete', run, true);
-    document.addEventListener('ajaxPromiseDone', run, true);
+    window.addEventListener('load', function () { requestRun(0); }, {once:true});
+    document.addEventListener('ajaxUpdateComplete', function () { requestRun(40); }, true);
+    document.addEventListener('ajaxPromiseDone', function () { requestRun(40); }, true);
 })();
