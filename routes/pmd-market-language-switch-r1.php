@@ -1,6 +1,7 @@
 <?php
 
 use App\Services\Platform\CountryPlatformProfileRegistry;
+use Igniter\Flame\Setting\DatabaseSettingStore;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
@@ -53,6 +54,53 @@ App::before(function () {
                     ))));
                 };
 
+                $readSupportedDirect = static function ($db) use ($normalizeLocales): array {
+                    $columns = $db->getSchemaBuilder()->getColumnListing('settings');
+                    if (!in_array('item', $columns, true) || !in_array('value', $columns, true)) {
+                        return [];
+                    }
+
+                    $query = $db->table('settings');
+                    if (in_array('sort', $columns, true)) {
+                        $query->where('sort', 'config');
+                    }
+
+                    $rows = $query
+                        ->where(function ($inner) {
+                            $inner->where('item', 'supported_languages')
+                                ->orWhere('item', 'like', 'supported_languages.%');
+                        })
+                        ->orderBy('item')
+                        ->get(['item', 'value']);
+
+                    $resolved = [];
+                    foreach ($rows as $row) {
+                        $item = (string)($row->item ?? '');
+                        $value = $row->value ?? null;
+
+                        if ($item === 'supported_languages') {
+                            $resolved = $normalizeLocales($value);
+                            continue;
+                        }
+
+                        if (preg_match('/^supported_languages\.(\d+)$/', $item, $matches)) {
+                            $index = (int)$matches[1];
+                            $locale = strtolower(trim((string)$value));
+                            if ($locale !== '') {
+                                $resolved[$index] = $locale;
+                            }
+                        }
+                    }
+
+                    if (!$resolved) {
+                        return [];
+                    }
+
+                    ksort($resolved);
+
+                    return $normalizeLocales(array_values($resolved));
+                };
+
                 $requested = strtolower(trim((string)request()->input('code', '')));
                 $countryCode = strtoupper(trim((string)setting('pmd_market_country_code', 'DE')));
                 $profile = (new CountryPlatformProfileRegistry())->profile($countryCode);
@@ -90,12 +138,14 @@ App::before(function () {
 
                 $localization = app('translator.localization');
                 $localeResult = $localization->setLocale($requested, true);
+                $runtimeRepairUsed = false;
 
-                // PMD_MARKET_LANGUAGE_SWITCH_RUNTIME_REBIND_R3
-                // The tenant DB row and market profile are already authoritative
-                // above. If Flame still carries an earlier localization config,
-                // rebind it from this tenant's own settings and retry the SAME
-                // Localization::setLocale validation; never bypass isValid().
+                // PMD_MARKET_LANGUAGE_SWITCH_HTTP_CACHE_REBIND_R4
+                // If the request's tenant setting store is stale but the current
+                // tenant DB directly authorizes the requested locale, invalidate
+                // only this tenant's exact setting cache key inside the SAME HTTP
+                // runtime namespace, bind a fresh DatabaseSettingStore, and retry
+                // the normal Localization::setLocale validation. Never bypass it.
                 if ($localeResult === false) {
                     $settingSupportedBefore = $normalizeLocales(setting('supported_languages', []));
                     $configSupportedBefore = $normalizeLocales(Config::get('localization.supportedLocales', []));
@@ -104,6 +154,45 @@ App::before(function () {
                         : [];
 
                     $tenantAuthorizesRequested = in_array($requested, $settingSupportedBefore, true);
+                    $dbSupportedDirect = [];
+                    $dbAuthorizesRequested = false;
+                    $httpCacheRefreshAttempted = false;
+                    $httpCacheRefreshSupported = [];
+                    $cacheKey = 'igniter.setting.system.tenant.'.sha1(strtolower(trim($tenantDatabase)));
+
+                    if (!$tenantAuthorizesRequested) {
+                        $dbSupportedDirect = $readSupportedDirect($db);
+                        $dbAuthorizesRequested = in_array($requested, $dbSupportedDirect, true);
+
+                        if ($dbAuthorizesRequested) {
+                            $httpCacheRefreshAttempted = true;
+                            $cache = app('cache.store');
+                            $cache->forget($cacheKey);
+
+                            foreach (['system.setting', 'system.parameter', 'setting.manager'] as $abstract) {
+                                app()->forgetInstance($abstract);
+                            }
+
+                            $freshStore = new DatabaseSettingStore(app('db'), $cache);
+                            $freshStore->setCacheKey($cacheKey);
+                            $freshStore->setExtraColumns(['sort' => 'config']);
+                            app()->instance('system.setting', $freshStore);
+
+                            $httpCacheRefreshSupported = $normalizeLocales(
+                                $freshStore->get('supported_languages', [])
+                            );
+                            $tenantAuthorizesRequested = in_array(
+                                $requested,
+                                $httpCacheRefreshSupported,
+                                true
+                            );
+
+                            if ($tenantAuthorizesRequested) {
+                                $settingSupportedBefore = $httpCacheRefreshSupported;
+                                $runtimeRepairUsed = true;
+                            }
+                        }
+                    }
 
                     if ($tenantAuthorizesRequested) {
                         $defaultLocale = strtolower(trim((string)setting(
@@ -133,10 +222,12 @@ App::before(function () {
                     }
 
                     if ($localeResult === false) {
+                        $cacheStore = app('cache.store');
+
                         return response()->json([
                             'ok' => false,
                             'message' => 'Locale rejected by localization config.',
-                            'source' => 'market-language-r2-runtime-rebind-r3',
+                            'source' => 'market-language-r2-http-cache-rebind-r4',
                             'diagnostic' => [
                                 'host' => request()->getHost(),
                                 'requested_code' => $requested,
@@ -147,12 +238,21 @@ App::before(function () {
                                 'setting_supported_before' => $settingSupportedBefore,
                                 'config_supported_before' => $configSupportedBefore,
                                 'runtime_supported_before' => $runtimeSupportedBefore,
+                                'db_supported_direct' => $dbSupportedDirect,
+                                'db_authorizes_requested' => $dbAuthorizesRequested,
+                                'http_cache_refresh_attempted' => $httpCacheRefreshAttempted,
+                                'http_cache_refresh_supported' => $httpCacheRefreshSupported,
                                 'setting_supported_after' => $normalizeLocales(setting('supported_languages', [])),
                                 'config_supported_after' => $normalizeLocales(Config::get('localization.supportedLocales', [])),
                                 'runtime_supported_after' => method_exists($localization, 'supportedLocales')
                                     ? $normalizeLocales($localization->supportedLocales())
                                     : [],
                                 'tenant_authorizes_requested' => $tenantAuthorizesRequested,
+                                'cache_key' => $cacheKey,
+                                'cache_driver' => Config::get('cache.default'),
+                                'cache_store_class' => get_class($cacheStore->getStore()),
+                                'cache_file_path' => Config::get('cache.stores.file.path'),
+                                'cache_prefix' => Config::get('cache.prefix'),
                             ],
                         ], 409);
                     }
@@ -172,7 +272,8 @@ App::before(function () {
                     'locale' => $requested,
                     'name' => $language->name,
                     'market' => $countryCode,
-                    'source' => 'market-language-r2-runtime-rebind-r3',
+                    'runtime_repair_used' => $runtimeRepairUsed,
+                    'source' => 'market-language-r2-http-cache-rebind-r4',
                 ])->withCookie(cookie(
                     'pmd_admin_locale',
                     $requested,
