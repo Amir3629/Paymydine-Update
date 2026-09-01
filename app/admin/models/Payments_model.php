@@ -537,7 +537,25 @@ class Payments_model extends Model
 
     public static function supportedProvidersForMethod(string $methodCode): array
     {
-        return self::METHOD_PROVIDER_MATRIX[strtolower($methodCode)] ?? [];
+        $methodCode = strtolower(trim($methodCode));
+        $catalogue = self::METHOD_PROVIDER_MATRIX[$methodCode] ?? [];
+
+        if (empty($catalogue)) {
+            return [];
+        }
+
+        // Fail closed: the legacy compatibility matrix describes historical
+        // candidates, but an admin may only assign providers that the canonical
+        // capability registry marks implemented for this exact PMD method.
+        // This prevents catalogue/scaffold providers (notably Worldline during
+        // its sandbox-hardening phase) from becoming guest-offerable merely by
+        // selecting them in Payments & Finance.
+        $registry = new \App\Services\Payments\ProviderCapabilityRegistry();
+
+        return array_values(array_filter(
+            $catalogue,
+            fn (string $providerCode) => $registry->implementsPaymentMethod($providerCode, $methodCode)
+        ));
     }
 
     public function getSupportedProvidersAttribute($value): array
@@ -562,7 +580,7 @@ class Payments_model extends Model
         $items = array_values(array_filter(array_map(
             fn ($v) => strtolower(trim((string)$v)),
             is_array($value) ? $value : []
-        ), fn (string $v) => $v !== ''));
+        ), fn (string $v) => $v !== '')));
 
         $items = array_values(array_unique($items));
         $allowed = self::supportedProvidersForMethod((string)$this->code);
