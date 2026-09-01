@@ -296,7 +296,7 @@ final class GeminiGenerateContentProvider implements AiProvider
             if (($item['type'] ?? null) === 'gemini_model_content') {
                 $content = $item['content'] ?? null;
                 if (is_array($content)) {
-                    $contents[] = $content;
+                    $contents[] = $this->normalizeModelContentForReplay($content);
                 }
             }
         }
@@ -308,6 +308,38 @@ final class GeminiGenerateContentProvider implements AiProvider
         }
 
         return $contents;
+    }
+
+    private function normalizeModelContentForReplay(array $content): array
+    {
+        $parts = $content['parts'] ?? null;
+        if (!is_array($parts)) {
+            return $content;
+        }
+
+        foreach ($parts as $index => $part) {
+            if (!is_array($part)) {
+                continue;
+            }
+
+            $functionCall = $part['functionCall'] ?? null;
+            if (!is_array($functionCall)) {
+                continue;
+            }
+
+            // json_decode(..., true) cannot retain the distinction between
+            // an empty JSON object and an empty JSON array. Gemini function
+            // args are an object, so restore {} before replaying model history.
+            if (($functionCall['args'] ?? null) === []) {
+                $functionCall['args'] = (object)[];
+            }
+
+            $part['functionCall'] = $functionCall;
+            $parts[$index] = $part;
+        }
+
+        $content['parts'] = $parts;
+        return $content;
     }
 
     private function functionDeclarations(array $tools): array
