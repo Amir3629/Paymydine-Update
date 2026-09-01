@@ -6,6 +6,11 @@ use Admin\Controllers\Pmdreports;
 use Carbon\Carbon;
 use InvalidArgumentException;
 
+// Admin controllers are resolved by the TastyIgniter module loader rather than
+// Composer's App\ PSR-4 mapping. Load the canonical report controller explicitly
+// so this App service never depends on incidental controller-route autoloading.
+require_once base_path('app/admin/controllers/Pmdreports.php');
+
 /**
  * Thin, read-only bridge over PMD's existing Dashboard2/Pmdreports authority.
  *
