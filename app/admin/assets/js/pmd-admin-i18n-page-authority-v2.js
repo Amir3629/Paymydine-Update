@@ -176,7 +176,10 @@
             'en'
         ).toLowerCase();
 
-        return value.indexOf('de') === 0 ? 'de' : 'en';
+        // PMD_PAGE_AUTHORITY_TR_LOCALE_V1
+        if (value.indexOf('de') === 0) return 'de';
+        if (value.indexOf('tr') === 0) return 'tr';
+        return 'en';
     }
 
     function installCatalogueEntries() {
@@ -299,7 +302,19 @@
     }
 
     function translateValue(value) {
-        if (locale() === 'de') {
+        var activeLocale = locale();
+
+        if (activeLocale === 'tr') {
+            if (
+                window.PMDAdminI18n &&
+                typeof window.PMDAdminI18n.translate === 'function'
+            ) {
+                return window.PMDAdminI18n.translate(value);
+            }
+            return value;
+        }
+
+        if (activeLocale === 'de') {
             return normalizeGermanText(value);
         }
 
@@ -412,7 +427,7 @@
             installCatalogueEntries();
 
             if (
-                locale() === 'de' &&
+                locale() !== 'en' &&
                 window.PMDAdminI18n &&
                 typeof window.PMDAdminI18n.run === 'function'
             ) {

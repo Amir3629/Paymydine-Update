@@ -9,7 +9,8 @@
     'use strict';
 
     var pagePath = String((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : window.location.pathname) || '').replace(/\/+$/, '');
-    if (pagePath !== '/admin/pmdmenus') return;
+    // PMD_MENU_CLEAN_ALIAS_R3_CLEAN
+    if (pagePath !== '/admin/pmdmenus' && pagePath !== '/admin/menu') return;
 
     var state = null;
     var statePromise = null;

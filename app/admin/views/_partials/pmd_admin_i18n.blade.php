@@ -353,7 +353,8 @@
 <script
     src="/app/admin/assets/js/pmd-admin-i18n-v1.js?v={{ $pmdRuntimeVersion }}"
     defer
-></script>
+></script><!-- PMD_ADMIN_COVERAGE_R3_CLEAN_LOADER -->
+<script src="/app/admin/assets/js/pmd-admin-coverage-r3-v11b.js?v=20260831-r3-clean" defer></script>
 <!-- PMD_I18N_PAGE_AUTHORITY_CONTENT_VERSION_V3 -->
 <script src="/app/admin/assets/js/pmd-admin-i18n-page-authority-v2.js?v={{ $pmdPageAuthorityVersion }}"></script>
 

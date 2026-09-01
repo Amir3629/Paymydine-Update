@@ -20,7 +20,8 @@
     'use strict';
 
     var path = String((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : window.location.pathname) || '').replace(/\/+$/, '');
-    if (path !== '/admin/pmdmenus') return;
+    // PMD_MENU_CLEAN_ALIAS_R3_CLEAN
+    if (path !== '/admin/pmdmenus' && path !== '/admin/menu') return;
 
     var root = document.querySelector('[data-pmd-menu-manager]');
     if (!root) return;
@@ -45,6 +46,7 @@
         );
     }
 
+    // PMD_MENU_ROOT_ADOPTION_R3_CLEAN
     function requestCleanReload(reason) {
         if (reloadPending) return;
         reloadPending = true;
@@ -56,7 +58,46 @@
             );
         } catch (error) {}
 
-        window.location.reload();
+        var key = 'pmd.menu.runtime.reload.r3';
+        var now = Date.now();
+        var previous = 0;
+        try { previous = Number(sessionStorage.getItem(key) || 0); } catch (error) {}
+
+        // PMD_MENU_NO_RELOAD_R4
+        // Root replacement is an in-page lifecycle event. Reloading the whole
+        // document can create a tenant-specific reload loop, so always adopt
+        // the current server-rendered root instead.
+        try { sessionStorage.setItem(key, String(now)); } catch (error) {}
+
+        var liveRoot = currentRoot();
+        if (liveRoot) {
+            if (rootObserver) rootObserver.disconnect();
+            if (bodyObserver) bodyObserver.disconnect();
+            root = liveRoot;
+            initialRoot = liveRoot;
+            firstPaintReleased = false;
+            managerWaitStartedAt = Date.now();
+            reloadPending = false;
+            installRootReplacementGuard();
+            stabilize(liveRoot);
+            observeRuntime();
+            releaseFirstPaint('root-adopted-' + String(reason || 'refresh'));
+            try {
+                document.documentElement.setAttribute(
+                    'data-pmd-menu-runtime-reload-suppressed-r3',
+                    String(reason || 'refresh')
+                );
+            } catch (error) {}
+            return;
+        }
+
+        reloadPending = false;
+        try {
+            document.documentElement.setAttribute(
+                'data-pmd-menu-runtime-reload-suppressed-r3',
+                String(reason || 'refresh')
+            );
+        } catch (error) {}
     }
 
     function quarantineLegacyCategoryControls(scope) {
@@ -334,16 +375,18 @@
         );
     }
 
-    function currentLocaleIsGerman() {
-        var match = document.cookie.match(
-            /(?:^|; )pmd_admin_locale=([^;]+)/
-        );
-        var locale = String(
-            (match && match[1])
-            || document.documentElement.lang
-            || 'en'
-        ).toLowerCase();
-        return locale.indexOf('de') === 0;
+    // PMD_MENU_RUNTIME_CATALOGUE_COPY_R4_1
+    function platformMenuText(key, fallback) {
+        var runtime = window.PMDPlatformMessages;
+        if (runtime && typeof runtime.t === 'function') {
+            return runtime.t(key, {}, fallback || key);
+        }
+
+        var messages = window.PMD_PLATFORM_MESSAGES || {};
+        var value = messages[key];
+        return typeof value === 'string' && value.trim()
+            ? value
+            : (fallback || key);
     }
 
     function syncServerActionCardCopy(node) {
@@ -365,20 +408,18 @@
         var categoryLabel = category
             ? String(category.textContent || '').trim()
             : '';
-        var de = currentLocaleIsGerman();
-        var nextTitle = de
-            ? 'Neue Speise hinzufugen'
-            : 'Add new food item';
+        var nextTitle = platformMenuText(
+            'menu.smart.add_food',
+            'Add new food item'
+        );
         var nextHelp = categoryLabel
-            ? (
-                de
-                    ? 'Erstelle eine neue Speise in ' + categoryLabel + '.'
-                    : 'Create a new food item in ' + categoryLabel + '.'
-            )
-            : (
-                de
-                    ? 'Erstelle eine neue Speise.'
-                    : 'Create a new food item.'
+            ? platformMenuText(
+                'menu.smart.add_food_help_category',
+                'Create a new food item in {category}.'
+            ).replace('{category}', categoryLabel)
+            : platformMenuText(
+                'menu.smart.add_food_help',
+                'Create a new food item.'
             );
 
         if (title && title.textContent !== nextTitle) {
@@ -547,8 +588,11 @@
                 && replacement.matches
                 && replacement.matches('[data-pmd-menu-manager]')
             ) {
-                requestCleanReload('root-replace');
-                return;
+                var result = nativeReplaceWith.apply(this, args);
+                queueMicrotask(function () {
+                    requestCleanReload('root-replace');
+                });
+                return result;
             }
 
             return nativeReplaceWith.apply(this, args);

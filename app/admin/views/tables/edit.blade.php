@@ -444,8 +444,12 @@ $qr_code_url = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' 
         }
 
         $tableDisplayName = trim((string)($table_data->table_name ?? ''));
+        // PMD_TABLE_QR_SERVER_I18N_R3_CLEAN
         if ($tableDisplayName === '') {
-            $tableDisplayName = 'Table '.$tableNumber;
+            $tableDisplayName = \Admin\Classes\PmdPlatformI18n::fromEnglish(
+                'Table',
+                'shared.'
+            ).' '.$tableNumber;
         }
 
         echo '<div class="pmd-table-qr-studio-v1"'
@@ -455,12 +459,12 @@ $qr_code_url = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' 
             .' data-pmd-restaurant-logo="'.e($restaurantLogo).'"'
             .' data-pmd-table-name="'.e($tableDisplayName).'">';
         echo '<div class="pmd-table-qr-studio-v1__preview">';
-        echo '<img id="qr-code" src="'.e($qrDataUri).'" alt="QR Code for '.e($tableDisplayName).'" />';
+        echo '<img id="qr-code" src="'.e($qrDataUri).'" alt="'.e(\Admin\Classes\PmdPlatformI18n::fromEnglish('QR Code for', 'r3.')).' '.e($tableDisplayName).'" />';
         echo '</div>';
         echo '<div class="pmd-table-qr-studio-v1__actions">';
-        echo '<strong>'.e($tableDisplayName).' QR code</strong>';
-        echo '<span>Choose from 10 branded restaurant templates before downloading.</span>';
-        echo '<button type="button" class="pmd-table-qr-studio-v1__button" data-pmd-qr-template-open-v1>Choose design &amp; download</button>';
+        echo '<strong>'.e($tableDisplayName).' '.e(\Admin\Classes\PmdPlatformI18n::fromEnglish('QR code', 'r3.')).'</strong>';
+        echo '<span>'.e(\Admin\Classes\PmdPlatformI18n::fromEnglish('Choose from 10 branded restaurant templates before downloading.', 'r3.')).'</span>';
+        echo '<button type="button" class="pmd-table-qr-studio-v1__button" data-pmd-qr-template-open-v1>'.e(\Admin\Classes\PmdPlatformI18n::fromEnglish('Choose design & download', 'r3.')).'</button>';
         echo '</div>';
         echo '</div>';
 
@@ -480,13 +484,18 @@ $qr_code_url = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' 
     'use strict';
 
     const ROOT_SELECTOR = '[data-pmd-qr-template-studio-v1]';
-    const MODAL_ID = 'pmd-qr-template-modal-v1';
+    const MODAL_ID = 'pmd-qr-template-modal-v1';    // PMD_TABLE_QR_I18N_R3_CLEAN
+    const pmdQrMessages = window.PMD_PLATFORM_MESSAGES || {};
+    const pmdQrT = (key, fallback) => {
+        const value = pmdQrMessages[key];
+        return typeof value === 'string' && value.trim() ? value : fallback;
+    };
 
     const templates = [
         {
             id: 'classic',
-            name: 'Classic White',
-            description: 'Clean, bright and easy to print.',
+            name: pmdQrT('r3.qr_classic_white', 'Classic White'),
+            description: pmdQrT('r3.qr_desc_classic', 'Clean, bright and easy to print.'),
             background: '#eef4f8',
             panel: '#ffffff',
             text: '#12314f',
@@ -499,8 +508,8 @@ $qr_code_url = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' 
         },
         {
             id: 'midnight',
-            name: 'Midnight',
-            description: 'Premium dark table card.',
+            name: pmdQrT('r3.qr_midnight', 'Midnight'),
+            description: pmdQrT('r3.qr_desc_midnight', 'Premium dark table card.'),
             background: '#071b18',
             panel: '#0d2a25',
             text: '#ffffff',
@@ -513,8 +522,8 @@ $qr_code_url = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' 
         },
         {
             id: 'emerald',
-            name: 'Emerald',
-            description: 'Fresh PayMyDine green style.',
+            name: pmdQrT('r3.qr_emerald', 'Emerald'),
+            description: pmdQrT('r3.qr_desc_emerald', 'Fresh PayMyDine green style.'),
             background: '#e7f7ef',
             panel: '#ffffff',
             text: '#103d32',
@@ -527,8 +536,8 @@ $qr_code_url = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' 
         },
         {
             id: 'bistro',
-            name: 'Warm Bistro',
-            description: 'Warm restaurant table presentation.',
+            name: pmdQrT('r3.qr_warm_bistro', 'Warm Bistro'),
+            description: pmdQrT('r3.qr_desc_bistro', 'Warm restaurant table presentation.'),
             background: '#f8efe1',
             panel: '#fffaf2',
             text: '#4b2b27',
@@ -541,8 +550,8 @@ $qr_code_url = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' 
         },
         {
             id: 'ocean',
-            name: 'Ocean Blue',
-            description: 'Modern blue hospitality card.',
+            name: pmdQrT('r3.qr_ocean_blue', 'Ocean Blue'),
+            description: pmdQrT('r3.qr_desc_ocean', 'Modern blue hospitality card.'),
             background: '#e8f3ff',
             panel: '#ffffff',
             text: '#173a63',
@@ -555,8 +564,8 @@ $qr_code_url = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' 
         },
         {
             id: 'mono',
-            name: 'Maximum Scan',
-            description: 'Black and white, no center overlay.',
+            name: pmdQrT('r3.qr_max_scan', 'Maximum Scan'),
+            description: pmdQrT('r3.qr_desc_mono', 'Black and white, no center overlay.'),
             background: '#ffffff',
             panel: '#ffffff',
             text: '#111111',
@@ -569,8 +578,8 @@ $qr_code_url = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' 
         },
         {
             id: 'gold',
-            name: 'Gold Dining',
-            description: 'Elegant dark and gold finish.',
+            name: pmdQrT('r3.qr_gold_dining', 'Gold Dining'),
+            description: pmdQrT('r3.qr_desc_gold', 'Elegant dark and gold finish.'),
             background: '#171714',
             panel: '#22221d',
             text: '#fff8e3',
@@ -583,8 +592,8 @@ $qr_code_url = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' 
         },
         {
             id: 'coral',
-            name: 'Coral Welcome',
-            description: 'Friendly and colourful.',
+            name: pmdQrT('r3.qr_coral_welcome', 'Coral Welcome'),
+            description: pmdQrT('r3.qr_desc_coral', 'Friendly and colourful.'),
             background: '#fff0eb',
             panel: '#fffaf8',
             text: '#502f31',
@@ -597,8 +606,8 @@ $qr_code_url = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' 
         },
         {
             id: 'tent',
-            name: 'Table Tent',
-            description: 'Bold header for counter or table stands.',
+            name: pmdQrT('r3.qr_table_tent', 'Table Tent'),
+            description: pmdQrT('r3.qr_desc_tent', 'Bold header for counter or table stands.'),
             background: '#eaf0f5',
             panel: '#ffffff',
             text: '#15324d',
@@ -611,8 +620,8 @@ $qr_code_url = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' 
         },
         {
             id: 'botanical',
-            name: 'Botanical',
-            description: 'Soft natural restaurant style.',
+            name: pmdQrT('r3.qr_botanical', 'Botanical'),
+            description: pmdQrT('r3.qr_desc_botanical', 'Soft natural restaurant style.'),
             background: '#f0f3e9',
             panel: '#fbfcf7',
             text: '#31432f',
@@ -803,7 +812,7 @@ $qr_code_url = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' 
         ctx.fillText(data.restaurantName, textX, logoY + logoSize * .48);
         ctx.fillStyle = mutedColor;
         ctx.font = `600 ${w * .019}px Arial, Helvetica, sans-serif`;
-        ctx.fillText('SCAN • ORDER • ENJOY', textX, logoY + logoSize * .78);
+        ctx.fillText(pmdQrT('r3.scan_order_enjoy', 'SCAN • ORDER • ENJOY'), textX, logoY + logoSize * .78);
 
         const qrSize = w * .57;
         const qrX = (w - qrSize) / 2;
@@ -813,7 +822,7 @@ $qr_code_url = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' 
         ctx.textAlign = 'center';
         ctx.fillStyle = config.accent;
         ctx.font = `800 ${w * .024}px Arial, Helvetica, sans-serif`;
-        ctx.fillText('SCAN TO VIEW MENU', w / 2, qrY - h * .035);
+        ctx.fillText(pmdQrT('r3.scan_menu', 'SCAN TO VIEW MENU'), w / 2, qrY - h * .035);
 
         ctx.save();
         ctx.shadowColor = config.decor === 'mono' ? 'transparent' : 'rgba(15,28,40,.12)';
@@ -845,12 +854,12 @@ $qr_code_url = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' 
 
         ctx.fillStyle = config.muted;
         ctx.font = `500 ${w * .021}px Arial, Helvetica, sans-serif`;
-        ctx.fillText('Point your camera at the QR code to open the menu', w / 2, tableY + h * .045);
+        ctx.fillText(pmdQrT('r3.point_camera', 'Point your camera at the QR code to open the menu'), w / 2, tableY + h * .045);
 
         const footerY = panelY + panelH - h * .065;
         ctx.fillStyle = config.muted;
         ctx.font = `600 ${w * .018}px Arial, Helvetica, sans-serif`;
-        ctx.fillText('Powered by', w / 2, footerY - h * .018);
+        ctx.fillText(pmdQrT('r3.powered_by', 'Powered by'), w / 2, footerY - h * .018);
         ctx.fillStyle = config.text;
         ctx.font = `800 ${w * .027}px Arial, Helvetica, sans-serif`;
         ctx.fillText('PayMyDine', w / 2, footerY + h * .018);
@@ -890,7 +899,7 @@ $qr_code_url = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' 
         modal.className = 'pmd-qr-template-modal-v1';
         modal.setAttribute('role', 'dialog');
         modal.setAttribute('aria-modal', 'true');
-        modal.setAttribute('aria-label', 'Choose QR design');
+        modal.setAttribute('aria-label', pmdQrT('r3.choose_qr_design_aria', 'Choose QR design'));
 
         const dialog = document.createElement('div');
         dialog.className = 'pmd-qr-template-dialog-v1';
@@ -898,7 +907,7 @@ $qr_code_url = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' 
 
         const header = document.createElement('div');
         header.className = 'pmd-qr-template-header-v1';
-        header.innerHTML = '<div><span class="pmd-qr-template-kicker-v1">TABLE QR</span><h2>Choose your QR design</h2><p>Pick one of 10 print-ready designs. Your table link stays exactly the same.</p></div>';
+        header.innerHTML = '<div><span class="pmd-qr-template-kicker-v1">' + pmdQrT('r3.table_qr', 'TABLE QR') + '</span><h2>' + pmdQrT('r3.choose_qr_design', 'Choose your QR design') + '</h2><p>' + pmdQrT('r3.qr_pick_design', 'Pick one of 10 print-ready designs. Your table link stays exactly the same.') + '</p></div>';
         const close = makeButton('×', 'pmd-qr-template-close-v1');
         close.setAttribute('aria-label', 'Close');
         header.appendChild(close);
@@ -910,7 +919,7 @@ $qr_code_url = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' 
 
         const loading = document.createElement('div');
         loading.className = 'pmd-qr-template-loading-v1';
-        loading.textContent = 'Preparing 10 designs…';
+        loading.textContent = pmdQrT('r3.preparing_designs', 'Preparing 10 designs…');
         grid.appendChild(loading);
 
         function closeModal() {
@@ -948,7 +957,7 @@ $qr_code_url = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' 
                 const canvas = document.createElement('canvas');
                 canvas.width = 300;
                 canvas.height = 400;
-                canvas.setAttribute('aria-label', `${template.name} preview`);
+                canvas.setAttribute('aria-label', `${template.name} ${pmdQrT('r3.preview', 'preview')}`);
                 previewWrap.appendChild(canvas);
                 card.appendChild(previewWrap);
 
@@ -957,7 +966,7 @@ $qr_code_url = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' 
                 info.innerHTML = `<div class="pmd-qr-template-number-v1">${String(index + 1).padStart(2, '0')}</div><div><h3>${template.name}</h3><p>${template.description}</p></div>`;
                 card.appendChild(info);
 
-                const download = makeButton('Download this design', 'pmd-qr-template-download-v1');
+                const download = makeButton(pmdQrT('r3.download_design', 'Download this design'), 'pmd-qr-template-download-v1');
                 card.appendChild(download);
 
                 drawTemplate(canvas, template, data, assets);

@@ -19,7 +19,7 @@ html body #pmd-frontend-settings .pmd-frontend-header h1 {
 }
 
 html body #pmd-frontend-settings .pmd-frontend-header h1::before {
-  content: "Customer menu theme" !important;
+  content: attr(data-pmd-r8-theme-title) !important; /* PMD_R8_CUSTOMER_MENU_TITLE_CANONICAL */
   display: inline !important;
   color: #17231f !important;
   font-size: 22px !important;

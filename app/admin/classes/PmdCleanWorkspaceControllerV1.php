@@ -1471,11 +1471,14 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
             ''
         )));
 
-        if (preg_match('/^(en|de)(?:[-_][a-z0-9]+)?$/i', $adminLocale, $match)) {
+        // PMD_CLEAN_WORKSPACE_TR_LOCALE_V1
+        if (preg_match('/^(en|de|tr)(?:[-_][a-z0-9]+)?$/i', $adminLocale, $match)) {
             $locale = strtolower($match[1]);
         } else {
-            $locale = strtolower(trim((string)$locale));
-            $locale = strpos($locale, 'de') === 0 ? 'de' : 'en';
+            $locale = \Admin\Classes\PmdPlatformI18n::normalizeLocale($locale);
+            if (!in_array($locale, ['en', 'de', 'tr'], true)) {
+                $locale = 'en';
+            }
         }
 
         app()->setLocale($locale);
@@ -1611,6 +1614,16 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
             $kpiCards = $shared->ownerKpiCards($locale);
         }
 
+        // Turkish server-first cards reuse the canonical platform catalogue.
+        // Existing DE/EN rendering remains byte-for-byte on its old path.
+        if ($locale === 'tr') {
+            $kpiCards = \Admin\Classes\PmdPlatformI18n::translateStructure(
+                $kpiCards,
+                '',
+                'tr'
+            );
+        }
+
         $cookieName = 'pmd_'.$key.'_lab_kpis';
         $selection = $shared->readSelection(
             $cookieName,
@@ -1655,6 +1668,24 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
             'already_visible' => $shared->text('Already visible', 'Bereits sichtbar', $locale),
             'show_here' => $shared->text('Show in this card', 'In dieser Karte anzeigen', $locale),
         ];
+
+        if ($locale === 'tr') {
+            $this->vars['pmdCleanWorkspaceKpiAriaLabel'] =
+                \Admin\Classes\PmdPlatformI18n::fromEnglish(
+                    (string)$this->vars['pmdCleanWorkspaceKpiAriaLabel'],
+                    '',
+                    [],
+                    'tr',
+                    (string)$this->vars['pmdCleanWorkspaceKpiAriaLabel']
+                );
+
+            $this->vars['pmdCleanWorkspaceText'] =
+                \Admin\Classes\PmdPlatformI18n::translateStructure(
+                    $this->vars['pmdCleanWorkspaceText'],
+                    '',
+                    'tr'
+                );
+        }
 
         $this->vars['pmdCleanWorkspaceUsesFloor'] = $this->pmdUsesFloor();
         $this->vars['pmdCleanWorkspaceAfterFloorPartial'] = $this->pmdAfterFloorPartial();
@@ -1946,7 +1977,23 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
         ];
 
         $title = $titles[$key] ?? [ucfirst($key), ucfirst($key)];
-        return $locale === 'de' ? $title[1] : $title[0];
+        $english = (string)$title[0];
+
+        if ($locale === 'de') {
+            return (string)$title[1];
+        }
+
+        if ($locale === 'tr') {
+            return \Admin\Classes\PmdPlatformI18n::fromEnglish(
+                $english,
+                '',
+                [],
+                'tr',
+                $english
+            );
+        }
+
+        return $english;
     }
 
     private function applyMenuContext(): void

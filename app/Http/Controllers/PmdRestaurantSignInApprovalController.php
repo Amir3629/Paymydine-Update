@@ -8,6 +8,7 @@ use App\Services\PmdRestaurantApprovalPresenceService;
 use App\Services\PmdSiteAccessQrService;
 use App\Services\PmdSiteAccessService;
 use App\Services\PmdSiteAccessSessionBindingService;
+use App\Services\PmdTrustedLoginDeviceService;
 use App\Services\PmdWorkplaceCodeService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -189,6 +190,35 @@ class PmdRestaurantSignInApprovalController
 
         // A Cashier can approve only from a trusted restaurant browser.
         if ($role === PmdDefaultStaffRoleService::CASHIER) return null;
+
+        // PMD_RESTAURANT_SIGNIN_TRUSTED_LOGIN_AUTHORITY_V1
+        //
+        // A persistent PMD trusted-login device is created only after a
+        // genuine second-factor success and is cryptographically scoped to
+        // this exact browser + user + restaurant location.
+        //
+        // Allow that already-trusted Owner/Manager browser to act as the
+        // restaurant sign-in approval authority without requiring a second,
+        // unrelated site_hub cookie.
+        if (in_array($role, [
+            PmdDefaultStaffRoleService::OWNER,
+            PmdDefaultStaffRoleService::MANAGER,
+        ], true)) {
+            $trustedLogin = app(PmdTrustedLoginDeviceService::class)
+                ->current($request, $identity);
+
+            if ($trustedLogin) {
+                return [
+                    'site' => $site,
+                    'identity' => $identity,
+                    'role' => $role,
+                    'method' => $role === PmdDefaultStaffRoleService::OWNER
+                        ? 'owner_trusted_login_device'
+                        : 'manager_trusted_login_device',
+                    'device_id' => (int)$trustedLogin->id,
+                ];
+            }
+        }
 
         $bound = app(PmdSiteAccessSessionBindingService::class)
             ->isBoundToCurrentUser();

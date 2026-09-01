@@ -48,6 +48,8 @@ class SuperAdminTenantLifecycleService
         'pmd_site_access_events',
         'pmd_site_access_recovery_codes',
         'pmd_owner_mfa',
+        'pmd_portal_mfa',
+        'pmd_portal_mfa_recovery_codes',
 
         // Reservations / floor / service activity
         'reservations',
@@ -295,19 +297,37 @@ class SuperAdminTenantLifecycleService
         $siteMigration = base_path(
             'app/system/database/migrations/2026_08_30_103000_create_pmd_site_access_tables.php'
         );
+        $trustedUserMigration = base_path(
+            'app/system/database/migrations/2026_08_31_010000_add_user_id_to_pmd_site_access_devices.php'
+        );
         $ownerMigration = base_path(
             'app/system/database/migrations/2026_08_30_123000_create_pmd_owner_mfa_table.php'
         );
+        // PMD_NEW_TENANT_PORTAL_MFA_SCHEMA_V1
+        $portalMigration = base_path(
+            'app/system/database/migrations/2026_09_01_000000_create_pmd_portal_mfa_table.php'
+        );
+        if (!is_file($portalMigration)) {
+            throw new \RuntimeException('Portal MFA migration file is missing.');
+        }
 
-        if (!is_file($siteMigration) || !is_file($ownerMigration)) {
+        if (
+            !is_file($siteMigration)
+            || !is_file($trustedUserMigration)
+            || !is_file($ownerMigration)
+        ) {
             throw new \RuntimeException('Workplace security migration files are missing.');
         }
 
         require_once $siteMigration;
+        require_once $trustedUserMigration;
         require_once $ownerMigration;
+        require_once $portalMigration;
 
         (new \System\Database\Migrations\CreatePmdSiteAccessTables())->up();
+        (new \System\Database\Migrations\AddUserIdToPmdSiteAccessDevices())->up();
         (new \System\Database\Migrations\CreatePmdOwnerMfaTable())->up();
+        (new \System\Database\Migrations\CreatePmdPortalMfaTable())->up();
 
         foreach ([
             'pmd_site_access_devices',
@@ -315,10 +335,23 @@ class SuperAdminTenantLifecycleService
             'pmd_site_access_events',
             'pmd_site_access_recovery_codes',
             'pmd_owner_mfa',
+            'pmd_portal_mfa',
+            'pmd_portal_mfa_recovery_codes',
         ] as $table) {
             if (!Schema::connection('mysql')->hasTable($table)) {
                 throw new \RuntimeException('New tenant security schema missing table: '.$table);
             }
+        }
+
+        if (
+            !Schema::connection('mysql')->hasColumn(
+                'pmd_site_access_devices',
+                'user_id'
+            )
+        ) {
+            throw new \RuntimeException(
+                'New tenant trusted-login schema missing user_id.'
+            );
         }
     }
 

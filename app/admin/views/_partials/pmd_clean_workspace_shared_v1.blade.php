@@ -54,9 +54,23 @@
         || $pmdCleanWorkspaceManagerCalendarSurface;
 
     $pmdCleanWorkspaceDirectFloorSurface = $pmdCleanWorkspaceReservationsSurface || $pmdCleanWorkspaceCashierSurface;
-    $pmdCleanWorkspaceAddReservationLabel = strtolower((string)($pmdCleanWorkspaceLocale ?? 'en')) === 'de'
+
+    // PMD_CLEAN_WORKSPACE_TR_MARKET_SWITCH_R2A
+    $pmdCleanWorkspaceUiLocale = \Admin\Classes\PmdPlatformI18n::normalizeLocale(
+        (string)($pmdCleanWorkspaceLocale ?? app()->getLocale())
+    );
+    $pmdCleanWorkspaceT = static function (string $source) use ($pmdCleanWorkspaceUiLocale): string {
+        return \Admin\Classes\PmdPlatformI18n::fromEnglish(
+            $source,
+            '',
+            [],
+            $pmdCleanWorkspaceUiLocale,
+            $source
+        );
+    };
+    $pmdCleanWorkspaceAddReservationLabel = $pmdCleanWorkspaceUiLocale === 'de'
         ? 'Reservierung hinzufügen'
-        : 'Add reservation';
+        : $pmdCleanWorkspaceT('Add reservation');
     $pmdCleanWorkspaceCreateDate = \Carbon\Carbon::now('Europe/Berlin')->toDateString();
 
     /* PMD_ROLE_AWARE_CLEAN_WORKSPACE_CHROME_V1
@@ -101,10 +115,62 @@
         ['reservations', 'cashier', 'accountant'],
         true
     ) && !$pmdCleanWorkspaceRoleUsesSideMenu;
-    $pmdCleanWorkspaceHeaderLocale = strtolower((string)($pmdCleanWorkspaceLocale ?? 'en'));
-    $pmdCleanWorkspaceHeaderLocale = $pmdCleanWorkspaceHeaderLocale === 'de' ? 'de' : 'en';
-    $pmdCleanWorkspaceHeaderNextLocale = $pmdCleanWorkspaceHeaderLocale === 'de' ? 'en' : 'de';
-    $pmdCleanWorkspaceLanguageEndpoint = url(config('system.adminUri', 'admin').'/_pmd/language-switch-v3');
+    $pmdCleanWorkspaceHeaderLocale = $pmdCleanWorkspaceUiLocale;
+    $pmdCleanWorkspaceHeaderEligibleLocales = [];
+
+    try {
+        $pmdCleanWorkspaceHeaderCountry = strtoupper(trim((string)setting(
+            'pmd_market_country_code',
+            'DE'
+        )));
+        $pmdCleanWorkspaceHeaderProfile =
+            (new \App\Services\Platform\CountryPlatformProfileRegistry())
+                ->profile($pmdCleanWorkspaceHeaderCountry);
+
+        foreach ((array)($pmdCleanWorkspaceHeaderProfile['languages']['eligible'] ?? []) as $code) {
+            $code = strtolower(trim((string)$code));
+            if (
+                $code !== ''
+                && in_array($code, \Admin\Classes\PmdPlatformI18n::availableLocales(), true)
+            ) {
+                $pmdCleanWorkspaceHeaderEligibleLocales[] = $code;
+            }
+        }
+        $pmdCleanWorkspaceHeaderEligibleLocales = array_values(array_unique(
+            $pmdCleanWorkspaceHeaderEligibleLocales
+        ));
+    } catch (\Throwable $pmdCleanWorkspaceHeaderLanguageError) {
+        $pmdCleanWorkspaceHeaderEligibleLocales = [];
+    }
+
+    if (!$pmdCleanWorkspaceHeaderEligibleLocales) {
+        $pmdCleanWorkspaceHeaderEligibleLocales = [$pmdCleanWorkspaceHeaderLocale];
+    }
+    if (!in_array($pmdCleanWorkspaceHeaderLocale, $pmdCleanWorkspaceHeaderEligibleLocales, true)) {
+        array_unshift($pmdCleanWorkspaceHeaderEligibleLocales, $pmdCleanWorkspaceHeaderLocale);
+        $pmdCleanWorkspaceHeaderEligibleLocales = array_values(array_unique(
+            $pmdCleanWorkspaceHeaderEligibleLocales
+        ));
+    }
+
+    $pmdCleanWorkspaceHeaderLocaleIndex = array_search(
+        $pmdCleanWorkspaceHeaderLocale,
+        $pmdCleanWorkspaceHeaderEligibleLocales,
+        true
+    );
+    $pmdCleanWorkspaceHeaderLocaleIndex = $pmdCleanWorkspaceHeaderLocaleIndex === false
+        ? 0
+        : (int)$pmdCleanWorkspaceHeaderLocaleIndex;
+
+    $pmdCleanWorkspaceHeaderNextLocale = count($pmdCleanWorkspaceHeaderEligibleLocales) > 1
+        ? $pmdCleanWorkspaceHeaderEligibleLocales[
+            ($pmdCleanWorkspaceHeaderLocaleIndex + 1) % count($pmdCleanWorkspaceHeaderEligibleLocales)
+        ]
+        : $pmdCleanWorkspaceHeaderLocale;
+
+    $pmdCleanWorkspaceLanguageEndpoint = url(
+        config('system.adminUri', 'admin').'/_pmd/market-language-switch-r2'
+    );
     $pmdCleanWorkspaceText = $pmdCleanWorkspaceText ?? [
         'choose_kpi' => 'Choose KPI',
         'visible' => 'Visible in this card',
@@ -546,8 +612,8 @@ html body.page.pmd-clean-workspace-page #pmd-dashboard-lab {
                     class="pmd-dashboard-lab__header-action pmd-clean-workspace__language"
                     data-endpoint="{{ $pmdCleanWorkspaceLanguageEndpoint }}"
                     data-next="{{ $pmdCleanWorkspaceHeaderNextLocale }}"
-                    aria-label="Switch language to {{ strtoupper($pmdCleanWorkspaceHeaderNextLocale) }}"
-                    title="Switch language to {{ strtoupper($pmdCleanWorkspaceHeaderNextLocale) }}">
+                    aria-label="{{ $pmdCleanWorkspaceT('Change language') }}: {{ strtoupper($pmdCleanWorkspaceHeaderNextLocale) }}"
+                    title="{{ $pmdCleanWorkspaceT('Change language') }}: {{ strtoupper($pmdCleanWorkspaceHeaderNextLocale) }}">
                     <svg viewBox="0 0 24 24" aria-hidden="true">
                         <circle cx="12" cy="12" r="9"></circle><path d="M3 12h18"></path>
                         <path d="M12 3a15 15 0 0 1 0 18"></path><path d="M12 3a15 15 0 0 0 0 18"></path>
@@ -1334,7 +1400,7 @@ html.pmd-clean-workspace-standalone-v3 #pmd-r2-clean-header .pmd-clean-workspace
 <script id="pmd-clean-workspace-language-runtime-v3">
 (function(){'use strict';var b=document.getElementById('pmd-clean-workspace-language-v3');if(!b||b.dataset.ready==='1')return;b.dataset.ready='1';
 function token(){var m=document.querySelector('meta[name="csrf-token"]');if(m&&m.content)return m.content;var i=document.querySelector('input[name="_token"]');return i?i.value:''}
-b.addEventListener('click',async function(e){e.preventDefault();if(b.disabled)return;var endpoint=b.getAttribute('data-endpoint');var next=String(b.getAttribute('data-next')||'').toLowerCase();if(!endpoint||(next!=='en'&&next!=='de'))return;b.disabled=true;try{var body=new URLSearchParams();body.set('code',next);var tok=token();if(tok)body.set('_token',tok);var h={'Accept':'application/json','Content-Type':'application/x-www-form-urlencoded; charset=UTF-8','X-Requested-With':'XMLHttpRequest'};if(tok)h['X-CSRF-TOKEN']=tok;var r=await fetch(endpoint,{method:'POST',credentials:'same-origin',cache:'no-store',headers:h,body:body.toString()});var d={};try{d=await r.json()}catch(ignore){}if(!r.ok||d.ok!==true)throw new Error(d.message||('Language switch failed: HTTP '+r.status));window.location.href=(window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : window.location.pathname)+window.location.search+window.location.hash}catch(err){b.disabled=false;console.error('[PMD Clean Language]',err)}},false);
+b.addEventListener('click',async function(e){e.preventDefault();if(b.disabled)return;var endpoint=b.getAttribute('data-endpoint');var next=String(b.getAttribute('data-next')||'').toLowerCase();if(!endpoint||(next!=='en'&&next!=='de'&&next!=='tr'))return;b.disabled=true;try{var body=new URLSearchParams();body.set('code',next);var tok=token();if(tok)body.set('_token',tok);var h={'Accept':'application/json','Content-Type':'application/x-www-form-urlencoded; charset=UTF-8','X-Requested-With':'XMLHttpRequest'};if(tok)h['X-CSRF-TOKEN']=tok;var r=await fetch(endpoint,{method:'POST',credentials:'same-origin',cache:'no-store',headers:h,body:body.toString()});var d={};try{d=await r.json()}catch(ignore){}if(!r.ok||d.ok!==true)throw new Error(d.message||('Language switch failed: HTTP '+r.status));window.location.href=(window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : window.location.pathname)+window.location.search+window.location.hash}catch(err){b.disabled=false;console.error('[PMD Clean Language]',err)}},false);
 })();
 </script>
 @endif

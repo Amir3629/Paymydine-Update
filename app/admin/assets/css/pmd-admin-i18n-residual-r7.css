@@ -1,0 +1,78 @@
+/* PMD_ADMIN_I18N_RESIDUAL_R7
+ * Retire legacy CSS-generated English copy and expose the already-localized
+ * real DOM text. This is deliberately presentation-only: no restaurant data.
+ */
+
+/* Restaurant profile helper copy: show the real localized DOM text. */
+#pmd-restaurant-profile .pmd-profile-logo-help-r19 {
+  font-size: 12.5px !important;
+  line-height: 1.45 !important;
+}
+#pmd-restaurant-profile .pmd-profile-logo-help-r19::after {
+  content: none !important;
+  display: none !important;
+}
+
+/* R4 first-paint English pseudo-copy is retired. R5/R6 and the canonical
+ * runtime already localize the underlying text nodes. */
+#pmd-restaurant-profile .pmd-profile-section--blue .pmd-profile-card__header p,
+#pmd-restaurant-profile .pmd-profile-section--cyan .pmd-profile-card__header p,
+#pmd-frontend-settings .pmd-frontend-header__left p,
+#pmd-frontend-settings .pmd-frontend-form > .pmd-frontend-section:first-child .pmd-frontend-card__header p,
+#pmd-team-access #pmd-team-members-section .pmd-team-card__header p,
+#pmd-team-access #pmd-team-roles-section .pmd-team-card__header p,
+#pmd-devices-page #hardware-overview .pmd-owner-card__title p,
+#pmd-devices-page #pos-devices .pmd-owner-card__title p,
+#pmd-devices-page #payment-terminals .pmd-owner-card__title p,
+#pmd-devices-page #kds .pmd-owner-card__title p,
+#pmd-devices-page #cash-drawers .pmd-owner-card__title p,
+#pmd-devices-page #biometric .pmd-owner-card__title p,
+#pmd-devices-page #device-configuration .pmd-owner-card__title p,
+#pmd-finance-page #payment-methods .pmd-owner-card__title p,
+#pmd-finance-page #tax-invoicing .pmd-owner-card__title p,
+#pmd-finance-page #fiskaly .pmd-owner-card__title p {
+  font-size: 12.5px !important;
+  line-height: 1.45 !important;
+  font-weight: 400 !important;
+}
+
+#pmd-restaurant-profile .pmd-profile-section--blue .pmd-profile-card__header p::after,
+#pmd-restaurant-profile .pmd-profile-section--cyan .pmd-profile-card__header p::after,
+#pmd-frontend-settings .pmd-frontend-header__left p::after,
+#pmd-frontend-settings .pmd-frontend-form > .pmd-frontend-section:first-child .pmd-frontend-card__header p::after,
+#pmd-team-access #pmd-team-members-section .pmd-team-card__header p::after,
+#pmd-team-access #pmd-team-roles-section .pmd-team-card__header p::after,
+#pmd-devices-page #hardware-overview .pmd-owner-card__title p::after,
+#pmd-devices-page #pos-devices .pmd-owner-card__title p::after,
+#pmd-devices-page #payment-terminals .pmd-owner-card__title p::after,
+#pmd-devices-page #kds .pmd-owner-card__title p::after,
+#pmd-devices-page #cash-drawers .pmd-owner-card__title p::after,
+#pmd-devices-page #biometric .pmd-owner-card__title p::after,
+#pmd-devices-page #device-configuration .pmd-owner-card__title p::after,
+#pmd-finance-page #payment-methods .pmd-owner-card__title p::after,
+#pmd-finance-page #tax-invoicing .pmd-owner-card__title p::after,
+#pmd-finance-page #fiskaly .pmd-owner-card__title p::after {
+  content: none !important;
+  display: none !important;
+  visibility: hidden !important;
+}
+
+/* R11 hides the real localized heading and paints English with ::before.
+ * Restore the actual heading and remove both pseudo-label authorities. */
+html body #pmd-frontend-settings .pmd-frontend-header h1 {
+  font-size: 22px !important;
+  line-height: 1.15 !important;
+  color: #17231f !important;
+}
+html body #pmd-frontend-settings .pmd-frontend-header h1::before,
+html body #pmd-frontend-settings .pmd-frontend-header h1::after {
+  content: none !important;
+  display: none !important;
+  visibility: hidden !important;
+}
+
+@media (max-width: 760px) {
+  html body #pmd-frontend-settings .pmd-frontend-header h1 {
+    font-size: 19px !important;
+  }
+}

@@ -97,7 +97,7 @@ html body #pmd-frontend-settings .pmd-frontend-header h1 {
 }
 
 html body #pmd-frontend-settings .pmd-frontend-header h1::after {
-  content: "Customer menu theme" !important;
+  content: attr(data-pmd-r8-theme-title) !important; /* PMD_R8_CUSTOMER_MENU_PSEUDO_CANONICAL */
   display: inline !important;
   color: #17231f !important;
   font-size: 22px !important;
@@ -114,7 +114,7 @@ html body #pmd-frontend-settings .pmd-frontend-header__left p {
 }
 
 html body #pmd-frontend-settings .pmd-frontend-header__left p::after {
-  content: "Choose the look of your digital menu." !important;
+  content: attr(data-pmd-r8-choose-look) !important; /* PMD_R8_CUSTOMER_MENU_PSEUDO_CANONICAL */
   display: inline !important;
   color: #718078 !important;
   font-size: 13px !important;
@@ -278,7 +278,7 @@ html body #pmd-frontend-settings
 html body #pmd-frontend-settings
 .pmd-frontend-form > .pmd-frontend-section:first-of-type
 .pmd-frontend-card__header p::after {
-  content: "Choose a theme for your digital menu." !important;
+  content: attr(data-pmd-r8-choose-theme) !important; /* PMD_R8_CUSTOMER_MENU_PSEUDO_CANONICAL */
   display: inline !important;
   color: #718078 !important;
   font-size: 13px !important;

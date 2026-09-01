@@ -7,6 +7,7 @@ use Admin\Facades\Template;
 use Admin\Models\Staffs_model;
 use Admin\Models\Users_model;
 use Admin\Services\PmdDefaultStaffRoleService;
+use Admin\Traits\HandlesPortalMfa;
 use Admin\Traits\ValidatesForm;
 use App\Services\PmdOwnerTotpService;
 use App\Services\PmdSiteAccessQrService;
@@ -23,6 +24,7 @@ use Illuminate\Support\Facades\Mail;
 class Login extends \Admin\Classes\AdminController
 {
     use ValidatesForm;
+    use HandlesPortalMfa;
 
     private const PMD_OWNER_SECURITY_SESSION = 'pmd_login_owner_security_v1';
     private const PORTAL_SUFFIX = 'portal';
@@ -38,6 +40,9 @@ class Login extends \Admin\Classes\AdminController
             'onLogin',
             'onOwnerMfaConfirm',
             'onOwnerMfaVerify',
+            'onPortalMfaConfirm',
+            'onPortalMfaVerify',
+            'onPortalMfaRecover',
             'onRequestResetPassword',
             'onResetPassword',
         ]);
@@ -46,6 +51,13 @@ class Login extends \Admin\Classes\AdminController
     public function index()
     {
         if (AdminAuth::isLogged()) {
+            // PMD_PORTAL_PERSONAL_MFA_LOGIN_INTEGRATION_V1
+            $portalMfa = $this->pmdPortalMfaIndexResponse();
+            if ($portalMfa) {
+                Template::setTitle('Staff Portal Security - PayMyDine');
+                return $portalMfa;
+            }
+
             if (session()->has(self::PMD_OWNER_SECURITY_SESSION)) {
                 $security = $this->pmdOwnerSecurityViewState();
                 if ($security) {
@@ -199,6 +211,26 @@ class Login extends \Admin\Classes\AdminController
                 'user_id' => (int)optional(AdminAuth::getUser())->getKey(),
                 'message' => $error->getMessage(),
             ]);
+        }
+
+        // PMD_PORTAL_PERSONAL_MFA_DESTINATION_V1
+        // username + "portal" always uses the person's own Authenticator.
+        // Never create or wait for a Workplace/Admin approval challenge here.
+        if ($destination === 'staff') {
+            try {
+                $this->pmdBeginPortalMfa();
+                return redirect(admin_url('login'));
+            } catch (ValidationException $error) {
+                throw $error;
+            } catch (\Throwable $error) {
+                logger()->error('PMD Portal MFA start failed', [
+                    'user_id' => (int)optional(AdminAuth::getUser())->getKey(),
+                    'message' => $error->getMessage(),
+                ]);
+                $this->pmdAbortBootstrapLogin(
+                    'Portal security is temporarily unavailable. Try again shortly.'
+                );
+            }
         }
 
         // PMD_TRUSTED_PASSWORD_POST_RESUME_V3

@@ -1,6 +1,7 @@
 @php
-  $pmdComposerFeatureLocale = strtolower((string)app()->getLocale());
-  $pmdComposerFeatureGerman = strpos($pmdComposerFeatureLocale, 'de') === 0;
+  // PMD_RESERVATION_COMPOSER_TR_FEATURES_R2A
+  $pmdComposerFeatureLocale = \Admin\Classes\PmdPlatformI18n::normalizeLocale(app()->getLocale());
+  $pmdComposerFeatureGerman = $pmdComposerFeatureLocale === 'de';
   $pmdComposerFeatureText = $pmdComposerFeatureGerman ? [
     'title' => 'Tischwünsche',
     'near_window' => 'Am Fenster',
@@ -14,6 +15,14 @@
     'accessible' => 'Accessible',
     'use_suggestion' => 'Use suggestion',
   ];
+
+  if ($pmdComposerFeatureLocale === 'tr') {
+    $pmdComposerFeatureText = \Admin\Classes\PmdPlatformI18n::translateStructure(
+      $pmdComposerFeatureText,
+      '',
+      'tr'
+    );
+  }
 @endphp
 <div class="modal fade pmd-reservation-composer-v1" id="pmd-reservation-composer-v1" tabindex="-1" aria-labelledby="pmd-reservation-composer-title-v1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-xl" id="pmd-reservation-composer-dialog-v1">

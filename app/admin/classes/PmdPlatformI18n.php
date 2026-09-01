@@ -135,7 +135,30 @@ final class PmdPlatformI18n
             $sourceIndexes[$prefix] = $index;
         }
         $key = $sourceIndexes[$prefix][$value] ?? null;
-        if (!$key) return $fallback ?? $value;
+
+        // PMD_PLATFORM_I18N_LITERAL_FALLBACK_V1
+        // Old server-first PMD surfaces may still emit stable English copy
+        // that does not yet have a canonical EN key. Locale-owned literal::*
+        // entries are the compatibility bridge; wording still lives only in
+        // the locale catalogue, never in the server view/controller.
+        if (!$key) {
+            $resolvedLocale = self::normalizeLocale(
+                $locale ?? self::currentLocale()
+            );
+            $literalKey = 'literal::'.$value;
+
+            if (array_key_exists($literalKey, self::messages($resolvedLocale))) {
+                return self::translate(
+                    $literalKey,
+                    $replace,
+                    $resolvedLocale,
+                    $fallback ?? $value
+                );
+            }
+
+            return $fallback ?? $value;
+        }
+
         return self::translate($key, $replace, $locale, $fallback ?? $value);
     }
 

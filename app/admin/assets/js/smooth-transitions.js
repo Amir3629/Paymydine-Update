@@ -217,6 +217,9 @@ class SmoothPageTransitions {
         const noAjaxPages = [
             '/admin/dashboard',
             '/admin/shifts',
+            // PMD_MENU_FULL_DOCUMENT_NAV_R4_1
+            '/admin/menu',
+            '/admin/pmdmenus',
             '/admin',
             'dashboard',
             '/orders',

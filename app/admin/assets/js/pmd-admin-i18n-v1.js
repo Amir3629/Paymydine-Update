@@ -402,6 +402,86 @@
         });
     }
 
+    // PMD_ADMIN_I18N_VISIBLE_AUDIT_R2A
+    function auditVisible() {
+        var leftovers = [];
+        var seen = Object.create(null);
+        var attributes = [
+            'placeholder',
+            'title',
+            'aria-label',
+            'data-original-title',
+            'data-title'
+        ];
+
+        if (!document.body || locale === 'en') {
+            return { locale: locale, count: 0, skippedCount: 0, leftovers: [] };
+        }
+
+        function isVisible(element) {
+            if (!element || element.nodeType !== Node.ELEMENT_NODE) return false;
+            var style = window.getComputedStyle(element);
+            if (style.display === 'none' || style.visibility === 'hidden') return false;
+            var rect = element.getBoundingClientRect();
+            return rect.width > 0 && rect.height > 0;
+        }
+
+        function record(kind, source, translated, element) {
+            source = normalize(source);
+            translated = normalize(translated);
+            if (!source || !translated || source === translated) return;
+            var key = kind + '|' + source + '|' + translated;
+            if (seen[key]) return;
+            seen[key] = true;
+            leftovers.push({
+                kind: kind,
+                source: source,
+                expected: translated,
+                skipped: shouldSkip(element),
+                tag: element && element.tagName ? element.tagName : '',
+                id: element && element.id ? element.id : '',
+                className: element && element.className
+                    ? String(element.className).slice(0, 160)
+                    : ''
+            });
+        }
+
+        Array.prototype.forEach.call(
+            document.querySelectorAll('body *'),
+            function (element) {
+                if (!isVisible(element)) return;
+
+                if (element.children.length === 0) {
+                    var text = normalize(element.textContent || '');
+                    var translated = lookup(text);
+                    if (translated !== text) {
+                        record('text', text, translated, element);
+                    }
+                }
+
+                attributes.forEach(function (attribute) {
+                    if (!element.hasAttribute(attribute)) return;
+                    var value = normalize(element.getAttribute(attribute) || '');
+                    var translated = lookup(value);
+                    if (translated !== value) {
+                        record(attribute, value, translated, element);
+                    }
+                });
+            }
+        );
+
+        return {
+            version: VERSION,
+            locale: locale,
+            route: window.location.pathname,
+            count: leftovers.length,
+            skippedCount: leftovers.filter(function (item) {
+                return item.skipped;
+            }).length,
+            leftovers: leftovers.slice(0, 300)
+        };
+    }
+
     addCanonicalEntries();
     addLegacyGermanEntries();
 
@@ -411,7 +491,8 @@
         entries: function () { return Object.keys(normalized).length; },
         translate: lookup,
         run: run,
-        reveal: reveal
+        reveal: reveal,
+        auditVisible: auditVisible
     };
 
     if (locale === 'en') {

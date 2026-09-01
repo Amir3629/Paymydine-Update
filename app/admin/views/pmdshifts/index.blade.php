@@ -216,23 +216,16 @@
 <div id="pmd-shifts" class="pmd-shifts" data-pmd-shifts-root>
     <header class="pmd-shifts__header">
         <div class="pmd-shifts__header-left">
-            <a class="pmd-shifts__icon-button" href="{{ admin_url('dashboard') }}" aria-label="Back">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg>
-            </a>
             <div>
                 <h1>Shifts</h1>
             </div>
         </div>
+        <!-- PMD_SHIFTS_HEADER_NOTIFICATION_ONLY_V6 -->
         <div class="pmd-shifts__header-actions" aria-label="Shift actions">
             {{-- PMD_SHIFTS_REAL_NOTIFICATION_V1: render the shared functional notification dropdown here. --}}
             <ul class="pmd-shifts__notification-slot" data-pmd-shifts-notification-slot aria-label="Notifications">
                 @include('admin::_partials.notification_bell')
             </ul>
-            @if($ready)
-                <button type="button" class="pmd-shifts__header-icon is-primary" data-pmd-shift-open data-date="{{ $selectedDay->toDateString() }}" aria-label="Add shift" title="Add shift">
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
-                </button>
-            @endif
         </div>
     </header>
 
@@ -306,6 +299,7 @@
                     <div><h2 id="pmd-shift-modal-title" data-pmd-shift-modal-title>Add shift</h2></div>
                     <button type="button" class="pmd-shifts__modal-close" data-pmd-shift-close aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
                 </header>
+                {{-- PMD_SHIFTS_OPTIONAL_LABEL_V17 --}}
                 <form class="pmd-shifts__modal-form" method="post" action="{{ admin_url('shifts/saveshift') }}" data-pmd-shift-form>
                     @csrf
                     <input type="hidden" name="id" value="" data-pmd-shift-id>
@@ -317,7 +311,7 @@
                         </div>
                         <div class="pmd-shifts__form-grid">
                             <label><span>Date</span><input required type="date" name="shift_date" value="{{ $selectedDay->toDateString() }}" data-pmd-shift-date-input></label>
-                            <label><span>Shift name</span><input required maxlength="64" name="label" value="Dinner" data-pmd-shift-label></label>
+                            <label><span>Shift name</span><input maxlength="64" name="label" value="" data-pmd-shift-label placeholder="Optional"></label>
                             <label><span>Start</span><input type="time" name="starts_at" data-pmd-shift-start></label>
                             <label><span>End</span><input type="time" name="ends_at" data-pmd-shift-end></label>
                             <label><span>Pause (min)</span><input type="number" name="break_minutes" min="0" max="240" step="5" value="30" data-pmd-shift-break></label>

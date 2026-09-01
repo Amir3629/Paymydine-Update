@@ -11,6 +11,7 @@ use Admin\Models\Staffs_model;
 use Admin\Services\PmdDefaultStaffRoleService;
 use App\Services\PmdKitchenOperationsSchemaService;
 use App\Services\PmdOperationalRosterReconciler;
+use App\Services\PmdShiftPlannerRuleService;
 use App\Services\PmdKitchenWorkforceService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -34,11 +35,27 @@ class Shifts extends AdminController
         parent::__construct();
         // PMD_SHIFTS_DEDICATED_SHELL_V14
         $this->bodyClass = trim(($this->bodyClass ?? '').' pmd-shifts-page');
-        $this->addCss('css/pmd-shifts-v1.css');
+        $this->addCss('css/pmd-shifts-v1-6c3f93c60040.css');
         // PMD_SHIFTS_FINGERPRINTED_ASSETS_V1
-        $this->addCss('css/pmd-shifts-canonical-92a6ad0051a5.css');
-        $this->addCss('css/pmd-shifts-first-paint-v15.css');
-        $this->addJs('js/pmd-shifts-canonical-b4d2e55c5e6d.js');
+        $this->addCss('css/pmd-shifts-canonical-994df35118a2.css');
+        // PMD_SHIFTS_TOOLBAR_GRID_ALIGNMENT_V12
+        $this->addCss('css/pmd-shifts-toolbar-grid-v12.css');
+        // PMD_SHIFTS_ENDPOINT_LABEL_CENTER_V12B
+        $this->addCss('css/pmd-shifts-endpoint-labels-v12b.css');
+        // PMD_SHIFTS_ENDPOINT_LABEL_INWARD_V12C
+        $this->addCss('css/pmd-shifts-endpoint-labels-v12c.css');
+        // PMD_SHIFTS_INPAGE_DAY_NAV_V13
+        $this->addCss('css/pmd-shifts-big-calendar-v14.css');
+        // PMD_SHIFTS_PLANNER_RULES_V17
+        $this->addCss('css/pmd-shifts-planner-v17.css');
+        // PMD_SHIFTS_PLANNER_UX_V15
+        $this->addCss('css/pmd-shifts-planner-ux-v15.css');
+        $this->addJs('js/pmd-shifts-inpage-day-nav-v17.js');
+        // PMD_SHIFTS_BIG_CALENDAR_V14
+        $this->addJs('js/pmd-shifts-big-calendar-v14.js');
+        $this->addJs('js/pmd-shifts-planner-v17.js');
+        // PMD_SHIFTS_PORTAL_MFA_RESET_ASSET_V1
+        $this->addJs('js/pmd-shifts-portal-mfa-reset-v1.js');
         AdminMenu::setContext('dashboard');
     }
 
@@ -413,7 +430,7 @@ class Shifts extends AdminController
         $validator = Validator::make($input, [
             'id' => ['nullable', 'integer', 'min:1'],
             'shift_date' => ['required', 'date'],
-            'label' => ['required', 'string', 'max:64'],
+            'label' => ['nullable', 'string', 'max:64'],
             'starts_at' => ['nullable', 'date_format:H:i'],
             'ends_at' => ['nullable', 'date_format:H:i'],
             'notes' => ['nullable', 'string', 'max:2000'],
@@ -439,7 +456,7 @@ class Shifts extends AdminController
             $values = [
                 'location_id' => $locationId,
                 'shift_date' => $shiftDate,
-                'label' => trim((string)$clean['label']) ?: 'Shift',
+                'label' => trim((string)($clean['label'] ?? '')),
                 'starts_at' => !empty($clean['starts_at']) ? $clean['starts_at'].':00' : null,
                 'ends_at' => !empty($clean['ends_at']) ? $clean['ends_at'].':00' : null,
                 'status' => 'planned',
@@ -452,7 +469,11 @@ class Shifts extends AdminController
                 $values['notes'] = trim((string)($clean['notes'] ?? '')) ?: null;
             }
             if (Schema::hasColumn('pmd_operational_shifts', 'break_minutes')) {
-                $values['break_minutes'] = max(0, min(240, (int)($clean['break_minutes'] ?? 30)));
+                $values['break_minutes'] = app(PmdShiftPlannerRuleService::class)->normalizeBreakMinutes(
+                    !empty($clean['starts_at']) ? (string)$clean['starts_at'] : null,
+                    !empty($clean['ends_at']) ? (string)$clean['ends_at'] : null,
+                    (int)($clean['break_minutes'] ?? 0)
+                );
             }
 
             if ($id > 0) {
@@ -492,6 +513,27 @@ class Shifts extends AdminController
                     ];
                 }
                 if ($rows) DB::table('pmd_operational_shift_people')->insert($rows);
+            }
+
+            // PMD_SHIFTS_PERSON_OVERLAP_UNION_V17
+            // Quick-create/new one-person shifts extend the existing personal
+            // coverage range instead of drawing stacked overlapping bars.
+            // Explicit Edit Shift (id > 0) remains a direct edit operation.
+            if (
+                $id < 1
+                && count($personIds) === 1
+                && !empty($clean['starts_at'])
+                && !empty($clean['ends_at'])
+            ) {
+                $personMerge = app(PmdShiftPlannerRuleService::class)->mergeSinglePersonCreate(
+                    $locationId,
+                    $shiftDate,
+                    $shiftId,
+                    (int)$personIds[0]
+                );
+                if (!empty($personMerge['merged'])) {
+                    $message = 'Existing shift extended. Team confirmation is required again.';
+                }
             }
 
             $merged = $this->coalesceShiftRange(
@@ -879,6 +921,195 @@ class Shifts extends AdminController
         $back = trim((string)request()->input('return_to', ''));
         if ($back !== '' && str_starts_with($back, '/admin/')) return redirect($back)->with('success', 'Kitchen timing settings saved.');
         return redirect(admin_url('shifts'))->with('success', 'Kitchen timing settings saved.');
+    }
+
+    /** PMD_SHIFTS_PORTAL_MFA_EMERGENCY_RESET_V1 */
+    public function portalmfastatus()
+    {
+        $this->assertOwnerOrManager();
+
+        $context = $this->portalMfaResetContext(
+            max(0, (int)request()->query('person_id', 0))
+        );
+        if (!$context) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'This member does not have a Portal login in this restaurant.',
+            ], 404)->header('Cache-Control', 'no-store');
+        }
+
+        $portal = app(\App\Services\PmdPortalTotpService::class);
+        $ready = $portal->ensureReady();
+        $hasPortalMfa = $ready
+            && $portal->enabled((int)$context['target_user_id']);
+
+        $message = (string)$context['message'];
+        if ($context['can_reset']) {
+            $message = $hasPortalMfa
+                ? 'Emergency reset is available. The old phone and all Portal recovery codes will be revoked.'
+                : 'No active Portal Authenticator is enrolled for this member.';
+        }
+
+        return response()->json([
+            'ok' => true,
+            'can_reset' => (bool)$context['can_reset'],
+            'has_portal_mfa' => (bool)$hasPortalMfa,
+            'target_name' => (string)$context['target_name'],
+            'target_role' => (string)$context['target_role'],
+            'message' => $message,
+        ])->header('Cache-Control', 'no-store');
+    }
+
+    public function resetportalmfa()
+    {
+        $this->assertOwnerOrManager();
+        if (!request()->isMethod('post')) abort(405);
+
+        $context = $this->portalMfaResetContext(
+            max(0, (int)request()->input('person_id', 0))
+        );
+        if (!$context) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'This member does not have a Portal login in this restaurant.',
+            ], 404)->header('Cache-Control', 'no-store');
+        }
+
+        if (!$context['can_reset']) {
+            $this->auditPortalMfaEmergencyReset($context, false, [
+                'reason' => (string)$context['message'],
+            ]);
+            return response()->json([
+                'ok' => false,
+                'message' => (string)$context['message'],
+            ], 403)->header('Cache-Control', 'no-store');
+        }
+
+        $portal = app(\App\Services\PmdPortalTotpService::class);
+        if (!$portal->ensureReady()) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Portal Authenticator storage is unavailable.',
+            ], 503)->header('Cache-Control', 'no-store');
+        }
+
+        $targetUserId = (int)$context['target_user_id'];
+        $hadActiveFactor = $portal->enabled($targetUserId);
+        if (!$portal->resetUser($targetUserId)) {
+            $this->auditPortalMfaEmergencyReset($context, false, [
+                'reason' => 'reset_service_failed',
+            ]);
+            return response()->json([
+                'ok' => false,
+                'message' => 'Portal Authenticator reset failed.',
+            ], 500)->header('Cache-Control', 'no-store');
+        }
+
+        $this->auditPortalMfaEmergencyReset($context, true, [
+            'had_active_factor' => $hadActiveFactor,
+        ]);
+
+        $message = $hadActiveFactor
+            ? 'Portal Authenticator reset for '.$context['target_name'].'. The old phone and all recovery codes are revoked. Their next usernameportal login must scan a NEW QR.'
+            : $context['target_name'].' does not currently have an active Portal Authenticator.';
+
+        return response()->json([
+            'ok' => true,
+            'message' => $message,
+        ])->header('Cache-Control', 'no-store');
+    }
+
+    private function portalMfaResetContext(int $personId): ?array
+    {
+        if ($personId < 1) return null;
+
+        $locationId = $this->locationId();
+        $person = DB::table('pmd_operational_people')
+            ->where('id', $personId)
+            ->where('location_id', $locationId)
+            ->where('is_active', 1)
+            ->first();
+        if (!$person || empty($person->staff_id)) return null;
+
+        $staff = Staffs_model::with(['role', 'user'])
+            ->find((int)$person->staff_id);
+        if (!$staff || !$staff->user) return null;
+
+        $roles = app(PmdDefaultStaffRoleService::class);
+        $actorUser = AdminAuth::getUser();
+        $actorRole = $roles->roleCodeForUser($actorUser);
+        $targetRole = $roles->roleCodeForUser($staff->user);
+        $actorUserId = $actorUser ? (int)$actorUser->getKey() : 0;
+        $targetUserId = (int)$staff->user->getKey();
+
+        $canReset = false;
+        $message = 'You cannot reset this Portal Authenticator.';
+
+        if ($targetRole === PmdDefaultStaffRoleService::OWNER) {
+            $message = 'Owner Portal Authenticator can only be reset by PayMyDine Support after identity verification.';
+        } elseif ($actorUserId > 0 && $actorUserId === $targetUserId) {
+            $message = $actorRole === PmdDefaultStaffRoleService::OWNER
+                ? 'Owner self-reset is disabled. Contact PayMyDine Support.'
+                : 'You cannot emergency-reset your own Portal Authenticator from Shifts.';
+        } elseif ($actorRole === PmdDefaultStaffRoleService::OWNER) {
+            $canReset = true;
+            $message = 'Owner emergency reset is allowed for this member.';
+        } elseif ($actorRole === PmdDefaultStaffRoleService::MANAGER) {
+            if ($targetRole === PmdDefaultStaffRoleService::MANAGER) {
+                $message = 'Only the Owner can reset a Manager Portal Authenticator.';
+            } else {
+                $canReset = true;
+                $message = 'Manager emergency reset is allowed for this staff member.';
+            }
+        }
+
+        return [
+            'location_id' => $locationId,
+            'person_id' => (int)$person->id,
+            'target_staff_id' => (int)$staff->staff_id,
+            'target_user_id' => $targetUserId,
+            'target_name' => trim((string)($person->display_name ?: $staff->staff_name)) ?: 'Staff member',
+            'target_role' => (string)$targetRole,
+            'actor_user_id' => $actorUserId,
+            'actor_role' => (string)$actorRole,
+            'can_reset' => $canReset,
+            'message' => $message,
+        ];
+    }
+
+    private function auditPortalMfaEmergencyReset(array $context, bool $success, array $extra = []): void
+    {
+        $metadata = array_merge([
+            'surface' => 'shifts_member_modal',
+            'actor_role' => (string)($context['actor_role'] ?? ''),
+            'target_user_id' => (int)($context['target_user_id'] ?? 0),
+            'target_staff_id' => (int)($context['target_staff_id'] ?? 0),
+            'target_person_id' => (int)($context['person_id'] ?? 0),
+            'target_role' => (string)($context['target_role'] ?? ''),
+            'target_name' => (string)($context['target_name'] ?? ''),
+        ], $extra);
+
+        try {
+            $site = app(\App\Services\PmdSiteAccessService::class);
+            $identity = $site->identity();
+            $site->audit(
+                'portal_mfa_emergency_reset',
+                $success,
+                $identity,
+                null,
+                null,
+                request(),
+                $metadata
+            );
+        } catch (\Throwable $error) {
+            logger()->warning('PMD Portal MFA emergency reset audit failed', [
+                'message' => $error->getMessage(),
+            ]);
+        }
+
+        logger()->info('PMD Portal MFA emergency reset', array_merge($metadata, [
+            'success' => $success,
+        ]));
     }
 
     private function assertOwnerOrManager(): void

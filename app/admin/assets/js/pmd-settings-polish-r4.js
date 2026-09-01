@@ -4,7 +4,30 @@
 
   var path = String((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : window.location.pathname) || '').replace(/\/+$/, '');
 
+  // PMD_SETTINGS_POLISH_CATALOGUE_I18N_R4
+  function localized(value) {
+    var clean = String(value == null ? '' : value);
+
+    if (window.PMDAdminI18n && typeof window.PMDAdminI18n.translate === 'function') {
+      var translated = window.PMDAdminI18n.translate(clean);
+      if (translated && translated !== clean) return translated;
+    }
+
+    var current = window.PMD_PLATFORM_MESSAGES || {};
+    var english = window.PMD_PLATFORM_MESSAGES_ENGLISH || {};
+    var keys = Object.keys(english);
+    for (var i = 0; i < keys.length; i += 1) {
+      var key = keys[i];
+      if (english[key] === clean && typeof current[key] === 'string' && current[key].trim()) {
+        return current[key];
+      }
+    }
+
+    return clean;
+  }
+
   function text(node, value) {
+    value = localized(value);
     if (node && String(node.textContent || '') !== value) {
       node.textContent = value;
     }
@@ -45,12 +68,13 @@
       return;
     }
 
-    if (path === '/admin/pmddevices') {
+    // PMD_SETTINGS_DEVICES_CLEAN_ALIAS_R4
+    if (path === '/admin/pmddevices' || path === '/admin/settings/devices') {
       root = document.getElementById('pmd-devices-page');
       if (!root) return;
 
       [
-        ['#hardware-overview', 'See your connected devices in one place.'],
+        ['#hardware-overview', 'Payment terminals, kitchen displays and cash drawers.'],
         ['#pos-devices', 'POS screens used by your team.'],
         ['#payment-terminals', 'Card readers connected to PayMyDine.'],
         ['#kds', 'Kitchen screens for your orders.'],
@@ -102,13 +126,13 @@
     function showRemoved() {
       label.classList.add('is-pmd-remove-selected-r4');
       preview.setAttribute('data-pmd-logo-remove-pending-r4', '1');
-      preview.innerHTML = '<span class="pmd-profile-logo-empty-r19">No restaurant logo selected</span>';
+      preview.innerHTML = '<span class="pmd-profile-logo-empty-r19">' + localized('No restaurant logo selected') + '</span>';
     }
 
     function restoreOriginal() {
       label.classList.remove('is-pmd-remove-selected-r4');
       preview.removeAttribute('data-pmd-logo-remove-pending-r4');
-      preview.innerHTML = preview.__pmdOriginalLogoR4 || '<span class="pmd-profile-logo-empty-r19">No restaurant logo selected</span>';
+      preview.innerHTML = preview.__pmdOriginalLogoR4 || '<span class="pmd-profile-logo-empty-r19">' + localized('No restaurant logo selected') + '</span>';
     }
 
     function sync() {
@@ -154,7 +178,7 @@
 
         var image = document.createElement('img');
         image.src = objectUrl;
-        image.alt = 'Selected restaurant logo preview';
+        image.alt = localized('Selected restaurant logo preview');
         image.addEventListener('load', function () {
           try { window.URL.revokeObjectURL(objectUrl); } catch (error) {}
         }, {once: true});
@@ -179,4 +203,10 @@
 
   document.addEventListener('pageContentLoaded', boot, false);
   window.addEventListener('pageshow', boot, false);
+
+  // PMD_SETTINGS_POLISH_LATE_I18N_R4_1
+  // Global assets may execute before the platform message catalogue is ready.
+  // Re-run catalogue-driven copy after the full page lifecycle settles.
+  window.addEventListener('load', boot, {once: true});
+  window.setTimeout(boot, 250);
 })();

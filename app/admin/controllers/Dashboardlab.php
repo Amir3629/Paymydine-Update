@@ -294,13 +294,15 @@ class Dashboardlab extends AdminController
             $pmdDashboardCalendarLocale =
                 strtolower((string)app()->getLocale());
 
+            // PMD_DASHBOARD_CALENDAR_TR_LOCALE_V1
             $pmdDashboardCalendarLocale =
-                str_starts_with(
-                    $pmdDashboardCalendarLocale,
-                    'de'
-                )
-                    ? 'de'
-                    : 'en';
+                \Admin\Classes\PmdPlatformI18n::normalizeLocale(
+                    $pmdDashboardCalendarLocale
+                );
+
+            if (!in_array($pmdDashboardCalendarLocale, ['en', 'de', 'tr'], true)) {
+                $pmdDashboardCalendarLocale = 'en';
+            }
 
             $this->vars['pmdReservationsLabSchedule'] =
                 app(

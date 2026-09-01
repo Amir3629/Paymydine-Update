@@ -79,6 +79,29 @@
 
     $pmdServerDate = $selectedDay->toDateString();
 
+    // PMD_SHIFTS_DATE_LOCALE_SERVER_V7
+    // PMD_SHIFTS_DATE_LOCALE_PIN_SERVER_V8B
+    // Use the same cookie authority as the global Admin i18n boot layer so
+    // first paint and later JS navigation can never disagree on language.
+    $pmdServerLocale = strtolower(trim((string)request()->cookie(
+        'pmd_admin_locale',
+        app()->getLocale()
+    )));
+    if (!in_array($pmdServerLocale, ['en', 'de', 'tr'], true)) {
+        $pmdServerLocale = 'en';
+    }
+
+    $pmdServerDateForLabel = clone $selectedDay;
+    $pmdServerDateForLabel->locale($pmdServerLocale);
+
+    if ($pmdServerLocale === 'de') {
+        $pmdServerDateLabel = $pmdServerDateForLabel->translatedFormat('l, j. F Y');
+    } elseif ($pmdServerLocale === 'tr') {
+        $pmdServerDateLabel = $pmdServerDateForLabel->translatedFormat('j F Y l');
+    } else {
+        $pmdServerDateLabel = $pmdServerDateForLabel->translatedFormat('l, F j, Y');
+    }
+
     $pmdServerDayShifts = $bootShifts
         ->filter(
             fn($shift) =>
@@ -127,10 +150,39 @@
 @endphp
 
 
+
+<style id="pmd-shifts-date-visible-lock-v9">
+  /* PMD_SHIFTS_DATE_VISIBLE_LOCK_SERVER_V9 */
+  /* PMD_SHIFTS_DATE_VISIBLE_DEDUP_V10 */
+  /*
+   * Legacy Admin coverage code can still assign heading.textContent after
+   * Shifts has rendered. Keep that mutable text in the DOM for compatibility,
+   * but make it zero-size. The only visible label is the server-pinned
+   * data-pmd-fixed-date value rendered by ::after.
+   */
+  /* PMD_SHIFTS_DATE_VISIBLE_SPECIFICITY_V11B */
+  body.pmd-shifts-page .pmd-shifts-final-date h2[data-pmd-shifts-date-label] {
+    font-size:0!important;
+    line-height:0!important;
+    color:transparent!important;
+    text-shadow:none!important;
+    white-space:nowrap!important;
+  }
+  body.pmd-shifts-page .pmd-shifts-final-date h2[data-pmd-shifts-date-label]::after {
+    content:attr(data-pmd-fixed-date)!important;
+    display:inline-block!important;
+    color:#102a43!important;
+    font-size:20px!important;
+    line-height:1.25!important;
+    white-space:nowrap!important;
+  }
+</style>
 <div
     class="pmd-shifts-final-screen"
     data-pmd-shifts-server-initial
     data-date="{{ $pmdServerDate }}"
+    data-pmd-locale="{{ $pmdServerLocale }}"
+    data-pmd-date-locale-authority="v8b"
 >
 
     <header class="pmd-shifts-final-toolbar">
@@ -145,9 +197,17 @@
             >‹</button>
 
             <div>
-                <h2>
-                    {{ $selectedDay->format('l, F j, Y') }}
-                </h2>
+                <h2
+                    data-pmd-no-translate
+                    lang="{{ $pmdServerLocale }}"
+                
+                    data-pmd-i18n-skip
+                
+                    data-pmd-shifts-date-label
+                
+                    data-pmd-fixed-date="{{ $pmdServerDateLabel }}"
+                    aria-label="{{ $pmdServerDateLabel }}"
+                ></h2>
             </div>
 
             <button
@@ -327,12 +387,13 @@
 
                         <div class="pmd-shifts-final-track">
 
+                            {{-- PMD_SHIFTS_SERVER_HOURLY_QUICK_CREATE_V17 --}}
                             <div class="pmd-shifts-final-slots">
 
                                 @for(
                                     $slot = 360;
                                     $slot < 1800;
-                                    $slot += 30
+                                    $slot += 60
                                 )
 
                                     @php
@@ -488,7 +549,9 @@
                                         type="button"
                                         class="{{ $shiftClass }}"
                                         data-pmd-shift-manage="{{ (int)$shift['id'] }}"
-                                        style="left:{{ number_format($left,4,'.','') }}%;width:{{ number_format($width,4,'.','') }}%"
+                                        
+                                    {{-- PMD_SHIFT_BAR_FIRST_PAINT_PRIORITY_FINAL --}}
+                                    style="left:{{ number_format($left,4,'.','') }}% !important;width:{{ number_format($width,4,'.','') }}% !important;max-width:none !important;min-width:24px !important;box-sizing:border-box !important"
                                         title="{{ ($shift['label'] ?? 'Shift').' · '.$time.' · click to edit' }}"
                                     >
                                         <strong>{{ $time }}</strong>

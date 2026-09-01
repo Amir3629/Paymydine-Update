@@ -5,9 +5,33 @@
     $range = $pmdCashierOrdersRange ?? [];
     $debug = $pmdCashierOrdersDebug ?? [];
     $count = count($orders);
-    $pmdCashierIsGerman = strtolower((string)($pmdCleanWorkspaceLocale ?? app()->getLocale())) === 'de';
-    $pmdCashierAddReservation = $pmdCashierIsGerman ? 'Reservierung hinzufügen' : 'Add reservation';
-    $pmdCashierAddOrder = $pmdCashierIsGerman ? 'Neue Bestellung' : 'New order';
+    // PMD_CASHIER_TR_SERVER_COPY_R2A
+    $pmdCashierLocale = \Admin\Classes\PmdPlatformI18n::normalizeLocale(
+        (string)($pmdCleanWorkspaceLocale ?? app()->getLocale())
+    );
+    $pmdCashierIsGerman = $pmdCashierLocale === 'de';
+    $pmdCashierT = static function (string $source) use ($pmdCashierLocale): string {
+        return \Admin\Classes\PmdPlatformI18n::fromEnglish(
+            $source,
+            '',
+            [],
+            $pmdCashierLocale,
+            $source
+        );
+    };
+    if ($pmdCashierLocale === 'tr') {
+        $text = \Admin\Classes\PmdPlatformI18n::translateStructure(
+            is_array($text) ? $text : [],
+            '',
+            'tr'
+        );
+    }
+    $pmdCashierAddReservation = $pmdCashierIsGerman
+        ? 'Reservierung hinzufügen'
+        : $pmdCashierT('Add reservation');
+    $pmdCashierAddOrder = $pmdCashierIsGerman
+        ? 'Neue Bestellung'
+        : $pmdCashierT('New order');
 
     // PMD_CASHIER_HISTORY_UI_R46
     $pmdCashierHistoryMode = !empty($pmdCashierHistoryMode);
@@ -19,8 +43,8 @@
     $pmdCashierHistoryUrl = admin_url('cashierlab').'?'.http_build_query(
         array_merge($pmdCashierRangeQuery, ['pmd_history' => 1])
     );
-    $pmdCashierHistoryButton = $text['history'] ?? ($pmdCashierIsGerman ? 'Verlauf' : 'History');
-    $pmdCashierCurrentButton = $text['current'] ?? ($pmdCashierIsGerman ? 'Aktuell' : 'Current');
+    $pmdCashierHistoryButton = $text['history'] ?? ($pmdCashierIsGerman ? 'Verlauf' : $pmdCashierT('History'));
+    $pmdCashierCurrentButton = $text['current'] ?? ($pmdCashierIsGerman ? 'Aktuell' : $pmdCashierT('Current'));
 
     $pmdCashierCreateDate = (string)($range['today'] ?? \Carbon\Carbon::now('Europe/Berlin')->toDateString());
 @endphp
@@ -29,7 +53,7 @@
     data-pmd-titleless-v3-3-2="true"
     id="pmd-cashier-current-orders-v2"
     class="pmd-ops-section"
-    aria-label="{{ $text['orders'] ?? 'Orders' }}"
+    aria-label="{{ $text['orders'] ?? $pmdCashierT('Orders') }}"
     data-pmd-ops-kind="orders"
     data-pmd-history-mode="{{ $pmdCashierHistoryMode ? 'history' : 'current' }}"
     data-pmd-range-from="{{ $range['from'] ?? '' }}"
@@ -57,7 +81,7 @@
                     data-pmd-cashier-table-label=""
                     aria-disabled="true"
                     disabled
-                    title="Select a red occupied table first."
+                    title="{{ $pmdCashierT('Select a red occupied table first.') }}"
                 >
                     <svg
                         viewBox="0 0 24 24"
@@ -74,7 +98,7 @@
                     </svg>
 
                     <span>
-                        {{ $text['free_table'] ?? ($pmdCashierIsGerman ? 'Tisch freigeben' : 'Free table') }}
+                        {{ $text['free_table'] ?? ($pmdCashierIsGerman ? 'Tisch freigeben' : $pmdCashierT('Free table')) }}
                     </span>
                 </button>
             @endif
@@ -102,10 +126,10 @@
             <span class="pmd-ops-section__count">
                 <strong>{{ $count }}</strong>
                 {{ $pmdCashierHistoryMode
-                    ? ($text['history_orders'] ?? 'History')
+                    ? ($text['history_orders'] ?? $pmdCashierT('History'))
                     : ($count === 1
-                        ? ($text['order'] ?? 'Order')
-                        : ($text['orders'] ?? 'Orders')) }}
+                        ? ($text['order'] ?? $pmdCashierT('Order'))
+                        : ($text['orders'] ?? $pmdCashierT('Orders'))) }}
             </span>
         </div>
     </header>
@@ -158,24 +182,24 @@
 
                         <span>
                             {{ $order['items'] }}
-                            {{ $text['items'] ?? 'Items' }}
+                            {{ $text['items'] ?? $pmdCashierT('Items') }}
                         </span>
 
                         @if($order['has_note'])
                             <span class="pmd-ops-card__note">
-                                {{ $text['note'] ?? 'Note' }}
+                                {{ $text['note'] ?? $pmdCashierT('Note') }}
                             </span>
                         @endif
                     </div>
 
                     <dl class="pmd-ops-card__facts pmd-ops-card__facts--money">
                         <div>
-                            <dt>{{ $text['total'] ?? 'Total' }}</dt>
+                            <dt>{{ $text['total'] ?? $pmdCashierT('Total') }}</dt>
                             <dd>{{ $order['total'] }}</dd>
                         </div>
                     
                         <div>
-                            <dt>{{ $text['paid'] ?? 'Paid' }}</dt>
+                            <dt>{{ $text['paid'] ?? $pmdCashierT('Paid') }}</dt>
                             <dd>{{ $order['paid'] }}</dd>
                         </div>
                     
@@ -184,12 +208,12 @@
                             <div class="pmd-ops-card__paid-state">
                                 <dt aria-hidden="true">&nbsp;</dt>
                                 <dd class="is-paid-label">
-                                    {{ $text['paid'] ?? 'Paid' }}
+                                    {{ $text['paid'] ?? $pmdCashierT('Paid') }}
                                 </dd>
                             </div>
                         @else
                             <div>
-                                <dt>{{ $text['due'] ?? 'Due' }}</dt>
+                                <dt>{{ $text['due'] ?? $pmdCashierT('Due') }}</dt>
                                 <dd class="is-due">{{ $order['due'] }}</dd>
                             </div>
                         @endif
@@ -201,7 +225,7 @@
                             href="{{ $order['edit_url'] }}"
                             data-pmd-cashier-open-composer="1"
                         >
-                            {{ $text['open_order'] ?? 'Open order' }}
+                            {{ $text['open_order'] ?? $pmdCashierT('Open order') }}
                         </a>
 
 

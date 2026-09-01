@@ -65,3 +65,19 @@ html body #pmd-devices-page #hardware-overview
     grid-template-columns: 1fr !important;
   }
 }
+
+/* PMD_DEVICES_REAL_TEXT_I18N_R4
+ * Do not inject English through CSS generated content. The real DOM copy is
+ * localized by the canonical platform catalogue.
+ */
+html body #pmd-devices-page #hardware-overview
+.pmd-owner-card__title p {
+  font-size: 12.5px !important;
+  line-height: 1.45 !important;
+}
+
+html body #pmd-devices-page #hardware-overview
+.pmd-owner-card__title p::after {
+  content: none !important;
+  display: none !important;
+}

@@ -1,6 +1,23 @@
 @php
     $range = $pmdOpsRange ?? [];
     $rangeText = $range['text'] ?? [];
+    $pmdRangeLocale = \Admin\Classes\PmdPlatformI18n::normalizeLocale(app()->getLocale());
+    $pmdRangeT = static function (string $source) use ($pmdRangeLocale): string {
+        return \Admin\Classes\PmdPlatformI18n::fromEnglish(
+            $source,
+            '',
+            [],
+            $pmdRangeLocale,
+            $source
+        );
+    };
+    if ($pmdRangeLocale === 'tr') {
+        $rangeText = \Admin\Classes\PmdPlatformI18n::translateStructure(
+            is_array($rangeText) ? $rangeText : [],
+            '',
+            'tr'
+        );
+    }
     $baseUrl = (string)($range['base_url'] ?? url()->current());
 
     // PMD_OPERATIONAL_RANGE_EXTRA_QUERY_V1
@@ -28,8 +45,8 @@
     $pmdRangeFuturePresets = function_exists('request')
         && request()->is('admin/reservationslab*');
 
-    $pmdRangeLocale = strtolower((string)app()->getLocale());
-    $pmdRangeIsGerman = strpos($pmdRangeLocale, 'de') === 0;
+    // PMD_OPERATIONAL_DATE_RANGE_TR_R2A
+    $pmdRangeIsGerman = $pmdRangeLocale === 'de';
 
     $pmdRangeToday = trim((string)($range['today'] ?? ''));
     if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $pmdRangeToday)) {
@@ -49,15 +66,15 @@
 
     $pmdRangeTomorrow = $pmdRangeTodayCarbon->copy()->addDay()->toDateString();
     $pmdRangeNext7To = $pmdRangeTodayCarbon->copy()->addDays(7)->toDateString();
-    $pmdRangeTomorrowLabel = $pmdRangeIsGerman ? 'Morgen' : 'Tomorrow';
-    $pmdRangeNext7Label = $pmdRangeIsGerman ? 'Nächste 7 Tage' : 'Next 7 days';
+    $pmdRangeTomorrowLabel = $pmdRangeIsGerman ? 'Morgen' : $pmdRangeT('Tomorrow');
+    $pmdRangeNext7Label = $pmdRangeIsGerman ? 'Nächste 7 Tage' : $pmdRangeT('Next 7 days');
 @endphp
 
 <details class="pmd-ops-range">
     <summary
         class="pmd-ops-range__trigger"
-        aria-label="{{ $rangeText['date_range'] ?? 'Date range' }}"
-        title="{{ $rangeText['date_range'] ?? 'Date range' }}"
+        aria-label="{{ $rangeText['date_range'] ?? $pmdRangeT('Date range') }}"
+        title="{{ $rangeText['date_range'] ?? $pmdRangeT('Date range') }}"
     >
         <svg viewBox="0 0 24 24" aria-hidden="true">
             <rect x="3" y="5" width="18" height="16" rx="2"></rect>
@@ -67,14 +84,14 @@
 
     <div class="pmd-ops-range__panel">
         <header>
-            <strong>{{ $rangeText['date_range'] ?? 'Date range' }}</strong>
+            <strong>{{ $rangeText['date_range'] ?? $pmdRangeT('Date range') }}</strong>
             <span>{{ $range['label'] ?? '' }}</span>
         </header>
 
-        <nav class="pmd-ops-range__presets" aria-label="{{ $rangeText['date_range'] ?? 'Date range' }}">
+        <nav class="pmd-ops-range__presets" aria-label="{{ $rangeText['date_range'] ?? $pmdRangeT('Date range') }}">
             <a
                 href="{{ $pmdRangeUrl($range['today'] ?? $pmdRangeToday, $range['today'] ?? $pmdRangeToday) }}"
-            >{{ $rangeText['today'] ?? ($pmdRangeIsGerman ? 'Heute' : 'Today') }}</a>
+            >{{ $rangeText['today'] ?? ($pmdRangeIsGerman ? 'Heute' : $pmdRangeT('Today')) }}</a>
 
             @if($pmdRangeFuturePresets)
                 <a
@@ -87,11 +104,11 @@
             @else
                 <a
                     href="{{ $pmdRangeUrl($range['yesterday'] ?? '', $range['yesterday'] ?? '') }}"
-                >{{ $rangeText['yesterday'] ?? 'Yesterday' }}</a>
+                >{{ $rangeText['yesterday'] ?? $pmdRangeT('Yesterday') }}</a>
 
                 <a
                     href="{{ $pmdRangeUrl($range['last7_from'] ?? '', $range['today'] ?? '') }}"
-                >{{ $rangeText['last_7_days'] ?? 'Last 7 days' }}</a>
+                >{{ $rangeText['last_7_days'] ?? $pmdRangeT('Last 7 days') }}</a>
             @endif
         </nav>
 
@@ -103,7 +120,7 @@
             @endforeach
 
             <label>
-                <span>{{ $rangeText['from'] ?? 'From' }}</span>
+                <span>{{ $rangeText['from'] ?? $pmdRangeT('From') }}</span>
                 <input
                     type="date"
                     name="pmd_from"
@@ -113,7 +130,7 @@
             </label>
 
             <label>
-                <span>{{ $rangeText['to'] ?? 'To' }}</span>
+                <span>{{ $rangeText['to'] ?? $pmdRangeT('To') }}</span>
                 <input
                     type="date"
                     name="pmd_to"
@@ -123,7 +140,7 @@
             </label>
 
             <button type="submit">
-                {{ $rangeText['apply'] ?? 'Apply' }}
+                {{ $rangeText['apply'] ?? $pmdRangeT('Apply') }}
             </button>
         </form>
     </div>

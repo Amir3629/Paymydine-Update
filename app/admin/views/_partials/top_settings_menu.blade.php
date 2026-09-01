@@ -4,7 +4,7 @@
 @endphp
 <li class="nav-item dropdown pmd-topbar-settings-item">
     <span class="media-toolbar-tooltip-wrap" data-no-tooltip="1">
-    <a class="nav-link pmd-header-tooltip-target" href="" data-bs-toggle="dropdown" aria-label="Settings" data-pmd-tooltip-label="Settings" data-no-tooltip="1">
+    <a class="nav-link pmd-header-tooltip-target" href="" data-bs-toggle="dropdown" aria-label="{{ \Admin\Classes\PmdPlatformI18n::fromEnglish('Settings', 'nav.') }}" data-pmd-tooltip-label="{{ \Admin\Classes\PmdPlatformI18n::fromEnglish('Settings', 'nav.') }}" data-no-tooltip="1" data-pmd-r8-settings-tooltip-server-i18n="1" {{-- PMD_R8_SETTINGS_TOOLTIP_SERVER_I18N --}}>
         <i class="fa fa-gear" role="button"></i>
         @if($hasSettingsError)
             <span class="badge badge-danger"><i class="fa fa-exclamation text-white"></i></span>

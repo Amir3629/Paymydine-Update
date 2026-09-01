@@ -1,4 +1,16 @@
-
+@php
+    // PMD_NOTIFICATION_TR_SERVER_COPY_R2A
+    $pmdNotificationLocale = \Admin\Classes\PmdPlatformI18n::currentLocale();
+    $pmdNotificationT = static function (string $source) use ($pmdNotificationLocale): string {
+        return \Admin\Classes\PmdPlatformI18n::fromEnglish(
+            $source,
+            '',
+            [],
+            $pmdNotificationLocale,
+            $source
+        );
+    };
+@endphp
 <li class="nav-item dropdown" id="notif-root" style="position:relative!important;overflow:visible!important;margin-left:clamp(44px,4vw,64px)!important;margin-inline-start:clamp(44px,4vw,64px)!important;padding-left:0!important;padding-inline-start:0!important;" data-pmd-main-header-notification-spacing-v2="" data-pmd-main-header-notification-spacing-r66="" data-pmd-no-translate>
 <span
                 data-pmd-main-header-notification-divider-r66=""
@@ -35,15 +47,15 @@
        aria-labelledby="notifDropdown"
        style="min-width:420px; max-height:70vh; overflow:auto; z-index:1051;">
     <div class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom">
-      <strong>Notifications</strong>
+      <strong>{{ $pmdNotificationT('Notifications') }}</strong>
       <a id="notif-history-link" class="btn btn-light btn-sm" href="{{ url('/admin/history') }}">
-        History
+        {{ $pmdNotificationT('History') }}
       </a>
     </div>
 
-    <div id="notification-loading" class="px-3 py-4 text-muted d-none">Loading…</div>
-    <div id="notification-error"   class="px-3 py-4 text-danger d-none">Failed to load.</div>
-    <div id="notification-empty"   class="px-3 py-4 text-muted d-none">No notifications.</div>
+    <div id="notification-loading" class="px-3 py-4 text-muted d-none">{{ $pmdNotificationT('Loading…') }}</div>
+    <div id="notification-error"   class="px-3 py-4 text-danger d-none">{{ $pmdNotificationT('Failed to load.') }}</div>
+    <div id="notification-empty"   class="px-3 py-4 text-muted d-none">{{ $pmdNotificationT('No notifications.') }}</div>
 
     <div id="notification-list" class="list-group list-group-flush"></div>
   </div>

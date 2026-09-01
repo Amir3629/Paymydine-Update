@@ -486,11 +486,19 @@
     return dateKey(new Date(date.getFullYear(), date.getMonth(), 1, 12, 0, 0, 0));
   }
 
+  // PMD_SHIFTS_DATE_LOCALE_JS_V7
+  function shiftsDateLocale() {
+    var locale = String(window.PMD_ADMIN_LOCALE || 'en').trim().toLowerCase();
+    if (locale === 'de') return 'de-DE';
+    if (locale === 'tr') return 'tr-TR';
+    return 'en-US';
+  }
+
   function formattedDate(key) {
     var date = parseDateKey(key);
     if (!date) return key;
     try {
-      return new Intl.DateTimeFormat(document.documentElement.lang || 'en-GB', {
+      return new Intl.DateTimeFormat(shiftsDateLocale(), {
         weekday: 'long',
         day: 'numeric',
         month: 'long',
@@ -858,7 +866,7 @@
         '<header class="pmd-shifts-final-toolbar">' +
           '<div class="pmd-shifts-final-date">' +
             '<button type="button" class="pmd-shifts-final-nav" data-pmd-shifts-prev-day aria-label="Previous day">‹</button>' +
-            '<div><h2>' + escapeHtml(formattedDate(key)) + '</h2></div>' +
+            '<div><h2 data-pmd-no-translate lang="' + escapeHtml(String(window.PMD_ADMIN_LOCALE || 'en')) + '">' + escapeHtml(formattedDate(key)) + '</h2></div>' +
             '<button type="button" class="pmd-shifts-final-nav" data-pmd-shifts-next-day aria-label="Next day">›</button>' +
           '</div>' +
           '<div class="pmd-shifts-final-actions">' +

@@ -13,7 +13,8 @@
     'use strict';
 
     var path = String((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : window.location.pathname) || '').replace(/\/+$/, '');
-    if (path !== '/admin/pmdmenus') return;
+    // PMD_MENU_CLEAN_ALIAS_R3_CLEAN
+    if (path !== '/admin/pmdmenus' && path !== '/admin/menu') return;
 
     var root = document.querySelector('[data-pmd-menu-manager]');
     if (!root) return;

@@ -532,7 +532,8 @@
         app()->getLocale()
     )));
 
-    if (!in_array($pmdFloorTableManagerLocale, ['en', 'de'], true)) {
+    // PMD_FLOOR_TR_SERVER_TEXT_V1
+    if (!in_array($pmdFloorTableManagerLocale, ['en', 'de', 'tr'], true)) {
         $pmdFloorTableManagerLocale = 'en';
     }
 
@@ -664,6 +665,39 @@
             'create' => 'Create floor',
             'required' => 'Floor name is required.',
         ];
+
+    if ($pmdFloorTableManagerLocale === 'tr') {
+        $pmdFloorServerTranslate = static function (array $values): array {
+            foreach ($values as $key => $english) {
+                if (!is_string($english)) continue;
+                $values[$key] = \Admin\Classes\PmdPlatformI18n::fromEnglish(
+                    $english,
+                    '',
+                    [],
+                    'tr',
+                    $english
+                );
+            }
+            return $values;
+        };
+
+        $pmdFloorTableManagerText = $pmdFloorServerTranslate(
+            $pmdFloorTableManagerText
+        );
+        $pmdFloorManageText = $pmdFloorServerTranslate(
+            $pmdFloorManageText
+        );
+        $pmdFloorRegistryText = $pmdFloorServerTranslate(
+            $pmdFloorRegistryText
+        );
+        $pmdFloorLayoutEditLabel = \Admin\Classes\PmdPlatformI18n::fromEnglish(
+            'Edit layout',
+            '',
+            [],
+            'tr',
+            'Edit layout'
+        );
+    }
 
     /* PMD_FLOOR_RESERVATION_BUSY_WINDOWS_V1_2
      * Read-only windows are resolved once by PmdCleanWorkspaceControllerV1

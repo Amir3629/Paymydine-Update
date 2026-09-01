@@ -49,6 +49,15 @@ class PmdSiteAccessWorkspaceGateService
         $relative = $this->relativeAdminPath($request);
         if (str_starts_with($relative, '_pmd/language-switch')) return null;
 
+        // PMD_PORTAL_SESSION_ROUTE_ISOLATION_V1
+        // usernameportal is a Staff Portal session, never an Admin workspace session.
+        if ((string)session()->get(
+            PmdSiteAccessService::SESSION_DESTINATION,
+            'workspace'
+        ) === 'staff') {
+            return $this->portalGateResponse($request, $site, $identity, $locationId, $relative);
+        }
+
         if (session()->has('pmd_login_owner_security_v1')) {
             foreach (['login', 'logout', 'siteaccess', '_assets'] as $allowed) {
                 if ($relative === $allowed || str_starts_with($relative, $allowed.'/')) return null;
@@ -115,6 +124,103 @@ class PmdSiteAccessWorkspaceGateService
             ? redirect(admin_url('login'))
             : redirect(admin_url('login'))->with('error', 'Restaurant verification could not be started.');
     }
+
+    /** PMD_PORTAL_SESSION_ROUTE_AUTHORITY_V2 */
+    private function portalGateResponse(
+        Request $request,
+        PmdSiteAccessService $site,
+        array $identity,
+        int $locationId,
+        string $relative
+    ) {
+        foreach (['logout', '_assets', '_pmd/language-switch'] as $allowed) {
+            if ($relative === $allowed || str_starts_with($relative, $allowed.'/')) return null;
+        }
+
+        if (session()->has('pmd_login_portal_security_v1')) {
+            // PMD_PORTAL_LOGIN_SELF_REDIRECT_FIX_V6
+            // /admin/login is the Portal MFA setup/verify/recovery surface.
+            // Never redirect that route to itself.
+            if ($relative === 'login') return null;
+            return redirect(admin_url('login'));
+        }
+
+        $binding = app(PmdSiteAccessSessionBindingService::class);
+        $portal = app(PmdPortalTotpService::class);
+        $proof = (array)session()->get(PmdPortalTotpService::SESSION_VERIFIED, []);
+        $verifiedAt = (int)($proof['verified_at'] ?? 0);
+        $activeFactor = null;
+
+        try {
+            if ($portal->ready()) {
+                $activeFactor = \Illuminate\Support\Facades\DB::table(PmdPortalTotpService::TABLE)
+                    ->where('user_id', (int)$identity['user_id'])
+                    ->whereNotNull('confirmed_at')
+                    ->whereNull('disabled_at')
+                    ->orderByDesc('updated_at')
+                    ->orderByDesc('id')
+                    ->first();
+            }
+        } catch (\Throwable $error) {
+            $activeFactor = null;
+        }
+
+        $factorConfirmedAt = $activeFactor && !empty($activeFactor->confirmed_at)
+            ? (int)strtotime((string)$activeFactor->confirmed_at)
+            : 0;
+
+        // The proof must belong to the currently-active factor generation.
+        // Resetting or re-enrolling the factor makes old Portal sessions fail
+        // on their very next request, even if their work-session cookie exists.
+        $factorMatchesProof = $activeFactor
+            && $verifiedAt > 0
+            && $factorConfirmedAt > 0
+            && $factorConfirmedAt <= ($verifiedAt + 1);
+
+        $portalVerified = $site->isWorkspaceVerified($locationId)
+            && (string)session()->get(PmdSiteAccessService::SESSION_VERIFIED_METHOD, '') === 'portal_totp'
+            && $binding->isBoundToCurrentUser()
+            && $portal->sessionVerified(
+                (int)$identity['user_id'],
+                $locationId,
+                86400
+            )
+            && $factorMatchesProof;
+
+        if (!$portalVerified) {
+            try {
+                $site->clearVerification();
+                app(PmdWorkSessionPolicyService::class)->clear();
+                AdminAuth::logout();
+            } catch (\Throwable $error) {
+            }
+
+            session()->invalidate();
+            session()->regenerateToken();
+
+            if ($relative === 'login') return null;
+
+            return redirect(admin_url('login?portal=security-reset'))->with(
+                'error',
+                'Your Portal Authenticator was reset or changed. Sign in again and use the new factor.'
+            );
+        }
+
+        if ($relative === 'login') return null;
+        if ($relative === 'mywork' || str_starts_with($relative, 'mywork/')) return null;
+        if ($relative === 'siteaccess/session/ping') return null;
+
+        if ($request->isMethod('GET') || $request->isMethod('HEAD')) {
+            return redirect(admin_url('mywork'));
+        }
+
+        return response(
+            'This Staff Portal session cannot perform Admin workspace actions.',
+            403,
+            ['Cache-Control' => 'no-store']
+        );
+    }
+
 
     private function relativeAdminPath(Request $request): string
     {

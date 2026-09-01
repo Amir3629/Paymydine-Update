@@ -2,8 +2,13 @@
 {{-- PMD_RESERVATIONS_LAB_BELOW_FLOOR_CARDS_V2_1 --}}
 @php
     $pmdOpsSchedule = $pmdReservationsLabSchedule ?? [];
-    $pmdOpsLocale = strtolower((string)($pmdCleanWorkspaceLocale ?? ($pmdOpsSchedule['locale'] ?? 'en')));
-    $pmdOpsLocale = strpos($pmdOpsLocale, 'de') === 0 ? 'de' : 'en';
+    // PMD_RESERVATIONS_CARDS_TR_LOCALE_V1
+    $pmdOpsLocale = \Admin\Classes\PmdPlatformI18n::normalizeLocale(
+        (string)($pmdCleanWorkspaceLocale ?? ($pmdOpsSchedule['locale'] ?? 'en'))
+    );
+    if (!in_array($pmdOpsLocale, ['en', 'de', 'tr'], true)) {
+        $pmdOpsLocale = 'en';
+    }
     $pmdOpsIsGerman = $pmdOpsLocale === 'de';
 
     $pmdOpsText = $pmdOpsIsGerman
@@ -67,6 +72,18 @@
             'to' => 'To',
             'apply' => 'Apply',
         ];
+
+    if ($pmdOpsLocale === 'tr') {
+        foreach ($pmdOpsText as $pmdOpsTextKey => $pmdOpsEnglishValue) {
+            $pmdOpsText[$pmdOpsTextKey] = \Admin\Classes\PmdPlatformI18n::fromEnglish(
+                (string)$pmdOpsEnglishValue,
+                '',
+                [],
+                'tr',
+                (string)$pmdOpsEnglishValue
+            );
+        }
+    }
 
     $pmdOpsToday = (string)($pmdOpsSchedule['today'] ?? now('Europe/Berlin')->format('Y-m-d'));
 
@@ -260,7 +277,7 @@
             $statusKey = 'scheduled';
         }
 
-        $dateLabel = $pmdOpsIsGerman
+        $dateLabel = in_array($pmdOpsLocale, ['de', 'tr'], true)
             ? \Carbon\Carbon::parse($date)->format('d.m.Y')
             : \Carbon\Carbon::parse($date)->format('d M Y');
 

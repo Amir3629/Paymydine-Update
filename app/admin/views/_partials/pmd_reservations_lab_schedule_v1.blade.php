@@ -5,7 +5,13 @@
     // the data/save authority; only the proven Reservations2 visual contract
     // is reused.
     $schedule = $pmdReservationsLabSchedule ?? [];
-    $locale = strtolower((string)($schedule['locale'] ?? 'en')) === 'de' ? 'de' : 'en';
+    // PMD_RESERVATIONS_SCHEDULE_TR_R2A
+    $locale = \Admin\Classes\PmdPlatformI18n::normalizeLocale(
+        (string)($schedule['locale'] ?? app()->getLocale())
+    );
+    if (!in_array($locale, ['en', 'de', 'tr'], true)) {
+        $locale = 'en';
+    }
 
     $pmdReservationsLabStrings = $locale === 'de'
         ? [
@@ -129,6 +135,14 @@
             'outside_opening_hours' => 'Outside opening hours',
         ];
 
+    if ($locale === 'tr') {
+        $pmdReservationsLabStrings = \Admin\Classes\PmdPlatformI18n::translateStructure(
+            $pmdReservationsLabStrings,
+            '',
+            'tr'
+        );
+    }
+
     // Keep any extra service-provided keys, but make the audited EN/DE copy above
     // authoritative for every visible Calendar/Hour/Composer string.
     $serverStrings = is_array($schedule['strings'] ?? null)
@@ -137,7 +151,9 @@
     $strings = array_replace($serverStrings, $pmdReservationsLabStrings);
     $schedule['strings'] = $strings;
     $schedule['locale'] = $locale;
-    $schedule['locale_tag'] = $locale === 'de' ? 'de-DE' : 'en-GB';
+    $schedule['locale_tag'] = $locale === 'de'
+        ? 'de-DE'
+        : ($locale === 'tr' ? 'tr-TR' : 'en-GB');
 
     /* PMD_RESERVATIONSLAB_BERLIN_BOOKING_CLOCK_V1
        Keep past-slot decisions independent of the browser's local timezone. */

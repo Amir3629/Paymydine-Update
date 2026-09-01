@@ -34,6 +34,18 @@
             };
         }
 
+        // PMD_COUPON_TR_RUNTIME_COPY_R2A
+        if (
+            locale.indexOf('tr') === 0 &&
+            window.PMDAdminI18n &&
+            typeof window.PMDAdminI18n.translate === 'function'
+        ) {
+            return {
+                title: window.PMDAdminI18n.translate('Add new coupon / card'),
+                help: window.PMDAdminI18n.translate('Create a coupon, gift card or voucher.')
+            };
+        }
+
         return {
             title: 'Add new coupon / card',
             help: 'Create a coupon, gift card or voucher.'

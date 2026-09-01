@@ -103,10 +103,6 @@
     $pmdIsSettingsSuiteRoute = $pmdIsSettingsSuiteRoute || $pmdIsDeviceSettingsSuiteRoute;
 
 
-    /* PMD_SHIFTS_STATIC_SHELL_ROUTE_V14 */
-    $pmdIsShiftsStaticShell = $pmdPath === 'admin/shifts';
-
-
     $pmdActive = function ($paths) use ($pmdPath) {
         foreach ((array) $paths as $path) {
             if (
@@ -155,12 +151,6 @@
     );
     @endif
 
-    @if($pmdIsShiftsStaticShell)
-    document.documentElement.classList.add(
-        'pmd-shifts-static-shell-v14'
-    );
-    @endif
-
     @if($pmdPath === 'admin/dashboard2')
     /*
      * PMD_DASHBOARD2_STATIC_SHELL_FIRST_PAINT_V1
@@ -174,6 +164,121 @@
     @endif
 })();
 </script>
+
+<!-- PMD_CANONICAL_VISUAL_RAIL_14PX_FINAL_START -->
+<style id="pmd-canonical-visual-rail-14px-final">
+
+  /*
+   * One visual contract:
+   *
+   * collapsed Side Menu right = 86px
+   * visible page content left  = 100px
+   * visual rail                = 14px
+   *
+   * expanded:
+   * menu right                 = 198px
+   * visible page content left  = 212px
+   *
+   * Do NOT change generic page-content here.
+   * Standard pages already receive 14px from exact-layout.
+   */
+
+  /*
+   * DashboardLab + Owner/Manager Clean Workspaces
+   * historically own a 30px root rail.
+   * Normalize only that owning root.
+   */
+  html.pmd-side-menu2-global-page
+  body.pmd-dashboard-lab-page
+  #pmd-dashboard-lab,
+
+  html.pmd-side-menu2-global-page
+  body.pmd-clean-workspace-page
+  #pmd-dashboard-lab {
+    padding-left: 14px !important;
+    padding-right: 14px !important;
+  }
+
+
+  /*
+   * Settings pages intentionally keep page-content at zero.
+   * Their first custom root owns the visual rail.
+   */
+  html.pmd-side-menu2-global-page
+  body.pmd-settings-suite
+  :is(
+    #pmd-settings-center,
+    #pmd-restaurant-profile,
+    #pmd-menu-checkout,
+    #pmd-team-access,
+    .pmd-owner-page
+  ) {
+    padding-left: 14px !important;
+    padding-right: 14px !important;
+  }
+
+
+  /*
+   * Shifts: no runtime shell animation or global fade.
+   * Horizontal rail is already owned by page-content.
+   */
+  html.pmd-side-menu2-global-page
+  body.pmd-shifts-page
+  .page-wrapper,
+
+  html.pmd-side-menu2-global-page
+  body.pmd-shifts-page
+  .page-content,
+
+  html.pmd-side-menu2-global-page
+  body.pmd-shifts-page
+  #pmd-shifts,
+
+  html.pmd-side-menu2-global-page
+  body.pmd-shifts-page
+  .pmd-shifts-final-screen {
+    transition: none !important;
+    animation: none !important;
+    transform: none !important;
+  }
+
+  html.pmd-side-menu2-global-page
+  body.pmd-shifts-page
+  .page-content,
+
+  html.pmd-side-menu2-global-page
+  body.pmd-shifts-page
+  .page-content > * {
+    opacity: 1 !important;
+  }
+
+
+  @media (max-width: 767px) {
+
+    html.pmd-side-menu2-global-page
+    body.pmd-dashboard-lab-page
+    #pmd-dashboard-lab,
+
+    html.pmd-side-menu2-global-page
+    body.pmd-clean-workspace-page
+    #pmd-dashboard-lab,
+
+    html.pmd-side-menu2-global-page
+    body.pmd-settings-suite
+    :is(
+      #pmd-settings-center,
+      #pmd-restaurant-profile,
+      #pmd-menu-checkout,
+      #pmd-team-access,
+      .pmd-owner-page
+    ) {
+      padding-left: 10px !important;
+      padding-right: 10px !important;
+    }
+  }
+
+</style>
+<!-- PMD_CANONICAL_VISUAL_RAIL_14PX_FINAL_END -->
 
 @if($pmdIsSettingsSuiteRoute)
 <!-- PMD_SETTINGS_SUITE_ROUTE_FLOW_SCROLL_V6_START -->
@@ -560,119 +665,7 @@
 <!-- PMD_GLOBAL_MENU_CRITICAL_GEOMETRY_V6_END -->
 
 
-@if($pmdIsShiftsStaticShell)
-<!-- PMD_SHIFTS_STATIC_SHELL_FIRST_PAINT_V14_START -->
-<style id="pmd-shifts-static-shell-first-paint-v14">
 
-html.pmd-shifts-static-shell-v14,
-html.pmd-shifts-static-shell-v14 body {
-  margin:0!important;
-  padding:0!important;
-  background:#f8fbfd!important;
-  overflow-x:hidden!important;
-}
-
-html.pmd-shifts-static-shell-v14 .page-wrapper {
-  position:absolute!important;
-  top:0!important;
-  bottom:auto!important;
-  left:86px!important;
-  right:auto!important;
-  width:calc(100vw - 86px)!important;
-  min-width:0!important;
-  max-width:none!important;
-  margin:0!important;
-  padding:0!important;
-  box-sizing:border-box!important;
-  overflow-x:hidden!important;
-  z-index:1!important;
-  transform:none!important;
-  transition:none!important;
-  animation:none!important;
-}
-
-html.pmd-shifts-static-shell-v14.pmd-sm2-expanded
-.page-wrapper {
-  left:198px!important;
-  width:calc(100vw - 198px)!important;
-}
-
-html.pmd-shifts-static-shell-v14 .page-content {
-  position:relative!important;
-  left:0!important;
-  right:auto!important;
-  top:0!important;
-  width:100%!important;
-  min-width:0!important;
-  max-width:none!important;
-  margin:0!important;
-  padding-left:14px!important;
-  padding-right:14px!important;
-  box-sizing:border-box!important;
-  overflow-x:hidden!important;
-  background:#f8fbfd!important;
-  opacity:1!important;
-  visibility:visible!important;
-  transform:none!important;
-  transition:none!important;
-  animation:none!important;
-}
-
-html.pmd-shifts-static-shell-v14 .page-content > * {
-  box-sizing:border-box!important;
-  min-width:0!important;
-  max-width:100%!important;
-}
-
-html.pmd-shifts-static-shell-v14 .navbar-top,
-html.pmd-shifts-static-shell-v14 .navbar-fixed-top,
-html.pmd-shifts-static-shell-v14 .page-title-section {
-  display:none!important;
-  visibility:hidden!important;
-  opacity:0!important;
-  min-height:0!important;
-  height:0!important;
-  max-height:0!important;
-  margin:0!important;
-  padding:0!important;
-  border:0!important;
-  overflow:hidden!important;
-  transition:none!important;
-  animation:none!important;
-}
-
-@media(max-width:767px) {
-
-  html.pmd-shifts-static-shell-v14 .page-wrapper,
-  html.pmd-shifts-static-shell-v14.pmd-sm2-expanded
-  .page-wrapper {
-    left:0!important;
-    width:100vw!important;
-  }
-
-  html.pmd-shifts-static-shell-v14 .page-content {
-    padding-left:10px!important;
-    padding-right:10px!important;
-  }
-
-}
-
-
-
-  /* PMD_SHIFTS_DUAL_STATE_GUARD_V15
-   * If old authorities momentarily expose both state classes,
-   * visible collapsed Side Menu geometry wins.
-   */
-  html.pmd-shifts-static-shell-v14.pmd-sm2-expanded.pmd-sm2-collapsed
-  .page-wrapper {
-    left:86px!important;
-    right:auto!important;
-    width:calc(100vw - 86px)!important;
-  }
-
-</style>
-<!-- PMD_SHIFTS_STATIC_SHELL_FIRST_PAINT_V14_END -->
-@endif
 
 <!-- PMD_SM2_ZERO_REFRESH_TRANSITION_V8_START -->
 <style id="pmd-sm2-global-shell-transition-v8">
@@ -709,7 +702,7 @@ html.pmd-shifts-static-shell-v14 .page-title-section {
   }
 
   html.pmd-side-menu2-global-page.pmd-sm2-runtime-ready
-    .page-wrapper,
+    body:not(.pmd-shifts-page) .page-wrapper,
 
   html.pmd-side-menu2-global-page.pmd-sm2-runtime-ready
     .navbar-top,
@@ -855,13 +848,16 @@ html.pmd-shifts-static-shell-v14 .page-title-section {
 
 @include('admin::_partials.pmd_side_menu2_single_menu')
 
+
+
+
 <script
     src="/app/admin/assets/js/pmd-side-menu2-v1.js?v=20260815-refresh-static-user-action-v1"
     defer
 ></script>
 
 <script
-    src="/app/admin/assets/js/pmd-admin-exact-layout-v1.js?v=20260822-history-r20"
+    src="/app/admin/assets/js/pmd-admin-exact-layout-v1.js?v=sha-516ef29c7589"
     defer
 ></script>
 @endif

@@ -43,6 +43,24 @@
         return $pmdMenuCopy[(string)$key] ?? (string)$key;
     };
 
+    // PMD_MENU_SERVER_I18N_R4_1
+    $pmdCategoryDisplayName = static function ($category) use ($pmdMenuPlatformMessages) {
+        $name = trim((string)($category->name ?? ''));
+        $kind = strtolower(trim((string)($category->pmd_kind ?? 'regular')));
+
+        if ($kind === 'chef') {
+            return $pmdMenuPlatformMessages['menu.smart.chef'] ?? $name;
+        }
+        if ($kind === 'bestseller') {
+            return $pmdMenuPlatformMessages['menu.smart.bestseller'] ?? $name;
+        }
+        if ($kind === 'combos') {
+            return $pmdMenuPlatformMessages['menu.smart.combos'] ?? $name;
+        }
+
+        return $name;
+    };
+
     // PMD_ALLERGEN_DISPLAY_I18N_V14
     $pmdAllergenLabel = static function ($name) use ($pmdMenuPlatformMessages) {
         $raw = trim((string)$name);
@@ -87,7 +105,7 @@
     data-pmd-dashboard-header-clone="menu-v1"
 >
     <div class="pmd-owner-header__left">
-        <h1 class="pmd-r2-clean-title">Menu</h1>
+        <h1 class="pmd-r2-clean-title">{{ $pmdT('title') }}</h1>
     </div>
 
     <div
@@ -155,8 +173,8 @@
                 type="button"
                 class="pmd-dashboard-lab__header-action"
                 data-pmd-menu-capacity-open
-                aria-label="Kitchen capacity"
-                title="Kitchen capacity"
+                aria-label="{{ $pmdT('kitchen_capacity') }}"
+                title="{{ $pmdT('kitchen_capacity') }}"
             >
                 <svg viewBox="0 0 24 24" aria-hidden="true">
                     <path d="M12 3c1.8 3 5 4.6 5 9a5 5 0 0 1-10 0c0-2.3 1.2-4.4 3.5-6.5.2 2 1 3 1.5 3.5 1.2-1.4 1.2-3.7 0-6z"></path>
@@ -288,13 +306,14 @@
           'aria-expanded',
           'false'
         );
+        var pmdMenuNotificationLabel = @json($pmdT('notifications'));
         trigger.setAttribute(
           'aria-label',
-          'Notifications'
+          pmdMenuNotificationLabel
         );
         trigger.setAttribute(
           'title',
-          'Notifications'
+          pmdMenuNotificationLabel
         );
 
         Array.prototype.forEach.call(
@@ -752,7 +771,7 @@
                     data-pmd-category-kind="{{ strtolower(trim((string)($category->pmd_kind ?? 'regular'))) }}"
                     @if($canManageCategories) data-pmd-category-sortable @endif
                 >
-                    <span class="pmd-menu-manager__category-label">{{ $category->name }}</span>
+                    <span class="pmd-menu-manager__category-label">{{ $pmdCategoryDisplayName($category) }}</span>
 
                     @if($canDeleteCategories)
                         <span
@@ -783,12 +802,10 @@
 
         {{-- PMD_MENU_SERVER_FIRST_ACTION_CARD_V1_6_7 --}}
         @php
-            $pmdServerAddFoodTitle = $pmdMenuLocale === 'de'
-                ? 'Neue Speise hinzufugen'
-                : 'Add new food item';
-            $pmdServerAddFoodHelp = $pmdMenuLocale === 'de'
-                ? 'Erstelle eine neue Speise.'
-                : 'Create a new food item.';
+            $pmdServerAddFoodTitle = $pmdMenuPlatformMessages['menu.smart.add_food']
+                ?? $pmdT('create_food');
+            $pmdServerAddFoodHelp = $pmdMenuPlatformMessages['menu.smart.add_food_help']
+                ?? '';
         @endphp
 
         <div class="pmd-menu-manager__grid" data-pmd-menu-grid>
@@ -879,7 +896,7 @@
                         @endif
 
                         @if($item['is_halal'] || $item['is_vegetarian'] || $item['is_vegan'] || count($item['allergen_names'] ?? []))
-                            <div class="pmd-menu-card__traits" aria-label="Food attributes">
+                            <div class="pmd-menu-card__traits" aria-label="{{ $pmdT('food_attributes') }}">
                                 @if($item['is_halal'])<span title="{{ $pmdT('halal') }}"><svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9 7 7 0 1 1-9-9z"></path><path d="m17 4 .7 1.5 1.6.2-1.2 1.1.3 1.6-1.4-.8-1.4.8.3-1.6-1.2-1.1 1.6-.2L17 4z"></path></svg>{{ $pmdT('halal') }}</span>@endif
                                 @if($item['is_vegetarian'])<span title="{{ $pmdT('vegetarian') }}"><svg viewBox="0 0 24 24"><path d="M20 4c-8 0-14 3-14 10 0 3 2 6 6 6 7 0 8-10 8-16z"></path><path d="M4 20c3-5 7-8 12-11"></path></svg>{{ $pmdT('vegetarian') }}</span>@endif
                                 @if($item['is_vegan'])<span title="{{ $pmdT('vegan') }}"><svg viewBox="0 0 24 24"><path d="M12 21V10"></path><path d="M12 14c-5 0-8-3-8-8 5 0 8 3 8 8z"></path><path d="M12 11c0-5 3-8 8-8 0 5-3 8-8 8z"></path></svg>{{ $pmdT('vegan') }}</span>@endif

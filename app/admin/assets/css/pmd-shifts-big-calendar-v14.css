@@ -1,0 +1,155 @@
+/* PMD_SHIFTS_BIG_CALENDAR_V14 */
+#pmd-shifts-big-calendar-v14 {
+  position: fixed !important;
+  z-index: 2147482500 !important;
+  box-sizing: border-box !important;
+  width: min(540px, calc(100vw - 32px));
+  padding: 22px !important;
+  border: 1px solid #d7e3ec !important;
+  border-radius: 26px !important;
+  background: #ffffff !important;
+  box-shadow: 0 24px 70px rgba(24, 50, 72, .24) !important;
+  color: #17324d !important;
+  font-family: inherit !important;
+}
+
+#pmd-shifts-big-calendar-v14[hidden] {
+  display: none !important;
+}
+
+.pmd-shifts-big-calendar-v14__header {
+  display: grid !important;
+  grid-template-columns: 52px minmax(0, 1fr) 52px !important;
+  align-items: center !important;
+  gap: 12px !important;
+  margin-bottom: 18px !important;
+}
+
+.pmd-shifts-big-calendar-v14__header strong {
+  display: block !important;
+  text-align: center !important;
+  font-size: 24px !important;
+  font-weight: 800 !important;
+  line-height: 1.15 !important;
+  text-transform: capitalize !important;
+}
+
+.pmd-shifts-big-calendar-v14__nav {
+  width: 52px !important;
+  height: 52px !important;
+  border: 1px solid #d7e3ec !important;
+  border-radius: 16px !important;
+  background: #f8fbfd !important;
+  color: #17324d !important;
+  font-size: 30px !important;
+  line-height: 1 !important;
+  cursor: pointer !important;
+}
+
+.pmd-shifts-big-calendar-v14__weekdays,
+.pmd-shifts-big-calendar-v14__grid {
+  display: grid !important;
+  grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
+  gap: 8px !important;
+}
+
+.pmd-shifts-big-calendar-v14__weekdays {
+  margin-bottom: 8px !important;
+}
+
+.pmd-shifts-big-calendar-v14__weekdays span {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 34px !important;
+  color: #71849a !important;
+  font-size: 13px !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+}
+
+.pmd-shifts-big-calendar-v14__day {
+  min-width: 0 !important;
+  height: 56px !important;
+  border: 1px solid transparent !important;
+  border-radius: 15px !important;
+  background: #f7fafc !important;
+  color: #17324d !important;
+  font-size: 17px !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+}
+
+.pmd-shifts-big-calendar-v14__day:hover,
+.pmd-shifts-big-calendar-v14__day:focus-visible {
+  border-color: #9bc8de !important;
+  background: #eaf6fb !important;
+  outline: none !important;
+}
+
+.pmd-shifts-big-calendar-v14__day.is-outside {
+  opacity: .38 !important;
+}
+
+.pmd-shifts-big-calendar-v14__day.is-today {
+  border-color: #39a9ca !important;
+}
+
+.pmd-shifts-big-calendar-v14__day.is-selected {
+  border-color: #17324d !important;
+  background: #17324d !important;
+  color: #ffffff !important;
+  box-shadow: 0 7px 18px rgba(23, 50, 77, .2) !important;
+}
+
+.pmd-shifts-big-calendar-v14__footer {
+  display: flex !important;
+  justify-content: flex-end !important;
+  margin-top: 18px !important;
+  padding-top: 16px !important;
+  border-top: 1px solid #e4edf3 !important;
+}
+
+.pmd-shifts-big-calendar-v14__footer button {
+  min-width: 112px !important;
+  min-height: 46px !important;
+  padding: 0 20px !important;
+  border: 1px solid #cbdbe6 !important;
+  border-radius: 14px !important;
+  background: #ffffff !important;
+  color: #17324d !important;
+  font-size: 15px !important;
+  font-weight: 800 !important;
+  cursor: pointer !important;
+}
+
+body.pmd-shifts-page .pmd-shifts-date-picker[data-pmd-big-calendar-trigger-v14] {
+  cursor: pointer !important;
+}
+
+@media (max-width: 700px) {
+  #pmd-shifts-big-calendar-v14 {
+    width: calc(100vw - 24px) !important;
+    padding: 16px !important;
+    border-radius: 20px !important;
+  }
+
+  .pmd-shifts-big-calendar-v14__header {
+    grid-template-columns: 46px minmax(0, 1fr) 46px !important;
+  }
+
+  .pmd-shifts-big-calendar-v14__header strong {
+    font-size: 20px !important;
+  }
+
+  .pmd-shifts-big-calendar-v14__nav {
+    width: 46px !important;
+    height: 46px !important;
+  }
+
+  .pmd-shifts-big-calendar-v14__day {
+    height: 46px !important;
+    border-radius: 12px !important;
+    font-size: 15px !important;
+  }
+}

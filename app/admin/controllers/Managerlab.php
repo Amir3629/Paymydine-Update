@@ -132,6 +132,55 @@ class Managerlab extends PmdCleanWorkspaceControllerV1
             $this->vars['pmdKitchenTodayTeam'] = ['ready' => false];
         }
         $this->installManagerKpis($bundle, $locale, $shared);
+
+        // PMD_MANAGER_TR_FINISHED_PAYLOAD_R2A
+        // Translate presentation payloads only after their English lookup keys
+        // have finished all calculations.
+        if (strtolower($locale) === 'tr') {
+            $pmdManagerT = static function (string $source): string {
+                return \Admin\Classes\PmdPlatformI18n::fromEnglish(
+                    $source,
+                    '',
+                    [],
+                    'tr',
+                    $source
+                );
+            };
+
+            foreach ([
+                'pmdCleanWorkspaceKpiCards',
+                'pmdRoleDashboardBundle',
+                'pmdManagerOnlineStaff',
+            ] as $pmdManagerVar) {
+                if (isset($this->vars[$pmdManagerVar]) && is_array($this->vars[$pmdManagerVar])) {
+                    $this->vars[$pmdManagerVar] =
+                        \Admin\Classes\PmdPlatformI18n::translateStructure(
+                            $this->vars[$pmdManagerVar],
+                            '',
+                            'tr'
+                        );
+                }
+            }
+
+            $this->vars['pmdCleanWorkspaceKpiAriaLabel'] = $pmdManagerT('Manager KPIs');
+
+            if (is_array($this->vars['pmdManagerOnlineStaff']['rows'] ?? null)) {
+                foreach ($this->vars['pmdManagerOnlineStaff']['rows'] as &$pmdManagerStaffRow) {
+                    if (!is_array($pmdManagerStaffRow)) continue;
+                    $since = (string)($pmdManagerStaffRow['since'] ?? '');
+                    if (preg_match('/^Since\s+(.+)$/', $since, $match)) {
+                        $pmdManagerStaffRow['since'] = $pmdManagerT('Since').' '.$match[1];
+                    }
+                }
+                unset($pmdManagerStaffRow);
+            }
+
+            $asOf = (string)($this->vars['pmdManagerOnlineStaff']['as_of'] ?? '');
+            if (preg_match('/^As of\s+(.+)$/', $asOf, $match)) {
+                $this->vars['pmdManagerOnlineStaff']['as_of'] =
+                    $pmdManagerT('As of').' '.$match[1];
+            }
+        }
     }
 
     private function syncVisibleFloorCounts(array $bundle, array $floorBootstrap): array

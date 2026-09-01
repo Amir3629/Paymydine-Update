@@ -1,297 +1,317 @@
 {
-  "doctype": "html5",
-  "favicon": "/app/admin/assets/images/pmd-favicon-final-20260822.svg",
-  "meta": [
-    {
-      "name": "Content-type",
-      "content": "text/html; charset=utf-8",
-      "type": "equiv"
-    },
-    {
-      "name": "X-UA-Compatible",
-      "content": "IE=edge",
-      "type": "name"
-    },
-    {
-      "name": "viewport",
-      "content": "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no",
-      "type": "name"
-    }
-  ],
-  "style": [
-    {
-      "path": "css/admin.css",
-      "name": "admin-css"
-    },
-    {
-      "path": "css/pmd-admin/00-variables.css",
-      "name": "pmd-admin-variables-css"
-    },
-    {
-      "path": "css/pmd-admin/components/cards.css",
-      "name": "pmd-admin-cards-css"
-    },
-    {
-      "path": "css/pmd-clean-workspace-header-spacing-v1.css",
-      "name": "pmd-clean-workspace-header-spacing-v1-css"
-    },
-    {
-      "path": "css/pmd-waiter-pos-shadow-host-v25.css",
-      "name": "pmd-waiter-pos-shadow-host-v25-css"
-    },
-    {
-      "path": "css/pmd-waiter-pos-polish-v26.css",
-      "name": "pmd-waiter-pos-polish-v26-css"
-    },
-    {
-      "path": "css/pmd-waiter-pos-simple-v27.css",
-      "name": "pmd-waiter-pos-simple-v27-css"
-    },
-    {
-      "path": "css/pmd-waiter-floor-stability-v153.css",
-      "name": "pmd-waiter-floor-stability-v153-css"
-    },
-    {
-      "path": "css/pmd-waiter-table-state-v154.css",
-      "name": "pmd-waiter-table-state-v154-css"
-    },
-    {
-      "path": "css/pmd-waiter-floor-ux-v155.css",
-      "name": "pmd-waiter-floor-ux-v155-css"
-    },
-    {
-      "path": "css/pmd-waiter-floor-edit-v160.css",
-      "name": "pmd-waiter-floor-edit-v160-css"
-    },
-    {
-      "path": "css/pmd-settings-simplify-r1.css",
-      "name": "pmd-settings-simplify-r1-css"
-    },
-    {
-      "path": "css/pmd-settings-polish-r2.css",
-      "name": "pmd-settings-polish-r2-css"
-    },
-    {
-      "path": "css/pmd-settings-polish-r3.css",
-      "name": "pmd-settings-polish-r3-css"
-    },
-    {
-      "path": "css/pmd-settings-polish-r4.css",
-      "name": "pmd-settings-polish-r4-css"
-    },
-    {
-      "path": "css/pmd-settings-polish-r5.css",
-      "name": "pmd-settings-polish-r5-css"
-    },
-    {
-      "path": "css/pmd-settings-polish-r7.css",
-      "name": "pmd-settings-polish-r7-css"
-    },
-    {
-      "path": "css/pmd-settings-polish-r8.css",
-      "name": "pmd-settings-polish-r8-css"
-    },
-    {
-      "path": "css/pmd-settings-polish-r9.css",
-      "name": "pmd-settings-polish-r9-css"
-    },
-    {
-      "path": "css/pmd-settings-polish-r10.css",
-      "name": "pmd-settings-polish-r10-css"
-    },
-    {
-      "path": "css/pmd-settings-polish-r11.css",
-      "name": "pmd-settings-polish-r11-css"
-    },
-    {
-      "path": "css/pmd-devices-settings-prune-r12.css",
-      "name": "pmd-devices-settings-prune-r12-css"
-    },
-    {
-      "path": "css/pmd-finance-frontend-cleanup-r13.css",
-      "name": "pmd-finance-frontend-cleanup-r13-css"
-    },
-    {
-      "path": "css/pmd-history-stable-r20.css",
-      "name": "pmd-history-stable-r20-css"
-    },
-    {
-      "path": "css/pmd-coupon-stable-r24.css",
-      "name": "pmd-coupon-stable-r24-css"
-    },
-    {
-      "path": "css/pmd-general-staff-note-r24.css",
-      "name": "pmd-general-staff-note-r24-css"
-    },
-    {
-      "path": "css/pmd-sumup-self-service-v1.css",
-      "name": "pmd-sumup-self-service-v1-css"
-    },
-    {
-      "path": "css/pmd-cashier-order-clean-v1.css",
-      "name": "pmd-cashier-order-clean-v1-css"
-    },
-    {
-      "path": "css/pmd-payment-provider-catalogue-v1.css",
-      "name": "pmd-payment-provider-catalogue-v1-css"
-    },
-    {
-      "path": "css/pmd-finance-market-r4.css",
-      "name": "pmd-finance-market-r4-css"
-    },
-    {
-      "path": "css/pmd-finance-first-paint-r5.css",
-      "name": "pmd-finance-first-paint-r5-css"
-    },
-    {
-      "path": "css/pmd-new-tenant-onboarding-r7.css",
-      "name": "pmd-new-tenant-onboarding-r7-css"
-    },
-    {
-      "path": "css/pmd-location-live-clock-r10.css",
-      "name": "pmd-location-live-clock-r10-css"
-    },
-    {
-      "path": "css/pmd-menu-all-foods-r27.css",
-      "name": "pmd-menu-all-foods-r27-css"
-    },
-    {
-      "path": "css/pmd-menu-all-foods-r28.css",
-      "name": "pmd-menu-all-foods-r28-css"
-    },
-    {
-      "path": "css/pmd-cashier-payment-clean-v1.css",
-      "name": "pmd-cashier-payment-clean-v1-css"
-    },
-    {
-      "path": "css/pmd-payment-simple-r67g.css",
-      "name": "pmd-payment-simple-v1-css"
-    },
-    {
-      "path": "css/pmd-cashier-split-r67i.css",
-      "name": "pmd-cashier-split-r67i-css"
-    },
-    {
-      "path": "css/pmd-shifts-modal-v18.css",
-      "name": "pmd-shifts-modal-v18-css"
-    }
-  ],
-  "script": [
-    {
-      "path": "js/admin.js",
-      "name": "admin-js"
-    },
-    {
-      "path": "js/pmd-waiter-pos-payment-v3.js",
-      "name": "pmd-waiter-pos-payment-v3-js"
-    },
-    {
-      "path": "js/pmd-waiter-pos-payment-policy-r67g.js",
-      "name": "pmd-waiter-pos-payment-policy-v2-js"
-    },
-    {
-      "path": "js/pmd-admin-favicon-final-r21.js",
-      "name": "pmd-admin-favicon-final-r21-js"
-    },
-    {
-      "path": "js/pmd-location-live-clock-r10.js",
-      "name": "pmd-location-live-clock-r10-js"
-    },
-    {
-      "path": "js/pmd-coupon-stable-r24.js",
-      "name": "pmd-coupon-stable-r24-js"
-    },
-    {
-      "path": "js/pmd-general-staff-note-r24.js",
-      "name": "pmd-general-staff-note-r24-js"
-    },
-    {
-      "path": "js/pmd-menu-category-guard-r26.js",
-      "name": "pmd-menu-category-guard-r26-js"
-    },
-    {
-      "path": "js/pmd-menu-all-foods-r27.js",
-      "name": "pmd-menu-all-foods-r27-js"
-    },
-    {
-      "path": "js/pmd-menu-all-foods-r28.js",
-      "name": "pmd-menu-all-foods-r28-js"
-    },
-    {
-      "path": "js/pmd-menu-scoped-food-remove-v1.js",
-      "name": "pmd-menu-scoped-food-remove-v1-js"
-    },
-    {
-      "path": "js/pmd-menu-runtime-stability.js",
-      "name": "pmd-menu-runtime-stability-js"
-    },
-    {
-      "path": "js/pmd-waiter-pos-dashboard-shadow-bridge-v24.js",
-      "name": "pmd-waiter-pos-dashboard-shadow-bridge-v24-js"
-    },
-    {
-      "path": "js/pmd-waiter-pos-dashboard-direct-guard-v23.js",
-      "name": "pmd-waiter-pos-dashboard-direct-guard-v23-js"
-    },
-    {
-      "path": "js/pmd-waiter-pos-simple-v27.js",
-      "name": "pmd-waiter-pos-simple-v27-js"
-    },
-    {
-      "path": "js/pmd-waiter-floor-stability-v153.js",
-      "name": "pmd-waiter-floor-stability-v153-js"
-    },
-    {
-      "path": "js/pmd-waiter-table-state-v154.js",
-      "name": "pmd-waiter-table-state-v154-js"
-    },
-    {
-      "path": "js/pmd-waiter-floor-ux-v155.js",
-      "name": "pmd-waiter-floor-ux-v155-js"
-    },
-    {
-      "path": "js/pmd-waiter-floor-edit-v160.js",
-      "name": "pmd-waiter-floor-edit-v160-js"
-    },
-    {
-      "path": "js/pmd-dashboard-kpi-repair-v1.js",
-      "name": "pmd-dashboard-kpi-repair-v1-js"
-    },
-    {
-      "path": "js/pmd-settings-polish-r4.js",
-      "name": "pmd-settings-polish-r4-js"
-    },
-    {
-      "path": "js/pmd-settings-stable-r9.js",
-      "name": "pmd-settings-stable-r9-js"
-    },
-    {
-      "path": "js/pmd-sumup-self-service-v1.js",
-      "name": "pmd-sumup-self-service-v1-js"
-    },
-    {
-      "path": "js/pmd-new-tenant-onboarding-r7.js",
-      "name": "pmd-new-tenant-onboarding-r7-js"
-    },
-    {
-      "path": "js/pmd-payment-provider-catalogue-v1.js",
-      "name": "pmd-payment-provider-catalogue-v1-js"
-    },
-    {
-      "path": "js/pmd-finance-market-r4.js",
-      "name": "pmd-finance-market-r4-js"
-    },
-    {
-      "path": "js/pmd-sumup-inline-wallet-settings-v1.js",
-      "name": "pmd-sumup-inline-wallet-settings-v1-js"
-    },
-    {
-      "path": "js/pmd-site-access-hub-v12.js",
-      "name": "pmd-site-access-hub-v12-js"
-    },
-    {
-      "path": "js/pmd-shifts-live-attendance-v1.js",
-      "name": "pmd-shifts-live-attendance-v1-js"
-    }
-  ]
+    "doctype": "html5",
+    "favicon": "/app/admin/assets/images/pmd-favicon-final-20260822.svg",
+    "meta": [
+        {
+            "name": "Content-type",
+            "content": "text/html; charset=utf-8",
+            "type": "equiv"
+        },
+        {
+            "name": "X-UA-Compatible",
+            "content": "IE=edge",
+            "type": "name"
+        },
+        {
+            "name": "viewport",
+            "content": "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no",
+            "type": "name"
+        }
+    ],
+    "style": [
+        {
+            "path": "css/admin.css",
+            "name": "admin-css"
+        },
+        {
+            "path": "css/pmd-admin/00-variables.css",
+            "name": "pmd-admin-variables-css"
+        },
+        {
+            "path": "css/pmd-admin/components/cards.css",
+            "name": "pmd-admin-cards-css"
+        },
+        {
+            "path": "css/pmd-clean-workspace-header-spacing-v1.css",
+            "name": "pmd-clean-workspace-header-spacing-v1-css"
+        },
+        {
+            "path": "css/pmd-waiter-pos-shadow-host-v25.css",
+            "name": "pmd-waiter-pos-shadow-host-v25-css"
+        },
+        {
+            "path": "css/pmd-waiter-pos-polish-v26.css",
+            "name": "pmd-waiter-pos-polish-v26-css"
+        },
+        {
+            "path": "css/pmd-waiter-pos-simple-v27.css",
+            "name": "pmd-waiter-pos-simple-v27-css"
+        },
+        {
+            "path": "css/pmd-waiter-floor-stability-v153.css",
+            "name": "pmd-waiter-floor-stability-v153-css"
+        },
+        {
+            "path": "css/pmd-waiter-table-state-v154.css",
+            "name": "pmd-waiter-table-state-v154-css"
+        },
+        {
+            "path": "css/pmd-waiter-floor-ux-v155.css",
+            "name": "pmd-waiter-floor-ux-v155-css"
+        },
+        {
+            "path": "css/pmd-waiter-floor-edit-v160.css",
+            "name": "pmd-waiter-floor-edit-v160-css"
+        },
+        {
+            "path": "css/pmd-settings-simplify-r1.css",
+            "name": "pmd-settings-simplify-r1-css"
+        },
+        {
+            "path": "css/pmd-settings-polish-r2.css",
+            "name": "pmd-settings-polish-r2-css"
+        },
+        {
+            "path": "css/pmd-settings-polish-r3.css",
+            "name": "pmd-settings-polish-r3-css"
+        },
+        {
+            "path": "css/pmd-settings-polish-r4.css",
+            "name": "pmd-settings-polish-r4-css"
+        },
+        {
+            "path": "css/pmd-settings-polish-r5.css",
+            "name": "pmd-settings-polish-r5-css"
+        },
+        {
+            "path": "css/pmd-settings-polish-r7.css",
+            "name": "pmd-settings-polish-r7-css"
+        },
+        {
+            "path": "css/pmd-settings-polish-r8.css",
+            "name": "pmd-settings-polish-r8-css"
+        },
+        {
+            "path": "css/pmd-settings-polish-r9.css",
+            "name": "pmd-settings-polish-r9-css"
+        },
+        {
+            "path": "css/pmd-settings-polish-r10.css",
+            "name": "pmd-settings-polish-r10-css"
+        },
+        {
+            "path": "css/pmd-settings-polish-r11.css",
+            "name": "pmd-settings-polish-r11-css"
+        },
+        {
+            "path": "css/pmd-devices-settings-prune-r12.css",
+            "name": "pmd-devices-settings-prune-r12-css"
+        },
+        {
+            "path": "css/pmd-finance-frontend-cleanup-r13.css",
+            "name": "pmd-finance-frontend-cleanup-r13-css"
+        },
+        {
+            "path": "css/pmd-history-stable-r20.css",
+            "name": "pmd-history-stable-r20-css"
+        },
+        {
+            "path": "css/pmd-coupon-stable-r24.css",
+            "name": "pmd-coupon-stable-r24-css"
+        },
+        {
+            "path": "css/pmd-general-staff-note-r24.css",
+            "name": "pmd-general-staff-note-r24-css"
+        },
+        {
+            "path": "css/pmd-sumup-self-service-v1.css",
+            "name": "pmd-sumup-self-service-v1-css"
+        },
+        {
+            "path": "css/pmd-cashier-order-clean-v1.css",
+            "name": "pmd-cashier-order-clean-v1-css"
+        },
+        {
+            "path": "css/pmd-payment-provider-catalogue-v1.css",
+            "name": "pmd-payment-provider-catalogue-v1-css"
+        },
+        {
+            "path": "css/pmd-finance-market-r4.css",
+            "name": "pmd-finance-market-r4-css"
+        },
+        {
+            "path": "css/pmd-finance-first-paint-r5.css",
+            "name": "pmd-finance-first-paint-r5-css"
+        },
+        {
+            "path": "css/pmd-new-tenant-onboarding-r7.css",
+            "name": "pmd-new-tenant-onboarding-r7-css"
+        },
+        {
+            "path": "css/pmd-location-live-clock-r10.css",
+            "name": "pmd-location-live-clock-r10-css"
+        },
+        {
+            "path": "css/pmd-menu-all-foods-r27.css",
+            "name": "pmd-menu-all-foods-r27-css"
+        },
+        {
+            "path": "css/pmd-menu-all-foods-r28.css",
+            "name": "pmd-menu-all-foods-r28-css"
+        },
+        {
+            "path": "css/pmd-cashier-payment-clean-v1.css",
+            "name": "pmd-cashier-payment-clean-v1-css"
+        },
+        {
+            "path": "css/pmd-payment-simple-r67g.css",
+            "name": "pmd-payment-simple-v1-css"
+        },
+        {
+            "path": "css/pmd-cashier-split-r67i.css",
+            "name": "pmd-cashier-split-r67i-css"
+        },
+        {
+            "path": "css/pmd-shifts-modal-v18.css",
+            "name": "pmd-shifts-modal-v18-css"
+        },
+        {
+            "path": "css/pmd-admin-i18n-residual-r7.css",
+            "name": "pmd-admin-i18n-residual-r7-css"
+        }
+    ],
+    "script": [
+        {
+            "path": "js/admin.js",
+            "name": "admin-js"
+        },
+        {
+            "path": "js/pmd-waiter-pos-payment-v3.js",
+            "name": "pmd-waiter-pos-payment-v3-js"
+        },
+        {
+            "path": "js/pmd-waiter-pos-payment-policy-r67g.js",
+            "name": "pmd-waiter-pos-payment-policy-v2-js"
+        },
+        {
+            "path": "js/pmd-admin-favicon-final-r21.js",
+            "name": "pmd-admin-favicon-final-r21-js"
+        },
+        {
+            "path": "js/pmd-location-live-clock-r10.js",
+            "name": "pmd-location-live-clock-r10-js"
+        },
+        {
+            "path": "js/pmd-coupon-stable-r24.js",
+            "name": "pmd-coupon-stable-r24-js"
+        },
+        {
+            "path": "js/pmd-general-staff-note-r24.js",
+            "name": "pmd-general-staff-note-r24-js"
+        },
+        {
+            "path": "js/pmd-menu-category-guard-r26.js",
+            "name": "pmd-menu-category-guard-r26-js"
+        },
+        {
+            "path": "js/pmd-menu-all-foods-r27.js",
+            "name": "pmd-menu-all-foods-r27-js"
+        },
+        {
+            "path": "js/pmd-menu-all-foods-r28.js",
+            "name": "pmd-menu-all-foods-r28-js"
+        },
+        {
+            "path": "js/pmd-menu-scoped-food-remove-v1.js",
+            "name": "pmd-menu-scoped-food-remove-v1-js"
+        },
+        {
+            "path": "js/pmd-menu-runtime-stability.js",
+            "name": "pmd-menu-runtime-stability-js"
+        },
+        {
+            "path": "js/pmd-waiter-pos-dashboard-shadow-bridge-v24.js",
+            "name": "pmd-waiter-pos-dashboard-shadow-bridge-v24-js"
+        },
+        {
+            "path": "js/pmd-waiter-pos-dashboard-direct-guard-v23.js",
+            "name": "pmd-waiter-pos-dashboard-direct-guard-v23-js"
+        },
+        {
+            "path": "js/pmd-waiter-pos-simple-v27.js",
+            "name": "pmd-waiter-pos-simple-v27-js"
+        },
+        {
+            "path": "js/pmd-waiter-floor-stability-v153.js",
+            "name": "pmd-waiter-floor-stability-v153-js"
+        },
+        {
+            "path": "js/pmd-waiter-table-state-v154.js",
+            "name": "pmd-waiter-table-state-v154-js"
+        },
+        {
+            "path": "js/pmd-waiter-floor-ux-v155.js",
+            "name": "pmd-waiter-floor-ux-v155-js"
+        },
+        {
+            "path": "js/pmd-waiter-floor-edit-v160.js",
+            "name": "pmd-waiter-floor-edit-v160-js"
+        },
+        {
+            "path": "js/pmd-dashboard-kpi-repair-v1.js",
+            "name": "pmd-dashboard-kpi-repair-v1-js"
+        },
+        {
+            "path": "js/pmd-settings-polish-r6.js",
+            "name": "pmd-settings-polish-r6-js"
+        },
+        {
+            "path": "js/pmd-admin-canonical-visible-audit-r5.js",
+            "name": "pmd-admin-canonical-visible-audit-r5-js"
+        },
+        {
+            "path": "js/pmd-settings-stable-r10.js",
+            "name": "pmd-settings-stable-r10-js"
+        },
+        {
+            "path": "js/pmd-admin-i18n-crawler-r6.js",
+            "name": "pmd-admin-i18n-crawler-r6-js"
+        },
+        {
+            "path": "js/pmd-sumup-self-service-v1.js",
+            "name": "pmd-sumup-self-service-v1-js"
+        },
+        {
+            "path": "js/pmd-new-tenant-onboarding-r7.js",
+            "name": "pmd-new-tenant-onboarding-r7-js"
+        },
+        {
+            "path": "js/pmd-payment-provider-catalogue-v1.js",
+            "name": "pmd-payment-provider-catalogue-v1-js"
+        },
+        {
+            "path": "js/pmd-finance-market-r4.js",
+            "name": "pmd-finance-market-r4-js"
+        },
+        {
+            "path": "js/pmd-sumup-inline-wallet-settings-v1.js",
+            "name": "pmd-sumup-inline-wallet-settings-v1-js"
+        },
+        {
+            "path": "js/pmd-site-access-hub-v12.js",
+            "name": "pmd-site-access-hub-v12-js"
+        },
+        {
+            "path": "js/pmd-shifts-live-attendance-v1.js",
+            "name": "pmd-shifts-live-attendance-v1-js"
+        },
+        {
+            "path": "js/pmd-admin-i18n-residual-r7.js",
+            "name": "pmd-admin-i18n-residual-r7-js"
+        },
+        {
+            "path": "js/pmd-admin-i18n-residual-r8.js",
+            "name": "pmd-admin-i18n-residual-r8-js"
+        }
+    ]
 }
