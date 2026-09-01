@@ -54,6 +54,41 @@ while IFS= read -r -d '' file; do
   echo "LINT_OK ${file#$STAGE/}"
 done < <(find "$STAGE" -type f -name '*.php' ! -name '*.blade.php' -print0)
 
+echo "===== TARGET PERMISSION PRECHECK ====="
+permission_blockers=0
+for path in "${ai_paths[@]}"; do
+  if [[ -e "$path" ]]; then
+    continue
+  fi
+
+  ancestor="$(dirname "$path")"
+  while [[ ! -d "$ancestor" && "$ancestor" != "." && "$ancestor" != "/" ]]; do
+    ancestor="$(dirname "$ancestor")"
+  done
+
+  if [[ ! -d "$ancestor" || ! -w "$ancestor" ]]; then
+    owner="unknown"
+    group="unknown"
+    mode="unknown"
+    if [[ -e "$ancestor" ]]; then
+      owner="$(stat -c '%U' "$ancestor" 2>/dev/null || echo unknown)"
+      group="$(stat -c '%G' "$ancestor" 2>/dev/null || echo unknown)"
+      mode="$(stat -c '%a' "$ancestor" 2>/dev/null || echo unknown)"
+    fi
+    printf 'PERMISSION_BLOCK path=%s ancestor=%s owner=%s group=%s mode=%s\n' "$path" "$ancestor" "$owner" "$group" "$mode"
+    permission_blockers=$((permission_blockers + 1))
+  else
+    printf 'WRITABLE_OK      %s via %s\n' "$path" "$ancestor"
+  fi
+done
+
+if [[ "$permission_blockers" -gt 0 ]]; then
+  echo "INSTALL_RESULT: BLOCKED_BY_PERMISSIONS"
+  echo "PERMISSION_BLOCKERS: $permission_blockers"
+  echo "No AI target files were written by this installer run."
+  exit 6
+fi
+
 echo "===== INSTALLING NEW AI FILES ONLY ====="
 for path in "${ai_paths[@]}"; do
   src="$STAGE/$path"
