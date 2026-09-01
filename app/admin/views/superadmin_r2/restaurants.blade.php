@@ -112,6 +112,17 @@
                                     data-type="{{ $tenant->type ?: 'People' }}"
                                     data-description="{{ $tenant->description }}"
                                 >Edit</button>
+                                {{-- PMD_SUPERADMIN_OWNER_PORTAL_MFA_RESET_V1 --}}
+                                <form
+                                    method="POST"
+                                    action="/superadmin/tenants/reset-owner-portal-mfa"
+                                    onsubmit="return confirm('Reset the Owner Portal Authenticator for this restaurant? The old Authenticator and all Portal recovery codes will stop working. The Owner must sign in with their password and enroll a new QR.');"
+                                >
+                                    @csrf
+                                    <input type="hidden" name="id" value="{{ $tenant->id }}">
+                                    <input type="hidden" name="confirmation" value="reset-owner-portal-mfa">
+                                    <button class="btn btn-soft" type="submit" title="Support emergency recovery only">Reset Owner MFA</button>
+                                </form>
                                 <form class="tenant-status-form" method="POST" action="/superadmin/tenants/status">
                                     @csrf<input type="hidden" name="id" value="{{ $tenant->id }}">
                                     <select name="status" aria-label="Restaurant status"><option value="active" {{ $tenant->status==='active'?'selected':'' }}>Active</option><option value="disabled" {{ $tenant->status==='disabled'?'selected':'' }}>Disabled</option></select>

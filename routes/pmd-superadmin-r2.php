@@ -100,6 +100,10 @@ Route::middleware(['web', SuperAdminCanonicalHost::class])
             Route::post('/superadmin/tenants/provision', [SuperAdminR2Controller::class, 'provision'])
                 ->name('pmd.superadmin.tenants.provision');
 
+            // PMD_SUPERADMIN_OWNER_PORTAL_MFA_RESET_V1
+            Route::post('/superadmin/tenants/reset-owner-portal-mfa', [SuperAdminR2Controller::class, 'resetOwnerPortalMfa'])
+                ->name('pmd.superadmin.tenants.reset-owner-portal-mfa');
+
             // Safe Remove is intentionally reversible. We do NOT DROP the
             // database and we keep TLS/vhost so old URLs can redirect cleanly.
             Route::post('/superadmin/tenants/remove', function (Request $request) {

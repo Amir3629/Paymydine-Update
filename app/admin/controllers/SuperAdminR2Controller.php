@@ -5,6 +5,7 @@ namespace Admin\Controllers;
 use Admin\Classes\AdminController;
 use App\Services\SuperAdminTenantDomainProvisioner;
 use App\Services\SuperAdminTenantLifecycleService;
+use App\Services\PmdSuperAdminOwnerPortalMfaResetService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -179,6 +180,71 @@ class SuperAdminR2Controller extends AdminController
         $data['updated_at']=now();
         DB::connection('mysql')->table('tenants')->where('id',$id)->update($data);
         return redirect('/superadmin/new')->with('success','Restaurant updated.');
+    }
+
+    /** PMD_SUPERADMIN_OWNER_PORTAL_MFA_RESET_V1 */
+    public function resetOwnerPortalMfa(
+        Request $request,
+        PmdSuperAdminOwnerPortalMfaResetService $resetter
+    ) {
+        $request->validate([
+            'id' => 'required|integer',
+            'confirmation' => 'required|in:reset-owner-portal-mfa',
+        ]);
+
+        $tenant = DB::connection('mysql')
+            ->table('tenants')
+            ->where('id', (int)$request->input('id'))
+            ->first();
+
+        if (!$tenant) {
+            return redirect('/superadmin/new')
+                ->withErrors(['tenant' => 'Restaurant not found.']);
+        }
+
+        if (strtolower(trim((string)($tenant->status ?? ''))) === 'removed') {
+            return redirect('/superadmin/new')->with(
+                'warning',
+                'Restore the restaurant before resetting its Owner Portal Authenticator.'
+            );
+        }
+
+        $result = $resetter->resetForTenant($tenant);
+
+        $audit = [
+            'surface' => 'superadmin_restaurant_registry',
+            'action' => 'owner_portal_mfa_emergency_reset',
+            'success' => (bool)($result['ok'] ?? false),
+            'result_code' => (string)($result['code'] ?? ''),
+            'superadmin_id' => (int)Session::get('superadmin_id', 0),
+            'superadmin_username' => (string)Session::get('superadmin_username', ''),
+            'tenant_id' => (int)($tenant->id ?? 0),
+            'tenant_name' => (string)($tenant->name ?? ''),
+            'tenant_domain' => (string)($tenant->domain ?? ''),
+            'tenant_database' => (string)($tenant->database ?? ''),
+            'owner_user_id' => (int)($result['owner_user_id'] ?? 0),
+            'owner_staff_id' => (int)($result['owner_staff_id'] ?? 0),
+            'owner_username' => (string)($result['owner_username'] ?? ''),
+            'had_active_factor' => (bool)($result['had_active_factor'] ?? false),
+            'ip' => (string)$request->ip(),
+        ];
+
+        if (!empty($result['ok'])) {
+            Log::warning('PMD SuperAdmin Owner Portal MFA emergency reset', $audit);
+            return redirect('/superadmin/new')->with(
+                'success',
+                trim((string)($tenant->name ?? 'Restaurant')).': '.(string)$result['message']
+            );
+        }
+
+        Log::warning('PMD SuperAdmin Owner Portal MFA emergency reset refused/failed', $audit + [
+            'message' => (string)($result['message'] ?? 'Unknown reset failure.'),
+        ]);
+
+        return redirect('/superadmin/new')->with(
+            'warning',
+            trim((string)($tenant->name ?? 'Restaurant')).': '.(string)($result['message'] ?? 'Owner Portal MFA reset failed.')
+        );
     }
 
     public function status(Request $request)

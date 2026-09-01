@@ -1,0 +1,226 @@
+/* PMD_SHIFTS_RESERVATION_JADE_TIME_V17C */
+
+/* Compact Reservation-Jade style time wheels for Shifts. */
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-jade-field-v17c {
+  position:relative!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-jade-native-time-v17c {
+  position:absolute!important;
+  width:1px!important;
+  height:1px!important;
+  min-height:1px!important;
+  padding:0!important;
+  margin:-1px!important;
+  overflow:hidden!important;
+  clip:rect(0,0,0,0)!important;
+  clip-path:inset(50%)!important;
+  border:0!important;
+  opacity:0!important;
+  pointer-events:none!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-jade-wheel-v221 {
+  position:relative!important;
+  width:100%!important;
+  height:168px!important;
+  display:grid!important;
+  grid-template-columns:minmax(72px,1fr) 22px minmax(72px,1fr) minmax(74px,.86fr)!important;
+  align-items:stretch!important;
+  overflow:hidden!important;
+  border:1px solid #d7e4e0!important;
+  border-radius:16px!important;
+  background:#fff!important;
+  box-shadow:0 6px 18px rgba(7,60,53,.035)!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-jade-wheel-v221::before,
+body.pmd-shifts-page #pmd-shifts .pmd-jade-wheel-v221::after {
+  content:''!important;
+  position:absolute!important;
+  left:0!important;
+  right:0!important;
+  z-index:4!important;
+  height:48px!important;
+  pointer-events:none!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-jade-wheel-v221::before {
+  top:0!important;
+  background:linear-gradient(180deg,#fff 12%,rgba(255,255,255,0))!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-jade-wheel-v221::after {
+  bottom:0!important;
+  background:linear-gradient(0deg,#fff 12%,rgba(255,255,255,0))!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-jade-wheel-v221__highlight {
+  position:absolute!important;
+  top:50%!important;
+  left:10px!important;
+  right:10px!important;
+  z-index:1!important;
+  height:42px!important;
+  transform:translateY(-50%)!important;
+  border:1px solid rgba(7,60,53,.10)!important;
+  border-radius:11px!important;
+  background:linear-gradient(90deg,rgba(7,60,53,.038),rgba(7,60,53,.075),rgba(7,60,53,.038))!important;
+  pointer-events:none!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-jade-wheel-v221__column {
+  position:relative!important;
+  z-index:2!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  padding:63px 0!important;
+  scroll-snap-type:y mandatory!important;
+  scrollbar-width:none!important;
+  overscroll-behavior:contain!important;
+  background:transparent!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-jade-wheel-v221__column::-webkit-scrollbar {
+  display:none!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-jade-wheel-v221__column.is-minute,
+body.pmd-shifts-page #pmd-shifts .pmd-jade-wheel-v221__column.is-period {
+  border-left:1px solid rgba(7,60,53,.055)!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-jade-wheel-v221__item {
+  width:100%!important;
+  height:42px!important;
+  min-height:42px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  padding:0 6px!important;
+  margin:0!important;
+  scroll-snap-align:center!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  color:#8b9693!important;
+  font-size:16px!important;
+  font-weight:560!important;
+  opacity:.62!important;
+  box-shadow:none!important;
+  cursor:pointer!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-jade-wheel-v221__item.is-selected {
+  color:#073c35!important;
+  font-size:19px!important;
+  font-weight:790!important;
+  opacity:1!important;
+  transform:scale(1.035)!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-jade-wheel-v221__separator {
+  position:relative!important;
+  z-index:3!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  color:#073c35!important;
+  font-size:20px!important;
+  font-weight:800!important;
+  pointer-events:none!important;
+}
+
+/* Pause is a light row of choices, not another framed card. */
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-break-options-v17c {
+  margin-top:8px!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-break-options-v17c__buttons {
+  display:flex!important;
+  align-items:center!important;
+  flex-wrap:wrap!important;
+  gap:7px!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-break-choice-v17c {
+  min-height:34px!important;
+  padding:0 12px!important;
+  border:1px solid #cfdee5!important;
+  border-radius:999px!important;
+  background:#fff!important;
+  color:#24485a!important;
+  font-size:12px!important;
+  font-weight:780!important;
+  cursor:pointer!important;
+  box-shadow:none!important;
+  opacity:1!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-break-choice-v17c:hover,
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-break-choice-v17c:focus-visible {
+  border-color:#8fbdb1!important;
+  background:#f5fbf9!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-break-choice-v17c.is-selected {
+  border-color:#0c8369!important;
+  background:#e9f8f3!important;
+  color:#076c58!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-break-choice-v17c:disabled {
+  opacity:1!important;
+  cursor:pointer!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-break-custom-v17c {
+  margin-top:7px!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:8px!important;
+  padding:0!important;
+  border:0!important;
+  background:transparent!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-break-custom-v17c[hidden] {
+  display:none!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-break-custom-v17c input {
+  width:104px!important;
+  min-height:34px!important;
+  height:34px!important;
+  padding:0 10px!important;
+  border-radius:10px!important;
+}
+
+/* Old time/break UI must not survive a stale mixed asset state. */
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-inline-time-v17,
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-break-panel-v17,
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-break-panel-v17b {
+  display:none!important;
+}
+
+@media(max-width:900px) {
+  body.pmd-shifts-page #pmd-shifts .pmd-jade-wheel-v221 {
+    height:156px!important;
+    grid-template-columns:minmax(58px,1fr) 18px minmax(58px,1fr) minmax(62px,.82fr)!important;
+  }
+
+  body.pmd-shifts-page #pmd-shifts .pmd-jade-wheel-v221__column {
+    padding:58px 0!important;
+  }
+
+  body.pmd-shifts-page #pmd-shifts .pmd-jade-wheel-v221__item,
+  body.pmd-shifts-page #pmd-shifts .pmd-jade-wheel-v221__highlight {
+    height:40px!important;
+    min-height:40px!important;
+  }
+}

@@ -48,12 +48,14 @@ class Shifts extends AdminController
         $this->addCss('css/pmd-shifts-big-calendar-v14.css');
         // PMD_SHIFTS_PLANNER_RULES_V17
         $this->addCss('css/pmd-shifts-planner-v17.css');
+        // PMD_SHIFTS_RESERVATION_JADE_TIME_V17C
+        $this->addCss('css/pmd-shifts-reservation-jade-time-v17c.css');
         // PMD_SHIFTS_PLANNER_UX_V15
         $this->addCss('css/pmd-shifts-planner-ux-v15.css');
         $this->addJs('js/pmd-shifts-inpage-day-nav-v17.js');
         // PMD_SHIFTS_BIG_CALENDAR_V14
         $this->addJs('js/pmd-shifts-big-calendar-v14.js');
-        $this->addJs('js/pmd-shifts-planner-v17.js');
+        $this->addJs('js/pmd-shifts-reservation-jade-time-v17c.js');
         // PMD_SHIFTS_PORTAL_MFA_RESET_ASSET_V1
         $this->addJs('js/pmd-shifts-portal-mfa-reset-v1.js');
         AdminMenu::setContext('dashboard');

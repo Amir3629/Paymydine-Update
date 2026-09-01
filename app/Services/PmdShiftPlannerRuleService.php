@@ -36,8 +36,10 @@ class PmdShiftPlannerRuleService
 
     public function normalizeBreakMinutes(?string $startsAt, ?string $endsAt, int $requested): int
     {
-        $requested = max(0, min(240, $requested));
-        return max($requested, $this->minimumBreakMinutes($startsAt, $endsAt));
+        // PMD_SHIFTS_PAUSE_RECOMMENDATION_ONLY_V17C
+        // Start/end still drive the suggested default in the UI. Persistence
+        // only sanitizes the owner's explicit choice and never raises it.
+        return max(0, min(240, $requested));
     }
 
     /**
@@ -202,10 +204,9 @@ class PmdShiftPlannerRuleService
 
         $mergedStart = $this->minuteToDbTime($unionStart);
         $mergedEnd = $this->minuteToDbTime($unionEnd);
-        $breakMinutes = max(
-            $breakMinutes,
-            $this->minimumBreakMinutes(substr($mergedStart, 0, 5), substr($mergedEnd, 0, 5))
-        );
+        // V17C: an overlap-union preserves the strongest already-planned
+        // pause value, but does not manufacture a new mandatory minimum.
+        $breakMinutes = max(0, min(240, $breakMinutes));
 
         $update = [
             'starts_at' => $mergedStart,
