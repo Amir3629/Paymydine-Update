@@ -30,13 +30,17 @@ EXPECTED=(
 
 if [[ "$(id -u)" -eq 0 ]]; then
   SUDO=()
+  RUN_AS_WWW=(sudo -u www-data)
 else
   command -v sudo >/dev/null 2>&1 || {
     echo 'ERROR: sudo is required to write the live PayMyDine source tree.' >&2
     exit 3
   }
-  sudo -v
-  SUDO=(sudo)
+  # Never request an interactive password. The VPS already permits the specific
+  # deployment commands used by the established PayMyDine wrappers. If that
+  # policy is unavailable, fail immediately instead of prompting the operator.
+  SUDO=(sudo -n)
+  RUN_AS_WWW=(sudo -n -u www-data)
 fi
 
 echo '======================================================'
@@ -100,11 +104,7 @@ php scripts/pmd-sync-oman-admin-language-r1.php --apply
 echo '======================================================'
 echo '7/7 CLEAR VIEWS + FINAL MARKERS'
 echo '======================================================'
-if [[ "$(id -u)" -eq 0 ]]; then
-  sudo -u www-data php artisan view:clear
-else
-  sudo -u www-data php artisan view:clear
-fi
+"${RUN_AS_WWW[@]}" php artisan view:clear
 
 grep -n 'PMD_ADMIN_DYNAMIC_LOCALE_REGISTRY_AR_R1' app/admin/views/_partials/pmd_admin_i18n.blade.php
 grep -n 'PMD_ADMIN_RTL_AR_R1' app/admin/views/_partials/pmd_admin_i18n.blade.php
