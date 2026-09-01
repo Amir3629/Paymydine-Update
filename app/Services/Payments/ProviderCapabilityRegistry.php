@@ -167,16 +167,31 @@ final class ProviderCapabilityRegistry
             ],
             'worldline' => [
                 'label' => 'Worldline',
+                // Worldline Global Collect / Connect catalogue for the Germany
+                // scope. Account entitlements still decide what a merchant can
+                // actually use. Terminal capability remains catalogue-only until
+                // Worldline supplies the certified Terminal API Cloud/ECR pack.
                 'capabilities' => [
                     self::CAPABILITY_ONLINE_PAYMENTS,
                     self::CAPABILITY_TERMINAL_PAYMENTS,
                     self::CAPABILITY_REFUNDS,
+                    self::CAPABILITY_PARTIAL_REFUNDS,
+                    self::CAPABILITY_SAVED_PAYMENT_METHODS,
                     self::CAPABILITY_WEBHOOKS,
                 ],
                 'payment_methods' => [
                     self::METHOD_CARD,
+                    self::METHOD_APPLE_PAY,
+                    self::METHOD_GOOGLE_PAY,
                     self::METHOD_WERO,
+                    self::METHOD_PAYPAL,
+                    self::METHOD_KLARNA,
+                    self::METHOD_SEPA_DEBIT,
                 ],
+                // Fail closed. MyCheckout/security hardening is present, but these
+                // flags stay empty until a tenant sandbox proves the entire chain:
+                // create -> provider confirmation -> authoritative amount/currency
+                // verification -> idempotent PMD order settlement.
                 'implemented_capabilities' => [],
                 'implemented_payment_methods' => [],
             ],
