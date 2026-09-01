@@ -25,7 +25,7 @@ FILES=(
 EXPECTED=(
   'd23af21fdef807ba030833ee858e24cc17cd4071'
   'd54ee31746204df4dde33fd23349c7da13805802'
-  '46d172a624252ea4499c95cd93e483918a798e1e'
+  'a8f378efbca7d6971ac238c4c3464c326b903d8c'
 )
 
 if [[ "$(id -u)" -eq 0 ]]; then
@@ -103,7 +103,7 @@ echo '======================================================'
 php scripts/pmd-sync-oman-admin-language-r1.php
 
 echo '======================================================'
-echo '6/7 APPLY + VERIFY OMAN ADMIN ENGLISH / ARABIC'
+echo '6/7 APPLY + VERIFY OMAN ADMIN ENGLISH / ARABIC + RUNTIME CACHE'
 echo '======================================================'
 php scripts/pmd-sync-oman-admin-language-r1.php --apply
 
@@ -120,6 +120,7 @@ echo '======================================================'
 echo 'OMAN ADMIN ARABIC R1 COMPLETE'
 echo '======================================================'
 echo 'Oman Admin language registry: English + Arabic; English remains default.'
+echo 'Tenant-scoped localization caches: refreshed and verified for English + Arabic.'
 echo 'Arabic Admin document direction: RTL.'
 echo 'Canonical PMD Arabic catalogue is installed with safe English fallback for untranslated PMD strings.'
 echo 'No payment/currency/order/reservation/menu/category/business data was changed.'
