@@ -2,14 +2,14 @@
 
 namespace Admin\Controllers;
 
+use Admin\Classes\AdminController;
 use Admin\Facades\AdminAuth;
-use Admin\Facades\AdminLocation;
 use Admin\Facades\AdminMenu;
 use Admin\Facades\Template;
 use App\Services\AI\AiContext;
 use App\Services\AI\AiOrchestrator;
+use App\Services\AI\PmdReadAuthority;
 use App\Services\PmdKitchenWorkforceService;
-use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Throwable;
@@ -17,11 +17,11 @@ use Throwable;
 /**
  * PMD Intelligence V1
  *
- * Read-only owner operations copilot. It deliberately inherits Pmdreports so
- * AI tools reuse Dashboard2/Pmdreports tenant/location/report authorities.
- * No AI tool accepts tenant, database, user or location identifiers.
+ * Clean read-only owner operations copilot UI. Data access is delegated to
+ * PmdReadAuthority so this page does not inherit Dashboard/Reservations/Reports
+ * UI constructors or their asset stacks.
  */
-class Pmdintelligence extends Pmdreports
+class Pmdintelligence extends AdminController
 {
     protected $requiredPermissions = 'Admin.Dashboard';
 
@@ -95,12 +95,18 @@ class Pmdintelligence extends Pmdreports
         }
     }
 
+    private function readAuthority(): PmdReadAuthority
+    {
+        return app(PmdReadAuthority::class);
+    }
+
     private function buildAiContext(string $task): AiContext
     {
         $user = AdminAuth::getUser();
         $staff = $user ? $user->staff : null;
         $tenant = app()->bound('tenant') ? app('tenant') : null;
-        $locationId = $this->locationId();
+        $authority = $this->readAuthority();
+        $locationId = $authority->canonicalLocationId();
 
         $defaultConnection = DB::getDefaultConnection();
         $tenantDatabase = null;
@@ -137,7 +143,7 @@ class Pmdintelligence extends Pmdreports
             $staff ? (int)$staff->getKey() : null,
             ['Admin.Dashboard'],
             (string)app()->getLocale(),
-            $this->restaurantTimezone(),
+            $authority->canonicalTimezone(),
             (string)Str::uuid(),
             $task
         );
@@ -154,7 +160,7 @@ class Pmdintelligence extends Pmdreports
                     'additionalProperties' => false,
                 ],
                 'handler' => function () {
-                    return $this->kpiPayload();
+                    return $this->readAuthority()->ownerKpis();
                 },
             ],
             'report_snapshot' => [
@@ -175,7 +181,7 @@ class Pmdintelligence extends Pmdreports
                     'additionalProperties' => false,
                 ],
                 'handler' => function (array $arguments) {
-                    return $this->toolReportSnapshot(
+                    return $this->readAuthority()->reportSnapshot(
                         (string)($arguments['report'] ?? ''),
                         (string)($arguments['period'] ?? 'today')
                     );
@@ -189,46 +195,13 @@ class Pmdintelligence extends Pmdreports
                     'additionalProperties' => false,
                 ],
                 'handler' => function () {
-                    $locationId = $this->locationId();
+                    $locationId = $this->readAuthority()->canonicalLocationId();
                     if (!$locationId) {
                         return ['available' => false, 'reason' => 'No canonical location'];
                     }
                     return app(PmdKitchenWorkforceService::class)->snapshot((int)$locationId);
                 },
             ],
-        ];
-    }
-
-    private function toolReportSnapshot(string $report, string $period): array
-    {
-        $allowed = ['sales', 'hourly', 'categories', 'payments', 'transactions', 'alerts', 'liveorders', 'topitems', 'reviews', 'reservations', 'attendance'];
-        if (!in_array($report, $allowed, true)) {
-            return ['available' => false, 'reason' => 'Unsupported report'];
-        }
-
-        $timezone = $this->restaurantTimezone();
-        $now = Carbon::now($timezone);
-        if ($period === 'month') {
-            $start = $now->copy()->startOfMonth();
-        } else {
-            $period = 'today';
-            $start = $now->copy()->startOfDay();
-        }
-
-        $payload = $this->payload($report, $start, $now, $period);
-
-        return [
-            'available' => true,
-            'report' => $report,
-            'period' => $period,
-            'generated_at' => $now->toIso8601String(),
-            'location_id' => $this->locationId(),
-            'stats' => $payload['stats'] ?? [],
-            'chart' => $payload['chart'] ?? null,
-            'columns' => $payload['columns'] ?? [],
-            'rows' => array_slice((array)($payload['rows'] ?? []), 0, 50),
-            'empty' => (bool)($payload['empty'] ?? false),
-            'source' => $payload['source'] ?? 'PMD canonical report authority',
         ];
     }
 
