@@ -6,9 +6,13 @@ use Admin\Controllers\Pmdreports;
 use Carbon\Carbon;
 use InvalidArgumentException;
 
-// Admin controllers are resolved by the TastyIgniter module loader rather than
-// Composer's App\ PSR-4 mapping. Load the canonical report controller explicitly
-// so this App service never depends on incidental controller-route autoloading.
+// This App service is loaded through Composer PSR-4, while the canonical data
+// authorities live in the Admin module controller namespace. Load the complete
+// inheritance chain explicitly so service/CLI resolution never depends on a
+// controller route having been touched first.
+require_once base_path('app/admin/controllers/Reservations.php');
+require_once base_path('app/admin/controllers/Reservations2.php');
+require_once base_path('app/admin/controllers/Dashboard2.php');
 require_once base_path('app/admin/controllers/Pmdreports.php');
 
 /**
