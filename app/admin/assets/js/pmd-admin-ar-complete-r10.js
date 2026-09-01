@@ -1,11 +1,11 @@
 (function () {
     'use strict';
 
-    // PMD_ADMIN_AR_COMPLETE_RUNTIME_R12_PERF
-    // Arabic-only late authority. The canonical catalogue remains the wording
-    // authority. R12 deliberately coalesces late re-apply work so dynamic Admin
-    // pages do not repeatedly full-scan the DOM during clocks/AJAX updates.
-    var VERSION = '12.0.0-perf';
+    // PMD_ADMIN_AR_SINGLE_OBSERVER_PERF_R13
+    // Arabic performance authority. Keep the canonical PMD catalogue and its
+    // incremental MutationObserver, but prevent legacy translation layers from
+    // registering repeated document-wide rescans on clocks/AJAX/tooltips.
+    var VERSION = '13.0.0-single-observer';
     var locale = String(
         window.PMD_PLATFORM_MESSAGES_LOCALE ||
         window.PMD_ADMIN_LOCALE ||
@@ -13,26 +13,153 @@
         ''
     ).toLowerCase();
 
-    if (locale.split('-')[0] !== 'ar') return;
+    if (locale.split(/[-_]/)[0] !== 'ar') return;
 
-    var timers = [];
     var analyticsRefreshStarted = false;
-    var runCount = 0;
-    var requestedCount = 0;
-    var coalescedCount = 0;
-    var translateTimer = null;
-    var lastTranslateAt = 0;
-    var MIN_TRANSLATE_INTERVAL_MS = 220;
     var coverageBootstrapInstalled = false;
     var coverageReloadStarted = false;
-    var COVERAGE_BOOTSTRAP_VERSION = '12.0.0-ar-perf-bootstrap';
+    var canonicalRunWrapped = false;
+    var registrationGuardInstalled = false;
+    var timeoutGuardInstalled = false;
+    var COVERAGE_BOOTSTRAP_VERSION = '13.0.0-ar-perf-bootstrap';
 
-    // PMD_ADMIN_AR_COVERAGE_CACHE_GUARD_R12
-    // pmd-admin-coverage-r3-v11b.js historically used a fixed asset query. This
-    // lightweight placeholder executes before that deferred legacy asset, so a
-    // cached old copy exits without creating its full-body MutationObserver.
-    // After deferred scripts complete, R12 removes the placeholder and loads the
-    // freshly installed incremental implementation with an explicit cache bust.
+    var blockedRegistrations = 0;
+    var blockedLegacyTimers = 0;
+    var disconnectedAuthorities = 0;
+    var suppressedPublicRuns = 0;
+
+    var originalDocumentAddEventListener = document.addEventListener;
+    var originalWindowAddEventListener = window.addEventListener;
+    var originalSetTimeout = window.setTimeout;
+
+    function sourceOf(listener) {
+        if (typeof listener !== 'function') return '';
+        try {
+            return Function.prototype.toString.call(listener);
+        } catch (error) {
+            return '';
+        }
+    }
+
+    function shouldBlockRegistration(scope, type, listener) {
+        var source = sourceOf(listener);
+
+        if (!source) return false;
+
+        if (
+            scope === 'document' &&
+            (type === 'ajaxUpdateComplete' || type === 'ajaxPromiseDone')
+        ) {
+            // Canonical i18n legacy handler: run() -> translateRoot(document.body)
+            if (source.indexOf('translateRoot(document.body)') !== -1) return true;
+
+            // Coverage R12 legacy fallback. Its MutationObserver already owns
+            // added/changed nodes, so a full run after every AJAX event is waste.
+            if (source.indexOf('requestRun(40)') !== -1) return true;
+        }
+
+        if (scope === 'window' && type === 'load') {
+            if (source.indexOf('translateRoot(document.body)') !== -1) return true;
+            if (source.indexOf('requestRun(0)') !== -1) return true;
+        }
+
+        return false;
+    }
+
+    function installRegistrationGuard() {
+        if (registrationGuardInstalled) return;
+
+        try {
+            document.addEventListener = function (type, listener, options) {
+                if (shouldBlockRegistration('document', type, listener)) {
+                    blockedRegistrations += 1;
+                    return;
+                }
+                return originalDocumentAddEventListener.call(
+                    document,
+                    type,
+                    listener,
+                    options
+                );
+            };
+
+            window.addEventListener = function (type, listener, options) {
+                if (shouldBlockRegistration('window', type, listener)) {
+                    blockedRegistrations += 1;
+                    return;
+                }
+                return originalWindowAddEventListener.call(
+                    window,
+                    type,
+                    listener,
+                    options
+                );
+            };
+
+            registrationGuardInstalled = true;
+        } catch (error) {
+            console.warn('[PMD Admin Arabic R13] registration guard unavailable', error);
+        }
+    }
+
+    function restoreRegistrationGuard() {
+        if (!registrationGuardInstalled) return;
+
+        try {
+            document.addEventListener = originalDocumentAddEventListener;
+            window.addEventListener = originalWindowAddEventListener;
+        } catch (error) {}
+
+        registrationGuardInstalled = false;
+    }
+
+    function shouldBlockLegacyTimer(callback) {
+        var source = sourceOf(callback);
+
+        if (!source) return false;
+
+        // Residual R7 repeated document rescans.
+        if (source.indexOf('run(document)') !== -1) return true;
+
+        // Residual R8 repeated full-document selector passes.
+        if (
+            source.indexOf('fixSettingsTooltip') !== -1 &&
+            source.indexOf('fixBarControls') !== -1
+        ) {
+            return true;
+        }
+
+        return false;
+    }
+
+    function installTimeoutGuard() {
+        if (timeoutGuardInstalled) return;
+
+        try {
+            window.setTimeout = function (callback, delay) {
+                if (shouldBlockLegacyTimer(callback)) {
+                    blockedLegacyTimers += 1;
+                    return 0;
+                }
+                return originalSetTimeout.apply(window, arguments);
+            };
+            timeoutGuardInstalled = true;
+        } catch (error) {
+            console.warn('[PMD Admin Arabic R13] timeout guard unavailable', error);
+        }
+    }
+
+    function restoreTimeoutGuard() {
+        if (!timeoutGuardInstalled) return;
+        try {
+            window.setTimeout = originalSetTimeout;
+        } catch (error) {}
+        timeoutGuardInstalled = false;
+    }
+
+    // PMD_ADMIN_AR_COVERAGE_CACHE_GUARD_R13
+    // Block the old fixed-query coverage asset before it can register an old
+    // observer. A fresh R12 incremental coverage copy is loaded after defer boot.
     if (!window.PMDAdminCoverageR3) {
         window.PMDAdminCoverageR3 = {
             version: COVERAGE_BOOTSTRAP_VERSION,
@@ -54,45 +181,62 @@
         document.documentElement.classList.add('pmd-admin-rtl');
     }
 
-    function translate() {
-        enforceDocumentLocale();
+    function disconnectAuthority(name, method) {
+        var authority = window[name];
+        if (!authority || typeof authority[method] !== 'function') return false;
 
-        if (
-            window.PMDAdminI18n &&
-            typeof window.PMDAdminI18n.run === 'function'
-        ) {
-            window.PMDAdminI18n.run();
-            runCount += 1;
-            lastTranslateAt = Date.now();
+        try {
+            authority[method]();
+            disconnectedAuthorities += 1;
             return true;
+        } catch (error) {
+            return false;
         }
-
-        return false;
     }
 
-    // PMD_ADMIN_AR_TRANSLATE_COALESCE_R12
-    // One late full pass per burst at most. The canonical PMDAdminI18n
-    // MutationObserver already translates individual added/changed nodes.
-    function requestTranslate(delay) {
-        var now = Date.now();
-        var wait = Math.max(0, Number(delay || 0));
-        var sinceLast = now - lastTranslateAt;
+    function disconnectLegacyAuthorities() {
+        // Dashboard page-authority treats non-DE/TR as English and owns a
+        // full-document observer. Arabic is already owned by canonical i18n.
+        disconnectAuthority('PMDAdminI18nPageAuthorityV2', 'destroy');
 
-        requestedCount += 1;
+        // Residual R7/R8 were useful during catalogue discovery, but their
+        // document-level observers are redundant now that Arabic has complete
+        // canonical/literal coverage.
+        disconnectAuthority('PMDAdminResidualI18nR7', 'disconnect');
+        disconnectAuthority('PMDAdminResidualI18nR8', 'disconnect');
+    }
 
-        if (sinceLast < MIN_TRANSLATE_INTERVAL_MS) {
-            wait = Math.max(wait, MIN_TRANSLATE_INTERVAL_MS - sinceLast);
+    function wrapCanonicalPublicRun() {
+        var api = window.PMDAdminI18n;
+        var originalRun;
+
+        if (!api || canonicalRunWrapped) return false;
+        if (typeof api.run !== 'function') return false;
+
+        originalRun = api.run;
+
+        try {
+            api.runFull = function () {
+                return originalRun.apply(api, arguments);
+            };
+            api.run = function () {
+                suppressedPublicRuns += 1;
+                if (typeof api.reveal === 'function') {
+                    try { api.reveal(); } catch (error) {}
+                }
+                return true;
+            };
+            api.__pmdArabicR13PublicRunGuard = true;
+            canonicalRunWrapped = true;
+            return true;
+        } catch (error) {
+            return false;
         }
+    }
 
-        if (translateTimer !== null) {
-            coalescedCount += 1;
-            return;
-        }
-
-        translateTimer = window.setTimeout(function () {
-            translateTimer = null;
-            translate();
-        }, wait);
+    function retryRuntimeGuards() {
+        disconnectLegacyAuthorities();
+        wrapCanonicalPublicRun();
     }
 
     function loadIncrementalCoverage() {
@@ -102,9 +246,7 @@
         if (!coverageBootstrapInstalled || coverageReloadStarted) return;
 
         current = window.PMDAdminCoverageR3;
-        if (!current || current.version !== COVERAGE_BOOTSTRAP_VERSION) {
-            return;
-        }
+        if (!current || current.version !== COVERAGE_BOOTSTRAP_VERSION) return;
 
         coverageReloadStarted = true;
 
@@ -115,19 +257,26 @@
         }
 
         script = document.createElement('script');
-        script.src = '/app/admin/assets/js/pmd-admin-coverage-r3-v11b.js?v=20260901-r12-perf';
+        script.src = '/app/admin/assets/js/pmd-admin-coverage-r3-v11b.js?v=20260901-r13-single-observer';
         script.async = true;
-        script.setAttribute('data-pmd-admin-coverage-r12', '1');
+        script.setAttribute('data-pmd-admin-coverage-r13', '1');
+        script.onload = function () {
+            retryRuntimeGuards();
+            restoreRegistrationGuard();
+        };
         script.onerror = function () {
-            console.warn('[PMD Admin Arabic R12] incremental coverage reload failed');
+            console.warn('[PMD Admin Arabic R13] incremental coverage reload failed');
+            restoreRegistrationGuard();
         };
         (document.head || document.documentElement).appendChild(script);
     }
 
     function refreshAnalyticsForArabicDates() {
+        var path;
+
         if (analyticsRefreshStarted) return;
 
-        var path = String(
+        path = String(
             window.PMDAdminCanonicalURLR81E
                 ? window.PMDAdminCanonicalURLR81E.logicalPath()
                 : window.location.pathname
@@ -151,40 +300,47 @@
 
         try {
             Promise.resolve(window.PMDDashboardLabAnalyticsV1.refresh())
-                .then(function () {
-                    requestTranslate(80);
-                })
                 .catch(function (error) {
                     console.warn(
-                        '[PMD Admin Arabic R12] analytics locale refresh skipped',
+                        '[PMD Admin Arabic R13] analytics locale refresh skipped',
                         error
                     );
                 });
         } catch (error) {
             console.warn(
-                '[PMD Admin Arabic R12] analytics locale refresh skipped',
+                '[PMD Admin Arabic R13] analytics locale refresh skipped',
                 error
             );
         }
     }
 
     function schedule(delay, callback) {
-        timers.push(window.setTimeout(callback, delay));
+        return originalSetTimeout.call(window, callback, delay);
     }
 
-    function initialPass() {
-        // One safety pass after the normal global translator has booted. R10
-        // used eight full-body waves here; the shared observer makes them
-        // redundant and very expensive on large Admin workspaces.
-        loadIncrementalCoverage();
-        requestTranslate(0);
-        schedule(260, refreshAnalyticsForArabicDates);
+    function boot() {
+        enforceDocumentLocale();
+        retryRuntimeGuards();
+
+        // Let the remaining defer scripts finish first. The bootstrap object
+        // makes the old fixed-query coverage runtime exit harmlessly.
+        schedule(0, function () {
+            retryRuntimeGuards();
+            loadIncrementalCoverage();
+        });
+
+        schedule(80, retryRuntimeGuards);
+        schedule(300, retryRuntimeGuards);
+        schedule(350, refreshAnalyticsForArabicDates);
+
+        // Registration guard only needs to survive canonical + coverage boot.
+        // Keep a fallback so a failed asset request cannot leave it installed.
+        schedule(2200, restoreRegistrationGuard);
     }
 
-    function onAsyncContent() {
-        // AJAX libraries may emit several completion events for one visual
-        // update. Coalesce all of them into one delayed safety pass.
-        requestTranslate(90);
+    function afterDomReady() {
+        retryRuntimeGuards();
+        restoreTimeoutGuard();
     }
 
     function visibleEnglishPlatformCopy() {
@@ -220,20 +376,59 @@
         return results.slice(0, 200);
     }
 
+    installRegistrationGuard();
+    installTimeoutGuard();
+    enforceDocumentLocale();
+    disconnectLegacyAuthorities();
+
+    // For defer execution readyState is commonly "interactive". Boot now so
+    // the registration guard is active before the next defer script executes.
+    boot();
+
+    if (document.readyState === 'loading' || document.readyState === 'interactive') {
+        originalDocumentAddEventListener.call(
+            document,
+            'DOMContentLoaded',
+            afterDomReady,
+            {once: true}
+        );
+    } else {
+        afterDomReady();
+    }
+
+    originalWindowAddEventListener.call(window, 'pageshow', function () {
+        enforceDocumentLocale();
+        retryRuntimeGuards();
+    }, false);
+
+    originalWindowAddEventListener.call(window, 'load', function () {
+        retryRuntimeGuards();
+        restoreTimeoutGuard();
+        schedule(50, refreshAnalyticsForArabicDates);
+    }, {once: true});
+
     window.PMDAdminArabicR10 = {
         version: VERSION,
         run: function () {
-            requestTranslate(0);
+            enforceDocumentLocale();
+            retryRuntimeGuards();
             refreshAnalyticsForArabicDates();
             return window.PMDAdminArabicR10.audit();
+        },
+        fullScan: function () {
+            var api = window.PMDAdminI18n;
+            if (api && typeof api.runFull === 'function') {
+                return api.runFull();
+            }
+            return false;
         },
         audit: function () {
             var canonical = (
                 window.PMDAdminI18n &&
                 typeof window.PMDAdminI18n.auditVisible === 'function'
             ) ? window.PMDAdminI18n.auditVisible() : null;
-            var visibleEnglish = visibleEnglishPlatformCopy();
             var coveragePerf = null;
+            var visibleEnglish = visibleEnglishPlatformCopy();
 
             if (
                 window.PMDAdminCoverageR3 &&
@@ -246,10 +441,11 @@
                 version: VERSION,
                 locale: String(document.documentElement.lang || ''),
                 direction: String(document.documentElement.dir || ''),
-                runCount: runCount,
-                requestedCount: requestedCount,
-                coalescedCount: coalescedCount,
-                analyticsRefreshStarted: analyticsRefreshStarted,
+                blockedRegistrations: blockedRegistrations,
+                blockedLegacyTimers: blockedLegacyTimers,
+                disconnectedAuthorities: disconnectedAuthorities,
+                suppressedPublicRuns: suppressedPublicRuns,
+                canonicalRunWrapped: canonicalRunWrapped,
                 coverageReloadStarted: coverageReloadStarted,
                 coveragePerf: coveragePerf,
                 canonicalAudit: canonical,
@@ -262,29 +458,10 @@
         }
     };
 
-    enforceDocumentLocale();
-
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initialPass, {once: true});
-    } else {
-        initialPass();
-    }
-
-    document.addEventListener('ajaxUpdateComplete', onAsyncContent, true);
-    document.addEventListener('ajaxPromiseDone', onAsyncContent, true);
-    document.addEventListener('pageContentLoaded', onAsyncContent, true);
-    window.addEventListener('pageshow', onAsyncContent, false);
-    window.addEventListener('load', function () {
-        requestTranslate(90);
-        schedule(260, refreshAnalyticsForArabicDates);
-    }, {once: true});
-
-    console.info('[PMD Admin Arabic R12] Ready', {
+    console.info('[PMD Admin Arabic R13] Ready', {
         version: VERSION,
         locale: locale,
-        catalogueDriven: true,
-        rtl: true,
-        coalescedLateTranslation: true,
-        cachedCoverageGuarded: coverageBootstrapInstalled
+        singleObserverMode: true,
+        coverageCacheGuarded: coverageBootstrapInstalled
     });
 })();
