@@ -4,19 +4,43 @@ namespace App\Services\AI;
 
 final class AiContext
 {
+    public ?int $tenantId;
+    public ?string $tenantDatabase;
+    public ?string $tenantDomain;
+    public ?int $locationId;
+    public ?int $userId;
+    public ?int $staffId;
+    public array $permissions;
+    public string $locale;
+    public string $timezone;
+    public string $runId;
+    public string $task;
+
     public function __construct(
-        public readonly ?int $tenantId,
-        public readonly ?string $tenantDatabase,
-        public readonly ?string $tenantDomain,
-        public readonly ?int $locationId,
-        public readonly ?int $userId,
-        public readonly ?int $staffId,
-        public readonly array $permissions,
-        public readonly string $locale,
-        public readonly string $timezone,
-        public readonly string $runId,
-        public readonly string $task,
-    ) {}
+        ?int $tenantId,
+        ?string $tenantDatabase,
+        ?string $tenantDomain,
+        ?int $locationId,
+        ?int $userId,
+        ?int $staffId,
+        array $permissions,
+        string $locale,
+        string $timezone,
+        string $runId,
+        string $task
+    ) {
+        $this->tenantId = $tenantId;
+        $this->tenantDatabase = $tenantDatabase;
+        $this->tenantDomain = $tenantDomain;
+        $this->locationId = $locationId;
+        $this->userId = $userId;
+        $this->staffId = $staffId;
+        $this->permissions = $permissions;
+        $this->locale = $locale;
+        $this->timezone = $timezone;
+        $this->runId = $runId;
+        $this->task = $task;
+    }
 
     public function audit(): array
     {
