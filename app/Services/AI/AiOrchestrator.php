@@ -9,11 +9,19 @@ final class AiOrchestrator
 {
     private OpenAiResponsesProvider $provider;
     private AiAuditLogger $audit;
+    private AiRedactor $redactor;
+    private AiBudgetService $budget;
 
-    public function __construct(?OpenAiResponsesProvider $provider = null, ?AiAuditLogger $audit = null)
-    {
+    public function __construct(
+        ?OpenAiResponsesProvider $provider = null,
+        ?AiAuditLogger $audit = null,
+        ?AiRedactor $redactor = null,
+        ?AiBudgetService $budget = null
+    ) {
         $this->provider = $provider ?: new OpenAiResponsesProvider();
         $this->audit = $audit ?: new AiAuditLogger();
+        $this->redactor = $redactor ?: new AiRedactor();
+        $this->budget = $budget ?: new AiBudgetService();
     }
 
     public function ask(AiContext $context, string $question, array $tools): array
@@ -37,6 +45,8 @@ final class AiOrchestrator
         if (mb_strlen($question) > 4000) {
             throw new RuntimeException('Question is too long.');
         }
+
+        $this->budget->consume($context);
 
         $toolDefinitions = [];
         foreach ($tools as $name => $tool) {
@@ -126,6 +136,12 @@ final class AiOrchestrator
                     ];
                 }
 
+                // Carry the assistant output forward exactly once, then attach one
+                // function_call_output for each requested tool call.
+                foreach ((array)($lastResponse['output'] ?? []) as $outputItem) {
+                    $input[] = $outputItem;
+                }
+
                 foreach ($calls as $call) {
                     $callsMade++;
                     if ($callsMade > $maxCalls) {
@@ -145,6 +161,7 @@ final class AiOrchestrator
                     $started = microtime(true);
                     try {
                         $output = call_user_func($tools[$name]['handler'], $arguments, $context);
+                        $output = $this->redactor->forModel($output);
                         $toolOk = true;
                     } catch (Throwable $toolError) {
                         $output = [
@@ -167,9 +184,6 @@ final class AiOrchestrator
                         'duration_ms' => (int)round((microtime(true) - $started) * 1000),
                     ];
 
-                    foreach ((array)($lastResponse['output'] ?? []) as $outputItem) {
-                        $input[] = $outputItem;
-                    }
                     $input[] = [
                         'type' => 'function_call_output',
                         'call_id' => $call['call_id'],
