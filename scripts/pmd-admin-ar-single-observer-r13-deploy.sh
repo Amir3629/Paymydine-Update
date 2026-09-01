@@ -14,7 +14,7 @@ ROOT='/var/www/paymydine'
 REPO='Amir3629/Paymydine-Update'
 RAW_HOST='raw.githubusercontent.com'
 FILE='app/admin/assets/js/pmd-admin-ar-complete-r10.js'
-EXPECTED='a2be7e1c2a4273056398c5cab0564ea2e1d898f9'
+EXPECTED='7427b763a11ad653f908b1f6181404fef7175a76'
 TMP='/tmp/pmd-admin-ar-single-observer-r13.js'
 STAMP="$(date +%Y%m%d_%H%M%S)"
 BACKUP="$HOME/pmd-backups/admin-ar-single-observer-r13-${STAMP}"
@@ -37,6 +37,8 @@ fi
 
 grep -q 'PMD_ADMIN_AR_SINGLE_OBSERVER_PERF_R13' "$TMP"
 grep -q 'PMD_ADMIN_AR_COVERAGE_CACHE_GUARD_R13' "$TMP"
+grep -q 'PMD_ADMIN_AR_CANONICAL_AJAX_LISTENER_REMOVAL_R13' "$TMP"
+grep -q 'removePageAuthorityListeners' "$TMP"
 grep -q 'singleObserverMode: true' "$TMP"
 
 if grep -Fq "document.addEventListener('ajaxUpdateComplete', onAsyncContent" "$TMP"; then
