@@ -468,6 +468,33 @@ class Login extends \Admin\Classes\AdminController
         if (!$identity || !$this->pmdOwnerSecurityStateMatches($state, $identity)) return null;
 
         $mode = (string)($state['mode'] ?? '');
+
+        // PMD_OWNER_SUPPORT_RESET_STALE_VERIFY_GUARD_V18C
+        // A Support reset disables pmd_owner_mfa and revokes trusted Owner
+        // sign-ins. A browser that was already parked on the old 6-digit
+        // verify screen must NOT be allowed to keep that authenticated state,
+        // and must NOT be silently converted straight to QR enrollment.
+        // Returning null makes index() call pmdInvalidateIncompleteSecurityLogin(),
+        // which logs the Owner out and invalidates the whole session. The Owner
+        // must then enter the password again; only that fresh password login may
+        // queue setup and render a brand-new Authenticator QR.
+        if ($mode === 'verify') {
+            $totp = app(PmdOwnerTotpService::class);
+            $userId = (int)$identity['user_id'];
+
+            if (!$totp->ready() || !$totp->enabled($userId)) {
+                logger()->warning('PMD stale Owner TOTP verify session rejected', [
+                    'user_id' => $userId,
+                    'location_id' => (int)$identity['location_id'],
+                    'reason' => $totp->ready()
+                        ? 'factor_inactive_or_support_reset'
+                        : 'owner_mfa_storage_unavailable',
+                ]);
+
+                return null;
+            }
+        }
+
         $security = [
             'mode' => $mode,
             'destination' => (string)session()->get(PmdSiteAccessService::SESSION_DESTINATION, 'workspace'),

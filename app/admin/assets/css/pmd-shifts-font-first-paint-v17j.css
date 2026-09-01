@@ -1,0 +1,60 @@
+/* PMD_SHIFTS_FONT_FIRST_PAINT_V17J
+ * Stable timetable typography authority.
+ *
+ * The global Admin layer loads Google Roboto separately. The Shifts planner
+ * must not first paint fallback/Inter glyph metrics and then resize when that
+ * remote face becomes available. Use PMD's existing same-origin Roboto files
+ * under a Shifts-only family name so the global remote Roboto family cannot
+ * replace this timetable after first paint.
+ *
+ * font-display:optional is deliberate: on a cold/slow font request Safari may
+ * keep the immediate fallback for that navigation rather than visibly swapping
+ * metrics after paint. Once cached, the literal local Roboto face is used.
+ */
+
+@font-face {
+  font-family:"PMDShiftsRobotoStable";
+  src:url("/app/admin/assets/fonts/Roboto-Regular.woff2") format("woff2");
+  font-style:normal;
+  font-weight:400;
+  font-display:optional;
+}
+@font-face {
+  font-family:"PMDShiftsRobotoStable";
+  src:url("/app/admin/assets/fonts/Roboto-Medium.woff2") format("woff2");
+  font-style:normal;
+  font-weight:500;
+  font-display:optional;
+}
+@font-face {
+  font-family:"PMDShiftsRobotoStable";
+  src:url("/app/admin/assets/fonts/Roboto-Bold.woff2") format("woff2");
+  font-style:normal;
+  font-weight:600 900;
+  font-display:optional;
+}
+
+/* Only the Dienstplan/timetable plane is pinned. Do not change KPI cards,
+ * global Admin typography, modal typography, dimensions or positioning. */
+html body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-board,
+html body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-scale-row,
+html body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-scale,
+html body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-scale > span,
+html body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-row,
+html body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-person,
+html body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-person *,
+html body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-track,
+html body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-shift,
+html body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-shift * {
+  font-family:"PMDShiftsRobotoStable",Arial,Helvetica,sans-serif!important;
+  font-synthesis:none!important;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* Time strings keep deterministic digit widths. */
+html body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-scale > span,
+html body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-shift,
+html body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-shift * {
+  font-variant-numeric:tabular-nums!important;
+  font-feature-settings:"tnum" 1!important;
+}

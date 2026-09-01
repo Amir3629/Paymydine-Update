@@ -1,0 +1,48 @@
+/* PMD_SHIFTS_NO_PLUS_V17E */
+
+/*
+ * V15 still owns a legacy ::after plus icon. V17D hid the real child <span>,
+ * but that pseudo-element remained visible on hover. Keep every slot button
+ * fully clickable while making all create-target decoration visually inert.
+ */
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-slot::before,
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-slot::after {
+  content:none!important;
+  display:none!important;
+  opacity:0!important;
+  visibility:hidden!important;
+  width:0!important;
+  height:0!important;
+  min-width:0!important;
+  min-height:0!important;
+  border:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  transform:none!important;
+  pointer-events:none!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-slot > span {
+  display:none!important;
+  opacity:0!important;
+  visibility:hidden!important;
+  pointer-events:none!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-slot,
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-slot:hover,
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-slot:active {
+  background:transparent!important;
+  box-shadow:none!important;
+  transform:none!important;
+  filter:none!important;
+}
+
+/* Retire any stale floating-plus artifact from the older fast planner too. */
+body.pmd-shifts-page .pmd-shifts-slot-plus-v15-fast,
+body.pmd-shifts-page [data-pmd-shifts-slot-plus-v15-fast] {
+  display:none!important;
+  opacity:0!important;
+  visibility:hidden!important;
+  pointer-events:none!important;
+}

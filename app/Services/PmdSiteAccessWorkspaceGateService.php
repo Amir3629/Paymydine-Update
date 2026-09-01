@@ -5,6 +5,7 @@ namespace App\Services;
 use Admin\Facades\AdminAuth;
 use Admin\Services\PmdDefaultStaffRoleService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 /**
  * PMD_WORKPLACE_GATE_V8
@@ -82,6 +83,77 @@ class PmdSiteAccessWorkspaceGateService
         $binding = app(PmdSiteAccessSessionBindingService::class);
         $workspaceVerified = $site->isWorkspaceVerified($locationId)
             && $binding->isBoundToCurrentUser();
+
+        // PMD_OWNER_SUPPORT_MFA_RESET_SESSION_GUARD_V18B
+        // A SuperAdmin Owner-MFA reset must invalidate the already-open Owner
+        // workspace as well as remembered browsers. Direct Owner-TOTP sessions
+        // are tied to the currently-active factor generation; trusted-login
+        // sessions are tied to the exact still-active trusted device row.
+        if ($isOwner && $workspaceVerified) {
+            $ownerTotp = app(PmdOwnerTotpService::class);
+            $ownerUserId = (int)$identity['user_id'];
+            $method = (string)session()->get(PmdSiteAccessService::SESSION_VERIFIED_METHOD, '');
+            $deviceId = (int)session()->get(PmdSiteAccessService::SESSION_VERIFIED_DEVICE, 0);
+            $ownerSessionValid = false;
+
+            if ($ownerTotp->ready() && $ownerTotp->enabled($ownerUserId)) {
+                if ($method === 'trusted_login_device') {
+                    try {
+                        $trusted = app(PmdTrustedLoginDeviceService::class)
+                            ->current($request, $identity);
+                        $ownerSessionValid = $deviceId > 0
+                            && $trusted
+                            && (int)$trusted->id === $deviceId;
+                    } catch (\Throwable $error) {
+                        $ownerSessionValid = false;
+                    }
+                } else {
+                    $proof = (array)session()->get(PmdOwnerTotpService::SESSION_VERIFIED, []);
+                    $verifiedAt = (int)($proof['verified_at'] ?? 0);
+                    $confirmedAt = 0;
+
+                    try {
+                        $confirmed = DB::table(PmdOwnerTotpService::TABLE)
+                            ->where('user_id', $ownerUserId)
+                            ->whereNotNull('confirmed_at')
+                            ->whereNull('disabled_at')
+                            ->orderByDesc('updated_at')
+                            ->orderByDesc('id')
+                            ->value('confirmed_at');
+                        $confirmedAt = $confirmed ? (int)strtotime((string)$confirmed) : 0;
+                    } catch (\Throwable $error) {
+                        $confirmedAt = 0;
+                    }
+
+                    $ownerSessionValid = $ownerTotp->sessionVerified(
+                            $ownerUserId,
+                            $locationId,
+                            86400
+                        )
+                        && $verifiedAt > 0
+                        && $confirmedAt > 0
+                        && $confirmedAt <= ($verifiedAt + 1);
+                }
+            }
+
+            if (!$ownerSessionValid) {
+                try {
+                    $site->clearVerification();
+                    $workSession->clear();
+                    $ownerTotp->clearSessionVerification();
+                    AdminAuth::logout();
+                } catch (\Throwable $error) {
+                }
+
+                session()->invalidate();
+                session()->regenerateToken();
+
+                return redirect(admin_url('login?owner=security-reset'))->with(
+                    'error',
+                    'Your Owner Authenticator or trusted sign-in was reset by PayMyDine Support. Sign in again and connect a new Authenticator.'
+                );
+            }
+        }
 
         foreach (['siteaccess', 'login', 'logout', '_assets'] as $allowed) {
             if ($relative === $allowed || str_starts_with($relative, $allowed.'/')) return null;

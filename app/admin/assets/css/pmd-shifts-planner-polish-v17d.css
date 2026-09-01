@@ -1,0 +1,147 @@
+/* PMD_SHIFTS_PLANNER_POLISH_V17D */
+
+/* Keep planning cells clickable without any visible plus or hover treatment. */
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-slot > span {
+  display:none!important;
+  opacity:0!important;
+  visibility:hidden!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-slot,
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-slot:hover,
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-slot:active {
+  background:transparent!important;
+  box-shadow:none!important;
+  transform:none!important;
+  filter:none!important;
+}
+
+/* Preserve keyboard accessibility without a mouse-hover decoration. */
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-slot:focus-visible {
+  background:transparent!important;
+  box-shadow:inset 0 0 0 2px rgba(8,120,95,.18)!important;
+  outline:0!important;
+}
+
+/* Pause controls: one larger row, no surrounding card. */
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-break-options-v17c {
+  width:100%!important;
+  margin-top:9px!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-break-options-v17c__buttons {
+  width:100%!important;
+  display:flex!important;
+  align-items:center!important;
+  flex-wrap:nowrap!important;
+  gap:10px!important;
+  overflow-x:auto!important;
+  overflow-y:hidden!important;
+  padding:2px 1px 4px!important;
+  scrollbar-width:none!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-break-options-v17c__buttons::-webkit-scrollbar {
+  display:none!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-break-choice-v17c {
+  flex:0 0 auto!important;
+  min-width:76px!important;
+  min-height:42px!important;
+  padding:0 16px!important;
+  border:1px solid #cbdde6!important;
+  border-radius:999px!important;
+  background:#fff!important;
+  color:#183f52!important;
+  font-size:14px!important;
+  font-weight:800!important;
+  line-height:1!important;
+  box-shadow:none!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-break-choice-v17c:hover,
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-break-choice-v17c:focus-visible {
+  border-color:#8fbdb1!important;
+  background:#f7fbfa!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-break-choice-v17c.is-selected {
+  border-color:#0c8369!important;
+  background:#e9f8f3!important;
+  color:#076c58!important;
+}
+
+body.pmd-shifts-page #pmd-shifts [data-pmd-break-custom-open-v17c] {
+  display:none!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-break-custom-v17c,
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-break-custom-v17c[hidden],
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-break-custom-v17d,
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-break-custom-v17d[hidden] {
+  flex:0 0 auto!important;
+  min-height:42px!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  gap:7px!important;
+  margin:0!important;
+  padding:0 12px!important;
+  border:1px solid #cbdde6!important;
+  border-radius:999px!important;
+  background:#fff!important;
+  box-shadow:none!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-break-custom-v17d__label,
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-break-custom-v17d__suffix {
+  flex:0 0 auto!important;
+  color:#496575!important;
+  font-size:13px!important;
+  font-weight:780!important;
+  line-height:1!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-break-custom-v17c input,
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-break-custom-v17d input {
+  width:58px!important;
+  min-width:58px!important;
+  height:34px!important;
+  min-height:34px!important;
+  margin:0!important;
+  padding:0 5px!important;
+  border:0!important;
+  border-radius:8px!important;
+  background:#f7fafb!important;
+  color:#113d4e!important;
+  font-size:14px!important;
+  font-weight:850!important;
+  text-align:center!important;
+  box-shadow:none!important;
+  outline:0!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-break-custom-v17c input:focus,
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-break-custom-v17d input:focus {
+  background:#fff!important;
+  box-shadow:inset 0 0 0 2px rgba(12,131,105,.18)!important;
+}
+
+@media(max-width:900px) {
+  body.pmd-shifts-page #pmd-shifts .pmd-shifts-break-choice-v17c {
+    min-width:70px!important;
+    min-height:40px!important;
+    padding:0 13px!important;
+    font-size:13px!important;
+  }
+
+  body.pmd-shifts-page #pmd-shifts .pmd-shifts-break-custom-v17c,
+  body.pmd-shifts-page #pmd-shifts .pmd-shifts-break-custom-v17d {
+    min-height:40px!important;
+  }
+}

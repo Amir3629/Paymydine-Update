@@ -42,6 +42,177 @@ class PmdShiftPlannerRuleService
         return max(0, min(240, $requested));
     }
 
+    /** PMD_SHIFTS_GROUP_OVERLAP_UNION_V17D
+     * Normalize a new multi-person create independently for every selected person.
+     *
+     * The shared new shift remains intact for people without existing overlap.
+     * A person with existing overlap is detached from that shared new shift, given
+     * a temporary one-person clone, then passed through the existing personal-union
+     * authority. This prevents a group create from stretching unrelated coworkers.
+     */
+    public function mergeCreateForPeople(
+        int $locationId,
+        string $shiftDate,
+        int $newShiftId,
+        array $personIds
+    ): array {
+        $personIds = array_values(array_unique(array_filter(array_map('intval', $personIds), function ($id) {
+            return $id > 0;
+        })));
+        sort($personIds);
+
+        if ($locationId < 1 || $newShiftId < 1 || !$personIds) {
+            return ['merged_people' => 0, 'separated_people' => 0, 'remaining_group_people' => 0];
+        }
+
+        if (count($personIds) === 1) {
+            $result = $this->mergeSinglePersonCreate(
+                $locationId,
+                $shiftDate,
+                $newShiftId,
+                (int)$personIds[0]
+            );
+
+            return [
+                'merged_people' => !empty($result['merged']) ? 1 : 0,
+                'separated_people' => 0,
+                'remaining_group_people' => 1,
+            ];
+        }
+
+        $newShift = DB::table('pmd_operational_shifts')
+            ->where('id', $newShiftId)
+            ->where('location_id', $locationId)
+            ->whereDate('shift_date', $shiftDate)
+            ->lockForUpdate()
+            ->first();
+
+        if (!$newShift) {
+            return ['merged_people' => 0, 'separated_people' => 0, 'remaining_group_people' => 0];
+        }
+
+        $assignments = DB::table('pmd_operational_shift_people')
+            ->where('shift_id', $newShiftId)
+            ->whereIn('person_id', $personIds)
+            ->lockForUpdate()
+            ->get()
+            ->keyBy('person_id');
+
+        $mergedPeople = 0;
+        $separatedPeople = 0;
+
+        foreach ($personIds as $personId) {
+            $assignment = $assignments->get($personId);
+            if (!$assignment) continue;
+
+            if (!$this->personHasOverlappingCoverage(
+                $locationId,
+                $shiftDate,
+                $newShiftId,
+                $personId,
+                $newShift->starts_at ?? null,
+                $newShift->ends_at ?? null
+            )) {
+                continue;
+            }
+
+            // Remove only this person from the new shared shift. Other selected
+            // people keep the exact group timing unless they independently overlap.
+            DB::table('pmd_operational_shift_people')
+                ->where('shift_id', $newShiftId)
+                ->where('person_id', $personId)
+                ->delete();
+
+            $clone = [
+                'location_id' => $locationId,
+                'shift_date' => $shiftDate,
+                // A create operation must extend the existing person's coverage,
+                // not silently rename or rewrite that existing shift.
+                'label' => '',
+                'starts_at' => $newShift->starts_at,
+                'ends_at' => $newShift->ends_at,
+                'status' => 'planned',
+                'quick_counts_json' => null,
+                'confirmed_at' => null,
+                'confirmed_by_staff_id' => null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+            if (Schema::hasColumn('pmd_operational_shifts', 'notes')) {
+                $clone['notes'] = null;
+            }
+            if (Schema::hasColumn('pmd_operational_shifts', 'break_minutes')) {
+                $clone['break_minutes'] = max(0, min(240, (int)($newShift->break_minutes ?? 0)));
+            }
+
+            $cloneId = (int)DB::table('pmd_operational_shifts')->insertGetId($clone);
+
+            DB::table('pmd_operational_shift_people')->insert([
+                'shift_id' => $cloneId,
+                'person_id' => $personId,
+                'display_name_snapshot' => (string)$assignment->display_name_snapshot,
+                'department_snapshot' => (string)($assignment->department_snapshot ?: 'other'),
+                'job_role_snapshot' => trim((string)($assignment->job_role_snapshot ?? '')) ?: null,
+                'attendance_status' => 'planned',
+                'is_replacement' => 0,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            $result = $this->mergeSinglePersonCreate(
+                $locationId,
+                $shiftDate,
+                $cloneId,
+                $personId
+            );
+
+            $separatedPeople++;
+            if (!empty($result['merged'])) $mergedPeople++;
+        }
+
+        $remaining = DB::table('pmd_operational_shift_people')
+            ->where('shift_id', $newShiftId)
+            ->count();
+
+        if ($separatedPeople > 0) {
+            if ($remaining < 1) {
+                DB::table('pmd_operational_shifts')
+                    ->where('id', $newShiftId)
+                    ->update([
+                        'status' => 'cancelled',
+                        'quick_counts_json' => null,
+                        'confirmed_at' => null,
+                        'confirmed_by_staff_id' => null,
+                        'updated_at' => now(),
+                    ]);
+            } else {
+                DB::table('pmd_operational_shifts')
+                    ->where('id', $newShiftId)
+                    ->update([
+                        'status' => 'planned',
+                        'quick_counts_json' => null,
+                        'confirmed_at' => null,
+                        'confirmed_by_staff_id' => null,
+                        'updated_at' => now(),
+                    ]);
+
+                DB::table('pmd_operational_shift_people')
+                    ->where('shift_id', $newShiftId)
+                    ->update([
+                        'attendance_status' => 'planned',
+                        'is_replacement' => 0,
+                        'updated_at' => now(),
+                    ]);
+            }
+        }
+
+        return [
+            'merged_people' => $mergedPeople,
+            'separated_people' => $separatedPeople,
+            'remaining_group_people' => (int)$remaining,
+        ];
+    }
+
     /**
      * Merge a newly-created one-person shift with every overlapping/touching
      * shift for that person on the same date.
@@ -241,6 +412,41 @@ class PmdShiftPlannerRuleService
             'start' => $unionStart,
             'end' => $unionEnd,
         ];
+    }
+
+    private function personHasOverlappingCoverage(
+        int $locationId,
+        string $shiftDate,
+        int $excludedShiftId,
+        int $personId,
+        ?string $startsAt,
+        ?string $endsAt
+    ): bool {
+        $newWindow = $this->windowMinutes($startsAt, $endsAt);
+        if (!$newWindow) return false;
+
+        $candidates = DB::table('pmd_operational_shift_people as assignment')
+            ->join('pmd_operational_shifts as shift', 'shift.id', '=', 'assignment.shift_id')
+            ->where('assignment.person_id', $personId)
+            ->where('shift.location_id', $locationId)
+            ->whereDate('shift.shift_date', $shiftDate)
+            ->where('shift.id', '<>', $excludedShiftId)
+            ->whereNotIn('shift.status', ['cancelled', 'canceled'])
+            ->whereNotNull('shift.starts_at')
+            ->whereNotNull('shift.ends_at')
+            ->select(['shift.starts_at', 'shift.ends_at'])
+            ->lockForUpdate()
+            ->get();
+
+        foreach ($candidates as $candidate) {
+            $window = $this->windowMinutes($candidate->starts_at ?? null, $candidate->ends_at ?? null);
+            if (!$window) continue;
+            if ($window['start'] <= $newWindow['end'] && $newWindow['start'] <= $window['end']) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function windowMinutes(?string $startsAt, ?string $endsAt): ?array

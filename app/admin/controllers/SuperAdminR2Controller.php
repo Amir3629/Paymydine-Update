@@ -5,7 +5,7 @@ namespace Admin\Controllers;
 use Admin\Classes\AdminController;
 use App\Services\SuperAdminTenantDomainProvisioner;
 use App\Services\SuperAdminTenantLifecycleService;
-use App\Services\PmdSuperAdminOwnerPortalMfaResetService;
+use App\Services\PmdSuperAdminOwnerMfaResetService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -185,7 +185,7 @@ class SuperAdminR2Controller extends AdminController
     /** PMD_SUPERADMIN_OWNER_PORTAL_MFA_RESET_V1 */
     public function resetOwnerPortalMfa(
         Request $request,
-        PmdSuperAdminOwnerPortalMfaResetService $resetter
+        PmdSuperAdminOwnerMfaResetService $resetter
     ) {
         $request->validate([
             'id' => 'required|integer',
@@ -213,7 +213,7 @@ class SuperAdminR2Controller extends AdminController
 
         $audit = [
             'surface' => 'superadmin_restaurant_registry',
-            'action' => 'owner_portal_mfa_emergency_reset',
+            'action' => 'owner_mfa_emergency_reset',
             'success' => (bool)($result['ok'] ?? false),
             'result_code' => (string)($result['code'] ?? ''),
             'superadmin_id' => (int)Session::get('superadmin_id', 0),
@@ -230,20 +230,20 @@ class SuperAdminR2Controller extends AdminController
         ];
 
         if (!empty($result['ok'])) {
-            Log::warning('PMD SuperAdmin Owner Portal MFA emergency reset', $audit);
+            Log::warning('PMD SuperAdmin Owner MFA emergency reset', $audit);
             return redirect('/superadmin/new')->with(
                 'success',
                 trim((string)($tenant->name ?? 'Restaurant')).': '.(string)$result['message']
             );
         }
 
-        Log::warning('PMD SuperAdmin Owner Portal MFA emergency reset refused/failed', $audit + [
+        Log::warning('PMD SuperAdmin Owner MFA emergency reset refused/failed', $audit + [
             'message' => (string)($result['message'] ?? 'Unknown reset failure.'),
         ]);
 
         return redirect('/superadmin/new')->with(
             'warning',
-            trim((string)($tenant->name ?? 'Restaurant')).': '.(string)($result['message'] ?? 'Owner Portal MFA reset failed.')
+            trim((string)($tenant->name ?? 'Restaurant')).': '.(string)($result['message'] ?? 'Owner MFA reset failed.')
         );
     }
 

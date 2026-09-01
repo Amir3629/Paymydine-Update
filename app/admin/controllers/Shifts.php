@@ -37,7 +37,8 @@ class Shifts extends AdminController
         $this->bodyClass = trim(($this->bodyClass ?? '').' pmd-shifts-page');
         $this->addCss('css/pmd-shifts-v1-6c3f93c60040.css');
         // PMD_SHIFTS_FINGERPRINTED_ASSETS_V1
-        $this->addCss('css/pmd-shifts-canonical-994df35118a2.css');
+        // PMD_SHIFTS_HOUR_FIRST_PAINT_V17H2
+        $this->addCss('css/pmd-shifts-canonical-firstpaint-v17h2.css');
         // PMD_SHIFTS_TOOLBAR_GRID_ALIGNMENT_V12
         $this->addCss('css/pmd-shifts-toolbar-grid-v12.css');
         // PMD_SHIFTS_ENDPOINT_LABEL_CENTER_V12B
@@ -50,12 +51,31 @@ class Shifts extends AdminController
         $this->addCss('css/pmd-shifts-planner-v17.css');
         // PMD_SHIFTS_RESERVATION_JADE_TIME_V17C
         $this->addCss('css/pmd-shifts-reservation-jade-time-v17c.css');
+        // PMD_SHIFTS_GROUP_MERGE_PAUSE_UI_V17D
+        $this->addCss('css/pmd-shifts-planner-polish-v17d.css');
+        // PMD_SHIFTS_NO_PLUS_V17E
+        $this->addCss('css/pmd-shifts-no-plus-v17e.css');
+        // PMD_SHIFTS_CLEAN_FAST_V17F
+        $this->addCss('css/pmd-shifts-clean-frame-v17f.css');
+        // PMD_SHIFTS_ZERO_CELL_HOVER_V17G
+        $this->addCss('css/pmd-shifts-zero-cell-hover-v17g.css');
         // PMD_SHIFTS_PLANNER_UX_V15
         $this->addCss('css/pmd-shifts-planner-ux-v15.css');
-        $this->addJs('js/pmd-shifts-inpage-day-nav-v17.js');
+        // PMD_SHIFTS_REFRESH_STABILITY_V17I
+        $this->addCss('css/pmd-shifts-refresh-stability-v17i.css');
+        // PMD_SHIFTS_FONT_FIRST_PAINT_V17J
+        $this->addCss('css/pmd-shifts-font-first-paint-v17j.css');
+        // PMD_SHIFTS_BAR_FIRST_PAINT_FIT_V17L
+        $this->addCss('css/pmd-shifts-bar-first-paint-fit-v17l.css');
+        // PMD_SHIFTS_DYNAMIC_BAR_GEOMETRY_V17M
+        $this->addCss('css/pmd-shifts-bar-fit-v17m.css');
+        // PMD_SHIFTS_MIDNIGHT_TIMELINE_V17N
+        // PMD_SHIFTS_SCROLL_MEMORY_V17O
+        $this->addJs('js/pmd-shifts-inpage-day-nav-v17o.js');
         // PMD_SHIFTS_BIG_CALENDAR_V14
         $this->addJs('js/pmd-shifts-big-calendar-v14.js');
         $this->addJs('js/pmd-shifts-reservation-jade-time-v17c.js');
+        $this->addJs('js/pmd-shifts-planner-polish-v17d.js');
         // PMD_SHIFTS_PORTAL_MFA_RESET_ASSET_V1
         $this->addJs('js/pmd-shifts-portal-mfa-reset-v1.js');
         AdminMenu::setContext('dashboard');
@@ -517,24 +537,26 @@ class Shifts extends AdminController
                 if ($rows) DB::table('pmd_operational_shift_people')->insert($rows);
             }
 
-            // PMD_SHIFTS_PERSON_OVERLAP_UNION_V17
-            // Quick-create/new one-person shifts extend the existing personal
-            // coverage range instead of drawing stacked overlapping bars.
-            // Explicit Edit Shift (id > 0) remains a direct edit operation.
+            // PMD_SHIFTS_PERSON_GROUP_OVERLAP_UNION_V17D
+            // New creates are normalized per selected person. People who already
+            // have overlapping/touching coverage are detached from the new shared
+            // record and merged into their own existing coverage. People without
+            // overlap remain together on the new group shift. Explicit Edit Shift
+            // (id > 0) remains a direct edit and never triggers this create rule.
             if (
                 $id < 1
-                && count($personIds) === 1
+                && $personIds
                 && !empty($clean['starts_at'])
                 && !empty($clean['ends_at'])
             ) {
-                $personMerge = app(PmdShiftPlannerRuleService::class)->mergeSinglePersonCreate(
+                $personMerge = app(PmdShiftPlannerRuleService::class)->mergeCreateForPeople(
                     $locationId,
                     $shiftDate,
                     $shiftId,
-                    (int)$personIds[0]
+                    $personIds
                 );
-                if (!empty($personMerge['merged'])) {
-                    $message = 'Existing shift extended. Team confirmation is required again.';
+                if ((int)($personMerge['merged_people'] ?? 0) > 0) {
+                    $message = 'Existing shift coverage extended. Team confirmation is required again.';
                 }
             }
 

@@ -116,7 +116,7 @@
                                 <form
                                     method="POST"
                                     action="/superadmin/tenants/reset-owner-portal-mfa"
-                                    onsubmit="return confirm('Reset the Owner Portal Authenticator for this restaurant? The old Authenticator and all Portal recovery codes will stop working. The Owner must sign in with their password and enroll a new QR.');"
+                                    onsubmit="return confirm('Reset the Owner Authenticator for this restaurant? The current Authenticator and all trusted Owner sign-ins will be revoked. The Owner must sign in with their password and connect a new QR.');"
                                 >
                                     @csrf
                                     <input type="hidden" name="id" value="{{ $tenant->id }}">

@@ -1,0 +1,46 @@
+/* PMD_SHIFTS_CLEAN_FRAME_V17F */
+
+/* Mouse hover must never paint a planning cell. The button remains clickable. */
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-slot,
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-slot:hover,
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-slot:active {
+  background:transparent!important;
+  background-color:transparent!important;
+  border-color:transparent!important;
+  box-shadow:none!important;
+  filter:none!important;
+  transform:none!important;
+  text-shadow:none!important;
+  transition:none!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-slot::before,
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-slot::after,
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-slot:hover::before,
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-slot:hover::after,
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-slot > span {
+  content:none!important;
+  display:none!important;
+  opacity:0!important;
+  visibility:hidden!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  pointer-events:none!important;
+}
+
+/* Hide only the planner-frame scrollbars. Scrolling itself stays enabled. */
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-scroll {
+  scrollbar-width:none!important;
+  -ms-overflow-style:none!important;
+  scrollbar-gutter:auto!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-scroll::-webkit-scrollbar,
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-scroll::-webkit-scrollbar-track,
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-scroll::-webkit-scrollbar-thumb,
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-scroll::-webkit-scrollbar-corner {
+  width:0!important;
+  height:0!important;
+  display:none!important;
+  background:transparent!important;
+}

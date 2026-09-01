@@ -302,8 +302,8 @@
             "name": "pmd-site-access-hub-v12-js"
         },
         {
-            "path": "js/pmd-shifts-live-attendance-v1.js",
-            "name": "pmd-shifts-live-attendance-v1-js"
+            "path": "js/pmd-shifts-live-attendance-v2.js",
+            "name": "pmd-shifts-live-attendance-v2-js"
         },
         {
             "path": "js/pmd-admin-i18n-residual-r7.js",

@@ -79,6 +79,7 @@
 
     $pmdServerDate = $selectedDay->toDateString();
 
+    // PMD_SHIFTS_MIDNIGHT_TIMELINE_V17N
     // PMD_SHIFTS_DATE_LOCALE_SERVER_V7
     // PMD_SHIFTS_DATE_LOCALE_PIN_SERVER_V8B
     // Use the same cookie authority as the global Admin i18n boot layer so
@@ -295,17 +296,19 @@
                     <div class="pmd-shifts-final-scale">
 
                         @for(
-                            $tick = 360;
-                            $tick <= 1800;
+                            $tick = 0;
+                            $tick <= 1440;
                             $tick += 120
                         )
                             <span>
                                 {{
-                                    sprintf(
-                                        '%02d:%02d',
-                                        intdiv($tick, 60) % 24,
-                                        $tick % 60
-                                    )
+                                    $tick === 1440
+                                        ? '24:00'
+                                        : sprintf(
+                                            '%02d:%02d',
+                                            intdiv($tick, 60) % 24,
+                                            $tick % 60
+                                        )
                                 }}
                             </span>
                         @endfor
@@ -391,8 +394,8 @@
                             <div class="pmd-shifts-final-slots">
 
                                 @for(
-                                    $slot = 360;
-                                    $slot < 1800;
+                                    $slot = 0;
+                                    $slot < 1440;
                                     $slot += 60
                                 )
 
@@ -432,7 +435,7 @@
                                         $end = $pmdServerMinutes(
                                             $shift['end'] ?? '',
                                             min(
-                                                1800,
+                                                1440,
                                                 $start + 480
                                             )
                                         );
@@ -442,12 +445,12 @@
                                         }
 
                                         $drawStart = max(
-                                            360,
+                                            0,
                                             $start
                                         );
 
                                         $drawEnd = min(
-                                            1800,
+                                            1440,
                                             $end
                                         );
 
@@ -457,13 +460,13 @@
                                             $drawStart
                                         ) {
                                             $drawEnd = min(
-                                                1800,
+                                                1440,
                                                 $drawStart + 30
                                             );
                                         }
 
                                         $left = (
-                                            ($drawStart - 360)
+                                            $drawStart
                                             /
                                             1440
                                         ) * 100;
