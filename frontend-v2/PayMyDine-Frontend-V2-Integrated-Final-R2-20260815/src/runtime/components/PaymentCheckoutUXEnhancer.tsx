@@ -139,12 +139,19 @@ function showFastPlaceholder(panel: HTMLElement, methodCode: string) {
   }, 15000)
 }
 
+function normalizedText(value: unknown): string {
+  return String(value || '').replace(/\s+/g, ' ').trim().toLowerCase()
+}
+
 function isReadyNoise(text: string): boolean {
-  const normalized = text.replace(/\s+/g, ' ').trim().toLowerCase()
+  const normalized = normalizedText(text)
   if (!normalized) return false
   return normalized.includes('is ready inside paymydine')
     || normalized.includes('authorization is ready inside paymydine')
     || normalized.includes('authorization opened securely')
+    || normalized.includes('opened securely. complete authorization')
+    || normalized.includes('submitted. confirming with worldline')
+    || normalized.includes('card details encrypted. confirming payment with worldline')
 }
 
 function hideReadyNoise(panel: HTMLElement) {
@@ -219,6 +226,23 @@ function compactAuthorizationPanel(panel: HTMLElement) {
   }
 }
 
+function dedupeNativeWalletStatus() {
+  const wrappers = Array.from(document.querySelectorAll<HTMLElement>('[data-pmd-worldline-embedded^="native-wallet-"]'))
+  for (const wrapper of wrappers) {
+    const localAlert = wrapper.querySelector<HTMLElement>('[data-pmd-worldline-native-wallet] [role="alert"]')
+    const alertText = normalizedText(localAlert?.textContent)
+    const statuses = Array.from(wrapper.children).filter(
+      (child): child is HTMLElement => child instanceof HTMLElement && child.matches('[role="status"]'),
+    )
+
+    for (const status of statuses) {
+      const statusText = normalizedText(status.textContent)
+      const duplicatesLocalError = Boolean(alertText && (statusText === alertText || statusText.startsWith(alertText)))
+      if (duplicatesLocalError || isReadyNoise(statusText)) status.style.display = 'none'
+    }
+  }
+}
+
 function preloadGooglePay() {
   if (document.querySelector(`script[src="${GOOGLE_PAY_SCRIPT}"]`)) return
   const script = document.createElement('script')
@@ -243,6 +267,8 @@ function syncCheckoutDom() {
 
   const authPanels = Array.from(document.querySelectorAll<HTMLElement>('[data-pmd-worldline-embedded^="pmd-authorization-"]'))
   for (const panel of authPanels) compactAuthorizationPanel(panel)
+
+  dedupeNativeWalletStatus()
 }
 
 export function PaymentCheckoutUXEnhancer() {
