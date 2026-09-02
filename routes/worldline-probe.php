@@ -149,44 +149,62 @@ $worldlineAdminAuthorize = static function () {
         'paypal' => 'paypal',
     ];
 
-    // Frontend V2 consumes this small canonical supplement instead of the
-    // historical provider-readiness matrix in admin-app-before.php. Only
-    // methods that are explicitly enabled and assigned to Worldline are
-    // returned, and the capability registry must also mark them implemented.
+    // Frontend V2 consumes this canonical supplement. PMD configuration and
+    // Worldline's own product-discovery API must BOTH allow a method before it
+    // is offered to a guest.
     \Illuminate\Support\Facades\Route::get('/payments/worldline/runtime-methods', function () use ($methodMap) {
-        $registry = app(\App\Services\Payments\ProviderCapabilityRegistry::class);
-        $allowed = array_values($methodMap);
-        $rows = \Admin\Models\Payments_model::query()
-            ->whereIn('code', $allowed)
-            ->get();
+        try {
+            $service = app(\App\Services\Payments\WorldlineConnectRuntimeService::class);
+            $available = $service->availablePaymentProducts('DE', 'EUR');
+            $registry = app(\App\Services\Payments\ProviderCapabilityRegistry::class);
+            $allowed = array_values($methodMap);
+            $rows = \Admin\Models\Payments_model::query()->whereIn('code', $allowed)->get();
 
-        $methods = [];
-        foreach ($rows as $row) {
-            $code = strtolower(trim((string)$row->code));
-            $provider = strtolower(trim((string)($row->provider_code ?? '')));
-            if ($code === '' || !(int)$row->status || $provider !== 'worldline') {
-                continue;
+            $methods = [];
+            foreach ($rows as $row) {
+                $code = strtolower(trim((string)$row->code));
+                $provider = strtolower(trim((string)($row->provider_code ?? '')));
+                if ($code === '' || !(int)$row->status || $provider !== 'worldline') {
+                    continue;
+                }
+                if (!$registry->implementsPaymentMethod('worldline', $code)) {
+                    continue;
+                }
+                $productIds = array_values(array_map('intval', (array)($available[$code] ?? [])));
+                if (!$productIds) {
+                    continue;
+                }
+                $methods[] = [
+                    'code' => $code,
+                    'name' => (string)($row->name ?: ucwords(str_replace('_', ' ', $code))),
+                    'provider_code' => 'worldline',
+                    'enabled' => true,
+                    'status' => 1,
+                    'priority' => (int)($row->priority ?? $row->sort_order ?? 50),
+                    'worldline_product_ids' => $productIds,
+                ];
             }
-            if (!$registry->implementsPaymentMethod('worldline', $code)) {
-                continue;
-            }
-            $methods[] = [
-                'code' => $code,
-                'name' => (string)($row->name ?: ucwords(str_replace('_', ' ', $code))),
-                'provider_code' => 'worldline',
-                'enabled' => true,
-                'status' => 1,
-                'priority' => (int)($row->priority ?? $row->sort_order ?? 50),
-            ];
+
+            usort($methods, static fn (array $a, array $b) => ($a['priority'] <=> $b['priority']) ?: strcmp($a['code'], $b['code']));
+
+            return response()->json([
+                'success' => true,
+                'provider' => 'worldline',
+                'methods' => $methods,
+            ]);
+        } catch (\Throwable $e) {
+            \Log::warning('WORLDLINE_RUNTIME_METHOD_DISCOVERY_FAILED', [
+                'host' => request()->getHost(),
+                'error_class' => get_class($e),
+                'message' => $e->getMessage(),
+            ]);
+            return response()->json([
+                'success' => false,
+                'provider' => 'worldline',
+                'methods' => [],
+                'error' => 'Worldline payment-product availability could not be verified.',
+            ], 503);
         }
-
-        usort($methods, static fn (array $a, array $b) => ($a['priority'] <=> $b['priority']) ?: strcmp($a['code'], $b['code']));
-
-        return response()->json([
-            'success' => true,
-            'provider' => 'worldline',
-            'methods' => $methods,
-        ]);
     });
 
     \Illuminate\Support\Facades\Route::post('/payments/worldline/runtime/{method}/create-session', function (\Illuminate\Http\Request $request, string $method) use ($methodMap) {
@@ -228,22 +246,105 @@ $worldlineAdminAuthorize = static function () {
             return response()->json(['success' => false, 'error' => 'Order not found.'], 404);
         }
 
-        $amount = round((float)($order->order_total ?? $order->total ?? 0), 2);
-        if ($amount <= 0) {
-            return response()->json(['success' => false, 'error' => 'Order total must be greater than zero.'], 422);
-        }
-
         $returnUrl = trim((string)$request->input('return_url', ''));
         $returnHost = strtolower((string)parse_url($returnUrl, PHP_URL_HOST));
         if ($returnHost === '' || !hash_equals(strtolower($request->getHost()), $returnHost)) {
             return response()->json(['success' => false, 'error' => 'Worldline return URL must use the current tenant host.'], 422);
         }
 
+        // PayMyDine, not the browser, owns principal amount authority.
+        $orderTotal = round((float)($order->order_total ?? $order->total ?? 0), 4);
+        $settledAmount = max(0.0, round((float)($order->settled_amount ?? 0), 4));
+        $remainingAmount = max(0.0, round($orderTotal - $settledAmount, 4));
+        $principalAmount = $remainingAmount;
+        $tipAmount = max(0.0, round((float)$request->input('tip_amount', 0), 4));
+        $payableAmount = round($principalAmount + $tipAmount, 4);
+
+        $allocations = $request->input('order_allocations', []);
+        if (is_array($allocations) && count(array_filter($allocations)) > 1) {
+            return response()->json([
+                'success' => false,
+                'error_code' => 'worldline_multi_order_not_enabled',
+                'error' => 'Worldline grouped multi-order payment is not enabled yet. Pay one submitted order at a time.',
+            ], 409);
+        }
+
+        $intentToken = trim((string)$request->input('payment_intent_token', ''));
+        $selectedItems = $request->input('selected_items');
+        if ($intentToken !== '') {
+            if (!\Illuminate\Support\Facades\Schema::hasTable('pmd_guest_payment_intents')) {
+                return response()->json([
+                    'success' => false,
+                    'error_code' => 'worldline_payment_intent_unavailable',
+                    'error' => 'Server payment intent storage is unavailable.',
+                ], 503);
+            }
+
+            $intent = \Illuminate\Support\Facades\DB::table('pmd_guest_payment_intents')
+                ->where('token', $intentToken)
+                ->where('order_id', $orderId)
+                ->where('status', 'pending')
+                ->first();
+
+            if (!$intent) {
+                return response()->json([
+                    'success' => false,
+                    'error_code' => 'worldline_payment_intent_invalid',
+                    'error' => 'The split-payment intent is missing, expired, or already used.',
+                ], 409);
+            }
+
+            if (!empty($intent->expires_at) && \Illuminate\Support\Carbon::parse($intent->expires_at)->isPast()) {
+                return response()->json([
+                    'success' => false,
+                    'error_code' => 'worldline_payment_intent_expired',
+                    'error' => 'The split-payment intent has expired. Start the payment again.',
+                ], 409);
+            }
+
+            $intentMethod = strtolower(trim((string)($intent->payment_method ?? '')));
+            $intentProvider = strtolower(str_replace('-', '_', trim((string)($intent->provider ?? ''))));
+            if (($intentMethod !== '' && $intentMethod !== $methodCode)
+                || ($intentProvider !== '' && $intentProvider !== 'worldline')) {
+                return response()->json([
+                    'success' => false,
+                    'error_code' => 'worldline_payment_intent_mismatch',
+                    'error' => 'The payment intent does not belong to this Worldline payment method.',
+                ], 409);
+            }
+
+            $principalAmount = max(0.0, round((float)($intent->principal_amount ?? 0), 4));
+            $tipAmount = max(0.0, round((float)($intent->tip_amount ?? 0), 4));
+            $payableAmount = max(0.0, round((float)($intent->payable_amount ?? 0), 4));
+        } elseif (is_array($selectedItems) && count($selectedItems) > 0) {
+            return response()->json([
+                'success' => false,
+                'error_code' => 'worldline_split_intent_required',
+                'error' => 'Split/item Worldline payments require a server-generated payment intent.',
+            ], 409);
+        }
+
+        $couponCode = trim((string)$request->input('coupon_code', ''));
+        $couponDiscount = max(0.0, round((float)$request->input('coupon_discount', 0), 4));
+        if ($intentToken === '' && ($couponCode !== '' || $couponDiscount > 0.0001)) {
+            return response()->json([
+                'success' => false,
+                'error_code' => 'worldline_coupon_intent_required',
+                'error' => 'Coupon-adjusted Worldline payments require a server-authoritative payment intent.',
+            ], 409);
+        }
+
+        if ($principalAmount <= 0 || $payableAmount <= 0) {
+            return response()->json(['success' => false, 'error' => 'Order has no remaining amount to pay.'], 422);
+        }
+
         try {
             $service = app(\App\Services\Payments\WorldlineConnectRuntimeService::class);
             $result = $service->createHostedCheckout([
                 'payment_method' => $methodCode,
-                'amount_minor' => (int)round($amount * 100),
+                'amount_minor' => (int)round($payableAmount * 100),
+                'principal_amount_minor' => (int)round($principalAmount * 100),
+                'tip_amount_minor' => (int)round($tipAmount * 100),
                 'currency' => 'EUR',
                 'country_code' => 'DE',
                 'locale' => (string)$request->input('locale', 'de_DE'),
@@ -258,8 +359,11 @@ $worldlineAdminAuthorize = static function () {
                 'redirect_url' => $result['redirect_url'],
                 'hosted_checkout_id' => $result['hosted_checkout_id'],
                 'payment_method' => $methodCode,
+                'payment_product_ids' => $result['payment_product_ids'] ?? [],
                 'order_id' => $orderId,
-                'amount' => $amount,
+                'principal_amount' => $principalAmount,
+                'tip_amount' => $tipAmount,
+                'amount' => $payableAmount,
                 'currency' => 'EUR',
             ]);
         } catch (\Throwable $e) {
@@ -273,7 +377,9 @@ $worldlineAdminAuthorize = static function () {
             return response()->json([
                 'success' => false,
                 'error_code' => 'worldline_session_unavailable',
-                'error' => 'Worldline could not start this payment method. Verify that the product is enabled for this Merchant ID.',
+                'error' => $e->getMessage() !== ''
+                    ? $e->getMessage()
+                    : 'Worldline could not start this payment method.',
             ], 502);
         }
     })->where('method', 'card|apple-pay|google-pay|wero|paypal');
