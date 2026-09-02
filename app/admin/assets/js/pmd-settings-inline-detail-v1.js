@@ -91,6 +91,153 @@
       return bodyNode ? bodyNode.querySelector('[data-pmd-inline-form]') : null;
     }
 
+    function isWorldlineForm(form) {
+      var code = form ? form.querySelector('input[name="Payment[code]"]') : null;
+      return Boolean(code && String(code.value || '').toLowerCase() === 'worldline');
+    }
+
+    function adminRuntimeEndpoint(suffix) {
+      var firstSegment = window.location.pathname.split('/').filter(Boolean)[0] || 'admin';
+      return window.location.origin + '/' + firstSegment + '/_pmd/' + suffix;
+    }
+
+    function worldlineTerminalEndpoint() {
+      return adminRuntimeEndpoint('worldline-terminal-config');
+    }
+
+    function worldlineConnectTestEndpoint() {
+      return adminRuntimeEndpoint('worldline-connect-test');
+    }
+
+    function injectWorldlineTerminalFields(form) {
+      if (!isWorldlineForm(form) || form.querySelector('[data-pmd-worldline-terminal-settings]')) return;
+      var grid = form.querySelector('.pmd-inline-grid');
+      if (!grid) return;
+
+      var wrapper = document.createElement('div');
+      wrapper.setAttribute('data-pmd-worldline-terminal-settings', '1');
+      wrapper.className = 'pmd-inline-section';
+      wrapper.style.marginTop = '18px';
+      wrapper.innerHTML = '' +
+        '<div class="pmd-inline-section__head">' +
+          '<h3>Worldline Terminal API</h3>' +
+          '<p>Card-present Terminal API uses a separate Worldline Bearer key. It never reuses the Connect Secret API Key.</p>' +
+        '</div>' +
+        '<div class="pmd-inline-grid">' +
+          '<div class="pmd-inline-field">' +
+            '<label>Terminal API Merchant ID</label>' +
+            '<input type="text" data-pmd-worldline-terminal-merchant maxlength="255" autocomplete="off">' +
+            '<small>Usually the UMID supplied for Terminal API. Leave blank to use the Connect Merchant ID.</small>' +
+          '</div>' +
+          '<div class="pmd-inline-field">' +
+            '<label>Terminal API Base URL</label>' +
+            '<input type="url" data-pmd-worldline-terminal-base maxlength="500" autocomplete="off">' +
+            '<small>Integration defaults to Worldline IACC. For Live, enter the production URL supplied by Worldline.</small>' +
+          '</div>' +
+          '<div class="pmd-inline-field pmd-inline-field--full">' +
+            '<label>Terminal API Bearer Key</label>' +
+            '<input type="password" data-pmd-worldline-terminal-token maxlength="4096" autocomplete="new-password" placeholder="Loading…">' +
+            '<small>Separate Terminal API credential requested from Worldline. Leave blank to keep the stored key.</small>' +
+          '</div>' +
+        '</div>' +
+        '<div class="pmd-inline-note" data-pmd-worldline-terminal-readiness>Checking Terminal API configuration…</div>';
+
+      grid.insertAdjacentElement('afterend', wrapper);
+    }
+
+    async function loadWorldlineTerminalSettings(form) {
+      if (!isWorldlineForm(form)) return;
+      injectWorldlineTerminalFields(form);
+      var tokenInput = form.querySelector('[data-pmd-worldline-terminal-token]');
+      var merchantInput = form.querySelector('[data-pmd-worldline-terminal-merchant]');
+      var baseInput = form.querySelector('[data-pmd-worldline-terminal-base]');
+      var readiness = form.querySelector('[data-pmd-worldline-terminal-readiness]');
+      if (!tokenInput || !merchantInput || !baseInput) return;
+
+      try {
+        var response = await fetch(worldlineTerminalEndpoint(), {
+          method: 'GET',
+          credentials: 'same-origin',
+          headers: {'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest'},
+          cache: 'no-store'
+        });
+        var payload = parsePayload(await response.text());
+        if (!response.ok || !payload.success) throw new Error(payload.error || 'Unable to load Terminal API settings.');
+
+        merchantInput.value = String(payload.terminal_merchant_id || '');
+        baseInput.value = String(payload.terminal_api_base_url || '');
+        tokenInput.placeholder = payload.terminal_api_token_present
+          ? 'Stored — leave blank to keep'
+          : 'Enter Terminal API Bearer Key';
+        if (readiness) {
+          readiness.textContent = payload.terminal_ready
+            ? 'Terminal API credentials are stored and the terminal is ready for a provider test.'
+            : 'Terminal payments stay disabled until Terminal ID, merchant ID, API URL and the separate Bearer key are configured.';
+        }
+      } catch (error) {
+        tokenInput.placeholder = 'Enter Terminal API Bearer Key';
+        if (readiness) readiness.textContent = error && error.message ? error.message : 'Unable to load Terminal API settings.';
+      }
+    }
+
+    async function saveWorldlineTerminalSettings(form) {
+      if (!isWorldlineForm(form)) return;
+      var tokenInput = form.querySelector('[data-pmd-worldline-terminal-token]');
+      var merchantInput = form.querySelector('[data-pmd-worldline-terminal-merchant]');
+      var baseInput = form.querySelector('[data-pmd-worldline-terminal-base]');
+      if (!tokenInput || !merchantInput || !baseInput) return;
+
+      var data = new FormData();
+      var csrf = form.querySelector('input[name="_token"]');
+      if (csrf && csrf.value) data.append('_token', csrf.value);
+      data.append('terminal_merchant_id', String(merchantInput.value || '').trim());
+      data.append('terminal_api_base_url', String(baseInput.value || '').trim());
+      if (String(tokenInput.value || '').trim() !== '') {
+        data.append('terminal_api_token', String(tokenInput.value || '').trim());
+      }
+
+      var response = await fetch(worldlineTerminalEndpoint(), {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest'},
+        body: data
+      });
+      var payload = parsePayload(await response.text());
+      if (!response.ok || !payload.success) {
+        throw new Error(payload.error || payload.message || ('Terminal settings save failed (' + response.status + ')'));
+      }
+    }
+
+    async function requestWorldlineConnectionTest(actionButton) {
+      var form = currentForm();
+      if (!form || !isWorldlineForm(form) || inFlight) return;
+      setBusy(true);
+      setStatus('Testing Worldline Connect…');
+      try {
+        var data = new FormData();
+        var csrf = form.querySelector('input[name="_token"]');
+        if (csrf && csrf.value) data.append('_token', csrf.value);
+        var response = await fetch(worldlineConnectTestEndpoint(), {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest'},
+          body: data
+        });
+        var payload = parsePayload(await response.text());
+        displayResult(payload);
+        if (!response.ok || !payload.success) {
+          throw new Error(payload.error || payload.message || ('Worldline connection test failed (' + response.status + ')'));
+        }
+        setStatus(settingsText('Done'), 'ok');
+      } catch (error) {
+        var msg = error && error.message ? error.message : 'Worldline connection test failed';
+        setStatus(msg, 'error');
+        displayResult({error: msg});
+      } finally {
+        setBusy(false);
+      }
+    }
+
     function openModal(key, trigger) {
       var template = templateFor(key);
       if (!template || !bodyNode) return false;
@@ -104,6 +251,9 @@
       modal.hidden = false;
       modal.setAttribute('aria-hidden', 'false');
       lockBackground();
+      if (String(key || '').toLowerCase() === 'finance:provider:worldline' || isWorldlineForm(form)) {
+        void loadWorldlineTerminalSettings(form);
+      }
       requestAnimationFrame(function () {
         var target = bodyNode.querySelector('input:not([type="hidden"]):not([disabled]):not([readonly]), select:not([disabled]), textarea:not([disabled]), button:not([disabled])');
         if (target) target.focus({preventScroll: true});
@@ -201,6 +351,9 @@
         if (payload.X_IGNITER_ERROR_MESSAGE) throw new Error(payload.X_IGNITER_ERROR_MESSAGE);
 
         if (closeAfter) {
+          if (isWorldlineForm(form)) {
+            await saveWorldlineTerminalSettings(form);
+          }
           setStatus(settingsText('Saved'), 'ok');
           await refreshSelectors(form);
           setBusy(false);
@@ -233,7 +386,13 @@
       var action = event.target.closest('[data-pmd-inline-action]');
       if (action && modal.contains(action)) {
         event.preventDefault();
-        requestBackend(action.getAttribute('data-pmd-inline-action'), false, action);
+        var form = currentForm();
+        var handler = action.getAttribute('data-pmd-inline-action');
+        if (handler === 'onTestProviderConnection' && isWorldlineForm(form)) {
+          void requestWorldlineConnectionTest(action);
+          return;
+        }
+        requestBackend(handler, false, action);
       }
     });
 
@@ -258,7 +417,7 @@
 
     window.PMDSettingsInlineDetailV1 = {
       ready: true,
-      version: '1.0.0',
+      version: '1.2.0-worldline-runtime',
       samePage: true,
       modalPortal: modal.parentElement === document.body,
       fieldGeometry: '46px/12px',
@@ -266,6 +425,8 @@
       modalAnimationMs: 180,
       backgroundScrollLock: 'fixed-position-restore',
       ajaxSave: true,
+      worldlineConnectRuntimeTest: true,
+      worldlineTerminalApiSettings: true,
       noPolling: true,
       noMutationObserver: true
     };

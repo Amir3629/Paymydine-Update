@@ -51,10 +51,10 @@ class Payments_model extends Model
 
     protected const METHOD_PROVIDER_MATRIX = [
         'card' => ['stripe', 'worldline', 'sumup', 'vr_payment'],
-        'apple_pay' => ['stripe', 'sumup', 'vr_payment'],
-        'google_pay' => ['stripe', 'sumup', 'vr_payment'],
+        'apple_pay' => ['stripe', 'worldline', 'sumup', 'vr_payment'],
+        'google_pay' => ['stripe', 'worldline', 'sumup', 'vr_payment'],
         'wero' => ['worldline', 'vr_payment'],
-        'paypal' => ['paypal', 'stripe', 'vr_payment'],
+        'paypal' => ['paypal', 'worldline', 'stripe', 'vr_payment'],
         'cod' => [],
         'cash' => [],
     ];
@@ -129,7 +129,6 @@ class Payments_model extends Model
             }
         }
 
-        // This only happens during updates (edits) — it maintains its current behavior.
         if (!$this->exists) {
             $this->prepareAttributesForResolvedStorage();
             return;
@@ -139,7 +138,6 @@ class Payments_model extends Model
             $this->makeDefault();
         }
 
-        // Collect form payload from all known roots used by admin forms.
         $posted = [];
         foreach (['Payment', 'Payments', 'payment', 'payments'] as $root) {
             $rootPayload = post($root);
@@ -148,9 +146,8 @@ class Payments_model extends Model
             }
         }
 
-        // Remove fields that do NOT belong to the JSON data (they are form columns/controls).
         foreach ([
-            'payment',        // gateway select
+            'payment',
             'name',
             'code',
             'priority',
@@ -179,13 +176,6 @@ class Payments_model extends Model
         $this->prepareAttributesForResolvedStorage();
     }
 
-    /**
-     * Converts structured configuration values to database-safe JSON and
-     * removes virtual attributes that do not exist in the resolved table.
-     *
-     * The application can use either payment_methods or legacy payments
-     * storage, so the real schema is checked before every write.
-     */
     protected function prepareAttributesForResolvedStorage(): void
     {
         $this->applyStorageMapping();
@@ -233,17 +223,6 @@ class Payments_model extends Model
         }
     }
 
-    //
-    // Manager
-    //
-
-    /**
-     * Extends this class with the gateway class
-     *
-     * @param string $class Class name
-     *
-     * @return bool
-     */
     public function applyGatewayClass($class = null)
     {
         if (is_null($class))
@@ -286,10 +265,6 @@ class Payments_model extends Model
         return $this->asExtension($class);
     }
 
-    //
-    // Helpers
-    //
-
     public function makeDefault()
     {
         if (!$this->status) {
@@ -321,11 +296,6 @@ class Payments_model extends Model
         return self::$defaultPayment = $defaultPayment;
     }
 
-    /**
-     * Return all payments
-     *
-     * @return array
-     */
     public static function listPayments()
     {
         return self::isEnabled()->get()->filter(function ($model) {
@@ -357,15 +327,6 @@ class Payments_model extends Model
         PaymentGateways::createPartials();
     }
 
-    //
-    // Payment Profiles
-    //
-
-    /**
-     * Finds and returns a customer payment profile for this payment method.
-     * @param \Admin\Models\Customers_model $customer Specifies customer to find a profile for.
-     * @return \Admin\Models\Payment_profiles_model|object Returns the payment profile object or NULL if the payment profile doesn't exist.
-     */
     public function findPaymentProfile($customer)
     {
         if (!$customer)
@@ -378,12 +339,6 @@ class Payments_model extends Model
             ->first();
     }
 
-    /**
-     * Initializes a new empty customer payment profile.
-     * This method should be used by payment methods internally.
-     * @param \Admin\Models\Customers_model $customer Specifies customer to initialize a profile for.
-     * @return \Admin\Models\Payment_profiles_model Returns the payment profile object or NULL if the payment profile doesn't exist.
-     */
     public function initPaymentProfile($customer)
     {
         $profile = new Payment_profiles_model();
@@ -544,12 +499,6 @@ class Payments_model extends Model
             return [];
         }
 
-        // Fail closed: the legacy compatibility matrix describes historical
-        // candidates, but an admin may only assign providers that the canonical
-        // capability registry marks implemented for this exact PMD method.
-        // This prevents catalogue/scaffold providers (notably Worldline during
-        // its sandbox-hardening phase) from becoming guest-offerable merely by
-        // selecting them in Payments & Finance.
         $registry = new \App\Services\Payments\ProviderCapabilityRegistry();
 
         return array_values(array_filter(
