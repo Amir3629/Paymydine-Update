@@ -2,10 +2,8 @@
 
 import { useEffect } from 'react'
 
-const WORLDLINE_RUNTIME_METHODS = '/api/v1/payments/worldline/runtime-methods'
 const WORLDLINE_INLINE_HOST = 'data-pmd-worldline-inline-host'
 const WORLDLINE_HIDDEN_PAY = 'data-pmd-worldline-hidden-pay-button'
-const GOOGLE_PAY_SCRIPT = 'https://pay.google.com/gp/p/js/pay.js'
 
 function normalizeMethod(value: unknown): string {
   return String(value || '').trim().toLowerCase().replace(/[\s-]+/g, '_')
@@ -38,7 +36,6 @@ function findMethodGrid(panel: HTMLElement): HTMLElement | null {
   const candidates = Array.from(panel.children).filter((child): child is HTMLElement => child instanceof HTMLElement)
   for (const candidate of candidates) {
     const buttons = directButtons(candidate)
-    if (!buttons.length) continue
     if (buttons.some((button) => Boolean(methodFromButton(button)))) return candidate
   }
   return null
@@ -51,7 +48,7 @@ function looksLikeTotalCard(element: Element | null): element is HTMLElement {
   return rows.length >= 2 && Boolean(element.querySelector('strong'))
 }
 
-// Visual ordering only. We never move/remove/replace React-owned DOM nodes.
+// Visual ordering only. Never move/remove/replace React-owned nodes.
 function applyPaymentVisualOrder(panel: HTMLElement) {
   const children = Array.from(panel.children).filter((child): child is HTMLElement => child instanceof HTMLElement)
   children.forEach((child, index) => child.style.setProperty('order', String(index * 10)))
@@ -69,24 +66,23 @@ function applyPaymentVisualOrder(panel: HTMLElement) {
 
 function genericPayButton(panel: HTMLElement): HTMLButtonElement | null {
   const buttons = directButtons(panel)
-  if (!buttons.length) return null
-  return buttons[buttons.length - 1] || null
+  return buttons.length ? buttons[buttons.length - 1] : null
 }
 
-function markImmediateWorldlineAction(panel: HTMLElement, methodCode: string) {
+function markImmediatePaymentAction(panel: HTMLElement, methodCode: string) {
+  if (panel.querySelector<HTMLElement>(`:scope > [${WORLDLINE_INLINE_HOST}="true"]`)) return
   const button = genericPayButton(panel)
   if (!button || button.hasAttribute(WORLDLINE_HIDDEN_PAY)) return
 
   if (!button.dataset.pmdWlOriginalAria) {
     button.dataset.pmdWlOriginalAria = button.getAttribute('aria-label') || ''
   }
-  const label = paymentLabel(methodCode)
   button.setAttribute('data-pmd-worldline-action', 'true')
-  button.setAttribute('data-pmd-worldline-action-label', label)
-  button.setAttribute('aria-label', label)
+  button.setAttribute('data-pmd-worldline-action-label', paymentLabel(methodCode))
+  button.setAttribute('aria-label', paymentLabel(methodCode))
 }
 
-function restoreImmediateWorldlineAction(panel: HTMLElement) {
+function restoreImmediatePaymentAction(panel: HTMLElement) {
   const button = genericPayButton(panel)
   if (!button || !button.hasAttribute('data-pmd-worldline-action')) return
 
@@ -143,6 +139,7 @@ function compactWalletAndAuthorizationSurfaces() {
     const googleButton = Array.from(wallet.querySelectorAll<HTMLButtonElement>('button'))
       .find((button) => !button.classList.contains('pmd-worldline-apple-pay-button'))
     if (googleButton) {
+      googleButton.setAttribute('data-pmd-worldline-final', 'google-pay')
       googleButton.style.setProperty('background', 'var(--pmd-text, #ffffff)', 'important')
       googleButton.style.setProperty('color', 'var(--pmd-control, #070707)', 'important')
       googleButton.style.setProperty('border-radius', '999px', 'important')
@@ -171,47 +168,18 @@ function compactWalletAndAuthorizationSurfaces() {
   }
 }
 
-function preloadGooglePay() {
-  if (document.querySelector(`script[src="${GOOGLE_PAY_SCRIPT}"]`)) return
-  const script = document.createElement('script')
-  script.src = GOOGLE_PAY_SCRIPT
-  script.async = true
-  script.dataset.pmdGooglePayPreload = 'payment-ux-safe-v3'
-  document.head.appendChild(script)
-}
-
 export function PaymentCheckoutUXEnhancer() {
   useEffect(() => {
     let disposed = false
     let scheduled = false
-    const worldlineMethods = new Set<string>()
     const activeMethod = new WeakMap<HTMLElement, string>()
-
-    const runtimeMethodsPromise = fetch(WORLDLINE_RUNTIME_METHODS, {
-      credentials: 'same-origin',
-      cache: 'no-store',
-      headers: { Accept: 'application/json' },
-    }).then(async (response) => {
-      if (!response.ok) return worldlineMethods
-      const data = await response.json().catch(() => ({}))
-      const methods = Array.isArray(data?.methods) ? data.methods : []
-      for (const row of methods) {
-        const provider = normalizeMethod(row?.provider_code || row?.provider || 'worldline')
-        if (provider !== 'worldline' || row?.enabled === false || Number(row?.status ?? 1) === 0) continue
-        const code = normalizeMethod(row?.code)
-        if (code) worldlineMethods.add(code)
-      }
-      if (worldlineMethods.has('google_pay')) preloadGooglePay()
-      return worldlineMethods
-    }).catch(() => worldlineMethods)
 
     const sync = () => {
       for (const panel of Array.from(document.querySelectorAll<HTMLElement>('[data-pmd-payment-order-id], [data-pmd-multi-order-payment="r32"]'))) {
         applyPaymentVisualOrder(panel)
         hideNonEssentialReadyMessages(panel)
         const method = activeMethod.get(panel)
-        const inlineHost = panel.querySelector<HTMLElement>(`:scope > [${WORLDLINE_INLINE_HOST}="true"]`)
-        if (method && worldlineMethods.has(method) && !inlineHost) markImmediateWorldlineAction(panel, method)
+        if (method) markImmediatePaymentAction(panel, method)
       }
       compactWalletAndAuthorizationSurfaces()
     }
@@ -225,12 +193,6 @@ export function PaymentCheckoutUXEnhancer() {
       })
     }
 
-    const activate = (panel: HTMLElement, methodCode: string) => {
-      activeMethod.set(panel, methodCode)
-      markImmediateWorldlineAction(panel, methodCode)
-      schedule()
-    }
-
     const onClick = (event: MouseEvent) => {
       if (disposed) return
       const target = event.target instanceof Element ? event.target : null
@@ -240,28 +202,20 @@ export function PaymentCheckoutUXEnhancer() {
       if (!panel) return
       const grid = findMethodGrid(panel)
       if (!grid || button.parentElement !== grid) return
+
       const methodCode = methodFromButton(button)
-      if (!methodCode) return
-
-      if (worldlineMethods.has(methodCode)) {
-        activate(panel, methodCode)
-        return
+      if (methodCode) {
+        activeMethod.set(panel, normalizeMethod(methodCode))
+        markImmediatePaymentAction(panel, methodCode)
+      } else {
+        activeMethod.delete(panel)
+        restoreImmediatePaymentAction(panel)
       }
-
-      void runtimeMethodsPromise.then(() => {
-        if (disposed) return
-        if (worldlineMethods.has(methodCode)) activate(panel, methodCode)
-        else {
-          activeMethod.delete(panel)
-          restoreImmediateWorldlineAction(panel)
-          schedule()
-        }
-      })
+      schedule()
     }
 
     const observer = new MutationObserver(schedule)
     sync()
-    void runtimeMethodsPromise.then(schedule)
     document.addEventListener('click', onClick, true)
     observer.observe(document.body, { childList: true, subtree: true })
 
