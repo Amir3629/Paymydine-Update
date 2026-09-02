@@ -54,6 +54,7 @@ final class WorldlineConnectRuntimeService
             'api_key_id' => trim((string)($data['api_key_id'] ?? '')),
             'secret_api_key' => trim((string)($data['secret_api_key'] ?? '')),
             'webhook_secret' => trim((string)($data['webhook_secret'] ?? '')),
+            'hosted_checkout_variant' => trim((string)($data['hosted_checkout_variant'] ?? '')),
             'terminal_id' => trim((string)($data['terminal_id'] ?? '')),
             'terminal_environment' => strtolower(trim((string)($data['terminal_environment'] ?? 'test'))),
             'config_id' => (int)$model->getKey(),
@@ -68,6 +69,11 @@ final class WorldlineConnectRuntimeService
         }
         if ($missing) {
             throw new \RuntimeException('Worldline configuration incomplete: '.implode(', ', $missing));
+        }
+
+        if ($cfg['hosted_checkout_variant'] !== ''
+            && !preg_match('/^[A-Za-z0-9._-]{1,64}$/', $cfg['hosted_checkout_variant'])) {
+            throw new \RuntimeException('Worldline MyCheckout variant ID is invalid.');
         }
 
         return $cfg;
@@ -212,6 +218,7 @@ final class WorldlineConnectRuntimeService
         $merchantReference = trim((string)($payload['merchant_reference'] ?? ''));
         $principalAmountMinor = (int)($payload['principal_amount_minor'] ?? $amountMinor);
         $tipAmountMinor = max(0, (int)($payload['tip_amount_minor'] ?? 0));
+        $variant = trim((string)($payload['variant'] ?? $cfg['hosted_checkout_variant'] ?? ''));
 
         if ($amountMinor <= 0) {
             throw new \InvalidArgumentException('Worldline amount must be greater than zero.');
@@ -224,6 +231,9 @@ final class WorldlineConnectRuntimeService
         }
         if (!filter_var($returnUrl, FILTER_VALIDATE_URL) || stripos($returnUrl, 'https://') !== 0) {
             throw new \InvalidArgumentException('Worldline return URL must be HTTPS.');
+        }
+        if ($variant !== '' && !preg_match('/^[A-Za-z0-9._-]{1,64}$/', $variant)) {
+            throw new \InvalidArgumentException('Worldline MyCheckout variant ID is invalid.');
         }
         if ($merchantReference === '') {
             $merchantReference = $orderId > 0
@@ -266,6 +276,9 @@ final class WorldlineConnectRuntimeService
         $specific->returnUrl = $returnUrl;
         $specific->locale = $locale;
         $specific->showResultPage = false;
+        if ($variant !== '') {
+            $specific->variant = $variant;
+        }
         $this->applyProductFilter($specific, $productIds);
 
         $request = new CreateHostedCheckoutRequest();
@@ -289,6 +302,7 @@ final class WorldlineConnectRuntimeService
             'merchant_reference' => $merchantReference,
             'payment_method' => $method,
             'payment_product_ids' => $productIds,
+            'hosted_checkout_variant' => $variant !== '' ? $variant : null,
             'expected_amount_minor' => $amountMinor,
             'principal_amount_minor' => $principalAmountMinor,
             'tip_amount_minor' => $tipAmountMinor,
@@ -304,6 +318,7 @@ final class WorldlineConnectRuntimeService
             'order_id' => $session['order_id'],
             'payment_method' => $method,
             'payment_product_ids' => $productIds,
+            'hosted_checkout_variant' => $session['hosted_checkout_variant'],
             'amount_minor' => $amountMinor,
             'currency' => $currency,
         ]);
@@ -316,6 +331,7 @@ final class WorldlineConnectRuntimeService
             'redirect_url' => $redirect,
             'payment_method' => $method,
             'payment_product_ids' => $productIds,
+            'hosted_checkout_variant' => $variant !== '' ? $variant : null,
         ];
     }
 
