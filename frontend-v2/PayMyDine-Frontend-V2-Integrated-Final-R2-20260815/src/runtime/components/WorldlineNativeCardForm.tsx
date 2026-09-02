@@ -103,7 +103,13 @@ export function WorldlineNativeCardForm(props: Props) {
       }
 
       const paymentProductId = Number(iinDetails.paymentProductId || 0)
-      if (!paymentProductId || !props.allowedPaymentProductIds.includes(paymentProductId)) {
+      if (!paymentProductId) {
+        throw new Error('Worldline could not identify this card product.')
+      }
+      // Older sessions may carry a pre-discovered allowlist. New low-latency
+      // sessions intentionally leave it empty and the PMD server performs the
+      // exact authoritative product discovery immediately before payment create.
+      if (props.allowedPaymentProductIds.length > 0 && !props.allowedPaymentProductIds.includes(paymentProductId)) {
         throw new Error('This card product is not enabled for this Worldline checkout.')
       }
 
