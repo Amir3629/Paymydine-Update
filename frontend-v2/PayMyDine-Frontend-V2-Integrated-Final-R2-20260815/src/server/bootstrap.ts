@@ -102,6 +102,7 @@ export async function loadCustomerBootstrap(query: BootstrapQuery): Promise<Cust
     categoriesPayload,
     themePayload,
     paymentsPayload,
+    worldlineMethodsPayload,
     tablePayload,
     orderPayload,
     taxApiPayload,
@@ -113,6 +114,7 @@ export async function loadCustomerBootstrap(query: BootstrapQuery): Promise<Cust
     fetchBackendJsonOrNull<any>('/api/v1/categories', requestOptions),
     fetchBackendJsonOrNull<any>('/api/v1/frontend-theme-v2', requestOptions),
     fetchBackendJsonOrNull<any>('/api/v1/payments', requestOptions),
+    fetchBackendJsonOrNull<any>('/api/v1/payments/worldline/runtime-methods', requestOptions),
     tableId || tableNo || qr ? fetchBackendJsonOrNull<any>(`/api/v1/table-info${tableLookup}`, requestOptions) : Promise.resolve(null),
     tableId || tableNo || qr ? fetchBackendJsonOrNull<any>(`/api/v1/table-order-draft${draftLookup}`, requestOptions) : Promise.resolve(null),
     fetchBackendJsonOrNull<any>('/api/v1/vat-settings', requestOptions),
@@ -173,7 +175,12 @@ export async function loadCustomerBootstrap(query: BootstrapQuery): Promise<Cust
   )
   const theme = normalizeTheme(resolvedThemePayload, previewId)
   const table = normalizeTable(tablePayload, { tableId, tableNo, qr })
-  const paymentMethods = normalizePayments(paymentsPayload)
+  const basePaymentMethods = normalizePayments(paymentsPayload)
+  const worldlinePaymentMethods = normalizePayments(worldlineMethodsPayload?.methods || [])
+  const paymentMethodsByCode = new Map(basePaymentMethods.map((method) => [method.code, method]))
+  for (const method of worldlinePaymentMethods) paymentMethodsByCode.set(method.code, method)
+  const paymentMethods = Array.from(paymentMethodsByCode.values())
+    .sort((a, b) => a.priority - b.priority || a.code.localeCompare(b.code))
   const configuredLocales = enabledLocales(settings, resolvedThemePayload, settingsLocale(settings))
   const requestedLocale = localeCode(query.locale || settingsLocale(settings))
   const locale = configuredLocales.includes(requestedLocale) ? requestedLocale : configuredLocales[0]
