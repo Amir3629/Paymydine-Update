@@ -12,18 +12,20 @@ RETURN_FLOW="$ROOT/frontend/features/customer-menu/checkout/usePaymentReturnVeri
 V2_ROOT="$ROOT/frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815"
 V2_CLIENT="$V2_ROOT/src/lib/client-api.ts"
 V2_BOOTSTRAP="$V2_ROOT/src/server/bootstrap.ts"
+V2_EMBED="$V2_ROOT/src/runtime/components/WorldlineEmbeddedCheckoutBridge.tsx"
+V2_EMBED_RETURN="$V2_ROOT/app/payment/worldline-embedded-return/page.tsx"
 
 fail() {
   echo "[worldline-security] FAIL: $1" >&2
   exit 1
 }
 
-for f in "$INLINE" "$PUBLIC_ROUTES" "$PROBE_ROUTES" "$RUNTIME" "$TERMINAL" "$HOSTED_FLOW" "$RETURN_FLOW" "$V2_CLIENT" "$V2_BOOTSTRAP"; do
+for f in "$INLINE" "$PUBLIC_ROUTES" "$PROBE_ROUTES" "$RUNTIME" "$TERMINAL" "$HOSTED_FLOW" "$RETURN_FLOW" "$V2_CLIENT" "$V2_BOOTSTRAP" "$V2_EMBED" "$V2_EMBED_RETURN"; do
   [[ -f "$f" ]] || fail "required Worldline runtime file is missing: $f"
 done
 
 if grep -REq 'cardNumber|\bcvv\b|securityCode|onlinepayments-sdk-client-js|encryptedCustomerInput' \
-  "$INLINE" "$HOSTED_FLOW" "$PROBE_ROUTES" "$RUNTIME" "$V2_CLIENT"; then
+  "$INLINE" "$HOSTED_FLOW" "$PROBE_ROUTES" "$RUNTIME" "$V2_CLIENT" "$V2_EMBED"; then
   fail "merchant-owned Worldline runtime contains raw-card/inline-encryption markers"
 fi
 
@@ -38,6 +40,22 @@ grep -q 'verification_ok' "$RETURN_FLOW" || fail "legacy Worldline return flow d
 grep -q '/api/v1/payments/worldline/runtime/' "$V2_CLIENT" || fail "Frontend V2 does not route Worldline through canonical runtime"
 grep -q '/api/v1/payments/worldline/runtime/status' "$V2_CLIENT" || fail "Frontend V2 Worldline return verifier is not canonical"
 grep -q '/api/v1/payments/worldline/runtime-methods' "$V2_BOOTSTRAP" || fail "Frontend V2 does not load canonical Worldline methods"
+
+grep -q 'WorldlineEmbeddedCheckoutBridge' "$V2_EMBED" || fail "Frontend V2 embedded Worldline bridge is missing"
+grep -q 'data-pmd-worldline-embedded' "$V2_EMBED" || fail "Worldline embedded checkout marker is missing"
+grep -q 'allow="payment"' "$V2_EMBED" || fail "Worldline iframe does not grant the Payment Request permission"
+grep -q 'sandbox="allow-scripts' "$V2_EMBED" || fail "Worldline iframe sandbox is missing"
+grep -q 'worldline-solutions.com' "$V2_EMBED" || fail "Worldline iframe redirect-domain allowlist is missing"
+grep -q '/payment/worldline-embedded-return' "$V2_EMBED" || fail "Worldline embedded return bridge is missing"
+grep -q '/api/v1/payments/worldline/runtime/status' "$V2_EMBED" || fail "Embedded Worldline checkout does not poll verified server status"
+grep -q 'verification_ok' "$V2_EMBED" || fail "Embedded Worldline checkout can settle without verification"
+grep -q 'pmd-worldline-embedded-return' "$V2_EMBED_RETURN" || fail "Worldline embedded return page does not signal its parent"
+
+# The active Frontend V2 may still contain generic redirect support for other
+# providers. Worldline Card / Apple Pay / Google Pay must be intercepted by the
+# embedded bridge before the generic redirect path sees a redirect URL.
+grep -q 'redirect_url: null' "$V2_EMBED" || fail "Worldline embedded bridge does not suppress top-level redirect"
+grep -q 'CREATE_SESSION_PATTERN' "$V2_EMBED" || fail "Worldline embedded bridge lacks method-scoped interception"
 
 grep -q 'expected_amount_minor' "$RUNTIME" || fail "Worldline session does not bind expected amount"
 grep -q 'expected_currency' "$RUNTIME" || fail "Worldline session does not bind expected currency"
