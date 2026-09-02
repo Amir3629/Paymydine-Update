@@ -9,42 +9,52 @@ RUNTIME="$ROOT/app/Services/Payments/WorldlineConnectRuntimeService.php"
 TERMINAL="$ROOT/app/Services/TerminalPayments/WorldlineTerminalProvider.php"
 HOSTED_FLOW="$ROOT/frontend/features/customer-menu/checkout/paymentModalHostedCheckout.ts"
 RETURN_FLOW="$ROOT/frontend/features/customer-menu/checkout/usePaymentReturnVerification.ts"
+V2_ROOT="$ROOT/frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815"
+V2_CLIENT="$V2_ROOT/src/lib/client-api.ts"
+V2_BOOTSTRAP="$V2_ROOT/src/server/bootstrap.ts"
 
 fail() {
   echo "[worldline-security] FAIL: $1" >&2
   exit 1
 }
 
-for f in "$INLINE" "$PUBLIC_ROUTES" "$PROBE_ROUTES" "$RUNTIME" "$TERMINAL" "$HOSTED_FLOW" "$RETURN_FLOW"; do
+for f in "$INLINE" "$PUBLIC_ROUTES" "$PROBE_ROUTES" "$RUNTIME" "$TERMINAL" "$HOSTED_FLOW" "$RETURN_FLOW" "$V2_CLIENT" "$V2_BOOTSTRAP"; do
   [[ -f "$f" ]] || fail "required Worldline runtime file is missing: $f"
 done
 
 # Merchant-owned code must never collect or transport raw card credentials.
 if grep -REq 'cardNumber|\bcvv\b|securityCode|onlinepayments-sdk-client-js|encryptedCustomerInput' \
-  "$INLINE" "$HOSTED_FLOW" "$PROBE_ROUTES" "$RUNTIME"; then
+  "$INLINE" "$HOSTED_FLOW" "$PROBE_ROUTES" "$RUNTIME" "$V2_CLIENT"; then
   fail "merchant-owned Worldline runtime contains raw-card/inline-encryption markers"
 fi
 
-# All customer Worldline methods use the provider-hosted, order-bound runtime.
-grep -q '/api/v1/payments/worldline/runtime/card/create-session' "$HOSTED_FLOW" || fail "Worldline card runtime endpoint missing"
-grep -q '/api/v1/payments/worldline/runtime/apple-pay/create-session' "$HOSTED_FLOW" || fail "Worldline Apple Pay runtime endpoint missing"
-grep -q '/api/v1/payments/worldline/runtime/google-pay/create-session' "$HOSTED_FLOW" || fail "Worldline Google Pay runtime endpoint missing"
-grep -q '/api/v1/payments/worldline/runtime/wero/create-session' "$HOSTED_FLOW" || fail "Worldline Wero runtime endpoint missing"
-grep -q '/api/v1/payments/worldline/runtime/paypal/create-session' "$HOSTED_FLOW" || fail "Worldline PayPal runtime endpoint missing"
-grep -q '/api/v1/payments/worldline/runtime/status' "$RETURN_FLOW" || fail "verified Worldline return endpoint missing"
-grep -q 'verification_ok' "$RETURN_FLOW" || fail "Worldline return flow does not require settlement verification"
+# Legacy frontend and active Frontend V2 must both use the order-bound runtime.
+grep -q '/api/v1/payments/worldline/runtime/card/create-session' "$HOSTED_FLOW" || fail "legacy Worldline card runtime endpoint missing"
+grep -q '/api/v1/payments/worldline/runtime/apple-pay/create-session' "$HOSTED_FLOW" || fail "legacy Worldline Apple Pay runtime endpoint missing"
+grep -q '/api/v1/payments/worldline/runtime/google-pay/create-session' "$HOSTED_FLOW" || fail "legacy Worldline Google Pay runtime endpoint missing"
+grep -q '/api/v1/payments/worldline/runtime/wero/create-session' "$HOSTED_FLOW" || fail "legacy Worldline Wero runtime endpoint missing"
+grep -q '/api/v1/payments/worldline/runtime/paypal/create-session' "$HOSTED_FLOW" || fail "legacy Worldline PayPal runtime endpoint missing"
+grep -q '/api/v1/payments/worldline/runtime/status' "$RETURN_FLOW" || fail "legacy verified Worldline return endpoint missing"
+grep -q 'verification_ok' "$RETURN_FLOW" || fail "legacy Worldline return flow does not require settlement verification"
+
+grep -q '/api/v1/payments/worldline/runtime/' "$V2_CLIENT" || fail "Frontend V2 does not route Worldline through canonical runtime"
+grep -q '/api/v1/payments/worldline/runtime/status' "$V2_CLIENT" || fail "Frontend V2 Worldline return verifier is not canonical"
+grep -q '/api/v1/payments/worldline/runtime-methods' "$V2_BOOTSTRAP" || fail "Frontend V2 does not load canonical Worldline methods"
 
 grep -q 'expected_amount_minor' "$RUNTIME" || fail "Worldline session does not bind expected amount"
 grep -q 'expected_currency' "$RUNTIME" || fail "Worldline session does not bind expected currency"
 grep -q 'merchant_reference' "$RUNTIME" || fail "Worldline session does not bind merchant reference"
 grep -q 'payments()->get' "$RUNTIME" || fail "Worldline settlement does not retrieve authoritative payment"
+grep -q "'partialRedirectUrl'" "$RUNTIME" || fail "Worldline partial redirect handling missing"
+grep -q "https://payment\." "$RUNTIME" || fail "Worldline MyCheckout payment subdomain normalization missing"
 
 # Historical raw-card probe must stay dead.
 if grep -Eq "input\(['\"]cardNumber|input\(['\"]cvv" "$PROBE_ROUTES"; then
   fail "legacy raw-card Worldline probe was reintroduced"
 fi
 
-# Public webhook keeps exact-body HMAC verification and no raw dumps.
+# Public webhook keeps endpoint-verification + exact-body HMAC verification.
+grep -q 'X-GCS-Webhooks-Endpoint-Verification' "$PUBLIC_ROUTES" || fail "Worldline webhook endpoint verification is missing"
 grep -q 'X-GCS-Signature' "$PUBLIC_ROUTES" || fail "Worldline webhook signature header check is missing"
 grep -q 'X-GCS-KeyId' "$PUBLIC_ROUTES" || fail "Worldline webhook key-id check is missing"
 grep -q "hash_hmac('sha256'" "$PUBLIC_ROUTES" || fail "Worldline webhook HMAC-SHA256 verification is missing"
