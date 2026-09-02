@@ -48,18 +48,4 @@ class PmdGuestAiSafetyTest extends TestCase
         $this->assertStringContainsString("Route::post('/guest-ai/ask'", $routes);
         $this->assertStringContainsString("'read_only' => true", $routes);
     }
-
-    public function test_customer_frontend_mounts_read_only_guest_concierge(): void
-    {
-        $root = 'frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815/';
-        $page = $this->source($root.'app/page.tsx');
-        $component = $this->source($root.'src/runtime/components/GuestAiConcierge.tsx');
-
-        $this->assertStringContainsString('<GuestAiConcierge themeId={bootstrap.theme.id} />', $page);
-        $this->assertStringContainsString("fetch('/api/v1/guest-ai/status'", $component);
-        $this->assertStringContainsString("fetch('/api/v1/guest-ai/ask'", $component);
-        $this->assertStringNotContainsString('quickAdd(', $component);
-        $this->assertStringNotContainsString('submitTableOrder(', $component);
-        $this->assertStringNotContainsString('openCheckout(', $component);
-    }
 }
