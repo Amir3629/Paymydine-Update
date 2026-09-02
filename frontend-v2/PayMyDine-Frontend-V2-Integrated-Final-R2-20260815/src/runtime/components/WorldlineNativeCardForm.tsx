@@ -63,10 +63,10 @@ export function WorldlineNativeCardForm(props: Props) {
   // Raw card values are intentionally never stored in React state, storage, logs,
   // analytics, or network payloads. They are read from DOM refs only at submit,
   // placed directly into Worldline's PaymentRequest, encrypted, then cleared.
-  const cardNumberRef = useRef<HTMLInputElement>(null)
-  const expiryRef = useRef<HTMLInputElement>(null)
-  const cvvRef = useRef<HTMLInputElement>(null)
-  const cardholderRef = useRef<HTMLInputElement>(null)
+  const cardNumberRef = useRef<HTMLInputElement | null>(null)
+  const expiryRef = useRef<HTMLInputElement | null>(null)
+  const cvvRef = useRef<HTMLInputElement | null>(null)
+  const cardholderRef = useRef<HTMLInputElement | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
