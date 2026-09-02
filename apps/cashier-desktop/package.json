@@ -1,0 +1,51 @@
+{
+  "name": "paymydine-cashier-desktop",
+  "version": "1.0.0",
+  "private": true,
+  "description": "PayMyDine cashier desktop app with local printer and cash drawer support for Windows and macOS",
+  "main": "src/main.js",
+  "scripts": {
+    "dev": "electron .",
+    "start": "electron .",
+    "check": "node --check src/main.js && node --check src/preload.js && node --check src/setup.js && node --check src/hardware.js && node --check src/hardware-page.js && node --check src/offline.js",
+    "dist:win": "electron-builder --win nsis",
+    "dist:mac": "electron-builder --mac dmg zip"
+  },
+  "devDependencies": {
+    "electron": "43.4.1",
+    "electron-builder": "26.15.7"
+  },
+  "build": {
+    "appId": "com.paymydine.cashier",
+    "productName": "PayMyDine Cashier",
+    "asar": true,
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "artifactName": "PayMyDine-Cashier-Setup-${version}.${ext}"
+    },
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "category": "public.app-category.business",
+      "artifactName": "PayMyDine-Cashier-${version}-mac-${arch}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "PayMyDine Cashier"
+    }
+  }
+}
