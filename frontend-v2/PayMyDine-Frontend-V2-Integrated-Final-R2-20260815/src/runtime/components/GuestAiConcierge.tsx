@@ -22,6 +22,13 @@ type GuestAiCopy = {
   prompts: string[]
 }
 
+type ChatMessage = {
+  id: string
+  role: 'user' | 'assistant'
+  content: string
+  locale?: string | null
+}
+
 const EN: GuestAiCopy = {
   button: 'Ask PMD',
   title: 'Ask PMD ✨',
@@ -118,26 +125,46 @@ function textDirection(value: string, fallback: string): 'ltr' | 'rtl' {
 
 function responseDirection(responseLocale: string, value: string, fallback: string): 'ltr' | 'rtl' {
   const code = String(responseLocale || '').toLowerCase()
-  if (code.startsWith('fa')) return 'rtl'
+  if (code.startsWith('fa') || code.startsWith('ar') || code.startsWith('he') || code.startsWith('ur')) return 'rtl'
   return textDirection(value, fallback)
 }
 
 type StatusPayload = { ok?: boolean; enabled?: boolean; surface?: string }
-type AskPayload = { ok?: boolean; answer?: string; message?: string; response_locale?: string }
+type AskPayload = {
+  ok?: boolean
+  answer?: string
+  message?: string
+  response_locale?: string
+  visit_key?: string | null
+  persisted?: boolean
+}
+type HistoryPayload = {
+  ok?: boolean
+  visit_key?: string | null
+  messages?: Array<{
+    id?: number | string
+    role?: string
+    content?: string
+    locale?: string | null
+  }>
+}
 
 export function GuestAiConcierge({ themeId }: { themeId: ThemeId }) {
-  const { bootstrap, locale, direction, formatCurrency } = useMenuRuntime()
+  const { bootstrap, locale, direction, formatCurrency, guestSessionId } = useMenuRuntime()
   const locationId = bootstrap.table.locationId
+  const tableId = Number(bootstrap.table.id || 0)
   const copy = useMemo(() => copyFor(locale), [locale])
   const [host, setHost] = useState<HTMLElement | null>(null)
   const [enabled, setEnabled] = useState(false)
   const [ready, setReady] = useState(false)
   const [open, setOpen] = useState(false)
   const [question, setQuestion] = useState('')
-  const [answer, setAnswer] = useState('')
-  const [answerLocale, setAnswerLocale] = useState(locale)
+  const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [visitKey, setVisitKey] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+
+  const canPersist = Boolean(locationId && locationId > 0 && tableId > 0 && guestSessionId.length >= 8)
 
   useEffect(() => {
     const nextHost = document.querySelector<HTMLElement>('main[data-theme-id]')
@@ -182,6 +209,61 @@ export function GuestAiConcierge({ themeId }: { themeId: ThemeId }) {
     return () => controller.abort()
   }, [locationId])
 
+  const refreshHistory = useCallback(async () => {
+    if (!canPersist || !locationId) return
+
+    const params = new URLSearchParams({
+      location_id: String(locationId),
+      table_id: String(tableId),
+      guest_session_id: guestSessionId,
+    })
+
+    const response = await fetch(`/api/v1/guest-ai/history?${params.toString()}`, {
+      method: 'GET',
+      credentials: 'same-origin',
+      cache: 'no-store',
+      headers: { Accept: 'application/json' },
+    })
+    const payload = await response.json().catch(() => ({})) as HistoryPayload
+    if (!response.ok || payload.ok !== true || !Array.isArray(payload.messages)) return
+
+    const nextVisitKey = String(payload.visit_key || '')
+    const nextMessages = payload.messages.flatMap((row, index): ChatMessage[] => {
+      const role = row?.role === 'user' ? 'user' : row?.role === 'assistant' ? 'assistant' : null
+      const content = role === 'assistant'
+        ? cleanAnswer(String(row?.content || ''))
+        : String(row?.content || '').trim()
+      if (!role || !content) return []
+      return [{
+        id: String(row?.id || `history-${index}`),
+        role,
+        content,
+        locale: row?.locale || null,
+      }]
+    })
+
+    if (visitKey && nextVisitKey && visitKey !== nextVisitKey) {
+      // Staff Free Table creates a new visit generation. Old guest chat must
+      // disappear even if this browser tab stayed open through the reset.
+      setError('')
+    }
+    setVisitKey(nextVisitKey)
+    setMessages(nextMessages)
+  }, [canPersist, guestSessionId, locationId, tableId, visitKey])
+
+  useEffect(() => {
+    if (!enabled || !canPersist) return
+    void refreshHistory()
+  }, [canPersist, enabled, refreshHistory])
+
+  useEffect(() => {
+    if (!open || !enabled || !canPersist) return
+    const timer = window.setInterval(() => {
+      void refreshHistory()
+    }, 15000)
+    return () => window.clearInterval(timer)
+  }, [canPersist, enabled, open, refreshHistory])
+
   useEffect(() => {
     if (!open) return
     const onKeyDown = (event: KeyboardEvent) => {
@@ -195,12 +277,30 @@ export function GuestAiConcierge({ themeId }: { themeId: ThemeId }) {
     const value = String(prompt ?? question).trim()
     if (!value || busy || !locationId || locationId < 1) return
 
-    setQuestion(value)
-    setAnswerLocale(locale)
+    const localUserId = `local-user-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    const userMessage: ChatMessage = {
+      id: localUserId,
+      role: 'user',
+      content: value,
+      locale,
+    }
+
+    setMessages((current) => [...current, userMessage])
+    setQuestion('')
     setBusy(true)
     setError('')
 
     try {
+      const requestBody: Record<string, unknown> = {
+        question: value,
+        locale,
+        location_id: locationId,
+      }
+      if (canPersist) {
+        requestBody.table_id = tableId
+        requestBody.guest_session_id = guestSessionId
+      }
+
       const response = await fetch('/api/v1/guest-ai/ask', {
         method: 'POST',
         credentials: 'same-origin',
@@ -210,7 +310,7 @@ export function GuestAiConcierge({ themeId }: { themeId: ThemeId }) {
           'Content-Type': 'application/json',
           'X-Requested-With': 'XMLHttpRequest',
         },
-        body: JSON.stringify({ question: value, locale, location_id: locationId }),
+        body: JSON.stringify(requestBody),
       })
 
       const payload = await response.json().catch(() => ({})) as AskPayload
@@ -219,14 +319,27 @@ export function GuestAiConcierge({ themeId }: { themeId: ThemeId }) {
         throw new Error(String(payload.message || copy.retry))
       }
 
-      setAnswerLocale(String(payload.response_locale || locale).slice(0, 20))
-      setAnswer(nextAnswer)
+      const nextVisitKey = String(payload.visit_key || '')
+      const assistantMessage: ChatMessage = {
+        id: `local-ai-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        role: 'assistant',
+        content: nextAnswer,
+        locale: String(payload.response_locale || 'auto').slice(0, 20),
+      }
+
+      setMessages((current) => {
+        if (visitKey && nextVisitKey && visitKey !== nextVisitKey) {
+          return [userMessage, assistantMessage]
+        }
+        return [...current, assistantMessage]
+      })
+      if (nextVisitKey) setVisitKey(nextVisitKey)
     } catch (requestError) {
       setError(requestError instanceof Error && requestError.message ? requestError.message : copy.retry)
     } finally {
       setBusy(false)
     }
-  }, [busy, copy.retry, locale, locationId, question])
+  }, [busy, canPersist, copy.retry, guestSessionId, locale, locationId, question, tableId, visitKey])
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -267,7 +380,7 @@ export function GuestAiConcierge({ themeId }: { themeId: ThemeId }) {
             </header>
 
             <div className={styles.body} aria-live="polite">
-              {!answer && !error && (
+              {messages.length === 0 && !busy && !error && (
                 <div className={styles.intro}>
                   <span className={styles.avatar}><Sparkles aria-hidden="true" /></span>
                   <p>{copy.intro}</p>
@@ -282,20 +395,32 @@ export function GuestAiConcierge({ themeId }: { themeId: ThemeId }) {
                 ))}
               </div>
 
-              {(answer || busy || error) && (
+              {(messages.length > 0 || busy || error) && (
                 <div className={styles.conversation}>
-                  {question && (
-                    <div className={styles.userBubble} dir={textDirection(question, direction)}>
-                      {question}
+                  {messages.map((message) => message.role === 'user' ? (
+                    <div
+                      key={message.id}
+                      className={styles.userBubble}
+                      dir={textDirection(message.content, direction)}
+                    >
+                      {message.content}
                     </div>
+                  ) : (
+                    <div
+                      key={message.id}
+                      className={styles.aiBubble}
+                      dir={responseDirection(String(message.locale || 'auto'), message.content, direction)}
+                      lang={message.locale && message.locale !== 'auto' ? message.locale : undefined}
+                    >
+                      {message.content}
+                    </div>
+                  ))}
+                  {busy && (
+                    <div className={styles.aiBubble}>{copy.thinking}</div>
                   )}
-                  <div
-                    className={`${styles.aiBubble} ${error ? styles.errorBubble : ''}`}
-                    dir={responseDirection(answerLocale, error || answer, direction)}
-                    lang={answerLocale && answerLocale !== 'auto' ? answerLocale : undefined}
-                  >
-                    {busy ? copy.thinking : (error || answer)}
-                  </div>
+                  {error && (
+                    <div className={`${styles.aiBubble} ${styles.errorBubble}`}>{error}</div>
+                  )}
                 </div>
               )}
             </div>
