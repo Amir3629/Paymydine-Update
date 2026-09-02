@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useRef, useState, type CSSProperties, type FormEvent } from 'react'
 import {
   IinDetailsStatus,
   Session,
@@ -80,7 +80,7 @@ export function WorldlineNativeCardForm(props: Props) {
     if (cvvRef.current) cvvRef.current.value = ''
   }
 
-  const submit = async (event: React.FormEvent<HTMLFormElement>) => {
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (busy) return
     setBusy(true)
@@ -157,7 +157,7 @@ export function WorldlineNativeCardForm(props: Props) {
     }
   }
 
-  const inputStyle: React.CSSProperties = {
+  const inputStyle: CSSProperties = {
     width: '100%',
     minWidth: 0,
     height: 50,
