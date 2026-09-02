@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 
 const WORLDLINE_INLINE_HOST = 'data-pmd-worldline-inline-host'
 const WORLDLINE_HIDDEN_PAY = 'data-pmd-worldline-hidden-pay-button'
+const AUTO_START_ATTRIBUTE = 'data-pmd-worldline-auto-start'
 
 function normalizeMethod(value: unknown): string {
   return String(value || '').trim().toLowerCase().replace(/[\s-]+/g, '_')
@@ -92,6 +93,26 @@ function restoreImmediatePaymentAction(panel: HTMLElement) {
   delete button.dataset.pmdWlOriginalAria
   button.removeAttribute('data-pmd-worldline-action')
   button.removeAttribute('data-pmd-worldline-action-label')
+}
+
+function triggerSelectedPayment(panel: HTMLElement, attempt = 0) {
+  const button = genericPayButton(panel)
+  if (!button || button.hasAttribute(WORLDLINE_HIDDEN_PAY) || button.disabled) {
+    if (attempt < 10) window.setTimeout(() => triggerSelectedPayment(panel, attempt + 1), 40)
+    return
+  }
+
+  // This marker is also understood by WorldlineEmbeddedCheckoutBridge, so its
+  // slower runtime-method discovery cannot trigger a duplicate click later.
+  button.removeAttribute(AUTO_START_ATTRIBUTE)
+  button.setAttribute(AUTO_START_ATTRIBUTE, 'true')
+  button.click()
+
+  window.setTimeout(() => {
+    if (!panel.querySelector<HTMLElement>(`:scope > [${WORLDLINE_INLINE_HOST}="true"]`)) {
+      button.removeAttribute(AUTO_START_ATTRIBUTE)
+    }
+  }, 15000)
 }
 
 function isReadyNoise(text: string): boolean {
@@ -207,6 +228,13 @@ export function PaymentCheckoutUXEnhancer() {
       if (methodCode) {
         activeMethod.set(panel, normalizeMethod(methodCode))
         markImmediatePaymentAction(panel, methodCode)
+        // React handles the methodKey update during this click. Two animation
+        // frames later pay() sees the selected provider/method and starts it.
+        window.requestAnimationFrame(() => {
+          window.requestAnimationFrame(() => {
+            if (!disposed) triggerSelectedPayment(panel)
+          })
+        })
       } else {
         activeMethod.delete(panel)
         restoreImmediatePaymentAction(panel)
