@@ -69,6 +69,7 @@ final class PmdGuestAiFoundationTest extends TestCase
         self::assertStringContainsString("'read_only' => true", $route);
         self::assertStringContainsString("'surface' => 'frontend_v2'", $route);
         self::assertStringContainsString("'response_locale' => \$responseLocale", $route);
+        self::assertStringContainsString("'storage_ready' =>", $route);
         self::assertStringContainsString("\$responseLocale = 'auto'", $route);
         self::assertStringContainsString('Reply in the language the guest is using or explicitly requests', $route);
         self::assertStringContainsString('cuisine name alone is not a language request', $route);
@@ -91,23 +92,25 @@ final class PmdGuestAiFoundationTest extends TestCase
         self::assertStringNotContainsString("Route::delete('/guest-ai", $route);
     }
 
-    public function testGuestChatIsPrivateBoundedAndCutByStaffFreeVisitBoundary(): void
+    public function testGuestChatIsPrivateBoundedAndCutOnlyByStaffFreeVisitBoundary(): void
     {
         $root = dirname(__DIR__, 2);
         $store = file_get_contents($root.'/app/Services/AI/GuestAiConversationStore.php');
 
         self::assertIsString($store);
         self::assertStringContainsString("private const TABLE = 'pmd_guest_ai_conversations'", $store);
-        self::assertStringContainsString("private const MAX_MESSAGES = 40", $store);
-        self::assertStringContainsString("private const TTL_HOURS = 24", $store);
+        self::assertStringContainsString("private const MAX_MESSAGES = 200", $store);
+        self::assertStringContainsString("private const COMPAT_EXPIRES_HOURS = 87600", $store);
         self::assertStringContainsString("where('reason', 'cashier_manual_free')", $store);
         self::assertStringContainsString("'guest_session_hash'", $store);
         self::assertStringContainsString("hash('sha256', trim(\$guestSessionId))", $store);
+        self::assertStringContainsString('purgeOlderVisits', $store);
         self::assertStringContainsString("->where('visit_key', '!=', \$visitKey)", $store);
-        self::assertStringContainsString("->orWhere('expires_at', '<=', now())", $store);
+        self::assertStringContainsString("'storage_ready' => false", $store);
         self::assertStringContainsString("'role' => 'user'", $store);
         self::assertStringContainsString("'role' => 'assistant'", $store);
 
+        self::assertStringNotContainsString("orWhere('expires_at'", $store);
         self::assertStringNotContainsString('ip_address', $store);
         self::assertStringNotContainsString('provider_response', $store);
         self::assertStringNotContainsString('payment_method', $store);
@@ -151,6 +154,8 @@ final class PmdGuestAiFoundationTest extends TestCase
         self::assertStringContainsString('/api/v1/guest-ai/history?', $v2Component);
         self::assertStringContainsString('requestBody.table_id = tableId', $v2Component);
         self::assertStringContainsString('requestBody.guest_session_id = guestSessionId', $v2Component);
+        self::assertStringContainsString('pmd-v2:guest-ai-chat:', $v2Component);
+        self::assertStringContainsString('Never erase an already-visible/local transcript', $v2Component);
         self::assertStringContainsString('messages.map', $v2Component);
         self::assertStringContainsString("message.locale !== 'auto'", $v2Component);
         self::assertStringContainsString("data-pmd-guest-ai=\"v2\"", $v2Component);
