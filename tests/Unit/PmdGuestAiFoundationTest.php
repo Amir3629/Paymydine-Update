@@ -49,20 +49,38 @@ final class PmdGuestAiFoundationTest extends TestCase
         self::assertStringContainsString('existing callers that omit location retain', strtolower($popularity));
     }
 
-    public function testGuestApiIsReadOnlyAndRequiresLocation(): void
+    public function testGuestApiIsReadOnlyRequiresLocationAndAllowsAnyResponseLanguage(): void
     {
-        $route = file_get_contents(dirname(__DIR__, 2).'/app/main/routes/api-v1-guest-ai.php');
-        $loader = file_get_contents(dirname(__DIR__, 2).'/app/main/routes/api-health-media.php');
+        $root = dirname(__DIR__, 2);
+        $route = file_get_contents($root.'/app/main/routes/api-v1-guest-ai.php');
+        $loader = file_get_contents($root.'/app/main/routes/api-health-media.php');
+        $moment = file_get_contents($root.'/app/Services/AI/GuestMenuMomentContext.php');
+        $clock = file_get_contents($root.'/app/Services/Platform/LocationClockStateService.php');
 
         self::assertIsString($route);
         self::assertIsString($loader);
+        self::assertIsString($moment);
+        self::assertIsString($clock);
         self::assertStringContainsString("Route::get('/guest-ai/status'", $route);
         self::assertStringContainsString("Route::post('/guest-ai/ask'", $route);
         self::assertStringContainsString("'location_id' => 'required|integer|min:1'", $route);
         self::assertStringContainsString("'read_only' => true", $route);
         self::assertStringContainsString("'surface' => 'frontend_v2'", $route);
+        self::assertStringContainsString("'response_locale' => \$responseLocale", $route);
+        self::assertStringContainsString("\$responseLocale = 'auto'", $route);
+        self::assertStringContainsString('reply in the language the guest is using or explicitly asks for', $route);
+        self::assertStringContainsString('A cuisine name alone is not a language request', $route);
+        self::assertStringContainsString('GuestMenuMomentContext', $route);
+        self::assertStringContainsString('PMD_NOW:', $route);
+        self::assertStringContainsString('An inactive mealtime is not sold out', $route);
+        self::assertStringNotContainsString('Reply entirely in {$language}', $route);
         self::assertStringContainsString("require_once __DIR__.'/api-v1-guest-ai.php'", $loader);
         self::assertStringContainsString('DetectTenant', $loader);
+
+        self::assertStringContainsString('LocationClockStateService', $moment);
+        self::assertStringContainsString('Mealtimes_model', $moment);
+        self::assertStringContainsString('orderable_now=', $moment);
+        self::assertStringContainsString('state(?int $requestedLocationId = null)', $clock);
 
         self::assertStringNotContainsString("Route::put('/guest-ai", $route);
         self::assertStringNotContainsString("Route::patch('/guest-ai", $route);
@@ -102,6 +120,7 @@ final class PmdGuestAiFoundationTest extends TestCase
         self::assertStringContainsString('GuestAiConcierge', $v2TablePage);
         self::assertStringContainsString('bootstrap.table.locationId', $v2Component);
         self::assertStringContainsString("data-pmd-guest-ai=\"v2\"", $v2Component);
+        self::assertStringContainsString("answerLocale !== 'auto'", $v2Component);
 
         if (is_file($legacyLayout)) {
             $legacy = file_get_contents($legacyLayout);
