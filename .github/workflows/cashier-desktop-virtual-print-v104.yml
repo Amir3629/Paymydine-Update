@@ -1,0 +1,156 @@
+name: PayMyDine Cashier V1.0.4 Virtual PDF
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/cashier-desktop-virtual-print-v104
+    paths:
+      - 'apps/cashier-desktop/**'
+      - '.github/workflows/cashier-desktop-virtual-print-v104.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  contract-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Apply V1.0.4 runtime patch and verify source contract
+        working-directory: apps/cashier-desktop
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/apply-v104.js
+          npm run check
+          node --check src/main.js
+          node --check src/hardware-page.js
+          grep -q 'PMD_VIRTUAL_PDF_PRINT_V104' src/main.js
+          grep -q 'printVirtualPdfRemoteUrl' src/main.js
+          grep -q 'createVirtualTestPdf' src/main.js
+          grep -q 'PayMyDine Virtual PDF' src/hardware.html
+          grep -q '"version": "1.0.4"' package.json
+          echo 'V104_SOURCE_CONTRACT=PASS'
+
+  build-windows:
+    needs: contract-test
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - name: Download Cashier V1.0.4 source without Windows git checkout
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PMD_REPOSITORY: ${{ github.repository }}
+          PMD_REF: ${{ github.sha }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $root = Join-Path $PWD 'apps/cashier-desktop'
+          $files = @(
+            'package.json',
+            'README.md',
+            'scripts/apply-v104.js',
+            'src/main.js',
+            'src/preload.js',
+            'src/hardware.js',
+            'src/receipt.js',
+            'src/setup.html',
+            'src/setup.js',
+            'src/hardware.html',
+            'src/hardware-page.js',
+            'src/offline.html',
+            'src/offline.js'
+          )
+          $headers = @{
+            Authorization = "Bearer $env:GH_TOKEN"
+            Accept = 'application/vnd.github+json'
+            'X-GitHub-Api-Version' = '2022-11-28'
+            'User-Agent' = 'PayMyDine-Cashier-V104-Build'
+          }
+          foreach ($relative in $files) {
+            $encodedPath = ($relative -split '/' | ForEach-Object { [uri]::EscapeDataString($_) }) -join '/'
+            $uri = "https://api.github.com/repos/$env:PMD_REPOSITORY/contents/apps/cashier-desktop/$encodedPath`?ref=$env:PMD_REF"
+            $item = Invoke-RestMethod -Headers $headers -Uri $uri -Method Get
+            $destination = Join-Path $root ($relative -replace '/', [IO.Path]::DirectorySeparatorChar)
+            New-Item -ItemType Directory -Force -Path (Split-Path -Parent $destination) | Out-Null
+            [IO.File]::WriteAllBytes($destination, [Convert]::FromBase64String(($item.content -replace '\s', '')))
+          }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        working-directory: apps/cashier-desktop
+        run: npm install
+      - name: Syntax and V1.0.4 contract
+        working-directory: apps/cashier-desktop
+        run: npm run check
+      - name: Build Windows installer
+        working-directory: apps/cashier-desktop
+        run: npm run dist:win
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pmd-v104-windows
+          path: apps/cashier-desktop/dist/PayMyDine-Cashier-Setup-1.0.4.exe
+          if-no-files-found: error
+
+  build-macos:
+    needs: contract-test
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [arm64, x64]
+    runs-on: macos-14
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        working-directory: apps/cashier-desktop
+        run: npm install
+      - name: Syntax and V1.0.4 contract
+        working-directory: apps/cashier-desktop
+        run: npm run check
+      - name: Build macOS DMG
+        working-directory: apps/cashier-desktop
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: npm run dist:mac -- --${{ matrix.arch }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pmd-v104-macos-${{ matrix.arch }}
+          path: apps/cashier-desktop/dist/PayMyDine-Cashier-1.0.4-mac-${{ matrix.arch }}.dmg
+          if-no-files-found: error
+
+  publish-preview:
+    needs: [contract-test, build-windows, build-macos]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: pmd-v104-*
+          path: release
+          merge-multiple: true
+      - name: Publish V1.0.4 preview assets
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          tag='pmd-cashier-v1-preview'
+          notes='PayMyDine Cashier V1.0.4. Adds Virtual PDF / Print Debug Mode using the same authenticated Electron receipt/invoice rendering path as real printing. Virtual mode saves jobs to Desktop/PayMyDine Print Tests, opens them automatically, supports automatic post-payment receipt output and manual Print/Reprint, and intentionally disables cash-drawer hardware. Physical Windows/macOS printing remains available. Preview builds are unsigned and require physical POS validation before broad rollout.'
+          if gh release view "$tag" --repo "$GH_REPO" >/dev/null 2>&1; then
+            gh release upload "$tag" release/* --clobber --repo "$GH_REPO"
+            gh release edit "$tag" --target "$GITHUB_SHA" --prerelease --title 'PayMyDine Cashier V1 Preview' --notes "$notes" --repo "$GH_REPO"
+          else
+            gh release create "$tag" release/* --target "$GITHUB_SHA" --prerelease --title 'PayMyDine Cashier V1 Preview' --notes "$notes" --repo "$GH_REPO"
+          fi
