@@ -149,6 +149,46 @@ $worldlineAdminAuthorize = static function () {
         'paypal' => 'paypal',
     ];
 
+    // Frontend V2 consumes this small canonical supplement instead of the
+    // historical provider-readiness matrix in admin-app-before.php. Only
+    // methods that are explicitly enabled and assigned to Worldline are
+    // returned, and the capability registry must also mark them implemented.
+    \Illuminate\Support\Facades\Route::get('/payments/worldline/runtime-methods', function () use ($methodMap) {
+        $registry = app(\App\Services\Payments\ProviderCapabilityRegistry::class);
+        $allowed = array_values($methodMap);
+        $rows = \Admin\Models\Payments_model::query()
+            ->whereIn('code', $allowed)
+            ->get();
+
+        $methods = [];
+        foreach ($rows as $row) {
+            $code = strtolower(trim((string)$row->code));
+            $provider = strtolower(trim((string)($row->provider_code ?? '')));
+            if ($code === '' || !(int)$row->status || $provider !== 'worldline') {
+                continue;
+            }
+            if (!$registry->implementsPaymentMethod('worldline', $code)) {
+                continue;
+            }
+            $methods[] = [
+                'code' => $code,
+                'name' => (string)($row->name ?: ucwords(str_replace('_', ' ', $code))),
+                'provider_code' => 'worldline',
+                'enabled' => true,
+                'status' => 1,
+                'priority' => (int)($row->priority ?? $row->sort_order ?? 50),
+            ];
+        }
+
+        usort($methods, static fn (array $a, array $b) => ($a['priority'] <=> $b['priority']) ?: strcmp($a['code'], $b['code']));
+
+        return response()->json([
+            'success' => true,
+            'provider' => 'worldline',
+            'methods' => $methods,
+        ]);
+    });
+
     \Illuminate\Support\Facades\Route::post('/payments/worldline/runtime/{method}/create-session', function (\Illuminate\Http\Request $request, string $method) use ($methodMap) {
         $methodCode = $methodMap[strtolower(trim($method))] ?? null;
         if (!$methodCode) {
