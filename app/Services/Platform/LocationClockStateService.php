@@ -4,12 +4,14 @@ namespace App\Services\Platform;
 
 use Admin\Facades\AdminLocation;
 use Admin\Models\LocationOption;
+use Admin\Models\Locations_model;
 
 /**
- * PMD_LOCATION_CLOCK_STATE_R9
+ * PMD_LOCATION_CLOCK_STATE_R10
  *
- * Read-only source of truth for the Admin header clock.
- * No Blade/header partial performs database or timezone resolution.
+ * Read-only source of truth for restaurant-local time. Existing Admin callers
+ * may continue to omit a location; public/runtime callers may pass an explicit
+ * location id so restaurant time never depends on an Admin session.
  */
 final class LocationClockStateService
 {
@@ -19,9 +21,12 @@ final class LocationClockStateService
         $this->marketContext = $marketContext ?: new LocationPlatformContext();
     }
 
-    public function state(): array
+    public function state(?int $requestedLocationId = null): array
     {
-        $location = $this->activeLocation();
+        $location = ($requestedLocationId ?? 0) > 0
+            ? $this->locationById((int)$requestedLocationId)
+            : $this->activeLocation();
+
         $locationId = $location ? (int)($location->location_id ?? 0) : 0;
         $locationId = $locationId > 0 ? $locationId : null;
         $locationName = $location ? trim((string)($location->location_name ?? '')) : '';
@@ -29,7 +34,7 @@ final class LocationClockStateService
         [$timezone, $source] = $this->resolveTimezone($location, $locationId);
 
         return [
-            'version' => '9.0.0',
+            'version' => '10.0.0',
             'location_id' => $locationId,
             'location_name' => $locationName !== '' ? $locationName : null,
             'timezone' => $timezone,
@@ -44,6 +49,15 @@ final class LocationClockStateService
     {
         try {
             return AdminLocation::current();
+        } catch (\Throwable $error) {
+            return null;
+        }
+    }
+
+    private function locationById(int $locationId)
+    {
+        try {
+            return Locations_model::query()->find($locationId);
         } catch (\Throwable $error) {
             return null;
         }
