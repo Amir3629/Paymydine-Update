@@ -29,8 +29,6 @@ class Pmdintelligence extends AdminController
     {
         parent::__construct();
 
-        // Use the same first-paint shell and owner UI authority as the current
-        // PMD Menu / Settings family. Intelligence owns only route-local layout.
         $this->bodyClass = trim(
             ($this->bodyClass ?? '')
             .' pmd-settings-suite pmd-owner-settings-page pmd-intelligence-page'
@@ -159,11 +157,82 @@ class Pmdintelligence extends AdminController
         );
     }
 
+    private function restaurantIdentity(): array
+    {
+        $user = AdminAuth::getUser();
+        $staff = $user ? $user->staff : null;
+        $locationId = $this->readAuthority()->canonicalLocationId();
+        $restaurantName = null;
+
+        try {
+            if ($locationId) {
+                $restaurantName = DB::table('locations')
+                    ->where('location_id', (int)$locationId)
+                    ->value('location_name');
+            }
+        } catch (Throwable $error) {
+            $restaurantName = null;
+        }
+
+        $role = null;
+        try {
+            $role = $staff ? $staff->role : null;
+        } catch (Throwable $error) {
+            $role = null;
+        }
+
+        $roleCode = strtolower(trim((string)($role->code ?? '')));
+        $roleName = trim((string)($role->name ?? ''));
+        $personName = trim((string)($staff->staff_name ?? ''));
+        if ($personName === '') {
+            $personName = trim((string)($user->username ?? ''));
+        }
+
+        $ownerText = strtolower(trim($roleCode.' '.$roleName));
+
+        return [
+            'restaurant_name' => trim((string)$restaurantName) ?: 'this restaurant',
+            'signed_in_name' => $personName ?: null,
+            'signed_in_role' => $roleName ?: ($roleCode ?: null),
+            'is_owner' => str_contains($ownerText, 'owner'),
+        ];
+    }
+
+    private function dateRangeParameters(): array
+    {
+        return [
+            'type' => 'object',
+            'properties' => [
+                'start_date' => [
+                    'type' => 'string',
+                    'description' => 'Restaurant-local start date in YYYY-MM-DD format.',
+                ],
+                'end_date' => [
+                    'type' => 'string',
+                    'description' => 'Restaurant-local end date in YYYY-MM-DD format.',
+                ],
+            ],
+            'required' => ['start_date', 'end_date'],
+            'additionalProperties' => false,
+        ];
+    }
+
     private function aiTools(): array
     {
         return [
+            'restaurant_identity' => [
+                'description' => 'Read only the safe display identity of the current restaurant and signed-in PMD user. Use this only when a friendly personalized restaurant reference would improve the answer. Never infer that the signed-in person is the owner unless is_owner is true.',
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => (object)[],
+                    'additionalProperties' => false,
+                ],
+                'handler' => function () {
+                    return $this->restaurantIdentity();
+                },
+            ],
             'owner_kpis' => [
-                'description' => 'Read the canonical Dashboard2 owner KPI snapshot for the current restaurant location. Use this for revenue, guests, turnover, channels, kitchen time, occupancy, menu availability and tips.',
+                'description' => 'Read the current owner KPI snapshot for this restaurant. Use it for current revenue, guests, turnover, channels, kitchen time, occupancy, menu availability and tips.',
                 'parameters' => [
                     'type' => 'object',
                     'properties' => (object)[],
@@ -174,13 +243,18 @@ class Pmdintelligence extends AdminController
                 },
             ],
             'report_snapshot' => [
-                'description' => 'Read one canonical PMD owner report for the current location. Use for detailed sales, hourly sales, categories, payments, transactions, alerts, live orders, top items, reviews, reservations or attendance.',
+                'description' => 'Read one current PMD owner report for today or the current calendar month. Do not use this tool to answer a named historical month or historical date range.',
                 'parameters' => [
                     'type' => 'object',
                     'properties' => [
                         'report' => [
                             'type' => 'string',
-                            'enum' => ['sales', 'hourly', 'categories', 'payments', 'transactions', 'alerts', 'liveorders', 'topitems', 'reviews', 'reservations', 'attendance'],
+                            'enum' => [
+                                'sales', 'hourly', 'categories', 'payments',
+                                'transactions', 'channels', 'tips', 'alerts',
+                                'liveorders', 'topitems', 'reviews',
+                                'reservations', 'attendance',
+                            ],
                         ],
                         'period' => [
                             'type' => 'string',
@@ -197,8 +271,61 @@ class Pmdintelligence extends AdminController
                     );
                 },
             ],
+            'report_range' => [
+                'description' => 'Read a PMD report for an explicit date range. Use this for named historical dates and also for future reservation schedules. Convert the requested range to exact YYYY-MM-DD dates. Future dates are accepted only by the reservations report.',
+                'parameters' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'report' => [
+                            'type' => 'string',
+                            'enum' => [
+                                'sales', 'hourly', 'categories', 'payments',
+                                'transactions', 'channels', 'tips', 'topitems',
+                                'reviews', 'reservations', 'attendance',
+                            ],
+                        ],
+                        'start_date' => [
+                            'type' => 'string',
+                            'description' => 'Restaurant-local start date in YYYY-MM-DD format.',
+                        ],
+                        'end_date' => [
+                            'type' => 'string',
+                            'description' => 'Restaurant-local end date in YYYY-MM-DD format.',
+                        ],
+                    ],
+                    'required' => ['report', 'start_date', 'end_date'],
+                    'additionalProperties' => false,
+                ],
+                'handler' => function (array $arguments) {
+                    return $this->readAuthority()->reportRange(
+                        (string)($arguments['report'] ?? ''),
+                        (string)($arguments['start_date'] ?? ''),
+                        (string)($arguments['end_date'] ?? '')
+                    );
+                },
+            ],
+            'order_integrity_range' => [
+                'description' => 'Reconcile orders for an exact past/current date range against item rows, order totals, status history, settlement states, tips and payment methods. Use this when the owner asks whether systems are connected, why totals disagree, what is missing, or whether order data reconciles. This is read-only.',
+                'parameters' => $this->dateRangeParameters(),
+                'handler' => function (array $arguments) {
+                    return $this->readAuthority()->orderIntegrityRange(
+                        (string)($arguments['start_date'] ?? ''),
+                        (string)($arguments['end_date'] ?? '')
+                    );
+                },
+            ],
+            'workforce_schedule_range' => [
+                'description' => 'Read workforce shift and role counts for an exact date range, including past, today and future schedules. It returns counts only, not employee names. Use it for staffing coverage, planned vs present counts and kitchen shortages.',
+                'parameters' => $this->dateRangeParameters(),
+                'handler' => function (array $arguments) {
+                    return $this->readAuthority()->workforceScheduleRange(
+                        (string)($arguments['start_date'] ?? ''),
+                        (string)($arguments['end_date'] ?? '')
+                    );
+                },
+            ],
             'kitchen_workforce' => [
-                'description' => 'Read the current canonical kitchen workforce snapshot for the already-selected location, including expected, actual, missing counts, role counts, source and confidence.',
+                'description' => 'Read the current kitchen workforce snapshot for this restaurant, including expected, actual, missing counts, role counts, source and confidence.',
                 'parameters' => [
                     'type' => 'object',
                     'properties' => (object)[],
@@ -207,7 +334,7 @@ class Pmdintelligence extends AdminController
                 'handler' => function () {
                     $locationId = $this->readAuthority()->canonicalLocationId();
                     if (!$locationId) {
-                        return ['available' => false, 'reason' => 'No canonical location'];
+                        return ['available' => false, 'reason' => 'No restaurant location'];
                     }
                     return app(PmdKitchenWorkforceService::class)->snapshot((int)$locationId);
                 },
@@ -222,6 +349,10 @@ class Pmdintelligence extends AdminController
         if (
             strpos($message, 'a question is required') !== false
             || strpos($message, 'question is too long') !== false
+            || strpos($message, 'historical report') !== false
+            || strpos($message, 'yyyy-mm-dd') !== false
+            || strpos($message, 'date range') !== false
+            || strpos($message, 'report date') !== false
         ) {
             return 422;
         }
@@ -265,6 +396,14 @@ class Pmdintelligence extends AdminController
         }
         if (strpos($lower, 'canonical restaurant location') !== false) {
             return 'Select a restaurant location before using PMD Intelligence.';
+        }
+        if (
+            strpos($lower, 'historical report') !== false
+            || strpos($lower, 'yyyy-mm-dd') !== false
+            || strpos($lower, 'date range') !== false
+            || strpos($lower, 'report date') !== false
+        ) {
+            return $message;
         }
         if (
             strpos($lower, 'no credits') !== false

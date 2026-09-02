@@ -202,4 +202,10 @@
   'System\\Models\\Mail_layouts_model' => 'app/system/models/Mail_layouts_model.php',
   'System\\Models\\Mail_partials_model' => 'app/system/models/Mail_partials_model.php',
   'Admin\\Controllers\\pmdintelligence' => 'app/admin/controllers/Pmdintelligence.php',
+  'Admin\\Models\\Status_history_model' => 'app/admin/models/Status_history_model.php',
+  'Admin\\Controllers\\payments' => 'app/admin/controllers/Payments.php',
+  'Admin\\Traits\\FormModelWidget' => 'app/admin/traits/FormModelWidget.php',
+  'Admin\\Widgets\\Form' => 'app/admin/widgets/Form.php',
+  'Admin\\Classes\\FormTabs' => 'app/admin/classes/FormTabs.php',
+  'Admin\\Classes\\FormField' => 'app/admin/classes/FormField.php',
 );
