@@ -157,3 +157,34 @@ jobs:
           name: pmd-v110-macos-arm64
           path: apps/cashier-desktop/dist/PayMyDine-Cashier-1.1.0-mac-arm64.dmg
           if-no-files-found: error
+
+  publish-preview:
+    if: github.event_name == 'push'
+    needs: [contract-test, build-windows, build-macos-arm64]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: pmd-v110-*
+          path: release
+          merge-multiple: true
+      - name: Publish V1.1.0 preview installers
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          test -s release/PayMyDine-Cashier-Setup-1.1.0.exe
+          test -s release/PayMyDine-Cashier-1.1.0-mac-arm64.dmg
+          tag='pmd-cashier-v110-preview'
+          notes='PayMyDine Cashier V1.1.0 Real App preview. The main POS UI is locally bundled, with durable table/menu cache and drafts, canonical cloud order/payment APIs, V1.0.9 printer compatibility, Windows installer, and Apple Silicon build. Offline mode keeps cached data and drafts but deliberately does not fake kitchen submission or payment success.'
+          if gh release view "$tag" --repo "$GH_REPO" >/dev/null 2>&1; then
+            gh release upload "$tag" release/* --clobber --repo "$GH_REPO"
+            gh release edit "$tag" --target "$GITHUB_SHA" --prerelease --title 'PayMyDine Cashier V1.1.0 Real App Preview' --notes "$notes" --repo "$GH_REPO"
+          else
+            gh release create "$tag" release/* --target "$GITHUB_SHA" --prerelease --title 'PayMyDine Cashier V1.1.0 Real App Preview' --notes "$notes" --repo "$GH_REPO"
+          fi
+          echo 'PMD_V110_PREVIEW_RELEASE=PASS'
