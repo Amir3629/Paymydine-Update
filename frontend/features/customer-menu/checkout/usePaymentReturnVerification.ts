@@ -60,7 +60,10 @@ export function usePaymentReturnVerification({
 
       const verificationPayload =
         provider === "worldline"
-          ? { hosted_checkout_id: String(pending?.hosted_checkout_id || "") }
+          ? {
+              hosted_checkout_id: String(pending?.hosted_checkout_id || ""),
+              order_id: Number(pending?.order_id || 0),
+            }
           : provider === "sumup"
             ? { checkout_id: String(pending?.checkout_id || params.get("checkout_id") || "") }
             : provider === "square"
@@ -76,7 +79,7 @@ export function usePaymentReturnVerification({
 
       const verificationUrl =
         provider === "worldline"
-          ? "/api/v1/payments/worldline/checkout-status"
+          ? "/api/v1/payments/worldline/runtime/status"
           : provider === "sumup"
             ? "/api/v1/payments/sumup/self-service-status"
             : provider === "square"
@@ -90,6 +93,11 @@ export function usePaymentReturnVerification({
       )
 
       if (!hasReference) return
+      if (provider === "worldline" && !(Number((verificationPayload as any).order_id) > 0)) {
+        localStorage.removeItem(pendingKey)
+        setProviderInlineError("Worldline payment verification lost its order reference. Please reopen My Order.")
+        return
+      }
 
       try {
         const res = await fetch(verificationUrl, {
@@ -102,6 +110,10 @@ export function usePaymentReturnVerification({
         pmdForceKazenFrontendThemePayload(json)
 
         if (res.ok && json?.success && json?.is_paid) {
+          if (provider === "worldline" && !json?.verification_ok) {
+            throw new Error("Worldline returned a paid state without PMD settlement verification.")
+          }
+
           localStorage.removeItem(pendingKey)
 
           const fallbackReference = String(
@@ -141,14 +153,14 @@ export function usePaymentReturnVerification({
           return
         }
 
-        if (res.ok && json?.success && json?.status === "pending") {
+        if (res.ok && json?.success && (json?.payment_status === "REDIRECTED" || json?.payment_status === "PENDING" || json?.status === "pending")) {
           setProviderInlineError("Your payment is still pending confirmation. Please refresh in a moment.")
           return
         }
 
-        if (res.ok && json?.success && (json?.status === "cancelled" || json?.status === "expired")) {
+        if (res.ok && json?.success && (json?.status === "cancelled" || json?.status === "expired" || json?.payment_status === "REJECTED")) {
           localStorage.removeItem(pendingKey)
-          setProviderInlineError("Payment was cancelled. Please choose another method to continue.")
+          setProviderInlineError("Payment was cancelled or rejected. Please choose another method to continue.")
           return
         }
 
@@ -167,7 +179,6 @@ export function usePaymentReturnVerification({
     }
 
     void run()
-    // Keep dependency behavior same as old inline effect.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 }
