@@ -1,6 +1,7 @@
 'use client'
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import type { FormEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { ArrowUp, Sparkles, X } from 'lucide-react'
 import { useMenuRuntime } from '@/src/runtime/MenuRuntimeContext'
@@ -53,6 +54,15 @@ function copyFor(locale: string): GuestAiCopy {
   return String(locale || '').toLowerCase().startsWith('de') ? DE : EN
 }
 
+function cleanAnswer(value: string): string {
+  return String(value || '')
+    .replace(/^#{1,6}\s+/gm, '')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/__([^_]+)__/g, '$1')
+    .replace(/^[-*]\s+/gm, '• ')
+    .trim()
+}
+
 type StatusPayload = {
   ok?: boolean
   enabled?: boolean
@@ -62,8 +72,6 @@ type AskPayload = {
   ok?: boolean
   answer?: string
   message?: string
-  run_id?: string
-  latency_ms?: number
 }
 
 export function GuestAiConcierge({ themeId }: { themeId: ThemeId }) {
@@ -77,7 +85,6 @@ export function GuestAiConcierge({ themeId }: { themeId: ThemeId }) {
   const [answer, setAnswer] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const [runId, setRunId] = useState('')
 
   useEffect(() => {
     const nextHost = document.querySelector<HTMLElement>('main[data-theme-id]')
@@ -130,7 +137,6 @@ export function GuestAiConcierge({ themeId }: { themeId: ThemeId }) {
     setQuestion(value)
     setBusy(true)
     setError('')
-    setRunId('')
 
     try {
       const response = await fetch('/api/v1/guest-ai/ask', {
@@ -146,12 +152,12 @@ export function GuestAiConcierge({ themeId }: { themeId: ThemeId }) {
       })
 
       const payload = await response.json().catch(() => ({})) as AskPayload
-      if (!response.ok || payload.ok !== true || !String(payload.answer || '').trim()) {
+      const nextAnswer = cleanAnswer(String(payload.answer || ''))
+      if (!response.ok || payload.ok !== true || !nextAnswer) {
         throw new Error(String(payload.message || copy.retry))
       }
 
-      setAnswer(String(payload.answer || '').trim())
-      setRunId(String(payload.run_id || ''))
+      setAnswer(nextAnswer)
     } catch (requestError) {
       setError(requestError instanceof Error && requestError.message
         ? requestError.message
@@ -247,9 +253,6 @@ export function GuestAiConcierge({ themeId }: { themeId: ThemeId }) {
                   <div className={`${styles.aiBubble} ${error ? styles.errorBubble : ''}`}>
                     {busy ? copy.thinking : (error || answer)}
                   </div>
-                  {runId && !busy && !error && (
-                    <small className={styles.run}>PMD · {runId.slice(0, 8)}</small>
-                  )}
                 </div>
               )}
             </div>
