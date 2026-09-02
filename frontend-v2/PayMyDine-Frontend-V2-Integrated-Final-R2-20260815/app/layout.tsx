@@ -4,6 +4,7 @@ import type { ReactNode } from 'react'
 import { isRtlLocale, localeBase } from '@/src/lib/i18n'
 import { PaymentCheckoutUXEnhancer } from '@/src/runtime/components/PaymentCheckoutUXEnhancer'
 import { ReviewShareEnhancer } from '@/src/runtime/components/ReviewShareEnhancer'
+import { ThemeFallbackStyleBridge } from '@/src/runtime/components/ThemeFallbackStyleBridge'
 import { VatSummaryEnhancer } from '@/src/runtime/components/VatSummaryEnhancer'
 import { WorldlineEmbeddedCheckoutBridge } from '@/src/runtime/components/WorldlineEmbeddedCheckoutBridge'
 import './globals.css'
@@ -29,7 +30,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
 
   return (
     <html lang={locale} dir={direction}>
-      <body>{children}<ReviewShareEnhancer /><VatSummaryEnhancer /><PaymentCheckoutUXEnhancer /><WorldlineEmbeddedCheckoutBridge /></body>
+      <body><ThemeFallbackStyleBridge />{children}<ReviewShareEnhancer /><VatSummaryEnhancer /><PaymentCheckoutUXEnhancer /><WorldlineEmbeddedCheckoutBridge /></body>
     </html>
   )
 }
