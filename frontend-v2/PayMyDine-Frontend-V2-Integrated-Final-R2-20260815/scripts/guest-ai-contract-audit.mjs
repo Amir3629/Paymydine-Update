@@ -72,5 +72,7 @@ expect(config, "env('PMD_AI_GUEST_ENABLED', false)", 'fail-closed config')
 expect(config, "env('PMD_AI_GUEST_TENANT_ALLOWLIST', '')", 'tenant canary')
 expect(config, "env('PMD_AI_GUEST_LOCATION_ALLOWLIST', '')", 'location canary')
 expect(config, "env('PMD_AI_GUEST_ALLOW_WILDCARD', false)", 'wildcard disabled')
+expect(config, "env('PMD_AI_GUEST_MAX_OUTPUT_TOKENS', 1400)", 'complete-answer output budget')
+expect(config, "env('PMD_AI_GUEST_MAX_ANSWER_CHARS', 3200)", 'complete-answer display budget')
 
 console.log('PMD Guest AI V2 contract audit: PASS')
