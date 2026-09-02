@@ -129,7 +129,7 @@ final class GuestMenuMomentContext
             $until = $now->setTimeFromTimeString($end);
 
             if ($until->greaterThanOrEqualTo($from)) {
-                return $now->betweenIncluded($from, $until);
+                return $now->between($from, $until, true);
             }
 
             // Overnight service window, e.g. 18:00 -> 02:00.
