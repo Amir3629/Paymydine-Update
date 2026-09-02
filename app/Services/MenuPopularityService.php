@@ -11,11 +11,10 @@ class MenuPopularityService
      * Return recent top-selling menu ids ranked by sold quantity.
      *
      * When a location is supplied this intentionally mirrors the modern
-     * Dashboard2/Pmdreports settled-order contract closely enough for the
-     * public Bestseller badge and Guest AI to agree with the owner-facing
-     * Top-selling items report without exposing any order/customer rows.
-     * Existing callers that omit location keep the historical tenant-wide
-     * behaviour for backwards compatibility.
+     * Dashboard2/Pmdreports settled-order contract closely enough for Guest AI
+     * to agree with the owner-facing Top-selling items report without exposing
+     * any order/customer rows. Existing callers that omit location retain the
+     * historical tenant-wide bestseller behaviour for backwards compatibility.
      */
     public function bestsellerStats(
         int $days = 30,
@@ -53,16 +52,22 @@ class MenuPopularityService
             ->join('orders as o', 'o.order_id', '=', 'om.order_id')
             ->whereNotNull('om.menu_id');
 
-        if ($locationId !== null) {
-            $query->where('o.location_id', $locationId);
-        }
-
         $basis = 'created_at';
-        if (in_array('settled_at', $orderColumns, true)) {
-            $basis = 'settled_at';
-            $query
-                ->whereNotNull('o.settled_at')
-                ->where('o.settled_at', '>=', now()->subDays($days));
+
+        if ($locationId !== null) {
+            // Location-scoped callers use the same modern settled-order shape
+            // as owner analytics: current location, processed paid/settled
+            // orders, and settled_at as the recent-sales clock.
+            $query->where('o.location_id', $locationId);
+
+            if (in_array('settled_at', $orderColumns, true)) {
+                $basis = 'settled_at';
+                $query
+                    ->whereNotNull('o.settled_at')
+                    ->where('o.settled_at', '>=', now()->subDays($days));
+            } elseif (in_array('created_at', $orderColumns, true)) {
+                $query->where('o.created_at', '>=', now()->subDays($days));
+            }
 
             if (in_array('processed', $orderColumns, true)) {
                 $query->where('o.processed', 1);
@@ -76,34 +81,20 @@ class MenuPopularityService
             if (in_array('settled_amount', $orderColumns, true)) {
                 $query->where('o.settled_amount', '>=', 0);
             }
-        } elseif (in_array('created_at', $orderColumns, true)) {
-            $query->where('o.created_at', '>=', now()->subDays($days));
-        }
 
-        if (Schema::hasTable('statuses') && in_array('status_id', $orderColumns, true)) {
-            $statusColumns = Schema::getColumnListing('statuses');
-            if (in_array('status_id', $statusColumns, true) && in_array('status_name', $statusColumns, true)) {
-                $excludedStatusIds = DB::table('statuses')
-                    ->where(function ($q) {
-                        $q->whereRaw('LOWER(status_name) LIKE ?', ['%cancel%'])
-                            ->orWhereRaw('LOWER(status_name) LIKE ?', ['%refund%'])
-                            ->orWhereRaw('LOWER(status_name) LIKE ?', ['%failed%'])
-                            ->orWhereRaw('LOWER(status_name) LIKE ?', ['%void%']);
-                    })
-                    ->pluck('status_id')
-                    ->map(fn ($id) => (int)$id)
-                    ->filter()
-                    ->values()
-                    ->all();
+            $this->excludeFailedStatuses($query, $orderColumns);
+        } else {
+            // Historical public-menu/Waiter callers retain their existing
+            // tenant-wide bestseller semantics. This keeps the Guest AI fix
+            // narrow and prevents unrelated highlight changes.
+            if (in_array('created_at', $orderColumns, true)) {
+                $query->where('o.created_at', '>=', now()->subDays($days));
+            }
 
-                if ($excludedStatusIds) {
-                    $query->whereNotIn('o.status_id', $excludedStatusIds);
-                }
-
-                // Legacy schemas without settlement_status still need a
-                // positive completion boundary rather than every created order.
-                if (!in_array('settlement_status', $orderColumns, true)) {
-                    $positiveStatusIds = DB::table('statuses')
+            if (Schema::hasTable('statuses') && in_array('status_id', $orderColumns, true)) {
+                $statusColumns = Schema::getColumnListing('statuses');
+                if (in_array('status_id', $statusColumns, true) && in_array('status_name', $statusColumns, true)) {
+                    $statusIds = DB::table('statuses')
                         ->where(function ($q) {
                             $q->whereRaw('LOWER(status_name) LIKE ?', ['%paid%'])
                                 ->orWhereRaw('LOWER(status_name) LIKE ?', ['%complete%'])
@@ -115,8 +106,8 @@ class MenuPopularityService
                         ->values()
                         ->all();
 
-                    if ($positiveStatusIds) {
-                        $query->whereIn('o.status_id', $positiveStatusIds);
+                    if ($statusIds) {
+                        $query->whereIn('o.status_id', $statusIds);
                     }
                 }
             }
@@ -145,6 +136,35 @@ class MenuPopularityService
             'location_id' => $locationId,
             'basis' => $basis,
         ];
+    }
+
+    private function excludeFailedStatuses($query, array $orderColumns): void
+    {
+        if (!Schema::hasTable('statuses') || !in_array('status_id', $orderColumns, true)) {
+            return;
+        }
+
+        $statusColumns = Schema::getColumnListing('statuses');
+        if (!in_array('status_id', $statusColumns, true) || !in_array('status_name', $statusColumns, true)) {
+            return;
+        }
+
+        $excludedStatusIds = DB::table('statuses')
+            ->where(function ($q) {
+                $q->whereRaw('LOWER(status_name) LIKE ?', ['%cancel%'])
+                    ->orWhereRaw('LOWER(status_name) LIKE ?', ['%refund%'])
+                    ->orWhereRaw('LOWER(status_name) LIKE ?', ['%failed%'])
+                    ->orWhereRaw('LOWER(status_name) LIKE ?', ['%void%']);
+            })
+            ->pluck('status_id')
+            ->map(fn ($id) => (int)$id)
+            ->filter()
+            ->values()
+            ->all();
+
+        if ($excludedStatusIds) {
+            $query->whereNotIn('o.status_id', $excludedStatusIds);
+        }
     }
 
     private function emptyStats(int $days, ?int $locationId, string $basis): array
