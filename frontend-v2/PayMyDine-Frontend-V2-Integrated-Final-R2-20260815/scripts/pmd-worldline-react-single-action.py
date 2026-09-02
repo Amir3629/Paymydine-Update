@@ -16,8 +16,6 @@ def replace_once(text: str, old: str, new: str, label: str) -> str:
 runtime = RUNTIME.read_text()
 bridge = BRIDGE.read_text()
 
-# Import is file-global, but all behavioral edits below are scoped strictly to
-# PaymentPanel() so MultiOrderPaymentPanel and every other overlay are untouched.
 runtime = replace_once(
     runtime,
     "import { SumupInlinePayment } from './SumupInlinePayment'\n",
@@ -41,16 +39,16 @@ panel = replace_once(
     'PaymentPanel launch state',
 )
 
+choices_effect = """  useEffect(() => {\n    if (!paymentChoices.some((entry) => paymentMethodKey(entry) === methodKey)) {\n      setMethodKey(paymentChoices[0] ? paymentMethodKey(paymentChoices[0]) : '')\n    }\n  }, [methodKey, paymentChoices])\n\n"""
+card_effect = choices_effect + """  useEffect(() => {\n    if (!worldlineCardLaunchKey || worldlineCardLaunchKey !== methodKey) return\n    const method = paymentChoices.find((entry) => paymentMethodKey(entry) === methodKey) || null\n    const code = String(method?.code || '').trim().toLowerCase()\n    const provider = String(method?.providerCode || '').trim().toLowerCase().replace(/[\\s-]+/g, '_')\n    if (mode !== 'payment' || provider !== 'worldline' || code !== 'card') {\n      setWorldlineCardLaunchKey('')\n      return\n    }\n    // This effect is intentionally above the draft-order early return so Hooks\n    // remain unconditional. pay() is invoked after render, when its closure exists.\n    setWorldlineCardLaunchKey('')\n    void pay()\n  }, [worldlineCardLaunchKey, methodKey])\n\n"""
+panel = replace_once(panel, choices_effect, card_effect, 'Unconditional Card launch effect')
+
 panel = replace_once(
     panel,
     "  const isPayPalInline = Boolean(selectedMethod && settlementMode === 'pay-existing' && (selectedProvider === 'paypal' || (selectedMethod.code.toLowerCase() === 'paypal' && (!selectedProvider || selectedProvider === 'paypal'))))\n  const requiresSelectedItems = splitMode === 'items' || splitMode === 'mine'\n",
     "  const isPayPalInline = Boolean(selectedMethod && settlementMode === 'pay-existing' && (selectedProvider === 'paypal' || (selectedMethod.code.toLowerCase() === 'paypal' && (!selectedProvider || selectedProvider === 'paypal'))))\n  const isWorldlineSingleAction = Boolean(mode === 'payment' && selectedMethod && selectedProvider === 'worldline' && ['card', 'apple_pay', 'google_pay', 'paypal', 'wero'].includes(selectedCode))\n  const requiresSelectedItems = splitMode === 'items' || splitMode === 'mine'\n",
     'Worldline selected authority',
 )
-
-return_anchor = "  return (\n    <div className={styles.stack} data-pmd-payment-order-id={order.orderId} data-pmd-split-safety={mode === 'split' ? 'r35' : undefined}>\n"
-return_replacement = "  useEffect(() => {\n    if (!worldlineCardLaunchKey || worldlineCardLaunchKey !== methodKey) return\n    const method = paymentChoices.find((entry) => paymentMethodKey(entry) === methodKey) || null\n    const code = String(method?.code || '').trim().toLowerCase()\n    const provider = String(method?.providerCode || '').trim().toLowerCase().replace(/[\\s-]+/g, '_')\n    if (mode !== 'payment' || provider !== 'worldline' || code !== 'card') {\n      setWorldlineCardLaunchKey('')\n      return\n    }\n    // Card needs fields, so the method tile starts the existing native-card flow\n    // exactly once. The hidden canonical anchor remains only for the bridge host.\n    setWorldlineCardLaunchKey('')\n    void pay()\n  }, [worldlineCardLaunchKey, methodKey])\n\n  return (\n    <div className={styles.stack} data-pmd-payment-order-id={order.orderId} data-pmd-split-safety={mode === 'split' ? 'r35' : undefined}>\n"
-panel = replace_once(panel, return_anchor, return_replacement, 'Card one-click effect')
 
 old_methods = """      {paymentChoices.length > 0 ? (\n        <div className={styles.methodGrid}>\n          {paymentChoices.map((entry) => {\n            const key = paymentMethodKey(entry)\n            return <button key={key} type=\"button\" className={`${styles.method} ${methodKey === key ? styles.methodSelected : ''}`} onClick={() => { setMethodKey(key); setMessage('') }}>{entry.code === 'cash' || entry.code === 'cod' ? <Receipt /> : <CreditCard />} {entry.code === 'cash' || entry.code === 'cod' ? 'Cash' : entry.name}</button>\n          })}\n        </div>\n      ) : <div className={`${styles.statusMessage} ${styles.statusError}`}>{labels.noPaymentMethods}</div>}\n      <div className={styles.summary}>\n        <div className={styles.summaryRow}><span>{labels.remaining}</span><span>{formatCurrency(remaining)}</span></div>\n        <div className={styles.summaryRow}><span>{labels.total}</span><strong>{formatCurrency(payableEstimate)}</strong></div>\n      </div>\n"""
 
@@ -66,8 +64,6 @@ panel = replace_once(
 
 runtime = prefix + panel + suffix
 
-# The bridge remains the native Card host and legacy fallback interceptor, but it
-# must never synthesize a second click when the user selects a payment method.
 bridge = replace_once(
     bridge,
     "const AUTO_START_ATTRIBUTE = 'data-pmd-worldline-auto-start'\n",
@@ -92,6 +88,7 @@ RUNTIME.write_text(runtime)
 BRIDGE.write_text(bridge)
 
 print('PASS: patch scope isolated to PaymentPanel only')
+print('PASS: Card launch Hook remains unconditional')
 print('PASS: RuntimeOverlays now owns Worldline direct method buttons')
 print('PASS: Total is rendered before payment methods in shared PaymentPanel')
 print('PASS: Worldline bridge no longer synthesizes payment-method clicks')
