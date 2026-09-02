@@ -10,6 +10,7 @@ import { saveSubscription } from "./actions"
 import { useThemeStore } from "@/store/theme-store"
 import "@/lib/i18n" // Import i18n configuration
 import CanonicalPaymentDisplayFix from "@/components/CanonicalPaymentDisplayFix"
+import GuestAiConcierge from "@/features/customer-menu/components/GuestAiConcierge"
 
 
 function urlBase64ToUint8Array(base64String: string) {
@@ -66,6 +67,7 @@ export default function ClientLayout({
       suppressHydrationWarning
     >
       {children}
+      <GuestAiConcierge />
       <CanonicalPaymentDisplayFix />
       <Toaster />
     </div>
