@@ -101,7 +101,6 @@ const PROVIDER_HOST_SUFFIX = '.worldline-solutions.com'
 const INLINE_HOST_ATTRIBUTE = 'data-pmd-worldline-inline-host'
 const HIDDEN_PAY_ATTRIBUTE = 'data-pmd-worldline-hidden-pay-button'
 const AUTO_START_ATTRIBUTE = 'data-pmd-worldline-auto-start'
-const RUNTIME_METHODS_ENDPOINT = '/api/v1/payments/worldline/runtime-methods'
 
 function sleep(ms: number) {
   return new Promise((resolve) => window.setTimeout(resolve, ms))
@@ -363,29 +362,6 @@ export function WorldlineEmbeddedCheckoutBridge() {
   useEffect(() => {
     const originalFetch = window.fetch
     let disposed = false
-    let runtimeMethodsPromise: Promise<Set<string>> | null = null
-
-    const loadRuntimeMethods = () => {
-      if (runtimeMethodsPromise) return runtimeMethodsPromise
-      runtimeMethodsPromise = originalFetch.call(window, RUNTIME_METHODS_ENDPOINT, {
-        credentials: 'same-origin',
-        cache: 'no-store',
-        headers: { Accept: 'application/json' },
-      }).then(async (response) => {
-        if (!response.ok) return new Set<string>()
-        const data = await response.json().catch(() => ({}))
-        const rows = Array.isArray(data?.methods) ? data.methods : []
-        const methods = rows
-          .filter((row: any) => {
-            const provider = normalizeMethod(String(row?.provider_code || row?.provider || 'worldline'))
-            return provider === 'worldline' && row?.enabled !== false && Number(row?.status ?? 1) !== 0
-          })
-          .map((row: any) => normalizeMethod(String(row?.code || '')))
-          .filter(Boolean)
-        return new Set<string>(methods)
-      }).catch(() => new Set<string>())
-      return runtimeMethodsPromise
-    }
 
     const triggerGenericPay = (panel: HTMLElement, attempt = 0) => {
       if (disposed) return
@@ -409,15 +385,15 @@ export function WorldlineEmbeddedCheckoutBridge() {
       const panel = button.closest<HTMLElement>('[data-pmd-payment-order-id]')
       if (!panel) return
 
-      void loadRuntimeMethods().then((methods) => {
-        if (disposed || !methods.has(methodCode)) return
-        window.requestAnimationFrame(() => {
-          window.requestAnimationFrame(() => triggerGenericPay(panel))
-        })
+      // Do not gate the selected payment on Worldline runtime-method discovery.
+      // React updates the selected method during this click; two frames later the
+      // canonical Pay button starts whichever provider owns that method. The fetch
+      // interceptor below only activates when that provider is actually Worldline.
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => triggerGenericPay(panel))
       })
     }
 
-    void loadRuntimeMethods()
     document.addEventListener('click', onPaymentMethodClick, true)
 
     const patchedFetch: typeof window.fetch = async (input, init) => {
@@ -491,8 +467,7 @@ export function WorldlineEmbeddedCheckoutBridge() {
           || !clientSession.clientSessionId
           || !clientSession.customerId
           || !clientSession.clientApiUrl
-          || !clientSession.assetUrl
-          || !allowed.length) {
+          || !clientSession.assetUrl) {
           return response
         }
 
