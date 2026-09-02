@@ -103,7 +103,7 @@ function triggerSelectedPayment(panel: HTMLElement, attempt = 0) {
   }
 
   // This marker is also understood by WorldlineEmbeddedCheckoutBridge, so its
-  // slower runtime-method discovery cannot trigger a duplicate click later.
+  // fallback click cannot duplicate the canonical React payment start later.
   button.removeAttribute(AUTO_START_ATTRIBUTE)
   button.setAttribute(AUTO_START_ATTRIBUTE, 'true')
   button.click()
@@ -161,10 +161,13 @@ function compactWalletAndAuthorizationSurfaces() {
       .find((button) => !button.classList.contains('pmd-worldline-apple-pay-button'))
     if (googleButton) {
       googleButton.setAttribute('data-pmd-worldline-final', 'google-pay')
+      googleButton.setAttribute('data-pmd-worldline-action-label', 'Google Pay')
+      googleButton.setAttribute('aria-label', 'Google Pay')
       googleButton.style.setProperty('background', 'var(--pmd-text, #ffffff)', 'important')
       googleButton.style.setProperty('color', 'var(--pmd-control, #070707)', 'important')
       googleButton.style.setProperty('border-radius', '999px', 'important')
       googleButton.style.setProperty('min-height', '54px', 'important')
+      googleButton.style.setProperty('opacity', '1', 'important')
     }
   }
 
@@ -185,7 +188,14 @@ function compactWalletAndAuthorizationSurfaces() {
       }
       child.style.setProperty('display', 'none')
     }
-    if (button) button.setAttribute('data-pmd-worldline-final', 'authorization')
+    if (button) {
+      const text = String(button.textContent || '').replace(/\s+/g, ' ').trim()
+      const label = /paypal/i.test(text) ? 'PayPal' : /wero/i.test(text) ? 'Wero' : text || 'Continue'
+      button.setAttribute('data-pmd-worldline-final', 'authorization')
+      button.setAttribute('data-pmd-worldline-action-label', label)
+      button.setAttribute('aria-label', label)
+      button.style.setProperty('opacity', '1', 'important')
+    }
   }
 }
 
@@ -228,8 +238,8 @@ export function PaymentCheckoutUXEnhancer() {
       if (methodCode) {
         activeMethod.set(panel, normalizeMethod(methodCode))
         markImmediatePaymentAction(panel, methodCode)
-        // React handles the methodKey update during this click. Two animation
-        // frames later pay() sees the selected provider/method and starts it.
+        // React handles methodKey in this same click. Two animation frames later
+        // pay() sees the new selected method and starts the real provider flow.
         window.requestAnimationFrame(() => {
           window.requestAnimationFrame(() => {
             if (!disposed) triggerSelectedPayment(panel)
@@ -273,6 +283,7 @@ export function PaymentCheckoutUXEnhancer() {
         box-sizing: border-box !important;
         font-size: 0 !important;
         font-weight: 800 !important;
+        opacity: 1 !important;
       }
 
       [data-pmd-worldline-action="true"] > *,
@@ -293,7 +304,8 @@ export function PaymentCheckoutUXEnhancer() {
         vertical-align: -1px;
       }
 
-      [data-pmd-worldline-action="true"]::after {
+      [data-pmd-worldline-action="true"]::after,
+      [data-pmd-worldline-final]::after {
         content: attr(data-pmd-worldline-action-label);
         font-size: 17px;
         font-weight: 800;
@@ -341,12 +353,14 @@ export function PaymentCheckoutUXEnhancer() {
         background: var(--pmd-text, #ffffff) !important;
         color: var(--pmd-control, #070707) !important;
         border: 1px solid var(--pmd-text, #ffffff) !important;
+        opacity: 1 !important;
       }
 
       [data-pmd-worldline-native-wallet^="own-checkout-apple_pay"] .pmd-worldline-apple-pay-button {
         -apple-pay-button-style: white !important;
         border-radius: 999px !important;
         min-height: 54px !important;
+        opacity: 1 !important;
       }
 
       [data-pmd-worldline-embedded^="native-wallet-"] > [role="status"] {
