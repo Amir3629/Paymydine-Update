@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { cookies } from 'next/headers'
 import type { ReactNode } from 'react'
 import { isRtlLocale, localeBase } from '@/src/lib/i18n'
+import { PaymentCheckoutUXEnhancer } from '@/src/runtime/components/PaymentCheckoutUXEnhancer'
 import { ReviewShareEnhancer } from '@/src/runtime/components/ReviewShareEnhancer'
 import { VatSummaryEnhancer } from '@/src/runtime/components/VatSummaryEnhancer'
 import { WorldlineEmbeddedCheckoutBridge } from '@/src/runtime/components/WorldlineEmbeddedCheckoutBridge'
@@ -28,7 +29,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
 
   return (
     <html lang={locale} dir={direction}>
-      <body>{children}<ReviewShareEnhancer /><VatSummaryEnhancer /><WorldlineEmbeddedCheckoutBridge /></body>
+      <body>{children}<ReviewShareEnhancer /><VatSummaryEnhancer /><PaymentCheckoutUXEnhancer /><WorldlineEmbeddedCheckoutBridge /></body>
     </html>
   )
 }
