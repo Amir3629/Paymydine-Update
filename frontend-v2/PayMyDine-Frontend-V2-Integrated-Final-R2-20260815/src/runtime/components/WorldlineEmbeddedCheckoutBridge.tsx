@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 
 type PendingWorldlinePayment = {
   provider?: string
@@ -36,8 +37,10 @@ type EmbeddedSession = {
 type BridgeState = 'idle' | 'loading' | 'ready' | 'settling' | 'paid' | 'failed'
 
 const PENDING_KEY = 'pmd-v2:pending-payment:worldline'
-const CREATE_SESSION_PATTERN = /^\/api\/v1\/payments\/worldline\/runtime\/(card|apple-pay|google-pay)\/create-session$/
+const CREATE_SESSION_PATTERN = /^\/api\/v1\/payments\/worldline\/runtime\/(card|apple-pay|google-pay|paypal|wero)\/create-session$/
 const PROVIDER_HOST_SUFFIX = '.worldline-solutions.com'
+const INLINE_HOST_ATTRIBUTE = 'data-pmd-worldline-inline-host'
+const HIDDEN_PAY_ATTRIBUTE = 'data-pmd-worldline-hidden-pay-button'
 
 function sleep(ms: number) {
   return new Promise((resolve) => window.setTimeout(resolve, ms))
@@ -161,11 +164,60 @@ async function settleVerifiedWorldlinePayment(pending: PendingWorldlinePayment, 
 function methodLabel(code: string): string {
   if (code === 'apple_pay') return 'Apple Pay'
   if (code === 'google_pay') return 'Google Pay'
+  if (code === 'paypal') return 'PayPal'
+  if (code === 'wero') return 'Wero'
   return 'Card / Wallet'
+}
+
+function visiblePaymentPanel(): HTMLElement | null {
+  const panels = Array.from(document.querySelectorAll<HTMLElement>('[data-pmd-payment-order-id]'))
+  if (!panels.length) return null
+  return panels.find((panel) => panel.getClientRects().length > 0) || panels[panels.length - 1] || null
+}
+
+function ensureInlineHost(): HTMLElement | null {
+  const panel = visiblePaymentPanel()
+  if (!panel) return null
+
+  const existing = panel.querySelector<HTMLElement>(`:scope > [${INLINE_HOST_ATTRIBUTE}="true"]`)
+  if (existing) return existing
+
+  const host = document.createElement('div')
+  host.setAttribute(INLINE_HOST_ATTRIBUTE, 'true')
+  host.style.width = '100%'
+  host.style.minWidth = '0'
+  host.style.margin = '0'
+  host.style.padding = '0'
+
+  const directButtons = Array.from(panel.querySelectorAll<HTMLButtonElement>(':scope > button'))
+  const payButton = directButtons.length ? directButtons[directButtons.length - 1] : null
+  if (payButton) {
+    payButton.setAttribute(HIDDEN_PAY_ATTRIBUTE, 'true')
+    payButton.style.display = 'none'
+    panel.insertBefore(host, payButton)
+  } else {
+    panel.appendChild(host)
+  }
+
+  return host
+}
+
+function removeInlineHost() {
+  const hosts = Array.from(document.querySelectorAll<HTMLElement>(`[${INLINE_HOST_ATTRIBUTE}="true"]`))
+  for (const host of hosts) {
+    const panel = host.parentElement
+    host.remove()
+    const hidden = panel?.querySelector<HTMLButtonElement>(`:scope > button[${HIDDEN_PAY_ATTRIBUTE}="true"]`)
+    if (hidden) {
+      hidden.style.removeProperty('display')
+      hidden.removeAttribute(HIDDEN_PAY_ATTRIBUTE)
+    }
+  }
 }
 
 export function WorldlineEmbeddedCheckoutBridge() {
   const [session, setSession] = useState<EmbeddedSession | null>(null)
+  const [hostElement, setHostElement] = useState<HTMLElement | null>(null)
   const [state, setState] = useState<BridgeState>('idle')
   const [message, setMessage] = useState('')
   const [providerStatus, setProviderStatus] = useState('')
@@ -218,11 +270,15 @@ export function WorldlineEmbeddedCheckoutBridge() {
       const hostedCheckoutId = String(data?.hosted_checkout_id || data?.hostedCheckoutId || '')
       if (!data || !redirectUrl || !hostedCheckoutId) return response
 
+      const inlineHost = ensureInlineHost()
+      if (!inlineHost) return response
+
       generationRef.current += 1
       settlingRef.current = false
       setProviderStatus('')
       setMessage('Loading secure Worldline checkout…')
       setState('loading')
+      setHostElement(inlineHost)
       setSession({
         redirectUrl,
         hostedCheckoutId,
@@ -230,13 +286,14 @@ export function WorldlineEmbeddedCheckoutBridge() {
         methodCode: normalizeMethod(String(data?.payment_method || requestedMethod)),
         returnTo,
       })
+      window.requestAnimationFrame(() => inlineHost.scrollIntoView({ behavior: 'smooth', block: 'nearest' }))
 
       const sanitized = {
         ...data,
         redirect_url: null,
         redirectUrl: null,
         flow: 'embedded',
-        message: 'Worldline secure checkout opened inside PayMyDine.',
+        message: 'Worldline secure checkout opened inside the PayMyDine payment card.',
       }
       const headers = new Headers(response.headers)
       headers.delete('content-length')
@@ -252,6 +309,7 @@ export function WorldlineEmbeddedCheckoutBridge() {
     window.fetch = patchedFetch
     return () => {
       if (window.fetch === patchedFetch) window.fetch = originalFetch
+      removeInlineHost()
     }
   }, [])
 
@@ -260,13 +318,6 @@ export function WorldlineEmbeddedCheckoutBridge() {
     const generation = generationRef.current
     let cancelled = false
     let timer: number | null = null
-    const priorOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-
-    const finish = () => {
-      if (timer !== null) window.clearTimeout(timer)
-      document.body.style.overflow = priorOverflow
-    }
 
     const poll = async () => {
       if (cancelled || generation !== generationRef.current || settlingRef.current) return
@@ -304,12 +355,12 @@ export function WorldlineEmbeddedCheckoutBridge() {
 
         if (['CANCELLED', 'CANCELED', 'REJECTED', 'REJECTED_CAPTURE', 'FAILED', 'EXPIRED'].includes(statusName)) {
           setState('failed')
-          setMessage(`Worldline did not complete this payment (${statusName}). You can close this window and try again.`)
+          setMessage(`Worldline did not complete this payment (${statusName}). You can change the payment method and try again.`)
           return
         }
 
         setState('ready')
-        setMessage('Complete the secure payment below. Your card details stay with Worldline.')
+        setMessage('Complete the secure payment below. Your payment details stay with Worldline.')
       } catch (error) {
         if (cancelled || generation !== generationRef.current) return
         setState('ready')
@@ -335,8 +386,8 @@ export function WorldlineEmbeddedCheckoutBridge() {
 
     return () => {
       cancelled = true
+      if (timer !== null) window.clearTimeout(timer)
       window.removeEventListener('message', onMessage)
-      finish()
     }
   }, [session])
 
@@ -345,66 +396,62 @@ export function WorldlineEmbeddedCheckoutBridge() {
     generationRef.current += 1
     settlingRef.current = false
     setSession(null)
+    setHostElement(null)
     setState('idle')
     setMessage('')
     setProviderStatus('')
+    removeInlineHost()
   }
 
-  if (!session) return null
+  if (!session || !hostElement) return null
 
-  return (
-    <div
-      data-pmd-worldline-embedded="mycheckout-v1"
-      role="dialog"
-      aria-modal="true"
+  const content = (
+    <section
+      data-pmd-worldline-embedded="mycheckout-inline-v2"
       aria-label={`Secure ${methodLabel(session.methodCode)} payment`}
       style={{
-        position: 'fixed', inset: 0, zIndex: 2147483000,
-        background: 'rgba(4, 7, 10, 0.82)', backdropFilter: 'blur(8px)',
-        display: 'flex', alignItems: 'stretch', justifyContent: 'center', padding: 'max(10px, env(safe-area-inset-top)) 0 max(10px, env(safe-area-inset-bottom))',
+        width: '100%', minWidth: 0, overflow: 'hidden',
+        border: '1px solid rgba(148, 163, 184, 0.38)', borderRadius: 16,
+        background: '#fff', color: '#0f172a', margin: 0,
+        boxShadow: '0 10px 30px rgba(15, 23, 42, 0.10)',
       }}
     >
-      <section style={{
-        width: 'min(760px, 100vw)', minWidth: 0, height: '100%', maxHeight: '960px',
-        background: '#fff', color: '#111827', display: 'flex', flexDirection: 'column', overflow: 'hidden',
-        borderRadius: '22px', boxShadow: '0 28px 80px rgba(0,0,0,.42)',
-      }}>
-        <header style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', borderBottom: '1px solid #e5e7eb', background: '#fff' }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <strong style={{ display: 'block', fontSize: 17 }}>Secure {methodLabel(session.methodCode)}</strong>
-            <small style={{ display: 'block', color: '#64748b', marginTop: 3 }}>Powered by Worldline · card data never enters PayMyDine</small>
-          </div>
-          <button
-            type="button"
-            onClick={close}
-            disabled={state === 'settling' || state === 'paid'}
-            aria-label="Close payment"
-            style={{ width: 42, height: 42, borderRadius: 999, border: '1px solid #cbd5e1', background: '#fff', color: '#0f172a', fontSize: 26, lineHeight: 1, cursor: state === 'settling' || state === 'paid' ? 'not-allowed' : 'pointer' }}
-          >×</button>
-        </header>
-
-        <div style={{ flex: 1, minHeight: 400, position: 'relative', background: '#fff' }}>
-          <iframe
-            src={session.redirectUrl}
-            title={`Worldline ${methodLabel(session.methodCode)} checkout`}
-            allow="payment"
-            sandbox="allow-scripts allow-popups allow-same-origin allow-forms"
-            referrerPolicy="strict-origin-when-cross-origin"
-            onLoad={() => {
-              if (state === 'loading') {
-                setState('ready')
-                setMessage('Complete the secure payment below. Your card details stay with Worldline.')
-              }
-            }}
-            style={{ display: 'block', width: '100%', height: '100%', minHeight: 400, border: 0, background: '#fff' }}
-          />
+      <header style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderBottom: '1px solid #e5e7eb', background: '#f8fafc' }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <strong style={{ display: 'block', fontSize: 15 }}>Secure {methodLabel(session.methodCode)}</strong>
+          <small style={{ display: 'block', color: '#64748b', marginTop: 2 }}>Powered by Worldline · payment data never enters PayMyDine</small>
         </div>
+        <button
+          type="button"
+          onClick={close}
+          disabled={state === 'settling' || state === 'paid'}
+          style={{ border: '1px solid #cbd5e1', borderRadius: 999, background: '#fff', color: '#334155', padding: '7px 11px', fontSize: 12, cursor: state === 'settling' || state === 'paid' ? 'not-allowed' : 'pointer' }}
+        >Change method</button>
+      </header>
 
-        <footer style={{ padding: '11px 16px 13px', borderTop: '1px solid #e5e7eb', background: '#f8fafc', color: state === 'failed' ? '#991b1b' : '#334155', fontSize: 13, lineHeight: 1.45 }}>
-          <span>{message || 'Secure payment session ready.'}</span>
-          {providerStatus ? <strong style={{ marginLeft: 8 }}>Worldline: {providerStatus}</strong> : null}
-        </footer>
-      </section>
-    </div>
+      <div style={{ width: '100%', minHeight: 400, height: 'min(62vh, 620px)', position: 'relative', background: '#fff' }}>
+        <iframe
+          src={session.redirectUrl}
+          title={`Worldline ${methodLabel(session.methodCode)} checkout`}
+          allow="payment"
+          sandbox="allow-scripts allow-popups allow-same-origin allow-forms"
+          referrerPolicy="strict-origin-when-cross-origin"
+          onLoad={() => {
+            if (state === 'loading') {
+              setState('ready')
+              setMessage('Complete the secure payment below. Your payment details stay with Worldline.')
+            }
+          }}
+          style={{ display: 'block', width: '100%', height: '100%', minHeight: 400, border: 0, background: '#fff' }}
+        />
+      </div>
+
+      <footer style={{ padding: '9px 12px', borderTop: '1px solid #e5e7eb', background: '#f8fafc', color: state === 'failed' ? '#991b1b' : '#475569', fontSize: 12, lineHeight: 1.4 }}>
+        <span>{message || 'Secure payment session ready.'}</span>
+        {providerStatus ? <strong style={{ marginLeft: 8 }}>Worldline: {providerStatus}</strong> : null}
+      </footer>
+    </section>
   )
+
+  return createPortal(content, hostElement)
 }
