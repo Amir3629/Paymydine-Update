@@ -337,6 +337,22 @@ final class WorldlineConnectRuntimeService
             if (preg_match('#^https://#i', $candidate)) {
                 return $candidate;
             }
+            if ($key === 'partialRedirectUrl') {
+                $candidate = ltrim($candidate, '/');
+                $host = strtolower((string)parse_url('https://'.$candidate, PHP_URL_HOST));
+                if ($host === '' || !str_ends_with($host, '.worldline-solutions.com')) {
+                    throw new \RuntimeException('Worldline returned an unexpected hosted checkout domain.');
+                }
+
+                // Worldline Connect returns partialRedirectUrl without the
+                // account subdomain. The documented default MyCheckout
+                // subdomain is "payment", so the browser URL is
+                // https://payment.{partialRedirectUrl}.
+                if (str_starts_with(strtolower($candidate), 'payment.')) {
+                    return 'https://'.$candidate;
+                }
+                return 'https://payment.'.$candidate;
+            }
         }
         return '';
     }
