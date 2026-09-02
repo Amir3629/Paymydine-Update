@@ -22,13 +22,11 @@ for f in "$INLINE" "$PUBLIC_ROUTES" "$PROBE_ROUTES" "$RUNTIME" "$TERMINAL" "$HOS
   [[ -f "$f" ]] || fail "required Worldline runtime file is missing: $f"
 done
 
-# Merchant-owned code must never collect or transport raw card credentials.
 if grep -REq 'cardNumber|\bcvv\b|securityCode|onlinepayments-sdk-client-js|encryptedCustomerInput' \
   "$INLINE" "$HOSTED_FLOW" "$PROBE_ROUTES" "$RUNTIME" "$V2_CLIENT"; then
   fail "merchant-owned Worldline runtime contains raw-card/inline-encryption markers"
 fi
 
-# Legacy frontend and active Frontend V2 must both use the order-bound runtime.
 grep -q '/api/v1/payments/worldline/runtime/card/create-session' "$HOSTED_FLOW" || fail "legacy Worldline card runtime endpoint missing"
 grep -q '/api/v1/payments/worldline/runtime/apple-pay/create-session' "$HOSTED_FLOW" || fail "legacy Worldline Apple Pay runtime endpoint missing"
 grep -q '/api/v1/payments/worldline/runtime/google-pay/create-session' "$HOSTED_FLOW" || fail "legacy Worldline Google Pay runtime endpoint missing"
@@ -45,15 +43,17 @@ grep -q 'expected_amount_minor' "$RUNTIME" || fail "Worldline session does not b
 grep -q 'expected_currency' "$RUNTIME" || fail "Worldline session does not bind expected currency"
 grep -q 'merchant_reference' "$RUNTIME" || fail "Worldline session does not bind merchant reference"
 grep -q 'payments()->get' "$RUNTIME" || fail "Worldline settlement does not retrieve authoritative payment"
+grep -q 'availablePaymentProducts' "$RUNTIME" || fail "Worldline runtime does not discover merchant-configured products"
+grep -q 'products()->find' "$RUNTIME" || fail "Worldline runtime does not call Get payment products"
 grep -q "'partialRedirectUrl'" "$RUNTIME" || fail "Worldline partial redirect handling missing"
 grep -q "https://payment\." "$RUNTIME" || fail "Worldline MyCheckout payment subdomain normalization missing"
+grep -q 'payment_intent_token' "$PROBE_ROUTES" || fail "Worldline split-payment intent authority is missing"
+grep -q 'settled_amount' "$PROBE_ROUTES" || fail "Worldline full-payment remaining amount authority is missing"
 
-# Historical raw-card probe must stay dead.
 if grep -Eq "input\(['\"]cardNumber|input\(['\"]cvv" "$PROBE_ROUTES"; then
   fail "legacy raw-card Worldline probe was reintroduced"
 fi
 
-# Public webhook keeps endpoint-verification + exact-body HMAC verification.
 grep -q 'X-GCS-Webhooks-Endpoint-Verification' "$PUBLIC_ROUTES" || fail "Worldline webhook endpoint verification is missing"
 grep -q 'X-GCS-Signature' "$PUBLIC_ROUTES" || fail "Worldline webhook signature header check is missing"
 grep -q 'X-GCS-KeyId' "$PUBLIC_ROUTES" || fail "Worldline webhook key-id check is missing"
@@ -63,7 +63,6 @@ if grep -Eq 'headers->all\(|getContent\(\).*Log|payload.*request->all\(' "$PUBLI
   fail "Worldline public route appears to log raw webhook material"
 fi
 
-# Terminal API must use a separate bearer token and documented cloud endpoint.
 grep -q 'implements TerminalPaymentProviderInterface' "$TERMINAL" || fail "Worldline terminal adapter is not active"
 grep -q 'WORLDLINE_TERMINAL_API_TOKEN' "$TERMINAL" || fail "Worldline terminal adapter lacks separate Terminal API token gate"
 grep -q '/payments/sync' "$TERMINAL" || fail "Worldline terminal adapter is not using the documented synchronous endpoint"
