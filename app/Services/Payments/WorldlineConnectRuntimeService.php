@@ -21,17 +21,19 @@ use Worldline\Connect\Sdk\V1\Domain\SessionRequest;
  * Security invariants:
  * - PayMyDine never receives PAN/CVV for this flow.
  * - Every checkout is provider-hosted (MyCheckout).
+ * - Payment products come from the merchant's Worldline configuration for the
+ *   exact country/currency instead of a PayMyDine hard-coded catalogue.
  * - A Worldline hosted-checkout id is only trusted when PMD created and stored it.
  * - Paid status is accepted only after server-to-server amount/currency/reference checks.
  */
 final class WorldlineConnectRuntimeService
 {
-    private const PRODUCT_IDS = [
-        'card' => [1, 2, 3, 128],
-        'apple_pay' => [302],
-        'google_pay' => [320],
-        'wero' => [809],
-        'paypal' => [840],
+    private const SUPPORTED_METHODS = [
+        'card',
+        'apple_pay',
+        'google_pay',
+        'wero',
+        'paypal',
     ];
 
     public function config(bool $requireEnabled = true): array
@@ -113,11 +115,91 @@ final class WorldlineConnectRuntimeService
         }
     }
 
+    public function availablePaymentProducts(
+        string $countryCode = 'DE',
+        string $currency = 'EUR',
+        ?int $amountMinor = null,
+        string $locale = 'de_DE'
+    ): array {
+        $countryCode = strtoupper(trim($countryCode));
+        $currency = strtoupper(trim($currency));
+        if (!preg_match('/^[A-Z]{2}$/', $countryCode) || !preg_match('/^[A-Z]{3}$/', $currency)) {
+            throw new \InvalidArgumentException('Invalid Worldline product-discovery context.');
+        }
+
+        $cfg = $this->config(true);
+        $query = null;
+        foreach ([
+            'Worldline\\Connect\\Sdk\\V1\\Merchant\\Products\\FindProductsParams',
+            'Worldline\\Connect\\Sdk\\V1\\Merchant\\Products\\GetProductParams',
+        ] as $queryClass) {
+            if (class_exists($queryClass)) {
+                $query = new $queryClass();
+                break;
+            }
+        }
+        if (!$query) {
+            throw new \RuntimeException('Installed Worldline Connect SDK cannot discover configured payment products.');
+        }
+
+        $query->countryCode = $countryCode;
+        $query->currencyCode = $currency;
+        if (property_exists($query, 'locale')) {
+            $query->locale = trim($locale) ?: 'de_DE';
+        }
+        if ($amountMinor !== null && $amountMinor > 0 && property_exists($query, 'amount')) {
+            $query->amount = $amountMinor;
+        }
+
+        try {
+            $raw = $this->toArray($this->merchantClient($cfg)->products()->find($query));
+        } catch (\Throwable $e) {
+            \Log::warning('WORLDLINE_PRODUCT_DISCOVERY_FAILED', [
+                'host' => request()->getHost(),
+                'country' => $countryCode,
+                'currency' => $currency,
+                'amount_minor' => $amountMinor,
+                'error_class' => get_class($e),
+                'message' => $e->getMessage(),
+            ]);
+            throw new \RuntimeException('Worldline configured payment products could not be retrieved.', 0, $e);
+        }
+
+        $result = array_fill_keys(self::SUPPORTED_METHODS, []);
+        foreach ((array)($raw['paymentProducts'] ?? []) as $product) {
+            if (!is_array($product)) {
+                continue;
+            }
+            $id = isset($product['id']) && is_numeric($product['id']) ? (int)$product['id'] : 0;
+            if ($id <= 0) {
+                continue;
+            }
+            $method = $this->classifyProduct($product);
+            if ($method !== null && array_key_exists($method, $result)) {
+                $result[$method][] = $id;
+            }
+        }
+
+        foreach ($result as $method => $ids) {
+            $result[$method] = array_values(array_unique(array_map('intval', $ids)));
+        }
+
+        return $result;
+    }
+
+    public function availablePaymentMethods(string $countryCode = 'DE', string $currency = 'EUR'): array
+    {
+        return array_keys(array_filter(
+            $this->availablePaymentProducts($countryCode, $currency),
+            static fn (array $ids): bool => count($ids) > 0
+        ));
+    }
+
     public function createHostedCheckout(array $payload): array
     {
         $cfg = $this->config(true);
         $method = strtolower(trim((string)($payload['payment_method'] ?? 'card')));
-        if (!array_key_exists($method, self::PRODUCT_IDS)) {
+        if (!in_array($method, self::SUPPORTED_METHODS, true)) {
             throw new \InvalidArgumentException('Unsupported Worldline payment method: '.$method);
         }
 
@@ -128,6 +210,8 @@ final class WorldlineConnectRuntimeService
         $returnUrl = trim((string)($payload['return_url'] ?? ''));
         $orderId = (int)($payload['order_id'] ?? 0);
         $merchantReference = trim((string)($payload['merchant_reference'] ?? ''));
+        $principalAmountMinor = (int)($payload['principal_amount_minor'] ?? $amountMinor);
+        $tipAmountMinor = max(0, (int)($payload['tip_amount_minor'] ?? 0));
 
         if ($amountMinor <= 0) {
             throw new \InvalidArgumentException('Worldline amount must be greater than zero.');
@@ -147,6 +231,14 @@ final class WorldlineConnectRuntimeService
                 : 'PMD-'.strtoupper(substr(str_replace('-', '', (string)Str::uuid()), 0, 20));
         }
         $merchantReference = substr($merchantReference, 0, 40);
+
+        $available = $this->availablePaymentProducts($countryCode, $currency, $amountMinor, $locale);
+        $productIds = array_values(array_unique(array_map('intval', (array)($available[$method] ?? []))));
+        if (!$productIds) {
+            throw new \RuntimeException(
+                'Worldline payment method '.$method.' is not configured for '.$countryCode.'/'.$currency.' on this Merchant ID.'
+            );
+        }
 
         $amount = new AmountOfMoney();
         $amount->amount = $amountMinor;
@@ -174,7 +266,7 @@ final class WorldlineConnectRuntimeService
         $specific->returnUrl = $returnUrl;
         $specific->locale = $locale;
         $specific->showResultPage = false;
-        $this->applyProductFilter($specific, self::PRODUCT_IDS[$method]);
+        $this->applyProductFilter($specific, $productIds);
 
         $request = new CreateHostedCheckoutRequest();
         $request->order = $order;
@@ -196,8 +288,10 @@ final class WorldlineConnectRuntimeService
             'order_id' => $orderId > 0 ? $orderId : null,
             'merchant_reference' => $merchantReference,
             'payment_method' => $method,
-            'payment_product_ids' => self::PRODUCT_IDS[$method],
+            'payment_product_ids' => $productIds,
             'expected_amount_minor' => $amountMinor,
+            'principal_amount_minor' => $principalAmountMinor,
+            'tip_amount_minor' => $tipAmountMinor,
             'expected_currency' => $currency,
             'country_code' => $countryCode,
             'created_at_utc' => gmdate('c'),
@@ -209,6 +303,7 @@ final class WorldlineConnectRuntimeService
             'hosted_checkout_id' => $checkoutId,
             'order_id' => $session['order_id'],
             'payment_method' => $method,
+            'payment_product_ids' => $productIds,
             'amount_minor' => $amountMinor,
             'currency' => $currency,
         ]);
@@ -220,6 +315,7 @@ final class WorldlineConnectRuntimeService
             'hosted_checkout_id' => $checkoutId,
             'redirect_url' => $redirect,
             'payment_method' => $method,
+            'payment_product_ids' => $productIds,
         ];
     }
 
@@ -299,6 +395,32 @@ final class WorldlineConnectRuntimeService
         return $expected !== '' && $returnMac !== '' && hash_equals($expected, $returnMac);
     }
 
+    private function classifyProduct(array $product): ?string
+    {
+        $id = isset($product['id']) && is_numeric($product['id']) ? (int)$product['id'] : 0;
+        $label = strtolower(trim((string)($product['displayHints']['label'] ?? '')));
+        $paymentMethod = strtolower(trim((string)($product['paymentMethod'] ?? '')));
+        $group = strtolower(trim((string)($product['paymentProductGroup'] ?? '')));
+
+        if ($id === 302 || str_contains($label, 'apple pay')) {
+            return 'apple_pay';
+        }
+        if ($id === 320 || str_contains($label, 'google pay')) {
+            return 'google_pay';
+        }
+        if ($id === 840 || str_contains($label, 'paypal')) {
+            return 'paypal';
+        }
+        if (str_contains($label, 'wero') || str_contains($paymentMethod, 'wero') || str_contains($group, 'wero')) {
+            return 'wero';
+        }
+        if ($paymentMethod === 'card' || $group === 'card' || $group === 'cards') {
+            return 'card';
+        }
+
+        return null;
+    }
+
     private function merchantClient(array $cfg)
     {
         $communicatorConfiguration = new CommunicatorConfiguration(
@@ -343,11 +465,6 @@ final class WorldlineConnectRuntimeService
                 if ($host === '' || !str_ends_with($host, '.worldline-solutions.com')) {
                     throw new \RuntimeException('Worldline returned an unexpected hosted checkout domain.');
                 }
-
-                // Worldline Connect returns partialRedirectUrl without the
-                // account subdomain. The documented default MyCheckout
-                // subdomain is "payment", so the browser URL is
-                // https://payment.{partialRedirectUrl}.
                 if (str_starts_with(strtolower($candidate), 'payment.')) {
                     return 'https://'.$candidate;
                 }
@@ -369,7 +486,10 @@ final class WorldlineConnectRuntimeService
             'verification_ok' => $verified,
             'order_id' => $session['order_id'] ?? null,
             'method_code' => $session['payment_method'] ?? null,
+            'payment_product_ids' => $session['payment_product_ids'] ?? [],
             'expected_amount_minor' => (int)$session['expected_amount_minor'],
+            'principal_amount_minor' => (int)($session['principal_amount_minor'] ?? $session['expected_amount_minor']),
+            'tip_amount_minor' => (int)($session['tip_amount_minor'] ?? 0),
             'actual_amount_minor' => $actualAmount,
             'expected_currency' => (string)$session['expected_currency'],
             'actual_currency' => $actualCurrency,
