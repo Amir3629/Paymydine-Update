@@ -3,27 +3,51 @@
 namespace Admin\Models;
 
 use Admin\Classes\PaymentGateways;
-use Admin\Traits\PaymentProfiles;
 use Igniter\Flame\Database\Model;
-use Illuminate\Support\Facades\Log;
+use Igniter\Flame\Database\Traits\Purgeable;
+use Igniter\Flame\Database\Traits\Sortable;
+use Igniter\Flame\Exception\ApplicationException;
+use Igniter\Flame\Exception\ValidationException;
+use Illuminate\Support\Facades\Lang;
+use Illuminate\Support\Facades\Schema;
 
+/**
+ * Payments Model Class
+ */
 class Payments_model extends Model
 {
-    use PaymentProfiles;
+    use Sortable;
+    use Purgeable;
 
-    protected $table = 'payment_methods';
-    protected $primaryKey = 'id';
+    const SORT_ORDER = 'priority';
 
-    protected $guarded = [];
-    protected $casts = [
-        'data' => 'array',
-        'status' => 'boolean',
-        'is_default' => 'boolean',
-    ];
+    /**
+     * @var string The database table name
+     */
+    protected $table = 'payments';
+
+    /**
+     * @var string The database table primary key
+     */
+    protected $primaryKey = 'payment_id';
+
+    public function __construct(array $attributes = [])
+    {
+        parent::__construct($attributes);
+        $this->applyStorageMapping();
+    }
+
+    protected $fillable = ['name', 'code', 'class_name', 'description', 'meta', 'provider_code', 'status', 'is_default', 'priority', 'sort_order'];
+
+    public $timestamps = true;
+
+    protected $casts = ['meta' => 'array'];
+
+    protected $jsonable = [];
+
+    protected $purgeable = ['payment'];
 
     protected static $defaultPayment;
-
-    protected static $pmdResolvedStorage = [];
 
     protected const METHOD_PROVIDER_MATRIX = [
         'card' => ['stripe', 'worldline', 'sumup', 'vr_payment'],
@@ -35,128 +59,76 @@ class Payments_model extends Model
         'cash' => [],
     ];
 
-    public function __construct(array $attributes = [])
+    public function getDropdownOptions()
     {
-        parent::__construct($attributes);
-        $this->applyStorageMapping();
+        return $this->isEnabled()->dropdown('name', 'code');
     }
 
-    protected function applyStorageMapping(): void
+    public static function listDropdownOptions()
     {
-        try {
-            $connection = $this->getConnectionName() ?: config('database.default');
-            $cacheKey = (string)$connection;
-            if (!array_key_exists($cacheKey, self::$pmdResolvedStorage)) {
-                $schema = $this->getConnection()->getSchemaBuilder();
-                $hasPaymentMethods = $schema->hasTable('payment_methods');
-                $hasPayments = $schema->hasTable('payments');
+        $all = self::select('code', 'name', 'description')->isEnabled()->get();
+        $collection = $all->keyBy('code')->map(function ($model) {
+            return [$model->name, $model->description];
+        });
 
-                $table = $hasPaymentMethods ? 'payment_methods' : ($hasPayments ? 'payments' : 'payment_methods');
-                $columns = [];
-                try {
-                    if ($schema->hasTable($table)) {
-                        $columns = $schema->getColumnListing($table);
-                    }
-                } catch (\Throwable $ignored) {
-                    $columns = [];
-                }
+        return $collection;
+    }
 
-                self::$pmdResolvedStorage[$cacheKey] = [
-                    'table' => $table,
-                    'primaryKey' => $table === 'payments' ? 'payment_id' : 'id',
-                    'dataColumn' => in_array('data', $columns, true) ? 'data' : (in_array('meta', $columns, true) ? 'meta' : null),
-                    'hasStatus' => in_array('status', $columns, true),
-                    'hasDefault' => in_array('is_default', $columns, true),
-                    'hasProviderCode' => in_array('provider_code', $columns, true),
-                ];
-            }
+    public static function onboardingIsComplete()
+    {
+        return self::isEnabled()->count() > 0;
+    }
 
-            $mapping = self::$pmdResolvedStorage[$cacheKey];
-            $this->setTable($mapping['table']);
-            $this->setKeyName($mapping['primaryKey']);
-        } catch (\Throwable $e) {
-            Log::warning('PMD payments storage mapping failed', ['message' => $e->getMessage()]);
+    public function listGateways()
+    {
+        $result = [];
+        $this->gatewayManager = PaymentGateways::instance();
+        foreach ($this->gatewayManager->listGateways() as $code => $gateway) {
+            $result[$gateway['code']] = $gateway['name'];
         }
+
+        return $result;
     }
 
-    protected function storageMapping(): array
+    //
+    // Accessors & Mutators
+    //
+
+    public function setCodeAttribute($value)
     {
-        $this->applyStorageMapping();
-        $connection = $this->getConnectionName() ?: config('database.default');
-        return self::$pmdResolvedStorage[(string)$connection] ?? [
-            'table' => $this->getTable(),
-            'primaryKey' => $this->getKeyName(),
-            'dataColumn' => 'data',
-            'hasStatus' => true,
-            'hasDefault' => true,
-            'hasProviderCode' => true,
-        ];
+        $this->attributes['code'] = str_slug($value, '_');
     }
 
-    public function getConfigData(): array
+    public function scopeIsEnabled($query)
     {
-        $mapping = $this->storageMapping();
-        $column = $mapping['dataColumn'];
-        if (!$column) return [];
-        $raw = $this->getAttribute($column);
-        if (is_array($raw)) return $raw;
-        if (is_object($raw)) return (array)$raw;
-        if (is_string($raw) && trim($raw) !== '') {
-            $decoded = json_decode($raw, true);
-            return is_array($decoded) ? $decoded : [];
-        }
-        return [];
+        return $query->where('status', 1);
     }
 
-    public function setConfigData(array $data): self
-    {
-        $mapping = $this->storageMapping();
-        if ($mapping['dataColumn']) {
-            $this->setAttribute($mapping['dataColumn'], $data);
-        }
-        return $this;
-    }
+    //
+    // Events
+    //
 
-    public function getDataAttribute($value)
+    protected function afterFetch()
     {
-        if (is_array($value)) return $value;
-        if (is_object($value)) return (array)$value;
-        if (is_string($value) && trim($value) !== '') {
-            $decoded = json_decode($value, true);
-            return is_array($decoded) ? $decoded : [];
-        }
-        return [];
-    }
+        $this->applyGatewayClass();
 
-    public function setDataAttribute($value)
-    {
-        $mapping = $this->storageMapping();
-        $column = $mapping['dataColumn'] ?: 'data';
-        $this->attributes[$column] = is_string($value) ? $value : json_encode($value ?: []);
-    }
-
-    public function getProviderCodeAttribute($value)
-    {
-        $mapping = $this->storageMapping();
-        if ($mapping['hasProviderCode']) return $value;
-        $data = $this->getConfigData();
-        return $data['provider_code'] ?? null;
-    }
-
-    public function setProviderCodeAttribute($value)
-    {
-        $mapping = $this->storageMapping();
-        if ($mapping['hasProviderCode']) {
-            $this->attributes['provider_code'] = $value;
-            return;
-        }
-        $data = $this->getConfigData();
-        $data['provider_code'] = $value;
-        $this->setConfigData($data);
+        $payload = $this->getConfigPayload();
+        if (is_array($payload))
+            $this->attributes = array_merge($payload, $this->attributes);
     }
 
     protected function beforeSave()
     {
+        $this->applyStorageMapping();
+
+        if (strlen((string)$this->code)) {
+            $existing = self::query()->where('code', (string)$this->code)->first();
+            if ($existing && ((string)$this->getKey() === '' || (int)$this->getKey() === 0 || !$this->exists)) {
+                $this->setAttribute($this->getKeyName(), $existing->getKey());
+                $this->exists = true;
+            }
+        }
+
         if (!$this->exists) {
             $this->prepareAttributesForResolvedStorage();
             return;
@@ -181,21 +153,24 @@ class Payments_model extends Model
             'priority',
             'status',
             'is_default',
+            'description',
             'class_name',
-            'provider_code',
-        ] as $virtual) {
-            unset($posted[$virtual]);
+        ] as $k) {
+            unset($posted[$k]);
         }
 
+        if (array_key_exists('provider_code', $posted)) {
+            $this->provider_code = strlen((string)$posted['provider_code']) ? (string)$posted['provider_code'] : null;
+            unset($posted['provider_code']);
+        }
+        
         if (!empty($posted)) {
-            $data = $this->getConfigData();
-            foreach ($posted as $key => $value) {
-                if ($value === '' && in_array($key, ['secret_api_key', 'webhook_secret', 'access_token', 'client_secret'], true)) {
-                    continue;
-                }
-                $data[$key] = $value;
-            }
-            $this->setConfigData($data);
+            $current = $this->getConfigPayload();
+            $this->setConfigPayload(array_merge($current, $posted));
+        }
+
+        if (!$this->provider_code && in_array((string)$this->code, ['cod', 'cash'], true)) {
+            $this->provider_code = null;
         }
 
         $this->prepareAttributesForResolvedStorage();
@@ -204,23 +179,48 @@ class Payments_model extends Model
     protected function prepareAttributesForResolvedStorage(): void
     {
         $this->applyStorageMapping();
-        $mapping = $this->storageMapping();
 
-        if ($mapping['dataColumn']) {
-            $raw = $this->getAttribute($mapping['dataColumn']);
-            if (is_array($raw) || is_object($raw)) {
-                $this->attributes[$mapping['dataColumn']] = json_encode($raw);
+        $realColumns = Schema::getColumnListing(
+            $this->getTable()
+        );
+
+        foreach (['meta', 'data'] as $jsonColumn) {
+            if (
+                !in_array($jsonColumn, $realColumns, true) ||
+                !array_key_exists($jsonColumn, $this->attributes)
+            ) {
+                continue;
             }
+
+            $value = $this->attributes[$jsonColumn];
+
+            if (!is_array($value) && !is_object($value)) {
+                continue;
+            }
+
+            $encoded = json_encode(
+                $value,
+                JSON_UNESCAPED_UNICODE |
+                JSON_UNESCAPED_SLASHES |
+                JSON_INVALID_UTF8_SUBSTITUTE
+            );
+
+            if ($encoded === false) {
+                throw new ApplicationException(
+                    'Unable to serialize payment configuration.'
+                );
+            }
+
+            $this->attributes[$jsonColumn] = $encoded;
         }
 
-        foreach (['data', 'meta'] as $column) {
-            if ($column !== $mapping['dataColumn']) {
-                unset($this->attributes[$column]);
+        foreach (array_keys($this->attributes) as $name) {
+            if (in_array($name, $realColumns, true)) {
+                continue;
             }
+
+            unset($this->attributes[$name]);
         }
-        if (!$mapping['hasProviderCode']) unset($this->attributes['provider_code']);
-        if (!$mapping['hasStatus']) unset($this->attributes['status']);
-        if (!$mapping['hasDefault']) unset($this->attributes['is_default']);
     }
 
     public function applyGatewayClass($class = null)
@@ -228,23 +228,39 @@ class Payments_model extends Model
         if (is_null($class))
             $class = $this->class_name;
 
-        if (!class_exists($class))
-            return false;
+        if (!class_exists($class)) {
+            $class = null;
+        }
 
-        $this->extendClassWith($class);
+        if ($class && !$this->isClassExtendedWith($class)) {
+            $this->extendClassWith($class);
+        }
 
-        return $this;
+        $this->class_name = $class;
+
+        return !is_null($class);
+    }
+
+    public function renderPaymentForm($controller)
+    {
+        $this->beforeRenderPaymentForm($this, $controller);
+
+        $paymentMethodFile = strtolower(class_basename($this->class_name));
+        $partialName = 'payregister/'.$paymentMethodFile;
+
+        return $controller->renderPartial($partialName, ['paymentMethod' => $this]);
+    }
+
+    public function getGatewayClass()
+    {
+        return $this->class_name;
     }
 
     public function getGatewayObject($class = null)
     {
-        if (is_null($class))
+        if (!$class) {
             $class = $this->class_name;
-
-        if (!class_exists($class))
-            return null;
-
-        $this->extendClassWith($class);
+        }
 
         return $this->asExtension($class);
     }
@@ -252,20 +268,30 @@ class Payments_model extends Model
     public function makeDefault()
     {
         if (!$this->status) {
-            return;
+            throw new ValidationException(['status' => sprintf(
+                lang('admin::lang.alert_error_set_default'), $this->name
+            )]);
         }
 
-        static::query()->where('is_default', 1)->where($this->getKeyName(), '<>', $this->getKey())->update(['is_default' => 0]);
+        $this->timestamps = false;
+        $this->newQuery()->where('is_default', '!=', 0)->update(['is_default' => 0]);
+        $this->newQuery()->where($this->getKeyName(), $this->getKey())->update(['is_default' => 1]);
+        $this->timestamps = true;
     }
 
     public static function getDefault()
     {
-        if (self::$defaultPayment)
+        if (self::$defaultPayment !== null) {
             return self::$defaultPayment;
+        }
 
-        $defaultPayment = self::isEnabled()->where('is_default', 1)->first();
-        if (!$defaultPayment)
-            $defaultPayment = self::isEnabled()->first();
+        $defaultPayment = self::isEnabled()->where('is_default', true)->first();
+
+        if (!$defaultPayment) {
+            if ($defaultPayment = self::isEnabled()->first()) {
+                $defaultPayment->makeDefault();
+            }
+        }
 
         return self::$defaultPayment = $defaultPayment;
     }
@@ -273,12 +299,31 @@ class Payments_model extends Model
     public static function listPayments()
     {
         return self::isEnabled()->get()->filter(function ($model) {
-            return $model->getGatewayObject();
+            return strlen($model->class_name) > 0;
         });
     }
 
     public static function syncAll()
     {
+        $payments = self::pluck('code')->all();
+
+        $gatewayManager = PaymentGateways::instance();
+        foreach ($gatewayManager->listGateways() as $code => $gateway) {
+            if (in_array($code, $payments)) continue;
+
+            $model = self::make([
+                'code' => $code,
+                'name' => Lang::get($gateway['name']),
+                'description' => Lang::get($gateway['description']),
+                'class_name' => $gateway['class'],
+                'status' => $code === 'cod',
+                'is_default' => $code === 'cod',
+            ]);
+
+            $model->applyGatewayClass();
+            $model->save();
+        }
+
         PaymentGateways::createPartials();
     }
 
@@ -287,28 +332,160 @@ class Payments_model extends Model
         if (!$customer)
             return null;
 
-        return $this->payment_profiles()
-            ->where('customer_id', $customer->getKey())
+        $query = Payment_profiles_model::query();
+
+        return $query->where('customer_id', $customer->customer_id)
+            ->where('payment_id', $this->getKey())
             ->first();
     }
 
     public function initPaymentProfile($customer)
     {
         $profile = new Payment_profiles_model();
-        $profile->customer_id = $customer->getKey();
-        $profile->payment_method_id = $this->getKey();
-        $profile->payment_data = [];
+        $profile->customer_id = $customer->customer_id;
+        $profile->payment_id = $this->getKey();
+
         return $profile;
     }
 
-    public function scopeIsEnabled($query)
+    public function paymentProfileExists($customer)
     {
-        $mapping = (new static)->storageMapping();
-        if (!$mapping['hasStatus']) return $query;
-        return $query->where('status', 1);
+        return (bool)$this->findPaymentProfile($customer);
     }
 
-    public static function methodProviderMatrix(): array
+    public function deletePaymentProfile($customer)
+    {
+        $gatewayObj = $this->getGatewayObject();
+
+        $profile = $this->findPaymentProfile($customer);
+
+        if (!$profile) {
+            throw new ApplicationException(lang('admin::lang.customers.alert_customer_payment_profile_not_found'));
+        }
+
+        $gatewayObj->deletePaymentProfile($customer, $profile);
+
+        $profile->delete();
+    }
+
+    protected function applyStorageMapping(): void
+    {
+        $schema = $this->getConnection()->getSchemaBuilder();
+
+        $methodTables = ['payment_methods', 'ti_payment_methods'];
+        $legacyTables = ['payments', 'ti_payments'];
+
+        foreach ($methodTables as $tableName) {
+            if ($schema->hasTable($tableName)) {
+                $this->table = $tableName;
+                $this->primaryKey = 'id';
+                $this->casts = ['meta' => 'array'];
+                $this->jsonable = [];
+                return;
+            }
+        }
+
+        foreach ($legacyTables as $tableName) {
+            if ($schema->hasTable($tableName)) {
+                $this->table = $tableName;
+                $this->primaryKey = 'payment_id';
+                $this->casts = ['data' => 'array'];
+                $this->jsonable = [];
+                return;
+            }
+        }
+
+        $this->table = 'payments';
+        $this->primaryKey = 'payment_id';
+        $this->casts = ['data' => 'array'];
+        $this->jsonable = [];
+    }
+
+    protected function usesPaymentMethodsStorage(): bool
+    {
+        return in_array($this->getTable(), ['payment_methods', 'ti_payment_methods'], true);
+    }
+
+    public function getPriorityAttribute($value)
+    {
+        if ($this->usesPaymentMethodsStorage()) {
+            return (int)($this->attributes['sort_order'] ?? 0);
+        }
+
+        return $value;
+    }
+
+    public function setPriorityAttribute($value): void
+    {
+        if ($this->usesPaymentMethodsStorage()) {
+            $this->attributes['sort_order'] = (int)$value;
+            return;
+        }
+
+        $this->attributes['priority'] = $value;
+    }
+
+    public function getDataAttribute($value)
+    {
+        if ($this->usesPaymentMethodsStorage()) {
+            $meta = $this->attributes['meta'] ?? $this->meta ?? [];
+            return is_array($meta) ? $meta : (is_string($meta) ? (json_decode($meta, true) ?: []) : []);
+        }
+
+        return is_array($value) ? $value : (is_string($value) ? (json_decode($value, true) ?: []) : []);
+    }
+
+    public function setDataAttribute($value): void
+    {
+        $normalized = is_array($value) ? $value : (is_string($value) ? (json_decode($value, true) ?: []) : []);
+        if ($this->usesPaymentMethodsStorage()) {
+            $this->attributes['meta'] = $normalized;
+            return;
+        }
+
+        $this->attributes['data'] = json_encode($normalized);
+    }
+
+    protected function getConfigPayload(): array
+    {
+        if ($this->usesPaymentMethodsStorage()) {
+            return (array)$this->getDataAttribute($this->attributes['meta'] ?? null);
+        }
+
+        return (array)$this->getDataAttribute($this->attributes['data'] ?? null);
+    }
+
+    protected function setConfigPayload(array $payload): void
+    {
+        if (array_key_exists('supported_providers', $payload)) {
+            $payload['supported_providers'] = $this->normalizeSupportedProviders($payload['supported_providers']);
+        }
+
+        if ($this->usesPaymentMethodsStorage()) {
+            $this->attributes['meta'] = $payload;
+            return;
+        }
+
+        $this->attributes['data'] = json_encode($payload);
+    }
+
+    public function getConfigData(): array
+    {
+        return $this->getConfigPayload();
+    }
+
+    public function setConfigData(array $payload): void
+    {
+        $this->setConfigPayload($payload);
+    }
+
+    public function isMethodStorageResolved(): bool
+    {
+        $this->applyStorageMapping();
+        return $this->usesPaymentMethodsStorage();
+    }
+
+    public static function supportedProviderMatrix(): array
     {
         return self::METHOD_PROVIDER_MATRIX;
     }
@@ -316,16 +493,59 @@ class Payments_model extends Model
     public static function supportedProvidersForMethod(string $methodCode): array
     {
         $methodCode = strtolower(trim($methodCode));
-        $candidates = self::METHOD_PROVIDER_MATRIX[$methodCode] ?? [];
-        if (!$candidates) {
+        $catalogue = self::METHOD_PROVIDER_MATRIX[$methodCode] ?? [];
+
+        if (empty($catalogue)) {
             return [];
         }
 
         $registry = new \App\Services\Payments\ProviderCapabilityRegistry();
 
         return array_values(array_filter(
-            $candidates,
-            static fn (string $provider): bool => $registry->implementsPaymentMethod($provider, $methodCode)
+            $catalogue,
+            fn (string $providerCode) => $registry->implementsPaymentMethod($providerCode, $methodCode)
         ));
+    }
+
+    public function getSupportedProvidersAttribute($value): array
+    {
+        $payload = $this->getConfigPayload();
+        if (array_key_exists('supported_providers', $payload)) {
+            return $this->normalizeSupportedProviders($payload['supported_providers']);
+        }
+
+        return self::supportedProvidersForMethod((string)$this->code);
+    }
+
+    public function setSupportedProvidersAttribute($value): void
+    {
+        $payload = $this->getConfigPayload();
+        $payload['supported_providers'] = $this->normalizeSupportedProviders($value);
+        $this->setConfigPayload($payload);
+    }
+
+    protected function normalizeSupportedProviders($value): array
+    {
+        $items = array_values(array_filter(array_map(
+            fn ($v) => strtolower(trim((string)$v)),
+            is_array($value) ? $value : []
+        ), fn (string $v) => $v !== ''));
+
+        $items = array_values(array_unique($items));
+        $allowed = self::supportedProvidersForMethod((string)$this->code);
+        if (!empty($allowed)) {
+            $items = array_values(array_filter($items, fn (string $provider) => in_array($provider, $allowed, true)));
+        }
+
+        $selectedProvider = strtolower(trim((string)($this->provider_code ?? '')));
+        if ($selectedProvider !== '' && in_array($selectedProvider, $allowed, true) && !in_array($selectedProvider, $items, true)) {
+            $items[] = $selectedProvider;
+        }
+
+        if (empty($items) && !empty($allowed)) {
+            return array_values($allowed);
+        }
+
+        return $items;
     }
 }
