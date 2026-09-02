@@ -78,6 +78,12 @@ function markImmediatePaymentAction(panel: HTMLElement, methodCode: string) {
   if (!button.dataset.pmdWlOriginalAria) {
     button.dataset.pmdWlOriginalAria = button.getAttribute('aria-label') || ''
   }
+
+  // A method click is selection only. Keep the shared marker set so the
+  // Worldline bridge must not synthesize a second click on the canonical Pay
+  // button. The user's explicit click on this button still reaches React's
+  // normal onClick handler and is the only event allowed to start payment.
+  button.setAttribute(AUTO_START_ATTRIBUTE, 'true')
   button.setAttribute('data-pmd-worldline-action', 'true')
   button.setAttribute('data-pmd-worldline-action-label', paymentLabel(methodCode))
   button.setAttribute('aria-label', paymentLabel(methodCode))
@@ -91,29 +97,9 @@ function restoreImmediatePaymentAction(panel: HTMLElement) {
   if (originalAria) button.setAttribute('aria-label', originalAria)
   else button.removeAttribute('aria-label')
   delete button.dataset.pmdWlOriginalAria
+  button.removeAttribute(AUTO_START_ATTRIBUTE)
   button.removeAttribute('data-pmd-worldline-action')
   button.removeAttribute('data-pmd-worldline-action-label')
-}
-
-function triggerSelectedPayment(panel: HTMLElement, attempt = 0) {
-  const button = genericPayButton(panel)
-  if (!button || button.hasAttribute(WORLDLINE_HIDDEN_PAY) || button.disabled) {
-    if (attempt < 10) window.setTimeout(() => triggerSelectedPayment(panel, attempt + 1), 40)
-    return
-  }
-
-  // PaymentCheckoutUXEnhancer and WorldlineEmbeddedCheckoutBridge share this
-  // marker. Whichever reaches the canonical React Pay button first owns the
-  // start; the other path must return without issuing a duplicate request.
-  if (button.getAttribute(AUTO_START_ATTRIBUTE) === 'true') return
-  button.setAttribute(AUTO_START_ATTRIBUTE, 'true')
-  button.click()
-
-  window.setTimeout(() => {
-    if (!panel.querySelector<HTMLElement>(`:scope > [${WORLDLINE_INLINE_HOST}="true"]`)) {
-      button.removeAttribute(AUTO_START_ATTRIBUTE)
-    }
-  }, 15000)
 }
 
 function isReadyNoise(text: string): boolean {
@@ -239,13 +225,8 @@ export function PaymentCheckoutUXEnhancer() {
       if (methodCode) {
         activeMethod.set(panel, normalizeMethod(methodCode))
         markImmediatePaymentAction(panel, methodCode)
-        // React handles methodKey in this same click. Two animation frames later
-        // pay() sees the new selected method and starts the real provider flow.
-        window.requestAnimationFrame(() => {
-          window.requestAnimationFrame(() => {
-            if (!disposed) triggerSelectedPayment(panel)
-          })
-        })
+        // Selection must be instantaneous and side-effect free. Do not click the
+        // Pay button here and do not start any provider/network work here.
       } else {
         activeMethod.delete(panel)
         restoreImmediatePaymentAction(panel)
