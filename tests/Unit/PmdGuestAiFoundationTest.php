@@ -20,13 +20,33 @@ final class PmdGuestAiFoundationTest extends TestCase
         self::assertStringContainsString("Allergy safety is strict", $source);
         self::assertStringContainsString("looksLikePromptExtraction", $source);
         self::assertStringContainsString("RateLimiter", $source);
+        self::assertStringContainsString("'tools' => []", $source);
 
         self::assertStringNotContainsString('PmdReadAuthority', $source);
         self::assertStringNotContainsString('PmdKitchenWorkforceService', $source);
         self::assertStringNotContainsString('owner_kpis', $source);
         self::assertStringNotContainsString('report_range', $source);
         self::assertStringNotContainsString('workforce_schedule_range', $source);
-        self::assertStringNotContainsString("'tools' => [", $source);
+    }
+
+    public function testGuestPopularityIsMeasuredLocationScopedAndDistinctFromChefChoice(): void
+    {
+        $root = dirname(__DIR__, 2);
+        $guest = file_get_contents($root.'/app/Services/AI/GuestMenuAiService.php');
+        $popularity = file_get_contents($root.'/app/Services/MenuPopularityService.php');
+
+        self::assertIsString($guest);
+        self::assertIsString($popularity);
+        self::assertStringContainsString('attachPopularityForLocation', $guest);
+        self::assertStringContainsString('POPULARITY RULE:', $guest);
+        self::assertStringContainsString('CUISINE SIMILARITY RULE:', $guest);
+        self::assertStringContainsString("'popularity_rank'", $guest);
+        self::assertStringContainsString("'top_items' => \$popularity['top_items']", $guest);
+        self::assertStringContainsString('?int $locationId = null', $popularity);
+        self::assertStringContainsString("where('o.location_id', \$locationId)", $popularity);
+        self::assertStringContainsString("where('o.processed', 1)", $popularity);
+        self::assertStringContainsString("['paid', 'settled']", $popularity);
+        self::assertStringContainsString('existing callers that omit location retain', strtolower($popularity));
     }
 
     public function testGuestApiIsReadOnlyAndRequiresLocation(): void
@@ -58,6 +78,8 @@ final class PmdGuestAiFoundationTest extends TestCase
         self::assertStringContainsString("env('PMD_AI_GUEST_TENANT_ALLOWLIST', '')", $config);
         self::assertStringContainsString("env('PMD_AI_GUEST_LOCATION_ALLOWLIST', '')", $config);
         self::assertStringContainsString("env('PMD_AI_GUEST_ALLOW_WILDCARD', false)", $config);
+        self::assertStringContainsString("env('PMD_AI_GUEST_MAX_OUTPUT_TOKENS', 1400)", $config);
+        self::assertStringContainsString("env('PMD_AI_GUEST_MAX_ANSWER_CHARS', 3200)", $config);
         self::assertStringContainsString('PMD_AI_GUEST_REQUESTS_PER_MINUTE', $config);
         self::assertStringContainsString('PMD_AI_GUEST_DAILY_REQUESTS_PER_IP', $config);
         self::assertStringContainsString('PMD_AI_GUEST_DAILY_REQUESTS_PER_TENANT', $config);
