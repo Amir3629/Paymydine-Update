@@ -9,7 +9,7 @@ use RuntimeException;
 use Throwable;
 
 /**
- * PMD_GUEST_AI_TABLE_VISIT_CHAT_R1
+ * PMD_GUEST_AI_TABLE_VISIT_CHAT_R2
  *
  * Tenant-local, guest-private conversation persistence for the public menu AI.
  *
@@ -20,24 +20,39 @@ use Throwable;
  *   guestSessionId, never the raw browser identifier;
  * - each chat is scoped to one canonical table + location + manual-free visit
  *   generation;
- * - the existing cashier_manual_free table lifecycle is the hard visit boundary;
- *   history from an older visit is never returned after Staff Free Table;
- * - stale/old generations are physically purged on the next history/ask access,
- *   with a 24-hour safety TTL if staff never closes the table visit.
+ * - cashier_manual_free is the hard visit boundary; the next visit can never
+ *   hydrate the previous visit's chat;
+ * - server storage failure is explicit. The visit key can still be returned so
+ *   Frontend V2 may safely keep a same-device fallback without leaking across
+ *   table visits.
  */
 final class GuestAiConversationStore
 {
     private const TABLE = 'pmd_guest_ai_conversations';
-    private const MAX_MESSAGES = 40;
-    private const TTL_HOURS = 24;
+    private const MAX_MESSAGES = 200;
+
+    /**
+     * The existing schema has a non-null expires_at column. R2 no longer uses
+     * time expiry as a guest-visible lifecycle boundary; Staff Free Table does.
+     * Keep a distant compatibility value so existing tenant schemas need no
+     * destructive alteration during the canary.
+     */
+    private const COMPAT_EXPIRES_HOURS = 87600; // 10 years
 
     public function history(int $locationId, int $tableId, string $guestSessionId): array
     {
         $this->assertContext($locationId, $tableId, $guestSessionId);
-        $this->ensureSchema();
-
         $visitKey = $this->currentVisitKey($tableId);
-        $this->purgeStaleRows($tableId, $visitKey);
+
+        if (!$this->ensureSchema()) {
+            return [
+                'visit_key' => $visitKey,
+                'storage_ready' => false,
+                'messages' => [],
+            ];
+        }
+
+        $this->purgeOlderVisits($tableId, $visitKey);
 
         $rows = DB::table(self::TABLE)
             ->where('location_id', $locationId)
@@ -52,6 +67,7 @@ final class GuestAiConversationStore
 
         return [
             'visit_key' => $visitKey,
+            'storage_ready' => true,
             'messages' => $rows->map(static function ($row): array {
                 return [
                     'id' => (int)($row->id ?? 0),
@@ -71,10 +87,13 @@ final class GuestAiConversationStore
         int $maxChars = 220
     ): string {
         $this->assertContext($locationId, $tableId, $guestSessionId);
-        $this->ensureSchema();
-
         $visitKey = $this->currentVisitKey($tableId);
-        $this->purgeStaleRows($tableId, $visitKey);
+
+        if (!$this->ensureSchema()) {
+            return '';
+        }
+
+        $this->purgeOlderVisits($tableId, $visitKey);
 
         $row = DB::table(self::TABLE)
             ->where('location_id', $locationId)
@@ -106,71 +125,95 @@ final class GuestAiConversationStore
         ?string $runId = null
     ): array {
         $this->assertContext($locationId, $tableId, $guestSessionId);
-        $this->ensureSchema();
-
         $visitKey = $this->currentVisitKey($tableId);
-        $this->purgeStaleRows($tableId, $visitKey);
+
+        if (!$this->ensureSchema()) {
+            return [
+                'visit_key' => $visitKey,
+                'persisted' => false,
+                'storage_ready' => false,
+            ];
+        }
+
+        $this->purgeOlderVisits($tableId, $visitKey);
 
         $question = $this->clip($question, 600);
         $answer = $this->clip($answer, 3200);
         $locale = trim((string)$locale);
         $runId = trim((string)$runId);
         $guestHash = $this->guestHash($guestSessionId);
-        $expiresAt = now()->addHours(self::TTL_HOURS);
+        $expiresAt = now()->addHours(self::COMPAT_EXPIRES_HOURS);
 
-        DB::transaction(function () use (
-            $locationId,
-            $tableId,
-            $visitKey,
-            $guestHash,
-            $question,
-            $answer,
-            $locale,
-            $runId,
-            $expiresAt
-        ): void {
-            $common = [
-                'location_id' => $locationId,
+        try {
+            DB::transaction(function () use (
+                $locationId,
+                $tableId,
+                $visitKey,
+                $guestHash,
+                $question,
+                $answer,
+                $locale,
+                $runId,
+                $expiresAt
+            ): void {
+                $common = [
+                    'location_id' => $locationId,
+                    'table_id' => $tableId,
+                    'visit_key' => $visitKey,
+                    'guest_session_hash' => $guestHash,
+                    'locale' => $locale !== '' ? mb_substr($locale, 0, 32) : null,
+                    'run_id' => $runId !== '' ? mb_substr($runId, 0, 64) : null,
+                    'expires_at' => $expiresAt,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+
+                DB::table(self::TABLE)->insert(array_merge($common, [
+                    'role' => 'user',
+                    'content' => $question,
+                ]));
+
+                DB::table(self::TABLE)->insert(array_merge($common, [
+                    'role' => 'assistant',
+                    'content' => $answer,
+                ]));
+
+                // Keep a generous bounded transcript for one restaurant visit.
+                // This is a storage-abuse guard, not a time-based lifecycle.
+                $staleIds = DB::table(self::TABLE)
+                    ->where('location_id', $locationId)
+                    ->where('table_id', $tableId)
+                    ->where('visit_key', $visitKey)
+                    ->where('guest_session_hash', $guestHash)
+                    ->orderByDesc('id')
+                    ->skip(self::MAX_MESSAGES)
+                    ->pluck('id')
+                    ->map(static fn ($id) => (int)$id)
+                    ->filter(static fn ($id) => $id > 0)
+                    ->all();
+
+                if ($staleIds) {
+                    DB::table(self::TABLE)->whereIn('id', $staleIds)->delete();
+                }
+            });
+        } catch (Throwable $error) {
+            logger()->warning('PMD Guest AI chat write failed', [
                 'table_id' => $tableId,
+                'location_id' => $locationId,
+                'error_type' => get_class($error),
+            ]);
+
+            return [
                 'visit_key' => $visitKey,
-                'guest_session_hash' => $guestHash,
-                'locale' => $locale !== '' ? mb_substr($locale, 0, 32) : null,
-                'run_id' => $runId !== '' ? mb_substr($runId, 0, 64) : null,
-                'expires_at' => $expiresAt,
-                'created_at' => now(),
-                'updated_at' => now(),
+                'persisted' => false,
+                'storage_ready' => true,
             ];
-
-            DB::table(self::TABLE)->insert(array_merge($common, [
-                'role' => 'user',
-                'content' => $question,
-            ]));
-
-            DB::table(self::TABLE)->insert(array_merge($common, [
-                'role' => 'assistant',
-                'content' => $answer,
-            ]));
-
-            $staleIds = DB::table(self::TABLE)
-                ->where('location_id', $locationId)
-                ->where('table_id', $tableId)
-                ->where('visit_key', $visitKey)
-                ->where('guest_session_hash', $guestHash)
-                ->orderByDesc('id')
-                ->skip(self::MAX_MESSAGES)
-                ->pluck('id')
-                ->map(static fn ($id) => (int)$id)
-                ->filter(static fn ($id) => $id > 0)
-                ->all();
-
-            if ($staleIds) {
-                DB::table(self::TABLE)->whereIn('id', $staleIds)->delete();
-            }
-        });
+        }
 
         return [
             'visit_key' => $visitKey,
             'persisted' => true,
+            'storage_ready' => true,
         ];
     }
 
@@ -259,28 +302,29 @@ final class GuestAiConversationStore
         ])), 0, 28);
     }
 
-    private function purgeStaleRows(int $tableId, string $visitKey): void
+    private function purgeOlderVisits(int $tableId, string $visitKey): void
     {
+        if (!Schema::hasTable(self::TABLE)) {
+            return;
+        }
+
         try {
             DB::table(self::TABLE)
                 ->where('table_id', $tableId)
-                ->where(function ($query) use ($visitKey) {
-                    $query->where('visit_key', '!=', $visitKey)
-                        ->orWhere('expires_at', '<=', now());
-                })
+                ->where('visit_key', '!=', $visitKey)
                 ->delete();
         } catch (Throwable $error) {
-            logger()->warning('PMD Guest AI stale chat purge failed', [
+            logger()->warning('PMD Guest AI old-visit purge failed', [
                 'table_id' => $tableId,
                 'error_type' => get_class($error),
             ]);
         }
     }
 
-    private function ensureSchema(): void
+    private function ensureSchema(): bool
     {
         if (Schema::hasTable(self::TABLE)) {
-            return;
+            return true;
         }
 
         try {
@@ -304,9 +348,15 @@ final class GuestAiConversationStore
         } catch (Throwable $error) {
             // First-request races are harmless if another request created it.
             if (!Schema::hasTable(self::TABLE)) {
-                throw $error;
+                logger()->warning('PMD Guest AI chat schema unavailable', [
+                    'error_type' => get_class($error),
+                    'database' => DB::connection()->getDatabaseName(),
+                ]);
+                return false;
             }
         }
+
+        return Schema::hasTable(self::TABLE);
     }
 
     private function guestHash(string $guestSessionId): string

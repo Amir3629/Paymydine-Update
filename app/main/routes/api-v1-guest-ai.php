@@ -129,6 +129,7 @@ Route::get('/guest-ai/history', function (Request $request) {
         return response()->json([
             'ok' => true,
             'visit_key' => (string)$history['visit_key'],
+            'storage_ready' => (bool)($history['storage_ready'] ?? false),
             'messages' => (array)$history['messages'],
             'read_only' => true,
             'scope' => 'guest_table_visit',
@@ -146,6 +147,7 @@ Route::get('/guest-ai/history', function (Request $request) {
 
         return response()->json([
             'ok' => false,
+            'storage_ready' => false,
             'message' => 'Saved menu chat is temporarily unavailable.',
             'read_only' => true,
         ], $error instanceof ValidationException ? 422 : 503)->withHeaders([
@@ -213,6 +215,7 @@ Route::post('/guest-ai/ask', function (Request $request) {
 
         $visitKey = null;
         $persisted = false;
+        $storageReady = null;
         if ($tableId > 0 && $guestSessionId !== '') {
             try {
                 $saved = app(GuestAiConversationStore::class)->appendPair(
@@ -226,7 +229,9 @@ Route::post('/guest-ai/ask', function (Request $request) {
                 );
                 $visitKey = (string)($saved['visit_key'] ?? '');
                 $persisted = (bool)($saved['persisted'] ?? false);
+                $storageReady = (bool)($saved['storage_ready'] ?? false);
             } catch (\Throwable $storeError) {
+                $storageReady = false;
                 logger()->warning('PMD Guest AI chat persistence failed', [
                     'run_id' => $runId,
                     'type' => get_class($storeError),
@@ -244,6 +249,7 @@ Route::post('/guest-ai/ask', function (Request $request) {
             'ui_locale' => $uiLocale,
             'visit_key' => $visitKey ?: null,
             'persisted' => $persisted,
+            'storage_ready' => $storageReady,
             'latency_ms' => (int)($result['latency_ms'] ?? 0),
             'guarded' => (bool)($result['guarded'] ?? false),
             'read_only' => true,
@@ -286,6 +292,7 @@ Route::post('/guest-ai/ask', function (Request $request) {
         return response()->json([
             'ok' => false,
             'run_id' => $runId,
+            'storage_ready' => false,
             'message' => $public,
             'read_only' => true,
         ], $status)->withHeaders([

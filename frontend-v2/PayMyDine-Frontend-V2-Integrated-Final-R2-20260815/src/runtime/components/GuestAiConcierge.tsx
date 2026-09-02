@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { ArrowUp, Sparkles, X } from 'lucide-react'
@@ -19,6 +19,8 @@ type GuestAiCopy = {
   thinking: string
   retry: string
   safety: string
+  saved: string
+  localOnly: string
   prompts: string[]
 }
 
@@ -28,6 +30,14 @@ type ChatMessage = {
   content: string
   locale?: string | null
 }
+
+type LocalChatSnapshot = {
+  visitKey: string
+  messages: ChatMessage[]
+  updatedAt: number
+}
+
+type SyncState = 'idle' | 'synced' | 'local'
 
 const EN: GuestAiCopy = {
   button: 'Ask PMD',
@@ -40,6 +50,8 @@ const EN: GuestAiCopy = {
   thinking: 'Checking the menu…',
   retry: 'I couldn’t finish that one. Try again in a moment.',
   safety: 'For severe allergies, always confirm ingredients and cross-contact with restaurant staff before ordering.',
+  saved: 'Saved for this table visit',
+  localOnly: 'Saved on this device; server sync retrying',
   prompts: ['What should I try? ✨', 'Something vegetarian 🌱', 'What’s popular?', 'Help me choose under {budget}'],
 }
 
@@ -54,6 +66,8 @@ const DE: GuestAiCopy = {
   thinking: 'Ich schaue ins Menü…',
   retry: 'Das hat gerade nicht geklappt. Versuch es bitte gleich noch einmal.',
   safety: 'Bei schweren Allergien Zutaten und mögliche Kreuzkontakte immer zusätzlich beim Restaurant-Team bestätigen.',
+  saved: 'Für diesen Tischbesuch gespeichert',
+  localOnly: 'Auf diesem Gerät gespeichert; Server-Sync wird erneut versucht',
   prompts: ['Was soll ich probieren? ✨', 'Etwas Vegetarisches 🌱', 'Was ist beliebt?', 'Hilf mir unter {budget} zu wählen'],
 }
 
@@ -68,6 +82,8 @@ const FA: GuestAiCopy = {
   thinking: 'دارم منو را بررسی می‌کنم…',
   retry: 'این یکی کامل نشد. یک لحظه دیگر دوباره امتحان کن.',
   safety: 'برای آلرژی شدید، قبل از سفارش مواد اولیه و احتمال تماس متقاطع را با کارکنان رستوران تأیید کنید.',
+  saved: 'برای همین نوبت میز ذخیره شد',
+  localOnly: 'روی همین دستگاه ذخیره شد؛ همگام‌سازی سرور دوباره تلاش می‌شود',
   prompts: ['چی پیشنهاد می‌کنی؟ ✨', 'یک گزینه گیاهی 🌱', 'چی محبوبه؟', 'زیر {budget} کمکم کن انتخاب کنم'],
 }
 
@@ -82,6 +98,8 @@ const TR: GuestAiCopy = {
   thinking: 'Menüye bakıyorum…',
   retry: 'Bunu tamamlayamadım. Birazdan tekrar dene.',
   safety: 'Şiddetli alerjilerde sipariş vermeden önce içerikleri ve çapraz temas riskini restoran ekibiyle doğrulayın.',
+  saved: 'Bu masa ziyareti için kaydedildi',
+  localOnly: 'Bu cihazda kaydedildi; sunucu eşitlemesi yeniden denenecek',
   prompts: ['Ne denemeliyim? ✨', 'Vejetaryen bir şey 🌱', 'Ne popüler?', '{budget} altında seçim yapmama yardım et'],
 }
 
@@ -96,6 +114,8 @@ const JA: GuestAiCopy = {
   thinking: 'メニューを確認中…',
   retry: 'うまく完了できませんでした。少し待ってもう一度お試しください。',
   safety: '重度のアレルギーがある場合は、注文前に原材料と交差接触の可能性を店舗スタッフに確認してください。',
+  saved: 'このテーブル利用中の会話を保存しました',
+  localOnly: 'この端末に保存済みです。サーバー同期を再試行します',
   prompts: ['おすすめは？ ✨', 'ベジタリアン料理 🌱', '人気なのは？', '{budget}以内で選びたい'],
 }
 
@@ -129,6 +149,59 @@ function responseDirection(responseLocale: string, value: string, fallback: stri
   return textDirection(value, fallback)
 }
 
+function normalizeMessages(value: unknown): ChatMessage[] {
+  if (!Array.isArray(value)) return []
+  return value.slice(-200).flatMap((row, index): ChatMessage[] => {
+    if (!row || typeof row !== 'object') return []
+    const source = row as Record<string, unknown>
+    const role = source.role === 'user' ? 'user' : source.role === 'assistant' ? 'assistant' : null
+    const raw = String(source.content || '')
+    const content = role === 'assistant' ? cleanAnswer(raw) : raw.trim()
+    if (!role || !content) return []
+    return [{
+      id: String(source.id || `history-${index}`),
+      role,
+      content,
+      locale: source.locale == null ? null : String(source.locale).slice(0, 32),
+    }]
+  })
+}
+
+function readLocalSnapshot(key: string): LocalChatSnapshot | null {
+  if (!key || typeof window === 'undefined') return null
+  try {
+    const raw = window.localStorage.getItem(key)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as Partial<LocalChatSnapshot>
+    const messages = normalizeMessages(parsed.messages)
+    return {
+      visitKey: String(parsed.visitKey || ''),
+      messages,
+      updatedAt: Number(parsed.updatedAt || 0),
+    }
+  } catch {
+    return null
+  }
+}
+
+function writeLocalSnapshot(key: string, visitKey: string, messages: ChatMessage[]): void {
+  if (!key || typeof window === 'undefined') return
+  try {
+    window.localStorage.setItem(key, JSON.stringify({
+      visitKey,
+      messages: messages.slice(-200),
+      updatedAt: Date.now(),
+    } satisfies LocalChatSnapshot))
+  } catch {}
+}
+
+function clearLocalSnapshot(key: string): void {
+  if (!key || typeof window === 'undefined') return
+  try {
+    window.localStorage.removeItem(key)
+  } catch {}
+}
+
 type StatusPayload = { ok?: boolean; enabled?: boolean; surface?: string }
 type AskPayload = {
   ok?: boolean
@@ -137,10 +210,12 @@ type AskPayload = {
   response_locale?: string
   visit_key?: string | null
   persisted?: boolean
+  storage_ready?: boolean
 }
 type HistoryPayload = {
   ok?: boolean
   visit_key?: string | null
+  storage_ready?: boolean
   messages?: Array<{
     id?: number | string
     role?: string
@@ -160,11 +235,18 @@ export function GuestAiConcierge({ themeId }: { themeId: ThemeId }) {
   const [open, setOpen] = useState(false)
   const [question, setQuestion] = useState('')
   const [messages, setMessages] = useState<ChatMessage[]>([])
-  const [visitKey, setVisitKey] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [syncState, setSyncState] = useState<SyncState>('idle')
+  const messagesRef = useRef<ChatMessage[]>([])
+  const visitKeyRef = useRef('')
+  const tailRef = useRef<HTMLDivElement | null>(null)
 
   const canPersist = Boolean(locationId && locationId > 0 && tableId > 0 && guestSessionId.length >= 8)
+  const localKey = useMemo(() => canPersist
+    ? `pmd-v2:guest-ai-chat:${bootstrap.tenant.id}:${locationId}:${tableId}:${guestSessionId}`
+    : '', [bootstrap.tenant.id, canPersist, guestSessionId, locationId, tableId])
+
   // Reuse MenuRuntimeContext's single 3-second table/order polling authority.
   // A Staff Free action closes QR drafts/orders and changes this revision, which
   // makes us re-check the server visit key without introducing a second timer.
@@ -175,10 +257,42 @@ export function GuestAiConcierge({ themeId }: { themeId: ThemeId }) {
     order.updatedAt || '',
   ].join(':')).join('|'), [tableOrders])
 
+  const commitConversation = useCallback((nextMessages: ChatMessage[], nextVisitKey?: string) => {
+    const bounded = nextMessages.slice(-200)
+    messagesRef.current = bounded
+    setMessages(bounded)
+
+    if (typeof nextVisitKey === 'string') {
+      visitKeyRef.current = nextVisitKey
+    }
+
+    if (localKey) {
+      writeLocalSnapshot(localKey, visitKeyRef.current, bounded)
+    }
+  }, [localKey])
+
   useEffect(() => {
     const nextHost = document.querySelector<HTMLElement>('main[data-theme-id]')
     setHost(nextHost)
   }, [themeId])
+
+  useEffect(() => {
+    if (!localKey) {
+      messagesRef.current = []
+      visitKeyRef.current = ''
+      setMessages([])
+      setSyncState('idle')
+      return
+    }
+
+    const snapshot = readLocalSnapshot(localKey)
+    if (!snapshot) return
+
+    messagesRef.current = snapshot.messages
+    visitKeyRef.current = snapshot.visitKey
+    setMessages(snapshot.messages)
+    if (snapshot.messages.length > 0) setSyncState('local')
+  }, [localKey])
 
   useEffect(() => {
     if (!locationId || locationId < 1) {
@@ -227,38 +341,56 @@ export function GuestAiConcierge({ themeId }: { themeId: ThemeId }) {
       guest_session_id: guestSessionId,
     })
 
-    const response = await fetch(`/api/v1/guest-ai/history?${params.toString()}`, {
-      method: 'GET',
-      credentials: 'same-origin',
-      cache: 'no-store',
-      headers: { Accept: 'application/json' },
-    })
-    const payload = await response.json().catch(() => ({})) as HistoryPayload
-    if (!response.ok || payload.ok !== true || !Array.isArray(payload.messages)) return
+    try {
+      const response = await fetch(`/api/v1/guest-ai/history?${params.toString()}`, {
+        method: 'GET',
+        credentials: 'same-origin',
+        cache: 'no-store',
+        headers: { Accept: 'application/json' },
+      })
+      const payload = await response.json().catch(() => ({})) as HistoryPayload
+      if (!response.ok || payload.ok !== true || !Array.isArray(payload.messages)) {
+        if (messagesRef.current.length > 0) setSyncState('local')
+        return
+      }
 
-    const nextVisitKey = String(payload.visit_key || '')
-    const nextMessages = payload.messages.flatMap((row, index): ChatMessage[] => {
-      const role = row?.role === 'user' ? 'user' : row?.role === 'assistant' ? 'assistant' : null
-      const content = role === 'assistant'
-        ? cleanAnswer(String(row?.content || ''))
-        : String(row?.content || '').trim()
-      if (!role || !content) return []
-      return [{
-        id: String(row?.id || `history-${index}`),
-        role,
-        content,
-        locale: row?.locale || null,
-      }]
-    })
+      const nextVisitKey = String(payload.visit_key || '')
+      const currentVisitKey = visitKeyRef.current
+      const nextMessages = normalizeMessages(payload.messages)
+      const visitChanged = Boolean(currentVisitKey && nextVisitKey && currentVisitKey !== nextVisitKey)
 
-    if (visitKey && nextVisitKey && visitKey !== nextVisitKey) {
-      // Staff Free Table creates a new visit generation. Old guest chat must
-      // disappear even if this browser tab stayed open through the reset.
-      setError('')
+      if (visitChanged) {
+        // Staff Free Table is the hard privacy boundary. Do not carry any local
+        // fallback transcript into the next physical table visit.
+        clearLocalSnapshot(localKey)
+        commitConversation(nextMessages, nextVisitKey)
+        setError('')
+        setSyncState(payload.storage_ready === false ? 'local' : 'synced')
+        return
+      }
+
+      if (nextVisitKey) visitKeyRef.current = nextVisitKey
+
+      if (nextMessages.length > 0) {
+        commitConversation(nextMessages, nextVisitKey || currentVisitKey)
+        setSyncState('synced')
+        return
+      }
+
+      // Never erase an already-visible/local transcript merely because a same-
+      // visit history read is empty. That was the R1 bug that made chats vanish
+      // immediately after a successful answer whenever persistence lagged/failed.
+      if (messagesRef.current.length > 0) {
+        writeLocalSnapshot(localKey, nextVisitKey || currentVisitKey, messagesRef.current)
+        setSyncState(payload.storage_ready === false ? 'local' : syncState === 'synced' ? 'synced' : 'local')
+      } else {
+        commitConversation([], nextVisitKey || currentVisitKey)
+        setSyncState(payload.storage_ready === false ? 'local' : 'synced')
+      }
+    } catch {
+      if (messagesRef.current.length > 0) setSyncState('local')
     }
-    setVisitKey(nextVisitKey)
-    setMessages(nextMessages)
-  }, [canPersist, guestSessionId, locationId, tableId, visitKey])
+  }, [canPersist, commitConversation, guestSessionId, localKey, locationId, syncState, tableId])
 
   useEffect(() => {
     if (!enabled || !canPersist || busy) return
@@ -276,6 +408,11 @@ export function GuestAiConcierge({ themeId }: { themeId: ThemeId }) {
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [open])
 
+  useEffect(() => {
+    if (!open) return
+    tailRef.current?.scrollIntoView({ block: 'end', behavior: 'smooth' })
+  }, [busy, error, messages.length, open])
+
   const ask = useCallback(async (prompt?: string) => {
     const value = String(prompt ?? question).trim()
     if (!value || busy || !locationId || locationId < 1) return
@@ -288,7 +425,7 @@ export function GuestAiConcierge({ themeId }: { themeId: ThemeId }) {
       locale,
     }
 
-    setMessages((current) => [...current, userMessage])
+    commitConversation([...messagesRef.current, userMessage])
     setQuestion('')
     setBusy(true)
     setError('')
@@ -323,6 +460,7 @@ export function GuestAiConcierge({ themeId }: { themeId: ThemeId }) {
       }
 
       const nextVisitKey = String(payload.visit_key || '')
+      const currentVisitKey = visitKeyRef.current
       const assistantMessage: ChatMessage = {
         id: `local-ai-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
         role: 'assistant',
@@ -330,19 +468,21 @@ export function GuestAiConcierge({ themeId }: { themeId: ThemeId }) {
         locale: String(payload.response_locale || 'auto').slice(0, 20),
       }
 
-      setMessages((current) => {
-        if (visitKey && nextVisitKey && visitKey !== nextVisitKey) {
-          return [userMessage, assistantMessage]
-        }
-        return [...current, assistantMessage]
-      })
-      if (nextVisitKey) setVisitKey(nextVisitKey)
+      const visitChanged = Boolean(currentVisitKey && nextVisitKey && currentVisitKey !== nextVisitKey)
+      const base = visitChanged ? [userMessage] : messagesRef.current
+      if (visitChanged) clearLocalSnapshot(localKey)
+      commitConversation([...base, assistantMessage], nextVisitKey || currentVisitKey)
+
+      if (canPersist) {
+        setSyncState(payload.persisted === true && payload.storage_ready !== false ? 'synced' : 'local')
+      }
     } catch (requestError) {
       setError(requestError instanceof Error && requestError.message ? requestError.message : copy.retry)
+      if (canPersist && messagesRef.current.length > 0) setSyncState('local')
     } finally {
       setBusy(false)
     }
-  }, [busy, canPersist, copy.retry, guestSessionId, locale, locationId, question, tableId, visitKey])
+  }, [busy, canPersist, commitConversation, copy.retry, guestSessionId, localKey, locale, locationId, question, tableId])
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -353,6 +493,9 @@ export function GuestAiConcierge({ themeId }: { themeId: ThemeId }) {
 
   const budget = formatCurrency(20)
   const promptOptions = copy.prompts.map((prompt) => prompt.replace('{budget}', budget))
+  const syncLabel = canPersist
+    ? (syncState === 'local' ? copy.localOnly : copy.saved)
+    : ''
 
   return createPortal(
     <div className={styles.root} data-pmd-guest-ai="v2" data-theme={themeId} dir={direction}>
@@ -375,7 +518,7 @@ export function GuestAiConcierge({ themeId }: { themeId: ThemeId }) {
               <div className={styles.headerIcon}><Sparkles aria-hidden="true" /></div>
               <div className={styles.headerCopy}>
                 <h2 id="pmd-guest-ai-title">{copy.title}</h2>
-                <p>{copy.subtitle}</p>
+                <p>{copy.subtitle}{syncLabel ? ` · ${syncLabel}` : ''}</p>
               </div>
               <button type="button" className={styles.close} onClick={() => setOpen(false)} aria-label={copy.close}>
                 <X aria-hidden="true" />
@@ -390,16 +533,18 @@ export function GuestAiConcierge({ themeId }: { themeId: ThemeId }) {
                 </div>
               )}
 
-              <div className={styles.prompts}>
-                {promptOptions.map((prompt) => (
-                  <button key={prompt} type="button" onClick={() => void ask(prompt)} disabled={busy}>
-                    {prompt}
-                  </button>
-                ))}
-              </div>
+              {messages.length === 0 && (
+                <div className={styles.prompts}>
+                  {promptOptions.map((prompt) => (
+                    <button key={prompt} type="button" onClick={() => void ask(prompt)} disabled={busy}>
+                      {prompt}
+                    </button>
+                  ))}
+                </div>
+              )}
 
               {(messages.length > 0 || busy || error) && (
-                <div className={styles.conversation}>
+                <div className={styles.conversation} role="log" aria-live="polite" aria-relevant="additions text">
                   {messages.map((message) => message.role === 'user' ? (
                     <div
                       key={message.id}
@@ -424,6 +569,7 @@ export function GuestAiConcierge({ themeId }: { themeId: ThemeId }) {
                   {error && (
                     <div className={`${styles.aiBubble} ${styles.errorBubble}`}>{error}</div>
                   )}
+                  <div ref={tailRef} aria-hidden="true" />
                 </div>
               )}
             </div>
