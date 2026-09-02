@@ -45,15 +45,15 @@ grep -q 'WorldlineEmbeddedCheckoutBridge' "$V2_EMBED" || fail "Frontend V2 embed
 grep -q 'data-pmd-worldline-embedded' "$V2_EMBED" || fail "Worldline embedded checkout marker is missing"
 grep -q 'allow="payment"' "$V2_EMBED" || fail "Worldline iframe does not grant the Payment Request permission"
 grep -q 'sandbox="allow-scripts' "$V2_EMBED" || fail "Worldline iframe sandbox is missing"
+if grep -q 'allow-popups-to-escape-sandbox' "$V2_EMBED"; then
+  fail "Worldline iframe may not escape the PayMyDine payment overlay"
+fi
 grep -q 'worldline-solutions.com' "$V2_EMBED" || fail "Worldline iframe redirect-domain allowlist is missing"
 grep -q '/payment/worldline-embedded-return' "$V2_EMBED" || fail "Worldline embedded return bridge is missing"
 grep -q '/api/v1/payments/worldline/runtime/status' "$V2_EMBED" || fail "Embedded Worldline checkout does not poll verified server status"
 grep -q 'verification_ok' "$V2_EMBED" || fail "Embedded Worldline checkout can settle without verification"
 grep -q 'pmd-worldline-embedded-return' "$V2_EMBED_RETURN" || fail "Worldline embedded return page does not signal its parent"
 
-# The active Frontend V2 may still contain generic redirect support for other
-# providers. Worldline Card / Apple Pay / Google Pay must be intercepted by the
-# embedded bridge before the generic redirect path sees a redirect URL.
 grep -q 'redirect_url: null' "$V2_EMBED" || fail "Worldline embedded bridge does not suppress top-level redirect"
 grep -q 'CREATE_SESSION_PATTERN' "$V2_EMBED" || fail "Worldline embedded bridge lacks method-scoped interception"
 
