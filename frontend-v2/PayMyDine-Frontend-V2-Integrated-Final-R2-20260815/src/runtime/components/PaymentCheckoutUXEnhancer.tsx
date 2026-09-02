@@ -102,9 +102,10 @@ function triggerSelectedPayment(panel: HTMLElement, attempt = 0) {
     return
   }
 
-  // This marker is also understood by WorldlineEmbeddedCheckoutBridge, so its
-  // fallback click cannot duplicate the canonical React payment start later.
-  button.removeAttribute(AUTO_START_ATTRIBUTE)
+  // PaymentCheckoutUXEnhancer and WorldlineEmbeddedCheckoutBridge share this
+  // marker. Whichever reaches the canonical React Pay button first owns the
+  // start; the other path must return without issuing a duplicate request.
+  if (button.getAttribute(AUTO_START_ATTRIBUTE) === 'true') return
   button.setAttribute(AUTO_START_ATTRIBUTE, 'true')
   button.click()
 
