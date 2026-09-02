@@ -426,3 +426,5 @@ $worldlineAdminAuthorize = static function () {
         }
     });
 });
+
+require_once __DIR__.'/worldline-native-card.php';
