@@ -4,221 +4,305 @@ Status: production-hardening branch, September 2026
 
 ## 1. Product boundary
 
-PayMyDine integrates the **Worldline Global Collect / Connect** platform already used by the repository's `Worldline\\Connect\\Sdk` PHP SDK. Do not mix this implementation with unrelated Worldline product families (Sips, Direct, GoPay, SmartPOS WPI, or other regional stacks) unless a tenant contract explicitly requires a separate adapter.
+PayMyDine integrates **Worldline Global Collect / Connect** for browser payments and the separately credentialed **Worldline Terminal API** adapter for supported card-present environments.
 
-For browser payments the preferred integration is **MyCheckout / Hosted Checkout**. Sensitive card fields must remain on Worldline-controlled pages/components.
+Do not mix these implementations with unrelated Worldline product families (Sips, Direct, GoPay, SmartPOS WPI, or regional stacks) unless a tenant contract explicitly requires a separate adapter.
 
-For in-person payments the intended future fit is **Terminal API Cloud** if Worldline provides the merchant/partner API contract and certifies the PayMyDine use case. SmartPOS WPI is a native Android intent model and is not a replacement for a VPS-to-terminal cloud API.
+Browser checkout now has two explicit modes:
 
-## 2. PayMyDine invariants
+- **Card / Wallet (`card`)**: PayMyDine-rendered card form using the official Worldline JavaScript Client SDK. Raw card data exists only in the guest browser long enough to be validated/encrypted by Worldline; PHP receives only `encryptedCustomerInput`.
+- **Apple Pay / Google Pay / PayPal / Wero**: provider-hosted Worldline Connect / MyCheckout flow until a separately reviewed native wallet integration is implemented.
 
-Provider, payment method, terminal device, and user surface are separate concepts.
+These modes deliberately share the same PMD order, amount, tenant, status-verification and settlement authorities.
 
-A method may be offered only when all of the following are true:
+## 2. Core PayMyDine invariants
 
-1. the location/country profile permits the provider;
-2. the method is assigned to the provider;
-3. the provider connection is enabled and tenant-scoped;
-4. the provider account is entitled to the method;
-5. PayMyDine marks the method/capability implemented;
+Provider, payment method, terminal device, tenant/location and user surface are separate concepts.
+
+A Worldline method may be offered only when all of the following are true:
+
+1. the location/country profile permits Worldline;
+2. the method is assigned to Worldline;
+3. the Worldline provider connection is enabled for the tenant;
+4. Worldline's product-discovery API returns an entitled product for the merchant/country/currency;
+5. `ProviderCapabilityRegistry` marks the PMD method implemented;
 6. runtime readiness succeeds.
 
-A browser redirect, return URL, client callback, or webhook payload is a **signal**, not settlement truth. PayMyDine must retrieve authoritative provider state server-to-server and validate the expected order/reference, amount, currency, and final status before idempotent settlement.
+A browser callback, return URL, encrypted payload, iframe message, webhook, or terminal HTTP response is never by itself settlement truth. PMD must verify the expected order/reference, amount, currency and final provider state before idempotent settlement.
 
-## 3. Germany scope
+## 3. Current Germany / EUR browser scope
 
-Initial Worldline runtime scope is Germany / EUR.
+Initial Worldline customer runtime scope is Germany / EUR.
 
-Worldline Connect catalogue methods relevant to PayMyDine:
-
-| PMD method | Worldline Connect catalogue | Notes |
+| PMD method | Runtime mode | Notes |
 | --- | --- | --- |
-| `card` | Yes | MyCheckout hosted flow. Visa/Mastercard and merchant-enabled card products are provider/account dependent. |
-| `apple_pay` | Yes | Product availability and merchant activation are required. Keep disabled until sandbox-proven in PMD. |
-| `google_pay` | Yes | Product availability and merchant activation are required. Keep disabled until sandbox-proven in PMD. |
-| `wero` | Yes | Worldline product 900 in the Connect documentation; Germany/EUR and merchant enablement apply. Treat current availability as account-specific and prove in sandbox before enabling. |
-| `paypal` | Yes | Worldline can expose PayPal as a Connect payment product when enabled for the merchant. |
-| `klarna` | Yes | Catalogue only in PMD unless/until a canonical PMD method and runtime are enabled. |
-| `sepa_debit` | Yes | Catalogue only in PMD unless/until a canonical PMD method and mandate/runtime handling are implemented. |
+| `card` | Native PMD form + Worldline Client SDK encryption | Merchant-enabled card product is selected after SDK IIN discovery and checked against PMD's server-issued product allowlist. |
+| `apple_pay` | Hosted Connect / MyCheckout | Requires Worldline merchant entitlement and domain/device eligibility. |
+| `google_pay` | Hosted Connect / MyCheckout | Requires Worldline merchant entitlement and configured merchant origin/name. |
+| `paypal` | Hosted Connect / MyCheckout | Available only if returned by Worldline for the merchant. |
+| `wero` | Hosted Connect / MyCheckout | Fail closed when Worldline product discovery does not return it for the merchant/market. |
+| `klarna` | Catalogue only | Not offered until PMD implements and validates the complete runtime. |
+| `sepa_debit` | Catalogue only | Not offered until PMD implements mandate/runtime handling. |
 
-The provider capability registry intentionally keeps Worldline `implemented_capabilities` and `implemented_payment_methods` empty until a real tenant sandbox proves the full create -> provider confirmation -> authoritative verification -> PMD settlement chain.
+Do not generalize this Germany/EUR integration to Oman or other markets. Currency minor units, legal requirements and provider architecture are market-specific.
 
-Do not generalize the Germany integration to Oman. Oman has OMR with three minor-unit decimals and remains isolated to its market/provider architecture.
+## 4. Native Worldline Card architecture
 
-## 4. Browser checkout architecture
+### 4.1 Server creates an authoritative client session
 
-Canonical flow:
+The guest first has a real submitted PMD order. The browser never chooses the authoritative charge amount.
 
-1. Guest submits a real PayMyDine order first.
-2. PMD payment orchestration resolves the order amount/currency and configured method/provider.
-3. PMD creates a Worldline Hosted Checkout using the tenant's Connect credentials.
-4. Browser is redirected to the Worldline-controlled MyCheckout page.
-5. Card/wallet authentication and 3-D Secure happen on Worldline/provider surfaces.
-6. Worldline redirects back to the PMD return URL.
-7. PMD validates the locally stored Hosted Checkout ID and `RETURNMAC` fail closed.
-8. PMD retrieves Hosted Checkout/payment state from Worldline server-to-server.
-9. PMD verifies order/reference, exact minor-unit amount, currency, and a final successful provider state.
-10. PMD performs idempotent order settlement and records provider identifiers.
+`POST /api/v1/payments/worldline/native/card/create-session`:
 
-### Retired browser design
+1. requires the `card` method to be enabled and assigned to Worldline;
+2. requires an existing submitted order;
+3. recomputes remaining principal amount from PMD order state;
+4. uses a server-generated payment intent for split/item/coupon-adjusted payments;
+5. rejects unsupported grouped multi-order payments;
+6. resolves Worldline card products using merchant product discovery;
+7. creates a Worldline Client API session server-side;
+8. stores a tenant-bound PMD native-card session containing only safe authority data:
+   - order ID;
+   - merchant reference;
+   - expected amount in minor units;
+   - principal/tip amounts;
+   - currency/country/locale;
+   - allowed Worldline card product IDs;
+   - creation timestamp.
 
-The historical `WorldlineInlineCardForm` collected card number, expiry, and CVV in React state and encrypted them client-side. That design is retired. The component now launches the canonical hosted-provider flow and contains no merchant-owned PAN/CVV fields.
+The PMD session ID is a random 48-character hex value. It is not a payment credential.
 
-Standalone Worldline hosted-checkout buttons/test components that trusted a client-supplied amount have been removed.
+### 4.2 Browser card entry and encryption
 
-## 5. Worldline Connect credentials and settings
+Frontend V2 renders `WorldlineNativeCardForm` inside the existing payment panel.
 
-Current repository compatibility mapping uses the tenant's Worldline provider/POS configuration:
+Raw sensitive fields are **uncontrolled DOM inputs**. They are not stored in React state, localStorage, sessionStorage, analytics or debug output.
 
-- API endpoint (`api.preprod.connect.worldline-solutions.com` for pre-production; production endpoint for live);
-- merchant ID;
-- API key ID;
-- secret API key;
-- webhook secret/key;
-- environment (test/pre-production vs live);
-- terminal ID only as a future terminal placeholder, not evidence that terminal runtime is implemented.
+The form follows the official Worldline Client SDK sequence:
 
-Credentials are tenant secrets. Never expose key/secret prefixes in public diagnostics, logs, frontend config, or error messages. Test and live credentials must be kept separate.
+1. `new Session(sessionDetails)`;
+2. `getIinDetails(cardNumber, paymentDetails)`;
+3. require `IinDetailsStatus.SUPPORTED`;
+4. require the returned product ID to be in the PMD server-issued allowlist;
+5. `getPaymentProduct(paymentProductId, paymentDetails)`;
+6. create/get a Worldline `PaymentRequest`;
+7. set `cardNumber`, `expiryDate`, `cvv`, `cardholderName` in that SDK request;
+8. `validate()`;
+9. `getEncryptor().encrypt(paymentRequest)`;
+10. clear visible card number/expiry/CVV inputs;
+11. send only the encrypted customer input, PMD session ID, product ID and return URL to PMD.
 
-The admin connection test must eventually be a real authenticated, non-charging Worldline API probe. A local 'configuration resolved' check is not sufficient evidence that credentials are accepted by Worldline.
+The SDK is pinned in Frontend V2 as `connect-sdk-client-js` 6.0.6.
 
-## 6. Webhooks
+### 4.3 Server creates the direct payment
 
-Worldline Connect webhook requests use the configured webhook key and the `X-GCS-KeyId` / `X-GCS-Signature` headers. Verification must use the **exact raw body**, HMAC-SHA256, constant-time comparison, and the tenant-scoped webhook secret/key.
+`POST /api/v1/payments/worldline/native/card/submit` accepts only:
 
-Rules:
+- PMD native session ID;
+- `encrypted_customer_input`;
+- allowed payment product ID;
+- same-tenant HTTPS return URL.
 
-- accept POST only;
-- reject missing or invalid signatures;
-- never log the raw webhook body or complete headers;
-- store only required identifiers and sanitized diagnostics;
-- deduplicate provider events if/when persisted;
-- after accepting a valid event, retrieve authoritative Worldline payment state before settlement;
-- never mark an order paid directly from webhook JSON.
+Raw PAN/CVV/expiry request field names are explicitly rejected.
 
-The public compatibility webhook route now follows these fail-closed rules and returns `202 accepted` without claiming settlement.
+`WorldlineNativeCardService` loads amount/currency/order/reference from the server session and creates a Connect `CreatePaymentRequest` with:
 
-## 7. Return URLs and status
+- `encryptedCustomerInput`;
+- authoritative order and amount;
+- merchant reference;
+- card product ID;
+- `transactionChannel = ECOMMERCE`;
+- browser 3-D Secure;
+- challenge indicator `no-preference`;
+- challenge canvas `600x400`;
+- same-tenant HTTPS redirection return URL;
+- deterministic provider idempotence context.
 
-`RETURNMAC` is mandatory for the legacy hosted-return endpoint. A missing/mismatched MAC returns an error before provider status retrieval is exposed to the browser.
+The encrypted payload itself is not logged.
 
-Public status lookup is restricted to Hosted Checkout IDs already stored for the current tenant host and returns a minimal status shape. Raw provider responses and local checkout-session contents are not returned.
+## 5. 3-D Secure and returns
 
-The production menu checkout uses the shared `payment_return_provider=worldline` verification flow and `/api/v1/payments/worldline/checkout-status` for authoritative provider lookup.
+For frictionless card payments PMD polls server-to-server status directly.
 
-## 8. Logging and PCI controls
+When Worldline returns a `merchantAction` redirect for authentication, PMD temporarily shows the provider/bank 3DS flow. Card entry itself remains native PMD; only the required issuer authentication surface is provider-controlled.
 
-Never store, log, print, serialize, toast, include in analytics, or put into application exceptions:
+The same-origin route `/payment/worldline-embedded-return` forwards only safe return context to the parent payment panel:
+
+- native PMD session ID;
+- `RETURNMAC`.
+
+`POST /api/v1/payments/worldline/native/card/return` requires a valid tenant-bound session, order ID and constant-time `RETURNMAC` match before authoritative provider status is trusted.
+
+If a bank takes over the whole browser tab rather than returning inside the challenge frame, `/payment/return` performs the same native-session + RETURNMAC verification before reusing the canonical PMD settlement flow.
+
+## 6. Authoritative Card status and settlement
+
+`POST /api/v1/payments/worldline/native/card/status` retrieves the payment from Worldline server-to-server using the stored Worldline payment ID.
+
+PMD verifies:
+
+- tenant/session ownership;
+- requested PMD order ID;
+- exact expected amount in minor units;
+- exact ISO currency;
+- merchant reference when Worldline returns one;
+- a provider-completed/paid state.
+
+Only `is_paid=true` **and** `verification_ok=true` may proceed to canonical PMD settlement.
+
+Repeated create/return/status operations must not create a second charge or double-settle the order.
+
+## 7. Hosted wallet architecture
+
+Apple Pay, Google Pay, PayPal and Wero continue through the Worldline hosted runtime.
+
+Canonical hosted flow:
+
+1. submitted PMD order;
+2. PMD resolves authoritative payment context;
+3. Worldline product discovery confirms the specific method entitlement;
+4. PMD creates Hosted Checkout restricted to that product/method;
+5. MyCheckout is displayed in the PMD payment slot;
+6. provider authentication completes;
+7. PMD retrieves Worldline Hosted Checkout/payment state server-to-server;
+8. PMD verifies amount/currency/reference and final status;
+9. canonical idempotent PMD settlement runs.
+
+`hosted_checkout_variant` is optional tenant configuration. If set, PMD sends the explicit MyCheckout variant; otherwise Worldline's merchant default applies.
+
+## 8. PCI and logging boundary
+
+The native Card mode has a broader PCI responsibility than fully hosted MyCheckout because PayMyDine renders the card-entry DOM, even though PMD's server never receives raw PAN/CVV and the official Worldline SDK encrypts them in-browser.
+
+Production activation must be reviewed against the merchant's applicable PCI DSS / SAQ obligations. Do not claim the hosted-page PCI scope applies unchanged to this native form.
+
+Never store, log, print, serialize into application diagnostics, toast with values, or send to analytics:
 
 - PAN/card number;
 - CVV/CVC/security code;
 - track data;
 - raw authorization headers;
-- API secrets/webhook secrets;
-- decrypted provider payloads containing sensitive authentication data.
+- Worldline API/webhook secrets;
+- encrypted customer input;
+- provider payloads containing sensitive authentication data.
 
-The old `routes/worldline-probe.php` raw-card route is fully retired and the file intentionally registers no routes.
+The historical raw-card probe/legacy inline endpoints remain retired. Their old route names may exist only as explicit fail-closed tombstones.
 
-## 9. Wero
+## 9. Credentials and configuration
 
-Wero must use the Worldline Connect payment product configured for the merchant, not a fake method label or unrelated Stripe fallback presented as Worldline.
+Connect credentials are tenant-scoped:
 
-Before enabling Worldline Wero for a tenant, verify:
+- Connect API endpoint;
+- Merchant ID;
+- API Key ID;
+- Secret API Key;
+- webhook secret/key;
+- optional MyCheckout variant ID.
 
-- Worldline has enabled Wero for that merchant/PSPID/account;
-- Germany/EUR eligibility;
-- the payment product returned by the merchant account matches the expected Wero product;
-- redirect/deep-link/QR behavior works on desktop and mobile;
-- return and webhook authentication work;
-- authoritative status retrieval works;
-- refunds/cancellations required by the business are available;
-- PMD amount/currency/reference checks and idempotent settlement pass sandbox tests.
+Pre-production and live credentials must remain separate. Public/browser configuration must never expose server API secrets.
 
-Until that proof exists, Wero remains catalogue-only in `ProviderCapabilityRegistry`.
+The authenticated admin Connect test performs a non-charging Client API session probe; a local configuration-presence check is not sufficient.
 
-## 10. Apple Pay / Google Pay / PayPal
+## 10. Webhooks
 
-Worldline Connect can expose these products when enabled for the merchant. PayMyDine must not infer entitlement only from Worldline marketing/catalogue documentation.
+Worldline webhook handling must:
 
-Each method needs its own sandbox proof and runtime readiness intersection before being offered. MyCheckout is preferred initially because Worldline owns the sensitive wallet/payment UI and SCA hand-off.
+- accept the documented request shape only;
+- validate endpoint-verification challenges where applicable;
+- validate `X-GCS-KeyId` and `X-GCS-Signature` using the exact raw request body;
+- use HMAC-SHA256 and constant-time comparison;
+- never log the raw webhook body or full headers;
+- treat webhook events as signals only;
+- retrieve authoritative payment state before settlement;
+- remain idempotent.
 
-## 11. Refunds, captures, tokens, reconciliation
+A webhook must never mark a PMD order paid solely from webhook JSON.
 
-Worldline catalogue capability includes refunds, partial refunds, token/saved-method features, and webhooks. PMD should implement these only after the base payment settlement chain is proven.
+## 11. Refunds, captures, saved methods and reconciliation
 
-Persist at minimum:
+Worldline catalogue capability includes refunds, partial refunds, token/saved-method features and webhooks. These capabilities must be exposed in PMD only when their actual runtime and reconciliation behavior is implemented and tenant-tested.
+
+Persist/retain safe reconciliation identifiers such as:
 
 - PMD order/payment-attempt ID;
 - PMD idempotency/reference value;
-- Worldline Hosted Checkout ID;
+- native PMD session ID or Hosted Checkout ID;
 - Worldline payment ID;
-- provider status and final state timestamp;
-- exact expected amount in minor units;
+- provider status/final timestamp;
+- exact expected minor-unit amount;
 - ISO currency;
 - method code;
-- tenant/location ownership;
-- sanitized failure/category codes where useful.
+- tenant/location ownership.
 
-Refunds and captures must be idempotent and linked to the original provider payment ID. Reconciliation must never silently overwrite an unrelated settled amount.
+Refunds/captures must use the original provider payment ID and must be idempotent.
 
-## 12. Terminal / POS status
+## 12. Terminal API boundary
 
-Worldline terminal support is **not implemented** in PMD today.
+Worldline card-present support is separate from Connect e-commerce credentials.
 
-`WorldlineTerminalProvider` must remain fail closed and Worldline must not appear in Waiter/Cashier terminal pickers until real devices can be synchronized and charged through a certified interface.
+`WorldlineTerminalProvider` implements the documented Terminal API v1 synchronous payment path and remains fail closed. It requires:
 
-Do not implement a terminal API from guesses based on marketing pages.
+- terminal merchant ID / UMID as supplied by Worldline;
+- registered terminal ID / UTID;
+- separate Terminal API bearer token;
+- Terminal API base URL;
+- currency/amount/order attempt context.
 
-Before coding Worldline Terminal API Cloud support, obtain from Worldline:
+The adapter uses NEXO protocol version `5.1-WL1.0.0` and `/api/v1/merchants/{merchant}/terminals/{terminal}/payments/sync`.
 
-1. exact contracted product name/business unit and Germany availability;
-2. partner/merchant API documentation and OpenAPI/schema if available;
-3. sandbox and production base URLs;
-4. authentication model, credential scopes, certificate requirements, and rotation process;
-5. merchant/store/location hierarchy and identifiers;
-6. device discovery/list API, terminal identifier semantics, pairing/activation flow;
-7. create-payment request/response contract;
-8. asynchronous status/polling/webhook model and terminal timeout semantics;
-9. cancellation, void, refund and partial-refund APIs;
-10. tipping/gratuity support and receipt data;
-11. terminal health/status and offline behavior;
-12. girocard/card/contactless/wallet acceptance capabilities for Germany;
-13. Wero-at-terminal availability, if any;
-14. certification/test cases and required approval before production;
-15. whether a cloud SaaS may initiate payments directly to terminals across restaurant locations without a local ECR/bridge;
-16. rate limits, idempotency requirements, reconciliation/reporting APIs and daily-close semantics.
+A terminal order is settled only when the synchronous NEXO response contains an explicit success/approved signal. Ambiguous responses remain pending; HTTP/provider failures remain failed. Sensitive bearer credentials are never logged.
 
-If the contracted Worldline product requires ZVT/OPI/Nexo/local-LAN middleware, PMD needs an on-premise agent and must not model it as the same cloud architecture used by SumUp Reader API or VR Payment Cloud Till.
+For production, do not guess the live base URL, v2 IntegratorId, SalesSystemInfo, terminal identifiers or certification data. Use only values issued/approved under the merchant's Worldline Terminal API contract.
 
-## 13. Target terminal adapter when contract is available
+## 13. Security guard
 
-If Terminal API Cloud provides true cloud-to-terminal operation, map it into the existing PMD architecture:
+`frontend/scripts/pmd-worldline-security-guard.sh` is a required deployment gate.
 
-- synchronize real terminal records into `terminal_devices` with tenant + location ownership;
-- `WorldlineTerminalProvider::createPayment()` sends the exact order amount/currency/reference to the selected provider terminal;
-- save the provider transaction/reference in `payment_attempts`;
-- `checkStatus()` retrieves authoritative status;
-- shared `TerminalPaymentService` performs the same idempotent settlement/reconciliation already used for SumUp and VR Payment;
-- only active synchronized terminals appear in Waiter/Cashier UI.
+It verifies, among other things:
 
-No fake Worldline terminal rows and no free-text terminal IDs in the payment UI.
+- legacy raw-card flows remain retired;
+- native card uses the official Worldline Client SDK;
+- IIN/product lookup and SDK encryption are present;
+- raw card fields are not sent in the native frontend request;
+- sensitive native inputs are not persisted/logged;
+- native PHP accepts encrypted input only and binds amount/currency/reference;
+- direct payment uses idempotence context;
+- authoritative `payments()->get` verification exists;
+- hosted Worldline return/webhook safeguards remain present;
+- the Terminal API adapter remains fail closed.
 
-## 14. Production gate
+## 14. Production/pre-production validation gate
 
-Worldline may move from catalogue-only to implemented only after all mandatory gates pass for a real tenant sandbox:
+Code completion is not provider certification. Before live activation for a tenant, run all applicable Worldline pre-production tests.
 
-- [ ] tenant credentials accepted by Worldline;
-- [ ] MyCheckout session creates successfully from a submitted PMD order;
-- [ ] card details never touch PMD-owned fields/server logs;
-- [ ] 3DS/SCA success, cancel, decline and timeout tested;
-- [ ] `RETURNMAC` fail-closed tests pass;
-- [ ] signed webhook verification tests pass;
-- [ ] authoritative Worldline status lookup succeeds;
-- [ ] expected order/reference, amount and currency are verified server-side;
-- [ ] repeated returns/webhooks cannot double-settle;
-- [ ] payment transaction is visible in PMD finance/order history;
-- [ ] refunds/reconciliation are either implemented or explicitly unavailable in UI;
-- [ ] live credentials are separately configured and no test endpoint/key remains;
-- [ ] terminal capability remains off unless separately certified.
+### Native Card
 
-Only after these gates should `ProviderCapabilityRegistry` mark specific Worldline capabilities/methods implemented.
+- [ ] exact Client SDK dependency installed and lockfile updated;
+- [ ] native PMD card form renders without MyCheckout product list;
+- [ ] supported Visa/Mastercard card completes frictionless flow;
+- [ ] 3DS MethodURL/challenge test completes and returns through PMD verification;
+- [ ] decline/rejection/cancel/expiry paths never settle;
+- [ ] wrong order/session is rejected;
+- [ ] wrong amount/currency/reference cannot settle;
+- [ ] missing/wrong `RETURNMAC` is rejected;
+- [ ] duplicate submit/return/status cannot double-charge or double-settle;
+- [ ] server/application logs contain no raw or encrypted card payload;
+- [ ] PMD finance/order state matches the Worldline payment ID and amount.
+
+### Hosted wallets
+
+- [ ] Apple Pay merchant/domain eligibility proven on a supported device/browser;
+- [ ] Google Pay merchant origin/name and entitlement proven;
+- [ ] PayPal authentication return proven;
+- [ ] Wero remains hidden when product discovery does not return it;
+- [ ] hosted amount/currency/reference verification and settlement remain green.
+
+### Terminal
+
+- [ ] real test UMID/UTID/Bearer credentials supplied by Worldline;
+- [ ] registered test terminal responds through Terminal API;
+- [ ] success/decline/timeout/ambiguous response behavior verified;
+- [ ] repeated staff actions cannot double-settle;
+- [ ] production URL/certification requirements confirmed by Worldline.
+
+Only validated capabilities should remain enabled for guests/staff in production.
