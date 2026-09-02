@@ -292,7 +292,7 @@ export function GuestAiConcierge({ themeId }: { themeId: ThemeId }) {
                   <div
                     className={`${styles.aiBubble} ${error ? styles.errorBubble : ''}`}
                     dir={responseDirection(answerLocale, error || answer, direction)}
-                    lang={answerLocale || locale}
+                    lang={answerLocale && answerLocale !== 'auto' ? answerLocale : undefined}
                   >
                     {busy ? copy.thinking : (error || answer)}
                   </div>
