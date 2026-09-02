@@ -40,6 +40,8 @@ const CREATE_SESSION_PATTERN = /^\/api\/v1\/payments\/worldline\/runtime\/(card|
 const PROVIDER_HOST_SUFFIX = '.worldline-solutions.com'
 const INLINE_HOST_ATTRIBUTE = 'data-pmd-worldline-inline-host'
 const HIDDEN_PAY_ATTRIBUTE = 'data-pmd-worldline-hidden-pay-button'
+const AUTO_START_ATTRIBUTE = 'data-pmd-worldline-auto-start'
+const RUNTIME_METHODS_ENDPOINT = '/api/v1/payments/worldline/runtime-methods'
 
 function sleep(ms: number) {
   return new Promise((resolve) => window.setTimeout(resolve, ms))
@@ -183,6 +185,24 @@ function visiblePaymentPanel(): HTMLElement | null {
   return panels.find((panel) => panel.getClientRects().length > 0) || panels[panels.length - 1] || null
 }
 
+function methodCodeFromButton(button: HTMLButtonElement): string | null {
+  const text = String(button.textContent || '').trim().toLowerCase().replace(/\s+/g, ' ')
+  if (!text) return null
+  if (text.includes('apple pay')) return 'apple_pay'
+  if (text.includes('google pay')) return 'google_pay'
+  if (text.includes('paypal')) return 'paypal'
+  if (text.includes('wero')) return 'wero'
+  if (text.includes('card / wallet') || text === 'card' || text.includes('card /')) return 'card'
+  return null
+}
+
+function genericPayButton(panel: HTMLElement): HTMLButtonElement | null {
+  const directButtons = Array.from(panel.querySelectorAll<HTMLButtonElement>(':scope > button'))
+  if (!directButtons.length) return null
+  const visible = directButtons.filter((button) => button.getClientRects().length > 0 && button.style.display !== 'none')
+  return visible.length ? visible[visible.length - 1] : directButtons[directButtons.length - 1] || null
+}
+
 function ensureInlineHost(): HTMLElement | null {
   const panel = visiblePaymentPanel()
   if (!panel) return null
@@ -198,8 +218,7 @@ function ensureInlineHost(): HTMLElement | null {
   host.style.padding = '0'
   host.style.background = 'transparent'
 
-  const directButtons = Array.from(panel.querySelectorAll<HTMLButtonElement>(':scope > button'))
-  const payButton = directButtons.length ? directButtons[directButtons.length - 1] : null
+  const payButton = genericPayButton(panel)
   if (payButton) {
     payButton.setAttribute(HIDDEN_PAY_ATTRIBUTE, 'true')
     payButton.style.display = 'none'
@@ -247,6 +266,63 @@ export function WorldlineEmbeddedCheckoutBridge() {
 
   useEffect(() => {
     const originalFetch = window.fetch
+    let disposed = false
+    let runtimeMethodsPromise: Promise<Set<string>> | null = null
+
+    const loadRuntimeMethods = () => {
+      if (runtimeMethodsPromise) return runtimeMethodsPromise
+      runtimeMethodsPromise = originalFetch.call(window, RUNTIME_METHODS_ENDPOINT, {
+        credentials: 'same-origin',
+        cache: 'no-store',
+        headers: { Accept: 'application/json' },
+      }).then(async (response) => {
+        if (!response.ok) return new Set<string>()
+        const data = await response.json().catch(() => ({}))
+        const rows = Array.isArray(data?.methods) ? data.methods : []
+        const methods = rows
+          .filter((row: any) => {
+            const provider = normalizeMethod(String(row?.provider_code || row?.provider || 'worldline'))
+            return provider === 'worldline' && row?.enabled !== false && Number(row?.status ?? 1) !== 0
+          })
+          .map((row: any) => normalizeMethod(String(row?.code || '')))
+          .filter(Boolean)
+        return new Set<string>(methods)
+      }).catch(() => new Set<string>())
+      return runtimeMethodsPromise
+    }
+
+    const triggerGenericPay = (panel: HTMLElement, attempt = 0) => {
+      if (disposed) return
+      const payButton = genericPayButton(panel)
+      if (!payButton || payButton.disabled) {
+        if (attempt < 6) window.setTimeout(() => triggerGenericPay(panel, attempt + 1), 70)
+        return
+      }
+      if (payButton.getAttribute(AUTO_START_ATTRIBUTE) === 'true') return
+      payButton.setAttribute(AUTO_START_ATTRIBUTE, 'true')
+      payButton.click()
+      window.setTimeout(() => payButton.removeAttribute(AUTO_START_ATTRIBUTE), 1200)
+    }
+
+    const onPaymentMethodClick = (event: MouseEvent) => {
+      const target = event.target instanceof Element ? event.target : null
+      const button = target?.closest<HTMLButtonElement>('button') || null
+      if (!button) return
+      const methodCode = methodCodeFromButton(button)
+      if (!methodCode) return
+      const panel = button.closest<HTMLElement>('[data-pmd-payment-order-id]')
+      if (!panel) return
+
+      void loadRuntimeMethods().then((methods) => {
+        if (disposed || !methods.has(methodCode)) return
+        window.requestAnimationFrame(() => {
+          window.requestAnimationFrame(() => triggerGenericPay(panel))
+        })
+      })
+    }
+
+    void loadRuntimeMethods()
+    document.addEventListener('click', onPaymentMethodClick, true)
 
     const patchedFetch: typeof window.fetch = async (input, init) => {
       let parsedUrl: URL | null = null
@@ -329,6 +405,8 @@ export function WorldlineEmbeddedCheckoutBridge() {
 
     window.fetch = patchedFetch
     return () => {
+      disposed = true
+      document.removeEventListener('click', onPaymentMethodClick, true)
       if (window.fetch === patchedFetch) window.fetch = originalFetch
       removeInlineHost()
     }
@@ -431,7 +509,7 @@ export function WorldlineEmbeddedCheckoutBridge() {
   const compact = isCompactWallet(session.methodCode)
   const content = (
     <div
-      data-pmd-worldline-embedded="mycheckout-inline-v3"
+      data-pmd-worldline-embedded="mycheckout-inline-v4-autostart"
       aria-label={`Secure ${methodLabel(session.methodCode)} payment`}
       style={{
         width: '100%',
