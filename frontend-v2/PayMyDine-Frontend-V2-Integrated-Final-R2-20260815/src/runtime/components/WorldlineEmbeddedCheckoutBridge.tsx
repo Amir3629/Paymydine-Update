@@ -174,8 +174,7 @@ function isCompactWallet(code: string): boolean {
 
 function frameHeight(code: string): string {
   if (code === 'card') return 'min(54vh, 520px)'
-  if (code === 'paypal' || code === 'wero') return 'min(42vh, 390px)'
-  return 'min(36vh, 330px)'
+  return '400px'
 }
 
 function visiblePaymentPanel(): HTMLElement | null {
@@ -450,8 +449,8 @@ export function WorldlineEmbeddedCheckoutBridge() {
         style={{
           width: '100%',
           height: frameHeight(session.methodCode),
-          minHeight: compact ? 250 : 380,
-          maxHeight: session.methodCode === 'card' ? 520 : 390,
+          minHeight: 400,
+          maxHeight: session.methodCode === 'card' ? 520 : 400,
           overflow: 'hidden',
           borderRadius: compact ? 12 : 14,
           background: 'transparent',
@@ -470,7 +469,7 @@ export function WorldlineEmbeddedCheckoutBridge() {
             display: 'block',
             width: '100%',
             height: '100%',
-            minHeight: compact ? 250 : 380,
+            minHeight: 400,
             border: 0,
             borderRadius: compact ? 12 : 14,
             background: 'transparent',
