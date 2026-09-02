@@ -31,7 +31,6 @@ type EmbeddedSession = {
   hostedCheckoutId: string
   orderId: number
   methodCode: string
-  returnTo: string
 }
 
 type BridgeState = 'idle' | 'loading' | 'ready' | 'settling' | 'paid' | 'failed'
@@ -87,8 +86,7 @@ function readPending(expectedCheckoutId: string): PendingWorldlinePayment | null
 
 function clearPending(expectedCheckoutId: string) {
   try {
-    const pending = readPending(expectedCheckoutId)
-    if (pending) window.localStorage.removeItem(PENDING_KEY)
+    if (readPending(expectedCheckoutId)) window.localStorage.removeItem(PENDING_KEY)
   } catch {}
 }
 
@@ -127,12 +125,13 @@ async function settleVerifiedWorldlinePayment(pending: PendingWorldlinePayment, 
     ? Number(status.tip_amount_minor || 0) / 100
     : Number(pending.tipAmount || 0)
   const table = pending.table || {}
+  const method = normalizeMethod(String(pending.methodCode || status?.method_code || 'card'))
 
   if ((pending.settlementMode || 'pay-existing') === 'start-finalize') {
     await requestJson('/api/v1/orders/finalize-payment', {
       order_id: orderId,
       payment_intent_id: reference,
-      payment_method: normalizeMethod(String(pending.methodCode || status?.method_code || 'card')),
+      payment_method: method,
       provider: 'worldline',
     })
     return
@@ -140,8 +139,8 @@ async function settleVerifiedWorldlinePayment(pending: PendingWorldlinePayment, 
 
   await requestJson('/api/v1/orders/pay-existing', {
     order_id: orderId,
-    payment_method: normalizeMethod(String(pending.methodCode || status?.method_code || 'card')),
-    payment_method_raw: normalizeMethod(String(pending.methodCode || status?.method_code || 'card')),
+    payment_method: method,
+    payment_method_raw: method,
     payment_provider: 'worldline',
     provider: 'worldline',
     payment_reference: reference,
@@ -169,6 +168,16 @@ function methodLabel(code: string): string {
   return 'Card / Wallet'
 }
 
+function isCompactWallet(code: string): boolean {
+  return ['apple_pay', 'google_pay', 'paypal', 'wero'].includes(code)
+}
+
+function frameHeight(code: string): string {
+  if (code === 'card') return 'min(54vh, 520px)'
+  if (code === 'paypal' || code === 'wero') return 'min(42vh, 390px)'
+  return 'min(36vh, 330px)'
+}
+
 function visiblePaymentPanel(): HTMLElement | null {
   const panels = Array.from(document.querySelectorAll<HTMLElement>('[data-pmd-payment-order-id]'))
   if (!panels.length) return null
@@ -188,6 +197,7 @@ function ensureInlineHost(): HTMLElement | null {
   host.style.minWidth = '0'
   host.style.margin = '0'
   host.style.padding = '0'
+  host.style.background = 'transparent'
 
   const directButtons = Array.from(panel.querySelectorAll<HTMLButtonElement>(':scope > button'))
   const payButton = directButtons.length ? directButtons[directButtons.length - 1] : null
@@ -223,6 +233,18 @@ export function WorldlineEmbeddedCheckoutBridge() {
   const [providerStatus, setProviderStatus] = useState('')
   const generationRef = useRef(0)
   const settlingRef = useRef(false)
+
+  const close = () => {
+    if (state === 'settling' || state === 'paid') return
+    generationRef.current += 1
+    settlingRef.current = false
+    setSession(null)
+    setHostElement(null)
+    setState('idle')
+    setMessage('')
+    setProviderStatus('')
+    removeInlineHost()
+  }
 
   useEffect(() => {
     const originalFetch = window.fetch
@@ -270,13 +292,14 @@ export function WorldlineEmbeddedCheckoutBridge() {
       const hostedCheckoutId = String(data?.hosted_checkout_id || data?.hostedCheckoutId || '')
       if (!data || !redirectUrl || !hostedCheckoutId) return response
 
+      removeInlineHost()
       const inlineHost = ensureInlineHost()
       if (!inlineHost) return response
 
       generationRef.current += 1
       settlingRef.current = false
       setProviderStatus('')
-      setMessage('Loading secure Worldline checkout…')
+      setMessage('')
       setState('loading')
       setHostElement(inlineHost)
       setSession({
@@ -284,7 +307,6 @@ export function WorldlineEmbeddedCheckoutBridge() {
         hostedCheckoutId,
         orderId: Number(data?.order_id || orderId || 0),
         methodCode: normalizeMethod(String(data?.payment_method || requestedMethod)),
-        returnTo,
       })
       window.requestAnimationFrame(() => inlineHost.scrollIntoView({ behavior: 'smooth', block: 'nearest' }))
 
@@ -314,6 +336,23 @@ export function WorldlineEmbeddedCheckoutBridge() {
   }, [])
 
   useEffect(() => {
+    if (!session || !hostElement) return
+
+    const onPanelClick = (event: MouseEvent) => {
+      if (state === 'settling' || state === 'paid') return
+      const target = event.target instanceof Element ? event.target : null
+      if (!target || hostElement.contains(target)) return
+      const button = target.closest('button')
+      if (!button) return
+      const panel = visiblePaymentPanel()
+      if (panel && panel.contains(button)) close()
+    }
+
+    document.addEventListener('click', onPanelClick, true)
+    return () => document.removeEventListener('click', onPanelClick, true)
+  }, [hostElement, session, state])
+
+  useEffect(() => {
     if (!session) return
     const generation = generationRef.current
     let cancelled = false
@@ -337,36 +376,33 @@ export function WorldlineEmbeddedCheckoutBridge() {
         if (status?.is_paid === true && status?.verification_ok === true) {
           settlingRef.current = true
           setState('settling')
-          setMessage('Payment confirmed by Worldline. Finishing your PayMyDine order…')
+          setMessage('Payment confirmed. Finishing your order…')
           try {
             await settleVerifiedWorldlinePayment(pending, status)
             clearPending(session.hostedCheckoutId)
             if (cancelled || generation !== generationRef.current) return
             setState('paid')
-            setMessage('Payment complete. Updating your order…')
+            setMessage('Payment complete.')
             window.setTimeout(() => window.location.reload(), 650)
           } catch (error) {
             settlingRef.current = false
             setState('failed')
-            setMessage(`Worldline confirmed the payment, but PayMyDine could not finish settlement. Do not pay again. ${error instanceof Error ? error.message : ''}`.trim())
+            setMessage(`Worldline confirmed payment, but PayMyDine could not finish settlement. Do not pay again. ${error instanceof Error ? error.message : ''}`.trim())
           }
           return
         }
 
         if (['CANCELLED', 'CANCELED', 'REJECTED', 'REJECTED_CAPTURE', 'FAILED', 'EXPIRED'].includes(statusName)) {
           setState('failed')
-          setMessage(`Worldline did not complete this payment (${statusName}). You can change the payment method and try again.`)
+          setMessage(`Payment not completed (${statusName}). Choose another method or try again.`)
           return
         }
 
         setState('ready')
-        setMessage('Complete the secure payment below. Your payment details stay with Worldline.')
       } catch (error) {
         if (cancelled || generation !== generationRef.current) return
         setState('ready')
-        setMessage(error instanceof Error && /bind the Worldline checkout/i.test(error.message)
-          ? error.message
-          : 'Waiting for Worldline payment confirmation…')
+        if (error instanceof Error && /bind the Worldline checkout/i.test(error.message)) setMessage(error.message)
       }
 
       if (!cancelled && generation === generationRef.current && !settlingRef.current) {
@@ -391,45 +427,36 @@ export function WorldlineEmbeddedCheckoutBridge() {
     }
   }, [session])
 
-  const close = () => {
-    if (state === 'settling' || state === 'paid') return
-    generationRef.current += 1
-    settlingRef.current = false
-    setSession(null)
-    setHostElement(null)
-    setState('idle')
-    setMessage('')
-    setProviderStatus('')
-    removeInlineHost()
-  }
-
   if (!session || !hostElement) return null
 
+  const compact = isCompactWallet(session.methodCode)
   const content = (
-    <section
-      data-pmd-worldline-embedded="mycheckout-inline-v2"
+    <div
+      data-pmd-worldline-embedded="mycheckout-inline-v3"
       aria-label={`Secure ${methodLabel(session.methodCode)} payment`}
       style={{
-        width: '100%', minWidth: 0, overflow: 'hidden',
-        border: '1px solid rgba(148, 163, 184, 0.38)', borderRadius: 16,
-        background: '#fff', color: '#0f172a', margin: 0,
-        boxShadow: '0 10px 30px rgba(15, 23, 42, 0.10)',
+        width: '100%',
+        minWidth: 0,
+        margin: 0,
+        padding: 0,
+        overflow: 'hidden',
+        border: 0,
+        borderRadius: compact ? 12 : 14,
+        background: 'transparent',
+        boxShadow: 'none',
       }}
     >
-      <header style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderBottom: '1px solid #e5e7eb', background: '#f8fafc' }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <strong style={{ display: 'block', fontSize: 15 }}>Secure {methodLabel(session.methodCode)}</strong>
-          <small style={{ display: 'block', color: '#64748b', marginTop: 2 }}>Powered by Worldline · payment data never enters PayMyDine</small>
-        </div>
-        <button
-          type="button"
-          onClick={close}
-          disabled={state === 'settling' || state === 'paid'}
-          style={{ border: '1px solid #cbd5e1', borderRadius: 999, background: '#fff', color: '#334155', padding: '7px 11px', fontSize: 12, cursor: state === 'settling' || state === 'paid' ? 'not-allowed' : 'pointer' }}
-        >Change method</button>
-      </header>
-
-      <div style={{ width: '100%', minHeight: 400, height: 'min(62vh, 620px)', position: 'relative', background: '#fff' }}>
+      <div
+        style={{
+          width: '100%',
+          height: frameHeight(session.methodCode),
+          minHeight: compact ? 250 : 380,
+          maxHeight: session.methodCode === 'card' ? 520 : 390,
+          overflow: 'hidden',
+          borderRadius: compact ? 12 : 14,
+          background: 'transparent',
+        }}
+      >
         <iframe
           src={session.redirectUrl}
           title={`Worldline ${methodLabel(session.methodCode)} checkout`}
@@ -437,20 +464,36 @@ export function WorldlineEmbeddedCheckoutBridge() {
           sandbox="allow-scripts allow-popups allow-same-origin allow-forms"
           referrerPolicy="strict-origin-when-cross-origin"
           onLoad={() => {
-            if (state === 'loading') {
-              setState('ready')
-              setMessage('Complete the secure payment below. Your payment details stay with Worldline.')
-            }
+            if (state === 'loading') setState('ready')
           }}
-          style={{ display: 'block', width: '100%', height: '100%', minHeight: 400, border: 0, background: '#fff' }}
+          style={{
+            display: 'block',
+            width: '100%',
+            height: '100%',
+            minHeight: compact ? 250 : 380,
+            border: 0,
+            borderRadius: compact ? 12 : 14,
+            background: 'transparent',
+          }}
         />
       </div>
 
-      <footer style={{ padding: '9px 12px', borderTop: '1px solid #e5e7eb', background: '#f8fafc', color: state === 'failed' ? '#991b1b' : '#475569', fontSize: 12, lineHeight: 1.4 }}>
-        <span>{message || 'Secure payment session ready.'}</span>
-        {providerStatus ? <strong style={{ marginLeft: 8 }}>Worldline: {providerStatus}</strong> : null}
-      </footer>
-    </section>
+      {(state === 'settling' || state === 'paid' || state === 'failed' || message || providerStatus) ? (
+        <div
+          role="status"
+          style={{
+            padding: '8px 4px 2px',
+            color: state === 'failed' ? '#ef4444' : 'inherit',
+            fontSize: 12,
+            lineHeight: 1.4,
+            background: 'transparent',
+          }}
+        >
+          {message ? <span>{message}</span> : null}
+          {providerStatus ? <strong style={{ marginLeft: message ? 8 : 0 }}>Worldline: {providerStatus}</strong> : null}
+        </div>
+      ) : null}
+    </div>
   )
 
   return createPortal(content, hostElement)
