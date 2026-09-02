@@ -154,6 +154,8 @@
   line-height: 1.55;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+  unicode-bidi: plaintext;
+  text-align: start;
 }
 .userBubble {
   justify-self: end;
@@ -196,6 +198,8 @@
   line-height: 1.45;
   outline: none;
   box-sizing: border-box;
+  unicode-bidi: plaintext;
+  text-align: start;
 }
 .inputWrap textarea:focus { border-color: var(--pmd-accent, currentColor); }
 .inputWrap textarea::placeholder { color: var(--pmd-muted, #777); opacity: .82; }
