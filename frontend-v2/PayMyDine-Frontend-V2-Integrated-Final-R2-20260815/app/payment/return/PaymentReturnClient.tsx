@@ -10,10 +10,12 @@ import {
   payExistingOrder,
   verifyProviderPayment,
   settleExistingOrderGroup,
+  type PendingProviderPayment,
 } from '@/src/lib/client-api'
 import styles from './payment-return.module.css'
 
 type State = 'checking' | 'paid' | 'pending' | 'cancelled' | 'error'
+type Verification = { success: boolean; paid: boolean; pending: boolean; cancelled: boolean; reference: string | null; raw: any }
 
 function providerFromQuery(params: URLSearchParams): string {
   return String(params.get('payment_return_provider') || params.get('provider') || '')
@@ -29,6 +31,46 @@ function safeReturnPath(value: string | null | undefined): string {
     return `${parsed.pathname}${parsed.search}${parsed.hash}`
   } catch {
     return '/'
+  }
+}
+
+async function verifyNativeWorldlineReturn(pending: PendingProviderPayment, params: URLSearchParams): Promise<Verification | null> {
+  const nativeSessionId = String(params.get('native_session_id') || '').trim().toLowerCase()
+  if (!/^[a-f0-9]{48}$/.test(nativeSessionId)) return null
+  if (!pending.sessionId || String(pending.sessionId).toLowerCase() !== nativeSessionId) {
+    throw new Error('Worldline native card return does not match the payment started in this browser.')
+  }
+
+  const returnMac = String(params.get('RETURNMAC') || params.get('returnmac') || '')
+  if (!returnMac) {
+    throw new Error('Worldline returned from 3-D Secure without the required verification token.')
+  }
+
+  const response = await fetch('/api/v1/payments/worldline/native/card/return', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      session_id: nativeSessionId,
+      order_id: pending.orderId,
+      return_mac: returnMac,
+    }),
+  })
+  const data = await response.json().catch(() => ({}))
+  if (!response.ok || data?.success === false || data?.return_mac_verified !== true) {
+    throw new Error(String(data?.error || data?.message || 'Worldline 3-D Secure return verification failed.'))
+  }
+
+  const status = String(data?.payment_status || data?.status || '').toUpperCase()
+  const paid = data?.is_paid === true && data?.verification_ok === true
+  const failed = ['CANCELLED', 'CANCELED', 'REJECTED', 'REJECTED_CAPTURE', 'FAILED', 'EXPIRED'].includes(status)
+  return {
+    success: true,
+    paid,
+    pending: !paid && !failed,
+    cancelled: failed,
+    reference: String(data?.payment_id || pending.sessionId || '') || null,
+    raw: data,
   }
 }
 
@@ -90,7 +132,11 @@ export default function PaymentReturnClient() {
       }
 
       try {
-        const verification = await verifyProviderPayment(provider, pending, params)
+        const normalizedProvider = provider.trim().toLowerCase().replace(/-/g, '_')
+        const nativeWorldlineVerification = normalizedProvider === 'worldline'
+          ? await verifyNativeWorldlineReturn(pending, params)
+          : null
+        const verification = nativeWorldlineVerification || await verifyProviderPayment(provider, pending, params)
         if (cancelled) return
 
         if (verification.cancelled) {

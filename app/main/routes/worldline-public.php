@@ -65,6 +65,20 @@ Route::post('/api/v1/payments/worldline/create-hosted-checkout', function () {
     ], 410);
 });
 
+// Worldline validates a webhook endpoint with an HTTPS GET before activating
+// it. The response body must contain only the verification header value.
+Route::get('/api/v1/worldline/webhook', function (Request $request) {
+    $verification = (string) $request->header('X-GCS-Webhooks-Endpoint-Verification', '');
+    if ($verification === '') {
+        return response('Missing endpoint verification header.', 400)
+            ->header('Content-Type', 'text/plain; charset=UTF-8');
+    }
+
+    return response($verification, 200)
+        ->header('Content-Type', 'text/plain; charset=UTF-8')
+        ->header('Cache-Control', 'no-store');
+});
+
 Route::post('/api/v1/worldline/webhook', function (Request $request) use ($worldlineVerifyWebhook) {
     try {
         $service = new \Admin\Classes\WorldlineHostedCheckoutService();

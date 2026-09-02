@@ -30,7 +30,11 @@ class Terminal_devices_model extends Model
 
     public static function listProviderOptions(): array
     {
-        return ['sumup' => 'SumUp'];
+        return [
+            'sumup' => 'SumUp',
+            'vr_payment' => 'VR Payment',
+            'worldline' => 'Worldline Terminal API',
+        ];
     }
 
     public static function listPairingStateOptions(): array

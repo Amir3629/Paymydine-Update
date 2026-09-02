@@ -1111,8 +1111,36 @@ class Payments extends \Admin\Classes\AdminController
             $model->setConfigData($updated);
             $model->save();
         } elseif ($code === 'worldline') {
-            $diagnostics = app(\Admin\Classes\WorldlineHostedCheckoutService::class)->getConfigForDiagnostics();
-            $result = ['success' => true, 'message' => 'Worldline configuration resolved from active tenant POS mapping.', 'environment' => $diagnostics['environment'] ?? 'unknown'];
+            try {
+                // A Connect client session is an authenticated, non-charging
+                // Worldline request. No payment/order is created.
+                $session = app(
+                    \Admin\Classes\WorldlineHostedCheckoutService::class
+                )->createInlineClientSession([]);
+
+                $connected = !empty($session['clientSessionId']);
+
+                $result = [
+                    'success' => $connected,
+                    'connected' => $connected,
+                    'message' => $connected
+                        ? 'Worldline Connect authentication successful. No payment was created.'
+                        : 'Worldline responded without a client session ID.',
+                    'environment' => $session['environment'] ?? null,
+                ];
+            } catch (\Throwable $e) {
+                \Log::warning('WORLDLINE_CONNECTION_TEST_FAILED', [
+                    'error_class' => get_class($e),
+                    'error_code' => $e->getCode(),
+                    'host' => request()->getHost(),
+                ]);
+
+                $result = [
+                    'success' => false,
+                    'connected' => false,
+                    'message' => 'Worldline Connect authentication failed. Check API Endpoint, Merchant ID, API Key ID and Secret API Key.',
+                ];
+            }
         } elseif ($code === 'vr_payment') {
             $probe = app(\Admin\Classes\VRPaymentGatewayService::class)->probeConnectivity();
             $result = [

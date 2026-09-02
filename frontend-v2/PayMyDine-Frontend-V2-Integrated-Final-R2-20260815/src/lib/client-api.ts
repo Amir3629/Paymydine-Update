@@ -590,8 +590,11 @@ export async function verifyProviderPayment(
   let payload: Record<string, string> = {}
 
   if (normalized === 'worldline') {
-    endpoint = '/api/v1/payments/worldline/checkout-status'
-    payload = { hosted_checkout_id: String(pending.hostedCheckoutId || query.get('hosted_checkout_id') || '') }
+    endpoint = '/api/v1/payments/worldline/runtime/status'
+    payload = {
+      hosted_checkout_id: String(pending.hostedCheckoutId || query.get('hosted_checkout_id') || ''),
+      order_id: String(pending.orderId || ''),
+    }
   } else if (normalized === 'sumup') {
     endpoint = '/api/v1/payments/sumup/checkout-status'
     payload = { checkout_id: String(pending.checkoutId || query.get('checkout_id') || '') }
@@ -627,7 +630,7 @@ export async function verifyProviderPayment(
     method: 'POST',
     body: JSON.stringify(payload),
   })
-  const status = String(data?.status || '').toLowerCase()
+  const status = String(data?.status || data?.payment_status || '').toLowerCase()
   const reference = String(
     data?.payment_intent_id ||
     data?.payment_id ||
@@ -642,9 +645,9 @@ export async function verifyProviderPayment(
 
   return {
     success: data?.success !== false,
-    paid: Boolean(data?.is_paid || status === 'paid' || status === 'successful' || status === 'completed'),
-    pending: status === 'pending' || status === 'processing' || status === 'authorized',
-    cancelled: status === 'cancelled' || status === 'canceled' || status === 'expired' || status === 'failed',
+    paid: Boolean(data?.is_paid || status === 'paid' || status === 'successful' || status === 'completed' || status === 'captured'),
+    pending: status === 'pending' || status === 'processing' || status === 'authorized' || status === 'redirected',
+    cancelled: status === 'cancelled' || status === 'canceled' || status === 'expired' || status === 'failed' || status === 'rejected',
     reference,
     raw: data,
   }
@@ -769,11 +772,17 @@ function hostedCheckoutEndpoint(methodCode: string, providerCode: string): strin
     }
     return `/api/v1/payments/vr-payment/${suffix[method] || 'card'}/create-session`
   }
-  if (method === 'wero') {
-    return provider === 'worldline'
-      ? '/api/v1/payments/worldline/wero/create-session'
-      : '/api/v1/payments/wero/create-session'
+  if (provider === 'worldline') {
+    const suffix: Record<string, string> = {
+      card: 'card',
+      paypal: 'paypal',
+      wero: 'wero',
+      apple_pay: 'apple-pay',
+      google_pay: 'google-pay',
+    }
+    return `/api/v1/payments/worldline/runtime/${suffix[method] || 'card'}/create-session`
   }
+  if (method === 'wero') return '/api/v1/payments/wero/create-session'
   return '/api/v1/payments/card/create-session'
 }
 
@@ -894,7 +903,8 @@ export async function startHostedProviderPayment(input: HostedProviderPaymentInp
     cancel_url: cancelUrl,
     customer_email: String(input.customerEmail || ''),
     merchant_reference: merchantReference,
-    order_id: isMultiOrder ? undefined : input.orderId,
+    order_id: input.orderId,
+    order_allocations: groupedAllocations,
     payment_method: input.methodCode,
     provider: input.providerCode || requestedProvider,
     guest_session_id: input.guestSessionId,
@@ -912,22 +922,7 @@ export async function startHostedProviderPayment(input: HostedProviderPaymentInp
   }
 
   const endpoint = hostedCheckoutEndpoint(input.methodCode, requestedProvider)
-  let data: any
-  try {
-    data = await createHostedSession(endpoint, sessionPayload)
-  } catch (error) {
-    // Preserve the established PayMyDine fallback: Worldline Wero may fall back to the
-    // generic Wero session route when tenant entitlement/configuration is unavailable.
-    if (String(input.methodCode).toLowerCase() !== 'wero' || requestedProvider !== 'worldline') throw error
-    const fallbackProvider = 'wero'
-    const fallbackReturnUrl = `${window.location.origin}/payment/return?payment_return_provider=${fallbackProvider}&return_to=${encodeURIComponent(returnTo)}`
-    data = await createHostedSession('/api/v1/payments/wero/create-session', {
-      ...sessionPayload,
-      return_url: fallbackReturnUrl,
-      fallback_method: 'ideal',
-      fallback_from_worldline: true,
-    })
-  }
+  const data = await createHostedSession(endpoint, sessionPayload)
 
   const provider = pendingProviderFromResponse(input.methodCode, requestedProvider, data)
   const pending = buildPendingProviderPayment(provider, merchantReference, input, data, returnTo)

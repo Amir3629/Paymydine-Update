@@ -216,35 +216,93 @@ class WorldlineHostedCheckoutService
     {
         $host = request()->getHost();
         $conn = $this->tenantConnectionForHost($host);
+        $schema = $conn->getSchemaBuilder();
 
-        $row = $conn->table('pos_configs as pc')
-            ->join('pos_devices as pd', 'pd.device_id', '=', 'pc.device_id')
-            ->where('pd.code', 'worldline')
-            ->select(
-                'pc.config_id',
-                'pc.url',
-                'pc.username',
-                'pc.access_token',
-                'pc.id_application',
-                'pc.password'
-            )
-            ->orderByDesc('pc.config_id')
-            ->first();
+        // Payments & Finance is the canonical Worldline credential authority.
+        // Online Worldline must never require legacy POS config tables.
+        $row = null;
+        $idColumn = null;
+        $jsonColumn = null;
+        $configSource = null;
 
-        if (!$row) {
-            throw new \RuntimeException("Worldline config not found in current tenant DB for host {$host}");
+        $candidates = [
+            ['payment_methods', 'id', 'meta'],
+            ['payments', 'payment_id', 'data'],
+        ];
+
+        foreach ($candidates as [$table, $candidateId, $candidateJson]) {
+            if (!$schema->hasTable($table)) {
+                continue;
+            }
+
+            $candidate = $conn->table($table)
+                ->where('code', 'worldline')
+                ->select($candidateId, $candidateJson)
+                ->first();
+
+            if ($candidate) {
+                $row = $candidate;
+                $idColumn = $candidateId;
+                $jsonColumn = $candidateJson;
+                $configSource = $table;
+                break;
+            }
         }
 
-        return [
+        if (!$row || !$idColumn || !$jsonColumn) {
+            throw new \RuntimeException(
+                "Worldline provider configuration not found for host {$host}"
+            );
+        }
+
+        $raw = $row->{$jsonColumn} ?? null;
+
+        $data = is_array($raw)
+            ? $raw
+            : (json_decode((string)$raw, true) ?: []);
+
+        $cfg = [
             'host'            => $host,
             'tenant_database' => $conn->getDatabaseName(),
-            'config_id'       => $row->config_id,
-            'api_endpoint'    => rtrim((string)$row->url, '/'),
-            'api_key_id'      => (string)$row->username,
-            'secret_api_key'  => (string)$row->access_token,
-            'merchant_id'     => (string)$row->id_application,
-            'webhook_secret'  => (string)$row->password,
+            'config_id'       => (int)$row->{$idColumn},
+            'config_source'   => $configSource,
+            'api_endpoint'    => rtrim(
+                trim((string)($data['api_endpoint'] ?? '')),
+                '/'
+            ),
+            'api_key_id'      => trim(
+                (string)($data['api_key_id'] ?? '')
+            ),
+            'secret_api_key'  => trim(
+                (string)($data['secret_api_key'] ?? '')
+            ),
+            'merchant_id'     => trim(
+                (string)($data['merchant_id'] ?? '')
+            ),
+            'webhook_secret'  => trim(
+                (string)($data['webhook_secret'] ?? '')
+            ),
         ];
+
+        $missing = [];
+
+        foreach (
+            ['api_endpoint', 'api_key_id', 'secret_api_key', 'merchant_id']
+            as $required
+        ) {
+            if ($cfg[$required] === '') {
+                $missing[] = $required;
+            }
+        }
+
+        if ($missing) {
+            throw new \RuntimeException(
+                'Worldline provider configuration incomplete: '.
+                implode(', ', $missing)
+            );
+        }
+
+        return $cfg;
     }
 
     public function getEnvironment(array $cfg): string

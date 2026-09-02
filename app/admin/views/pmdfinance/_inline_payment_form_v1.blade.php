@@ -19,7 +19,6 @@
     <input type="hidden" name="Payment[code]" value="{{ $code }}">
     <input type="hidden" name="Payment[priority]" value="{{ $method->priority ?? 10 }}">
     <input type="hidden" name="Payment[description]" value="{{ $method->description }}">
-    <input type="hidden" name="Payment[status]" value="{{ !empty($method->status) ? 1 : 0 }}">
     <input type="hidden" name="Payment[is_default]" value="{{ !empty($method->is_default) ? 1 : 0 }}">
 
     <section class="pmd-inline-section pmd-inline-section--payment-method-compact">
@@ -27,6 +26,17 @@
             <div class="pmd-inline-field pmd-inline-field--full">
                 <label>{{ $pmdSettingsText('Name') }}</label>
                 <input type="text" name="Payment[name]" value="{{ $method->name }}" readonly required maxlength="128">
+            </div>
+
+            <div class="pmd-inline-field pmd-inline-field--full">
+                <label>{{ $pmdSettingsText('Availability') }}</label>
+                <input type="hidden" name="Payment[status]" value="0">
+                <label class="pmd-owner-switch" style="display:flex;align-items:center;gap:12px;width:max-content;max-width:100%;">
+                    <input type="checkbox" name="Payment[status]" value="1" {{ !empty($method->status) ? 'checked' : '' }}>
+                    <span></span>
+                    <strong>{{ $pmdSettingsText('Offer this payment method to guests') }}</strong>
+                </label>
+                <small>{{ $pmdSettingsText('The method is shown only when this switch is on and the selected provider confirms that the product is available for the current restaurant market.') }}</small>
             </div>
 
             @if($providerRequired)

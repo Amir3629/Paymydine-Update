@@ -141,36 +141,23 @@ final class ProviderCapabilityRegistry
             ],
             'paymob' => [
                 'label' => 'Paymob',
-                // Public Paymob docs confirm online API checkout, payment links,
-                // refunds and callback/webhook flows. In-person/POS is intentionally
-                // not marked here until Paymob Oman supplies the merchant-specific
-                // terminal/ECR API contract needed by PMD.
                 'capabilities' => [
                     self::CAPABILITY_ONLINE_PAYMENTS,
                     self::CAPABILITY_REFUNDS,
                     self::CAPABILITY_PAYMENT_LINKS,
                     self::CAPABILITY_WEBHOOKS,
                 ],
-                // Catalogue availability only. Paymob explicitly states that
-                // merchant-account enablement varies, so PMD must later intersect
-                // this list with tenant/runtime discovery before offering methods.
                 'payment_methods' => [
                     self::METHOD_CARD,
                     self::METHOD_OMANNET,
                     self::METHOD_APPLE_PAY,
                     self::METHOD_GOOGLE_PAY,
                 ],
-                // R1 scaffold only: no method becomes assignable until the actual
-                // Intention + checkout + verified HMAC webhook flow is implemented.
                 'implemented_capabilities' => [],
                 'implemented_payment_methods' => [],
             ],
             'worldline' => [
                 'label' => 'Worldline',
-                // Worldline Global Collect / Connect catalogue for the Germany
-                // scope. Account entitlements still decide what a merchant can
-                // actually use. Terminal capability remains catalogue-only until
-                // Worldline supplies the certified Terminal API Cloud/ECR pack.
                 'capabilities' => [
                     self::CAPABILITY_ONLINE_PAYMENTS,
                     self::CAPABILITY_TERMINAL_PAYMENTS,
@@ -188,12 +175,21 @@ final class ProviderCapabilityRegistry
                     self::METHOD_KLARNA,
                     self::METHOD_SEPA_DEBIT,
                 ],
-                // Fail closed. MyCheckout/security hardening is present, but these
-                // flags stay empty until a tenant sandbox proves the entire chain:
-                // create -> provider confirmation -> authoritative amount/currency
-                // verification -> idempotent PMD order settlement.
-                'implemented_capabilities' => [],
-                'implemented_payment_methods' => [],
+                // PMD has concrete provider-hosted Connect routes for these
+                // methods. Account/product entitlement is still checked by
+                // Worldline when MyCheckout is created; unavailable products
+                // fail closed and are never treated as paid.
+                'implemented_capabilities' => [
+                    self::CAPABILITY_ONLINE_PAYMENTS,
+                    self::CAPABILITY_WEBHOOKS,
+                ],
+                'implemented_payment_methods' => [
+                    self::METHOD_CARD,
+                    self::METHOD_APPLE_PAY,
+                    self::METHOD_GOOGLE_PAY,
+                    self::METHOD_WERO,
+                    self::METHOD_PAYPAL,
+                ],
             ],
             'paypal' => [
                 'label' => 'PayPal',

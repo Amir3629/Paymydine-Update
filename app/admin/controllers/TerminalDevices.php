@@ -4,6 +4,7 @@ namespace Admin\Controllers;
 
 use Admin\Facades\AdminMenu;
 use Admin\Models\Payments_model;
+use App\Services\TerminalPayments\WorldlineTerminalProvider;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
@@ -93,20 +94,35 @@ class TerminalDevices extends \Admin\Classes\AdminController
     public function formExtendFields($form)
     {
         $model = $form->model;
-        $status = $this->buildStatusSnapshot($model->provider_code, (string)$model->reader_id, (bool)$model->is_active);
+        $providerCode = strtolower(trim((string)$model->provider_code));
+        $status = $this->buildStatusSnapshot($providerCode, (string)$model->reader_id, (bool)$model->is_active);
+
+        $guideLabel = 'Payment Terminal Setup';
+        $guideComment = 'Choose the terminal provider, enter the provider-issued terminal identifier, assign the restaurant location, validate the provider configuration, then mark the terminal active only after the physical device is ready.';
+
+        if ($providerCode === 'worldline') {
+            $guideLabel = 'Worldline Terminal API Setup';
+            $guideComment = 'Reader ID must be the Worldline-issued UTID — never a Connect Webhook Key ID. Configure the Terminal API UMID, separate Bearer key and API URL in Payments & Finance > Worldline. On the physical SmartPOS terminal install/open Terminal API cloud, enter the same UMID/UTID, select INTEGRATION for testing and turn Terminal API on until the cloud icon is green.';
+        } elseif ($providerCode === 'sumup' || $providerCode === '') {
+            $guideLabel = 'SumUp Terminal Setup';
+            $guideComment = 'Keep your SumUp merchant credentials, discover the readers connected to that account, copy/select the Reader ID, test it, then mark the terminal active.';
+        } elseif ($providerCode === 'vr_payment') {
+            $guideLabel = 'VR Payment Terminal Setup';
+            $guideComment = 'Use a terminal identifier returned by the configured VR Payment merchant account. Do not mark a terminal active until provider synchronization has confirmed it.';
+        }
 
         $form->addFields([
             'terminal_setup_guide' => [
                 'type' => 'section',
-                'label' => 'SumUp Terminal Setup',
-                'comment' => 'Simple setup: keep your SumUp merchant credentials, discover the readers already connected to that account, copy/select the Reader ID, test it, then mark the terminal active.',
+                'label' => $guideLabel,
+                'comment' => $guideComment,
             ],
             'status_snapshot' => [
                 'label' => 'Readiness Snapshot',
                 'type' => 'textarea',
                 'span' => 'full',
-                'attributes' => ['rows' => 4, 'readonly' => 'readonly'],
-                'default' => "provider_ready: {$status['provider_ready']}\nterminal_ready: {$status['terminal_ready']}\ncard_online_ready: {$status['card_online_ready']}\ncard_present_ready: {$status['card_present_ready']}",
+                'attributes' => ['rows' => 5, 'readonly' => 'readonly'],
+                'default' => "provider_ready: {$status['provider_ready']}\nterminal_ready: {$status['terminal_ready']}\ncard_online_ready: {$status['card_online_ready']}\ncard_present_ready: {$status['card_present_ready']}\nnetwork_probe: {$status['network_probe']}",
             ],
         ]);
     }
@@ -151,14 +167,60 @@ class TerminalDevices extends \Admin\Classes\AdminController
     public function onTestTerminalConnection()
     {
         $model = $this->formGetModel();
-        $providerCode = strtolower((string)$model->provider_code);
+        $providerCode = strtolower(trim((string)$model->provider_code));
         $readerId = trim((string)$model->reader_id);
 
-        if ($providerCode !== 'sumup') {
-            return response()->json(['success' => false, 'error' => 'Only SumUp is supported currently.'], 422);
-        }
         if ($readerId === '') {
-            return response()->json(['success' => false, 'error' => 'Reader ID is required.'], 422);
+            return response()->json(['success' => false, 'error' => 'Reader / Terminal ID is required.'], 422);
+        }
+
+        if ($providerCode === 'worldline') {
+            $config = $this->worldlineConfig();
+            $config['terminal_id'] = $readerId;
+            $config['reader_id'] = $readerId;
+            $config['terminal_environment'] = strtolower(trim((string)($model->environment ?: ($config['terminal_environment'] ?? 'test'))));
+
+            $validation = (new WorldlineTerminalProvider())->validateConfiguration($config);
+            if (!($validation['ok'] ?? false)) {
+                return response()->json([
+                    'success' => false,
+                    'provider' => 'worldline',
+                    'configuration_ready' => false,
+                    'network_probe_performed' => false,
+                    'error' => $validation['message'] ?? 'Worldline Terminal API configuration is incomplete.',
+                ], 422);
+            }
+
+            $model->terminal_status = 'configured';
+            $model->pairing_state = in_array(strtolower((string)$model->pairing_state), ['paired', 'needs_attention'], true)
+                ? $model->pairing_state
+                : 'unknown';
+            $model->metadata = array_merge((array)$model->metadata, [
+                'last_configuration_tested_at' => now()->toIso8601String(),
+                'worldline_terminal_api' => [
+                    'configuration_ready' => true,
+                    'network_probe_performed' => false,
+                    'terminal_id' => $readerId,
+                ],
+            ]);
+            $model->save();
+
+            return response()->json([
+                'success' => true,
+                'provider' => 'worldline',
+                'reader_id' => $readerId,
+                'configuration_ready' => true,
+                'network_probe_performed' => false,
+                'message' => 'Worldline Terminal API configuration is complete. No payment or device command was sent. Confirm the Terminal API cloud icon is green, then validate reachability with an Integration test transaction.',
+                'status' => $this->buildStatusSnapshot('worldline', $readerId, (bool)$model->is_active),
+            ]);
+        }
+
+        if ($providerCode !== 'sumup') {
+            return response()->json([
+                'success' => false,
+                'error' => 'This provider does not expose a safe non-charging terminal connection test here.',
+            ], 422);
         }
 
         $config = $this->sumupConfig();
@@ -215,15 +277,53 @@ class TerminalDevices extends \Admin\Classes\AdminController
 
     protected function buildStatusSnapshot(?string $providerCode, string $readerId, bool $isActive): array
     {
-        $config = strtolower((string)$providerCode) === 'sumup' ? $this->sumupConfig() : ['ready' => false];
-        $providerReady = (bool)($config['ready'] ?? false);
+        $providerCode = strtolower(trim((string)$providerCode));
+        $providerReady = false;
+        $networkProbe = 'not-run';
+
+        if ($providerCode === 'sumup') {
+            $providerReady = (bool)($this->sumupConfig()['ready'] ?? false);
+            $networkProbe = 'available';
+        } elseif ($providerCode === 'worldline') {
+            $config = $this->worldlineConfig();
+            $config['terminal_id'] = $readerId;
+            $config['reader_id'] = $readerId;
+            $providerReady = (bool)((new WorldlineTerminalProvider())->validateConfiguration($config)['ok'] ?? false);
+            $networkProbe = 'integration-payment-required';
+        }
+
         $terminalReady = $providerReady && trim($readerId) !== '';
 
         return [
             'provider_ready' => $providerReady ? 'yes' : 'no',
             'terminal_ready' => $terminalReady ? 'yes' : 'no',
-            'card_online_ready' => $providerReady ? 'yes' : 'no',
+            'card_online_ready' => $providerCode === 'worldline' ? 'separate-connect-runtime' : ($providerReady ? 'yes' : 'no'),
             'card_present_ready' => ($terminalReady && $isActive) ? 'yes' : 'no',
+            'network_probe' => $networkProbe,
+        ];
+    }
+
+    private function worldlineConfig(): array
+    {
+        $data = [];
+        try {
+            if (Schema::hasTable('payment_methods') || Schema::hasTable('payments')) {
+                $provider = Payments_model::query()->where('code', 'worldline')->where('status', 1)->first();
+                if ($provider && method_exists($provider, 'getConfigData')) {
+                    $data = (array)$provider->getConfigData();
+                }
+            }
+        } catch (\Throwable $ignored) {
+        }
+
+        return [
+            'merchant_id' => trim((string)($data['merchant_id'] ?? '')),
+            'terminal_merchant_id' => trim((string)($data['terminal_merchant_id'] ?? '')),
+            'terminal_id' => trim((string)($data['terminal_id'] ?? '')),
+            'terminal_api_token' => trim((string)($data['terminal_api_token'] ?? '')),
+            'terminal_api_base_url' => trim((string)($data['terminal_api_base_url'] ?? '')),
+            'terminal_environment' => strtolower(trim((string)($data['terminal_environment'] ?? 'test'))),
+            'currency' => 'EUR',
         ];
     }
 
@@ -241,9 +341,6 @@ class TerminalDevices extends \Admin\Classes\AdminController
         } catch (\Throwable $ignored) {
         }
 
-        // Older tenants, including the current Mimoza schema, may still keep
-        // SumUp credentials in pos_configs. Reuse them instead of making the
-        // restaurant configure the same merchant twice.
         if (empty($data['access_token']) && Schema::hasTable('pos_configs') && Schema::hasTable('pos_devices')) {
             try {
                 $legacy = DB::table('pos_configs as pc')
