@@ -1,0 +1,71 @@
+name: PMD Guest AI V2
+
+on:
+  pull_request:
+    paths:
+      - 'app/Services/AI/**'
+      - 'app/main/routes/api-v1-guest-ai.php'
+      - 'app/main/routes/api-health-media.php'
+      - 'config/pmd_ai.php'
+      - 'frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815/**'
+      - 'tests/Unit/PmdGuestAiFoundationTest.php'
+      - 'scripts/pmd-guest-ai-canary-smoke.sh'
+      - 'scripts/pmd-frontend-live-authority-audit.sh'
+      - '.github/workflows/pmd-guest-ai-v2.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'app/Services/AI/**'
+      - 'app/main/routes/api-v1-guest-ai.php'
+      - 'app/main/routes/api-health-media.php'
+      - 'config/pmd_ai.php'
+      - 'frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815/**'
+      - 'tests/Unit/PmdGuestAiFoundationTest.php'
+      - 'scripts/pmd-guest-ai-canary-smoke.sh'
+      - 'scripts/pmd-frontend-live-authority-audit.sh'
+      - '.github/workflows/pmd-guest-ai-v2.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.11'
+          cache: npm
+          cache-dependency-path: frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815/package-lock.json
+      - name: Install locked V2 dependencies
+        run: npm ci --ignore-scripts
+      - name: Guest AI contract audit
+        run: npm run guest-ai:audit
+      - name: Offline typecheck
+        run: npm run typecheck:offline
+      - name: Theme isolation audit
+        run: npm run theme:audit
+      - name: Source safety audit
+        run: npm run source:audit
+
+  php-syntax:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: PHP syntax checks
+        run: |
+          php -l app/Services/AI/GuestMenuAiService.php
+          php -l app/main/routes/api-v1-guest-ai.php
+          php -l app/main/routes/api-health-media.php
+          php -l config/pmd_ai.php
+          php -l tests/Unit/PmdGuestAiFoundationTest.php
+      - name: Shell syntax checks
+        run: |
+          bash -n scripts/pmd-guest-ai-canary-smoke.sh
+          bash -n scripts/pmd-frontend-live-authority-audit.sh
