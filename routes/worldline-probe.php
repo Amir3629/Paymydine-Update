@@ -80,55 +80,48 @@ $worldlineAdminAuthorize = static function () {
                 'terminal_api_base_url' => ['nullable', 'url', 'max:500'],
                 'terminal_api_token' => ['nullable', 'string', 'max:4096'],
             ]);
-
             $merchantId = trim((string)($validated['terminal_merchant_id'] ?? ''));
             $baseUrl = rtrim(trim((string)($validated['terminal_api_base_url'] ?? '')), '/');
-            $token = array_key_exists('terminal_api_token', $validated)
-                ? trim((string)$validated['terminal_api_token'])
-                : '';
-
-            $data['terminal_merchant_id'] = $merchantId;
-            $data['terminal_api_base_url'] = $baseUrl;
-            if ($token !== '') {
-                if (hash_equals('__clear__', strtolower($token))) {
-                    $data['terminal_api_token'] = '';
-                } else {
-                    $data['terminal_api_token'] = $token;
-                }
+            $tokenInput = trim((string)($validated['terminal_api_token'] ?? ''));
+            if ($baseUrl !== '' && stripos($baseUrl, 'https://') !== 0) {
+                return response()->json(['success' => false, 'error' => 'Terminal API base URL must use HTTPS.'], 422);
             }
 
-            $model->setConfigData($data);
-            $model->save();
-            $data = method_exists($model, 'getConfigData') ? (array)$model->getConfigData() : (array)$model->data;
+            if ($merchantId !== '') {
+                $data['terminal_merchant_id'] = $merchantId;
+            } else {
+                unset($data['terminal_merchant_id']);
+            }
+            if ($baseUrl !== '') {
+                $data['terminal_api_base_url'] = $baseUrl;
+            } else {
+                unset($data['terminal_api_base_url']);
+            }
+            if ($tokenInput === '__clear__') {
+                unset($data['terminal_api_token']);
+            } elseif ($tokenInput !== '') {
+                $data['terminal_api_token'] = $tokenInput;
+            }
 
-            \Log::info('WORLDLINE_TERMINAL_CONFIG_SAVED', [
+            $model->data = $data;
+            $model->save();
+            \Log::info('WORLDLINE_TERMINAL_CONFIG_UPDATED', [
                 'host' => $request->getHost(),
-                'provider_id' => $model->getKey(),
-                'terminal_id_present' => trim((string)($data['terminal_id'] ?? '')) !== '',
-                'terminal_merchant_id_present' => trim((string)($data['terminal_merchant_id'] ?? '')) !== '',
-                'terminal_api_base_url_present' => trim((string)($data['terminal_api_base_url'] ?? '')) !== '',
-                'terminal_api_token_present' => trim((string)($data['terminal_api_token'] ?? '')) !== '',
+                'terminal_merchant_id_present' => !empty($data['terminal_merchant_id']),
+                'terminal_api_base_url_present' => !empty($data['terminal_api_base_url']),
+                'terminal_api_token_present' => !empty($data['terminal_api_token']),
             ]);
         }
 
-        $environment = strtolower(trim((string)($data['terminal_environment'] ?? 'test')));
-        $baseUrl = trim((string)($data['terminal_api_base_url'] ?? ''));
-        if ($baseUrl === '' && $environment !== 'live') {
-            $baseUrl = 'https://api.terminal.iacc.global.worldline-solutions.com';
-        }
-
+        $terminalId = trim((string)($data['terminal_id'] ?? ''));
+        $tokenPresent = trim((string)($data['terminal_api_token'] ?? '')) !== '';
         return response()->json([
             'success' => true,
-            'provider' => 'worldline',
-            'terminal_environment' => $environment,
-            'terminal_id' => (string)($data['terminal_id'] ?? ''),
-            'terminal_merchant_id' => (string)($data['terminal_merchant_id'] ?? $data['merchant_id'] ?? ''),
-            'terminal_api_base_url' => $baseUrl,
-            'terminal_api_token_present' => trim((string)($data['terminal_api_token'] ?? '')) !== '',
-            'terminal_ready' => trim((string)($data['terminal_id'] ?? '')) !== ''
-                && trim((string)($data['terminal_api_token'] ?? '')) !== ''
-                && trim((string)($data['terminal_merchant_id'] ?? $data['merchant_id'] ?? '')) !== ''
-                && $baseUrl !== '',
+            'terminal_merchant_id' => trim((string)($data['terminal_merchant_id'] ?? '')),
+            'terminal_api_base_url' => trim((string)($data['terminal_api_base_url'] ?? '')),
+            'terminal_api_token_present' => $tokenPresent,
+            'terminal_id' => $terminalId,
+            'terminal_ready' => $tokenPresent && $terminalId !== '',
         ]);
     });
 });
@@ -141,51 +134,65 @@ $worldlineAdminAuthorize = static function () {
         \App\Http\Middleware\TenantDatabaseMiddleware::class,
     ],
 ], function () {
-    $methodMap = [
-        'card' => 'card',
-        'apple-pay' => 'apple_pay',
-        'google-pay' => 'google_pay',
-        'wero' => 'wero',
-        'paypal' => 'paypal',
-    ];
+    $normalizeWorldlineMethod = static fn (string $value): string => strtolower(str_replace('-', '_', trim($value)));
+    $authorizeWorldlineMethod = static function (string $methodCode) use ($normalizeWorldlineMethod) {
+        $methodCode = $normalizeWorldlineMethod($methodCode);
+        $registry = app(\App\Services\Payments\ProviderCapabilityRegistry::class);
+        if (!$registry->implementsPaymentMethod('worldline', $methodCode)) {
+            return response()->json([
+                'success' => false,
+                'error_code' => 'worldline_method_not_implemented',
+                'error' => 'This Worldline payment method is not implemented in the PMD runtime.',
+            ], 409);
+        }
 
-    // Frontend V2 consumes this canonical supplement. PMD configuration and
-    // Worldline's own product-discovery API must BOTH allow a method before it
-    // is offered to a guest.
-    \Illuminate\Support\Facades\Route::get('/payments/worldline/runtime-methods', function () use ($methodMap) {
+        $method = \Admin\Models\Payments_model::query()->where('code', $methodCode)->first();
+        $provider = strtolower(trim((string)($method->provider_code ?? '')));
+        if (!$method || !(int)$method->status || $provider !== 'worldline') {
+            return response()->json([
+                'success' => false,
+                'error_code' => 'worldline_method_not_assigned',
+                'error' => 'This payment method is not enabled with Worldline for this restaurant.',
+            ], 409);
+        }
+        return null;
+    };
+
+    \Illuminate\Support\Facades\Route::get('/payments/worldline/runtime-methods', function () use ($normalizeWorldlineMethod) {
         try {
-            $service = app(\App\Services\Payments\WorldlineConnectRuntimeService::class);
-            $available = $service->availablePaymentProducts('DE', 'EUR');
-            $registry = app(\App\Services\Payments\ProviderCapabilityRegistry::class);
-            $allowed = array_values($methodMap);
-            $rows = \Admin\Models\Payments_model::query()->whereIn('code', $allowed)->get();
-
-            $methods = [];
-            foreach ($rows as $row) {
-                $code = strtolower(trim((string)$row->code));
-                $provider = strtolower(trim((string)($row->provider_code ?? '')));
-                if ($code === '' || !(int)$row->status || $provider !== 'worldline') {
-                    continue;
-                }
-                if (!$registry->implementsPaymentMethod('worldline', $code)) {
-                    continue;
-                }
-                $productIds = array_values(array_map('intval', (array)($available[$code] ?? [])));
-                if (!$productIds) {
-                    continue;
-                }
-                $methods[] = [
-                    'code' => $code,
-                    'name' => (string)($row->name ?: ucwords(str_replace('_', ' ', $code))),
-                    'provider_code' => 'worldline',
-                    'enabled' => true,
-                    'status' => 1,
-                    'priority' => (int)($row->priority ?? $row->sort_order ?? 50),
-                    'worldline_product_ids' => $productIds,
-                ];
+            $provider = \Admin\Models\Payments_model::query()->where('code', 'worldline')->where('status', 1)->first();
+            if (!$provider) {
+                return response()->json(['success' => true, 'provider' => 'worldline', 'methods' => []]);
             }
 
-            usort($methods, static fn (array $a, array $b) => ($a['priority'] <=> $b['priority']) ?: strcmp($a['code'], $b['code']));
+            $registry = app(\App\Services\Payments\ProviderCapabilityRegistry::class);
+            $runtime = app(\App\Services\Payments\WorldlineConnectRuntimeService::class);
+            $availableProducts = $runtime->availablePaymentProducts('DE', 'EUR');
+            $methods = \Admin\Models\Payments_model::query()
+                ->whereIn('code', ['card', 'apple_pay', 'google_pay', 'wero', 'paypal'])
+                ->where('status', 1)
+                ->orderBy('priority')
+                ->get()
+                ->filter(function ($method) use ($registry, $availableProducts, $normalizeWorldlineMethod) {
+                    $code = $normalizeWorldlineMethod((string)$method->code);
+                    $providerCode = $normalizeWorldlineMethod((string)($method->provider_code ?? ''));
+                    return $providerCode === 'worldline'
+                        && $registry->implementsPaymentMethod('worldline', $code)
+                        && count((array)($availableProducts[$code] ?? [])) > 0;
+                })
+                ->map(function ($method) use ($availableProducts, $normalizeWorldlineMethod) {
+                    $code = $normalizeWorldlineMethod((string)$method->code);
+                    return [
+                        'code' => $code,
+                        'name' => (string)$method->name,
+                        'provider_code' => 'worldline',
+                        'enabled' => true,
+                        'status' => 1,
+                        'priority' => (int)$method->priority,
+                        'worldline_product_ids' => array_values(array_map('intval', (array)($availableProducts[$code] ?? []))),
+                    ];
+                })
+                ->values();
 
             return response()->json([
                 'success' => true,
@@ -193,7 +200,7 @@ $worldlineAdminAuthorize = static function () {
                 'methods' => $methods,
             ]);
         } catch (\Throwable $e) {
-            \Log::warning('WORLDLINE_RUNTIME_METHOD_DISCOVERY_FAILED', [
+            \Log::warning('WORLDLINE_RUNTIME_METHODS_FAILED', [
                 'host' => request()->getHost(),
                 'error_class' => get_class($e),
                 'message' => $e->getMessage(),
@@ -202,34 +209,18 @@ $worldlineAdminAuthorize = static function () {
                 'success' => false,
                 'provider' => 'worldline',
                 'methods' => [],
-                'error' => 'Worldline payment-product availability could not be verified.',
-            ], 503);
+                'error' => 'Worldline payment methods could not be loaded.',
+            ], 502);
         }
     });
 
-    \Illuminate\Support\Facades\Route::post('/payments/worldline/runtime/{method}/create-session', function (\Illuminate\Http\Request $request, string $method) use ($methodMap) {
-        $methodCode = $methodMap[strtolower(trim($method))] ?? null;
-        if (!$methodCode) {
+    \Illuminate\Support\Facades\Route::post('/payments/worldline/runtime/{method}/create-session', function (\Illuminate\Http\Request $request, string $method) use ($authorizeWorldlineMethod, $normalizeWorldlineMethod) {
+        $methodCode = $normalizeWorldlineMethod($method);
+        if (!in_array($methodCode, ['card', 'apple_pay', 'google_pay', 'wero', 'paypal'], true)) {
             return response()->json(['success' => false, 'error' => 'Unsupported Worldline payment method.'], 404);
         }
-
-        $registry = app(\App\Services\Payments\ProviderCapabilityRegistry::class);
-        if (!$registry->implementsPaymentMethod('worldline', $methodCode)) {
-            return response()->json([
-                'success' => false,
-                'error_code' => 'worldline_method_not_implemented',
-                'error' => 'This Worldline payment method is not enabled in the PMD runtime.',
-            ], 409);
-        }
-
-        $methodRecord = \Admin\Models\Payments_model::query()->where('code', $methodCode)->first();
-        $assignedProvider = strtolower(trim((string)($methodRecord->provider_code ?? '')));
-        if (!$methodRecord || !(int)$methodRecord->status || $assignedProvider !== 'worldline') {
-            return response()->json([
-                'success' => false,
-                'error_code' => 'worldline_method_not_assigned',
-                'error' => 'The selected payment method is not enabled with Worldline.',
-            ], 409);
+        if ($denied = $authorizeWorldlineMethod($methodCode)) {
+            return $denied;
         }
 
         $orderId = (int)$request->input('order_id', 0);
@@ -240,19 +231,11 @@ $worldlineAdminAuthorize = static function () {
                 'error' => 'Submit the order before starting a Worldline payment.',
             ], 422);
         }
-
         $order = \Illuminate\Support\Facades\DB::table('orders')->where('order_id', $orderId)->first();
         if (!$order) {
             return response()->json(['success' => false, 'error' => 'Order not found.'], 404);
         }
 
-        $returnUrl = trim((string)$request->input('return_url', ''));
-        $returnHost = strtolower((string)parse_url($returnUrl, PHP_URL_HOST));
-        if ($returnHost === '' || !hash_equals(strtolower($request->getHost()), $returnHost)) {
-            return response()->json(['success' => false, 'error' => 'Worldline return URL must use the current tenant host.'], 422);
-        }
-
-        // PayMyDine, not the browser, owns principal amount authority.
         $orderTotal = round((float)($order->order_total ?? $order->total ?? 0), 4);
         $settledAmount = max(0.0, round((float)($order->settled_amount ?? 0), 4));
         $remainingAmount = max(0.0, round($orderTotal - $settledAmount, 4));
@@ -285,7 +268,6 @@ $worldlineAdminAuthorize = static function () {
                 ->where('order_id', $orderId)
                 ->where('status', 'pending')
                 ->first();
-
             if (!$intent) {
                 return response()->json([
                     'success' => false,
@@ -293,17 +275,16 @@ $worldlineAdminAuthorize = static function () {
                     'error' => 'The split-payment intent is missing, expired, or already used.',
                 ], 409);
             }
-
             if (!empty($intent->expires_at) && \Illuminate\Support\Carbon::parse($intent->expires_at)->isPast()) {
                 return response()->json([
                     'success' => false,
                     'error_code' => 'worldline_payment_intent_expired',
-                    'error' => 'The split-payment intent has expired. Start the payment again.',
+                    'error' => 'The payment intent has expired. Start the payment again.',
                 ], 409);
             }
 
-            $intentMethod = strtolower(trim((string)($intent->payment_method ?? '')));
-            $intentProvider = strtolower(str_replace('-', '_', trim((string)($intent->provider ?? ''))));
+            $intentMethod = $normalizeWorldlineMethod((string)($intent->payment_method ?? ''));
+            $intentProvider = $normalizeWorldlineMethod((string)($intent->provider ?? ''));
             if (($intentMethod !== '' && $intentMethod !== $methodCode)
                 || ($intentProvider !== '' && $intentProvider !== 'worldline')) {
                 return response()->json([
@@ -333,15 +314,23 @@ $worldlineAdminAuthorize = static function () {
                 'error' => 'Coupon-adjusted Worldline payments require a server-authoritative payment intent.',
             ], 409);
         }
-
         if ($principalAmount <= 0 || $payableAmount <= 0) {
             return response()->json(['success' => false, 'error' => 'Order has no remaining amount to pay.'], 422);
         }
 
+        $returnUrl = trim((string)$request->input('return_url', ''));
+        $returnHost = strtolower((string)parse_url($returnUrl, PHP_URL_HOST));
+        if (!filter_var($returnUrl, FILTER_VALIDATE_URL)
+            || strtolower((string)parse_url($returnUrl, PHP_URL_SCHEME)) !== 'https'
+            || $returnHost === ''
+            || !hash_equals(strtolower($request->getHost()), $returnHost)) {
+            return response()->json(['success' => false, 'error' => 'Worldline return URL must use HTTPS on the current tenant host.'], 422);
+        }
+
         try {
-            $service = app(\App\Services\Payments\WorldlineConnectRuntimeService::class);
-            $result = $service->createHostedCheckout([
+            $result = app(\App\Services\Payments\WorldlineConnectRuntimeService::class)->createHostedCheckout([
                 'payment_method' => $methodCode,
+                'order_id' => $orderId,
                 'amount_minor' => (int)round($payableAmount * 100),
                 'principal_amount_minor' => (int)round($principalAmount * 100),
                 'tip_amount_minor' => (int)round($tipAmount * 100),
@@ -349,37 +338,21 @@ $worldlineAdminAuthorize = static function () {
                 'country_code' => 'DE',
                 'locale' => (string)$request->input('locale', 'de_DE'),
                 'return_url' => $returnUrl,
-                'order_id' => $orderId,
                 'merchant_reference' => 'PMD-ORDER-'.$orderId,
             ]);
-
-            return response()->json([
-                'success' => true,
-                'provider' => 'worldline',
-                'redirect_url' => $result['redirect_url'],
-                'hosted_checkout_id' => $result['hosted_checkout_id'],
-                'payment_method' => $methodCode,
-                'payment_product_ids' => $result['payment_product_ids'] ?? [],
-                'order_id' => $orderId,
-                'principal_amount' => $principalAmount,
-                'tip_amount' => $tipAmount,
-                'amount' => $payableAmount,
-                'currency' => 'EUR',
-            ]);
+            return response()->json(array_merge(['success' => true], $result));
         } catch (\Throwable $e) {
-            \Log::warning('WORLDLINE_RUNTIME_CREATE_SESSION_FAILED', [
+            \Log::warning('WORLDLINE_RUNTIME_CREATE_FAILED', [
                 'host' => $request->getHost(),
+                'method' => $methodCode,
                 'order_id' => $orderId,
-                'payment_method' => $methodCode,
                 'error_class' => get_class($e),
                 'message' => $e->getMessage(),
             ]);
             return response()->json([
                 'success' => false,
-                'error_code' => 'worldline_session_unavailable',
-                'error' => $e->getMessage() !== ''
-                    ? $e->getMessage()
-                    : 'Worldline could not start this payment method.',
+                'error_code' => 'worldline_hosted_checkout_failed',
+                'error' => $e->getMessage() !== '' ? $e->getMessage() : 'Worldline hosted checkout could not be created.',
             ], 502);
         }
     })->where('method', 'card|apple-pay|google-pay|wero|paypal');
@@ -390,16 +363,9 @@ $worldlineAdminAuthorize = static function () {
         if ($checkoutId === '' || $orderId <= 0) {
             return response()->json(['success' => false, 'error' => 'hosted_checkout_id and order_id are required.'], 422);
         }
-
         try {
             $result = app(\App\Services\Payments\WorldlineConnectRuntimeService::class)->verifiedStatus($checkoutId);
             if ((int)($result['order_id'] ?? 0) !== $orderId) {
-                \Log::warning('WORLDLINE_RUNTIME_ORDER_MISMATCH', [
-                    'host' => $request->getHost(),
-                    'hosted_checkout_id' => $checkoutId,
-                    'requested_order_id' => $orderId,
-                    'session_order_id' => $result['order_id'] ?? null,
-                ]);
                 return response()->json([
                     'success' => false,
                     'is_paid' => false,
@@ -407,12 +373,11 @@ $worldlineAdminAuthorize = static function () {
                     'error' => 'Worldline checkout does not belong to this order.',
                 ], 409);
             }
-
             return response()->json($result);
         } catch (\Throwable $e) {
             \Log::warning('WORLDLINE_RUNTIME_STATUS_FAILED', [
                 'host' => $request->getHost(),
-                'hosted_checkout_id' => $checkoutId,
+                'checkout_id' => $checkoutId,
                 'order_id' => $orderId,
                 'error_class' => get_class($e),
                 'message' => $e->getMessage(),
@@ -428,3 +393,4 @@ $worldlineAdminAuthorize = static function () {
 });
 
 require_once __DIR__.'/worldline-native-card.php';
+require_once __DIR__.'/worldline-native-alternative.php';

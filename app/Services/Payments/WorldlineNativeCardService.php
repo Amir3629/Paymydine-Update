@@ -16,6 +16,7 @@ use Worldline\Connect\Sdk\V1\Domain\OrderReferences;
 use Worldline\Connect\Sdk\V1\Domain\RedirectionData;
 use Worldline\Connect\Sdk\V1\Domain\SessionRequest;
 use Worldline\Connect\Sdk\V1\Domain\ThreeDSecure;
+use Worldline\Connect\Sdk\V1\Merchant\Payments\GetPaymentParams;
 
 /**
  * Worldline Connect native-card runtime for PayMyDine Frontend V2.
@@ -24,8 +25,9 @@ use Worldline\Connect\Sdk\V1\Domain\ThreeDSecure;
  * - Raw PAN, expiry and CVV exist only in the guest browser.
  * - The browser validates/encrypts them with the official Worldline Client SDK.
  * - This service accepts only encryptedCustomerInput plus a PMD session id.
- * - Amount, currency, order, merchant reference and allowed products are read
- *   from the PMD-owned server session and can never be overridden by browser input.
+ * - Amount, currency, order and merchant reference are server authoritative.
+ * - Card-product discovery is intentionally deferred until submit so the card
+ *   fields can render after only the lightweight Worldline Client Session call.
  */
 final class WorldlineNativeCardService
 {
@@ -55,11 +57,11 @@ final class WorldlineNativeCardService
 
         $runtime = app(WorldlineConnectRuntimeService::class);
         $cfg = $runtime->config(true);
-        $available = $runtime->availablePaymentProducts($countryCode, $currency, $amountMinor, $locale);
-        $allowedProductIds = array_values(array_unique(array_filter(array_map('intval', (array)($available['card'] ?? [])))));
-        if (!$allowedProductIds) {
-            throw new \RuntimeException('Worldline card payment is not configured for this merchant and market.');
-        }
+
+        // Do not block field rendering on Get payment products. The browser still
+        // performs IIN/product discovery for UX, and the server performs the exact
+        // authoritative product discovery immediately before creating the payment.
+        $allowedProductIds = [];
 
         $response = $this->merchantClient($cfg)->sessions()->create(new SessionRequest());
         $raw = $this->toArray($response);
@@ -102,7 +104,7 @@ final class WorldlineNativeCardService
             'order_id' => $orderId,
             'amount_minor' => $amountMinor,
             'currency' => $currency,
-            'allowed_payment_product_ids' => $allowedProductIds,
+            'product_validation' => 'deferred_to_submit',
         ]);
 
         return [
@@ -146,13 +148,27 @@ final class WorldlineNativeCardService
         if (strlen($encryptedCustomerInput) < 32 || strlen($encryptedCustomerInput) > 200000) {
             throw new \InvalidArgumentException('Worldline encrypted card payload is invalid.');
         }
-        $allowed = array_values(array_map('intval', (array)($session['allowed_payment_product_ids'] ?? [])));
+
+        // Exact server-side product validation happens here, immediately before
+        // payment creation. This preserves fail-closed behaviour while removing
+        // the same provider round-trip from the user-visible field-load path.
+        $runtime = app(WorldlineConnectRuntimeService::class);
+        $available = $runtime->availablePaymentProducts(
+            (string)$session['country_code'],
+            (string)$session['expected_currency'],
+            (int)$session['expected_amount_minor'],
+            (string)$session['locale']
+        );
+        $allowed = array_values(array_unique(array_filter(array_map('intval', (array)($available['card'] ?? [])))));
         if ($paymentProductId <= 0 || !in_array($paymentProductId, $allowed, true)) {
-            throw new \InvalidArgumentException('Worldline payment product is not allowed for this PMD session.');
+            throw new \InvalidArgumentException('Worldline payment product is not allowed for this PMD transaction.');
         }
+        $session['allowed_payment_product_ids'] = $allowed;
+        $this->saveSession($session);
+
         $this->assertSameTenantHttpsUrl($returnUrl);
 
-        $cfg = app(WorldlineConnectRuntimeService::class)->config(true);
+        $cfg = $runtime->config(true);
         $amount = new AmountOfMoney();
         $amount->amount = (int)$session['expected_amount_minor'];
         $amount->currencyCode = (string)$session['expected_currency'];
@@ -252,7 +268,8 @@ final class WorldlineNativeCardService
         }
 
         $cfg = app(WorldlineConnectRuntimeService::class)->config(true);
-        $raw = $this->toArray($this->merchantClient($cfg)->payments()->get($paymentId));
+        $paymentClient = $this->merchantClient($cfg)->payments();
+        $raw = $this->toArray($paymentClient->get($paymentId, new GetPaymentParams()));
         $status = strtoupper(trim((string)($raw['status'] ?? 'PENDING')));
         $output = (array)($raw['paymentOutput'] ?? []);
         $money = (array)($output['amountOfMoney'] ?? []);

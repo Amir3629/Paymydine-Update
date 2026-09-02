@@ -1,5 +1,5 @@
 -- PayMyDine schema-only dump
--- Generated UTC: Wed Sep  2 20:05:01 UTC 2026
+-- Generated UTC: Wed Sep  2 23:15:17 UTC 2026
 -- Source server: vps-252f1bc4
 -- DATA ROWS ARE NOT INCLUDED
 
@@ -3990,7 +3990,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-09-02 20:05:02
+-- Dump completed on 2026-09-02 23:15:18
 
 -- ==================================================
 -- DATABASE: mimoza
@@ -7909,7 +7909,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-09-02 20:05:03
+-- Dump completed on 2026-09-02 23:15:18
 
 -- ==================================================
 -- DATABASE: rosana
@@ -10648,7 +10648,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-09-02 20:05:03
+-- Dump completed on 2026-09-02 23:15:19
 -- WARNING: Database 'persian' not found or not accessible.
 
 -- ==================================================
@@ -12920,4 +12920,4 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-09-02 20:05:03
+-- Dump completed on 2026-09-02 23:15:19
