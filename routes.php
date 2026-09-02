@@ -6,4 +6,3 @@
 require_once __DIR__.'/routes/root-app-before.php';
 require_once __DIR__.'/routes/admin-notifications.php';
 require_once __DIR__.'/routes/root-fiskaly-markers.php';
-require_once __DIR__.'/routes/worldline-native-alternative.php';
