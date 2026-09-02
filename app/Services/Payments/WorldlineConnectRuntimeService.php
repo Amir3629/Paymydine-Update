@@ -14,6 +14,7 @@ use Worldline\Connect\Sdk\V1\Domain\Customer;
 use Worldline\Connect\Sdk\V1\Domain\HostedCheckoutSpecificInput;
 use Worldline\Connect\Sdk\V1\Domain\Order;
 use Worldline\Connect\Sdk\V1\Domain\SessionRequest;
+use Worldline\Connect\Sdk\V1\Merchant\Payments\GetPaymentParams;
 
 /**
  * Canonical Worldline GlobalCollect / Connect runtime for PayMyDine.
@@ -358,7 +359,7 @@ final class WorldlineConnectRuntimeService
             return $this->statusResult($session, null, 'PENDING', null, null, null, false, false, 'Payment has not been created yet.');
         }
 
-        $providerPayment = $this->toArray($merchant->payments()->get($paymentId));
+        $providerPayment = $this->toArray($merchant->payments()->get($paymentId, new GetPaymentParams()));
         $paymentOutput = (array)($providerPayment['paymentOutput'] ?? []);
         $money = (array)($paymentOutput['amountOfMoney'] ?? []);
         $references = (array)($paymentOutput['references'] ?? []);

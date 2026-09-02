@@ -16,6 +16,7 @@ use Worldline\Connect\Sdk\V1\Domain\OrderReferences;
 use Worldline\Connect\Sdk\V1\Domain\RedirectionData;
 use Worldline\Connect\Sdk\V1\Domain\SessionRequest;
 use Worldline\Connect\Sdk\V1\Domain\ThreeDSecure;
+use Worldline\Connect\Sdk\V1\Merchant\Payments\GetPaymentParams;
 
 /**
  * Worldline Connect native-card runtime for PayMyDine Frontend V2.
@@ -252,7 +253,8 @@ final class WorldlineNativeCardService
         }
 
         $cfg = app(WorldlineConnectRuntimeService::class)->config(true);
-        $raw = $this->toArray($this->merchantClient($cfg)->payments()->get($paymentId));
+        $paymentClient = $this->merchantClient($cfg)->payments();
+        $raw = $this->toArray($paymentClient->get($paymentId, new GetPaymentParams()));
         $status = strtoupper(trim((string)($raw['status'] ?? 'PENDING')));
         $output = (array)($raw['paymentOutput'] ?? []);
         $money = (array)($output['amountOfMoney'] ?? []);

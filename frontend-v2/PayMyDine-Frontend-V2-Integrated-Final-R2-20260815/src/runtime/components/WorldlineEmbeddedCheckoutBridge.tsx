@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { WorldlineNativeCardForm } from './WorldlineNativeCardForm'
+import { WorldlineNativeWalletForm } from './WorldlineNativeWalletForm'
 
 type PendingWorldlinePayment = {
   provider?: string
@@ -28,7 +29,7 @@ type PendingWorldlinePayment = {
   payerLabel?: string | null
 }
 
-type EmbeddedSession = {
+type HostedAuthorizationSession = {
   redirectUrl: string
   hostedCheckoutId: string
   orderId: number
@@ -55,11 +56,47 @@ type NativeCardSession = {
   allowedPaymentProductIds: number[]
 }
 
+type NativeWalletSession = {
+  sessionId: string
+  orderId: number
+  returnTo: string
+  methodCode: 'apple_pay' | 'google_pay'
+  paymentProductId: number
+  clientSession: {
+    clientSessionId: string
+    customerId: string
+    clientApiUrl: string
+    assetUrl: string
+  }
+  paymentDetails: {
+    totalAmount: number
+    countryCode: string
+    locale: string
+    currency: string
+    isRecurring: boolean
+  }
+  walletConfiguration: {
+    merchantName: string
+    googleMerchantId: string | null
+    gatewayMerchantId: string
+    environment: 'TEST' | 'PROD'
+  }
+}
+
+type NativeRedirectSession = {
+  sessionId: string
+  redirectUrl: string
+  orderId: number
+  methodCode: 'paypal' | 'wero'
+}
+
 type BridgeState = 'idle' | 'loading' | 'ready' | 'settling' | 'paid' | 'failed'
 
 const PENDING_KEY = 'pmd-v2:pending-payment:worldline'
 const CREATE_SESSION_PATTERN = /^\/api\/v1\/payments\/worldline\/runtime\/(card|apple-pay|google-pay|paypal|wero)\/create-session$/
 const NATIVE_CARD_CREATE_ENDPOINT = '/api/v1/payments/worldline/native/card/create-session'
+const NATIVE_WALLET_CREATE_PREFIX = '/api/v1/payments/worldline/native/wallet'
+const NATIVE_REDIRECT_CREATE_PREFIX = '/api/v1/payments/worldline/native/redirect'
 const PROVIDER_HOST_SUFFIX = '.worldline-solutions.com'
 const INLINE_HOST_ATTRIBUTE = 'data-pmd-worldline-inline-host'
 const HIDDEN_PAY_ATTRIBUTE = 'data-pmd-worldline-hidden-pay-button'
@@ -72,6 +109,10 @@ function sleep(ms: number) {
 
 function normalizeMethod(value: string): string {
   return String(value || 'card').trim().toLowerCase().replace(/-/g, '_')
+}
+
+function methodSlug(code: string): string {
+  return normalizeMethod(code).replace(/_/g, '-')
 }
 
 function safeReturnPath(value: unknown): string {
@@ -104,6 +145,18 @@ function safeHttpsUrl(value: unknown): string | null {
   } catch {
     return null
   }
+}
+
+function responseWithJson(response: Response, data: Record<string, unknown>): Response {
+  const headers = new Headers(response.headers)
+  headers.delete('content-length')
+  headers.delete('content-encoding')
+  headers.set('content-type', 'application/json; charset=utf-8')
+  return new Response(JSON.stringify(data), {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  })
 }
 
 function readPending(expectedId: string): PendingWorldlinePayment | null {
@@ -141,7 +194,7 @@ async function requestJson(url: string, body: Record<string, unknown>): Promise<
 }
 
 async function waitForPending(identity: string): Promise<PendingWorldlinePayment> {
-  for (let attempt = 0; attempt < 40; attempt += 1) {
+  for (let attempt = 0; attempt < 50; attempt += 1) {
     const pending = readPending(identity)
     if (pending) return pending
     await sleep(50)
@@ -202,15 +255,6 @@ function methodLabel(code: string): string {
   if (code === 'paypal') return 'PayPal'
   if (code === 'wero') return 'Wero'
   return 'Card / Wallet'
-}
-
-function isCompactWallet(code: string): boolean {
-  return ['apple_pay', 'google_pay', 'paypal', 'wero'].includes(code)
-}
-
-function frameHeight(code: string): string {
-  if (code === 'card') return 'min(54vh, 520px)'
-  return '400px'
 }
 
 function visiblePaymentPanel(): HTMLElement | null {
@@ -278,28 +322,42 @@ function removeInlineHost() {
 }
 
 export function WorldlineEmbeddedCheckoutBridge() {
-  const [session, setSession] = useState<EmbeddedSession | null>(null)
+  const [hostedSession, setHostedSession] = useState<HostedAuthorizationSession | null>(null)
   const [nativeCard, setNativeCard] = useState<NativeCardSession | null>(null)
-  const [nativeChallengeUrl, setNativeChallengeUrl] = useState<string | null>(null)
+  const [nativeWallet, setNativeWallet] = useState<NativeWalletSession | null>(null)
+  const [nativeRedirect, setNativeRedirect] = useState<NativeRedirectSession | null>(null)
+  const [challengeUrl, setChallengeUrl] = useState<string | null>(null)
   const [hostElement, setHostElement] = useState<HTMLElement | null>(null)
   const [state, setState] = useState<BridgeState>('idle')
   const [message, setMessage] = useState('')
   const [providerStatus, setProviderStatus] = useState('')
   const generationRef = useRef(0)
   const settlingRef = useRef(false)
+  const popupRef = useRef<Window | null>(null)
 
   const close = () => {
     if (state === 'settling' || state === 'paid') return
     generationRef.current += 1
     settlingRef.current = false
-    setSession(null)
+    try { popupRef.current?.close() } catch {}
+    popupRef.current = null
+    setHostedSession(null)
     setNativeCard(null)
-    setNativeChallengeUrl(null)
+    setNativeWallet(null)
+    setNativeRedirect(null)
+    setChallengeUrl(null)
     setHostElement(null)
     setState('idle')
     setMessage('')
     setProviderStatus('')
     removeInlineHost()
+  }
+
+  const activateHost = (): HTMLElement | null => {
+    removeInlineHost()
+    const inlineHost = ensureInlineHost()
+    if (inlineHost) setHostElement(inlineHost)
+    return inlineHost
   }
 
   useEffect(() => {
@@ -333,13 +391,13 @@ export function WorldlineEmbeddedCheckoutBridge() {
       if (disposed) return
       const payButton = genericPayButton(panel)
       if (!payButton || payButton.disabled) {
-        if (attempt < 6) window.setTimeout(() => triggerGenericPay(panel, attempt + 1), 70)
+        if (attempt < 8) window.setTimeout(() => triggerGenericPay(panel, attempt + 1), 60)
         return
       }
       if (payButton.getAttribute(AUTO_START_ATTRIBUTE) === 'true') return
       payButton.setAttribute(AUTO_START_ATTRIBUTE, 'true')
       payButton.click()
-      window.setTimeout(() => payButton.removeAttribute(AUTO_START_ATTRIBUTE), 1200)
+      window.setTimeout(() => payButton.removeAttribute(AUTO_START_ATTRIBUTE), 1000)
     }
 
     const onPaymentMethodClick = (event: MouseEvent) => {
@@ -373,18 +431,20 @@ export function WorldlineEmbeddedCheckoutBridge() {
         parsedUrl = new URL(value, window.location.origin)
       } catch {}
 
-      if (!parsedUrl || parsedUrl.origin !== window.location.origin || !CREATE_SESSION_PATTERN.test(parsedUrl.pathname)) {
+      const match = parsedUrl?.pathname.match(CREATE_SESSION_PATTERN) || null
+      if (!parsedUrl || parsedUrl.origin !== window.location.origin || !match) {
         return originalFetch.call(window, input as any, init)
       }
 
       let nextInit = init
-      let requestedMethod = normalizeMethod(parsedUrl.pathname.match(CREATE_SESSION_PATTERN)?.[1] || 'card')
+      let requestedMethod = normalizeMethod(match[1] || 'card')
       let returnTo = `${window.location.pathname}${window.location.search}`
       let orderId = 0
+      let payload: Record<string, unknown> = {}
 
       if (typeof init?.body === 'string') {
         try {
-          const payload = JSON.parse(init.body) as Record<string, unknown>
+          payload = JSON.parse(init.body) as Record<string, unknown>
           requestedMethod = normalizeMethod(String(payload.payment_method || requestedMethod))
           orderId = Number(payload.order_id || 0)
           try {
@@ -392,19 +452,35 @@ export function WorldlineEmbeddedCheckoutBridge() {
             returnTo = safeReturnPath(prior.searchParams.get('return_to') || returnTo)
           } catch {}
           payload.return_url = `${window.location.origin}/payment/worldline-embedded-return?return_to=${encodeURIComponent(returnTo)}`
-          payload.integration_preference = requestedMethod === 'card' ? 'native_client_sdk' : 'embedded_mycheckout'
+          payload.integration_preference = requestedMethod === 'card'
+            ? 'native_client_sdk'
+            : ['apple_pay', 'google_pay'].includes(requestedMethod)
+              ? 'native_wallet'
+              : 'native_redirect'
           nextInit = { ...init, body: JSON.stringify(payload) }
         } catch {}
       }
 
-      const requestTarget = requestedMethod === 'card' ? NATIVE_CARD_CREATE_ENDPOINT : input
-      const response = await originalFetch.call(window, requestTarget as any, nextInit)
-      if (!response.ok) return response
+      const resetForNewSession = () => {
+        generationRef.current += 1
+        settlingRef.current = false
+        try { popupRef.current?.close() } catch {}
+        popupRef.current = null
+        setHostedSession(null)
+        setNativeCard(null)
+        setNativeWallet(null)
+        setNativeRedirect(null)
+        setChallengeUrl(null)
+        setProviderStatus('')
+        setMessage('')
+      }
 
-      const data = await response.clone().json().catch(() => null)
-      if (!data) return response
+      if (requestedMethod === 'card') {
+        const response = await originalFetch.call(window, NATIVE_CARD_CREATE_ENDPOINT, nextInit)
+        if (!response.ok) return response
+        const data = await response.clone().json().catch(() => null)
+        if (!data || String(data?.flow || '').toLowerCase() !== 'native_card') return response
 
-      if (requestedMethod === 'card' && String(data?.flow || '').toLowerCase() === 'native_card') {
         const sessionId = String(data?.session_id || '')
         const clientSession = data?.client_session || {}
         const paymentDetails = data?.payment_details || {}
@@ -420,18 +496,11 @@ export function WorldlineEmbeddedCheckoutBridge() {
           return response
         }
 
-        removeInlineHost()
-        const inlineHost = ensureInlineHost()
+        const inlineHost = activateHost()
         if (!inlineHost) return response
-
-        generationRef.current += 1
-        settlingRef.current = false
-        setSession(null)
-        setNativeChallengeUrl(null)
-        setProviderStatus('')
-        setMessage('')
-        setState('ready')
+        resetForNewSession()
         setHostElement(inlineHost)
+        setState('ready')
         setNativeCard({
           sessionId: sessionId.toLowerCase(),
           orderId: Number(data?.order_id || orderId || 0),
@@ -453,63 +522,150 @@ export function WorldlineEmbeddedCheckoutBridge() {
         })
         window.requestAnimationFrame(() => inlineHost.scrollIntoView({ behavior: 'smooth', block: 'nearest' }))
 
-        const sanitized = {
+        return responseWithJson(response, {
           ...data,
           redirect_url: null,
           redirectUrl: null,
           flow: 'native_card',
           message: String(data?.message || 'Enter your card details below.'),
-        }
-        const headers = new Headers(response.headers)
-        headers.delete('content-length')
-        headers.delete('content-encoding')
-        headers.set('content-type', 'application/json; charset=utf-8')
-        return new Response(JSON.stringify(sanitized), {
-          status: response.status,
-          statusText: response.statusText,
-          headers,
         })
       }
 
-      const redirectUrl = safeWorldlineUrl(data?.redirect_url || data?.redirectUrl)
-      const hostedCheckoutId = String(data?.hosted_checkout_id || data?.hostedCheckoutId || '')
-      if (!redirectUrl || !hostedCheckoutId) return response
+      if (requestedMethod === 'apple_pay' || requestedMethod === 'google_pay') {
+        const slug = methodSlug(requestedMethod)
+        const nativeResponse = await originalFetch.call(
+          window,
+          `${NATIVE_WALLET_CREATE_PREFIX}/${slug}/create-session`,
+          nextInit,
+        )
+        const nativeData = await nativeResponse.clone().json().catch(() => null)
 
-      removeInlineHost()
-      const inlineHost = ensureInlineHost()
-      if (!inlineHost) return response
+        if (nativeResponse.ok && nativeData && String(nativeData?.flow || '').toLowerCase() === 'native_wallet') {
+          const sessionId = String(nativeData?.session_id || '')
+          const clientSession = nativeData?.client_session || {}
+          const paymentDetails = nativeData?.payment_details || {}
+          const wallet = nativeData?.wallet_configuration || {}
+          const productId = Number(nativeData?.payment_product_id || 0)
+          if (/^[a-f0-9]{48}$/i.test(sessionId)
+            && clientSession.clientSessionId
+            && clientSession.customerId
+            && clientSession.clientApiUrl
+            && clientSession.assetUrl
+            && productId > 0) {
+            const inlineHost = activateHost()
+            if (!inlineHost) return nativeResponse
+            resetForNewSession()
+            setHostElement(inlineHost)
+            setState('ready')
+            setNativeWallet({
+              sessionId: sessionId.toLowerCase(),
+              orderId: Number(nativeData?.order_id || orderId || 0),
+              returnTo,
+              methodCode: requestedMethod,
+              paymentProductId: productId,
+              clientSession: {
+                clientSessionId: String(clientSession.clientSessionId),
+                customerId: String(clientSession.customerId),
+                clientApiUrl: String(clientSession.clientApiUrl),
+                assetUrl: String(clientSession.assetUrl),
+              },
+              paymentDetails: {
+                totalAmount: Number(paymentDetails.totalAmount || nativeData?.amount_minor || 0),
+                countryCode: String(paymentDetails.countryCode || 'DE'),
+                locale: String(paymentDetails.locale || 'de_DE'),
+                currency: String(paymentDetails.currency || nativeData?.currency || 'EUR'),
+                isRecurring: Boolean(paymentDetails.isRecurring),
+              },
+              walletConfiguration: {
+                merchantName: String(wallet.merchant_name || 'PayMyDine'),
+                googleMerchantId: wallet.google_merchant_id ? String(wallet.google_merchant_id) : null,
+                gatewayMerchantId: String(wallet.gateway_merchant_id || ''),
+                environment: String(wallet.environment || 'TEST').toUpperCase() === 'PROD' ? 'PROD' : 'TEST',
+              },
+            })
+            window.requestAnimationFrame(() => inlineHost.scrollIntoView({ behavior: 'smooth', block: 'nearest' }))
 
-      generationRef.current += 1
-      settlingRef.current = false
-      setNativeCard(null)
-      setNativeChallengeUrl(null)
-      setProviderStatus('')
-      setMessage('')
-      setState('loading')
+            return responseWithJson(nativeResponse, {
+              ...nativeData,
+              redirect_url: null,
+              redirectUrl: null,
+              payment_id: null,
+              provider_reference: null,
+              flow: 'native_wallet',
+              message: `${methodLabel(requestedMethod)} is ready inside PayMyDine.`,
+            })
+          }
+        }
+        // External wallet boarding can still be incomplete. Fail safely to the
+        // existing Worldline hosted flow, but show only a PMD-owned action button.
+      }
+
+      if (requestedMethod === 'paypal' || requestedMethod === 'wero') {
+        const slug = methodSlug(requestedMethod)
+        const directResponse = await originalFetch.call(
+          window,
+          `${NATIVE_REDIRECT_CREATE_PREFIX}/${slug}/create`,
+          nextInit,
+        )
+        const directData = await directResponse.clone().json().catch(() => null)
+        const directUrl = safeHttpsUrl(directData?.redirect_url || directData?.redirectUrl)
+        const directSessionId = String(directData?.session_id || '')
+
+        if (directResponse.ok && directData && directUrl && /^[a-f0-9]{48}$/i.test(directSessionId)) {
+          const inlineHost = activateHost()
+          if (!inlineHost) return directResponse
+          resetForNewSession()
+          setHostElement(inlineHost)
+          setState('ready')
+          setNativeRedirect({
+            sessionId: directSessionId.toLowerCase(),
+            redirectUrl: directUrl,
+            orderId: Number(directData?.order_id || orderId || 0),
+            methodCode: requestedMethod,
+          })
+          window.requestAnimationFrame(() => inlineHost.scrollIntoView({ behavior: 'smooth', block: 'nearest' }))
+
+          return responseWithJson(directResponse, {
+            ...directData,
+            redirect_url: null,
+            redirectUrl: null,
+            payment_id: null,
+            provider_reference: null,
+            flow: 'native_redirect',
+            message: `${methodLabel(requestedMethod)} is ready inside PayMyDine.`,
+          })
+        }
+        // Direct redirect product setup can vary by merchant. If it is not
+        // available, use the restricted hosted checkout only as the authorization target.
+      }
+
+      const hostedResponse = await originalFetch.call(window, input as any, nextInit)
+      if (!hostedResponse.ok) return hostedResponse
+      const hostedData = await hostedResponse.clone().json().catch(() => null)
+      if (!hostedData) return hostedResponse
+      const redirectUrl = safeWorldlineUrl(hostedData?.redirect_url || hostedData?.redirectUrl)
+      const hostedCheckoutId = String(hostedData?.hosted_checkout_id || hostedData?.hostedCheckoutId || '')
+      if (!redirectUrl || !hostedCheckoutId) return hostedResponse
+
+      const inlineHost = activateHost()
+      if (!inlineHost) return hostedResponse
+      resetForNewSession()
       setHostElement(inlineHost)
-      setSession({
+      setState('ready')
+      setHostedSession({
         redirectUrl,
         hostedCheckoutId,
-        orderId: Number(data?.order_id || orderId || 0),
-        methodCode: normalizeMethod(String(data?.payment_method || requestedMethod)),
+        orderId: Number(hostedData?.order_id || orderId || 0),
+        methodCode: normalizeMethod(String(hostedData?.payment_method || requestedMethod)),
       })
       window.requestAnimationFrame(() => inlineHost.scrollIntoView({ behavior: 'smooth', block: 'nearest' }))
 
-      const sanitized = {
-        ...data,
+      return responseWithJson(hostedResponse, {
+        ...hostedData,
         redirect_url: null,
         redirectUrl: null,
-        flow: 'embedded',
-        message: 'Worldline secure checkout opened inside the PayMyDine payment card.',
-      }
-      const headers = new Headers(response.headers)
-      headers.delete('content-length')
-      headers.delete('content-encoding')
-      headers.set('content-type', 'application/json; charset=utf-8')
-      return new Response(JSON.stringify(sanitized), {
-        status: response.status,
-        statusText: response.statusText,
-        headers,
+        flow: 'pmd_authorization_button',
+        message: `${methodLabel(requestedMethod)} authorization is ready inside PayMyDine.`,
       })
     }
 
@@ -518,12 +674,14 @@ export function WorldlineEmbeddedCheckoutBridge() {
       disposed = true
       document.removeEventListener('click', onPaymentMethodClick, true)
       if (window.fetch === patchedFetch) window.fetch = originalFetch
+      try { popupRef.current?.close() } catch {}
+      popupRef.current = null
       removeInlineHost()
     }
   }, [])
 
   useEffect(() => {
-    if ((!session && !nativeCard) || !hostElement) return
+    if ((!hostedSession && !nativeCard && !nativeWallet && !nativeRedirect) || !hostElement) return
 
     const onPanelClick = (event: MouseEvent) => {
       if (state === 'settling' || state === 'paid') return
@@ -537,37 +695,70 @@ export function WorldlineEmbeddedCheckoutBridge() {
 
     document.addEventListener('click', onPanelClick, true)
     return () => document.removeEventListener('click', onPanelClick, true)
-  }, [hostElement, nativeCard, session, state])
+  }, [hostElement, hostedSession, nativeCard, nativeWallet, nativeRedirect, state])
+
+  const pollKind = hostedSession
+    ? 'hosted'
+    : nativeCard
+      ? 'native_card'
+      : nativeWallet || nativeRedirect
+        ? 'native_alt'
+        : ''
+  const pollIdentity = hostedSession?.hostedCheckoutId || nativeCard?.sessionId || nativeWallet?.sessionId || nativeRedirect?.sessionId || ''
+  const pollOrderId = hostedSession?.orderId || nativeCard?.orderId || nativeWallet?.orderId || nativeRedirect?.orderId || 0
 
   useEffect(() => {
-    if (!session) return
+    if (!pollKind || !pollIdentity || !pollOrderId) return
     const generation = generationRef.current
     let cancelled = false
     let timer: number | null = null
 
+    const schedule = (delay = 1100) => {
+      if (timer !== null) window.clearTimeout(timer)
+      if (!cancelled && generation === generationRef.current && !settlingRef.current) {
+        timer = window.setTimeout(poll, delay)
+      }
+    }
+
     const poll = async () => {
       if (cancelled || generation !== generationRef.current || settlingRef.current) return
       try {
-        const pending = await waitForPending(session.hostedCheckoutId)
+        const pending = await waitForPending(pollIdentity)
         if (cancelled || generation !== generationRef.current) return
 
-        const status = await requestJson('/api/v1/payments/worldline/runtime/status', {
-          hosted_checkout_id: session.hostedCheckoutId,
-          order_id: Number(pending.orderId || session.orderId || 0),
-        })
+        let status: any
+        if (pollKind === 'hosted') {
+          status = await requestJson('/api/v1/payments/worldline/runtime/status', {
+            hosted_checkout_id: pollIdentity,
+            order_id: Number(pending.orderId || pollOrderId || 0),
+          })
+        } else if (pollKind === 'native_card') {
+          status = await requestJson('/api/v1/payments/worldline/native/card/status', {
+            session_id: pollIdentity,
+            order_id: Number(pending.orderId || pollOrderId || 0),
+          })
+        } else {
+          status = await requestJson('/api/v1/payments/worldline/native/alternative/status', {
+            session_id: pollIdentity,
+            order_id: Number(pending.orderId || pollOrderId || 0),
+          })
+        }
         if (cancelled || generation !== generationRef.current) return
 
         const statusName = String(status?.payment_status || status?.status || '').toUpperCase()
-        setProviderStatus(statusName && statusName !== 'PENDING' ? statusName : '')
+        if (statusName && !['PENDING', 'CREATED'].includes(statusName)) setProviderStatus(statusName)
 
         if (status?.is_paid === true && status?.verification_ok === true) {
           settlingRef.current = true
+          setChallengeUrl(null)
           setState('settling')
           setMessage('Payment confirmed. Finishing your order…')
           try {
             await settleVerifiedWorldlinePayment(pending, status)
-            clearPending(session.hostedCheckoutId)
+            clearPending(pollIdentity)
             if (cancelled || generation !== generationRef.current) return
+            try { popupRef.current?.close() } catch {}
+            popupRef.current = null
             setState('paid')
             setMessage('Payment complete.')
             window.setTimeout(() => window.location.reload(), 650)
@@ -580,169 +771,133 @@ export function WorldlineEmbeddedCheckoutBridge() {
         }
 
         if (['CANCELLED', 'CANCELED', 'REJECTED', 'REJECTED_CAPTURE', 'FAILED', 'EXPIRED'].includes(statusName)) {
+          setChallengeUrl(null)
           setState('failed')
           setMessage(`Payment not completed (${statusName}). Choose another method or try again.`)
           return
         }
 
-        setState('ready')
-      } catch (error) {
-        if (cancelled || generation !== generationRef.current) return
-        setState('ready')
-        if (error instanceof Error && /bind the Worldline/i.test(error.message)) setMessage(error.message)
-      }
-
-      if (!cancelled && generation === generationRef.current && !settlingRef.current) {
-        timer = window.setTimeout(poll, 1300)
-      }
-    }
-
-    void poll()
-    const onMessage = (event: MessageEvent) => {
-      if (event.origin !== window.location.origin) return
-      if (event.data?.type === 'pmd-worldline-embedded-return') {
-        if (timer !== null) window.clearTimeout(timer)
-        timer = window.setTimeout(poll, 50)
-      }
-    }
-    window.addEventListener('message', onMessage)
-
-    return () => {
-      cancelled = true
-      if (timer !== null) window.clearTimeout(timer)
-      window.removeEventListener('message', onMessage)
-    }
-  }, [session])
-
-  useEffect(() => {
-    if (!nativeCard) return
-    const generation = generationRef.current
-    let cancelled = false
-    let timer: number | null = null
-
-    const poll = async () => {
-      if (cancelled || generation !== generationRef.current || settlingRef.current) return
-      try {
-        const pending = await waitForPending(nativeCard.sessionId)
-        if (cancelled || generation !== generationRef.current) return
-        const status = await requestJson('/api/v1/payments/worldline/native/card/status', {
-          session_id: nativeCard.sessionId,
-          order_id: Number(pending.orderId || nativeCard.orderId || 0),
-        })
-        if (cancelled || generation !== generationRef.current) return
-
-        const statusName = String(status?.payment_status || status?.status || '').toUpperCase()
-        if (statusName && !['PENDING', 'CREATED'].includes(statusName)) setProviderStatus(statusName)
-
-        if (status?.is_paid === true && status?.verification_ok === true) {
-          settlingRef.current = true
-          setNativeChallengeUrl(null)
-          setState('settling')
-          setMessage('Payment confirmed. Finishing your order…')
-          try {
-            await settleVerifiedWorldlinePayment(pending, status)
-            clearPending(nativeCard.sessionId)
-            if (cancelled || generation !== generationRef.current) return
-            setState('paid')
-            setMessage('Payment complete.')
-            window.setTimeout(() => window.location.reload(), 650)
-          } catch (error) {
-            settlingRef.current = false
-            setState('failed')
-            setMessage(`Worldline confirmed the card payment, but PayMyDine could not finish settlement. Do not pay again. ${error instanceof Error ? error.message : ''}`.trim())
-          }
-          return
-        }
-
-        if (['CANCELLED', 'CANCELED', 'REJECTED', 'REJECTED_CAPTURE', 'FAILED', 'EXPIRED'].includes(statusName)) {
-          setNativeChallengeUrl(null)
-          setState('failed')
-          setMessage(`Card payment not completed (${statusName}). Choose another method or try again.`)
-          return
-        }
+        if (state !== 'failed') setState('ready')
       } catch (error) {
         if (cancelled || generation !== generationRef.current) return
         if (error instanceof Error && /bind the Worldline/i.test(error.message)) setMessage(error.message)
       }
 
-      if (!cancelled && generation === generationRef.current && !settlingRef.current) {
-        timer = window.setTimeout(poll, 1300)
-      }
+      schedule()
     }
-
-    void poll()
 
     const onMessage = (event: MessageEvent) => {
       if (event.origin !== window.location.origin || event.data?.type !== 'pmd-worldline-embedded-return') return
-      const returnedSessionId = String(event.data?.nativeSessionId || '').toLowerCase()
-      if (returnedSessionId && returnedSessionId !== nativeCard.sessionId) return
-      const returnMac = String(event.data?.returnMac || '')
-      if (!returnMac) {
-        setState('failed')
-        setMessage('Worldline returned from 3-D Secure without the required verification token.')
+
+      if (pollKind === 'native_card') {
+        const returnedSessionId = String(event.data?.nativeSessionId || '').toLowerCase()
+        if (returnedSessionId && returnedSessionId !== pollIdentity) return
+        const returnMac = String(event.data?.returnMac || '')
+        if (!returnMac) {
+          setState('failed')
+          setMessage('Worldline returned from 3-D Secure without the required verification token.')
+          return
+        }
+        void waitForPending(pollIdentity).then(async (pending) => {
+          await requestJson('/api/v1/payments/worldline/native/card/return', {
+            session_id: pollIdentity,
+            order_id: Number(pending.orderId || pollOrderId || 0),
+            return_mac: returnMac,
+          })
+          if (cancelled || generation !== generationRef.current) return
+          setChallengeUrl(null)
+          setMessage('Bank verification returned. Confirming payment with Worldline…')
+          schedule(50)
+        }).catch((error) => {
+          if (cancelled || generation !== generationRef.current) return
+          setState('failed')
+          setMessage(error instanceof Error ? error.message : 'Worldline 3-D Secure return could not be verified.')
+        })
         return
       }
 
-      void waitForPending(nativeCard.sessionId).then(async (pending) => {
-        const result = await requestJson('/api/v1/payments/worldline/native/card/return', {
-          session_id: nativeCard.sessionId,
-          order_id: Number(pending.orderId || nativeCard.orderId || 0),
-          return_mac: returnMac,
-        })
-        if (cancelled || generation !== generationRef.current) return
-        setNativeChallengeUrl(null)
-        setProviderStatus(String(result?.payment_status || '').toUpperCase())
-        setState('ready')
-        setMessage('Bank verification returned. Confirming payment with Worldline…')
-        if (timer !== null) window.clearTimeout(timer)
-        timer = window.setTimeout(poll, 50)
-      }).catch((error) => {
-        if (cancelled || generation !== generationRef.current) return
-        setState('failed')
-        setMessage(error instanceof Error ? error.message : 'Worldline 3-D Secure return could not be verified.')
-      })
-    }
-    window.addEventListener('message', onMessage)
+      if (pollKind === 'native_alt') {
+        const returnedSessionId = String(event.data?.nativeAltSessionId || '').toLowerCase()
+        if (returnedSessionId && returnedSessionId !== pollIdentity) return
+        const returnMac = String(event.data?.returnMac || '')
+        void waitForPending(pollIdentity).then(async (pending) => {
+          if (returnMac) {
+            await requestJson('/api/v1/payments/worldline/native/alternative/return', {
+              session_id: pollIdentity,
+              order_id: Number(pending.orderId || pollOrderId || 0),
+              return_mac: returnMac,
+            })
+          }
+          if (cancelled || generation !== generationRef.current) return
+          setChallengeUrl(null)
+          setMessage('Authorization returned. Confirming payment with Worldline…')
+          schedule(50)
+        }).catch(() => schedule(50))
+        return
+      }
 
+      schedule(50)
+    }
+
+    void poll()
+    window.addEventListener('message', onMessage)
     return () => {
       cancelled = true
       if (timer !== null) window.clearTimeout(timer)
       window.removeEventListener('message', onMessage)
     }
-  }, [nativeCard])
+  }, [pollKind, pollIdentity, pollOrderId])
 
-  if (!hostElement || (!session && !nativeCard)) return null
+  if (!hostElement || (!hostedSession && !nativeCard && !nativeWallet && !nativeRedirect)) return null
+
+  const challenge = challengeUrl ? (
+    <div style={{ width: '100%', display: 'grid', gap: 10 }}>
+      <div style={{ color: '#d4d4d8', fontSize: 12, lineHeight: 1.5 }}>
+        Your bank requires secure verification. Complete it below; PayMyDine verifies the final payment server-to-server.
+      </div>
+      <iframe
+        src={challengeUrl}
+        title="Worldline secure bank verification"
+        allow="payment"
+        sandbox="allow-scripts allow-popups allow-same-origin allow-forms allow-modals allow-top-navigation-by-user-activation"
+        referrerPolicy="strict-origin-when-cross-origin"
+        style={{
+          display: 'block',
+          width: '100%',
+          height: 420,
+          minHeight: 400,
+          border: '1px solid rgba(255,31,112,.45)',
+          borderRadius: 14,
+          background: '#fff',
+        }}
+      />
+    </div>
+  ) : null
+
+  const statusBlock = (state === 'settling' || state === 'paid' || state === 'failed' || message || providerStatus) ? (
+    <div
+      role="status"
+      style={{
+        padding: '8px 4px 2px',
+        color: state === 'failed' ? '#fda4af' : '#d4d4d8',
+        fontSize: 12,
+        lineHeight: 1.45,
+        background: 'transparent',
+      }}
+    >
+      {message ? <span>{message}</span> : null}
+      {providerStatus ? <strong style={{ marginLeft: message ? 8 : 0 }}>Worldline: {providerStatus}</strong> : null}
+    </div>
+  ) : null
 
   if (nativeCard) {
-    const content = (
+    return createPortal((
       <div
-        data-pmd-worldline-embedded="native-card-client-sdk-v1"
+        data-pmd-worldline-embedded="native-card-client-sdk-v2"
         aria-label="Secure Worldline card payment"
         style={{ width: '100%', minWidth: 0, margin: 0, padding: 0, background: 'transparent' }}
       >
-        {nativeChallengeUrl ? (
-          <div style={{ width: '100%', display: 'grid', gap: 10 }}>
-            <div style={{ color: '#d4d4d8', fontSize: 12, lineHeight: 1.5 }}>
-              Your bank requires 3-D Secure verification. Complete the verification below; PayMyDine will verify the final payment server-to-server.
-            </div>
-            <iframe
-              src={nativeChallengeUrl}
-              title="Worldline 3-D Secure verification"
-              allow="payment"
-              sandbox="allow-scripts allow-popups allow-same-origin allow-forms allow-modals allow-top-navigation-by-user-activation"
-              referrerPolicy="strict-origin-when-cross-origin"
-              style={{
-                display: 'block',
-                width: '100%',
-                height: 420,
-                minHeight: 400,
-                border: '1px solid rgba(255,31,112,.45)',
-                borderRadius: 14,
-                background: '#fff',
-              }}
-            />
-          </div>
-        ) : state === 'settling' || state === 'paid' ? null : (
+        {challenge || (state === 'settling' || state === 'paid' ? null : (
           <WorldlineNativeCardForm
             sessionId={nativeCard.sessionId}
             clientSession={nativeCard.clientSession}
@@ -753,9 +908,9 @@ export function WorldlineEmbeddedCheckoutBridge() {
             onResult={(result) => {
               const statusName = String(result?.payment_status || '').toUpperCase()
               if (statusName) setProviderStatus(statusName)
-              const challenge = safeHttpsUrl(result?.redirect_url)
-              if (challenge) {
-                setNativeChallengeUrl(challenge)
+              const nextChallenge = safeHttpsUrl(result?.redirect_url)
+              if (nextChallenge) {
+                setChallengeUrl(nextChallenge)
                 setState('loading')
                 setMessage('Complete your bank verification to continue.')
               } else {
@@ -768,95 +923,131 @@ export function WorldlineEmbeddedCheckoutBridge() {
               setMessage(value)
             }}
           />
-        )}
-
-        {(state === 'settling' || state === 'paid' || state === 'failed' || message || providerStatus) ? (
-          <div
-            role="status"
-            style={{
-              padding: '8px 4px 2px',
-              color: state === 'failed' ? '#fda4af' : '#d4d4d8',
-              fontSize: 12,
-              lineHeight: 1.45,
-              background: 'transparent',
-            }}
-          >
-            {message ? <span>{message}</span> : null}
-            {providerStatus ? <strong style={{ marginLeft: message ? 8 : 0 }}>Worldline: {providerStatus}</strong> : null}
-          </div>
-        ) : null}
+        ))}
+        {statusBlock}
       </div>
-    )
-    return createPortal(content, hostElement)
+    ), hostElement)
   }
 
-  if (!session) return null
-  const compact = isCompactWallet(session.methodCode)
-  const content = (
-    <div
-      data-pmd-worldline-embedded="mycheckout-inline-v5-native-card"
-      aria-label={`Secure ${methodLabel(session.methodCode)} payment`}
+  if (nativeWallet) {
+    return createPortal((
+      <div
+        data-pmd-worldline-embedded={`native-wallet-${nativeWallet.methodCode}-v1`}
+        aria-label={`Secure ${methodLabel(nativeWallet.methodCode)} payment`}
+        style={{ width: '100%', minWidth: 0, margin: 0, padding: 0, background: 'transparent' }}
+      >
+        {challenge || (state === 'settling' || state === 'paid' ? null : (
+          <WorldlineNativeWalletForm
+            methodCode={nativeWallet.methodCode}
+            sessionId={nativeWallet.sessionId}
+            clientSession={nativeWallet.clientSession}
+            paymentDetails={nativeWallet.paymentDetails}
+            paymentProductId={nativeWallet.paymentProductId}
+            walletConfiguration={nativeWallet.walletConfiguration}
+            orderId={nativeWallet.orderId}
+            returnTo={nativeWallet.returnTo}
+            onResult={(result) => {
+              const statusName = String(result?.payment_status || '').toUpperCase()
+              if (statusName) setProviderStatus(statusName)
+              const nextChallenge = safeHttpsUrl(result?.redirect_url)
+              if (nextChallenge) {
+                setChallengeUrl(nextChallenge)
+                setState('loading')
+                setMessage('Complete your bank verification to continue.')
+              } else {
+                setState('ready')
+                setMessage(String(result?.message || `${methodLabel(nativeWallet.methodCode)} submitted. Confirming with Worldline…`))
+              }
+            }}
+            onError={(value) => {
+              setState('failed')
+              setMessage(value)
+            }}
+          />
+        ))}
+        {statusBlock}
+      </div>
+    ), hostElement)
+  }
+
+  const authSession = nativeRedirect
+    ? {
+        redirectUrl: nativeRedirect.redirectUrl,
+        methodCode: nativeRedirect.methodCode,
+        mode: 'direct' as const,
+      }
+    : hostedSession
+      ? {
+          redirectUrl: hostedSession.redirectUrl,
+          methodCode: hostedSession.methodCode,
+          mode: 'hosted' as const,
+        }
+      : null
+
+  if (!authSession) return null
+  const authLabel = methodLabel(authSession.methodCode)
+  const openAuthorization = () => {
+    const popup = window.open(
+      authSession.redirectUrl,
+      'pmd-worldline-authorization',
+      'popup=yes,width=520,height=760,resizable=yes,scrollbars=yes',
+    )
+    if (!popup) {
+      setState('failed')
+      setMessage(`Your browser blocked the secure ${authLabel} window. Allow pop-ups for PayMyDine and try again.`)
+      return
+    }
+    popupRef.current = popup
+    setState('ready')
+    setMessage(`${authLabel} opened securely. Complete authorization in the provider window; this PayMyDine checkout stays open.`)
+    try { popup.focus() } catch {}
+  }
+
+  return createPortal((
+    <section
+      data-pmd-worldline-embedded={`pmd-authorization-${normalizeMethod(authSession.methodCode)}-v1`}
       style={{
         width: '100%',
         minWidth: 0,
-        margin: 0,
-        padding: 0,
-        overflow: 'hidden',
-        border: 0,
-        borderRadius: compact ? 12 : 14,
-        background: 'transparent',
-        boxShadow: 'none',
+        border: '1px solid rgba(255,31,112,.55)',
+        borderRadius: 16,
+        background: 'rgba(12,12,18,.96)',
+        padding: 16,
+        display: 'grid',
+        gap: 14,
+        boxSizing: 'border-box',
       }}
     >
-      <div
+      <div>
+        <strong style={{ display: 'block', color: '#fff', fontSize: 17 }}>{authLabel}</strong>
+        <span style={{ color: '#a1a1aa', fontSize: 12 }}>
+          {authSession.mode === 'direct'
+            ? `Start ${authLabel} directly from PayMyDine through Worldline`
+            : `Secure ${authLabel} authorization through Worldline`}
+        </span>
+      </div>
+      <button
+        type="button"
+        onClick={openAuthorization}
+        disabled={state === 'settling' || state === 'paid'}
         style={{
           width: '100%',
-          height: frameHeight(session.methodCode),
-          minHeight: 400,
-          maxHeight: session.methodCode === 'card' ? 520 : 400,
-          overflow: 'hidden',
-          borderRadius: compact ? 12 : 14,
-          background: 'transparent',
+          height: 54,
+          border: 0,
+          borderRadius: 999,
+          background: '#ff1f70',
+          color: '#fff',
+          fontSize: 17,
+          fontWeight: 800,
+          cursor: 'pointer',
         }}
       >
-        <iframe
-          src={session.redirectUrl}
-          title={`Worldline ${methodLabel(session.methodCode)} checkout`}
-          allow="payment"
-          sandbox="allow-scripts allow-popups allow-same-origin allow-forms"
-          referrerPolicy="strict-origin-when-cross-origin"
-          onLoad={() => {
-            if (state === 'loading') setState('ready')
-          }}
-          style={{
-            display: 'block',
-            width: '100%',
-            height: '100%',
-            minHeight: 400,
-            border: 0,
-            borderRadius: compact ? 12 : 14,
-            background: 'transparent',
-          }}
-        />
+        {authLabel === 'PayPal' ? 'Pay with PayPal' : authLabel === 'Wero' ? 'Continue with Wero' : `Continue with ${authLabel}`}
+      </button>
+      <div style={{ color: '#8f8f9b', fontSize: 11, lineHeight: 1.5, textAlign: 'center' }}>
+        The final provider/bank authorization is security-controlled by {authLabel}. PayMyDine keeps this checkout open and verifies the result server-to-server.
       </div>
-
-      {(state === 'settling' || state === 'paid' || state === 'failed' || message || providerStatus) ? (
-        <div
-          role="status"
-          style={{
-            padding: '8px 4px 2px',
-            color: state === 'failed' ? '#ef4444' : 'inherit',
-            fontSize: 12,
-            lineHeight: 1.4,
-            background: 'transparent',
-          }}
-        >
-          {message ? <span>{message}</span> : null}
-          {providerStatus ? <strong style={{ marginLeft: message ? 8 : 0 }}>Worldline: {providerStatus}</strong> : null}
-        </div>
-      ) : null}
-    </div>
-  )
-
-  return createPortal(content, hostElement)
+      {statusBlock}
+    </section>
+  ), hostElement)
 }
