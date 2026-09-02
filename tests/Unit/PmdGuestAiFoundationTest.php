@@ -41,9 +41,9 @@ final class PmdGuestAiFoundationTest extends TestCase
         self::assertStringContainsString('POPULARITY RULE:', $guest);
         self::assertStringContainsString('CUISINE SIMILARITY RULE:', $guest);
         self::assertStringContainsString("'popularity_rank'", $guest);
-        self::assertStringContainsString("'top_items' => $popularity['top_items']", $guest);
+        self::assertStringContainsString("'top_items' => \$popularity['top_items']", $guest);
         self::assertStringContainsString('?int $locationId = null', $popularity);
-        self::assertStringContainsString("where('o.location_id', $locationId)", $popularity);
+        self::assertStringContainsString("where('o.location_id', \$locationId)", $popularity);
         self::assertStringContainsString("where('o.processed', 1)", $popularity);
         self::assertStringContainsString("['paid', 'settled']", $popularity);
         self::assertStringContainsString('existing callers that omit location retain', strtolower($popularity));
