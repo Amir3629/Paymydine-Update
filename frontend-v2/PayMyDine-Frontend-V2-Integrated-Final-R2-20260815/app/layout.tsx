@@ -7,6 +7,7 @@ import { ReviewShareEnhancer } from '@/src/runtime/components/ReviewShareEnhance
 import { ThemeFallbackStyleBridge } from '@/src/runtime/components/ThemeFallbackStyleBridge'
 import { VatSummaryEnhancer } from '@/src/runtime/components/VatSummaryEnhancer'
 import { WorldlineEmbeddedCheckoutBridge } from '@/src/runtime/components/WorldlineEmbeddedCheckoutBridge'
+import { WorldlineSingleActionUX } from '@/src/runtime/components/WorldlineSingleActionUX'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -30,7 +31,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
 
   return (
     <html lang={locale} dir={direction}>
-      <body><ThemeFallbackStyleBridge />{children}<ReviewShareEnhancer /><VatSummaryEnhancer /><PaymentCheckoutUXEnhancer /><WorldlineEmbeddedCheckoutBridge /></body>
+      <body><ThemeFallbackStyleBridge />{children}<ReviewShareEnhancer /><VatSummaryEnhancer /><PaymentCheckoutUXEnhancer /><WorldlineSingleActionUX /><WorldlineEmbeddedCheckoutBridge /></body>
     </html>
   )
 }
