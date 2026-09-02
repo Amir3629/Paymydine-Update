@@ -51,8 +51,11 @@ return [
     'guest_allow_wildcard' => filter_var(env('PMD_AI_GUEST_ALLOW_WILDCARD', false), FILTER_VALIDATE_BOOLEAN),
     'guest_model' => env('PMD_AI_GUEST_MODEL', env('PMD_AI_MODEL', $defaultModel)),
     'guest_max_question_chars' => (int)env('PMD_AI_GUEST_MAX_QUESTION_CHARS', 600),
-    'guest_max_output_tokens' => (int)env('PMD_AI_GUEST_MAX_OUTPUT_TOKENS', 420),
-    'guest_max_answer_chars' => (int)env('PMD_AI_GUEST_MAX_ANSWER_CHARS', 2200),
+    // Gemini 3.x uses thinking before producing the visible answer. A very low
+    // candidate budget can therefore end with MAX_TOKENS mid-sentence even for
+    // a short menu reply. Keep enough headroom for a complete 35-110 word answer.
+    'guest_max_output_tokens' => (int)env('PMD_AI_GUEST_MAX_OUTPUT_TOKENS', 1400),
+    'guest_max_answer_chars' => (int)env('PMD_AI_GUEST_MAX_ANSWER_CHARS', 3200),
     'guest_max_menu_items' => (int)env('PMD_AI_GUEST_MAX_MENU_ITEMS', 80),
     'guest_requests_per_minute' => (int)env('PMD_AI_GUEST_REQUESTS_PER_MINUTE', 6),
     'guest_daily_requests_per_ip' => (int)env('PMD_AI_GUEST_DAILY_REQUESTS_PER_IP', 60),
