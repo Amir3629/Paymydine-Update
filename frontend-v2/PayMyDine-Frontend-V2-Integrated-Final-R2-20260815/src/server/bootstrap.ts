@@ -175,9 +175,24 @@ export async function loadCustomerBootstrap(query: BootstrapQuery): Promise<Cust
   )
   const theme = normalizeTheme(resolvedThemePayload, previewId)
   const table = normalizeTable(tablePayload, { tableId, tableNo, qr })
+
+  // PMD_WORLDLINE_RUNTIME_ENTITLEMENT_R2
+  // The Payments admin row expresses merchant intent, but Worldline's live
+  // product-discovery response is the runtime authority for what that exact
+  // merchant/country/currency can actually offer. Fail closed: if discovery
+  // fails, Worldline-assigned methods are not exposed to the guest UI.
   const basePaymentMethods = normalizePayments(paymentsPayload)
-  const worldlinePaymentMethods = normalizePayments(worldlineMethodsPayload?.methods || [])
-  const paymentMethodsByCode = new Map(basePaymentMethods.map((method) => [method.code, method]))
+  const worldlineDiscoveryOk = worldlineMethodsPayload?.success === true && Array.isArray(worldlineMethodsPayload?.methods)
+  const worldlinePaymentMethods = worldlineDiscoveryOk
+    ? normalizePayments(worldlineMethodsPayload.methods)
+    : []
+  const worldlineAvailableCodes = new Set(worldlinePaymentMethods.map((method) => String(method.code || '').trim().toLowerCase()))
+  const filteredBasePaymentMethods = basePaymentMethods.filter((method) => {
+    const provider = String(method.providerCode || '').trim().toLowerCase().replace(/[\s-]+/g, '_')
+    if (provider !== 'worldline') return true
+    return worldlineDiscoveryOk && worldlineAvailableCodes.has(String(method.code || '').trim().toLowerCase())
+  })
+  const paymentMethodsByCode = new Map(filteredBasePaymentMethods.map((method) => [method.code, method]))
   for (const method of worldlinePaymentMethods) paymentMethodsByCode.set(method.code, method)
   const paymentMethods = Array.from(paymentMethodsByCode.values())
     .sort((a, b) => a.priority - b.priority || a.code.localeCompare(b.code))
