@@ -388,7 +388,7 @@ export function WorldlineEmbeddedCheckoutBridge() {
             src={session.redirectUrl}
             title={`Worldline ${methodLabel(session.methodCode)} checkout`}
             allow="payment"
-            sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-forms"
+            sandbox="allow-scripts allow-popups allow-same-origin allow-forms"
             referrerPolicy="strict-origin-when-cross-origin"
             onLoad={() => {
               if (state === 'loading') {
