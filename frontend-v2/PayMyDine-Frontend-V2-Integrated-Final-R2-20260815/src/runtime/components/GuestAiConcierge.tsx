@@ -110,8 +110,20 @@ function cleanAnswer(value: string): string {
     .trim()
 }
 
+function textDirection(value: string, fallback: string): 'ltr' | 'rtl' {
+  const text = String(value || '')
+  if (/[\u0590-\u08FF]/u.test(text)) return 'rtl'
+  return fallback === 'rtl' ? 'rtl' : 'ltr'
+}
+
+function responseDirection(responseLocale: string, value: string, fallback: string): 'ltr' | 'rtl' {
+  const code = String(responseLocale || '').toLowerCase()
+  if (code.startsWith('fa')) return 'rtl'
+  return textDirection(value, fallback)
+}
+
 type StatusPayload = { ok?: boolean; enabled?: boolean; surface?: string }
-type AskPayload = { ok?: boolean; answer?: string; message?: string }
+type AskPayload = { ok?: boolean; answer?: string; message?: string; response_locale?: string }
 
 export function GuestAiConcierge({ themeId }: { themeId: ThemeId }) {
   const { bootstrap, locale, direction, formatCurrency } = useMenuRuntime()
@@ -123,6 +135,7 @@ export function GuestAiConcierge({ themeId }: { themeId: ThemeId }) {
   const [open, setOpen] = useState(false)
   const [question, setQuestion] = useState('')
   const [answer, setAnswer] = useState('')
+  const [answerLocale, setAnswerLocale] = useState(locale)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
@@ -183,6 +196,7 @@ export function GuestAiConcierge({ themeId }: { themeId: ThemeId }) {
     if (!value || busy || !locationId || locationId < 1) return
 
     setQuestion(value)
+    setAnswerLocale(locale)
     setBusy(true)
     setError('')
 
@@ -205,6 +219,7 @@ export function GuestAiConcierge({ themeId }: { themeId: ThemeId }) {
         throw new Error(String(payload.message || copy.retry))
       }
 
+      setAnswerLocale(String(payload.response_locale || locale).slice(0, 20))
       setAnswer(nextAnswer)
     } catch (requestError) {
       setError(requestError instanceof Error && requestError.message ? requestError.message : copy.retry)
@@ -269,8 +284,16 @@ export function GuestAiConcierge({ themeId }: { themeId: ThemeId }) {
 
               {(answer || busy || error) && (
                 <div className={styles.conversation}>
-                  {question && <div className={styles.userBubble}>{question}</div>}
-                  <div className={`${styles.aiBubble} ${error ? styles.errorBubble : ''}`}>
+                  {question && (
+                    <div className={styles.userBubble} dir={textDirection(question, direction)}>
+                      {question}
+                    </div>
+                  )}
+                  <div
+                    className={`${styles.aiBubble} ${error ? styles.errorBubble : ''}`}
+                    dir={responseDirection(answerLocale, error || answer, direction)}
+                    lang={answerLocale || locale}
+                  >
                     {busy ? copy.thinking : (error || answer)}
                   </div>
                 </div>
@@ -282,6 +305,7 @@ export function GuestAiConcierge({ themeId }: { themeId: ThemeId }) {
                 <span className={styles.srOnly}>{copy.placeholder}</span>
                 <textarea
                   value={question}
+                  dir={textDirection(question, direction)}
                   onChange={(event) => setQuestion(event.target.value.slice(0, 600))}
                   placeholder={copy.placeholder}
                   rows={2}
