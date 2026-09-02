@@ -88,7 +88,8 @@ export function primeWorldlineCardSession(input: WorldlineCardPrewarmInput): Pro
   const existing = cache.get(key)
   if (existing && Date.now() - existing.createdAt <= TTL_MS) return existing.promise
 
-  const promise = createSession(input).catch((error) => {
+  let promise: Promise<any>
+  promise = createSession(input).catch((error) => {
     const current = cache.get(key)
     if (current?.promise === promise) cache.delete(key)
     throw error
