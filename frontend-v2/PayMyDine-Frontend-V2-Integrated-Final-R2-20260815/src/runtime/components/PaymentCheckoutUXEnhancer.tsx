@@ -5,8 +5,6 @@ import { useEffect } from 'react'
 const WORLDLINE_RUNTIME_METHODS = '/api/v1/payments/worldline/runtime-methods'
 const WORLDLINE_INLINE_HOST = 'data-pmd-worldline-inline-host'
 const WORLDLINE_HIDDEN_PAY = 'data-pmd-worldline-hidden-pay-button'
-const WORLDLINE_AUTO_START = 'data-pmd-worldline-auto-start'
-const STYLE_ID = 'pmd-worldline-payment-ux-v2'
 const GOOGLE_PAY_SCRIPT = 'https://pay.google.com/gp/p/js/pay.js'
 
 function normalizeMethod(value: unknown): string {
@@ -14,9 +12,6 @@ function normalizeMethod(value: unknown): string {
 }
 
 function methodFromButton(button: HTMLButtonElement): string | null {
-  const dataCode = normalizeMethod(button.dataset.pmdPaymentMethodCode)
-  if (dataCode) return dataCode
-
   const text = String(button.textContent || '').trim().toLowerCase().replace(/\s+/g, ' ')
   if (!text) return null
   if (text.includes('apple pay')) return 'apple_pay'
@@ -44,8 +39,7 @@ function findMethodGrid(panel: HTMLElement): HTMLElement | null {
   for (const candidate of candidates) {
     const buttons = directButtons(candidate)
     if (!buttons.length) continue
-    const paymentButtons = buttons.filter((button) => Boolean(methodFromButton(button)))
-    if (paymentButtons.length >= 1) return candidate
+    if (buttons.some((button) => Boolean(methodFromButton(button)))) return candidate
   }
   return null
 }
@@ -54,169 +48,54 @@ function looksLikeTotalCard(element: Element | null): element is HTMLElement {
   if (!(element instanceof HTMLElement)) return false
   if (directButtons(element).length) return false
   const rows = Array.from(element.children).filter((child) => child instanceof HTMLDivElement)
-  if (rows.length < 2) return false
-  return Boolean(element.querySelector('strong'))
+  return rows.length >= 2 && Boolean(element.querySelector('strong'))
 }
 
-function moveMethodsBelowTotal(panel: HTMLElement): HTMLElement | null {
-  const methodGrid = findMethodGrid(panel)
-  if (!methodGrid) return null
+// Visual ordering only. We never move/remove/replace React-owned DOM nodes.
+function applyPaymentVisualOrder(panel: HTMLElement) {
+  const children = Array.from(panel.children).filter((child): child is HTMLElement => child instanceof HTMLElement)
+  children.forEach((child, index) => child.style.setProperty('order', String(index * 10)))
 
-  const next = methodGrid.nextElementSibling
-  if (looksLikeTotalCard(next)) next.insertAdjacentElement('afterend', methodGrid)
-  return methodGrid
+  const methodGrid = findMethodGrid(panel)
+  if (!methodGrid) return
+  const totalCard = methodGrid.nextElementSibling
+  if (!looksLikeTotalCard(totalCard)) return
+
+  const methodOrder = methodGrid.style.order
+  const totalOrder = totalCard.style.order
+  methodGrid.style.setProperty('order', totalOrder)
+  totalCard.style.setProperty('order', methodOrder)
 }
 
 function genericPayButton(panel: HTMLElement): HTMLButtonElement | null {
-  const direct = directButtons(panel)
-  if (!direct.length) return null
-  return direct[direct.length - 1] || null
+  const buttons = directButtons(panel)
+  if (!buttons.length) return null
+  return buttons[buttons.length - 1] || null
 }
 
-function parseRgb(value: string): [number, number, number, number] | null {
-  const match = value.match(/rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)(?:[,\s/]+([\d.]+))?\s*\)/i)
-  if (!match) return null
-  return [Number(match[1]), Number(match[2]), Number(match[3]), match[4] == null ? 1 : Number(match[4])]
-}
-
-function isDarkTheme(element: HTMLElement): boolean {
-  let current: HTMLElement | null = element
-  for (let depth = 0; current && depth < 6; depth += 1, current = current.parentElement) {
-    const parsed = parseRgb(window.getComputedStyle(current).backgroundColor)
-    if (!parsed || parsed[3] < 0.12) continue
-    const [r, g, b] = parsed
-    const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255
-    return luminance < 0.48
-  }
-  return window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false
-}
-
-function ensureStyleSheet() {
-  if (document.getElementById(STYLE_ID)) return
-  const style = document.createElement('style')
-  style.id = STYLE_ID
-  style.textContent = `
-    [data-pmd-worldline-action="true"],
-    [data-pmd-worldline-final] {
-      display: inline-flex !important;
-      align-items: center !important;
-      justify-content: center !important;
-      gap: 10px !important;
-      min-height: 54px !important;
-      border-radius: 999px !important;
-      box-sizing: border-box !important;
-    }
-
-    [data-pmd-worldline-action="true"] .pmd-wl-action-icon,
-    [data-pmd-worldline-final]::before {
-      content: '';
-      display: inline-block;
-      width: 18px;
-      height: 12px;
-      flex: 0 0 auto;
-      border: 2px solid currentColor;
-      border-radius: 3px;
-      box-sizing: border-box;
-    }
-
-    [data-pmd-worldline-action="true"][disabled] .pmd-wl-action-icon {
-      width: 17px;
-      height: 17px;
-      border-radius: 50%;
-      border-width: 2px;
-      border-right-color: transparent;
-      animation: pmdWlActionSpin .7s linear infinite;
-    }
-
-    @keyframes pmdWlActionSpin { to { transform: rotate(360deg); } }
-
-    [data-pmd-worldline-native-card] label {
-      font-size: 0 !important;
-      gap: 0 !important;
-      margin: 0 !important;
-    }
-
-    [data-pmd-worldline-native-card] input {
-      font-size: 16px !important;
-    }
-
-    [data-pmd-worldline-native-wallet^="own-checkout-apple_pay"] .pmd-worldline-apple-pay-button {
-      -apple-pay-button-style: white !important;
-      border-radius: 999px !important;
-      overflow: hidden !important;
-    }
-  `
-  document.head.appendChild(style)
-}
-
-function applyWhiteActionStyle(button: HTMLButtonElement, dark: boolean) {
-  if (dark) {
-    button.style.setProperty('background', '#ffffff', 'important')
-    button.style.setProperty('color', '#070707', 'important')
-    button.style.setProperty('border', '1px solid rgba(255,255,255,.92)', 'important')
-  } else {
-    button.style.setProperty('background', 'var(--pmd-accent, #111111)', 'important')
-    button.style.setProperty('color', 'var(--pmd-accentText, #ffffff)', 'important')
-    button.style.setProperty('border', '1px solid var(--pmd-accent, #111111)', 'important')
-  }
-  button.style.setProperty('opacity', '1', 'important')
-  button.style.setProperty('font', 'inherit', 'important')
-  button.style.setProperty('font-size', '17px', 'important')
-  button.style.setProperty('font-weight', '800', 'important')
-  button.style.setProperty('width', '100%', 'important')
-  button.style.setProperty('height', '54px', 'important')
-  button.style.setProperty('cursor', button.disabled ? 'wait' : 'pointer', 'important')
-}
-
-function styleExistingPayButton(panel: HTMLElement, methodCode: string) {
-  if (panel.querySelector<HTMLElement>(`:scope > [${WORLDLINE_INLINE_HOST}="true"]`)) return
+function markImmediateWorldlineAction(panel: HTMLElement, methodCode: string) {
   const button = genericPayButton(panel)
   if (!button || button.hasAttribute(WORLDLINE_HIDDEN_PAY)) return
 
+  if (!button.dataset.pmdWlOriginalAria) {
+    button.dataset.pmdWlOriginalAria = button.getAttribute('aria-label') || ''
+  }
   const label = paymentLabel(methodCode)
   button.setAttribute('data-pmd-worldline-action', 'true')
-  button.dataset.pmdWorldlineActionMethod = methodCode
-  applyWhiteActionStyle(button, isDarkTheme(panel))
-
-  const currentLabel = String(button.querySelector('[data-pmd-wl-action-label]')?.textContent || '')
-  if (currentLabel !== label || !button.querySelector('.pmd-wl-action-icon')) {
-    const icon = document.createElement('span')
-    icon.className = 'pmd-wl-action-icon'
-    icon.setAttribute('aria-hidden', 'true')
-    const text = document.createElement('span')
-    text.dataset.pmdWlActionLabel = 'true'
-    text.textContent = label
-    button.replaceChildren(icon, text)
-  }
+  button.setAttribute('data-pmd-worldline-action-label', label)
+  button.setAttribute('aria-label', label)
 }
 
-function restoreExistingPayButton(panel: HTMLElement) {
+function restoreImmediateWorldlineAction(panel: HTMLElement) {
   const button = genericPayButton(panel)
   if (!button || !button.hasAttribute('data-pmd-worldline-action')) return
-  button.removeAttribute('data-pmd-worldline-action')
-  delete button.dataset.pmdWorldlineActionMethod
-  button.style.removeProperty('background')
-  button.style.removeProperty('color')
-  button.style.removeProperty('border')
-  button.style.removeProperty('opacity')
-  button.style.removeProperty('font')
-  button.style.removeProperty('font-size')
-  button.style.removeProperty('font-weight')
-  button.style.removeProperty('width')
-  button.style.removeProperty('height')
-  button.style.removeProperty('cursor')
-}
 
-function triggerGenericPay(panel: HTMLElement, attempt = 0) {
-  const button = genericPayButton(panel)
-  if (!button || button.hasAttribute(WORLDLINE_HIDDEN_PAY) || button.disabled) {
-    if (attempt < 8) window.setTimeout(() => triggerGenericPay(panel, attempt + 1), 45)
-    return
-  }
-  if (button.getAttribute(WORLDLINE_AUTO_START) === 'true') return
-  button.setAttribute(WORLDLINE_AUTO_START, 'true')
-  button.click()
-  window.setTimeout(() => button.removeAttribute(WORLDLINE_AUTO_START), 1000)
+  const originalAria = button.dataset.pmdWlOriginalAria || ''
+  if (originalAria) button.setAttribute('aria-label', originalAria)
+  else button.removeAttribute('aria-label')
+  delete button.dataset.pmdWlOriginalAria
+  button.removeAttribute('data-pmd-worldline-action')
+  button.removeAttribute('data-pmd-worldline-action-label')
 }
 
 function isReadyNoise(text: string): boolean {
@@ -232,158 +111,63 @@ function isReadyNoise(text: string): boolean {
     || normalized.includes('payment session ready')
 }
 
-function hideReadyNoise(panel: HTMLElement) {
-  const candidates = Array.from(panel.querySelectorAll<HTMLElement>(':scope > div'))
-  for (const candidate of candidates) {
+function hideNonEssentialReadyMessages(panel: HTMLElement) {
+  for (const candidate of Array.from(panel.querySelectorAll<HTMLElement>(':scope > div'))) {
     if (candidate.hasAttribute(WORLDLINE_INLINE_HOST)) continue
-    if (isReadyNoise(String(candidate.textContent || ''))) candidate.style.display = 'none'
+    if (isReadyNoise(String(candidate.textContent || ''))) candidate.style.setProperty('display', 'none')
   }
 }
 
-function compactNativeCardForm(form: HTMLElement) {
-  form.style.setProperty('border', '0', 'important')
-  form.style.setProperty('background', 'transparent', 'important')
-  form.style.setProperty('padding', '0', 'important')
-  form.style.setProperty('gap', '10px', 'important')
-  form.style.setProperty('margin', '0', 'important')
+function compactWalletAndAuthorizationSurfaces() {
+  for (const wallet of Array.from(document.querySelectorAll<HTMLElement>('[data-pmd-worldline-native-wallet]'))) {
+    wallet.style.setProperty('border', '0', 'important')
+    wallet.style.setProperty('background', 'transparent', 'important')
+    wallet.style.setProperty('padding', '0', 'important')
+    wallet.style.setProperty('margin', '0', 'important')
+    wallet.style.setProperty('gap', '8px', 'important')
 
-  const children = Array.from(form.children).filter((child): child is HTMLElement => child instanceof HTMLElement)
-  for (const child of children) {
-    const text = String(child.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase()
-    if (text.includes('encrypted securely by worldline')
-      || text.includes('paymydine never sends your raw card number')
-      || text.includes('worldline may open a bank verification')) {
-      child.style.display = 'none'
+    for (const child of Array.from(wallet.children).filter((value): value is HTMLElement => value instanceof HTMLElement)) {
+      if (child.tagName === 'STYLE' || child.matches('[role="alert"]')) continue
+      const text = String(child.textContent || '').replace(/\s+/g, ' ').trim()
+      if (/secure worldline own-checkout inside paymydine/i.test(text)
+        || /wallet credential is tokenized/i.test(text)
+        || /paymydine never receives raw card data/i.test(text)
+        || /^preparing\s+(apple pay|google pay)/i.test(text)) {
+        child.style.setProperty('display', 'none')
+      }
+      if (child.matches('[role="status"]') && !/cancel|fail|error|declin|reject/i.test(text)) {
+        child.style.setProperty('display', 'none')
+      }
+    }
+
+    const googleButton = Array.from(wallet.querySelectorAll<HTMLButtonElement>('button'))
+      .find((button) => !button.classList.contains('pmd-worldline-apple-pay-button'))
+    if (googleButton) {
+      googleButton.style.setProperty('background', 'var(--pmd-text, #ffffff)', 'important')
+      googleButton.style.setProperty('color', 'var(--pmd-control, #070707)', 'important')
+      googleButton.style.setProperty('border-radius', '999px', 'important')
+      googleButton.style.setProperty('min-height', '54px', 'important')
     }
   }
 
-  for (const input of Array.from(form.querySelectorAll<HTMLInputElement>('input'))) {
-    input.style.setProperty('height', '48px', 'important')
-    input.style.setProperty('border-radius', '12px', 'important')
-    input.style.setProperty('padding', '0 14px', 'important')
-  }
+  for (const auth of Array.from(document.querySelectorAll<HTMLElement>('[data-pmd-worldline-embedded^="pmd-authorization-"]'))) {
+    auth.style.setProperty('border', '0', 'important')
+    auth.style.setProperty('background', 'transparent', 'important')
+    auth.style.setProperty('padding', '0', 'important')
+    auth.style.setProperty('margin', '0', 'important')
+    auth.style.setProperty('gap', '8px', 'important')
 
-  const button = form.querySelector<HTMLButtonElement>('button[type="submit"]')
-  if (button) {
-    button.setAttribute('data-pmd-worldline-final', 'card')
-    applyWhiteActionStyle(button, isDarkTheme(form))
-  }
-}
-
-function compactWalletPanel(panel: HTMLElement) {
-  panel.style.setProperty('border', '0', 'important')
-  panel.style.setProperty('background', 'transparent', 'important')
-  panel.style.setProperty('padding', '0', 'important')
-  panel.style.setProperty('gap', '8px', 'important')
-  panel.style.setProperty('margin', '0', 'important')
-
-  const methodCode = panel.getAttribute('data-pmd-worldline-native-wallet')?.includes('apple_pay') ? 'apple_pay' : 'google_pay'
-  const label = paymentLabel(methodCode)
-  const children = Array.from(panel.children).filter((child): child is HTMLElement => child instanceof HTMLElement)
-
-  for (const child of children) {
-    if (child.tagName === 'STYLE') continue
-    const text = String(child.textContent || '').replace(/\s+/g, ' ').trim()
-    if (child.matches('[role="alert"]')) continue
-
-    if (child.matches('[role="status"]')) {
-      if (!/cancel|fail|error|declin|reject/i.test(text)) child.style.display = 'none'
-      continue
+    const button = Array.from(auth.children).find((child): child is HTMLButtonElement => child instanceof HTMLButtonElement) || null
+    for (const child of Array.from(auth.children).filter((value): value is HTMLElement => value instanceof HTMLElement)) {
+      if (child === button) continue
+      if (child.matches('[role="status"]')) {
+        const text = String(child.textContent || '')
+        if (!/cancel|fail|error|declin|reject/i.test(text)) child.style.setProperty('display', 'none')
+        continue
+      }
+      child.style.setProperty('display', 'none')
     }
-
-    if (/secure worldline own-checkout inside paymydine/i.test(text)
-      || /wallet credential is tokenized/i.test(text)
-      || /paymydine never receives raw card data/i.test(text)) {
-      child.style.display = 'none'
-      continue
-    }
-
-    if (/^preparing\s+(apple pay|google pay)/i.test(text)) {
-      child.textContent = label
-      child.setAttribute('data-pmd-worldline-action', 'true')
-      child.style.setProperty('min-height', '54px', 'important')
-      child.style.setProperty('display', 'grid', 'important')
-      child.style.setProperty('place-items', 'center', 'important')
-      child.style.setProperty('border-radius', '999px', 'important')
-      child.style.setProperty('background', '#ffffff', 'important')
-      child.style.setProperty('color', '#070707', 'important')
-      child.style.setProperty('font-size', '17px', 'important')
-      child.style.setProperty('font-weight', '800', 'important')
-      child.style.setProperty('opacity', '.78', 'important')
-    }
-  }
-
-  if (methodCode === 'apple_pay') {
-    const appleButton = panel.querySelector<HTMLButtonElement>('.pmd-worldline-apple-pay-button')
-    if (appleButton) {
-      appleButton.style.setProperty('-apple-pay-button-style', 'white')
-      appleButton.style.setProperty('border-radius', '999px', 'important')
-      appleButton.style.setProperty('height', '54px', 'important')
-    }
-    return
-  }
-
-  const possibleHosts = Array.from(panel.querySelectorAll<HTMLElement>('div'))
-  for (const host of possibleHosts) {
-    const actual = Array.from(host.children).find((child): child is HTMLButtonElement => child instanceof HTMLButtonElement)
-    if (!actual || actual.hasAttribute('data-pmd-worldline-google-proxy')) continue
-    if (host.querySelector('[data-pmd-worldline-google-proxy="true"]')) continue
-
-    actual.style.setProperty('display', 'none', 'important')
-    const proxy = document.createElement('button')
-    proxy.type = 'button'
-    proxy.setAttribute('data-pmd-worldline-google-proxy', 'true')
-    proxy.setAttribute('data-pmd-worldline-final', 'google-pay')
-    proxy.setAttribute('aria-label', 'Pay with Google Pay')
-    proxy.textContent = 'Google Pay'
-    applyWhiteActionStyle(proxy, true)
-    proxy.addEventListener('click', () => actual.click())
-    host.appendChild(proxy)
-    break
-  }
-}
-
-function compactAuthorizationPanel(panel: HTMLElement) {
-  panel.style.setProperty('border', '0', 'important')
-  panel.style.setProperty('background', 'transparent', 'important')
-  panel.style.setProperty('padding', '0', 'important')
-  panel.style.setProperty('gap', '8px', 'important')
-  panel.style.setProperty('margin', '0', 'important')
-
-  const button = Array.from(panel.children).find((child): child is HTMLButtonElement => child instanceof HTMLButtonElement) || null
-  const children = Array.from(panel.children).filter((child): child is HTMLElement => child instanceof HTMLElement)
-  for (const child of children) {
-    if (child === button) continue
-    if (child.matches('[role="status"]')) {
-      const text = String(child.textContent || '')
-      child.style.display = /cancel|fail|error|declin|reject/i.test(text) ? '' : 'none'
-      continue
-    }
-    child.style.display = 'none'
-  }
-
-  if (button) {
-    button.setAttribute('data-pmd-worldline-final', normalizeMethod(String(panel.getAttribute('data-pmd-worldline-embedded') || 'authorization')))
-    applyWhiteActionStyle(button, isDarkTheme(panel))
-  }
-}
-
-function dedupeNativeWalletStatus() {
-  const walletPanels = Array.from(document.querySelectorAll<HTMLElement>('[data-pmd-worldline-native-wallet]'))
-  for (const wallet of walletPanels) {
-    const host = wallet.closest<HTMLElement>(`[${WORLDLINE_INLINE_HOST}="true"]`)
-    const panel = host?.parentElement
-    if (!panel) continue
-
-    const innerAlert = wallet.querySelector<HTMLElement>('[role="alert"]')
-    const innerText = String(innerAlert?.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase()
-    if (!innerText) continue
-
-    for (const candidate of Array.from(panel.querySelectorAll<HTMLElement>(':scope > div'))) {
-      if (candidate === host) continue
-      const text = String(candidate.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase()
-      if (text && (text === innerText || text.includes(innerText) || innerText.includes(text))) candidate.style.display = 'none'
-    }
+    if (button) button.setAttribute('data-pmd-worldline-final', 'authorization')
   }
 }
 
@@ -392,15 +176,14 @@ function preloadGooglePay() {
   const script = document.createElement('script')
   script.src = GOOGLE_PAY_SCRIPT
   script.async = true
-  script.dataset.pmdGooglePayPreload = 'payment-ux-v2'
+  script.dataset.pmdGooglePayPreload = 'payment-ux-safe-v3'
   document.head.appendChild(script)
 }
 
 export function PaymentCheckoutUXEnhancer() {
   useEffect(() => {
-    ensureStyleSheet()
     let disposed = false
-    let syncScheduled = false
+    let scheduled = false
     const worldlineMethods = new Set<string>()
     const activeMethod = new WeakMap<HTMLElement, string>()
 
@@ -422,43 +205,30 @@ export function PaymentCheckoutUXEnhancer() {
       return worldlineMethods
     }).catch(() => worldlineMethods)
 
-    const syncCheckoutDom = () => {
-      const panels = Array.from(document.querySelectorAll<HTMLElement>('[data-pmd-payment-order-id], [data-pmd-multi-order-payment="r32"]'))
-      for (const panel of panels) {
-        moveMethodsBelowTotal(panel)
-        hideReadyNoise(panel)
-
-        const methodCode = activeMethod.get(panel)
-        const host = panel.querySelector<HTMLElement>(`:scope > [${WORLDLINE_INLINE_HOST}="true"]`)
-        if (!host && methodCode && worldlineMethods.has(methodCode)) styleExistingPayButton(panel, methodCode)
+    const sync = () => {
+      for (const panel of Array.from(document.querySelectorAll<HTMLElement>('[data-pmd-payment-order-id], [data-pmd-multi-order-payment="r32"]'))) {
+        applyPaymentVisualOrder(panel)
+        hideNonEssentialReadyMessages(panel)
+        const method = activeMethod.get(panel)
+        const inlineHost = panel.querySelector<HTMLElement>(`:scope > [${WORLDLINE_INLINE_HOST}="true"]`)
+        if (method && worldlineMethods.has(method) && !inlineHost) markImmediateWorldlineAction(panel, method)
       }
-
-      for (const form of Array.from(document.querySelectorAll<HTMLElement>('[data-pmd-worldline-native-card]'))) compactNativeCardForm(form)
-      for (const wallet of Array.from(document.querySelectorAll<HTMLElement>('[data-pmd-worldline-native-wallet]'))) compactWalletPanel(wallet)
-      for (const authorization of Array.from(document.querySelectorAll<HTMLElement>('[data-pmd-worldline-embedded^="pmd-authorization-"]'))) compactAuthorizationPanel(authorization)
-      dedupeNativeWalletStatus()
+      compactWalletAndAuthorizationSurfaces()
     }
 
-    const scheduleSync = () => {
-      if (disposed || syncScheduled) return
-      syncScheduled = true
+    const schedule = () => {
+      if (disposed || scheduled) return
+      scheduled = true
       window.requestAnimationFrame(() => {
-        syncScheduled = false
-        if (!disposed) syncCheckoutDom()
+        scheduled = false
+        if (!disposed) sync()
       })
     }
 
-    const activateWorldlineMethod = (panel: HTMLElement, methodCode: string) => {
-      if (disposed || !worldlineMethods.has(methodCode)) return
+    const activate = (panel: HTMLElement, methodCode: string) => {
       activeMethod.set(panel, methodCode)
-      scheduleSync()
-      window.requestAnimationFrame(() => {
-        window.requestAnimationFrame(() => {
-          if (disposed) return
-          styleExistingPayButton(panel, methodCode)
-          triggerGenericPay(panel)
-        })
-      })
+      markImmediateWorldlineAction(panel, methodCode)
+      schedule()
     }
 
     const onClick = (event: MouseEvent) => {
@@ -468,31 +238,30 @@ export function PaymentCheckoutUXEnhancer() {
       if (!button) return
       const panel = button.closest<HTMLElement>('[data-pmd-payment-order-id]')
       if (!panel) return
-
-      const methodGrid = findMethodGrid(panel)
-      if (!methodGrid || button.parentElement !== methodGrid) return
+      const grid = findMethodGrid(panel)
+      if (!grid || button.parentElement !== grid) return
       const methodCode = methodFromButton(button)
       if (!methodCode) return
 
       if (worldlineMethods.has(methodCode)) {
-        activateWorldlineMethod(panel, methodCode)
+        activate(panel, methodCode)
         return
       }
 
       void runtimeMethodsPromise.then(() => {
         if (disposed) return
-        if (worldlineMethods.has(methodCode)) activateWorldlineMethod(panel, methodCode)
+        if (worldlineMethods.has(methodCode)) activate(panel, methodCode)
         else {
           activeMethod.delete(panel)
-          restoreExistingPayButton(panel)
-          scheduleSync()
+          restoreImmediateWorldlineAction(panel)
+          schedule()
         }
       })
     }
 
-    const observer = new MutationObserver(scheduleSync)
-    syncCheckoutDom()
-    void runtimeMethodsPromise.then(scheduleSync)
+    const observer = new MutationObserver(schedule)
+    sync()
+    void runtimeMethodsPromise.then(schedule)
     document.addEventListener('click', onClick, true)
     observer.observe(document.body, { childList: true, subtree: true })
 
@@ -500,9 +269,107 @@ export function PaymentCheckoutUXEnhancer() {
       disposed = true
       observer.disconnect()
       document.removeEventListener('click', onClick, true)
-      document.getElementById(STYLE_ID)?.remove()
     }
   }, [])
 
-  return null
+  return (
+    <style>{`
+      [data-pmd-payment-order-id],
+      [data-pmd-multi-order-payment="r32"] {
+        --pmd-wl-action-bg: var(--pmd-text, #ffffff);
+        --pmd-wl-action-fg: var(--pmd-control, #070707);
+      }
+
+      [data-pmd-worldline-action="true"],
+      [data-pmd-worldline-final] {
+        width: 100% !important;
+        min-height: 54px !important;
+        border-radius: 999px !important;
+        border: 1px solid color-mix(in srgb, var(--pmd-wl-action-bg) 88%, transparent) !important;
+        background: var(--pmd-wl-action-bg) !important;
+        color: var(--pmd-wl-action-fg) !important;
+        box-sizing: border-box !important;
+        font-size: 0 !important;
+        font-weight: 800 !important;
+      }
+
+      [data-pmd-worldline-action="true"] > *,
+      [data-pmd-worldline-final] > * {
+        display: none !important;
+      }
+
+      [data-pmd-worldline-action="true"]::before,
+      [data-pmd-worldline-final]::before {
+        content: '';
+        display: inline-block;
+        width: 18px;
+        height: 12px;
+        margin-inline-end: 10px;
+        border: 2px solid currentColor;
+        border-radius: 3px;
+        box-sizing: border-box;
+        vertical-align: -1px;
+      }
+
+      [data-pmd-worldline-action="true"]::after {
+        content: attr(data-pmd-worldline-action-label);
+        font-size: 17px;
+        font-weight: 800;
+      }
+
+      [data-pmd-worldline-action="true"][disabled]::before {
+        width: 17px;
+        height: 17px;
+        border-radius: 50%;
+        border-right-color: transparent;
+        animation: pmdWlSafeSpin .7s linear infinite;
+      }
+
+      @keyframes pmdWlSafeSpin { to { transform: rotate(360deg); } }
+
+      [data-pmd-worldline-native-card] {
+        border: 0 !important;
+        background: transparent !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        gap: 10px !important;
+      }
+
+      [data-pmd-worldline-native-card] > div:first-of-type,
+      [data-pmd-worldline-native-card] > div:last-child {
+        display: none !important;
+      }
+
+      [data-pmd-worldline-native-card] label {
+        font-size: 0 !important;
+        gap: 0 !important;
+        margin: 0 !important;
+      }
+
+      [data-pmd-worldline-native-card] input {
+        height: 48px !important;
+        font-size: 16px !important;
+      }
+
+      [data-pmd-worldline-native-card] button[type="submit"],
+      [data-pmd-worldline-embedded^="pmd-authorization-"] > button {
+        width: 100% !important;
+        min-height: 54px !important;
+        border-radius: 999px !important;
+        background: var(--pmd-text, #ffffff) !important;
+        color: var(--pmd-control, #070707) !important;
+        border: 1px solid var(--pmd-text, #ffffff) !important;
+      }
+
+      [data-pmd-worldline-native-wallet^="own-checkout-apple_pay"] .pmd-worldline-apple-pay-button {
+        -apple-pay-button-style: white !important;
+        border-radius: 999px !important;
+        min-height: 54px !important;
+      }
+
+      [data-pmd-worldline-embedded^="native-wallet-"] > [role="status"] {
+        display: none !important;
+      }
+    `}</style>
+  )
 }
