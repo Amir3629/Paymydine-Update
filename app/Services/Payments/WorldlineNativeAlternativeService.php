@@ -58,17 +58,13 @@ final class WorldlineNativeAlternativeService
         $session = $this->baseSession($method, $productId, $context);
         $runtime = app(WorldlineConnectRuntimeService::class);
         $cfg = $runtime->config(true);
-        $available = $runtime->availablePaymentProducts(
-            (string)$session['country_code'],
-            (string)$session['expected_currency'],
-            (int)$session['expected_amount_minor'],
-            (string)$session['locale']
-        );
-        $availableIds = array_values(array_map('intval', (array)($available[$method] ?? [])));
-        if (!in_array($productId, $availableIds, true)) {
-            throw new \RuntimeException('Worldline '.$method.' product '.$productId.' is not available for this merchant and transaction.');
-        }
 
+        // Hot-path latency rule:
+        // Do not perform a separate Get payment products request here. The official
+        // browser Client SDK immediately calls getPaymentProduct() with the exact
+        // amount/currency/country before a wallet sheet can be opened, and the
+        // provider remains authoritative again when POST /payments is submitted.
+        // This removes a redundant provider round-trip without weakening settlement.
         $response = $this->merchantClient($cfg)->sessions()->create(new SessionRequest());
         $raw = $this->toArray($response);
         foreach (['clientSessionId', 'customerId', 'clientApiUrl', 'assetUrl'] as $field) {
@@ -207,18 +203,10 @@ final class WorldlineNativeAlternativeService
         $this->assertSameTenantHttpsUrl($returnUrl);
 
         $session = $this->baseSession($method, $productId, $context);
-        $runtime = app(WorldlineConnectRuntimeService::class);
-        $available = $runtime->availablePaymentProducts(
-            (string)$session['country_code'],
-            (string)$session['expected_currency'],
-            (int)$session['expected_amount_minor'],
-            (string)$session['locale']
-        );
-        $availableIds = array_values(array_map('intval', (array)($available[$method] ?? [])));
-        if (!in_array($productId, $availableIds, true)) {
-            throw new \RuntimeException('Worldline '.$method.' product '.$productId.' is not available for this merchant and transaction.');
-        }
 
+        // The direct Worldline POST /payments call below is itself the authoritative
+        // availability check for redirect products. A separate discovery request here
+        // only adds latency; an unavailable/unconfigured product still fails closed.
         $session['created_at_utc'] = gmdate('c');
         $this->saveSession($session);
 
