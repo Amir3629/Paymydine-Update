@@ -3,6 +3,7 @@
 use App\Services\AI\GuestMenuAiService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 /*
 |--------------------------------------------------------------------------
@@ -60,9 +61,9 @@ Route::post('/guest-ai/ask', function (Request $request) {
         $public = 'The menu assistant is taking a short break. Please try again in a moment.';
 
         if (
-            str_contains($message, 'question is required')
+            $error instanceof ValidationException
+            || str_contains($message, 'question is required')
             || str_contains($message, 'question is too long')
-            || str_contains($message, 'validation')
         ) {
             $status = 422;
             $public = 'Please ask a shorter menu question.';
@@ -93,4 +94,6 @@ Route::post('/guest-ai/ask', function (Request $request) {
             'Cache-Control' => 'private, no-store, max-age=0',
         ]);
     }
-});
+})->withoutMiddleware([
+    \Igniter\Flame\Foundation\Http\Middleware\VerifyCsrfToken::class,
+]);
