@@ -1,0 +1,159 @@
+name: PayMyDine Cashier V1.1.0 Real App
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/cashier-real-app-v110
+    paths:
+      - 'apps/cashier-desktop/**'
+      - '.github/workflows/cashier-desktop-v110.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'apps/cashier-desktop/**'
+      - '.github/workflows/cashier-desktop-v110.yml'
+
+permissions:
+  contents: read
+
+env:
+  PMD_BRAND_LOGO_URL: https://tomo.paymydine.com/brand/paymydine-logo.svg
+
+jobs:
+  contract-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify V1.1.0 local-first contract
+        working-directory: apps/cashier-desktop
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run check
+          grep -q '"version": "1.1.0"' package.json
+          grep -q '"main": "src/real-app-main.js"' package.json
+          grep -q 'realAppV110: true' src/preload.js
+          grep -q "loadFile(path.join(__dirname, 'app.html'))" src/real-app-main.js
+          grep -q '/admin/pmd-waiter-dashboard-v9-tenant-data' src/app.js
+          grep -q '/admin/pmd-waiter-pos-v1/data/' src/app.js
+          grep -q 'payment_method: .cash.' src/app.js
+          grep -q 'Draft saved on this computer' src/app.js
+          grep -q 'class LocalStore' src/local-store.js
+          if grep -q 'mainWindow.loadURL(tenantUrl(tenant))' src/real-app-main.js; then
+            echo 'Real app runtime must not boot the remote CashierLab page as its main UI.' >&2
+            exit 1
+          fi
+          echo 'PMD_V110_LOCAL_FIRST_CONTRACT=PASS'
+
+  build-windows:
+    needs: contract-test
+    runs-on: windows-latest
+    timeout-minutes: 50
+    steps:
+      - name: Download Cashier V1.1.0 source without full Windows git checkout
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PMD_REPOSITORY: ${{ github.repository }}
+          PMD_REF: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $root = Join-Path $PWD 'apps/cashier-desktop'
+          $files = @(
+            'package.json',
+            'scripts/fetch-brand-icon.js',
+            'scripts/after-sign-mac-v106.js',
+            'src/real-app-main.js',
+            'src/local-store.js',
+            'src/preload.js',
+            'src/app.html',
+            'src/app.css',
+            'src/app.js',
+            'src/hardware.js',
+            'src/receipt.js',
+            'src/setup.html',
+            'src/setup.js',
+            'src/hardware.html',
+            'src/hardware-page.js',
+            'src/offline.html',
+            'src/offline.js'
+          )
+          $headers = @{
+            Authorization = "Bearer $env:GH_TOKEN"
+            Accept = 'application/vnd.github+json'
+            'X-GitHub-Api-Version' = '2022-11-28'
+            'User-Agent' = 'PayMyDine-Cashier-V110-Windows-Build'
+          }
+          foreach ($relative in $files) {
+            $encodedPath = ($relative -split '/' | ForEach-Object { [uri]::EscapeDataString($_) }) -join '/'
+            $uri = "https://api.github.com/repos/$env:PMD_REPOSITORY/contents/apps/cashier-desktop/$encodedPath`?ref=$env:PMD_REF"
+            $item = Invoke-RestMethod -Headers $headers -Uri $uri -Method Get
+            $destination = Join-Path $root ($relative -replace '/', [IO.Path]::DirectorySeparatorChar)
+            New-Item -ItemType Directory -Force -Path (Split-Path -Parent $destination) | Out-Null
+            [IO.File]::WriteAllBytes($destination, [Convert]::FromBase64String(($item.content -replace '\s', '')))
+          }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        working-directory: apps/cashier-desktop
+        run: npm install
+      - name: Verify source
+        working-directory: apps/cashier-desktop
+        run: npm run check
+      - name: Build Windows installer
+        working-directory: apps/cashier-desktop
+        run: npm run dist:win
+      - name: Verify Windows artifact
+        shell: pwsh
+        run: |
+          $path = 'apps/cashier-desktop/dist/PayMyDine-Cashier-Setup-1.1.0.exe'
+          if (-not (Test-Path $path)) { throw 'Windows V1.1.0 installer missing' }
+          $item = Get-Item $path
+          if ($item.Length -lt 1000000) { throw 'Windows V1.1.0 installer is unexpectedly small' }
+          Write-Host "PMD_V110_WINDOWS_INSTALLER_BYTES=$($item.Length)"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pmd-v110-windows
+          path: apps/cashier-desktop/dist/PayMyDine-Cashier-Setup-1.1.0.exe
+          if-no-files-found: error
+
+  build-macos-arm64:
+    needs: contract-test
+    runs-on: macos-26
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        working-directory: apps/cashier-desktop
+        run: npm install
+      - name: Verify source
+        working-directory: apps/cashier-desktop
+        run: npm run check
+      - name: Build Apple Silicon app
+        working-directory: apps/cashier-desktop
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: npm run dist:mac -- --arm64
+      - name: Verify Apple Silicon artifact
+        working-directory: apps/cashier-desktop
+        shell: bash
+        run: |
+          set -euo pipefail
+          dmg='dist/PayMyDine-Cashier-1.1.0-mac-arm64.dmg'
+          test -s "$dmg"
+          echo "PMD_V110_MAC_ARM64_ARTIFACT=$dmg"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pmd-v110-macos-arm64
+          path: apps/cashier-desktop/dist/PayMyDine-Cashier-1.1.0-mac-arm64.dmg
+          if-no-files-found: error
