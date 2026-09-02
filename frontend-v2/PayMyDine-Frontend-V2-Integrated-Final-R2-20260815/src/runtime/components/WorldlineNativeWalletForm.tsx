@@ -49,9 +49,17 @@ type PreparedWallet = {
 
 let googlePayScriptPromise: Promise<void> | null = null
 
+function getGooglePaymentsClientConstructor(): any {
+  if (typeof window === 'undefined') return null
+  const google = (window as any).google
+  return google && google.payments && google.payments.api
+    ? google.payments.api.PaymentsClient
+    : null
+}
+
 function loadGooglePayScript(): Promise<void> {
   if (typeof window === 'undefined') return Promise.reject(new Error('Google Pay is only available in the browser.'))
-  if ((window as any).google?.payments?.api?.PaymentsClient) return Promise.resolve()
+  if (getGooglePaymentsClientConstructor()) return Promise.resolve()
   if (googlePayScriptPromise) return googlePayScriptPromise
 
   googlePayScriptPromise = new Promise<void>((resolve, reject) => {
@@ -60,7 +68,7 @@ function loadGooglePayScript(): Promise<void> {
       existing.addEventListener('load', () => resolve(), { once: true })
       existing.addEventListener('error', () => reject(new Error('Google Pay could not be loaded.')), { once: true })
       window.setTimeout(() => {
-        if ((window as any).google?.payments?.api?.PaymentsClient) resolve()
+        if (getGooglePaymentsClientConstructor()) resolve()
       }, 50)
       return
     }
@@ -252,7 +260,7 @@ export function WorldlineNativeWalletForm(props: Props) {
     setError('')
     try {
       await loadGooglePayScript()
-      const GooglePaymentsClient = (window as any).google?.payments?.api?.PaymentsClient
+      const GooglePaymentsClient = getGooglePaymentsClientConstructor()
       if (!GooglePaymentsClient) throw new Error('Google Pay API is unavailable in this browser.')
 
       const specific = prepared.product?.paymentProduct320SpecificData
@@ -322,7 +330,7 @@ export function WorldlineNativeWalletForm(props: Props) {
     host.replaceChildren()
 
     try {
-      const GooglePaymentsClient = (window as any).google?.payments?.api?.PaymentsClient
+      const GooglePaymentsClient = getGooglePaymentsClientConstructor()
       if (!GooglePaymentsClient) return
       const paymentsClient = googleClientRef.current || new GooglePaymentsClient({
         environment: props.walletConfiguration.environment === 'PROD' ? 'PRODUCTION' : 'TEST',
