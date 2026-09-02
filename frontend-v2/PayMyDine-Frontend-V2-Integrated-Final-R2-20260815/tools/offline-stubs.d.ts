@@ -3,6 +3,7 @@ declare var process: { env: Record<string, string | undefined> }
 declare namespace React {
   type ReactNode = any
   type CSSProperties = Record<string, string | number | undefined>
+  type FormEvent<T = any> = { preventDefault(): void; currentTarget: T; target: any }
 }
 
 declare namespace JSX {
@@ -16,6 +17,7 @@ declare namespace JSX {
 declare module 'react' {
   export type ReactNode = any
   export type CSSProperties = Record<string, string | number | undefined>
+  export type FormEvent<T = any> = { preventDefault(): void; currentTarget: T; target: any }
   export type Dispatch<A> = (value: A) => void
   export type SetStateAction<S> = S | ((previous: S) => S)
   export type MutableRefObject<T> = { current: T }
@@ -63,6 +65,7 @@ declare module '*.module.css' {
 }
 
 declare module 'lucide-react' {
+  export const ArrowUp: any
   export const Beef: any
   export const Bell: any
   export const Car: any

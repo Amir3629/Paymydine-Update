@@ -1,4 +1,5 @@
 import { MenuRuntimeProvider } from '@/src/runtime/MenuRuntimeContext'
+import { GuestAiConcierge } from '@/src/runtime/components/GuestAiConcierge'
 import { ServiceOverlaySimplifier } from '@/src/runtime/components/ServiceOverlaySimplifier'
 import { ThemeTableBadge } from '@/src/runtime/components/ThemeTableBadge'
 import { loadCustomerBootstrap } from '@/src/server/bootstrap'
@@ -23,6 +24,7 @@ export default async function TableMenuPage({ params, searchParams }: PageProps)
       <ThemeRenderer themeId={bootstrap.theme.id} />
       <ThemeTableBadge />
       <ServiceOverlaySimplifier />
+      <GuestAiConcierge themeId={bootstrap.theme.id} />
     </MenuRuntimeProvider>
   )
 }

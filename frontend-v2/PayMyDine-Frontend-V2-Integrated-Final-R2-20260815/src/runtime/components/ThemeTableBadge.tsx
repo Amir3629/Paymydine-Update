@@ -9,6 +9,20 @@ function findHeroHost(root: HTMLElement): HTMLElement | null {
   return root.querySelector<HTMLElement>('[data-pmd-theme-hero="true"]')
 }
 
+const clearanceClasses = [
+  styles.clearance16,
+  styles.clearance32,
+  styles.clearance48,
+  styles.clearance64,
+]
+
+function clearanceClass(required: number): string {
+  if (required <= 16) return styles.clearance16
+  if (required <= 32) return styles.clearance32
+  if (required <= 48) return styles.clearance48
+  return styles.clearance64
+}
+
 /* PMD_THEME_HERO_TABLE_BADGE
  * One shared table-number authority for all ten V2 themes. The table context
  * belongs at the top-center of the hero so it never competes with the restaurant
@@ -45,11 +59,10 @@ export function ThemeTableBadge() {
     }
   }, [tableDisplay])
 
-  // PMD_THEME_TABLE_BADGE_CENTER_CLEARANCE_R74B
-  //
-  // Keep the table pill centered. On compact screens, measure the
-  // real rendered geometry and move hero copy down ONLY when the
-  // centered pill would overlap the Welcome / restaurant-name area.
+  // PMD_THEME_TABLE_BADGE_CENTER_CLEARANCE_R75
+  // Preserve collision-aware hero spacing without runtime style mutation.
+  // Geometry is measured, then mapped onto one of four CSS-owned spacing
+  // classes. CSS remains the rendering authority and the adjustment is bounded.
   useEffect(() => {
     if (!host || !tableDisplay) return
 
@@ -64,8 +77,7 @@ export function ThemeTableBadge() {
     let frame = 0
 
     const resetClearance = () => {
-      copy.classList.remove(styles.copyClearance)
-      copy.style.removeProperty('--pmd-table-badge-clearance')
+      copy.classList.remove(styles.copyClearance, ...clearanceClasses)
       delete copy.dataset.pmdTableBadgeClearance
     }
 
@@ -73,15 +85,12 @@ export function ThemeTableBadge() {
       window.cancelAnimationFrame(frame)
 
       frame = window.requestAnimationFrame(() => {
-        // Always measure from the theme's natural/original position.
         resetClearance()
-
         if (!mobile.matches) return
 
         const badge = host.querySelector<HTMLElement>(
           '[data-pmd-table-badge="hero"]',
         )
-
         if (!badge) return
 
         const welcome = heading.previousElementSibling instanceof HTMLElement
@@ -90,24 +99,12 @@ export function ThemeTableBadge() {
 
         const badgeRect = badge.getBoundingClientRect()
         const welcomeRect = welcome.getBoundingClientRect()
-
-        // Preserve a small visual breathing gap below the centered pill.
-        const requiredClearance = Math.ceil(
-          badgeRect.bottom + 10 - welcomeRect.top,
-        )
-
+        const requiredClearance = Math.ceil(badgeRect.bottom + 10 - welcomeRect.top)
         if (requiredClearance <= 0) return
 
-        // Collision corrections should stay modest. This is not a
-        // redesign of the hero composition.
         const clearance = Math.min(64, requiredClearance)
-
-        copy.style.setProperty(
-          '--pmd-table-badge-clearance',
-          `${clearance}px`,
-        )
         copy.dataset.pmdTableBadgeClearance = String(clearance)
-        copy.classList.add(styles.copyClearance)
+        copy.classList.add(styles.copyClearance, clearanceClass(clearance))
       })
     }
 
