@@ -1,20 +1,16 @@
 {
   "name": "paymydine-cashier-desktop",
-  "version": "1.0.9",
+  "version": "1.1.0",
   "private": true,
-  "description": "PayMyDine universal cashier desktop app with driver-safe Windows receipt printing, branded hardware setup, truthful hardware diagnostics, fullscreen cashier, direct receipt/invoice print routing, cash-drawer support and Virtual PDF debugging",
-  "main": "src/main.js",
+  "description": "PayMyDine Cashier real desktop app: locally bundled POS UI, durable local cache and drafts, canonical cloud sync, secure payments, printer and cash drawer support.",
+  "main": "src/real-app-main.js",
   "scripts": {
-    "patch:v104": "node scripts/apply-v104.js",
-    "patch:v106": "node scripts/patch-chain-v106.js",
-    "patch:v108": "npm run patch:v106 && node scripts/apply-v108.js",
-    "patch:v109": "npm run patch:v108 && node scripts/apply-v109.js",
     "brand:icon": "node scripts/fetch-brand-icon.js",
-    "dev": "npm run patch:v109 && npm run brand:icon && electron .",
-    "start": "npm run patch:v109 && npm run brand:icon && electron .",
-    "check": "npm run patch:v109 && node --check scripts/patch-chain-v106.js && node --check scripts/apply-v108.js && node --check scripts/apply-v109.js && node --check scripts/fetch-brand-icon.js && node --check scripts/apply-v106.js && node --check scripts/after-sign-mac-v106.js && node --check src/main.js && node --check src/preload.js && node --check src/setup.js && node --check src/hardware.js && node --check src/receipt.js && node --check src/hardware-page.js && node --check src/offline.js",
-    "dist:win": "npm run patch:v109 && npm run brand:icon && electron-builder --win nsis",
-    "dist:mac": "npm run patch:v109 && npm run brand:icon && electron-builder --mac dmg zip"
+    "dev": "npm run brand:icon && electron .",
+    "start": "npm run brand:icon && electron .",
+    "check": "node --check src/real-app-main.js && node --check src/local-store.js && node --check src/preload.js && node --check src/app.js && node --check src/setup.js && node --check src/hardware.js && node --check src/receipt.js && node --check src/hardware-page.js && node --check src/offline.js",
+    "dist:win": "npm run check && npm run brand:icon && electron-builder --win nsis",
+    "dist:mac": "npm run check && npm run brand:icon && electron-builder --mac dmg zip"
   },
   "devDependencies": {
     "electron": "43.4.1",
