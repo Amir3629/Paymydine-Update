@@ -1,118 +1,81 @@
-# PayMyDine Cashier Desktop V1.0.3
+# PayMyDine Cashier Desktop v1.1.0 — Real App
 
-## Purpose
+PayMyDine Cashier v1.1.0 is a locally bundled Electron POS for Windows and macOS Apple Silicon. The main Cashier UI is installed with the application and no longer boots by loading `/admin/cashierlab` as its main screen.
 
-One PayMyDine Cashier desktop application for the main cashier POS in every restaurant.
+## Architecture
 
-Supported platforms:
+- **Local UI authority:** `src/app.html`, `src/app.css`, `src/app.js`
+- **Desktop runtime:** `src/real-app-main.js`
+- **Durable local data:** `src/local-store.js`
+- **Cloud business authority:** existing PayMyDine tenant Admin endpoints
+- **Hardware authority:** existing local printer/cash-drawer modules
+- **Payments:** canonical PayMyDine server settlement/provider flows remain authoritative
 
-- Windows 10/11
-- macOS Apple Silicon
-- macOS Intel
+The desktop app uses the selected tenant's secure Electron session to call existing APIs such as:
 
-All other staff may continue using the normal browser.
+- `/admin/pmd-waiter-dashboard-v9-tenant-data`
+- `/admin/pmd-waiter-pos-v1/data/{table}`
+- `/admin/pmd-waiter-pos-v1/save/{table}`
+- `/admin/pmd-waiter-pos-v1/payment-summary/{order}`
+- `/admin/pmd-waiter-pos-v1/payment-settle/{order}`
 
-The app reuses the existing tenant Cashier at `/admin/cashierlab`. It does not create a second order/payment system and never connects directly to MySQL.
+This keeps one order/payment backend instead of creating a second POS database on the device.
 
-## Payment, receipt and drawer behavior
+## Offline behavior
 
-V1.0.3 makes the desktop app the local hardware authority when the Cashier runs inside Electron.
+The app caches successful GET payloads and keeps per-table drafts in the Electron user-data directory. After a restart or internet loss, cached tables/menu data and local drafts remain available.
 
-For every successful staff payment that returns a canonical `receipt_url`:
+Offline is intentionally safe:
 
-1. PayMyDine records the payment on the server first.
-2. If `Print receipt automatically after payment` is enabled, the authenticated receipt URL is sent to the saved local printer.
-3. The payment/receipt key is remembered in tenant-local browser storage only after printing succeeds, preventing accidental duplicate automatic prints.
-4. Manual `Print / reprint` remains available from the Cashier Order Center.
+- cached floor/menu: available
+- cart and table-note drafts: available and durable
+- printer/cash-drawer configuration: local
+- sending a new order to the kitchen: requires cloud connectivity
+- recording a payment: requires cloud connectivity
+- card/provider approval: never inferred from a client/browser return
 
-Cash payment:
+When offline, **Save locally** stores the draft but does not claim that the kitchen or cloud received it.
 
-- receipt prints once when auto-print is enabled;
-- the desktop app opens the cash drawer once using the existing payment idempotency key;
-- the server-side legacy connector bridge is explicitly skipped with `desktop_hardware_managed=true`, so two hardware owners cannot open the drawer.
+## Cash payments
 
-Card / external terminal payment:
+Cash settlement is posted to the canonical server endpoint with an idempotency key. The local cash drawer opens only after the server returns a successful settlement. Hardware failure never turns a valid payment into a failed payment.
 
-- receipt prints once when auto-print is enabled;
-- cash drawer stays closed.
+## Card / terminal / online providers
 
-Printing failure never rolls back a valid payment. The Cashier reports the local print error and the operator can use `Print / reprint` after fixing paper/printer state.
+Provider payments use the existing secure PayMyDine payment surface. The local app does not duplicate provider SDK or settlement truth.
 
-## Browser behavior
+## Security
 
-Normal browser sessions do not expose `window.PayMyDineDesktop`.
+Electron windows keep:
 
-Therefore:
+- `contextIsolation: true`
+- `nodeIntegration: false`
+- `sandbox: true`
+- `webSecurity: true`
+- narrow preload IPC only
+- tenant-host allowlisting for remote compatibility/login windows
+- no tenant database credentials on the device
 
-- existing browser/connector cash-drawer behavior is preserved;
-- document printing falls back to the normal browser `window.print()` dialog;
-- desktop-only automatic printing is not attempted.
+## Build
 
-## Printer behavior
+```bash
+npm install
+npm run check
+npm run dist:win
+npm run dist:mac -- --arm64
+```
 
-Windows:
+Artifacts:
 
-- printer discovery: `Win32_Printer`;
-- generic thermal queues such as `Generic / Text Only`: authenticated receipt page is captured and converted to ESC/POS raster, then sent RAW through Winspool;
-- normal printer drivers: Electron silent system-driver printing.
+- Windows: `PayMyDine-Cashier-Setup-1.1.0.exe`
+- Apple Silicon: `PayMyDine-Cashier-1.1.0-mac-arm64.dmg`
 
-macOS:
+GitHub Actions workflow: `.github/workflows/cashier-desktop-v110.yml`.
 
-- printer discovery: CUPS `lpstat`;
-- raw test/drawer commands: `lp -o raw`;
-- normal receipt printing uses the selected system printer.
+## Repository-only source warning
 
-The physical drawer remains:
+The production VPS intentionally does not own this Electron build source. A clean VPS snapshot must preserve `.github` and `apps/cashier-desktop` from the GitHub base commit using `tools/pmd-preserve-repo-only-after-vps-sync.sh`; otherwise a VPS rsync can accidentally delete the desktop source from a future clean-sync commit.
 
-`Computer -> receipt printer -> DK/DRAWER cable -> cash drawer`
+## Next product phase
 
-## Hardware setup
-
-Open `PayMyDine > Printer & cash drawer`.
-
-The V1.0.3 setup contains only the operator-facing controls:
-
-- receipt printer;
-- Find printers;
-- Test print;
-- Print receipt automatically after payment;
-- Open cash drawer automatically after cash payment;
-- Test cash drawer;
-- troubleshooting drawer pulse command.
-
-## Multi-tenant and security
-
-The same installer is used for all restaurants.
-
-First launch asks for a restaurant code such as `moon`, then opens `https://moon.paymydine.com/admin/cashierlab` and uses the normal PayMyDine login.
-
-The app stores only local POS preferences such as tenant hostname, printer name and hardware toggles. It contains no tenant DB credentials and no offline copy of business data.
-
-Electron remains hardened:
-
-- `nodeIntegration: false`;
-- `contextIsolation: true`;
-- sandbox enabled;
-- navigation restricted to the selected `*.paymydine.com` tenant;
-- no generic filesystem/shell API exposed to the remote Cashier page.
-
-## Internet
-
-V1.0.3 requires internet for login, orders, menu data and payments because PayMyDine remains cloud-authoritative.
-
-Local printer discovery, Test Print and Test Cash Drawer work against the local operating system/hardware.
-
-## Release validation
-
-Before customer rollout:
-
-1. Install/upgrade the package.
-2. Confirm the selected restaurant and login.
-3. Confirm saved receipt printer.
-4. Test Print physically produces paper.
-5. Test Cash Drawer physically opens once.
-6. Perform a real cash payment: one receipt + one drawer opening.
-7. Perform a card/manual terminal payment: one receipt + no drawer opening.
-8. Use `Print / reprint` on a paid order and confirm it prints directly in the desktop app without an OS print dialog.
-9. Confirm the same document opened in a normal browser still uses the browser print dialog.
-10. Add Windows Authenticode signing and Apple signing/notarization before broad public distribution.
+After the real app is validated, the separate Windows dedicated-device phase can add kiosk/shell replacement, branded boot, automatic launch and device lockdown. That phase is intentionally not mixed into the v1.1.0 application rewrite.
