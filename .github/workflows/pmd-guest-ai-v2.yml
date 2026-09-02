@@ -66,6 +66,7 @@ jobs:
         run: |
           php -l app/Services/AI/GuestMenuAiService.php
           php -l app/Services/AI/GuestMenuMomentContext.php
+          php -l app/Services/AI/GuestAiConversationStore.php
           php -l app/Services/MenuPopularityService.php
           php -l app/Services/Platform/LocationClockStateService.php
           php -l app/main/routes/api-v1-guest-ai.php
