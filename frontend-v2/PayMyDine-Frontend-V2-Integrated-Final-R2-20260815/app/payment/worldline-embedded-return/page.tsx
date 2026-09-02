@@ -19,9 +19,15 @@ export default function WorldlineEmbeddedReturnPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const returnTo = safeReturnPath(params.get('return_to'))
+    const nativeSessionId = String(params.get('native_session_id') || '').toLowerCase()
+    const returnMac = String(params.get('RETURNMAC') || params.get('returnmac') || '')
 
     if (window.parent !== window) {
-      window.parent.postMessage({ type: 'pmd-worldline-embedded-return' }, window.location.origin)
+      window.parent.postMessage({
+        type: 'pmd-worldline-embedded-return',
+        nativeSessionId: /^[a-f0-9]{48}$/.test(nativeSessionId) ? nativeSessionId : null,
+        returnMac: returnMac || null,
+      }, window.location.origin)
       return
     }
 
@@ -29,7 +35,9 @@ export default function WorldlineEmbeddedReturnPage() {
     const fallback = new URL('/payment/return', window.location.origin)
     fallback.searchParams.set('payment_return_provider', 'worldline')
     fallback.searchParams.set('return_to', returnTo)
-    for (const key of ['hostedCheckoutId', 'hosted_checkout_id', 'RETURNMAC', 'returnmac']) {
+    if (/^[a-f0-9]{48}$/.test(nativeSessionId)) fallback.searchParams.set('native_session_id', nativeSessionId)
+    if (returnMac) fallback.searchParams.set('RETURNMAC', returnMac)
+    for (const key of ['hostedCheckoutId', 'hosted_checkout_id']) {
       const value = params.get(key)
       if (value) fallback.searchParams.set(key, value)
     }
