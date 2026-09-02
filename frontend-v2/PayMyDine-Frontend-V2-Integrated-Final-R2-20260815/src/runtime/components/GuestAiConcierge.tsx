@@ -150,7 +150,7 @@ type HistoryPayload = {
 }
 
 export function GuestAiConcierge({ themeId }: { themeId: ThemeId }) {
-  const { bootstrap, locale, direction, formatCurrency, guestSessionId } = useMenuRuntime()
+  const { bootstrap, locale, direction, formatCurrency, guestSessionId, tableOrders } = useMenuRuntime()
   const locationId = bootstrap.table.locationId
   const tableId = Number(bootstrap.table.id || 0)
   const copy = useMemo(() => copyFor(locale), [locale])
@@ -165,6 +165,15 @@ export function GuestAiConcierge({ themeId }: { themeId: ThemeId }) {
   const [error, setError] = useState('')
 
   const canPersist = Boolean(locationId && locationId > 0 && tableId > 0 && guestSessionId.length >= 8)
+  // Reuse MenuRuntimeContext's single 3-second table/order polling authority.
+  // A Staff Free action closes QR drafts/orders and changes this revision, which
+  // makes us re-check the server visit key without introducing a second timer.
+  const tableOrderRevision = useMemo(() => tableOrders.map((order) => [
+    order.draftId || 0,
+    order.orderId || 0,
+    order.status || '',
+    order.updatedAt || '',
+  ].join(':')).join('|'), [tableOrders])
 
   useEffect(() => {
     const nextHost = document.querySelector<HTMLElement>('main[data-theme-id]')
@@ -252,17 +261,11 @@ export function GuestAiConcierge({ themeId }: { themeId: ThemeId }) {
   }, [canPersist, guestSessionId, locationId, tableId, visitKey])
 
   useEffect(() => {
-    if (!enabled || !canPersist) return
+    if (!enabled || !canPersist || busy) return
+    // Initial hydration; reopening the sheet also forces an immediate boundary
+    // check. tableOrderRevision is fed by the existing shared order poller.
     void refreshHistory()
-  }, [canPersist, enabled, refreshHistory])
-
-  useEffect(() => {
-    if (!open || !enabled || !canPersist) return
-    const timer = window.setInterval(() => {
-      void refreshHistory()
-    }, 15000)
-    return () => window.clearInterval(timer)
-  }, [canPersist, enabled, open, refreshHistory])
+  }, [busy, canPersist, enabled, open, refreshHistory, tableOrderRevision])
 
   useEffect(() => {
     if (!open) return
