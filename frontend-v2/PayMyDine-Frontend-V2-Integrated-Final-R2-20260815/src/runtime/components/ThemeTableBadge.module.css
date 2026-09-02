@@ -40,21 +40,13 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* PMD_THEME_TABLE_BADGE_CENTER_CLEARANCE_R74B
- *
- * Keep the table pill centered on every device.
- *
- * On mobile we do NOT guess a fixed text offset.
- * ThemeTableBadge measures the real rendered pill and Welcome
- * position. Only when they actually collide does the hero copy
- * receive a small downward translation.
- *
- * Individual `translate` deliberately composes with themes that
- * already use `transform: translateY(...)` for hero positioning.
- */
-.copyClearance {
-  translate: 0 var(--pmd-table-badge-clearance, 0px);
-}
+/* Collision geometry is measured by the shared badge component, but rendering
+ * remains CSS-owned. Four bounded buckets replace runtime style mutation. */
+.copyClearance { translate: 0 0; }
+.clearance16 { translate: 0 16px; }
+.clearance32 { translate: 0 32px; }
+.clearance48 { translate: 0 48px; }
+.clearance64 { translate: 0 64px; }
 
 @media (max-width: 680px) {
   .badge {
@@ -62,7 +54,6 @@
     left: 50%;
     right: auto;
     transform: translateX(-50%);
-
     min-height: 28px;
     max-width: calc(100% - 1.5rem);
     gap: 5px;
