@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - 'app/Services/AI/**'
+      - 'app/Services/MenuPopularityService.php'
       - 'app/main/routes/api-v1-guest-ai.php'
       - 'app/main/routes/api-health-media.php'
       - 'config/pmd_ai.php'
@@ -16,6 +17,7 @@ on:
     branches: [main]
     paths:
       - 'app/Services/AI/**'
+      - 'app/Services/MenuPopularityService.php'
       - 'app/main/routes/api-v1-guest-ai.php'
       - 'app/main/routes/api-health-media.php'
       - 'config/pmd_ai.php'
@@ -61,6 +63,7 @@ jobs:
       - name: PHP syntax checks
         run: |
           php -l app/Services/AI/GuestMenuAiService.php
+          php -l app/Services/MenuPopularityService.php
           php -l app/main/routes/api-v1-guest-ai.php
           php -l app/main/routes/api-health-media.php
           php -l config/pmd_ai.php
