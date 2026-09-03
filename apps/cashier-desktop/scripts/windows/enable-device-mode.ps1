@@ -86,7 +86,9 @@ $payload = [ordered]@{
     windows = $caption
     configuredAt = (Get-Date).ToUniversalTime().ToString('o')
 }
-$payload | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $marker -Encoding UTF8
+$json = $payload | ConvertTo-Json -Depth 4
+$utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+[System.IO.File]::WriteAllText($marker, $json, $utf8NoBom)
 
 Write-Output 'PMD_DEVICE_MODE_ENABLED=YES'
 Write-Output "PMD_DEVICE_MODE_USER_SID=$UserSid"
