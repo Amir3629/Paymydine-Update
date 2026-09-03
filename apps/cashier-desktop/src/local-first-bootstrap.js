@@ -13,6 +13,7 @@ const CACHEABLE_JSON = [
 
 let store = null;
 let installedIpc = false;
+const failedRouteByContents = new WeakMap();
 
 function userDataPath() {
   return app.getPath('userData');
@@ -168,6 +169,14 @@ async function loadSnapshot(contents, tenant, requestedUrl) {
   try {
     await contents.loadFile(row.file);
     await contents.executeJavaScript(`(function(){
+      var originalUrl=${JSON.stringify(row.url)};
+      var head=document.head || document.documentElement;
+      if(head && !document.querySelector('base[data-pmd-desktop-origin-v121]')){
+        var base=document.createElement('base');
+        base.setAttribute('data-pmd-desktop-origin-v121','1');
+        base.href=originalUrl;
+        head.insertBefore(base,head.firstChild || null);
+      }
       if (document.getElementById('pmd-desktop-offline-banner-v121')) return;
       var banner=document.createElement('div');
       banner.id='pmd-desktop-offline-banner-v121';
@@ -313,6 +322,14 @@ function installPageAcceleration(contents, tenant) {
 
 function install() {
   app.on('web-contents-created', (_event, contents) => {
+    contents.on('did-fail-load', (_failedEvent, errorCode, _errorDescription, validatedUrl, isMainFrame) => {
+      const tenant = normalizeTenant(readSettings().tenant);
+      if (!tenant || !isMainFrame || errorCode === -3) return;
+      if (sameTenantAdmin(validatedUrl, tenant)) {
+        failedRouteByContents.set(contents, validatedUrl);
+      }
+    });
+
     contents.on('did-finish-load', async () => {
       const settings = readSettings();
       const tenant = normalizeTenant(settings.tenant);
@@ -320,6 +337,7 @@ function install() {
       const current = contents.getURL();
 
       if (sameTenantAdmin(current, tenant)) {
+        failedRouteByContents.delete(contents);
         installPageAcceleration(contents, tenant);
         await saveSnapshot(contents, tenant, current);
         return;
@@ -328,8 +346,9 @@ function install() {
       try {
         const u = new URL(current);
         if (u.protocol === 'file:' && /\/offline\.html$/.test(u.pathname)) {
+          const requested = failedRouteByContents.get(contents) || tenantUrl(tenant, '/admin');
           setTimeout(() => {
-            if (!contents.isDestroyed()) loadSnapshot(contents, tenant, tenantUrl(tenant, '/admin')).catch(() => {});
+            if (!contents.isDestroyed()) loadSnapshot(contents, tenant, requested).catch(() => {});
           }, 40);
         }
       } catch (_) {}
