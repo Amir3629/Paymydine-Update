@@ -82,11 +82,19 @@ if [ -z "$TOKENIZE_LINE" ] || [ -z "$INTENT_LINE" ] || [ "$TOKENIZE_LINE" -ge "$
   exit 1
 fi
 
-# One-visible-control UX: Square wallets are owned by the method tile and the
-# generic lower Pay action is suppressed. Only Card may mount SquareInlinePayment.
+# One-visible-control UX: Square wallets are owned by the single-order method tile
+# and the generic lower Pay action is suppressed. The flag must stay inside
+# PaymentPanel; MultiOrderPaymentPanel deliberately remains Square-disabled/fail-closed.
 grep -q "SquareDirectMethodButton" "$OVERLAYS"
-grep -q "isSquareSingleAction ? null" "$OVERLAYS"
 grep -q "selectedProvider === 'square' && selectedCode === 'card'" "$OVERLAYS"
+PAYMENT_PANEL="$(sed -n '/^function PaymentPanel(/,/^type R32MultiOrderCopy =/p' "$OVERLAYS")"
+MULTI_PANEL="$(sed -n '/^function MultiOrderPaymentPanel(/,/^function getSafeGuestSession(/p' "$OVERLAYS")"
+printf '%s\n' "$PAYMENT_PANEL" | grep -q "const isSquareSingleAction = Boolean("
+printf '%s\n' "$PAYMENT_PANEL" | grep -q "isSquareSingleAction ? null : isPayPalInline"
+if printf '%s\n' "$MULTI_PANEL" | grep -q "isSquareSingleAction"; then
+  echo "[square-security] FAIL: Square single-action flag leaked into MultiOrderPaymentPanel"
+  exit 1
+fi
 if grep -q "selectedProvider === 'square' && \['card', 'apple_pay', 'google_pay'\].includes(selectedCode)" "$OVERLAYS"; then
   echo "[square-security] FAIL: old duplicate Square wallet inline gate returned"
   exit 1
