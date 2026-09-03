@@ -6,11 +6,16 @@ const path = require('path');
 class LocalStore {
   constructor(filePath) {
     this.filePath = filePath;
-    this.data = { version: 1, cache: {}, drafts: {} };
+    this.data = this.emptyData();
     this.load();
   }
 
+  emptyData() {
+    return { version: 1, cache: {}, drafts: {} };
+  }
+
   load() {
+    this.data = this.emptyData();
     try {
       const parsed = JSON.parse(fs.readFileSync(this.filePath, 'utf8'));
       if (parsed && typeof parsed === 'object') {
@@ -21,6 +26,7 @@ class LocalStore {
         };
       }
     } catch (_) {}
+    return this.data;
   }
 
   persist() {
@@ -31,11 +37,13 @@ class LocalStore {
   }
 
   cacheGet(key) {
+    this.load();
     const row = this.data.cache[String(key || '')];
     return row && typeof row === 'object' ? row : null;
   }
 
   cacheSet(key, value) {
+    this.load();
     const cacheKey = String(key || '');
     if (!cacheKey) return null;
     this.data.cache[cacheKey] = { savedAt: Date.now(), value };
@@ -54,11 +62,13 @@ class LocalStore {
   }
 
   clearCache() {
+    this.load();
     this.data.cache = {};
     this.persist();
   }
 
   cacheStats() {
+    this.load();
     const rows = Object.values(this.data.cache);
     const times = rows.map((row) => Number(row && row.savedAt || 0)).filter(Boolean);
     return {
@@ -69,11 +79,13 @@ class LocalStore {
   }
 
   draftGet(key) {
+    this.load();
     const row = this.data.drafts[String(key || '')];
     return row && typeof row === 'object' ? row : null;
   }
 
   draftSet(key, value) {
+    this.load();
     const draftKey = String(key || '');
     if (!draftKey) throw new Error('Draft key is required.');
     this.data.drafts[draftKey] = { savedAt: Date.now(), value };
@@ -82,6 +94,7 @@ class LocalStore {
   }
 
   draftDelete(key) {
+    this.load();
     delete this.data.drafts[String(key || '')];
     this.persist();
   }
