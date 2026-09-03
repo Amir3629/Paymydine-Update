@@ -6,7 +6,7 @@ const path = require('path');
 const hardware = require('./hardware');
 const receipt = require('./receipt');
 
-const APP_VERSION = '1.2.0';
+const APP_VERSION = '1.3.0';
 const PLATFORM_PATH = '/admin';
 const SETTLE_PATH = /^\/admin\/pmd-waiter-pos-v1\/payment-settle\/(\d+)\/?$/;
 const RECEIPT_PATH = /^\/admin\/orders\/split-receipt\/\d+\/?$/;
