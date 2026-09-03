@@ -25,7 +25,6 @@
   "build": {
     "appId": "com.paymydine.cashier",
     "productName": "PayMyDine",
-    "desktopName": "PayMyDine",
     "asar": true,
     "afterSign": "scripts/after-sign-mac-v106.js",
     "directories": {
@@ -65,7 +64,6 @@
       "category": "Office",
       "executableName": "paymydine",
       "maintainer": "PayMyDine <noreply@paymydine.com>",
-      "syncDesktopName": true,
       "artifactName": "PayMyDine-Desktop-${version}-linux-${arch}.${ext}"
     },
     "deb": {
