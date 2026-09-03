@@ -3,135 +3,64 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>PayMyDine Cashier Setup</title>
+  <title>PayMyDine Desktop Setup</title>
   <style>
     :root {
       font-family: Inter, Roboto, Arial, sans-serif;
-      --pmd-green: #053a32;
-      --pmd-green-hover: #032e28;
-      --pmd-gold: #d9b76a;
-      --pmd-gold-soft: #fff9eb;
-      --pmd-ink: #102f42;
-      --pmd-muted: #647d8f;
-      --pmd-line: #d3e1e8;
-      --pmd-page: #f8fbfc;
-      color: var(--pmd-ink);
-      background: var(--pmd-page);
+      --pmd-green:#053a32;
+      --pmd-green-hover:#032e28;
+      --pmd-gold:#d9b76a;
+      --pmd-gold-soft:#fff9eb;
+      --pmd-ink:#102f42;
+      --pmd-muted:#647d8f;
+      --pmd-line:#d3e1e8;
+      --pmd-page:#f8fbfc;
+      color:var(--pmd-ink);
+      background:var(--pmd-page);
     }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      min-height: 100vh;
-      display: grid;
-      place-items: center;
-      padding: 28px;
-      background:
-        radial-gradient(circle at 50% -15%, rgba(217,183,106,.16), transparent 34%),
-        linear-gradient(180deg, rgba(5,58,50,.055), transparent 210px),
-        var(--pmd-page);
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      min-height:100vh;
+      display:grid;
+      place-items:center;
+      padding:28px;
+      background:radial-gradient(circle at 50% -15%,rgba(217,183,106,.16),transparent 34%),linear-gradient(180deg,rgba(5,58,50,.055),transparent 210px),var(--pmd-page);
     }
-    .card {
-      width: 100%;
-      max-width: 470px;
-      background: #fff;
-      border: 1px solid var(--pmd-line);
-      border-radius: 20px;
-      padding: 30px;
-      box-shadow: 0 18px 48px rgba(16,47,66,.09);
-    }
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      margin-bottom: 18px;
-    }
-    .brand-logo {
-      width: 106px;
-      height: 72px;
-      object-fit: contain;
-      object-position: left center;
-      display: block;
-    }
-    .eyebrow {
-      display: inline-flex;
-      align-items: center;
-      min-height: 24px;
-      padding: 0 9px;
-      border: 1px solid rgba(217,183,106,.72);
-      border-radius: 999px;
-      background: var(--pmd-gold-soft);
-      color: var(--pmd-green);
-      font-size: 11px;
-      font-weight: 900;
-      letter-spacing: .08em;
-      text-transform: uppercase;
-    }
-    h1 { margin: 0 0 8px; font-size: 26px; color: var(--pmd-green); }
-    p { margin: 0 0 23px; line-height: 1.55; color: var(--pmd-muted); }
-    label { display: block; font-weight: 800; margin-bottom: 8px; color: #163d47; }
-    .domain { display: flex; align-items: stretch; }
-    input {
-      min-width: 0;
-      flex: 1;
-      height: 49px;
-      border: 1px solid #c9d9df;
-      border-right: 0;
-      border-radius: 12px 0 0 12px;
-      padding: 0 14px;
-      font-size: 16px;
-      color: #163d47;
-      outline: none;
-    }
-    input:focus {
-      border-color: var(--pmd-gold);
-      box-shadow: 0 0 0 3px rgba(217,183,106,.18);
-    }
-    .suffix {
-      display: grid;
-      place-items: center;
-      padding: 0 13px;
-      border: 1px solid #c9d9df;
-      border-radius: 0 12px 12px 0;
-      background: #f7faf9;
-      color: #58716f;
-      font-size: 14px;
-      white-space: nowrap;
-    }
-    button {
-      width: 100%;
-      height: 49px;
-      margin-top: 16px;
-      border: 1px solid var(--pmd-green);
-      border-radius: 12px;
-      background: var(--pmd-green);
-      color: #fff;
-      font-size: 16px;
-      font-weight: 850;
-      cursor: pointer;
-      box-shadow: 0 8px 18px rgba(5,58,50,.13);
-    }
-    button:hover { background: var(--pmd-green-hover); border-color: var(--pmd-green-hover); }
-    .hint { margin-top: 12px; font-size: 13px; color: #758b92; line-height: 1.45; }
-    .error { min-height: 20px; margin-top: 12px; color: #b42318; font-size: 14px; }
+    .card{width:100%;max-width:470px;background:#fff;border:1px solid var(--pmd-line);border-radius:20px;padding:30px;box-shadow:0 18px 48px rgba(16,47,66,.09)}
+    .brand{display:flex;align-items:center;gap:14px;margin-bottom:18px}
+    .brand-logo{width:106px;height:72px;object-fit:contain;object-position:left center;display:block}
+    .eyebrow{display:inline-flex;align-items:center;min-height:24px;padding:0 9px;border:1px solid rgba(217,183,106,.72);border-radius:999px;background:var(--pmd-gold-soft);color:var(--pmd-green);font-size:11px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}
+    h1{margin:0 0 8px;font-size:26px;color:var(--pmd-green)}
+    p{margin:0 0 23px;line-height:1.55;color:var(--pmd-muted)}
+    label{display:block;font-weight:800;margin-bottom:8px;color:#163d47}
+    .domain{display:flex;align-items:stretch}
+    input{min-width:0;flex:1;height:49px;border:1px solid #c9d9df;border-right:0;border-radius:12px 0 0 12px;padding:0 14px;font-size:16px;color:#163d47;outline:none}
+    input:focus{border-color:var(--pmd-gold);box-shadow:0 0 0 3px rgba(217,183,106,.18)}
+    .suffix{display:grid;place-items:center;padding:0 13px;border:1px solid #c9d9df;border-radius:0 12px 12px 0;background:#f7faf9;color:#58716f;font-size:14px;white-space:nowrap}
+    button{width:100%;height:49px;margin-top:16px;border:1px solid var(--pmd-green);border-radius:12px;background:var(--pmd-green);color:#fff;font-size:16px;font-weight:850;cursor:pointer;box-shadow:0 8px 18px rgba(5,58,50,.13)}
+    button:hover{background:var(--pmd-green-hover);border-color:var(--pmd-green-hover)}
+    .hint{margin-top:12px;font-size:13px;color:#758b92;line-height:1.45}
+    .error{min-height:20px;margin-top:12px;color:#b42318;font-size:14px}
   </style>
 </head>
 <body>
-  <!-- PMD_CASHIER_SETUP_BRAND_V107 -->
+  <!-- PMD_DESKTOP_SETUP_V120 -->
   <main class="card">
     <div class="brand">
       <img class="brand-logo" src="./paymydine-logo.svg" alt="PayMyDine">
-      <span class="eyebrow">Cashier POS</span>
+      <span class="eyebrow">Desktop App</span>
     </div>
-    <h1>Set up this Cashier POS</h1>
-    <p>Choose the restaurant once. Then sign in with the normal PayMyDine username and password.</p>
+    <h1>Connect this computer</h1>
+    <p>Choose the restaurant once. PayMyDine then opens the real Platform login and automatically sends each user to the correct workspace for their role and permissions.</p>
     <form id="setup-form">
       <label for="tenant">Restaurant code</label>
       <div class="domain">
-        <input id="tenant" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="a" required>
+        <input id="tenant" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="tomo" required>
         <span class="suffix">.paymydine.com</span>
       </div>
-      <button type="submit">Continue</button>
-      <div class="hint">Examples: <b>a</b>, <b>mimoza</b>, <b>tomo</b>. You can change the restaurant later from the PayMyDine menu.</div>
+      <button type="submit">Open PayMyDine</button>
+      <div class="hint">Examples: <b>tomo</b>, <b>mimoza</b>. Owner, Manager, Cashier, Waiter, Reservations, Accountant, Kitchen and KDS routing is controlled by the real PayMyDine account.</div>
       <div class="error" id="error" role="alert"></div>
     </form>
   </main>
