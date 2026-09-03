@@ -13,6 +13,7 @@ let mainWindow = null;
 let unlockWindow = null;
 let allowQuit = false;
 let developerDesktop = false;
+let lockdownPoliciesApplied = false;
 const decoratedWindows = new WeakSet();
 
 function programDataRoot() {
@@ -61,9 +62,29 @@ function isTenantAdminUrl(rawUrl) {
   }
 }
 
+function runReg(args) {
+  if (process.platform !== 'win32') return;
+  try { execFileSync('reg.exe', args, { windowsHide: true, stdio: 'ignore' }); } catch (_) {}
+}
+
+function applyUserLockdownPolicies() {
+  if (process.platform !== 'win32' || !deviceModeEnabled() || developerDesktop || lockdownPoliciesApplied) return;
+  runReg(['add', 'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\System', '/v', 'DisableTaskMgr', '/t', 'REG_DWORD', '/d', '1', '/f']);
+  runReg(['add', 'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer', '/v', 'NoWinKeys', '/t', 'REG_DWORD', '/d', '1', '/f']);
+  lockdownPoliciesApplied = true;
+}
+
+function relaxUserLockdownPolicies() {
+  if (process.platform !== 'win32') return;
+  runReg(['delete', 'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\System', '/v', 'DisableTaskMgr', '/f']);
+  runReg(['delete', 'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer', '/v', 'NoWinKeys', '/f']);
+  lockdownPoliciesApplied = false;
+}
+
 function applyKioskWindow(win) {
   if (!win || win.isDestroyed() || !deviceModeEnabled() || developerDesktop) return;
   mainWindow = win;
+  applyUserLockdownPolicies();
 
   try { win.setMenuBarVisibility(false); } catch (_) {}
   try { win.setAutoHideMenuBar(true); } catch (_) {}
@@ -186,6 +207,7 @@ async function enableDeviceMode(event) {
     throw new Error('Windows accepted the setup, but PayMyDine could not verify Shell Launcher. Reboot once and run Device Mode setup again.');
   }
 
+  applyUserLockdownPolicies();
   try {
     app.setLoginItemSettings({
       openAtLogin: true,
@@ -254,6 +276,8 @@ function openUnlockWindow() {
 
 function openWindowsDesktop() {
   developerDesktop = true;
+  relaxUserLockdownPolicies();
+
   try {
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.setKiosk(false);
@@ -282,7 +306,6 @@ function installIpc() {
   });
 
   ipcMain.handle('pmd:device-mode-enable', (event) => enableDeviceMode(event));
-
   ipcMain.handle('pmd:developer-exit-open', () => openUnlockWindow());
 
   ipcMain.handle('pmd:developer-exit-submit', (event, password) => {
@@ -310,6 +333,7 @@ function install() {
 
   app.whenReady().then(() => {
     if (process.platform === 'win32' && deviceModeEnabled()) {
+      applyUserLockdownPolicies();
       try {
         app.setLoginItemSettings({ openAtLogin: true, openAsHidden: false, args: ['--pmd-device-mode'] });
       } catch (_) {}
