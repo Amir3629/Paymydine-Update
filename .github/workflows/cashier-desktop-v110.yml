@@ -1,4 +1,4 @@
-name: PayMyDine Desktop V1.4.1
+name: PayMyDine Desktop V1.5.0
 
 on:
   workflow_dispatch:
@@ -27,63 +27,50 @@ env:
 
 jobs:
   contract-test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Verify V1.4.1 desktop contract
+      - name: Verify V1.5.0 desktop and appliance contract
         working-directory: apps/cashier-desktop
         shell: bash
         run: |
           set -euo pipefail
           npm run check
-          grep -q '"version": "1.4.1"' package.json
-          grep -q '"main": "src/local-first-entry.js"' package.json
-          grep -q '"productName": "PayMyDine"' package.json
-          grep -q '"extraResources"' package.json
-          grep -q "require('./local-cache-privacy').install()" src/local-first-entry.js
-          grep -q "require('./local-first-bootstrap').install()" src/local-first-entry.js
-          grep -q "require('./offline-blank-guard').install()" src/local-first-entry.js
-          grep -q "require('./device-mode').install()" src/local-first-entry.js
-          grep -q "require('./fast-route-pool-v140').install()" src/local-first-entry.js
-          grep -q 'new WebContentsView' src/fast-route-pool-v140.js
-          grep -q 'waitForPresentedFrame' src/fast-route-pool-v140.js
-          grep -q "setBackgroundColor('#00000000')" src/fast-route-pool-v140.js
-          grep -q 'pmd:v140-navigate' src/fast-route-pool-v140.js
-          grep -q 'pmd:v140-warm-routes' src/preload.js
-          grep -q 'windowsDeviceModeV141: true' src/preload.js
-          grep -q 'deviceModePreflight' src/preload.js
-          grep -q 'pmd-device-mode-exit-v140' src/preload.js
-          grep -q 'PASSWORD_SHA256' src/device-mode.js
-          grep -q 'windowsDevicePreflight' src/device-mode.js
-          grep -q 'StatusPath' src/device-mode.js
-          grep -q 'explorer.exe' src/device-mode.js
-          grep -q 'PMD_DESKTOP_SETUP_V141' src/setup.html
-          grep -q 'device-mode-status' src/setup.html
+          grep -q '"version": "1.5.0"' package.json
+          grep -q '"dist:linux"' package.json
+          grep -q '"executableName": "paymydine"' package.json
+          grep -q "require('./linux-appliance').install()" src/local-first-entry.js
+          grep -q 'linuxApplianceV150: true' src/preload.js
+          grep -q 'pmd:linux-appliance-state' src/linux-appliance.js
+          grep -q 'developer-desktop-once' src/linux-appliance.js
+          grep -q "'win32', 'darwin', 'linux'" src/hardware.js
+          grep -q 'Linux CUPS' src/hardware.js
+          grep -q 'Ubuntu 24.04 LTS' scripts/linux/install-appliance.sh
+          grep -q 'autologin-user=paymydine' scripts/linux/install-appliance.sh
+          grep -q 'autologin-session=paymydine-kiosk' scripts/linux/install-appliance.sh
+          grep -q 'exec startxfce4' scripts/linux/paymydine-kiosk-session.sh
+          grep -q 'PAYMYDINE_APPLIANCE_DISABLED=YES' scripts/linux/disable-appliance.sh
+          bash -n scripts/linux/install-appliance.sh
+          bash -n scripts/linux/disable-appliance.sh
+          bash -n scripts/linux/paymydine-kiosk-session.sh
           grep -q 'Client-EmbeddedShellLauncher' scripts/windows/enable-device-mode.ps1
-          grep -q 'WESL_UserSetting' scripts/windows/enable-device-mode.ps1
-          grep -q 'SetCustomShell' scripts/windows/enable-device-mode.ps1
-          grep -q 'Write-PmdStatus' scripts/windows/enable-device-mode.ps1
-          grep -q "savePage(file, 'MHTML')" src/local-first-bootstrap.js
-          grep -q 'capturePage' src/local-first-bootstrap.js
-          grep -q 'cached MHTML rendered blank' src/offline-blank-guard.js
           grep -q "const PLATFORM_PATH = '/admin'" src/main.js
-          grep -q 'external-preload.js' src/main.js
           if grep -q "loadFile(path.join(__dirname, 'app.html'))" src/main.js; then
             echo 'Desktop must keep the canonical PayMyDine Platform as its UI authority.' >&2
             exit 1
           fi
-          echo 'PMD_V141_DESKTOP_CONTRACT=PASS'
+          echo 'PMD_V150_LINUX_APPLIANCE_CONTRACT=PASS'
 
   build-windows:
     needs: contract-test
     runs-on: windows-latest
     timeout-minutes: 50
     steps:
-      - name: Download Desktop V1.4.1 source without full Windows git checkout
+      - name: Download Desktop V1.5.0 source without full Windows git checkout
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
@@ -98,6 +85,11 @@ jobs:
             'scripts/after-sign-mac-v106.js',
             'scripts/windows/enable-device-mode.ps1',
             'scripts/windows/disable-device-mode.ps1',
+            'scripts/linux/install-appliance.sh',
+            'scripts/linux/disable-appliance.sh',
+            'scripts/linux/paymydine-kiosk-session.sh',
+            'scripts/linux/paymydine-kiosk.desktop',
+            'scripts/linux/openbox-rc.xml',
             'src/local-first-entry.js',
             'src/local-cache-privacy.js',
             'src/local-first-bootstrap.js',
@@ -105,12 +97,16 @@ jobs:
             'src/fast-route-pool.js',
             'src/fast-route-pool-v140.js',
             'src/device-mode.js',
+            'src/linux-appliance.js',
             'src/local-store.js',
             'src/main.js',
             'src/preload.js',
             'src/developer-preload.js',
             'src/developer-unlock.html',
             'src/developer-unlock.js',
+            'src/linux-developer-preload.js',
+            'src/linux-developer-unlock.html',
+            'src/linux-developer-unlock.js',
             'src/external-preload.js',
             'src/hardware.js',
             'src/receipt.js',
@@ -125,7 +121,7 @@ jobs:
             Authorization = "Bearer $env:GH_TOKEN"
             Accept = 'application/vnd.github+json'
             'X-GitHub-Api-Version' = '2022-11-28'
-            'User-Agent' = 'PayMyDine-Desktop-V141-Windows-Build'
+            'User-Agent' = 'PayMyDine-Desktop-V150-Windows-Build'
           }
           foreach ($relative in $files) {
             $encodedPath = ($relative -split '/' | ForEach-Object { [uri]::EscapeDataString($_) }) -join '/'
@@ -147,12 +143,9 @@ jobs:
             $tokens = $null
             $errors = $null
             [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $script), [ref]$tokens, [ref]$errors) | Out-Null
-            if ($errors.Count -gt 0) {
-              $errors | ForEach-Object { Write-Error $_.Message }
-              throw "PowerShell syntax validation failed: $script"
-            }
+            if ($errors.Count -gt 0) { throw "PowerShell syntax validation failed: $script" }
           }
-          Write-Host 'PMD_V141_DEVICE_MODE_POWERSHELL_PARSE=PASS'
+          Write-Host 'PMD_V150_WINDOWS_DEVICE_MODE_PARSE=PASS'
       - name: Install dependencies
         working-directory: apps/cashier-desktop
         run: npm install
@@ -165,15 +158,13 @@ jobs:
       - name: Verify Windows artifact
         shell: pwsh
         run: |
-          $path = 'apps/cashier-desktop/dist/PayMyDine-Desktop-Setup-1.4.1.exe'
-          if (-not (Test-Path $path)) { throw 'Windows V1.4.1 installer missing' }
-          $item = Get-Item $path
-          if ($item.Length -lt 1000000) { throw 'Windows V1.4.1 installer is unexpectedly small' }
-          Write-Host "PMD_V141_WINDOWS_INSTALLER_BYTES=$($item.Length)"
+          $path = 'apps/cashier-desktop/dist/PayMyDine-Desktop-Setup-1.5.0.exe'
+          if (-not (Test-Path $path)) { throw 'Windows V1.5.0 installer missing' }
+          if ((Get-Item $path).Length -lt 1000000) { throw 'Windows V1.5.0 installer is unexpectedly small' }
       - uses: actions/upload-artifact@v4
         with:
-          name: pmd-v141-windows
-          path: apps/cashier-desktop/dist/PayMyDine-Desktop-Setup-1.4.1.exe
+          name: pmd-v150-windows
+          path: apps/cashier-desktop/dist/PayMyDine-Desktop-Setup-1.5.0.exe
           if-no-files-found: error
 
   build-macos-arm64:
@@ -201,28 +192,66 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          dmg='dist/PayMyDine-Desktop-1.4.1-mac-arm64.dmg'
-          test -s "$dmg"
-          echo "PMD_V141_MAC_ARM64_ARTIFACT=$dmg"
+          test -s dist/PayMyDine-Desktop-1.5.0-mac-arm64.dmg
       - uses: actions/upload-artifact@v4
         with:
-          name: pmd-v141-macos-arm64
-          path: apps/cashier-desktop/dist/PayMyDine-Desktop-1.4.1-mac-arm64.dmg
+          name: pmd-v150-macos-arm64
+          path: apps/cashier-desktop/dist/PayMyDine-Desktop-1.5.0-mac-arm64.dmg
+          if-no-files-found: error
+
+  build-linux-amd64:
+    needs: contract-test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install packaging dependencies
+        run: sudo apt-get update && sudo apt-get install -y libarchive-tools rpm
+      - name: Install dependencies
+        working-directory: apps/cashier-desktop
+        run: npm install
+      - name: Verify source
+        working-directory: apps/cashier-desktop
+        run: npm run check
+      - name: Build Linux packages
+        working-directory: apps/cashier-desktop
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: npm run dist:linux
+      - name: Build appliance kit
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s apps/cashier-desktop/dist/PayMyDine-Desktop-1.5.0-linux-x86_64.AppImage || test -s apps/cashier-desktop/dist/PayMyDine-Desktop-1.5.0-linux-x64.AppImage
+          deb="$(find apps/cashier-desktop/dist -maxdepth 1 -name 'PayMyDine-Desktop-1.5.0-linux-*.deb' -print -quit)"
+          test -n "$deb" && test -s "$deb"
+          tar -C apps/cashier-desktop/scripts/linux -czf PayMyDine-Appliance-Kit-1.5.0.tar.gz \
+            install-appliance.sh disable-appliance.sh paymydine-kiosk-session.sh paymydine-kiosk.desktop openbox-rc.xml
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pmd-v150-linux-amd64
+          path: |
+            apps/cashier-desktop/dist/PayMyDine-Desktop-1.5.0-linux-*.deb
+            apps/cashier-desktop/dist/PayMyDine-Desktop-1.5.0-linux-*.AppImage
+            PayMyDine-Appliance-Kit-1.5.0.tar.gz
           if-no-files-found: error
 
   publish-preview:
     if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'feature/cashier-real-app-v110'
-    needs: [contract-test, build-windows, build-macos-arm64]
-    runs-on: ubuntu-latest
+    needs: [contract-test, build-windows, build-macos-arm64, build-linux-amd64]
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:
       - uses: actions/download-artifact@v4
         with:
-          pattern: pmd-v141-*
+          pattern: pmd-v150-*
           path: release
           merge-multiple: true
-      - name: Publish V1.4.1 preview installers once
+      - name: Publish immutable V1.5.0 preview
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -231,23 +260,27 @@ jobs:
           PMD_PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           set -euo pipefail
-
           current_head="$(gh api "repos/$GH_REPO/pulls/$PMD_PR_NUMBER" --jq '.head.sha')"
           if [[ "$current_head" != "$PMD_RELEASE_TARGET" ]]; then
-            echo "PMD_V141_STALE_RUN_SKIPPED current=$current_head run=$PMD_RELEASE_TARGET"
+            echo "PMD_V150_STALE_RUN_SKIPPED current=$current_head run=$PMD_RELEASE_TARGET"
             exit 0
           fi
 
-          test -s release/PayMyDine-Desktop-Setup-1.4.1.exe
-          test -s release/PayMyDine-Desktop-1.4.1-mac-arm64.dmg
-          tag='pmd-desktop-v141-preview'
-          notes='PayMyDine Desktop V1.4.1 preview. Keeps V1.4 seamless double-buffered navigation and Windows Dedicated POS Device Mode, and hardens real-device setup. The preview release is immutable once created: newer code requires a new version/tag, so published installer checksums cannot be silently replaced by another CI run. Offline writes/payments remain fail-closed.'
+          test -s release/PayMyDine-Desktop-Setup-1.5.0.exe
+          test -s release/PayMyDine-Desktop-1.5.0-mac-arm64.dmg
+          test -s release/PayMyDine-Appliance-Kit-1.5.0.tar.gz
+          deb="$(find release -maxdepth 1 -name 'PayMyDine-Desktop-1.5.0-linux-*.deb' -print -quit)"
+          appimage="$(find release -maxdepth 1 -name 'PayMyDine-Desktop-1.5.0-linux-*.AppImage' -print -quit)"
+          test -n "$deb" && test -s "$deb"
+          test -n "$appimage" && test -s "$appimage"
+
+          tag='pmd-desktop-v150-preview'
+          notes='PayMyDine Desktop V1.5.0 preview adds the first Ubuntu 24.04 LTS appliance path. Windows may remain installed in dual boot for evaluation. Linux packages include amd64 DEB/AppImage, CUPS printer/cash-drawer support, a restricted paymydine POS account, LightDM auto-login into a minimal Openbox kiosk session, password-protected DEV exit to an XFCE support desktop, and reboot-to-kiosk behavior. The appliance kit never repartitions or deletes Windows. Offline financial/order writes remain fail-closed.'
 
           if gh release view "$tag" --repo "$GH_REPO" >/dev/null 2>&1; then
-            existing_target="$(gh release view "$tag" --repo "$GH_REPO" --json targetCommitish --jq '.targetCommitish')"
-            echo "PMD_V141_RELEASE_ALREADY_EXISTS target=$existing_target; immutable preview left unchanged"
+            echo 'PMD_V150_RELEASE_ALREADY_EXISTS; immutable preview left unchanged'
             exit 0
           fi
 
-          gh release create "$tag" release/* --target "$PMD_RELEASE_TARGET" --prerelease --title 'PayMyDine Desktop V1.4.1 Preview' --notes "$notes" --repo "$GH_REPO"
-          echo 'PMD_V141_PREVIEW_RELEASE=PASS'
+          gh release create "$tag" release/* --target "$PMD_RELEASE_TARGET" --prerelease --title 'PayMyDine Desktop V1.5.0 Linux Appliance Preview' --notes "$notes" --repo "$GH_REPO"
+          echo 'PMD_V150_PREVIEW_RELEASE=PASS'
