@@ -1,14 +1,14 @@
 {
   "name": "paymydine-desktop",
-  "version": "1.2.1",
+  "version": "1.3.0",
   "private": true,
-  "description": "PayMyDine Desktop App: canonical tenant Platform UI with role-based routing, persistent local screen/data cache, secure payments, printer and cash drawer support.",
+  "description": "PayMyDine Desktop App: canonical tenant Platform UI with persistent in-memory page views, durable MHTML/data cache, secure payments, printer and cash drawer support.",
   "main": "src/local-first-entry.js",
   "scripts": {
     "brand:icon": "node scripts/fetch-brand-icon.js",
     "dev": "npm run brand:icon && electron .",
     "start": "npm run brand:icon && electron .",
-    "check": "node --check src/local-first-entry.js && node --check src/local-cache-privacy.js && node --check src/local-first-bootstrap.js && node --check src/local-store.js && node --check src/main.js && node --check src/preload.js && node --check src/external-preload.js && node --check src/setup.js && node --check src/hardware.js && node --check src/receipt.js && node --check src/hardware-page.js && node --check src/offline.js",
+    "check": "node --check src/local-first-entry.js && node --check src/local-cache-privacy.js && node --check src/local-first-bootstrap.js && node --check src/fast-route-pool.js && node --check src/local-store.js && node --check src/main.js && node --check src/preload.js && node --check src/external-preload.js && node --check src/setup.js && node --check src/hardware.js && node --check src/receipt.js && node --check src/hardware-page.js && node --check src/offline.js",
     "dist:win": "npm run check && npm run brand:icon && electron-builder --win nsis",
     "dist:mac": "npm run check && npm run brand:icon && electron-builder --mac dmg zip"
   },
