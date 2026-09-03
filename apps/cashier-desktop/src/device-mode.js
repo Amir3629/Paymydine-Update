@@ -7,6 +7,16 @@ const fs = require('fs');
 const path = require('path');
 
 const PASSWORD_SHA256 = '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8';
+const SUPPORTED_EDITION_IDS = new Set([
+  'enterprise',
+  'enterprises',
+  'enterprisen',
+  'enterprisesn',
+  'education',
+  'educationn',
+  'iotenterprise',
+  'iotenterprises',
+]);
 
 let installed = false;
 let mainWindow = null;
@@ -24,18 +34,71 @@ function markerPath() {
   return path.join(programDataRoot(), 'PayMyDine', 'device-mode.json');
 }
 
+function readJsonFileSafe(file) {
+  try {
+    const raw = fs.readFileSync(file, 'utf8').replace(/^\uFEFF/, '');
+    return JSON.parse(raw) || {};
+  } catch (_) {
+    return null;
+  }
+}
+
 function readMarker() {
   if (process.platform !== 'win32') return { enabled: false, platform: process.platform };
-  try {
-    const parsed = JSON.parse(fs.readFileSync(markerPath(), 'utf8')) || {};
-    return Object.assign({ enabled: false, platform: process.platform }, parsed);
-  } catch (_) {
-    return { enabled: false, platform: process.platform };
-  }
+  const parsed = readJsonFileSafe(markerPath());
+  return Object.assign({ enabled: false, platform: process.platform }, parsed || {});
 }
 
 function deviceModeEnabled() {
   return process.platform === 'win32' && readMarker().enabled === true;
+}
+
+function queryRegistryValue(key, valueName) {
+  if (process.platform !== 'win32') return '';
+  try {
+    const output = execFileSync('reg.exe', ['query', key, '/v', valueName], {
+      encoding: 'utf8',
+      windowsHide: true,
+      stdio: ['ignore', 'pipe', 'ignore'],
+    });
+    const lines = String(output || '').split(/\r?\n/);
+    for (const line of lines) {
+      const match = line.match(/^\s*(\S+)\s+REG_\S+\s+(.+?)\s*$/i);
+      if (match && match[1].toLowerCase() === valueName.toLowerCase()) return match[2].trim();
+    }
+  } catch (_) {}
+  return '';
+}
+
+function windowsDevicePreflight() {
+  if (process.platform !== 'win32') {
+    return {
+      platform: process.platform,
+      supported: false,
+      productName: '',
+      editionId: '',
+      message: 'Windows Device Mode is only available on Windows.',
+    };
+  }
+
+  const key = 'HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion';
+  const productName = queryRegistryValue(key, 'ProductName');
+  const editionId = queryRegistryValue(key, 'EditionID');
+  const normalized = String(editionId || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
+  const supported = SUPPORTED_EDITION_IDS.has(normalized)
+    || /\b(?:Enterprise|Education|IoT)\b/i.test(productName || '');
+  const label = [productName, editionId && `EditionID ${editionId}`].filter(Boolean).join(' · ') || 'Unknown Windows edition';
+
+  return {
+    platform: process.platform,
+    supported,
+    productName,
+    editionId,
+    label,
+    message: supported
+      ? `${label} supports strict PayMyDine Device Mode.`
+      : `${label} does not support Microsoft Shell Launcher strict mode. Use Windows Enterprise, Education, or IoT Enterprise for a dedicated PayMyDine POS.`,
+  };
 }
 
 function settingsTenant() {
@@ -154,8 +217,12 @@ function psSingleQuote(value) {
 
 function runElevatedScript(file, namedArgs) {
   return new Promise((resolve, reject) => {
+    const statusPath = path.join(app.getPath('temp'), `pmd-device-mode-${process.pid}-${Date.now()}.json`);
+    try { fs.unlinkSync(statusPath); } catch (_) {}
+
+    const argsWithStatus = Object.assign({}, namedArgs || {}, { StatusPath: statusPath });
     const pieces = ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', `"${file.replace(/"/g, '`"')}"`];
-    Object.entries(namedArgs || {}).forEach(([key, value]) => {
+    Object.entries(argsWithStatus).forEach(([key, value]) => {
       pieces.push(`-${key}`);
       pieces.push(`"${String(value).replace(/"/g, '`"')}"`);
     });
@@ -171,12 +238,28 @@ function runElevatedScript(file, namedArgs) {
       timeout: 120000,
       maxBuffer: 1024 * 1024,
     }, (error, stdout, stderr) => {
+      const report = readJsonFileSafe(statusPath);
+      try { fs.unlinkSync(statusPath); } catch (_) {}
+
+      if (report && report.ok === false && report.message) {
+        reject(new Error(String(report.message)));
+        return;
+      }
       if (error) {
         const detail = String(stderr || stdout || error.message || '').trim();
         reject(new Error(detail || 'Windows administrator approval was cancelled or Device Mode setup failed.'));
         return;
       }
-      resolve({ ok: true, stdout: String(stdout || '').trim(), stderr: String(stderr || '').trim() });
+      if (report && report.ok !== true) {
+        reject(new Error(report.message || 'Windows Device Mode setup did not return a verified result.'));
+        return;
+      }
+      resolve({
+        ok: true,
+        stdout: String(stdout || '').trim(),
+        stderr: String(stderr || '').trim(),
+        report: report || {},
+      });
     });
   });
 }
@@ -195,6 +278,9 @@ async function enableDeviceMode(event) {
   if (process.platform !== 'win32') throw new Error('Windows Device Mode is only available on Windows.');
   if (!localSetupSender(event)) throw new Error('Windows Device Mode can only be enabled from the local PayMyDine setup screen.');
   if (!app.isPackaged) throw new Error('Install the packaged PayMyDine Desktop app before enabling Windows Device Mode.');
+
+  const preflight = windowsDevicePreflight();
+  if (!preflight.supported) throw new Error(preflight.message);
 
   // Strict mode deliberately relies on Microsoft's supported Shell Launcher
   // editions rather than unsupported global Winlogon registry replacement.
@@ -222,7 +308,7 @@ async function enableDeviceMode(event) {
     if (isTenantAdminUrl(win.webContents.getURL())) applyKioskWindow(win);
   });
 
-  return Object.assign({ ok: true, userSid: sid }, marker, { setupOutput: result.stdout });
+  return Object.assign({ ok: true, userSid: sid, preflight }, marker, { setupOutput: result.stdout });
 }
 
 function comparePassword(value) {
@@ -298,11 +384,14 @@ function openWindowsDesktop() {
 }
 
 function installIpc() {
+  ipcMain.handle('pmd:device-mode-preflight', () => windowsDevicePreflight());
+
   ipcMain.handle('pmd:device-mode-state', () => {
     const marker = readMarker();
     return Object.assign({}, marker, {
       enabled: deviceModeEnabled(),
       developerDesktop,
+      preflight: windowsDevicePreflight(),
       supportedStrictEditions: ['Enterprise', 'Enterprise LTSC', 'Education', 'IoT Enterprise', 'IoT Enterprise LTSC'],
     });
   });
@@ -344,4 +433,4 @@ function install() {
   });
 }
 
-module.exports = { install, readMarker, deviceModeEnabled };
+module.exports = { install, readMarker, deviceModeEnabled, windowsDevicePreflight };
