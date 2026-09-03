@@ -18,13 +18,18 @@ jobs:
           fetch-depth: 0
       - name: Apply guarded integration
         run: python3 scripts/pmd-menu-gallery-options-v1-apply.py
-      - name: Syntax checks
+      - name: Backend and Admin syntax checks
         run: |
           php -l app/admin/models/Menus_model.php
           php -l app/admin/traits/PmdMenuGalleryOptionsV1.php
           node --check app/admin/assets/js/pmd-menu-gallery-options-v1.js
           python3 -m json.tool app/admin/views/_meta/assets.json >/dev/null
           python3 -m json.tool frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815/tsconfig.json >/dev/null
+      - name: Frontend V2 typecheck
+        working-directory: frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815
+        run: |
+          npm ci --ignore-scripts
+          npm run typecheck
       - name: Commit integration hooks
         run: |
           git add app/admin/models/Menus_model.php app/admin/views/_meta/assets.json
