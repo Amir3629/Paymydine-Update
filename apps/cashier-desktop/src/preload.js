@@ -2,20 +2,29 @@
 
 const { contextBridge, ipcRenderer, webFrame } = require('electron');
 
+const APP_VERSION = '1.3.0';
+
 contextBridge.exposeInMainWorld('PayMyDineDesktop', Object.freeze({
   isDesktopApp: true,
   fullPlatformApp: true,
-  desktopPlatformV120: true,
-  localCacheV121: true,
+  desktopPlatformV130: true,
+  fastRoutePoolV130: true,
+  localCacheV130: true,
   platform: process.platform,
   printerCompatibilityV109: true,
 
-  getConfig: () => ipcRenderer.invoke('pmd:get-config'),
+  getConfig: () => ipcRenderer.invoke('pmd:get-config').then((cfg) => Object.assign({}, cfg || {}, {
+    appVersion: APP_VERSION,
+    product: 'PayMyDine Desktop',
+    desktopPlatformV130: true,
+    fastRoutePoolV130: true,
+    localCacheV130: true,
+  })),
   saveTenant: (tenant) => ipcRenderer.invoke('pmd:save-tenant', tenant),
   resetTenant: () => ipcRenderer.invoke('pmd:reset-tenant'),
 
-  cachedJsonGet: (request) => ipcRenderer.invoke('pmd:v121-json-get', request || {}),
-  localCacheInfo: () => ipcRenderer.invoke('pmd:v121-cache-info'),
+  cachedJsonGet: (request) => ipcRenderer.invoke('pmd:v130-json-get', request || {}),
+  localCacheInfo: () => ipcRenderer.invoke('pmd:v130-cache-info'),
 
   listPrinters: () => ipcRenderer.invoke('pmd:list-printers'),
   saveHardware: (values) => ipcRenderer.invoke('pmd:save-hardware', values || {}),
@@ -35,10 +44,106 @@ contextBridge.exposeInMainWorld('PayMyDineDesktop', Object.freeze({
   },
 }));
 
+function pmdFastRoute(rawUrl) {
+  try {
+    const url = new URL(String(rawUrl || ''), location.href);
+    if (url.protocol !== 'https:') return null;
+    if (!/^[a-z0-9][a-z0-9-]*\.paymydine\.com$/i.test(url.hostname)) return null;
+    if (!/^\/admin(?:\/|$)/.test(url.pathname)) return null;
+    if (/\/(?:login|logout|payment|terminal-payment|callback|webhook|download|export)(?:\/|$)/i.test(url.pathname)) return null;
+    if (/^(?:1|true)$/i.test(url.searchParams.get('download') || '')) return null;
+    return url;
+  } catch (_) {
+    return null;
+  }
+}
+
+function pmdPrimaryNavigationAnchor(anchor) {
+  if (!anchor || typeof anchor.matches !== 'function') return false;
+  return Boolean(
+    anchor.matches('.pmd-sm2__item')
+      || anchor.matches('[data-pmd-dashboard-route]')
+      || anchor.matches('[data-pmd-role-workspace-shortcut]')
+      || anchor.closest('.pmd-sm2__nav')
+  );
+}
+
+function installFastNavigationV130() {
+  if (process.isMainFrame === false) return;
+
+  document.addEventListener('click', (event) => {
+    if (event.defaultPrevented || event.button !== 0) return;
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+
+    const target = event.target;
+    const anchor = target && target.closest ? target.closest('a[href]') : null;
+    if (!anchor || !pmdPrimaryNavigationAnchor(anchor)) return;
+    if (anchor.hasAttribute('download')) return;
+    if (anchor.target && anchor.target !== '_self') return;
+    if (
+      anchor.hasAttribute('onclick')
+      || anchor.hasAttribute('data-method')
+      || anchor.hasAttribute('data-request')
+      || anchor.hasAttribute('data-remote')
+      || anchor.hasAttribute('data-toggle')
+      || anchor.hasAttribute('data-bs-toggle')
+    ) return;
+
+    const url = pmdFastRoute(anchor.href);
+    if (!url) return;
+
+    try {
+      const current = new URL(location.href);
+      if (
+        current.protocol === 'https:'
+        && current.hostname === url.hostname
+        && current.pathname === url.pathname
+        && current.search === url.search
+        && current.hash !== url.hash
+      ) return;
+    } catch (_) {}
+
+    event.preventDefault();
+    ipcRenderer.send('pmd:v130-navigate', url.href);
+  }, true);
+
+  function sendWarmRoutes() {
+    const anchors = Array.from(document.querySelectorAll(
+      '.pmd-sm2__nav a[href], a[data-pmd-dashboard-route][href], a[data-pmd-role-workspace-shortcut][href]'
+    ));
+    const seen = new Set();
+    const urls = [];
+
+    anchors.forEach((anchor) => {
+      if (urls.length >= 8) return;
+      const url = pmdFastRoute(anchor.href);
+      if (!url || seen.has(url.href)) return;
+      seen.add(url.href);
+      urls.push(url.href);
+    });
+
+    if (urls.length) ipcRenderer.send('pmd:v130-warm-routes', urls);
+  }
+
+  const warm = () => {
+    setTimeout(sendWarmRoutes, 160);
+    setTimeout(sendWarmRoutes, 900);
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', warm, { once: true });
+  } else {
+    warm();
+  }
+  window.addEventListener('pageshow', warm);
+}
+
+installFastNavigationV130();
+
 if (process.isMainFrame !== false) {
   webFrame.executeJavaScript(`(function(){
-    if (window.__PMD_DESKTOP_JSON_CACHE_V121__) return;
-    window.__PMD_DESKTOP_JSON_CACHE_V121__ = true;
+    if (window.__PMD_DESKTOP_JSON_CACHE_V130__) return;
+    window.__PMD_DESKTOP_JSON_CACHE_V130__ = true;
 
     var originalFetch = window.fetch.bind(window);
     var patterns = [
@@ -70,13 +175,13 @@ if (process.isMainFrame !== false) {
       return 'GET';
     }
 
-    function markOffline(cachedAt) {
+    function markOffline() {
       try {
         document.documentElement.setAttribute('data-pmd-desktop-offline-data', '1');
-        var existing = document.getElementById('pmd-desktop-data-cache-banner-v121');
+        var existing = document.getElementById('pmd-desktop-data-cache-banner-v130');
         if (existing) return;
         var banner = document.createElement('div');
-        banner.id = 'pmd-desktop-data-cache-banner-v121';
+        banner.id = 'pmd-desktop-data-cache-banner-v130';
         banner.textContent = 'Offline · using the last saved restaurant data on this device';
         banner.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:2147483646;padding:8px 12px;text-align:center;background:#fff3cd;color:#664d03;border-top:1px solid #ffecb5;font:700 12px/1.3 -apple-system,BlinkMacSystemFont,Segoe UI,sans-serif';
         (document.body || document.documentElement).appendChild(banner);
@@ -89,7 +194,7 @@ if (process.isMainFrame !== false) {
         try {
           var result = await window.PayMyDineDesktop.cachedJsonGet({ path: pathname });
           if (result && result.ok) {
-            if (result.cached) markOffline(result.cachedAt || 0);
+            if (result.cached) markOffline();
             return new Response(JSON.stringify(result.data || {}), {
               status: 200,
               headers: {
