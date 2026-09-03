@@ -28,7 +28,7 @@ V1.4 keeps the V1.3 bounded persistent `WebContentsView` route pool and removes 
 - Up to seven recent safe Platform route views remain alive in memory.
 - Primary Side Menu destinations are warmed with bounded concurrency.
 - Returning to a warm page reuses the already-running renderer instead of reloading the Laravel page from zero.
-- Route activation is now double-buffered: the currently visible page stays attached underneath the incoming route.
+- Route activation is double-buffered: the currently visible page stays attached underneath the incoming route.
 - The incoming view uses a transparent compositor background and is not committed as the active page until it has presented real renderer animation frames.
 - Forms, POST actions, downloads, login/logout, payment, terminal and callback paths are not converted into pooled navigation.
 - Hidden route views are explicitly closed during eviction/window shutdown.
@@ -55,7 +55,7 @@ Behavior after configuration:
 - Shell Launcher is configured to restart the PayMyDine shell if it exits;
 - a login-start entry is also kept as a recovery/compatibility path;
 - Task Manager and Windows-key shortcuts are disabled for the restaurant-facing session;
-- reboot/sign-in returns the computer to PayMyDine Device Mode.
+- reboot or the next sign-in returns the computer to PayMyDine Device Mode.
 
 ### Developer Exit
 
