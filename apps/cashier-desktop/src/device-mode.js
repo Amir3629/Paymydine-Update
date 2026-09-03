@@ -196,6 +196,8 @@ async function enableDeviceMode(event) {
   if (!localSetupSender(event)) throw new Error('Windows Device Mode can only be enabled from the local PayMyDine setup screen.');
   if (!app.isPackaged) throw new Error('Install the packaged PayMyDine Desktop app before enabling Windows Device Mode.');
 
+  // Strict mode deliberately relies on Microsoft's supported Shell Launcher
+  // editions rather than unsupported global Winlogon registry replacement.
   const sid = currentUserSid();
   const result = await runElevatedScript(scriptPath('enable-device-mode.ps1'), {
     AppPath: process.execPath,
