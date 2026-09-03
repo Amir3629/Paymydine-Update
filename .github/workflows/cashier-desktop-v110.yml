@@ -1,4 +1,4 @@
-name: PayMyDine Desktop V1.2.0
+name: PayMyDine Desktop V1.2.1
 
 on:
   workflow_dispatch:
@@ -30,32 +30,37 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Verify V1.2.0 full-platform desktop contract
+      - name: Verify V1.2.1 platform-cache contract
         working-directory: apps/cashier-desktop
         shell: bash
         run: |
           set -euo pipefail
           npm run check
-          grep -q '"version": "1.2.0"' package.json
-          grep -q '"main": "src/main.js"' package.json
+          grep -q '"version": "1.2.1"' package.json
+          grep -q '"main": "src/local-first-entry.js"' package.json
           grep -q '"productName": "PayMyDine"' package.json
-          grep -q 'desktopPlatformV120: true' src/preload.js
+          grep -q "require('./local-first-bootstrap').install()" src/local-first-entry.js
+          grep -q "savePage(file, 'HTMLComplete')" src/local-first-bootstrap.js
+          grep -q 'platform-snapshots-v121' src/local-first-bootstrap.js
+          grep -q 'pmd:v121-json-get' src/local-first-bootstrap.js
+          grep -q 'localCacheV121: true' src/preload.js
+          grep -q '__PMD_DESKTOP_JSON_CACHE_V121__' src/preload.js
           grep -q "const PLATFORM_PATH = '/admin'" src/main.js
           grep -q 'mainWindow.loadURL(tenantUrl(tenant, PLATFORM_PATH))' src/main.js
           grep -q 'external-preload.js' src/main.js
           grep -q 'PMD_DESKTOP_SETUP_V120' src/setup.html
           if grep -q "loadFile(path.join(__dirname, 'app.html'))" src/main.js; then
-            echo 'Desktop V1.2.0 must boot the canonical PayMyDine Platform, not the V1.1 local Cashier UI.' >&2
+            echo 'Desktop must keep the canonical PayMyDine Platform as its online UI.' >&2
             exit 1
           fi
-          echo 'PMD_V120_FULL_PLATFORM_CONTRACT=PASS'
+          echo 'PMD_V121_PLATFORM_CACHE_CONTRACT=PASS'
 
   build-windows:
     needs: contract-test
     runs-on: windows-latest
     timeout-minutes: 50
     steps:
-      - name: Download Desktop V1.2.0 source without full Windows git checkout
+      - name: Download Desktop V1.2.1 source without full Windows git checkout
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
@@ -68,6 +73,9 @@ jobs:
             'package.json',
             'scripts/fetch-brand-icon.js',
             'scripts/after-sign-mac-v106.js',
+            'src/local-first-entry.js',
+            'src/local-first-bootstrap.js',
+            'src/local-store.js',
             'src/main.js',
             'src/preload.js',
             'src/external-preload.js',
@@ -84,7 +92,7 @@ jobs:
             Authorization = "Bearer $env:GH_TOKEN"
             Accept = 'application/vnd.github+json'
             'X-GitHub-Api-Version' = '2022-11-28'
-            'User-Agent' = 'PayMyDine-Desktop-V120-Windows-Build'
+            'User-Agent' = 'PayMyDine-Desktop-V121-Windows-Build'
           }
           foreach ($relative in $files) {
             $encodedPath = ($relative -split '/' | ForEach-Object { [uri]::EscapeDataString($_) }) -join '/'
@@ -109,15 +117,15 @@ jobs:
       - name: Verify Windows artifact
         shell: pwsh
         run: |
-          $path = 'apps/cashier-desktop/dist/PayMyDine-Desktop-Setup-1.2.0.exe'
-          if (-not (Test-Path $path)) { throw 'Windows V1.2.0 installer missing' }
+          $path = 'apps/cashier-desktop/dist/PayMyDine-Desktop-Setup-1.2.1.exe'
+          if (-not (Test-Path $path)) { throw 'Windows V1.2.1 installer missing' }
           $item = Get-Item $path
-          if ($item.Length -lt 1000000) { throw 'Windows V1.2.0 installer is unexpectedly small' }
-          Write-Host "PMD_V120_WINDOWS_INSTALLER_BYTES=$($item.Length)"
+          if ($item.Length -lt 1000000) { throw 'Windows V1.2.1 installer is unexpectedly small' }
+          Write-Host "PMD_V121_WINDOWS_INSTALLER_BYTES=$($item.Length)"
       - uses: actions/upload-artifact@v4
         with:
-          name: pmd-v120-windows
-          path: apps/cashier-desktop/dist/PayMyDine-Desktop-Setup-1.2.0.exe
+          name: pmd-v121-windows
+          path: apps/cashier-desktop/dist/PayMyDine-Desktop-Setup-1.2.1.exe
           if-no-files-found: error
 
   build-macos-arm64:
@@ -145,13 +153,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          dmg='dist/PayMyDine-Desktop-1.2.0-mac-arm64.dmg'
+          dmg='dist/PayMyDine-Desktop-1.2.1-mac-arm64.dmg'
           test -s "$dmg"
-          echo "PMD_V120_MAC_ARM64_ARTIFACT=$dmg"
+          echo "PMD_V121_MAC_ARM64_ARTIFACT=$dmg"
       - uses: actions/upload-artifact@v4
         with:
-          name: pmd-v120-macos-arm64
-          path: apps/cashier-desktop/dist/PayMyDine-Desktop-1.2.0-mac-arm64.dmg
+          name: pmd-v121-macos-arm64
+          path: apps/cashier-desktop/dist/PayMyDine-Desktop-1.2.1-mac-arm64.dmg
           if-no-files-found: error
 
   publish-preview:
@@ -163,10 +171,10 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          pattern: pmd-v120-*
+          pattern: pmd-v121-*
           path: release
           merge-multiple: true
-      - name: Publish V1.2.0 preview installers
+      - name: Publish V1.2.1 preview installers
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -174,14 +182,14 @@ jobs:
           PMD_RELEASE_TARGET: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           set -euo pipefail
-          test -s release/PayMyDine-Desktop-Setup-1.2.0.exe
-          test -s release/PayMyDine-Desktop-1.2.0-mac-arm64.dmg
-          tag='pmd-desktop-v120-preview'
-          notes='PayMyDine Desktop V1.2.0 preview. The main Electron window now uses the canonical PayMyDine Platform UI at /admin, so the existing server login, MFA, role permissions, and role-specific landing routes remain authoritative. Owner, Manager, Cashier/Waiter, Accountant, Reservations, My Work, and KDS users land on their normal Platform surfaces. Local printer/cash-drawer support and V1.0.9 printer compatibility remain native to the desktop app. Windows and Apple Silicon installers are included.'
+          test -s release/PayMyDine-Desktop-Setup-1.2.1.exe
+          test -s release/PayMyDine-Desktop-1.2.1-mac-arm64.dmg
+          tag='pmd-desktop-v121-preview'
+          notes='PayMyDine Desktop V1.2.1 preview. Canonical PayMyDine Platform UI remains authoritative online. The Desktop runtime now keeps bounded HTMLComplete snapshots of successful tenant Admin pages, caches safe operational GET payloads for Cashier table/menu data, preconnects the tenant and warms hovered internal navigation. When the cloud is unreachable it can fall back to the last cached real Platform screen instead of only showing a blank offline shell. Cached/offline mode never fakes kitchen submission, payment settlement or other writes.'
           if gh release view "$tag" --repo "$GH_REPO" >/dev/null 2>&1; then
             gh release upload "$tag" release/* --clobber --repo "$GH_REPO"
-            gh release edit "$tag" --target "$PMD_RELEASE_TARGET" --prerelease --title 'PayMyDine Desktop V1.2.0 Preview' --notes "$notes" --repo "$GH_REPO"
+            gh release edit "$tag" --target "$PMD_RELEASE_TARGET" --prerelease --title 'PayMyDine Desktop V1.2.1 Preview' --notes "$notes" --repo "$GH_REPO"
           else
-            gh release create "$tag" release/* --target "$PMD_RELEASE_TARGET" --prerelease --title 'PayMyDine Desktop V1.2.0 Preview' --notes "$notes" --repo "$GH_REPO"
+            gh release create "$tag" release/* --target "$PMD_RELEASE_TARGET" --prerelease --title 'PayMyDine Desktop V1.2.1 Preview' --notes "$notes" --repo "$GH_REPO"
           fi
-          echo 'PMD_V120_PREVIEW_RELEASE=PASS'
+          echo 'PMD_V121_PREVIEW_RELEASE=PASS'
