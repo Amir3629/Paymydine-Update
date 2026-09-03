@@ -1,14 +1,14 @@
 {
-  "name": "paymydine-cashier-desktop",
-  "version": "1.1.0",
+  "name": "paymydine-desktop",
+  "version": "1.2.0",
   "private": true,
-  "description": "PayMyDine Cashier real desktop app: locally bundled POS UI, durable local cache and drafts, canonical cloud sync, secure payments, printer and cash drawer support.",
-  "main": "src/real-app-main.js",
+  "description": "PayMyDine Desktop App: the canonical tenant platform UI in Electron with role-based server routing, secure payments, printer and cash drawer support.",
+  "main": "src/main.js",
   "scripts": {
     "brand:icon": "node scripts/fetch-brand-icon.js",
     "dev": "npm run brand:icon && electron .",
     "start": "npm run brand:icon && electron .",
-    "check": "node --check src/real-app-main.js && node --check src/local-store.js && node --check src/preload.js && node --check src/app.js && node --check src/setup.js && node --check src/hardware.js && node --check src/receipt.js && node --check src/hardware-page.js && node --check src/offline.js",
+    "check": "node --check src/main.js && node --check src/preload.js && node --check src/setup.js && node --check src/hardware.js && node --check src/receipt.js && node --check src/hardware-page.js && node --check src/offline.js",
     "dist:win": "npm run check && npm run brand:icon && electron-builder --win nsis",
     "dist:mac": "npm run check && npm run brand:icon && electron-builder --mac dmg zip"
   },
@@ -18,7 +18,7 @@
   },
   "build": {
     "appId": "com.paymydine.cashier",
-    "productName": "PayMyDine Cashier",
+    "productName": "PayMyDine",
     "asar": true,
     "afterSign": "scripts/after-sign-mac-v106.js",
     "directories": {
@@ -32,20 +32,20 @@
     "win": {
       "icon": "build/icon.svg",
       "target": ["nsis"],
-      "artifactName": "PayMyDine-Cashier-Setup-${version}.${ext}"
+      "artifactName": "PayMyDine-Desktop-Setup-${version}.${ext}"
     },
     "mac": {
       "icon": "build/AppIcon.icon",
       "target": ["dmg", "zip"],
       "category": "public.app-category.business",
-      "artifactName": "PayMyDine-Cashier-${version}-mac-${arch}.${ext}"
+      "artifactName": "PayMyDine-Desktop-${version}-mac-${arch}.${ext}"
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "PayMyDine Cashier"
+      "shortcutName": "PayMyDine"
     }
   }
 }
