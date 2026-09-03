@@ -21,12 +21,12 @@ form.addEventListener('submit', async (event) => {
   event.preventDefault();
   errorNode.textContent = '';
   button.disabled = true;
-  button.textContent = 'Opening Cashier…';
+  button.textContent = 'Opening PayMyDine…';
   try {
     await window.PayMyDineDesktop.saveTenant(input.value);
   } catch (error) {
-    errorNode.textContent = error && error.message ? error.message : 'Could not save this restaurant.';
+    errorNode.textContent = error && error.message ? error.message : 'Could not connect this restaurant.';
     button.disabled = false;
-    button.textContent = 'Continue';
+    button.textContent = 'Open PayMyDine';
   }
 });
