@@ -1,4 +1,4 @@
-name: PayMyDine Desktop V1.3.0
+name: PayMyDine Desktop V1.4.0
 
 on:
   workflow_dispatch:
@@ -30,49 +30,52 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Verify V1.3.0 fast desktop contract
+      - name: Verify V1.4.0 seamless desktop contract
         working-directory: apps/cashier-desktop
         shell: bash
         run: |
           set -euo pipefail
           npm run check
-          grep -q '"version": "1.3.0"' package.json
+          grep -q '"version": "1.4.0"' package.json
           grep -q '"main": "src/local-first-entry.js"' package.json
           grep -q '"productName": "PayMyDine"' package.json
+          grep -q '"extraResources"' package.json
           grep -q "require('./local-cache-privacy').install()" src/local-first-entry.js
           grep -q "require('./local-first-bootstrap').install()" src/local-first-entry.js
           grep -q "require('./offline-blank-guard').install()" src/local-first-entry.js
-          grep -q "require('./fast-route-pool').install()" src/local-first-entry.js
-          grep -q 'new WebContentsView' src/fast-route-pool.js
-          grep -q 'MAX_ROUTE_VIEWS' src/fast-route-pool.js
-          grep -q 'pmd:v130-navigate' src/fast-route-pool.js
+          grep -q "require('./device-mode').install()" src/local-first-entry.js
+          grep -q "require('./fast-route-pool-v140').install()" src/local-first-entry.js
+          grep -q 'new WebContentsView' src/fast-route-pool-v140.js
+          grep -q 'waitForPresentedFrame' src/fast-route-pool-v140.js
+          grep -q "setBackgroundColor('#00000000')" src/fast-route-pool-v140.js
+          grep -q 'pmd:v140-navigate' src/fast-route-pool-v140.js
+          grep -q 'pmd:v140-warm-routes' src/preload.js
+          grep -q 'windowsDeviceModeV140: true' src/preload.js
+          grep -q 'pmd-device-mode-exit-v140' src/preload.js
+          grep -q 'PASSWORD_SHA256' src/device-mode.js
+          grep -q 'explorer.exe' src/device-mode.js
+          grep -q 'PMD_DESKTOP_SETUP_V140' src/setup.html
+          grep -q 'Dedicated POS computer' src/setup.html
+          grep -q 'Client-EmbeddedShellLauncher' scripts/windows/enable-device-mode.ps1
+          grep -q 'WESL_UserSetting' scripts/windows/enable-device-mode.ps1
+          grep -q 'SetCustomShell' scripts/windows/enable-device-mode.ps1
           grep -q "savePage(file, 'MHTML')" src/local-first-bootstrap.js
-          grep -q 'platform-snapshots-v130' src/local-first-bootstrap.js
-          grep -q 'pmd:v130-json-get' src/local-first-bootstrap.js
           grep -q 'capturePage' src/local-first-bootstrap.js
           grep -q 'cached MHTML rendered blank' src/offline-blank-guard.js
-          grep -q 'fastRoutePoolV130: true' src/preload.js
-          grep -q '__PMD_DESKTOP_JSON_CACHE_V130__' src/preload.js
-          grep -q 'pmd:v130-warm-routes' src/preload.js
           grep -q "const PLATFORM_PATH = '/admin'" src/main.js
           grep -q 'external-preload.js' src/main.js
-          grep -q 'PMD_DESKTOP_SETUP_V120' src/setup.html
-          if grep -q "savePage(file, 'HTMLComplete')" src/local-first-bootstrap.js; then
-            echo 'V1.3.0 must not use the old blank-prone HTMLComplete snapshot path.' >&2
-            exit 1
-          fi
           if grep -q "loadFile(path.join(__dirname, 'app.html'))" src/main.js; then
             echo 'Desktop must keep the canonical PayMyDine Platform as its UI authority.' >&2
             exit 1
           fi
-          echo 'PMD_V130_FAST_DESKTOP_CONTRACT=PASS'
+          echo 'PMD_V140_SEAMLESS_DEVICE_MODE_CONTRACT=PASS'
 
   build-windows:
     needs: contract-test
     runs-on: windows-latest
     timeout-minutes: 50
     steps:
-      - name: Download Desktop V1.3.0 source without full Windows git checkout
+      - name: Download Desktop V1.4.0 source without full Windows git checkout
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
@@ -85,14 +88,21 @@ jobs:
             'package.json',
             'scripts/fetch-brand-icon.js',
             'scripts/after-sign-mac-v106.js',
+            'scripts/windows/enable-device-mode.ps1',
+            'scripts/windows/disable-device-mode.ps1',
             'src/local-first-entry.js',
             'src/local-cache-privacy.js',
             'src/local-first-bootstrap.js',
             'src/offline-blank-guard.js',
             'src/fast-route-pool.js',
+            'src/fast-route-pool-v140.js',
+            'src/device-mode.js',
             'src/local-store.js',
             'src/main.js',
             'src/preload.js',
+            'src/developer-preload.js',
+            'src/developer-unlock.html',
+            'src/developer-unlock.js',
             'src/external-preload.js',
             'src/hardware.js',
             'src/receipt.js',
@@ -107,7 +117,7 @@ jobs:
             Authorization = "Bearer $env:GH_TOKEN"
             Accept = 'application/vnd.github+json'
             'X-GitHub-Api-Version' = '2022-11-28'
-            'User-Agent' = 'PayMyDine-Desktop-V130-Windows-Build'
+            'User-Agent' = 'PayMyDine-Desktop-V140-Windows-Build'
           }
           foreach ($relative in $files) {
             $encodedPath = ($relative -split '/' | ForEach-Object { [uri]::EscapeDataString($_) }) -join '/'
@@ -120,6 +130,21 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Validate Windows Device Mode PowerShell
+        working-directory: apps/cashier-desktop
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          foreach ($script in @('scripts/windows/enable-device-mode.ps1','scripts/windows/disable-device-mode.ps1')) {
+            $tokens = $null
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $script), [ref]$tokens, [ref]$errors) | Out-Null
+            if ($errors.Count -gt 0) {
+              $errors | ForEach-Object { Write-Error $_.Message }
+              throw "PowerShell syntax validation failed: $script"
+            }
+          }
+          Write-Host 'PMD_V140_DEVICE_MODE_POWERSHELL_PARSE=PASS'
       - name: Install dependencies
         working-directory: apps/cashier-desktop
         run: npm install
@@ -132,15 +157,15 @@ jobs:
       - name: Verify Windows artifact
         shell: pwsh
         run: |
-          $path = 'apps/cashier-desktop/dist/PayMyDine-Desktop-Setup-1.3.0.exe'
-          if (-not (Test-Path $path)) { throw 'Windows V1.3.0 installer missing' }
+          $path = 'apps/cashier-desktop/dist/PayMyDine-Desktop-Setup-1.4.0.exe'
+          if (-not (Test-Path $path)) { throw 'Windows V1.4.0 installer missing' }
           $item = Get-Item $path
-          if ($item.Length -lt 1000000) { throw 'Windows V1.3.0 installer is unexpectedly small' }
-          Write-Host "PMD_V130_WINDOWS_INSTALLER_BYTES=$($item.Length)"
+          if ($item.Length -lt 1000000) { throw 'Windows V1.4.0 installer is unexpectedly small' }
+          Write-Host "PMD_V140_WINDOWS_INSTALLER_BYTES=$($item.Length)"
       - uses: actions/upload-artifact@v4
         with:
-          name: pmd-v130-windows
-          path: apps/cashier-desktop/dist/PayMyDine-Desktop-Setup-1.3.0.exe
+          name: pmd-v140-windows
+          path: apps/cashier-desktop/dist/PayMyDine-Desktop-Setup-1.4.0.exe
           if-no-files-found: error
 
   build-macos-arm64:
@@ -168,13 +193,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          dmg='dist/PayMyDine-Desktop-1.3.0-mac-arm64.dmg'
+          dmg='dist/PayMyDine-Desktop-1.4.0-mac-arm64.dmg'
           test -s "$dmg"
-          echo "PMD_V130_MAC_ARM64_ARTIFACT=$dmg"
+          echo "PMD_V140_MAC_ARM64_ARTIFACT=$dmg"
       - uses: actions/upload-artifact@v4
         with:
-          name: pmd-v130-macos-arm64
-          path: apps/cashier-desktop/dist/PayMyDine-Desktop-1.3.0-mac-arm64.dmg
+          name: pmd-v140-macos-arm64
+          path: apps/cashier-desktop/dist/PayMyDine-Desktop-1.4.0-mac-arm64.dmg
           if-no-files-found: error
 
   publish-preview:
@@ -186,10 +211,10 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          pattern: pmd-v130-*
+          pattern: pmd-v140-*
           path: release
           merge-multiple: true
-      - name: Publish V1.3.0 preview installers
+      - name: Publish V1.4.0 preview installers
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -197,14 +222,14 @@ jobs:
           PMD_RELEASE_TARGET: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           set -euo pipefail
-          test -s release/PayMyDine-Desktop-Setup-1.3.0.exe
-          test -s release/PayMyDine-Desktop-1.3.0-mac-arm64.dmg
-          tag='pmd-desktop-v130-preview'
-          notes='PayMyDine Desktop V1.3.0 preview. Primary PayMyDine navigation now uses a bounded persistent WebContentsView route pool so warmed Dashboard, Orders, Settings and other main Platform surfaces stay alive in memory instead of being destroyed and downloaded again on every switch. The canonical tenant Platform UI and server role permissions remain authoritative. Offline page snapshots now use queued MHTML plus a screenshot fallback instead of blank-prone HTMLComplete files. A blank-MHTML watchdog guarantees a visible cached fallback. Cached Cashier table/menu GET data remains local. Offline cached screens are read-only: kitchen sends, payments and other writes still require verified connectivity. Printer and cash-drawer support remain native.'
+          test -s release/PayMyDine-Desktop-Setup-1.4.0.exe
+          test -s release/PayMyDine-Desktop-1.4.0-mac-arm64.dmg
+          tag='pmd-desktop-v140-preview'
+          notes='PayMyDine Desktop V1.4.0 preview. V1.4 removes route-switch blinking with double-buffered transparent WebContentsView transitions: the old live page stays visible until the incoming page has presented real renderer frames. The canonical PayMyDine UI, role permissions, MHTML/screenshot offline fallback, printer and cash drawer remain intact. Windows adds opt-in Dedicated POS Device Mode using Microsoft Shell Launcher on supported Enterprise/Education/IoT Enterprise editions. Device Mode makes PayMyDine the user shell, restarts into PayMyDine after reboot/sign-in, blocks normal app-exit shortcuts, and adds a small password-protected Developer Exit that temporarily launches Explorer without disabling Device Mode. Offline writes/payments remain fail-closed.'
           if gh release view "$tag" --repo "$GH_REPO" >/dev/null 2>&1; then
             gh release upload "$tag" release/* --clobber --repo "$GH_REPO"
-            gh release edit "$tag" --target "$PMD_RELEASE_TARGET" --prerelease --title 'PayMyDine Desktop V1.3.0 Preview' --notes "$notes" --repo "$GH_REPO"
+            gh release edit "$tag" --target "$PMD_RELEASE_TARGET" --prerelease --title 'PayMyDine Desktop V1.4.0 Preview' --notes "$notes" --repo "$GH_REPO"
           else
-            gh release create "$tag" release/* --target "$PMD_RELEASE_TARGET" --prerelease --title 'PayMyDine Desktop V1.3.0 Preview' --notes "$notes" --repo "$GH_REPO"
+            gh release create "$tag" release/* --target "$PMD_RELEASE_TARGET" --prerelease --title 'PayMyDine Desktop V1.4.0 Preview' --notes "$notes" --repo "$GH_REPO"
           fi
-          echo 'PMD_V130_PREVIEW_RELEASE=PASS'
+          echo 'PMD_V140_PREVIEW_RELEASE=PASS'
