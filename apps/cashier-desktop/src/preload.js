@@ -2,13 +2,15 @@
 
 const { contextBridge, ipcRenderer, webFrame } = require('electron');
 
-const APP_VERSION = '1.4.0';
+const APP_VERSION = '1.4.1';
 
 contextBridge.exposeInMainWorld('PayMyDineDesktop', Object.freeze({
   isDesktopApp: true,
   fullPlatformApp: true,
+  desktopPlatformV141: true,
   desktopPlatformV140: true,
   seamlessRoutePoolV140: true,
+  windowsDeviceModeV141: true,
   windowsDeviceModeV140: true,
   localCacheV130: true,
   platform: process.platform,
@@ -17,8 +19,10 @@ contextBridge.exposeInMainWorld('PayMyDineDesktop', Object.freeze({
   getConfig: () => ipcRenderer.invoke('pmd:get-config').then((cfg) => Object.assign({}, cfg || {}, {
     appVersion: APP_VERSION,
     product: 'PayMyDine Desktop',
+    desktopPlatformV141: true,
     desktopPlatformV140: true,
     seamlessRoutePoolV140: true,
+    windowsDeviceModeV141: true,
     windowsDeviceModeV140: true,
     localCacheV130: true,
     platform: process.platform,
@@ -29,6 +33,7 @@ contextBridge.exposeInMainWorld('PayMyDineDesktop', Object.freeze({
   cachedJsonGet: (request) => ipcRenderer.invoke('pmd:v130-json-get', request || {}),
   localCacheInfo: () => ipcRenderer.invoke('pmd:v130-cache-info'),
 
+  deviceModePreflight: () => ipcRenderer.invoke('pmd:device-mode-preflight'),
   deviceModeState: () => ipcRenderer.invoke('pmd:device-mode-state'),
   enableDeviceMode: () => ipcRenderer.invoke('pmd:device-mode-enable'),
   openDeveloperExit: () => ipcRenderer.invoke('pmd:developer-exit-open'),
