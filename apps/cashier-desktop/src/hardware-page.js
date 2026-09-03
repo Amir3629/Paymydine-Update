@@ -136,7 +136,7 @@ outputMode.addEventListener('change', async () => {
   applyModeUi();
   if (!isVirtual() && !printers.length) await loadPrinters(savedPrinterName);
   if (isVirtual()) {
-    setStatus('Virtual PDF mode ready. Print/Reprint and automatic receipts will save PDFs to Desktop / PayMyDine Print Tests. Cash drawer output is disabled.', 'ok');
+    setStatus('Virtual PDF mode ready. PayMyDine print jobs will save PDFs to Desktop / PayMyDine Print Tests. Cash drawer output is disabled.', 'ok');
   }
 });
 
@@ -187,7 +187,7 @@ window.PayMyDineDesktop.onHardwareEvent((event) => {
   } else if (event.type === 'receipt-printed') {
     const result = event.result || {};
     if (result.mode === 'virtual-pdf') {
-      setStatus(`Receipt rendered to Virtual PDF.\n${result.path || ''}`, 'ok');
+      setStatus(`Print rendered to Virtual PDF.\n${result.path || ''}`, 'ok');
     } else {
       setStatus('Receipt printed.', 'ok');
     }
