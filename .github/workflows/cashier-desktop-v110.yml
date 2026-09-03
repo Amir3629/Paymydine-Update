@@ -155,7 +155,7 @@ jobs:
           if-no-files-found: error
 
   publish-preview:
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'feature/cashier-real-app-v110')
     needs: [contract-test, build-windows, build-macos-arm64]
     runs-on: ubuntu-latest
     permissions:
@@ -171,6 +171,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
+          PMD_RELEASE_TARGET: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           set -euo pipefail
           test -s release/PayMyDine-Desktop-Setup-1.2.0.exe
@@ -179,8 +180,8 @@ jobs:
           notes='PayMyDine Desktop V1.2.0 preview. The main Electron window now uses the canonical PayMyDine Platform UI at /admin, so the existing server login, MFA, role permissions, and role-specific landing routes remain authoritative. Owner, Manager, Cashier/Waiter, Accountant, Reservations, My Work, and KDS users land on their normal Platform surfaces. Local printer/cash-drawer support and V1.0.9 printer compatibility remain native to the desktop app. Windows and Apple Silicon installers are included.'
           if gh release view "$tag" --repo "$GH_REPO" >/dev/null 2>&1; then
             gh release upload "$tag" release/* --clobber --repo "$GH_REPO"
-            gh release edit "$tag" --target "$GITHUB_SHA" --prerelease --title 'PayMyDine Desktop V1.2.0 Preview' --notes "$notes" --repo "$GH_REPO"
+            gh release edit "$tag" --target "$PMD_RELEASE_TARGET" --prerelease --title 'PayMyDine Desktop V1.2.0 Preview' --notes "$notes" --repo "$GH_REPO"
           else
-            gh release create "$tag" release/* --target "$GITHUB_SHA" --prerelease --title 'PayMyDine Desktop V1.2.0 Preview' --notes "$notes" --repo "$GH_REPO"
+            gh release create "$tag" release/* --target "$PMD_RELEASE_TARGET" --prerelease --title 'PayMyDine Desktop V1.2.0 Preview' --notes "$notes" --repo "$GH_REPO"
           fi
           echo 'PMD_V120_PREVIEW_RELEASE=PASS'
