@@ -178,6 +178,10 @@
         {
             "path": "css/pmd-admin-i18n-residual-r7.css",
             "name": "pmd-admin-i18n-residual-r7-css"
+        },
+        {
+            "path": "css/pmd-menu-gallery-options-v1.css",
+            "name": "pmd-menu-gallery-options-v1-css"
         }
     ],
     "script": [
@@ -312,6 +316,10 @@
         {
             "path": "js/pmd-admin-i18n-residual-r8.js",
             "name": "pmd-admin-i18n-residual-r8-js"
+        },
+        {
+            "path": "js/pmd-menu-gallery-options-v1.js",
+            "name": "pmd-menu-gallery-options-v1-js"
         }
     ]
 }

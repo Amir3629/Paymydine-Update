@@ -350,8 +350,18 @@
         }) || null;
       }
 
+      // PMD_SQUARE_TERMINAL_CANADA_R10_READINESS
       function terminalIsOnline(row) {
-        return !!row && String(row.terminal_status || '').toLowerCase() === 'online';
+        if (!row) return false;
+        var provider = String(row.provider_code || '').toLowerCase();
+        var status = String(row.terminal_status || '').toLowerCase();
+        var pairing = String(row.pairing_state || '').toLowerCase();
+        if (provider === 'square') {
+          return ['online', 'ready', 'configured', 'sandbox_simulator_ready'].indexOf(status) !== -1
+            && pairing !== 'unpaired'
+            && pairing !== 'needs_attention';
+        }
+        return status === 'online';
       }
 
       function mergeTestedTerminal(result) {

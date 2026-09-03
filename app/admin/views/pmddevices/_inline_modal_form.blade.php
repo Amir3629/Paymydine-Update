@@ -70,6 +70,10 @@
     </div>
 @else
 <form class="pmd-device-v6-form" data-pmd-device-modal-form data-pmd-device-kind="{{ $kind }}" data-pmd-device-mode="{{ $mode }}" data-pmd-device-record-id="{{ $recordId }}" data-pmd-modal-title="{{ $pmdSettingsText($titles[$kind] ?? 'Device settings') }}" data-pmd-backend-url="{{ $backendUrl }}" data-pmd-save-handler="{{ $saveHandler }}">
+    @if($kind === 'terminals' && $mode === 'edit' && $recordId)
+        {{-- PMD_SQUARE_TERMINAL_CANADA_R11_RECORD_ID --}}
+        <input type="hidden" name="_pmd_terminal_device_id" value="{{ (int)$recordId }}">
+    @endif
     <input type="hidden" name="_token" value="{{ csrf_token() }}">
 
     @if($kind === 'kds')
@@ -96,20 +100,29 @@
         <section class="pmd-device-v6-section">
             <div class="pmd-device-v6-section__head"><h3>{{ $pmdSettingsText('Terminal connection') }}</h3><p>{{ $pmdSettingsText('Provider, reader identity, pairing and readiness.') }}</p></div>
             <div class="pmd-owner-form-grid">
-                <div class="pmd-owner-field"><label>{{ $pmdSettingsText('Provider type') }}</label><select name="{{ $arr }}[provider_code]">@foreach(($opts['providers'] ?? []) as $value=>$label)<option value="{{ $value }}" {{ (string)$v('provider_code','sumup') === (string)$value ? 'selected' : '' }}>{{ $pmdSettingsText($label) }}</option>@endforeach</select></div>
+                @php
+                    $providerOptions = (array)($opts['providers'] ?? []);
+                    $defaultProvider = array_key_first($providerOptions) ?: '';
+                @endphp
+                <div class="pmd-owner-field"><label>{{ $pmdSettingsText('Provider type') }}</label><select name="{{ $arr }}[provider_code]">@foreach($providerOptions as $value=>$label)<option value="{{ $value }}" {{ (string)$v('provider_code',$defaultProvider) === (string)$value ? 'selected' : '' }}>{{ $pmdSettingsText($label) }}</option>@endforeach</select></div>
 
-                <div class="pmd-owner-field"><label>{{ $pmdSettingsText('Affiliate key') }}</label><input type="text" name="{{ $arr }}[affiliate_key]" value="{{ $v('affiliate_key') }}"></div>
-                <div class="pmd-owner-field"><label>{{ $pmdSettingsText('Reader ID') }}</label><input type="text" name="{{ $arr }}[reader_id]" value="{{ $v('reader_id') }}"></div>
+                <div class="pmd-owner-field" data-pmd-terminal-sumup-only {{ (string)$v('provider_code',$defaultProvider) === 'sumup' ? '' : 'hidden' }}><label>{{ $pmdSettingsText('Affiliate key (SumUp only)') }}</label><input type="text" name="{{ $arr }}[affiliate_key]" value="{{ $v('affiliate_key') }}"></div>
+                <div class="pmd-owner-field"><label>{{ $pmdSettingsText('Reader / Device ID') }}</label><input type="text" name="{{ $arr }}[reader_id]" value="{{ $v('reader_id') }}"></div>
                 <div class="pmd-owner-field"><label>{{ $pmdSettingsText('Reader label') }}</label><input type="text" name="{{ $arr }}[reader_label]" value="{{ $v('reader_label') }}"></div>
                 <div class="pmd-owner-field"><label>{{ $pmdSettingsText('Pairing state') }}</label><select name="{{ $arr }}[pairing_state]">@foreach(($opts['pairing'] ?? []) as $value=>$label)<option value="{{ $value }}" {{ (string)$v('pairing_state','unknown') === (string)$value ? 'selected' : '' }}>{{ $pmdSettingsText($label) }}</option>@endforeach</select></div>
                 <div class="pmd-owner-field"><label>{{ $pmdSettingsText('Terminal status') }}</label><input type="text" name="{{ $arr }}[terminal_status]" value="{{ $v('terminal_status') }}"></div>
                 <div class="pmd-owner-field pmd-owner-field--full"><label>{{ $pmdSettingsText('Metadata (JSON)') }}</label><textarea name="{{ $arr }}[metadata]">{{ is_array($v('metadata',[])) ? json_encode($v('metadata',[]), JSON_PRETTY_PRINT) : $v('metadata') }}</textarea><small>{{ $pmdSettingsText('Optional diagnostic metadata for this terminal device.') }}</small></div>
             </div>
+            @if(isset($providerOptions['square']))
+                <div class="pmd-owner-field pmd-owner-field--full">
+                    <small><strong>{{ $pmdSettingsText('Square Terminal API') }}:</strong> {{ $pmdSettingsText('Canada Sandbox: use device ID 388b5a08-a77c-48ef-ad2a-4a790e6f2789 for a successful CAD Interac checkout, or use Discover / load devices for additional success/failure scenarios. Production requires the paired Square Terminal device_id from the Square Devices API.') }}</small>
+                </div>
+            @endif
             <div class="pmd-owner-setting-row"><div class="pmd-owner-setting-copy"><strong>{{ $pmdSettingsText('Active terminal') }}</strong><small>{{ $pmdSettingsText('Inactive terminals stay configured but are not offered for payments.') }}</small></div><label class="pmd-owner-switch"><input type="hidden" name="{{ $arr }}[is_active]" value="0"><input type="checkbox" name="{{ $arr }}[is_active]" value="1" {{ $v('is_active',1) ? 'checked' : '' }}><span></span></label></div>
         </section>
         @include('pmddevices/_worldline_terminal_settings')
         @if($mode === 'edit')
-        <section class="pmd-device-v6-section"><div class="pmd-device-v6-section__head"><h3>{{ $pmdSettingsText('Reader tools') }}</h3><p>{{ $pmdSettingsText('Discover and test card readers without leaving this page.') }}</p></div><div class="pmd-device-v6-tools"><button type="button" class="pmd-owner-action" data-pmd-device-action="onDiscoverReaders">{{ $pmdSettingsText('Discover readers') }}</button><button type="button" class="pmd-owner-action pmd-device-v6-primary" data-pmd-device-action="onTestTerminalConnection">{{ $pmdSettingsText('Test terminal connection') }}</button></div><pre class="pmd-device-v6-result" data-pmd-device-result hidden></pre></section>
+        <section class="pmd-device-v6-section"><div class="pmd-device-v6-section__head"><h3>{{ $pmdSettingsText('Reader tools') }}</h3><p>{{ $pmdSettingsText('Discover and test card readers without leaving this page.') }}</p></div><div class="pmd-device-v6-tools"><button type="button" class="pmd-owner-action" data-pmd-device-action="onDiscoverReaders">{{ $pmdSettingsText('Discover / load devices') }}</button><button type="button" class="pmd-owner-action pmd-device-v6-primary" data-pmd-device-action="onTestTerminalConnection">{{ $pmdSettingsText('Test terminal connection') }}</button></div><pre class="pmd-device-v6-result" data-pmd-device-result hidden></pre></section>
         @endif
 
     @elseif($kind === 'drawers')

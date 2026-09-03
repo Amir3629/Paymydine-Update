@@ -171,6 +171,17 @@
     setTimeout(function () { checkDrawerConnector(form, true); }, 50);
   }
 
+  // PMD_SQUARE_TERMINAL_CANADA_R10_PROVIDER_FIELDS
+  function syncTerminalProviderFields(form) {
+    if (!form || form.getAttribute('data-pmd-device-kind') !== 'terminals') return;
+    var providerSelect = form.querySelector('[name="Terminal_device[provider_code]"]');
+    var providerCode = providerSelect ? String(providerSelect.value || '').toLowerCase() : '';
+    var affiliateField = form.querySelector('[data-pmd-terminal-sumup-only]');
+    var affiliateInput = form.querySelector('[name="Terminal_device[affiliate_key]"]');
+    if (affiliateField) affiliateField.hidden = providerCode !== 'sumup';
+    if (providerCode !== 'sumup' && affiliateInput) affiliateInput.value = '';
+  }
+
   function templateFor(key) {
     return document.querySelector('#pmd-device-modal-templates template[data-pmd-device-template="' + CSS.escape(key) + '"]');
   }
@@ -205,6 +216,7 @@
     setStatus('');
     setBusy(false);
     initDrawerSimpleSetup(form);
+    syncTerminalProviderFields(form);
 
     modal.hidden = false;
     modal.setAttribute('aria-hidden', 'false');
@@ -352,6 +364,23 @@
         return;
       }
 
+      // PMD_SQUARE_TERMINAL_CANADA_R7_DISCOVERY_AUTOFILL
+      if (kind === 'terminals' && handler === 'onDiscoverReaders' && data && Array.isArray(data.readers) && data.readers.length) {
+        var firstReader = data.readers[0] || {};
+        var readerId = String(firstReader.id || firstReader.device_id || firstReader.reader_id || '').trim();
+        var readerName = String(firstReader.name || firstReader.label || '').trim();
+        var readerInput = form.querySelector('[name="Terminal_device[reader_id]"]');
+        var labelInput = form.querySelector('[name="Terminal_device[reader_label]"]');
+        if (readerInput && !String(readerInput.value || '').trim() && readerId) readerInput.value = readerId;
+        if (labelInput && !String(labelInput.value || '').trim() && readerName) labelInput.value = readerName;
+      }
+      // PMD_SQUARE_TERMINAL_CANADA_R10_TEST_RESULT_SYNC
+      if (kind === 'terminals' && handler === 'onTestTerminalConnection' && data && data.success) {
+        var statusInput = form.querySelector('[name="Terminal_device[terminal_status]"]');
+        var pairingInput = form.querySelector('[name="Terminal_device[pairing_state]"]');
+        if (statusInput && data.recommended_terminal_status) statusInput.value = String(data.recommended_terminal_status);
+        if (pairingInput && data.recommended_pairing_state) pairingInput.value = String(data.recommended_pairing_state);
+      }
       showResult(data.raw && Object.keys(data).length === 1 ? data.raw : data);
       if (kind === 'drawers' && handler === 'onApplyLocalPrinter') {
         drawerLocalStatus(form, 'Printer saved for this POS.', 'online');
@@ -371,6 +400,14 @@
       setBusy(false);
     }
   }
+
+  // PMD_SQUARE_TERMINAL_CANADA_R10_PROVIDER_CHANGE
+  document.addEventListener('change', function (event) {
+    var target = event.target;
+    if (!target || !target.matches('[name="Terminal_device[provider_code]"]')) return;
+    var form = target.closest('[data-pmd-device-modal-form]');
+    if (form && modal.contains(form)) syncTerminalProviderFields(form);
+  });
 
   document.addEventListener('click', function (event) {
     var localCheck = event.target.closest('[data-pmd-local-check]');

@@ -24,10 +24,11 @@ trait PmdWaiterPosTerminalEndpoint
         }
 
         $provider = strtolower(trim((string)($payload['provider_code'] ?? '')));
-        if (!in_array($provider, ['sumup', 'worldline', 'vr_payment'], true)) {
+        // PMD_SQUARE_TERMINAL_CANADA_R10_WAITER_ENDPOINT
+        if (!in_array($provider, ['sumup', 'worldline', 'vr_payment', 'square'], true)) {
             return response()->json([
                 'ok' => false,
-                'message' => 'Choose a configured SumUp, Worldline or VR Payment terminal provider.',
+                'message' => 'Choose a configured SumUp, Worldline, VR Payment or Square terminal provider.',
             ], 422);
         }
 

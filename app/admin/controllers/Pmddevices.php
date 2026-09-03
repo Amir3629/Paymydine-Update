@@ -55,7 +55,14 @@ class Pmddevices extends AdminController
         ]);
 
         $pos = $this->safeCollection(Pos_devices_model::class, 'pos_devices', 'name');
-        $terminals = $this->safeCollection(Terminal_devices_model::class, 'terminal_devices', 'terminal_device_id');
+        // PMD_SQUARE_TERMINAL_CANADA_R7_OVERVIEW
+        $allTerminals = $this->safeCollection(Terminal_devices_model::class, 'terminal_devices', 'terminal_device_id');
+        $terminalProviderOptions = Terminal_devices_model::listProviderOptions();
+        $terminalProviderCodes = array_map(static fn ($code) => strtolower(trim((string)$code)), array_keys($terminalProviderOptions));
+        $terminals = $allTerminals->filter(static function ($terminal) use ($terminalProviderCodes) {
+            return in_array(strtolower(trim((string)($terminal->provider_code ?? ''))), $terminalProviderCodes, true);
+        })->values();
+        $archivedTerminalCount = max(0, $allTerminals->count() - $terminals->count());
         $drawers = $this->safeCollection(Cash_drawers_model::class, 'cash_drawers', 'name');
         $biometric = $this->safeCollection(FingerDevices_model::class, 'finger_devices', 'name');
         $kds = $this->safeCollection(Kds_stations_model::class, 'kds_stations', 'name');
@@ -69,6 +76,8 @@ class Pmddevices extends AdminController
         $this->vars['pmdDevices'] = [
             'pos' => $pos,
             'terminals' => $terminals,
+            'terminal_provider_options' => $terminalProviderOptions,
+            'archived_terminal_count' => $archivedTerminalCount,
             'drawers' => $drawers,
             'biometric' => $biometric,
             'kds' => $kds,

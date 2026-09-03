@@ -4,10 +4,12 @@ namespace Admin\Controllers;
 
 use Admin\Facades\AdminMenu;
 use Admin\Models\Payments_model;
+use Admin\Models\Terminal_devices_model;
 use App\Services\TerminalPayments\WorldlineTerminalProvider;
 use App\Services\TerminalPayments\SquareTerminalProvider;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 
 class TerminalDevices extends \Admin\Classes\AdminController
@@ -109,7 +111,7 @@ class TerminalDevices extends \Admin\Classes\AdminController
             $guideComment = 'Keep your SumUp merchant credentials, discover the readers connected to that account, copy/select the Reader ID, test it, then mark the terminal active.';
         } elseif ($providerCode === 'square') {
             $guideLabel = 'Square Terminal API Setup';
-            $guideComment = 'Reader ID = Square device_id. In Sandbox you may use Square documented simulator ID 9fa747a2-25ff-48ee-b078-04381f7c828f for a successful card checkout. Production requires a paired Square Terminal device_id and a Square-supported seller country.';
+            $guideComment = 'Reader ID = Square device_id. PayMyDine Canada Sandbox uses the documented CAD simulator 388b5a08-a77c-48ef-ad2a-4a790e6f2789 for a successful Interac checkout. Production requires the paired Square Terminal device_id returned by the Devices API.';
         } elseif ($providerCode === 'vr_payment') {
             $guideLabel = 'VR Payment Terminal Setup';
             $guideComment = 'Use a terminal identifier returned by the configured VR Payment merchant account. Do not mark a terminal active until provider synchronization has confirmed it.';
@@ -133,12 +135,48 @@ class TerminalDevices extends \Admin\Classes\AdminController
 
     public function formBeforeSave($model)
     {
+        // PMD_SQUARE_TERMINAL_CANADA_R10_SAVE_NORMALIZATION
         $providerCode = strtolower(trim((string)($model->provider_code ?? post('Terminal_device.provider_code', ''))));
+        $readerId = trim((string)($model->reader_id ?? post('Terminal_device.reader_id', '')));
+
+        // Affiliate key belongs to SumUp only. Never let a Square/Worldline/VR
+        // device accidentally retain a copied reader/device ID in that field.
+        if ($providerCode !== 'sumup') {
+            $model->affiliate_key = '';
+        }
+
+        if ($providerCode === 'square') {
+            try {
+                $runtime = app(\App\Services\Payments\SquareRuntimeService::class);
+                $config = $runtime->providerConfig(false);
+                $mode = strtolower(trim((string)($config['mode'] ?? 'test'))) === 'live' ? 'live' : 'test';
+                $model->environment = $mode;
+
+                if (empty($model->location_id)) {
+                    $state = app(\App\Services\Platform\LocationPlatformContext::class)->state();
+                    if (!empty($state['location_id'])) {
+                        $model->location_id = (int)$state['location_id'];
+                    }
+                }
+
+                if ($mode === 'test' && SquareTerminalProvider::isCanadaSandboxDeviceId($readerId)) {
+                    $model->pairing_state = 'paired';
+                    $model->terminal_status = 'sandbox_simulator_ready';
+                } elseif ($readerId !== '' && trim((string)($model->terminal_status ?? '')) === '') {
+                    $model->terminal_status = 'configured';
+                }
+            } catch (\Throwable $error) {
+                Log::warning('PMD_SQUARE_TERMINAL_SAVE_NORMALIZATION_FAILED_R10', [
+                    'message' => $error->getMessage(),
+                ]);
+            }
+            return;
+        }
+
         if ($providerCode !== 'worldline') {
             return;
         }
 
-        $readerId = trim((string)($model->reader_id ?? post('Terminal_device.reader_id', '')));
         $readerLabel = trim((string)($model->reader_label ?? post('Terminal_device.reader_label', '')));
         $worldline = (array)post('Worldline_terminal', []);
         $environment = strtolower(trim((string)($worldline['terminal_environment'] ?? ($model->environment ?? 'test'))));
@@ -149,8 +187,161 @@ class TerminalDevices extends \Admin\Classes\AdminController
             ->saveForTerminal($worldline, $readerId, $readerLabel, $environment);
     }
 
+    // PMD_SQUARE_TERMINAL_CANADA_R11_INLINE_RECORD_RESOLVER
+    private function resolveInlineTerminalRecord()
+    {
+        $recordId = (int)post('_pmd_terminal_device_id', 0);
+
+        if ($recordId <= 0) {
+            $routeTail = trim((string)basename((string)request()->path()));
+            if ($routeTail !== '' && ctype_digit($routeTail)) {
+                $recordId = (int)$routeTail;
+            }
+        }
+
+        if ($recordId > 0) {
+            try {
+                $record = Terminal_devices_model::query()->find($recordId);
+                if ($record) {
+                    return $record;
+                }
+            } catch (\Throwable $error) {
+                Log::error('PMD_TERMINAL_INLINE_RECORD_QUERY_FAILED_R11', [
+                    'terminal_device_id' => $recordId,
+                    'message' => $error->getMessage(),
+                ]);
+            }
+        }
+
+        try {
+            $record = $this->formGetModel();
+            if ($record) {
+                return $record;
+            }
+        } catch (\Throwable $error) {
+            Log::warning('PMD_TERMINAL_INLINE_FORM_MODEL_UNAVAILABLE_R11', [
+                'terminal_device_id' => $recordId ?: null,
+                'message' => $error->getMessage(),
+            ]);
+        }
+
+        return null;
+    }
+
     public function onDiscoverReaders()
     {
+        // PMD_SQUARE_TERMINAL_CANADA_R11_DISCOVERY_RECORD
+        $model = $this->resolveInlineTerminalRecord();
+        if (!$model) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Unable to resolve this terminal record in the current restaurant database.',
+                'terminal_device_id' => (int)post('_pmd_terminal_device_id', 0) ?: null,
+            ], 422);
+        }
+
+        $providerCode = strtolower(trim((string)post('Terminal_device.provider_code', (string)($model->provider_code ?? ''))));
+
+        if ($providerCode === 'square') {
+            try {
+                $runtime = app(\App\Services\Payments\SquareRuntimeService::class);
+                $config = $runtime->providerConfig(false);
+                $mode = strtolower(trim((string)($config['mode'] ?? 'test'))) === 'live' ? 'live' : 'test';
+                $locationId = (int)post('Terminal_device.location_id', (int)($model->location_id ?? 0));
+                $platform = app(\App\Services\Platform\LocationPlatformContext::class)->state($locationId ?: null);
+                $pmdCountry = strtoupper(trim((string)($platform['country_code'] ?? '')));
+                $pmdCurrency = strtoupper(trim((string)($platform['profile']['currency']['code'] ?? '')));
+
+                if ($pmdCountry !== 'CA' || $pmdCurrency !== 'CAD') {
+                    return response()->json([
+                        'success' => false,
+                        'provider' => 'square',
+                        'error' => 'Square Terminal discovery is enabled in PayMyDine only for Canada / CAD.',
+                    ], 422);
+                }
+
+                if ($mode === 'test') {
+                    $readers = [];
+                    foreach (SquareTerminalProvider::canadaSandboxDevices() as $deviceId => $scenario) {
+                        $readers[] = [
+                            'id' => $deviceId,
+                            'name' => (string)($scenario['name'] ?? $deviceId),
+                            'status' => 'SIMULATED',
+                            'expected_status' => $scenario['expected_status'] ?? null,
+                            'currency' => 'CAD',
+                        ];
+                    }
+
+                    return response()->json([
+                        'success' => true,
+                        'provider' => 'square',
+                        'mode' => 'test',
+                        'sandbox' => true,
+                        'payment_sent' => false,
+                        'message' => 'Square Canada Sandbox simulators loaded. The first device simulates a successful CAD Interac checkout.',
+                        'readers' => $readers,
+                    ]);
+                }
+
+                $token = trim((string)($config['access_token'] ?? ''));
+                $squareLocationId = trim((string)($config['location_id'] ?? ''));
+                if ($token === '' || $squareLocationId === '') {
+                    return response()->json(['success' => false, 'provider' => 'square', 'error' => 'Square production Access Token and Location ID are required.'], 422);
+                }
+
+                $response = Http::withToken($token)
+                    ->withHeaders(['Square-Version' => \App\Services\Payments\SquareRuntimeService::API_VERSION])
+                    ->acceptJson()
+                    ->timeout(20)
+                    ->get('https://connect.squareup.com/v2/devices', ['location_id' => $squareLocationId, 'limit' => 100]);
+                $json = (array)$response->json();
+                if (!$response->successful()) {
+                    return response()->json([
+                        'success' => false,
+                        'provider' => 'square',
+                        'error' => (string)($json['errors'][0]['detail'] ?? 'Unable to list Square Terminal devices. Ensure the token has DEVICES_READ permission.'),
+                        'status' => $response->status(),
+                    ], 422);
+                }
+
+                $readers = [];
+                foreach ((array)($json['devices'] ?? []) as $device) {
+                    $device = (array)$device;
+                    $attributes = (array)($device['attributes'] ?? []);
+                    $status = (array)($device['status'] ?? []);
+                    $deviceId = trim((string)($device['id'] ?? ''));
+                    if ($deviceId === '') continue;
+                    $readers[] = [
+                        'id' => $deviceId,
+                        'name' => (string)($attributes['name'] ?? $attributes['model'] ?? $deviceId),
+                        'model' => $attributes['model'] ?? null,
+                        'status' => $status['category'] ?? null,
+                    ];
+                }
+
+                return response()->json([
+                    'success' => true,
+                    'provider' => 'square',
+                    'mode' => 'live',
+                    'location_id' => $squareLocationId,
+                    'payment_sent' => false,
+                    'readers' => $readers,
+                    'message' => count($readers).' Square Terminal device(s) returned by the Devices API.',
+                ]);
+            } catch (\Throwable $error) {
+                Log::error('PMD_SQUARE_TERMINAL_DISCOVERY_FAILED_R10', ['message' => $error->getMessage()]);
+                return response()->json(['success' => false, 'provider' => 'square', 'error' => 'Square Terminal discovery failed: '.$error->getMessage()], 422);
+            }
+        }
+
+        if ($providerCode !== 'sumup') {
+            return response()->json([
+                'success' => false,
+                'provider' => $providerCode,
+                'error' => 'Automatic device discovery is not available for this terminal provider.',
+            ], 422);
+        }
+
         $config = $this->sumupConfig();
         if (!$config['ready']) {
             return response()->json(['success' => false, 'error' => $config['message']], 422);
@@ -188,9 +379,17 @@ class TerminalDevices extends \Admin\Classes\AdminController
 
     public function onTestTerminalConnection()
     {
-        $model = $this->formGetModel();
-        $providerCode = strtolower(trim((string)$model->provider_code));
-        $readerId = trim((string)$model->reader_id);
+        // PMD_SQUARE_TERMINAL_CANADA_R11_TEST_RECORD
+        $model = $this->resolveInlineTerminalRecord();
+        if (!$model) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Unable to resolve this terminal record in the current restaurant database.',
+                'terminal_device_id' => (int)post('_pmd_terminal_device_id', 0) ?: null,
+            ], 422);
+        }
+        $providerCode = strtolower(trim((string)post('Terminal_device.provider_code', (string)($model->provider_code ?? ''))));
+        $readerId = trim((string)post('Terminal_device.reader_id', (string)($model->reader_id ?? '')));
 
         if ($readerId === '') {
             return response()->json(['success' => false, 'error' => 'Reader / Terminal ID is required.'], 422);
@@ -239,48 +438,113 @@ class TerminalDevices extends \Admin\Classes\AdminController
         }
 
         if ($providerCode === 'square') {
+            // PMD_SQUARE_TERMINAL_CANADA_R10_READ_ONLY_TEST
             try {
                 $runtime = app(\App\Services\Payments\SquareRuntimeService::class);
                 $config = $runtime->providerConfig(false);
+                $mode = strtolower(trim((string)($config['mode'] ?? 'test'))) === 'live' ? 'live' : 'test';
+                $locationId = (int)post('Terminal_device.location_id', (int)($model->location_id ?? 0));
+                $platform = app(\App\Services\Platform\LocationPlatformContext::class)->state($locationId ?: null);
+                $pmdCountry = strtoupper(trim((string)($platform['country_code'] ?? '')));
+                $pmdCurrency = strtoupper(trim((string)($platform['profile']['currency']['code'] ?? '')));
+
                 $config['device_id'] = $readerId;
-                $config['pmd_country_code'] = strtoupper((string)(app(\App\Services\Platform\LocationPlatformContext::class)->countryCode((int)($model->location_id ?? 0) ?: null) ?? ''));
+                $config['pmd_country_code'] = $pmdCountry;
+                $config['currency'] = $pmdCurrency !== '' ? $pmdCurrency : strtoupper(trim((string)($config['configured_currency'] ?? '')));
+
                 $validation = (new SquareTerminalProvider())->validateConfiguration($config);
                 if (!($validation['ok'] ?? false)) {
-                    return response()->json(['success' => false, 'provider' => 'square', 'error' => $validation['message'] ?? 'Square Terminal configuration is incomplete.'], 422);
+                    return response()->json([
+                        'success' => false,
+                        'provider' => 'square',
+                        'error' => $validation['message'] ?? 'Square Terminal configuration is incomplete.',
+                    ], 422);
                 }
+
                 $location = $runtime->location($config);
-                $mode = (string)($config['mode'] ?? 'test');
-                $sandboxIds = ['9fa747a2-25ff-48ee-b078-04381f7c828f', '22cd266c-6246-4c06-9983-67f0c26346b0', '4mp4e78c-88ed-4d55-a269-8008dfe14e9'];
-                $model->terminal_status = $mode === 'test' && in_array($readerId, $sandboxIds, true) ? 'sandbox_simulator_ready' : 'configured';
-                $model->pairing_state = $mode === 'test' && in_array($readerId, $sandboxIds, true) ? 'paired' : ((string)$model->pairing_state ?: 'unknown');
-                if (empty($model->reader_label)) $model->reader_label = $mode === 'test' ? 'Square Sandbox Terminal' : 'Square Terminal';
-                $model->metadata = array_merge((array)$model->metadata, [
-                    'last_configuration_tested_at' => now()->toIso8601String(),
-                    'square_terminal_api' => [
-                        'mode' => $mode,
-                        'location_id' => $config['location_id'] ?? null,
-                        'location_name' => $location['name'] ?? null,
-                        'country' => $location['country'] ?? null,
-                        'currency' => $location['currency'] ?? null,
-                        'device_id' => $readerId,
-                        'sandbox_simulator' => $mode === 'test' && in_array($readerId, $sandboxIds, true),
-                    ],
-                ]);
-                $model->save();
+                $squareCountry = strtoupper(trim((string)($location['country'] ?? '')));
+                $squareCurrency = strtoupper(trim((string)($location['currency'] ?? '')));
+                if ($pmdCountry !== 'CA' || $pmdCurrency !== 'CAD' || $squareCountry !== 'CA' || $squareCurrency !== 'CAD') {
+                    return response()->json([
+                        'success' => false,
+                        'provider' => 'square',
+                        'error' => 'Square Terminal requires PayMyDine Canada/CAD and a Square Canada/CAD location.',
+                        'restaurant_country' => $pmdCountry,
+                        'restaurant_currency' => $pmdCurrency,
+                        'square_country' => $squareCountry,
+                        'square_currency' => $squareCurrency,
+                    ], 422);
+                }
+
+                $sandboxSimulator = false;
+                $scenario = null;
+                if ($mode === 'test') {
+                    $sandboxSimulator = SquareTerminalProvider::isCanadaSandboxDeviceId($readerId);
+                    if (!$sandboxSimulator) {
+                        return response()->json([
+                            'success' => false,
+                            'provider' => 'square',
+                            'mode' => 'test',
+                            'error' => 'For PayMyDine Canada Sandbox, choose one of the documented CAD Terminal simulator device IDs from Discover / load devices.',
+                            'supported_device_ids' => array_keys(SquareTerminalProvider::canadaSandboxDevices()),
+                        ], 422);
+                    }
+                    $scenario = SquareTerminalProvider::canadaSandboxDevices()[$readerId] ?? null;
+                } else {
+                    // Safe read-only production device validation. No checkout,
+                    // charge, action, or pairing command is sent.
+                    $deviceResponse = Http::withToken((string)$config['access_token'])
+                        ->withHeaders(['Square-Version' => \App\Services\Payments\SquareRuntimeService::API_VERSION])
+                        ->acceptJson()
+                        ->timeout(20)
+                        ->get($runtime->baseUrl($config).'/v2/devices/'.rawurlencode($readerId));
+                    $deviceJson = (array)$deviceResponse->json();
+                    if (!$deviceResponse->successful()) {
+                        return response()->json([
+                            'success' => false,
+                            'provider' => 'square',
+                            'mode' => 'live',
+                            'error' => (string)($deviceJson['errors'][0]['detail'] ?? 'Square device was not found. Ensure DEVICES_READ permission and use the paired device_id from the Devices API.'),
+                            'status' => $deviceResponse->status(),
+                        ], 422);
+                    }
+                    $device = (array)($deviceJson['device'] ?? []);
+                    if (trim((string)($device['id'] ?? '')) === '') {
+                        return response()->json(['success' => false, 'provider' => 'square', 'error' => 'Square Devices API returned no matching terminal device.'], 422);
+                    }
+                }
+
                 return response()->json([
                     'success' => true,
                     'provider' => 'square',
                     'reader_id' => $readerId,
                     'mode' => $mode,
-                    'location' => ['id' => $config['location_id'] ?? null, 'name' => $location['name'] ?? null, 'country' => $location['country'] ?? null, 'currency' => $location['currency'] ?? null],
-                    'sandbox_simulator' => $mode === 'test' && in_array($readerId, $sandboxIds, true),
+                    'location' => [
+                        'id' => $config['location_id'] ?? null,
+                        'name' => $location['name'] ?? null,
+                        'country' => $squareCountry,
+                        'currency' => $squareCurrency,
+                    ],
+                    'sandbox_simulator' => $sandboxSimulator,
+                    'scenario' => $scenario,
                     'network_probe_performed' => true,
                     'payment_sent' => false,
-                    'message' => 'Square credentials/location are valid. No charge was created. Use a real Terminal payment attempt to validate checkout settlement.',
-                    'status' => $this->buildStatusSnapshot('square', $readerId, (bool)$model->is_active),
+                    'recommended_terminal_status' => $sandboxSimulator ? 'sandbox_simulator_ready' : 'configured',
+                    'recommended_pairing_state' => $sandboxSimulator ? 'paired' : ((string)($model->pairing_state ?? '') ?: 'unknown'),
+                    'message' => $sandboxSimulator
+                        ? 'Square Canada Sandbox Terminal configuration is valid. No charge was created. Run a CAD order through Direct terminal to test the simulated checkout.'
+                        : 'Square production credentials, location and device are readable. No checkout or charge was created.',
                 ]);
-            } catch (\Throwable $e) {
-                return response()->json(['success' => false, 'provider' => 'square', 'error' => $e->getMessage()], 422);
+            } catch (\Throwable $error) {
+                Log::error('PMD_SQUARE_TERMINAL_TEST_FAILED_R10', [
+                    'reader_id' => $readerId,
+                    'message' => $error->getMessage(),
+                ]);
+                return response()->json([
+                    'success' => false,
+                    'provider' => 'square',
+                    'error' => 'Square Terminal test failed: '.$error->getMessage(),
+                ], 422);
             }
         }
 

@@ -2,6 +2,7 @@
 
 namespace App\Services\TerminalPayments;
 
+use Admin\Models\Terminal_devices_model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
@@ -13,7 +14,11 @@ class TerminalPaymentService
         if (!Schema::hasTable('payment_attempts')) return ['success'=>false,'error'=>'payment_attempts table is missing. Run migrations first.'];
         $order=DB::table('orders')->where('order_id',$orderId)->first();
         if(!$order) return ['success'=>false,'error'=>'Order not found.'];
-        $providerCode=strtolower(trim($providerCode));$provider=$this->provider($providerCode);$config=$this->providerConfig($providerCode);
+        $providerCode=strtolower(trim($providerCode));
+        // PMD_SQUARE_TERMINAL_CANADA_R10_MARKET_GUARD
+        $allowedProviderCodes=array_keys(Terminal_devices_model::listProviderOptions());
+        if(!in_array($providerCode,$allowedProviderCodes,true))return ['success'=>false,'error'=>'This terminal provider is not enabled for the active restaurant market.'];
+        $provider=$this->provider($providerCode);$config=$this->providerConfig($providerCode);
         if($providerCode==='sumup'){
             $terminal=$this->resolveSumupTerminal($terminalId);
             if(!$terminal) return ['success'=>false,'error'=>'No active SumUp terminal is configured.'];

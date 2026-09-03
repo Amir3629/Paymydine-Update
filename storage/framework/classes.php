@@ -194,4 +194,9 @@
   'Admin\\Controllers\\SuperAdminR2DashboardController' => 'app/admin/controllers/SuperAdminR2DashboardController.php',
   'Admin\\Classes\\PaymentGateways' => 'app/admin/classes/PaymentGateways.php',
   'Main\\Template\\Partial' => 'app/main/template/Partial.php',
+  'System\\Traits\\RuleInjector' => 'app/system/traits/RuleInjector.php',
+  'System\\Classes\\FormRequest' => 'app/system/classes/FormRequest.php',
+  'Admin\\Requests\\TerminalDevices' => 'app/admin/requests/TerminalDevices.php',
+  'Admin\\Traits\\PmdMenuGalleryOptionsV1' => 'app/admin/traits/PmdMenuGalleryOptionsV1.php',
+  'Admin\\Controllers\\menus' => 'app/admin/controllers/Menus.php',
 );

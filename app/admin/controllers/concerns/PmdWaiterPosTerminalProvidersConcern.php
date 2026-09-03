@@ -2,6 +2,7 @@
 
 namespace Admin\Controllers\Concerns;
 
+use Admin\Models\Terminal_devices_model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
@@ -21,7 +22,9 @@ trait PmdWaiterPosTerminalProvidersConcern
         if (Schema::hasTable('terminal_devices')) {
             $columns = Schema::getColumnListing('terminal_devices');
 
-            foreach (['sumup', 'vr_payment', 'worldline', 'square'] as $providerCode) {
+            // PMD_SQUARE_TERMINAL_CANADA_R10_MARKET_INVENTORY
+            $allowedProviderCodes = array_keys(Terminal_devices_model::listProviderOptions());
+            foreach ($allowedProviderCodes as $providerCode) {
                 try {
                     $query = DB::table('terminal_devices')
                         ->whereRaw('LOWER(provider_code) = ?', [$providerCode])

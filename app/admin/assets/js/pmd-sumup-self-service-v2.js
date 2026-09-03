@@ -1,6 +1,9 @@
 (function () {
   'use strict';
 
+  // PMD_TERMINAL_MARKET_UI_CACHE_BUST_R9
+  // Unique asset filename forces browsers to load the market-aware ownership guard.
+
   // PMD_SETTINGS_DYNAMIC_I18N_V17
   function settingsText(value) {
     var runtime = window.PMDPlatformMessages;
@@ -14,7 +17,7 @@
     return esc(settingsText(value));
   }
 
-  if (window.PMDSumupSelfServiceV1) return;
+  if (window.PMDSumupSelfServiceV2) return;
 
   var state = {
     root: null,
@@ -421,7 +424,7 @@
 
   document.addEventListener('click', guardLegacyTerminalEditor, true);
 
-  window.PMDSumupSelfServiceV1 = {
+  window.PMDSumupSelfServiceV2 = {
     mount:mount,
     reload:load,
     focusPairing:focusPairing

@@ -19,6 +19,43 @@ final class SquareTerminalProvider implements TerminalPaymentProviderInterface
         return 'square';
     }
 
+    // PMD_SQUARE_TERMINAL_CANADA_R10_SIMULATORS
+    public static function canadaSandboxDevices(): array
+    {
+        return [
+            '388b5a08-a77c-48ef-ad2a-4a790e6f2789' => [
+                'name' => 'Square Sandbox Canada - Interac success',
+                'expected_status' => 'COMPLETED',
+                'currency' => 'CAD',
+            ],
+            '2b0b734b-b187-47f0-9d6f-288745210bdb' => [
+                'name' => 'Square Sandbox Canada - Interac success + 20% tip',
+                'expected_status' => 'COMPLETED',
+                'currency' => 'CAD',
+            ],
+            '841100b9-ee60-4537-9bcf-e30b2ba5e215' => [
+                'name' => 'Square Sandbox - buyer cancels',
+                'expected_status' => 'CANCELED',
+                'currency' => 'CAD',
+            ],
+            '0a956d49-619a-4530-8e5e-8eac603ffc5e' => [
+                'name' => 'Square Sandbox - immediate timeout',
+                'expected_status' => 'CANCELED',
+                'currency' => 'CAD',
+            ],
+            'da40d603-c2ea-4a65-8cfd-f42e36dab0c7' => [
+                'name' => 'Square Sandbox - terminal offline / pending',
+                'expected_status' => 'PENDING',
+                'currency' => 'CAD',
+            ],
+        ];
+    }
+
+    public static function isCanadaSandboxDeviceId(string $deviceId): bool
+    {
+        return array_key_exists(trim($deviceId), self::canadaSandboxDevices());
+    }
+
     public function validateConfiguration(array $config): array
     {
         foreach (['access_token', 'location_id', 'device_id'] as $field) {

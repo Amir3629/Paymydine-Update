@@ -9,6 +9,10 @@
     $data = $pmdDevices ?? [];
     $pos = $data['pos'] ?? collect();
     $terminals = $data['terminals'] ?? collect();
+    $terminalProviders = (array)($data['terminal_provider_options'] ?? []);
+    $pmdTerminalProviderCodes = array_values(array_map(static fn ($code) => strtolower(trim((string)$code)), array_keys($terminalProviders)));
+    $pmdLegacySumupOnly = count($pmdTerminalProviderCodes) === 1 && $pmdTerminalProviderCodes[0] === 'sumup';
+    $archivedTerminalCount = (int)($data['archived_terminal_count'] ?? 0);
     $drawers = $data['drawers'] ?? collect();
     $biometric = $data['biometric'] ?? collect();
     $kds = $data['kds'] ?? collect();
@@ -77,8 +81,8 @@
         </div>
     </section>
 
-    <section class="pmd-owner-section" id="payment-terminals">
-        <div class="pmd-owner-card" data-accent="blue">
+    <section class="pmd-owner-section" id="payment-terminals" data-pmd-terminal-market-ui="1" data-pmd-terminal-provider-codes="{{ implode(',', array_keys($terminalProviders)) }}">
+        <div class="pmd-owner-card" data-accent="blue" data-pmd-sumup-self-service="{{ $pmdLegacySumupOnly ? '0' : '1' }}">
             <div class="pmd-owner-card__header">
                 <div class="pmd-owner-card__icon">
                     <svg viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"></rect><path d="M8 6h8M8 10h2M12 10h2M16 10h.01M8 14h8"></path></svg>
@@ -87,18 +91,46 @@
                 <div class="pmd-owner-card__actions"><button type="button" class="pmd-owner-action pmd-device-v6-header-add" data-pmd-device-open="terminals:create">{{ $pmdSettingsText('+ Add terminal') }}</button></div>
             </div>
             <div class="pmd-owner-card__body">
+                {{-- PMD_SQUARE_TERMINAL_CANADA_R7_VIEW --}}
                 <div class="pmd-owner-list">
-                    @forelse($terminals as $terminal)
+                    @forelse($terminalProviders as $providerCode => $providerLabel)
+                        @php
+                            $configuredForProvider = $terminals->filter(static function ($terminal) use ($providerCode) {
+                                return strtolower(trim((string)($terminal->provider_code ?? ''))) === strtolower(trim((string)$providerCode));
+                            })->count();
+                        @endphp
                         <div class="pmd-owner-list-row">
-                            <div><strong>{{ $terminal->reader_label ?: $terminal->reader_id ?: 'Payment terminal' }}</strong><small>{{ strtoupper((string)($terminal->provider_code ?: 'provider')) }}</small></div>
-                            <div class="pmd-owner-meta">{{ $pmdSettingsText($terminal->pairing_state ?: 'Unknown pairing') }}</div>
-                            <div class="pmd-owner-status {{ !empty($terminal->is_active) ? 'is-active' : '' }}">{{ $pmdSettingsText(!empty($terminal->is_active) ? ($terminal->terminal_status ?: 'Active') : 'Inactive') }}</div>
-                            <button type="button" class="pmd-owner-action" data-pmd-device-open="terminals:edit:{{ $terminal->terminal_device_id }}">{{ $pmdSettingsText('Edit') }}</button>
+                            <div>
+                                <strong>{{ $pmdSettingsText($providerLabel) }}</strong>
+                                <small>{{ $providerCode === 'square' ? $pmdSettingsText('Canada · CAD · Square Terminal API') : $pmdSettingsText('Available for this restaurant market') }}</small>
+                            </div>
+                            <div class="pmd-owner-meta">{{ $configuredForProvider > 0 ? $configuredForProvider.' '.$pmdSettingsText('configured') : $pmdSettingsText('Not configured yet') }}</div>
+                            <div class="pmd-owner-status is-active">{{ $pmdSettingsText('Available') }}</div>
+                            @if($configuredForProvider < 1)
+                                <button type="button" class="pmd-owner-action" data-pmd-device-open="terminals:create">{{ $pmdSettingsText('+ Add terminal') }}</button>
+                            @endif
                         </div>
                     @empty
-                        <div class="pmd-owner-empty">{{ $pmdSettingsText('No payment terminals are configured yet.') }}</div>
+                        <div class="pmd-owner-empty">{{ $pmdSettingsText('No terminal provider is enabled for this restaurant market.') }}</div>
                     @endforelse
                 </div>
+
+                @if($terminals->isNotEmpty())
+                    <div class="pmd-owner-list">
+                        @foreach($terminals as $terminal)
+                            <div class="pmd-owner-list-row">
+                                <div><strong>{{ $terminal->reader_label ?: $terminal->reader_id ?: 'Payment terminal' }}</strong><small>{{ strtoupper((string)($terminal->provider_code ?: 'provider')) }}</small></div>
+                                <div class="pmd-owner-meta">{{ $pmdSettingsText($terminal->pairing_state ?: 'Unknown pairing') }}</div>
+                                <div class="pmd-owner-status {{ !empty($terminal->is_active) ? 'is-active' : '' }}">{{ $pmdSettingsText(!empty($terminal->is_active) ? ($terminal->terminal_status ?: 'Active') : 'Inactive') }}</div>
+                                <button type="button" class="pmd-owner-action" data-pmd-device-open="terminals:edit:{{ $terminal->terminal_device_id }}">{{ $pmdSettingsText('Edit') }}</button>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+
+                @if($archivedTerminalCount > 0)
+                    <div class="pmd-owner-empty">{{ $archivedTerminalCount }} {{ $pmdSettingsText('terminal configuration(s) from another market are archived and hidden here.') }}</div>
+                @endif
             </div>
         </div>
     </section>
