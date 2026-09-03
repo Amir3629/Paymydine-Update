@@ -35,54 +35,83 @@ def insert_before_once(path: Path, anchor: str, block: str, marker: str, label: 
 
 
 def insert_square_single_action_guard(path: Path):
-    """Suppress the generic Pay button for Square wallets across both live JSX shapes.
+    """Suppress the generic Pay button for Square wallets in PaymentPanel only.
 
-    Production can have either the newer Worldline-owned ternary chain or the older
-    direct PayPal branch. Patch only an exact, unique local anchor and fail closed on
-    ambiguity instead of assuming that Worldline's hidden canonical marker exists.
+    RuntimeOverlays also contains MultiOrderPaymentPanel with its own PayPal branch.
+    A file-global anchor search can patch that unrelated component and reference
+    isSquareSingleAction outside its scope. Restrict every search/replacement to
+    the canonical single-order PaymentPanel and fail closed if scope is ambiguous.
     """
     text = path.read_text()
+    panel_start_marker = 'function PaymentPanel('
+    panel_end_marker = '\ntype R32MultiOrderCopy ='
 
+    if text.count(panel_start_marker) != 1 or text.count(panel_end_marker) != 1:
+        raise SystemExit('STOP: Square single-action PaymentPanel scope is ambiguous')
+
+    panel_start = text.find(panel_start_marker)
+    panel_end = text.find(panel_end_marker, panel_start)
+    if panel_end < 0 or panel_end <= panel_start:
+        raise SystemExit('STOP: Square single-action PaymentPanel end marker not found')
+
+    panel = text[panel_start:panel_end]
     applied_variants = [
         "      ) : isSquareSingleAction ? null : isPayPalInline && selectedMethod && canStartPayment ? (\n",
         "      {isSquareSingleAction ? null : isPayPalInline && selectedMethod && canStartPayment ? (\n",
     ]
-    if any(applied in text for applied in applied_variants):
-        print('PASS: Square wallets suppress the duplicate generic Pay action already applied')
-        return
 
-    # Current production/main can still start this chain directly with PayPal and
-    # therefore has no Worldline canonical-anchor element at all.
-    direct_target = "      {isPayPalInline && selectedMethod && canStartPayment ? (\n"
-    direct_count = text.count(direct_target)
-    if direct_count == 1:
-        direct_replacement = "      {isSquareSingleAction ? null : isPayPalInline && selectedMethod && canStartPayment ? (\n"
-        path.write_text(text.replace(direct_target, direct_replacement, 1))
-        print('PASS: Square wallets suppress the duplicate generic Pay action (direct PayPal chain)')
-        return
-    if direct_count > 1:
-        raise SystemExit(f'STOP: Square wallets suppress duplicate Pay action: direct PayPal anchor is ambiguous ({direct_count})')
+    if any(applied in panel for applied in applied_variants):
+        print('PASS: Square wallets suppress the duplicate generic Pay action already applied in PaymentPanel')
+    else:
+        # Older trees can start the canonical single-order chain directly with PayPal.
+        direct_target = "      {isPayPalInline && selectedMethod && canStartPayment ? (\n"
+        direct_count = panel.count(direct_target)
+        if direct_count == 1:
+            direct_replacement = "      {isSquareSingleAction ? null : isPayPalInline && selectedMethod && canStartPayment ? (\n"
+            panel = panel.replace(direct_target, direct_replacement, 1)
+            print('PASS: Square wallets suppress the duplicate generic Pay action (single-order direct PayPal chain)')
+        elif direct_count > 1:
+            raise SystemExit(f'STOP: Square wallets suppress duplicate Pay action: PaymentPanel direct PayPal anchor is ambiguous ({direct_count})')
+        else:
+            # Newer trees have Worldline's hidden canonical anchor before PayPal.
+            marker = 'data-pmd-worldline-canonical-anchor="true"'
+            marker_at = panel.find(marker)
+            if marker_at < 0:
+                raise SystemExit('STOP: Square wallets suppress duplicate Pay action: no recognized PaymentPanel PayPal anchor found')
 
-    # Newer trees may have Worldline's hidden anchor before the same PayPal branch.
-    marker = 'data-pmd-worldline-canonical-anchor="true"'
-    marker_at = text.find(marker)
-    if marker_at >= 0:
-        worldline_target = "      ) : isPayPalInline && selectedMethod && canStartPayment ? (\n"
-        target_at = text.find(worldline_target, marker_at)
-        if target_at < 0:
-            raise SystemExit('STOP: Square wallets suppress duplicate Pay action: PayPal branch after Worldline anchor not found')
+            worldline_target = "      ) : isPayPalInline && selectedMethod && canStartPayment ? (\n"
+            target_at = panel.find(worldline_target, marker_at)
+            if target_at < 0:
+                raise SystemExit('STOP: Square wallets suppress duplicate Pay action: PayPal branch after Worldline anchor not found in PaymentPanel')
+            if target_at - marker_at > 1600:
+                raise SystemExit('STOP: Square wallets suppress duplicate Pay action: PaymentPanel PayPal branch is unexpectedly far from Worldline anchor')
 
-        # Do not silently patch a distant unrelated chain.
-        if target_at - marker_at > 1600:
-            raise SystemExit('STOP: Square wallets suppress duplicate Pay action: PayPal branch is unexpectedly far from Worldline anchor')
+            replacement = "      ) : isSquareSingleAction ? null : isPayPalInline && selectedMethod && canStartPayment ? (\n"
+            panel = panel[:target_at] + replacement + panel[target_at + len(worldline_target):]
+            print('PASS: Square wallets suppress the duplicate generic Pay action (single-order Worldline chain)')
 
-        replacement = "      ) : isSquareSingleAction ? null : isPayPalInline && selectedMethod && canStartPayment ? (\n"
-        updated = text[:target_at] + replacement + text[target_at + len(worldline_target):]
-        path.write_text(updated)
-        print('PASS: Square wallets suppress the duplicate generic Pay action (Worldline chain)')
-        return
+        text = text[:panel_start] + panel + text[panel_end:]
+        path.write_text(text)
 
-    raise SystemExit('STOP: Square wallets suppress duplicate Pay action: no recognized unique PayPal action anchor found')
+    # Guard against the exact regression that previously passed the patcher but
+    # failed TypeScript: MultiOrderPaymentPanel must never reference this local flag.
+    verified = path.read_text()
+    multi_start_marker = 'function MultiOrderPaymentPanel('
+    multi_end_marker = '\nfunction getSafeGuestSession('
+    if verified.count(multi_start_marker) != 1 or verified.count(multi_end_marker) != 1:
+        raise SystemExit('STOP: Square single-action MultiOrderPaymentPanel scope is ambiguous')
+    multi_start = verified.find(multi_start_marker)
+    multi_end = verified.find(multi_end_marker, multi_start)
+    multi = verified[multi_start:multi_end]
+    if 'isSquareSingleAction' in multi:
+        raise SystemExit('STOP: isSquareSingleAction leaked into MultiOrderPaymentPanel')
+
+    single = verified[verified.find(panel_start_marker):verified.find(panel_end_marker, verified.find(panel_start_marker))]
+    if 'const isSquareSingleAction = Boolean(' not in single:
+        raise SystemExit('STOP: isSquareSingleAction declaration is missing from PaymentPanel')
+    if 'isSquareSingleAction ? null : isPayPalInline' not in single:
+        raise SystemExit('STOP: Square duplicate generic Pay suppression is missing from PaymentPanel')
+    print('PASS: Square single-action flag is scoped only to PaymentPanel')
 
 
 # Start from the fully validated R4 integration. R4 is idempotent on an already
