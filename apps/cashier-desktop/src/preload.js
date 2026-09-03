@@ -2,16 +2,17 @@
 
 const { contextBridge, ipcRenderer, webFrame } = require('electron');
 
-const APP_VERSION = '1.4.1';
+const APP_VERSION = '1.5.0';
 
 contextBridge.exposeInMainWorld('PayMyDineDesktop', Object.freeze({
   isDesktopApp: true,
   fullPlatformApp: true,
+  desktopPlatformV150: true,
   desktopPlatformV141: true,
   desktopPlatformV140: true,
   seamlessRoutePoolV140: true,
   windowsDeviceModeV141: true,
-  windowsDeviceModeV140: true,
+  linuxApplianceV150: true,
   localCacheV130: true,
   platform: process.platform,
   printerCompatibilityV109: true,
@@ -19,11 +20,11 @@ contextBridge.exposeInMainWorld('PayMyDineDesktop', Object.freeze({
   getConfig: () => ipcRenderer.invoke('pmd:get-config').then((cfg) => Object.assign({}, cfg || {}, {
     appVersion: APP_VERSION,
     product: 'PayMyDine Desktop',
+    desktopPlatformV150: true,
     desktopPlatformV141: true,
-    desktopPlatformV140: true,
     seamlessRoutePoolV140: true,
     windowsDeviceModeV141: true,
-    windowsDeviceModeV140: true,
+    linuxApplianceV150: true,
     localCacheV130: true,
     platform: process.platform,
   })),
@@ -37,6 +38,8 @@ contextBridge.exposeInMainWorld('PayMyDineDesktop', Object.freeze({
   deviceModeState: () => ipcRenderer.invoke('pmd:device-mode-state'),
   enableDeviceMode: () => ipcRenderer.invoke('pmd:device-mode-enable'),
   openDeveloperExit: () => ipcRenderer.invoke('pmd:developer-exit-open'),
+  linuxApplianceState: () => ipcRenderer.invoke('pmd:linux-appliance-state'),
+  openLinuxDeveloperExit: () => ipcRenderer.invoke('pmd:linux-developer-exit-open'),
 
   listPrinters: () => ipcRenderer.invoke('pmd:list-printers'),
   saveHardware: (values) => ipcRenderer.invoke('pmd:save-hardware', values || {}),
@@ -147,17 +150,24 @@ function installFastNavigationV140() {
   window.addEventListener('pageshow', warm);
 }
 
-function installDeveloperExitButtonV140() {
-  if (process.isMainFrame === false || process.platform !== 'win32') return;
+function installDeveloperExitButtonV150() {
+  if (process.isMainFrame === false || !['win32', 'linux'].includes(process.platform)) return;
 
   const ensureButton = async () => {
     let state;
-    try { state = await ipcRenderer.invoke('pmd:device-mode-state'); } catch (_) { return; }
-    if (!state || !state.enabled || state.developerDesktop) return;
-    if (document.getElementById('pmd-device-mode-exit-v140')) return;
+    try {
+      state = process.platform === 'win32'
+        ? await ipcRenderer.invoke('pmd:device-mode-state')
+        : await ipcRenderer.invoke('pmd:linux-appliance-state');
+    } catch (_) {
+      return;
+    }
+
+    if (!state || !state.enabled || state.developerDesktop || state.developerExitRequested) return;
+    if (document.getElementById('pmd-device-mode-exit-v150')) return;
 
     const button = document.createElement('button');
-    button.id = 'pmd-device-mode-exit-v140';
+    button.id = 'pmd-device-mode-exit-v150';
     button.type = 'button';
     button.textContent = 'DEV';
     button.title = 'Developer exit';
@@ -189,7 +199,10 @@ function installDeveloperExitButtonV140() {
       event.preventDefault();
       event.stopPropagation();
       event.stopImmediatePropagation();
-      ipcRenderer.invoke('pmd:developer-exit-open').catch(() => {});
+      const channel = process.platform === 'win32'
+        ? 'pmd:developer-exit-open'
+        : 'pmd:linux-developer-exit-open';
+      ipcRenderer.invoke(channel).catch(() => {});
     }, true);
     (document.body || document.documentElement).appendChild(button);
   };
@@ -200,7 +213,7 @@ function installDeveloperExitButtonV140() {
 }
 
 installFastNavigationV140();
-installDeveloperExitButtonV140();
+installDeveloperExitButtonV150();
 
 if (process.isMainFrame !== false) {
   webFrame.executeJavaScript(`(function(){
