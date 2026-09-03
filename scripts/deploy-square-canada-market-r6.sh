@@ -9,7 +9,7 @@ BASE="https://raw.githubusercontent.com/Amir3629/Paymydine-Update/$SHA"
 
 # Direct assets are downloaded from the exact reviewed branch head. Host files
 # that may contain newer VPS hotfixes are patched in-place by the idempotent
-# R4 -> repaired R5 -> R6 chain instead of being blindly replaced.
+# R4 -> repaired R5 -> R6 -> R6A chain instead of being blindly replaced.
 DOWNLOAD_FILES=(
   "app/Services/Payments/SquareRuntimeService.php"
   "app/Services/TerminalPayments/SquareTerminalProvider.php"
@@ -24,6 +24,7 @@ DOWNLOAD_FILES=(
   "scripts/pmd-square-runtime-terminal-r4.py"
   "scripts/pmd-square-ui-runtime-r5.py"
   "scripts/pmd-square-canada-market-r6.py"
+  "scripts/pmd-square-canada-finance-r6a.py"
 )
 
 PATCHED_FILES=(
@@ -36,6 +37,7 @@ PATCHED_FILES=(
   "app/admin/controllers/PaymentMarketSettings.php"
   "app/admin/controllers/Pmdfinance.php"
   "app/admin/controllers/Payments.php"
+  "app/admin/assets/js/pmd-finance-market-r4.js"
   "app/Services/PmdTenantProductBaselineR1.php"
   "app/admin/models/Terminal_devices_model.php"
   "app/admin/controllers/TerminalDevices.php"
@@ -103,12 +105,14 @@ python3 -m py_compile \
   "$ROOT/scripts/pmd-square-runtime-terminal-r3.py" \
   "$ROOT/scripts/pmd-square-runtime-terminal-r4.py" \
   "$ROOT/scripts/pmd-square-ui-runtime-r5.py" \
-  "$ROOT/scripts/pmd-square-canada-market-r6.py"
+  "$ROOT/scripts/pmd-square-canada-market-r6.py" \
+  "$ROOT/scripts/pmd-square-canada-finance-r6a.py"
 
 echo "=========================================="
-echo "APPLY R4 -> REPAIRED R5 -> CANADA R6"
+echo "APPLY R4 -> REPAIRED R5 -> CANADA R6 -> FINANCE R6A"
 echo "=========================================="
 sudo python3 "$ROOT/scripts/pmd-square-canada-market-r6.py"
+sudo python3 "$ROOT/scripts/pmd-square-canada-finance-r6a.py"
 
 echo "=========================================="
 echo "VERIFY CANADA SUPERADMIN MARKET"
@@ -131,6 +135,14 @@ if ($providers !== ["square"]) { fwrite(STDERR, "Canada provider list must be Sq
 if (!isset($p->countryOptions()["CA"])) { fwrite(STDERR, "Canada is missing from SuperAdmin countryOptions\n"); exit(1); }
 echo "PASS: SuperAdmin registry resolves Canada -> CA / CAD / America/Toronto / Square only\n";
 '
+
+echo "=========================================="
+echo "VERIFY CANADA PAYMENTS & FINANCE FIRST PAINT"
+echo "=========================================="
+grep -n "PMD_CANADA_FINANCE_FIRST_PAINT_R6" "$ROOT/app/admin/controllers/Pmdfinance.php"
+grep -n "\$providerCodes = \['square'\]" "$ROOT/app/admin/controllers/Pmdfinance.php"
+grep -n "Canada · CAD · America/Toronto · Square" "$ROOT/app/admin/assets/js/pmd-finance-market-r4.js"
+node --check "$ROOT/app/admin/assets/js/pmd-finance-market-r4.js"
 
 echo "=========================================="
 echo "VERIFY SQUARE CANADA-ONLY RUNTIME"
