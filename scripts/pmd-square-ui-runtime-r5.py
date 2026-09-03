@@ -34,6 +34,38 @@ def insert_before_once(path: Path, anchor: str, block: str, marker: str, label: 
     print(f'PASS: {label}')
 
 
+def insert_square_single_action_guard(path: Path):
+    """Patch the single-order payment chain without depending on the whole Worldline block.
+
+    Production has evolved around the hidden Worldline anchor, so matching the complete JSX
+    block is too brittle. The hidden Worldline marker is still the canonical local boundary;
+    patch only the first PayPal branch that follows it.
+    """
+    text = path.read_text()
+    applied = "      ) : isSquareSingleAction ? null : isPayPalInline && selectedMethod && canStartPayment ? (\n"
+    if applied in text:
+        print('PASS: Square wallets suppress the duplicate generic Pay action already applied')
+        return
+
+    marker = 'data-pmd-worldline-canonical-anchor="true"'
+    marker_at = text.find(marker)
+    if marker_at < 0:
+        raise SystemExit('STOP: Square wallets suppress duplicate Pay action: Worldline canonical anchor not found')
+
+    target = "      ) : isPayPalInline && selectedMethod && canStartPayment ? (\n"
+    target_at = text.find(target, marker_at)
+    if target_at < 0:
+        raise SystemExit('STOP: Square wallets suppress duplicate Pay action: PayPal branch after Worldline anchor not found')
+
+    # Do not silently patch a distant unrelated chain.
+    if target_at - marker_at > 1600:
+        raise SystemExit('STOP: Square wallets suppress duplicate Pay action: PayPal branch is unexpectedly far from Worldline anchor')
+
+    text = text[:target_at] + applied + text[target_at + len(target):]
+    path.write_text(text)
+    print('PASS: Square wallets suppress the duplicate generic Pay action')
+
+
 # Start from the fully validated R4 integration. R4 is idempotent on an already
 # deployed R4 tree and repairs its own single-order anchor before running R1-R3.
 runpy.run_path(str(R4), run_name='__main__')
@@ -142,34 +174,7 @@ replace_once(
     'Square card receives settlement mode',
 )
 
-worldline_tail = r'''      {isWorldlineSingleAction ? (
-        <button
-          type="button"
-          tabIndex={-1}
-          aria-hidden="true"
-          data-pmd-worldline-canonical-anchor="true"
-          onClick={() => void pay()}
-          style={{ display: 'none' }}
-        />
-      ) : isPayPalInline && selectedMethod && canStartPayment ? (
-'''
-worldline_tail_r5 = r'''      {isWorldlineSingleAction ? (
-        <button
-          type="button"
-          tabIndex={-1}
-          aria-hidden="true"
-          data-pmd-worldline-canonical-anchor="true"
-          onClick={() => void pay()}
-          style={{ display: 'none' }}
-        />
-      ) : isSquareSingleAction ? null : isPayPalInline && selectedMethod && canStartPayment ? (
-'''
-replace_once(
-    RUNTIME,
-    worldline_tail,
-    worldline_tail_r5,
-    'Square wallets suppress the duplicate generic Pay action',
-)
+insert_square_single_action_guard(RUNTIME)
 
 runtime = RUNTIME.read_text()
 required = [
