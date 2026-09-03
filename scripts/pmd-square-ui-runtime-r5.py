@@ -63,9 +63,9 @@ def insert_square_single_action_guard(path: Path):
 
     panel = text[panel_start:panel_end]
     applied_variants = [
-        "      ) : isSquareSingleAction ? null : isPayPalInline && selectedMethod && canStartPayment ? (\n",
-        "      {isSquareSingleAction ? null : isPayPalInline && selectedMethod && canStartPayment ? (\n",
-        "      {isWorldlineSingleAction ? null : isSquareSingleAction ? null : isPayPalInline && selectedMethod && canStartPayment ? (\n",
+        ') : isSquareSingleAction ? null : isPayPalInline && selectedMethod && canStartPayment ? (',
+        '{isSquareSingleAction ? null : isPayPalInline && selectedMethod && canStartPayment ? (',
+        '{isWorldlineSingleAction ? null : isSquareSingleAction ? null : isPayPalInline && selectedMethod && canStartPayment ? (',
     ]
 
     if any(applied in panel for applied in applied_variants):
@@ -74,20 +74,20 @@ def insert_square_single_action_guard(path: Path):
         # Current live Worldline removes its old hidden canonical element and starts
         # the action chain with a null guard. Compose Square immediately after that
         # guard so each provider remains single-action and PayPal stays the fallback.
-        worldline_null_target = "      {isWorldlineSingleAction ? null : isPayPalInline && selectedMethod && canStartPayment ? (\n"
+        worldline_null_target = '{isWorldlineSingleAction ? null : isPayPalInline && selectedMethod && canStartPayment ? ('
         worldline_null_count = panel.count(worldline_null_target)
         if worldline_null_count == 1:
-            worldline_null_replacement = "      {isWorldlineSingleAction ? null : isSquareSingleAction ? null : isPayPalInline && selectedMethod && canStartPayment ? (\n"
+            worldline_null_replacement = '{isWorldlineSingleAction ? null : isSquareSingleAction ? null : isPayPalInline && selectedMethod && canStartPayment ? ('
             panel = panel.replace(worldline_null_target, worldline_null_replacement, 1)
             print('PASS: Square wallets suppress the duplicate generic Pay action (current Worldline null-chain)')
         elif worldline_null_count > 1:
             raise SystemExit(f'STOP: Square wallets suppress duplicate Pay action: PaymentPanel Worldline null-chain is ambiguous ({worldline_null_count})')
         else:
             # Older trees can start the canonical single-order chain directly with PayPal.
-            direct_target = "      {isPayPalInline && selectedMethod && canStartPayment ? (\n"
+            direct_target = '{isPayPalInline && selectedMethod && canStartPayment ? ('
             direct_count = panel.count(direct_target)
             if direct_count == 1:
-                direct_replacement = "      {isSquareSingleAction ? null : isPayPalInline && selectedMethod && canStartPayment ? (\n"
+                direct_replacement = '{isSquareSingleAction ? null : isPayPalInline && selectedMethod && canStartPayment ? ('
                 panel = panel.replace(direct_target, direct_replacement, 1)
                 print('PASS: Square wallets suppress the duplicate generic Pay action (single-order direct PayPal chain)')
             elif direct_count > 1:
@@ -99,14 +99,14 @@ def insert_square_single_action_guard(path: Path):
                 if marker_at < 0:
                     raise SystemExit('STOP: Square wallets suppress duplicate Pay action: no recognized PaymentPanel PayPal anchor found')
 
-                worldline_target = "      ) : isPayPalInline && selectedMethod && canStartPayment ? (\n"
+                worldline_target = ') : isPayPalInline && selectedMethod && canStartPayment ? ('
                 target_at = panel.find(worldline_target, marker_at)
                 if target_at < 0:
                     raise SystemExit('STOP: Square wallets suppress duplicate Pay action: PayPal branch after Worldline anchor not found in PaymentPanel')
                 if target_at - marker_at > 1600:
                     raise SystemExit('STOP: Square wallets suppress duplicate Pay action: PaymentPanel PayPal branch is unexpectedly far from Worldline anchor')
 
-                replacement = "      ) : isSquareSingleAction ? null : isPayPalInline && selectedMethod && canStartPayment ? (\n"
+                replacement = ') : isSquareSingleAction ? null : isPayPalInline && selectedMethod && canStartPayment ? ('
                 panel = panel[:target_at] + replacement + panel[target_at + len(worldline_target):]
                 print('PASS: Square wallets suppress the duplicate generic Pay action (single-order Worldline hidden-anchor chain)')
 
