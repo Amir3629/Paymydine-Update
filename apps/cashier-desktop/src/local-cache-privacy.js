@@ -8,16 +8,22 @@ function settingsPath() {
   return path.join(app.getPath('userData'), 'settings.json');
 }
 
-function storePath() {
-  return path.join(app.getPath('userData'), 'desktop-local-cache-v121.json');
+function storePaths() {
+  return [
+    path.join(app.getPath('userData'), 'desktop-local-cache-v121.json'),
+    path.join(app.getPath('userData'), 'desktop-local-cache-v130.json'),
+  ];
 }
 
-function snapshotRoot() {
-  return path.join(app.getPath('userData'), 'platform-snapshots-v121');
+function snapshotRoots() {
+  return [
+    path.join(app.getPath('userData'), 'platform-snapshots-v121'),
+    path.join(app.getPath('userData'), 'platform-snapshots-v130'),
+  ];
 }
 
-function tenantDir(tenant) {
-  return path.join(snapshotRoot(), String(tenant || '').replace(/[^a-z0-9.-]/g, '_'));
+function tenantDir(root, tenant) {
+  return path.join(root, String(tenant || '').replace(/[^a-z0-9.-]/g, '_'));
 }
 
 function readTenant() {
@@ -37,14 +43,18 @@ function clearFile(file) {
 }
 
 function clearAllBusinessCache() {
-  clearFile(storePath());
-  try { fs.rmSync(snapshotRoot(), { recursive: true, force: true }); } catch (_) {}
+  storePaths().forEach(clearFile);
+  snapshotRoots().forEach((root) => {
+    try { fs.rmSync(root, { recursive: true, force: true }); } catch (_) {}
+  });
 }
 
 function clearTenantBusinessCache(tenant) {
-  clearFile(storePath());
+  storePaths().forEach(clearFile);
   if (!tenant) return;
-  try { fs.rmSync(tenantDir(tenant), { recursive: true, force: true }); } catch (_) {}
+  snapshotRoots().forEach((root) => {
+    try { fs.rmSync(tenantDir(root, tenant), { recursive: true, force: true }); } catch (_) {}
+  });
 }
 
 function install() {
