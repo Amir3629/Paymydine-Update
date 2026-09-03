@@ -16,7 +16,7 @@
     "plugins": [{ "name": "next" }],
     "paths": {
       "@/src/runtime/MenuRuntimeContext": ["./src/runtime/SmartMenuRuntimeContext.tsx"],
-      "@/src/runtime/components/RuntimeOverlays": ["./src/runtime/components/OrderingRuntimeOverlaysR60T.tsx"],
+      "@/src/runtime/components/RuntimeOverlays": ["./src/runtime/components/MenuGalleryRuntimeOverlaysV1.tsx"],
       "@/*": ["./*"]
     }
   },
