@@ -6,13 +6,15 @@ COUNTRY="$ROOT/app/Services/Platform/CountryPlatformProfileRegistry.php"
 FOUNDATION="$ROOT/app/Services/Platform/TenantRegionalFoundationService.php"
 TENANT_PROFILE="$ROOT/app/Services/Platform/TenantPlatformProfileService.php"
 MARKET_SETTINGS="$ROOT/app/admin/controllers/PaymentMarketSettings.php"
+FINANCE="$ROOT/app/admin/controllers/Pmdfinance.php"
+FINANCE_JS="$ROOT/app/admin/assets/js/pmd-finance-market-r4.js"
 RUNTIME="$ROOT/app/Services/Payments/SquareRuntimeService.php"
 TERMINAL="$ROOT/app/Services/TerminalPayments/SquareTerminalProvider.php"
 PAYMENTS="$ROOT/app/admin/controllers/Payments.php"
 OVERLAYS="$ROOT/frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815/src/runtime/components/RuntimeOverlays.tsx"
 DIRECT="$ROOT/frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815/src/runtime/components/SquareDirectMethodButton.tsx"
 
-for f in "$COUNTRY" "$FOUNDATION" "$TENANT_PROFILE" "$MARKET_SETTINGS" "$RUNTIME" "$TERMINAL" "$PAYMENTS" "$OVERLAYS" "$DIRECT"; do
+for f in "$COUNTRY" "$FOUNDATION" "$TENANT_PROFILE" "$MARKET_SETTINGS" "$FINANCE" "$FINANCE_JS" "$RUNTIME" "$TERMINAL" "$PAYMENTS" "$OVERLAYS" "$DIRECT"; do
   test -s "$f" || { echo "[square-canada] missing: $f"; exit 1; }
 done
 
@@ -47,6 +49,13 @@ grep -q "'currency_name' => 'Canadian Dollar'" "$FOUNDATION"
 grep -q "'iso_numeric' => 124" "$FOUNDATION"
 grep -q "PMD_TENANT_PLATFORM_FOREIGN_PAYMENTS_DISABLED_R6" "$TENANT_PROFILE"
 grep -q "CountryPlatformProfileRegistry::CANADA" "$MARKET_SETTINGS"
+
+# Payments & Finance must be market-scoped on first paint, not just after the
+# async market-state request. Canada gets only Square plus providerless cash.
+grep -q "PMD_CANADA_FINANCE_FIRST_PAINT_R6" "$FINANCE"
+grep -q "\$providerCodes = \['square'\]" "$FINANCE"
+grep -q "\['card', 'apple_pay', 'google_pay', 'cod', 'cash'\]" "$FINANCE"
+grep -q "Canada · CAD · America/Toronto · Square" "$FINANCE_JS"
 
 grep -q "PMD_SUPPORTED_COUNTRIES = \['CA'\]" "$RUNTIME"
 grep -q "Square is enabled in PayMyDine only for Canada (CA)." "$RUNTIME"
