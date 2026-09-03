@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { CreditCard, LoaderCircle } from 'lucide-react'
 import type { TableContext } from '@/src/domain/model'
 import {
+  finalizeExistingOrderPayment,
   payExistingOrder,
   settleExistingOrderGroup,
   type ExistingOrderPaymentAllocation,
@@ -17,6 +18,7 @@ type Props = {
   orderId: number
   orderAllocations?: ExistingOrderPaymentAllocation[] | null
   table: TableContext
+  settlementMode: 'pay-existing' | 'start-finalize'
   methodCode: string
   providerCode: string | null
   amount: number
@@ -171,6 +173,13 @@ export function SquareInlinePayment(props: Props) {
         method: props.methodCode,
         providerCode: 'square',
         paymentReference: paymentId,
+      })
+    } else if (props.settlementMode === 'start-finalize' && !intent) {
+      await finalizeExistingOrderPayment({
+        orderId: props.orderId,
+        paymentReference: paymentId,
+        methodCode: props.methodCode,
+        providerCode: 'square',
       })
     } else {
       await payExistingOrder({
