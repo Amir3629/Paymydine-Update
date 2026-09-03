@@ -127,7 +127,7 @@
           '<div class="pmd-inline-field">' +
             '<label>Terminal API Merchant ID</label>' +
             '<input type="text" data-pmd-worldline-terminal-merchant maxlength="255" autocomplete="off">' +
-            '<small>Usually the UMID supplied for Terminal API. Leave blank to use the Connect Merchant ID.</small>' +
+            '<small>Use the UMID supplied specifically for Worldline Terminal API. Do not substitute the Connect Merchant ID unless Worldline explicitly confirms they are identical for this estate.</small>' +
           '</div>' +
           '<div class="pmd-inline-field">' +
             '<label>Terminal API Base URL</label>' +

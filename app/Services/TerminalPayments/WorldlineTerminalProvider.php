@@ -180,7 +180,7 @@ final class WorldlineTerminalProvider implements TerminalPaymentProviderInterfac
 
     private function merchantId(array $config): string
     {
-        return trim((string)($config['terminal_merchant_id'] ?? env('WORLDLINE_TERMINAL_MERCHANT_ID') ?? $config['merchant_id'] ?? ''));
+        return trim((string)($config['terminal_merchant_id'] ?? env('WORLDLINE_TERMINAL_MERCHANT_ID') ?? ''));
     }
 
     private function apiToken(array $config): string

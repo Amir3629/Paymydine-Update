@@ -33,6 +33,27 @@ class TerminalPaymentService
             $config['reader_id']=(string)$terminal->reader_id;
             $terminalId=(string)$terminal->reader_id;
         }
+        if($providerCode==='worldline'){
+            if(!Schema::hasTable('terminal_devices'))return ['success'=>false,'error'=>'No Worldline terminal devices table is available.'];
+            $requested=trim((string)$terminalId);
+            $query=DB::table('terminal_devices')->whereRaw('LOWER(provider_code) = ?',['worldline'])->where('is_active',1)->whereNotNull('reader_id')->where('reader_id','!=','');
+            if($requested!=='')$query->where(function($q)use($requested){if(ctype_digit($requested))$q->orWhere('terminal_device_id',(int)$requested);$q->orWhere('reader_id',$requested);});
+            $terminal=$query->orderBy('terminal_device_id')->first();
+            if(!$terminal)return ['success'=>false,'error'=>'No active Worldline Terminal API device is configured. Add and activate it under Settings > Devices.'];
+            $config['terminal_id']=(string)$terminal->reader_id;
+            $config['reader_id']=(string)$terminal->reader_id;
+            $config['terminal_device_id']=(int)$terminal->terminal_device_id;
+            if(Schema::hasColumn('terminal_devices','environment'))$config['terminal_environment']=strtolower(trim((string)($terminal->environment??($config['terminal_environment']??'test'))));
+            $terminalId=(string)$terminal->reader_id;
+        }
+        if($providerCode==='square'){
+            $terminal=$this->resolveSquareTerminal($terminalId);
+            if(!$terminal)return ['success'=>false,'error'=>'No active Square Terminal API device is configured. Add it under Settings > Devices.'];
+            $config['device_id']=(string)$terminal->reader_id;
+            $config['reader_id']=(string)$terminal->reader_id;
+            $config['terminal_device_id']=(int)$terminal->terminal_device_id;
+            $terminalId=(string)$terminal->reader_id;
+        }
         $validation=$provider->validateConfiguration($config);if(!($validation['ok']??false)) return ['success'=>false,'error'=>$validation['message']??'Provider is not configured.'];
         $amount=(float)($order->order_total??$order->total??0);if($amount<=0)return ['success'=>false,'error'=>'Order total must be greater than zero.'];
         $currency=(string)($config['currency']??'EUR');
@@ -65,6 +86,25 @@ class TerminalPaymentService
             $config['terminal_device_id']=(int)$terminal->terminal_device_id;
             $config['reader_id']=(string)$terminal->reader_id;
         }
+        if($providerCode==='worldline'){
+            if(!Schema::hasTable('terminal_devices'))return ['success'=>false,'error'=>'Worldline terminal devices table is unavailable.'];
+            $requested=trim((string)($attempt['terminal_id']??''));
+            $query=DB::table('terminal_devices')->whereRaw('LOWER(provider_code) = ?',['worldline'])->whereNotNull('reader_id')->where('reader_id','!=','');
+            if($requested!=='')$query->where(function($q)use($requested){if(ctype_digit($requested))$q->orWhere('terminal_device_id',(int)$requested);$q->orWhere('reader_id',$requested);});
+            $terminal=$query->orderBy('terminal_device_id')->first();
+            if(!$terminal)return ['success'=>false,'error'=>'Worldline terminal for this attempt was not found.'];
+            $config['terminal_id']=(string)$terminal->reader_id;
+            $config['reader_id']=(string)$terminal->reader_id;
+            $config['terminal_device_id']=(int)$terminal->terminal_device_id;
+            if(Schema::hasColumn('terminal_devices','environment'))$config['terminal_environment']=strtolower(trim((string)($terminal->environment??($config['terminal_environment']??'test'))));
+        }
+        if($providerCode==='square'){
+            $terminal=$this->resolveSquareTerminal((string)($attempt['terminal_id']??''));
+            if(!$terminal)return ['success'=>false,'error'=>'Square terminal for this attempt was not found.'];
+            $config['device_id']=(string)$terminal->reader_id;
+            $config['reader_id']=(string)$terminal->reader_id;
+            $config['terminal_device_id']=(int)$terminal->terminal_device_id;
+        }
         $result=$provider->checkStatus($attempt,$config);$status=(string)($result['status']??($attempt['status']??'pending'));
         DB::table('payment_attempts')->where('id',$attemptId)->update($this->filterColumns('payment_attempts',['status'=>$status,'response_payload'=>json_encode($this->redact($result)),'error_message'=>($result['ok']??false)?null:($result['message']??null),'updated_at'=>now()]));
         if($status==='paid')$this->settleSuccessfulAttempt($attemptId,$result);
@@ -79,7 +119,7 @@ class TerminalPaymentService
 
     public function provider(string $code):TerminalPaymentProviderInterface
     {
-        return match(strtolower($code)){'sumup'=>new SumupTerminalProvider(),'worldline'=>new WorldlineTerminalProvider(),'vr_payment'=>new VrPaymentTerminalProvider(),default=>new NullTerminalProvider($code)};
+        return match(strtolower($code)){'sumup'=>new SumupTerminalProvider(),'worldline'=>new WorldlineTerminalProvider(),'square'=>new SquareTerminalProvider(),'vr_payment'=>new VrPaymentTerminalProvider(),default=>new NullTerminalProvider($code)};
     }
 
     public function providerConfig(string $code):array
@@ -93,6 +133,15 @@ class TerminalPaymentService
         }
         if($code==='sumup'&&(empty($config['access_token'])||empty($config['id_application']))){$legacy=$this->legacySumupConfig();$config=array_merge($legacy,array_filter($config,static fn($value)=>$value!==null&&$value!==''));}
         if($code==='sumup'){$config['url']=rtrim((string)($config['url']??'https://api.sumup.com'),'/');$config['merchant_code']=(string)($config['merchant_code']??$config['id_application']??'');$config['id_application']=(string)($config['id_application']??$config['merchant_code']??'');$config['affiliate_app_id']=(string)($config['affiliate_app_id']??SumupTenantConnectionService::APP_ID);$config['currency']=strtoupper((string)($config['currency']??'EUR'));}
+        if($code==='square'){
+            $mode=strtolower(trim((string)($config['transaction_mode']??'test')))==='live'?'live':'test';
+            $prefix=$mode==='live'?'live_':'test_';
+            $config['transaction_mode']=$mode;
+            $config['mode']=$mode;
+            $config['access_token']=trim((string)($config[$prefix.'access_token']??''));
+            $config['location_id']=trim((string)($config[$prefix.'location_id']??''));
+            try{$platform=app(\App\Services\Platform\LocationPlatformContext::class);$config['pmd_country_code']=strtoupper((string)($platform->countryCode()??''));$config['currency']=strtoupper((string)($platform->currencyCode()??($config['currency']??'')));}catch(\Throwable $ignored){$config['currency']=strtoupper((string)($config['currency']??''));}
+        }
         return $config;
     }
 
@@ -124,6 +173,15 @@ class TerminalPaymentService
             }
             $q->orWhere('reader_id',$terminalId);
         });
+        return $query->orderBy('terminal_device_id')->first();
+    }
+
+    private function resolveSquareTerminal(?string $terminalId=null)
+    {
+        if(!Schema::hasTable('terminal_devices'))return null;
+        $query=DB::table('terminal_devices')->whereRaw('LOWER(provider_code) = ?',['square'])->where('is_active',1)->whereNotNull('reader_id')->where('reader_id','!=','');
+        $terminalId=trim((string)$terminalId);
+        if($terminalId!=='')$query->where(function($q)use($terminalId){if(ctype_digit($terminalId))$q->orWhere('terminal_device_id',(int)$terminalId);$q->orWhere('reader_id',$terminalId);});
         return $query->orderBy('terminal_device_id')->first();
     }
 

@@ -94,8 +94,14 @@ final class WorldlineNativeAlternativeService
                 ?? $providerData['google_merchant_id']
                 ?? env('WORLDLINE_GOOGLE_PAY_MERCHANT_ID', '')
             ));
+            $googleEnvironment = $runtime->environment($cfg);
+            if ($googleMerchantId === '' && $googleEnvironment !== 'live') {
+                // Google Pay Web documents this merchant ID for TEST integrations.
+                // Never use it when the Worldline Connect endpoint is live.
+                $googleMerchantId = '12345678901234567890';
+            }
             if ($googleMerchantId === '') {
-                throw new \RuntimeException('Google Pay own-checkout requires the Google Merchant ID from Google Pay Business Console. Store it as google_pay_merchant_id in the Worldline provider configuration.');
+                throw new \RuntimeException('Google Pay production own-checkout requires the Google Merchant ID from Google Pay Business Console. Store it as google_pay_merchant_id in the Worldline provider configuration or WORLDLINE_GOOGLE_PAY_MERCHANT_ID.');
             }
         }
 
@@ -249,7 +255,14 @@ final class WorldlineNativeAlternativeService
         $currencyMatches = $actualCurrency !== '' && hash_equals((string)$session['expected_currency'], $actualCurrency);
         $referenceMatches = $actualReference === '' || hash_equals((string)$session['merchant_reference'], $actualReference);
         $verified = $amountMatches && $currencyMatches && $referenceMatches;
-        $providerPaid = in_array($status, ['CAPTURED', 'PAID', 'COMPLETED'], true) || $statusCategory === 'COMPLETED';
+        $isAuthorized = filter_var($statusOutput['isAuthorized'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        $paymentStatusCategory = strtoupper(trim((string)($raw['paymentStatusCategory'] ?? '')));
+        $captureRequestedAccepted = $status === 'CAPTURE_REQUESTED'
+            && $isAuthorized
+            && ($paymentStatusCategory === '' || $paymentStatusCategory === 'SUCCESSFUL');
+        $providerPaid = in_array($status, ['CAPTURED', 'PAID', 'COMPLETED'], true)
+            || $statusCategory === 'COMPLETED'
+            || $captureRequestedAccepted;
         $paid = $verified && $providerPaid;
 
         $session['payment_status'] = $status;

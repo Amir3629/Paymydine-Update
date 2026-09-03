@@ -199,16 +199,17 @@ export function WorldlineDirectMethodButton(props: Props) {
 
     const prepare = async () => {
       try {
-        if (code === 'google_pay') await loadGooglePayScript()
+        const googleScript = code === 'google_pay' ? loadGooglePayScript() : Promise.resolve()
         const slug = code.replace(/_/g, '-')
-        const payload = await requestJson(`/api/v1/payments/worldline/native/wallet/${slug}/create-session`, {
+        const sessionPromise = requestJson(`/api/v1/payments/worldline/native/wallet/${slug}/create-session`, {
           order_id: props.orderId,
           payment_method: code,
           provider: 'worldline',
           return_url: returnUrl(),
           tip_amount: props.tipAmount,
           locale: String(props.locale || 'en').replace('-', '_'),
-        }) as WalletSessionPayload
+        }) as Promise<WalletSessionPayload>
+        const [payload] = await Promise.all([sessionPromise, googleScript])
         if (cancelled || generation !== generationRef.current) return
 
         const sessionId = String(payload.session_id || '').toLowerCase()
@@ -232,6 +233,14 @@ export function WorldlineDirectMethodButton(props: Props) {
         const product = await session.getPaymentProduct(productId, details, specificInputs)
         const paymentRequest = session.getPaymentRequest()
         paymentRequest.setPaymentProduct(product)
+        if (code === 'google_pay') {
+          if (!googleMerchantId) throw new Error('Google Pay Merchant ID is not configured for this restaurant.')
+          const Constructor = getGooglePaymentsClientConstructor()
+          if (!Constructor) throw new Error('Google Pay API is unavailable in this browser.')
+          googleClientRef.current = googleClientRef.current || new Constructor({
+            environment: environment === 'PROD' ? 'PRODUCTION' : 'TEST',
+          })
+        }
         if (cancelled || generation !== generationRef.current) return
 
         setWallet({
@@ -499,7 +508,8 @@ export function WorldlineDirectMethodButton(props: Props) {
     try {
       if (code === 'apple_pay' || code === 'google_pay') {
         if (!wallet) {
-          throw new Error(localError || `${props.method.name} is still preparing. Please tap once more when it is ready.`)
+          if (localError) throw new Error(localError)
+          return
         }
         if (code === 'apple_pay') await payApple(wallet)
         else await payGoogle(wallet)
@@ -520,6 +530,7 @@ export function WorldlineDirectMethodButton(props: Props) {
   if (!code) return null
   const label = props.method.name || (code === 'apple_pay' ? 'Apple Pay' : code === 'google_pay' ? 'Google Pay' : code === 'paypal' ? 'PayPal' : 'Wero')
   const notReady = (code === 'apple_pay' || code === 'google_pay') && !wallet
+  const preparingWallet = notReady && !localError
 
   return (
     <>
@@ -530,7 +541,7 @@ export function WorldlineDirectMethodButton(props: Props) {
         data-pmd-worldline-ready={notReady ? 'false' : 'true'}
         aria-pressed={props.selected}
         aria-busy={busy || preparing}
-        disabled={Boolean(props.disabled)}
+        disabled={Boolean(props.disabled || preparingWallet)}
         onClick={() => { void onClick() }}
         style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '.65rem', opacity: 1 }}
       >
@@ -566,7 +577,7 @@ export function WorldlineDirectMethodButton(props: Props) {
           box-sizing: border-box;
         }
         [data-pmd-worldline-direct-method][data-pmd-worldline-ready="false"] {
-          opacity: .78 !important;
+          opacity: 1 !important;
         }
       `}</style>
     </>

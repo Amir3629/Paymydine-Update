@@ -21,7 +21,7 @@ trait PmdWaiterPosTerminalProvidersConcern
         if (Schema::hasTable('terminal_devices')) {
             $columns = Schema::getColumnListing('terminal_devices');
 
-            foreach (['sumup', 'vr_payment'] as $providerCode) {
+            foreach (['sumup', 'vr_payment', 'worldline', 'square'] as $providerCode) {
                 try {
                     $query = DB::table('terminal_devices')
                         ->whereRaw('LOWER(provider_code) = ?', [$providerCode])
@@ -45,7 +45,7 @@ trait PmdWaiterPosTerminalProvidersConcern
                             'reader_id' => (string)$terminal->reader_id,
                             'name' => $label !== ''
                                 ? $label
-                                : ($providerCode === 'sumup' ? 'SumUp terminal' : 'VR Payment terminal'),
+                                : ($providerCode === 'sumup' ? 'SumUp terminal' : ($providerCode === 'worldline' ? 'Worldline terminal' : ($providerCode === 'square' ? 'Square Terminal' : 'VR Payment terminal'))),
                             'terminal_status' => $status,
                             'pairing_state' => $pairing,
                             'environment' => in_array('environment', $columns, true)
@@ -58,36 +58,7 @@ trait PmdWaiterPosTerminalProvidersConcern
             }
         }
 
-        // Worldline Terminal API is cloud-to-cloud and identifies a terminal by
-        // the provider-issued terminal UUID. Expose it only when the terminal ID
-        // and separate Terminal API bearer token are both configured.
-        try {
-            $worldline = \Admin\Models\Payments_model::query()
-                ->where('code', 'worldline')
-                ->where('status', 1)
-                ->first();
-            if ($worldline) {
-                $config = method_exists($worldline, 'getConfigData')
-                    ? (array)$worldline->getConfigData()
-                    : (array)$worldline->data;
-                $terminalId = trim((string)($config['terminal_id'] ?? ''));
-                $terminalToken = trim((string)($config['terminal_api_token'] ?? env('WORLDLINE_TERMINAL_API_TOKEN') ?? ''));
-                if ($terminalId !== '' && $terminalToken !== '') {
-                    $providers[] = [
-                        'provider_code' => 'worldline',
-                        'terminal_device_id' => null,
-                        'provider_terminal_id' => $terminalId,
-                        'reader_id' => $terminalId,
-                        'name' => trim((string)($config['terminal_label'] ?? '')) ?: 'Worldline terminal',
-                        'terminal_status' => 'configured',
-                        'pairing_state' => 'registered',
-                        'environment' => (string)($config['terminal_environment'] ?? 'test'),
-                    ];
-                }
-            }
-        } catch (\Throwable $ignored) {
-        }
-
+        // Worldline terminals are sourced from terminal_devices above.
         return $providers;
     }
 }

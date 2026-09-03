@@ -216,6 +216,7 @@ class Pmddevices extends AdminController
                 'options' => array_merge($base['options'], [
                     'providers' => Terminal_devices_model::listProviderOptions(),
                     'pairing' => Terminal_devices_model::listPairingStateOptions(),
+                    'worldline_terminal' => app(\App\Services\TerminalPayments\WorldlineTerminalSettingsService::class)->read(),
                 ]),
             ]);
         }

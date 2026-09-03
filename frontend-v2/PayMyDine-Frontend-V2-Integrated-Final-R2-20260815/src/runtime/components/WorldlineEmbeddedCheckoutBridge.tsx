@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { WorldlineNativeCardForm } from './WorldlineNativeCardForm'
 import { WorldlineNativeWalletForm } from './WorldlineNativeWalletForm'
+import { consumeWorldlineCardSession, type WorldlineCardPrewarmInput } from './WorldlineCardSessionPrewarm'
 
 type PendingWorldlinePayment = {
   provider?: string
@@ -407,7 +408,13 @@ export function WorldlineEmbeddedCheckoutBridge() {
       }
 
       if (requestedMethod === 'card') {
-        const response = await originalFetch.call(window, NATIVE_CARD_CREATE_ENDPOINT, nextInit)
+        const warmedCard = await consumeWorldlineCardSession(payload as unknown as WorldlineCardPrewarmInput)
+        const response = warmedCard
+          ? new Response(JSON.stringify(warmedCard), {
+              status: 200,
+              headers: { 'content-type': 'application/json; charset=utf-8' },
+            })
+          : await originalFetch.call(window, NATIVE_CARD_CREATE_ENDPOINT, nextInit)
         if (!response.ok) return response
         const data = await response.clone().json().catch(() => null)
         if (!data || String(data?.flow || '').toLowerCase() !== 'native_card') return response

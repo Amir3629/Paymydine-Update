@@ -284,7 +284,14 @@ final class WorldlineNativeCardService
         $currencyMatches = $actualCurrency !== '' && hash_equals((string)$session['expected_currency'], $actualCurrency);
         $referenceMatches = $actualReference === '' || hash_equals((string)$session['merchant_reference'], $actualReference);
         $verified = $amountMatches && $currencyMatches && $referenceMatches;
-        $providerPaid = in_array($status, ['CAPTURED', 'PAID', 'COMPLETED'], true) || $statusCategory === 'COMPLETED';
+        $isAuthorized = filter_var($statusOutput['isAuthorized'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        $paymentStatusCategory = strtoupper(trim((string)($raw['paymentStatusCategory'] ?? '')));
+        $captureRequestedAccepted = $status === 'CAPTURE_REQUESTED'
+            && $isAuthorized
+            && ($paymentStatusCategory === '' || $paymentStatusCategory === 'SUCCESSFUL');
+        $providerPaid = in_array($status, ['CAPTURED', 'PAID', 'COMPLETED'], true)
+            || $statusCategory === 'COMPLETED'
+            || $captureRequestedAccepted;
         $paid = $verified && $providerPaid;
 
         $session['payment_status'] = $status;

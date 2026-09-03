@@ -1179,7 +1179,7 @@ document.documentElement.classList.add(
         >
             <a
                 class="pmd-cashier-launcher-v107__download"
-                href="https://github.com/Amir3629/Paymydine-Update/releases/download/pmd-cashier-v1-preview/PayMyDine-Cashier-Setup-1.0.7.exe"
+                href="https://github.com/Amir3629/Paymydine-Update/releases/download/pmd-desktop-v120-preview/PayMyDine-Desktop-Setup-1.2.0.exe"
                 target="_blank"
                 rel="noopener noreferrer"
             >
@@ -1196,7 +1196,7 @@ document.documentElement.classList.add(
 
             <a
                 class="pmd-cashier-launcher-v107__download"
-                href="https://github.com/Amir3629/Paymydine-Update/releases/download/pmd-cashier-v1-preview/PayMyDine-Cashier-1.0.7-mac-arm64.dmg"
+                href="https://github.com/Amir3629/Paymydine-Update/releases/download/pmd-desktop-v120-preview/PayMyDine-Desktop-1.2.0-mac-arm64.dmg"
                 target="_blank"
                 rel="noopener noreferrer"
             >

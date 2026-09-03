@@ -374,7 +374,14 @@ final class WorldlineConnectRuntimeService
         $currencyMatches = $actualCurrency !== '' && hash_equals((string)$session['expected_currency'], $actualCurrency);
         $referenceMatches = $actualMerchantReference === '' || hash_equals((string)$session['merchant_reference'], $actualMerchantReference);
         $verified = $amountMatches && $currencyMatches && $referenceMatches;
-        $providerPaid = in_array($status, ['CAPTURED', 'PAID', 'COMPLETED'], true) || $statusCategory === 'COMPLETED';
+        $isAuthorized = filter_var($statusOutput['isAuthorized'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        $paymentStatusCategory = strtoupper(trim((string)($providerPayment['paymentStatusCategory'] ?? '')));
+        $captureRequestedAccepted = $status === 'CAPTURE_REQUESTED'
+            && $isAuthorized
+            && ($paymentStatusCategory === '' || $paymentStatusCategory === 'SUCCESSFUL');
+        $providerPaid = in_array($status, ['CAPTURED', 'PAID', 'COMPLETED'], true)
+            || $statusCategory === 'COMPLETED'
+            || $captureRequestedAccepted;
         $paid = $verified && $providerPaid;
 
         if (!$verified) {

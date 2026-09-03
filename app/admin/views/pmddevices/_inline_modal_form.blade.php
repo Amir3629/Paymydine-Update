@@ -107,6 +107,7 @@
             </div>
             <div class="pmd-owner-setting-row"><div class="pmd-owner-setting-copy"><strong>{{ $pmdSettingsText('Active terminal') }}</strong><small>{{ $pmdSettingsText('Inactive terminals stay configured but are not offered for payments.') }}</small></div><label class="pmd-owner-switch"><input type="hidden" name="{{ $arr }}[is_active]" value="0"><input type="checkbox" name="{{ $arr }}[is_active]" value="1" {{ $v('is_active',1) ? 'checked' : '' }}><span></span></label></div>
         </section>
+        @include('pmddevices/_worldline_terminal_settings')
         @if($mode === 'edit')
         <section class="pmd-device-v6-section"><div class="pmd-device-v6-section__head"><h3>{{ $pmdSettingsText('Reader tools') }}</h3><p>{{ $pmdSettingsText('Discover and test card readers without leaving this page.') }}</p></div><div class="pmd-device-v6-tools"><button type="button" class="pmd-owner-action" data-pmd-device-action="onDiscoverReaders">{{ $pmdSettingsText('Discover readers') }}</button><button type="button" class="pmd-owner-action pmd-device-v6-primary" data-pmd-device-action="onTestTerminalConnection">{{ $pmdSettingsText('Test terminal connection') }}</button></div><pre class="pmd-device-v6-result" data-pmd-device-result hidden></pre></section>
         @endif

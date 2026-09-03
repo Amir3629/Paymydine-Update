@@ -72,9 +72,26 @@ class Pmdfinance extends AdminController
             $providerCodes = array_values(array_keys((array)($paymentProfile['providers'] ?? [])));
             $this->bodyClass = trim($this->bodyClass.' pmd-finance-market-om');
         } elseif ($countryCode === CountryPlatformProfileRegistry::GERMANY) {
-            // Germany keeps the mature canonical storage/runtime rows. Only add
-            // a first-paint market marker; do not remap its proven payment flow.
+            // PMD_FINANCE_MARKET_SCOPE_R6A
+            // Germany keeps the mature canonical storage/runtime rows, but only
+            // providers declared by the DE market profile are visible/selectable.
+            $profile = (array)($market['profile'] ?? []);
+            $paymentProfile = (array)($profile['payments'] ?? []);
+            $providerCodes = array_values(array_keys((array)($paymentProfile['providers'] ?? [])));
             $this->bodyClass = trim($this->bodyClass.' pmd-finance-market-de');
+        } elseif ($countryCode === CountryPlatformProfileRegistry::CANADA) {
+            // PMD_CANADA_FINANCE_FIRST_PAINT_R6
+            // Square is the only Canadian provider. Canada reuses the mature
+            // canonical Card/Apple Pay/Google Pay rows, while cash is providerless.
+            $methodCodes = ['card', 'apple_pay', 'google_pay', 'cod', 'cash'];
+            $providerCodes = ['square'];
+            $this->bodyClass = trim($this->bodyClass.' pmd-finance-market-ca');
+        } elseif ($countryCode === CountryPlatformProfileRegistry::TURKEY) {
+            // Türkiye is intentionally payment-empty until a reviewed provider
+            // integration exists. Do not flash the historical global catalogue.
+            $methodCodes = [];
+            $providerCodes = [];
+            $this->bodyClass = trim($this->bodyClass.' pmd-finance-market-tr');
         }
 
         $methods = $payments->filter(fn ($row) => in_array((string)$row->code, $methodCodes, true))->values();
@@ -95,7 +112,18 @@ class Pmdfinance extends AdminController
                 continue;
             }
 
-            $methodProviders[$methodCode] = collect(Payments_model::supportedProvidersForMethod($methodCode))
+            if ($countryCode === CountryPlatformProfileRegistry::CANADA) {
+                $methodProviders[$methodCode] = in_array($methodCode, ['card', 'apple_pay', 'google_pay'], true)
+                    ? ['square' => ($providerLabels['square'] ?? 'Square')]
+                    : [];
+                continue;
+            }
+
+            $compatible = Payments_model::supportedProvidersForMethod($methodCode);
+            if ($countryCode === CountryPlatformProfileRegistry::GERMANY) {
+                $compatible = array_values(array_intersect($compatible, $providerCodes));
+            }
+            $methodProviders[$methodCode] = collect($compatible)
                 ->mapWithKeys(fn ($code) => [(string)$code => $providerLabels[(string)$code] ?? ucfirst(str_replace('_', ' ', (string)$code))])
                 ->all();
         }
@@ -217,11 +245,17 @@ class Pmdfinance extends AdminController
                 'currency' => ['label' => 'Currency', 'default' => 'EUR'],
             ]),
             'square' => array_merge($mode, [
-                'test_access_token' => ['label' => 'Sandbox Access Token', 'secret' => true],
-                'test_location_id' => ['label' => 'Sandbox Location ID'],
-                'live_access_token' => ['label' => 'Live Access Token', 'secret' => true],
-                'live_location_id' => ['label' => 'Live Location ID'],
-                'currency' => ['label' => 'Currency', 'default' => 'EUR'],
+                'test_application_id' => ['label' => 'Sandbox Application ID', 'help' => 'Square Developer Console > Credentials > Sandbox Application ID. Public client identifier.'],
+                'test_access_token' => ['label' => 'Sandbox Access Token', 'secret' => true, 'help' => 'Secret server credential. Leave blank to keep the stored token.'],
+                'test_location_id' => ['label' => 'Sandbox Location ID', 'help' => 'Square Developer Console > Locations. Currency must match the PayMyDine order currency.'],
+                'test_webhook_signature_key' => ['label' => 'Sandbox Webhook Signature Key', 'secret' => true, 'help' => 'From the Square Webhooks subscription details. Leave blank to keep the stored key.'],
+                'test_webhook_notification_url' => ['label' => 'Sandbox Webhook Notification URL', 'help' => 'Use exactly https://YOUR-TENANT/api/v1/payments/square/webhook. Must exactly match Square Developer Console.'],
+                'live_application_id' => ['label' => 'Production Application ID'],
+                'live_access_token' => ['label' => 'Production Access Token', 'secret' => true],
+                'live_location_id' => ['label' => 'Production Location ID'],
+                'live_webhook_signature_key' => ['label' => 'Production Webhook Signature Key', 'secret' => true],
+                'live_webhook_notification_url' => ['label' => 'Production Webhook Notification URL'],
+                'currency' => ['label' => 'Currency', 'default' => 'CAD', 'help' => 'Square is a PayMyDine Canada-only provider. Must match the Canadian Square seller location currency.'],
             ]),
             'sumup' => [
                 'auth_mode' => ['label' => 'Auth Mode', 'type' => 'select', 'default' => 'access_token', 'options' => ['access_token' => 'Access Token (current)']],
@@ -238,6 +272,7 @@ class Pmdfinance extends AdminController
                 'api_key_id' => ['label' => 'API Key ID'],
                 'secret_api_key' => ['label' => 'Secret API Key', 'secret' => true],
                 'webhook_secret' => ['label' => 'Webhook Secret', 'secret' => true],
+                'google_pay_merchant_id' => ['label' => 'Google Pay Merchant ID', 'help' => 'Required for Google Pay PRODUCTION own-checkout. TEST uses Google Pay test mode.'],
                 'terminal_id' => ['label' => 'Terminal Device ID'],
                 'terminal_environment' => ['label' => 'Terminal Environment', 'type' => 'select', 'default' => 'test', 'options' => ['test' => 'Test / Sandbox', 'live' => 'Live / Production']],
             ],
@@ -280,7 +315,7 @@ class Pmdfinance extends AdminController
         return [
             'stripe' => ['test_secret_key', 'live_secret_key'],
             'paypal' => ['test_client_secret', 'live_client_secret'],
-            'square' => ['test_access_token', 'live_access_token'],
+            'square' => ['test_access_token', 'live_access_token', 'test_webhook_signature_key', 'live_webhook_signature_key'],
             'sumup' => ['access_token'],
             'worldline' => ['secret_api_key', 'webhook_secret'],
             'vr_payment' => ['auth_key', 'webhook_signing_key'],

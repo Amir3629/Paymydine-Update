@@ -367,7 +367,7 @@ final class PaymentMarketSettings extends AdminController
         // rows. Keep those rows as storage authority while the UI uses regional
         // labels. Oman online methods use their regional rows so Paymob cannot
         // leak into Germany/global provider assignments.
-        if ($country === CountryPlatformProfileRegistry::GERMANY && $canonical !== '') {
+        if (in_array($country, [CountryPlatformProfileRegistry::GERMANY, CountryPlatformProfileRegistry::CANADA], true) && $canonical !== '') {
             if (Payments_model::query()->where('code', $canonical)->exists()) return $canonical;
         }
 

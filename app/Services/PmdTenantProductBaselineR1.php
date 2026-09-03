@@ -158,7 +158,7 @@ class PmdTenantProductBaselineR1
             'paypal' => ['name' => 'PayPal', 'priority' => 120, 'supported_methods' => ['paypal']],
             'worldline' => ['name' => 'Worldline', 'priority' => 130, 'supported_methods' => ['card', 'wero']],
             'sumup' => ['name' => 'SumUp', 'priority' => 140, 'supported_methods' => ['card', 'apple_pay', 'google_pay']],
-            'square' => ['name' => 'Square', 'priority' => 150, 'supported_methods' => ['card']],
+            'square' => ['name' => 'Square', 'priority' => 150, 'supported_methods' => ['card', 'apple_pay', 'google_pay']],
             'vr_payment' => ['name' => 'VR Payment', 'priority' => 160, 'supported_methods' => ['card', 'apple_pay', 'google_pay', 'paypal', 'wero']],
         ];
 

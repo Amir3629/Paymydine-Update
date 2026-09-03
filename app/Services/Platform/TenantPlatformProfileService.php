@@ -61,6 +61,7 @@ final class TenantPlatformProfileService
         $this->saveFrameworkSettings($framework, $warnings);
         $this->persistPlatformMetadata($profile, $defaultLocationId, $languageState, $warnings);
         $this->disableForeignPaymentRows($countryCode);
+        $this->disableForeignTerminalDevices($countryCode);
 
         $regionalCatalogue = null;
         try {
@@ -154,7 +155,7 @@ final class TenantPlatformProfileService
             DB::table('languages')->updateOrInsert(['code' => $code], $payload);
         }
 
-        if ($countryCode === CountryPlatformProfileRegistry::TURKEY && in_array('status', $columns, true)) {
+        if (in_array($countryCode, [CountryPlatformProfileRegistry::TURKEY, CountryPlatformProfileRegistry::CANADA], true) && in_array('status', $columns, true)) {
             DB::table('languages')->whereNotIn('code', $eligible)->where('status', '!=', 0)->update(['status' => 0]);
         }
     }
@@ -298,6 +299,41 @@ final class TenantPlatformProfileService
      * Germany-oriented provider/method catalogue copied from the tenant template;
      * its online runtime must use the isolated om_* rows instead.
      */
+    private function disableForeignTerminalDevices(string $countryCode): void
+    {
+        try {
+            if (!Schema::hasTable('terminal_devices') || !Schema::hasColumn('terminal_devices', 'provider_code') || !Schema::hasColumn('terminal_devices', 'is_active')) {
+                return;
+            }
+
+            $profile = $this->profiles->requireProfile($countryCode);
+            $allowed = array_values(array_unique(array_map(
+                static fn ($code) => strtolower(trim((string)$code)),
+                array_keys((array)($profile['terminals']['providers'] ?? []))
+            )));
+
+            // Provider codes are canonical lowercase PMD identifiers. Avoid a
+            // DB-expression column here so the query is compatible with both the
+            // current Laravel builder and the older tenant template runtime.
+            $query = DB::table('terminal_devices')->where('is_active', '!=', 0);
+            if ($allowed) {
+                $query->whereNotIn('provider_code', $allowed);
+            }
+            $affected = $query->update(['is_active' => 0]);
+
+            Log::info('PMD_TENANT_PLATFORM_FOREIGN_TERMINALS_DISABLED_R6B', [
+                'country_code' => $countryCode,
+                'allowed_providers' => $allowed,
+                'affected' => $affected,
+            ]);
+        } catch (\Throwable $error) {
+            Log::warning('PMD_TENANT_PLATFORM_FOREIGN_TERMINALS_DISABLE_FAILED_R6B', [
+                'country_code' => $countryCode,
+                'error' => $error->getMessage(),
+            ]);
+        }
+    }
+
     private function disableForeignPaymentRows(string $countryCode): void
     {
         try {
@@ -309,29 +345,38 @@ final class TenantPlatformProfileService
 
             if ($countryCode === CountryPlatformProfileRegistry::OMAN) {
                 $foreignCodes = [
-                    // Explicit Germany regional rows.
                     'de_card', 'de_apple_pay', 'de_google_pay', 'de_wero', 'de_paypal', 'de_cash',
-                    // Legacy/global online methods copied from the old template.
+                    'ca_card', 'ca_apple_pay', 'ca_google_pay', 'ca_cash',
                     'card', 'apple_pay', 'google_pay', 'wero', 'paypal', 'cod', 'cash',
-                    // Non-Oman providers. `paypal` may be a shared legacy row and
-                    // is intentionally included above as well.
                     'stripe', 'worldline', 'sumup', 'square', 'vr_payment',
-                    // Turkey remains payment-empty.
                     'tr_card', 'tr_cash',
                 ];
             } elseif ($countryCode === CountryPlatformProfileRegistry::TURKEY) {
-                // Turkey intentionally has NO payment integration yet. Disable
-                // every known regional/provider/global row copied from templates.
                 $foreignCodes = [
                     'de_card', 'de_apple_pay', 'de_google_pay', 'de_wero', 'de_paypal', 'de_cash',
                     'om_card', 'om_omannet', 'om_apple_pay', 'om_google_pay', 'om_cash',
+                    'ca_card', 'ca_apple_pay', 'ca_google_pay', 'ca_cash',
                     'card', 'apple_pay', 'google_pay', 'wero', 'paypal', 'cod', 'cash',
                     'stripe', 'worldline', 'sumup', 'square', 'vr_payment', 'paymob',
                 ];
+            } elseif ($countryCode === CountryPlatformProfileRegistry::CANADA) {
+                $foreignCodes = [
+                    'de_card', 'de_apple_pay', 'de_google_pay', 'de_wero', 'de_paypal', 'de_cash',
+                    'om_card', 'om_omannet', 'om_apple_pay', 'om_google_pay', 'om_cash',
+                    'tr_card', 'tr_cash',
+                    // Canada runtime is Square-only. Keep Square and providerless
+                    // cash, but disable other provider products and unsupported
+                    // canonical online methods.
+                    'stripe', 'worldline', 'sumup', 'vr_payment', 'paypal', 'paymob',
+                    'wero',
+                ];
             } else {
+                // Germany/mature EU market: Canada-specific catalogue and the
+                // Square provider itself cannot remain active after a market move.
                 $foreignCodes = [
                     'om_card', 'om_omannet', 'om_apple_pay', 'om_google_pay', 'om_cash', 'paymob',
                     'tr_card', 'tr_cash',
+                    'ca_card', 'ca_apple_pay', 'ca_google_pay', 'ca_cash', 'square',
                 ];
             }
 
@@ -344,13 +389,40 @@ final class TenantPlatformProfileService
                 ->where('status', '!=', 0)
                 ->update(['status' => 0]);
 
-            Log::info('PMD_TENANT_PLATFORM_FOREIGN_PAYMENTS_DISABLED_R4', [
+            $assignmentAffected = 0;
+            if (in_array('provider_code', $columns, true)) {
+                if ($countryCode === CountryPlatformProfileRegistry::CANADA) {
+                    // Preserve an already-configured Square assignment on profile
+                    // reapply, but fail closed if the canonical row belongs to a
+                    // provider carried over from a different market.
+                    $assignmentAffected = $connection->table($table)
+                        ->whereIn('code', ['card', 'apple_pay', 'google_pay'])
+                        ->whereNotNull('provider_code')
+                        ->whereRaw('LOWER(provider_code) <> ?', ['square'])
+                        ->where('status', '!=', 0)
+                        ->update(['status' => 0]);
+                } else {
+                    // Moving away from Canada must immediately stop any canonical
+                    // payment method that still points at Square.
+                    $assignmentAffected = $connection->table($table)
+                        ->whereIn('code', ['card', 'apple_pay', 'google_pay'])
+                        ->whereRaw('LOWER(provider_code) = ?', ['square'])
+                        ->where('status', '!=', 0)
+                        ->update(['status' => 0]);
+                }
+            }
+
+            Log::info('PMD_TENANT_PLATFORM_FOREIGN_PAYMENTS_DISABLED_R6', [
                 'country_code' => $countryCode,
-                'affected_rows' => (int)$affected,
-                'codes' => $foreignCodes,
+                'affected' => $affected,
+                'assignment_affected' => $assignmentAffected,
+                'square_canada_only' => true,
             ]);
         } catch (\Throwable $error) {
-            Log::warning('PMD_TENANT_PLATFORM_FOREIGN_PAYMENT_DISABLE_WARNING', ['message' => $error->getMessage()]);
+            Log::warning('PMD_TENANT_PLATFORM_FOREIGN_PAYMENTS_DISABLE_FAILED_R6', [
+                'country_code' => $countryCode,
+                'error' => $error->getMessage(),
+            ]);
         }
     }
 }

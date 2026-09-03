@@ -1088,6 +1088,7 @@ Route::group([
         ]);
 
         $normalizedPaymentMethod = strtolower((string)$request->payment_method);
+        $normalizedProviderCode = strtolower(str_replace('-', '_', (string)$request->input('payment_provider', $request->input('provider', ''))));
         $paidStatusId = (int)(\Illuminate\Support\Facades\DB::table('statuses')
             ->whereRaw('LOWER(status_name) = ?', ['paid'])
             ->value('status_id') ?? 10);
@@ -1102,7 +1103,7 @@ Route::group([
         $transactionId = null;
 
         try {
-            $result = \Illuminate\Support\Facades\DB::transaction(function () use ($request, $order, $normalizedPaymentMethod, $paidStatusId, $hasSplitTables, $selectedItemsPayload, $allocationColumn, $allocationMode, $hasAllocOrderMenuColumn, $hasAllocMenuIdColumn, &$transactionId, $r35IntentId, $r35SplitMode) {
+            $result = \Illuminate\Support\Facades\DB::transaction(function () use ($request, $order, $normalizedPaymentMethod, $normalizedProviderCode, $paidStatusId, $hasSplitTables, $selectedItemsPayload, $allocationColumn, $allocationMode, $hasAllocOrderMenuColumn, $hasAllocMenuIdColumn, &$transactionId, $r35IntentId, $r35SplitMode) {
                 $lockedOrder = \Admin\Models\Orders_model::query()
                     ->where('order_id', $order->order_id)
                     ->lockForUpdate()
@@ -1262,6 +1263,26 @@ Route::group([
                     if ($request->filled('amount')) {
                         $requestedAmount = round((float)$request->input('amount'), 4);
                         if (abs($requestedAmount - $payableAmount) > 0.02) throw new \InvalidArgumentException('Selected items amount mismatch');
+                    }
+                }
+                // SQUARE_PAY_EXISTING_SERVER_VERIFIED_R1
+                if ($normalizedProviderCode === 'square') {
+                    $squarePaymentId = trim((string)$request->input('payment_reference', ''));
+                    if ($squarePaymentId === '') throw new \InvalidArgumentException('Square payment reference is required before settlement.');
+                    $squareRuntime = app(\App\Services\Payments\SquareRuntimeService::class);
+                    $squareCfg = $squareRuntime->providerConfig(true);
+                    $squareCurrency = strtoupper((string)(app(\App\Services\Platform\LocationPlatformContext::class)->currencyCode((int)($lockedOrder->location_id ?? 0) ?: null) ?: ($squareCfg['configured_currency'] ?? '')));
+                    if ($squareCurrency === '') throw new \InvalidArgumentException('Square settlement currency is unavailable.');
+                    $squareReference = substr($r35IntentId ? 'PMD-'.(int)$lockedOrder->order_id.'-I-'.(int)$r35IntentId : 'PMD-'.(int)$lockedOrder->order_id, 0, 40);
+                    $squareVerified = $squareRuntime->verifyPayment(
+                        $squarePaymentId,
+                        $squareRuntime->toMinor($payableAmount, $squareCurrency),
+                        $squareCurrency,
+                        $squareReference,
+                        (string)($squareCfg['location_id'] ?? '')
+                    );
+                    if (!($squareVerified['is_paid'] ?? false) || !($squareVerified['verification_ok'] ?? false)) {
+                        throw new \InvalidArgumentException('Square payment is not server-verified as COMPLETED for this exact amount, currency and order reference.');
                     }
                 }
                 $remainingGrossTotal = round($remainingTotal * $orderGrossRatio, 4);

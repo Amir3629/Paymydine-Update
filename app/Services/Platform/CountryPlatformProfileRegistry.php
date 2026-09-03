@@ -22,7 +22,8 @@ namespace App\Services\Platform;
  */
 final class CountryPlatformProfileRegistry
 {
-    public const VERSION = '1.1.0';
+    public const VERSION = '1.2.0';
+    public const CANADA = 'CA';
     public const GERMANY = 'DE';
     public const OMAN = 'OM';
     public const TURKEY = 'TR';
@@ -62,10 +63,9 @@ final class CountryPlatformProfileRegistry
                         'sumup' => ['online' => true, 'terminal' => true],
                         'vr_payment' => ['online' => true, 'terminal' => true],
                         'worldline' => ['online' => 'catalogue', 'terminal' => false],
-                        'square' => ['online' => true, 'terminal' => false],
                     ],
                     'methods' => [
-                        'de_card' => $this->method('de_card', 'Cards (Germany)', 'card', ['stripe', 'sumup', 'vr_payment', 'worldline', 'square']),
+                        'de_card' => $this->method('de_card', 'Cards (Germany)', 'card', ['stripe', 'sumup', 'vr_payment', 'worldline']),
                         'de_apple_pay' => $this->method('de_apple_pay', 'Apple Pay (Germany)', 'apple_pay', ['stripe', 'sumup', 'vr_payment']),
                         'de_google_pay' => $this->method('de_google_pay', 'Google Pay (Germany)', 'google_pay', ['stripe', 'sumup', 'vr_payment']),
                         'de_wero' => $this->method('de_wero', 'Wero (Germany)', 'wero', ['worldline', 'vr_payment']),
@@ -78,6 +78,60 @@ final class CountryPlatformProfileRegistry
                         'sumup' => ['pmd_remote_runtime' => true, 'status' => 'implemented'],
                         'vr_payment' => ['pmd_remote_runtime' => true, 'status' => 'implemented'],
                         'worldline' => ['pmd_remote_runtime' => false, 'status' => 'not_certified'],
+                    ],
+                ],
+            ],
+
+            self::CANADA => [
+                'country_code' => 'CA',
+                'country_iso3' => 'CAN',
+                'country_name' => 'Canada',
+                'calling_code' => '+1',
+                // Canada spans multiple time zones. Toronto is the safe bootstrap
+                // default; an explicit location timezone may override it later.
+                'timezone' => 'America/Toronto',
+                'week_start' => 'sunday',
+                'date_format_hint' => 'YYYY-MM-DD',
+                'currency' => [
+                    'code' => 'CAD',
+                    'minor_exponent' => 2,
+                ],
+                'languages' => [
+                    // English is launch-ready. French must not be exposed until
+                    // the PMD customer/Admin fr catalogue is completed and audited.
+                    'default' => 'en',
+                    'fallback' => 'en',
+                    'eligible' => ['en'],
+                    'locale_tags' => ['en-CA'],
+                ],
+                'operations' => [
+                    'business_hours_policy' => 'location_owned',
+                    'reservation_timezone' => 'America/Toronto',
+                    'reporting_timezone' => 'America/Toronto',
+                    'tax_policy' => 'restaurant_configured',
+                ],
+                'payments' => [
+                    'currency' => 'CAD',
+                    'providers' => [
+                        'square' => [
+                            'online' => true,
+                            'terminal' => true,
+                            'status' => 'implemented_canada_runtime',
+                        ],
+                    ],
+                    'methods' => [
+                        'ca_card' => $this->method('ca_card', 'Cards (Canada)', 'card', ['square']),
+                        'ca_apple_pay' => $this->method('ca_apple_pay', 'Apple Pay (Canada)', 'apple_pay', ['square']),
+                        'ca_google_pay' => $this->method('ca_google_pay', 'Google Pay (Canada)', 'google_pay', ['square']),
+                        'ca_cash' => $this->method('ca_cash', 'Cash (Canada)', 'cash', []),
+                    ],
+                ],
+                'terminals' => [
+                    'providers' => [
+                        'square' => [
+                            'pmd_remote_runtime' => true,
+                            'status' => 'implemented_sandbox_ready_live_device_validation_pending',
+                        ],
                     ],
                 ],
             ],
@@ -243,6 +297,7 @@ final class CountryPlatformProfileRegistry
         return match ($value) {
             'DE', 'DEU', 'GERMANY', 'DEUTSCHLAND' => self::GERMANY,
             'OM', 'OMN', 'OMAN', 'SULTANATE OF OMAN' => self::OMAN,
+            'CA', 'CAN', 'CANADA' => self::CANADA,
             'TR', 'TUR', 'TURKEY', 'TURKIYE', 'TÜRKİYE', 'TÜRKIYE' => self::TURKEY,
             default => $value,
         };

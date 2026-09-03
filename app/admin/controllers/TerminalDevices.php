@@ -5,6 +5,7 @@ namespace Admin\Controllers;
 use Admin\Facades\AdminMenu;
 use Admin\Models\Payments_model;
 use App\Services\TerminalPayments\WorldlineTerminalProvider;
+use App\Services\TerminalPayments\SquareTerminalProvider;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
@@ -106,6 +107,9 @@ class TerminalDevices extends \Admin\Classes\AdminController
         } elseif ($providerCode === 'sumup' || $providerCode === '') {
             $guideLabel = 'SumUp Terminal Setup';
             $guideComment = 'Keep your SumUp merchant credentials, discover the readers connected to that account, copy/select the Reader ID, test it, then mark the terminal active.';
+        } elseif ($providerCode === 'square') {
+            $guideLabel = 'Square Terminal API Setup';
+            $guideComment = 'Reader ID = Square device_id. In Sandbox you may use Square documented simulator ID 9fa747a2-25ff-48ee-b078-04381f7c828f for a successful card checkout. Production requires a paired Square Terminal device_id and a Square-supported seller country.';
         } elseif ($providerCode === 'vr_payment') {
             $guideLabel = 'VR Payment Terminal Setup';
             $guideComment = 'Use a terminal identifier returned by the configured VR Payment merchant account. Do not mark a terminal active until provider synchronization has confirmed it.';
@@ -125,6 +129,24 @@ class TerminalDevices extends \Admin\Classes\AdminController
                 'default' => "provider_ready: {$status['provider_ready']}\nterminal_ready: {$status['terminal_ready']}\ncard_online_ready: {$status['card_online_ready']}\ncard_present_ready: {$status['card_present_ready']}\nnetwork_probe: {$status['network_probe']}",
             ],
         ]);
+    }
+
+    public function formBeforeSave($model)
+    {
+        $providerCode = strtolower(trim((string)($model->provider_code ?? post('Terminal_device.provider_code', ''))));
+        if ($providerCode !== 'worldline') {
+            return;
+        }
+
+        $readerId = trim((string)($model->reader_id ?? post('Terminal_device.reader_id', '')));
+        $readerLabel = trim((string)($model->reader_label ?? post('Terminal_device.reader_label', '')));
+        $worldline = (array)post('Worldline_terminal', []);
+        $environment = strtolower(trim((string)($worldline['terminal_environment'] ?? ($model->environment ?? 'test'))));
+        $environment = $environment === 'live' ? 'live' : 'test';
+        $model->environment = $environment;
+
+        app(\App\Services\TerminalPayments\WorldlineTerminalSettingsService::class)
+            ->saveForTerminal($worldline, $readerId, $readerLabel, $environment);
     }
 
     public function onDiscoverReaders()
@@ -216,6 +238,52 @@ class TerminalDevices extends \Admin\Classes\AdminController
             ]);
         }
 
+        if ($providerCode === 'square') {
+            try {
+                $runtime = app(\App\Services\Payments\SquareRuntimeService::class);
+                $config = $runtime->providerConfig(false);
+                $config['device_id'] = $readerId;
+                $config['pmd_country_code'] = strtoupper((string)(app(\App\Services\Platform\LocationPlatformContext::class)->countryCode((int)($model->location_id ?? 0) ?: null) ?? ''));
+                $validation = (new SquareTerminalProvider())->validateConfiguration($config);
+                if (!($validation['ok'] ?? false)) {
+                    return response()->json(['success' => false, 'provider' => 'square', 'error' => $validation['message'] ?? 'Square Terminal configuration is incomplete.'], 422);
+                }
+                $location = $runtime->location($config);
+                $mode = (string)($config['mode'] ?? 'test');
+                $sandboxIds = ['9fa747a2-25ff-48ee-b078-04381f7c828f', '22cd266c-6246-4c06-9983-67f0c26346b0', '4mp4e78c-88ed-4d55-a269-8008dfe14e9'];
+                $model->terminal_status = $mode === 'test' && in_array($readerId, $sandboxIds, true) ? 'sandbox_simulator_ready' : 'configured';
+                $model->pairing_state = $mode === 'test' && in_array($readerId, $sandboxIds, true) ? 'paired' : ((string)$model->pairing_state ?: 'unknown');
+                if (empty($model->reader_label)) $model->reader_label = $mode === 'test' ? 'Square Sandbox Terminal' : 'Square Terminal';
+                $model->metadata = array_merge((array)$model->metadata, [
+                    'last_configuration_tested_at' => now()->toIso8601String(),
+                    'square_terminal_api' => [
+                        'mode' => $mode,
+                        'location_id' => $config['location_id'] ?? null,
+                        'location_name' => $location['name'] ?? null,
+                        'country' => $location['country'] ?? null,
+                        'currency' => $location['currency'] ?? null,
+                        'device_id' => $readerId,
+                        'sandbox_simulator' => $mode === 'test' && in_array($readerId, $sandboxIds, true),
+                    ],
+                ]);
+                $model->save();
+                return response()->json([
+                    'success' => true,
+                    'provider' => 'square',
+                    'reader_id' => $readerId,
+                    'mode' => $mode,
+                    'location' => ['id' => $config['location_id'] ?? null, 'name' => $location['name'] ?? null, 'country' => $location['country'] ?? null, 'currency' => $location['currency'] ?? null],
+                    'sandbox_simulator' => $mode === 'test' && in_array($readerId, $sandboxIds, true),
+                    'network_probe_performed' => true,
+                    'payment_sent' => false,
+                    'message' => 'Square credentials/location are valid. No charge was created. Use a real Terminal payment attempt to validate checkout settlement.',
+                    'status' => $this->buildStatusSnapshot('square', $readerId, (bool)$model->is_active),
+                ]);
+            } catch (\Throwable $e) {
+                return response()->json(['success' => false, 'provider' => 'square', 'error' => $e->getMessage()], 422);
+            }
+        }
+
         if ($providerCode !== 'sumup') {
             return response()->json([
                 'success' => false,
@@ -290,6 +358,20 @@ class TerminalDevices extends \Admin\Classes\AdminController
             $config['reader_id'] = $readerId;
             $providerReady = (bool)((new WorldlineTerminalProvider())->validateConfiguration($config)['ok'] ?? false);
             $networkProbe = 'integration-payment-required';
+        }
+
+        if ($providerCode === 'square') {
+            try {
+                $runtime = app(\App\Services\Payments\SquareRuntimeService::class);
+                $config = $runtime->providerConfig(false);
+                $config['device_id'] = $readerId;
+                $config['pmd_country_code'] = strtoupper((string)(app(\App\Services\Platform\LocationPlatformContext::class)->countryCode() ?? ''));
+                $providerReady = (bool)((new SquareTerminalProvider())->validateConfiguration($config)['ok'] ?? false);
+                $networkProbe = 'locations-api';
+            } catch (\Throwable $ignored) {
+                $providerReady = false;
+                $networkProbe = 'not-run';
+            }
         }
 
         $terminalReady = $providerReady && trim($readerId) !== '';

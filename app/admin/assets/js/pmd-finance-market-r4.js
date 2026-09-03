@@ -240,6 +240,12 @@
     var actions = document.querySelector('#payment-methods .pmd-owner-card__actions');
     if (actions && state.country_code === 'OM') {
       actions.innerHTML = '<span class="pmd-r4-market-pill">Oman · OMR · Asia/Muscat</span>';
+    } else if (actions && state.country_code === 'CA') {
+      actions.innerHTML = '<span class="pmd-r4-market-pill">Canada · CAD · America/Toronto · Square</span>';
+    } else if (actions && state.country_code === 'DE') {
+      actions.innerHTML = '<span class="pmd-r4-market-pill">Germany · EUR · Europe/Berlin</span>';
+    } else if (actions && state.country_code === 'TR') {
+      actions.innerHTML = '<span class="pmd-r4-market-pill">Türkiye · TRY · Europe/Istanbul · payments pending</span>';
     }
   }
 

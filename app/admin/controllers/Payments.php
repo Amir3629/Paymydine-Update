@@ -720,7 +720,7 @@ class Payments extends \Admin\Classes\AdminController
             ['code' => 'paypal', 'name' => 'PayPal', 'supported_methods' => ['paypal']],
             ['code' => 'worldline', 'name' => 'Worldline', 'supported_methods' => ['card', 'wero']],
             ['code' => 'sumup', 'name' => 'SumUp', 'supported_methods' => ['card', 'apple_pay', 'google_pay']],
-            ['code' => 'square', 'name' => 'Square', 'supported_methods' => ['card']],
+            ['code' => 'square', 'name' => 'Square', 'supported_methods' => ['card', 'apple_pay', 'google_pay']],
             ['code' => 'vr_payment', 'name' => 'VR Payment', 'supported_methods' => ['card', 'apple_pay', 'google_pay', 'paypal', 'wero']],
         ];
 
@@ -877,11 +877,18 @@ class Payments extends \Admin\Classes\AdminController
                 'currency' => ['label' => 'Currency', 'type' => 'text', 'span' => 'right', 'default' => 'EUR', 'comment' => '3-letter ISO code, for example EUR or USD.'],
             ]),
             'square' => array_merge($commonModeField, [
-                'test_access_token' => ['label' => 'Sandbox Access Token', 'type' => 'text', 'span' => 'left', 'comment' => 'Saved value is shown; replace to update.'],
-                'test_location_id' => ['label' => 'Sandbox Location ID', 'type' => 'text', 'span' => 'right', 'comment' => 'Location ID used to create payment links.'],
-                'live_access_token' => ['label' => 'Live Access Token', 'type' => 'text', 'span' => 'left', 'comment' => 'Saved value is shown; replace to update.'],
-                'live_location_id' => ['label' => 'Live Location ID', 'type' => 'text', 'span' => 'right', 'comment' => 'Production location for payment links.'],
-                'currency' => ['label' => 'Currency', 'type' => 'text', 'span' => 'left', 'default' => 'EUR', 'comment' => '3-letter ISO code, for example EUR or USD.'],
+                'square_setup_guide' => ['type' => 'section', 'label' => 'Square Web Payments + Terminal API', 'comment' => 'Sandbox needs Application ID, Access Token and Location ID. Access tokens remain server-side. Square is enabled by PayMyDine only for Canada. Use a Canadian Square seller/sandbox account and CAD location.'],
+                'test_application_id' => ['label' => 'Sandbox Application ID', 'type' => 'text', 'span' => 'left', 'comment' => 'Developer Console > Credentials > Sandbox Application ID.'],
+                'test_access_token' => ['label' => 'Sandbox Access Token', 'type' => 'password', 'span' => 'right', 'comment' => 'Secret. Leave blank to keep the saved token.'],
+                'test_location_id' => ['label' => 'Sandbox Location ID', 'type' => 'text', 'span' => 'left', 'comment' => 'Developer Console > Locations.'],
+                'test_webhook_signature_key' => ['label' => 'Sandbox Webhook Signature Key', 'type' => 'password', 'span' => 'right', 'comment' => 'Developer Console > Webhooks subscription. Leave blank to keep saved key.'],
+                'test_webhook_notification_url' => ['label' => 'Sandbox Webhook Notification URL', 'type' => 'text', 'span' => 'full', 'comment' => 'Exact URL: https://TENANT/api/v1/payments/square/webhook'],
+                'live_application_id' => ['label' => 'Production Application ID', 'type' => 'text', 'span' => 'left'],
+                'live_access_token' => ['label' => 'Production Access Token', 'type' => 'password', 'span' => 'right', 'comment' => 'Secret. Leave blank to keep the saved token.'],
+                'live_location_id' => ['label' => 'Production Location ID', 'type' => 'text', 'span' => 'left'],
+                'live_webhook_signature_key' => ['label' => 'Production Webhook Signature Key', 'type' => 'password', 'span' => 'right'],
+                'live_webhook_notification_url' => ['label' => 'Production Webhook Notification URL', 'type' => 'text', 'span' => 'full'],
+                'currency' => ['label' => 'Currency', 'type' => 'text', 'span' => 'left', 'default' => 'CAD', 'comment' => 'Canada only. Must match the Square Location currency (CAD).'],
             ]),
             'sumup' => [
                 'sumup_setup_guide' => [
@@ -1000,7 +1007,7 @@ class Payments extends \Admin\Classes\AdminController
         return [
             'stripe' => ['test_secret_key', 'live_secret_key'],
             'paypal' => ['test_client_secret', 'live_client_secret'],
-            'square' => ['test_access_token', 'live_access_token'],
+            'square' => ['test_access_token', 'live_access_token', 'test_webhook_signature_key', 'live_webhook_signature_key'],
             'sumup' => ['access_token'],
             'worldline' => ['secret_api_key', 'webhook_secret'],
             'vr_payment' => ['auth_key'],
@@ -1076,12 +1083,26 @@ class Payments extends \Admin\Classes\AdminController
             $resp = Http::asForm()->withBasicAuth($clientId, $clientSecret)->post($base.'/v1/oauth2/token', ['grant_type' => 'client_credentials']);
             $result = ['success' => $resp->ok(), 'message' => $resp->ok() ? 'PayPal token request successful.' : 'PayPal authentication failed.', 'status' => $resp->status()];
         } elseif ($code === 'square') {
-            $mode = $data['transaction_mode'] ?? 'test';
-            $token = $mode === 'live' ? ($data['live_access_token'] ?? null) : ($data['test_access_token'] ?? null);
-            if (!$token) throw new ApplicationException('Missing Square access token for selected mode.');
+            $mode = strtolower((string)($data['transaction_mode'] ?? 'test')) === 'live' ? 'live' : 'test';
+            $prefix = $mode === 'live' ? 'live_' : 'test_';
+            $appId = trim((string)($data[$prefix.'application_id'] ?? ''));
+            $token = trim((string)($data[$prefix.'access_token'] ?? ''));
+            $locationId = trim((string)($data[$prefix.'location_id'] ?? ''));
+            if ($appId === '' || $token === '' || $locationId === '') throw new ApplicationException('Square Application ID, Access Token and Location ID are required for the selected mode.');
             $base = $mode === 'live' ? 'https://connect.squareup.com' : 'https://connect.squareupsandbox.com';
-            $resp = Http::withHeaders(['Authorization' => 'Bearer '.$token, 'Accept' => 'application/json'])->get($base.'/v2/locations');
-            $result = ['success' => $resp->ok(), 'message' => $resp->ok() ? 'Square connection successful.' : 'Square API request failed.', 'status' => $resp->status()];
+            $resp = Http::withToken($token)->withHeaders(['Square-Version' => \App\Services\Payments\SquareRuntimeService::API_VERSION])->acceptJson()->get($base.'/v2/locations/'.rawurlencode($locationId));
+            $json = (array)$resp->json();
+            $location = (array)($json['location'] ?? []);
+            $squareCountry = strtoupper(trim((string)($location['country'] ?? '')));
+            $squareCurrency = strtoupper(trim((string)($location['currency'] ?? '')));
+            $platform = app(\App\Services\Platform\LocationPlatformContext::class);
+            $restaurantCountry = strtoupper((string)($platform->countryCode() ?? ''));
+            $restaurantCurrency = strtoupper((string)($platform->currencyCode() ?: ($data['currency'] ?? '')));
+            $currencyOk = $squareCurrency !== '' && $restaurantCurrency !== '' && hash_equals($restaurantCurrency, $squareCurrency);
+            $marketOk = $restaurantCountry === 'CA' && $squareCountry === 'CA';
+            $ok = $resp->ok() && $currencyOk && $marketOk;
+            $message = !$resp->ok() ? (string)($json['errors'][0]['detail'] ?? 'Square Location API request failed.') : (!$currencyOk ? "Square location currency {$squareCurrency} does not match PayMyDine {$restaurantCurrency}." : (!$marketOk ? "Square is enabled in PayMyDine only for Canada; Square seller/test location and restaurant must both be CA." : 'Square connection successful.'));
+            $result = ['success' => $ok, 'connected' => $resp->ok(), 'message' => $message, 'status' => $resp->status(), 'mode' => $mode, 'location_id' => $locationId, 'location_name' => $location['name'] ?? null, 'square_country' => $squareCountry ?: null, 'square_currency' => $squareCurrency ?: null, 'restaurant_country' => $restaurantCountry ?: null, 'restaurant_currency' => $restaurantCurrency ?: null, 'market_supported' => $marketOk, 'live_market_supported' => $marketOk];
         } elseif ($code === 'sumup') {
             $token = $data['access_token'] ?? null;
             $base = rtrim((string)($data['url'] ?? 'https://api.sumup.com'), '/');

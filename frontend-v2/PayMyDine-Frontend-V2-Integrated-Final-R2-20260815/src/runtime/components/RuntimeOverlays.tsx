@@ -35,8 +35,11 @@ import { useMenuRuntime } from '@/src/runtime/MenuRuntimeContext'
 import { FoodDetails } from './FoodDetails'
 import { PayPalButton } from './PayPalButton'
 import { StripeInlinePayment } from './StripeInlinePayment'
+import { SquareInlinePayment } from './SquareInlinePayment'
+import { SquareDirectMethodButton } from './SquareDirectMethodButton'
 import { SumupInlinePayment } from './SumupInlinePayment'
 import { WorldlineDirectMethodButton } from './WorldlineDirectMethodButton'
+import { WorldlineCardSessionPrewarmer } from './WorldlineCardSessionPrewarmer'
 import styles from './RuntimeOverlays.module.css'
 
 function PanelShell({ title, subtitle, modal = false, children, footer }: {
@@ -940,12 +943,25 @@ function PaymentPanel({ order, mode, guestSessionId }: { order: TableOrderState;
   const configuredProvider = String(selectedMethod?.providerCode || '').trim().toLowerCase().replace(/[\s-]+/g, '_')
   const selectedProvider = configuredProvider || (['card', 'apple_pay', 'google_pay'].includes(selectedCode) ? 'stripe' : '')
   const isStripeInline = Boolean(selectedMethod && settlementMode === 'pay-existing' && selectedProvider === 'stripe' && ['card', 'apple_pay', 'google_pay'].includes(selectedCode))
+  const isSquareInline = Boolean(selectedMethod && selectedProvider === 'square' && selectedCode === 'card')
+  const isSquareSingleAction = Boolean(selectedMethod && selectedProvider === 'square' && ['apple_pay', 'google_pay'].includes(selectedCode))
   const isSumupInline = Boolean(selectedMethod && settlementMode === 'pay-existing' && selectedProvider === 'sumup' && ['card', 'apple_pay', 'google_pay'].includes(selectedCode))
   const isPayPalInline = Boolean(selectedMethod && settlementMode === 'pay-existing' && (selectedProvider === 'paypal' || (selectedMethod.code.toLowerCase() === 'paypal' && (!selectedProvider || selectedProvider === 'paypal'))))
   const isWorldlineSingleAction = Boolean(mode === 'payment' && selectedMethod && selectedProvider === 'worldline' && ['card', 'apple_pay', 'google_pay', 'paypal', 'wero'].includes(selectedCode))
   const requiresSelectedItems = splitMode === 'items' || splitMode === 'mine'
   const canStartPayment = Boolean(selectedMethod && payableEstimate > 0 && (!requiresSelectedItems || (selectedItemsPayload && selectedItemsPayload.length > 0)))
   const payerLabel = splitMode === 'full' ? null : `PMD R35 ${splitMode}`
+  const canPrewarmWorldlineCard = settlementMode === 'pay-existing'
+    && mode === 'payment'
+    && payableEstimate > 0
+    && couponDiscount <= 0.0001
+    && !couponCode.trim()
+    && !selectedItemsPayload?.length
+    && paymentChoices.some((entry) => {
+      const code = String(entry.code || '').trim().toLowerCase()
+      const provider = String(entry.providerCode || '').trim().toLowerCase().replace(/[\s-]+/g, '_')
+      return code === 'card' && provider === 'worldline'
+    })
 
   const applyCoupon = async () => {
     if (mode === 'split') { setMessage('Coupons can be applied when paying the full remaining bill.'); return }
@@ -1083,6 +1099,14 @@ function PaymentPanel({ order, mode, guestSessionId }: { order: TableOrderState;
 
   return (
     <div className={styles.stack} data-pmd-payment-order-id={order.orderId} data-pmd-split-safety={mode === 'split' ? 'r35' : undefined}>
+      <WorldlineCardSessionPrewarmer
+        enabled={canPrewarmWorldlineCard}
+        orderId={order.orderId!}
+        amount={payableEstimate}
+        currency={bootstrap.restaurant.currency}
+        tipAmount={tipAmountEstimate}
+        locale={locale}
+      />
       <div className={styles.summary}>
         <div className={styles.summaryRow}><span>#{order.orderNumber || order.orderId}</span><strong>{formatCurrency(order.totals.remainingAmount)}</strong></div>
       </div>
@@ -1163,6 +1187,34 @@ function PaymentPanel({ order, mode, guestSessionId }: { order: TableOrderState;
             const key = paymentMethodKey(entry)
             const entryCode = String(entry.code || '').trim().toLowerCase()
             const entryProvider = String(entry.providerCode || '').trim().toLowerCase().replace(/[\s-]+/g, '_')
+            const directSquare = entryProvider === 'square' && ['apple_pay', 'google_pay'].includes(entryCode)
+            if (directSquare) {
+              return (
+                <SquareDirectMethodButton
+                  key={key}
+                  method={entry}
+                  className={`${styles.method} ${methodKey === key ? styles.methodSelected : ''}`}
+                  selected={methodKey === key}
+                  disabled={busy || payableEstimate <= 0 || (requiresSelectedItems && !selectedItemsPayload?.length)}
+                  orderId={order.orderId!}
+                  table={bootstrap.table}
+                  settlementMode={settlementMode}
+                  amount={payableEstimate}
+                  currency={bootstrap.restaurant.currency}
+                  tipAmount={tipAmountEstimate}
+                  couponCode={couponDiscount > 0 ? couponCode.trim() || null : null}
+                  couponDiscount={couponDiscount}
+                  selectedItems={selectedItemsPayload}
+                  payerLabel={payerLabel}
+                  guestSessionId={guestSessionId}
+                  locale={locale}
+                  prepareSplitIntent={mode === 'split' && splitMode !== 'full' ? prepareSplit : undefined}
+                  onSelect={() => { setMethodKey(key); setMessage('') }}
+                  onSuccess={(amount) => completePaymentLocally(amount)}
+                  onError={setMessage}
+                />
+              )
+            }
             const directWorldline = mode === 'payment' && entryProvider === 'worldline' && ['apple_pay', 'google_pay', 'paypal', 'wero'].includes(entryCode)
             if (directWorldline) {
               return (
@@ -1208,16 +1260,7 @@ function PaymentPanel({ order, mode, guestSessionId }: { order: TableOrderState;
           })}
         </div>
       ) : <div className={`${styles.statusMessage} ${styles.statusError}`}>{labels.noPaymentMethods}</div>}
-      {isWorldlineSingleAction ? (
-        <button
-          type="button"
-          tabIndex={-1}
-          aria-hidden="true"
-          data-pmd-worldline-canonical-anchor="true"
-          onClick={() => void pay()}
-          style={{ display: 'none' }}
-        />
-      ) : isPayPalInline && selectedMethod && canStartPayment ? (
+      {isWorldlineSingleAction ? null : isSquareSingleAction ? null : isPayPalInline && selectedMethod && canStartPayment ? (
         <PayPalButton
           orderId={order.orderId}
           table={bootstrap.table}
@@ -1241,6 +1284,28 @@ function PaymentPanel({ order, mode, guestSessionId }: { order: TableOrderState;
           key={`sumup-r1-${paymentMethodKey(selectedMethod)}-${order.orderId}`}
           orderId={order.orderId}
           table={bootstrap.table}
+          methodCode={selectedMethod.code}
+          providerCode={selectedMethod.providerCode}
+          amount={payableEstimate}
+          currency={bootstrap.restaurant.currency}
+          tipAmount={tipAmountEstimate}
+          couponCode={mode === 'split' ? null : couponCode.trim() || null}
+          couponDiscount={mode === 'split' ? 0 : couponDiscount}
+          selectedItems={selectedItemsPayload}
+          payerLabel={payerLabel}
+          items={order.items.filter((item) => item.unpaidQuantity > 0).map((item) => ({ id: String(item.orderMenuId || item.menuId), name: item.name, quantity: item.unpaidQuantity, price: item.price * grossRatio }))}
+          prepareSplitIntent={mode === 'split' && splitMode !== 'full' ? prepareSplit : undefined}
+          guestSessionId={guestSessionId}
+          locale={locale}
+          onSuccess={(amount) => completePaymentLocally(amount)}
+          onError={setMessage}
+        />
+      ) : isSquareInline && selectedMethod && canStartPayment ? (
+        <SquareInlinePayment
+          key={`square-r1-${paymentMethodKey(selectedMethod)}-${order.orderId}`}
+          orderId={order.orderId}
+          table={bootstrap.table}
+          settlementMode={settlementMode}
           methodCode={selectedMethod.code}
           providerCode={selectedMethod.providerCode}
           amount={payableEstimate}

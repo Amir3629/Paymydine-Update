@@ -30,11 +30,24 @@ class Terminal_devices_model extends Model
 
     public static function listProviderOptions(): array
     {
-        return [
+        // PMD_TERMINAL_DEVICE_MARKET_OPTIONS_R6B
+        $implemented = [
             'sumup' => 'SumUp',
             'vr_payment' => 'VR Payment',
             'worldline' => 'Worldline Terminal API',
+            'square' => 'Square Terminal API',
         ];
+
+        try {
+            $state = app(\App\Services\Platform\LocationPlatformContext::class)->state();
+            if (!($state['resolved'] ?? false) || empty($state['profile'])) {
+                return [];
+            }
+            $allowed = array_keys((array)($state['profile']['terminals']['providers'] ?? []));
+            return array_intersect_key($implemented, array_fill_keys($allowed, true));
+        } catch (\Throwable $error) {
+            return [];
+        }
     }
 
     public static function listPairingStateOptions(): array

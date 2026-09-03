@@ -105,10 +105,14 @@ final class ProviderCapabilityRegistry
                 ],
                 'implemented_capabilities' => [
                     self::CAPABILITY_ONLINE_PAYMENTS,
+                    self::CAPABILITY_TERMINAL_PAYMENTS,
                     self::CAPABILITY_PAYMENT_LINKS,
+                    self::CAPABILITY_WEBHOOKS,
                 ],
                 'implemented_payment_methods' => [
                     self::METHOD_CARD,
+                    self::METHOD_APPLE_PAY,
+                    self::METHOD_GOOGLE_PAY,
                 ],
             ],
             'vr_payment' => [
