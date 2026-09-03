@@ -8,13 +8,14 @@ TENANT_PROFILE="$ROOT/app/Services/Platform/TenantPlatformProfileService.php"
 MARKET_SETTINGS="$ROOT/app/admin/controllers/PaymentMarketSettings.php"
 FINANCE="$ROOT/app/admin/controllers/Pmdfinance.php"
 FINANCE_JS="$ROOT/app/admin/assets/js/pmd-finance-market-r4.js"
+TERMINAL_MODEL="$ROOT/app/admin/models/Terminal_devices_model.php"
 RUNTIME="$ROOT/app/Services/Payments/SquareRuntimeService.php"
 TERMINAL="$ROOT/app/Services/TerminalPayments/SquareTerminalProvider.php"
 PAYMENTS="$ROOT/app/admin/controllers/Payments.php"
 OVERLAYS="$ROOT/frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815/src/runtime/components/RuntimeOverlays.tsx"
 DIRECT="$ROOT/frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815/src/runtime/components/SquareDirectMethodButton.tsx"
 
-for f in "$COUNTRY" "$FOUNDATION" "$TENANT_PROFILE" "$MARKET_SETTINGS" "$FINANCE" "$FINANCE_JS" "$RUNTIME" "$TERMINAL" "$PAYMENTS" "$OVERLAYS" "$DIRECT"; do
+for f in "$COUNTRY" "$FOUNDATION" "$TENANT_PROFILE" "$MARKET_SETTINGS" "$FINANCE" "$FINANCE_JS" "$TERMINAL_MODEL" "$RUNTIME" "$TERMINAL" "$PAYMENTS" "$OVERLAYS" "$DIRECT"; do
   test -s "$f" || { echo "[square-canada] missing: $f"; exit 1; }
 done
 
@@ -56,6 +57,14 @@ grep -q "PMD_CANADA_FINANCE_FIRST_PAINT_R6" "$FINANCE"
 grep -q "\$providerCodes = \['square'\]" "$FINANCE"
 grep -q "\['card', 'apple_pay', 'google_pay', 'cod', 'cash'\]" "$FINANCE"
 grep -q "Canada · CAD · America/Toronto · Square" "$FINANCE_JS"
+
+# Terminal inventory is market-scoped too. Canada exposes Square only, and a
+# country change deactivates foreign active terminal rows instead of deleting them.
+grep -q "PMD_TENANT_PLATFORM_FOREIGN_TERMINALS_DISABLED_R6B" "$TENANT_PROFILE"
+grep -q "disableForeignTerminalDevices(\$countryCode)" "$TENANT_PROFILE"
+grep -q "PMD_TERMINAL_DEVICE_MARKET_OPTIONS_R6B" "$TERMINAL_MODEL"
+grep -q "'square' => 'Square Terminal API'" "$TERMINAL_MODEL"
+grep -q "LocationPlatformContext::class" "$TERMINAL_MODEL"
 
 grep -q "PMD_SUPPORTED_COUNTRIES = \['CA'\]" "$RUNTIME"
 grep -q "Square is enabled in PayMyDine only for Canada (CA)." "$RUNTIME"
