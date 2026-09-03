@@ -41,6 +41,7 @@ jobs:
           grep -q '"productName": "PayMyDine"' package.json
           grep -q "require('./local-cache-privacy').install()" src/local-first-entry.js
           grep -q "require('./local-first-bootstrap').install()" src/local-first-entry.js
+          grep -q "require('./offline-blank-guard').install()" src/local-first-entry.js
           grep -q "require('./fast-route-pool').install()" src/local-first-entry.js
           grep -q 'new WebContentsView' src/fast-route-pool.js
           grep -q 'MAX_ROUTE_VIEWS' src/fast-route-pool.js
@@ -49,6 +50,7 @@ jobs:
           grep -q 'platform-snapshots-v130' src/local-first-bootstrap.js
           grep -q 'pmd:v130-json-get' src/local-first-bootstrap.js
           grep -q 'capturePage' src/local-first-bootstrap.js
+          grep -q 'cached MHTML rendered blank' src/offline-blank-guard.js
           grep -q 'fastRoutePoolV130: true' src/preload.js
           grep -q '__PMD_DESKTOP_JSON_CACHE_V130__' src/preload.js
           grep -q 'pmd:v130-warm-routes' src/preload.js
@@ -86,6 +88,7 @@ jobs:
             'src/local-first-entry.js',
             'src/local-cache-privacy.js',
             'src/local-first-bootstrap.js',
+            'src/offline-blank-guard.js',
             'src/fast-route-pool.js',
             'src/local-store.js',
             'src/main.js',
@@ -197,7 +200,7 @@ jobs:
           test -s release/PayMyDine-Desktop-Setup-1.3.0.exe
           test -s release/PayMyDine-Desktop-1.3.0-mac-arm64.dmg
           tag='pmd-desktop-v130-preview'
-          notes='PayMyDine Desktop V1.3.0 preview. Primary PayMyDine navigation now uses a bounded persistent WebContentsView route pool so warmed Dashboard, Orders, Settings and other main Platform surfaces stay alive in memory instead of being destroyed and downloaded again on every switch. The canonical tenant Platform UI and server role permissions remain authoritative. Offline page snapshots now use queued MHTML plus a screenshot fallback instead of blank-prone HTMLComplete files. Cached Cashier table/menu GET data remains local. Offline cached screens are read-only: kitchen sends, payments and other writes still require verified connectivity. Printer and cash-drawer support remain native.'
+          notes='PayMyDine Desktop V1.3.0 preview. Primary PayMyDine navigation now uses a bounded persistent WebContentsView route pool so warmed Dashboard, Orders, Settings and other main Platform surfaces stay alive in memory instead of being destroyed and downloaded again on every switch. The canonical tenant Platform UI and server role permissions remain authoritative. Offline page snapshots now use queued MHTML plus a screenshot fallback instead of blank-prone HTMLComplete files. A blank-MHTML watchdog guarantees a visible cached fallback. Cached Cashier table/menu GET data remains local. Offline cached screens are read-only: kitchen sends, payments and other writes still require verified connectivity. Printer and cash-drawer support remain native.'
           if gh release view "$tag" --repo "$GH_REPO" >/dev/null 2>&1; then
             gh release upload "$tag" release/* --clobber --repo "$GH_REPO"
             gh release edit "$tag" --target "$PMD_RELEASE_TARGET" --prerelease --title 'PayMyDine Desktop V1.3.0 Preview' --notes "$notes" --repo "$GH_REPO"
