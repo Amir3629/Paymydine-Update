@@ -8,7 +8,7 @@
     "brand:icon": "node scripts/fetch-brand-icon.js",
     "dev": "npm run brand:icon && electron .",
     "start": "npm run brand:icon && electron .",
-    "check": "node --check src/main.js && node --check src/preload.js && node --check src/setup.js && node --check src/hardware.js && node --check src/receipt.js && node --check src/hardware-page.js && node --check src/offline.js",
+    "check": "node --check src/main.js && node --check src/preload.js && node --check src/external-preload.js && node --check src/setup.js && node --check src/hardware.js && node --check src/receipt.js && node --check src/hardware-page.js && node --check src/offline.js",
     "dist:win": "npm run check && npm run brand:icon && electron-builder --win nsis",
     "dist:mac": "npm run check && npm run brand:icon && electron-builder --mac dmg zip"
   },
