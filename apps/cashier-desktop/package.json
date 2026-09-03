@@ -1,6 +1,6 @@
 {
   "name": "paymydine-desktop",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "private": true,
   "description": "PayMyDine Desktop App: canonical tenant Platform UI with seamless persistent page views, durable offline cache, Windows dedicated Device Mode, secure payments, printer and cash drawer support.",
   "main": "src/local-first-entry.js",
