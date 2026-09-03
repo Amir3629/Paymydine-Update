@@ -116,11 +116,29 @@ insert_before_once(
 )
 
 # Square card remains an inline PCI-hosted card form, but it now works for both
-# pay-existing and start-finalize settlement modes.
+# pay-existing and start-finalize settlement modes. The key makes this anchor
+# unique even though PayPal/SumUp/Stripe components share the same prop names.
+square_card_old = '''        <SquareInlinePayment
+          key={`square-r1-${paymentMethodKey(selectedMethod)}-${order.orderId}`}
+          orderId={order.orderId}
+          table={bootstrap.table}
+          methodCode={selectedMethod.code}
+          providerCode={selectedMethod.providerCode}
+          amount={payableEstimate}
+'''
+square_card_new = '''        <SquareInlinePayment
+          key={`square-r1-${paymentMethodKey(selectedMethod)}-${order.orderId}`}
+          orderId={order.orderId}
+          table={bootstrap.table}
+          settlementMode={settlementMode}
+          methodCode={selectedMethod.code}
+          providerCode={selectedMethod.providerCode}
+          amount={payableEstimate}
+'''
 replace_once(
     RUNTIME,
-    "          table={bootstrap.table}\n          methodCode={selectedMethod.code}\n          providerCode={selectedMethod.providerCode}\n          amount={payableEstimate}\n",
-    "          table={bootstrap.table}\n          settlementMode={settlementMode}\n          methodCode={selectedMethod.code}\n          providerCode={selectedMethod.providerCode}\n          amount={payableEstimate}\n",
+    square_card_old,
+    square_card_new,
     'Square card receives settlement mode',
 )
 
@@ -159,7 +177,7 @@ required = [
     "const isSquareInline = Boolean(selectedMethod && selectedProvider === 'square' && selectedCode === 'card')",
     "const isSquareSingleAction = Boolean(selectedMethod && selectedProvider === 'square' && ['apple_pay', 'google_pay'].includes(selectedCode))",
     "const directSquare = entryProvider === 'square'",
-    "settlementMode={settlementMode}",
+    "key={`square-r1-${paymentMethodKey(selectedMethod)}-${order.orderId}`}\n          orderId={order.orderId}\n          table={bootstrap.table}\n          settlementMode={settlementMode}",
     ") : isSquareSingleAction ? null : isPayPalInline",
 ]
 for marker in required:
