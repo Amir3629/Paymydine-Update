@@ -1,0 +1,35 @@
+name: PMD Menu Gallery Options V1
+
+on:
+  push:
+    branches:
+      - feature/menu-gallery-sides-options-20260903
+
+permissions:
+  contents: write
+
+jobs:
+  integrate:
+    if: ${{ github.actor != 'github-actions[bot]' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Apply guarded integration
+        run: python3 scripts/pmd-menu-gallery-options-v1-apply.py
+      - name: Syntax checks
+        run: |
+          php -l app/admin/models/Menus_model.php
+          php -l app/admin/traits/PmdMenuGalleryOptionsV1.php
+          node --check app/admin/assets/js/pmd-menu-gallery-options-v1.js
+          python3 -m json.tool app/admin/views/_meta/assets.json >/dev/null
+          python3 -m json.tool frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815/tsconfig.json >/dev/null
+      - name: Commit integration hooks
+        run: |
+          git add app/admin/models/Menus_model.php app/admin/views/_meta/assets.json
+          if git diff --cached --quiet; then exit 0; fi
+          git config user.name "PayMyDine Automation"
+          git config user.email "actions@users.noreply.github.com"
+          git commit -m "Integrate Menu gallery and side options V1"
+          git push origin HEAD:feature/menu-gallery-sides-options-20260903
