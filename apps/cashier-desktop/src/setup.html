@@ -47,13 +47,18 @@
     .device-mode.visible{display:block}
     .device-row{display:grid;grid-template-columns:22px 1fr;gap:9px;align-items:start;cursor:pointer}
     .device-row input{margin:3px 0 0;width:17px;height:17px;accent-color:var(--pmd-green)}
+    .device-row input:disabled{cursor:not-allowed;opacity:.55}
     .device-title{font-weight:900;color:#153c44;font-size:14px;line-height:1.35}
     .device-copy{margin-top:4px;color:#667f86;font-size:12px;line-height:1.45}
     .device-note{margin-top:8px;padding-top:8px;border-top:1px solid #e0e9e6;color:#7d6a37;font-size:11px;line-height:1.4}
+    .device-status{margin-top:9px;padding:9px 10px;border-radius:9px;font-size:11px;line-height:1.45;font-weight:700}
+    .device-status:empty{display:none}
+    .device-status.supported{background:#eaf7ef;color:#17643a;border:1px solid #c6ead3}
+    .device-status.unsupported{background:#fff1f0;color:#a33a32;border:1px solid #ffd2cf}
   </style>
 </head>
 <body>
-  <!-- PMD_DESKTOP_SETUP_V140 -->
+  <!-- PMD_DESKTOP_SETUP_V141 -->
   <main class="card">
     <div class="brand">
       <img class="brand-logo" src="./paymydine-logo.svg" alt="PayMyDine">
@@ -76,7 +81,8 @@
             <span class="device-copy">Use PayMyDine as the Windows shell for restaurant staff. After reboot/sign-in, this Windows account opens PayMyDine instead of the normal desktop. A password-protected Developer Exit can temporarily open Windows.</span>
           </span>
         </label>
-        <div class="device-note">Strict lockdown uses Microsoft Shell Launcher and requires Windows Enterprise, Education, or IoT Enterprise. It is intentionally opt-in so normal Owner/Manager laptops stay normal Windows computers.</div>
+        <div class="device-note">Strict lockdown uses Microsoft Shell Launcher and requires Windows Enterprise, Education, or IoT Enterprise. PayMyDine checks this PC before asking for administrator approval.</div>
+        <div class="device-status" id="device-mode-status" role="status"></div>
       </section>
 
       <button type="submit">Open PayMyDine</button>
