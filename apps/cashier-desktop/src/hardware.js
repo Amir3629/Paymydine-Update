@@ -14,8 +14,8 @@ const DRAWER_COMMANDS = [
 ];
 
 function ensureSupportedPlatform() {
-  if (!['win32', 'darwin'].includes(process.platform)) {
-    throw new Error('Local POS hardware is supported on Windows and macOS.');
+  if (!['win32', 'darwin', 'linux'].includes(process.platform)) {
+    throw new Error('Local POS hardware is supported on Windows, macOS, and Linux.');
   }
 }
 
@@ -82,10 +82,18 @@ function safeCommand(command, args) {
   }
 }
 
-function listPrintersMac() {
-  const printerOutput = safeCommand('/usr/bin/lpstat', ['-p']);
-  const defaultOutput = safeCommand('/usr/bin/lpstat', ['-d']);
-  const deviceOutput = safeCommand('/usr/bin/lpstat', ['-v']);
+function cupsBinary(name) {
+  const candidates = process.platform === 'darwin'
+    ? [`/usr/bin/${name}`]
+    : [`/usr/bin/${name}`, `/bin/${name}`];
+  return candidates.find((candidate) => fs.existsSync(candidate)) || name;
+}
+
+function listPrintersCups() {
+  const lpstat = cupsBinary('lpstat');
+  const printerOutput = safeCommand(lpstat, ['-p']);
+  const defaultOutput = safeCommand(lpstat, ['-d']);
+  const deviceOutput = safeCommand(lpstat, ['-v']);
 
   const defaultMatch = defaultOutput.match(/system default destination:\s*(.+)$/im);
   const defaultName = defaultMatch ? defaultMatch[1].trim() : '';
@@ -96,6 +104,8 @@ function listPrintersMac() {
     if (match) devices[match[1].trim()] = match[2].trim();
   });
 
+  const platformLabel = process.platform === 'darwin' ? 'macOS' : 'linux';
+  const driverLabel = process.platform === 'darwin' ? 'macOS CUPS' : 'Linux CUPS';
   const rows = [];
   printerOutput.split(/\r?\n/).forEach((line) => {
     const match = line.match(/^printer\s+(.+?)\s+(?:is\s+|disabled\s+)/i);
@@ -105,13 +115,13 @@ function listPrintersMac() {
     const uri = devices[name] || '';
     rows.push({
       name,
-      driver: 'macOS CUPS',
+      driver: driverLabel,
       port: uri,
       default: name === defaultName,
       network: /^(ipp|ipps|lpd|socket|smb):/i.test(uri),
       offline: /\bdisabled\b/i.test(line),
       status: /\bidle\b/i.test(line) ? 'idle' : line.replace(/^printer\s+\S+\s*/i, '').trim(),
-      platform: 'macOS',
+      platform: platformLabel,
     });
   });
 
@@ -120,7 +130,7 @@ function listPrintersMac() {
 
 function listPrinters() {
   ensureSupportedPlatform();
-  return process.platform === 'darwin' ? listPrintersMac() : listPrintersWindows();
+  return process.platform === 'win32' ? listPrintersWindows() : listPrintersCups();
 }
 
 function resolvePrinterName(requested) {
@@ -128,7 +138,7 @@ function resolvePrinterName(requested) {
   if (explicit) return explicit;
   const printers = listPrinters().filter((row) => !row.offline);
   const preferred = printers.find((row) => row.default) || (printers.length === 1 ? printers[0] : null);
-  if (!preferred) throw new Error('Select a receipt printer in PayMyDine Cashier hardware setup.');
+  if (!preferred) throw new Error('Select a receipt printer in PayMyDine hardware setup.');
   return preferred.name;
 }
 
@@ -210,7 +220,7 @@ function sendRawWindows(baseDir, printerName, bytes) {
   ]);
 }
 
-function sendRawMac(baseDir, printerName, bytes) {
+function sendRawCups(baseDir, printerName, bytes) {
   fs.mkdirSync(baseDir, { recursive: true });
   const tempFile = path.join(
     baseDir || os.tmpdir(),
@@ -218,7 +228,7 @@ function sendRawMac(baseDir, printerName, bytes) {
   );
   fs.writeFileSync(tempFile, Buffer.from(bytes));
   try {
-    runCommand('/usr/bin/lp', ['-d', printerName, '-o', 'raw', tempFile], 15000);
+    runCommand(cupsBinary('lp'), ['-d', printerName, '-o', 'raw', tempFile], 15000);
   } finally {
     try { fs.unlinkSync(tempFile); } catch (_) {}
   }
@@ -227,10 +237,10 @@ function sendRawMac(baseDir, printerName, bytes) {
 function sendRaw(baseDir, printerName, bytes) {
   ensureSupportedPlatform();
   const targetPrinter = resolvePrinterName(printerName);
-  if (process.platform === 'darwin') {
-    sendRawMac(baseDir, targetPrinter, bytes);
-  } else {
+  if (process.platform === 'win32') {
     sendRawWindows(baseDir, targetPrinter, bytes);
+  } else {
+    sendRawCups(baseDir, targetPrinter, bytes);
   }
   return targetPrinter;
 }
@@ -245,7 +255,7 @@ function parseDrawerCommand(command) {
 }
 
 function testPrint(baseDir, printerName) {
-  const text = ['PayMyDine Cashier', 'Printer connection OK', new Date().toLocaleString(), '', ''].join('\r\n');
+  const text = ['PayMyDine', 'Printer connection OK', new Date().toLocaleString(), '', ''].join('\r\n');
   const selected = sendRaw(baseDir, printerName, Buffer.from(text, 'ascii'));
   return { ok: true, printerName: selected, platform: process.platform };
 }
