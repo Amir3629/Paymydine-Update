@@ -80,9 +80,12 @@ terminal_isolation_function = r'''    private function disableForeignTerminalDev
                 array_keys((array)($profile['terminals']['providers'] ?? []))
             )));
 
+            // Provider codes are canonical lowercase PMD identifiers. Avoid a
+            // DB-expression column here so the query is compatible with both the
+            // current Laravel builder and the older tenant template runtime.
             $query = DB::table('terminal_devices')->where('is_active', '!=', 0);
             if ($allowed) {
-                $query->whereNotIn(DB::raw('LOWER(provider_code)'), $allowed);
+                $query->whereNotIn('provider_code', $allowed);
             }
             $affected = $query->update(['is_active' => 0]);
 
