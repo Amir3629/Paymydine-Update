@@ -214,8 +214,20 @@ async function nativeJsonGet(request) {
       },
     });
     const text = await response.text();
-    let data = {};
-    try { data = text ? JSON.parse(text) : {}; } catch (_) { data = {}; }
+    const contentType = String(response.headers.get('content-type') || '').toLowerCase();
+    const authRequired = isLoginLike(response.url);
+    if (authRequired || !contentType.includes('json')) {
+      return {
+        ok: false,
+        status: authRequired ? 401 : response.status,
+        online: true,
+        authRequired,
+        message: authRequired ? 'Sign in to PayMyDine.' : 'PayMyDine returned a non-JSON response.',
+      };
+    }
+
+    let data = null;
+    try { data = text ? JSON.parse(text) : {}; } catch (_) { data = null; }
     if (!response.ok || !data || typeof data !== 'object') {
       return { ok: false, status: response.status, online: true, data, message: `HTTP ${response.status}` };
     }
