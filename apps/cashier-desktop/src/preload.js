@@ -2,13 +2,14 @@
 
 const { contextBridge, ipcRenderer, webFrame } = require('electron');
 
-const APP_VERSION = '1.3.0';
+const APP_VERSION = '1.4.0';
 
 contextBridge.exposeInMainWorld('PayMyDineDesktop', Object.freeze({
   isDesktopApp: true,
   fullPlatformApp: true,
-  desktopPlatformV130: true,
-  fastRoutePoolV130: true,
+  desktopPlatformV140: true,
+  seamlessRoutePoolV140: true,
+  windowsDeviceModeV140: true,
   localCacheV130: true,
   platform: process.platform,
   printerCompatibilityV109: true,
@@ -16,15 +17,21 @@ contextBridge.exposeInMainWorld('PayMyDineDesktop', Object.freeze({
   getConfig: () => ipcRenderer.invoke('pmd:get-config').then((cfg) => Object.assign({}, cfg || {}, {
     appVersion: APP_VERSION,
     product: 'PayMyDine Desktop',
-    desktopPlatformV130: true,
-    fastRoutePoolV130: true,
+    desktopPlatformV140: true,
+    seamlessRoutePoolV140: true,
+    windowsDeviceModeV140: true,
     localCacheV130: true,
+    platform: process.platform,
   })),
   saveTenant: (tenant) => ipcRenderer.invoke('pmd:save-tenant', tenant),
   resetTenant: () => ipcRenderer.invoke('pmd:reset-tenant'),
 
   cachedJsonGet: (request) => ipcRenderer.invoke('pmd:v130-json-get', request || {}),
   localCacheInfo: () => ipcRenderer.invoke('pmd:v130-cache-info'),
+
+  deviceModeState: () => ipcRenderer.invoke('pmd:device-mode-state'),
+  enableDeviceMode: () => ipcRenderer.invoke('pmd:device-mode-enable'),
+  openDeveloperExit: () => ipcRenderer.invoke('pmd:developer-exit-open'),
 
   listPrinters: () => ipcRenderer.invoke('pmd:list-printers'),
   saveHardware: (values) => ipcRenderer.invoke('pmd:save-hardware', values || {}),
@@ -68,7 +75,7 @@ function pmdPrimaryNavigationAnchor(anchor) {
   );
 }
 
-function installFastNavigationV130() {
+function installFastNavigationV140() {
   if (process.isMainFrame === false) return;
 
   document.addEventListener('click', (event) => {
@@ -104,7 +111,7 @@ function installFastNavigationV130() {
     } catch (_) {}
 
     event.preventDefault();
-    ipcRenderer.send('pmd:v130-navigate', url.href);
+    ipcRenderer.send('pmd:v140-navigate', url.href);
   }, true);
 
   function sendWarmRoutes() {
@@ -122,23 +129,73 @@ function installFastNavigationV130() {
       urls.push(url.href);
     });
 
-    if (urls.length) ipcRenderer.send('pmd:v130-warm-routes', urls);
+    if (urls.length) ipcRenderer.send('pmd:v140-warm-routes', urls);
   }
 
   const warm = () => {
-    setTimeout(sendWarmRoutes, 160);
-    setTimeout(sendWarmRoutes, 900);
+    setTimeout(sendWarmRoutes, 140);
+    setTimeout(sendWarmRoutes, 800);
   };
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', warm, { once: true });
-  } else {
-    warm();
-  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', warm, { once: true });
+  else warm();
   window.addEventListener('pageshow', warm);
 }
 
-installFastNavigationV130();
+function installDeveloperExitButtonV140() {
+  if (process.isMainFrame === false || process.platform !== 'win32') return;
+
+  const ensureButton = async () => {
+    let state;
+    try { state = await ipcRenderer.invoke('pmd:device-mode-state'); } catch (_) { return; }
+    if (!state || !state.enabled || state.developerDesktop) return;
+    if (document.getElementById('pmd-device-mode-exit-v140')) return;
+
+    const button = document.createElement('button');
+    button.id = 'pmd-device-mode-exit-v140';
+    button.type = 'button';
+    button.textContent = 'DEV';
+    button.title = 'Developer exit';
+    button.setAttribute('aria-label', 'Developer exit');
+    button.style.cssText = [
+      'all:initial',
+      'position:fixed',
+      'right:10px',
+      'bottom:10px',
+      'z-index:2147483647',
+      'width:38px',
+      'height:28px',
+      'display:grid',
+      'place-items:center',
+      'border-radius:8px',
+      'border:1px solid rgba(16,47,66,.28)',
+      'background:rgba(255,255,255,.78)',
+      'color:#102f42',
+      'font:800 10px/1 -apple-system,BlinkMacSystemFont,Segoe UI,sans-serif',
+      'letter-spacing:.05em',
+      'cursor:pointer',
+      'box-shadow:0 2px 8px rgba(16,47,66,.12)',
+      'opacity:.38',
+      'backdrop-filter:blur(6px)',
+    ].join(';');
+    button.addEventListener('mouseenter', () => { button.style.opacity = '1'; });
+    button.addEventListener('mouseleave', () => { button.style.opacity = '.38'; });
+    button.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+      ipcRenderer.invoke('pmd:developer-exit-open').catch(() => {});
+    }, true);
+    (document.body || document.documentElement).appendChild(button);
+  };
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', ensureButton, { once: true });
+  else ensureButton();
+  window.addEventListener('pageshow', ensureButton);
+}
+
+installFastNavigationV140();
+installDeveloperExitButtonV140();
 
 if (process.isMainFrame !== false) {
   webFrame.executeJavaScript(`(function(){
