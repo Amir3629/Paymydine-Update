@@ -3,6 +3,11 @@
   "version": "1.5.0",
   "private": true,
   "description": "PayMyDine Desktop App: canonical tenant Platform UI with seamless persistent page views, durable offline cache, Windows Device Mode, Ubuntu appliance mode, secure payments, printer and cash drawer support.",
+  "homepage": "https://paymydine.com",
+  "author": {
+    "name": "PayMyDine",
+    "email": "noreply@paymydine.com"
+  },
   "main": "src/local-first-entry.js",
   "scripts": {
     "brand:icon": "node scripts/fetch-brand-icon.js",
@@ -20,6 +25,7 @@
   "build": {
     "appId": "com.paymydine.cashier",
     "productName": "PayMyDine",
+    "desktopName": "PayMyDine",
     "asar": true,
     "afterSign": "scripts/after-sign-mac-v106.js",
     "directories": {
@@ -58,6 +64,8 @@
       "target": ["deb", "AppImage"],
       "category": "Office",
       "executableName": "paymydine",
+      "maintainer": "PayMyDine <noreply@paymydine.com>",
+      "syncDesktopName": true,
       "artifactName": "PayMyDine-Desktop-${version}-linux-${arch}.${ext}"
     },
     "deb": {
