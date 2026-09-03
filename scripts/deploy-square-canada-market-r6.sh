@@ -9,7 +9,7 @@ BASE="https://raw.githubusercontent.com/Amir3629/Paymydine-Update/$SHA"
 
 # Direct assets are downloaded from the exact reviewed branch head. Host files
 # that may contain newer VPS hotfixes are patched in-place by the idempotent
-# R4 -> repaired R5 -> R6 -> R6A chain instead of being blindly replaced.
+# R4 -> repaired R5 -> R6 -> R6A -> R6B chain instead of being blindly replaced.
 DOWNLOAD_FILES=(
   "app/Services/Payments/SquareRuntimeService.php"
   "app/Services/TerminalPayments/SquareTerminalProvider.php"
@@ -25,6 +25,7 @@ DOWNLOAD_FILES=(
   "scripts/pmd-square-ui-runtime-r5.py"
   "scripts/pmd-square-canada-market-r6.py"
   "scripts/pmd-square-canada-finance-r6a.py"
+  "scripts/pmd-square-canada-terminal-market-r6b.py"
 )
 
 PATCHED_FILES=(
@@ -106,13 +107,15 @@ python3 -m py_compile \
   "$ROOT/scripts/pmd-square-runtime-terminal-r4.py" \
   "$ROOT/scripts/pmd-square-ui-runtime-r5.py" \
   "$ROOT/scripts/pmd-square-canada-market-r6.py" \
-  "$ROOT/scripts/pmd-square-canada-finance-r6a.py"
+  "$ROOT/scripts/pmd-square-canada-finance-r6a.py" \
+  "$ROOT/scripts/pmd-square-canada-terminal-market-r6b.py"
 
 echo "=========================================="
-echo "APPLY R4 -> REPAIRED R5 -> CANADA R6 -> FINANCE R6A"
+echo "APPLY R4 -> REPAIRED R5 -> CANADA R6 -> FINANCE R6A -> TERMINALS R6B"
 echo "=========================================="
 sudo python3 "$ROOT/scripts/pmd-square-canada-market-r6.py"
 sudo python3 "$ROOT/scripts/pmd-square-canada-finance-r6a.py"
+sudo python3 "$ROOT/scripts/pmd-square-canada-terminal-market-r6b.py"
 
 echo "=========================================="
 echo "VERIFY CANADA SUPERADMIN MARKET"
@@ -132,6 +135,8 @@ if (($c["currency"]["code"] ?? null) !== "CAD") { fwrite(STDERR, "Canada profile
 if (($c["timezone"] ?? null) !== "America/Toronto") { fwrite(STDERR, "Canada timezone mismatch\n"); exit(1); }
 $providers = array_keys((array)($c["payments"]["providers"] ?? []));
 if ($providers !== ["square"]) { fwrite(STDERR, "Canada provider list must be Square only\n"); exit(1); }
+$terminals = array_keys((array)($c["terminals"]["providers"] ?? []));
+if ($terminals !== ["square"]) { fwrite(STDERR, "Canada terminal list must be Square only\n"); exit(1); }
 if (!isset($p->countryOptions()["CA"])) { fwrite(STDERR, "Canada is missing from SuperAdmin countryOptions\n"); exit(1); }
 echo "PASS: SuperAdmin registry resolves Canada -> CA / CAD / America/Toronto / Square only\n";
 '
@@ -143,6 +148,13 @@ grep -n "PMD_CANADA_FINANCE_FIRST_PAINT_R6" "$ROOT/app/admin/controllers/Pmdfina
 grep -n "\$providerCodes = \['square'\]" "$ROOT/app/admin/controllers/Pmdfinance.php"
 grep -n "Canada · CAD · America/Toronto · Square" "$ROOT/app/admin/assets/js/pmd-finance-market-r4.js"
 node --check "$ROOT/app/admin/assets/js/pmd-finance-market-r4.js"
+
+echo "=========================================="
+echo "VERIFY TERMINAL MARKET ISOLATION"
+echo "=========================================="
+grep -n "PMD_TENANT_PLATFORM_FOREIGN_TERMINALS_DISABLED_R6B" "$ROOT/app/Services/Platform/TenantPlatformProfileService.php"
+grep -n "PMD_TERMINAL_DEVICE_MARKET_OPTIONS_R6B" "$ROOT/app/admin/models/Terminal_devices_model.php"
+grep -n "'square' => 'Square Terminal API'" "$ROOT/app/admin/models/Terminal_devices_model.php"
 
 echo "=========================================="
 echo "VERIFY SQUARE CANADA-ONLY RUNTIME"
@@ -174,6 +186,7 @@ PHP_FILES=(
   "app/admin/controllers/PaymentMarketSettings.php"
   "app/admin/controllers/Pmdfinance.php"
   "app/admin/controllers/Payments.php"
+  "app/admin/models/Terminal_devices_model.php"
   "app/Services/TerminalPayments/TerminalPaymentService.php"
   "app/admin/controllers/TerminalDevices.php"
   "routes/qr-pay.php"
