@@ -16,7 +16,7 @@ on:
       - '.github/workflows/cashier-desktop-v110.yml'
 
 concurrency:
-  group: pmd-desktop-${{ github.workflow }}-${{ github.ref }}
+  group: pmd-desktop-${{ github.workflow }}-${{ github.event.pull_request.head.ref || github.ref_name }}
   cancel-in-progress: true
 
 permissions:
@@ -211,7 +211,7 @@ jobs:
           if-no-files-found: error
 
   publish-preview:
-    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'feature/cashier-real-app-v110')
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'feature/cashier-real-app-v110'
     needs: [contract-test, build-windows, build-macos-arm64]
     runs-on: ubuntu-latest
     permissions:
@@ -222,39 +222,32 @@ jobs:
           pattern: pmd-v141-*
           path: release
           merge-multiple: true
-      - name: Publish V1.4.1 preview installers
+      - name: Publish V1.4.1 preview installers once
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-          PMD_RELEASE_TARGET: ${{ github.event.pull_request.head.sha || github.sha }}
+          PMD_RELEASE_TARGET: ${{ github.event.pull_request.head.sha }}
           PMD_PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           set -euo pipefail
 
-          if [[ -n "${PMD_PR_NUMBER:-}" ]]; then
-            current_head="$(gh api "repos/$GH_REPO/pulls/$PMD_PR_NUMBER" --jq '.head.sha')"
-            if [[ "$current_head" != "$PMD_RELEASE_TARGET" ]]; then
-              echo "PMD_V141_STALE_RUN_SKIPPED current=$current_head run=$PMD_RELEASE_TARGET"
-              exit 0
-            fi
-          else
-            branch="${GITHUB_REF#refs/heads/}"
-            current_head="$(gh api "repos/$GH_REPO/commits/$branch" --jq '.sha')"
-            if [[ "$current_head" != "$PMD_RELEASE_TARGET" ]]; then
-              echo "PMD_V141_STALE_PUSH_SKIPPED current=$current_head run=$PMD_RELEASE_TARGET"
-              exit 0
-            fi
+          current_head="$(gh api "repos/$GH_REPO/pulls/$PMD_PR_NUMBER" --jq '.head.sha')"
+          if [[ "$current_head" != "$PMD_RELEASE_TARGET" ]]; then
+            echo "PMD_V141_STALE_RUN_SKIPPED current=$current_head run=$PMD_RELEASE_TARGET"
+            exit 0
           fi
 
           test -s release/PayMyDine-Desktop-Setup-1.4.1.exe
           test -s release/PayMyDine-Desktop-1.4.1-mac-arm64.dmg
           tag='pmd-desktop-v141-preview'
-          notes='PayMyDine Desktop V1.4.1 preview. Keeps V1.4 seamless double-buffered navigation and Windows Dedicated POS Device Mode, and hardens real-device setup: Windows edition compatibility is detected before UAC, unsupported Pro/Home systems receive a clear explanation instead of a raw elevated-command error, elevated Shell Launcher failures are returned to the local setup screen, and release publishing cancels/skips stale runs so preview asset checksums stay tied to the current branch head. Offline writes/payments remain fail-closed.'
+          notes='PayMyDine Desktop V1.4.1 preview. Keeps V1.4 seamless double-buffered navigation and Windows Dedicated POS Device Mode, and hardens real-device setup. The preview release is immutable once created: newer code requires a new version/tag, so published installer checksums cannot be silently replaced by another CI run. Offline writes/payments remain fail-closed.'
+
           if gh release view "$tag" --repo "$GH_REPO" >/dev/null 2>&1; then
-            gh release upload "$tag" release/* --clobber --repo "$GH_REPO"
-            gh release edit "$tag" --target "$PMD_RELEASE_TARGET" --prerelease --title 'PayMyDine Desktop V1.4.1 Preview' --notes "$notes" --repo "$GH_REPO"
-          else
-            gh release create "$tag" release/* --target "$PMD_RELEASE_TARGET" --prerelease --title 'PayMyDine Desktop V1.4.1 Preview' --notes "$notes" --repo "$GH_REPO"
+            existing_target="$(gh release view "$tag" --repo "$GH_REPO" --json targetCommitish --jq '.targetCommitish')"
+            echo "PMD_V141_RELEASE_ALREADY_EXISTS target=$existing_target; immutable preview left unchanged"
+            exit 0
           fi
+
+          gh release create "$tag" release/* --target "$PMD_RELEASE_TARGET" --prerelease --title 'PayMyDine Desktop V1.4.1 Preview' --notes "$notes" --repo "$GH_REPO"
           echo 'PMD_V141_PREVIEW_RELEASE=PASS'
