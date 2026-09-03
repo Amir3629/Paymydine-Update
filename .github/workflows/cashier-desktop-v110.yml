@@ -266,13 +266,21 @@ jobs:
             exit 0
           fi
 
-          test -s release/PayMyDine-Desktop-Setup-1.5.0.exe
-          test -s release/PayMyDine-Desktop-1.5.0-mac-arm64.dmg
-          test -s release/PayMyDine-Appliance-Kit-1.5.0.tar.gz
-          deb="$(find release -maxdepth 1 -name 'PayMyDine-Desktop-1.5.0-linux-*.deb' -print -quit)"
-          appimage="$(find release -maxdepth 1 -name 'PayMyDine-Desktop-1.5.0-linux-*.AppImage' -print -quit)"
-          test -n "$deb" && test -s "$deb"
-          test -n "$appimage" && test -s "$appimage"
+          mkdir -p publish
+          win="$(find release -type f -name 'PayMyDine-Desktop-Setup-1.5.0.exe' -print -quit)"
+          mac="$(find release -type f -name 'PayMyDine-Desktop-1.5.0-mac-arm64.dmg' -print -quit)"
+          kit="$(find release -type f -name 'PayMyDine-Appliance-Kit-1.5.0.tar.gz' -print -quit)"
+          deb="$(find release -type f -name 'PayMyDine-Desktop-1.5.0-linux-*.deb' -print -quit)"
+          appimage="$(find release -type f -name 'PayMyDine-Desktop-1.5.0-linux-*.AppImage' -print -quit)"
+
+          for file in "$win" "$mac" "$kit" "$deb" "$appimage"; do
+            test -n "$file" && test -s "$file"
+            cp "$file" publish/
+          done
+
+          test "$(find publish -maxdepth 1 -type f | wc -l)" -eq 5
+          echo 'PMD_V150_RELEASE_SHA256:'
+          sha256sum publish/*
 
           tag='pmd-desktop-v150-preview'
           notes='PayMyDine Desktop V1.5.0 preview adds the first Ubuntu 24.04 LTS appliance path. Windows may remain installed in dual boot for evaluation. Linux packages include amd64 DEB/AppImage, CUPS printer/cash-drawer support, a restricted paymydine POS account, LightDM auto-login into a minimal Openbox kiosk session, password-protected DEV exit to an XFCE support desktop, and reboot-to-kiosk behavior. The appliance kit never repartitions or deletes Windows. Offline financial/order writes remain fail-closed.'
@@ -282,5 +290,5 @@ jobs:
             exit 0
           fi
 
-          gh release create "$tag" release/* --target "$PMD_RELEASE_TARGET" --prerelease --title 'PayMyDine Desktop V1.5.0 Linux Appliance Preview' --notes "$notes" --repo "$GH_REPO"
+          gh release create "$tag" publish/* --target "$PMD_RELEASE_TARGET" --prerelease --title 'PayMyDine Desktop V1.5.0 Linux Appliance Preview' --notes "$notes" --repo "$GH_REPO"
           echo 'PMD_V150_PREVIEW_RELEASE=PASS'
