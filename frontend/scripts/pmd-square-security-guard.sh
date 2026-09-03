@@ -95,6 +95,17 @@ if printf '%s\n' "$MULTI_PANEL" | grep -q "isSquareSingleAction"; then
   echo "[square-security] FAIL: Square single-action flag leaked into MultiOrderPaymentPanel"
   exit 1
 fi
+
+# If the live Worldline implementation uses its current null-chain instead of the
+# historical hidden canonical anchor, Square must compose after that guard rather
+# than replace it. This protects both providers' one-visible-control UX.
+if printf '%s\n' "$PAYMENT_PANEL" | grep -q "{isWorldlineSingleAction ? null :"; then
+  printf '%s\n' "$PAYMENT_PANEL" | grep -q "{isWorldlineSingleAction ? null : isSquareSingleAction ? null : isPayPalInline" || {
+    echo "[square-security] FAIL: Square did not compose with the live Worldline null-chain"
+    exit 1
+  }
+fi
+
 if grep -q "selectedProvider === 'square' && \['card', 'apple_pay', 'google_pay'\].includes(selectedCode)" "$OVERLAYS"; then
   echo "[square-security] FAIL: old duplicate Square wallet inline gate returned"
   exit 1
