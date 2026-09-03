@@ -99,7 +99,8 @@ final class SquareRuntimeService
 
         $location = $this->location($config);
         $country = strtoupper(trim((string)($location['country'] ?? '')));
-        $currency = strtoupper(trim((string)($location['currency'] ?? $config['configured_currency'] ?? '')));
+        $currency = strtoupper(trim((string)($location['currency'] ?? '')));
+        $configuredCurrency = strtoupper(trim((string)($config['configured_currency'] ?? '')));
         $status = strtoupper(trim((string)($location['status'] ?? 'ACTIVE')));
         $pmdCountry = strtoupper(trim((string)$pmdCountry));
         $pmdCurrency = strtoupper(trim((string)$pmdCurrency));
@@ -110,7 +111,16 @@ final class SquareRuntimeService
         if (!in_array($country, self::SUPPORTED_SELLER_COUNTRIES, true)) {
             throw new \RuntimeException('The configured Square seller location is not in a Square payment-processing country.');
         }
-        if ($pmdCurrency !== '' && $currency !== '' && !hash_equals($pmdCurrency, $currency)) {
+        if ($currency === '') {
+            throw new \RuntimeException('Square did not return a currency for the configured seller location.');
+        }
+        if ($configuredCurrency !== '' && !hash_equals($configuredCurrency, $currency)) {
+            throw new \RuntimeException("Square location currency {$currency} does not match the saved Square provider currency {$configuredCurrency}.");
+        }
+        if ($pmdCurrency === '' && $configuredCurrency !== '') {
+            $pmdCurrency = $configuredCurrency;
+        }
+        if ($pmdCurrency !== '' && !hash_equals($pmdCurrency, $currency)) {
             throw new \RuntimeException("Square location currency {$currency} does not match PayMyDine order currency {$pmdCurrency}.");
         }
         if (($config['mode'] ?? 'test') === 'live') {
