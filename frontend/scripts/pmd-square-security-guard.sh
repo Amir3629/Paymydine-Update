@@ -46,7 +46,14 @@ grep -q "currency: String(props.currency" "$CARD"
 grep -q "currency: String(props.currency" "$DIRECT"
 
 # Germany must not claim Square as a production provider in the country profile.
-if sed -n '/self::GERMANY => \[/,/self::TURKEY => \[/p' "$COUNTRY" | grep -q "'square' =>"; then
+# Extract only the Germany top-level profile, stopping at whichever country comes
+# next. This remains correct when Canada is inserted between Germany and Türkiye.
+GERMANY_PROFILE="$(awk '
+  /^[[:space:]]*self::GERMANY => \[/ { in_de=1; next }
+  in_de && /^[[:space:]]*self::[A-Z_]+ => \[/ { exit }
+  in_de { print }
+' "$COUNTRY")"
+if printf '%s\n' "$GERMANY_PROFILE" | grep -q "'square' =>"; then
   echo "[square-security] FAIL: Germany still advertises Square live eligibility"
   exit 1
 fi
