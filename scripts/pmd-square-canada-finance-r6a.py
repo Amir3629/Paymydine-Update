@@ -18,9 +18,11 @@ def replace_once(path: Path, old: str, new: str, label: str):
     print(f'PASS: {label}')
 
 
-# Canada must not fall through to the historical global provider/method list.
-# It uses canonical card/apple/google storage rows because the Square runtime is
-# mature on those codes; cash remains providerless.
+# The Finance first paint must follow the same market profile as SuperAdmin and
+# LocationPlatformContext. Germany keeps mature canonical method rows but its
+# provider list is filtered by the DE profile (so Square disappears). Canada
+# also uses canonical method rows but Square is its only online/terminal provider.
+# Türkiye remains intentionally payment-empty. Oman keeps its isolated om_* rows.
 old_market_branch = '''        } elseif ($countryCode === CountryPlatformProfileRegistry::GERMANY) {
             // Germany keeps the mature canonical storage/runtime rows. Only add
             // a first-paint market marker; do not remap its proven payment flow.
@@ -28,8 +30,12 @@ old_market_branch = '''        } elseif ($countryCode === CountryPlatformProfile
         }
 '''
 new_market_branch = '''        } elseif ($countryCode === CountryPlatformProfileRegistry::GERMANY) {
-            // Germany keeps the mature canonical storage/runtime rows. Only add
-            // a first-paint market marker; do not remap its proven payment flow.
+            // PMD_FINANCE_MARKET_SCOPE_R6A
+            // Germany keeps the mature canonical storage/runtime rows, but only
+            // providers declared by the DE market profile are visible/selectable.
+            $profile = (array)($market['profile'] ?? []);
+            $paymentProfile = (array)($profile['payments'] ?? []);
+            $providerCodes = array_values(array_keys((array)($paymentProfile['providers'] ?? [])));
             $this->bodyClass = trim($this->bodyClass.' pmd-finance-market-de');
         } elseif ($countryCode === CountryPlatformProfileRegistry::CANADA) {
             // PMD_CANADA_FINANCE_FIRST_PAINT_R6
@@ -38,9 +44,15 @@ new_market_branch = '''        } elseif ($countryCode === CountryPlatformProfile
             $methodCodes = ['card', 'apple_pay', 'google_pay', 'cod', 'cash'];
             $providerCodes = ['square'];
             $this->bodyClass = trim($this->bodyClass.' pmd-finance-market-ca');
+        } elseif ($countryCode === CountryPlatformProfileRegistry::TURKEY) {
+            // Türkiye is intentionally payment-empty until a reviewed provider
+            // integration exists. Do not flash the historical global catalogue.
+            $methodCodes = [];
+            $providerCodes = [];
+            $this->bodyClass = trim($this->bodyClass.' pmd-finance-market-tr');
         }
 '''
-replace_once(FINANCE, old_market_branch, new_market_branch, 'Canada Finance first-paint provider/method filter')
+replace_once(FINANCE, old_market_branch, new_market_branch, 'Finance first-paint market provider scoping')
 
 old_provider_mapping = '''            if ($countryCode === CountryPlatformProfileRegistry::OMAN) {
                 $definition = (array)($methodDefinitions[$methodCode] ?? []);
@@ -51,6 +63,8 @@ old_provider_mapping = '''            if ($countryCode === CountryPlatformProfil
             }
 
             $methodProviders[$methodCode] = collect(Payments_model::supportedProvidersForMethod($methodCode))
+                ->mapWithKeys(fn ($code) => [(string)$code => $providerLabels[(string)$code] ?? ucfirst(str_replace('_', ' ', (string)$code))])
+                ->all();
 '''
 new_provider_mapping = '''            if ($countryCode === CountryPlatformProfileRegistry::OMAN) {
                 $definition = (array)($methodDefinitions[$methodCode] ?? []);
@@ -67,9 +81,15 @@ new_provider_mapping = '''            if ($countryCode === CountryPlatformProfil
                 continue;
             }
 
-            $methodProviders[$methodCode] = collect(Payments_model::supportedProvidersForMethod($methodCode))
+            $compatible = Payments_model::supportedProvidersForMethod($methodCode);
+            if ($countryCode === CountryPlatformProfileRegistry::GERMANY) {
+                $compatible = array_values(array_intersect($compatible, $providerCodes));
+            }
+            $methodProviders[$methodCode] = collect($compatible)
+                ->mapWithKeys(fn ($code) => [(string)$code => $providerLabels[(string)$code] ?? ucfirst(str_replace('_', ' ', (string)$code))])
+                ->all();
 '''
-replace_once(FINANCE, old_provider_mapping, new_provider_mapping, 'Canada Finance method/provider mapping')
+replace_once(FINANCE, old_provider_mapping, new_provider_mapping, 'Finance method/provider mapping respects market provider list')
 
 old_actions = '''    var actions = document.querySelector('#payment-methods .pmd-owner-card__actions');
     if (actions && state.country_code === 'OM') {
@@ -81,26 +101,40 @@ new_actions = '''    var actions = document.querySelector('#payment-methods .pmd
       actions.innerHTML = '<span class="pmd-r4-market-pill">Oman · OMR · Asia/Muscat</span>';
     } else if (actions && state.country_code === 'CA') {
       actions.innerHTML = '<span class="pmd-r4-market-pill">Canada · CAD · America/Toronto · Square</span>';
+    } else if (actions && state.country_code === 'DE') {
+      actions.innerHTML = '<span class="pmd-r4-market-pill">Germany · EUR · Europe/Berlin</span>';
+    } else if (actions && state.country_code === 'TR') {
+      actions.innerHTML = '<span class="pmd-r4-market-pill">Türkiye · TRY · Europe/Istanbul · payments pending</span>';
     }
 '''
-replace_once(FINANCE_JS, old_actions, new_actions, 'Canada Finance market badge')
+replace_once(FINANCE_JS, old_actions, new_actions, 'Finance market badge for all platform countries')
 
 finance = FINANCE.read_text()
 for marker in [
+    'PMD_FINANCE_MARKET_SCOPE_R6A',
     'PMD_CANADA_FINANCE_FIRST_PAINT_R6',
     "$providerCodes = ['square'];",
     "['card', 'apple_pay', 'google_pay', 'cod', 'cash']",
-    "CountryPlatformProfileRegistry::CANADA",
+    'CountryPlatformProfileRegistry::CANADA',
+    'CountryPlatformProfileRegistry::TURKEY',
+    'array_intersect($compatible, $providerCodes)',
 ]:
     if marker not in finance:
-        raise SystemExit(f'STOP: Canada Finance marker missing: {marker}')
+        raise SystemExit(f'STOP: Finance market marker missing: {marker}')
 
 js = FINANCE_JS.read_text()
-if 'Canada · CAD · America/Toronto · Square' not in js:
-    raise SystemExit('STOP: Canada Finance market badge missing')
+for marker in [
+    'Canada · CAD · America/Toronto · Square',
+    'Germany · EUR · Europe/Berlin',
+    'Türkiye · TRY · Europe/Istanbul · payments pending',
+]:
+    if marker not in js:
+        raise SystemExit(f'STOP: Finance market badge missing: {marker}')
 
+print('PASS: Germany Finance no longer exposes Square from the global provider catalogue')
+print('PASS: Türkiye Finance remains payment-empty on first paint')
 print('PASS: Canada Finance first paint shows Square as the only provider')
 print('PASS: Canada Finance Card/Apple Pay/Google Pay map only to Square')
 print('PASS: Canada Finance cash remains providerless')
-print('PASS: Canada Finance market badge is location-aware')
+print('PASS: Finance market badges are location-aware for DE/TR/OM/CA')
 print('PASS: Square Canada Finance R6A patch sequence complete')
