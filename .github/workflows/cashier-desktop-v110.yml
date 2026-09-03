@@ -39,10 +39,13 @@ jobs:
           grep -q '"version": "1.2.1"' package.json
           grep -q '"main": "src/local-first-entry.js"' package.json
           grep -q '"productName": "PayMyDine"' package.json
+          grep -q "require('./local-cache-privacy').install()" src/local-first-entry.js
           grep -q "require('./local-first-bootstrap').install()" src/local-first-entry.js
           grep -q "savePage(file, 'HTMLComplete')" src/local-first-bootstrap.js
           grep -q 'platform-snapshots-v121' src/local-first-bootstrap.js
           grep -q 'pmd:v121-json-get' src/local-first-bootstrap.js
+          grep -q 'non-JSON response' src/local-first-bootstrap.js
+          grep -q 'clearTenantBusinessCache' src/local-cache-privacy.js
           grep -q 'localCacheV121: true' src/preload.js
           grep -q '__PMD_DESKTOP_JSON_CACHE_V121__' src/preload.js
           grep -q "const PLATFORM_PATH = '/admin'" src/main.js
@@ -74,6 +77,7 @@ jobs:
             'scripts/fetch-brand-icon.js',
             'scripts/after-sign-mac-v106.js',
             'src/local-first-entry.js',
+            'src/local-cache-privacy.js',
             'src/local-first-bootstrap.js',
             'src/local-store.js',
             'src/main.js',
@@ -185,7 +189,7 @@ jobs:
           test -s release/PayMyDine-Desktop-Setup-1.2.1.exe
           test -s release/PayMyDine-Desktop-1.2.1-mac-arm64.dmg
           tag='pmd-desktop-v121-preview'
-          notes='PayMyDine Desktop V1.2.1 preview. Canonical PayMyDine Platform UI remains authoritative online. The Desktop runtime now keeps bounded HTMLComplete snapshots of successful tenant Admin pages, caches safe operational GET payloads for Cashier table/menu data, preconnects the tenant and warms hovered internal navigation. When the cloud is unreachable it can fall back to the last cached real Platform screen instead of only showing a blank offline shell. Cached/offline mode never fakes kitchen submission, payment settlement or other writes.'
+          notes='PayMyDine Desktop V1.2.1 preview. Canonical PayMyDine Platform UI remains authoritative online. Desktop keeps bounded HTMLComplete snapshots of successful tenant Admin pages and caches safe operational GET payloads for Cashier table/menu data. It preconnects the tenant and warms hovered internal navigation. When the cloud is unreachable it can fall back to the last cached real Platform screen instead of only the generic offline shell. Cached/offline mode never fakes kitchen submission, payment settlement or other writes. Cached business data is cleared when the tenant returns to login/logout and when the restaurant selection is reset.'
           if gh release view "$tag" --repo "$GH_REPO" >/dev/null 2>&1; then
             gh release upload "$tag" release/* --clobber --repo "$GH_REPO"
             gh release edit "$tag" --target "$PMD_RELEASE_TARGET" --prerelease --title 'PayMyDine Desktop V1.2.1 Preview' --notes "$notes" --repo "$GH_REPO"
