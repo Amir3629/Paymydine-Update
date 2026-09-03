@@ -4,6 +4,7 @@ namespace Admin\Models;
 
 use Admin\Traits\Locationable;
 use Admin\Traits\Stockable;
+use Admin\Traits\PmdMenuGalleryOptionsV1;
 use Admin\Models\Menu_prices_model;
 use Carbon\Carbon;
 use Igniter\Flame\Database\Attach\HasMedia;
@@ -21,6 +22,7 @@ class Menus_model extends Model
     use Locationable;
     use HasMedia;
     use Stockable;
+    use PmdMenuGalleryOptionsV1;
 
     const LOCATIONABLE_RELATION = 'locations';
 
@@ -290,6 +292,9 @@ class Menus_model extends Model
 
         // PMD: sync compact inline additional menu images after normal menu save.
         $this->syncMenuImagesInline();
+
+        // PMD_MENU_GALLERY_OPTIONS_V1
+        $this->syncPmdMenuGalleryOptionsV1();
     }
 
     /**
