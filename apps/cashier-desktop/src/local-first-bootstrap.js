@@ -13,6 +13,9 @@ const CACHEABLE_JSON = [
 
 let store = null;
 let installedIpc = false;
+let snapshotBusy = false;
+const snapshotQueue = [];
+const snapshotTimers = new Map();
 const failedRouteByContents = new WeakMap();
 
 function userDataPath() {
@@ -20,11 +23,11 @@ function userDataPath() {
 }
 
 function storePath() {
-  return path.join(userDataPath(), 'desktop-local-cache-v121.json');
+  return path.join(userDataPath(), 'desktop-local-cache-v130.json');
 }
 
 function snapshotRoot() {
-  return path.join(userDataPath(), 'platform-snapshots-v121');
+  return path.join(userDataPath(), 'platform-snapshots-v130');
 }
 
 function settingsPath() {
@@ -107,14 +110,23 @@ function writeIndex(tenant, index) {
   fs.renameSync(temp, target);
 }
 
+function removeFile(file) {
+  if (!file) return;
+  try { fs.rmSync(file, { force: true }); } catch (_) {}
+}
+
 function removeSnapshotFiles(row) {
-  if (!row || !row.file) return;
-  try { fs.rmSync(row.file, { force: true }); } catch (_) {}
-  try {
-    const ext = path.extname(row.file);
-    const base = row.file.slice(0, -ext.length);
-    fs.rmSync(`${base}_files`, { recursive: true, force: true });
-  } catch (_) {}
+  if (!row) return;
+  removeFile(row.file);
+  removeFile(row.png);
+  removeFile(row.fallback);
+  if (row.file) {
+    try {
+      const ext = path.extname(row.file);
+      const base = row.file.slice(0, -ext.length);
+      fs.rmSync(`${base}_files`, { recursive: true, force: true });
+    } catch (_) {}
+  }
 }
 
 function pruneIndex(tenant, index) {
@@ -129,28 +141,113 @@ function pruneIndex(tenant, index) {
     });
 }
 
+function fallbackHtml(row, pngFile) {
+  const imageName = pngFile ? path.basename(pngFile) : '';
+  const originalUrl = String(row && row.url || 'PayMyDine');
+  const safeUrl = originalUrl.replace(/[&<>"']/g, (char) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;',
+  }[char]));
+  const image = imageName
+    ? `<img src="${imageName}" alt="Cached PayMyDine screen">`
+    : '<div class="no-image">The cached page image is unavailable.</div>';
+
+  return `<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PayMyDine · Offline</title>
+<style>
+html,body{margin:0;min-height:100%;background:#eef4f8;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#17324d}
+.banner{position:sticky;top:0;z-index:10;padding:10px 16px;background:#fff3cd;color:#664d03;border-bottom:1px solid #ffecb5;text-align:center;font-size:13px;font-weight:800}
+.meta{padding:8px 16px;background:#fff;color:#526b82;border-bottom:1px solid #dce7ef;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.viewport{display:flex;justify-content:center;padding:0;background:#f7fafc;min-height:calc(100vh - 74px)}
+img{display:block;width:100%;height:auto;object-fit:contain;object-position:top center;align-self:flex-start;background:#fff}
+.no-image{margin:auto;padding:40px;text-align:center}
+</style></head>
+<body><div class="banner">Offline · cached PayMyDine screen · reconnect before saving, sending to kitchen or paying</div>
+<div class="meta">${safeUrl}</div><div class="viewport">${image}</div></body></html>`;
+}
+
 async function saveSnapshot(contents, tenant, rawUrl) {
+  if (!contents || contents.isDestroyed()) return null;
   if (!sameTenantAdmin(rawUrl, tenant) || isLoginLike(rawUrl)) return null;
+  if (normalizeTenant(readSettings().tenant) !== tenant) return null;
+  if (String(contents.getURL() || '') !== String(rawUrl || '')) return null;
+
   const key = routeKey(rawUrl);
   const dir = tenantDir(tenant);
-  const file = path.join(dir, `${key}.html`);
+  const file = path.join(dir, `${key}.mhtml`);
+  const png = path.join(dir, `${key}.png`);
+  const fallback = path.join(dir, `${key}.offline.html`);
   fs.mkdirSync(dir, { recursive: true });
 
   try {
-    await contents.savePage(file, 'HTMLComplete');
+    await contents.savePage(file, 'MHTML');
+
+    let hasPng = false;
+    try {
+      const image = await contents.capturePage();
+      if (image && typeof image.isEmpty === 'function' && !image.isEmpty()) {
+        fs.writeFileSync(png, image.toPNG());
+        hasPng = true;
+      }
+    } catch (error) {
+      console.warn('[PMD Desktop] snapshot screenshot failed:', error.message);
+    }
+
+    const row = {
+      url: rawUrl,
+      file,
+      png: hasPng ? png : '',
+      fallback,
+      savedAt: Date.now(),
+    };
+    fs.writeFileSync(fallback, fallbackHtml(row, hasPng ? png : ''), 'utf8');
+
     const index = readIndex(tenant);
     const previous = index.routes[key];
-    if (previous && previous.file !== file) removeSnapshotFiles(previous);
-    const row = { url: rawUrl, file, savedAt: Date.now() };
+    if (previous) removeSnapshotFiles(previous);
     index.routes[key] = row;
     index.last = row;
     pruneIndex(tenant, index);
     writeIndex(tenant, index);
     return row;
   } catch (error) {
-    console.warn('[PMD Desktop] snapshot save failed:', error.message);
+    console.warn('[PMD Desktop] MHTML snapshot save failed:', error.message);
+    removeFile(file);
     return null;
   }
+}
+
+function queueSnapshot(contents, tenant, rawUrl) {
+  if (!contents || contents.isDestroyed()) return;
+  const id = contents.id;
+  const previous = snapshotTimers.get(id);
+  if (previous) clearTimeout(previous);
+
+  const timer = setTimeout(() => {
+    snapshotTimers.delete(id);
+    snapshotQueue.push({ contents, tenant, rawUrl });
+    pumpSnapshotQueue();
+  }, 850);
+  snapshotTimers.set(id, timer);
+}
+
+async function pumpSnapshotQueue() {
+  if (snapshotBusy) return;
+  const job = snapshotQueue.shift();
+  if (!job) return;
+  snapshotBusy = true;
+  try {
+    if (
+      job.contents
+      && !job.contents.isDestroyed()
+      && normalizeTenant(readSettings().tenant) === job.tenant
+      && String(job.contents.getURL() || '') === String(job.rawUrl || '')
+    ) {
+      await saveSnapshot(job.contents, job.tenant, job.rawUrl);
+    }
+  } catch (_) {}
+  snapshotBusy = false;
+  if (snapshotQueue.length) setTimeout(pumpSnapshotQueue, 70);
 }
 
 function cachedSnapshot(tenant, requestedUrl) {
@@ -163,34 +260,83 @@ function cachedSnapshot(tenant, requestedUrl) {
   return null;
 }
 
+async function injectOfflineGuard(contents, row) {
+  await contents.executeJavaScript(`(function(){
+    var originalUrl=${JSON.stringify(String(row && row.url || ''))};
+    var head=document.head||document.documentElement;
+    if(head&&!document.querySelector('base[data-pmd-desktop-origin-v130]')){
+      var base=document.createElement('base');
+      base.setAttribute('data-pmd-desktop-origin-v130','1');
+      base.href=originalUrl;
+      head.insertBefore(base,head.firstChild||null);
+    }
+    if(!document.getElementById('pmd-desktop-offline-banner-v130')){
+      var banner=document.createElement('div');
+      banner.id='pmd-desktop-offline-banner-v130';
+      banner.textContent='Offline · cached PayMyDine screen · reconnect before saving, sending to kitchen or paying';
+      banner.style.cssText='position:fixed;left:0;right:0;top:0;z-index:2147483647;padding:9px 14px;text-align:center;background:#fff3cd;color:#664d03;border-bottom:1px solid #ffecb5;font:800 13px/1.3 -apple-system,BlinkMacSystemFont,Segoe UI,sans-serif';
+      document.documentElement.style.scrollPaddingTop='42px';
+      (document.body||document.documentElement).appendChild(banner);
+    }
+    document.addEventListener('submit',function(e){e.preventDefault();alert('Offline: this action was not sent. Reconnect and reload before saving or paying.');},true);
+    try{
+      var nativeFetch=window.fetch&&window.fetch.bind(window);
+      if(nativeFetch){
+        window.fetch=function(input,init){
+          var method=String((init&&init.method)||(input&&input.method)||'GET').toUpperCase();
+          if(method!=='GET'&&method!=='HEAD') return Promise.reject(new Error('Offline cached screen is read-only.'));
+          return nativeFetch(input,init);
+        };
+      }
+      var open=XMLHttpRequest.prototype.open;
+      XMLHttpRequest.prototype.open=function(method){
+        var verb=String(method||'GET').toUpperCase();
+        if(verb!=='GET'&&verb!=='HEAD') throw new Error('Offline cached screen is read-only.');
+        return open.apply(this,arguments);
+      };
+    }catch(e){}
+  })()`, true);
+}
+
+async function snapshotLooksVisible(contents) {
+  try {
+    return await contents.executeJavaScript(`(function(){
+      var body=document.body;
+      var root=document.documentElement;
+      var text=body?String(body.innerText||'').trim().length:0;
+      var height=root?Number(root.scrollHeight||0):0;
+      var width=root?Number(root.scrollWidth||0):0;
+      return text>20||height>180||width>320;
+    })()`, true);
+  } catch (_) {
+    return false;
+  }
+}
+
 async function loadSnapshot(contents, tenant, requestedUrl) {
   const row = cachedSnapshot(tenant, requestedUrl);
   if (!row) return false;
+
   try {
     await contents.loadFile(row.file);
-    await contents.executeJavaScript(`(function(){
-      var originalUrl=${JSON.stringify(row.url)};
-      var head=document.head || document.documentElement;
-      if(head && !document.querySelector('base[data-pmd-desktop-origin-v121]')){
-        var base=document.createElement('base');
-        base.setAttribute('data-pmd-desktop-origin-v121','1');
-        base.href=originalUrl;
-        head.insertBefore(base,head.firstChild || null);
-      }
-      if (document.getElementById('pmd-desktop-offline-banner-v121')) return;
-      var banner=document.createElement('div');
-      banner.id='pmd-desktop-offline-banner-v121';
-      banner.textContent='Offline · cached PayMyDine screen · live writes, kitchen sends and payments require connection';
-      banner.style.cssText='position:fixed;left:0;right:0;top:0;z-index:2147483647;padding:9px 14px;text-align:center;background:#fff3cd;color:#664d03;border-bottom:1px solid #ffecb5;font:700 13px/1.3 -apple-system,BlinkMacSystemFont,Segoe UI,sans-serif';
-      document.documentElement.style.scrollPaddingTop='42px';
-      document.body && document.body.appendChild(banner);
-      document.addEventListener('submit',function(e){e.preventDefault();alert('Offline: this action was not sent. Reconnect before saving or paying.');},true);
-    })()`);
-    return true;
+    if (await snapshotLooksVisible(contents)) {
+      await injectOfflineGuard(contents, row);
+      return true;
+    }
   } catch (error) {
-    console.warn('[PMD Desktop] snapshot load failed:', error.message);
-    return false;
+    console.warn('[PMD Desktop] MHTML snapshot restore failed:', error.message);
   }
+
+  try {
+    if (row.fallback && fs.existsSync(row.fallback)) {
+      await contents.loadFile(row.fallback);
+      return true;
+    }
+  } catch (error) {
+    console.warn('[PMD Desktop] visual offline fallback failed:', error.message);
+  }
+
+  return false;
 }
 
 function cacheKey(tenant, pathname) {
@@ -267,7 +413,7 @@ function trustedIpcSender(event) {
   try {
     const u = new URL(senderUrl);
     if (u.protocol !== 'file:') return false;
-    return u.pathname.includes('/platform-snapshots-v121/')
+    return u.pathname.includes('/platform-snapshots-v130/')
       || /\/(?:setup|hardware|offline)\.html$/.test(u.pathname);
   } catch (_) {
     return false;
@@ -277,11 +423,11 @@ function trustedIpcSender(event) {
 function installIpc() {
   if (installedIpc) return;
   installedIpc = true;
-  ipcMain.handle('pmd:v121-json-get', (event, request) => {
+  ipcMain.handle('pmd:v130-json-get', (event, request) => {
     if (!trustedIpcSender(event)) throw new Error('Untrusted PayMyDine offline-cache request.');
     return nativeJsonGet(request || {});
   });
-  ipcMain.handle('pmd:v121-cache-info', (event) => {
+  ipcMain.handle('pmd:v130-cache-info', (event) => {
     if (!trustedIpcSender(event)) throw new Error('Untrusted PayMyDine offline-cache request.');
     const tenant = normalizeTenant(readSettings().tenant);
     const snapshot = tenant ? cachedSnapshot(tenant, '') : null;
@@ -292,32 +438,10 @@ function installIpc() {
   });
 }
 
-function installPageAcceleration(contents, tenant) {
+function preconnectTenant(tenant) {
   try {
     session.defaultSession.preconnect({ url: `https://${tenant}`, numSockets: 6 });
   } catch (_) {}
-
-  contents.executeJavaScript(`(function(){
-    if (window.__PMD_DESKTOP_NAV_WARM_V121__) return;
-    window.__PMD_DESKTOP_NAV_WARM_V121__=true;
-    var timer=null;
-    document.addEventListener('mouseover',function(event){
-      var a=event.target && event.target.closest ? event.target.closest('a[href]') : null;
-      if(!a) return;
-      var u;
-      try { u=new URL(a.href, location.href); } catch(e){ return; }
-      if(u.origin!==location.origin || !/^\\/admin(?:\\/|$)/.test(u.pathname) || /\\/logout(?:\\/|$)/.test(u.pathname)) return;
-      clearTimeout(timer);
-      timer=setTimeout(function(){
-        if(document.querySelector('link[data-pmd-desktop-prefetch="'+CSS.escape(u.href)+'"]')) return;
-        var link=document.createElement('link');
-        link.rel='prefetch';
-        link.href=u.href;
-        link.setAttribute('data-pmd-desktop-prefetch',u.href);
-        document.head && document.head.appendChild(link);
-      },180);
-    },true);
-  })()`).catch(() => {});
 }
 
 function install() {
@@ -330,16 +454,22 @@ function install() {
       }
     });
 
-    contents.on('did-finish-load', async () => {
+    contents.on('destroyed', () => {
+      const timer = snapshotTimers.get(contents.id);
+      if (timer) clearTimeout(timer);
+      snapshotTimers.delete(contents.id);
+    });
+
+    contents.on('did-finish-load', () => {
       const settings = readSettings();
       const tenant = normalizeTenant(settings.tenant);
       if (!tenant || contents.isDestroyed()) return;
-      const current = contents.getURL();
+      const current = String(contents.getURL() || '');
 
       if (sameTenantAdmin(current, tenant)) {
         failedRouteByContents.delete(contents);
-        installPageAcceleration(contents, tenant);
-        await saveSnapshot(contents, tenant, current);
+        preconnectTenant(tenant);
+        if (!isLoginLike(current)) queueSnapshot(contents, tenant, current);
         return;
       }
 
@@ -349,7 +479,7 @@ function install() {
           const requested = failedRouteByContents.get(contents) || tenantUrl(tenant, '/admin');
           setTimeout(() => {
             if (!contents.isDestroyed()) loadSnapshot(contents, tenant, requested).catch(() => {});
-          }, 40);
+          }, 30);
         }
       } catch (_) {}
     });
