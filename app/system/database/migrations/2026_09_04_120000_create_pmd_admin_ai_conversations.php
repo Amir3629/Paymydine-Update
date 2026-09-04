@@ -14,11 +14,16 @@ return new class extends Migration
             $table->bigIncrements('id');
             $table->unsignedBigInteger('location_id');
             $table->unsignedBigInteger('admin_user_id');
+            $table->date('conversation_date');
             $table->string('role', 16);
             $table->longText('content');
             $table->string('run_id', 64)->nullable();
             $table->timestamps();
             $table->index(['location_id', 'admin_user_id', 'id'], 'pmd_admin_ai_scope_idx');
+            $table->index(
+                ['location_id', 'admin_user_id', 'conversation_date', 'id'],
+                'pmd_admin_ai_day_scope_idx'
+            );
         });
     }
 

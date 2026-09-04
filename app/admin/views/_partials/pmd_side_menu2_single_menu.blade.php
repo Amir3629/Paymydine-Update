@@ -131,7 +131,7 @@
 
         @if($pmdSm2AiVisible)
         <a class="pmd-sm2__item {{ $pmdSm2AiIsActive ? 'is-active' : '' }}" href="{{ admin_url('pmdintelligence') }}" data-pmd-ai-nav>
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/><circle cx="12" cy="12" r="3.5"/></svg>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.15 3.65a3 3 0 0 0 1.95 1.95L18.75 9.75l-3.65 1.15a3 3 0 0 0-1.95 1.95L12 16.5l-1.15-3.65a3 3 0 0 0-1.95-1.95L5.25 9.75 8.9 8.6a3 3 0 0 0 1.95-1.95L12 3z"/><path d="M18.5 3.5v3M17 5h3M5.5 16.5v4M3.5 18.5h4"/></svg>
             <span class="pmd-sm2__label">{{ $pmdSm2T('nav.ai', 'AI') }}</span>
         </a>
         @endif

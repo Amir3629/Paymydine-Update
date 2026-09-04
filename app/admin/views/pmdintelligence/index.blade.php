@@ -22,8 +22,8 @@
         <div class="pmd-owner-header__left pmd-ai-heading">
             <div class="pmd-ai-heading-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/>
-                    <circle cx="12" cy="12" r="3.5"/>
+                    <path d="M12 3l1.15 3.65a3 3 0 0 0 1.95 1.95L18.75 9.75l-3.65 1.15a3 3 0 0 0-1.95 1.95L12 16.5l-1.15-3.65a3 3 0 0 0-1.95-1.95L5.25 9.75 8.9 8.6a3 3 0 0 0 1.95-1.95L12 3z"/>
+                    <path d="M18.5 3.5v3M17 5h3M5.5 16.5v4M3.5 18.5h4"/>
                 </svg>
             </div>
             <div>
@@ -37,7 +37,7 @@
                 <span class="pmd-ai-header-dot" aria-hidden="true"></span>
                 {{ $pmdAiConfig['enabled'] ? 'AI on' : 'AI off' }} · Read-only
             </span>
-            <button type="button" class="pmd-ai-clear" data-pmd-ai-clear disabled>Clear chat</button>
+            <button type="button" class="pmd-ai-clear" data-pmd-ai-clear disabled>Clear today</button>
             <span class="pmd-owner-notif-slot" data-pmd-owner-notif-slot></span>
         </div>
     </header>
@@ -53,15 +53,15 @@
             <div class="pmd-ai-chat-meta" aria-label="AI runtime status">
                 <span>{{ $pmdAiConfig['provider'] }} · {{ $pmdAiConfig['model'] }}</span>
                 <span>Location {{ $pmdAiConfig['location_id'] ?: 'not selected' }}</span>
-                <span data-pmd-ai-save-state>Loading saved chat…</span>
+                <span data-pmd-ai-save-state>Loading today’s chat…</span>
             </div>
 
             <div class="pmd-ai-thread" data-pmd-ai-thread role="log" aria-live="polite" aria-relevant="additions">
                 <div class="pmd-ai-empty" data-pmd-ai-empty>
                     <div class="pmd-ai-empty-icon" aria-hidden="true">
                         <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/>
-                            <circle cx="12" cy="12" r="3.5"/>
+                            <path d="M12 3l1.15 3.65a3 3 0 0 0 1.95 1.95L18.75 9.75l-3.65 1.15a3 3 0 0 0-1.95 1.95L12 16.5l-1.15-3.65a3 3 0 0 0-1.95-1.95L5.25 9.75 8.9 8.6a3 3 0 0 0 1.95-1.95L12 3z"/>
+                            <path d="M18.5 3.5v3M17 5h3M5.5 16.5v4M3.5 18.5h4"/>
                         </svg>
                     </div>
                     <h2>What do you want to know?</h2>
@@ -100,16 +100,6 @@
             </form>
         </div>
     </section>
-
-    <details class="pmd-ai-safety-details">
-        <summary>How PMD Intelligence uses your data</summary>
-        <div class="pmd-ai-safety-grid">
-            <span><strong>Your restaurant only</strong> — current tenant and location scope.</span>
-            <span><strong>PMD authorities</strong> — reports and operations data stay the source of truth.</span>
-            <span><strong>No automatic changes</strong> — AI does not edit orders, payments, menus or staff records.</span>
-            <span><strong>Safe next steps</strong> — buttons only navigate to allowlisted PMD pages; the model never invents URLs.</span>
-        </div>
-    </details>
 </div>
 
 <script>
