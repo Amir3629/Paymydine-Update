@@ -14,6 +14,7 @@
   var MAX_PIXELS = 24000000;
   var MAX_BYTES = 5 * 1024 * 1024;
   var SAMPLE_MAX = 192;
+  var OUTPUT_MAX_EDGE = 2200;
 
   var bypassNextChange = false;
   var checking = false;
@@ -194,6 +195,42 @@
     return result;
   }
 
+  function webpName(name) {
+    var base = String(name || 'food-photo').replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^-+|-+$/g, '');
+    return (base || 'food-photo') + '.webp';
+  }
+
+  function optimizeAcceptedFile(file, decoded) {
+    var originalPixels = Math.max(1, decoded.width * decoded.height);
+    var edgeScale = Math.min(1, OUTPUT_MAX_EDGE / Math.max(decoded.width, decoded.height));
+    var pixelFloorScale = Math.min(1, Math.sqrt(MIN_PIXELS / originalPixels));
+    var scale = Math.max(edgeScale, pixelFloorScale);
+    scale = Math.min(1, scale);
+    var width = Math.max(1, Math.round(decoded.width * scale));
+    var height = Math.max(1, Math.round(decoded.height * scale));
+
+    var canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    var ctx = canvas.getContext('2d');
+    if (!ctx || typeof canvas.toBlob !== 'function') return Promise.resolve(file);
+    decoded.draw(ctx, width, height);
+
+    return new Promise(function (resolve) {
+      canvas.toBlob(function (blob) {
+        if (!blob || !blob.size) { resolve(file); return; }
+        try {
+          resolve(new File([blob], webpName(file.name), {
+            type: 'image/webp',
+            lastModified: file.lastModified || Date.now()
+          }));
+        } catch (error) {
+          resolve(file);
+        }
+      }, 'image/webp', 0.84);
+    });
+  }
+
   function analyzeFile(file) {
     if (!file) return Promise.resolve({state:'reject', label:'Not added', reason:'invalid file', file:file, key:''});
     if (file.size > MAX_BYTES) return Promise.resolve({state:'reject', label:'Not added', reason:'larger than 5 MB', file:file, key:fileKey(file)});
@@ -202,12 +239,28 @@
     }
 
     return decodeImage(file).then(function (decoded) {
+      var stats;
+      var result;
       try {
-        var stats = sampleStats(decoded);
-        return classify(file, decoded, stats);
-      } finally {
+        stats = sampleStats(decoded);
+        result = classify(file, decoded, stats);
+      } catch (error) {
         decoded.close();
+        return {state:'reject', label:'Not added', reason:'image could not be checked', file:file, key:fileKey(file)};
       }
+
+      if (result.state === 'reject') {
+        decoded.close();
+        return result;
+      }
+
+      return optimizeAcceptedFile(file, decoded).then(function (optimizedFile) {
+        result.file = optimizedFile;
+        result.key = fileKey(optimizedFile);
+        return result;
+      }).finally(function () {
+        decoded.close();
+      });
     }).catch(function () {
       return {state:'reject', label:'Not added', reason:'image could not be read', file:file, key:fileKey(file)};
     });
