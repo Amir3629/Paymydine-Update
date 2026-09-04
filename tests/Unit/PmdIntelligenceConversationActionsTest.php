@@ -17,14 +17,20 @@ final class PmdIntelligenceConversationActionsTest extends TestCase
         self::assertStringContainsString("where('admin_user_id', \$userId)", $store);
         self::assertStringContainsString("where('created_at', '>=', \$window['storage_start'])", $store);
         self::assertStringContainsString("where('created_at', '<', \$window['storage_end'])", $store);
-        self::assertStringContainsString("'storage_mode' => 'created_at_window'", $store);
+        self::assertStringContainsString("'storage_mode' => 'tenant_pinned_created_at_window'", $store);
         self::assertStringContainsString('canonicalTimezone()', $store);
         self::assertStringContainsString('Previous daily chats remain stored', $store);
         self::assertStringContainsString('MAX_MESSAGES = 300', $store);
         self::assertStringContainsString('modelContext', $store);
+        self::assertStringContainsString('public function archive(', $store);
         self::assertStringContainsString('clear(int $locationId, int $userId)', $store);
         self::assertStringContainsString('hasConversationDateColumn', $store);
+        self::assertStringContainsString("app()->bound('tenant')", $store);
+        self::assertStringContainsString("return \$this->resolvedConnectionName = 'tenant'", $store);
+        self::assertStringContainsString('$this->db()->transaction', $store);
+        self::assertStringContainsString('Schema::connection($this->connectionName())', $store);
         self::assertStringNotContainsString('Schema::table(self::TABLE', $store);
+        self::assertStringNotContainsString('DB::transaction(', $store);
         self::assertStringNotContainsString('ip_address', $store);
         self::assertStringNotContainsString('provider_response', $store);
         self::assertStringNotContainsString('api_key', strtolower($store));
@@ -110,16 +116,18 @@ final class PmdIntelligenceConversationActionsTest extends TestCase
         self::assertStringContainsString('role="log"', $view);
         self::assertStringContainsString('Clear today', $view);
         self::assertStringContainsString('Loading today’s chat', $view);
+        self::assertStringContainsString('Saved chats ·', $view);
+        self::assertStringContainsString('AdminAiConversationStore::class)->archive(', $view);
         self::assertStringNotContainsString('How PMD Intelligence uses your data', $view);
         self::assertStringNotContainsString('pmd-ai-safety-details', $view);
         self::assertStringNotContainsString('pmd-ai-grid', $view);
         self::assertStringNotContainsString('pmd-ai-answer-card', $view);
 
         self::assertStringContainsString('data-pmd-ai-nav', $sideMenu);
-        self::assertStringContainsString('pmd-ai-nav-mark-v2', $view);
-        self::assertStringContainsString("content: 'AI'", $view);
+        self::assertStringContainsString('pmd-ai-nav-mark-v3', $view);
+        self::assertStringContainsString('-webkit-mask:', $view);
+        self::assertStringNotContainsString("content: 'AI'", $view);
         self::assertStringContainsString('data-pmd-ai-icon="bot"', $view);
-        self::assertStringNotContainsString('M12 3l1.15 3.65', $view);
 
         self::assertStringContainsString('function loadHistory()', $js);
         self::assertStringContainsString('void loadHistory();', $js);
