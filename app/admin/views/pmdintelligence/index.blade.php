@@ -7,9 +7,7 @@
     $pmdAiJsUrl = asset('app/admin/assets/js/pmd-intelligence-v1.js').'?v='.$pmdAiJsVersion;
 @endphp
 
-@push('styles')
 <link rel="stylesheet" type="text/css" href="{{ $pmdAiCssUrl }}" data-pmd-ai-versioned-style>
-@endpush
 
 <div
     id="pmd-intelligence"
@@ -23,7 +21,7 @@
     <header id="pmd-r2-clean-header" class="pmd-owner-header pmd-ai-header" aria-label="PMD Intelligence">
         <div class="pmd-owner-header__left pmd-ai-heading">
             <div class="pmd-ai-heading-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/>
                     <circle cx="12" cy="12" r="3.5"/>
                 </svg>
@@ -61,7 +59,7 @@
             <div class="pmd-ai-thread" data-pmd-ai-thread role="log" aria-live="polite" aria-relevant="additions">
                 <div class="pmd-ai-empty" data-pmd-ai-empty>
                     <div class="pmd-ai-empty-icon" aria-hidden="true">
-                        <svg viewBox="0 0 24 24">
+                        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/>
                             <circle cx="12" cy="12" r="3.5"/>
                         </svg>
@@ -96,7 +94,7 @@
                     <span data-pmd-ai-state>Checks your restaurant data only.</span>
                     <button type="submit">
                         <span>Ask PMD</span>
-                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
                     </button>
                 </div>
             </form>
@@ -114,16 +112,15 @@
     </details>
 </div>
 
-@push('scripts')
 <script>
 (function () {
     'use strict';
     var root = document.querySelector('[data-pmd-ai-chat-root]');
     if (!root) return;
 
-    // The controller still registers the historical unversioned asset. Keep the
-    // new root invisible to that cached runtime, then expose the canonical hook
-    // only immediately before loading the mtime-versioned runtime below.
+    // The controller may still register the historical unversioned runtime.
+    // Keep this page invisible to it, then expose the canonical hook only now
+    // and load the current mtime-versioned runtime deterministically.
     root.setAttribute('data-pmd-ai-root', '');
 
     var script = document.createElement('script');
@@ -133,4 +130,3 @@
     document.body.appendChild(script);
 })();
 </script>
-@endpush
