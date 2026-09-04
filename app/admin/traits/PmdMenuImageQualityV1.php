@@ -3,23 +3,23 @@
 namespace Admin\Traits;
 
 /**
- * PMD_MENU_IMAGE_QUALITY_V1
+ * PMD_MENU_IMAGE_QUALITY_V2_SOFT_ADVISORY
  *
- * Technical quality gate for restaurant food photos.
- * Intentionally does NOT reject aspect ratios: all ten customer themes use
- * different image frames, so owners may upload portrait, landscape or square.
+ * Technical quality advisory for restaurant food photos.
+ * Aspect ratio is never rejected because the ten customer themes use different
+ * image frames. Portrait, landscape and square photos are all allowed.
  *
- * Hard checks:
+ * Hard checks are limited to things that can break or overload the upload path:
  * - valid JPG / PNG / WEBP image
  * - <= 5 MB upload
- * - >= 0.9 megapixels (no minimum file-size rule)
+ * - readable image data
  * - <= 24 megapixels to keep processing predictable
- * - severe blur / blank / extreme exposure rejection when GD is available
- * - conservative QR / monochrome graphic rejection when GD is available
+ *
+ * Low resolution, blur, exposure and obvious graphic/QR-like characteristics
+ * are advisory only. The owner may still save the photo.
  *
  * Accepted files are re-encoded to WebP (when GD + imagewebp are available),
  * normally capped to 2200px on the longest edge, and metadata is stripped.
- * Extremely wide/tall photos are never downscaled below the 0.9 MP floor.
  */
 trait PmdMenuImageQualityV1
 {
@@ -57,29 +57,25 @@ trait PmdMenuImageQualityV1
         $height = (int)$info[1];
         $pixels = $width * $height;
 
-        // No aspect-ratio rule on purpose. Only real pixel information matters.
-        if ($pixels < 900000) {
-            throw new \RuntimeException('Photo "'.$originalName.'" is too small. Please use a clearer, higher-resolution photo.');
-        }
+        // No aspect-ratio rule on purpose.
+        // Low resolution is advisory only; it does not block the owner.
         if ($pixels > 24000000) {
             throw new \RuntimeException('Photo "'.$originalName.'" is too large to process safely. Please export a normal-sized copy.');
         }
 
+        $qualityWarnings = [];
+        if ($pixels < 900000) {
+            $qualityWarnings[] = 'resolution';
+        }
+
         $analysis = $this->analyzePmdMenuImagePixelsV1($path, $mime);
         if (is_array($analysis)) {
-            if (!empty($analysis['blank'])) {
-                throw new \RuntimeException('Photo "'.$originalName.'" does not contain enough visible detail. Please use a real food photo.');
-            }
-            if (!empty($analysis['exposure_bad'])) {
-                throw new \RuntimeException('Photo "'.$originalName.'" is too dark or too bright. Please choose a clearer photo.');
-            }
-            if (!empty($analysis['blur_bad'])) {
-                throw new \RuntimeException('Photo "'.$originalName.'" is too blurry. Please choose a sharper photo.');
-            }
-            if (!empty($analysis['synthetic'])) {
-                throw new \RuntimeException('Photo "'.$originalName.'" looks like a QR code, logo or graphic. Please use a real food photo.');
-            }
+            if (!empty($analysis['blank'])) $qualityWarnings[] = 'detail';
+            if (!empty($analysis['exposure_bad'])) $qualityWarnings[] = 'lighting';
+            if (!empty($analysis['blur_bad'])) $qualityWarnings[] = 'sharpness';
+            if (!empty($analysis['synthetic'])) $qualityWarnings[] = 'food-photo';
         }
+        $qualityWarnings = array_values(array_unique($qualityWarnings));
 
         $optimized = $this->optimizePmdMenuImageUploadV1($path, $mime);
         if ($optimized) {
@@ -92,6 +88,7 @@ trait PmdMenuImageQualityV1
             'pixels' => $pixels,
             'mime' => strtolower((string)$file->getMimeType()),
             'analysis' => $analysis,
+            'quality_warnings' => $qualityWarnings,
             'optimized' => $optimized,
         ];
     }
@@ -181,7 +178,7 @@ trait PmdMenuImageQualityV1
                 'blank' => $contrast < 6.0,
                 'exposure_bad' => $mean < 12.0 || $mean > 244.0 || $darkRatio > 0.94 || $brightRatio > 0.94,
                 'blur_bad' => $edge < 1.05 && $contrast < 50.0,
-                // Deliberately conservative: only obvious monochrome, high-edge graphics.
+                // Advisory only: obvious monochrome, high-edge graphics.
                 'synthetic' => $satMean < 0.035 && $binaryRatio > 0.78 && $edge > 20.0,
             ];
         } catch (\Throwable $e) {
