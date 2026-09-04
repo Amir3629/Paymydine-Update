@@ -12,6 +12,7 @@ namespace Admin\Traits;
 trait PmdMenuGalleryOptionsV1
 {
     use PmdMenuImageQualityV1;
+    use PmdMenuContentTranslationsV1;
 
     protected function syncPmdMenuGalleryOptionsV1(): void
     {
@@ -29,6 +30,8 @@ trait PmdMenuGalleryOptionsV1
             $groups = $this->normalizePmdMenuOptionGroupsV1((array)$request->input('options', []));
             $this->syncPmdMenuOptionGroupsV1($connection, $schema, $menuId, $groups);
         }
+
+        $this->syncPmdMenuContentTranslationsV1($request, $connection, $schema, $menuId);
     }
 
     protected function syncPmdMenuGalleryUploadsV1($request, $connection, $schema, int $menuId): void
