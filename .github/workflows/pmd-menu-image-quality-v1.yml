@@ -1,0 +1,35 @@
+name: PMD Menu Image Quality V1
+
+on:
+  push:
+    branches:
+      - feature/menu-gallery-sides-options-20260903
+    paths:
+      - app/admin/traits/PmdMenuImageQualityV1.php
+      - app/admin/traits/PmdMenuGalleryOptionsV1.php
+      - app/admin/assets/js/pmd-menu-image-quality-v1.js
+      - app/admin/assets/css/pmd-menu-image-quality-v1.css
+      - app/admin/views/_meta/assets.json
+      - .github/workflows/pmd-menu-image-quality-v1.yml
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/menu-gallery-sides-options-20260903
+      - name: PHP syntax
+        run: |
+          php -l app/admin/traits/PmdMenuImageQualityV1.php
+          php -l app/admin/traits/PmdMenuGalleryOptionsV1.php
+      - name: Admin JS syntax
+        run: node --check app/admin/assets/js/pmd-menu-image-quality-v1.js
+      - name: Manifest JSON
+        run: python3 -m json.tool app/admin/views/_meta/assets.json >/dev/null
+      - name: Quality gate markers
+        run: |
+          grep -q "PMD_MENU_IMAGE_QUALITY_V1" app/admin/traits/PmdMenuImageQualityV1.php
+          grep -q "preparePmdMenuImageUploadV1" app/admin/traits/PmdMenuGalleryOptionsV1.php
+          grep -q "pmd-menu-image-quality-v1" app/admin/views/_meta/assets.json
+          grep -q "OUTPUT_MAX_EDGE = 2200" app/admin/assets/js/pmd-menu-image-quality-v1.js
