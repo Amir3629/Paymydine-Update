@@ -163,6 +163,13 @@
   background: var(--pmd-accent, #168965);
   color: var(--pmd-accentText, #fff);
 }
+.aiMessage {
+  display: grid;
+  max-width: 92%;
+  justify-items: start;
+  gap: .42rem;
+}
+.aiMessage .aiBubble { max-width: 100%; }
 .aiBubble {
   justify-self: start;
   border: 1px solid var(--pmd-line, rgba(0,0,0,.1));
@@ -171,6 +178,39 @@
   color: var(--pmd-text, inherit);
 }
 .errorBubble { border-color: rgba(181, 65, 65, .25); background: rgba(181, 65, 65, .08); color: #b54141; }
+
+.messageActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .4rem;
+}
+.actionButton {
+  min-height: 2.25rem;
+  display: inline-flex;
+  align-items: center;
+  gap: .42rem;
+  border: 1px solid color-mix(in srgb, var(--pmd-accent, #168965) 46%, var(--pmd-line, rgba(0,0,0,.12)));
+  border-radius: .75rem;
+  padding: .42rem .66rem;
+  background: color-mix(in srgb, var(--pmd-surface, #fff) 82%, var(--pmd-accent, #168965) 18%);
+  color: var(--pmd-text, inherit);
+  font: inherit;
+  font-size: .68rem;
+  font-weight: 820;
+  cursor: pointer;
+}
+.actionButton svg {
+  width: .92rem;
+  height: .92rem;
+  flex: 0 0 .92rem;
+}
+.actionButton:hover,
+.actionButton:focus-visible {
+  border-color: var(--pmd-accent, currentColor);
+  outline: none;
+  background: color-mix(in srgb, var(--pmd-surface, #fff) 72%, var(--pmd-accent, #168965) 28%);
+}
+.actionButton:disabled { opacity: .52; cursor: wait; }
 
 .composer {
   display: grid;
@@ -261,6 +301,7 @@
     border-radius: 1.5rem 1.5rem 0 0;
   }
   .body { padding: .9rem; }
+  .aiMessage { max-width: 96%; }
   .safety { padding-bottom: calc(.7rem + env(safe-area-inset-bottom, 0px)); }
 }
 
