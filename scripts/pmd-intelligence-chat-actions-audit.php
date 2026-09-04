@@ -34,8 +34,10 @@ $reject = static function (string $source, string $needle, string $label): void 
 
 $controller = $read('app/admin/controllers/Pmdintelligence.php');
 $store = $read('app/Services/AI/AdminAiConversationStore.php');
+$migration = $read('app/system/database/migrations/2026_09_04_120000_create_pmd_admin_ai_conversations.php');
 $registry = $read('app/Services/AI/PmdIntelligenceActionRegistry.php');
 $view = $read('app/admin/views/pmdintelligence/index.blade.php');
+$sideMenu = $read('app/admin/views/_partials/pmd_side_menu2_single_menu.blade.php');
 $js = $read('app/admin/assets/js/pmd-intelligence-v1.js');
 $guestRoute = $read('app/main/routes/api-v1-guest-ai.php');
 $guestConfig = $read('config/pmd_ai.php');
@@ -52,6 +54,12 @@ $expect($controller, 'PmdIntelligenceActionRegistry::class', 'safe admin actions
 $expect($store, "private const TABLE = 'pmd_admin_ai_conversations'", 'admin chat table');
 $expect($store, "where('location_id', \$locationId)", 'location scope');
 $expect($store, "where('admin_user_id', \$userId)", 'admin-user scope');
+$expect($store, "where('conversation_date', \$conversationDate)", 'daily history/write scope');
+$expect($store, "where('conversation_date', \$this->conversationDate())", 'daily clear scope');
+$expect($store, 'canonicalTimezone()', 'restaurant-local day authority');
+$expect($store, 'Previous daily chats remain stored', 'daily archive retention');
+$expect($migration, "date('conversation_date')", 'fresh-schema conversation date');
+$expect($migration, "['location_id', 'admin_user_id', 'conversation_date', 'id']", 'daily scope index');
 $reject($store, 'ip_address', 'no IP persistence');
 $reject($store, 'provider_response', 'no provider payload persistence');
 
@@ -67,7 +75,10 @@ $reject($registry, 'request()->input', 'model/request cannot supply href');
 $expect($view, 'data-pmd-ai-messages', 'single chat transcript');
 $expect($view, 'data-history-endpoint', 'history config');
 $expect($view, 'data-clear-endpoint', 'clear config');
-$expect($view, '<details class="pmd-ai-safety-details">', 'compact safety disclosure');
+$expect($view, 'Clear today', 'daily clear copy');
+$expect($view, 'Loading today’s chat', 'daily chat loading copy');
+$reject($view, 'How PMD Intelligence uses your data', 'removed data disclosure block');
+$reject($view, 'pmd-ai-safety-details', 'removed safety details card');
 $reject($view, 'pmd-ai-grid', 'old split-card layout retired');
 $expect($view, 'data-pmd-ai-chat-root', 'cache-safe admin runtime root');
 $expect($view, 'data-pmd-ai-versioned-style', 'versioned admin AI stylesheet');
@@ -79,6 +90,9 @@ $expect($view, 'document.body.appendChild(script);', 'runtime emitted in rendere
 $reject($view, "@push('styles')", 'late page stylesheet push');
 $reject($view, "@push('scripts')", 'late page runtime push');
 $expect($view, 'width="24" height="24" fill="none" stroke="currentColor"', 'safe inline SVG fallback geometry');
+$expect($sideMenu, 'data-pmd-ai-nav', 'AI side navigation entry');
+$expect($sideMenu, 'M12 3l1.15 3.65', 'sparkles AI navigation mark');
+$expect($sideMenu, 'M18.5 3.5v3M17 5h3', 'secondary sparkle mark');
 $expect($js, 'function loadHistory()', 'history hydration');
 $expect($js, 'function renderActions(', 'action renderer');
 $expect($js, 'pmd-ai-action-link', 'action links');
