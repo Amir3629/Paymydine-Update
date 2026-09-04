@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useMenuRuntime } from '@/src/runtime/MenuRuntimeContext'
 
@@ -209,19 +209,6 @@ export function FoodGalleryRuntimeEnhancer() {
         touchAction: 'pan-y',
       }}
     >
-      <style>{`
-        @keyframes pmdFoodGalleryPanV7 {
-          from { object-position: var(--pmd-gallery-pan-start, 28%) 50%; }
-          to { object-position: 50% 50%; }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          [data-pmd-food-gallery="v7"] [data-pmd-gallery-image] {
-            animation: none !important;
-            object-position: 50% 50% !important;
-          }
-        }
-      `}</style>
-
       <div
         data-pmd-food-gallery-track
         style={{
@@ -238,20 +225,6 @@ export function FoodGalleryRuntimeEnhancer() {
         {images.map((src, slideIndex) => {
           const state = imageState[src]
           const active = slideIndex === index
-          const imageStyle: CSSProperties & Record<'--pmd-gallery-pan-start', string> = {
-            '--pmd-gallery-pan-start': `${state?.panStart ?? 28}%`,
-            width: '100%',
-            height: '100%',
-            flex: '0 0 100%',
-            objectFit: 'cover',
-            objectPosition: 'var(--pmd-gallery-pan-start) 50%',
-            display: 'block',
-            userSelect: 'none',
-            pointerEvents: 'none',
-            animation: !reducedMotion && active && state?.ready
-              ? `pmdFoodGalleryPanV7 ${PAN_MS}ms cubic-bezier(.25,.20,.40,1) both`
-              : 'none',
-          }
 
           return (
             <img
@@ -279,7 +252,21 @@ export function FoodGalleryRuntimeEnhancer() {
                   return { ...current, [src]: { ready: true, panStart } }
                 })
               }}
-              style={imageStyle}
+              style={{
+                width: '100%',
+                height: '100%',
+                flex: '0 0 100%',
+                objectFit: 'cover',
+                objectPosition: active && state?.ready
+                  ? '50% 50%'
+                  : `${state?.panStart ?? 28}% 50%`,
+                display: 'block',
+                userSelect: 'none',
+                pointerEvents: 'none',
+                transition: !reducedMotion && active && state?.ready
+                  ? `object-position ${PAN_MS}ms cubic-bezier(.25,.20,.40,1)`
+                  : 'none',
+              }}
             />
           )
         })}
