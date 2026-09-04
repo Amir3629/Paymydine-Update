@@ -42,7 +42,7 @@ final class PmdIntelligenceActionRegistry
                 $add('report_liveorders');
                 $add('shifts');
             } elseif ($kind === 'owner_kpis') {
-                $add('owner_dashboard');
+                $add('dashboard');
             }
         }
 
@@ -116,7 +116,7 @@ final class PmdIntelligenceActionRegistry
             'reservations' => $this->action($id, 'Open Reservations', 'Review and manage the reservation workspace.', 'reservations', 'workspace'),
             'shifts' => $this->action($id, 'Open Shifts', 'Review staffing and shift coverage.', 'shifts', 'workspace'),
             'menu' => $this->action($id, 'Open Menu', 'Review items, availability and menu setup.', 'menu', 'workspace'),
-            'owner_dashboard' => $this->action($id, 'Open Dashboard', 'Return to the owner overview.', 'ownerdashboard', 'workspace'),
+            'dashboard' => $this->action($id, 'Open Dashboard', 'Return to your canonical role dashboard.', 'dashboard', 'workspace'),
             'manager_dashboard' => $this->action($id, 'Open Manager', 'Open the manager operations workspace.', 'managerdashboard', 'workspace'),
             'accountant_dashboard' => $this->action($id, 'Open Accountant', 'Open the finance and accounting workspace.', 'accountantdashboard', 'workspace'),
             'settings' => $this->action($id, 'Open Settings', 'Review restaurant configuration.', 'settings', 'workspace'),
