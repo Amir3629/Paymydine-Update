@@ -40,8 +40,8 @@ type GalleryImageState = {
   panStart: number
 }
 
-const AUTO_ADVANCE_MS = 8000
-const SLIDE_MS = 920
+const AUTO_ADVANCE_MS = 5000
+const SLIDE_MS = 1800
 const PAN_MS = 4400
 
 // PMD_MENU_GALLERY_SMOOTH_V8
