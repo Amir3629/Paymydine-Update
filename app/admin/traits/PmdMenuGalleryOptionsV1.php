@@ -11,6 +11,8 @@ namespace Admin\Traits;
  */
 trait PmdMenuGalleryOptionsV1
 {
+    use PmdMenuImageQualityV1;
+
     protected function syncPmdMenuGalleryOptionsV1(): void
     {
         $request = request();
@@ -63,6 +65,11 @@ trait PmdMenuGalleryOptionsV1
         }
 
         foreach ($incoming as $file) {
+            // PMD_MENU_IMAGE_QUALITY_V1
+            // Validate real pixels and optimize the temporary upload before the
+            // canonical gallery writer stores it. Aspect ratio is never rejected.
+            $this->preparePmdMenuImageUploadV1($file);
+
             if (!$file || !$file->isValid()) throw new \RuntimeException('One of the selected food images could not be uploaded.');
             if ((int)$file->getSize() > 5 * 1024 * 1024) throw new \RuntimeException('Each food image must be 5 MB or smaller.');
             if (!in_array(strtolower((string)$file->getMimeType()), ['image/jpeg', 'image/png', 'image/webp'], true)) {
