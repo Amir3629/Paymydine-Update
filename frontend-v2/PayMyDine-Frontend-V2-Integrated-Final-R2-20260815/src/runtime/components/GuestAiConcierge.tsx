@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { createPortal } from 'react-dom'
-import { ArrowUp, Sparkles, X } from 'lucide-react'
+import { ArrowUp, Bell, CreditCard, ShoppingBag, Sparkles, X } from 'lucide-react'
 import { useMenuRuntime } from '@/src/runtime/MenuRuntimeContext'
 import type { ThemeId } from '@/src/themes/catalog'
 import styles from './GuestAiConcierge.module.css'
@@ -24,11 +24,14 @@ type GuestAiCopy = {
   prompts: string[]
 }
 
+type GuestActionId = 'call_waiter' | 'view_cart' | 'checkout'
+
 type ChatMessage = {
   id: string
   role: 'user' | 'assistant'
   content: string
   locale?: string | null
+  actions?: GuestActionId[]
 }
 
 type LocalChatSnapshot = {
@@ -134,6 +137,7 @@ function cleanAnswer(value: string): string {
     .replace(/\*\*([^*]+)\*\*/g, '$1')
     .replace(/__([^_]+)__/g, '$1')
     .replace(/^[-*]\s+/gm, '• ')
+    .replace(/\s*\[\[PMD_ACTION:[a-z_]+\]\]\s*/giu, '\n')
     .trim()
 }
 
@@ -147,6 +151,23 @@ function responseDirection(responseLocale: string, value: string, fallback: stri
   const code = String(responseLocale || '').toLowerCase()
   if (code.startsWith('fa') || code.startsWith('ar') || code.startsWith('he') || code.startsWith('ur')) return 'rtl'
   return textDirection(value, fallback)
+}
+
+function normalizeActionIds(value: unknown): GuestActionId[] {
+  if (!Array.isArray(value)) return []
+  const result: GuestActionId[] = []
+  value.forEach((entry) => {
+    const raw = typeof entry === 'string'
+      ? entry
+      : entry && typeof entry === 'object'
+        ? String((entry as Record<string, unknown>).id || '')
+        : ''
+    const id = raw.trim().toLowerCase()
+    if ((id === 'call_waiter' || id === 'view_cart' || id === 'checkout') && !result.includes(id)) {
+      result.push(id)
+    }
+  })
+  return result.slice(0, 2)
 }
 
 function normalizeMessages(value: unknown): ChatMessage[] {
@@ -163,6 +184,7 @@ function normalizeMessages(value: unknown): ChatMessage[] {
       role,
       content,
       locale: source.locale == null ? null : String(source.locale).slice(0, 32),
+      actions: role === 'assistant' ? normalizeActionIds(source.actions) : [],
     }]
   })
 }
@@ -211,6 +233,7 @@ type AskPayload = {
   visit_key?: string | null
   persisted?: boolean
   storage_ready?: boolean
+  actions?: Array<{ id?: string }>
 }
 type HistoryPayload = {
   ok?: boolean
@@ -221,11 +244,25 @@ type HistoryPayload = {
     role?: string
     content?: string
     locale?: string | null
+    actions?: Array<{ id?: string }>
   }>
 }
 
 export function GuestAiConcierge({ themeId }: { themeId: ThemeId }) {
-  const { bootstrap, locale, direction, formatCurrency, guestSessionId, tableOrders } = useMenuRuntime()
+  const {
+    bootstrap,
+    locale,
+    direction,
+    formatCurrency,
+    guestSessionId,
+    tableOrders,
+    labels,
+    callWaiter,
+    openCart,
+    openCheckout,
+    activeOrder,
+    notify,
+  } = useMenuRuntime()
   const locationId = bootstrap.table.locationId
   const tableId = Number(bootstrap.table.id || 0)
   const copy = useMemo(() => copyFor(locale), [locale])
@@ -236,6 +273,7 @@ export function GuestAiConcierge({ themeId }: { themeId: ThemeId }) {
   const [question, setQuestion] = useState('')
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [busy, setBusy] = useState(false)
+  const [actionBusy, setActionBusy] = useState<GuestActionId | null>(null)
   const [error, setError] = useState('')
   const [syncState, setSyncState] = useState<SyncState>('idle')
   const messagesRef = useRef<ChatMessage[]>([])
@@ -247,9 +285,6 @@ export function GuestAiConcierge({ themeId }: { themeId: ThemeId }) {
     ? `pmd-v2:guest-ai-chat:${bootstrap.tenant.id}:${locationId}:${tableId}:${guestSessionId}`
     : '', [bootstrap.tenant.id, canPersist, guestSessionId, locationId, tableId])
 
-  // Reuse MenuRuntimeContext's single 3-second table/order polling authority.
-  // A Staff Free action closes QR drafts/orders and changes this revision, which
-  // makes us re-check the server visit key without introducing a second timer.
   const tableOrderRevision = useMemo(() => tableOrders.map((order) => [
     order.draftId || 0,
     order.orderId || 0,
@@ -262,13 +297,8 @@ export function GuestAiConcierge({ themeId }: { themeId: ThemeId }) {
     messagesRef.current = bounded
     setMessages(bounded)
 
-    if (typeof nextVisitKey === 'string') {
-      visitKeyRef.current = nextVisitKey
-    }
-
-    if (localKey) {
-      writeLocalSnapshot(localKey, visitKeyRef.current, bounded)
-    }
+    if (typeof nextVisitKey === 'string') visitKeyRef.current = nextVisitKey
+    if (localKey) writeLocalSnapshot(localKey, visitKeyRef.current, bounded)
   }, [localKey])
 
   useEffect(() => {
@@ -287,7 +317,6 @@ export function GuestAiConcierge({ themeId }: { themeId: ThemeId }) {
 
     const snapshot = readLocalSnapshot(localKey)
     if (!snapshot) return
-
     messagesRef.current = snapshot.messages
     visitKeyRef.current = snapshot.visitKey
     setMessages(snapshot.messages)
@@ -360,8 +389,6 @@ export function GuestAiConcierge({ themeId }: { themeId: ThemeId }) {
       const visitChanged = Boolean(currentVisitKey && nextVisitKey && currentVisitKey !== nextVisitKey)
 
       if (visitChanged) {
-        // Staff Free Table is the hard privacy boundary. Do not carry any local
-        // fallback transcript into the next physical table visit.
         clearLocalSnapshot(localKey)
         commitConversation(nextMessages, nextVisitKey)
         setError('')
@@ -378,8 +405,8 @@ export function GuestAiConcierge({ themeId }: { themeId: ThemeId }) {
       }
 
       // Never erase an already-visible/local transcript merely because a same-
-      // visit history read is empty. That was the R1 bug that made chats vanish
-      // immediately after a successful answer whenever persistence lagged/failed.
+      // visit history read is empty. Server history remains authority when it
+      // has data; this local fallback only protects against sync lag/failure.
       if (messagesRef.current.length > 0) {
         writeLocalSnapshot(localKey, nextVisitKey || currentVisitKey, messagesRef.current)
         setSyncState(payload.storage_ready === false ? 'local' : syncState === 'synced' ? 'synced' : 'local')
@@ -394,8 +421,6 @@ export function GuestAiConcierge({ themeId }: { themeId: ThemeId }) {
 
   useEffect(() => {
     if (!enabled || !canPersist || busy) return
-    // Initial hydration; reopening the sheet also forces an immediate boundary
-    // check. tableOrderRevision is fed by the existing shared order poller.
     void refreshHistory()
   }, [busy, canPersist, enabled, open, refreshHistory, tableOrderRevision])
 
@@ -411,7 +436,7 @@ export function GuestAiConcierge({ themeId }: { themeId: ThemeId }) {
   useEffect(() => {
     if (!open) return
     tailRef.current?.scrollIntoView({ block: 'end', behavior: 'smooth' })
-  }, [busy, error, messages.length, open])
+  }, [actionBusy, busy, error, messages.length, open])
 
   const ask = useCallback(async (prompt?: string) => {
     const value = String(prompt ?? question).trim()
@@ -466,6 +491,7 @@ export function GuestAiConcierge({ themeId }: { themeId: ThemeId }) {
         role: 'assistant',
         content: nextAnswer,
         locale: String(payload.response_locale || 'auto').slice(0, 20),
+        actions: normalizeActionIds(payload.actions),
       }
 
       const visitChanged = Boolean(currentVisitKey && nextVisitKey && currentVisitKey !== nextVisitKey)
@@ -483,6 +509,58 @@ export function GuestAiConcierge({ themeId }: { themeId: ThemeId }) {
       setBusy(false)
     }
   }, [busy, canPersist, commitConversation, copy.retry, guestSessionId, localKey, locale, locationId, question, tableId])
+
+  const runAction = useCallback(async (id: GuestActionId) => {
+    if (actionBusy) return
+    setActionBusy(id)
+    setError('')
+    try {
+      if (id === 'call_waiter') {
+        await callWaiter()
+        return
+      }
+      if (id === 'view_cart') {
+        setOpen(false)
+        openCart()
+        return
+      }
+      if (id === 'checkout') {
+        if (!activeOrder) {
+          notify('info', labels.emptyCart)
+          return
+        }
+        setOpen(false)
+        openCheckout()
+      }
+    } catch (actionError) {
+      const message = actionError instanceof Error ? actionError.message : labels.error
+      setError(message)
+      notify('error', message)
+    } finally {
+      setActionBusy(null)
+    }
+  }, [actionBusy, activeOrder, callWaiter, labels.emptyCart, labels.error, notify, openCart, openCheckout])
+
+  const isActionAvailable = useCallback((id: GuestActionId): boolean => {
+    if (id === 'call_waiter') {
+      return Boolean(bootstrap.features.waiterCall && bootstrap.table.valid && (bootstrap.table.id || bootstrap.table.number))
+    }
+    if (id === 'view_cart') return true
+    if (id === 'checkout') return Boolean(activeOrder)
+    return false
+  }, [activeOrder, bootstrap.features.waiterCall, bootstrap.table.id, bootstrap.table.number, bootstrap.table.valid])
+
+  const actionLabel = useCallback((id: GuestActionId): string => {
+    if (id === 'call_waiter') return labels.callWaiter
+    if (id === 'view_cart') return labels.cart
+    return labels.checkout
+  }, [labels.callWaiter, labels.cart, labels.checkout])
+
+  const actionIcon = (id: GuestActionId) => {
+    if (id === 'call_waiter') return <Bell aria-hidden="true" />
+    if (id === 'view_cart') return <ShoppingBag aria-hidden="true" />
+    return <CreditCard aria-hidden="true" />
+  }
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -554,13 +632,30 @@ export function GuestAiConcierge({ themeId }: { themeId: ThemeId }) {
                       {message.content}
                     </div>
                   ) : (
-                    <div
-                      key={message.id}
-                      className={styles.aiBubble}
-                      dir={responseDirection(String(message.locale || 'auto'), message.content, direction)}
-                      lang={message.locale && message.locale !== 'auto' ? message.locale : undefined}
-                    >
-                      {message.content}
+                    <div key={message.id} className={styles.aiMessage}>
+                      <div
+                        className={styles.aiBubble}
+                        dir={responseDirection(String(message.locale || 'auto'), message.content, direction)}
+                        lang={message.locale && message.locale !== 'auto' ? message.locale : undefined}
+                      >
+                        {message.content}
+                      </div>
+                      {message.actions && message.actions.some(isActionAvailable) && (
+                        <div className={styles.messageActions} aria-label="Suggested actions">
+                          {message.actions.filter(isActionAvailable).map((id) => (
+                            <button
+                              type="button"
+                              key={id}
+                              className={styles.actionButton}
+                              disabled={Boolean(actionBusy)}
+                              onClick={() => void runAction(id)}
+                            >
+                              {actionIcon(id)}
+                              <span>{actionLabel(id)}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ))}
                   {busy && (
