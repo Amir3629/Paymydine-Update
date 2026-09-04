@@ -15,20 +15,21 @@ final class PmdIntelligenceConversationActionsTest extends TestCase
         self::assertStringContainsString("private const TABLE = 'pmd_admin_ai_conversations'", $store);
         self::assertStringContainsString("where('location_id', \$locationId)", $store);
         self::assertStringContainsString("where('admin_user_id', \$userId)", $store);
-        self::assertStringContainsString("where('conversation_date', \$conversationDate)", $store);
-        self::assertStringContainsString("where('conversation_date', \$this->conversationDate())", $store);
+        self::assertStringContainsString("where('created_at', '>=', \$window['storage_start'])", $store);
+        self::assertStringContainsString("where('created_at', '<', \$window['storage_end'])", $store);
+        self::assertStringContainsString("'storage_mode' => 'created_at_window'", $store);
         self::assertStringContainsString('canonicalTimezone()', $store);
-        self::assertStringContainsString('conversation_date', $store);
         self::assertStringContainsString('Previous daily chats remain stored', $store);
         self::assertStringContainsString('MAX_MESSAGES = 300', $store);
         self::assertStringContainsString('modelContext', $store);
         self::assertStringContainsString('clear(int $locationId, int $userId)', $store);
+        self::assertStringContainsString('hasConversationDateColumn', $store);
+        self::assertStringNotContainsString('Schema::table(self::TABLE', $store);
         self::assertStringNotContainsString('ip_address', $store);
         self::assertStringNotContainsString('provider_response', $store);
         self::assertStringNotContainsString('api_key', strtolower($store));
         self::assertStringContainsString('pmd_admin_ai_conversations', $migration);
         self::assertStringContainsString("date('conversation_date')", $migration);
-        self::assertStringContainsString("['location_id', 'admin_user_id', 'conversation_date', 'id']", $migration);
     }
 
     public function testAdminControllerPersistsFollowupsAndRechecksPmdAuthority(): void
@@ -51,6 +52,18 @@ final class PmdIntelligenceConversationActionsTest extends TestCase
         self::assertStringContainsString("'actions'", $source);
         self::assertStringContainsString("'persisted'", $source);
         self::assertStringContainsString("'storage_ready'", $source);
+    }
+
+    public function testAdminAiToneDoesNotFlatterRoleOrCallUserBoss(): void
+    {
+        $source = file_get_contents(dirname(__DIR__, 2).'/app/Services/AI/AiOrchestrator.php');
+
+        self::assertIsString($source);
+        self::assertStringContainsString('Never flatter the signed-in user with hierarchy or status language.', $source);
+        self::assertStringContainsString('Do not call them boss, chief, king, queen, president, or similar titles', $source);
+        self::assertStringContainsString('state the role neutrally', $source);
+        self::assertStringNotContainsString('boss 👑', $source);
+        self::assertStringNotContainsString('Around here, [name] is the boss', $source);
     }
 
     public function testAdminActionsAreServerOwnedCanonicalNavigationOnly(): void
@@ -103,10 +116,13 @@ final class PmdIntelligenceConversationActionsTest extends TestCase
         self::assertStringNotContainsString('pmd-ai-answer-card', $view);
 
         self::assertStringContainsString('data-pmd-ai-nav', $sideMenu);
-        self::assertStringContainsString('M12 3l1.15 3.65', $sideMenu);
-        self::assertStringContainsString('M18.5 3.5v3M17 5h3', $sideMenu);
+        self::assertStringContainsString('pmd-ai-nav-mark-v2', $view);
+        self::assertStringContainsString("content: 'AI'", $view);
+        self::assertStringContainsString('data-pmd-ai-icon="bot"', $view);
+        self::assertStringNotContainsString('M12 3l1.15 3.65', $view);
 
         self::assertStringContainsString('function loadHistory()', $js);
+        self::assertStringContainsString('void loadHistory();', $js);
         self::assertStringContainsString('function renderActions(', $js);
         self::assertStringContainsString('pmd-ai-action-link', $js);
         self::assertStringContainsString('clearEndpoint', $js);
