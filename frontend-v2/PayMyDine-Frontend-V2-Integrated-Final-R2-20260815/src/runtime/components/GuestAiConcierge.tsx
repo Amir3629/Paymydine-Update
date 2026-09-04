@@ -56,7 +56,7 @@ const EN: GuestAiCopy = {
   safety: 'For severe allergies, always confirm ingredients and cross-contact with restaurant staff before ordering.',
   saved: 'Saved for this table visit',
   localOnly: 'Saved on this device; server sync retrying',
-  waiterCalled: 'Waiter called ✓ The restaurant team has been notified and someone should be with your table shortly.',
+  waiterCalled: 'A waiter will come to your table shortly.',
   prompts: ['What should I try? ✨', 'Something vegetarian 🌱', 'What’s popular?', 'Help me choose under {budget}'],
 }
 
@@ -73,7 +73,7 @@ const DE: GuestAiCopy = {
   safety: 'Bei schweren Allergien Zutaten und mögliche Kreuzkontakte immer zusätzlich beim Restaurant-Team bestätigen.',
   saved: 'Für diesen Tischbesuch gespeichert',
   localOnly: 'Auf diesem Gerät gespeichert; Server-Sync wird erneut versucht',
-  waiterCalled: 'Service gerufen ✓ Das Restaurant-Team wurde benachrichtigt und jemand sollte gleich an euren Tisch kommen.',
+  waiterCalled: 'Ein Mitarbeiter kommt gleich zu Ihrem Tisch.',
   prompts: ['Was soll ich probieren? ✨', 'Etwas Vegetarisches 🌱', 'Was ist beliebt?', 'Hilf mir unter {budget} zu wählen'],
 }
 
@@ -90,7 +90,7 @@ const FA: GuestAiCopy = {
   safety: 'برای آلرژی شدید، قبل از سفارش مواد اولیه و احتمال تماس متقاطع را با کارکنان رستوران تأیید کنید.',
   saved: 'برای همین نوبت میز ذخیره شد',
   localOnly: 'روی همین دستگاه ذخیره شد؛ همگام‌سازی سرور دوباره تلاش می‌شود',
-  waiterCalled: 'گارسون خبر شد ✓ تیم رستوران مطلع شده و به‌زودی یکی از اعضای تیم به میز شما سر می‌زند.',
+  waiterCalled: 'یک گارسون به‌زودی به میز شما می‌آید.',
   prompts: ['چی پیشنهاد می‌کنی؟ ✨', 'یک گزینه گیاهی 🌱', 'چی محبوبه؟', 'زیر {budget} کمکم کن انتخاب کنم'],
 }
 
@@ -107,7 +107,7 @@ const TR: GuestAiCopy = {
   safety: 'Şiddetli alerjilerde sipariş vermeden önce içerikleri ve çapraz temas riskini restoran ekibiyle doğrulayın.',
   saved: 'Bu masa ziyareti için kaydedildi',
   localOnly: 'Bu cihazda kaydedildi; sunucu eşitlemesi yeniden denenecek',
-  waiterCalled: 'Garson çağrıldı ✓ Restoran ekibine haber verildi; kısa süre içinde bir ekip üyesi masanıza gelecek.',
+  waiterCalled: 'Bir garson kısa süre içinde masanıza gelecek.',
   prompts: ['Ne denemeliyim? ✨', 'Vejetaryen bir şey 🌱', 'Ne popüler?', '{budget} altında seçim yapmama yardım et'],
 }
 
@@ -124,7 +124,7 @@ const JA: GuestAiCopy = {
   safety: '重度のアレルギーがある場合は、注文前に原材料と交差接触の可能性を店舗スタッフに確認してください。',
   saved: 'このテーブル利用中の会話を保存しました',
   localOnly: 'この端末に保存済みです。サーバー同期を再試行します',
-  waiterCalled: 'スタッフを呼びました ✓ お店のスタッフに通知しました。まもなくテーブルへ伺います。',
+  waiterCalled: 'まもなくスタッフがテーブルに伺います。',
   prompts: ['おすすめは？ ✨', 'ベジタリアン料理 🌱', '人気なのは？', '{budget}以内で選びたい'],
 }
 
