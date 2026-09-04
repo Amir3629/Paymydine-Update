@@ -50,10 +50,15 @@ return [
     'guest_location_allowlist' => $csv(env('PMD_AI_GUEST_LOCATION_ALLOWLIST', '')),
     'guest_allow_wildcard' => filter_var(env('PMD_AI_GUEST_ALLOW_WILDCARD', false), FILTER_VALIDATE_BOOLEAN),
     'guest_model' => env('PMD_AI_GUEST_MODEL', env('PMD_AI_MODEL', $defaultModel)),
-    // The public HTTP question remains capped at 600 chars. The larger internal
-    // ceiling allows PMD to append compact restaurant-now + previous-answer
-    // context without truncating a valid guest question.
-    'guest_max_question_chars' => (int)env('PMD_AI_GUEST_MAX_QUESTION_CHARS', 1200),
+    // The public HTTP route independently caps raw guest input at 600 chars.
+    // This service-level envelope also contains trusted PMD_RULE/PMD_NOW/chat
+    // context added after validation. Keep a hard floor above the route's
+    // bounded 1350-char model envelope so an old .env value such as 600 cannot
+    // reject a perfectly valid short guest question after server enrichment.
+    'guest_max_question_chars' => max(
+        1600,
+        (int)env('PMD_AI_GUEST_MAX_QUESTION_CHARS', 1600)
+    ),
     // Gemini 3.x uses thinking before producing the visible answer. A very low
     // candidate budget can therefore end with MAX_TOKENS mid-sentence even for
     // a short menu reply. Keep enough headroom for a complete 35-110 word answer.
