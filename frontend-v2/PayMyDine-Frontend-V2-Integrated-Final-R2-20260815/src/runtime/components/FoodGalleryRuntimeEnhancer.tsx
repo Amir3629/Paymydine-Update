@@ -40,7 +40,7 @@ type GalleryImageState = {
   panStart: number
 }
 
-const AUTO_ADVANCE_MS = 5000
+const AUTO_ADVANCE_MS = 8000
 const SLIDE_MS = 920
 const PAN_MS = 4400
 
