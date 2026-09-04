@@ -247,14 +247,14 @@ export function OptionConfiguratorRuntimeEnhancer() {
     })
   }, [pending, selected])
 
-  if (!pending) return null
+  if (!pending) {
+    return <style>{`fieldset[data-pmd-option-deferred="v3"] { display: none !important; }`}</style>
+  }
 
   const item = pending.item
   const optionsTotal = selections.reduce((sum, option) => sum + option.price, 0)
   const unitTotal = item.price + optionsTotal
   const total = unitTotal * pending.quantity
-  const totalOptionsImpact = optionsTotal * pending.quantity
-  const scopeText = copy.appliesAll.replace('{count}', String(pending.quantity))
 
   const toggle = (groupId: string, valueId: string, multi: boolean) => {
     setError('')
@@ -313,6 +313,7 @@ export function OptionConfiguratorRuntimeEnhancer() {
           font-family: inherit;
         }
         .pmd-option-configurator-v3 * { box-sizing: border-box; }
+        fieldset[data-pmd-option-deferred="v3"] { display: none !important; }
         .pmd-option-configurator-v3__backdrop {
           position: absolute;
           inset: 0;
@@ -769,7 +770,6 @@ export function OptionConfiguratorRuntimeEnhancer() {
         <header className="pmd-option-configurator-v3__header">
           <div>
             <h2>{copy.title}</h2>
-            <p>{copy.subtitle} · {item.name}</p>
           </div>
           <button type="button" className="pmd-option-configurator-v3__close" onClick={close} aria-label={copy.cancel}>
             <X aria-hidden="true" />
@@ -810,7 +810,7 @@ export function OptionConfiguratorRuntimeEnhancer() {
                     <option value="">{copy.choosePlaceholder}</option>
                     {group.values.map((value) => (
                       <option key={value.id} value={value.id}>
-                        {value.name}{value.price > 0 ? ` (+${runtime.formatCurrency(value.price)} ${copy.each})` : ''}
+                        {value.name}{value.price > 0 ? ` (+${runtime.formatCurrency(value.price)})` : ''}
                       </option>
                     ))}
                   </select>
@@ -830,12 +830,7 @@ export function OptionConfiguratorRuntimeEnhancer() {
                             <span>{value.name}</span>
                           </span>
                           {value.price > 0 && (
-                            <strong className="pmd-option-configurator-v3__choicePrice">
-                              <span>+{runtime.formatCurrency(value.price)}</span>
-                              {pending.quantity > 1 && (
-                                <small>× {pending.quantity} = +{runtime.formatCurrency(value.price * pending.quantity)}</small>
-                              )}
-                            </strong>
+                            <strong className="pmd-option-configurator-v3__choicePrice">+{runtime.formatCurrency(value.price)}</strong>
                           )}
                         </label>
                       )
@@ -850,13 +845,6 @@ export function OptionConfiguratorRuntimeEnhancer() {
         </div>
 
         <footer className="pmd-option-configurator-v3__footer">
-          {pending.quantity > 1 && (
-            <div className="pmd-option-configurator-v3__scope">
-              <strong>{scopeText}</strong>
-              <span>{copy.separate}</span>
-            </div>
-          )}
-
           <div className="pmd-option-configurator-v3__summary">
             <div className="pmd-option-configurator-v3__qty" aria-label={runtime.labels.quantity}>
               <button type="button" onClick={() => setPending((current) => current ? { ...current, quantity: Math.max(1, current.quantity - 1) } : current)} aria-label="−">
@@ -870,9 +858,6 @@ export function OptionConfiguratorRuntimeEnhancer() {
             <div className="pmd-option-configurator-v3__total">
               <strong>{runtime.formatCurrency(total)}</strong>
               <small>{runtime.formatCurrency(unitTotal)} {copy.each}</small>
-              {pending.quantity > 1 && totalOptionsImpact > 0 && (
-                <em>+{runtime.formatCurrency(totalOptionsImpact)} options</em>
-              )}
             </div>
           </div>
 

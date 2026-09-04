@@ -15,6 +15,7 @@
   var optionEmpty = null;
   var optionAdd = null;
   var objectUrls = [];
+  var stagedFiles = [];
   var removedPaths = new Set();
   var currentImages = [];
   var optionGroups = [];
@@ -92,7 +93,37 @@
   }
 
   function selectedFiles() {
-    return imageInput && imageInput.files ? Array.prototype.slice.call(imageInput.files) : [];
+    return stagedFiles.slice();
+  }
+
+  function fileKey(file) {
+    return [String(file && file.name || ''), Number(file && file.size || 0), Number(file && file.lastModified || 0), String(file && file.type || '')].join('::');
+  }
+
+  function syncStagedFilesToInput() {
+    if (!imageInput || typeof DataTransfer === 'undefined') return;
+    try {
+      var transfer = new DataTransfer();
+      stagedFiles.forEach(function (file) { transfer.items.add(file); });
+      imageInput.files = transfer.files;
+    } catch (error) {}
+  }
+
+  function stageSelectedFiles(files) {
+    var seen = new Set(stagedFiles.map(fileKey));
+    Array.prototype.slice.call(files || []).forEach(function (file) {
+      var key = fileKey(file);
+      if (!file || !key || seen.has(key)) return;
+      stagedFiles.push(file);
+      seen.add(key);
+    });
+    syncStagedFilesToInput();
+  }
+
+  function removeStagedFile(index) {
+    if (!Number.isFinite(index) || index < 0 || index >= stagedFiles.length) return;
+    stagedFiles.splice(index, 1);
+    syncStagedFilesToInput();
   }
 
   function visibleExistingImages() {
@@ -157,7 +188,7 @@
     });
     files.forEach(function (file, index) {
       var url = URL.createObjectURL(file); objectUrls.push(url);
-      items.push('<div class="pmd-menu-gallery-editor__item is-new"><img src="' + esc(url) + '" alt="New food image ' + (index + 1) + '"><span>' + (index === 0 ? 'New cover' : 'New') + '</span></div>');
+      items.push('<div class="pmd-menu-gallery-editor__item is-new"><img src="' + esc(url) + '" alt="New food image ' + (index + 1) + '"><span>' + (index === 0 ? 'New cover' : 'New') + '</span><button type="button" data-pmd-gallery-remove-new="' + index + '" aria-label="Remove new image">×</button></div>');
     });
     if (message && !items.length) {
       galleryHost.innerHTML = '<div class="pmd-menu-gallery-editor__blank is-warning"><strong>Gallery could not be loaded</strong><span>' + esc(message) + '</span></div>';
@@ -187,9 +218,9 @@
   function groupMarkup(group, groupIndex) {
     ensureValue(group);
     var rows = group.values.map(function (value, valueIndex) {
-      return '<div class="pmd-menu-option-value" data-option-value-index="' + valueIndex + '"><input type="text" name="options[' + groupIndex + '][values][' + valueIndex + '][name]" maxlength="128" required placeholder="Choice name (e.g. Medium)" value="' + esc(value.name) + '" data-option-value-name><label class="pmd-menu-option-value__price"><span>+ price</span><input type="number" name="options[' + groupIndex + '][values][' + valueIndex + '][price]" min="0" max="9999999" step="0.01" inputmode="decimal" value="' + esc(Number(value.price || 0).toFixed(2).replace(/\.00$/, '')) + '" data-option-value-price></label><label class="pmd-menu-option-value__default"><input type="radio" name="pmd-option-default-' + groupIndex + '" ' + (value.is_default ? 'checked' : '') + ' data-option-value-default><span>Default</span></label><button type="button" class="pmd-menu-option-value__remove" data-option-value-remove aria-label="Remove choice">×</button></div>';
+      return '<div class="pmd-menu-option-value" data-option-value-index="' + valueIndex + '"><input type="text" name="options[' + groupIndex + '][values][' + valueIndex + '][name]" maxlength="128" required placeholder="Choice name (e.g. Medium)" value="' + esc(value.name) + '" data-option-value-name><label class="pmd-menu-option-value__price"><span>+ price</span><input type="number" name="options[' + groupIndex + '][values][' + valueIndex + '][price]" min="0" max="9999999" step="0.01" inputmode="decimal" value="' + esc(Number(value.price || 0).toFixed(2).replace(/\.00$/, '')) + '" data-option-value-price></label><label class="pmd-menu-option-value__default"><input type="checkbox" ' + (value.is_default ? 'checked' : '') + ' data-option-value-default><span>Default</span></label><button type="button" class="pmd-menu-option-value__remove" data-option-value-remove aria-label="Remove choice">×</button></div>';
     }).join('');
-    return '<article class="pmd-menu-option-group" data-option-group-index="' + groupIndex + '"><div class="pmd-menu-option-group__top"><label class="pmd-menu-field"><span>Option name</span><input type="text" name="options[' + groupIndex + '][name]" maxlength="128" required placeholder="e.g. Burger size" value="' + esc(group.name) + '" data-option-group-name></label><label class="pmd-menu-field"><span>Choice type</span><select name="options[' + groupIndex + '][display_type]" data-option-group-type><option value="radio"' + (group.display_type === 'radio' ? ' selected' : '') + '>Choose one</option><option value="checkbox"' + (group.display_type === 'checkbox' ? ' selected' : '') + '>Choose multiple</option><option value="select"' + (group.display_type === 'select' ? ' selected' : '') + '>Dropdown</option></select></label><label class="pmd-menu-option-group__required"><input type="hidden" name="options[' + groupIndex + '][required]" value="0"><input type="checkbox" name="options[' + groupIndex + '][required]" value="1" ' + (group.required ? 'checked' : '') + ' data-option-group-required><span>Required</span></label><button type="button" class="pmd-menu-option-group__remove" data-option-group-remove>Remove option</button></div><div class="pmd-menu-option-group__values">' + rows + '</div><button type="button" class="pmd-menu-option-group__add-value" data-option-value-add>+ Add choice</button></article>';
+    return '<article class="pmd-menu-option-group" data-option-group-index="' + groupIndex + '"><div class="pmd-menu-option-group__top"><label class="pmd-menu-field"><span>Option name</span><input type="text" name="options[' + groupIndex + '][name]" maxlength="128" required placeholder="e.g. Burger size" value="' + esc(group.name) + '" data-option-group-name></label><label class="pmd-menu-field"><span>Choice type</span><select name="options[' + groupIndex + '][display_type]" data-option-group-type><option value="radio"' + (group.display_type === 'radio' ? ' selected' : '') + '>Choose one</option><option value="checkbox"' + (group.display_type === 'checkbox' ? ' selected' : '') + '>Choose multiple</option><option value="select"' + (group.display_type === 'select' ? ' selected' : '') + '>Dropdown</option></select></label><label class="pmd-menu-option-group__required" title="Customer must select at least one choice before ordering."><input type="hidden" name="options[' + groupIndex + '][required]" value="0"><input type="checkbox" name="options[' + groupIndex + '][required]" value="1" ' + (group.required ? 'checked' : '') + ' data-option-group-required><span>Must choose</span></label><button type="button" class="pmd-menu-option-group__remove" data-option-group-remove>Remove option</button></div><div class="pmd-menu-option-group__values">' + rows + '</div><button type="button" class="pmd-menu-option-group__add-value" data-option-value-add>+ Add choice</button></article>';
   }
 
   function syncDefaultHiddenInputs() {
@@ -254,8 +285,8 @@
 
   function syncFromCurrentForm() {
     var token = ++loadToken;
-    removedPaths.clear(); currentImages = []; optionGroups = [];
-    if (imageInput) { imageInput.value = ''; imageInput.setCustomValidity(''); }
+    removedPaths.clear(); currentImages = []; optionGroups = []; stagedFiles = [];
+    if (imageInput) { imageInput.value = ''; imageInput.setCustomValidity(''); syncStagedFilesToInput(); }
     var present = form.querySelector('input[data-pmd-menu-options-present]'); if (present) present.remove();
     renderGallery(); renderOptions();
     var idField = form.querySelector('[data-pmd-menu-id]'); var id = idField ? String(idField.value || '') : '';
@@ -268,8 +299,25 @@
   }
 
   installUi();
-  if (imageInput) imageInput.addEventListener('change', function () { renderGallery(); });
+  if (imageInput) {
+    imageInput.addEventListener('click', function () {
+      // A native file input replaces its FileList on every picker visit. Clear the
+      // native value before opening and keep the real pending list in stagedFiles.
+      imageInput.value = '';
+    });
+    imageInput.addEventListener('change', function () {
+      stageSelectedFiles(imageInput.files);
+      renderGallery();
+    });
+  }
   if (galleryHost) galleryHost.addEventListener('click', function (event) {
+    var removeNew = event.target.closest('[data-pmd-gallery-remove-new]');
+    if (removeNew) {
+      event.preventDefault();
+      removeStagedFile(Number(removeNew.getAttribute('data-pmd-gallery-remove-new')));
+      renderGallery();
+      return;
+    }
     var remove = event.target.closest('[data-pmd-gallery-remove]'); if (!remove) return;
     event.preventDefault(); var image = String(remove.getAttribute('data-pmd-gallery-remove') || ''); if (image) removedPaths.add(image); renderGallery();
   });
@@ -280,7 +328,19 @@
     var nodes = optionHost.querySelectorAll('[data-option-group-index]'); var last = nodes[nodes.length - 1]; var input = last && last.querySelector('[data-option-group-name]'); if (input) input.focus();
   });
   if (optionHost) {
-    optionHost.addEventListener('input', captureOptions); optionHost.addEventListener('change', captureOptions);
+    optionHost.addEventListener('input', captureOptions);
+    optionHost.addEventListener('change', function (event) {
+      var target = event.target;
+      if (target && target.matches && target.matches('[data-option-value-default]') && target.checked) {
+        var groupNode = target.closest('[data-option-group-index]');
+        if (groupNode) {
+          groupNode.querySelectorAll('[data-option-value-default]').forEach(function (other) {
+            if (other !== target) other.checked = false;
+          });
+        }
+      }
+      captureOptions();
+    });
     optionHost.addEventListener('click', function (event) {
       var groupNode = event.target.closest('[data-option-group-index]'); if (!groupNode) return;
       var gi = Number(groupNode.getAttribute('data-option-group-index')); captureOptions();
@@ -292,6 +352,11 @@
   }
   document.addEventListener('click', function (event) {
     if (event.target.closest('[data-pmd-menu-edit], [data-pmd-menu-create], [data-pmd-menu-header-primary]')) window.setTimeout(syncFromCurrentForm, 0);
+  });
+  form.addEventListener('formdata', function (event) {
+    if (!event.formData) return;
+    event.formData.delete('images[]');
+    stagedFiles.forEach(function (file) { event.formData.append('images[]', file, file.name); });
   });
   form.addEventListener('submit', function () { captureOptions(); validateGalleryLimit(); }, true);
   window.setTimeout(syncFromCurrentForm, 0);
