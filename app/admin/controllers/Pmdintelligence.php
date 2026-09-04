@@ -75,7 +75,7 @@ class Pmdintelligence extends AdminController
         }
 
         $context = $this->buildAiContext('owner_chat_history');
-        if (!$context->locationId || !$context->adminUserId) {
+        if (!$context->locationId || !$context->userId) {
             return response()->json([
                 'ok' => false,
                 'message' => 'Select a restaurant location before using PMD Intelligence.',
@@ -85,13 +85,31 @@ class Pmdintelligence extends AdminController
         try {
             $history = app(AdminAiConversationStore::class)->history(
                 (int)$context->locationId,
-                (int)$context->adminUserId,
+                (int)$context->userId,
                 160
             );
 
+            $messages = [];
+            $lastUserQuestion = '';
+            $registry = app(PmdIntelligenceActionRegistry::class);
+            foreach ((array)($history['messages'] ?? []) as $row) {
+                if (!is_array($row)) continue;
+                $role = (string)($row['role'] ?? '');
+                if ($role === 'user') {
+                    $lastUserQuestion = trim((string)($row['content'] ?? ''));
+                } elseif ($role === 'assistant') {
+                    $row['actions'] = $registry->adminActions(
+                        [],
+                        $lastUserQuestion,
+                        (string)($row['content'] ?? '')
+                    );
+                }
+                $messages[] = $row;
+            }
+
             return response()->json([
                 'ok' => true,
-                'messages' => (array)($history['messages'] ?? []),
+                'messages' => $messages,
                 'storage_ready' => (bool)($history['storage_ready'] ?? false),
                 'location_id' => (int)$context->locationId,
             ])->withHeaders(['Cache-Control' => 'private, no-store, max-age=0']);
@@ -99,7 +117,7 @@ class Pmdintelligence extends AdminController
             logger()->warning('PMD Intelligence history failed', [
                 'type' => get_class($error),
                 'location_id' => $context->locationId,
-                'admin_user_id' => $context->adminUserId,
+                'admin_user_id' => $context->userId,
             ]);
 
             return response()->json([
@@ -121,14 +139,14 @@ class Pmdintelligence extends AdminController
         }
 
         $context = $this->buildAiContext('owner_chat_clear');
-        if (!$context->locationId || !$context->adminUserId) {
+        if (!$context->locationId || !$context->userId) {
             return response()->json(['ok' => false, 'message' => 'No restaurant location selected.'], 409);
         }
 
         try {
             $cleared = app(AdminAiConversationStore::class)->clear(
                 (int)$context->locationId,
-                (int)$context->adminUserId
+                (int)$context->userId
             );
 
             return response()->json([
@@ -139,7 +157,7 @@ class Pmdintelligence extends AdminController
             logger()->warning('PMD Intelligence clear failed', [
                 'type' => get_class($error),
                 'location_id' => $context->locationId,
-                'admin_user_id' => $context->adminUserId,
+                'admin_user_id' => $context->userId,
             ]);
             return response()->json(['ok' => false, 'message' => 'Chat could not be cleared.'], 503);
         }
@@ -161,10 +179,10 @@ class Pmdintelligence extends AdminController
 
         try {
             $conversation = [];
-            if ($context->locationId && $context->adminUserId) {
+            if ($context->locationId && $context->userId) {
                 $conversation = app(AdminAiConversationStore::class)->modelContext(
                     (int)$context->locationId,
-                    (int)$context->adminUserId,
+                    (int)$context->userId,
                     10
                 );
             }
@@ -180,10 +198,10 @@ class Pmdintelligence extends AdminController
             $persisted = false;
             $storageReady = null;
 
-            if ($answer !== '' && $context->locationId && $context->adminUserId) {
+            if ($answer !== '' && $context->locationId && $context->userId) {
                 $saved = app(AdminAiConversationStore::class)->appendPair(
                     (int)$context->locationId,
-                    (int)$context->adminUserId,
+                    (int)$context->userId,
                     $question,
                     $answer,
                     (string)($result['run_id'] ?? $context->runId)
