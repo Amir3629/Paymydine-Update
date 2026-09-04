@@ -6,8 +6,10 @@ use Admin\Classes\AdminController;
 use Admin\Facades\AdminAuth;
 use Admin\Facades\AdminMenu;
 use Admin\Facades\Template;
+use App\Services\AI\AdminAiConversationStore;
 use App\Services\AI\AiContext;
 use App\Services\AI\AiOrchestrator;
+use App\Services\AI\PmdIntelligenceActionRegistry;
 use App\Services\AI\PmdReadAuthority;
 use App\Services\PmdKitchenWorkforceService;
 use Illuminate\Support\Facades\DB;
@@ -15,11 +17,11 @@ use Illuminate\Support\Str;
 use Throwable;
 
 /**
- * PMD Intelligence V1
+ * PMD Intelligence
  *
- * Read-only owner operations copilot. Data access is delegated to
- * PmdReadAuthority so this page does not inherit Dashboard/Reservations/Reports
- * UI constructors or their asset stacks.
+ * Read-only restaurant operations copilot. Restaurant facts are still read
+ * through PmdReadAuthority; conversation persistence is tenant-local and scoped
+ * to the authenticated PMD user + canonical location.
  */
 class Pmdintelligence extends AdminController
 {
@@ -55,9 +57,110 @@ class Pmdintelligence extends AdminController
             'read_only' => true,
             'location_id' => $context->locationId,
             'endpoint' => admin_url('pmdintelligence/ask'),
+            'history_endpoint' => admin_url('pmdintelligence/history'),
+            'clear_endpoint' => admin_url('pmdintelligence/clear'),
         ];
 
         return $this->makeView('pmdintelligence/index');
+    }
+
+    public function history()
+    {
+        $user = AdminAuth::getUser();
+        if (!$user) {
+            return response()->json(['ok' => false, 'message' => 'Authentication required.'], 401);
+        }
+        if (!$user->hasPermission('Admin.Dashboard')) {
+            return response()->json(['ok' => false, 'message' => 'Dashboard permission required.'], 403);
+        }
+
+        $context = $this->buildAiContext('owner_chat_history');
+        if (!$context->locationId || !$context->userId) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Select a restaurant location before using PMD Intelligence.',
+            ], 409);
+        }
+
+        try {
+            $history = app(AdminAiConversationStore::class)->history(
+                (int)$context->locationId,
+                (int)$context->userId,
+                160
+            );
+
+            $messages = [];
+            $lastUserQuestion = '';
+            $registry = app(PmdIntelligenceActionRegistry::class);
+            foreach ((array)($history['messages'] ?? []) as $row) {
+                if (!is_array($row)) continue;
+                $role = (string)($row['role'] ?? '');
+                if ($role === 'user') {
+                    $lastUserQuestion = trim((string)($row['content'] ?? ''));
+                } elseif ($role === 'assistant') {
+                    $row['actions'] = $registry->adminActions(
+                        [],
+                        $lastUserQuestion,
+                        (string)($row['content'] ?? '')
+                    );
+                }
+                $messages[] = $row;
+            }
+
+            return response()->json([
+                'ok' => true,
+                'messages' => $messages,
+                'storage_ready' => (bool)($history['storage_ready'] ?? false),
+                'location_id' => (int)$context->locationId,
+            ])->withHeaders(['Cache-Control' => 'private, no-store, max-age=0']);
+        } catch (Throwable $error) {
+            logger()->warning('PMD Intelligence history failed', [
+                'type' => get_class($error),
+                'location_id' => $context->locationId,
+                'admin_user_id' => $context->userId,
+            ]);
+
+            return response()->json([
+                'ok' => false,
+                'storage_ready' => false,
+                'message' => 'Saved PMD chat is temporarily unavailable.',
+            ], 503)->withHeaders(['Cache-Control' => 'private, no-store, max-age=0']);
+        }
+    }
+
+    public function clear()
+    {
+        $user = AdminAuth::getUser();
+        if (!$user) {
+            return response()->json(['ok' => false, 'message' => 'Authentication required.'], 401);
+        }
+        if (!$user->hasPermission('Admin.Dashboard')) {
+            return response()->json(['ok' => false, 'message' => 'Dashboard permission required.'], 403);
+        }
+
+        $context = $this->buildAiContext('owner_chat_clear');
+        if (!$context->locationId || !$context->userId) {
+            return response()->json(['ok' => false, 'message' => 'No restaurant location selected.'], 409);
+        }
+
+        try {
+            $cleared = app(AdminAiConversationStore::class)->clear(
+                (int)$context->locationId,
+                (int)$context->userId
+            );
+
+            return response()->json([
+                'ok' => $cleared,
+                'cleared' => $cleared,
+            ])->withHeaders(['Cache-Control' => 'private, no-store, max-age=0']);
+        } catch (Throwable $error) {
+            logger()->warning('PMD Intelligence clear failed', [
+                'type' => get_class($error),
+                'location_id' => $context->locationId,
+                'admin_user_id' => $context->userId,
+            ]);
+            return response()->json(['ok' => false, 'message' => 'Chat could not be cleared.'], 503);
+        }
     }
 
     public function ask()
@@ -75,11 +178,45 @@ class Pmdintelligence extends AdminController
         $context = $this->buildAiContext('owner_ask_pmd');
 
         try {
+            $conversation = [];
+            if ($context->locationId && $context->userId) {
+                $conversation = app(AdminAiConversationStore::class)->modelContext(
+                    (int)$context->locationId,
+                    (int)$context->userId,
+                    10
+                );
+            }
+
+            $signals = [];
             $result = app(AiOrchestrator::class)->ask(
                 $context,
-                $question,
-                $this->aiTools()
+                $this->conversationQuestion($question, $conversation),
+                $this->aiTools($signals)
             );
+
+            $answer = trim((string)($result['answer'] ?? ''));
+            $persisted = false;
+            $storageReady = null;
+
+            if ($answer !== '' && $context->locationId && $context->userId) {
+                $saved = app(AdminAiConversationStore::class)->appendPair(
+                    (int)$context->locationId,
+                    (int)$context->userId,
+                    $question,
+                    $answer,
+                    (string)($result['run_id'] ?? $context->runId)
+                );
+                $persisted = (bool)($saved['persisted'] ?? false);
+                $storageReady = (bool)($saved['storage_ready'] ?? false);
+            }
+
+            $result['actions'] = app(PmdIntelligenceActionRegistry::class)->adminActions(
+                $signals,
+                $question,
+                $answer
+            );
+            $result['persisted'] = $persisted;
+            $result['storage_ready'] = $storageReady;
 
             return response()->json($result)->withHeaders([
                 'Cache-Control' => 'private, no-store, max-age=0',
@@ -101,6 +238,36 @@ class Pmdintelligence extends AdminController
                 'Cache-Control' => 'private, no-store, max-age=0',
             ]);
         }
+    }
+
+    private function conversationQuestion(string $question, array $history): string
+    {
+        $question = trim($question);
+        if ($question === '' || !$history || mb_strlen($question) > 3000) {
+            return $question;
+        }
+
+        $budget = max(0, 3850 - mb_strlen($question));
+        if ($budget < 180) return $question;
+
+        $rows = [];
+        foreach (array_reverse($history) as $message) {
+            $role = ($message['role'] ?? '') === 'assistant' ? 'ASSISTANT' : 'USER';
+            $content = preg_replace('/\s+/u', ' ', trim((string)($message['content'] ?? ''))) ?: '';
+            if ($content === '') continue;
+            $line = $role.': '.mb_substr($content, 0, 700);
+            if (mb_strlen(implode("\n", array_reverse($rows))."\n".$line) > $budget) break;
+            $rows[] = $line;
+        }
+
+        if (!$rows) return $question;
+        $historyText = implode("\n", array_reverse($rows));
+
+        return "CONVERSATION_CONTINUITY_ONLY:\n"
+            .$historyText
+            ."\n\nCURRENT_USER_QUESTION:\n"
+            .$question
+            ."\n\nPMD_RULE: Use the prior chat only to understand follow-up references. Re-check PMD tools for restaurant facts, numbers, availability and current state. Older assistant text is never factual authority.";
     }
 
     private function readAuthority(): PmdReadAuthority
@@ -217,7 +384,7 @@ class Pmdintelligence extends AdminController
         ];
     }
 
-    private function aiTools(): array
+    private function aiTools(array &$signals): array
     {
         return [
             'restaurant_identity' => [
@@ -227,8 +394,10 @@ class Pmdintelligence extends AdminController
                     'properties' => (object)[],
                     'additionalProperties' => false,
                 ],
-                'handler' => function () {
-                    return $this->restaurantIdentity();
+                'handler' => function () use (&$signals) {
+                    $result = $this->restaurantIdentity();
+                    $signals[] = ['kind' => 'restaurant_identity'];
+                    return $result;
                 },
             ],
             'owner_kpis' => [
@@ -238,8 +407,10 @@ class Pmdintelligence extends AdminController
                     'properties' => (object)[],
                     'additionalProperties' => false,
                 ],
-                'handler' => function () {
-                    return $this->readAuthority()->ownerKpis();
+                'handler' => function () use (&$signals) {
+                    $result = $this->readAuthority()->ownerKpis();
+                    $signals[] = ['kind' => 'owner_kpis'];
+                    return $result;
                 },
             ],
             'report_snapshot' => [
@@ -264,11 +435,12 @@ class Pmdintelligence extends AdminController
                     'required' => ['report', 'period'],
                     'additionalProperties' => false,
                 ],
-                'handler' => function (array $arguments) {
-                    return $this->readAuthority()->reportSnapshot(
-                        (string)($arguments['report'] ?? ''),
-                        (string)($arguments['period'] ?? 'today')
-                    );
+                'handler' => function (array $arguments) use (&$signals) {
+                    $report = (string)($arguments['report'] ?? '');
+                    $period = (string)($arguments['period'] ?? 'today');
+                    $result = $this->readAuthority()->reportSnapshot($report, $period);
+                    $signals[] = ['kind' => 'report', 'report' => $report, 'period' => $period];
+                    return $result;
                 },
             ],
             'report_range' => [
@@ -296,32 +468,37 @@ class Pmdintelligence extends AdminController
                     'required' => ['report', 'start_date', 'end_date'],
                     'additionalProperties' => false,
                 ],
-                'handler' => function (array $arguments) {
-                    return $this->readAuthority()->reportRange(
-                        (string)($arguments['report'] ?? ''),
-                        (string)($arguments['start_date'] ?? ''),
-                        (string)($arguments['end_date'] ?? '')
-                    );
+                'handler' => function (array $arguments) use (&$signals) {
+                    $report = (string)($arguments['report'] ?? '');
+                    $start = (string)($arguments['start_date'] ?? '');
+                    $end = (string)($arguments['end_date'] ?? '');
+                    $result = $this->readAuthority()->reportRange($report, $start, $end);
+                    $signals[] = ['kind' => 'report', 'report' => $report, 'start_date' => $start, 'end_date' => $end];
+                    return $result;
                 },
             ],
             'order_integrity_range' => [
                 'description' => 'Reconcile orders for an exact past/current date range against item rows, order totals, status history, settlement states, tips and payment methods. Use this when the owner asks whether systems are connected, why totals disagree, what is missing, or whether order data reconciles. This is read-only.',
                 'parameters' => $this->dateRangeParameters(),
-                'handler' => function (array $arguments) {
-                    return $this->readAuthority()->orderIntegrityRange(
+                'handler' => function (array $arguments) use (&$signals) {
+                    $result = $this->readAuthority()->orderIntegrityRange(
                         (string)($arguments['start_date'] ?? ''),
                         (string)($arguments['end_date'] ?? '')
                     );
+                    $signals[] = ['kind' => 'order_integrity'];
+                    return $result;
                 },
             ],
             'workforce_schedule_range' => [
                 'description' => 'Read workforce shift and role counts for an exact date range, including past, today and future schedules. It returns counts only, not employee names. Use it for staffing coverage, planned vs present counts and kitchen shortages.',
                 'parameters' => $this->dateRangeParameters(),
-                'handler' => function (array $arguments) {
-                    return $this->readAuthority()->workforceScheduleRange(
+                'handler' => function (array $arguments) use (&$signals) {
+                    $result = $this->readAuthority()->workforceScheduleRange(
                         (string)($arguments['start_date'] ?? ''),
                         (string)($arguments['end_date'] ?? '')
                     );
+                    $signals[] = ['kind' => 'workforce_schedule'];
+                    return $result;
                 },
             ],
             'kitchen_workforce' => [
@@ -331,12 +508,14 @@ class Pmdintelligence extends AdminController
                     'properties' => (object)[],
                     'additionalProperties' => false,
                 ],
-                'handler' => function () {
+                'handler' => function () use (&$signals) {
                     $locationId = $this->readAuthority()->canonicalLocationId();
                     if (!$locationId) {
                         return ['available' => false, 'reason' => 'No restaurant location'];
                     }
-                    return app(PmdKitchenWorkforceService::class)->snapshot((int)$locationId);
+                    $result = app(PmdKitchenWorkforceService::class)->snapshot((int)$locationId);
+                    $signals[] = ['kind' => 'kitchen_workforce'];
+                    return $result;
                 },
             ],
         ];
@@ -418,7 +597,7 @@ class Pmdintelligence extends AdminController
             || strpos($lower, 'rate limit') !== false
         ) {
             if ($provider === 'gemini') {
-                return 'Gemini free-tier quota is temporarily exhausted. Try again after the quota window resets or use a paid Gemini project.';
+                return 'Gemini quota is temporarily exhausted. Try again after the quota window resets.';
             }
             return 'The AI provider is temporarily rate limited. Try again shortly.';
         }

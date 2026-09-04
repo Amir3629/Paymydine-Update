@@ -4,35 +4,32 @@
     data-pmd-owner-page
     data-pmd-ai-root
     data-endpoint="{{ $pmdAiConfig['endpoint'] }}"
+    data-history-endpoint="{{ $pmdAiConfig['history_endpoint'] }}"
+    data-clear-endpoint="{{ $pmdAiConfig['clear_endpoint'] }}"
 >
-    <header
-        id="pmd-r2-clean-header"
-        class="pmd-owner-header pmd-ai-header"
-        aria-label="PMD Intelligence"
-    >
-        <div class="pmd-owner-header__left">
-            <h1 class="pmd-r2-clean-title">PMD Intelligence</h1>
+    <header id="pmd-r2-clean-header" class="pmd-owner-header pmd-ai-header" aria-label="PMD Intelligence">
+        <div class="pmd-owner-header__left pmd-ai-heading">
+            <div class="pmd-ai-heading-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                    <path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/>
+                    <circle cx="12" cy="12" r="3.5"/>
+                </svg>
+            </div>
+            <div>
+                <h1 class="pmd-r2-clean-title">PMD Intelligence</h1>
+                <p>Your restaurant copilot — grounded in PMD data, read-only by design.</p>
+            </div>
         </div>
 
-        <div class="pmd-owner-header__actions" data-pmd-owner-header-actions>
+        <div class="pmd-owner-header__actions pmd-ai-header-actions" data-pmd-owner-header-actions>
             <span class="pmd-ai-header-state {{ $pmdAiConfig['enabled'] ? 'is-ready' : 'is-off' }}">
                 <span class="pmd-ai-header-dot" aria-hidden="true"></span>
                 {{ $pmdAiConfig['enabled'] ? 'AI on' : 'AI off' }} · Read-only
             </span>
+            <button type="button" class="pmd-ai-clear" data-pmd-ai-clear disabled>Clear chat</button>
             <span class="pmd-owner-notif-slot" data-pmd-owner-notif-slot></span>
         </div>
     </header>
-
-    <section class="pmd-ai-intro" aria-label="PMD Intelligence status">
-        <div>
-            <strong>Ask PMD</strong>
-            <span>Simple answers about sales, orders, reservations, menu and restaurant operations.</span>
-        </div>
-        <div class="pmd-ai-runtime-meta">
-            <span>{{ $pmdAiConfig['provider'] }} · {{ $pmdAiConfig['model'] }}</span>
-            <span>Location {{ $pmdAiConfig['location_id'] ?: 'not selected' }}</span>
-        </div>
-    </section>
 
     @if (!$pmdAiConfig['enabled'])
         <section class="pmd-ai-notice" role="status">
@@ -40,108 +37,66 @@
         </section>
     @endif
 
-    <section class="pmd-ai-grid">
-        <div class="pmd-owner-card pmd-ai-card" data-accent="emerald">
-            <div class="pmd-owner-card__header">
-                <div class="pmd-owner-card__icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24">
-                        <path d="M12 3v3"></path>
-                        <path d="M12 18v3"></path>
-                        <path d="M3 12h3"></path>
-                        <path d="M18 12h3"></path>
-                        <path d="m5.6 5.6 2.1 2.1"></path>
-                        <path d="m16.3 16.3 2.1 2.1"></path>
-                        <path d="m18.4 5.6-2.1 2.1"></path>
-                        <path d="m7.7 16.3-2.1 2.1"></path>
-                        <circle cx="12" cy="12" r="3.5"></circle>
-                    </svg>
-                </div>
-                <div class="pmd-owner-card__title">
-                    <h2>Ask PMD</h2>
-                    <p>Your read-only restaurant assistant</p>
-                </div>
-                <span class="pmd-ai-readonly">Read-only</span>
+    <section class="pmd-ai-workspace" aria-label="Ask PMD chat">
+        <div class="pmd-ai-chat-card">
+            <div class="pmd-ai-chat-meta" aria-label="AI runtime status">
+                <span>{{ $pmdAiConfig['provider'] }} · {{ $pmdAiConfig['model'] }}</span>
+                <span>Location {{ $pmdAiConfig['location_id'] ?: 'not selected' }}</span>
+                <span data-pmd-ai-save-state>Loading saved chat…</span>
             </div>
 
-            <div class="pmd-ai-card-body">
-                <div class="pmd-ai-prompts" aria-label="Suggested questions">
-                    <button type="button" data-pmd-ai-prompt="What should I focus on tonight? Keep it short and tell me only what needs attention.">What should I focus on tonight?</button>
-                    <button type="button" data-pmd-ai-prompt="How are we performing today? Give me the key numbers and the one thing I should watch.">How are we performing today?</button>
-                    <button type="button" data-pmd-ai-prompt="Check live orders and kitchen workforce. Is there anything I should act on now?">Kitchen or live-order risk?</button>
-                    <button type="button" data-pmd-ai-prompt="Review today's reservations and tell me only what deserves attention.">Reservation brief</button>
-                </div>
-
-                <form
-                    action="{{ $pmdAiConfig['endpoint'] }}"
-                    method="post"
-                    data-pmd-ai-form
-                >
-                    @csrf
-                    <label for="pmd-ai-question">Ask about this restaurant</label>
-                    <textarea
-                        id="pmd-ai-question"
-                        name="question"
-                        rows="5"
-                        maxlength="4000"
-                        placeholder="Example: How did we do in August, and what should I notice?"
-                        required
-                    ></textarea>
-
-                    <div class="pmd-ai-actions">
-                        <span data-pmd-ai-state>Checks your restaurant data only.</span>
-                        <button type="submit">Ask PMD</button>
+            <div class="pmd-ai-thread" data-pmd-ai-thread role="log" aria-live="polite" aria-relevant="additions">
+                <div class="pmd-ai-empty" data-pmd-ai-empty>
+                    <div class="pmd-ai-empty-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/>
+                            <circle cx="12" cy="12" r="3.5"/>
+                        </svg>
                     </div>
-                </form>
-            </div>
-        </div>
+                    <h2>What do you want to know?</h2>
+                    <p>Ask naturally. PMD can check sales, orders, reservations, menu performance, staffing and restaurant operations.</p>
 
-        <div class="pmd-owner-card pmd-ai-card pmd-ai-answer-card" data-accent="slate">
-            <div class="pmd-owner-card__header">
-                <div class="pmd-owner-card__icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24">
-                        <path d="M4 5h16"></path>
-                        <path d="M4 10h16"></path>
-                        <path d="M4 15h10"></path>
-                        <path d="M4 20h7"></path>
-                    </svg>
+                    <div class="pmd-ai-prompts" aria-label="Suggested questions">
+                        <button type="button" data-pmd-ai-prompt="What should I focus on tonight? Keep it short and tell me only what needs attention.">What needs attention tonight?</button>
+                        <button type="button" data-pmd-ai-prompt="How are we performing today? Give me the key numbers and the one thing I should watch.">How are we doing today?</button>
+                        <button type="button" data-pmd-ai-prompt="Check live orders and kitchen workforce. Is there anything I should act on now?">Kitchen or live-order risk?</button>
+                        <button type="button" data-pmd-ai-prompt="Review today's reservations and tell me only what deserves attention.">Reservation brief</button>
+                    </div>
                 </div>
-                <div class="pmd-owner-card__title">
-                    <h2>PMD answer</h2>
-                    <p>A simple answer based on your restaurant data</p>
-                </div>
-                <span class="pmd-ai-run" data-pmd-ai-run></span>
+
+                <div class="pmd-ai-messages" data-pmd-ai-messages></div>
+                <div class="pmd-ai-thread-tail" data-pmd-ai-tail aria-hidden="true"></div>
             </div>
 
-            <div class="pmd-ai-card-body">
-                <div class="pmd-ai-answer is-empty" data-pmd-ai-answer>
-                    Ask a question and PMD will show the important numbers and what needs attention.
+            <form action="{{ $pmdAiConfig['endpoint'] }}" method="post" class="pmd-ai-composer" data-pmd-ai-form>
+                @csrf
+                <label class="sr-only" for="pmd-ai-question">Ask PMD about this restaurant</label>
+                <textarea
+                    id="pmd-ai-question"
+                    name="question"
+                    rows="2"
+                    maxlength="4000"
+                    placeholder="Ask PMD about sales, orders, menu, reservations, shifts…"
+                    required
+                ></textarea>
+                <div class="pmd-ai-composer-row">
+                    <span data-pmd-ai-state>Checks your restaurant data only.</span>
+                    <button type="submit">
+                        <span>Ask PMD</span>
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                    </button>
                 </div>
-                <div class="pmd-ai-evidence" data-pmd-ai-evidence hidden></div>
-            </div>
-        </div>
-    </section>
-
-    <section class="pmd-owner-section pmd-ai-boundaries-section">
-        <div class="pmd-owner-card" data-accent="emerald">
-            <div class="pmd-owner-card__header">
-                <div class="pmd-owner-card__icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24">
-                        <path d="M12 3 5 6v5c0 4.6 2.8 8.4 7 10 4.2-1.6 7-5.4 7-10V6l-7-3z"></path>
-                        <path d="m9 12 2 2 4-4"></path>
-                    </svg>
-                </div>
-                <div class="pmd-owner-card__title">
-                    <h2>Safe by design</h2>
-                    <p>PMD Intelligence can read and recommend, but it cannot change restaurant data.</p>
-                </div>
-            </div>
-
-            <div class="pmd-ai-boundaries">
-                <article><strong>Your restaurant only</strong><span>AI stays inside the restaurant and location already selected in PMD.</span></article>
-                <article><strong>PMD data only</strong><span>Answers come through existing PMD reporting and operations data.</span></article>
-                <article><strong>No automatic changes</strong><span>AI cannot change orders, payments, refunds, taxes, menus or staff records.</span></article>
-                <article><strong>You stay in control</strong><span>AI explains what it sees and suggests what you may want to check next.</span></article>
-            </div>
+            </form>
         </div>
     </section>
+
+    <details class="pmd-ai-safety-details">
+        <summary>How PMD Intelligence uses your data</summary>
+        <div class="pmd-ai-safety-grid">
+            <span><strong>Your restaurant only</strong> — current tenant and location scope.</span>
+            <span><strong>PMD authorities</strong> — reports and operations data stay the source of truth.</span>
+            <span><strong>No automatic changes</strong> — AI does not edit orders, payments, menus or staff records.</span>
+            <span><strong>Safe next steps</strong> — buttons only navigate to allowlisted PMD pages; the model never invents URLs.</span>
+        </div>
+    </details>
 </div>
