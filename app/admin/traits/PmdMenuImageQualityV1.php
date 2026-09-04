@@ -18,7 +18,8 @@ namespace Admin\Traits;
  * - conservative QR / monochrome graphic rejection when GD is available
  *
  * Accepted files are re-encoded to WebP (when GD + imagewebp are available),
- * capped to 2200px on the longest edge, and metadata is stripped by re-encode.
+ * normally capped to 2200px on the longest edge, and metadata is stripped.
+ * Extremely wide/tall photos are never downscaled below the 0.9 MP floor.
  */
 trait PmdMenuImageQualityV1
 {
@@ -207,7 +208,10 @@ trait PmdMenuImageQualityV1
             if ($sourceWidth < 1 || $sourceHeight < 1) return false;
 
             $maxEdge = 2200;
-            $scale = min(1, $maxEdge / max($sourceWidth, $sourceHeight));
+            $sourcePixels = max(1, $sourceWidth * $sourceHeight);
+            $edgeScale = min(1, $maxEdge / max($sourceWidth, $sourceHeight));
+            $pixelFloorScale = min(1, sqrt(900000 / $sourcePixels));
+            $scale = min(1, max($edgeScale, $pixelFloorScale));
             $targetWidth = max(1, (int)round($sourceWidth * $scale));
             $targetHeight = max(1, (int)round($sourceHeight * $scale));
 
