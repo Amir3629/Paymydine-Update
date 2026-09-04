@@ -1,0 +1,60 @@
+name: PMD Menu Gallery Options V4
+
+on:
+  push:
+    branches:
+      - feature/menu-gallery-sides-options-20260903
+    paths:
+      - .github/workflows/pmd-menu-gallery-options-v4.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply-and-validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: feature/menu-gallery-sides-options-20260903
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815/package-lock.json
+
+      - name: Apply V4 polish
+        run: python3 scripts/pmd-menu-gallery-options-v4-apply.py
+
+      - name: Admin JavaScript syntax
+        run: node --check app/admin/assets/js/pmd-menu-gallery-options-v1.js
+
+      - name: Install frontend
+        working-directory: frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815
+        run: npm ci
+
+      - name: Frontend typecheck
+        working-directory: frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815
+        run: npm run typecheck
+
+      - name: Production build
+        working-directory: frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815
+        run: npm run build
+
+      - name: Commit validated source changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            app/admin/assets/js/pmd-menu-gallery-options-v1.js \
+            app/admin/assets/css/pmd-menu-gallery-options-v1.css \
+            frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815/src/runtime/components/OptionConfiguratorRuntimeEnhancer.tsx
+          git diff --cached --check
+          git diff --cached --quiet && { echo "No changes to commit"; exit 1; }
+          git commit -m "Menu: fix repeated gallery uploads and polish option UI"
+          git push origin HEAD:feature/menu-gallery-sides-options-20260903
