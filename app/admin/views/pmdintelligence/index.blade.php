@@ -9,6 +9,34 @@
 
 <link rel="stylesheet" type="text/css" href="{{ $pmdAiCssUrl }}" data-pmd-ai-versioned-style>
 
+<style id="pmd-ai-nav-mark-v2">
+/* The old sparkle glyph reads as decoration, not an assistant. On the
+   Intelligence route use a compact, explicit AI monogram in the canonical
+   Side Menu slot without adding a post-paint DOM repair. */
+#pmd-side-menu2 [data-pmd-ai-nav] > svg {
+    display: none !important;
+}
+
+#pmd-side-menu2 [data-pmd-ai-nav]::before {
+    content: 'AI';
+    display: grid;
+    place-items: center;
+    flex: 0 0 24px;
+    width: 24px;
+    min-width: 24px;
+    height: 24px;
+    margin: 0;
+    box-sizing: border-box;
+    border: 1.8px solid currentColor;
+    border-radius: 7px;
+    font-family: Inter, Roboto, Arial, sans-serif;
+    font-size: 8px;
+    line-height: 1;
+    font-weight: 900;
+    letter-spacing: -.35px;
+}
+</style>
+
 <div
     id="pmd-intelligence"
     class="pmd-owner-page pmd-ai-shell"
@@ -20,10 +48,12 @@
 >
     <header id="pmd-r2-clean-header" class="pmd-owner-header pmd-ai-header" aria-label="PMD Intelligence">
         <div class="pmd-owner-header__left pmd-ai-heading">
-            <div class="pmd-ai-heading-icon" aria-hidden="true">
+            <div class="pmd-ai-heading-icon" aria-hidden="true" data-pmd-ai-icon="bot">
                 <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M12 3l1.15 3.65a3 3 0 0 0 1.95 1.95L18.75 9.75l-3.65 1.15a3 3 0 0 0-1.95 1.95L12 16.5l-1.15-3.65a3 3 0 0 0-1.95-1.95L5.25 9.75 8.9 8.6a3 3 0 0 0 1.95-1.95L12 3z"/>
-                    <path d="M18.5 3.5v3M17 5h3M5.5 16.5v4M3.5 18.5h4"/>
+                    <rect x="4" y="7" width="16" height="13" rx="4"/>
+                    <path d="M9 7V5.5a3 3 0 0 1 6 0V7M4 12H2M22 12h-2M9 17h6"/>
+                    <circle cx="9" cy="13" r=".8" fill="currentColor" stroke="none"/>
+                    <circle cx="15" cy="13" r=".8" fill="currentColor" stroke="none"/>
                 </svg>
             </div>
             <div>
@@ -58,10 +88,12 @@
 
             <div class="pmd-ai-thread" data-pmd-ai-thread role="log" aria-live="polite" aria-relevant="additions">
                 <div class="pmd-ai-empty" data-pmd-ai-empty>
-                    <div class="pmd-ai-empty-icon" aria-hidden="true">
+                    <div class="pmd-ai-empty-icon" aria-hidden="true" data-pmd-ai-icon="bot">
                         <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M12 3l1.15 3.65a3 3 0 0 0 1.95 1.95L18.75 9.75l-3.65 1.15a3 3 0 0 0-1.95 1.95L12 16.5l-1.15-3.65a3 3 0 0 0-1.95-1.95L5.25 9.75 8.9 8.6a3 3 0 0 0 1.95-1.95L12 3z"/>
-                            <path d="M18.5 3.5v3M17 5h3M5.5 16.5v4M3.5 18.5h4"/>
+                            <rect x="4" y="7" width="16" height="13" rx="4"/>
+                            <path d="M9 7V5.5a3 3 0 0 1 6 0V7M4 12H2M22 12h-2M9 17h6"/>
+                            <circle cx="9" cy="13" r=".8" fill="currentColor" stroke="none"/>
+                            <circle cx="15" cy="13" r=".8" fill="currentColor" stroke="none"/>
                         </svg>
                     </div>
                     <h2>What do you want to know?</h2>

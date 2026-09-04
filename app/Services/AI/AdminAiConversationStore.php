@@ -16,6 +16,8 @@ use Throwable;
  * - current tenant connection is already selected by the Admin request;
  * - one conversation per authenticated admin user + canonical location + restaurant-local day;
  * - prior days remain stored but are not mixed into today's conversation;
+ * - daily reads use the existing created_at timestamp window and never depend
+ *   on an in-request ALTER TABLE succeeding;
  * - only user/assistant text and run id are stored;
  * - provider payloads, secrets, IP addresses and raw tool payloads are never stored.
  */
@@ -29,15 +31,12 @@ final class AdminAiConversationStore
         $this->assertContext($locationId, $userId);
         $limit = max(1, min(self::MAX_MESSAGES, $limit));
 
-        if (!$this->ensureSchema()) {
+        if (!$this->ensureTable()) {
             return ['storage_ready' => false, 'messages' => []];
         }
 
-        $conversationDate = $this->conversationDate();
-        $rows = DB::table(self::TABLE)
-            ->where('location_id', $locationId)
-            ->where('admin_user_id', $userId)
-            ->where('conversation_date', $conversationDate)
+        $window = $this->conversationWindow();
+        $rows = $this->scopedDayQuery($locationId, $userId, $window)
             ->orderByDesc('id')
             ->limit($limit)
             ->get()
@@ -46,7 +45,8 @@ final class AdminAiConversationStore
 
         return [
             'storage_ready' => true,
-            'conversation_date' => $conversationDate,
+            'storage_mode' => 'created_at_window',
+            'conversation_date' => $window['local_date'],
             'messages' => $rows->map(static function ($row): array {
                 return [
                     'id' => (int)($row->id ?? 0),
@@ -104,26 +104,40 @@ final class AdminAiConversationStore
     ): array {
         $this->assertContext($locationId, $userId);
 
-        if (!$this->ensureSchema()) {
+        if (!$this->ensureTable()) {
             return ['storage_ready' => false, 'persisted' => false];
         }
 
         $question = $this->clip($question, 4000);
         $answer = $this->clip($answer, 12000);
         $runId = trim((string)$runId);
-        $conversationDate = $this->conversationDate();
+        $window = $this->conversationWindow();
+        $hasConversationDate = $this->hasConversationDateColumn();
 
         try {
-            DB::transaction(function () use ($locationId, $userId, $question, $answer, $runId, $conversationDate): void {
-                $now = now();
+            DB::transaction(function () use (
+                $locationId,
+                $userId,
+                $question,
+                $answer,
+                $runId,
+                $window,
+                $hasConversationDate
+            ): void {
+                $now = Carbon::now($window['storage_timezone']);
                 $common = [
                     'location_id' => $locationId,
                     'admin_user_id' => $userId,
-                    'conversation_date' => $conversationDate,
                     'run_id' => $runId !== '' ? mb_substr($runId, 0, 64) : null,
                     'created_at' => $now,
                     'updated_at' => $now,
                 ];
+
+                // Keep the optional rollout column populated when it exists,
+                // but never require it for reads or writes on an older tenant DB.
+                if ($hasConversationDate) {
+                    $common['conversation_date'] = $window['local_date'];
+                }
 
                 DB::table(self::TABLE)->insert(array_merge($common, [
                     'role' => 'user',
@@ -136,10 +150,7 @@ final class AdminAiConversationStore
                 ]));
 
                 // Bound only today's transcript. Previous daily chats remain stored.
-                $staleIds = DB::table(self::TABLE)
-                    ->where('location_id', $locationId)
-                    ->where('admin_user_id', $userId)
-                    ->where('conversation_date', $conversationDate)
+                $staleIds = $this->scopedDayQuery($locationId, $userId, $window)
                     ->orderByDesc('id')
                     ->skip(self::MAX_MESSAGES)
                     ->pluck('id')
@@ -155,7 +166,7 @@ final class AdminAiConversationStore
             logger()->warning('PMD Admin AI chat write failed', [
                 'location_id' => $locationId,
                 'admin_user_id' => $userId,
-                'conversation_date' => $conversationDate,
+                'conversation_date' => $window['local_date'],
                 'error_type' => get_class($error),
             ]);
             return ['storage_ready' => true, 'persisted' => false];
@@ -164,7 +175,7 @@ final class AdminAiConversationStore
         return [
             'storage_ready' => true,
             'persisted' => true,
-            'conversation_date' => $conversationDate,
+            'conversation_date' => $window['local_date'],
         ];
     }
 
@@ -172,58 +183,42 @@ final class AdminAiConversationStore
     public function clear(int $locationId, int $userId): bool
     {
         $this->assertContext($locationId, $userId);
-        if (!$this->ensureSchema()) return false;
+        if (!$this->ensureTable()) return false;
 
-        DB::table(self::TABLE)
-            ->where('location_id', $locationId)
-            ->where('admin_user_id', $userId)
-            ->where('conversation_date', $this->conversationDate())
-            ->delete();
+        $window = $this->conversationWindow();
+        $this->scopedDayQuery($locationId, $userId, $window)->delete();
 
         return true;
     }
 
-    private function ensureSchema(): bool
+    /**
+     * Existing tenants may already have the original chat table. Do not run DDL
+     * during a normal page request just to add a daily-scope column. The table's
+     * created_at timestamp is sufficient and is available on every rollout.
+     */
+    private function ensureTable(): bool
     {
-        try {
-            if (!Schema::hasTable(self::TABLE)) {
-                Schema::create(self::TABLE, function (Blueprint $table): void {
-                    $table->bigIncrements('id');
-                    $table->unsignedBigInteger('location_id');
-                    $table->unsignedBigInteger('admin_user_id');
-                    $table->date('conversation_date');
-                    $table->string('role', 16);
-                    $table->longText('content');
-                    $table->string('run_id', 64)->nullable();
-                    $table->timestamps();
-                    $table->index(['location_id', 'admin_user_id', 'id'], 'pmd_admin_ai_scope_idx');
-                    $table->index(
-                        ['location_id', 'admin_user_id', 'conversation_date', 'id'],
-                        'pmd_admin_ai_day_scope_idx'
-                    );
-                });
-            } elseif (!Schema::hasColumn(self::TABLE, 'conversation_date')) {
-                Schema::table(self::TABLE, function (Blueprint $table): void {
-                    $table->date('conversation_date')->nullable();
-                    $table->index(
-                        ['location_id', 'admin_user_id', 'conversation_date', 'id'],
-                        'pmd_admin_ai_day_scope_idx'
-                    );
-                });
-            }
+        if (Schema::hasTable(self::TABLE)) return true;
 
-            // Preserve pre-daily-rollout rows instead of deleting them. Their
-            // historical SQL date becomes their archive day; all new writes use
-            // the canonical restaurant-local date below.
-            if (Schema::hasColumn(self::TABLE, 'conversation_date')) {
-                DB::table(self::TABLE)
-                    ->whereNull('conversation_date')
-                    ->whereNotNull('created_at')
-                    ->update(['conversation_date' => DB::raw('DATE(created_at)')]);
-            }
+        try {
+            Schema::create(self::TABLE, function (Blueprint $table): void {
+                $table->bigIncrements('id');
+                $table->unsignedBigInteger('location_id');
+                $table->unsignedBigInteger('admin_user_id');
+                $table->date('conversation_date')->nullable();
+                $table->string('role', 16);
+                $table->longText('content');
+                $table->string('run_id', 64)->nullable();
+                $table->timestamps();
+                $table->index(['location_id', 'admin_user_id', 'id'], 'pmd_admin_ai_scope_idx');
+                $table->index(
+                    ['location_id', 'admin_user_id', 'conversation_date', 'id'],
+                    'pmd_admin_ai_day_scope_idx'
+                );
+            });
         } catch (Throwable $error) {
-            if (!Schema::hasTable(self::TABLE) || !Schema::hasColumn(self::TABLE, 'conversation_date')) {
-                logger()->warning('PMD Admin AI chat schema unavailable', [
+            if (!Schema::hasTable(self::TABLE)) {
+                logger()->warning('PMD Admin AI chat table unavailable', [
                     'error_type' => get_class($error),
                     'database' => DB::connection()->getDatabaseName(),
                 ]);
@@ -231,29 +226,63 @@ final class AdminAiConversationStore
             }
         }
 
-        return Schema::hasTable(self::TABLE)
-            && Schema::hasColumn(self::TABLE, 'conversation_date');
+        return Schema::hasTable(self::TABLE);
     }
 
-    private function conversationDate(): string
+    private function hasConversationDateColumn(): bool
     {
-        $timezone = '';
+        try {
+            return Schema::hasColumn(self::TABLE, 'conversation_date');
+        } catch (Throwable $error) {
+            return false;
+        }
+    }
+
+    private function scopedDayQuery(int $locationId, int $userId, array $window)
+    {
+        return DB::table(self::TABLE)
+            ->where('location_id', $locationId)
+            ->where('admin_user_id', $userId)
+            ->where('created_at', '>=', $window['storage_start'])
+            ->where('created_at', '<', $window['storage_end']);
+    }
+
+    private function conversationWindow(): array
+    {
+        $restaurantTimezone = '';
 
         try {
-            $timezone = trim((string)app(PmdReadAuthority::class)->canonicalTimezone());
+            $restaurantTimezone = trim((string)app(PmdReadAuthority::class)->canonicalTimezone());
         } catch (Throwable $error) {
-            $timezone = '';
+            $restaurantTimezone = '';
         }
 
-        if ($timezone === '') {
-            $timezone = trim((string)config('app.timezone', 'UTC')) ?: 'UTC';
+        if ($restaurantTimezone === '') {
+            $restaurantTimezone = trim((string)config('app.timezone', 'UTC')) ?: 'UTC';
         }
 
         try {
-            return Carbon::now($timezone)->toDateString();
+            $localStart = Carbon::now($restaurantTimezone)->startOfDay();
         } catch (Throwable $error) {
-            return Carbon::now('UTC')->toDateString();
+            $restaurantTimezone = 'UTC';
+            $localStart = Carbon::now('UTC')->startOfDay();
         }
+
+        $storageTimezone = trim((string)config('app.timezone', 'UTC')) ?: 'UTC';
+        try {
+            $storageStart = $localStart->copy()->setTimezone($storageTimezone);
+        } catch (Throwable $error) {
+            $storageTimezone = 'UTC';
+            $storageStart = $localStart->copy()->setTimezone('UTC');
+        }
+
+        return [
+            'local_date' => $localStart->toDateString(),
+            'restaurant_timezone' => $restaurantTimezone,
+            'storage_timezone' => $storageTimezone,
+            'storage_start' => $storageStart,
+            'storage_end' => $storageStart->copy()->addDay(),
+        ];
     }
 
     private function assertContext(int $locationId, int $userId): void
