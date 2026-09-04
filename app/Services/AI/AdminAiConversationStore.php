@@ -13,9 +13,10 @@ use Throwable;
  * Tenant-local persistence for the authenticated PMD Intelligence workspace.
  *
  * Scope is deliberately narrow:
- * - current tenant connection is already selected by the Admin request;
+ * - current tenant connection is pinned explicitly instead of trusting a mutable
+ *   global default connection after PMD report/tool calls;
  * - one conversation per authenticated admin user + canonical location + restaurant-local day;
- * - prior days remain stored but are not mixed into today's conversation;
+ * - prior days remain stored and can be surfaced as a compact daily archive;
  * - daily reads use the existing created_at timestamp window and never depend
  *   on an in-request ALTER TABLE succeeding;
  * - only user/assistant text and run id are stored;
@@ -25,6 +26,8 @@ final class AdminAiConversationStore
 {
     private const TABLE = 'pmd_admin_ai_conversations';
     private const MAX_MESSAGES = 300;
+
+    private ?string $resolvedConnectionName = null;
 
     public function history(int $locationId, int $userId, int $limit = 120): array
     {
@@ -45,7 +48,7 @@ final class AdminAiConversationStore
 
         return [
             'storage_ready' => true,
-            'storage_mode' => 'created_at_window',
+            'storage_mode' => 'tenant_pinned_created_at_window',
             'conversation_date' => $window['local_date'],
             'messages' => $rows->map(static function ($row): array {
                 return [
@@ -56,6 +59,92 @@ final class AdminAiConversationStore
                     'created_at' => isset($row->created_at) ? (string)$row->created_at : null,
                 ];
             })->all(),
+        ];
+    }
+
+    /**
+     * Return recent restaurant-local daily conversations for a compact archive.
+     * This is display history only. Current model continuity still uses today only.
+     */
+    public function archive(
+        int $locationId,
+        int $userId,
+        int $dayLimit = 7,
+        int $messagesPerDay = 80
+    ): array {
+        $this->assertContext($locationId, $userId);
+        $dayLimit = max(1, min(14, $dayLimit));
+        $messagesPerDay = max(2, min(self::MAX_MESSAGES, $messagesPerDay));
+
+        if (!$this->ensureTable()) {
+            return ['storage_ready' => false, 'days' => []];
+        }
+
+        $window = $this->conversationWindow();
+        $since = Carbon::now($window['storage_timezone'])->subDays($dayLimit + 2)->startOfDay();
+        $rowLimit = min(3000, $dayLimit * $messagesPerDay * 2);
+
+        $rows = $this->db()->table(self::TABLE)
+            ->where('location_id', $locationId)
+            ->where('admin_user_id', $userId)
+            ->where('created_at', '>=', $since)
+            ->orderByDesc('id')
+            ->limit($rowLimit)
+            ->get()
+            ->reverse()
+            ->values();
+
+        $groups = [];
+        foreach ($rows as $row) {
+            $date = $this->localDateForStoredTimestamp($row->created_at ?? null, $window);
+            if ($date === null) continue;
+
+            if (!isset($groups[$date])) {
+                $groups[$date] = [];
+            }
+
+            if (count($groups[$date]) >= $messagesPerDay) continue;
+
+            $groups[$date][] = [
+                'id' => (int)($row->id ?? 0),
+                'role' => (string)($row->role ?? ''),
+                'content' => (string)($row->content ?? ''),
+                'run_id' => $row->run_id ? (string)$row->run_id : null,
+                'created_at' => isset($row->created_at) ? (string)$row->created_at : null,
+            ];
+        }
+
+        krsort($groups);
+        $days = [];
+        foreach ($groups as $date => $messages) {
+            if (!$messages) continue;
+
+            $preview = '';
+            foreach ($messages as $message) {
+                if (($message['role'] ?? '') !== 'user') continue;
+                $preview = preg_replace('/\s+/u', ' ', trim((string)($message['content'] ?? ''))) ?: '';
+                if ($preview !== '') break;
+            }
+            if ($preview === '') {
+                $preview = preg_replace('/\s+/u', ' ', trim((string)($messages[0]['content'] ?? ''))) ?: '';
+            }
+
+            $days[] = [
+                'date' => $date,
+                'is_today' => $date === $window['local_date'],
+                'message_count' => count($messages),
+                'preview' => $this->clip($preview, 120),
+                'messages' => $messages,
+            ];
+
+            if (count($days) >= $dayLimit) break;
+        }
+
+        return [
+            'storage_ready' => true,
+            'storage_mode' => 'tenant_pinned_created_at_window',
+            'conversation_date' => $window['local_date'],
+            'days' => $days,
         ];
     }
 
@@ -113,9 +202,10 @@ final class AdminAiConversationStore
         $runId = trim((string)$runId);
         $window = $this->conversationWindow();
         $hasConversationDate = $this->hasConversationDateColumn();
+        $connectionName = $this->connectionName();
 
         try {
-            DB::transaction(function () use (
+            $this->db()->transaction(function () use (
                 $locationId,
                 $userId,
                 $question,
@@ -139,12 +229,12 @@ final class AdminAiConversationStore
                     $common['conversation_date'] = $window['local_date'];
                 }
 
-                DB::table(self::TABLE)->insert(array_merge($common, [
+                $this->db()->table(self::TABLE)->insert(array_merge($common, [
                     'role' => 'user',
                     'content' => $question,
                 ]));
 
-                DB::table(self::TABLE)->insert(array_merge($common, [
+                $this->db()->table(self::TABLE)->insert(array_merge($common, [
                     'role' => 'assistant',
                     'content' => $answer,
                 ]));
@@ -159,7 +249,7 @@ final class AdminAiConversationStore
                     ->all();
 
                 if ($staleIds) {
-                    DB::table(self::TABLE)->whereIn('id', $staleIds)->delete();
+                    $this->db()->table(self::TABLE)->whereIn('id', $staleIds)->delete();
                 }
             });
         } catch (Throwable $error) {
@@ -167,6 +257,8 @@ final class AdminAiConversationStore
                 'location_id' => $locationId,
                 'admin_user_id' => $userId,
                 'conversation_date' => $window['local_date'],
+                'connection' => $connectionName,
+                'database' => $this->databaseName(),
                 'error_type' => get_class($error),
             ]);
             return ['storage_ready' => true, 'persisted' => false];
@@ -198,10 +290,11 @@ final class AdminAiConversationStore
      */
     private function ensureTable(): bool
     {
-        if (Schema::hasTable(self::TABLE)) return true;
+        $schema = $this->schema();
+        if ($schema->hasTable(self::TABLE)) return true;
 
         try {
-            Schema::create(self::TABLE, function (Blueprint $table): void {
+            $schema->create(self::TABLE, function (Blueprint $table): void {
                 $table->bigIncrements('id');
                 $table->unsignedBigInteger('location_id');
                 $table->unsignedBigInteger('admin_user_id');
@@ -217,22 +310,23 @@ final class AdminAiConversationStore
                 );
             });
         } catch (Throwable $error) {
-            if (!Schema::hasTable(self::TABLE)) {
+            if (!$schema->hasTable(self::TABLE)) {
                 logger()->warning('PMD Admin AI chat table unavailable', [
                     'error_type' => get_class($error),
-                    'database' => DB::connection()->getDatabaseName(),
+                    'connection' => $this->connectionName(),
+                    'database' => $this->databaseName(),
                 ]);
                 return false;
             }
         }
 
-        return Schema::hasTable(self::TABLE);
+        return $schema->hasTable(self::TABLE);
     }
 
     private function hasConversationDateColumn(): bool
     {
         try {
-            return Schema::hasColumn(self::TABLE, 'conversation_date');
+            return $this->schema()->hasColumn(self::TABLE, 'conversation_date');
         } catch (Throwable $error) {
             return false;
         }
@@ -240,7 +334,7 @@ final class AdminAiConversationStore
 
     private function scopedDayQuery(int $locationId, int $userId, array $window)
     {
-        return DB::table(self::TABLE)
+        return $this->db()->table(self::TABLE)
             ->where('location_id', $locationId)
             ->where('admin_user_id', $userId)
             ->where('created_at', '>=', $window['storage_start'])
@@ -283,6 +377,63 @@ final class AdminAiConversationStore
             'storage_start' => $storageStart,
             'storage_end' => $storageStart->copy()->addDay(),
         ];
+    }
+
+    private function localDateForStoredTimestamp($value, array $window): ?string
+    {
+        if ($value === null || trim((string)$value) === '') return null;
+
+        try {
+            return Carbon::parse((string)$value, $window['storage_timezone'])
+                ->setTimezone($window['restaurant_timezone'])
+                ->toDateString();
+        } catch (Throwable $error) {
+            return null;
+        }
+    }
+
+    /**
+     * PMD AI tools are allowed to call existing report authorities. Some legacy
+     * authorities can mutate Laravel's global default connection while they run.
+     * Chat persistence must therefore re-pin itself to the tenant connection.
+     */
+    private function connectionName(): string
+    {
+        if ($this->resolvedConnectionName !== null) {
+            return $this->resolvedConnectionName;
+        }
+
+        $default = trim((string)DB::getDefaultConnection());
+        $tenantDatabase = trim((string)config('database.connections.tenant.database', ''));
+
+        if ($tenantDatabase !== '' && (app()->bound('tenant') || $default === 'tenant')) {
+            return $this->resolvedConnectionName = 'tenant';
+        }
+
+        if ($default !== '') {
+            return $this->resolvedConnectionName = $default;
+        }
+
+        return $this->resolvedConnectionName = (trim((string)config('database.default', 'mysql')) ?: 'mysql');
+    }
+
+    private function db()
+    {
+        return DB::connection($this->connectionName());
+    }
+
+    private function schema()
+    {
+        return Schema::connection($this->connectionName());
+    }
+
+    private function databaseName(): ?string
+    {
+        try {
+            return (string)$this->db()->getDatabaseName();
+        } catch (Throwable $error) {
+            return null;
+        }
     }
 
     private function assertContext(int $locationId, int $userId): void
