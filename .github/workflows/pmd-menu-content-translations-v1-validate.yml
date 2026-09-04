@@ -1,0 +1,61 @@
+name: PMD Menu Content Translations V1 Validate
+
+on:
+  push:
+    branches:
+      - feature/menu-gallery-sides-options-20260903
+    paths:
+      - app/admin/assets/js/pmd-menu-content-translations-v1.js
+      - app/admin/assets/css/pmd-menu-content-translations-v1.css
+      - app/admin/traits/PmdMenuContentTranslationsV1.php
+      - app/admin/traits/PmdMenuGalleryOptionsV1.php
+      - app/admin/views/_meta/assets.json
+      - app/main/routes/pmd-menu-content-translations-v1.php
+      - app/main/routes/main-app-before.php
+      - frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815/src/server/menu-content-translations.ts
+      - frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815/src/server/bootstrap.ts
+      - frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815/src/runtime/menu-option-content-i18n.ts
+      - frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815/src/runtime/components/MenuGalleryRuntimeOverlaysV1.tsx
+      - .github/workflows/pmd-menu-content-translations-v1-validate.yml
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/menu-gallery-sides-options-20260903
+
+      - name: PHP syntax
+        run: |
+          php -l app/admin/traits/PmdMenuContentTranslationsV1.php
+          php -l app/admin/traits/PmdMenuGalleryOptionsV1.php
+          php -l app/main/routes/pmd-menu-content-translations-v1.php
+          php -l app/main/routes/main-app-before.php
+
+      - name: Admin assets
+        run: |
+          node --check app/admin/assets/js/pmd-menu-content-translations-v1.js
+          python3 -m json.tool app/admin/views/_meta/assets.json >/dev/null
+          grep -q 'pmd-menu-content-translations-v1' app/admin/views/_meta/assets.json
+          grep -q 'pmd-menu-content-v1' app/admin/traits/PmdMenuContentTranslationsV1.php
+          grep -q 'menu-content-translations' app/main/routes/pmd-menu-content-translations-v1.php
+          grep -q 'api.mymemory.translated.net' app/admin/assets/js/pmd-menu-content-translations-v1.js
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815/package-lock.json
+
+      - name: Frontend install
+        working-directory: frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815
+        run: npm ci
+
+      - name: Frontend typecheck
+        working-directory: frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815
+        run: npm run typecheck
+
+      - name: Frontend build
+        working-directory: frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815
+        run: npm run build
