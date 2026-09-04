@@ -236,10 +236,14 @@ trait PmdMenuImageQualityV1
                 return false;
             }
 
-            if (!@rename($temporary, $path)) {
+            // Keep the original PHP upload pathname/inode in place so
+            // UploadedFile::move() continues to treat it as the same upload.
+            $bytes = @file_get_contents($temporary);
+            if ($bytes === false || @file_put_contents($path, $bytes, LOCK_EX) === false) {
                 @unlink($temporary);
                 return false;
             }
+            @unlink($temporary);
 
             return true;
         } catch (\Throwable $e) {
