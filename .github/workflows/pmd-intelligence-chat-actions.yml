@@ -66,5 +66,5 @@ jobs:
         run: npm run typecheck:offline
       - name: Theme isolation audit
         run: npm run theme:audit
-      - name: Source safety audit
-        run: npm run source:audit
+      - name: Intelligence delta source safety
+        run: node scripts/pmd-intelligence-delta-source-audit.mjs
