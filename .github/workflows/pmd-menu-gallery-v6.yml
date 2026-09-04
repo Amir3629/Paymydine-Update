@@ -22,7 +22,19 @@ jobs:
           fetch-depth: 0
 
       - name: Apply V6 patch
-        run: python3 scripts/pmd-menu-gallery-v6-apply.py
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('scripts/pmd-menu-gallery-v6-apply.py')
+          source = path.read_text()
+          old = "updated, count = re.subn(pattern, replacement, text, count=1, flags=re.S)"
+          new = "updated, count = re.subn(pattern, lambda _match: replacement, text, count=1, flags=re.S)"
+          if source.count(old) != 1:
+              raise SystemExit('V6 patch runner shim did not find expected sub_once implementation')
+          source = source.replace(old, new, 1)
+          scope = {'__file__': str(path), '__name__': '__main__'}
+          exec(compile(source, str(path), 'exec'), scope)
+          PY
 
       - name: Validate Admin JavaScript syntax
         run: node --check app/admin/assets/js/pmd-menu-gallery-options-v6.js
