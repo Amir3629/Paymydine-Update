@@ -5,35 +5,178 @@
     $pmdAiJsVersion = is_file($pmdAiJsPath) ? (string)filemtime($pmdAiJsPath) : '20260904-hotfix';
     $pmdAiCssUrl = asset('app/admin/assets/css/pmd-intelligence-v1.css').'?v='.$pmdAiCssVersion;
     $pmdAiJsUrl = asset('app/admin/assets/js/pmd-intelligence-v1.js').'?v='.$pmdAiJsVersion;
+
+    $pmdAiArchiveDays = [];
+    try {
+        $pmdAiArchiveUser = \Admin\Facades\AdminAuth::getUser();
+        if ($pmdAiArchiveUser && !empty($pmdAiConfig['location_id'])) {
+            $pmdAiArchive = app(\App\Services\AI\AdminAiConversationStore::class)->archive(
+                (int)$pmdAiConfig['location_id'],
+                (int)$pmdAiArchiveUser->getKey(),
+                14,
+                80
+            );
+            $pmdAiArchiveDays = array_values(array_filter(
+                (array)($pmdAiArchive['days'] ?? []),
+                static fn ($day) => is_array($day)
+                    && empty($day['is_today'])
+                    && !empty($day['messages'])
+            ));
+        }
+    } catch (\Throwable $pmdAiArchiveError) {
+        $pmdAiArchiveDays = [];
+    }
 @endphp
 
 <link rel="stylesheet" type="text/css" href="{{ $pmdAiCssUrl }}" data-pmd-ai-versioned-style>
 
-<style id="pmd-ai-nav-mark-v2">
-/* The old sparkle glyph reads as decoration, not an assistant. On the
-   Intelligence route use a compact, explicit AI monogram in the canonical
-   Side Menu slot without adding a post-paint DOM repair. */
-#pmd-side-menu2 [data-pmd-ai-nav] > svg {
+<style id="pmd-ai-nav-mark-v3">
+/* Keep the canonical Side Menu item, but make its glyph one simple bot mark.
+   No AI mini-card, no sparkles, no DOM repair layer. */
+#pmd-side-menu2 [data-pmd-ai-nav]::before,
+#pmd-side-menu2 [data-pmd-ai-nav]::after {
+    content: none !important;
     display: none !important;
 }
 
-#pmd-side-menu2 [data-pmd-ai-nav]::before {
-    content: 'AI';
-    display: grid;
-    place-items: center;
-    flex: 0 0 24px;
-    width: 24px;
-    min-width: 24px;
-    height: 24px;
-    margin: 0;
-    box-sizing: border-box;
-    border: 1.8px solid currentColor;
-    border-radius: 7px;
-    font-family: Inter, Roboto, Arial, sans-serif;
-    font-size: 8px;
-    line-height: 1;
-    font-weight: 900;
-    letter-spacing: -.35px;
+#pmd-side-menu2 [data-pmd-ai-nav] > svg {
+    display: block !important;
+    flex: 0 0 24px !important;
+    width: 24px !important;
+    min-width: 24px !important;
+    height: 24px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: currentColor !important;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='10' width='18' height='11' rx='3'/%3E%3Cpath d='M12 10V6'/%3E%3Ccircle cx='12' cy='4' r='2'/%3E%3Cpath d='M8 15h.01M16 15h.01M8.5 18h7'/%3E%3C/svg%3E") center / 24px 24px no-repeat !important;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='10' width='18' height='11' rx='3'/%3E%3Cpath d='M12 10V6'/%3E%3Ccircle cx='12' cy='4' r='2'/%3E%3Cpath d='M8 15h.01M16 15h.01M8.5 18h7'/%3E%3C/svg%3E") center / 24px 24px no-repeat !important;
+}
+
+#pmd-side-menu2 [data-pmd-ai-nav] > svg * {
+    display: none !important;
+}
+
+.pmd-ai-saved-days {
+    position: relative;
+    margin-left: auto;
+}
+
+.pmd-ai-saved-days > summary {
+    list-style: none;
+    cursor: pointer;
+    white-space: nowrap;
+    border: 1px solid #d5e5df;
+    border-radius: 999px;
+    padding: 7px 11px;
+    background: #fff;
+    color: #34534c;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.pmd-ai-saved-days > summary::-webkit-details-marker { display: none; }
+
+.pmd-ai-saved-days[open] > summary {
+    background: #eff9f5;
+    border-color: #a9d7c8;
+}
+
+.pmd-ai-saved-days__panel {
+    position: absolute;
+    z-index: 40;
+    top: calc(100% + 8px);
+    right: 0;
+    width: min(520px, 78vw);
+    max-height: 62vh;
+    overflow: auto;
+    padding: 8px;
+    border: 1px solid #d9e6e1;
+    border-radius: 16px;
+    background: #fff;
+    box-shadow: 0 18px 44px rgba(10, 45, 37, .14);
+}
+
+.pmd-ai-saved-day {
+    border: 1px solid #e3ece8;
+    border-radius: 12px;
+    background: #fbfdfc;
+}
+
+.pmd-ai-saved-day + .pmd-ai-saved-day { margin-top: 7px; }
+
+.pmd-ai-saved-day > summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 10px 12px;
+}
+
+.pmd-ai-saved-day > summary::-webkit-details-marker { display: none; }
+
+.pmd-ai-saved-day__top {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    color: #173c34;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.pmd-ai-saved-day__count {
+    margin-left: auto;
+    color: #718780;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.pmd-ai-saved-day__preview {
+    display: block;
+    margin-top: 5px;
+    overflow: hidden;
+    color: #72827d;
+    font-size: 11px;
+    line-height: 1.4;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.pmd-ai-saved-day__thread {
+    padding: 0 10px 10px;
+}
+
+.pmd-ai-saved-message {
+    max-width: 92%;
+    margin-top: 7px;
+    padding: 9px 11px;
+    border: 1px solid #dfe9e5;
+    border-radius: 12px;
+    background: #fff;
+    color: #243934;
+    font-size: 12px;
+    line-height: 1.45;
+    white-space: pre-wrap;
+}
+
+.pmd-ai-saved-message.is-user {
+    margin-left: auto;
+    border-color: #0a7b60;
+    background: #0a7b60;
+    color: #fff;
+}
+
+.pmd-ai-saved-message.is-assistant { margin-right: auto; }
+
+@media (max-width: 720px) {
+    .pmd-ai-saved-days { margin-left: 0; }
+    .pmd-ai-saved-days__panel {
+        position: fixed;
+        left: 12px;
+        right: 12px;
+        top: 92px;
+        width: auto;
+        max-height: calc(100dvh - 112px);
+    }
 }
 </style>
 
@@ -84,6 +227,33 @@
                 <span>{{ $pmdAiConfig['provider'] }} · {{ $pmdAiConfig['model'] }}</span>
                 <span>Location {{ $pmdAiConfig['location_id'] ?: 'not selected' }}</span>
                 <span data-pmd-ai-save-state>Loading today’s chat…</span>
+
+                @if(count($pmdAiArchiveDays))
+                    <details class="pmd-ai-saved-days">
+                        <summary>Saved chats · {{ count($pmdAiArchiveDays) }}</summary>
+                        <div class="pmd-ai-saved-days__panel" aria-label="Previous daily PMD chats">
+                            @foreach($pmdAiArchiveDays as $day)
+                                <details class="pmd-ai-saved-day">
+                                    <summary>
+                                        <span class="pmd-ai-saved-day__top">
+                                            <time datetime="{{ $day['date'] }}">{{ $day['date'] }}</time>
+                                            <span class="pmd-ai-saved-day__count">{{ (int)$day['message_count'] }} messages</span>
+                                        </span>
+                                        @if(!empty($day['preview']))
+                                            <span class="pmd-ai-saved-day__preview">{{ $day['preview'] }}</span>
+                                        @endif
+                                    </summary>
+                                    <div class="pmd-ai-saved-day__thread">
+                                        @foreach((array)$day['messages'] as $message)
+                                            @php($pmdSavedRole = ($message['role'] ?? '') === 'assistant' ? 'assistant' : 'user')
+                                            <div class="pmd-ai-saved-message is-{{ $pmdSavedRole }}">{{ $message['content'] ?? '' }}</div>
+                                        @endforeach
+                                    </div>
+                                </details>
+                            @endforeach
+                        </div>
+                    </details>
+                @endif
             </div>
 
             <div class="pmd-ai-thread" data-pmd-ai-thread role="log" aria-live="polite" aria-relevant="additions">
