@@ -39,15 +39,21 @@ trait PmdMenuGalleryOptionsV1
             $path = trim((string)$path);
             return $path === '' ? '' : basename(str_replace('\\', '/', $path));
         }, (array)$request->input('remove_images', [])))));
+        $coverRequest = trim((string)$request->input('pmd_menu_gallery_cover', ''));
 
-        if (!$incoming && !$remove) return;
+        if (!$incoming && !$remove && $coverRequest === '') return;
         if (!$schema->hasTable('menu_images')) throw new \RuntimeException('Menu image storage is unavailable for this restaurant.');
         if (count($incoming) > 8 || count($remove) > 8) throw new \RuntimeException('A food can have up to 8 images.');
 
-        $existingRows = $connection->table('menu_images')->where('menu_id', $menuId)->get(['image_path']);
+        $existingQuery = $connection->table('menu_images')->where('menu_id', $menuId);
+        if ($schema->hasColumn('menu_images', 'sort_order')) {
+            $existingQuery->orderBy('sort_order');
+        }
+        $existingRows = $existingQuery->get(['image_path']);
         $existing = $existingRows->pluck('image_path')->map(static function ($path) {
             return trim((string)$path);
         })->filter()->values()->all();
+
         $removeActual = [];
         foreach ($existing as $path) {
             if (in_array(basename(str_replace('\\', '/', $path)), $remove, true)) $removeActual[] = $path;
@@ -67,26 +73,74 @@ trait PmdMenuGalleryOptionsV1
         if ($removeActual) {
             $connection->table('menu_images')->where('menu_id', $menuId)->whereIn('image_path', $removeActual)->delete();
         }
-        if (!$incoming) return;
 
-        $directory = base_path('assets/media/uploads');
-        if (!is_dir($directory) && !@mkdir($directory, 0755, true) && !is_dir($directory)) {
-            throw new \RuntimeException('Unable to create the menu image directory.');
+        $newPaths = [];
+        if ($incoming) {
+            $directory = base_path('assets/media/uploads');
+            if (!is_dir($directory) && !@mkdir($directory, 0755, true) && !is_dir($directory)) {
+                throw new \RuntimeException('Unable to create the menu image directory.');
+            }
+            if ($schema->hasColumn('menu_images', 'sort_order')) {
+                $connection->table('menu_images')->where('menu_id', $menuId)->increment('sort_order', count($incoming));
+            }
+
+            $extensions = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
+            foreach ($incoming as $index => $file) {
+                $mime = strtolower((string)$file->getMimeType());
+                $filename = 'pmdmenu_'.date('Ymd_His').'_'.bin2hex(random_bytes(6)).'.'.$extensions[$mime];
+                $file->move($directory, $filename);
+                $newPaths[] = $filename;
+                $row = ['menu_id' => $menuId, 'image_path' => $filename];
+                if ($schema->hasColumn('menu_images', 'sort_order')) $row['sort_order'] = $index + 1;
+                if ($schema->hasColumn('menu_images', 'created_at')) $row['created_at'] = now();
+                if ($schema->hasColumn('menu_images', 'updated_at')) $row['updated_at'] = now();
+                $connection->table('menu_images')->insert($row);
+            }
         }
+
+        // PMD_MENU_GALLERY_COVER_V6
+        // The public menu already treats the lowest sort_order as the first/cover
+        // image. Reorder that canonical list instead of adding a second cover field.
         if ($schema->hasColumn('menu_images', 'sort_order')) {
-            $connection->table('menu_images')->where('menu_id', $menuId)->increment('sort_order', count($incoming));
-        }
+            $paths = $connection->table('menu_images')
+                ->where('menu_id', $menuId)
+                ->orderBy('sort_order')
+                ->get(['image_path'])
+                ->pluck('image_path')
+                ->map(static function ($path) { return trim((string)$path); })
+                ->filter()
+                ->values()
+                ->all();
 
-        $extensions = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
-        foreach ($incoming as $index => $file) {
-            $mime = strtolower((string)$file->getMimeType());
-            $filename = 'pmdmenu_'.date('Ymd_His').'_'.bin2hex(random_bytes(6)).'.'.$extensions[$mime];
-            $file->move($directory, $filename);
-            $row = ['menu_id' => $menuId, 'image_path' => $filename];
-            if ($schema->hasColumn('menu_images', 'sort_order')) $row['sort_order'] = $index + 1;
-            if ($schema->hasColumn('menu_images', 'created_at')) $row['created_at'] = now();
-            if ($schema->hasColumn('menu_images', 'updated_at')) $row['updated_at'] = now();
-            $connection->table('menu_images')->insert($row);
+            $coverPath = null;
+            if (strpos($coverRequest, 'saved:') === 0) {
+                $requestedBase = basename(str_replace('\\', '/', substr($coverRequest, 6)));
+                foreach ($paths as $path) {
+                    if (basename(str_replace('\\', '/', $path)) === $requestedBase) {
+                        $coverPath = $path;
+                        break;
+                    }
+                }
+            } elseif (preg_match('/^new:(\d+)$/', $coverRequest, $matches)) {
+                $newIndex = (int)$matches[1];
+                if (array_key_exists($newIndex, $newPaths)) $coverPath = $newPaths[$newIndex];
+            }
+
+            if ($coverPath === null && $paths) $coverPath = $paths[0];
+            if ($coverPath !== null) {
+                $ordered = array_values(array_unique(array_merge(
+                    [$coverPath],
+                    array_values(array_filter($paths, static function ($path) use ($coverPath) {
+                        return $path !== $coverPath;
+                    }))
+                )));
+                foreach ($ordered as $position => $path) {
+                    $connection->table('menu_images')
+                        ->where('menu_id', $menuId)
+                        ->where('image_path', $path)
+                        ->update(['sort_order' => $position + 1]);
+                }
+            }
         }
     }
 
