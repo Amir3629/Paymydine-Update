@@ -1,8 +1,21 @@
+@php
+    $pmdAiCssPath = base_path('app/admin/assets/css/pmd-intelligence-v1.css');
+    $pmdAiJsPath = base_path('app/admin/assets/js/pmd-intelligence-v1.js');
+    $pmdAiCssVersion = is_file($pmdAiCssPath) ? (string)filemtime($pmdAiCssPath) : '20260904-hotfix';
+    $pmdAiJsVersion = is_file($pmdAiJsPath) ? (string)filemtime($pmdAiJsPath) : '20260904-hotfix';
+    $pmdAiCssUrl = asset('app/admin/assets/css/pmd-intelligence-v1.css').'?v='.$pmdAiCssVersion;
+    $pmdAiJsUrl = asset('app/admin/assets/js/pmd-intelligence-v1.js').'?v='.$pmdAiJsVersion;
+@endphp
+
+@push('styles')
+<link rel="stylesheet" type="text/css" href="{{ $pmdAiCssUrl }}" data-pmd-ai-versioned-style>
+@endpush
+
 <div
     id="pmd-intelligence"
     class="pmd-owner-page pmd-ai-shell"
     data-pmd-owner-page
-    data-pmd-ai-root
+    data-pmd-ai-chat-root
     data-endpoint="{{ $pmdAiConfig['endpoint'] }}"
     data-history-endpoint="{{ $pmdAiConfig['history_endpoint'] }}"
     data-clear-endpoint="{{ $pmdAiConfig['clear_endpoint'] }}"
@@ -100,3 +113,24 @@
         </div>
     </details>
 </div>
+
+@push('scripts')
+<script>
+(function () {
+    'use strict';
+    var root = document.querySelector('[data-pmd-ai-chat-root]');
+    if (!root) return;
+
+    // The controller still registers the historical unversioned asset. Keep the
+    // new root invisible to that cached runtime, then expose the canonical hook
+    // only immediately before loading the mtime-versioned runtime below.
+    root.setAttribute('data-pmd-ai-root', '');
+
+    var script = document.createElement('script');
+    script.src = @json($pmdAiJsUrl);
+    script.async = false;
+    script.setAttribute('data-pmd-ai-versioned-runtime', '');
+    document.body.appendChild(script);
+})();
+</script>
+@endpush
