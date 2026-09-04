@@ -40,13 +40,14 @@ type GalleryImageState = {
   panStart: number
 }
 
-const AUTO_ADVANCE_MS = 4800
-const SLIDE_MS = 620
-const PAN_MS = 4300
+const AUTO_ADVANCE_MS = 5000
+const SLIDE_MS = 920
+const PAN_MS = 4400
 
-// PMD_MENU_GALLERY_SMOOTH_V7
+// PMD_MENU_GALLERY_SMOOTH_V8
 // Multi-image food gallery that keeps the proven ItemDialog underneath intact.
-// - smooth automatic advance every few seconds
+// - seamless circular track: last -> first never races backwards across the gallery
+// - slower, softer automatic advance every few seconds
 // - direct finger swipe (no arrow controls)
 // - restores the original smart side-pan feel on every active gallery image
 // - respects prefers-reduced-motion
@@ -54,7 +55,13 @@ export function FoodGalleryRuntimeEnhancer() {
   const runtime = useMenuRuntime()
   const item = runtime.selectedItem as any
   const images = useMemo(() => uniqueImages(item), [item])
+  const slides = useMemo(() => {
+    if (images.length < 2) return images
+    return [images[images.length - 1], ...images, images[0]]
+  }, [images])
   const [index, setIndex] = useState(0)
+  const [trackIndex, setTrackIndex] = useState(1)
+  const [trackTransition, setTrackTransition] = useState(true)
   const [target, setTarget] = useState<GalleryTarget | null>(null)
   const [dragX, setDragX] = useState(0)
   const [dragging, setDragging] = useState(false)
@@ -62,13 +69,22 @@ export function FoodGalleryRuntimeEnhancer() {
   const [reducedMotion, setReducedMotion] = useState(false)
   const [imageState, setImageState] = useState<Record<string, GalleryImageState>>({})
   const touchStart = useRef<TouchPoint | null>(null)
+  const resetRaf = useRef<number | null>(null)
 
   useEffect(() => {
     setIndex(0)
+    setTrackIndex(1)
+    setTrackTransition(true)
     setDragX(0)
     setDragging(false)
     touchStart.current = null
   }, [item?.id])
+
+  useEffect(() => {
+    return () => {
+      if (resetRaf.current != null) window.cancelAnimationFrame(resetRaf.current)
+    }
+  }, [])
 
   useEffect(() => {
     const media = window.matchMedia('(prefers-reduced-motion: reduce)')
@@ -136,7 +152,9 @@ export function FoodGalleryRuntimeEnhancer() {
   useEffect(() => {
     if (!target || images.length < 2 || dragging || reducedMotion || document.visibilityState !== 'visible') return
     const timer = window.setTimeout(() => {
+      setTrackTransition(true)
       setDragX(0)
+      setTrackIndex((current) => current + 1)
       setIndex((current) => (current + 1) % images.length)
     }, AUTO_ADVANCE_MS)
     return () => window.clearTimeout(timer)
@@ -145,7 +163,9 @@ export function FoodGalleryRuntimeEnhancer() {
   if (!target || images.length < 2) return null
 
   const move = (delta: number) => {
+    setTrackTransition(true)
     setDragX(0)
+    setTrackIndex((current) => current + delta)
     setIndex((current) => (current + delta + images.length) % images.length)
     setInteractionTick((value) => value + 1)
   }
@@ -171,11 +191,31 @@ export function FoodGalleryRuntimeEnhancer() {
     }
   }
 
-  const trackOffset = (-index * target.width) + dragX
+  const finishTrackTransition = () => {
+    const lastRealTrackIndex = images.length
+    let resetTo: number | null = null
+
+    if (trackIndex === 0) resetTo = lastRealTrackIndex
+    if (trackIndex === images.length + 1) resetTo = 1
+    if (resetTo == null) return
+
+    setTrackTransition(false)
+    setTrackIndex(resetTo)
+
+    if (resetRaf.current != null) window.cancelAnimationFrame(resetRaf.current)
+    resetRaf.current = window.requestAnimationFrame(() => {
+      resetRaf.current = window.requestAnimationFrame(() => {
+        setTrackTransition(true)
+        resetRaf.current = null
+      })
+    })
+  }
+
+  const trackOffset = (-trackIndex * target.width) + dragX
 
   return createPortal(
     <div
-      data-pmd-food-gallery="v7"
+      data-pmd-food-gallery="v8"
       onTouchStart={(event) => {
         const touch = event.changedTouches[0]
         if (!touch) return
@@ -211,27 +251,37 @@ export function FoodGalleryRuntimeEnhancer() {
     >
       <div
         data-pmd-food-gallery-track
+        onTransitionEnd={(event) => {
+          if (event.target !== event.currentTarget || event.propertyName !== 'transform') return
+          finishTrackTransition()
+        }}
         style={{
           display: 'flex',
           width: '100%',
           height: '100%',
           transform: `translate3d(${trackOffset}px, 0, 0)`,
-          transition: dragging || reducedMotion
+          transition: dragging || reducedMotion || !trackTransition
             ? 'none'
-            : `transform ${SLIDE_MS}ms cubic-bezier(.22,.72,.22,1)`,
+            : `transform ${SLIDE_MS}ms cubic-bezier(.16,1,.3,1)`,
           willChange: 'transform',
+          backfaceVisibility: 'hidden',
         }}
       >
-        {images.map((src, slideIndex) => {
+        {slides.map((src, slideIndex) => {
           const state = imageState[src]
-          const active = slideIndex === index
+          const active = slideIndex === trackIndex
+          const logicalIndex = slideIndex === 0
+            ? images.length - 1
+            : slideIndex === images.length + 1
+              ? 0
+              : slideIndex - 1
 
           return (
             <img
-              key={src}
+              key={`${src}-${slideIndex}`}
               data-pmd-gallery-image
               src={src}
-              alt={`${item.name || 'Food'} — ${slideIndex + 1} of ${images.length}`}
+              alt={`${item.name || 'Food'} — ${logicalIndex + 1} of ${images.length}`}
               draggable={false}
               onLoad={(event) => {
                 const image = event.currentTarget
@@ -263,6 +313,8 @@ export function FoodGalleryRuntimeEnhancer() {
                 display: 'block',
                 userSelect: 'none',
                 pointerEvents: 'none',
+                backfaceVisibility: 'hidden',
+                transform: 'translateZ(0)',
                 transition: !reducedMotion && active && state?.ready
                   ? `object-position ${PAN_MS}ms cubic-bezier(.25,.20,.40,1)`
                   : 'none',
@@ -293,7 +345,7 @@ export function FoodGalleryRuntimeEnhancer() {
               borderRadius: 999,
               background: dotIndex === index ? '#fff' : 'rgba(255,255,255,.56)',
               boxShadow: '0 1px 4px rgba(0,0,0,.28)',
-              transition: reducedMotion ? 'none' : 'width .22s ease, background .22s ease',
+              transition: reducedMotion ? 'none' : 'width .32s ease, background .32s ease',
             }}
           />
         ))}
