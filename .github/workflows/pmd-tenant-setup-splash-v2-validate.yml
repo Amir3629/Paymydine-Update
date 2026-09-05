@@ -42,6 +42,7 @@ jobs:
         working-directory: .
         run: |
           grep -q "TenantSetupSplashV1" frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815/app/page.tsx
+          grep -q "setupStatus.hasCategories" frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815/app/page.tsx
           grep -q "is_frontend_configured" frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815/src/server/bootstrap.ts
           grep -q "has_categories" frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815/src/server/bootstrap.ts
           grep -q "href=\"/admin\"" frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815/src/runtime/components/TenantSetupSplashV1.tsx
