@@ -10,24 +10,23 @@ use Illuminate\Support\Facades\DB;
 /**
  * PMD_TENANT_QUICK_SETUP_V2
  *
- * Extends the original onboarding authority without changing its floor/staff/
- * KDS behaviour. V2 owns only the starter-menu catalogue and an explicit,
- * additive "complete starter menu" upgrade for restaurants that already used
- * Quick Setup.
+ * Keeps the original floor/staff/KDS onboarding authority and owns the
+ * additive starter-menu upgrade path. The active catalogue is V3 (50+ items
+ * per restaurant type) and the stable image service alias resolves V5.
  *
  * Upgrade rules:
  * - never deletes categories or foods
  * - never rewrites an existing food
  * - never removes restaurant-uploaded images
- * - only adds missing V2 starter categories/items by exact starter name
+ * - only adds missing starter categories/items by exact starter name
  */
 class PmdTenantQuickSetupServiceV2 extends PmdTenantQuickSetupService
 {
-    public const STARTER_LIBRARY_VERSION = PmdStarterMenuLibraryV2::VERSION;
+    public const STARTER_LIBRARY_VERSION = PmdStarterMenuLibraryV3::VERSION;
 
     public function restaurantTypes(): array
     {
-        return app(PmdStarterMenuLibraryV2::class)->restaurantTypes();
+        return app(PmdStarterMenuLibraryV3::class)->restaurantTypes();
     }
 
     protected function seedStarterMenu(string $type, int $locationId, array $allergenMap): array
@@ -36,7 +35,7 @@ class PmdTenantQuickSetupServiceV2 extends PmdTenantQuickSetupService
             throw new \RuntimeException('Starter Menu cannot be installed after Menu content exists.');
         }
 
-        $pack = app(PmdStarterMenuLibraryV2::class)->pack($type);
+        $pack = app(PmdStarterMenuLibraryV3::class)->pack($type);
         $categories = [];
         $priority = 10;
 
@@ -96,7 +95,7 @@ class PmdTenantQuickSetupServiceV2 extends PmdTenantQuickSetupService
             throw new \RuntimeException('Active restaurant location is unavailable.');
         }
 
-        $pack = app(PmdStarterMenuLibraryV2::class)->pack($type);
+        $pack = app(PmdStarterMenuLibraryV3::class)->pack($type);
         $allergens = $this->ensureReferenceAllergens();
         $images = app(PmdStarterMenuImageServiceV2::class);
 
@@ -195,7 +194,7 @@ class PmdTenantQuickSetupServiceV2 extends PmdTenantQuickSetupService
             throw new \RuntimeException('Premium starter photos are not configured yet. Add PMD_PEXELS_API_KEY on the server first.');
         }
 
-        $pack = app(PmdStarterMenuLibraryV2::class)->pack($type);
+        $pack = app(PmdStarterMenuLibraryV3::class)->pack($type);
         $summary = [
             'updated' => 0,
             'cached' => 0,
@@ -229,7 +228,7 @@ class PmdTenantQuickSetupServiceV2 extends PmdTenantQuickSetupService
         return [
             'ok' => true,
             'provider' => 'pexels',
-            'style' => 'pmd-studio-semantic-v4',
+            'style' => 'pmd-studio-semantic-v5',
             'restaurant_type' => $type,
             'library_version' => self::STARTER_LIBRARY_VERSION,
             'summary' => $summary,
