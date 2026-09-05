@@ -7,7 +7,7 @@ use Admin\Facades\AdminMenu;
 use Admin\Facades\Template;
 use Admin\Services\PmdTenantQuickSetupServiceV2;
 
-/** PMD_TENANT_QUICK_SETUP_V2_CONTROLLER */
+/** PMD_TENANT_QUICK_SETUP_V3_FAST_CONTROLLER */
 class Pmdquicksetup extends AdminController
 {
     protected $requiredPermissions = 'Site.Settings';
@@ -23,8 +23,7 @@ class Pmdquicksetup extends AdminController
 
         $this->addCss('css/pmd-settings-suite-first-paint-v1.css');
         $this->addCss('css/pmd-tenant-quick-setup-v1.css');
-        $this->addJs('js/pmd-tenant-quick-setup-v1.js');
-        $this->addJs('js/pmd-tenant-quick-setup-v2.js');
+        $this->addJs('js/pmd-tenant-quick-setup-v3.js');
 
         AdminMenu::setContext('dashboard');
     }
@@ -81,8 +80,10 @@ class Pmdquicksetup extends AdminController
     public function onRefreshStarterPhotos()
     {
         try {
+            $cursor = max(0, (int)post('cursor', 0));
+
             return response()->json(
-                app(PmdTenantQuickSetupServiceV2::class)->refreshStarterMenuImages()
+                app(PmdTenantQuickSetupServiceV2::class)->refreshStarterMenuImagesChunk($cursor, 1)
             );
         } catch (\RuntimeException $error) {
             return response()->json([
@@ -97,7 +98,7 @@ class Pmdquicksetup extends AdminController
 
             return response()->json([
                 'ok' => false,
-                'message' => 'Starter photos could not be refreshed. Existing photos were preserved where replacement failed.',
+                'message' => 'Starter photos could not be refreshed. Your restaurant setup is already saved.',
             ], 500);
         }
     }
