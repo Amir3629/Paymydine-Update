@@ -1,3 +1,4 @@
+// PMD_MENU_GALLERY_OPTIONS_V6_OWNER_PHOTOS
 (function () {
   'use strict';
 
@@ -20,6 +21,9 @@
   var currentImages = [];
   var optionGroups = [];
   var loadToken = 0;
+  var coverSelection = null;
+  var imagePreviewBox = modal.querySelector('[data-pmd-menu-image-preview]');
+  var imagePreview = imagePreviewBox && imagePreviewBox.querySelector('img');
 
   function esc(value) {
     return String(value == null ? '' : value)
@@ -44,13 +48,20 @@
     ensureHidden('pmd_menu_enhancements_v1', '1', 'data-pmd-menu-enhancements-v1');
 
     if (imageInput) {
+      var imageCopy = imageInput.closest('.pmd-menu-form__image-copy');
+      if (imageCopy) {
+        var imageHeading = imageCopy.querySelector('h3');
+        var imageHelp = imageCopy.querySelector('p');
+        if (imageHeading) imageHeading.textContent = 'Photos';
+        if (imageHelp) imageHelp.hidden = true;
+      }
       imageInput.name = 'images[]';
       imageInput.multiple = true;
       imageInput.setAttribute('multiple', 'multiple');
       var upload = imageInput.closest('.pmd-menu-form__upload');
       if (upload) {
         var label = upload.querySelector('span');
-        if (label) label.textContent = 'Add images';
+        if (label) label.textContent = 'Add photos';
         if (!upload.parentElement.querySelector('[data-pmd-gallery-help]')) {
           var help = document.createElement('small');
           help.setAttribute('data-pmd-gallery-help', '');
@@ -77,7 +88,7 @@
         var section = document.createElement('section');
         section.className = 'pmd-menu-form__section pmd-menu-options-builder';
         section.setAttribute('data-pmd-menu-options-builder', '');
-        section.innerHTML = '<div class="pmd-menu-form__section-head pmd-menu-options-builder__head"><div><h3>Sides &amp; options</h3><p>Create choices such as Burger size, Sauces or Steak doneness. Each choice can add to the food price.</p></div><button type="button" class="pmd-menu-options-builder__add" data-pmd-option-group-add>+ Add option</button></div><div class="pmd-menu-options-builder__groups" data-pmd-option-groups></div><div class="pmd-menu-options-builder__empty" data-pmd-option-empty><strong>No options yet</strong><span>This food can be ordered as-is. Add an option only when guests need to choose something.</span></div>';
+        section.innerHTML = '<div class="pmd-menu-form__section-head pmd-menu-options-builder__head"><div><h3>Sides &amp; options</h3></div><button type="button" class="pmd-menu-options-builder__add" data-pmd-option-group-add>+ Add option</button></div><div class="pmd-menu-options-builder__groups" data-pmd-option-groups></div><div class="pmd-menu-options-builder__empty" data-pmd-option-empty hidden></div>';
         categorySection.parentNode.insertBefore(section, categorySection);
       }
     }
@@ -117,13 +128,18 @@
       stagedFiles.push(file);
       seen.add(key);
     });
+    if (!coverSelection && stagedFiles.length) coverSelection = 'new:' + fileKey(stagedFiles[0]);
     syncStagedFilesToInput();
+    syncCoverInput();
   }
 
   function removeStagedFile(index) {
     if (!Number.isFinite(index) || index < 0 || index >= stagedFiles.length) return;
+    var removedKey = 'new:' + fileKey(stagedFiles[index]);
     stagedFiles.splice(index, 1);
+    if (coverSelection === removedKey) coverSelection = firstAvailableCover();
     syncStagedFilesToInput();
+    syncCoverInput();
   }
 
   function visibleExistingImages() {
@@ -177,25 +193,84 @@
     return true;
   }
 
+  function savedCoverKey(entry) {
+    return 'saved:' + String(entry && entry.path || '');
+  }
+
+  function newCoverKey(file) {
+    return 'new:' + fileKey(file);
+  }
+
+  function firstAvailableCover() {
+    var existing = visibleExistingImages();
+    if (existing.length) return savedCoverKey(existing[0]);
+    if (stagedFiles.length) return newCoverKey(stagedFiles[0]);
+    return null;
+  }
+
+  function syncCoverInput() {
+    if (!coverSelection) coverSelection = firstAvailableCover();
+    var value = '';
+    if (coverSelection && coverSelection.indexOf('saved:') === 0) {
+      value = coverSelection;
+    } else if (coverSelection && coverSelection.indexOf('new:') === 0) {
+      var stagedKey = coverSelection.slice(4);
+      var stagedIndex = stagedFiles.findIndex(function (file) { return fileKey(file) === stagedKey; });
+      if (stagedIndex >= 0) value = 'new:' + stagedIndex;
+    }
+    ensureHidden('pmd_menu_gallery_cover', value, 'data-pmd-gallery-cover-input');
+  }
+
+  function updatePrimaryPreview(url) {
+    if (!imagePreviewBox || !imagePreview) return;
+    var placeholder = imagePreviewBox.querySelector('.pmd-menu-form__preview-placeholder');
+    if (url) {
+      imagePreview.src = url;
+      imagePreview.hidden = false;
+      if (placeholder) placeholder.hidden = true;
+      return;
+    }
+    imagePreview.removeAttribute('src');
+    imagePreview.hidden = true;
+    if (placeholder) placeholder.hidden = false;
+  }
+
   function renderGallery(message) {
     if (!galleryHost) return;
     revokeObjectUrls();
     var existing = visibleExistingImages();
     var files = selectedFiles();
+    if (!coverSelection) coverSelection = firstAvailableCover();
     var items = [];
+    var selectedUrl = '';
+
     existing.forEach(function (entry, index) {
-      items.push('<div class="pmd-menu-gallery-editor__item"><img src="' + esc(entry.url) + '" alt="Food image ' + (index + 1) + '"><span>' + (index === 0 && !files.length ? 'Cover' : 'Saved') + '</span><button type="button" data-pmd-gallery-remove="' + esc(entry.path) + '" aria-label="Remove image">×</button></div>');
+      var key = savedCoverKey(entry);
+      var isCover = key === coverSelection;
+      if (isCover) selectedUrl = entry.url;
+      items.push('<div class="pmd-menu-gallery-editor__item' + (isCover ? ' is-cover' : '') + '" role="button" tabindex="0" data-pmd-gallery-cover-key="' + esc(key) + '" title="' + (isCover ? 'Cover image' : 'Set as cover') + '"><img src="' + esc(entry.url) + '" alt="Food photo ' + (index + 1) + '"><span class="pmd-menu-gallery-editor__cover-action">' + (isCover ? 'Cover' : 'Set cover') + '</span><button type="button" class="pmd-menu-gallery-editor__remove" data-pmd-gallery-remove="' + esc(entry.path) + '" aria-label="Remove photo"><span aria-hidden="true">×</span></button></div>');
     });
+
     files.forEach(function (file, index) {
-      var url = URL.createObjectURL(file); objectUrls.push(url);
-      items.push('<div class="pmd-menu-gallery-editor__item is-new"><img src="' + esc(url) + '" alt="New food image ' + (index + 1) + '"><span>' + (index === 0 ? 'New cover' : 'New') + '</span><button type="button" data-pmd-gallery-remove-new="' + index + '" aria-label="Remove new image">×</button></div>');
+      var url = URL.createObjectURL(file);
+      objectUrls.push(url);
+      var key = newCoverKey(file);
+      var isCover = key === coverSelection;
+      if (isCover) selectedUrl = url;
+      items.push('<div class="pmd-menu-gallery-editor__item is-new' + (isCover ? ' is-cover' : '') + '" role="button" tabindex="0" data-pmd-gallery-cover-key="' + esc(key) + '" title="' + (isCover ? 'Cover image' : 'Set as cover') + '"><img src="' + esc(url) + '" alt="New food photo ' + (index + 1) + '"><span class="pmd-menu-gallery-editor__cover-action">' + (isCover ? 'Cover' : 'Set cover') + '</span><button type="button" class="pmd-menu-gallery-editor__remove" data-pmd-gallery-remove-new="' + index + '" aria-label="Remove photo"><span aria-hidden="true">×</span></button></div>');
     });
+
     if (message && !items.length) {
-      galleryHost.innerHTML = '<div class="pmd-menu-gallery-editor__blank is-warning"><strong>Gallery could not be loaded</strong><span>' + esc(message) + '</span></div>';
+      galleryHost.innerHTML = '<div class="pmd-menu-gallery-editor__blank">Images unavailable.</div>';
     } else {
-      galleryHost.innerHTML = items.length ? '<div class="pmd-menu-gallery-editor__title"><strong>Food gallery</strong><small>' + items.length + ' / 8 images</small></div><div class="pmd-menu-gallery-editor__grid">' + items.join('') + '</div>' : '<div class="pmd-menu-gallery-editor__blank"><strong>No gallery photos yet</strong><span>Add one or more images above.</span></div>';
+      galleryHost.innerHTML = items.length ? '<div class="pmd-menu-gallery-editor__grid">' + items.join('') + '</div>' : '';
     }
-    syncRemoveInputs(); validateGalleryLimit();
+
+    syncRemoveInputs();
+    syncCoverInput();
+    validateGalleryLimit();
+    if (selectedUrl) updatePrimaryPreview(selectedUrl);
+    else if (!message && !items.length) updatePrimaryPreview('');
   }
 
   function normalizeOptions(item) {
@@ -236,8 +311,8 @@
     if (!optionHost) return;
     optionHost.innerHTML = optionGroups.map(groupMarkup).join('');
     if (optionEmpty) {
-      optionEmpty.hidden = optionGroups.length > 0;
-      optionEmpty.innerHTML = message ? '<strong>Existing options could not be loaded</strong><span>' + esc(message) + ' Saving this food will keep its current options unless you add a new option.</span>' : '<strong>No options yet</strong><span>This food can be ordered as-is. Add an option only when guests need to choose something.</span>';
+      optionEmpty.hidden = true;
+      optionEmpty.innerHTML = '';
     }
     syncDefaultHiddenInputs();
   }
@@ -278,6 +353,7 @@
         var item = findItems(payload).find(function (row) { return String(row && (row.id || row.menu_id)) === String(id); });
         if (!item) throw new Error('This food was not found in the live menu API.');
         currentImages = normalizeImages(item); optionGroups = normalizeOptions(item);
+        if (!coverSelection && currentImages.length) coverSelection = savedCoverKey(currentImages[0]);
         ensureHidden('pmd_menu_options_present', '1', 'data-pmd-menu-options-present');
         renderGallery(); renderOptions();
       });
@@ -285,7 +361,7 @@
 
   function syncFromCurrentForm() {
     var token = ++loadToken;
-    removedPaths.clear(); currentImages = []; optionGroups = []; stagedFiles = [];
+    removedPaths.clear(); currentImages = []; optionGroups = []; stagedFiles = []; coverSelection = null;
     if (imageInput) { imageInput.value = ''; imageInput.setCustomValidity(''); syncStagedFilesToInput(); }
     var present = form.querySelector('input[data-pmd-menu-options-present]'); if (present) present.remove();
     renderGallery(); renderOptions();
@@ -310,17 +386,50 @@
       renderGallery();
     });
   }
-  if (galleryHost) galleryHost.addEventListener('click', function (event) {
-    var removeNew = event.target.closest('[data-pmd-gallery-remove-new]');
-    if (removeNew) {
+  if (galleryHost) {
+    galleryHost.addEventListener('click', function (event) {
+      var removeNew = event.target.closest('[data-pmd-gallery-remove-new]');
+      if (removeNew) {
+        event.preventDefault();
+        event.stopPropagation();
+        removeStagedFile(Number(removeNew.getAttribute('data-pmd-gallery-remove-new')));
+        renderGallery();
+        return;
+      }
+
+      var remove = event.target.closest('[data-pmd-gallery-remove]');
+      if (remove) {
+        event.preventDefault();
+        event.stopPropagation();
+        var image = String(remove.getAttribute('data-pmd-gallery-remove') || '');
+        if (image) {
+          var removedCoverKey = 'saved:' + image;
+          removedPaths.add(image);
+          if (coverSelection === removedCoverKey) coverSelection = firstAvailableCover();
+          syncCoverInput();
+          renderGallery();
+        }
+        return;
+      }
+
+      var cover = event.target.closest('[data-pmd-gallery-cover-key]');
+      if (!cover) return;
       event.preventDefault();
-      removeStagedFile(Number(removeNew.getAttribute('data-pmd-gallery-remove-new')));
+      coverSelection = String(cover.getAttribute('data-pmd-gallery-cover-key') || '') || firstAvailableCover();
+      syncCoverInput();
       renderGallery();
-      return;
-    }
-    var remove = event.target.closest('[data-pmd-gallery-remove]'); if (!remove) return;
-    event.preventDefault(); var image = String(remove.getAttribute('data-pmd-gallery-remove') || ''); if (image) removedPaths.add(image); renderGallery();
-  });
+    });
+
+    galleryHost.addEventListener('keydown', function (event) {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      var cover = event.target.matches && event.target.matches('[data-pmd-gallery-cover-key]') ? event.target : null;
+      if (!cover) return;
+      event.preventDefault();
+      coverSelection = String(cover.getAttribute('data-pmd-gallery-cover-key') || '') || firstAvailableCover();
+      syncCoverInput();
+      renderGallery();
+    });
+  }
   if (optionAdd) optionAdd.addEventListener('click', function () {
     captureOptions(); if (optionGroups.length >= 12) return;
     optionGroups.push({name:'', display_type:'radio', required:false, values:[{name:'', price:0, is_default:false}]});

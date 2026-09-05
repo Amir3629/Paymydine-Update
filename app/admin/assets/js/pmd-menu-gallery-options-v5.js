@@ -1,3 +1,4 @@
+// PMD_MENU_GALLERY_OPTIONS_V5_CACHE_BUST
 (function () {
   'use strict';
 

@@ -1,17 +1,19 @@
+/* PMD_MENU_GALLERY_OPTIONS_V6_OWNER_PHOTOS */
 /* PMD_MENU_GALLERY_OPTIONS_V4 */
-.pmd-menu-gallery-editor { margin-top:14px; }
-.pmd-menu-gallery-editor__hint { display:block; margin-top:8px; color:#64748b; line-height:1.45; }
-.pmd-menu-gallery-editor__title { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:9px; color:#0f3d35; }
-.pmd-menu-gallery-editor__title small { color:#64748b; font-weight:700; }
-.pmd-menu-gallery-editor__grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(92px,1fr)); gap:10px; }
-.pmd-menu-gallery-editor__item { position:relative; min-height:92px; overflow:hidden; border:1px solid #cfe8e2; border-radius:14px; background:#f5faf8; }
-.pmd-menu-gallery-editor__item img { display:block; width:100%; height:92px; object-fit:cover; }
-.pmd-menu-gallery-editor__item > span { position:absolute; left:7px; bottom:7px; border-radius:999px; padding:3px 7px; background:rgba(6,48,42,.82); color:#fff; font-size:10px; font-weight:800; }
-.pmd-menu-gallery-editor__item.is-new { border-color:#43a78d; box-shadow:0 0 0 1px rgba(67,167,141,.16); }
-.pmd-menu-gallery-editor__item > button { position:absolute; top:6px; right:6px; display:grid; width:28px; height:28px; place-items:center; border:0; border-radius:999px; padding:0; background:rgba(111,32,32,.92); color:#fff; font:700 18px/1 Arial,sans-serif; cursor:pointer; }
-.pmd-menu-gallery-editor__blank { display:grid; gap:2px; border:1px dashed #cbd5e1; border-radius:14px; padding:13px 15px; color:#64748b; }
-.pmd-menu-gallery-editor__blank.is-warning { border-color:#f2c879; background:#fffaf0; color:#8a5a12; }
-.pmd-menu-gallery-editor__blank strong { color:#334155; font-size:13px; }
+.pmd-menu-gallery-editor { margin-top:12px; }
+.pmd-menu-gallery-editor__hint { display:none!important; }
+.pmd-menu-gallery-editor__grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(118px,132px)); gap:12px; align-items:start; }
+.pmd-menu-gallery-editor__item { position:relative!important; box-sizing:border-box!important; width:100%; height:108px; min-height:108px!important; overflow:hidden!important; border:1px solid #d8e6e2!important; border-radius:14px!important; padding:0!important; margin:0!important; background:#f6faf8!important; box-shadow:none!important; cursor:pointer; transition:border-color .14s ease, box-shadow .14s ease, transform .14s ease; }
+.pmd-menu-gallery-editor__item:hover { border-color:#9ccdc0!important; transform:translateY(-1px); }
+.pmd-menu-gallery-editor__item:focus-visible { outline:3px solid rgba(8,112,93,.16)!important; outline-offset:2px; }
+.pmd-menu-gallery-editor__item.is-cover { border-color:#17866f!important; box-shadow:0 0 0 2px rgba(23,134,111,.14)!important; }
+.pmd-menu-gallery-editor__item img { display:block!important; width:100%!important; height:108px!important; min-height:108px!important; object-fit:cover!important; border:0!important; border-radius:0!important; margin:0!important; }
+.pmd-menu-gallery-editor__cover-action { position:absolute!important; left:8px!important; bottom:8px!important; z-index:2; display:inline-flex!important; align-items:center!important; min-height:25px!important; border:1px solid rgba(255,255,255,.68)!important; border-radius:999px!important; padding:0 9px!important; background:rgba(255,255,255,.90)!important; color:#31524b!important; font-size:10px!important; font-weight:800!important; line-height:1!important; box-shadow:0 1px 3px rgba(15,45,38,.10)!important; pointer-events:none!important; }
+.pmd-menu-gallery-editor__item.is-cover .pmd-menu-gallery-editor__cover-action { border-color:#0c6e5b!important; background:#0c6e5b!important; color:#fff!important; }
+button.pmd-menu-gallery-editor__remove { position:absolute!important; top:7px!important; right:7px!important; left:auto!important; bottom:auto!important; z-index:4!important; display:grid!important; place-items:center!important; box-sizing:border-box!important; width:28px!important; min-width:28px!important; max-width:28px!important; height:28px!important; min-height:28px!important; max-height:28px!important; margin:0!important; padding:0!important; border:1px solid rgba(255,255,255,.55)!important; border-radius:999px!important; background:rgba(20,32,29,.72)!important; color:#fff!important; box-shadow:0 1px 4px rgba(0,0,0,.14)!important; font:700 17px/1 Arial,sans-serif!important; cursor:pointer!important; opacity:.90; transform:none!important; }
+button.pmd-menu-gallery-editor__remove:hover { background:#263c36!important; opacity:1; }
+button.pmd-menu-gallery-editor__remove span { display:block!important; width:auto!important; height:auto!important; margin:0!important; padding:0!important; line-height:1!important; transform:translateY(-1px); }
+.pmd-menu-gallery-editor__blank { padding:8px 0; color:#64748b; font-size:12px; }
 
 .pmd-menu-options-builder__head { display:flex!important; align-items:flex-start; justify-content:space-between; gap:18px; }
 .pmd-menu-options-builder__add,
@@ -54,4 +56,20 @@
   .pmd-menu-option-value__price { grid-template-columns:70px minmax(0,1fr); }
   .pmd-menu-option-value__default { justify-content:flex-start; padding:0 12px; }
   .pmd-menu-option-value__remove { justify-self:end; }
+}
+
+/* V6: destructive controls stay quiet until the owner points at them. */
+.pmd-menu-option-group__remove,
+.pmd-menu-option-value__remove { border-color:#d8e3e0!important; background:#fff!important; color:#64748b!important; box-shadow:none!important; }
+.pmd-menu-option-group__remove:hover,
+.pmd-menu-option-value__remove:hover { border-color:#e7bcbc!important; background:#fffafa!important; color:#a33a3a!important; }
+.pmd-menu-option-value__remove { width:38px!important; height:38px!important; min-width:38px!important; min-height:38px!important; border-radius:10px!important; }
+.pmd-menu-options-builder__head { align-items:center!important; }
+.pmd-menu-options-builder__head p,
+.pmd-menu-options-builder__empty { display:none!important; }
+
+@media (max-width:760px) {
+  .pmd-menu-gallery-editor__grid { grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+  .pmd-menu-gallery-editor__item,
+  .pmd-menu-gallery-editor__item img { height:96px!important; min-height:96px!important; }
 }

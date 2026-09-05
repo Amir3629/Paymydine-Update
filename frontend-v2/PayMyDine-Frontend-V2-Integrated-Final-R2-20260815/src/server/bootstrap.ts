@@ -5,6 +5,7 @@ import { supportedUiLocales } from '@/src/lib/i18n'
 import { normalizeThemeId, type ThemeId } from '@/src/themes/catalog'
 import { fetchBackendJsonOrNull } from './backend'
 import { createMockBootstrap } from './mock-bootstrap'
+import { applyMenuContentTranslations } from './menu-content-translations'
 import { applySmartCategories } from './smart-categories'
 import {
   normalizeFeatures,
@@ -100,6 +101,7 @@ export async function loadCustomerBootstrap(query: BootstrapQuery): Promise<Cust
     restaurant,
     menuPayload,
     categoriesPayload,
+    menuTranslationsPayload,
     themePayload,
     paymentsPayload,
     worldlineMethodsPayload,
@@ -112,6 +114,7 @@ export async function loadCustomerBootstrap(query: BootstrapQuery): Promise<Cust
     fetchBackendJsonOrNull<any>('/api/v1/restaurant', requestOptions),
     fetchBackendJsonOrNull<any>('/api/v1/menu', requestOptions),
     fetchBackendJsonOrNull<any>('/api/v1/categories', requestOptions),
+    fetchBackendJsonOrNull<any>('/api/v1/menu-content-translations', requestOptions),
     fetchBackendJsonOrNull<any>('/api/v1/frontend-theme-v2', requestOptions),
     fetchBackendJsonOrNull<any>('/api/v1/payments', requestOptions),
     fetchBackendJsonOrNull<any>('/api/v1/payments/worldline/runtime-methods', requestOptions),
@@ -168,10 +171,13 @@ export async function loadCustomerBootstrap(query: BootstrapQuery): Promise<Cust
   // Live tenant hosts use the V2 runtime on port 3002. Resolve editable smart
   // category names/order from /api/v1/categories, while preserving the existing
   // product flags and combo data from the canonical /api/v1/menu payload.
-  const menu = applySmartCategories(
-    normalizeMenu(menuPayload),
-    menuPayload,
-    categoriesPayload,
+  const menu = applyMenuContentTranslations(
+    applySmartCategories(
+      normalizeMenu(menuPayload),
+      menuPayload,
+      categoriesPayload,
+    ),
+    menuTranslationsPayload,
   )
   const theme = normalizeTheme(resolvedThemePayload, previewId)
   const table = normalizeTable(tablePayload, { tableId, tableNo, qr })

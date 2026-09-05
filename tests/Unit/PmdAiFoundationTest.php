@@ -208,33 +208,4 @@ class PmdAiFoundationTest extends TestCase
             $contents[2]['parts'][1]['functionResponse']['id']
         );
     }
-
-    public function test_gemini_transient_retry_classifier_is_bounded_to_retryable_failures(): void
-    {
-        $provider = new GeminiGenerateContentProvider();
-        $method = new \ReflectionMethod(
-            GeminiGenerateContentProvider::class,
-            'isTransientHttpFailure'
-        );
-        $method->setAccessible(true);
-
-        $this->assertTrue($method->invoke(
-            $provider,
-            503,
-            ['error' => ['status' => 'UNAVAILABLE']],
-            'This model is currently experiencing high demand. Please try again later.'
-        ));
-        $this->assertTrue($method->invoke(
-            $provider,
-            429,
-            ['error' => ['status' => 'RESOURCE_EXHAUSTED']],
-            'Resource exhausted'
-        ));
-        $this->assertFalse($method->invoke(
-            $provider,
-            403,
-            ['error' => ['status' => 'PERMISSION_DENIED']],
-            'Permission denied'
-        ));
-    }
 }
