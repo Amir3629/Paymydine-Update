@@ -81,8 +81,13 @@ class Pmdquicksetup extends AdminController
     public function onRefreshStarterPhotos()
     {
         try {
+            // PMD_QUICK_SETUP_TIMEOUT_R1_20260905
+            // The service deliberately handles one resumable photo item per
+            // request so nginx never waits for a full 50+ item catalogue.
+            $cursor = max(0, (int)post('cursor', 0));
+
             return response()->json(
-                app(PmdTenantQuickSetupServiceV2::class)->refreshStarterMenuImages()
+                app(PmdTenantQuickSetupServiceV2::class)->refreshStarterMenuImages($cursor, 1)
             );
         } catch (\RuntimeException $error) {
             return response()->json([

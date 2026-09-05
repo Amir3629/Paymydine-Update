@@ -30,7 +30,14 @@
         var raw = await response.text();
         var payload = {};
         try { payload = raw ? JSON.parse(raw) : {}; }
-        catch (error) { payload = {ok: false, message: raw || 'Request failed.'}; }
+        catch (error) {
+            payload = {
+                ok: false,
+                message: response.status === 504
+                    ? 'The server timed out. Reload this page before retrying so we can confirm what completed.'
+                    : 'The server returned an invalid response. Please reload and try again.'
+            };
+        }
 
         if (!response.ok || payload.ok === false) {
             throw new Error(payload.message || ('Request failed (' + response.status + ')'));
@@ -75,9 +82,13 @@
                     status.textContent = (completed.message || 'Starter menu completed.') + ' Refreshing starter photos…';
                 }
 
-                var photos = await handler('onRefreshStarterPhotos');
-                if (status) {
-                    status.textContent = (completed.message || 'Starter menu completed.') + ' ' + (photos.message || 'Starter photos refreshed.');
+                // PMD_QUICK_SETUP_TIMEOUT_R1_20260905
+                // V1 owns the resumable one-item photo batches. Completion is
+                // already committed before any external image request starts.
+                if (window.PMDTenantQuickSetupV1 && typeof window.PMDTenantQuickSetupV1.refreshStarterPhotos === 'function') {
+                    await window.PMDTenantQuickSetupV1.refreshStarterPhotos(refresh);
+                } else if (status) {
+                    status.textContent = (completed.message || 'Starter menu completed.') + ' Reload this page to continue starter photos.';
                 }
             } catch (error) {
                 if (status) {
@@ -95,7 +106,7 @@
     installCompleteButton();
 
     window.PMDTenantQuickSetupV2 = {
-        version: '2.0.0',
+        version: '2.1.0',
         completeButton: function () {
             return root.querySelector('[data-pmd-complete-starter-menu]');
         }
