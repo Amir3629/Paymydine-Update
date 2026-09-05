@@ -63,66 +63,73 @@ final class GeminiGenerateContentProvider implements AiProvider
             ]];
         }
 
-        $requestId = null;
-        $started = microtime(true);
+        // A short, bounded retry smooths over Gemini's documented/transient
+        // high-demand responses without creating a retry loop or multiplying
+        // normal request cost. Permanent 4xx errors are never retried.
+        $extraRetries = max(
+            0,
+            min(1, (int)config('pmd_ai.gemini_transient_retries', 1))
+        );
+        $maxAttempts = 1 + $extraRetries;
+        $retryDelayMs = max(
+            0,
+            min(1500, (int)config('pmd_ai.gemini_retry_delay_ms', 350))
+        );
+        $totalLatencyMs = 0;
 
-        $ch = curl_init($url);
-        curl_setopt_array($ch, [
-            CURLOPT_POST => true,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_CONNECTTIMEOUT => min(8, $timeout),
-            CURLOPT_TIMEOUT => $timeout,
-            CURLOPT_IPRESOLVE => (bool)config('pmd_ai.gemini_force_ipv4', true)
-                ? CURL_IPRESOLVE_V4
-                : CURL_IPRESOLVE_WHATEVER,
-            CURLOPT_HTTPHEADER => [
-                'x-goog-api-key: '.$key,
-                'x-goog-api-client: paymydine-ai/1.0',
-                'Content-Type: application/json',
-            ],
-            CURLOPT_POSTFIELDS => json_encode(
-                $request,
-                JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
-            ),
-            CURLOPT_HEADERFUNCTION => function ($curl, $header) use (&$requestId) {
-                $length = strlen($header);
-                foreach (['x-request-id:', 'x-goog-request-id:'] as $prefix) {
-                    if (stripos($header, $prefix) === 0) {
-                        $requestId = trim(substr($header, strlen($prefix)));
-                        break;
-                    }
+        for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
+            $transport = $this->sendRequest($url, $key, $request, $timeout);
+            $totalLatencyMs += (int)$transport['latency_ms'];
+
+            $raw = $transport['raw'];
+            $curlError = (string)$transport['curl_error'];
+            $status = (int)$transport['http_status'];
+            $requestId = $transport['request_id'];
+
+            if ($raw === false || $curlError !== '') {
+                // A 25-second network timeout should not silently become a
+                // 50-second request. Transport failures remain fail-fast.
+                throw new RuntimeException('Gemini transport failed: '.$curlError);
+            }
+
+            $decoded = json_decode((string)$raw, true);
+            if (!is_array($decoded)) {
+                throw new RuntimeException('Gemini returned an invalid JSON response.');
+            }
+
+            if ($status >= 200 && $status < 300) {
+                return [
+                    'body' => $decoded,
+                    'http_status' => $status,
+                    'request_id' => $requestId,
+                    'latency_ms' => $totalLatencyMs,
+                    'attempt_count' => $attempt,
+                ];
+            }
+
+            $message = (string)($decoded['error']['message'] ?? ('Gemini HTTP '.$status));
+
+            if (
+                $attempt < $maxAttempts
+                && $this->isTransientHttpFailure($status, $decoded, $message)
+            ) {
+                logger()->info('PMD Gemini transient retry', [
+                    'model' => $model,
+                    'status' => $status,
+                    'attempt' => $attempt,
+                    'max_attempts' => $maxAttempts,
+                ]);
+
+                if ($retryDelayMs > 0) {
+                    usleep($retryDelayMs * 1000);
                 }
-                return $length;
-            },
-        ]);
+                continue;
+            }
 
-        $raw = curl_exec($ch);
-        $curlError = curl_error($ch);
-        $status = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
-        curl_close($ch);
-
-        $latencyMs = (int)round((microtime(true) - $started) * 1000);
-
-        if ($raw === false || $curlError !== '') {
-            throw new RuntimeException('Gemini transport failed: '.$curlError);
+            throw new RuntimeException($message);
         }
 
-        $decoded = json_decode((string)$raw, true);
-        if (!is_array($decoded)) {
-            throw new RuntimeException('Gemini returned an invalid JSON response.');
-        }
-
-        if ($status < 200 || $status >= 300) {
-            $message = $decoded['error']['message'] ?? ('Gemini HTTP '.$status);
-            throw new RuntimeException((string)$message);
-        }
-
-        return [
-            'body' => $decoded,
-            'http_status' => $status,
-            'request_id' => $requestId,
-            'latency_ms' => $latencyMs,
-        ];
+        throw new RuntimeException('Gemini request failed after bounded retry.');
     }
 
     public function outputText(array $response): string
@@ -224,6 +231,79 @@ final class GeminiGenerateContentProvider implements AiProvider
     public function name(): string
     {
         return 'gemini';
+    }
+
+    private function sendRequest(string $url, string $key, array $request, int $timeout): array
+    {
+        $requestId = null;
+        $started = microtime(true);
+
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_POST => true,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_CONNECTTIMEOUT => min(8, $timeout),
+            CURLOPT_TIMEOUT => $timeout,
+            CURLOPT_IPRESOLVE => (bool)config('pmd_ai.gemini_force_ipv4', true)
+                ? CURL_IPRESOLVE_V4
+                : CURL_IPRESOLVE_WHATEVER,
+            CURLOPT_HTTPHEADER => [
+                'x-goog-api-key: '.$key,
+                'x-goog-api-client: paymydine-ai/1.0',
+                'Content-Type: application/json',
+            ],
+            CURLOPT_POSTFIELDS => json_encode(
+                $request,
+                JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+            ),
+            CURLOPT_HEADERFUNCTION => function ($curl, $header) use (&$requestId) {
+                $length = strlen($header);
+                foreach (['x-request-id:', 'x-goog-request-id:'] as $prefix) {
+                    if (stripos($header, $prefix) === 0) {
+                        $requestId = trim(substr($header, strlen($prefix)));
+                        break;
+                    }
+                }
+                return $length;
+            },
+        ]);
+
+        $raw = curl_exec($ch);
+        $curlError = curl_error($ch);
+        $status = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+        curl_close($ch);
+
+        return [
+            'raw' => $raw,
+            'curl_error' => $curlError,
+            'http_status' => $status,
+            'request_id' => $requestId,
+            'latency_ms' => (int)round((microtime(true) - $started) * 1000),
+        ];
+    }
+
+    private function isTransientHttpFailure(int $status, array $decoded, string $message): bool
+    {
+        if (in_array($status, [429, 500, 502, 503, 504], true)) {
+            return true;
+        }
+
+        $providerStatus = mb_strtolower(trim((string)($decoded['error']['status'] ?? '')));
+        if (in_array($providerStatus, ['unavailable', 'resource_exhausted'], true)) {
+            return true;
+        }
+
+        $text = mb_strtolower($message);
+        foreach ([
+            'high demand',
+            'try again later',
+            'temporarily unavailable',
+            'resource exhausted',
+        ] as $needle) {
+            if (str_contains($text, $needle)) return true;
+        }
+
+        return false;
     }
 
     private function candidateParts(array $response): array
