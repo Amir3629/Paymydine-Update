@@ -41,9 +41,6 @@ final class PmdWorkforceToolFactCompactor
                 $hoursQuestion ? self::MAX_HOURS_PEOPLE : self::MAX_GENERAL_PEOPLE
             );
 
-        // Re-resolve the small person-hours slice directly from PMD attendance.
-        // This gives the model explicit source/link/coverage state and prevents
-        // a large rota payload from hiding the number the operator asked for.
         if ($hoursQuestion) {
             $range = (array)($output['range'] ?? []);
             $hoursAuthority = app(PmdWorkforcePersonHoursService::class);
@@ -94,19 +91,15 @@ final class PmdWorkforceToolFactCompactor
             'attendance_fact_contract' => [
                 'source' => 'PMD attendance clock-in/check-out records.',
                 'rule' => 'For a person where actual_hours_authoritative=true, actual_worked_hours is the PMD attendance fact for this exact range. Use it directly.',
+                'read_rule' => 'attendance_source_available and attendance_read_ok are separate facts. A readable zero-row source is not unavailable.',
                 'coverage_rule' => 'If attendance is linked but attendance_coverage_complete_for_range=false and attendance_rows_found>0, actual_worked_hours is only the PMD-recorded partial total from attendance_coverage_start onward. State that coverage limitation explicitly.',
-                'no_rows_rule' => 'If attendance_source_available=true, attendance_identity_linked=true and attendance_rows_found=0, the attendance source exists but this person has no PMD clock-in/check-out records in the requested range. Do not call the attendance system unavailable.',
-                'gap_rule' => 'If actual_hours_authoritative=false, explain the explicit PMD attendance source, identity-link, no-records or coverage gap. Do not invent actual hours and do not redirect the operator to an external payroll or staff system.',
+                'no_rows_rule' => 'If attendance_source_available=true, attendance_identity_linked=true, attendance_read_ok=true and attendance_rows_found=0, the attendance source exists but this person has no PMD clock-in/check-out records in the requested range. Do not call the attendance system unavailable.',
+                'gap_rule' => 'If actual_hours_authoritative=false, explain the explicit PMD attendance source, read, identity-link, no-records or coverage gap. Do not invent actual hours and do not redirect the operator to an external payroll or staff system.',
             ],
             'source' => 'PMD internal workforce authority; compacted for authenticated Admin AI.',
         ];
     }
 
-    /**
-     * Named worked-hours are factual PMD questions, so the server owns the final
-     * answer after the provider has completed its tool turn. This intentionally
-     * replaces provider prose even when the provider happened to sound plausible.
-     */
     public function guardAnswer(string $answer, array $workforceEvidence, string $question): string
     {
         if (!$workforceEvidence) return $answer;
@@ -274,6 +267,7 @@ final class PmdWorkforceToolFactCompactor
         $rowsFound = (int)($person['attendance_rows_found'] ?? 0);
         $sourceReady = (bool)($person['attendance_source_available'] ?? false);
         $linked = (bool)($person['attendance_identity_linked'] ?? false);
+        $readOk = (bool)($person['attendance_read_ok'] ?? false);
         $coverageComplete = (bool)($person['attendance_coverage_complete_for_range'] ?? false);
         $coverageStart = trim((string)($person['attendance_coverage_start'] ?? ''));
         $start = trim((string)($range['start_date'] ?? ''));
@@ -281,11 +275,15 @@ final class PmdWorkforceToolFactCompactor
         $rangeText = ($start !== '' && $end !== '') ? " for {$start} to {$end}" : '';
 
         if (!$sourceReady) {
-            return "PMD can see {$name}'s rota{$rangeText}: **{$scheduled} scheduled hours across {$shiftCount} shifts**. PMD could not verify the attendance source for this request, so I won't invent actual worked hours.";
+            return "PMD can see {$name}'s rota{$rangeText}: **{$scheduled} scheduled hours across {$shiftCount} shifts**. The PMD attendance source itself could not be opened for this request, so I won't invent actual worked hours.";
         }
 
         if (!$linked) {
             return "PMD can see {$name}'s rota{$rangeText}: **{$scheduled} scheduled hours across {$shiftCount} shifts**. This roster entry is not linked to a PMD Team attendance identity yet, so actual clocked hours cannot be reported until that PMD link is repaired.";
+        }
+
+        if (!$readOk) {
+            return "PMD found the attendance source and {$name}'s PMD staff link{$rangeText}, but the attendance read did not complete successfully. The rota still shows **{$scheduled} scheduled hours across {$shiftCount} shifts**. I won't turn a read failure into a fake worked-hours total.";
         }
 
         if ($rowsFound < 1) {

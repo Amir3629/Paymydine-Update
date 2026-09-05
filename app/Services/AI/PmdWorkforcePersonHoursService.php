@@ -4,7 +4,6 @@ namespace App\Services\AI;
 
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use Throwable;
 
 /**
@@ -28,6 +27,7 @@ final class PmdWorkforcePersonHoursService
         $metric['attendance_source_available'] = false;
         $metric['attendance_identity_linked'] = false;
         $metric['attendance_identity_link_mode'] = null;
+        $metric['attendance_read_ok'] = false;
         $metric['attendance_rows_found'] = 0;
         $metric['attendance_coverage_start'] = null;
         $metric['attendance_coverage_complete_for_range'] = false;
@@ -37,7 +37,7 @@ final class PmdWorkforcePersonHoursService
         $metric['attendance_source_available'] = true;
 
         $personId = (int)($metric['person_id'] ?? 0);
-        if ($personId < 1 || !$this->schema()->hasTable('pmd_operational_people')) return $metric;
+        if ($personId < 1) return $metric;
 
         try {
             $person = $this->db()->table('pmd_operational_people')
@@ -102,6 +102,7 @@ final class PmdWorkforcePersonHoursService
             $this->applyLocationScope($query, $locationId);
 
             $rows = $query->get(['check_in_time', 'check_out_time']);
+            $metric['attendance_read_ok'] = true;
         } catch (Throwable $error) {
             $this->logReadFailure('attendance_lookup', $personId, $locationId, $error);
             return $metric;
@@ -171,22 +172,30 @@ final class PmdWorkforcePersonHoursService
         return $metric;
     }
 
+    /**
+     * Verify the exact tenant attendance contract with a real read rather than
+     * relying on framework schema metadata. Production diagnostics showed the
+     * tenant table and columns can be readable even when metadata introspection
+     * returns a false negative in the long-lived Admin request. A successful
+     * zero-row SELECT still proves the source exists.
+     */
     private function attendanceReady(): bool
     {
         try {
-            $schema = $this->schema();
-            return $schema->hasTable('staff_attendance')
-                && $schema->hasColumn('staff_attendance', 'staff_id')
-                && $schema->hasColumn('staff_attendance', 'check_in_time')
-                && $schema->hasColumn('staff_attendance', 'check_out_time');
+            $this->db()->table('staff_attendance')
+                ->select(['staff_id', 'location_id', 'check_in_time', 'check_out_time'])
+                ->limit(1)
+                ->get();
+            return true;
         } catch (Throwable $error) {
+            $this->logReadFailure('attendance_probe', 0, 0, $error);
             return false;
         }
     }
 
     private function uniqueStaffIdByName(string $name): int
     {
-        if ($name === '' || !$this->schema()->hasTable('staffs')) return 0;
+        if ($name === '') return 0;
 
         try {
             $ids = $this->db()->table('staffs')
@@ -198,14 +207,13 @@ final class PmdWorkforcePersonHoursService
                 ->values();
             return $ids->count() === 1 ? (int)$ids->first() : 0;
         } catch (Throwable $error) {
+            $this->logReadFailure('staff_name_fallback', 0, 0, $error);
             return 0;
         }
     }
 
     private function applyLocationScope($query, int $locationId): void
     {
-        if (!$this->schema()->hasColumn('staff_attendance', 'location_id')) return;
-
         $query->where(function ($scope) use ($locationId) {
             $scope->where('location_id', $locationId)->orWhereNull('location_id');
         });
@@ -216,16 +224,19 @@ final class PmdWorkforcePersonHoursService
         return DB::connection(self::CONNECTION);
     }
 
-    private function schema()
-    {
-        return Schema::connection(self::CONNECTION);
-    }
-
     private function logReadFailure(string $stage, int $personId, int $locationId, Throwable $error): void
     {
+        $database = null;
+        try {
+            $database = (string)$this->db()->getDatabaseName();
+        } catch (Throwable $ignored) {
+            $database = null;
+        }
+
         logger()->warning('PMD workforce person-hours read failed', [
             'stage' => $stage,
             'connection' => self::CONNECTION,
+            'database' => $database,
             'person_id' => $personId,
             'location_id' => $locationId,
             'type' => get_class($error),

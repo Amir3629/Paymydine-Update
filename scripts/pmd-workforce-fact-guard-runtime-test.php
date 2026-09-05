@@ -21,6 +21,7 @@ $basePerson = [
     'anomalous_attendance_sessions' => 0,
     'attendance_source_available' => true,
     'attendance_identity_linked' => true,
+    'attendance_read_ok' => true,
     'attendance_rows_found' => 5,
     'attendance_coverage_complete_for_range' => true,
     'attendance_coverage_start' => '2025-12-01 08:00:00',
@@ -108,6 +109,30 @@ if (
     exit(1);
 }
 
+$readFailureEvidence = [[
+    'available' => true,
+    'range' => ['start_date' => '2026-01-01', 'end_date' => '2026-09-05'],
+    'people_metrics' => [array_merge($basePerson, [
+        'actual_hours_authoritative' => false,
+        'actual_worked_hours' => 0.0,
+        'attendance_read_ok' => false,
+        'attendance_rows_found' => 0,
+        'attendance_coverage_complete_for_range' => false,
+    ])],
+]];
+$readFailureAnswer = $guard->guardAnswer(
+    'There are no attendance records.',
+    $readFailureEvidence,
+    $question
+);
+if (
+    !str_contains($readFailureAnswer, 'attendance read did not complete successfully')
+    || str_contains($readFailureAnswer, 'no clock-in/clock-out attendance records')
+) {
+    fwrite(STDERR, "FAIL attendance-read-failure state guard\n");
+    exit(1);
+}
+
 $partialEvidence = [[
     'available' => true,
     'range' => ['start_date' => '2026-01-01', 'end_date' => '2026-09-05'],
@@ -140,6 +165,7 @@ $unlinkedEvidence = [[
         'actual_hours_authoritative' => false,
         'actual_worked_hours' => 0.0,
         'attendance_identity_linked' => false,
+        'attendance_read_ok' => false,
         'attendance_rows_found' => 0,
         'attendance_coverage_complete_for_range' => false,
         'attendance_coverage_start' => null,
