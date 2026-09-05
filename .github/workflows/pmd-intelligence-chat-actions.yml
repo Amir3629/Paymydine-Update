@@ -15,6 +15,7 @@ on:
       - 'frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815/**'
       - 'scripts/pmd-intelligence-chat-actions-audit.php'
       - 'scripts/pmd-workforce-fact-guard-audit.php'
+      - 'scripts/pmd-workforce-fact-guard-runtime-test.php'
       - 'tests/Unit/PmdIntelligenceConversationActionsTest.php'
       - '.github/workflows/pmd-intelligence-chat-actions.yml'
   push:
@@ -31,6 +32,7 @@ on:
       - 'frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815/**'
       - 'scripts/pmd-intelligence-chat-actions-audit.php'
       - 'scripts/pmd-workforce-fact-guard-audit.php'
+      - 'scripts/pmd-workforce-fact-guard-runtime-test.php'
       - 'tests/Unit/PmdIntelligenceConversationActionsTest.php'
       - '.github/workflows/pmd-intelligence-chat-actions.yml'
 
@@ -59,10 +61,13 @@ jobs:
           php -l tests/Unit/PmdIntelligenceConversationActionsTest.php
           php -l scripts/pmd-intelligence-chat-actions-audit.php
           php -l scripts/pmd-workforce-fact-guard-audit.php
+          php -l scripts/pmd-workforce-fact-guard-runtime-test.php
       - name: Shared Intelligence contract
         run: php scripts/pmd-intelligence-chat-actions-audit.php
       - name: Workforce fact guard contract
         run: php scripts/pmd-workforce-fact-guard-audit.php
+      - name: Workforce fact guard runtime regression
+        run: php scripts/pmd-workforce-fact-guard-runtime-test.php
 
   frontend-contract:
     runs-on: ubuntu-latest
