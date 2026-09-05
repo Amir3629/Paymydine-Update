@@ -1,0 +1,65 @@
+name: PMD Starter Menu Images V2
+
+on:
+  push:
+    branches:
+      - feature/menu-gallery-sides-options-20260903
+    paths:
+      - tools/pmd_starter_menu_images_v2_patch.py
+      - .github/workflows/pmd-starter-menu-images-v2.yml
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: feature/menu-gallery-sides-options-20260903
+          fetch-depth: 0
+
+      - name: Apply V2 patch
+        run: python3 tools/pmd_starter_menu_images_v2_patch.py
+
+      - name: PHP syntax
+        run: |
+          php -l app/admin/Services/PmdStarterMenuImageServiceV2.php
+          php -l app/admin/Services/PmdTenantQuickSetupService.php
+          php -l app/admin/controllers/Pmdquicksetup.php
+
+      - name: JavaScript syntax
+        run: node --check app/admin/assets/js/pmd-tenant-quick-setup-v1.js
+
+      - name: Verify contracts
+        run: |
+          grep -q 'PMD_STARTER_MENU_IMAGES_V2' app/admin/Services/PmdStarterMenuImageServiceV2.php
+          grep -q 'api.pexels.com/v1/search' app/admin/Services/PmdStarterMenuImageServiceV2.php
+          grep -q 'PMD_PEXELS_API_KEY' app/admin/Services/PmdStarterMenuImageServiceV2.php
+          grep -q 'refreshStarterMenuImages' app/admin/Services/PmdTenantQuickSetupService.php
+          grep -q 'onRefreshStarterPhotos' app/admin/controllers/Pmdquicksetup.php
+          grep -q 'Refresh premium starter photos' app/admin/views/pmdquicksetup/index.blade.php
+          grep -q 'pmdstarter_v2_' app/admin/Services/PmdStarterMenuImageServiceV2.php
+
+      - name: Show production diff
+        run: git diff --stat
+
+      - name: Commit implementation
+        run: |
+          git config user.name 'PayMyDine CI'
+          git config user.email 'ci@paymydine.local'
+          git add \
+            app/admin/Services/PmdStarterMenuImageServiceV2.php \
+            app/admin/Services/PmdTenantQuickSetupService.php \
+            app/admin/controllers/Pmdquicksetup.php \
+            app/admin/assets/js/pmd-tenant-quick-setup-v1.js \
+            app/admin/assets/css/pmd-tenant-quick-setup-v1.css \
+            app/admin/views/pmdquicksetup/index.blade.php
+          if git diff --cached --quiet; then
+            echo 'No source changes to commit.'
+          else
+            git commit -m 'Quick Setup: premium starter menu photos V2'
+            git push origin HEAD:feature/menu-gallery-sides-options-20260903
+          fi
