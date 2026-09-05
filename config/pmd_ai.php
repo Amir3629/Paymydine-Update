@@ -33,6 +33,17 @@ return [
         env('PMD_AI_GEMINI_FORCE_IPV4', true),
         FILTER_VALIDATE_BOOLEAN
     ),
+    // One extra attempt is enough to absorb a short Gemini high-demand spike.
+    // Permanent validation/auth failures and long transport timeouts are never
+    // retried. Keep this bounded to avoid accidental request/cost multiplication.
+    'gemini_transient_retries' => max(
+        0,
+        min(1, (int)env('PMD_AI_GEMINI_TRANSIENT_RETRIES', 1))
+    ),
+    'gemini_retry_delay_ms' => max(
+        0,
+        min(1500, (int)env('PMD_AI_GEMINI_RETRY_DELAY_MS', 350))
+    ),
 
     'request_timeout_seconds' => (int)env('PMD_AI_TIMEOUT_SECONDS', 25),
     'max_output_tokens' => (int)env('PMD_AI_MAX_OUTPUT_TOKENS', 1400),
