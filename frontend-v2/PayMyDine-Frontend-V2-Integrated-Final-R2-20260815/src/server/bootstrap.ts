@@ -179,6 +179,32 @@ export async function loadCustomerBootstrap(query: BootstrapQuery): Promise<Cust
     ),
     menuTranslationsPayload,
   )
+
+  // PMD_NEW_TENANT_SETUP_SPLASH_V2
+  // Frontend V2 replaced the legacy customer app that rendered TenantSetupSplash.
+  // Carry the canonical /api/v1/menu setup flag into V2 without guessing from a
+  // failed/partial fetch. Missing setup metadata fails safe as configured=true so
+  // an active restaurant never receives the owner setup CTA by accident.
+  const menuData = menuPayload && typeof menuPayload === 'object'
+    ? ((menuPayload as any).data && typeof (menuPayload as any).data === 'object'
+      ? (menuPayload as any).data
+      : menuPayload as any)
+    : null
+  const rawSetup = menuData?.setup_status && typeof menuData.setup_status === 'object'
+    ? menuData.setup_status
+    : null
+  const frontendConfigured = typeof menuData?.is_frontend_configured === 'boolean'
+    ? menuData.is_frontend_configured
+    : true
+  const setupStatus = rawSetup
+    ? {
+        hasCategories: rawSetup.has_categories === true,
+        hasMenuItems: rawSetup.has_menu_items === true,
+        hasLogo: rawSetup.has_logo === true,
+        hasCustomSettings: rawSetup.has_custom_settings === true,
+      }
+    : null
+
   const theme = normalizeTheme(resolvedThemePayload, previewId)
   const table = normalizeTable(tablePayload, { tableId, tableNo, qr })
 
@@ -220,6 +246,10 @@ export async function loadCustomerBootstrap(query: BootstrapQuery): Promise<Cust
     serviceCharge: normalizeServiceCharge(settings, resolvedThemePayload),
     table,
     menu,
+    setup: {
+      frontendConfigured,
+      status: setupStatus,
+    },
     payments: paymentMethods,
     activeOrder: table.valid && activeOrder
       && (activeOrder.status === 'draft' || activeOrder.totals.remainingAmount > 0)

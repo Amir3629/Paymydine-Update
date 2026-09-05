@@ -14,6 +14,10 @@
     $fields = $providerFields[$code] ?? [];
     $secrets = $secretFields[$code] ?? [];
     $config = $provider ? $provider->getConfigData() : [];
+    // PMD_VR_FINANCE_TERMINAL_AUTHORITY_R5_20260905
+    $vrTerminalInventory = $code === 'vr_payment'
+        ? (array)($pmdFinance['vr_terminal_inventory'] ?? [])
+        : [];
 @endphp
 <form class="pmd-inline-form" data-pmd-inline-form data-pmd-inline-title="{{ $pmdSettingsText('Edit provider') }}: {{ $provider->name ?: ucfirst(str_replace('_',' ',$code)) }}" data-pmd-backend-url="{{ admin_url('payments/edit/'.$code.'?mode=providers') }}" data-pmd-save-handler="onSave" data-pmd-refresh-selectors="#payment-methods">
     <input type="hidden" name="_token" value="{{ csrf_token() }}">
@@ -49,6 +53,46 @@
         </div>
         <div class="pmd-inline-note">Credentials are sent only to the existing <strong>Payments</strong> backend. Blank secret fields keep the current stored secret.</div>
         @if($code === 'vr_payment')
+            {{-- PMD_VR_FINANCE_TERMINAL_AUTHORITY_R5_20260905 --}}
+            <div class="pmd-inline-note" style="margin-top:12px">
+                <strong>VR Terminal management</strong><br>
+                {-- PMD_VR_PAYMENT_SAFETY_R6_20260905 --}
+                <div style="margin:8px 0 10px;padding:9px 11px;border:1px solid #f0c7c7;border-radius:9px;background:#fff6f6;color:#8b1d1d">
+                    <strong>Safety:</strong> PMD VR Simulators are diagnostics only. They never charge, never settle the order, and never create a paid invoice. Only a final VR provider transaction may settle a real order.
+                </div>
+                Provider terminal records: <strong>{{ (int)($vrTerminalInventory['provider_rows'] ?? 0) }}</strong>
+                · Usable real terminals: <strong>{{ (int)($vrTerminalInventory['usable_real'] ?? 0) }}</strong>
+                · PMD test simulators: <strong>{{ (int)($vrTerminalInventory['simulators'] ?? 0) }}</strong>
+                <br><small>VR terminal inventory is managed here. Provider terminals are synchronized from VR Payment; PMD simulators are TEST-only and never call the VR network.</small>
+
+                @if(!empty($vrTerminalInventory['rows']))
+                    <div style="margin-top:10px;display:grid;gap:8px">
+                        @foreach((array)$vrTerminalInventory['rows'] as $terminal)
+                            <div style="border:1px solid #dce7ea;border-radius:10px;padding:9px 11px;display:flex;justify-content:space-between;gap:12px;align-items:center">
+                                <div>
+                                    <strong>{{ $terminal['name'] ?? ($terminal['reader_id'] ?? 'VR terminal') }}</strong><br>
+                                    <small>
+                                        {{ !empty($terminal['simulator']) ? 'PMD simulator' : 'VR provider terminal' }}
+                                        · {{ $terminal['reader_id'] ?? '—' }}
+                                        @if(!empty($terminal['provider_terminal_id'])) · API #{{ $terminal['provider_terminal_id'] }} @endif
+                                    </small>
+                                </div>
+                                <div style="text-align:right">
+                                    <strong>{{ !empty($terminal['active']) ? 'Ready in PMD' : 'Not selectable' }}</strong><br>
+                                    <small>{{ $terminal['status'] ?? 'unknown' }} · {{ $terminal['pairing_state'] ?? 'unknown' }}</small>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+
+                <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+                    <button type="button" class="pmd-settings-inline-action" data-pmd-inline-action="onTestProviderConnection">Refresh / sync VR inventory</button>
+                    <button type="button" class="pmd-settings-inline-action" data-pmd-inline-action="onTestVrTerminalCapability">Test Cloud Till capability</button>
+                </div>
+                <small style="display:block;margin-top:8px">Cloud Till capability test creates one €0.10 TEST transaction in VR, but sends no perform-transaction command and charges nothing.</small>
+            </div>
+
             {{-- PMD_VR_PROVIDER_RUNTIME_GUIDE_R1_4_2 --}}
             <div class="pmd-inline-note" style="margin-top:12px">
                 <strong>{{ $pmdSettingsText('VR Payment runtime guide') }}</strong><br>
@@ -57,7 +101,9 @@
                 {{ $pmdSettingsText('Apple Pay / Google Pay: disabled means the current VR Space did not expose that wallet. Configure/activate the wallet with VR Payment first, then run') }} <strong>{{ $pmdSettingsText('Test saved connection') }}</strong>{{ $pmdSettingsText('. PayMyDine intentionally does not fake-enable unavailable wallets.') }}
             </div>
         @endif
-        <div style="margin-top:12px"><button type="button" class="pmd-settings-inline-action" data-pmd-inline-action="onTestProviderConnection">{{ $pmdSettingsText('Test saved connection') }}</button></div>
+        @if($code !== 'vr_payment')
+            <div style="margin-top:12px"><button type="button" class="pmd-settings-inline-action" data-pmd-inline-action="onTestProviderConnection">{{ $pmdSettingsText('Test saved connection') }}</button></div>
+        @endif
         <pre class="pmd-inline-result" data-pmd-inline-result hidden></pre>
     </section>
 </form>

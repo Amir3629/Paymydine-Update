@@ -350,6 +350,13 @@
         }) || null;
       }
 
+      // PMD_VR_PAYMENT_SAFETY_R6_20260905
+      function terminalIsPmdVrSimulator(row) {
+        if (!row) return false;
+        return String(row.provider_code || '').toLowerCase() === 'vr_payment'
+          && String(row.reader_id || '').toUpperCase().indexOf('PMD-VR-SIM-') === 0;
+      }
+
       // PMD_SQUARE_TERMINAL_CANADA_R10_READINESS
       function terminalIsOnline(row) {
         if (!row) return false;
@@ -515,7 +522,9 @@
         // Staff checkout is intentionally limited to the two actions a waiter needs.
         // Online methods remain available to guests in the digital-menu checkout.
         var methods = [{key: 'cash', name: pmdT('payment.cash', 'Cash'), note: pmdT('payment.cash_payment', 'Cash payment')}];
-        if (terminalProviders().length) {
+        // PMD_TERMINAL_UI_ONLINE_ONLY_R3_20260905
+        // Do not advertise Terminal because a stale/decommissioned row exists.
+        if (terminalProviders().some(terminalIsOnline)) {
           methods.push({key: 'direct_terminal', name: pmdT('payment.terminal', 'Terminal'), note: pmdT('payment.pay_connected_terminal', 'Pay on a connected terminal')});
         }
 
@@ -552,7 +561,9 @@
         if (terminalBox) {
           terminalBox.hidden = state.payment.method !== 'direct_terminal';
           if (state.payment.method === 'direct_terminal') {
-            var providers = terminalProviders();
+            // PMD_TERMINAL_UI_ONLINE_ONLY_R3_20260905
+            // Historical/offline provider records belong in Devices, not Cashier.
+            var providers = terminalProviders().filter(terminalIsOnline);
             var selected = selectedTerminal();
             if (!terminalIsOnline(selected)) {
               var firstOnline = providers.find(terminalIsOnline);
@@ -584,7 +595,7 @@
             terminalBox.innerHTML = '<div class="pmd-pos-terminal-title"><b>' + (providers.length > 1 ? pmdT('payment.choose_terminal', 'Choose terminal') : pmdT('payment.terminal', 'Terminal')) + '</b><span>' + esc(subtitle) + '</span></div><div class="pmd-pos-terminal-provider-row">' + providers.map(function (provider) {
               var id = provider.terminal_device_id || '';
               var status = String(provider.terminal_status || 'unknown').toLowerCase();
-              var isOnline = status === 'online';
+              var isOnline = terminalIsOnline(provider);
               var active = state.payment.providerCode === provider.provider_code && String(state.payment.terminalDeviceId || '') === String(id);
               return '<button type="button" data-terminal-provider="' + esc(provider.provider_code) + '" data-terminal-device-id="' + esc(id) + '" class="' + (active ? 'is-active ' : '') + (isOnline ? 'is-online' : 'is-offline') + '" ' + (!isOnline ? 'disabled' : '') + '><span>' + esc(provider.name || 'Terminal') + '</span><small><i></i>' + esc(isOnline ? pmdT('payment.online', 'Online') : status) + '</small></button>';
             }).join('') + '</div>';
@@ -862,6 +873,16 @@
         var chosen = selectedTerminal();
         if (!state.payment.providerCode || !state.payment.terminalDeviceId || !chosen) return toast('Choose an online terminal.', true);
 
+        // PMD_VR_PAYMENT_SAFETY_R6_20260905
+        if (terminalIsPmdVrSimulator(chosen)) {
+          var proceed = window.confirm(
+            'TEST ONLY — PMD VR Simulator\n\n'
+            + 'This does NOT charge the customer, does NOT send a payment to VR Payment, '
+            + 'and will NOT mark the order/invoice as paid.\n\nContinue with the simulation?'
+          );
+          if (!proceed) return;
+        }
+
         state.payment.submitting = true;
         renderPaymentTotals();
         try {
@@ -918,6 +939,30 @@
 
       async function finishTerminalStatus(result, silent) {
         var status = String(result && result.status ? result.status : '').toLowerCase();
+
+        // PMD_VR_PAYMENT_SAFETY_R6_20260905
+        if (status.indexOf('simulated_') === 0) {
+          await loadPaymentSummary(true);
+          var scenario = String(result && result.simulator_scenario ? result.simulator_scenario : '').toLowerCase();
+
+          if (status === 'simulated_pending' && scenario === 'delayed_success') {
+            if (!silent) toast('TEST ONLY — simulated payment is still pending. No payment has been recorded.');
+            return false;
+          }
+
+          var simulationMessage =
+            status === 'simulated_approved'
+              ? 'TEST ONLY — approval scenario passed. NO payment was recorded; the order remains unpaid.'
+              : status === 'simulated_declined'
+                ? 'TEST ONLY — decline scenario passed. NO payment was recorded; the order remains unpaid.'
+                : status === 'simulated_cancelled'
+                  ? 'TEST ONLY — cancel scenario passed. NO payment was recorded; the order remains unpaid.'
+                  : 'TEST ONLY — timeout/pending scenario passed. NO payment was recorded; the order remains unpaid.';
+
+          toast(simulationMessage, status !== 'simulated_approved');
+          return true;
+        }
+
         if (status === 'paid') {
           await loadPaymentSummary(true);
           var desktopReceiptUrl = latestDesktopReceiptUrl();

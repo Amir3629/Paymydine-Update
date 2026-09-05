@@ -25,6 +25,18 @@ class VrPaymentTerminalProvider implements TerminalPaymentProviderInterface
         $validation = $client->validateConfiguration();
         if (!($validation['ok'] ?? false)) return $validation;
 
+        // PMD_VR_TERMINAL_SIMULATOR_R1_20260905
+        if (!empty($config['pmd_vr_simulator'])) {
+            if (strtolower(trim((string)($config['mode'] ?? 'test'))) !== 'test') {
+                return ['ok' => false, 'message' => 'PMD VR Simulator is blocked outside VR Payment TEST mode.'];
+            }
+            $scenario = $this->simulatorScenario($config);
+            if ($scenario === '') {
+                return ['ok' => false, 'message' => 'PMD VR Simulator scenario is invalid.'];
+            }
+            return ['ok' => true, 'message' => 'PMD VR Simulator is ready. No request will be sent to VR Payment.'];
+        }
+
         $terminalId = trim((string)($config['terminal_id'] ?? $config['provider_terminal_id'] ?? ''));
         if ($terminalId === '' || !ctype_digit($terminalId) || (int)$terminalId <= 0) {
             return ['ok' => false, 'message' => 'Select a synced VR Payment terminal before charging.'];
@@ -45,6 +57,10 @@ class VrPaymentTerminalProvider implements TerminalPaymentProviderInterface
             return ['ok' => false, 'status' => 'failed', 'message' => 'VR Payment terminal amount must be greater than zero.'];
         }
 
+        if (!empty($config['pmd_vr_simulator'])) {
+            return $this->simulateCreate($attempt, $config);
+        }
+
         $currency = strtoupper(trim((string)($attempt['currency'] ?? $config['currency'] ?? 'EUR'))) ?: 'EUR';
         $terminalId = (int)($config['terminal_id'] ?? $config['provider_terminal_id'] ?? 0);
         $attemptId = (int)($attempt['id'] ?? 0);
@@ -52,9 +68,15 @@ class VrPaymentTerminalProvider implements TerminalPaymentProviderInterface
         $merchantReference = substr('PMD-POS-'.$orderId.'-'.$attemptId, 0, 100);
         $language = trim((string)($config['language'] ?? 'de-DE')) ?: 'de-DE';
 
+        // PMD_VR_CLOUD_TILL_PRESENCE_R4B_20260905
         $transactionPayload = [
             'currency' => $currency,
-            'customersPresence' => 'PHYSICAL_PRESENT',
+            // PMD_VR_CLOUD_TILL_PRESENCE_R4_20260905
+            // Cloud Till uses the terminal sales channel when perform-transaction
+            // is invoked. Do not pre-classify the transaction itself as
+            // PHYSICAL_PRESENT; VR Payment Acquiring card connectors expose
+            // physical-terminal sales-channel support separately from customer
+            // presence capability.
             'language' => str_replace('_', '-', $language),
             'lineItems' => [[
                 'amountIncludingTax' => number_format($amount, 2, '.', ''),
@@ -142,6 +164,10 @@ class VrPaymentTerminalProvider implements TerminalPaymentProviderInterface
             return ['ok' => false, 'status' => (string)($attempt['status'] ?? 'pending'), 'message' => $validation['message'] ?? 'VR Payment terminal configuration is invalid.'];
         }
 
+        if (!empty($config['pmd_vr_simulator'])) {
+            return $this->simulateStatus($attempt, $config);
+        }
+
         $reference = trim((string)($attempt['provider_reference'] ?? ''));
         if ($reference === '' || !ctype_digit($reference)) {
             return ['ok' => false, 'status' => (string)($attempt['status'] ?? 'pending'), 'message' => 'VR Payment transaction reference is missing.'];
@@ -180,4 +206,68 @@ class VrPaymentTerminalProvider implements TerminalPaymentProviderInterface
                 : 'VR Payment terminal transaction state: '.strtolower((string)($transaction['state'] ?? 'processing')),
         ];
     }
+    // PMD_VR_TERMINAL_SIMULATOR_R1_20260905
+    private function simulatorScenario(array $config): string
+    {
+        $scenario = strtolower(trim((string)($config['pmd_vr_simulator_scenario'] ?? '')));
+        return in_array($scenario, ['approve', 'decline', 'cancel', 'timeout', 'delayed_success'], true) ? $scenario : '';
+    }
+
+    private function simulatorReference(array $attempt, string $scenario): string
+    {
+        $attemptId = (int)($attempt['id'] ?? 0);
+        return 'PMD-VR-SIM-'.strtoupper($scenario).'-'.$attemptId;
+    }
+
+    private function simulateCreate(array $attempt, array $config): array
+    {
+        $scenario = $this->simulatorScenario($config);
+        $reference = $this->simulatorReference($attempt, $scenario);
+        $base = [
+            'provider_reference' => $reference,
+            'transaction_id' => $reference,
+            'merchant_reference' => $reference,
+            'simulator' => true,
+            'simulator_scenario' => $scenario,
+        ];
+
+        return match ($scenario) {
+            'approve' => $base + ['ok'=>true,'status'=>'paid','message'=>'PMD VR Simulator approved the payment. No request was sent to VR Payment.'],
+            'decline' => $base + ['ok'=>false,'status'=>'failed','message'=>'PMD VR Simulator declined the payment. No request was sent to VR Payment.'],
+            'cancel' => $base + ['ok'=>true,'status'=>'cancelled','message'=>'PMD VR Simulator cancelled the payment. No request was sent to VR Payment.'],
+            'timeout' => $base + ['ok'=>true,'status'=>'sent_to_terminal','message'=>'PMD VR Simulator is simulating a terminal timeout. Refresh will remain pending.'],
+            'delayed_success' => $base + ['ok'=>true,'status'=>'sent_to_terminal','message'=>'PMD VR Simulator accepted the request. Refresh after about 5 seconds to simulate approval.'],
+            default => ['ok'=>false,'status'=>'failed','message'=>'PMD VR Simulator scenario is invalid.','simulator'=>true],
+        };
+    }
+
+    private function simulateStatus(array $attempt, array $config): array
+    {
+        $scenario = $this->simulatorScenario($config);
+        $reference = trim((string)($attempt['provider_reference'] ?? ''));
+        if ($reference === '') $reference = $this->simulatorReference($attempt, $scenario);
+        $base = [
+            'ok'=>true,
+            'provider_reference'=>$reference,
+            'transaction_id'=>$reference,
+            'simulator'=>true,
+            'simulator_scenario'=>$scenario,
+        ];
+
+        if ($scenario === 'delayed_success') {
+            $createdAt = strtotime((string)($attempt['created_at'] ?? '')) ?: time();
+            $elapsed = max(0, time() - $createdAt);
+            if ($elapsed >= 5) return $base + ['status'=>'paid','message'=>'PMD VR Simulator delayed payment is now approved. No request was sent to VR Payment.'];
+            return $base + ['status'=>'sent_to_terminal','message'=>'PMD VR Simulator delayed payment is still pending ('.$elapsed.'s / 5s).'];
+        }
+
+        return match ($scenario) {
+            'approve' => $base + ['status'=>'paid','message'=>'PMD VR Simulator payment is approved.'],
+            'decline' => $base + ['status'=>'failed','message'=>'PMD VR Simulator payment is declined.'],
+            'cancel' => $base + ['status'=>'cancelled','message'=>'PMD VR Simulator payment is cancelled.'],
+            'timeout' => $base + ['status'=>'sent_to_terminal','message'=>'PMD VR Simulator timeout remains pending by design.'],
+            default => ['ok'=>false,'status'=>(string)($attempt['status']??'pending'),'message'=>'PMD VR Simulator scenario is invalid.','simulator'=>true],
+        };
+    }
+
 }

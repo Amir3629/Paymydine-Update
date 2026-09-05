@@ -131,6 +131,28 @@ class VRPaymentGatewayService
 
         $sync = $this->syncTerminalDevices($audit['terminals'] ?? [], $config);
         $methodSync = $this->syncAssignedMethodStatuses((array)($audit['available_method_codes'] ?? [])); // PMD_VR_METHOD_STATUS_SYNC_R1_3
+
+        // PMD_VR_TERMINAL_SIMULATOR_R1_20260905
+        // Provider API inventory is not the same thing as a usable device.
+        // Internal PMD simulators are deliberately counted separately.
+        $usableRealTerminalCount = 0;
+        $pmdSimulatorCount = 0;
+        if (Schema::hasTable('terminal_devices')) {
+            $vrInventory = DB::table('terminal_devices')
+                ->whereRaw('LOWER(provider_code) = ?', ['vr_payment'])
+                ->where('is_active', 1)
+                ->whereNotNull('reader_id')
+                ->where('reader_id', '!=', '');
+
+            $pmdSimulatorCount = (clone $vrInventory)
+                ->where('reader_id', 'like', 'PMD-VR-SIM-%')
+                ->count();
+
+            $usableRealTerminalCount = (clone $vrInventory)
+                ->where('reader_id', 'not like', 'PMD-VR-SIM-%')
+                ->count();
+        }
+
         $this->forgetReadinessCache($config);
 
         return [
@@ -144,7 +166,11 @@ class VRPaymentGatewayService
             'google_pay_ready' => (bool)($audit['google_pay_ready'] ?? false),
             'paypal_ready' => (bool)($audit['paypal_ready'] ?? false),
             'wero_ready' => (bool)($audit['wero_ready'] ?? false),
-            'terminal_count' => (int)($audit['terminal_count'] ?? 0),
+            'api_terminal_count' => (int)($audit['terminal_count'] ?? 0),
+            'terminal_count' => (int)$usableRealTerminalCount,
+            'usable_terminal_count' => (int)$usableRealTerminalCount,
+            'pmd_simulator_count' => (int)$pmdSimulatorCount,
+            'pmd_simulator_ready' => $pmdSimulatorCount > 0,
             'terminal_sync' => $sync,
             'method_sync' => $methodSync,
         ];
@@ -597,7 +623,13 @@ class VRPaymentGatewayService
 
         $columns = Schema::getColumnListing('terminal_devices');
         $synced = 0;
+        $usableSynced = 0;
         $seenReaderIds = [];
+
+        // PMD_VR_TERMINAL_SIMULATOR_R1_20260905
+        // A VR terminal is selectable only when the provider says it is online
+        // AND the API exposes a concrete device serial. This intentionally fails
+        // closed for logical/unlinked terminal records.
 
         foreach ($terminals as $terminal) {
             if (!is_array($terminal)) continue;
@@ -605,15 +637,17 @@ class VRPaymentGatewayService
             if ($providerId <= 0) continue;
             $readerId = trim((string)($terminal['identifier'] ?? '')) ?: (string)$providerId;
             $seenReaderIds[] = $readerId;
+            $usable = (bool)($terminal['online'] ?? false)
+                && trim((string)($terminal['serial_number'] ?? '')) !== '';
 
             $payload = [
                 'provider_code' => 'vr_payment',
                 'reader_id' => $readerId,
                 'reader_label' => (string)($terminal['name'] ?? 'VR Payment terminal'),
-                'terminal_status' => ($terminal['online'] ?? false) ? 'online' : (string)($terminal['state'] ?? 'unknown'),
-                'pairing_state' => (string)($terminal['state'] ?? 'unknown'),
+                'terminal_status' => $usable ? 'online' : (string)($terminal['state'] ?? 'unknown'),
+                'pairing_state' => $usable ? 'ready' : (string)($terminal['state'] ?? 'unknown'),
                 'environment' => (string)($config['mode'] ?? 'test'),
-                'is_active' => 1,
+                'is_active' => $usable ? 1 : 0,
                 'serial_number' => $terminal['serial_number'] ?? null,
                 'provider_terminal_id' => $providerId,
                 'updated_at' => now(),
@@ -637,11 +671,13 @@ class VRPaymentGatewayService
                 DB::table('terminal_devices')->insert($payload);
             }
             $synced++;
+            if ($usable) $usableSynced++;
         }
 
         if ($seenReaderIds && in_array('reader_id', $columns, true) && in_array('is_active', $columns, true)) {
             DB::table('terminal_devices')
                 ->whereRaw('LOWER(provider_code) = ?', ['vr_payment'])
+                ->where('reader_id', 'not like', 'PMD-VR-SIM-%')
                 ->whereNotIn('reader_id', $seenReaderIds)
                 ->update(array_intersect_key([
                     'is_active' => 0,
@@ -650,7 +686,11 @@ class VRPaymentGatewayService
                 ], array_flip($columns)));
         }
 
-        return ['ok' => true, 'synced' => $synced];
+        return [
+            'ok' => true,
+            'synced' => $synced,
+            'usable' => $usableSynced,
+        ];
     }
 
     public function normalizeProviderException(\Throwable $e): array

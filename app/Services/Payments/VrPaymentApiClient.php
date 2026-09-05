@@ -359,11 +359,14 @@ class VrPaymentApiClient
     {
         $state = strtoupper(trim((string)($transaction['state'] ?? $transaction['status'] ?? '')));
 
+        // PMD_VR_PAYMENT_SAFETY_R6_20260905
+        // Fail closed. VR documents FULFILL / DECLINE as the final merchant
+        // decision states. AUTHORIZED and COMPLETED are not treated as settled.
         return match ($state) {
-            'AUTHORIZED', 'FULFILL', 'FULFILLED', 'COMPLETED' => 'paid',
+            'FULFILL', 'FULFILLED' => 'paid',
             'FAILED', 'DECLINE', 'DECLINED' => 'failed',
             'VOIDED', 'CANCELLED', 'CANCELED' => 'cancelled',
-            'PENDING', 'CONFIRMED', 'PROCESSING' => 'sent_to_terminal',
+            'PENDING', 'CONFIRMED', 'PROCESSING', 'AUTHORIZED', 'COMPLETED' => 'sent_to_terminal',
             default => 'pending',
         };
     }

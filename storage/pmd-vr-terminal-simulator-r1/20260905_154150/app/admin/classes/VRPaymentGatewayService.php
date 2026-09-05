@@ -1,0 +1,743 @@
+<?php
+
+namespace Admin\Classes;
+
+use Admin\Models\Payments_model;
+use App\Services\Payments\VrPaymentApiClient;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
+
+/**
+ * PMD_VR_PAYMENT_ONLINE_R1
+ *
+ * VR Payment online authority for PayMyDine.
+ * Uses the official REST API v2.0 contract through VrPaymentApiClient.
+ * Payment Page is the first-class guest flow; provider method availability is
+ * discovered from the tenant's VR Payment Space and never guessed from marketing
+ * capability alone.
+ */
+class VRPaymentGatewayService
+{
+    protected const SUPPORTED_METHODS = ['card', 'apple_pay', 'google_pay', 'paypal', 'wero'];
+
+    public function getConfig(): array
+    {
+        $row = Payments_model::query()->where('code', 'vr_payment')->first();
+        $raw = $row && method_exists($row, 'getConfigData')
+            ? (array)$row->getConfigData()
+            : (is_array(optional($row)->data) ? (array)$row->data : []);
+
+        return [
+            'enabled' => $row ? (bool)$row->status : false,
+            'mode' => in_array(strtolower((string)($raw['mode'] ?? 'test')), ['test', 'live'], true)
+                ? strtolower((string)($raw['mode'] ?? 'test'))
+                : 'test',
+            'api_base_url' => rtrim((string)($raw['api_base_url'] ?? 'https://gateway.vr-payment.de'), '/'),
+            'space_id' => trim((string)($raw['space_id'] ?? '')),
+            'user_id' => trim((string)($raw['user_id'] ?? $raw['application_user_id'] ?? '')),
+            'auth_key' => trim((string)($raw['auth_key'] ?? $raw['authentication_key'] ?? '')),
+            'preferred_integration_mode' => 'payment_page',
+            'currency' => strtoupper(trim((string)($raw['currency'] ?? 'EUR'))) ?: 'EUR',
+            'terminal_id' => trim((string)($raw['terminal_id'] ?? '')),
+            'language' => trim((string)($raw['language'] ?? 'de-DE')) ?: 'de-DE',
+        ];
+    }
+
+    public function getConfigForDiagnostics(): array
+    {
+        $config = $this->getConfig();
+        $base = [
+            'provider_enabled' => (bool)$config['enabled'],
+            'mode' => $config['mode'],
+            'integration_mode_valid' => true,
+            'credentials_present' => $this->requiredCredentialsPresent($config),
+            'config_presence' => [
+                'api_base_url' => $config['api_base_url'] !== '',
+                'space_id' => $config['space_id'] !== '',
+                'user_id' => $config['user_id'] !== '',
+                'auth_key' => $config['auth_key'] !== '',
+            ],
+        ];
+
+        if (!$base['provider_enabled'] || !$base['credentials_present']) {
+            foreach (self::SUPPORTED_METHODS as $method) {
+                $base[$method.'_ready'] = false;
+                $base[$method.'_enabled'] = false;
+            }
+            $base['any_ready'] = false;
+            $base['terminal_ready'] = false;
+            $base['terminal_count'] = 0;
+            return $base;
+        }
+
+        $audit = $this->readinessAudit($config);
+        foreach (self::SUPPORTED_METHODS as $method) {
+            $base[$method.'_ready'] = (bool)($audit[$method.'_ready'] ?? false);
+            $base[$method.'_enabled'] = (bool)($audit[$method.'_ready'] ?? false);
+        }
+        $base['any_ready'] = (bool)($audit['card_ready'] ?? false)
+            || (bool)($audit['apple_pay_ready'] ?? false)
+            || (bool)($audit['google_pay_ready'] ?? false)
+            || (bool)($audit['paypal_ready'] ?? false)
+            || (bool)($audit['wero_ready'] ?? false);
+        $base['connected'] = (bool)($audit['connected'] ?? false);
+        $base['available_method_codes'] = $audit['available_method_codes'] ?? [];
+        $base['terminal_ready'] = (bool)($audit['terminals_api_ok'] ?? false) && (int)($audit['terminal_count'] ?? 0) > 0;
+        $base['terminal_count'] = (int)($audit['terminal_count'] ?? 0);
+        $base['terminals_api_ok'] = (bool)($audit['terminals_api_ok'] ?? false);
+
+        return $base;
+    }
+
+    public function isMethodReady(string $methodCode, ?array $config = null): bool
+    {
+        $method = strtolower(trim($methodCode));
+        if (!in_array($method, self::SUPPORTED_METHODS, true)) return false;
+
+        $config = $config ?: $this->getConfig();
+        if (!(bool)($config['enabled'] ?? false) || !$this->requiredCredentialsPresent($config)) return false;
+
+        $audit = $this->readinessAudit($config);
+        return (bool)($audit[$method.'_ready'] ?? false);
+    }
+
+    public function probeConnectivity(): array
+    {
+        $config = $this->getConfig();
+        if (!(bool)($config['enabled'] ?? false)) {
+            return [
+                'ok' => false,
+                'connected' => false,
+                'error_category' => 'configuration',
+                'error_code' => 'vr_payment_provider_disabled',
+                'error' => 'VR Payment provider is disabled.',
+            ];
+        }
+
+        $client = new VrPaymentApiClient($config);
+        $audit = $client->connectionAudit();
+        if (!($audit['ok'] ?? false)) {
+            return [
+                'ok' => false,
+                'connected' => false,
+                'error_category' => 'provider_api',
+                'error_code' => 'vr_payment_connection_failed',
+                'error' => $audit['message'] ?? 'VR Payment API connection failed.',
+                'provider_http_status' => $audit['api']['status'] ?? null,
+            ];
+        }
+
+        $sync = $this->syncTerminalDevices($audit['terminals'] ?? [], $config);
+        $methodSync = $this->syncAssignedMethodStatuses((array)($audit['available_method_codes'] ?? [])); // PMD_VR_METHOD_STATUS_SYNC_R1_3
+        $this->forgetReadinessCache($config);
+
+        return [
+            'ok' => true,
+            'connected' => true,
+            'message' => 'VR Payment Space connected. Payment methods and terminals were discovered.',
+            'space_id' => $audit['space_id'] ?? null,
+            'available_method_codes' => $audit['available_method_codes'] ?? [],
+            'card_ready' => (bool)($audit['card_ready'] ?? false),
+            'apple_pay_ready' => (bool)($audit['apple_pay_ready'] ?? false),
+            'google_pay_ready' => (bool)($audit['google_pay_ready'] ?? false),
+            'paypal_ready' => (bool)($audit['paypal_ready'] ?? false),
+            'wero_ready' => (bool)($audit['wero_ready'] ?? false),
+            'terminal_count' => (int)($audit['terminal_count'] ?? 0),
+            'terminal_sync' => $sync,
+            'method_sync' => $methodSync,
+        ];
+    }
+
+    public function createRedirectSession(array $payload): array
+    {
+        $method = strtolower(trim((string)($payload['method'] ?? 'card')));
+        if (!in_array($method, self::SUPPORTED_METHODS, true)) {
+            return $this->businessError('vr_payment_method_not_supported', 'This payment method is not supported by the VR Payment integration.');
+        }
+
+        $config = $this->getConfig();
+        if (!(bool)($config['enabled'] ?? false)) {
+            return $this->businessError('vr_payment_provider_not_ready', 'VR Payment provider is not enabled.');
+        }
+        if (!$this->requiredCredentialsPresent($config)) {
+            return $this->businessError('vr_payment_configuration_invalid', 'VR Payment Space ID, Application User ID or Authentication Key is missing.');
+        }
+
+        $audit = $this->readinessAudit($config);
+        if (!($audit[$method.'_ready'] ?? false)) {
+            return $this->businessError(
+                'vr_payment_method_not_available',
+                strtoupper(str_replace('_', ' ', $method)).' is not active in this VR Payment Space.'
+            );
+        }
+
+        $amount = round((float)($payload['amount'] ?? 0), 2);
+        if ($amount <= 0) {
+            return $this->businessError('vr_payment_invalid_amount', 'Payment amount must be greater than zero.');
+        }
+
+        $currency = strtoupper(trim((string)($payload['currency'] ?? $config['currency'] ?? 'EUR'))) ?: 'EUR';
+        $merchantReference = $this->resolveMerchantReference((string)($payload['merchant_reference'] ?? ''), $method);
+        $returnUrl = trim((string)($payload['return_url'] ?? ''));
+        $cancelUrl = trim((string)($payload['cancel_url'] ?? $returnUrl));
+
+        // PMD_VR_PAYMENT_TRANSACTION_METHOD_GATE_R1
+        // The tenant-level catalogue is only a preflight. The authoritative
+        // method gate is fetched for the concrete transaction below, because
+        // VR Payment can apply transaction-specific connector conditions.
+        $transactionPayload = [
+            'currency' => $currency,
+            'language' => $this->normalizeLanguage((string)($payload['language'] ?? $config['language'] ?? 'de-DE')),
+            'lineItems' => [[
+                'amountIncludingTax' => number_format($amount, 2, '.', ''),
+                'name' => trim((string)($payload['description'] ?? 'PayMyDine order')) ?: 'PayMyDine order',
+                'quantity' => '1',
+                'shippingRequired' => false,
+                'sku' => 'pmd-order',
+                'type' => 'PRODUCT',
+                'uniqueId' => $merchantReference,
+            ]],
+            'merchantReference' => $merchantReference,
+            'autoConfirmationEnabled' => true,
+            'metaData' => [
+                'pmd_method' => $method,
+                'pmd_order_id' => isset($payload['order_id']) ? (string)(int)$payload['order_id'] : '',
+            ],
+        ];
+        if ($returnUrl !== '') $transactionPayload['successUrl'] = $returnUrl;
+        if ($cancelUrl !== '') $transactionPayload['failedUrl'] = $cancelUrl;
+
+        $client = new VrPaymentApiClient($config);
+        $created = $client->createTransaction($transactionPayload);
+        if (!($created['ok'] ?? false) || !is_array($created['data'] ?? null)) {
+            return $this->businessError(
+                'vr_payment_transaction_create_failed',
+                $created['message'] ?? 'VR Payment transaction creation failed.',
+                ['provider_http_status' => $created['status'] ?? null]
+            );
+        }
+
+        $transaction = (array)$created['data'];
+        $transactionId = (int)($transaction['id'] ?? 0);
+        if ($transactionId <= 0) {
+            return $this->businessError('vr_payment_transaction_create_failed', 'VR Payment did not return a transaction ID.');
+        }
+
+        // PMD_VR_TARGET_MODE_SELECTION_R1_4_3
+        // VR's possible-method endpoint is integration-mode specific. Frontend V2
+        // asks for Lightbox, so do not gate it through PAYMENT_PAGE first.
+        $requestedIntegration = strtolower(trim((string)(
+            $payload['integration_preference']
+            ?? $payload['integration_mode']
+            ?? $payload['checkout_flow']
+            ?? ''
+        )));
+        $targetIntegrationMode = in_array($requestedIntegration, ['lightbox', 'embedded'], true)
+            ? 'lightbox'
+            : 'payment_page';
+
+        // PMD_VR_CONFIG_ID_INTERSECTION_R1_4_3
+        // The tenant catalogue is the authority for mapping PMD method -> VR method
+        // configuration ID. Transaction-scoped responses are then used only to decide
+        // which of those IDs are possible for THIS transaction + integration mode.
+        // This avoids the R1.4.2 false negative when transaction rows do not expand a
+        // payment-method name even though the configuration ID is valid.
+        $catalogue = $client->paymentMethodConfigurations();
+        if (!($catalogue['ok'] ?? false)) {
+            return $this->businessError(
+                'vr_payment_method_catalogue_failed',
+                $catalogue['message'] ?? 'VR Payment could not read the payment method catalogue.',
+                ['provider_http_status' => $catalogue['status'] ?? null, 'transaction_id' => $transactionId]
+            );
+        }
+        $catalogueRows = $client->normalizeMethodConfigurations((array)($catalogue['data'] ?? []));
+        $configuredMethodIds = [];
+        foreach ($catalogueRows as $row) {
+            if (
+                ($row['pmd_method_code'] ?? null) === $method
+                && !empty($row['id'])
+                && ($row['active'] ?? true)
+            ) {
+                $configuredMethodIds[] = (int)$row['id'];
+            }
+        }
+        $configuredMethodIds = array_values(array_unique(array_filter($configuredMethodIds)));
+        if (!$configuredMethodIds) {
+            return $this->businessError(
+                'vr_payment_method_not_configured',
+                strtoupper(str_replace('_', ' ', $method)).' is not configured in this VR Payment Space.',
+                ['transaction_id' => $transactionId, 'integration_mode' => $targetIntegrationMode]
+            );
+        }
+
+        $possible = $client->availablePaymentMethodConfigurations($transactionId, $targetIntegrationMode);
+        if (!($possible['ok'] ?? false)) {
+            return $this->businessError(
+                'vr_payment_method_discovery_failed',
+                $possible['message'] ?? 'VR Payment could not list payment methods for this transaction.',
+                [
+                    'provider_http_status' => $possible['status'] ?? null,
+                    'transaction_id' => $transactionId,
+                    'integration_mode' => $targetIntegrationMode,
+                ]
+            );
+        }
+        $possibleRows = $client->normalizeMethodConfigurations((array)($possible['data'] ?? []));
+        $possibleIds = [];
+        foreach ($possibleRows as $row) {
+            if (!empty($row['id']) && ($row['active'] ?? true)) {
+                $possibleIds[] = (int)$row['id'];
+            }
+        }
+        $possibleIds = array_values(array_unique(array_filter($possibleIds)));
+        $allowedIds = array_values(array_intersect($configuredMethodIds, $possibleIds));
+        if (!$allowedIds) {
+            PaymentLogger::info('VR_PAYMENT_TARGET_MODE_UNAVAILABLE_R1_4_3', [
+                'provider' => 'vr_payment',
+                'payment_method' => $method,
+                'transaction_id' => $transactionId,
+                'integration_mode' => $targetIntegrationMode,
+                'configured_method_ids' => $configuredMethodIds,
+                'possible_method_ids' => $possibleIds,
+                'possible_rows' => array_map(static fn (array $row): array => [
+                    'id' => (int)($row['id'] ?? 0),
+                    'code' => (string)($row['pmd_method_code'] ?? ''),
+                    'name' => (string)($row['name'] ?? ''),
+                    'active' => (bool)($row['active'] ?? true),
+                ], $possibleRows),
+            ]);
+            return $this->businessError(
+                'vr_payment_method_not_available_for_integration',
+                strtoupper(str_replace('_', ' ', $method)).' is not available for this VR Payment '.strtoupper($targetIntegrationMode).' transaction.',
+                [
+                    'transaction_id' => $transactionId,
+                    'integration_mode' => $targetIntegrationMode,
+                    'configured_method_ids' => $configuredMethodIds,
+                    'possible_method_ids' => $possibleIds,
+                ]
+            );
+        }
+
+        $version = (int)($transaction['version'] ?? 0);
+        $updatePayload = [
+            'id' => $transactionId,
+            'version' => $version,
+            'allowedPaymentMethodConfigurations' => array_map(
+                static fn (int $id): array => ['id' => $id],
+                $allowedIds
+            ),
+        ];
+        $updated = $client->updateTransaction($transactionId, $updatePayload);
+        if (!($updated['ok'] ?? false)) {
+            return $this->businessError(
+                'vr_payment_method_restriction_failed',
+                $updated['message'] ?? 'VR Payment could not restrict the transaction to the selected payment method.',
+                ['provider_http_status' => $updated['status'] ?? null, 'transaction_id' => $transactionId]
+            );
+        }
+        if (is_array($updated['data'] ?? null)) $transaction = (array)$updated['data'];
+
+        // PMD_VR_LIGHTBOX_CHECKOUT_R1_4
+        // Lightbox is opt-in so legacy/shared checkout callers keep their proven
+        // Payment Page redirect contract. The frontend-v2 client explicitly asks
+        // for lightbox and we fall back to Payment Page if the tenant/method does
+        // not expose a usable lightbox configuration.
+        // R1.4.3: requestedIntegration was resolved before transaction method restriction.
+        if (
+            in_array($requestedIntegration, ['lightbox', 'embedded'], true)
+            && in_array($method, ['card', 'wero', 'apple_pay', 'google_pay'], true)
+        ) {
+            $lightboxMethodId = null;
+            $available = $client->availablePaymentMethodConfigurations($transactionId, 'lightbox');
+            if ($available['ok'] ?? false) {
+                $rows = $client->normalizeMethodConfigurations((array)($available['data'] ?? []));
+                $lightboxCandidates = array_map(static fn (array $row): array => [
+                    'id' => (int)($row['id'] ?? 0),
+                    'code' => (string)($row['pmd_method_code'] ?? ''),
+                    'active' => (bool)($row['active'] ?? true),
+                ], $rows);
+                foreach ($rows as $row) {
+                    $candidateId = (int)($row['id'] ?? 0);
+                    if ($candidateId <= 0 || !($row['active'] ?? true)) continue;
+                    $candidateCode = strtolower(trim((string)($row['pmd_method_code'] ?? '')));
+                    // PMD_VR_LIGHTBOX_METHOD_ID_MATCH_R1_4_2
+                    // allowedIds was built only from the selected PMD method before the
+                    // transaction was created. Some transaction-scoped VR responses do
+                    // not expand paymentMethod names, so their candidateCode can be empty.
+                    // In that case the selected-method ID allow-list is the authoritative
+                    // and still exact match. Only fall back to code matching if no IDs exist.
+                    $candidateMatchesSelectedMethod = $allowedIds
+                        ? in_array($candidateId, $allowedIds, true)
+                        : $candidateCode === $method;
+                    if ($candidateMatchesSelectedMethod) {
+                        $lightboxMethodId = $candidateId;
+                        break;
+                    }
+                }
+            }
+
+            if ($lightboxMethodId !== null) {
+                $lightboxScript = $client->lightboxJavascriptUrl($transactionId);
+                $scriptUrl = ($lightboxScript['ok'] ?? false)
+                    ? $this->extractStringResult($lightboxScript['data'] ?? null)
+                    : '';
+
+                if ($scriptUrl !== '') {
+                    PaymentLogger::info('VR_PAYMENT_LIGHTBOX_READY', [
+                        'provider' => 'vr_payment',
+                        'payment_method' => $method,
+                        'transaction_id' => $transactionId,
+                        'payment_method_configuration_id' => $lightboxMethodId,
+                        'merchant_reference' => $merchantReference,
+                    ]);
+
+                    return [
+                        'success' => true,
+                        'provider' => 'vr_payment',
+                        'method' => $method,
+                        'flow' => 'lightbox',
+                        'script_url' => $scriptUrl,
+                        'payment_method_configuration_id' => $lightboxMethodId,
+                        'redirect_url' => null,
+                        'fallback_flow' => 'payment_page',
+                        'merchant_reference' => $merchantReference,
+                        'session_id' => (string)$transactionId,
+                        'transaction_id' => (string)$transactionId,
+                        'provider_reference' => (string)$transactionId,
+                        'status' => $client->normalizeTransactionStatus($transaction),
+                        'raw_status' => $transaction['state'] ?? null,
+                    ];
+                }
+            }
+
+            PaymentLogger::info('VR_PAYMENT_LIGHTBOX_FALLBACK', [
+                'provider' => 'vr_payment',
+                'payment_method' => $method,
+                'requested_integration' => $requestedIntegration,
+                'transaction_id' => $transactionId,
+                'available_api_ok' => (bool)($available['ok'] ?? false),
+                'lightbox_configuration_found' => $lightboxMethodId !== null,
+                'available_http_status' => $available['status'] ?? null,
+                'allowed_method_ids' => $allowedIds,
+                'lightbox_candidates' => $lightboxCandidates ?? [],
+            ]);
+            // PMD_VR_LIGHTBOX_NO_REDIRECT_R1_4_3
+            // Frontend V2 explicitly requested an in-PayMyDine flow. Do not silently
+            // navigate the guest to a hosted page when the provider cannot initialize
+            // Lightbox. Legacy callers that request PAYMENT_PAGE still keep redirect.
+            if (in_array($requestedIntegration, ['lightbox', 'embedded'], true)) {
+                return $this->businessError(
+                    'vr_payment_lightbox_not_available',
+                    'VR Payment could not initialize Lightbox for the selected method.',
+                    [
+                        'transaction_id' => $transactionId,
+                        'integration_mode' => 'lightbox',
+                        'allowed_method_ids' => $allowedIds,
+                        'lightbox_configuration_found' => $lightboxMethodId !== null,
+                        'provider_http_status' => $available['status'] ?? null,
+                    ]
+                );
+            }
+        }
+
+        $page = $client->paymentPageUrl($transactionId);
+        if (!($page['ok'] ?? false)) {
+            return $this->businessError(
+                'vr_payment_redirect_missing',
+                $page['message'] ?? 'VR Payment did not return a Payment Page URL.',
+                ['provider_http_status' => $page['status'] ?? null, 'transaction_id' => $transactionId]
+            );
+        }
+
+        $redirectUrl = $this->extractStringResult($page['data'] ?? null);
+        if ($redirectUrl === '') {
+            return $this->businessError('vr_payment_redirect_missing', 'VR Payment Payment Page URL is empty.');
+        }
+
+        $status = $client->normalizeTransactionStatus($transaction);
+        PaymentLogger::info('VR_PAYMENT_SESSION_CREATED', [
+            'provider' => 'vr_payment',
+            'payment_method' => $method,
+            'transaction_id' => $transactionId,
+            'merchant_reference' => $merchantReference,
+            'amount' => $amount,
+            'currency' => $currency,
+            'allowed_payment_method_configurations' => $allowedIds,
+        ]);
+
+        return [
+            'success' => true,
+            'provider' => 'vr_payment',
+            'method' => $method,
+            'flow' => 'redirect',
+            'redirect_url' => $redirectUrl,
+            'fallback_flow' => null,
+            'merchant_reference' => $merchantReference,
+            'session_id' => (string)$transactionId,
+            'transaction_id' => (string)$transactionId,
+            'provider_reference' => (string)$transactionId,
+            'status' => $status,
+            'raw_status' => $transaction['state'] ?? null,
+        ];
+    }
+
+    public function fetchPaymentStatus(array $context): array
+    {
+        $config = $this->getConfig();
+        if (!(bool)($config['enabled'] ?? false) || !$this->requiredCredentialsPresent($config)) {
+            return $this->businessError('vr_payment_provider_not_ready', 'VR Payment provider is not ready.');
+        }
+
+        $reference = trim((string)(
+            $context['transaction_id']
+            ?? $context['provider_reference']
+            ?? $context['session_id']
+            ?? ''
+        ));
+        if ($reference === '' || !ctype_digit($reference)) {
+            return $this->businessError('vr_payment_status_lookup_failed', 'A valid VR Payment transaction ID is required.');
+        }
+
+        $client = new VrPaymentApiClient($config);
+        $response = $client->readTransaction((int)$reference);
+        if (!($response['ok'] ?? false) || !is_array($response['data'] ?? null)) {
+            return $this->businessError(
+                'vr_payment_status_lookup_failed',
+                $response['message'] ?? 'Unable to read VR Payment transaction status.',
+                ['provider_http_status' => $response['status'] ?? null]
+            );
+        }
+
+        $transaction = (array)$response['data'];
+        $status = $client->normalizeTransactionStatus($transaction);
+        $id = (string)($transaction['id'] ?? $reference);
+        $rawState = strtoupper((string)($transaction['state'] ?? ''));
+
+        return [
+            'success' => true,
+            'provider' => 'vr_payment',
+            'status' => $status,
+            'is_paid' => $status === 'paid',
+            'session_id' => $id,
+            'transaction_id' => $id,
+            'provider_reference' => $id,
+            'merchant_reference' => $transaction['merchantReference'] ?? null,
+            'raw_status' => $rawState,
+            'amount' => $transaction['authorizationAmount'] ?? null,
+            'currency' => $transaction['currency'] ?? null,
+        ];
+    }
+
+    public function verifyWebhookSignature(string $rawBody, ?string $signatureHeader, ?string $timestampHeader = null): bool
+    {
+        $client = new VrPaymentApiClient($this->getConfig());
+        $result = $client->verifyWebhookSignature($rawBody, $signatureHeader);
+        if (!($result['ok'] ?? false)) {
+            Log::warning('VR_PAYMENT_WEBHOOK_SIGNATURE_INVALID', [
+                'message' => $result['message'] ?? 'Unknown signature failure',
+                'key_id' => $result['key_id'] ?? null,
+            ]);
+            return false;
+        }
+        return true;
+    }
+
+    public function verifyWebhookSignatureDetailed(string $rawBody, ?string $signatureHeader): array
+    {
+        return (new VrPaymentApiClient($this->getConfig()))->verifyWebhookSignature($rawBody, $signatureHeader);
+    }
+
+    public function syncAssignedMethodStatuses(array $availableMethodCodes): array
+    {
+        $ready = array_values(array_unique(array_filter(array_map(
+            static fn ($code): string => strtolower(trim((string)$code)),
+            $availableMethodCodes
+        ))));
+        $updated = [];
+
+        foreach (Payments_model::query()->whereIn('code', self::SUPPORTED_METHODS)->get() as $row) {
+            $data = method_exists($row, 'getConfigData') ? (array)$row->getConfigData() : (is_array($row->data) ? (array)$row->data : []);
+            $assigned = strtolower(trim((string)($row->provider_code ?? $data['provider_code'] ?? '')));
+            if ($assigned !== 'vr_payment') continue;
+
+            $code = strtolower(trim((string)$row->code));
+            $desired = in_array($code, $ready, true) ? 1 : 0;
+            if ((int)$row->status !== $desired) {
+                $row->status = $desired;
+                $row->save();
+            }
+            $updated[$code] = $desired;
+        }
+
+        return [
+            'ok' => true,
+            'provider' => 'vr_payment',
+            'ready_codes' => $ready,
+            'method_statuses' => $updated,
+        ];
+    }
+
+    public function syncTerminalDevices(?array $terminals = null, ?array $config = null): array
+    {
+        if (!Schema::hasTable('terminal_devices')) {
+            return ['ok' => false, 'message' => 'terminal_devices table is missing.', 'synced' => 0];
+        }
+
+        $config = $config ?: $this->getConfig();
+        if ($terminals === null) {
+            $api = new VrPaymentApiClient($config);
+            $response = $api->terminals();
+            if (!($response['ok'] ?? false)) {
+                return ['ok' => false, 'message' => $response['message'] ?? 'Unable to list VR Payment terminals.', 'synced' => 0];
+            }
+            $terminals = $api->normalizeTerminals((array)($response['data'] ?? []));
+        }
+
+        $columns = Schema::getColumnListing('terminal_devices');
+        $synced = 0;
+        $seenReaderIds = [];
+
+        foreach ($terminals as $terminal) {
+            if (!is_array($terminal)) continue;
+            $providerId = (int)($terminal['id'] ?? 0);
+            if ($providerId <= 0) continue;
+            $readerId = trim((string)($terminal['identifier'] ?? '')) ?: (string)$providerId;
+            $seenReaderIds[] = $readerId;
+
+            $payload = [
+                'provider_code' => 'vr_payment',
+                'reader_id' => $readerId,
+                'reader_label' => (string)($terminal['name'] ?? 'VR Payment terminal'),
+                'terminal_status' => ($terminal['online'] ?? false) ? 'online' : (string)($terminal['state'] ?? 'unknown'),
+                'pairing_state' => (string)($terminal['state'] ?? 'unknown'),
+                'environment' => (string)($config['mode'] ?? 'test'),
+                'is_active' => 1,
+                'serial_number' => $terminal['serial_number'] ?? null,
+                'provider_terminal_id' => $providerId,
+                'updated_at' => now(),
+            ];
+            $payload = array_intersect_key($payload, array_flip($columns));
+
+            $query = DB::table('terminal_devices')->whereRaw('LOWER(provider_code) = ?', ['vr_payment']);
+            if (in_array('provider_terminal_id', $columns, true)) {
+                $query->where('provider_terminal_id', $providerId);
+            } else {
+                $query->where('reader_id', $readerId);
+            }
+            $existing = $query->first();
+
+            if ($existing) {
+                DB::table('terminal_devices')
+                    ->where('terminal_device_id', (int)$existing->terminal_device_id)
+                    ->update($payload);
+            } else {
+                if (in_array('created_at', $columns, true)) $payload['created_at'] = now();
+                DB::table('terminal_devices')->insert($payload);
+            }
+            $synced++;
+        }
+
+        if ($seenReaderIds && in_array('reader_id', $columns, true) && in_array('is_active', $columns, true)) {
+            DB::table('terminal_devices')
+                ->whereRaw('LOWER(provider_code) = ?', ['vr_payment'])
+                ->whereNotIn('reader_id', $seenReaderIds)
+                ->update(array_intersect_key([
+                    'is_active' => 0,
+                    'terminal_status' => 'unavailable',
+                    'updated_at' => now(),
+                ], array_flip($columns)));
+        }
+
+        return ['ok' => true, 'synced' => $synced];
+    }
+
+    public function normalizeProviderException(\Throwable $e): array
+    {
+        $message = (string)$e->getMessage();
+        $lower = strtolower($message);
+        $category = 'provider_exception';
+        if (str_contains($lower, 'timeout') || str_contains($lower, 'timed out')) $category = 'connectivity_timeout';
+        elseif (str_contains($lower, 'resolve host') || str_contains($lower, 'getaddrinfo')) $category = 'connectivity_dns';
+        elseif (str_contains($lower, 'ssl') || str_contains($lower, 'tls') || str_contains($lower, 'certificate')) $category = 'connectivity_tls';
+
+        return [
+            'class' => get_class($e),
+            'message' => $message,
+            'code' => $e->getCode(),
+            'error_category' => $category,
+            'error_code' => 'vr_payment_provider_exception',
+            'error' => 'VR Payment request failed.',
+        ];
+    }
+
+    protected function readinessAudit(array $config): array
+    {
+        $key = 'pmd:vr:readiness:'.sha1(
+            (string)DB::connection()->getDatabaseName().'|'.
+            (string)($config['mode'] ?? '').'|'.
+            (string)($config['space_id'] ?? '').'|'.
+            (string)($config['user_id'] ?? '')
+        );
+
+        return Cache::remember($key, now()->addSeconds(45), function () use ($config) {
+            return (new VrPaymentApiClient($config))->connectionAudit();
+        });
+    }
+
+    protected function forgetReadinessCache(array $config): void
+    {
+        $key = 'pmd:vr:readiness:'.sha1(
+            (string)DB::connection()->getDatabaseName().'|'.
+            (string)($config['mode'] ?? '').'|'.
+            (string)($config['space_id'] ?? '').'|'.
+            (string)($config['user_id'] ?? '')
+        );
+        Cache::forget($key);
+    }
+
+    protected function requiredCredentialsPresent(array $config): bool
+    {
+        return trim((string)($config['space_id'] ?? '')) !== ''
+            && trim((string)($config['user_id'] ?? '')) !== ''
+            && trim((string)($config['auth_key'] ?? '')) !== '';
+    }
+
+    protected function resolveMerchantReference(string $requested, string $method): string
+    {
+        $requested = preg_replace('/[^A-Za-z0-9._-]+/', '-', trim($requested)) ?: '';
+        if ($requested !== '') return substr($requested, 0, 100);
+        return substr('PMD-'.strtoupper($method).'-'.date('YmdHis').'-'.bin2hex(random_bytes(4)), 0, 100);
+    }
+
+    protected function businessError(string $code, string $message, array $extra = []): array
+    {
+        return array_merge([
+            'success' => false,
+            'provider' => 'vr_payment',
+            'error_code' => $code,
+            'error' => $message,
+            'message' => $message,
+            'allow_fallback' => false,
+        ], $extra);
+    }
+
+    protected function extractStringResult($data): string
+    {
+        if (is_string($data)) return trim($data, " \t\n\r\0\x0B\"");
+        if (is_array($data)) {
+            foreach (['url', 'paymentPageUrl', 'redirect_url', 'value'] as $key) {
+                if (isset($data[$key]) && is_scalar($data[$key])) return trim((string)$data[$key]);
+            }
+        }
+        return '';
+    }
+
+    protected function normalizeLanguage(string $language): string
+    {
+        $language = trim($language);
+        if ($language === '') return 'de-DE';
+        return str_replace('_', '-', $language);
+    }
+}

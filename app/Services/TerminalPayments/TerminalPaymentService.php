@@ -26,17 +26,33 @@ class TerminalPaymentService
             $config['affiliate_key']=trim((string)($terminal->affiliate_key??''))?:($config['affiliate_key']??null);$config['return_url']=$this->sumupReturnUrl();$terminalId=(string)$terminal->reader_id;
         }
         // PMD_VR_TERMINAL_ROUTING_R1
+        // PMD_VR_TERMINAL_SIMULATOR_R1_20260905
         if($providerCode==='vr_payment'){
             $terminal=$this->resolveVrPaymentTerminal($terminalId);
-            if(!$terminal) return ['success'=>false,'error'=>'No active VR Payment terminal is synced. Test the VR Payment connection first.'];
-            $providerTerminalId=Schema::hasColumn('terminal_devices','provider_terminal_id')?(string)($terminal->provider_terminal_id??''):'';
-            if($providerTerminalId===''&&ctype_digit((string)($terminal->reader_id??'')))$providerTerminalId=(string)$terminal->reader_id;
-            if($providerTerminalId==='')return ['success'=>false,'error'=>'Selected VR Payment terminal has no provider terminal ID. Re-test the provider connection.'];
-            $config['terminal_id']=$providerTerminalId;
-            $config['provider_terminal_id']=$providerTerminalId;
-            $config['terminal_device_id']=(int)$terminal->terminal_device_id;
-            $config['reader_id']=(string)$terminal->reader_id;
-            $terminalId=(string)$terminal->reader_id;
+            if(!$terminal) return ['success'=>false,'error'=>'No ready VR Payment terminal is available. Use a PMD VR Simulator in TEST mode or link a real VR terminal.'];
+            $simulatorScenario=$this->vrPaymentSimulatorScenario($terminal);
+            if($simulatorScenario!==null){
+                $vrConfig=app(\Admin\Classes\VRPaymentGatewayService::class)->getConfig();
+                $config=array_merge($config,$vrConfig);
+                if(strtolower(trim((string)($config['mode']??'test')))!=='test'){
+                    return ['success'=>false,'error'=>'PMD VR Simulator is TEST-only and is blocked while VR Payment is in live mode.'];
+                }
+                $config['pmd_vr_simulator']=true;
+                $config['pmd_vr_simulator_scenario']=$simulatorScenario;
+                $config['environment']='test';
+                $config['terminal_device_id']=(int)$terminal->terminal_device_id;
+                $config['reader_id']=(string)$terminal->reader_id;
+                $terminalId=(string)$terminal->reader_id;
+            }else{
+                $providerTerminalId=Schema::hasColumn('terminal_devices','provider_terminal_id')?(string)($terminal->provider_terminal_id??''):'';
+                if($providerTerminalId===''&&ctype_digit((string)($terminal->reader_id??'')))$providerTerminalId=(string)$terminal->reader_id;
+                if($providerTerminalId==='')return ['success'=>false,'error'=>'Selected VR Payment terminal has no provider terminal ID. Re-test the provider connection.'];
+                $config['terminal_id']=$providerTerminalId;
+                $config['provider_terminal_id']=$providerTerminalId;
+                $config['terminal_device_id']=(int)$terminal->terminal_device_id;
+                $config['reader_id']=(string)$terminal->reader_id;
+                $terminalId=(string)$terminal->reader_id;
+            }
         }
         if($providerCode==='worldline'){
             if(!Schema::hasTable('terminal_devices'))return ['success'=>false,'error'=>'No Worldline terminal devices table is available.'];
@@ -66,30 +82,88 @@ class TerminalPaymentService
         $id=DB::table('payment_attempts')->insertGetId($this->filterColumns('payment_attempts',['order_id'=>$orderId,'provider_code'=>$providerCode,'terminal_id'=>$terminalId?:($config['terminal_id']??null),'terminal_device_id'=>$config['terminal_device_id']??null,'amount'=>$amount,'currency'=>$currency,'status'=>'pending','request_payload'=>json_encode($requestPayload),'created_at'=>now(),'updated_at'=>now()]));
         Log::info('PMD_TERMINAL_PAYMENT_CREATE',['attempt_id'=>$id,'order_id'=>$orderId,'provider_code'=>$providerCode,'amount'=>$amount,'currency'=>$currency]);
         if($providerCode==='sumup')$config['return_url']=$this->sumupReturnUrl($id);
-        $attempt=(array)DB::table('payment_attempts')->where('id',$id)->first();$result=$provider->createPayment($attempt,$config);$status=($result['ok']??false)?($result['status']??'sent_to_terminal'):'failed';
-        DB::table('payment_attempts')->where('id',$id)->update($this->filterColumns('payment_attempts',['status'=>$status,'provider_reference'=>$result['provider_reference']??null,'response_payload'=>json_encode($this->redact($result)),'error_message'=>($result['ok']??false)?null:($result['message']??'Terminal payment failed.'),'updated_at'=>now()]));
+        $attempt=(array)DB::table('payment_attempts')->where('id',$id)->first();
+        $result=$provider->createPayment($attempt,$config);
+
+        // PMD_VR_PAYMENT_SAFETY_R6_20260905
+        // PMD's local VR simulators are diagnostics only. They MUST NEVER settle
+        // an order or generate a paid invoice/receipt.
+        $isPmdVrSimulator=$this->isPmdVrSimulatorAttempt($attempt);
+        $rawStatus=(string)($result['status']??(($result['ok']??false)?'sent_to_terminal':'failed'));
+        $status=$isPmdVrSimulator
+            ? $this->mapPmdVrSimulatorStatus($rawStatus)
+            : (($result['ok']??false)?$rawStatus:'failed');
+        DB::table('payment_attempts')->where('id',$id)->update($this->filterColumns('payment_attempts',[
+            'status'=>$status,
+            'provider_reference'=>$result['provider_reference']??null,
+            'response_payload'=>json_encode($this->redact($result)),
+            'error_message'=>$isPmdVrSimulator?null:(($result['ok']??false)?null:($result['message']??'Terminal payment failed.')),
+            'updated_at'=>now(),
+        ]));
         Log::info(($result['ok']??false)?'PMD_TERMINAL_PAYMENT_SENT':'PMD_TERMINAL_PAYMENT_FAILED',['attempt_id'=>$id,'provider_code'=>$providerCode,'status'=>$status]);
         // PMD_TERMINAL_IMMEDIATE_SETTLEMENT_R1
-        if($status==='paid')$this->settleSuccessfulAttempt($id,$result);
-        return ['success'=>(bool)($result['ok']??false),'attempt_id'=>$id,'status'=>$status,'message'=>$result['message']??null];
+        if(!$isPmdVrSimulator&&$status==='paid')$this->settleSuccessfulAttempt($id,$result);
+        return [
+            'success'=>$isPmdVrSimulator?true:(bool)($result['ok']??false),
+            'attempt_id'=>$id,
+            'status'=>$status,
+            'message'=>$isPmdVrSimulator
+                ? 'TEST ONLY — '.(string)($result['message']??'VR simulator scenario completed.').' No payment was recorded and the order remains unpaid.'
+                : ($result['message']??null),
+            'simulated'=>$isPmdVrSimulator,
+            'payment_recorded'=>$isPmdVrSimulator?false:($status==='paid'),
+            'simulator_scenario'=>$isPmdVrSimulator?($result['simulator_scenario']??null):null,
+        ];
     }
 
     public function refreshAttempt(int $attemptId): array
     {
         if(!Schema::hasTable('payment_attempts'))return ['success'=>false,'error'=>'payment_attempts table is missing.'];
         $attempt=(array)(DB::table('payment_attempts')->where('id',$attemptId)->first()?:[]);if(!$attempt)return ['success'=>false,'error'=>'Payment attempt not found.'];
-        if(($attempt['status']??'')==='paid'){ $this->settleSuccessfulAttempt($attemptId,[]); return ['success'=>true,'attempt_id'=>$attemptId,'status'=>'paid','message'=>'Payment already confirmed.']; }
+
+        // PMD_VR_PAYMENT_SAFETY_R6_20260905
+        // Migration guard for simulator attempts created before R6.
+        if($this->isPmdVrSimulatorAttempt($attempt)&&strtolower((string)($attempt['status']??''))==='paid'){
+            DB::table('payment_attempts')->where('id',$attemptId)->update($this->filterColumns('payment_attempts',[
+                'status'=>'simulated_approved',
+                'error_message'=>null,
+                'updated_at'=>now(),
+            ]));
+            return [
+                'success'=>true,
+                'attempt_id'=>$attemptId,
+                'status'=>'simulated_approved',
+                'message'=>'TEST ONLY — simulator approval detected. No new settlement is allowed by R6.',
+                'simulated'=>true,
+                'payment_recorded'=>false,
+            ];
+        }
+        if(($attempt['status']??'')==='paid'){ $this->settleSuccessfulAttempt($attemptId,[]); return ['success'=>true,'attempt_id'=>$attemptId,'status'=>'paid','message'=>'Payment already confirmed.','simulated'=>false,'payment_recorded'=>true]; }
         $providerCode=strtolower((string)($attempt['provider_code']??''));$provider=$this->provider($providerCode);$config=$this->providerConfig($providerCode);
         if($providerCode==='sumup'){$terminal=$this->resolveSumupTerminal((string)($attempt['terminal_id']??''));if(!$terminal)return ['success'=>false,'error'=>'SumUp terminal for this attempt was not found.'];$config['reader_id']=(string)$terminal->reader_id;$config['terminal_device_id']=(int)$terminal->terminal_device_id;$config['affiliate_key']=trim((string)($terminal->affiliate_key??''))?:($config['affiliate_key']??null);}
         if($providerCode==='vr_payment'){
             $terminal=$this->resolveVrPaymentTerminal((string)($attempt['terminal_id']??''));
             if(!$terminal)return ['success'=>false,'error'=>'VR Payment terminal for this attempt was not found.'];
-            $providerTerminalId=Schema::hasColumn('terminal_devices','provider_terminal_id')?(string)($terminal->provider_terminal_id??''):'';
-            if($providerTerminalId===''&&ctype_digit((string)($terminal->reader_id??'')))$providerTerminalId=(string)$terminal->reader_id;
-            $config['terminal_id']=$providerTerminalId;
-            $config['provider_terminal_id']=$providerTerminalId;
-            $config['terminal_device_id']=(int)$terminal->terminal_device_id;
-            $config['reader_id']=(string)$terminal->reader_id;
+            $simulatorScenario=$this->vrPaymentSimulatorScenario($terminal);
+            if($simulatorScenario!==null){
+                $vrConfig=app(\Admin\Classes\VRPaymentGatewayService::class)->getConfig();
+                $config=array_merge($config,$vrConfig);
+                if(strtolower(trim((string)($config['mode']??'test')))!=='test'){
+                    return ['success'=>false,'error'=>'PMD VR Simulator is TEST-only and is blocked while VR Payment is in live mode.'];
+                }
+                $config['pmd_vr_simulator']=true;
+                $config['pmd_vr_simulator_scenario']=$simulatorScenario;
+                $config['environment']='test';
+                $config['terminal_device_id']=(int)$terminal->terminal_device_id;
+                $config['reader_id']=(string)$terminal->reader_id;
+            }else{
+                $providerTerminalId=Schema::hasColumn('terminal_devices','provider_terminal_id')?(string)($terminal->provider_terminal_id??''):'';
+                if($providerTerminalId===''&&ctype_digit((string)($terminal->reader_id??'')))$providerTerminalId=(string)$terminal->reader_id;
+                $config['terminal_id']=$providerTerminalId;
+                $config['provider_terminal_id']=$providerTerminalId;
+                $config['terminal_device_id']=(int)$terminal->terminal_device_id;
+                $config['reader_id']=(string)$terminal->reader_id;
+            }
         }
         if($providerCode==='worldline'){
             if(!Schema::hasTable('terminal_devices'))return ['success'=>false,'error'=>'Worldline terminal devices table is unavailable.'];
@@ -110,10 +184,23 @@ class TerminalPaymentService
             $config['reader_id']=(string)$terminal->reader_id;
             $config['terminal_device_id']=(int)$terminal->terminal_device_id;
         }
-        $result=$provider->checkStatus($attempt,$config);$status=(string)($result['status']??($attempt['status']??'pending'));
+        $result=$provider->checkStatus($attempt,$config);
+        $isPmdVrSimulator=$this->isPmdVrSimulatorAttempt($attempt);
+        $rawStatus=(string)($result['status']??($attempt['status']??'pending'));
+        $status=$isPmdVrSimulator?$this->mapPmdVrSimulatorStatus($rawStatus):$rawStatus;
         DB::table('payment_attempts')->where('id',$attemptId)->update($this->filterColumns('payment_attempts',['status'=>$status,'response_payload'=>json_encode($this->redact($result)),'error_message'=>($result['ok']??false)?null:($result['message']??null),'updated_at'=>now()]));
-        if($status==='paid')$this->settleSuccessfulAttempt($attemptId,$result);
-        return ['success'=>(bool)($result['ok']??false),'attempt_id'=>$attemptId,'status'=>$status,'message'=>$result['message']??null];
+        if(!$isPmdVrSimulator&&$status==='paid')$this->settleSuccessfulAttempt($attemptId,$result);
+        return [
+            'success'=>$isPmdVrSimulator?true:(bool)($result['ok']??false),
+            'attempt_id'=>$attemptId,
+            'status'=>$status,
+            'message'=>$isPmdVrSimulator
+                ? 'TEST ONLY — '.(string)($result['message']??'VR simulator scenario updated.').' No payment was recorded and the order remains unpaid.'
+                : ($result['message']??null),
+            'simulated'=>$isPmdVrSimulator,
+            'payment_recorded'=>$isPmdVrSimulator?false:($status==='paid'),
+            'simulator_scenario'=>$isPmdVrSimulator?($result['simulator_scenario']??null):null,
+        ];
     }
 
     public function handleSumupCallback(int $attemptId,array $payload=[]):array
@@ -181,6 +268,51 @@ class TerminalPaymentService
         return $query->orderBy('terminal_device_id')->first();
     }
 
+    // PMD_VR_TERMINAL_SIMULATOR_R1_20260905
+    private function vrPaymentSimulatorScenario($terminal): ?string
+    {
+        if(!$terminal)return null;
+        $readerId=strtoupper(trim((string)($terminal->reader_id??'')));
+        if(!str_starts_with($readerId,'PMD-VR-SIM-'))return null;
+        $allowed=['approve','decline','cancel','timeout','delayed_success'];
+        $metadata=[];
+        $raw=(string)($terminal->metadata??'');
+        if($raw!==''){
+            $decoded=json_decode($raw,true);
+            if(is_array($decoded))$metadata=$decoded;
+        }
+        $scenario=strtolower(trim((string)($metadata['scenario']??'')));
+        if(in_array($scenario,$allowed,true))return $scenario;
+        $suffix=substr($readerId,strlen('PMD-VR-SIM-'));
+        return match($suffix){
+            'APPROVE'=>'approve',
+            'DECLINE'=>'decline',
+            'CANCEL'=>'cancel',
+            'TIMEOUT'=>'timeout',
+            'DELAYED'=>'delayed_success',
+            default=>null,
+        };
+    }
+
+    // PMD_VR_PAYMENT_SAFETY_R6_20260905
+    private function isPmdVrSimulatorAttempt(array $attempt):bool
+    {
+        if(strtolower(trim((string)($attempt['provider_code']??'')))!=='vr_payment')return false;
+        $terminalId=strtoupper(trim((string)($attempt['terminal_id']??'')));
+        return str_starts_with($terminalId,'PMD-VR-SIM-');
+    }
+
+    private function mapPmdVrSimulatorStatus(string $status):string
+    {
+        return match(strtolower(trim($status))){
+            'paid','authorized','completed','fulfilled','fulfill'=>'simulated_approved',
+            'failed','declined','decline'=>'simulated_declined',
+            'cancelled','canceled','voided'=>'simulated_cancelled',
+            'simulated_approved','simulated_declined','simulated_cancelled','simulated_pending'=>strtolower(trim($status)),
+            default=>'simulated_pending',
+        };
+    }
+
     private function resolveSquareTerminal(?string $terminalId=null)
     {
         if(!Schema::hasTable('terminal_devices'))return null;
@@ -197,6 +329,24 @@ class TerminalPaymentService
 
     private function settleSuccessfulAttempt(int $attemptId,array $providerResult):void
     {
+        // PMD_VR_PAYMENT_SAFETY_R6_20260905
+        // Defense in depth: even if a caller accidentally passes status=paid for a
+        // PMD VR simulator, settlement is blocked here before touching the order.
+        $preview=(array)(DB::table('payment_attempts')->where('id',$attemptId)->first()?:[]);
+        if($preview&&$this->isPmdVrSimulatorAttempt($preview)){
+            DB::table('payment_attempts')->where('id',$attemptId)->update($this->filterColumns('payment_attempts',[
+                'status'=>'simulated_approved',
+                'error_message'=>null,
+                'updated_at'=>now(),
+            ]));
+            Log::warning('PMD_VR_SIMULATOR_SETTLEMENT_BLOCKED_R6',[
+                'attempt_id'=>$attemptId,
+                'order_id'=>(int)($preview['order_id']??0),
+                'terminal_id'=>(string)($preview['terminal_id']??''),
+            ]);
+            return;
+        }
+
         DB::transaction(function()use($attemptId,$providerResult){
             $attempt=DB::table('payment_attempts')->where('id',$attemptId)->lockForUpdate()->first();if(!$attempt)throw new \RuntimeException('Payment attempt not found during settlement.');$order=DB::table('orders')->where('order_id',(int)$attempt->order_id)->lockForUpdate()->first();if(!$order)throw new \RuntimeException('Order not found during terminal settlement.');
             $orderTotal=round((float)($order->order_total??$attempt->amount??0),4);$alreadySettled=round((float)($order->settled_amount??0),4);$settlementStatus=strtolower((string)($order->settlement_status??''));
