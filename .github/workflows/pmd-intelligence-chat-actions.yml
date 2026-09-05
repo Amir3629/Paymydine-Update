@@ -14,6 +14,7 @@ on:
       - 'app/system/database/migrations/*shift_audit*'
       - 'frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815/**'
       - 'scripts/pmd-intelligence-chat-actions-audit.php'
+      - 'scripts/pmd-workforce-fact-guard-audit.php'
       - 'tests/Unit/PmdIntelligenceConversationActionsTest.php'
       - '.github/workflows/pmd-intelligence-chat-actions.yml'
   push:
@@ -29,6 +30,7 @@ on:
       - 'app/system/database/migrations/*shift_audit*'
       - 'frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815/**'
       - 'scripts/pmd-intelligence-chat-actions-audit.php'
+      - 'scripts/pmd-workforce-fact-guard-audit.php'
       - 'tests/Unit/PmdIntelligenceConversationActionsTest.php'
       - '.github/workflows/pmd-intelligence-chat-actions.yml'
 
@@ -45,7 +47,10 @@ jobs:
           php -l app/Services/AI/AdminAiConversationStore.php
           php -l app/Services/AI/PmdAdminWorkforceIntelligenceService.php
           php -l app/Services/AI/PmdShiftAuditService.php
+          php -l app/Services/AI/PmdWorkforcePersonHoursService.php
+          php -l app/Services/AI/PmdWorkforceToolFactCompactor.php
           php -l app/Services/AI/PmdIntelligenceActionRegistry.php
+          php -l app/Services/AI/AiOrchestrator.php
           php -l app/admin/controllers/Pmdintelligence.php
           php -l app/admin/middleware/LogUserLastSeen.php
           php -l app/main/routes/api-v1-guest-ai.php
@@ -53,8 +58,11 @@ jobs:
           php -l app/system/database/migrations/2026_09_05_123000_create_pmd_operational_shift_audit_events.php
           php -l tests/Unit/PmdIntelligenceConversationActionsTest.php
           php -l scripts/pmd-intelligence-chat-actions-audit.php
+          php -l scripts/pmd-workforce-fact-guard-audit.php
       - name: Shared Intelligence contract
         run: php scripts/pmd-intelligence-chat-actions-audit.php
+      - name: Workforce fact guard contract
+        run: php scripts/pmd-workforce-fact-guard-audit.php
 
   frontend-contract:
     runs-on: ubuntu-latest
