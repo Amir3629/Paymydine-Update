@@ -1,0 +1,73 @@
+/* PMD_CATEGORY_CONTENT_TRANSLATIONS_ADMIN_V1 */
+[data-pmd-category-translation-tabs] {
+  display:flex;
+  align-items:center;
+  gap:6px;
+  flex-wrap:wrap;
+}
+[data-pmd-category-auto-translate] {
+  min-height:38px;
+  border:1px solid #c9dbd7;
+  border-radius:12px;
+  padding:8px 14px;
+  background:#fff;
+  color:#075c4e;
+  font:inherit;
+  font-size:12px;
+  font-weight:850;
+  cursor:pointer;
+}
+[data-pmd-category-auto-translate]:hover { border-color:#0c705e; }
+[data-pmd-category-auto-translate]:disabled { opacity:.6; cursor:wait; }
+[data-pmd-category-translation-panels] { min-width:0; }
+
+[data-pmd-category-filter][data-pmd-category-id][data-pmd-category-kind="regular"] {
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+}
+.pmd-category-translation-edit {
+  display:inline-grid;
+  place-items:center;
+  flex:0 0 25px;
+  width:25px;
+  height:25px;
+  margin:-3px -4px -3px 2px;
+  border:0;
+  border-radius:999px;
+  background:transparent;
+  color:currentColor;
+  opacity:.48;
+  cursor:pointer;
+  transition:opacity .16s ease, background-color .16s ease, transform .16s ease;
+}
+.pmd-category-translation-edit svg {
+  width:14px;
+  height:14px;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.9;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+  pointer-events:none;
+}
+[data-pmd-category-filter]:hover .pmd-category-translation-edit,
+.pmd-category-translation-edit:focus-visible {
+  opacity:1;
+  background:rgba(8,92,78,.09);
+}
+.pmd-category-translation-edit:active { transform:scale(.94); }
+[data-pmd-menu-manager][data-pmd-sort-mode]:not([data-pmd-sort-mode="0"]) .pmd-category-translation-edit {
+  display:none!important;
+}
+
+.pmd-category-content-translations {
+  margin-top:12px;
+}
+
+@media (max-width:700px) {
+  [data-pmd-category-auto-translate] { width:100%; }
+  .pmd-category-translation-edit {
+    opacity:.72;
+  }
+}
