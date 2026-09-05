@@ -45,8 +45,6 @@ class PmdTenantQuickSetupServiceV2 extends PmdTenantQuickSetupService
             $priority += 10;
         }
 
-        $images = app(PmdStarterMenuImageServiceV2::class);
-        $imageSummary = ['attached' => 0, 'cached' => 0, 'missing' => 0];
         $itemPriority = 10;
         $created = 0;
 
@@ -57,7 +55,6 @@ class PmdTenantQuickSetupServiceV2 extends PmdTenantQuickSetupService
 
             $menu = $this->createStarterItem($item, $categoryId, $locationId, $allergenMap, $itemPriority);
             $created++;
-            $this->attachStarterImage($images, $menu, $item, $type, $imageSummary, false);
             $itemPriority += 10;
         }
 
@@ -71,7 +68,17 @@ class PmdTenantQuickSetupServiceV2 extends PmdTenantQuickSetupService
             'library_version' => self::STARTER_LIBRARY_VERSION,
             'categories' => count($categories),
             'items' => $created,
-            'images' => $imageSummary,
+            // PMD_QUICK_SETUP_TIMEOUT_R1_20260905
+            // External photo I/O must never hold the onboarding transaction open.
+            // The browser starts resumable one-item photo batches after this
+            // response has safely committed the restaurant structure and menu.
+            'images' => [
+                'attached' => 0,
+                'cached' => 0,
+                'missing' => 0,
+                'deferred' => $created,
+            ],
+            'photos_deferred' => $created > 0,
             'review_required' => true,
             'note' => 'Starter prices, allergens and nutrition are suggestions and must be reviewed against the restaurant recipes.',
         ];
@@ -97,14 +104,12 @@ class PmdTenantQuickSetupServiceV2 extends PmdTenantQuickSetupService
 
         $pack = app(PmdStarterMenuLibraryV3::class)->pack($type);
         $allergens = $this->ensureReferenceAllergens();
-        $images = app(PmdStarterMenuImageServiceV2::class);
 
-        $summary = DB::transaction(function () use ($pack, $type, $locationId, $allergens, $images) {
+        $summary = DB::transaction(function () use ($pack, $locationId, $allergens) {
             $categoryIds = [];
             $categoriesCreated = 0;
             $itemsCreated = 0;
             $itemsExisting = 0;
-            $imageSummary = ['attached' => 0, 'cached' => 0, 'missing' => 0];
 
             $priority = 10;
             foreach ((array)$pack['categories'] as $name) {
@@ -145,7 +150,6 @@ class PmdTenantQuickSetupServiceV2 extends PmdTenantQuickSetupService
 
                 $menu = $this->createStarterItem($item, $categoryId, $locationId, $allergens, $itemPriority);
                 $itemsCreated++;
-                $this->attachStarterImage($images, $menu, $item, $type, $imageSummary, false);
                 $itemPriority += 10;
             }
 
@@ -153,7 +157,7 @@ class PmdTenantQuickSetupServiceV2 extends PmdTenantQuickSetupService
                 'categories_created' => $categoriesCreated,
                 'items_created' => $itemsCreated,
                 'items_existing' => $itemsExisting,
-                'images' => $imageSummary,
+                'photo_items_pending' => count((array)$pack['items']),
             ];
         });
 
@@ -168,15 +172,24 @@ class PmdTenantQuickSetupServiceV2 extends PmdTenantQuickSetupService
             'restaurant_type' => $type,
             'library_version' => self::STARTER_LIBRARY_VERSION,
             'summary' => $summary,
+            'photos_deferred' => true,
             'message' => sprintf(
-                'Starter menu completed: %d new foods and %d new categories added. Existing foods were not changed.',
+                'Starter menu completed: %d new foods and %d new categories added. Existing foods were not changed. Photos will load in small batches.',
                 (int)$summary['items_created'],
                 (int)$summary['categories_created']
             ),
         ];
     }
 
-    public function refreshStarterMenuImages(): array
+    /**
+     * Refresh at most one starter image per HTTP request.
+     *
+     * Pexels search, image download and GD rendering are external/CPU work. A
+     * full 50+ item pass inside one request exceeded the nginx/FPM time budget
+     * and, during initial setup, kept the tenant transaction open. The cursor
+     * response makes this operation resumable without schema or queue changes.
+     */
+    public function refreshStarterMenuImages(int $cursor = 0, int $limit = 1): array
     {
         $type = strtolower(trim((string)setting('pmd_onboarding_restaurant_type', '')));
         $starterMenu = (bool)setting('pmd_onboarding_starter_menu', false);
@@ -195,6 +208,17 @@ class PmdTenantQuickSetupServiceV2 extends PmdTenantQuickSetupService
         }
 
         $pack = app(PmdStarterMenuLibraryV3::class)->pack($type);
+        $items = array_values(array_filter(
+            (array)$pack['items'],
+            static fn($item) => is_array($item)
+        ));
+        $total = count($items);
+        $cursor = max(0, min($cursor, $total));
+
+        // One photo per request is deliberate. A single item can require more
+        // than one provider query/candidate before the quality gate accepts it.
+        $limit = 1;
+        $batch = array_slice($items, $cursor, $limit);
         $summary = [
             'updated' => 0,
             'cached' => 0,
@@ -202,15 +226,17 @@ class PmdTenantQuickSetupServiceV2 extends PmdTenantQuickSetupService
             'skipped_custom' => 0,
             'menu_missing' => 0,
         ];
+        $processedItems = [];
 
-        foreach ((array)$pack['items'] as $item) {
-            if (!is_array($item)) continue;
+        foreach ($batch as $item) {
+            $name = trim((string)($item['name'] ?? ''));
             $menu = Menus_model::query()
-                ->whereRaw('LOWER(menu_name) = ?', [mb_strtolower((string)($item['name'] ?? ''))])
+                ->whereRaw('LOWER(menu_name) = ?', [mb_strtolower($name)])
                 ->first();
 
             if (!$menu) {
                 $summary['menu_missing']++;
+                $processedItems[] = ['name' => $name, 'status' => 'menu_missing'];
                 continue;
             }
 
@@ -218,12 +244,20 @@ class PmdTenantQuickSetupServiceV2 extends PmdTenantQuickSetupService
             if (!empty($result['attached'])) {
                 $summary['updated']++;
                 if (!empty($result['cached'])) $summary['cached']++;
+                $status = !empty($result['cached']) ? 'cached' : 'updated';
             } elseif (!empty($result['skipped_custom'])) {
                 $summary['skipped_custom']++;
+                $status = 'custom_preserved';
             } else {
                 $summary['kept_old']++;
+                $status = 'no_match';
             }
+
+            $processedItems[] = ['name' => $name, 'status' => $status];
         }
+
+        $nextCursor = min($total, $cursor + count($batch));
+        $done = $nextCursor >= $total;
 
         return [
             'ok' => true,
@@ -231,13 +265,16 @@ class PmdTenantQuickSetupServiceV2 extends PmdTenantQuickSetupService
             'style' => 'pmd-studio-semantic-v5',
             'restaurant_type' => $type,
             'library_version' => self::STARTER_LIBRARY_VERSION,
+            'cursor' => $cursor,
+            'next_cursor' => $nextCursor,
+            'total' => $total,
+            'processed' => count($batch),
+            'done' => $done,
             'summary' => $summary,
-            'message' => sprintf(
-                'Starter photos refreshed: %d updated, %d custom photos preserved, %d old starter photos kept.',
-                $summary['updated'],
-                $summary['skipped_custom'],
-                $summary['kept_old']
-            ),
+            'items' => $processedItems,
+            'message' => $done
+                ? sprintf('Starter photo pass finished: %d of %d items checked.', $nextCursor, $total)
+                : sprintf('Starter photos: %d of %d items checked.', $nextCursor, $total),
         ];
     }
 

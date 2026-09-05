@@ -22,9 +22,18 @@ class PmdStarterMenuImageServiceV5 extends PmdStarterMenuImageServiceV4
 {
     public const VERSION = '5.1.0';
 
+    /** Keep a one-item batch safely below the usual nginx/FPM timeout. */
+    protected const ITEM_TIME_BUDGET_SECONDS = 18.0;
+    protected const MAX_CANDIDATES_PER_QUERY = 6;
+
     protected function materialize(array $item, string $restaurantType, string $targetPath): ?array
     {
         if (!function_exists('imagecreatefromstring') || !function_exists('imagewebp')) return null;
+
+        // PMD_QUICK_SETUP_TIMEOUT_R1_20260905
+        // This is a soft budget: an in-flight HTTP call may finish after the
+        // deadline, but no additional provider call starts once it expires.
+        $deadline = microtime(true) + self::ITEM_TIME_BUDGET_SECONDS;
 
         $locked = $this->hasSpecificSemanticLock($item);
         $passes = [
@@ -38,8 +47,10 @@ class PmdStarterMenuImageServiceV5 extends PmdStarterMenuImageServiceV4
         }
 
         foreach ($passes as $pass) {
+            if (microtime(true) >= $deadline) return null;
             $mode = (string)$pass['mode'];
             foreach ((array)$pass['queries'] as $query) {
+                if (microtime(true) >= $deadline) return null;
                 $candidates = array_values(array_filter(
                     $this->search((string)$query),
                     fn(array $candidate) => $this->candidateMatchesV5($candidate, $item, (string)$query, $mode)
@@ -50,7 +61,8 @@ class PmdStarterMenuImageServiceV5 extends PmdStarterMenuImageServiceV4
                     fn(array $a, array $b) => $this->candidateScore($b, $item) <=> $this->candidateScore($a, $item)
                 );
 
-                foreach ($candidates as $candidate) {
+                foreach (array_slice($candidates, 0, self::MAX_CANDIDATES_PER_QUERY) as $candidate) {
+                    if (microtime(true) >= $deadline) return null;
                     $id = (int)($candidate['id'] ?? 0);
                     if ($id > 0 && isset($this->usedPhotoIds[$id])) continue;
 

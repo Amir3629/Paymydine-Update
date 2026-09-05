@@ -8,6 +8,7 @@
     var form = root.querySelector('[data-pmd-quick-setup-form]');
 
     var busy = false;
+    var photoBusy = false;
 
     function csrf(formData) {
         var meta = document.querySelector('meta[name="csrf-token"]');
@@ -34,7 +35,14 @@
         var raw = await response.text();
         var payload = {};
         try { payload = raw ? JSON.parse(raw) : {}; }
-        catch (error) { payload = {ok: false, message: raw || 'Request failed.'}; }
+        catch (error) {
+            payload = {
+                ok: false,
+                message: response.status === 504
+                    ? 'The server timed out while processing this photo batch. Your completed restaurant data was not intentionally removed; reload this page to continue the remaining photos.'
+                    : 'The server returned an invalid response. Please reload and try again.'
+            };
+        }
 
         if (!response.ok || payload.ok === false) {
             throw new Error(payload.message || ('Request failed (' + response.status + ')'));
@@ -43,25 +51,61 @@
     }
 
     async function refreshStarterPhotos(button) {
-        if (busy) return;
+        if (photoBusy) return;
         var status = root.querySelector('[data-pmd-starter-photo-status]');
-        busy = true;
+        var cursor = 0;
+        var totals = {
+            updated: 0,
+            cached: 0,
+            kept_old: 0,
+            skipped_custom: 0,
+            menu_missing: 0
+        };
+
+        photoBusy = true;
         if (button) button.disabled = true;
         if (status) {
-            status.textContent = 'Finding better photos and replacing only Quick Setup starter images…';
+            status.textContent = 'Loading starter photos in safe batches…';
             status.classList.remove('is-error');
         }
 
         try {
-            var payload = await handler('onRefreshStarterPhotos', new FormData());
-            if (status) status.textContent = payload.message || 'Premium starter photos refreshed.';
+            while (true) {
+                var data = new FormData();
+                data.append('cursor', String(cursor));
+                var payload = await handler('onRefreshStarterPhotos', data);
+                var summary = payload.summary || {};
+
+                Object.keys(totals).forEach(function (key) {
+                    totals[key] += Number(summary[key] || 0);
+                });
+
+                var next = Number(payload.next_cursor);
+                var total = Number(payload.total || 0);
+                if (status) {
+                    status.textContent = payload.message || ('Starter photos: ' + next + ' of ' + total + ' items checked.');
+                }
+
+                if (payload.done === true) break;
+                if (!Number.isFinite(next) || next <= cursor) {
+                    throw new Error('Photo progress could not continue safely. Reload this page to resume.');
+                }
+                cursor = next;
+            }
+
+            if (status) {
+                status.textContent = 'Starter photos finished: '
+                    + totals.updated + ' attached, '
+                    + totals.skipped_custom + ' custom preserved, '
+                    + totals.kept_old + ' left unchanged.';
+            }
         } catch (error) {
             if (status) {
                 status.textContent = error && error.message ? error.message : 'Starter photos could not be refreshed.';
                 status.classList.add('is-error');
             }
         } finally {
-            busy = false;
+            photoBusy = false;
             if (button) button.disabled = false;
         }
     }
@@ -228,10 +272,42 @@
             link.textContent = entry[1];
             actions.appendChild(link);
         });
+
+        var shouldLoadPhotos = Boolean(payload.menu && payload.menu.photos_deferred);
+        var photoButton = null;
+        if (shouldLoadPhotos) {
+            photoButton = document.createElement('button');
+            photoButton.type = 'button';
+            photoButton.setAttribute('data-pmd-refresh-starter-photos', '');
+            photoButton.textContent = 'Continue loading starter photos';
+            photoButton.addEventListener('click', function (event) {
+                event.preventDefault();
+                refreshStarterPhotos(photoButton);
+            });
+            actions.appendChild(photoButton);
+        }
         result.appendChild(actions);
+
+        if (shouldLoadPhotos) {
+            var photoStatus = document.createElement('div');
+            photoStatus.className = 'pmd-quick-setup__photo-status';
+            photoStatus.setAttribute('data-pmd-starter-photo-status', '');
+            photoStatus.setAttribute('aria-live', 'polite');
+            photoStatus.textContent = 'Restaurant setup is complete. Starter photos will now load in safe batches.';
+            result.appendChild(photoStatus);
+        }
 
         form.hidden = true;
         result.scrollIntoView({behavior: 'smooth', block: 'start'});
+
+        // PMD_QUICK_SETUP_TIMEOUT_R1_20260905
+        // Setup is already committed. Photo work is best-effort and resumable,
+        // so it must not delay or invalidate the successful onboarding result.
+        if (shouldLoadPhotos) {
+            window.setTimeout(function () {
+                refreshStarterPhotos(photoButton);
+            }, 0);
+        }
     }
 
     if (form) form.addEventListener('submit', async function (event) {
@@ -269,10 +345,11 @@
     });
 
     window.PMDTenantQuickSetupV1 = {
-        version: '1.0.0',
+        version: '1.1.0',
         collect: collect,
+        refreshStarterPhotos: refreshStarterPhotos,
         inspect: function () {
-            return {busy: busy, payload: collect()};
+            return {busy: busy, photoBusy: photoBusy, payload: collect()};
         }
     };
 })();
