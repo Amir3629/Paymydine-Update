@@ -1,41 +1,30 @@
 /*
- * PMD_NEW_TENANT_ONBOARDING_R9
+ * PMD_NEW_TENANT_ONBOARDING_R7
  *
  * 1) Converts known missing-prerequisite states into compact, actionable setup
  *    cards instead of presenting them as generic runtime failures.
  * 2) Claims the legacy provider-catalogue global before its script executes on
  *    Oman Finance, so the market-aware server render cannot be overwritten by
  *    the old global catalogue and visibly blink.
- * 3) Shows a simple first-time Owner Dashboard welcome card when the canonical
- *    public menu contract explicitly reports zero categories and zero menu items.
  *
- * No setup state is persisted here. Existing tenant/menu data remains authority.
+ * This file does not invent readiness. It only recognizes explicit states that
+ * already mean a prerequisite is missing.
  */
 (function () {
   'use strict';
 
   if (window.PMDNewTenantOnboardingR7) return;
 
-  var VERSION = '9.0.0';
+  var VERSION = '7.0.0';
   var observer = null;
   var scheduled = false;
-  var ownerWelcomeRequested = false;
-  var ownerWelcomeState = null;
 
   function clean(value) {
     return String(value == null ? '' : value).replace(/\s+/g, ' ').trim();
   }
 
-  function logicalPath() {
-    var value = window.PMDAdminCanonicalURLR81E
-      ? window.PMDAdminCanonicalURLR81E.logicalPath()
-      : window.location.pathname;
-    value = String(value || '').replace(/\/+$/, '');
-    return value || '/';
-  }
-
   function isOmanFinance() {
-    if (!/^\/admin\/pmdfinance\/?$/.test(logicalPath())) return false;
+    if (!/^\/admin\/pmdfinance\/?$/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : window.location.pathname))) return false;
 
     if (document.body && document.body.classList.contains('pmd-finance-market-om')) {
       return true;
@@ -50,6 +39,8 @@
    * assets.json intentionally loads this file immediately BEFORE
    * pmd-payment-provider-catalogue-v1.js. That legacy file starts with:
    *   if (window.PMDPaymentProviderCatalogueV3) return;
+   * so the old global catalogue never gets a chance to replace the correct
+   * Oman first-paint row with "Provider adapter is not enabled yet".
    */
   if (isOmanFinance() && !window.PMDPaymentProviderCatalogueV3) {
     window.PMDPaymentProviderCatalogueV3 = {
@@ -114,7 +105,7 @@
 
         var menuLink = document.createElement('a');
         menuLink.className = 'pmd-setup-empty-state__primary';
-        menuLink.href = '/admin/menu';
+        menuLink.href = '/admin/pmdmenu';
         menuLink.textContent = 'Set up menu';
         actions.appendChild(menuLink);
 
@@ -197,149 +188,10 @@
     wrapper.insertAdjacentElement('afterend', card);
   }
 
-  function isOwnerDashboard() {
-    var path = logicalPath();
-    return path === '/admin/ownerdashboard' || path === '/admin/dashboardlab';
-  }
-
-  function explicitEmptyMenu(payload) {
-    if (!payload || payload.success === false) return null;
-
-    var data = payload.data && typeof payload.data === 'object'
-      ? payload.data
-      : payload;
-    var status = data && data.setup_status && typeof data.setup_status === 'object'
-      ? data.setup_status
-      : null;
-
-    if (status
-      && typeof status.has_categories === 'boolean'
-      && typeof status.has_menu_items === 'boolean') {
-      return status.has_categories === false && status.has_menu_items === false;
-    }
-
-    if (data && Array.isArray(data.categories) && Array.isArray(data.items)) {
-      return data.categories.length === 0 && data.items.length === 0;
-    }
-
-    return null;
-  }
-
-  function ensureOwnerWelcomeStyles() {
-    if (document.getElementById('pmd-owner-welcome-r9-style')) return;
-
-    var style = document.createElement('style');
-    style.id = 'pmd-owner-welcome-r9-style';
-    style.textContent = [
-      '#pmd-owner-welcome-r9{box-sizing:border-box;width:min(1480px,100%);margin:10px auto 22px;padding:22px 24px;border:1px solid #cee1ea;border-radius:20px;background:#fff;box-shadow:0 10px 28px rgba(16,47,66,.06);color:#102f42}',
-      '#pmd-owner-welcome-r9 *{box-sizing:border-box}',
-      '#pmd-owner-welcome-r9 .pmd-ow9-head{display:flex;align-items:center;gap:18px;margin-bottom:18px}',
-      '#pmd-owner-welcome-r9 .pmd-ow9-logo{display:flex;align-items:center;justify-content:center;flex:0 0 92px;width:92px;min-height:58px}',
-      '#pmd-owner-welcome-r9 .pmd-ow9-logo img{display:block;max-width:92px;max-height:58px;width:auto;height:auto;object-fit:contain}',
-      '#pmd-owner-welcome-r9 .pmd-ow9-copy{min-width:0}',
-      '#pmd-owner-welcome-r9 .pmd-ow9-kicker{display:block;margin:0 0 4px;color:#08705d;font-size:11px;font-weight:850;letter-spacing:.11em;text-transform:uppercase}',
-      '#pmd-owner-welcome-r9 h2{margin:0;color:#102f42;font-size:22px;font-weight:850;line-height:1.2}',
-      '#pmd-owner-welcome-r9 .pmd-ow9-intro{margin:6px 0 0;color:#667d89;font-size:13px;line-height:1.45}',
-      '#pmd-owner-welcome-r9 .pmd-ow9-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px}',
-      '#pmd-owner-welcome-r9 .pmd-ow9-step{display:flex;align-items:center;gap:12px;min-height:76px;padding:13px 14px;border:1px solid #dbe7ee;border-radius:15px;background:#fbfdfe;color:#173752;text-decoration:none!important;transition:transform .16s ease,border-color .16s ease,background .16s ease}',
-      '#pmd-owner-welcome-r9 .pmd-ow9-step:hover{transform:translateY(-1px);border-color:#83bfb1;background:#f7fbfa}',
-      '#pmd-owner-welcome-r9 .pmd-ow9-number{display:grid;place-items:center;flex:0 0 36px;width:36px;height:36px;border-radius:11px;background:#e8f5f1;color:#08705d;font-size:13px;font-weight:900}',
-      '#pmd-owner-welcome-r9 .pmd-ow9-step strong{display:block;margin:0 0 3px;color:#102f42;font-size:13px;font-weight:850;line-height:1.25}',
-      '#pmd-owner-welcome-r9 .pmd-ow9-step span:last-child{display:block;color:#71858f;font-size:11.5px;line-height:1.35}',
-      '@media(max-width:860px){#pmd-owner-welcome-r9 .pmd-ow9-grid{grid-template-columns:1fr}#pmd-owner-welcome-r9 .pmd-ow9-head{align-items:flex-start}}',
-      '@media(max-width:560px){#pmd-owner-welcome-r9{margin:8px 0 18px;padding:18px;border-radius:17px}#pmd-owner-welcome-r9 .pmd-ow9-logo{flex-basis:72px;width:72px}#pmd-owner-welcome-r9 .pmd-ow9-logo img{max-width:72px;max-height:48px}#pmd-owner-welcome-r9 h2{font-size:19px}}'
-    ].join('');
-    document.head.appendChild(style);
-  }
-
-  function renderOwnerWelcome(show) {
-    var existing = document.getElementById('pmd-owner-welcome-r9');
-    if (show !== true) {
-      if (existing) existing.remove();
-      return;
-    }
-
-    var root = document.getElementById('pmd-dashboard-lab');
-    if (!root || existing) return;
-
-    ensureOwnerWelcomeStyles();
-
-    var card = document.createElement('section');
-    card.id = 'pmd-owner-welcome-r9';
-    card.setAttribute('data-pmd-owner-first-setup', 'v1');
-    card.setAttribute('aria-labelledby', 'pmd-owner-welcome-title-r9');
-    card.innerHTML = [
-      '<div class="pmd-ow9-head">',
-        '<div class="pmd-ow9-logo"><img src="/assets/media/uploads/Paymydinelogo.png" alt="PayMyDine"></div>',
-        '<div class="pmd-ow9-copy">',
-          '<span class="pmd-ow9-kicker">Getting started</span>',
-          '<h2 id="pmd-owner-welcome-title-r9">Welcome to PayMyDine</h2>',
-          '<p class="pmd-ow9-intro">Get your restaurant ready in a few simple steps.</p>',
-        '</div>',
-      '</div>',
-      '<div class="pmd-ow9-grid">',
-        '<a class="pmd-ow9-step" href="/admin/pmdsettings/restaurant">',
-          '<span class="pmd-ow9-number">1</span>',
-          '<span><strong>Restaurant details</strong><span>Add your basic restaurant information.</span></span>',
-        '</a>',
-        '<a class="pmd-ow9-step" href="/admin/menu">',
-          '<span class="pmd-ow9-number">2</span>',
-          '<span><strong>Build your digital menu</strong><span>Add categories, food, prices and photos.</span></span>',
-        '</a>',
-        '<a class="pmd-ow9-step" href="/admin/tables">',
-          '<span class="pmd-ow9-number">3</span>',
-          '<span><strong>Add your tables</strong><span>Create the tables your team will use.</span></span>',
-        '</a>',
-      '</div>'
-    ].join('');
-
-    var header = root.querySelector('#pmd-r2-clean-header');
-    if (header && header.parentNode === root) {
-      header.insertAdjacentElement('afterend', card);
-    } else if (root.firstChild) {
-      root.insertBefore(card, root.firstChild);
-    } else {
-      root.appendChild(card);
-    }
-  }
-
-  function requestOwnerWelcome() {
-    if (!isOwnerDashboard()) {
-      renderOwnerWelcome(false);
-      return;
-    }
-
-    if (ownerWelcomeState !== null) {
-      renderOwnerWelcome(ownerWelcomeState === true);
-      return;
-    }
-
-    if (ownerWelcomeRequested) return;
-    ownerWelcomeRequested = true;
-
-    fetch('/api/v1/menu', {
-      method: 'GET',
-      credentials: 'same-origin',
-      headers: {'Accept': 'application/json'},
-      cache: 'no-store'
-    }).then(function (response) {
-      if (!response.ok) throw new Error('menu-setup-state');
-      return response.json();
-    }).then(function (payload) {
-      var empty = explicitEmptyMenu(payload);
-      ownerWelcomeState = empty === true;
-      renderOwnerWelcome(ownerWelcomeState);
-    }).catch(function () {
-      ownerWelcomeState = false;
-      renderOwnerWelcome(false);
-    });
-  }
-
   function enhance() {
     scheduled = false;
     enhanceOrderComposer();
     enhanceReservationComposer();
-    requestOwnerWelcome();
   }
 
   function schedule() {
@@ -363,10 +215,8 @@
   window.PMDNewTenantOnboardingR7 = {
     version: VERSION,
     refresh: enhance,
-    isOmanFinance: isOmanFinance,
-    ownerWelcome: function () { return ownerWelcomeState; }
+    isOmanFinance: isOmanFinance
   };
-  window.PMDNewTenantOnboardingR9 = window.PMDNewTenantOnboardingR7;
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', mount, {once: true});

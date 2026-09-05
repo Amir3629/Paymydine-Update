@@ -23,7 +23,7 @@ export function TenantSetupSplashV1() {
         <p className={styles.copy}>
           Your digital menu is ready to set up. Add your menu, photos and restaurant details in the admin panel.
         </p>
-        <a className={styles.action} href="/admin">Set up my restaurant</a>
+        <a className={styles.action} href="/admin/pmdquicksetup">Set up my restaurant</a>
       </section>
     </main>
   )
