@@ -174,17 +174,17 @@ class PmdStarterMenuImageServiceV2
     protected function queries(array $item, string $restaurantType): array
     {
         $name = $this->searchName((string)($item['name'] ?? ''), $restaurantType);
-        $category = trim((string)($item['category'] ?? ''));
+        $description = trim((string)($item['description'] ?? ''));
         $cuisine = $this->cuisineTerm($restaurantType);
+        $descriptionHint = implode(' ', array_slice(preg_split('/\s+/u', $description) ?: [], 0, 14));
 
-        // No broad "Italian food" style fallback. Every query remains tied to
-        // the actual dish or its category, which prevents the V1 lasagna/ravioli
-        // mismatch seen on Carbonara, Tagliatelle and Risotto.
+        // No broad cuisine/category fallback. Every query stays anchored to the
+        // actual dish. The description query gives culturally specific dishes a
+        // useful visual hint without silently substituting a different menu item.
         return array_values(array_unique(array_filter([
             trim($name.' plated restaurant food'),
             trim($name.' '.$cuisine.' dish'),
-            trim($name.' food photography'),
-            trim($category.' '.$cuisine.' plated dish'),
+            trim($name.' '.$descriptionHint.' food photography'),
         ])));
     }
 
@@ -265,13 +265,19 @@ class PmdStarterMenuImageServiceV2
         $width = (int)($candidate['width'] ?? 0);
         $height = (int)($candidate['height'] ?? 0);
         if ($width < self::MIN_WIDTH || $height < self::MIN_HEIGHT || $width <= $height) return false;
+        $ratio = $width / max(1, $height);
+        if ($ratio < 1.15 || $ratio > 2.1) return false;
 
         $src = (array)($candidate['src'] ?? []);
         $url = trim((string)($src['large2x'] ?? $src['large'] ?? $src['original'] ?? ''));
         if (!$this->urlIsAllowed($url)) return false;
 
         $alt = mb_strtolower(trim((string)($candidate['alt'] ?? '')));
-        foreach (['restaurant interior', 'kitchen interior', 'menu board', 'food menu', 'person holding', 'people eating'] as $blocked) {
+        foreach ([
+            'restaurant interior', 'kitchen interior', 'menu board', 'food menu',
+            'person holding', 'people eating', 'takeaway', 'take out', 'plastic container',
+            'disposable container', 'paper plate', 'cafeteria', 'buffet', 'food tray', 'meal prep box'
+        ] as $blocked) {
             if ($alt !== '' && str_contains($alt, $blocked)) return false;
         }
 
