@@ -14,9 +14,15 @@ use Throwable;
  *
  * It never exposes contact, credential, payroll or private profile fields and
  * is never registered with Guest AI.
+ *
+ * IMPORTANT: every read is pinned to the tenant connection. Admin AI may call
+ * several report authorities in one turn; none of those calls may make a later
+ * attendance lookup drift back to the central/default database.
  */
 final class PmdWorkforcePersonHoursService
 {
+    private const CONNECTION = 'tenant';
+
     public function enrich(array $metric, array $range): array
     {
         $metric['attendance_source_available'] = false;
@@ -31,13 +37,14 @@ final class PmdWorkforcePersonHoursService
         $metric['attendance_source_available'] = true;
 
         $personId = (int)($metric['person_id'] ?? 0);
-        if ($personId < 1 || !Schema::hasTable('pmd_operational_people')) return $metric;
+        if ($personId < 1 || !$this->schema()->hasTable('pmd_operational_people')) return $metric;
 
         try {
-            $person = DB::table('pmd_operational_people')
+            $person = $this->db()->table('pmd_operational_people')
                 ->where('id', $personId)
                 ->first(['id', 'location_id', 'staff_id', 'display_name']);
         } catch (Throwable $error) {
+            $this->logReadFailure('person_lookup', $personId, 0, $error);
             return $metric;
         }
         if (!$person) return $metric;
@@ -71,7 +78,11 @@ final class PmdWorkforcePersonHoursService
         }
 
         try {
-            $coverageQuery = DB::table('staff_attendance')
+            // Coverage is person-specific. A different employee clocking in in
+            // January does not prove that this person's attendance is complete
+            // from January onward.
+            $coverageQuery = $this->db()->table('staff_attendance')
+                ->where('staff_id', $staffId)
                 ->whereNotNull('check_in_time');
             $this->applyLocationScope($coverageQuery, $locationId);
             $coverageStart = $coverageQuery->min('check_in_time');
@@ -81,7 +92,7 @@ final class PmdWorkforcePersonHoursService
                 ? $coverage->lte($start)
                 : false;
 
-            $query = DB::table('staff_attendance')
+            $query = $this->db()->table('staff_attendance')
                 ->where('staff_id', $staffId)
                 ->where('check_in_time', '<', $endExclusive)
                 ->where(function ($scope) use ($start) {
@@ -92,11 +103,7 @@ final class PmdWorkforcePersonHoursService
 
             $rows = $query->get(['check_in_time', 'check_out_time']);
         } catch (Throwable $error) {
-            logger()->warning('PMD workforce person-hours read failed', [
-                'person_id' => $personId,
-                'location_id' => $locationId,
-                'type' => get_class($error),
-            ]);
+            $this->logReadFailure('attendance_lookup', $personId, $locationId, $error);
             return $metric;
         }
 
@@ -158,7 +165,8 @@ final class PmdWorkforcePersonHoursService
         $metric['first_check_in'] = $first;
         $metric['last_check_out'] = $last;
         $metric['worked_vs_scheduled_hours'] = round($actual - $scheduled, 2);
-        $metric['actual_hours_authoritative'] = (bool)$metric['attendance_coverage_complete_for_range'];
+        $metric['actual_hours_authoritative'] = $rowCount > 0
+            && (bool)$metric['attendance_coverage_complete_for_range'];
 
         return $metric;
     }
@@ -166,10 +174,11 @@ final class PmdWorkforcePersonHoursService
     private function attendanceReady(): bool
     {
         try {
-            return Schema::hasTable('staff_attendance')
-                && Schema::hasColumn('staff_attendance', 'staff_id')
-                && Schema::hasColumn('staff_attendance', 'check_in_time')
-                && Schema::hasColumn('staff_attendance', 'check_out_time');
+            $schema = $this->schema();
+            return $schema->hasTable('staff_attendance')
+                && $schema->hasColumn('staff_attendance', 'staff_id')
+                && $schema->hasColumn('staff_attendance', 'check_in_time')
+                && $schema->hasColumn('staff_attendance', 'check_out_time');
         } catch (Throwable $error) {
             return false;
         }
@@ -177,10 +186,10 @@ final class PmdWorkforcePersonHoursService
 
     private function uniqueStaffIdByName(string $name): int
     {
-        if ($name === '' || !Schema::hasTable('staffs')) return 0;
+        if ($name === '' || !$this->schema()->hasTable('staffs')) return 0;
 
         try {
-            $ids = DB::table('staffs')
+            $ids = $this->db()->table('staffs')
                 ->whereRaw('LOWER(TRIM(staff_name)) = ?', [mb_strtolower(trim($name))])
                 ->limit(2)
                 ->pluck('staff_id')
@@ -195,10 +204,31 @@ final class PmdWorkforcePersonHoursService
 
     private function applyLocationScope($query, int $locationId): void
     {
-        if (!Schema::hasColumn('staff_attendance', 'location_id')) return;
+        if (!$this->schema()->hasColumn('staff_attendance', 'location_id')) return;
 
         $query->where(function ($scope) use ($locationId) {
             $scope->where('location_id', $locationId)->orWhereNull('location_id');
         });
+    }
+
+    private function db()
+    {
+        return DB::connection(self::CONNECTION);
+    }
+
+    private function schema()
+    {
+        return Schema::connection(self::CONNECTION);
+    }
+
+    private function logReadFailure(string $stage, int $personId, int $locationId, Throwable $error): void
+    {
+        logger()->warning('PMD workforce person-hours read failed', [
+            'stage' => $stage,
+            'connection' => self::CONNECTION,
+            'person_id' => $personId,
+            'location_id' => $locationId,
+            'type' => get_class($error),
+        ]);
     }
 }
