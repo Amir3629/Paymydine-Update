@@ -53,6 +53,30 @@ class Pmdquicksetup extends AdminController
         ]);
     }
 
+    public function onRefreshStarterPhotos()
+    {
+        try {
+            return response()->json(
+                app(PmdTenantQuickSetupService::class)->refreshStarterMenuImages()
+            );
+        } catch (\RuntimeException $error) {
+            return response()->json([
+                'ok' => false,
+                'message' => $error->getMessage(),
+            ], 409);
+        } catch (\Throwable $error) {
+            logger()->error('PMD Starter photo refresh failed', [
+                'type' => get_class($error),
+                'message' => $error->getMessage(),
+            ]);
+
+            return response()->json([
+                'ok' => false,
+                'message' => 'Starter photos could not be refreshed. Existing photos were preserved where replacement failed.',
+            ], 500);
+        }
+    }
+
     public function onApply()
     {
         $raw = (string)post('payload', '');

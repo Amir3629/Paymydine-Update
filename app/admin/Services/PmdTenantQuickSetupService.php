@@ -501,10 +501,10 @@ class PmdTenantQuickSetupService
             $priority += 10;
         }
 
-        // PMD_STARTER_MENU_IMAGES_V1
+        // PMD_STARTER_MENU_IMAGES_V2
         // One shared resolver instance prevents duplicate source photos inside
         // the same starter pack. Image lookup is best-effort and never blocks setup.
-        $imageService = app(PmdStarterMenuImageServiceV1::class);
+        $imageService = app(PmdStarterMenuImageServiceV2::class);
         $imageSummary = ['attached' => 0, 'cached' => 0, 'missing' => 0];
 
         $itemPriority = 10;
@@ -566,6 +566,69 @@ class PmdTenantQuickSetupService
             'images' => $imageSummary,
             'review_required' => true,
             'note' => 'Starter prices, allergens and nutrition are suggestions and must be reviewed against the restaurant recipes.',
+        ];
+    }
+
+    public function refreshStarterMenuImages(): array
+    {
+        $type = strtolower(trim((string)setting('pmd_onboarding_restaurant_type', '')));
+        $starterMenu = (bool)setting('pmd_onboarding_starter_menu', false);
+
+        if ($type === '' || !$starterMenu) {
+            throw new \RuntimeException('This restaurant does not have a Quick Setup starter menu to refresh.');
+        }
+
+        $types = $this->restaurantTypes();
+        if (!isset($types[$type])) {
+            throw new \RuntimeException('The saved restaurant type is not available.');
+        }
+
+        $images = app(PmdStarterMenuImageServiceV2::class);
+        if (!$images->isConfigured()) {
+            throw new \RuntimeException('Premium starter photos are not configured yet. Add PMD_PEXELS_API_KEY on the server first.');
+        }
+
+        $pack = app(PmdStarterMenuLibraryV1::class)->pack($type);
+        $summary = [
+            'updated' => 0,
+            'cached' => 0,
+            'kept_old' => 0,
+            'skipped_custom' => 0,
+            'menu_missing' => 0,
+        ];
+
+        foreach ($pack['items'] as $item) {
+            $menu = Menus_model::query()
+                ->where('menu_name', (string)$item['name'])
+                ->first();
+
+            if (!$menu) {
+                $summary['menu_missing']++;
+                continue;
+            }
+
+            $result = $images->refreshMenu($menu, $item, $type);
+            if (!empty($result['attached'])) {
+                $summary['updated']++;
+                if (!empty($result['cached'])) $summary['cached']++;
+            } elseif (!empty($result['skipped_custom'])) {
+                $summary['skipped_custom']++;
+            } else {
+                $summary['kept_old']++;
+            }
+        }
+
+        return [
+            'ok' => true,
+            'provider' => 'pexels',
+            'restaurant_type' => $type,
+            'summary' => $summary,
+            'message' => sprintf(
+                'Premium starter photos refreshed: %d updated, %d custom photos preserved, %d old starter photos kept.',
+                $summary['updated'],
+                $summary['skipped_custom'],
+                $summary['kept_old']
+            ),
         ];
     }
 

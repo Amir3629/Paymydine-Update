@@ -57,7 +57,8 @@ html body.pmd-quick-setup-page .content-wrapper {
 .pmd-quick-setup__header p { margin:8px 0 0; }
 
 .pmd-quick-setup__back,
-.pmd-quick-setup__done-actions a {
+.pmd-quick-setup__done-actions a,
+.pmd-quick-setup__done-actions button {
     display:inline-flex;
     align-items:center;
     justify-content:center;
@@ -306,4 +307,28 @@ html body.pmd-quick-setup-page .content-wrapper {
     .pmd-quick-setup__row .is-small { grid-column:1/2; }
     .pmd-quick-setup__submit-row { align-items:stretch; flex-direction:column; }
     .pmd-quick-setup__submit { width:100%; }
+}
+
+
+/* PMD_STARTER_MENU_IMAGES_V2 */
+.pmd-quick-setup__done-actions button {
+    cursor:pointer;
+    font-family:inherit;
+}
+.pmd-quick-setup__done-actions button:disabled {
+    opacity:.6;
+    cursor:wait;
+}
+.pmd-quick-setup__photo-status {
+    min-height:20px;
+    margin:14px auto 0;
+    color:var(--muted);
+    font-size:12.5px;
+}
+.pmd-quick-setup__photo-status.is-error { color:#ad3535; }
+.pmd-quick-setup__photo-credit {
+    display:block;
+    margin:9px 3px 0;
+    color:var(--muted);
+    font-size:11.5px;
 }

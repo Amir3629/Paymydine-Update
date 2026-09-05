@@ -6,7 +6,6 @@
     if (!root) return;
 
     var form = root.querySelector('[data-pmd-quick-setup-form]');
-    if (!form) return;
 
     var busy = false;
 
@@ -41,6 +40,38 @@
             throw new Error(payload.message || ('Request failed (' + response.status + ')'));
         }
         return payload;
+    }
+
+    async function refreshStarterPhotos(button) {
+        if (busy) return;
+        var status = root.querySelector('[data-pmd-starter-photo-status]');
+        busy = true;
+        if (button) button.disabled = true;
+        if (status) {
+            status.textContent = 'Finding better photos and replacing only Quick Setup starter images…';
+            status.classList.remove('is-error');
+        }
+
+        try {
+            var payload = await handler('onRefreshStarterPhotos', new FormData());
+            if (status) status.textContent = payload.message || 'Premium starter photos refreshed.';
+        } catch (error) {
+            if (status) {
+                status.textContent = error && error.message ? error.message : 'Starter photos could not be refreshed.';
+                status.classList.add('is-error');
+            }
+        } finally {
+            busy = false;
+            if (button) button.disabled = false;
+        }
+    }
+
+    var refreshButton = root.querySelector('[data-pmd-refresh-starter-photos]');
+    if (refreshButton) {
+        refreshButton.addEventListener('click', function (event) {
+            event.preventDefault();
+            refreshStarterPhotos(refreshButton);
+        });
     }
 
     function makeFloorRow() {
@@ -203,7 +234,7 @@
         result.scrollIntoView({behavior: 'smooth', block: 'start'});
     }
 
-    form.addEventListener('submit', async function (event) {
+    if (form) form.addEventListener('submit', async function (event) {
         event.preventDefault();
         if (busy) return;
 

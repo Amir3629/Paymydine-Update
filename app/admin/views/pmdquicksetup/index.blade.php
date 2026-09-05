@@ -24,7 +24,13 @@
                 <a href="{{ admin_url('dashboardlab') }}">Open dashboard</a>
                 <a href="{{ admin_url('pmdmenus') }}">Review menu</a>
                 <a href="{{ admin_url('pmdteam') }}">Review team</a>
+                @if(!empty($state['starter_menu']))
+                    <button type="button" data-pmd-refresh-starter-photos>Refresh premium starter photos</button>
+                @endif
             </div>
+            @if(!empty($state['starter_menu']))
+                <div class="pmd-quick-setup__photo-status" data-pmd-starter-photo-status aria-live="polite"></div>
+            @endif
         </section>
     @elseif(!$eligible)
         <section class="pmd-quick-setup__done is-warning">
@@ -130,9 +136,10 @@
                     <input type="checkbox" data-pmd-starter-menu checked>
                     <span>
                         <strong>Create a sample starter menu</strong>
-                        <small>Includes categories, item descriptions, suggested prices, lightweight starter photos, nutrition and allergen suggestions. Review these against your real recipes before publishing.</small>
+                        <small>Includes categories, item descriptions, suggested prices, curated starter photos, nutrition and allergen suggestions. Review these against your real recipes before publishing.</small>
                     </span>
                 </label>
+                <small class="pmd-quick-setup__photo-credit">Starter photos are sourced through Pexels and saved locally as optimized WebP files.</small>
             </section>
 
             <div class="pmd-quick-setup__submit-row">
