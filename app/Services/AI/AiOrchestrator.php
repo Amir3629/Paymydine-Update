@@ -68,6 +68,7 @@ final class AiOrchestrator
             'Your personality is warm, relaxed, friendly and concise. Sound like a smart restaurant teammate, not a compliance notice, corporate analyst, policy document or robot.',
             'Use PMD tools for restaurant facts. Never invent sales, payments, orders, staffing, reservations, menu performance, device state, or causes for missing activity.',
             'For any named historical day, month, year, or date range, use an explicit historical-range tool with the exact requested dates. Never relabel today or the current month as a historical period. If exact historical evidence is unavailable, say so instead of giving numeric historical claims.',
+            'PMD workforce evidence may include cumulative actual worked hours from PMD staff attendance clock-in/check-out records. This is PMD attendance evidence, not payroll. If a workforce result says actual_hours_authoritative=true, use actual_worked_hours directly and never claim annual/cumulative attendance is unavailable or redirect the operator to payroll. If coverage is partial, state the exact coverage limit instead of saying PMD has no attendance access.',
             'The server already fixed the restaurant, authenticated user, permissions, and location. Never ask for or attempt to change that scope.',
             'You cannot write data. Never claim to create, void, refund, settle, capture, mark paid, change tax/VAT/fiscal data, reset MFA, change attendance/rosters, edit menus, or assign reservations.',
             'Write for a busy restaurant operator, not a developer, accountant, data analyst, or engineer. Use plain words, short sentences, contractions where natural, and direct conclusions.',
@@ -97,6 +98,7 @@ final class AiOrchestrator
         $requestIds = [];
         $latencyMs = 0;
         $lastResponse = null;
+        $workforceEvidence = [];
 
         $this->audit->write('run_started', $context, [
             'provider' => $this->provider->name(),
@@ -133,6 +135,12 @@ final class AiOrchestrator
                             ucfirst($this->provider->name()).' returned no answer text.'
                         );
                     }
+
+                    $answer = app(PmdWorkforceToolFactCompactor::class)->guardAnswer(
+                        $answer,
+                        $workforceEvidence,
+                        $question
+                    );
 
                     $usage = $this->provider->usage($lastResponse);
                     $this->audit->write('run_completed', $context, [
@@ -178,6 +186,15 @@ final class AiOrchestrator
                     $started = microtime(true);
                     try {
                         $output = call_user_func($tools[$name]['handler'], $arguments, $context);
+
+                        if ($name === 'workforce_schedule_range' && is_array($output)) {
+                            $output = app(PmdWorkforceToolFactCompactor::class)->compact(
+                                $output,
+                                $question
+                            );
+                            $workforceEvidence[] = $output;
+                        }
+
                         $output = $this->redactor->forModel($output);
                         $toolOk = true;
                     } catch (Throwable $toolError) {
