@@ -11,23 +11,31 @@ use Illuminate\Support\Str;
  * 1) overly strict metadata checks could leave valid foods with no image;
  * 2) broad starter/tapas queries could still accept the wrong kind of food.
  *
- * The resolver now uses two semantic passes. Exact dish queries are preferred,
- * then a same-cuisine/same-family fallback is allowed only when the candidate
- * does not visibly conflict with the requested dish family. People, hands,
- * table scenes and dark imagery are still rejected by the V3 base pipeline.
+ * The resolver uses exact dish queries first. Dishes with specific semantic
+ * evidence (for example Pimientos de Padrón, paella, carbonara or burrata)
+ * receive a second synonym-based pass and NEVER fall through to an unrelated
+ * same-category photo. Other dishes may use a same-cuisine/same-family fallback
+ * to reduce blank cards. People, hands, table scenes and dark imagery remain
+ * rejected by the V3 visual pipeline.
  */
 class PmdStarterMenuImageServiceV5 extends PmdStarterMenuImageServiceV4
 {
-    public const VERSION = '5.0.0';
+    public const VERSION = '5.1.0';
 
     protected function materialize(array $item, string $restaurantType, string $targetPath): ?array
     {
         if (!function_exists('imagecreatefromstring') || !function_exists('imagewebp')) return null;
 
+        $locked = $this->hasSpecificSemanticLock($item);
         $passes = [
             ['mode' => 'strict', 'queries' => $this->strictQueries($item, $restaurantType)],
-            ['mode' => 'family', 'queries' => $this->familyQueries($item, $restaurantType)],
         ];
+
+        if ($locked) {
+            $passes[] = ['mode' => 'semantic', 'queries' => $this->semanticQueries($item, $restaurantType)];
+        } else {
+            $passes[] = ['mode' => 'family', 'queries' => $this->familyQueries($item, $restaurantType)];
+        }
 
         foreach ($passes as $pass) {
             $mode = (string)$pass['mode'];
@@ -94,6 +102,20 @@ class PmdStarterMenuImageServiceV5 extends PmdStarterMenuImageServiceV4
         ])));
     }
 
+    protected function semanticQueries(array $item, string $restaurantType): array
+    {
+        $required = $this->semanticRequiredTokens($item);
+        $family = strtolower(trim((string)($item['image_family'] ?? 'plated'))) ?: 'plated';
+        $cuisine = $this->cuisineTerm($restaurantType);
+        $terms = trim(implode(' ', array_slice($required, 0, 4)));
+        if ($terms === '') return [];
+
+        return array_values(array_unique(array_filter([
+            trim($terms.' '.$cuisine.' '.$this->familySearchTerm($family).' bright plate'),
+            trim($terms.' plated restaurant food close up'),
+        ])));
+    }
+
     protected function familyQueries(array $item, string $restaurantType): array
     {
         $fallback = trim((string)($item['image_fallback_query'] ?? ''));
@@ -114,42 +136,86 @@ class PmdStarterMenuImageServiceV5 extends PmdStarterMenuImageServiceV4
     {
         $alt = $this->normaliseText((string)($candidate['alt'] ?? ''));
         $family = strtolower(trim((string)($item['image_family'] ?? 'plated'))) ?: 'plated';
-        $required = array_values(array_filter(array_map(
-            fn($value) => $this->normaliseText((string)$value),
-            (array)($item['image_required'] ?? $this->requiredAltTokens($item))
-        )));
+        $required = $this->semanticRequiredTokens($item);
+        $locked = $this->hasSpecificSemanticLock($item);
 
         foreach ((array)($item['image_forbid'] ?? []) as $forbidden) {
             $forbidden = $this->normaliseText((string)$forbidden);
             if ($forbidden !== '' && $alt !== '' && str_contains($alt, $forbidden)) return false;
         }
 
-        // Empty Pexels alt text is uncommon. It is acceptable for an exact
-        // query after the visual profile passes, but never for a broad fallback.
-        if ($alt === '') return $mode === 'strict';
+        // For semantically locked dishes, missing metadata is not enough proof.
+        // Generic dishes can still use an exact query when Pexels has no alt.
+        if ($alt === '') return !$locked && $mode === 'strict';
 
-        $queryTokens = $this->importantTokens($this->normaliseText($query));
+        $queryTokens = $this->meaningfulQueryTokens($query);
         $queryMatch = $this->containsAny($alt, $queryTokens);
         $requiredMatch = !$required || $this->containsAny($alt, $required);
         $familyMatch = $this->containsAny($alt, $this->familyTokens($family));
         $detected = $this->detectedStrongFamilies($alt);
 
+        // A locked dish must show at least one dish-specific semantic term on
+        // BOTH strict and synonym passes. This prevents peppers -> octopus and
+        // salad -> calzone even when both happen to be tagged as tapas/starter.
+        if ($locked && !$requiredMatch) return false;
+
         if ($this->hasConflictingFamily($family, $detected, $queryMatch, $requiredMatch)) {
             return false;
         }
 
+        if ($mode === 'semantic') return $requiredMatch;
+
         if ($mode === 'strict') {
-            // A dish-specific token is the strongest evidence. If Pexels uses
-            // a generic caption, a same-family caption plus an exact query token
-            // is still enough to keep coverage high.
-            if ($required && !$requiredMatch && !($familyMatch && $queryMatch)) return false;
             return $requiredMatch || $queryMatch || $familyMatch;
         }
 
-        // Family fallback may fill a gap, but it must remain semantically inside
-        // the requested food family. This is what prevents peppers -> octopus.
-        if ($required && $requiredMatch) return true;
         return $familyMatch && ($queryMatch || !$detected || in_array($family, $detected, true));
+    }
+
+    protected function semanticRequiredTokens(array $item): array
+    {
+        $tokens = [];
+        foreach ((array)($item['image_required'] ?? []) as $value) {
+            $value = $this->normaliseText((string)$value);
+            if ($value !== '') $tokens[] = $value;
+        }
+        foreach ($this->requiredAltTokens($item) as $value) {
+            $value = $this->normaliseText((string)$value);
+            if ($value !== '') $tokens[] = $value;
+        }
+        return array_values(array_unique($tokens));
+    }
+
+    protected function hasSpecificSemanticLock(array $item): bool
+    {
+        $family = strtolower(trim((string)($item['image_family'] ?? 'plated'))) ?: 'plated';
+        $required = $this->semanticRequiredTokens($item);
+        $familyTokens = array_values(array_unique(array_map(
+            fn($value) => $this->normaliseText((string)$value),
+            $this->familyTokens($family)
+        )));
+
+        if (!$required) return false;
+        if ($this->requiredAltTokens($item)) return true;
+
+        $requiredSorted = $required;
+        $familySorted = $familyTokens;
+        sort($requiredSorted);
+        sort($familySorted);
+        return $requiredSorted !== $familySorted;
+    }
+
+    protected function meaningfulQueryTokens(string $query): array
+    {
+        $tokens = $this->importantTokens($this->normaliseText($query));
+        $generic = [
+            'food','foods','plate','plated','dish','dishes','bright','neutral','background',
+            'restaurant','menu','photo','photography','white','close','clean','light','style',
+        ];
+        return array_values(array_filter(
+            $tokens,
+            static fn($token) => !in_array($token, $generic, true)
+        ));
     }
 
     protected function hasConflictingFamily(
@@ -158,8 +224,9 @@ class PmdStarterMenuImageServiceV5 extends PmdStarterMenuImageServiceV4
         bool $queryMatch,
         bool $requiredMatch
     ): bool {
-        if (!$detected || $queryMatch || $requiredMatch) return false;
+        if (!$detected || $requiredMatch) return false;
         if (in_array($requested, $detected, true)) return false;
+        if ($queryMatch && count($detected) === 1) return false;
 
         $compatible = [
             'pasta' => ['seafood'],
@@ -195,11 +262,11 @@ class PmdStarterMenuImageServiceV5 extends PmdStarterMenuImageServiceV4
         $alt = $this->normaliseText((string)($candidate['alt'] ?? ''));
         if ($alt === '') return $score;
 
-        $required = (array)($item['image_required'] ?? []);
-        if ($required && $this->containsAny($alt, $required)) $score += 85;
+        $required = $this->semanticRequiredTokens($item);
+        if ($required && $this->containsAny($alt, $required)) $score += 95;
 
         $fallback = $this->normaliseText((string)($item['image_fallback_query'] ?? ''));
-        if ($fallback !== '' && $this->containsAny($alt, $this->importantTokens($fallback))) {
+        if ($fallback !== '' && $this->containsAny($alt, $this->meaningfulQueryTokens($fallback))) {
             $score += 14;
         }
 
@@ -213,8 +280,8 @@ class PmdStarterMenuImageServiceV5 extends PmdStarterMenuImageServiceV4
         $neutralLight = (float)($metrics['neutral_light_edge_ratio'] ?? 0);
         $skin = (float)($metrics['skin_edge_ratio'] ?? 1);
 
-        // Slightly wider than V3/V4 to prevent blank cards, while still keeping
-        // the light PayMyDine art direction and aggressively rejecting people.
+        // Wider than V4 for coverage, while preserving the bright menu-card
+        // direction and making the people/hands rejection even stricter.
         if ($edgeLuma < 96) return false;
         if ($darkEdge > 0.31) return false;
         if ($neutralLight < 0.025) return false;
