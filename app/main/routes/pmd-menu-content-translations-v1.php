@@ -59,8 +59,13 @@ if (!defined('PMD_MENU_CONTENT_TRANSLATIONS_ROUTE_V1')) {
             }
         };
 
+        // PMD_MENU_TRANSLATION_SOURCE_AUTHORITY_V2
+        // Frontend V2 already treats settings.default_language as the restaurant's
+        // active/base menu locale. Keep this endpoint identical so English-base
+        // restaurants translate to German/Arabic/etc, while German-base restaurants
+        // translate to English instead of being forced by the country profile.
         $defaultLocale = $normalizeLocale(
-            $setting('pmd_customer_default_language', $setting('default_language', 'en'))
+            $setting('default_language', $setting('pmd_customer_default_language', 'en'))
         );
         if ($defaultLocale === '') $defaultLocale = 'en';
 
