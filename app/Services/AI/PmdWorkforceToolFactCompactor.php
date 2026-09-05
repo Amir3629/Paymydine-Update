@@ -243,8 +243,11 @@ final class PmdWorkforceToolFactCompactor
             number_format($actual, 1, '.', ''),
             number_format($actual, 2, '.', ''),
         ]);
+
         foreach ($candidates as $candidate) {
-            if ($candidate !== '' && str_contains($answer, $candidate)) return true;
+            if ($candidate === '') continue;
+            $pattern = '/(?<![\d.])'.preg_quote($candidate, '/').'(?![\d.])/';
+            if (preg_match($pattern, $answer) === 1) return true;
         }
         return false;
     }
