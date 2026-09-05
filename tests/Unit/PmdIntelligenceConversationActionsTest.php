@@ -17,19 +17,23 @@ final class PmdIntelligenceConversationActionsTest extends TestCase
         self::assertStringContainsString("where('admin_user_id', \$userId)", $store);
         self::assertStringContainsString("where('created_at', '>=', \$window['storage_start'])", $store);
         self::assertStringContainsString("where('created_at', '<', \$window['storage_end'])", $store);
-        self::assertStringContainsString("'storage_mode' => 'tenant_pinned_created_at_window'", $store);
+        self::assertStringContainsString("'storage_mode' => 'tenant_pinned_created_at_window_v2'", $store);
         self::assertStringContainsString('canonicalTimezone()', $store);
-        self::assertStringContainsString('Previous daily chats remain stored', $store);
+        self::assertStringContainsString('Prior days remain available', $store);
         self::assertStringContainsString('MAX_MESSAGES = 300', $store);
         self::assertStringContainsString('modelContext', $store);
         self::assertStringContainsString('public function archive(', $store);
         self::assertStringContainsString('clear(int $locationId, int $userId)', $store);
-        self::assertStringContainsString('hasConversationDateColumn', $store);
+        self::assertStringContainsString('getColumnListing(self::TABLE)', $store);
+        self::assertStringContainsString("in_array('conversation_date', \$columns, true)", $store);
+        self::assertStringContainsString('insertGetId', $store);
+        self::assertStringContainsString('Pruning is deliberately best-effort and OUTSIDE the insert transaction.', $store);
         self::assertStringContainsString("app()->bound('tenant')", $store);
         self::assertStringContainsString("return \$this->resolvedConnectionName = 'tenant'", $store);
-        self::assertStringContainsString('$this->db()->transaction', $store);
+        self::assertStringContainsString('$db->transaction', $store);
         self::assertStringContainsString('Schema::connection($this->connectionName())', $store);
         self::assertStringNotContainsString('Schema::table(self::TABLE', $store);
+        self::assertStringNotContainsString('hasConversationDateColumn', $store);
         self::assertStringNotContainsString('DB::transaction(', $store);
         self::assertStringNotContainsString('ip_address', $store);
         self::assertStringNotContainsString('provider_response', $store);
@@ -38,7 +42,7 @@ final class PmdIntelligenceConversationActionsTest extends TestCase
         self::assertStringContainsString("date('conversation_date')", $migration);
     }
 
-    public function testAdminControllerPersistsFollowupsAndRechecksPmdAuthority(): void
+    public function testAdminControllerPersistsFollowupsUsesLocalClockAndStaffAuthority(): void
     {
         $source = file_get_contents(dirname(__DIR__, 2).'/app/admin/controllers/Pmdintelligence.php');
 
@@ -47,8 +51,13 @@ final class PmdIntelligenceConversationActionsTest extends TestCase
         self::assertStringContainsString("admin_url('pmdintelligence/clear')", $source);
         self::assertStringContainsString('AdminAiConversationStore::class', $source);
         self::assertStringContainsString('PmdIntelligenceActionRegistry::class', $source);
+        self::assertStringContainsString('PmdAdminWorkforceIntelligenceService::class', $source);
         self::assertStringContainsString('CONVERSATION_CONTINUITY_ONLY:', $source);
+        self::assertStringContainsString('PMD_RUNTIME_CONTEXT:', $source);
+        self::assertStringContainsString('restaurant_local_datetime=', $source);
+        self::assertStringContainsString('Resolve today, tomorrow, tonight, yesterday', $source);
         self::assertStringContainsString('Re-check PMD tools for restaurant facts', $source);
+        self::assertStringContainsString('Never claim staff names are unavailable before calling this tool.', $source);
         self::assertStringContainsString('$context->userId', $source);
         self::assertStringNotContainsString('$context->adminUserId', $source);
         self::assertStringContainsString("['kind' => 'report', 'report' => \$report", $source);
@@ -58,6 +67,26 @@ final class PmdIntelligenceConversationActionsTest extends TestCase
         self::assertStringContainsString("'actions'", $source);
         self::assertStringContainsString("'persisted'", $source);
         self::assertStringContainsString("'storage_ready'", $source);
+    }
+
+    public function testInternalWorkforceIntelligenceExposesOperationsNotPrivateStaffData(): void
+    {
+        $source = file_get_contents(dirname(__DIR__, 2).'/app/Services/AI/PmdAdminWorkforceIntelligenceService.php');
+
+        self::assertIsString($source);
+        self::assertStringContainsString('PmdAdminWorkforceIntelligenceService', $source);
+        self::assertStringContainsString("'name' =>", $source);
+        self::assertStringContainsString("'department' =>", $source);
+        self::assertStringContainsString("'job_role' =>", $source);
+        self::assertStringContainsString("'attendance_status' =>", $source);
+        self::assertStringContainsString("'scheduled_hours' =>", $source);
+        self::assertStringContainsString("'actual_hours_on_date' =>", $source);
+        self::assertStringContainsString("'not_scheduled_in_range'", $source);
+        self::assertStringContainsString('no contact, login, payroll or private profile data', $source);
+        self::assertStringNotContainsString('email', strtolower($source));
+        self::assertStringNotContainsString('phone', strtolower($source));
+        self::assertStringNotContainsString('password', strtolower($source));
+        self::assertStringNotContainsString('salary', strtolower($source));
     }
 
     public function testAdminAiToneDoesNotFlatterRoleOrCallUserBoss(): void
@@ -97,7 +126,7 @@ final class PmdIntelligenceConversationActionsTest extends TestCase
         self::assertStringNotContainsString('DB::', $source);
     }
 
-    public function testAdminPageIsOneFocusedDailyChatWorkspace(): void
+    public function testAdminPageIsOneFocusedDailyChatWorkspaceWithCanonicalAiIcon(): void
     {
         $root = dirname(__DIR__, 2);
         $view = file_get_contents($root.'/app/admin/views/pmdintelligence/index.blade.php');
@@ -124,10 +153,9 @@ final class PmdIntelligenceConversationActionsTest extends TestCase
         self::assertStringNotContainsString('pmd-ai-answer-card', $view);
 
         self::assertStringContainsString('data-pmd-ai-nav', $sideMenu);
-        self::assertStringContainsString('pmd-ai-nav-mark-v3', $view);
-        self::assertStringContainsString('-webkit-mask:', $view);
-        self::assertStringNotContainsString("content: 'AI'", $view);
-        self::assertStringContainsString('data-pmd-ai-icon="bot"', $view);
+        self::assertStringNotContainsString('pmd-ai-nav-mark-v3', $view);
+        self::assertStringNotContainsString('-webkit-mask:', $view);
+        self::assertStringContainsString('The sidebar icon is intentionally NOT restyled here.', $view);
 
         self::assertStringContainsString('function loadHistory()', $js);
         self::assertStringContainsString('void loadHistory();', $js);
