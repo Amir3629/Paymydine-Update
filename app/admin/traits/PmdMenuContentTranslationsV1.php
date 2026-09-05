@@ -126,8 +126,12 @@ trait PmdMenuContentTranslationsV1
             }
         }
 
+        // PMD_MENU_TRANSLATION_SOURCE_AUTHORITY_V2
+        // Match Frontend V2: the restaurant's actual default_language is the
+        // canonical language of menu_name/menu_description. The market-profile
+        // customer default is only a compatibility fallback for older tenants.
         $default = $this->normalizePmdMenuTranslationLocaleV1(
-            $settings['pmd_customer_default_language'] ?? $settings['default_language'] ?? 'en'
+            $settings['default_language'] ?? $settings['pmd_customer_default_language'] ?? 'en'
         );
         if ($default === '') $default = 'en';
 
