@@ -4,9 +4,9 @@ namespace App\Services\AI;
 
 /**
  * Keeps workforce tool evidence small, explicit and hard to misread by the
- * model. It also provides a narrow server-side correction for named worked-hour
- * questions so an AI provider can never contradict authoritative PMD attendance
- * facts with a generic "check payroll" refusal.
+ * model. For named worked-hour questions, the server owns the final factual
+ * reply so provider wording can never contradict PMD attendance state or send
+ * an operator to an unrelated external system.
  *
  * Internal Admin AI only. Guest AI never calls this service.
  */
@@ -92,19 +92,19 @@ final class PmdWorkforceToolFactCompactor
             ],
             'worked_hours_rule' => (string)($output['worked_hours_rule'] ?? ''),
             'attendance_fact_contract' => [
-                'source' => 'PMD staff_attendance clock-in/check-out records, not payroll software.',
-                'rule' => 'For a person where actual_hours_authoritative=true, actual_worked_hours is the cumulative PMD attendance fact for this exact range. Use it directly. Never say cumulative/annual attendance is unavailable and never redirect the operator to payroll.',
-                'coverage_rule' => 'If attendance is linked but attendance_coverage_complete_for_range=false, actual_worked_hours is only the PMD-recorded partial total from attendance_coverage_start onward. State that coverage limitation explicitly instead of claiming PMD has no attendance access.',
-                'gap_rule' => 'If actual_hours_authoritative=false, explain the explicit attendance_source_available, attendance_identity_linked or attendance_coverage_complete_for_range gap. Do not invent actual hours.',
+                'source' => 'PMD attendance clock-in/check-out records.',
+                'rule' => 'For a person where actual_hours_authoritative=true, actual_worked_hours is the PMD attendance fact for this exact range. Use it directly.',
+                'coverage_rule' => 'If attendance is linked but attendance_coverage_complete_for_range=false, actual_worked_hours is only the PMD-recorded partial total from attendance_coverage_start onward. State that coverage limitation explicitly.',
+                'gap_rule' => 'If actual_hours_authoritative=false, explain the explicit PMD attendance source, identity-link or coverage gap. Do not invent actual hours and do not redirect the operator to an external payroll or staff system.',
             ],
             'source' => 'PMD internal workforce authority; compacted for authenticated Admin AI.',
         ];
     }
 
     /**
-     * Correct only the narrow failure mode shown in production: the provider
-     * received named staff attendance facts but still claimed it lacked access.
-     * Normal workforce answers remain provider-written.
+     * Named worked-hours are factual PMD questions, so the server owns the final
+     * answer after the provider has completed its tool turn. This intentionally
+     * replaces provider prose even when the provider happened to sound plausible.
      */
     public function guardAnswer(string $answer, array $workforceEvidence, string $question): string
     {
@@ -121,24 +121,20 @@ final class PmdWorkforceToolFactCompactor
                 'is_array'
             ));
             $matched = $this->matchingPeople($people, $currentQuestion);
-            if (!$matched) continue;
-
-            // If two roster names genuinely match the question, let the model
-            // ask/clarify rather than choosing a person server-side.
             if (count($matched) !== 1) continue;
 
             $person = $matched[0];
-            $authoritative = (bool)($person['actual_hours_authoritative'] ?? false);
-
-            if ($authoritative) {
-                $actual = round((float)($person['actual_worked_hours'] ?? 0), 2);
-                if ($this->answerAlreadyUsesFact($answer, $actual)) return $answer;
-                return $this->authoritativeHoursAnswer($person, (array)($evidence['range'] ?? []));
+            if ((bool)($person['actual_hours_authoritative'] ?? false)) {
+                return $this->authoritativeHoursAnswer(
+                    $person,
+                    (array)($evidence['range'] ?? [])
+                );
             }
 
-            if ($this->looksLikeGenericAccessRefusal($answer)) {
-                return $this->preciseGapAnswer($person, (array)($evidence['range'] ?? []));
-            }
+            return $this->preciseGapAnswer(
+                $person,
+                (array)($evidence['range'] ?? [])
+            );
         }
 
         return $answer;
@@ -236,33 +232,6 @@ final class PmdWorkforceToolFactCompactor
         return false;
     }
 
-    private function answerAlreadyUsesFact(string $answer, float $actual): bool
-    {
-        $candidates = array_unique([
-            $this->hours($actual),
-            number_format($actual, 1, '.', ''),
-            number_format($actual, 2, '.', ''),
-        ]);
-
-        foreach ($candidates as $candidate) {
-            if ($candidate === '') continue;
-            $pattern = '/(?<![\d.])'.preg_quote($candidate, '/').'(?![\d.])/';
-            if (preg_match($pattern, $answer) === 1) return true;
-        }
-        return false;
-    }
-
-    private function looksLikeGenericAccessRefusal(string $answer): bool
-    {
-        $text = mb_strtolower($answer);
-        $needles = [
-            "don't have access", 'do not have access', "don't have a record", 'do not have a record',
-            'limited to operational rostering', 'check your payroll', 'payroll software',
-            'staff management software', 'attendance logs', 'cumulative historical',
-        ];
-        return $this->containsAny($text, $needles);
-    }
-
     private function authoritativeHoursAnswer(array $person, array $range): string
     {
         $name = trim((string)($person['name'] ?? 'This team member')) ?: 'This team member';
@@ -309,11 +278,11 @@ final class PmdWorkforceToolFactCompactor
         $rangeText = ($start !== '' && $end !== '') ? " for {$start} to {$end}" : '';
 
         if (!$sourceReady) {
-            return "PMD can see {$name}'s rota{$rangeText}: **{$scheduled} scheduled hours across {$shiftCount} shifts**. The PMD attendance clock source is not available in this restaurant scope, so I can't safely claim actual worked hours yet.";
+            return "PMD can see {$name}'s rota{$rangeText}: **{$scheduled} scheduled hours across {$shiftCount} shifts**. The PMD attendance clock is not available for this restaurant yet, so actual worked hours cannot be reported safely.";
         }
 
         if (!$linked) {
-            return "PMD can see {$name}'s rota{$rangeText}: **{$scheduled} scheduled hours across {$shiftCount} shifts**. Their Team profile is not linked to a PMD attendance identity, so actual clocked hours can't be totalled safely until that link is repaired.";
+            return "PMD can see {$name}'s rota{$rangeText}: **{$scheduled} scheduled hours across {$shiftCount} shifts**. This roster entry is not linked to a PMD Team attendance record yet, so actual clocked hours cannot be reported until that PMD link is repaired.";
         }
 
         if (!$coverageComplete) {
@@ -321,7 +290,7 @@ final class PmdWorkforceToolFactCompactor
             return "PMD has **{$actual} recorded actual hours** for {$name}{$coverageText}, but attendance coverage does not reach the start of the requested range{$rangeText}. Scheduled hours for the requested range are **{$scheduled} across {$shiftCount} shifts**. I won't label the partial attendance total as a full-period total.";
         }
 
-        return "PMD can see {$name}'s rota{$rangeText}: **{$scheduled} scheduled hours across {$shiftCount} shifts**. Attendance is connected, but there isn't enough valid completed clock-in/clock-out evidence in this range to claim actual worked hours.";
+        return "PMD can see {$name}'s rota{$rangeText}: **{$scheduled} scheduled hours across {$shiftCount} shifts**. Attendance is connected, but there are no valid completed PMD clock-in/clock-out sessions in this range from which to report actual worked hours.";
     }
 
     private function hours(float $value): string
