@@ -5,9 +5,10 @@ namespace Admin\Services;
 /**
  * Compatibility alias for the original Quick Setup integration point.
  *
- * PmdTenantQuickSetupService resolves this class, so the stable class name is
- * kept while V4 supplies the stricter dish-aware + consistency-first pipeline.
+ * The stable class name is kept so existing onboarding code does not change,
+ * while V5 supplies dish-aware matching, same-family fallback and the light
+ * PayMyDine image profile.
  */
-class PmdStarterMenuImageServiceV2 extends PmdStarterMenuImageServiceV4
+class PmdStarterMenuImageServiceV2 extends PmdStarterMenuImageServiceV5
 {
 }
