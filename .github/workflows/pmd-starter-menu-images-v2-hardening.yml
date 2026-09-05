@@ -1,0 +1,41 @@
+name: PMD Starter Menu Images V2 Hardening
+
+on:
+  push:
+    branches:
+      - feature/menu-gallery-sides-options-20260903
+    paths:
+      - tools/pmd_starter_menu_images_v2_hardening.py
+      - .github/workflows/pmd-starter-menu-images-v2-hardening.yml
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/menu-gallery-sides-options-20260903
+          fetch-depth: 0
+      - name: Apply hardening
+        run: python3 tools/pmd_starter_menu_images_v2_hardening.py
+      - name: Validate
+        run: |
+          php -l app/admin/Services/PmdStarterMenuImageServiceV2.php
+          grep -q 'descriptionHint' app/admin/Services/PmdStarterMenuImageServiceV2.php
+          grep -q 'plastic container' app/admin/Services/PmdStarterMenuImageServiceV2.php
+          grep -q 'ratio > 2.1' app/admin/Services/PmdStarterMenuImageServiceV2.php
+          if grep -q "trim(\$category.' '.\$cuisine.' plated dish')" app/admin/Services/PmdStarterMenuImageServiceV2.php; then exit 1; fi
+      - name: Commit
+        run: |
+          git config user.name 'PayMyDine CI'
+          git config user.email 'ci@paymydine.local'
+          git add app/admin/Services/PmdStarterMenuImageServiceV2.php
+          if git diff --cached --quiet; then
+            echo 'No changes.'
+          else
+            git commit -m 'Quick Setup: harden premium starter photo matching'
+            git push origin HEAD:feature/menu-gallery-sides-options-20260903
+          fi
