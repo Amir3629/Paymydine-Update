@@ -53,8 +53,13 @@ return new class extends Migration
         $shifts = $this->identifier($prefix.'pmd_operational_shifts');
         $people = $this->identifier($prefix.'pmd_operational_shift_people');
         $audit = $this->identifier($prefix.'pmd_operational_shift_audit_events');
+        $triggerShiftInsert = $this->identifier('pmd_shift_audit_shift_ai_v1');
+        $triggerShiftUpdate = $this->identifier('pmd_shift_audit_shift_au_v1');
+        $triggerPersonInsert = $this->identifier('pmd_shift_audit_person_ai_v1');
+        $triggerPersonUpdate = $this->identifier('pmd_shift_audit_person_au_v1');
+        $triggerPersonDelete = $this->identifier('pmd_shift_audit_person_ad_v1');
 
-        DB::unprepared("CREATE TRIGGER {$this->identifier('pmd_shift_audit_shift_ai_v1')}
+        DB::unprepared("CREATE TRIGGER {$triggerShiftInsert}
 AFTER INSERT ON {$shifts}
 FOR EACH ROW
 BEGIN
@@ -80,7 +85,7 @@ BEGIN
          CURRENT_TIMESTAMP);
 END");
 
-        DB::unprepared("CREATE TRIGGER {$this->identifier('pmd_shift_audit_shift_au_v1')}
+        DB::unprepared("CREATE TRIGGER {$triggerShiftUpdate}
 AFTER UPDATE ON {$shifts}
 FOR EACH ROW
 BEGIN
@@ -131,7 +136,7 @@ BEGIN
     END IF;
 END");
 
-        DB::unprepared("CREATE TRIGGER {$this->identifier('pmd_shift_audit_person_ai_v1')}
+        DB::unprepared("CREATE TRIGGER {$triggerPersonInsert}
 AFTER INSERT ON {$people}
 FOR EACH ROW
 BEGIN
@@ -158,7 +163,7 @@ BEGIN
          CURRENT_TIMESTAMP);
 END");
 
-        DB::unprepared("CREATE TRIGGER {$this->identifier('pmd_shift_audit_person_au_v1')}
+        DB::unprepared("CREATE TRIGGER {$triggerPersonUpdate}
 AFTER UPDATE ON {$people}
 FOR EACH ROW
 BEGIN
@@ -201,7 +206,7 @@ BEGIN
     END IF;
 END");
 
-        DB::unprepared("CREATE TRIGGER {$this->identifier('pmd_shift_audit_person_ad_v1')}
+        DB::unprepared("CREATE TRIGGER {$triggerPersonDelete}
 AFTER DELETE ON {$people}
 FOR EACH ROW
 BEGIN
