@@ -21,11 +21,21 @@ export default async function CustomerMenuPage({ searchParams }: PageProps) {
 
   // PMD_NEW_TENANT_SETUP_SPLASH_V2
   // The legacy customer frontend rendered the first-time setup card from the
-  // /api/v1/menu readiness flag. Frontend V2 became the customer authority but
-  // did not carry that render branch across. Restore the same fail-safe behavior:
-  // only an explicit false from the canonical tenant menu API may replace the
-  // guest menu with the owner setup CTA.
-  if (bootstrap.setup?.frontendConfigured === false) {
+  // /api/v1/menu readiness response. Frontend V2 became the customer authority
+  // but never carried that render branch across.
+  //
+  // Clean tenant provisioning already writes baseline logo/name/settings, so the
+  // old aggregate is_frontend_configured flag can be true before the owner has
+  // created any real customer menu. Treat the explicit catalog sub-state as the
+  // launch authority: zero categories + zero menu items is the genuine new-tenant
+  // state. If setup metadata is unavailable, fail safe and render the normal menu.
+  const setup = bootstrap.setup
+  const explicitlyEmptyCatalog = setup?.status !== null
+    && setup?.status !== undefined
+    && setup.status.hasCategories === false
+    && setup.status.hasMenuItems === false
+
+  if (setup?.frontendConfigured === false || explicitlyEmptyCatalog) {
     return <TenantSetupSplashV1 locale={bootstrap.restaurant.locale} />
   }
 
