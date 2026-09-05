@@ -43,6 +43,20 @@ if (!str_contains($answer, '42.5 actual worked hours') || str_contains(strtolowe
     exit(1);
 }
 
+$alreadyPlausibleButWrong = $guard->guardAnswer(
+    'I checked the record. There are no clock-in sessions to sum up, so check somewhere else.',
+    $evidence,
+    $question
+);
+if (
+    !str_contains($alreadyPlausibleButWrong, '42.5 actual worked hours')
+    || str_contains(strtolower($alreadyPlausibleButWrong), 'sum up')
+    || str_contains(strtolower($alreadyPlausibleButWrong), 'somewhere else')
+) {
+    fwrite(STDERR, "FAIL provider-plausible wording replacement\n");
+    exit(1);
+}
+
 $zeroEvidence = [[
     'available' => true,
     'range' => ['start_date' => '2026-01-01', 'end_date' => '2026-09-05'],
@@ -84,6 +98,33 @@ if (
     || str_contains(strtolower($partialAnswer), 'payroll')
 ) {
     fwrite(STDERR, "FAIL partial attendance coverage guard\n");
+    exit(1);
+}
+
+$unlinkedEvidence = [[
+    'available' => true,
+    'range' => ['start_date' => '2026-01-01', 'end_date' => '2026-09-05'],
+    'people_metrics' => [array_merge($basePerson, [
+        'actual_hours_authoritative' => false,
+        'actual_worked_hours' => 0.0,
+        'attendance_identity_linked' => false,
+        'attendance_coverage_complete_for_range' => false,
+        'attendance_coverage_start' => null,
+    ])],
+]];
+$unlinkedAnswer = $guard->guardAnswer(
+    "I checked the records for Mohsen, and I don't have a total for his hours worked this year. While I have access to your operational schedule, the system shows that attendance-based tracking is not linked for him in PMD. Because of this, there are no recorded clock-in or clock-out sessions to sum up. If you are tracking his hours elsewhere, that would be the best place to check.",
+    $unlinkedEvidence,
+    $question
+);
+if (
+    !str_contains($unlinkedAnswer, 'not linked to a PMD Team attendance record')
+    || !str_contains($unlinkedAnswer, '50 scheduled hours across 6 shifts')
+    || str_contains(strtolower($unlinkedAnswer), 'sum up')
+    || str_contains(strtolower($unlinkedAnswer), 'elsewhere')
+    || str_contains(strtolower($unlinkedAnswer), 'payroll')
+) {
+    fwrite(STDERR, "FAIL unlinked screenshot wording replacement\n");
     exit(1);
 }
 
