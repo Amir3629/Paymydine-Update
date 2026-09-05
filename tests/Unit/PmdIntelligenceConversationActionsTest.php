@@ -71,9 +71,14 @@ final class PmdIntelligenceConversationActionsTest extends TestCase
 
     public function testInternalWorkforceIntelligenceExposesOperationsNotPrivateStaffData(): void
     {
-        $source = file_get_contents(dirname(__DIR__, 2).'/app/Services/AI/PmdAdminWorkforceIntelligenceService.php');
+        $root = dirname(__DIR__, 2);
+        $source = file_get_contents($root.'/app/Services/AI/PmdAdminWorkforceIntelligenceService.php');
+        $personHours = file_get_contents($root.'/app/Services/AI/PmdWorkforcePersonHoursService.php');
+        $compactor = file_get_contents($root.'/app/Services/AI/PmdWorkforceToolFactCompactor.php');
 
         self::assertIsString($source);
+        self::assertIsString($personHours);
+        self::assertIsString($compactor);
         self::assertStringContainsString('PmdAdminWorkforceIntelligenceService', $source);
         self::assertStringContainsString("'name' =>", $source);
         self::assertStringContainsString("'department' =>", $source);
@@ -87,6 +92,18 @@ final class PmdIntelligenceConversationActionsTest extends TestCase
         self::assertStringNotContainsString('phone', strtolower($source));
         self::assertStringNotContainsString('password', strtolower($source));
         self::assertStringNotContainsString('salary', strtolower($source));
+
+        self::assertStringContainsString("private const CONNECTION = 'tenant'", $personHours);
+        self::assertStringContainsString('DB::connection(self::CONNECTION)', $personHours);
+        self::assertStringContainsString('Schema::connection(self::CONNECTION)', $personHours);
+        self::assertStringContainsString("->where('staff_id', \$staffId)", $personHours);
+        self::assertStringContainsString("'attendance_rows_found'", $personHours);
+        self::assertStringNotContainsString("DB::table('staff_attendance')", $personHours);
+        self::assertStringNotContainsString("Schema::hasTable('staff_attendance')", $personHours);
+
+        self::assertStringContainsString('attendance_rows_found=0', $compactor);
+        self::assertStringContainsString('no clock-in/clock-out attendance records', $compactor);
+        self::assertStringContainsString('Do not call the attendance system unavailable.', $compactor);
     }
 
     public function testAdminAiToneDoesNotFlatterRoleOrCallUserBoss(): void
