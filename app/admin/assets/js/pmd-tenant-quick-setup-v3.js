@@ -1,4 +1,4 @@
-/* PMD_TENANT_QUICK_SETUP_V3_FAST */
+/* PMD_TENANT_QUICK_SETUP_V4_CACHE_FIRST */
 (function () {
     'use strict';
 
@@ -148,7 +148,7 @@
         return node;
     }
 
-    function renderResult(payload, starterMenuSelected) {
+    function renderResult(payload, starterMenuSelected, photosPending) {
         var result = root.querySelector('[data-pmd-quick-setup-result]');
         if (!result) return null;
 
@@ -198,7 +198,9 @@
             photoStatus.className = 'pmd-quick-setup__photo-status';
             photoStatus.setAttribute('data-pmd-generated-photo-status', '');
             photoStatus.setAttribute('aria-live', 'polite');
-            photoStatus.textContent = 'Restaurant is ready. Preparing starter photos in the background…';
+            photoStatus.textContent = photosPending > 0
+                ? 'Restaurant is ready. Preparing ' + photosPending + ' uncached starter photos…'
+                : 'Starter photos loaded instantly from the PayMyDine image library.';
             result.appendChild(photoStatus);
         }
 
@@ -244,7 +246,7 @@
 
         if (status) {
             status.classList.remove('is-error');
-            status.textContent = 'Preparing starter photos…';
+            status.textContent = 'Checking the PayMyDine starter photo library…';
         }
 
         try {
@@ -269,9 +271,10 @@
 
             if (status) {
                 var details = [];
-                if (totals.updated) details.push(totals.updated + ' updated');
+                if (totals.cached) details.push(totals.cached + ' loaded from library');
+                if (totals.updated && totals.updated !== totals.cached) details.push(totals.updated + ' updated');
                 if (totals.skipped_custom) details.push(totals.skipped_custom + ' custom kept');
-                if (totals.kept_old) details.push(totals.kept_old + ' unchanged');
+                if (totals.kept_old) details.push(totals.kept_old + ' already ready');
                 status.textContent = 'Starter photos are ready' + (details.length ? ' · ' + details.join(' · ') : '') + '.';
             }
         } catch (error) {
@@ -288,8 +291,9 @@
     function polishStarterCopy() {
         root.querySelectorAll('.pmd-quick-setup__card-copy p').forEach(function (node) {
             var value = String(node.textContent || '').trim();
-            if (value.indexOf('Optional. We can add a small editable sample menu') === 0) {
-                node.textContent = 'Optional. We can prepare a fuller editable starter menu based on the restaurant type you selected.';
+            if (value.indexOf('Optional. We can add a small editable sample menu') === 0
+                || value.indexOf('Optional. We can prepare a fuller editable starter menu') === 0) {
+                node.textContent = 'Optional. We can prepare a complete editable starter menu with at least 100 items for the restaurant type you selected.';
             }
         });
     }
@@ -324,12 +328,18 @@
 
             try {
                 var completed = await handler('onCompleteStarterMenu', new FormData());
-                if (status) {
-                    status.textContent = (completed.message || 'Starter menu completed.') + ' Preparing starter photos…';
+                var pending = Number(completed.photos_pending || 0);
+
+                if (pending > 0) {
+                    if (status) status.textContent = (completed.message || 'Starter menu completed.') + ' Preparing uncached starter photos…';
+                    button.disabled = false;
+                    refresh.disabled = false;
+                    await refreshStarterPhotos(refresh, status);
+                } else {
+                    if (status) status.textContent = (completed.message || 'Starter menu completed.') + ' Starter photos loaded from the PayMyDine image library.';
+                    button.disabled = false;
+                    refresh.disabled = false;
                 }
-                button.disabled = false;
-                refresh.disabled = false;
-                await refreshStarterPhotos(refresh, status);
             } catch (error) {
                 if (status) {
                     status.textContent = error && error.message ? error.message : 'Starter menu update failed.';
@@ -367,9 +377,11 @@
             try {
                 var response = await handler('onApply', data);
                 setStatus('', false);
-                var photoStatus = renderResult(response, payload.starter_menu);
 
-                if (payload.starter_menu) {
+                var pending = Number(response.menu && response.menu.photos_pending ? response.menu.photos_pending : 0);
+                var photoStatus = renderResult(response, payload.starter_menu, pending);
+
+                if (payload.starter_menu && pending > 0) {
                     window.setTimeout(function () {
                         refreshStarterPhotos(null, photoStatus);
                     }, 120);
@@ -386,8 +398,8 @@
     polishStarterCopy();
     installCompletedActions();
 
-    window.PMDTenantQuickSetupV3 = {
-        version: '3.0.0',
+    var api = {
+        version: '4.0.0',
         collect: collect,
         inspect: function () {
             return {
@@ -403,4 +415,7 @@
             );
         }
     };
+
+    window.PMDTenantQuickSetupV4 = api;
+    window.PMDTenantQuickSetupV3 = api;
 })();
