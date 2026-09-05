@@ -1,0 +1,26 @@
+name: PMD Menu Translation Source Authority V2
+
+on:
+  push:
+    branches:
+      - feature/menu-gallery-sides-options-20260903
+    paths:
+      - app/admin/traits/PmdMenuContentTranslationsV1.php
+      - app/main/routes/pmd-menu-content-translations-v1.php
+      - .github/workflows/pmd-menu-translation-source-authority-v2.yml
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/menu-gallery-sides-options-20260903
+      - name: PHP syntax
+        run: |
+          php -l app/admin/traits/PmdMenuContentTranslationsV1.php
+          php -l app/main/routes/pmd-menu-content-translations-v1.php
+      - name: Source authority
+        run: |
+          grep -q "default_language.*pmd_customer_default_language" app/admin/traits/PmdMenuContentTranslationsV1.php
+          grep -q "default_language.*pmd_customer_default_language" app/main/routes/pmd-menu-content-translations-v1.php
