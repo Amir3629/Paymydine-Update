@@ -13,6 +13,7 @@ namespace App\Services\AI;
 final class PmdWorkforceToolFactCompactor
 {
     private const MAX_GENERAL_PEOPLE = 18;
+    private const MAX_HOURS_PEOPLE = 60;
     private const MAX_AUDIT_EVENTS = 30;
 
     public function compact(array $output, string $question): array
@@ -31,7 +32,27 @@ final class PmdWorkforceToolFactCompactor
             'is_array'
         ));
         $matched = $this->matchingPeople($people, $currentQuestion);
-        $selected = $matched ?: array_slice($people, 0, self::MAX_GENERAL_PEOPLE);
+        $hoursQuestion = $this->isWorkedHoursQuestion($currentQuestion);
+
+        $selected = $matched
+            ?: array_slice(
+                $people,
+                0,
+                $hoursQuestion ? self::MAX_HOURS_PEOPLE : self::MAX_GENERAL_PEOPLE
+            );
+
+        // Re-resolve the small person-hours slice directly from PMD attendance.
+        // This gives the model explicit source/link/coverage state and prevents
+        // a large rota payload from hiding the number the operator asked for.
+        if ($hoursQuestion) {
+            $range = (array)($output['range'] ?? []);
+            $hoursAuthority = app(PmdWorkforcePersonHoursService::class);
+            foreach ($selected as $index => $person) {
+                if (!is_array($person)) continue;
+                $selected[$index] = $hoursAuthority->enrich($person, $range);
+            }
+            $selected = array_values($selected);
+        }
 
         $selectedIds = [];
         $selectedNames = [];
@@ -73,7 +94,8 @@ final class PmdWorkforceToolFactCompactor
             'attendance_fact_contract' => [
                 'source' => 'PMD staff_attendance clock-in/check-out records, not payroll software.',
                 'rule' => 'For a person where actual_hours_authoritative=true, actual_worked_hours is the cumulative PMD attendance fact for this exact range. Use it directly. Never say cumulative/annual attendance is unavailable and never redirect the operator to payroll.',
-                'gap_rule' => 'If actual_hours_authoritative=false, explain the explicit attendance_source_available or attendance_identity_linked gap from the person metric. Do not invent actual hours.',
+                'coverage_rule' => 'If attendance is linked but attendance_coverage_complete_for_range=false, actual_worked_hours is only the PMD-recorded partial total from attendance_coverage_start onward. State that coverage limitation explicitly instead of claiming PMD has no attendance access.',
+                'gap_rule' => 'If actual_hours_authoritative=false, explain the explicit attendance_source_available, attendance_identity_linked or attendance_coverage_complete_for_range gap. Do not invent actual hours.',
             ],
             'source' => 'PMD internal workforce authority; compacted for authenticated Admin AI.',
         ];
@@ -273,9 +295,12 @@ final class PmdWorkforceToolFactCompactor
     {
         $name = trim((string)($person['name'] ?? 'This team member')) ?: 'This team member';
         $scheduled = $this->hours((float)($person['scheduled_hours'] ?? 0));
+        $actual = $this->hours((float)($person['actual_worked_hours'] ?? 0));
         $shiftCount = (int)($person['scheduled_shift_count'] ?? 0);
         $sourceReady = (bool)($person['attendance_source_available'] ?? false);
         $linked = (bool)($person['attendance_identity_linked'] ?? false);
+        $coverageComplete = (bool)($person['attendance_coverage_complete_for_range'] ?? false);
+        $coverageStart = trim((string)($person['attendance_coverage_start'] ?? ''));
         $start = trim((string)($range['start_date'] ?? ''));
         $end = trim((string)($range['end_date'] ?? ''));
         $rangeText = ($start !== '' && $end !== '') ? " for {$start} to {$end}" : '';
@@ -286,6 +311,11 @@ final class PmdWorkforceToolFactCompactor
 
         if (!$linked) {
             return "PMD can see {$name}'s rota{$rangeText}: **{$scheduled} scheduled hours across {$shiftCount} shifts**. Their Team profile is not linked to a PMD attendance identity, so actual clocked hours can't be totalled safely until that link is repaired.";
+        }
+
+        if (!$coverageComplete) {
+            $coverageText = $coverageStart !== '' ? " since {$coverageStart}" : ' in the available attendance window';
+            return "PMD has **{$actual} recorded actual hours** for {$name}{$coverageText}, but attendance coverage does not reach the start of the requested range{$rangeText}. Scheduled hours for the requested range are **{$scheduled} across {$shiftCount} shifts**. I won't label the partial attendance total as a full-period total.";
         }
 
         return "PMD can see {$name}'s rota{$rangeText}: **{$scheduled} scheduled hours across {$shiftCount} shifts**. Attendance is connected, but there isn't enough valid completed clock-in/clock-out evidence in this range to claim actual worked hours.";
