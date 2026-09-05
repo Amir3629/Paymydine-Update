@@ -49,7 +49,11 @@ $expect($compactor, 'attendance_coverage_complete_for_range', 'attendance covera
 $expect($compactor, 'attendance_fact_contract', 'structured workforce fact contract');
 $expect($compactor, 'actual_hours_authoritative', 'authoritative actual-hours marker');
 $expect($compactor, 'I won\'t label the partial attendance total as a full-period total.', 'partial coverage honesty');
-$expect($compactor, 'check your payroll', 'known bad refusal detection');
+$expect($compactor, 'This roster entry is not linked to a PMD Team attendance record yet', 'PMD-owned identity gap wording');
+$expect($compactor, 'provider prose even when the provider happened to sound plausible', 'server-owned named-hours reply');
+$reject($compactor, 'check your payroll', 'no external payroll redirect');
+$reject($compactor, 'payroll software', 'no payroll software wording');
+$reject($compactor, 'to sum up', 'no SumUp-ambiguous workforce wording');
 
 $expect($personHours, "Schema::hasTable('staff_attendance')", 'canonical attendance source');
 $expect($personHours, "DB::table('pmd_operational_people')", 'operational person scope');
