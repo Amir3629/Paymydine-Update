@@ -38,7 +38,7 @@ export default async function CustomerMenuPage({ searchParams }: PageProps) {
   )
 
   if (setup?.frontendConfigured === false || explicitlyEmptyCatalog) {
-    return <TenantSetupSplashV1 locale={bootstrap.restaurant.locale} />
+    return <TenantSetupSplashV1 />
   }
 
   return (
