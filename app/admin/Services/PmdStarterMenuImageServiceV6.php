@@ -16,7 +16,10 @@ use Admin\Models\Menus_model;
  */
 class PmdStarterMenuImageServiceV6 extends PmdStarterMenuImageServiceV5
 {
-    public const VERSION = '6.0.0';
+    public const VERSION = '6.0.1';
+
+    /** @var array<string,array{table:bool,sort:bool,created:bool,updated:bool}> */
+    protected array $menuImageSchemaCache = [];
 
     public function warmAsset(array $item, string $restaurantType): array
     {
@@ -92,13 +95,13 @@ class PmdStarterMenuImageServiceV6 extends PmdStarterMenuImageServiceV5
 
         try {
             $connection = $menu->getConnection();
-            $schema = $connection->getSchemaBuilder();
-            if (!$schema->hasTable('menu_images')) {
+            $schema = $this->menuImagesSchema($connection);
+            if (!$schema['table']) {
                 return ['attached' => false, 'cached' => false, 'missing' => true, 'reason' => 'menu_images'];
             }
 
             $existingQuery = $connection->table('menu_images')->where('menu_id', $menuId);
-            if ($schema->hasColumn('menu_images', 'sort_order')) $existingQuery->orderBy('sort_order');
+            if ($schema['sort']) $existingQuery->orderBy('sort_order');
             $existing = $existingQuery->get(['image_path'])->pluck('image_path')
                 ->map(static fn($path) => trim((string)$path))
                 ->filter()->values()->all();
@@ -135,9 +138,9 @@ class PmdStarterMenuImageServiceV6 extends PmdStarterMenuImageServiceV5
             }
 
             $row = ['menu_id' => $menuId, 'image_path' => $filename];
-            if ($schema->hasColumn('menu_images', 'sort_order')) $row['sort_order'] = 1;
-            if ($schema->hasColumn('menu_images', 'created_at')) $row['created_at'] = now();
-            if ($schema->hasColumn('menu_images', 'updated_at')) $row['updated_at'] = now();
+            if ($schema['sort']) $row['sort_order'] = 1;
+            if ($schema['created']) $row['created_at'] = now();
+            if ($schema['updated']) $row['updated_at'] = now();
             $connection->table('menu_images')->insert($row);
 
             return [
@@ -150,5 +153,36 @@ class PmdStarterMenuImageServiceV6 extends PmdStarterMenuImageServiceV5
         } catch (\Throwable $error) {
             return ['attached' => false, 'cached' => false, 'missing' => true, 'reason' => 'exception'];
         }
+    }
+
+    /**
+     * Schema introspection is comparatively expensive. Quick Setup may attach
+     * 100+ cached photos, so inspect the tenant menu_images table only once per
+     * connection for the lifetime of this service instance.
+     */
+    protected function menuImagesSchema($connection): array
+    {
+        $key = (string)$connection->getName();
+        if (isset($this->menuImageSchemaCache[$key])) {
+            return $this->menuImageSchemaCache[$key];
+        }
+
+        $builder = $connection->getSchemaBuilder();
+        $table = $builder->hasTable('menu_images');
+        if (!$table) {
+            return $this->menuImageSchemaCache[$key] = [
+                'table' => false,
+                'sort' => false,
+                'created' => false,
+                'updated' => false,
+            ];
+        }
+
+        return $this->menuImageSchemaCache[$key] = [
+            'table' => true,
+            'sort' => $builder->hasColumn('menu_images', 'sort_order'),
+            'created' => $builder->hasColumn('menu_images', 'created_at'),
+            'updated' => $builder->hasColumn('menu_images', 'updated_at'),
+        ];
     }
 }
