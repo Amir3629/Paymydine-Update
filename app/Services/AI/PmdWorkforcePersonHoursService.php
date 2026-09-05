@@ -30,6 +30,7 @@ final class PmdWorkforcePersonHoursService
     public function enrich(array $metric, array $range): array
     {
         $metric['attendance_source_available'] = false;
+        $metric['attendance_source_state'] = 'unknown';
         $metric['attendance_identity_linked'] = false;
         $metric['attendance_identity_link_mode'] = null;
         $metric['attendance_read_ok'] = false;
@@ -38,7 +39,9 @@ final class PmdWorkforcePersonHoursService
         $metric['attendance_coverage_complete_for_range'] = false;
         $metric['actual_hours_authoritative'] = false;
 
-        if (!$this->attendanceReady()) return $metric;
+        $sourceState = $this->attendanceSourceState();
+        $metric['attendance_source_state'] = $sourceState;
+        if ($sourceState !== 'available') return $metric;
         $metric['attendance_source_available'] = true;
 
         $personId = (int)($metric['person_id'] ?? 0);
@@ -178,20 +181,25 @@ final class PmdWorkforcePersonHoursService
     }
 
     /**
-     * A successful zero-row read still proves the attendance source exists.
-     * Laravel applies the verified tenant connection's canonical PMD prefix.
+     * Distinguish a tenant where attendance storage is not installed from a
+     * genuine runtime/database failure. A missing relation is a product/data
+     * capability state, not an operational read error.
      */
-    private function attendanceReady(): bool
+    private function attendanceSourceState(): string
     {
         try {
             $this->table('staff_attendance')
                 ->select(['staff_id', 'location_id', 'check_in_time', 'check_out_time'])
                 ->limit(1)
                 ->get();
-            return true;
+            return 'available';
         } catch (Throwable $error) {
+            if ($this->isMissingRelation($error)) {
+                return 'not_installed';
+            }
+
             $this->logReadFailure('attendance_probe', 0, 0, $error);
-            return false;
+            return 'read_error';
         }
     }
 
@@ -262,8 +270,19 @@ final class PmdWorkforcePersonHoursService
         return $connection;
     }
 
+    private function isMissingRelation(Throwable $error): bool
+    {
+        $code = strtoupper(trim((string)$error->getCode()));
+        if ($code === '42S02') return true;
+
+        $previous = $error->getPrevious();
+        return $previous instanceof Throwable
+            && strtoupper(trim((string)$previous->getCode())) === '42S02';
+    }
+
     private function failureReason(Throwable $error): string
     {
+        if ($this->isMissingRelation($error)) return 'relation_missing';
         if (!$error instanceof RuntimeException) return 'database_error';
 
         $message = $error->getMessage();
