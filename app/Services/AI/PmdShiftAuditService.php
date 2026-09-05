@@ -32,6 +32,7 @@ final class PmdShiftAuditService
 
     /**
      * @param array<int,int> $personIds
+     * @param array<int,int> $shiftIds Shift IDs selected by the schedule query.
      */
     public function events(
         int $locationId,
@@ -39,7 +40,8 @@ final class PmdShiftAuditService
         string $endDate,
         array $personIds = [],
         ?string $nameQuery = null,
-        int $limit = 120
+        int $limit = 120,
+        array $shiftIds = []
     ): array {
         if ($locationId < 1 || !$this->available()) {
             return [
@@ -56,13 +58,30 @@ final class PmdShiftAuditService
             if ($end < $start) [$start, $end] = [$end, $start];
 
             $personIds = array_values(array_unique(array_filter(array_map('intval', $personIds))));
+            $shiftIds = array_values(array_unique(array_filter(array_map('intval', $shiftIds))));
+            // Keep the SQL bounded for very large annual rota histories. The
+            // event-date branch below still returns recent audit events even if
+            // a very old shift falls beyond this explicit ID set.
+            $shiftIds = array_slice($shiftIds, 0, 1000);
             $nameQuery = trim((string)$nameQuery);
             $limit = max(1, min(250, $limit));
 
             $query = DB::table(self::TABLE)
                 ->where('location_id', $locationId)
-                ->whereDate('created_at', '>=', $start)
-                ->whereDate('created_at', '<=', $end);
+                ->where(function ($scope) use ($start, $end, $shiftIds) {
+                    $scope->where(function ($dated) use ($start, $end) {
+                        $dated->whereDate('created_at', '>=', $start)
+                            ->whereDate('created_at', '<=', $end);
+                    });
+
+                    // A shift can be created/assigned days or weeks before the
+                    // day it is scheduled. When the schedule tool selected the
+                    // shift, include its complete audit history so questions like
+                    // “who added Mohsen to today's shift?” remain authoritative.
+                    if ($shiftIds) {
+                        $scope->orWhereIn('shift_id', $shiftIds);
+                    }
+                });
 
             if ($personIds || $nameQuery !== '') {
                 $query->where(function ($scope) use ($personIds, $nameQuery) {
