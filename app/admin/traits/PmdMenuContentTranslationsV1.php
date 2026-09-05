@@ -24,18 +24,29 @@ trait PmdMenuContentTranslationsV1
         $payload = (array)$request->input('pmd_translations', []);
         if (!$payload) return;
 
-        [$defaultLocale, $enabledLocales] = $this->pmdMenuTranslationLocalesV1($connection, $schema);
+        [$configuredDefault, $enabledLocales] = $this->pmdMenuTranslationLocalesV1($connection, $schema);
         $allowed = array_fill_keys($enabledLocales, true);
+
+        // PMD_MENU_TRANSLATION_ACTIVE_ADMIN_SOURCE_V3
+        // The visible base food fields belong to the locale the owner is actively
+        // using in Admin. The browser submits that locale explicitly. Market/customer
+        // defaults are only a fallback for old clients that do not send the marker.
+        $sourceLocale = $this->normalizePmdMenuTranslationLocaleV1(
+            $request->input('pmd_menu_translation_source_locale', '')
+        );
+        if ($sourceLocale === '' || !isset($allowed[$sourceLocale])) {
+            $sourceLocale = $configuredDefault;
+        }
+
         $rawOptions = (array)$request->input('options', []);
-        $selectedCategoryIds = array_values(array_unique(array_filter(array_map('intval', (array)$request->input('category_ids', [])))));
         $now = now();
 
         foreach ($payload as $locale => $translation) {
             $locale = $this->normalizePmdMenuTranslationLocaleV1($locale);
-            if ($locale === '' || $locale === $defaultLocale || !isset($allowed[$locale]) || !is_array($translation)) continue;
+            if ($locale === '' || $locale === $sourceLocale || !isset($allowed[$locale]) || !is_array($translation)) continue;
 
-            // Menu and option rows belong to this food. Clear them for this locale
-            // first so removed option groups / values never leave stale translations.
+            // Food editor owns only food + its option content. Category translations
+            // have their own Category editor and are deliberately ignored here.
             $menuPrefix = $menuId.'.';
             $connection->table('language_translations')
                 ->where('namespace', $this->pmdMenuContentTranslationNamespaceV1)
@@ -54,22 +65,6 @@ trait PmdMenuContentTranslationsV1
             $menu = (array)($translation['menu'] ?? []);
             $this->upsertPmdMenuTranslationV1($connection, $locale, 'menu', $menuId.'.name', $menu['name'] ?? '', 160, $now);
             $this->upsertPmdMenuTranslationV1($connection, $locale, 'menu', $menuId.'.description', $menu['description'] ?? '', 5000, $now);
-
-            // Category translations are global because a category may be shared by
-            // many foods. Only categories selected on this form are writable here.
-            foreach ((array)($translation['categories'] ?? []) as $categoryId => $categoryTranslation) {
-                $categoryId = (int)$categoryId;
-                if ($categoryId < 1 || !in_array($categoryId, $selectedCategoryIds, true) || !is_array($categoryTranslation)) continue;
-                $this->upsertOrDeletePmdMenuTranslationV1(
-                    $connection,
-                    $locale,
-                    'category',
-                    $categoryId.'.name',
-                    $categoryTranslation['name'] ?? '',
-                    160,
-                    $now
-                );
-            }
 
             foreach ((array)($translation['options'] ?? []) as $groupIndex => $groupTranslation) {
                 $groupIndex = (int)$groupIndex;
@@ -126,10 +121,6 @@ trait PmdMenuContentTranslationsV1
             }
         }
 
-        // PMD_MENU_TRANSLATION_SOURCE_AUTHORITY_V2
-        // Match Frontend V2: the restaurant's actual default_language is the
-        // canonical language of menu_name/menu_description. The market-profile
-        // customer default is only a compatibility fallback for older tenants.
         $default = $this->normalizePmdMenuTranslationLocaleV1(
             $settings['default_language'] ?? $settings['pmd_customer_default_language'] ?? 'en'
         );
