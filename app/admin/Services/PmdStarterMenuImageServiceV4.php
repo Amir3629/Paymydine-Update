@@ -17,7 +17,7 @@ use Illuminate\Support\Str;
  */
 class PmdStarterMenuImageServiceV4 extends PmdStarterMenuImageServiceV3
 {
-    public const VERSION = '4.0.0';
+    public const VERSION = '4.0.1';
 
     protected function queries(array $item, string $restaurantType): array
     {
@@ -28,7 +28,7 @@ class PmdStarterMenuImageServiceV4 extends PmdStarterMenuImageServiceV3
 
         return array_values(array_unique(array_filter([
             trim($query.' isolated plated food white plate bright neutral background'),
-            trim($query.' restaurant menu photography clean light surface no people'),
+            trim($query.' restaurant menu photography clean light surface close up'),
             trim($query.' close up plated dish soft daylight white ceramic plate'),
         ])));
     }
@@ -82,26 +82,31 @@ class PmdStarterMenuImageServiceV4 extends PmdStarterMenuImageServiceV3
     protected function candidateMatchesItem(array $candidate, array $item): bool
     {
         $alt = $this->normaliseText((string)($candidate['alt'] ?? ''));
-        if ($alt === '') return true;
+        $family = strtolower(trim((string)($item['image_family'] ?? 'plated')));
+        $required = $this->requiredAltTokens($item);
+
+        // When an item has a strict semantic requirement, missing metadata is
+        // not enough evidence to replace an existing starter image.
+        if ($alt === '') {
+            return !$required && !in_array(
+                $family,
+                ['pizza','pasta','rice','soup','salad','sushi','dumpling','dessert','drink','sandwich','bread','seafood'],
+                true
+            );
+        }
 
         foreach ((array)($item['image_forbid'] ?? []) as $forbidden) {
             $forbidden = $this->normaliseText((string)$forbidden);
             if ($forbidden !== '' && str_contains($alt, $forbidden)) return false;
         }
 
-        $family = strtolower(trim((string)($item['image_family'] ?? 'plated')));
+        if ($required && !$this->containsAny($alt, $required)) return false;
+
         foreach ($this->conflictsForFamily($family) as $conflict) {
             if (str_contains($alt, $conflict)) return false;
         }
 
-        $familyTokens = $this->familyTokens($family);
-        $familyMatch = false;
-        foreach ($familyTokens as $token) {
-            if (str_contains($alt, $token)) {
-                $familyMatch = true;
-                break;
-            }
-        }
+        $familyMatch = $this->containsAny($alt, $this->familyTokens($family));
 
         $query = $this->normaliseText((string)($item['image_query'] ?? $item['name'] ?? ''));
         $queryMatch = false;
@@ -129,12 +134,8 @@ class PmdStarterMenuImageServiceV4 extends PmdStarterMenuImageServiceV3
         if ($alt === '') return $score;
 
         $family = strtolower(trim((string)($item['image_family'] ?? 'plated')));
-        foreach ($this->familyTokens($family) as $token) {
-            if (str_contains($alt, $token)) {
-                $score += 42;
-                break;
-            }
-        }
+        if ($this->containsAny($alt, $this->familyTokens($family))) $score += 42;
+        if ($this->containsAny($alt, $this->requiredAltTokens($item))) $score += 65;
 
         $query = $this->normaliseText((string)($item['image_query'] ?? $item['name'] ?? ''));
         foreach ($this->importantTokens($query) as $token) {
@@ -142,6 +143,39 @@ class PmdStarterMenuImageServiceV4 extends PmdStarterMenuImageServiceV3
         }
 
         return $score;
+    }
+
+    protected function requiredAltTokens(array $item): array
+    {
+        $name = mb_strtolower(trim((string)($item['name'] ?? '')));
+        $map = [
+            'margherita' => ['margherita','pizza'],
+            'diavola' => ['salami','pepperoni','diavola'],
+            'spaghetti carbonara' => ['carbonara','pancetta','bacon','guanciale'],
+            'tagliatelle al ragù' => ['tagliatelle','bolognese','ragu','pasta'],
+            'risotto ai funghi' => ['risotto','rice','mushroom'],
+            'burrata & tomato' => ['burrata','mozzarella'],
+            'bruschetta' => ['bruschetta','toast','bread'],
+            'melanzane alla parmigiana' => ['eggplant','aubergine','melanzane'],
+            'tiramisù' => ['tiramisu','tiramis'],
+            'panna cotta' => ['panna cotta','custard','pudding'],
+            'flat white' => ['flat white','coffee'],
+            'ribeye 300g' => ['ribeye','steak'],
+            'filet mignon 220g' => ['filet mignon','steak'],
+            'new york strip 300g' => ['new york strip','strip steak','steak'],
+            'avocado toast' => ['avocado','toast'],
+            'eggs benedict' => ['benedict','poached egg','hollandaise'],
+        ];
+        return $map[$name] ?? [];
+    }
+
+    protected function containsAny(string $text, array $tokens): bool
+    {
+        foreach ($tokens as $token) {
+            $token = $this->normaliseText((string)$token);
+            if ($token !== '' && str_contains($text, $token)) return true;
+        }
+        return false;
     }
 
     protected function familyTokens(string $family): array
