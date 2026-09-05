@@ -501,6 +501,12 @@ class PmdTenantQuickSetupService
             $priority += 10;
         }
 
+        // PMD_STARTER_MENU_IMAGES_V1
+        // One shared resolver instance prevents duplicate source photos inside
+        // the same starter pack. Image lookup is best-effort and never blocks setup.
+        $imageService = app(PmdStarterMenuImageServiceV1::class);
+        $imageSummary = ['attached' => 0, 'cached' => 0, 'missing' => 0];
+
         $itemPriority = 10;
         foreach ($pack['items'] as $item) {
             $categoryId = $categories[$item['category']] ?? null;
@@ -540,6 +546,15 @@ class PmdTenantQuickSetupService
             }
             if ($allergenIds) $menu->allergens()->sync(array_values(array_unique($allergenIds)));
 
+            try {
+                $imageResult = $imageService->attachToMenu($menu, $item, $type);
+                if (!empty($imageResult['attached'])) $imageSummary['attached']++;
+                if (!empty($imageResult['cached'])) $imageSummary['cached']++;
+                if (!empty($imageResult['missing'])) $imageSummary['missing']++;
+            } catch (\Throwable $ignored) {
+                $imageSummary['missing']++;
+            }
+
             $itemPriority += 10;
         }
 
@@ -548,6 +563,7 @@ class PmdTenantQuickSetupService
             'pack' => $type,
             'categories' => count($categories),
             'items' => count($pack['items']),
+            'images' => $imageSummary,
             'review_required' => true,
             'note' => 'Starter prices, allergens and nutrition are suggestions and must be reviewed against the restaurant recipes.',
         ];

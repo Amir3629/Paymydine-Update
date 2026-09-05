@@ -130,7 +130,7 @@
                     <input type="checkbox" data-pmd-starter-menu checked>
                     <span>
                         <strong>Create a sample starter menu</strong>
-                        <small>Includes categories, item descriptions, suggested prices, nutrition and allergen suggestions. Review these against your real recipes before publishing.</small>
+                        <small>Includes categories, item descriptions, suggested prices, lightweight starter photos, nutrition and allergen suggestions. Review these against your real recipes before publishing.</small>
                     </span>
                 </label>
             </section>
