@@ -25,6 +25,8 @@ on:
       - 'app/main/routes/api-v1-guest-ai.php'
       - 'frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815/**'
       - 'scripts/pmd-intelligence-chat-actions-audit.php'
+      - 'tests/Unit/PmdIntelligenceConversationActionsTest.php'
+      - '.github/workflows/pmd-intelligence-chat-actions.yml'
 
 permissions:
   contents: read
@@ -37,6 +39,7 @@ jobs:
       - name: PHP syntax
         run: |
           php -l app/Services/AI/AdminAiConversationStore.php
+          php -l app/Services/AI/PmdAdminWorkforceIntelligenceService.php
           php -l app/Services/AI/PmdIntelligenceActionRegistry.php
           php -l app/admin/controllers/Pmdintelligence.php
           php -l app/main/routes/api-v1-guest-ai.php

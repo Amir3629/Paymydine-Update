@@ -9,9 +9,11 @@ use Admin\Facades\Template;
 use App\Services\AI\AdminAiConversationStore;
 use App\Services\AI\AiContext;
 use App\Services\AI\AiOrchestrator;
+use App\Services\AI\PmdAdminWorkforceIntelligenceService;
 use App\Services\AI\PmdIntelligenceActionRegistry;
 use App\Services\AI\PmdReadAuthority;
 use App\Services\PmdKitchenWorkforceService;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Throwable;
@@ -20,7 +22,7 @@ use Throwable;
  * PMD Intelligence
  *
  * Read-only restaurant operations copilot. Restaurant facts are still read
- * through PmdReadAuthority; conversation persistence is tenant-local and scoped
+ * through PMD authorities; conversation persistence is tenant-local and scoped
  * to the authenticated PMD user + canonical location.
  */
 class Pmdintelligence extends AdminController
@@ -243,31 +245,55 @@ class Pmdintelligence extends AdminController
     private function conversationQuestion(string $question, array $history): string
     {
         $question = trim($question);
-        if ($question === '' || !$history || mb_strlen($question) > 3000) {
-            return $question;
+        if ($question === '') return $question;
+
+        $timezone = trim((string)$this->readAuthority()->canonicalTimezone())
+            ?: (trim((string)config('app.timezone', 'UTC')) ?: 'UTC');
+        try {
+            $now = Carbon::now($timezone);
+        } catch (Throwable $error) {
+            $timezone = 'UTC';
+            $now = Carbon::now('UTC');
         }
 
-        $budget = max(0, 3850 - mb_strlen($question));
-        if ($budget < 180) return $question;
+        $runtime = "PMD_RUNTIME_CONTEXT:\n"
+            .'restaurant_local_datetime='.$now->toIso8601String()."\n"
+            .'restaurant_local_date='.$now->toDateString()."\n"
+            .'restaurant_local_weekday='.$now->format('l')."\n"
+            .'timezone='.$timezone."\n"
+            ."RULE: Resolve today, tomorrow, tonight, yesterday and every relative date strictly from this restaurant-local clock. Never guess a calendar date.";
+
+        if (!$history || mb_strlen($question) > 3000) {
+            return $runtime."\n\nCURRENT_USER_QUESTION:\n".$question;
+        }
+
+        $baseLength = mb_strlen($runtime) + mb_strlen($question) + 80;
+        $budget = max(0, 3900 - $baseLength);
+        if ($budget < 180) {
+            return $runtime."\n\nCURRENT_USER_QUESTION:\n".$question;
+        }
 
         $rows = [];
+        $used = 0;
         foreach (array_reverse($history) as $message) {
             $role = ($message['role'] ?? '') === 'assistant' ? 'ASSISTANT' : 'USER';
             $content = preg_replace('/\s+/u', ' ', trim((string)($message['content'] ?? ''))) ?: '';
             if ($content === '') continue;
             $line = $role.': '.mb_substr($content, 0, 700);
-            if (mb_strlen(implode("\n", array_reverse($rows))."\n".$line) > $budget) break;
+            if ($used + mb_strlen($line) + 1 > $budget) break;
+            $used += mb_strlen($line) + 1;
             $rows[] = $line;
         }
 
-        if (!$rows) return $question;
+        if (!$rows) return $runtime."\n\nCURRENT_USER_QUESTION:\n".$question;
         $historyText = implode("\n", array_reverse($rows));
 
-        return "CONVERSATION_CONTINUITY_ONLY:\n"
+        return $runtime
+            ."\n\nCONVERSATION_CONTINUITY_ONLY:\n"
             .$historyText
             ."\n\nCURRENT_USER_QUESTION:\n"
             .$question
-            ."\n\nPMD_RULE: Use the prior chat only to understand follow-up references. Re-check PMD tools for restaurant facts, numbers, availability and current state. Older assistant text is never factual authority.";
+            ."\n\nPMD_RULE: Use prior chat only to understand follow-up references. Re-check PMD tools for restaurant facts, staffing, numbers, availability and current state. Older assistant text is never factual authority.";
     }
 
     private function readAuthority(): PmdReadAuthority
@@ -444,7 +470,7 @@ class Pmdintelligence extends AdminController
                 },
             ],
             'report_range' => [
-                'description' => 'Read a PMD report for an explicit date range. Use this for named historical dates and also for future reservation schedules. Convert the requested range to exact YYYY-MM-DD dates. Future dates are accepted only by the reservations report.',
+                'description' => 'Read a PMD report for an explicit date range. Use this for named historical dates and also for future reservation schedules. Convert the requested range to exact YYYY-MM-DD dates from PMD_RUNTIME_CONTEXT. Future dates are accepted only by the reservations report.',
                 'parameters' => [
                     'type' => 'object',
                     'properties' => [
@@ -490,10 +516,11 @@ class Pmdintelligence extends AdminController
                 },
             ],
             'workforce_schedule_range' => [
-                'description' => 'Read workforce shift and role counts for an exact date range, including past, today and future schedules. It returns counts only, not employee names. Use it for staffing coverage, planned vs present counts and kitchen shortages.',
+                'description' => 'Read the internal workforce schedule for an exact restaurant-local date range, including past, today and future. For authenticated Admin/Owner questions this includes team member display names, department, role, shift start/end, scheduled hours, attendance status, replacements, people not scheduled in the range, and actual worked hours when attendance data exists. Use it whenever the user asks who works, who is off, who should be in kitchen/floor/bar/reception, shift coverage or hours. Never claim staff names are unavailable before calling this tool.',
                 'parameters' => $this->dateRangeParameters(),
                 'handler' => function (array $arguments) use (&$signals) {
-                    $result = $this->readAuthority()->workforceScheduleRange(
+                    $result = app(PmdAdminWorkforceIntelligenceService::class)->range(
+                        $this->readAuthority(),
                         (string)($arguments['start_date'] ?? ''),
                         (string)($arguments['end_date'] ?? '')
                     );
@@ -502,7 +529,7 @@ class Pmdintelligence extends AdminController
                 },
             ],
             'kitchen_workforce' => [
-                'description' => 'Read the current kitchen workforce snapshot for this restaurant, including expected, actual, missing counts, role counts, source and confidence.',
+                'description' => 'Read the current kitchen workforce snapshot for this restaurant. It includes expected/present/missing counts and, when a current shift exists, the assigned kitchen people with display name, role and attendance status. Use the named workforce schedule tool for future or historical dates.',
                 'parameters' => [
                     'type' => 'object',
                     'properties' => (object)[],
@@ -513,7 +540,10 @@ class Pmdintelligence extends AdminController
                     if (!$locationId) {
                         return ['available' => false, 'reason' => 'No restaurant location'];
                     }
-                    $result = app(PmdKitchenWorkforceService::class)->snapshot((int)$locationId);
+                    $service = app(PmdKitchenWorkforceService::class);
+                    $result = $service->snapshot((int)$locationId);
+                    $card = $service->todayCard((int)$locationId);
+                    $result['people'] = array_values((array)($card['people'] ?? []));
                     $signals[] = ['kind' => 'kitchen_workforce'];
                     return $result;
                 },

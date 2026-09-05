@@ -12,15 +12,8 @@ use Throwable;
 /**
  * Tenant-local persistence for the authenticated PMD Intelligence workspace.
  *
- * Scope is deliberately narrow:
- * - current tenant connection is pinned explicitly instead of trusting a mutable
- *   global default connection after PMD report/tool calls;
- * - one conversation per authenticated admin user + canonical location + restaurant-local day;
- * - prior days remain stored and can be surfaced as a compact daily archive;
- * - daily reads use the existing created_at timestamp window and never depend
- *   on an in-request ALTER TABLE succeeding;
- * - only user/assistant text and run id are stored;
- * - provider payloads, secrets, IP addresses and raw tool payloads are never stored.
+ * One conversation is scoped to authenticated admin user + canonical location
+ * + restaurant-local day. Prior days remain available to the saved-chat archive.
  */
 final class AdminAiConversationStore
 {
@@ -28,6 +21,7 @@ final class AdminAiConversationStore
     private const MAX_MESSAGES = 300;
 
     private ?string $resolvedConnectionName = null;
+    private ?array $resolvedColumns = null;
 
     public function history(int $locationId, int $userId, int $limit = 120): array
     {
@@ -48,7 +42,7 @@ final class AdminAiConversationStore
 
         return [
             'storage_ready' => true,
-            'storage_mode' => 'tenant_pinned_created_at_window',
+            'storage_mode' => 'tenant_pinned_created_at_window_v2',
             'conversation_date' => $window['local_date'],
             'messages' => $rows->map(static function ($row): array {
                 return [
@@ -62,10 +56,6 @@ final class AdminAiConversationStore
         ];
     }
 
-    /**
-     * Return recent restaurant-local daily conversations for a compact archive.
-     * This is display history only. Current model continuity still uses today only.
-     */
     public function archive(
         int $locationId,
         int $userId,
@@ -81,7 +71,9 @@ final class AdminAiConversationStore
         }
 
         $window = $this->conversationWindow();
-        $since = Carbon::now($window['storage_timezone'])->subDays($dayLimit + 2)->startOfDay();
+        $since = Carbon::now($window['storage_timezone'])
+            ->subDays($dayLimit + 2)
+            ->startOfDay();
         $rowLimit = min(3000, $dayLimit * $messagesPerDay * 2);
 
         $rows = $this->db()->table(self::TABLE)
@@ -99,10 +91,7 @@ final class AdminAiConversationStore
             $date = $this->localDateForStoredTimestamp($row->created_at ?? null, $window);
             if ($date === null) continue;
 
-            if (!isset($groups[$date])) {
-                $groups[$date] = [];
-            }
-
+            if (!isset($groups[$date])) $groups[$date] = [];
             if (count($groups[$date]) >= $messagesPerDay) continue;
 
             $groups[$date][] = [
@@ -142,23 +131,16 @@ final class AdminAiConversationStore
 
         return [
             'storage_ready' => true,
-            'storage_mode' => 'tenant_pinned_created_at_window',
+            'storage_mode' => 'tenant_pinned_created_at_window_v2',
             'conversation_date' => $window['local_date'],
             'days' => $days,
         ];
     }
 
-    /**
-     * Compact conversational continuity for today's model session. This is not
-     * a factual authority: Pmdintelligence instructs the model to re-check PMD
-     * tools for restaurant facts instead of trusting an older assistant answer.
-     */
     public function modelContext(int $locationId, int $userId, int $limit = 10): array
     {
         $history = $this->history($locationId, $userId, max(2, min(20, $limit)));
-        if (empty($history['storage_ready']) || empty($history['messages'])) {
-            return [];
-        }
+        if (empty($history['storage_ready']) || empty($history['messages'])) return [];
 
         $messages = array_slice((array)$history['messages'], -max(2, min(20, $limit)));
         $total = 0;
@@ -172,10 +154,7 @@ final class AdminAiConversationStore
             if (mb_strlen($content) > 1200) {
                 $content = rtrim(mb_substr($content, 0, 1199)).'…';
             }
-
-            if ($total + mb_strlen($content) > 7000) {
-                break;
-            }
+            if ($total + mb_strlen($content) > 7000) break;
 
             $total += mb_strlen($content);
             $result[] = ['role' => $role, 'content' => $content];
@@ -201,18 +180,23 @@ final class AdminAiConversationStore
         $answer = $this->clip($answer, 12000);
         $runId = trim((string)$runId);
         $window = $this->conversationWindow();
-        $hasConversationDate = $this->hasConversationDateColumn();
         $connectionName = $this->connectionName();
+        $columns = $this->columnNames();
+        $hasConversationDate = in_array('conversation_date', $columns, true);
+        $db = $this->db();
+        $insertedIds = [];
 
         try {
-            $this->db()->transaction(function () use (
+            $db->transaction(function () use (
+                $db,
                 $locationId,
                 $userId,
                 $question,
                 $answer,
                 $runId,
                 $window,
-                $hasConversationDate
+                $hasConversationDate,
+                &$insertedIds
             ): void {
                 $now = Carbon::now($window['storage_timezone']);
                 $common = [
@@ -223,36 +207,28 @@ final class AdminAiConversationStore
                     'updated_at' => $now,
                 ];
 
-                // Keep the optional rollout column populated when it exists,
-                // but never require it for reads or writes on an older tenant DB.
                 if ($hasConversationDate) {
+                    // Existing production tenants may have this column as NOT NULL.
+                    // Populate it whenever the physical column listing says it exists.
                     $common['conversation_date'] = $window['local_date'];
                 }
 
-                $this->db()->table(self::TABLE)->insert(array_merge($common, [
+                $insertedIds[] = (int)$db->table(self::TABLE)->insertGetId(array_merge($common, [
                     'role' => 'user',
                     'content' => $question,
                 ]));
 
-                $this->db()->table(self::TABLE)->insert(array_merge($common, [
+                $insertedIds[] = (int)$db->table(self::TABLE)->insertGetId(array_merge($common, [
                     'role' => 'assistant',
                     'content' => $answer,
                 ]));
-
-                // Bound only today's transcript. Previous daily chats remain stored.
-                $staleIds = $this->scopedDayQuery($locationId, $userId, $window)
-                    ->orderByDesc('id')
-                    ->skip(self::MAX_MESSAGES)
-                    ->pluck('id')
-                    ->map(static fn ($id) => (int)$id)
-                    ->filter(static fn ($id) => $id > 0)
-                    ->all();
-
-                if ($staleIds) {
-                    $this->db()->table(self::TABLE)->whereIn('id', $staleIds)->delete();
-                }
             });
         } catch (Throwable $error) {
+            $previous = $error->getPrevious();
+            $errorInfo = is_object($previous) && property_exists($previous, 'errorInfo')
+                ? (array)$previous->errorInfo
+                : [];
+
             logger()->warning('PMD Admin AI chat write failed', [
                 'location_id' => $locationId,
                 'admin_user_id' => $userId,
@@ -260,8 +236,48 @@ final class AdminAiConversationStore
                 'connection' => $connectionName,
                 'database' => $this->databaseName(),
                 'error_type' => get_class($error),
+                'sql_state' => $errorInfo[0] ?? null,
+                'driver_code' => $errorInfo[1] ?? null,
+                'columns' => $columns,
+            ]);
+
+            return ['storage_ready' => true, 'persisted' => false];
+        }
+
+        $persisted = count(array_filter($insertedIds, static fn ($id) => $id > 0)) === 2;
+        if (!$persisted) {
+            logger()->warning('PMD Admin AI chat insert verification failed', [
+                'location_id' => $locationId,
+                'admin_user_id' => $userId,
+                'conversation_date' => $window['local_date'],
+                'connection' => $connectionName,
+                'database' => $this->databaseName(),
             ]);
             return ['storage_ready' => true, 'persisted' => false];
+        }
+
+        // Pruning is deliberately best-effort and OUTSIDE the insert transaction.
+        // A cleanup problem must never roll back a successfully saved conversation.
+        try {
+            $staleIds = $this->scopedDayQuery($locationId, $userId, $window)
+                ->orderByDesc('id')
+                ->offset(self::MAX_MESSAGES)
+                ->limit(1000)
+                ->pluck('id')
+                ->map(static fn ($id) => (int)$id)
+                ->filter(static fn ($id) => $id > 0)
+                ->all();
+
+            if ($staleIds) {
+                $db->table(self::TABLE)->whereIn('id', $staleIds)->delete();
+            }
+        } catch (Throwable $error) {
+            logger()->warning('PMD Admin AI chat prune skipped', [
+                'location_id' => $locationId,
+                'admin_user_id' => $userId,
+                'conversation_date' => $window['local_date'],
+                'error_type' => get_class($error),
+            ]);
         }
 
         return [
@@ -271,7 +287,6 @@ final class AdminAiConversationStore
         ];
     }
 
-    /** Clear only today's restaurant-local conversation; archived days remain. */
     public function clear(int $locationId, int $userId): bool
     {
         $this->assertContext($locationId, $userId);
@@ -279,19 +294,16 @@ final class AdminAiConversationStore
 
         $window = $this->conversationWindow();
         $this->scopedDayQuery($locationId, $userId, $window)->delete();
-
         return true;
     }
 
-    /**
-     * Existing tenants may already have the original chat table. Do not run DDL
-     * during a normal page request just to add a daily-scope column. The table's
-     * created_at timestamp is sufficient and is available on every rollout.
-     */
     private function ensureTable(): bool
     {
         $schema = $this->schema();
-        if ($schema->hasTable(self::TABLE)) return true;
+        if ($schema->hasTable(self::TABLE)) {
+            $this->resolvedColumns = null;
+            return true;
+        }
 
         try {
             $schema->create(self::TABLE, function (Blueprint $table): void {
@@ -320,15 +332,22 @@ final class AdminAiConversationStore
             }
         }
 
+        $this->resolvedColumns = null;
         return $schema->hasTable(self::TABLE);
     }
 
-    private function hasConversationDateColumn(): bool
+    private function columnNames(): array
     {
+        if ($this->resolvedColumns !== null) return $this->resolvedColumns;
+
         try {
-            return $this->schema()->hasColumn(self::TABLE, 'conversation_date');
+            $columns = $this->schema()->getColumnListing(self::TABLE);
+            return $this->resolvedColumns = array_values(array_unique(array_map(
+                static fn ($column) => strtolower(trim((string)$column)),
+                (array)$columns
+            )));
         } catch (Throwable $error) {
-            return false;
+            return $this->resolvedColumns = [];
         }
     }
 
@@ -344,7 +363,6 @@ final class AdminAiConversationStore
     private function conversationWindow(): array
     {
         $restaurantTimezone = '';
-
         try {
             $restaurantTimezone = trim((string)app(PmdReadAuthority::class)->canonicalTimezone());
         } catch (Throwable $error) {
@@ -392,16 +410,9 @@ final class AdminAiConversationStore
         }
     }
 
-    /**
-     * PMD AI tools are allowed to call existing report authorities. Some legacy
-     * authorities can mutate Laravel's global default connection while they run.
-     * Chat persistence must therefore re-pin itself to the tenant connection.
-     */
     private function connectionName(): string
     {
-        if ($this->resolvedConnectionName !== null) {
-            return $this->resolvedConnectionName;
-        }
+        if ($this->resolvedConnectionName !== null) return $this->resolvedConnectionName;
 
         $default = trim((string)DB::getDefaultConnection());
         $tenantDatabase = trim((string)config('database.connections.tenant.database', ''));
@@ -409,12 +420,11 @@ final class AdminAiConversationStore
         if ($tenantDatabase !== '' && (app()->bound('tenant') || $default === 'tenant')) {
             return $this->resolvedConnectionName = 'tenant';
         }
+        if ($default !== '') return $this->resolvedConnectionName = $default;
 
-        if ($default !== '') {
-            return $this->resolvedConnectionName = $default;
-        }
-
-        return $this->resolvedConnectionName = (trim((string)config('database.default', 'mysql')) ?: 'mysql');
+        return $this->resolvedConnectionName = (
+            trim((string)config('database.default', 'mysql')) ?: 'mysql'
+        );
     }
 
     private function db()

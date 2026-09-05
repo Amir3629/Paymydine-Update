@@ -1,8 +1,8 @@
 @php
     $pmdAiCssPath = base_path('app/admin/assets/css/pmd-intelligence-v1.css');
     $pmdAiJsPath = base_path('app/admin/assets/js/pmd-intelligence-v1.js');
-    $pmdAiCssVersion = is_file($pmdAiCssPath) ? (string)filemtime($pmdAiCssPath) : '20260904-hotfix';
-    $pmdAiJsVersion = is_file($pmdAiJsPath) ? (string)filemtime($pmdAiJsPath) : '20260904-hotfix';
+    $pmdAiCssVersion = is_file($pmdAiCssPath) ? (string)filemtime($pmdAiCssPath) : '20260905';
+    $pmdAiJsVersion = is_file($pmdAiJsPath) ? (string)filemtime($pmdAiJsPath) : '20260905';
     $pmdAiCssUrl = asset('app/admin/assets/css/pmd-intelligence-v1.css').'?v='.$pmdAiCssVersion;
     $pmdAiJsUrl = asset('app/admin/assets/js/pmd-intelligence-v1.js').'?v='.$pmdAiJsVersion;
 
@@ -30,34 +30,9 @@
 
 <link rel="stylesheet" type="text/css" href="{{ $pmdAiCssUrl }}" data-pmd-ai-versioned-style>
 
-<style id="pmd-ai-nav-mark-v3">
-/* Keep the canonical Side Menu item, but make its glyph one simple bot mark.
-   No AI mini-card, no sparkles, no DOM repair layer. */
-#pmd-side-menu2 [data-pmd-ai-nav]::before,
-#pmd-side-menu2 [data-pmd-ai-nav]::after {
-    content: none !important;
-    display: none !important;
-}
-
-#pmd-side-menu2 [data-pmd-ai-nav] > svg {
-    display: block !important;
-    flex: 0 0 24px !important;
-    width: 24px !important;
-    min-width: 24px !important;
-    height: 24px !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    border: 0 !important;
-    border-radius: 0 !important;
-    background: currentColor !important;
-    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='10' width='18' height='11' rx='3'/%3E%3Cpath d='M12 10V6'/%3E%3Ccircle cx='12' cy='4' r='2'/%3E%3Cpath d='M8 15h.01M16 15h.01M8.5 18h7'/%3E%3C/svg%3E") center / 24px 24px no-repeat !important;
-    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='10' width='18' height='11' rx='3'/%3E%3Cpath d='M12 10V6'/%3E%3Ccircle cx='12' cy='4' r='2'/%3E%3Cpath d='M8 15h.01M16 15h.01M8.5 18h7'/%3E%3C/svg%3E") center / 24px 24px no-repeat !important;
-}
-
-#pmd-side-menu2 [data-pmd-ai-nav] > svg * {
-    display: none !important;
-}
-
+<style id="pmd-ai-saved-days-style-v1">
+/* The sidebar icon is intentionally NOT restyled here. The canonical Side Menu
+   authority owns the same AI sparkles glyph on every Admin page. */
 .pmd-ai-saved-days {
     position: relative;
     margin-left: auto;
@@ -191,12 +166,10 @@
 >
     <header id="pmd-r2-clean-header" class="pmd-owner-header pmd-ai-header" aria-label="PMD Intelligence">
         <div class="pmd-owner-header__left pmd-ai-heading">
-            <div class="pmd-ai-heading-icon" aria-hidden="true" data-pmd-ai-icon="bot">
+            <div class="pmd-ai-heading-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="4" y="7" width="16" height="13" rx="4"/>
-                    <path d="M9 7V5.5a3 3 0 0 1 6 0V7M4 12H2M22 12h-2M9 17h6"/>
-                    <circle cx="9" cy="13" r=".8" fill="currentColor" stroke="none"/>
-                    <circle cx="15" cy="13" r=".8" fill="currentColor" stroke="none"/>
+                    <path d="M12 3l1.45 4.55L18 9l-4.55 1.45L12 15l-1.45-4.55L6 9l4.55-1.45L12 3Z"/>
+                    <path d="M19 14l.75 2.25L22 17l-2.25.75L19 20l-.75-2.25L16 17l2.25-.75L19 14ZM5 14l.55 1.45L7 16l-1.45.55L5 18l-.55-1.45L3 16l1.45-.55L5 14Z"/>
                 </svg>
             </div>
             <div>
@@ -258,12 +231,10 @@
 
             <div class="pmd-ai-thread" data-pmd-ai-thread role="log" aria-live="polite" aria-relevant="additions">
                 <div class="pmd-ai-empty" data-pmd-ai-empty>
-                    <div class="pmd-ai-empty-icon" aria-hidden="true" data-pmd-ai-icon="bot">
+                    <div class="pmd-ai-empty-icon" aria-hidden="true">
                         <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                            <rect x="4" y="7" width="16" height="13" rx="4"/>
-                            <path d="M9 7V5.5a3 3 0 0 1 6 0V7M4 12H2M22 12h-2M9 17h6"/>
-                            <circle cx="9" cy="13" r=".8" fill="currentColor" stroke="none"/>
-                            <circle cx="15" cy="13" r=".8" fill="currentColor" stroke="none"/>
+                            <path d="M12 3l1.45 4.55L18 9l-4.55 1.45L12 15l-1.45-4.55L6 9l4.55-1.45L12 3Z"/>
+                            <path d="M19 14l.75 2.25L22 17l-2.25.75L19 20l-.75-2.25L16 17l2.25-.75L19 14ZM5 14l.55 1.45L7 16l-1.45.55L5 18l-.55-1.45L3 16l1.45-.55L5 14Z"/>
                         </svg>
                     </div>
                     <h2>What do you want to know?</h2>
@@ -310,9 +281,6 @@
     var root = document.querySelector('[data-pmd-ai-chat-root]');
     if (!root) return;
 
-    // The controller may still register the historical unversioned runtime.
-    // Keep this page invisible to it, then expose the canonical hook only now
-    // and load the current mtime-versioned runtime deterministically.
     root.setAttribute('data-pmd-ai-root', '');
 
     var script = document.createElement('script');
