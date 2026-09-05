@@ -8,26 +8,33 @@ use Admin\Models\Menus_model;
 use Illuminate\Support\Facades\DB;
 
 /**
- * PMD_TENANT_QUICK_SETUP_V3_FAST
+ * PMD_TENANT_QUICK_SETUP_V4_CACHE_FIRST
  *
  * Keeps the original floor/staff/KDS onboarding authority and owns the
- * additive starter-menu upgrade path. The active catalogue is V3 (50+ items
- * per restaurant type) and the stable image service alias resolves V5.
+ * additive starter-menu upgrade path. The active catalogue is V4 (100+ items
+ * per restaurant type) and the stable image service alias resolves cache-first
+ * V6 over the V5.1 semantic image matcher.
  *
  * Fast-path rules:
  * - never performs Pexels/network work inside the setup transaction
- * - missing starter photos are prepared later in one-item HTTP chunks
+ * - already-warmed PayMyDine starter photos are attached immediately from disk
+ * - only cache misses are prepared later, at most one external photo per request
  * - never deletes categories or foods
  * - never rewrites an existing food
  * - never removes restaurant-uploaded images
  */
 class PmdTenantQuickSetupServiceV2 extends PmdTenantQuickSetupService
 {
-    public const STARTER_LIBRARY_VERSION = PmdStarterMenuLibraryV3::VERSION;
+    public const STARTER_LIBRARY_VERSION = PmdStarterMenuLibraryV4::VERSION;
 
     public function restaurantTypes(): array
     {
-        return app(PmdStarterMenuLibraryV3::class)->restaurantTypes();
+        return app(PmdStarterMenuLibraryV4::class)->restaurantTypes();
+    }
+
+    protected function starterPack(string $type): array
+    {
+        return app(PmdStarterMenuLibraryV4::class)->pack($type);
     }
 
     protected function seedStarterMenu(string $type, int $locationId, array $allergenMap): array
@@ -36,7 +43,7 @@ class PmdTenantQuickSetupServiceV2 extends PmdTenantQuickSetupService
             throw new \RuntimeException('Starter Menu cannot be installed after Menu content exists.');
         }
 
-        $pack = app(PmdStarterMenuLibraryV3::class)->pack($type);
+        $pack = $this->starterPack($type);
         $categories = [];
         $priority = 10;
 
@@ -46,6 +53,7 @@ class PmdTenantQuickSetupServiceV2 extends PmdTenantQuickSetupService
             $priority += 10;
         }
 
+        $images = app(PmdStarterMenuImageServiceV2::class);
         $imageSummary = ['attached' => 0, 'cached' => 0, 'pending' => 0];
         $itemPriority = 10;
         $created = 0;
@@ -55,9 +63,17 @@ class PmdTenantQuickSetupServiceV2 extends PmdTenantQuickSetupService
             $categoryId = $categories[(string)($item['category'] ?? '')] ?? null;
             if (!$categoryId) continue;
 
-            $this->createStarterItem($item, $categoryId, $locationId, $allergenMap, $itemPriority);
+            $menu = $this->createStarterItem($item, $categoryId, $locationId, $allergenMap, $itemPriority);
             $created++;
-            $imageSummary['pending']++;
+
+            $photo = $images->attachCachedToMenu($menu, $item, $type);
+            if (!empty($photo['attached'])) {
+                $imageSummary['attached']++;
+                $imageSummary['cached']++;
+            } else {
+                $imageSummary['pending']++;
+            }
+
             $itemPriority += 10;
         }
 
@@ -96,10 +112,11 @@ class PmdTenantQuickSetupServiceV2 extends PmdTenantQuickSetupService
             throw new \RuntimeException('Active restaurant location is unavailable.');
         }
 
-        $pack = app(PmdStarterMenuLibraryV3::class)->pack($type);
+        $pack = $this->starterPack($type);
         $allergens = $this->ensureReferenceAllergens();
+        $images = app(PmdStarterMenuImageServiceV2::class);
 
-        $summary = DB::transaction(function () use ($pack, $locationId, $allergens) {
+        $summary = DB::transaction(function () use ($pack, $type, $locationId, $allergens, $images) {
             $categoryIds = [];
             $categoriesCreated = 0;
             $itemsCreated = 0;
@@ -143,9 +160,17 @@ class PmdTenantQuickSetupServiceV2 extends PmdTenantQuickSetupService
                     continue;
                 }
 
-                $this->createStarterItem($item, $categoryId, $locationId, $allergens, $itemPriority);
+                $menu = $this->createStarterItem($item, $categoryId, $locationId, $allergens, $itemPriority);
                 $itemsCreated++;
-                $imageSummary['pending']++;
+
+                $photo = $images->attachCachedToMenu($menu, $item, $type);
+                if (!empty($photo['attached'])) {
+                    $imageSummary['attached']++;
+                    $imageSummary['cached']++;
+                } else {
+                    $imageSummary['pending']++;
+                }
+
                 $itemPriority += 10;
             }
 
@@ -178,8 +203,8 @@ class PmdTenantQuickSetupServiceV2 extends PmdTenantQuickSetupService
     }
 
     /**
-     * Compatibility entry point. It is intentionally bounded to one item so a
-     * stale client can never turn photo refresh back into a 50-item request.
+     * Compatibility entry point. Cache hits may be scanned in bulk, but at most
+     * one cache miss is allowed to call Pexels during any HTTP request.
      */
     public function refreshStarterMenuImages(): array
     {
@@ -200,19 +225,11 @@ class PmdTenantQuickSetupServiceV2 extends PmdTenantQuickSetupService
         }
 
         $images = app(PmdStarterMenuImageServiceV2::class);
-        if (!$images->isConfigured()) {
-            throw new \RuntimeException('Premium starter photos are not configured yet. Add PMD_PEXELS_API_KEY on the server first.');
-        }
-
-        $pack = app(PmdStarterMenuLibraryV3::class)->pack($type);
+        $pack = $this->starterPack($type);
         $items = array_values(array_filter((array)($pack['items'] ?? []), 'is_array'));
         $total = count($items);
         $cursor = max(0, min($cursor, $total));
 
-        // One item per request is deliberate. Even a slow external image call
-        // stays isolated from the setup request and from every other photo.
-        $limit = max(1, min($limit, 1));
-        $slice = array_slice($items, $cursor, $limit);
         $summary = [
             'updated' => 0,
             'cached' => 0,
@@ -221,9 +238,15 @@ class PmdTenantQuickSetupServiceV2 extends PmdTenantQuickSetupService
             'menu_missing' => 0,
         ];
 
-        $processed = 0;
-        foreach ($slice as $item) {
-            $processed++;
+        $nextCursor = $cursor;
+        $scanned = 0;
+        $networkCalls = 0;
+
+        for ($index = $cursor; $index < $total; $index++) {
+            $item = $items[$index];
+            $scanned++;
+            $nextCursor = $index + 1;
+
             $menu = Menus_model::query()
                 ->whereRaw('LOWER(menu_name) = ?', [mb_strtolower((string)($item['name'] ?? ''))])
                 ->first();
@@ -233,6 +256,29 @@ class PmdTenantQuickSetupServiceV2 extends PmdTenantQuickSetupService
                 continue;
             }
 
+            // First try the canonical local asset cache. This performs no HTTP.
+            $cached = $images->attachCachedToMenu($menu, $item, $type);
+            if (!empty($cached['attached'])) {
+                $summary['updated']++;
+                $summary['cached']++;
+                continue;
+            }
+            if (!empty($cached['skipped_custom'])) {
+                $summary['skipped_custom']++;
+                continue;
+            }
+            if (!empty($cached['already_attached'])) {
+                $summary['kept_old']++;
+                continue;
+            }
+
+            // Only a true cache miss reaches the external resolver. Stop after
+            // one such item so Nginx/PHP-FPM can never be held by a whole pack.
+            if (!$images->isConfigured()) {
+                throw new \RuntimeException('Premium starter photos are not configured yet. Add PMD_PEXELS_API_KEY on the server first.');
+            }
+
+            $networkCalls++;
             $result = $images->refreshMenu($menu, $item, $type);
             if (!empty($result['attached'])) {
                 $summary['updated']++;
@@ -242,20 +288,22 @@ class PmdTenantQuickSetupServiceV2 extends PmdTenantQuickSetupService
             } else {
                 $summary['kept_old']++;
             }
+
+            break;
         }
 
-        $nextCursor = min($total, $cursor + $processed);
         $done = $nextCursor >= $total;
 
         return [
             'ok' => true,
             'provider' => 'pexels',
-            'style' => 'pmd-studio-semantic-v5',
+            'style' => 'pmd-studio-semantic-v5-cache-first',
             'restaurant_type' => $type,
             'library_version' => self::STARTER_LIBRARY_VERSION,
             'cursor' => $cursor,
             'next_cursor' => $nextCursor,
-            'processed' => $processed,
+            'processed' => $scanned,
+            'network_calls' => $networkCalls,
             'total' => $total,
             'done' => $done,
             'summary' => $summary,
