@@ -30,10 +30,12 @@ export default async function CustomerMenuPage({ searchParams }: PageProps) {
   // launch authority: zero categories + zero menu items is the genuine new-tenant
   // state. If setup metadata is unavailable, fail safe and render the normal menu.
   const setup = bootstrap.setup
-  const explicitlyEmptyCatalog = setup?.status !== null
-    && setup?.status !== undefined
-    && setup.status.hasCategories === false
-    && setup.status.hasMenuItems === false
+  const setupStatus = setup?.status
+  const explicitlyEmptyCatalog = Boolean(
+    setupStatus
+    && setupStatus.hasCategories === false
+    && setupStatus.hasMenuItems === false,
+  )
 
   if (setup?.frontendConfigured === false || explicitlyEmptyCatalog) {
     return <TenantSetupSplashV1 locale={bootstrap.restaurant.locale} />
