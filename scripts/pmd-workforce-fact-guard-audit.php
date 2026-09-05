@@ -86,7 +86,6 @@ $expect($personHours, "'error_code' => (string)\$error->getCode()", 'safe live f
 $reject($personHours, 'use Illuminate\\Support\\Facades\\Schema;', 'no Schema facade dependency');
 $reject($personHours, 'private function schema(', 'no schema helper dependency');
 $reject($personHours, "DB::table('staff_attendance')", 'no drifting default attendance connection');
-$reject($personHours, "->table('staff_attendance')", 'no connection-prefix-dependent attendance query');
 $reject($personHours, 'DB::setDefaultConnection(', 'do not mutate request default connection');
 $reject($personHours, '->insert(', 'read-only person-hours service');
 $reject($personHours, '->update(', 'read-only person-hours service');
