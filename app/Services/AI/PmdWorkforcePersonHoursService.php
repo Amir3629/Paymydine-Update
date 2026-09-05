@@ -174,10 +174,10 @@ final class PmdWorkforcePersonHoursService
 
     /**
      * Verify the exact tenant attendance contract with a real read rather than
-     * relying on Schema::hasTable/hasColumn metadata. Production diagnostics
-     * showed the tenant table and columns can be readable even when schema
-     * introspection returns a false negative in the long-lived Admin request.
-     * A successful zero-row SELECT still proves the source exists.
+     * relying on framework schema metadata. Production diagnostics showed the
+     * tenant table and columns can be readable even when metadata introspection
+     * returns a false negative in the long-lived Admin request. A successful
+     * zero-row SELECT still proves the source exists.
      */
     private function attendanceReady(): bool
     {
