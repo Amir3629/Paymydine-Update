@@ -3,7 +3,9 @@
 namespace App\Services\AI;
 
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
+use RuntimeException;
 use Throwable;
 
 /**
@@ -14,13 +16,18 @@ use Throwable;
  * It never exposes contact, credential, payroll or private profile fields and
  * is never registered with Guest AI.
  *
- * IMPORTANT: every read is pinned to the tenant connection. Admin AI may call
- * several report authorities in one turn; none of those calls may make a later
- * attendance lookup drift back to the central/default database.
+ * IMPORTANT: workforce attendance reads use a dedicated, freshly reconstructed
+ * tenant connection built from the canonical request tenant. This prevents a
+ * prior Admin AI tool from leaving a stale/shared connection object behind and
+ * makes cross-tenant drift fail closed before any staff record is read.
  */
 final class PmdWorkforcePersonHoursService
 {
-    private const CONNECTION = 'tenant';
+    private const BASE_CONNECTION = 'tenant';
+    private const RUNTIME_CONNECTION = 'pmd_ai_workforce_tenant';
+
+    private ?string $resolvedConnectionName = null;
+    private ?string $resolvedDatabase = null;
 
     public function enrich(array $metric, array $range): array
     {
@@ -173,11 +180,8 @@ final class PmdWorkforcePersonHoursService
     }
 
     /**
-     * Verify the exact tenant attendance contract with a real read rather than
-     * relying on framework schema metadata. Production diagnostics showed the
-     * tenant table and columns can be readable even when metadata introspection
-     * returns a false negative in the long-lived Admin request. A successful
-     * zero-row SELECT still proves the source exists.
+     * A successful zero-row read still proves the attendance source exists.
+     * The connection itself is reconstructed and tenant-verified by db().
      */
     private function attendanceReady(): bool
     {
@@ -219,27 +223,86 @@ final class PmdWorkforcePersonHoursService
         });
     }
 
+    /**
+     * Build a private workforce-read connection from the canonical tenant object
+     * attached by TenantDatabaseMiddleware. Never fall back to the central DB.
+     */
     private function db()
     {
-        return DB::connection(self::CONNECTION);
+        if ($this->resolvedConnectionName !== null) {
+            return DB::connection($this->resolvedConnectionName);
+        }
+
+        $tenant = app()->bound('tenant') ? app('tenant') : null;
+        $database = trim((string)($tenant->database ?? ''));
+        if ($database === '') {
+            throw new RuntimeException('PMD tenant context is unavailable for workforce attendance.');
+        }
+        if (!preg_match('/^[A-Za-z0-9_-]+$/', $database)) {
+            throw new RuntimeException('PMD tenant database identity is invalid.');
+        }
+
+        $config = (array)Config::get('database.connections.'.self::BASE_CONNECTION, []);
+        if (!$config) {
+            throw new RuntimeException('PMD tenant database configuration is unavailable.');
+        }
+
+        $config['database'] = $database;
+        $this->applyTenantConnectionField($config, 'host', $tenant, ['db_host']);
+        $this->applyTenantConnectionField($config, 'port', $tenant, ['db_port']);
+        $this->applyTenantConnectionField($config, 'username', $tenant, ['db_user', 'db_username']);
+        $this->applyTenantConnectionField($config, 'password', $tenant, ['db_pass', 'db_password'], true);
+
+        Config::set('database.connections.'.self::RUNTIME_CONNECTION, $config);
+        DB::purge(self::RUNTIME_CONNECTION);
+
+        $connection = DB::connection(self::RUNTIME_CONNECTION);
+        $connection->getPdo();
+        $actualDatabase = trim((string)$connection->getDatabaseName());
+        if ($actualDatabase === '' || strcasecmp($actualDatabase, $database) !== 0) {
+            DB::disconnect(self::RUNTIME_CONNECTION);
+            throw new RuntimeException('PMD workforce tenant connection verification failed.');
+        }
+
+        $this->resolvedConnectionName = self::RUNTIME_CONNECTION;
+        $this->resolvedDatabase = $actualDatabase;
+
+        return $connection;
+    }
+
+    private function applyTenantConnectionField(
+        array &$config,
+        string $target,
+        object $tenant,
+        array $sourceFields,
+        bool $allowEmpty = false
+    ): void {
+        foreach ($sourceFields as $field) {
+            if (!property_exists($tenant, $field)) continue;
+            $value = $tenant->{$field};
+            if ($value === null) continue;
+            if (!$allowEmpty && trim((string)$value) === '') continue;
+            $config[$target] = $value;
+            return;
+        }
     }
 
     private function logReadFailure(string $stage, int $personId, int $locationId, Throwable $error): void
     {
-        $database = null;
-        try {
-            $database = (string)$this->db()->getDatabaseName();
-        } catch (Throwable $ignored) {
-            $database = null;
+        $database = $this->resolvedDatabase;
+        if ($database === null && app()->bound('tenant')) {
+            $tenant = app('tenant');
+            $database = trim((string)($tenant->database ?? '')) ?: null;
         }
 
         logger()->warning('PMD workforce person-hours read failed', [
             'stage' => $stage,
-            'connection' => self::CONNECTION,
+            'connection' => $this->resolvedConnectionName ?: self::RUNTIME_CONNECTION,
             'database' => $database,
             'person_id' => $personId,
             'location_id' => $locationId,
             'type' => get_class($error),
+            'error_code' => (string)$error->getCode(),
         ]);
     }
 }

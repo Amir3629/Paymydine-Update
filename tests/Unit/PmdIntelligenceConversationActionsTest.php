@@ -93,14 +93,20 @@ final class PmdIntelligenceConversationActionsTest extends TestCase
         self::assertStringNotContainsString('password', strtolower($source));
         self::assertStringNotContainsString('salary', strtolower($source));
 
-        self::assertStringContainsString("private const CONNECTION = 'tenant'", $personHours);
-        self::assertStringContainsString('DB::connection(self::CONNECTION)', $personHours);
+        self::assertStringContainsString("private const BASE_CONNECTION = 'tenant'", $personHours);
+        self::assertStringContainsString("private const RUNTIME_CONNECTION = 'pmd_ai_workforce_tenant'", $personHours);
+        self::assertStringContainsString("app()->bound('tenant')", $personHours);
+        self::assertStringContainsString('DB::purge(self::RUNTIME_CONNECTION)', $personHours);
+        self::assertStringContainsString('DB::connection(self::RUNTIME_CONNECTION)', $personHours);
+        self::assertStringContainsString('getDatabaseName()', $personHours);
+        self::assertStringContainsString('strcasecmp($actualDatabase, $database)', $personHours);
         self::assertStringContainsString("->select(['staff_id', 'location_id', 'check_in_time', 'check_out_time'])", $personHours);
         self::assertStringContainsString("->where('staff_id', \$staffId)", $personHours);
         self::assertStringContainsString("'attendance_read_ok'", $personHours);
         self::assertStringContainsString("'attendance_rows_found'", $personHours);
         self::assertStringNotContainsString('Schema::', $personHours);
         self::assertStringNotContainsString("DB::table('staff_attendance')", $personHours);
+        self::assertStringNotContainsString('DB::setDefaultConnection(', $personHours);
 
         self::assertStringContainsString('attendance_read_ok', $compactor);
         self::assertStringContainsString('attendance_rows_found=0', $compactor);

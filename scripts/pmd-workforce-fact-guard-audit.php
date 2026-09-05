@@ -57,8 +57,14 @@ $reject($compactor, 'check your payroll', 'no external payroll redirect');
 $reject($compactor, 'payroll software', 'no payroll software wording');
 $reject($compactor, 'to sum up', 'no SumUp-ambiguous workforce wording');
 
-$expect($personHours, "private const CONNECTION = 'tenant'", 'tenant-pinned attendance source');
-$expect($personHours, 'DB::connection(self::CONNECTION)', 'tenant database connection');
+$expect($personHours, "private const BASE_CONNECTION = 'tenant'", 'canonical tenant config source');
+$expect($personHours, "private const RUNTIME_CONNECTION = 'pmd_ai_workforce_tenant'", 'dedicated workforce tenant connection');
+$expect($personHours, "app()->bound('tenant')", 'request tenant authority');
+$expect($personHours, "Config::set('database.connections.'.self::RUNTIME_CONNECTION", 'runtime tenant config reconstruction');
+$expect($personHours, 'DB::purge(self::RUNTIME_CONNECTION)', 'fresh runtime tenant connection');
+$expect($personHours, 'DB::connection(self::RUNTIME_CONNECTION)', 'isolated tenant database connection');
+$expect($personHours, 'getDatabaseName()', 'runtime database identity verification');
+$expect($personHours, 'strcasecmp($actualDatabase, $database)', 'cross-tenant mismatch guard');
 $expect($personHours, "->table('staff_attendance')", 'direct attendance source query');
 $expect($personHours, "->select(['staff_id', 'location_id', 'check_in_time', 'check_out_time'])", 'direct attendance contract probe');
 $expect($personHours, "->table('pmd_operational_people')", 'operational person scope');
@@ -69,14 +75,16 @@ $expect($personHours, 'actual_hours_authoritative', 'coverage-gated actual hours
 $expect($personHours, "->where('staff_id', \$staffId)", 'staff-scoped attendance query');
 $expect($personHours, 'applyLocationScope', 'location-scoped attendance query');
 $expect($personHours, '24 * 60', 'implausible attendance session guard');
+$expect($personHours, "'error_code' => (string)\$error->getCode()", 'safe live failure classification');
 $reject($personHours, 'use Illuminate\\Support\\Facades\\Schema;', 'no Schema facade dependency');
 $reject($personHours, 'private function schema(', 'no schema helper dependency');
 $reject($personHours, "DB::table('staff_attendance')", 'no drifting default attendance connection');
+$reject($personHours, 'DB::setDefaultConnection(', 'do not mutate request default connection');
 $reject($personHours, '->insert(', 'read-only person-hours service');
 $reject($personHours, '->update(', 'read-only person-hours service');
 $reject($personHours, '->delete(', 'read-only person-hours service');
 $reject($personHours, 'salary', 'no salary data');
-$reject($personHours, 'password', 'no credential data');
+$reject($personHours, 'api_key', 'no provider secrets');
 
 $reject($guestService, 'PmdWorkforcePersonHoursService', 'Guest AI workforce isolation');
 $reject($guestService, 'PmdWorkforceToolFactCompactor', 'Guest AI compactor isolation');
