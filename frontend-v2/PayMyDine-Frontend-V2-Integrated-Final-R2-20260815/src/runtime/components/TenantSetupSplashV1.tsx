@@ -1,6 +1,6 @@
 import styles from './TenantSetupSplashV1.module.css'
 
-const PMD_LOGO_SRC = '/assets/media/uploads/Paymydinelogo.png'
+const PMD_LOGO_SRC = 'https://tomo.paymydine.com/brand/paymydine-logo.svg'
 
 export function TenantSetupSplashV1() {
   return (
