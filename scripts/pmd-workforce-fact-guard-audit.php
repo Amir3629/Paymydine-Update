@@ -50,6 +50,8 @@ $expect($compactor, 'attendance_fact_contract', 'structured workforce fact contr
 $expect($compactor, 'actual_hours_authoritative', 'authoritative actual-hours marker');
 $expect($compactor, 'attendance_read_ok', 'explicit attendance read state');
 $expect($compactor, 'attendance_rows_found=0', 'explicit no-attendance-row state');
+$expect($compactor, 'attendance_source_state=not_installed', 'explicit missing attendance capability state');
+$expect($compactor, 'clock-in/check-out attendance storage installed for this restaurant', 'honest not-installed response wording');
 $expect($compactor, 'no clock-in/clock-out attendance records', 'PMD-owned no-records wording');
 $expect($compactor, 'This roster entry is not linked to a PMD Team attendance identity yet', 'PMD-owned identity gap wording');
 $expect($compactor, 'I won\'t label the partial attendance total as a full-period total.', 'partial coverage honesty');
@@ -67,6 +69,10 @@ $expect($personHours, "table('staff_attendance')", 'attendance relation helper u
 $expect($personHours, "table('pmd_operational_people')", 'operational person relation helper usage');
 $expect($personHours, "table('staffs')", 'safe exact-name staff relation helper usage');
 $expect($personHours, "->select(['staff_id', 'location_id', 'check_in_time', 'check_out_time'])", 'direct attendance contract probe');
+$expect($personHours, 'attendance_source_state', 'explicit attendance source state');
+$expect($personHours, 'attendanceSourceState()', 'attendance capability classifier');
+$expect($personHours, "return 'not_installed'", 'missing attendance relation classifier');
+$expect($personHours, 'isMissingRelation(', 'missing relation detection');
 $expect($personHours, 'attendance_read_ok', 'separate attendance read state');
 $expect($personHours, 'attendance_coverage_start', 'coverage start evidence');
 $expect($personHours, 'actual_hours_authoritative', 'coverage-gated actual hours');
