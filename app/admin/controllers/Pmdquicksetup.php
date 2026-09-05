@@ -5,9 +5,9 @@ namespace Admin\Controllers;
 use Admin\Classes\AdminController;
 use Admin\Facades\AdminMenu;
 use Admin\Facades\Template;
-use Admin\Services\PmdTenantQuickSetupService;
+use Admin\Services\PmdTenantQuickSetupServiceV2;
 
-/** PMD_TENANT_QUICK_SETUP_V1_CONTROLLER */
+/** PMD_TENANT_QUICK_SETUP_V2_CONTROLLER */
 class Pmdquicksetup extends AdminController
 {
     protected $requiredPermissions = 'Site.Settings';
@@ -24,13 +24,14 @@ class Pmdquicksetup extends AdminController
         $this->addCss('css/pmd-settings-suite-first-paint-v1.css');
         $this->addCss('css/pmd-tenant-quick-setup-v1.css');
         $this->addJs('js/pmd-tenant-quick-setup-v1.js');
+        $this->addJs('js/pmd-tenant-quick-setup-v2.js');
 
         AdminMenu::setContext('dashboard');
     }
 
     public function index()
     {
-        $service = app(PmdTenantQuickSetupService::class);
+        $service = app(PmdTenantQuickSetupServiceV2::class);
 
         if ((string)request()->query('status', '') === '1') {
             return response()->json($service->status());
@@ -49,15 +50,39 @@ class Pmdquicksetup extends AdminController
     {
         return response()->json([
             'ok' => true,
-            'status' => app(PmdTenantQuickSetupService::class)->skip(),
+            'status' => app(PmdTenantQuickSetupServiceV2::class)->skip(),
         ]);
+    }
+
+    public function onCompleteStarterMenu()
+    {
+        try {
+            return response()->json(
+                app(PmdTenantQuickSetupServiceV2::class)->completeStarterMenu()
+            );
+        } catch (\RuntimeException $error) {
+            return response()->json([
+                'ok' => false,
+                'message' => $error->getMessage(),
+            ], 409);
+        } catch (\Throwable $error) {
+            logger()->error('PMD Starter menu completion failed', [
+                'type' => get_class($error),
+                'message' => $error->getMessage(),
+            ]);
+
+            return response()->json([
+                'ok' => false,
+                'message' => 'Starter menu could not be completed. Existing menu content was not intentionally changed.',
+            ], 500);
+        }
     }
 
     public function onRefreshStarterPhotos()
     {
         try {
             return response()->json(
-                app(PmdTenantQuickSetupService::class)->refreshStarterMenuImages()
+                app(PmdTenantQuickSetupServiceV2::class)->refreshStarterMenuImages()
             );
         } catch (\RuntimeException $error) {
             return response()->json([
@@ -90,7 +115,7 @@ class Pmdquicksetup extends AdminController
 
         try {
             return response()->json(
-                app(PmdTenantQuickSetupService::class)->apply($payload)
+                app(PmdTenantQuickSetupServiceV2::class)->apply($payload)
             );
         } catch (\InvalidArgumentException $error) {
             return response()->json([
