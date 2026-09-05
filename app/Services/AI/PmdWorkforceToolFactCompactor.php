@@ -94,8 +94,9 @@ final class PmdWorkforceToolFactCompactor
             'attendance_fact_contract' => [
                 'source' => 'PMD attendance clock-in/check-out records.',
                 'rule' => 'For a person where actual_hours_authoritative=true, actual_worked_hours is the PMD attendance fact for this exact range. Use it directly.',
-                'coverage_rule' => 'If attendance is linked but attendance_coverage_complete_for_range=false, actual_worked_hours is only the PMD-recorded partial total from attendance_coverage_start onward. State that coverage limitation explicitly.',
-                'gap_rule' => 'If actual_hours_authoritative=false, explain the explicit PMD attendance source, identity-link or coverage gap. Do not invent actual hours and do not redirect the operator to an external payroll or staff system.',
+                'coverage_rule' => 'If attendance is linked but attendance_coverage_complete_for_range=false and attendance_rows_found>0, actual_worked_hours is only the PMD-recorded partial total from attendance_coverage_start onward. State that coverage limitation explicitly.',
+                'no_rows_rule' => 'If attendance_source_available=true, attendance_identity_linked=true and attendance_rows_found=0, the attendance source exists but this person has no PMD clock-in/check-out records in the requested range. Do not call the attendance system unavailable.',
+                'gap_rule' => 'If actual_hours_authoritative=false, explain the explicit PMD attendance source, identity-link, no-records or coverage gap. Do not invent actual hours and do not redirect the operator to an external payroll or staff system.',
             ],
             'source' => 'PMD internal workforce authority; compacted for authenticated Admin AI.',
         ];
@@ -269,6 +270,8 @@ final class PmdWorkforceToolFactCompactor
         $scheduled = $this->hours((float)($person['scheduled_hours'] ?? 0));
         $actual = $this->hours((float)($person['actual_worked_hours'] ?? 0));
         $shiftCount = (int)($person['scheduled_shift_count'] ?? 0);
+        $presentMarked = (int)($person['present_marked_shifts'] ?? 0);
+        $rowsFound = (int)($person['attendance_rows_found'] ?? 0);
         $sourceReady = (bool)($person['attendance_source_available'] ?? false);
         $linked = (bool)($person['attendance_identity_linked'] ?? false);
         $coverageComplete = (bool)($person['attendance_coverage_complete_for_range'] ?? false);
@@ -278,11 +281,19 @@ final class PmdWorkforceToolFactCompactor
         $rangeText = ($start !== '' && $end !== '') ? " for {$start} to {$end}" : '';
 
         if (!$sourceReady) {
-            return "PMD can see {$name}'s rota{$rangeText}: **{$scheduled} scheduled hours across {$shiftCount} shifts**. The PMD attendance clock is not available for this restaurant yet, so actual worked hours cannot be reported safely.";
+            return "PMD can see {$name}'s rota{$rangeText}: **{$scheduled} scheduled hours across {$shiftCount} shifts**. PMD could not verify the attendance source for this request, so I won't invent actual worked hours.";
         }
 
         if (!$linked) {
-            return "PMD can see {$name}'s rota{$rangeText}: **{$scheduled} scheduled hours across {$shiftCount} shifts**. This roster entry is not linked to a PMD Team attendance record yet, so actual clocked hours cannot be reported until that PMD link is repaired.";
+            return "PMD can see {$name}'s rota{$rangeText}: **{$scheduled} scheduled hours across {$shiftCount} shifts**. This roster entry is not linked to a PMD Team attendance identity yet, so actual clocked hours cannot be reported until that PMD link is repaired.";
+        }
+
+        if ($rowsFound < 1) {
+            $presentNote = $presentMarked > 0
+                ? " The rota marks **{$presentMarked} shifts as present**, but a present mark is not a clock-in/clock-out record and cannot prove exact worked time."
+                : '';
+
+            return "PMD has **no clock-in/clock-out attendance records** for {$name}{$rangeText}. The rota shows **{$scheduled} scheduled hours across {$shiftCount} shifts**.{$presentNote} Actual worked hours therefore cannot be calculated from PMD attendance for this range.";
         }
 
         if (!$coverageComplete) {
