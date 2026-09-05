@@ -95,15 +95,17 @@ final class PmdIntelligenceConversationActionsTest extends TestCase
 
         self::assertStringContainsString("private const CONNECTION = 'tenant'", $personHours);
         self::assertStringContainsString('DB::connection(self::CONNECTION)', $personHours);
-        self::assertStringContainsString('Schema::connection(self::CONNECTION)', $personHours);
+        self::assertStringContainsString("->select(['staff_id', 'location_id', 'check_in_time', 'check_out_time'])", $personHours);
         self::assertStringContainsString("->where('staff_id', \$staffId)", $personHours);
+        self::assertStringContainsString("'attendance_read_ok'", $personHours);
         self::assertStringContainsString("'attendance_rows_found'", $personHours);
+        self::assertStringNotContainsString('Schema::', $personHours);
         self::assertStringNotContainsString("DB::table('staff_attendance')", $personHours);
-        self::assertStringNotContainsString("Schema::hasTable('staff_attendance')", $personHours);
 
+        self::assertStringContainsString('attendance_read_ok', $compactor);
         self::assertStringContainsString('attendance_rows_found=0', $compactor);
         self::assertStringContainsString('no clock-in/clock-out attendance records', $compactor);
-        self::assertStringContainsString('Do not call the attendance system unavailable.', $compactor);
+        self::assertStringContainsString('A readable zero-row source is not unavailable.', $compactor);
     }
 
     public function testAdminAiToneDoesNotFlatterRoleOrCallUserBoss(): void
