@@ -1,0 +1,35 @@
+name: PMD New Tenant Quick Setup V1 Validate
+
+on:
+  push:
+    branches:
+      - feature/menu-gallery-sides-options-20260903
+    paths:
+      - app/admin/assets/js/pmd-new-tenant-onboarding-r7.js
+      - app/main/routes/pmd-new-tenant-quick-setup-v1.php
+      - app/main/routes/main-app-before.php
+      - .github/workflows/pmd-new-tenant-quick-setup-v1-validate.yml
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/menu-gallery-sides-options-20260903
+
+      - name: JavaScript syntax
+        run: node --check app/admin/assets/js/pmd-new-tenant-onboarding-r7.js
+
+      - name: PHP syntax
+        run: |
+          php -l app/main/routes/pmd-new-tenant-quick-setup-v1.php
+          php -l app/main/routes/main-app-before.php
+
+      - name: Quick setup wiring
+        run: |
+          grep -q "PMD_NEW_TENANT_OWNER_QUICK_SETUP_R8" app/admin/assets/js/pmd-new-tenant-onboarding-r7.js
+          grep -q "pmd-new-tenant-quick-setup-v1.php" app/main/routes/main-app-before.php
+          grep -q "pmd-new-tenant-quick-setup" app/main/routes/pmd-new-tenant-quick-setup-v1.php
+          grep -q "hasOrders" app/main/routes/pmd-new-tenant-quick-setup-v1.php
+          grep -q "admin_url('menu')" app/main/routes/pmd-new-tenant-quick-setup-v1.php
