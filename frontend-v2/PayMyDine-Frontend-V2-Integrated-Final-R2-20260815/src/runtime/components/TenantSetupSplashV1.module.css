@@ -15,27 +15,20 @@
   padding: 38px 34px 34px;
   border: 1px solid rgba(51, 104, 94, 0.18);
   border-radius: 28px;
-  background: rgba(255, 255, 255, 0.82);
+  background: rgba(255, 255, 255, 0.86);
   box-shadow: 0 24px 70px rgba(28, 61, 54, 0.12);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
   text-align: center;
 }
 
-.brandMark {
-  display: grid;
-  place-items: center;
-  width: 58px;
-  height: 58px;
-  margin: 0 auto 20px;
-  border-radius: 18px;
-  background: #0f5d50;
-  color: #ffffff;
-  font-size: 30px;
-  font-weight: 850;
-  line-height: 1;
-  letter-spacing: -0.05em;
-  box-shadow: 0 10px 28px rgba(15, 93, 80, 0.20);
+.logo {
+  display: block;
+  width: auto;
+  max-width: 168px;
+  max-height: 72px;
+  margin: 0 auto 22px;
+  object-fit: contain;
 }
 
 .eyebrow {
@@ -57,11 +50,11 @@
 }
 
 .copy {
-  max-width: 490px;
+  max-width: 500px;
   margin: 17px auto 0;
   color: #5d716d;
   font-size: 15px;
-  line-height: 1.7;
+  line-height: 1.65;
 }
 
 .action {
@@ -92,24 +85,19 @@
   outline-offset: 4px;
 }
 
-.hint {
-  margin: 14px 0 0;
-  color: #83938f;
-  font-size: 12px;
-  line-height: 1.5;
-}
-
-[dir='rtl'] .card {
-  direction: rtl;
-}
-
 @media (max-width: 560px) {
   .shell {
     padding: 22px 14px;
   }
 
   .card {
-    padding: 30px 22px 27px;
+    padding: 30px 22px 28px;
     border-radius: 22px;
+  }
+
+  .logo {
+    max-width: 150px;
+    max-height: 64px;
+    margin-bottom: 20px;
   }
 }
