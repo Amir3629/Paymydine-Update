@@ -17,7 +17,7 @@ App::before(function () {
     Route::group([
         'middleware' => ['web'],
     ], function () {
-        Route::any(config('system.assetsCombinerUri', '_assets').'/{asset}', 'System\\Classes\\Controller@combineAssets');
+        Route::any(config('system.assetsCombinerUri', '_assets').'/{asset}', 'System\Classes\Controller@combineAssets');
 
         require_once __DIR__.'/api-health-media.php';
 
