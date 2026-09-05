@@ -5,11 +5,13 @@ on:
     paths:
       - 'app/Services/AI/**'
       - 'app/admin/controllers/Pmdintelligence.php'
+      - 'app/admin/middleware/LogUserLastSeen.php'
       - 'app/admin/views/pmdintelligence/**'
       - 'app/admin/assets/js/pmd-intelligence-v1.js'
       - 'app/admin/assets/css/pmd-intelligence-v1.css'
       - 'app/main/routes/api-v1-guest-ai.php'
       - 'app/system/database/migrations/*admin_ai*'
+      - 'app/system/database/migrations/*shift_audit*'
       - 'frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815/**'
       - 'scripts/pmd-intelligence-chat-actions-audit.php'
       - 'tests/Unit/PmdIntelligenceConversationActionsTest.php'
@@ -19,10 +21,12 @@ on:
     paths:
       - 'app/Services/AI/**'
       - 'app/admin/controllers/Pmdintelligence.php'
+      - 'app/admin/middleware/LogUserLastSeen.php'
       - 'app/admin/views/pmdintelligence/**'
       - 'app/admin/assets/js/pmd-intelligence-v1.js'
       - 'app/admin/assets/css/pmd-intelligence-v1.css'
       - 'app/main/routes/api-v1-guest-ai.php'
+      - 'app/system/database/migrations/*shift_audit*'
       - 'frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815/**'
       - 'scripts/pmd-intelligence-chat-actions-audit.php'
       - 'tests/Unit/PmdIntelligenceConversationActionsTest.php'
@@ -40,10 +44,13 @@ jobs:
         run: |
           php -l app/Services/AI/AdminAiConversationStore.php
           php -l app/Services/AI/PmdAdminWorkforceIntelligenceService.php
+          php -l app/Services/AI/PmdShiftAuditService.php
           php -l app/Services/AI/PmdIntelligenceActionRegistry.php
           php -l app/admin/controllers/Pmdintelligence.php
+          php -l app/admin/middleware/LogUserLastSeen.php
           php -l app/main/routes/api-v1-guest-ai.php
           php -l app/system/database/migrations/2026_09_04_120000_create_pmd_admin_ai_conversations.php
+          php -l app/system/database/migrations/2026_09_05_123000_create_pmd_operational_shift_audit_events.php
           php -l tests/Unit/PmdIntelligenceConversationActionsTest.php
           php -l scripts/pmd-intelligence-chat-actions-audit.php
       - name: Shared Intelligence contract
