@@ -1,0 +1,24 @@
+name: PMD Image V5 Semantic Lock Validate
+
+on:
+  push:
+    branches:
+      - feature/menu-gallery-sides-options-20260903
+    paths:
+      - app/admin/Services/PmdStarterMenuImageServiceV5.php
+      - .github/workflows/pmd-image-v5-lock-validate.yml
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: PHP syntax
+        run: |
+          php -l app/admin/Services/PmdStarterMenuImageServiceV5.php
+      - name: Verify semantic lock contract
+        run: |
+          grep -q "hasSpecificSemanticLock" app/admin/Services/PmdStarterMenuImageServiceV5.php
+          grep -q "semanticQueries" app/admin/Services/PmdStarterMenuImageServiceV5.php
+          grep -q "if (\$locked && !\$requiredMatch) return false" app/admin/Services/PmdStarterMenuImageServiceV5.php
+          grep -q "pmdstarter_v5_" app/admin/Services/PmdStarterMenuImageServiceV5.php
