@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - 'app/Services/AI/**'
+      - 'app/Services/Workforce/**'
+      - 'app/Http/Controllers/PmdStaffPortalV6Controller.php'
       - 'app/admin/controllers/Pmdintelligence.php'
       - 'app/admin/middleware/LogUserLastSeen.php'
       - 'app/admin/views/pmdintelligence/**'
@@ -16,12 +18,16 @@ on:
       - 'scripts/pmd-intelligence-chat-actions-audit.php'
       - 'scripts/pmd-workforce-fact-guard-audit.php'
       - 'scripts/pmd-workforce-fact-guard-runtime-test.php'
+      - 'scripts/pmd-staff-attendance-canary.php'
+      - 'scripts/pmd-staff-attendance-contract-audit.php'
       - 'tests/Unit/PmdIntelligenceConversationActionsTest.php'
       - '.github/workflows/pmd-intelligence-chat-actions.yml'
   push:
     branches: [main]
     paths:
       - 'app/Services/AI/**'
+      - 'app/Services/Workforce/**'
+      - 'app/Http/Controllers/PmdStaffPortalV6Controller.php'
       - 'app/admin/controllers/Pmdintelligence.php'
       - 'app/admin/middleware/LogUserLastSeen.php'
       - 'app/admin/views/pmdintelligence/**'
@@ -33,6 +39,8 @@ on:
       - 'scripts/pmd-intelligence-chat-actions-audit.php'
       - 'scripts/pmd-workforce-fact-guard-audit.php'
       - 'scripts/pmd-workforce-fact-guard-runtime-test.php'
+      - 'scripts/pmd-staff-attendance-canary.php'
+      - 'scripts/pmd-staff-attendance-contract-audit.php'
       - 'tests/Unit/PmdIntelligenceConversationActionsTest.php'
       - '.github/workflows/pmd-intelligence-chat-actions.yml'
 
@@ -53,6 +61,8 @@ jobs:
           php -l app/Services/AI/PmdWorkforceToolFactCompactor.php
           php -l app/Services/AI/PmdIntelligenceActionRegistry.php
           php -l app/Services/AI/AiOrchestrator.php
+          php -l app/Services/Workforce/PmdStaffAttendanceSchemaService.php
+          php -l app/Http/Controllers/PmdStaffPortalV6Controller.php
           php -l app/admin/controllers/Pmdintelligence.php
           php -l app/admin/middleware/LogUserLastSeen.php
           php -l app/main/routes/api-v1-guest-ai.php
@@ -62,12 +72,16 @@ jobs:
           php -l scripts/pmd-intelligence-chat-actions-audit.php
           php -l scripts/pmd-workforce-fact-guard-audit.php
           php -l scripts/pmd-workforce-fact-guard-runtime-test.php
+          php -l scripts/pmd-staff-attendance-canary.php
+          php -l scripts/pmd-staff-attendance-contract-audit.php
       - name: Shared Intelligence contract
         run: php scripts/pmd-intelligence-chat-actions-audit.php
       - name: Workforce fact guard contract
         run: php scripts/pmd-workforce-fact-guard-audit.php
       - name: Workforce fact guard runtime regression
         run: php scripts/pmd-workforce-fact-guard-runtime-test.php
+      - name: Staff attendance authority contract
+        run: php scripts/pmd-staff-attendance-contract-audit.php
 
   frontend-contract:
     runs-on: ubuntu-latest
