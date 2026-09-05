@@ -14,12 +14,14 @@ $basePerson = [
     'name' => 'Mohsen',
     'scheduled_hours' => 50.0,
     'scheduled_shift_count' => 6,
+    'present_marked_shifts' => 2,
     'worked_days' => 5,
     'completed_attendance_sessions' => 5,
     'open_attendance_sessions' => 0,
     'anomalous_attendance_sessions' => 0,
     'attendance_source_available' => true,
     'attendance_identity_linked' => true,
+    'attendance_rows_found' => 5,
     'attendance_coverage_complete_for_range' => true,
     'attendance_coverage_start' => '2025-12-01 08:00:00',
 ];
@@ -65,6 +67,7 @@ $zeroEvidence = [[
         'actual_worked_hours' => 0.0,
         'worked_days' => 0,
         'completed_attendance_sessions' => 0,
+        'attendance_rows_found' => 1,
     ])],
 ]];
 $zeroAnswer = $guard->guardAnswer(
@@ -77,12 +80,41 @@ if (!str_contains($zeroAnswer, '0 actual worked hours')) {
     exit(1);
 }
 
+$noRowsEvidence = [[
+    'available' => true,
+    'range' => ['start_date' => '2026-01-01', 'end_date' => '2026-09-05'],
+    'people_metrics' => [array_merge($basePerson, [
+        'actual_hours_authoritative' => false,
+        'actual_worked_hours' => 0.0,
+        'worked_days' => 0,
+        'completed_attendance_sessions' => 0,
+        'attendance_rows_found' => 0,
+        'attendance_coverage_complete_for_range' => false,
+        'attendance_coverage_start' => null,
+    ])],
+]];
+$noRowsAnswer = $guard->guardAnswer(
+    'The attendance clock is not available for this restaurant yet.',
+    $noRowsEvidence,
+    $question
+);
+if (
+    !str_contains($noRowsAnswer, 'no clock-in/clock-out attendance records')
+    || !str_contains($noRowsAnswer, '50 scheduled hours across 6 shifts')
+    || !str_contains($noRowsAnswer, '2 shifts as present')
+    || str_contains(strtolower($noRowsAnswer), 'attendance clock is not available')
+) {
+    fwrite(STDERR, "FAIL linked-no-attendance-rows guard\n");
+    exit(1);
+}
+
 $partialEvidence = [[
     'available' => true,
     'range' => ['start_date' => '2026-01-01', 'end_date' => '2026-09-05'],
     'people_metrics' => [array_merge($basePerson, [
         'actual_hours_authoritative' => false,
         'actual_worked_hours' => 5.25,
+        'attendance_rows_found' => 2,
         'attendance_coverage_complete_for_range' => false,
         'attendance_coverage_start' => '2026-09-01 08:00:00',
     ])],
@@ -108,6 +140,7 @@ $unlinkedEvidence = [[
         'actual_hours_authoritative' => false,
         'actual_worked_hours' => 0.0,
         'attendance_identity_linked' => false,
+        'attendance_rows_found' => 0,
         'attendance_coverage_complete_for_range' => false,
         'attendance_coverage_start' => null,
     ])],
@@ -118,7 +151,7 @@ $unlinkedAnswer = $guard->guardAnswer(
     $question
 );
 if (
-    !str_contains($unlinkedAnswer, 'not linked to a PMD Team attendance record')
+    !str_contains($unlinkedAnswer, 'not linked to a PMD Team attendance identity')
     || !str_contains($unlinkedAnswer, '50 scheduled hours across 6 shifts')
     || str_contains(strtolower($unlinkedAnswer), 'sum up')
     || str_contains(strtolower($unlinkedAnswer), 'elsewhere')
