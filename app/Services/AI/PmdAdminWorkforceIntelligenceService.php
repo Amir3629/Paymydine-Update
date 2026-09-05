@@ -255,7 +255,8 @@ final class PmdAdminWorkforceIntelligenceService
             $end,
             array_keys($personMetrics),
             null,
-            80
+            80,
+            $shiftIds
         );
 
         $base['available'] = true;
