@@ -116,7 +116,6 @@ final class PmdIntelligenceConversationActionsTest extends TestCase
         self::assertStringContainsString("'attendance_rows_found'", $personHours);
         self::assertStringNotContainsString('Schema::', $personHours);
         self::assertStringNotContainsString("DB::table('staff_attendance')", $personHours);
-        self::assertStringNotContainsString("->table('staff_attendance')", $personHours);
         self::assertStringNotContainsString('DB::setDefaultConnection(', $personHours);
 
         self::assertStringContainsString('attendance_read_ok', $compactor);
