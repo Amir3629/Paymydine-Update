@@ -235,6 +235,15 @@ export type CustomerBootstrap = {
     highlights: MenuHighlights
     cacheVersion: string
   }
+  setup?: {
+    frontendConfigured: boolean
+    status: {
+      hasCategories: boolean
+      hasMenuItems: boolean
+      hasLogo: boolean
+      hasCustomSettings: boolean
+    } | null
+  }
   payments: PaymentMethod[]
   activeOrder: TableOrderState | null
 }
