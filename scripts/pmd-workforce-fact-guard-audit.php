@@ -61,15 +61,15 @@ $expect($personHours, "private const BASE_CONNECTION = 'tenant'", 'canonical liv
 $expect($personHours, "private const RUNTIME_CONNECTION = 'pmd_ai_workforce_tenant'", 'dedicated workforce tenant connection');
 $expect($personHours, "app()->bound('tenant')", 'request tenant authority');
 $expect($personHours, '$base->getConfig()', 'clone verified live tenant connection config');
-$expect($personHours, "$config['url'] = null;", 'disable URL reparse on private clone');
-$expect($personHours, "$config['prefix'] = (string)$base->getTablePrefix();", 'preserve live request prefix');
+$expect($personHours, '$config[\'url\'] = null;', 'disable URL reparse on private clone');
+$expect($personHours, '$config[\'prefix\'] = (string)$base->getTablePrefix();', 'preserve live request prefix');
 $expect($personHours, "Config::set('database.connections.'.self::RUNTIME_CONNECTION", 'private runtime tenant config');
 $expect($personHours, 'DB::purge(self::RUNTIME_CONNECTION)', 'fresh runtime tenant connection');
 $expect($personHours, 'DB::connection(self::RUNTIME_CONNECTION)', 'isolated tenant database connection');
 $expect($personHours, 'getDatabaseName()', 'runtime database identity verification');
 $expect($personHours, 'strcasecmp($baseDatabase, $database)', 'base request tenant mismatch guard');
 $expect($personHours, 'strcasecmp($actualDatabase, $database)', 'runtime cross-tenant mismatch guard');
-$expect($personHours, "information_schema.TABLES", 'physical relation discovery');
+$expect($personHours, 'information_schema.TABLES', 'physical relation discovery');
 $expect($personHours, 'physicalTable(', 'physical tenant table resolver');
 $expect($personHours, '$connection->raw($this->quoteIdentifier($physical))', 'exact physical relation query');
 $expect($personHours, "table('staff_attendance')", 'attendance relation helper usage');
