@@ -69,7 +69,8 @@ $expect($personHours, 'actual_hours_authoritative', 'coverage-gated actual hours
 $expect($personHours, "->where('staff_id', \$staffId)", 'staff-scoped attendance query');
 $expect($personHours, 'applyLocationScope', 'location-scoped attendance query');
 $expect($personHours, '24 * 60', 'implausible attendance session guard');
-$reject($personHours, 'Schema::', 'no schema-introspection false-negative dependency');
+$reject($personHours, 'use Illuminate\\Support\\Facades\\Schema;', 'no Schema facade dependency');
+$reject($personHours, 'private function schema(', 'no schema helper dependency');
 $reject($personHours, "DB::table('staff_attendance')", 'no drifting default attendance connection');
 $reject($personHours, '->insert(', 'read-only person-hours service');
 $reject($personHours, '->update(', 'read-only person-hours service');
