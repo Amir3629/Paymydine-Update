@@ -16,16 +16,16 @@ use Throwable;
  * is never registered with Guest AI.
  *
  * IMPORTANT: workforce attendance reads stay on the already-live, verified
- * tenant request connection. Physical relations are resolved by harmless
- * SELECT ... LIMIT 0 probes against a tiny trusted candidate set. This avoids
- * both Laravel prefix drift and information_schema/clone-connection surprises.
+ * tenant request connection and use Laravel's canonical logical table names.
+ * The tenant connection owns the configured PMD table prefix, exactly like the
+ * existing Staff_attendance_model and kitchen workforce authority. Do not add a
+ * second physical-table resolver here: that creates a parallel schema authority.
  */
 final class PmdWorkforcePersonHoursService
 {
     private const CONNECTION = 'tenant';
 
     private ?string $resolvedDatabase = null;
-    private array $resolvedTables = [];
 
     public function enrich(array $metric, array $range): array
     {
@@ -179,7 +179,7 @@ final class PmdWorkforcePersonHoursService
 
     /**
      * A successful zero-row read still proves the attendance source exists.
-     * The physical relation itself is verified by a LIMIT 0 probe first.
+     * Laravel applies the verified tenant connection's canonical PMD prefix.
      */
     private function attendanceReady(): bool
     {
@@ -222,75 +222,17 @@ final class PmdWorkforcePersonHoursService
     }
 
     /**
-     * Query the exact physical relation selected by the live probe. Passing a
-     * trusted raw relation expression prevents Laravel from applying the table
-     * prefix a second time.
+     * Use PMD's existing logical relation names and let the verified Laravel
+     * tenant connection apply its configured prefix exactly once. This matches
+     * the canonical Staff_attendance_model and existing workforce services.
      */
     private function table(string $logical)
     {
-        $connection = $this->db();
-        $physical = $this->physicalTable($logical);
-
-        return $connection->table(
-            $connection->raw($this->quoteIdentifier($physical))
-        );
-    }
-
-    /**
-     * Resolve only trusted PMD relation candidates by trying a harmless
-     * SELECT 1 ... LIMIT 0 on the already-verified live tenant connection.
-     * Missing-table SQLSTATE 42S02 simply advances to the next candidate;
-     * any other database failure is surfaced to the caller.
-     */
-    private function physicalTable(string $logical): string
-    {
-        if (isset($this->resolvedTables[$logical])) {
-            return $this->resolvedTables[$logical];
-        }
         if (!preg_match('/^[A-Za-z0-9_]+$/', $logical)) {
             throw new RuntimeException('PMD workforce logical table name is invalid.');
         }
 
-        $connection = $this->db();
-        $prefix = (string)$connection->getTablePrefix();
-        $candidates = array_values(array_unique(array_filter([
-            $prefix.$logical,
-            $logical,
-        ], static fn (string $name): bool => $name !== '')));
-
-        foreach ($candidates as $candidate) {
-            if (!preg_match('/^[A-Za-z0-9_]+$/', $candidate)) continue;
-
-            try {
-                $connection->select(
-                    'SELECT 1 FROM '.$this->quoteIdentifier($candidate).' LIMIT 0'
-                );
-                return $this->resolvedTables[$logical] = $candidate;
-            } catch (Throwable $error) {
-                if ($this->isMissingRelation($error)) continue;
-                throw $error;
-            }
-        }
-
-        throw new RuntimeException('PMD workforce table contract is unavailable for '.$logical.'.');
-    }
-
-    private function isMissingRelation(Throwable $error): bool
-    {
-        $code = strtoupper(trim((string)$error->getCode()));
-        if ($code === '42S02') return true;
-
-        $previous = $error->getPrevious();
-        return $previous instanceof Throwable
-            && strtoupper(trim((string)$previous->getCode())) === '42S02';
-    }
-
-    private function quoteIdentifier(string $identifier): string
-    {
-        if (!preg_match('/^[A-Za-z0-9_]+$/', $identifier)) {
-            throw new RuntimeException('PMD workforce physical table name is invalid.');
-        }
-        return '`'.$identifier.'`';
+        return $this->db()->table($logical);
     }
 
     /**
@@ -322,16 +264,13 @@ final class PmdWorkforcePersonHoursService
 
     private function failureReason(Throwable $error): string
     {
-        if ($this->isMissingRelation($error)) return 'relation_missing';
         if (!$error instanceof RuntimeException) return 'database_error';
 
         $message = $error->getMessage();
-        if (str_contains($message, 'table contract is unavailable')) return 'relation_contract_unavailable';
         if (str_contains($message, 'does not match request tenant')) return 'tenant_database_mismatch';
         if (str_contains($message, 'tenant context is unavailable')) return 'tenant_context_unavailable';
         if (str_contains($message, 'database identity is invalid')) return 'tenant_database_identity_invalid';
         if (str_contains($message, 'logical table name is invalid')) return 'logical_relation_invalid';
-        if (str_contains($message, 'physical table name is invalid')) return 'physical_relation_invalid';
 
         return 'runtime_guard_failed';
     }
@@ -348,11 +287,21 @@ final class PmdWorkforcePersonHoursService
             'stage' => $stage,
             'connection' => self::CONNECTION,
             'database' => $database,
+            'table_prefix' => $this->safeTablePrefix(),
             'person_id' => $personId,
             'location_id' => $locationId,
             'type' => get_class($error),
             'error_code' => (string)$error->getCode(),
             'reason' => $this->failureReason($error),
         ]);
+    }
+
+    private function safeTablePrefix(): ?string
+    {
+        try {
+            return (string)DB::connection(self::CONNECTION)->getTablePrefix();
+        } catch (Throwable $ignored) {
+            return null;
+        }
     }
 }

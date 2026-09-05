@@ -93,20 +93,12 @@ final class PmdIntelligenceConversationActionsTest extends TestCase
         self::assertStringNotContainsString('password', strtolower($source));
         self::assertStringNotContainsString('salary', strtolower($source));
 
-        self::assertStringContainsString("private const BASE_CONNECTION = 'tenant'", $personHours);
-        self::assertStringContainsString("private const RUNTIME_CONNECTION = 'pmd_ai_workforce_tenant'", $personHours);
+        self::assertStringContainsString("private const CONNECTION = 'tenant'", $personHours);
         self::assertStringContainsString("app()->bound('tenant')", $personHours);
-        self::assertStringContainsString('$base->getConfig()', $personHours);
-        self::assertStringContainsString("\$config['url'] = null;", $personHours);
-        self::assertStringContainsString("\$config['prefix'] = (string)\$base->getTablePrefix();", $personHours);
-        self::assertStringContainsString('DB::purge(self::RUNTIME_CONNECTION)', $personHours);
-        self::assertStringContainsString('DB::connection(self::RUNTIME_CONNECTION)', $personHours);
+        self::assertStringContainsString('DB::connection(self::CONNECTION)', $personHours);
         self::assertStringContainsString('getDatabaseName()', $personHours);
-        self::assertStringContainsString('strcasecmp($baseDatabase, $database)', $personHours);
         self::assertStringContainsString('strcasecmp($actualDatabase, $database)', $personHours);
-        self::assertStringContainsString('information_schema.TABLES', $personHours);
-        self::assertStringContainsString('physicalTable(', $personHours);
-        self::assertStringContainsString('$connection->raw($this->quoteIdentifier($physical))', $personHours);
+        self::assertStringContainsString('return $this->db()->table($logical);', $personHours);
         self::assertStringContainsString("table('staff_attendance')", $personHours);
         self::assertStringContainsString("table('pmd_operational_people')", $personHours);
         self::assertStringContainsString("table('staffs')", $personHours);
@@ -114,6 +106,10 @@ final class PmdIntelligenceConversationActionsTest extends TestCase
         self::assertStringContainsString("->where('staff_id', \$staffId)", $personHours);
         self::assertStringContainsString("'attendance_read_ok'", $personHours);
         self::assertStringContainsString("'attendance_rows_found'", $personHours);
+        self::assertStringContainsString("'table_prefix' => \$this->safeTablePrefix()", $personHours);
+        self::assertStringNotContainsString('physicalTable(', $personHours);
+        self::assertStringNotContainsString('information_schema.TABLES', $personHours);
+        self::assertStringNotContainsString('pmd_ai_workforce_tenant', $personHours);
         self::assertStringNotContainsString('Schema::', $personHours);
         self::assertStringNotContainsString("DB::table('staff_attendance')", $personHours);
         self::assertStringNotContainsString('DB::setDefaultConnection(', $personHours);
