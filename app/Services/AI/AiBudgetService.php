@@ -15,7 +15,8 @@ final class AiBudgetService
 
         $day = now($context->timezone)->format('Y-m-d');
         $dailyKey = 'pmd_ai:daily:'.$tenantKey.':'.$day;
-        $dailyLimit = max(1, (int)config('pmd_ai.daily_request_budget_per_tenant', 250));
+        $configuredLimit = max(1, (int)config('pmd_ai.daily_request_budget_per_tenant', 250));
+        $dailyLimit = app(PmdAiTenantPolicyService::class)->adminDailyRequestBudget($configuredLimit);
         $daily = (int)Cache::get($dailyKey, 0);
         if ($daily >= $dailyLimit) {
             throw new RuntimeException('PMD Intelligence daily tenant request budget reached.');
