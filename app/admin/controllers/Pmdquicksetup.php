@@ -7,7 +7,7 @@ use Admin\Facades\AdminMenu;
 use Admin\Facades\Template;
 use Admin\Services\PmdTenantQuickSetupServiceV2;
 
-/** PMD_TENANT_QUICK_SETUP_V3_FAST_CONTROLLER */
+/** PMD_TENANT_QUICK_SETUP_V4_DASHBOARD_INLINE_CONTROLLER */
 class Pmdquicksetup extends AdminController
 {
     protected $requiredPermissions = 'Site.Settings';
@@ -36,13 +36,25 @@ class Pmdquicksetup extends AdminController
             return response()->json($service->status());
         }
 
-        Template::setTitle('Quick Setup');
-        Template::setHeading('Quick Setup');
+        /*
+         * PMD_QUICK_SETUP_DASHBOARD_INLINE_V4
+         * The old standalone URL is retained only as the handler/bootstrap
+         * endpoint. Browser navigation now returns to Dashboard and opens the
+         * inline setup cards there instead of rendering a separate page.
+         */
+        if ((string)request()->query('embed', '') === '1') {
+            Template::setTitle('Quick Setup');
+            Template::setHeading('Quick Setup');
 
-        $this->vars['pmdQuickSetupStatus'] = $service->status();
-        $this->vars['pmdQuickSetupRestaurantTypes'] = $service->restaurantTypes();
+            $this->vars['pmdQuickSetupStatus'] = $service->status();
+            $this->vars['pmdQuickSetupRestaurantTypes'] = $service->restaurantTypes();
 
-        return $this->makeView('pmdquicksetup/index');
+            return $this->makeView('pmdquicksetup/index');
+        }
+
+        return redirect(
+            admin_url('dashboardlab').'?quick_setup=1#pmd-dashboard-quick-setup'
+        );
     }
 
     public function onSkip()
