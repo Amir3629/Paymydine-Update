@@ -29,10 +29,12 @@ final class AiBudgetService
             throw new RuntimeException('PMD Intelligence rate limit reached. Try again shortly.');
         }
         Cache::put($userKey, $userCount + 1, now()->addMinutes(2));
-
-        $this->consumeGlobal();
     }
 
+    /**
+     * Consume one provider API-call slot. Admin tool loops call this for every
+     * model round-trip; Guest AI calls it once per model request.
+     */
     public function consumeGlobal(): void
     {
         $minuteLimit = max(1, (int)config('pmd_ai.global_requests_per_minute', 120));
