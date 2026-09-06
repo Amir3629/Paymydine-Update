@@ -11,17 +11,26 @@ final class AiOrchestrator
     private AiAuditLogger $audit;
     private AiRedactor $redactor;
     private AiBudgetService $budget;
+    private AiHealthService $health;
+    private AiUsageLedger $usage;
+    private AiCapabilityPolicy $capabilities;
 
     public function __construct(
         ?AiProvider $provider = null,
         ?AiAuditLogger $audit = null,
         ?AiRedactor $redactor = null,
-        ?AiBudgetService $budget = null
+        ?AiBudgetService $budget = null,
+        ?AiHealthService $health = null,
+        ?AiUsageLedger $usage = null,
+        ?AiCapabilityPolicy $capabilities = null
     ) {
         $this->provider = $provider ?: $this->resolveProvider();
         $this->audit = $audit ?: new AiAuditLogger();
         $this->redactor = $redactor ?: new AiRedactor();
         $this->budget = $budget ?: new AiBudgetService();
+        $this->health = $health ?: new AiHealthService();
+        $this->usage = $usage ?: new AiUsageLedger();
+        $this->capabilities = $capabilities ?: new AiCapabilityPolicy();
     }
 
     public function ask(AiContext $context, string $question, array $tools): array
@@ -42,7 +51,17 @@ final class AiOrchestrator
             throw new RuntimeException('Question is too long.');
         }
 
+        $providerName = $this->provider->name();
+        $configuredModel = trim((string)config('pmd_ai.model', ''));
+        $this->health->assertCanAttempt($providerName, $configuredModel);
         $this->budget->consume($context);
+
+        // The authenticated PMD context, not the model, owns tool authority.
+        $tools = $this->capabilities->filterTools($context, $tools);
+        if (!$tools) {
+            throw new RuntimeException('PMD Intelligence has no permitted tools for this user context.');
+        }
+
         $safeQuestion = (string)$this->redactor->forModel($question, 'user_question');
 
         $toolDefinitions = [];
@@ -94,6 +113,7 @@ final class AiOrchestrator
         ];
         $maxCalls = max(1, (int)config('pmd_ai.max_tool_calls', 6));
         $callsMade = 0;
+        $providerCalls = 0;
         $toolTrace = [];
         $requestIds = [];
         $latencyMs = 0;
@@ -101,8 +121,8 @@ final class AiOrchestrator
         $workforceEvidence = [];
 
         $this->audit->write('run_started', $context, [
-            'provider' => $this->provider->name(),
-            'model' => (string)config('pmd_ai.model', ''),
+            'provider' => $providerName,
+            'model' => $configuredModel,
             'question_length' => mb_strlen($question),
             'question_redacted' => $safeQuestion !== $question,
             'tool_names' => array_keys($tools),
@@ -111,7 +131,7 @@ final class AiOrchestrator
         try {
             while (true) {
                 $request = [
-                    'model' => (string)config('pmd_ai.model', ''),
+                    'model' => $configuredModel,
                     'instructions' => $instructions,
                     'input' => $input,
                     'tools' => $toolDefinitions,
@@ -120,9 +140,12 @@ final class AiOrchestrator
                     'store' => (bool)config('pmd_ai.store_provider_response', false),
                 ];
 
+                $providerCalls++;
                 $result = $this->provider->create($request);
                 $lastResponse = (array)$result['body'];
                 $latencyMs += (int)$result['latency_ms'];
+                $this->health->markSuccess($providerName, $configuredModel, (int)$result['latency_ms']);
+
                 if (!empty($result['request_id'])) {
                     $requestIds[] = (string)$result['request_id'];
                 }
@@ -132,7 +155,7 @@ final class AiOrchestrator
                     $answer = $this->provider->outputText($lastResponse);
                     if ($answer === '') {
                         throw new RuntimeException(
-                            ucfirst($this->provider->name()).' returned no answer text.'
+                            ucfirst($providerName).' returned no answer text.'
                         );
                     }
 
@@ -144,21 +167,33 @@ final class AiOrchestrator
 
                     $usage = $this->provider->usage($lastResponse);
                     $this->audit->write('run_completed', $context, [
-                        'provider' => $this->provider->name(),
+                        'provider' => $providerName,
                         'tool_trace' => $toolTrace,
                         'provider_request_ids' => $requestIds,
                         'latency_ms' => $latencyMs,
+                        'provider_calls' => $providerCalls,
                         'usage' => $usage,
                     ]);
+                    $this->usage->record(
+                        $context,
+                        'admin',
+                        $providerName,
+                        $this->provider->responseModel($lastResponse),
+                        $usage,
+                        $latencyMs,
+                        $providerCalls,
+                        true
+                    );
 
                     return [
                         'ok' => true,
                         'run_id' => $context->runId,
                         'answer' => $answer,
-                        'provider' => $this->provider->name(),
+                        'provider' => $providerName,
                         'model' => $this->provider->responseModel($lastResponse),
                         'tool_trace' => $toolTrace,
                         'usage' => $usage,
+                        'provider_calls' => $providerCalls,
                         'latency_ms' => $latencyMs,
                     ];
                 }
@@ -222,11 +257,23 @@ final class AiOrchestrator
                 }
             }
         } catch (Throwable $error) {
+            $this->health->markFailure($providerName, $configuredModel, $error);
+            $this->usage->record(
+                $context,
+                'admin',
+                $providerName,
+                $configuredModel,
+                $lastResponse ? $this->provider->usage((array)$lastResponse) : [],
+                $latencyMs,
+                $providerCalls,
+                false
+            );
             $this->audit->write('run_failed', $context, [
-                'provider' => $this->provider->name(),
+                'provider' => $providerName,
                 'tool_trace' => $toolTrace,
                 'provider_request_ids' => $requestIds,
                 'latency_ms' => $latencyMs,
+                'provider_calls' => $providerCalls,
                 'error_type' => get_class($error),
                 'error_message' => $error->getMessage(),
             ]);
@@ -236,7 +283,7 @@ final class AiOrchestrator
 
     private function resolveProvider(): AiProvider
     {
-        $provider = strtolower(trim((string)config('pmd_ai.provider', 'openai')));
+        $provider = strtolower(trim((string)config('pmd_ai.provider', '')));
 
         if ($provider === 'openai') {
             return new OpenAiResponsesProvider();
@@ -247,7 +294,7 @@ final class AiOrchestrator
         }
 
         throw new RuntimeException(
-            'Unsupported PMD AI provider. Use PMD_AI_PROVIDER=openai or gemini.'
+            'Unsupported PMD AI provider. Set PMD_AI_PROVIDER explicitly.'
         );
     }
 }
