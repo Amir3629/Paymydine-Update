@@ -40,6 +40,7 @@ jobs:
           php -l config/pmd_ai.php
           php -l app/Services/AI/AiHealthService.php
           php -l app/Services/AI/AiUsageLedger.php
+          php -l app/Services/AI/PmdAiTenantPolicyService.php
           php -l app/Services/AI/AiCapabilityPolicy.php
           php -l app/Services/AI/AiRetentionService.php
           php -l app/Services/AI/GuestAiContextBuilder.php
