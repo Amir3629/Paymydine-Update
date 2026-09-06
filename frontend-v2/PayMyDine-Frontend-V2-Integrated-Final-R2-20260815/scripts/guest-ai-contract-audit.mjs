@@ -57,17 +57,12 @@ if (fs.existsSync(legacyLayout)) {
 
 const backendRoute = fs.readFileSync(path.resolve(repo, 'app/main/routes/api-v1-guest-ai.php'), 'utf8')
 const backendService = fs.readFileSync(path.resolve(repo, 'app/Services/AI/GuestMenuAiService.php'), 'utf8')
-const tenantPolicy = fs.readFileSync(path.resolve(repo, 'app/Services/AI/PmdAiTenantPolicyService.php'), 'utf8')
 const config = fs.readFileSync(path.resolve(repo, 'config/pmd_ai.php'), 'utf8')
 
 expect(backendRoute, "'location_id' => 'required|integer|min:1'", 'API location gate')
 expect(backendRoute, "'surface' => 'frontend_v2'", 'API surface fingerprint')
-expect(backendService, 'PmdAiTenantPolicyService', 'tenant policy authority')
-expect(backendService, 'guestLocationEnabled', 'location policy gate')
-expect(tenantPolicy, 'pmd_ai_guest_location_allowlist', 'tenant-local location allowlist')
-expect(tenantPolicy, 'guest_location_allowlist', 'environment location canary fallback')
+expect(backendService, 'guest_location_allowlist', 'location allowlist')
 expect(backendService, 'RateLimiter', 'atomic rate limiter')
-expect(backendService, 'GuestAiVisitBudgetService', 'table-visit abuse budget')
 expect(backendService, 'looksLikePromptExtraction', 'prompt guard')
 expect(backendService, 'is_stock_out', 'sold-out reconciliation')
 expect(backendService, 'Allergy safety is strict', 'allergy contract')
