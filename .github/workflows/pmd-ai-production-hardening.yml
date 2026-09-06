@@ -48,6 +48,7 @@ jobs:
           php -l app/Services/AI/AiBudgetService.php
           php -l app/Services/AI/AiOrchestrator.php
           php -l app/Services/AI/GuestMenuAiService.php
+          php -l app/admin/controllers/Pmdintelligence.php
           php -l scripts/pmd-ai-maintenance.php
           php -l scripts/pmd-ai-provider-smoke.php
           php -l scripts/pmd-ai-production-contract-audit.php
