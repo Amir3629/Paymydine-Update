@@ -40,14 +40,46 @@ Never paste API keys into tickets, chat, Git, browser JavaScript, templates, scr
 The shared runtime contains:
 
 - `AiHealthService`: cached provider health state and circuit breaker;
-- `AiUsageLedger`: per-tenant/surface token/request accounting without storing raw prompts;
+- `AiUsageLedger`: persistent tenant-local, per-location/surface token/request accounting without storing raw prompts or answers;
+- `PmdAiTenantPolicyService`: tenant entitlement, location rollout and budget overlay;
 - `AiCapabilityPolicy`: server-owned tool filtering by authenticated PMD permissions;
-- `AiBudgetService`: tenant, user and global provider budgets;
-- `AiRetentionService`: bounded Admin/Guest chat retention cleanup;
+- `AiBudgetService`: tenant, user and global provider-call budgets;
+- `AiRetentionService`: bounded Admin/Guest chat and usage-ledger retention cleanup;
 - `GuestAiContextBuilder`: deterministic menu-context compaction before provider submission;
+- `GuestAiVisitBudgetService`: table/visit abuse limits without storing raw guest session identifiers;
 - `AiAuditLogger`: run/provider/model/tool/latency metadata with secret redaction.
 
 The health endpoint/state must never make a paid provider request merely to paint a green status indicator. Real traffic and explicit smoke tests update provider health.
+
+## Fail-closed tenant rollout
+
+`PMD_AI_ENABLED=true` is only the global platform switch. It must **not** automatically enable Admin AI for every restaurant.
+
+For initial canaries, allow Admin AI only for named tenants:
+
+```dotenv
+PMD_AI_ADMIN_TENANT_ALLOWLIST=tomo,tomo.paymydine.com
+```
+
+For Guest AI, keep the existing explicit tenant + location gates:
+
+```dotenv
+PMD_AI_GUEST_ENABLED=true
+PMD_AI_GUEST_TENANT_ALLOWLIST=tomo,tomo.paymydine.com
+PMD_AI_GUEST_LOCATION_ALLOWLIST=1
+PMD_AI_GUEST_ALLOW_WILDCARD=false
+```
+
+As restaurants are promoted, tenant-local `settings` become the control plane and override the server canary fallback:
+
+- `pmd_ai_admin_enabled`
+- `pmd_ai_guest_enabled`
+- `pmd_ai_guest_location_allowlist`
+- `pmd_ai_admin_daily_request_budget`
+- `pmd_ai_guest_daily_request_budget`
+- `pmd_ai_guest_visit_daily_request_budget`
+
+This avoids an ever-growing `.env` allowlist while keeping the global server switch as an emergency kill switch.
 
 ## Multi-tenant budget defaults
 
@@ -57,16 +89,20 @@ PMD_AI_GLOBAL_REQUESTS_PER_MINUTE=120
 PMD_AI_GLOBAL_REQUESTS_PER_DAY=20000
 PMD_AI_GUEST_REQUESTS_PER_MINUTE=6
 PMD_AI_GUEST_DAILY_REQUESTS_PER_IP=60
+PMD_AI_GUEST_DAILY_REQUESTS_PER_VISIT=40
 PMD_AI_GUEST_DAILY_REQUESTS_PER_TENANT=250
 ```
 
 These are safety defaults, not product pricing. Production pricing decisions must be based on measured usage from `AiUsageLedger`, not guesses.
+
+The persistent usage ledger stores daily aggregates only: request counts, provider-call counts, input/output/thinking/total tokens and latency by location/surface/provider/model. It stores no raw prompt or answer.
 
 ## Retention defaults
 
 ```dotenv
 PMD_AI_ADMIN_CHAT_RETENTION_DAYS=90
 PMD_AI_GUEST_CHAT_RETENTION_DAYS=7
+PMD_AI_USAGE_RETENTION_DAYS=400
 ```
 
 Run tenant-local cleanup through:
@@ -75,11 +111,11 @@ Run tenant-local cleanup through:
 php scripts/pmd-ai-maintenance.php
 ```
 
-A daily cron is appropriate. Cleanup touches only PMD AI conversation tables.
+A daily cron is appropriate. Cleanup touches only PMD AI conversation/usage tables.
 
 ## Guest AI rollout gates
 
-Guest AI remains fail-closed and requires all of:
+Guest AI remains fail-closed and requires the global Guest switch plus tenant and location policy. The initial environment canary remains:
 
 ```dotenv
 PMD_AI_ENABLED=true
@@ -107,16 +143,20 @@ Expected behavior:
 
 After fixing a credential/provider issue, run an explicit smoke test and clear stale Laravel config if needed.
 
-## Gemini direct smoke
+## Provider smoke
 
-Use the existing provider class from the Laravel runtime. Never print the API key.
+Use the provider-neutral runtime smoke:
 
-Expected result:
+```bash
+php scripts/pmd-ai-provider-smoke.php
+```
+
+Never print the API key. Expected final result:
 
 ```text
-HTTP: 200
-OUTPUT: PMD_GEMINI_OK
-PMD GEMINI: PASS
+PROVIDER: gemini
+OUTPUT: PMD_PROVIDER_OK
+RESULT: PASS
 ```
 
 Then verify:
