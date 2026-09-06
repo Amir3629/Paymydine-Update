@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Services\Workforce\PmdStaffAttendanceSchemaService;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -39,6 +40,14 @@ class SuperAdminTenantLifecycleService
         'pmd_billing_group_orders',
         'pmd_billing_group_payments',
         'pmd_admin_presence_sessions',
+
+        // Workforce attendance history is tenant activity, never template data.
+        // The schema is provisioned for every new restaurant, but actual rows
+        // must begin only with that restaurant's real clock-in/out events.
+        'staff_attendance',
+        'staff_latetimes',
+        'staff_overtimes',
+        'attendance_audit_logs',
 
         // Workplace security is tenant-secret state. The schema may come from
         // the template, but device tokens, challenges, MFA and recovery material
@@ -266,6 +275,11 @@ class SuperAdminTenantLifecycleService
             // older than the application code currently deployed.
             $this->ensureWorkplaceSecuritySchema();
 
+            // Attendance is also a first-class tenant capability. Do not depend
+            // on newtenantdb being current; create/repair the canonical schema
+            // before the restaurant is activated, while keeping its history empty.
+            $this->ensureStaffAttendanceSchema();
+
             // Defense in depth: even if the template changes or an old copy path
             // reappears, visible restaurant/business/security data is removed.
             $this->sanitizeTenantBusinessData();
@@ -352,6 +366,15 @@ class SuperAdminTenantLifecycleService
             throw new \RuntimeException(
                 'New tenant trusted-login schema missing user_id.'
             );
+        }
+    }
+
+    /** PMD_NEW_TENANT_ATTENDANCE_SCHEMA_V1 */
+    private function ensureStaffAttendanceSchema(): void
+    {
+        $status = app(PmdStaffAttendanceSchemaService::class)->ensure('mysql');
+        if (empty($status['ready'])) {
+            throw new \RuntimeException('New tenant attendance schema is not ready.');
         }
     }
 
