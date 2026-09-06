@@ -32,6 +32,10 @@ final class AiCapabilityPolicy
 
     public function allowedToolNames(AiContext $context): array
     {
+        if (!app(PmdAiTenantPolicyService::class)->adminEnabled()) {
+            return [];
+        }
+
         $permissions = array_values(array_unique(array_map(
             static fn ($value) => strtolower(trim((string)$value)),
             $context->permissions
