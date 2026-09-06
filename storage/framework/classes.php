@@ -189,4 +189,5 @@
   'Admin\\Controllers\\pmdallfoods' => 'app/admin/controllers/Pmdallfoods.php',
   'Admin\\Controllers\\menus' => 'app/admin/controllers/Menus.php',
   'Admin\\Controllers\\siteaccess' => 'app/admin/controllers/Siteaccess.php',
+  'Admin\\Controllers\\mywork' => 'app/admin/controllers/Mywork.php',
 );
