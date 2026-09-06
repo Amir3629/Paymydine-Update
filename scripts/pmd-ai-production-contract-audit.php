@@ -39,6 +39,7 @@ $adminView = $read('app/admin/views/pmdintelligence/index.blade.php');
 
 $expect($config, 'PMD_AI_REQUIRE_EXPLICIT_PROVIDER', 'explicit provider gate');
 $expect($config, 'PMD_AI_GLOBAL_REQUESTS_PER_MINUTE', 'global request budget');
+$expect($config, 'PMD_AI_USAGE_RETENTION_DAYS', 'usage retention config');
 $expect($config, 'PMD_AI_ADMIN_CHAT_RETENTION_DAYS', 'admin retention config');
 $expect($config, 'PMD_AI_GUEST_CHAT_RETENTION_DAYS', 'guest retention config');
 $expect($config, 'PMD_AI_GUEST_CONTEXT_MENU_ITEMS', 'guest context size config');
@@ -63,8 +64,13 @@ $reject($guest, 'PmdKitchenWorkforceService', 'guest/workforce authority isolati
 $expect($health, 'circuit_open_until', 'provider circuit breaker');
 $expect($health, 'project_suspended', 'suspended project classification');
 $expect($health, 'account_state', 'service account classification');
+$expect($usage, 'pmd_ai_usage_daily', 'persistent tenant usage ledger');
+$expect($usage, 'provider_calls', 'provider-call accounting');
+$expect($usage, 'thinking_tokens', 'thinking-token accounting');
 $expect($usage, "'guest'", 'guest usage surface');
 $expect($usage, "'admin'", 'admin usage surface');
+$reject($usage, "'question' =>", 'usage ledger stores no questions');
+$reject($usage, "'answer' =>", 'usage ledger stores no answers');
 $expect($policy, "'admin.dashboard'", 'owner capability scope');
 $expect($policy, "'admin.orders'", 'orders capability scope');
 $expect($policy, "'admin.reservations'", 'reservation capability scope');
@@ -74,6 +80,8 @@ $expect($tenantPolicy, 'pmd_ai_guest_enabled', 'tenant Guest entitlement setting
 $expect($tenantPolicy, 'pmd_ai_guest_location_allowlist', 'tenant Guest location policy');
 $expect($tenantPolicy, 'server_canary_fallback', 'safe environment fallback');
 $expect($retention, 'pmd_guest_ai_conversations', 'guest retention table');
+$expect($retention, 'pmd_ai_usage_daily', 'usage retention table');
+$expect($retention, 'usage_retention_days', 'usage retention policy');
 $expect($guestContext, 'guest_context_menu_items', 'guest deterministic context limit');
 $expect($visitBudget, 'guest_session_id', 'visit session scope');
 $expect($visitBudget, 'guestVisitDailyRequestBudget', 'tenant-aware visit daily threshold');
