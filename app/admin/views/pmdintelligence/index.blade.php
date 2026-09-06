@@ -6,6 +6,29 @@
     $pmdAiCssUrl = asset('app/admin/assets/css/pmd-intelligence-v1.css').'?v='.$pmdAiCssVersion;
     $pmdAiJsUrl = asset('app/admin/assets/js/pmd-intelligence-v1.js').'?v='.$pmdAiJsVersion;
 
+    $pmdAiHealth = [
+        'configured' => false,
+        'available_for_traffic' => false,
+        'healthy' => null,
+        'last_success_at' => null,
+    ];
+    try {
+        $pmdAiHealth = app(\App\Services\AI\AiHealthService::class)->status(
+            (string)($pmdAiConfig['provider'] ?? ''),
+            (string)($pmdAiConfig['model'] ?? '')
+        );
+    } catch (\Throwable $pmdAiHealthError) {
+        $pmdAiHealth = [
+            'configured' => false,
+            'available_for_traffic' => false,
+            'healthy' => false,
+            'last_success_at' => null,
+        ];
+    }
+    $pmdAiTrafficReady = !empty($pmdAiConfig['enabled'])
+        && !empty($pmdAiHealth['configured'])
+        && !empty($pmdAiHealth['available_for_traffic']);
+
     $pmdAiArchiveDays = [];
     try {
         $pmdAiArchiveUser = \Admin\Facades\AdminAuth::getUser();
@@ -179,25 +202,25 @@
         </div>
 
         <div class="pmd-owner-header__actions pmd-ai-header-actions" data-pmd-owner-header-actions>
-            <span class="pmd-ai-header-state {{ $pmdAiConfig['enabled'] ? 'is-ready' : 'is-off' }}">
+            <span class="pmd-ai-header-state {{ $pmdAiTrafficReady ? 'is-ready' : 'is-off' }}">
                 <span class="pmd-ai-header-dot" aria-hidden="true"></span>
-                {{ $pmdAiConfig['enabled'] ? 'AI on' : 'AI off' }} · Read-only
+                {{ $pmdAiTrafficReady ? 'AI ready' : 'AI unavailable' }} · Read-only
             </span>
             <button type="button" class="pmd-ai-clear" data-pmd-ai-clear disabled>Clear today</button>
             <span class="pmd-owner-notif-slot" data-pmd-owner-notif-slot></span>
         </div>
     </header>
 
-    @if (!$pmdAiConfig['enabled'])
+    @if (!$pmdAiTrafficReady)
         <section class="pmd-ai-notice" role="status">
-            PMD Intelligence is installed but currently disabled on the server.
+            PMD Intelligence is temporarily unavailable. Restaurant operations are unaffected.
         </section>
     @endif
 
     <section class="pmd-ai-workspace" aria-label="Ask PMD chat">
         <div class="pmd-ai-chat-card">
             <div class="pmd-ai-chat-meta" aria-label="AI runtime status">
-                <span>{{ $pmdAiConfig['provider'] }} · {{ $pmdAiConfig['model'] }}</span>
+                <span>{{ $pmdAiTrafficReady ? 'Provider ready' : 'Provider unavailable' }}</span>
                 <span>Location {{ $pmdAiConfig['location_id'] ?: 'not selected' }}</span>
                 <span data-pmd-ai-save-state>Loading today’s chat…</span>
 
@@ -262,10 +285,11 @@
                     maxlength="4000"
                     placeholder="Ask PMD about sales, orders, menu, reservations, shifts…"
                     required
+                    {{ $pmdAiTrafficReady ? '' : 'disabled' }}
                 ></textarea>
                 <div class="pmd-ai-composer-row">
-                    <span data-pmd-ai-state>Checks your restaurant data only.</span>
-                    <button type="submit">
+                    <span data-pmd-ai-state>{{ $pmdAiTrafficReady ? 'Checks your restaurant data only.' : 'AI is temporarily unavailable; restaurant operations are unaffected.' }}</span>
+                    <button type="submit" {{ $pmdAiTrafficReady ? '' : 'disabled' }}>
                         <span>Ask PMD</span>
                         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
                     </button>
