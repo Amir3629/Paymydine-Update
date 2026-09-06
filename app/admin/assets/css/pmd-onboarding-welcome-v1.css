@@ -1,68 +1,213 @@
-/* PMD_ONBOARDING_WELCOME_V1 */
-.pmd-onboarding-welcome-v1 {
-    width:min(1480px,100%);
-    margin:0 auto 14px;
-    padding:18px 20px;
-    border:1px solid #d9e7f0;
-    border-radius:16px;
-    background:linear-gradient(135deg,#fff,#f3f9fc);
-    color:#173752;
-    box-shadow:0 8px 24px rgba(23,55,82,.05);
+/* PMD_ONBOARDING_WELCOME_V3_CENTERED_MODAL_AFTER_VPS_SYNC */
+html.pmd-onboarding-welcome-open,
+html body.pmd-onboarding-welcome-open {
+    overflow: hidden !important;
 }
-.pmd-onboarding-welcome-v1__row {
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:18px;
+
+.pmd-onboarding-welcome-v1__overlay {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 2147482200 !important;
+    display: grid !important;
+    place-items: center !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    margin: 0 !important;
+    padding: 24px !important;
+    box-sizing: border-box !important;
+    background: rgba(23, 35, 31, .18) !important;
+    -webkit-backdrop-filter: blur(10px) saturate(.92) !important;
+    backdrop-filter: blur(10px) saturate(.92) !important;
+    animation: pmd-onboarding-welcome-overlay-in 180ms ease-out both;
 }
+
+/*
+ * The child selector intentionally outranks the old duplicated Dashboard-card
+ * rules that still exist in the Quick Setup stylesheet on legacy VPS copies.
+ */
+.pmd-onboarding-welcome-v1__overlay > .pmd-onboarding-welcome-v1 {
+    position: relative !important;
+    width: min(460px, calc(100vw - 32px)) !important;
+    max-width: 460px !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 28px 28px 24px !important;
+    border: 1px solid #d7e4ec !important;
+    border-radius: 20px !important;
+    background: #ffffff !important;
+    background-image: none !important;
+    color: #17231f !important;
+    box-shadow:
+        0 24px 70px rgba(20, 43, 56, .18),
+        0 2px 8px rgba(20, 43, 56, .06) !important;
+    box-sizing: border-box !important;
+    text-align: center !important;
+    overflow: hidden !important;
+    animation: pmd-onboarding-welcome-card-in 220ms cubic-bezier(.22,.75,.24,1) both;
+}
+
+.pmd-onboarding-welcome-v1__brand {
+    width: 70px;
+    height: 70px;
+    margin: 0 auto 16px;
+    display: grid;
+    place-items: center;
+    border: 1px solid #dbe8ee;
+    border-radius: 18px;
+    background: #f8fbfd;
+    box-shadow: 0 7px 20px rgba(23, 55, 82, .06);
+    overflow: hidden;
+}
+
+.pmd-onboarding-welcome-v1__brand img {
+    display: block;
+    width: 48px;
+    height: 58px;
+    max-width: 68%;
+    max-height: 74%;
+    object-fit: contain;
+}
+
 .pmd-onboarding-welcome-v1__eyebrow {
-    display:block;
-    margin-bottom:4px;
-    color:#668397;
-    font-size:10px;
-    font-weight:900;
-    letter-spacing:.12em;
-    text-transform:uppercase;
+    display: block;
+    margin: 0 0 7px;
+    color: #668397;
+    font-size: 10px;
+    line-height: 1.2;
+    font-weight: 900;
+    letter-spacing: .13em;
+    text-transform: uppercase;
 }
-.pmd-onboarding-welcome-v1 h2 {
-    margin:0;
-    color:#173752;
-    font-size:18px;
-    line-height:1.2;
+
+.pmd-onboarding-welcome-v1__overlay > .pmd-onboarding-welcome-v1 h2 {
+    margin: 0 !important;
+    padding: 0 !important;
+    color: #17231f !important;
+    font-size: clamp(22px, 3vw, 26px) !important;
+    line-height: 1.18 !important;
+    font-weight: 850 !important;
+    letter-spacing: -.025em !important;
 }
-.pmd-onboarding-welcome-v1 p {
-    margin:5px 0 0;
-    color:#6b8091;
+
+.pmd-onboarding-welcome-v1__overlay > .pmd-onboarding-welcome-v1 p {
+    max-width: 390px !important;
+    margin: 11px auto 0 !important;
+    padding: 0 !important;
+    color: #6b8091 !important;
+    font-size: 14px !important;
+    line-height: 1.55 !important;
 }
-.pmd-onboarding-welcome-v1__actions {
-    display:flex;
-    flex-wrap:wrap;
-    gap:8px;
+
+.pmd-onboarding-welcome-v1__overlay .pmd-onboarding-welcome-v1__actions {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+    margin: 22px 0 0 !important;
+    padding: 0 !important;
 }
-.pmd-onboarding-welcome-v1__actions a,
-.pmd-onboarding-welcome-v1__actions button {
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    min-height:40px;
-    padding:0 14px;
-    border-radius:11px;
-    font-weight:800;
-    text-decoration:none;
-    white-space:nowrap;
+
+.pmd-onboarding-welcome-v1__overlay .pmd-onboarding-welcome-v1__actions a,
+.pmd-onboarding-welcome-v1__overlay .pmd-onboarding-welcome-v1__actions button {
+    appearance: none;
+    -webkit-appearance: none;
+    min-height: 46px !important;
+    height: 46px !important;
+    padding: 0 18px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 13px !important;
+    font: inherit !important;
+    font-size: 14px !important;
+    font-weight: 850 !important;
+    line-height: 1 !important;
+    text-decoration: none !important;
+    white-space: nowrap !important;
+    cursor: pointer;
+    box-sizing: border-box !important;
+    transition:
+        transform 140ms ease,
+        box-shadow 140ms ease,
+        border-color 140ms ease,
+        background-color 140ms ease;
 }
-.pmd-onboarding-welcome-v1__actions a {
-    border:1px solid #173752;
-    background:#173752;
-    color:#fff;
+
+.pmd-onboarding-welcome-v1__overlay .pmd-onboarding-welcome-v1__primary {
+    border: 1px solid #173752 !important;
+    background: #173752 !important;
+    color: #ffffff !important;
+    box-shadow: 0 7px 16px rgba(23, 55, 82, .14) !important;
 }
-.pmd-onboarding-welcome-v1__actions button {
-    border:1px solid #d4e2eb;
-    background:#fff;
-    color:#173752;
+
+.pmd-onboarding-welcome-v1__overlay .pmd-onboarding-welcome-v1__secondary {
+    border: 1px solid #d4e2eb !important;
+    background: #ffffff !important;
+    color: #173752 !important;
+    box-shadow: 0 3px 10px rgba(23, 55, 82, .035) !important;
 }
-.pmd-onboarding-welcome-v1__actions button:disabled { opacity:.55; cursor:wait; }
-@media (max-width:760px) {
-    .pmd-onboarding-welcome-v1 { padding:16px; }
-    .pmd-onboarding-welcome-v1__row { align-items:flex-start; flex-direction:column; }
+
+.pmd-onboarding-welcome-v1__overlay .pmd-onboarding-welcome-v1__actions a:hover,
+.pmd-onboarding-welcome-v1__overlay .pmd-onboarding-welcome-v1__actions button:hover:not(:disabled) {
+    transform: translateY(-1px);
+}
+
+.pmd-onboarding-welcome-v1__overlay .pmd-onboarding-welcome-v1__primary:hover,
+.pmd-onboarding-welcome-v1__overlay .pmd-onboarding-welcome-v1__primary:focus-visible {
+    color: #ffffff !important;
+    background: #204762 !important;
+    border-color: #204762 !important;
+    box-shadow: 0 10px 20px rgba(23, 55, 82, .18) !important;
+    outline: none;
+}
+
+.pmd-onboarding-welcome-v1__overlay .pmd-onboarding-welcome-v1__secondary:hover,
+.pmd-onboarding-welcome-v1__overlay .pmd-onboarding-welcome-v1__secondary:focus-visible {
+    color: #173752 !important;
+    background: #f8fbfd !important;
+    border-color: #bfd2df !important;
+    outline: none;
+}
+
+.pmd-onboarding-welcome-v1__overlay .pmd-onboarding-welcome-v1__actions button:disabled {
+    opacity: .55;
+    cursor: wait;
+    transform: none;
+}
+
+@keyframes pmd-onboarding-welcome-overlay-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes pmd-onboarding-welcome-card-in {
+    from { opacity: 0; transform: translateY(8px) scale(.985); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (max-width: 560px) {
+    .pmd-onboarding-welcome-v1__overlay {
+        padding: 16px !important;
+    }
+
+    .pmd-onboarding-welcome-v1__overlay > .pmd-onboarding-welcome-v1 {
+        width: min(100%, 430px) !important;
+        padding: 24px 20px 20px !important;
+        border-radius: 18px !important;
+    }
+
+    .pmd-onboarding-welcome-v1__overlay .pmd-onboarding-welcome-v1__actions {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pmd-onboarding-welcome-v1__overlay,
+    .pmd-onboarding-welcome-v1__overlay > .pmd-onboarding-welcome-v1 {
+        animation: none !important;
+    }
+
+    .pmd-onboarding-welcome-v1__overlay .pmd-onboarding-welcome-v1__actions a,
+    .pmd-onboarding-welcome-v1__overlay .pmd-onboarding-welcome-v1__actions button {
+        transition: none !important;
+    }
 }
