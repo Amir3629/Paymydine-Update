@@ -105,13 +105,13 @@ PMD_AI_GUEST_CHAT_RETENTION_DAYS=7
 PMD_AI_USAGE_RETENTION_DAYS=400
 ```
 
-Run tenant-local cleanup through:
+Maintenance is deliberately pinned to an explicit tenant. It never guesses which database to clean:
 
 ```bash
-php scripts/pmd-ai-maintenance.php
+php scripts/pmd-ai-maintenance.php --tenant-host=tomo.paymydine.com
 ```
 
-A daily cron is appropriate. Cleanup touches only PMD AI conversation/usage tables.
+For a multi-tenant scheduler, invoke the command once for each explicitly selected tenant host. Cleanup touches only PMD AI conversation/usage tables in that tenant database.
 
 ## Guest AI rollout gates
 
