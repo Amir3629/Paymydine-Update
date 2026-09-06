@@ -10,6 +10,7 @@ use App\Services\AI\AdminAiConversationStore;
 use App\Services\AI\AiContext;
 use App\Services\AI\AiOrchestrator;
 use App\Services\AI\PmdAdminWorkforceIntelligenceService;
+use App\Services\AI\PmdAiTenantPolicyService;
 use App\Services\AI\PmdIntelligenceActionRegistry;
 use App\Services\AI\PmdReadAuthority;
 use App\Services\PmdKitchenWorkforceService;
@@ -53,9 +54,9 @@ class Pmdintelligence extends AdminController
 
         $context = $this->buildAiContext('workspace_boot');
         $this->vars['pmdAiConfig'] = [
-            'enabled' => (bool)config('pmd_ai.enabled', false),
-            'provider' => (string)config('pmd_ai.provider', 'openai'),
-            'model' => (string)config('pmd_ai.model', 'gpt-5.6-luna'),
+            'enabled' => app(PmdAiTenantPolicyService::class)->adminEnabled(),
+            'provider' => (string)config('pmd_ai.provider', ''),
+            'model' => (string)config('pmd_ai.model', ''),
             'read_only' => true,
             'location_id' => $context->locationId,
             'endpoint' => admin_url('pmdintelligence/ask'),
@@ -226,7 +227,7 @@ class Pmdintelligence extends AdminController
         } catch (Throwable $error) {
             logger()->warning('PMD Intelligence request failed', [
                 'run_id' => $context->runId,
-                'provider' => (string)config('pmd_ai.provider', 'openai'),
+                'provider' => (string)config('pmd_ai.provider', ''),
                 'type' => get_class($error),
                 'message' => $error->getMessage(),
                 'location_id' => $context->locationId,
@@ -570,6 +571,10 @@ class Pmdintelligence extends AdminController
             return 409;
         }
 
+        if (strpos($message, 'no permitted tools') !== false) {
+            return 403;
+        }
+
         if (
             strpos($message, 'disabled') !== false
             || strpos($message, 'api_key') !== false
@@ -581,6 +586,9 @@ class Pmdintelligence extends AdminController
             || strpos($message, 'resource_exhausted') !== false
             || strpos($message, 'rate limit') !== false
             || strpos($message, 'transport failed') !== false
+            || strpos($message, 'circuit') !== false
+            || strpos($message, 'provider') !== false
+            || strpos($message, 'model') !== false
         ) {
             return 503;
         }
@@ -592,17 +600,7 @@ class Pmdintelligence extends AdminController
     {
         $message = $error->getMessage();
         $lower = strtolower($message);
-        $provider = strtolower(trim((string)config('pmd_ai.provider', 'openai')));
 
-        if (
-            strpos($message, 'OPENAI_API_KEY') !== false
-            || strpos($message, 'GEMINI_API_KEY') !== false
-        ) {
-            return 'The configured AI provider does not have a server API key.';
-        }
-        if (strpos($lower, 'disabled') !== false) {
-            return 'PMD Intelligence is currently disabled on the server.';
-        }
         if (strpos($lower, 'canonical restaurant location') !== false) {
             return 'Select a restaurant location before using PMD Intelligence.';
         }
@@ -611,54 +609,21 @@ class Pmdintelligence extends AdminController
             || strpos($lower, 'yyyy-mm-dd') !== false
             || strpos($lower, 'date range') !== false
             || strpos($lower, 'report date') !== false
-        ) {
-            return $message;
-        }
-        if (
-            strpos($lower, 'no credits') !== false
-            || strpos($lower, 'credit') !== false
-            || strpos($lower, 'billing') !== false
-        ) {
-            return 'OpenAI API credit is unavailable for this project. Add API credits or switch PMD Intelligence to Gemini.';
-        }
-        if (
-            strpos($lower, 'resource_exhausted') !== false
-            || strpos($lower, 'quota') !== false
-            || strpos($lower, 'rate limit') !== false
-        ) {
-            if ($provider === 'gemini') {
-                return 'Gemini quota is temporarily exhausted. Try again after the quota window resets.';
-            }
-            return 'The AI provider is temporarily rate limited. Try again shortly.';
-        }
-        if (
-            strpos($lower, 'incorrect api key') !== false
-            || strpos($lower, 'invalid api key') !== false
-            || strpos($lower, 'api key not valid') !== false
-            || strpos($lower, 'authentication') !== false
-        ) {
-            return 'The AI provider rejected the server API key. Replace it with a valid key and try again.';
-        }
-        if (strpos($lower, 'transport failed') !== false) {
-            return 'PMD Intelligence cannot reach the configured AI provider right now. Try again shortly.';
-        }
-        if (
-            strpos($lower, 'model') !== false
-            && (
-                strpos($lower, 'not found') !== false
-                || strpos($lower, 'unsupported') !== false
-                || strpos($lower, 'unavailable') !== false
-            )
-        ) {
-            return 'The configured AI model is unavailable. Check PMD_AI_MODEL on the server.';
-        }
-        if (
-            strpos($lower, 'a question is required') !== false
+            || strpos($lower, 'a question is required') !== false
             || strpos($lower, 'question is too long') !== false
         ) {
             return $message;
         }
+        if (strpos($lower, 'no permitted tools') !== false) {
+            return 'PMD Intelligence is not enabled for this restaurant or user role.';
+        }
+        if (strpos($lower, 'disabled') !== false) {
+            return 'PMD Intelligence is currently unavailable for this restaurant.';
+        }
 
-        return 'PMD Intelligence could not complete this request. Check the server log using the run ID.';
+        // Provider, credential, project, billing, quota and model details stay in
+        // the server audit/logs. Restaurant operators should not need to know
+        // which external vendor failed or how its account is configured.
+        return 'PMD Intelligence is temporarily unavailable. Restaurant operations are unaffected. Try again shortly; support can trace this request with the run ID.';
     }
 }
