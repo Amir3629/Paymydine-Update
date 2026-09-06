@@ -38,6 +38,7 @@ $rollout = $read('scripts/pmd-staff-attendance-rollout.sh');
 $hours = $read('app/Services/AI/PmdWorkforcePersonHoursService.php');
 $portal = $read('app/Http/Controllers/PmdStaffPortalV6Controller.php');
 $guest = $read('app/Services/AI/GuestMenuAiService.php');
+$lifecycle = $read('app/Services/SuperAdminTenantLifecycleService.php');
 
 foreach ([
     'attendance_id',
@@ -91,6 +92,14 @@ $expect($rollout, 'No historical attendance rows were fabricated.', 'rollout pre
 $reject($rollout, 'git reset', 'rollout must not reset production git');
 $reject($rollout, 'git checkout', 'rollout must not overwrite production tree');
 $reject($rollout, 'DROP TABLE', 'rollout must not drop tables');
+
+$expect($lifecycle, 'use App\\Services\\Workforce\\PmdStaffAttendanceSchemaService;', 'new-tenant attendance authority import');
+$expect($lifecycle, '$this->ensureStaffAttendanceSchema();', 'new-tenant attendance provisioning call');
+$expect($lifecycle, "app(PmdStaffAttendanceSchemaService::class)->ensure('mysql')", 'new-tenant canonical attendance ensure');
+foreach (['staff_attendance', 'staff_latetimes', 'staff_overtimes', 'attendance_audit_logs'] as $table) {
+    $expect($lifecycle, "'{$table}'", "new-tenant attendance history isolation {$table}");
+}
+$expect($lifecycle, 'New tenant attendance schema is not ready.', 'new-tenant attendance fail-closed guard');
 
 $expect($hours, "table('staff_attendance')", 'AI reads canonical attendance authority');
 $expect($hours, 'actual_hours_authoritative', 'AI coverage-gated actual hours');

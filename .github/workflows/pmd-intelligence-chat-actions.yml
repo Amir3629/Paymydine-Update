@@ -6,6 +6,7 @@ on:
       - 'app/Services/AI/PmdWorkforcePersonHoursService.php'
       - 'app/Services/AI/PmdWorkforceToolFactCompactor.php'
       - 'app/Services/Workforce/PmdStaffAttendanceSchemaService.php'
+      - 'app/Services/SuperAdminTenantLifecycleService.php'
       - 'app/Http/Controllers/PmdStaffPortalV6Controller.php'
       - 'scripts/pmd-staff-attendance-canary.php'
       - 'scripts/pmd-staff-attendance-contract-audit.php'
@@ -17,6 +18,7 @@ on:
       - 'app/Services/AI/PmdWorkforcePersonHoursService.php'
       - 'app/Services/AI/PmdWorkforceToolFactCompactor.php'
       - 'app/Services/Workforce/PmdStaffAttendanceSchemaService.php'
+      - 'app/Services/SuperAdminTenantLifecycleService.php'
       - 'app/Http/Controllers/PmdStaffPortalV6Controller.php'
       - 'scripts/pmd-staff-attendance-canary.php'
       - 'scripts/pmd-staff-attendance-contract-audit.php'
@@ -36,6 +38,7 @@ jobs:
           php -l app/Services/AI/PmdWorkforcePersonHoursService.php
           php -l app/Services/AI/PmdWorkforceToolFactCompactor.php
           php -l app/Services/Workforce/PmdStaffAttendanceSchemaService.php
+          php -l app/Services/SuperAdminTenantLifecycleService.php
           php -l app/Http/Controllers/PmdStaffPortalV6Controller.php
           php -l scripts/pmd-staff-attendance-canary.php
           php -l scripts/pmd-staff-attendance-contract-audit.php
