@@ -34,6 +34,7 @@ $tenantPolicy = $read('app/Services/AI/PmdAiTenantPolicyService.php');
 $retention = $read('app/Services/AI/AiRetentionService.php');
 $guestContext = $read('app/Services/AI/GuestAiContextBuilder.php');
 $visitBudget = $read('app/Services/AI/GuestAiVisitBudgetService.php');
+$adminController = $read('app/admin/controllers/Pmdintelligence.php');
 $adminView = $read('app/admin/views/pmdintelligence/index.blade.php');
 
 $expect($config, 'PMD_AI_REQUIRE_EXPLICIT_PROVIDER', 'explicit provider gate');
@@ -76,6 +77,10 @@ $expect($retention, 'pmd_guest_ai_conversations', 'guest retention table');
 $expect($guestContext, 'guest_context_menu_items', 'guest deterministic context limit');
 $expect($visitBudget, 'guest_session_id', 'visit session scope');
 $expect($visitBudget, 'guestVisitDailyRequestBudget', 'tenant-aware visit daily threshold');
+$expect($adminController, 'PmdAiTenantPolicyService', 'Admin tenant policy controller gate');
+$expect($adminController, 'Restaurant operations are unaffected', 'Admin generic provider failure response');
+$reject($adminController, 'OpenAI API credit is unavailable', 'vendor billing details hidden from operators');
+$reject($adminController, 'Gemini quota is temporarily exhausted', 'vendor quota details hidden from operators');
 $expect($adminView, 'AiHealthService', 'Admin health state');
 $expect($adminView, 'Restaurant operations are unaffected', 'Admin graceful provider failure UX');
 $reject($adminView, '{{ $pmdAiConfig[\'provider\'] }} · {{ $pmdAiConfig[\'model\'] }}', 'provider internals hidden from normal Admin UI');
