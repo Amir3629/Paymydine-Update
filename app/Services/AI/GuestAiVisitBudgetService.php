@@ -32,7 +32,8 @@ final class GuestAiVisitBudgetService
             $hash,
             now('UTC')->format('Ymd'),
         ]);
-        $limit = max(1, (int)config('pmd_ai.guest_daily_requests_per_visit', 40));
+        $configured = max(1, (int)config('pmd_ai.guest_daily_requests_per_visit', 40));
+        $limit = app(PmdAiTenantPolicyService::class)->guestVisitDailyRequestBudget($configured);
         $limiter = app(RateLimiter::class);
 
         if ($limiter->tooManyAttempts($key, $limit)) {
