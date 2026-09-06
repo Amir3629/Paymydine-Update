@@ -23,6 +23,18 @@ final class TurkeyFiscalStateService
         'FISCAL_FAILED_REQUIRES_STAFF',
     ];
 
+    private const TRANSITIONS = [
+        'ORDER_OPEN' => ['ORDER_PREPARING', 'ORDER_AWAITING_FISCAL', 'FISCAL_OPEN', 'FISCAL_FAILED_REQUIRES_STAFF'],
+        'ORDER_PREPARING' => ['ORDER_AWAITING_FISCAL', 'FISCAL_OPEN', 'FISCAL_FAILED_REQUIRES_STAFF'],
+        'ORDER_AWAITING_FISCAL' => ['FISCAL_OPEN', 'FISCAL_FAILED_REQUIRES_STAFF'],
+        'FISCAL_OPEN' => ['PAYMENT_PENDING', 'FISCALIZED', 'FISCAL_FAILED_REQUIRES_STAFF'],
+        'PAYMENT_PENDING' => ['PAYMENT_APPROVED_FISCAL_PENDING', 'FISCAL_FAILED_REQUIRES_STAFF'],
+        'PAYMENT_APPROVED_FISCAL_PENDING' => ['FISCALIZED', 'FISCAL_FAILED_REQUIRES_STAFF'],
+        'FISCALIZED' => ['SETTLED', 'FISCAL_FAILED_REQUIRES_STAFF'],
+        'SETTLED' => [],
+        'FISCAL_FAILED_REQUIRES_STAFF' => ['ORDER_AWAITING_FISCAL', 'FISCAL_OPEN'],
+    ];
+
     public function __construct(private ?TurkeyTenantContext $context = null)
     {
         $this->context = $context ?: new TurkeyTenantContext();
@@ -135,6 +147,10 @@ final class TurkeyFiscalStateService
     private function update($row, string $state, array $fields = []): array
     {
         if (!in_array($state, self::STATES, true)) throw new \InvalidArgumentException('Unknown fiscal state.');
+        $current = (string)$row->transaction_state;
+        if ($current !== $state && !in_array($state, self::TRANSITIONS[$current] ?? [], true)) {
+            throw new \RuntimeException('Invalid Türkiye fiscal transition: '.$current.' -> '.$state);
+        }
         $fields['transaction_state'] = $state;
         $fields['updated_at'] = now();
         DB::table('pmd_tr_fiscal_transactions')->where('id', $row->id)->update($fields);
