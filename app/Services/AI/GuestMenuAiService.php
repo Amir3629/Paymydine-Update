@@ -15,7 +15,7 @@ use Throwable;
  *
  * Security contract:
  * - tenant is fixed by DetectTenant before this service runs;
- * - guest AI is disabled unless both tenant and location are allowlisted;
+ * - guest AI is disabled unless both tenant and location policy allow it;
  * - the model receives only the public menu projection for that location plus
  *   a public-safe aggregate popularity ranking derived from settled orders;
  * - no owner/staff/order/payment/reservation authorities are available here;
@@ -532,11 +532,13 @@ final class GuestMenuAiService
         $tenant = $this->tenantHash();
         $ipHash = $this->ipHash($ip);
         $scope = $tenant.':'.$locationId;
+        $configuredTenantDaily = max(1, (int)config('pmd_ai.guest_daily_requests_per_tenant', 250));
+        $tenantDaily = app(PmdAiTenantPolicyService::class)->guestDailyRequestBudget($configuredTenantDaily);
 
         $limits = [
             ['key' => 'pmd:guest-ai:minute:'.$scope.':'.$ipHash, 'max' => max(1, (int)config('pmd_ai.guest_requests_per_minute', 6)), 'decay' => 60],
             ['key' => 'pmd:guest-ai:ip-day:'.$scope.':'.$ipHash, 'max' => max(1, (int)config('pmd_ai.guest_daily_requests_per_ip', 60)), 'decay' => 86400],
-            ['key' => 'pmd:guest-ai:tenant-day:'.$scope, 'max' => max(1, (int)config('pmd_ai.guest_daily_requests_per_tenant', 250)), 'decay' => 86400],
+            ['key' => 'pmd:guest-ai:tenant-day:'.$scope, 'max' => $tenantDaily, 'decay' => 86400],
         ];
 
         foreach ($limits as $limit) {
@@ -551,41 +553,12 @@ final class GuestMenuAiService
 
     private function tenantIsAllowlisted(): bool
     {
-        $allowlist = $this->normalizedAllowlist((array)config('pmd_ai.guest_tenant_allowlist', []));
-        if (!$allowlist) {
-            return false;
-        }
-
-        $allowWildcard = (bool)config('pmd_ai.guest_allow_wildcard', false);
-        if ($allowWildcard && in_array('*', $allowlist, true)) {
-            return true;
-        }
-
-        $database = strtolower($this->currentDatabaseName());
-        $host = strtolower(trim((string)request()->getHost()));
-        $subdomain = strtolower((string)strtok($host, '.'));
-
-        foreach ([$database, $host, $subdomain] as $candidate) {
-            if ($candidate !== '' && $candidate !== '*' && in_array($candidate, $allowlist, true)) {
-                return true;
-            }
-        }
-
-        return false;
+        return app(PmdAiTenantPolicyService::class)->guestTenantEnabled();
     }
 
     private function locationIsAllowlisted(int $locationId): bool
     {
-        $allowlist = $this->normalizedAllowlist((array)config('pmd_ai.guest_location_allowlist', []));
-        if (!$allowlist) {
-            return false;
-        }
-
-        if ((bool)config('pmd_ai.guest_allow_wildcard', false) && in_array('*', $allowlist, true)) {
-            return true;
-        }
-
-        return in_array((string)$locationId, $allowlist, true);
+        return app(PmdAiTenantPolicyService::class)->guestLocationEnabled($locationId);
     }
 
     private function locationExists(int $locationId): bool
@@ -602,14 +575,6 @@ final class GuestMenuAiService
         } catch (Throwable $error) {
             return false;
         }
-    }
-
-    private function normalizedAllowlist(array $values): array
-    {
-        return array_values(array_unique(array_filter(array_map(
-            static fn ($value) => strtolower(trim((string)$value)),
-            $values
-        ), static fn ($value) => $value !== '')));
     }
 
     private function resolveLocationId(?int $locationId): int
