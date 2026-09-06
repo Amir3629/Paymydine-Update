@@ -3,6 +3,7 @@
 use App\Services\AI\AiHealthService;
 use App\Services\AI\AiRetentionService;
 use App\Services\AI\AiUsageLedger;
+use App\Services\AI\PmdAiTenantPolicyService;
 
 require __DIR__.'/../vendor/autoload.php';
 $app = require __DIR__.'/../bootstrap/app.php';
@@ -11,6 +12,7 @@ $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 $health = app(AiHealthService::class)->status();
 $retention = app(AiRetentionService::class)->purge();
 $usage = app(AiUsageLedger::class)->snapshot();
+$policy = app(PmdAiTenantPolicyService::class)->snapshot();
 
 echo "PMD AI MAINTENANCE\n";
 echo "==================\n";
@@ -22,6 +24,10 @@ echo 'HEALTHY: '.($health['healthy'] === null ? 'UNKNOWN' : ($health['healthy'] 
 echo 'LAST_SUCCESS_AT: '.($health['last_success_at'] ?? 'none').PHP_EOL;
 echo 'LAST_FAILURE_AT: '.($health['last_failure_at'] ?? 'none').PHP_EOL;
 echo 'LAST_ERROR_CLASS: '.($health['last_error_class'] ?? 'none').PHP_EOL;
+echo 'TENANT_POLICY_SOURCE: '.($policy['source'] ?? 'unknown').PHP_EOL;
+echo 'ADMIN_AI_ENABLED: '.(!empty($policy['admin_enabled']) ? 'YES' : 'NO').PHP_EOL;
+echo 'GUEST_AI_ENABLED: '.(!empty($policy['guest_enabled']) ? 'YES' : 'NO').PHP_EOL;
 echo 'ADMIN_CHAT_ROWS_DELETED: '.(int)($retention['admin_deleted'] ?? 0).PHP_EOL;
 echo 'GUEST_CHAT_ROWS_DELETED: '.(int)($retention['guest_deleted'] ?? 0).PHP_EOL;
+echo 'USAGE_LEDGER_ROWS_DELETED: '.(int)($retention['usage_deleted'] ?? 0).PHP_EOL;
 echo 'USAGE_SURFACES_TODAY: '.implode(',', array_keys($usage)).PHP_EOL;
