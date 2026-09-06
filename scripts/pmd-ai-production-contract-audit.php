@@ -91,7 +91,7 @@ $expect($guestContext, 'guest_context_menu_items', 'guest deterministic context 
 $expect($visitBudget, 'guest_session_id', 'visit session scope');
 $expect($visitBudget, 'guestVisitDailyRequestBudget', 'tenant-aware visit daily threshold');
 $expect($maintenance, "getopt('', ['tenant-host:'])", 'maintenance requires explicit tenant');
-$expect($maintenance, "where('domain', $host)", 'maintenance resolves tenant from central registry');
+$expect($maintenance, "where('domain', \$host)", 'maintenance resolves tenant from central registry');
 $expect($maintenance, "DB::setDefaultConnection('tenant')", 'maintenance pins tenant connection');
 $expect($maintenance, 'Connected tenant database does not match the registry tenant', 'maintenance database identity check');
 $expect($adminController, 'PmdAiTenantPolicyService', 'Admin tenant policy controller gate');
