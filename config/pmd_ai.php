@@ -59,6 +59,10 @@ return [
     'store_provider_response' => false,
     'read_only' => true,
 
+    // Admin rollout is fail-closed per tenant until tenant settings take over.
+    // This prevents PMD_AI_ENABLED=true from silently enabling every restaurant.
+    'admin_tenant_allowlist' => $csv(env('PMD_AI_ADMIN_TENANT_ALLOWLIST', '')),
+
     // Provider health/circuit breaker. Health is learned from real traffic so a
     // status page never burns provider quota merely to paint a green dot.
     'health_failure_threshold' => max(1, (int)env('PMD_AI_HEALTH_FAILURE_THRESHOLD', 3)),

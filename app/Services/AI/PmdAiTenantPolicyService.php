@@ -19,8 +19,15 @@ final class PmdAiTenantPolicyService
     public function adminEnabled(): bool
     {
         if (!(bool)config('pmd_ai.enabled', false)) return false;
+
         $value = $this->setting('pmd_ai_admin_enabled');
-        return $value === null ? true : $this->bool($value);
+        if ($value !== null) {
+            return $this->bool($value);
+        }
+
+        return $this->environmentTenantAllowlisted(
+            (array)config('pmd_ai.admin_tenant_allowlist', [])
+        );
     }
 
     public function guestTenantEnabled(): bool
@@ -34,7 +41,9 @@ final class PmdAiTenantPolicyService
             return $this->bool($explicit);
         }
 
-        return $this->environmentTenantAllowlisted();
+        return $this->environmentTenantAllowlisted(
+            (array)config('pmd_ai.guest_tenant_allowlist', [])
+        );
     }
 
     public function guestLocationEnabled(int $locationId): bool
@@ -100,15 +109,22 @@ final class PmdAiTenantPolicyService
         return false;
     }
 
-    private function environmentTenantAllowlisted(): bool
+    private function environmentTenantAllowlisted(array $configured): bool
     {
         $allowlist = array_values(array_unique(array_filter(array_map(
             static fn ($value) => strtolower(trim((string)$value)),
-            (array)config('pmd_ai.guest_tenant_allowlist', [])
+            $configured
         ))));
         if (!$allowlist) return false;
 
-        if ((bool)config('pmd_ai.guest_allow_wildcard', false) && in_array('*', $allowlist, true)) {
+        // Wildcard remains supported only for the Guest canary config where the
+        // separate guest_allow_wildcard flag is explicitly enabled. Admin has no
+        // wildcard escape hatch and therefore stays fail-closed.
+        if (
+            (bool)config('pmd_ai.guest_allow_wildcard', false)
+            && $configured === (array)config('pmd_ai.guest_tenant_allowlist', [])
+            && in_array('*', $allowlist, true)
+        ) {
             return true;
         }
 
@@ -127,8 +143,11 @@ final class PmdAiTenantPolicyService
     {
         try {
             if (!Schema::hasTable('settings')) return null;
+            $columns = array_map('strtolower', Schema::getColumnListing('settings'));
+            if (!in_array('item', $columns, true) || !in_array('value', $columns, true)) return null;
+
             $query = DB::table('settings')->where('item', $key);
-            if (Schema::hasColumn('settings', 'setting_id')) $query->orderByDesc('setting_id');
+            if (in_array('setting_id', $columns, true)) $query->orderByDesc('setting_id');
             $row = $query->first(['value']);
             if (!$row) return null;
             return trim((string)($row->value ?? ''));
