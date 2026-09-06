@@ -34,6 +34,7 @@ $tenantPolicy = $read('app/Services/AI/PmdAiTenantPolicyService.php');
 $retention = $read('app/Services/AI/AiRetentionService.php');
 $guestContext = $read('app/Services/AI/GuestAiContextBuilder.php');
 $visitBudget = $read('app/Services/AI/GuestAiVisitBudgetService.php');
+$maintenance = $read('scripts/pmd-ai-maintenance.php');
 $adminController = $read('app/admin/controllers/Pmdintelligence.php');
 $adminView = $read('app/admin/views/pmdintelligence/index.blade.php');
 
@@ -89,6 +90,10 @@ $expect($retention, 'usage_retention_days', 'usage retention policy');
 $expect($guestContext, 'guest_context_menu_items', 'guest deterministic context limit');
 $expect($visitBudget, 'guest_session_id', 'visit session scope');
 $expect($visitBudget, 'guestVisitDailyRequestBudget', 'tenant-aware visit daily threshold');
+$expect($maintenance, "getopt('', ['tenant-host:'])", 'maintenance requires explicit tenant');
+$expect($maintenance, "where('domain', $host)", 'maintenance resolves tenant from central registry');
+$expect($maintenance, "DB::setDefaultConnection('tenant')", 'maintenance pins tenant connection');
+$expect($maintenance, 'Connected tenant database does not match the registry tenant', 'maintenance database identity check');
 $expect($adminController, 'PmdAiTenantPolicyService', 'Admin tenant policy controller gate');
 $expect($adminController, 'Restaurant operations are unaffected', 'Admin generic provider failure response');
 $reject($adminController, 'OpenAI API credit is unavailable', 'vendor billing details hidden from operators');
