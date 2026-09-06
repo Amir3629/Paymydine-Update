@@ -43,6 +43,7 @@ jobs:
           php -l app/Services/AI/AiCapabilityPolicy.php
           php -l app/Services/AI/AiRetentionService.php
           php -l app/Services/AI/GuestAiContextBuilder.php
+          php -l app/Services/AI/GuestAiVisitBudgetService.php
           php -l app/Services/AI/AiBudgetService.php
           php -l app/Services/AI/AiOrchestrator.php
           php -l app/Services/AI/GuestMenuAiService.php
