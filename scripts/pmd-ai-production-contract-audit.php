@@ -71,6 +71,6 @@ $expect($visitBudget, 'guest_session_id', 'visit session scope');
 $expect($visitBudget, 'guest_daily_requests_per_visit', 'visit daily threshold');
 $expect($adminView, 'AiHealthService', 'Admin health state');
 $expect($adminView, 'Restaurant operations are unaffected', 'Admin graceful provider failure UX');
-$reject($adminView, "{{ $pmdAiConfig['provider'] }} · {{ $pmdAiConfig['model'] }}", 'provider internals hidden from normal Admin UI');
+$reject($adminView, '{{ $pmdAiConfig[\'provider\'] }} · {{ $pmdAiConfig[\'model\'] }}', 'provider internals hidden from normal Admin UI');
 
 echo "PMD AI production contract audit: PASS\n";
