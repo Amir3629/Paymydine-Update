@@ -48,6 +48,7 @@ $expect($orchestrator, "'store' => (bool)config('pmd_ai.store_provider_response'
 $expect($guest, 'AiHealthService', 'guest health integration');
 $expect($guest, 'AiUsageLedger', 'guest usage integration');
 $expect($guest, 'GuestAiContextBuilder', 'guest context compaction');
+$expect($guest, 'consumeGlobal', 'guest global provider budget');
 $reject($guest, 'PmdReadAuthority', 'guest/admin authority isolation');
 $reject($guest, 'PmdKitchenWorkforceService', 'guest/workforce authority isolation');
 
@@ -56,8 +57,9 @@ $expect($health, 'project_suspended', 'suspended project classification');
 $expect($health, 'account_state', 'service account classification');
 $expect($usage, "'guest'", 'guest usage surface');
 $expect($usage, "'admin'", 'admin usage surface');
-$expect($policy, "'Admin.Dashboard'", 'owner capability scope');
+$expect($policy, "'admin.dashboard'", 'owner capability scope');
 $expect($policy, "'admin.orders'", 'orders capability scope');
+$expect($policy, "'admin.reservations'", 'reservation capability scope');
 $expect($retention, 'pmd_guest_ai_conversations', 'guest retention table');
 $expect($guestContext, 'guest_context_menu_items', 'guest deterministic context limit');
 
