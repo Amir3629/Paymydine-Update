@@ -68,6 +68,7 @@ return [
 
     // Usage observability. These are warning thresholds, not billing prices.
     'usage_cache_days' => max(2, (int)env('PMD_AI_USAGE_CACHE_DAYS', 35)),
+    'usage_retention_days' => max(30, min(3650, (int)env('PMD_AI_USAGE_RETENTION_DAYS', 400))),
     'usage_request_warning_per_tenant_day' => max(0, (int)env('PMD_AI_USAGE_REQUEST_WARNING_PER_TENANT_DAY', 220)),
     'usage_token_warning_per_tenant_day' => max(0, (int)env('PMD_AI_USAGE_TOKEN_WARNING_PER_TENANT_DAY', 0)),
 
