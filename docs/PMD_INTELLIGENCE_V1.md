@@ -1,115 +1,180 @@
-# PMD Intelligence V1
+# PMD Intelligence V1 — production contract
 
-PMD Intelligence is a read-only owner operations copilot for PayMyDine.
+PMD Intelligence is PayMyDine's shared, read-only restaurant intelligence platform.
+It has two current surfaces:
 
-## Runtime contract
+1. authenticated Admin / staff intelligence;
+2. public Digital Menu guest concierge.
 
-- Server-side OpenAI Responses API only.
-- The browser never receives `OPENAI_API_KEY`.
-- Tenant, database, authenticated user and canonical location are resolved by PMD server runtime and are never model-controlled tool arguments.
-- No generic SQL tool exists.
-- V1 tools are read-only wrappers around existing PMD authorities:
-  - Dashboard2 owner KPIs
-  - Pmdreports report payloads
-  - PmdKitchenWorkforceService
-- V1 cannot create/void/refund/settle orders, capture payments, mark paid, change VAT/tax/fiscal data, edit menus, change reservations, change attendance/rosters, or reset MFA.
-- Tool output is minimized/redacted before provider submission.
-- AI runs are audit logged by run ID with provider/model/tool trace/latency/usage metadata. Secrets and raw questions are not persisted by the AI audit logger.
-- Provider response storage is disabled by default (`store=false`).
-- Tenant daily and user-minute request budgets are enforced through Laravel Cache.
+Both surfaces share the same provider abstraction and redaction conventions, but they do **not** share data authority. Admin uses PMD operational tools. Guest AI receives only a location-filtered public menu projection.
 
-## Configuration
+## Current production provider
 
-Configure only on the server. Never paste API keys into tickets, chat, Git, browser JavaScript, templates or logs.
-
-```dotenv
-PMD_AI_ENABLED=false
-PMD_AI_PROVIDER=openai
-PMD_AI_MODEL=gpt-5.6-luna
-OPENAI_API_KEY=<set-locally-on-server>
-PMD_AI_TIMEOUT_SECONDS=25
-PMD_AI_MAX_OUTPUT_TOKENS=1400
-PMD_AI_MAX_TOOL_CALLS=6
-PMD_AI_DAILY_REQUEST_BUDGET=250
-```
-
-The feature is intentionally fail-closed while `PMD_AI_ENABLED=false`.
-
-## VPS validation sequence
-
-Do not pull/reset production blindly. First prove which commit and files are actually live.
-
-```bash
-cd /var/www/paymydine
-printf 'HEAD: '; git rev-parse HEAD
-printf 'BRANCH: '; git branch --show-current
-git status --short
-php -v
-php -m | grep -i '^curl$' || true
-```
-
-Check only whether the secret is present; never print its value:
-
-```bash
-php -r 'require "vendor/autoload.php"; $app=require "bootstrap/app.php"; $k=$app->make(Illuminate\Contracts\Console\Kernel::class); $k->bootstrap(); echo trim((string)config("pmd_ai.openai_api_key", ""))!=="" ? "OPENAI_API_KEY=PRESENT\n" : "OPENAI_API_KEY=MISSING\n";'
-```
-
-After setting the key locally on the VPS, clear stale config cache if the deployment uses cached config:
-
-```bash
-php artisan config:clear
-```
-
-Run the direct provider smoke test before enabling the product UI:
-
-```bash
-php scripts/pmd-ai-openai-smoke.php
-```
-
-Expected final line:
-
-```text
-RESULT: PASS
-```
-
-Then enable PMD Intelligence server-side:
+Production is currently configured explicitly with Gemini on the server. Provider choice is never controlled by the browser or model.
 
 ```dotenv
 PMD_AI_ENABLED=true
+PMD_AI_PROVIDER=gemini
+PMD_AI_MODEL=gemini-3.1-flash-lite
+GEMINI_API_KEY=<server-only secret>
+PMD_AI_GEMINI_THINKING_LEVEL=minimal
 ```
 
-Clear config cache again and test as an authenticated owner with a canonical location selected:
+The server must set `PMD_AI_PROVIDER` explicitly. There is no safe production fallback from a missing provider to another vendor.
+
+Never paste API keys into tickets, chat, Git, browser JavaScript, templates, screenshots or logs.
+
+## Security and authority contract
+
+- Tenant, database, authenticated user and canonical location are server-owned.
+- No generic SQL tool exists.
+- Admin tools are read-only wrappers around existing PMD authorities.
+- Guest AI cannot access owner KPIs, staff, shifts, reservations, private order data or payment administration.
+- Tool output is minimized/redacted before provider submission.
+- Provider response storage stays disabled (`store=false`).
+- AI never becomes payment, tax/fiscal, order-state, authentication, employment or authorization authority.
+- Any future write action follows: **AI proposes -> human clicks -> canonical PMD endpoint validates RBAC/state -> PMD writes -> PMD audits**.
+
+## Production hardening
+
+The shared runtime contains:
+
+- `AiHealthService`: cached provider health state and circuit breaker;
+- `AiUsageLedger`: per-tenant/surface token/request accounting without storing raw prompts;
+- `AiCapabilityPolicy`: server-owned tool filtering by authenticated PMD permissions;
+- `AiBudgetService`: tenant, user and global provider budgets;
+- `AiRetentionService`: bounded Admin/Guest chat retention cleanup;
+- `GuestAiContextBuilder`: deterministic menu-context compaction before provider submission;
+- `AiAuditLogger`: run/provider/model/tool/latency metadata with secret redaction.
+
+The health endpoint/state must never make a paid provider request merely to paint a green status indicator. Real traffic and explicit smoke tests update provider health.
+
+## Multi-tenant budget defaults
+
+```dotenv
+PMD_AI_DAILY_REQUEST_BUDGET=250
+PMD_AI_GLOBAL_REQUESTS_PER_MINUTE=120
+PMD_AI_GLOBAL_REQUESTS_PER_DAY=20000
+PMD_AI_GUEST_REQUESTS_PER_MINUTE=6
+PMD_AI_GUEST_DAILY_REQUESTS_PER_IP=60
+PMD_AI_GUEST_DAILY_REQUESTS_PER_TENANT=250
+```
+
+These are safety defaults, not product pricing. Production pricing decisions must be based on measured usage from `AiUsageLedger`, not guesses.
+
+## Retention defaults
+
+```dotenv
+PMD_AI_ADMIN_CHAT_RETENTION_DAYS=90
+PMD_AI_GUEST_CHAT_RETENTION_DAYS=7
+```
+
+Run tenant-local cleanup through:
+
+```bash
+php scripts/pmd-ai-maintenance.php
+```
+
+A daily cron is appropriate. Cleanup touches only PMD AI conversation tables.
+
+## Guest AI rollout gates
+
+Guest AI remains fail-closed and requires all of:
+
+```dotenv
+PMD_AI_ENABLED=true
+PMD_AI_GUEST_ENABLED=true
+PMD_AI_GUEST_TENANT_ALLOWLIST=<explicit tenants>
+PMD_AI_GUEST_LOCATION_ALLOWLIST=<explicit locations>
+PMD_AI_GUEST_ALLOW_WILDCARD=false
+```
+
+The guest model receives only a compact public menu projection. The source menu may contain up to `PMD_AI_GUEST_MAX_MENU_ITEMS`, but `GuestAiContextBuilder` reduces provider context to `PMD_AI_GUEST_CONTEXT_MENU_ITEMS` relevant candidates (default 28) without changing availability or inventing facts.
+
+## Provider failure behavior
+
+AI failure must never become PayMyDine failure.
+
+Expected behavior:
+
+- invalid/deleted/disabled provider credential -> circuit opens;
+- suspended provider project -> circuit opens;
+- repeated transient failures -> short circuit cooldown;
+- quota/rate limit -> bounded cooldown;
+- Digital Menu itself remains usable without AI;
+- Admin restaurant operations remain usable without AI;
+- public errors do not expose provider secrets, project IDs, raw stack traces or credentials.
+
+After fixing a credential/provider issue, run an explicit smoke test and clear stale Laravel config if needed.
+
+## Gemini direct smoke
+
+Use the existing provider class from the Laravel runtime. Never print the API key.
+
+Expected result:
+
+```text
+HTTP: 200
+OUTPUT: PMD_GEMINI_OK
+PMD GEMINI: PASS
+```
+
+Then verify:
 
 ```text
 /admin/pmdintelligence
+/api/v1/guest-ai/status?location_id=<canary-location>
 ```
 
-Suggested canary prompts:
+## CI gates
 
-- What should I focus on tonight?
-- Summarize today's sales performance and call out the biggest operational risk.
-- Check live orders and kitchen workforce. Is there anything the owner should act on now?
-- Review today's reservations and tell me what deserves attention.
+AI changes must pass:
 
-Do not save or mutate restaurant data as part of this V1 canary; the implementation contains no write tools.
+- PHP syntax for shared AI services;
+- `scripts/pmd-ai-production-contract-audit.php`;
+- Guest AI source contract audit;
+- Frontend V2 type/theme/source/build gates where relevant;
+- existing attendance/workforce contracts when those files change.
 
-## Promotion gate
+The repository should require PR review and required CI checks on `main`. CI files existing in the repository are not enough if branch protection is disabled.
 
-Do not merge/deploy solely because GitHub code exists. Promote only after:
+## Evaluation before model/prompt changes
 
-1. production Git/served-file authority is audited;
-2. PHP syntax/autoload checks pass on the VPS runtime;
-3. direct OpenAI smoke passes without exposing the key;
-4. authenticated `/admin/pmdintelligence` loads for one tenant/location;
-5. Ask PMD uses expected tools and shows a run ID;
-6. logs contain no API key/customer contact/payment credential data;
-7. a second tenant cannot see the first tenant's data;
-8. payment/order/auth/MFA flows are regression checked and unchanged.
+Do not promote a model merely because a smoke test returns 200. Before model or major prompt changes, evaluate at least:
 
-## Future phases
+### Admin
 
-Write-capable AI remains out of scope for V1. Any future action agent must follow:
+- today sales summary;
+- historical named date/month;
+- highest sales vs highest order volume;
+- live order/kitchen pressure;
+- reservations today/future;
+- named workforce schedule;
+- actual attendance hours vs scheduled hours;
+- order integrity mismatch;
+- off-topic refusal;
+- no fabricated cause/explanation.
 
-AI proposes -> explicit human confirmation -> existing canonical PMD service/controller performs the write under normal RBAC/audit.
+### Guest
 
-The model must never become authorization, payment, tax/fiscal, order-state or employment-decision authority.
+- normal recommendation;
+- budget recommendation;
+- vegetarian/dietary question;
+- sold-out item;
+- measured popularity;
+- no-popularity-data UX without internal weakness disclosure;
+- severe allergy safety;
+- prompt extraction attempt;
+- locale/RTL behavior;
+- waiter/cart/checkout action markers remain allowlisted and user-clicked.
+
+## Future surfaces
+
+There is one Intelligence platform, not one AI engine per page.
+
+- Orders/Waiter: current order/table/menu/KDS context, read-only first.
+- Reception: arrivals, no-shows, conflicts and redacted guest-note summaries.
+- Shifts: coverage gaps, attendance exceptions and workload patterns.
+- KDS: deterministic/versioned ETA and demand prediction service; AI may explain predictions but does not invent them.
+
+Never build duplicate provider clients, generic SQL agents, or isolated AI runtimes inside individual pages.
