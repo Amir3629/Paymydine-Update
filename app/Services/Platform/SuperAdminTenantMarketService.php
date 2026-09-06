@@ -2,16 +2,20 @@
 
 namespace App\Services\Platform;
 
+use App\Services\Turkey\TurkeyTenantProvisioningService;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 /**
- * PMD_SUPERADMIN_TENANT_MARKET_R4
+ * PMD_SUPERADMIN_TENANT_MARKET_R5
  *
  * Central-control-plane bridge for applying country/customer-language state to
  * one tenant DB. Every operation switches database context explicitly and
  * ALWAYS restores the central database.
+ *
+ * Türkiye tenants receive their Turkey-only integration domain automatically.
+ * Other country tenants are never provisioned with pmd_tr_* tables/state.
  */
 final class SuperAdminTenantMarketService
 {
@@ -26,6 +30,20 @@ final class SuperAdminTenantMarketService
                 (array)($result['warnings'] ?? []),
                 (array)($customerLanguages['warnings'] ?? [])
             )));
+
+            $countryCode = (new CountryPlatformProfileRegistry())->normalizeCountry($country);
+            if ($countryCode === CountryPlatformProfileRegistry::TURKEY) {
+                try {
+                    $result['turkey'] = (new TurkeyTenantProvisioningService())->ensure(
+                        isset($result['default_location_id']) ? (int)$result['default_location_id'] : null
+                    );
+                } catch (\Throwable $error) {
+                    $result['turkey'] = ['ok' => false, 'error' => $error->getMessage()];
+                    $result['warnings'][] = 'Türkiye integration provisioning failed: '.$error->getMessage();
+                    $result['warnings'] = array_values(array_unique($result['warnings']));
+                }
+            }
+
             $result['database'] = $database;
 
             return $result;
