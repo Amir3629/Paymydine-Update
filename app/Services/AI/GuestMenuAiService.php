@@ -101,6 +101,7 @@ final class GuestMenuAiService
 
         $clientIp = trim((string)($ip ?: request()->ip()));
         $this->consumeBudget($clientIp, $locationId);
+        app(GuestAiVisitBudgetService::class)->consume($locationId);
         app(AiBudgetService::class)->consumeGlobal();
 
         $safeLocale = $this->normalizeLocale($locale);
