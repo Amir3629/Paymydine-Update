@@ -5,6 +5,7 @@ on:
     paths:
       - 'app/Services/AI/**'
       - 'app/admin/controllers/Pmdintelligence.php'
+      - 'app/admin/views/pmdintelligence/**'
       - 'app/main/routes/api-v1-guest-ai.php'
       - 'config/pmd_ai.php'
       - 'scripts/pmd-ai-*.php'
@@ -17,6 +18,7 @@ on:
     paths:
       - 'app/Services/AI/**'
       - 'app/admin/controllers/Pmdintelligence.php'
+      - 'app/admin/views/pmdintelligence/**'
       - 'app/main/routes/api-v1-guest-ai.php'
       - 'config/pmd_ai.php'
       - 'scripts/pmd-ai-*.php'
@@ -45,6 +47,7 @@ jobs:
           php -l app/Services/AI/AiOrchestrator.php
           php -l app/Services/AI/GuestMenuAiService.php
           php -l scripts/pmd-ai-maintenance.php
+          php -l scripts/pmd-ai-provider-smoke.php
           php -l scripts/pmd-ai-production-contract-audit.php
       - name: Production AI contract
         run: php scripts/pmd-ai-production-contract-audit.php
