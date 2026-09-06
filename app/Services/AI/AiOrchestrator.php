@@ -140,6 +140,9 @@ final class AiOrchestrator
                     'store' => (bool)config('pmd_ai.store_provider_response', false),
                 ];
 
+                // Global quota is provider-call based, not merely user-message based.
+                // A tool loop can make several model round trips for one Admin ask.
+                $this->budget->consumeGlobal();
                 $providerCalls++;
                 $result = $this->provider->create($request);
                 $lastResponse = (array)$result['body'];
