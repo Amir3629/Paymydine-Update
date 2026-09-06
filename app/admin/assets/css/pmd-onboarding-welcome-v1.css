@@ -1,4 +1,4 @@
-/* PMD_ONBOARDING_WELCOME_V3_CENTERED_MODAL_AFTER_VPS_SYNC */
+/* PMD_ONBOARDING_WELCOME_V4_DASHBOARD_INLINE_QUICK_SETUP */
 html.pmd-onboarding-welcome-open,
 html body.pmd-onboarding-welcome-open {
     overflow: hidden !important;
@@ -15,163 +15,360 @@ html body.pmd-onboarding-welcome-open {
     margin: 0 !important;
     padding: 24px !important;
     box-sizing: border-box !important;
-    background: rgba(23, 35, 31, .18) !important;
-    -webkit-backdrop-filter: blur(10px) saturate(.92) !important;
-    backdrop-filter: blur(10px) saturate(.92) !important;
-    animation: pmd-onboarding-welcome-overlay-in 180ms ease-out both;
+    background: rgba(23, 35, 31, .16) !important;
+    -webkit-backdrop-filter: blur(9px) saturate(.92) !important;
+    backdrop-filter: blur(9px) saturate(.92) !important;
+    animation: pmd-onboarding-welcome-overlay-in 160ms ease-out both;
 }
 
-/*
- * The child selector intentionally outranks the old duplicated Dashboard-card
- * rules that still exist in the Quick Setup stylesheet on legacy VPS copies.
- */
 .pmd-onboarding-welcome-v1__overlay > .pmd-onboarding-welcome-v1 {
     position: relative !important;
-    width: min(460px, calc(100vw - 32px)) !important;
-    max-width: 460px !important;
+    width: min(430px, calc(100vw - 32px)) !important;
+    max-width: 430px !important;
     min-width: 0 !important;
     margin: 0 !important;
-    padding: 28px 28px 24px !important;
-    border: 1px solid #d7e4ec !important;
-    border-radius: 20px !important;
-    background: #ffffff !important;
+    padding: 24px 26px 22px !important;
+    border: 1px solid #dce7e3 !important;
+    border-radius: 18px !important;
+    background: #fff !important;
     background-image: none !important;
     color: #17231f !important;
-    box-shadow:
-        0 24px 70px rgba(20, 43, 56, .18),
-        0 2px 8px rgba(20, 43, 56, .06) !important;
+    box-shadow: 0 22px 60px rgba(16, 42, 67, .16), 0 2px 8px rgba(16, 42, 67, .06) !important;
     box-sizing: border-box !important;
     text-align: center !important;
     overflow: hidden !important;
-    animation: pmd-onboarding-welcome-card-in 220ms cubic-bezier(.22,.75,.24,1) both;
+    animation: pmd-onboarding-welcome-card-in 200ms cubic-bezier(.22,.75,.24,1) both;
 }
 
 .pmd-onboarding-welcome-v1__brand {
-    width: 70px;
-    height: 70px;
-    margin: 0 auto 16px;
-    display: grid;
-    place-items: center;
-    border: 1px solid #dbe8ee;
-    border-radius: 18px;
-    background: #f8fbfd;
-    box-shadow: 0 7px 20px rgba(23, 55, 82, .06);
-    overflow: hidden;
+    width: 150px !important;
+    height: 54px !important;
+    margin: 0 auto 14px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    overflow: visible !important;
 }
 
 .pmd-onboarding-welcome-v1__brand img {
-    display: block;
-    width: 48px;
-    height: 58px;
-    max-width: 68%;
-    max-height: 74%;
-    object-fit: contain;
+    display: block !important;
+    width: auto !important;
+    height: auto !important;
+    max-width: 140px !important;
+    max-height: 50px !important;
+    object-fit: contain !important;
 }
 
 .pmd-onboarding-welcome-v1__eyebrow {
-    display: block;
-    margin: 0 0 7px;
-    color: #668397;
-    font-size: 10px;
-    line-height: 1.2;
-    font-weight: 900;
-    letter-spacing: .13em;
-    text-transform: uppercase;
+    display: block !important;
+    margin: 0 0 7px !important;
+    color: #688078 !important;
+    font-size: 10px !important;
+    line-height: 1.2 !important;
+    font-weight: 850 !important;
+    letter-spacing: .13em !important;
+    text-transform: uppercase !important;
 }
 
 .pmd-onboarding-welcome-v1__overlay > .pmd-onboarding-welcome-v1 h2 {
     margin: 0 !important;
     padding: 0 !important;
     color: #17231f !important;
-    font-size: clamp(22px, 3vw, 26px) !important;
-    line-height: 1.18 !important;
+    font-size: 24px !important;
+    line-height: 1.2 !important;
     font-weight: 850 !important;
     letter-spacing: -.025em !important;
 }
 
 .pmd-onboarding-welcome-v1__overlay > .pmd-onboarding-welcome-v1 p {
-    max-width: 390px !important;
-    margin: 11px auto 0 !important;
+    max-width: 360px !important;
+    margin: 10px auto 0 !important;
     padding: 0 !important;
-    color: #6b8091 !important;
-    font-size: 14px !important;
-    line-height: 1.55 !important;
+    color: #6b7f78 !important;
+    font-size: 13.5px !important;
+    line-height: 1.5 !important;
 }
 
 .pmd-onboarding-welcome-v1__overlay .pmd-onboarding-welcome-v1__actions {
     display: grid !important;
     grid-template-columns: 1fr 1fr !important;
-    gap: 10px !important;
-    margin: 22px 0 0 !important;
+    gap: 9px !important;
+    margin: 20px 0 0 !important;
     padding: 0 !important;
 }
 
-.pmd-onboarding-welcome-v1__overlay .pmd-onboarding-welcome-v1__actions a,
-.pmd-onboarding-welcome-v1__overlay .pmd-onboarding-welcome-v1__actions button {
-    appearance: none;
-    -webkit-appearance: none;
-    min-height: 46px !important;
-    height: 46px !important;
-    padding: 0 18px !important;
+.pmd-onboarding-welcome-v1__overlay .pmd-onboarding-welcome-v1__actions button,
+.pmd-onboarding-welcome-v1__overlay .pmd-onboarding-welcome-v1__actions a {
+    appearance: none !important;
+    -webkit-appearance: none !important;
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
-    border-radius: 13px !important;
+    min-height: 44px !important;
+    height: 44px !important;
+    margin: 0 !important;
+    padding: 0 16px !important;
+    border-radius: 12px !important;
     font: inherit !important;
     font-size: 14px !important;
-    font-weight: 850 !important;
+    font-weight: 800 !important;
     line-height: 1 !important;
     text-decoration: none !important;
     white-space: nowrap !important;
-    cursor: pointer;
+    cursor: pointer !important;
     box-sizing: border-box !important;
-    transition:
-        transform 140ms ease,
-        box-shadow 140ms ease,
-        border-color 140ms ease,
-        background-color 140ms ease;
+    transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease, background-color 140ms ease !important;
 }
 
+/* Same green action authority used by the Dashboard analytics controls. */
 .pmd-onboarding-welcome-v1__overlay .pmd-onboarding-welcome-v1__primary {
-    border: 1px solid #173752 !important;
-    background: #173752 !important;
-    color: #ffffff !important;
-    box-shadow: 0 7px 16px rgba(23, 55, 82, .14) !important;
+    border: 1px solid #008f6a !important;
+    background: #008f6a !important;
+    color: #fff !important;
+    box-shadow: 0 6px 14px rgba(0, 143, 106, .18) !important;
 }
 
 .pmd-onboarding-welcome-v1__overlay .pmd-onboarding-welcome-v1__secondary {
-    border: 1px solid #d4e2eb !important;
-    background: #ffffff !important;
-    color: #173752 !important;
-    box-shadow: 0 3px 10px rgba(23, 55, 82, .035) !important;
+    border: 1px solid #d7e5e0 !important;
+    background: #fff !important;
+    color: #0a6b56 !important;
+    box-shadow: 0 2px 7px rgba(16, 42, 67, .035) !important;
 }
 
-.pmd-onboarding-welcome-v1__overlay .pmd-onboarding-welcome-v1__actions a:hover,
-.pmd-onboarding-welcome-v1__overlay .pmd-onboarding-welcome-v1__actions button:hover:not(:disabled) {
-    transform: translateY(-1px);
+.pmd-onboarding-welcome-v1__overlay .pmd-onboarding-welcome-v1__actions button:hover:not(:disabled),
+.pmd-onboarding-welcome-v1__overlay .pmd-onboarding-welcome-v1__actions a:hover {
+    transform: translateY(-1px) !important;
 }
 
 .pmd-onboarding-welcome-v1__overlay .pmd-onboarding-welcome-v1__primary:hover,
 .pmd-onboarding-welcome-v1__overlay .pmd-onboarding-welcome-v1__primary:focus-visible {
-    color: #ffffff !important;
-    background: #204762 !important;
-    border-color: #204762 !important;
-    box-shadow: 0 10px 20px rgba(23, 55, 82, .18) !important;
-    outline: none;
+    background: #007c5d !important;
+    border-color: #007c5d !important;
+    color: #fff !important;
+    outline: 2px solid rgba(0, 166, 118, .22) !important;
+    outline-offset: 2px !important;
 }
 
 .pmd-onboarding-welcome-v1__overlay .pmd-onboarding-welcome-v1__secondary:hover,
 .pmd-onboarding-welcome-v1__overlay .pmd-onboarding-welcome-v1__secondary:focus-visible {
-    color: #173752 !important;
-    background: #f8fbfd !important;
-    border-color: #bfd2df !important;
-    outline: none;
+    background: #f8fbfa !important;
+    border-color: #bdd6ce !important;
+    color: #0a6b56 !important;
+    outline: 2px solid rgba(0, 166, 118, .14) !important;
+    outline-offset: 2px !important;
 }
 
 .pmd-onboarding-welcome-v1__overlay .pmd-onboarding-welcome-v1__actions button:disabled {
-    opacity: .55;
-    cursor: wait;
-    transform: none;
+    opacity: .55 !important;
+    cursor: wait !important;
+    transform: none !important;
+}
+
+/* ==========================================================
+   DASHBOARD-INLINE QUICK SETUP
+   The standalone /admin/pmdquicksetup page is no longer the user flow.
+   These cards sit directly after the Dashboard KPI cards.
+   ========================================================== */
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab .pmd-dashboard-quick-setup {
+    width: min(1480px, 100%) !important;
+    min-width: 0 !important;
+    margin: 18px auto 0 !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
+    scroll-margin-top: 18px !important;
+}
+
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab .pmd-dashboard-quick-setup[hidden] {
+    display: none !important;
+}
+
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab .pmd-dashboard-quick-setup__header {
+    display: flex !important;
+    align-items: flex-start !important;
+    justify-content: space-between !important;
+    gap: 16px !important;
+    width: 100% !important;
+    margin: 0 0 12px !important;
+    padding: 0 2px !important;
+    background: transparent !important;
+    border: 0 !important;
+}
+
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab .pmd-dashboard-quick-setup__eyebrow {
+    display: block !important;
+    margin: 0 0 4px !important;
+    color: #6f817b !important;
+    font-size: 10px !important;
+    font-weight: 850 !important;
+    letter-spacing: .12em !important;
+    text-transform: uppercase !important;
+}
+
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab .pmd-dashboard-quick-setup__header h2 {
+    margin: 0 !important;
+    color: #17231f !important;
+    font-size: 20px !important;
+    line-height: 1.2 !important;
+    font-weight: 850 !important;
+    letter-spacing: -.02em !important;
+}
+
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab .pmd-dashboard-quick-setup__header p {
+    margin: 4px 0 0 !important;
+    color: #71837d !important;
+    font-size: 12.5px !important;
+    line-height: 1.4 !important;
+}
+
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab .pmd-dashboard-quick-setup__close {
+    appearance: none !important;
+    width: 38px !important;
+    min-width: 38px !important;
+    height: 38px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 1px solid #d7e5e0 !important;
+    border-radius: 11px !important;
+    background: #fff !important;
+    color: #50635d !important;
+    box-shadow: 0 2px 7px rgba(16, 42, 67, .04) !important;
+    font-size: 22px !important;
+    line-height: 1 !important;
+    cursor: pointer !important;
+}
+
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab .pmd-dashboard-quick-setup__close:hover,
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab .pmd-dashboard-quick-setup__close:focus-visible {
+    border-color: #b9d6cc !important;
+    background: #f8fbfa !important;
+    color: #0a6b56 !important;
+    outline: 2px solid rgba(0, 166, 118, .12) !important;
+    outline-offset: 2px !important;
+}
+
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab .pmd-dashboard-quick-setup__body,
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab .pmd-dashboard-quick-setup__body > .pmd-quick-setup {
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab .pmd-dashboard-quick-setup .pmd-quick-setup__form {
+    display: grid !important;
+    grid-template-columns: repeat(12, minmax(0, 1fr)) !important;
+    gap: 18px !important;
+    align-items: stretch !important;
+    width: 100% !important;
+    margin: 0 !important;
+}
+
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab .pmd-dashboard-quick-setup .pmd-quick-setup__card,
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab .pmd-dashboard-quick-setup .pmd-quick-setup__done,
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab .pmd-dashboard-quick-setup .pmd-quick-setup__result {
+    min-width: 0 !important;
+    border: 1px solid #dce7e3 !important;
+    border-radius: 18px !important;
+    background: #fff !important;
+    box-shadow: 0 7px 20px rgba(16, 42, 67, .07) !important;
+    color: #22312c !important;
+}
+
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab .pmd-dashboard-quick-setup .pmd-quick-setup__card {
+    padding: 20px !important;
+}
+
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab .pmd-dashboard-quick-setup .pmd-quick-setup__card:nth-of-type(1) {
+    grid-column: 1 / -1 !important;
+}
+
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab .pmd-dashboard-quick-setup .pmd-quick-setup__card:nth-of-type(2) {
+    grid-column: span 8 !important;
+}
+
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab .pmd-dashboard-quick-setup .pmd-quick-setup__card:nth-of-type(3) {
+    grid-column: span 4 !important;
+}
+
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab .pmd-dashboard-quick-setup .pmd-quick-setup__step {
+    background: #e9f8f3 !important;
+    color: #0a6b56 !important;
+}
+
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab .pmd-dashboard-quick-setup .pmd-quick-setup__card-copy h2,
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab .pmd-dashboard-quick-setup .pmd-quick-setup__done h2,
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab .pmd-dashboard-quick-setup .pmd-quick-setup__result h2 {
+    color: #17231f !important;
+}
+
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab .pmd-dashboard-quick-setup .pmd-quick-setup__card-copy p,
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab .pmd-dashboard-quick-setup .pmd-quick-setup__subhead small,
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab .pmd-dashboard-quick-setup .pmd-quick-setup__starter-toggle small,
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab .pmd-dashboard-quick-setup .pmd-quick-setup__done p {
+    color: #71837d !important;
+}
+
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab .pmd-dashboard-quick-setup .pmd-quick-setup__type-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+    gap: 9px !important;
+}
+
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab .pmd-dashboard-quick-setup .pmd-quick-setup__type > span,
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab .pmd-dashboard-quick-setup .pmd-quick-setup__starter-toggle {
+    border-color: #dce7e3 !important;
+    background: #fbfdfc !important;
+}
+
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab .pmd-dashboard-quick-setup .pmd-quick-setup__type input:checked + span {
+    border-color: #45a58b !important;
+    background: #eff9f5 !important;
+    box-shadow: 0 0 0 2px rgba(0, 143, 106, .08) !important;
+}
+
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab .pmd-dashboard-quick-setup input:focus {
+    border-color: #55a891 !important;
+    box-shadow: 0 0 0 3px rgba(0, 143, 106, .10) !important;
+}
+
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab .pmd-dashboard-quick-setup .pmd-quick-setup__subhead button,
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab .pmd-dashboard-quick-setup .pmd-quick-setup__remove,
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab .pmd-dashboard-quick-setup .pmd-quick-setup__done-actions a,
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab .pmd-dashboard-quick-setup .pmd-quick-setup__done-actions button {
+    border-color: #d7e5e0 !important;
+    background: #fff !important;
+    color: #355048 !important;
+}
+
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab .pmd-dashboard-quick-setup .pmd-quick-setup__submit-row {
+    grid-column: 1 / -1 !important;
+    width: 100% !important;
+}
+
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab .pmd-dashboard-quick-setup .pmd-quick-setup__submit {
+    border: 1px solid #008f6a !important;
+    background: #008f6a !important;
+    color: #fff !important;
+    box-shadow: 0 6px 14px rgba(0, 143, 106, .18) !important;
+}
+
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab .pmd-dashboard-quick-setup .pmd-quick-setup__submit:hover:not(:disabled),
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab .pmd-dashboard-quick-setup .pmd-quick-setup__submit:focus-visible {
+    background: #007c5d !important;
+    border-color: #007c5d !important;
+    outline: 2px solid rgba(0, 166, 118, .18) !important;
+    outline-offset: 2px !important;
+}
+
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab .pmd-dashboard-quick-setup .pmd-quick-setup__result,
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab .pmd-dashboard-quick-setup .pmd-quick-setup__done {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 28px !important;
 }
 
 @keyframes pmd-onboarding-welcome-overlay-in {
@@ -180,23 +377,46 @@ html body.pmd-onboarding-welcome-open {
 }
 
 @keyframes pmd-onboarding-welcome-card-in {
-    from { opacity: 0; transform: translateY(8px) scale(.985); }
+    from { opacity: 0; transform: translateY(6px) scale(.988); }
     to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-@media (max-width: 560px) {
+@media (max-width: 1100px) {
+    html body.pmd-dashboard-lab-page #pmd-dashboard-lab .pmd-dashboard-quick-setup .pmd-quick-setup__type-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    }
+
+    html body.pmd-dashboard-lab-page #pmd-dashboard-lab .pmd-dashboard-quick-setup .pmd-quick-setup__card:nth-of-type(2),
+    html body.pmd-dashboard-lab-page #pmd-dashboard-lab .pmd-dashboard-quick-setup .pmd-quick-setup__card:nth-of-type(3) {
+        grid-column: 1 / -1 !important;
+    }
+}
+
+@media (max-width: 700px) {
     .pmd-onboarding-welcome-v1__overlay {
         padding: 16px !important;
     }
 
     .pmd-onboarding-welcome-v1__overlay > .pmd-onboarding-welcome-v1 {
-        width: min(100%, 430px) !important;
-        padding: 24px 20px 20px !important;
-        border-radius: 18px !important;
+        width: min(100%, 410px) !important;
+        padding: 22px 18px 18px !important;
     }
 
     .pmd-onboarding-welcome-v1__overlay .pmd-onboarding-welcome-v1__actions {
         grid-template-columns: 1fr !important;
+    }
+
+    html body.pmd-dashboard-lab-page #pmd-dashboard-lab .pmd-dashboard-quick-setup__header {
+        align-items: flex-start !important;
+    }
+
+    html body.pmd-dashboard-lab-page #pmd-dashboard-lab .pmd-dashboard-quick-setup .pmd-quick-setup__type-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    html body.pmd-dashboard-lab-page #pmd-dashboard-lab .pmd-dashboard-quick-setup .pmd-quick-setup__card {
+        grid-column: 1 / -1 !important;
+        padding: 18px !important;
     }
 }
 
@@ -206,8 +426,8 @@ html body.pmd-onboarding-welcome-open {
         animation: none !important;
     }
 
-    .pmd-onboarding-welcome-v1__overlay .pmd-onboarding-welcome-v1__actions a,
-    .pmd-onboarding-welcome-v1__overlay .pmd-onboarding-welcome-v1__actions button {
+    .pmd-onboarding-welcome-v1__overlay .pmd-onboarding-welcome-v1__actions button,
+    .pmd-onboarding-welcome-v1__overlay .pmd-onboarding-welcome-v1__actions a {
         transition: none !important;
     }
 }
