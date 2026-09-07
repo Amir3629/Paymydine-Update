@@ -30,12 +30,15 @@ class Terminal_devices_model extends Model
 
     public static function listProviderOptions(): array
     {
-        // PMD_TERMINAL_DEVICE_MARKET_OPTIONS_R6B
+        // provider_code means the payment/terminal-management provider. It does
+        // NOT have to be the physical hardware manufacturer. Türkiye hardware
+        // manufacturer/model/fiscal topology live in metadata/integration state.
         $implemented = [
             'sumup' => 'SumUp',
             'vr_payment' => 'VR Payment',
             'worldline' => 'Worldline Terminal API',
             'square' => 'Square Terminal API',
+            'isbank' => 'Türkiye İş Bankası POS / Payment Facilitator',
         ];
 
         $options = [];
@@ -51,11 +54,6 @@ class Terminal_devices_model extends Model
         }
 
         // PMD_VR_SIM_VISIBILITY_R2_20260905
-        // PMD's internal VR simulator is TEST-only and deliberately has no provider
-        // hardware object. If it exists in this tenant, keep VR Payment visible even
-        // when LocationPlatformContext is temporarily unresolved. This does NOT make
-        // a real VR terminal eligible and does not relax market gating for any other
-        // provider.
         try {
             if (
                 \Illuminate\Support\Facades\Schema::hasTable('terminal_devices')
@@ -73,7 +71,6 @@ class Terminal_devices_model extends Model
                 $options['vr_payment'] = $implemented['vr_payment'];
             }
         } catch (\Throwable $error) {
-            // Keep the normal market-derived options if the supplemental probe fails.
         }
 
         return $options;
