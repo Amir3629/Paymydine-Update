@@ -22,7 +22,7 @@ namespace App\Services\Platform;
  */
 final class CountryPlatformProfileRegistry
 {
-    public const VERSION = '1.2.0';
+    public const VERSION = '1.3.0';
     public const CANADA = 'CA';
     public const GERMANY = 'DE';
     public const OMAN = 'OM';
@@ -87,8 +87,6 @@ final class CountryPlatformProfileRegistry
                 'country_iso3' => 'CAN',
                 'country_name' => 'Canada',
                 'calling_code' => '+1',
-                // Canada spans multiple time zones. Toronto is the safe bootstrap
-                // default; an explicit location timezone may override it later.
                 'timezone' => 'America/Toronto',
                 'week_start' => 'sunday',
                 'date_format_hint' => 'YYYY-MM-DD',
@@ -97,8 +95,6 @@ final class CountryPlatformProfileRegistry
                     'minor_exponent' => 2,
                 ],
                 'languages' => [
-                    // English is launch-ready. French must not be exposed until
-                    // the PMD customer/Admin fr catalogue is completed and audited.
                     'default' => 'en',
                     'fallback' => 'en',
                     'eligible' => ['en'],
@@ -159,16 +155,47 @@ final class CountryPlatformProfileRegistry
                     'reservation_timezone' => 'Europe/Istanbul',
                     'reporting_timezone' => 'Europe/Istanbul',
                     'tax_policy' => 'restaurant_configured',
+                    'fiscal_modes' => ['yn_okc', 'gmoebys'],
                 ],
-                // Turkey is deliberately payment-empty until a provider is
-                // selected and integrated in a separate, reviewed change.
+                // Türkiye now has a real provider/method catalogue, but every new
+                // row stays disabled until the merchant's UAT/contract/fiscal
+                // approvals are recorded. Catalogue eligibility is NOT activation.
                 'payments' => [
                     'currency' => 'TRY',
-                    'providers' => [],
-                    'methods' => [],
+                    'providers' => [
+                        'isbank' => [
+                            'online' => true,
+                            'terminal' => true,
+                            'softpos' => 'merchant_and_fiscal_topology_restricted',
+                            'fast_request' => true,
+                            'tr_qr' => true,
+                            'payment_facilitator' => true,
+                            'status' => 'uat_api_foundation_ready_subscription_and_merchant_activation_required',
+                        ],
+                    ],
+                    'methods' => [
+                        'tr_card' => $this->method('tr_card', 'Cards (Türkiye)', 'card', ['isbank'], 'card', ['TROY', 'Visa', 'Mastercard', 'American Express', 'UnionPay', 'JCB']),
+                        'tr_fast_request' => $this->method('tr_fast_request', 'FAST Ödeme İste', 'fast_request', ['isbank']),
+                        'tr_tr_qr' => $this->method('tr_tr_qr', 'TR Karekod / FAST QR', 'tr_qr_fast', ['isbank']),
+                        'tr_ispay' => $this->method('tr_ispay', 'İş\'le Öde', 'ispay', ['isbank']),
+                        'tr_cash' => $this->method('tr_cash', 'Cash (Türkiye)', 'cash', []),
+                    ],
                 ],
                 'terminals' => [
-                    'providers' => [],
+                    'providers' => [
+                        // This code identifies the payment/terminal-management
+                        // provider, NOT the hardware manufacturer. Manufacturer
+                        // and model remain independent terminal metadata.
+                        'isbank' => [
+                            'kind' => 'bank_payment_application_and_terminal_management',
+                            'device_manufacturer_independent' => true,
+                            'payment_facilitator_api' => true,
+                            'pmd_remote_runtime' => false,
+                            'status' => 'uat_subscription_device_contract_and_operation_paths_required',
+                        ],
+                    ],
+                    'acceptance_channels' => ['physical_terminal', 'softpos', 'online_checkout'],
+                    'fiscal_modes' => ['yn_okc', 'gmoebys'],
                 ],
             ],
 
@@ -185,8 +212,6 @@ final class CountryPlatformProfileRegistry
                     'minor_exponent' => 3,
                 ],
                 'languages' => [
-                    // English is the safe framework default until the tenant has an
-                    // enabled Arabic language pack. Arabic remains market-eligible.
                     'default' => 'en',
                     'fallback' => 'en',
                     'eligible' => ['en', 'ar'],
@@ -262,9 +287,7 @@ final class CountryPlatformProfileRegistry
         return $options;
     }
 
-    /**
-     * Browser-safe summary for Superadmin create/edit previews.
-     */
+    /** Browser-safe summary for Superadmin create/edit previews. */
     public function publicProfiles(): array
     {
         $result = [];
