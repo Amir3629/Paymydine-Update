@@ -2,23 +2,26 @@
 
 namespace App\Services\Turkey;
 
+use App\Services\Integrations\SecretReferenceService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
  * Controls per-location Turkey partner configuration.
  *
- * Raw secrets must NOT be stored here. credential_reference is expected to
- * point at the application's secret-management/config mechanism.
+ * Raw credentials are rejected by the PMD-wide SecretReferenceService. Config
+ * stores env:/config: references only; runtime clients resolve them server-side.
  */
 final class TurkeyIntegrationConfigurationService
 {
     public function __construct(
         private ?TurkeyTenantContext $context = null,
-        private ?TurkeyIntegrationRegistry $registry = null
+        private ?TurkeyIntegrationRegistry $registry = null,
+        private ?SecretReferenceService $secrets = null
     ) {
         $this->context = $context ?: new TurkeyTenantContext();
         $this->registry = $registry ?: new TurkeyIntegrationRegistry();
+        $this->secrets = $secrets ?: new SecretReferenceService();
     }
 
     public function configure(string $code, array $config, ?int $locationId = null): array
@@ -33,7 +36,7 @@ final class TurkeyIntegrationConfigurationService
         }
 
         $locationId = (int)($state['location_id'] ?? 0);
-        $safe = $this->sanitizeConfig($config);
+        $safe = $this->secrets->sanitizeConfig($config);
         $missing = $this->missingRequired($definition, $safe);
         $status = $missing ? 'configuration_incomplete' : 'configured_not_verified';
 
@@ -86,8 +89,6 @@ final class TurkeyIntegrationConfigurationService
             throw new \InvalidArgumentException('verification_reference is required.');
         }
 
-        // Regulated fiscal/payment integrations require explicit evidence that
-        // the external partner/device approval is complete; PMD does not infer it.
         if ((bool)$definition['regulated']) {
             $approval = strtolower(trim((string)($evidence['external_approval_status'] ?? '')));
             if (!in_array($approval, ['approved', 'active', 'certified'], true)) {
@@ -129,6 +130,22 @@ final class TurkeyIntegrationConfigurationService
         return $this->state($code, $locationId);
     }
 
+    public function configuration(string $code, ?int $locationId = null): array
+    {
+        $tenant = $this->context->requireTurkey($locationId);
+        $locationId = (int)($tenant['location_id'] ?? 0);
+        if (!Schema::hasTable('pmd_tr_integrations')) return [];
+
+        $row = DB::table('pmd_tr_integrations')
+            ->where('location_id', $locationId ?: null)
+            ->where('code', strtolower($code))
+            ->first();
+        if (!$row) return [];
+
+        $config = json_decode((string)($row->config_json ?? ''), true);
+        return is_array($config) ? $config : [];
+    }
+
     public function state(string $code, ?int $locationId = null): array
     {
         $tenant = $this->context->requireTurkey($locationId);
@@ -157,16 +174,5 @@ final class TurkeyIntegrationConfigurationService
             if (!array_key_exists($key, $config) || trim((string)$config[$key]) === '') $missing[] = $key;
         }
         return $missing;
-    }
-
-    private function sanitizeConfig(array $config): array
-    {
-        $forbidden = ['password', 'secret', 'client_secret', 'api_key', 'private_key', 'token', 'access_token'];
-        foreach ($forbidden as $key) {
-            if (array_key_exists($key, $config)) {
-                throw new \InvalidArgumentException('Do not store raw secret field '.$key.' in Türkiye integration config; use a *_reference field.');
-            }
-        }
-        return $config;
     }
 }
