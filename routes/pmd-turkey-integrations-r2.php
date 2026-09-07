@@ -167,15 +167,14 @@ App::before(function () {
                     if (is_string($value)) $clean[$key] = trim($value);
                 }
 
-                // Safe defaults reduce duplicate config while keeping activation fail-closed.
                 if (in_array($code, ['acquirer', 'fast_request', 'tr_qr_fast', 'ispay'], true)) {
-                    $clean['provider'] = $clean['provider'] ?: 'isbank';
+                    $clean['provider'] = trim((string)($clean['provider'] ?? '')) ?: 'isbank';
                     $clean['provider_connection_code'] = 'isbank_api';
-                    $clean['environment'] = $clean['environment'] ?: 'uat';
+                    $clean['environment'] = trim((string)($clean['environment'] ?? '')) ?: 'uat';
                 }
                 if ($code === 'isbank_api') {
-                    $clean['environment'] = $clean['environment'] ?: 'uat';
-                    $clean['auth_mode'] = $clean['auth_mode'] ?: 'client_credentials';
+                    $clean['environment'] = trim((string)($clean['environment'] ?? '')) ?: 'uat';
+                    $clean['auth_mode'] = trim((string)($clean['auth_mode'] ?? '')) ?: 'client_credentials';
                 }
 
                 $saved[$code] = $service->configure($code, $clean, $locationId);
