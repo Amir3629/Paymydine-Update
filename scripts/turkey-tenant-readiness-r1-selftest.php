@@ -87,6 +87,7 @@ foreach ([
     'App\\Services\\Turkey\\TurkeyPaymentMethodService',
     'App\\Services\\Turkey\\TurkeyPaymentArchitectureService',
     'App\\Services\\Turkey\\TurkeyInvoiceRoutingService',
+    'App\\Services\\Turkey\\TurkeyTerminalRegistryService',
     'App\\Services\\Turkey\\IsBankApiClient',
     'App\\Services\\Turkey\\YemeksepetiPartnerClient',
     'App\\Services\\Turkey\\TurkeyMarketplaceGatewayService',
@@ -103,6 +104,8 @@ $assert(is_file($root.'/app/admin/views/pmdfinance/index.blade.php'), 'Missing P
 $assert(is_file($root.'/app/admin/controllers/Pmddevices.php'), 'Missing Devices controller source.');
 $assert(is_file($root.'/app/admin/views/pmddevices/index.blade.php'), 'Missing Devices view source.');
 $assert(is_file($root.'/app/admin/controllers/Pmdturkey.php'), 'Missing legacy Türkiye redirect controller source.');
+$assert(is_file($root.'/routes/pmd-turkey-integrations-r2.php'), 'Missing Türkiye R2 integration route source.');
+$assert(is_file($root.'/app/admin/assets/js/pmd-owner-settings-v1.js'), 'Missing owner settings JS source.');
 
 if ($failures) {
     fwrite(STDERR, "TURKEY TENANT READINESS R1 SELFTEST FAILED\n");
@@ -114,9 +117,10 @@ echo "TURKEY TENANT READINESS R1 SELFTEST OK\n";
 echo "TR: Europe/Istanbul | TRY(2) | tr,en\n";
 echo "Turkey provider catalogue: İş Bankası candidate; methods remain disabled until real activation\n";
 echo "Turkey card model: one Card method | terminal / SoftPOS / online channels | tap/chip are entry modes\n";
+echo "Turkey terminal model: bank/provider != hardware manufacturer; endpoint registry present\n";
 echo "Turkey fiscal modes: YN ÖKC OR approved GMÖEBYS\n";
 echo "Turkey invoices: YN ÖKC fiş | e-Fatura | e-Arşiv routing modeled\n";
-echo "İş Bankası API: UAT OAuth/mTLS client present; real product subscriptions/scopes required\n";
+echo "İş Bankası API: UAT OAuth/mTLS client + authenticated settings/test routes present\n";
 echo "Turkey checkout: card | FAST Request-to-Pay | FAST/TR QR | optional İşPay | cash\n";
 echo "Yemeksepeti: official sandbox client present; credentials required\n";
 echo "PMD-wide secret references: env:/config: supported; raw new-integration secrets rejected\n";
