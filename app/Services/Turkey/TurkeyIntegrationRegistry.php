@@ -11,7 +11,7 @@ namespace App\Services\Turkey;
  */
 final class TurkeyIntegrationRegistry
 {
-    public const VERSION = '1.1.0';
+    public const VERSION = '1.2.0';
 
     public function integrations(): array
     {
@@ -28,6 +28,17 @@ final class TurkeyIntegrationRegistry
                     'certification_status',
                 ],
             ],
+            'gmoebys' => [
+                'label' => 'GMÖEBYS secure mobile payment + e-document fiscal route',
+                'kind' => 'fiscal',
+                'priority' => 1,
+                'regulated' => true,
+                'default_status' => 'approved_provider_required',
+                'required_config' => [
+                    'provider', 'merchant_identifier', 'environment',
+                    'credential_reference', 'activation_status', 'approval_reference',
+                ],
+            ],
             'e_document' => [
                 'label' => 'GİB e-Fatura / e-Arşiv provider',
                 'kind' => 'fiscal_document',
@@ -39,6 +50,18 @@ final class TurkeyIntegrationRegistry
                     'credential_reference', 'activation_status',
                 ],
             ],
+            'isbank_api' => [
+                'label' => 'Türkiye İş Bankası API connection',
+                'kind' => 'payment_provider_connection',
+                'priority' => 1,
+                'regulated' => true,
+                'default_status' => 'uat_subscription_required',
+                'required_config' => [
+                    'environment', 'client_id', 'client_secret_reference',
+                    'auth_mode', 'scope', 'mtls_certificate_path',
+                    'mtls_private_key_reference', 'subscription_status',
+                ],
+            ],
             'acquirer' => [
                 'label' => 'Turkish acquirer / TCMB-authorized PSP',
                 'kind' => 'payment',
@@ -47,7 +70,7 @@ final class TurkeyIntegrationRegistry
                 'default_status' => 'partner_required',
                 'required_config' => [
                     'provider', 'merchant_id', 'environment',
-                    'credential_reference', 'contract_status',
+                    'provider_connection_code', 'contract_status',
                 ],
             ],
             'tr_qr_fast' => [
@@ -58,7 +81,7 @@ final class TurkeyIntegrationRegistry
                 'default_status' => 'partner_required',
                 'required_config' => [
                     'provider', 'merchant_id', 'environment',
-                    'credential_reference', 'activation_status',
+                    'provider_connection_code', 'activation_status',
                 ],
             ],
             'fast_request' => [
@@ -69,7 +92,18 @@ final class TurkeyIntegrationRegistry
                 'default_status' => 'partner_required',
                 'required_config' => [
                     'provider', 'merchant_id', 'environment',
-                    'credential_reference', 'activation_status',
+                    'provider_connection_code', 'activation_status',
+                ],
+            ],
+            'ispay' => [
+                'label' => 'İş\'le Öde',
+                'kind' => 'payment_method',
+                'priority' => 2,
+                'regulated' => true,
+                'default_status' => 'optional_api_subscription_required',
+                'required_config' => [
+                    'provider', 'merchant_id', 'environment',
+                    'provider_connection_code', 'activation_status',
                 ],
             ],
             'yemeksepeti' => [
