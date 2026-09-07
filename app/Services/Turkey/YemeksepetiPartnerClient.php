@@ -59,7 +59,7 @@ final class YemeksepetiPartnerClient
     {
         $chainId = $this->required($config, 'chain_id');
         $status = strtoupper(trim((string)($payload['status'] ?? '')));
-        if (!in_array($status, ['CANCELLED', 'READY_FOR_PICKUP', 'UPDATE_CART'], true)) {
+        if (!in_array($status, ['CANCELLED', 'DISPATCHED', 'READY_FOR_PICKUP', 'UPDATE_CART'], true)) {
             throw new \InvalidArgumentException('Unsupported Yemeksepeti order update status.');
         }
         $payload['status'] = $status;
