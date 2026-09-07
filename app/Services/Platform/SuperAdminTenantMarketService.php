@@ -2,20 +2,21 @@
 
 namespace App\Services\Platform;
 
+use App\Services\Integrations\TenantIntegrationSecretSchemaService;
 use App\Services\Turkey\TurkeyTenantProvisioningService;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 /**
- * PMD_SUPERADMIN_TENANT_MARKET_R5
+ * PMD_SUPERADMIN_TENANT_MARKET_R6
  *
  * Central-control-plane bridge for applying country/customer-language state to
  * one tenant DB. Every operation switches database context explicitly and
  * ALWAYS restores the central database.
  *
- * Türkiye tenants receive their Turkey-only integration domain automatically.
- * Other country tenants are never provisioned with pmd_tr_* tables/state.
+ * Common integration-security provisioning is applied to EVERY tenant market.
+ * Türkiye then receives its additional fiscal/market-specific domain.
  */
 final class SuperAdminTenantMarketService
 {
@@ -30,6 +31,18 @@ final class SuperAdminTenantMarketService
                 (array)($result['warnings'] ?? []),
                 (array)($customerLanguages['warnings'] ?? [])
             )));
+
+            // PMD_COMMON_INTEGRATION_PROVISIONING_R1
+            // This is intentionally country-neutral. Germany, Oman, Canada,
+            // Türkiye and future markets all receive the same secure reference
+            // store. Country-specific domains are layered on top afterwards.
+            try {
+                $result['integration_security'] = (new TenantIntegrationSecretSchemaService())->ensure('mysql');
+            } catch (\Throwable $error) {
+                $result['integration_security'] = ['table' => false, 'error' => $error->getMessage()];
+                $result['warnings'][] = 'Common integration-security provisioning failed: '.$error->getMessage();
+                $result['warnings'] = array_values(array_unique($result['warnings']));
+            }
 
             $countryCode = (new CountryPlatformProfileRegistry())->normalizeCountry($country);
             if ($countryCode === CountryPlatformProfileRegistry::TURKEY) {
