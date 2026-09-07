@@ -10,6 +10,7 @@ if (!is_file($autoload)) {
 }
 require $autoload;
 
+use App\Services\Integrations\SecretReferenceService;
 use App\Services\Platform\CountryPlatformProfileRegistry;
 use App\Services\Turkey\TurkeyIntegrationRegistry;
 
@@ -34,25 +35,43 @@ $assert((array)($tr['terminals']['providers'] ?? []) === [], 'Türkiye terminal 
 
 $registry = new TurkeyIntegrationRegistry();
 $integrations = $registry->integrations();
-foreach (['yn_okc', 'e_document', 'acquirer', 'tr_qr_fast', 'yemeksepeti', 'uber_trendyol_go', 'iys', 'sms', 'whatsapp', 'accounting'] as $code) {
+foreach (['yn_okc', 'e_document', 'acquirer', 'tr_qr_fast', 'fast_request', 'yemeksepeti', 'uber_trendyol_go', 'iys', 'sms', 'whatsapp', 'accounting'] as $code) {
     $assert(isset($integrations[$code]), 'Missing Türkiye integration definition: '.$code);
 }
 $assert(($integrations['yn_okc']['regulated'] ?? false) === true, 'YN ÖKC must be marked regulated.');
 $assert(($integrations['acquirer']['regulated'] ?? false) === true, 'Acquirer must be marked regulated.');
+$assert(($integrations['fast_request']['regulated'] ?? false) === true, 'FAST Request-to-Pay must be marked regulated.');
 $assert(($integrations['getiryemek']['default_status'] ?? '') === 'do_not_start_new_connector', 'GetirYemek must remain a legacy/no-new-connector path.');
 
+$secrets = new SecretReferenceService();
+$assert($secrets->normalize('env:PMD_TR_TEST_SECRET') === 'env:PMD_TR_TEST_SECRET', 'env secret reference normalization failed.');
+$assert($secrets->normalize('config:services.turkey.test.secret') === 'config:services.turkey.test.secret', 'config secret reference normalization failed.');
+$assert($secrets->sanitizeConfig(['credential_reference' => 'env:PMD_TR_TEST_SECRET'])['credential_reference'] === 'env:PMD_TR_TEST_SECRET', 'credential reference sanitization failed.');
+$assert($secrets->sanitizeConfig(['contract_reference' => 'CONTRACT-123'])['contract_reference'] === 'CONTRACT-123', 'non-secret document reference must remain allowed.');
+try {
+    $secrets->sanitizeConfig(['client_secret' => 'raw-secret']);
+    $failures[] = 'Raw client_secret must be rejected.';
+} catch (\InvalidArgumentException) {
+}
+
 foreach ([
+    'App\\Services\\Integrations\\SecretReferenceService',
+    'App\\Services\\Integrations\\TenantIntegrationSecretSchemaService',
+    'App\\Services\\Integrations\\IntegrationSecretReferenceRepository',
     'App\\Services\\Turkey\\TurkeyTenantContext',
     'App\\Services\\Turkey\\TurkeyTenantProvisioningService',
     'App\\Services\\Turkey\\TurkeyIntegrationConfigurationService',
     'App\\Services\\Turkey\\TurkeyReadinessService',
+    'App\\Services\\Turkey\\TurkeyPaymentMethodService',
+    'App\\Services\\Turkey\\YemeksepetiPartnerClient',
     'App\\Services\\Turkey\\TurkeyMarketplaceGatewayService',
     'App\\Services\\Turkey\\TurkeyInventoryService',
     'App\\Services\\Turkey\\TurkeyLoyaltyService',
     'App\\Services\\Turkey\\TurkeyFiscalStateService',
     'App\\Services\\Turkey\\TurkeyEdgeEventService',
+    'Admin\\Controllers\\Pmdturkey',
 ] as $class) {
-    $assert(class_exists($class), 'Missing Türkiye service class: '.$class);
+    $assert(class_exists($class), 'Missing Türkiye/readiness class: '.$class);
 }
 
 if ($failures) {
@@ -64,4 +83,7 @@ if ($failures) {
 echo "TURKEY TENANT READINESS R1 SELFTEST OK\n";
 echo "TR: Europe/Istanbul | TRY(2) | tr,en\n";
 echo "Turkey payments/terminals: fail-closed until partner approval\n";
-echo "Turkey domains: fiscal, marketplace, inventory, loyalty/consent, edge\n";
+echo "Turkey checkout: card | FAST Request-to-Pay | FAST/TR QR | cash\n";
+echo "Yemeksepeti: official sandbox client present; credentials required\n";
+echo "PMD-wide secret references: env:/config: supported; raw new-integration secrets rejected\n";
+echo "Turkey settings: /admin/pmdturkey\n";
