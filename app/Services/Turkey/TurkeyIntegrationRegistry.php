@@ -3,15 +3,15 @@
 namespace App\Services\Turkey;
 
 /**
- * Turkey integration catalogue.
+ * Türkiye integration catalogue.
  *
- * This registry deliberately separates product eligibility from real-world
- * activation. Regulated/private integrations remain disabled until the tenant
- * has the required commercial credentials, devices and approvals.
+ * Product eligibility is separate from real-world activation. Regulated or
+ * private integrations remain disabled until the restaurant has real partner
+ * credentials, contracts/devices and any required approval/certification.
  */
 final class TurkeyIntegrationRegistry
 {
-    public const VERSION = '1.0.0';
+    public const VERSION = '1.1.0';
 
     public function integrations(): array
     {
@@ -29,12 +29,15 @@ final class TurkeyIntegrationRegistry
                 ],
             ],
             'e_document' => [
-                'label' => 'GİB e-Fatura / e-Arşiv adapter',
+                'label' => 'GİB e-Fatura / e-Arşiv provider',
                 'kind' => 'fiscal_document',
                 'priority' => 1,
                 'regulated' => true,
                 'default_status' => 'partner_required',
-                'required_config' => ['provider', 'merchant_identifier', 'activation_status'],
+                'required_config' => [
+                    'provider', 'merchant_identifier', 'environment',
+                    'credential_reference', 'activation_status',
+                ],
             ],
             'acquirer' => [
                 'label' => 'Turkish acquirer / TCMB-authorized PSP',
@@ -42,15 +45,32 @@ final class TurkeyIntegrationRegistry
                 'priority' => 1,
                 'regulated' => true,
                 'default_status' => 'partner_required',
-                'required_config' => ['provider', 'merchant_id', 'contract_status'],
+                'required_config' => [
+                    'provider', 'merchant_id', 'environment',
+                    'credential_reference', 'contract_status',
+                ],
             ],
             'tr_qr_fast' => [
-                'label' => 'TR Karekod / FAST merchant payment',
+                'label' => 'FAST / TR Karekod merchant payment',
                 'kind' => 'payment_method',
                 'priority' => 1,
                 'regulated' => true,
                 'default_status' => 'partner_required',
-                'required_config' => ['provider', 'merchant_id', 'activation_status'],
+                'required_config' => [
+                    'provider', 'merchant_id', 'environment',
+                    'credential_reference', 'activation_status',
+                ],
+            ],
+            'fast_request' => [
+                'label' => 'FAST Ödeme İste (Request to Pay)',
+                'kind' => 'payment_method',
+                'priority' => 1,
+                'regulated' => true,
+                'default_status' => 'partner_required',
+                'required_config' => [
+                    'provider', 'merchant_id', 'environment',
+                    'credential_reference', 'activation_status',
+                ],
             ],
             'yemeksepeti' => [
                 'label' => 'Yemeksepeti Partner API',
@@ -58,7 +78,10 @@ final class TurkeyIntegrationRegistry
                 'priority' => 1,
                 'regulated' => false,
                 'default_status' => 'commercial_access_required',
-                'required_config' => ['client_id', 'client_secret_reference', 'merchant_or_partner_id'],
+                'required_config' => [
+                    'environment', 'client_id', 'client_secret_reference',
+                    'merchant_or_partner_id', 'chain_id', 'vendor_id',
+                ],
             ],
             'uber_trendyol_go' => [
                 'label' => 'Uber / Trendyol Go restaurant integration',
@@ -77,12 +100,15 @@ final class TurkeyIntegrationRegistry
                 'required_config' => [],
             ],
             'iys' => [
-                'label' => 'İYS consent synchronization',
+                'label' => 'İYS marketing-consent synchronization',
                 'kind' => 'consent',
                 'priority' => 2,
                 'regulated' => true,
                 'default_status' => 'authorized_integrator_required',
-                'required_config' => ['integrator', 'brand_or_legal_entity', 'contract_status'],
+                'required_config' => [
+                    'integrator', 'brand_or_legal_entity', 'environment',
+                    'credential_reference', 'contract_status',
+                ],
             ],
             'sms' => [
                 'label' => 'Transactional SMS / OTP provider',
