@@ -62,7 +62,7 @@ final class TurkeyIntegrationConfigurationService
     }
 
     /**
-     * Record a network/sandbox test without pretending that commercial or
+     * Record a network/UAT/sandbox test without pretending that commercial or
      * regulatory production approval exists.
      */
     public function recordTestResult(string $code, bool $ok, ?string $error = null, ?int $locationId = null): array
@@ -77,9 +77,15 @@ final class TurkeyIntegrationConfigurationService
 
         $config = json_decode((string)($row->config_json ?? ''), true) ?: [];
         $environment = strtolower(trim((string)($config['environment'] ?? '')));
-        $status = $ok
-            ? ($environment === 'production' ? 'connection_test_passed_not_approved' : 'sandbox_test_passed')
-            : 'connection_test_failed';
+        if (!$ok) {
+            $status = 'connection_test_failed';
+        } elseif ($environment === 'production') {
+            $status = 'connection_test_passed_not_approved';
+        } elseif ($environment === 'uat') {
+            $status = 'uat_test_passed';
+        } else {
+            $status = 'sandbox_test_passed';
+        }
 
         DB::table('pmd_tr_integrations')
             ->where('id', $row->id)
@@ -97,8 +103,8 @@ final class TurkeyIntegrationConfigurationService
 
     /**
      * Production activation is explicit and fail-closed. Calling configure()
-     * or passing a sandbox connection test never makes a regulated/private
-     * integration live.
+     * or passing a non-production connection test never makes a regulated/
+     * private integration live.
      */
     public function markVerified(string $code, array $evidence, ?int $locationId = null): array
     {
