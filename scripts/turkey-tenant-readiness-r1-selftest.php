@@ -69,10 +69,14 @@ foreach ([
     'App\\Services\\Turkey\\TurkeyLoyaltyService',
     'App\\Services\\Turkey\\TurkeyFiscalStateService',
     'App\\Services\\Turkey\\TurkeyEdgeEventService',
-    'Admin\\Controllers\\Pmdturkey',
 ] as $class) {
     $assert(class_exists($class), 'Missing Türkiye/readiness class: '.$class);
 }
+
+// Admin controllers are framework-loaded by the Admin module rather than the
+// root App\\ PSR-4 map, so the CLI selftest verifies the source file directly.
+$assert(is_file($root.'/app/admin/controllers/Pmdturkey.php'), 'Missing Türkiye settings controller source.');
+$assert(is_file($root.'/app/admin/views/pmdturkey/index.blade.php'), 'Missing Türkiye settings view source.');
 
 if ($failures) {
     fwrite(STDERR, "TURKEY TENANT READINESS R1 SELFTEST FAILED\n");
