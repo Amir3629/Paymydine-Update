@@ -62,8 +62,43 @@ final class TurkeyIntegrationConfigurationService
     }
 
     /**
+     * Record a network/sandbox test without pretending that commercial or
+     * regulatory production approval exists.
+     */
+    public function recordTestResult(string $code, bool $ok, ?string $error = null, ?int $locationId = null): array
+    {
+        $state = $this->context->requireTurkey($locationId);
+        $locationId = (int)($state['location_id'] ?? 0);
+        $row = DB::table('pmd_tr_integrations')
+            ->where('location_id', $locationId ?: null)
+            ->where('code', strtolower($code))
+            ->first();
+        if (!$row) throw new \RuntimeException('Integration must be configured before it can be tested.');
+
+        $config = json_decode((string)($row->config_json ?? ''), true) ?: [];
+        $environment = strtolower(trim((string)($config['environment'] ?? '')));
+        $status = $ok
+            ? ($environment === 'production' ? 'connection_test_passed_not_approved' : 'sandbox_test_passed')
+            : 'connection_test_failed';
+
+        DB::table('pmd_tr_integrations')
+            ->where('id', $row->id)
+            ->update([
+                'status' => $status,
+                'enabled' => 0,
+                'production_ready' => 0,
+                'last_verified_at' => $ok ? now() : ($row->last_verified_at ?? null),
+                'last_error' => $ok ? null : mb_substr((string)$error, 0, 1500),
+                'updated_at' => now(),
+            ]);
+
+        return $this->state($code, $locationId);
+    }
+
+    /**
      * Production activation is explicit and fail-closed. Calling configure()
-     * never makes a regulated/private integration live.
+     * or passing a sandbox connection test never makes a regulated/private
+     * integration live.
      */
     public function markVerified(string $code, array $evidence, ?int $locationId = null): array
     {
