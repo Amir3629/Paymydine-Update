@@ -40,13 +40,17 @@ final class TurkeyReadinessService
             }
         }
 
-        $requiredForPilot = ['yn_okc', 'acquirer'];
-        $recommendedForPilot = ['e_document', 'yemeksepeti'];
+        $ynOkcReady = (bool)($integrationRows['yn_okc']['production_ready'] ?? false);
+        $gmoebysReady = (bool)($integrationRows['gmoebys']['production_ready'] ?? false);
+        $fiscalReady = $ynOkcReady || $gmoebysReady;
+        $acquirerReady = (bool)($integrationRows['acquirer']['production_ready'] ?? false);
+
         $blockers = [];
-        foreach ($requiredForPilot as $code) {
-            if (!(bool)($integrationRows[$code]['production_ready'] ?? false)) {
-                $blockers[] = $code.' is not production-ready.';
-            }
+        if (!$fiscalReady) {
+            $blockers[] = 'No Türkiye fiscal route is production-ready (YN ÖKC or approved GMÖEBYS).';
+        }
+        if (!$acquirerReady) {
+            $blockers[] = 'acquirer is not production-ready.';
         }
         if (in_array(false, $tables, true)) {
             $blockers[] = 'Türkiye tenant schema is incomplete.';
@@ -58,11 +62,20 @@ final class TurkeyReadinessService
             'schema_ready' => !in_array(false, $tables, true),
             'tables' => $tables,
             'integrations' => $integrationRows,
-            'required_for_pilot' => $requiredForPilot,
-            'recommended_for_pilot' => $recommendedForPilot,
+            'fiscal' => [
+                'ready' => $fiscalReady,
+                'yn_okc_ready' => $ynOkcReady,
+                'gmoebys_ready' => $gmoebysReady,
+                'accepted_modes' => ['yn_okc', 'gmoebys'],
+            ],
+            'required_for_pilot' => [
+                'fiscal_any_of' => ['yn_okc', 'gmoebys'],
+                'payment' => ['acquirer'],
+            ],
+            'recommended_for_pilot' => ['e_document', 'yemeksepeti'],
             'pilot_ready' => $blockers === [],
             'blockers' => $blockers,
-            'note' => 'pilot_ready only reflects PMD-recorded configuration/evidence. Real fiscal/payment approval remains authoritative at the selected Turkish partner/manufacturer.',
+            'note' => 'pilot_ready only reflects PMD-recorded configuration/evidence. Real Turkish fiscal/payment approval from the selected bank/PSP/device/GMÖEBYS provider remains authoritative.',
         ];
     }
 }
