@@ -18,6 +18,9 @@ use Illuminate\Support\Facades\Http;
  * - OAuth token endpoint: /api/isbank/v1/identity-provider/oauth2/token
  * - API security uses OAuth 2.0 + mutual TLS.
  * - App security uses client_credentials; S2S security uses password grant.
+ * - Customer-login Security uses authorization_code + PKCE.
+ * - Requests include X-Client-Certificate matching the certificate registered
+ *   in the İş Bankası portal.
  *
  * Product-specific operation paths/scopes are intentionally NOT guessed. They
  * are supplied by the subscribed İş Bankası API product in the merchant's UAT
@@ -101,6 +104,40 @@ final class IsBankApiClient
         return $token;
     }
 
+    /** Exchange an authorization code for APIs that explicitly use customer login. */
+    public function exchangeAuthorizationCode(
+        array $config,
+        string $code,
+        string $redirectUri,
+        string $codeVerifier,
+        ?string $scope = null
+    ): array {
+        $clientId = $this->required($config, 'client_id');
+        $clientSecret = $this->secrets->resolve($this->required($config, 'client_secret_reference'));
+        if ($clientSecret === '') throw new \RuntimeException('İş Bankası client secret could not be resolved.');
+
+        $payload = [
+            'grant_type' => 'authorization_code',
+            'client_id' => $clientId,
+            'client_secret' => $clientSecret,
+            'redirect_uri' => trim($redirectUri),
+            'code' => trim($code),
+            'code_verifier' => trim($codeVerifier),
+        ];
+        $scope = trim((string)$scope);
+        if ($scope !== '') $payload['scope'] = $scope;
+
+        if ($payload['redirect_uri'] === '' || $payload['code'] === '' || $payload['code_verifier'] === '') {
+            throw new \InvalidArgumentException('İş Bankası authorization-code exchange requires redirect_uri, code and code_verifier.');
+        }
+
+        $response = $this->baseRequest($config)
+            ->asForm()
+            ->post($this->baseUrl($config).self::TOKEN_PATH, $payload);
+
+        return $this->jsonOrThrow($response, 'İş Bankası authorization-code exchange');
+    }
+
     /**
      * Call an operation path copied from the subscribed UAT/Production API spec.
      * This keeps PMD provider-complete without inventing private/undocumented
@@ -161,6 +198,19 @@ final class IsBankApiClient
         if ($certificatePath === '' || $privateKeyPath === '') {
             throw new \RuntimeException('İş Bankası UAT/Production requires mTLS certificate path and private-key reference.');
         }
+        if (!is_file($certificatePath) || !is_readable($certificatePath)) {
+            throw new \RuntimeException('İş Bankası mTLS certificate file is not readable: '.$certificatePath);
+        }
+        if (!is_file($privateKeyPath) || !is_readable($privateKeyPath)) {
+            throw new \RuntimeException('İş Bankası mTLS private-key file is not readable.');
+        }
+
+        $certificatePem = (string)file_get_contents($certificatePath);
+        $certificateHeader = preg_replace('/-----BEGIN CERTIFICATE-----|-----END CERTIFICATE-----|\s+/', '', $certificatePem);
+        $certificateHeader = trim((string)$certificateHeader);
+        if ($certificateHeader === '') {
+            throw new \RuntimeException('İş Bankası certificate could not be converted to X-Client-Certificate format.');
+        }
 
         $sslKey = $privateKeyPassword !== '' ? [$privateKeyPath, $privateKeyPassword] : $privateKeyPath;
 
@@ -168,6 +218,7 @@ final class IsBankApiClient
                 'cert' => $certificatePath,
                 'ssl_key' => $sslKey,
             ])
+            ->withHeaders(['X-Client-Certificate' => $certificateHeader])
             ->timeout(25)
             ->connectTimeout(10);
     }
