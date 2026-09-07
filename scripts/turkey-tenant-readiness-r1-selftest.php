@@ -13,6 +13,8 @@ require $autoload;
 use App\Services\Integrations\SecretReferenceService;
 use App\Services\Platform\CountryPlatformProfileRegistry;
 use App\Services\Turkey\TurkeyIntegrationRegistry;
+use App\Services\Turkey\TurkeyInvoiceRoutingService;
+use App\Services\Turkey\TurkeyPaymentArchitectureService;
 
 $failures = [];
 $assert = static function (bool $condition, string $message) use (&$failures): void {
@@ -28,18 +30,40 @@ $assert(($tr['currency']['minor_exponent'] ?? null) === 2, 'TRY exponent must be
 $assert(in_array('tr', (array)($tr['languages']['eligible'] ?? []), true), 'Turkish language must be eligible.');
 $assert(in_array('en', (array)($tr['languages']['eligible'] ?? []), true), 'English language must be eligible.');
 
-$assert((array)($tr['payments']['providers'] ?? []) === [], 'Türkiye provider catalogue must remain fail-closed until partner integration is reviewed.');
-$assert((array)($tr['terminals']['providers'] ?? []) === [], 'Türkiye terminal catalogue must remain fail-closed until fiscal/payment device integration is reviewed.');
+$providers = (array)($tr['payments']['providers'] ?? []);
+$methods = (array)($tr['payments']['methods'] ?? []);
+$terminals = (array)($tr['terminals']['providers'] ?? []);
+$assert(isset($providers['isbank']), 'Türkiye must expose İş Bankası as an eligible provider candidate.');
+$assert(isset($terminals['isbank']), 'Türkiye must expose İş Bankası terminal-management capability.');
+foreach (['tr_card', 'tr_fast_request', 'tr_tr_qr', 'tr_ispay', 'tr_cash'] as $code) {
+    $assert(isset($methods[$code]), 'Missing Türkiye payment method catalogue row: '.$code);
+    $assert(($methods[$code]['runtime_offerable'] ?? true) === false, 'New Türkiye catalogue methods must stay disabled until provider activation.');
+}
 
 $registry = new TurkeyIntegrationRegistry();
 $integrations = $registry->integrations();
-foreach (['yn_okc', 'e_document', 'acquirer', 'tr_qr_fast', 'fast_request', 'yemeksepeti', 'uber_trendyol_go', 'iys', 'sms', 'whatsapp', 'accounting'] as $code) {
+foreach (['yn_okc', 'gmoebys', 'e_document', 'isbank_api', 'acquirer', 'tr_qr_fast', 'fast_request', 'ispay', 'yemeksepeti', 'uber_trendyol_go', 'iys', 'sms', 'whatsapp', 'accounting'] as $code) {
     $assert(isset($integrations[$code]), 'Missing Türkiye integration definition: '.$code);
 }
 $assert(($integrations['yn_okc']['regulated'] ?? false) === true, 'YN ÖKC must be marked regulated.');
+$assert(($integrations['gmoebys']['regulated'] ?? false) === true, 'GMÖEBYS must be marked regulated.');
+$assert(($integrations['isbank_api']['regulated'] ?? false) === true, 'İş Bankası API connection must be marked regulated.');
 $assert(($integrations['acquirer']['regulated'] ?? false) === true, 'Acquirer must be marked regulated.');
 $assert(($integrations['fast_request']['regulated'] ?? false) === true, 'FAST Request-to-Pay must be marked regulated.');
 $assert(($integrations['getiryemek']['default_status'] ?? '') === 'do_not_start_new_connector', 'GetirYemek must remain a legacy/no-new-connector path.');
+
+$architecture = new TurkeyPaymentArchitectureService();
+$catalogue = $architecture->methods();
+$assert(isset($catalogue['card'], $catalogue['fast_request'], $catalogue['tr_qr_fast'], $catalogue['cash']), 'Turkey payment architecture catalogue is incomplete.');
+$assert(in_array('contactless', (array)($catalogue['card']['entry_modes'] ?? []), true), 'Card must support contactless entry mode.');
+$assert(in_array('chip', (array)($catalogue['card']['entry_modes'] ?? []), true), 'Card must support chip/insert entry mode.');
+$assert(in_array('softpos', (array)($catalogue['card']['channels'] ?? []), true), 'Card must model SoftPOS as a channel, not a separate payment method.');
+$assert(isset($architecture->fiscalModes()['yn_okc'], $architecture->fiscalModes()['gmoebys']), 'Both Turkey fiscal modes must be modeled.');
+
+$invoice = new TurkeyInvoiceRoutingService();
+$assert($invoice->route(false, 'yn_okc') === 'yn_okc_fis', 'Ordinary YN ÖKC sale must route to fiscal receipt.');
+$assert($invoice->route(true, 'yn_okc', true) === 'e_fatura', 'Registered invoice recipient must route to e-Fatura.');
+$assert($invoice->route(true, 'yn_okc', false) === 'e_arsiv', 'Non-registered invoice recipient must route to e-Arşiv.');
 
 $secrets = new SecretReferenceService();
 $assert($secrets->normalize('env:PMD_TR_TEST_SECRET') === 'env:PMD_TR_TEST_SECRET', 'env secret reference normalization failed.');
@@ -61,6 +85,9 @@ foreach ([
     'App\\Services\\Turkey\\TurkeyIntegrationConfigurationService',
     'App\\Services\\Turkey\\TurkeyReadinessService',
     'App\\Services\\Turkey\\TurkeyPaymentMethodService',
+    'App\\Services\\Turkey\\TurkeyPaymentArchitectureService',
+    'App\\Services\\Turkey\\TurkeyInvoiceRoutingService',
+    'App\\Services\\Turkey\\IsBankApiClient',
     'App\\Services\\Turkey\\YemeksepetiPartnerClient',
     'App\\Services\\Turkey\\TurkeyMarketplaceGatewayService',
     'App\\Services\\Turkey\\TurkeyInventoryService',
@@ -71,8 +98,6 @@ foreach ([
     $assert(class_exists($class), 'Missing Türkiye/readiness class: '.$class);
 }
 
-// Türkiye owner UI is now merged into the existing settings information
-// architecture instead of exposing a separate country settings page.
 $assert(is_file($root.'/app/admin/controllers/Pmdfinance.php'), 'Missing Payments & finance controller source.');
 $assert(is_file($root.'/app/admin/views/pmdfinance/index.blade.php'), 'Missing Payments & finance view source.');
 $assert(is_file($root.'/app/admin/controllers/Pmddevices.php'), 'Missing Devices controller source.');
@@ -87,8 +112,12 @@ if ($failures) {
 
 echo "TURKEY TENANT READINESS R1 SELFTEST OK\n";
 echo "TR: Europe/Istanbul | TRY(2) | tr,en\n";
-echo "Turkey payments/terminals: fail-closed until partner approval\n";
-echo "Turkey checkout: card | FAST Request-to-Pay | FAST/TR QR | cash\n";
+echo "Turkey provider catalogue: İş Bankası candidate; methods remain disabled until real activation\n";
+echo "Turkey card model: one Card method | terminal / SoftPOS / online channels | tap/chip are entry modes\n";
+echo "Turkey fiscal modes: YN ÖKC OR approved GMÖEBYS\n";
+echo "Turkey invoices: YN ÖKC fiş | e-Fatura | e-Arşiv routing modeled\n";
+echo "İş Bankası API: UAT OAuth/mTLS client present; real product subscriptions/scopes required\n";
+echo "Turkey checkout: card | FAST Request-to-Pay | FAST/TR QR | optional İşPay | cash\n";
 echo "Yemeksepeti: official sandbox client present; credentials required\n";
 echo "PMD-wide secret references: env:/config: supported; raw new-integration secrets rejected\n";
 echo "Turkey settings UI: Payments & finance + Devices; /admin/pmdturkey redirects\n";
