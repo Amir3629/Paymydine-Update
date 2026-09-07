@@ -28,8 +28,6 @@ $assert(($tr['currency']['minor_exponent'] ?? null) === 2, 'TRY exponent must be
 $assert(in_array('tr', (array)($tr['languages']['eligible'] ?? []), true), 'Turkish language must be eligible.');
 $assert(in_array('en', (array)($tr['languages']['eligible'] ?? []), true), 'English language must be eligible.');
 
-// Payments remain deliberately fail-closed until real Turkish partners are
-// contracted and verified. This is a safety property, not a missing assertion.
 $assert((array)($tr['payments']['providers'] ?? []) === [], 'Türkiye provider catalogue must remain fail-closed until partner integration is reviewed.');
 $assert((array)($tr['terminals']['providers'] ?? []) === [], 'Türkiye terminal catalogue must remain fail-closed until fiscal/payment device integration is reviewed.');
 
@@ -73,10 +71,13 @@ foreach ([
     $assert(class_exists($class), 'Missing Türkiye/readiness class: '.$class);
 }
 
-// Admin controllers are framework-loaded by the Admin module rather than the
-// root App\\ PSR-4 map, so the CLI selftest verifies the source file directly.
-$assert(is_file($root.'/app/admin/controllers/Pmdturkey.php'), 'Missing Türkiye settings controller source.');
-$assert(is_file($root.'/app/admin/views/pmdturkey/index.blade.php'), 'Missing Türkiye settings view source.');
+// Türkiye owner UI is now merged into the existing settings information
+// architecture instead of exposing a separate country settings page.
+$assert(is_file($root.'/app/admin/controllers/Pmdfinance.php'), 'Missing Payments & finance controller source.');
+$assert(is_file($root.'/app/admin/views/pmdfinance/index.blade.php'), 'Missing Payments & finance view source.');
+$assert(is_file($root.'/app/admin/controllers/Pmddevices.php'), 'Missing Devices controller source.');
+$assert(is_file($root.'/app/admin/views/pmddevices/index.blade.php'), 'Missing Devices view source.');
+$assert(is_file($root.'/app/admin/controllers/Pmdturkey.php'), 'Missing legacy Türkiye redirect controller source.');
 
 if ($failures) {
     fwrite(STDERR, "TURKEY TENANT READINESS R1 SELFTEST FAILED\n");
@@ -90,4 +91,4 @@ echo "Turkey payments/terminals: fail-closed until partner approval\n";
 echo "Turkey checkout: card | FAST Request-to-Pay | FAST/TR QR | cash\n";
 echo "Yemeksepeti: official sandbox client present; credentials required\n";
 echo "PMD-wide secret references: env:/config: supported; raw new-integration secrets rejected\n";
-echo "Turkey settings: /admin/pmdturkey\n";
+echo "Turkey settings UI: Payments & finance + Devices; /admin/pmdturkey redirects\n";
