@@ -135,3 +135,8 @@ if (!function_exists('pmd_table_order_totals_from_order')) {
 if (file_exists(base_path('routes/pmd-market-language-switch-r1.php'))) {
     require_once base_path('routes/pmd-market-language-switch-r1.php');
 }
+
+// PMD_TURKEY_INTEGRATIONS_R2_LOADER
+if (file_exists(base_path('routes/pmd-turkey-integrations-r2.php'))) {
+    require_once base_path('routes/pmd-turkey-integrations-r2.php');
+}
