@@ -14,6 +14,10 @@ use Illuminate\Support\Facades\Config;
  *   env:PMD_TR_YEMEKSEPETI_CLIENT_SECRET
  *   config:services.payments.worldline.secret
  *
+ * Non-secret references such as contract_reference, certification_reference or
+ * business_account_reference are ordinary identifiers and are not interpreted
+ * as secret-manager pointers.
+ *
  * Existing encrypted provider storage remains a backwards-compatible legacy
  * path until each integration is migrated. New integration work should use
  * this service from day one.
@@ -35,6 +39,7 @@ final class SecretReferenceService
         'signing_key',
         'auth_key',
         'pin',
+        'credential',
     ];
 
     public function normalize(?string $reference): ?string
@@ -81,8 +86,9 @@ final class SecretReferenceService
     }
 
     /**
-     * Reject raw secret-shaped keys recursively. Keys ending in _reference are
-     * explicitly allowed and their values are validated as references.
+     * Reject raw secret-shaped keys recursively. Secret reference keys are
+     * validated as env:/config: pointers. Non-secret business/document
+     * references remain ordinary safe configuration values.
      */
     public function sanitizeConfig(array $config): array
     {
@@ -97,7 +103,7 @@ final class SecretReferenceService
                     continue;
                 }
 
-                if (str_ends_with($keyString, '_reference')) {
+                if ($this->isSecretReferenceKey($keyString)) {
                     $safe[$key] = $this->normalize((string)$value);
                     continue;
                 }
@@ -114,6 +120,15 @@ final class SecretReferenceService
         };
 
         return $walk($config);
+    }
+
+    public function isSecretReferenceKey(string $key): bool
+    {
+        $key = strtolower(trim($key));
+        if (!str_ends_with($key, '_reference')) return false;
+
+        $base = substr($key, 0, -strlen('_reference'));
+        return $this->isSecretKey($base);
     }
 
     public function isSecretKey(string $key): bool
