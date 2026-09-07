@@ -11,7 +11,14 @@ use Admin\Models\Kds_stations_model;
 use Admin\Models\Pos_configs_model;
 use Admin\Models\Pos_devices_model;
 use Admin\Models\Terminal_devices_model;
+use App\Services\Platform\CountryPlatformProfileRegistry;
+use App\Services\Platform\LocationPlatformContext;
+use App\Services\Turkey\TurkeyIntegrationConfigurationService;
+use App\Services\Turkey\TurkeyTenantContext;
+use App\Services\Turkey\TurkeyTenantProvisioningService;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 
 /**
  * PMD Devices & Hardware
@@ -73,6 +80,29 @@ class Pmddevices extends AdminController
             }
         } catch (\Throwable $e) {}
 
+        // PMD_TR_SETTINGS_MERGE_R2
+        // Physical/fiscal YN ÖKC configuration belongs in Devices, not on a
+        // second Türkiye-only settings page. Other markets never see this card.
+        $turkeyFiscal = null;
+        try {
+            $market = app(LocationPlatformContext::class)->state();
+            $country = strtoupper((string)($market['country_code'] ?? ''));
+            if ($country === CountryPlatformProfileRegistry::TURKEY) {
+                $locationId = (int)($market['location_id'] ?? 0);
+                if ($locationId < 1) $locationId = $this->turkeyLocationId();
+                app(TurkeyTenantProvisioningService::class)->ensure($locationId);
+                $service = app(TurkeyIntegrationConfigurationService::class);
+                $turkeyFiscal = [
+                    'location_id' => $locationId,
+                    'config' => $service->configuration('yn_okc', $locationId),
+                    'state' => $service->state('yn_okc', $locationId),
+                ];
+                $this->bodyClass = trim($this->bodyClass.' pmd-devices-market-tr');
+            }
+        } catch (\Throwable $error) {
+            logger()->warning('PMD Türkiye fiscal device settings load failed', ['message' => $error->getMessage()]);
+        }
+
         $this->vars['pmdDevices'] = [
             'pos' => $pos,
             'terminals' => $terminals,
@@ -82,6 +112,7 @@ class Pmddevices extends AdminController
             'biometric' => $biometric,
             'kds' => $kds,
             'integrations' => $integrations,
+            'turkey_fiscal' => $turkeyFiscal,
             'stats' => [
                 'pos' => $pos->count(),
                 'terminals' => $terminals->count(),
@@ -103,6 +134,34 @@ class Pmddevices extends AdminController
         ];
 
         return $this->makeView('pmddevices/index');
+    }
+
+    public function onSaveTurkeyFiscalDevice()
+    {
+        $locationId = $this->turkeyLocationId();
+        app(TurkeyTenantProvisioningService::class)->ensure($locationId);
+
+        $input = (array)post('turkey', []);
+        $values = (array)($input['fiscal'] ?? []);
+        $validator = Validator::make($values, [
+            'manufacturer' => ['nullable', 'string', 'max:120'],
+            'device_model' => ['nullable', 'string', 'max:120'],
+            'device_serial' => ['nullable', 'string', 'max:190'],
+            'integration_topology' => ['nullable', 'in:eft_pos_integrated,computer_connected'],
+            'security_agreement_reference' => ['nullable', 'string', 'max:500'],
+            'certification_status' => ['nullable', 'string', 'max:100'],
+        ]);
+        if ($validator->fails()) throw new ValidationException($validator);
+
+        $clean = $validator->validated();
+        foreach ($clean as $key => $value) {
+            if (is_string($value)) $clean[$key] = trim($value);
+        }
+
+        app(TurkeyIntegrationConfigurationService::class)->configure('yn_okc', $clean, $locationId);
+
+        flash()->success('Türkiye YN ÖKC device settings saved. This does not certify or activate a real device.');
+        return ['#pmd-tr-device-save-status' => '<span>Saved</span>'];
     }
 
     public function pos($mode = null, $recordId = null)
@@ -312,5 +371,15 @@ class Pmddevices extends AdminController
             logger()->warning('PMD devices query failed', ['table' => $table, 'message' => $error->getMessage()]);
             return collect();
         }
+    }
+
+    protected function turkeyLocationId(): int
+    {
+        $state = app(TurkeyTenantContext::class)->requireTurkey();
+        $locationId = (int)($state['location_id'] ?? 0);
+        if ($locationId < 1) {
+            throw new \RuntimeException('Unable to resolve the current Türkiye location.');
+        }
+        return $locationId;
     }
 }
