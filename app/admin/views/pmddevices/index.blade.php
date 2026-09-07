@@ -26,6 +26,7 @@
     $biometric = $data['biometric'] ?? collect();
     $kds = $data['kds'] ?? collect();
     $integrations = $data['integrations'] ?? collect();
+    $turkeyFiscal = $data['turkey_fiscal'] ?? null;
     $stats = $data['stats'] ?? ['pos'=>0,'terminals'=>0,'drawers'=>0,'kds'=>0,'biometric'=>0];
     $stats['terminals'] = $terminals->count();
 @endphp
@@ -72,7 +73,6 @@
                     <svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="14" rx="2"></rect><path d="M8 21h8M12 17v4"></path></svg>
                 </div>
                 <div class="pmd-owner-card__title"><h2>{{ $pmdSettingsText('POS devices') }}</h2><p>{{ $pmdSettingsText('Registers and local terminals that run PayMyDine POS.') }}</p></div>
-                
             </div>
             <div class="pmd-owner-card__body">
                 <div class="pmd-owner-list">
@@ -144,6 +144,45 @@
             </div>
         </div>
     </section>
+
+    @if($turkeyFiscal)
+        @php
+            $trFiscalConfig = (array)($turkeyFiscal['config'] ?? []);
+            $trFiscalState = (array)($turkeyFiscal['state'] ?? []);
+            $trFiscalStatus = str_replace('_', ' ', (string)($trFiscalState['status'] ?? 'partner required'));
+        @endphp
+        <section class="pmd-owner-section" id="turkey-fiscal-device">
+            <div class="pmd-owner-card" data-accent="blue">
+                <div class="pmd-owner-card__header">
+                    <div class="pmd-owner-card__icon"><svg viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"></rect><path d="M8 7h8M8 11h8M8 15h5"></path></svg></div>
+                    <div class="pmd-owner-card__title">
+                        <h2>Türkiye fiscal device (YN ÖKC)</h2>
+                        <p>Configure the government-approved fiscal device used by this Turkish restaurant. The combined EFT-POS type can also contain the physical card-payment POS in the same handheld device.</p>
+                    </div>
+                    <div class="pmd-owner-card__actions"><span class="pmd-owner-status {{ !empty($trFiscalState['production_ready']) ? 'is-active' : '' }}">{{ ucfirst($trFiscalStatus) }}</span></div>
+                </div>
+                <div class="pmd-owner-card__body">
+                    <div class="pmd-owner-empty" style="margin-bottom:16px">
+                        PayMyDine still runs tables, menu, orders and waiter workflows. YN ÖKC is the Turkish fiscal/payment hardware layer. Configure the bank/payment connection under <a href="{{ admin_url('pmdfinance') }}#turkey-payment-connections">Payments & finance</a>.
+                    </div>
+                    <form data-request="onSaveTurkeyFiscalDevice" data-request-flash>
+                        <div class="pmd-owner-form-grid">
+                            <div class="pmd-owner-field"><label>Manufacturer</label><input type="text" name="turkey[fiscal][manufacturer]" value="{{ e($trFiscalConfig['manufacturer'] ?? '') }}" placeholder="Worldline / TOKEN / VERA / Hugin / ..."></div>
+                            <div class="pmd-owner-field"><label>Device model</label><input type="text" name="turkey[fiscal][device_model]" value="{{ e($trFiscalConfig['device_model'] ?? '') }}" placeholder="Approved model / test device"></div>
+                            <div class="pmd-owner-field"><label>Device serial</label><input type="text" name="turkey[fiscal][device_serial]" value="{{ e($trFiscalConfig['device_serial'] ?? '') }}" placeholder="Physical or test device serial"></div>
+                            <div class="pmd-owner-field"><label>Device type</label><select name="turkey[fiscal][integration_topology]"><option value="">Choose later</option><option value="eft_pos_integrated" {{ ($trFiscalConfig['integration_topology'] ?? '') === 'eft_pos_integrated' ? 'selected' : '' }}>Combined fiscal + card-payment YN ÖKC</option><option value="computer_connected" {{ ($trFiscalConfig['integration_topology'] ?? '') === 'computer_connected' ? 'selected' : '' }}>Fiscal YN ÖKC + separate payment terminal</option></select></div>
+                            <div class="pmd-owner-field"><label>Vendor/security agreement reference</label><input type="text" name="turkey[fiscal][security_agreement_reference]" value="{{ e($trFiscalConfig['security_agreement_reference'] ?? '') }}" placeholder="Contract / integration document reference"></div>
+                            <div class="pmd-owner-field"><label>Certification status</label><input type="text" name="turkey[fiscal][certification_status]" value="{{ e($trFiscalConfig['certification_status'] ?? '') }}" placeholder="pending / test / certified"></div>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:12px;margin-top:16px">
+                            <button type="submit" class="pmd-owner-action">Save Türkiye fiscal device</button>
+                            <span id="pmd-tr-device-save-status"></span>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </section>
+    @endif
 
     <section class="pmd-owner-section" id="kds">
         <div class="pmd-owner-card" data-accent="violet">
