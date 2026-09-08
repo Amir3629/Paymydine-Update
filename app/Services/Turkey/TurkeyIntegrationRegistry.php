@@ -11,7 +11,7 @@ namespace App\Services\Turkey;
  */
 final class TurkeyIntegrationRegistry
 {
-    public const VERSION = '1.2.0';
+    public const VERSION = '1.3.0';
 
     public function integrations(): array
     {
@@ -47,7 +47,7 @@ final class TurkeyIntegrationRegistry
                 'default_status' => 'partner_required',
                 'required_config' => [
                     'provider', 'merchant_identifier', 'environment',
-                    'credential_reference', 'activation_status',
+                    'service_reference', 'activation_status',
                 ],
             ],
             'isbank_api' => [
@@ -57,9 +57,20 @@ final class TurkeyIntegrationRegistry
                 'regulated' => true,
                 'default_status' => 'uat_subscription_required',
                 'required_config' => [
-                    'environment', 'client_id', 'client_secret_reference',
-                    'auth_mode', 'scope', 'mtls_certificate_path',
-                    'mtls_private_key_reference', 'subscription_status',
+                    'environment', 'uat_client_id', 'uat_client_secret_reference',
+                    'mtls_certificate_path', 'mtls_private_key_reference',
+                ],
+            ],
+            'isbank_sanal_pos' => [
+                'label' => 'Türkiye İş Bankası Sanal POS',
+                'kind' => 'online_card_acceptance',
+                'priority' => 1,
+                'regulated' => true,
+                'default_status' => 'merchant_contract_and_technical_pack_required',
+                'required_config' => [
+                    'environment', 'merchant_id', 'store_code', 'api_username',
+                    'api_password_reference', 'store_key_reference',
+                    'technical_spec_reference', 'activation_status',
                 ],
             ],
             'acquirer' => [
