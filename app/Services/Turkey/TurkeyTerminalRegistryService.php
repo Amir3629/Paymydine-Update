@@ -10,8 +10,6 @@ use Illuminate\Support\Facades\Schema;
  *
  * A terminal row represents an endpoint, not a payment method. Hardware vendor,
  * bank/provider, acceptance channel and fiscal mode are stored independently.
- * This lets PMD support Beko/Token, Hugin, Worldline, VERA, SoftPOS phones and
- * future certified devices without hard-coding one vendor as "the" Turkey POS.
  */
 final class TurkeyTerminalRegistryService
 {
@@ -55,6 +53,8 @@ final class TurkeyTerminalRegistryService
                 'fiscal_device_serial' => (string)($meta['fiscal_device_serial'] ?? ''),
                 'provider_product' => (string)($meta['provider_product'] ?? ''),
                 'remote_sync_status' => (string)($meta['remote_sync_status'] ?? 'not_synced'),
+                'verification_reference' => (string)($meta['verification_reference'] ?? ''),
+                'verified_at' => $meta['verified_at'] ?? null,
             ];
         })->filter()->values()->all();
     }
@@ -63,9 +63,7 @@ final class TurkeyTerminalRegistryService
     {
         $state = $this->context->requireTurkey($locationId);
         $locationId = (int)($state['location_id'] ?? 0);
-        if (!Schema::hasTable('terminal_devices')) {
-            throw new \RuntimeException('terminal_devices table is missing.');
-        }
+        if (!Schema::hasTable('terminal_devices')) throw new \RuntimeException('terminal_devices table is missing.');
 
         $channel = strtolower(trim((string)($input['acceptance_channel'] ?? 'physical_terminal')));
         if (!in_array($channel, ['physical_terminal', 'softpos'], true)) {
@@ -111,12 +109,8 @@ final class TurkeyTerminalRegistryService
         if (in_array('environment', $columns, true)) {
             $payload['environment'] = strtolower(trim((string)($input['environment'] ?? 'uat'))) === 'production' ? 'production' : 'uat';
         }
-        if (in_array('provider_terminal_id', $columns, true)) {
-            $payload['provider_terminal_id'] = trim((string)($input['provider_terminal_id'] ?? '')) ?: null;
-        }
-        if (in_array('serial_number', $columns, true)) {
-            $payload['serial_number'] = trim((string)($input['serial_number'] ?? '')) ?: null;
-        }
+        if (in_array('provider_terminal_id', $columns, true)) $payload['provider_terminal_id'] = trim((string)($input['provider_terminal_id'] ?? '')) ?: null;
+        if (in_array('serial_number', $columns, true)) $payload['serial_number'] = trim((string)($input['serial_number'] ?? '')) ?: null;
         if (in_array('updated_at', $columns, true)) $payload['updated_at'] = now();
 
         $existing = DB::table('terminal_devices')->where('reader_id', $readerId)->first();
@@ -128,10 +122,66 @@ final class TurkeyTerminalRegistryService
             $id = (int)DB::table('terminal_devices')->insertGetId($payload);
         }
 
+        return $this->findInAll($id, $locationId);
+    }
+
+    public function markVerified(int $terminalDeviceId, array $evidence, ?int $locationId = null): array
+    {
+        $state = $this->context->requireTurkey($locationId);
+        $locationId = (int)($state['location_id'] ?? 0);
+        $row = DB::table('terminal_devices')->where('terminal_device_id', $terminalDeviceId)->first();
+        if (!$row) throw new \RuntimeException('Türkiye payment endpoint not found.');
+
+        $approval = strtolower(trim((string)($evidence['external_approval_status'] ?? '')));
+        $reference = trim((string)($evidence['verification_reference'] ?? ''));
+        if (!in_array($approval, ['approved', 'active', 'certified'], true) || $reference === '') {
+            throw new \RuntimeException('Endpoint activation requires approved/active/certified external evidence and a verification reference.');
+        }
+
+        $meta = json_decode((string)($row->metadata ?? '{}'), true) ?: [];
+        if (($meta['market_country'] ?? '') !== 'TR') throw new \RuntimeException('Endpoint is not a Türkiye endpoint.');
+        $meta['verification_reference'] = $reference;
+        $meta['verified_at'] = now()->toIso8601String();
+        $meta['remote_sync_status'] = trim((string)($evidence['remote_sync_status'] ?? 'verified')) ?: 'verified';
+
+        $payload = [
+            'pairing_state' => 'paired',
+            'terminal_status' => 'verified',
+            'metadata' => json_encode($meta, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            'is_active' => 1,
+        ];
+        if (Schema::hasColumn('terminal_devices', 'provider_terminal_id') && !empty($evidence['provider_terminal_id'])) {
+            $payload['provider_terminal_id'] = trim((string)$evidence['provider_terminal_id']);
+        }
+        if (Schema::hasColumn('terminal_devices', 'updated_at')) $payload['updated_at'] = now();
+
+        DB::table('terminal_devices')->where('terminal_device_id', $terminalDeviceId)->update($payload);
+        return $this->findInAll($terminalDeviceId, $locationId);
+    }
+
+    public function disable(int $terminalDeviceId, ?int $locationId = null, ?string $reason = null): array
+    {
+        $state = $this->context->requireTurkey($locationId);
+        $locationId = (int)($state['location_id'] ?? 0);
+        $row = DB::table('terminal_devices')->where('terminal_device_id', $terminalDeviceId)->first();
+        if (!$row) throw new \RuntimeException('Türkiye payment endpoint not found.');
+        $meta = json_decode((string)($row->metadata ?? '{}'), true) ?: [];
+        $meta['disabled_reason'] = trim((string)$reason);
+        $payload = [
+            'terminal_status' => 'disabled',
+            'is_active' => 0,
+            'metadata' => json_encode($meta, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+        ];
+        if (Schema::hasColumn('terminal_devices', 'updated_at')) $payload['updated_at'] = now();
+        DB::table('terminal_devices')->where('terminal_device_id', $terminalDeviceId)->update($payload);
+        return $this->findInAll($terminalDeviceId, $locationId);
+    }
+
+    private function findInAll(int $id, int $locationId): array
+    {
         foreach ($this->all($locationId) as $row) {
             if ((int)$row['terminal_device_id'] === $id) return $row;
         }
-
         throw new \RuntimeException('Türkiye terminal configuration was saved but could not be reloaded.');
     }
 }
