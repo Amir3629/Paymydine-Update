@@ -9,22 +9,15 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 
 /**
- * Türkiye İş Bankası API client foundation.
+ * Türkiye İş Bankası API client.
  *
- * Publicly documented facts only:
- * - Sandbox portal is documentation/discovery only; real tests run in UAT.
- * - UAT base host: api.uat.isbank.com.tr
- * - Production base host: api.isbank.com.tr
- * - OAuth token endpoint: /api/isbank/v1/identity-provider/oauth2/token
- * - API security uses OAuth 2.0 + mutual TLS.
- * - App security uses client_credentials; S2S security uses password grant.
- * - Customer-login Security uses authorization_code + PKCE.
- * - Requests include X-Client-Certificate matching the certificate registered
- *   in the İş Bankası portal.
+ * PMD keeps three things separate:
+ *  - environment credentials (UAT and Production never share Client IDs),
+ *  - API-product security (scope/auth mode can differ per subscribed API),
+ *  - transport security (shared mTLS certificate/private key).
  *
- * Product-specific operation paths/scopes are intentionally NOT guessed. They
- * are supplied by the subscribed İş Bankası API product in the merchant's UAT
- * portal and can be called through request().
+ * Product operation paths are never guessed. They must be copied from the
+ * approved UAT/Production İş Bankası specification for that product.
  */
 final class IsBankApiClient
 {
@@ -37,32 +30,43 @@ final class IsBankApiClient
         $this->secrets = $secrets ?: new SecretReferenceService();
     }
 
-    public function testConnection(array $config): array
+    public function testConnection(array $config, ?string $productCode = null): array
     {
-        $token = $this->accessToken($config, true);
+        $token = $this->accessToken($config, $productCode, true);
+        $profile = $this->securityProfile($config, $productCode);
 
         return [
             'ok' => $token !== '',
             'environment' => $this->environment($config),
             'host' => $this->baseUrl($config),
             'token_received' => $token !== '',
-            'auth_mode' => $this->authMode($config),
-            'scope' => trim((string)($config['scope'] ?? '')),
-            'note' => 'Token success proves OAuth/mTLS connectivity only. Each payment API still requires the matching UAT subscription/scope.',
+            'product' => $productCode,
+            'auth_mode' => $profile['auth_mode'],
+            'scope' => $profile['scope'],
+            'note' => 'OAuth/mTLS success proves connectivity only. Product subscription, merchant activation and regulatory approval remain separate.',
         ];
     }
 
-    public function accessToken(array $config, bool $forceRefresh = false): string
+    public function accessToken(array $config, ?string $productCode = null, bool $forceRefresh = false): string
     {
-        $clientId = $this->required($config, 'client_id');
-        $clientSecret = $this->secrets->resolve($this->required($config, 'client_secret_reference'));
+        $credentials = $this->environmentCredentials($config);
+        $profile = $this->securityProfile($config, $productCode);
+
+        $clientId = $this->required($credentials, 'client_id');
+        $clientSecret = $this->secrets->resolve($this->required($credentials, 'client_secret_reference'));
         if ($clientSecret === '') {
-            throw new \RuntimeException('İş Bankası client_secret_reference does not resolve to a secret value.');
+            throw new \RuntimeException('İş Bankası client-secret reference does not resolve to a secret value.');
         }
 
-        $scope = trim((string)($config['scope'] ?? ''));
-        $authMode = $this->authMode($config);
-        $cacheKey = 'pmd:isbank:oauth:'.hash('sha256', $this->environment($config).'|'.$clientId.'|'.$authMode.'|'.$scope);
+        $scope = $profile['scope'];
+        $authMode = $profile['auth_mode'];
+        $cacheKey = 'pmd:isbank:oauth:'.hash('sha256', implode('|', [
+            $this->environment($config),
+            $clientId,
+            (string)$productCode,
+            $authMode,
+            $scope,
+        ]));
 
         if (!$forceRefresh) {
             $cached = (string)Cache::get($cacheKey, '');
@@ -77,10 +81,10 @@ final class IsBankApiClient
         if ($scope !== '') $payload['scope'] = $scope;
 
         if ($authMode === 's2s_password') {
-            $username = trim((string)($config['s2s_username'] ?? ''));
-            $password = $this->secrets->resolve((string)($config['s2s_password_reference'] ?? ''));
+            $username = trim((string)($profile['s2s_username'] ?? ''));
+            $password = $this->secrets->resolve((string)($profile['s2s_password_reference'] ?? ''));
             if ($username === '' || $password === '') {
-                throw new \RuntimeException('İş Bankası S2S password mode requires s2s_username and s2s_password_reference.');
+                throw new \RuntimeException('İş Bankası S2S mode requires product-specific username and password reference.');
             }
             $payload['username'] = $username;
             $payload['password'] = $password;
@@ -96,7 +100,6 @@ final class IsBankApiClient
             throw new \RuntimeException('İş Bankası OAuth response did not contain access_token.');
         }
 
-        // İş Bankası documents a 20-minute access-token lifetime. Keep a safety margin.
         $expiresIn = (int)($json['expires_in'] ?? 1200);
         $ttl = max(60, min(1080, $expiresIn - 60));
         Cache::put($cacheKey, $token, now()->addSeconds($ttl));
@@ -104,7 +107,7 @@ final class IsBankApiClient
         return $token;
     }
 
-    /** Exchange an authorization code for APIs that explicitly use customer login. */
+    /** Exchange an authorization code only for an API explicitly documented as customer-login Security. */
     public function exchangeAuthorizationCode(
         array $config,
         string $code,
@@ -112,8 +115,9 @@ final class IsBankApiClient
         string $codeVerifier,
         ?string $scope = null
     ): array {
-        $clientId = $this->required($config, 'client_id');
-        $clientSecret = $this->secrets->resolve($this->required($config, 'client_secret_reference'));
+        $credentials = $this->environmentCredentials($config);
+        $clientId = $this->required($credentials, 'client_id');
+        $clientSecret = $this->secrets->resolve($this->required($credentials, 'client_secret_reference'));
         if ($clientSecret === '') throw new \RuntimeException('İş Bankası client secret could not be resolved.');
 
         $payload = [
@@ -138,18 +142,22 @@ final class IsBankApiClient
         return $this->jsonOrThrow($response, 'İş Bankası authorization-code exchange');
     }
 
-    /**
-     * Call an operation path copied from the subscribed UAT/Production API spec.
-     * This keeps PMD provider-complete without inventing private/undocumented
-     * İş Bankası endpoint paths.
-     */
-    public function request(array $config, string $method, string $path, array $payload = [], array $headers = []): array
-    {
+    public function request(
+        array $config,
+        string $method,
+        string $path,
+        array $payload = [],
+        array $headers = [],
+        ?string $productCode = null
+    ): array {
         $path = '/'.ltrim(trim($path), '/');
         if ($path === '/') throw new \InvalidArgumentException('İş Bankası operation path is required.');
+        if (!str_starts_with($path, '/api/isbank/')) {
+            throw new \InvalidArgumentException('Only official /api/isbank/... operation paths are allowed.');
+        }
 
         $request = $this->baseRequest($config)
-            ->withToken($this->accessToken($config))
+            ->withToken($this->accessToken($config, $productCode))
             ->acceptJson()
             ->asJson();
 
@@ -182,11 +190,40 @@ final class IsBankApiClient
         return $this->environment($config) === 'production' ? self::LIVE : self::UAT;
     }
 
-    private function authMode(array $config): string
+    public function environmentCredentials(array $config): array
     {
-        return strtolower(trim((string)($config['auth_mode'] ?? 'client_credentials'))) === 's2s_password'
-            ? 's2s_password'
-            : 'client_credentials';
+        $environment = $this->environment($config);
+        $clientIdKey = $environment === 'production' ? 'production_client_id' : 'uat_client_id';
+        $secretKey = $environment === 'production' ? 'production_client_secret_reference' : 'uat_client_secret_reference';
+
+        // Backwards compatibility with the R2 flat fields while tenants migrate.
+        return [
+            'client_id' => trim((string)($config[$clientIdKey] ?? $config['client_id'] ?? '')),
+            'client_secret_reference' => trim((string)($config[$secretKey] ?? $config['client_secret_reference'] ?? '')),
+        ];
+    }
+
+    public function productConfig(array $config, ?string $productCode): array
+    {
+        if ($productCode === null || trim($productCode) === '') return [];
+        $products = (array)($config['products'] ?? []);
+        return (array)($products[strtolower(trim($productCode))] ?? []);
+    }
+
+    public function securityProfile(array $config, ?string $productCode): array
+    {
+        $product = $this->productConfig($config, $productCode);
+        $mode = strtolower(trim((string)($product['auth_mode'] ?? $config['auth_mode'] ?? 'client_credentials')));
+        if (!in_array($mode, ['client_credentials', 's2s_password'], true)) {
+            throw new \InvalidArgumentException('Unsupported İş Bankası machine-to-machine auth mode: '.$mode);
+        }
+
+        return [
+            'auth_mode' => $mode,
+            'scope' => trim((string)($product['scope'] ?? $config['scope'] ?? '')),
+            's2s_username' => trim((string)($product['s2s_username'] ?? $config['s2s_username'] ?? '')),
+            's2s_password_reference' => trim((string)($product['s2s_password_reference'] ?? $config['s2s_password_reference'] ?? '')),
+        ];
     }
 
     private function baseRequest(array $config): PendingRequest
