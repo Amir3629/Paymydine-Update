@@ -39,6 +39,12 @@ final class TurkeyIntegrationConfigurationService
         $safe = $this->secrets->sanitizeConfig($config);
         $missing = $this->missingRequired($definition, $safe);
         $status = $missing ? 'configuration_incomplete' : 'configured_not_verified';
+        $credentialReference = $safe['credential_reference']
+            ?? $safe['client_secret_reference']
+            ?? $safe['uat_client_secret_reference']
+            ?? $safe['api_password_reference']
+            ?? $safe['password_reference']
+            ?? null;
 
         DB::table('pmd_tr_integrations')->updateOrInsert(
             ['location_id' => $locationId ?: null, 'code' => strtolower($code)],
@@ -49,7 +55,7 @@ final class TurkeyIntegrationConfigurationService
                 'enabled' => 0,
                 'production_ready' => 0,
                 'config_json' => json_encode($safe, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
-                'credential_reference' => $safe['credential_reference'] ?? $safe['client_secret_reference'] ?? null,
+                'credential_reference' => $credentialReference,
                 'contract_reference' => $safe['contract_reference'] ?? $safe['partner_contract_reference'] ?? null,
                 'certification_reference' => $safe['certification_reference'] ?? null,
                 'last_error' => $missing ? 'Missing: '.implode(', ', $missing) : null,
