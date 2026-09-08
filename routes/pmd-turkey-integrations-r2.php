@@ -1,6 +1,13 @@
 <?php
 
+use App\Services\Platform\CountryPlatformProfileRegistry;
+use App\Services\Platform\LocationPlatformContext;
 use App\Services\Turkey\IsBankApiClient;
+use App\Services\Turkey\IsBankPaymentFacilitatorService;
+use App\Services\Turkey\IsBankRequestToPayService;
+use App\Services\Turkey\IsBankSanalPosService;
+use App\Services\Turkey\IsBankTrQrService;
+use App\Services\Turkey\TurkeyEDocumentProviderClient;
 use App\Services\Turkey\TurkeyIntegrationConfigurationService;
 use App\Services\Turkey\TurkeyInvoiceRoutingService;
 use App\Services\Turkey\TurkeyPaymentArchitectureService;
@@ -9,15 +16,81 @@ use App\Services\Turkey\TurkeyReadinessService;
 use App\Services\Turkey\TurkeyTenantContext;
 use App\Services\Turkey\TurkeyTenantProvisioningService;
 use App\Services\Turkey\TurkeyTerminalRegistryService;
+use App\Services\Turkey\TurkeyYnOkcAdapterService;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
 
 /**
- * PMD_TURKEY_INTEGRATIONS_R2
+ * PMD_TURKEY_INTEGRATIONS_R3
  *
- * Small authenticated JSON endpoints used by the existing Payments & finance /
- * Devices settings pages. No separate Türkiye settings page is introduced.
+ * R2 route names remain available for the already-deployed settings JS. R3 adds:
+ * - separate UAT/Production İş Bankası credentials,
+ * - per-API scope/security profiles,
+ * - typed Request-to-Pay / Payment Facilitator / TR-QR façades,
+ * - explicit Sanal POS boundary,
+ * - provider-neutral e-document and YN ÖKC adapter boundaries,
+ * - Türkiye VAT-inclusive consumer-price enforcement,
+ * - R3 UI injected into the existing Payments & finance / Devices pages.
  */
+
+$enforceTurkeyVatInclusive = static function (): void {
+    try {
+        $state = app(LocationPlatformContext::class)->state();
+        if (strtoupper((string)($state['country_code'] ?? '')) !== CountryPlatformProfileRegistry::TURKEY) return;
+
+        // Türkiye consumer-facing menu prices are treated as VAT-inclusive.
+        // Keep the stored switch aligned as well so all legacy calculations see 0.
+        if (function_exists('setting')) {
+            $current = (string)setting('tax_menu_price', '1');
+            if ($current !== '0') {
+                setting()->set('tax_menu_price', 0);
+                setting()->save();
+            }
+        }
+
+        if (Schema::hasTable('settings') && Schema::hasColumn('settings', 'item') && Schema::hasColumn('settings', 'value')) {
+            $query = DB::table('settings')->where('item', 'tax_menu_price');
+            if (Schema::hasColumn('settings', 'sort')) $query->where('sort', 'config');
+            $row = $query->first();
+            if ($row && (string)$row->value !== '0') {
+                $update = ['value' => '0'];
+                if (Schema::hasColumn('settings', 'serialized')) $update['serialized'] = 0;
+                if (Schema::hasColumn('settings', 'updated_at')) $update['updated_at'] = now();
+                $query->update($update);
+            }
+        }
+    } catch (\Throwable $error) {
+        // Never break a request because a compatibility tax normalization failed.
+        try { logger()->warning('PMD Türkiye VAT-inclusive normalization failed', ['message' => $error->getMessage()]); } catch (\Throwable) {}
+    }
+};
+
+App::before(function () use ($enforceTurkeyVatInclusive) {
+    $enforceTurkeyVatInclusive();
+});
+
+if (method_exists(app(), 'after')) {
+    App::after(function ($request, $response) use ($enforceTurkeyVatInclusive) {
+        $enforceTurkeyVatInclusive();
+
+        // Load the small R3 enhancer without rewriting the large shared settings controller/view.
+        try {
+            $path = '/'.trim((string)$request->path(), '/');
+            $adminPrefix = '/'.trim((string)config('system.adminUri', 'admin'), '/');
+            if (!str_starts_with($path, $adminPrefix.'/pmdfinance') && !str_starts_with($path, $adminPrefix.'/pmddevices')) return;
+            if (!is_object($response) || !method_exists($response, 'getContent') || !method_exists($response, 'setContent')) return;
+            $content = $response->getContent();
+            if (!is_string($content) || stripos($content, '</body>') === false || str_contains($content, 'pmd-turkey-settings-r3.js')) return;
+
+            $src = $adminPrefix.'/_pmd/turkey/settings-r3.js?v=3.0.0';
+            $response->setContent(str_ireplace('</body>', '<script src="'.htmlspecialchars($src, ENT_QUOTES, 'UTF-8').'"></script></body>', $content));
+        } catch (\Throwable) {
+        }
+    });
+}
+
 App::before(function () {
     Route::group([
         'middleware' => ['web'],
@@ -25,9 +98,7 @@ App::before(function () {
     ], function () {
         $guard = static function () {
             $auth = app('admin.auth');
-            if (!$auth->isLogged()) {
-                return response()->json(['ok' => false, 'message' => 'Authentication required.'], 401);
-            }
+            if (!$auth->isLogged()) return response()->json(['ok' => false, 'message' => 'Authentication required.'], 401);
             $user = $auth->user();
             if (!$user || !$user->hasPermission('Site.Settings')) {
                 return response()->json(['ok' => false, 'message' => 'Settings permission required.'], 403);
@@ -42,13 +113,10 @@ App::before(function () {
             }
         };
 
-        Route::get('_pmd/turkey/integrations-r2', function () use ($guard) {
-            $locationId = $guard();
-            if ($locationId instanceof \Symfony\Component\HttpFoundation\Response) return $locationId;
-
+        $snapshot = static function (int $locationId): array {
             $service = app(TurkeyIntegrationConfigurationService::class);
             $codes = [
-                'isbank_api', 'acquirer', 'fast_request', 'tr_qr_fast', 'ispay',
+                'isbank_api', 'isbank_sanal_pos', 'acquirer', 'fast_request', 'tr_qr_fast', 'ispay',
                 'yn_okc', 'gmoebys', 'e_document', 'yemeksepeti', 'iys', 'sms', 'whatsapp',
             ];
             $integrations = [];
@@ -58,12 +126,37 @@ App::before(function () {
                     'config' => $service->configuration($code, $locationId),
                 ];
             }
+            return $integrations;
+        };
 
+        $uatOnly = static function (array $config) {
+            if (strtolower(trim((string)($config['environment'] ?? 'uat'))) === 'production') {
+                return response()->json(['ok' => false, 'message' => 'This developer operation is UAT-only.'], 403);
+            }
+            return null;
+        };
+
+        Route::get('_pmd/turkey/settings-r3.js', function () use ($guard) {
+            $locationId = $guard();
+            if ($locationId instanceof \Symfony\Component\HttpFoundation\Response) return $locationId;
+            $path = base_path('app/admin/assets/js/pmd-turkey-settings-r3.js');
+            if (!is_file($path)) return response('/* Türkiye R3 asset missing */', 404)->header('Content-Type', 'application/javascript');
+            return response((string)file_get_contents($path), 200)
+                ->header('Content-Type', 'application/javascript; charset=UTF-8')
+                ->header('Cache-Control', 'no-store, private');
+        })->name('pmd.turkey.settings.r3.js');
+
+        // -----------------------------------------------------------------
+        // R2 compatibility endpoints used by the already-deployed shared JS.
+        // -----------------------------------------------------------------
+        Route::get('_pmd/turkey/integrations-r2', function () use ($guard, $snapshot) {
+            $locationId = $guard();
+            if ($locationId instanceof \Symfony\Component\HttpFoundation\Response) return $locationId;
             $architecture = app(TurkeyPaymentArchitectureService::class);
             return response()->json([
                 'ok' => true,
                 'location_id' => $locationId ?: null,
-                'integrations' => $integrations,
+                'integrations' => $snapshot($locationId),
                 'payment_methods' => app(TurkeyPaymentMethodService::class)->methods($locationId),
                 'channels' => $architecture->channels(),
                 'fiscal_modes' => $architecture->fiscalModes(),
@@ -71,127 +164,31 @@ App::before(function () {
                 'invoice_types' => app(TurkeyInvoiceRoutingService::class)->documentTypes(),
                 'readiness' => app(TurkeyReadinessService::class)->report($locationId),
                 'terminals' => app(TurkeyTerminalRegistryService::class)->all($locationId),
-                'isbank' => [
-                    'sandbox_portal_is_documentation_only' => true,
-                    'test_environment' => 'UAT',
-                    'uat_host' => 'https://api.uat.isbank.com.tr',
-                    'production_host' => 'https://api.isbank.com.tr',
-                    'token_path' => '/api/isbank/v1/identity-provider/oauth2/token',
-                ],
             ]);
         })->name('pmd.turkey.integrations.r2');
 
         Route::post('_pmd/turkey/integrations-r2', function () use ($guard) {
             $locationId = $guard();
             if ($locationId instanceof \Symfony\Component\HttpFoundation\Response) return $locationId;
-
             $all = (array)request()->input('integrations', []);
             $service = app(TurkeyIntegrationConfigurationService::class);
-
-            $schemas = [
-                'isbank_api' => [
-                    'environment' => ['nullable', 'in:uat,production'],
-                    'client_id' => ['nullable', 'string', 'max:255'],
-                    'client_secret_reference' => ['nullable', 'string', 'max:500'],
-                    'auth_mode' => ['nullable', 'in:client_credentials,s2s_password'],
-                    'scope' => ['nullable', 'string', 'max:1000'],
-                    'mtls_certificate_path' => ['nullable', 'string', 'max:1000'],
-                    'mtls_private_key_reference' => ['nullable', 'string', 'max:500'],
-                    'mtls_private_key_password_reference' => ['nullable', 'string', 'max:500'],
-                    's2s_username' => ['nullable', 'string', 'max:255'],
-                    's2s_password_reference' => ['nullable', 'string', 'max:500'],
-                    'subscription_status' => ['nullable', 'string', 'max:120'],
-                ],
-                'acquirer' => [
-                    'provider' => ['nullable', 'string', 'max:120'],
-                    'merchant_id' => ['nullable', 'string', 'max:190'],
-                    'environment' => ['nullable', 'in:uat,production'],
-                    'provider_connection_code' => ['nullable', 'in:isbank_api'],
-                    'contract_status' => ['nullable', 'string', 'max:100'],
-                    'virtual_pos_status' => ['nullable', 'string', 'max:100'],
-                ],
-                'fast_request' => [
-                    'provider' => ['nullable', 'string', 'max:120'],
-                    'merchant_id' => ['nullable', 'string', 'max:190'],
-                    'environment' => ['nullable', 'in:uat,production'],
-                    'provider_connection_code' => ['nullable', 'in:isbank_api'],
-                    'activation_status' => ['nullable', 'string', 'max:100'],
-                ],
-                'tr_qr_fast' => [
-                    'provider' => ['nullable', 'string', 'max:120'],
-                    'merchant_id' => ['nullable', 'string', 'max:190'],
-                    'environment' => ['nullable', 'in:uat,production'],
-                    'provider_connection_code' => ['nullable', 'in:isbank_api'],
-                    'activation_status' => ['nullable', 'string', 'max:100'],
-                ],
-                'ispay' => [
-                    'provider' => ['nullable', 'string', 'max:120'],
-                    'merchant_id' => ['nullable', 'string', 'max:190'],
-                    'environment' => ['nullable', 'in:uat,production'],
-                    'provider_connection_code' => ['nullable', 'in:isbank_api'],
-                    'activation_status' => ['nullable', 'string', 'max:100'],
-                ],
-                'gmoebys' => [
-                    'provider' => ['nullable', 'string', 'max:120'],
-                    'merchant_identifier' => ['nullable', 'string', 'max:190'],
-                    'environment' => ['nullable', 'in:sandbox,uat,production'],
-                    'credential_reference' => ['nullable', 'string', 'max:500'],
-                    'activation_status' => ['nullable', 'string', 'max:100'],
-                    'approval_reference' => ['nullable', 'string', 'max:500'],
-                ],
-                'e_document' => [
-                    'provider' => ['nullable', 'string', 'max:120'],
-                    'merchant_identifier' => ['nullable', 'string', 'max:190'],
-                    'environment' => ['nullable', 'in:sandbox,uat,production'],
-                    'credential_reference' => ['nullable', 'string', 'max:500'],
-                    'activation_status' => ['nullable', 'string', 'max:100'],
-                    'service_reference' => ['nullable', 'string', 'max:1000'],
-                ],
-            ];
-
+            $allowed = ['isbank_api', 'acquirer', 'fast_request', 'tr_qr_fast', 'ispay', 'gmoebys', 'e_document'];
             $saved = [];
-            foreach ($schemas as $code => $rules) {
+            foreach ($allowed as $code) {
                 if (!array_key_exists($code, $all)) continue;
-                $values = (array)$all[$code];
-                $validator = Validator::make($values, $rules);
-                if ($validator->fails()) {
-                    return response()->json([
-                        'ok' => false,
-                        'integration' => $code,
-                        'message' => 'Validation failed.',
-                        'errors' => $validator->errors(),
-                    ], 422);
-                }
-                $clean = $validator->validated();
-                foreach ($clean as $key => $value) {
-                    if (is_string($value)) $clean[$key] = trim($value);
-                }
-
-                if (in_array($code, ['acquirer', 'fast_request', 'tr_qr_fast', 'ispay'], true)) {
-                    $clean['provider'] = trim((string)($clean['provider'] ?? '')) ?: 'isbank';
-                    $clean['provider_connection_code'] = 'isbank_api';
-                    $clean['environment'] = trim((string)($clean['environment'] ?? '')) ?: 'uat';
-                }
-                if ($code === 'isbank_api') {
-                    $clean['environment'] = trim((string)($clean['environment'] ?? '')) ?: 'uat';
-                    $clean['auth_mode'] = trim((string)($clean['auth_mode'] ?? '')) ?: 'client_credentials';
-                }
-
-                $saved[$code] = $service->configure($code, $clean, $locationId);
+                $merged = array_replace_recursive($service->configuration($code, $locationId), (array)$all[$code]);
+                $saved[$code] = $service->configure($code, $merged, $locationId);
             }
-
             return response()->json(['ok' => true, 'saved' => $saved]);
         })->name('pmd.turkey.integrations.save.r2');
 
         Route::post('_pmd/turkey/isbank-test-r2', function () use ($guard) {
             $locationId = $guard();
             if ($locationId instanceof \Symfony\Component\HttpFoundation\Response) return $locationId;
-
             $service = app(TurkeyIntegrationConfigurationService::class);
             $config = $service->configuration('isbank_api', $locationId);
-
             try {
-                $result = app(IsBankApiClient::class)->testConnection($config);
+                $result = app(IsBankApiClient::class)->testConnection($config, null);
                 $state = $service->recordTestResult('isbank_api', true, null, $locationId);
                 return response()->json(['ok' => true, 'result' => $result, 'state' => $state]);
             } catch (\Throwable $error) {
@@ -200,40 +197,303 @@ App::before(function () {
             }
         })->name('pmd.turkey.isbank.test.r2');
 
-        // Developer-only UAT operation tester. It is intentionally disabled for
-        // production so a settings-page test can never trigger a live payment.
-        Route::post('_pmd/turkey/isbank-operation-r2', function () use ($guard) {
+        Route::post('_pmd/turkey/isbank-operation-r2', function () use ($guard, $uatOnly) {
             $locationId = $guard();
             if ($locationId instanceof \Symfony\Component\HttpFoundation\Response) return $locationId;
-
-            $service = app(TurkeyIntegrationConfigurationService::class);
-            $config = $service->configuration('isbank_api', $locationId);
-            if (strtolower((string)($config['environment'] ?? 'uat')) === 'production') {
-                return response()->json(['ok' => false, 'message' => 'Generic operation tester is UAT-only.'], 403);
-            }
-
+            $config = app(TurkeyIntegrationConfigurationService::class)->configuration('isbank_api', $locationId);
+            if ($blocked = $uatOnly($config)) return $blocked;
             $method = strtoupper(trim((string)request()->input('method', 'GET')));
             $path = trim((string)request()->input('path', ''));
             $payload = (array)request()->input('payload', []);
-            if (!in_array($method, ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'], true)) {
-                return response()->json(['ok' => false, 'message' => 'Unsupported HTTP method.'], 422);
-            }
-            if (!str_starts_with($path, '/api/isbank/')) {
-                return response()->json(['ok' => false, 'message' => 'Only /api/isbank/... UAT paths from the subscribed portal spec are accepted.'], 422);
-            }
-
             try {
-                $result = app(IsBankApiClient::class)->request($config, $method, $path, $payload);
-                return response()->json(['ok' => true, 'result' => $result]);
+                return response()->json(['ok' => true, 'result' => app(IsBankApiClient::class)->request($config, $method, $path, $payload)]);
             } catch (\Throwable $error) {
                 return response()->json(['ok' => false, 'message' => $error->getMessage()], 422);
             }
         })->name('pmd.turkey.isbank.operation.r2');
 
+        // -----------------------------------------------------------------
+        // R3 source-of-truth endpoints.
+        // -----------------------------------------------------------------
+        Route::get('_pmd/turkey/integrations-r3', function () use ($guard, $snapshot) {
+            $locationId = $guard();
+            if ($locationId instanceof \Symfony\Component\HttpFoundation\Response) return $locationId;
+            $integrations = $snapshot($locationId);
+            $bankConfig = (array)($integrations['isbank_api']['config'] ?? []);
+            $sanalConfig = (array)($integrations['isbank_sanal_pos']['config'] ?? []);
+
+            return response()->json([
+                'ok' => true,
+                'location_id' => $locationId ?: null,
+                'integrations' => $integrations,
+                'readiness' => app(TurkeyReadinessService::class)->report($locationId),
+                'terminals' => app(TurkeyTerminalRegistryService::class)->all($locationId),
+                'isbank_products' => [
+                    'request_to_pay' => app(IsBankRequestToPayService::class)->readiness($bankConfig),
+                    'payment_facilitator' => app(IsBankPaymentFacilitatorService::class)->readiness($bankConfig),
+                    'tr_qr' => app(IsBankTrQrService::class)->readiness($bankConfig),
+                    'sanal_pos' => app(IsBankSanalPosService::class)->readiness($sanalConfig),
+                ],
+                'tax_policy' => [
+                    'consumer_price_vat_inclusive' => true,
+                    'tax_menu_price' => 0,
+                ],
+            ]);
+        })->name('pmd.turkey.integrations.r3');
+
+        Route::post('_pmd/turkey/integrations-r3', function () use ($guard) {
+            $locationId = $guard();
+            if ($locationId instanceof \Symfony\Component\HttpFoundation\Response) return $locationId;
+            $all = (array)request()->input('integrations', []);
+            $service = app(TurkeyIntegrationConfigurationService::class);
+            $saved = [];
+
+            $schemas = [
+                'isbank_api' => [
+                    'environment' => ['nullable', 'in:uat,production'],
+                    'uat_client_id' => ['nullable', 'string', 'max:255'],
+                    'uat_client_secret_reference' => ['nullable', 'string', 'max:500'],
+                    'production_client_id' => ['nullable', 'string', 'max:255'],
+                    'production_client_secret_reference' => ['nullable', 'string', 'max:500'],
+                    'mtls_certificate_path' => ['nullable', 'string', 'max:1000'],
+                    'mtls_private_key_reference' => ['nullable', 'string', 'max:500'],
+                    'mtls_private_key_password_reference' => ['nullable', 'string', 'max:500'],
+                    'products' => ['nullable', 'array'],
+                    'products.request_to_pay' => ['nullable', 'array'],
+                    'products.request_to_pay.scope' => ['nullable', 'string', 'max:1000'],
+                    'products.request_to_pay.auth_mode' => ['nullable', 'in:client_credentials,s2s_password'],
+                    'products.request_to_pay.s2s_username' => ['nullable', 'string', 'max:255'],
+                    'products.request_to_pay.s2s_password_reference' => ['nullable', 'string', 'max:500'],
+                    'products.request_to_pay.approval_reference' => ['nullable', 'string', 'max:500'],
+                    'products.request_to_pay.send_method' => ['nullable', 'in:GET,POST,PUT,PATCH,DELETE'],
+                    'products.request_to_pay.send_path' => ['nullable', 'string', 'max:1000'],
+                    'products.request_to_pay.status_method' => ['nullable', 'in:GET,POST,PUT,PATCH,DELETE'],
+                    'products.request_to_pay.status_path' => ['nullable', 'string', 'max:1000'],
+                    'products.payment_facilitator' => ['nullable', 'array'],
+                    'products.payment_facilitator.scope' => ['nullable', 'string', 'max:1000'],
+                    'products.payment_facilitator.auth_mode' => ['nullable', 'in:client_credentials,s2s_password'],
+                    'products.payment_facilitator.s2s_username' => ['nullable', 'string', 'max:255'],
+                    'products.payment_facilitator.s2s_password_reference' => ['nullable', 'string', 'max:500'],
+                    'products.payment_facilitator.approval_reference' => ['nullable', 'string', 'max:500'],
+                    'products.payment_facilitator.operations' => ['nullable', 'array'],
+                    'products.payment_facilitator.operations.*.method' => ['nullable', 'in:GET,POST,PUT,PATCH,DELETE'],
+                    'products.payment_facilitator.operations.*.path' => ['nullable', 'string', 'max:1000'],
+                    'products.tr_qr' => ['nullable', 'array'],
+                    'products.tr_qr.scope' => ['nullable', 'string', 'max:1000'],
+                    'products.tr_qr.auth_mode' => ['nullable', 'in:client_credentials,s2s_password'],
+                    'products.tr_qr.s2s_username' => ['nullable', 'string', 'max:255'],
+                    'products.tr_qr.s2s_password_reference' => ['nullable', 'string', 'max:500'],
+                    'products.tr_qr.approval_reference' => ['nullable', 'string', 'max:500'],
+                    'products.tr_qr.create_method' => ['nullable', 'in:GET,POST,PUT,PATCH,DELETE'],
+                    'products.tr_qr.create_path' => ['nullable', 'string', 'max:1000'],
+                    'products.tr_qr.status_method' => ['nullable', 'in:GET,POST,PUT,PATCH,DELETE'],
+                    'products.tr_qr.status_path' => ['nullable', 'string', 'max:1000'],
+                ],
+                'isbank_sanal_pos' => [
+                    'environment' => ['nullable', 'in:uat,production'],
+                    'merchant_id' => ['nullable', 'string', 'max:190'],
+                    'store_code' => ['nullable', 'string', 'max:190'],
+                    'api_username' => ['nullable', 'string', 'max:190'],
+                    'api_password_reference' => ['nullable', 'string', 'max:500'],
+                    'store_key_reference' => ['nullable', 'string', 'max:500'],
+                    'technical_spec_reference' => ['nullable', 'string', 'max:1000'],
+                ],
+                'e_document' => [
+                    'provider' => ['nullable', 'string', 'max:120'],
+                    'merchant_identifier' => ['nullable', 'string', 'max:190'],
+                    'environment' => ['nullable', 'in:sandbox,uat,production'],
+                    'service_reference' => ['nullable', 'string', 'max:1000'],
+                    'username' => ['nullable', 'string', 'max:255'],
+                    'password_reference' => ['nullable', 'string', 'max:500'],
+                    'lookup_operation' => ['nullable', 'string', 'max:255'],
+                    'lookup_tax_id_field' => ['nullable', 'string', 'max:255'],
+                    'registration_result_path' => ['nullable', 'string', 'max:500'],
+                    'create_operation' => ['nullable', 'string', 'max:255'],
+                    'status_operation' => ['nullable', 'string', 'max:255'],
+                ],
+                'gmoebys' => [
+                    'provider' => ['nullable', 'string', 'max:120'],
+                    'merchant_identifier' => ['nullable', 'string', 'max:190'],
+                    'environment' => ['nullable', 'in:sandbox,uat,production'],
+                    'credential_reference' => ['nullable', 'string', 'max:500'],
+                    'approval_reference' => ['nullable', 'string', 'max:500'],
+                ],
+                'yn_okc' => [
+                    'vendor_driver' => ['nullable', 'string', 'max:190'],
+                    'local_agent_url' => ['nullable', 'url', 'max:1000'],
+                    'credential_reference' => ['nullable', 'string', 'max:500'],
+                ],
+            ];
+
+            foreach ($schemas as $code => $rules) {
+                if (!array_key_exists($code, $all)) continue;
+                $submitted = (array)$all[$code];
+                $validator = Validator::make($submitted, $rules);
+                if ($validator->fails()) {
+                    return response()->json(['ok' => false, 'integration' => $code, 'message' => 'Validation failed.', 'errors' => $validator->errors()], 422);
+                }
+
+                $clean = $validator->validated();
+                $existing = $service->configuration($code, $locationId);
+                $merged = array_replace_recursive($existing, $clean);
+
+                if ($code === 'isbank_api') {
+                    $merged['environment'] = strtolower(trim((string)($merged['environment'] ?? 'uat'))) === 'production' ? 'production' : 'uat';
+                    $products = (array)($merged['products'] ?? []);
+                    foreach (['request_to_pay', 'payment_facilitator', 'tr_qr'] as $productCode) {
+                        $product = (array)($products[$productCode] ?? []);
+                        $approvalRef = trim((string)($product['approval_reference'] ?? ''));
+                        if ($approvalRef !== '') $product['subscription_status'] = 'approved';
+                        elseif (trim((string)($product['subscription_status'] ?? '')) === '') $product['subscription_status'] = 'pending';
+                        $products[$productCode] = $product;
+                    }
+                    $merged['products'] = $products;
+                }
+                if ($code === 'isbank_sanal_pos') {
+                    $merged['activation_status'] = (string)($existing['activation_status'] ?? 'merchant_activation_required');
+                }
+                if ($code === 'e_document') {
+                    $merged['activation_status'] = (string)($existing['activation_status'] ?? 'provider_activation_required');
+                }
+                if ($code === 'gmoebys') {
+                    $merged['activation_status'] = (string)($existing['activation_status'] ?? 'provider_approval_required');
+                }
+
+                $saved[$code] = $service->configure($code, $merged, $locationId);
+            }
+
+            return response()->json(['ok' => true, 'saved' => $saved]);
+        })->name('pmd.turkey.integrations.save.r3');
+
+        Route::post('_pmd/turkey/isbank-test-product-r3', function () use ($guard, $uatOnly) {
+            $locationId = $guard();
+            if ($locationId instanceof \Symfony\Component\HttpFoundation\Response) return $locationId;
+            $product = strtolower(trim((string)request()->input('product', '')));
+            if (!in_array($product, ['request_to_pay', 'payment_facilitator', 'tr_qr'], true)) {
+                return response()->json(['ok' => false, 'message' => 'Unknown İş Bankası product.'], 422);
+            }
+            $service = app(TurkeyIntegrationConfigurationService::class);
+            $config = $service->configuration('isbank_api', $locationId);
+            if ($blocked = $uatOnly($config)) return $blocked;
+            try {
+                $result = app(IsBankApiClient::class)->testConnection($config, $product);
+                $service->recordTestResult('isbank_api', true, null, $locationId);
+                return response()->json(['ok' => true, 'result' => $result]);
+            } catch (\Throwable $error) {
+                try { $service->recordTestResult('isbank_api', false, $error->getMessage(), $locationId); } catch (\Throwable) {}
+                return response()->json(['ok' => false, 'message' => $error->getMessage()], 422);
+            }
+        })->name('pmd.turkey.isbank.test.product.r3');
+
+        Route::post('_pmd/turkey/request-to-pay-r3', function () use ($guard, $uatOnly) {
+            $locationId = $guard();
+            if ($locationId instanceof \Symfony\Component\HttpFoundation\Response) return $locationId;
+            $config = app(TurkeyIntegrationConfigurationService::class)->configuration('isbank_api', $locationId);
+            if ($blocked = $uatOnly($config)) return $blocked;
+            $action = strtolower(trim((string)request()->input('action', 'send')));
+            $payload = (array)request()->input('payload', []);
+            try {
+                $client = app(IsBankRequestToPayService::class);
+                $result = $action === 'status'
+                    ? $client->status($config, (string)request()->input('request_id', ''), $payload)
+                    : $client->send($config, $payload);
+                return response()->json(['ok' => true, 'result' => $result]);
+            } catch (\Throwable $error) {
+                return response()->json(['ok' => false, 'message' => $error->getMessage()], 422);
+            }
+        })->name('pmd.turkey.request-to-pay.r3');
+
+        Route::post('_pmd/turkey/payment-facilitator-r3', function () use ($guard, $uatOnly) {
+            $locationId = $guard();
+            if ($locationId instanceof \Symfony\Component\HttpFoundation\Response) return $locationId;
+            $config = app(TurkeyIntegrationConfigurationService::class)->configuration('isbank_api', $locationId);
+            if ($blocked = $uatOnly($config)) return $blocked;
+            try {
+                $result = app(IsBankPaymentFacilitatorService::class)->call(
+                    $config,
+                    (string)request()->input('operation', ''),
+                    (array)request()->input('payload', []),
+                    (array)request()->input('path_parameters', [])
+                );
+                return response()->json(['ok' => true, 'result' => $result]);
+            } catch (\Throwable $error) {
+                return response()->json(['ok' => false, 'message' => $error->getMessage()], 422);
+            }
+        })->name('pmd.turkey.payment-facilitator.r3');
+
+        Route::post('_pmd/turkey/tr-qr-r3', function () use ($guard, $uatOnly) {
+            $locationId = $guard();
+            if ($locationId instanceof \Symfony\Component\HttpFoundation\Response) return $locationId;
+            $config = app(TurkeyIntegrationConfigurationService::class)->configuration('isbank_api', $locationId);
+            if ($blocked = $uatOnly($config)) return $blocked;
+            $action = strtolower(trim((string)request()->input('action', 'create')));
+            try {
+                $client = app(IsBankTrQrService::class);
+                $result = $action === 'status'
+                    ? $client->status($config, (string)request()->input('payment_id', ''), (array)request()->input('payload', []))
+                    : $client->create($config, (array)request()->input('payload', []));
+                return response()->json(['ok' => true, 'result' => $result]);
+            } catch (\Throwable $error) {
+                return response()->json(['ok' => false, 'message' => $error->getMessage()], 422);
+            }
+        })->name('pmd.turkey.tr-qr.r3');
+
+        Route::post('_pmd/turkey/sanal-pos-readiness-r3', function () use ($guard) {
+            $locationId = $guard();
+            if ($locationId instanceof \Symfony\Component\HttpFoundation\Response) return $locationId;
+            $config = app(TurkeyIntegrationConfigurationService::class)->configuration('isbank_sanal_pos', $locationId);
+            return response()->json(['ok' => true, 'result' => app(IsBankSanalPosService::class)->readiness($config)]);
+        })->name('pmd.turkey.sanal-pos.readiness.r3');
+
+        Route::post('_pmd/turkey/e-document-r3', function () use ($guard) {
+            $locationId = $guard();
+            if ($locationId instanceof \Symfony\Component\HttpFoundation\Response) return $locationId;
+            $service = app(TurkeyIntegrationConfigurationService::class);
+            $config = $service->configuration('e_document', $locationId);
+            $state = $service->state('e_document', $locationId);
+            if (strtolower((string)($config['environment'] ?? 'sandbox')) === 'production' && empty($state['production_ready'])) {
+                return response()->json(['ok' => false, 'message' => 'Production e-document calls require verified provider activation.'], 403);
+            }
+            $action = strtolower(trim((string)request()->input('action', 'lookup')));
+            try {
+                $client = app(TurkeyEDocumentProviderClient::class);
+                $result = match ($action) {
+                    'lookup' => $client->lookupRecipient($config, (string)request()->input('tax_identifier', '')),
+                    'create' => $client->createInvoice($config, (array)request()->input('payload', [])),
+                    'status' => $client->invoiceStatus($config, (array)request()->input('payload', [])),
+                    default => throw new \InvalidArgumentException('Unsupported e-document action.'),
+                };
+                return response()->json(['ok' => true, 'result' => $result]);
+            } catch (\Throwable $error) {
+                return response()->json(['ok' => false, 'message' => $error->getMessage()], 422);
+            }
+        })->name('pmd.turkey.e-document.r3');
+
+        Route::post('_pmd/turkey/yn-okc-r3', function () use ($guard) {
+            $locationId = $guard();
+            if ($locationId instanceof \Symfony\Component\HttpFoundation\Response) return $locationId;
+            $service = app(TurkeyIntegrationConfigurationService::class);
+            $config = $service->configuration('yn_okc', $locationId);
+            $state = $service->state('yn_okc', $locationId);
+            if (empty($state['production_ready'])) {
+                return response()->json(['ok' => false, 'message' => 'YN ÖKC calls require verified/certified device integration evidence.'], 403);
+            }
+            try {
+                $result = app(TurkeyYnOkcAdapterService::class)->execute(
+                    $config,
+                    (string)request()->input('operation', 'status'),
+                    (array)request()->input('payload', []),
+                    (string)request()->input('idempotency_key', '')
+                );
+                return response()->json(['ok' => true, 'result' => $result]);
+            } catch (\Throwable $error) {
+                return response()->json(['ok' => false, 'message' => $error->getMessage()], 422);
+            }
+        })->name('pmd.turkey.yn-okc.r3');
+
         Route::post('_pmd/turkey/terminal-r2', function () use ($guard) {
             $locationId = $guard();
             if ($locationId instanceof \Symfony\Component\HttpFoundation\Response) return $locationId;
-
             $input = (array)request()->input('terminal', []);
             $validator = Validator::make($input, [
                 'provider_code' => ['nullable', 'string', 'max:100'],
@@ -250,13 +510,9 @@ App::before(function () {
                 'provider_product' => ['nullable', 'string', 'max:150'],
                 'note' => ['nullable', 'string', 'max:1000'],
             ]);
-            if ($validator->fails()) {
-                return response()->json(['ok' => false, 'message' => 'Validation failed.', 'errors' => $validator->errors()], 422);
-            }
-
+            if ($validator->fails()) return response()->json(['ok' => false, 'message' => 'Validation failed.', 'errors' => $validator->errors()], 422);
             try {
-                $terminal = app(TurkeyTerminalRegistryService::class)->save($validator->validated(), $locationId);
-                return response()->json(['ok' => true, 'terminal' => $terminal]);
+                return response()->json(['ok' => true, 'terminal' => app(TurkeyTerminalRegistryService::class)->save($validator->validated(), $locationId)]);
             } catch (\Throwable $error) {
                 return response()->json(['ok' => false, 'message' => $error->getMessage()], 422);
             }
