@@ -12,6 +12,7 @@ require $autoload;
 
 use App\Services\Integrations\SecretReferenceService;
 use App\Services\Platform\CountryPlatformProfileRegistry;
+use App\Services\Turkey\IsBankApiClient;
 use App\Services\Turkey\TurkeyIntegrationRegistry;
 use App\Services\Turkey\TurkeyInvoiceRoutingService;
 use App\Services\Turkey\TurkeyPaymentArchitectureService;
@@ -42,12 +43,17 @@ foreach (['tr_card', 'tr_fast_request', 'tr_tr_qr', 'tr_ispay', 'tr_cash'] as $c
 
 $registry = new TurkeyIntegrationRegistry();
 $integrations = $registry->integrations();
-foreach (['yn_okc', 'gmoebys', 'e_document', 'isbank_api', 'acquirer', 'tr_qr_fast', 'fast_request', 'ispay', 'yemeksepeti', 'uber_trendyol_go', 'iys', 'sms', 'whatsapp', 'accounting'] as $code) {
+foreach ([
+    'yn_okc', 'gmoebys', 'e_document', 'isbank_api', 'isbank_sanal_pos',
+    'acquirer', 'tr_qr_fast', 'fast_request', 'ispay', 'yemeksepeti',
+    'uber_trendyol_go', 'iys', 'sms', 'whatsapp', 'accounting'
+] as $code) {
     $assert(isset($integrations[$code]), 'Missing Türkiye integration definition: '.$code);
 }
 $assert(($integrations['yn_okc']['regulated'] ?? false) === true, 'YN ÖKC must be marked regulated.');
 $assert(($integrations['gmoebys']['regulated'] ?? false) === true, 'GMÖEBYS must be marked regulated.');
 $assert(($integrations['isbank_api']['regulated'] ?? false) === true, 'İş Bankası API connection must be marked regulated.');
+$assert(($integrations['isbank_sanal_pos']['regulated'] ?? false) === true, 'İş Bankası Sanal POS must be marked regulated.');
 $assert(($integrations['acquirer']['regulated'] ?? false) === true, 'Acquirer must be marked regulated.');
 $assert(($integrations['fast_request']['regulated'] ?? false) === true, 'FAST Request-to-Pay must be marked regulated.');
 $assert(($integrations['getiryemek']['default_status'] ?? '') === 'do_not_start_new_connector', 'GetirYemek must remain a legacy/no-new-connector path.');
@@ -76,6 +82,32 @@ try {
 } catch (\InvalidArgumentException) {
 }
 
+$isbank = new IsBankApiClient($secrets);
+$sampleBankConfig = [
+    'environment' => 'uat',
+    'uat_client_id' => 'UAT-CLIENT',
+    'uat_client_secret_reference' => 'env:PMD_TR_TEST_SECRET',
+    'production_client_id' => 'PROD-CLIENT',
+    'production_client_secret_reference' => 'env:PMD_TR_PROD_TEST_SECRET',
+    'products' => [
+        'request_to_pay' => [
+            'scope' => 'rtp.scope',
+            'auth_mode' => 'client_credentials',
+        ],
+        'payment_facilitator' => [
+            'scope' => 'pf.scope',
+            'auth_mode' => 's2s_password',
+            's2s_username' => 'pf-user',
+            's2s_password_reference' => 'env:PMD_TR_TEST_SECRET',
+        ],
+    ],
+];
+$assert(($isbank->environmentCredentials($sampleBankConfig)['client_id'] ?? '') === 'UAT-CLIENT', 'İş Bank UAT Client ID selection failed.');
+$assert(($isbank->securityProfile($sampleBankConfig, 'request_to_pay')['scope'] ?? '') === 'rtp.scope', 'Request-to-Pay per-product scope failed.');
+$assert(($isbank->securityProfile($sampleBankConfig, 'payment_facilitator')['auth_mode'] ?? '') === 's2s_password', 'Payment Facilitator per-product auth mode failed.');
+$sampleBankConfig['environment'] = 'production';
+$assert(($isbank->environmentCredentials($sampleBankConfig)['client_id'] ?? '') === 'PROD-CLIENT', 'İş Bank Production Client ID must be separate from UAT.');
+
 foreach ([
     'App\\Services\\Integrations\\SecretReferenceService',
     'App\\Services\\Integrations\\TenantIntegrationSecretSchemaService',
@@ -89,6 +121,12 @@ foreach ([
     'App\\Services\\Turkey\\TurkeyInvoiceRoutingService',
     'App\\Services\\Turkey\\TurkeyTerminalRegistryService',
     'App\\Services\\Turkey\\IsBankApiClient',
+    'App\\Services\\Turkey\\IsBankRequestToPayService',
+    'App\\Services\\Turkey\\IsBankPaymentFacilitatorService',
+    'App\\Services\\Turkey\\IsBankTrQrService',
+    'App\\Services\\Turkey\\IsBankSanalPosService',
+    'App\\Services\\Turkey\\TurkeyEDocumentProviderClient',
+    'App\\Services\\Turkey\\TurkeyYnOkcAdapterService',
     'App\\Services\\Turkey\\YemeksepetiPartnerClient',
     'App\\Services\\Turkey\\TurkeyMarketplaceGatewayService',
     'App\\Services\\Turkey\\TurkeyInventoryService',
@@ -104,8 +142,8 @@ $assert(is_file($root.'/app/admin/views/pmdfinance/index.blade.php'), 'Missing P
 $assert(is_file($root.'/app/admin/controllers/Pmddevices.php'), 'Missing Devices controller source.');
 $assert(is_file($root.'/app/admin/views/pmddevices/index.blade.php'), 'Missing Devices view source.');
 $assert(is_file($root.'/app/admin/controllers/Pmdturkey.php'), 'Missing legacy Türkiye redirect controller source.');
-$assert(is_file($root.'/routes/pmd-turkey-integrations-r2.php'), 'Missing Türkiye R2 integration route source.');
-$assert(is_file($root.'/app/admin/assets/js/pmd-owner-settings-v1.js'), 'Missing owner settings JS source.');
+$assert(is_file($root.'/routes/pmd-turkey-integrations-r2.php'), 'Missing Türkiye integration route source.');
+$assert(is_file($root.'/app/admin/assets/js/pmd-turkey-settings-r3.js'), 'Missing Türkiye R3 settings enhancer.');
 
 if ($failures) {
     fwrite(STDERR, "TURKEY TENANT READINESS R1 SELFTEST FAILED\n");
@@ -115,13 +153,15 @@ if ($failures) {
 
 echo "TURKEY TENANT READINESS R1 SELFTEST OK\n";
 echo "TR: Europe/Istanbul | TRY(2) | tr,en\n";
-echo "Turkey provider catalogue: İş Bankası candidate; methods remain disabled until real activation\n";
+echo "Turkey provider catalogue: İş Bankası candidate; methods remain fail-closed until real activation\n";
 echo "Turkey card model: one Card method | terminal / SoftPOS / online channels | tap/chip are entry modes\n";
-echo "Turkey terminal model: bank/provider != hardware manufacturer; endpoint registry present\n";
+echo "Turkey card safety: acquirer alone is not enough; a verified terminal/SoftPOS or Sanal POS channel is required\n";
+echo "Turkey terminal model: bank/provider != hardware manufacturer; verified activation lifecycle present\n";
 echo "Turkey fiscal modes: YN ÖKC OR approved GMÖEBYS\n";
-echo "Turkey invoices: YN ÖKC fiş | e-Fatura | e-Arşiv routing modeled\n";
-echo "İş Bankası API: UAT OAuth/mTLS client + authenticated settings/test routes present\n";
-echo "Turkey checkout: card | FAST Request-to-Pay | FAST/TR QR | optional İşPay | cash\n";
+echo "Turkey invoices: YN ÖKC fiş | e-Fatura | e-Arşiv routing + provider SOAP boundary present\n";
+echo "İş Bankası R3: separate UAT/Production credentials + per-API scope/security profiles\n";
+echo "İş Bankası typed adapters: Request To Pay | Payment Facilitator | TR QR boundary | Sanal POS boundary\n";
+echo "Türkiye VAT policy: consumer menu prices enforced VAT-inclusive by the R3 admin route layer\n";
 echo "Yemeksepeti: official sandbox client present; credentials required\n";
 echo "PMD-wide secret references: env:/config: supported; raw new-integration secrets rejected\n";
-echo "Turkey settings UI: Payments & finance + Devices; /admin/pmdturkey redirects\n";
+echo "Turkey settings UI: Payments & finance + Devices; R3 enhancer loaded into existing pages\n";
