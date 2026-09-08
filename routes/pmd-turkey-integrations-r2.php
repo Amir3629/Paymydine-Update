@@ -21,6 +21,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
+use System\Libraries\Assets;
 
 /**
  * PMD_TURKEY_INTEGRATIONS_R3
@@ -32,8 +33,20 @@ use Illuminate\Support\Facades\Validator;
  * - explicit Sanal POS boundary,
  * - provider-neutral e-document and YN ÖKC adapter boundaries,
  * - Türkiye VAT-inclusive consumer-price enforcement,
- * - R3 UI injected into the existing Payments & finance / Devices pages.
+ * - R3 UI on the existing Payments & finance / Devices pages.
  */
+
+// Add the R3 enhancer through the same Admin asset pipeline the controllers use.
+Assets::registerCallback(function (Assets $manager) {
+    try {
+        $request = request();
+        $adminUri = trim((string)config('system.adminUri', 'admin'), '/');
+        if ($request && ($request->is($adminUri.'/pmdfinance*') || $request->is($adminUri.'/pmddevices*'))) {
+            $manager->addJs('js/pmd-turkey-settings-r3.js');
+        }
+    } catch (\Throwable) {
+    }
+});
 
 $enforceTurkeyVatInclusive = static function (): void {
     try {
@@ -41,7 +54,6 @@ $enforceTurkeyVatInclusive = static function (): void {
         if (strtoupper((string)($state['country_code'] ?? '')) !== CountryPlatformProfileRegistry::TURKEY) return;
 
         // Türkiye consumer-facing menu prices are treated as VAT-inclusive.
-        // Keep the stored switch aligned as well so all legacy calculations see 0.
         if (function_exists('setting')) {
             $current = (string)setting('tax_menu_price', '1');
             if ($current !== '0') {
@@ -50,6 +62,7 @@ $enforceTurkeyVatInclusive = static function (): void {
             }
         }
 
+        // Keep the legacy direct settings read aligned too.
         if (Schema::hasTable('settings') && Schema::hasColumn('settings', 'item') && Schema::hasColumn('settings', 'value')) {
             $query = DB::table('settings')->where('item', 'tax_menu_price');
             if (Schema::hasColumn('settings', 'sort')) $query->where('sort', 'config');
@@ -62,7 +75,6 @@ $enforceTurkeyVatInclusive = static function (): void {
             }
         }
     } catch (\Throwable $error) {
-        // Never break a request because a compatibility tax normalization failed.
         try { logger()->warning('PMD Türkiye VAT-inclusive normalization failed', ['message' => $error->getMessage()]); } catch (\Throwable) {}
     }
 };
@@ -70,26 +82,6 @@ $enforceTurkeyVatInclusive = static function (): void {
 App::before(function () use ($enforceTurkeyVatInclusive) {
     $enforceTurkeyVatInclusive();
 });
-
-if (method_exists(app(), 'after')) {
-    App::after(function ($request, $response) use ($enforceTurkeyVatInclusive) {
-        $enforceTurkeyVatInclusive();
-
-        // Load the small R3 enhancer without rewriting the large shared settings controller/view.
-        try {
-            $path = '/'.trim((string)$request->path(), '/');
-            $adminPrefix = '/'.trim((string)config('system.adminUri', 'admin'), '/');
-            if (!str_starts_with($path, $adminPrefix.'/pmdfinance') && !str_starts_with($path, $adminPrefix.'/pmddevices')) return;
-            if (!is_object($response) || !method_exists($response, 'getContent') || !method_exists($response, 'setContent')) return;
-            $content = $response->getContent();
-            if (!is_string($content) || stripos($content, '</body>') === false || str_contains($content, 'pmd-turkey-settings-r3.js')) return;
-
-            $src = $adminPrefix.'/_pmd/turkey/settings-r3.js?v=3.0.0';
-            $response->setContent(str_ireplace('</body>', '<script src="'.htmlspecialchars($src, ENT_QUOTES, 'UTF-8').'"></script></body>', $content));
-        } catch (\Throwable) {
-        }
-    });
-}
 
 App::before(function () {
     Route::group([
@@ -135,16 +127,6 @@ App::before(function () {
             }
             return null;
         };
-
-        Route::get('_pmd/turkey/settings-r3.js', function () use ($guard) {
-            $locationId = $guard();
-            if ($locationId instanceof \Symfony\Component\HttpFoundation\Response) return $locationId;
-            $path = base_path('app/admin/assets/js/pmd-turkey-settings-r3.js');
-            if (!is_file($path)) return response('/* Türkiye R3 asset missing */', 404)->header('Content-Type', 'application/javascript');
-            return response((string)file_get_contents($path), 200)
-                ->header('Content-Type', 'application/javascript; charset=UTF-8')
-                ->header('Cache-Control', 'no-store, private');
-        })->name('pmd.turkey.settings.r3.js');
 
         // -----------------------------------------------------------------
         // R2 compatibility endpoints used by the already-deployed shared JS.
@@ -349,15 +331,9 @@ App::before(function () {
                     }
                     $merged['products'] = $products;
                 }
-                if ($code === 'isbank_sanal_pos') {
-                    $merged['activation_status'] = (string)($existing['activation_status'] ?? 'merchant_activation_required');
-                }
-                if ($code === 'e_document') {
-                    $merged['activation_status'] = (string)($existing['activation_status'] ?? 'provider_activation_required');
-                }
-                if ($code === 'gmoebys') {
-                    $merged['activation_status'] = (string)($existing['activation_status'] ?? 'provider_approval_required');
-                }
+                if ($code === 'isbank_sanal_pos') $merged['activation_status'] = (string)($existing['activation_status'] ?? 'merchant_activation_required');
+                if ($code === 'e_document') $merged['activation_status'] = (string)($existing['activation_status'] ?? 'provider_activation_required');
+                if ($code === 'gmoebys') $merged['activation_status'] = (string)($existing['activation_status'] ?? 'provider_approval_required');
 
                 $saved[$code] = $service->configure($code, $merged, $locationId);
             }
@@ -517,5 +493,25 @@ App::before(function () {
                 return response()->json(['ok' => false, 'message' => $error->getMessage()], 422);
             }
         })->name('pmd.turkey.terminal.save.r2');
+
+        Route::post('_pmd/turkey/terminal-verify-r3', function () use ($guard) {
+            $locationId = $guard();
+            if ($locationId instanceof \Symfony\Component\HttpFoundation\Response) return $locationId;
+            $validator = Validator::make(request()->all(), [
+                'terminal_device_id' => ['required', 'integer', 'min:1'],
+                'verification_reference' => ['required', 'string', 'max:500'],
+                'external_approval_status' => ['required', 'in:approved,active,certified'],
+                'provider_terminal_id' => ['nullable', 'string', 'max:255'],
+                'remote_sync_status' => ['nullable', 'string', 'max:100'],
+            ]);
+            if ($validator->fails()) return response()->json(['ok' => false, 'message' => 'Validation failed.', 'errors' => $validator->errors()], 422);
+            try {
+                $clean = $validator->validated();
+                $terminal = app(TurkeyTerminalRegistryService::class)->markVerified((int)$clean['terminal_device_id'], $clean, $locationId);
+                return response()->json(['ok' => true, 'terminal' => $terminal]);
+            } catch (\Throwable $error) {
+                return response()->json(['ok' => false, 'message' => $error->getMessage()], 422);
+            }
+        })->name('pmd.turkey.terminal.verify.r3');
     });
 });
