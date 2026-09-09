@@ -104,6 +104,12 @@ $expect($lifecycle, 'New tenant attendance schema is not ready.', 'new-tenant at
 $expect($hours, "table('staff_attendance')", 'AI reads canonical attendance authority');
 $expect($hours, 'actual_hours_authoritative', 'AI coverage-gated actual hours');
 $expect($portal, "DB::table('staff_attendance')", 'staff portal time clock writer');
+$expect($portal, 'PmdStaffAttendanceSchemaService::class', 'staff portal canonical schema readiness gate');
+$expect($portal, "\$values['status'] = 'checked_in'", 'staff portal explicit checked-in state');
+$expect($portal, "\$values['status'] = 'checked_out'", 'staff portal explicit checked-out state');
+$expect($portal, "\$values['device_type'] = 'manual'", 'staff portal source device classification');
+$expect($portal, "\$values['verification_method'] = 'manual'", 'staff portal verification classification');
+$expect($portal, "\$values['timezone'] = (string)config('app.timezone', 'UTC')", 'staff portal timezone capture');
 $expect($portal, 'attendanceReady()', 'staff portal attendance capability gate');
 $reject($guest, 'PmdStaffAttendanceSchemaService', 'Guest AI cannot manage attendance schema');
 $reject($guest, 'staff_attendance', 'Guest AI cannot read staff attendance');
