@@ -54,6 +54,7 @@ pm2/
 _ops/
 
 # Backup directories
+.pmd-hotfix-backups/
 .audit-backups/
 audit-backups/
 .deploy_backup_*/

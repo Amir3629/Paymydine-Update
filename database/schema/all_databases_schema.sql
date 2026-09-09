@@ -1,5 +1,5 @@
 -- PayMyDine schema-only dump
--- Generated UTC: Sun Sep  6 19:53:26 UTC 2026
+-- Generated UTC: Wed Sep  9 21:43:32 UTC 2026
 -- Source server: vps-252f1bc4
 -- DATA ROWS ARE NOT INCLUDED
 
@@ -1853,7 +1853,7 @@ CREATE TABLE `ti_migrations` (
   `migration` varchar(128) NOT NULL,
   `batch` int(11) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=211 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=215 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -2302,6 +2302,29 @@ CREATE TABLE `ti_payments` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `ti_pmd_admin_ai_conversations`
+--
+
+DROP TABLE IF EXISTS `ti_pmd_admin_ai_conversations`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_pmd_admin_ai_conversations` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `location_id` bigint(20) unsigned NOT NULL,
+  `admin_user_id` bigint(20) unsigned NOT NULL,
+  `conversation_date` date NOT NULL,
+  `role` varchar(16) NOT NULL,
+  `content` longtext NOT NULL,
+  `run_id` varchar(64) DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `pmd_admin_ai_scope_idx` (`location_id`,`admin_user_id`,`id`),
+  KEY `pmd_admin_ai_day_scope_idx` (`location_id`,`admin_user_id`,`conversation_date`,`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `ti_pmd_admin_presence_sessions`
 --
 
@@ -2361,6 +2384,36 @@ CREATE TABLE `ti_pmd_operational_people` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `ti_pmd_operational_shift_audit_events`
+--
+
+DROP TABLE IF EXISTS `ti_pmd_operational_shift_audit_events`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_pmd_operational_shift_audit_events` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `location_id` bigint(20) unsigned NOT NULL DEFAULT 0,
+  `shift_id` bigint(20) unsigned DEFAULT NULL,
+  `person_id` bigint(20) unsigned DEFAULT NULL,
+  `event_type` varchar(48) NOT NULL,
+  `source` varchar(191) DEFAULT NULL,
+  `actor_admin_user_id` bigint(20) unsigned DEFAULT NULL,
+  `actor_staff_id` bigint(20) unsigned DEFAULT NULL,
+  `actor_name_snapshot` varchar(128) DEFAULT NULL,
+  `actor_role_snapshot` varchar(64) DEFAULT NULL,
+  `target_name_snapshot` varchar(128) DEFAULT NULL,
+  `before_json` longtext DEFAULT NULL,
+  `after_json` longtext DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `pmd_shift_audit_location_time_idx` (`location_id`,`created_at`),
+  KEY `pmd_shift_audit_person_time_idx` (`location_id`,`person_id`,`created_at`),
+  KEY `pmd_shift_audit_shift_time_idx` (`shift_id`,`created_at`),
+  KEY `pmd_shift_audit_type_time_idx` (`event_type`,`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `ti_pmd_operational_shift_people`
 --
 
@@ -2383,6 +2436,141 @@ CREATE TABLE `ti_pmd_operational_shift_people` (
   KEY `pmd_ops_shift_people_state_idx` (`shift_id`,`department_snapshot`,`attendance_status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_unicode_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+/*!50003 CREATE*/ /*!50017 DEFINER=`paymydine`@`localhost`*/ /*!50003 TRIGGER `pmd_shift_audit_person_ai_v1`
+AFTER INSERT ON `ti_pmd_operational_shift_people`
+FOR EACH ROW
+BEGIN
+    INSERT INTO `ti_pmd_operational_shift_audit_events`
+        (location_id, shift_id, person_id, event_type, source,
+         actor_admin_user_id, actor_staff_id, actor_name_snapshot, actor_role_snapshot,
+         target_name_snapshot, before_json, after_json, created_at)
+    VALUES
+        (COALESCE((SELECT s.location_id FROM `ti_pmd_operational_shifts` s WHERE s.id = NEW.shift_id LIMIT 1), 0),
+         NEW.shift_id, NEW.person_id,
+         CASE WHEN COALESCE(NEW.is_replacement, 0) = 1 THEN 'replacement_added' ELSE 'assignment_added' END,
+         COALESCE(NULLIF(@pmd_audit_source, ''), 'system'),
+         @pmd_actor_admin_user_id, @pmd_actor_staff_id,
+         NULLIF(@pmd_actor_name, ''), NULLIF(@pmd_actor_role, ''),
+         NEW.display_name_snapshot,
+         NULL,
+         JSON_OBJECT(
+             'name', NEW.display_name_snapshot,
+             'department', NEW.department_snapshot,
+             'job_role', NEW.job_role_snapshot,
+             'attendance_status', NEW.attendance_status,
+             'is_replacement', NEW.is_replacement
+         ),
+         CURRENT_TIMESTAMP);
+END */;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_unicode_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+/*!50003 CREATE*/ /*!50017 DEFINER=`paymydine`@`localhost`*/ /*!50003 TRIGGER `pmd_shift_audit_person_au_v1`
+AFTER UPDATE ON `ti_pmd_operational_shift_people`
+FOR EACH ROW
+BEGIN
+    IF NOT (OLD.person_id <=> NEW.person_id)
+       OR NOT (OLD.display_name_snapshot <=> NEW.display_name_snapshot)
+       OR NOT (OLD.department_snapshot <=> NEW.department_snapshot)
+       OR NOT (OLD.job_role_snapshot <=> NEW.job_role_snapshot)
+       OR NOT (OLD.attendance_status <=> NEW.attendance_status)
+       OR NOT (OLD.is_replacement <=> NEW.is_replacement) THEN
+        INSERT INTO `ti_pmd_operational_shift_audit_events`
+            (location_id, shift_id, person_id, event_type, source,
+             actor_admin_user_id, actor_staff_id, actor_name_snapshot, actor_role_snapshot,
+             target_name_snapshot, before_json, after_json, created_at)
+        VALUES
+            (COALESCE((SELECT s.location_id FROM `ti_pmd_operational_shifts` s WHERE s.id = NEW.shift_id LIMIT 1), 0),
+             NEW.shift_id, NEW.person_id,
+             CASE
+                 WHEN NOT (OLD.attendance_status <=> NEW.attendance_status) THEN 'attendance_changed'
+                 ELSE 'assignment_updated'
+             END,
+             COALESCE(NULLIF(@pmd_audit_source, ''), 'system'),
+             @pmd_actor_admin_user_id, @pmd_actor_staff_id,
+             NULLIF(@pmd_actor_name, ''), NULLIF(@pmd_actor_role, ''),
+             NEW.display_name_snapshot,
+             JSON_OBJECT(
+                 'name', OLD.display_name_snapshot,
+                 'department', OLD.department_snapshot,
+                 'job_role', OLD.job_role_snapshot,
+                 'attendance_status', OLD.attendance_status,
+                 'is_replacement', OLD.is_replacement
+             ),
+             JSON_OBJECT(
+                 'name', NEW.display_name_snapshot,
+                 'department', NEW.department_snapshot,
+                 'job_role', NEW.job_role_snapshot,
+                 'attendance_status', NEW.attendance_status,
+                 'is_replacement', NEW.is_replacement
+             ),
+             CURRENT_TIMESTAMP);
+    END IF;
+END */;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_unicode_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+/*!50003 CREATE*/ /*!50017 DEFINER=`paymydine`@`localhost`*/ /*!50003 TRIGGER `pmd_shift_audit_person_ad_v1`
+AFTER DELETE ON `ti_pmd_operational_shift_people`
+FOR EACH ROW
+BEGIN
+    INSERT INTO `ti_pmd_operational_shift_audit_events`
+        (location_id, shift_id, person_id, event_type, source,
+         actor_admin_user_id, actor_staff_id, actor_name_snapshot, actor_role_snapshot,
+         target_name_snapshot, before_json, after_json, created_at)
+    VALUES
+        (COALESCE((SELECT s.location_id FROM `ti_pmd_operational_shifts` s WHERE s.id = OLD.shift_id LIMIT 1), 0),
+         OLD.shift_id, OLD.person_id, 'assignment_removed',
+         COALESCE(NULLIF(@pmd_audit_source, ''), 'system'),
+         @pmd_actor_admin_user_id, @pmd_actor_staff_id,
+         NULLIF(@pmd_actor_name, ''), NULLIF(@pmd_actor_role, ''),
+         OLD.display_name_snapshot,
+         JSON_OBJECT(
+             'name', OLD.display_name_snapshot,
+             'department', OLD.department_snapshot,
+             'job_role', OLD.job_role_snapshot,
+             'attendance_status', OLD.attendance_status,
+             'is_replacement', OLD.is_replacement
+         ),
+         NULL,
+         CURRENT_TIMESTAMP);
+END */;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
 
 --
 -- Table structure for table `ti_pmd_operational_shifts`
@@ -2410,6 +2598,109 @@ CREATE TABLE `ti_pmd_operational_shifts` (
   KEY `pmd_ops_shift_confirmed_idx` (`location_id`,`confirmed_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_unicode_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+/*!50003 CREATE*/ /*!50017 DEFINER=`paymydine`@`localhost`*/ /*!50003 TRIGGER `pmd_shift_audit_shift_ai_v1`
+AFTER INSERT ON `ti_pmd_operational_shifts`
+FOR EACH ROW
+BEGIN
+    INSERT INTO `ti_pmd_operational_shift_audit_events`
+        (location_id, shift_id, person_id, event_type, source,
+         actor_admin_user_id, actor_staff_id, actor_name_snapshot, actor_role_snapshot,
+         target_name_snapshot, before_json, after_json, created_at)
+    VALUES
+        (NEW.location_id, NEW.id, NULL, 'shift_created',
+         COALESCE(NULLIF(@pmd_audit_source, ''), 'system'),
+         @pmd_actor_admin_user_id, @pmd_actor_staff_id,
+         NULLIF(@pmd_actor_name, ''), NULLIF(@pmd_actor_role, ''),
+         NULL, NULL,
+         JSON_OBJECT(
+             'shift_date', NEW.shift_date,
+             'label', NEW.label,
+             'starts_at', NEW.starts_at,
+             'ends_at', NEW.ends_at,
+             'status', NEW.status,
+             'confirmed_at', NEW.confirmed_at,
+             'confirmed_by_staff_id', NEW.confirmed_by_staff_id
+         ),
+         CURRENT_TIMESTAMP);
+END */;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_unicode_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+/*!50003 CREATE*/ /*!50017 DEFINER=`paymydine`@`localhost`*/ /*!50003 TRIGGER `pmd_shift_audit_shift_au_v1`
+AFTER UPDATE ON `ti_pmd_operational_shifts`
+FOR EACH ROW
+BEGIN
+    IF NOT (OLD.shift_date <=> NEW.shift_date)
+       OR NOT (OLD.label <=> NEW.label)
+       OR NOT (OLD.starts_at <=> NEW.starts_at)
+       OR NOT (OLD.ends_at <=> NEW.ends_at)
+       OR NOT (OLD.status <=> NEW.status)
+       OR NOT (OLD.confirmed_at <=> NEW.confirmed_at)
+       OR NOT (OLD.confirmed_by_staff_id <=> NEW.confirmed_by_staff_id) THEN
+        INSERT INTO `ti_pmd_operational_shift_audit_events`
+            (location_id, shift_id, person_id, event_type, source,
+             actor_admin_user_id, actor_staff_id, actor_name_snapshot, actor_role_snapshot,
+             target_name_snapshot, before_json, after_json, created_at)
+        VALUES
+            (NEW.location_id, NEW.id, NULL,
+             CASE
+                 WHEN LOWER(COALESCE(NEW.status, '')) IN ('cancelled', 'canceled')
+                      AND LOWER(COALESCE(OLD.status, '')) NOT IN ('cancelled', 'canceled')
+                     THEN 'shift_cancelled'
+                 WHEN NEW.confirmed_at IS NOT NULL AND NOT (OLD.confirmed_at <=> NEW.confirmed_at)
+                     THEN 'shift_confirmed'
+                 ELSE 'shift_updated'
+             END,
+             COALESCE(NULLIF(@pmd_audit_source, ''), 'system'),
+             @pmd_actor_admin_user_id, @pmd_actor_staff_id,
+             NULLIF(@pmd_actor_name, ''), NULLIF(@pmd_actor_role, ''),
+             NULL,
+             JSON_OBJECT(
+                 'shift_date', OLD.shift_date,
+                 'label', OLD.label,
+                 'starts_at', OLD.starts_at,
+                 'ends_at', OLD.ends_at,
+                 'status', OLD.status,
+                 'confirmed_at', OLD.confirmed_at,
+                 'confirmed_by_staff_id', OLD.confirmed_by_staff_id
+             ),
+             JSON_OBJECT(
+                 'shift_date', NEW.shift_date,
+                 'label', NEW.label,
+                 'starts_at', NEW.starts_at,
+                 'ends_at', NEW.ends_at,
+                 'status', NEW.status,
+                 'confirmed_at', NEW.confirmed_at,
+                 'confirmed_by_staff_id', NEW.confirmed_by_staff_id
+             ),
+             CURRENT_TIMESTAMP);
+    END IF;
+END */;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
 
 --
 -- Table structure for table `ti_pmd_order_eta_events`
@@ -2457,6 +2748,52 @@ CREATE TABLE `ti_pmd_owner_mfa` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `ti_pmd_owner_mfa_user_id_unique` (`user_id`),
   KEY `pmd_owner_mfa_staff_idx` (`staff_id`,`disabled_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_pmd_portal_mfa`
+--
+
+DROP TABLE IF EXISTS `ti_pmd_portal_mfa`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_pmd_portal_mfa` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `user_id` bigint(20) unsigned NOT NULL,
+  `staff_id` bigint(20) unsigned DEFAULT NULL,
+  `location_id` bigint(20) unsigned NOT NULL,
+  `mfa_type` varchar(16) NOT NULL DEFAULT 'totp',
+  `secret_encrypted` text NOT NULL,
+  `last_used_step` bigint(20) unsigned DEFAULT NULL,
+  `confirmed_at` timestamp NULL DEFAULT NULL,
+  `recovery_acknowledged_at` timestamp NULL DEFAULT NULL,
+  `disabled_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `pmd_portal_mfa_user_location_uq` (`user_id`,`location_id`),
+  KEY `pmd_portal_mfa_staff_idx` (`staff_id`,`disabled_at`),
+  KEY `pmd_portal_mfa_user_active_idx` (`user_id`,`disabled_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_pmd_portal_mfa_recovery_codes`
+--
+
+DROP TABLE IF EXISTS `ti_pmd_portal_mfa_recovery_codes`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_pmd_portal_mfa_recovery_codes` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `user_id` bigint(20) unsigned NOT NULL,
+  `code_hash` varchar(64) NOT NULL,
+  `used_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `pmd_portal_mfa_recovery_user_code_uq` (`user_id`,`code_hash`),
+  KEY `pmd_portal_mfa_recovery_user_used_idx` (`user_id`,`used_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -3591,7 +3928,7 @@ CREATE TABLE `ti_tenants` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `unique_domain` (`domain`(191)),
   UNIQUE KEY `unique_database` (`database`(191))
-) ENGINE=MyISAM AUTO_INCREMENT=82 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=86 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -3990,7 +4327,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-09-06 19:53:26
+-- Dump completed on 2026-09-09 21:43:33
 
 -- ==================================================
 -- DATABASE: mimoza
@@ -6409,6 +6746,36 @@ CREATE TABLE `ti_pmd_guest_payment_intents` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `ti_pmd_integration_secret_references`
+--
+
+DROP TABLE IF EXISTS `ti_pmd_integration_secret_references`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_pmd_integration_secret_references` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `location_id` int(10) unsigned DEFAULT NULL,
+  `country_code` varchar(8) DEFAULT NULL,
+  `provider_code` varchar(80) NOT NULL,
+  `environment` varchar(24) NOT NULL DEFAULT 'production',
+  `secret_name` varchar(100) NOT NULL,
+  `secret_reference` varchar(500) NOT NULL,
+  `enabled` tinyint(1) NOT NULL DEFAULT 1,
+  `last_resolved_at` timestamp NULL DEFAULT NULL,
+  `last_error` text DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `pmd_integration_secret_ref_uq` (`location_id`,`provider_code`,`environment`,`secret_name`),
+  KEY `ti_pmd_integration_secret_references_location_id_index` (`location_id`),
+  KEY `ti_pmd_integration_secret_references_country_code_index` (`country_code`),
+  KEY `ti_pmd_integration_secret_references_provider_code_index` (`provider_code`),
+  KEY `ti_pmd_integration_secret_references_environment_index` (`environment`),
+  KEY `ti_pmd_integration_secret_references_enabled_index` (`enabled`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `ti_pmd_operational_people`
 --
 
@@ -7909,7 +8276,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-09-06 19:53:27
+-- Dump completed on 2026-09-09 21:43:33
 
 -- ==================================================
 -- DATABASE: rosana
@@ -9818,6 +10185,36 @@ CREATE TABLE `ti_payments` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `ti_pmd_integration_secret_references`
+--
+
+DROP TABLE IF EXISTS `ti_pmd_integration_secret_references`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_pmd_integration_secret_references` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `location_id` int(10) unsigned DEFAULT NULL,
+  `country_code` varchar(8) DEFAULT NULL,
+  `provider_code` varchar(80) NOT NULL,
+  `environment` varchar(24) NOT NULL DEFAULT 'production',
+  `secret_name` varchar(100) NOT NULL,
+  `secret_reference` varchar(500) NOT NULL,
+  `enabled` tinyint(1) NOT NULL DEFAULT 1,
+  `last_resolved_at` timestamp NULL DEFAULT NULL,
+  `last_error` text DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `pmd_integration_secret_ref_uq` (`location_id`,`provider_code`,`environment`,`secret_name`),
+  KEY `ti_pmd_integration_secret_references_location_id_index` (`location_id`),
+  KEY `ti_pmd_integration_secret_references_country_code_index` (`country_code`),
+  KEY `ti_pmd_integration_secret_references_provider_code_index` (`provider_code`),
+  KEY `ti_pmd_integration_secret_references_environment_index` (`environment`),
+  KEY `ti_pmd_integration_secret_references_enabled_index` (`enabled`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `ti_pmd_owner_mfa`
 --
 
@@ -10648,7 +11045,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-09-06 19:53:27
+-- Dump completed on 2026-09-09 21:43:34
 -- WARNING: Database 'persian' not found or not accessible.
 
 -- ==================================================
@@ -12176,6 +12573,36 @@ CREATE TABLE `ti_payments` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `ti_pmd_integration_secret_references`
+--
+
+DROP TABLE IF EXISTS `ti_pmd_integration_secret_references`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_pmd_integration_secret_references` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `location_id` int(10) unsigned DEFAULT NULL,
+  `country_code` varchar(8) DEFAULT NULL,
+  `provider_code` varchar(80) NOT NULL,
+  `environment` varchar(24) NOT NULL DEFAULT 'production',
+  `secret_name` varchar(100) NOT NULL,
+  `secret_reference` varchar(500) NOT NULL,
+  `enabled` tinyint(1) NOT NULL DEFAULT 1,
+  `last_resolved_at` timestamp NULL DEFAULT NULL,
+  `last_error` text DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `pmd_integration_secret_ref_uq` (`location_id`,`provider_code`,`environment`,`secret_name`),
+  KEY `ti_pmd_integration_secret_references_location_id_index` (`location_id`),
+  KEY `ti_pmd_integration_secret_references_country_code_index` (`country_code`),
+  KEY `ti_pmd_integration_secret_references_provider_code_index` (`provider_code`),
+  KEY `ti_pmd_integration_secret_references_environment_index` (`environment`),
+  KEY `ti_pmd_integration_secret_references_enabled_index` (`enabled`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `ti_pmd_operational_people`
 --
 
@@ -12920,4 +13347,4 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-09-06 19:53:28
+-- Dump completed on 2026-09-09 21:43:34

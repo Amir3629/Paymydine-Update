@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use Admin\Facades\AdminAuth;
-use App\Services\Workforce\PmdStaffAttendanceSchemaService;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -91,10 +90,6 @@ class PmdStaffPortalV6Controller extends PmdStaffPortalV5Controller
                     'check_out_time' => null,
                 ];
                 if (Schema::hasColumn('staff_attendance', 'location_id')) $values['location_id'] = $locationId;
-                if (Schema::hasColumn('staff_attendance', 'status')) $values['status'] = 'checked_in';
-                if (Schema::hasColumn('staff_attendance', 'device_type')) $values['device_type'] = 'manual';
-                if (Schema::hasColumn('staff_attendance', 'verification_method')) $values['verification_method'] = 'manual';
-                if (Schema::hasColumn('staff_attendance', 'timezone')) $values['timezone'] = (string)config('app.timezone', 'UTC');
                 if (Schema::hasColumn('staff_attendance', 'created_at')) $values['created_at'] = $now;
                 if (Schema::hasColumn('staff_attendance', 'updated_at')) $values['updated_at'] = $now;
                 if (Schema::hasColumn('staff_attendance', 'metadata')) {
@@ -161,7 +156,6 @@ class PmdStaffPortalV6Controller extends PmdStaffPortalV5Controller
                 $hours = round($seconds / 3600, 2);
                 $values = ['check_out_time' => $now];
                 if (Schema::hasColumn('staff_attendance', 'hours_worked')) $values['hours_worked'] = $hours;
-                if (Schema::hasColumn('staff_attendance', 'status')) $values['status'] = 'checked_out';
                 if (Schema::hasColumn('staff_attendance', 'updated_at')) $values['updated_at'] = $now;
 
                 DB::table('staff_attendance')
@@ -309,11 +303,10 @@ class PmdStaffPortalV6Controller extends PmdStaffPortalV5Controller
 
     private function attendanceReady(): bool
     {
-        try {
-            $status = app(PmdStaffAttendanceSchemaService::class)->status('tenant');
-            return !empty($status['ready']);
-        } catch (\Throwable $error) {
-            return false;
-        }
+        return Schema::hasTable('staff_attendance')
+            && Schema::hasColumn('staff_attendance', 'attendance_id')
+            && Schema::hasColumn('staff_attendance', 'staff_id')
+            && Schema::hasColumn('staff_attendance', 'check_in_time')
+            && Schema::hasColumn('staff_attendance', 'check_out_time');
     }
 }
