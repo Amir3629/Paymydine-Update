@@ -1,2 +1,0 @@
-Nginx log: /var/log/nginx/access.log
-Laravel log: storage/logs/laravel.log

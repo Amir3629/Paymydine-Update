@@ -173,7 +173,7 @@
 
         var path = String(
             url.pathname || ''
-        ).replace(/\\/+$/, '');
+        ).replace(/\/+$/, '');
 
         if (path === '/admin/orders') {
             url.pathname =

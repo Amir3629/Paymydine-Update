@@ -1,0 +1,81 @@
+{
+  "schemaVersion": "pmd-frontend-theme-manifest-v2.1",
+  "themes": [
+    {
+      "id": "noir_editorial",
+      "name": "Noir Editorial",
+      "restaurantType": "Luxury dining",
+      "previewPath": "/preview/noir_editorial"
+    },
+    {
+      "id": "verdant_modern",
+      "name": "Verdant Modern",
+      "restaurantType": "Modern bistro",
+      "previewPath": "/preview/verdant_modern"
+    },
+    {
+      "id": "lumiere_fine_dining",
+      "name": "Lumière Fine Dining",
+      "restaurantType": "Fine dining",
+      "previewPath": "/preview/lumiere_fine_dining"
+    },
+    {
+      "id": "kazen_japanese",
+      "name": "Kazen Japanese",
+      "restaurantType": "Japanese / Omakase",
+      "previewPath": "/preview/kazen_japanese"
+    },
+    {
+      "id": "azzurra_coastal",
+      "name": "Azzurra Coastal",
+      "restaurantType": "Mediterranean / Seafood",
+      "previewPath": "/preview/azzurra_coastal"
+    },
+    {
+      "id": "neon_cocktail_bar",
+      "name": "Neon Cocktail Bar",
+      "restaurantType": "Bar / Nightlife",
+      "previewPath": "/preview/neon_cocktail_bar"
+    },
+    {
+      "id": "art_deco_speakeasy",
+      "name": "Art Deco Speakeasy",
+      "restaurantType": "Premium bar",
+      "previewPath": "/preview/art_deco_speakeasy"
+    },
+    {
+      "id": "shahrazad_persian",
+      "name": "Shahrazad Persian",
+      "restaurantType": "Persian fine dining",
+      "previewPath": "/preview/shahrazad_persian"
+    },
+    {
+      "id": "anatolia_turkish",
+      "name": "Anatolia Turkish",
+      "restaurantType": "Turkish / Grill",
+      "previewPath": "/preview/anatolia_turkish"
+    },
+    {
+      "id": "ember_steakhouse",
+      "name": "Ember Steakhouse",
+      "restaurantType": "Steakhouse",
+      "previewPath": "/preview/ember_steakhouse"
+    }
+  ],
+  "sharedFields": [
+    "restaurant_name",
+    "site_logo",
+    "favicon_logo",
+    "restaurant_description",
+    "default_language",
+    "pmd_v2_enabled_languages",
+    "pmd_v2_waiter_call_enabled",
+    "pmd_v2_valet_enabled",
+    "pmd_v2_table_order_enabled",
+    "pmd_v2_split_bill_enabled",
+    "pmd_v2_tips_enabled",
+    "pmd_v2_coupons_enabled",
+    "pmd_v2_social_enabled",
+    "social_links"
+  ]
+}

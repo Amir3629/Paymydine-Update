@@ -32,6 +32,7 @@ vendor/
 
 # Frontend builds
 .next/
+.next.*/
 dist/
 build/
 coverage/
@@ -68,11 +69,20 @@ app/admin/services/
 # Nested repository
 frontend/Paymydine-Update/
 
-# Storage backups / staging
+# VPS storage deployment / hotfix / rollback / backup snapshots
+storage/pmd-*/
+storage/.pmd-*/
 storage/*-backups/
+storage/*-backup/
+storage/*-backup-*/
+storage/*-hotfix/
+storage/*-hotfix-*/
+storage/*-rollback/
+storage/*-rollback-*/
 storage/*-stage-*/
 storage/*-staging/
 storage/backups/
+
 storage/app/project_root_archive/
 storage/app/r2o_*/
 
@@ -97,17 +107,13 @@ bootstrap/cache/*
 !storage/framework/sessions/.gitkeep
 !storage/framework/views/
 !storage/framework/views/.gitkeep
-
 !storage/system/
 !storage/system/cache/
 !storage/system/cache/.gitkeep
-
 !storage/logs/
 !storage/logs/.gitkeep
-
 !storage/temp/
 !storage/temp/.gitkeep
-
 !bootstrap/
 !bootstrap/cache/
 !bootstrap/cache/.gitkeep

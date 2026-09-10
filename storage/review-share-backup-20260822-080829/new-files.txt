@@ -1,2 +1,0 @@
-src/runtime/components/ReviewShareEnhancer.tsx
-src/runtime/components/ReviewShareEnhancer.module.css

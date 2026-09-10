@@ -183,4 +183,9 @@
   'Admin\\Models\\FingerDevices_model' => 'app/admin/models/FingerDevices_model.php',
   'Admin\\Models\\Pos_configs_model' => 'app/admin/models/Pos_configs_model.php',
   'Admin\\Controllers\\pmdreports' => 'app/admin/controllers/Pmdreports.php',
+  'Admin\\Controllers\\payments' => 'app/admin/controllers/Payments.php',
+  'Admin\\Traits\\FormModelWidget' => 'app/admin/traits/FormModelWidget.php',
+  'Admin\\Widgets\\Form' => 'app/admin/widgets/Form.php',
+  'Admin\\Classes\\FormTabs' => 'app/admin/classes/FormTabs.php',
+  'Admin\\Classes\\FormField' => 'app/admin/classes/FormField.php',
 );
