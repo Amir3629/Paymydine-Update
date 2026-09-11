@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PayMyDine Cashier Offline</title>
+  <style>
+    :root { font-family: Inter, Arial, sans-serif; color:#17324d; background:#f7fafc; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; display:grid; place-items:center; padding:28px; }
+    main { width:100%; max-width:520px; background:#fff; border:1px solid #dbe6ee; border-radius:18px; padding:30px; text-align:center; box-shadow:0 12px 40px rgba(31,60,88,.07); }
+    .mark { width:54px; height:54px; margin:0 auto; border-radius:16px; display:grid; place-items:center; background:#163a5f; color:#fff; font-weight:900; }
+    h1 { margin:20px 0 8px; font-size:25px; }
+    p { margin:0 auto 20px; max-width:420px; color:#61798d; line-height:1.55; }
+    button { height:46px; padding:0 20px; border:0; border-radius:12px; background:#163a5f; color:#fff; font-weight:800; cursor:pointer; }
+    #status { min-height:22px; margin-top:14px; color:#7a8f9f; }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="mark">PMD</div>
+    <h1>Cashier is offline</h1>
+    <p>PayMyDine business data lives in the cloud, so orders and payments need an internet connection. The local printer and cash drawer are still installed on this computer.</p>
+    <button id="retry">Try again</button>
+    <div id="status"></div>
+  </main>
+  <script src="./offline.js"></script>
+</body>
+</html>
