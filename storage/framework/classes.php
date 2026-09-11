@@ -188,4 +188,6 @@
   'Admin\\Widgets\\Form' => 'app/admin/widgets/Form.php',
   'Admin\\Classes\\FormTabs' => 'app/admin/classes/FormTabs.php',
   'Admin\\Classes\\FormField' => 'app/admin/classes/FormField.php',
+  'System\\Controllers\\settings' => 'app/system/controllers/Settings.php',
+  'Admin\\Controllers\\coupons' => 'app/admin/controllers/Coupons.php',
 );
