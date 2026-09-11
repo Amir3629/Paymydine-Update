@@ -1,10 +1,17 @@
+@php
+    $pmdPosPageLocale = \Admin\Classes\PmdAdminI18n::currentLocale();
+    $pmdPosPageT = static function (string $key, array $replace = []) use ($pmdPosPageLocale): string {
+        return \Admin\Classes\PmdAdminI18n::translate($key, $replace, $pmdPosPageLocale);
+    };
+@endphp
 <!doctype html>
-<html lang="en">
+<html lang="{{ $pmdPosPageLocale }}">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Waiter POS · {{ $bootstrap['table']['name'] ?? 'Table' }}</title>
+    @include('admin::_partials.pmd_admin_messages')
+    <title>{{ $pmdPosPageT('waiter.dashboard.title') }} · {{ $bootstrap['table']['name'] ?? $pmdPosPageT('shared.table') }}</title>
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-pos-v1.css') }}?v=27">
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-pos-product-details-v3.css') }}?v=27">
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-pos-polish-v26.css') }}?v=27" data-pmd-pos-polish-v26-style>
