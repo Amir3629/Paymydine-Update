@@ -8,6 +8,7 @@ use Admin\Facades\AdminMenu;
 use Admin\Facades\Template;
 use Admin\Models\Categories_model;
 use Admin\Models\Menus_model;
+use Admin\Services\PmdAiImportTableService;
 use App\Services\AI\AiContext;
 use App\Services\AI\MenuImportAiService;
 use App\Services\AI\PmdReadAuthority;
@@ -19,8 +20,8 @@ use Throwable;
 
 /**
  * Human-reviewed migration workspace for menus from previous restaurant systems.
- * AI analysis is read-only. Final Category/Food writes are intentionally sent
- * by the browser through the existing canonical Menu Manager handlers.
+ * AI analysis is read-only. Category/Food writes stay in Menus.php; detected
+ * Floor/Table structure is committed through the same service used by Quick Setup.
  */
 final class Pmdmenuaiimport extends AdminController
 {
@@ -58,6 +59,7 @@ final class Pmdmenuaiimport extends AdminController
             ->values()
             ->all();
         $this->vars['pmdAiImportCanCreateCategories'] = (bool)($user && $user->hasPermission('Admin.Categories'));
+        $this->vars['pmdAiImportCanImportTables'] = (bool)($user && $user->hasPermission('Site.Settings'));
         $this->vars['pmdAiImportEnabled'] = (bool)config('pmd_ai.enabled', false);
 
         return $this->makeView('pmdmenuaiimport/index');
@@ -99,6 +101,7 @@ final class Pmdmenuaiimport extends AdminController
                 $categories
             );
             $result['can_create_categories'] = $user->hasPermission('Admin.Categories');
+            $result['can_import_tables'] = $user->hasPermission('Site.Settings');
             return response()->json($result)->withHeaders(['Cache-Control' => 'private, no-store, max-age=0']);
         } catch (Throwable $error) {
             logger()->warning('PMD AI menu import analysis failed', [
@@ -115,6 +118,38 @@ final class Pmdmenuaiimport extends AdminController
                     ? 'AI import is busy right now. Please try again shortly.'
                     : ($status === 403 ? 'AI menu import is not enabled for this restaurant.' : 'AI could not read these files. Try clearer images or a smaller PDF.'),
             ], $status)->withHeaders(['Cache-Control' => 'private, no-store, max-age=0']);
+        }
+    }
+
+    public function importTables()
+    {
+        $user = AdminAuth::getUser();
+        if (!$user || !$user->hasPermission('Admin.Menus') || !$user->hasPermission('Site.Settings')) abort(403);
+
+        $raw = (string)request()->input('floors', '[]');
+        $rows = json_decode($raw, true);
+        if (!is_array($rows)) return response()->json(['ok' => false, 'message' => 'Floor/Table selection is invalid.'], 422);
+
+        $floors = [];
+        foreach (array_slice($rows, 0, 8) as $row) {
+            if (!is_array($row) || empty($row['selected'])) continue;
+            $name = mb_substr(trim((string)($row['name'] ?? '')), 0, 80);
+            $tables = max(0, min(60, (int)($row['table_count'] ?? 0)));
+            if ($name !== '' && $tables > 0) $floors[] = ['name' => $name, 'tables' => $tables];
+        }
+        if (!$floors) return response()->json(['ok' => true, 'skipped' => true, 'message' => 'No Floor/Table rows selected.']);
+
+        try {
+            $result = app(PmdAiImportTableService::class)->importDetectedLayout($floors);
+            return response()->json(['ok' => true, 'result' => $result]);
+        } catch (\InvalidArgumentException $error) {
+            return response()->json(['ok' => false, 'message' => $error->getMessage()], 422);
+        } catch (Throwable $error) {
+            logger()->warning('PMD AI Floor/Table import failed', [
+                'type' => get_class($error),
+                'message' => $error->getMessage(),
+            ]);
+            return response()->json(['ok' => false, 'message' => 'Floor/Table layout could not be imported. Menu items were not changed by this step.'], 500);
         }
     }
 
@@ -137,6 +172,7 @@ final class Pmdmenuaiimport extends AdminController
 
         $permissions = ['Admin.Menus'];
         if ($user && $user->hasPermission('Admin.Categories')) $permissions[] = 'Admin.Categories';
+        if ($user && $user->hasPermission('Site.Settings')) $permissions[] = 'Site.Settings';
 
         return new AiContext(
             $tenantId,
