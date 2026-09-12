@@ -8,9 +8,10 @@
     var actions = document.querySelector('[data-pmd-menu-header-actions]');
     if (!actions) return false;
 
-    if (document.querySelector('[data-pmd-menu-ai-import-trigger]')) {
-      return true;
-    }
+    // Replace the previous experimental trigger if an older cached asset
+    // created it before this dedicated V2 authority runs.
+    var staleTrigger = document.querySelector('[data-pmd-menu-ai-import-trigger]');
+    if (staleTrigger) staleTrigger.remove();
 
     var pathParts = window.location.pathname.split('/').filter(Boolean);
     var adminBase = '/' + (pathParts[0] || 'admin');
