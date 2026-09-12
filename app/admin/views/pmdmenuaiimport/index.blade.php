@@ -39,22 +39,22 @@
                 <input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" multiple data-pmd-ai-menu-sources>
                 <span class="pmd-ai-import__drop-icon">⌁</span>
                 <strong>Menu photos, PDFs or old-system screenshots</strong>
-                <small>Required · up to 12 files</small>
+                <small>Required · these files are read only and are never used as food photos</small>
                 <span data-pmd-ai-menu-source-label>No files selected</span>
             </label>
 
             <label class="pmd-ai-import__drop is-secondary">
                 <input type="file" accept="image/jpeg,image/png,image/webp" multiple data-pmd-ai-item-photos>
                 <span class="pmd-ai-import__drop-icon">▧</span>
-                <strong>Separate food photos</strong>
-                <small>Optional · AI only matches photos when the item is clear</small>
+                <strong>Individual dish photos only</strong>
+                <small>Optional · do not put the menu screenshot here; unmatched foods use the PayMyDine logo</small>
                 <span data-pmd-ai-item-photo-label>No food photos selected</span>
             </label>
         </div>
 
         <div class="pmd-ai-import__safety">
             <strong>Important:</strong>
-            <span>Upload only Menu and Floor/Table screens. Do not upload customer, payment, staff or credential screens. PayMyDine does not invent allergens, ingredients, missing prices or food photos, and a full menu-page image is never reused as an item photo.</span>
+            <span>Upload only Menu and Floor/Table screens. Do not upload customer, payment, staff or credential screens. PayMyDine does not invent allergens, ingredients, missing prices or food photos. A menu-page screenshot is extraction input only and is never intentionally reused as a food image.</span>
         </div>
 
         <div class="pmd-ai-import__actions">
