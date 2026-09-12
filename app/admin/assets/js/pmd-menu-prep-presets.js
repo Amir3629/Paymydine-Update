@@ -74,15 +74,41 @@
     return value > 0 ? ('~' + Math.round(value) + ' min') : '';
   };
 
+  // PMD_MENU_AI_IMPORT_HEADER_TRIGGER_V1
+  // Menu Manager already owns this header action rail. Reuse it for a simple
+  // navigation shortcut; the authenticated import workspace remains the only
+  // authority for upload, AI analysis, review and canonical menu writes.
+  var headerActions = document.querySelector('[data-pmd-menu-header-actions]');
+  var pathParts = window.location.pathname.split('/').filter(Boolean);
+  var adminBase = '/' + (pathParts[0] || 'admin');
+
+  if (headerActions && !document.querySelector('[data-pmd-menu-ai-import-trigger]')) {
+    var aiImportTrigger = document.createElement('a');
+    aiImportTrigger.href = adminBase + '/pmdmenuaiimport';
+    aiImportTrigger.className = 'pmd-dashboard-lab__header-action pmd-menu-header-action pmd-menu-ai-import-trigger';
+    aiImportTrigger.setAttribute('data-pmd-menu-ai-import-trigger', '');
+    aiImportTrigger.setAttribute('aria-label', 'Import menu with AI');
+    aiImportTrigger.setAttribute('title', 'Import menu with AI');
+    aiImportTrigger.innerHTML = ''
+      + '<svg viewBox="0 0 24 24" aria-hidden="true">'
+      + '<path d="M12 15V5"></path>'
+      + '<path d="m8 9 4-4 4 4"></path>'
+      + '<path d="M5 19h14"></path>'
+      + '<path d="M18 4v4"></path>'
+      + '<path d="M16 6h4"></path>'
+      + '</svg>';
+
+    var aiNotificationGap = headerActions.querySelector('[data-pmd-main-header-notification-gap-r67]');
+    if (aiNotificationGap) headerActions.insertBefore(aiImportTrigger, aiNotificationGap);
+    else headerActions.appendChild(aiImportTrigger);
+  }
+
   // PMD_MENU_KITCHEN_TIMING_MODAL_V1
   // Keep this tiny settings surface in Menu, beside Notifications. Authorization
   // remains server-side: the trigger is mounted only when the Owner/Manager
   // settings endpoint answers successfully.
-  var headerActions = document.querySelector('[data-pmd-menu-header-actions]');
   if (!headerActions || document.querySelector('[data-pmd-kitchen-settings-trigger]')) return;
 
-  var pathParts = window.location.pathname.split('/').filter(Boolean);
-  var adminBase = '/' + (pathParts[0] || 'admin');
   var settingsUrl = adminBase + '/kitchensettings/settingsjson';
   var saveUrl = adminBase + '/kitchensettings/save';
   var modal = null;
