@@ -15,7 +15,7 @@
         <div>
             <span class="pmd-ai-import__eyebrow">PayMyDine AI</span>
             <h1>Import menu with AI</h1>
-            <p>Upload your current menu image, screenshot or PDF. PayMyDine reads it, prepares a draft and lets you review everything before saving.</p>
+            <p>Add menu photos, screenshots or PDFs. PayMyDine combines them into one draft for review before anything is saved.</p>
         </div>
         <a href="{{ admin_url('pmdmenus') }}" class="pmd-ai-import__back">Back to Menu</a>
     </header>
@@ -30,47 +30,54 @@
     <section class="pmd-ai-import__card" data-pmd-ai-import-upload>
         <div class="pmd-ai-import__step">1</div>
         <div class="pmd-ai-import__card-copy">
-            <h2>Upload your menu</h2>
-            <p>Choose one or more menu images, screenshots or PDFs. These files are used only to read menu data and are never saved as food photos.</p>
+            <h2>Add menu files</h2>
+            <p>You can select files together or click the upload area again to add more. Up to 12 files are combined into one AI draft.</p>
         </div>
 
         <div class="pmd-ai-import__upload-grid">
             <label class="pmd-ai-import__drop">
                 <input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" multiple data-pmd-ai-menu-sources>
                 <span class="pmd-ai-import__drop-icon">↑</span>
-                <strong>Choose menu image or PDF</strong>
+                <strong>Add menu files</strong>
                 <small>JPG, PNG, WEBP or PDF · up to 12 files</small>
                 <span data-pmd-ai-menu-source-label>No files selected</span>
             </label>
         </div>
+        <div class="pmd-ai-import__source-list" data-pmd-ai-source-list></div>
 
         <div class="pmd-ai-import__safety">
-            <strong>Food photos:</strong>
-            <span>This importer does not attach menu screenshots to foods. Imported foods without a real food image use the normal PayMyDine logo.</span>
+            <strong>Menu data only:</strong>
+            <span>These files are used for reading menu data. Menu screenshots are never attached to food items as photos.</span>
         </div>
 
         <div class="pmd-ai-import__actions">
             <span class="pmd-ai-import__status" data-pmd-ai-import-status aria-live="polite"></span>
-            <button type="button" class="pmd-ai-import__primary" data-pmd-ai-analyse {{ $aiEnabled ? '' : 'disabled' }}>Read with AI</button>
+            <button type="button" class="pmd-ai-import__primary" data-pmd-ai-analyse disabled>Read with AI</button>
         </div>
     </section>
 
     <section class="pmd-ai-import__card" data-pmd-ai-import-review hidden>
         <div class="pmd-ai-import__step">2</div>
-        <div class="pmd-ai-import__card-copy">
-            <h2>Review what AI found</h2>
-            <p>Edit anything that is wrong. Only checked rows will be imported.</p>
+        <div class="pmd-ai-import__review-head">
+            <div class="pmd-ai-import__card-copy" style="margin:0;padding-right:0">
+                <h2>Review AI results</h2>
+                <p>Only new, valid items are selected. Existing Menu items stay protected.</p>
+            </div>
+            <div class="pmd-ai-import__review-tools">
+                <div class="pmd-ai-import__summary" data-pmd-ai-import-summary></div>
+                <button type="button" class="pmd-ai-import__duplicates-toggle" data-pmd-ai-duplicates-toggle hidden>Show existing</button>
+                <label class="pmd-ai-import__select-all"><input type="checkbox" checked data-pmd-ai-select-all> Select ready</label>
+            </div>
         </div>
 
-        <div class="pmd-ai-import__summary" data-pmd-ai-import-summary></div>
-
-        <div class="pmd-ai-import__section-head">
-            <div><h3>Menu items</h3><p>Names, categories, prices and visible descriptions from your files.</p></div>
-            <label class="pmd-ai-import__select-all"><input type="checkbox" checked data-pmd-ai-select-all> Select all valid</label>
+        <div class="pmd-ai-import__no-new" data-pmd-ai-no-new hidden>
+            <strong>No new items to import</strong>
+            <p>AI found <span data-pmd-ai-no-new-count>0</span> items that are already in this Menu. Use “Show existing” if you want to inspect or rename them.</p>
         </div>
+
         <div class="pmd-ai-import__table-wrap">
             <table class="pmd-ai-import__table">
-                <thead><tr><th>Import</th><th>Category</th><th>Item</th><th>Price</th><th>Description</th><th>Review</th></tr></thead>
+                <thead><tr><th>Import</th><th>Category</th><th>Item</th><th>Price</th><th>Description</th><th>Status</th></tr></thead>
                 <tbody data-pmd-ai-items></tbody>
             </table>
         </div>
@@ -88,7 +95,7 @@
         <div class="pmd-ai-import__actions">
             <button type="button" class="pmd-ai-import__secondary" data-pmd-ai-start-over>Start over</button>
             <span class="pmd-ai-import__status" data-pmd-ai-import-review-status aria-live="polite"></span>
-            <button type="button" class="pmd-ai-import__primary" data-pmd-ai-import-confirm>Import selected items</button>
+            <button type="button" class="pmd-ai-import__primary" data-pmd-ai-import-confirm>Import selected</button>
         </div>
     </section>
 
