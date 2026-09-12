@@ -129,7 +129,7 @@
     return Object.keys(groups).map(function (hash) {
       return {hash: hash, items: groups[hash]};
     }).filter(function (group) {
-      return group.items.length >= 3;
+      return group.items.length >= 5;
     }).sort(function (a, b) {
       return b.items.length - a.items.length;
     });
@@ -168,7 +168,7 @@
     try {
       var groups = await suspiciousRepeatedPhotoGroups();
       if (!groups.length) {
-        window.alert('No repeated uploaded photo was detected on 3 or more menu items. Nothing was changed.');
+        window.alert('No repeated uploaded photo was detected on 5 or more menu items. Nothing was changed.');
         return;
       }
 
