@@ -2,6 +2,8 @@
 
 namespace Admin\Services;
 
+use Admin\Models\Tables_model;
+
 /**
  * Narrow bridge for the AI import workspace.
  * Reuses the same floor/table creation authority as tenant Quick Setup without
@@ -14,6 +16,24 @@ final class PmdAiImportTableService extends PmdTenantQuickSetupServiceV2
         $locationId = $this->locationId();
         if ($locationId < 1) {
             throw new \RuntimeException('Active restaurant location is unavailable.');
+        }
+
+        /*
+         * This path is for initial migration only. Quick Setup intentionally
+         * adds tables rather than replacing them, so refuse once real guest
+         * tables already exist. System Cashier/Delivery tables do not count.
+         */
+        $existingGuestTables = Tables_model::query()
+            ->where(function ($query) {
+                $query->whereNull('table_name')
+                    ->orWhereNotIn(\Illuminate\Support\Facades\DB::raw('LOWER(TRIM(table_name))'), ['cashier', 'delivery']);
+            })
+            ->count();
+
+        if ($existingGuestTables > 0) {
+            throw new \RuntimeException(
+                'Floor/Table AI import is only available before guest tables are created. Existing tables were not changed.'
+            );
         }
 
         $normalized = $this->normalizeFloors($floors);
