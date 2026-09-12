@@ -23,6 +23,7 @@
             <div class="pmd-quick-setup__done-actions">
                 <a href="{{ admin_url('dashboardlab') }}">Open dashboard</a>
                 <a href="{{ admin_url('pmdmenus') }}">Review menu</a>
+                <a href="{{ admin_url('pmdmenuaiimport') }}">Import an existing menu with AI</a>
                 <a href="{{ admin_url('pmdteam') }}">Review team</a>
                 @if(!empty($state['starter_menu']))
                     <button type="button" data-pmd-refresh-starter-photos>Refresh premium starter photos</button>
@@ -39,6 +40,7 @@
             <div class="pmd-quick-setup__done-actions">
                 <a href="{{ admin_url('dashboardlab') }}">Open dashboard</a>
                 <a href="{{ admin_url('pmdmenus') }}">Open menu</a>
+                <a href="{{ admin_url('pmdmenuaiimport') }}">Import menu with AI</a>
             </div>
         </section>
     @else
@@ -130,8 +132,13 @@
                 <div class="pmd-quick-setup__step">3</div>
                 <div class="pmd-quick-setup__card-copy">
                     <h2>Starter menu</h2>
-                    <p>Optional. We can add a small editable sample menu based on the restaurant type you selected.</p>
+                    <p>Starting fresh? Use a PayMyDine starter menu. Already have a restaurant menu or an old management system? Import the real data with AI instead.</p>
                 </div>
+
+                <div class="pmd-quick-setup__done-actions" style="margin-bottom:16px">
+                    <a href="{{ admin_url('pmdmenuaiimport') }}">Import existing menu, photos & tables with AI</a>
+                </div>
+
                 <label class="pmd-quick-setup__starter-toggle">
                     <input type="checkbox" data-pmd-starter-menu checked>
                     <span>

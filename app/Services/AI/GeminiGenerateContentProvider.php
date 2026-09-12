@@ -45,6 +45,11 @@ final class GeminiGenerateContentProvider implements AiProvider
             ],
         ];
 
+        $responseMimeType = trim((string)($payload['response_mime_type'] ?? ''));
+        if ($responseMimeType !== '') {
+            $request['generationConfig']['responseMimeType'] = $responseMimeType;
+        }
+
         $instructions = trim((string)($payload['instructions'] ?? ''));
         if ($instructions !== '') {
             $request['systemInstruction'] = [
@@ -359,16 +364,43 @@ final class GeminiGenerateContentProvider implements AiProvider
             $flushFunctionResponses();
 
             if (isset($item['role']) && array_key_exists('content', $item)) {
-                $text = trim((string)$item['content']);
-                if ($text === '') {
+                $content = $item['content'];
+                $parts = [];
+
+                if (is_array($content)) {
+                    foreach ($content as $part) {
+                        if (!is_array($part)) continue;
+                        $type = (string)($part['type'] ?? '');
+
+                        if ($type === 'input_text') {
+                            $text = trim((string)($part['text'] ?? ''));
+                            if ($text !== '') $parts[] = ['text' => $text];
+                            continue;
+                        }
+
+                        if ($type === 'input_image') {
+                            $inline = $this->inlineDataFromDataUrl((string)($part['image_url'] ?? ''));
+                            if ($inline !== null) $parts[] = ['inlineData' => $inline];
+                            continue;
+                        }
+
+                        if ($type === 'input_file') {
+                            $inline = $this->inlineDataFromDataUrl((string)($part['file_data'] ?? ''));
+                            if ($inline !== null) $parts[] = ['inlineData' => $inline];
+                        }
+                    }
+                } else {
+                    $text = trim((string)$content);
+                    if ($text !== '') $parts[] = ['text' => $text];
+                }
+
+                if (!$parts) {
                     continue;
                 }
 
                 $contents[] = [
                     'role' => ((string)$item['role'] === 'assistant') ? 'model' : 'user',
-                    'parts' => [
-                        ['text' => $text],
-                    ],
+                    'parts' => $parts,
                 ];
                 continue;
             }
@@ -388,6 +420,29 @@ final class GeminiGenerateContentProvider implements AiProvider
         }
 
         return $contents;
+    }
+
+    private function inlineDataFromDataUrl(string $value): ?array
+    {
+        $value = trim($value);
+        if ($value === '' || !preg_match('/^data:([^;,]+);base64,(.+)$/s', $value, $matches)) {
+            return null;
+        }
+
+        $mime = strtolower(trim((string)$matches[1]));
+        if (!in_array($mime, ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'], true)) {
+            throw new RuntimeException('Gemini multimodal input type is not allowed.');
+        }
+
+        $data = preg_replace('/\s+/', '', (string)$matches[2]) ?? '';
+        if ($data === '' || base64_decode($data, true) === false) {
+            throw new RuntimeException('Gemini multimodal input is invalid.');
+        }
+
+        return [
+            'mimeType' => $mime,
+            'data' => $data,
+        ];
     }
 
     private function normalizeModelContentForReplay(array $content): array
