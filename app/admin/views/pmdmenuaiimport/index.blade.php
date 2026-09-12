@@ -14,8 +14,8 @@
     <header class="pmd-ai-import__header">
         <div>
             <span class="pmd-ai-import__eyebrow">PayMyDine AI</span>
-            <h1>Import your existing restaurant</h1>
-            <p>Upload menu photos, PDFs or screenshots from your previous system. AI prepares a draft; nothing is saved until you review and confirm it.</p>
+            <h1>Import menu with AI</h1>
+            <p>Upload your current menu image, screenshot or PDF. PayMyDine reads it, prepares a draft and lets you review everything before saving.</p>
         </div>
         <a href="{{ admin_url('pmdmenus') }}" class="pmd-ai-import__back">Back to Menu</a>
     </header>
@@ -30,31 +30,23 @@
     <section class="pmd-ai-import__card" data-pmd-ai-import-upload>
         <div class="pmd-ai-import__step">1</div>
         <div class="pmd-ai-import__card-copy">
-            <h2>Upload the old menu or system export</h2>
-            <p>Use clear JPG, PNG, WEBP or PDF files. Screenshots may also include explicit Floor/Table counts from the previous system.</p>
+            <h2>Upload your menu</h2>
+            <p>Choose one or more menu images, screenshots or PDFs. These files are used only to read menu data and are never saved as food photos.</p>
         </div>
 
         <div class="pmd-ai-import__upload-grid">
             <label class="pmd-ai-import__drop">
                 <input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" multiple data-pmd-ai-menu-sources>
-                <span class="pmd-ai-import__drop-icon">⌁</span>
-                <strong>Menu photos, PDFs or old-system screenshots</strong>
-                <small>Required · these files are read only and are never used as food photos</small>
+                <span class="pmd-ai-import__drop-icon">↑</span>
+                <strong>Choose menu image or PDF</strong>
+                <small>JPG, PNG, WEBP or PDF · up to 12 files</small>
                 <span data-pmd-ai-menu-source-label>No files selected</span>
-            </label>
-
-            <label class="pmd-ai-import__drop is-secondary">
-                <input type="file" accept="image/jpeg,image/png,image/webp" multiple data-pmd-ai-item-photos>
-                <span class="pmd-ai-import__drop-icon">▧</span>
-                <strong>Individual dish photos only</strong>
-                <small>Optional · do not put the menu screenshot here; unmatched foods use the PayMyDine logo</small>
-                <span data-pmd-ai-item-photo-label>No food photos selected</span>
             </label>
         </div>
 
         <div class="pmd-ai-import__safety">
-            <strong>Important:</strong>
-            <span>Upload only Menu and Floor/Table screens. Do not upload customer, payment, staff or credential screens. PayMyDine does not invent allergens, ingredients, missing prices or food photos. A menu-page screenshot is extraction input only and is never intentionally reused as a food image.</span>
+            <strong>Food photos:</strong>
+            <span>This importer does not attach menu screenshots to foods. Imported foods without a real food image use the normal PayMyDine logo.</span>
         </div>
 
         <div class="pmd-ai-import__actions">
@@ -78,14 +70,14 @@
         </div>
         <div class="pmd-ai-import__table-wrap">
             <table class="pmd-ai-import__table">
-                <thead><tr><th>Import</th><th>Category</th><th>Item</th><th>Price</th><th>Description</th><th>Photo</th><th>Review</th></tr></thead>
+                <thead><tr><th>Import</th><th>Category</th><th>Item</th><th>Price</th><th>Description</th><th>Review</th></tr></thead>
                 <tbody data-pmd-ai-items></tbody>
             </table>
         </div>
 
         <section class="pmd-ai-import__floors" data-pmd-ai-floors-section hidden>
             <div class="pmd-ai-import__section-head">
-                <div><h3>Floor & table structure</h3><p>Shown only when the uploaded old-system screenshot explicitly contained this information.</p></div>
+                <div><h3>Floor & table structure</h3><p>Shown only when an uploaded old-system screenshot explicitly contained this information.</p></div>
             </div>
             <div data-pmd-ai-floors></div>
             @if(!$canImportTables)
