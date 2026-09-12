@@ -4,6 +4,7 @@
     $canCreateCategories = !empty($pmdAiImportCanCreateCategories);
     $canImportTables = !empty($pmdAiImportCanImportTables);
     $aiEnabled = !empty($pmdAiImportEnabled);
+    $jsonFlags = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
 @endphp
 
 <div class="pmd-ai-import" data-pmd-ai-import
@@ -30,7 +31,7 @@
         <div class="pmd-ai-import__step">1</div>
         <div class="pmd-ai-import__card-copy">
             <h2>Upload the old menu or system export</h2>
-            <p>Use clear JPG, PNG, WEBP or PDF files. Screenshots may also include Floor/Table counts from the previous system.</p>
+            <p>Use clear JPG, PNG, WEBP or PDF files. Screenshots may also include explicit Floor/Table counts from the previous system.</p>
         </div>
 
         <div class="pmd-ai-import__upload-grid">
@@ -53,7 +54,7 @@
 
         <div class="pmd-ai-import__safety">
             <strong>Important:</strong>
-            <span>PayMyDine does not invent allergens, ingredients, missing prices or food photos. A full menu-page image is never reused as an item photo.</span>
+            <span>Upload only Menu and Floor/Table screens. Do not upload customer, payment, staff or credential screens. PayMyDine does not invent allergens, ingredients, missing prices or food photos, and a full menu-page image is never reused as an item photo.</span>
         </div>
 
         <div class="pmd-ai-import__actions">
@@ -109,6 +110,6 @@
         </div>
     </section>
 
-    <script type="application/json" id="pmd-ai-import-categories">{!! json_encode($categories, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) !!}</script>
-    <script type="application/json" id="pmd-ai-import-existing-items">{!! json_encode($existingItems, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) !!}</script>
+    <script type="application/json" id="pmd-ai-import-categories">{!! json_encode($categories, $jsonFlags) !!}</script>
+    <script type="application/json" id="pmd-ai-import-existing-items">{!! json_encode($existingItems, $jsonFlags) !!}</script>
 </div>
