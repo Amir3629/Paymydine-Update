@@ -3,10 +3,7 @@ import 'server-only'
 import type { CustomerBootstrap } from '@/src/domain/model'
 import { supportedUiLocales } from '@/src/lib/i18n'
 import { normalizeThemeId, type ThemeId } from '@/src/themes/catalog'
-import {
-  fetchBackendJsonOrNull,
-  fetchBackendJsonOrNullSingleFlight,
-} from './backend'
+import { fetchBackendJsonOrNull } from './backend'
 import { createMockBootstrap } from './mock-bootstrap'
 import { applyMenuContentTranslations } from './menu-content-translations'
 import { applySmartCategories } from './smart-categories'
@@ -96,8 +93,6 @@ export async function loadCustomerBootstrap(query: BootstrapQuery): Promise<Cust
   if (demoMode) return createMockBootstrap(previewId || 'verdant_modern', host)
 
   const requestOptions = { host, timeoutMs: 8000, cache: 'no-store' as RequestCache }
-  const stableBackendJsonOrNull = <T,>(path: string): Promise<T | null> =>
-    fetchBackendJsonOrNullSingleFlight<T>(path, requestOptions)
   const tableLookup = queryString({ table_id: tableId, table_no: tableNo, qr_code: qr })
   const draftLookup = queryString({ table_id: tableId, table_no: tableNo, qr })
 
@@ -115,18 +110,18 @@ export async function loadCustomerBootstrap(query: BootstrapQuery): Promise<Cust
     taxApiPayload,
     tipApiPayload,
   ] = await Promise.all([
-    stableBackendJsonOrNull<any>('/api/v1/settings'),
-    stableBackendJsonOrNull<any>('/api/v1/restaurant'),
-    stableBackendJsonOrNull<any>('/api/v1/menu'),
-    stableBackendJsonOrNull<any>('/api/v1/categories'),
-    stableBackendJsonOrNull<any>('/api/v1/menu-content-translations'),
-    stableBackendJsonOrNull<any>('/api/v1/frontend-theme-v2'),
-    stableBackendJsonOrNull<any>('/api/v1/payments'),
-    stableBackendJsonOrNull<any>('/api/v1/payments/worldline/runtime-methods'),
+    fetchBackendJsonOrNull<any>('/api/v1/settings', requestOptions),
+    fetchBackendJsonOrNull<any>('/api/v1/restaurant', requestOptions),
+    fetchBackendJsonOrNull<any>('/api/v1/menu', requestOptions),
+    fetchBackendJsonOrNull<any>('/api/v1/categories', requestOptions),
+    fetchBackendJsonOrNull<any>('/api/v1/menu-content-translations', requestOptions),
+    fetchBackendJsonOrNull<any>('/api/v1/frontend-theme-v2', requestOptions),
+    fetchBackendJsonOrNull<any>('/api/v1/payments', requestOptions),
+    fetchBackendJsonOrNull<any>('/api/v1/payments/worldline/runtime-methods', requestOptions),
     tableId || tableNo || qr ? fetchBackendJsonOrNull<any>(`/api/v1/table-info${tableLookup}`, requestOptions) : Promise.resolve(null),
     tableId || tableNo || qr ? fetchBackendJsonOrNull<any>(`/api/v1/table-order-draft${draftLookup}`, requestOptions) : Promise.resolve(null),
-    stableBackendJsonOrNull<any>('/api/v1/vat-settings'),
-    stableBackendJsonOrNull<any>('/api/v1/tip-settings'),
+    fetchBackendJsonOrNull<any>('/api/v1/vat-settings', requestOptions),
+    fetchBackendJsonOrNull<any>('/api/v1/tip-settings', requestOptions),
   ])
 
   // PMD_VAT_FAST_FALLBACK_R34
@@ -134,9 +129,9 @@ export async function loadCustomerBootstrap(query: BootstrapQuery): Promise<Cust
   // the canonical /api/v1/vat-settings endpoint already succeeded.
   const taxLegacyPayload = taxApiPayload
     ? null
-    : await stableBackendJsonOrNull<any>('/vat-settings')
+    : await fetchBackendJsonOrNull<any>('/vat-settings', requestOptions)
 
-  const resolvedThemePayload = themePayload || await stableBackendJsonOrNull<any>('/simple-theme')
+  const resolvedThemePayload = themePayload || await fetchBackendJsonOrNull<any>('/simple-theme', requestOptions)
 
   if (!settings && !restaurant && !menuPayload && !resolvedThemePayload) {
     const allowMockFallback = ['1', 'true', 'yes', 'on'].includes(

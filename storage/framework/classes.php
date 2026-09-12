@@ -190,4 +190,5 @@
   'Admin\\Classes\\FormField' => 'app/admin/classes/FormField.php',
   'System\\Controllers\\settings' => 'app/system/controllers/Settings.php',
   'Admin\\Controllers\\coupons' => 'app/admin/controllers/Coupons.php',
+  'Admin\\Models\\Mealtimes_model' => 'app/admin/models/Mealtimes_model.php',
 );

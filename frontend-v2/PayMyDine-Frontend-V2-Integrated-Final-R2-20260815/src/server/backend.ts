@@ -67,38 +67,3 @@ export async function fetchBackendJsonOrNull<T = unknown>(
     return null
   }
 }
-
-// PMD_BOOTSTRAP_SINGLE_FLIGHT_V1
-// Coalesce only overlapping identical server-side JSON work. No settled result
-// is retained: after the underlying request settles, the key is removed, so the
-// next request still performs a fresh backend read.
-const backendJsonInFlight = new Map<string, Promise<unknown>>()
-
-export async function fetchBackendJsonOrNullSingleFlight<T = unknown>(
-  path: string,
-  options: FetchJsonOptions,
-): Promise<T | null> {
-  const tenantHost = cleanHost(options.host)
-  const key = [
-    getBackendOrigin(tenantHost),
-    tenantHost,
-    path,
-    String(options.timeoutMs ?? 8000),
-    String(options.cache ?? 'no-store'),
-  ].join('\n')
-
-  const existing = backendJsonInFlight.get(key)
-  if (existing) return (await existing) as T | null
-
-  const request = fetchBackendJsonOrNull<T>(path, options)
-  const sharedRequest: Promise<unknown> = request
-  backendJsonInFlight.set(key, sharedRequest)
-
-  try {
-    return await request
-  } finally {
-    if (backendJsonInFlight.get(key) === sharedRequest) {
-      backendJsonInFlight.delete(key)
-    }
-  }
-}
