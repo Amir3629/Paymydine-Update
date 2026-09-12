@@ -1,4 +1,4 @@
-/* PMD_AI_MENU_IMPORT_V1 */
+/* PMD_AI_MENU_IMPORT_V2 */
 (function () {
   'use strict';
 
@@ -6,7 +6,6 @@
   if (!root) return;
 
   var sourceInput = root.querySelector('[data-pmd-ai-menu-sources]');
-  var photoInput = root.querySelector('[data-pmd-ai-item-photos]');
   var analyseButton = root.querySelector('[data-pmd-ai-analyse]');
   var importButton = root.querySelector('[data-pmd-ai-import-confirm]');
   var review = root.querySelector('[data-pmd-ai-import-review]');
@@ -23,7 +22,6 @@
   var canImportTables = root.dataset.canImportTables === '1';
   var busy = false;
   var draft = null;
-  var analysisPhotos = [];
   var categoryPromises = new Map();
   var IMPORT_CONCURRENCY = 4;
 
@@ -68,7 +66,8 @@
   async function handler(endpoint, name, data) {
     csrf(data);
     var response = await fetch(endpoint, {
-      method: 'POST', credentials: 'same-origin',
+      method: 'POST',
+      credentials: 'same-origin',
       headers: {
         'X-IGNITER-REQUEST-HANDLER': name,
         'X-Requested-With': 'XMLHttpRequest',
@@ -92,19 +91,16 @@
     node.classList.toggle('is-error', Boolean(error));
   }
 
-  function fileLabel(input, target, emptyText) {
-    var node = root.querySelector(target);
+  function updateFileLabel() {
+    var node = root.querySelector('[data-pmd-ai-menu-source-label]');
     if (!node) return;
-    var files = input && input.files ? Array.from(input.files) : [];
-    node.textContent = files.length ? (files.length + (files.length === 1 ? ' file selected' : ' files selected')) : emptyText;
+    var files = sourceInput && sourceInput.files ? Array.from(sourceInput.files) : [];
+    node.textContent = files.length
+      ? (files.length + (files.length === 1 ? ' file selected' : ' files selected'))
+      : 'No files selected';
   }
 
-  if (sourceInput) sourceInput.addEventListener('change', function () {
-    fileLabel(sourceInput, '[data-pmd-ai-menu-source-label]', 'No files selected');
-  });
-  if (photoInput) photoInput.addEventListener('change', function () {
-    fileLabel(photoInput, '[data-pmd-ai-item-photo-label]', 'No food photos selected');
-  });
+  if (sourceInput) sourceInput.addEventListener('change', updateFileLabel);
 
   function categoryByName(name) {
     var key = normalize(name);
@@ -115,54 +111,6 @@
     return String(value == null ? '' : value)
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
-  }
-
-  function fileKey(file) {
-    return normalize(file && file.name) + '|' + Number(file && file.size || 0);
-  }
-
-  function safeFoodPhotos(sources, photos) {
-    var sourceKeys = new Set(sources.map(fileKey));
-    var seen = new Set();
-    return photos.filter(function (file) {
-      var key = fileKey(file);
-      var uniqueKey = key + '|' + Number(file.lastModified || 0);
-      if (sourceKeys.has(key)) return false;
-      if (seen.has(uniqueKey)) return false;
-      seen.add(uniqueKey);
-      return true;
-    });
-  }
-
-  function photoName(index) {
-    var file = index ? analysisPhotos[index - 1] : null;
-    return file ? file.name : '';
-  }
-
-  function sanitizePhotoAssignments(items) {
-    var rows = Array.isArray(items) ? items : [];
-    var counts = {};
-
-    rows.forEach(function (item) {
-      var index = Number(item && item.source_photo_index || 0);
-      if (index > 0 && index <= analysisPhotos.length) counts[index] = (counts[index] || 0) + 1;
-    });
-
-    return rows.map(function (item) {
-      var clean = Object.assign({}, item || {});
-      var index = Number(clean.source_photo_index || 0);
-      var reasons = Array.isArray(clean.review_reasons) ? clean.review_reasons.slice() : [];
-
-      if (index < 1 || index > analysisPhotos.length) index = 0;
-      if (index > 0 && counts[index] > 1) {
-        index = 0;
-        reasons.push('Photo match removed: one uploaded photo was matched to multiple menu items.');
-      }
-
-      clean.source_photo_index = index || null;
-      clean.review_reasons = Array.from(new Set(reasons));
-      return clean;
-    });
   }
 
   function rowValid(tr) {
@@ -187,8 +135,12 @@
       if (duplicate) messages.push('Item name already exists');
       warning.textContent = messages.join(' · ');
     }
-    if (!valid) { check.checked = false; check.disabled = true; }
-    else { check.disabled = false; }
+    if (!valid) {
+      check.checked = false;
+      check.disabled = true;
+    } else {
+      check.disabled = false;
+    }
   }
 
   function renderItems(items) {
@@ -200,22 +152,21 @@
       datalist.id = listId;
       document.body.appendChild(datalist);
     }
-    datalist.innerHTML = categories.map(function (row) { return '<option value="' + escapeHtml(row.name) + '"></option>'; }).join('');
+    datalist.innerHTML = categories.map(function (row) {
+      return '<option value="' + escapeHtml(row.name) + '"></option>';
+    }).join('');
 
     items.forEach(function (item, index) {
       var duplicate = existingItems.has(normalize(item.name));
       var reasons = Array.isArray(item.review_reasons) ? item.review_reasons : [];
-      var imageName = photoName(Number(item.source_photo_index || 0));
       var tr = document.createElement('tr');
       tr.dataset.index = String(index);
-      tr.dataset.photoIndex = String(Number(item.source_photo_index || 0));
       tr.innerHTML = ''
         + '<td><input type="checkbox" data-pmd-ai-row-select ' + (duplicate ? '' : 'checked') + '></td>'
         + '<td><input type="text" maxlength="128" list="' + listId + '" data-field="category" value="' + escapeHtml(item.category || 'Menu') + '"></td>'
         + '<td><input type="text" maxlength="128" data-field="name" value="' + escapeHtml(item.name || '') + '"></td>'
         + '<td><input type="number" min="0" max="9999999" step="0.01" data-field="price" value="' + (item.price == null ? '' : escapeHtml(item.price)) + '"></td>'
         + '<td><textarea maxlength="1028" rows="2" data-field="description">' + escapeHtml(item.description || '') + '</textarea></td>'
-        + '<td class="pmd-ai-import__photo-cell">' + (imageName ? '<span title="' + escapeHtml(imageName) + '">Matched: ' + escapeHtml(imageName) + '</span>' : '<span class="is-muted" title="No dedicated dish photo matched">PayMyDine logo</span>') + '</td>'
         + '<td><span class="pmd-ai-import__confidence">' + Math.round(Number(item.confidence || 0) * 100) + '%</span>'
         + (reasons.length ? '<small>' + escapeHtml(reasons.join(' · ')) + '</small>' : '')
         + '<small data-pmd-ai-row-warning></small></td>';
@@ -249,7 +200,7 @@
 
   function showDraft(payload) {
     draft = payload.draft || {items: [], floors: []};
-    draft.items = sanitizePhotoAssignments(Array.isArray(draft.items) ? draft.items : []);
+    draft.items = Array.isArray(draft.items) ? draft.items : [];
     renderItems(draft.items);
     renderFloors(Array.isArray(draft.floors) ? draft.floors : []);
     var itemCount = draft.items.length;
@@ -265,25 +216,17 @@
   async function analyse() {
     if (busy) return;
     var sources = sourceInput && sourceInput.files ? Array.from(sourceInput.files) : [];
-    if (!sources.length) { setText(uploadStatus, 'Upload at least one menu photo, screenshot or PDF.', true); return; }
-
-    var rawPhotos = photoInput && photoInput.files ? Array.from(photoInput.files) : [];
-    analysisPhotos = safeFoodPhotos(sources, rawPhotos);
-    var ignoredPhotos = rawPhotos.length - analysisPhotos.length;
+    if (!sources.length) {
+      setText(uploadStatus, 'Choose at least one menu image, screenshot or PDF.', true);
+      return;
+    }
 
     var data = new FormData();
     sources.forEach(function (file) { data.append('menu_sources[]', file); });
-    analysisPhotos.forEach(function (file) { data.append('item_photos[]', file); });
 
     busy = true;
     analyseButton.disabled = true;
-    setText(
-      uploadStatus,
-      ignoredPhotos > 0
-        ? 'AI is reading your files. Menu screenshots duplicated as food photos were ignored…'
-        : 'AI is reading your files. Nothing is being saved yet…',
-      false
-    );
+    setText(uploadStatus, 'AI is reading your menu. Nothing is being saved yet…', false);
 
     try {
       var payload = await postUrl('/admin/pmdmenuaiimport/analyse', data);
@@ -355,11 +298,9 @@
     data.append('menu_description', tr.querySelector('[data-field="description"]').value.trim());
     data.append('category_ids[]', String(category.id));
 
-    var photoIndex = Number(tr.dataset.photoIndex || 0);
-    if (photoIndex > 0 && analysisPhotos[photoIndex - 1]) {
-      data.append('image', analysisPhotos[photoIndex - 1]);
-    }
-
+    // AI Menu Import never assigns a menu screenshot as a food image. Foods
+    // created here intentionally have no image unless one is added later in
+    // normal Menu editing, so Menu Manager uses the standard PayMyDine logo.
     await handler('/admin/menus', 'onPmdMenuManagerSaveV1', data);
     existingItems.add(normalize(tr.querySelector('[data-field="name"]').value));
   }
@@ -376,7 +317,6 @@
         var index = cursor++;
         if (index >= rows.length) return;
         var tr = rows[index];
-
         try {
           await importOneRow(tr);
           imported++;
@@ -426,7 +366,7 @@
 
     try {
       if (rows.length) {
-        setText(reviewStatus, 'Starting fast menu import…', false);
+        setText(reviewStatus, 'Starting menu import…', false);
         var menuResult = await importRowsFast(rows);
         imported = menuResult.imported;
         failed = menuResult.failed;
@@ -476,7 +416,6 @@
   var startOver = root.querySelector('[data-pmd-ai-start-over]');
   if (startOver) startOver.addEventListener('click', function () {
     draft = null;
-    analysisPhotos = [];
     categoryPromises.clear();
     review.hidden = true;
     upload.hidden = false;
