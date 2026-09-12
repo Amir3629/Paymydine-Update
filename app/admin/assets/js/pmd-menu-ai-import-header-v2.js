@@ -1,10 +1,9 @@
 (function () {
   'use strict';
 
-  // PMD_MENU_AI_IMPORT_HEADER_V2
-  // Menu owns the trigger; Pmdmenuaiimport remains the authenticated import
-  // authority. The workspace opens in a same-origin modal card so the operator
-  // does not have to leave Menu Manager.
+  // PMD_MENU_AI_IMPORT_HEADER_V3
+  // Menu owns only the compact modal shell. The authenticated importer remains
+  // Pmdmenuaiimport and all writes still flow through the existing Menu authority.
   var modal = null;
   var iframe = null;
   var needsReload = false;
@@ -71,7 +70,6 @@
     (Array.isArray(item.category_ids) ? item.category_ids : []).forEach(function (id) {
       if (Number(id) > 0) data.append('category_ids[]', String(Number(id)));
     });
-
     data.append('is_halal', item.is_halal ? '1' : '0');
     data.append('is_vegetarian', item.is_vegetarian ? '1' : '0');
     data.append('is_vegan', item.is_vegan ? '1' : '0');
@@ -79,7 +77,6 @@
     (Array.isArray(item.allergen_ids) ? item.allergen_ids : []).forEach(function (id) {
       if (Number(id) > 0) data.append('allergen_ids[]', String(Number(id)));
     });
-
     appendOptional(data, 'calories', item.calories);
     appendOptional(data, 'serving_size', item.serving_size);
     appendOptional(data, 'protein', item.protein);
@@ -87,9 +84,6 @@
     appendOptional(data, 'fat', item.fat);
     appendOptional(data, 'sugar', item.sugar);
     appendOptional(data, 'prep_time_minutes', item.prep_time_minutes);
-
-    // Menus_model::afterSave reads this raw request payload and its canonical
-    // gallery authority clears menu_images for this food.
     data.append('menu_images_inline_json', '[]');
     return data;
   }
@@ -113,11 +107,8 @@
     });
 
     var hashed = await Promise.all(rows.map(async function (item) {
-      try {
-        return {item: item, hash: await sha256ForUrl(String(item.image || ''))};
-      } catch (error) {
-        return null;
-      }
+      try { return {item: item, hash: await sha256ForUrl(String(item.image || ''))}; }
+      catch (error) { return null; }
     }));
 
     var groups = {};
@@ -163,7 +154,7 @@
     if (!repairButton || repairButton.disabled) return;
     var original = repairButton.textContent;
     repairButton.disabled = true;
-    repairButton.textContent = 'Checking photos…';
+    repairButton.textContent = 'Checking…';
 
     try {
       var groups = await suspiciousRepeatedPhotoGroups();
@@ -171,21 +162,18 @@
         window.alert('No repeated uploaded photo was detected on 5 or more menu items. Nothing was changed.');
         return;
       }
-
       var group = groups[0];
       var names = group.items.slice(0, 8).map(function (item) { return item.name; }).join(', ');
       var more = group.items.length > 8 ? (' and ' + (group.items.length - 8) + ' more') : '';
-      var approved = window.confirm(
-        'PayMyDine found the exact same uploaded image on ' + group.items.length + ' foods.\n\n' +
-        names + more + '\n\n' +
-        'This looks like the menu screenshot that was accidentally reused by AI Import. Remove that repeated image from these foods so they use the PayMyDine logo instead?'
-      );
-      if (!approved) return;
+      if (!window.confirm(
+        'The exact same uploaded image is attached to ' + group.items.length + ' foods.\n\n' +
+        names + more + '\n\nRemove that repeated image so those foods use the PayMyDine logo instead?'
+      )) return;
 
-      repairButton.textContent = 'Removing repeated photo…';
+      repairButton.textContent = 'Removing…';
       await clearRepeatedPhotoGroup(group);
       needsReload = true;
-      window.alert('Repeated menu screenshot removed from ' + group.items.length + ' foods. PayMyDine logo will be used where no real food photo exists.');
+      window.alert('Repeated image removed from ' + group.items.length + ' foods.');
       window.location.reload();
     } catch (error) {
       window.alert(error.message || 'Repeated photos could not be repaired.');
@@ -197,22 +185,38 @@
     }
   }
 
-  function injectEmbeddedStyles() {
+  function compactIframe() {
     if (!iframe || !iframe.contentDocument) return;
     var doc = iframe.contentDocument;
-    var style = doc.getElementById('pmd-ai-import-embedded-style-v2');
-    if (!style) {
-      style = doc.createElement('style');
-      style.id = 'pmd-ai-import-embedded-style-v2';
-      style.textContent = ''
-        + '#pmd-side-menu2{display:none!important}'
-        + '.page-wrapper,.page-content,.main-content,.content-wrapper{margin-left:0!important;padding-left:0!important;left:0!important;width:100%!important;max-width:none!important}'
-        + '.pmd-ai-import{max-width:none!important;padding:22px 24px 40px!important}'
-        + '.pmd-ai-import__header{padding-top:0!important}'
-        + '.pmd-ai-import__header .pmd-ai-import__back{display:none!important}'
-        + 'body{overflow:auto!important;background:#f8fbfd!important}';
-      (doc.head || doc.documentElement).appendChild(style);
-    }
+    var root = doc.querySelector('[data-pmd-ai-import]');
+    if (!root || !doc.body) return;
+
+    // Keep only the actual importer workspace. The admin sidebar, global header,
+    // clock and page chrome belong to the parent Menu page and must never appear
+    // inside this modal card.
+    if (root.parentNode) root.parentNode.removeChild(root);
+    doc.body.innerHTML = '';
+    doc.body.appendChild(root);
+
+    var style = doc.createElement('style');
+    style.id = 'pmd-ai-import-embedded-style-v3';
+    style.textContent = ''
+      + 'html,body{margin:0!important;padding:0!important;background:#fff!important;min-height:100%!important;overflow:auto!important}'
+      + '.pmd-ai-import{max-width:none!important;margin:0!important;padding:18px!important;background:#fff!important}'
+      + '.pmd-ai-import__header{display:none!important}'
+      + '.pmd-ai-import__notice{box-shadow:none!important;margin:0 0 14px!important}'
+      + '.pmd-ai-import__card{border:0!important;border-radius:0!important;box-shadow:none!important;padding:0!important;margin:0!important}'
+      + '.pmd-ai-import__step{display:none!important}'
+      + '.pmd-ai-import__card-copy{padding-right:0!important;margin-bottom:16px!important}'
+      + '.pmd-ai-import__card-copy h2{font-size:21px!important;line-height:1.2!important}'
+      + '.pmd-ai-import__card-copy p{font-size:13px!important}'
+      + '.pmd-ai-import__upload-grid{display:grid!important;grid-template-columns:1fr!important}'
+      + '.pmd-ai-import__drop{min-height:155px!important;border-radius:14px!important}'
+      + '.pmd-ai-import__safety{margin-top:12px!important}'
+      + '.pmd-ai-import__actions{margin-top:16px!important;padding-bottom:2px!important}'
+      + '.pmd-ai-import__table{min-width:860px!important}'
+      + '.pmd-ai-import__done{padding:28px 10px!important}';
+    (doc.head || doc.documentElement).appendChild(style);
   }
 
   function closeModal(forceReload) {
@@ -247,7 +251,7 @@
     setStyle(modal, 'z-index', '30000');
     setStyle(modal, 'display', 'grid');
     setStyle(modal, 'place-items', 'center');
-    setStyle(modal, 'padding', '24px');
+    setStyle(modal, 'padding', '20px');
 
     var backdrop = document.createElement('button');
     backdrop.type = 'button';
@@ -256,52 +260,52 @@
     setStyle(backdrop, 'position', 'absolute');
     setStyle(backdrop, 'inset', '0');
     setStyle(backdrop, 'border', '0');
-    setStyle(backdrop, 'background', 'rgba(7, 31, 29, .34)');
-    setStyle(backdrop, 'backdrop-filter', 'blur(5px)');
+    setStyle(backdrop, 'background', 'rgba(8,28,27,.32)');
+    setStyle(backdrop, 'backdrop-filter', 'blur(4px)');
     setStyle(backdrop, 'cursor', 'default');
 
     var card = document.createElement('section');
     setStyle(card, 'position', 'relative');
     setStyle(card, 'z-index', '1');
     setStyle(card, 'display', 'grid');
-    setStyle(card, 'grid-template-rows', '62px minmax(0, 1fr)');
-    setStyle(card, 'width', 'min(1480px, calc(100vw - 48px))');
-    setStyle(card, 'height', 'min(920px, calc(100vh - 48px))');
+    setStyle(card, 'grid-template-rows', '58px minmax(0,1fr)');
+    setStyle(card, 'width', 'min(920px, calc(100vw - 40px))');
+    setStyle(card, 'height', 'min(720px, calc(100vh - 40px))');
     setStyle(card, 'overflow', 'hidden');
     setStyle(card, 'border', '1px solid #d7e8ee');
-    setStyle(card, 'border-radius', '22px');
+    setStyle(card, 'border-radius', '18px');
     setStyle(card, 'background', '#ffffff');
-    setStyle(card, 'box-shadow', '0 30px 90px rgba(7,31,29,.22)');
+    setStyle(card, 'box-shadow', '0 24px 70px rgba(7,31,29,.20)');
 
     var bar = document.createElement('header');
     setStyle(bar, 'display', 'flex');
     setStyle(bar, 'align-items', 'center');
     setStyle(bar, 'justify-content', 'space-between');
-    setStyle(bar, 'gap', '16px');
-    setStyle(bar, 'padding', '0 18px 0 22px');
+    setStyle(bar, 'gap', '14px');
+    setStyle(bar, 'padding', '0 12px 0 18px');
     setStyle(bar, 'border-bottom', '1px solid #e1ecef');
     setStyle(bar, 'background', '#ffffff');
 
     var title = document.createElement('div');
-    title.innerHTML = '<strong style="display:block;color:#10201f;font-size:16px;font-weight:900">Import menu with AI</strong><small style="color:#6b7b7a;font-size:11px">Upload, review, then import into this Menu</small>';
+    title.innerHTML = '<strong style="display:block;color:#10201f;font-size:15px;font-weight:900">Import menu with AI</strong><small style="color:#6b7b7a;font-size:11px">Upload one menu source, review, import</small>';
     bar.appendChild(title);
 
     var barActions = document.createElement('div');
     setStyle(barActions, 'display', 'flex');
     setStyle(barActions, 'align-items', 'center');
-    setStyle(barActions, 'gap', '10px');
+    setStyle(barActions, 'gap', '8px');
 
     repairButton = document.createElement('button');
     repairButton.type = 'button';
-    repairButton.textContent = 'Fix repeated photos';
-    setStyle(repairButton, 'min-height', '40px');
-    setStyle(repairButton, 'padding', '0 14px');
-    setStyle(repairButton, 'border', '1px solid #b9dfd3');
-    setStyle(repairButton, 'border-radius', '12px');
-    setStyle(repairButton, 'background', '#edf8f4');
+    repairButton.textContent = 'Fix old photos';
+    setStyle(repairButton, 'min-height', '34px');
+    setStyle(repairButton, 'padding', '0 11px');
+    setStyle(repairButton, 'border', '1px solid #d3e5df');
+    setStyle(repairButton, 'border-radius', '10px');
+    setStyle(repairButton, 'background', '#f5faf8');
     setStyle(repairButton, 'color', '#075f4f');
-    setStyle(repairButton, 'font-size', '12px');
-    setStyle(repairButton, 'font-weight', '850');
+    setStyle(repairButton, 'font-size', '11px');
+    setStyle(repairButton, 'font-weight', '800');
     setStyle(repairButton, 'cursor', 'pointer');
     repairButton.addEventListener('click', repairRepeatedPhotos);
     barActions.appendChild(repairButton);
@@ -311,13 +315,13 @@
     close.setAttribute('data-pmd-menu-ai-import-modal-close', '');
     close.setAttribute('aria-label', 'Close');
     close.textContent = '×';
-    setStyle(close, 'width', '40px');
-    setStyle(close, 'height', '40px');
+    setStyle(close, 'width', '34px');
+    setStyle(close, 'height', '34px');
     setStyle(close, 'border', '1px solid #d7e8ee');
-    setStyle(close, 'border-radius', '12px');
+    setStyle(close, 'border-radius', '10px');
     setStyle(close, 'background', '#ffffff');
     setStyle(close, 'color', '#173752');
-    setStyle(close, 'font-size', '25px');
+    setStyle(close, 'font-size', '22px');
     setStyle(close, 'line-height', '1');
     setStyle(close, 'cursor', 'pointer');
     barActions.appendChild(close);
@@ -330,7 +334,7 @@
     setStyle(iframe, 'width', '100%');
     setStyle(iframe, 'height', '100%');
     setStyle(iframe, 'border', '0');
-    setStyle(iframe, 'background', '#f8fbfd');
+    setStyle(iframe, 'background', '#ffffff');
 
     iframe.addEventListener('load', function () {
       try {
@@ -339,9 +343,9 @@
           closeModal(true);
           return;
         }
-        if (path.indexOf('/pmdmenuaiimport') !== -1) injectEmbeddedStyles();
+        if (path.indexOf('/pmdmenuaiimport') !== -1) compactIframe();
       } catch (error) {
-        // Same-origin is expected. Standalone import remains the fallback.
+        // Same-origin is expected; standalone route remains the fallback.
       }
     });
 
@@ -399,7 +403,6 @@
     var anchor = gap || slot || notifRoot;
     if (anchor) actions.insertBefore(button, anchor);
     else actions.appendChild(button);
-
     return true;
   }
 
