@@ -6,15 +6,22 @@ use App\Services\PmdUploadedImageOptimizer;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Log;
 use Main\Classes\MediaLibrary;
 
 /**
- * PMD_UPLOAD_WEBP_MIDDLEWARE_V1
+ * PMD_UPLOAD_WEBP_MIDDLEWARE_V2
  *
- * Normalizes the active PayMyDine persisted raster upload surfaces before
- * their existing controllers/widgets store them. Existing authorities still
- * own validation and persistence; this middleware only replaces a candidate
- * that is already inside the endpoint's original size/dimension boundaries.
+ * Normalizes persisted raster uploads before their existing storage authorities
+ * run, while preserving the storage semantics expected by each endpoint.
+ *
+ * Two delivery modes are intentional:
+ * - in_place: keep the original PHP UploadedFile object/inode and replace only
+ *   its bytes. Use this for controllers that call UploadedFile::move() directly
+ *   or infer the final extension from MIME (Menu, restaurant logo, avatar).
+ * - replacement: return a synthetic WebP UploadedFile whose client filename is
+ *   also .webp. Use this for authorities that persist the client filename or raw
+ *   attachment name (Combo media and Media Manager).
  *
  * Important exclusions:
  * - AI menu source files are transient OCR/vision input, not persisted media.
@@ -33,7 +40,7 @@ class PmdOptimizeUploadedImages
             return $next($request);
         }
 
-        // Do not recompress menu screenshots/PDFs that are sent to AI vision.
+        // Preserve original source pixels for AI menu vision/OCR.
         if ($request->is('admin/pmdmenuaiimport/analyse')) {
             return $next($request);
         }
@@ -73,17 +80,15 @@ class PmdOptimizeUploadedImages
             return $value;
         }
 
-        // Preserve each existing endpoint's original upload-size semantics.
-        // If an original file is too large, leave it untouched so the existing
-        // validator/widget returns the same error it did before this middleware.
+        // Preserve the endpoint's ORIGINAL upload-size semantics. An oversized
+        // source is left untouched so the existing validator still rejects it.
         $size = (int)$value->getSize();
         if ($size < 1 || ($policy['max_bytes'] > 0 && $size > $policy['max_bytes'])) {
             return $value;
         }
 
-        // Staff avatars also have an existing 3000x3000 validation boundary.
-        // Check the ORIGINAL pixels before optimization so downscaling cannot
-        // turn a previously-invalid avatar into a valid request.
+        // Staff avatars already have a 3000x3000 validation boundary. Check the
+        // original pixels before optimization so resizing cannot bypass it.
         if (!empty($policy['max_width']) || !empty($policy['max_height'])) {
             $realPath = (string)($value->getRealPath() ?: $value->getPathname());
             $info = $realPath !== '' ? @getimagesize($realPath) : false;
@@ -98,7 +103,53 @@ class PmdOptimizeUploadedImages
             }
         }
 
-        return $this->optimizer->optimize($value, $policy['profile']);
+        $optimized = $this->optimizer->optimize($value, $policy['profile']);
+        if (!$optimized instanceof UploadedFile || $optimized === $value) {
+            return $value;
+        }
+
+        if (($policy['mode'] ?? 'replacement') !== 'in_place') {
+            return $optimized;
+        }
+
+        // Direct-move authorities must keep the original PHP upload object.
+        // Copy only the normalized WebP bytes back into that original upload
+        // pathname. This mirrors the already-proven PMD menu gallery strategy.
+        $sourcePath = (string)($optimized->getRealPath() ?: $optimized->getPathname());
+        $targetPath = (string)($value->getRealPath() ?: $value->getPathname());
+        if ($sourcePath === '' || $targetPath === '' || !is_file($sourcePath) || !is_file($targetPath)) {
+            return $value;
+        }
+
+        try {
+            $bytes = @file_get_contents($sourcePath);
+            if ($bytes === false || $bytes === '') {
+                return $value;
+            }
+
+            if (@file_put_contents($targetPath, $bytes, LOCK_EX) === false) {
+                return $value;
+            }
+
+            clearstatcache(true, $targetPath);
+            Log::debug('PMD_IMAGE_WEBP_IN_PLACE_READY', [
+                'profile' => $policy['profile'],
+                'path' => $request->path(),
+                'field' => $path,
+                'bytes' => (int)@filesize($targetPath),
+            ]);
+
+            return $value;
+        } catch (\Throwable $error) {
+            Log::warning('PMD_IMAGE_WEBP_IN_PLACE_FAILED', [
+                'profile' => $policy['profile'],
+                'path' => $request->path(),
+                'field' => $path,
+                'error_class' => get_class($error),
+            ]);
+
+            return $value;
+        }
     }
 
     private function policy(string $path, string $rootField, Request $request): ?array
@@ -106,9 +157,6 @@ class PmdOptimizeUploadedImages
         $leaf = strtolower((string)preg_replace('/^.*\./', '', $path));
         $root = strtolower($rootField);
 
-        // AI import source images are read-only analysis input and should retain
-        // their original pixels. This field exclusion also protects future route
-        // changes that keep the same payload name.
         if ($root === 'menu_sources' || str_starts_with(strtolower($path), 'menu_sources.')) {
             return null;
         }
@@ -121,6 +169,7 @@ class PmdOptimizeUploadedImages
         if ($root === 'avatar' || $leaf === 'avatar') {
             return [
                 'profile' => 'avatar',
+                'mode' => 'in_place',
                 'max_bytes' => 2 * 1024 * 1024,
                 'max_width' => 3000,
                 'max_height' => 3000,
@@ -134,49 +183,62 @@ class PmdOptimizeUploadedImages
         ) {
             return [
                 'profile' => 'logo',
+                'mode' => 'in_place',
                 'max_bytes' => 5 * 1024 * 1024,
             ];
         }
 
-        // Current Menu Manager and Combo Manager both persist the `image`
-        // field with a 5 MB validation limit.
+        // Menu uses UploadedFile::move() directly and chooses its stored
+        // extension from MIME. Keep the real PHP upload object for that route.
+        if (($root === 'image' || $leaf === 'image') && $request->is('admin/menus')) {
+            return [
+                'profile' => 'menu',
+                'mode' => 'in_place',
+                'max_bytes' => 5 * 1024 * 1024,
+            ];
+        }
+
+        // Combo attachment persistence uses the client filename, so it needs a
+        // replacement UploadedFile named *.webp when conversion succeeds.
+        if (($root === 'image' || $leaf === 'image') && $request->is('admin/combos')) {
+            return [
+                'profile' => 'menu',
+                'mode' => 'replacement',
+                'max_bytes' => 5 * 1024 * 1024,
+            ];
+        }
+
         if ($root === 'image' || $leaf === 'image') {
             return [
                 'profile' => 'menu',
+                'mode' => 'replacement',
                 'max_bytes' => 5 * 1024 * 1024,
             ];
         }
 
-        // Generic reusable media uploads enter through MediaManager as
-        // `file_data`. Mirror its dynamic original-size limit before changing
-        // bytes so compression can never bypass that existing validation.
         if ($root === 'file_data' || $leaf === 'file_data') {
             return [
                 'profile' => 'media',
+                'mode' => 'replacement',
                 'max_bytes' => $this->mediaManagerLimitBytes(),
             ];
         }
 
-        // `images` without the legacy enhancement flag is treated as a normal
-        // menu/photo batch. Current PMD persisted galleries are 5 MB per file.
         if ($root === 'images') {
             return [
                 'profile' => 'menu',
+                'mode' => 'replacement',
                 'max_bytes' => 5 * 1024 * 1024,
             ];
         }
 
         // Unknown future file fields are deliberately not rewritten. New upload
-        // surfaces should be added here with their original validation limit so
-        // this optimization layer never weakens endpoint validation.
+        // surfaces must register their existing validation/storage semantics.
         return null;
     }
 
     private function mediaManagerLimitBytes(): int
     {
-        // Media Manager itself guarantees a minimum effective 2 MB allowance.
-        // If tenant settings are unavailable this early in a request, use that
-        // safe floor so compression cannot make an oversized upload pass later.
         $fallbackKb = 2048;
 
         try {
