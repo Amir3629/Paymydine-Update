@@ -24,10 +24,7 @@ final class PmdAiImportTableService extends PmdTenantQuickSetupServiceV2
          * tables already exist. System Cashier/Delivery tables do not count.
          */
         $existingGuestTables = Tables_model::query()
-            ->where(function ($query) {
-                $query->whereNull('table_name')
-                    ->orWhereNotIn(\Illuminate\Support\Facades\DB::raw('LOWER(TRIM(table_name))'), ['cashier', 'delivery']);
-            })
+            ->whereRaw("LOWER(TRIM(COALESCE(table_name, ''))) NOT IN (?, ?)", ['cashier', 'delivery'])
             ->count();
 
         if ($existingGuestTables > 0) {
