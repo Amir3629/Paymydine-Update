@@ -26,15 +26,12 @@
     button.style.setProperty('background', '#075f4f', 'important');
     button.style.setProperty('border-color', '#075f4f', 'important');
     button.style.setProperty('color', '#ffffff', 'important');
+    button.style.setProperty('font-size', '12px', 'important');
+    button.style.setProperty('font-weight', '900', 'important');
+    button.style.setProperty('letter-spacing', '-0.02em', 'important');
+    button.style.setProperty('text-decoration', 'none', 'important');
 
-    button.innerHTML = ''
-      + '<svg viewBox="0 0 24 24" aria-hidden="true">'
-      + '<path d="M12 15V5"></path>'
-      + '<path d="m8 9 4-4 4 4"></path>'
-      + '<path d="M5 19h14"></path>'
-      + '<path d="M18.5 3.5v5"></path>'
-      + '<path d="M16 6h5"></path>'
-      + '</svg>';
+    button.innerHTML = '<span aria-hidden="true">AI</span>';
 
     button.addEventListener('click', function () {
       window.location.assign(adminBase + '/pmdmenuaiimport');
