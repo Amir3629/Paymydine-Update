@@ -1,63 +1,19 @@
 (function () {
   'use strict';
 
-  // PMD_MENU_AI_IMPORT_NATIVE_V4
-  // One native Menu Manager modal. No iframe, no nested admin shell, no DOM moves.
+  // PMD_MENU_AI_IMPORT_NATIVE_V5
+  // Compact native Menu Manager modal. No iframe, no nested cards, no duplicate shell.
   var modal = null;
   var trigger = null;
-  var repairButton = null;
   var importerReady = false;
   var needsReload = false;
-
-  function adminBase() {
-    var parts = window.location.pathname.split('/').filter(Boolean);
-    return '/' + (parts[0] || 'admin');
-  }
-
-  function escapeHtml(value) {
-    return String(value == null ? '' : value)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#039;');
-  }
+  var stageObserver = null;
 
   function safeJson(value) {
     return JSON.stringify(value)
-      .replace(/</g, '\\u003c')
-      .replace(/>/g, '\\u003e')
-      .replace(/&/g, '\\u0026');
-  }
-
-  function csrf(data) {
-    if (data.has('_token')) return;
-    var meta = document.querySelector('meta[name="csrf-token"]');
-    var hidden = document.querySelector('input[name="_token"]');
-    var token = meta && meta.content ? meta.content : (hidden ? hidden.value : '');
-    if (token) data.append('_token', token);
-  }
-
-  async function handler(name, data) {
-    csrf(data);
-    var response = await fetch(adminBase() + '/menus', {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: {
-        'X-IGNITER-REQUEST-HANDLER': name,
-        'X-Requested-With': 'XMLHttpRequest',
-        'Accept': 'application/json'
-      },
-      body: data
-    });
-    var raw = await response.text();
-    var payload = {};
-    try { payload = raw ? JSON.parse(raw) : {}; }
-    catch (error) { payload = {message: raw || 'Request failed.'}; }
-    if (!response.ok || payload.ok === false || payload.X_IGNITER_ERROR_MESSAGE) {
-      throw new Error(payload.message || payload.error || payload.X_IGNITER_ERROR_MESSAGE || ('Request failed (' + response.status + ')'));
-    }
-    return payload;
+      .replace(/</g, '\u003c')
+      .replace(/>/g, '\u003e')
+      .replace(/&/g, '\u0026');
   }
 
   function readCatalog() {
@@ -89,186 +45,265 @@
     }).filter(Boolean);
   }
 
-  function appendOptional(data, key, value) {
-    if (value === null || value === undefined || value === '') return;
-    data.append(key, String(value));
-  }
-
-  function menuDataForImageClear(item) {
-    var data = new FormData();
-    data.append('menu_id', String(Number(item.id || 0)));
-    data.append('menu_name', String(item.name || '').trim());
-    data.append('menu_price', String(Number(item.price || 0)));
-    data.append('menu_description', String(item.description || '').trim());
-    (Array.isArray(item.category_ids) ? item.category_ids : []).forEach(function (id) {
-      if (Number(id) > 0) data.append('category_ids[]', String(Number(id)));
-    });
-    data.append('is_halal', item.is_halal ? '1' : '0');
-    data.append('is_vegetarian', item.is_vegetarian ? '1' : '0');
-    data.append('is_vegan', item.is_vegan ? '1' : '0');
-    data.append('allergen_ids_present', '1');
-    (Array.isArray(item.allergen_ids) ? item.allergen_ids : []).forEach(function (id) {
-      if (Number(id) > 0) data.append('allergen_ids[]', String(Number(id)));
-    });
-    appendOptional(data, 'calories', item.calories);
-    appendOptional(data, 'serving_size', item.serving_size);
-    appendOptional(data, 'protein', item.protein);
-    appendOptional(data, 'carbs', item.carbs);
-    appendOptional(data, 'fat', item.fat);
-    appendOptional(data, 'sugar', item.sugar);
-    appendOptional(data, 'prep_time_minutes', item.prep_time_minutes);
-    data.append('menu_images_inline_json', '[]');
-    return data;
-  }
-
-  async function sha256ForUrl(url) {
-    if (!window.crypto || !window.crypto.subtle) throw new Error('Secure image hashing is unavailable in this browser.');
-    var response = await fetch(url, {credentials: 'same-origin', cache: 'force-cache'});
-    if (!response.ok) throw new Error('Could not read one of the food images.');
-    var bytes = await response.arrayBuffer();
-    var digest = await window.crypto.subtle.digest('SHA-256', bytes);
-    return Array.from(new Uint8Array(digest)).map(function (value) {
-      return value.toString(16).padStart(2, '0');
-    }).join('');
-  }
-
-  async function suspiciousRepeatedPhotoGroups() {
-    var catalog = readCatalog();
-    var rows = Object.keys(catalog).map(function (key) { return catalog[key]; }).filter(function (item) {
-      var image = String(item && item.image || '');
-      return Number(item && item.id || 0) > 0 && image.indexOf('pmdmenu_') !== -1;
-    });
-    var hashed = await Promise.all(rows.map(async function (item) {
-      try { return {item: item, hash: await sha256ForUrl(String(item.image || ''))}; }
-      catch (error) { return null; }
-    }));
-    var groups = {};
-    hashed.filter(Boolean).forEach(function (row) {
-      if (!groups[row.hash]) groups[row.hash] = [];
-      groups[row.hash].push(row.item);
-    });
-    return Object.keys(groups).map(function (hash) {
-      return {hash: hash, items: groups[hash]};
-    }).filter(function (group) {
-      return group.items.length >= 5;
-    }).sort(function (a, b) {
-      return b.items.length - a.items.length;
-    });
-  }
-
-  async function clearRepeatedPhotoGroup(group) {
-    var items = group.items.slice();
-    var cursor = 0;
-    var failures = [];
-    async function worker() {
-      while (true) {
-        var index = cursor++;
-        if (index >= items.length) return;
-        var item = items[index];
-        try { await handler('onPmdMenuManagerSaveV1', menuDataForImageClear(item)); }
-        catch (error) { failures.push((item.name || ('#' + item.id)) + ': ' + (error.message || 'failed')); }
-      }
-    }
-    var workers = [];
-    for (var i = 0; i < Math.min(3, items.length); i++) workers.push(worker());
-    await Promise.all(workers);
-    if (failures.length) throw new Error(failures.slice(0, 3).join('\n'));
-  }
-
-  async function repairRepeatedPhotos() {
-    if (!repairButton || repairButton.disabled) return;
-    var original = repairButton.textContent;
-    repairButton.disabled = true;
-    repairButton.textContent = 'Checking…';
-    try {
-      var groups = await suspiciousRepeatedPhotoGroups();
-      if (!groups.length) {
-        window.alert('No repeated imported screenshot was detected. Nothing was changed.');
-        return;
-      }
-      var group = groups[0];
-      var names = group.items.slice(0, 8).map(function (item) { return item.name; }).join(', ');
-      var more = group.items.length > 8 ? (' and ' + (group.items.length - 8) + ' more') : '';
-      if (!window.confirm('The exact same uploaded image is attached to ' + group.items.length + ' foods.\n\n' + names + more + '\n\nRemove this repeated image so foods without a real photo use the PayMyDine logo?')) return;
-      repairButton.textContent = 'Removing…';
-      await clearRepeatedPhotoGroup(group);
-      needsReload = true;
-      window.alert('Repeated screenshot removed from ' + group.items.length + ' foods.');
-      window.location.reload();
-    } catch (error) {
-      window.alert(error.message || 'Repeated photos could not be repaired.');
-    } finally {
-      if (repairButton) {
-        repairButton.disabled = false;
-        repairButton.textContent = original;
-      }
-    }
-  }
-
   function installStyles() {
-    if (document.getElementById('pmd-menu-ai-native-v4-style')) return;
+    if (document.getElementById('pmd-menu-ai-native-v5-style')) return;
     var style = document.createElement('style');
-    style.id = 'pmd-menu-ai-native-v4-style';
+    style.id = 'pmd-menu-ai-native-v5-style';
     style.textContent = `
-      .pmd-menu-ai-native-modal .pmd-menu-modal__card{width:min(980px,calc(100vw - 48px))!important;max-height:min(780px,calc(100vh - 48px))!important}
-      .pmd-menu-ai-native-modal .pmd-menu-modal__header{min-height:76px!important;padding:16px 20px!important}
+      .pmd-menu-ai-native-modal .pmd-menu-modal__card{
+        width:min(680px,calc(100vw - 40px))!important;
+        max-height:min(720px,calc(100vh - 40px))!important;
+        border-radius:20px!important;
+        overflow:hidden!important;
+        transition:width .16s ease!important;
+      }
+      .pmd-menu-ai-native-modal[data-pmd-ai-stage="review"] .pmd-menu-modal__card{
+        width:min(1080px,calc(100vw - 40px))!important;
+      }
+      .pmd-menu-ai-native-modal[data-pmd-ai-stage="done"] .pmd-menu-modal__card{
+        width:min(560px,calc(100vw - 40px))!important;
+      }
+      .pmd-menu-ai-native-modal .pmd-menu-modal__header{
+        min-height:64px!important;
+        padding:14px 18px!important;
+        border-bottom:1px solid #e5ece8!important;
+        background:#fff!important;
+      }
       .pmd-menu-ai-native-modal .pmd-menu-modal__header>div:first-child{min-width:0}
-      .pmd-menu-ai-native-modal .pmd-menu-modal__eyebrow{color:#0b7c5a!important}
-      .pmd-menu-ai-native-modal .pmd-menu-modal__header h2{margin:2px 0 0!important;font-size:20px!important;line-height:1.2!important}
-      .pmd-menu-ai-native-modal__header-actions{display:flex;align-items:center;gap:9px}
-      .pmd-menu-ai-native-modal__repair{height:38px;padding:0 13px;border:1px solid #c9ded6;border-radius:11px;background:#f3faf7;color:#0b6a50;font-size:12px;font-weight:800;cursor:pointer}
-      .pmd-menu-ai-native-modal__repair:disabled{opacity:.55;cursor:wait}
-      .pmd-menu-ai-native-modal .pmd-menu-modal__body{padding:0!important;background:#f7faf9!important;overflow:auto!important}
-      .pmd-ai-import--native{max-width:none!important;margin:0!important;padding:18px!important;color:#17211b!important}
-      .pmd-ai-import--native .pmd-ai-import__card,.pmd-ai-import--native .pmd-ai-import__notice{position:relative;background:#fff;border:1px solid #dfe9e5;border-radius:16px;box-shadow:none;padding:20px;margin:0}
-      .pmd-ai-import--native .pmd-ai-import__notice{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
-      .pmd-ai-import--native .pmd-ai-import__notice.is-warning{border-color:#ead9a4;background:#fffaf0}
-      .pmd-ai-import--native .pmd-ai-import__step{display:none!important}
-      .pmd-ai-import--native .pmd-ai-import__card-copy{padding:0;margin:0 0 16px}
-      .pmd-ai-import--native .pmd-ai-import__card-copy h2{margin:0 0 5px;font-size:18px;line-height:1.3}
-      .pmd-ai-import--native .pmd-ai-import__card-copy p,.pmd-ai-import--native .pmd-ai-import__section-head p{margin:0;color:#6d7973;font-size:13px}
-      .pmd-ai-import--native .pmd-ai-import__upload-grid{display:block}
-      .pmd-ai-import--native .pmd-ai-import__drop{min-height:145px;border:1.5px dashed #96b9aa;border-radius:14px;background:#f7fcfa;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:18px;cursor:pointer}
-      .pmd-ai-import--native .pmd-ai-import__drop:hover{border-color:#4b9b7b;background:#f1faf6}
-      .pmd-ai-import--native .pmd-ai-import__drop input{position:absolute;opacity:0;pointer-events:none}
-      .pmd-ai-import--native .pmd-ai-import__drop-icon{width:42px;height:42px;border-radius:12px;background:#e9f7f1;color:#087253;display:grid;place-items:center;font-size:24px;font-weight:700;margin-bottom:8px}
-      .pmd-ai-import--native .pmd-ai-import__drop strong{font-size:15px;color:#182723}
-      .pmd-ai-import--native .pmd-ai-import__drop small{color:#78847e;margin:4px 0 8px}
-      .pmd-ai-import--native .pmd-ai-import__drop>span:last-child{font-size:12px;color:#16805b;font-weight:750}
-      .pmd-ai-import--native .pmd-ai-import__safety{margin-top:12px;padding:10px 12px;border-radius:10px;background:#f4f6f5;color:#667169;font-size:12px;line-height:1.45}
-      .pmd-ai-import--native .pmd-ai-import__actions{display:flex;align-items:center;gap:10px;justify-content:flex-end;margin-top:16px}
-      .pmd-ai-import--native .pmd-ai-import__status{margin-right:auto;color:#68736c;font-size:12px}
-      .pmd-ai-import--native .pmd-ai-import__status.is-error{color:#b43f3f}
-      .pmd-ai-import--native .pmd-ai-import__primary,.pmd-ai-import--native .pmd-ai-import__secondary{min-height:40px;padding:0 16px;border-radius:11px;border:0;font-weight:800;cursor:pointer}
-      .pmd-ai-import--native .pmd-ai-import__primary{background:#137954;color:#fff}
-      .pmd-ai-import--native .pmd-ai-import__primary:disabled{opacity:.5;cursor:not-allowed}
-      .pmd-ai-import--native .pmd-ai-import__secondary{background:#edf2ef;color:#2c3931}
-      .pmd-ai-import--native .pmd-ai-import__summary{display:inline-flex;padding:6px 10px;border-radius:999px;background:#edf7f1;color:#206d49;font-size:12px;font-weight:800;margin-bottom:16px}
-      .pmd-ai-import--native .pmd-ai-import__section-head{display:flex;justify-content:space-between;gap:16px;align-items:end;margin:7px 0 10px}
-      .pmd-ai-import--native .pmd-ai-import__section-head h3{margin:0 0 4px;font-size:16px}
-      .pmd-ai-import--native .pmd-ai-import__select-all{font-size:12px;font-weight:700;white-space:nowrap}
-      .pmd-ai-import--native .pmd-ai-import__table-wrap{overflow:auto;max-height:430px;border:1px solid #e1e8e4;border-radius:12px;background:#fff}
-      .pmd-ai-import--native .pmd-ai-import__table{width:100%;border-collapse:collapse;min-width:930px}
-      .pmd-ai-import--native .pmd-ai-import__table th{position:sticky;top:0;z-index:2;text-align:left;padding:9px;background:#f6f9f7;color:#617068;font-size:11px}
-      .pmd-ai-import--native .pmd-ai-import__table td{padding:8px;border-top:1px solid #edf1ef;vertical-align:top}
-      .pmd-ai-import--native .pmd-ai-import__table input[type=text],.pmd-ai-import--native .pmd-ai-import__table input[type=number],.pmd-ai-import--native .pmd-ai-import__table textarea,.pmd-ai-import--native .pmd-ai-import__floor-row input[type=text],.pmd-ai-import--native .pmd-ai-import__floor-row input[type=number]{width:100%;border:1px solid #d5dfda;border-radius:8px;background:#fff;padding:7px 8px;font:inherit}
-      .pmd-ai-import--native .pmd-ai-import__table textarea{resize:vertical}
-      .pmd-ai-import--native .pmd-ai-import__table tr.is-invalid{background:#fff9f5}
-      .pmd-ai-import--native .pmd-ai-import__table tr.is-duplicate{background:#fcfaf1}
-      .pmd-ai-import--native .pmd-ai-import__table tr.is-failed{background:#fff1f1}
-      .pmd-ai-import--native .pmd-ai-import__table td:last-child small{display:block;color:#94663a;margin-top:4px;max-width:180px}
-      .pmd-ai-import--native .pmd-ai-import__confidence{display:inline-flex;padding:3px 6px;border-radius:999px;background:#eef2ef;font-size:10px;font-weight:800}
-      .pmd-ai-import--native .pmd-ai-import__photo-cell span{font-size:11px;color:#7f8983}
-      .pmd-ai-import--native .pmd-ai-import__floors{margin-top:20px;padding-top:15px;border-top:1px solid #e7ebe8}
-      .pmd-ai-import--native .pmd-ai-import__floor-row{display:grid;grid-template-columns:26px 44px minmax(150px,1fr) 48px 100px 110px;gap:8px;align-items:center;padding:8px 0}
-      .pmd-ai-import--native .pmd-ai-import__floor-row small{color:#77817b}
-      .pmd-ai-import--native .pmd-ai-import__permission-note{padding:9px 11px;background:#fff8e9;border-radius:9px;color:#79622c;font-size:12px}
-      .pmd-ai-import--native .pmd-ai-import__done{text-align:center;padding:34px 22px}
-      .pmd-ai-import--native .pmd-ai-import__done-mark{width:48px;height:48px;border-radius:50%;background:#e9f7ef;color:#187a4c;font-size:25px;display:grid;place-items:center;margin:0 auto 10px}
-      .pmd-ai-import--native .pmd-ai-import__done h2{margin:0 0 7px}
-      .pmd-ai-import--native .pmd-ai-import__done p{color:#657069}
+      .pmd-menu-ai-native-modal .pmd-menu-modal__header h2{
+        margin:0!important;
+        font-size:19px!important;
+        line-height:1.25!important;
+        letter-spacing:-.02em!important;
+        color:#14221c!important;
+      }
+      .pmd-menu-ai-native-modal .pmd-menu-modal__close{
+        width:40px!important;
+        height:40px!important;
+        border-radius:12px!important;
+      }
+      .pmd-menu-ai-native-modal .pmd-menu-modal__body{
+        padding:0!important;
+        background:#fff!important;
+        overflow:auto!important;
+      }
+      .pmd-ai-import--native{
+        max-width:none!important;
+        margin:0!important;
+        padding:22px!important;
+        color:#17211b!important;
+      }
+      .pmd-ai-import--native .pmd-ai-import__stage{
+        margin:0!important;
+        padding:0!important;
+        border:0!important;
+        border-radius:0!important;
+        background:transparent!important;
+        box-shadow:none!important;
+      }
+      .pmd-ai-import--native .pmd-ai-import__lead{
+        margin:0 0 16px!important;
+        color:#5e6b64!important;
+        font-size:14px!important;
+        line-height:1.5!important;
+      }
+      .pmd-ai-import--native .pmd-ai-import__drop{
+        position:relative!important;
+        min-height:170px!important;
+        border:1.5px dashed #8fb6a6!important;
+        border-radius:14px!important;
+        background:#f7fbf9!important;
+        display:flex!important;
+        flex-direction:column!important;
+        justify-content:center!important;
+        align-items:center!important;
+        text-align:center!important;
+        padding:20px!important;
+        cursor:pointer!important;
+        transition:border-color .15s ease,background .15s ease!important;
+      }
+      .pmd-ai-import--native .pmd-ai-import__drop:hover{
+        border-color:#338a68!important;
+        background:#f1f9f5!important;
+      }
+      .pmd-ai-import--native .pmd-ai-import__drop input{
+        position:absolute!important;
+        inset:0!important;
+        width:100%!important;
+        height:100%!important;
+        opacity:0!important;
+        cursor:pointer!important;
+      }
+      .pmd-ai-import--native .pmd-ai-import__drop-icon{
+        width:40px!important;
+        height:40px!important;
+        border-radius:12px!important;
+        background:#e8f5ef!important;
+        color:#087253!important;
+        display:grid!important;
+        place-items:center!important;
+        margin-bottom:9px!important;
+      }
+      .pmd-ai-import--native .pmd-ai-import__drop-icon svg{
+        width:21px!important;
+        height:21px!important;
+        fill:none!important;
+        stroke:currentColor!important;
+        stroke-width:2!important;
+        stroke-linecap:round!important;
+        stroke-linejoin:round!important;
+      }
+      .pmd-ai-import--native .pmd-ai-import__drop strong{
+        font-size:15px!important;
+        color:#182723!important;
+      }
+      .pmd-ai-import--native .pmd-ai-import__drop small{
+        color:#78847e!important;
+        margin:4px 0 8px!important;
+        font-size:12px!important;
+      }
+      .pmd-ai-import--native .pmd-ai-import__drop>span:last-child{
+        font-size:12px!important;
+        color:#16805b!important;
+        font-weight:750!important;
+      }
+      .pmd-ai-import--native .pmd-ai-import__footer{
+        display:flex!important;
+        align-items:center!important;
+        gap:14px!important;
+        margin-top:16px!important;
+      }
+      .pmd-ai-import--native .pmd-ai-import__hint{
+        flex:1 1 auto!important;
+        min-width:0!important;
+        color:#748078!important;
+        font-size:12px!important;
+        line-height:1.4!important;
+      }
+      .pmd-ai-import--native .pmd-ai-import__status{
+        flex:1 1 auto!important;
+        min-width:0!important;
+        color:#68736c!important;
+        font-size:12px!important;
+        line-height:1.4!important;
+      }
+      .pmd-ai-import--native .pmd-ai-import__status:empty{display:none!important}
+      .pmd-ai-import--native .pmd-ai-import__status.is-error{color:#b43f3f!important}
+      .pmd-ai-import--native .pmd-ai-import__primary,
+      .pmd-ai-import--native .pmd-ai-import__secondary{
+        min-height:40px!important;
+        padding:0 16px!important;
+        border-radius:11px!important;
+        border:0!important;
+        font-weight:800!important;
+        white-space:nowrap!important;
+        cursor:pointer!important;
+      }
+      .pmd-ai-import--native .pmd-ai-import__primary{background:#0d6f52!important;color:#fff!important}
+      .pmd-ai-import--native .pmd-ai-import__primary:disabled{opacity:.5!important;cursor:not-allowed!important}
+      .pmd-ai-import--native .pmd-ai-import__secondary{background:#edf2ef!important;color:#2c3931!important}
+      .pmd-ai-import--native .pmd-ai-import__review-head{
+        display:flex!important;
+        align-items:flex-start!important;
+        justify-content:space-between!important;
+        gap:16px!important;
+        margin:0 0 14px!important;
+      }
+      .pmd-ai-import--native .pmd-ai-import__review-head h3{
+        margin:0 0 3px!important;
+        color:#17231d!important;
+        font-size:17px!important;
+      }
+      .pmd-ai-import--native .pmd-ai-import__review-head p{
+        margin:0!important;
+        color:#738078!important;
+        font-size:12px!important;
+      }
+      .pmd-ai-import--native .pmd-ai-import__review-tools{
+        display:flex!important;
+        align-items:center!important;
+        gap:10px!important;
+        flex-wrap:wrap!important;
+        justify-content:flex-end!important;
+      }
+      .pmd-ai-import--native .pmd-ai-import__summary{
+        display:inline-flex!important;
+        padding:5px 9px!important;
+        border-radius:999px!important;
+        background:#edf7f1!important;
+        color:#206d49!important;
+        font-size:11px!important;
+        font-weight:800!important;
+        white-space:nowrap!important;
+      }
+      .pmd-ai-import--native .pmd-ai-import__select-all{
+        font-size:12px!important;
+        font-weight:700!important;
+        white-space:nowrap!important;
+        color:#526159!important;
+      }
+      .pmd-ai-import--native .pmd-ai-import__table-wrap{
+        overflow:auto!important;
+        max-height:430px!important;
+        border:1px solid #e1e8e4!important;
+        border-radius:12px!important;
+        background:#fff!important;
+      }
+      .pmd-ai-import--native .pmd-ai-import__table{width:100%!important;border-collapse:collapse!important;min-width:880px!important}
+      .pmd-ai-import--native .pmd-ai-import__table th{
+        position:sticky!important;
+        top:0!important;
+        z-index:2!important;
+        text-align:left!important;
+        padding:9px!important;
+        background:#f6f9f7!important;
+        color:#617068!important;
+        font-size:11px!important;
+      }
+      .pmd-ai-import--native .pmd-ai-import__table td{padding:8px!important;border-top:1px solid #edf1ef!important;vertical-align:top!important}
+      .pmd-ai-import--native .pmd-ai-import__table input[type=text],
+      .pmd-ai-import--native .pmd-ai-import__table input[type=number],
+      .pmd-ai-import--native .pmd-ai-import__table textarea{
+        width:100%!important;
+        border:1px solid #d5dfda!important;
+        border-radius:8px!important;
+        background:#fff!important;
+        padding:7px 8px!important;
+        font:inherit!important;
+      }
+      .pmd-ai-import--native .pmd-ai-import__table textarea{resize:vertical!important}
+      .pmd-ai-import--native .pmd-ai-import__table tr.is-invalid{background:#fff9f5!important}
+      .pmd-ai-import--native .pmd-ai-import__table tr.is-duplicate{background:#fcfaf1!important}
+      .pmd-ai-import--native .pmd-ai-import__table tr.is-failed{background:#fff1f1!important}
+      .pmd-ai-import--native .pmd-ai-import__table td:last-child small{display:block!important;color:#94663a!important;margin-top:4px!important;max-width:190px!important}
+      .pmd-ai-import--native .pmd-ai-import__confidence{display:inline-flex!important;padding:3px 6px!important;border-radius:999px!important;background:#eef2ef!important;font-size:10px!important;font-weight:800!important}
+      .pmd-ai-import--native[data-can-import-tables="0"] .pmd-ai-import__floors{display:none!important}
+      .pmd-ai-import--native .pmd-ai-import__review-footer{
+        display:flex!important;
+        align-items:center!important;
+        gap:10px!important;
+        margin-top:14px!important;
+      }
+      .pmd-ai-import--native .pmd-ai-import__done{text-align:center!important;padding:24px 6px!important}
+      .pmd-ai-import--native .pmd-ai-import__done-mark{width:48px!important;height:48px!important;border-radius:50%!important;background:#e9f7ef!important;color:#187a4c!important;font-size:25px!important;display:grid!important;place-items:center!important;margin:0 auto 10px!important}
+      .pmd-ai-import--native .pmd-ai-import__done h2{margin:0 0 7px!important;font-size:19px!important}
+      .pmd-ai-import--native .pmd-ai-import__done p{margin:0!important;color:#657069!important;font-size:13px!important}
       .pmd-menu-ai-trigger{background:#075f4f!important;border-color:#075f4f!important;color:#fff!important;font-size:12px!important;font-weight:900!important;letter-spacing:-.02em!important}
-      @media(max-width:720px){.pmd-menu-ai-native-modal .pmd-menu-modal__card{width:calc(100vw - 20px)!important;max-height:calc(100vh - 20px)!important}.pmd-menu-ai-native-modal .pmd-menu-modal__header{padding:12px 14px!important}.pmd-menu-ai-native-modal__repair{display:none}.pmd-ai-import--native{padding:10px!important}.pmd-ai-import--native .pmd-ai-import__card{padding:14px!important}.pmd-ai-import--native .pmd-ai-import__actions{flex-wrap:wrap}.pmd-ai-import--native .pmd-ai-import__status{width:100%;margin:0}.pmd-ai-import--native .pmd-ai-import__floor-row{grid-template-columns:24px 1fr}.pmd-ai-import--native .pmd-ai-import__floor-row>span{display:none}.pmd-ai-import--native .pmd-ai-import__floor-row small{grid-column:2}}
+      @media(max-width:720px){
+        .pmd-menu-ai-native-modal .pmd-menu-modal__card,
+        .pmd-menu-ai-native-modal[data-pmd-ai-stage="review"] .pmd-menu-modal__card,
+        .pmd-menu-ai-native-modal[data-pmd-ai-stage="done"] .pmd-menu-modal__card{
+          width:calc(100vw - 20px)!important;
+          max-height:calc(100vh - 20px)!important;
+        }
+        .pmd-menu-ai-native-modal .pmd-menu-modal__header{padding:12px 14px!important}
+        .pmd-ai-import--native{padding:16px!important}
+        .pmd-ai-import--native .pmd-ai-import__footer,
+        .pmd-ai-import--native .pmd-ai-import__review-footer,
+        .pmd-ai-import--native .pmd-ai-import__review-head{flex-wrap:wrap!important}
+        .pmd-ai-import--native .pmd-ai-import__hint,
+        .pmd-ai-import--native .pmd-ai-import__status{width:100%!important;flex-basis:100%!important}
+      }
     `;
     document.head.appendChild(style);
   }
@@ -279,29 +314,66 @@
     var canCreateCategories = Boolean(document.querySelector('[data-pmd-category-create]'));
     return ''
       + '<div class="pmd-ai-import pmd-ai-import--native" data-pmd-ai-import data-can-create-categories="' + (canCreateCategories ? '1' : '0') + '" data-can-import-tables="0" data-ai-enabled="1">'
-      +   '<section class="pmd-ai-import__card" data-pmd-ai-import-upload>'
-      +     '<div class="pmd-ai-import__card-copy"><h2>Upload your menu</h2><p>Choose one or more clear menu photos, screenshots or PDFs. AI will read the visible categories, item names and prices.</p></div>'
-      +     '<div class="pmd-ai-import__upload-grid"><label class="pmd-ai-import__drop">'
+      +   '<section class="pmd-ai-import__stage" data-pmd-ai-import-upload>'
+      +     '<p class="pmd-ai-import__lead">Upload a menu photo, screenshot or PDF. AI will extract the items, categories and prices for you to review.</p>'
+      +     '<label class="pmd-ai-import__drop">'
       +       '<input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" multiple data-pmd-ai-menu-sources>'
-      +       '<span class="pmd-ai-import__drop-icon" aria-hidden="true">+</span>'
-      +       '<strong>Choose menu image or PDF</strong><small>JPG, PNG, WEBP or PDF · up to 12 files</small>'
+      +       '<span class="pmd-ai-import__drop-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 16V4"></path><path d="m7 9 5-5 5 5"></path><path d="M5 20h14"></path></svg></span>'
+      +       '<strong>Choose menu files</strong>'
+      +       '<small>JPG, PNG, WEBP or PDF · up to 12 files</small>'
       +       '<span data-pmd-ai-menu-source-label>No files selected</span>'
-      +     '</label></div>'
-      +     '<div class="pmd-ai-import__safety"><strong>Menu data only.</strong> The uploaded menu image is used only for reading text and prices. It is never attached to food items. Foods without a real photo use the PayMyDine logo.</div>'
-      +     '<div class="pmd-ai-import__actions"><span class="pmd-ai-import__status" data-pmd-ai-import-status aria-live="polite"></span><button type="button" class="pmd-ai-import__primary" data-pmd-ai-analyse>Read with AI</button></div>'
+      +     '</label>'
+      +     '<div class="pmd-ai-import__footer">'
+      +       '<span class="pmd-ai-import__hint">Nothing is saved until you review and confirm. Menu screenshots are never used as food photos.</span>'
+      +       '<span class="pmd-ai-import__status" data-pmd-ai-import-status aria-live="polite"></span>'
+      +       '<button type="button" class="pmd-ai-import__primary" data-pmd-ai-analyse>Read with AI</button>'
+      +     '</div>'
       +   '</section>'
-      +   '<section class="pmd-ai-import__card" data-pmd-ai-import-review hidden>'
-      +     '<div class="pmd-ai-import__card-copy"><h2>Review what AI found</h2><p>Edit anything that is wrong. Only checked rows will be imported.</p></div>'
-      +     '<div class="pmd-ai-import__summary" data-pmd-ai-import-summary></div>'
-      +     '<div class="pmd-ai-import__section-head"><div><h3>Menu items</h3><p>Names, categories, prices and visible descriptions.</p></div><label class="pmd-ai-import__select-all"><input type="checkbox" checked data-pmd-ai-select-all> Select all valid</label></div>'
-      +     '<div class="pmd-ai-import__table-wrap"><table class="pmd-ai-import__table"><thead><tr><th>Import</th><th>Category</th><th>Item</th><th>Price</th><th>Description</th><th>Photo</th><th>Review</th></tr></thead><tbody data-pmd-ai-items></tbody></table></div>'
-      +     '<section class="pmd-ai-import__floors" data-pmd-ai-floors-section hidden><div class="pmd-ai-import__section-head"><div><h3>Floor & table structure</h3><p>Detected floor/table data can be reviewed in Quick Setup.</p></div></div><div data-pmd-ai-floors></div><p class="pmd-ai-import__permission-note">Table layout import is intentionally disabled from the Menu modal. Use Quick Setup for floor/table migration.</p></section>'
-      +     '<div class="pmd-ai-import__actions"><button type="button" class="pmd-ai-import__secondary" data-pmd-ai-start-over>Start over</button><span class="pmd-ai-import__status" data-pmd-ai-import-review-status aria-live="polite"></span><button type="button" class="pmd-ai-import__primary" data-pmd-ai-import-confirm>Import selected items</button></div>'
+      +   '<section class="pmd-ai-import__stage" data-pmd-ai-import-review hidden>'
+      +     '<div class="pmd-ai-import__review-head">'
+      +       '<div><h3>Review items</h3><p>Edit anything that is wrong, then import only the checked rows.</p></div>'
+      +       '<div class="pmd-ai-import__review-tools"><span class="pmd-ai-import__summary" data-pmd-ai-import-summary></span><label class="pmd-ai-import__select-all"><input type="checkbox" checked data-pmd-ai-select-all> Select all valid</label></div>'
+      +     '</div>'
+      +     '<div class="pmd-ai-import__table-wrap"><table class="pmd-ai-import__table"><thead><tr><th>Import</th><th>Category</th><th>Item</th><th>Price</th><th>Description</th><th>Review</th></tr></thead><tbody data-pmd-ai-items></tbody></table></div>'
+      +     '<section class="pmd-ai-import__floors" data-pmd-ai-floors-section hidden><div data-pmd-ai-floors></div></section>'
+      +     '<div class="pmd-ai-import__review-footer">'
+      +       '<button type="button" class="pmd-ai-import__secondary" data-pmd-ai-start-over>Start over</button>'
+      +       '<span class="pmd-ai-import__status" data-pmd-ai-import-review-status aria-live="polite"></span>'
+      +       '<button type="button" class="pmd-ai-import__primary" data-pmd-ai-import-confirm>Import selected</button>'
+      +     '</div>'
       +   '</section>'
-      +   '<section class="pmd-ai-import__card pmd-ai-import__done" data-pmd-ai-import-done hidden><div class="pmd-ai-import__done-mark">✓</div><h2>Import completed</h2><p data-pmd-ai-import-result></p><div class="pmd-ai-import__actions" style="justify-content:center"><button type="button" class="pmd-ai-import__primary" data-pmd-ai-import-close>Close &amp; review Menu</button></div></section>'
+      +   '<section class="pmd-ai-import__stage pmd-ai-import__done" data-pmd-ai-import-done hidden>'
+      +     '<div class="pmd-ai-import__done-mark">✓</div><h2>Import complete</h2><p data-pmd-ai-import-result></p>'
+      +     '<div class="pmd-ai-import__review-footer" style="justify-content:center"><button type="button" class="pmd-ai-import__primary" data-pmd-ai-import-close>Back to Menu</button></div>'
+      +   '</section>'
       +   '<script type="application/json" id="pmd-ai-import-categories">' + safeJson(categories) + '<\/script>'
       +   '<script type="application/json" id="pmd-ai-import-existing-items">' + safeJson(existingItems) + '<\/script>'
       + '</div>';
+  }
+
+  function syncStage() {
+    if (!modal) return;
+    var review = modal.querySelector('[data-pmd-ai-import-review]');
+    var done = modal.querySelector('[data-pmd-ai-import-done]');
+    var stage = done && !done.hidden ? 'done' : (review && !review.hidden ? 'review' : 'upload');
+    modal.setAttribute('data-pmd-ai-stage', stage);
+
+    var summary = modal.querySelector('[data-pmd-ai-import-summary]');
+    if (summary && stage === 'review') {
+      summary.textContent = String(summary.textContent || '').replace(/\s*·\s*\d+\s+floor areas detected\s*$/i, '');
+    }
+  }
+
+  function watchStage() {
+    if (!modal || stageObserver) return;
+    var upload = modal.querySelector('[data-pmd-ai-import-upload]');
+    var review = modal.querySelector('[data-pmd-ai-import-review]');
+    var done = modal.querySelector('[data-pmd-ai-import-done]');
+    stageObserver = new MutationObserver(syncStage);
+    [upload, review, done].filter(Boolean).forEach(function (node) {
+      stageObserver.observe(node, {attributes:true, attributeFilter:['hidden']});
+    });
+    syncStage();
   }
 
   function buildModal() {
@@ -312,6 +384,7 @@
     modal = document.createElement('div');
     modal.className = 'pmd-menu-modal pmd-menu-ai-native-modal';
     modal.setAttribute('data-pmd-menu-ai-import-modal', '');
+    modal.setAttribute('data-pmd-ai-stage', 'upload');
     modal.setAttribute('role', 'dialog');
     modal.setAttribute('aria-modal', 'true');
     modal.setAttribute('aria-labelledby', 'pmd-menu-ai-native-title');
@@ -321,17 +394,13 @@
       + '<div class="pmd-menu-modal__backdrop" data-pmd-menu-ai-import-close></div>'
       + '<section class="pmd-menu-modal__card" role="document">'
       +   '<header class="pmd-menu-modal__header">'
-      +     '<div><span class="pmd-menu-modal__eyebrow">PayMyDine AI</span><h2 id="pmd-menu-ai-native-title">Import menu with AI</h2></div>'
-      +     '<div class="pmd-menu-ai-native-modal__header-actions">'
-      +       '<button type="button" class="pmd-menu-ai-native-modal__repair" data-pmd-ai-fix-old-photos>Fix old photos</button>'
-      +       '<button type="button" class="pmd-menu-modal__close" data-pmd-menu-ai-import-close aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>'
-      +     '</div>'
+      +     '<div><h2 id="pmd-menu-ai-native-title">Import menu with AI</h2></div>'
+      +     '<button type="button" class="pmd-menu-modal__close" data-pmd-menu-ai-import-close aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>'
       +   '</header>'
       +   '<div class="pmd-menu-modal__body">' + buildImporterMarkup() + '</div>'
       + '</section>';
     document.body.appendChild(modal);
-    repairButton = modal.querySelector('[data-pmd-ai-fix-old-photos]');
-    if (repairButton) repairButton.addEventListener('click', repairRepeatedPhotos);
+    watchStage();
     modal.addEventListener('click', function (event) {
       if (event.target.closest('[data-pmd-menu-ai-import-close]')) {
         event.preventDefault();
@@ -347,10 +416,10 @@
   }
 
   function ensureImporterScript() {
-    if (window.PMDAiMenuImportNativeV4Loading) return;
-    window.PMDAiMenuImportNativeV4Loading = true;
+    if (window.PMDAiMenuImportNativeV5Loading) return;
+    window.PMDAiMenuImportNativeV5Loading = true;
     var script = document.createElement('script');
-    script.src = '/app/admin/assets/js/pmd-menu-ai-import-v1.js?v=native-v4-20260912';
+    script.src = '/app/admin/assets/js/pmd-menu-ai-import-v1.js?v=native-v5-20260912';
     script.async = false;
     script.onload = function () {
       importerReady = true;
@@ -383,7 +452,7 @@
     modal.setAttribute('aria-hidden', 'false');
     document.body.classList.add('pmd-menu-modal-open');
     var close = modal.querySelector('.pmd-menu-modal__close');
-    if (close) close.focus({preventScroll: true});
+    if (close) close.focus({preventScroll:true});
   }
 
   function closeModal(forceReload) {
@@ -395,7 +464,7 @@
     modal.hidden = true;
     modal.setAttribute('aria-hidden', 'true');
     document.body.classList.remove('pmd-menu-modal-open');
-    if (trigger) trigger.focus({preventScroll: true});
+    if (trigger) trigger.focus({preventScroll:true});
   }
 
   function mountTrigger() {
@@ -432,12 +501,8 @@
     if (event.key === 'Escape' && modal && !modal.hidden) closeModal(false);
   });
 
-  window.PMDMenuAiImportNativeV4 = {
-    open: openModal,
-    close: closeModal,
-    repairRepeatedPhotos: repairRepeatedPhotos
-  };
+  window.PMDMenuAiImportNativeV5 = {open:openModal, close:closeModal};
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, {once: true});
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, {once:true});
   else boot();
 })();
