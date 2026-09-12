@@ -74,10 +74,83 @@ export async function fetchBackendJsonOrNull<T = unknown>(
 // next request still performs a fresh backend read.
 const backendJsonInFlight = new Map<string, Promise<unknown>>()
 
+// PMD_BOOTSTRAP_BATCH_R1
+// Stable tenant-wide bootstrap reads can be served by one already-booted PHP
+// request. This is not a TTL cache: the batch promise exists only while the
+// request is in flight and is deleted immediately after it settles.
+type BootstrapBatchResponse = {
+  success?: boolean
+  data?: Record<string, unknown>
+  status?: Record<string, number>
+}
+
+const bootstrapBatchKeyByPath: Record<string, string> = {
+  '/api/v1/settings': 'settings',
+  '/api/v1/restaurant': 'restaurant',
+  '/api/v1/menu': 'menu',
+  '/api/v1/categories': 'categories',
+  '/api/v1/menu-content-translations': 'menuTranslations',
+  '/api/v1/frontend-theme-v2': 'theme',
+  '/api/v1/payments': 'payments',
+  '/api/v1/vat-settings': 'vatSettings',
+  '/api/v1/tip-settings': 'tipSettings',
+}
+
+const bootstrapBatchInFlight = new Map<string, Promise<BootstrapBatchResponse | null>>()
+
+async function fetchBootstrapBatchOrNull(
+  options: FetchJsonOptions,
+): Promise<BootstrapBatchResponse | null> {
+  const tenantHost = cleanHost(options.host)
+  const key = [
+    getBackendOrigin(tenantHost),
+    tenantHost,
+    String(options.timeoutMs ?? 8000),
+    String(options.cache ?? 'no-store'),
+  ].join('\n')
+
+  const existing = bootstrapBatchInFlight.get(key)
+  if (existing) return await existing
+
+  const request = fetchBackendJsonOrNull<BootstrapBatchResponse>(
+    '/api/v1/frontend-bootstrap-batch-r1',
+    options,
+  )
+  bootstrapBatchInFlight.set(key, request)
+
+  try {
+    return await request
+  } finally {
+    if (bootstrapBatchInFlight.get(key) === request) {
+      bootstrapBatchInFlight.delete(key)
+    }
+  }
+}
+
 export async function fetchBackendJsonOrNullSingleFlight<T = unknown>(
   path: string,
   options: FetchJsonOptions,
 ): Promise<T | null> {
+  const batchKey = bootstrapBatchKeyByPath[path]
+  if (batchKey) {
+    const batch = await fetchBootstrapBatchOrNull(options)
+    const status = Number(batch?.status?.[batchKey] ?? 0)
+    const hasBatchValue = Boolean(batch?.data && Object.prototype.hasOwnProperty.call(batch.data, batchKey))
+
+    if (batch?.success === true && hasBatchValue && status >= 200 && status < 300) {
+      return (batch?.data?.[batchKey] ?? null) as T | null
+    }
+
+    // A real non-2xx from inside the batch means the canonical endpoint itself
+    // failed. Preserve the old optional-null behavior without immediately doing
+    // the same PHP work twice. Existing VAT/theme fallbacks still run upstream.
+    if (batch?.success === true && hasBatchValue && status > 0) {
+      return null
+    }
+    // If the new batch endpoint is absent/malformed, fall through to the proven
+    // per-endpoint path. This makes rollout and rollback backward-compatible.
+  }
+
   const tenantHost = cleanHost(options.host)
   const key = [
     getBackendOrigin(tenantHost),
