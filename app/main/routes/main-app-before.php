@@ -17,12 +17,13 @@ App::before(function () {
     Route::group([
         'middleware' => ['web'],
     ], function () {
-        Route::any(config('system.assetsCombinerUri', '_assets').'/{asset}', 'System\Classes\Controller@combineAssets');
+        Route::any(config('system.assetsCombinerUri', '_assets').'/{asset}', 'System\\Classes\\Controller@combineAssets');
 
         require_once __DIR__.'/api-health-media.php';
 
         require_once __DIR__.'/theme-settings.php';
         require_once __DIR__.'/pmd-frontend-v2-theme.php';
+        require_once __DIR__.'/pmd-frontend-v2-bootstrap-fast.php';
         require_once __DIR__.'/pmd-frontend-v2-media.php';
         require_once __DIR__.'/pmd-menu-content-translations-v1.php';
         require_once __DIR__.'/pmd-category-content-translations-v1.php';
