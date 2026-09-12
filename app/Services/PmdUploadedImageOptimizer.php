@@ -10,8 +10,8 @@ use Illuminate\Support\Facades\Log;
  *
  * One raster optimization authority for PayMyDine user uploads.
  *
- * - JPG / PNG -> WebP
- * - oversized static WebP -> resized WebP
+ * - JPG / PNG -> WebP when the result is smaller
+ * - oversized static WebP -> resized WebP when beneficial
  * - normal-sized WebP -> preserved (avoids generational loss)
  * - transparency is preserved
  * - common JPEG EXIF orientation is applied
@@ -148,7 +148,27 @@ class PmdUploadedImageOptimizer
 
             $originalBytes = max(0, (int)$file->getSize());
             $optimizedBytes = max(0, (int)@filesize($temporary));
-            $newName = $this->webpClientName((string)$file->getClientOriginalName());
+
+            // The purpose of this layer is storage reduction. If WebP would be
+            // the same size or larger, keep the original instead of spending
+            // more disk space merely to force an extension change.
+            if ($originalBytes > 0 && $optimizedBytes >= $originalBytes) {
+                Log::debug('PMD_IMAGE_WEBP_SKIPPED_NOT_SMALLER', [
+                    'profile' => $profile,
+                    'source_mime' => $mime,
+                    'source_bytes' => $originalBytes,
+                    'webp_bytes' => $optimizedBytes,
+                ]);
+
+                @unlink($temporary);
+                $temporary = null;
+                return $file;
+            }
+
+            $newName = $this->webpClientName(
+                (string)$file->getClientOriginalName(),
+                $profile
+            );
 
             // The generated temporary file is not a PHP HTTP-upload inode, so
             // test=true is intentional. The original UploadedFile was already
@@ -311,10 +331,11 @@ class PmdUploadedImageOptimizer
         return strpos($bytes, 'acTL') !== false;
     }
 
-    private function webpClientName(string $name): string
+    private function webpClientName(string $name, string $profile): string
     {
         $name = basename(str_replace('\\', '/', trim($name)));
         $stem = pathinfo($name, PATHINFO_FILENAME);
+        $extension = strtolower((string)pathinfo($name, PATHINFO_EXTENSION));
         $stem = trim((string)$stem);
         if ($stem === '') {
             $stem = 'image';
@@ -322,6 +343,13 @@ class PmdUploadedImageOptimizer
 
         $stem = preg_replace('/[^\pL\pN._-]+/u', '-', $stem) ?: 'image';
         $stem = trim($stem, '.-_');
+
+        // Media Manager persists the client filename. Including the original
+        // raster extension prevents foo.jpg and foo.png from both collapsing
+        // onto an existing foo.webp library entry.
+        if ($profile === 'media' && $extension !== '' && $extension !== 'webp') {
+            $stem .= '-'.$extension;
+        }
 
         return ($stem !== '' ? $stem : 'image').'.webp';
     }
