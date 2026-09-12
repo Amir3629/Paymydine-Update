@@ -13,8 +13,8 @@ use Main\Classes\MediaLibrary;
  *
  * Normalizes the active PayMyDine persisted raster upload surfaces before
  * their existing controllers/widgets store them. Existing authorities still
- * own validation and persistence; this middleware only replaces a validated-
- * size candidate with an equivalent WebP UploadedFile.
+ * own validation and persistence; this middleware only replaces a candidate
+ * that is already inside the endpoint's original size/dimension boundaries.
  *
  * Important exclusions:
  * - AI menu source files are transient OCR/vision input, not persisted media.
@@ -28,7 +28,8 @@ class PmdOptimizeUploadedImages
 
     public function handle(Request $request, Closure $next)
     {
-        if (!config('pmd_images.enabled', true) || !$request->files->count()) {
+        $files = $request->files->all();
+        if (!config('pmd_images.enabled', true) || empty($files)) {
             return $next($request);
         }
 
@@ -37,7 +38,7 @@ class PmdOptimizeUploadedImages
             return $next($request);
         }
 
-        foreach ($request->files->all() as $key => $value) {
+        foreach ($files as $key => $value) {
             $request->files->set(
                 $key,
                 $this->transform($value, (string)$key, (string)$key, $request)
@@ -80,6 +81,23 @@ class PmdOptimizeUploadedImages
             return $value;
         }
 
+        // Staff avatars also have an existing 3000x3000 validation boundary.
+        // Check the ORIGINAL pixels before optimization so downscaling cannot
+        // turn a previously-invalid avatar into a valid request.
+        if (!empty($policy['max_width']) || !empty($policy['max_height'])) {
+            $realPath = (string)($value->getRealPath() ?: $value->getPathname());
+            $info = $realPath !== '' ? @getimagesize($realPath) : false;
+            if (!is_array($info) || empty($info[0]) || empty($info[1])) {
+                return $value;
+            }
+            if (!empty($policy['max_width']) && (int)$info[0] > (int)$policy['max_width']) {
+                return $value;
+            }
+            if (!empty($policy['max_height']) && (int)$info[1] > (int)$policy['max_height']) {
+                return $value;
+            }
+        }
+
         return $this->optimizer->optimize($value, $policy['profile']);
     }
 
@@ -104,6 +122,8 @@ class PmdOptimizeUploadedImages
             return [
                 'profile' => 'avatar',
                 'max_bytes' => 2 * 1024 * 1024,
+                'max_width' => 3000,
+                'max_height' => 3000,
             ];
         }
 
