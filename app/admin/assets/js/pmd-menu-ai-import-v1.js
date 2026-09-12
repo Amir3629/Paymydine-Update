@@ -23,6 +23,9 @@
   var canImportTables = root.dataset.canImportTables === '1';
   var busy = false;
   var draft = null;
+  var analysisPhotos = [];
+  var categoryPromises = new Map();
+  var IMPORT_CONCURRENCY = 4;
 
   function readJson(id) {
     var node = document.getElementById(id);
@@ -114,10 +117,52 @@
       .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
   }
 
+  function fileKey(file) {
+    return normalize(file && file.name) + '|' + Number(file && file.size || 0);
+  }
+
+  function safeFoodPhotos(sources, photos) {
+    var sourceKeys = new Set(sources.map(fileKey));
+    var seen = new Set();
+    return photos.filter(function (file) {
+      var key = fileKey(file);
+      var uniqueKey = key + '|' + Number(file.lastModified || 0);
+      if (sourceKeys.has(key)) return false;
+      if (seen.has(uniqueKey)) return false;
+      seen.add(uniqueKey);
+      return true;
+    });
+  }
+
   function photoName(index) {
-    var files = photoInput && photoInput.files ? Array.from(photoInput.files) : [];
-    var file = index ? files[index - 1] : null;
+    var file = index ? analysisPhotos[index - 1] : null;
     return file ? file.name : '';
+  }
+
+  function sanitizePhotoAssignments(items) {
+    var rows = Array.isArray(items) ? items : [];
+    var counts = {};
+
+    rows.forEach(function (item) {
+      var index = Number(item && item.source_photo_index || 0);
+      if (index > 0 && index <= analysisPhotos.length) counts[index] = (counts[index] || 0) + 1;
+    });
+
+    return rows.map(function (item) {
+      var clean = Object.assign({}, item || {});
+      var index = Number(clean.source_photo_index || 0);
+      var reasons = Array.isArray(clean.review_reasons) ? clean.review_reasons.slice() : [];
+
+      if (index < 1 || index > analysisPhotos.length) index = 0;
+      if (index > 0 && counts[index] > 1) {
+        index = 0;
+        reasons.push('Photo match removed: one uploaded photo was matched to multiple menu items.');
+      }
+
+      clean.source_photo_index = index || null;
+      clean.review_reasons = Array.from(new Set(reasons));
+      return clean;
+    });
   }
 
   function rowValid(tr) {
@@ -170,7 +215,7 @@
         + '<td><input type="text" maxlength="128" data-field="name" value="' + escapeHtml(item.name || '') + '"></td>'
         + '<td><input type="number" min="0" max="9999999" step="0.01" data-field="price" value="' + (item.price == null ? '' : escapeHtml(item.price)) + '"></td>'
         + '<td><textarea maxlength="1028" rows="2" data-field="description">' + escapeHtml(item.description || '') + '</textarea></td>'
-        + '<td class="pmd-ai-import__photo-cell">' + (imageName ? '<span title="' + escapeHtml(imageName) + '">Matched: ' + escapeHtml(imageName) + '</span>' : '<span class="is-muted">No photo</span>') + '</td>'
+        + '<td class="pmd-ai-import__photo-cell">' + (imageName ? '<span title="' + escapeHtml(imageName) + '">Matched: ' + escapeHtml(imageName) + '</span>' : '<span class="is-muted" title="No dedicated dish photo matched">PayMyDine logo</span>') + '</td>'
         + '<td><span class="pmd-ai-import__confidence">' + Math.round(Number(item.confidence || 0) * 100) + '%</span>'
         + (reasons.length ? '<small>' + escapeHtml(reasons.join(' · ')) + '</small>' : '')
         + '<small data-pmd-ai-row-warning></small></td>';
@@ -204,9 +249,10 @@
 
   function showDraft(payload) {
     draft = payload.draft || {items: [], floors: []};
-    renderItems(Array.isArray(draft.items) ? draft.items : []);
+    draft.items = sanitizePhotoAssignments(Array.isArray(draft.items) ? draft.items : []);
+    renderItems(draft.items);
     renderFloors(Array.isArray(draft.floors) ? draft.floors : []);
-    var itemCount = Array.isArray(draft.items) ? draft.items.length : 0;
+    var itemCount = draft.items.length;
     var categoryCount = Array.isArray(draft.categories) ? draft.categories.length : 0;
     var floorCount = Array.isArray(draft.floors) ? draft.floors.length : 0;
     summary.textContent = itemCount + ' items · ' + categoryCount + ' categories' + (floorCount ? ' · ' + floorCount + ' floor areas detected' : '');
@@ -220,11 +266,25 @@
     if (busy) return;
     var sources = sourceInput && sourceInput.files ? Array.from(sourceInput.files) : [];
     if (!sources.length) { setText(uploadStatus, 'Upload at least one menu photo, screenshot or PDF.', true); return; }
+
+    var rawPhotos = photoInput && photoInput.files ? Array.from(photoInput.files) : [];
+    analysisPhotos = safeFoodPhotos(sources, rawPhotos);
+    var ignoredPhotos = rawPhotos.length - analysisPhotos.length;
+
     var data = new FormData();
     sources.forEach(function (file) { data.append('menu_sources[]', file); });
-    if (photoInput && photoInput.files) Array.from(photoInput.files).forEach(function (file) { data.append('item_photos[]', file); });
-    busy = true; analyseButton.disabled = true;
-    setText(uploadStatus, 'AI is reading your files. Nothing is being saved yet…', false);
+    analysisPhotos.forEach(function (file) { data.append('item_photos[]', file); });
+
+    busy = true;
+    analyseButton.disabled = true;
+    setText(
+      uploadStatus,
+      ignoredPhotos > 0
+        ? 'AI is reading your files. Menu screenshots duplicated as food photos were ignored…'
+        : 'AI is reading your files. Nothing is being saved yet…',
+      false
+    );
+
     try {
       var payload = await postUrl('/admin/pmdmenuaiimport/analyse', data);
       setText(uploadStatus, '', false);
@@ -232,7 +292,8 @@
     } catch (error) {
       setText(uploadStatus, error.message || 'AI could not read these files.', true);
     } finally {
-      busy = false; analyseButton.disabled = false;
+      busy = false;
+      analyseButton.disabled = false;
     }
   }
 
@@ -240,12 +301,27 @@
     var existing = categoryByName(name);
     if (existing) return existing;
     if (!canCreateCategories) throw new Error('Category “' + name + '” does not exist and your account cannot create categories.');
-    var data = new FormData(); data.append('name', name);
-    var result = await handler('/admin/menus', 'onPmdMenuManagerCreateCategoryV125', data);
-    var created = {id: Number(result.category_id || 0), name: String(result.name || name)};
-    if (!created.id) throw new Error('Category “' + name + '” could not be created.');
-    categories.push(created);
-    return created;
+
+    var key = normalize(name);
+    if (categoryPromises.has(key)) return categoryPromises.get(key);
+
+    var promise = (async function () {
+      var data = new FormData();
+      data.append('name', name);
+      var result = await handler('/admin/menus', 'onPmdMenuManagerCreateCategoryV125', data);
+      var created = {id: Number(result.category_id || 0), name: String(result.name || name)};
+      if (!created.id) throw new Error('Category “' + name + '” could not be created.');
+      categories.push(created);
+      return created;
+    })();
+
+    categoryPromises.set(key, promise);
+    try {
+      return await promise;
+    } catch (error) {
+      categoryPromises.delete(key);
+      throw error;
+    }
   }
 
   function selectedFloorPayload() {
@@ -262,77 +338,150 @@
     if (!canImportTables || floorsSection.hidden) return {imported: false};
     var floors = selectedFloorPayload().filter(function (row) { return row.selected; });
     if (!floors.length) return {imported: false};
-    var data = new FormData(); data.append('floors', JSON.stringify(floors));
+    var data = new FormData();
+    data.append('floors', JSON.stringify(floors));
     await postUrl('/admin/pmdmenuaiimport/importTables', data);
     return {imported: true};
   }
 
-  async function importSelected() {
-    if (busy) return;
-    var rows = Array.from(itemHost.querySelectorAll('tr')).filter(function (tr) {
-      var check = tr.querySelector('[data-pmd-ai-row-select]');
-      return check && check.checked && !check.disabled;
-    });
-    if (!rows.length && floorsSection.hidden) { setText(reviewStatus, 'Select at least one valid item.', true); return; }
-    if (!window.confirm('Import the selected restaurant data into PayMyDine? Menu items will be published and can be edited afterwards.')) return;
+  async function importOneRow(tr) {
+    if (!rowValid(tr)) throw new Error('Complete price/category before import.');
 
-    busy = true; importButton.disabled = true;
-    var imported = 0; var failed = 0; var tableImported = false; var tableWarning = '';
-    try {
-      for (var i = 0; i < rows.length; i++) {
-        var tr = rows[i];
-        if (!rowValid(tr)) { failed++; continue; }
-        setText(reviewStatus, 'Importing menu item ' + (i + 1) + ' of ' + rows.length + '…', false);
+    var categoryName = tr.querySelector('[data-field="category"]').value.trim();
+    var category = await ensureCategory(categoryName);
+    var data = new FormData();
+    data.append('menu_name', tr.querySelector('[data-field="name"]').value.trim());
+    data.append('menu_price', tr.querySelector('[data-field="price"]').value.trim());
+    data.append('menu_description', tr.querySelector('[data-field="description"]').value.trim());
+    data.append('category_ids[]', String(category.id));
+
+    var photoIndex = Number(tr.dataset.photoIndex || 0);
+    if (photoIndex > 0 && analysisPhotos[photoIndex - 1]) {
+      data.append('image', analysisPhotos[photoIndex - 1]);
+    }
+
+    await handler('/admin/menus', 'onPmdMenuManagerSaveV1', data);
+    existingItems.add(normalize(tr.querySelector('[data-field="name"]').value));
+  }
+
+  async function importRowsFast(rows) {
+    var cursor = 0;
+    var completed = 0;
+    var imported = 0;
+    var failed = 0;
+    var workerCount = Math.min(IMPORT_CONCURRENCY, rows.length);
+
+    async function worker() {
+      while (true) {
+        var index = cursor++;
+        if (index >= rows.length) return;
+        var tr = rows[index];
+
         try {
-          var categoryName = tr.querySelector('[data-field="category"]').value.trim();
-          var category = await ensureCategory(categoryName);
-          var data = new FormData();
-          data.append('menu_name', tr.querySelector('[data-field="name"]').value.trim());
-          data.append('menu_price', tr.querySelector('[data-field="price"]').value.trim());
-          data.append('menu_description', tr.querySelector('[data-field="description"]').value.trim());
-          data.append('category_ids[]', String(category.id));
-          var photoIndex = Number(tr.dataset.photoIndex || 0);
-          var photos = photoInput && photoInput.files ? Array.from(photoInput.files) : [];
-          if (photoIndex > 0 && photos[photoIndex - 1]) data.append('image', photos[photoIndex - 1]);
-          await handler('/admin/menus', 'onPmdMenuManagerSaveV1', data);
-          existingItems.add(normalize(tr.querySelector('[data-field="name"]').value));
+          await importOneRow(tr);
           imported++;
         } catch (error) {
           failed++;
           tr.classList.add('is-failed');
           var warning = tr.querySelector('[data-pmd-ai-row-warning]');
           if (warning) warning.textContent = error.message || 'Import failed';
+        } finally {
+          completed++;
+          setText(reviewStatus, 'Importing menu… ' + completed + ' of ' + rows.length + ' complete', false);
         }
+      }
+    }
+
+    var workers = [];
+    for (var i = 0; i < workerCount; i++) workers.push(worker());
+    await Promise.all(workers);
+    return {imported: imported, failed: failed};
+  }
+
+  async function importSelected() {
+    if (busy) return;
+
+    var rows = Array.from(itemHost.querySelectorAll('tr')).filter(function (tr) {
+      var check = tr.querySelector('[data-pmd-ai-row-select]');
+      return check && check.checked && !check.disabled;
+    });
+    var selectedFloors = canImportTables && !floorsSection.hidden
+      ? selectedFloorPayload().filter(function (row) { return row.selected; })
+      : [];
+
+    if (!rows.length && !selectedFloors.length) {
+      setText(reviewStatus, 'Select at least one valid item or Floor/Table row.', true);
+      return;
+    }
+    if (!window.confirm('Import the selected restaurant data into PayMyDine? Menu items will be published and can be edited afterwards.')) return;
+
+    busy = true;
+    importButton.disabled = true;
+    categoryPromises.clear();
+
+    var imported = 0;
+    var failed = 0;
+    var tableImported = false;
+    var tableWarning = '';
+
+    try {
+      if (rows.length) {
+        setText(reviewStatus, 'Starting fast menu import…', false);
+        var menuResult = await importRowsFast(rows);
+        imported = menuResult.imported;
+        failed = menuResult.failed;
       }
 
       try {
-        setText(reviewStatus, 'Importing reviewed Floor/Table layout…', false);
+        if (selectedFloors.length) setText(reviewStatus, 'Importing reviewed Floor/Table layout…', false);
         var tableResult = await importTablesIfSelected();
         tableImported = Boolean(tableResult.imported);
       } catch (error) {
         tableWarning = error.message || 'Floor/Table import failed.';
       }
 
-      review.hidden = true; done.hidden = false;
+      review.hidden = true;
+      done.hidden = false;
       var result = root.querySelector('[data-pmd-ai-import-result]');
       var parts = [imported + ' menu item' + (imported === 1 ? '' : 's') + ' imported'];
       if (failed) parts.push(failed + ' item' + (failed === 1 ? '' : 's') + ' need review');
       if (tableImported) parts.push('Floor/Table layout imported');
       if (tableWarning) parts.push('Floor/Table warning: ' + tableWarning);
       result.textContent = parts.join(' · ') + '.';
+
+      if (window.parent !== window) {
+        window.parent.postMessage({
+          type: 'pmd-ai-menu-import-complete',
+          imported: imported,
+          failed: failed,
+          tables: tableImported
+        }, window.location.origin);
+      }
+
       done.scrollIntoView({behavior: 'smooth', block: 'start'});
     } finally {
-      busy = false; importButton.disabled = false;
+      busy = false;
+      importButton.disabled = false;
     }
   }
 
   if (analyseButton) analyseButton.addEventListener('click', analyse);
   if (importButton) importButton.addEventListener('click', importSelected);
   if (selectAll) selectAll.addEventListener('change', function () {
-    itemHost.querySelectorAll('[data-pmd-ai-row-select]').forEach(function (check) { if (!check.disabled) check.checked = selectAll.checked; });
+    itemHost.querySelectorAll('[data-pmd-ai-row-select]').forEach(function (check) {
+      if (!check.disabled) check.checked = selectAll.checked;
+    });
   });
+
   var startOver = root.querySelector('[data-pmd-ai-start-over]');
   if (startOver) startOver.addEventListener('click', function () {
-    draft = null; review.hidden = true; upload.hidden = false; done.hidden = true; setText(reviewStatus, '', false); upload.scrollIntoView({behavior: 'smooth', block: 'start'});
+    draft = null;
+    analysisPhotos = [];
+    categoryPromises.clear();
+    review.hidden = true;
+    upload.hidden = false;
+    done.hidden = true;
+    setText(reviewStatus, '', false);
+    upload.scrollIntoView({behavior: 'smooth', block: 'start'});
   });
 })();
