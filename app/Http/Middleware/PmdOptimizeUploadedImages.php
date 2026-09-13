@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Log;
 use Main\Classes\MediaLibrary;
 
 /**
- * PMD_UPLOAD_WEBP_MIDDLEWARE_V2
+ * PMD_UPLOAD_WEBP_MIDDLEWARE_V3
  *
  * Normalizes persisted raster uploads before their existing storage authorities
  * run, while preserving the storage semantics expected by each endpoint.
@@ -25,7 +25,11 @@ use Main\Classes\MediaLibrary;
  *
  * Important exclusions:
  * - AI menu source files are transient OCR/vision input, not persisted media.
- * - The legacy enhanced menu gallery already owns its own WebP normalization.
+ * - The enhanced menu gallery owns its own WebP normalization path.
+ *
+ * For direct Menu food uploads only, policy max_bytes is a bounded SOURCE limit
+ * so a large phone/camera image can be reduced before the controller applies its
+ * normal persisted-file validation. Other endpoints retain their original limits.
  */
 class PmdOptimizeUploadedImages
 {
@@ -80,8 +84,9 @@ class PmdOptimizeUploadedImages
             return $value;
         }
 
-        // Preserve the endpoint's ORIGINAL upload-size semantics. An oversized
-        // source is left untouched so the existing validator still rejects it.
+        // policy max_bytes is the safe source boundary for normalization. Most
+        // routes keep their historical source limit; Menu intentionally permits
+        // a larger bounded source so WebP reduction can happen before validation.
         $size = (int)$value->getSize();
         if ($size < 1 || ($policy['max_bytes'] > 0 && $size > $policy['max_bytes'])) {
             return $value;
@@ -161,7 +166,7 @@ class PmdOptimizeUploadedImages
             return null;
         }
 
-        // Existing legacy gallery quality authority already re-encodes these.
+        // Existing enhanced gallery quality authority already re-encodes these.
         if ($root === 'images' && (string)$request->input('pmd_menu_enhancements_v1', '') === '1') {
             return null;
         }
@@ -190,11 +195,14 @@ class PmdOptimizeUploadedImages
 
         // Menu uses UploadedFile::move() directly and chooses its stored
         // extension from MIME. Keep the real PHP upload object for that route.
+        // A bounded larger source is allowed so it can be normalized before the
+        // controller's canonical stored-file validation runs.
         if (($root === 'image' || $leaf === 'image') && $request->is('admin/menus')) {
+            $sourceMb = max(5, min(50, (int)config('pmd_images.menu_source_max_mb', 20)));
             return [
                 'profile' => 'menu',
                 'mode' => 'in_place',
-                'max_bytes' => 5 * 1024 * 1024,
+                'max_bytes' => $sourceMb * 1024 * 1024,
             ];
         }
 
