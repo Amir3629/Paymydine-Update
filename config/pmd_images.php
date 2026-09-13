@@ -16,6 +16,12 @@ return [
     // Guard GD from decoding unexpectedly huge raster images in one request.
     'max_pixels' => (int)env('PMD_IMAGE_WEBP_MAX_PIXELS', 24000000),
 
+    // Food photography may arrive as a large phone/camera PNG/JPG. Allow a
+    // bounded source upload so PayMyDine can shrink it before the canonical
+    // persisted 5 MB boundary is enforced. This is not the stored-file limit.
+    'menu_source_max_mb' => (int)env('PMD_IMAGE_MENU_SOURCE_MAX_MB', 20),
+    'menu_stored_max_mb' => (int)env('PMD_IMAGE_MENU_STORED_MAX_MB', 5),
+
     'profiles' => [
         // Food and combo photography: strong reduction with visually high quality.
         'menu' => [
