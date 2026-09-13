@@ -174,7 +174,7 @@
     state.originalType = item ? item.card_type : null;
 
     var title = q('[data-pmd-coupon-modal-title]');
-    if (title) title.textContent = mode === 'edit' ? copy('modal_edit', 'Edit coupon / card') : copy('modal_create', 'Create coupon / card');
+    if (title) title.textContent = mode === 'edit' ? copy('modal_edit', 'Edit discount / card') : copy('modal_create', 'Create discount / card');
 
     if (item) {
       q('[data-pmd-coupon-id]').value = String(item.id || '');

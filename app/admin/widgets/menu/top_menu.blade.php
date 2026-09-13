@@ -24,7 +24,7 @@
             '/admin/reservationslab',
             '/admin/accountantlab',
             '/admin/pmdmenus',
-            '/admin/coupons',
+            '/admin/discounts',
         ],
         true
     );

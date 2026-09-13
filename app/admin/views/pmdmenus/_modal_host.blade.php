@@ -42,10 +42,17 @@
 
                     <section class="pmd-menu-form__section">
                         <div class="pmd-menu-form__image-row">
+                            {{-- PMD_EDIT_FOOD_NATIVE_PLACEHOLDER_V1 --}}
                             <div class="pmd-menu-form__preview" data-pmd-menu-image-preview>
-                                <div class="pmd-menu-form__preview-placeholder">
-                                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4z"></path><circle cx="9" cy="10" r="2"></circle><path d="m5 17 4-4 3 3 2-2 5 4"></path></svg>
-                                    <span>{{ $pmdT('food_image') }}</span>
+                                <div
+                                    class="pmd-menu-form__preview-placeholder pmd-menu-form__preview-placeholder--brand"
+                                    data-pmd-empty-food-placeholder-v2="1"
+                                    aria-label="PayMyDine food image placeholder"
+                                >
+                                    <span
+                                        class="pmd-menu-form__preview-brand"
+                                        aria-hidden="true"
+                                    ></span>
                                 </div>
                                 <img src="" alt="{{ $pmdT('food_preview') }}" hidden>
                             </div>

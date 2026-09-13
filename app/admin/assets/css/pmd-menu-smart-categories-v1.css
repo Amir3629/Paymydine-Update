@@ -838,3 +838,429 @@ body.pmd-menu-manager-page
   visibility: hidden !important;
   pointer-events: none !important;
 }
+
+
+/* ==========================================================
+   PMD_CATEGORY_COMBO_INTEGRITY_V2
+
+   Final Category modal visual authority.
+
+   One modal.
+   One visual plane.
+   No card-inside-card appearance.
+   ========================================================== */
+
+html body.pmd-menu-manager-page
+.pmd-smart-category-modal {
+    padding: 20px !important;
+}
+
+html body.pmd-menu-manager-page
+.pmd-smart-category-modal__card {
+    width: min(680px, calc(100vw - 32px)) !important;
+    max-height: min(720px, calc(100vh - 32px)) !important;
+
+    border: 1px solid #c9deea !important;
+    border-radius: 18px !important;
+
+    background: #fff !important;
+
+    box-shadow:
+        0 24px 70px rgba(23,55,82,.16) !important;
+}
+
+html body.pmd-menu-manager-page
+.pmd-smart-category-modal__header {
+    min-height: 76px !important;
+
+    padding: 16px 20px !important;
+
+    border-bottom:
+        1px solid #dce8ef !important;
+
+    background: #fff !important;
+}
+
+html body.pmd-menu-manager-page
+.pmd-smart-category-modal__heading > span {
+    margin: 0 0 3px !important;
+
+    color: #6b8190 !important;
+
+    font-size: 10px !important;
+    font-weight: 850 !important;
+
+    letter-spacing: .08em !important;
+}
+
+html body.pmd-menu-manager-page
+.pmd-smart-category-modal__heading h2 {
+    margin: 0 !important;
+
+    color: #102a3a !important;
+
+    font-size: 20px !important;
+    font-weight: 850 !important;
+    line-height: 1.2 !important;
+    letter-spacing: -.02em !important;
+}
+
+html body.pmd-menu-manager-page
+.pmd-smart-category-modal__close {
+    width: 42px !important;
+    min-width: 42px !important;
+    max-width: 42px !important;
+
+    height: 42px !important;
+    min-height: 42px !important;
+    max-height: 42px !important;
+
+    border: 1px solid #cfe0ec !important;
+    border-radius: 13px !important;
+
+    background: #fff !important;
+
+    box-shadow: none !important;
+}
+
+html body.pmd-menu-manager-page
+.pmd-smart-category-modal__body {
+    padding: 20px !important;
+
+    background: #fff !important;
+}
+
+html body.pmd-menu-manager-page
+.pmd-smart-field {
+    gap: 7px !important;
+}
+
+html body.pmd-menu-manager-page
+.pmd-smart-field > span {
+    color: #263f52 !important;
+
+    font-size: 13px !important;
+    font-weight: 800 !important;
+}
+
+html body.pmd-menu-manager-page
+.pmd-smart-field > small {
+    margin: 0 !important;
+
+    color: #71828e !important;
+
+    font-size: 12px !important;
+}
+
+html body.pmd-menu-manager-page
+.pmd-smart-field input[type="text"] {
+    min-height: 48px !important;
+
+    padding: 0 14px !important;
+
+    border: 1px solid #d1e0e8 !important;
+    border-radius: 12px !important;
+
+    background: #fff !important;
+
+    color: #173752 !important;
+
+    box-shadow:
+        0 2px 8px rgba(23,55,82,.035) !important;
+}
+
+html body.pmd-menu-manager-page
+.pmd-smart-section {
+    margin: 18px 0 0 !important;
+
+    padding: 18px 0 0 !important;
+
+    border: 0 !important;
+    border-top:
+        1px solid #e1ebf0 !important;
+
+    border-radius: 0 !important;
+
+    background: transparent !important;
+
+    box-shadow: none !important;
+}
+
+html body.pmd-menu-manager-page
+.pmd-smart-section__head {
+    margin: 0 0 12px !important;
+}
+
+html body.pmd-menu-manager-page
+.pmd-smart-section__head strong {
+    color: #263f52 !important;
+
+    font-size: 13px !important;
+    font-weight: 800 !important;
+}
+
+html body.pmd-menu-manager-page
+.pmd-smart-section__head p {
+    margin: 4px 0 0 !important;
+
+    color: #71828e !important;
+
+    font-size: 12px !important;
+}
+
+
+/* CREATE:
+   All Foods / Chef / Bestseller / Combination = clean 2 x 2.
+   This deliberately overrides old R28's squeezed 4-column rule.
+*/
+html body.pmd-menu-manager-page
+.pmd-smart-category-modal
+.pmd-smart-kind-grid,
+
+html body.pmd-menu-manager-page
+.pmd-smart-category-modal
+.pmd-smart-kind-grid[data-pmd-all-foods-purpose-grid-r28="1"] {
+    display: grid !important;
+
+    grid-template-columns:
+        repeat(2, minmax(0,1fr)) !important;
+
+    gap: 9px !important;
+}
+
+
+/* EDIT:
+   Purpose is informational only.
+   Do not render another bordered card inside the modal.
+*/
+html body.pmd-menu-manager-page
+.pmd-smart-category-modal
+.pmd-smart-kind-grid.is-readonly {
+    display: block !important;
+}
+
+html body.pmd-menu-manager-page
+.pmd-smart-category-modal
+.pmd-smart-kind-grid.is-readonly
+.pmd-smart-kind-readonly {
+    display: flex !important;
+
+    min-height: 24px !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    border: 0 !important;
+    border-radius: 0 !important;
+
+    background: transparent !important;
+
+    box-shadow: none !important;
+}
+
+html body.pmd-menu-manager-page
+.pmd-smart-category-modal
+.pmd-smart-kind-grid.is-readonly
+.pmd-smart-kind__mark {
+    width: 8px !important;
+    min-width: 8px !important;
+    max-width: 8px !important;
+
+    height: 8px !important;
+    min-height: 8px !important;
+    max-height: 8px !important;
+
+    flex: 0 0 8px !important;
+
+    border: 0 !important;
+
+    background: #1d8176 !important;
+}
+
+html body.pmd-menu-manager-page
+.pmd-smart-category-modal
+.pmd-smart-kind-grid.is-readonly
+strong {
+    color: #28465a !important;
+
+    font-size: 12.5px !important;
+    font-weight: 800 !important;
+}
+
+html body.pmd-menu-manager-page
+.pmd-smart-category-modal
+.pmd-smart-kind {
+    min-height: 54px !important;
+
+    padding: 10px 12px !important;
+
+    border: 1px solid #d7e4ea !important;
+    border-radius: 12px !important;
+
+    background: #fff !important;
+}
+
+html body.pmd-menu-manager-page
+.pmd-smart-category-modal
+.pmd-smart-kind.is-active {
+    border-color: #78afa8 !important;
+
+    background: #f1faf8 !important;
+}
+
+html body.pmd-menu-manager-page
+.pmd-smart-category-modal
+.pmd-smart-kind.is-disabled {
+    opacity: .48 !important;
+
+    background: #f8fafb !important;
+}
+
+html body.pmd-menu-manager-page
+.pmd-smart-kind-lock {
+    margin: 6px 0 0 !important;
+
+    color: #71828e !important;
+
+    font-size: 11.5px !important;
+}
+
+
+/* Footer follows AI / Kitchen modal language. */
+html body.pmd-menu-manager-page
+.pmd-smart-category-modal__footer {
+    min-height: 70px !important;
+
+    padding: 13px 20px !important;
+
+    border-top:
+        1px solid #dce8ef !important;
+
+    background: #fff !important;
+
+    gap: 10px !important;
+}
+
+html body.pmd-menu-manager-page
+.pmd-smart-category-modal__footer
+.pmd-smart-status {
+    margin-right: 0 !important;
+}
+
+html body.pmd-menu-manager-page
+.pmd-smart-category-modal__footer
+.pmd-smart-btn {
+    min-height: 44px !important;
+
+    padding: 0 17px !important;
+
+    border-radius: 12px !important;
+
+    box-shadow: none !important;
+}
+
+html body.pmd-menu-manager-page
+.pmd-smart-category-modal__footer
+.pmd-smart-btn--danger {
+    margin-right: auto !important;
+
+    border-color: #efb9b2 !important;
+
+    background: #fff7f5 !important;
+
+    color: #b73931 !important;
+}
+
+html body.pmd-menu-manager-page
+.pmd-smart-category-modal__footer
+.pmd-smart-btn--primary {
+    border-color: #005747 !important;
+
+    background:
+        linear-gradient(
+            135deg,
+            #006657,
+            #003e36
+        ) !important;
+
+    color: #fff !important;
+}
+
+@media (max-width: 640px) {
+    html body.pmd-menu-manager-page
+    .pmd-smart-category-modal {
+        padding: 12px !important;
+    }
+
+    html body.pmd-menu-manager-page
+    .pmd-smart-category-modal
+    .pmd-smart-kind-grid,
+
+    html body.pmd-menu-manager-page
+    .pmd-smart-category-modal
+    .pmd-smart-kind-grid[data-pmd-all-foods-purpose-grid-r28="1"] {
+        grid-template-columns:
+            1fr !important;
+    }
+}
+
+
+/* ==========================================================
+   PMD_REMOVE_LEGACY_CATEGORY_PENCILS_V1
+
+   Old Category Translation JS injects a pencil into regular categories.
+
+   Smart Categories is the canonical visual edit authority:
+   - normal mode: no category pencils
+   - main Edit mode: one Smart Category pencil
+   ========================================================== */
+
+html body.pmd-menu-manager-page
+#pmd-menu-manager-main
+.pmd-category-translation-edit,
+
+html body.pmd-menu-manager-page
+#pmd-menu-manager-main
+[data-pmd-category-translation-edit] {
+    display: none !important;
+
+    width: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
+
+    height: 0 !important;
+    min-height: 0 !important;
+    max-height: 0 !important;
+
+    padding: 0 !important;
+    margin: 0 !important;
+    border: 0 !important;
+
+    opacity: 0 !important;
+    visibility: hidden !important;
+    overflow: hidden !important;
+    pointer-events: none !important;
+}
+
+
+/*
+ * Normal Menu mode:
+ * no Smart Category edit badge.
+ */
+html body.pmd-menu-manager-page
+#pmd-menu-manager-main[data-pmd-sort-mode="0"]
+[data-pmd-smart-category-edit-badge] {
+    display: none !important;
+}
+
+
+/*
+ * Main Edit mode:
+ * expose exactly one canonical Smart Category edit control.
+ */
+html body.pmd-menu-manager-page
+#pmd-menu-manager-main[data-pmd-sort-mode]:not([data-pmd-sort-mode="0"])
+[data-pmd-category-id]
+[data-pmd-smart-category-edit-badge] {
+    display: inline-flex !important;
+}

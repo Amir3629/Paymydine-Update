@@ -49,7 +49,7 @@
         ['POS linked', 'fa fa-cash-register', rows => count(rows, /pos|ready|linked/i)]
       ]
     },
-    '/admin/coupons': {
+    '/admin/discounts': {
       key: 'coupons',
       cards: [
         ['Total incentives', 'fa fa-ticket', rows => rows.length],

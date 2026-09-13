@@ -96,7 +96,7 @@
 
         [$code, $menu] = $takeChildAnywhere(['coupons', 'gift cards', 'gift'], ['marketing', 'sales']);
         if ($menu) {
-            $menu['title'] = 'Coupons & Gifts';
+            $menu['title'] = 'Discount';
         }
         $put($ordered, $code, $menu);
 

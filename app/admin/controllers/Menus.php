@@ -213,7 +213,22 @@ class Menus extends AdminController
             }
 
             $uploadedRelative = 'pmdmenu_'.date('Ymd_His').'_'.bin2hex(random_bytes(6)).'.'.$extensions[$mime];
-            $image->move($directory, $uploadedRelative);
+            try {
+                $image->move($directory, $uploadedRelative);
+            } catch (\Throwable $e) {
+                \Log::error('PMD_MENU_IMAGE_MOVE_FAILED_V133', [
+                    'database' => DB::connection()->getDatabaseName(),
+                    'mime' => $mime,
+                    'exception' => get_class($e),
+                    'message' => $e->getMessage(),
+                ]);
+
+                return response()->json([
+                    'ok' => false,
+                    'message' => 'Food image could not be stored.',
+                ], 500);
+            }
+
             $uploadedAbsolute = $directory.'/'.$uploadedRelative;
         }
 
@@ -281,28 +296,60 @@ class Menus extends AdminController
                         throw new \RuntimeException('Menu image storage is unavailable for this restaurant.');
                     }
 
-                    $pmdMenuConnectionR32->table('menu_images')
-                        ->where('menu_id', (int)$menu->menu_id)
-                        ->increment('sort_order', 1);
+                    // PMD_FOOD_UPLOAD_PERSISTENCE_R33
+                    // menu_images differs across older tenant schemas.
+                    // Only use optional columns when they really exist.
+                    if ($pmdMenuSchemaR32->hasColumn('menu_images', 'sort_order')) {
+                        $pmdMenuConnectionR32->table('menu_images')
+                            ->where('menu_id', (int)$menu->menu_id)
+                            ->increment('sort_order', 1);
+                    }
 
-                    $pmdMenuConnectionR32->table('menu_images')->insert([
+                    $pmdImageRowR33 = [
                         'menu_id' => (int)$menu->menu_id,
                         'image_path' => $uploadedRelative,
-                        'sort_order' => 1,
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ]);
+                    ];
+
+                    if ($pmdMenuSchemaR32->hasColumn('menu_images', 'sort_order')) {
+                        $pmdImageRowR33['sort_order'] = 1;
+                    }
+
+                    if ($pmdMenuSchemaR32->hasColumn('menu_images', 'created_at')) {
+                        $pmdImageRowR33['created_at'] = now();
+                    }
+
+                    if ($pmdMenuSchemaR32->hasColumn('menu_images', 'updated_at')) {
+                        $pmdImageRowR33['updated_at'] = now();
+                    }
+
+                    $pmdMenuConnectionR32
+                        ->table('menu_images')
+                        ->insert($pmdImageRowR33);
                 }
 
                 return $menu->fresh(['categories', 'allergens', 'menu_images']);
             });
         } catch (\Throwable $e) {
             if ($uploadedAbsolute && is_file($uploadedAbsolute)) @unlink($uploadedAbsolute);
-            $notFound = $e instanceof \RuntimeException && $e->getMessage() === 'Menu item not found.';
+
+            $notFound = $e instanceof \RuntimeException
+                && $e->getMessage() === 'Menu item not found.';
+
             $status = $notFound ? 404 : 500;
+
+            \Log::error('PMD_MENU_SAVE_FAILED_V133', [
+                'menu_id' => $menuId,
+                'has_image' => (bool)$uploadedRelative,
+                'database' => DB::connection()->getDatabaseName(),
+                'exception' => get_class($e),
+                'message' => $e->getMessage(),
+            ]);
+
             return response()->json([
                 'ok' => false,
-                'message' => $notFound ? $e->getMessage() : 'Menu item could not be saved.',
+                'message' => $notFound
+                    ? $e->getMessage()
+                    : 'Menu item could not be saved.',
             ], $status);
         }
 

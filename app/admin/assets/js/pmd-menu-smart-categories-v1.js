@@ -433,8 +433,23 @@
 
     try {
       await backend('onSave', data);
+
+      // PMD_CATEGORY_COMBO_INTEGRITY_V2
+      // Do not display "Saved" beside a button still saying "Saving...".
       setStatus(t.saved, 'ok');
-      window.location.reload();
+
+      var savedButton = ensureModal().querySelector(
+        '[data-pmd-smart-save]'
+      );
+
+      if (savedButton) {
+        savedButton.disabled = true;
+        savedButton.textContent = t.saved;
+      }
+
+      window.setTimeout(function () {
+        window.location.reload();
+      }, 90);
     } catch (error) {
       setStatus(error && error.message ? error.message : t.saveFailed, 'error');
       setBusy(false);

@@ -86,8 +86,23 @@
     return normalizedPath === '/admin/shifts';
   }
 
+  // PMD_MENU_STATIC_FIRST_PAINT_V1
+  // Menu owns its final Side Menu geometry before first paint.
+  // Do not animate/recalculate the shell during page bootstrap.
+  function isMenuManager() {
+    return (
+      normalizedPath === '/admin/menu' ||
+      normalizedPath === '/admin/pmdmenus'
+    );
+  }
+
   function isStaticBootRoute() {
-    return isSettingsSuite() || isDashboard2() || isShifts();
+    return (
+      isSettingsSuite() ||
+      isDashboard2() ||
+      isShifts() ||
+      isMenuManager()
+    );
   }
 
   function runtimeTransitionsReady() {
@@ -149,7 +164,11 @@
 
     var settingsSuite = isSettingsSuite();
     var dashboard2 = isDashboard2();
-    var staticBootRoute = settingsSuite || dashboard2 || isShifts();
+    var staticBootRoute =
+      settingsSuite ||
+      dashboard2 ||
+      isShifts() ||
+      isMenuManager();
     var animateShell = Boolean(options.animate);
 
     var gap = settingsSuite

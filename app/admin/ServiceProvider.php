@@ -445,8 +445,8 @@ class ServiceProvider extends AppServiceProvider
                         'coupons' => [
                             'priority' => 10,
                             'class' => 'coupons',
-                            'href' => admin_url('coupons'),
-                            'title' => 'Coupons & Gift Cards',
+                            'href' => '/admin/discounts',
+                            'title' => 'Discount',
                             'permission' => 'Admin',
                         ],
                     ],

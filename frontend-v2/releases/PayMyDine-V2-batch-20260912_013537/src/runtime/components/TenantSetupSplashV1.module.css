@@ -1,0 +1,103 @@
+.shell {
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: 32px 20px;
+  background:
+    radial-gradient(circle at 14% 8%, rgba(25, 133, 102, 0.10), transparent 34%),
+    radial-gradient(circle at 88% 92%, rgba(42, 108, 160, 0.08), transparent 35%),
+    #f5f7f5;
+  color: #153f39;
+}
+
+.card {
+  width: min(620px, 100%);
+  padding: 38px 34px 34px;
+  border: 1px solid rgba(51, 104, 94, 0.18);
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 24px 70px rgba(28, 61, 54, 0.12);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  text-align: center;
+}
+
+.logo {
+  display: block;
+  width: auto;
+  max-width: 168px;
+  max-height: 72px;
+  margin: 0 auto 22px;
+  object-fit: contain;
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  color: #66827c;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.title {
+  margin: 0;
+  color: #173f39;
+  font-size: clamp(28px, 5vw, 38px);
+  font-weight: 820;
+  line-height: 1.08;
+  letter-spacing: -0.035em;
+}
+
+.copy {
+  max-width: 500px;
+  margin: 17px auto 0;
+  color: #5d716d;
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+.action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 50px;
+  margin-top: 26px;
+  padding: 0 22px;
+  border-radius: 15px;
+  background: #0f5d50;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 800;
+  text-decoration: none;
+  box-shadow: 0 10px 24px rgba(15, 93, 80, 0.18);
+  transition: transform 150ms ease, box-shadow 150ms ease, background 150ms ease;
+}
+
+.action:hover {
+  background: #0b5145;
+  box-shadow: 0 13px 28px rgba(15, 93, 80, 0.23);
+  transform: translateY(-1px);
+}
+
+.action:focus-visible {
+  outline: 3px solid rgba(15, 93, 80, 0.24);
+  outline-offset: 4px;
+}
+
+@media (max-width: 560px) {
+  .shell {
+    padding: 22px 14px;
+  }
+
+  .card {
+    padding: 30px 22px 28px;
+    border-radius: 22px;
+  }
+
+  .logo {
+    max-width: 150px;
+    max-height: 64px;
+    margin-bottom: 20px;
+  }
+}

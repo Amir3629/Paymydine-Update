@@ -31,12 +31,67 @@ class Pmdmenus extends AdminController
         $this->bodyClass = trim(($this->bodyClass ?? '').' pmd-settings-suite pmd-owner-settings-page pmd-menu-manager-page pmd-menu-manager-v12 pmd-menu-manager-v129');
         $this->addCss('css/pmd-owner-settings-v1.css');
         $this->addCss('css/pmd-settings-suite-first-paint-v1.css');
-        $this->addCss('css/pmd-menu-manager-v129.css');
-        $this->addCss('css/pmd-menu-prep-presets.css');
-        $this->addCss('css/pmd-menu-smart-categories-v1.css');
-        $this->addJs('js/pmd-menu-manager-v129.js');
-        $this->addJs('js/pmd-menu-prep-presets.js');
-        $this->addJs('js/pmd-menu-smart-categories-v1.js');
+        // PMD_MENU_MANAGER_ASSET_CACHE_BUST_V1
+        $this->addCss(
+            asset(
+                'app/admin/assets/css/pmd-menu-manager-v129.css'
+            )
+            .'?v='
+            .(string)(
+                @filemtime(
+                    base_path(
+                        'app/admin/assets/css/pmd-menu-manager-v129.css'
+                    )
+                ) ?: '1'
+            )
+        );
+        // PMD_MENU_ASSET_CACHE_BUST_V1
+        // Menu runtime assets change independently during deploy-safe patches.
+        // Add filemtime to the public URL so browsers/CDNs cannot keep an older
+        // Kitchen modal/header runtime under the same static asset URL.
+        $this->addCss(
+            asset('app/admin/assets/css/pmd-menu-prep-presets.css')
+            .'?v='
+            .(string)(@filemtime(base_path('app/admin/assets/css/pmd-menu-prep-presets.css')) ?: '1')
+        );
+        // PMD_MENU_SMART_ASSET_CACHE_BUST_V2
+        $this->addCss(
+            asset(
+                'app/admin/assets/css/pmd-menu-smart-categories-v1.css'
+            )
+            .'?v='
+            .(string)(
+                @filemtime(
+                    base_path(
+                        'app/admin/assets/css/pmd-menu-smart-categories-v1.css'
+                    )
+                ) ?: '1'
+            )
+        );
+        $this->addJs('js/pmd-menu-manager-v130.js');
+        $this->addJs(
+            asset('app/admin/assets/js/pmd-menu-prep-presets.js')
+            .'?v='
+            .(string)(@filemtime(base_path('app/admin/assets/js/pmd-menu-prep-presets.js')) ?: '1')
+        );
+        $this->addJs(
+            asset('app/admin/assets/js/pmd-menu-ai-import-header-v2.js')
+            .'?v='
+            .(string)(@filemtime(base_path('app/admin/assets/js/pmd-menu-ai-import-header-v2.js')) ?: '1')
+        );
+        $this->addJs(
+            asset(
+                'app/admin/assets/js/pmd-menu-smart-categories-v1.js'
+            )
+            .'?v='
+            .(string)(
+                @filemtime(
+                    base_path(
+                        'app/admin/assets/js/pmd-menu-smart-categories-v1.js'
+                    )
+                ) ?: '1'
+            )
+        );
 
         AdminMenu::setContext('menus', 'restaurant');
     }

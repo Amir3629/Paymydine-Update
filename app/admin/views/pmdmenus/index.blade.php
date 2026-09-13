@@ -73,6 +73,102 @@
 @endphp
 
 
+{{-- PMD_MENU_IMAGE_EARLY_DISCOVERY_V3 --}}
+@php
+    /*
+     * Browser previously discovered Menu card images roughly 900ms
+     * into navigation because the grid appears after header/KPI/toolbar
+     * markup and runtime.
+     *
+     * Publish the first viewport URLs immediately at the top of this
+     * view, before the heavy Menu markup is parsed.
+     */
+    $pmdMenuEarlyImageUrls = [];
+
+    foreach (array_slice($cards, 0, 12) as $pmdEarlyCard) {
+        $pmdEarlyUrl = trim(
+            (string)($pmdEarlyCard['image'] ?? '')
+        );
+
+        if (
+            $pmdEarlyUrl !== ''
+            && !in_array(
+                $pmdEarlyUrl,
+                $pmdMenuEarlyImageUrls,
+                true
+            )
+        ) {
+            $pmdMenuEarlyImageUrls[] =
+                $pmdEarlyUrl;
+        }
+    }
+@endphp
+
+@foreach($pmdMenuEarlyImageUrls as $pmdEarlyUrl)
+    <link
+        rel="preload"
+        as="image"
+        href="{{ e($pmdEarlyUrl) }}"
+        @if($loop->index < 4)
+            fetchpriority="high"
+        @endif
+        data-pmd-menu-image-preload-v3
+    >
+@endforeach
+
+<script data-pmd-menu-image-predecode-v3>
+(function () {
+    'use strict';
+
+    var urls = {!! json_encode(
+        $pmdMenuEarlyImageUrls,
+        JSON_UNESCAPED_SLASHES
+        | JSON_HEX_TAG
+        | JSON_HEX_AMP
+        | JSON_HEX_APOS
+        | JSON_HEX_QUOT
+    ) !!};
+
+    if (!Array.isArray(urls) || !urls.length) {
+        return;
+    }
+
+    /*
+     * Keep references alive until the real card images are parsed.
+     * This starts fetching AND asks Safari to decode the pixels during
+     * the ~900ms of Menu markup parsing that previously went unused.
+     */
+    window.__PMDMenuImageWarmV3 =
+        urls.map(function (src, index) {
+            var image = new Image();
+
+            image.loading = 'eager';
+            image.decoding = 'sync';
+
+            if ('fetchPriority' in image) {
+                image.fetchPriority =
+                    index < 4
+                        ? 'high'
+                        : 'auto';
+            }
+
+            image.src = src;
+
+            if (
+                typeof image.decode ===
+                'function'
+            ) {
+                image.decode().catch(
+                    function () {}
+                );
+            }
+
+            return image;
+        });
+}());
+</script>
+
+
 {{-- PMD_MENU_NOTIFICATION_SERVER_FIRST_V13 --}}
 @php
     $pmdMenuNotificationCountV13 = 0;
@@ -182,7 +278,37 @@
             </button>
         @endif
 
+        {{-- PMD_MENU_HEADER_SERVER_FIRST_SLOTS_V4
+             These are visual first-paint slots only.
+             Existing JavaScript still owns the real actions and permissions.
+             Matching geometry prevents late JS actions from moving/flashing the rail. --}}
 
+        @if($canManageKitchenCapacity)
+            <button
+                type="button"
+                class="pmd-dashboard-lab__header-action pmd-menu-header-action pmd-menu-firstpaint-action pmd-menu-firstpaint-action--prep"
+                data-pmd-menu-prep-firstpaint-slot
+                aria-hidden="true"
+                tabindex="-1"
+                disabled
+            >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6"></path>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06-2.12 2.12-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V20h-3v-.08a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06-2.12-2.12.06-.06A1.65 1.65 0 0 0 7.2 15a1.65 1.65 0 0 0-1.51-1H5.6v-3h.09A1.65 1.65 0 0 0 7.2 10a1.65 1.65 0 0 0-.33-1.82l-.06-.06L8.93 6l.06.06A1.65 1.65 0 0 0 10.8 6.4a1.65 1.65 0 0 0 1-1.51V4.8h3v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06 2.12 2.12-.06.06A1.65 1.65 0 0 0 19.4 10a1.65 1.65 0 0 0 1.51 1H21v3h-.09A1.65 1.65 0 0 0 19.4 15z"></path>
+                </svg>
+            </button>
+        @endif
+
+        <button
+            type="button"
+            class="pmd-dashboard-lab__header-action pmd-menu-header-action pmd-menu-ai-trigger pmd-menu-firstpaint-action pmd-menu-firstpaint-action--ai"
+            data-pmd-menu-ai-firstpaint-slot
+            aria-hidden="true"
+            tabindex="-1"
+            disabled
+        >
+            <span aria-hidden="true">AI</span>
+        </button>
 
             <span
                 data-pmd-main-header-notification-gap-r67=""
@@ -831,6 +957,25 @@
                     $searchText = mb_strtolower(trim($item['name'].' '.$item['description'].' '.implode(' ', $item['category_names'] ?? []).' '.implode(' ', $item['allergen_names'] ?? [])));
                     $categoryIdsText = implode(',', array_map('intval', $item['category_ids'] ?? []));
                     $categoryExtra = max(0, count($item['category_names'] ?? []) - 1);
+
+                    // PMD_MENU_IMAGE_FIRST_PAINT_FINAL_V2
+                    // Classify the image on the server so CSS is correct
+                    // before the browser's very first paint.
+                    $pmdCardImageUrl = trim((string)($item['image'] ?? ''));
+                    $pmdCardImagePath = $pmdCardImageUrl !== ''
+                        ? (parse_url($pmdCardImageUrl, PHP_URL_PATH) ?: $pmdCardImageUrl)
+                        : '';
+
+                    $pmdCardIsBrandFallback =
+                        rtrim((string)$pmdCardImagePath, '/')
+                        === '/brand/paymydine-logo.svg';
+
+                    $pmdCardHasImage =
+                        $pmdCardImageUrl !== '';
+
+                    $pmdCardHasRealPhoto =
+                        $pmdCardHasImage
+                        && !$pmdCardIsBrandFallback;
                 @endphp
                 <article
                     class="pmd-menu-card {{ $item['is_stock_out'] ? 'is-stock-out' : '' }} {{ !$item['menu_status'] ? 'is-hidden-menu' : '' }}"
@@ -861,7 +1006,9 @@
                         </svg>
                     </button>
 
-                    <div class="pmd-menu-card__media">
+                    <div
+                        class="pmd-menu-card__media{{ $pmdCardHasImage ? ' has-server-image' : '' }}{{ $pmdCardHasRealPhoto ? ' has-real-photo' : '' }}{{ $pmdCardIsBrandFallback ? ' is-pmd-brand-fallback' : '' }}"
+                    >
                         <div class="pmd-menu-card__placeholder" aria-hidden="true">
                             <svg viewBox="0 0 24 24"><path d="M4 5h16v14H4z"></path><circle cx="9" cy="10" r="2"></circle><path d="m5 17 4-4 3 3 2-2 5 4"></path></svg>
                         </div>
@@ -869,8 +1016,10 @@
                             <img
                                 src="{{ e($item['image']) }}"
                                 alt="{{ e($item['name']) }}"
-                                loading="{{ $loop->index < 4 ? 'eager' : 'lazy' }}"
-                                decoding="async"
+                                class="{{ $pmdCardIsBrandFallback ? 'pmd-menu-card__brand-fallback-image' : 'pmd-menu-card__real-image' }}"
+                                {{-- PMD_MENU_IMAGE_WARM_FIRST_VIEWPORT_V1 --}}
+                                loading="{{ $loop->index < 12 ? 'eager' : 'lazy' }}"
+                                decoding="{{ $loop->index < 12 ? 'sync' : 'async' }}"
                                 @if($loop->index < 4) fetchpriority="high" @endif
                                 data-pmd-menu-image
                             >

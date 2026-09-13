@@ -11,7 +11,8 @@
     var filterResetBound = false;
 
     function isCouponPage() {
-        return String(window.location.pathname || '').replace(/\/+$/, '') === '/admin/coupons';
+        var path = String(window.location.pathname || '').replace(/\/+$/, '');
+        return path === '/admin/discounts' || path === '/admin/coupons';
     }
 
     function platformText(key, fallback) {
@@ -24,8 +25,8 @@
 
     function localeCopy() {
         return {
-            title: platformText('coupons.smart_add.title', 'Add new coupon / card'),
-            help: platformText('coupons.smart_add.help', 'Create a coupon, gift card or voucher.')
+            title: platformText('coupons.smart_add.title', 'Add new discount / card'),
+            help: platformText('coupons.smart_add.help', 'Create a discount, gift card or voucher.')
         };
     }
 

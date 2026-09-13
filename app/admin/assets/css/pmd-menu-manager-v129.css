@@ -3780,3 +3780,531 @@ body.pmd-menu-manager-page .pmd-menu-capacity-card__footer{justify-content:flex-
 body.pmd-menu-manager-page .pmd-menu-capacity-card__footer button{min-height:42px!important;padding:0 16px!important;border:0!important;border-radius:11px!important;background:#006b57!important;color:#fff!important;font-weight:850!important}
 body.pmd-menu-manager-page .pmd-menu-capacity-card__footer button.is-soft{border:1px solid #d2e0e8!important;background:#fff!important;color:#17445b!important}
 @media(max-width:640px){body.pmd-menu-manager-page .pmd-menu-capacity-grid{grid-template-columns:1fr!important}}
+
+
+/* ==========================================================
+   PMD_FOOD_MODAL_FLAT_UI_V1
+
+   Food editor has ONE visual card:
+   .pmd-menu-modal__card
+
+   Its internal sections are content regions separated by lines,
+   not additional cards.
+   ========================================================== */
+
+
+/* ----------------------------------------------------------
+   MAIN FOOD FORM SECTIONS
+   ---------------------------------------------------------- */
+
+html body.pmd-menu-manager-page
+[data-pmd-menu-modal]
+[data-pmd-food-modal-content]
+> .pmd-menu-form
+> .pmd-menu-form__section {
+    margin: 0 !important;
+
+    padding: 20px 0 !important;
+
+    border: 0 !important;
+    border-radius: 0 !important;
+
+    background: transparent !important;
+
+    box-shadow: none !important;
+
+    outline: 0 !important;
+}
+
+
+/* Section separation replaces card borders. */
+html body.pmd-menu-manager-page
+[data-pmd-menu-modal]
+[data-pmd-food-modal-content]
+> .pmd-menu-form
+> .pmd-menu-form__section
++ .pmd-menu-form__section {
+    margin-top: 0 !important;
+
+    border-top:
+        1px solid #e1ebef !important;
+}
+
+
+/* Don't waste vertical space at top/bottom. */
+html body.pmd-menu-manager-page
+[data-pmd-menu-modal]
+[data-pmd-food-modal-content]
+> .pmd-menu-form
+> .pmd-menu-form__section:first-of-type {
+    padding-top: 4px !important;
+}
+
+html body.pmd-menu-manager-page
+[data-pmd-menu-modal]
+[data-pmd-food-modal-content]
+> .pmd-menu-form
+> .pmd-menu-form__section:last-of-type {
+    padding-bottom: 6px !important;
+}
+
+
+/* ----------------------------------------------------------
+   SECTION HEADINGS
+   ---------------------------------------------------------- */
+
+html body.pmd-menu-manager-page
+[data-pmd-food-modal-content]
+.pmd-menu-form__section-head {
+    margin: 0 0 15px !important;
+
+    padding: 0 !important;
+}
+
+html body.pmd-menu-manager-page
+[data-pmd-food-modal-content]
+.pmd-menu-form__section-head h3,
+
+html body.pmd-menu-manager-page
+[data-pmd-food-modal-content]
+.pmd-menu-form__image-copy h3 {
+    margin: 0 !important;
+
+    color: #102a3a !important;
+
+    font-size: 16px !important;
+    font-weight: 850 !important;
+
+    line-height: 1.25 !important;
+}
+
+html body.pmd-menu-manager-page
+[data-pmd-food-modal-content]
+.pmd-menu-form__section-head p,
+
+html body.pmd-menu-manager-page
+[data-pmd-food-modal-content]
+.pmd-menu-form__image-copy p {
+    margin: 4px 0 0 !important;
+
+    color: #71828e !important;
+
+    font-size: 12px !important;
+
+    line-height: 1.45 !important;
+}
+
+
+/* ----------------------------------------------------------
+   PHOTOS AREA
+   ---------------------------------------------------------- */
+
+html body.pmd-menu-manager-page
+[data-pmd-food-modal-content]
+.pmd-menu-form__image-row {
+    padding: 0 !important;
+
+    border: 0 !important;
+    border-radius: 0 !important;
+
+    background: transparent !important;
+
+    box-shadow: none !important;
+
+    align-items: center !important;
+}
+
+
+/*
+ * The actual photo preview is a media control, so it keeps
+ * its own subtle border/radius. We only remove the large
+ * surrounding section-card.
+ */
+html body.pmd-menu-manager-page
+[data-pmd-food-modal-content]
+.pmd-menu-form__preview {
+    box-shadow: none !important;
+}
+
+
+/* ----------------------------------------------------------
+   TRANSLATIONS
+   ---------------------------------------------------------- */
+
+/*
+ * Translation JS injects:
+ *
+ * section.pmd-menu-form__section.pmd-menu-content-translations
+ *
+ * Therefore it automatically gets the flat section treatment.
+ */
+
+html body.pmd-menu-manager-page
+[data-pmd-food-modal-content]
+.pmd-menu-content-translations {
+    background: transparent !important;
+
+    box-shadow: none !important;
+}
+
+html body.pmd-menu-manager-page
+[data-pmd-food-modal-content]
+.pmd-menu-content-translations__head {
+    margin: 0 0 14px !important;
+
+    padding: 0 !important;
+
+    border: 0 !important;
+
+    background: transparent !important;
+}
+
+
+/* Translation option groups should not become another nested card. */
+html body.pmd-menu-manager-page
+[data-pmd-food-modal-content]
+.pmd-menu-content-translations__option {
+    padding: 12px 0 !important;
+
+    border: 0 !important;
+    border-radius: 0 !important;
+
+    background: transparent !important;
+
+    box-shadow: none !important;
+}
+
+html body.pmd-menu-manager-page
+[data-pmd-food-modal-content]
+.pmd-menu-content-translations__option
++ .pmd-menu-content-translations__option {
+    border-top:
+        1px solid #e5edef !important;
+}
+
+
+/* ----------------------------------------------------------
+   SIDES / OPTIONS BUILDER
+   ---------------------------------------------------------- */
+
+/*
+ * Configurable option groups were also rendered as nested cards.
+ * Keep the form controls, remove only the decorative card shell.
+ */
+
+html body.pmd-menu-manager-page
+[data-pmd-food-modal-content]
+.pmd-menu-option-group {
+    padding: 14px 0 !important;
+
+    border: 0 !important;
+    border-radius: 0 !important;
+
+    background: transparent !important;
+
+    box-shadow: none !important;
+}
+
+html body.pmd-menu-manager-page
+[data-pmd-food-modal-content]
+.pmd-menu-option-group
++ .pmd-menu-option-group {
+    border-top:
+        1px solid #e5edef !important;
+}
+
+
+/* ----------------------------------------------------------
+   CONTROLS THAT SHOULD STILL LOOK LIKE CONTROLS
+   ---------------------------------------------------------- */
+
+/*
+ * Do NOT flatten:
+ *
+ * - category choices
+ * - dietary choices
+ * - allergen choices
+ * - actual input fields
+ * - photo thumbnail
+ * - upload button
+ *
+ * Those are interactive controls, not layout cards.
+ */
+
+
+/* ----------------------------------------------------------
+   MOBILE
+   ---------------------------------------------------------- */
+
+@media (max-width: 700px) {
+
+    html body.pmd-menu-manager-page
+    [data-pmd-menu-modal]
+    [data-pmd-food-modal-content]
+    > .pmd-menu-form
+    > .pmd-menu-form__section {
+        padding:
+            17px 0 !important;
+    }
+
+    html body.pmd-menu-manager-page
+    [data-pmd-food-modal-content]
+    .pmd-menu-form__image-row {
+        gap: 14px !important;
+    }
+}
+
+
+/* ==========================================================
+   PMD_EDIT_FOOD_NATIVE_PLACEHOLDER_V1
+
+   Edit Food uses its own native preview box as the fallback.
+   No injected second preview.
+   No blank generic icon.
+   ========================================================== */
+
+html body.pmd-menu-manager-page
+[data-pmd-menu-modal]
+.pmd-menu-form__preview-placeholder--brand {
+    position: absolute !important;
+
+    inset: 0 !important;
+
+    display: flex !important;
+
+    align-items: center !important;
+    justify-content: center !important;
+
+    width: 100% !important;
+    height: 100% !important;
+
+    padding: 18px !important;
+
+    box-sizing: border-box !important;
+
+    background: #edf3f1 !important;
+
+    color: transparent !important;
+}
+
+
+/*
+ * The PayMyDine brand is decoration here, not a food photo.
+ * Keep the full logo visible with comfortable breathing room.
+ */
+html body.pmd-menu-manager-page
+[data-pmd-menu-modal]
+.pmd-menu-form__preview-brand {
+    display: block !important;
+
+    width: 72% !important;
+    height: 72% !important;
+
+    flex: 0 0 auto !important;
+
+    background-image:
+        url('/brand/paymydine-logo.svg') !important;
+
+    background-repeat:
+        no-repeat !important;
+
+    background-position:
+        center center !important;
+
+    background-size:
+        contain !important;
+
+    opacity: .72 !important;
+}
+
+
+/*
+ * Existing canonical behavior:
+ * as soon as a real food image successfully loads,
+ * hide the native PayMyDine fallback.
+ */
+html body.pmd-menu-manager-page
+[data-pmd-menu-modal]
+.pmd-menu-form__preview.has-image
+.pmd-menu-form__preview-placeholder--brand {
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+
+/*
+ * Real food photo remains a real photo.
+ * Explicitly avoid changing it to contain.
+ */
+html body.pmd-menu-manager-page
+[data-pmd-menu-modal]
+.pmd-menu-form__preview
+> img:not([src*="/brand/paymydine-logo.svg"]) {
+    object-fit: cover !important;
+    object-position: center center !important;
+    padding: 0 !important;
+}
+
+
+/* ==========================================================
+   PMD_EDIT_FOOD_MONO_LOGO_V1
+
+   Empty Edit Food preview:
+   use PayMyDine mark as a monochrome brand watermark,
+   not the green/yellow production brand gradient.
+   ========================================================== */
+
+html body.pmd-menu-manager-page
+[data-pmd-menu-modal]
+.pmd-menu-form__preview-brand {
+    /*
+     * Remove the colored SVG background.
+     */
+    background-image: none !important;
+
+    /*
+     * Use that same SVG only as an alpha mask.
+     * Safari requires the -webkit- version.
+     */
+    -webkit-mask-image:
+        url('/brand/paymydine-logo.svg') !important;
+
+    mask-image:
+        url('/brand/paymydine-logo.svg') !important;
+
+    -webkit-mask-repeat:
+        no-repeat !important;
+
+    mask-repeat:
+        no-repeat !important;
+
+    -webkit-mask-position:
+        center center !important;
+
+    mask-position:
+        center center !important;
+
+    -webkit-mask-size:
+        contain !important;
+
+    mask-size:
+        contain !important;
+
+    /*
+     * Monochrome PayMyDine mark.
+     */
+    background-color:
+        #aab3b1 !important;
+
+    opacity:
+        .78 !important;
+}
+
+
+/*
+ * Keep the empty preview itself neutral/light.
+ */
+html body.pmd-menu-manager-page
+[data-pmd-menu-modal]
+.pmd-menu-form__preview-placeholder--brand {
+    background:
+        #edf2f1 !important;
+}
+
+
+/* ==========================================================
+   PMD_MENU_IMAGE_FIRST_PAINT_FINAL_V2
+
+   The server now tells CSS whether a card contains:
+   - a real food photograph
+   - the PayMyDine fallback
+
+   Therefore there is no JS/CSS correction after first paint.
+   ========================================================== */
+
+
+/*
+ * A card that already has an <img> must never briefly expose the
+ * generic image placeholder underneath it.
+ */
+html body.pmd-menu-manager-page
+.pmd-menu-card__media.has-server-image
+> .pmd-menu-card__placeholder {
+    display: none !important;
+
+    opacity: 0 !important;
+    visibility: hidden !important;
+
+    pointer-events: none !important;
+}
+
+
+/*
+ * Real food images keep normal photographic behavior from the
+ * very first frame.
+ */
+html body.pmd-menu-manager-page
+.pmd-menu-card__media.has-real-photo
+> img.pmd-menu-card__real-image {
+    display: block !important;
+
+    width: 100% !important;
+    height: 100% !important;
+
+    object-fit: cover !important;
+    object-position: center center !important;
+
+    padding: 0 !important;
+    margin: 0 !important;
+
+    opacity: 1 !important;
+    visibility: visible !important;
+
+    background: #eef4f3 !important;
+
+    animation: none !important;
+    transition: none !important;
+}
+
+
+/*
+ * PayMyDine fallback is NOT a food photograph.
+ * Give it its correct geometry in server-first CSS rather than
+ * waiting for Gallery runtime to fix it after paint.
+ */
+html body.pmd-menu-manager-page
+.pmd-menu-card__media.is-pmd-brand-fallback
+> img.pmd-menu-card__brand-fallback-image {
+    display: block !important;
+
+    width: 100% !important;
+    height: 100% !important;
+
+    object-fit: contain !important;
+    object-position: center center !important;
+
+    box-sizing: border-box !important;
+
+    padding: 34px !important;
+
+    opacity: 1 !important;
+    visibility: visible !important;
+
+    background: #e7eceb !important;
+
+    animation: none !important;
+    transition: none !important;
+}
+
+
+/*
+ * No opacity/fade animation on card media.
+ * Image readiness should not create a visual flash.
+ */
+html body.pmd-menu-manager-page
+.pmd-menu-card__media
+> img[data-pmd-menu-image] {
+    transition: none !important;
+    animation: none !important;
+}

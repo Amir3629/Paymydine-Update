@@ -1,0 +1,1193 @@
+// PMD_MENU_GALLERY_OPTIONS_V6_OWNER_PHOTOS
+(function () {
+  'use strict';
+
+  var path = String((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : window.location.pathname) || '').replace(/\/+$/, '');
+  if (path !== '/admin/menu' && path !== '/admin/pmdmenus') return;
+
+  var modal = document.querySelector('[data-pmd-menu-modal]');
+  var form = modal && modal.querySelector('[data-pmd-menu-form]');
+  if (!modal || !form) return;
+
+  var imageInput = form.querySelector('[data-pmd-menu-image-input]');
+  var categoryChoices = form.querySelector('[data-pmd-menu-category-choices]');
+  var galleryHost = null;
+  var optionHost = null;
+  var optionEmpty = null;
+  var optionAdd = null;
+  var objectUrls = [];
+  var stagedFiles = [];
+  var removedPaths = new Set();
+  var currentImages = [];
+  var optionGroups = [];
+  var loadToken = 0;
+  var coverSelection = null;
+  var imagePreviewBox = modal.querySelector('[data-pmd-menu-image-preview]');
+  var imagePreview = imagePreviewBox && imagePreviewBox.querySelector('img');
+
+  function esc(value) {
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+  }
+
+  function ensureHidden(name, value, marker) {
+    var input = form.querySelector('input[' + marker + ']');
+    if (!input) {
+      input = document.createElement('input');
+      input.type = 'hidden';
+      input.setAttribute(marker, '');
+      form.appendChild(input);
+    }
+    input.name = name;
+    input.value = value;
+    return input;
+  }
+
+  function installUi() {
+    ensureHidden('pmd_menu_enhancements_v1', '1', 'data-pmd-menu-enhancements-v1');
+
+    if (imageInput) {
+      var imageCopy = imageInput.closest('.pmd-menu-form__image-copy');
+      if (imageCopy) {
+        var imageHeading = imageCopy.querySelector('h3');
+        var imageHelp = imageCopy.querySelector('p');
+        if (imageHeading) imageHeading.textContent = 'Photos';
+        if (imageHelp) imageHelp.hidden = true;
+      }
+      imageInput.name = 'images[]';
+      imageInput.multiple = true;
+      imageInput.setAttribute('multiple', 'multiple');
+      var upload = imageInput.closest('.pmd-menu-form__upload');
+      if (upload) {
+        var label = upload.querySelector('span');
+        if (label) label.textContent = 'Add photos';
+        if (!upload.parentElement.querySelector('[data-pmd-gallery-help]')) {
+          var help = document.createElement('small');
+          help.setAttribute('data-pmd-gallery-help', '');
+          help.className = 'pmd-menu-gallery-editor__hint';
+          help.textContent = 'Add up to 8 photos. The first new photo becomes the cover. Guests can swipe left or right through all photos.';
+          upload.insertAdjacentElement('afterend', help);
+        }
+      }
+      var imageSection = imageInput.closest('.pmd-menu-form__section');
+      if (imageSection && !imageSection.querySelector('[data-pmd-menu-gallery-editor]')) {
+        galleryHost = document.createElement('div');
+        galleryHost.className = 'pmd-menu-gallery-editor';
+        galleryHost.setAttribute('data-pmd-menu-gallery-editor', '');
+        galleryHost.setAttribute('aria-live', 'polite');
+        imageSection.appendChild(galleryHost);
+      } else if (imageSection) {
+        galleryHost = imageSection.querySelector('[data-pmd-menu-gallery-editor]');
+      }
+    }
+
+    if (categoryChoices) {
+      var categorySection = categoryChoices.closest('.pmd-menu-form__section');
+      if (categorySection && !form.querySelector('[data-pmd-menu-options-builder]')) {
+        var section = document.createElement('section');
+        section.className = 'pmd-menu-form__section pmd-menu-options-builder';
+        section.setAttribute('data-pmd-menu-options-builder', '');
+        section.innerHTML = '<div class="pmd-menu-form__section-head pmd-menu-options-builder__head"><div><h3>Sides &amp; options</h3></div><button type="button" class="pmd-menu-options-builder__add" data-pmd-option-group-add>+ Add option</button></div><div class="pmd-menu-options-builder__groups" data-pmd-option-groups></div><div class="pmd-menu-options-builder__empty" data-pmd-option-empty hidden></div>';
+        categorySection.parentNode.insertBefore(section, categorySection);
+      }
+    }
+
+    optionHost = form.querySelector('[data-pmd-option-groups]');
+    optionEmpty = form.querySelector('[data-pmd-option-empty]');
+    optionAdd = form.querySelector('[data-pmd-option-group-add]');
+  }
+
+  function revokeObjectUrls() {
+    objectUrls.forEach(function (url) { try { URL.revokeObjectURL(url); } catch (error) {} });
+    objectUrls = [];
+  }
+
+  function selectedFiles() {
+    return stagedFiles.slice();
+  }
+
+  function fileKey(file) {
+    return [String(file && file.name || ''), Number(file && file.size || 0), Number(file && file.lastModified || 0), String(file && file.type || '')].join('::');
+  }
+
+  function syncStagedFilesToInput() {
+    if (!imageInput || typeof DataTransfer === 'undefined') return;
+    try {
+      var transfer = new DataTransfer();
+      stagedFiles.forEach(function (file) { transfer.items.add(file); });
+      imageInput.files = transfer.files;
+    } catch (error) {}
+  }
+
+  function stageSelectedFiles(files) {
+    var seen = new Set(stagedFiles.map(fileKey));
+    Array.prototype.slice.call(files || []).forEach(function (file) {
+      var key = fileKey(file);
+      if (!file || !key || seen.has(key)) return;
+      stagedFiles.push(file);
+      seen.add(key);
+    });
+    if (!coverSelection && stagedFiles.length) coverSelection = 'new:' + fileKey(stagedFiles[0]);
+    syncStagedFilesToInput();
+    syncCoverInput();
+  }
+
+  function removeStagedFile(index) {
+    if (!Number.isFinite(index) || index < 0 || index >= stagedFiles.length) return;
+    var removedKey = 'new:' + fileKey(stagedFiles[index]);
+    stagedFiles.splice(index, 1);
+    if (coverSelection === removedKey) coverSelection = firstAvailableCover();
+    syncStagedFilesToInput();
+    syncCoverInput();
+  }
+
+  function visibleExistingImages() {
+    return currentImages.filter(function (entry) { return !removedPaths.has(String(entry.path || '')); });
+  }
+
+  function imagePath(url) {
+    var raw = String(url || '').split('?')[0].split('#')[0].replace(/\\/g, '/');
+    try { raw = decodeURIComponent(raw); } catch (error) {}
+    var parts = raw.split('/').filter(Boolean);
+    return parts.length ? parts[parts.length - 1] : '';
+  }
+
+  function normalizeImages(item) {
+    var out = [];
+    var visit = function (value) {
+      if (!value) return;
+      if (Array.isArray(value)) { value.forEach(visit); return; }
+      if (typeof value === 'object') { visit(value.url || value.image || value.src || value.path || value.name || value.image_path); return; }
+      var url = String(value || '').trim();
+      if (!url || url.indexOf('/brand/paymydine-logo.svg') !== -1) return;
+      var key = imagePath(url);
+      if (!key || out.some(function (entry) { return entry.url === url; })) return;
+      out.push({url: url, path: key});
+    };
+    if (item) {
+      visit(item.image); visit(item.image_url); visit(item.images); visit(item.gallery); visit(item.media); visit(item.additional_images);
+    }
+    return out.slice(0, 8);
+  }
+
+  function syncRemoveInputs() {
+    form.querySelectorAll('input[data-pmd-gallery-remove-input]').forEach(function (node) { node.remove(); });
+    removedPaths.forEach(function (value) {
+      var input = document.createElement('input');
+      input.type = 'hidden'; input.name = 'remove_images[]'; input.value = value;
+      input.setAttribute('data-pmd-gallery-remove-input', '');
+      form.appendChild(input);
+    });
+  }
+
+  function validateGalleryLimit() {
+    if (!imageInput) return true;
+    var total = visibleExistingImages().length + selectedFiles().length;
+    if (total > 8) {
+      imageInput.setCustomValidity('A food can have up to 8 images. Remove an image or select fewer files.');
+      if (typeof imageInput.reportValidity === 'function') imageInput.reportValidity();
+      return false;
+    }
+    imageInput.setCustomValidity('');
+    return true;
+  }
+
+  function savedCoverKey(entry) {
+    return 'saved:' + String(entry && entry.path || '');
+  }
+
+  function newCoverKey(file) {
+    return 'new:' + fileKey(file);
+  }
+
+  function firstAvailableCover() {
+    var existing = visibleExistingImages();
+    if (existing.length) return savedCoverKey(existing[0]);
+    if (stagedFiles.length) return newCoverKey(stagedFiles[0]);
+    return null;
+  }
+
+  function syncCoverInput() {
+    if (!coverSelection) coverSelection = firstAvailableCover();
+    var value = '';
+    if (coverSelection && coverSelection.indexOf('saved:') === 0) {
+      value = coverSelection;
+    } else if (coverSelection && coverSelection.indexOf('new:') === 0) {
+      var stagedKey = coverSelection.slice(4);
+      var stagedIndex = stagedFiles.findIndex(function (file) { return fileKey(file) === stagedKey; });
+      if (stagedIndex >= 0) value = 'new:' + stagedIndex;
+    }
+    ensureHidden('pmd_menu_gallery_cover', value, 'data-pmd-gallery-cover-input');
+  }
+
+  // PMD_GALLERY_EMPTY_PREVIEW_STATE_V2
+  //
+  // Clearing the gallery must also clear has-image.
+  // Otherwise CSS keeps the native PayMyDine placeholder invisible.
+  function isPmdGalleryFallbackV2(url) {
+    var value = String(url || '').trim();
+
+    if (!value) return true;
+
+    try {
+      return new URL(
+        value,
+        window.location.href
+      ).pathname === '/brand/paymydine-logo.svg';
+    } catch (error) {
+      value = value.split('?')[0].split('#')[0];
+
+      return (
+        value === '/brand/paymydine-logo.svg'
+        || value.endsWith('/brand/paymydine-logo.svg')
+      );
+    }
+  }
+
+  function updatePrimaryPreview(url) {
+    if (!imagePreviewBox || !imagePreview) return;
+
+    var placeholder =
+      imagePreviewBox.querySelector(
+        '.pmd-menu-form__preview-placeholder'
+      );
+
+    /*
+     * No real photo:
+     * restore the native placeholder completely.
+     */
+    if (isPmdGalleryFallbackV2(url)) {
+      imagePreview.removeAttribute('src');
+      imagePreview.hidden = true;
+
+      imagePreviewBox.classList.remove(
+        'has-image'
+      );
+
+      if (placeholder) {
+        placeholder.hidden = false;
+      }
+
+      return;
+    }
+
+    /*
+     * New real cover:
+     * clear stale has-image so the native placeholder remains behind
+     * the image until the Manager load listener confirms image load.
+     */
+    imagePreviewBox.classList.remove(
+      'has-image'
+    );
+
+    imagePreview.src = url;
+    imagePreview.hidden = false;
+
+    if (placeholder) {
+      placeholder.hidden = false;
+    }
+  }
+
+  function renderGallery(message) {
+    if (!galleryHost) return;
+    revokeObjectUrls();
+    var existing = visibleExistingImages();
+    var files = selectedFiles();
+    if (!coverSelection) coverSelection = firstAvailableCover();
+    var items = [];
+    var selectedUrl = '';
+
+    existing.forEach(function (entry, index) {
+      var key = savedCoverKey(entry);
+      var isCover = key === coverSelection;
+      if (isCover) selectedUrl = entry.url;
+      items.push('<div class="pmd-menu-gallery-editor__item' + (isCover ? ' is-cover' : '') + '" role="button" tabindex="0" data-pmd-gallery-cover-key="' + esc(key) + '" title="' + (isCover ? 'Cover image' : 'Set as cover') + '"><img src="' + esc(entry.url) + '" alt="Food photo ' + (index + 1) + '"><span class="pmd-menu-gallery-editor__cover-action">' + (isCover ? 'Cover' : 'Set cover') + '</span><button type="button" class="pmd-menu-gallery-editor__remove" data-pmd-gallery-remove="' + esc(entry.path) + '" aria-label="Remove photo"><span aria-hidden="true">×</span></button></div>');
+    });
+
+    files.forEach(function (file, index) {
+      var url = URL.createObjectURL(file);
+      objectUrls.push(url);
+      var key = newCoverKey(file);
+      var isCover = key === coverSelection;
+      if (isCover) selectedUrl = url;
+      items.push('<div class="pmd-menu-gallery-editor__item is-new' + (isCover ? ' is-cover' : '') + '" role="button" tabindex="0" data-pmd-gallery-cover-key="' + esc(key) + '" title="' + (isCover ? 'Cover image' : 'Set as cover') + '"><img src="' + esc(url) + '" alt="New food photo ' + (index + 1) + '"><span class="pmd-menu-gallery-editor__cover-action">' + (isCover ? 'Cover' : 'Set cover') + '</span><button type="button" class="pmd-menu-gallery-editor__remove" data-pmd-gallery-remove-new="' + index + '" aria-label="Remove photo"><span aria-hidden="true">×</span></button></div>');
+    });
+
+    if (message && !items.length) {
+      galleryHost.innerHTML = '<div class="pmd-menu-gallery-editor__blank">Images unavailable.</div>';
+    } else {
+      galleryHost.innerHTML = items.length ? '<div class="pmd-menu-gallery-editor__grid">' + items.join('') + '</div>' : '';
+    }
+
+    syncRemoveInputs();
+    syncCoverInput();
+    validateGalleryLimit();
+    if (selectedUrl) updatePrimaryPreview(selectedUrl);
+    else if (!message && !items.length) updatePrimaryPreview('');
+  }
+
+  function normalizeOptions(item) {
+    return (Array.isArray(item && item.options) ? item.options : []).map(function (group) {
+      var type = String(group && (group.display_type || group.displayType) || 'radio').toLowerCase();
+      if (['radio','checkbox','select'].indexOf(type) === -1) type = 'radio';
+      return {
+        name: String(group && (group.name || group.option_name) || ''),
+        display_type: type,
+        required: Boolean(group && group.required),
+        values: (Array.isArray(group && (group.values || group.option_values)) ? (group.values || group.option_values) : []).map(function (value) {
+          return {name:String(value && (value.value || value.name || value.label) || ''), price:Math.max(0, Number(value && (value.price || value.price_delta) || 0) || 0), is_default:Boolean(value && (value.is_default || value.default))};
+        })
+      };
+    }).filter(function (group) { return group.name || group.values.length; });
+  }
+
+  function ensureValue(group) { if (!group.values.length) group.values.push({name:'', price:0, is_default:false}); }
+
+  function groupMarkup(group, groupIndex) {
+    ensureValue(group);
+    var rows = group.values.map(function (value, valueIndex) {
+      return '<div class="pmd-menu-option-value" data-option-value-index="' + valueIndex + '"><input type="text" name="options[' + groupIndex + '][values][' + valueIndex + '][name]" maxlength="128" required placeholder="Choice name (e.g. Medium)" value="' + esc(value.name) + '" data-option-value-name><label class="pmd-menu-option-value__price"><span>+ price</span><input type="number" name="options[' + groupIndex + '][values][' + valueIndex + '][price]" min="0" max="9999999" step="0.01" inputmode="decimal" value="' + esc(Number(value.price || 0).toFixed(2).replace(/\.00$/, '')) + '" data-option-value-price></label><label class="pmd-menu-option-value__default"><input type="checkbox" ' + (value.is_default ? 'checked' : '') + ' data-option-value-default><span>Default</span></label><button type="button" class="pmd-menu-option-value__remove" data-option-value-remove aria-label="Remove choice">×</button></div>';
+    }).join('');
+    return '<article class="pmd-menu-option-group" data-option-group-index="' + groupIndex + '"><div class="pmd-menu-option-group__top"><label class="pmd-menu-field"><span>Option name</span><input type="text" name="options[' + groupIndex + '][name]" maxlength="128" required placeholder="e.g. Burger size" value="' + esc(group.name) + '" data-option-group-name></label><label class="pmd-menu-field"><span>Choice type</span><select name="options[' + groupIndex + '][display_type]" data-option-group-type><option value="radio"' + (group.display_type === 'radio' ? ' selected' : '') + '>Choose one</option><option value="checkbox"' + (group.display_type === 'checkbox' ? ' selected' : '') + '>Choose multiple</option><option value="select"' + (group.display_type === 'select' ? ' selected' : '') + '>Dropdown</option></select></label><label class="pmd-menu-option-group__required" title="Customer must select at least one choice before ordering."><input type="hidden" name="options[' + groupIndex + '][required]" value="0"><input type="checkbox" name="options[' + groupIndex + '][required]" value="1" ' + (group.required ? 'checked' : '') + ' data-option-group-required><span>Must choose</span></label><button type="button" class="pmd-menu-option-group__remove" data-option-group-remove>Remove option</button></div><div class="pmd-menu-option-group__values">' + rows + '</div><button type="button" class="pmd-menu-option-group__add-value" data-option-value-add>+ Add choice</button></article>';
+  }
+
+  function syncDefaultHiddenInputs() {
+    form.querySelectorAll('input[data-option-default-hidden]').forEach(function (node) { node.remove(); });
+    optionGroups.forEach(function (group, groupIndex) {
+      group.values.forEach(function (value, valueIndex) {
+        var input = document.createElement('input'); input.type = 'hidden'; input.name = 'options[' + groupIndex + '][values][' + valueIndex + '][is_default]'; input.value = value.is_default ? '1' : '0'; input.setAttribute('data-option-default-hidden', ''); form.appendChild(input);
+      });
+    });
+  }
+
+  function renderOptions(message) {
+    if (!optionHost) return;
+    optionHost.innerHTML = optionGroups.map(groupMarkup).join('');
+    if (optionEmpty) {
+      optionEmpty.hidden = true;
+      optionEmpty.innerHTML = '';
+    }
+    syncDefaultHiddenInputs();
+  }
+
+  function captureOptions() {
+    if (!optionHost) return;
+    optionHost.querySelectorAll('[data-option-group-index]').forEach(function (groupNode) {
+      var gi = Number(groupNode.getAttribute('data-option-group-index')); var group = optionGroups[gi]; if (!group) return;
+      group.name = (groupNode.querySelector('[data-option-group-name]') || {}).value || '';
+      group.display_type = (groupNode.querySelector('[data-option-group-type]') || {}).value || 'radio';
+      group.required = Boolean(groupNode.querySelector('[data-option-group-required]') && groupNode.querySelector('[data-option-group-required]').checked);
+      groupNode.querySelectorAll('[data-option-value-index]').forEach(function (valueNode) {
+        var vi = Number(valueNode.getAttribute('data-option-value-index')); var value = group.values[vi]; if (!value) return;
+        value.name = (valueNode.querySelector('[data-option-value-name]') || {}).value || '';
+        value.price = Math.max(0, Number((valueNode.querySelector('[data-option-value-price]') || {}).value || 0) || 0);
+        value.is_default = Boolean(valueNode.querySelector('[data-option-value-default]') && valueNode.querySelector('[data-option-value-default]').checked);
+      });
+    });
+    syncDefaultHiddenInputs();
+  }
+
+  function findItems(payload) {
+    if (!payload || typeof payload !== 'object') return [];
+    if (Array.isArray(payload)) return payload;
+    if (Array.isArray(payload.items)) return payload.items;
+    if (payload.data) {
+      if (Array.isArray(payload.data)) return payload.data;
+      if (Array.isArray(payload.data.items)) return payload.data.items;
+    }
+    return [];
+  }
+
+  function loadExistingItem(id, token) {
+    return fetch('/api/v1/menu', {credentials:'same-origin', headers:{'Accept':'application/json'}})
+      .then(function (response) { if (!response.ok) throw new Error('The live menu API returned ' + response.status + '.'); return response.json(); })
+      .then(function (payload) {
+        if (token !== loadToken) return;
+        var item = findItems(payload).find(function (row) { return String(row && (row.id || row.menu_id)) === String(id); });
+        if (!item) throw new Error('This food was not found in the live menu API.');
+        currentImages = normalizeImages(item); optionGroups = normalizeOptions(item);
+        if (!coverSelection && currentImages.length) coverSelection = savedCoverKey(currentImages[0]);
+        ensureHidden('pmd_menu_options_present', '1', 'data-pmd-menu-options-present');
+        renderGallery(); renderOptions();
+      });
+  }
+
+  // PMD_FOOD_IMAGE_ZERO_BLINK_V1
+  //
+  // The Menu Manager already places the known cover image into the
+  // primary preview before this gallery runtime executes.
+  //
+  // Do NOT clear that already-loaded image while /api/v1/menu is
+  // loading. Keep it visible and use the same URL as a temporary
+  // gallery thumbnail until the canonical gallery response arrives.
+  function currentPrimaryPreviewUrl() {
+    if (!imagePreview) return '';
+
+    var src = String(
+      imagePreview.currentSrc
+      || imagePreview.getAttribute('src')
+      || ''
+    ).trim();
+
+    if (
+      !src
+      || src.indexOf('/brand/paymydine-logo.svg') !== -1
+      || src.indexOf('data:') === 0
+      || src.indexOf('blob:') === 0
+    ) {
+      return '';
+    }
+
+    return src;
+  }
+
+  function renderWarmGalleryPreview(url) {
+    if (!galleryHost) return;
+
+    if (!url) {
+      galleryHost.innerHTML = '';
+      return;
+    }
+
+    galleryHost.innerHTML =
+      '<div class="pmd-menu-gallery-editor__grid" data-pmd-gallery-warm-preview>' +
+        '<div class="pmd-menu-gallery-editor__item is-cover" style="pointer-events:none" aria-hidden="true">' +
+          '<img src="' + esc(url) + '" alt="Food cover preview">' +
+          '<span class="pmd-menu-gallery-editor__cover-action">Cover</span>' +
+        '</div>' +
+      '</div>';
+  }
+
+  function syncFromCurrentForm() {
+    var token = ++loadToken;
+
+    var idField = form.querySelector('[data-pmd-menu-id]');
+    var id = idField
+      ? String(idField.value || '')
+      : '';
+
+    /*
+     * Capture the image BEFORE gallery state is reset.
+     * pmd-menu-manager-v129 already populated this preview.
+     */
+    var warmPreviewUrl = id
+      ? currentPrimaryPreviewUrl()
+      : '';
+
+    removedPaths.clear();
+    currentImages = [];
+    optionGroups = [];
+    stagedFiles = [];
+    coverSelection = null;
+
+    if (imageInput) {
+      imageInput.value = '';
+      imageInput.setCustomValidity('');
+      syncStagedFilesToInput();
+    }
+
+    var present = form.querySelector(
+      'input[data-pmd-menu-options-present]'
+    );
+
+    if (present) present.remove();
+
+    /*
+     * IMPORTANT:
+     *
+     * Previously renderGallery() ran here with currentImages=[].
+     * renderGallery() then called updatePrimaryPreview(''),
+     * which caused the visible flash/blank image.
+     *
+     * Reset gallery form state without touching the already-known
+     * primary preview.
+     */
+    syncRemoveInputs();
+    syncCoverInput();
+    validateGalleryLimit();
+
+    renderWarmGalleryPreview(warmPreviewUrl);
+    renderOptions();
+
+    if (!id) {
+      ensureHidden(
+        'pmd_menu_options_present',
+        '1',
+        'data-pmd-menu-options-present'
+      );
+      return;
+    }
+
+    /*
+     * Full gallery + options still load from the existing canonical
+     * endpoint. When they arrive renderGallery() replaces the warm
+     * thumbnail with the real interactive gallery.
+     */
+    loadExistingItem(id, token).catch(function (error) {
+      if (token !== loadToken) return;
+
+      currentImages = [];
+      optionGroups = [];
+
+      /*
+       * A failed gallery request must never remove the already-visible
+       * cover preview.
+       */
+      if (galleryHost && warmPreviewUrl) {
+        renderWarmGalleryPreview(warmPreviewUrl);
+      } else {
+        renderGallery(
+          error.message || 'Please retry.'
+        );
+      }
+
+      renderOptions(
+        error.message || 'Please retry.'
+      );
+    });
+  }
+
+  installUi();
+  if (imageInput) {
+    imageInput.addEventListener('click', function () {
+      // A native file input replaces its FileList on every picker visit. Clear the
+      // native value before opening and keep the real pending list in stagedFiles.
+      imageInput.value = '';
+    });
+    imageInput.addEventListener('change', function () {
+      stageSelectedFiles(imageInput.files);
+      renderGallery();
+    });
+  }
+  if (galleryHost) {
+    galleryHost.addEventListener('click', function (event) {
+      var removeNew = event.target.closest('[data-pmd-gallery-remove-new]');
+      if (removeNew) {
+        event.preventDefault();
+        event.stopPropagation();
+        removeStagedFile(Number(removeNew.getAttribute('data-pmd-gallery-remove-new')));
+        renderGallery();
+        return;
+      }
+
+      var remove = event.target.closest('[data-pmd-gallery-remove]');
+      if (remove) {
+        event.preventDefault();
+        event.stopPropagation();
+        var image = String(remove.getAttribute('data-pmd-gallery-remove') || '');
+        if (image) {
+          var removedCoverKey = 'saved:' + image;
+          removedPaths.add(image);
+          if (coverSelection === removedCoverKey) coverSelection = firstAvailableCover();
+          syncCoverInput();
+          renderGallery();
+        }
+        return;
+      }
+
+      var cover = event.target.closest('[data-pmd-gallery-cover-key]');
+      if (!cover) return;
+      event.preventDefault();
+      coverSelection = String(cover.getAttribute('data-pmd-gallery-cover-key') || '') || firstAvailableCover();
+      syncCoverInput();
+      renderGallery();
+    });
+
+    galleryHost.addEventListener('keydown', function (event) {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      var cover = event.target.matches && event.target.matches('[data-pmd-gallery-cover-key]') ? event.target : null;
+      if (!cover) return;
+      event.preventDefault();
+      coverSelection = String(cover.getAttribute('data-pmd-gallery-cover-key') || '') || firstAvailableCover();
+      syncCoverInput();
+      renderGallery();
+    });
+  }
+  if (optionAdd) optionAdd.addEventListener('click', function () {
+    captureOptions(); if (optionGroups.length >= 12) return;
+    optionGroups.push({name:'', display_type:'radio', required:false, values:[{name:'', price:0, is_default:false}]});
+    ensureHidden('pmd_menu_options_present', '1', 'data-pmd-menu-options-present'); renderOptions();
+    var nodes = optionHost.querySelectorAll('[data-option-group-index]'); var last = nodes[nodes.length - 1]; var input = last && last.querySelector('[data-option-group-name]'); if (input) input.focus();
+  });
+  if (optionHost) {
+    optionHost.addEventListener('input', captureOptions);
+    optionHost.addEventListener('change', function (event) {
+      var target = event.target;
+      if (target && target.matches && target.matches('[data-option-value-default]') && target.checked) {
+        var groupNode = target.closest('[data-option-group-index]');
+        if (groupNode) {
+          groupNode.querySelectorAll('[data-option-value-default]').forEach(function (other) {
+            if (other !== target) other.checked = false;
+          });
+        }
+      }
+      captureOptions();
+    });
+    optionHost.addEventListener('click', function (event) {
+      var groupNode = event.target.closest('[data-option-group-index]'); if (!groupNode) return;
+      var gi = Number(groupNode.getAttribute('data-option-group-index')); captureOptions();
+      if (event.target.closest('[data-option-group-remove]')) { event.preventDefault(); optionGroups.splice(gi,1); renderOptions(); return; }
+      if (event.target.closest('[data-option-value-add]')) { event.preventDefault(); if (optionGroups[gi] && optionGroups[gi].values.length < 30) optionGroups[gi].values.push({name:'',price:0,is_default:false}); renderOptions(); return; }
+      var valueNode = event.target.closest('[data-option-value-index]');
+      if (valueNode && event.target.closest('[data-option-value-remove]')) { event.preventDefault(); var vi = Number(valueNode.getAttribute('data-option-value-index')); if (optionGroups[gi] && optionGroups[gi].values.length > 1) optionGroups[gi].values.splice(vi,1); renderOptions(); }
+    });
+  }
+  document.addEventListener('click', function (event) {
+    if (event.target.closest('[data-pmd-menu-edit], [data-pmd-menu-create], [data-pmd-menu-header-primary]')) window.setTimeout(syncFromCurrentForm, 0);
+  });
+  form.addEventListener('formdata', function (event) {
+    if (!event.formData) return;
+    event.formData.delete('images[]');
+    stagedFiles.forEach(function (file) { event.formData.append('images[]', file, file.name); });
+  });
+  form.addEventListener('submit', function () { captureOptions(); validateGalleryLimit(); }, true);
+  window.setTimeout(syncFromCurrentForm, 0);
+})();
+
+/* PMD_FOOD_IMAGE_FORCE_FRESH_V3 */
+
+
+/* ==========================================================
+   PMD_LOGO_PLACEHOLDER_CONTAIN_V2
+
+   Food photos:
+   - real food photos remain cover/crop
+   - PayMyDine fallback images use contain
+   - Edit Food also displays the PayMyDine fallback when empty
+   ========================================================== */
+
+(function () {
+  'use strict';
+
+  if (window.__PMDLogoPlaceholderContainV2) {
+    return;
+  }
+
+  window.__PMDLogoPlaceholderContainV2 = true;
+
+  var FIT_MARK =
+    'data-pmd-placeholder-contain-v2';
+
+  var MODAL_MARK =
+    'data-pmd-empty-food-placeholder-v2';
+
+  var BRAND_FALLBACK =
+    '/brand/paymydine-logo.svg';
+
+  var scheduled = false;
+
+
+  // PMD_LOGO_PLACEHOLDER_EXACT_V3
+  //
+  // IMPORTANT:
+  // Never classify an image by hostname.
+  //
+  // Real food images are also served from *.paymydine.com, so matching
+  // the word "paymydine" caused EVERY real food photo to become contain.
+  //
+  // The canonical Menu fallback is exactly:
+  // /brand/paymydine-logo.svg
+  function placeholderLike(url) {
+    var value =
+      String(url || '').trim();
+
+    if (!value) {
+      return false;
+    }
+
+    /*
+     * CSS background-image values may arrive as:
+     * url("https://tomo.paymydine.com/brand/paymydine-logo.svg")
+     */
+    var cssMatch =
+      value.match(
+        /url\((['"]?)(.*?)\1\)/i
+      );
+
+    if (cssMatch && cssMatch[2]) {
+      value = cssMatch[2];
+    }
+
+    try {
+      var parsed =
+        new URL(
+          value,
+          window.location.href
+        );
+
+      return (
+        parsed.pathname ===
+        '/brand/paymydine-logo.svg'
+      );
+    } catch (error) {
+      /*
+       * Safe fallback for relative/unusual values.
+       */
+      value =
+        value
+          .split('?')[0]
+          .split('#')[0];
+
+      return (
+        value ===
+          '/brand/paymydine-logo.svg' ||
+        value.endsWith(
+          '/brand/paymydine-logo.svg'
+        )
+      );
+    }
+  }
+
+
+  function imageSource(img) {
+    if (!img) {
+      return '';
+    }
+
+    return String(
+      img.currentSrc ||
+      img.getAttribute('src') ||
+      ''
+    ).trim();
+  }
+
+
+  function fitPlaceholderImage(img) {
+    if (!img) {
+      return;
+    }
+
+    var src = imageSource(img);
+
+    if (!placeholderLike(src)) {
+      return;
+    }
+
+    img.setAttribute(
+      FIT_MARK,
+      '1'
+    );
+
+    /*
+     * Critical fix:
+     * fallback branding is NOT a food photograph.
+     */
+    img.style.setProperty(
+      'object-fit',
+      'contain',
+      'important'
+    );
+
+    img.style.setProperty(
+      'object-position',
+      'center center',
+      'important'
+    );
+
+    img.style.setProperty(
+      'padding',
+      '28px',
+      'important'
+    );
+
+    img.style.setProperty(
+      'box-sizing',
+      'border-box',
+      'important'
+    );
+
+    img.style.setProperty(
+      'background',
+      '#edf2f1',
+      'important'
+    );
+  }
+
+
+  function fitBackgroundPlaceholder(el) {
+    var style =
+      window.getComputedStyle(el);
+
+    var bg =
+      String(
+        style.backgroundImage || ''
+      );
+
+    if (
+      bg === 'none' ||
+      !placeholderLike(bg)
+    ) {
+      return;
+    }
+
+    el.setAttribute(
+      FIT_MARK,
+      '1'
+    );
+
+    el.style.setProperty(
+      'background-size',
+      'contain',
+      'important'
+    );
+
+    el.style.setProperty(
+      'background-position',
+      'center center',
+      'important'
+    );
+
+    el.style.setProperty(
+      'background-repeat',
+      'no-repeat',
+      'important'
+    );
+
+    el.style.setProperty(
+      'background-color',
+      '#edf2f1',
+      'important'
+    );
+  }
+
+
+  function fixMenuCards() {
+    document
+      .querySelectorAll(
+        [
+          '[data-pmd-menu-card] img',
+          '[data-pmd-menu-item-card] img',
+          '.pmd-menu-card img',
+          '.pmd-menu-grid img',
+          '.pmd-menu-manager-card img',
+          '.pmd-menu-food-card img',
+          '.pmd-menu-item-card img'
+        ].join(',')
+      )
+      .forEach(
+        fitPlaceholderImage
+      );
+
+    document
+      .querySelectorAll(
+        [
+          '[data-pmd-menu-card] [style*="background-image"]',
+          '[data-pmd-menu-item-card] [style*="background-image"]',
+          '.pmd-menu-card [style*="background-image"]',
+          '.pmd-menu-manager-card [style*="background-image"]',
+          '.pmd-menu-food-card [style*="background-image"]'
+        ].join(',')
+      )
+      .forEach(
+        fitBackgroundPlaceholder
+      );
+  }
+
+
+  function findVisibleFoodModal() {
+    var nodes =
+      Array.prototype.slice.call(
+        document.querySelectorAll(
+          '[data-pmd-menu-modal], .pmd-menu-modal, [role="dialog"]'
+        )
+      );
+
+    return (
+      nodes.find(function (node) {
+        if (
+          !node ||
+          node.offsetParent === null
+        ) {
+          return false;
+        }
+
+        var text =
+          String(
+            node.textContent || ''
+          ).toLowerCase();
+
+        return (
+          text.indexOf('edit food') !== -1 ||
+          text.indexOf('create food') !== -1 ||
+          text.indexOf('menu item') !== -1
+        );
+      }) || null
+    );
+  }
+
+
+  function findPhotoSection(modal) {
+    if (!modal) {
+      return null;
+    }
+
+    var sections =
+      Array.prototype.slice.call(
+        modal.querySelectorAll(
+          '.pmd-menu-form__section'
+        )
+      );
+
+    return (
+      sections.find(function (section) {
+        var text =
+          String(
+            section.textContent || ''
+          ).trim().toLowerCase();
+
+        return (
+          text.indexOf('photos') === 0 ||
+          text.indexOf('photo') === 0
+        );
+      }) || null
+    );
+  }
+
+
+  function sectionHasRealFoodImage(section) {
+    if (!section) {
+      return false;
+    }
+
+    return Array.prototype
+      .slice.call(
+        section.querySelectorAll(
+          'img[src]'
+        )
+      )
+      .some(function (img) {
+        var src =
+          imageSource(img);
+
+        if (!src) {
+          return false;
+        }
+
+        if (
+          img.closest(
+            '[' + MODAL_MARK + ']'
+          )
+        ) {
+          return false;
+        }
+
+        return !placeholderLike(src);
+      });
+  }
+
+
+  function removeInjectedFallback(section) {
+    if (!section) {
+      return;
+    }
+
+    section
+      .querySelectorAll(
+        '[' + MODAL_MARK + ']'
+      )
+      .forEach(function (node) {
+        node.remove();
+      });
+  }
+
+
+  function createEditFallback() {
+    var shell =
+      document.createElement('div');
+
+    shell.setAttribute(
+      MODAL_MARK,
+      '1'
+    );
+
+    shell.setAttribute(
+      'aria-label',
+      'PayMyDine food image placeholder'
+    );
+
+    shell.style.cssText = [
+      'width:176px',
+      'height:120px',
+      'flex:0 0 176px',
+      'display:flex',
+      'align-items:center',
+      'justify-content:center',
+      'overflow:hidden',
+      'border:1px solid #d7e3e6',
+      'border-radius:15px',
+      'background:#edf2f1',
+      'box-sizing:border-box'
+    ].join(';');
+
+    var image =
+      document.createElement('img');
+
+    image.src =
+      BRAND_FALLBACK;
+
+    image.alt =
+      'PayMyDine';
+
+    image.style.cssText = [
+      'display:block',
+      'width:76%',
+      'height:76%',
+      'object-fit:contain',
+      'object-position:center',
+      'box-sizing:border-box'
+    ].join(';');
+
+    shell.appendChild(
+      image
+    );
+
+    return shell;
+  }
+
+
+  function ensureEditFoodFallback() {
+    // PMD_EDIT_FOOD_NATIVE_SINGLE_AUTHORITY_V2
+    //
+    // The server-rendered .pmd-menu-form__preview-placeholder is now
+    // the only Edit Food empty-image authority.
+    //
+    // Keep the old implementation below unreachable for rollback
+    // context, but do not inject/remove a second placeholder.
+    return;
+    var modal =
+      findVisibleFoodModal();
+
+    if (!modal) {
+      return;
+    }
+
+    var section =
+      findPhotoSection(modal);
+
+    if (!section) {
+      return;
+    }
+
+    /*
+     * Existing placeholder supplied by canonical Menu runtime:
+     * just make it fit correctly.
+     */
+    section
+      .querySelectorAll(
+        'img[src]'
+      )
+      .forEach(
+        fitPlaceholderImage
+      );
+
+    if (
+      sectionHasRealFoodImage(
+        section
+      )
+    ) {
+      removeInjectedFallback(
+        section
+      );
+
+      return;
+    }
+
+    if (
+      section.querySelector(
+        '[' + MODAL_MARK + ']'
+      )
+    ) {
+      return;
+    }
+
+    /*
+     * Prefer the image-row so the fallback sits exactly where
+     * a normal food preview lives.
+     */
+    var row =
+      section.querySelector(
+        '.pmd-menu-form__image-row'
+      );
+
+    var fallback =
+      createEditFallback();
+
+    if (row) {
+      row.insertBefore(
+        fallback,
+        row.firstChild
+      );
+
+      return;
+    }
+
+    section.insertBefore(
+      fallback,
+      section.firstChild
+    );
+  }
+
+
+  function run() {
+    fixMenuCards();
+    ensureEditFoodFallback();
+  }
+
+
+  function schedule() {
+    if (scheduled) {
+      return;
+    }
+
+    scheduled = true;
+
+    window.requestAnimationFrame(
+      function () {
+        scheduled = false;
+        run();
+      }
+    );
+  }
+
+
+  document.addEventListener(
+    'DOMContentLoaded',
+    schedule
+  );
+
+  window.addEventListener(
+    'load',
+    schedule
+  );
+
+  document.addEventListener(
+    'click',
+    schedule,
+    true
+  );
+
+
+  var observer =
+    new MutationObserver(
+      schedule
+    );
+
+  observer.observe(
+    document.documentElement,
+    {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: [
+        'src',
+        'style',
+        'class'
+      ]
+    }
+  );
+
+  schedule();
+
+}());
+

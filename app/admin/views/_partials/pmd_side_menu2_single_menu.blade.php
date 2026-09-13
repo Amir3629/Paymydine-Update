@@ -165,9 +165,9 @@
             <span class="pmd-sm2__label">{{ $pmdSm2T('nav.shifts', 'Shifts') }}</span>
         </a>
         @endif
-        <a class="pmd-sm2__item {{ $pmdActive(['coupons']) ? 'is-active' : '' }}" href="{{ admin_url('coupons') }}">
+        <a class="pmd-sm2__item {{ $pmdActive(['discounts', 'coupons']) ? 'is-active' : '' }}" href="/admin/discounts">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5v2M15 11v2M15 17v2M5 5h14a2 2 0 0 1 2 2v3a2 2 0 0 0 0 4v3a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-3a2 2 0 0 0 0 -4v-3a2 2 0 0 1 2 -2"/></svg>
-            <span class="pmd-sm2__label">{{ $pmdSm2T('nav.coupons_gifts', 'Coupons & Gifts') }}</span>
+            <span class="pmd-sm2__label">{{ $pmdSm2T('nav.coupons_gifts', 'Discount') }}</span>
         </a>
 
         <a class="pmd-sm2__item {{ $pmdActive(['pmdmenus', 'menus']) ? 'is-active' : '' }}" href="{{ admin_url('menu') }}">

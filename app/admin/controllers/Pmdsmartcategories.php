@@ -209,6 +209,77 @@ class Pmdsmartcategories extends AdminController
 
         try {
             $savedId = DB::transaction(function () use ($categoryId, $kind, $name, $menuIds) {
+                // PMD_CATEGORY_COMBO_INTEGRITY_V2
+                //
+                // Special Category types are singleton authorities.
+                // The older preflight check happens before this transaction,
+                // which leaves a race window for simultaneous save requests.
+                // Serialize Category writes and repeat the uniqueness checks
+                // inside the transaction before creating the row.
+                $lockedCategories = DB::table('categories')
+                    ->orderBy('category_id')
+                    ->lockForUpdate()
+                    ->get([
+                        'category_id',
+                        'name',
+                        'pmd_kind',
+                    ]);
+
+                $normalizeCategoryName = static function ($value): string {
+                    $value = preg_replace(
+                        '/\s+/u',
+                        ' ',
+                        trim((string)$value)
+                    ) ?? '';
+
+                    return function_exists('mb_strtolower')
+                        ? mb_strtolower($value, 'UTF-8')
+                        : strtolower($value);
+                };
+
+                $wantedName =
+                    $normalizeCategoryName($name);
+
+                foreach ($lockedCategories as $lockedCategory) {
+                    $lockedId =
+                        (int)($lockedCategory->category_id ?? 0);
+
+                    if (
+                        $categoryId
+                        && $lockedId === (int)$categoryId
+                    ) {
+                        continue;
+                    }
+
+                    if (
+                        $normalizeCategoryName(
+                            $lockedCategory->name ?? ''
+                        ) === $wantedName
+                    ) {
+                        throw new \DomainException(
+                            'A category with this name already exists.'
+                        );
+                    }
+
+                    $lockedKind = strtolower(
+                        trim(
+                            (string)(
+                                $lockedCategory->pmd_kind
+                                ?? 'regular'
+                            )
+                        )
+                    );
+
+                    if (
+                        $kind !== 'regular'
+                        && $lockedKind === $kind
+                    ) {
+                        throw new \DomainException(
+                            'This special category already exists. Edit the existing category instead.'
+                        );
+                    }
+                }
+
                 $category = $categoryId
                     ? Categories_model::query()->find($categoryId)
                     : new Categories_model;

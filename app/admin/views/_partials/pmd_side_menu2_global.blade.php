@@ -102,6 +102,16 @@
 
     $pmdIsSettingsSuiteRoute = $pmdIsSettingsSuiteRoute || $pmdIsDeviceSettingsSuiteRoute;
 
+    // PMD_MENU_STATIC_FIRST_PAINT_V1
+    $pmdIsMenuManagerStaticRoute = in_array(
+        $pmdPath,
+        [
+            'admin/menu',
+            'admin/pmdmenus',
+        ],
+        true
+    );
+
 
     $pmdActive = function ($paths) use ($pmdPath) {
         foreach ((array) $paths as $path) {
@@ -148,6 +158,16 @@
     @if($pmdIsSettingsSuiteRoute)
     document.documentElement.classList.add(
         'pmd-settings-suite-route-v5'
+    );
+    @endif
+
+    @if($pmdIsMenuManagerStaticRoute)
+    /*
+     * PMD_MENU_STATIC_FIRST_PAINT_V1
+     * Server-known Menu route: publish final shell state before paint.
+     */
+    document.documentElement.classList.add(
+        'pmd-menu-static-shell-v1'
     );
     @endif
 
@@ -756,6 +776,134 @@
 
 @include('admin::_partials.pmd_side_menu2_single_style')
 
+@if($pmdIsMenuManagerStaticRoute)
+<!-- PMD_MENU_STATIC_FIRST_PAINT_V1_START -->
+<style id="pmd-menu-static-shell-first-paint-v1">
+
+  /*
+   * Match pmd-admin-exact-layout's FINAL Menu geometry before
+   * deferred JavaScript gets a chance to run.
+   */
+
+  html.pmd-menu-static-shell-v1,
+  html.pmd-menu-static-shell-v1 body {
+    margin-left: 0 !important;
+    padding-left: 0 !important;
+    overflow-x: hidden !important;
+  }
+
+  html.pmd-menu-static-shell-v1 .page-wrapper,
+  html.pmd-menu-static-shell-v1 .page-content,
+  html.pmd-menu-static-shell-v1 .navbar-top,
+  html.pmd-menu-static-shell-v1 .navbar-fixed-top {
+    transform: none !important;
+    transition: none !important;
+    animation: none !important;
+  }
+
+  @media (min-width: 821px) {
+
+    html.pmd-menu-static-shell-v1.pmd-sm2-collapsed
+    .page-wrapper {
+      position: absolute !important;
+      left: 86px !important;
+      right: auto !important;
+      margin-left: 0 !important;
+      margin-right: 0 !important;
+      padding-left: 0 !important;
+      padding-right: 0 !important;
+      width: calc(100vw - 86px) !important;
+      min-width: 0 !important;
+      max-width: none !important;
+      box-sizing: border-box !important;
+      overflow-x: hidden !important;
+      transform: none !important;
+      transition: none !important;
+    }
+
+    html.pmd-menu-static-shell-v1.pmd-sm2-expanded
+    .page-wrapper {
+      position: absolute !important;
+      left: 198px !important;
+      right: auto !important;
+      margin-left: 0 !important;
+      margin-right: 0 !important;
+      padding-left: 0 !important;
+      padding-right: 0 !important;
+      width: calc(100vw - 198px) !important;
+      min-width: 0 !important;
+      max-width: none !important;
+      box-sizing: border-box !important;
+      overflow-x: hidden !important;
+      transform: none !important;
+      transition: none !important;
+    }
+
+    html.pmd-menu-static-shell-v1
+    .page-content {
+      position: relative !important;
+      left: 0 !important;
+      right: auto !important;
+      margin-left: 0 !important;
+      margin-right: 0 !important;
+      padding-left: 14px !important;
+      padding-right: 14px !important;
+      width: 100% !important;
+      min-width: 0 !important;
+      max-width: none !important;
+      box-sizing: border-box !important;
+      overflow-x: hidden !important;
+      transform: none !important;
+      transition: none !important;
+    }
+
+    html.pmd-menu-static-shell-v1.pmd-sm2-collapsed
+    :is(.navbar-top, .navbar-fixed-top) {
+      left: 86px !important;
+      right: 0 !important;
+      width: calc(100vw - 86px) !important;
+      margin-left: 0 !important;
+      max-width: none !important;
+      box-sizing: border-box !important;
+      transition: none !important;
+    }
+
+    html.pmd-menu-static-shell-v1.pmd-sm2-expanded
+    :is(.navbar-top, .navbar-fixed-top) {
+      left: 198px !important;
+      right: 0 !important;
+      width: calc(100vw - 198px) !important;
+      margin-left: 0 !important;
+      max-width: none !important;
+      box-sizing: border-box !important;
+      transition: none !important;
+    }
+  }
+
+  @media (max-width: 820px) {
+    html.pmd-menu-static-shell-v1
+    .page-wrapper,
+    html.pmd-menu-static-shell-v1
+    .page-content,
+    html.pmd-menu-static-shell-v1
+    .navbar-top,
+    html.pmd-menu-static-shell-v1
+    .navbar-fixed-top {
+      transition: none !important;
+      animation: none !important;
+    }
+
+    html.pmd-menu-static-shell-v1
+    .page-content {
+      padding-left: 10px !important;
+      padding-right: 10px !important;
+    }
+  }
+
+</style>
+<!-- PMD_MENU_STATIC_FIRST_PAINT_V1_END -->
+@endif
+
 @if($pmdPath === 'admin/dashboard2')
 <!-- PMD_DASHBOARD2_STATIC_SHELL_FIRST_PAINT_V1_START -->
 <style id="pmd-dashboard2-static-shell-first-paint-v1">
@@ -857,7 +1005,7 @@
 ></script>
 
 <script
-    src="/app/admin/assets/js/pmd-admin-exact-layout-v1.js?v=sha-516ef29c7589"
+    src="/app/admin/assets/js/pmd-admin-exact-layout-v1.js?v={{ @filemtime(base_path('app/admin/assets/js/pmd-admin-exact-layout-v1.js')) ?: 1 }}"
     defer
 ></script>
 @endif

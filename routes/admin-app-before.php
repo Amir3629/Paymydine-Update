@@ -422,6 +422,9 @@ App::before(function () {
                     'reservationslab' =>
                         'reservations',
 
+                    'coupons' =>
+                        'discounts',
+
                     'pmdmenus' =>
                         'menu',
 
@@ -479,6 +482,9 @@ App::before(function () {
                 }
 
                 $prefixMap = [
+                    'coupons/' =>
+                        'discounts/',
+
                     'pmdmenus/' =>
                         'menu/',
 
@@ -1047,9 +1053,75 @@ App::before(function () {
         }
 
         /*
+         * PMD_DISCOUNTS_CANONICAL_URL_R1
+         *
+         * Owner-facing browser authority:
+         *     /admin/discounts
+         *
+         * /admin/coupons remains available to POST/AJAX backend authority,
+         * but old browser GET/HEAD requests are canonicalized.
+         */
+        Route::match(
+            ['GET', 'HEAD'],
+            'coupons',
+            static function (Request $request) {
+                $adminUri = trim(
+                    (string)config('system.adminUri', 'admin'),
+                    '/'
+                );
+
+                $next = '/'.$adminUri.'/discounts';
+
+                $query = trim(
+                    (string)$request->getQueryString()
+                );
+
+                if ($query !== '') {
+                    $next .= '?'.$query;
+                }
+
+                return redirect($next, 302);
+            }
+        );
+
+        Route::match(
+            ['GET', 'HEAD'],
+            'coupons/{pmdDiscountLegacyTailR1}',
+            static function (
+                Request $request,
+                string $pmdDiscountLegacyTailR1
+            ) {
+                $adminUri = trim(
+                    (string)config('system.adminUri', 'admin'),
+                    '/'
+                );
+
+                $next =
+                    '/'.$adminUri.'/discounts/'.
+                    trim($pmdDiscountLegacyTailR1, '/');
+
+                $query = trim(
+                    (string)$request->getQueryString()
+                );
+
+                if ($query !== '') {
+                    $next .= '?'.$query;
+                }
+
+                return redirect($next, 302);
+            }
+        )->where(
+            'pmdDiscountLegacyTailR1',
+            '.*'
+        );
+
+        /*
          * Clean non-collision prefixes.
          */
         $__pmdPrefixRoutesR81E = [
+            'discounts' =>
+                'coupons',
+
             'menu' =>
                 'pmdmenus',
 
@@ -2175,7 +2247,61 @@ Route::group([
         ];
     };
 
+    // PMD_PAYMENT_AVAILABILITY_LOCAL_ONLY_R1
+    // Public menu/bootstrap reads must never wait on an external payment provider.
+    // Method/provider rows are the last synced local availability snapshot.
+    // Authoritative provider checks still happen when a payment is actually created,
+    // while the explicit VR diagnostics endpoint keeps the deep connectivity probe.
     $resolveVRPaymentRuntimeReadiness = function () use ($loadProviderRecordsFromPayments): array {
+        $providerRecords = $loadProviderRecordsFromPayments();
+        $providerRow = (array)$providerRecords->get('vr_payment', []);
+        $providerRecordEnabled = (bool)($providerRow['enabled'] ?? false);
+
+        $service = app(\Admin\Classes\VRPaymentGatewayService::class);
+        $config = $service->getConfig();
+
+        $configEnabled = (bool)($config['enabled'] ?? false);
+        $credentialsPresent =
+            trim((string)($config['space_id'] ?? '')) !== ''
+            && trim((string)($config['user_id'] ?? '')) !== ''
+            && trim((string)($config['auth_key'] ?? '')) !== '';
+
+        $locallyReady = $providerRecordEnabled && $configEnabled && $credentialsPresent;
+
+        return [
+            'provider_enabled' => $providerRecordEnabled && $configEnabled,
+            'mode' => (string)($config['mode'] ?? 'test'),
+            'integration_mode_valid' => true,
+            'credentials_present' => $credentialsPresent,
+            'config_presence' => [
+                'api_base_url' => trim((string)($config['api_base_url'] ?? '')) !== '',
+                'space_id' => trim((string)($config['space_id'] ?? '')) !== '',
+                'user_id' => trim((string)($config['user_id'] ?? '')) !== '',
+                'auth_key' => trim((string)($config['auth_key'] ?? '')) !== '',
+            ],
+            'card_ready' => $locallyReady,
+            'apple_pay_ready' => $locallyReady,
+            'google_pay_ready' => $locallyReady,
+            'paypal_ready' => $locallyReady,
+            'wero_ready' => $locallyReady,
+            'card_enabled' => $locallyReady,
+            'apple_pay_enabled' => $locallyReady,
+            'google_pay_enabled' => $locallyReady,
+            'paypal_enabled' => $locallyReady,
+            'wero_enabled' => $locallyReady,
+            'any_ready' => $locallyReady,
+            'terminal_ready' => false,
+            'terminal_count' => 0,
+            'connectivity' => [
+                'ok' => null,
+                'connected' => null,
+                'skipped' => true,
+                'reason' => 'public_runtime_local_snapshot',
+            ],
+        ];
+    };
+
+    $resolveVRPaymentRuntimeDiagnostics = function () use ($loadProviderRecordsFromPayments): array {
         $providerRecords = $loadProviderRecordsFromPayments();
         $providerRow = (array)$providerRecords->get('vr_payment', []);
         $providerEnabled = (bool)($providerRow['enabled'] ?? false);
@@ -2525,7 +2651,7 @@ Route::group([
         ], 200);
     });
 
-    Route::get('/payments/vr-payment/diagnostics', function () use ($resolveRuntimeMethodCollection, $resolveVRPaymentRuntimeReadiness) {
+    Route::get('/payments/vr-payment/diagnostics', function () use ($resolveRuntimeMethodCollection, $resolveVRPaymentRuntimeDiagnostics) {
         $runtime = $resolveRuntimeMethodCollection(true);
         $lastSession = null;
         $lastWebhook = null;
@@ -2535,7 +2661,7 @@ Route::group([
         if (\Illuminate\Support\Facades\Schema::hasTable('vr_payment_webhook_events')) {
             $lastWebhook = \Illuminate\Support\Facades\DB::table('vr_payment_webhook_events')->orderByDesc('processed_at')->first();
         }
-        $readiness = $resolveVRPaymentRuntimeReadiness();
+        $readiness = $resolveVRPaymentRuntimeDiagnostics();
         $methodTrace = collect($runtime['trace'] ?? [])->keyBy('method');
         $methodMappings = collect($runtime['methods'] ?? [])
             ->map(fn ($m) => [

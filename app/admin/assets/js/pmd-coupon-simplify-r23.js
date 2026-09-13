@@ -20,7 +20,8 @@
     var filterToggleBound = false;
 
     function isCouponPage() {
-        return String(window.location.pathname || '').replace(/\/+$/, '') === '/admin/coupons';
+        var path = String(window.location.pathname || '').replace(/\/+$/, '');
+        return path === '/admin/discounts' || path === '/admin/coupons';
     }
 
     function localeCopy() {

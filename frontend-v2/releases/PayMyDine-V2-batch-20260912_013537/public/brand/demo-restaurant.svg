@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 120" role="img" aria-labelledby="title">
+  <title id="title">Restaurant logo</title>
+  <rect width="240" height="120" rx="28" fill="#f6f1e8"/>
+  <circle cx="72" cy="60" r="34" fill="none" stroke="#1c4b42" stroke-width="5"/>
+  <path d="M62 41v38M54 41v16c0 8 16 8 16 0V41M84 41v38" fill="none" stroke="#1c4b42" stroke-width="4" stroke-linecap="round"/>
+  <text x="116" y="57" fill="#1c4b42" font-family="Georgia, serif" font-size="23" font-weight="700">YOUR</text>
+  <text x="116" y="82" fill="#9b7139" font-family="Arial, sans-serif" font-size="13" letter-spacing="3">RESTAURANT</text>
+</svg>

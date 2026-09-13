@@ -3,7 +3,7 @@
 namespace Admin\Traits;
 
 /**
- * PMD_MENU_IMAGE_QUALITY_V2_SOFT_ADVISORY
+ * PMD_MENU_IMAGE_QUALITY_V3_PREOPTIMIZE_LARGE_SOURCE
  *
  * Technical quality advisory for restaurant food photos.
  * Aspect ratio is never rejected because the ten customer themes use different
@@ -11,10 +11,13 @@ namespace Admin\Traits;
  *
  * Hard checks are limited to things that can break or overload the upload path:
  * - valid JPG / PNG / WEBP image
- * - <= 5 MB upload
+ * - bounded source upload (20 MB by default)
  * - readable image data
  * - <= 24 megapixels to keep processing predictable
+ * - normalized/stored image <= 5 MB by default
  *
+ * Large camera/phone images are allowed through the source boundary specifically
+ * so they can be downscaled/re-encoded before the stored-file limit is applied.
  * Low resolution, blur, exposure and obvious graphic/QR-like characteristics
  * are advisory only. The owner may still save the photo.
  *
@@ -32,8 +35,16 @@ trait PmdMenuImageQualityV1
         $originalName = basename((string)$file->getClientOriginalName());
         $originalName = mb_substr($originalName !== '' ? $originalName : 'photo', 0, 120);
 
-        if ((int)$file->getSize() > 5 * 1024 * 1024) {
-            throw new \RuntimeException('Photo "'.$originalName.'" is larger than 5 MB.');
+        $sourceMaxMb = max(5, min(50, (int)config('pmd_images.menu_source_max_mb', 20)));
+        $storedMaxMb = max(1, min(20, (int)config('pmd_images.menu_stored_max_mb', 5)));
+        $sourceMaxBytes = $sourceMaxMb * 1024 * 1024;
+        $storedMaxBytes = $storedMaxMb * 1024 * 1024;
+        $sourceBytes = (int)$file->getSize();
+
+        if ($sourceBytes > $sourceMaxBytes) {
+            throw new \RuntimeException(
+                'Photo "'.$originalName.'" is larger than '.$sourceMaxMb.' MB. Please choose a smaller original.'
+            );
         }
 
         $mime = strtolower((string)$file->getMimeType());
@@ -56,10 +67,11 @@ trait PmdMenuImageQualityV1
         $width = (int)$info[0];
         $height = (int)$info[1];
         $pixels = $width * $height;
+        $maxPixels = max(1000000, (int)config('pmd_images.max_pixels', 24000000));
 
         // No aspect-ratio rule on purpose.
         // Low resolution is advisory only; it does not block the owner.
-        if ($pixels > 24000000) {
+        if ($pixels > $maxPixels) {
             throw new \RuntimeException('Photo "'.$originalName.'" is too large to process safely. Please export a normal-sized copy.');
         }
 
@@ -77,9 +89,25 @@ trait PmdMenuImageQualityV1
         }
         $qualityWarnings = array_values(array_unique($qualityWarnings));
 
+        // Important ordering: optimize FIRST, then enforce the persisted-size
+        // boundary. The previous implementation rejected >5 MB sources before
+        // WebP conversion, making the optimizer useless for the files that most
+        // needed it.
         $optimized = $this->optimizePmdMenuImageUploadV1($path, $mime);
         if ($optimized) {
             clearstatcache(true, $path);
+        }
+
+        $preparedBytes = is_file($path) ? max(0, (int)@filesize($path)) : 0;
+        if ($preparedBytes < 1) {
+            throw new \RuntimeException('Photo "'.$originalName.'" could not be prepared for upload.');
+        }
+
+        if ($preparedBytes > $storedMaxBytes) {
+            $message = $optimized
+                ? 'Photo "'.$originalName.'" is still larger than '.$storedMaxMb.' MB after optimization.'
+                : 'Photo "'.$originalName.'" is larger than '.$storedMaxMb.' MB and could not be optimized safely.';
+            throw new \RuntimeException($message);
         }
 
         return [
@@ -87,6 +115,8 @@ trait PmdMenuImageQualityV1
             'height' => $height,
             'pixels' => $pixels,
             'mime' => strtolower((string)$file->getMimeType()),
+            'source_bytes' => $sourceBytes,
+            'prepared_bytes' => $preparedBytes,
             'analysis' => $analysis,
             'quality_warnings' => $qualityWarnings,
             'optimized' => $optimized,

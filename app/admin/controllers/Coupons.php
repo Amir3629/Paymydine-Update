@@ -23,30 +23,30 @@ class Coupons extends AdminController
     public $listConfig = [
         'list' => [
             'model' => 'Admin\\Models\\Coupons_model',
-            'title' => 'Coupons & Gift Cards',
-            'emptyMessage' => 'No coupons or gift cards found',
+            'title' => 'Discounts & Gift Cards',
+            'emptyMessage' => 'No discounts or gift cards found',
             'defaultSort' => ['coupon_id', 'DESC'],
             'configFile' => 'coupons_model',
         ],
     ];
 
     public $formConfig = [
-        'name' => 'Coupon / Gift Card',
+        'name' => 'Discount / Gift Card',
         'model' => 'Admin\\Models\\Coupons_model',
         'create' => [
-            'title' => 'Create Coupon / Gift Card',
+            'title' => 'Create Discount / Gift Card',
             'redirect' => 'coupons/edit/{coupon_id}',
             'redirectClose' => 'coupons',
             'redirectNew' => 'coupons/create',
         ],
         'edit' => [
-            'title' => 'Edit Coupon / Gift Card',
+            'title' => 'Edit Discount / Gift Card',
             'redirect' => 'coupons/edit/{coupon_id}',
             'redirectClose' => 'coupons',
             'redirectNew' => 'coupons/create',
         ],
         'preview' => [
-            'title' => 'Preview Coupon / Gift Card',
+            'title' => 'Preview Discount / Gift Card',
             'redirect' => 'coupons',
         ],
         'delete' => [
@@ -65,7 +65,9 @@ class Coupons extends AdminController
         $this->addCss('css/pmd-owner-settings-v1.css');
         $this->addCss('css/pmd-settings-suite-first-paint-v1.css');
         $this->addCss('css/pmd-coupon-manager-v13.css');
+        $this->addCss('css/pmd-coupon-stable-r24.css');
         $this->addJs('js/pmd-coupon-manager-v13.js');
+        $this->addJs('js/pmd-coupon-stable-r24.js');
 
         AdminMenu::setContext('coupons', 'marketing');
     }
@@ -78,8 +80,8 @@ class Coupons extends AdminController
      */
     public function index()
     {
-        Template::setTitle('Coupons');
-        Template::setHeading('Coupons');
+        Template::setTitle('Discounts');
+        Template::setHeading('Discounts');
 
         $this->preparePmdCouponWorkspace();
 

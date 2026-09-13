@@ -18,7 +18,7 @@
     '/admin/orders',
     '/admin/reservations',
     '/admin/shifts',
-    '/admin/coupons',
+    '/admin/discounts',
     '/admin/menu',
     '/admin/settings',
     '/admin/settings/restaurant',

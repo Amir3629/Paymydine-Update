@@ -359,18 +359,138 @@
       });
   }
 
+  // PMD_FOOD_IMAGE_ZERO_BLINK_V1
+  //
+  // The Menu Manager already places the known cover image into the
+  // primary preview before this gallery runtime executes.
+  //
+  // Do NOT clear that already-loaded image while /api/v1/menu is
+  // loading. Keep it visible and use the same URL as a temporary
+  // gallery thumbnail until the canonical gallery response arrives.
+  function currentPrimaryPreviewUrl() {
+    if (!imagePreview) return '';
+
+    var src = String(
+      imagePreview.currentSrc
+      || imagePreview.getAttribute('src')
+      || ''
+    ).trim();
+
+    if (
+      !src
+      || src.indexOf('/brand/paymydine-logo.svg') !== -1
+      || src.indexOf('data:') === 0
+      || src.indexOf('blob:') === 0
+    ) {
+      return '';
+    }
+
+    return src;
+  }
+
+  function renderWarmGalleryPreview(url) {
+    if (!galleryHost) return;
+
+    if (!url) {
+      galleryHost.innerHTML = '';
+      return;
+    }
+
+    galleryHost.innerHTML =
+      '<div class="pmd-menu-gallery-editor__grid" data-pmd-gallery-warm-preview>' +
+        '<div class="pmd-menu-gallery-editor__item is-cover" style="pointer-events:none" aria-hidden="true">' +
+          '<img src="' + esc(url) + '" alt="Food cover preview">' +
+          '<span class="pmd-menu-gallery-editor__cover-action">Cover</span>' +
+        '</div>' +
+      '</div>';
+  }
+
   function syncFromCurrentForm() {
     var token = ++loadToken;
-    removedPaths.clear(); currentImages = []; optionGroups = []; stagedFiles = []; coverSelection = null;
-    if (imageInput) { imageInput.value = ''; imageInput.setCustomValidity(''); syncStagedFilesToInput(); }
-    var present = form.querySelector('input[data-pmd-menu-options-present]'); if (present) present.remove();
-    renderGallery(); renderOptions();
-    var idField = form.querySelector('[data-pmd-menu-id]'); var id = idField ? String(idField.value || '') : '';
-    if (!id) { ensureHidden('pmd_menu_options_present', '1', 'data-pmd-menu-options-present'); return; }
+
+    var idField = form.querySelector('[data-pmd-menu-id]');
+    var id = idField
+      ? String(idField.value || '')
+      : '';
+
+    /*
+     * Capture the image BEFORE gallery state is reset.
+     * pmd-menu-manager-v129 already populated this preview.
+     */
+    var warmPreviewUrl = id
+      ? currentPrimaryPreviewUrl()
+      : '';
+
+    removedPaths.clear();
+    currentImages = [];
+    optionGroups = [];
+    stagedFiles = [];
+    coverSelection = null;
+
+    if (imageInput) {
+      imageInput.value = '';
+      imageInput.setCustomValidity('');
+      syncStagedFilesToInput();
+    }
+
+    var present = form.querySelector(
+      'input[data-pmd-menu-options-present]'
+    );
+
+    if (present) present.remove();
+
+    /*
+     * IMPORTANT:
+     *
+     * Previously renderGallery() ran here with currentImages=[].
+     * renderGallery() then called updatePrimaryPreview(''),
+     * which caused the visible flash/blank image.
+     *
+     * Reset gallery form state without touching the already-known
+     * primary preview.
+     */
+    syncRemoveInputs();
+    syncCoverInput();
+    validateGalleryLimit();
+
+    renderWarmGalleryPreview(warmPreviewUrl);
+    renderOptions();
+
+    if (!id) {
+      ensureHidden(
+        'pmd_menu_options_present',
+        '1',
+        'data-pmd-menu-options-present'
+      );
+      return;
+    }
+
+    /*
+     * Full gallery + options still load from the existing canonical
+     * endpoint. When they arrive renderGallery() replaces the warm
+     * thumbnail with the real interactive gallery.
+     */
     loadExistingItem(id, token).catch(function (error) {
       if (token !== loadToken) return;
-      currentImages = []; optionGroups = [];
-      renderGallery(error.message || 'Please retry.'); renderOptions(error.message || 'Please retry.');
+
+      currentImages = [];
+      optionGroups = [];
+
+      /*
+       * A failed gallery request must never remove the already-visible
+       * cover preview.
+       */
+      if (galleryHost && warmPreviewUrl) {
+        renderWarmGalleryPreview(warmPreviewUrl);
+      } else {
+        renderGallery(
+          error.message || 'Please retry.'
+        );
+      }
+
+      renderOptions(
+        error.message || 'Please retry.'
+      );
     });
   }
 

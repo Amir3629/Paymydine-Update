@@ -79,6 +79,9 @@
             type="button"
             class="pmd-dashboard-lab__header-action"
             data-pmd-coupon-create
+            style="display:none!important"
+            aria-hidden="true"
+            tabindex="-1"
             aria-label="{{ $pmdT('create') }}"
             title="{{ $pmdT('create') }}"
         >
@@ -648,7 +651,139 @@
             @endforeach
         </div>
 
+
+        <style data-pmd-discount-smart-add-server-style>
+            body.pmd-coupon-manager-page
+            [data-pmd-discount-smart-add-server] {
+                position: relative !important;
+                inset: auto !important;
+                float: none !important;
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: center !important;
+                justify-content: center !important;
+                gap: 13px !important;
+                width: 100% !important;
+                min-width: 0 !important;
+                min-height: 260px !important;
+                margin: 0 !important;
+                padding: 24px !important;
+                box-sizing: border-box !important;
+                border: 1.5px dashed #9dc4c7 !important;
+                border-radius: 16px !important;
+                background: #f8fcfc !important;
+                color: #174d50 !important;
+                text-align: center !important;
+                cursor: pointer !important;
+                box-shadow: none !important;
+                user-select: none !important;
+                -webkit-user-select: none !important;
+            }
+
+            body.pmd-coupon-manager-page
+            [data-pmd-discount-smart-add-server]:hover,
+            body.pmd-coupon-manager-page
+            [data-pmd-discount-smart-add-server]:focus-visible {
+                border-color: #5e9fa1 !important;
+                background: #f2f9f8 !important;
+                outline: none !important;
+                box-shadow: 0 0 0 3px rgba(50,130,130,.08) !important;
+            }
+
+            body.pmd-coupon-manager-page
+            [data-pmd-discount-smart-add-server]
+            .pmd-smart-add-card__plus {
+                display: grid !important;
+                place-items: center !important;
+                width: 54px !important;
+                min-width: 54px !important;
+                height: 54px !important;
+                min-height: 54px !important;
+                margin: 0 !important;
+                padding: 0 0 3px !important;
+                border: 1px solid #b8d7d7 !important;
+                border-radius: 999px !important;
+                background: #fff !important;
+                color: #174d50 !important;
+                font-size: 32px !important;
+                font-weight: 400 !important;
+                line-height: 1 !important;
+            }
+
+            body.pmd-coupon-manager-page
+            [data-pmd-discount-smart-add-server]
+            .pmd-smart-add-card__copy {
+                display: block !important;
+                width: 100% !important;
+            }
+
+            body.pmd-coupon-manager-page
+            [data-pmd-discount-smart-add-server]
+            .pmd-smart-add-card__copy strong {
+                display: block !important;
+                margin: 0 !important;
+                color: #173752 !important;
+                font-size: 17px !important;
+                font-weight: 800 !important;
+                line-height: 1.3 !important;
+            }
+
+            body.pmd-coupon-manager-page
+            [data-pmd-discount-smart-add-server]
+            .pmd-smart-add-card__copy small {
+                display: block !important;
+                margin: 5px 0 0 !important;
+                color: #718690 !important;
+                font-size: 12px !important;
+                line-height: 1.4 !important;
+            }
+
+            @media (max-width: 760px) {
+                body.pmd-coupon-manager-page
+                [data-pmd-discount-smart-add-server] {
+                    min-height: 190px !important;
+                }
+            }
+        </style>
+
         <div class="pmd-coupon-manager__grid" data-pmd-coupon-grid>
+            <div
+                class="pmd-smart-add-card pmd-coupon-smart-add-card"
+                role="button"
+                tabindex="0"
+                aria-disabled="false"
+                data-pmd-smart-action="discount"
+                data-pmd-coupon-smart-add-r24
+                data-pmd-discount-smart-add-server
+                onclick="var b=document.querySelector('#pmd-r2-clean-header [data-pmd-coupon-create]');if(b){b.click();}"
+                onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}"
+            >
+                <span
+                    class="pmd-smart-add-card__plus"
+                    data-pmd-smart-add-icon
+                    aria-hidden="true"
+                >+</span>
+
+                <span class="pmd-smart-add-card__copy">
+                    <strong data-pmd-smart-add-title>
+                        {{ \Admin\Classes\PmdPlatformI18n::translate(
+                            'coupons.smart_add.title',
+                            [],
+                            $pmdCouponLocale,
+                            'Add new discount / card'
+                        ) }}
+                    </strong>
+
+                    <small data-pmd-smart-add-help>
+                        {{ \Admin\Classes\PmdPlatformI18n::translate(
+                            'coupons.smart_add.help',
+                            [],
+                            $pmdCouponLocale,
+                            'Create a discount, gift card or voucher.'
+                        ) }}
+                    </small>
+                </span>
+            </div>
             @forelse($cards as $item)
                 @php
                     $isBalance = in_array($item['card_type'], ['gift_card', 'credit', 'comp'], true);
@@ -709,10 +844,7 @@
                     </div>
                 </article>
             @empty
-                <div class="pmd-coupon-manager__empty" data-pmd-coupon-empty>
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16v10H4z"></path><path d="M8 7v10M16 7v10"></path><path d="M10 12h4"></path></svg>
-                    <h2>{{ $pmdT('empty') }}</h2><p>{{ $pmdT('empty_help') }}</p>
-                </div>
+                {{-- Smart-add card above is the empty-state action. --}}
             @endforelse
             <div class="pmd-coupon-manager__no-results" data-pmd-coupon-no-results hidden>{{ $pmdT('no_results') }}</div>
         </div>
