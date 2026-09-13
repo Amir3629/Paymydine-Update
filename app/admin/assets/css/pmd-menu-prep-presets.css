@@ -299,3 +299,87 @@ body.pmd-menu-manager-page .pmd-menu-capacity-modal:not([hidden]) .pmd-menu-capa
   max-height:calc(100dvh - 36px)!important;
   overflow:auto!important;
 }
+
+/* PMD_MENU_HEADER_ZERO_BLINK_V3
+   Reserve the exact final header geometry from first paint. The pseudo actions
+   occupy the future Preparation & ETA / AI slots and disappear atomically when
+   the real JS buttons arrive, so the header does not jump or blink. */
+html body.pmd-menu-manager-page #pmd-menu-manager-main #pmd-r2-clean-header .pmd-r2-clean-actions > [data-pmd-menu-capacity-open]{order:10!important}
+html body.pmd-menu-manager-page #pmd-menu-manager-main #pmd-r2-clean-header .pmd-r2-clean-actions > [data-pmd-kitchen-settings-trigger]{order:20!important}
+html body.pmd-menu-manager-page #pmd-menu-manager-main #pmd-r2-clean-header .pmd-r2-clean-actions > [data-pmd-menu-ai-import-trigger]{order:30!important}
+html body.pmd-menu-manager-page #pmd-menu-manager-main #pmd-r2-clean-header .pmd-r2-clean-actions > [data-pmd-main-header-notification-gap-r67]{order:40!important}
+html body.pmd-menu-manager-page #pmd-menu-manager-main #pmd-r2-clean-header .pmd-r2-clean-actions > [data-pmd-menu-notif-slot],
+html body.pmd-menu-manager-page #pmd-menu-manager-main #pmd-r2-clean-header .pmd-r2-clean-actions > #notif-root{order:50!important}
+html body.pmd-menu-manager-page #pmd-menu-manager-main #pmd-r2-clean-header .pmd-r2-clean-actions::before,
+html body.pmd-menu-manager-page #pmd-menu-manager-main #pmd-r2-clean-header .pmd-r2-clean-actions::after{
+  box-sizing:border-box!important;
+  width:46px!important;min-width:46px!important;max-width:46px!important;
+  height:46px!important;min-height:46px!important;max-height:46px!important;
+  flex:0 0 46px!important;
+  margin:0!important;padding:0!important;
+  border-radius:14px!important;
+  box-shadow:0 3px 10px rgba(23,55,82,.05)!important;
+  pointer-events:none!important;
+  transform:none!important;transition:none!important;animation:none!important;
+}
+html body.pmd-menu-manager-page #pmd-menu-manager-main #pmd-r2-clean-header .pmd-r2-clean-actions::before{
+  content:"";
+  display:none!important;
+  order:20!important;
+  border:1px solid #cfe0ec!important;
+  background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23173752' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6'/%3E%3Cpath d='M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06-2.12 2.12-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V20h-3v-.08a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06-2.12-2.12.06-.06A1.65 1.65 0 0 0 7.2 15a1.65 1.65 0 0 0-1.51-1H5.6v-3h.09A1.65 1.65 0 0 0 7.2 10a1.65 1.65 0 0 0-.33-1.82l-.06-.06L8.93 6l.06.06A1.65 1.65 0 0 0 10.8 6.4a1.65 1.65 0 0 0 1-1.51V4.8h3v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06 2.12 2.12-.06.06A1.65 1.65 0 0 0 19.4 10a1.65 1.65 0 0 0 1.51 1H21v3h-.09A1.65 1.65 0 0 0 19.4 15z'/%3E%3C/svg%3E") center/21px 21px no-repeat!important;
+}
+html body.pmd-menu-manager-page #pmd-menu-manager-main #pmd-r2-clean-header .pmd-r2-clean-actions:has(> [data-pmd-menu-capacity-open]):not(:has(> [data-pmd-kitchen-settings-trigger]))::before{display:block!important}
+html body.pmd-menu-manager-page #pmd-menu-manager-main #pmd-r2-clean-header .pmd-r2-clean-actions::after{
+  content:"AI";
+  display:grid!important;
+  place-items:center!important;
+  order:30!important;
+  border:1px solid #075f4f!important;
+  background:#075f4f!important;
+  color:#fff!important;
+  font-size:12px!important;
+  font-weight:900!important;
+  line-height:1!important;
+  letter-spacing:-.02em!important;
+}
+html body.pmd-menu-manager-page #pmd-menu-manager-main #pmd-r2-clean-header .pmd-r2-clean-actions:has(> [data-pmd-menu-ai-import-trigger])::after{display:none!important}
+@media(max-width:760px){
+  html body.pmd-menu-manager-page #pmd-menu-manager-main #pmd-r2-clean-header .pmd-r2-clean-actions::before,
+  html body.pmd-menu-manager-page #pmd-menu-manager-main #pmd-r2-clean-header .pmd-r2-clean-actions::after{
+    width:44px!important;min-width:44px!important;max-width:44px!important;
+    height:44px!important;min-height:44px!important;max-height:44px!important;
+    flex-basis:44px!important;border-radius:12px!important;
+  }
+}
+
+/* PMD_MENU_CAPACITY_VIEWPORT_FINAL_V3
+   Final authority after all legacy Menu styles. */
+html body.pmd-menu-manager-page .pmd-menu-capacity-modal:not([hidden]){
+  position:fixed!important;
+  top:0!important;right:0!important;bottom:0!important;left:0!important;
+  inset:0!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  align-content:center!important;
+  width:100vw!important;min-width:100vw!important;max-width:100vw!important;
+  height:100vh!important;min-height:100vh!important;max-height:100vh!important;
+  height:100dvh!important;min-height:100dvh!important;max-height:100dvh!important;
+  margin:0!important;
+  padding:18px!important;
+  box-sizing:border-box!important;
+  overflow:hidden!important;
+  transform:none!important;
+  translate:none!important;
+}
+html body.pmd-menu-manager-page .pmd-menu-capacity-modal:not([hidden]) > .pmd-menu-capacity-card{
+  position:relative!important;
+  top:auto!important;right:auto!important;bottom:auto!important;left:auto!important;
+  inset:auto!important;
+  align-self:center!important;
+  margin:auto!important;
+  transform:none!important;
+  translate:none!important;
+  max-height:calc(100dvh - 36px)!important;
+}
