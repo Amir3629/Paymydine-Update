@@ -74,10 +74,26 @@
     return value > 0 ? ('~' + Math.round(value) + ' min') : '';
   };
 
-  // PMD_MENU_KITCHEN_TIMING_MODAL_V1
+  // PMD_MENU_KITCHEN_CAPACITY_VIEWPORT_PORTAL_V2
+  // Capacity is server-rendered inside the Menu workspace. Move the existing
+  // node under <body> so position:fixed is viewport-fixed even when legacy
+  // ancestors establish containing blocks. No form/action/save logic changes.
+  function portalCapacityModal() {
+    var capacityModal = document.querySelector('[data-pmd-menu-capacity-modal]');
+    if (!capacityModal || capacityModal.parentNode === document.body) return;
+    document.body.appendChild(capacityModal);
+  }
+
+  portalCapacityModal();
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', portalCapacityModal, {once: true});
+  }
+
+  // PMD_MENU_KITCHEN_TIMING_MODAL_V2
   // Keep this tiny settings surface in Menu, beside Notifications. Authorization
-  // remains server-side: the trigger is mounted only when the Owner/Manager
-  // settings endpoint answers successfully.
+  // remains server-side. Owner/Manager first-paint eligibility is mirrored from
+  // the already server-rendered Kitchen capacity action so the button does not
+  // wait for a network round-trip before appearing.
   var headerActions = document.querySelector('[data-pmd-menu-header-actions]');
   if (!headerActions || document.querySelector('[data-pmd-kitchen-settings-trigger]')) return;
 
@@ -269,11 +285,23 @@ function openSettings() {
     if (event.key === 'Escape' && modal && !modal.hidden) closeSettings();
   });
 
-  loadSettings().then(function (data) {
+  // Normal Owner/Manager Menu pages already expose the server-rendered Kitchen
+  // capacity action. Use that as the synchronous eligibility signal so this
+  // header button is present before the settings request completes.
+  if (document.querySelector('[data-pmd-menu-capacity-open]')) {
     buildTrigger();
+  }
+
+  loadSettings().then(function (data) {
+    if (!trigger) buildTrigger();
     buildModal();
     applySettings(data);
   }).catch(function () {
-    // Do not expose the Owner/Manager-only control when the endpoint refuses.
+    // Do not expose the control when the endpoint refuses and no server-side
+    // Owner/Manager eligibility signal was present.
+    if (trigger && !document.querySelector('[data-pmd-menu-capacity-open]')) {
+      trigger.remove();
+      trigger = null;
+    }
   });
 })();
