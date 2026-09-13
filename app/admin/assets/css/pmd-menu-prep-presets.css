@@ -260,3 +260,42 @@ body.pmd-menu-manager-page .pmd-menu-capacity-toggle span{margin:0!important;col
   body.pmd-menu-manager-page .pmd-menu-kitchen-settings-modal .pmd-menu-kitchen-eta-presets,
   body.pmd-menu-manager-page .pmd-menu-capacity-grid{grid-template-columns:1fr!important}
 }
+
+/* PMD_MENU_KITCHEN_VIEWPORT_PORTAL_FIX_V2
+   The capacity dialog is portaled under <body> by pmd-menu-prep-presets.js.
+   These last-loaded rules make the open state explicitly viewport-centered and
+   independent from any legacy Menu workspace containing block. */
+body.pmd-menu-manager-page .pmd-menu-capacity-modal:not([hidden]){
+  position:fixed!important;
+  inset:0!important;
+  z-index:2147482000!important;
+  display:grid!important;
+  place-items:center!important;
+  width:100vw!important;
+  min-width:100vw!important;
+  max-width:100vw!important;
+  height:100vh!important;
+  min-height:100vh!important;
+  max-height:100vh!important;
+  height:100dvh!important;
+  min-height:100dvh!important;
+  max-height:100dvh!important;
+  margin:0!important;
+  padding:18px!important;
+  overflow:hidden!important;
+  box-sizing:border-box!important;
+}
+body.pmd-menu-manager-page .pmd-menu-capacity-modal:not([hidden]) .pmd-menu-capacity-modal__backdrop{
+  position:absolute!important;
+  inset:0!important;
+  width:100%!important;
+  height:100%!important;
+  margin:0!important;
+}
+body.pmd-menu-manager-page .pmd-menu-capacity-modal:not([hidden]) .pmd-menu-capacity-card{
+  position:relative!important;
+  inset:auto!important;
+  margin:0!important;
+  max-height:calc(100dvh - 36px)!important;
+  overflow:auto!important;
+}
