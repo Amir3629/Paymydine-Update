@@ -13,3 +13,250 @@ body.pmd-menu-manager-page .pmd-menu-modal [data-pmd-prep-field] [data-pmd-prep-
 .pmd-menu-manager-page .pmd-menu-kitchen-eta-presets button.is-active,.pmd-menu-manager-page .pmd-menu-kitchen-eta-presets button[aria-pressed="true"]{border-color:#79bda8;background:#edf9f4;color:#075c47;box-shadow:0 0 0 3px rgba(7,92,71,.08)}
 .pmd-menu-manager-page .pmd-menu-kitchen-eta-presets button:focus-visible{outline:2px solid rgba(7,95,79,.2);outline-offset:2px}
 @media(max-width:760px){.pmd-menu-manager-page .pmd-menu-kitchen-eta-presets{grid-template-columns:repeat(2,minmax(0,1fr))}.pmd-menu-manager-page .pmd-menu-kitchen-visibility-line{justify-content:space-between}}
+
+/* PMD_MENU_KITCHEN_MODAL_UNIFIED_V1
+   Preparation & ETA + Kitchen capacity now share the same flat visual language
+   as the native AI import modal. This is presentation only; existing save
+   endpoints and ETA authorities remain unchanged. */
+body.pmd-menu-manager-page .pmd-menu-kitchen-settings-modal .pmd-menu-modal__card,
+body.pmd-menu-manager-page .pmd-menu-capacity-card{
+  width:min(720px,calc(100vw - 36px))!important;
+  max-height:min(760px,calc(100dvh - 36px))!important;
+  border:1px solid #dfe8e3!important;
+  border-radius:20px!important;
+  background:#fff!important;
+  box-shadow:0 26px 80px rgba(19,45,36,.20)!important;
+  overflow:hidden!important;
+}
+body.pmd-menu-manager-page .pmd-menu-kitchen-settings-modal .pmd-menu-modal__header,
+body.pmd-menu-manager-page .pmd-menu-capacity-card__header{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  min-height:66px!important;
+  padding:14px 18px 14px 22px!important;
+  border:0!important;
+  border-bottom:1px solid #e7ece9!important;
+  background:#fff!important;
+}
+body.pmd-menu-manager-page .pmd-menu-kitchen-settings-modal .pmd-menu-modal__eyebrow{display:none!important}
+body.pmd-menu-manager-page .pmd-menu-kitchen-settings-modal .pmd-menu-modal__header h2,
+body.pmd-menu-manager-page .pmd-menu-capacity-card__header h2{
+  margin:0!important;
+  color:#14221c!important;
+  font-size:19px!important;
+  font-weight:900!important;
+  line-height:1.25!important;
+  letter-spacing:-.02em!important;
+}
+body.pmd-menu-manager-page .pmd-menu-kitchen-settings-modal .pmd-menu-modal__close,
+body.pmd-menu-manager-page .pmd-menu-capacity-card__header button[data-pmd-menu-capacity-close]{
+  position:relative!important;
+  display:grid!important;
+  place-items:center!important;
+  width:40px!important;
+  min-width:40px!important;
+  max-width:40px!important;
+  height:40px!important;
+  min-height:40px!important;
+  max-height:40px!important;
+  margin:0!important;
+  padding:0!important;
+  border:1px solid #cfe0ec!important;
+  border-radius:12px!important;
+  background:#fff!important;
+  color:#17352b!important;
+  box-shadow:none!important;
+  cursor:pointer!important;
+}
+body.pmd-menu-manager-page .pmd-menu-kitchen-settings-modal .pmd-menu-modal__close svg{width:20px!important;height:20px!important;fill:none!important;stroke:currentColor!important;stroke-width:2!important;stroke-linecap:round!important}
+body.pmd-menu-manager-page .pmd-menu-capacity-card__header button[data-pmd-menu-capacity-close]{font-size:0!important;line-height:0!important}
+body.pmd-menu-manager-page .pmd-menu-capacity-card__header button[data-pmd-menu-capacity-close]::before,
+body.pmd-menu-manager-page .pmd-menu-capacity-card__header button[data-pmd-menu-capacity-close]::after{
+  content:""!important;
+  position:absolute!important;
+  left:10px!important;
+  top:19px!important;
+  width:18px!important;
+  height:2px!important;
+  border-radius:2px!important;
+  background:currentColor!important;
+}
+body.pmd-menu-manager-page .pmd-menu-capacity-card__header button[data-pmd-menu-capacity-close]::before{transform:rotate(45deg)!important}
+body.pmd-menu-manager-page .pmd-menu-capacity-card__header button[data-pmd-menu-capacity-close]::after{transform:rotate(-45deg)!important}
+body.pmd-menu-manager-page .pmd-menu-kitchen-settings-modal .pmd-menu-modal__body,
+body.pmd-menu-manager-page .pmd-menu-capacity-card__body{
+  padding:22px!important;
+  background:#fff!important;
+}
+body.pmd-menu-manager-page .pmd-menu-kitchen-settings-modal .pmd-menu-form__section{
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+body.pmd-menu-manager-page .pmd-menu-kitchen-settings-modal .pmd-menu-kitchen-visibility-line{
+  justify-content:space-between!important;
+  gap:18px!important;
+  margin:0 0 18px!important;
+  padding:0 0 18px!important;
+  border-bottom:1px solid #edf1ef!important;
+  color:#26372f!important;
+  font-size:13px!important;
+  font-weight:850!important;
+}
+body.pmd-menu-manager-page .pmd-menu-kitchen-settings-modal .pmd-menu-form__section-head{margin:0 0 14px!important}
+body.pmd-menu-manager-page .pmd-menu-kitchen-settings-modal .pmd-menu-form__section-head h3{
+  margin:0 0 4px!important;
+  color:#17231d!important;
+  font-size:17px!important;
+  font-weight:900!important;
+  line-height:1.3!important;
+  letter-spacing:-.015em!important;
+}
+body.pmd-menu-manager-page .pmd-menu-kitchen-settings-modal .pmd-menu-form__section-head p{
+  max-width:620px!important;
+  margin:0!important;
+  color:#738078!important;
+  font-size:12px!important;
+  line-height:1.5!important;
+}
+body.pmd-menu-manager-page .pmd-menu-kitchen-settings-modal .pmd-menu-kitchen-extension-field{width:min(190px,100%)!important;margin:0 0 12px!important}
+body.pmd-menu-manager-page .pmd-menu-kitchen-settings-modal .pmd-menu-field>span,
+body.pmd-menu-manager-page .pmd-menu-capacity-grid label>span{
+  display:block!important;
+  margin:0 0 6px!important;
+  color:#526159!important;
+  font-size:11px!important;
+  font-weight:850!important;
+}
+body.pmd-menu-manager-page .pmd-menu-kitchen-settings-modal input[type="number"],
+body.pmd-menu-manager-page .pmd-menu-capacity-grid input{
+  width:100%!important;
+  min-height:44px!important;
+  padding:0 12px!important;
+  border:1px solid #d7e0db!important;
+  border-radius:10px!important;
+  background:#fff!important;
+  color:#17231d!important;
+  font:inherit!important;
+  font-size:13px!important;
+  font-weight:700!important;
+  box-shadow:none!important;
+  outline:none!important;
+}
+body.pmd-menu-manager-page .pmd-menu-kitchen-settings-modal input[type="number"]:focus,
+body.pmd-menu-manager-page .pmd-menu-capacity-grid input:focus{
+  border-color:#78ad9d!important;
+  box-shadow:0 0 0 3px rgba(7,95,79,.07)!important;
+}
+body.pmd-menu-manager-page .pmd-menu-kitchen-settings-modal .pmd-menu-kitchen-eta-presets{
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  gap:9px!important;
+}
+body.pmd-menu-manager-page .pmd-menu-kitchen-settings-modal .pmd-menu-kitchen-eta-presets button{
+  min-height:42px!important;
+  padding:0 12px!important;
+  border:1px solid #d7e0db!important;
+  border-radius:10px!important;
+  background:#fff!important;
+  color:#345048!important;
+  font-size:12px!important;
+  font-weight:850!important;
+  box-shadow:none!important;
+}
+body.pmd-menu-manager-page .pmd-menu-kitchen-settings-modal .pmd-menu-kitchen-eta-presets button:hover{border-color:#9fc5b8!important;background:#f7faf8!important}
+body.pmd-menu-manager-page .pmd-menu-kitchen-settings-modal .pmd-menu-kitchen-eta-presets button.is-active,
+body.pmd-menu-manager-page .pmd-menu-kitchen-settings-modal .pmd-menu-kitchen-eta-presets button[aria-pressed="true"]{
+  border-color:#79bda8!important;
+  background:#edf9f4!important;
+  color:#075c47!important;
+  box-shadow:0 0 0 3px rgba(7,92,71,.06)!important;
+}
+body.pmd-menu-manager-page .pmd-menu-kitchen-settings-modal .pmd-menu-kitchen-settings-hint{
+  margin:12px 0 0!important;
+  color:#7a867f!important;
+  font-size:11px!important;
+  line-height:1.45!important;
+}
+body.pmd-menu-manager-page .pmd-menu-kitchen-settings-modal .pmd-menu-modal__footer,
+body.pmd-menu-manager-page .pmd-menu-capacity-card__footer{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-end!important;
+  gap:10px!important;
+  min-height:66px!important;
+  margin:0!important;
+  padding:12px 18px!important;
+  border:0!important;
+  border-top:1px solid #e7ece9!important;
+  background:#fff!important;
+}
+body.pmd-menu-manager-page .pmd-menu-kitchen-settings-modal .pmd-menu-modal__status{display:none!important}
+body.pmd-menu-manager-page .pmd-menu-kitchen-settings-modal .pmd-menu-modal__buttons{display:flex!important;align-items:center!important;gap:10px!important;margin-left:auto!important}
+body.pmd-menu-manager-page .pmd-menu-kitchen-settings-modal .pmd-menu-modal__cancel,
+body.pmd-menu-manager-page .pmd-menu-capacity-card__footer .is-soft{
+  min-height:40px!important;
+  padding:0 15px!important;
+  border:1px solid #d6e1dc!important;
+  border-radius:10px!important;
+  background:#fff!important;
+  color:#2f4c42!important;
+  font-size:12px!important;
+  font-weight:850!important;
+  box-shadow:none!important;
+}
+body.pmd-menu-manager-page .pmd-menu-kitchen-settings-modal .pmd-menu-modal__save,
+body.pmd-menu-manager-page .pmd-menu-capacity-card__footer button[type="submit"]{
+  min-height:40px!important;
+  padding:0 16px!important;
+  border:0!important;
+  border-radius:10px!important;
+  background:#075f4f!important;
+  color:#fff!important;
+  font-size:12px!important;
+  font-weight:850!important;
+  box-shadow:none!important;
+}
+body.pmd-menu-manager-page .pmd-menu-capacity-card__body{display:grid!important;gap:16px!important}
+body.pmd-menu-manager-page .pmd-menu-capacity-grid{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:14px!important;
+}
+body.pmd-menu-manager-page .pmd-menu-capacity-grid label{display:block!important;margin:0!important}
+body.pmd-menu-manager-page .pmd-menu-capacity-toggle{
+  display:flex!important;
+  align-items:center!important;
+  gap:10px!important;
+  margin:2px 0 0!important;
+  padding:16px 0 0!important;
+  border-top:1px solid #edf1ef!important;
+  color:#26372f!important;
+  font-size:12px!important;
+  font-weight:850!important;
+}
+body.pmd-menu-manager-page .pmd-menu-capacity-toggle input[type="checkbox"]{width:16px!important;height:16px!important;margin:0!important;accent-color:#075f4f!important}
+body.pmd-menu-manager-page .pmd-menu-capacity-toggle span{margin:0!important;color:inherit!important;font-size:12px!important;font-weight:850!important}
+@media(max-width:760px){
+  body.pmd-menu-manager-page .pmd-menu-kitchen-settings-modal .pmd-menu-modal__card,
+  body.pmd-menu-manager-page .pmd-menu-capacity-card{
+    width:calc(100vw - 20px)!important;
+    max-height:calc(100dvh - 20px)!important;
+    border-radius:16px!important;
+  }
+  body.pmd-menu-manager-page .pmd-menu-kitchen-settings-modal .pmd-menu-modal__header,
+  body.pmd-menu-manager-page .pmd-menu-capacity-card__header{padding:12px 12px 12px 16px!important}
+  body.pmd-menu-manager-page .pmd-menu-kitchen-settings-modal .pmd-menu-modal__body,
+  body.pmd-menu-manager-page .pmd-menu-capacity-card__body{padding:16px!important}
+  body.pmd-menu-manager-page .pmd-menu-kitchen-settings-modal .pmd-menu-kitchen-eta-presets,
+  body.pmd-menu-manager-page .pmd-menu-capacity-grid{grid-template-columns:1fr 1fr!important}
+  body.pmd-menu-manager-page .pmd-menu-kitchen-settings-modal .pmd-menu-modal__footer,
+  body.pmd-menu-manager-page .pmd-menu-capacity-card__footer{padding:12px 16px!important}
+}
+@media(max-width:520px){
+  body.pmd-menu-manager-page .pmd-menu-kitchen-settings-modal .pmd-menu-kitchen-eta-presets,
+  body.pmd-menu-manager-page .pmd-menu-capacity-grid{grid-template-columns:1fr!important}
+}
