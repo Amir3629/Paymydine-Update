@@ -305,3 +305,120 @@ function openSettings() {
     }
   });
 })();
+
+/* PMD_MENU_CAPACITY_RUNTIME_FINAL_V3
+ * This second authority is intentionally tiny and presentation-only. It runs
+ * after the legacy Menu scripts, reparents the existing server-rendered dialog
+ * under <body>, and reapplies viewport geometry on open/pageshow/DOM repair.
+ */
+(function () {
+  'use strict';
+
+  var selector = '[data-pmd-menu-capacity-modal]';
+  var observer = null;
+
+  function setImportant(node, property, value) {
+    if (!node || !node.style) return;
+    node.style.setProperty(property, value, 'important');
+  }
+
+  function hardCenter(modal) {
+    if (!modal) return null;
+
+    setImportant(modal, 'position', 'fixed');
+    setImportant(modal, 'top', '0');
+    setImportant(modal, 'right', '0');
+    setImportant(modal, 'bottom', '0');
+    setImportant(modal, 'left', '0');
+    setImportant(modal, 'inset', '0');
+    setImportant(modal, 'width', '100vw');
+    setImportant(modal, 'min-width', '100vw');
+    setImportant(modal, 'max-width', '100vw');
+    setImportant(modal, 'height', '100vh');
+    setImportant(modal, 'min-height', '100vh');
+    setImportant(modal, 'max-height', '100vh');
+    if (window.CSS && CSS.supports && CSS.supports('height', '100dvh')) {
+      setImportant(modal, 'height', '100dvh');
+      setImportant(modal, 'min-height', '100dvh');
+      setImportant(modal, 'max-height', '100dvh');
+    }
+    setImportant(modal, 'margin', '0');
+    setImportant(modal, 'padding', '18px');
+    setImportant(modal, 'box-sizing', 'border-box');
+    setImportant(modal, 'align-items', 'center');
+    setImportant(modal, 'justify-content', 'center');
+    setImportant(modal, 'align-content', 'center');
+    setImportant(modal, 'overflow', 'hidden');
+    setImportant(modal, 'transform', 'none');
+    setImportant(modal, 'translate', 'none');
+    setImportant(modal, 'z-index', '2147482000');
+
+    var card = modal.querySelector('.pmd-menu-capacity-card');
+    if (card) {
+      setImportant(card, 'position', 'relative');
+      setImportant(card, 'top', 'auto');
+      setImportant(card, 'right', 'auto');
+      setImportant(card, 'bottom', 'auto');
+      setImportant(card, 'left', 'auto');
+      setImportant(card, 'inset', 'auto');
+      setImportant(card, 'align-self', 'center');
+      setImportant(card, 'margin', 'auto');
+      setImportant(card, 'transform', 'none');
+      setImportant(card, 'translate', 'none');
+      setImportant(card, 'max-height', 'calc(100dvh - 36px)');
+    }
+
+    modal.setAttribute('data-pmd-capacity-runtime-v3', '1');
+    return modal;
+  }
+
+  function portal() {
+    var modal = document.querySelector(selector);
+    if (!modal) return null;
+
+    if (modal.parentNode !== document.body) {
+      document.body.appendChild(modal);
+    }
+
+    return hardCenter(modal);
+  }
+
+  function ensurePortal() {
+    var modal = portal();
+    if (modal && observer) {
+      observer.disconnect();
+      observer = null;
+    }
+    return modal;
+  }
+
+  if (!ensurePortal() && document.documentElement) {
+    observer = new MutationObserver(function () {
+      ensurePortal();
+    });
+    observer.observe(document.documentElement, {childList: true, subtree: true});
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', ensurePortal, {once: true});
+  }
+
+  window.addEventListener('pageshow', ensurePortal);
+
+  document.addEventListener('click', function (event) {
+    if (!event.target.closest('[data-pmd-menu-capacity-open]')) return;
+    var modal = ensurePortal();
+    if (!modal) return;
+
+    window.requestAnimationFrame(function () { hardCenter(modal); });
+    window.setTimeout(function () { hardCenter(modal); }, 0);
+    window.setTimeout(function () { hardCenter(modal); }, 220);
+  }, true);
+
+  window.PMDMenuCapacityViewportV3 = {
+    run: ensurePortal,
+    center: function () {
+      return hardCenter(document.querySelector(selector));
+    }
+  };
+})();
