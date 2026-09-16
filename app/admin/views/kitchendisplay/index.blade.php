@@ -786,6 +786,16 @@
         }
     </style>
 
+
+
+
+<!-- PMD_PLATFORM_CARD_SYSTEM_V2 -->
+<link
+    rel="stylesheet"
+    href="/app/admin/assets/css/pmd-platform-card-system-v2.css?v=20260913-r2"
+    data-pmd-platform-card-system-v2="1"
+>
+<!-- /PMD_PLATFORM_CARD_SYSTEM_V2 -->
 </head>
 <body data-pmd-kds-display="v1">
 <div class="kds-container">

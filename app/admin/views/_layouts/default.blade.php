@@ -9071,6 +9071,17 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
     href="/app/admin/assets/css/pmd-admin-primary-dark-green-authority-v2.css?v=20260826-dark-green-authority-v2"
 >
 <!-- /PMD_ADMIN_PRIMARY_DARK_GREEN_AUTHORITY_V2 -->
+
+
+<!-- PMD_PLATFORM_CARD_SYSTEM_V3_REAL_ADMIN_LAYOUT_HEAD -->
+<link
+    rel="stylesheet"
+    href="/app/admin/assets/css/pmd-platform-card-system-v2.css?v=20260913-r3-real-admin-layout"
+    data-pmd-platform-card-system-v2="1"
+    data-pmd-platform-card-real-layout="1"
+>
+<!-- /PMD_PLATFORM_CARD_SYSTEM_V3_REAL_ADMIN_LAYOUT_HEAD -->
+
 </head>
 <script>
     // SMART FIX: Force dropdown alignment WITHOUT breaking Bootstrap animations
@@ -9994,6 +10005,17 @@ html.pmd-waiter-dashboard-active
     src="/app/admin/assets/js/pmd-overlay-single-visual-plane-v4.js?v=20260826-console-proven-modal-chrome-dark-green-v1"
 ></script>
 <!-- /PMD_OVERLAY_CONSOLE_PROVEN_REAL_ADMIN_LAYOUT_V4 -->
+
+
+<!-- PMD_PLATFORM_CARD_SYSTEM_V3_REAL_ADMIN_LAYOUT_FINAL -->
+<link
+    rel="stylesheet"
+    href="/app/admin/assets/css/pmd-platform-card-system-v2.css?v=20260913-r3-real-admin-layout"
+    data-pmd-platform-card-system-v2-final="1"
+    data-pmd-platform-card-real-layout-final="1"
+>
+<!-- /PMD_PLATFORM_CARD_SYSTEM_V3_REAL_ADMIN_LAYOUT_FINAL -->
+
 </body>
 </html>
 

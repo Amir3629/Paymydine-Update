@@ -437,6 +437,16 @@ html.pmd-new-pages-antiflash-v40:not(.pmd-new-pages-antiflash-rendered-v40):not(
 <script defer src="/app/admin/assets/js/pmd-admin-universal-forms-v1.js?v=10"></script>
 <!-- /PMD Universal Admin Forms v1 -->
 
+
+
+
+<!-- PMD_PLATFORM_CARD_SYSTEM_V2 -->
+<link
+    rel="stylesheet"
+    href="/app/admin/assets/css/pmd-platform-card-system-v2.css?v=20260913-r2"
+    data-pmd-platform-card-system-v2="1"
+>
+<!-- /PMD_PLATFORM_CARD_SYSTEM_V2 -->
 </head>
 <body class="admin">
     @include('admin::partials.header')
@@ -459,5 +469,13 @@ html.pmd-new-pages-antiflash-v40:not(.pmd-new-pages-antiflash-rendered-v40):not(
 <!-- PMD_OVERLAY_SINGLE_VISUAL_PLANE_V4 -->
 <script id="pmd-overlay-single-visual-plane-v4-script" src="/app/admin/assets/js/pmd-overlay-single-visual-plane-v4.js?v=20260826-r76-cashier-payment-stable"></script>
 <!-- /PMD_OVERLAY_SINGLE_VISUAL_PLANE_V4 -->
+
+<!-- PMD_PLATFORM_CARD_SYSTEM_V2_FINAL_CASCADE -->
+<link
+    rel="stylesheet"
+    href="/app/admin/assets/css/pmd-platform-card-system-v2.css?v=20260913-r2"
+    data-pmd-platform-card-system-v2-final="1"
+>
+<!-- /PMD_PLATFORM_CARD_SYSTEM_V2_FINAL_CASCADE -->
 </body>
 </html>

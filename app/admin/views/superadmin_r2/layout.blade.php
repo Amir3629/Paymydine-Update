@@ -100,6 +100,16 @@
     href="/app/admin/assets/css/pmd-admin-primary-dark-green-authority-v2.css?v=20260826-dark-green-authority-v2"
 >
 <!-- /PMD_ADMIN_PRIMARY_DARK_GREEN_AUTHORITY_V2 -->
+
+
+
+<!-- PMD_PLATFORM_CARD_SYSTEM_V2 -->
+<link
+    rel="stylesheet"
+    href="/app/admin/assets/css/pmd-platform-card-system-v2.css?v=20260913-r2"
+    data-pmd-platform-card-system-v2="1"
+>
+<!-- /PMD_PLATFORM_CARD_SYSTEM_V2 -->
 </head>
 <body>
 @include('admin::superadmin_r2.side_menu')

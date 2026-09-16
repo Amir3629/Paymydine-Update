@@ -11,6 +11,16 @@
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-pos-simple-v27.css') }}?v=27" data-pmd-pos-simple-v27-style>
     {{-- PMD_WAITER_PLATFORM_MESSAGES_V14: standalone page uses the same canonical platform payload. --}}
     @include('admin::_partials.pmd_platform_messages')
+
+
+
+<!-- PMD_PLATFORM_CARD_SYSTEM_V2 -->
+<link
+    rel="stylesheet"
+    href="/app/admin/assets/css/pmd-platform-card-system-v2.css?v=20260913-r2"
+    data-pmd-platform-card-system-v2="1"
+>
+<!-- /PMD_PLATFORM_CARD_SYSTEM_V2 -->
 </head>
 <body class="pmd-waiter-pos-page">
 {!! $shell !!}

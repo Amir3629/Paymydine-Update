@@ -1,0 +1,881 @@
+/* ==========================================================
+   PMD_PLATFORM_CARD_SYSTEM_V1
+
+   One visual card language for PayMyDine internal surfaces.
+
+   Reference:
+   - Menu card geometry
+   - flat first paint
+   - no load animation
+   - no fake hover movement
+   - semantic status colors stay owned by each feature
+
+   This file owns VISUAL SHELL only.
+   It intentionally does not rewrite business layout or state logic.
+   ========================================================== */
+
+:root {
+    --pmd-platform-card-radius:
+        16px;
+
+    --pmd-platform-card-inner-radius:
+        14px;
+
+    --pmd-platform-card-modal-radius:
+        18px;
+
+    --pmd-platform-card-surface:
+        #ffffff;
+
+    --pmd-platform-card-surface-soft:
+        #f8fcfb;
+
+    --pmd-platform-card-line:
+        #dce9e7;
+
+    --pmd-platform-card-line-soft:
+        #e7efed;
+
+    --pmd-platform-card-ink:
+        #10211d;
+
+    --pmd-platform-card-muted:
+        #71817d;
+
+    --pmd-platform-card-accent:
+        #075f4f;
+
+    --pmd-platform-card-hover-shadow:
+        0 0 0 1px rgba(7,95,79,.14),
+        0 10px 26px rgba(17,40,35,.075);
+
+    --pmd-platform-card-focus-shadow:
+        0 0 0 3px rgba(7,95,79,.11),
+        0 10px 26px rgba(17,40,35,.075);
+
+    --pmd-platform-card-modal-shadow:
+        0 24px 72px rgba(16,36,58,.18);
+}
+
+
+/* ==========================================================
+   1. CORE CARD SHELL
+
+   Radius + flat resting state only.
+   No structural width/height/padding rules here.
+   ========================================================== */
+
+html body :is(
+    .pmd-card,
+    .pmd-owner-card,
+    .pmd-profile-card,
+    .pmd-frontend-card,
+    .pmd-team-card,
+    .pmd-settings-card,
+    .pmd-history-card,
+    .pmd-menu-card,
+    .pmd-coupon-card,
+    .pmd-r2-card,
+    .pmd-dashboard-lab-analytics__card,
+    .pmd-menu-kpi,
+    .pmd-dashboard-lab-kpi,
+    .pmd-quick-setup__card,
+    .pmd-owner-clean-kpi,
+    .pmd-role-kpi,
+    .pmd-manager-card-v29,
+    .pmd-manager-online-staff__card,
+    .pmd962-card,
+    .dashboard-widget.card
+) {
+    border-radius:
+        var(--pmd-platform-card-radius)
+        !important;
+
+    box-shadow:
+        none
+        !important;
+
+    transition:
+        none
+        !important;
+
+    animation:
+        none
+        !important;
+}
+
+
+/* ==========================================================
+   2. NEUTRAL MANAGEMENT SURFACES
+
+   Forms / settings / containers share the Menu-like white,
+   thin-line, flat resting surface.
+
+   Stateful cards are deliberately NOT in this section.
+   ========================================================== */
+
+html body :is(
+    .pmd-card,
+    .pmd-owner-card,
+    .pmd-profile-card,
+    .pmd-frontend-card,
+    .pmd-team-card,
+    .pmd-history-card,
+    .pmd-dashboard-lab-analytics__card,
+    .pmd-menu-kpi,
+    .pmd-dashboard-lab-kpi,
+    .pmd-quick-setup__card,
+    .dashboard-widget.card
+) {
+    border-width:
+        1px
+        !important;
+
+    border-style:
+        solid
+        !important;
+
+    border-color:
+        var(--pmd-platform-card-line)
+        !important;
+
+    background-color:
+        var(--pmd-platform-card-surface)
+        !important;
+}
+
+
+/* ==========================================================
+   3. HIGH-SPECIFICITY PAGE AUTHORITIES
+
+   These beat the old page-by-page radius/shadow rules without
+   changing the internal layouts.
+   ========================================================== */
+
+html body.pmd-menu-manager-page
+#pmd-menu-manager-main
+.pmd-menu-card,
+
+html body.pmd-coupon-manager-page
+.pmd-coupon-card,
+
+html body
+#pmd-settings-center
+.pmd-settings-card,
+
+html body
+[data-pmd-settings-page]
+.pmd-settings-card,
+
+html body
+#pmd-restaurant-profile
+.pmd-profile-card,
+
+html body
+#pmd-frontend-settings
+.pmd-frontend-card,
+
+html body
+#pmd-team-access
+.pmd-team-card,
+
+html body
+#pmd-devices-page
+.pmd-owner-card,
+
+html body
+#pmd-finance-page
+.pmd-owner-card,
+
+html body
+#pmd-history-page
+.pmd-history-card,
+
+html body
+#pmd-dashboard-lab
+.pmd-dashboard-lab-analytics__card,
+
+html body
+#pmd-dashboard-lab
+[data-pmd-dashboard-lab-kpi],
+
+html body
+#pmd-reservations2
+.pmd-r2-card,
+
+html body
+#pmd-reservations3
+.pmd-r2-card,
+
+html body
+.pmd-report-workspace
+.pmd-owner-card,
+
+html body
+.pmd-owner-page
+.pmd-owner-card,
+
+html body
+.pmd962-shell
+.pmd962-card {
+    border-radius:
+        var(--pmd-platform-card-radius)
+        !important;
+
+    box-shadow:
+        none
+        !important;
+
+    transition:
+        none
+        !important;
+
+    animation:
+        none
+        !important;
+}
+
+
+/*
+ * Management/form pages should always use the neutral shell.
+ */
+html body
+#pmd-restaurant-profile
+.pmd-profile-card,
+
+html body
+#pmd-frontend-settings
+.pmd-frontend-card,
+
+html body
+#pmd-team-access
+.pmd-team-card,
+
+html body
+#pmd-devices-page
+.pmd-owner-card,
+
+html body
+#pmd-finance-page
+.pmd-owner-card,
+
+html body
+#pmd-history-page
+.pmd-history-card,
+
+html body
+.pmd-report-workspace
+.pmd-owner-card,
+
+html body
+.pmd-owner-page
+.pmd-owner-card,
+
+html body
+#pmd-dashboard-lab
+.pmd-dashboard-lab-analytics__card {
+    border:
+        1px solid
+        var(--pmd-platform-card-line)
+        !important;
+
+    background-color:
+        var(--pmd-platform-card-surface)
+        !important;
+}
+
+
+/* ==========================================================
+   4. HEADER SEPARATORS
+
+   Preserve the individual page accent/gradient.
+   Standardize only the separation line.
+   ========================================================== */
+
+html body :is(
+    .pmd-owner-card__header,
+    .pmd-profile-card__header,
+    .pmd-frontend-card__header,
+    .pmd-team-card__header,
+    .pmd-history-card__header
+) {
+    border-bottom-color:
+        var(--pmd-platform-card-line-soft)
+        !important;
+}
+
+
+/* ==========================================================
+   5. INTERACTIVE CARDS
+
+   Same hover/focus effect everywhere.
+   No translate/scale animation is introduced.
+   ========================================================== */
+
+@media (hover: hover) {
+    html body :is(
+        [data-pmd-settings-card],
+        [data-pmd-menu-card],
+        [data-pmd-coupon-card],
+        .pmd-menu-card,
+        .pmd-coupon-card,
+        .pmd-r2-card,
+        .pmd-manager-card-v29,
+        .pmd-ops-card,
+        .v241-card,
+        .pmd-v2-table-key,
+        .pmd-w5-card,
+        .pmd-pos-product,
+        .pmd-pos-category
+    ):hover {
+        box-shadow:
+            var(--pmd-platform-card-hover-shadow)
+            !important;
+    }
+}
+
+
+html body :is(
+    [data-pmd-settings-card],
+    [data-pmd-coupon-card],
+    .pmd-coupon-card,
+    .pmd-r2-card,
+    .pmd-manager-card-v29,
+    .pmd-ops-card,
+    .v241-card,
+    .pmd-v2-table-key,
+    .pmd-w5-card,
+    .pmd-pos-product,
+    .pmd-pos-category
+) {
+    transform:
+        none
+        !important;
+}
+
+
+html body :is(
+    [data-pmd-settings-card],
+    .pmd-smart-add-card,
+    .pmd-r2-card
+):focus-visible,
+
+html body :is(
+    .pmd-menu-card,
+    .pmd-coupon-card,
+    .pmd-r2-card
+):focus-within {
+    outline:
+        none
+        !important;
+
+    box-shadow:
+        var(--pmd-platform-card-focus-shadow)
+        !important;
+}
+
+
+/* ==========================================================
+   6. ONE ADD-CARD LANGUAGE
+
+   Menu Add Food / Discounts Create / other smart add cards.
+   Warning-state menu add card keeps its own warning colors.
+   ========================================================== */
+
+html body
+.pmd-smart-add-card:not(
+    .pmd-menu-food-needs-category-r25
+) {
+    border:
+        1.5px dashed #9dc4c7
+        !important;
+
+    border-radius:
+        var(--pmd-platform-card-radius)
+        !important;
+
+    background:
+        var(--pmd-platform-card-surface-soft)
+        !important;
+
+    color:
+        #174d50
+        !important;
+
+    box-shadow:
+        none
+        !important;
+
+    transform:
+        none
+        !important;
+
+    transition:
+        none
+        !important;
+
+    animation:
+        none
+        !important;
+}
+
+
+@media (hover: hover) {
+    html body
+    .pmd-smart-add-card:not(
+        .pmd-menu-food-needs-category-r25
+    ):hover {
+        border-color:
+            #5e9fa1
+            !important;
+
+        background:
+            #f2f9f8
+            !important;
+
+        box-shadow:
+            var(--pmd-platform-card-hover-shadow)
+            !important;
+    }
+}
+
+
+html body
+.pmd-smart-add-card:not(
+    .pmd-menu-food-needs-category-r25
+):focus-visible {
+    border-color:
+        #5e9fa1
+        !important;
+
+    background:
+        #f2f9f8
+        !important;
+
+    outline:
+        none
+        !important;
+
+    box-shadow:
+        var(--pmd-platform-card-focus-shadow)
+        !important;
+}
+
+
+html body :is(
+    .pmd-smart-add-card__plus,
+    .pmd-coupon-smart-add-card__plus
+) {
+    border-radius:
+        999px
+        !important;
+
+    box-shadow:
+        none
+        !important;
+}
+
+
+/* ==========================================================
+   7. KPI / ANALYTICS CARD LANGUAGE
+   ========================================================== */
+
+html body :is(
+    .pmd-menu-kpi,
+    [data-pmd-dashboard-lab-kpi],
+    .pmd-dashboard-lab-kpi,
+    .pmd-owner-clean-kpi,
+    .pmd-role-kpi
+) {
+    border-radius:
+        var(--pmd-platform-card-radius)
+        !important;
+
+    box-shadow:
+        none
+        !important;
+
+    transition:
+        none
+        !important;
+}
+
+
+/* ==========================================================
+   8. SECONDARY / NESTED SURFACES
+
+   Smaller radius, never another heavy floating card.
+   ========================================================== */
+
+html body :is(
+    .pmd-owner-panel,
+    .pmd-owner-stat,
+    .pmd-owner-row
+) {
+    border-radius:
+        var(--pmd-platform-card-inner-radius)
+        !important;
+
+    border-color:
+        #e1ebe8
+        !important;
+
+    background:
+        #ffffff
+        !important;
+
+    box-shadow:
+        none
+        !important;
+
+    transition:
+        none
+        !important;
+}
+
+
+/* ==========================================================
+   9. OPERATIONAL CARDS
+
+   Cashier / Waiter / POS:
+   preserve status/background/border colors.
+   Standardize only shape and depth.
+   ========================================================== */
+
+html body :is(
+    .pmd-ops-card,
+    .v241-card,
+    .pmd-v2-table-key,
+    .pmd-w5-card,
+    .pmd-pos-product,
+    .pmd-pos-category,
+    .pmd-pos-payment-block,
+    .pmd-pos-payment-summary,
+    .pmd-pos-balance-card,
+    .pmd-pos-method
+) {
+    border-radius:
+        var(--pmd-platform-card-radius)
+        !important;
+
+    box-shadow:
+        none
+        !important;
+}
+
+
+@media (hover: hover) {
+    html body :is(
+        .pmd-ops-card,
+        .v241-card,
+        .pmd-v2-table-key,
+        .pmd-w5-card,
+        .pmd-pos-product,
+        .pmd-pos-category
+    ):hover {
+        box-shadow:
+            var(--pmd-platform-card-hover-shadow)
+            !important;
+    }
+}
+
+
+/* ==========================================================
+   10. WAITER POS STANDALONE
+
+   Loaded directly by waiter_pos.blade.php as well.
+   ========================================================== */
+
+html body.pmd-waiter-pos-page :is(
+    .pmd-pos-product,
+    .pmd-pos-category,
+    .pmd-pos-payment-block,
+    .pmd-pos-payment-summary,
+    .pmd-pos-balance-card,
+    .pmd-pos-method
+) {
+    border-radius:
+        var(--pmd-platform-card-radius)
+        !important;
+
+    box-shadow:
+        none
+        !important;
+}
+
+
+@media (hover: hover) {
+    html body.pmd-waiter-pos-page :is(
+        .pmd-pos-product,
+        .pmd-pos-category,
+        .pmd-pos-method
+    ):hover {
+        box-shadow:
+            var(--pmd-platform-card-hover-shadow)
+            !important;
+    }
+}
+
+
+/* ==========================================================
+   11. KDS DISPLAY STANDALONE
+
+   Preserve the colored left workflow edge.
+   Remove the unrelated old floating shadow.
+   ========================================================== */
+
+html body[data-pmd-kds-display="v1"]
+.kds-header,
+
+html body[data-pmd-kds-display="v1"]
+.order-card,
+
+html body[data-pmd-kds-display="v1"]
+.empty-state {
+    border-radius:
+        var(--pmd-platform-card-radius)
+        !important;
+
+    box-shadow:
+        none
+        !important;
+}
+
+
+html body[data-pmd-kds-display="v1"]
+.order-card {
+    transform:
+        none
+        !important;
+}
+
+
+@media (hover: hover) {
+    html body[data-pmd-kds-display="v1"]
+    .order-card.status-received:hover,
+
+    html body[data-pmd-kds-display="v1"]
+    .order-card.status-new:hover,
+
+    html body[data-pmd-kds-display="v1"]
+    .order-card.status-unknown:hover {
+        box-shadow:
+            var(--pmd-platform-card-hover-shadow)
+            !important;
+    }
+}
+
+
+/*
+ * Updating state still needs its functional visual feedback.
+ */
+html body[data-pmd-kds-display="v1"]
+.order-card.is-kds-updating-v1 {
+    box-shadow:
+        0 0 0 2px rgba(8,116,92,.10)
+        !important;
+}
+
+
+/* ==========================================================
+   12. KDS STATION SETTINGS CARDS
+   ========================================================== */
+
+html body
+.pmd962-shell
+.pmd962-card,
+
+html body
+.pmd962-shell
+.pmd962-station-card {
+    border-radius:
+        var(--pmd-platform-card-radius)
+        !important;
+
+    box-shadow:
+        none
+        !important;
+
+    transition:
+        none
+        !important;
+
+    animation:
+        none
+        !important;
+}
+
+
+/* ==========================================================
+   13. SUPERADMIN
+
+   Uses its own layout and generic .card / .stat classes.
+   Scope tightly to .pmd-main.
+   ========================================================== */
+
+html body
+.pmd-main
+> .content
+.card,
+
+html body
+.pmd-main
+.content
+.card,
+
+html body
+.pmd-main
+.stat {
+    border-radius:
+        var(--pmd-platform-card-radius)
+        !important;
+
+    border-color:
+        var(--pmd-platform-card-line)
+        !important;
+
+    background-color:
+        var(--pmd-platform-card-surface)
+        !important;
+
+    box-shadow:
+        none
+        !important;
+
+    transition:
+        none
+        !important;
+
+    animation:
+        none
+        !important;
+}
+
+
+/* ==========================================================
+   14. PMD MODAL CARD VARIANT
+
+   Same family, intentionally more elevated.
+   Positioning/sizing/scroll behavior stays feature-owned.
+   ========================================================== */
+
+html body :is(
+    .pmd-modal-card,
+    .pmd-settings-inline-card,
+    .pmd-device-v6-card,
+    .pmd-menu-modal__card,
+    .pmd-menu-category-manager-r25__card,
+    .pmd-smart-category-modal__card,
+    .pmd-coupon-modal__card,
+    .pmd-provider-modal__dialog,
+    .pmd-pos-detail-card,
+    .pmd-pos-modal-card,
+    .pmd-pos-payment-dialog,
+    .pmd-cashier-order-center__dialog,
+    .pmd-cashier-pos-overlay__panel,
+    .pmd-floor-registry-manager__card,
+    .pmd-floor-table-manager__card,
+    .pmd-shifts__team-card,
+    .pmd-shifts-shift-card-v15
+) {
+    border-width:
+        1px
+        !important;
+
+    border-style:
+        solid
+        !important;
+
+    border-color:
+        var(--pmd-platform-card-line)
+        !important;
+
+    border-radius:
+        var(--pmd-platform-card-modal-radius)
+        !important;
+
+    box-shadow:
+        var(--pmd-platform-card-modal-shadow)
+        !important;
+}
+
+
+html body
+#pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc__dialog,
+
+html body
+#pmd-cashier-order-composer-v1.pmd-coc.pmd-coc
+.pmd-coc-product__dialog {
+    border-radius:
+        var(--pmd-platform-card-modal-radius)
+        !important;
+
+    box-shadow:
+        var(--pmd-platform-card-modal-shadow)
+        !important;
+}
+
+
+/* ==========================================================
+   15. LEGACY PMD ADAPTERS
+
+   Do NOT globally target every Bootstrap .card.
+   Only known PayMyDine shells.
+   ========================================================== */
+
+html body.page
+.pmd-edit-shell
+> .card,
+
+html body.page
+.pmd-settings-shell
+> .card,
+
+html body.page
+.dashboard-widget.card {
+    border:
+        1px solid
+        var(--pmd-platform-card-line)
+        !important;
+
+    border-radius:
+        var(--pmd-platform-card-radius)
+        !important;
+
+    background:
+        var(--pmd-platform-card-surface)
+        !important;
+
+    box-shadow:
+        none
+        !important;
+}
+
+
+/* ==========================================================
+   16. ACCESSIBILITY / REDUCED MOTION
+
+   Platform cards are already no-motion.
+   Keep focus state visible.
+   ========================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+    html body :is(
+        .pmd-card,
+        .pmd-owner-card,
+        .pmd-profile-card,
+        .pmd-frontend-card,
+        .pmd-team-card,
+        .pmd-settings-card,
+        .pmd-history-card,
+        .pmd-menu-card,
+        .pmd-coupon-card,
+        .pmd-r2-card,
+        .pmd-smart-add-card
+    ) {
+        transition:
+            none
+            !important;
+    }
+}
