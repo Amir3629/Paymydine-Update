@@ -5860,9 +5860,15 @@
     );
   }
 
+  // PMD_CASHIER_ORDERS_ALIAS_COMPOSER_V1
   function isCashierPath() {
-    return /^\/admin\/cashierlab(?:\/|$)/.test(
-      location.pathname
+    var path = String(
+      location.pathname || ''
+    ).replace(/\/+$/, '');
+
+    return (
+      path === '/admin/cashierlab' ||
+      path === '/admin/orders'
     );
   }
 

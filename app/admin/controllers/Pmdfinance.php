@@ -34,6 +34,8 @@ class Pmdfinance extends AdminController
         $this->addCss('css/pmd-owner-settings-v1.css');
         $this->addCss('css/pmd-settings-suite-first-paint-v1.css');
         $this->addCss('css/pmd-settings-inline-detail-v1.css');
+        // PMD_FINANCE_FLAT_UI_V1
+        $this->addCss('css/pmd-finance-flat-ui-v1.css');
         $this->addJs('js/pmd-owner-settings-v1.js');
         $this->addJs('js/pmd-settings-inline-detail-v1.js');
         AdminMenu::setContext('settings', 'system');

@@ -1,0 +1,947 @@
+/* PMD_DEVICE_SETTINGS_INLINE_MODAL_V6
+   One visible Devices page; create/edit happens in one Reservation/Table-style card. */
+
+.pmd-devices-settings-page .pmd-owner-action[type="button"] {
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+}
+
+.pmd-devices-settings-page .pmd-device-v6-header-add {
+  min-height: 38px;
+  white-space: nowrap;
+}
+
+.pmd-device-v6-modal,
+.pmd-device-v6-modal * {
+  box-sizing: border-box;
+}
+
+.pmd-device-v6-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483500;
+  display: grid;
+  place-items: center;
+  width: 100vw;
+  height: 100vh;
+  padding: 24px;
+  isolation: isolate;
+}
+
+.pmd-device-v6-modal[hidden] { display: none !important; }
+
+.pmd-device-v6-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: rgba(255,255,255,.04);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  cursor: default;
+  animation: pmdDeviceV6BackdropIn 180ms ease both;
+}
+
+.pmd-device-v6-card {
+  position: relative;
+  z-index: 1;
+  width: min(980px, calc(100vw - 48px));
+  max-height: min(90vh, 920px);
+  display: grid;
+  grid-template-rows: auto minmax(0,1fr) auto;
+  overflow: hidden;
+  border: 1px solid #cfe0ed;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 20px 60px rgba(16,42,67,.14);
+  color: #10211d;
+  animation: pmdDeviceV6CardIn 180ms cubic-bezier(.2,.8,.2,1) both;
+}
+
+.pmd-device-v6-card__header {
+  min-height: 82px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+  border-bottom: 1px solid #dce8ef;
+  background: #fff;
+}
+
+.pmd-device-v6-card__header h2 {
+  margin: 0;
+  color: #102a43;
+  font-size: 26px;
+  font-weight: 820;
+  line-height: 1.15;
+  letter-spacing: -.025em;
+}
+
+.pmd-device-v6-close {
+  width: 46px;
+  min-width: 46px;
+  height: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid #cfe0ed;
+  border-radius: 14px;
+  background: #fff;
+  color: #102a43;
+  cursor: pointer;
+}
+
+.pmd-device-v6-close:hover,
+.pmd-device-v6-close:focus-visible {
+  border-color: #9fc6dc;
+  background: #f3f8fb;
+  outline: 0;
+}
+
+.pmd-device-v6-close svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.pmd-device-v6-card__body {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 18px;
+  background: #f8fbfd;
+}
+
+.pmd-device-v6-section {
+  margin: 0 0 14px;
+  padding: 16px;
+  border: 1px solid #dce8ef;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 4px 14px rgba(16,42,67,.035);
+}
+
+.pmd-device-v6-section:last-child { margin-bottom: 0; }
+
+.pmd-device-v6-section__head {
+  margin: 0 0 14px;
+}
+
+.pmd-device-v6-section__head--actions {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.pmd-device-v6-section__head h3 {
+  margin: 0;
+  color: #102a43;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.pmd-device-v6-section__head p {
+  margin: 4px 0 0;
+  color: #6b8195;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.pmd-device-v6-form .pmd-owner-form-grid {
+  align-items: start;
+  align-content: start;
+  grid-auto-rows: max-content;
+}
+
+.pmd-device-v6-form-gap { margin-top: 14px; }
+
+.pmd-device-v6-check-grid {
+  display: grid;
+  grid-template-columns: repeat(3,minmax(0,1fr));
+  gap: 10px;
+}
+
+.pmd-device-v6-check {
+  position: relative;
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.pmd-device-v6-check input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.pmd-device-v6-check span {
+  width: 100%;
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  padding: 0 13px;
+  border: 1px solid #d9e5eb;
+  border-radius: 12px;
+  background: #fff;
+  color: #20384d;
+  font-size: 12px;
+  font-weight: 720;
+  transition: border-color 140ms ease, background 140ms ease, box-shadow 140ms ease;
+}
+
+.pmd-device-v6-check input:checked + span {
+  border-color: #9bcdbd;
+  background: #edf8f3;
+  color: #075f4f;
+  box-shadow: 0 0 0 3px rgba(11,102,85,.06);
+}
+
+.pmd-device-v6-check input:focus-visible + span {
+  outline: 2px solid #9fc6dc;
+  outline-offset: 2px;
+}
+
+.pmd-device-v6-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.pmd-device-v6-primary {
+  border-color: #a8d1c5 !important;
+  background: #edf8f3 !important;
+  color: #075f4f !important;
+}
+
+.pmd-device-v6-result {
+  margin: 12px 0 0;
+  max-height: 220px;
+  overflow: auto;
+  padding: 12px;
+  border: 1px solid #dce8ef;
+  border-radius: 12px;
+  background: #f7fafc;
+  color: #243b53;
+  white-space: pre-wrap;
+  font-size: 11px;
+}
+
+.pmd-device-v6-kv-grid {
+  display: grid;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  gap: 10px;
+}
+
+.pmd-device-v6-kv-grid > div {
+  padding: 12px;
+  border: 1px solid #e1ebe8;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.pmd-device-v6-kv-grid span {
+  display: block;
+  margin-bottom: 4px;
+  color: #71817d;
+  font-size: 10px;
+  font-weight: 780;
+  text-transform: uppercase;
+  letter-spacing: .035em;
+}
+
+.pmd-device-v6-kv-grid strong {
+  display: block;
+  color: #17332c;
+  font-size: 13px;
+  font-weight: 750;
+  overflow-wrap: anywhere;
+}
+
+.pmd-device-v6-kv-full { grid-column: 1 / -1; }
+
+.pmd-device-v6-card__footer {
+  min-height: 76px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 20px;
+  border-top: 1px solid #dce8ef;
+  background: #fff;
+}
+
+.pmd-device-v6-footer-spacer { flex: 1 1 auto; }
+
+.pmd-device-v6-status {
+  min-width: 0;
+  color: #647b8e;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.pmd-device-v6-status.is-ok { color: #087052; }
+.pmd-device-v6-status.is-error { color: #b42318; }
+
+.pmd-device-v6-secondary,
+.pmd-device-v6-save,
+.pmd-device-v6-delete {
+  min-height: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 18px;
+  border-radius: 13px;
+  font-size: 13px;
+  font-weight: 780;
+  cursor: pointer;
+}
+
+.pmd-device-v6-secondary {
+  border: 1px solid #cfe0ed;
+  background: #fff;
+  color: #102a43;
+}
+
+.pmd-device-v6-save {
+  border: 1px solid #075f4f;
+  background: #086a58;
+  color: #fff;
+}
+
+.pmd-device-v6-delete {
+  border: 1px solid #efc6c0;
+  background: #fff7f6;
+  color: #b42318;
+}
+
+.pmd-device-v6-secondary:hover,
+.pmd-device-v6-save:hover,
+.pmd-device-v6-delete:hover { filter: brightness(.985); }
+
+.pmd-device-v6-secondary:disabled,
+.pmd-device-v6-save:disabled,
+.pmd-device-v6-delete:disabled,
+.pmd-device-v6-tools button:disabled {
+  opacity: .55;
+  cursor: wait;
+}
+
+html.pmd-device-v6-modal-open,
+html.pmd-device-v6-modal-open body {
+  overflow: hidden !important;
+}
+
+@keyframes pmdDeviceV6BackdropIn {
+  from { opacity: 0; backdrop-filter: blur(0); -webkit-backdrop-filter: blur(0); }
+  to { opacity: 1; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+}
+
+@keyframes pmdDeviceV6CardIn {
+  from { opacity: 0; transform: scale(.985); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@media (max-width: 760px) {
+  .pmd-device-v6-modal { padding: 12px; }
+  .pmd-device-v6-card { width: calc(100vw - 24px); max-height: calc(100vh - 24px); }
+  .pmd-device-v6-card__header { min-height: 70px; padding: 12px 14px; }
+  .pmd-device-v6-card__header h2 { font-size: 21px; }
+  .pmd-device-v6-card__body { padding: 12px; }
+  .pmd-device-v6-section { padding: 13px; }
+  .pmd-device-v6-check-grid,
+  .pmd-device-v6-kv-grid { grid-template-columns: 1fr; }
+  .pmd-device-v6-kv-full { grid-column: auto; }
+  .pmd-device-v6-card__footer { padding: 12px 14px; }
+  .pmd-device-v6-status { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pmd-device-v6-backdrop,
+  .pmd-device-v6-card { animation: none !important; }
+}
+
+/* PMD_DEVICE_V6_MODAL_POLISH_V6_1
+   Single visual correction on top of the proven V6 modal authority.
+   No second modal, no observer, no timer geometry repair. */
+
+/* One exact field-frame contract inside every Device modal form. */
+.pmd-device-v6-form .pmd-owner-field > input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
+.pmd-device-v6-form .pmd-owner-field > select {
+  display: block !important;
+  width: 100% !important;
+  height: 46px !important;
+  min-height: 46px !important;
+  max-height: 46px !important;
+  margin: 0 !important;
+  padding: 0 13px !important;
+  border: 1px solid #d5e3ea !important;
+  border-radius: 12px !important;
+  background-color: #fff !important;
+  color: #162a24 !important;
+  box-shadow: 0 2px 8px rgba(24,51,44,.035) !important;
+  outline: 0 !important;
+  line-height: 44px !important;
+  vertical-align: middle !important;
+}
+
+.pmd-device-v6-form .pmd-owner-field > select {
+  line-height: normal !important;
+}
+
+.pmd-device-v6-form .pmd-owner-field > textarea {
+  display: block !important;
+  width: 100% !important;
+  min-height: 96px !important;
+  margin: 0 !important;
+  padding: 12px 13px !important;
+  border: 1px solid #d5e3ea !important;
+  border-radius: 12px !important;
+  background: #fff !important;
+  color: #162a24 !important;
+  box-shadow: 0 2px 8px rgba(24,51,44,.035) !important;
+  outline: 0 !important;
+  line-height: 1.45 !important;
+}
+
+.pmd-device-v6-form .pmd-owner-field > input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):focus,
+.pmd-device-v6-form .pmd-owner-field > select:focus,
+.pmd-device-v6-form .pmd-owner-field > textarea:focus {
+  border-color: #9fc6dc !important;
+  box-shadow: 0 0 0 3px rgba(77,157,199,.10) !important;
+}
+
+.pmd-device-v6-check,
+.pmd-device-v6-check span {
+  min-height: 46px !important;
+}
+
+.pmd-device-v6-check span,
+.pmd-device-v6-result,
+.pmd-device-v6-kv-grid > div {
+  border-radius: 12px !important;
+}
+
+.pmd-device-v6-secondary,
+.pmd-device-v6-save,
+.pmd-device-v6-delete {
+  height: 46px !important;
+  min-height: 46px !important;
+  max-height: 46px !important;
+  border-radius: 12px !important;
+}
+
+.pmd-device-v6-close {
+  border-radius: 12px !important;
+}
+
+/* Smooth, visibly dimmed Reservation/Table-style background treatment. */
+.pmd-device-v6-backdrop {
+  background: rgba(9,28,24,.16) !important;
+  backdrop-filter: blur(8px) saturate(.94) !important;
+  -webkit-backdrop-filter: blur(8px) saturate(.94) !important;
+  animation: pmdDeviceV61BackdropIn 180ms ease both !important;
+  touch-action: none;
+}
+
+.pmd-device-v6-card {
+  box-shadow: 0 24px 70px rgba(16,42,67,.18) !important;
+}
+
+/* Robust scroll lock: the page is frozen at its exact pre-modal scroll point.
+   Only .pmd-device-v6-card__body is allowed to scroll while the card is open. */
+html.pmd-device-v6-modal-open {
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+}
+
+html.pmd-device-v6-modal-open body {
+  position: fixed !important;
+  top: calc(-1 * var(--pmd-device-v6-scroll-y, 0px)) !important;
+  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+}
+
+html.pmd-device-v6-modal-open .pmd-device-v6-card__body {
+  overflow: auto !important;
+  overscroll-behavior: contain !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+@keyframes pmdDeviceV61BackdropIn {
+  from {
+    opacity: 0;
+    background: rgba(9,28,24,0);
+    backdrop-filter: blur(0) saturate(1);
+    -webkit-backdrop-filter: blur(0) saturate(1);
+  }
+  to {
+    opacity: 1;
+    background: rgba(9,28,24,.16);
+    backdrop-filter: blur(8px) saturate(.94);
+    -webkit-backdrop-filter: blur(8px) saturate(.94);
+  }
+}
+
+@media (max-width: 760px) {
+  .pmd-device-v6-form .pmd-owner-field > input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
+  .pmd-device-v6-form .pmd-owner-field > select {
+    height: 46px !important;
+    min-height: 46px !important;
+    max-height: 46px !important;
+    border-radius: 12px !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pmd-device-v6-backdrop {
+    animation: none !important;
+  }
+}
+
+
+/* ==========================================================
+   PMD_DEVICE_MODAL_FLAT_UI_V7
+
+   Device Create/Edit modal follows the same flat composition
+   principle as the stable Edit Food modal:
+
+   ONE CARD:
+     .pmd-device-v6-card
+
+   NOT CARDS:
+     body
+     sections
+     setting rows
+     key/value content
+
+   Inputs remain visually framed because they are controls.
+   ========================================================== */
+
+
+/* ----------------------------------------------------------
+   1. OUTER MODAL IS THE ONLY CARD
+   ---------------------------------------------------------- */
+
+html body.pmd-devices-settings-page
+.pmd-device-v6-card {
+    overflow:
+        hidden
+        !important;
+
+    background:
+        #ffffff
+        !important;
+}
+
+
+/* ----------------------------------------------------------
+   2. FLAT BODY
+
+   Remove the gray "second card" canvas behind the form.
+   ---------------------------------------------------------- */
+
+html body.pmd-devices-settings-page
+.pmd-device-v6-card__body {
+    padding:
+        22px 22px 18px
+        !important;
+
+    background:
+        #ffffff
+        !important;
+
+    background-image:
+        none
+        !important;
+}
+
+
+/* ----------------------------------------------------------
+   3. SECTIONS ARE CONTENT GROUPS, NOT CARDS
+
+   This is the main fix for the screenshot.
+   ---------------------------------------------------------- */
+
+html body.pmd-devices-settings-page
+.pmd-device-v6-card__body
+.pmd-device-v6-section {
+    margin:
+        0
+        !important;
+
+    padding:
+        0
+        !important;
+
+    border:
+        0
+        !important;
+
+    border-radius:
+        0
+        !important;
+
+    background:
+        transparent
+        !important;
+
+    background-image:
+        none
+        !important;
+
+    box-shadow:
+        none
+        !important;
+}
+
+
+/*
+ * Multiple sections use ONE simple divider instead of
+ * another rounded rectangle.
+ */
+html body.pmd-devices-settings-page
+.pmd-device-v6-card__body
+.pmd-device-v6-section
++
+.pmd-device-v6-section {
+    margin-top:
+        24px
+        !important;
+
+    padding-top:
+        24px
+        !important;
+
+    border-top:
+        1px solid #e7efed
+        !important;
+}
+
+
+/* ----------------------------------------------------------
+   4. CLEAN SECTION HEADING
+   ---------------------------------------------------------- */
+
+html body.pmd-devices-settings-page
+.pmd-device-v6-section__head {
+    margin:
+        0 0 18px
+        !important;
+}
+
+
+html body.pmd-devices-settings-page
+.pmd-device-v6-section__head h3 {
+    margin:
+        0
+        !important;
+
+    color:
+        #10211d
+        !important;
+
+    font-size:
+        17px
+        !important;
+
+    font-weight:
+        820
+        !important;
+
+    line-height:
+        1.2
+        !important;
+
+    letter-spacing:
+        -.02em
+        !important;
+}
+
+
+html body.pmd-devices-settings-page
+.pmd-device-v6-section__head p {
+    margin:
+        5px 0 0
+        !important;
+
+    color:
+        #71817d
+        !important;
+
+    font-size:
+        12px
+        !important;
+
+    line-height:
+        1.45
+        !important;
+}
+
+
+/* ----------------------------------------------------------
+   5. SWITCH / SETTING ROWS ARE NOT NESTED CARDS
+   ---------------------------------------------------------- */
+
+html body.pmd-devices-settings-page
+.pmd-device-v6-form
+.pmd-owner-setting-row {
+    min-height:
+        0
+        !important;
+
+    margin:
+        18px 0 0
+        !important;
+
+    padding:
+        16px 0 0
+        !important;
+
+    border:
+        0
+        !important;
+
+    border-top:
+        1px solid #edf2f0
+        !important;
+
+    border-radius:
+        0
+        !important;
+
+    background:
+        transparent
+        !important;
+
+    box-shadow:
+        none
+        !important;
+}
+
+
+/* ----------------------------------------------------------
+   6. LABEL/COPY MUST LOOK LIKE TEXT, NOT A FRAME
+   ---------------------------------------------------------- */
+
+html body.pmd-devices-settings-page
+.pmd-device-v6-form
+.pmd-owner-field > label,
+
+html body.pmd-devices-settings-page
+.pmd-device-v6-form
+.pmd-owner-setting-copy strong,
+
+html body.pmd-devices-settings-page
+.pmd-device-v6-form
+.pmd-owner-setting-copy small {
+    border:
+        0
+        !important;
+
+    border-radius:
+        0
+        !important;
+
+    background:
+        transparent
+        !important;
+
+    box-shadow:
+        none
+        !important;
+}
+
+
+/* ----------------------------------------------------------
+   7. FORM CONTROLS REMAIN THE ONLY INNER FRAMES
+   ---------------------------------------------------------- */
+
+html body.pmd-devices-settings-page
+.pmd-device-v6-form
+.pmd-owner-field
+> input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
+
+html body.pmd-devices-settings-page
+.pmd-device-v6-form
+.pmd-owner-field
+> select,
+
+html body.pmd-devices-settings-page
+.pmd-device-v6-form
+.pmd-owner-field
+> textarea {
+    border:
+        1px solid #d5e3df
+        !important;
+
+    border-radius:
+        12px
+        !important;
+
+    background:
+        #ffffff
+        !important;
+
+    box-shadow:
+        none
+        !important;
+}
+
+
+html body.pmd-devices-settings-page
+.pmd-device-v6-form
+.pmd-owner-field
+> input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):focus,
+
+html body.pmd-devices-settings-page
+.pmd-device-v6-form
+.pmd-owner-field
+> select:focus,
+
+html body.pmd-devices-settings-page
+.pmd-device-v6-form
+.pmd-owner-field
+> textarea:focus {
+    border-color:
+        #8dbdaf
+        !important;
+
+    box-shadow:
+        0 0 0 3px rgba(7,95,79,.075)
+        !important;
+}
+
+
+/* ----------------------------------------------------------
+   8. DATA SUMMARY ITEMS: SOFT SURFACE, NO BOX-BORDER
+   ---------------------------------------------------------- */
+
+html body.pmd-devices-settings-page
+.pmd-device-v6-kv-grid
+> div {
+    border:
+        0
+        !important;
+
+    border-radius:
+        10px
+        !important;
+
+    background:
+        #f7faf9
+        !important;
+
+    box-shadow:
+        none
+        !important;
+}
+
+
+/* ----------------------------------------------------------
+   9. RESULT / DIAGNOSTIC OUTPUT
+
+   Keep readable grouping without another framed card.
+   ---------------------------------------------------------- */
+
+html body.pmd-devices-settings-page
+.pmd-device-v6-result {
+    border:
+        0
+        !important;
+
+    border-radius:
+        10px
+        !important;
+
+    background:
+        #f7faf9
+        !important;
+
+    box-shadow:
+        none
+        !important;
+}
+
+
+/* ----------------------------------------------------------
+   10. HEADER + FOOTER ARE PART OF OUTER CARD
+
+   Simple separators only.
+   ---------------------------------------------------------- */
+
+html body.pmd-devices-settings-page
+.pmd-device-v6-card__header {
+    border-bottom:
+        1px solid #e7efed
+        !important;
+
+    background:
+        #ffffff
+        !important;
+
+    box-shadow:
+        none
+        !important;
+}
+
+
+html body.pmd-devices-settings-page
+.pmd-device-v6-card__footer {
+    border-top:
+        1px solid #e7efed
+        !important;
+
+    background:
+        #ffffff
+        !important;
+
+    box-shadow:
+        none
+        !important;
+}
+
+
+/* ----------------------------------------------------------
+   11. MOBILE
+   ---------------------------------------------------------- */
+
+@media (max-width: 760px) {
+    html body.pmd-devices-settings-page
+    .pmd-device-v6-card__body {
+        padding:
+            16px
+            !important;
+    }
+
+    html body.pmd-devices-settings-page
+    .pmd-device-v6-card__body
+    .pmd-device-v6-section
+    +
+    .pmd-device-v6-section {
+        margin-top:
+            20px
+            !important;
+
+        padding-top:
+            20px
+            !important;
+    }
+}

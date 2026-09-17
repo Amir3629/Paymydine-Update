@@ -42,7 +42,7 @@ class Pmddevices extends AdminController
         $this->bodyClass = trim(($this->bodyClass ?? '').' pmd-settings-suite pmd-owner-settings-page pmd-devices-settings-page pmd-device-inline-v6');
         $this->addCss('css/pmd-owner-settings-v1.css');
         $this->addCss('css/pmd-settings-suite-first-paint-v1.css');
-        $this->addCss('css/pmd-device-inline-v6.css');
+        $this->addCss('css/pmd-device-inline-v7.css');
         $this->addJs('js/pmd-owner-settings-v1.js');
         $this->addJs('js/pmd-device-inline-v6.js');
 

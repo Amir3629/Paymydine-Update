@@ -59,8 +59,14 @@ return [
     'store_provider_response' => false,
     'read_only' => true,
 
-    // Admin rollout is fail-closed per tenant until tenant settings take over.
-    // This prevents PMD_AI_ENABLED=true from silently enabling every restaurant.
+    // PMD_AI_ADMIN_PLATFORM_DEFAULT_V1
+    // Authenticated Admin AI can be enabled platform-wide.
+    // Explicit tenant pmd_ai_admin_enabled remains the final override.
+    'admin_default_enabled' => filter_var(
+        env('PMD_AI_ADMIN_DEFAULT_ENABLED', false),
+        FILTER_VALIDATE_BOOLEAN
+    ),
+
     'admin_tenant_allowlist' => $csv(env('PMD_AI_ADMIN_TENANT_ALLOWLIST', '')),
 
     // Provider health/circuit breaker. Health is learned from real traffic so a

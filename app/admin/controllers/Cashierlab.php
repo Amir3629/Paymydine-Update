@@ -47,7 +47,7 @@ class Cashierlab extends PmdCleanWorkspaceControllerV1
             '//'.request()->getHost()
             .'/app/admin/assets/js/'
             .'pmd-cashier-order-composer-r51.js'
-            .'?v=20260827-r83-payment-taller'
+            .'?v=20260917-r84-orders-alias'
         );
         // PMD_CASHIER_R45_ACTION_AUTHORITY
         // New filename intentionally bypasses any stale R37/R44 browser cache.

@@ -25,6 +25,13 @@ final class PmdAiTenantPolicyService
             return $this->bool($value);
         }
 
+        // PMD_AI_ADMIN_PLATFORM_DEFAULT_V1
+        // New/existing restaurants inherit the authenticated Admin AI
+        // platform default unless that tenant explicitly opts out.
+        if ((bool)config('pmd_ai.admin_default_enabled', false)) {
+            return true;
+        }
+
         return $this->environmentTenantAllowlisted(
             (array)config('pmd_ai.admin_tenant_allowlist', [])
         );
