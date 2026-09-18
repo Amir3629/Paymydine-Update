@@ -816,7 +816,7 @@ class Dashboard2 extends Reservations2
         $paymentCandidates = [];
 
         if (
-            Schema::hasColumn(
+            $this->schemaHasColumn(
                 'orders',
                 'settlement_method'
             )
@@ -1631,7 +1631,7 @@ protected function analyticsAlerts(
             )->count();
         }
 
-        $stock = Schema::hasColumn(
+        $stock = $this->schemaHasColumn(
             'menus',
             'is_stock_out'
         )
@@ -1715,13 +1715,13 @@ protected function analyticsAlerts(
                 ->isEnabled()
                 ->pluck('table_id');
 
-            $statusColumn = Schema::hasColumn(
+            $statusColumn = $this->schemaHasColumn(
                 'tables',
                 'operational_status'
             )
                 ? 'operational_status'
                 : (
-                    Schema::hasColumn(
+                    $this->schemaHasColumn(
                         'tables',
                         'table_status'
                     )
@@ -1729,13 +1729,13 @@ protected function analyticsAlerts(
                         : null
                 );
 
-            $updatedColumn = Schema::hasColumn(
+            $updatedColumn = $this->schemaHasColumn(
                 'tables',
                 'operational_status_updated_at'
             )
                 ? 'operational_status_updated_at'
                 : (
-                    Schema::hasColumn(
+                    $this->schemaHasColumn(
                         'tables',
                         'updated_at'
                     )
@@ -2180,7 +2180,7 @@ protected function analyticsCalendarEvents(
 
         $hasStatuses =
             $this->schemaHasTable('statuses')
-            && Schema::hasColumn(
+            && $this->schemaHasColumn(
                 'reservations',
                 'status_id'
             )
@@ -2272,7 +2272,7 @@ protected function analyticsCalendarEvents(
 
         if (
             $reservationIds
-            && Schema::hasTable(
+            && $this->schemaHasTable(
                 'reservation_tables'
             )
             && $this->hasColumns(
