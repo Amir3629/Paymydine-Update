@@ -22,6 +22,15 @@ class PmdWorkSessionPolicyService
 {
     public const SESSION_POLICY = 'pmd_work_session_policy_v1';
 
+    /**
+     * PMD_PERF_R4_WORK_SESSION_SCHEMA_CACHE
+     *
+     * The same policy service can be consulted more than once during Admin
+     * authentication/gating. Schema existence is immutable for the lifetime of
+     * one request, so probe the three operational tables only once.
+     */
+    private ?bool $pmdOperationalSchemaReadyCache = null;
+
     public function apply(array $identity, ?Carbon $now = null): array
     {
         $policy = $this->policy($identity, $now);
@@ -58,11 +67,7 @@ class PmdWorkSessionPolicyService
         ];
 
         if ($locationId < 1 || $staffId < 1) return $fallback;
-        if (
-            !Schema::hasTable('pmd_operational_people')
-            || !Schema::hasTable('pmd_operational_shift_people')
-            || !Schema::hasTable('pmd_operational_shifts')
-        ) {
+        if (!$this->operationalSchemaReady()) {
             return $fallback;
         }
 
@@ -178,6 +183,22 @@ class PmdWorkSessionPolicyService
     public function clear(): void
     {
         session()->forget(self::SESSION_POLICY);
+    }
+
+    private function operationalSchemaReady(): bool
+    {
+        if ($this->pmdOperationalSchemaReadyCache !== null) {
+            return $this->pmdOperationalSchemaReadyCache;
+        }
+
+        try {
+            return $this->pmdOperationalSchemaReadyCache =
+                Schema::hasTable('pmd_operational_people')
+                && Schema::hasTable('pmd_operational_shift_people')
+                && Schema::hasTable('pmd_operational_shifts');
+        } catch (\Throwable $error) {
+            return $this->pmdOperationalSchemaReadyCache = false;
+        }
     }
 
     private function restaurantTimezone(int $locationId): string
