@@ -1200,7 +1200,8 @@ class Dashboardlab extends AdminController
             $source = new class extends PmdWaiterDashboardV151 {
                 public function pmdDashboardLabFloorData(): array
                 {
-                    return $this->v9CompatiblePayload();
+                    // Floor first paint does not use the POS menu catalogue.
+                    return $this->v9CompatiblePayload(false);
                 }
             };
 
