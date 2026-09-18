@@ -1168,6 +1168,49 @@ Route::group([
                     ->lockForUpdate()
                     ->firstOrFail();
 
+                // PMD_R69_PROVIDER_REFERENCE_IDEMPOTENCY
+                // If the provider succeeded but the browser/proxy timed out after this
+                // transaction committed, a retry with the same provider reference must
+                // return the existing settlement instead of charging the order twice.
+                $providerReference = trim((string)$request->input('payment_reference', ''));
+                if ($providerReference !== '') {
+                    $existingProviderTx = $hasSplitTables
+                        ? \Illuminate\Support\Facades\DB::table('order_payment_transactions')
+                            ->where('order_id', (int)$lockedOrder->order_id)
+                            ->where('payment_reference', $providerReference)
+                            ->orderByDesc('id')
+                            ->first()
+                        : null;
+
+                    $referenceAlreadyApplied = $existingProviderTx
+                        || hash_equals((string)($lockedOrder->settlement_reference ?? ''), $providerReference);
+
+                    if ($referenceAlreadyApplied) {
+                        $currentTotal = (float)(\Illuminate\Support\Facades\DB::table('order_totals')
+                            ->where('order_id', $lockedOrder->order_id)
+                            ->where('code', 'total')
+                            ->value('value') ?? $lockedOrder->order_total ?? 0);
+                        $currentSettled = max(0, (float)($lockedOrder->settled_amount ?? 0));
+                        $currentRemaining = max(0, round($currentTotal - $currentSettled, 4));
+                        $existingPaidAmount = (float)($existingProviderTx->amount ?? 0);
+
+                        return [
+                            'lockedOrder' => $lockedOrder,
+                            'previousSettlementStatus' => strtolower((string)($lockedOrder->settlement_status ?? 'unpaid')),
+                            'newSettlementStatus' => $currentRemaining <= 0.0001 ? 'paid' : 'partial',
+                            'newSettled' => $currentSettled,
+                            'remaining' => $currentRemaining,
+                            'calculatedAmount' => $existingPaidAmount,
+                            'allocationRows' => [],
+                            'alreadyPaid' => false,
+                            'idempotentReplay' => true,
+                            'tipAmount' => 0.0,
+                            'couponDiscount' => 0.0,
+                            'payableAmount' => $existingPaidAmount,
+                        ];
+                    }
+                }
+
                 // PMD_SPLIT_PAYMENT_SAFETY_R35: intent and order are locked together.
                 if ($r35IntentId) {
                     $lockedR35Intent = \Illuminate\Support\Facades\DB::table('pmd_guest_payment_intents')
