@@ -122,6 +122,12 @@ try {
         '_pmd_dashboard_logo_tenant_r12',
         $pmdTenant
     );
+
+    $pmdDashboardLogoVersionR12 = substr(
+        sha1((string)$pmdValue),
+        0,
+        12
+    );
 } catch (\Throwable $pmdLogoError) {
     // Keep existing value if this fallback fails.
 }
@@ -137,13 +143,10 @@ if (!empty($imgSrcDashboard)) {
         }
     }
     
-    // Also validate file existence
-    if (!$isInvalid && !validateImageExists($imgSrcDashboard)) {
-        // PMD fix: never clear dashboard_logo from DB during navbar render.
-        // Rendering should not mutate settings. If validation fails, still allow browser to try the normalized URL.
-        // This prevents Dashboard Logo from disappearing after save.
-    }
-    
+    // PMD_PERF_R12_LOGO_NOOP_FILE_PROBE_REMOVED
+    // Browser rendering is authoritative; the old file_exists/getimagesize
+    // branch had no mutation or fallback effect for valid logos.
+
     if ($isInvalid) {
         // PMD disabled: never clear dashboard_logo during navbar render.
         // PMD disabled: never clear dashboard_logo setting during navbar render.
@@ -870,7 +873,7 @@ try {
 <div class="navbar-brand" style="height:88px;">
                 <a class="logo" href="{{ admin_url('dashboard') }}" style="margin-left: 44px; margin-top: 4px;">
                     @if(!empty($imgSrcDashboard))
-                        <img src="{{ $imgSrcDashboard }}?t={{ time() }}" alt="Dashboard Logo" class="pmd-dashboard-logo-img" style="max-height: 48px; max-width: 190px; width: auto; height: auto; object-fit: contain;">
+                        <img src="{{ $imgSrcDashboard }}?v={{ $pmdDashboardLogoVersionR12 ?? 'r12' }}" alt="Dashboard Logo" class="pmd-dashboard-logo-img" style="max-height: 48px; max-width: 190px; width: auto; height: auto; object-fit: contain;">
                     @endif
                     <i class="logo-svg"></i>
                 </a>
