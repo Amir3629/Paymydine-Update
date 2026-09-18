@@ -26,6 +26,15 @@ class PmdTrustedLoginDeviceService
 {
     private ?bool $pmdReadyCache = null;
 
+    /**
+     * PMD_PERF_R4_TRUSTED_DEVICE_LOOKUP_CACHE
+     *
+     * The global Admin security middleware can validate the same trusted cookie
+     * multiple times in a single request. Cache that exact user/location/token
+     * lookup for this request only.
+     */
+    private array $pmdCurrentDeviceCache = [];
+
     public const COOKIE = 'pmd_trusted_login_v1';
     public const KIND = 'trusted_login';
     private const COOKIE_MINUTES = 60 * 24 * 365 * 10;
@@ -63,13 +72,21 @@ class PmdTrustedLoginDeviceService
         $raw = trim((string)$request->cookie(self::COOKIE, ''));
         if ($raw === '') return null;
 
-        return DB::table('pmd_site_access_devices')
-            ->where('token_hash', $this->tokenHash($raw))
-            ->where('device_kind', self::KIND)
-            ->where('user_id', $userId)
-            ->where('location_id', $locationId)
-            ->whereNull('revoked_at')
-            ->first();
+        $tokenHash = $this->tokenHash($raw);
+        $cacheKey = $userId.'|'.$locationId.'|'.$tokenHash;
+
+        if (array_key_exists($cacheKey, $this->pmdCurrentDeviceCache)) {
+            return $this->pmdCurrentDeviceCache[$cacheKey];
+        }
+
+        return $this->pmdCurrentDeviceCache[$cacheKey] =
+            DB::table('pmd_site_access_devices')
+                ->where('token_hash', $tokenHash)
+                ->where('device_kind', self::KIND)
+                ->where('user_id', $userId)
+                ->where('location_id', $locationId)
+                ->whereNull('revoked_at')
+                ->first();
     }
 
     /**
