@@ -24,17 +24,30 @@ use Illuminate\Support\Facades\Schema;
  */
 class PmdTrustedLoginDeviceService
 {
+    private ?bool $pmdReadyCache = null;
+
     public const COOKIE = 'pmd_trusted_login_v1';
     public const KIND = 'trusted_login';
     private const COOKIE_MINUTES = 60 * 24 * 365 * 10;
 
     public function ready(): bool
     {
+        if ($this->pmdReadyCache !== null) {
+            return $this->pmdReadyCache;
+        }
+
         try {
-            return Schema::hasTable('pmd_site_access_devices')
-                && Schema::hasColumn('pmd_site_access_devices', 'user_id');
+            if (!Schema::hasTable('pmd_site_access_devices')) {
+                return $this->pmdReadyCache = false;
+            }
+
+            return $this->pmdReadyCache = in_array(
+                'user_id',
+                Schema::getColumnListing('pmd_site_access_devices'),
+                true
+            );
         } catch (\Throwable $error) {
-            return false;
+            return $this->pmdReadyCache = false;
         }
     }
 
