@@ -1,6 +1,6 @@
 <?php
 
-$colors = function_exists('posix_isatty') && defined('STDOUT') && @posix_isatty(STDOUT_FILENO);
+$colors = function_exists('posix_isatty') && defined('STDOUT') && @posix_isatty(STDOUT);
 $paint = static function (string $text, string $code) use ($colors): string {
     return $colors ? "\033[".$code."m".$text."\033[0m" : $text;
 };
