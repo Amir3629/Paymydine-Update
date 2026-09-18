@@ -9,6 +9,16 @@ class PmdOwnerDashboardCleanV1 extends \Admin\Classes\AdminController
 {
     protected $requiredPermissions = 'Admin.Dashboard';
 
+    /**
+     * PMD_PERF_R4_OWNER_SCHEMA_CACHE
+     *
+     * The owner dashboard asks the same table/column questions from many
+     * metric builders. Keep one request-local SHOW TABLES result and one column
+     * listing per physical table instead of repeating metadata round-trips.
+     */
+    protected ?array $pmdTableListCache = null;
+    protected array $pmdColumnListCache = [];
+
     public function index()
     {
 try {
@@ -1976,18 +1986,70 @@ try {
 
     protected function connectionMap($map)
     {
+        /*
+         * PMD_PERF_R4_OWNER_CONNECTION_COUNTS
+         *
+         * The developer data-proof panel previously issued one COUNT(*) query
+         * per connected source. Preserve exact counts, but obtain them in one
+         * database round-trip using UNION ALL.
+         */
+        $counts = [];
+        $uniqueTables = [];
+
+        foreach ($map as $table) {
+            $table = trim((string)$table);
+            if ($table !== '') {
+                $uniqueTables[$table] = true;
+            }
+        }
+
+        if ($uniqueTables) {
+            $parts = [];
+            foreach (array_keys($uniqueTables) as $table) {
+                $parts[] =
+                    'SELECT '
+                    .$this->quote($table)
+                    .' pmd_table, COUNT(*) pmd_count FROM '
+                    .$this->q($table);
+            }
+
+            $countRows = $this->rows(implode(' UNION ALL ', $parts));
+
+            foreach ($countRows as $row) {
+                $table = (string)($row['pmd_table'] ?? '');
+                if ($table !== '') {
+                    $counts[$table] = (int)($row['pmd_count'] ?? 0);
+                }
+            }
+
+            /*
+             * A disappearing table or unusual database error can invalidate the
+             * UNION as a whole. Keep the former fault-tolerant behavior as a
+             * fallback without paying this cost on healthy requests.
+             */
+            if (!$countRows) {
+                foreach (array_keys($uniqueTables) as $table) {
+                    $counts[$table] = (int)$this->scalar(
+                        'SELECT COUNT(*) v FROM '.$this->q($table)
+                    );
+                }
+            }
+        }
+
         $out = [];
         foreach ($map as $label => $table) {
-            $count = null;
-            if ($table) $count = (int)$this->scalar('SELECT COUNT(*) v FROM '.$this->q($table));
+            $table = trim((string)$table);
             $out[] = [
                 'key' => $label,
                 'label' => ucwords(str_replace('_', ' ', $label)),
-                'table' => $table ?: null,
-                'connected' => (bool)$table,
-                'count' => $count,
+                'table' => $table !== '' ? $table : null,
+                'connected' => $table !== '',
+                'count' => $table !== ''
+                    ? ($counts[$table] ?? null)
+                    : null,
             ];
         }
+
         return $out;
     }
 
@@ -2002,13 +2064,17 @@ try {
 
     protected function tables()
     {
+        if ($this->pmdTableListCache !== null) {
+            return $this->pmdTableListCache;
+        }
+
         try {
-            return array_values(array_filter(array_map(function ($row) {
+            return $this->pmdTableListCache = array_values(array_filter(array_map(function ($row) {
                 $a = (array)$row;
                 return (string)reset($a);
             }, DB::select('SHOW TABLES'))));
         } catch (\Throwable $e) {
-            return [];
+            return $this->pmdTableListCache = [];
         }
     }
 
@@ -2029,13 +2095,19 @@ try {
 
     protected function cols($table)
     {
-        if (!$table) return [];
+        $table = trim((string)$table);
+        if ($table === '') return [];
+
+        if (array_key_exists($table, $this->pmdColumnListCache)) {
+            return $this->pmdColumnListCache[$table];
+        }
+
         try {
-            return array_map(function ($row) {
+            return $this->pmdColumnListCache[$table] = array_map(function ($row) {
                 return $row->Field;
             }, DB::select('SHOW COLUMNS FROM '.$this->q($table)));
         } catch (\Throwable $e) {
-            return [];
+            return $this->pmdColumnListCache[$table] = [];
         }
     }
 
