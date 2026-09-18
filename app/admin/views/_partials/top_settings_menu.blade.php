@@ -1,5 +1,14 @@
 @php
-    $updatesCount = $item->unreadCount();
+    /*
+     * PMD_PERF_R15_RETIRED_UPDATE_BADGE_OFF_CRITICAL_PATH
+     *
+     * The legacy /admin/updates document route is retired by the current
+     * PayMyDine admin middleware. Do not initialize UpdateManager while
+     * rendering every admin page just to decorate this gear icon.
+     *
+     * Scheduled/backend update checks remain untouched.
+     */
+    $updatesCount = 0;
 
     \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
         'mainmenu_updates_badge'
