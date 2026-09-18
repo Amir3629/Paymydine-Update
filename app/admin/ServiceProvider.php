@@ -368,7 +368,13 @@ class ServiceProvider extends AppServiceProvider
                 'settings' => [
                     'type' => 'partial',
                     'path' => 'top_settings_menu',
-                    'badgeCount' => ['System\Models\Settings_model', 'updatesCount'],
+                    // PMD_PERF_R15_RETIRED_UPDATE_BADGE_OFF_CRITICAL_PATH
+                    //
+                    // /admin/updates is a retired document surface in the
+                    // current PayMyDine admin. Keep update checks in the
+                    // system scheduler / update backend, not in every page
+                    // render.
+                    'badgeCount' => 0,
                     'options' => ['System\Models\Settings_model', 'listMenuSettingItems'],
                     'permission' => 'Site.Settings',
                 ],
