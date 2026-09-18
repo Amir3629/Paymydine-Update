@@ -232,8 +232,14 @@ class Menus extends AdminController
             $uploadedAbsolute = $directory.'/'.$uploadedRelative;
         }
 
+        // PMD_PERF_R3_MENU_SCHEMA_SNAPSHOT
+        // One metadata read replaces repeated information_schema hasColumn calls
+        // throughout the save transaction.
+        $menuTable = (new Menus_model)->getTable();
+        $menuColumns = Schema::getColumnListing($menuTable);
+
         try {
-            $saved = DB::transaction(function () use ($clean, $menuId, $categoryIds, $allergenIds, $allergenIdsPresent, $uploadedRelative) {
+            $saved = DB::transaction(function () use ($clean, $menuId, $categoryIds, $allergenIds, $allergenIdsPresent, $uploadedRelative, $menuColumns) {
                 $menu = $menuId ? Menus_model::query()->find($menuId) : new Menus_model;
                 if ($menuId && !$menu) {
                     throw new \RuntimeException('Menu item not found.');
@@ -258,7 +264,7 @@ class Menus extends AdminController
                 ];
 
                 foreach ($optional as $column => $value) {
-                    if (Schema::hasColumn($menu->getTable(), $column)) {
+                    if (in_array($column, $menuColumns, true)) {
                         $menu->{$column} = $value;
                     }
                 }
@@ -266,7 +272,7 @@ class Menus extends AdminController
                 if (!$menu->exists) {
                     $menu->minimum_qty = 1;
                     $menu->menu_priority = ((int)Menus_model::query()->max('menu_priority')) + 1;
-                    if (Schema::hasColumn($menu->getTable(), 'is_stock_out')) {
+                    if (in_array('is_stock_out', $menuColumns, true)) {
                         $menu->is_stock_out = 0;
                     }
                 }
@@ -327,7 +333,9 @@ class Menus extends AdminController
                         ->insert($pmdImageRowR33);
                 }
 
-                return $menu->fresh(['categories', 'allergens', 'menu_images']);
+                // The response only needs menu_id/created state. Reloading three
+                // relations here made the user wait for data the response discards.
+                return $menu;
             });
         } catch (\Throwable $e) {
             if ($uploadedAbsolute && is_file($uploadedAbsolute)) @unlink($uploadedAbsolute);
