@@ -33,21 +33,34 @@ export class GuestTableSessionError extends Error {
 }
 
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(url, {
-    credentials: 'same-origin',
-    headers: { Accept: 'application/json', 'Content-Type': 'application/json', ...(init?.headers || {}) },
-    ...init,
-  })
-  const data = await response.json().catch(() => ({}))
-  if (!response.ok || data?.success === false) {
-    const code = String(data?.code || '')
-    const message = String(data?.error || data?.message || `HTTP ${response.status}`)
-    if (response.status === 409 || response.status === 410 || code === 'TABLE_SESSION_EXPIRED' || code === 'SESSION_ROTATION_REQUIRED') {
-      throw new GuestTableSessionError(message, code || `HTTP_${response.status}`, response.status)
+  const controller = new AbortController()
+  const timeout = window.setTimeout(() => controller.abort(), 10000)
+
+  try {
+    const response = await fetch(url, {
+      credentials: 'same-origin',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json', ...(init?.headers || {}) },
+      ...init,
+      signal: controller.signal,
+    })
+    const data = await response.json().catch(() => ({}))
+    if (!response.ok || data?.success === false) {
+      const code = String(data?.code || '')
+      const message = String(data?.error || data?.message || `HTTP ${response.status}`)
+      if (response.status === 409 || response.status === 410 || code === 'TABLE_SESSION_EXPIRED' || code === 'SESSION_ROTATION_REQUIRED') {
+        throw new GuestTableSessionError(message, code || `HTTP_${response.status}`, response.status)
+      }
+      throw new Error(message)
     }
-    throw new Error(message)
+    return data as T
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      throw new Error('The restaurant service took too long to respond. Please try again.')
+    }
+    throw error
+  } finally {
+    window.clearTimeout(timeout)
   }
-  return data as T
 }
 
 function paramsForTable(table: TableContext): URLSearchParams {

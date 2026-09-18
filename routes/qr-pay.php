@@ -1102,12 +1102,114 @@ Route::group([
         $selectedItemsPayload = collect($request->input('selected_items', []));
         $transactionId = null;
 
+        /*
+         * PMD_R69_STRIPE_SERVER_VERIFICATION
+         *
+         * A QR guest order may become operational only after Stripe itself says
+         * the referenced PaymentIntent succeeded. The browser result alone is
+         * not payment authority.
+         */
+        $stripeVerifiedIntent = null;
+        if ($normalizedProviderCode === 'stripe') {
+            $stripePaymentIntentId = trim((string)$request->input('payment_reference', ''));
+            if ($stripePaymentIntentId === '' || !str_starts_with($stripePaymentIntentId, 'pi_')) {
+                return response()->json(['success' => false, 'error' => 'Stripe payment reference is required before settlement.'], 422);
+            }
+
+            $stripePayment = \Admin\Models\Payments_model::isEnabled()
+                ->where('code', 'stripe')
+                ->first();
+            if (!$stripePayment) {
+                return response()->json(['success' => false, 'error' => 'Stripe is not configured.'], 503);
+            }
+
+            $stripeData = (array)$stripePayment->data;
+            $stripeMode = (string)($stripeData['transaction_mode'] ?? 'test');
+            $stripeSecretKey = $stripeMode === 'live'
+                ? (string)($stripeData['live_secret_key'] ?? '')
+                : (string)($stripeData['test_secret_key'] ?? '');
+
+            if ($stripeSecretKey === '') {
+                return response()->json(['success' => false, 'error' => 'Stripe secret key is not configured.'], 503);
+            }
+
+            try {
+                \Stripe\Stripe::setApiKey($stripeSecretKey);
+                $stripeCurl = new \Stripe\HttpClient\CurlClient();
+                $stripeCurl->setConnectTimeout(5);
+                $stripeCurl->setTimeout(10);
+                \Stripe\ApiRequestor::setHttpClient($stripeCurl);
+                $stripeVerifiedIntent = \Stripe\PaymentIntent::retrieve($stripePaymentIntentId);
+            } catch (\Throwable $e) {
+                \Log::warning('PMD_R69_STRIPE_PAY_EXISTING_VERIFY_FAILED', [
+                    'order_id' => (int)$order->order_id,
+                    'payment_intent_id' => $stripePaymentIntentId,
+                    'message' => $e->getMessage(),
+                ]);
+                return response()->json(['success' => false, 'error' => 'Unable to verify the Stripe payment. Do not pay again; refresh payment status.'], 422);
+            }
+
+            if ((string)($stripeVerifiedIntent->status ?? '') !== 'succeeded') {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Stripe has not completed this payment.',
+                    'stripe_status' => (string)($stripeVerifiedIntent->status ?? 'unknown'),
+                ], 422);
+            }
+
+            // One Stripe PaymentIntent may settle several orders on the same table.
+            // Amount authority is enforced cumulatively inside the settlement transaction.
+        }
+
         try {
-            $result = \Illuminate\Support\Facades\DB::transaction(function () use ($request, $order, $normalizedPaymentMethod, $normalizedProviderCode, $paidStatusId, $hasSplitTables, $selectedItemsPayload, $allocationColumn, $allocationMode, $hasAllocOrderMenuColumn, $hasAllocMenuIdColumn, &$transactionId, $r35IntentId, $r35SplitMode) {
+            $result = \Illuminate\Support\Facades\DB::transaction(function () use ($request, $order, $normalizedPaymentMethod, $normalizedProviderCode, $paidStatusId, $hasSplitTables, $selectedItemsPayload, $allocationColumn, $allocationMode, $hasAllocOrderMenuColumn, $hasAllocMenuIdColumn, &$transactionId, $r35IntentId, $r35SplitMode, $stripeVerifiedIntent) {
                 $lockedOrder = \Admin\Models\Orders_model::query()
                     ->where('order_id', $order->order_id)
                     ->lockForUpdate()
                     ->firstOrFail();
+
+                // PMD_R69_PROVIDER_REFERENCE_IDEMPOTENCY
+                // If the provider succeeded but the browser/proxy timed out after this
+                // transaction committed, a retry with the same provider reference must
+                // return the existing settlement instead of charging the order twice.
+                $providerReference = trim((string)$request->input('payment_reference', ''));
+                if ($providerReference !== '') {
+                    $existingProviderTx = $hasSplitTables
+                        ? \Illuminate\Support\Facades\DB::table('order_payment_transactions')
+                            ->where('order_id', (int)$lockedOrder->order_id)
+                            ->where('payment_reference', $providerReference)
+                            ->orderByDesc('id')
+                            ->first()
+                        : null;
+
+                    $referenceAlreadyApplied = $existingProviderTx
+                        || hash_equals((string)($lockedOrder->settlement_reference ?? ''), $providerReference);
+
+                    if ($referenceAlreadyApplied) {
+                        $currentTotal = (float)(\Illuminate\Support\Facades\DB::table('order_totals')
+                            ->where('order_id', $lockedOrder->order_id)
+                            ->where('code', 'total')
+                            ->value('value') ?? $lockedOrder->order_total ?? 0);
+                        $currentSettled = max(0, (float)($lockedOrder->settled_amount ?? 0));
+                        $currentRemaining = max(0, round($currentTotal - $currentSettled, 4));
+                        $existingPaidAmount = (float)($existingProviderTx->amount ?? 0);
+
+                        return [
+                            'lockedOrder' => $lockedOrder,
+                            'previousSettlementStatus' => strtolower((string)($lockedOrder->settlement_status ?? 'unpaid')),
+                            'newSettlementStatus' => $currentRemaining <= 0.0001 ? 'paid' : 'partial',
+                            'newSettled' => $currentSettled,
+                            'remaining' => $currentRemaining,
+                            'calculatedAmount' => $existingPaidAmount,
+                            'allocationRows' => [],
+                            'alreadyPaid' => false,
+                            'idempotentReplay' => true,
+                            'tipAmount' => 0.0,
+                            'couponDiscount' => 0.0,
+                            'payableAmount' => $existingPaidAmount,
+                        ];
+                    }
+                }
 
                 // PMD_SPLIT_PAYMENT_SAFETY_R35: intent and order are locked together.
                 if ($r35IntentId) {
@@ -1265,6 +1367,35 @@ Route::group([
                         if (abs($requestedAmount - $payableAmount) > 0.02) throw new \InvalidArgumentException('Selected items amount mismatch');
                     }
                 }
+                // PMD_R69_STRIPE_CUMULATIVE_AMOUNT_GUARD
+                if ($normalizedProviderCode === 'stripe') {
+                    if (!$stripeVerifiedIntent) {
+                        throw new \InvalidArgumentException('Stripe payment verification is missing.');
+                    }
+
+                    $stripeCurrency = strtolower((string)($stripeVerifiedIntent->currency ?? ''));
+                    $stripeZeroDecimalCurrencies = ['bif','clp','djf','gnf','jpy','kmf','krw','mga','pyg','rwf','ugx','vnd','vuv','xaf','xof','xpf'];
+                    $stripeReceivedMinor = (int)($stripeVerifiedIntent->amount_received ?? $stripeVerifiedIntent->amount ?? 0);
+                    $stripeReceivedMajor = in_array($stripeCurrency, $stripeZeroDecimalCurrencies, true)
+                        ? (float)$stripeReceivedMinor
+                        : round($stripeReceivedMinor / 100, 4);
+
+                    $stripeReference = (string)$stripeVerifiedIntent->id;
+                    $alreadyAllocatedToOrders = 0.0;
+                    if ($hasSplitTables) {
+                        $alreadyAllocatedToOrders = (float)\Illuminate\Support\Facades\DB::table('order_payment_transactions')
+                            ->where('payment_reference', $stripeReference)
+                            ->sum('amount');
+                    }
+
+                    if (
+                        $stripeReceivedMajor <= 0
+                        || round($alreadyAllocatedToOrders + $payableAmount, 4) > round($stripeReceivedMajor + 0.02, 4)
+                    ) {
+                        throw new \InvalidArgumentException('Stripe payment amount is not sufficient for this settlement.');
+                    }
+                }
+
                 // SQUARE_PAY_EXISTING_SERVER_VERIFIED_R1
                 if ($normalizedProviderCode === 'square') {
                     $squarePaymentId = trim((string)$request->input('payment_reference', ''));

@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { CustomerBootstrap, MenuItem, TableOrderState } from '@/src/domain/model'
 import { localizeMenuItem } from '@/src/lib/i18n'
 import { getGuestSessionId } from '@/src/lib/client-api'
@@ -77,8 +77,14 @@ export function MenuRuntimeProvider({
   bootstrap: CustomerBootstrap
   children: ReactNode
 }) {
+  const paymentGatedTableFlow = bootstrap.tenant.id !== 'preview'
+    && Boolean(bootstrap.features.tableOrdering && (bootstrap.table.id || bootstrap.table.number || bootstrap.table.qr))
+
   return (
-    <BaseMenuRuntimeProvider bootstrap={bootstrap}>
+    <BaseMenuRuntimeProvider
+      bootstrap={bootstrap}
+      orderPollingIntervalMs={paymentGatedTableFlow ? 10000 : 3000}
+    >
       {children}
     </BaseMenuRuntimeProvider>
   )
@@ -94,6 +100,7 @@ export function useMenuRuntime(): ReturnType<typeof useBaseMenuRuntime> {
   // PMD_R62_DIRECT_SELF_PAYMENT
   // Mount checkout only after the prepared self-order is committed as selected.
   const [flowCheckoutOrderId, setFlowCheckoutOrderId] = useState<number | null>(null)
+  const flowRefreshInFlightRef = useRef<Promise<void> | null>(null)
 
   const flowTableKey = base.bootstrap.table.id || base.bootstrap.table.number || base.bootstrap.table.qr || 'table'
   const flowExpiredKey = `pmd-v2:r61-expired:${base.bootstrap.tenant.id}:${flowTableKey}`
@@ -165,28 +172,39 @@ export function useMenuRuntime(): ReturnType<typeof useBaseMenuRuntime> {
 
   const refreshFlow = useCallback(async () => {
     if (!isR60tActive || !flowGuestSessionId) return
-    try {
-      const next = await fetchGuestOrdersState(base.bootstrap.table, flowGuestSessionId)
-      const orders = next.orders as FlowOrder[]
-      setFlowOrders(orders)
-      setFlowSelectedOrderId((current) => {
-        if (current && orders.some((order) => order.orderId === current)) return current
-        const awaitingOwnPayment = orders.find((order) => order.orderOrigin === 'guest_self' && order.totals.remainingAmount > 0)
-        const sharedOpen = orders.find((order) => order.orderOrigin === 'staff_shared' && order.totals.remainingAmount > 0)
-        return awaitingOwnPayment?.orderId || sharedOpen?.orderId || orders[0]?.orderId || null
-      })
-    } catch (error) {
-      if (error instanceof GuestTableSessionError && error.code === 'TABLE_SESSION_EXPIRED') {
-        try { window.localStorage.setItem(flowExpiredKey, '1') } catch {}
-        setFlowGuestSessionId('')
-        setFlowOrders([])
-        setFlowSelectedOrderId(null)
-        setFlowCheckoutOrderId(null)
-        base.clearCart()
-        base.closeOverlay()
-        return
+    if (flowRefreshInFlightRef.current) return flowRefreshInFlightRef.current
+
+    const task = (async () => {
+      try {
+        const next = await fetchGuestOrdersState(base.bootstrap.table, flowGuestSessionId)
+        const orders = next.orders as FlowOrder[]
+        setFlowOrders(orders)
+        setFlowSelectedOrderId((current) => {
+          if (current && orders.some((order) => order.orderId === current)) return current
+          const awaitingOwnPayment = orders.find((order) => order.orderOrigin === 'guest_self' && order.totals.remainingAmount > 0)
+          const sharedOpen = orders.find((order) => order.orderOrigin === 'staff_shared' && order.totals.remainingAmount > 0)
+          return awaitingOwnPayment?.orderId || sharedOpen?.orderId || orders[0]?.orderId || null
+        })
+      } catch (error) {
+        if (error instanceof GuestTableSessionError && error.code === 'TABLE_SESSION_EXPIRED') {
+          try { window.localStorage.setItem(flowExpiredKey, '1') } catch {}
+          setFlowGuestSessionId('')
+          setFlowOrders([])
+          setFlowSelectedOrderId(null)
+          setFlowCheckoutOrderId(null)
+          base.clearCart()
+          base.closeOverlay()
+          return
+        }
+        if (process.env.NODE_ENV !== 'production') console.debug('[PMD R60T] guest order state refresh failed', error)
       }
-      if (process.env.NODE_ENV !== 'production') console.debug('[PMD R60T] guest order state refresh failed', error)
+    })()
+
+    flowRefreshInFlightRef.current = task
+    try {
+      await task
+    } finally {
+      if (flowRefreshInFlightRef.current === task) flowRefreshInFlightRef.current = null
     }
   }, [base.bootstrap.table, base.clearCart, base.closeOverlay, flowExpiredKey, flowGuestSessionId, isR60tActive])
 
@@ -284,6 +302,11 @@ export function useMenuRuntime(): ReturnType<typeof useBaseMenuRuntime> {
     setFlowSelectedOrderId(orderId)
   }, [base, isR60tActive])
 
+  const openFlowCheckout = useCallback(() => {
+    base.openCheckout()
+    if (isR60tActive && flowGuestSessionId) void refreshFlow()
+  }, [base, flowGuestSessionId, isR60tActive, refreshFlow])
+
 
   const requireActiveVisit = useCallback(() => {
     if (isR60tActive && !flowGuestSessionId) throw new Error(base.labels.scanTableQr)
@@ -372,6 +395,7 @@ export function useMenuRuntime(): ReturnType<typeof useBaseMenuRuntime> {
       selectedOrderId: flowSelectedOrderId,
       activeOrder: activeFlowOrder,
       selectOrder: selectFlowOrder,
+      openCheckout: openFlowCheckout,
       guestSessionId: flowGuestSessionId,
       orderLoading: flowLoading,
       refreshOrder: refreshFlow,
@@ -396,6 +420,7 @@ export function useMenuRuntime(): ReturnType<typeof useBaseMenuRuntime> {
     flowSelectedOrderId,
     isR60tActive,
     markFlowOrderPaid,
+    openFlowCheckout,
     callFlowWaiter,
     requestFlowValet,
     sendFlowTableNote,

@@ -2155,10 +2155,19 @@ Route::group([
         $appleReady = $baseReady && $appleMethodConfigured;
         $googleReady = $baseReady && $googleMethodConfigured;
         $weroReady = $baseReady && $weroMethodConfigured;
-        $persistStripeWeroCapabilityStatus(
-            $weroReady ? 'redirect_checkout' : 'unconfigured',
-            'Stripe Wero is executed as a redirect checkout flow.'
-        );
+
+        // PMD_R69_STRIPE_READINESS_READ_ONLY_FAST_PATH
+        // Public checkout/config calls are read paths. Do not rewrite the Stripe
+        // payment row on every request merely to refresh a capability timestamp.
+        // Persist only when the effective Wero capability actually changes.
+        $desiredWeroStatus = $weroReady ? 'redirect_checkout' : 'unconfigured';
+        $currentWeroStatus = strtolower(trim((string)($data['wero_capability_status'] ?? '')));
+        if ($currentWeroStatus !== $desiredWeroStatus) {
+            $persistStripeWeroCapabilityStatus(
+                $desiredWeroStatus,
+                'Stripe Wero is executed as a redirect checkout flow.'
+            );
+        }
 
         return [
             'provider_enabled' => $providerEnabled,
@@ -2933,9 +2942,13 @@ Route::group([
         $publishableKey = $mode === 'live'
             ? ($data['live_publishable_key'] ?? '')
             : ($data['test_publishable_key'] ?? '');
-        // Resolve tenant currency + wallet flags for frontend UI
-        $settings = \Illuminate\Support\Facades\DB::table('settings')->get()->keyBy('item');
-        $rawCurrency = $settings['default_currency_code']->value ?? ($settings['default_currency']->value ?? null);
+        // Resolve tenant currency + wallet flags for frontend UI.
+        // Read only the two currency keys needed by checkout.
+        $currencySettings = \Illuminate\Support\Facades\DB::table('settings')
+            ->whereIn('item', ['default_currency_code', 'default_currency'])
+            ->pluck('value', 'item');
+        $rawCurrency = $currencySettings['default_currency_code']
+            ?? ($currencySettings['default_currency'] ?? null);
 
         if (!$rawCurrency) {
             $resolvedCurrency = 'EUR';
@@ -5463,6 +5476,8 @@ Route::group([
             'items' => 'nullable|array',
             'customerInfo' => 'nullable|array',
             'tableNumber' => 'nullable',
+            'orderId' => 'nullable|integer|min:1',
+            'paymentAttemptKey' => 'nullable|string|max:191',
         ]);
 
         \Illuminate\Support\Facades\Log::info('[Stripe create-intent] incoming', [
@@ -5492,9 +5507,24 @@ Route::group([
 try {
             \Illuminate\Support\Facades\Log::info("[Stripe create-intent] resolved-keys", ["mode"=>$mode, "has_secret"=>(bool)$secretKey, "has_payment"=>(bool)$payment]);
             \Stripe\Stripe::setApiKey($secretKey);
-            // Decide currency from tenant settings (do NOT trust client)
-$settings = \Illuminate\Support\Facades\DB::table('settings')->get()->keyBy('item');
-$raw = $settings['default_currency_code']->value ?? ($settings['default_currency']->value ?? null);
+
+            // PMD_R69_STRIPE_NETWORK_BOUNDS
+            // stripe-php v7 defaults are very long (30s connect / 80s total).
+            // Checkout must fail fast instead of leaving Apple Pay/Card on an
+            // endless "processing" state. Creation is idempotent below, so a
+            // client retry cannot create a duplicate PaymentIntent.
+            $stripeCurl = new \Stripe\HttpClient\CurlClient();
+            $stripeCurl->setConnectTimeout(5);
+            $stripeCurl->setTimeout(10);
+            \Stripe\ApiRequestor::setHttpClient($stripeCurl);
+
+            // Decide currency from tenant settings (do NOT trust client).
+            // Keep this path small: checkout does not need the entire settings table.
+$currencySettings = \Illuminate\Support\Facades\DB::table('settings')
+    ->whereIn('item', ['default_currency_code', 'default_currency'])
+    ->pluck('value', 'item');
+$raw = $currencySettings['default_currency_code']
+    ?? ($currencySettings['default_currency'] ?? null);
 
 if (!$raw) {
     $currency = strtolower((string)($body['currency'] ?? 'usd'));
@@ -5538,6 +5568,7 @@ if (!$raw) {
                 'metadata' => [
                     'restaurant_id' => (string)($body['restaurantId'] ?? ''),
                     'table_number' => isset($body['tableNumber']) ? (string)$body['tableNumber'] : '',
+                    'order_id' => isset($body['orderId']) ? (string)(int)$body['orderId'] : '',
                     'customer_email' => (string)($body['customerInfo']['email'] ?? ''),
                     'customer_name' => (string)($body['customerInfo']['name'] ?? ''),
                     'item_count' => isset($body['items']) && is_array($body['items']) ? (string)count($body['items']) : '0',
@@ -5550,7 +5581,16 @@ if (!$raw) {
 
             // NOTE: $preferred is currently a UI hint only.
             // If later you want "PayPal-only", we can switch based on $preferred.
-            $intent = \Stripe\PaymentIntent::create($payload);
+            $attemptKey = trim((string)($body['paymentAttemptKey'] ?? ''));
+            $stripeOptions = [];
+            if ($attemptKey !== '') {
+                $stripeOptions['idempotency_key'] = 'pmd_'.substr(
+                    hash('sha256', request()->getHost().'|'.$attemptKey),
+                    0,
+                    48
+                );
+            }
+            $intent = \Stripe\PaymentIntent::create($payload, $stripeOptions);
 return response()->json([
                 'success' => true,
                 'clientSecret' => $intent->client_secret,

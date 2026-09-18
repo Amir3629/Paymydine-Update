@@ -188,7 +188,15 @@ function demoSubmitted(previous: TableOrderState): TableOrderState {
   }
 }
 
-export function MenuRuntimeProvider({ bootstrap, children }: { bootstrap: CustomerBootstrap; children: ReactNode }) {
+export function MenuRuntimeProvider({
+  bootstrap,
+  children,
+  orderPollingIntervalMs = 3000,
+}: {
+  bootstrap: CustomerBootstrap
+  children: ReactNode
+  orderPollingIntervalMs?: number
+}) {
   const isPreview = bootstrap.tenant.id === 'preview'
   const [locale, setLocaleState] = useState(bootstrap.locales.defaultLocale)
   const [search, setSearch] = useState('')
@@ -450,12 +458,19 @@ export function MenuRuntimeProvider({ bootstrap, children }: { bootstrap: Custom
   useEffect(() => {
     if (isPreview || (!bootstrap.table.id && !bootstrap.table.number && !bootstrap.table.qr)) return
     let cancelled = false
+    let inFlight = false
     const run = async () => {
-      if (cancelled || document.visibilityState === 'hidden') return
-      await refreshOrder()
+      if (cancelled || inFlight || document.visibilityState === 'hidden') return
+      inFlight = true
+      try {
+        await refreshOrder()
+      } finally {
+        inFlight = false
+      }
     }
     void run()
-    const timer = window.setInterval(run, 3000)
+    const interval = Math.max(3000, Number(orderPollingIntervalMs || 3000))
+    const timer = window.setInterval(run, interval)
     const onFocus = () => void run()
     const onVisibility = () => { if (document.visibilityState === 'visible') void run() }
     window.addEventListener('focus', onFocus)
@@ -466,7 +481,7 @@ export function MenuRuntimeProvider({ bootstrap, children }: { bootstrap: Custom
       window.removeEventListener('focus', onFocus)
       document.removeEventListener('visibilitychange', onVisibility)
     }
-  }, [bootstrap.table.id, bootstrap.table.number, bootstrap.table.qr, isPreview, refreshOrder])
+  }, [bootstrap.table.id, bootstrap.table.number, bootstrap.table.qr, isPreview, orderPollingIntervalMs, refreshOrder])
 
   // PMD_POST_PAYMENT_REVIEW_RESUME_R75
   //

@@ -54,35 +54,64 @@ function loadStripeScript(): Promise<void> {
   if (stripeScriptPromise) return stripeScriptPromise
 
   stripeScriptPromise = new Promise<void>((resolve, reject) => {
+    let done = false
+    const finish = (error?: Error) => {
+      if (done) return
+      done = true
+      window.clearTimeout(timer)
+      if (error) {
+        stripeScriptPromise = null
+        reject(error)
+      } else {
+        resolve()
+      }
+    }
+    const timer = window.setTimeout(
+      () => finish(new Error('Stripe.js took too long to load. Please try again.')),
+      12000,
+    )
     const current = document.querySelector<HTMLScriptElement>('script[data-pmd-stripe-js="1"]')
     if (current) {
-      current.addEventListener('load', () => resolve(), { once: true })
-      current.addEventListener('error', () => reject(new Error('Stripe.js could not be loaded.')), { once: true })
+      current.addEventListener('load', () => finish(), { once: true })
+      current.addEventListener('error', () => finish(new Error('Stripe.js could not be loaded.')), { once: true })
       return
     }
     const script = document.createElement('script')
     script.src = 'https://js.stripe.com/v3/'
     script.async = true
     script.dataset.pmdStripeJs = '1'
-    script.addEventListener('load', () => resolve(), { once: true })
-    script.addEventListener('error', () => reject(new Error('Stripe.js could not be loaded.')), { once: true })
+    script.addEventListener('load', () => finish(), { once: true })
+    script.addEventListener('error', () => finish(new Error('Stripe.js could not be loaded.')), { once: true })
     document.head.appendChild(script)
   })
   return stripeScriptPromise
 }
 
 async function requestJson(url: string, body?: unknown): Promise<any> {
-  const response = await fetch(url, {
-    method: body === undefined ? 'GET' : 'POST',
-    credentials: 'same-origin',
-    headers: { Accept: 'application/json', ...(body === undefined ? {} : { 'Content-Type': 'application/json' }) },
-    body: body === undefined ? undefined : JSON.stringify(body),
-  })
-  const data = await response.json().catch(() => ({}))
-  if (!response.ok || data?.success === false) {
-    throw new Error(String(data?.error || data?.message || `HTTP ${response.status}`))
+  const controller = new AbortController()
+  const timeout = window.setTimeout(() => controller.abort(), 12000)
+
+  try {
+    const response = await fetch(url, {
+      method: body === undefined ? 'GET' : 'POST',
+      credentials: 'same-origin',
+      headers: { Accept: 'application/json', ...(body === undefined ? {} : { 'Content-Type': 'application/json' }) },
+      body: body === undefined ? undefined : JSON.stringify(body),
+      signal: controller.signal,
+    })
+    const data = await response.json().catch(() => ({}))
+    if (!response.ok || data?.success === false) {
+      throw new Error(String(data?.error || data?.message || `HTTP ${response.status}`))
+    }
+    return data
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      throw new Error('Payment service timed out. No payment was confirmed. Please try again.')
+    }
+    throw error
+  } finally {
+    window.clearTimeout(timeout)
   }
-  return data
 }
 
 function copyFor(locale = 'en') {
@@ -152,6 +181,7 @@ export function StripeInlinePayment(props: Props) {
   const preparedIntentRef = useRef<SplitPaymentIntent | null>(null)
   const settledRef = useRef(false)
   const capturedRef = useRef(false)
+  const paymentAttemptKeyRef = useRef('')
   const configRef = useRef<StripeConfig | null>(null)
   // PMD_STRIPE_WALLET_STATE_R35C: bind readiness to the currently selected Stripe method.
   const configuredMethodRef = useRef('')
@@ -182,15 +212,25 @@ export function StripeInlinePayment(props: Props) {
     return intent
   }
 
-  const createStripeIntent = async (amount: number, intent: SplitPaymentIntent | null) => requestJson('/api/v1/payments/stripe/create-intent', {
-    amount,
-    currency: String(props.currency || 'EUR').toUpperCase(),
-    preferredMethod: method,
-    restaurantId: String(props.table.locationId || 1),
-    tableNumber: props.table.number || props.table.id || null,
-    items: intent?.providerItems?.length ? intent.providerItems : props.items,
-    customerInfo: { name: cardholderName.trim() || 'Customer' },
-  })
+  const createStripeIntent = async (amount: number, intent: SplitPaymentIntent | null) => {
+    if (!paymentAttemptKeyRef.current) {
+      paymentAttemptKeyRef.current = typeof crypto !== 'undefined' && 'randomUUID' in crypto
+        ? crypto.randomUUID()
+        : `pmd-${Date.now()}-${Math.random().toString(36).slice(2)}`
+    }
+
+    return requestJson('/api/v1/payments/stripe/create-intent', {
+      amount,
+      currency: String(props.currency || 'EUR').toUpperCase(),
+      preferredMethod: method,
+      restaurantId: String(props.table.locationId || 1),
+      tableNumber: props.table.number || props.table.id || null,
+      orderId: props.orderId,
+      paymentAttemptKey: `${paymentAttemptKeyRef.current}:${Math.round(amount * 100)}:${intent?.token || 'full'}`,
+      items: intent?.providerItems?.length ? intent.providerItems : props.items,
+      customerInfo: { name: cardholderName.trim() || 'Customer' },
+    })
+  }
 
   const settle = async (reference: string, intent: SplitPaymentIntent | null, amount: number) => {
     if (isMultiOrder) {
@@ -287,13 +327,14 @@ export function StripeInlinePayment(props: Props) {
     })
 
     paymentRequest.on('paymentmethod', async (event: any) => {
-      setBusy(true); setError(''); setInfo(copy.processing)
+      setBusy(true); setError(''); setInfo(copy.preparing)
       let completed = false
       try {
         const activeIntent = preparedIntentRef.current || intent
         const activeAmount = activeIntent?.payableAmount ?? props.amount
         const created = await createStripeIntent(activeAmount, activeIntent)
         if (!created?.clientSecret) throw new Error('Stripe did not return a client secret.')
+        setInfo(copy.processing)
         const result = await stripe.confirmCardPayment(created.clientSecret, { payment_method: event?.paymentMethod?.id }, { handleActions: true })
         if (result?.error) throw new Error(String(result.error.message || 'Wallet payment failed.'))
         if (String(result?.paymentIntent?.status || '') !== 'succeeded') throw new Error(`Unexpected Stripe status: ${String(result?.paymentIntent?.status || 'unknown')}`)
@@ -321,11 +362,14 @@ export function StripeInlinePayment(props: Props) {
     let cancelled = false
     setReady(false); setError(''); setInfo(''); setWalletSupported(null); setWalletPrepared(false)
     configuredMethodRef.current = ''
-    settledRef.current = false; capturedRef.current = false; preparedIntentRef.current = null
+    settledRef.current = false; capturedRef.current = false; preparedIntentRef.current = null; paymentAttemptKeyRef.current = ''
 
     const setup = async () => {
       try {
-        const raw = await requestJson('/api/v1/payments/stripe/config')
+        const [raw] = await Promise.all([
+          requestJson('/api/v1/payments/stripe/config'),
+          loadStripeScript(),
+        ])
         if (cancelled) return
         const config: StripeConfig = {
           publishableKey: String(raw?.publishableKey || ''),
@@ -340,7 +384,6 @@ export function StripeInlinePayment(props: Props) {
         const methodEnabled = method === 'card' ? config.methods.card : method === 'apple_pay' ? config.methods.apple_pay : config.methods.google_pay
         if (!methodEnabled) throw new Error(`${method === 'card' ? 'Card' : method === 'apple_pay' ? 'Apple Pay' : 'Google Pay'} is not enabled for Stripe.`)
         configRef.current = config
-        await loadStripeScript()
         if (cancelled) return
         const factory = (window as StripeWindow).Stripe
         if (!factory) throw new Error('Stripe.js did not initialize.')
