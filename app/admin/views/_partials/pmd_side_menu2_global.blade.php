@@ -771,7 +771,7 @@
 
 <link
     rel="stylesheet"
-    href="/app/admin/assets/css/pmd-side-menu2-v1.css?v=20260918-sidebar-language-globe-width-r4"
+    href="/app/admin/assets/css/pmd-side-menu2-v1.css?v=20260918-sidebar-language-icon-size-r5"
 >
 
 @include('admin::_partials.pmd_side_menu2_single_style')
