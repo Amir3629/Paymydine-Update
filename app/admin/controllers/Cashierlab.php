@@ -90,6 +90,69 @@ class Cashierlab extends PmdCleanWorkspaceControllerV1
     // PMD_CASHIER_QUICK_RESTORED_R48
     public function index()
     {
+        /*
+         * PMD_PERF_R9_CASHIER_ORDERS_SECTION_FASTPATH
+         *
+         * Date-range / Current-History UI replaces only the orders section.
+         * Do not build Floor, KPI, Composer and full workspace HTML when the
+         * browser explicitly requests that section.
+         */
+        if (
+            (string)request()->query(
+                'pmd_cashier_section',
+                ''
+            ) === 'orders'
+        ) {
+            $shared = app(PmdCleanWorkspaceSharedV1::class);
+
+            $locale = \Admin\Classes\PmdPlatformI18n::normalizeLocale(
+                (string)$shared->locale()
+            );
+
+            $adminLocale = strtolower(trim((string)request()->cookie(
+                'pmd_admin_locale',
+                ''
+            )));
+
+            if (preg_match('/^(en|de|tr)(?:[-_][a-z0-9]+)?$/i', $adminLocale, $match)) {
+                $locale = strtolower($match[1]);
+            }
+
+            if (!in_array($locale, ['en', 'de', 'tr'], true)) {
+                $locale = 'en';
+            }
+
+            app()->setLocale($locale);
+
+            if (app()->bound('translator.localization')) {
+                app('translator.localization')->setLocale($locale, false);
+            }
+
+            $this->vars['pmdCleanWorkspaceLocale'] = $locale;
+
+            // Safe here with an empty Floor payload: this method's orders
+            // branch owns its own table/order source and the partial does not
+            // consume full shared Floor bootstrap data.
+            $this->pmdPrepareWorkspaceVars(
+                $shared,
+                $locale,
+                []
+            );
+
+            return response(
+                view(
+                    'admin::_partials.pmd_cashier_lab_current_orders_v1',
+                    $this->vars
+                )->render(),
+                200,
+                [
+                    'Content-Type' => 'text/html; charset=UTF-8',
+                    'Cache-Control' => 'no-store, no-cache, must-revalidate',
+                    'X-PMD-Cashier-Section' => 'orders-r9',
+                ]
+            );
+        }
+
         if (
             (string)request()->query(
                 'pmd_cashier_quick',
@@ -622,12 +685,51 @@ HTML;
                  */
                 $user = $this->userInfo();
                 $tables = $this->loadTables($user);
-                $metrics = $this->loadTableMetrics($tables);
                 $tables = $this->attachOperationalStatusesV152($tables);
+
+                /*
+                 * PMD_PERF_R9_SKIP_REDUNDANT_800_ORDER_METRICS
+                 *
+                 * Modern Cashier uses canonical tables.operational_status as
+                 * the physical visit authority, then runs its own bounded
+                 * date-scoped orders query below. The old waiter metrics pass
+                 * materialized up to 800 full order rows first and repeated
+                 * table/status resolution that Cashier immediately redid.
+                 *
+                 * Keep a compatibility fallback only when no table exposes a
+                 * physical operational status at all.
+                 */
+                $hasPhysicalStatus = false;
+
+                foreach ($tables as $table) {
+                    if (!is_array($table)) continue;
+
+                    $raw = is_array($table['raw'] ?? null)
+                        ? $table['raw']
+                        : [];
+
+                    $physical = trim((string)(
+                        $table['operational_status']
+                        ?? $table['table_operational_status']
+                        ?? $raw['operational_status']
+                        ?? $raw['table_operational_status']
+                        ?? ''
+                    ));
+
+                    if ($physical !== '') {
+                        $hasPhysicalStatus = true;
+                        break;
+                    }
+                }
+
+                $metrics = $hasPhysicalStatus
+                    ? []
+                    : $this->loadTableMetrics($tables);
 
                 foreach ($tables as &$table) {
                     $tableId = (int)($table['table_id'] ?? $table['id'] ?? 0);
                     $metric = $metrics[$tableId] ?? [];
+
                     $table['open_orders'] = (int)($metric['open_orders'] ?? 0);
                     $table['open_order_count'] = (int)($metric['open_orders'] ?? 0);
                     $table['latest_order_status'] = (string)($metric['latest_status'] ?? '');
