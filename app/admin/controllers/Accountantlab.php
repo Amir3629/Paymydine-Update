@@ -81,8 +81,10 @@ class Accountantlab extends PmdCleanWorkspaceControllerV1
         $dashboard = app(PmdRoleDashboardDataV1::class);
 
         $this->vars['pmdRoleDashboardMode'] = 'accountant';
-        $this->vars['pmdRoleOwnerAnalyticsBootstrap'] =
-            $dashboard->ownerAnalyticsBootstrap($shared->locationId());
+        $this->vars['pmdRoleOwnerAnalyticsBootstrap'] = [
+            'server_first_paint' => false,
+            'periods' => [],
+        ];
         $this->vars['pmdRoleOwnerAnalyticsEndpoint'] =
             admin_url('accountantlab').'?pmd_analytics=1';
 
