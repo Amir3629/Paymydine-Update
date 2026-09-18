@@ -5649,6 +5649,7 @@ body .media-manager .media-sidebar .sidebar-preview-toolbar button.btn-outline-d
                             )
                             ->select(
                                 's.staff_name',
+                                's.staff_email',
                                 'r.code as role_code',
                                 'r.name as role_name'
                             )
@@ -5657,6 +5658,9 @@ body .media-manager .media-sidebar .sidebar-preview-toolbar button.btn-outline-d
                     if ($__pmdStaffRole) {
                         $__pmdRoleDash['staff_name'] =
                             $__pmdStaffRole->staff_name
+                            ?? null;
+                        $__pmdRoleDash['staff_email'] =
+                            $__pmdStaffRole->staff_email
                             ?? null;
                         $__pmdRoleDash['role_code'] =
                             $__pmdStaffRole->role_code
