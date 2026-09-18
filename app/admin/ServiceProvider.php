@@ -70,6 +70,18 @@ class ServiceProvider extends AppServiceProvider
             \App\Services\PmdOwnerTotpService::class,
             \App\Services\PmdWorkSessionPolicyService::class,
             \Admin\Services\PmdDefaultStaffRoleService::class,
+            // PMD_PERF_R5_WORKSPACE_SINGLETONS
+            // Shared workspace services carry request-local caches and are
+            // resolved repeatedly by Owner/Manager/Cashier/Shifts surfaces.
+            \Admin\Services\PmdSharedFloorRegistryV1::class,
+            \Admin\Services\PmdCleanWorkspaceSharedV1::class,
+            \Admin\Services\PmdCleanWorkspaceFinanceV1::class,
+            \Admin\Services\PmdReservationsLabScheduleV1::class,
+            \Admin\Services\PmdRoleDashboardDataV1::class,
+            \Admin\Services\PmdAdminPresenceService::class,
+            \App\Services\PmdKitchenOperationsSchemaService::class,
+            \App\Services\PmdKitchenWorkforceService::class,
+            \App\Services\PmdOperationalRosterReconciler::class,
         ] as $pmdRequestSingleton) {
             $this->app->singleton($pmdRequestSingleton);
         }
