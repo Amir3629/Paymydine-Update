@@ -8,7 +8,6 @@ use Admin\Models\Orders_model;
 use Admin\Models\Payments_model;
 use App\Services\TerminalPayments\TerminalPaymentService;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 
 trait PmdWaiterPosPaymentSummaryConcern
@@ -124,7 +123,11 @@ trait PmdWaiterPosPaymentSummaryConcern
             ];
         }
 
-        $settledAmount = Schema::hasColumn('orders', 'settled_amount')
+        $settledAmount = in_array(
+            'settled_amount',
+            $this->pmdPosColumns('orders'),
+            true
+        )
             ? max(0, round((float)($order->settled_amount ?? 0), 4))
             : 0.0;
         $remaining = max(0, round($orderTotal - $settledAmount, 4));
