@@ -57,11 +57,11 @@ trait PmdWaiterPosBootstrapConcern
 
     protected function resolveTable(int $tableId): ?array
     {
-        if ($tableId < 1 || !Schema::hasTable('tables')) {
+        if ($tableId < 1 || !$this->pmdPosHasTable('tables')) {
             return null;
         }
 
-        $cols = Schema::getColumnListing('tables');
+        $cols = $this->pmdPosColumns('tables');
         $pk = in_array('table_id', $cols, true) ? 'table_id' : (in_array('id', $cols, true) ? 'id' : null);
         if (!$pk) {
             return null;
@@ -87,7 +87,7 @@ trait PmdWaiterPosBootstrapConcern
         }
 
         $locationId = (int)($r['location_id'] ?? 0);
-        if ($locationId < 1 && Schema::hasTable('locationables')) {
+        if ($locationId < 1 && $this->pmdPosHasTable('locationables')) {
             try {
                 $locationId = (int)(DB::table('locationables')
                     ->where('locationable_id', (int)$r[$pk])
@@ -159,15 +159,15 @@ trait PmdWaiterPosBootstrapConcern
             'menu_options.menu_option_values.option_value',
         ];
 
-        if (Schema::hasTable('allergens') && Schema::hasTable('allergenables')) {
+        if ($this->pmdPosHasTable('allergens') && $this->pmdPosHasTable('allergenables')) {
             $with[] = 'allergens';
         }
-        if (Schema::hasTable('menu_images')) {
+        if ($this->pmdPosHasTable('menu_images')) {
             $with['menu_images'] = function ($query) {
-                if (Schema::hasColumn('menu_images', 'sort_order')) {
+                if ($this->pmdPosHasColumn('menu_images', 'sort_order')) {
                     $query->orderBy('sort_order');
                 }
-                if (Schema::hasColumn('menu_images', 'id')) {
+                if ($this->pmdPosHasColumn('menu_images', 'id')) {
                     $query->orderBy('id');
                 }
             };
@@ -178,7 +178,7 @@ trait PmdWaiterPosBootstrapConcern
             ->orderBy('menu_priority')
             ->orderBy('menu_name');
 
-        if (Schema::hasColumn('menus', 'is_stock_out')) {
+        if ($this->pmdPosHasColumn('menus', 'is_stock_out')) {
             $query->where(function ($q) {
                 $q->whereNull('is_stock_out')->orWhere('is_stock_out', 0);
             });

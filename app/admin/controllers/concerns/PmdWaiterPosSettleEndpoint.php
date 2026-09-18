@@ -25,7 +25,7 @@ trait PmdWaiterPosSettleEndpoint
             return response()->json(['ok' => false, 'message' => 'Missing payment idempotency key.'], 422);
         }
 
-        if (Schema::hasTable('order_payment_transactions') && Schema::hasColumn('order_payment_transactions', 'idempotency_key')) {
+        if ($this->pmdPosHasTable('order_payment_transactions') && $this->pmdPosHasColumn('order_payment_transactions', 'idempotency_key')) {
             $existing = DB::table('order_payment_transactions')->where('idempotency_key', $idempotencyKey)->first();
             if ($existing) {
                 $fresh = $this->findOrder($orderId);

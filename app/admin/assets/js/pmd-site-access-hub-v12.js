@@ -34,6 +34,9 @@
     var open = false;
     var expiresAt = 0;
     var lastPayload = null;
+    var pollTimer = null;
+    var IDLE_POLL_MS = 15000;
+    var ACTIVE_POLL_MS = 5000;
 
     function formatCode(value) {
         var clean = String(value || '').replace(/\D+/g, '').slice(0, 6);
@@ -225,7 +228,10 @@
     function refresh() {
         if (stopped || document.visibilityState === 'hidden') return Promise.resolve();
 
-        return fetch(dataUrl, {
+        var lite = !!lastPayload && !open;
+        var requestUrl = dataUrl + (lite ? '?lite=1' : '');
+
+        return fetch(requestUrl, {
             credentials: 'same-origin',
             headers: {
                 'Accept': 'application/json',
@@ -240,12 +246,46 @@
             }
             return response.ok ? response.json() : null;
         }).then(function (data) {
-            if (data && data.ok) render(data);
+            if (data && data.ok) {
+                if (data.lite && lastPayload) {
+                    data = Object.assign({}, lastPayload, data);
+                }
+                render(data);
+            }
         }).catch(function () {});
     }
 
-    refresh();
-    window.setInterval(refresh, 2000);
+    function nextPollDelay() {
+        if (root && lastPayload && Array.isArray(lastPayload.pending) && lastPayload.pending.length) {
+            return ACTIVE_POLL_MS;
+        }
+        return IDLE_POLL_MS;
+    }
+
+    function schedulePoll(delay) {
+        if (pollTimer) window.clearTimeout(pollTimer);
+        if (stopped) return;
+
+        pollTimer = window.setTimeout(function () {
+            if (document.visibilityState === 'hidden') {
+                schedulePoll(IDLE_POLL_MS);
+                return;
+            }
+
+            refresh().finally(function () {
+                schedulePoll(nextPollDelay());
+            });
+        }, Math.max(1000, Number(delay || IDLE_POLL_MS)));
+    }
+
+    // PMD_PERF_R2_ADAPTIVE_SIGNIN_POLL
+    // Previously this hit a ~100-200ms authenticated endpoint every 2s even
+    // while no staff sign-in request existed. With only a few PHP-FPM workers
+    // that background traffic competed directly with navigation/save/payment.
+    refresh().finally(function () {
+        schedulePoll(nextPollDelay());
+    });
+
     window.setInterval(function () {
         if (!root || !lastPayload) return;
         var node = root.querySelector('[data-time]');
@@ -254,6 +294,18 @@
     }, 1000);
 
     document.addEventListener('visibilitychange', function () {
-        if (document.visibilityState === 'visible') refresh();
+        if (document.visibilityState === 'visible') {
+            refresh().finally(function () {
+                schedulePoll(nextPollDelay());
+            });
+        } else if (pollTimer) {
+            window.clearTimeout(pollTimer);
+            pollTimer = null;
+        }
     });
+
+    window.addEventListener('beforeunload', function () {
+        if (pollTimer) window.clearTimeout(pollTimer);
+        pollTimer = null;
+    }, {once: true});
 })();

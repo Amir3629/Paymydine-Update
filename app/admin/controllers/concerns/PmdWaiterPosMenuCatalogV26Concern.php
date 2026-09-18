@@ -3,6 +3,7 @@
 namespace Admin\Controllers\Concerns;
 
 use Admin\Models\Menus_model;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
@@ -17,21 +18,48 @@ trait PmdWaiterPosMenuCatalogV26Concern
 {
     protected function menuPayload(int $locationId): array
     {
+        /*
+         * PMD_PERF_R3_POS_MENU_SHORT_CACHE
+         *
+         * Building the POS catalogue hydrates foods, categories, options,
+         * allergens and images. The same catalogue is requested repeatedly
+         * while opening tables. A very short tenant/location cache removes that
+         * repeated work without making menu edits meaningfully stale.
+         */
+        $database = '';
+        try {
+            $database = (string)DB::connection()->getDatabaseName();
+        } catch (\Throwable $error) {
+        }
+
+        $key = 'pmd:waiter-pos:menu:v26:'.sha1($database.'|'.$locationId);
+
+        try {
+            return Cache::remember($key, now()->addSeconds(12), function () use ($locationId) {
+                return $this->buildMenuPayloadV26($locationId);
+            });
+        } catch (\Throwable $error) {
+            return $this->buildMenuPayloadV26($locationId);
+        }
+    }
+
+    protected function buildMenuPayloadV26(int $locationId): array
+    {
         $with = [
             'categories',
             'menu_options.menu_option_values.option_value',
         ];
 
-        if (Schema::hasTable('allergens') && Schema::hasTable('allergenables')) {
+        if ($this->pmdPosHasTable('allergens') && $this->pmdPosHasTable('allergenables')) {
             $with[] = 'allergens';
         }
 
-        if (Schema::hasTable('menu_images')) {
+        if ($this->pmdPosHasTable('menu_images')) {
             $with['menu_images'] = function ($query) {
-                if (Schema::hasColumn('menu_images', 'sort_order')) {
+                if ($this->pmdPosHasColumn('menu_images', 'sort_order')) {
                     $query->orderBy('sort_order');
                 }
-                if (Schema::hasColumn('menu_images', 'id')) {
+                if ($this->pmdPosHasColumn('menu_images', 'id')) {
                     $query->orderBy('id');
                 }
             };
@@ -42,7 +70,7 @@ trait PmdWaiterPosMenuCatalogV26Concern
             ->orderBy('menu_priority')
             ->orderBy('menu_name');
 
-        if (Schema::hasColumn('menus', 'is_stock_out')) {
+        if ($this->pmdPosHasColumn('menus', 'is_stock_out')) {
             $query->where(function ($q) {
                 $q->whereNull('is_stock_out')->orWhere('is_stock_out', 0);
             });
@@ -189,12 +217,12 @@ trait PmdWaiterPosMenuCatalogV26Concern
 
     protected function waiterPosPrimaryImagesV26(array $menuIds): array
     {
-        if (!$menuIds || !Schema::hasTable('media_attachments')) {
+        if (!$menuIds || !$this->pmdPosHasTable('media_attachments')) {
             return [];
         }
 
         try {
-            $cols = Schema::getColumnListing('media_attachments');
+            $cols = $this->pmdPosColumns('media_attachments');
             $idCol = in_array('attachment_id', $cols, true) ? 'attachment_id' : null;
             $typeCol = in_array('attachment_type', $cols, true) ? 'attachment_type' : null;
             $tagCol = in_array('tag', $cols, true) ? 'tag' : null;

@@ -27,6 +27,10 @@ const FORWARDED_RESPONSE_HEADERS = [
   'pragma',
   'retry-after',
   'set-cookie',
+  'server-timing',
+  'x-pmd-perf-id',
+  'x-pmd-perf-total-ms',
+  'x-pmd-perf-db-queries',
   'vary',
 ] as const
 
@@ -132,12 +136,23 @@ export function safeProxyPath(parts: string[]): string[] {
 }
 
 export async function proxyBackendRequest(request: Request, backendPath: string): Promise<Response> {
+  const proxyStartedAt = Date.now()
   const incoming = new URL(request.url)
   const target = new URL(backendPath, `${getBackendOrigin(tenantHost(request)).replace(/\/$/, '')}/`)
   target.search = incoming.search
 
   const method = request.method.toUpperCase()
   const body = ['GET', 'HEAD'].includes(method) ? undefined : await request.arrayBuffer()
+
+  const controller = new AbortController()
+  const timeoutMs = backendPath.includes('/orders/pay-existing')
+    ? 20000
+    : backendPath.includes('/payments/')
+      ? 15000
+      : (backendPath.includes('/guest-orders/') || backendPath.includes('/table-orders/') || backendPath.includes('/orders/'))
+        ? 12000
+        : 20000
+  const timeout = setTimeout(() => controller.abort(), timeoutMs)
 
   let response: Response
   try {
@@ -147,18 +162,33 @@ export async function proxyBackendRequest(request: Request, backendPath: string)
       headers: requestHeaders(request),
       redirect: 'manual',
       cache: 'no-store',
+      signal: controller.signal,
     })
   } catch (error) {
+    const aborted = error instanceof Error && error.name === 'AbortError'
     const message = error instanceof Error ? error.message : 'Backend request failed'
     return Response.json(
-      { success: false, error: 'PAYMYDINE_BACKEND_UNAVAILABLE', message },
-      { status: 502, headers: { 'Cache-Control': 'no-store' } },
+      aborted
+        ? { success: false, error: 'PAYMYDINE_BACKEND_TIMEOUT', message: 'The backend took too long to respond. Please retry.' }
+        : { success: false, error: 'PAYMYDINE_BACKEND_UNAVAILABLE', message },
+      { status: aborted ? 504 : 502, headers: { 'Cache-Control': 'no-store' } },
     )
+  } finally {
+    clearTimeout(timeout)
   }
+
+  const headers = responseHeaders(response.headers, request)
+  const proxyMs = Math.max(0, Date.now() - proxyStartedAt)
+  const backendTiming = headers.get('server-timing')
+  headers.set(
+    'server-timing',
+    [backendTiming, `pmd_proxy;dur=${proxyMs}`].filter(Boolean).join(', '),
+  )
+  headers.set('x-pmd-proxy-ms', String(proxyMs))
 
   return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,
-    headers: responseHeaders(response.headers, request),
+    headers,
   })
 }

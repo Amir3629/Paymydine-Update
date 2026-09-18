@@ -19,7 +19,7 @@ trait PmdWaiterPosNoteHistoryV26Concern
         string $orderNote,
         string $mode
     ): void {
-        if (!Schema::hasTable('order_notes')) {
+        if (!$this->pmdPosHasTable('order_notes')) {
             return;
         }
 
@@ -47,7 +47,7 @@ trait PmdWaiterPosNoteHistoryV26Concern
         }
 
         try {
-            $cols = Schema::getColumnListing('order_notes');
+            $cols = $this->pmdPosColumns('order_notes');
             $header = $mode === 'send'
                 ? 'Waiter POS · Sent to kitchen'
                 : 'Waiter POS · Saved / held';

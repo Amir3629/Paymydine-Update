@@ -185,8 +185,8 @@
 })();
 </script>
 
-<!-- PMD_CANONICAL_VISUAL_RAIL_14PX_FINAL_START -->
-<style id="pmd-canonical-visual-rail-14px-final">
+<!-- PMD_CANONICAL_VISUAL_RAIL_14PX_R8_START -->
+<style id="pmd-canonical-visual-rail-14px-r8">
 
   /*
    * One visual contract:
@@ -196,11 +196,11 @@
    * visual rail                = 14px
    *
    * expanded:
-   * menu right                 = 198px
-   * visible page content left  = 212px
+   * menu right                 = 174px
+   * visible page content left  = 188px
    *
    * Do NOT change generic page-content here.
-   * Standard pages already receive 14px from exact-layout.
+   * Standard pages receive the canonical 14px rail from exact-layout.
    */
 
   /*
@@ -298,7 +298,7 @@
   }
 
 </style>
-<!-- PMD_CANONICAL_VISUAL_RAIL_14PX_FINAL_END -->
+<!-- PMD_CANONICAL_VISUAL_RAIL_14PX_R8_END -->
 
 @if($pmdIsSettingsSuiteRoute)
 <!-- PMD_SETTINGS_SUITE_ROUTE_FLOW_SCROLL_V6_START -->
@@ -401,9 +401,9 @@
       right: auto !important;
       top: 0 !important;
       bottom: auto !important;
-      margin-left: 198px !important;
+      margin-left: 174px !important;
       margin-right: 0 !important;
-      width: calc(100vw - 198px) !important;
+      width: calc(100vw - 174px) !important;
       min-width: 0 !important;
       max-width: none !important;
       height: auto !important;
@@ -632,6 +632,104 @@
 <!-- PMD_SETTINGS_SUITE_ROUTE_FLOW_SCROLL_V6_END -->
 @endif
 
+<!-- PMD_SM2_CANONICAL_14PX_SINGLE_RAIL_R8_START -->
+<style id="pmd-sm2-canonical-14px-single-rail-r8">
+  /*
+   * One platform spacing contract:
+   *   Side Menu desktop left = 14px
+   *   collapsed right edge   = 86px
+   *   expanded right edge    = 174px  (14 + 160)
+   *   first visible content  = menu right + 14px
+   *
+   * Some older route assets still contain the retired 184/198 geometry
+   * or their own 16/30px root gutters. This late authority makes the
+   * effective outside rail exactly 14px and prevents double gutters.
+   */
+  @media (min-width: 821px) {
+    html.pmd-side-menu2-global-page.pmd-sm2-expanded
+    body.page.pmd-admin-theme-v1.pmd-settings-suite
+    .page-wrapper {
+      left: 0 !important;
+      margin-left: 174px !important;
+      width: calc(100vw - 174px) !important;
+    }
+
+    html.pmd-side-menu2-global-page.pmd-sm2-collapsed
+    body.page.pmd-admin-theme-v1.pmd-settings-suite
+    .page-wrapper {
+      left: 0 !important;
+      margin-left: 86px !important;
+      width: calc(100vw - 86px) !important;
+    }
+
+    /* Dashboard/Clean workspaces: root owns the one 14px rail. */
+    html.pmd-side-menu2-global-page
+    body.page.pmd-dashboard-lab-page
+    .page-content {
+      padding-left: 0 !important;
+      padding-right: 0 !important;
+    }
+
+    html.pmd-side-menu2-global-page
+    body.page.pmd-dashboard-lab-page
+    #pmd-dashboard-lab {
+      padding-left: 14px !important;
+      padding-right: 14px !important;
+    }
+
+    html.pmd-side-menu2-global-page.pmd-sm2-expanded
+    body.page.pmd-dashboard-lab-page
+    .page-wrapper {
+      margin-left: 174px !important;
+      width: calc(100vw - 174px) !important;
+    }
+
+    html.pmd-side-menu2-global-page.pmd-sm2-collapsed
+    body.page.pmd-dashboard-lab-page
+    .page-wrapper {
+      margin-left: 86px !important;
+      width: calc(100vw - 86px) !important;
+    }
+
+    /* Settings family: page-content is zero; custom root owns 14px. */
+    html.pmd-side-menu2-global-page
+    body.pmd-settings-suite
+    .page-content {
+      padding-left: 0 !important;
+      padding-right: 0 !important;
+    }
+
+    html.pmd-side-menu2-global-page
+    body.pmd-settings-suite
+    :is(
+      #pmd-settings-center,
+      #pmd-restaurant-profile,
+      #pmd-menu-checkout,
+      #pmd-team-access,
+      .pmd-owner-page
+    ) {
+      padding-left: 14px !important;
+      padding-right: 14px !important;
+    }
+
+    /* Menu Manager used 16px inside an outer rail. Keep only one 14px rail. */
+    html.pmd-menu-static-shell-v1
+    body.pmd-menu-manager-page
+    .page-content {
+      padding-left: 0 !important;
+      padding-right: 0 !important;
+    }
+
+    html.pmd-menu-static-shell-v1
+    body.pmd-menu-manager-page
+    #pmd-menu-manager-main.pmd-menu-manager.pmd-owner-page {
+      padding-left: 14px !important;
+      padding-right: 14px !important;
+    }
+  }
+</style>
+<!-- PMD_SM2_CANONICAL_14PX_SINGLE_RAIL_R8_END -->
+
 <!-- PMD_GLOBAL_MENU_CRITICAL_GEOMETRY_V6_START -->
 <style id="pmd-global-menu-critical-geometry-v6">
   /*
@@ -648,7 +746,7 @@
   }
 
   html.pmd-side-menu2-global-page.pmd-sm2-expanded {
-    --pmd-sm2-panel: 184px;
+    --pmd-sm2-panel: 160px;
   }
 
   html.pmd-side-menu2-global-page
@@ -771,7 +869,7 @@
 
 <link
     rel="stylesheet"
-    href="/app/admin/assets/css/pmd-side-menu2-v1.css?v=20260719-identical-behavior-v2"
+    href="/app/admin/assets/css/pmd-side-menu2-v1.css?v=20260918-sidebar-language-icon-size-r5"
 >
 
 @include('admin::_partials.pmd_side_menu2_single_style')
@@ -824,13 +922,13 @@
     html.pmd-menu-static-shell-v1.pmd-sm2-expanded
     .page-wrapper {
       position: absolute !important;
-      left: 198px !important;
+      left: 174px !important;
       right: auto !important;
       margin-left: 0 !important;
       margin-right: 0 !important;
       padding-left: 0 !important;
       padding-right: 0 !important;
-      width: calc(100vw - 198px) !important;
+      width: calc(100vw - 174px) !important;
       min-width: 0 !important;
       max-width: none !important;
       box-sizing: border-box !important;
@@ -846,8 +944,8 @@
       right: auto !important;
       margin-left: 0 !important;
       margin-right: 0 !important;
-      padding-left: 14px !important;
-      padding-right: 14px !important;
+      padding-left: 0 !important;
+      padding-right: 0 !important;
       width: 100% !important;
       min-width: 0 !important;
       max-width: none !important;
@@ -870,9 +968,9 @@
 
     html.pmd-menu-static-shell-v1.pmd-sm2-expanded
     :is(.navbar-top, .navbar-fixed-top) {
-      left: 198px !important;
+      left: 174px !important;
       right: 0 !important;
-      width: calc(100vw - 198px) !important;
+      width: calc(100vw - 174px) !important;
       margin-left: 0 !important;
       max-width: none !important;
       box-sizing: border-box !important;
@@ -931,8 +1029,8 @@
 
   html.pmd-dashboard2-static-shell-v1.pmd-sm2-expanded .page-wrapper,
   html.pmd-dashboard2-static-shell-v1.pmd-sm2-expanded body:has(#pmd-reservations2) .page-wrapper {
-    left: 198px !important;
-    width: calc(100vw - 198px) !important;
+    left: 174px !important;
+    width: calc(100vw - 174px) !important;
   }
 
   html.pmd-dashboard2-static-shell-v1 .page-content,
@@ -972,8 +1070,8 @@
 
   html.pmd-dashboard2-static-shell-v1.pmd-sm2-expanded .navbar-top,
   html.pmd-dashboard2-static-shell-v1.pmd-sm2-expanded .navbar-fixed-top {
-    left: 198px !important;
-    width: calc(100vw - 198px) !important;
+    left: 174px !important;
+    width: calc(100vw - 174px) !important;
   }
 
   @media (max-width: 767px) {

@@ -16,6 +16,9 @@ use Illuminate\Support\Facades\Schema;
  */
 class PmdWaiterDashboardV150 extends PmdWaiterDashboardV149
 {
+    protected $pmdRecentOrdersSnapshot = null;
+    protected ?array $pmdOrderStatusMapCache = null;
+
     public function data()
     {
         $payload = $this->payload(false);
@@ -48,11 +51,11 @@ class PmdWaiterDashboardV150 extends PmdWaiterDashboardV149
             ];
         }
 
-        if (!Schema::hasTable('orders') || !$tables) {
+        if (!$this->pmdSchemaHasTable('orders') || !$tables) {
             return $metrics;
         }
 
-        $columns = Schema::getColumnListing('orders');
+        $columns = $this->pmdSchemaColumns('orders');
         $primaryKey = $this->firstCol($columns, ['order_id', 'id']);
         $tableColumn = $this->firstCol($columns, [
             'table_id',
@@ -93,17 +96,11 @@ class PmdWaiterDashboardV150 extends PmdWaiterDashboardV149
         $maps = $this->tableReferenceMaps($tables);
         $statusMap = $this->orderStatusMap();
 
-        $query = DB::table('orders');
-        if (in_array('deleted_at', $columns, true)) {
-            $query->whereNull('deleted_at');
-        }
-        if ($dateColumn) {
-            $query->orderByDesc($dateColumn);
-        } else {
-            $query->orderByDesc($primaryKey);
-        }
-
-        foreach ($query->limit(800)->get() as $order) {
+        foreach ($this->pmdRecentOrdersSnapshot(
+            $columns,
+            $primaryKey,
+            $dateColumn
+        ) as $order) {
             $row = (array)$order;
             $table = $this->resolveOrderTable($row, $tableColumn, $maps);
             if (!$table) {
@@ -153,11 +150,11 @@ class PmdWaiterDashboardV150 extends PmdWaiterDashboardV149
 
     protected function loadOrderCards($tables)
     {
-        if (!Schema::hasTable('orders') || !$tables) {
+        if (!$this->pmdSchemaHasTable('orders') || !$tables) {
             return [];
         }
 
-        $columns = Schema::getColumnListing('orders');
+        $columns = $this->pmdSchemaColumns('orders');
         $primaryKey = $this->firstCol($columns, ['order_id', 'id']);
         $tableColumn = $this->firstCol($columns, [
             'table_id',
@@ -193,18 +190,12 @@ class PmdWaiterDashboardV150 extends PmdWaiterDashboardV149
         $maps = $this->tableReferenceMaps($tables);
         $statusMap = $this->orderStatusMap();
 
-        $query = DB::table('orders');
-        if (in_array('deleted_at', $columns, true)) {
-            $query->whereNull('deleted_at');
-        }
-        if ($dateColumn) {
-            $query->orderByDesc($dateColumn);
-        } else {
-            $query->orderByDesc($primaryKey);
-        }
-
         $rows = [];
-        foreach ($query->limit(160)->get() as $order) {
+        foreach ($this->pmdRecentOrdersSnapshot(
+            $columns,
+            $primaryKey,
+            $dateColumn
+        )->take(160) as $order) {
             $row = (array)$order;
             $table = $this->resolveOrderTable($row, $tableColumn, $maps);
             if (!$table) {
@@ -258,7 +249,7 @@ class PmdWaiterDashboardV150 extends PmdWaiterDashboardV149
 
     protected function attachOrderItems(array &$orders): void
     {
-        if (!$orders || !Schema::hasTable('order_menus')) {
+        if (!$orders || !$this->pmdSchemaHasTable('order_menus')) {
             return;
         }
 
@@ -303,6 +294,33 @@ class PmdWaiterDashboardV150 extends PmdWaiterDashboardV149
             }, $order['items'])));
         }
         unset($order);
+    }
+
+    protected function pmdRecentOrdersSnapshot(
+        array $columns,
+        ?string $primaryKey,
+        ?string $dateColumn
+    ) {
+        if ($this->pmdRecentOrdersSnapshot !== null) {
+            return $this->pmdRecentOrdersSnapshot;
+        }
+
+        if (!$primaryKey) {
+            return $this->pmdRecentOrdersSnapshot = collect();
+        }
+
+        $query = DB::table('orders');
+        if (in_array('deleted_at', $columns, true)) {
+            $query->whereNull('deleted_at');
+        }
+
+        if ($dateColumn) {
+            $query->orderByDesc($dateColumn);
+        } else {
+            $query->orderByDesc($primaryKey);
+        }
+
+        return $this->pmdRecentOrdersSnapshot = $query->limit(800)->get();
     }
 
     protected function tableReferenceMaps(array $tables): array
@@ -409,20 +427,27 @@ class PmdWaiterDashboardV150 extends PmdWaiterDashboardV149
 
     protected function orderStatusMap(): array
     {
-        if (!Schema::hasTable('statuses')) {
-            return [];
+        if ($this->pmdOrderStatusMapCache !== null) {
+            return $this->pmdOrderStatusMapCache;
         }
 
-        $columns = Schema::getColumnListing('statuses');
+        if (!$this->pmdSchemaHasTable('statuses')) {
+            return $this->pmdOrderStatusMapCache = [];
+        }
+
+        $columns = $this->pmdSchemaColumns('statuses');
         $idColumn = $this->firstCol($columns, ['status_id', 'id']);
         $nameColumn = $this->firstCol($columns, ['status_name', 'name', 'title']);
         if (!$idColumn || !$nameColumn) {
-            return [];
+            return $this->pmdOrderStatusMapCache = [];
         }
 
-        return DB::table('statuses')->pluck($nameColumn, $idColumn)->mapWithKeys(function ($name, $id) {
-            return [(string)$id => strtolower(trim((string)$name))];
-        })->all();
+        return $this->pmdOrderStatusMapCache = DB::table('statuses')
+            ->pluck($nameColumn, $idColumn)
+            ->mapWithKeys(function ($name, $id) {
+                return [(string)$id => strtolower(trim((string)$name))];
+            })
+            ->all();
     }
 
     protected function resolvedOrderStatus(array $order, ?string $statusColumn, array $statusMap): string

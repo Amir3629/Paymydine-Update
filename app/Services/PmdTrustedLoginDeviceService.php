@@ -5,6 +5,7 @@ namespace App\Services;
 use Admin\Facades\AdminAuth;
 use Admin\Services\PmdDefaultStaffRoleService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -23,17 +24,39 @@ use Illuminate\Support\Facades\Schema;
  */
 class PmdTrustedLoginDeviceService
 {
+    private ?bool $pmdReadyCache = null;
+
+    /**
+     * PMD_PERF_R4_TRUSTED_DEVICE_LOOKUP_CACHE
+     *
+     * The global Admin security middleware can validate the same trusted cookie
+     * multiple times in a single request. Cache that exact user/location/token
+     * lookup for this request only.
+     */
+    private array $pmdCurrentDeviceCache = [];
+
     public const COOKIE = 'pmd_trusted_login_v1';
     public const KIND = 'trusted_login';
     private const COOKIE_MINUTES = 60 * 24 * 365 * 10;
 
     public function ready(): bool
     {
+        if ($this->pmdReadyCache !== null) {
+            return $this->pmdReadyCache;
+        }
+
         try {
-            return Schema::hasTable('pmd_site_access_devices')
-                && Schema::hasColumn('pmd_site_access_devices', 'user_id');
+            if (!Schema::hasTable('pmd_site_access_devices')) {
+                return $this->pmdReadyCache = false;
+            }
+
+            return $this->pmdReadyCache = in_array(
+                'user_id',
+                Schema::getColumnListing('pmd_site_access_devices'),
+                true
+            );
         } catch (\Throwable $error) {
-            return false;
+            return $this->pmdReadyCache = false;
         }
     }
 
@@ -49,13 +72,21 @@ class PmdTrustedLoginDeviceService
         $raw = trim((string)$request->cookie(self::COOKIE, ''));
         if ($raw === '') return null;
 
-        return DB::table('pmd_site_access_devices')
-            ->where('token_hash', $this->tokenHash($raw))
-            ->where('device_kind', self::KIND)
-            ->where('user_id', $userId)
-            ->where('location_id', $locationId)
-            ->whereNull('revoked_at')
-            ->first();
+        $tokenHash = $this->tokenHash($raw);
+        $cacheKey = $userId.'|'.$locationId.'|'.$tokenHash;
+
+        if (array_key_exists($cacheKey, $this->pmdCurrentDeviceCache)) {
+            return $this->pmdCurrentDeviceCache[$cacheKey];
+        }
+
+        return $this->pmdCurrentDeviceCache[$cacheKey] =
+            DB::table('pmd_site_access_devices')
+                ->where('token_hash', $tokenHash)
+                ->where('device_kind', self::KIND)
+                ->where('user_id', $userId)
+                ->where('location_id', $locationId)
+                ->whereNull('revoked_at')
+                ->first();
     }
 
     /**
@@ -412,6 +443,21 @@ class PmdTrustedLoginDeviceService
     private function touch(int $deviceId): void
     {
         if ($deviceId < 1) return;
+
+        $database = '';
+        try {
+            $database = (string)DB::connection()->getDatabaseName();
+        } catch (\Throwable $error) {
+        }
+
+        $key = 'pmd:trusted-login:touch:'.sha1($database.'|'.$deviceId);
+        try {
+            if (!Cache::add($key, 1, now()->addSeconds(60))) {
+                return;
+            }
+        } catch (\Throwable $error) {
+        }
+
         DB::table('pmd_site_access_devices')
             ->where('id', $deviceId)
             ->whereNull('revoked_at')

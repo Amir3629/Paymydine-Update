@@ -25,6 +25,7 @@ class PmdKitchenEtaLifecycleService
             && Schema::hasColumn('orders', 'kitchen_preparing_at')
             && Schema::hasColumn('orders', 'kitchen_ready_at')
             && Schema::hasColumn('orders', 'eta_initial_minutes')
+            && Schema::hasColumn('orders', 'estimated_prep_minutes')
             && Schema::hasColumn('orders', 'eta_due_at')
             && Schema::hasColumn('orders', 'eta_extension_count');
     }

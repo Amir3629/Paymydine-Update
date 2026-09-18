@@ -115,8 +115,10 @@ class Managerlab extends PmdCleanWorkspaceControllerV1
 
         $this->vars['pmdRoleDashboardMode'] = 'manager';
         $this->vars['pmdRoleDashboardBundle'] = $bundle;
-        $this->vars['pmdRoleOwnerAnalyticsBootstrap'] =
-            $dashboard->ownerAnalyticsBootstrap($shared->locationId());
+        $this->vars['pmdRoleOwnerAnalyticsBootstrap'] = [
+            'server_first_paint' => false,
+            'periods' => [],
+        ];
         $this->vars['pmdRoleOwnerAnalyticsEndpoint'] =
             admin_url('managerlab').'?pmd_analytics=1';
         // PMD_MANAGER_REMOVE_ROLE_INSIGHT_CARDS_V3_5_2

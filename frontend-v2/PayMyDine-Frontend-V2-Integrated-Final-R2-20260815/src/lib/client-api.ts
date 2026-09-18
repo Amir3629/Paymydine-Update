@@ -3,17 +3,31 @@ import type { CartLine, TableContext, TableOrderState, TableOrdersState } from '
 type JsonObject = Record<string, unknown>
 
 async function jsonRequest<T = JsonObject>(url: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(url, {
-    credentials: 'same-origin',
-    headers: { Accept: 'application/json', 'Content-Type': 'application/json', ...(init?.headers || {}) },
-    ...init,
-  })
-  const data = await response.json().catch(() => ({}))
-  if (!response.ok || (data && typeof data === 'object' && 'success' in data && data.success === false)) {
-    const message = data && typeof data === 'object' ? String(data.error || data.message || '') : ''
-    throw new Error(message || `HTTP ${response.status}`)
+  const controller = new AbortController()
+  const timeoutMs = url.includes('/orders/pay-existing') ? 20000 : 12000
+  const timeout = window.setTimeout(() => controller.abort(), timeoutMs)
+
+  try {
+    const response = await fetch(url, {
+      credentials: 'same-origin',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json', ...(init?.headers || {}) },
+      ...init,
+      signal: controller.signal,
+    })
+    const data = await response.json().catch(() => ({}))
+    if (!response.ok || (data && typeof data === 'object' && 'success' in data && data.success === false)) {
+      const message = data && typeof data === 'object' ? String(data.error || data.message || '') : ''
+      throw new Error(message || `HTTP ${response.status}`)
+    }
+    return data as T
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      throw new Error('The restaurant service took too long to respond. Please try again.')
+    }
+    throw error
+  } finally {
+    window.clearTimeout(timeout)
   }
-  return data as T
 }
 
 function tableParams(table: TableContext): URLSearchParams {

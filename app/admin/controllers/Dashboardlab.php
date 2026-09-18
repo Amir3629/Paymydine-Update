@@ -551,23 +551,20 @@ class Dashboardlab extends AdminController
      */
     private function resolveAnalyticsBootstrap(): array
     {
-        $bootstrap = [
+        /*
+         * PMD_PERF_R2_DEFER_BELOW_FOLD_ANALYTICS
+         *
+         * The dashboard previously executed two complete analytics payloads
+         * before sending HTML. Those aggregates are below the first visible
+         * KPI/Floor area and made every Owner navigation wait on hundreds of
+         * extra queries. Return the documented empty bootstrap contract; the
+         * existing browser runtime fetches the same canonical payloads after
+         * first paint.
+         */
+        return [
             'server_first_paint' => false,
             'periods' => [],
         ];
-
-        foreach (['last30', 'month'] as $period) {
-            $payload = $this->resolveAnalyticsPayload($period);
-
-            if (($payload['success'] ?? false) !== true) {
-                return $bootstrap;
-            }
-
-            $bootstrap['periods'][$period] = $payload;
-        }
-
-        $bootstrap['server_first_paint'] = true;
-        return $bootstrap;
     }
 
     private function resolveAnalyticsPayload(string $period): array
@@ -1203,7 +1200,8 @@ class Dashboardlab extends AdminController
             $source = new class extends PmdWaiterDashboardV151 {
                 public function pmdDashboardLabFloorData(): array
                 {
-                    return $this->v9CompatiblePayload();
+                    // Floor first paint does not use the POS menu catalogue.
+                    return $this->v9CompatiblePayload(false);
                 }
             };
 

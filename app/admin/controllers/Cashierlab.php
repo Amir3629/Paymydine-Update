@@ -620,15 +620,47 @@ HTML;
         [$from, $to] = $this->pmdResolveDateRange();
 
         $source = new class extends PmdWaiterDashboardV151 {
+            protected function pmdCashierBaseState(): array
+            {
+                /*
+                 * PMD_PERF_R3_CASHIER_LIGHT_BASE
+                 *
+                 * Cashier only needs canonical tables + open-order metrics to
+                 * build Current/History. Calling the full waiter payload also
+                 * loaded reservations, the whole menu catalogue and order cards
+                 * which Cashier immediately discarded and rebuilt.
+                 */
+                $user = $this->userInfo();
+                $tables = $this->loadTables($user);
+                $metrics = $this->loadTableMetrics($tables);
+                $tables = $this->attachOperationalStatusesV152($tables);
+
+                foreach ($tables as &$table) {
+                    $tableId = (int)($table['table_id'] ?? $table['id'] ?? 0);
+                    $metric = $metrics[$tableId] ?? [];
+                    $table['open_orders'] = (int)($metric['open_orders'] ?? 0);
+                    $table['open_order_count'] = (int)($metric['open_orders'] ?? 0);
+                    $table['latest_order_status'] = (string)($metric['latest_status'] ?? '');
+                }
+                unset($table);
+
+                return [
+                    'tables' => $tables,
+                    'currency' => '€',
+                    'sections' => ['active_orders' => []],
+                    'orders' => [],
+                ];
+            }
+
             public function pmdCashierOrdersForRange(
                 Carbon $from,
                 Carbon $to,
                 bool $historyMode = false
             ): array {
-                $base = $this->payload(false);
+                $base = $this->pmdCashierBaseState();
                 $tables = array_values((array)($base['tables'] ?? []));
 
-                if (!Schema::hasTable('orders') || !$tables) {
+                if (!$this->pmdSchemaHasTable('orders') || !$tables) {
                     return [
                         'orders' => [],
                         'currency' => $base['currency'] ?? '€',
@@ -642,7 +674,7 @@ HTML;
                     ];
                 }
 
-                $columns = Schema::getColumnListing('orders');
+                $columns = $this->pmdSchemaColumns('orders');
                 $primaryKey = $this->firstCol($columns, ['order_id', 'id']);
                 $tableColumn = $this->firstCol($columns, [
                     'table_id',
@@ -873,11 +905,9 @@ HTML;
                 // Payment alone never moves an order to History.
                 $releasedOrderIds = [];
 
-                if (Schema::hasTable('pmd_waiter_pos_operation_logs')) {
+                if ($this->pmdSchemaHasTable('pmd_waiter_pos_operation_logs')) {
                     try {
-                        $logColumns = Schema::getColumnListing(
-                            'pmd_waiter_pos_operation_logs'
-                        );
+                        $logColumns = $this->pmdSchemaColumns('pmd_waiter_pos_operation_logs');
 
                         if (
                             in_array('order_id', $logColumns, true)

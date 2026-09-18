@@ -402,14 +402,27 @@
     document.addEventListener('keydown', (e)=>{ if (e.key==='Escape') close(); });
   }
 
-  // keep the badge fresh
+  // PMD_PERF_R3_SHARED_NOTIFICATION_POLL
+  // When push-notifications.js is present, its existing poll also carries the
+  // unread count. Stop the second HTTP poller as soon as that signal arrives.
+  window.addEventListener('pmd:notification:count', (event) => {
+    const detail = event && event.detail ? event.detail : {};
+    setCount(Math.max(0, Number(detail.count || 0)));
+    window.PMDNotificationCountDrivenByPush = true;
+    if (window.notificationCountInterval) {
+      clearInterval(window.notificationCountInterval);
+      window.notificationCountInterval = null;
+    }
+  });
+
+  // keep the badge fresh until/unless the push poll becomes the authority
   refreshCount();
   
   // Store interval ID in global scope for cleanup and duplicate prevention
   if (window.notificationCountInterval) {
     clearInterval(window.notificationCountInterval);
   }
-  window.notificationCountInterval = setInterval(refreshCount, 20000); // Very slow polling (20s) to reduce CPU load
+  window.notificationCountInterval = setInterval(refreshCount, 30000);
   
   // Clean up interval on page unload to prevent memory leaks and CPU usage
   window.addEventListener('beforeunload', () => {
@@ -430,9 +443,9 @@
       }
     } else {
       // Resume polling when tab becomes visible
-      if (!window.notificationCountInterval) {
-        refreshCount(); // Refresh immediately
-        window.notificationCountInterval = setInterval(refreshCount, 20000); // Match the slow polling interval
+      if (!window.notificationCountInterval && !window.PMDNotificationCountDrivenByPush) {
+        refreshCount();
+        window.notificationCountInterval = setInterval(refreshCount, 30000);
       }
     }
   });

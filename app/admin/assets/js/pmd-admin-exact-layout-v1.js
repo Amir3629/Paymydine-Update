@@ -175,6 +175,8 @@
       ? 0
       : (window.innerWidth <= 767 ? MOBILE_GAP : DESKTOP_GAP);
 
+    var rightGap = gap;
+
     var menuRect = menu.getBoundingClientRect();
     var measuredMenuRight = Math.round(menuRect.right);
     var flowMenuRight = settingsSuite && window.innerWidth <= 767
@@ -266,7 +268,7 @@
     setImportant(page.content, 'margin-right', '0px');
     setImportant(page.content, 'margin-top', '0px');
     setImportant(page.content, 'padding-left', gap + 'px');
-    setImportant(page.content, 'padding-right', gap + 'px');
+    setImportant(page.content, 'padding-right', rightGap + 'px');
     setImportant(page.content, 'width', '100%');
     setImportant(page.content, 'max-width', 'none');
     setImportant(page.content, 'min-width', '0px');

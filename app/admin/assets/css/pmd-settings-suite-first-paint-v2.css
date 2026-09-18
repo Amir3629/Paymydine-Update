@@ -66,7 +66,7 @@ html body.page.pmd-admin-theme-v1.pmd-settings-suite .row-fluid {
 
    Side Menu 2 first-paint geometry is deterministic on desktop:
    collapsed = left 14 + width 72 = right edge 86px
-   expanded  = left 14 + width 184 = right edge 198px
+   expanded  = left 14 + width 160 = right edge 174px
 
    Mirror that BEFORE the deferred exact-layout JS executes.
    ========================================================== */
@@ -96,11 +96,11 @@ html body.page.pmd-admin-theme-v1.pmd-settings-suite .row-fluid {
   html.pmd-side-menu2-global-page.pmd-sm2-expanded
   body.page.pmd-admin-theme-v1.pmd-settings-suite .page-wrapper {
     position: absolute !important;
-    left: 198px !important;
+    left: 174px !important;
     right: auto !important;
     top: 0 !important;
     bottom: auto !important;
-    width: calc(100vw - 198px) !important;
+    width: calc(100vw - 174px) !important;
     max-width: none !important;
     min-width: 0 !important;
     margin-left: 0 !important;
@@ -116,7 +116,7 @@ html body.page.pmd-admin-theme-v1.pmd-settings-suite .row-fluid {
   }
 }
 
-/* Settings page roots already own their one 16px rail.
+/* Settings page roots own the canonical 14px rail.
    Never add the generic exact-layout 14px inset on top of it. */
 html body.page.pmd-admin-theme-v1.pmd-settings-suite .page-content {
   position: relative !important;

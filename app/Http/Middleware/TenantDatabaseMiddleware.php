@@ -13,6 +13,29 @@ class TenantDatabaseMiddleware
 {
     public function handle(Request $request, Closure $next)
     {
+        /*
+         * PMD_PERF_R4_TENANT_MIDDLEWARE_SINGLEFLIGHT
+         *
+         * Admin has a global tenant context and a few specialized routes also
+         * carry TenantDatabaseMiddleware explicitly. A nested second pass used
+         * to re-query the central registry, purge/reconnect the tenant DB and
+         * rebuild settings/localization during the same HTTP request.
+         */
+        $resolvedHost = strtolower(trim((string)$request->attributes->get(
+            'pmd_tenant_database_resolved_host',
+            ''
+        )));
+        $requestHost = strtolower(trim((string)$request->getHost()));
+
+        if (
+            $resolvedHost !== ''
+            && $resolvedHost === $requestHost
+            && $request->attributes->has('tenant')
+            && app()->bound('tenant')
+        ) {
+            return $next($request);
+        }
+
         $subdomain = $this->extractTenantFromDomain($request);
 
         if (!$subdomain) {
@@ -25,6 +48,22 @@ class TenantDatabaseMiddleware
             ->first();
 
         if (!$tenantInfo || empty($tenantInfo->database)) {
+            /*
+             * PMD_PERF_R4_ADMIN_SINGLE_TENANT_GATE
+             *
+             * Nginx no longer needs a second Laravel auth_request for Admin
+             * pages: this middleware is already the tenant/status authority
+             * before AdminAuth is resolved. Keep browser behavior fail-closed
+             * and consistent with the old Nginx gate by redirecting an inactive
+             * tenant Admin document to the central PayMyDine landing page.
+             *
+             * API/AJAX/non-Admin consumers keep the existing JSON 404 contract.
+             */
+            if ($this->isAdminBrowserRequest($request)) {
+                return redirect('https://paymydine.com/', 302)
+                    ->header('Cache-Control', 'no-store');
+            }
+
             return response()->json(['error' => 'Restaurant not found or inactive'], 404);
         }
 
@@ -41,14 +80,20 @@ class TenantDatabaseMiddleware
         $this->bindTenantSettingContext($tenantInfo);
 
         $request->attributes->set('tenant', $tenantInfo);
+        $request->attributes->set(
+            'pmd_tenant_database_resolved_host',
+            strtolower(trim((string)$request->getHost()))
+        );
         app()->instance('tenant', $tenantInfo);
 
-        Log::info('[TenantDatabaseMiddleware] switched tenant connection', [
-            'host' => $request->getHost(),
-            'subdomain' => $subdomain,
-            'tenant_domain' => $tenantInfo->domain ?? null,
-            'tenant_db' => $tenantInfo->database ?? null,
-        ]);
+        if ($this->contextLoggingEnabled()) {
+            Log::info('[TenantDatabaseMiddleware] switched tenant connection', [
+                'host' => $request->getHost(),
+                'subdomain' => $subdomain,
+                'tenant_domain' => $tenantInfo->domain ?? null,
+                'tenant_db' => $tenantInfo->database ?? null,
+            ]);
+        }
 
         $response = $next($request);
 
@@ -130,12 +175,55 @@ class TenantDatabaseMiddleware
         // Recreate Localization after the tenant config above is authoritative.
         app()->forgetInstance('translator.localization');
 
-        Log::info('[TenantDatabaseMiddleware] bound tenant localization config', [
-            'tenant_db' => $tenantInfo->database ?? null,
-            'default_locale' => $defaultLocale,
-            'supported_locales' => $supportedLocales,
-            'setting_cache_key' => 'igniter.setting.system.tenant.'.$cacheSuffix,
-        ]);
+        if ($this->contextLoggingEnabled()) {
+            Log::info('[TenantDatabaseMiddleware] bound tenant localization config', [
+                'tenant_db' => $tenantInfo->database ?? null,
+                'default_locale' => $defaultLocale,
+                'supported_locales' => $supportedLocales,
+                'setting_cache_key' => 'igniter.setting.system.tenant.'.$cacheSuffix,
+            ]);
+        }
+    }
+
+    private function contextLoggingEnabled(): bool
+    {
+        // PMD_PERF_R2_TENANT_CONTEXT_LOG_GATE
+        // Two info-level records per tenant request created synchronous log I/O
+        // and large system.log churn in production. Keep them opt-in for
+        // diagnostics without changing tenant resolution behavior.
+        return filter_var(
+            env('PMD_TENANT_CONTEXT_LOG', false),
+            FILTER_VALIDATE_BOOLEAN
+        );
+    }
+
+    private function isAdminBrowserRequest(Request $request): bool
+    {
+        $path = trim((string)$request->path(), '/');
+        $adminUri = trim((string)config('system.adminUri', 'admin'), '/');
+
+        if (
+            $adminUri === ''
+            || (
+                $path !== $adminUri
+                && !str_starts_with($path, $adminUri.'/')
+            )
+        ) {
+            return false;
+        }
+
+        if (!in_array(strtoupper((string)$request->method()), ['GET', 'HEAD'], true)) {
+            return false;
+        }
+
+        if ($request->ajax()) {
+            return false;
+        }
+
+        $accept = strtolower((string)$request->header('Accept', ''));
+        return $accept === ''
+            || str_contains($accept, 'text/html')
+            || str_contains($accept, 'application/xhtml+xml');
     }
 
     private function normalizeSupportedLocales($value): array

@@ -25,6 +25,8 @@
   var resyncTimer = null;
   var classObserver = null;
   var booted = false;
+  var lastVerifiedAtMs = 0;
+  var MIN_NETWORK_SYNC_MS = 60 * 1000;
 
   function pathIsAdmin() {
     var path = String(window.location.pathname || '');
@@ -163,9 +165,10 @@
       var serverEpochMs = Number(clock.server_epoch_ms);
       if (!serverEpochMs || !clientEpochMs) return;
 
+      lastVerifiedAtMs = Date.now();
       window.sessionStorage.setItem(cacheKey(), JSON.stringify({
         cache_version: CACHE_VERSION,
-        saved_at_ms: Date.now(),
+        saved_at_ms: lastVerifiedAtMs,
         timezone: String(clock.timezone || ''),
         location_id: clock.location_id == null ? null : Number(clock.location_id),
         location_name: String(clock.location_name || ''),
@@ -191,6 +194,7 @@
       if (!cachedFormatter) return false;
 
       var clientNowMs = Date.now();
+      lastVerifiedAtMs = Number(cached.saved_at_ms) || 0;
       state = {
         version: VERSION,
         location_id: cached.location_id == null ? null : Number(cached.location_id),
@@ -221,6 +225,7 @@
     if (!nextFormatter) return false;
 
     var clientEpochMs = Date.now();
+    lastVerifiedAtMs = clientEpochMs;
     state = clock;
     formatter = nextFormatter;
     syncClientEpochMs = clientEpochMs;
@@ -253,9 +258,18 @@
     }
   }
 
+  function networkSyncIsDue() {
+    return !lastVerifiedAtMs || (Date.now() - lastVerifiedAtMs) >= MIN_NETWORK_SYNC_MS;
+  }
+
+  function maybeSync() {
+    if (!networkSyncIsDue()) return Promise.resolve(false);
+    return sync();
+  }
+
   function scheduleResync() {
     if (resyncTimer) window.clearInterval(resyncTimer);
-    resyncTimer = window.setInterval(sync, 5 * 60 * 1000);
+    resyncTimer = window.setInterval(maybeSync, 5 * 60 * 1000);
   }
 
   function installObservers() {
@@ -268,18 +282,23 @@
     }
 
     document.addEventListener('visibilitychange', function () {
-      if (!document.hidden) sync();
+      if (!document.hidden) maybeSync();
     });
-    window.addEventListener('focus', sync);
+    window.addEventListener('focus', maybeSync);
   }
 
   async function boot() {
     if (booted || !pathIsAdmin() || excludedPath()) return;
     booted = true;
 
-    // Usually already rendered synchronously from verified cache below.
-    // The endpoint remains authority and corrects location/timezone immediately.
-    await sync();
+    /*
+     * PMD_PERF_R3_CLOCK_SESSION_REUSE
+     *
+     * Navigation within the same tab restores a server-verified clock from
+     * sessionStorage. Do not spend another authenticated PHP request on every
+     * page transition when that verification is less than one minute old.
+     */
+    await maybeSync();
     scheduleResync();
     installObservers();
   }

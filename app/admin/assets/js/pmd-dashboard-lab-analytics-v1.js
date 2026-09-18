@@ -1072,32 +1072,43 @@
   }
 
   if (!renderInitialBootstrap()) {
-    request('last30')
-      .then(renderBase)
-      .catch(function (error) {
-        ['salesOverTime', 'salesByHour', 'liveOperations', 'recentTransactions', 'alerts', 'reviews', 'tips', 'calendarEvents']
-          .forEach(function (key) {
+    var startDeferredAnalytics = function () {
+      request('last30')
+        .then(renderBase)
+        .catch(function (error) {
+          ['salesOverTime', 'salesByHour', 'liveOperations', 'recentTransactions', 'alerts', 'reviews', 'tips', 'calendarEvents']
+            .forEach(function (key) {
+              var body = bodyFor(key);
+              if (body) body.innerHTML = empty({reason: 'Analytics source unavailable'});
+              setBusy(key, false);
+            });
+          console.warn('[PMD Dashboard Lab Analytics] base request failed', error);
+        });
+
+      request('month')
+        .then(function (payload) {
+          Object.keys(periodByWidget).forEach(function (key) {
+            if (periodByWidget[key] === 'month') renderPeriodWidget(key, payload);
+          });
+        })
+        .catch(function (error) {
+          Object.keys(periodByWidget).forEach(function (key) {
             var body = bodyFor(key);
             if (body) body.innerHTML = empty({reason: 'Analytics source unavailable'});
             setBusy(key, false);
           });
-        console.warn('[PMD Dashboard Lab Analytics] base request failed', error);
-      });
+          console.warn('[PMD Dashboard Lab Analytics] month request failed', error);
+        });
+    };
 
-    request('month')
-      .then(function (payload) {
-        Object.keys(periodByWidget).forEach(function (key) {
-          if (periodByWidget[key] === 'month') renderPeriodWidget(key, payload);
-        });
-      })
-      .catch(function (error) {
-        Object.keys(periodByWidget).forEach(function (key) {
-          var body = bodyFor(key);
-          if (body) body.innerHTML = empty({reason: 'Analytics source unavailable'});
-          setBusy(key, false);
-        });
-        console.warn('[PMD Dashboard Lab Analytics] month request failed', error);
-      });
+    // PMD_PERF_R2_FIRST_PAINT_PRIORITY
+    // Give navigation/header/Floor first paint priority, then load the same
+    // canonical analytics payloads during an idle slice.
+    if ('requestIdleCallback' in window) {
+      window.requestIdleCallback(startDeferredAnalytics, {timeout: 900});
+    } else {
+      window.setTimeout(startDeferredAnalytics, 350);
+    }
   }
 
   bootCompleted = true;

@@ -50,6 +50,30 @@ class ServiceProvider extends AppServiceProvider
     {
         parent::register('admin');
 
+        /*
+         * PMD_PERF_R4_REQUEST_SINGLETONS
+         *
+         * These services are resolved repeatedly by the Admin security and
+         * workspace middleware during one HTTP request. R3 added request-local
+         * schema/ready caches inside several of them, but transient container
+         * resolution created a fresh object and discarded those caches.
+         *
+         * PHP-FPM rebuilds the application container for each request, so these
+         * singletons share only within the current request and never leak tenant
+         * state between requests.
+         */
+        foreach ([
+            \App\Services\PmdSiteAccessService::class,
+            \App\Services\PmdTrustedLoginDeviceService::class,
+            \App\Services\PmdSiteAccessWorkspaceGateService::class,
+            \App\Services\PmdSiteAccessSessionBindingService::class,
+            \App\Services\PmdOwnerTotpService::class,
+            \App\Services\PmdWorkSessionPolicyService::class,
+            \Admin\Services\PmdDefaultStaffRoleService::class,
+        ] as $pmdRequestSingleton) {
+            $this->app->singleton($pmdRequestSingleton);
+        }
+
         $this->registerAssets();
         $this->registerActivityTypes();
         $this->registerMailTemplates();
@@ -409,7 +433,7 @@ class ServiceProvider extends AppServiceProvider
                         'reservations' => [
                             'priority' => 20,
                             'class' => 'reservations',
-                            'href' => admin_url('reservations'),
+                            'href' => admin_url('reservations2'),
                             'title' => lang('admin::lang.side_menu.reservation'),
                             'permission' => 'Admin.Reservations',
                         ],
