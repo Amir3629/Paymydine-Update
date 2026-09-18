@@ -54,7 +54,7 @@ class PmdCachedMySqlBuilder extends MySqlBuilder
         $this->flushPmdMetadataCache();
 
         try {
-            return parent::build($blueprint);
+            parent::build($blueprint);
         } finally {
             $this->flushPmdMetadataCache();
         }
@@ -65,7 +65,7 @@ class PmdCachedMySqlBuilder extends MySqlBuilder
         $this->flushPmdMetadataCache();
 
         try {
-            return parent::dropAllTables();
+            parent::dropAllTables();
         } finally {
             $this->flushPmdMetadataCache();
         }
