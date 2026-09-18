@@ -892,30 +892,21 @@ HTML;
 
                 // PMD_CASHIER_CURRENT_HISTORY_SPLIT_R46
                 // The explicit Manual FREE operation log is the durable visit boundary.
-                // Payment alone never moves an order to History.
+                // PMD_PERF_R7_SCOPED_RELEASE_LOGS
+                // Discover capability now, but defer the actual operation-log read until
+                // we know the <=500 order IDs in this request. Never scan every historical
+                // cashier_table_free row just to render today's Cashier.
                 $releasedOrderIds = [];
+                $canReadReleaseLogs = false;
 
                 if ($this->pmdSchemaHasTable('pmd_waiter_pos_operation_logs')) {
                     try {
                         $logColumns = $this->pmdSchemaColumns('pmd_waiter_pos_operation_logs');
-
-                        if (
+                        $canReadReleaseLogs =
                             in_array('order_id', $logColumns, true)
-                            && in_array('action', $logColumns, true)
-                        ) {
-                            foreach (
-                                DB::table('pmd_waiter_pos_operation_logs')
-                                    ->where('action', 'cashier_table_free')
-                                    ->pluck('order_id')
-                                as $releasedOrderId
-                            ) {
-                                $releasedOrderId = (int)$releasedOrderId;
-                                if ($releasedOrderId > 0) {
-                                    $releasedOrderIds[$releasedOrderId] = true;
-                                }
-                            }
-                        }
+                            && in_array('action', $logColumns, true);
                     } catch (\Throwable $ignored) {
+                        $canReadReleaseLogs = false;
                     }
                 }
 
@@ -946,12 +937,79 @@ HTML;
                     $query->orderByDesc($dateColumn)->orderByDesc($primaryKey);
                 }
 
+                /*
+                 * PMD_PERF_R7_SLIM_CASHIER_ORDER_ROWS
+                 * The old query fetched every column from up to 500 orders even though
+                 * this renderer uses a small stable subset. Keep dynamic schema support,
+                 * but transfer/materialize only fields this path can actually consume.
+                 */
+                $wantedColumns = array_values(array_unique(array_filter([
+                    $primaryKey,
+                    $tableColumn,
+                    $dateColumn,
+                    $timeColumn,
+                    $statusColumn,
+                    $paymentColumn,
+                    $totalColumn,
+                    'settlement_status',
+                    'settled_amount',
+                    'processed',
+                    'total_items',
+                    'comment',
+                    'order_date',
+                    'created_at',
+                    'updated_at',
+                    'order_type',
+                    'status_id',
+                ])));
+
+                $selectColumns = array_values(array_filter(
+                    $wantedColumns,
+                    static fn ($column) => in_array($column, $columns, true)
+                ));
+
+                if (!in_array($primaryKey, $selectColumns, true)) {
+                    $selectColumns[] = $primaryKey;
+                }
+
+                $selectedOrders = $query
+                    ->limit(500)
+                    ->get($selectColumns);
+
+                if ($canReadReleaseLogs && $selectedOrders->isNotEmpty()) {
+                    try {
+                        $selectedOrderIds = $selectedOrders
+                            ->pluck($primaryKey)
+                            ->map(static fn ($id) => (int)$id)
+                            ->filter(static fn ($id) => $id > 0)
+                            ->unique()
+                            ->values()
+                            ->all();
+
+                        if ($selectedOrderIds) {
+                            foreach (
+                                DB::table('pmd_waiter_pos_operation_logs')
+                                    ->where('action', 'cashier_table_free')
+                                    ->whereIn('order_id', $selectedOrderIds)
+                                    ->pluck('order_id')
+                                as $releasedOrderId
+                            ) {
+                                $releasedOrderId = (int)$releasedOrderId;
+                                if ($releasedOrderId > 0) {
+                                    $releasedOrderIds[$releasedOrderId] = true;
+                                }
+                            }
+                        }
+                    } catch (\Throwable $ignored) {
+                    }
+                }
+
                 $sourceRows = 0;
                 $unmappedRows = 0;
                 $carryoverRows = 0;
                 $rows = [];
 
-                foreach ($query->limit(500)->get() as $order) {
+                foreach ($selectedOrders as $order) {
                     $sourceRows++;
                     $row = (array)$order;
 
