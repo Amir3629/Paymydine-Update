@@ -51,8 +51,7 @@
     return;
   }
 
-  var DESKTOP_LEFT_GAP = 8;
-  var DESKTOP_RIGHT_GAP = 14;
+  var DESKTOP_GAP = 14;
   var MOBILE_GAP = 10;
   var ABSOLUTE_SHELL_TRANSITION = [
     'left 220ms cubic-bezier(.22,.75,.24,1)',
@@ -174,11 +173,9 @@
 
     var gap = settingsSuite
       ? 0
-      : (window.innerWidth <= 767 ? MOBILE_GAP : DESKTOP_LEFT_GAP);
+      : (window.innerWidth <= 767 ? MOBILE_GAP : DESKTOP_GAP);
 
-    var rightGap = settingsSuite
-      ? 0
-      : (window.innerWidth <= 767 ? MOBILE_GAP : DESKTOP_RIGHT_GAP);
+    var rightGap = gap;
 
     var menuRect = menu.getBoundingClientRect();
     var measuredMenuRight = Math.round(menuRect.right);
