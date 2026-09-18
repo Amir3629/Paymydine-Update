@@ -5507,6 +5507,17 @@ Route::group([
 try {
             \Illuminate\Support\Facades\Log::info("[Stripe create-intent] resolved-keys", ["mode"=>$mode, "has_secret"=>(bool)$secretKey, "has_payment"=>(bool)$payment]);
             \Stripe\Stripe::setApiKey($secretKey);
+
+            // PMD_R69_STRIPE_NETWORK_BOUNDS
+            // stripe-php v7 defaults are very long (30s connect / 80s total).
+            // Checkout must fail fast instead of leaving Apple Pay/Card on an
+            // endless "processing" state. Creation is idempotent below, so a
+            // client retry cannot create a duplicate PaymentIntent.
+            $stripeCurl = new \Stripe\HttpClient\CurlClient();
+            $stripeCurl->setConnectTimeout(5);
+            $stripeCurl->setTimeout(10);
+            \Stripe\ApiRequestor::setHttpClient($stripeCurl);
+
             // Decide currency from tenant settings (do NOT trust client).
             // Keep this path small: checkout does not need the entire settings table.
 $currencySettings = \Illuminate\Support\Facades\DB::table('settings')
