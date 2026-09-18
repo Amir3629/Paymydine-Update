@@ -305,8 +305,23 @@ class PmdWaiterDashboardV150 extends PmdWaiterDashboardV149
             return $this->pmdRecentOrdersSnapshot;
         }
 
+        /*
+         * PMD_PERF_R6_SHARED_ORDER_SNAPSHOT
+         *
+         * Cashier/Orders can construct more than one V151-compatible source in
+         * one internal Admin dispatch. Share the same read-only 800-row snapshot
+         * through the request container instead of querying it twice.
+         */
+        $requestCacheKey = 'pmd.perf.r6.recent-orders-snapshot';
+
+        if (app()->bound($requestCacheKey)) {
+            return $this->pmdRecentOrdersSnapshot = app($requestCacheKey);
+        }
+
         if (!$primaryKey) {
-            return $this->pmdRecentOrdersSnapshot = collect();
+            $snapshot = collect();
+            app()->instance($requestCacheKey, $snapshot);
+            return $this->pmdRecentOrdersSnapshot = $snapshot;
         }
 
         $query = DB::table('orders');
@@ -320,7 +335,10 @@ class PmdWaiterDashboardV150 extends PmdWaiterDashboardV149
             $query->orderByDesc($primaryKey);
         }
 
-        return $this->pmdRecentOrdersSnapshot = $query->limit(800)->get();
+        $snapshot = $query->limit(800)->get();
+        app()->instance($requestCacheKey, $snapshot);
+
+        return $this->pmdRecentOrdersSnapshot = $snapshot;
     }
 
     protected function tableReferenceMaps(array $tables): array
@@ -431,7 +449,14 @@ class PmdWaiterDashboardV150 extends PmdWaiterDashboardV149
             return $this->pmdOrderStatusMapCache;
         }
 
+        $requestCacheKey = 'pmd.perf.r6.order-status-map';
+
+        if (app()->bound($requestCacheKey)) {
+            return $this->pmdOrderStatusMapCache = (array)app($requestCacheKey);
+        }
+
         if (!$this->pmdSchemaHasTable('statuses')) {
+            app()->instance($requestCacheKey, []);
             return $this->pmdOrderStatusMapCache = [];
         }
 
@@ -439,15 +464,20 @@ class PmdWaiterDashboardV150 extends PmdWaiterDashboardV149
         $idColumn = $this->firstCol($columns, ['status_id', 'id']);
         $nameColumn = $this->firstCol($columns, ['status_name', 'name', 'title']);
         if (!$idColumn || !$nameColumn) {
+            app()->instance($requestCacheKey, []);
             return $this->pmdOrderStatusMapCache = [];
         }
 
-        return $this->pmdOrderStatusMapCache = DB::table('statuses')
+        $map = DB::table('statuses')
             ->pluck($nameColumn, $idColumn)
             ->mapWithKeys(function ($name, $id) {
                 return [(string)$id => strtolower(trim((string)$name))];
             })
             ->all();
+
+        app()->instance($requestCacheKey, $map);
+
+        return $this->pmdOrderStatusMapCache = $map;
     }
 
     protected function resolvedOrderStatus(array $order, ?string $statusColumn, array $statusMap): string
