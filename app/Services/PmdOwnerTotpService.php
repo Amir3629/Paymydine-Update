@@ -22,12 +22,24 @@ class PmdOwnerTotpService
     private const DIGITS = 6;
     private const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 
+    /**
+     * PMD_PERF_R4_OWNER_TOTP_SCHEMA_CACHE
+     *
+     * ready() is consulted several times by the Admin security gate during one
+     * request. Avoid repeating the same information_schema probe.
+     */
+    private ?bool $pmdReadyCache = null;
+
     public function ready(): bool
     {
+        if ($this->pmdReadyCache !== null) {
+            return $this->pmdReadyCache;
+        }
+
         try {
-            return Schema::hasTable(self::TABLE);
+            return $this->pmdReadyCache = Schema::hasTable(self::TABLE);
         } catch (\Throwable $error) {
-            return false;
+            return $this->pmdReadyCache = false;
         }
     }
 
