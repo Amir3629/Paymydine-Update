@@ -49,6 +49,7 @@ class PmdLivePerformanceProfiler
         $queryCount = 0;
         $queryMs = 0.0;
         $slowQueries = [];
+        $queryFingerprints = [];
         $connectionCounts = [];
         $connectionMs = [];
 
@@ -56,6 +57,7 @@ class PmdLivePerformanceProfiler
             &$queryCount,
             &$queryMs,
             &$slowQueries,
+            &$queryFingerprints,
             &$connectionCounts,
             &$connectionMs
         ) {
@@ -72,6 +74,23 @@ class PmdLivePerformanceProfiler
 
             $sql = preg_replace('/\s+/', ' ', trim((string)($query->sql ?? '')));
             $sql = mb_substr($sql, 0, self::SQL_LIMIT);
+
+            $fingerprintKey = $connection.'|'.$sql;
+            if (!isset($queryFingerprints[$fingerprintKey])) {
+                $queryFingerprints[$fingerprintKey] = [
+                    'connection' => $connection,
+                    'sql' => $sql,
+                    'count' => 0,
+                    'total_ms' => 0.0,
+                    'max_ms' => 0.0,
+                ];
+            }
+            $queryFingerprints[$fingerprintKey]['count']++;
+            $queryFingerprints[$fingerprintKey]['total_ms'] += $time;
+            $queryFingerprints[$fingerprintKey]['max_ms'] = max(
+                $queryFingerprints[$fingerprintKey]['max_ms'],
+                $time
+            );
 
             $slowQueries[] = [
                 'ms' => round($time, 2),
@@ -126,6 +145,21 @@ class PmdLivePerformanceProfiler
                 $connectionMs[$name] = round((float)$ms, 2);
             }
 
+            $repeatedQueries = array_values($queryFingerprints);
+            foreach ($repeatedQueries as &$fingerprint) {
+                $fingerprint['total_ms'] = round((float)$fingerprint['total_ms'], 2);
+                $fingerprint['max_ms'] = round((float)$fingerprint['max_ms'], 2);
+            }
+            unset($fingerprint);
+
+            usort($repeatedQueries, static function (array $left, array $right): int {
+                $countCompare = ((int)$right['count']) <=> ((int)$left['count']);
+                return $countCompare !== 0
+                    ? $countCompare
+                    : ((float)$right['total_ms'] <=> (float)$left['total_ms']);
+            });
+            $repeatedQueries = array_slice($repeatedQueries, 0, 15);
+
             $record = [
                 'ts' => date('c'),
                 'id' => $requestId,
@@ -147,6 +181,7 @@ class PmdLivePerformanceProfiler
                     'query_ms' => $connectionMs,
                 ],
                 'slowest_queries' => $slowQueries,
+                'repeated_queries' => $repeatedQueries,
                 'memory_mb' => round(memory_get_usage(true) / 1048576, 2),
                 'peak_memory_mb' => round(memory_get_peak_usage(true) / 1048576, 2),
                 'response_bytes' => $this->responseBytes($response),

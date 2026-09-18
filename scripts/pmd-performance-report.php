@@ -173,6 +173,55 @@ foreach (array_slice($sqlRows, 0, $limit) as $sql) {
     );
 }
 
+$repeatStats = [];
+foreach ($rows as $row) {
+    foreach ((array)($row['repeated_queries'] ?? []) as $query) {
+        if (!is_array($query)) continue;
+        $sql = preg_replace('/\s+/', ' ', trim((string)($query['sql'] ?? '')));
+        if ($sql === '') continue;
+        $connection = (string)($query['connection'] ?? '?');
+        $key = $connection.'|'.$sql;
+        if (!isset($repeatStats[$key])) {
+            $repeatStats[$key] = [
+                'sql' => $sql,
+                'connection' => $connection,
+                'count' => 0,
+                'sum' => 0.0,
+                'max_per_request' => 0,
+                'max_ms' => 0.0,
+            ];
+        }
+        $count = (int)($query['count'] ?? 0);
+        $sum = (float)($query['total_ms'] ?? 0);
+        $repeatStats[$key]['count'] += $count;
+        $repeatStats[$key]['sum'] += $sum;
+        $repeatStats[$key]['max_per_request'] = max($repeatStats[$key]['max_per_request'], $count);
+        $repeatStats[$key]['max_ms'] = max($repeatStats[$key]['max_ms'], (float)($query['max_ms'] ?? 0));
+    }
+}
+
+$repeatRows = array_values($repeatStats);
+usort($repeatRows, static function ($a, $b) {
+    $countCompare = $b['count'] <=> $a['count'];
+    return $countCompare !== 0 ? $countCompare : ($b['sum'] <=> $a['sum']);
+});
+
+if ($repeatRows) {
+    echo "\nTOP REPEATED SQL FINGERPRINTS\n";
+    echo str_repeat('-', 110)."\n";
+    foreach (array_slice($repeatRows, 0, $limit) as $sql) {
+        printf(
+            "n=%-5d max/request=%-4d %8.1fms total | max %7.1fms | [%s] %s\n",
+            $sql['count'],
+            $sql['max_per_request'],
+            $sql['sum'],
+            $sql['max_ms'],
+            $sql['connection'],
+            mb_substr($sql['sql'], 0, 210)
+        );
+    }
+}
+
 $verySlow = count(array_filter($rows, static fn($r) => (float)($r['total_ms'] ?? 0) >= 2000));
 $slow = count(array_filter($rows, static fn($r) => (float)($r['total_ms'] ?? 0) >= 800));
 $dbHeavy = count(array_filter($rows, static function ($r) {

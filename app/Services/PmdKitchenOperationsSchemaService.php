@@ -108,6 +108,7 @@ class PmdKitchenOperationsSchemaService
                 'kitchen_preparing_at' => !$schema->hasColumn('orders', 'kitchen_preparing_at'),
                 'kitchen_ready_at' => !$schema->hasColumn('orders', 'kitchen_ready_at'),
                 'eta_initial_minutes' => !$schema->hasColumn('orders', 'eta_initial_minutes'),
+                'estimated_prep_minutes' => !$schema->hasColumn('orders', 'estimated_prep_minutes'),
                 'eta_due_at' => !$schema->hasColumn('orders', 'eta_due_at'),
                 'eta_extension_count' => !$schema->hasColumn('orders', 'eta_extension_count'),
                 'eta_last_extended_at' => !$schema->hasColumn('orders', 'eta_last_extended_at'),
@@ -119,6 +120,7 @@ class PmdKitchenOperationsSchemaService
                     if ($missing['kitchen_preparing_at']) $table->timestamp('kitchen_preparing_at')->nullable()->index();
                     if ($missing['kitchen_ready_at']) $table->timestamp('kitchen_ready_at')->nullable()->index();
                     if ($missing['eta_initial_minutes']) $table->unsignedSmallInteger('eta_initial_minutes')->nullable();
+                    if ($missing['estimated_prep_minutes']) $table->unsignedSmallInteger('estimated_prep_minutes')->nullable();
                     if ($missing['eta_due_at']) $table->timestamp('eta_due_at')->nullable()->index();
                     if ($missing['eta_extension_count']) $table->unsignedTinyInteger('eta_extension_count')->default(0);
                     if ($missing['eta_last_extended_at']) $table->timestamp('eta_last_extended_at')->nullable();

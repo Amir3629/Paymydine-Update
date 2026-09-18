@@ -53,6 +53,18 @@ while (($line = fgets(STDIN)) !== false) {
             );
         }
 
+        $repeat = $row['repeated_queries'][0] ?? null;
+        if (is_array($repeat) && (int)($repeat['count'] ?? 0) >= 5) {
+            $repeatSql = preg_replace('/\s+/', ' ', (string)($repeat['sql'] ?? ''));
+            printf(
+                "             repeated x%-4d %7.1fms total [%s] %s\n",
+                (int)($repeat['count'] ?? 0),
+                (float)($repeat['total_ms'] ?? 0),
+                (string)($repeat['connection'] ?? '?'),
+                mb_substr($repeatSql, 0, 160)
+            );
+        }
+
         if ($db <= max(50.0, $total * 0.25)) {
             echo "             hint: most time is outside SQL (PHP, external API, filesystem, lock, rendering, or upstream wait).\n";
         }

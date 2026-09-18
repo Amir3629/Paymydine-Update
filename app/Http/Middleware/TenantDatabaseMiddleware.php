@@ -43,12 +43,14 @@ class TenantDatabaseMiddleware
         $request->attributes->set('tenant', $tenantInfo);
         app()->instance('tenant', $tenantInfo);
 
-        Log::info('[TenantDatabaseMiddleware] switched tenant connection', [
-            'host' => $request->getHost(),
-            'subdomain' => $subdomain,
-            'tenant_domain' => $tenantInfo->domain ?? null,
-            'tenant_db' => $tenantInfo->database ?? null,
-        ]);
+        if ($this->contextLoggingEnabled()) {
+            Log::info('[TenantDatabaseMiddleware] switched tenant connection', [
+                'host' => $request->getHost(),
+                'subdomain' => $subdomain,
+                'tenant_domain' => $tenantInfo->domain ?? null,
+                'tenant_db' => $tenantInfo->database ?? null,
+            ]);
+        }
 
         $response = $next($request);
 
@@ -130,12 +132,26 @@ class TenantDatabaseMiddleware
         // Recreate Localization after the tenant config above is authoritative.
         app()->forgetInstance('translator.localization');
 
-        Log::info('[TenantDatabaseMiddleware] bound tenant localization config', [
-            'tenant_db' => $tenantInfo->database ?? null,
-            'default_locale' => $defaultLocale,
-            'supported_locales' => $supportedLocales,
-            'setting_cache_key' => 'igniter.setting.system.tenant.'.$cacheSuffix,
-        ]);
+        if ($this->contextLoggingEnabled()) {
+            Log::info('[TenantDatabaseMiddleware] bound tenant localization config', [
+                'tenant_db' => $tenantInfo->database ?? null,
+                'default_locale' => $defaultLocale,
+                'supported_locales' => $supportedLocales,
+                'setting_cache_key' => 'igniter.setting.system.tenant.'.$cacheSuffix,
+            ]);
+        }
+    }
+
+    private function contextLoggingEnabled(): bool
+    {
+        // PMD_PERF_R2_TENANT_CONTEXT_LOG_GATE
+        // Two info-level records per tenant request created synchronous log I/O
+        // and large system.log churn in production. Keep them opt-in for
+        // diagnostics without changing tenant resolution behavior.
+        return filter_var(
+            env('PMD_TENANT_CONTEXT_LOG', false),
+            FILTER_VALIDATE_BOOLEAN
+        );
     }
 
     private function normalizeSupportedLocales($value): array
