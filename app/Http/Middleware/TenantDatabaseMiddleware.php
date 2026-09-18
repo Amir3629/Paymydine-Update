@@ -13,6 +13,29 @@ class TenantDatabaseMiddleware
 {
     public function handle(Request $request, Closure $next)
     {
+        /*
+         * PMD_PERF_R4_TENANT_MIDDLEWARE_SINGLEFLIGHT
+         *
+         * Admin has a global tenant context and a few specialized routes also
+         * carry TenantDatabaseMiddleware explicitly. A nested second pass used
+         * to re-query the central registry, purge/reconnect the tenant DB and
+         * rebuild settings/localization during the same HTTP request.
+         */
+        $resolvedHost = strtolower(trim((string)$request->attributes->get(
+            'pmd_tenant_database_resolved_host',
+            ''
+        )));
+        $requestHost = strtolower(trim((string)$request->getHost()));
+
+        if (
+            $resolvedHost !== ''
+            && $resolvedHost === $requestHost
+            && $request->attributes->has('tenant')
+            && app()->bound('tenant')
+        ) {
+            return $next($request);
+        }
+
         $subdomain = $this->extractTenantFromDomain($request);
 
         if (!$subdomain) {
@@ -57,6 +80,10 @@ class TenantDatabaseMiddleware
         $this->bindTenantSettingContext($tenantInfo);
 
         $request->attributes->set('tenant', $tenantInfo);
+        $request->attributes->set(
+            'pmd_tenant_database_resolved_host',
+            strtolower(trim((string)$request->getHost()))
+        );
         app()->instance('tenant', $tenantInfo);
 
         if ($this->contextLoggingEnabled()) {
