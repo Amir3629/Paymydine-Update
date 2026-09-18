@@ -575,6 +575,16 @@ HTML;
         ];
     }
 
+    /*
+     * PMD_PERF_R10_CASHIER_DEFER_RESERVATION_BUSY_FIRST_PAINT
+     * Cashier Floor hydrates reservation busy windows immediately after the
+     * server DOM is mounted. Keep this query off the critical HTML response.
+     */
+    protected function pmdReservationBusyFirstPaint(): bool
+    {
+        return false;
+    }
+
     protected function pmdAfterFloorPartial(): ?string
     {
         return 'admin::_partials.pmd_cashier_lab_current_orders_v1';
@@ -672,9 +682,34 @@ HTML;
 
         [$from, $to] = $this->pmdResolveDateRange();
 
+        /*
+         * PMD_PERF_R10_REUSE_CANONICAL_FLOOR_TABLES
+         * Full Cashier first paint already paid for canonical Floor bootstrap
+         * and the physical-status overlay in the parent workspace. Reuse those
+         * rows for order->table mapping instead of querying/building tables again.
+         * Section-only requests intentionally fall back to the existing loader.
+         */
+        $cashierSeedTables = [];
+
+        if (is_array($floorBootstrap['data']['tables'] ?? null)) {
+            $cashierSeedTables = array_values(
+                $floorBootstrap['data']['tables']
+            );
+        } elseif (
+            is_array(
+                $floorBootstrap['data']['sections']['floor_plan']['tables']
+                ?? null
+            )
+        ) {
+            $cashierSeedTables = array_values(
+                $floorBootstrap['data']['sections']['floor_plan']['tables']
+            );
+        }
+
         $source = new class extends PmdWaiterDashboardV151 {
-            protected function pmdCashierBaseState(): array
-            {
+            protected function pmdCashierBaseState(
+                array $seedTables = []
+            ): array {
                 /*
                  * PMD_PERF_R3_CASHIER_LIGHT_BASE
                  *
@@ -683,9 +718,105 @@ HTML;
                  * loaded reservations, the whole menu catalogue and order cards
                  * which Cashier immediately discarded and rebuilt.
                  */
-                $user = $this->userInfo();
-                $tables = $this->loadTables($user);
-                $tables = $this->attachOperationalStatusesV152($tables);
+                $tables = [];
+
+                if ($seedTables) {
+                    foreach ($seedTables as $row) {
+                        if (!is_array($row)) continue;
+
+                        $raw = is_array($row['raw'] ?? null)
+                            ? $row['raw']
+                            : $row;
+
+                        $id = (int)(
+                            $row['table_id']
+                            ?? $row['dbTableId']
+                            ?? $row['db_table_id']
+                            ?? $row['id']
+                            ?? $raw['table_id']
+                            ?? $raw['id']
+                            ?? 0
+                        );
+
+                        if ($id < 1) continue;
+
+                        $number = trim((string)(
+                            $row['table_no']
+                            ?? $row['table_number']
+                            ?? $row['number']
+                            ?? $raw['table_no']
+                            ?? $raw['pos_table_label']
+                            ?? $id
+                        ));
+
+                        $label = trim((string)(
+                            $row['table_name']
+                            ?? $row['name']
+                            ?? $row['label']
+                            ?? $raw['table_name']
+                            ?? $raw['pos_table_label']
+                            ?? $number
+                        ));
+
+                        $systemName = strtolower($label);
+                        $systemQr = strtolower(trim((string)(
+                            $row['qr_code']
+                            ?? $raw['qr_code']
+                            ?? ''
+                        )));
+
+                        if (
+                            in_array(
+                                $systemName,
+                                ['cashier', 'delivery'],
+                                true
+                            )
+                            || in_array(
+                                $systemQr,
+                                ['cashier', 'delivery'],
+                                true
+                            )
+                        ) {
+                            continue;
+                        }
+
+                        if ($label === '') {
+                            $label = 'Table '.$number;
+                        } elseif (ctype_digit($label)) {
+                            $label = 'Table '.$label;
+                        }
+
+                        $physical = strtolower(trim((string)(
+                            $row['operational_status']
+                            ?? $row['table_operational_status']
+                            ?? $raw['operational_status']
+                            ?? $raw['table_operational_status']
+                            ?? ''
+                        )));
+
+                        if ($physical === 'free') {
+                            $physical = 'available';
+                        }
+
+                        $tables[] = [
+                            'id' => $id,
+                            'table_id' => $id,
+                            'number' => $number,
+                            'label' => $label,
+                            'name' => $label,
+                            'operational_status' => $physical,
+                            'table_operational_status' => $physical,
+                            'status' => (string)($row['status'] ?? ''),
+                            'raw' => $raw,
+                        ];
+                    }
+                }
+
+                if (!$tables) {
+                    $user = $this->userInfo();
+                    $tables = $this->loadTables($user);
+                    $tables = $this->attachOperationalStatusesV152($tables);
+                }
 
                 /*
                  * PMD_PERF_R9_SKIP_REDUNDANT_800_ORDER_METRICS
@@ -747,9 +878,12 @@ HTML;
             public function pmdCashierOrdersForRange(
                 Carbon $from,
                 Carbon $to,
-                bool $historyMode = false
+                bool $historyMode = false,
+                array $seedTables = []
             ): array {
-                $base = $this->pmdCashierBaseState();
+                $base = $this->pmdCashierBaseState(
+                    $seedTables
+                );
                 $tables = array_values((array)($base['tables'] ?? []));
 
                 if (!$this->pmdSchemaHasTable('orders') || !$tables) {
@@ -1512,7 +1646,12 @@ HTML;
         };
 
         try {
-            $payload = $source->pmdCashierOrdersForRange($from, $to, $historyMode);
+            $payload = $source->pmdCashierOrdersForRange(
+                $from,
+                $to,
+                $historyMode,
+                $cashierSeedTables
+            );
         } catch (\Throwable $error) {
             logger()->warning('Cashier Lab real day orders render failed', [
                 'type' => get_class($error),
