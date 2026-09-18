@@ -22,16 +22,16 @@ trait PmdWaiterPosMenuCatalogV26Concern
             'menu_options.menu_option_values.option_value',
         ];
 
-        if (Schema::hasTable('allergens') && Schema::hasTable('allergenables')) {
+        if ($this->pmdPosHasTable('allergens') && $this->pmdPosHasTable('allergenables')) {
             $with[] = 'allergens';
         }
 
-        if (Schema::hasTable('menu_images')) {
+        if ($this->pmdPosHasTable('menu_images')) {
             $with['menu_images'] = function ($query) {
-                if (Schema::hasColumn('menu_images', 'sort_order')) {
+                if ($this->pmdPosHasColumn('menu_images', 'sort_order')) {
                     $query->orderBy('sort_order');
                 }
-                if (Schema::hasColumn('menu_images', 'id')) {
+                if ($this->pmdPosHasColumn('menu_images', 'id')) {
                     $query->orderBy('id');
                 }
             };
@@ -42,7 +42,7 @@ trait PmdWaiterPosMenuCatalogV26Concern
             ->orderBy('menu_priority')
             ->orderBy('menu_name');
 
-        if (Schema::hasColumn('menus', 'is_stock_out')) {
+        if ($this->pmdPosHasColumn('menus', 'is_stock_out')) {
             $query->where(function ($q) {
                 $q->whereNull('is_stock_out')->orWhere('is_stock_out', 0);
             });
@@ -189,12 +189,12 @@ trait PmdWaiterPosMenuCatalogV26Concern
 
     protected function waiterPosPrimaryImagesV26(array $menuIds): array
     {
-        if (!$menuIds || !Schema::hasTable('media_attachments')) {
+        if (!$menuIds || !$this->pmdPosHasTable('media_attachments')) {
             return [];
         }
 
         try {
-            $cols = Schema::getColumnListing('media_attachments');
+            $cols = $this->pmdPosColumns('media_attachments');
             $idCol = in_array('attachment_id', $cols, true) ? 'attachment_id' : null;
             $typeCol = in_array('attachment_type', $cols, true) ? 'attachment_type' : null;
             $tagCol = in_array('tag', $cols, true) ? 'tag' : null;
