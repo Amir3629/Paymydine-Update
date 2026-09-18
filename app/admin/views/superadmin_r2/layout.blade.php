@@ -25,8 +25,8 @@
             --bg:#f8fbfd;--ink:#16312a;--muted:#6f827b;--green:#123d32;--green2:#1d5b4a;
             --line:#dfe9e5;--card:#fff;--danger:#b42318;--warn:#b54708;--ok:#067647;
             --shadow:0 14px 34px rgba(18,61,50,.08);--pmd-sm2-gap:14px;
-            --pmd-sm2-collapsed:72px;--pmd-sm2-expanded:184px;
-            --pmd-content-collapsed:100px;--pmd-content-expanded:212px;
+            --pmd-sm2-collapsed:72px;--pmd-sm2-expanded:160px;
+            --pmd-content-collapsed:100px;--pmd-content-expanded:188px;
         }
         *{box-sizing:border-box}
         html,body{margin:0;min-height:100%;background:var(--bg);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink);font-size:15px}
@@ -40,7 +40,7 @@
             transition:none!important;
         }
         html.pmd-sm2-collapsed #pmd-side-menu2{width:72px!important}
-        html.pmd-sm2-expanded #pmd-side-menu2{width:184px!important}
+        html.pmd-sm2-expanded #pmd-side-menu2{width:160px!important}
         html.pmd-sm2-runtime-ready #pmd-side-menu2{transition:width 220ms cubic-bezier(.22,.75,.24,1)!important}
         #pmd-side-menu2 .pmd-sm2__label,#pmd-side-menu2 .pmd-sm2__account-label{font-size:14px!important}
 
