@@ -706,8 +706,25 @@ class Orders extends \Admin\Classes\AdminController
 
     public function listExtendQuery($query)
     {
-        // Eager load status relationship for row background colors
+        // Eager load status relationship for row background colors.
         $query->with('status');
+
+        /*
+         * PMD_R69_PAYMENT_GATED_ADMIN_VISIBILITY
+         *
+         * QR self-orders are created as private payment-hold rows so Stripe and
+         * the settlement endpoints have a stable order ID. They must not become
+         * operational Admin orders until payment has fully succeeded.
+         *
+         * Staff/Cashier/Waiter orders are untouched. Once the canonical payment
+         * settlement flips a guest order to processed=1 it becomes visible here.
+         */
+        $query->where(function ($visibility) {
+            $visibility
+                ->whereNull('comment')
+                ->orWhere('comment', 'not like', '%[pmd_origin:guest_self]%')
+                ->orWhere('processed', 1);
+        });
     }
 
     public function formExtendQuery($query)
