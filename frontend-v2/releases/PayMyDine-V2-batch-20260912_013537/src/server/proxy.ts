@@ -27,6 +27,10 @@ const FORWARDED_RESPONSE_HEADERS = [
   'pragma',
   'retry-after',
   'set-cookie',
+  'server-timing',
+  'x-pmd-perf-id',
+  'x-pmd-perf-total-ms',
+  'x-pmd-perf-db-queries',
   'vary',
 ] as const
 
@@ -132,6 +136,7 @@ export function safeProxyPath(parts: string[]): string[] {
 }
 
 export async function proxyBackendRequest(request: Request, backendPath: string): Promise<Response> {
+  const proxyStartedAt = Date.now()
   const incoming = new URL(request.url)
   const target = new URL(backendPath, `${getBackendOrigin(tenantHost(request)).replace(/\/$/, '')}/`)
   target.search = incoming.search
@@ -172,9 +177,18 @@ export async function proxyBackendRequest(request: Request, backendPath: string)
     clearTimeout(timeout)
   }
 
+  const headers = responseHeaders(response.headers, request)
+  const proxyMs = Math.max(0, Date.now() - proxyStartedAt)
+  const backendTiming = headers.get('server-timing')
+  headers.set(
+    'server-timing',
+    [backendTiming, `pmd_proxy;dur=${proxyMs}`].filter(Boolean).join(', '),
+  )
+  headers.set('x-pmd-proxy-ms', String(proxyMs))
+
   return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,
-    headers: responseHeaders(response.headers, request),
+    headers,
   })
 }
