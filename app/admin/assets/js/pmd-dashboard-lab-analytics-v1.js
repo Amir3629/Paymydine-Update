@@ -820,18 +820,7 @@
         if (body) body.innerHTML = empty({reason: 'Analytics source unavailable'});
         setBusy(key, false);
         console.warn('[PMD Dashboard Lab Analytics] period request failed', key, period, error);
-        });
-    };
-
-    // PMD_PERF_R2_FIRST_PAINT_PRIORITY
-    // Give navigation, header and Floor first paint priority. Analytics is
-    // still loaded automatically from the same endpoint, just after the browser
-    // has an idle slice (or a short fallback delay).
-    if ('requestIdleCallback' in window) {
-      window.requestIdleCallback(startDeferredAnalytics, {timeout: 900});
-    } else {
-      window.setTimeout(startDeferredAnalytics, 350);
-    }
+      });
   }
 
   root.addEventListener('click', function (event) {
