@@ -196,8 +196,8 @@
    * visual rail                = 14px
    *
    * expanded:
-   * menu right                 = 198px
-   * visible page content left  = 212px
+   * menu right                 = 186px
+   * visible page content left  = 200px
    *
    * Do NOT change generic page-content here.
    * Standard pages already receive 14px from exact-layout.
@@ -401,9 +401,9 @@
       right: auto !important;
       top: 0 !important;
       bottom: auto !important;
-      margin-left: 198px !important;
+      margin-left: 186px !important;
       margin-right: 0 !important;
-      width: calc(100vw - 198px) !important;
+      width: calc(100vw - 186px) !important;
       min-width: 0 !important;
       max-width: none !important;
       height: auto !important;
@@ -648,7 +648,7 @@
   }
 
   html.pmd-side-menu2-global-page.pmd-sm2-expanded {
-    --pmd-sm2-panel: 184px;
+    --pmd-sm2-panel: 172px;
   }
 
   html.pmd-side-menu2-global-page
@@ -771,7 +771,7 @@
 
 <link
     rel="stylesheet"
-    href="/app/admin/assets/css/pmd-side-menu2-v1.css?v=20260719-identical-behavior-v2"
+    href="/app/admin/assets/css/pmd-side-menu2-v1.css?v=20260918-sidebar-language-globe-width-r4"
 >
 
 @include('admin::_partials.pmd_side_menu2_single_style')
@@ -824,13 +824,13 @@
     html.pmd-menu-static-shell-v1.pmd-sm2-expanded
     .page-wrapper {
       position: absolute !important;
-      left: 198px !important;
+      left: 186px !important;
       right: auto !important;
       margin-left: 0 !important;
       margin-right: 0 !important;
       padding-left: 0 !important;
       padding-right: 0 !important;
-      width: calc(100vw - 198px) !important;
+      width: calc(100vw - 186px) !important;
       min-width: 0 !important;
       max-width: none !important;
       box-sizing: border-box !important;
@@ -870,9 +870,9 @@
 
     html.pmd-menu-static-shell-v1.pmd-sm2-expanded
     :is(.navbar-top, .navbar-fixed-top) {
-      left: 198px !important;
+      left: 186px !important;
       right: 0 !important;
-      width: calc(100vw - 198px) !important;
+      width: calc(100vw - 186px) !important;
       margin-left: 0 !important;
       max-width: none !important;
       box-sizing: border-box !important;
@@ -931,8 +931,8 @@
 
   html.pmd-dashboard2-static-shell-v1.pmd-sm2-expanded .page-wrapper,
   html.pmd-dashboard2-static-shell-v1.pmd-sm2-expanded body:has(#pmd-reservations2) .page-wrapper {
-    left: 198px !important;
-    width: calc(100vw - 198px) !important;
+    left: 186px !important;
+    width: calc(100vw - 186px) !important;
   }
 
   html.pmd-dashboard2-static-shell-v1 .page-content,
@@ -972,8 +972,8 @@
 
   html.pmd-dashboard2-static-shell-v1.pmd-sm2-expanded .navbar-top,
   html.pmd-dashboard2-static-shell-v1.pmd-sm2-expanded .navbar-fixed-top {
-    left: 198px !important;
-    width: calc(100vw - 198px) !important;
+    left: 186px !important;
+    width: calc(100vw - 186px) !important;
   }
 
   @media (max-width: 767px) {
