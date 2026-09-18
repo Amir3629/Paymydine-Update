@@ -42,6 +42,11 @@
     };
     $pmdSm2Locale = strtolower((string)request()->cookie('pmd_admin_locale', app()->getLocale()));
     $pmdSm2IsDe = $pmdSm2Locale === 'de';
+    // PMD_SM2_LANGUAGE_FIRST_PAINT_R5
+    // First-paint value for the inline language item. The existing market-aware
+    // bridge remains runtime authority and may confirm/correct this after load.
+    $pmdSm2LanguageFirstPaintCode = $pmdSm2IsDe ? 'EN' : 'DE';
+    $pmdSm2LanguageFirstPaintLabel = $pmdSm2IsDe ? 'English' : 'Deutsch';
     // PMD_SIDE_MENU_PLATFORM_I18N_V1
     $pmdSm2T = static function (string $key, string $fallback = ''): string {
         return \Admin\Classes\PmdPlatformI18n::translate($key, [], null, $fallback);
@@ -113,6 +118,16 @@
 </style>
 @endif
 
+{{-- PMD_SM2_LEGACY_LANGUAGE_VISUAL_HIDE_R2 --}}
+<style id="pmd-sm2-legacy-language-visual-hide-r2">
+html #pmd-sidebar-language[data-pmd-language-v13],
+html #pmd-sidebar-language {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+</style>
+
 <aside id="pmd-side-menu2" aria-label="{{ $pmdSm2T('nav.admin_navigation', 'Admin navigation') }}">
     <div class="pmd-sm2__brand">
         <button type="button" class="pmd-sm2__brand-control" data-pmd-sm2-toggle aria-expanded="false" aria-label="{{ $pmdSm2T('nav.expand_menu', 'Expand menu') }}">
@@ -180,30 +195,34 @@
             <span class="pmd-sm2__label">{{ $pmdSm2T('nav.settings', 'Settings') }}</span>
         </a>
 
+        <!-- PMD_SM2_INLINE_ACTIONS_R2_START -->
+        <button
+            type="button"
+            class="pmd-sm2__item pmd-sm2__language-item"
+            data-pmd-sm2-language-inline
+            aria-label="Switch language to {{ $pmdSm2LanguageFirstPaintCode }}"
+            title="Switch language to {{ $pmdSm2LanguageFirstPaintCode }}"
+        >
+            <span class="pmd-sm2__language-code" aria-hidden="true">{{ $pmdSm2LanguageFirstPaintCode }}</span>
+            <span class="pmd-sm2__label" data-pmd-sm2-language-label>{{ $pmdSm2LanguageFirstPaintLabel }}</span>
+        </button>
+
+        <button
+            type="button"
+            class="pmd-sm2__item pmd-sm2__logout-action"
+            data-pmd-sm2-logout
+            aria-label="{{ $pmdSm2T('nav.logout', 'Logout') }}"
+            title="{{ $pmdSm2T('nav.logout', 'Logout') }}"
+        >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M14 8l4 4l-4 4"/>
+                <path d="M18 12h-10"/>
+                <path d="M8 5v-1a1 1 0 0 0 -1 -1h-3a1 1 0 0 0 -1 1v16a1 1 0 0 0 1 1h3a1 1 0 0 0 1 -1v-1"/>
+            </svg>
+            <span class="pmd-sm2__label">{{ $pmdSm2T('nav.logout', 'Logout') }}</span>
+        </button>
+        <!-- PMD_SM2_INLINE_ACTIONS_R2_END -->
     </nav>
-
-<!-- PMD_SM2_ACCOUNT_FOOTER_V11_START -->
-<div class="pmd-sm2__account-footer" aria-label="{{ $pmdSm2T('nav.account_actions', 'Account actions') }}">
-
-    
-
-    <button
-        type="button"
-        class="pmd-sm2__account-action pmd-sm2__logout-action"
-        data-pmd-sm2-logout
-        aria-label="{{ $pmdSm2T('nav.logout', 'Logout') }}"
-        title="{{ $pmdSm2T('nav.logout', 'Logout') }}"
-    >
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M14 8l4 4l-4 4"/>
-            <path d="M18 12h-10"/>
-            <path d="M8 5v-1a1 1 0 0 0 -1 -1h-3a1 1 0 0 0 -1 1v16a1 1 0 0 0 1 1h3a1 1 0 0 0 1 -1v-1"/>
-        </svg>
-        <span class="pmd-sm2__account-label">{{ $pmdSm2T('nav.logout', 'Logout') }}</span>
-    </button>
-
-</div>
-<!-- PMD_SM2_ACCOUNT_FOOTER_V11_END -->
 
 </aside>
 <div id="pmd-side-menu2-backdrop" aria-hidden="true"></div>
@@ -262,6 +281,48 @@
 })();
 </script>
 
+
+<!-- PMD_SM2_INLINE_LANGUAGE_BRIDGE_R2_START -->
+<script id="pmd-side-menu2-inline-language-bridge-r2">
+(function () {
+  'use strict';
+
+  function boot() {
+    var inlineButton = document.querySelector('#pmd-side-menu2 [data-pmd-sm2-language-inline]');
+    var legacyRoot = document.getElementById('pmd-sidebar-language');
+    var legacyTrigger = document.getElementById('pmd-language-trigger');
+
+    if (!inlineButton || !legacyRoot || !legacyTrigger) return;
+
+    var nextLocale = String(legacyRoot.getAttribute('data-next') || '').trim().toUpperCase();
+    var legacyTitle = String(legacyTrigger.getAttribute('title') || '').trim();
+    var friendlyLabel = legacyTitle.replace(/^Switch(?: language)? to\s+/i, '').trim();
+
+    var codeNode = inlineButton.querySelector('.pmd-sm2__language-code');
+    var labelNode = inlineButton.querySelector('[data-pmd-sm2-language-label]');
+
+    if (codeNode) codeNode.textContent = nextLocale || 'LANG';
+    if (labelNode) labelNode.textContent = friendlyLabel || nextLocale || 'Language';
+
+    inlineButton.setAttribute('aria-label', legacyTitle || ('Switch language to ' + nextLocale));
+    inlineButton.setAttribute('title', legacyTitle || ('Switch language to ' + nextLocale));
+    inlineButton.hidden = false;
+
+    inlineButton.addEventListener('click', function (event) {
+      event.preventDefault();
+      event.stopPropagation();
+      legacyTrigger.click();
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot, { once: true });
+  } else {
+    boot();
+  }
+})();
+</script>
+<!-- PMD_SM2_INLINE_LANGUAGE_BRIDGE_R2_END -->
 
 <!-- PMD_SM2_ACCOUNT_RUNTIME_V11_START -->
 <script id="pmd-side-menu2-account-runtime-v11">

@@ -2108,3 +2108,103 @@ html body #pmd-side-menu2 .pmd-sm2__logout-action {
 }
 
 /* PMD_MOBILE_MENU_COMPOSER_V2426_END */
+
+
+/* ==========================================================
+   PMD_SM2_SCROLLABLE_INLINE_ACTIONS_R2
+   - Language + Logout are normal nav items.
+   - Short viewports scroll naturally.
+   - Items never shrink/overlap.
+   - Scrollbar stays functional but visually hidden.
+   ========================================================== */
+#pmd-side-menu2 .pmd-sm2__nav {
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  overscroll-behavior: contain;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+#pmd-side-menu2 .pmd-sm2__nav::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
+}
+
+#pmd-side-menu2 .pmd-sm2__nav > .pmd-sm2__item,
+#pmd-side-menu2 .pmd-sm2__nav > .pmd-sm2__dropdown {
+  flex: 0 0 auto !important;
+  flex-shrink: 0 !important;
+}
+
+#pmd-side-menu2 .pmd-sm2__language-code {
+  display: grid;
+  place-items: center;
+  flex: 0 0 24px;
+  width: 24px;
+  min-width: 24px;
+  height: 24px;
+  min-height: 24px;
+  margin: 0;
+  padding: 0;
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: .02em;
+  color: currentColor;
+}
+
+html.pmd-sm2-collapsed #pmd-side-menu2 .pmd-sm2__language-item {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+html.pmd-sm2-collapsed #pmd-side-menu2 .pmd-sm2__language-code {
+  margin: 0 auto !important;
+}
+
+/* ==========================================================
+   PMD_SM2_BOTTOM_LOGOUT_LANGUAGE_SIZE_R3
+   - Language code is slightly larger in collapsed Side Menu.
+   - Logout remains a NORMAL nav item, but uses flex auto-margin
+     to sit at the visual bottom when the viewport is tall.
+   - On short viewports auto-margin collapses naturally and the
+     whole nav remains scrollable.
+   ========================================================== */
+
+/* Keep the nav as the single scrollable flex column. */
+#pmd-side-menu2 .pmd-sm2__nav {
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: 0 !important;
+}
+
+/* Language code: larger/clearer without changing button geometry. */
+#pmd-side-menu2 .pmd-sm2__language-code {
+  flex: 0 0 30px !important;
+  width: 30px !important;
+  min-width: 30px !important;
+  height: 30px !important;
+  font-size: 15px !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+}
+
+html.pmd-sm2-collapsed
+#pmd-side-menu2 .pmd-sm2__language-code {
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+/*
+ * Logout stays inside .pmd-sm2__nav (not a separate footer).
+ * Positive free space on large screens is absorbed above it,
+ * placing the final button at the bottom. On small screens there
+ * is no free space, so it simply follows the previous nav item.
+ */
+#pmd-side-menu2 .pmd-sm2__nav > .pmd-sm2__logout-action {
+  margin-top: auto !important;
+  margin-bottom: 0 !important;
+}
