@@ -1157,10 +1157,8 @@ Route::group([
                 ], 422);
             }
 
-            $stripeMetadataOrderId = (int)($stripeVerifiedIntent->metadata->order_id ?? 0);
-            if ($stripeMetadataOrderId > 0 && $stripeMetadataOrderId !== (int)$order->order_id) {
-                return response()->json(['success' => false, 'error' => 'Stripe payment does not belong to this order.'], 409);
-            }
+            // One Stripe PaymentIntent may settle several orders on the same table.
+            // Amount authority is enforced cumulatively inside the settlement transaction.
         }
 
         try {
@@ -1326,7 +1324,7 @@ Route::group([
                         if (abs($requestedAmount - $payableAmount) > 0.02) throw new \InvalidArgumentException('Selected items amount mismatch');
                     }
                 }
-                // PMD_R69_STRIPE_EXACT_AMOUNT_GUARD
+                // PMD_R69_STRIPE_CUMULATIVE_AMOUNT_GUARD
                 if ($normalizedProviderCode === 'stripe') {
                     if (!$stripeVerifiedIntent) {
                         throw new \InvalidArgumentException('Stripe payment verification is missing.');
@@ -1334,13 +1332,24 @@ Route::group([
 
                     $stripeCurrency = strtolower((string)($stripeVerifiedIntent->currency ?? ''));
                     $stripeZeroDecimalCurrencies = ['bif','clp','djf','gnf','jpy','kmf','krw','mga','pyg','rwf','ugx','vnd','vuv','xaf','xof','xpf'];
-                    $stripeExpectedMinor = in_array($stripeCurrency, $stripeZeroDecimalCurrencies, true)
-                        ? (int)round($payableAmount)
-                        : (int)round($payableAmount * 100);
                     $stripeReceivedMinor = (int)($stripeVerifiedIntent->amount_received ?? $stripeVerifiedIntent->amount ?? 0);
+                    $stripeReceivedMajor = in_array($stripeCurrency, $stripeZeroDecimalCurrencies, true)
+                        ? (float)$stripeReceivedMinor
+                        : round($stripeReceivedMinor / 100, 4);
 
-                    if ($stripeExpectedMinor <= 0 || $stripeReceivedMinor !== $stripeExpectedMinor) {
-                        throw new \InvalidArgumentException('Stripe payment amount does not match this order payment.');
+                    $stripeReference = (string)$stripeVerifiedIntent->id;
+                    $alreadyAllocatedToOrders = 0.0;
+                    if ($hasSplitTables) {
+                        $alreadyAllocatedToOrders = (float)\Illuminate\Support\Facades\DB::table('order_payment_transactions')
+                            ->where('payment_reference', $stripeReference)
+                            ->sum('amount');
+                    }
+
+                    if (
+                        $stripeReceivedMajor <= 0
+                        || round($alreadyAllocatedToOrders + $payableAmount, 4) > round($stripeReceivedMajor + 0.02, 4)
+                    ) {
+                        throw new \InvalidArgumentException('Stripe payment amount is not sufficient for this settlement.');
                     }
                 }
 
