@@ -155,7 +155,7 @@ class PmdLivePerformanceProfiler
 
             $this->writeRecord($record);
 
-            if ($response && method_exists($response, 'headers')) {
+            if ($response && isset($response->headers)) {
                 try {
                     $timing = sprintf(
                         'pmd_total;dur=%.2f, pmd_bootstrap;dur=%.2f, pmd_db;dur=%.2f, pmd_non_db;dur=%.2f',
@@ -209,7 +209,7 @@ class PmdLivePerformanceProfiler
 
     private function responseBytes($response): ?int
     {
-        if (!$response || !method_exists($response, 'headers')) {
+        if (!$response || !isset($response->headers)) {
             return null;
         }
 
