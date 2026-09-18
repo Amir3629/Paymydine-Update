@@ -5,6 +5,7 @@ ROOT="${PMD_ROOT:-/var/www/paymydine}"
 BRANCH="${PMD_R5_BRANCH:-origin/fix/platform-performance-complete-r5}"
 STAMP="$(date '+%Y%m%d_%H%M%S')"
 BACKUP="$ROOT/storage/pmd-patch-backups/platform-performance-complete-r5-$STAMP"
+STAGE="$(mktemp -d /tmp/pmd-r5-stage.XXXXXX)"
 
 FILES=(
   "app/admin/ServiceProvider.php"
@@ -13,6 +14,11 @@ FILES=(
   "app/Services/PmdKitchenOperationsSchemaService.php"
   "app/admin/controllers/Shifts.php"
 )
+
+cleanup_stage() {
+  rm -rf "$STAGE"
+}
+trap cleanup_stage EXIT
 
 cd "$ROOT"
 
@@ -24,7 +30,8 @@ echo "=============================================================="
 
 git fetch origin fix/platform-performance-complete-r5
 
-mkdir -p "$BACKUP"
+echo
+echo "===== STAGE + VALIDATE ALL R5 FILES ====="
 
 for file in "${FILES[@]}"; do
   if [ ! -f "$file" ]; then
@@ -32,30 +39,46 @@ for file in "${FILES[@]}"; do
     exit 1
   fi
 
-  mkdir -p "$BACKUP/$(dirname "$file")"
-  cp -a "$file" "$BACKUP/$file"
-
-  tmp="$(mktemp)"
-  git show "$BRANCH:$file" > "$tmp"
+  staged="$STAGE/$file"
+  mkdir -p "$(dirname "$staged")"
+  git show "$BRANCH:$file" > "$staged"
 
   case "$file" in
     *.php)
-      php -l "$tmp"
+      php -l "$staged"
       ;;
     *.js)
       if command -v node >/dev/null 2>&1; then
-        node --check "$tmp"
+        node --check "$staged"
       fi
       ;;
   esac
 
+  echo "VALIDATED $file"
+done
+
+echo
+echo "===== BACKUP CURRENT LIVE FILES ====="
+
+mkdir -p "$BACKUP"
+
+for file in "${FILES[@]}"; do
+  mkdir -p "$BACKUP/$(dirname "$file")"
+  cp -a "$file" "$BACKUP/$file"
+  echo "BACKED UP $file"
+done
+
+echo
+echo "===== DEPLOY VALIDATED FILES ====="
+
+for file in "${FILES[@]}"; do
+  staged="$STAGE/$file"
   owner="$(stat -c '%u:%g' "$file")"
   mode="$(stat -c '%a' "$file")"
 
-  cat "$tmp" > "$file"
+  cat "$staged" > "$file"
   chown "$owner" "$file"
   chmod "$mode" "$file"
-  rm -f "$tmp"
 
   echo "DEPLOYED $file"
 done
