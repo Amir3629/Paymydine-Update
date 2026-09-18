@@ -20,8 +20,22 @@ if (PHP_SAPI !== 'cli') {
     exit(2);
 }
 
-require dirname(__DIR__).'/vendor/autoload.php';
-$app = require dirname(__DIR__).'/bootstrap/app.php';
+$root = getcwd();
+if (!is_string($root) || !is_file($root.'/vendor/autoload.php')) {
+    $candidate = dirname(__DIR__);
+    if (is_file($candidate.'/vendor/autoload.php')) {
+        $root = $candidate;
+    }
+}
+
+if (!is_string($root) || !is_file($root.'/vendor/autoload.php') || !is_file($root.'/bootstrap/app.php')) {
+    fwrite(STDERR, "RESULT=STOP_PAYMYDINE_ROOT_NOT_FOUND\n");
+    fwrite(STDERR, "NOTE=Run this command from /var/www/paymydine.\n");
+    exit(20);
+}
+
+require $root.'/vendor/autoload.php';
+$app = require $root.'/bootstrap/app.php';
 $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
 $kernel->bootstrap();
 
@@ -233,7 +247,7 @@ if ($schema->hasTable('allergenables')) {
     }
 }
 
-$backupDir = dirname(__DIR__).'/storage/pmd-patch-backups';
+$backupDir = $root.'/storage/pmd-patch-backups';
 if (!is_dir($backupDir)) {
     @mkdir($backupDir, 0775, true);
 }
