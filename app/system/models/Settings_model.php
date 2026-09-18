@@ -8,6 +8,8 @@ use DateTimeZone;
 use Exception;
 use Igniter\Flame\Database\Model;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Cache;
+use App\Helpers\TenantHelper;
 use Illuminate\Support\Facades\Session;
 use Main\Classes\ThemeManager;
 use Main\Template\Page;
@@ -49,10 +51,43 @@ class Settings_model extends Model
 
     public static function listMenuSettingItems($menu, $item, $user)
     {
+        /*
+         * PMD_PERF_R14_CORE_SETTINGS_MENU_ONLY
+         *
+         * The top-bar Settings dropdown renders only core settings. The old
+         * listSettingItems() path also loaded every extension and called every
+         * extension registerSettings() method before discarding those extension
+         * items. Build the exact core list directly from the registered core
+         * callbacks instead.
+         */
+        $model = new static;
+
+        foreach (self::$callbacks as $callback) {
+            $callback($model);
+        }
+
+        $coreItems = [];
+
+        foreach ((array)$model->items as $settingItem) {
+            if (
+                is_object($settingItem)
+                && (($settingItem->owner ?? null) === 'core')
+            ) {
+                $coreItems[] = $settingItem;
+            }
+        }
+
+        usort($coreItems, function ($a, $b) {
+            return ($a->priority ?? 99) <=> ($b->priority ?? 99);
+        });
+
         $options = [];
-        $settingItems = (new static)->listSettingItems();
-        foreach (array_get($settingItems, 'core', []) as $settingItem) {
-            $options[$settingItem->label] = [$settingItem->icon, $settingItem->url];
+
+        foreach ($coreItems as $settingItem) {
+            $options[$settingItem->label] = [
+                $settingItem->icon,
+                $settingItem->url,
+            ];
         }
 
         return $options;
@@ -124,11 +159,33 @@ class Settings_model extends Model
     public static function updatesCount()
     {
         try {
-            $updates = UpdateManager::instance()->requestUpdateList();
+            /*
+             * PMD_PERF_R14_TOPBAR_UPDATE_COUNT_CACHE
+             *
+             * The system scheduler already performs a forced update check every
+             * 12 hours and the Updates screen calls requestUpdateList() itself.
+             * The top-bar badge does not need to rebuild installed extension /
+             * theme inventories on every Admin page render.
+             */
+            $cacheKey = TenantHelper::scopedCacheKey(
+                'pmd_topbar_updates_count_r14'
+            );
 
-            return count(array_get($updates, 'items', []));
+            return (int)Cache::remember(
+                $cacheKey,
+                now()->addMinutes(10),
+                static function () {
+                    $updates =
+                        UpdateManager::instance()->requestUpdateList();
+
+                    return count(
+                        array_get($updates, 'items', [])
+                    );
+                }
+            );
         }
         catch (Exception $ex) {
+            return 0;
         }
     }
 
