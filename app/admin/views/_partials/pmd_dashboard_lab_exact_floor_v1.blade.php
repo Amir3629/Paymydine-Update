@@ -431,38 +431,6 @@
     $pmdFloorCanManageTables = false;
     $pmdFloorTableManagerRole = '';
 
-    try {
-        $pmdFloorManagerUser = null;
-        if (class_exists('\\Admin\\Facades\\AdminAuth')) {
-            $pmdFloorManagerUser = \Admin\Facades\AdminAuth::getUser();
-        } elseif (class_exists('AdminAuth')) {
-            $pmdFloorManagerUser = \AdminAuth::getUser();
-        }
-
-        if ($pmdFloorManagerUser) {
-            if (!empty($pmdFloorManagerUser->is_super_user)) {
-                $pmdFloorTableManagerRole = 'owner';
-            } elseif (!empty($pmdFloorManagerUser->staff_id)) {
-                $pmdFloorManagerRoleRow = \Illuminate\Support\Facades\DB::table('staffs as s')
-                    ->leftJoin('staff_roles as r', 'r.staff_role_id', '=', 's.staff_role_id')
-                    ->where('s.staff_id', (int)$pmdFloorManagerUser->staff_id)
-                    ->select('r.code as role_code', 'r.name as role_name')
-                    ->first();
-
-                $pmdFloorManagerRoleCode = strtolower(trim((string)($pmdFloorManagerRoleRow->role_code ?? '')));
-                $pmdFloorManagerRoleName = strtolower(trim((string)($pmdFloorManagerRoleRow->role_name ?? '')));
-
-                if ($pmdFloorManagerRoleCode === 'owner' || $pmdFloorManagerRoleName === 'owner') {
-                    $pmdFloorTableManagerRole = 'owner';
-                } elseif ($pmdFloorManagerRoleCode === 'manager' || $pmdFloorManagerRoleName === 'manager') {
-                    $pmdFloorTableManagerRole = 'manager';
-                }
-            }
-        }
-    } catch (\Throwable $e) {
-        $pmdFloorTableManagerRole = '';
-    }
-
     /*
      * PMD_FLOOR_MANAGEMENT_SURFACE_GATE_V2
      *
@@ -473,8 +441,10 @@
      *   /admin/dashboardlab
      *   /admin/managerlab
      *
-     * Role permission remains independently owner/manager.
-     * Other workspaces reuse the Floor but must never render these controls.
+     * PMD_PERF_R10_SKIP_NONMANAGEMENT_ROLE_LOOKUP
+     * Resolve the surface gate BEFORE querying staffs/staff_roles. Cashier,
+     * Reservations and Accountant can never render table-management controls,
+     * so their first paint must not pay for a role lookup that is discarded.
      */
     $pmdFloorManagementSurfacePath =
         '/'.trim((string)request()->path(), '/');
@@ -487,6 +457,40 @@
         ],
         true
     );
+
+    if ($pmdFloorManagementSurface) {
+        try {
+            $pmdFloorManagerUser = null;
+            if (class_exists('\\Admin\\Facades\\AdminAuth')) {
+                $pmdFloorManagerUser = \Admin\Facades\AdminAuth::getUser();
+            } elseif (class_exists('AdminAuth')) {
+                $pmdFloorManagerUser = \AdminAuth::getUser();
+            }
+
+            if ($pmdFloorManagerUser) {
+                if (!empty($pmdFloorManagerUser->is_super_user)) {
+                    $pmdFloorTableManagerRole = 'owner';
+                } elseif (!empty($pmdFloorManagerUser->staff_id)) {
+                    $pmdFloorManagerRoleRow = \Illuminate\Support\Facades\DB::table('staffs as s')
+                        ->leftJoin('staff_roles as r', 'r.staff_role_id', '=', 's.staff_role_id')
+                        ->where('s.staff_id', (int)$pmdFloorManagerUser->staff_id)
+                        ->select('r.code as role_code', 'r.name as role_name')
+                        ->first();
+
+                    $pmdFloorManagerRoleCode = strtolower(trim((string)($pmdFloorManagerRoleRow->role_code ?? '')));
+                    $pmdFloorManagerRoleName = strtolower(trim((string)($pmdFloorManagerRoleRow->role_name ?? '')));
+
+                    if ($pmdFloorManagerRoleCode === 'owner' || $pmdFloorManagerRoleName === 'owner') {
+                        $pmdFloorTableManagerRole = 'owner';
+                    } elseif ($pmdFloorManagerRoleCode === 'manager' || $pmdFloorManagerRoleName === 'manager') {
+                        $pmdFloorTableManagerRole = 'manager';
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            $pmdFloorTableManagerRole = '';
+        }
+    }
 
     $pmdFloorCanManageTables =
         $pmdFloorManagementSurface
