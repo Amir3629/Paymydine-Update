@@ -259,8 +259,14 @@ class Menus_model extends Model
             'bestseller_override_mode',
         ];
 
+        $availableColumns = [];
+        try {
+            $availableColumns = Schema::getColumnListing($this->getTable());
+        } catch (\Throwable $error) {
+        }
+
         foreach ($recommendationColumns as $column) {
-            if (!Schema::hasColumn($this->getTable(), $column)) {
+            if ($availableColumns && !in_array($column, $availableColumns, true)) {
                 unset($this->attributes[$column]);
                 Log::warning('PMD_MENU_RECOMMENDATION_COLUMN_MISSING_ON_SAVE', [
                     'table' => $this->getTable(),
@@ -428,6 +434,36 @@ class Menus_model extends Model
             $menuId = $this->getKey();
 
             if (!$menuId) {
+                return;
+            }
+
+            // PMD_PERF_R3_GALLERY_NOOP
+            // The editor may submit the current gallery even when the user did
+            // not alter it. Avoid delete/recreate + model events in that case.
+            $existingRows = $this->menu_images()
+                ->orderBy('sort_order')
+                ->get(['image_path', 'sort_order'])
+                ->map(static function ($row) {
+                    return [
+                        'image_path' => trim((string)($row->image_path ?? '')),
+                        'sort_order' => (int)($row->sort_order ?? 0),
+                    ];
+                })
+                ->values()
+                ->all();
+
+            $desiredRows = array_values(array_map(
+                static function (array $row, int $index): array {
+                    return [
+                        'image_path' => trim((string)($row['image_path'] ?? '')),
+                        'sort_order' => (int)(($row['sort_order'] ?? 0) ?: ($index + 1)),
+                    ];
+                },
+                $rows,
+                array_keys($rows)
+            ));
+
+            if ($existingRows === $desiredRows) {
                 return;
             }
 
