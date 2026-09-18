@@ -35,9 +35,9 @@ class PmdWaiterDashboardV151 extends PmdWaiterDashboardV150
         ]);
     }
 
-    protected function v9CompatiblePayload(): array
+    protected function v9CompatiblePayload(bool $includeMenu = true): array
     {
-        $base = $this->payload(false);
+        $base = $this->payload(false, $includeMenu);
         $tables = $this->attachOperationalStatusesV152(
             array_values((array)($base['tables'] ?? []))
         );
