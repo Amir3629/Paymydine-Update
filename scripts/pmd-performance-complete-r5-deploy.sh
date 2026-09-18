@@ -6,6 +6,8 @@ BRANCH="${PMD_R5_BRANCH:-origin/fix/platform-performance-complete-r5}"
 STAMP="$(date '+%Y%m%d_%H%M%S')"
 BACKUP="$ROOT/storage/pmd-patch-backups/platform-performance-complete-r5-$STAMP"
 STAGE="$(mktemp -d /tmp/pmd-r5-stage.XXXXXX)"
+DEPLOY_STARTED=0
+DEPLOY_COMPLETE=0
 
 FILES=(
   "app/admin/ServiceProvider.php"
@@ -18,7 +20,38 @@ FILES=(
 cleanup_stage() {
   rm -rf "$STAGE"
 }
-trap cleanup_stage EXIT
+
+rollback_if_needed() {
+  status=$?
+
+  if [ "$DEPLOY_STARTED" -eq 1 ] && [ "$DEPLOY_COMPLETE" -ne 1 ]; then
+    echo
+    echo "===== R5 DEPLOY FAILED: RESTORING PRE-RUN FILES =====" >&2
+
+    for file in "${FILES[@]}"; do
+      if [ ! -f "$BACKUP/$file" ]; then
+        continue
+      fi
+
+      uid="$(stat -c '%u' "$BACKUP/$file")"
+      gid="$(stat -c '%g' "$BACKUP/$file")"
+      mode="$(stat -c '%a' "$BACKUP/$file")"
+      restore_tmp="$ROOT/$file.pmd-r5-rollback-$STAMP.tmp"
+
+      sudo install -o "$uid" -g "$gid" -m "$mode" "$BACKUP/$file" "$restore_tmp"
+      sudo mv -f "$restore_tmp" "$ROOT/$file"
+      echo "RESTORED $file" >&2
+    done
+
+    sudo systemctl reload php8.3-fpm >/dev/null 2>&1 || true
+    echo "Rollback completed from: $BACKUP" >&2
+  fi
+
+  cleanup_stage
+  exit "$status"
+}
+
+trap rollback_if_needed EXIT
 
 cd "$ROOT"
 
@@ -71,16 +104,24 @@ done
 echo
 echo "===== DEPLOY VALIDATED FILES ====="
 
+DEPLOY_STARTED=1
+
 for file in "${FILES[@]}"; do
   staged="$STAGE/$file"
-  owner="$(stat -c '%u:%g' "$file")"
+  uid="$(stat -c '%u' "$file")"
+  gid="$(stat -c '%g' "$file")"
   mode="$(stat -c '%a' "$file")"
+  live_tmp="$ROOT/$file.pmd-r5-$STAMP.tmp"
 
-  cat "$staged" > "$file"
-  chown "$owner" "$file"
-  chmod "$mode" "$file"
+  sudo install -o "$uid" -g "$gid" -m "$mode" "$staged" "$live_tmp"
+  sudo mv -f "$live_tmp" "$ROOT/$file"
 
-  echo "DEPLOYED $file"
+  if ! cmp -s "$staged" "$ROOT/$file"; then
+    echo "ERROR: deployed content mismatch: $file" >&2
+    exit 1
+  fi
+
+  echo "DEPLOYED + VERIFIED $file"
 done
 
 echo
@@ -91,6 +132,17 @@ php -l app/Services/PmdKitchenOperationsSchemaService.php
 php -l app/admin/controllers/Shifts.php
 
 echo
+echo "===== R5 CONTENT VERIFICATION ====="
+for file in "${FILES[@]}"; do
+  if cmp -s "$STAGE/$file" "$file"; then
+    echo "MATCH $file"
+  else
+    echo "MISMATCH $file" >&2
+    exit 1
+  fi
+done
+
+echo
 echo "===== RELOAD PHP-FPM ====="
 sudo systemctl reload php8.3-fpm
 
@@ -98,6 +150,8 @@ echo
 echo "===== HEALTH ====="
 sudo systemctl is-active php8.3-fpm
 sudo nginx -t
+
+DEPLOY_COMPLETE=1
 
 echo
 echo "=============================================================="
