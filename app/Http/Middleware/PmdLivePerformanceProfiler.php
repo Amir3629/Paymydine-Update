@@ -28,6 +28,82 @@ class PmdLivePerformanceProfiler
     private const MAX_SLOW_QUERIES = 12;
     private const SQL_LIMIT = 700;
 
+    /*
+     * PMD_PERF_R11_STAGE_TIMING
+     * Request-local PHP-FPM process state. Disabled unless the live profiler
+     * itself is active. Checkpoints never contain request payload/customer data.
+     */
+    private static bool $stageEnabled = false;
+    private static float $stageLastAt = 0.0;
+    private static int $stageQueryCount = 0;
+    private static float $stageDbMs = 0.0;
+    private static int $stageLastQueryCount = 0;
+    private static float $stageLastDbMs = 0.0;
+    private static array $stageTimings = [];
+
+    public static function checkpoint(string $name): void
+    {
+        if (!self::$stageEnabled) {
+            return;
+        }
+
+        $name = trim((string)preg_replace('/[^a-z0-9_\-]+/i', '_', $name));
+        if ($name === '') {
+            return;
+        }
+
+        $now = microtime(true);
+
+        self::$stageTimings[] = [
+            'name' => $name,
+            'ms' => round(
+                max(0.0, ($now - self::$stageLastAt) * 1000),
+                2
+            ),
+            'query_count' => max(
+                0,
+                self::$stageQueryCount
+                    - self::$stageLastQueryCount
+            ),
+            'db_ms' => round(
+                max(
+                    0.0,
+                    self::$stageDbMs
+                        - self::$stageLastDbMs
+                ),
+                2
+            ),
+        ];
+
+        self::$stageLastAt = $now;
+        self::$stageLastQueryCount =
+            self::$stageQueryCount;
+        self::$stageLastDbMs =
+            self::$stageDbMs;
+    }
+
+    private static function beginStageCollection(float $startedAt): void
+    {
+        self::$stageEnabled = true;
+        self::$stageLastAt = $startedAt;
+        self::$stageQueryCount = 0;
+        self::$stageDbMs = 0.0;
+        self::$stageLastQueryCount = 0;
+        self::$stageLastDbMs = 0.0;
+        self::$stageTimings = [];
+    }
+
+    private static function endStageCollection(): void
+    {
+        self::$stageEnabled = false;
+        self::$stageLastAt = 0.0;
+        self::$stageQueryCount = 0;
+        self::$stageDbMs = 0.0;
+        self::$stageLastQueryCount = 0;
+        self::$stageLastDbMs = 0.0;
+        self::$stageTimings = [];
+    }
+
     public function handle(Request $request, Closure $next)
     {
         $config = $this->activeConfig($request);
@@ -44,6 +120,10 @@ class PmdLivePerformanceProfiler
             hash('sha256', uniqid('', true)),
             0,
             10
+        );
+
+        self::beginStageCollection(
+            $middlewareStart
         );
 
         $queryCount = 0;
@@ -69,6 +149,9 @@ class PmdLivePerformanceProfiler
 
             $queryCount++;
             $queryMs += $time;
+
+            self::$stageQueryCount++;
+            self::$stageDbMs += $time;
             $connectionCounts[$connection] = ($connectionCounts[$connection] ?? 0) + 1;
             $connectionMs[$connection] = ($connectionMs[$connection] ?? 0.0) + $time;
 
@@ -117,6 +200,8 @@ class PmdLivePerformanceProfiler
             $thrown = $error;
             throw $error;
         } finally {
+            self::checkpoint('response_tail');
+
             $finishedAt = microtime(true);
             $totalMs = max(0.0, ($finishedAt - $requestStart) * 1000);
             $bootstrapMs = max(0.0, ($middlewareStart - $requestStart) * 1000);
@@ -185,6 +270,7 @@ class PmdLivePerformanceProfiler
                 'memory_mb' => round(memory_get_usage(true) / 1048576, 2),
                 'peak_memory_mb' => round(memory_get_peak_usage(true) / 1048576, 2),
                 'response_bytes' => $this->responseBytes($response),
+                'stages' => self::$stageTimings,
                 'exception' => $thrown ? get_class($thrown) : null,
             ];
 
@@ -206,6 +292,8 @@ class PmdLivePerformanceProfiler
                 } catch (Throwable $ignore) {
                 }
             }
+
+            self::endStageCollection();
         }
     }
 
