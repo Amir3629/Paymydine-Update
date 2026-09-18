@@ -147,11 +147,11 @@ class PmdWaiterDashboardV151 extends PmdWaiterDashboardV150
      */
     protected function attachOperationalStatusesV152(array $tables): array
     {
-        if (!$tables || !Schema::hasTable('tables') || !Schema::hasColumn('tables', 'operational_status')) {
+        if (!$tables || !$this->pmdSchemaHasTable('tables') || !in_array('operational_status', $this->pmdSchemaColumns('tables'), true)) {
             return $tables;
         }
 
-        $columns = Schema::getColumnListing('tables');
+        $columns = $this->pmdSchemaColumns('tables');
         $primary = in_array('table_id', $columns, true)
             ? 'table_id'
             : (in_array('id', $columns, true) ? 'id' : null);
