@@ -458,7 +458,7 @@ html.pmd-sm2-expanded
  * Canonical desktop Side Menu geometry:
  *   left gap  = 14px
  *   collapsed = 72px
- *   expanded  = 184px
+ *   expanded  = 160px
  *
  * Language:
  *   collapsed = 52px -> left = 14 + 10 = 24px

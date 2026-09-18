@@ -4,9 +4,9 @@
     --pmd-admin-bg: #f8fbfd;
     --pmd-sm2-gap: 14px;
     --pmd-sm2-collapsed: 72px;
-    --pmd-sm2-expanded: 172px;
+    --pmd-sm2-expanded: 160px;
     --pmd-sm2-content-left-collapsed: 100px;
-    --pmd-sm2-content-left-expanded: 200px;
+    --pmd-sm2-content-left-expanded: 188px;
   }
 
   html,
