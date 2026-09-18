@@ -238,7 +238,29 @@
         section.setAttribute('aria-busy', 'true');
         section.classList.add('is-pmd-range-loading');
 
-        return fetch(url.href, {
+        var requestUrl = new URL(url.href);
+
+        /*
+         * PMD_PERF_R9_CASHIER_SECTION_REQUEST
+         * Cashier range/history replaces one DOM section. Ask the server for
+         * that section only instead of rendering the whole Floor/KPI workspace.
+         * Browser history still receives the clean original URL below.
+         */
+        if (
+            (section.getAttribute('data-pmd-ops-kind') || '') === 'orders'
+            && (
+                requestUrl.pathname === '/admin/cashierlab'
+                || requestUrl.pathname === '/admin/orders'
+            )
+        ) {
+            requestUrl.pathname = '/admin/cashierlab';
+            requestUrl.searchParams.set(
+                'pmd_cashier_section',
+                'orders'
+            );
+        }
+
+        return fetch(requestUrl.href, {
             method: 'GET',
             credentials: 'same-origin',
             cache: 'no-store',
@@ -493,7 +515,14 @@
         if (hit) return Promise.resolve(hit);
         if (inflight[k]) return inflight[k];
 
-        inflight[k] = fetch(canonical(url), {
+        var requestUrl = new URL(canonical(url));
+        requestUrl.pathname = '/admin/cashierlab';
+        requestUrl.searchParams.set(
+            'pmd_cashier_section',
+            'orders'
+        );
+
+        inflight[k] = fetch(requestUrl.href, {
             method: 'GET',
             credentials: 'same-origin',
             cache: 'no-store',
@@ -617,16 +646,52 @@
         switchMode(button);
     }, true);
 
-    // Date-range swaps already emit this event. Warm the opposite mode again
-    // for the newly selected range.
+    /*
+     * PMD_PERF_R9_NO_BOOT_HISTORY_PREFETCH
+     * Never spend a second Cashier request just because the page/range loaded.
+     * Cache the visible section locally; warm History only on clear user intent.
+     */
     document.addEventListener('pmd:ops-range:updated', function () {
-        window.setTimeout(function () {
-            prefetchOpposite(section());
-        }, 0);
+        cacheCurrent(section());
     }, false);
 
+    function warmFromIntent(event) {
+        var button = event.target && event.target.closest
+            ? event.target.closest('[data-pmd-cashier-history-toggle]')
+            : null;
+
+        if (!button) return;
+
+        var owner = button.closest('#pmd-cashier-current-orders-v2');
+        if (!owner) return;
+
+        cacheCurrent(owner);
+
+        var target = String(
+            button.getAttribute('data-pmd-history-target-url') || ''
+        ).trim();
+
+        if (!target) return;
+
+        fetchSection(target).catch(function () {
+            // Click path still performs the same canonical request if needed.
+        });
+    }
+
+    document.addEventListener(
+        'mouseover',
+        warmFromIntent,
+        true
+    );
+
+    document.addEventListener(
+        'focusin',
+        warmFromIntent,
+        true
+    );
+
     function boot() {
-        prefetchOpposite(section());
+        cacheCurrent(section());
     }
 
     if (document.readyState === 'loading') {
@@ -652,6 +717,8 @@
                 targetCached: Boolean(target && get(target)),
                 targetPrefetching: Boolean(target && inflight[key(target)]),
                 fullPageNavigation: false,
+                bootPrefetch: false,
+                sectionOnlyRequest: true,
                 cacheTtlMs: CACHE_TTL_MS
             };
         }
