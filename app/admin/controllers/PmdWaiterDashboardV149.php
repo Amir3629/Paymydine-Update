@@ -93,14 +93,14 @@ class PmdWaiterDashboardV149
         return $this->json(['ok' => false, 'version' => 'v149', 'message' => 'addItem backend bridge not available; use /admin/orders/create'], 501);
     }
 
-    protected function payload($audit = false)
+    protected function payload($audit = false, bool $includeMenu = true)
     {
         try {
             $user = $this->userInfo();
             $tables = $this->loadTables($user);
             $metrics = $this->loadTableMetrics($tables);
             $reservations = $this->loadReservations($tables);
-            $menus = $this->loadMenus();
+            $menus = $includeMenu ? $this->loadMenus() : [];
             $orders = $this->loadOrderCards($tables);
 
             $rows = [];
