@@ -2,14 +2,15 @@
 
 namespace App\Database;
 
-use Illuminate\Database\MySqlConnection;
+use Igniter\Flame\Database\Connections\MySqlConnection;
 
 /**
  * PMD_PERF_R6_1_CACHED_MYSQL_CONNECTION
  *
- * Laravel 8 creates a fresh MySqlBuilder on every getSchemaBuilder() call.
- * Keep one builder on this connection for the lifetime of the connection so
- * all Schema facade and direct getSchemaBuilder() calls share metadata.
+ * TastyIgniter's Flame MySqlConnection provides the custom query builder
+ * required by Flame relations (including flushDuplicateCache()). Extend that
+ * connection, not Laravel's raw MySqlConnection, while reusing one cached
+ * schema builder for the lifetime of this tenant/request connection.
  */
 class PmdCachedMySqlConnection extends MySqlConnection
 {
