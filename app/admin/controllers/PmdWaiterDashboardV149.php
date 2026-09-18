@@ -5,6 +5,16 @@ use Illuminate\Support\Facades\Schema;
 
 class PmdWaiterDashboardV149
 {
+    /*
+     * PMD_PERF_R3_SCHEMA_CACHE
+     *
+     * These dashboard/cashier payload builders repeatedly ask MySQL's
+     * information_schema for the same table metadata. Cache it for the lifetime
+     * of this request/controller instance.
+     */
+    protected array $pmdSchemaTableCache = [];
+    protected array $pmdSchemaColumnCache = [];
+
     public function data()
     {
         return $this->json($this->payload(false));
@@ -18,8 +28,8 @@ class PmdWaiterDashboardV149
     public function updateLayout()
     {
         try {
-            if (!Schema::hasTable('tables')) return $this->json(['ok' => false, 'message' => 'tables table missing'], 404);
-            $cols = Schema::getColumnListing('tables');
+            if (!$this->pmdSchemaHasTable('tables')) return $this->json(['ok' => false, 'message' => 'tables table missing'], 404);
+            $cols = $this->pmdSchemaColumns('tables');
             $pk = $this->firstCol($cols, ['table_id', 'id']);
             if (!$pk) return $this->json(['ok' => false, 'message' => 'table primary key not found'], 500);
 
@@ -180,11 +190,11 @@ class PmdWaiterDashboardV149
 
             if ($audit) {
                 $payload['audit'] = [
-                    'tables_schema' => Schema::hasTable('tables') ? Schema::getColumnListing('tables') : [],
-                    'orders_schema' => Schema::hasTable('orders') ? Schema::getColumnListing('orders') : [],
-                    'reservations_schema' => Schema::hasTable('reservations') ? Schema::getColumnListing('reservations') : [],
-                    'assignment_table_exists' => Schema::hasTable('pmd_waiter_table_assignments'),
-                    'merge_table_exists' => Schema::hasTable('pmd_table_merges'),
+                    'tables_schema' => $this->pmdSchemaHasTable('tables') ? $this->pmdSchemaColumns('tables') : [],
+                    'orders_schema' => $this->pmdSchemaHasTable('orders') ? $this->pmdSchemaColumns('orders') : [],
+                    'reservations_schema' => $this->pmdSchemaHasTable('reservations') ? $this->pmdSchemaColumns('reservations') : [],
+                    'assignment_table_exists' => $this->pmdSchemaHasTable('pmd_waiter_table_assignments'),
+                    'merge_table_exists' => $this->pmdSchemaHasTable('pmd_table_merges'),
                     'returned_tables' => count($rows),
                     'returned_my_tables' => count($mine),
                     'returned_orders' => count($orders),
@@ -200,8 +210,8 @@ class PmdWaiterDashboardV149
 
     protected function loadTables($user)
     {
-        if (!Schema::hasTable('tables')) return [];
-        $cols = Schema::getColumnListing('tables');
+        if (!$this->pmdSchemaHasTable('tables')) return [];
+        $cols = $this->pmdSchemaColumns('tables');
         $pk = $this->firstCol($cols, ['table_id', 'id']);
         if (!$pk) return [];
 
@@ -280,9 +290,9 @@ class PmdWaiterDashboardV149
 
     protected function loadMenus()
     {
-        $table = Schema::hasTable('menus') ? 'menus' : (Schema::hasTable('menu_items') ? 'menu_items' : null);
+        $table = $this->pmdSchemaHasTable('menus') ? 'menus' : ($this->pmdSchemaHasTable('menu_items') ? 'menu_items' : null);
         if (!$table) return [];
-        $cols = Schema::getColumnListing($table);
+        $cols = $this->pmdSchemaColumns($table);
         $pk = $this->firstCol($cols, ['menu_id', 'id']);
         $nameCol = $this->firstCol($cols, ['menu_name', 'name', 'title']);
         $priceCol = $this->firstCol($cols, ['menu_price', 'price', 'cost']);
@@ -299,9 +309,9 @@ class PmdWaiterDashboardV149
     {
         $metrics = [];
         foreach ($tables as $t) $metrics[(int)$t['id']] = ['open_orders' => 0, 'ready' => 0, 'kitchen' => 0, 'due' => 0, 'paid_partial' => 0, 'latest_status' => ''];
-        if (!Schema::hasTable('orders') || !$tables) return $metrics;
+        if (!$this->pmdSchemaHasTable('orders') || !$tables) return $metrics;
 
-        $cols = Schema::getColumnListing('orders');
+        $cols = $this->pmdSchemaColumns('orders');
         $pk = $this->firstCol($cols, ['order_id', 'id']);
         $tableCol = $this->firstCol($cols, ['table_id', 'dining_table_id', 'location_table_id', 'table_no', 'table_name']);
         if (!$tableCol) return $metrics;
@@ -348,8 +358,8 @@ class PmdWaiterDashboardV149
     {
         $out = [];
         foreach ($tables as $t) $out[(int)$t['id']] = ['today' => 0, 'upcoming' => 0];
-        if (!Schema::hasTable('reservations')) return $out;
-        $cols = Schema::getColumnListing('reservations');
+        if (!$this->pmdSchemaHasTable('reservations')) return $out;
+        $cols = $this->pmdSchemaColumns('reservations');
         $tableCol = $this->firstCol($cols, ['table_id', 'dining_table_id', 'location_table_id']);
         if (!$tableCol) return $out;
         $dateCol = $this->firstCol($cols, ['reserve_date', 'reservation_date', 'date', 'created_at']);
@@ -368,8 +378,8 @@ class PmdWaiterDashboardV149
 
     protected function loadOrderCards($tables)
     {
-        if (!Schema::hasTable('orders') || !$tables) return [];
-        $cols = Schema::getColumnListing('orders');
+        if (!$this->pmdSchemaHasTable('orders') || !$tables) return [];
+        $cols = $this->pmdSchemaColumns('orders');
         $pk = $this->firstCol($cols, ['order_id', 'id']);
         $tableCol = $this->firstCol($cols, ['table_id', 'dining_table_id', 'location_table_id', 'table_no', 'table_name']);
         if (!$pk || !$tableCol) return [];
@@ -420,7 +430,7 @@ class PmdWaiterDashboardV149
 
     protected function assignedTableIds($user)
     {
-        if (!Schema::hasTable('pmd_waiter_table_assignments')) return [];
+        if (!$this->pmdSchemaHasTable('pmd_waiter_table_assignments')) return [];
         $staff = (int)($user['staff_id'] ?? 0);
         if (!$staff) return [];
         try {
@@ -500,6 +510,26 @@ class PmdWaiterDashboardV149
         $s = trim((string)$v);
         if ($s === '' || $s === '[object Object]') return '';
         return $s;
+    }
+
+    protected function pmdSchemaHasTable(string $table): bool
+    {
+        if (!array_key_exists($table, $this->pmdSchemaTableCache)) {
+            $this->pmdSchemaTableCache[$table] = Schema::hasTable($table);
+        }
+
+        return (bool)$this->pmdSchemaTableCache[$table];
+    }
+
+    protected function pmdSchemaColumns(string $table): array
+    {
+        if (!array_key_exists($table, $this->pmdSchemaColumnCache)) {
+            $this->pmdSchemaColumnCache[$table] = $this->pmdSchemaHasTable($table)
+                ? Schema::getColumnListing($table)
+                : [];
+        }
+
+        return $this->pmdSchemaColumnCache[$table];
     }
 
     protected function firstCol($cols, $names)
