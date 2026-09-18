@@ -191,6 +191,30 @@ for file in "${FILES[@]}"; do
 done
 
 echo
+echo "===== FLAME QUERY BUILDER SMOKE TEST ====="
+php -r '
+require "vendor/autoload.php";
+$connection = new App\\Database\\PmdCachedMySqlConnection(
+    static function () {
+        throw new RuntimeException("PDO should not be needed for builder smoke test.");
+    },
+    "pmd_smoke",
+    "",
+    ["driver" => "mysql"]
+);
+$query = $connection->query();
+if (!($query instanceof Igniter\\Flame\\Database\\Query\\Builder)) {
+    fwrite(STDERR, "ERROR: Flame query builder not preserved\\n");
+    exit(1);
+}
+if (!method_exists($query, "flushDuplicateCache")) {
+    fwrite(STDERR, "ERROR: flushDuplicateCache missing on query builder\\n");
+    exit(1);
+}
+echo "OK Flame query builder + flushDuplicateCache preserved\\n";
+'
+
+echo
 echo "===== RELOAD PHP-FPM ====="
 sudo systemctl reload php8.3-fpm
 
