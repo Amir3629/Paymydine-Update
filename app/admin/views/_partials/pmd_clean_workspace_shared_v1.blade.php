@@ -115,6 +115,7 @@
                 'username' => $pmdCleanWorkspaceRoleUser->username ?? null,
                 'staff_id' => $pmdCleanWorkspaceRoleUser->staff_id ?? null,
                 'staff_name' => null,
+                'staff_email' => null,
                 'role_code' => null,
                 'role_name' => null,
                 'is_super_user' => !empty(
@@ -140,6 +141,7 @@
                         )
                         ->select(
                             's.staff_name',
+                            's.staff_email',
                             'r.code as role_code',
                             'r.name as role_name'
                         )
@@ -148,6 +150,9 @@
                 if ($pmdCleanWorkspaceRoleRow) {
                     $pmdRoleContextR12['staff_name'] =
                         $pmdCleanWorkspaceRoleRow->staff_name
+                        ?? null;
+                    $pmdRoleContextR12['staff_email'] =
+                        $pmdCleanWorkspaceRoleRow->staff_email
                         ?? null;
                     $pmdRoleContextR12['role_code'] =
                         $pmdCleanWorkspaceRoleRow->role_code
