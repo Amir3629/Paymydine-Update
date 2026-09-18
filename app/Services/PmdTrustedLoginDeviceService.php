@@ -5,6 +5,7 @@ namespace App\Services;
 use Admin\Facades\AdminAuth;
 use Admin\Services\PmdDefaultStaffRoleService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -412,6 +413,21 @@ class PmdTrustedLoginDeviceService
     private function touch(int $deviceId): void
     {
         if ($deviceId < 1) return;
+
+        $database = '';
+        try {
+            $database = (string)DB::connection()->getDatabaseName();
+        } catch (\Throwable $error) {
+        }
+
+        $key = 'pmd:trusted-login:touch:'.sha1($database.'|'.$deviceId);
+        try {
+            if (!Cache::add($key, 1, now()->addSeconds(60))) {
+                return;
+            }
+        } catch (\Throwable $error) {
+        }
+
         DB::table('pmd_site_access_devices')
             ->where('id', $deviceId)
             ->whereNull('revoked_at')
