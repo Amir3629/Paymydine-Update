@@ -25,6 +25,22 @@ class TenantDatabaseMiddleware
             ->first();
 
         if (!$tenantInfo || empty($tenantInfo->database)) {
+            /*
+             * PMD_PERF_R4_ADMIN_SINGLE_TENANT_GATE
+             *
+             * Nginx no longer needs a second Laravel auth_request for Admin
+             * pages: this middleware is already the tenant/status authority
+             * before AdminAuth is resolved. Keep browser behavior fail-closed
+             * and consistent with the old Nginx gate by redirecting an inactive
+             * tenant Admin document to the central PayMyDine landing page.
+             *
+             * API/AJAX/non-Admin consumers keep the existing JSON 404 contract.
+             */
+            if ($this->isAdminBrowserRequest($request)) {
+                return redirect('https://paymydine.com/', 302)
+                    ->header('Cache-Control', 'no-store');
+            }
+
             return response()->json(['error' => 'Restaurant not found or inactive'], 404);
         }
 
@@ -152,6 +168,35 @@ class TenantDatabaseMiddleware
             env('PMD_TENANT_CONTEXT_LOG', false),
             FILTER_VALIDATE_BOOLEAN
         );
+    }
+
+    private function isAdminBrowserRequest(Request $request): bool
+    {
+        $path = trim((string)$request->path(), '/');
+        $adminUri = trim((string)config('system.adminUri', 'admin'), '/');
+
+        if (
+            $adminUri === ''
+            || (
+                $path !== $adminUri
+                && !str_starts_with($path, $adminUri.'/')
+            )
+        ) {
+            return false;
+        }
+
+        if (!in_array(strtoupper((string)$request->method()), ['GET', 'HEAD'], true)) {
+            return false;
+        }
+
+        if ($request->ajax()) {
+            return false;
+        }
+
+        $accept = strtolower((string)$request->header('Accept', ''));
+        return $accept === ''
+            || str_contains($accept, 'text/html')
+            || str_contains($accept, 'application/xhtml+xml');
     }
 
     private function normalizeSupportedLocales($value): array
