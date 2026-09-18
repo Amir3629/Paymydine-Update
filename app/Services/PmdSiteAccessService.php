@@ -7,6 +7,7 @@ use Admin\Models\Pos_devices_model;
 use Admin\Services\PmdDefaultStaffRoleService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -178,6 +179,29 @@ class PmdSiteAccessService
     public function touchDevice(int $deviceId): void
     {
         if (!$this->ready() || $deviceId < 1) return;
+
+        /*
+         * PMD_PERF_R3_DEVICE_HEARTBEAT_COALESCE
+         *
+         * Presence is considered online for two minutes. Writing last_seen_at
+         * on every poll/request only creates lock/log/replication churn.
+         * One durable heartbeat per 45 seconds preserves the same semantics.
+         */
+        $database = '';
+        try {
+            $database = (string)DB::connection()->getDatabaseName();
+        } catch (\Throwable $error) {
+        }
+
+        $key = 'pmd:site-access:touch:'.sha1($database.'|'.$deviceId);
+        try {
+            if (!Cache::add($key, 1, now()->addSeconds(45))) {
+                return;
+            }
+        } catch (\Throwable $error) {
+            // Cache failure must never weaken Site Access; fall through to DB.
+        }
+
         DB::table('pmd_site_access_devices')->where('id', $deviceId)->update([
             'last_seen_at' => now(),
             'updated_at' => now(),
