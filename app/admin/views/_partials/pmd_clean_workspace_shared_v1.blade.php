@@ -1222,10 +1222,9 @@ html body.page.pmd-clean-workspace-page #pmd-dashboard-lab {
                      already owns __pmdFloorV1. --}}
                 @if($pmdCleanWorkspaceDirectFloorSurface)
                     @php
-                        $pmdExactFloorRuntimePath = base_path('app/admin/assets/js/pmd-dashboard-lab-exact-floor-v1.js');
-                        $pmdExactFloorRuntimeVersion = is_file($pmdExactFloorRuntimePath)
-                            ? (string)filemtime($pmdExactFloorRuntimePath)
-                            : '1';
+                        // PMD_PERF_R8_RELEASE_ASSET_VERSION
+                        // Cache-busting is release-owned; do not stat/hash assets on every request.
+                        $pmdExactFloorRuntimeVersion = 'r8-20260918';
                     @endphp
                     <script
                         id="pmd-reservationslab-parser-floor-runtime-v1"
@@ -1258,14 +1257,11 @@ html body.page.pmd-clean-workspace-page #pmd-dashboard-lab {
                      so Safari could revive an old Composer while Schedule was fresh.
                      One content-derived URL is now the sole browser cache authority. --}}
                 @php
-                    $pmdReservationComposerCssPath = base_path('app/admin/assets/css/pmd-reservation-composer-v1.css');
-                    $pmdReservationComposerJsPath = base_path('app/admin/assets/js/pmd-reservation-composer-v1.js');
-                    $pmdReservationComposerCssVersion = is_file($pmdReservationComposerCssPath)
-                        ? substr(hash_file('sha256', $pmdReservationComposerCssPath), 0, 16)
-                        : '1';
-                    $pmdReservationComposerJsVersion = is_file($pmdReservationComposerJsPath)
-                        ? substr(hash_file('sha256', $pmdReservationComposerJsPath), 0, 16)
-                        : '1';
+                    // PMD_PERF_R8_RELEASE_ASSET_VERSION
+                    // Composer CSS/JS are immutable for this deploy. Avoid full-file
+                    // SHA-256 reads from PHP on every Cashier/Reservations render.
+                    $pmdReservationComposerCssVersion = 'r8-20260918';
+                    $pmdReservationComposerJsVersion = 'r8-20260918';
                 @endphp
                 <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-reservation-composer-v1.css') }}?v={{ $pmdReservationComposerCssVersion }}">
                 @include('admin::reservations2._reservation_composer')
