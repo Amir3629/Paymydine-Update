@@ -9135,6 +9135,12 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
 <!-- /PMD_PLATFORM_CARD_SYSTEM_V3_REAL_ADMIN_LAYOUT_HEAD -->
 
 </head>
+@php
+    /* PMD_PERF_R13_LAYOUT_STAGE_PROFILER */
+    \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+        'layout_head'
+    );
+@endphp
 <script>
     // SMART FIX: Force dropdown alignment WITHOUT breaking Bootstrap animations
     (function() {
@@ -9186,7 +9192,27 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
 <body class="page pmd-admin-theme-v1 {{ $this->bodyClass }}">
 @if(AdminAuth::isLogged())
     {!! $this->makePartial('top_nav') !!}
+    @php
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'layout_top_nav'
+        );
+    @endphp
+
     {!! AdminMenu::render('side_nav') !!}
+    @php
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'layout_side_nav'
+        );
+    @endphp
+@else
+    @php
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'layout_top_nav'
+        );
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'layout_side_nav'
+        );
+    @endphp
 @endif
 
 <div class="page-wrapper">
@@ -9194,6 +9220,12 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
         {!! Template::getBlock('body') !!}
     </div>
 </div>
+
+@php
+    \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+        'layout_body_content'
+    );
+@endphp
 
 <div id="notification">
     {!! $this->makePartial('flash') !!}
@@ -9203,6 +9235,13 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
 @endif
 {!! $this->makePartial('confirm_modal') !!}
 {!! Assets::getJsVars() !!}
+
+@php
+    \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+        'layout_shell_partials'
+    );
+@endphp
+
 {{-- Use asset combiner to ensure all widget JS files are included --}}
 @php
     $pmdIsNativeMediaContext = request()->is('admin/settings*') || request()->is('admin/media_manager*');
@@ -9236,6 +9275,13 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
 <!-- PMD_KDS_SERVER_FAST_V82_EARLY_MEDIA_GUARD_END -->
 
 {!! get_script_tags() !!}
+
+@php
+    \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+        'layout_asset_combiner'
+    );
+@endphp
+
 <!-- SlimSelect: dropdown inside form so it scrolls with page (must run before selectList is used) -->
 <script src="{{ asset('app/admin/assets/js/slim-select-relative-position.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 
@@ -10068,8 +10114,20 @@ html.pmd-waiter-dashboard-active
 >
 <!-- /PMD_PLATFORM_CARD_SYSTEM_V3_REAL_ADMIN_LAYOUT_FINAL -->
 
+@php
+    \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+        'layout_body_legacy'
+    );
+@endphp
+
 </body>
 </html>
+
+@php
+    \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+        'layout_html_end'
+    );
+@endphp
 
 <!-- PMD_OWNER_V122_DASHBOARD2_EXACT_MAIN_KPI_COLORS_START -->
 <!-- PMD_OWNER_V122_DASHBOARD2_EXACT_MAIN_KPI_COLORS_END -->
@@ -12956,3 +13014,11 @@ html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root .pmd-v18-merged-t
      plus pmd-dashboard2-rebuild-v1.css/js.
      Reservations2 untouched.
      ============================================================ -->
+
+
+@php
+    /* PMD_PERF_R13_LAYOUT_POST_HTML_STAGE_PROFILER */
+    \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+        'layout_post_html_legacy'
+    );
+@endphp
