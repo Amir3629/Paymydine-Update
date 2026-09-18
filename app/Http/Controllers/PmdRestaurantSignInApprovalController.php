@@ -29,20 +29,6 @@ class PmdRestaurantSignInApprovalController
         // do not create a database audit row for every display refresh.
         app(PmdRestaurantApprovalPresenceService::class)->touch($locationId);
 
-        $code = app(PmdWorkplaceCodeService::class)->current($locationId);
-        $qrSvg = null;
-        try {
-            // The QR contains exactly the same six digits shown beside it.
-            // It grants nothing by itself; the pending Login session still has
-            // to submit the code and pass tenant/location/challenge checks.
-            $qrSvg = app(PmdSiteAccessQrService::class)->svg((string)$code['code'], 3);
-        } catch (\Throwable $error) {
-            logger()->warning('PMD restaurant approval QR render failed', [
-                'location_id' => $locationId,
-                'message' => $error->getMessage(),
-            ]);
-        }
-
         $pending = DB::table('pmd_site_access_challenges')
             ->leftJoin(
                 'staffs',
@@ -74,6 +60,34 @@ class PmdRestaurantSignInApprovalController
                 ];
             })
             ->values();
+
+        /*
+         * PMD_PERF_R3_SIGNIN_LITE_POLL
+         *
+         * Once the browser has the code/QR, active polling only needs the
+         * pending challenge list. Skip code generation + SVG rendering on those
+         * repeated requests.
+         */
+        if ($request->boolean('lite')) {
+            return response()->json([
+                'ok' => true,
+                'authority' => $authority['method'],
+                'role' => $authority['role'],
+                'pending' => $pending,
+                'lite' => true,
+            ])->header('Cache-Control', 'no-store');
+        }
+
+        $code = app(PmdWorkplaceCodeService::class)->current($locationId);
+        $qrSvg = null;
+        try {
+            $qrSvg = app(PmdSiteAccessQrService::class)->svg((string)$code['code'], 3);
+        } catch (\Throwable $error) {
+            logger()->warning('PMD restaurant approval QR render failed', [
+                'location_id' => $locationId,
+                'message' => $error->getMessage(),
+            ]);
+        }
 
         return response()->json([
             'ok' => true,
