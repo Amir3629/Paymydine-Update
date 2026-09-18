@@ -286,7 +286,7 @@ class Dashboard2 extends Reservations2
     {
         if (!array_key_exists($table, $this->pmdSchemaColumnCache)) {
             $this->pmdSchemaColumnCache[$table] = $this->schemaHasTable($table)
-                ? $this->columns($table)
+                ? Schema::getColumnListing($table)
                 : [];
         }
 
