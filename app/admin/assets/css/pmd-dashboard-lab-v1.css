@@ -58,7 +58,7 @@ html body.page.pmd-dashboard-lab-page .page-title-section {
  * Final desktop shell exists before deferred runtime scripts execute.
  * Side Menu right edge:
  * collapsed: 14 + 72 = 86
- * expanded:  14 + 184 = 198
+ * expanded:  14 + 160 = 174
  */
 @media (min-width: 821px) {
   html.pmd-side-menu2-global-page.pmd-sm2-collapsed
@@ -87,8 +87,8 @@ html body.page.pmd-dashboard-lab-page .page-title-section {
     right: auto !important;
     top: 0 !important;
     bottom: auto !important;
-    margin: 0 0 0 198px !important;
-    width: calc(100vw - 198px) !important;
+    margin: 0 0 0 174px !important;
+    width: calc(100vw - 174px) !important;
     min-width: 0 !important;
     max-width: none !important;
     min-height: 100vh !important;
@@ -137,7 +137,7 @@ html body.page.pmd-dashboard-lab-page .page-content {
   min-width: 0 !important;
   min-height: 100vh !important;
   margin: 0 !important;
-  padding: 0 30px 72px !important;
+  padding: 0 14px 72px !important;
   color: #17231f !important;
   background: #f8fbfd !important;
   opacity: 1 !important;

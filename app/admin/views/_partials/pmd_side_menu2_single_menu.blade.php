@@ -327,6 +327,24 @@ html #pmd-sidebar-language {
 </script>
 <!-- PMD_SM2_INLINE_LANGUAGE_BRIDGE_R2_END -->
 
+<!-- PMD_SM2_CANONICAL_CONTENT_RAIL_R8_START -->
+<style id="pmd-sm2-canonical-content-rail-r8">
+@media (min-width: 821px) {
+  /*
+   * Standalone Reservations2 already starts its root at menu-right + 14px.
+   * Older route CSS adds another 16/20px horizontal root padding, which makes
+   * the visible cards look much farther from the Side Menu than the rest of
+   * the platform. Keep only the one canonical 14px outside rail.
+   */
+  html.pmd-sm2-collapsed body #pmd-reservations2,
+  html.pmd-sm2-expanded body #pmd-reservations2 {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+}
+</style>
+<!-- PMD_SM2_CANONICAL_CONTENT_RAIL_R8_END -->
+
 <!-- PMD_SM2_ACCOUNT_RUNTIME_V11_START -->
 <script id="pmd-side-menu2-account-runtime-v11">
 (function () {

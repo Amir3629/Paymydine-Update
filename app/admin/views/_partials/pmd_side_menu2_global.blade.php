@@ -185,22 +185,22 @@
 })();
 </script>
 
-<!-- PMD_CANONICAL_VISUAL_RAIL_8PX_LEFT_R7_START -->
-<style id="pmd-canonical-visual-rail-8px-left-r7">
+<!-- PMD_CANONICAL_VISUAL_RAIL_14PX_R8_START -->
+<style id="pmd-canonical-visual-rail-14px-r8">
 
   /*
    * One visual contract:
    *
    * collapsed Side Menu right = 86px
-   * visible page content left  = 94px
-   * left visual rail           = 8px
+   * visible page content left  = 100px
+   * visual rail                = 14px
    *
    * expanded:
    * menu right                 = 174px
-   * visible page content left  = 182px
+   * visible page content left  = 188px
    *
    * Do NOT change generic page-content here.
-   * Standard pages receive an 8px left rail and keep a 14px right gutter from exact-layout.
+   * Standard pages receive the canonical 14px rail from exact-layout.
    */
 
   /*
@@ -215,7 +215,7 @@
   html.pmd-side-menu2-global-page
   body.pmd-clean-workspace-page
   #pmd-dashboard-lab {
-    padding-left: 8px !important;
+    padding-left: 14px !important;
     padding-right: 14px !important;
   }
 
@@ -233,7 +233,7 @@
     #pmd-team-access,
     .pmd-owner-page
   ) {
-    padding-left: 8px !important;
+    padding-left: 14px !important;
     padding-right: 14px !important;
   }
 
@@ -298,7 +298,7 @@
   }
 
 </style>
-<!-- PMD_CANONICAL_VISUAL_RAIL_8PX_LEFT_R7_END -->
+<!-- PMD_CANONICAL_VISUAL_RAIL_14PX_R8_END -->
 
 @if($pmdIsSettingsSuiteRoute)
 <!-- PMD_SETTINGS_SUITE_ROUTE_FLOW_SCROLL_V6_START -->
@@ -632,6 +632,104 @@
 <!-- PMD_SETTINGS_SUITE_ROUTE_FLOW_SCROLL_V6_END -->
 @endif
 
+<!-- PMD_SM2_CANONICAL_14PX_SINGLE_RAIL_R8_START -->
+<style id="pmd-sm2-canonical-14px-single-rail-r8">
+  /*
+   * One platform spacing contract:
+   *   Side Menu desktop left = 14px
+   *   collapsed right edge   = 86px
+   *   expanded right edge    = 174px  (14 + 160)
+   *   first visible content  = menu right + 14px
+   *
+   * Some older route assets still contain the retired 184/198 geometry
+   * or their own 16/30px root gutters. This late authority makes the
+   * effective outside rail exactly 14px and prevents double gutters.
+   */
+  @media (min-width: 821px) {
+    html.pmd-side-menu2-global-page.pmd-sm2-expanded
+    body.page.pmd-admin-theme-v1.pmd-settings-suite
+    .page-wrapper {
+      left: 0 !important;
+      margin-left: 174px !important;
+      width: calc(100vw - 174px) !important;
+    }
+
+    html.pmd-side-menu2-global-page.pmd-sm2-collapsed
+    body.page.pmd-admin-theme-v1.pmd-settings-suite
+    .page-wrapper {
+      left: 0 !important;
+      margin-left: 86px !important;
+      width: calc(100vw - 86px) !important;
+    }
+
+    /* Dashboard/Clean workspaces: root owns the one 14px rail. */
+    html.pmd-side-menu2-global-page
+    body.page.pmd-dashboard-lab-page
+    .page-content {
+      padding-left: 0 !important;
+      padding-right: 0 !important;
+    }
+
+    html.pmd-side-menu2-global-page
+    body.page.pmd-dashboard-lab-page
+    #pmd-dashboard-lab {
+      padding-left: 14px !important;
+      padding-right: 14px !important;
+    }
+
+    html.pmd-side-menu2-global-page.pmd-sm2-expanded
+    body.page.pmd-dashboard-lab-page
+    .page-wrapper {
+      margin-left: 174px !important;
+      width: calc(100vw - 174px) !important;
+    }
+
+    html.pmd-side-menu2-global-page.pmd-sm2-collapsed
+    body.page.pmd-dashboard-lab-page
+    .page-wrapper {
+      margin-left: 86px !important;
+      width: calc(100vw - 86px) !important;
+    }
+
+    /* Settings family: page-content is zero; custom root owns 14px. */
+    html.pmd-side-menu2-global-page
+    body.pmd-settings-suite
+    .page-content {
+      padding-left: 0 !important;
+      padding-right: 0 !important;
+    }
+
+    html.pmd-side-menu2-global-page
+    body.pmd-settings-suite
+    :is(
+      #pmd-settings-center,
+      #pmd-restaurant-profile,
+      #pmd-menu-checkout,
+      #pmd-team-access,
+      .pmd-owner-page
+    ) {
+      padding-left: 14px !important;
+      padding-right: 14px !important;
+    }
+
+    /* Menu Manager used 16px inside an outer rail. Keep only one 14px rail. */
+    html.pmd-menu-static-shell-v1
+    body.pmd-menu-manager-page
+    .page-content {
+      padding-left: 0 !important;
+      padding-right: 0 !important;
+    }
+
+    html.pmd-menu-static-shell-v1
+    body.pmd-menu-manager-page
+    #pmd-menu-manager-main.pmd-menu-manager.pmd-owner-page {
+      padding-left: 14px !important;
+      padding-right: 14px !important;
+    }
+  }
+</style>
+<!-- PMD_SM2_CANONICAL_14PX_SINGLE_RAIL_R8_END -->
+
 <!-- PMD_GLOBAL_MENU_CRITICAL_GEOMETRY_V6_START -->
 <style id="pmd-global-menu-critical-geometry-v6">
   /*
@@ -846,8 +944,8 @@
       right: auto !important;
       margin-left: 0 !important;
       margin-right: 0 !important;
-      padding-left: 8px !important;
-      padding-right: 14px !important;
+      padding-left: 0 !important;
+      padding-right: 0 !important;
       width: 100% !important;
       min-width: 0 !important;
       max-width: none !important;
@@ -944,7 +1042,7 @@
     max-width: none !important;
     min-width: 0 !important;
     margin: 0 !important;
-    padding: 14px 14px 14px 8px !important;
+    padding: 14px !important;
     box-sizing: border-box !important;
     overflow-x: hidden !important;
     transform: none !important;

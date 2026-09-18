@@ -26,7 +26,7 @@
             --line:#dfe9e5;--card:#fff;--danger:#b42318;--warn:#b54708;--ok:#067647;
             --shadow:0 14px 34px rgba(18,61,50,.08);--pmd-sm2-gap:14px;
             --pmd-sm2-collapsed:72px;--pmd-sm2-expanded:160px;
-            --pmd-content-collapsed:94px;--pmd-content-expanded:182px;
+            --pmd-content-collapsed:100px;--pmd-content-expanded:188px;
         }
         *{box-sizing:border-box}
         html,body{margin:0;min-height:100%;background:var(--bg);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink);font-size:15px}
