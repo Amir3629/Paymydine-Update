@@ -1,6 +1,21 @@
 @php
     $updatesCount = $item->unreadCount();
-    $hasSettingsError = count(array_filter(Session::get('settings.errors', [])))
+
+    \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+        'mainmenu_updates_badge'
+    );
+
+    $settingsOptions = $item->options();
+
+    \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+        'mainmenu_settings_options'
+    );
+
+    $hasSettingsError = count(
+        array_filter(
+            Session::get('settings.errors', [])
+        )
+    );
 @endphp
 <li class="nav-item dropdown pmd-topbar-settings-item">
     <span class="media-toolbar-tooltip-wrap" data-no-tooltip="1">
@@ -16,7 +31,7 @@
 
     <ul class="dropdown-menu">
         <div class='menu menu-grid row'>
-            @foreach ($item->options() as $label => [$icon, $link])
+            @foreach ($settingsOptions as $label => [$icon, $link])
                 <div class="menu-item col col-4">
                     <a class="menu-link" href="{{ $link }}" title="@lang($label)" aria-label="@lang($label)">
                         <i class="{{ $icon }}"></i>
