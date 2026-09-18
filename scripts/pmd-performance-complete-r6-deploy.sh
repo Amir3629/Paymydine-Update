@@ -46,6 +46,16 @@ rollback_if_needed() {
       fi
     done
 
+    while IFS= read -r marker; do
+      parent_marker="$(basename "$marker")"
+      parent="${parent_marker%.dir-new}"
+      parent="${parent//__/\/}"
+
+      if [ -d "$ROOT/$parent" ]; then
+        sudo rmdir "$ROOT/$parent" >/dev/null 2>&1 || true
+      fi
+    done < <(find "$STATE" -maxdepth 1 -type f -name '*.dir-new' -print 2>/dev/null)
+
     sudo systemctl reload php8.3-fpm >/dev/null 2>&1 || true
     echo "Rollback completed from: $BACKUP" >&2
   fi
@@ -115,13 +125,30 @@ DEPLOY_STARTED=1
 for file in "${FILES[@]}"; do
   staged="$STAGE/$file"
   live_tmp="$ROOT/$file.pmd-r6-$STAMP.tmp"
+  parent="$(dirname "$file")"
+
+  if [ ! -d "$parent" ]; then
+    parent_marker="$STATE/${parent//\//__}.dir-new"
+    ancestor="$(dirname "$parent")"
+
+    if [ ! -d "$ancestor" ]; then
+      echo "ERROR: expected ancestor directory missing: $ancestor" >&2
+      exit 1
+    fi
+
+    dir_uid="$(stat -c '%u' "$ancestor")"
+    dir_gid="$(stat -c '%g' "$ancestor")"
+
+    sudo install -d -o "$dir_uid" -g "$dir_gid" -m 755 "$parent"
+    touch "$parent_marker"
+    echo "CREATED DIRECTORY $parent"
+  fi
 
   if [ -f "$file" ]; then
     uid="$(stat -c '%u' "$file")"
     gid="$(stat -c '%g' "$file")"
     mode="$(stat -c '%a' "$file")"
   else
-    parent="$(dirname "$file")"
     uid="$(stat -c '%u' "$parent")"
     gid="$(stat -c '%g' "$parent")"
     mode="644"
