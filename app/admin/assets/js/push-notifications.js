@@ -175,6 +175,12 @@
         const data = await response.json();
         if (!data.ok || !Array.isArray(data.items)) return;
 
+        try {
+          window.dispatchEvent(new CustomEvent('pmd:notification:count', {
+            detail: {count: Math.max(0, Number(data.new || 0))}
+          }));
+        } catch (_) {}
+
         if (data.items.length === 0) {
           if (!this.baselineReady) this.persistCursor(0);
           return;
