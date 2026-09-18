@@ -5584,6 +5584,14 @@ body .media-manager .media-sidebar .sidebar-preview-toolbar button.btn-outline-d
 <!-- PMD_SIDEBAR_TOGGLE_TOP_GAP_V70_CSS_END -->
 <!-- PMD_ROLE_DASHBOARD_LOCK_V72_CONTEXT_START -->
 @php
+    /*
+     * PMD_PERF_R12_ADMIN_ROLE_CONTEXT_SINGLEFLIGHT
+     * Body views on clean workspaces publish this before makeLayout(); other
+     * pages resolve it here once and Side Menu 2 reuses the same request value.
+     */
+    $__pmdRoleCacheKeyR12 =
+        '_pmd_admin_role_context_r12';
+
     $__pmdRoleDash = [
         'logged_in' => false,
         'username' => null,
@@ -5591,35 +5599,79 @@ body .media-manager .media-sidebar .sidebar-preview-toolbar button.btn-outline-d
         'staff_name' => null,
         'role_code' => null,
         'role_name' => null,
+        'is_super_user' => false,
     ];
 
     try {
-        $__pmdUser = null;
+        $__pmdRoleRequestR12 = request();
+        $__pmdCachedRoleR12 =
+            $__pmdRoleRequestR12->attributes->get(
+                $__pmdRoleCacheKeyR12
+            );
 
-        if (class_exists('\Admin\Facades\AdminAuth')) {
-            $__pmdUser = \Admin\Facades\AdminAuth::getUser();
-        } elseif (class_exists('AdminAuth')) {
-            $__pmdUser = \AdminAuth::getUser();
-        }
+        if (is_array($__pmdCachedRoleR12)) {
+            $__pmdRoleDash = array_merge(
+                $__pmdRoleDash,
+                $__pmdCachedRoleR12
+            );
+        } else {
+            $__pmdUser = null;
 
-        if ($__pmdUser) {
-            $__pmdRoleDash['logged_in'] = true;
-            $__pmdRoleDash['username'] = $__pmdUser->username ?? null;
-            $__pmdRoleDash['staff_id'] = $__pmdUser->staff_id ?? null;
+            if (class_exists('\Admin\Facades\AdminAuth')) {
+                $__pmdUser =
+                    \Admin\Facades\AdminAuth::getUser();
+            } elseif (class_exists('AdminAuth')) {
+                $__pmdUser =
+                    \AdminAuth::getUser();
+            }
 
-            if (!empty($__pmdRoleDash['staff_id'])) {
-                $__pmdStaffRole = \Illuminate\Support\Facades\DB::table('staffs as s')
-                    ->leftJoin('staff_roles as r', 'r.staff_role_id', '=', 's.staff_role_id')
-                    ->where('s.staff_id', $__pmdRoleDash['staff_id'])
-                    ->select('s.staff_name', 'r.code as role_code', 'r.name as role_name')
-                    ->first();
+            if ($__pmdUser) {
+                $__pmdRoleDash['logged_in'] = true;
+                $__pmdRoleDash['username'] =
+                    $__pmdUser->username ?? null;
+                $__pmdRoleDash['staff_id'] =
+                    $__pmdUser->staff_id ?? null;
+                $__pmdRoleDash['is_super_user'] =
+                    !empty($__pmdUser->is_super_user);
 
-                if ($__pmdStaffRole) {
-                    $__pmdRoleDash['staff_name'] = $__pmdStaffRole->staff_name ?? null;
-                    $__pmdRoleDash['role_code'] = $__pmdStaffRole->role_code ?? null;
-                    $__pmdRoleDash['role_name'] = $__pmdStaffRole->role_name ?? null;
+                if (!empty($__pmdRoleDash['staff_id'])) {
+                    $__pmdStaffRole =
+                        \Illuminate\Support\Facades\DB::table('staffs as s')
+                            ->leftJoin(
+                                'staff_roles as r',
+                                'r.staff_role_id',
+                                '=',
+                                's.staff_role_id'
+                            )
+                            ->where(
+                                's.staff_id',
+                                $__pmdRoleDash['staff_id']
+                            )
+                            ->select(
+                                's.staff_name',
+                                'r.code as role_code',
+                                'r.name as role_name'
+                            )
+                            ->first();
+
+                    if ($__pmdStaffRole) {
+                        $__pmdRoleDash['staff_name'] =
+                            $__pmdStaffRole->staff_name
+                            ?? null;
+                        $__pmdRoleDash['role_code'] =
+                            $__pmdStaffRole->role_code
+                            ?? null;
+                        $__pmdRoleDash['role_name'] =
+                            $__pmdStaffRole->role_name
+                            ?? null;
+                    }
                 }
             }
+
+            $__pmdRoleRequestR12->attributes->set(
+                $__pmdRoleCacheKeyR12,
+                $__pmdRoleDash
+            );
         }
     } catch (\Throwable $e) {
         $__pmdRoleDash['error'] = $e->getMessage();
