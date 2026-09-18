@@ -69,7 +69,7 @@ trap rollback_if_needed EXIT
 cd "$ROOT"
 
 echo "=============================================================="
-echo " PayMyDine COMPLETE PERFORMANCE R6.1 DEPLOY"
+echo " PayMyDine COMPLETE PERFORMANCE R6.2 DEPLOY"
 echo " Branch: $BRANCH"
 echo " Backup: $BACKUP"
 echo "=============================================================="
@@ -97,6 +97,14 @@ for file in "${FILES[@]}"; do
 
   echo "VALIDATED $file"
 done
+
+echo
+echo "===== R6.2 FLAME COMPATIBILITY PRECHECK ====="
+if ! grep -q 'Igniter\\Flame\\Database\\Connections\\MySqlConnection' "$STAGE/app/Database/PmdCachedMySqlConnection.php"; then
+  echo "ERROR: cached connection does not preserve Flame MySqlConnection" >&2
+  exit 1
+fi
+echo "OK Flame MySqlConnection inheritance preserved"
 
 echo
 echo "===== BACKUP CURRENT LIVE FILES ====="
@@ -195,6 +203,6 @@ DEPLOY_COMPLETE=1
 
 echo
 echo "=============================================================="
-echo " R6.1 DEPLOY COMPLETE"
+echo " R6.2 DEPLOY COMPLETE"
 echo " Backup: $BACKUP"
 echo "=============================================================="
