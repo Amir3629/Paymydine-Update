@@ -4,6 +4,7 @@ namespace Admin\Services;
 
 use Admin\Facades\AdminAuth;
 use App\Helpers\SettingsHelper;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -41,23 +42,47 @@ class PmdNotificationCountV1
             }
 
             $user = AdminAuth::getUser();
+            $database = '';
+            try {
+                $database = (string)DB::connection()->getDatabaseName();
+            } catch (\Throwable $error) {
+            }
 
-            if (
-                $user
-                && !SettingsHelper::areOrderNotificationsEnabledForUser(
+            $userId = $user ? (int)$user->getKey() : 0;
+            $cacheKey = 'pmd:notification-count:v2:'.sha1(
+                $database.'|'.$userId
+            );
+
+            try {
+                $count = (int)Cache::remember(
+                    $cacheKey,
+                    now()->addSeconds(5),
+                    function () use ($user) {
+                        if (
+                            $user
+                            && !SettingsHelper::areOrderNotificationsEnabledForUser(
+                                $user
+                            )
+                        ) {
+                            return 0;
+                        }
+
+                        return (int)DB::table('notifications')
+                            ->where('status', 'new')
+                            ->count();
+                    }
+                );
+            } catch (\Throwable $error) {
+                if (
                     $user
-                )
-            ) {
-                $count = 0;
-            } else {
-                $count = (int)DB::table(
-                    'notifications'
-                )
-                    ->where(
-                        'status',
-                        'new'
-                    )
-                    ->count();
+                    && !SettingsHelper::areOrderNotificationsEnabledForUser($user)
+                ) {
+                    $count = 0;
+                } else {
+                    $count = (int)DB::table('notifications')
+                        ->where('status', 'new')
+                        ->count();
+                }
             }
 
             $count = max(
