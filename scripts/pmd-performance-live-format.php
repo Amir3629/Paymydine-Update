@@ -41,6 +41,43 @@ while (($line = fgets(STDIN)) !== false) {
         $path
     );
 
+    $stages = is_array($row['stages'] ?? null)
+        ? array_values($row['stages'])
+        : [];
+
+    if (count($stages) > 1) {
+        $parts = [];
+
+        foreach ($stages as $stage) {
+            if (!is_array($stage)) continue;
+
+            $name = (string)($stage['name'] ?? '?');
+            $ms = (float)($stage['ms'] ?? 0);
+            $stageQueries = (int)($stage['query_count'] ?? 0);
+            $stageDbMs = (float)($stage['db_ms'] ?? 0);
+
+            $parts[] = sprintf(
+                '%s=%.1fms/q%d/db%.1f',
+                $name,
+                $ms,
+                $stageQueries,
+                $stageDbMs
+            );
+        }
+
+        if ($parts) {
+            $chunks = array_chunk($parts, 4);
+
+            foreach ($chunks as $index => $chunk) {
+                printf(
+                    "             %s%s\n",
+                    $index === 0 ? 'stages: ' : '        ',
+                    implode(' | ', $chunk)
+                );
+            }
+        }
+    }
+
     if ($total >= 800) {
         $slow = $row['slowest_queries'][0] ?? null;
         if (is_array($slow) && (float)($slow['ms'] ?? 0) > 0) {
