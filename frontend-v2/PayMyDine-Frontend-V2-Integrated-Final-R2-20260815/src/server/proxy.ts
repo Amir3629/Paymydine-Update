@@ -139,6 +139,14 @@ export async function proxyBackendRequest(request: Request, backendPath: string)
   const method = request.method.toUpperCase()
   const body = ['GET', 'HEAD'].includes(method) ? undefined : await request.arrayBuffer()
 
+  const controller = new AbortController()
+  const timeoutMs = backendPath.includes('/payments/')
+    ? 15000
+    : (backendPath.includes('/guest-orders/') || backendPath.includes('/table-orders/') || backendPath.includes('/orders/'))
+      ? 12000
+      : 20000
+  const timeout = setTimeout(() => controller.abort(), timeoutMs)
+
   let response: Response
   try {
     response = await fetch(target, {
@@ -147,13 +155,19 @@ export async function proxyBackendRequest(request: Request, backendPath: string)
       headers: requestHeaders(request),
       redirect: 'manual',
       cache: 'no-store',
+      signal: controller.signal,
     })
   } catch (error) {
+    const aborted = error instanceof Error && error.name === 'AbortError'
     const message = error instanceof Error ? error.message : 'Backend request failed'
     return Response.json(
-      { success: false, error: 'PAYMYDINE_BACKEND_UNAVAILABLE', message },
-      { status: 502, headers: { 'Cache-Control': 'no-store' } },
+      aborted
+        ? { success: false, error: 'PAYMYDINE_BACKEND_TIMEOUT', message: 'The backend took too long to respond. Please retry.' }
+        : { success: false, error: 'PAYMYDINE_BACKEND_UNAVAILABLE', message },
+      { status: aborted ? 504 : 502, headers: { 'Cache-Control': 'no-store' } },
     )
+  } finally {
+    clearTimeout(timeout)
   }
 
   return new Response(response.body, {
