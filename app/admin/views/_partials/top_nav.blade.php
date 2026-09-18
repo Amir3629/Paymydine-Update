@@ -67,6 +67,7 @@ $invalidThumbPatterns = [
 try {
     $pmdHost = (string)request()->getHost();
     $pmdTenant = strtolower(explode('.', $pmdHost)[0] ?? '');
+    $pmdValue = '';
 
     $pmdNormalizeDashboardLogo = function ($value) use ($pmdTenant) {
         $value = trim((string)$value);
@@ -106,6 +107,21 @@ try {
 
         $imgSrcDashboard = $pmdNormalizeDashboardLogo($pmdValue);
     }
+
+    /*
+     * PMD_PERF_R12_DASHBOARD_LOGO_SINGLEFLIGHT
+     * The legacy top-nav has two logo render locations. Publish the raw value
+     * after the first tenant lookup so the second location does not repeat
+     * information_schema + settings/logos queries.
+     */
+    request()->attributes->set(
+        '_pmd_dashboard_logo_raw_r12',
+        $pmdValue
+    );
+    request()->attributes->set(
+        '_pmd_dashboard_logo_tenant_r12',
+        $pmdTenant
+    );
 } catch (\Throwable $pmdLogoError) {
     // Keep existing value if this fallback fails.
 }
@@ -830,32 +846,18 @@ try {
         return 'https://' . $pmdTenant . '.paymydine.com/assets/media/uploads/' . $value;
     };
 
-    $pmdValue = '';
+    $pmdValue = trim((string)request()->attributes->get(
+        '_pmd_dashboard_logo_raw_r12',
+        ''
+    ));
 
-    if ($pmdTenant !== '' && !in_array($pmdTenant, ['www', 'paymydine'], true) && preg_match('/^[A-Za-z0-9_]+$/', $pmdTenant)) {
-        $schemaExists = DB::selectOne(
-            'SELECT SCHEMA_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = ? LIMIT 1',
-            [$pmdTenant]
-        );
+    $cachedTenantR12 = strtolower(trim((string)request()->attributes->get(
+        '_pmd_dashboard_logo_tenant_r12',
+        ''
+    )));
 
-        if ($schemaExists) {
-            $safeDb = str_replace('`', '``', $pmdTenant);
-
-            $row = DB::selectOne(
-                "SELECT value FROM `{$safeDb}`.`ti_settings` WHERE item = ? ORDER BY setting_id DESC LIMIT 1",
-                ['dashboard_logo']
-            );
-
-            $pmdValue = $row ? trim((string)$row->value) : '';
-
-            if ($pmdValue === '') {
-                $row = DB::selectOne(
-                    "SELECT dashboard_logo FROM `{$safeDb}`.`ti_logos` ORDER BY id DESC LIMIT 1"
-                );
-
-                $pmdValue = $row ? trim((string)$row->dashboard_logo) : '';
-            }
-        }
+    if ($cachedTenantR12 !== '') {
+        $pmdTenant = $cachedTenantR12;
     }
 
     $imgSrcDashboard = $pmdNormalizeTopLeftDashboardLogo($pmdValue);
