@@ -878,23 +878,8 @@
         
         {{-- PMD_DASHBOARDLAB_SAME_PAGE_RESERVATION_CALENDAR_V2_BOOT --}}
         @php
-            $pmdDashboardScheduleCssPath =
-                base_path(
-                    'app/admin/assets/css/'.
-                    'pmd-reservations-lab-schedule-v1.css'
-                );
-
-            $pmdDashboardScheduleCssVersion =
-                is_file($pmdDashboardScheduleCssPath)
-                    ? substr(
-                        hash_file(
-                            'sha256',
-                            $pmdDashboardScheduleCssPath
-                        ),
-                        0,
-                        16
-                    )
-                    : '1';
+            // PMD_PERF_R8_RELEASE_ASSET_VERSION
+            $pmdDashboardScheduleCssVersion = 'r8-20260918';
         @endphp
 
         <link
@@ -919,59 +904,12 @@
         
         {{-- PMD_DASHBOARDLAB_SAME_PAGE_RESERVATION_CALENDAR_V2_RUNTIME --}}
         @php
-            $pmdDashboardComposerCssPath =
-                base_path(
-                    'app/admin/assets/css/'.
-                    'pmd-reservation-composer-v1.css'
-                );
-
-            $pmdDashboardComposerJsPath =
-                base_path(
-                    'app/admin/assets/js/'.
-                    'pmd-reservation-composer-v1.js'
-                );
-
-            $pmdDashboardScheduleJsPath =
-                base_path(
-                    'app/admin/assets/js/'.
-                    'pmd-reservations-lab-schedule-v1.js'
-                );
-
-            $pmdDashboardComposerCssVersion =
-                is_file($pmdDashboardComposerCssPath)
-                    ? substr(
-                        hash_file(
-                            'sha256',
-                            $pmdDashboardComposerCssPath
-                        ),
-                        0,
-                        16
-                    )
-                    : '1';
-
-            $pmdDashboardComposerJsVersion =
-                is_file($pmdDashboardComposerJsPath)
-                    ? substr(
-                        hash_file(
-                            'sha256',
-                            $pmdDashboardComposerJsPath
-                        ),
-                        0,
-                        16
-                    )
-                    : '1';
-
-            $pmdDashboardScheduleJsVersion =
-                is_file($pmdDashboardScheduleJsPath)
-                    ? substr(
-                        hash_file(
-                            'sha256',
-                            $pmdDashboardScheduleJsPath
-                        ),
-                        0,
-                        16
-                    )
-                    : '1';
+            // PMD_PERF_R8_RELEASE_ASSET_VERSION
+            // These files are deployment artifacts. A release version is enough
+            // to invalidate browser caches and avoids three SHA-256 file reads.
+            $pmdDashboardComposerCssVersion = 'r8-20260918';
+            $pmdDashboardComposerJsVersion = 'r8-20260918';
+            $pmdDashboardScheduleJsVersion = 'r8-20260918';
         @endphp
 
         <link
