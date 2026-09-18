@@ -1661,13 +1661,22 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
         // PMD_CLEAN_WORKSPACE_LOCATION_CONTEXT_V1
         // One explicit location identity for shared Floor reservation-busy reads.
         $this->vars['pmdCleanWorkspaceLocationId'] = $pmdSharedFloorLocationId;
-        $this->vars['pmdCleanWorkspaceReservationBusyWindows'] =
+
+        $pmdReservationBusyFirstPaint =
             $this->pmdUsesFloor()
-            && $this->pmdReservationBusyFirstPaint()
+            && $this->pmdReservationBusyFirstPaint();
+
+        $this->vars['pmdCleanWorkspaceReservationBusyWindows'] =
+            $pmdReservationBusyFirstPaint
                 ? $this->pmdFloorReservationBusyWindows(
                     $pmdSharedFloorLocationId
                 )
                 : [];
+
+        $this->vars['pmdCleanWorkspaceReservationBusyDeferred'] =
+            $this->pmdUsesFloor()
+            && !$pmdReservationBusyFirstPaint;
+
         $this->vars['pmdCleanWorkspaceKpiCookie'] = $cookieName;
         $this->vars['pmdCleanWorkspaceKpiStorage'] = 'pmd:clean:'.$key.':kpis:v1';
         $this->vars['pmdCleanWorkspaceKpiCards'] = $kpiCards;
