@@ -589,23 +589,13 @@ HTML;
             $pmdCashierFloorBootstrap;
 
         /*
-         * PMD_CASHIER_RESERVATION_CALENDAR_PAYLOAD_V1
+         * PMD_PERF_R7_CASHIER_NO_HIDDEN_CALENDAR
          *
-         * Cashier hosts the SAME ReservationsLab Calendar/Hour engine.
-         * No second Calendar data source.
+         * Cashier is a Floor + Orders + Reservation Composer surface, not a
+         * Calendar/Hour surface. Do not build the full ReservationsLab schedule
+         * payload on every Cashier request; the canonical Composer remains
+         * available independently below.
          */
-        try {
-            $this->vars['pmdReservationsLabSchedule'] =
-                app(
-                    \Admin\Services\PmdReservationsLabScheduleV1::class
-                )->payload(
-                    $shared->locationId(),
-                    $locale
-                );
-        } catch (\Throwable $error) {
-            $this->vars['pmdReservationsLabSchedule'] = [];
-        }
-
         $isGerman = strtolower($locale) === 'de';
 
         // PMD_CASHIER_HISTORY_MODE_R46
