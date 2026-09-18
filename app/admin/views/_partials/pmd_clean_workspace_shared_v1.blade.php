@@ -16,10 +16,12 @@
     $pmdCleanWorkspaceManagerCalendarSurface =
         (($pmdCleanWorkspacePath ?? '') === '/admin/managerlab');
 
+    // PMD_PERF_R7_CASHIER_NO_HIDDEN_CALENDAR
+    // Cashier may open the canonical Reservation Composer, but it is not a
+    // Calendar/Hour surface. Keep Calendar bootstrap only on Reservations/Manager.
     $pmdCleanWorkspaceCalendarSurface =
         $pmdCleanWorkspaceReservationsSurface
-        || $pmdCleanWorkspaceManagerCalendarSurface
-        || $pmdCleanWorkspaceCashierSurface;
+        || $pmdCleanWorkspaceManagerCalendarSurface;
 
     /*
      * PMD_ACCOUNTANT_HEADER_NO_CALENDAR_V1
@@ -1147,7 +1149,7 @@ html body.page.pmd-clean-workspace-page #pmd-dashboard-lab {
                 @include($pmdCleanWorkspaceAfterFloorPartial)
             @endif
 
-            @if($pmdCleanWorkspaceManagerCalendarSurface || $pmdCleanWorkspaceCashierSurface)
+            @if($pmdCleanWorkspaceCalendarSurface)
                 {{-- PMD_MANAGER_CASHIER_CALENDAR_BOOTSTRAP_SHARED_V2 --}}
                 @php
                     $pmdManagerCalendarCssPath =
