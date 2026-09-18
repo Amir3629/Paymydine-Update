@@ -11,7 +11,8 @@ DEPLOY_STARTED=0
 DEPLOY_COMPLETE=0
 
 FILES=(
-  "app/Services/PmdRequestSchemaCache.php"
+  "app/Database/PmdCachedMySqlBuilder.php"
+  "app/Database/PmdCachedMySqlConnection.php"
   "app/admin/ServiceProvider.php"
   "app/admin/controllers/PmdWaiterDashboardV150.php"
 )
@@ -58,7 +59,7 @@ trap rollback_if_needed EXIT
 cd "$ROOT"
 
 echo "=============================================================="
-echo " PayMyDine COMPLETE PERFORMANCE R6 DEPLOY"
+echo " PayMyDine COMPLETE PERFORMANCE R6.1 DEPLOY"
 echo " Branch: $BRANCH"
 echo " Backup: $BACKUP"
 echo "=============================================================="
@@ -167,6 +168,6 @@ DEPLOY_COMPLETE=1
 
 echo
 echo "=============================================================="
-echo " R6 DEPLOY COMPLETE"
+echo " R6.1 DEPLOY COMPLETE"
 echo " Backup: $BACKUP"
 echo "=============================================================="
