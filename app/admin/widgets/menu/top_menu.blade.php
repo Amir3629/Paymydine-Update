@@ -28,6 +28,10 @@
         ],
         true
     );
+
+    \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+        'mainmenu_notification_seed'
+    );
 @endphp
 
 {{-- PMD_LAB_HEADER_NOTIFICATION_SOURCE_PARENT_SCOPED_V2 --}}
