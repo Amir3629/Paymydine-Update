@@ -16,7 +16,7 @@ trait PmdWaiterPosPaymentSummaryConcern
     protected function buildPaymentSummary(Orders_model $order, bool $insideTransaction = false): array
     {
         $orderId = (int)$order->getKey();
-        $rawItems = Schema::hasTable('order_menus')
+        $rawItems = $this->pmdPosHasTable('order_menus')
             ? DB::table('order_menus')->where('order_id', $orderId)->orderBy('order_menu_id')->get()
             : collect();
 
@@ -26,16 +26,16 @@ trait PmdWaiterPosPaymentSummaryConcern
         }
 
         $canonicalTotal = null;
-        if (Schema::hasTable('order_totals')) {
+        if ($this->pmdPosHasTable('order_totals')) {
             $canonicalTotal = DB::table('order_totals')->where('order_id', $orderId)->where('code', 'total')->value('value');
         }
         $orderTotal = round((float)($canonicalTotal ?? $order->order_total ?? $itemSubtotal), 4);
         $grossRatio = $itemSubtotal > 0 ? max(0, round($orderTotal / $itemSubtotal, 8)) : 1.0;
 
         $paidQtyByItem = [];
-        if (Schema::hasTable('order_payment_transactions') && Schema::hasTable('order_payment_transaction_items')) {
-            $transactionColumns = Schema::getColumnListing('order_payment_transactions');
-            $allocationColumns = Schema::getColumnListing('order_payment_transaction_items');
+        if ($this->pmdPosHasTable('order_payment_transactions') && $this->pmdPosHasTable('order_payment_transaction_items')) {
+            $transactionColumns = $this->pmdPosColumns('order_payment_transactions');
+            $allocationColumns = $this->pmdPosColumns('order_payment_transaction_items');
 
             $transactionIdColumn = in_array('id', $transactionColumns, true)
                 ? 'id'
@@ -251,10 +251,10 @@ trait PmdWaiterPosPaymentSummaryConcern
 
     protected function paymentTransactions(int $orderId): array
     {
-        if (!Schema::hasTable('order_payment_transactions')) {
+        if (!$this->pmdPosHasTable('order_payment_transactions')) {
             return [];
         }
-        $columns = Schema::getColumnListing('order_payment_transactions');
+        $columns = $this->pmdPosColumns('order_payment_transactions');
         $rows = DB::table('order_payment_transactions')->where('order_id', $orderId)->orderByDesc('id')->limit(50)->get();
         return $rows->map(function ($row) use ($columns) {
             $r = (array)$row;
