@@ -13,16 +13,25 @@ use Illuminate\Support\Facades\DB;
  */
 class PmdKitchenOperationsSchemaService
 {
+    /* PMD_PERF_R5_REQUEST_READY_CACHE */
+    private array $pmdReadyCache = [];
     public function ready(?string $connection = null): bool
     {
+        $cacheKey = $connection ?? '__default__';
+
+        if (array_key_exists($cacheKey, $this->pmdReadyCache)) {
+            return $this->pmdReadyCache[$cacheKey];
+        }
+
         try {
             $schema = DB::connection($connection)->getSchemaBuilder();
 
-            return $schema->hasTable('pmd_operational_people')
+            return $this->pmdReadyCache[$cacheKey] =
+                $schema->hasTable('pmd_operational_people')
                 && $schema->hasTable('pmd_operational_shifts')
                 && $schema->hasTable('pmd_operational_shift_people');
         } catch (\Throwable $error) {
-            return false;
+            return $this->pmdReadyCache[$cacheKey] = false;
         }
     }
 
