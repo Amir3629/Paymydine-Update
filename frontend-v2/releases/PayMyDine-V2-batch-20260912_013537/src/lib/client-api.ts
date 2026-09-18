@@ -4,7 +4,8 @@ type JsonObject = Record<string, unknown>
 
 async function jsonRequest<T = JsonObject>(url: string, init?: RequestInit): Promise<T> {
   const controller = new AbortController()
-  const timeout = window.setTimeout(() => controller.abort(), 12000)
+  const timeoutMs = url.includes('/orders/pay-existing') ? 20000 : 12000
+  const timeout = window.setTimeout(() => controller.abort(), timeoutMs)
 
   try {
     const response = await fetch(url, {
