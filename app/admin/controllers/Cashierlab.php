@@ -1645,6 +1645,10 @@ HTML;
             }
         };
 
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'cashier_orders_setup'
+        );
+
         try {
             $payload = $source->pmdCashierOrdersForRange(
                 $from,
@@ -1669,6 +1673,10 @@ HTML;
                 ],
             ];
         }
+
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'cashier_orders_build'
+        );
 
         $text = $isGerman
             ? [
@@ -2021,6 +2029,10 @@ HTML;
         );
         $this->vars['pmdCashierOrdersRange']['extra_query'] =
             $historyMode ? ['pmd_history' => 1] : [];
+
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'cashier_prepare_tail'
+        );
     }
 
     private function pmdResolveDateRange(): array
