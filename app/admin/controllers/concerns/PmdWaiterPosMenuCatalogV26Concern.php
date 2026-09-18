@@ -3,6 +3,7 @@
 namespace Admin\Controllers\Concerns;
 
 use Admin\Models\Menus_model;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
@@ -16,6 +17,33 @@ use Illuminate\Support\Facades\Schema;
 trait PmdWaiterPosMenuCatalogV26Concern
 {
     protected function menuPayload(int $locationId): array
+    {
+        /*
+         * PMD_PERF_R3_POS_MENU_SHORT_CACHE
+         *
+         * Building the POS catalogue hydrates foods, categories, options,
+         * allergens and images. The same catalogue is requested repeatedly
+         * while opening tables. A very short tenant/location cache removes that
+         * repeated work without making menu edits meaningfully stale.
+         */
+        $database = '';
+        try {
+            $database = (string)DB::connection()->getDatabaseName();
+        } catch (\Throwable $error) {
+        }
+
+        $key = 'pmd:waiter-pos:menu:v26:'.sha1($database.'|'.$locationId);
+
+        try {
+            return Cache::remember($key, now()->addSeconds(12), function () use ($locationId) {
+                return $this->buildMenuPayloadV26($locationId);
+            });
+        } catch (\Throwable $error) {
+            return $this->buildMenuPayloadV26($locationId);
+        }
+    }
+
+    protected function buildMenuPayloadV26(int $locationId): array
     {
         $with = [
             'categories',
