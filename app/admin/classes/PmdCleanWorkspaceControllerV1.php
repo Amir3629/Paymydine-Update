@@ -1457,6 +1457,18 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
 
     public function index()
     {
+        /*
+         * PMD_PERF_R8_CLEAN_WORKSPACE_HEAD_FASTPATH
+         *
+         * HEAD probes only need authenticated/authorized route reachability.
+         * Controller permissions are enforced before index(); do not build
+         * Floor/KPI/role payloads that the HTTP layer will discard.
+         */
+        if (request()->isMethod('HEAD')) {
+            return response('', 200)
+                ->header('X-PMD-Head-Fastpath', 'clean-workspace-r8');
+        }
+
         /** @var PmdCleanWorkspaceSharedV1 $shared */
         $shared = app(PmdCleanWorkspaceSharedV1::class);
         $locale = $shared->locale();
