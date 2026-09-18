@@ -1480,6 +1480,10 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
                 ->header('X-PMD-Head-Fastpath', 'clean-workspace-r8');
         }
 
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'workspace_entry'
+        );
+
         /** @var PmdCleanWorkspaceSharedV1 $shared */
         $shared = app(PmdCleanWorkspaceSharedV1::class);
         $locale = $shared->locale();
@@ -1521,6 +1525,10 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
             ? $shared->floorBootstrap()
             : [];
 
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'floor_bootstrap'
+        );
+
         /*
          * PMD_CLEAN_WORKSPACE_USER_PAGE_FLOOR_VIEW_V1
          *
@@ -1552,6 +1560,10 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
             }
         }
 
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'floor_preferences'
+        );
+
         // PMD_R66_SHARED_FLOOR_PHYSICAL_STATUS_AUTHORITY
         // Payment/KDS state is not physical occupancy. Re-apply the canonical
         // tables.operational_status after all Floor view-preference transforms
@@ -1562,6 +1574,10 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
                     $floorBootstrap
                 );
         }
+
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'physical_status'
+        );
 
         $pmdSharedFloorLocationId = $this->pmdUsesFloor()
             ? $this->pmdFloorTableManagerLocationId()
@@ -1617,6 +1633,10 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
             )
             : [];
 
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'floor_registry'
+        );
+
         $mode = $this->pmdKpiMode();
 
         if ($mode === 'reservations') {
@@ -1646,6 +1666,10 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
                 'tr'
             );
         }
+
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'kpi'
+        );
 
         $cookieName = 'pmd_'.$key.'_lab_kpis';
         $selection = $shared->readSelection(
@@ -1735,10 +1759,22 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
         $this->vars['pmdCleanWorkspaceFloorTableMap'] = $floorRegistrySnapshot['table_floor_map'] ?? [];
         $this->vars['pmdCleanWorkspaceFloorCookie'] = $floorRegistrySnapshot['cookie_name'] ?? '';
 
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'workspace_common'
+        );
+
         $this->pmdPrepareWorkspaceVars($shared, $locale, $floorBootstrap);
+
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'workspace_prepare'
+        );
 
         // Dashboard2/Floor data controllers may change AdminMenu context.
         $this->applyMenuContext();
+
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'controller_ready'
+        );
 
         /*
          * PMD_CLEAN_WORKSPACE_LIVE_ENDPOINT_V1
