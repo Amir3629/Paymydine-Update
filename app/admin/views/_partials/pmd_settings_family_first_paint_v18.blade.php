@@ -1301,7 +1301,7 @@ body
         margin-left:
             calc(
                 var(--pmd-sm2-gap, 14px)
-                + var(--pmd-sm2-expanded, 184px)
+                + var(--pmd-sm2-expanded, 160px)
             )
             !important;
 
@@ -1311,7 +1311,7 @@ body
             calc(
                 100vw
                 - var(--pmd-sm2-gap, 14px)
-                - var(--pmd-sm2-expanded, 184px)
+                - var(--pmd-sm2-expanded, 160px)
             )
             !important;
 
