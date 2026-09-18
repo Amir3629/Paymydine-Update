@@ -1102,8 +1102,69 @@ Route::group([
         $selectedItemsPayload = collect($request->input('selected_items', []));
         $transactionId = null;
 
+        /*
+         * PMD_R69_STRIPE_SERVER_VERIFICATION
+         *
+         * A QR guest order may become operational only after Stripe itself says
+         * the referenced PaymentIntent succeeded. The browser result alone is
+         * not payment authority.
+         */
+        $stripeVerifiedIntent = null;
+        if ($normalizedProviderCode === 'stripe') {
+            $stripePaymentIntentId = trim((string)$request->input('payment_reference', ''));
+            if ($stripePaymentIntentId === '' || !str_starts_with($stripePaymentIntentId, 'pi_')) {
+                return response()->json(['success' => false, 'error' => 'Stripe payment reference is required before settlement.'], 422);
+            }
+
+            $stripePayment = \Admin\Models\Payments_model::isEnabled()
+                ->where('code', 'stripe')
+                ->first();
+            if (!$stripePayment) {
+                return response()->json(['success' => false, 'error' => 'Stripe is not configured.'], 503);
+            }
+
+            $stripeData = (array)$stripePayment->data;
+            $stripeMode = (string)($stripeData['transaction_mode'] ?? 'test');
+            $stripeSecretKey = $stripeMode === 'live'
+                ? (string)($stripeData['live_secret_key'] ?? '')
+                : (string)($stripeData['test_secret_key'] ?? '');
+
+            if ($stripeSecretKey === '') {
+                return response()->json(['success' => false, 'error' => 'Stripe secret key is not configured.'], 503);
+            }
+
+            try {
+                \Stripe\Stripe::setApiKey($stripeSecretKey);
+                $stripeCurl = new \Stripe\HttpClient\CurlClient();
+                $stripeCurl->setConnectTimeout(5);
+                $stripeCurl->setTimeout(10);
+                \Stripe\ApiRequestor::setHttpClient($stripeCurl);
+                $stripeVerifiedIntent = \Stripe\PaymentIntent::retrieve($stripePaymentIntentId);
+            } catch (\Throwable $e) {
+                \Log::warning('PMD_R69_STRIPE_PAY_EXISTING_VERIFY_FAILED', [
+                    'order_id' => (int)$order->order_id,
+                    'payment_intent_id' => $stripePaymentIntentId,
+                    'message' => $e->getMessage(),
+                ]);
+                return response()->json(['success' => false, 'error' => 'Unable to verify the Stripe payment. Do not pay again; refresh payment status.'], 422);
+            }
+
+            if ((string)($stripeVerifiedIntent->status ?? '') !== 'succeeded') {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Stripe has not completed this payment.',
+                    'stripe_status' => (string)($stripeVerifiedIntent->status ?? 'unknown'),
+                ], 422);
+            }
+
+            $stripeMetadataOrderId = (int)($stripeVerifiedIntent->metadata->order_id ?? 0);
+            if ($stripeMetadataOrderId > 0 && $stripeMetadataOrderId !== (int)$order->order_id) {
+                return response()->json(['success' => false, 'error' => 'Stripe payment does not belong to this order.'], 409);
+            }
+        }
+
         try {
-            $result = \Illuminate\Support\Facades\DB::transaction(function () use ($request, $order, $normalizedPaymentMethod, $normalizedProviderCode, $paidStatusId, $hasSplitTables, $selectedItemsPayload, $allocationColumn, $allocationMode, $hasAllocOrderMenuColumn, $hasAllocMenuIdColumn, &$transactionId, $r35IntentId, $r35SplitMode) {
+            $result = \Illuminate\Support\Facades\DB::transaction(function () use ($request, $order, $normalizedPaymentMethod, $normalizedProviderCode, $paidStatusId, $hasSplitTables, $selectedItemsPayload, $allocationColumn, $allocationMode, $hasAllocOrderMenuColumn, $hasAllocMenuIdColumn, &$transactionId, $r35IntentId, $r35SplitMode, $stripeVerifiedIntent) {
                 $lockedOrder = \Admin\Models\Orders_model::query()
                     ->where('order_id', $order->order_id)
                     ->lockForUpdate()
@@ -1265,6 +1326,24 @@ Route::group([
                         if (abs($requestedAmount - $payableAmount) > 0.02) throw new \InvalidArgumentException('Selected items amount mismatch');
                     }
                 }
+                // PMD_R69_STRIPE_EXACT_AMOUNT_GUARD
+                if ($normalizedProviderCode === 'stripe') {
+                    if (!$stripeVerifiedIntent) {
+                        throw new \InvalidArgumentException('Stripe payment verification is missing.');
+                    }
+
+                    $stripeCurrency = strtolower((string)($stripeVerifiedIntent->currency ?? ''));
+                    $stripeZeroDecimalCurrencies = ['bif','clp','djf','gnf','jpy','kmf','krw','mga','pyg','rwf','ugx','vnd','vuv','xaf','xof','xpf'];
+                    $stripeExpectedMinor = in_array($stripeCurrency, $stripeZeroDecimalCurrencies, true)
+                        ? (int)round($payableAmount)
+                        : (int)round($payableAmount * 100);
+                    $stripeReceivedMinor = (int)($stripeVerifiedIntent->amount_received ?? $stripeVerifiedIntent->amount ?? 0);
+
+                    if ($stripeExpectedMinor <= 0 || $stripeReceivedMinor !== $stripeExpectedMinor) {
+                        throw new \InvalidArgumentException('Stripe payment amount does not match this order payment.');
+                    }
+                }
+
                 // SQUARE_PAY_EXISTING_SERVER_VERIFIED_R1
                 if ($normalizedProviderCode === 'square') {
                     $squarePaymentId = trim((string)$request->input('payment_reference', ''));
