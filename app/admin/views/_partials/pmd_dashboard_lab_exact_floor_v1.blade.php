@@ -847,6 +847,7 @@
     {{-- PMD_FLOOR_LAYOUT_EDIT_OWNER_MANAGER_ONLY_V2 --}}
     data-pmd-floor-layout-edit-allowed="{{ $pmdFloorCanManageTables ? '1' : '0' }}"
     data-pmd-dashboard-lab-exact-floor="v1"
+    data-pmd-reservation-busy-deferred="{{ !empty($deferReservationBusy) ? '1' : '0' }}"
     data-pmd-active-floor-id="{{ $pmdFloorActiveId }}"
     data-pmd-active-floor-name="{{ $pmdFloorActiveName }}"
     data-size="large"
