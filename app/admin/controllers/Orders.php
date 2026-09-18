@@ -717,6 +717,7 @@ class Orders extends \Admin\Classes\AdminController
             'status',
             'location',
             'address',
+            'address.country',
             'payment_method',
             'assignee',
             'assignee_group',
