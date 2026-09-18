@@ -51,6 +51,25 @@ class ServiceProvider extends AppServiceProvider
         parent::register('admin');
 
         /*
+         * PMD_PERF_R6_REQUEST_SCHEMA_CACHE
+         *
+         * Orders/Cashier were spending ~130 queries per request repeating
+         * identical information_schema table/column probes across multiple
+         * Admin controllers/services. Replace the Admin Schema facade root
+         * with a request-local proxy that always resolves the CURRENT default
+         * tenant schema builder and memoizes only metadata reads.
+         */
+        if ($this->app->runningInAdmin()) {
+            $this->app->singleton('db.schema', function () {
+                return new \App\Services\PmdRequestSchemaCache();
+            });
+
+            \Illuminate\Support\Facades\Schema::clearResolvedInstance(
+                'db.schema'
+            );
+        }
+
+        /*
          * PMD_PERF_R4_REQUEST_SINGLETONS
          *
          * These services are resolved repeatedly by the Admin security and
