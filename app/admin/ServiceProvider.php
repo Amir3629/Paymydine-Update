@@ -51,21 +51,30 @@ class ServiceProvider extends AppServiceProvider
         parent::register('admin');
 
         /*
-         * PMD_PERF_R6_REQUEST_SCHEMA_CACHE
+         * PMD_PERF_R6_1_MYSQL_SCHEMA_CACHE
          *
-         * Orders/Cashier were spending ~130 queries per request repeating
-         * identical information_schema table/column probes across multiple
-         * Admin controllers/services. Replace the Admin Schema facade root
-         * with a request-local proxy that always resolves the CURRENT default
-         * tenant schema builder and memoizes only metadata reads.
+         * Laravel 8's Schema facade bypasses an IoC "db.schema" binding and
+         * directly calls DB::connection()->getSchemaBuilder(). Register a
+         * MySQL connection resolver instead, so the tenant connection rebuilt
+         * by TenantDatabaseMiddleware returns one cached schema builder for
+         * the whole request. This catches both Schema::... calls and direct
+         * $connection->getSchemaBuilder() calls.
+         *
+         * The resolver is registered only for Admin requests. The actual tenant
+         * connection is purged/reconnected later by TenantDatabaseMiddleware,
+         * so each request/tenant receives a fresh isolated cache.
          */
         if ($this->app->runningInAdmin()) {
-            $this->app->singleton('db.schema', function () {
-                return new \App\Services\PmdRequestSchemaCache();
-            });
-
-            \Illuminate\Support\Facades\Schema::clearResolvedInstance(
-                'db.schema'
+            \Illuminate\Database\Connection::resolverFor(
+                'mysql',
+                static function ($connection, $database, $prefix, $config) {
+                    return new \App\Database\PmdCachedMySqlConnection(
+                        $connection,
+                        $database,
+                        $prefix,
+                        $config
+                    );
+                }
             );
         }
 
