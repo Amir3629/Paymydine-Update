@@ -28,6 +28,11 @@ use Illuminate\Validation\ValidationException;
  */
 class Shifts extends AdminController
 {
+    /* PMD_PERF_R5_SHIFT_SETTING_CACHE */
+    private array $pmdSettingValueCache = [];
+    private ?bool $pmdSettingsTableReady = null;
+    private ?bool $pmdSettingsHasId = null;
+
     protected $requiredPermissions = 'Admin.Dashboard';
 
     public function __construct()
@@ -1208,11 +1213,34 @@ class Shifts extends AdminController
 
     private function settingValue(string $key, $default)
     {
+        if (array_key_exists($key, $this->pmdSettingValueCache)) {
+            $value = $this->pmdSettingValueCache[$key];
+            return ($value === null || $value === '') ? $default : $value;
+        }
+
         try {
-            if (!Schema::hasTable('settings')) return $default;
+            if ($this->pmdSettingsTableReady === null) {
+                $this->pmdSettingsTableReady = Schema::hasTable('settings');
+            }
+
+            if (!$this->pmdSettingsTableReady) {
+                return $default;
+            }
+
+            if ($this->pmdSettingsHasId === null) {
+                $this->pmdSettingsHasId =
+                    Schema::hasColumn('settings', 'setting_id');
+            }
+
             $query = DB::table('settings')->where('item', $key);
-            if (Schema::hasColumn('settings', 'setting_id')) $query->orderByDesc('setting_id');
+
+            if ($this->pmdSettingsHasId) {
+                $query->orderByDesc('setting_id');
+            }
+
             $value = $query->value('value');
+            $this->pmdSettingValueCache[$key] = $value;
+
             return ($value === null || $value === '') ? $default : $value;
         } catch (\Throwable $error) {
             return $default;
