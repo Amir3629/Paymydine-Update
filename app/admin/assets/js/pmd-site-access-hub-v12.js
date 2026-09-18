@@ -4,6 +4,18 @@
 (function () {
     'use strict';
 
+    /* PMD_PERF_R5_SIGNIN_SINGLE_OWNER
+     * Admin navigation can re-evaluate this asset without a full browser
+     * process restart. A generation token guarantees that only the newest
+     * runtime is allowed to keep polling the authenticated sign-in endpoint.
+     */
+    var generation = (Number(window.PMDSiteAccessHubV12Generation || 0) + 1);
+    window.PMDSiteAccessHubV12Generation = generation;
+
+    function isCurrentGeneration() {
+        return Number(window.PMDSiteAccessHubV12Generation || 0) === generation;
+    }
+
     var path = String(window.location.pathname || '');
     if (path.indexOf('/admin') < 0) return;
 
@@ -226,6 +238,12 @@
     }
 
     function refresh() {
+        if (!isCurrentGeneration()) {
+            stopped = true;
+            if (pollTimer) window.clearTimeout(pollTimer);
+            pollTimer = null;
+            return Promise.resolve();
+        }
         if (stopped || document.visibilityState === 'hidden') return Promise.resolve();
 
         var lite = !!lastPayload && !open;
@@ -267,6 +285,11 @@
         if (stopped) return;
 
         pollTimer = window.setTimeout(function () {
+            if (!isCurrentGeneration()) {
+                stopped = true;
+                pollTimer = null;
+                return;
+            }
             if (document.visibilityState === 'hidden') {
                 schedulePoll(IDLE_POLL_MS);
                 return;
@@ -287,6 +310,7 @@
     });
 
     window.setInterval(function () {
+        if (!isCurrentGeneration()) return;
         if (!root || !lastPayload) return;
         var node = root.querySelector('[data-time]');
         updateCountdown(node);
@@ -294,6 +318,7 @@
     }, 1000);
 
     document.addEventListener('visibilitychange', function () {
+        if (!isCurrentGeneration()) return;
         if (document.visibilityState === 'visible') {
             refresh().finally(function () {
                 schedulePoll(nextPollDelay());
