@@ -140,11 +140,13 @@ export async function proxyBackendRequest(request: Request, backendPath: string)
   const body = ['GET', 'HEAD'].includes(method) ? undefined : await request.arrayBuffer()
 
   const controller = new AbortController()
-  const timeoutMs = backendPath.includes('/payments/')
-    ? 15000
-    : (backendPath.includes('/guest-orders/') || backendPath.includes('/table-orders/') || backendPath.includes('/orders/'))
-      ? 12000
-      : 20000
+  const timeoutMs = backendPath.includes('/orders/pay-existing')
+    ? 20000
+    : backendPath.includes('/payments/')
+      ? 15000
+      : (backendPath.includes('/guest-orders/') || backendPath.includes('/table-orders/') || backendPath.includes('/orders/'))
+        ? 12000
+        : 20000
   const timeout = setTimeout(() => controller.abort(), timeoutMs)
 
   let response: Response
