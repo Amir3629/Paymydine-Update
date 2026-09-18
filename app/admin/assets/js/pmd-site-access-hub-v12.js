@@ -35,8 +35,8 @@
     var expiresAt = 0;
     var lastPayload = null;
     var pollTimer = null;
-    var IDLE_POLL_MS = 10000;
-    var ACTIVE_POLL_MS = 2000;
+    var IDLE_POLL_MS = 15000;
+    var ACTIVE_POLL_MS = 5000;
 
     function formatCode(value) {
         var clean = String(value || '').replace(/\D+/g, '').slice(0, 6);
@@ -228,7 +228,10 @@
     function refresh() {
         if (stopped || document.visibilityState === 'hidden') return Promise.resolve();
 
-        return fetch(dataUrl, {
+        var lite = !!lastPayload && !open;
+        var requestUrl = dataUrl + (lite ? '?lite=1' : '');
+
+        return fetch(requestUrl, {
             credentials: 'same-origin',
             headers: {
                 'Accept': 'application/json',
@@ -243,7 +246,12 @@
             }
             return response.ok ? response.json() : null;
         }).then(function (data) {
-            if (data && data.ok) render(data);
+            if (data && data.ok) {
+                if (data.lite && lastPayload) {
+                    data = Object.assign({}, lastPayload, data);
+                }
+                render(data);
+            }
         }).catch(function () {});
     }
 

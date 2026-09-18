@@ -8,6 +8,7 @@ use App\Helpers\NotificationHelper;
 use Illuminate\Routing\Controller;
 use Admin\Models\Notifications_model;
 use Admin\Models\General_staff_notes_model;
+use Admin\Services\PmdNotificationCountV1;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -18,15 +19,7 @@ class NotificationsApi extends Controller
     public function count()
     {
         try {
-            $user = AdminAuth::getUser();
-            
-            // If user has notifications disabled, return 0
-            if ($user && !SettingsHelper::areOrderNotificationsEnabledForUser($user)) {
-                return response()->json(['ok' => true, 'new' => 0]);
-            }
-            
-            // Use the correct table name - notifications (Laravel will add ti_ prefix)
-            $new = \Illuminate\Support\Facades\DB::table('notifications')->where('status', 'new')->count();
+            $new = app(PmdNotificationCountV1::class)->currentNewCount();
             return response()->json(['ok' => true, 'new' => $new]);
         } catch (\Throwable $e) {
             return response()->json(['ok' => false, 'error' => $e->getMessage()], 500);
@@ -53,7 +46,11 @@ class NotificationsApi extends Controller
                 ->limit($limit)
                 ->get();
 
-            return response()->json(['ok' => true, 'items' => $rows]);
+            return response()->json([
+                'ok' => true,
+                'items' => $rows,
+                'new' => app(PmdNotificationCountV1::class)->currentNewCount(),
+            ]);
         } catch (\Throwable $e) {
             return response()->json(['ok' => false, 'error' => $e->getMessage()], 500);
         }

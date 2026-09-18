@@ -7,6 +7,7 @@ use Admin\Models\Pos_devices_model;
 use Admin\Services\PmdDefaultStaffRoleService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -19,6 +20,10 @@ use Illuminate\Support\Str;
  */
 class PmdSiteAccessService
 {
+    private ?bool $pmdReadyCache = null;
+    private array $pmdSchemaTableCache = [];
+    private array $pmdSchemaColumnCache = [];
+
     public const HUB_COOKIE = 'pmd_site_hub_v1';
     public const STAFF_DEVICE_COOKIE = 'pmd_staff_device_v1';
 
@@ -35,13 +40,18 @@ class PmdSiteAccessService
 
     public function ready(): bool
     {
+        if ($this->pmdReadyCache !== null) {
+            return $this->pmdReadyCache;
+        }
+
         try {
-            return Schema::hasTable('pmd_site_access_devices')
-                && Schema::hasTable('pmd_site_access_challenges')
-                && Schema::hasTable('pmd_site_access_events')
-                && Schema::hasTable('pmd_site_access_recovery_codes');
+            return $this->pmdReadyCache =
+                $this->pmdSchemaHasTable('pmd_site_access_devices')
+                && $this->pmdSchemaHasTable('pmd_site_access_challenges')
+                && $this->pmdSchemaHasTable('pmd_site_access_events')
+                && $this->pmdSchemaHasTable('pmd_site_access_recovery_codes');
         } catch (\Throwable $error) {
-            return false;
+            return $this->pmdReadyCache = false;
         }
     }
 
@@ -53,7 +63,7 @@ class PmdSiteAccessService
         $staffId = (int)($staff->staff_id ?? 0);
         $locationId = 0;
 
-        if ($staffId > 0 && Schema::hasTable('pmd_operational_people')) {
+        if ($staffId > 0 && $this->pmdSchemaHasTable('pmd_operational_people')) {
             try {
                 $person = DB::table('pmd_operational_people')
                     ->where('staff_id', $staffId)
@@ -95,9 +105,9 @@ class PmdSiteAccessService
             && $user->isSuperUser()
         ) {
             try {
-                if (Schema::hasTable('locations')) {
+                if ($this->pmdSchemaHasTable('locations')) {
                     $query = DB::table('locations');
-                    $columns = Schema::getColumnListing('locations');
+                    $columns = $this->pmdSchemaColumns('locations');
                     if (in_array('location_status', $columns, true)) {
                         $query->where('location_status', 1);
                     }
@@ -178,6 +188,29 @@ class PmdSiteAccessService
     public function touchDevice(int $deviceId): void
     {
         if (!$this->ready() || $deviceId < 1) return;
+
+        /*
+         * PMD_PERF_R3_DEVICE_HEARTBEAT_COALESCE
+         *
+         * Presence is considered online for two minutes. Writing last_seen_at
+         * on every poll/request only creates lock/log/replication churn.
+         * One durable heartbeat per 45 seconds preserves the same semantics.
+         */
+        $database = '';
+        try {
+            $database = (string)DB::connection()->getDatabaseName();
+        } catch (\Throwable $error) {
+        }
+
+        $key = 'pmd:site-access:touch:'.sha1($database.'|'.$deviceId);
+        try {
+            if (!Cache::add($key, 1, now()->addSeconds(45))) {
+                return;
+            }
+        } catch (\Throwable $error) {
+            // Cache failure must never weaken Site Access; fall through to DB.
+        }
+
         DB::table('pmd_site_access_devices')->where('id', $deviceId)->update([
             'last_seen_at' => now(),
             'updated_at' => now(),
@@ -198,7 +231,7 @@ class PmdSiteAccessService
             throw new \RuntimeException('Only an Owner or Manager can activate a Site Access hub.');
         }
 
-        if (!Schema::hasTable('pos_devices')) throw new \RuntimeException('POS device storage is not available.');
+        if (!$this->pmdSchemaHasTable('pos_devices')) throw new \RuntimeException('POS device storage is not available.');
         $pos = Pos_devices_model::find($posDeviceId);
         if (!$pos) throw new \RuntimeException('Choose an existing POS device.');
 
@@ -711,6 +744,26 @@ class PmdSiteAccessService
     private function recoveryHash(int $userId, string $code): string
     {
         return hash_hmac('sha256', 'recovery|'.$userId.'|'.$code, $this->appSecret());
+    }
+
+    private function pmdSchemaHasTable(string $table): bool
+    {
+        if (!array_key_exists($table, $this->pmdSchemaTableCache)) {
+            $this->pmdSchemaTableCache[$table] = Schema::hasTable($table);
+        }
+
+        return (bool)$this->pmdSchemaTableCache[$table];
+    }
+
+    private function pmdSchemaColumns(string $table): array
+    {
+        if (!array_key_exists($table, $this->pmdSchemaColumnCache)) {
+            $this->pmdSchemaColumnCache[$table] = $this->pmdSchemaHasTable($table)
+                ? Schema::getColumnListing($table)
+                : [];
+        }
+
+        return $this->pmdSchemaColumnCache[$table];
     }
 
     private function tokenHash(string $raw): string

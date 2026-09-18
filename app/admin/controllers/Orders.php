@@ -706,8 +706,23 @@ class Orders extends \Admin\Classes\AdminController
 
     public function listExtendQuery($query)
     {
-        // Eager load status relationship for row background colors.
-        $query->with('status');
+        /*
+         * PMD_PERF_R3_ORDERS_LIST_EAGER_LOAD
+         *
+         * The list renders relation-backed columns and model accessors for every
+         * row. Loading only status caused location/address/payment/assignee
+         * relations to lazy-load one row at a time.
+         */
+        $query->with([
+            'status',
+            'location',
+            'address',
+            'address.country',
+            'payment_method',
+            'assignee',
+            'assignee_group',
+            'customer',
+        ]);
 
         /*
          * PMD_R69_PAYMENT_GATED_ADMIN_VISIBILITY

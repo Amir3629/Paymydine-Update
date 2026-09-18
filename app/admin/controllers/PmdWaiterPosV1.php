@@ -66,4 +66,39 @@ class PmdWaiterPosV1 extends AdminController
     use \Admin\Controllers\Concerns\PmdWaiterPosPaymentTransactionConcern;
 
     protected $requiredPermissions = 'Admin.Orders';
+
+    /*
+     * PMD_PERF_R3_POS_SCHEMA_CACHE
+     *
+     * POS concerns ask the same tenant schema questions repeatedly during one
+     * data/payment request. information_schema must not be queried every time.
+     */
+    protected array $pmdPosSchemaTableCache = [];
+    protected array $pmdPosSchemaColumnCache = [];
+
+    protected function pmdPosHasTable(string $table): bool
+    {
+        if (!array_key_exists($table, $this->pmdPosSchemaTableCache)) {
+            $this->pmdPosSchemaTableCache[$table] =
+                \Illuminate\Support\Facades\Schema::hasTable($table);
+        }
+
+        return (bool)$this->pmdPosSchemaTableCache[$table];
+    }
+
+    protected function pmdPosColumns(string $table): array
+    {
+        if (!array_key_exists($table, $this->pmdPosSchemaColumnCache)) {
+            $this->pmdPosSchemaColumnCache[$table] = $this->pmdPosHasTable($table)
+                ? \Illuminate\Support\Facades\Schema::getColumnListing($table)
+                : [];
+        }
+
+        return $this->pmdPosSchemaColumnCache[$table];
+    }
+
+    protected function pmdPosHasColumn(string $table, string $column): bool
+    {
+        return in_array($column, $this->pmdPosColumns($table), true);
+    }
 }
