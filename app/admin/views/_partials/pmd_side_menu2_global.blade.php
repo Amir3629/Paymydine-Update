@@ -185,22 +185,22 @@
 })();
 </script>
 
-<!-- PMD_CANONICAL_VISUAL_RAIL_14PX_FINAL_START -->
-<style id="pmd-canonical-visual-rail-14px-final">
+<!-- PMD_CANONICAL_VISUAL_RAIL_8PX_LEFT_R7_START -->
+<style id="pmd-canonical-visual-rail-8px-left-r7">
 
   /*
    * One visual contract:
    *
    * collapsed Side Menu right = 86px
-   * visible page content left  = 100px
-   * visual rail                = 14px
+   * visible page content left  = 94px
+   * left visual rail           = 8px
    *
    * expanded:
    * menu right                 = 174px
-   * visible page content left  = 188px
+   * visible page content left  = 182px
    *
    * Do NOT change generic page-content here.
-   * Standard pages already receive 14px from exact-layout.
+   * Standard pages receive an 8px left rail and keep a 14px right gutter from exact-layout.
    */
 
   /*
@@ -215,7 +215,7 @@
   html.pmd-side-menu2-global-page
   body.pmd-clean-workspace-page
   #pmd-dashboard-lab {
-    padding-left: 14px !important;
+    padding-left: 8px !important;
     padding-right: 14px !important;
   }
 
@@ -233,7 +233,7 @@
     #pmd-team-access,
     .pmd-owner-page
   ) {
-    padding-left: 14px !important;
+    padding-left: 8px !important;
     padding-right: 14px !important;
   }
 
@@ -298,7 +298,7 @@
   }
 
 </style>
-<!-- PMD_CANONICAL_VISUAL_RAIL_14PX_FINAL_END -->
+<!-- PMD_CANONICAL_VISUAL_RAIL_8PX_LEFT_R7_END -->
 
 @if($pmdIsSettingsSuiteRoute)
 <!-- PMD_SETTINGS_SUITE_ROUTE_FLOW_SCROLL_V6_START -->
@@ -846,7 +846,7 @@
       right: auto !important;
       margin-left: 0 !important;
       margin-right: 0 !important;
-      padding-left: 14px !important;
+      padding-left: 8px !important;
       padding-right: 14px !important;
       width: 100% !important;
       min-width: 0 !important;
@@ -944,7 +944,7 @@
     max-width: none !important;
     min-width: 0 !important;
     margin: 0 !important;
-    padding: 14px !important;
+    padding: 14px 14px 14px 8px !important;
     box-sizing: border-box !important;
     overflow-x: hidden !important;
     transform: none !important;

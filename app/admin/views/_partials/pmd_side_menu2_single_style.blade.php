@@ -5,8 +5,8 @@
     --pmd-sm2-gap: 14px;
     --pmd-sm2-collapsed: 72px;
     --pmd-sm2-expanded: 160px;
-    --pmd-sm2-content-left-collapsed: 100px;
-    --pmd-sm2-content-left-expanded: 188px;
+    --pmd-sm2-content-left-collapsed: 94px;
+    --pmd-sm2-content-left-expanded: 182px;
   }
 
   html,
