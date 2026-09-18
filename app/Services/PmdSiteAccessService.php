@@ -33,6 +33,9 @@ class PmdSiteAccessService
      */
     private array $pmdIdentityCache = [];
 
+    /** Request-local policy existence cache keyed by location id. */
+    private array $pmdPolicyEnabledCache = [];
+
     public const HUB_COOKIE = 'pmd_site_hub_v1';
     public const STAFF_DEVICE_COOKIE = 'pmd_staff_device_v1';
 
@@ -156,11 +159,16 @@ class PmdSiteAccessService
         $locationId = $locationId ?: (int)$this->identity()['location_id'];
         if ($locationId < 1) return false;
 
-        return DB::table('pmd_site_access_devices')
-            ->where('location_id', $locationId)
-            ->where('device_kind', 'site_hub')
-            ->whereNull('revoked_at')
-            ->exists();
+        if (array_key_exists($locationId, $this->pmdPolicyEnabledCache)) {
+            return $this->pmdPolicyEnabledCache[$locationId];
+        }
+
+        return $this->pmdPolicyEnabledCache[$locationId] =
+            DB::table('pmd_site_access_devices')
+                ->where('location_id', $locationId)
+                ->where('device_kind', 'site_hub')
+                ->whereNull('revoked_at')
+                ->exists();
     }
 
     public function hasOnlineHub(int $locationId): bool
@@ -303,6 +311,8 @@ class PmdSiteAccessService
             ->where('token_hash', $this->tokenHash($rawToken))
             ->first();
 
+        $this->pmdPolicyEnabledCache[(int)$identity['location_id']] = true;
+
         $this->audit('hub_activated', true, $identity, (int)($device->id ?? 0), null, $request, [
             'pos_device_id' => $posDeviceId,
         ]);
@@ -331,6 +341,11 @@ class PmdSiteAccessService
         DB::table('pmd_site_access_devices')->where('id', $deviceId)->update([
             'revoked_at' => now(), 'updated_at' => now(),
         ]);
+
+        if ((string)$device->device_kind === 'site_hub') {
+            unset($this->pmdPolicyEnabledCache[(int)$identity['location_id']]);
+        }
+
         $this->audit('device_revoked', true, $identity, $deviceId, null, $request, ['kind' => $device->device_kind]);
         return true;
     }
