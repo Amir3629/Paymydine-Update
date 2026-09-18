@@ -26,6 +26,17 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
         return true;
     }
 
+    /*
+     * PMD_PERF_R10_RESERVATION_BUSY_FIRST_PAINT_POLICY
+     * Default remains deterministic server-first. Individual workspaces may
+     * safely defer this read when the existing Floor runtime hydrates it after
+     * mount through onPmdFloorReservationBusyWindows().
+     */
+    protected function pmdReservationBusyFirstPaint(): bool
+    {
+        return true;
+    }
+
     protected function pmdAfterFloorPartial(): ?string
     {
         return null;
@@ -1650,9 +1661,13 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
         // PMD_CLEAN_WORKSPACE_LOCATION_CONTEXT_V1
         // One explicit location identity for shared Floor reservation-busy reads.
         $this->vars['pmdCleanWorkspaceLocationId'] = $pmdSharedFloorLocationId;
-        $this->vars['pmdCleanWorkspaceReservationBusyWindows'] = $this->pmdUsesFloor()
-            ? $this->pmdFloorReservationBusyWindows($pmdSharedFloorLocationId)
-            : [];
+        $this->vars['pmdCleanWorkspaceReservationBusyWindows'] =
+            $this->pmdUsesFloor()
+            && $this->pmdReservationBusyFirstPaint()
+                ? $this->pmdFloorReservationBusyWindows(
+                    $pmdSharedFloorLocationId
+                )
+                : [];
         $this->vars['pmdCleanWorkspaceKpiCookie'] = $cookieName;
         $this->vars['pmdCleanWorkspaceKpiStorage'] = 'pmd:clean:'.$key.':kpis:v1';
         $this->vars['pmdCleanWorkspaceKpiCards'] = $kpiCards;
