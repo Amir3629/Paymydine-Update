@@ -34,8 +34,12 @@ sudo cp "$TMP_CONFIG" "$CONFIG"
 rm -f "$TMP_CONFIG"
 sudo chmod 0644 "$CONFIG"
 
-sudo touch "$PERF_LOG"
-sudo chmod 0664 "$PERF_LOG" || true
+if id www-data >/dev/null 2>&1; then
+  sudo -u www-data touch "$PERF_LOG"
+else
+  sudo touch "$PERF_LOG"
+  sudo chmod 0666 "$PERF_LOG"
+fi
 
 cleanup() {
   trap - EXIT INT TERM HUP
@@ -72,6 +76,27 @@ echo
 if [ -f "$SYSTEM_LOG" ]; then
   (
     tail -n0 -F "$SYSTEM_LOG" 2>/dev/null       | grep --line-buffered -Ei 'error|critical|exception|sqlstate|timeout|stripe|deadlock|lock wait'       | sed -u 's/^/[SYSTEM] /'
+  ) &
+fi
+
+# Next.js server output (frontend exceptions, proxy failures, SSR issues).
+if command -v pm2 >/dev/null 2>&1 && pm2 describe paymydine-frontend-v2 >/dev/null 2>&1; then
+  (
+    pm2 logs paymydine-frontend-v2 --lines 0 --raw 2>/dev/null       | sed -u 's/^/[NEXT] /'
+  ) &
+fi
+
+# Nginx + PHP-FPM error streams catch upstream/network/FastCGI failures that
+# Laravel itself may never get a chance to log.
+if [ -r /var/log/nginx/error.log ]; then
+  (
+    tail -n0 -F /var/log/nginx/error.log 2>/dev/null       | sed -u 's/^/[NGINX] /'
+  ) &
+fi
+
+if systemctl list-unit-files php8.3-fpm.service >/dev/null 2>&1; then
+  (
+    sudo journalctl -u php8.3-fpm.service -f -n0 --no-pager 2>/dev/null       | sed -u 's/^/[FPM] /'
   ) &
 fi
 
