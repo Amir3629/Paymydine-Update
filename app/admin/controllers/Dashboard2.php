@@ -25,6 +25,15 @@ class Dashboard2 extends Reservations2
     private const VERSION = '3.0.0';
     private array $analyticsAuthorityCache = [];
 
+    // PMD_PERF_R2_REQUEST_LOCAL_METADATA_CACHE
+    // Dashboard aggregates call the same location/schema authorities many
+    // times. Keep those immutable facts inside this controller instance so a
+    // single page render does not generate hundreds of duplicate queries.
+    private bool $pmdLocationIdResolved = false;
+    private ?int $pmdLocationIdCache = null;
+    private array $pmdSchemaTableCache = [];
+    private array $pmdSchemaColumnCache = [];
+
     public function index()
     {
         if ((string)request()->query('pmd_analytics') === '1') {
@@ -125,12 +134,16 @@ class Dashboard2 extends Reservations2
      */
     protected function locationId(): ?int
     {
+        if ($this->pmdLocationIdResolved) {
+            return $this->pmdLocationIdCache;
+        }
+
         try {
             if (
                 $location =
                     \Admin\Facades\AdminLocation::current()
             ) {
-                return (int)$location->location_id;
+                return $this->rememberLocationId((int)$location->location_id);
             }
         } catch (\Throwable $error) {
         }
@@ -142,7 +155,7 @@ class Dashboard2 extends Reservations2
                 );
 
             if ($locationId > 0) {
-                return $locationId;
+                return $this->rememberLocationId($locationId);
             }
         } catch (\Throwable $error) {
         }
@@ -162,7 +175,7 @@ class Dashboard2 extends Reservations2
                         \Admin\Facades\AdminLocation::
                             setCurrent($location);
 
-                        return (int)$location->location_id;
+                        return $this->rememberLocationId((int)$location->location_id);
                     }
                 }
             }
@@ -174,7 +187,7 @@ class Dashboard2 extends Reservations2
                 \Admin\Facades\AdminAuth::getUser();
 
             if (!$user) {
-                return null;
+                return $this->rememberLocationId(null);
             }
 
             $staff = $user->staff;
@@ -187,7 +200,7 @@ class Dashboard2 extends Reservations2
                 : collect();
 
             if ($accessibleLocations->count() !== 1) {
-                return null;
+                return $this->rememberLocationId(null);
             }
 
             $locationId = (int)
@@ -196,7 +209,7 @@ class Dashboard2 extends Reservations2
                     ->location_id;
 
             if ($locationId < 1) {
-                return null;
+                return $this->rememberLocationId(null);
             }
 
             $location =
@@ -213,16 +226,26 @@ class Dashboard2 extends Reservations2
                     )
                 )
             ) {
-                return null;
+                return $this->rememberLocationId(null);
             }
 
             \Admin\Facades\AdminLocation::
                 setCurrent($location);
 
-            return (int)$location->location_id;
+            return $this->rememberLocationId((int)$location->location_id);
         } catch (\Throwable $error) {
-            return null;
+            return $this->rememberLocationId(null);
         }
+    }
+
+    private function rememberLocationId(?int $locationId): ?int
+    {
+        $this->pmdLocationIdResolved = true;
+        $this->pmdLocationIdCache = $locationId && $locationId > 0
+            ? (int)$locationId
+            : null;
+
+        return $this->pmdLocationIdCache;
     }
 
     /*
@@ -240,7 +263,7 @@ class Dashboard2 extends Reservations2
     {
         $code = strtoupper((string)setting('default_currency_code', ''));
         $row = null;
-        if ($code !== '' && Schema::hasTable('currencies')) {
+        if ($code !== '' && $this->schemaHasTable('currencies')) {
             $row = DB::table('currencies')->where('currency_code', $code)->first();
         }
 
@@ -250,9 +273,29 @@ class Dashboard2 extends Reservations2
         ];
     }
 
+    protected function schemaHasTable(string $table): bool
+    {
+        if (!array_key_exists($table, $this->pmdSchemaTableCache)) {
+            $this->pmdSchemaTableCache[$table] = Schema::hasTable($table);
+        }
+
+        return (bool)$this->pmdSchemaTableCache[$table];
+    }
+
     protected function columns(string $table): array
     {
-        return Schema::hasTable($table) ? Schema::getColumnListing($table) : [];
+        if (!array_key_exists($table, $this->pmdSchemaColumnCache)) {
+            $this->pmdSchemaColumnCache[$table] = $this->schemaHasTable($table)
+                ? $this->columns($table)
+                : [];
+        }
+
+        return $this->pmdSchemaColumnCache[$table];
+    }
+
+    protected function schemaHasColumn(string $table, string $column): bool
+    {
+        return in_array($column, $this->columns($table), true);
     }
 
     protected function hasColumns(string $table, array $columns): bool
@@ -313,7 +356,7 @@ class Dashboard2 extends Reservations2
             ->where('settled_amount', '>=', 0);
 
         $query->whereIn(DB::raw('LOWER(settlement_status)'), ['paid', 'settled']);
-        if ($this->hasColumns('statuses', ['status_id', 'status_name']) && Schema::hasColumn('orders', 'status_id')) {
+        if ($this->hasColumns('statuses', ['status_id', 'status_name']) && $this->schemaHasColumn('orders', 'status_id')) {
             $statusAlias =
                 $this->sqlAlias('pmd_status');
 
@@ -433,7 +476,7 @@ class Dashboard2 extends Reservations2
     protected function tableTurnoverFromStateHistory(Carbon $start, Carbon $end): ?array
     {
         if (!$this->hasColumns('pmd_table_status_history', ['id', 'table_id', 'new_status', 'created_at']) ||
-            !Schema::hasTable('tables')) return null;
+            !$this->schemaHasTable('tables')) return null;
         $tableIds = Tables_model::query()->whereHasLocation($this->locationId())->isEnabled()
             ->pluck('table_id')->map(fn ($id) => (int)$id)->all();
         if (!$tableIds) {
@@ -573,11 +616,11 @@ class Dashboard2 extends Reservations2
     protected function occupancy(): array
     {
         $locationId = $this->locationId();
-        if (!$locationId || !Schema::hasTable('tables') || !Schema::hasTable('orders')) {
+        if (!$locationId || !$this->schemaHasTable('tables') || !$this->schemaHasTable('orders')) {
             return $this->unavailable('location-scoped tables/open orders unavailable');
         }
         $tables = Tables_model::query()->whereHasLocation($locationId)->isEnabled();
-        if (Schema::hasColumn('tables', 'visible_on_floor_plan')) $tables->where('visible_on_floor_plan', 1);
+        if ($this->schemaHasColumn('tables', 'visible_on_floor_plan')) $tables->where('visible_on_floor_plan', 1);
         $rows = $tables->get(['table_id', 'table_no', 'table_name', 'operational_status']);
         $total = $rows->count();
         $occupiedIds = $rows
@@ -609,10 +652,10 @@ class Dashboard2 extends Reservations2
     protected function menuAvailability(): array
     {
         $locationId = $this->locationId();
-        if (!$locationId || !Schema::hasTable('menus')) return $this->unavailable('location-scoped menus unavailable');
+        if (!$locationId || !$this->schemaHasTable('menus')) return $this->unavailable('location-scoped menus unavailable');
         $total = Menus_model::query()->whereHasOrDoesntHaveLocation($locationId)->count();
         $available = Menus_model::query()->whereHasOrDoesntHaveLocation($locationId)->isEnabled();
-        if (Schema::hasColumn('menus', 'is_stock_out')) $available->inStock();
+        if ($this->schemaHasColumn('menus', 'is_stock_out')) $available->inStock();
 
         return ['available' => true, 'value' => ['available_now' => (int)$available->count(), 'total' => (int)$total],
             'sample_count' => (int)$total, 'source' => 'customer menu scope: location/global, enabled, in stock', 'reason' => null];
@@ -744,7 +787,7 @@ class Dashboard2 extends Reservations2
         if ($authority['mode'] === 'settlement_fields') {
             $query->whereIn(DB::raw('LOWER(settlement_status)'), ['paid','settled'])->whereNotNull('settled_at');
         }
-        if ($this->hasColumns('statuses', ['status_id','status_name']) && Schema::hasColumn('orders', 'status_id')) {
+        if ($this->hasColumns('statuses', ['status_id','status_name']) && $this->schemaHasColumn('orders', 'status_id')) {
             $query->whereNotExists(function ($excluded) {
                 // Query builder prefixes aliases on this tenant connection.
                 $excluded->selectRaw('1')->from('statuses as analytics_status')
@@ -871,8 +914,8 @@ class Dashboard2 extends Reservations2
         /* PMD_DASHBOARD2_V1422_SOURCE_REPAIR */
         if (
             !$this->hasColumns('order_menus', ['order_id', 'menu_id', 'subtotal'])
-            || !Schema::hasTable('menu_categories')
-            || !Schema::hasTable('categories')
+            || !$this->schemaHasTable('menu_categories')
+            || !$this->schemaHasTable('categories')
         ) {
             return $this->unavailable('menu category relation unavailable');
         }
@@ -1078,7 +1121,7 @@ class Dashboard2 extends Reservations2
     ): array {
         $candidates = [];
 
-        if (Schema::hasColumn('orders', 'settlement_method')) {
+        if ($this->schemaHasColumn('orders', 'settlement_method')) {
             $candidates[] =
                 "NULLIF(TRIM({$alias}.settlement_method), '')";
         }
@@ -1191,7 +1234,7 @@ protected function analyticsPaymentMethods(
          */
         $paymentModel = new Payments_model();
         $table = $paymentModel->getTable();
-        $columns = Schema::getColumnListing($table);
+        $columns = $this->columns($table);
 
         foreach (['code', 'name', 'status'] as $requiredColumn) {
             if (!in_array($requiredColumn, $columns, true)) {
@@ -1564,8 +1607,8 @@ protected function analyticsAlerts(
         $refunds = 0;
 
         if (
-            Schema::hasColumn('orders', 'settlement_status')
-            && Schema::hasColumn('orders', 'updated_at')
+            $this->schemaHasColumn('orders', 'settlement_status')
+            && $this->schemaHasColumn('orders', 'updated_at')
         ) {
             $failed = $this->range(
                 $this->orders(),
@@ -1603,8 +1646,8 @@ protected function analyticsAlerts(
         $negative = null;
 
         if (
-            Schema::hasTable('reviews')
-            && Schema::hasColumn('reviews', 'location_id')
+            $this->schemaHasTable('reviews')
+            && $this->schemaHasColumn('reviews', 'location_id')
         ) {
             $reviewQuery = DB::table('reviews')
                 ->where(
@@ -1651,7 +1694,7 @@ protected function analyticsAlerts(
                     )
                     ->count();
             } elseif (
-                Schema::hasColumn('reviews', 'rating')
+                $this->schemaHasColumn('reviews', 'rating')
             ) {
                 $negative = $reviewQuery
                     ->where('rating', '<=', 2)
@@ -1664,7 +1707,7 @@ protected function analyticsAlerts(
         $longOpenThreshold = max(15, min(720, (int)setting('pmd_dashboard2_long_open_minutes', 90)));
 
         if (
-            Schema::hasTable('tables')
+            $this->schemaHasTable('tables')
             && $this->locationId()
         ) {
             $tableIds = Tables_model::query()
@@ -1785,7 +1828,7 @@ protected function analyticsAlerts(
          *
          * No secondary /admin/reviews request is required.
          */
-        if (!Schema::hasTable('reviews')) {
+        if (!$this->schemaHasTable('reviews')) {
             return $this->unavailable(
                 'reviews table unavailable'
             );
@@ -2097,7 +2140,7 @@ protected function analyticsCalendarEvents(
          * reservation_tables is the canonical merge-table source.
          */
         if (
-            !Schema::hasTable('reservations')
+            !$this->schemaHasTable('reservations')
             || !$this->hasColumns(
                 'reservations',
                 [
@@ -2136,7 +2179,7 @@ protected function analyticsCalendarEvents(
             ->limit(250);
 
         $hasStatuses =
-            Schema::hasTable('statuses')
+            $this->schemaHasTable('statuses')
             && Schema::hasColumn(
                 'reservations',
                 'status_id'
@@ -2314,7 +2357,7 @@ protected function analyticsCalendarEvents(
 
         if (
             $allTableIds
-            && Schema::hasTable('tables')
+            && $this->schemaHasTable('tables')
         ) {
             $tableColumns =
                 $this->columns('tables');
@@ -2548,7 +2591,7 @@ protected function analyticsCalendarEvents(
         }
         $historicalSettlementCount = $this->hasColumns('orders', ['settlement_status','settled_at'])
             ? $this->orders()->whereIn(DB::raw('LOWER(settlement_status)'), ['paid','settled'])->whereNotNull('settled_at')->count() : 0;
-        $historicalProcessedCount = Schema::hasColumn('orders', 'processed') ? $this->orders()->where('processed', 1)->count() : 0;
+        $historicalProcessedCount = $this->schemaHasColumn('orders', 'processed') ? $this->orders()->where('processed', 1)->count() : 0;
         $periodCount = $eligible ? (clone $eligible)->count() : 0;
         return [
             'requested_period' => $period,
@@ -2557,8 +2600,8 @@ protected function analyticsCalendarEvents(
             'revenue_column' => $authority['amount'],
             'date_column' => $authority['date'],
             'payment_source' => $authority['payment'] ? 'orders.'.$authority['payment'] : 'unavailable',
-            'order_item_table' => Schema::hasTable('order_menus') ? 'order_menus' : 'unavailable',
-            'order_item_count' => Schema::hasTable('order_menus') ? DB::table('order_menus')->whereIn('order_id', $eligible ? (clone $eligible)->select('orders.order_id') : [-1])->count() : 0,
+            'order_item_table' => $this->schemaHasTable('order_menus') ? 'order_menus' : 'unavailable',
+            'order_item_count' => $this->schemaHasTable('order_menus') ? DB::table('order_menus')->whereIn('order_id', $eligible ? (clone $eligible)->select('orders.order_id') : [-1])->count() : 0,
             'eligible_order_count' => $periodCount,
             'period_has_orders' => $periodCount > 0,
             'period_eligible_order_count' => $periodCount,
