@@ -24,6 +24,15 @@ class PmdSiteAccessService
     private array $pmdSchemaTableCache = [];
     private array $pmdSchemaColumnCache = [];
 
+    /**
+     * PMD_PERF_R4_SITE_IDENTITY_CACHE
+     *
+     * Security middleware asks for the same authenticated identity several
+     * times in one request. Cache by authenticated user id so operational
+     * people/location resolution is not repeated.
+     */
+    private array $pmdIdentityCache = [];
+
     public const HUB_COOKIE = 'pmd_site_hub_v1';
     public const STAFF_DEVICE_COOKIE = 'pmd_staff_device_v1';
 
@@ -59,6 +68,12 @@ class PmdSiteAccessService
     public function identity($user = null): array
     {
         $user = $user ?: AdminAuth::getUser();
+        $userId = (int)($user ? $user->getKey() : 0);
+
+        if ($userId > 0 && array_key_exists($userId, $this->pmdIdentityCache)) {
+            return $this->pmdIdentityCache[$userId];
+        }
+
         $staff = $user ? $user->staff : null;
         $staffId = (int)($staff->staff_id ?? 0);
         $locationId = 0;
@@ -119,13 +134,19 @@ class PmdSiteAccessService
             }
         }
 
-        return [
+        $identity = [
             'user' => $user,
-            'user_id' => (int)($user ? $user->getKey() : 0),
+            'user_id' => $userId,
             'staff' => $staff,
             'staff_id' => $staffId,
             'location_id' => $locationId,
         ];
+
+        if ($userId > 0) {
+            $this->pmdIdentityCache[$userId] = $identity;
+        }
+
+        return $identity;
     }
 
     /** Site Access becomes enforcing only after a restaurant activates a hub. */
