@@ -5,7 +5,8 @@ $opts = getopt('', ['minutes::', 'host::', 'paths::', 'limit::', 'file::']);
 $minutes = max(1, (int)($opts['minutes'] ?? 15));
 $host = strtolower(trim((string)($opts['host'] ?? 'tomo.paymydine.com')));
 $limit = max(5, min(50, (int)($opts['limit'] ?? 20)));
-$file = (string)($opts['file'] ?? dirname(__DIR__).'/storage/logs/pmd-performance.log');
+$root = rtrim((string)(getenv('PMD_ROOT') ?: getcwd() ?: '/var/www/paymydine'), '/');
+$file = (string)($opts['file'] ?? $root.'/storage/logs/pmd-performance.log');
 
 $paths = array_values(array_filter(array_map(
     static fn($value) => '/'.ltrim(trim((string)$value), '/'),
