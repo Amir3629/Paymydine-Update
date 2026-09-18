@@ -203,7 +203,12 @@ html #pmd-sidebar-language {
             aria-label="Switch language to {{ $pmdSm2LanguageFirstPaintCode }}"
             title="Switch language to {{ $pmdSm2LanguageFirstPaintCode }}"
         >
-            <span class="pmd-sm2__language-code" aria-hidden="true">{{ $pmdSm2LanguageFirstPaintCode }}</span>
+            <svg class="pmd-sm2__language-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="12" r="9"></circle>
+                <path d="M3 12h18"></path>
+                <path d="M12 3a15 15 0 0 1 0 18"></path>
+                <path d="M12 3a15 15 0 0 0 0 18"></path>
+            </svg>
             <span class="pmd-sm2__label" data-pmd-sm2-language-label>{{ $pmdSm2LanguageFirstPaintLabel }}</span>
         </button>
 
@@ -298,10 +303,8 @@ html #pmd-sidebar-language {
     var legacyTitle = String(legacyTrigger.getAttribute('title') || '').trim();
     var friendlyLabel = legacyTitle.replace(/^Switch(?: language)? to\s+/i, '').trim();
 
-    var codeNode = inlineButton.querySelector('.pmd-sm2__language-code');
     var labelNode = inlineButton.querySelector('[data-pmd-sm2-language-label]');
 
-    if (codeNode) codeNode.textContent = nextLocale || 'LANG';
     if (labelNode) labelNode.textContent = friendlyLabel || nextLocale || 'Language';
 
     inlineButton.setAttribute('aria-label', legacyTitle || ('Switch language to ' + nextLocale));
