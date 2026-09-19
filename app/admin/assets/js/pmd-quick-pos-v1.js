@@ -106,6 +106,7 @@
     openOrders: [],
     activeOrderId: null,
     offPremiseOrder: null,
+    forceNewCheck: false,
     cart: [],
     guestCount: 1,
     note: '',
@@ -468,6 +469,7 @@
   function selectOrder(id) {
     id = Number(id || 0);
     state.activeOrderId = id > 0 ? id : null;
+    state.forceNewCheck = id < 1;
     var order = activeOrder();
     if (order && order.guest_count) {
       state.guestCount = Math.max(1, num(order.guest_count, 1));
@@ -744,6 +746,7 @@
       state.tableData = json;
       state.openOrders = Array.isArray(json.open_orders) ? json.open_orders : [];
       state.activeOrderId = Number(json.active_order_id || 0) || null;
+      state.forceNewCheck = false;
 
       var table = json.table || null;
       if (table && state.selectedTable) {
@@ -810,6 +813,10 @@
       expected_updated_at: order && order.updated_at ? order.updated_at : null,
       guest_count: state.guestCount,
       note: state.note,
+      force_new_check:
+        state.serviceMode === 'dine_in'
+          ? !!state.forceNewCheck
+          : false,
       items: state.cart.map(function (row) {
         return {
           menu_id: row.menu_id,
@@ -843,6 +850,7 @@
       });
 
       state.activeOrderId = Number(json.order_id || 0) || null;
+      state.forceNewCheck = false;
       state.cart = [];
       state.note = '';
 
@@ -883,6 +891,7 @@
     state.guestCount = 1;
     state.activeOrderId = null;
     state.offPremiseOrder = null;
+    state.forceNewCheck = state.serviceMode === 'dine_in';
     renderAll();
   }
 
