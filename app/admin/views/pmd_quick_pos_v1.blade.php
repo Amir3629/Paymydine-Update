@@ -97,7 +97,7 @@
                 </label>
 
                 <div class="pmd-qpos-work-meta">
-                    <time class="pmd-qpos-clock" data-qpos-clock>--:--</time>
+                    <time class="pmd-qpos-clock" data-qpos-clock>{{ now()->format('H:i') }}</time>
                     <span class="pmd-qpos-online pmd-qpos-online-dot" data-qpos-online aria-label="Online"><i></i></span>
                     <button type="button" class="pmd-qpos-work-icon" data-qpos-refresh aria-label="Refresh">↻</button>
                     <a class="pmd-qpos-work-link" href="{{ $legacyOrdersUrl }}">Orders</a>
