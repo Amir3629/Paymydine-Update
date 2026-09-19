@@ -1372,8 +1372,18 @@
         num(json.settlement && json.settlement.remaining_amount, 0)
       ).toFixed(2);
       state.payment.cashReceived = state.payment.amount;
+
+      if (
+        !silent &&
+        num(json.settlement && json.settlement.remaining_amount, 0) <= 0.005
+      ) {
+        finishPaidOrderUi();
+        closePayment();
+        toast('Paid');
+        return;
+      }
+
       renderPayment();
-      if (!silent) toast('Payment ready');
     } catch (error) {
       showPaymentError(error.message || 'Payment details could not be loaded.');
     } finally {
