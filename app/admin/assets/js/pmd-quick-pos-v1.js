@@ -1905,6 +1905,8 @@
     if (!wrap) return;
 
     var terminal = state.payment.method === 'direct_terminal';
+    wrap.hidden = terminal;
+
     var active = state.payment.splitMode || 'full';
     var parts = Math.max(1, Number(state.payment.splitParts || 1));
 
@@ -2456,6 +2458,7 @@
     var amountEl = $('[data-qpos-payment-amount]');
     var cashEl = $('[data-qpos-cash-received]');
     var tipEl = $('[data-qpos-tip-amount]');
+    var tipRow = $('.pmd-qpos-tip-row');
     var cashField = $('[data-qpos-cash-field]');
     var chargeEl = $('[data-qpos-payment-charge]');
     var changeBox = $('[data-qpos-change]');
@@ -2488,6 +2491,10 @@
       }
     }
 
+    if (tipRow) {
+      tipRow.hidden = state.payment.method === 'direct_terminal';
+    }
+
     if (tipEl) {
       tipEl.disabled = state.payment.method === 'direct_terminal';
       if (document.activeElement !== tipEl) {
@@ -2517,6 +2524,16 @@
 
     renderCashPresets();
     renderSplitControls();
+
+    $('[data-tip]').forEach(function (button) {
+      button.classList.toggle(
+        'is-active',
+        state.payment.tipMode !== 'custom' &&
+        Number(button.getAttribute('data-tip')) ===
+          Number(state.payment.tipPercent)
+      );
+    });
+
     renderTouchKeypad();
 
     var valid =
