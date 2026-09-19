@@ -3587,6 +3587,265 @@ function renderOpenChecks() {
       (calls ? '<span class="is-attention"><b>' + esc(calls) + '</b> calls</span>' : '');
   }
 
+  /* PMD_QPOS_HISTORY_CLARITY_V20
+   * History is for scanning, not reading database rows. Keep the order list
+   * short, group the detail panel by purpose, and hide redundant technical
+   * wording while preserving the full raw history behind the filters. */
+  function historyWords(value) {
+    value = String(value || '').replace(/[_-]+/g, ' ').trim();
+    if (!value) return '';
+    return value.replace(/\b\w/g, function (letter) {
+      return letter.toUpperCase();
+    });
+  }
+
+  function historySettlementLabel(value) {
+    value = String(value || '').trim().toLowerCase();
+    if (value === 'paid' || value === 'settled' || value === 'closed') {
+      return 'Paid';
+    }
+    if (value === 'partial' || value === 'partially_paid') {
+      return 'Part paid';
+    }
+    if (value === 'unpaid' || value === 'pending' || value === 'open') {
+      return 'Unpaid';
+    }
+    return value ? historyWords(value) : '';
+  }
+
+  function historySettlementTone(value) {
+    value = String(value || '').trim().toLowerCase();
+    if (value === 'paid' || value === 'settled' || value === 'closed') {
+      return 'paid';
+    }
+    if (value === 'partial' || value === 'partially_paid') {
+      return 'partial';
+    }
+    if (value === 'unpaid' || value === 'pending' || value === 'open') {
+      return 'unpaid';
+    }
+    return 'neutral';
+  }
+
+  function historyShortTime(value) {
+    var date = new Date(String(value || ''));
+    if (!Number.isFinite(date.getTime())) {
+      return String(value || '');
+    }
+
+    try {
+      return new Intl.DateTimeFormat([], {
+        month: 'short',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      }).format(date);
+    } catch (ignored) {
+      return date.toLocaleString();
+    }
+  }
+
+  function historyCompactEvent(entry) {
+    entry = entry || {};
+    var kind = String(entry.kind || 'event');
+    var detailParts = String(entry.detail || '')
+      .split(' · ')
+      .map(function (part) { return part.trim(); })
+      .filter(Boolean);
+
+    var item = {
+      kind: kind,
+      title: 'Activity',
+      value: '',
+      note: '',
+      meta: [],
+      time: entry.time,
+      receiptUrl: String(entry.receipt_url || ''),
+      count: 1
+    };
+
+    if (kind === 'payment') {
+      var method = historyWords(entry.payment_method || detailParts[0] || 'Payment');
+      item.title = method ? method + ' payment' : 'Payment';
+      item.value = entry.amount != null
+        ? money(entry.amount)
+        : (detailParts[1] || '');
+
+      var received = entry.cash_received;
+      var change = num(entry.change_due, 0);
+      var tip = num(entry.tip_amount, 0);
+      var amount = num(entry.amount, 0);
+
+      if (
+        received != null &&
+        Math.abs(num(received, 0) - amount) > 0.005
+      ) {
+        item.meta.push('Received ' + money(received));
+      }
+      if (change > 0.005) {
+        item.meta.push('Change ' + money(change));
+      }
+      if (tip > 0.005) {
+        item.meta.push('Tip ' + money(tip));
+      }
+      if (entry.payer_label) {
+        item.meta.push(String(entry.payer_label));
+      }
+      if (entry.payment_note) {
+        item.note = String(entry.payment_note);
+      }
+      return item;
+    }
+
+    if (kind === 'terminal') {
+      item.title = detailParts[0] || 'Terminal';
+      item.value = detailParts[1] || '';
+      if (detailParts[2]) item.meta.push(detailParts[2]);
+      if (detailParts.length > 3) {
+        item.note = detailParts.slice(3).join(' · ');
+      }
+      return item;
+    }
+
+    if (kind === 'status') {
+      item.title = String(
+        entry.status_name ||
+        detailParts[0] ||
+        'Order status'
+      );
+      return item;
+    }
+
+    if (kind === 'table_status') {
+      var oldStatus = historyWords(entry.old_status || '');
+      var newStatus = historyWords(entry.new_status || '');
+      item.title = entry.table_id
+        ? 'Table ' + String(entry.table_id)
+        : 'Table status';
+      item.value = oldStatus && newStatus
+        ? oldStatus + ' → ' + newStatus
+        : (detailParts[0] || '');
+      return item;
+    }
+
+    if (kind === 'waiter_call') {
+      item.title = 'Waiter call';
+      item.note = String(entry.detail || '');
+      return item;
+    }
+
+    if (kind === 'item_note') {
+      item.title = String(entry.title || 'Item note')
+        .replace(/^Item note\s*·\s*/i, '');
+      item.note = String(entry.detail || '');
+      return item;
+    }
+
+    if (kind === 'note') {
+      item.title = 'Order note';
+      item.note = String(entry.detail || '');
+      return item;
+    }
+
+    if (kind === 'table_note') {
+      item.title = 'Table note';
+      item.note = String(entry.detail || '');
+      return item;
+    }
+
+    item.title = String(entry.title || 'Activity')
+      .replace(/\s*·\s*Order\s*#\d+/i, '');
+    item.note = String(entry.detail || '');
+    return item;
+  }
+
+  function historyGroupedEvents(entries) {
+    var rows = [];
+
+    entries.forEach(function (entry) {
+      var compact = historyCompactEvent(entry);
+      var groupable =
+        compact.kind === 'status' ||
+        compact.kind === 'table_status';
+
+      if (groupable) {
+        var key = [
+          compact.kind,
+          compact.title,
+          compact.value,
+          compact.note
+        ].join('|').toLowerCase();
+
+        var existing = rows.find(function (row) {
+          return row._groupKey === key;
+        });
+
+        if (existing) {
+          existing.count += 1;
+          return;
+        }
+
+        compact._groupKey = key;
+      }
+
+      rows.push(compact);
+    });
+
+    return rows;
+  }
+
+  function historyEventRow(item) {
+    var meta = (item.meta || []).map(function (value) {
+      return '<span>' + esc(value) + '</span>';
+    }).join('');
+
+    var receipt = item.receiptUrl
+      ? '<a href="' + esc(item.receiptUrl) +
+          '" target="_blank" rel="noopener">Receipt</a>'
+      : '';
+
+    return (
+      '<article class="pmd-qpos-history-simple-event" data-kind="' +
+        esc(item.kind || 'event') + '">' +
+        '<div class="pmd-qpos-history-simple-main">' +
+          '<div>' +
+            '<strong>' + esc(item.title || 'Activity') + '</strong>' +
+            (item.value
+              ? '<b>' + esc(item.value) + '</b>'
+              : '') +
+          '</div>' +
+          '<time>' + esc(historyShortTime(item.time)) + '</time>' +
+        '</div>' +
+        ((item.meta && item.meta.length) || item.count > 1 || receipt
+          ? '<div class="pmd-qpos-history-simple-meta">' +
+              meta +
+              (item.count > 1
+                ? '<span>' + esc(item.count) + ' events</span>'
+                : '') +
+              receipt +
+            '</div>'
+          : '') +
+        (item.note
+          ? '<p>' + esc(item.note) + '</p>'
+          : '') +
+      '</article>'
+    );
+  }
+
+  function historySection(title, items) {
+    if (!items.length) return '';
+
+    return (
+      '<section class="pmd-qpos-history-section">' +
+        '<header>' +
+          '<strong>' + esc(title) + '</strong>' +
+          '<span>' + esc(items.length) + '</span>' +
+        '</header>' +
+        items.map(historyEventRow).join('') +
+      '</section>'
+    );
+  }
+
   function renderHistoryDetail(orderId) {
     var detail = $('[data-qpos-history-detail]');
     if (!detail) return;
@@ -3597,7 +3856,7 @@ function renderOpenChecks() {
     if (!orderId || !state.historyData) {
       detail.innerHTML =
         '<div class="pmd-qpos-history-empty">' +
-          'Select an order to see invoice, items, payments and notes.' +
+          'Select an order to see its payments and activity.' +
         '</div>';
       return;
     }
@@ -3620,55 +3879,115 @@ function renderOpenChecks() {
       order.invoice_url || ('/admin/orders/invoice/' + encodeURIComponent(orderId))
     );
     var settlement = String(order.settlement_status || '').trim();
+    var settlementLabel = historySettlementLabel(settlement);
+    var settlementTone = historySettlementTone(settlement);
     var total = order.total != null ? money(order.total) : '';
-    var invoiceNumber = String(order.invoice_number || '').trim();
+    var itemSummary = String(order.item_summary || '').trim();
+    var orderNote = String(order.note || '').trim();
 
-    var eventRows = entries.filter(function (entry) {
+    var rawEvents = entries.filter(function (entry) {
       return String(entry.kind || '') !== 'order';
-    }).map(function (entry) {
-      var actions = '';
-      if (entry.invoice_url) {
-        actions += '<a href="' + esc(entry.invoice_url) +
-          '" target="_blank" rel="noopener">Invoice</a>';
-      }
-      if (entry.receipt_url) {
-        actions += '<a href="' + esc(entry.receipt_url) +
-          '" target="_blank" rel="noopener">Receipt</a>';
-      }
+    });
 
-      return (
-        '<article class="pmd-qpos-history-detail-event" data-kind="' +
-          esc(entry.kind || 'event') + '">' +
-          '<div>' +
-            '<strong>' + esc(entry.title || 'Activity') + '</strong>' +
-            '<time>' + esc(formatHistoryTime(entry.time)) + '</time>' +
-          '</div>' +
-          (entry.detail ? '<p>' + esc(entry.detail) + '</p>' : '') +
-          (actions ? '<footer>' + actions + '</footer>' : '') +
-        '</article>'
-      );
-    }).join('');
+    var paymentEvents = historyGroupedEvents(
+      rawEvents.filter(function (entry) {
+        return ['payment', 'terminal'].indexOf(String(entry.kind || '')) !== -1;
+      })
+    );
+
+    var noteEvents = historyGroupedEvents(
+      rawEvents.filter(function (entry) {
+        return ['note', 'item_note', 'table_note', 'waiter_call']
+          .indexOf(String(entry.kind || '')) !== -1;
+      })
+    );
+
+    var activityEvents = historyGroupedEvents(
+      rawEvents.filter(function (entry) {
+        return ['status', 'table_status']
+          .indexOf(String(entry.kind || '')) !== -1;
+      })
+    );
 
     detail.innerHTML =
-      '<div class="pmd-qpos-history-order-head">' +
-        '<div>' +
+      '<div class="pmd-qpos-history-order-head pmd-qpos-history-order-head-v20">' +
+        '<div class="pmd-qpos-history-order-identity">' +
           '<span>Order</span>' +
           '<h3>#' + esc(orderId) + '</h3>' +
-          '<p>' +
-            (total ? esc(total) : '') +
-            (settlement ? ' · ' + esc(settlement) : '') +
-            (invoiceNumber ? ' · ' + esc(invoiceNumber) : '') +
-          '</p>' +
+        '</div>' +
+        '<div class="pmd-qpos-history-order-facts">' +
+          (total
+            ? '<strong>' + esc(total) + '</strong>'
+            : '') +
+          (settlementLabel
+            ? '<span class="is-' + esc(settlementTone) + '">' +
+                esc(settlementLabel) +
+              '</span>'
+            : '') +
+          '<time>' + esc(historyShortTime(order.time)) + '</time>' +
         '</div>' +
         '<a class="pmd-qpos-history-invoice" href="' + esc(invoiceUrl) +
           '" target="_blank" rel="noopener">Open invoice</a>' +
       '</div>' +
-      '<div class="pmd-qpos-history-order-summary">' +
-        (order.detail ? '<p>' + esc(order.detail) + '</p>' : '') +
-      '</div>' +
-      '<div class="pmd-qpos-history-detail-events">' +
-        (eventRows || '<div class="pmd-qpos-history-empty">No linked events.</div>') +
+      ((itemSummary || orderNote)
+        ? '<div class="pmd-qpos-history-order-overview">' +
+            (itemSummary
+              ? '<div><span>Items</span><p>' + esc(itemSummary) + '</p></div>'
+              : '') +
+            (orderNote
+              ? '<div><span>Note</span><p>' + esc(orderNote) + '</p></div>'
+              : '') +
+          '</div>'
+        : '') +
+      '<div class="pmd-qpos-history-sections">' +
+        historySection('Payments', paymentEvents) +
+        historySection('Notes & calls', noteEvents) +
+        historySection('Activity', activityEvents) +
+        (
+          !paymentEvents.length &&
+          !noteEvents.length &&
+          !activityEvents.length
+            ? '<div class="pmd-qpos-history-empty">No linked activity.</div>'
+            : ''
+        ) +
       '</div>';
+  }
+
+  function historyListCompact(entry) {
+    var kind = String(entry.kind || 'event');
+    var orderId = Number(entry.order_id || 0);
+    var title = String(entry.title || 'Activity');
+    var line = '';
+    var badge = '';
+    var badgeTone = 'neutral';
+
+    if (kind === 'order') {
+      title = '#' + String(orderId || '');
+      line = entry.total != null ? money(entry.total) : '';
+      badge = historySettlementLabel(entry.settlement_status || '');
+      badgeTone = historySettlementTone(entry.settlement_status || '');
+      if (Number(entry.item_count || 0) > 0) {
+        line +=
+          (line ? ' · ' : '') +
+          String(Number(entry.item_count || 0)) +
+          (Number(entry.item_count || 0) === 1 ? ' item' : ' items');
+      }
+    } else {
+      var compact = historyCompactEvent(entry);
+      title = compact.title;
+      line = compact.value || compact.note || '';
+      if (orderId) {
+        badge = '#' + String(orderId);
+      }
+    }
+
+    return {
+      title: title,
+      line: line,
+      badge: badge,
+      badgeTone: badgeTone,
+      time: entry.time
+    };
   }
 
   function renderHistory(json) {
@@ -3710,29 +4029,27 @@ function renderOpenChecks() {
       var selected =
         orderId &&
         Number(state.historySelectedOrderId || 0) === orderId;
-
-      var meta = [];
-      if (entry.total != null && String(entry.kind || '') === 'order') {
-        meta.push(money(entry.total));
-      }
-      if (entry.settlement_status && String(entry.kind || '') === 'order') {
-        meta.push(String(entry.settlement_status));
-      }
-      if (entry.invoice_number && String(entry.kind || '') === 'order') {
-        meta.push(String(entry.invoice_number));
-      }
+      var row = historyListCompact(entry);
 
       return (
-        '<button type="button" class="pmd-qpos-history-entry' +
+        '<button type="button" class="pmd-qpos-history-entry pmd-qpos-history-entry-v20' +
           (selected ? ' is-selected' : '') + '"' +
           ' data-kind="' + esc(entry.kind || 'event') + '"' +
           (orderId ? ' data-qpos-history-order="' + esc(orderId) + '"' : '') + '>' +
-          '<header>' +
-            '<strong>' + esc(entry.title || 'Activity') + '</strong>' +
-            '<time>' + esc(formatHistoryTime(entry.time)) + '</time>' +
-          '</header>' +
-          (meta.length ? '<small>' + esc(meta.join(' · ')) + '</small>' : '') +
-          (entry.detail ? '<p>' + esc(entry.detail) + '</p>' : '') +
+          '<div class="pmd-qpos-history-entry-top">' +
+            '<strong>' + esc(row.title) + '</strong>' +
+            '<time>' + esc(historyShortTime(row.time)) + '</time>' +
+          '</div>' +
+          '<div class="pmd-qpos-history-entry-bottom">' +
+            (row.line
+              ? '<span>' + esc(row.line) + '</span>'
+              : '<span class="is-muted">Activity</span>') +
+            (row.badge
+              ? '<b class="is-' + esc(row.badgeTone) + '">' +
+                  esc(row.badge) +
+                '</b>'
+              : '') +
+          '</div>' +
         '</button>'
       );
     }).join('');
@@ -3756,7 +4073,8 @@ function renderOpenChecks() {
     } else if (kind === 'orders' && entries[0] && entries[0].order_id) {
       state.historySelectedOrderId = Number(entries[0].order_id);
       renderHistoryDetail(state.historySelectedOrderId);
-      var first = $('[data-qpos-history-order="' + String(state.historySelectedOrderId) + '"]', list);
+      var first = $('[data-qpos-history-order="' +
+        String(state.historySelectedOrderId) + '"]', list);
       if (first) first.classList.add('is-selected');
     } else {
       renderHistoryDetail(0);
