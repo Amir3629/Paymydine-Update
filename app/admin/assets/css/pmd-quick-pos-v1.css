@@ -47,7 +47,7 @@ button {
 .pmd-qpos {
   height: 100dvh;
   display: grid;
-  grid-template-rows: var(--q-top) minmax(0,1fr);
+  grid-template-rows: minmax(0,1fr);
 }
 
 .pmd-qpos-topbar {
@@ -180,8 +180,8 @@ button {
   flex-direction: column;
   overflow: hidden;
 }
-.pmd-qpos-service {
-  padding: 14px;
+.pmd-qpos-floor-switch {
+  padding: 12px;
   border-bottom: 1px solid var(--q-line);
 }
 .pmd-qpos-section-label {
@@ -194,22 +194,30 @@ button {
   color: var(--q-muted);
   font-weight: 850;
 }
-.pmd-qpos-segmented {
-  display: grid;
-  grid-template-columns: repeat(3,1fr);
-  gap: 5px;
+.pmd-qpos-floor-tabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
-.pmd-qpos-segmented button {
-  min-height: 52px;
+.pmd-qpos-floor-tabs::-webkit-scrollbar { display: none; }
+.pmd-qpos-floor-tabs button {
+  flex: 0 0 auto;
+  min-height: 42px;
+  max-width: 150px;
+  padding: 0 12px;
   border: 1px solid var(--q-line);
   background: #fff;
+  color: #374151;
   border-radius: 10px;
   cursor: pointer;
-  color: #374151;
-  font-size: 12px;
-  font-weight: 750;
+  font-size: 11px;
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.pmd-qpos-segmented button.is-active {
+.pmd-qpos-floor-tabs button.is-active {
   background: var(--q-primary);
   color: #fff;
   border-color: var(--q-primary);
@@ -304,6 +312,38 @@ button {
 .pmd-qpos-table[data-status="occupied"]::after { background: var(--q-red); }
 .pmd-qpos-table[data-status="reserved"]::after { background: var(--q-blue); }
 .pmd-qpos-table[data-status="cleaning"]::after { background: var(--q-orange); }
+.pmd-qpos-pickup {
+  background: #f8fafc;
+}
+.pmd-qpos-pickup::after {
+  display: none;
+}
+.pmd-qpos-pickup.is-selected {
+  background: #eef2ff;
+}
+
+.pmd-qpos-mode-dock {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 8px 10px 10px;
+  border-top: 1px solid var(--q-line);
+  background: #fff;
+}
+.pmd-qpos-mode-dock a {
+  min-height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  color: #6b7280;
+  text-decoration: none;
+  font-size: 10px;
+  font-weight: 800;
+}
+.pmd-qpos-mode-dock a.is-active {
+  background: #f3f4f6;
+  color: #111827;
+}
 
 .pmd-qpos-skeleton-block {
   height: 74px;
@@ -346,6 +386,59 @@ button {
   color: var(--q-ink);
   font-size: 14px;
 }
+.pmd-qpos-work-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+.pmd-qpos-clock {
+  min-width: 58px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  padding: 0 9px;
+  border: 1px solid var(--q-line);
+  border-radius: 12px;
+  background: #fff;
+  color: #111827;
+  font-size: 14px;
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+}
+.pmd-qpos-online-dot {
+  width: 32px;
+  height: 46px;
+  justify-content: center;
+  color: transparent;
+  font-size: 0;
+}
+.pmd-qpos-online-dot i {
+  width: 9px;
+  height: 9px;
+}
+.pmd-qpos-work-icon,
+.pmd-qpos-work-link {
+  height: 46px;
+  min-width: 46px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--q-line);
+  border-radius: 12px;
+  background: #fff;
+  color: #374151;
+  text-decoration: none;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 800;
+}
+.pmd-qpos-work-icon {
+  font-size: 18px;
+}
+.pmd-qpos-work-link {
+  padding: 0 10px;
+}
+
 .pmd-qpos-new-check {
   border: 0;
   background: #eef2ff;
@@ -1107,8 +1200,7 @@ button {
 
 /* PMD_QPOS_STABLE_BOOT_V2
    Never hide or fade the POS canvas during bootstrap/refresh. */
-/* Waiter mode: Floor is the first-class navigation; cashier order-type selector disappears. */
-.pmd-qpos[data-mode="waiter"] .pmd-qpos-service { display: none; }
+/* Cashier and Waiter share the same floor-first navigation. */
 .pmd-qpos[data-mode="waiter"] .pmd-qpos-table-grid {
   grid-template-columns: repeat(2,minmax(0,1fr));
 }
@@ -1126,22 +1218,8 @@ button {
   .pmd-qpos {
     height: auto;
     min-height: 100dvh;
-    grid-template-rows: auto auto;
+    grid-template-rows: auto;
   }
-  .pmd-qpos-topbar {
-    position: sticky;
-    top: 0;
-    z-index: 40;
-    min-height: 58px;
-    padding: 8px 10px;
-  }
-  .pmd-qpos-brand { min-width: 0; }
-  .pmd-qpos-brand-mark { width: 36px; height: 36px; }
-  .pmd-qpos-brand strong { font-size: 13px; }
-  .pmd-qpos-brand small { display: none; }
-  .pmd-qpos-mode-switch,
-  .pmd-qpos-online,
-  .pmd-qpos-legacy-link { display: none !important; }
   .pmd-qpos-main {
     display: block;
     padding: 7px;
@@ -1153,7 +1231,7 @@ button {
     box-shadow: none;
   }
   .pmd-qpos-left { margin-bottom: 7px; }
-  .pmd-qpos-service { padding: 10px; }
+  .pmd-qpos-floor-switch { padding: 9px; }
   .pmd-qpos-tables { max-height: 230px; }
   .pmd-qpos-table-grid {
     grid-template-columns: repeat(3,minmax(0,1fr)) !important;
@@ -1166,7 +1244,11 @@ button {
     min-height: 500px;
     margin-bottom: 78px;
   }
-  .pmd-qpos-catalog-head { position: sticky; top: 58px; z-index: 20; background: #fff; padding: 8px; }
+  .pmd-qpos-catalog-head { position: sticky; top: 0; z-index: 20; background: #fff; padding: 8px; }
+  .pmd-qpos-work-link { display: none; }
+  .pmd-qpos-online-dot { display: none; }
+  .pmd-qpos-clock { min-width: 54px; padding: 0 7px; font-size: 12px; }
+  .pmd-qpos-work-icon { min-width: 42px; width: 42px; }
   .pmd-qpos-new-check { display: none; }
   .pmd-qpos-categories { padding: 8px; }
   .pmd-qpos-product-grid {
@@ -1178,7 +1260,7 @@ button {
   .pmd-qpos-cart {
     position: fixed;
     z-index: 55;
-    inset: 58px 0 0;
+    inset: 0;
     border: 0;
     border-radius: 0;
     transform: translateY(110%);
@@ -1231,7 +1313,7 @@ button {
 @media (pointer: coarse) {
   .pmd-qpos-product { min-height: 154px; }
   .pmd-qpos-product:active,
-  .pmd-qpos-segmented button:active,
+  .pmd-qpos-floor-tabs button:active,
   .pmd-qpos-categories button:active,
   .pmd-qpos-cart-actions button:active,
   .pmd-qpos-table-actions button:active,
