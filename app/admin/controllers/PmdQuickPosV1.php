@@ -1069,7 +1069,7 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
 
         $orders = $query
             ->orderByDesc($orderSort)
-            ->limit(min(220, $limit))
+            ->limit(min(500, $limit))
             ->get();
 
         $orderIds = $orders
@@ -1416,7 +1416,7 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 } elseif ($scope === 'all') {
                     $locationTableIds = array_values(array_filter(array_map(
                         'intval',
-                        array_column($this->quickPosTables($locationId), 'id')
+                        array_column($this->quickPosTables($locationId, [], '', false), 'id')
                     )));
                     if ($locationTableIds) {
                         $notificationQuery->whereIn('table_id', $locationTableIds);
@@ -1506,7 +1506,7 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                     $locationTableIds = array_values(array_filter(array_map(
                         'intval',
                         array_column(
-                            $this->quickPosTables($locationId),
+                            $this->quickPosTables($locationId, [], '', false),
                             'id'
                         )
                     )));
@@ -1622,7 +1622,8 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
     protected function quickPosTables(
         int $locationId,
         array $floorSnapshot = [],
-        string $defaultFloorId = ''
+        string $defaultFloorId = '',
+        bool $withSignals = true
     ): array {
         try {
             $assignments = (array)(
@@ -1773,10 +1774,9 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
              * table into Busy. The selected table payload still exposes its
              * open checks separately in the right-hand check panel.
              */
-            return $this->quickPosDecorateTableSignals(
-                $tables,
-                $locationId
-            );
+            return $withSignals
+                ? $this->quickPosDecorateTableSignals($tables, $locationId)
+                : $tables;
         } catch (\Throwable $error) {
             report($error);
             return [];
