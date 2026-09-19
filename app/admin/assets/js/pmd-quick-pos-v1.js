@@ -3040,7 +3040,7 @@
   }
 
   function textKeyboardTargets() {
-    return $(
+    return $$(
       '[data-qpos-search], ' +
       '[data-qpos-note], ' +
       '[data-qpos-modifier-note], ' +
