@@ -99,6 +99,62 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
         ]);
     }
 
+    public function save($tableId = null)
+    {
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'quick_save_entry'
+        );
+
+        $response = parent::save($tableId);
+
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'quick_save_response'
+        );
+
+        return $response;
+    }
+
+    protected function recalculateOrder(Orders_model $order): void
+    {
+        parent::recalculateOrder($order);
+
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'quick_save_recalculate'
+        );
+    }
+
+    protected function recordWaiterPosNoteHistoryV26(
+        Orders_model $order,
+        array $cart,
+        string $orderNote,
+        string $mode
+    ): void {
+        parent::recordWaiterPosNoteHistoryV26(
+            $order,
+            $cart,
+            $orderNote,
+            $mode
+        );
+
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'quick_save_note_history'
+        );
+    }
+
+    protected function markTableOccupiedForWaiterOrderV154(
+        array $table,
+        $order
+    ): void {
+        parent::markTableOccupiedForWaiterOrderV154(
+            $table,
+            $order
+        );
+
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'quick_save_table_state'
+        );
+    }
+
     /**
      * PMD_QUICK_POS_FAST_WRITE_V2
      *
