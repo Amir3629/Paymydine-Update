@@ -247,6 +247,19 @@ $root = getenv('PMD_ROOT_FOR_PROBE') ?: getcwd();
 require $root.'/bootstrap/autoload.php';
 $app = require $root.'/bootstrap/app.php';
 
+$request = Illuminate\Http\Request::create(
+    '/admin/pos',
+    'GET',
+    [],
+    [],
+    [],
+    [
+        'HTTP_HOST' => 'localhost',
+        'HTTPS' => 'on',
+    ]
+);
+$app->instance('request', $request);
+
 $kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);
 if (method_exists($kernel, 'bootstrap')) {
     $kernel->bootstrap();
