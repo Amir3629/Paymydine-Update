@@ -256,7 +256,7 @@
                     <button type="button" data-cash-preset="exact">Exact</button>
                 </div>
 
-                <section class="pmd-qpos-touch-keypad" data-qpos-touch-keypad hidden>
+                <section class="pmd-qpos-touch-keypad" data-qpos-touch-keypad>
                     <header>
                         <div>
                             <span data-qpos-touch-keypad-label>Payment amount</span>
