@@ -7,7 +7,7 @@
     <meta name="theme-color" content="#111827">
     <title>PayMyDine POS</title>
     <link rel="icon" type="image/svg+xml" href="/app/admin/assets/images/pmd-favicon-final-20260822.svg">
-    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-pos-v1.css?v=20260919-5">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-pos-v1.css?v=20260919-6">
 </head>
 <body class="pmd-qpos-body">
 <div
@@ -205,17 +205,62 @@
                 <div class="pmd-qpos-payment-grid">
                     <label class="pmd-qpos-field">
                         <span>Amount</span>
-                        <input type="number" min="0" step="0.01" inputmode="decimal" data-qpos-payment-amount>
+                        <input
+                            type="text"
+                            inputmode="none"
+                            autocomplete="off"
+                            spellcheck="false"
+                            data-qpos-payment-amount
+                            data-qpos-keypad-target="amount"
+                        >
                     </label>
                     <label class="pmd-qpos-field" data-qpos-cash-field>
                         <span>Cash received</span>
-                        <input type="number" min="0" step="0.01" inputmode="decimal" data-qpos-cash-received>
+                        <input
+                            type="text"
+                            inputmode="none"
+                            autocomplete="off"
+                            spellcheck="false"
+                            data-qpos-cash-received
+                            data-qpos-keypad-target="cash"
+                        >
                     </label>
                 </div>
 
                 <div class="pmd-qpos-cash-presets" data-qpos-cash-presets>
                     <button type="button" data-cash-preset="exact">Exact</button>
                 </div>
+
+                <section class="pmd-qpos-touch-keypad" data-qpos-touch-keypad hidden>
+                    <header>
+                        <div>
+                            <span data-qpos-touch-keypad-label>Payment amount</span>
+                            <strong data-qpos-touch-keypad-value>€0.00</strong>
+                        </div>
+                        <small>Touch keypad</small>
+                    </header>
+                    <div class="pmd-qpos-touch-keypad-grid">
+                        <button type="button" data-qpos-keypad-key="1">1</button>
+                        <button type="button" data-qpos-keypad-key="2">2</button>
+                        <button type="button" data-qpos-keypad-key="3">3</button>
+                        <button type="button" class="utility" data-qpos-keypad-key="backspace" aria-label="Backspace">⌫</button>
+
+                        <button type="button" data-qpos-keypad-key="4">4</button>
+                        <button type="button" data-qpos-keypad-key="5">5</button>
+                        <button type="button" data-qpos-keypad-key="6">6</button>
+                        <button type="button" class="utility" data-qpos-keypad-key="clear">C</button>
+
+                        <button type="button" data-qpos-keypad-key="7">7</button>
+                        <button type="button" data-qpos-keypad-key="8">8</button>
+                        <button type="button" data-qpos-keypad-key="9">9</button>
+                        <button type="button" class="exact" data-qpos-keypad-key="exact" data-qpos-keypad-exact>Exact</button>
+
+                        <button type="button" data-qpos-keypad-key="00">00</button>
+                        <button type="button" data-qpos-keypad-key="0">0</button>
+                        <button type="button" data-qpos-keypad-key=".">.</button>
+                        <button type="button" class="done" data-qpos-keypad-key="done">Done</button>
+                    </div>
+                </section>
 
                 <div class="pmd-qpos-tip-row">
                     <span>Tip</span>
@@ -277,7 +322,7 @@ window.PMDQuickPOSConfig = {
     canSwitchMode: @json((bool)$canSwitchMode)
 };
 </script>
-<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260919-5"></script>
+<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260919-6"></script>
 <script src="/app/admin/assets/js/pmd-site-access-hub-v13.js?v=20260919-qpos1"></script>
 </body>
 </html>
