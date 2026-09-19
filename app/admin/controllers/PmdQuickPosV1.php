@@ -1565,6 +1565,14 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                         ?? $row->table_number
                         ?? $id
                     );
+                    $number = trim((string)(
+                        preg_replace('/^table\\s*/iu', '', $number)
+                        ?? $number
+                    ));
+                    if ($number === '') {
+                        $number = (string)$id;
+                    }
+
                     $name = trim((string)(
                         $row->table_name
                         ?? $row->name
