@@ -1293,7 +1293,9 @@
       terminal: null,
       receiptUrl: '',
       invoiceUrl: '',
-      idempotencyKey: uid('pay')
+      idempotencyKey: uid('pay'),
+      touchKeypadTarget: null,
+      touchKeypadFresh: true
     };
   }
 
@@ -1350,6 +1352,9 @@
       modal.setAttribute('aria-hidden', 'true');
     }
     state.payment.open = false;
+    state.payment.touchKeypadTarget = null;
+    state.payment.touchKeypadFresh = true;
+    renderTouchKeypad();
   }
 
   async function loadPaymentSummary(silent) {
@@ -1421,6 +1426,13 @@
         if (state.payment.method === 'direct_terminal') {
           state.payment.amount = roundMoney(paymentRemaining()).toFixed(2);
           state.payment.tipPercent = 0;
+          state.payment.touchKeypadTarget = null;
+        } else if (
+          state.payment.method !== 'cash' &&
+          state.payment.touchKeypadTarget === 'cash'
+        ) {
+          state.payment.touchKeypadTarget = 'amount';
+          state.payment.touchKeypadFresh = true;
         }
 
         renderPayment();
@@ -1504,15 +1516,226 @@
       );
     }).join('');
 
-    $('[data-cash-value]', box).forEach(function (button) {
+    $$('[data-cash-value]', box).forEach(function (button) {
       button.onclick = function () {
         state.payment.cashReceived = roundMoney(
           num(button.getAttribute('data-cash-value'), paymentCharge())
         ).toFixed(2);
+        state.payment.touchKeypadTarget = 'cash';
+        state.payment.touchKeypadFresh = true;
         renderPaymentTotals();
-        renderCashPresets();
       };
     });
+  }
+
+  /* PMD_TOUCH_NUMPAD_V1
+   * Built-in numeric keypad for restaurant touch terminals. It intentionally
+   * owns only monetary fields; text/search/note fields keep their normal
+   * keyboard behavior.
+   */
+  function touchKeypadRawValue(target) {
+    return String(
+      target === 'cash'
+        ? (state.payment.cashReceived == null ? '' : state.payment.cashReceived)
+        : (state.payment.amount == null ? '' : state.payment.amount)
+    );
+  }
+
+  function touchKeypadDisplayValue(target) {
+    var raw = touchKeypadRawValue(target);
+    if (raw === '') return '0.00';
+    return raw;
+  }
+
+  function renderTouchKeypad() {
+    var keypad = $('[data-qpos-touch-keypad]');
+    var label = $('[data-qpos-touch-keypad-label]');
+    var value = $('[data-qpos-touch-keypad-value]');
+    var exact = $('[data-qpos-keypad-exact]');
+    var amountEl = $('[data-qpos-payment-amount]');
+    var cashEl = $('[data-qpos-cash-received]');
+    var target = state.payment.touchKeypadTarget;
+
+    if (amountEl) {
+      amountEl.classList.toggle('is-keypad-target', target === 'amount');
+    }
+    if (cashEl) {
+      cashEl.classList.toggle('is-keypad-target', target === 'cash');
+    }
+
+    if (!keypad) return;
+
+    var allowed =
+      state.payment.open &&
+      (target === 'amount' || target === 'cash') &&
+      !(target === 'amount' && state.payment.method === 'direct_terminal') &&
+      !(target === 'cash' && state.payment.method !== 'cash');
+
+    keypad.hidden = !allowed;
+    if (!allowed) return;
+
+    if (label) {
+      label.textContent = target === 'cash'
+        ? 'Cash received'
+        : 'Payment amount';
+    }
+
+    if (value) {
+      value.textContent = money(num(touchKeypadDisplayValue(target), 0));
+    }
+
+    if (exact) {
+      exact.textContent = target === 'cash' ? 'Exact' : 'Full';
+    }
+  }
+
+  function openTouchKeypad(target) {
+    target = String(target || '');
+
+    if (
+      target !== 'amount' &&
+      target !== 'cash'
+    ) {
+      return;
+    }
+
+    if (
+      target === 'amount' &&
+      state.payment.method === 'direct_terminal'
+    ) {
+      return;
+    }
+
+    if (
+      target === 'cash' &&
+      state.payment.method !== 'cash'
+    ) {
+      return;
+    }
+
+    state.payment.touchKeypadTarget = target;
+    state.payment.touchKeypadFresh = true;
+    renderTouchKeypad();
+
+    var keypad = $('[data-qpos-touch-keypad]');
+    if (keypad && keypad.scrollIntoView) {
+      window.requestAnimationFrame(function () {
+        keypad.scrollIntoView({
+          block: 'nearest',
+          behavior: 'smooth'
+        });
+      });
+    }
+  }
+
+  function normalizeTouchKeypadValue(raw) {
+    raw = String(raw == null ? '' : raw)
+      .replace(',', '.')
+      .replace(/[^0-9.]/g, '');
+
+    var dot = raw.indexOf('.');
+    if (dot !== -1) {
+      raw =
+        raw.slice(0, dot + 1) +
+        raw.slice(dot + 1).replace(/\./g, '').slice(0, 2);
+    }
+
+    if (raw.length > 10) {
+      raw = raw.slice(0, 10);
+    }
+
+    return raw;
+  }
+
+  function setTouchKeypadValue(target, raw) {
+    raw = normalizeTouchKeypadValue(raw);
+
+    if (target === 'cash') {
+      state.payment.cashReceived = raw;
+    } else {
+      state.payment.amount = raw;
+
+      if (state.payment.method === 'cash') {
+        state.payment.cashReceived = roundMoney(
+          paymentCharge()
+        ).toFixed(2);
+      }
+    }
+
+    renderPaymentTotals();
+  }
+
+  function applyTouchKeypadKey(key) {
+    var target = state.payment.touchKeypadTarget;
+    if (target !== 'amount' && target !== 'cash') return;
+
+    key = String(key || '');
+    var raw = touchKeypadRawValue(target);
+
+    if (key === 'done') {
+      if (raw !== '') {
+        setTouchKeypadValue(
+          target,
+          roundMoney(num(raw, 0)).toFixed(2)
+        );
+      }
+      state.payment.touchKeypadTarget = null;
+      state.payment.touchKeypadFresh = true;
+      renderTouchKeypad();
+      return;
+    }
+
+    if (key === 'clear') {
+      state.payment.touchKeypadFresh = false;
+      setTouchKeypadValue(target, '');
+      renderTouchKeypad();
+      return;
+    }
+
+    if (key === 'backspace') {
+      if (state.payment.touchKeypadFresh) {
+        raw = '';
+      } else {
+        raw = raw.slice(0, -1);
+      }
+      state.payment.touchKeypadFresh = false;
+      setTouchKeypadValue(target, raw);
+      renderTouchKeypad();
+      return;
+    }
+
+    if (key === 'exact') {
+      raw = (
+        target === 'cash'
+          ? paymentCharge()
+          : paymentRemaining()
+      ).toFixed(2);
+      state.payment.touchKeypadFresh = true;
+      setTouchKeypadValue(target, raw);
+      renderTouchKeypad();
+      return;
+    }
+
+    if (state.payment.touchKeypadFresh) {
+      raw = '';
+      state.payment.touchKeypadFresh = false;
+    }
+
+    if (key === '.') {
+      if (raw.indexOf('.') === -1) {
+        raw = (raw || '0') + '.';
+      }
+    } else if (/^\d{1,2}$/.test(key)) {
+      if (raw === '0' && key !== '00') {
+        raw = '';
+      }
+      raw += key;
+    } else {
+      return;
+    }
+
+    setTouchKeypadValue(target, raw);
+    renderTouchKeypad();
   }
 
   function renderPaymentTotals() {
@@ -1554,6 +1777,7 @@
     if (changeEl) changeEl.textContent = money(change);
 
     renderCashPresets();
+    renderTouchKeypad();
 
     var valid =
       !!state.payment.summary &&
@@ -1971,15 +2195,44 @@
     });
 
     var amount = $('[data-qpos-payment-amount]');
-    if (amount) amount.addEventListener('input', function () {
-      state.payment.amount = amount.value;
-      renderPaymentTotals();
-    });
+    if (amount) {
+      amount.addEventListener('input', function () {
+        state.payment.amount = amount.value;
+        if (state.payment.method === 'cash') {
+          state.payment.cashReceived = roundMoney(
+            paymentCharge()
+          ).toFixed(2);
+        }
+        renderPaymentTotals();
+      });
+      amount.addEventListener('focus', function () {
+        openTouchKeypad('amount');
+      });
+      amount.addEventListener('click', function () {
+        openTouchKeypad('amount');
+      });
+    }
 
     var cash = $('[data-qpos-cash-received]');
-    if (cash) cash.addEventListener('input', function () {
-      state.payment.cashReceived = cash.value;
-      renderPaymentTotals();
+    if (cash) {
+      cash.addEventListener('input', function () {
+        state.payment.cashReceived = cash.value;
+        renderPaymentTotals();
+      });
+      cash.addEventListener('focus', function () {
+        openTouchKeypad('cash');
+      });
+      cash.addEventListener('click', function () {
+        openTouchKeypad('cash');
+      });
+    }
+
+    $$('[data-qpos-keypad-key]').forEach(function (button) {
+      button.onclick = function () {
+        applyTouchKeypadKey(
+          button.getAttribute('data-qpos-keypad-key')
+        );
+      };
     });
 
     var reference = $('[data-qpos-payment-reference]');
