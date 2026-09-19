@@ -306,7 +306,8 @@
 <script>
 window.PMDQuickPOSConfig = {
     mode: @json($mode),
-    canSwitchMode: @json((bool)$canSwitchMode)
+    canSwitchMode: @json((bool)$canSwitchMode),
+    initialBootstrap: @json($initialBootstrap ?? null)
 };
 </script>
 <script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260919-8"></script>
