@@ -650,15 +650,48 @@
         state.selectedTable &&
         Number(state.selectedTable.id) === Number(table.id);
 
+      var signals = [];
+      var paymentState = String(table.payment_state || 'none');
+
+      if (paymentState === 'paid') {
+        signals.push(
+          '<span class="is-paid" title="Paid" aria-label="Paid">✓</span>'
+        );
+      } else if (paymentState === 'partial') {
+        signals.push(
+          '<span class="is-due" title="Partly paid" aria-label="Partly paid">½</span>'
+        );
+      } else if (paymentState === 'due') {
+        signals.push(
+          '<span class="is-due" title="Payment due" aria-label="Payment due">€</span>'
+        );
+      }
+
+      if (num(table.waiter_calls, 0) > 0) {
+        signals.push(
+          '<span class="is-call" title="Waiter call" aria-label="Waiter call">!</span>'
+        );
+      }
+
+      if (num(table.note_count, 0) > 0) {
+        signals.push(
+          '<span class="is-note" title="New note" aria-label="New note">N</span>'
+        );
+      }
+
       rows.push(
         '<button type="button" class="pmd-qpos-table' +
           (selected ? ' is-selected' : '') + '"' +
           ' data-qpos-table="' + esc(table.id) + '"' +
-          ' data-status="' + esc(table.status || 'available') + '">' +
+          ' data-status="' + esc(table.status || 'available') + '"' +
+          ' data-payment-state="' + esc(paymentState) + '">' +
           '<strong>' + esc(compactTableLabel(table)) + '</strong>' +
           '<small>' + esc(tableStatusLabel(table.status)) +
             (num(table.capacity, 0) > 0 ? ' · ' + esc(table.capacity) + 's' : '') +
           '</small>' +
+          (signals.length
+            ? '<span class="pmd-qpos-table-signals">' + signals.join('') + '</span>'
+            : '') +
         '</button>'
       );
     });
@@ -1644,7 +1677,6 @@ function renderOpenChecks() {
       modal.classList.add('is-open');
       modal.setAttribute('aria-hidden', 'false');
     }
-    root.classList.add('is-payment-workspace');
   }
 
   function closeModifier() {
@@ -1865,6 +1897,7 @@ function renderOpenChecks() {
       modal.classList.add('is-open');
       modal.setAttribute('aria-hidden', 'false');
     }
+    root.classList.add('is-payment-workspace');
   }
 
   function paymentRemaining() {
