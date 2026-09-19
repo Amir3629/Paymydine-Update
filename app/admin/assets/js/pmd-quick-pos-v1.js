@@ -3118,6 +3118,10 @@ function renderOpenChecks() {
       1,
       Number(state.payment.splitParts || 1)
     );
+    var selectedItemsBefore =
+      splitModeBefore === 'items'
+        ? paymentSelectedItemsPayload()
+        : [];
 
     try {
       var url = tokenUrl(
@@ -3173,6 +3177,57 @@ function renderOpenChecks() {
       });
 
       state.payment.summary = json.summary || state.payment.summary;
+
+      /* PMD_QPOS_SPLIT_ITEMS_OPTIMISTIC_V16
+       * Fast-settle intentionally reuses the pre-payment summary. Keep item
+       * balances correct locally so the next payer never sees just-paid items
+       * as unpaid while the background table refresh catches up. */
+      if (
+        splitModeBefore === 'items' &&
+        selectedItemsBefore.length &&
+        state.payment.summary &&
+        Array.isArray(state.payment.summary.items)
+      ) {
+        var itemGrossRatio = Math.max(
+          0.000001,
+          num(
+            state.payment.summary.settlement &&
+            state.payment.summary.settlement.gross_ratio,
+            1
+          )
+        );
+
+        state.payment.summary.items = state.payment.summary.items.map(
+          function (item) {
+            var paid = selectedItemsBefore.find(function (row) {
+              return Number(row.order_menu_id || 0) ===
+                Number(item.order_menu_id || 0);
+            });
+            if (!paid) return item;
+
+            var quantityPaidNow = Math.max(0, num(paid.quantity, 0));
+            var totalQuantity = Math.max(0, num(item.quantity, 0));
+            var oldPaid = Math.max(0, num(item.paid_quantity, 0));
+            var oldUnpaid = Math.max(0, num(item.unpaid_quantity, 0));
+            var nextUnpaid = Math.max(0, oldUnpaid - quantityPaidNow);
+            var nextPaid = Math.min(
+              totalQuantity,
+              oldPaid + quantityPaidNow
+            );
+            var unitPrice = Math.max(0, num(item.unit_price, 0));
+
+            return Object.assign({}, item, {
+              paid_quantity: roundMoney(nextPaid),
+              unpaid_quantity: roundMoney(nextUnpaid),
+              unpaid_subtotal: roundMoney(unitPrice * nextUnpaid),
+              unpaid_gross: roundMoney(
+                unitPrice * nextUnpaid * itemGrossRatio
+              )
+            });
+          }
+        );
+      }
+
       state.payment.receiptUrl = String(json.receipt_url || '');
       state.payment.invoiceUrl = String(json.invoice_url || '');
       state.payment.idempotencyKey = uid('pay');
