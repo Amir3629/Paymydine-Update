@@ -1372,6 +1372,23 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 $tableStatusQuery = DB::table($tableStatusTable);
                 if ($scope === 'table' && $tableId > 0) {
                     $tableStatusQuery->where('table_id', $tableId);
+                } elseif ($scope === 'all') {
+                    $locationTableIds = array_values(array_filter(array_map(
+                        'intval',
+                        array_column(
+                            $this->quickPosTables($locationId),
+                            'id'
+                        )
+                    )));
+
+                    if ($locationTableIds) {
+                        $tableStatusQuery->whereIn(
+                            'table_id',
+                            $locationTableIds
+                        );
+                    } else {
+                        $tableStatusQuery->whereRaw('1 = 0');
+                    }
                 }
 
                 $rows = $tableStatusQuery
