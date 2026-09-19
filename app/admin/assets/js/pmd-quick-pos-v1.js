@@ -593,7 +593,9 @@
 
   function compactTableLabel(table) {
     if (!table) return '';
-    var number = String(table.number == null ? '' : table.number).trim();
+    var number = String(
+      table.number == null ? '' : table.number
+    ).trim().replace(/^table\s*/i, '');
     if (number) return number;
 
     var name = String(table.name == null ? '' : table.name).trim();
