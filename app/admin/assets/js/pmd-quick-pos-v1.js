@@ -120,6 +120,8 @@
     offPremiseOrder: null,
     forceNewCheck: false,
     cart: [],
+    pendingSend: null,
+    tableRequestSeq: 0,
     guestCount: 1,
     note: '',
     loading: false,
@@ -203,6 +205,17 @@
 
   function cartTotal() {
     return roundMoney(state.cart.reduce(function (sum, row) {
+      return sum + lineTotal(row);
+    }, 0));
+  }
+
+  function pendingSendTotal() {
+    var rows =
+      state.pendingSend && Array.isArray(state.pendingSend.cart)
+        ? state.pendingSend.cart
+        : [];
+
+    return roundMoney(rows.reduce(function (sum, row) {
       return sum + lineTotal(row);
     }, 0));
   }
@@ -536,24 +549,46 @@
 
     if (!section || !box) return;
 
-    var items = orderItems(order);
-    if (!order || !items.length) {
+    var committed = orderItems(order);
+    var pending = (
+      state.pendingSend &&
+      Array.isArray(state.pendingSend.cart)
+    )
+      ? state.pendingSend.cart.map(function (row) {
+          return {
+            name: row.name,
+            quantity: row.quantity,
+            subtotal: lineTotal(row),
+            comment: row.comment || '',
+            __pending: true
+          };
+        })
+      : [];
+
+    var items = committed.concat(pending);
+
+    if (!items.length) {
       section.hidden = true;
       box.innerHTML = '';
       return;
     }
 
     section.hidden = false;
-    if (total) total.textContent = money(orderTotal(order));
+    if (total) {
+      total.textContent = money(
+        (order ? orderTotal(order) : 0) + pendingSendTotal()
+      );
+    }
 
     box.innerHTML = items.map(function (item) {
       var qty = num(item.quantity != null ? item.quantity : item.qty, 1);
       var subtotal = num(item.subtotal != null ? item.subtotal : item.line_subtotal, 0);
       return (
-        '<div class="pmd-qpos-sent-line">' +
+        '<div class="pmd-qpos-sent-line' + (item.__pending ? ' is-pending' : '') + '">' +
           '<b>' + esc(qty) + '×</b>' +
           '<span>' + esc(item.name || item.menu_name || 'Item') +
             (visibleNote(item.comment) ? '<small>' + esc(visibleNote(item.comment)) + '</small>' : '') +
+            (item.__pending ? '<small class="pmd-qpos-syncing">Sending…</small>' : '') +
           '</span>' +
           '<strong>' + money(subtotal) + '</strong>' +
         '</div>'
@@ -682,7 +717,9 @@
     }
 
     var newTotal = cartTotal();
-    var total = roundMoney(existingTotal() + newTotal);
+    var total = roundMoney(
+      existingTotal() + pendingSendTotal() + newTotal
+    );
 
     var newTotalEl = $('[data-qpos-new-total]');
     var totalEl = $('[data-qpos-total]');
@@ -704,14 +741,26 @@
     var pay = $('[data-qpos-pay]');
 
     var canSave = canOrderNow() && state.cart.length > 0 && !state.submitting;
-    if (hold) hold.disabled = !canSave;
-    if (send) send.disabled = !canSave;
+    root.classList.toggle('is-committing', !!state.submitting);
+
+    if (hold) {
+      hold.disabled = !canSave;
+      hold.textContent = state.submitting ? 'Saving…' : 'Hold';
+    }
+
+    if (send) {
+      send.disabled = !canSave;
+      send.textContent = state.submitting ? 'Sending…' : 'Send';
+    }
+
     if (pay) {
       pay.disabled =
         !activeOrder() ||
         state.cart.length > 0 ||
+        !!state.pendingSend ||
         state.submitting ||
         !((state.boot && state.boot.permissions && state.boot.permissions.payments) !== false);
+      pay.textContent = 'Pay';
     }
 
     renderContext();
@@ -753,9 +802,19 @@
   async function loadTable(id, silent) {
     if (!state.settings.table_data_url) return;
 
+    var requestSeq = ++state.tableRequestSeq;
+
     try {
       var url = tokenUrl(state.settings.table_data_url, '{table}', id);
       var json = await fetchJson(url + '?_=' + Date.now());
+
+      if (
+        requestSeq !== state.tableRequestSeq ||
+        !state.selectedTable ||
+        Number(state.selectedTable.id) !== Number(id)
+      ) {
+        return;
+      }
 
       state.tableData = json;
       state.openOrders = Array.isArray(json.open_orders) ? json.open_orders : [];
@@ -775,7 +834,9 @@
       renderAll();
       if (!silent) toast((state.selectedTable && state.selectedTable.name) + ' opened');
     } catch (error) {
-      toast(error.message || 'Table could not be opened.', true);
+      if (!silent && requestSeq === state.tableRequestSeq) {
+        toast(error.message || 'Table could not be opened.', true);
+      }
     }
   }
 
@@ -809,6 +870,81 @@
     renderAll();
   }
 
+  function optimisticSentItems(rows) {
+    return (rows || []).map(function (row) {
+      return {
+        menu_id: row.menu_id,
+        name: row.name,
+        quantity: row.quantity,
+        price: num(row.price, 0),
+        subtotal: lineTotal(row),
+        comment: row.comment || ''
+      };
+    });
+  }
+
+  function applyQuickSaveResponse(json, snapshot) {
+    var id = Number(json.order_id || 0);
+    if (!id) return;
+
+    var total = num(json.order_total, 0);
+    var sentItems = optimisticSentItems(snapshot.cart);
+
+    state.activeOrderId = id;
+    state.forceNewCheck = false;
+
+    if (snapshot.serviceMode === 'dine_in') {
+      var found = false;
+
+      state.openOrders = state.openOrders.map(function (row) {
+        if (orderId(row) !== id) return row;
+        found = true;
+
+        return Object.assign({}, row, {
+          order_id: id,
+          total: total,
+          order_total: total,
+          total_items: num(json.total_items, row.total_items || 0),
+          updated_at: json.updated_at || row.updated_at || '',
+          guest_count: snapshot.guestCount,
+          items: orderItems(row).concat(sentItems)
+        });
+      });
+
+      if (!found) {
+        state.openOrders.unshift({
+          order_id: id,
+          total: total,
+          order_total: total,
+          total_items: num(json.total_items, 0),
+          updated_at: json.updated_at || '',
+          guest_count: snapshot.guestCount,
+          settlement_status: 'unpaid',
+          items: sentItems
+        });
+      }
+    } else {
+      var existingItems =
+        state.offPremiseOrder && Array.isArray(state.offPremiseOrder.items)
+          ? state.offPremiseOrder.items
+          : [];
+
+      state.offPremiseOrder = Object.assign(
+        {},
+        state.offPremiseOrder || {},
+        {
+          order_id: id,
+          order_total: total,
+          total: total,
+          total_items: num(json.total_items, 0),
+          updated_at: json.updated_at || '',
+          settlement_status: 'unpaid',
+          items: existingItems.concat(sentItems)
+        }
+      );
+    }
+  }
+
   async function submitOrder(mode) {
     if (state.submitting || !state.cart.length) return;
 
@@ -817,21 +953,37 @@
       return;
     }
 
-    state.submitting = true;
-    renderCart();
-
     var order = activeOrder();
-    var payload = {
+    var snapshot = {
       mode: mode,
-      order_id: state.activeOrderId,
-      expected_updated_at: order && order.updated_at ? order.updated_at : null,
-      guest_count: state.guestCount,
+      serviceMode: state.serviceMode,
+      tableId: state.selectedTable ? Number(state.selectedTable.id) : null,
+      activeOrderId: state.activeOrderId,
+      expectedUpdatedAt: order && order.updated_at ? order.updated_at : null,
+      guestCount: state.guestCount,
       note: state.note,
+      forceNewCheck: !!state.forceNewCheck,
+      cart: state.cart.map(function (row) {
+        return Object.assign({}, row, {
+          options: (row.options || []).map(function (option) {
+            return Object.assign({}, option);
+          })
+        });
+      })
+    };
+
+    var payload = {
+      mode: snapshot.mode,
+      order_id: snapshot.activeOrderId,
+      expected_updated_at: snapshot.expectedUpdatedAt,
+      guest_count: snapshot.guestCount,
+      note: snapshot.note,
       force_new_check:
-        state.serviceMode === 'dine_in'
-          ? !!state.forceNewCheck
+        snapshot.serviceMode === 'dine_in'
+          ? snapshot.forceNewCheck
           : false,
-      items: state.cart.map(function (row) {
+      quick_pos: true,
+      items: snapshot.cart.map(function (row) {
         return {
           menu_id: row.menu_id,
           quantity: row.quantity,
@@ -844,17 +996,31 @@
     };
 
     var url;
-    if (state.serviceMode === 'dine_in') {
+    if (snapshot.serviceMode === 'dine_in') {
       url = tokenUrl(
         state.settings.table_save_url,
         '{table}',
-        state.selectedTable.id
+        snapshot.tableId
       );
     } else {
       url = state.settings.off_premise_save_url;
-      payload.service_mode = state.serviceMode;
+      payload.service_mode = snapshot.serviceMode;
       payload.location_id = state.boot ? state.boot.location_id : null;
     }
+
+    // Touch-first acknowledgement: the cart moves immediately into a
+    // "Sending…" state. If the server rejects the write, it is restored.
+    state.submitting = true;
+    state.pendingSend = snapshot;
+    state.cart = [];
+    state.note = '';
+
+    if (navigator.vibrate) {
+      try { navigator.vibrate(8); } catch (ignored) {}
+    }
+
+    renderCart();
+    toast(mode === 'send' ? 'Sending…' : 'Saving…');
 
     try {
       var json = await fetchJson(url, {
@@ -863,35 +1029,43 @@
         body: JSON.stringify(payload)
       });
 
-      state.activeOrderId = Number(json.order_id || 0) || null;
-      state.forceNewCheck = false;
-      state.cart = [];
-      state.note = '';
-
-      if (state.serviceMode === 'dine_in') {
-        await loadTable(state.selectedTable.id, true);
-      } else {
-        state.offPremiseOrder = {
-          order_id: state.activeOrderId,
-          order_total: num(json.order_total, 0),
-          total: num(json.order_total, 0),
-          total_items: num(json.total_items, 0),
-          updated_at: json.updated_at || '',
-          items: []
-        };
-        renderAll();
-      }
-
+      applyQuickSaveResponse(json, snapshot);
+      state.pendingSend = null;
+      state.submitting = false;
+      renderAll();
       toast(json.message || 'Order saved');
 
       window.dispatchEvent(new CustomEvent('pmd:quick-pos-order-updated', {
         detail: json
       }));
+
+      // Server reconciliation is background-only. The successful POST already
+      // returned authoritative ids/totals, so the cashier never waits for a
+      // second GET before continuing.
+      if (
+        snapshot.serviceMode === 'dine_in' &&
+        snapshot.tableId &&
+        state.selectedTable &&
+        Number(state.selectedTable.id) === Number(snapshot.tableId)
+      ) {
+        setTimeout(function () {
+          loadTable(snapshot.tableId, true);
+        }, 0);
+      }
     } catch (error) {
+      state.pendingSend = null;
+
+      // Never lose unsent work. Merge the rejected snapshot back in front of
+      // anything the operator tapped while the request was in flight.
+      state.cart = snapshot.cart.concat(state.cart);
+      if (!state.note) state.note = snapshot.note;
+      state.guestCount = snapshot.guestCount;
+      state.forceNewCheck = snapshot.forceNewCheck;
+
       toast(error.message || 'Order could not be saved.', true);
     } finally {
       state.submitting = false;
-      renderCart();
+      renderAll();
     }
   }
 
@@ -1341,10 +1515,21 @@
 
     if (submit) {
       submit.disabled = !valid;
-      submit.textContent =
-        state.payment.method === 'direct_terminal'
-          ? 'Send to terminal'
-          : (state.payment.method === 'cash' ? 'Record cash ' + money(charge) : 'Record card ' + money(charge));
+      submit.textContent = state.payment.submitting
+        ? (
+            state.payment.method === 'direct_terminal'
+              ? 'Waiting for terminal…'
+              : 'Processing…'
+          )
+        : (
+            state.payment.method === 'direct_terminal'
+              ? 'Send to terminal'
+              : (
+                  state.payment.method === 'cash'
+                    ? 'Pay cash ' + money(charge)
+                    : 'Pay card ' + money(charge)
+                )
+          );
     }
   }
 
@@ -1458,7 +1643,10 @@
       toast(json.message || 'Payment recorded');
 
       if (state.serviceMode === 'dine_in' && state.selectedTable) {
-        await loadTable(state.selectedTable.id, true);
+        var paidTableId = Number(state.selectedTable.id);
+        setTimeout(function () {
+          loadTable(paidTableId, true);
+        }, 0);
       } else if (String(json.settlement_status || '').toLowerCase() === 'paid') {
         state.offPremiseOrder = Object.assign({}, state.offPremiseOrder || {}, {
           settlement_status: 'paid'
@@ -1549,9 +1737,12 @@
         await loadPaymentSummary(true);
         toast('Terminal payment approved');
         if (state.serviceMode === 'dine_in' && state.selectedTable) {
-          await loadTable(state.selectedTable.id, true);
+          var terminalPaidTableId = Number(state.selectedTable.id);
+          setTimeout(function () {
+            loadTable(terminalPaidTableId, true);
+          }, 0);
         }
-        setTimeout(closePayment, 900);
+        setTimeout(closePayment, 350);
         return;
       }
 
