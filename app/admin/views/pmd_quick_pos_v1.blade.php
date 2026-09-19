@@ -421,6 +421,11 @@
             <button type="button" data-qpos-text-key="done">Done</button>
         </header>
         <div class="pmd-qpos-text-keyboard-row">
+            @foreach(str_split('1234567890') as $key)
+                <button type="button" data-qpos-text-key="{{ $key }}">{{ $key }}</button>
+            @endforeach
+        </div>
+        <div class="pmd-qpos-text-keyboard-row">
             @foreach(str_split('QWERTYUIOP') as $key)
                 <button type="button" data-qpos-text-key="{{ $key }}">{{ $key }}</button>
             @endforeach
