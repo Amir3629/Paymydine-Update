@@ -1991,3 +1991,609 @@ body.pmd-qpos-body {
     max-height: 96dvh;
   }
 }
+
+
+/* PMD_QPOS_WIDE_PAYMENT_HISTORY_TOUCH_V13
+   Wide no-scroll desktop payment layout, compact POS shell, selected/all
+   history, per-item notes, and cashier-only touch text keyboard. */
+
+/* The header now keeps only search, time and History. */
+.pmd-qpos-catalog-head {
+  align-items: center;
+}
+.pmd-qpos-work-meta {
+  gap: 8px;
+}
+.pmd-qpos-history-button {
+  height: 48px;
+  min-width: 86px;
+  padding: 0 16px;
+  border: 1px solid #064e3b;
+  border-radius: 12px;
+  background: #064e3b;
+  color: #fff;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+/* Profile replaces the Cashier/Waiter mode dock. */
+.pmd-qpos-profile-dock {
+  position: relative;
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: auto minmax(0,1fr);
+  gap: 7px;
+  padding: 9px 10px 10px;
+  border-top: 1px solid var(--q-line);
+  background: #fff;
+}
+.pmd-qpos-profile-dock > :only-child {
+  grid-column: 1 / -1;
+}
+.pmd-qpos-back-button,
+.pmd-qpos-profile-button {
+  min-height: 44px;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  background: #fff;
+  color: #111827;
+  font-weight: 850;
+  text-decoration: none;
+}
+.pmd-qpos-back-button {
+  display: grid;
+  place-items: center;
+  padding: 0 11px;
+  white-space: nowrap;
+}
+.pmd-qpos-profile {
+  position: relative;
+  min-width: 0;
+}
+.pmd-qpos-profile-button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  cursor: pointer;
+  text-align: left;
+}
+.pmd-qpos-profile-button > span {
+  flex: 0 0 auto;
+  width: 29px;
+  height: 29px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #064e3b;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 900;
+}
+.pmd-qpos-profile-button > strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pmd-qpos-profile-menu {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + 7px);
+  z-index: 40;
+  padding: 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 12px;
+  background: #fff;
+}
+.pmd-qpos-profile-menu[hidden] {
+  display: none;
+}
+.pmd-qpos-profile-menu > div {
+  padding: 6px 7px 9px;
+  border-bottom: 1px solid var(--q-line);
+}
+.pmd-qpos-profile-menu strong,
+.pmd-qpos-profile-menu small {
+  display: block;
+}
+.pmd-qpos-profile-menu small {
+  margin-top: 3px;
+  color: var(--q-muted);
+  font-size: 10px;
+}
+.pmd-qpos-profile-menu > a {
+  min-height: 42px;
+  display: grid;
+  place-items: center;
+  margin-top: 7px;
+  border-radius: 9px;
+  background: #064e3b;
+  color: #fff;
+  text-decoration: none;
+  font-weight: 850;
+}
+
+/* Product image -> text transition: subtle white fade, never a grey drop shadow. */
+.pmd-qpos-product-image {
+  position: relative;
+  box-shadow: none !important;
+}
+.pmd-qpos-product-image::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 22px;
+  display: block;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    rgba(255,255,255,0),
+    rgba(255,255,255,.96)
+  );
+}
+.pmd-qpos-product,
+.pmd-qpos-product:hover {
+  box-shadow: none !important;
+}
+
+/* Pickup is not a physical table: lifecycle controls stay visible but disabled. */
+.pmd-qpos-table-actions button:disabled {
+  background: #e5e7eb !important;
+  border-color: #d1d5db !important;
+  color: #9ca3af !important;
+  cursor: not-allowed;
+  opacity: 1;
+}
+
+/* Per-line item note action. */
+.pmd-qpos-line-note {
+  min-height: 38px;
+  padding: 0 10px;
+  border: 1px solid #064e3b;
+  border-radius: 9px;
+  background: #fff;
+  color: #064e3b;
+  font-size: 11px;
+  font-weight: 850;
+  cursor: pointer;
+}
+.pmd-qpos-item-note-card {
+  width: min(620px,calc(100vw - 24px));
+}
+.pmd-qpos-item-note-body {
+  padding: 18px;
+}
+.pmd-qpos-note-clear {
+  min-height: 48px;
+  padding: 0 18px;
+  border: 1px solid #d1d5db;
+  border-radius: 11px;
+  background: #fff;
+  color: #374151;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+/* Split bill + exact custom tip. */
+.pmd-qpos-split-row,
+.pmd-qpos-tip-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.pmd-qpos-split-row {
+  grid-area: split;
+  margin: 0;
+}
+.pmd-qpos-split-row > span,
+.pmd-qpos-tip-row > span {
+  min-width: 38px;
+  color: var(--q-muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+.pmd-qpos-split-row button,
+.pmd-qpos-tip-row button {
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  background: #fff;
+  color: #111827;
+  font-weight: 850;
+  cursor: pointer;
+}
+.pmd-qpos-split-row button.is-active,
+.pmd-qpos-tip-row button.is-active {
+  background: #064e3b;
+  border-color: #064e3b;
+  color: #fff;
+}
+.pmd-qpos-split-row button:disabled,
+.pmd-qpos-tip-row button:disabled {
+  background: #f3f4f6;
+  border-color: #e5e7eb;
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+.pmd-qpos-tip-custom {
+  min-width: 154px;
+  flex: 1 1 154px;
+  display: grid;
+  grid-template-columns: auto minmax(80px,1fr);
+  align-items: center;
+  gap: 7px;
+}
+.pmd-qpos-tip-custom > span {
+  color: var(--q-muted);
+  font-size: 10px;
+  font-weight: 800;
+}
+.pmd-qpos-tip-custom input {
+  width: 100%;
+  height: 40px;
+  padding: 0 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  background: #fff;
+  color: #111827;
+  font-weight: 850;
+  outline: 0;
+}
+.pmd-qpos-tip-custom input.is-custom-active,
+.pmd-qpos-tip-custom input.is-keypad-target {
+  border: 2px solid #064e3b;
+  background: #ecfdf5;
+  color: #064e3b;
+}
+.pmd-qpos-tip-custom input:disabled {
+  background: #f3f4f6;
+  color: #9ca3af;
+}
+
+/* hidden must beat the generic .pmd-qpos-field display rule. */
+.pmd-qpos-field[hidden],
+.pmd-qpos-terminals[hidden],
+.pmd-qpos-cash-presets[hidden],
+.pmd-qpos-change[hidden],
+.pmd-qpos-payment-error[hidden] {
+  display: none !important;
+}
+
+/* Wide payment surface: two functional columns instead of vertical stacking. */
+.pmd-qpos-payment-card {
+  width: min(1080px,calc(100vw - 24px));
+  max-height: calc(100dvh - 18px);
+  border-radius: 16px;
+}
+.pmd-qpos-payment-card > header {
+  padding: 12px 16px;
+}
+.pmd-qpos-payment-card > footer {
+  padding: 10px 16px;
+}
+.pmd-qpos-payment-body {
+  padding: 12px 16px;
+}
+.pmd-qpos-payment-balance {
+  grid-area: balance;
+  min-height: 74px;
+  margin: 0;
+  padding: 9px 14px;
+  border-radius: 12px;
+}
+.pmd-qpos-payment-balance strong {
+  font-size: 31px;
+}
+.pmd-qpos-payment-methods {
+  grid-area: methods;
+  margin: 0;
+}
+.pmd-qpos-payment-methods button {
+  min-height: 48px;
+}
+.pmd-qpos-payment-grid {
+  grid-area: fields;
+  margin: 0;
+}
+.pmd-qpos-cash-presets {
+  grid-area: presets;
+  margin: 0;
+}
+.pmd-qpos-cash-presets button {
+  min-height: 44px;
+}
+.pmd-qpos-touch-keypad {
+  grid-area: keypad;
+  align-self: stretch;
+  margin: 0;
+  padding: 9px;
+  border-radius: 12px;
+}
+.pmd-qpos-touch-keypad > header {
+  margin-bottom: 7px;
+}
+.pmd-qpos-touch-keypad > header strong {
+  font-size: 21px;
+}
+.pmd-qpos-touch-keypad-grid {
+  gap: 6px;
+}
+.pmd-qpos-touch-keypad-grid button {
+  min-height: 44px;
+  border-radius: 9px;
+  font-size: 17px;
+}
+.pmd-qpos-tip-row {
+  grid-area: tip;
+}
+.pmd-qpos-terminals {
+  grid-area: terminals;
+  margin: 0;
+}
+.pmd-qpos-terminal-list,
+.pmd-qpos-terminals > div {
+  display: grid;
+  grid-template-columns: repeat(auto-fit,minmax(150px,1fr));
+  gap: 6px;
+}
+.pmd-qpos-change {
+  grid-area: change;
+}
+.pmd-qpos-payment-error {
+  grid-area: error;
+}
+
+@media (min-width: 821px) {
+  .pmd-qpos-payment-body {
+    overflow: hidden;
+    display: grid;
+    grid-template-columns: minmax(0,1.05fr) minmax(370px,.95fr);
+    grid-template-areas:
+      "balance balance"
+      "methods methods"
+      "fields keypad"
+      "presets keypad"
+      "split keypad"
+      "tip keypad"
+      "terminals keypad"
+      "change error";
+    gap: 9px 12px;
+    align-content: start;
+  }
+
+  .pmd-qpos-payment-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .pmd-qpos-payment-card.is-terminal .pmd-qpos-payment-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pmd-qpos-payment-card.is-terminal .pmd-qpos-split-row,
+  .pmd-qpos-payment-card.is-terminal .pmd-qpos-tip-row {
+    opacity: .58;
+  }
+}
+
+@media (min-width: 821px) and (max-height: 740px) {
+  .pmd-qpos-payment-card > header {
+    padding: 8px 14px;
+  }
+  .pmd-qpos-payment-card > header h2 {
+    font-size: 19px;
+  }
+  .pmd-qpos-payment-card .pmd-qpos-modal-close {
+    width: 36px;
+    height: 36px;
+  }
+  .pmd-qpos-payment-body {
+    padding: 8px 14px;
+    gap: 6px 10px;
+  }
+  .pmd-qpos-payment-balance {
+    min-height: 60px;
+    padding: 5px 12px;
+  }
+  .pmd-qpos-payment-balance strong {
+    font-size: 27px;
+  }
+  .pmd-qpos-payment-methods button {
+    min-height: 42px;
+  }
+  .pmd-qpos-field input {
+    height: 46px;
+  }
+  .pmd-qpos-cash-presets button {
+    min-height: 39px;
+  }
+  .pmd-qpos-split-row button,
+  .pmd-qpos-tip-row button,
+  .pmd-qpos-tip-custom input {
+    min-height: 36px;
+    height: 36px;
+  }
+  .pmd-qpos-touch-keypad {
+    padding: 7px;
+  }
+  .pmd-qpos-touch-keypad-grid button {
+    min-height: 38px;
+  }
+  .pmd-qpos-touch-keypad > header {
+    margin-bottom: 5px;
+  }
+  .pmd-qpos-touch-keypad > header strong {
+    font-size: 18px;
+  }
+  .pmd-qpos-payment-card > footer {
+    padding: 7px 14px;
+  }
+  .pmd-qpos-payment-card .pmd-qpos-modal-primary {
+    min-height: 48px;
+  }
+}
+
+/* Mobile/tablet stays native-scroll friendly; no desktop keyboard is used. */
+@media (max-width: 820px) {
+  .pmd-qpos-payment-card {
+    width: min(720px,calc(100vw - 12px));
+    max-height: calc(100dvh - 12px);
+  }
+  .pmd-qpos-payment-body {
+    display: block;
+    overflow: auto;
+  }
+  .pmd-qpos-split-row,
+  .pmd-qpos-tip-row,
+  .pmd-qpos-touch-keypad,
+  .pmd-qpos-terminals {
+    margin-bottom: 10px;
+  }
+}
+
+/* History: one compact operational timeline for selected table/Pickup or all. */
+.pmd-qpos-history-card {
+  width: min(900px,calc(100vw - 24px));
+  max-height: min(820px,calc(100dvh - 24px));
+}
+.pmd-qpos-history-toolbar {
+  display: flex;
+  gap: 7px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--q-line);
+}
+.pmd-qpos-history-toolbar button {
+  min-height: 42px;
+  min-width: 100px;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  background: #fff;
+  color: #374151;
+  font-weight: 850;
+  cursor: pointer;
+}
+.pmd-qpos-history-toolbar button.is-active {
+  background: #064e3b;
+  border-color: #064e3b;
+  color: #fff;
+}
+.pmd-qpos-history-list {
+  min-height: 220px;
+  overflow: auto;
+  padding: 8px 14px 16px;
+}
+.pmd-qpos-history-entry {
+  padding: 11px 2px;
+  border-bottom: 1px solid #e5e7eb;
+}
+.pmd-qpos-history-entry > header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.pmd-qpos-history-entry > header strong {
+  font-size: 14px;
+}
+.pmd-qpos-history-entry > header time {
+  flex: 0 0 auto;
+  color: #6b7280;
+  font-size: 11px;
+  font-weight: 700;
+}
+.pmd-qpos-history-entry p {
+  margin: 5px 0 0;
+  color: #4b5563;
+  font-size: 12px;
+  line-height: 1.45;
+  white-space: pre-line;
+}
+.pmd-qpos-history-entry[data-kind="payment"] > header strong,
+.pmd-qpos-history-entry[data-kind="terminal"] > header strong {
+  color: #047857;
+}
+.pmd-qpos-history-entry[data-kind="item_note"] > header strong,
+.pmd-qpos-history-entry[data-kind="note"] > header strong,
+.pmd-qpos-history-entry[data-kind="table_note"] > header strong {
+  color: #9a3412;
+}
+.pmd-qpos-history-empty {
+  padding: 60px 20px;
+  text-align: center;
+  color: #6b7280;
+  font-weight: 750;
+}
+.pmd-qpos-history-empty.is-error {
+  color: #b91c1c;
+}
+
+/* Cashier-only touch text keyboard. */
+.pmd-qpos-text-keyboard {
+  position: fixed;
+  left: 50%;
+  bottom: max(10px,env(safe-area-inset-bottom));
+  z-index: 130;
+  width: min(980px,calc(100vw - 24px));
+  transform: translateX(-50%);
+  padding: 9px;
+  border: 1px solid #9ca3af;
+  border-radius: 14px;
+  background: #f8fafc;
+}
+.pmd-qpos-text-keyboard[hidden] {
+  display: none;
+}
+.pmd-qpos-text-keyboard > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 7px;
+}
+.pmd-qpos-text-keyboard > header strong {
+  font-size: 12px;
+}
+.pmd-qpos-text-keyboard > header button {
+  min-height: 36px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 9px;
+  background: #064e3b;
+  color: #fff;
+  font-weight: 850;
+}
+.pmd-qpos-text-keyboard-row {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(42px,1fr);
+  gap: 6px;
+  margin-top: 6px;
+}
+.pmd-qpos-text-keyboard-row button {
+  min-height: 46px;
+  border: 1px solid #d1d5db;
+  border-radius: 9px;
+  background: #fff;
+  color: #111827;
+  font-size: 16px;
+  font-weight: 850;
+  cursor: pointer;
+}
+.pmd-qpos-text-keyboard-row button.wide {
+  min-width: 70px;
+  background: #ecfdf5;
+  color: #064e3b;
+}
+.pmd-qpos-text-keyboard-row button.space {
+  min-width: 260px;
+}
+.pmd-qpos-text-keyboard.is-lowercase
+  [data-qpos-text-key="shift"] {
+  background: #064e3b;
+  color: #fff;
+}
