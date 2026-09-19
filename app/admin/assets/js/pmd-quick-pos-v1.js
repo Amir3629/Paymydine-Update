@@ -1618,6 +1618,7 @@
       modal.setAttribute('aria-hidden', 'true');
     }
     state.modifier = null;
+    closeTextKeyboard();
   }
 
   function selectedModifierOptions() {
@@ -3586,6 +3587,25 @@
 
     configureTextKeyboardTargets();
     window.addEventListener('resize', configureTextKeyboardTargets);
+
+    document.addEventListener('pointerdown', function (event) {
+      var keyboard = $('[data-qpos-text-keyboard]');
+      if (!keyboard || keyboard.hidden) return;
+
+      var target = event.target;
+      if (
+        keyboard.contains(target) ||
+        (
+          target &&
+          target.closest &&
+          target.closest('[data-qpos-text-keyboard-field]')
+        )
+      ) {
+        return;
+      }
+
+      closeTextKeyboard();
+    });
 
     var cleaning = $('[data-qpos-table-cleaning]');
     var free = $('[data-qpos-table-free]');
