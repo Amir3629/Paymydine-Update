@@ -7,7 +7,7 @@
     <meta name="theme-color" content="#064e3b">
     <title>PayMyDine POS</title>
     <link rel="icon" type="image/svg+xml" href="/app/admin/assets/images/pmd-favicon-final-20260822.svg">
-    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-pos-v1.css?v=20260919-15">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-pos-v1.css?v=20260919-16">
 </head>
 <body class="pmd-qpos-body">
 @php
@@ -81,6 +81,37 @@
                             $pmdPaymentState = (string)($table['payment_state'] ?? 'none');
                             $pmdWaiterCalls = (int)($table['waiter_calls'] ?? 0);
                             $pmdNoteCount = (int)($table['note_count'] ?? 0);
+
+                            $pmdSignalCount =
+                                ($pmdWaiterCalls > 0 ? 1 : 0)
+                                + ($pmdPaymentState !== 'none' ? 1 : 0)
+                                + ($pmdNoteCount > 0 ? 1 : 0);
+
+                            $pmdSignalKind = '';
+                            $pmdSignalIcon = '';
+                            $pmdSignalTitle = '';
+
+                            if ($pmdWaiterCalls > 0) {
+                                $pmdSignalKind = 'call';
+                                $pmdSignalIcon = '!';
+                                $pmdSignalTitle = 'Waiter call';
+                            } elseif ($pmdPaymentState === 'partial') {
+                                $pmdSignalKind = 'due';
+                                $pmdSignalIcon = '½';
+                                $pmdSignalTitle = 'Partly paid';
+                            } elseif ($pmdPaymentState === 'due') {
+                                $pmdSignalKind = 'due';
+                                $pmdSignalIcon = '€';
+                                $pmdSignalTitle = 'Payment due';
+                            } elseif ($pmdNoteCount > 0) {
+                                $pmdSignalKind = 'note';
+                                $pmdSignalIcon = 'N';
+                                $pmdSignalTitle = 'New note';
+                            } elseif ($pmdPaymentState === 'paid') {
+                                $pmdSignalKind = 'paid';
+                                $pmdSignalIcon = '✓';
+                                $pmdSignalTitle = 'Paid';
+                            }
                         @endphp
                         <button
                             type="button"
@@ -91,20 +122,15 @@
                         >
                             <strong>{{ $table['number'] ?? ($table['id'] ?? '') }}</strong>
                             <small>{{ $pmdStatusLabels[$pmdStatus] ?? 'Free' }}@if($pmdCapacity > 0) · {{ $pmdCapacity }}s @endif</small>
-                            @if($pmdPaymentState !== 'none' || $pmdWaiterCalls > 0 || $pmdNoteCount > 0)
-                                <span class="pmd-qpos-table-signals">
-                                    @if($pmdPaymentState === 'paid')
-                                        <span class="is-paid" title="Paid" aria-label="Paid">✓</span>
-                                    @elseif($pmdPaymentState === 'partial')
-                                        <span class="is-due" title="Partly paid" aria-label="Partly paid">½</span>
-                                    @elseif($pmdPaymentState === 'due')
-                                        <span class="is-due" title="Payment due" aria-label="Payment due">€</span>
-                                    @endif
-                                    @if($pmdWaiterCalls > 0)
-                                        <span class="is-call" title="Waiter call" aria-label="Waiter call">!</span>
-                                    @endif
-                                    @if($pmdNoteCount > 0)
-                                        <span class="is-note" title="New note" aria-label="New note">N</span>
+                            @if($pmdSignalKind !== '')
+                                <span
+                                    class="pmd-qpos-table-signal is-{{ $pmdSignalKind }}"
+                                    title="{{ $pmdSignalTitle }}"
+                                    aria-label="{{ $pmdSignalTitle }}"
+                                >
+                                    <b>{{ $pmdSignalIcon }}</b>
+                                    @if($pmdSignalCount > 1)
+                                        <em>+{{ $pmdSignalCount - 1 }}</em>
                                     @endif
                                 </span>
                             @endif
@@ -258,120 +284,186 @@
             </header>
 
             <div class="pmd-qpos-payment-body">
-                <div class="pmd-qpos-payment-balance">
-                    <span>Due</span>
-                    <strong data-qpos-payment-remaining>€0.00</strong>
-                    <small data-qpos-payment-settled></small>
-                </div>
-
-                <div class="pmd-qpos-payment-methods" data-qpos-payment-methods>
-                    <button type="button" class="is-active" data-payment-method="cash">Cash</button>
-                                    </div>
-
-                <div class="pmd-qpos-payment-grid">
-                    <label class="pmd-qpos-field">
-                        <span>Pay</span>
-                        <input
-                            type="text"
-                            inputmode="none"
-                            autocomplete="off"
-                            spellcheck="false"
-                            data-qpos-payment-amount
-                            data-qpos-keypad-target="amount"
-                        >
-                    </label>
-                    <label class="pmd-qpos-field" data-qpos-cash-field>
-                        <span>Cash</span>
-                        <input
-                            type="text"
-                            inputmode="none"
-                            autocomplete="off"
-                            spellcheck="false"
-                            data-qpos-cash-received
-                            data-qpos-keypad-target="cash"
-                        >
-                    </label>
-                </div>
-
-                <div class="pmd-qpos-cash-presets" data-qpos-cash-presets>
-                    <button type="button" data-cash-preset="exact">Exact</button>
-                </div>
-
-                <div class="pmd-qpos-split-row" data-qpos-split-row>
-                    <span>Split</span>
-                    <button type="button" class="is-active" data-qpos-split="1">Full</button>
-                    <button type="button" data-qpos-split="2">1/2</button>
-                    <button type="button" data-qpos-split="3">1/3</button>
-                    <button type="button" data-qpos-split="4">1/4</button>
-                    <button type="button" data-qpos-split="custom">Custom</button>
-                </div>
-
-                <section class="pmd-qpos-touch-keypad" data-qpos-touch-keypad>
-                    <header>
-                        <div>
-                            <span data-qpos-touch-keypad-label>Payment amount</span>
-                            <strong data-qpos-touch-keypad-value>€0.00</strong>
-                        </div>
-                        
-                    </header>
-                    <div class="pmd-qpos-touch-keypad-grid">
-                        <button type="button" data-qpos-keypad-key="1">1</button>
-                        <button type="button" data-qpos-keypad-key="2">2</button>
-                        <button type="button" data-qpos-keypad-key="3">3</button>
-                        <button type="button" class="utility" data-qpos-keypad-key="backspace" aria-label="Backspace">⌫</button>
-
-                        <button type="button" data-qpos-keypad-key="4">4</button>
-                        <button type="button" data-qpos-keypad-key="5">5</button>
-                        <button type="button" data-qpos-keypad-key="6">6</button>
-                        <button type="button" class="utility" data-qpos-keypad-key="clear">C</button>
-
-                        <button type="button" data-qpos-keypad-key="7">7</button>
-                        <button type="button" data-qpos-keypad-key="8">8</button>
-                        <button type="button" data-qpos-keypad-key="9">9</button>
-                        <button type="button" class="exact" data-qpos-keypad-key="exact" data-qpos-keypad-exact>Exact</button>
-
-                        <button type="button" data-qpos-keypad-key="00">00</button>
-                        <button type="button" data-qpos-keypad-key="0">0</button>
-                        <button type="button" data-qpos-keypad-key=".">.</button>
-                        <button type="button" class="done" data-qpos-keypad-key="done">Done</button>
+                <section class="pmd-qpos-payment-main">
+                    <div class="pmd-qpos-payment-balance">
+                        <span>Due</span>
+                        <strong data-qpos-payment-remaining>€0.00</strong>
+                        <small data-qpos-payment-settled></small>
                     </div>
+
+                    <div class="pmd-qpos-payment-methods" data-qpos-payment-methods>
+                        <button type="button" class="is-active" data-payment-method="cash">Cash</button>
+                    </div>
+
+                    <div class="pmd-qpos-payment-grid">
+                        <label class="pmd-qpos-field">
+                            <span>Pay now</span>
+                            <input
+                                type="text"
+                                inputmode="none"
+                                autocomplete="off"
+                                spellcheck="false"
+                                data-qpos-payment-amount
+                                data-qpos-keypad-target="amount"
+                            >
+                        </label>
+                        <label class="pmd-qpos-field" data-qpos-cash-field>
+                            <span>Cash received</span>
+                            <input
+                                type="text"
+                                inputmode="none"
+                                autocomplete="off"
+                                spellcheck="false"
+                                data-qpos-cash-received
+                                data-qpos-keypad-target="cash"
+                            >
+                        </label>
+                    </div>
+
+                    <div class="pmd-qpos-cash-presets" data-qpos-cash-presets>
+                        <button type="button" data-cash-preset="exact">Exact</button>
+                    </div>
+
+                    <section class="pmd-qpos-split-panel" data-qpos-split-row>
+                        <header>
+                            <div>
+                                <span class="pmd-qpos-section-label">Split bill</span>
+                                <strong data-qpos-split-summary>Pay full bill</strong>
+                            </div>
+                        </header>
+
+                        <div class="pmd-qpos-split-modes">
+                            <button type="button" class="is-active" data-qpos-split-mode="full">
+                                <b>Full bill</b><small>Everything</small>
+                            </button>
+                            <button type="button" data-qpos-split-mode="equal">
+                                <b>Split equally</b><small>By people</small>
+                            </button>
+                            <button type="button" data-qpos-split-mode="items">
+                                <b>By items</b><small>Choose dishes</small>
+                            </button>
+                            <button type="button" data-qpos-split-mode="shares">
+                                <b>By shares</b><small>% or amount</small>
+                            </button>
+                        </div>
+
+                        <div class="pmd-qpos-split-detail pmd-qpos-split-equal" data-qpos-split-equal hidden>
+                            <div>
+                                <span>People</span>
+                                <div class="pmd-qpos-split-stepper">
+                                    <button type="button" data-qpos-split-people-minus aria-label="Remove person">−</button>
+                                    <strong data-qpos-split-people>2</strong>
+                                    <button type="button" data-qpos-split-people-plus aria-label="Add person">+</button>
+                                </div>
+                            </div>
+                            <div class="pmd-qpos-split-each">
+                                <span>Collect now</span>
+                                <strong data-qpos-split-each>€0.00</strong>
+                            </div>
+                        </div>
+
+                        <div class="pmd-qpos-split-detail pmd-qpos-split-items" data-qpos-split-items hidden>
+                            <div class="pmd-qpos-split-items-head">
+                                <span>Choose unpaid items for this payer</span>
+                                <strong data-qpos-split-items-total>€0.00</strong>
+                            </div>
+                            <div class="pmd-qpos-split-items-list" data-qpos-split-items-list></div>
+                        </div>
+
+                        <div class="pmd-qpos-split-detail pmd-qpos-split-shares" data-qpos-split-shares hidden>
+                            <div class="pmd-qpos-share-presets">
+                                <button type="button" data-qpos-share-preset="25">25%</button>
+                                <button type="button" data-qpos-share-preset="33.33">⅓</button>
+                                <button type="button" class="is-active" data-qpos-share-preset="50">50%</button>
+                                <button type="button" data-qpos-share-preset="75">75%</button>
+                            </div>
+                            <label class="pmd-qpos-share-custom">
+                                <span>Share %</span>
+                                <input
+                                    type="text"
+                                    inputmode="none"
+                                    autocomplete="off"
+                                    spellcheck="false"
+                                    value="50"
+                                    data-qpos-share-percent
+                                    data-qpos-keypad-target="share"
+                                >
+                            </label>
+                            <div class="pmd-qpos-split-each">
+                                <span>Collect now</span>
+                                <strong data-qpos-share-amount>€0.00</strong>
+                            </div>
+                        </div>
+                    </section>
+
+                    <div class="pmd-qpos-tip-row">
+                        <span>Tip</span>
+                        <button type="button" class="is-active" data-tip="0">No tip</button>
+                        <button type="button" data-tip="5">5%</button>
+                        <button type="button" data-tip="10">10%</button>
+                        <button type="button" data-tip="15">15%</button>
+                        <label class="pmd-qpos-tip-custom">
+                            <span>Custom</span>
+                            <input
+                                type="text"
+                                inputmode="none"
+                                autocomplete="off"
+                                spellcheck="false"
+                                placeholder="0.00"
+                                data-qpos-tip-amount
+                                data-qpos-keypad-target="tip"
+                            >
+                        </label>
+                    </div>
+
+                    <div class="pmd-qpos-terminals" data-qpos-terminals hidden>
+                        <span class="pmd-qpos-section-label">Terminal</span>
+                        <div data-qpos-terminal-list></div>
+                    </div>
+
+                    <div class="pmd-qpos-change" data-qpos-change hidden>
+                        Change <strong data-qpos-change-amount>€0.00</strong>
+                    </div>
+
+                    <div class="pmd-qpos-payment-error" data-qpos-payment-error hidden></div>
                 </section>
 
-                <div class="pmd-qpos-tip-row">
-                    <span>Tip</span>
-                    <button type="button" class="is-active" data-tip="0">No tip</button>
-                    <button type="button" data-tip="5">5%</button>
-                    <button type="button" data-tip="10">10%</button>
-                    <button type="button" data-tip="15">15%</button>
-                    <label class="pmd-qpos-tip-custom">
-                        <span>Custom</span>
-                        <input
-                            type="text"
-                            inputmode="none"
-                            autocomplete="off"
-                            spellcheck="false"
-                            placeholder="0.00"
-                            data-qpos-tip-amount
-                            data-qpos-keypad-target="tip"
-                        >
-                    </label>
-                </div>
+                <aside class="pmd-qpos-payment-keypad-column">
+                    <section class="pmd-qpos-touch-keypad" data-qpos-touch-keypad>
+                        <header>
+                            <div>
+                                <span data-qpos-touch-keypad-label>Payment amount</span>
+                                <strong data-qpos-touch-keypad-value>€0.00</strong>
+                            </div>
+                        </header>
+                        <div class="pmd-qpos-touch-keypad-grid">
+                            <button type="button" data-qpos-keypad-key="1">1</button>
+                            <button type="button" data-qpos-keypad-key="2">2</button>
+                            <button type="button" data-qpos-keypad-key="3">3</button>
+                            <button type="button" class="utility" data-qpos-keypad-key="backspace" aria-label="Backspace">⌫</button>
 
-                <div class="pmd-qpos-terminals" data-qpos-terminals hidden>
-                    <span class="pmd-qpos-section-label">Terminal</span>
-                    <div data-qpos-terminal-list></div>
-                </div>
+                            <button type="button" data-qpos-keypad-key="4">4</button>
+                            <button type="button" data-qpos-keypad-key="5">5</button>
+                            <button type="button" data-qpos-keypad-key="6">6</button>
+                            <button type="button" class="utility" data-qpos-keypad-key="clear">C</button>
 
-                <div class="pmd-qpos-change" data-qpos-change hidden>
-                    Change <strong data-qpos-change-amount>€0.00</strong>
-                </div>
+                            <button type="button" data-qpos-keypad-key="7">7</button>
+                            <button type="button" data-qpos-keypad-key="8">8</button>
+                            <button type="button" data-qpos-keypad-key="9">9</button>
+                            <button type="button" class="exact" data-qpos-keypad-key="exact" data-qpos-keypad-exact>Exact</button>
 
-                <div class="pmd-qpos-payment-error" data-qpos-payment-error hidden></div>
+                            <button type="button" data-qpos-keypad-key="00">00</button>
+                            <button type="button" data-qpos-keypad-key="0">0</button>
+                            <button type="button" data-qpos-keypad-key=".">.</button>
+                            <button type="button" class="done" data-qpos-keypad-key="done">Done</button>
+                        </div>
+                    </section>
+                </aside>
             </div>
 
             <footer class="pmd-qpos-payment-footer">
                 <div>
-                    <span>Total</span>
+                    <span>Total to collect</span>
                     <strong data-qpos-payment-charge>€0.00</strong>
                 </div>
                 <div class="pmd-qpos-payment-final-actions">
@@ -476,6 +568,21 @@
         </div>
     </div>
 
+    <div class="pmd-qpos-modal pmd-qpos-confirm-modal" data-qpos-confirm-modal aria-hidden="true">
+        <div class="pmd-qpos-modal-card pmd-qpos-confirm-card" role="dialog" aria-modal="true" aria-labelledby="pmd-qpos-confirm-title">
+            <div class="pmd-qpos-confirm-icon" data-qpos-confirm-icon>!</div>
+            <div class="pmd-qpos-confirm-copy">
+                <span class="pmd-qpos-section-label">Confirm</span>
+                <h2 id="pmd-qpos-confirm-title" data-qpos-confirm-title>Confirm action</h2>
+                <p data-qpos-confirm-message></p>
+            </div>
+            <footer>
+                <button type="button" class="pmd-qpos-confirm-cancel" data-qpos-confirm-cancel>Cancel</button>
+                <button type="button" class="pmd-qpos-confirm-accept" data-qpos-confirm-accept>Confirm</button>
+            </footer>
+        </div>
+    </div>
+
     <section class="pmd-qpos-text-keyboard" data-qpos-text-keyboard hidden aria-hidden="true">
         <header>
             <strong data-qpos-text-keyboard-label>Keyboard</strong>
@@ -522,7 +629,7 @@ window.PMDQuickPOSConfig = {
     initialBootstrap: @json($initialBootstrap ?? null)
 };
 </script>
-<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260919-15"></script>
+<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260919-16"></script>
 <script src="/app/admin/assets/js/pmd-site-access-hub-v13.js?v=20260919-qpos1"></script>
 </body>
 </html>
