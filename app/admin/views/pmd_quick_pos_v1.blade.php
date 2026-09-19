@@ -7,9 +7,27 @@
     <meta name="theme-color" content="#111827">
     <title>PayMyDine POS</title>
     <link rel="icon" type="image/svg+xml" href="/app/admin/assets/images/pmd-favicon-final-20260822.svg">
-    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-pos-v1.css?v=20260919-8">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-pos-v1.css?v=20260919-9">
 </head>
 <body class="pmd-qpos-body">
+@php
+    $pmdInitialFloors = array_values((array)($initialBootstrap['floors'] ?? []));
+    $pmdInitialFloorId = (string)($initialBootstrap['default_floor_id'] ?? '');
+    if ($pmdInitialFloorId === '' && !empty($pmdInitialFloors)) {
+        $pmdInitialFloorId = (string)($pmdInitialFloors[0]['id'] ?? '');
+    }
+    $pmdInitialTables = array_values(array_filter(
+        (array)($initialBootstrap['tables'] ?? []),
+        static fn ($table) =>
+            (string)($table['floor_id'] ?? '') === $pmdInitialFloorId
+    ));
+    $pmdStatusLabels = [
+        'available' => 'Free',
+        'occupied' => 'Busy',
+        'reserved' => 'Res.',
+        'cleaning' => 'Clean',
+    ];
+@endphp
 <div
     id="pmd-quick-pos"
     class="pmd-qpos"
@@ -17,46 +35,25 @@
     data-bootstrap-url="/admin/pos/bootstrap/{{ $mode }}"
     data-can-switch-mode="{{ $canSwitchMode ? '1' : '0' }}"
 >
-    <header class="pmd-qpos-topbar">
-        <div class="pmd-qpos-brand">
-            <span class="pmd-qpos-brand-mark">P</span>
-            <div>
-                <strong>PayMyDine POS</strong>
-                <small data-qpos-context></small>
-            </div>
-        </div>
-
-        <nav class="pmd-qpos-mode-switch" data-qpos-mode-switch @if(!$canSwitchMode) hidden @endif>
-            <a href="/admin/pos" class="{{ $mode === 'cashier' ? 'is-active' : '' }}">Cashier</a>
-            <a href="/admin/pos/waiter" class="{{ $mode === 'waiter' ? 'is-active' : '' }}">Waiter</a>
-        </nav>
-
-        <div class="pmd-qpos-top-actions">
-            <span class="pmd-qpos-online" data-qpos-online><i></i> Online</span>
-            <button type="button" class="pmd-qpos-icon-button" data-qpos-refresh aria-label="Refresh">↻</button>
-            <a class="pmd-qpos-legacy-link" href="{{ $legacyOrdersUrl }}">Orders</a>
-            <span class="pmd-qpos-user" data-qpos-user>Staff</span>
-        </div>
-    </header>
-
     <main class="pmd-qpos-main">
         <aside class="pmd-qpos-left">
-            <section class="pmd-qpos-service" data-qpos-service-panel>
-                <div class="pmd-qpos-section-label">Type</div>
-                <div class="pmd-qpos-segmented">
-                    <button type="button" class="is-active" data-qpos-service="dine_in">Dine</button>
-                    <button type="button" data-qpos-service="takeaway">Takeout</button>
-                    <button type="button" data-qpos-service="delivery">Delivery</button>
+            <section class="pmd-qpos-floor-switch">
+                <div class="pmd-qpos-section-label">Floor</div>
+                <div class="pmd-qpos-floor-tabs" data-qpos-floors>
+                    @foreach($pmdInitialFloors as $floor)
+                        <button
+                            type="button"
+                            data-qpos-floor="{{ $floor['id'] ?? '' }}"
+                            class="{{ (string)($floor['id'] ?? '') === $pmdInitialFloorId ? 'is-active' : '' }}"
+                        >{{ $floor['name'] ?? 'Floor' }}</button>
+                    @endforeach
                 </div>
             </section>
 
             <section class="pmd-qpos-tables">
                 <div class="pmd-qpos-panel-head">
-                    <div>
-                        <div class="pmd-qpos-section-label">Floor</div>
-                        <strong data-qpos-table-title>Table</strong>
-                    </div>
-                    <span class="pmd-qpos-table-count" data-qpos-table-count>0</span>
+                    <strong data-qpos-table-title>Tables</strong>
+                    <span class="pmd-qpos-table-count" data-qpos-table-count>{{ count($pmdInitialTables) }}</span>
                 </div>
                 <div class="pmd-qpos-table-legend">
                     <span><i class="available"></i>Free</span>
@@ -65,12 +62,32 @@
                     <span><i class="cleaning"></i>Clean</span>
                 </div>
                 <div class="pmd-qpos-table-grid" data-qpos-tables>
-                    <div class="pmd-qpos-skeleton-block"></div>
-                    <div class="pmd-qpos-skeleton-block"></div>
-                    <div class="pmd-qpos-skeleton-block"></div>
-                    <div class="pmd-qpos-skeleton-block"></div>
+                    <button type="button" class="pmd-qpos-table pmd-qpos-pickup" data-qpos-pickup>
+                        <strong>Pickup</strong>
+                        <small>Counter</small>
+                    </button>
+                    @foreach($pmdInitialTables as $table)
+                        @php
+                            $pmdStatus = (string)($table['status'] ?? 'available');
+                            $pmdCapacity = (int)($table['capacity'] ?? 0);
+                        @endphp
+                        <button
+                            type="button"
+                            class="pmd-qpos-table"
+                            data-qpos-table="{{ $table['id'] ?? 0 }}"
+                            data-status="{{ $pmdStatus }}"
+                        >
+                            <strong>{{ $table['name'] ?? ('Table '.($table['number'] ?? '')) }}</strong>
+                            <small>{{ $pmdStatusLabels[$pmdStatus] ?? 'Free' }}@if($pmdCapacity > 0) · {{ $pmdCapacity }}s @endif</small>
+                        </button>
+                    @endforeach
                 </div>
             </section>
+
+            <nav class="pmd-qpos-mode-dock" data-qpos-mode-switch @if(!$canSwitchMode) hidden @endif>
+                <a href="/admin/pos" class="{{ $mode === 'cashier' ? 'is-active' : '' }}">Cashier</a>
+                <a href="/admin/pos/waiter" class="{{ $mode === 'waiter' ? 'is-active' : '' }}">Waiter</a>
+            </nav>
         </aside>
 
         <section class="pmd-qpos-catalog">
@@ -79,6 +96,14 @@
                     <span>⌕</span>
                     <input type="search" autocomplete="off" placeholder="Search…" data-qpos-search>
                 </label>
+
+                <div class="pmd-qpos-work-meta">
+                    <time class="pmd-qpos-clock" data-qpos-clock>--:--</time>
+                    <span class="pmd-qpos-online pmd-qpos-online-dot" data-qpos-online aria-label="Online"><i></i></span>
+                    <button type="button" class="pmd-qpos-work-icon" data-qpos-refresh aria-label="Refresh">↻</button>
+                    <a class="pmd-qpos-work-link" href="{{ $legacyOrdersUrl }}">Orders</a>
+                </div>
+
                 <button type="button" class="pmd-qpos-new-check" data-qpos-new-check>+ Check</button>
             </div>
 
@@ -310,7 +335,7 @@ window.PMDQuickPOSConfig = {
     initialBootstrap: @json($initialBootstrap ?? null)
 };
 </script>
-<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260919-8"></script>
+<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260919-9"></script>
 <script src="/app/admin/assets/js/pmd-site-access-hub-v13.js?v=20260919-qpos1"></script>
 </body>
 </html>
