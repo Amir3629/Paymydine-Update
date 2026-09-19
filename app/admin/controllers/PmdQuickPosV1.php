@@ -84,7 +84,7 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
             'settings' => [
                 'currency' => $this->currencySymbol(),
                 'currency_code' => $this->currencyCode(),
-                'table_data_url' => '/admin/pmd-waiter-pos-v1/data/{table}',
+                'table_data_url' => '/admin/pos/table/{table}',
                 'table_save_url' => '/admin/pmd-waiter-pos-v1/save/{table}',
                 'off_premise_save_url' => '/admin/pos/save-off-premise',
                 'payment_summary_url' => '/admin/pmd-waiter-pos-v1/payment-summary/{order}',
@@ -96,6 +96,195 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 'table_state_url' => '/admin/pmd-waiter-table-states-v154/{table}',
             ],
         ]);
+    }
+
+    /**
+     * PMD_QUICK_POS_LEAN_TABLE_DATA_V2
+     *
+     * Quick POS does not need the legacy waiter payload's menu catalogue on
+     * every table click. Read the selected table and its open checks only.
+     * Order lines and status labels are fetched in batches to avoid the
+     * per-order N+1 query pattern in openOrdersForTable().
+     */
+    public function tableData($tableId = null)
+    {
+        $table = $this->resolveTable((int)$tableId);
+
+        if (!$table) {
+            return response()->json([
+                'ok' => false,
+                'version' => 'pmd-quick-pos-v2',
+                'message' => 'Table not found.',
+            ], 404);
+        }
+
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'quick_pos_table_entry'
+        );
+
+        $orders = $this->quickPosOpenOrdersForTable($table);
+
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'quick_pos_table_orders'
+        );
+
+        return response()->json([
+            'ok' => true,
+            'version' => 'pmd-quick-pos-v2',
+            'table' => $table,
+            'open_orders' => $orders,
+            'active_order_id' => count($orders)
+                ? (int)$orders[0]['order_id']
+                : null,
+        ]);
+    }
+
+    protected function quickPosOpenOrdersForTable(array $table): array
+    {
+        if (!Schema::hasTable('orders')) {
+            return [];
+        }
+
+        $columns = Schema::getColumnListing('orders');
+        $query = DB::table('orders');
+
+        $this->applyTableScope($query, $columns, $table);
+        $this->applyOpenScope($query, $columns);
+
+        $primaryKey = in_array('order_id', $columns, true)
+            ? 'order_id'
+            : 'id';
+
+        $rows = $query
+            ->orderByDesc($primaryKey)
+            ->limit(20)
+            ->get();
+
+        if ($rows->isEmpty()) {
+            return [];
+        }
+
+        $orderIds = $rows
+            ->map(function ($row) use ($primaryKey) {
+                return (int)($row->order_id ?? $row->id ?? $row->{$primaryKey} ?? 0);
+            })
+            ->filter()
+            ->values()
+            ->all();
+
+        $itemsByOrder = collect();
+
+        if ($orderIds && Schema::hasTable('order_menus')) {
+            $itemsByOrder = DB::table('order_menus')
+                ->whereIn('order_id', $orderIds)
+                ->orderBy('order_id')
+                ->orderBy(
+                    Schema::hasColumn('order_menus', 'order_menu_id')
+                        ? 'order_menu_id'
+                        : 'id'
+                )
+                ->get()
+                ->groupBy(function ($row) {
+                    return (int)($row->order_id ?? 0);
+                });
+        }
+
+        $statusIds = $rows
+            ->map(fn ($row) => (int)($row->status_id ?? 0))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        $statusNames = [];
+
+        if (
+            $statusIds
+            && Schema::hasTable('statuses')
+            && Schema::hasColumn('statuses', 'status_id')
+        ) {
+            $statusNames = DB::table('statuses')
+                ->whereIn('status_id', $statusIds)
+                ->pluck('status_name', 'status_id')
+                ->mapWithKeys(function ($name, $id) {
+                    return [(int)$id => (string)$name];
+                })
+                ->all();
+        }
+
+        return $rows->map(function ($row) use (
+            $primaryKey,
+            $itemsByOrder,
+            $statusNames
+        ) {
+            $raw = (array)$row;
+            $orderId = (int)(
+                $raw['order_id']
+                ?? $raw['id']
+                ?? $raw[$primaryKey]
+                ?? 0
+            );
+
+            $items = collect($itemsByOrder->get($orderId, collect()))
+                ->map(function ($item) {
+                    $rawItem = (array)$item;
+                    $quantity = (float)($rawItem['quantity'] ?? 1);
+                    $subtotal = (float)($rawItem['subtotal'] ?? 0);
+                    $fallbackPrice = (float)($rawItem['price'] ?? 0);
+
+                    return [
+                        'id' => (int)($rawItem['order_menu_id'] ?? $rawItem['id'] ?? 0),
+                        'order_menu_id' => (int)($rawItem['order_menu_id'] ?? $rawItem['id'] ?? 0),
+                        'menu_id' => (int)($rawItem['menu_id'] ?? 0),
+                        'name' => (string)($rawItem['name'] ?? 'Item'),
+                        'quantity' => $quantity,
+                        'price' => $quantity > 0 && $subtotal > 0
+                            ? round($subtotal / $quantity, 4)
+                            : $fallbackPrice,
+                        'subtotal' => $subtotal,
+                        'comment' => $this->quickPosVisibleNote(
+                            (string)($rawItem['comment'] ?? '')
+                        ),
+                    ];
+                })
+                ->values()
+                ->all();
+
+            $statusId = (int)($raw['status_id'] ?? 0);
+
+            return [
+                'order_id' => $orderId,
+                'status_id' => $statusId ?: null,
+                'status_name' => (string)($statusNames[$statusId] ?? ''),
+                'payment' => (string)($raw['payment'] ?? ''),
+                'settlement_status' => (string)($raw['settlement_status'] ?? 'unpaid'),
+                'settled_amount' => (float)($raw['settled_amount'] ?? 0),
+                'total' => (float)($raw['order_total'] ?? $raw['total'] ?? 0),
+                'total_items' => (int)($raw['total_items'] ?? 0),
+                'guest_count' => max(1, (int)($raw['guest_count'] ?? 1)),
+                'created_at' => (string)($raw['created_at'] ?? ''),
+                'updated_at' => (string)($raw['updated_at'] ?? ''),
+                'comment' => $this->quickPosVisibleNote(
+                    (string)($raw['comment'] ?? '')
+                ),
+                'items' => $items,
+                'urls' => $this->orderUrls($orderId),
+            ];
+        })->values()->all();
+    }
+
+    protected function quickPosVisibleNote(string $value): string
+    {
+        $value = preg_replace(
+            '/\\[(?:guest_session|table_session|table_draft_id|submitted_by):[^\\]]*\\]/iu',
+            '',
+            $value
+        ) ?? $value;
+
+        $value = preg_replace('/\\s*\\|\\s*\\|\\s*/u', ' | ', $value) ?? $value;
+        $value = preg_replace('/\\s{2,}/u', ' ', $value) ?? $value;
+
+        return trim($value, " |\\t\\n\\r\\0\\x0B");
     }
 
     public function saveOffPremise()
