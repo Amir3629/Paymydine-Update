@@ -3824,7 +3824,10 @@ function renderOpenChecks() {
     var list = $('[data-qpos-history-list]');
     var preserveExisting =
       options.preserve === true ||
-      !!state.historyData;
+      (
+        options.preserve !== false &&
+        !!state.historyData
+      );
 
     if (list && !preserveExisting) {
       list.innerHTML =
