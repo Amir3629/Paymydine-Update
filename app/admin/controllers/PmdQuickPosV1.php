@@ -527,6 +527,49 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
         ]);
     }
 
+    /**
+     * PMD_QPOS_PARTIAL_PAYMENT_SCOPE_V1
+     *
+     * Partial payments lock structural order edits, but the check must remain
+     * visible in Quick POS until its remaining balance is fully settled.
+     */
+    protected function applyQuickPosPayableScope($query, array $columns): void
+    {
+        $cancelled = array_values(array_filter(array_map('intval', [
+            setting('canceled_order_status'),
+        ])));
+
+        if ($cancelled && in_array('status_id', $columns, true)) {
+            $query->whereNotIn('status_id', $cancelled);
+        }
+
+        if (in_array('settlement_status', $columns, true)) {
+            $query->where(function ($q) {
+                $q->whereNull('settlement_status')
+                    ->orWhereNotIn('settlement_status', [
+                        'paid',
+                        'settled',
+                        'closed',
+                        'cancelled',
+                        'canceled',
+                        'refunded',
+                    ]);
+            });
+        } elseif (in_array('payment_status', $columns, true)) {
+            $query->where(function ($q) {
+                $q->whereNull('payment_status')
+                    ->orWhereNotIn('payment_status', [
+                        'paid',
+                        'settled',
+                        'closed',
+                        'cancelled',
+                        'canceled',
+                        'refunded',
+                    ]);
+            });
+        }
+    }
+
     protected function quickPosOpenOrdersForTable(array $table): array
     {
         if (!Schema::hasTable('orders')) {
@@ -537,7 +580,7 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
         $query = DB::table('orders');
 
         $this->applyTableScope($query, $columns, $table);
-        $this->applyOpenScope($query, $columns);
+        $this->applyQuickPosPayableScope($query, $columns);
 
         $primaryKey = in_array('order_id', $columns, true)
             ? 'order_id'
@@ -647,6 +690,13 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 'payment' => (string)($raw['payment'] ?? ''),
                 'settlement_status' => (string)($raw['settlement_status'] ?? 'unpaid'),
                 'settled_amount' => (float)($raw['settled_amount'] ?? 0),
+                'structural_locked' =>
+                    (float)($raw['settled_amount'] ?? 0) > 0.0001
+                    || in_array(
+                        strtolower(trim((string)($raw['settlement_status'] ?? ''))),
+                        ['partial', 'paid', 'settled', 'closed', 'refunded'],
+                        true
+                    ),
                 'total' => (float)($raw['order_total'] ?? $raw['total'] ?? 0),
                 'total_items' => (int)($raw['total_items'] ?? 0),
                 'guest_count' => max(1, (int)($raw['guest_count'] ?? 1)),
