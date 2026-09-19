@@ -125,6 +125,7 @@
     guestCount: 1,
     note: '',
     loading: false,
+    visualHydrated: false,
     submitting: false,
     modifier: null,
     payment: {
@@ -242,6 +243,81 @@
     }
   }
 
+  /* PMD_QPOS_BOOT_CACHE_V1
+   * Visual-only warm boot. No user identity or permission authority is cached.
+   * A refresh paints the last menu/table layout immediately, then silently
+   * reconciles it with the authoritative bootstrap response.
+   */
+  function bootCacheKey() {
+    return [
+      'pmd:qpos:visual:v1',
+      window.location.host,
+      state.mode
+    ].join(':');
+  }
+
+  function visualPayload(json) {
+    return {
+      saved_at: Date.now(),
+      settings: {
+        currency:
+          json && json.settings
+            ? String(json.settings.currency || '€')
+            : '€'
+      },
+      tables: Array.isArray(json && json.tables) ? json.tables : [],
+      categories: Array.isArray(json && json.categories) ? json.categories : [],
+      menu_items: Array.isArray(json && json.menu_items) ? json.menu_items : []
+    };
+  }
+
+  function visualSignature(tables, categories, menu) {
+    try {
+      return JSON.stringify([tables || [], categories || [], menu || []]);
+    } catch (ignored) {
+      return '';
+    }
+  }
+
+  function hydrateVisualCache() {
+    try {
+      var raw = window.localStorage.getItem(bootCacheKey());
+      if (!raw) return false;
+
+      var cached = JSON.parse(raw);
+      if (
+        !cached ||
+        !cached.saved_at ||
+        Date.now() - Number(cached.saved_at) > 300000
+      ) {
+        return false;
+      }
+
+      state.settings = Object.assign({}, state.settings, cached.settings || {});
+      state.tables = Array.isArray(cached.tables) ? cached.tables : [];
+      state.categories = Array.isArray(cached.categories) ? cached.categories : [];
+      state.menu = Array.isArray(cached.menu_items) ? cached.menu_items : [];
+
+      if (!state.tables.length && !state.menu.length) return false;
+
+      state.visualHydrated = true;
+      renderAll();
+      return true;
+    } catch (ignored) {
+      return false;
+    }
+  }
+
+  function persistVisualCache(json) {
+    try {
+      window.localStorage.setItem(
+        bootCacheKey(),
+        JSON.stringify(visualPayload(json))
+      );
+    } catch (ignored) {
+    }
+  }
+
   async function bootstrap(silent) {
     if (state.loading) return;
     state.loading = true;
@@ -252,6 +328,12 @@
     try {
       var url = root.getAttribute('data-bootstrap-url');
       var json = await fetchJson(url + '?_=' + Date.now());
+      var beforeVisual = visualSignature(
+        state.tables,
+        state.categories,
+        state.menu
+      );
+
       state.boot = json;
       state.mode = json.mode || state.mode;
       root.setAttribute('data-mode', state.mode);
@@ -269,7 +351,21 @@
         }) || null;
       }
 
-      renderAll();
+      var afterVisual = visualSignature(
+        state.tables,
+        state.categories,
+        state.menu
+      );
+
+      if (!state.visualHydrated || beforeVisual !== afterVisual) {
+        renderAll();
+      } else {
+        renderContext();
+        renderCart();
+      }
+
+      state.visualHydrated = true;
+      persistVisualCache(json);
 
       if (state.selectedTable && state.serviceMode === 'dine_in') {
         await loadTable(state.selectedTable.id, true);
@@ -2419,6 +2515,7 @@
     });
   }
 
+  hydrateVisualCache();
   bind();
   bootstrap(true);
 
