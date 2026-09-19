@@ -172,11 +172,31 @@ class AdminController extends BaseController
         $toolbar = new Toolbar($this, ['context' => $this->action]);
         $toolbar->bindToController();
 
-        // PMD_RESTAURANT_PROFILE_SKIP_GLOBAL_MEDIAMANAGER_R24
-        // Restaurant Settings has its own native multipart logo uploader and does not
-        // use MediaFinder/Dropzone. Do not load the global MediaManager vendor bundle here.
-        $pmdSkipMediaManagerR24 = Request::is('admin/pmdsettings/restaurant');
-        if (!$pmdSkipMediaManagerR24 && $this->currentUser && $this->currentUser->hasPermission('Admin.MediaManager')) {
+        // PMD_PERF_R19_SKIP_UNUSED_GLOBAL_MEDIAMANAGER
+        //
+        // Clean operational workspaces do not render MediaFinder/Dropzone. The
+        // widget's own loadAssets() has already treated these pages as no-media
+        // surfaces for a long time, but initialize() still paid for the global
+        // permission check + widget construction on every request.
+        //
+        // Keep legacy Orders edit/create routes untouched; only the clean
+        // /admin/orders surface is skipped.
+        $pmdSkipMediaManagerR19 =
+            Request::is('admin/pmdsettings/restaurant')
+            || Request::is('admin/managerlab*')
+            || Request::is('admin/accountantlab*')
+            || Request::is('admin/cashierlab*')
+            || Request::is('admin/reservationslab*')
+            || Request::is('admin/pmdreports*')
+            || Request::is('admin/pmdreportchannels*')
+            || Request::is('admin/pmdreporttips*')
+            || Request::is('admin/orders');
+
+        if (
+            !$pmdSkipMediaManagerR19
+            && $this->currentUser
+            && $this->currentUser->hasPermission('Admin.MediaManager')
+        ) {
             $manager = new MediaManager($this, ['alias' => 'mediamanager']);
             $manager->bindToController();
         }
