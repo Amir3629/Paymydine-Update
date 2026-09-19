@@ -39,7 +39,23 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
     {
         $mode = $this->quickPosMode((string)$mode);
         $locationId = $this->quickPosLocationId();
+
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'quick_pos_entry'
+        );
+
         $menu = $this->menuPayload($locationId);
+
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'quick_pos_menu'
+        );
+
+        $tables = $this->quickPosTables($locationId);
+
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'quick_pos_tables'
+        );
+
         $user = $this->currentUser();
 
         return response()->json([
@@ -59,7 +75,7 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 'orders' => true,
                 'payments' => $this->canManagePayments(),
             ],
-            'tables' => $this->quickPosTables($locationId),
+            'tables' => $tables,
             'categories' => array_values((array)($menu['categories'] ?? [])),
             'menu_items' => array_values((array)($menu['items'] ?? [])),
             'warnings' => [
