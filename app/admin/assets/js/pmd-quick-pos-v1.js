@@ -312,8 +312,8 @@
     return {
       available: 'Free',
       occupied: 'Busy',
-      cleaning: 'Cleaning',
-      reserved: 'Reserved'
+      cleaning: 'Clean',
+      reserved: 'Res.'
     }[String(status || '').toLowerCase()] || 'Free';
   }
 
@@ -1817,7 +1817,7 @@
               : (
                   state.payment.method === 'cash'
                     ? 'Pay cash ' + money(charge)
-                    : 'Pay card ' + money(charge)
+                    : 'Pay ' + money(charge)
                 )
           );
     }
@@ -1868,6 +1868,30 @@
     });
 
     renderPaymentTotals();
+  }
+
+  function finishPaidOrderUi() {
+    var paidId = Number(state.activeOrderId || 0);
+
+    if (paidId > 0) {
+      state.openOrders = state.openOrders.filter(function (row) {
+        return orderId(row) !== paidId;
+      });
+    }
+
+    state.activeOrderId = null;
+    state.forceNewCheck = state.serviceMode === 'dine_in';
+
+    if (state.serviceMode !== 'dine_in') {
+      state.offPremiseOrder = null;
+    }
+
+    state.cart = [];
+    state.pendingSend = null;
+    state.note = '';
+    state.guestCount = 1;
+
+    renderAll();
   }
 
   async function executePayment() {
@@ -1944,14 +1968,14 @@
         });
       }
 
-      renderAll();
-
       if (String(json.settlement_status || '').toLowerCase() === 'paid') {
+        finishPaidOrderUi();
         setTimeout(function () {
           closePayment();
           toast('Paid');
-        }, 220);
+        }, 180);
       } else {
+        renderAll();
         renderPayment();
       }
     } catch (error) {
@@ -2027,13 +2051,20 @@
 
       if (status === 'paid') {
         await loadPaymentSummary(true);
-        toast('Terminal payment approved');
-        if (state.serviceMode === 'dine_in' && state.selectedTable) {
-          var terminalPaidTableId = Number(state.selectedTable.id);
+        var terminalPaidTableId =
+          state.serviceMode === 'dine_in' && state.selectedTable
+            ? Number(state.selectedTable.id)
+            : 0;
+
+        finishPaidOrderUi();
+        toast('Paid');
+
+        if (terminalPaidTableId) {
           setTimeout(function () {
             loadTable(terminalPaidTableId, true);
           }, 0);
         }
+
         setTimeout(closePayment, 180);
         return;
       }
