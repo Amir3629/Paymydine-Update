@@ -88,8 +88,8 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 'table_data_url' => '/admin/pos/table/{table}',
                 'table_save_url' => '/admin/pos/save/{table}',
                 'off_premise_save_url' => '/admin/pos/save-off-premise',
-                'payment_summary_url' => '/admin/pmd-waiter-pos-v1/payment-summary/{order}',
-                'payment_settle_url' => '/admin/pmd-waiter-pos-v1/payment-settle/{order}',
+                'payment_summary_url' => '/admin/pos/payment-summary/{order}',
+                'payment_settle_url' => '/admin/pos/payment-settle/{order}',
                 'payment_coupon_url' => '/admin/pmd-waiter-pos-v1/payment-coupon/{order}',
                 'terminal_payment_url' => '/admin/pmd-waiter-pos-v1/terminal-payment/{order}',
                 'terminal_attempts_url' => '/admin/orders/{order}/terminal-payment-attempts',
@@ -97,6 +97,36 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 'table_state_url' => '/admin/pmd-waiter-table-states-v154/{table}',
             ],
         ]);
+    }
+
+    public function paymentSummary($orderId = null)
+    {
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'quick_pay_summary_entry'
+        );
+
+        $response = parent::paymentSummary($orderId);
+
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'quick_pay_summary_response'
+        );
+
+        return $response;
+    }
+
+    public function settlePayment($orderId = null)
+    {
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'quick_pay_settle_entry'
+        );
+
+        $response = parent::settlePayment($orderId);
+
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'quick_pay_settle_response'
+        );
+
+        return $response;
     }
 
     public function save($tableId = null)
