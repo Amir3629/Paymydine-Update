@@ -205,7 +205,44 @@ trait PmdWaiterPosSettleEndpoint
                     $idempotencyKey
                 );
 
-                $freshSummary = $this->buildPaymentSummary($order, true);
+                /*
+                 * PMD_QUICK_POS_FAST_SETTLE_V1
+                 *
+                 * The pre-payment summary above already contains the items,
+                 * methods, terminals and currency needed by Quick POS. Rebuilding
+                 * the entire summary after a successful write duplicates many
+                 * reads. Quick POS opts into an updated in-memory summary and
+                 * performs its full reconciliation in the background.
+                 */
+                $quickPosFast = filter_var(
+                    $payload['quick_pos_fast'] ?? false,
+                    FILTER_VALIDATE_BOOLEAN
+                );
+
+                if ($quickPosFast) {
+                    $freshSummary = $summary;
+
+                    $freshSummary['settlement'] = array_merge(
+                        (array)($freshSummary['settlement'] ?? []),
+                        [
+                            'order_total' => $orderTotal,
+                            'settled_amount' => $newSettled,
+                            'remaining_amount' => $newRemaining,
+                            'status' => $newStatus,
+                        ]
+                    );
+
+                    $freshSummary['order'] = array_merge(
+                        (array)($freshSummary['order'] ?? []),
+                        [
+                            'order_id' => (int)$order->getKey(),
+                            'updated_at' => (string)($order->updated_at ?? ''),
+                            'payment' => (string)($order->payment ?? ''),
+                        ]
+                    );
+                } else {
+                    $freshSummary = $this->buildPaymentSummary($order, true);
+                }
 
                 return [
                     'already_paid' => false,
