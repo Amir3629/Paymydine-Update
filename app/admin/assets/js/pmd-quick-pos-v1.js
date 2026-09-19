@@ -3354,8 +3354,10 @@ function renderOpenChecks() {
 
   function historyIsoDate(date) {
     var y = date.getFullYear();
-    var m = String(date.getMonth() + 1).padStart(2, '0');
-    var d = String(date.getDate()).padStart(2, '0');
+    var month = date.getMonth() + 1;
+    var day = date.getDate();
+    var m = (month < 10 ? '0' : '') + String(month);
+    var d = (day < 10 ? '0' : '') + String(day);
     return y + '-' + m + '-' + d;
   }
 
