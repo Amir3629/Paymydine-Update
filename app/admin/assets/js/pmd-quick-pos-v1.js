@@ -3086,10 +3086,13 @@
 
     if (key === 'shift') {
       state.textKeyboardUpper = !state.textKeyboardUpper;
-      $('[data-qpos-text-keyboard]')?.classList.toggle(
-        'is-lowercase',
-        !state.textKeyboardUpper
-      );
+      var keyboard = $('[data-qpos-text-keyboard]');
+      if (keyboard) {
+        keyboard.classList.toggle(
+          'is-lowercase',
+          !state.textKeyboardUpper
+        );
+      }
       return;
     }
 
