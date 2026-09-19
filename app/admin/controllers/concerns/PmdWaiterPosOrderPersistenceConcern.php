@@ -209,23 +209,80 @@ trait PmdWaiterPosOrderPersistenceConcern
 
     protected function appendItems(Orders_model $order, array $cart): int
     {
-        $added = 0;
+        /*
+         * PMD_QUICK_POS_BATCH_MENU_HYDRATE_V1
+         *
+         * The old path performed Menus_model::with(...)->find() once per cart
+         * row. On a touch POS that turns a single Send into repeated menu /
+         * option queries. Hydrate the base menu rows once, and only load option
+         * relations for rows that actually selected options.
+         */
+        $prepared = [];
+        $menuIds = [];
+
         foreach ($cart as $row) {
             if (!is_array($row)) {
                 continue;
             }
 
             $menuId = (int)($row['menu_id'] ?? $row['id'] ?? 0);
-            $qty = max(1, min(99, (int)($row['quantity'] ?? $row['qty'] ?? 1)));
             if ($menuId < 1) {
                 continue;
             }
 
-            $menu = Menus_model::with('menu_options.menu_option_values.option_value')->find($menuId);
+            $prepared[] = [
+                'row' => $row,
+                'menu_id' => $menuId,
+                'quantity' => max(
+                    1,
+                    min(99, (int)($row['quantity'] ?? $row['qty'] ?? 1))
+                ),
+            ];
+            $menuIds[] = $menuId;
+        }
+
+        if (!$prepared) {
+            return 0;
+        }
+
+        $menuIds = array_values(array_unique($menuIds));
+        $menus = Menus_model::query()
+            ->whereIn('menu_id', $menuIds)
+            ->get()
+            ->keyBy(function ($menu) {
+                return (int)$menu->getKey();
+            });
+
+        $menusHaveStockOut = Schema::hasColumn('menus', 'is_stock_out');
+
+        $orderMenuColumns = Schema::hasTable('order_menus')
+            ? Schema::getColumnListing('order_menus')
+            : [];
+        $orderMenuColumnMap = $orderMenuColumns
+            ? array_flip($orderMenuColumns)
+            : [];
+
+        $hasOrderMenuOptions = Schema::hasTable('order_menu_options');
+        $orderMenuOptionColumns = $hasOrderMenuOptions
+            ? Schema::getColumnListing('order_menu_options')
+            : [];
+        $orderMenuOptionColumnMap = $orderMenuOptionColumns
+            ? array_flip($orderMenuOptionColumns)
+            : [];
+
+        $added = 0;
+
+        foreach ($prepared as $preparedRow) {
+            $row = $preparedRow['row'];
+            $menuId = $preparedRow['menu_id'];
+            $qty = $preparedRow['quantity'];
+
+            /** @var Menus_model|null $menu */
+            $menu = $menus->get($menuId);
             if (!$menu || !(bool)$menu->menu_status) {
                 continue;
             }
-            if (Schema::hasColumn('menus', 'is_stock_out') && (bool)$menu->is_stock_out) {
+            if ($menusHaveStockOut && (bool)$menu->is_stock_out) {
                 continue;
             }
 
@@ -234,7 +291,17 @@ trait PmdWaiterPosOrderPersistenceConcern
                 continue;
             }
 
-            $optionRows = $this->validatedOptions($menu, $row['options'] ?? []);
+            $selectedOptions = $row['options'] ?? [];
+            if (is_array($selectedOptions) && count($selectedOptions) > 0) {
+                $menu->loadMissing(
+                    'menu_options.menu_option_values.option_value'
+                );
+            }
+
+            $optionRows = $this->validatedOptions(
+                $menu,
+                $selectedOptions
+            );
             $optionUnit = array_sum(array_map(function ($option) {
                 return (float)$option['price'];
             }, $optionRows));
@@ -250,10 +317,14 @@ trait PmdWaiterPosOrderPersistenceConcern
                 'comment' => trim((string)($row['comment'] ?? '')),
                 'option_values' => serialize(array_column($optionRows, 'value_id')),
             ];
-            $insert = $this->filterColumns('order_menus', $insert);
+
+            if ($orderMenuColumnMap) {
+                $insert = array_intersect_key($insert, $orderMenuColumnMap);
+            }
+
             $orderMenuId = DB::table('order_menus')->insertGetId($insert);
 
-            if (Schema::hasTable('order_menu_options')) {
+            if ($hasOrderMenuOptions && $optionRows) {
                 foreach ($optionRows as $option) {
                     $optionInsert = [
                         'order_menu_id' => $orderMenuId,
@@ -265,9 +336,18 @@ trait PmdWaiterPosOrderPersistenceConcern
                         'order_option_price' => (float)$option['price'],
                         'quantity' => $qty,
                     ];
-                    DB::table('order_menu_options')->insert($this->filterColumns('order_menu_options', $optionInsert));
+
+                    if ($orderMenuOptionColumnMap) {
+                        $optionInsert = array_intersect_key(
+                            $optionInsert,
+                            $orderMenuOptionColumnMap
+                        );
+                    }
+
+                    DB::table('order_menu_options')->insert($optionInsert);
                 }
             }
+
             $added++;
         }
 
