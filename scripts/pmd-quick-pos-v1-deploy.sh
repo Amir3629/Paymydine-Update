@@ -195,6 +195,13 @@ grep -q "PMD_QPOS_COMPACT_WIDE_PAYMENT_V14" "$STAGE/app/admin/assets/css/pmd-qui
 grep -q "PMD_QPOS_SIMPLIFIED_CHECKS_V14" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
 grep -q "PMD_QPOS_WORKSPACE_V15" "$STAGE/app/admin/assets/css/pmd-quick-pos-v1.css"
 grep -q "PMD_QPOS_WORKSPACE_FLAT_V15" "$STAGE/app/admin/assets/css/pmd-quick-pos-v1.css"
+grep -q "PMD_QPOS_TOUCH_POLISH_V16" "$STAGE/app/admin/assets/css/pmd-quick-pos-v1.css"
+grep -q "PMD_QPOS_TABLE_SIGNAL_COMPACT_V16" "$STAGE/app/admin/assets/css/pmd-quick-pos-v1.css"
+grep -q "PMD_QPOS_PRODUCT_DEPTH_V16" "$STAGE/app/admin/assets/css/pmd-quick-pos-v1.css"
+grep -q "PMD_QPOS_PAYMENT_WORKSPACE_V16" "$STAGE/app/admin/assets/css/pmd-quick-pos-v1.css"
+grep -q "PMD_QPOS_PLATFORM_CONFIRM_V16" "$STAGE/app/admin/assets/css/pmd-quick-pos-v1.css"
+grep -q "PMD_QPOS_PLATFORM_CONFIRM_V16" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
+grep -q "PMD_QPOS_SPLIT_BILL_V16" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
 grep -q "PMD_QPOS_HISTORY_BROWSER_V15" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
 grep -q "PMD_QPOS_TABLE_SIGNALS_V15" "$STAGE/app/admin/assets/css/pmd-quick-pos-v1.css"
 grep -q "PMD_QPOS_TABLE_SIGNALS_V15" "$STAGE/app/admin/controllers/PmdQuickPosV1.php"
@@ -214,6 +221,10 @@ grep -q "data-qpos-profile-toggle" "$STAGE/app/admin/views/pmd_quick_pos_v1.blad
 grep -q "data-qpos-text-keyboard" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
 grep -q "data-qpos-tip-amount" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
 grep -q "data-qpos-split-row" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
+grep -q "data-qpos-split-mode" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
+grep -q "data-qpos-split-items-list" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
+grep -q "data-qpos-share-percent" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
+grep -q "data-qpos-confirm-modal" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
 grep -q "pmd-qpos-product-count" "$STAGE/app/admin/assets/css/pmd-quick-pos-v1.css"
 grep -q "cartQuantityForMenu" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
 grep -q "PMD_QPOS_BLITZ_ACTION_V1" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
@@ -221,6 +232,10 @@ grep -q "PMD_QUICK_POS_PAYMENT_HANDOFF_V1" "$STAGE/app/admin/controllers/concern
 grep -q "PMD_QUICK_POS_BATCH_MENU_HYDRATE_V1" "$STAGE/app/admin/controllers/concerns/PmdWaiterPosOrderPersistenceConcern.php"
 if grep -Fq "name: 'Card'" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"; then
   echo "ERROR: ambiguous Card payment label remains in Quick POS" >&2
+  exit 1
+fi
+if grep -Fq 'window.confirm(' "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"; then
+  echo "ERROR: browser-native window.confirm remains in Quick POS" >&2
   exit 1
 fi
 if grep -Fq 'data-qpos-service=' "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"; then
@@ -273,12 +288,14 @@ if grep -Fq 'data-qpos-touch-keypad hidden' "$STAGE/app/admin/views/pmd_quick_po
   exit 1
 fi
 grep -q "data-qpos-cash-signature" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
-grep -q "pmd-quick-pos-v1.js?v=20260919-15" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
-grep -q "pmd-quick-pos-v1.css?v=20260919-15" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
+grep -q "pmd-quick-pos-v1.js?v=20260919-16" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
+grep -q "pmd-quick-pos-v1.css?v=20260919-16" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
 grep -Fq "\$\$('[data-cash-value]', box).forEach" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
 grep -Fq "\$\$('[data-payment-method]', box).forEach" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
 grep -Fq "\$\$('[data-qpos-keypad-key]', keypad).forEach" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
-grep -Fq "\$\$('[data-qpos-split]', wrap).forEach" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
+grep -Fq "\$\$('[data-qpos-split-mode]', wrap).forEach" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
+grep -q "selected_items:" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
+grep -q "share_percent:" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
 grep -Fq "\$\$('[data-qpos-history-scope]').forEach" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
 grep -Fq "\$\$('[data-qpos-text-key]').forEach" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
 grep -Fq "return \$\$(" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
