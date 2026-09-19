@@ -31,6 +31,10 @@ class LogUserLastSeen
              * Manager online presence is different: it follows the real admin
              * session until explicit logout or normal session expiry.
              */
+            \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+                'admin_last_seen_legacy'
+            );
+
             try {
                 if (resolve('admin.auth')->check()) {
                     app(\Admin\Services\PmdAdminPresenceService::class)->touchCurrentSession();
@@ -41,18 +45,30 @@ class LogUserLastSeen
                 ]);
             }
 
+            \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+                'admin_presence_touch'
+            );
+
             /*
-             * PMD_SHIFT_AUDIT_ACTOR_CONTEXT_V1
+             * PMD_PERF_R20_WRITE_ONLY_SHIFT_AUDIT_CONTEXT
              *
-             * Canonical Shifts writes are made with Query Builder from several
-             * code paths (save/edit, copy, merge, confirmation/replacements).
-             * The immutable DB audit triggers therefore need an authenticated
-             * request actor without coupling every write path to the audit layer.
-             * MySQL session variables are connection-local and are reset on every
-             * Admin web request so a reused PHP DB connection can never leak the
-             * previous request's identity.
+             * The actor variables are consumed only by DB audit triggers on
+             * mutating operations. GET/HEAD/OPTIONS never write Shift rows, so
+             * spending two MySQL SET statements on every read-only page adds
+             * latency without adding audit coverage. Every mutating Admin
+             * request still resets and binds the actor before controller work.
              */
-            $this->bindPmdShiftAuditActor($request);
+            if (!in_array(
+                strtoupper((string)$request->method()),
+                ['GET', 'HEAD', 'OPTIONS'],
+                true
+            )) {
+                $this->bindPmdShiftAuditActor($request);
+            }
+
+            \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+                'shift_audit_actor'
+            );
         }
 
         return $next($request);
