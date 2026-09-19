@@ -214,9 +214,11 @@ if grep -Fq 'data-qpos-touch-keypad hidden' "$STAGE/app/admin/views/pmd_quick_po
   exit 1
 fi
 grep -q "data-qpos-cash-signature" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
-grep -q "pmd-quick-pos-v1.js?v=20260919-11" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
+grep -q "pmd-quick-pos-v1.js?v=20260919-12" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
 grep -q "pmd-quick-pos-v1.css?v=20260919-11" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
 grep -Fq "\$\$('[data-cash-value]', box).forEach" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
+grep -Fq "\$\$('[data-payment-method]', box).forEach" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
+grep -Fq "\$\$('[data-qpos-keypad-key]', keypad).forEach" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
 grep -q "touchKeypadTarget: 'cash'" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
 grep -q "background: #064e3b" "$STAGE/app/admin/assets/css/pmd-quick-pos-v1.css"
 grep -q "background: #0f766e" "$STAGE/app/admin/assets/css/pmd-quick-pos-v1.css"
