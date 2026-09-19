@@ -223,6 +223,18 @@
     }) || null;
   }
 
+  function activeOrderStructuralLocked() {
+    var order = activeOrder();
+    if (!order) return false;
+
+    var status = String(order.settlement_status || '').toLowerCase();
+    return (
+      order.structural_locked === true ||
+      num(order.settled_amount, 0) > 0.0001 ||
+      ['partial', 'paid', 'settled', 'closed', 'refunded'].indexOf(status) !== -1
+    );
+  }
+
   function existingTotal() {
     var order = activeOrder();
     return order
@@ -752,6 +764,8 @@
     if (status) {
       if (!canOrderNow()) {
         status.textContent = 'Select table';
+      } else if (activeOrderStructuralLocked()) {
+        status.textContent = 'Payment started · choose + Check for new items';
       } else {
         status.textContent = items.length + ' items';
       }
@@ -797,6 +811,11 @@
       button.onclick = function () {
         if (!canOrderNow()) {
           toast('Select table or Pickup.', true);
+          return;
+        }
+
+        if (activeOrderStructuralLocked()) {
+          toast('Payment started. Choose + Check for new items.', true);
           return;
         }
 
@@ -1078,7 +1097,11 @@
     var send = $('[data-qpos-send]');
     var pay = $('[data-qpos-pay]');
 
-    var canSave = canOrderNow() && state.cart.length > 0 && !state.submitting;
+    var canSave =
+      canOrderNow() &&
+      !activeOrderStructuralLocked() &&
+      state.cart.length > 0 &&
+      !state.submitting;
     root.classList.toggle('is-committing', !!state.submitting);
 
     if (send) {
@@ -2710,6 +2733,22 @@
           ? 'cash'
           : 'amount';
       state.payment.touchKeypadFresh = true;
+
+      var locallyPaidOrder = activeOrder();
+      if (locallyPaidOrder && state.payment.summary && state.payment.summary.settlement) {
+        locallyPaidOrder.settled_amount = num(
+          state.payment.summary.settlement.settled_amount,
+          locallyPaidOrder.settled_amount || 0
+        );
+        locallyPaidOrder.settlement_status = String(
+          state.payment.summary.settlement.status ||
+          json.settlement_status ||
+          locallyPaidOrder.settlement_status ||
+          ''
+        );
+        locallyPaidOrder.structural_locked =
+          locallyPaidOrder.settled_amount > 0.0001;
+      }
 
       toast(json.message || 'Payment recorded');
 
