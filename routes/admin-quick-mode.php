@@ -23,6 +23,11 @@ Route::middleware(['web'])->group(function () {
         [\Admin\Controllers\PmdQuickPosV1::class, 'saveOffPremise']
     );
 
+    Route::post(
+        '/admin/pos/save/{table}',
+        [\Admin\Controllers\PmdQuickPosV1::class, 'save']
+    )->where('table', '[0-9]+');
+
     Route::get(
         '/admin/pos/table/{table}',
         [\Admin\Controllers\PmdQuickPosV1::class, 'tableData']
