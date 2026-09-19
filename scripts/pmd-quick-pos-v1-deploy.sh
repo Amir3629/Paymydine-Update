@@ -20,6 +20,7 @@ FILES=(
   "app/admin/classes/AdminController.php"
   "app/admin/controllers/PmdQuickPosV1.php"
   "app/admin/controllers/concerns/PmdWaiterPosSaveEndpoint.php"
+  "app/admin/controllers/concerns/PmdWaiterPosSettleEndpoint.php"
   "app/admin/views/pmd_quick_pos_v1.blade.php"
   "app/admin/views/_partials/pmd_side_menu2_single_menu.blade.php"
   "app/admin/views/siteaccess/hub.blade.php"
@@ -36,6 +37,7 @@ PHP_FILES=(
   "app/admin/classes/AdminController.php"
   "app/admin/controllers/PmdQuickPosV1.php"
   "app/admin/controllers/concerns/PmdWaiterPosSaveEndpoint.php"
+  "app/admin/controllers/concerns/PmdWaiterPosSettleEndpoint.php"
   "app/main/widgets/MediaManager.php"
   "routes/admin-quick-mode.php"
 )
@@ -161,6 +163,8 @@ grep -q "'pmd-waiter' => 'pos/waiter'"   "$STAGE/app/admin/Services/PmdRoleLandi
 grep -q "PMD_QUICK_POS_TEAM_SIGNIN_POSITION_V1"   "$STAGE/app/admin/assets/js/pmd-site-access-hub-v13.js"
 grep -q "PMD_QUICK_POS_FORCE_NEW_CHECK_V1"   "$STAGE/app/admin/controllers/concerns/PmdWaiterPosSaveEndpoint.php"
 grep -q "PMD_QUICK_POS_LEAN_TABLE_DATA_V2" "$STAGE/app/admin/controllers/PmdQuickPosV1.php"
+grep -q "PMD_QUICK_POS_FAST_WRITE_V2" "$STAGE/app/admin/controllers/PmdQuickPosV1.php"
+grep -q "PMD_QUICK_POS_FAST_SETTLE_V1" "$STAGE/app/admin/controllers/concerns/PmdWaiterPosSettleEndpoint.php"
 grep -q "'cashierlab' =>" "$STAGE/app/Http/Middleware/PmdAdminRetiredPagesR77.php"
 grep -q "admin_url('pos')" "$STAGE/app/admin/views/_partials/pmd_side_menu2_single_menu.blade.php"
 
@@ -240,7 +244,10 @@ echo "===== ROUTE CONTRACT ====="
 # reliably Composer-reflectable in Artisan.
 grep -q "'/admin/pos/bootstrap/{mode?}'" "$ROOT/routes/admin-quick-mode.php"
 grep -q "'/admin/pos/save-off-premise'" "$ROOT/routes/admin-quick-mode.php"
+grep -q "'/admin/pos/save/{table}'" "$ROOT/routes/admin-quick-mode.php"
 grep -q "'/admin/pos/table/{table}'" "$ROOT/routes/admin-quick-mode.php"
+grep -q "'/admin/pos/payment-summary/{order}'" "$ROOT/routes/admin-quick-mode.php"
+grep -q "'/admin/pos/payment-settle/{order}'" "$ROOT/routes/admin-quick-mode.php"
 grep -q "'/admin/pos/{mode?}'" "$ROOT/routes/admin-quick-mode.php"
 echo "OK Quick POS route contract present"
 
