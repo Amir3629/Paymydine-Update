@@ -280,14 +280,15 @@
     } finally {
       state.loading = false;
       root.classList.remove('is-loading');
+      root.classList.remove('is-booting');
     }
   }
 
   function serviceLabel() {
-    if (state.mode === 'waiter') return 'Waiter · Dine in';
+    if (state.mode === 'waiter') return 'Waiter · Dine';
     if (state.serviceMode === 'delivery') return 'Cashier · Delivery';
-    if (state.serviceMode === 'takeaway') return 'Cashier · Takeaway';
-    return 'Cashier · Dine in';
+    if (state.serviceMode === 'takeaway') return 'Cashier · Takeout';
+    return 'Cashier · Dine';
   }
 
   function renderContext() {
@@ -353,7 +354,7 @@
           ' data-status="' + esc(table.status || 'available') + '">' +
           '<strong>' + esc(table.name || ('Table ' + table.number)) + '</strong>' +
           '<small>' + esc(tableStatusLabel(table.status)) +
-            (num(table.capacity, 0) > 0 ? ' · ' + esc(table.capacity) + ' seats' : '') +
+            (num(table.capacity, 0) > 0 ? ' · ' + esc(table.capacity) + 's' : '') +
           '</small>' +
         '</button>'
       );
@@ -425,9 +426,9 @@
 
     if (status) {
       if (!canOrderNow()) {
-        status.textContent = 'Select a table to start the check.';
+        status.textContent = 'Select table';
       } else {
-        status.textContent = items.length + ' menu items';
+        status.textContent = items.length + ' items';
       }
     }
 
@@ -453,7 +454,7 @@
           (item.is_bestseller ? '<span class="pmd-qpos-product-badge">Popular</span>' : '') +
           '<strong>' + esc(item.name) + '</strong>' +
           '<footer><span>' +
-            (item.has_options ? 'Options' : (item.prep_minutes ? esc(item.prep_minutes) + ' min' : 'Tap to add')) +
+            (item.has_options ? 'Options' : '') +
           '</span><b>' + (orderable ? money(item.price) : 'No price') + '</b></footer>' +
         '</button>'
       );
@@ -518,7 +519,7 @@
     var rows = [
       '<button type="button" data-qpos-check="new"' +
         (!state.activeOrderId ? ' class="is-active"' : '') +
-        '>+ New check</button>'
+        '>+ Check</button>'
     ];
 
     state.openOrders.forEach(function (order) {
@@ -650,8 +651,7 @@
       if (!state.cart.length) {
         list.innerHTML =
           '<div class="pmd-qpos-empty-cart">' +
-            '<strong>No new items</strong>' +
-            '<span>Tap a product to add it.</span>' +
+            '<strong>No items</strong>' +
           '</div>';
       } else {
         list.innerHTML = state.cart.map(function (row, index) {
@@ -840,7 +840,6 @@
       }
 
       renderAll();
-      if (!silent) toast((state.selectedTable && state.selectedTable.name) + ' opened');
     } catch (error) {
       if (!silent && requestSeq === state.tableRequestSeq) {
         toast(error.message || 'Table could not be opened.', true);
@@ -1398,9 +1397,14 @@
       ? state.payment.summary.terminal_providers
       : [];
 
+    if (state.payment.method === 'external_terminal') {
+      state.payment.method = 'cash';
+      state.payment.reference = '';
+      state.payment.externalConfirmed = false;
+    }
+
     var methods = [
-      {code: 'cash', name: 'Cash'},
-      {code: 'external_terminal', name: 'Card'}
+      {code: 'cash', name: 'Cash'}
     ];
 
     if (providers.length) {
@@ -1837,8 +1841,8 @@
       if (remaining) remaining.textContent = money(paymentRemaining());
       if (settled) {
         settled.textContent =
-          'Paid ' + money(num(summary.settlement && summary.settlement.settled_amount, 0)) +
-          ' of ' + money(num(summary.settlement && summary.settlement.order_total, 0));
+          money(num(summary.settlement && summary.settlement.settled_amount, 0)) +
+          ' / ' + money(num(summary.settlement && summary.settlement.order_total, 0));
       }
     }
 
@@ -1940,14 +1944,15 @@
         });
       }
 
-      renderPayment();
       renderAll();
 
-      if (
-        String(json.settlement_status || '').toLowerCase() === 'paid'
-        && !state.payment.receiptUrl
-      ) {
-        setTimeout(closePayment, 900);
+      if (String(json.settlement_status || '').toLowerCase() === 'paid') {
+        setTimeout(function () {
+          closePayment();
+          toast('Paid');
+        }, 220);
+      } else {
+        renderPayment();
       }
     } catch (error) {
       showPaymentError(error.message || 'Payment failed.');
@@ -2029,7 +2034,7 @@
             loadTable(terminalPaidTableId, true);
           }, 0);
         }
-        setTimeout(closePayment, 350);
+        setTimeout(closePayment, 180);
         return;
       }
 
