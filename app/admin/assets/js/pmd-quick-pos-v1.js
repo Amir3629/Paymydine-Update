@@ -2843,6 +2843,317 @@
     throw new Error('Terminal payment is still processing. Check the terminal status before retrying.');
   }
 
+  /* PMD_QPOS_HISTORY_UI_V1 */
+  function historySelection() {
+    if (state.serviceMode === 'takeaway') {
+      return {scope: 'pickup', tableId: 0};
+    }
+
+    if (state.selectedTable) {
+      return {
+        scope: 'table',
+        tableId: Number(state.selectedTable.id || 0)
+      };
+    }
+
+    return {scope: 'all', tableId: 0};
+  }
+
+  function closeHistory() {
+    var modal = $('[data-qpos-history-modal]');
+    if (modal) {
+      modal.classList.remove('is-open');
+      modal.setAttribute('aria-hidden', 'true');
+    }
+  }
+
+  function formatHistoryTime(value) {
+    var date = new Date(String(value || ''));
+    if (!Number.isFinite(date.getTime())) {
+      return String(value || '');
+    }
+
+    try {
+      return new Intl.DateTimeFormat([], {
+        month: 'short',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      }).format(date);
+    } catch (ignored) {
+      return date.toLocaleString();
+    }
+  }
+
+  function renderHistory(json) {
+    var list = $('[data-qpos-history-list]');
+    var title = $('[data-qpos-history-title]');
+    if (!list) return;
+
+    if (title) {
+      title.textContent = String(
+        json && json.scope_label
+          ? json.scope_label
+          : 'History'
+      );
+    }
+
+    var entries = Array.isArray(json && json.entries)
+      ? json.entries
+      : [];
+
+    if (!entries.length) {
+      list.innerHTML =
+        '<div class="pmd-qpos-history-empty">No history yet.</div>';
+      return;
+    }
+
+    list.innerHTML = entries.map(function (entry) {
+      return (
+        '<article class="pmd-qpos-history-entry" data-kind="' +
+          esc(entry.kind || 'event') + '">' +
+          '<header>' +
+            '<strong>' + esc(entry.title || 'Activity') + '</strong>' +
+            '<time>' + esc(formatHistoryTime(entry.time)) + '</time>' +
+          '</header>' +
+          (entry.detail
+            ? '<p>' + esc(entry.detail) + '</p>'
+            : '') +
+        '</article>'
+      );
+    }).join('');
+  }
+
+  async function loadHistory(scopeMode) {
+    if (state.historyLoading || !state.settings.history_url) return;
+
+    var selection = historySelection();
+    var requested = String(scopeMode || state.historyScope || 'selected');
+
+    if (requested === 'all') {
+      selection = {scope: 'all', tableId: 0};
+    }
+
+    state.historyScope = requested;
+    state.historyLoading = true;
+
+    var list = $('[data-qpos-history-list]');
+    if (list) {
+      list.innerHTML =
+        '<div class="pmd-qpos-history-empty">Loading…</div>';
+    }
+
+    $('[data-qpos-history-scope]').forEach(function (button) {
+      button.classList.toggle(
+        'is-active',
+        String(button.getAttribute('data-qpos-history-scope')) === requested
+      );
+    });
+
+    try {
+      var url = String(state.settings.history_url);
+      var params = new URLSearchParams();
+      params.set('scope', selection.scope);
+      params.set('limit', '120');
+      if (selection.tableId) {
+        params.set('table_id', String(selection.tableId));
+      }
+
+      var json = await fetchJson(
+        url + '?' + params.toString() + '&_=' + Date.now()
+      );
+      renderHistory(json);
+    } catch (error) {
+      if (list) {
+        list.innerHTML =
+          '<div class="pmd-qpos-history-empty is-error">' +
+            esc(error.message || 'History could not be loaded.') +
+          '</div>';
+      }
+    } finally {
+      state.historyLoading = false;
+    }
+  }
+
+  function openHistory(scopeMode) {
+    var modal = $('[data-qpos-history-modal]');
+    if (!modal) return;
+
+    modal.classList.add('is-open');
+    modal.setAttribute('aria-hidden', 'false');
+    loadHistory(scopeMode || 'selected');
+  }
+
+  /* PMD_QPOS_TEXT_KEYBOARD_V1
+   * Cashier-only desktop/touch-monitor keyboard. Waiter/mobile/tablet keeps
+   * the operating system keyboard.
+   */
+  function useTextKeyboard() {
+    return state.mode === 'cashier' && window.innerWidth >= 900;
+  }
+
+  function textKeyboardTargets() {
+    return $(
+      '[data-qpos-search], ' +
+      '[data-qpos-note], ' +
+      '[data-qpos-modifier-note], ' +
+      '[data-qpos-item-note-input]'
+    );
+  }
+
+  function configureTextKeyboardTargets() {
+    var enabled = useTextKeyboard();
+
+    textKeyboardTargets().forEach(function (field) {
+      if (enabled) {
+        field.setAttribute('inputmode', 'none');
+        field.setAttribute('data-qpos-text-keyboard-field', '1');
+      } else {
+        field.removeAttribute('inputmode');
+        field.removeAttribute('data-qpos-text-keyboard-field');
+      }
+    });
+
+    if (!enabled) {
+      closeTextKeyboard();
+    }
+  }
+
+  function maybeOpenTextKeyboard(target, label) {
+    if (!target || !useTextKeyboard()) return;
+
+    state.textKeyboardTarget = target;
+    var keyboard = $('[data-qpos-text-keyboard]');
+    var title = $('[data-qpos-text-keyboard-label]');
+    if (!keyboard) return;
+
+    if (title) {
+      title.textContent = String(label || 'Keyboard');
+    }
+
+    keyboard.hidden = false;
+    keyboard.setAttribute('aria-hidden', 'false');
+  }
+
+  function closeTextKeyboard() {
+    var keyboard = $('[data-qpos-text-keyboard]');
+    if (keyboard) {
+      keyboard.hidden = true;
+      keyboard.setAttribute('aria-hidden', 'true');
+    }
+    state.textKeyboardTarget = null;
+  }
+
+  function insertTextKeyboardValue(target, value) {
+    if (!target) return;
+
+    var current = String(target.value || '');
+    var start = Number.isFinite(target.selectionStart)
+      ? target.selectionStart
+      : current.length;
+    var end = Number.isFinite(target.selectionEnd)
+      ? target.selectionEnd
+      : start;
+
+    target.value =
+      current.slice(0, start) +
+      value +
+      current.slice(end);
+
+    var next = start + value.length;
+    try {
+      target.setSelectionRange(next, next);
+    } catch (ignored) {
+    }
+
+    target.dispatchEvent(new Event('input', {bubbles: true}));
+  }
+
+  function applyTextKeyboardKey(key) {
+    var target = state.textKeyboardTarget;
+    if (!target || !document.documentElement.contains(target)) {
+      closeTextKeyboard();
+      return;
+    }
+
+    key = String(key || '');
+
+    if (key === 'done') {
+      closeTextKeyboard();
+      try { target.blur(); } catch (ignored) {}
+      return;
+    }
+
+    if (key === 'shift') {
+      state.textKeyboardUpper = !state.textKeyboardUpper;
+      $('[data-qpos-text-keyboard]')?.classList.toggle(
+        'is-lowercase',
+        !state.textKeyboardUpper
+      );
+      return;
+    }
+
+    if (key === 'clear') {
+      target.value = '';
+      target.dispatchEvent(new Event('input', {bubbles: true}));
+      target.focus();
+      return;
+    }
+
+    if (key === 'backspace') {
+      var current = String(target.value || '');
+      var start = Number.isFinite(target.selectionStart)
+        ? target.selectionStart
+        : current.length;
+      var end = Number.isFinite(target.selectionEnd)
+        ? target.selectionEnd
+        : start;
+
+      if (start !== end) {
+        target.value = current.slice(0, start) + current.slice(end);
+      } else if (start > 0) {
+        target.value =
+          current.slice(0, start - 1) +
+          current.slice(end);
+        start -= 1;
+      }
+
+      try {
+        target.setSelectionRange(start, start);
+      } catch (ignored) {
+      }
+      target.dispatchEvent(new Event('input', {bubbles: true}));
+      target.focus();
+      return;
+    }
+
+    if (key === 'space') {
+      insertTextKeyboardValue(target, ' ');
+      target.focus();
+      return;
+    }
+
+    var output = key;
+    if (/^[A-Z]$/.test(key) && !state.textKeyboardUpper) {
+      output = key.toLowerCase();
+    }
+
+    insertTextKeyboardValue(target, output);
+    target.focus();
+  }
+
+  function bindTextKeyboardField(field, label) {
+    if (!field || field.__qposKeyboardBound) return;
+    field.__qposKeyboardBound = true;
+
+    var open = function () {
+      maybeOpenTextKeyboard(field, label);
+    };
+
+    field.addEventListener('focus', open);
+    field.addEventListener('click', open);
+  }
+
   /* Table lifecycle */
   async function updateTableStatus(status, skipCleaning) {
     if (!state.selectedTable || !state.settings.table_state_url) return;
