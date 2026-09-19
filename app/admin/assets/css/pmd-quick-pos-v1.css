@@ -4908,3 +4908,31 @@ body.pmd-qpos-body {
     border-radius: 12px;
   }
 }
+
+
+/* PMD_QPOS_KEYPAD_PAYMENT_ACTION_V21
+   One final payment action only: the old keypad Done key now owns submit. */
+.pmd-qpos-workspace-modal[data-qpos-payment-modal] .pmd-qpos-keypad-pay {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  padding: 8px 7px;
+  line-height: 1.15;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: -.01em;
+}
+
+.pmd-qpos-workspace-modal[data-qpos-payment-modal] .pmd-qpos-keypad-pay:disabled {
+  background: #a7d8b4;
+  border-color: #a7d8b4;
+  color: rgba(255,255,255,.92);
+  opacity: .62;
+  cursor: not-allowed;
+  transform: none;
+}
+
+@media (min-width: 1180px) {
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal] .pmd-qpos-keypad-pay {
+    font-size: 13px;
+  }
+}
