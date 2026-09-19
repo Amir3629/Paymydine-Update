@@ -965,8 +965,6 @@
         title.textContent = 'Order #' + orderId(order);
       } else if (state.serviceMode === 'takeaway') {
         title.textContent = 'Pickup';
-      } else if (state.serviceMode === 'delivery') {
-        title.textContent = 'Delivery';
       } else if (state.selectedTable) {
         title.textContent = state.selectedTable.name + ' · New';
       } else {
@@ -1256,7 +1254,7 @@
     if (state.submitting || !state.cart.length) return;
 
     if (!canOrderNow()) {
-      toast('Select a table first.', true);
+      toast('Select table or Pickup.', true);
       return;
     }
 
