@@ -28,6 +28,18 @@
     });
   }
 
+  function visibleNote(value) {
+    return String(value == null ? '' : value)
+      .replace(
+        /\[(?:guest_session|table_session|table_draft_id|submitted_by):[^\]]*\]/gi,
+        ''
+      )
+      .replace(/\s*\|\s*\|\s*/g, ' | ')
+      .replace(/^\s*\|\s*|\s*\|\s*$/g, '')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
+  }
+
   function num(value, fallback) {
     var parsed = Number(value);
     return Number.isFinite(parsed) ? parsed : (fallback || 0);
@@ -541,7 +553,7 @@
         '<div class="pmd-qpos-sent-line">' +
           '<b>' + esc(qty) + '×</b>' +
           '<span>' + esc(item.name || item.menu_name || 'Item') +
-            (item.comment ? '<small>' + esc(item.comment) + '</small>' : '') +
+            (visibleNote(item.comment) ? '<small>' + esc(visibleNote(item.comment)) + '</small>' : '') +
           '</span>' +
           '<strong>' + money(subtotal) + '</strong>' +
         '</div>'
