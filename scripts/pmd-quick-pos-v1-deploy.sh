@@ -247,6 +247,14 @@ if grep -Fq 'pmd-qpos-work-link' "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.
   echo "ERROR: legacy Orders link remains in Quick POS shell" >&2
   exit 1
 fi
+if grep -Fq '$canSwitchMode' "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"; then
+  echo "ERROR: retired canSwitchMode Blade variable remains in Quick POS view" >&2
+  exit 1
+fi
+if grep -Fq '$legacyOrdersUrl' "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"; then
+  echo "ERROR: retired legacyOrdersUrl Blade variable remains in Quick POS view" >&2
+  exit 1
+fi
 grep -q "data-qpos-touch-keypad" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
 if grep -Fq 'data-qpos-touch-keypad hidden' "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"; then
   echo "ERROR: payment keypad is hidden in initial Quick POS markup" >&2
@@ -384,6 +392,17 @@ probe_path() {
       ;;
     *)
       echo "ERROR: Quick POS HTTP probe failed: $code $path" >&2
+      if [ "$code" = "500" ]; then
+        echo "===== QUICK POS 500 DIAGNOSTICS =====" >&2
+        for log in \
+          "$ROOT/storage/logs/laravel.log" \
+          "$ROOT/storage/logs/system.log"; do
+          if [ -f "$log" ]; then
+            echo "--- tail: $log ---" >&2
+            tail -n 100 "$log" >&2 || true
+          fi
+        done
+      fi
       exit 1
       ;;
   esac
