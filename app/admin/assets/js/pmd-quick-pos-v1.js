@@ -2197,7 +2197,10 @@
     var amount = $('[data-qpos-payment-amount]');
     if (amount) {
       amount.addEventListener('input', function () {
-        state.payment.amount = amount.value;
+        state.payment.amount = normalizeTouchKeypadValue(amount.value);
+        if (amount.value !== state.payment.amount) {
+          amount.value = state.payment.amount;
+        }
         if (state.payment.method === 'cash') {
           state.payment.cashReceived = roundMoney(
             paymentCharge()
@@ -2216,7 +2219,10 @@
     var cash = $('[data-qpos-cash-received]');
     if (cash) {
       cash.addEventListener('input', function () {
-        state.payment.cashReceived = cash.value;
+        state.payment.cashReceived = normalizeTouchKeypadValue(cash.value);
+        if (cash.value !== state.payment.cashReceived) {
+          cash.value = state.payment.cashReceived;
+        }
         renderPaymentTotals();
       });
       cash.addEventListener('focus', function () {
