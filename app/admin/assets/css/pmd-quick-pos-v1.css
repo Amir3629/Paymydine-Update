@@ -4300,3 +4300,216 @@ body.pmd-qpos-body {
   padding: 8px 11px;
   line-height: 1.25;
 }
+
+
+/* PMD_QPOS_PAYMENT_TOUCH_SCALE_V19
+   The keypad and main method buttons already feel appropriately large.
+   Bring every secondary payment control up to the same touch-first scale so
+   the cashier does not jump between giant and tiny targets. */
+@media (min-width: 821px) and (min-height: 781px) {
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal] .pmd-qpos-payment-main {
+    gap: 12px;
+  }
+
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal] .pmd-qpos-payment-balance {
+    min-height: 96px;
+  }
+
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal] .pmd-qpos-payment-methods button {
+    min-height: 70px;
+    border-radius: 16px;
+    font-size: 17px;
+  }
+
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal] .pmd-qpos-payment-grid .pmd-qpos-field > span {
+    margin-bottom: 7px;
+    font-size: 13px;
+  }
+
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal] .pmd-qpos-payment-grid .pmd-qpos-field input {
+    height: 66px;
+    border-radius: 15px;
+    padding-inline: 16px;
+    font-size: 21px;
+  }
+
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal] .pmd-qpos-cash-presets {
+    gap: 10px;
+  }
+
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal] .pmd-qpos-cash-presets button {
+    min-height: 66px;
+    border-radius: 14px;
+    font-size: 16px;
+  }
+
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal] .pmd-qpos-split-panel {
+    gap: 12px;
+    padding: 15px;
+    border-radius: 18px;
+  }
+
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal] .pmd-qpos-split-panel > header .pmd-qpos-section-label {
+    font-size: 13px;
+  }
+
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal] .pmd-qpos-split-panel > header strong {
+    font-size: 14px;
+  }
+
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal] .pmd-qpos-split-modes {
+    gap: 10px;
+  }
+
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal] .pmd-qpos-split-modes button {
+    min-height: 78px;
+    border-radius: 15px;
+    padding: 9px 10px;
+  }
+
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal] .pmd-qpos-split-modes button b {
+    font-size: 15px;
+  }
+
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal] .pmd-qpos-split-modes button small {
+    font-size: 11px;
+  }
+
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal] .pmd-qpos-split-detail {
+    min-height: 78px;
+    padding: 12px;
+  }
+
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal] .pmd-qpos-split-stepper {
+    grid-template-columns: 56px 66px 56px;
+  }
+
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal] .pmd-qpos-split-stepper button,
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal] .pmd-qpos-split-stepper strong {
+    height: 56px;
+  }
+
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal] .pmd-qpos-split-each {
+    min-height: 56px;
+  }
+
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal] .pmd-qpos-split-each span {
+    font-size: 11px;
+  }
+
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal] .pmd-qpos-split-each strong {
+    font-size: 20px;
+  }
+
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal] .pmd-qpos-split-item {
+    min-height: 64px;
+    grid-template-columns: 34px minmax(0,1fr) auto;
+    padding: 9px 12px;
+    border-radius: 13px;
+  }
+
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal] .pmd-qpos-split-item-check {
+    width: 32px;
+    height: 32px;
+  }
+
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal] .pmd-qpos-split-item b {
+    font-size: 14px;
+  }
+
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal] .pmd-qpos-split-item small {
+    font-size: 10px;
+  }
+
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal] .pmd-qpos-split-item > strong {
+    font-size: 15px;
+  }
+
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal] .pmd-qpos-share-presets button {
+    min-height: 58px;
+    border-radius: 13px;
+    font-size: 14px;
+  }
+
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal] .pmd-qpos-share-custom > span {
+    font-size: 11px;
+  }
+
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal] .pmd-qpos-share-custom input {
+    height: 58px;
+    border-radius: 13px;
+    font-size: 17px;
+  }
+
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal] .pmd-qpos-tip-row {
+    grid-template-columns: auto repeat(4,minmax(72px,auto)) minmax(190px,1fr);
+    gap: 9px;
+  }
+
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal] .pmd-qpos-tip-row > span {
+    margin-right: 7px;
+    font-size: 13px;
+    font-weight: 850;
+  }
+
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal] .pmd-qpos-tip-row button {
+    min-height: 60px;
+    padding-inline: 14px;
+    border-radius: 13px;
+    font-size: 14px;
+    font-weight: 850;
+  }
+
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal] .pmd-qpos-tip-custom {
+    min-width: 0;
+  }
+
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal] .pmd-qpos-tip-custom > span {
+    font-size: 11px;
+  }
+
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal] .pmd-qpos-tip-custom input {
+    height: 60px;
+    border-radius: 13px;
+    padding-inline: 14px;
+    font-size: 18px;
+  }
+
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal] .pmd-qpos-terminal {
+    min-height: 60px;
+    border-radius: 13px;
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal] .pmd-qpos-change {
+    min-height: 56px;
+    border-radius: 13px;
+    font-size: 14px;
+  }
+}
+
+/* Short cashier displays still get proper touch targets without forcing the
+   entire workspace off-screen. */
+@media (min-width: 821px) and (max-height: 780px) {
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal] .pmd-qpos-payment-methods button,
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal] .pmd-qpos-cash-presets button,
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal] .pmd-qpos-tip-row button,
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal] .pmd-qpos-tip-custom input {
+    min-height: 52px;
+    height: 52px;
+    font-size: 13px;
+  }
+
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal] .pmd-qpos-split-modes button {
+    min-height: 58px;
+  }
+
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal] .pmd-qpos-split-modes button b {
+    font-size: 13px;
+  }
+
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal] .pmd-qpos-split-modes button small {
+    font-size: 10px;
+  }
+}
