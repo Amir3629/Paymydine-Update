@@ -67,7 +67,64 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
             'quick_pos_menu'
         );
 
-        $tables = $this->quickPosTables($locationId);
+        // PMD_QPOS_CANONICAL_FLOORS_V1
+        // Reuse the shared floor registry/assignment authority. Legacy
+        // tables.floor_name is deliberately not treated as authoritative.
+        $floorService = app(
+            \Admin\Services\PmdSharedFloorRegistryV1::class
+        );
+
+        try {
+            $floorSnapshot = $floorService->snapshot($locationId);
+        } catch (\Throwable $error) {
+            $floorSnapshot = [
+                'floors' => [[
+                    'id' => $floorService->defaultFloorId(),
+                    'name' => 'Main Floor',
+                    'is_default' => true,
+                    'sort' => 0,
+                ]],
+                'table_assignments' => [],
+            ];
+        }
+
+        $floors = array_values(array_map(
+            static function ($floor): array {
+                return [
+                    'id' => (string)($floor['id'] ?? ''),
+                    'name' => trim((string)($floor['name'] ?? '')) ?: 'Floor',
+                    'is_default' => !empty($floor['is_default']),
+                    'sort' => (int)($floor['sort'] ?? 0),
+                ];
+            },
+            (array)($floorSnapshot['floors'] ?? [])
+        ));
+
+        if (!$floors) {
+            $floors[] = [
+                'id' => $floorService->defaultFloorId(),
+                'name' => 'Main Floor',
+                'is_default' => true,
+                'sort' => 0,
+            ];
+        }
+
+        $defaultFloorId = '';
+        foreach ($floors as $floor) {
+            if (!empty($floor['is_default'])) {
+                $defaultFloorId = (string)$floor['id'];
+                break;
+            }
+        }
+        if ($defaultFloorId === '') {
+            $defaultFloorId = (string)$floors[0]['id'];
+        }
+
+        $tables = $this->quickPosTables(
+            $locationId,
+            $floorSnapshot,
+            $defaultFloorId
+        );
 
         \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
             'quick_pos_tables'
@@ -92,6 +149,8 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 'orders' => true,
                 'payments' => $this->canManagePayments(),
             ],
+            'floors' => $floors,
+            'default_floor_id' => $defaultFloorId,
             'tables' => $tables,
             'categories' => array_values((array)($menu['categories'] ?? [])),
             'menu_items' => array_values((array)($menu['items'] ?? [])),
@@ -830,9 +889,43 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
         }
     }
 
-    protected function quickPosTables(int $locationId): array
-    {
+    protected function quickPosTables(
+        int $locationId,
+        array $floorSnapshot = [],
+        string $defaultFloorId = ''
+    ): array {
         try {
+            $assignments = (array)(
+                $floorSnapshot['table_assignments']
+                ?? []
+            );
+
+            $floorNames = [];
+            foreach ((array)($floorSnapshot['floors'] ?? []) as $floor) {
+                $floorId = trim((string)($floor['id'] ?? ''));
+                if ($floorId === '') {
+                    continue;
+                }
+                $floorNames[$floorId] =
+                    trim((string)($floor['name'] ?? ''))
+                    ?: 'Floor';
+            }
+
+            if ($defaultFloorId === '') {
+                foreach ((array)($floorSnapshot['floors'] ?? []) as $floor) {
+                    if (!empty($floor['is_default'])) {
+                        $defaultFloorId =
+                            trim((string)($floor['id'] ?? ''));
+                        break;
+                    }
+                }
+            }
+
+            if ($defaultFloorId === '') {
+                $defaultFloorId = (string)app(
+                    \Admin\Services\PmdSharedFloorRegistryV1::class
+                )->defaultFloorId();
+            }
             $columns = Schema::getColumnListing('tables');
             if (!$columns) {
                 return [];
@@ -883,7 +976,11 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
             $tables = $query
                 ->limit(250)
                 ->get($select ?: ['*'])
-                ->map(function ($row) {
+                ->map(function ($row) use (
+                    $assignments,
+                    $defaultFloorId,
+                    $floorNames
+                ) {
                     $id = (int)($row->table_id ?? $row->id ?? 0);
                     $number = (string)(
                         $row->table_no
@@ -896,6 +993,15 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                         ?? ''
                     ));
 
+                    $floorId = trim((string)(
+                        $assignments[(string)$id]
+                        ?? $defaultFloorId
+                    ));
+
+                    if ($floorId === '') {
+                        $floorId = $defaultFloorId;
+                    }
+
                     return [
                         'id' => $id,
                         'number' => $number,
@@ -906,6 +1012,11 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                             ?? $row->max_capacity
                             ?? $row->min_capacity
                             ?? 0
+                        ),
+                        'floor_id' => $floorId,
+                        'floor_name' => (string)(
+                            $floorNames[$floorId]
+                            ?? 'Main Floor'
                         ),
                         'status' => $this->quickPosNormalizeTableStatus(
                             (string)($row->operational_status ?? 'available')
