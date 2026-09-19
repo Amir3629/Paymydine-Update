@@ -6,6 +6,8 @@ use Admin\Facades\AdminMenu;
 use Admin\Facades\Template;
 use Admin\Services\PmdCleanWorkspaceSharedV1;
 use Admin\Services\PmdCleanWorkspaceFinanceV1;
+use App\Helpers\TenantHelper;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * Shared controller shell for the new clean PMD workspaces.
@@ -17,6 +19,18 @@ use Admin\Services\PmdCleanWorkspaceFinanceV1;
  */
 abstract class PmdCleanWorkspaceControllerV1 extends AdminController
 {
+    /*
+     * PMD_PERF_R18_REQUEST_LOCAL_FLOOR_IDENTITY
+     *
+     * These values are request-local controller state only. They avoid
+     * repeating authenticated role/location resolution while never crossing
+     * requests, locations or tenants.
+     */
+    private bool $pmdPerfR18FloorRoleResolved = false;
+    private string $pmdPerfR18FloorRole = '';
+    private bool $pmdPerfR18FloorLocationResolved = false;
+    private int $pmdPerfR18FloorLocationId = 0;
+
     abstract protected function pmdWorkspaceKey(): string;
     abstract protected function pmdKpiMode(): string;
     abstract protected function pmdKpiDefaults(): array;
@@ -57,6 +71,63 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
     protected function pmdMenuContext(): array
     {
         return ['dashboard'];
+    }
+
+    /*
+     * PMD_PERF_R18_FINANCE_MICROCACHE
+     *
+     * The Cashier/Accountant KPI readers are read-only and repeat the same
+     * location-scoped aggregates during short browser bursts. Keep only a
+     * one-second tenant/location/locale micro-cache so consecutive renders can
+     * reuse the exact card contract without making finance data meaningfully
+     * stale. Cache failure always falls back to the canonical runtime service.
+     */
+    protected function pmdFinanceKpiCardsR18(
+        PmdCleanWorkspaceFinanceV1 $finance,
+        string $mode,
+        int $locationId,
+        string $locale
+    ): array {
+        $resolver = static function () use (
+            $finance,
+            $mode,
+            $locationId,
+            $locale
+        ): array {
+            return $mode === 'accountant'
+                ? (array)$finance->accountantCards($locationId, $locale)
+                : (array)$finance->cashierCards($locationId, $locale);
+        };
+
+        if (
+            $locationId < 1
+            || !in_array($mode, ['cashier', 'accountant'], true)
+        ) {
+            return $resolver();
+        }
+
+        $cacheKey = TenantHelper::scopedCacheKey(
+            'pmd:perf:r18:finance-kpis:'
+            .sha1(
+                $mode
+                .'|'.$locationId
+                .'|'.strtolower(trim($locale))
+            )
+        );
+
+        try {
+            $cards = Cache::remember(
+                $cacheKey,
+                now()->addSeconds(1),
+                $resolver
+            );
+
+            return is_array($cards)
+                ? $cards
+                : [];
+        } catch (\Throwable $error) {
+            return $resolver();
+        }
     }
 
     /**
@@ -323,19 +394,35 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
      */
     protected function pmdFloorTableManagerRole(): string
     {
+        if ($this->pmdPerfR18FloorRoleResolved) {
+            return $this->pmdPerfR18FloorRole;
+        }
+
+        $this->pmdPerfR18FloorRoleResolved = true;
+        $role = '';
+
         try {
             $user = \Admin\Facades\AdminAuth::getUser();
-            if (!$user) return '';
+            if (!$user) {
+                return $this->pmdPerfR18FloorRole = '';
+            }
 
             if (!empty($user->is_super_user)) {
-                return 'owner';
+                return $this->pmdPerfR18FloorRole = 'owner';
             }
 
             $staffId = (int)($user->staff_id ?? 0);
-            if ($staffId < 1) return '';
+            if ($staffId < 1) {
+                return $this->pmdPerfR18FloorRole = '';
+            }
 
             $row = \Illuminate\Support\Facades\DB::table('staffs as s')
-                ->leftJoin('staff_roles as r', 'r.staff_role_id', '=', 's.staff_role_id')
+                ->leftJoin(
+                    'staff_roles as r',
+                    'r.staff_role_id',
+                    '=',
+                    's.staff_role_id'
+                )
                 ->where('s.staff_id', $staffId)
                 ->select('r.code as role_code', 'r.name as role_name')
                 ->first();
@@ -343,13 +430,16 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
             $code = strtolower(trim((string)($row->role_code ?? '')));
             $name = strtolower(trim((string)($row->role_name ?? '')));
 
-            if ($code === 'owner' || $name === 'owner') return 'owner';
-            if ($code === 'manager' || $name === 'manager') return 'manager';
+            if ($code === 'owner' || $name === 'owner') {
+                $role = 'owner';
+            } elseif ($code === 'manager' || $name === 'manager') {
+                $role = 'manager';
+            }
         } catch (\Throwable $e) {
-            return '';
+            $role = '';
         }
 
-        return '';
+        return $this->pmdPerfR18FloorRole = $role;
     }
 
     protected function pmdCanManageFloorTables(): bool
@@ -370,6 +460,12 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
 
     protected function pmdFloorTableManagerLocationId(): int
     {
+        if ($this->pmdPerfR18FloorLocationResolved) {
+            return $this->pmdPerfR18FloorLocationId;
+        }
+
+        $this->pmdPerfR18FloorLocationResolved = true;
+
         /**
          * PMD_SHARED_FLOOR_ROLE_LOCATION_V1_4_16
          * One location identity for every Shared Floor role surface.
@@ -399,7 +495,7 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
             }
         }
 
-        return $locationId;
+        return $this->pmdPerfR18FloorLocationId = $locationId;
     }
 
     protected function pmdFloorTableManagerLocationIds(\Admin\Models\Tables_model $table): array
@@ -1530,6 +1626,33 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
         );
 
         /*
+         * PMD_PERF_R18_SINGLE_WORKSPACE_LOCATION
+         *
+         * Resolve the active workspace location once and reuse it for Floor
+         * preferences, registry and finance cards. The fallback retains the
+         * prior role-dashboard authority when the shared service has no ID.
+         */
+        try {
+            $pmdWorkspaceLocationId =
+                max(0, (int)$shared->locationId());
+        } catch (\Throwable $error) {
+            $pmdWorkspaceLocationId = 0;
+        }
+
+        $pmdSharedFloorLocationId =
+            $this->pmdUsesFloor()
+                ? $pmdWorkspaceLocationId
+                : 0;
+
+        if (
+            $this->pmdUsesFloor()
+            && $pmdSharedFloorLocationId < 1
+        ) {
+            $pmdSharedFloorLocationId =
+                $this->pmdFloorTableManagerLocationId();
+        }
+
+        /*
          * PMD_CLEAN_WORKSPACE_USER_PAGE_FLOOR_VIEW_V1
          *
          * Same logged-in person may choose a different Floor view on
@@ -1542,7 +1665,7 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
                     app(
                         \Admin\Services\PmdSharedFloorRegistryV1::class
                     )->applyUserPageViewPreference(
-                        (int)$shared->locationId(),
+                        $pmdSharedFloorLocationId,
                         $this->pmdWorkspaceKey(),
                         $floorBootstrap
                     );
@@ -1578,10 +1701,6 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
         \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
             'physical_status'
         );
-
-        $pmdSharedFloorLocationId = $this->pmdUsesFloor()
-            ? $this->pmdFloorTableManagerLocationId()
-            : 0;
 
         $floorRegistrySnapshot = $this->pmdUsesFloor()
             ? $this->pmdSharedFloorRegistrySnapshot($pmdSharedFloorLocationId)
@@ -1646,12 +1765,22 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
             /** @var PmdCleanWorkspaceFinanceV1 $finance */
             $finance = app(PmdCleanWorkspaceFinanceV1::class);
             $kpiOrder = PmdCleanWorkspaceFinanceV1::CASHIER_KPI_ORDER;
-            $kpiCards = $finance->cashierCards($shared->locationId(), $locale);
+            $kpiCards = $this->pmdFinanceKpiCardsR18(
+                $finance,
+                'cashier',
+                $pmdWorkspaceLocationId,
+                $locale
+            );
         } elseif ($mode === 'accountant') {
             /** @var PmdCleanWorkspaceFinanceV1 $finance */
             $finance = app(PmdCleanWorkspaceFinanceV1::class);
             $kpiOrder = PmdCleanWorkspaceFinanceV1::ACCOUNTANT_KPI_ORDER;
-            $kpiCards = $finance->accountantCards($shared->locationId(), $locale);
+            $kpiCards = $this->pmdFinanceKpiCardsR18(
+                $finance,
+                'accountant',
+                $pmdWorkspaceLocationId,
+                $locale
+            );
         } else {
             $kpiOrder = PmdCleanWorkspaceSharedV1::OWNER_KPI_ORDER;
             $kpiCards = $shared->ownerKpiCards($locale);
