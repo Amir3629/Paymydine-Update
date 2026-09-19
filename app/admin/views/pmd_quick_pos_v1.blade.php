@@ -249,7 +249,17 @@
                     <span>Charge</span>
                     <strong data-qpos-payment-charge>€0.00</strong>
                 </div>
-                <button type="button" class="pmd-qpos-modal-primary" data-qpos-payment-submit>Record payment</button>
+                <div class="pmd-qpos-payment-final-actions">
+                    <a
+                        class="pmd-qpos-receipt-link"
+                        data-qpos-payment-receipt
+                        href="#"
+                        target="_blank"
+                        rel="noopener"
+                        hidden
+                    >Print receipt</a>
+                    <button type="button" class="pmd-qpos-modal-primary" data-qpos-payment-submit>Record payment</button>
+                </div>
             </footer>
         </div>
     </div>
