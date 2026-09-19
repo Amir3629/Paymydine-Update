@@ -138,6 +138,8 @@
     historyFrom: '',
     historyTo: '',
     historyData: null,
+    historyDataKey: '',
+    historyRequestSeq: 0,
     historySelectedOrderId: null,
     historyLoading: false,
     textKeyboardTarget: null,
@@ -223,7 +225,10 @@
     }
 
     if (title) title.textContent = String(options.title || 'Confirm action');
-    if (message) message.textContent = String(options.message || '');
+    if (message) {
+      message.textContent = String(options.message || '');
+      message.hidden = !String(options.message || '').trim();
+    }
     if (icon) icon.textContent = String(options.icon || '!');
     accept.textContent = String(options.confirmLabel || 'Confirm');
     cancel.textContent = String(options.cancelLabel || 'Cancel');
@@ -1271,7 +1276,7 @@ function renderOpenChecks() {
       ) &&
       !(await confirmAction({
         title: 'Change table?',
-        message: 'The unsent items in the current cart will be cleared.',
+        message: '',
         confirmLabel: 'Change table',
         cancelLabel: 'Keep cart',
         tone: 'danger'
@@ -1294,7 +1299,7 @@ function renderOpenChecks() {
     if (historyWorkspace && historyWorkspace.classList.contains('is-open')) {
       state.historyScope = 'selected';
       state.historySelectedOrderId = null;
-      await loadHistory('selected');
+      await loadHistory('selected', {preserve: true});
     }
 
     if (window.innerWidth <= 820) {
@@ -1374,7 +1379,7 @@ function renderOpenChecks() {
       state.cart.length &&
       !(await confirmAction({
         title: 'Change floor?',
-        message: 'The unsent items in the current cart will be cleared.',
+        message: '',
         confirmLabel: 'Change floor',
         cancelLabel: 'Keep cart',
         tone: 'danger'
@@ -1410,7 +1415,7 @@ function renderOpenChecks() {
       if (existingHistory && existingHistory.classList.contains('is-open')) {
         state.historyScope = 'selected';
         state.historySelectedOrderId = null;
-        loadHistory('selected');
+        loadHistory('selected', {preserve: true});
       }
       return;
     }
@@ -1419,8 +1424,8 @@ function renderOpenChecks() {
       state.cart.length &&
       !(await confirmAction({
         title: 'Switch to Pickup?',
-        message: 'The unsent table items in the current cart will be cleared.',
-        confirmLabel: 'Switch to Pickup',
+        message: '',
+        confirmLabel: 'Pickup',
         cancelLabel: 'Keep table',
         tone: 'danger'
       }))
@@ -1445,7 +1450,7 @@ function renderOpenChecks() {
     if (historyWorkspace && historyWorkspace.classList.contains('is-open')) {
       state.historyScope = 'selected';
       state.historySelectedOrderId = null;
-      loadHistory('selected');
+      loadHistory('selected', {preserve: true});
     }
   }
 
@@ -1687,9 +1692,9 @@ function renderOpenChecks() {
     if (
       state.cart.length &&
       !(await confirmAction({
-        title: 'Clear unsent cart?',
-        message: 'All unsent items on this check will be removed.',
-        confirmLabel: 'Clear cart',
+        title: 'Clear cart?',
+        message: '',
+        confirmLabel: 'Clear',
         cancelLabel: 'Keep items',
         tone: 'danger'
       }))
@@ -3781,9 +3786,8 @@ function renderOpenChecks() {
     if (reload) loadHistory();
   }
 
-  async function loadHistory(scopeMode) {
-    if (state.historyLoading || !state.settings.history_url) return;
-
+  /* PMD_QPOS_HISTORY_NO_BLINK_V17 */
+  function historyRequestContext(scopeMode) {
     var selection = historySelection();
     var requested = String(scopeMode || state.historyScope || 'selected');
 
@@ -3791,16 +3795,43 @@ function renderOpenChecks() {
       selection = {scope: 'all', tableId: 0};
     }
 
+    return {
+      requested: requested,
+      selection: selection,
+      key: [
+        requested,
+        selection.scope,
+        Number(selection.tableId || 0),
+        state.historyFrom || '',
+        state.historyTo || ''
+      ].join('|')
+    };
+  }
+
+  async function loadHistory(scopeMode, options) {
+    if (!state.settings.history_url) return false;
+
+    options = options || {};
+    var context = historyRequestContext(scopeMode);
+    var selection = context.selection;
+    var requested = context.requested;
+    var requestKey = context.key;
+    var requestSeq = ++state.historyRequestSeq;
+
     state.historyScope = requested;
     state.historyLoading = true;
 
     var list = $('[data-qpos-history-list]');
-    if (list) {
+    var preserveExisting =
+      options.preserve === true ||
+      !!state.historyData;
+
+    if (list && !preserveExisting) {
       list.innerHTML =
-        '<div class="pmd-qpos-history-empty">Loading…</div>';
+        '<div class="pmd-qpos-history-empty">Loading history…</div>';
     }
 
-    $$('[data-qpos-history-scope]').forEach(function (button) {
+    $('[data-qpos-history-scope]').forEach(function (button) {
       button.classList.toggle(
         'is-active',
         String(button.getAttribute('data-qpos-history-scope')) === requested
@@ -3821,35 +3852,63 @@ function renderOpenChecks() {
       var json = await fetchJson(
         url + '?' + params.toString() + '&_=' + Date.now()
       );
+
+      if (requestSeq !== state.historyRequestSeq) {
+        return false;
+      }
+
+      state.historyDataKey = requestKey;
       renderHistory(json);
+      return true;
     } catch (error) {
-      if (list) {
+      if (requestSeq !== state.historyRequestSeq) {
+        return false;
+      }
+
+      if (list && !preserveExisting) {
         list.innerHTML =
           '<div class="pmd-qpos-history-empty is-error">' +
             esc(error.message || 'History could not be loaded.') +
           '</div>';
+        renderHistoryDetail(0);
+      } else {
+        toast(error.message || 'History could not be refreshed.', true);
       }
-      renderHistoryDetail(0);
+      return false;
     } finally {
-      state.historyLoading = false;
+      if (requestSeq === state.historyRequestSeq) {
+        state.historyLoading = false;
+      }
     }
   }
 
-  function openHistory(scopeMode) {
+  async function openHistory(scopeMode) {
     closePayment();
 
     var modal = $('[data-qpos-history-modal]');
     if (!modal) return;
 
-    root.classList.add('is-history-workspace');
-    modal.classList.add('is-open');
-    modal.setAttribute('aria-hidden', 'false');
-
     if (!state.historyFrom && !state.historyTo) {
       setHistoryPreset(state.historyPreset || '7d', false);
     }
 
-    loadHistory(scopeMode || 'selected');
+    var requested = String(scopeMode || 'selected');
+    var context = historyRequestContext(requested);
+    var hasCurrentData =
+      !!state.historyData &&
+      state.historyDataKey === context.key;
+
+    if (!hasCurrentData) {
+      await loadHistory(requested, {preserve: false});
+    }
+
+    root.classList.add('is-history-workspace');
+    modal.classList.add('is-open');
+    modal.setAttribute('aria-hidden', 'false');
+
+    if (hasCurrentData) {
+      loadHistory(requested, {preserve: true});
+    }
   }
 
   /* PMD_QPOS_TEXT_KEYBOARD_V1
@@ -4495,9 +4554,9 @@ function renderOpenChecks() {
       if (
         skip &&
         !(await confirmAction({
-          title: 'Set table free now?',
-          message: 'This table is occupied. Free it directly and skip the cleaning step?',
-          confirmLabel: 'Free table now',
+          title: 'Make table free?',
+          message: '',
+          confirmLabel: 'Make free',
           cancelLabel: 'Keep occupied',
           tone: 'danger'
         }))
