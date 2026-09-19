@@ -4247,3 +4247,56 @@ body.pmd-qpos-body {
 .pmd-qpos-history-list {
   min-height: 0;
 }
+
+
+/* PMD_QPOS_PAYMENT_FIT_V18
+   Keep the full payment workflow visible on normal cashier displays.
+   Long item splits scroll only inside the item picker, never the whole left
+   payment column. */
+@media (min-width: 821px) and (min-height: 781px) {
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal] .pmd-qpos-payment-main {
+    overflow: hidden !important;
+  }
+
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal] .pmd-qpos-split-items-list {
+    max-height: 168px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+  }
+
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal] .pmd-qpos-split-items {
+    min-height: 0;
+  }
+
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal] .pmd-qpos-terminals [data-qpos-terminal-list] {
+    max-height: 150px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+}
+
+@media (min-width: 821px) and (max-height: 780px) {
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal] .pmd-qpos-payment-main {
+    overflow-y: auto !important;
+  }
+
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal] .pmd-qpos-split-items-list {
+    max-height: 132px;
+  }
+}
+
+/* Never let an invalid terminal/cash submit look actionable. */
+.pmd-qpos-payment-final-actions .pmd-qpos-modal-primary:disabled {
+  opacity: .42;
+  filter: grayscale(.15);
+  cursor: not-allowed;
+}
+
+/* Stale payment messages disappear on edits; when a real error is present,
+   keep it compact so it does not push the payment controls below the fold. */
+.pmd-qpos-payment-error {
+  margin-top: 0;
+  padding: 8px 11px;
+  line-height: 1.25;
+}
