@@ -4,6 +4,11 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
+// New Admin controller files are normally discovered by the module loader.
+// Require the Quick POS controller explicitly so a stale generated class map
+// can never block the first deployment before runtime caches are rebuilt.
+require_once base_path('app/admin/controllers/PmdQuickPosV1.php');
+
 // PMD_QUICK_POS_V1
 // Dedicated cashier/waiter POS shell. The existing Waiter POS endpoints below
 // remain the canonical order/payment/table authorities used by this surface.
