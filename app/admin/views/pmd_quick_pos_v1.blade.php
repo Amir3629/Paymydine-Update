@@ -12,7 +12,11 @@
 <body class="pmd-qpos-body">
 @php
     $pmdInitialFloors = array_values((array)($initialBootstrap['floors'] ?? []));
-    $pmdInitialFloorId = (string)($initialBootstrap['default_floor_id'] ?? '');
+    $pmdInitialFloorId = (string)(
+        $initialBootstrap['active_floor_id']
+        ?? $initialBootstrap['default_floor_id']
+        ?? ''
+    );
     if ($pmdInitialFloorId === '' && !empty($pmdInitialFloors)) {
         $pmdInitialFloorId = (string)($pmdInitialFloors[0]['id'] ?? '');
     }
