@@ -3831,7 +3831,7 @@ function renderOpenChecks() {
         '<div class="pmd-qpos-history-empty">Loading history…</div>';
     }
 
-    $('[data-qpos-history-scope]').forEach(function (button) {
+    $$('[data-qpos-history-scope]').forEach(function (button) {
       button.classList.toggle(
         'is-active',
         String(button.getAttribute('data-qpos-history-scope')) === requested
