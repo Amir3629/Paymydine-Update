@@ -4265,7 +4265,7 @@ function renderOpenChecks() {
       tipAmount.addEventListener('click', openCustomTip);
     }
 
-    $('[data-qpos-split-mode]').forEach(function (button) {
+    $$('[data-qpos-split-mode]').forEach(function (button) {
       button.onclick = function () {
         applySplitMode(button.getAttribute('data-qpos-split-mode'));
       };
@@ -4280,7 +4280,7 @@ function renderOpenChecks() {
       adjustSplitPeople(1);
     };
 
-    $('[data-qpos-share-preset]').forEach(function (button) {
+    $$('[data-qpos-share-preset]').forEach(function (button) {
       button.onclick = function () {
         applySharePercent(button.getAttribute('data-qpos-share-preset'));
       };
