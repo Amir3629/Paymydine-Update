@@ -17,6 +17,7 @@ FILES=(
   "app/admin/assets/js/pmd-site-access-hub-v13.js"
   "app/admin/classes/AdminController.php"
   "app/admin/controllers/PmdQuickPosV1.php"
+  "app/admin/controllers/concerns/PmdWaiterPosSaveEndpoint.php"
   "app/admin/views/pmd_quick_pos_v1.blade.php"
   "app/main/widgets/MediaManager.php"
   "routes/admin-quick-mode.php"
@@ -27,6 +28,7 @@ PHP_FILES=(
   "app/admin/Services/PmdRoleLandingService.php"
   "app/admin/classes/AdminController.php"
   "app/admin/controllers/PmdQuickPosV1.php"
+  "app/admin/controllers/concerns/PmdWaiterPosSaveEndpoint.php"
   "app/main/widgets/MediaManager.php"
   "routes/admin-quick-mode.php"
 )
@@ -151,6 +153,7 @@ grep -q "self::WAITER => 'pos/waiter'"   "$STAGE/app/admin/Services/PmdDefaultSt
 grep -q "'pmd-cashier' => 'pos'"   "$STAGE/app/admin/Services/PmdRoleLandingService.php"
 grep -q "'pmd-waiter' => 'pos/waiter'"   "$STAGE/app/admin/Services/PmdRoleLandingService.php"
 grep -q "PMD_QUICK_POS_TEAM_SIGNIN_POSITION_V1"   "$STAGE/app/admin/assets/js/pmd-site-access-hub-v13.js"
+grep -q "PMD_QUICK_POS_FORCE_NEW_CHECK_V1"   "$STAGE/app/admin/controllers/concerns/PmdWaiterPosSaveEndpoint.php"
 
 # The new surface must continue to reuse the proven production authorities.
 for canonical in   "app/admin/controllers/PmdWaiterPosV1.php"   "app/admin/controllers/concerns/PmdWaiterPosSaveEndpoint.php"   "app/admin/controllers/concerns/PmdWaiterPosSettleEndpoint.php"   "app/admin/controllers/PmdWaiterTableStateV154.php"; do
