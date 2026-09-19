@@ -255,6 +255,11 @@ grep -Fq "\$\$('[data-qpos-keypad-key]', keypad).forEach" "$STAGE/app/admin/asse
 grep -Fq "\$\$('[data-qpos-split]', wrap).forEach" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
 grep -Fq "\$\$('[data-qpos-history-scope]').forEach" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
 grep -Fq "\$\$('[data-qpos-text-key]').forEach" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
+grep -Fq "return \$\$(" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
+if grep -Eq '(^|[^$])\$\([^;]*\)\.forEach\(' "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"; then
+  echo "ERROR: single-element \$() selector is incorrectly used with .forEach() in Quick POS" >&2
+  exit 1
+fi
 grep -q "touchKeypadTarget: 'cash'" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
 grep -q "background: #064e3b" "$STAGE/app/admin/assets/css/pmd-quick-pos-v1.css"
 grep -q "background: #0f766e" "$STAGE/app/admin/assets/css/pmd-quick-pos-v1.css"
