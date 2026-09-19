@@ -1773,11 +1773,250 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
              * table into Busy. The selected table payload still exposes its
              * open checks separately in the right-hand check panel.
              */
-            return $tables;
+            return $this->quickPosDecorateTableSignals(
+                $tables,
+                $locationId
+            );
         } catch (\Throwable $error) {
             report($error);
             return [];
         }
+    }
+
+    /**
+     * PMD_QPOS_TABLE_SIGNALS_V15
+     *
+     * Tiny cashier-facing signals only. Physical status remains authoritative;
+     * payment/note/call signals never change Free/Busy/Clean/Reserved.
+     */
+    protected function quickPosDecorateTableSignals(
+        array $tables,
+        int $locationId
+    ): array {
+        if (!$tables) {
+            return [];
+        }
+
+        $indexByKey = [];
+        $signals = [];
+
+        foreach ($tables as $index => $table) {
+            $id = (int)($table['id'] ?? 0);
+            if ($id < 1) {
+                continue;
+            }
+
+            $signals[$id] = [
+                'payment_state' => 'none',
+                'due_amount' => 0.0,
+                'waiter_calls' => 0,
+                'note_count' => 0,
+            ];
+
+            $number = strtolower(trim((string)($table['number'] ?? '')));
+            $name = strtolower(trim((string)($table['name'] ?? '')));
+
+            foreach (array_unique(array_filter([
+                (string)$id,
+                $number,
+                $name,
+                $number !== '' ? 'table '.$number : '',
+            ])) as $key) {
+                if (!isset($indexByKey[$key])) {
+                    $indexByKey[$key] = $id;
+                }
+            }
+        }
+
+        try {
+            if (Schema::hasTable('orders')) {
+                $cols = Schema::getColumnListing('orders');
+                $primaryKey = in_array('order_id', $cols, true)
+                    ? 'order_id'
+                    : (in_array('id', $cols, true) ? 'id' : null);
+
+                if ($primaryKey && in_array('order_type', $cols, true)) {
+                    $select = array_values(array_intersect([
+                        $primaryKey,
+                        'order_type',
+                        'order_total',
+                        'total',
+                        'settled_amount',
+                        'settlement_status',
+                        'payment_status',
+                        'comment',
+                        'created_at',
+                        'updated_at',
+                        'location_id',
+                    ], $cols));
+
+                    $query = DB::table('orders');
+
+                    if (
+                        $locationId > 0
+                        && in_array('location_id', $cols, true)
+                    ) {
+                        $query->where('location_id', $locationId);
+                    }
+
+                    if (in_array('created_at', $cols, true)) {
+                        $query->where(
+                            'created_at',
+                            '>=',
+                            now()->subHours(36)->format('Y-m-d H:i:s')
+                        );
+                    }
+
+                    $rows = $query
+                        ->orderByDesc($primaryKey)
+                        ->limit(600)
+                        ->get($select ?: ['*']);
+
+                    $seen = [];
+
+                    foreach ($rows as $row) {
+                        $raw = (array)$row;
+                        $ref = strtolower(trim((string)($raw['order_type'] ?? '')));
+                        if ($ref === '') {
+                            continue;
+                        }
+
+                        $tableId = (int)($indexByKey[$ref] ?? 0);
+                        if ($tableId < 1 || isset($seen[$tableId])) {
+                            continue;
+                        }
+                        $seen[$tableId] = true;
+
+                        $tableRow = null;
+                        foreach ($tables as $candidate) {
+                            if ((int)($candidate['id'] ?? 0) === $tableId) {
+                                $tableRow = $candidate;
+                                break;
+                            }
+                        }
+
+                        $physical = strtolower(trim((string)(
+                            $tableRow['status'] ?? 'available'
+                        )));
+
+                        // Avoid stale financial badges on a physically free table.
+                        if ($physical === 'available') {
+                            continue;
+                        }
+
+                        $total = (float)(
+                            $raw['order_total']
+                            ?? $raw['total']
+                            ?? 0
+                        );
+                        $settled = max(0, (float)(
+                            $raw['settled_amount']
+                            ?? 0
+                        ));
+                        $remaining = max(0, $total - $settled);
+                        $settlement = strtolower(trim((string)(
+                            $raw['settlement_status']
+                            ?? $raw['payment_status']
+                            ?? ''
+                        )));
+
+                        if (
+                            $settlement === 'paid'
+                            || $settlement === 'settled'
+                            || $settlement === 'closed'
+                            || ($total > 0 && $remaining <= 0.005)
+                        ) {
+                            $signals[$tableId]['payment_state'] = 'paid';
+                        } elseif ($settled > 0.005) {
+                            $signals[$tableId]['payment_state'] = 'partial';
+                            $signals[$tableId]['due_amount'] = $remaining;
+                        } elseif ($total > 0.005) {
+                            $signals[$tableId]['payment_state'] = 'due';
+                            $signals[$tableId]['due_amount'] = $remaining;
+                        }
+
+                        $note = $this->quickPosVisibleNote(
+                            (string)($raw['comment'] ?? '')
+                        );
+                        if ($note !== '') {
+                            $signals[$tableId]['note_count']++;
+                        }
+                    }
+                }
+            }
+        } catch (\Throwable $error) {
+            report($error);
+        }
+
+        try {
+            if (Schema::hasTable('notifications')) {
+                $cols = Schema::getColumnListing('notifications');
+                $tableIds = array_values(array_filter(array_map(
+                    'intval',
+                    array_column($tables, 'id')
+                )));
+
+                if (
+                    $tableIds
+                    && in_array('table_id', $cols, true)
+                    && in_array('type', $cols, true)
+                ) {
+                    $query = DB::table('notifications')
+                        ->whereIn('table_id', $tableIds)
+                        ->whereIn('type', ['waiter_call', 'table_note']);
+
+                    if (in_array('status', $cols, true)) {
+                        $query->where(function ($q) {
+                            $q->whereNull('status')
+                                ->orWhere('status', '!=', 'resolved');
+                        });
+                    }
+
+                    if (in_array('created_at', $cols, true)) {
+                        $query->where(
+                            'created_at',
+                            '>=',
+                            now()->subDays(2)->format('Y-m-d H:i:s')
+                        );
+                    }
+
+                    foreach ($query->limit(300)->get() as $row) {
+                        $raw = (array)$row;
+                        $tableId = (int)($raw['table_id'] ?? 0);
+                        if (!isset($signals[$tableId])) {
+                            continue;
+                        }
+
+                        $type = strtolower(trim((string)($raw['type'] ?? '')));
+                        if ($type === 'waiter_call') {
+                            $signals[$tableId]['waiter_calls']++;
+                        } elseif ($type === 'table_note') {
+                            $signals[$tableId]['note_count']++;
+                        }
+                    }
+                }
+            }
+        } catch (\Throwable $error) {
+            report($error);
+        }
+
+        foreach ($tables as &$table) {
+            $id = (int)($table['id'] ?? 0);
+            $signal = $signals[$id] ?? [
+                'payment_state' => 'none',
+                'due_amount' => 0.0,
+                'waiter_calls' => 0,
+                'note_count' => 0,
+            ];
+
+            $table['payment_state'] = (string)$signal['payment_state'];
+            $table['due_amount'] = (float)$signal['due_amount'];
+            $table['waiter_calls'] = (int)$signal['waiter_calls'];
+            $table['note_count'] = (int)$signal['note_count'];
+        }
+        unset($table);
+
+        return $tables;
     }
 
     protected function quickPosNormalizeTableStatus(string $status): string
