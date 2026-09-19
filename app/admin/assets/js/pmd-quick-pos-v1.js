@@ -132,6 +132,7 @@
       loading: false,
       submitting: false,
       summary: null,
+      authoritative: false,
       method: 'cash',
       amount: '',
       cashReceived: '',
@@ -280,7 +281,6 @@
     } finally {
       state.loading = false;
       root.classList.remove('is-loading');
-      root.classList.remove('is-booting');
     }
   }
 
@@ -589,7 +589,6 @@
           '<b>' + esc(qty) + '×</b>' +
           '<span>' + esc(item.name || item.menu_name || 'Item') +
             (visibleNote(item.comment) ? '<small>' + esc(visibleNote(item.comment)) + '</small>' : '') +
-            (item.__pending ? '<small class="pmd-qpos-syncing">Sending…</small>' : '') +
           '</span>' +
           '<strong>' + money(subtotal) + '</strong>' +
         '</div>'
@@ -745,12 +744,12 @@
 
     if (hold) {
       hold.disabled = !canSave;
-      hold.textContent = state.submitting ? 'Saving…' : 'Hold';
+      hold.textContent = 'Hold';
     }
 
     if (send) {
       send.disabled = !canSave;
-      send.textContent = state.submitting ? 'Sending…' : 'Send';
+      send.textContent = 'Send';
     }
 
     if (pay) {
@@ -1015,8 +1014,23 @@
       payload.location_id = state.boot ? state.boot.location_id : null;
     }
 
-    // Touch-first acknowledgement: the cart moves immediately into a
-    // "Sending…" state. If the server rejects the write, it is restored.
+    // PMD_QPOS_BLITZ_ACTION_V1
+    // The operator gets the next screen immediately. Network persistence runs
+    // behind the already-updated UI and rolls back only on an actual failure.
+    if (afterSuccess === 'pay') {
+      var previewBase = order ? orderTotal(order) : 0;
+      var previewSettled = order ? num(order.settled_amount, 0) : 0;
+      var previewAdded = snapshot.cart.reduce(function (sum, row) {
+        return sum + lineTotal(row);
+      }, 0);
+
+      showPaymentPreview(
+        roundMoney(previewBase + previewAdded),
+        previewSettled,
+        snapshot.expectedUpdatedAt || ''
+      );
+    }
+
     state.submitting = true;
     state.pendingSend = snapshot;
     state.cart = [];
@@ -1027,7 +1041,6 @@
     }
 
     renderCart();
-    toast(mode === 'send' ? 'Sending…' : 'Saving…');
 
     try {
       var json = await fetchJson(url, {
@@ -1046,9 +1059,20 @@
         detail: json
       }));
 
-      if (afterSuccess === 'pay') {
+      if (afterSuccess === 'pay' && state.payment.open) {
+        if (json.payment_quick && json.payment_quick.settlement) {
+          state.payment.summary = json.payment_quick;
+          state.payment.authoritative = true;
+          state.payment.amount = roundMoney(
+            num(json.payment_quick.settlement.remaining_amount, 0)
+          ).toFixed(2);
+          state.payment.cashReceived = state.payment.amount;
+          renderPayment();
+        }
+
+        // Hydrate terminal providers / full payment metadata in background.
         setTimeout(function () {
-          openPayment();
+          if (state.payment.open) loadPaymentSummary(true);
         }, 0);
       }
 
@@ -1067,6 +1091,10 @@
       }
     } catch (error) {
       state.pendingSend = null;
+
+      if (afterSuccess === 'pay' && state.payment.open) {
+        closePayment();
+      }
 
       // Never lose unsent work. Merge the rejected snapshot back in front of
       // anything the operator tapped while the request was in flight.
@@ -1298,6 +1326,43 @@
     };
   }
 
+  function paymentPreviewSummary(total, settled, updatedAt) {
+    total = Math.max(0, roundMoney(total));
+    settled = Math.max(0, Math.min(total, roundMoney(settled)));
+
+    return {
+      ok: true,
+      preview: true,
+      order: {
+        order_id: Number(state.activeOrderId || 0),
+        updated_at: String(updatedAt || '')
+      },
+      settlement: {
+        order_total: total,
+        settled_amount: settled,
+        remaining_amount: Math.max(0, roundMoney(total - settled))
+      },
+      terminal_providers: []
+    };
+  }
+
+  function showPaymentPreview(total, settled, updatedAt) {
+    resetPayment();
+    state.payment.summary = paymentPreviewSummary(total, settled, updatedAt);
+    state.payment.amount = roundMoney(
+      state.payment.summary.settlement.remaining_amount
+    ).toFixed(2);
+    state.payment.cashReceived = state.payment.amount;
+
+    var modal = $('[data-qpos-payment-modal]');
+    if (modal) {
+      modal.classList.add('is-open');
+      modal.setAttribute('aria-hidden', 'false');
+    }
+
+    renderPayment();
+  }
+
   function paymentRemaining() {
     return num(
       state.payment.summary &&
@@ -1325,21 +1390,20 @@
 
   async function openPayment() {
     if (state.cart.length) {
-      toast('Send or hold new items before payment.', true);
+      toast('Send first.', true);
       return;
     }
     if (!state.activeOrderId) {
-      toast('Create or select an order first.', true);
+      toast('Select a check.', true);
       return;
     }
 
-    resetPayment();
-
-    var modal = $('[data-qpos-payment-modal]');
-    if (modal) {
-      modal.classList.add('is-open');
-      modal.setAttribute('aria-hidden', 'false');
-    }
+    var order = activeOrder();
+    showPaymentPreview(
+      order ? orderTotal(order) : 0,
+      order ? num(order.settled_amount, 0) : 0,
+      order && order.updated_at ? order.updated_at : ''
+    );
 
     await loadPaymentSummary(false);
   }
@@ -1368,6 +1432,7 @@
       );
       var json = await fetchJson(url + '?_=' + Date.now());
       state.payment.summary = json;
+      state.payment.authoritative = true;
       state.payment.amount = roundMoney(
         num(json.settlement && json.settlement.remaining_amount, 0)
       ).toFixed(2);
@@ -1795,6 +1860,7 @@
 
     var valid =
       !!state.payment.summary &&
+      state.payment.authoritative === true &&
       paymentAmount() > 0 &&
       !state.payment.submitting;
 
@@ -1845,7 +1911,11 @@
     var reference = $('[data-qpos-payment-reference]');
     var externalConfirm = $('[data-qpos-external-confirm]');
 
-    if (title) title.textContent = 'Order #' + String(state.activeOrderId || '');
+    if (title) {
+      title.textContent = state.activeOrderId
+        ? 'Order #' + String(state.activeOrderId)
+        : 'Payment';
+    }
 
     if (summary) {
       if (remaining) remaining.textContent = money(paymentRemaining());
@@ -1905,7 +1975,11 @@
   }
 
   async function executePayment() {
-    if (!state.payment.summary || state.payment.submitting) return;
+    if (
+      !state.payment.summary ||
+      state.payment.authoritative !== true ||
+      state.payment.submitting
+    ) return;
 
     if (state.payment.method === 'direct_terminal') {
       return executeTerminalPayment();
