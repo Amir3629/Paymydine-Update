@@ -1958,7 +1958,7 @@
       );
     }).join('');
 
-    $('[data-cash-value]', box).forEach(function (button) {
+    $$('[data-cash-value]', box).forEach(function (button) {
       button.onclick = function () {
         state.payment.cashReceived = roundMoney(
           num(button.getAttribute('data-cash-value'), paymentCharge())
