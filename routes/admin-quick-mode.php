@@ -4,6 +4,26 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
+// PMD_QUICK_POS_V1
+// Dedicated cashier/waiter POS shell. The existing Waiter POS endpoints below
+// remain the canonical order/payment/table authorities used by this surface.
+Route::middleware(['web'])->group(function () {
+    Route::get(
+        '/admin/pos/bootstrap/{mode?}',
+        [\Admin\Controllers\PmdQuickPosV1::class, 'bootstrap']
+    )->where('mode', 'cashier|waiter');
+
+    Route::post(
+        '/admin/pos/save-off-premise',
+        [\Admin\Controllers\PmdQuickPosV1::class, 'saveOffPremise']
+    );
+
+    Route::get(
+        '/admin/pos/{mode?}',
+        [\Admin\Controllers\PmdQuickPosV1::class, 'index']
+    )->where('mode', 'cashier|waiter');
+});
+
 // PMD Waiter POS V2 — standalone fallback, lazy dashboard overlay and payment center.
 Route::middleware(['web'])->group(function () {
     // PMD_WAITER_DASHBOARD_NEW_V1_ROUTES_START
