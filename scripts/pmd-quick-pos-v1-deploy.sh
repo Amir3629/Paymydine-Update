@@ -206,6 +206,11 @@ if grep -Fq 'data-qpos-hold' "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
   exit 1
 fi
 grep -q "data-qpos-touch-keypad" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
+if grep -Fq 'data-qpos-touch-keypad hidden' "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"; then
+  echo "ERROR: payment keypad is hidden in initial Quick POS markup" >&2
+  exit 1
+fi
+grep -q "data-qpos-cash-signature" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
 grep -q "pmd-quick-pos-v1.js?v=20260919-11" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
 grep -q "pmd-quick-pos-v1.css?v=20260919-11" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
 grep -Fq "\$\$('[data-cash-value]', box).forEach" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
