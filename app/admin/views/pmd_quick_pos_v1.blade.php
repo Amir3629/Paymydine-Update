@@ -99,6 +99,7 @@
                     <span class="pmd-qpos-section-label">Current check</span>
                     <strong data-qpos-check-title>New order</strong>
                 </div>
+                <button type="button" class="pmd-qpos-cart-close" data-qpos-cart-close aria-label="Close cart">×</button>
                 <div class="pmd-qpos-guests">
                     <button type="button" data-qpos-guests-minus>−</button>
                     <span><b data-qpos-guests>1</b><small>guests</small></span>
