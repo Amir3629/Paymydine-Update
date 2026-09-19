@@ -1469,6 +1469,52 @@
     });
   }
 
+  function cashPresetValues() {
+    var charge = paymentCharge();
+    var values = [charge];
+    [5, 10, 20, 50, 100, 200].forEach(function (step) {
+      var candidate = Math.ceil(charge / step) * step;
+      if (candidate + 0.001 >= charge && values.indexOf(candidate) === -1) {
+        values.push(candidate);
+      }
+    });
+    return values.slice(0, 4);
+  }
+
+  function renderCashPresets() {
+    var box = $('[data-qpos-cash-presets]');
+    if (!box) return;
+
+    box.hidden = state.payment.method !== 'cash';
+    if (box.hidden) {
+      box.innerHTML = '';
+      return;
+    }
+
+    var current = roundMoney(num(state.payment.cashReceived, 0));
+    var values = cashPresetValues();
+
+    box.innerHTML = values.map(function (value, index) {
+      var active = Math.abs(current - value) < 0.001;
+      return (
+        '<button type="button" data-cash-value="' + esc(value) + '"' +
+          (active ? ' class="is-active"' : '') + '>' +
+          (index === 0 ? 'Exact ' : '') + money(value) +
+        '</button>'
+      );
+    }).join('');
+
+    $('[data-cash-value]', box).forEach(function (button) {
+      button.onclick = function () {
+        state.payment.cashReceived = roundMoney(
+          num(button.getAttribute('data-cash-value'), paymentCharge())
+        ).toFixed(2);
+        renderPaymentTotals();
+        renderCashPresets();
+      };
+    });
+  }
+
   function renderPaymentTotals() {
     var amountEl = $('[data-qpos-payment-amount]');
     var cashEl = $('[data-qpos-cash-received]');
@@ -1506,6 +1552,8 @@
       changeBox.hidden = !(state.payment.method === 'cash' && change > 0);
     }
     if (changeEl) changeEl.textContent = money(change);
+
+    renderCashPresets();
 
     var valid =
       !!state.payment.summary &&
