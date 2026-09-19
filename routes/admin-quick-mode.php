@@ -34,6 +34,16 @@ Route::middleware(['web'])->group(function () {
     )->where('table', '[0-9]+');
 
     Route::get(
+        '/admin/pos/payment-summary/{order}',
+        [\Admin\Controllers\PmdQuickPosV1::class, 'paymentSummary']
+    )->where('order', '[0-9]+');
+
+    Route::post(
+        '/admin/pos/payment-settle/{order}',
+        [\Admin\Controllers\PmdQuickPosV1::class, 'settlePayment']
+    )->where('order', '[0-9]+');
+
+    Route::get(
         '/admin/pos/{mode?}',
         [\Admin\Controllers\PmdQuickPosV1::class, 'index']
     )->where('mode', 'cashier|waiter');
