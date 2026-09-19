@@ -1952,7 +1952,10 @@
       state.payment.amount = roundMoney(
         num(json.settlement && json.settlement.remaining_amount, 0)
       ).toFixed(2);
-      state.payment.cashReceived = state.payment.amount;
+      state.payment.cashReceived =
+        state.payment.method === 'cash'
+          ? state.payment.amount
+          : '';
 
       if (
         !silent &&
@@ -2429,6 +2432,8 @@
   function renderPaymentTotals() {
     var amountEl = $('[data-qpos-payment-amount]');
     var cashEl = $('[data-qpos-cash-received]');
+    var tipEl = $('[data-qpos-tip-amount]');
+    var cashField = $('[data-qpos-cash-field]');
     var chargeEl = $('[data-qpos-payment-charge]');
     var changeBox = $('[data-qpos-change]');
     var changeEl = $('[data-qpos-change-amount]');
@@ -2447,8 +2452,31 @@
       amountEl.disabled = state.payment.method === 'direct_terminal';
     }
 
-    if (cashEl && document.activeElement !== cashEl) {
-      cashEl.value = state.payment.cashReceived;
+    if (cashField) {
+      cashField.hidden = state.payment.method !== 'cash';
+    }
+
+    if (cashEl) {
+      cashEl.disabled = state.payment.method !== 'cash';
+      if (state.payment.method !== 'cash') {
+        cashEl.value = '';
+      } else if (document.activeElement !== cashEl) {
+        cashEl.value = state.payment.cashReceived;
+      }
+    }
+
+    if (tipEl) {
+      tipEl.disabled = state.payment.method === 'direct_terminal';
+      if (document.activeElement !== tipEl) {
+        tipEl.value =
+          state.payment.tipMode === 'custom'
+            ? state.payment.tipAmount
+            : '';
+      }
+      tipEl.classList.toggle(
+        'is-custom-active',
+        state.payment.tipMode === 'custom'
+      );
     }
 
     var charge = paymentCharge();
@@ -2465,6 +2493,7 @@
     if (changeEl) changeEl.textContent = money(change);
 
     renderCashPresets();
+    renderSplitControls();
     renderTouchKeypad();
 
     var valid =
@@ -2548,10 +2577,12 @@
 
     renderTerminals();
 
-    $$('[data-tip]').forEach(function (button) {
+    $('[data-tip]').forEach(function (button) {
       button.classList.toggle(
         'is-active',
-        Number(button.getAttribute('data-tip')) === Number(state.payment.tipPercent)
+        state.payment.tipMode !== 'custom' &&
+        Number(button.getAttribute('data-tip')) ===
+          Number(state.payment.tipPercent)
       );
       button.disabled = state.payment.method === 'direct_terminal';
     });
@@ -2624,7 +2655,14 @@
           selected_items: null,
           tip_amount: paymentTip(),
           coupon_code: null,
-          payer_label: '',
+          payer_label:
+            state.payment.splitMode === 'equal' && state.payment.splitParts > 1
+              ? ('Equal split 1/' + state.payment.splitParts)
+              : (
+                  state.payment.splitMode === 'custom'
+                    ? 'Custom split'
+                    : ''
+                ),
           payment_reference: state.payment.reference,
           cash_received: state.payment.method === 'cash'
             ? num(state.payment.cashReceived, paymentCharge())
@@ -2644,9 +2682,26 @@
       state.payment.reference = '';
       state.payment.externalConfirmed = false;
       state.payment.amount = roundMoney(
-        num(state.payment.summary.settlement && state.payment.summary.settlement.remaining_amount, 0)
+        num(
+          state.payment.summary.settlement &&
+          state.payment.summary.settlement.remaining_amount,
+          0
+        )
       ).toFixed(2);
-      state.payment.cashReceived = state.payment.amount;
+      state.payment.tipMode = 'percent';
+      state.payment.tipPercent = 0;
+      state.payment.tipAmount = '';
+      state.payment.splitMode = 'full';
+      state.payment.splitParts = 1;
+      state.payment.cashReceived =
+        state.payment.method === 'cash'
+          ? state.payment.amount
+          : '';
+      state.payment.touchKeypadTarget =
+        state.payment.method === 'cash'
+          ? 'cash'
+          : 'amount';
+      state.payment.touchKeypadFresh = true;
 
       toast(json.message || 'Payment recorded');
 
