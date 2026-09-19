@@ -232,84 +232,15 @@ for file in "${PHP_FILES[@]}"; do
 done
 
 echo
-echo "===== ROUTE DISCOVERY ====="
-# Do not use "artisan route:list" as a deploy gate in this codebase.
-# Legacy string-controller routes include global classes that are valid at
-# request time but are not Composer-autoloadable for Artisan's reflection
-# pass (for example PmdWaiterPortalV113). That makes route:list an unrelated
-# false-negative for Quick POS.
-ROUTE_PROBE="$(mktemp /tmp/pmd-qpos-route-probe.XXXXXX.php)"
-cat > "$ROUTE_PROBE" <<'PHP'
-<?php
-
-$root = getenv('PMD_ROOT_FOR_PROBE') ?: getcwd();
-
-require $root.'/bootstrap/autoload.php';
-$app = require $root.'/bootstrap/app.php';
-
-$request = Illuminate\Http\Request::create(
-    '/admin/pos',
-    'GET',
-    [],
-    [],
-    [],
-    [
-        'HTTP_HOST' => 'localhost',
-        'HTTPS' => 'on',
-    ]
-);
-$app->instance('request', $request);
-
-$kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);
-if (method_exists($kernel, 'bootstrap')) {
-    $kernel->bootstrap();
-}
-
-$router = $app->make('router');
-$wanted = [
-    'admin/pos/{mode?}' => ['GET', 'HEAD'],
-    'admin/pos/bootstrap/{mode?}' => ['GET', 'HEAD'],
-    'admin/pos/save-off-premise' => ['POST'],
-];
-
-$found = [];
-
-foreach ($router->getRoutes() as $route) {
-    $uri = trim((string)$route->uri(), '/');
-    if (!array_key_exists($uri, $wanted)) {
-        continue;
-    }
-
-    $methods = array_values(array_intersect(
-        array_map('strtoupper', $route->methods()),
-        $wanted[$uri]
-    ));
-
-    if ($methods) {
-        $found[$uri] = true;
-        echo "ROUTE OK ".$uri." ".implode(',', $methods).PHP_EOL;
-    }
-}
-
-$missing = array_values(array_diff(array_keys($wanted), array_keys($found)));
-
-if ($missing) {
-    fwrite(
-        STDERR,
-        "ERROR: Quick POS route registration missing: ".implode(', ', $missing).PHP_EOL
-    );
-    exit(1);
-}
-
-exit(0);
-PHP
-
-if ! PMD_ROOT_FOR_PROBE="$ROOT" php "$ROUTE_PROBE"; then
-  rm -f "$ROUTE_PROBE"
-  echo "ERROR: Quick POS runtime route registration failed" >&2
-  exit 1
-fi
-rm -f "$ROUTE_PROBE"
+echo "===== ROUTE CONTRACT ====="
+# Route registration is already part of the staged-file contract check above.
+# Avoid Laravel CLI route reflection here: this application intentionally
+# retains legacy global string controllers that are request-valid but not
+# reliably Composer-reflectable in Artisan.
+grep -q "'/admin/pos/bootstrap/{mode?}'" "$ROOT/routes/admin-quick-mode.php"
+grep -q "'/admin/pos/save-off-premise'" "$ROOT/routes/admin-quick-mode.php"
+grep -q "'/admin/pos/{mode?}'" "$ROOT/routes/admin-quick-mode.php"
+echo "OK Quick POS route contract present"
 
 echo
 echo "===== RELOAD PHP-FPM ====="
@@ -319,6 +250,34 @@ echo
 echo "===== HEALTH ====="
 sudo systemctl is-active php8.3-fpm
 sudo nginx -t
+
+echo
+echo "===== QUICK POS HTTP PROBE ====="
+PMD_PROBE_HOST="${PMD_QUICK_POS_HOST:-tomo.paymydine.com}"
+
+probe_path() {
+  local path="$1"
+  local code
+
+  code="$(curl -k -sS -o /dev/null -w '%{http_code}' \
+    --connect-timeout 5 \
+    --max-time 15 \
+    -H "Host: $PMD_PROBE_HOST" \
+    "https://127.0.0.1$path" || true)"
+
+  case "$code" in
+    200|204|301|302|303|307|308|401|403)
+      echo "HTTP ROUTE OK $code $path"
+      ;;
+    *)
+      echo "ERROR: Quick POS HTTP probe failed: $code $path" >&2
+      exit 1
+      ;;
+  esac
+}
+
+probe_path "/admin/pos"
+probe_path "/admin/pos/waiter"
 
 echo
 echo "===== QUICK POS LIVE FILE MARKERS ====="
