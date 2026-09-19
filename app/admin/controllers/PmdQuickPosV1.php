@@ -696,7 +696,7 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
 
                     if (!$order) {
                         throw ValidationException::withMessages([
-                            'order' => 'The selected takeaway order no longer exists.',
+                            'order' => 'The selected Pickup order no longer exists.',
                         ]);
                     }
 
@@ -705,13 +705,13 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                         !== Orders_model::COLLECTION
                     ) {
                         throw ValidationException::withMessages([
-                            'order' => 'This order is not a takeaway order.',
+                            'order' => 'This order is not a Pickup order.',
                         ]);
                     }
 
                     if (!$this->orderIsOpen($order)) {
                         throw ValidationException::withMessages([
-                            'order' => 'This takeaway order can no longer accept item changes because payment has started or the order was cancelled.',
+                            'order' => 'This Pickup order can no longer accept item changes because payment has started or the order was cancelled.',
                         ]);
                     }
 
@@ -722,7 +722,7 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                         && (string)$order->updated_at !== $expectedUpdatedAt
                     ) {
                         throw ValidationException::withMessages([
-                            'order' => 'This takeaway order was changed by another user. Refresh before sending new items.',
+                            'order' => 'This Pickup order was changed by another user. Refresh before sending new items.',
                         ]);
                     }
                 }
@@ -735,7 +735,7 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                     $order->order_type = Orders_model::COLLECTION;
 
                     if (Schema::hasColumn('orders', 'first_name')) {
-                        $order->first_name = 'Takeaway';
+                        $order->first_name = 'Pickup';
                     }
                     if (Schema::hasColumn('orders', 'last_name')) {
                         $order->last_name = 'Guest';
@@ -855,8 +855,8 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                     'total_items' => (int)($order->total_items ?? 0),
                     'updated_at' => (string)($order->updated_at ?? ''),
                     'message' => $mode === 'send'
-                        ? 'Takeaway order sent to the kitchen.'
-                        : 'Takeaway order saved.',
+                        ? 'Pickup sent'
+                        : 'Pickup saved',
                     'urls' => $this->orderUrls((int)$order->getKey()),
                 ];
             });
@@ -875,7 +875,7 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 'ok' => false,
                 'version' => 'pmd-quick-pos-v1',
                 'message' => collect($error->errors())->flatten()->first()
-                    ?: 'The takeaway order could not be saved.',
+                    ?: 'The Pickup order could not be saved.',
                 'errors' => $error->errors(),
             ], 422);
         } catch (\Throwable $error) {
@@ -884,7 +884,7 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
             return response()->json([
                 'ok' => false,
                 'version' => 'pmd-quick-pos-v1',
-                'message' => 'The takeaway order could not be saved. '.$error->getMessage(),
+                'message' => 'The Pickup order could not be saved. '.$error->getMessage(),
             ], 500);
         }
     }
