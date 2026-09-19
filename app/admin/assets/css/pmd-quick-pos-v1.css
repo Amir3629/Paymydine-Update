@@ -2260,6 +2260,8 @@ body.pmd-qpos-body {
 .pmd-qpos-field[hidden],
 .pmd-qpos-terminals[hidden],
 .pmd-qpos-cash-presets[hidden],
+.pmd-qpos-split-row[hidden],
+.pmd-qpos-tip-row[hidden],
 .pmd-qpos-change[hidden],
 .pmd-qpos-payment-error[hidden] {
   display: none !important;
