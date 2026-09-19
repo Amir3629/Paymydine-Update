@@ -998,7 +998,15 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
     {
         $scope = strtolower(trim((string)request()->query('scope', 'selected')));
         $tableId = max(0, (int)request()->query('table_id', 0));
-        $limit = max(20, min(160, (int)request()->query('limit', 100)));
+        $limit = max(20, min(500, (int)request()->query('limit', 160)));
+        $fromRaw = trim((string)request()->query('from', ''));
+        $toRaw = trim((string)request()->query('to', ''));
+        $fromDate = preg_match('/^\\d{4}-\\d{2}-\\d{2}$/', $fromRaw)
+            ? $fromRaw
+            : '';
+        $toDate = preg_match('/^\\d{4}-\\d{2}-\\d{2}$/', $toRaw)
+            ? $toRaw
+            : '';
         $locationId = $this->quickPosLocationId();
         $entries = [];
         $orderIds = [];
@@ -1050,9 +1058,18 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
             ? 'created_at'
             : $primaryKey;
 
+        if ($orderSort !== $primaryKey) {
+            if ($fromDate !== '') {
+                $query->where($orderSort, '>=', $fromDate.' 00:00:00');
+            }
+            if ($toDate !== '') {
+                $query->where($orderSort, '<=', $toDate.' 23:59:59');
+            }
+        }
+
         $orders = $query
             ->orderByDesc($orderSort)
-            ->limit(min(80, $limit))
+            ->limit(min(220, $limit))
             ->get();
 
         $orderIds = $orders
@@ -1149,12 +1166,22 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 $parts[] = 'Note: '.$comment;
             }
 
+            $invoicePrefix = trim((string)($raw['invoice_prefix'] ?? ''));
+            $invoiceNumber = $invoicePrefix !== ''
+                ? $invoicePrefix.$orderId
+                : '';
+
             $entries[] = [
                 'kind' => 'order',
                 'time' => (string)($raw['updated_at'] ?? $raw['created_at'] ?? ''),
                 'title' => 'Order #'.$orderId,
                 'detail' => implode(' · ', $parts),
                 'order_id' => $orderId,
+                'total' => $total,
+                'status' => $statusName,
+                'settlement_status' => $settlement,
+                'invoice_number' => $invoiceNumber,
+                'invoice_url' => '/admin/orders/invoice/'.$orderId,
             ];
 
             foreach ($itemRows as $item) {
@@ -1246,12 +1273,27 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                     if ($paymentNote !== '') {
                         $parts[] = 'Note: '.$paymentNote;
                     }
+                    $transactionId = (int)(
+                        $raw['id']
+                        ?? $raw['transaction_id']
+                        ?? 0
+                    );
+
                     $entries[] = [
                         'kind' => 'payment',
                         'time' => (string)($raw['paid_at'] ?? $raw['created_at'] ?? ''),
                         'title' => 'Payment · Order #'.(int)($raw['order_id'] ?? 0),
                         'detail' => implode(' · ', $parts),
                         'order_id' => (int)($raw['order_id'] ?? 0),
+                        'payment_method' => (string)($raw['payment_method'] ?? ''),
+                        'amount' => (float)($raw['amount'] ?? 0),
+                        'transaction_id' => $transactionId ?: null,
+                        'receipt_url' => $transactionId > 0
+                            ? '/admin/orders/split-receipt/'.$transactionId
+                            : null,
+                        'invoice_url' => $transactionId > 0
+                            ? '/admin/orders/split-invoice/'.$transactionId
+                            : null,
                     ];
                 }
             }
@@ -1358,6 +1400,94 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
             }
         }
 
+        /* PMD_QPOS_HISTORY_NOTIFICATIONS_V15
+         * Waiter calls and table notes are first-class history events. */
+        if ($scope !== 'pickup' && Schema::hasTable('notifications')) {
+            $cols = Schema::getColumnListing('notifications');
+            if (
+                in_array('table_id', $cols, true)
+                && in_array('type', $cols, true)
+            ) {
+                $notificationQuery = DB::table('notifications')
+                    ->whereIn('type', ['waiter_call', 'table_note']);
+
+                if ($scope === 'table' && $tableId > 0) {
+                    $notificationQuery->where('table_id', $tableId);
+                } elseif ($scope === 'all') {
+                    $locationTableIds = array_values(array_filter(array_map(
+                        'intval',
+                        array_column($this->quickPosTables($locationId), 'id')
+                    )));
+                    if ($locationTableIds) {
+                        $notificationQuery->whereIn('table_id', $locationTableIds);
+                    } else {
+                        $notificationQuery->whereRaw('1 = 0');
+                    }
+                }
+
+                if (in_array('created_at', $cols, true)) {
+                    if ($fromDate !== '') {
+                        $notificationQuery->where(
+                            'created_at',
+                            '>=',
+                            $fromDate.' 00:00:00'
+                        );
+                    }
+                    if ($toDate !== '') {
+                        $notificationQuery->where(
+                            'created_at',
+                            '<=',
+                            $toDate.' 23:59:59'
+                        );
+                    }
+                }
+
+                $rows = $notificationQuery
+                    ->orderByDesc(
+                        in_array('created_at', $cols, true)
+                            ? 'created_at'
+                            : (
+                                in_array('notification_id', $cols, true)
+                                    ? 'notification_id'
+                                    : 'table_id'
+                            )
+                    )
+                    ->limit(min(160, $limit))
+                    ->get();
+
+                foreach ($rows as $row) {
+                    $raw = (array)$row;
+                    $type = strtolower(trim((string)($raw['type'] ?? '')));
+                    $title = trim((string)($raw['title'] ?? ''));
+                    $message = trim((string)($raw['message'] ?? ''));
+                    $notificationTableId = (int)($raw['table_id'] ?? 0);
+
+                    $entries[] = [
+                        'kind' => $type === 'waiter_call'
+                            ? 'waiter_call'
+                            : 'table_note',
+                        'time' => (string)(
+                            $raw['created_at']
+                            ?? $raw['updated_at']
+                            ?? ''
+                        ),
+                        'title' => $title !== ''
+                            ? $title
+                            : (
+                                $type === 'waiter_call'
+                                    ? 'Waiter call · Table '.$notificationTableId
+                                    : 'Table note · Table '.$notificationTableId
+                            ),
+                        'detail' => $message,
+                        'order_id' => null,
+                        'table_id' => $notificationTableId,
+                        'status' => (string)($raw['status'] ?? ''),
+                        'priority' => (string)($raw['priority'] ?? ''),
+                    ];
+                }
+            }
+        }
+
         $tableStatusTable = null;
         foreach (['pmd_table_status_history', 'ti_pmd_table_status_history'] as $candidate) {
             if (Schema::hasTable($candidate)) {
@@ -1423,6 +1553,26 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
             }
         }
 
+        $fromTs = $fromDate !== ''
+            ? (strtotime($fromDate.' 00:00:00') ?: 0)
+            : 0;
+        $toTs = $toDate !== ''
+            ? (strtotime($toDate.' 23:59:59') ?: PHP_INT_MAX)
+            : PHP_INT_MAX;
+
+        if ($fromTs > 0 || $toTs < PHP_INT_MAX) {
+            $entries = array_values(array_filter(
+                $entries,
+                static function (array $entry) use ($fromTs, $toTs): bool {
+                    $time = strtotime((string)($entry['time'] ?? '')) ?: 0;
+                    if ($time <= 0) {
+                        return false;
+                    }
+                    return $time >= $fromTs && $time <= $toTs;
+                }
+            ));
+        }
+
         usort($entries, function (array $a, array $b): int {
             return (strtotime((string)($b['time'] ?? '')) ?: 0)
                 <=> (strtotime((string)($a['time'] ?? '')) ?: 0);
@@ -1430,9 +1580,11 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
 
         return response()->json([
             'ok' => true,
-            'version' => 'pmd-qpos-history-v1',
+            'version' => 'pmd-qpos-history-v15',
             'scope' => $scope,
             'scope_label' => $scopeLabel,
+            'from' => $fromDate,
+            'to' => $toDate,
             'entries' => array_slice($entries, 0, $limit),
         ]);
     }
