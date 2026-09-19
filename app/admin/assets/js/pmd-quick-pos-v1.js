@@ -1752,7 +1752,11 @@
       method: 'cash',
       amount: '',
       cashReceived: '',
+      tipMode: 'percent',
       tipPercent: 0,
+      tipAmount: '',
+      splitMode: 'full',
+      splitParts: 1,
       reference: '',
       externalConfirmed: false,
       terminal: null,
@@ -1819,12 +1823,85 @@
     return Math.max(0, Math.min(remaining, roundMoney(amount)));
   }
 
+  /* PMD_QPOS_SPLIT_TIP_V1 */
   function paymentTip() {
-    return roundMoney(paymentAmount() * Math.max(0, num(state.payment.tipPercent, 0)) / 100);
+    if (state.payment.tipMode === 'custom') {
+      return roundMoney(Math.max(0, num(state.payment.tipAmount, 0)));
+    }
+
+    return roundMoney(
+      paymentAmount() *
+      Math.max(0, num(state.payment.tipPercent, 0)) /
+      100
+    );
   }
 
   function paymentCharge() {
     return roundMoney(paymentAmount() + paymentTip());
+  }
+
+  function applySplitSelection(value) {
+    if (!state.payment.open || state.payment.method === 'direct_terminal') {
+      return;
+    }
+
+    value = String(value || '1');
+    var remaining = paymentRemaining();
+
+    if (value === 'custom') {
+      state.payment.splitMode = 'custom';
+      state.payment.splitParts = 0;
+      state.payment.touchKeypadTarget = 'amount';
+      state.payment.touchKeypadFresh = true;
+      renderPayment();
+      return;
+    }
+
+    var parts = Math.max(1, Math.min(20, Number(value) || 1));
+    state.payment.splitParts = parts;
+    state.payment.splitMode = parts > 1 ? 'equal' : 'full';
+    state.payment.amount = (
+      parts > 1
+        ? roundMoney(remaining / parts)
+        : roundMoney(remaining)
+    ).toFixed(2);
+
+    if (state.payment.method === 'cash') {
+      state.payment.cashReceived = paymentCharge().toFixed(2);
+      state.payment.touchKeypadTarget = 'cash';
+    } else {
+      state.payment.touchKeypadTarget = 'amount';
+    }
+
+    state.payment.touchKeypadFresh = true;
+    renderPayment();
+  }
+
+  function renderSplitControls() {
+    var wrap = $('[data-qpos-split-row]');
+    if (!wrap) return;
+
+    var terminal = state.payment.method === 'direct_terminal';
+    var active = state.payment.splitMode || 'full';
+    var parts = Math.max(1, Number(state.payment.splitParts || 1));
+
+    $('[data-qpos-split]', wrap).forEach(function (button) {
+      var value = String(button.getAttribute('data-qpos-split') || '');
+      var isActive =
+        value === 'custom'
+          ? active === 'custom'
+          : (
+              active === 'full'
+                ? value === '1'
+                : (
+                    active === 'equal' &&
+                    Number(value) === parts
+                  )
+            );
+
+      button.classList.toggle('is-active', isActive);
+      button.disabled = terminal;
+    });
   }
 
   async function openPayment() {
@@ -1962,10 +2039,22 @@
 
           if (state.payment.method === 'direct_terminal') {
             state.payment.amount = roundMoney(paymentRemaining()).toFixed(2);
+            state.payment.cashReceived = '';
+            state.payment.tipMode = 'percent';
             state.payment.tipPercent = 0;
+            state.payment.tipAmount = '';
+            state.payment.splitMode = 'full';
+            state.payment.splitParts = 1;
             state.payment.touchKeypadTarget = 'amount';
             state.payment.touchKeypadFresh = true;
           } else {
+            state.payment.amount = roundMoney(paymentRemaining()).toFixed(2);
+            state.payment.tipMode = 'percent';
+            state.payment.tipPercent = 0;
+            state.payment.tipAmount = '';
+            state.payment.splitMode = 'full';
+            state.payment.splitParts = 1;
+            state.payment.cashReceived = paymentCharge().toFixed(2);
             state.payment.touchKeypadTarget = 'cash';
             state.payment.touchKeypadFresh = true;
           }
@@ -2075,10 +2164,26 @@
    * keyboard behavior.
    */
   function touchKeypadRawValue(target) {
+    if (target === 'cash') {
+      return String(
+        state.payment.cashReceived == null
+          ? ''
+          : state.payment.cashReceived
+      );
+    }
+
+    if (target === 'tip') {
+      return String(
+        state.payment.tipAmount == null
+          ? ''
+          : state.payment.tipAmount
+      );
+    }
+
     return String(
-      target === 'cash'
-        ? (state.payment.cashReceived == null ? '' : state.payment.cashReceived)
-        : (state.payment.amount == null ? '' : state.payment.amount)
+      state.payment.amount == null
+        ? ''
+        : state.payment.amount
     );
   }
 
@@ -2100,6 +2205,7 @@
     var exact = $('[data-qpos-keypad-exact]');
     var amountEl = $('[data-qpos-payment-amount]');
     var cashEl = $('[data-qpos-cash-received]');
+    var tipEl = $('[data-qpos-tip-amount]');
 
     if (!keypad) return;
 
@@ -2109,13 +2215,20 @@
     }
 
     var target = state.payment.touchKeypadTarget;
-    if (target !== 'amount' && target !== 'cash') {
+    if (
+      target !== 'amount' &&
+      target !== 'cash' &&
+      target !== 'tip'
+    ) {
       target = state.payment.method === 'cash' ? 'cash' : 'amount';
       state.payment.touchKeypadTarget = target;
       state.payment.touchKeypadFresh = true;
     }
 
-    if (state.payment.method !== 'cash' && target === 'cash') {
+    if (
+      state.payment.method !== 'cash' &&
+      (target === 'cash' || target === 'tip')
+    ) {
       target = 'amount';
       state.payment.touchKeypadTarget = target;
       state.payment.touchKeypadFresh = true;
@@ -2128,6 +2241,9 @@
     }
     if (cashEl) {
       cashEl.classList.toggle('is-keypad-target', target === 'cash');
+    }
+    if (tipEl) {
+      tipEl.classList.toggle('is-keypad-target', target === 'tip');
     }
 
     keypad.hidden = false;
@@ -2143,7 +2259,7 @@
         : (
             target === 'cash'
               ? 'Cash'
-              : 'Pay'
+              : (target === 'tip' ? 'Tip' : 'Pay')
           );
     }
 
@@ -2152,7 +2268,10 @@
     }
 
     if (exact) {
-      exact.textContent = target === 'cash' ? 'Exact' : 'Full';
+      exact.textContent =
+        target === 'cash'
+          ? 'Exact'
+          : (target === 'tip' ? 'No tip' : 'Full');
     }
   }
 
@@ -2161,7 +2280,8 @@
 
     if (
       target !== 'amount' &&
-      target !== 'cash'
+      target !== 'cash' &&
+      target !== 'tip'
     ) {
       return;
     }
@@ -2174,7 +2294,7 @@
     }
 
     if (
-      target === 'cash' &&
+      (target === 'cash' || target === 'tip') &&
       state.payment.method !== 'cash'
     ) {
       return;
@@ -2209,13 +2329,21 @@
 
     if (target === 'cash') {
       state.payment.cashReceived = raw;
-    } else {
-      state.payment.amount = raw;
+    } else if (target === 'tip') {
+      state.payment.tipMode = 'custom';
+      state.payment.tipPercent = 0;
+      state.payment.tipAmount = raw;
 
       if (state.payment.method === 'cash') {
-        state.payment.cashReceived = roundMoney(
-          paymentCharge()
-        ).toFixed(2);
+        state.payment.cashReceived = paymentCharge().toFixed(2);
+      }
+    } else {
+      state.payment.amount = raw;
+      state.payment.splitMode = 'custom';
+      state.payment.splitParts = 0;
+
+      if (state.payment.method === 'cash') {
+        state.payment.cashReceived = paymentCharge().toFixed(2);
       }
     }
 
@@ -2224,7 +2352,11 @@
 
   function applyTouchKeypadKey(key) {
     var target = state.payment.touchKeypadTarget;
-    if (target !== 'amount' && target !== 'cash') return;
+    if (
+      target !== 'amount' &&
+      target !== 'cash' &&
+      target !== 'tip'
+    ) return;
 
     key = String(key || '');
     var raw = touchKeypadRawValue(target);
@@ -2264,7 +2396,7 @@
       raw = (
         target === 'cash'
           ? paymentCharge()
-          : paymentRemaining()
+          : (target === 'tip' ? 0 : paymentRemaining())
       ).toFixed(2);
       state.payment.touchKeypadFresh = true;
       setTouchKeypadValue(target, raw);
