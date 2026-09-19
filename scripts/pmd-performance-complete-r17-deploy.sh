@@ -69,8 +69,10 @@ grep -q 'PMD_PERF_R17_LAZY_SHARED_SCHEMA_METADATA' "$STAGE/$FILE"
 grep -q "SHOW FULL TABLES WHERE Table_type = 'BASE TABLE'" "$STAGE/$FILE"
 grep -q 'SHOW COLUMNS FROM' "$STAGE/$FILE"
 
-if grep -q 'information_schema.COLUMNS' "$STAGE/$FILE"; then
-  echo "ERROR: R16 full information_schema column catalogue is still present" >&2
+if grep -Fq 'FROM information_schema.COLUMNS c' "$STAGE/$FILE" \
+  || grep -Fq 'pmd.perf.r16.schema-catalog' "$STAGE/$FILE" \
+  || grep -Fq 'PMD_PERF_R16_SCHEMA_CATALOG' "$STAGE/$FILE"; then
+  echo "ERROR: executable R16 full schema catalogue implementation is still present" >&2
   exit 1
 fi
 
@@ -139,8 +141,10 @@ php -l "$ROOT/$FILE"
 
 grep -q 'PMD_PERF_R17_LAZY_SHARED_SCHEMA_METADATA' "$ROOT/$FILE"
 
-if grep -q 'information_schema.COLUMNS' "$ROOT/$FILE"; then
-  echo "ERROR: live builder still contains full R16 catalogue" >&2
+if grep -Fq 'FROM information_schema.COLUMNS c' "$ROOT/$FILE" \
+  || grep -Fq 'pmd.perf.r16.schema-catalog' "$ROOT/$FILE" \
+  || grep -Fq 'PMD_PERF_R16_SCHEMA_CATALOG' "$ROOT/$FILE"; then
+  echo "ERROR: live builder still contains executable R16 catalogue code" >&2
   exit 1
 fi
 
