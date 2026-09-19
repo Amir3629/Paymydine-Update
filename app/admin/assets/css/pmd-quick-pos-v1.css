@@ -4134,3 +4134,116 @@ body.pmd-qpos-body {
     min-height: 56px;
   }
 }
+
+
+/* PMD_QPOS_PAYMENT_LAYOUT_FIX_V17
+   Reset the legacy named-grid placement that was breaking the V16 two-column
+   payment workspace. The left payment stack is intentionally flex-based so
+   legacy grid-area declarations cannot scatter controls around the screen. */
+@media (min-width: 821px) {
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal] .pmd-qpos-payment-body {
+    grid-template-areas: none !important;
+    grid-template-columns: minmax(520px,1.08fr) minmax(430px,.92fr) !important;
+    grid-template-rows: minmax(0,1fr) !important;
+    grid-auto-flow: row !important;
+    grid-auto-rows: auto !important;
+    align-content: stretch !important;
+    align-items: stretch !important;
+  }
+
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal] .pmd-qpos-payment-main {
+    display: flex !important;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 11px;
+    min-width: 0;
+    min-height: 0;
+    overflow: auto;
+    padding: 0 5px 16px 0;
+  }
+
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal] .pmd-qpos-payment-main > * {
+    grid-area: auto !important;
+    flex: 0 0 auto;
+    min-width: 0;
+    width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal] .pmd-qpos-payment-keypad-column {
+    grid-area: auto !important;
+    min-width: 0;
+    min-height: 0;
+    align-self: stretch;
+  }
+
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal] .pmd-qpos-payment-balance {
+    min-height: 86px;
+  }
+
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal] .pmd-qpos-payment-methods button {
+    min-height: 62px;
+  }
+
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal] .pmd-qpos-payment-grid .pmd-qpos-field input {
+    height: 58px;
+  }
+
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal] .pmd-qpos-cash-presets button {
+    min-height: 50px;
+  }
+
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal] .pmd-qpos-split-panel {
+    width: 100%;
+  }
+
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal] .pmd-qpos-tip-row {
+    width: 100%;
+    margin: 0;
+  }
+}
+
+/* PMD_QPOS_CONFIRM_COMPACT_V17
+   One question, two actions. No explanatory paragraph or decorative chrome. */
+.pmd-qpos-confirm-card {
+  width: min(390px,calc(100vw - 28px));
+  display: block;
+  padding: 16px;
+  border-radius: 16px;
+}
+.pmd-qpos-confirm-icon,
+.pmd-qpos-confirm-copy .pmd-qpos-section-label {
+  display: none !important;
+}
+.pmd-qpos-confirm-copy h2 {
+  margin: 0;
+  text-align: center;
+  font-size: 19px;
+  line-height: 1.2;
+}
+.pmd-qpos-confirm-copy p,
+.pmd-qpos-confirm-copy p[hidden] {
+  display: none !important;
+}
+.pmd-qpos-confirm-card > footer {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 14px 0 0;
+}
+.pmd-qpos-confirm-card > footer button {
+  min-height: 52px;
+  border-radius: 12px;
+  font-size: 13px;
+}
+
+/* PMD_QPOS_HISTORY_NO_BLINK_V17 */
+.pmd-qpos-history-list,
+.pmd-qpos-history-detail {
+  contain: layout paint;
+}
+.pmd-qpos-history-list {
+  min-height: 0;
+}
