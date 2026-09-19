@@ -1852,7 +1852,7 @@
         );
       }).join('');
 
-      $('[data-payment-method]', box).forEach(function (button) {
+      $$('[data-payment-method]', box).forEach(function (button) {
         button.onclick = function () {
           if (button.disabled) return;
 
@@ -2034,7 +2034,7 @@
     keypad.hidden = false;
     keypad.classList.toggle('is-locked', locked);
 
-    $('[data-qpos-keypad-key]', keypad).forEach(function (button) {
+    $$('[data-qpos-keypad-key]', keypad).forEach(function (button) {
       button.disabled = locked;
     });
 
