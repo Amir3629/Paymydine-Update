@@ -21,6 +21,10 @@ trait PmdWaiterPosSaveEndpoint
         }
 
         $payload = $this->requestPayload();
+        $quickPos = filter_var(
+            $payload['quick_pos'] ?? false,
+            FILTER_VALIDATE_BOOLEAN
+        );
         $mode = strtolower(trim((string)($payload['mode'] ?? 'send')));
         if (!in_array($mode, ['hold', 'send'], true)) {
             $mode = 'send';
@@ -141,23 +145,57 @@ trait PmdWaiterPosSaveEndpoint
 
                 $order->refresh();
 
+                $orderTotal = (float)($order->order_total ?? 0);
+                $settledAmount = max(
+                    0,
+                    (float)($order->settled_amount ?? 0)
+                );
+                $remainingAmount = max(
+                    0,
+                    round($orderTotal - $settledAmount, 4)
+                );
+
                 return [
                     'ok' => true,
                     'version' => 'pmd-waiter-pos-v2.6',
                     'mode' => $mode,
                     'created' => $isNew,
                     'order_id' => (int)$order->getKey(),
-                    'order_total' => (float)($order->order_total ?? 0),
+                    'order_total' => $orderTotal,
                     'total_items' => (int)($order->total_items ?? 0),
                     'updated_at' => (string)($order->updated_at ?? ''),
+                    'settlement_status' => (string)($order->settlement_status ?? 'unpaid'),
+                    'settled_amount' => $settledAmount,
+                    'remaining_amount' => $remainingAmount,
+                    // PMD_QUICK_POS_PAYMENT_HANDOFF_V1
+                    // Enough authority for immediate Cash UI after Send & Pay.
+                    // Full terminal/provider metadata still hydrates in background.
+                    'payment_quick' => [
+                        'ok' => true,
+                        'preview' => false,
+                        'order' => [
+                            'order_id' => (int)$order->getKey(),
+                            'updated_at' => (string)($order->updated_at ?? ''),
+                        ],
+                        'settlement' => [
+                            'order_total' => $orderTotal,
+                            'settled_amount' => $settledAmount,
+                            'remaining_amount' => $remainingAmount,
+                        ],
+                        'terminal_providers' => [],
+                    ],
                     'message' => $mode === 'send'
-                        ? 'Order sent to the kitchen.'
-                        : 'Order saved without sending to the kitchen.',
+                        ? 'Sent'
+                        : 'Saved',
                     'urls' => $this->orderUrls((int)$order->getKey()),
                 ];
             });
 
-            if (($result['mode'] ?? '') === 'send' && !empty($result['order_id'])) {
+            if (
+                !$quickPos
+                && ($result['mode'] ?? '') === 'send'
+                && !empty($result['order_id'])
+            ) {
                 $result['eta'] = $this->pmdKitchenEtaAfterSendV1(
                     (int)$result['order_id'],
                     $cart,
