@@ -651,7 +651,10 @@
         Number(state.selectedTable.id) === Number(table.id);
 
       var signals = [];
-      var paymentState = String(table.payment_state || 'none');
+      var paymentState =
+        String(table.status || 'available') === 'available'
+          ? 'none'
+          : String(table.payment_state || 'none');
 
       if (paymentState === 'paid') {
         signals.push(
@@ -706,6 +709,31 @@
         selectTable(Number(button.getAttribute('data-qpos-table')));
       };
     });
+  }
+
+  function setSelectedTablePaymentSignal(paymentState, dueAmount) {
+    if (
+      state.serviceMode !== 'dine_in' ||
+      !state.selectedTable
+    ) {
+      return;
+    }
+
+    var tableId = Number(state.selectedTable.id || 0);
+    if (!tableId) return;
+
+    state.selectedTable.payment_state = String(paymentState || 'none');
+    state.selectedTable.due_amount = Math.max(0, num(dueAmount, 0));
+
+    state.tables = state.tables.map(function (table) {
+      if (Number(table.id || 0) !== tableId) return table;
+      return Object.assign({}, table, {
+        payment_state: state.selectedTable.payment_state,
+        due_amount: state.selectedTable.due_amount
+      });
+    });
+
+    renderTables();
   }
 
   function renderCategories() {
@@ -2883,8 +2911,30 @@ function renderOpenChecks() {
 
       toast(json.message || 'Payment recorded');
 
+      var remainingAfterPayment = num(
+        state.payment.summary &&
+        state.payment.summary.settlement &&
+        state.payment.summary.settlement.remaining_amount,
+        0
+      );
+      var settledAfterPayment = num(
+        state.payment.summary &&
+        state.payment.summary.settlement &&
+        state.payment.summary.settlement.settled_amount,
+        0
+      );
+
       var settlementPaid =
-        String(json.settlement_status || '').toLowerCase() === 'paid';
+        String(json.settlement_status || '').toLowerCase() === 'paid' ||
+        remainingAfterPayment <= 0.005;
+
+      setSelectedTablePaymentSignal(
+        settlementPaid
+          ? 'paid'
+          : (settledAfterPayment > 0.005 ? 'partial' : 'due'),
+        remainingAfterPayment
+      );
+
       var paidTableId =
         state.serviceMode === 'dine_in' && state.selectedTable
           ? Number(state.selectedTable.id)
@@ -2989,6 +3039,7 @@ function renderOpenChecks() {
 
       if (status === 'paid') {
         await loadPaymentSummary(true);
+        setSelectedTablePaymentSignal('paid', 0);
         var terminalPaidTableId =
           state.serviceMode === 'dine_in' && state.selectedTable
             ? Number(state.selectedTable.id)
