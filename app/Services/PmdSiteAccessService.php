@@ -99,7 +99,27 @@ class PmdSiteAccessService
 
         if ($locationId < 1 && $staff) {
             try {
-                $location = $staff->locations()->orderBy('location_id')->first();
+                /*
+                 * PMD_PERF_R20_REUSE_EAGER_STAFF_LOCATIONS
+                 *
+                 * AdminAuth already eager-loads staff.locations. Prefer that
+                 * in-memory collection instead of issuing another relation
+                 * query while resolving Site Access identity. Fall back to the
+                 * relation query only for callers that did not eager-load it.
+                 */
+                if (
+                    method_exists($staff, 'relationLoaded')
+                    && $staff->relationLoaded('locations')
+                ) {
+                    $location = $staff->locations
+                        ->sortBy('location_id')
+                        ->first();
+                } else {
+                    $location = $staff->locations()
+                        ->orderBy('location_id')
+                        ->first();
+                }
+
                 $locationId = (int)($location->location_id ?? 0);
             } catch (\Throwable $error) {
             }
