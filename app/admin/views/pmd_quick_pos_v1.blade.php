@@ -78,15 +78,36 @@
                         @php
                             $pmdStatus = (string)($table['status'] ?? 'available');
                             $pmdCapacity = (int)($table['capacity'] ?? 0);
+                            $pmdPaymentState = (string)($table['payment_state'] ?? 'none');
+                            $pmdWaiterCalls = (int)($table['waiter_calls'] ?? 0);
+                            $pmdNoteCount = (int)($table['note_count'] ?? 0);
                         @endphp
                         <button
                             type="button"
                             class="pmd-qpos-table"
                             data-qpos-table="{{ $table['id'] ?? 0 }}"
                             data-status="{{ $pmdStatus }}"
+                            data-payment-state="{{ $pmdPaymentState }}"
                         >
                             <strong>{{ $table['number'] ?? ($table['id'] ?? '') }}</strong>
                             <small>{{ $pmdStatusLabels[$pmdStatus] ?? 'Free' }}@if($pmdCapacity > 0) · {{ $pmdCapacity }}s @endif</small>
+                            @if($pmdPaymentState !== 'none' || $pmdWaiterCalls > 0 || $pmdNoteCount > 0)
+                                <span class="pmd-qpos-table-signals">
+                                    @if($pmdPaymentState === 'paid')
+                                        <span class="is-paid" title="Paid" aria-label="Paid">✓</span>
+                                    @elseif($pmdPaymentState === 'partial')
+                                        <span class="is-due" title="Partly paid" aria-label="Partly paid">½</span>
+                                    @elseif($pmdPaymentState === 'due')
+                                        <span class="is-due" title="Payment due" aria-label="Payment due">€</span>
+                                    @endif
+                                    @if($pmdWaiterCalls > 0)
+                                        <span class="is-call" title="Waiter call" aria-label="Waiter call">!</span>
+                                    @endif
+                                    @if($pmdNoteCount > 0)
+                                        <span class="is-note" title="New note" aria-label="New note">N</span>
+                                    @endif
+                                </span>
+                            @endif
                         </button>
                     @endforeach
                 </div>
