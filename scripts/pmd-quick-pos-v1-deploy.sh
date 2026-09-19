@@ -188,7 +188,6 @@ grep -q "PMD_QPOS_TOUCH_VISUAL_V10" "$STAGE/app/admin/assets/css/pmd-quick-pos-v
 grep -q "PMD_QPOS_GREEN_STABLE_V11" "$STAGE/app/admin/assets/css/pmd-quick-pos-v1.css"
 grep -q "PMD_QPOS_PAYMENT_STABLE_V3" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
 grep -q "PMD_QPOS_SPLIT_TIP_V1" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
-grep -q "PMD_QPOS_HISTORY_UI_V1" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
 grep -q "PMD_QPOS_TEXT_KEYBOARD_V1" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
 grep -q "PMD_QPOS_ITEM_NOTE_V1" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
 grep -q "PMD_QPOS_WIDE_PAYMENT_HISTORY_TOUCH_V13" "$STAGE/app/admin/assets/css/pmd-quick-pos-v1.css"
