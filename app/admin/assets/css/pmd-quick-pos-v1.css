@@ -867,7 +867,7 @@ button {
 
 .pmd-qpos-payment-methods {
   display: grid;
-  grid-template-columns: repeat(2,minmax(0,1fr));
+  grid-template-columns: repeat(auto-fit,minmax(180px,1fr));
   gap: 7px;
   margin-bottom: 14px;
 }
@@ -1112,6 +1112,16 @@ button {
 .pmd-qpos-toast.is-error { background: #991b1b; }
 
 .pmd-qpos.is-loading .pmd-qpos-product-grid { opacity: .56; pointer-events: none; }
+
+/* PMD_QPOS_NO_BOOT_FLASH_V1
+   Hide only the data canvas during the first bootstrap. No skeleton flash,
+   no fade animation; the ready layout appears once with real data. */
+.pmd-qpos.is-booting .pmd-qpos-main {
+  visibility: hidden;
+}
+.pmd-qpos.is-booting .pmd-qpos-topbar {
+  box-shadow: none;
+}
 
 /* Waiter mode: Floor is the first-class navigation; cashier order-type selector disappears. */
 .pmd-qpos[data-mode="waiter"] .pmd-qpos-service { display: none; }
