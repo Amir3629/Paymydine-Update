@@ -706,13 +706,13 @@
       if (order) {
         title.textContent = 'Order #' + orderId(order);
       } else if (state.serviceMode === 'takeaway') {
-        title.textContent = 'New takeaway';
+        title.textContent = 'Takeout';
       } else if (state.serviceMode === 'delivery') {
-        title.textContent = 'New delivery';
+        title.textContent = 'Delivery';
       } else if (state.selectedTable) {
-        title.textContent = state.selectedTable.name + ' · New check';
+        title.textContent = state.selectedTable.name + ' · New';
       } else {
-        title.textContent = 'New order';
+        title.textContent = 'New';
       }
     }
 
@@ -1580,8 +1580,8 @@
 
     if (label) {
       label.textContent = target === 'cash'
-        ? 'Cash received'
-        : 'Payment amount';
+        ? 'Cash'
+        : 'Pay';
     }
 
     if (value) {
