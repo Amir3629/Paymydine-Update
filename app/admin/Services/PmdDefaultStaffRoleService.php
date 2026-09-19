@@ -91,7 +91,7 @@ class PmdDefaultStaffRoleService
             [
                 'code' => self::CASHIER,
                 'name' => 'Cashier',
-                'description' => 'Cashier workspace only. No side menu.',
+                'description' => 'Quick POS cashier mode only. Legacy Orders remains available as fallback.',
                 'permissions' => [
                     self::PMD_CASHIER_WORKSPACE => 1,
                     'Admin.Dashboard' => 1,
@@ -102,7 +102,7 @@ class PmdDefaultStaffRoleService
             [
                 'code' => self::WAITER,
                 'name' => 'Waiter',
-                'description' => 'Cashier mobile Quick Mode only. No side menu.',
+                'description' => 'Quick POS waiter mode only. No side menu.',
                 'permissions' => [
                     self::PMD_CASHIER_WORKSPACE => 1,
                     'Admin.Dashboard' => 1,
@@ -197,8 +197,8 @@ class PmdDefaultStaffRoleService
         $map = [
             self::OWNER => 'ownerdashboard', 'owner' => 'ownerdashboard',
             self::MANAGER => 'managerdashboard', 'manager' => 'managerdashboard',
-            self::CASHIER => 'orders', 'cashier' => 'orders',
-            self::WAITER => 'orders', 'waiter' => 'orders',
+            self::CASHIER => 'pos', 'cashier' => 'pos',
+            self::WAITER => 'pos/waiter', 'waiter' => 'pos/waiter',
             self::ACCOUNTANT => 'accountantdashboard', 'accountant' => 'accountantdashboard',
             self::RESERVATIONS => 'reservations', 'reservation' => 'reservations', 'reservations' => 'reservations',
             self::TEAM_MEMBER => 'mywork', 'team-member' => 'mywork', 'team member' => 'mywork', 'kitchen staff' => 'mywork',
@@ -362,7 +362,10 @@ class PmdDefaultStaffRoleService
         }
 
         if ($code === self::CASHIER || $code === self::WAITER) {
-            return $is('cashierlab') || $is('pmd-waiter-pos-v1') || $is('pmd-waiter-pos-v22');
+            return $is('pos')
+                || $is('cashierlab')
+                || $is('pmd-waiter-pos-v1')
+                || $is('pmd-waiter-pos-v22');
         }
         if ($code === self::ACCOUNTANT) return $is('accountantlab');
         if ($code === self::RESERVATIONS) return $is('reservationslab');
