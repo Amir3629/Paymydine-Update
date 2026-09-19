@@ -2819,6 +2819,9 @@ function renderOpenChecks() {
     renderPaymentTotals();
   }
 
+  /* PMD_QPOS_KEYPAD_PAYMENT_ACTION_V21
+   * The keypad's final green key is now the actual payment action.
+   * Numeric editing no longer needs a separate Done step or footer CTA. */
   function applyTouchKeypadKey(key) {
     var target = state.payment.touchKeypadTarget;
     if (
@@ -2830,18 +2833,6 @@ function renderOpenChecks() {
 
     key = String(key || '');
     var raw = touchKeypadRawValue(target);
-
-    if (key === 'done') {
-      if (raw !== '') {
-        setTouchKeypadValue(
-          target,
-          roundMoney(num(raw, 0)).toFixed(2)
-        );
-      }
-      state.payment.touchKeypadFresh = true;
-      renderTouchKeypad();
-      return;
-    }
 
     if (key === 'clear') {
       state.payment.touchKeypadFresh = false;
@@ -2906,18 +2897,9 @@ function renderOpenChecks() {
     var tipEl = $('[data-qpos-tip-amount]');
     var tipRow = $('.pmd-qpos-tip-row');
     var cashField = $('[data-qpos-cash-field]');
-    var chargeEl = $('[data-qpos-payment-charge]');
     var changeBox = $('[data-qpos-change]');
     var changeEl = $('[data-qpos-change-amount]');
     var submit = $('[data-qpos-payment-submit]');
-    var receipt = $('[data-qpos-payment-receipt]');
-
-    if (receipt) {
-      receipt.hidden = !state.payment.receiptUrl;
-      if (state.payment.receiptUrl) {
-        receipt.href = state.payment.receiptUrl;
-      }
-    }
 
     if (amountEl && document.activeElement !== amountEl) {
       amountEl.value = state.payment.amount;
@@ -2970,8 +2952,6 @@ function renderOpenChecks() {
     var change = state.payment.method === 'cash'
       ? Math.max(0, roundMoney(cashReceived - charge))
       : 0;
-
-    if (chargeEl) chargeEl.textContent = money(charge);
 
     if (changeBox) {
       changeBox.hidden = !(state.payment.method === 'cash' && change > 0);
