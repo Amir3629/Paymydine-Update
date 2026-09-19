@@ -1025,13 +1025,13 @@
             changeCartQty(Number(button.getAttribute('data-qpos-dec')), -1);
           };
         });
-        $('[data-qpos-line-note]', list).forEach(function (button) {
+        $$('[data-qpos-line-note]', list).forEach(function (button) {
           button.onclick = function () {
             openItemNote(Number(button.getAttribute('data-qpos-line-note')));
           };
         });
 
-        $('[data-qpos-remove]', list).forEach(function (button) {
+        $$('[data-qpos-remove]', list).forEach(function (button) {
           button.onclick = function () {
             var index = Number(button.getAttribute('data-qpos-remove'));
             state.cart.splice(index, 1);
@@ -1885,7 +1885,7 @@
     var active = state.payment.splitMode || 'full';
     var parts = Math.max(1, Number(state.payment.splitParts || 1));
 
-    $('[data-qpos-split]', wrap).forEach(function (button) {
+    $$('[data-qpos-split]', wrap).forEach(function (button) {
       var value = String(button.getAttribute('data-qpos-split') || '');
       var isActive =
         value === 'custom'
@@ -2577,7 +2577,7 @@
 
     renderTerminals();
 
-    $('[data-tip]').forEach(function (button) {
+    $$('[data-tip]').forEach(function (button) {
       button.classList.toggle(
         'is-active',
         state.payment.tipMode !== 'custom' &&
@@ -2943,7 +2943,7 @@
         '<div class="pmd-qpos-history-empty">Loading…</div>';
     }
 
-    $('[data-qpos-history-scope]').forEach(function (button) {
+    $$('[data-qpos-history-scope]').forEach(function (button) {
       button.classList.toggle(
         'is-active',
         String(button.getAttribute('data-qpos-history-scope')) === requested
@@ -3389,13 +3389,13 @@
       tipAmount.addEventListener('click', openCustomTip);
     }
 
-    $('[data-qpos-split]').forEach(function (button) {
+    $$('[data-qpos-split]').forEach(function (button) {
       button.onclick = function () {
         applySplitSelection(button.getAttribute('data-qpos-split'));
       };
     });
 
-    $('[data-qpos-keypad-key]').forEach(function (button) {
+    $$('[data-qpos-keypad-key]').forEach(function (button) {
       button.onclick = function () {
         applyTouchKeypadKey(
           button.getAttribute('data-qpos-keypad-key')
@@ -3415,7 +3415,7 @@
       renderPaymentTotals();
     });
 
-    $('[data-tip]').forEach(function (button) {
+    $$('[data-tip]').forEach(function (button) {
       button.onclick = function () {
         if (state.payment.method === 'direct_terminal') return;
 
@@ -3448,7 +3448,7 @@
       if (event.target === historyModal) closeHistory();
     });
 
-    $('[data-qpos-history-scope]').forEach(function (button) {
+    $$('[data-qpos-history-scope]').forEach(function (button) {
       button.onclick = function () {
         loadHistory(
           button.getAttribute('data-qpos-history-scope') || 'selected'
@@ -3479,7 +3479,7 @@
       });
     }
 
-    $('[data-qpos-text-key]').forEach(function (button) {
+    $$('[data-qpos-text-key]').forEach(function (button) {
       button.onclick = function () {
         applyTextKeyboardKey(
           button.getAttribute('data-qpos-text-key')
