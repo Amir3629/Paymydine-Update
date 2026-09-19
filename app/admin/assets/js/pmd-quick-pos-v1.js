@@ -651,6 +651,43 @@
     });
   }
 
+  function cartQuantityForMenu(menuId) {
+    menuId = Number(menuId || 0);
+    if (!menuId) return 0;
+
+    return state.cart.reduce(function (total, row) {
+      return Number(row.menu_id || 0) === menuId
+        ? total + Math.max(0, num(row.quantity, 0))
+        : total;
+    }, 0);
+  }
+
+  function syncProductSelection() {
+    $$('[data-qpos-product]').forEach(function (button) {
+      var menuId = Number(button.getAttribute('data-qpos-product') || 0);
+      var quantity = cartQuantityForMenu(menuId);
+      var badge = button.querySelector('[data-qpos-product-count]');
+
+      button.classList.toggle('is-selected', quantity > 0);
+
+      if (quantity > 0) {
+        if (!badge) {
+          badge = document.createElement('span');
+          badge.className = 'pmd-qpos-product-count';
+          badge.setAttribute('data-qpos-product-count', '');
+          button.appendChild(badge);
+        }
+        badge.textContent = String(quantity);
+        badge.setAttribute(
+          'aria-label',
+          quantity + (quantity === 1 ? ' selected item' : ' selected items')
+        );
+      } else if (badge) {
+        badge.remove();
+      }
+    });
+  }
+
   function filteredMenu() {
     var search = String(state.search || '').trim().toLowerCase();
     var category = String(state.category || 'all');
@@ -704,14 +741,22 @@
         num(item.price, 0) > 0;
 
       var image = String(item.image || '');
+      var selectedQuantity = cartQuantityForMenu(item.id);
       return (
-        '<button type="button" class="pmd-qpos-product' + (orderable ? '' : ' is-disabled') + '"' +
+        '<button type="button" class="pmd-qpos-product' +
+          (orderable ? '' : ' is-disabled') +
+          (selectedQuantity > 0 ? ' is-selected' : '') + '"' +
           ' data-qpos-product="' + esc(item.id) + '"' +
           (orderable ? '' : ' disabled') + '>' +
           (image
             ? '<div class="pmd-qpos-product-image" style="background-image:url(&quot;' + esc(image) + '&quot;)"></div>'
             : '<div class="pmd-qpos-product-image"></div>') +
           (item.is_bestseller ? '<span class="pmd-qpos-product-badge">Popular</span>' : '') +
+          (selectedQuantity > 0
+            ? '<span class="pmd-qpos-product-count" data-qpos-product-count aria-label="' +
+                esc(selectedQuantity + (selectedQuantity === 1 ? ' selected item' : ' selected items')) +
+              '">' + esc(selectedQuantity) + '</span>'
+            : '') +
           '<strong>' + esc(item.name) + '</strong>' +
           '<footer><span>' +
             (item.has_options ? 'Options' : '') +
@@ -903,6 +948,7 @@
   function renderCart() {
     renderOpenChecks();
     renderSentItems();
+    syncProductSelection();
 
     var list = $('[data-qpos-cart-list]');
     if (list) {
@@ -992,17 +1038,11 @@
     var note = $('[data-qpos-note]');
     if (note && note.value !== state.note) note.value = state.note;
 
-    var hold = $('[data-qpos-hold]');
     var send = $('[data-qpos-send]');
     var pay = $('[data-qpos-pay]');
 
     var canSave = canOrderNow() && state.cart.length > 0 && !state.submitting;
     root.classList.toggle('is-committing', !!state.submitting);
-
-    if (hold) {
-      hold.disabled = !canSave;
-      hold.textContent = 'Hold';
-    }
 
     if (send) {
       send.disabled = !canSave;
@@ -2538,10 +2578,8 @@
       state.note = note.value;
     });
 
-    var hold = $('[data-qpos-hold]');
     var send = $('[data-qpos-send]');
     var pay = $('[data-qpos-pay]');
-    if (hold) hold.onclick = function () { submitOrder('hold'); };
     if (send) send.onclick = function () { submitOrder('send'); };
     if (pay) pay.onclick = function () {
       if (state.cart.length > 0) {
