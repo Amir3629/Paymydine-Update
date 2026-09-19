@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <meta name="theme-color" content="#111827">
+    <meta name="theme-color" content="#064e3b">
     <title>PayMyDine POS</title>
     <link rel="icon" type="image/svg+xml" href="/app/admin/assets/images/pmd-favicon-final-20260822.svg">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-pos-v1.css?v=20260919-13">
@@ -43,7 +43,6 @@
     class="pmd-qpos"
     data-mode="{{ $mode }}"
     data-bootstrap-url="/admin/pos/bootstrap/{{ $mode }}"
-    data-can-switch-mode="{{ $canSwitchMode ? '1' : '0' }}"
 >
     <main class="pmd-qpos-main">
         <aside class="pmd-qpos-left">
