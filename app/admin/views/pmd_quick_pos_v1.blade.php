@@ -7,12 +7,12 @@
     <meta name="theme-color" content="#111827">
     <title>PayMyDine POS</title>
     <link rel="icon" type="image/svg+xml" href="/app/admin/assets/images/pmd-favicon-final-20260822.svg">
-    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-pos-v1.css?v=20260919-6">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-pos-v1.css?v=20260919-7">
 </head>
 <body class="pmd-qpos-body">
 <div
     id="pmd-quick-pos"
-    class="pmd-qpos"
+    class="pmd-qpos is-booting"
     data-mode="{{ $mode }}"
     data-bootstrap-url="/admin/pos/bootstrap/{{ $mode }}"
     data-can-switch-mode="{{ $canSwitchMode ? '1' : '0' }}"
@@ -22,7 +22,7 @@
             <span class="pmd-qpos-brand-mark">P</span>
             <div>
                 <strong>PayMyDine POS</strong>
-                <small data-qpos-context>Loading…</small>
+                <small data-qpos-context></small>
             </div>
         </div>
 
@@ -44,8 +44,8 @@
             <section class="pmd-qpos-service" data-qpos-service-panel>
                 <div class="pmd-qpos-section-label">Order type</div>
                 <div class="pmd-qpos-segmented">
-                    <button type="button" class="is-active" data-qpos-service="dine_in">Dine in</button>
-                    <button type="button" data-qpos-service="takeaway">Takeaway</button>
+                    <button type="button" class="is-active" data-qpos-service="dine_in">Dine</button>
+                    <button type="button" data-qpos-service="takeaway">Takeout</button>
                     <button type="button" data-qpos-service="delivery">Delivery</button>
                 </div>
             </section>
@@ -54,15 +54,15 @@
                 <div class="pmd-qpos-panel-head">
                     <div>
                         <div class="pmd-qpos-section-label">Floor</div>
-                        <strong data-qpos-table-title>Select a table</strong>
+                        <strong data-qpos-table-title>Table</strong>
                     </div>
                     <span class="pmd-qpos-table-count" data-qpos-table-count>0</span>
                 </div>
                 <div class="pmd-qpos-table-legend">
                     <span><i class="available"></i>Free</span>
                     <span><i class="occupied"></i>Busy</span>
-                    <span><i class="reserved"></i>Reserved</span>
-                    <span><i class="cleaning"></i>Cleaning</span>
+                    <span><i class="reserved"></i>Res.</span>
+                    <span><i class="cleaning"></i>Clean</span>
                 </div>
                 <div class="pmd-qpos-table-grid" data-qpos-tables>
                     <div class="pmd-qpos-skeleton-block"></div>
@@ -79,7 +79,7 @@
                     <span>⌕</span>
                     <input type="search" autocomplete="off" placeholder="Search menu…" data-qpos-search>
                 </label>
-                <button type="button" class="pmd-qpos-new-check" data-qpos-new-check>+ New check</button>
+                <button type="button" class="pmd-qpos-new-check" data-qpos-new-check>+ Check</button>
             </div>
 
             <div class="pmd-qpos-categories" data-qpos-categories>
@@ -87,7 +87,7 @@
             </div>
 
             <div class="pmd-qpos-catalog-status" data-qpos-catalog-status>
-                Choose a table or an order type to start.
+                Select table
             </div>
 
             <div class="pmd-qpos-product-grid" data-qpos-products></div>
@@ -96,13 +96,13 @@
         <aside class="pmd-qpos-cart">
             <div class="pmd-qpos-cart-head">
                 <div>
-                    <span class="pmd-qpos-section-label">Current check</span>
-                    <strong data-qpos-check-title>New order</strong>
+                    <span class="pmd-qpos-section-label">Check</span>
+                    <strong data-qpos-check-title>New</strong>
                 </div>
                 <button type="button" class="pmd-qpos-cart-close" data-qpos-cart-close aria-label="Close cart">×</button>
                 <div class="pmd-qpos-guests">
                     <button type="button" data-qpos-guests-minus>−</button>
-                    <span><b data-qpos-guests>1</b><small>guests</small></span>
+                    <span><b data-qpos-guests>1</b><small>pax</small></span>
                     <button type="button" data-qpos-guests-plus>+</button>
                 </div>
             </div>
@@ -111,7 +111,7 @@
 
             <div class="pmd-qpos-sent" data-qpos-sent hidden>
                 <div class="pmd-qpos-subhead">
-                    <strong>Already sent</strong>
+                    <strong>Sent</strong>
                     <span data-qpos-sent-total></span>
                 </div>
                 <div data-qpos-sent-items></div>
@@ -119,19 +119,18 @@
 
             <div class="pmd-qpos-cart-list" data-qpos-cart-list>
                 <div class="pmd-qpos-empty-cart">
-                    <strong>No items yet</strong>
-                    <span>Tap a product to add it.</span>
+                    <strong>No items</strong>
                 </div>
             </div>
 
             <label class="pmd-qpos-order-note">
-                <span>Order note</span>
-                <textarea rows="2" placeholder="Kitchen note, allergy, customer request…" data-qpos-note></textarea>
+                <span>Note</span>
+                <textarea rows="2" placeholder="Kitchen / allergy / request" data-qpos-note></textarea>
             </label>
 
             <div class="pmd-qpos-cart-summary">
-                <div><span>New items</span><strong data-qpos-new-total>€0.00</strong></div>
-                <div class="grand"><span>Total check</span><strong data-qpos-total>€0.00</strong></div>
+                <div><span>New</span><strong data-qpos-new-total>€0.00</strong></div>
+                <div class="grand"><span>Total</span><strong data-qpos-total>€0.00</strong></div>
             </div>
 
             <div class="pmd-qpos-cart-actions">
@@ -141,14 +140,14 @@
             </div>
 
             <div class="pmd-qpos-table-actions" data-qpos-table-actions hidden>
-                <button type="button" data-qpos-table-cleaning>Customer left</button>
-                <button type="button" data-qpos-table-free>Set table free</button>
+                <button type="button" data-qpos-table-cleaning>Left</button>
+                <button type="button" data-qpos-table-free>Free</button>
             </div>
         </aside>
     </main>
 
     <button type="button" class="pmd-qpos-mobile-cart" data-qpos-mobile-cart>
-        <span><b data-qpos-mobile-count>0</b> items</span>
+        <span><b data-qpos-mobile-count>0</b></span>
         <strong data-qpos-mobile-total>€0.00</strong>
     </button>
 
@@ -192,19 +191,18 @@
 
             <div class="pmd-qpos-payment-body">
                 <div class="pmd-qpos-payment-balance">
-                    <span>Remaining</span>
+                    <span>Due</span>
                     <strong data-qpos-payment-remaining>€0.00</strong>
                     <small data-qpos-payment-settled></small>
                 </div>
 
                 <div class="pmd-qpos-payment-methods" data-qpos-payment-methods>
                     <button type="button" class="is-active" data-payment-method="cash">Cash</button>
-                    <button type="button" data-payment-method="external_terminal">Card</button>
-                </div>
+                                    </div>
 
                 <div class="pmd-qpos-payment-grid">
                     <label class="pmd-qpos-field">
-                        <span>Amount</span>
+                        <span>Pay</span>
                         <input
                             type="text"
                             inputmode="none"
@@ -215,7 +213,7 @@
                         >
                     </label>
                     <label class="pmd-qpos-field" data-qpos-cash-field>
-                        <span>Cash received</span>
+                        <span>Cash</span>
                         <input
                             type="text"
                             inputmode="none"
@@ -270,17 +268,6 @@
                     <button type="button" data-tip="15">15%</button>
                 </div>
 
-                <div class="pmd-qpos-external" data-qpos-external-fields hidden>
-                    <label class="pmd-qpos-field">
-                        <span>Terminal reference</span>
-                        <input type="text" data-qpos-payment-reference placeholder="Receipt / approval code">
-                    </label>
-                    <label class="pmd-qpos-check">
-                        <input type="checkbox" data-qpos-external-confirm>
-                        <span>Terminal payment approved</span>
-                    </label>
-                </div>
-
                 <div class="pmd-qpos-terminals" data-qpos-terminals hidden>
                     <span class="pmd-qpos-section-label">Connected terminal</span>
                     <div data-qpos-terminal-list></div>
@@ -295,7 +282,7 @@
 
             <footer class="pmd-qpos-payment-footer">
                 <div>
-                    <span>Charge</span>
+                    <span>Total</span>
                     <strong data-qpos-payment-charge>€0.00</strong>
                 </div>
                 <div class="pmd-qpos-payment-final-actions">
@@ -306,7 +293,7 @@
                         target="_blank"
                         rel="noopener"
                         hidden
-                    >Print receipt</a>
+                    >Receipt</a>
                     <button type="button" class="pmd-qpos-modal-primary" data-qpos-payment-submit>Record payment</button>
                 </div>
             </footer>
@@ -322,7 +309,7 @@ window.PMDQuickPOSConfig = {
     canSwitchMode: @json((bool)$canSwitchMode)
 };
 </script>
-<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260919-6"></script>
+<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260919-7"></script>
 <script src="/app/admin/assets/js/pmd-site-access-hub-v13.js?v=20260919-qpos1"></script>
 </body>
 </html>
