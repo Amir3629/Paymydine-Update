@@ -1302,7 +1302,7 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                             'object_type',
                             Orders_model::make()->getMorphClass()
                         );
-                    } catch (Throwable $ignored) {
+                    } catch (\Throwable $ignored) {
                     }
                 }
 
@@ -1433,7 +1433,7 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 app(PmdRoleLandingService::class)->routeFor($user)
                 ?: ''
             );
-        } catch (Throwable $ignored) {
+        } catch (\Throwable $ignored) {
         }
 
         $canReturn = $landing !== ''
