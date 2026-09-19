@@ -78,9 +78,11 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
      *
      * The Cashier/Accountant KPI readers are read-only and repeat the same
      * location-scoped aggregates during short browser bursts. Keep only a
-     * one-second tenant/location/locale micro-cache so consecutive renders can
-     * reuse the exact card contract without making finance data meaningfully
-     * stale. Cache failure always falls back to the canonical runtime service.
+     * short tenant/location/locale micro-cache so consecutive renders can
+     * reuse the exact card contract without rebuilding the same 25-query KPI
+     * snapshot. R19 keeps this to only three seconds; mutations still execute
+     * against canonical order/payment authorities. Cache failure always falls
+     * back to the canonical runtime service.
      */
     protected function pmdFinanceKpiCardsR18(
         PmdCleanWorkspaceFinanceV1 $finance,
@@ -118,7 +120,7 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
         try {
             $cards = Cache::remember(
                 $cacheKey,
-                now()->addSeconds(1),
+                now()->addSeconds(3),
                 $resolver
             );
 
@@ -129,6 +131,53 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
             return $resolver();
         }
     }
+
+    /*
+     * PMD_PERF_R19_FLOOR_BOOTSTRAP_MICROCACHE
+     *
+     * The expensive shared Floor bootstrap is layout/reference data. Physical
+     * occupancy is deliberately NOT trusted from this cache: immediately after
+     * this helper returns, pmdApplyPhysicalOperationalStatusAuthority() rereads
+     * canonical tables.operational_status. A two-second tenant/location/workspace
+     * cache therefore removes duplicate burst work without owning table state.
+     */
+    protected function pmdFloorBootstrapR19(
+        PmdCleanWorkspaceSharedV1 $shared,
+        int $locationId,
+        string $locale
+    ): array {
+        $resolver = static function () use ($shared): array {
+            return (array)$shared->floorBootstrap();
+        };
+
+        if ($locationId < 1) {
+            return $resolver();
+        }
+
+        $cacheKey = TenantHelper::scopedCacheKey(
+            'pmd:perf:r19:floor-bootstrap:'
+            .sha1(
+                $this->pmdWorkspaceKey()
+                .'|'.$locationId
+                .'|'.strtolower(trim($locale))
+            )
+        );
+
+        try {
+            $bootstrap = Cache::remember(
+                $cacheKey,
+                now()->addSeconds(2),
+                $resolver
+            );
+
+            return is_array($bootstrap)
+                ? $bootstrap
+                : [];
+        } catch (\Throwable $error) {
+            return $resolver();
+        }
+    }
+
 
     /**
      * PMD_FLOOR_RESERVATION_BUSY_WINDOWS_V1_1
@@ -1616,21 +1665,12 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
         Template::setTitle($title);
         Template::setHeading($title);
 
-        // Floor is resolved once and reused by Reservations KPI calculations.
-        $floorBootstrap = $this->pmdUsesFloor()
-            ? $shared->floorBootstrap()
-            : [];
-
-        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
-            'floor_bootstrap'
-        );
-
         /*
          * PMD_PERF_R18_SINGLE_WORKSPACE_LOCATION
+         * PMD_PERF_R19_FLOOR_BOOTSTRAP_MICROCACHE
          *
-         * Resolve the active workspace location once and reuse it for Floor
-         * preferences, registry and finance cards. The fallback retains the
-         * prior role-dashboard authority when the shared service has no ID.
+         * Resolve the active workspace location before Floor bootstrap so the
+         * same tenant/location identity can key the short read-only cache.
          */
         try {
             $pmdWorkspaceLocationId =
@@ -1651,6 +1691,20 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
             $pmdSharedFloorLocationId =
                 $this->pmdFloorTableManagerLocationId();
         }
+
+        // Base Floor layout/reference data may be shared for two seconds.
+        // Physical status is re-applied from canonical tables immediately below.
+        $floorBootstrap = $this->pmdUsesFloor()
+            ? $this->pmdFloorBootstrapR19(
+                $shared,
+                $pmdSharedFloorLocationId,
+                $locale
+            )
+            : [];
+
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'floor_bootstrap'
+        );
 
         /*
          * PMD_CLEAN_WORKSPACE_USER_PAGE_FLOOR_VIEW_V1
