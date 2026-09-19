@@ -2525,7 +2525,7 @@
     renderCashPresets();
     renderSplitControls();
 
-    $('[data-tip]').forEach(function (button) {
+    $$('[data-tip]').forEach(function (button) {
       button.classList.toggle(
         'is-active',
         state.payment.tipMode !== 'custom' &&
