@@ -34,7 +34,31 @@ trait PmdWaiterPosSaveEndpoint
         try {
             $result = DB::transaction(function () use ($table, $payload, $cart, $mode) {
                 $requestedOrderId = (int)($payload['order_id'] ?? 0);
-                $order = $this->resolveWritableOrder($table, $requestedOrderId, true);
+
+                /*
+                 * PMD_QUICK_POS_FORCE_NEW_CHECK_V1
+                 *
+                 * Legacy Waiter POS intentionally falls back to the latest open
+                 * check when no order_id is supplied. Quick POS exposes an
+                 * explicit "New check" action, so only its opt-in flag bypasses
+                 * that legacy fallback. Existing clients keep identical behavior.
+                 */
+                $forceNewCheck = filter_var(
+                    $payload['force_new_check'] ?? false,
+                    FILTER_VALIDATE_BOOLEAN
+                );
+
+                $order = (
+                    $forceNewCheck
+                    && $requestedOrderId < 1
+                )
+                    ? null
+                    : $this->resolveWritableOrder(
+                        $table,
+                        $requestedOrderId,
+                        true
+                    );
+
                 $isNew = !$order;
 
                 if ($order) {
