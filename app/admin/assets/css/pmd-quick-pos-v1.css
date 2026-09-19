@@ -3298,3 +3298,22 @@ body.pmd-qpos-body {
     display: none;
   }
 }
+
+
+/* PMD_QPOS_WORKSPACE_FLAT_V15
+   Final authority: workspace replaces catalog/cart without looking like a
+   dialog card. */
+@media (min-width: 821px) {
+  .pmd-qpos-workspace-modal {
+    border: 0;
+  }
+
+  .pmd-qpos-workspace-modal > .pmd-qpos-modal-card,
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal] .pmd-qpos-payment-card,
+  .pmd-qpos-workspace-modal[data-qpos-history-modal] .pmd-qpos-history-card {
+    border: 0;
+    border-left: 1px solid var(--q-line);
+    border-radius: 0;
+    box-shadow: none;
+  }
+}
