@@ -108,6 +108,9 @@
     mode: String(root.getAttribute('data-mode') || 'cashier'),
     serviceMode: 'dine_in',
     settings: {},
+    floors: [],
+    activeFloorId: '',
+    defaultFloorId: '',
     tables: [],
     menu: [],
     categories: [],
@@ -172,7 +175,30 @@
     var el = $('[data-qpos-online]');
     if (!el) return;
     el.classList.toggle('is-offline', !online);
-    el.lastChild.nodeValue = online ? ' Online' : ' Offline';
+    el.setAttribute('aria-label', online ? 'Online' : 'Offline');
+    el.setAttribute('title', online ? 'Online' : 'Offline');
+  }
+
+  function startClock() {
+    var clock = $('[data-qpos-clock]');
+    if (!clock) return;
+
+    var formatter = new Intl.DateTimeFormat([], {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
+
+    function paint() {
+      var now = new Date();
+      clock.textContent = formatter.format(now);
+      clock.dateTime = now.toISOString();
+      clock.title = now.toLocaleDateString();
+    }
+
+    paint();
+    clearInterval(clock.__qposClockTimer);
+    clock.__qposClockTimer = setInterval(paint, 1000);
   }
 
   function activeOrder() {
@@ -265,17 +291,89 @@
             ? String(json.settings.currency || '€')
             : '€'
       },
+      floors: Array.isArray(json && json.floors) ? json.floors : [],
+      default_floor_id: String(
+        json && json.default_floor_id
+          ? json.default_floor_id
+          : ''
+      ),
       tables: Array.isArray(json && json.tables) ? json.tables : [],
       categories: Array.isArray(json && json.categories) ? json.categories : [],
       menu_items: Array.isArray(json && json.menu_items) ? json.menu_items : []
     };
   }
 
-  function visualSignature(tables, categories, menu) {
+  function visualSignature(tables, categories, menu, floors) {
     try {
-      return JSON.stringify([tables || [], categories || [], menu || []]);
+      return JSON.stringify([
+        tables || [],
+        categories || [],
+        menu || [],
+        floors || []
+      ]);
     } catch (ignored) {
       return '';
+    }
+  }
+
+  function floorPreferenceKey() {
+    return [
+      'pmd:qpos:floor:v1',
+      window.location.host,
+      state.mode
+    ].join(':');
+  }
+
+  function normalizeActiveFloor() {
+    var valid = state.floors.some(function (floor) {
+      return String(floor.id) === String(state.activeFloorId);
+    });
+
+    if (valid) return;
+
+    var preferred = '';
+    try {
+      preferred = String(
+        window.localStorage.getItem(floorPreferenceKey()) || ''
+      );
+    } catch (ignored) {
+    }
+
+    if (
+      preferred &&
+      state.floors.some(function (floor) {
+        return String(floor.id) === preferred;
+      })
+    ) {
+      state.activeFloorId = preferred;
+      return;
+    }
+
+    var defaultId = String(state.defaultFloorId || '');
+    if (
+      defaultId &&
+      state.floors.some(function (floor) {
+        return String(floor.id) === defaultId;
+      })
+    ) {
+      state.activeFloorId = defaultId;
+      return;
+    }
+
+    state.activeFloorId = state.floors.length
+      ? String(state.floors[0].id || '')
+      : '';
+  }
+
+  function rememberActiveFloor() {
+    try {
+      if (state.activeFloorId) {
+        window.localStorage.setItem(
+          floorPreferenceKey(),
+          String(state.activeFloorId)
+        );
+      }
+    } catch (ignored) {
     }
   }
 
@@ -294,6 +392,9 @@
       }
 
       state.settings = Object.assign({}, state.settings, cached.settings || {});
+      state.floors = Array.isArray(cached.floors) ? cached.floors : [];
+      state.defaultFloorId = String(cached.default_floor_id || '');
+      normalizeActiveFloor();
       state.tables = Array.isArray(cached.tables) ? cached.tables : [];
       state.categories = Array.isArray(cached.categories) ? cached.categories : [];
       state.menu = Array.isArray(cached.menu_items) ? cached.menu_items : [];
@@ -330,6 +431,9 @@
     state.mode = json.mode || state.mode;
     root.setAttribute('data-mode', state.mode);
     state.settings = json.settings || {};
+    state.floors = Array.isArray(json.floors) ? json.floors : [];
+    state.defaultFloorId = String(json.default_floor_id || '');
+    normalizeActiveFloor();
     state.tables = Array.isArray(json.tables) ? json.tables : [];
     state.menu = Array.isArray(json.menu_items) ? json.menu_items : [];
     state.categories = Array.isArray(json.categories) ? json.categories : [];
@@ -357,13 +461,17 @@
       var beforeVisual = visualSignature(
         state.tables,
         state.categories,
-        state.menu
+        state.menu,
+        state.floors
       );
 
       state.boot = json;
       state.mode = json.mode || state.mode;
       root.setAttribute('data-mode', state.mode);
       state.settings = json.settings || {};
+      state.floors = Array.isArray(json.floors) ? json.floors : [];
+      state.defaultFloorId = String(json.default_floor_id || '');
+      normalizeActiveFloor();
       state.tables = Array.isArray(json.tables) ? json.tables : [];
       state.menu = Array.isArray(json.menu_items) ? json.menu_items : [];
       state.categories = Array.isArray(json.categories) ? json.categories : [];
@@ -380,7 +488,8 @@
       var afterVisual = visualSignature(
         state.tables,
         state.categories,
-        state.menu
+        state.menu,
+        state.floors
       );
 
       if (!state.visualHydrated || beforeVisual !== afterVisual) {
@@ -406,27 +515,40 @@
     }
   }
 
-  function serviceLabel() {
-    if (state.mode === 'waiter') return 'Waiter · Dine';
-    if (state.serviceMode === 'delivery') return 'Cashier · Delivery';
-    if (state.serviceMode === 'takeaway') return 'Cashier · Takeout';
-    return 'Cashier · Dine';
+  function renderFloors() {
+    var box = $('[data-qpos-floors]');
+    if (!box) return;
+
+    if (!state.floors.length) {
+      box.innerHTML =
+        '<button type="button" class="is-active">Main Floor</button>';
+      return;
+    }
+
+    box.innerHTML = state.floors.map(function (floor) {
+      var id = String(floor.id || '');
+      return (
+        '<button type="button" data-qpos-floor="' + esc(id) + '"' +
+          (String(state.activeFloorId) === id ? ' class="is-active"' : '') +
+        '>' + esc(floor.name || 'Floor') + '</button>'
+      );
+    }).join('');
+
+    $$('[data-qpos-floor]', box).forEach(function (button) {
+      button.onclick = function () {
+        selectFloor(button.getAttribute('data-qpos-floor'));
+      };
+    });
   }
 
   function renderContext() {
-    var context = $('[data-qpos-context]');
-    if (context) context.textContent = serviceLabel();
-
-    $$('[data-qpos-service]').forEach(function (button) {
-      button.classList.toggle(
-        'is-active',
-        button.getAttribute('data-qpos-service') === state.serviceMode
-      );
-    });
+    renderFloors();
 
     var tableActions = $('[data-qpos-table-actions]');
     if (tableActions) {
-      tableActions.hidden = !state.selectedTable || state.serviceMode !== 'dine_in';
+      tableActions.hidden =
+        !state.selectedTable ||
+        state.serviceMode !== 'dine_in';
     }
   }
 
@@ -439,39 +561,50 @@
     }[String(status || '').toLowerCase()] || 'Free';
   }
 
+  function activeFloorTables() {
+    var activeId = String(state.activeFloorId || '');
+    return state.tables.filter(function (table) {
+      return String(table.floor_id || '') === activeId;
+    });
+  }
+
   function renderTables() {
     var box = $('[data-qpos-tables]');
     var count = $('[data-qpos-table-count]');
     var title = $('[data-qpos-table-title]');
     if (!box) return;
 
-    if (count) count.textContent = String(state.tables.length);
+    var floorTables = activeFloorTables();
 
-    if (state.serviceMode !== 'dine_in') {
-      box.innerHTML =
-        '<div class="pmd-qpos-no-products">' +
-          '<strong>No table needed</strong><br>' +
-          '<span>' + (state.serviceMode === 'delivery' ? 'Delivery' : 'Takeaway') + ' order</span>' +
-        '</div>';
-      if (title) title.textContent = 'Counter order';
-      return;
-    }
-
+    if (count) count.textContent = String(floorTables.length);
     if (title) {
-      title.textContent = state.selectedTable
-        ? state.selectedTable.name
-        : 'Select a table';
+      title.textContent =
+        state.serviceMode === 'takeaway'
+          ? 'Pickup'
+          : (
+              state.selectedTable
+                ? state.selectedTable.name
+                : 'Tables'
+            );
     }
 
-    if (!state.tables.length) {
-      box.innerHTML = '<div class="pmd-qpos-no-products">No tables available.</div>';
-      return;
-    }
+    var rows = [
+      '<button type="button" class="pmd-qpos-table pmd-qpos-pickup' +
+        (state.serviceMode === 'takeaway' ? ' is-selected' : '') +
+        '" data-qpos-pickup>' +
+        '<strong>Pickup</strong>' +
+      '</button>'
+    ];
 
-    box.innerHTML = state.tables.map(function (table) {
-      var selected = state.selectedTable && Number(state.selectedTable.id) === Number(table.id);
-      return (
-        '<button type="button" class="pmd-qpos-table' + (selected ? ' is-selected' : '') + '"' +
+    floorTables.forEach(function (table) {
+      var selected =
+        state.serviceMode === 'dine_in' &&
+        state.selectedTable &&
+        Number(state.selectedTable.id) === Number(table.id);
+
+      rows.push(
+        '<button type="button" class="pmd-qpos-table' +
+          (selected ? ' is-selected' : '') + '"' +
           ' data-qpos-table="' + esc(table.id) + '"' +
           ' data-status="' + esc(table.status || 'available') + '">' +
           '<strong>' + esc(table.name || ('Table ' + table.number)) + '</strong>' +
@@ -480,7 +613,12 @@
           '</small>' +
         '</button>'
       );
-    }).join('');
+    });
+
+    box.innerHTML = rows.join('');
+
+    var pickup = $('[data-qpos-pickup]', box);
+    if (pickup) pickup.onclick = selectPickup;
 
     $$('[data-qpos-table]', box).forEach(function (button) {
       button.onclick = function () {
@@ -585,7 +723,7 @@
     $$('[data-qpos-product]', box).forEach(function (button) {
       button.onclick = function () {
         if (!canOrderNow()) {
-          toast('Select a table first.', true);
+          toast('Select table or Pickup.', true);
           return;
         }
 
@@ -826,7 +964,7 @@
       if (order) {
         title.textContent = 'Order #' + orderId(order);
       } else if (state.serviceMode === 'takeaway') {
-        title.textContent = 'Takeout';
+        title.textContent = 'Pickup';
       } else if (state.serviceMode === 'delivery') {
         title.textContent = 'Delivery';
       } else if (state.selectedTable) {
@@ -902,9 +1040,12 @@
 
     if (
       state.cart.length &&
-      state.selectedTable &&
-      Number(state.selectedTable.id) !== Number(table.id) &&
-      !window.confirm('Move away from this unsent cart? The draft will be cleared.')
+      (
+        state.serviceMode !== 'dine_in' ||
+        !state.selectedTable ||
+        Number(state.selectedTable.id) !== Number(table.id)
+      ) &&
+      !window.confirm('Change table? Unsent items will be cleared.')
     ) {
       return;
     }
@@ -967,32 +1108,71 @@
     }
   }
 
-  function setServiceMode(mode) {
-    if (state.mode === 'waiter') return;
-    mode = String(mode || '');
-
-    if (['dine_in', 'takeaway', 'delivery'].indexOf(mode) === -1) return;
-    if (mode === state.serviceMode) return;
-
+  function selectFloor(id) {
+    id = String(id || '');
     if (
-      state.cart.length &&
-      !window.confirm('Change order type? The unsent cart will be cleared.')
+      !id ||
+      !state.floors.some(function (floor) {
+        return String(floor.id) === id;
+      }) ||
+      id === String(state.activeFloorId)
     ) {
       return;
     }
 
-    state.serviceMode = mode;
-    state.cart = [];
-    state.note = '';
-    state.guestCount = 1;
+    if (state.serviceMode === 'takeaway') {
+      state.activeFloorId = id;
+      rememberActiveFloor();
+      renderContext();
+      renderTables();
+      return;
+    }
+
+    if (
+      state.cart.length &&
+      !window.confirm('Change floor? Unsent items will be cleared.')
+    ) {
+      return;
+    }
+
+    state.activeFloorId = id;
+    rememberActiveFloor();
+
+    state.serviceMode = 'dine_in';
+    state.selectedTable = null;
     state.tableData = null;
     state.openOrders = [];
     state.activeOrderId = null;
     state.offPremiseOrder = null;
+    state.cart = [];
+    state.note = '';
+    state.guestCount = 1;
 
-    if (mode !== 'dine_in') {
-      state.selectedTable = null;
+    renderAll();
+  }
+
+  function selectPickup() {
+    if (state.serviceMode === 'takeaway') {
+      return;
     }
+
+    if (
+      state.cart.length &&
+      !window.confirm('Switch to Pickup? Unsent table items will be cleared.')
+    ) {
+      return;
+    }
+
+    state.serviceMode = 'takeaway';
+    state.selectedTable = null;
+    state.tableData = null;
+    state.openOrders = [];
+    state.activeOrderId = null;
+    state.offPremiseOrder = null;
+    state.cart = [];
+    state.note = '';
+    state.guestCount = 1;
+    state.forceNewCheck = false;
 
     renderAll();
   }
@@ -2344,12 +2524,6 @@
       });
     }
 
-    $$('[data-qpos-service]').forEach(function (button) {
-      button.onclick = function () {
-        setServiceMode(button.getAttribute('data-qpos-service'));
-      };
-    });
-
     var guestsPlus = $('[data-qpos-guests-plus]');
     var guestsMinus = $('[data-qpos-guests-minus]');
     if (guestsPlus) guestsPlus.onclick = function () {
@@ -2526,6 +2700,7 @@
     window.addEventListener('online', function () { setOnline(true); });
     window.addEventListener('offline', function () { setOnline(false); });
     setOnline(navigator.onLine !== false);
+    startClock();
 
     window.addEventListener('keydown', function (event) {
       if (event.key === 'Escape') {
