@@ -35,7 +35,14 @@ body.pmd-qpos-body {
 }
 
 button, input, textarea { font: inherit; }
-button, a { -webkit-tap-highlight-color: transparent; }
+button, a {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+button {
+  user-select: none;
+  -webkit-user-select: none;
+}
 
 .pmd-qpos {
   height: 100dvh;
@@ -85,6 +92,9 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .pmd-qpos-mode-switch a {
   color: #cbd5e1;
   text-decoration: none;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
   padding: 8px 14px;
   border-radius: 9px;
   font-size: 13px;
@@ -121,8 +131,8 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .pmd-qpos-online.is-offline i { background: #ef4444; box-shadow: 0 0 0 4px rgba(239,68,68,.13); }
 .pmd-qpos-icon-button,
 .pmd-qpos-legacy-link {
-  height: 36px;
-  min-width: 36px;
+  height: 44px;
+  min-width: 44px;
   display: inline-grid;
   place-items: center;
   border: 1px solid rgba(255,255,255,.14);
@@ -190,7 +200,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
   gap: 5px;
 }
 .pmd-qpos-segmented button {
-  min-height: 46px;
+  min-height: 52px;
   border: 1px solid var(--q-line);
   background: #fff;
   border-radius: 10px;
@@ -359,8 +369,8 @@ button, a { -webkit-tap-highlight-color: transparent; }
   border: 1px solid var(--q-line);
   background: #fff;
   color: #374151;
-  min-height: 36px;
-  padding: 0 13px;
+  min-height: 44px;
+  padding: 0 15px;
   border-radius: 99px;
   cursor: pointer;
   font-size: 12px;
@@ -387,7 +397,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
 }
 .pmd-qpos-product {
   position: relative;
-  min-height: 128px;
+  min-height: 142px;
   border: 1px solid var(--q-line);
   background: #fff;
   border-radius: 14px;
@@ -501,7 +511,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
 }
 .pmd-qpos-open-checks button {
   flex: 0 0 auto;
-  min-height: 34px;
+  min-height: 44px;
   border: 1px solid var(--q-line);
   background: #fff;
   border-radius: 9px;
@@ -538,6 +548,14 @@ button, a { -webkit-tap-highlight-color: transparent; }
   font-size: 11px;
 }
 .pmd-qpos-sent-line small { color: var(--q-muted); display: block; margin-top: 2px; }
+.pmd-qpos-sent-line.is-pending {
+  opacity: .72;
+}
+.pmd-qpos-syncing {
+  color: var(--q-accent) !important;
+  font-weight: 800;
+}
+
 
 .pmd-qpos-cart-list {
   min-height: 90px;
@@ -581,8 +599,8 @@ button, a { -webkit-tap-highlight-color: transparent; }
 }
 .pmd-qpos-line-qty button,
 .pmd-qpos-line-remove {
-  width: 30px;
-  height: 30px;
+  width: 44px;
+  height: 52px;
   border: 1px solid var(--q-line);
   background: #fff;
   border-radius: 8px;
@@ -638,14 +656,14 @@ button, a { -webkit-tap-highlight-color: transparent; }
 
 .pmd-qpos-cart-actions {
   display: grid;
-  grid-template-columns: 86px 1fr 90px;
-  gap: 7px;
+  grid-template-columns: .62fr 1.55fr 1fr;
+  gap: 8px;
   padding: 9px 10px 10px;
 }
 .pmd-qpos-cart-actions button,
 .pmd-qpos-table-actions button {
-  min-height: 48px;
-  border-radius: 11px;
+  min-height: 58px;
+  border-radius: 12px;
   font-weight: 850;
   font-size: 12px;
   cursor: pointer;
@@ -676,7 +694,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
   padding: 0 10px 10px;
 }
 .pmd-qpos-table-actions button {
-  min-height: 38px;
+  min-height: 48px;
   border: 1px solid var(--q-line);
   background: #f9fafb;
   color: #374151;
@@ -741,7 +759,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
   border-top: 1px solid var(--q-line);
 }
 .pmd-qpos-modal-primary {
-  min-height: 50px;
+  min-height: 58px;
   border: 0;
   border-radius: 12px;
   padding: 0 22px;
@@ -757,8 +775,8 @@ button, a { -webkit-tap-highlight-color: transparent; }
   gap: 10px;
 }
 .pmd-qpos-modal-qty button {
-  width: 42px;
-  height: 42px;
+  width: 48px;
+  height: 48px;
   border: 1px solid var(--q-line);
   background: #fff;
   border-radius: 11px;
@@ -789,7 +807,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
   gap: 7px;
 }
 .pmd-qpos-option {
-  min-height: 44px;
+  min-height: 52px;
   border: 1px solid var(--q-line);
   background: #fff;
   border-radius: 10px;
@@ -843,12 +861,12 @@ button, a { -webkit-tap-highlight-color: transparent; }
   margin-bottom: 14px;
 }
 .pmd-qpos-payment-methods button {
-  min-height: 48px;
+  min-height: 56px;
   border: 1px solid var(--q-line);
   background: #fff;
-  border-radius: 11px;
+  border-radius: 12px;
   cursor: pointer;
-  font-weight: 800;
+  font-weight: 850;
 }
 .pmd-qpos-payment-methods button.is-active {
   background: var(--q-primary);
@@ -1102,4 +1120,30 @@ button, a { -webkit-tap-highlight-color: transparent; }
   .pmd-qpos-product-image { margin: -8px -8px 7px; height: 56px; }
   .pmd-qpos-cart-actions { grid-template-columns: 72px 1fr 74px; }
   .pmd-qpos-payment-grid { grid-template-columns: 1fr; }
+}
+
+/* PMD_TOUCH_POS_V2
+   Coarse-pointer devices get larger targets and immediate press feedback. */
+@media (pointer: coarse) {
+  .pmd-qpos-product { min-height: 154px; }
+  .pmd-qpos-product:active,
+  .pmd-qpos-segmented button:active,
+  .pmd-qpos-categories button:active,
+  .pmd-qpos-cart-actions button:active,
+  .pmd-qpos-table-actions button:active,
+  .pmd-qpos-payment-methods button:active,
+  .pmd-qpos-tip-row button:active,
+  .pmd-qpos-option:active,
+  .pmd-qpos-line-qty button:active,
+  .pmd-qpos-line-remove:active {
+    filter: brightness(.93);
+  }
+
+  .pmd-qpos-cart-actions button {
+    font-size: 14px;
+  }
+
+  .pmd-qpos-product strong {
+    font-size: 14px;
+  }
 }
