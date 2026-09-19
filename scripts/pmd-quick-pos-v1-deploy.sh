@@ -21,6 +21,7 @@ FILES=(
   "app/admin/controllers/PmdQuickPosV1.php"
   "app/admin/controllers/PmdWaiterTableStateV154.php"
   "app/admin/controllers/concerns/PmdWaiterPosSaveEndpoint.php"
+  "app/admin/controllers/concerns/PmdWaiterPosOrderPersistenceConcern.php"
   "app/admin/controllers/concerns/PmdWaiterPosSettleEndpoint.php"
   "app/admin/views/pmd_quick_pos_v1.blade.php"
   "app/admin/views/_partials/pmd_side_menu2_single_menu.blade.php"
@@ -39,6 +40,7 @@ PHP_FILES=(
   "app/admin/controllers/PmdQuickPosV1.php"
   "app/admin/controllers/PmdWaiterTableStateV154.php"
   "app/admin/controllers/concerns/PmdWaiterPosSaveEndpoint.php"
+  "app/admin/controllers/concerns/PmdWaiterPosOrderPersistenceConcern.php"
   "app/admin/controllers/concerns/PmdWaiterPosSettleEndpoint.php"
   "app/main/widgets/MediaManager.php"
   "routes/admin-quick-mode.php"
@@ -170,7 +172,10 @@ grep -q "PMD_QUICK_POS_FAST_SETTLE_V1" "$STAGE/app/admin/controllers/concerns/Pm
 grep -q "PMD_TOUCH_NUMPAD_V1" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
 grep -q "PMD_TOUCH_NUMPAD_V1" "$STAGE/app/admin/assets/css/pmd-quick-pos-v1.css"
 grep -q "PMD_TABLE_STATE_PREFIX_SAFE_V169" "$STAGE/app/admin/controllers/PmdWaiterTableStateV154.php"
-grep -q "PMD_QPOS_NO_BOOT_FLASH_V1" "$STAGE/app/admin/assets/css/pmd-quick-pos-v1.css"
+grep -q "PMD_QPOS_STABLE_BOOT_V2" "$STAGE/app/admin/assets/css/pmd-quick-pos-v1.css"
+grep -q "PMD_QPOS_BLITZ_ACTION_V1" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
+grep -q "PMD_QUICK_POS_PAYMENT_HANDOFF_V1" "$STAGE/app/admin/controllers/concerns/PmdWaiterPosSaveEndpoint.php"
+grep -q "PMD_QUICK_POS_BATCH_MENU_HYDRATE_V1" "$STAGE/app/admin/controllers/concerns/PmdWaiterPosOrderPersistenceConcern.php"
 if grep -Fq "name: 'Card'" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"; then
   echo "ERROR: ambiguous Card payment label remains in Quick POS" >&2
   exit 1
@@ -181,7 +186,7 @@ grep -q "'cashierlab' =>" "$STAGE/app/Http/Middleware/PmdAdminRetiredPagesR77.ph
 grep -q "admin_url('pos')" "$STAGE/app/admin/views/_partials/pmd_side_menu2_single_menu.blade.php"
 
 # The new surface must continue to reuse the proven production authorities.
-for canonical in   "app/admin/controllers/PmdWaiterPosV1.php"   "app/admin/controllers/concerns/PmdWaiterPosSaveEndpoint.php"   "app/admin/controllers/concerns/PmdWaiterPosSettleEndpoint.php"   "app/admin/controllers/PmdWaiterTableStateV154.php"; do
+for canonical in   "app/admin/controllers/PmdWaiterPosV1.php"   "app/admin/controllers/concerns/PmdWaiterPosSaveEndpoint.php"   "app/admin/controllers/concerns/PmdWaiterPosOrderPersistenceConcern.php"   "app/admin/controllers/concerns/PmdWaiterPosSettleEndpoint.php"   "app/admin/controllers/PmdWaiterTableStateV154.php"; do
   if [ ! -f "$ROOT/$canonical" ]; then
     echo "ERROR: canonical POS authority missing: $canonical" >&2
     exit 1
