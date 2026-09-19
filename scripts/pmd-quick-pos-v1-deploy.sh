@@ -68,7 +68,6 @@ clear_runtime_caches() {
   cd "$ROOT"
   php artisan route:clear >/dev/null 2>&1 || true
   php artisan view:clear >/dev/null 2>&1 || true
-  php artisan clear-compiled >/dev/null 2>&1 || true
 }
 
 restore_files() {
@@ -208,8 +207,9 @@ for file in "${FILES[@]}"; do
     gid="$(stat -c '%g' "$ROOT/$file")"
     mode="$(stat -c '%a' "$ROOT/$file")"
   else
-    uid="$(stat -c '%u' "$ROOT")"
-    gid="$(stat -c '%g' "$ROOT")"
+    parent_dir="$ROOT/$(dirname "$file")"
+    uid="$(stat -c '%u' "$parent_dir")"
+    gid="$(stat -c '%g' "$parent_dir")"
     mode="0644"
   fi
 
