@@ -175,6 +175,14 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                     $order = new Orders_model();
                     $this->fillNewDeliveryOrder($order, $payload, $mode);
                     $order->order_type = Orders_model::COLLECTION;
+
+                    if (Schema::hasColumn('orders', 'first_name')) {
+                        $order->first_name = 'Takeaway';
+                    }
+                    if (Schema::hasColumn('orders', 'last_name')) {
+                        $order->last_name = 'Guest';
+                    }
+
                     $order->saveOrFail();
 
                     // Orders_model still carries legacy session-table behavior.
