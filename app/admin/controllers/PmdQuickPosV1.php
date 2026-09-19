@@ -1142,6 +1142,8 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
             }
 
             $itemRows = collect($itemsByOrder->get($orderId, collect()));
+            $itemSummary = '';
+            $itemCount = (int)$itemRows->count();
             if ($itemRows->isNotEmpty()) {
                 $summary = $itemRows
                     ->take(6)
@@ -1155,6 +1157,7 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                     $summary .= ' +'.($itemRows->count() - 6);
                 }
                 if ($summary !== '') {
+                    $itemSummary = $summary;
                     $parts[] = $summary;
                 }
             }
@@ -1182,6 +1185,9 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 'settlement_status' => $settlement,
                 'invoice_number' => $invoiceNumber,
                 'invoice_url' => '/admin/orders/invoice/'.$orderId,
+                'item_count' => $itemCount,
+                'item_summary' => $itemSummary,
+                'note' => $comment,
             ];
 
             foreach ($itemRows as $item) {
@@ -1287,6 +1293,15 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                         'order_id' => (int)($raw['order_id'] ?? 0),
                         'payment_method' => (string)($raw['payment_method'] ?? ''),
                         'amount' => (float)($raw['amount'] ?? 0),
+                        'tip_amount' => $tip,
+                        'cash_received' => array_key_exists('cash_received', $raw)
+                            && $raw['cash_received'] !== null
+                                ? (float)$raw['cash_received']
+                                : null,
+                        'change_due' => $change,
+                        'payer_label' => $payer,
+                        'payment_reference' => $reference,
+                        'payment_note' => $paymentNote,
                         'transaction_id' => $transactionId ?: null,
                         'receipt_url' => $transactionId > 0
                             ? '/admin/orders/split-receipt/'.$transactionId
@@ -1365,6 +1380,8 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                         'title' => 'Status · Order #'.(int)($raw['object_id'] ?? 0),
                         'detail' => $detail,
                         'order_id' => (int)($raw['object_id'] ?? 0),
+                        'status_name' => $statusName,
+                        'status_comment' => trim((string)($raw['comment'] ?? '')),
                     ];
                 }
             }
@@ -1607,6 +1624,10 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                         'order_id' => isset($raw['order_id'])
                             ? (int)$raw['order_id']
                             : null,
+                        'table_id' => (int)($raw['table_id'] ?? 0),
+                        'old_status' => (string)($raw['old_status'] ?? ''),
+                        'new_status' => (string)($raw['new_status'] ?? ''),
+                        'reason' => $reason,
                     ];
                 }
             }
