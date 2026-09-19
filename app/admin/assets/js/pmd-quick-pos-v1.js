@@ -318,6 +318,32 @@
     }
   }
 
+  function hydrateInitialBootstrap() {
+    var config = window.PMDQuickPOSConfig || {};
+    var json = config.initialBootstrap;
+
+    if (!json || json.ok === false) {
+      return false;
+    }
+
+    state.boot = json;
+    state.mode = json.mode || state.mode;
+    root.setAttribute('data-mode', state.mode);
+    state.settings = json.settings || {};
+    state.tables = Array.isArray(json.tables) ? json.tables : [];
+    state.menu = Array.isArray(json.menu_items) ? json.menu_items : [];
+    state.categories = Array.isArray(json.categories) ? json.categories : [];
+
+    var user = $('[data-qpos-user]');
+    if (user) user.textContent = (json.user && json.user.name) || 'Staff';
+
+    state.visualHydrated = true;
+    renderAll();
+    persistVisualCache(json);
+
+    return true;
+  }
+
   async function bootstrap(silent) {
     if (state.loading) return;
     state.loading = true;
@@ -2515,9 +2541,16 @@
     });
   }
 
-  hydrateVisualCache();
+  var hasInlineBootstrap = hydrateInitialBootstrap();
+  if (!hasInlineBootstrap) {
+    hydrateVisualCache();
+  }
+
   bind();
-  bootstrap(true);
+
+  if (!hasInlineBootstrap) {
+    bootstrap(true);
+  }
 
   window.PMDQuickPOSV1 = {
     state: state,
