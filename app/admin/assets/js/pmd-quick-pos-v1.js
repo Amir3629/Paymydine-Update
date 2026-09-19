@@ -156,6 +156,8 @@
       tipAmount: '',
       splitMode: 'full',
       splitParts: 1,
+      splitPercent: 50,
+      selectedItems: {},
       reference: '',
       externalConfirmed: false,
       terminal: null,
@@ -184,6 +186,61 @@
     el.__qposTimer = setTimeout(function () {
       el.classList.remove('is-show');
     }, 3200);
+  }
+
+  /* PMD_QPOS_PLATFORM_CONFIRM_V16
+   * Never hand cashier actions to the browser's native confirm UI. */
+  var confirmResolver = null;
+
+  function closeConfirm(result) {
+    var modal = $('[data-qpos-confirm-modal]');
+    if (modal) {
+      modal.classList.remove('is-open');
+      modal.setAttribute('aria-hidden', 'true');
+    }
+
+    var resolver = confirmResolver;
+    confirmResolver = null;
+    if (resolver) resolver(!!result);
+  }
+
+  function confirmAction(options) {
+    options = options || {};
+
+    var modal = $('[data-qpos-confirm-modal]');
+    var title = $('[data-qpos-confirm-title]');
+    var message = $('[data-qpos-confirm-message]');
+    var icon = $('[data-qpos-confirm-icon]');
+    var accept = $('[data-qpos-confirm-accept]');
+    var cancel = $('[data-qpos-confirm-cancel]');
+
+    if (!modal || !accept || !cancel) {
+      return Promise.resolve(false);
+    }
+
+    if (confirmResolver) {
+      closeConfirm(false);
+    }
+
+    if (title) title.textContent = String(options.title || 'Confirm action');
+    if (message) message.textContent = String(options.message || '');
+    if (icon) icon.textContent = String(options.icon || '!');
+    accept.textContent = String(options.confirmLabel || 'Confirm');
+    cancel.textContent = String(options.cancelLabel || 'Cancel');
+
+    var tone = String(options.tone || 'default');
+    modal.setAttribute('data-tone', tone);
+    accept.classList.toggle('is-danger', tone === 'danger');
+
+    modal.classList.add('is-open');
+    modal.setAttribute('aria-hidden', 'false');
+
+    return new Promise(function (resolve) {
+      confirmResolver = resolve;
+      window.requestAnimationFrame(function () {
+        try { accept.focus(); } catch (ignored) {}
+      });
+    });
   }
 
   function setOnline(online) {
@@ -650,37 +707,28 @@
         state.selectedTable &&
         Number(state.selectedTable.id) === Number(table.id);
 
-      var signals = [];
       var paymentState =
         String(table.status || 'available') === 'available'
           ? 'none'
           : String(table.payment_state || 'none');
 
-      if (paymentState === 'paid') {
-        signals.push(
-          '<span class="is-paid" title="Paid" aria-label="Paid">✓</span>'
-        );
-      } else if (paymentState === 'partial') {
-        signals.push(
-          '<span class="is-due" title="Partly paid" aria-label="Partly paid">½</span>'
-        );
-      } else if (paymentState === 'due') {
-        signals.push(
-          '<span class="is-due" title="Payment due" aria-label="Payment due">€</span>'
-        );
-      }
-
+      var signals = [];
       if (num(table.waiter_calls, 0) > 0) {
-        signals.push(
-          '<span class="is-call" title="Waiter call" aria-label="Waiter call">!</span>'
-        );
+        signals.push({kind: 'call', icon: '!', title: 'Waiter call'});
+      }
+      if (paymentState === 'partial') {
+        signals.push({kind: 'due', icon: '½', title: 'Partly paid'});
+      } else if (paymentState === 'due') {
+        signals.push({kind: 'due', icon: '€', title: 'Payment due'});
+      }
+      if (num(table.note_count, 0) > 0) {
+        signals.push({kind: 'note', icon: 'N', title: 'New note'});
+      }
+      if (paymentState === 'paid') {
+        signals.push({kind: 'paid', icon: '✓', title: 'Paid'});
       }
 
-      if (num(table.note_count, 0) > 0) {
-        signals.push(
-          '<span class="is-note" title="New note" aria-label="New note">N</span>'
-        );
-      }
+      var primarySignal = signals.length ? signals[0] : null;
 
       rows.push(
         '<button type="button" class="pmd-qpos-table' +
@@ -692,8 +740,15 @@
           '<small>' + esc(tableStatusLabel(table.status)) +
             (num(table.capacity, 0) > 0 ? ' · ' + esc(table.capacity) + 's' : '') +
           '</small>' +
-          (signals.length
-            ? '<span class="pmd-qpos-table-signals">' + signals.join('') + '</span>'
+          (primarySignal
+            ? '<span class="pmd-qpos-table-signal is-' + esc(primarySignal.kind) + '"' +
+                ' title="' + esc(primarySignal.title) + '"' +
+                ' aria-label="' + esc(primarySignal.title) + '">' +
+                '<b>' + esc(primarySignal.icon) + '</b>' +
+                (signals.length > 1
+                  ? '<em>+' + esc(signals.length - 1) + '</em>'
+                  : '') +
+              '</span>'
             : '') +
         '</button>'
       );
@@ -1214,7 +1269,13 @@ function renderOpenChecks() {
         !state.selectedTable ||
         Number(state.selectedTable.id) !== Number(table.id)
       ) &&
-      !window.confirm('Change table? Unsent items will be cleared.')
+      !(await confirmAction({
+        title: 'Change table?',
+        message: 'The unsent items in the current cart will be cleared.',
+        confirmLabel: 'Change table',
+        cancelLabel: 'Keep cart',
+        tone: 'danger'
+      }))
     ) {
       return;
     }
@@ -1284,7 +1345,7 @@ function renderOpenChecks() {
     }
   }
 
-  function selectFloor(id) {
+  async function selectFloor(id) {
     if (state.payment.open) {
       toast('Close payment first.', true);
       return;
@@ -1311,7 +1372,13 @@ function renderOpenChecks() {
 
     if (
       state.cart.length &&
-      !window.confirm('Change floor? Unsent items will be cleared.')
+      !(await confirmAction({
+        title: 'Change floor?',
+        message: 'The unsent items in the current cart will be cleared.',
+        confirmLabel: 'Change floor',
+        cancelLabel: 'Keep cart',
+        tone: 'danger'
+      }))
     ) {
       return;
     }
@@ -1332,7 +1399,7 @@ function renderOpenChecks() {
     renderAll();
   }
 
-  function selectPickup() {
+  async function selectPickup() {
     if (state.payment.open) {
       toast('Close payment first.', true);
       return;
@@ -1350,7 +1417,13 @@ function renderOpenChecks() {
 
     if (
       state.cart.length &&
-      !window.confirm('Switch to Pickup? Unsent table items will be cleared.')
+      !(await confirmAction({
+        title: 'Switch to Pickup?',
+        message: 'The unsent table items in the current cart will be cleared.',
+        confirmLabel: 'Switch to Pickup',
+        cancelLabel: 'Keep table',
+        tone: 'danger'
+      }))
     ) {
       return;
     }
@@ -1610,8 +1683,17 @@ function renderOpenChecks() {
     }
   }
 
-  function newCheck() {
-    if (state.cart.length && !window.confirm('Clear the current unsent cart?')) {
+  async function newCheck() {
+    if (
+      state.cart.length &&
+      !(await confirmAction({
+        title: 'Clear unsent cart?',
+        message: 'All unsent items on this check will be removed.',
+        confirmLabel: 'Clear cart',
+        cancelLabel: 'Keep items',
+        tone: 'danger'
+      }))
+    ) {
       return;
     }
 
@@ -1882,6 +1964,8 @@ function renderOpenChecks() {
       tipAmount: '',
       splitMode: 'full',
       splitParts: 1,
+      splitPercent: 50,
+      selectedItems: {},
       reference: '',
       externalConfirmed: false,
       terminal: null,
@@ -1950,6 +2034,73 @@ function renderOpenChecks() {
     return Math.max(0, Math.min(remaining, roundMoney(amount)));
   }
 
+  function paymentSelectedItemsPayload() {
+    var summary = state.payment.summary;
+    var selected = state.payment.selectedItems || {};
+    if (!summary || !Array.isArray(summary.items)) return [];
+
+    return summary.items.reduce(function (rows, item) {
+      var id = Number(item.order_menu_id || 0);
+      var qty = num(selected[String(id)], 0);
+      var unpaid = num(item.unpaid_quantity, 0);
+      qty = Math.max(0, Math.min(unpaid, qty));
+      if (id > 0 && qty > 0.0001) {
+        rows.push({order_menu_id: id, quantity: qty});
+      }
+      return rows;
+    }, []);
+  }
+
+  function selectedItemsGross() {
+    var summary = state.payment.summary;
+    if (!summary || !Array.isArray(summary.items)) return 0;
+
+    var ratio = Math.max(
+      0.000001,
+      num(summary.settlement && summary.settlement.gross_ratio, 1)
+    );
+    var selected = state.payment.selectedItems || {};
+
+    return roundMoney(summary.items.reduce(function (sum, item) {
+      var id = Number(item.order_menu_id || 0);
+      var qty = Math.max(
+        0,
+        Math.min(
+          num(item.unpaid_quantity, 0),
+          num(selected[String(id)], 0)
+        )
+      );
+      return sum + (num(item.unit_price, 0) * qty * ratio);
+    }, 0));
+  }
+
+  function syncSplitAmount() {
+    var remaining = paymentRemaining();
+    var mode = String(state.payment.splitMode || 'full');
+    var amount = remaining;
+
+    if (mode === 'equal') {
+      var parts = Math.max(2, Math.min(20, Number(state.payment.splitParts || 2)));
+      state.payment.splitParts = parts;
+      amount = roundMoney(remaining / parts);
+    } else if (mode === 'items') {
+      amount = selectedItemsGross();
+    } else if (mode === 'shares') {
+      var percent = Math.max(0, Math.min(100, num(state.payment.splitPercent, 50)));
+      amount = roundMoney(remaining * percent / 100);
+    }
+
+    state.payment.amount = amount > 0 ? amount.toFixed(2) : '';
+
+    if (state.payment.method === 'cash') {
+      state.payment.cashReceived = amount > 0
+        ? paymentCharge().toFixed(2)
+        : '';
+    }
+
+    return amount;
+  }
+
   /* PMD_QPOS_SPLIT_TIP_V1 */
   function paymentTip() {
     if (state.payment.tipMode === 'custom') {
@@ -1967,39 +2118,77 @@ function renderOpenChecks() {
     return roundMoney(paymentAmount() + paymentTip());
   }
 
-  function applySplitSelection(value) {
+  /* PMD_QPOS_SPLIT_BILL_V16
+   * Mirrors the customer digital-menu concepts: equal, items and shares. */
+  function applySplitMode(mode) {
     if (!state.payment.open || state.payment.method === 'direct_terminal') {
       return;
     }
 
-    value = String(value || '1');
-    var remaining = paymentRemaining();
-
-    if (value === 'custom') {
-      state.payment.splitMode = 'custom';
-      state.payment.splitParts = 0;
-      state.payment.touchKeypadTarget = 'amount';
-      state.payment.touchKeypadFresh = true;
-      renderPayment();
-      return;
+    mode = String(mode || 'full');
+    if (['full', 'equal', 'items', 'shares'].indexOf(mode) === -1) {
+      mode = 'full';
     }
 
-    var parts = Math.max(1, Math.min(20, Number(value) || 1));
-    state.payment.splitParts = parts;
-    state.payment.splitMode = parts > 1 ? 'equal' : 'full';
-    state.payment.amount = (
-      parts > 1
-        ? roundMoney(remaining / parts)
-        : roundMoney(remaining)
-    ).toFixed(2);
+    state.payment.splitMode = mode;
 
-    if (state.payment.method === 'cash') {
-      state.payment.cashReceived = paymentCharge().toFixed(2);
-      state.payment.touchKeypadTarget = 'cash';
+    if (mode === 'equal' && Number(state.payment.splitParts || 0) < 2) {
+      state.payment.splitParts = 2;
+    }
+    if (mode === 'shares' && num(state.payment.splitPercent, 0) <= 0) {
+      state.payment.splitPercent = 50;
+    }
+
+    syncSplitAmount();
+    state.payment.touchKeypadTarget =
+      mode === 'shares'
+        ? 'share'
+        : (state.payment.method === 'cash' ? 'cash' : 'amount');
+    state.payment.touchKeypadFresh = true;
+    renderPayment();
+  }
+
+  function adjustSplitPeople(delta) {
+    if (state.payment.splitMode !== 'equal') return;
+    state.payment.splitParts = Math.max(
+      2,
+      Math.min(20, Number(state.payment.splitParts || 2) + Number(delta || 0))
+    );
+    syncSplitAmount();
+    renderPayment();
+  }
+
+  function toggleSplitItem(orderMenuId) {
+    if (state.payment.splitMode !== 'items' || !state.payment.summary) return;
+
+    var item = (state.payment.summary.items || []).find(function (row) {
+      return Number(row.order_menu_id || 0) === Number(orderMenuId);
+    });
+    if (!item) return;
+
+    var key = String(Number(orderMenuId));
+    var selected = state.payment.selectedItems || {};
+    var current = num(selected[key], 0);
+
+    if (current > 0.0001) {
+      delete selected[key];
     } else {
-      state.payment.touchKeypadTarget = 'amount';
+      selected[key] = num(item.unpaid_quantity, 0);
     }
 
+    state.payment.selectedItems = selected;
+    syncSplitAmount();
+    renderPayment();
+  }
+
+  function applySharePercent(value) {
+    if (state.payment.method === 'direct_terminal') return;
+
+    var percent = Math.max(0, Math.min(100, num(value, 0)));
+    state.payment.splitMode = 'shares';
+    state.payment.splitPercent = percent;
+    syncSplitAmount();
+    state.payment.touchKeypadTarget = 'share';
     state.payment.touchKeypadFresh = true;
     renderPayment();
   }
@@ -2010,26 +2199,109 @@ function renderOpenChecks() {
 
     var terminal = state.payment.method === 'direct_terminal';
     wrap.hidden = terminal;
+    if (terminal) return;
 
-    var active = state.payment.splitMode || 'full';
-    var parts = Math.max(1, Number(state.payment.splitParts || 1));
+    var mode = String(state.payment.splitMode || 'full');
+    var remaining = paymentRemaining();
 
-    $$('[data-qpos-split]', wrap).forEach(function (button) {
-      var value = String(button.getAttribute('data-qpos-split') || '');
-      var isActive =
-        value === 'custom'
-          ? active === 'custom'
-          : (
-              active === 'full'
-                ? value === '1'
-                : (
-                    active === 'equal' &&
-                    Number(value) === parts
-                  )
-            );
+    $$('[data-qpos-split-mode]', wrap).forEach(function (button) {
+      var value = String(button.getAttribute('data-qpos-split-mode') || '');
+      button.classList.toggle('is-active', value === mode);
+    });
 
-      button.classList.toggle('is-active', isActive);
-      button.disabled = terminal;
+    var equal = $('[data-qpos-split-equal]', wrap);
+    var items = $('[data-qpos-split-items]', wrap);
+    var shares = $('[data-qpos-split-shares]', wrap);
+    if (equal) equal.hidden = mode !== 'equal';
+    if (items) items.hidden = mode !== 'items';
+    if (shares) shares.hidden = mode !== 'shares';
+
+    var summary = $('[data-qpos-split-summary]', wrap);
+    if (summary) {
+      if (mode === 'equal') {
+        summary.textContent =
+          '1 of ' + Math.max(2, Number(state.payment.splitParts || 2)) +
+          ' · ' + money(paymentAmount());
+      } else if (mode === 'items') {
+        var selectedCount = paymentSelectedItemsPayload().length;
+        summary.textContent =
+          selectedCount
+            ? selectedCount + ' item' + (selectedCount === 1 ? '' : 's') +
+              ' · ' + money(paymentAmount())
+            : 'Choose unpaid items';
+      } else if (mode === 'shares') {
+        summary.textContent =
+          Number(num(state.payment.splitPercent, 0).toFixed(2)) +
+          '% · ' + money(paymentAmount());
+      } else {
+        summary.textContent = 'Pay full bill · ' + money(remaining);
+      }
+    }
+
+    var people = $('[data-qpos-split-people]', wrap);
+    var each = $('[data-qpos-split-each]', wrap);
+    if (people) people.textContent = String(Math.max(2, Number(state.payment.splitParts || 2)));
+    if (each) each.textContent = money(paymentAmount());
+
+    var itemList = $('[data-qpos-split-items-list]', wrap);
+    var itemTotal = $('[data-qpos-split-items-total]', wrap);
+    if (itemTotal) itemTotal.textContent = money(paymentAmount());
+
+    if (itemList && mode === 'items') {
+      var rows = state.payment.summary && Array.isArray(state.payment.summary.items)
+        ? state.payment.summary.items.filter(function (item) {
+            return num(item.unpaid_quantity, 0) > 0.0001;
+          })
+        : [];
+
+      if (!rows.length) {
+        itemList.innerHTML =
+          '<div class="pmd-qpos-split-empty">No unpaid items remain.</div>';
+      } else {
+        itemList.innerHTML = rows.map(function (item) {
+          var id = Number(item.order_menu_id || 0);
+          var selectedQty = num(
+            (state.payment.selectedItems || {})[String(id)],
+            0
+          );
+          var active = selectedQty > 0.0001;
+          var gross = num(item.unpaid_gross, 0);
+          return (
+            '<button type="button" class="pmd-qpos-split-item' +
+              (active ? ' is-selected' : '') + '"' +
+              ' data-qpos-split-item="' + esc(id) + '">' +
+              '<span class="pmd-qpos-split-item-check">' +
+                (active ? '✓' : '') +
+              '</span>' +
+              '<span><b>' + esc(item.name || 'Item') + '</b>' +
+                '<small>' + esc(num(item.unpaid_quantity, 0)) + ' unpaid</small></span>' +
+              '<strong>' + money(gross) + '</strong>' +
+            '</button>'
+          );
+        }).join('');
+
+        $$('[data-qpos-split-item]', itemList).forEach(function (button) {
+          button.onclick = function () {
+            toggleSplitItem(button.getAttribute('data-qpos-split-item'));
+          };
+        });
+      }
+    }
+
+    var shareInput = $('[data-qpos-share-percent]', wrap);
+    var shareAmount = $('[data-qpos-share-amount]', wrap);
+    if (shareInput && document.activeElement !== shareInput) {
+      shareInput.value = String(Number(num(state.payment.splitPercent, 0).toFixed(2)));
+    }
+    if (shareAmount) shareAmount.textContent = money(paymentAmount());
+
+    $$('[data-qpos-share-preset]', wrap).forEach(function (button) {
+      var preset = num(button.getAttribute('data-qpos-share-preset'), 0);
+      button.classList.toggle(
+        'is-active',
+        mode === 'shares' &&
+        Math.abs(preset - num(state.payment.splitPercent, 0)) < 0.02
+      );
     });
   }
 
@@ -2082,9 +2354,10 @@ function renderOpenChecks() {
       state.payment.amount = roundMoney(
         num(json.settlement && json.settlement.remaining_amount, 0)
       ).toFixed(2);
+      syncSplitAmount();
       state.payment.cashReceived =
         state.payment.method === 'cash'
-          ? state.payment.amount
+          ? (paymentAmount() > 0 ? paymentCharge().toFixed(2) : '')
           : '';
 
       if (
@@ -2180,6 +2453,8 @@ function renderOpenChecks() {
             state.payment.tipAmount = '';
             state.payment.splitMode = 'full';
             state.payment.splitParts = 1;
+            state.payment.splitPercent = 50;
+            state.payment.selectedItems = {};
             state.payment.touchKeypadTarget = 'amount';
             state.payment.touchKeypadFresh = true;
           } else {
@@ -2189,6 +2464,8 @@ function renderOpenChecks() {
             state.payment.tipAmount = '';
             state.payment.splitMode = 'full';
             state.payment.splitParts = 1;
+            state.payment.splitPercent = 50;
+            state.payment.selectedItems = {};
             state.payment.cashReceived = paymentCharge().toFixed(2);
             state.payment.touchKeypadTarget = 'cash';
             state.payment.touchKeypadFresh = true;
@@ -2315,6 +2592,14 @@ function renderOpenChecks() {
       );
     }
 
+    if (target === 'share') {
+      return String(
+        state.payment.splitPercent == null
+          ? ''
+          : state.payment.splitPercent
+      );
+    }
+
     return String(
       state.payment.amount == null
         ? ''
@@ -2341,6 +2626,7 @@ function renderOpenChecks() {
     var amountEl = $('[data-qpos-payment-amount]');
     var cashEl = $('[data-qpos-cash-received]');
     var tipEl = $('[data-qpos-tip-amount]');
+    var shareEl = $('[data-qpos-share-percent]');
 
     if (!keypad) return;
 
@@ -2353,7 +2639,8 @@ function renderOpenChecks() {
     if (
       target !== 'amount' &&
       target !== 'cash' &&
-      target !== 'tip'
+      target !== 'tip' &&
+      target !== 'share'
     ) {
       target = state.payment.method === 'cash' ? 'cash' : 'amount';
       state.payment.touchKeypadTarget = target;
@@ -2362,7 +2649,7 @@ function renderOpenChecks() {
 
     if (
       state.payment.method !== 'cash' &&
-      (target === 'cash' || target === 'tip')
+      (target === 'cash' || target === 'tip' || target === 'share')
     ) {
       target = 'amount';
       state.payment.touchKeypadTarget = target;
@@ -2380,6 +2667,9 @@ function renderOpenChecks() {
     if (tipEl) {
       tipEl.classList.toggle('is-keypad-target', target === 'tip');
     }
+    if (shareEl) {
+      shareEl.classList.toggle('is-keypad-target', target === 'share');
+    }
 
     keypad.hidden = false;
     keypad.classList.toggle('is-locked', locked);
@@ -2394,19 +2684,30 @@ function renderOpenChecks() {
         : (
             target === 'cash'
               ? 'Cash'
-              : (target === 'tip' ? 'Tip' : 'Pay')
+              : (
+                  target === 'tip'
+                    ? 'Tip'
+                    : (target === 'share' ? 'Share %' : 'Pay')
+                )
           );
     }
 
     if (value) {
-      value.textContent = money(num(touchKeypadDisplayValue(target), 0));
+      value.textContent =
+        target === 'share'
+          ? Number(num(touchKeypadDisplayValue(target), 0).toFixed(2)) + '%'
+          : money(num(touchKeypadDisplayValue(target), 0));
     }
 
     if (exact) {
       exact.textContent =
         target === 'cash'
           ? 'Exact'
-          : (target === 'tip' ? 'No tip' : 'Full');
+          : (
+              target === 'tip'
+                ? 'No tip'
+                : (target === 'share' ? '100%' : 'Full')
+            );
     }
   }
 
@@ -2416,7 +2717,8 @@ function renderOpenChecks() {
     if (
       target !== 'amount' &&
       target !== 'cash' &&
-      target !== 'tip'
+      target !== 'tip' &&
+      target !== 'share'
     ) {
       return;
     }
@@ -2472,10 +2774,22 @@ function renderOpenChecks() {
       if (state.payment.method === 'cash') {
         state.payment.cashReceived = paymentCharge().toFixed(2);
       }
+    } else if (target === 'share') {
+      state.payment.splitMode = 'shares';
+      state.payment.splitPercent = Math.max(0, Math.min(100, num(raw, 0)));
+      syncSplitAmount();
     } else {
       state.payment.amount = raw;
-      state.payment.splitMode = 'custom';
-      state.payment.splitParts = 0;
+      state.payment.splitMode = 'shares';
+      state.payment.splitPercent = paymentRemaining() > 0
+        ? Math.max(
+            0,
+            Math.min(
+              100,
+              num(raw, 0) / paymentRemaining() * 100
+            )
+          )
+        : 0;
 
       if (state.payment.method === 'cash') {
         state.payment.cashReceived = paymentCharge().toFixed(2);
@@ -2490,7 +2804,8 @@ function renderOpenChecks() {
     if (
       target !== 'amount' &&
       target !== 'cash' &&
-      target !== 'tip'
+      target !== 'tip' &&
+      target !== 'share'
     ) return;
 
     key = String(key || '');
@@ -2531,7 +2846,11 @@ function renderOpenChecks() {
       raw = (
         target === 'cash'
           ? paymentCharge()
-          : (target === 'tip' ? 0 : paymentRemaining())
+          : (
+              target === 'tip'
+                ? 0
+                : (target === 'share' ? 100 : paymentRemaining())
+            )
       ).toFixed(2);
       state.payment.touchKeypadFresh = true;
       setTouchKeypadValue(target, raw);
@@ -2817,25 +3136,29 @@ function renderOpenChecks() {
           provider_code: state.payment.method === 'external_terminal'
             ? 'external_terminal'
             : null,
-          split_mode:
-            Math.abs(amount - remaining) <= 0.02
-              ? 'full'
-              : (
-                  state.payment.splitMode === 'equal'
-                    ? 'equal'
-                    : 'custom'
-                ),
+          split_mode: String(state.payment.splitMode || 'full'),
           amount: amount,
-          selected_items: null,
+          selected_items:
+            state.payment.splitMode === 'items'
+              ? paymentSelectedItemsPayload()
+              : null,
+          share_percent:
+            state.payment.splitMode === 'shares'
+              ? num(state.payment.splitPercent, 0)
+              : null,
           tip_amount: paymentTip(),
           coupon_code: null,
           payer_label:
             state.payment.splitMode === 'equal' && state.payment.splitParts > 1
               ? ('Equal split 1/' + state.payment.splitParts)
               : (
-                  state.payment.splitMode === 'custom'
-                    ? 'Custom split'
-                    : ''
+                  state.payment.splitMode === 'items'
+                    ? 'Selected items'
+                    : (
+                        state.payment.splitMode === 'shares'
+                          ? ('Share ' + Number(num(state.payment.splitPercent, 0).toFixed(2)) + '%')
+                          : ''
+                      )
                 ),
           payment_reference: state.payment.reference,
           cash_received: state.payment.method === 'cash'
@@ -2869,24 +3192,27 @@ function renderOpenChecks() {
       if (
         splitModeBefore === 'equal' &&
         splitPartsBefore > 1 &&
-        num(
-          state.payment.summary.settlement &&
-          state.payment.summary.settlement.remaining_amount,
-          0
-        ) > 0.005
+        paymentRemaining() > 0.005
       ) {
         var nextParts = splitPartsBefore - 1;
         state.payment.splitParts = nextParts;
         state.payment.splitMode = nextParts > 1 ? 'equal' : 'full';
-        state.payment.amount = (
-          nextParts > 1
-            ? roundMoney(paymentRemaining() / nextParts)
-            : roundMoney(paymentRemaining())
-        ).toFixed(2);
+      } else if (
+        splitModeBefore === 'items' &&
+        paymentRemaining() > 0.005
+      ) {
+        state.payment.splitMode = 'items';
+        state.payment.selectedItems = {};
+      } else if (
+        splitModeBefore === 'shares' &&
+        paymentRemaining() > 0.005
+      ) {
+        state.payment.splitMode = 'shares';
       } else {
         state.payment.splitMode = 'full';
         state.payment.splitParts = 1;
       }
+      syncSplitAmount();
 
       state.payment.cashReceived =
         state.payment.method === 'cash'
@@ -3808,8 +4134,16 @@ function renderOpenChecks() {
     if (amount) {
       amount.addEventListener('input', function () {
         state.payment.amount = normalizeTouchKeypadValue(amount.value);
-        state.payment.splitMode = 'custom';
-        state.payment.splitParts = 0;
+        state.payment.splitMode = 'shares';
+        state.payment.splitPercent = paymentRemaining() > 0
+          ? Math.max(
+              0,
+              Math.min(
+                100,
+                num(state.payment.amount, 0) / paymentRemaining() * 100
+              )
+            )
+          : 0;
         if (amount.value !== state.payment.amount) {
           amount.value = state.payment.amount;
         }
@@ -3876,11 +4210,45 @@ function renderOpenChecks() {
       tipAmount.addEventListener('click', openCustomTip);
     }
 
-    $$('[data-qpos-split]').forEach(function (button) {
+    $('[data-qpos-split-mode]').forEach(function (button) {
       button.onclick = function () {
-        applySplitSelection(button.getAttribute('data-qpos-split'));
+        applySplitMode(button.getAttribute('data-qpos-split-mode'));
       };
     });
+
+    var splitPeopleMinus = $('[data-qpos-split-people-minus]');
+    var splitPeoplePlus = $('[data-qpos-split-people-plus]');
+    if (splitPeopleMinus) splitPeopleMinus.onclick = function () {
+      adjustSplitPeople(-1);
+    };
+    if (splitPeoplePlus) splitPeoplePlus.onclick = function () {
+      adjustSplitPeople(1);
+    };
+
+    $('[data-qpos-share-preset]').forEach(function (button) {
+      button.onclick = function () {
+        applySharePercent(button.getAttribute('data-qpos-share-preset'));
+      };
+    });
+
+    var sharePercent = $('[data-qpos-share-percent]');
+    if (sharePercent) {
+      sharePercent.addEventListener('input', function () {
+        state.payment.splitMode = 'shares';
+        state.payment.splitPercent = Math.max(
+          0,
+          Math.min(100, num(sharePercent.value, 0))
+        );
+        syncSplitAmount();
+        renderPaymentTotals();
+      });
+      sharePercent.addEventListener('focus', function () {
+        openTouchKeypad('share');
+      });
+      sharePercent.addEventListener('click', function () {
+        openTouchKeypad('share');
+      });
+    }
 
     $$('[data-qpos-keypad-key]').forEach(function (button) {
       button.onclick = function () {
@@ -3992,6 +4360,20 @@ function renderOpenChecks() {
       loadHistory();
     };
 
+    var confirmModal = $('[data-qpos-confirm-modal]');
+    var confirmCancel = $('[data-qpos-confirm-cancel]');
+    var confirmAccept = $('[data-qpos-confirm-accept]');
+
+    if (confirmCancel) confirmCancel.onclick = function () {
+      closeConfirm(false);
+    };
+    if (confirmAccept) confirmAccept.onclick = function () {
+      closeConfirm(true);
+    };
+    if (confirmModal) confirmModal.addEventListener('click', function (event) {
+      if (event.target === confirmModal) closeConfirm(false);
+    });
+
     var profileToggle = $('[data-qpos-profile-toggle]');
     var profileMenu = $('[data-qpos-profile-menu]');
     if (profileToggle && profileMenu) {
@@ -4052,12 +4434,18 @@ function renderOpenChecks() {
       updateTableStatus('cleaning', false);
     };
 
-    if (free) free.onclick = function () {
+    if (free) free.onclick = async function () {
       var status = String(state.selectedTable && state.selectedTable.status || '');
       var skip = status === 'occupied';
       if (
         skip &&
-        !window.confirm('Set this occupied table directly to free and skip cleaning?')
+        !(await confirmAction({
+          title: 'Set table free now?',
+          message: 'This table is occupied. Free it directly and skip the cleaning step?',
+          confirmLabel: 'Free table now',
+          cancelLabel: 'Keep occupied',
+          tone: 'danger'
+        }))
       ) {
         return;
       }
@@ -4068,6 +4456,7 @@ function renderOpenChecks() {
 
     window.addEventListener('keydown', function (event) {
       if (event.key === 'Escape') {
+        closeConfirm(false);
         closeModifier();
         closeItemNote();
         closeHistory();
