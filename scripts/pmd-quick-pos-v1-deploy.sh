@@ -202,6 +202,10 @@ grep -q "PMD_QPOS_PAYMENT_WORKSPACE_V16" "$STAGE/app/admin/assets/css/pmd-quick-
 grep -q "PMD_QPOS_PLATFORM_CONFIRM_V16" "$STAGE/app/admin/assets/css/pmd-quick-pos-v1.css"
 grep -q "PMD_QPOS_PLATFORM_CONFIRM_V16" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
 grep -q "PMD_QPOS_SPLIT_BILL_V16" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
+grep -q "PMD_QPOS_PAYMENT_LAYOUT_FIX_V17" "$STAGE/app/admin/assets/css/pmd-quick-pos-v1.css"
+grep -q "PMD_QPOS_CONFIRM_COMPACT_V17" "$STAGE/app/admin/assets/css/pmd-quick-pos-v1.css"
+grep -q "PMD_QPOS_HISTORY_NO_BLINK_V17" "$STAGE/app/admin/assets/css/pmd-quick-pos-v1.css"
+grep -q "PMD_QPOS_HISTORY_NO_BLINK_V17" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
 grep -q "PMD_QPOS_HISTORY_BROWSER_V15" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
 grep -q "PMD_QPOS_TABLE_SIGNALS_V15" "$STAGE/app/admin/assets/css/pmd-quick-pos-v1.css"
 grep -q "PMD_QPOS_TABLE_SIGNALS_V15" "$STAGE/app/admin/controllers/PmdQuickPosV1.php"
@@ -236,6 +240,10 @@ if grep -Fq "name: 'Card'" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"; the
 fi
 if grep -Fq 'window.confirm(' "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"; then
   echo "ERROR: browser-native window.confirm remains in Quick POS" >&2
+  exit 1
+fi
+if grep -Fq "This table is occupied. Free it directly and skip the cleaning step?" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"; then
+  echo "ERROR: verbose table-free confirmation copy remains in Quick POS" >&2
   exit 1
 fi
 if grep -Fq 'data-qpos-service=' "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"; then
@@ -288,8 +296,8 @@ if grep -Fq 'data-qpos-touch-keypad hidden' "$STAGE/app/admin/views/pmd_quick_po
   exit 1
 fi
 grep -q "data-qpos-cash-signature" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
-grep -q "pmd-quick-pos-v1.js?v=20260919-16" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
-grep -q "pmd-quick-pos-v1.css?v=20260919-16" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
+grep -q "pmd-quick-pos-v1.js?v=20260919-17" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
+grep -q "pmd-quick-pos-v1.css?v=20260919-17" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
 grep -Fq "\$\$('[data-cash-value]', box).forEach" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
 grep -Fq "\$\$('[data-payment-method]', box).forEach" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
 grep -Fq "\$\$('[data-qpos-keypad-key]', keypad).forEach" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
