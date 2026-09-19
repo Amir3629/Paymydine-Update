@@ -752,7 +752,6 @@
     }
 
     renderCart();
-    toast(item.name + ' added');
   }
 
   function changeCartQty(index, delta) {
