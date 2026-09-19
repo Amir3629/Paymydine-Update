@@ -754,13 +754,21 @@
     }
 
     if (pay) {
+      var canPayPermission =
+        (state.boot && state.boot.permissions && state.boot.permissions.payments) !== false;
+
       pay.disabled =
-        !activeOrder() ||
-        state.cart.length > 0 ||
         !!state.pendingSend ||
         state.submitting ||
-        !((state.boot && state.boot.permissions && state.boot.permissions.payments) !== false);
-      pay.textContent = 'Pay';
+        !canPayPermission ||
+        (
+          !activeOrder() &&
+          !(canOrderNow() && state.cart.length > 0)
+        );
+
+      pay.textContent = state.cart.length > 0
+        ? 'Send & Pay'
+        : 'Pay';
     }
 
     renderContext();
@@ -945,7 +953,7 @@
     }
   }
 
-  async function submitOrder(mode) {
+  async function submitOrder(mode, afterSuccess) {
     if (state.submitting || !state.cart.length) return;
 
     if (!canOrderNow()) {
@@ -1038,6 +1046,12 @@
       window.dispatchEvent(new CustomEvent('pmd:quick-pos-order-updated', {
         detail: json
       }));
+
+      if (afterSuccess === 'pay') {
+        setTimeout(function () {
+          openPayment();
+        }, 0);
+      }
 
       // Server reconciliation is background-only. The successful POST already
       // returned authoritative ids/totals, so the cashier never waits for a
@@ -1843,7 +1857,13 @@
     var pay = $('[data-qpos-pay]');
     if (hold) hold.onclick = function () { submitOrder('hold'); };
     if (send) send.onclick = function () { submitOrder('send'); };
-    if (pay) pay.onclick = openPayment;
+    if (pay) pay.onclick = function () {
+      if (state.cart.length > 0) {
+        submitOrder('send', 'pay');
+        return;
+      }
+      openPayment();
+    };
 
     var newCheckButton = $('[data-qpos-new-check]');
     if (newCheckButton) newCheckButton.onclick = newCheck;
