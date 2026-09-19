@@ -1370,31 +1370,90 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
             }
         }
 
-        if ($scope === 'table' && $tableId > 0 && Schema::hasTable('table_notes')) {
+        if ($scope !== 'pickup' && Schema::hasTable('table_notes')) {
             $cols = Schema::getColumnListing('table_notes');
             if (in_array('table_id', $cols, true)) {
-                $rows = DB::table('table_notes')
-                    ->where('table_id', $tableId)
+                $tableNoteQuery = DB::table('table_notes');
+
+                if ($scope === 'table' && $tableId > 0) {
+                    $tableNoteQuery->where('table_id', $tableId);
+                } elseif ($scope === 'all') {
+                    $locationTableIds = array_values(array_filter(array_map(
+                        'intval',
+                        array_column(
+                            $this->quickPosTables($locationId, [], '', false),
+                            'id'
+                        )
+                    )));
+
+                    if ($locationTableIds) {
+                        $tableNoteQuery->whereIn('table_id', $locationTableIds);
+                    } else {
+                        $tableNoteQuery->whereRaw('1 = 0');
+                    }
+                }
+
+                $timeColumn = in_array('created_at', $cols, true)
+                    ? 'created_at'
+                    : (
+                        in_array('timestamp', $cols, true)
+                            ? 'timestamp'
+                            : null
+                    );
+
+                if ($timeColumn) {
+                    if ($fromDate !== '') {
+                        $tableNoteQuery->where(
+                            $timeColumn,
+                            '>=',
+                            $fromDate.' 00:00:00'
+                        );
+                    }
+                    if ($toDate !== '') {
+                        $tableNoteQuery->where(
+                            $timeColumn,
+                            '<=',
+                            $toDate.' 23:59:59'
+                        );
+                    }
+                }
+
+                $rows = $tableNoteQuery
                     ->orderByDesc(
-                        in_array('created_at', $cols, true)
-                            ? 'created_at'
-                            : (in_array('timestamp', $cols, true) ? 'timestamp' : 'id')
+                        $timeColumn
+                            ?: (in_array('id', $cols, true) ? 'id' : 'table_id')
                     )
-                    ->limit(min(50, $limit))
+                    ->limit(min(180, $limit))
                     ->get();
 
                 foreach ($rows as $row) {
                     $raw = (array)$row;
-                    $note = trim((string)($raw['note'] ?? $raw['message'] ?? ''));
+                    $note = trim((string)(
+                        $raw['note']
+                        ?? $raw['message']
+                        ?? ''
+                    ));
                     if ($note === '') {
                         continue;
                     }
+
+                    $noteTableId = (int)($raw['table_id'] ?? 0);
                     $entries[] = [
                         'kind' => 'table_note',
-                        'time' => (string)($raw['created_at'] ?? $raw['timestamp'] ?? ''),
-                        'title' => 'Table note',
+                        'time' => (string)(
+                            $raw['created_at']
+                            ?? $raw['timestamp']
+                            ?? $raw['updated_at']
+                            ?? ''
+                        ),
+                        'title' => $noteTableId > 0
+                            ? 'Table note · Table '.$noteTableId
+                            : 'Table note',
                         'detail' => $note,
-                        'order_id' => null,
+                        'order_id' => isset($raw['order_id'])
+                            ? (int)$raw['order_id']
+                            : null,
+                        'table_id' => $noteTableId ?: null,
                     ];
                 }
             }
@@ -1527,7 +1586,7 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                             ? 'created_at'
                             : 'id'
                     )
-                    ->limit(min(80, $limit))
+                    ->limit(min(240, $limit))
                     ->get();
 
                 foreach ($rows as $row) {
