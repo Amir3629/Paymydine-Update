@@ -120,6 +120,20 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
             $defaultFloorId = (string)$floors[0]['id'];
         }
 
+        $floorCookieName = 'pmd_qpos_floor_v1_'.$locationId;
+        $requestedFloorId = trim((string)request()->cookie(
+            $floorCookieName,
+            ''
+        ));
+        $activeFloor = $floorService->activeFloor(
+            $floors,
+            $requestedFloorId
+        );
+        $activeFloorId = trim((string)($activeFloor['id'] ?? ''));
+        if ($activeFloorId === '') {
+            $activeFloorId = $defaultFloorId;
+        }
+
         $tables = $this->quickPosTables(
             $locationId,
             $floorSnapshot,
@@ -151,6 +165,8 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
             ],
             'floors' => $floors,
             'default_floor_id' => $defaultFloorId,
+            'active_floor_id' => $activeFloorId,
+            'floor_cookie_name' => $floorCookieName,
             'tables' => $tables,
             'categories' => array_values((array)($menu['categories'] ?? [])),
             'menu_items' => array_values((array)($menu['items'] ?? [])),
