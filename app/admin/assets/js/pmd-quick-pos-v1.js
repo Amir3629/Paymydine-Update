@@ -274,7 +274,7 @@
         await loadTable(state.selectedTable.id, true);
       }
 
-      if (!silent) toast('POS refreshed');
+
     } catch (error) {
       toast(error.message || 'POS could not be loaded.', true);
     } finally {
