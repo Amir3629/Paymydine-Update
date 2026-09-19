@@ -335,7 +335,59 @@ class PmdWaiterDashboardV150 extends PmdWaiterDashboardV149
             $query->orderByDesc($primaryKey);
         }
 
-        $snapshot = $query->limit(800)->get();
+        /*
+         * PMD_PERF_R16_SLIM_RECENT_ORDER_SNAPSHOT
+         *
+         * The shared 800-row snapshot is a mapping/status helper, not an order
+         * export. Selecting every orders column needlessly materialized large
+         * text/payment/address fields on every hot Admin request. Keep every
+         * field consumed by V150/V151 while leaving the 800-row safety window
+         * and ordering semantics unchanged.
+         */
+        $wantedColumns = array_values(array_unique(array_filter([
+            $primaryKey,
+            $dateColumn,
+            'table_id',
+            'dining_table_id',
+            'location_table_id',
+            'table_no',
+            'table_name',
+            'order_type',
+            'comment',
+            'status',
+            'order_status',
+            'status_name',
+            'status_id',
+            'payment_status',
+            'pay_status',
+            'is_paid',
+            'payment',
+            'order_total',
+            'total',
+            'total_amount',
+            'grand_total',
+            'settlement_status',
+            'settled_amount',
+            'processed',
+            'total_items',
+            'order_date',
+            'order_time',
+            'created_at',
+            'updated_at',
+            'deleted_at',
+        ])));
+
+        $selectColumns = array_values(array_filter(
+            $wantedColumns,
+            static function ($column) use ($columns) {
+                return in_array($column, $columns, true);
+            }
+        ));
+
+        $snapshot = $selectColumns
+            ? $query->limit(800)->get($selectColumns)
+            : $query->limit(800)->get();
+
         app()->instance($requestCacheKey, $snapshot);
 
         return $this->pmdRecentOrdersSnapshot = $snapshot;
