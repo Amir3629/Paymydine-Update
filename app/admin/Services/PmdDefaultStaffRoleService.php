@@ -362,10 +362,18 @@ class PmdDefaultStaffRoleService
         }
 
         if ($code === self::CASHIER || $code === self::WAITER) {
+            $isTerminalAttemptList =
+                preg_match(
+                    '#^admin/orders/[0-9]+/terminal-payment-attempts$#',
+                    $path
+                ) === 1;
+
             return $is('pos')
                 || $is('cashierlab')
                 || $is('pmd-waiter-pos-v1')
-                || $is('pmd-waiter-pos-v22');
+                || $is('pmd-waiter-pos-v22')
+                || $is('terminal-payments')
+                || $isTerminalAttemptList;
         }
         if ($code === self::ACCOUNTANT) return $is('accountantlab');
         if ($code === self::RESERVATIONS) return $is('reservationslab');
