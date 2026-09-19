@@ -3935,7 +3935,7 @@ function renderOpenChecks() {
       if (event.target === historyModal) closeHistory();
     });
 
-    $('[data-qpos-history-scope]').forEach(function (button) {
+    $$('[data-qpos-history-scope]').forEach(function (button) {
       button.onclick = function () {
         loadHistory(
           button.getAttribute('data-qpos-history-scope') || 'selected'
@@ -3943,7 +3943,7 @@ function renderOpenChecks() {
       };
     });
 
-    $('[data-qpos-history-preset]').forEach(function (button) {
+    $$('[data-qpos-history-preset]').forEach(function (button) {
       button.onclick = function () {
         setHistoryPreset(
           button.getAttribute('data-qpos-history-preset') || '7d',
@@ -3952,12 +3952,12 @@ function renderOpenChecks() {
       };
     });
 
-    $('[data-qpos-history-kind]').forEach(function (button) {
+    $$('[data-qpos-history-kind]').forEach(function (button) {
       button.onclick = function () {
         state.historyKind =
           button.getAttribute('data-qpos-history-kind') || 'orders';
 
-        $('[data-qpos-history-kind]').forEach(function (row) {
+        $$('[data-qpos-history-kind]').forEach(function (row) {
           row.classList.toggle(
             'is-active',
             row === button
@@ -3977,7 +3977,7 @@ function renderOpenChecks() {
     if (historyFrom) historyFrom.onchange = function () {
       state.historyFrom = historyFrom.value || '';
       state.historyPreset = 'custom';
-      $('[data-qpos-history-preset]').forEach(function (button) {
+      $$('[data-qpos-history-preset]').forEach(function (button) {
         button.classList.remove('is-active');
       });
       loadHistory();
@@ -3986,7 +3986,7 @@ function renderOpenChecks() {
     if (historyTo) historyTo.onchange = function () {
       state.historyTo = historyTo.value || '';
       state.historyPreset = 'custom';
-      $('[data-qpos-history-preset]').forEach(function (button) {
+      $$('[data-qpos-history-preset]').forEach(function (button) {
         button.classList.remove('is-active');
       });
       loadHistory();
