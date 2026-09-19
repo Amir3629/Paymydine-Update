@@ -291,7 +291,6 @@ class PmdTrustedLoginDeviceService
 
         $ownerSecurity = (array)session()->get('pmd_login_owner_security_v1', []);
         $pending = (array)session()->get(PmdSiteAccessService::SESSION_PENDING, []);
-        $challenge = $site->challengeForSession();
 
         $hasPendingOwner = !empty($ownerSecurity['user_id'])
             && (int)$ownerSecurity['user_id'] === $userId
@@ -304,20 +303,30 @@ class PmdTrustedLoginDeviceService
         $device = $this->current($request, $identity);
         if (!$device) return null;
 
-        $hasPendingWorkspace = $challenge
-            && (int)$challenge->user_id === $userId
-            && (int)$challenge->location_id === $locationId
-            && (string)$challenge->purpose === PmdSiteAccessService::PURPOSE_WORKSPACE
-            && in_array((string)$challenge->status, ['pending', 'approved'], true);
-
+        /*
+         * PMD_PERF_R20_VERIFIED_TRUST_FASTPATH
+         *
+         * A session that is already workspace-verified and still owns a valid,
+         * non-revoked trusted-device record has nothing to "resume". Avoid the
+         * pending-challenge DB lookup on this overwhelmingly common path. Fresh
+         * or unverified logins continue through the exact existing challenge
+         * validation below.
+         */
         if (
             !$hasPendingOwner
-            && !$hasPendingWorkspace
             && $site->isWorkspaceVerified($locationId)
         ) {
             $this->touch((int)$device->id);
             return null;
         }
+
+        $challenge = $site->challengeForSession();
+
+        $hasPendingWorkspace = $challenge
+            && (int)$challenge->user_id === $userId
+            && (int)$challenge->location_id === $locationId
+            && (string)$challenge->purpose === PmdSiteAccessService::PURPOSE_WORKSPACE
+            && in_array((string)$challenge->status, ['pending', 'approved'], true);
 
         if ($hasPendingWorkspace) {
             DB::table('pmd_site_access_challenges')
