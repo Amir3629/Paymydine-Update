@@ -225,8 +225,10 @@ button {
 
 .pmd-qpos-tables {
   min-height: 0;
+  flex: 1 1 auto;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 .pmd-qpos-panel-head {
   display: flex;
@@ -272,6 +274,7 @@ button {
 
 .pmd-qpos-table-grid {
   min-height: 0;
+  flex: 1 1 auto;
   overflow: auto;
   padding: 4px 10px 12px;
   display: grid;
@@ -1208,6 +1211,8 @@ button {
 /* Tablet */
 @media (max-width: 1180px) {
   .pmd-qpos-main { grid-template-columns: 220px minmax(360px,1fr) 340px; }
+  .pmd-qpos-work-link,
+  .pmd-qpos-online-dot { display: none; }
   .pmd-qpos-product-grid { grid-template-columns: repeat(auto-fill,minmax(130px,1fr)); }
   .pmd-qpos-user { display: none; }
 }
