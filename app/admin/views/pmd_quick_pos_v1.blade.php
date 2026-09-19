@@ -42,7 +42,7 @@
     <main class="pmd-qpos-main">
         <aside class="pmd-qpos-left">
             <section class="pmd-qpos-service" data-qpos-service-panel>
-                <div class="pmd-qpos-section-label">Order type</div>
+                <div class="pmd-qpos-section-label">Type</div>
                 <div class="pmd-qpos-segmented">
                     <button type="button" class="is-active" data-qpos-service="dine_in">Dine</button>
                     <button type="button" data-qpos-service="takeaway">Takeout</button>
@@ -77,7 +77,7 @@
             <div class="pmd-qpos-catalog-head">
                 <label class="pmd-qpos-search">
                     <span>⌕</span>
-                    <input type="search" autocomplete="off" placeholder="Search menu…" data-qpos-search>
+                    <input type="search" autocomplete="off" placeholder="Search…" data-qpos-search>
                 </label>
                 <button type="button" class="pmd-qpos-new-check" data-qpos-new-check>+ Check</button>
             </div>
@@ -155,7 +155,7 @@
         <div class="pmd-qpos-modal-card pmd-qpos-modifier-card">
             <header>
                 <div>
-                    <span class="pmd-qpos-section-label">Add item</span>
+                    <span class="pmd-qpos-section-label">Item</span>
                     <h2 data-qpos-modifier-name>Product</h2>
                 </div>
                 <button type="button" class="pmd-qpos-modal-close" data-qpos-modifier-close>×</button>
@@ -164,7 +164,7 @@
                 <div class="pmd-qpos-modifier-meta" data-qpos-modifier-meta></div>
                 <div data-qpos-modifier-options></div>
                 <label class="pmd-qpos-field">
-                    <span>Item note</span>
+                    <span>Note</span>
                     <input type="text" data-qpos-modifier-note placeholder="No onions, medium, allergy…">
                 </label>
             </div>
@@ -235,7 +235,7 @@
                             <span data-qpos-touch-keypad-label>Payment amount</span>
                             <strong data-qpos-touch-keypad-value>€0.00</strong>
                         </div>
-                        <small>Touch keypad</small>
+                        
                     </header>
                     <div class="pmd-qpos-touch-keypad-grid">
                         <button type="button" data-qpos-keypad-key="1">1</button>
@@ -269,12 +269,12 @@
                 </div>
 
                 <div class="pmd-qpos-terminals" data-qpos-terminals hidden>
-                    <span class="pmd-qpos-section-label">Connected terminal</span>
+                    <span class="pmd-qpos-section-label">Terminal</span>
                     <div data-qpos-terminal-list></div>
                 </div>
 
                 <div class="pmd-qpos-change" data-qpos-change hidden>
-                    Change due: <strong data-qpos-change-amount>€0.00</strong>
+                    Change <strong data-qpos-change-amount>€0.00</strong>
                 </div>
 
                 <div class="pmd-qpos-payment-error" data-qpos-payment-error hidden></div>
