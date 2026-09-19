@@ -1935,14 +1935,19 @@
     if (!box) return;
 
     box.hidden = state.payment.method !== 'cash';
-    if (box.hidden) {
-      box.innerHTML = '';
-      return;
-    }
+    if (box.hidden) return;
 
     var current = roundMoney(num(state.payment.cashReceived, 0));
     var values = cashPresetValues();
+    var signature = values.map(function (value) {
+      return String(roundMoney(value));
+    }).join('|') + '::' + String(current);
 
+    if (box.getAttribute('data-qpos-cash-signature') === signature) {
+      return;
+    }
+
+    box.setAttribute('data-qpos-cash-signature', signature);
     box.innerHTML = values.map(function (value, index) {
       var active = Math.abs(current - value) < 0.001;
       return (
@@ -1953,7 +1958,7 @@
       );
     }).join('');
 
-    $$('[data-cash-value]', box).forEach(function (button) {
+    $('[data-cash-value]', box).forEach(function (button) {
       button.onclick = function () {
         state.payment.cashReceived = roundMoney(
           num(button.getAttribute('data-cash-value'), paymentCharge())
