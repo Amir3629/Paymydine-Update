@@ -7,7 +7,7 @@
     <meta name="theme-color" content="#064e3b">
     <title>PayMyDine POS</title>
     <link rel="icon" type="image/svg+xml" href="/app/admin/assets/images/pmd-favicon-final-20260822.svg">
-    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-pos-v1.css?v=20260919-20">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-pos-v1.css?v=20260919-21">
 </head>
 <body class="pmd-qpos-body">
 @php
@@ -455,29 +455,12 @@
                             <button type="button" data-qpos-keypad-key="00">00</button>
                             <button type="button" data-qpos-keypad-key="0">0</button>
                             <button type="button" data-qpos-keypad-key=".">.</button>
-                            <button type="button" class="done" data-qpos-keypad-key="done">Done</button>
+                            <button type="button" class="done pmd-qpos-keypad-pay" data-qpos-payment-submit>Record payment</button>
                         </div>
                     </section>
                 </aside>
             </div>
 
-            <footer class="pmd-qpos-payment-footer">
-                <div>
-                    <span>Total to collect</span>
-                    <strong data-qpos-payment-charge>€0.00</strong>
-                </div>
-                <div class="pmd-qpos-payment-final-actions">
-                    <a
-                        class="pmd-qpos-receipt-link"
-                        data-qpos-payment-receipt
-                        href="#"
-                        target="_blank"
-                        rel="noopener"
-                        hidden
-                    >Receipt</a>
-                    <button type="button" class="pmd-qpos-modal-primary" data-qpos-payment-submit>Record payment</button>
-                </div>
-            </footer>
         </div>
     </div>
 
@@ -629,7 +612,7 @@ window.PMDQuickPOSConfig = {
     initialBootstrap: @json($initialBootstrap ?? null)
 };
 </script>
-<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260919-20"></script>
+<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260919-21"></script>
 <script src="/app/admin/assets/js/pmd-site-access-hub-v13.js?v=20260919-qpos1"></script>
 </body>
 </html>
