@@ -767,7 +767,7 @@
       if (!canOrderNow()) {
         status.textContent = 'Select table';
       } else if (activeOrderStructuralLocked()) {
-        status.textContent = 'Payment started · choose + Check for new items';
+        status.textContent = 'Payment started · finish payment first';
       } else {
         status.textContent = items.length + ' items';
       }
@@ -859,7 +859,8 @@
     renderCart();
   }
 
-  function renderOpenChecks() {
+  /* PMD_QPOS_SIMPLIFIED_CHECKS_V14 */
+function renderOpenChecks() {
     var box = $('[data-qpos-open-checks]');
     if (!box) return;
 
@@ -870,11 +871,7 @@
     }
 
     box.hidden = false;
-    var rows = [
-      '<button type="button" data-qpos-check="new"' +
-        (!state.activeOrderId ? ' class="is-active"' : '') +
-        '>+ Check</button>'
-    ];
+    var rows = [];
 
     state.openOrders.forEach(function (order) {
       var id = orderId(order);
@@ -890,8 +887,8 @@
 
     $$('[data-qpos-check]', box).forEach(function (button) {
       button.onclick = function () {
-        var value = button.getAttribute('data-qpos-check');
-        selectOrder(value === 'new' ? null : Number(value));
+        var value = Number(button.getAttribute('data-qpos-check') || 0);
+        if (value > 0) selectOrder(value);
       };
     });
   }
