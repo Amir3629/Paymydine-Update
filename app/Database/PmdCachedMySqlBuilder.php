@@ -6,41 +6,96 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Schema\MySqlBuilder;
 
 /**
- * PMD_PERF_R16_SCHEMA_CATALOG
+ * PMD_PERF_R17_LAZY_SHARED_SCHEMA_METADATA
  *
- * Request-local schema catalogue for the active tenant MySQL database.
+ * Request-local metadata cache for the active tenant database.
  *
- * Older revisions cached hasTable()/getColumnListing() only on one builder
- * instance. PayMyDine can rebuild/resolve more than one connection/schema
- * builder during a single Admin request, so the same information_schema
- * probes still appeared 20+ times on hot pages.
+ * R16 proved that replacing many tiny metadata probes with one full
+ * information_schema.COLUMNS catalogue was the wrong trade-off on production:
+ * that full catalogue can run during Admin bootstrap, before the live profiler
+ * middleware starts, and turn otherwise ~200ms requests into multi-second
+ * requests.
  *
- * R16 loads all BASE TABLE columns once for the current database and shares
- * that immutable catalogue through the request container. Both logical names
- * ("orders") and prefixed physical names ("ti_orders") resolve from the same
- * map. No schema state crosses requests or tenants.
+ * R17 keeps request-wide sharing across multiple schema builder instances but
+ * uses cheap MySQL primitives:
+ * - SHOW FULL TABLES once per tenant/request
+ * - SHOW COLUMNS lazily once per table/request
+ *
+ * Nothing is cached across requests or tenants.
  */
 class PmdCachedMySqlBuilder extends MySqlBuilder
 {
     private array $pmdTableExists = [];
     private array $pmdColumns = [];
-    private bool $pmdCatalogLoaded = false;
-    private ?array $pmdCatalog = null;
-    private ?string $pmdCatalogCacheKey = null;
+    private ?\ArrayObject $pmdSharedStore = null;
+    private ?string $pmdSharedStoreKey = null;
 
     public function hasTable($table)
     {
+        $store = $this->pmdSharedStore();
         $keys = $this->pmdTableKeys($table);
-        $catalog = $this->pmdSchemaCatalog();
 
-        if ($catalog !== null) {
-            foreach ($keys as $key) {
-                if (isset($catalog['tables'][$key])) {
-                    return true;
+        if ($store !== null) {
+            if (!(bool)($store['tables_loaded'] ?? false)) {
+                try {
+                    $rows = $this->connection->select(
+                        "SHOW FULL TABLES WHERE Table_type = 'BASE TABLE'"
+                    );
+
+                    $tables = [];
+                    $prefix = strtolower(
+                        (string)$this->connection->getTablePrefix()
+                    );
+
+                    foreach ($rows as $row) {
+                        $values = array_values((array)$row);
+                        $physical = strtolower(
+                            trim((string)($values[0] ?? ''))
+                        );
+
+                        if ($physical === '') {
+                            continue;
+                        }
+
+                        $tables[$physical] = true;
+
+                        if (
+                            $prefix !== ''
+                            && strncmp(
+                                $physical,
+                                $prefix,
+                                strlen($prefix)
+                            ) === 0
+                        ) {
+                            $logical = substr(
+                                $physical,
+                                strlen($prefix)
+                            );
+
+                            if ($logical !== '') {
+                                $tables[$logical] = true;
+                            }
+                        }
+                    }
+
+                    $store['tables'] = $tables;
+                    $store['tables_loaded'] = true;
+                } catch (\Throwable $e) {
+                    $store['tables_failed'] = true;
                 }
             }
 
-            return false;
+            if (!(bool)($store['tables_failed'] ?? false)) {
+                $tables = (array)($store['tables'] ?? []);
+
+                foreach ($keys as $key) {
+                    if (isset($tables[$key])) {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
         }
 
         $key = $keys[0] ?? strtolower((string)$table);
@@ -55,16 +110,49 @@ class PmdCachedMySqlBuilder extends MySqlBuilder
     public function getColumnListing($table)
     {
         $keys = $this->pmdTableKeys($table);
-        $catalog = $this->pmdSchemaCatalog();
+        $store = $this->pmdSharedStore();
 
-        if ($catalog !== null) {
+        if ($store !== null) {
+            $columns = (array)($store['columns'] ?? []);
+
             foreach ($keys as $key) {
-                if (array_key_exists($key, $catalog['columns'])) {
-                    return $catalog['columns'][$key];
+                if (array_key_exists($key, $columns)) {
+                    return $columns[$key];
                 }
             }
 
-            return [];
+            try {
+                $physical = $this->pmdPhysicalTableName($table);
+
+                if ($physical !== '') {
+                    $quoted = '`'.str_replace('`', '``', $physical).'`';
+                    $rows = $this->connection->select(
+                        'SHOW COLUMNS FROM '.$quoted
+                    );
+
+                    $listing = [];
+
+                    foreach ($rows as $row) {
+                        $field = trim(
+                            (string)($row->Field ?? $row->field ?? '')
+                        );
+
+                        if ($field !== '') {
+                            $listing[] = $field;
+                        }
+                    }
+
+                    foreach ($keys as $key) {
+                        $columns[$key] = $listing;
+                    }
+
+                    $store['columns'] = $columns;
+
+                    return $listing;
+                }
+            } catch (\Throwable $e) {
+                // Fall back to Laravel's builder below.
+            }
         }
 
         $key = $keys[0] ?? strtolower((string)$table);
@@ -80,46 +168,29 @@ class PmdCachedMySqlBuilder extends MySqlBuilder
     {
         $this->pmdTableExists = [];
         $this->pmdColumns = [];
-        $this->pmdCatalogLoaded = false;
-        $this->pmdCatalog = null;
 
-        if (
-            $this->pmdCatalogCacheKey
-            && function_exists('app')
-        ) {
-            try {
-                $container = app();
-
-                if (method_exists($container, 'forgetInstance')) {
-                    $container->forgetInstance(
-                        $this->pmdCatalogCacheKey
-                    );
-                }
-            } catch (\Throwable $e) {
-                // DDL invalidation is best effort; local cache is already clear.
-            }
+        if ($this->pmdSharedStore !== null) {
+            $this->pmdSharedStore->exchangeArray(
+                $this->pmdEmptyStore()
+            );
         }
 
-        $this->pmdCatalogCacheKey = null;
+        $this->pmdSharedStore = null;
+        $this->pmdSharedStoreKey = null;
     }
 
-    /**
-     * @return array{tables: array<string,bool>, columns: array<string,array<int,string>>}|null
-     */
-    private function pmdSchemaCatalog(): ?array
+    private function pmdSharedStore(): ?\ArrayObject
     {
-        if ($this->pmdCatalogLoaded) {
-            return $this->pmdCatalog;
+        if ($this->pmdSharedStore !== null) {
+            return $this->pmdSharedStore;
         }
-
-        $this->pmdCatalogLoaded = true;
 
         $database = trim(
             (string)$this->connection->getDatabaseName()
         );
 
         if ($database === '') {
-            return $this->pmdCatalog = null;
+            return null;
         }
 
         $prefix = (string)$this->connection->getTablePrefix();
@@ -127,103 +198,76 @@ class PmdCachedMySqlBuilder extends MySqlBuilder
             ? (string)$this->connection->getName()
             : 'mysql';
 
-        $cacheKey =
-            'pmd.perf.r16.schema-catalog.'
+        $key =
+            'pmd.perf.r17.schema-store.'
             .sha1($connectionName.'|'.$database.'|'.$prefix);
 
-        $this->pmdCatalogCacheKey = $cacheKey;
+        $this->pmdSharedStoreKey = $key;
 
         try {
-            if (
-                function_exists('app')
-                && app()->bound($cacheKey)
-            ) {
-                $cached = app($cacheKey);
+            if (function_exists('app') && app()->bound($key)) {
+                $existing = app($key);
 
-                if (is_array($cached)) {
-                    return $this->pmdCatalog = $cached;
+                if ($existing instanceof \ArrayObject) {
+                    return $this->pmdSharedStore = $existing;
                 }
             }
-        } catch (\Throwable $e) {
-            // Fall through to a direct one-shot catalogue query.
-        }
 
-        try {
-            $rows = $this->connection->select(
-                'SELECT c.TABLE_NAME AS pmd_table, c.COLUMN_NAME AS pmd_column '
-                .'FROM information_schema.COLUMNS c '
-                .'INNER JOIN information_schema.TABLES t '
-                .'ON t.TABLE_SCHEMA = c.TABLE_SCHEMA '
-                .'AND t.TABLE_NAME = c.TABLE_NAME '
-                .'WHERE c.TABLE_SCHEMA = ? '
-                ."AND t.TABLE_TYPE = 'BASE TABLE' "
-                .'ORDER BY c.TABLE_NAME, c.ORDINAL_POSITION',
-                [$database]
+            $store = new \ArrayObject(
+                $this->pmdEmptyStore()
             );
 
-            $tables = [];
-            $columns = [];
-
-            foreach ($rows as $row) {
-                $table = strtolower(
-                    trim((string)($row->pmd_table ?? ''))
-                );
-                $column = trim(
-                    (string)($row->pmd_column ?? '')
-                );
-
-                if ($table === '' || $column === '') {
-                    continue;
-                }
-
-                $keys = [$table];
-
-                if (
-                    $prefix !== ''
-                    && strncmp($table, strtolower($prefix), strlen($prefix)) === 0
-                ) {
-                    $logical = substr($table, strlen($prefix));
-
-                    if ($logical !== '') {
-                        $keys[] = $logical;
-                    }
-                }
-
-                foreach (array_unique($keys) as $key) {
-                    $tables[$key] = true;
-
-                    if (!isset($columns[$key])) {
-                        $columns[$key] = [];
-                    }
-
-                    $columns[$key][] = $column;
-                }
+            if (function_exists('app')) {
+                app()->instance($key, $store);
             }
 
-            $catalog = [
-                'tables' => $tables,
-                'columns' => $columns,
-            ];
-
-            try {
-                if (function_exists('app')) {
-                    app()->instance($cacheKey, $catalog);
-                }
-            } catch (\Throwable $e) {
-                // Local builder cache still provides the same request safety.
-            }
-
-            return $this->pmdCatalog = $catalog;
+            return $this->pmdSharedStore = $store;
         } catch (\Throwable $e) {
-            return $this->pmdCatalog = null;
+            return null;
         }
     }
 
-    /**
-     * Return physical and logical lookup aliases for one table name.
-     *
-     * @return array<int,string>
-     */
+    private function pmdEmptyStore(): array
+    {
+        return [
+            'tables_loaded' => false,
+            'tables_failed' => false,
+            'tables' => [],
+            'columns' => [],
+        ];
+    }
+
+    private function pmdPhysicalTableName($table): string
+    {
+        $name = trim(
+            (string)$table,
+            " \t\n\r\0\x0B`"
+        );
+
+        if (strpos($name, '.') !== false) {
+            $parts = explode('.', $name);
+            $name = trim(
+                (string)end($parts),
+                "` "
+            );
+        }
+
+        if ($name === '') {
+            return '';
+        }
+
+        $prefix = (string)$this->connection->getTablePrefix();
+
+        if (
+            $prefix !== ''
+            && strncmp($name, $prefix, strlen($prefix)) !== 0
+        ) {
+            return $prefix.$name;
+        }
+
+        return $name;
+    }
+
     private function pmdTableKeys($table): array
     {
         $name = strtolower(
@@ -262,10 +306,6 @@ class PmdCachedMySqlBuilder extends MySqlBuilder
 
     protected function build(Blueprint $blueprint)
     {
-        /*
-         * Schema mutation must never leave stale metadata in the same request.
-         * Flush before and after the actual DDL.
-         */
         $this->flushPmdMetadataCache();
 
         try {
