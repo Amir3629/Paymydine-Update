@@ -7,7 +7,7 @@
     <meta name="theme-color" content="#064e3b">
     <title>PayMyDine POS</title>
     <link rel="icon" type="image/svg+xml" href="/app/admin/assets/images/pmd-favicon-final-20260822.svg">
-    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-pos-v1.css?v=20260919-14">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-pos-v1.css?v=20260919-15">
 </head>
 <body class="pmd-qpos-body">
 @php
@@ -226,7 +226,7 @@
         </div>
     </div>
 
-    <div class="pmd-qpos-modal" data-qpos-payment-modal aria-hidden="true">
+    <div class="pmd-qpos-modal pmd-qpos-workspace-modal" data-qpos-payment-modal aria-hidden="true">
         <div class="pmd-qpos-modal-card pmd-qpos-payment-card">
             <header>
                 <div>
@@ -368,7 +368,7 @@
         </div>
     </div>
 
-    <div class="pmd-qpos-modal" data-qpos-history-modal aria-hidden="true">
+    <div class="pmd-qpos-modal pmd-qpos-workspace-modal" data-qpos-history-modal aria-hidden="true">
         <div class="pmd-qpos-modal-card pmd-qpos-history-card">
             <header>
                 <div>
@@ -377,12 +377,52 @@
                 </div>
                 <button type="button" class="pmd-qpos-modal-close" data-qpos-history-close>×</button>
             </header>
+
             <div class="pmd-qpos-history-toolbar">
-                <button type="button" class="is-active" data-qpos-history-scope="selected">Selected</button>
-                <button type="button" data-qpos-history-scope="all">All</button>
+                <div class="pmd-qpos-history-scope">
+                    <button type="button" class="is-active" data-qpos-history-scope="selected">Selected</button>
+                    <button type="button" data-qpos-history-scope="all">All tables</button>
+                </div>
+
+                <div class="pmd-qpos-history-range">
+                    <div class="pmd-qpos-history-presets">
+                        <button type="button" data-qpos-history-preset="today">Today</button>
+                        <button type="button" class="is-active" data-qpos-history-preset="7d">7 days</button>
+                        <button type="button" data-qpos-history-preset="30d">30 days</button>
+                        <button type="button" data-qpos-history-preset="all">All time</button>
+                    </div>
+
+                    <label>
+                        <span>From</span>
+                        <input type="date" data-qpos-history-from>
+                    </label>
+                    <label>
+                        <span>To</span>
+                        <input type="date" data-qpos-history-to>
+                    </label>
+                </div>
             </div>
-            <div class="pmd-qpos-history-list" data-qpos-history-list>
-                <div class="pmd-qpos-history-empty">Loading…</div>
+
+            <div class="pmd-qpos-history-filters">
+                <div>
+                    <button type="button" class="is-active" data-qpos-history-kind="orders">Orders & invoices</button>
+                    <button type="button" data-qpos-history-kind="payments">Payments</button>
+                    <button type="button" data-qpos-history-kind="notes">Notes</button>
+                    <button type="button" data-qpos-history-kind="calls">Calls & status</button>
+                    <button type="button" data-qpos-history-kind="all">All activity</button>
+                </div>
+                <div class="pmd-qpos-history-stats" data-qpos-history-stats></div>
+            </div>
+
+            <div class="pmd-qpos-history-layout">
+                <div class="pmd-qpos-history-list" data-qpos-history-list>
+                    <div class="pmd-qpos-history-empty">Loading…</div>
+                </div>
+                <aside class="pmd-qpos-history-detail" data-qpos-history-detail>
+                    <div class="pmd-qpos-history-empty">
+                        Select an order to see invoice, items, payments and notes.
+                    </div>
+                </aside>
             </div>
         </div>
     </div>
@@ -461,7 +501,7 @@ window.PMDQuickPOSConfig = {
     initialBootstrap: @json($initialBootstrap ?? null)
 };
 </script>
-<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260919-14"></script>
+<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260919-15"></script>
 <script src="/app/admin/assets/js/pmd-site-access-hub-v13.js?v=20260919-qpos1"></script>
 </body>
 </html>
