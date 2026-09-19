@@ -24,6 +24,11 @@ Route::middleware(['web'])->group(function () {
     );
 
     Route::get(
+        '/admin/pos/table/{table}',
+        [\Admin\Controllers\PmdQuickPosV1::class, 'tableData']
+    )->where('table', '[0-9]+');
+
+    Route::get(
         '/admin/pos/{mode?}',
         [\Admin\Controllers\PmdQuickPosV1::class, 'index']
     )->where('mode', 'cashier|waiter');
