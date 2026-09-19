@@ -2599,3 +2599,183 @@ body.pmd-qpos-body {
   background: #064e3b;
   color: #fff;
 }
+
+
+/* PMD_QPOS_COMPACT_WIDE_PAYMENT_V14
+   Short-screen cashier authority: wider payment surface, no vertical card
+   scrolling on normal POS displays, no image overlay, and hard terminal/cash
+   separation. */
+.pmd-qpos-product-image::after {
+  content: none !important;
+  display: none !important;
+  background: none !important;
+}
+
+.pmd-qpos-payment-card {
+  width: min(1180px,calc(100vw - 16px));
+  max-height: calc(100dvh - 10px);
+  overflow: hidden;
+}
+
+@media (min-width: 821px) {
+  .pmd-qpos-modal {
+    padding: 5px 8px;
+  }
+
+  .pmd-qpos-payment-body {
+    grid-template-columns: minmax(0,1fr) minmax(410px,1fr);
+    grid-template-areas:
+      "balance balance"
+      "methods methods"
+      "fields keypad"
+      "presets keypad"
+      "split keypad"
+      "tip keypad"
+      "terminals keypad"
+      "change error";
+    overflow: hidden;
+  }
+
+  .pmd-qpos-payment-card.is-terminal [data-qpos-cash-field],
+  .pmd-qpos-payment-card.is-terminal [data-qpos-cash-presets] {
+    display: none !important;
+  }
+
+  .pmd-qpos-payment-card.is-terminal .pmd-qpos-payment-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 821px) and (max-height: 680px) {
+  .pmd-qpos-payment-card {
+    width: min(1220px,calc(100vw - 10px));
+    max-height: calc(100dvh - 6px);
+    border-radius: 12px;
+  }
+
+  .pmd-qpos-payment-card > header {
+    padding: 6px 12px;
+  }
+
+  .pmd-qpos-payment-card > header .pmd-qpos-section-label {
+    display: none;
+  }
+
+  .pmd-qpos-payment-card > header h2 {
+    font-size: 18px;
+    line-height: 1.1;
+  }
+
+  .pmd-qpos-payment-card .pmd-qpos-modal-close {
+    width: 34px;
+    height: 34px;
+    font-size: 23px;
+  }
+
+  .pmd-qpos-payment-body {
+    padding: 6px 12px;
+    gap: 5px 9px;
+  }
+
+  .pmd-qpos-payment-balance {
+    min-height: 48px;
+    padding: 4px 10px;
+  }
+
+  .pmd-qpos-payment-balance > span,
+  .pmd-qpos-payment-balance > small {
+    font-size: 9px;
+  }
+
+  .pmd-qpos-payment-balance strong {
+    font-size: 24px;
+    line-height: 1;
+  }
+
+  .pmd-qpos-payment-methods button {
+    min-height: 36px;
+    font-size: 13px;
+  }
+
+  .pmd-qpos-field input {
+    height: 40px;
+    font-size: 15px;
+  }
+
+  .pmd-qpos-cash-presets {
+    gap: 5px;
+  }
+
+  .pmd-qpos-cash-presets button {
+    min-height: 34px;
+    font-size: 11px;
+  }
+
+  .pmd-qpos-split-row,
+  .pmd-qpos-tip-row {
+    gap: 5px;
+  }
+
+  .pmd-qpos-split-row button,
+  .pmd-qpos-tip-row button,
+  .pmd-qpos-tip-custom input {
+    min-height: 32px;
+    height: 32px;
+    padding: 0 9px;
+    font-size: 11px;
+  }
+
+  .pmd-qpos-tip-custom {
+    min-width: 132px;
+    flex-basis: 132px;
+  }
+
+  .pmd-qpos-touch-keypad {
+    padding: 6px;
+  }
+
+  .pmd-qpos-touch-keypad > header {
+    margin-bottom: 4px;
+  }
+
+  .pmd-qpos-touch-keypad > header span {
+    font-size: 9px;
+  }
+
+  .pmd-qpos-touch-keypad > header strong {
+    font-size: 17px;
+  }
+
+  .pmd-qpos-touch-keypad-grid {
+    gap: 4px;
+  }
+
+  .pmd-qpos-touch-keypad-grid button {
+    min-height: 32px;
+    font-size: 15px;
+    border-radius: 7px;
+  }
+
+  .pmd-qpos-touch-keypad-grid button.exact,
+  .pmd-qpos-touch-keypad-grid button.done {
+    font-size: 11px;
+  }
+
+  .pmd-qpos-terminal {
+    min-height: 34px;
+    font-size: 11px;
+  }
+
+  .pmd-qpos-payment-card > footer {
+    padding: 5px 12px;
+  }
+
+  .pmd-qpos-payment-footer > div strong {
+    font-size: 17px;
+  }
+
+  .pmd-qpos-payment-card .pmd-qpos-modal-primary {
+    min-height: 40px;
+    font-size: 13px;
+  }
+}
