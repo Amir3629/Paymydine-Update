@@ -458,7 +458,6 @@
 <script>
 window.PMDQuickPOSConfig = {
     mode: @json($mode),
-    canSwitchMode: @json((bool)$canSwitchMode),
     initialBootstrap: @json($initialBootstrap ?? null)
 };
 </script>
