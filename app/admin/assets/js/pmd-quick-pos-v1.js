@@ -131,6 +131,11 @@
     visualHydrated: false,
     submitting: false,
     modifier: null,
+    itemNoteIndex: null,
+    historyScope: 'selected',
+    historyLoading: false,
+    textKeyboardTarget: null,
+    textKeyboardUpper: true,
     payment: {
       open: false,
       loading: false,
@@ -140,7 +145,11 @@
       method: 'cash',
       amount: '',
       cashReceived: '',
+      tipMode: 'percent',
       tipPercent: 0,
+      tipAmount: '',
+      splitMode: 'full',
+      splitParts: 1,
       reference: '',
       externalConfirmed: false,
       terminal: null,
@@ -545,10 +554,19 @@
     renderFloors();
 
     var tableActions = $('[data-qpos-table-actions]');
+    var cleaning = $('[data-qpos-table-cleaning]');
+    var free = $('[data-qpos-table-free]');
+    var pickupSelected = state.serviceMode === 'takeaway';
+
     if (tableActions) {
-      tableActions.hidden =
-        !state.selectedTable ||
-        state.serviceMode !== 'dine_in';
+      tableActions.hidden = !state.selectedTable && !pickupSelected;
+    }
+
+    if (cleaning) {
+      cleaning.disabled = pickupSelected || !state.selectedTable;
+    }
+    if (free) {
+      free.disabled = pickupSelected || !state.selectedTable;
     }
   }
 
@@ -559,6 +577,16 @@
       cleaning: 'Clean',
       reserved: 'Res.'
     }[String(status || '').toLowerCase()] || 'Free';
+  }
+
+  function compactTableLabel(table) {
+    if (!table) return '';
+    var number = String(table.number == null ? '' : table.number).trim();
+    if (number) return number;
+
+    var name = String(table.name == null ? '' : table.name).trim();
+    name = name.replace(/^table\s*/i, '').trim();
+    return name || String(table.id || '');
   }
 
   function activeFloorTables() {
@@ -583,7 +611,7 @@
           ? 'Pickup'
           : (
               state.selectedTable
-                ? state.selectedTable.name
+                ? compactTableLabel(state.selectedTable)
                 : 'Tables'
             );
     }
@@ -607,7 +635,7 @@
           (selected ? ' is-selected' : '') + '"' +
           ' data-qpos-table="' + esc(table.id) + '"' +
           ' data-status="' + esc(table.status || 'available') + '">' +
-          '<strong>' + esc(table.name || ('Table ' + table.number)) + '</strong>' +
+          '<strong>' + esc(compactTableLabel(table)) + '</strong>' +
           '<small>' + esc(tableStatusLabel(table.status)) +
             (num(table.capacity, 0) > 0 ? ' · ' + esc(table.capacity) + 's' : '') +
           '</small>' +
@@ -978,6 +1006,9 @@
                   '<b>' + esc(row.quantity) + '</b>' +
                   '<button type="button" data-qpos-inc="' + index + '">+</button>' +
                 '</div>' +
+                '<button type="button" class="pmd-qpos-line-note" data-qpos-line-note="' + index + '">' +
+                  (row.comment ? 'Note ✓' : 'Note') +
+                '</button>' +
                 '<button type="button" class="pmd-qpos-line-remove" data-qpos-remove="' + index + '">×</button>' +
               '</div>' +
             '</article>'
@@ -994,7 +1025,13 @@
             changeCartQty(Number(button.getAttribute('data-qpos-dec')), -1);
           };
         });
-        $$('[data-qpos-remove]', list).forEach(function (button) {
+        $('[data-qpos-line-note]', list).forEach(function (button) {
+          button.onclick = function () {
+            openItemNote(Number(button.getAttribute('data-qpos-line-note')));
+          };
+        });
+
+        $('[data-qpos-remove]', list).forEach(function (button) {
           button.onclick = function () {
             var index = Number(button.getAttribute('data-qpos-remove'));
             state.cart.splice(index, 1);
@@ -1012,7 +1049,7 @@
       } else if (state.serviceMode === 'takeaway') {
         title.textContent = 'Pickup';
       } else if (state.selectedTable) {
-        title.textContent = state.selectedTable.name + ' · New';
+        title.textContent = compactTableLabel(state.selectedTable) + ' · New';
       } else {
         title.textContent = 'New';
       }
@@ -1461,6 +1498,68 @@
     state.offPremiseOrder = null;
     state.forceNewCheck = state.serviceMode === 'dine_in';
     renderAll();
+  }
+
+  /* PMD_QPOS_ITEM_NOTE_V1 */
+  function openItemNote(index) {
+    var row = state.cart[index];
+    if (!row) return;
+
+    state.itemNoteIndex = index;
+
+    var title = $('[data-qpos-item-note-title]');
+    var input = $('[data-qpos-item-note-input]');
+    var modal = $('[data-qpos-item-note-modal]');
+
+    if (title) title.textContent = row.name || 'Item';
+    if (input) input.value = String(row.comment || '');
+
+    if (modal) {
+      modal.classList.add('is-open');
+      modal.setAttribute('aria-hidden', 'false');
+    }
+
+    if (input) {
+      window.requestAnimationFrame(function () {
+        input.focus();
+        maybeOpenTextKeyboard(input, 'Item note');
+      });
+    }
+  }
+
+  function closeItemNote() {
+    var modal = $('[data-qpos-item-note-modal]');
+    if (modal) {
+      modal.classList.remove('is-open');
+      modal.setAttribute('aria-hidden', 'true');
+    }
+    state.itemNoteIndex = null;
+    closeTextKeyboard();
+  }
+
+  function saveItemNote(clear) {
+    var index = Number(state.itemNoteIndex);
+    var row = state.cart[index];
+    if (!row) {
+      closeItemNote();
+      return;
+    }
+
+    var input = $('[data-qpos-item-note-input]');
+    row.comment = clear
+      ? ''
+      : String(input ? input.value : '').trim();
+
+    row.key = [
+      String(row.menu_id || ''),
+      (row.options || []).map(function (option) {
+        return String(option.id);
+      }).sort().join(','),
+      String(row.comment || '').trim().toLowerCase()
+    ].join(':');
+
+    closeItemNote();
+    renderCart();
   }
 
   /* Product modifier modal */
