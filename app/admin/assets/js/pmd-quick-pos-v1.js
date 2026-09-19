@@ -2028,6 +2028,8 @@
       !providers.length
     ) {
       state.payment.method = 'cash';
+      state.payment.amount = roundMoney(paymentRemaining()).toFixed(2);
+      state.payment.cashReceived = paymentCharge().toFixed(2);
       state.payment.touchKeypadTarget = 'cash';
       state.payment.touchKeypadFresh = true;
     }
@@ -2614,6 +2616,13 @@
     }
 
     renderPaymentMethods();
+
+    if (paymentCard) {
+      paymentCard.classList.toggle(
+        'is-terminal',
+        state.payment.method === 'direct_terminal'
+      );
+    }
 
     if (cashField) cashField.hidden = state.payment.method !== 'cash';
     if (external) external.hidden = state.payment.method !== 'external_terminal';
