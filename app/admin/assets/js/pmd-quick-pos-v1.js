@@ -2548,6 +2548,14 @@
     var external = $('[data-qpos-external-fields]');
     var reference = $('[data-qpos-payment-reference]');
     var externalConfirm = $('[data-qpos-external-confirm]');
+    var paymentCard = $('.pmd-qpos-payment-card');
+
+    if (paymentCard) {
+      paymentCard.classList.toggle(
+        'is-terminal',
+        state.payment.method === 'direct_terminal'
+      );
+    }
 
     if (title) {
       title.textContent = state.activeOrderId
