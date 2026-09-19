@@ -38,6 +38,11 @@ Route::middleware(['web'])->group(function () {
         [\Admin\Controllers\PmdQuickPosV1::class, 'paymentSummary']
     )->where('order', '[0-9]+');
 
+    Route::get(
+        '/admin/pos/history',
+        [\Admin\Controllers\PmdQuickPosV1::class, 'history']
+    );
+
     Route::post(
         '/admin/pos/payment-settle/{order}',
         [\Admin\Controllers\PmdQuickPosV1::class, 'settlePayment']
