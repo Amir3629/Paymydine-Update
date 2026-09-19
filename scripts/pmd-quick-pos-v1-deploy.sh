@@ -175,7 +175,12 @@ grep -q "PMD_TABLE_STATE_PREFIX_SAFE_V169" "$STAGE/app/admin/controllers/PmdWait
 grep -q "PMD_QPOS_STABLE_BOOT_V2" "$STAGE/app/admin/assets/css/pmd-quick-pos-v1.css"
 grep -q "PMD_QPOS_BOOT_CACHE_V1" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
 grep -q "PMD_QPOS_INLINE_BOOTSTRAP_V1" "$STAGE/app/admin/controllers/PmdQuickPosV1.php"
+grep -q "PMD_QPOS_CANONICAL_FLOORS_V1" "$STAGE/app/admin/controllers/PmdQuickPosV1.php"
+grep -q "PMD_QPOS_PICKUP_PAYMENT_HANDOFF_V1" "$STAGE/app/admin/controllers/PmdQuickPosV1.php"
 grep -q "initialBootstrap" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
+grep -q "data-qpos-floors" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
+grep -q "data-qpos-pickup" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
+grep -q "data-qpos-clock" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
 grep -q "PMD_QPOS_BLITZ_ACTION_V1" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
 grep -q "PMD_QUICK_POS_PAYMENT_HANDOFF_V1" "$STAGE/app/admin/controllers/concerns/PmdWaiterPosSaveEndpoint.php"
 grep -q "PMD_QUICK_POS_BATCH_MENU_HYDRATE_V1" "$STAGE/app/admin/controllers/concerns/PmdWaiterPosOrderPersistenceConcern.php"
@@ -183,9 +188,17 @@ if grep -Fq "name: 'Card'" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"; the
   echo "ERROR: ambiguous Card payment label remains in Quick POS" >&2
   exit 1
 fi
+if grep -Fq 'data-qpos-service=' "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"; then
+  echo "ERROR: legacy Dine/Takeout/Delivery selector remains in Quick POS" >&2
+  exit 1
+fi
+if grep -Fq 'pmd-qpos-topbar' "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"; then
+  echo "ERROR: legacy Quick POS header remains in the page markup" >&2
+  exit 1
+fi
 grep -q "data-qpos-touch-keypad" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
-grep -q "pmd-quick-pos-v1.js?v=20260919-8" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
-grep -q "pmd-quick-pos-v1.css?v=20260919-8" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
+grep -q "pmd-quick-pos-v1.js?v=20260919-9" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
+grep -q "pmd-quick-pos-v1.css?v=20260919-9" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
 grep -Fq "\$\$('[data-cash-value]', box).forEach" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
 grep -q "'cashierlab' =>" "$STAGE/app/Http/Middleware/PmdAdminRetiredPagesR77.php"
 grep -q "admin_url('pos')" "$STAGE/app/admin/views/_partials/pmd_side_menu2_single_menu.blade.php"
