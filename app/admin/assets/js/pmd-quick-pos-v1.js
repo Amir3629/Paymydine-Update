@@ -2680,6 +2680,11 @@
     var summary = state.payment.summary;
     var remaining = paymentRemaining();
     var amount = paymentAmount();
+    var splitModeBefore = state.payment.splitMode;
+    var splitPartsBefore = Math.max(
+      1,
+      Number(state.payment.splitParts || 1)
+    );
 
     try {
       var url = tokenUrl(
@@ -2746,11 +2751,32 @@
       state.payment.tipMode = 'percent';
       state.payment.tipPercent = 0;
       state.payment.tipAmount = '';
-      state.payment.splitMode = 'full';
-      state.payment.splitParts = 1;
+
+      if (
+        splitModeBefore === 'equal' &&
+        splitPartsBefore > 1 &&
+        num(
+          state.payment.summary.settlement &&
+          state.payment.summary.settlement.remaining_amount,
+          0
+        ) > 0.005
+      ) {
+        var nextParts = splitPartsBefore - 1;
+        state.payment.splitParts = nextParts;
+        state.payment.splitMode = nextParts > 1 ? 'equal' : 'full';
+        state.payment.amount = (
+          nextParts > 1
+            ? roundMoney(paymentRemaining() / nextParts)
+            : roundMoney(paymentRemaining())
+        ).toFixed(2);
+      } else {
+        state.payment.splitMode = 'full';
+        state.payment.splitParts = 1;
+      }
+
       state.payment.cashReceived =
         state.payment.method === 'cash'
-          ? state.payment.amount
+          ? paymentCharge().toFixed(2)
           : '';
       state.payment.touchKeypadTarget =
         state.payment.method === 'cash'
