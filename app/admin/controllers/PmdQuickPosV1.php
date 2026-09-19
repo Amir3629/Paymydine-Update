@@ -3,6 +3,7 @@
 namespace Admin\Controllers;
 
 use Admin\Facades\AdminLocation;
+use Admin\Models\Menus_model;
 use Admin\Models\Orders_model;
 use Admin\Models\Tables_model;
 use Admin\Services\PmdDefaultStaffRoleService;
@@ -85,7 +86,7 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 'currency' => $this->currencySymbol(),
                 'currency_code' => $this->currencyCode(),
                 'table_data_url' => '/admin/pos/table/{table}',
-                'table_save_url' => '/admin/pmd-waiter-pos-v1/save/{table}',
+                'table_save_url' => '/admin/pos/save/{table}',
                 'off_premise_save_url' => '/admin/pos/save-off-premise',
                 'payment_summary_url' => '/admin/pmd-waiter-pos-v1/payment-summary/{order}',
                 'payment_settle_url' => '/admin/pmd-waiter-pos-v1/payment-settle/{order}',
@@ -96,6 +97,213 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 'table_state_url' => '/admin/pmd-waiter-table-states-v154/{table}',
             ],
         ]);
+    }
+
+    /**
+     * PMD_QUICK_POS_FAST_WRITE_V2
+     *
+     * The legacy waiter save contract stays authoritative, but Quick POS uses
+     * this controller so protected persistence hooks can be optimized without
+     * changing legacy Waiter POS behavior.
+     */
+    protected function appendItems(Orders_model $order, array $cart): int
+    {
+        $rows = array_values(array_filter($cart, 'is_array'));
+        if (!$rows) {
+            return 0;
+        }
+
+        $menuIds = array_values(array_unique(array_filter(array_map(
+            static function ($row): int {
+                return (int)($row['menu_id'] ?? $row['id'] ?? 0);
+            },
+            $rows
+        ))));
+
+        if (!$menuIds) {
+            return 0;
+        }
+
+        $menuModel = new Menus_model();
+        $menuKey = $menuModel->getKeyName();
+
+        $menus = Menus_model::with(
+            'menu_options.menu_option_values.option_value'
+        )
+            ->whereIn($menuKey, $menuIds)
+            ->get()
+            ->keyBy(function ($menu) {
+                return (int)$menu->getKey();
+            });
+
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'quick_save_menu_hydrate'
+        );
+
+        $hasStockOut = $this->pmdPosHasColumn('menus', 'is_stock_out');
+        $orderMenuColumns = $this->pmdPosColumns('order_menus');
+        $orderMenuColumnMap = array_flip($orderMenuColumns);
+
+        $hasOptionTable = $this->pmdPosHasTable('order_menu_options');
+        $optionColumnMap = $hasOptionTable
+            ? array_flip($this->pmdPosColumns('order_menu_options'))
+            : [];
+
+        $added = 0;
+        $optionInserts = [];
+
+        foreach ($rows as $row) {
+            $menuId = (int)($row['menu_id'] ?? $row['id'] ?? 0);
+            $qty = max(1, min(99, (int)($row['quantity'] ?? $row['qty'] ?? 1)));
+
+            if ($menuId < 1) {
+                continue;
+            }
+
+            $menu = $menus->get($menuId);
+
+            if (!$menu || !(bool)$menu->menu_status) {
+                continue;
+            }
+
+            if ($hasStockOut && (bool)$menu->is_stock_out) {
+                continue;
+            }
+
+            $basePrice = (float)$menu->menu_price;
+            if ($basePrice <= 0) {
+                continue;
+            }
+
+            $optionRows = $this->validatedOptions(
+                $menu,
+                $row['options'] ?? []
+            );
+
+            $optionUnit = array_sum(array_map(
+                static fn ($option): float => (float)$option['price'],
+                $optionRows
+            ));
+
+            $unit = round($basePrice + $optionUnit, 4);
+
+            $insert = array_intersect_key([
+                'order_id' => (int)$order->getKey(),
+                'menu_id' => $menuId,
+                'name' => (string)$menu->menu_name,
+                'quantity' => $qty,
+                'price' => $unit,
+                'subtotal' => round($unit * $qty, 4),
+                'comment' => trim((string)($row['comment'] ?? '')),
+                'option_values' => serialize(
+                    array_column($optionRows, 'value_id')
+                ),
+            ], $orderMenuColumnMap);
+
+            $orderMenuId = DB::table('order_menus')->insertGetId($insert);
+
+            if ($hasOptionTable && $optionRows) {
+                foreach ($optionRows as $option) {
+                    $optionInserts[] = array_intersect_key([
+                        'order_menu_id' => $orderMenuId,
+                        'order_id' => (int)$order->getKey(),
+                        'menu_id' => $menuId,
+                        'order_menu_option_id' => (int)$option['option_id'],
+                        'menu_option_value_id' => (int)$option['value_id'],
+                        'order_option_name' => (string)$option['name'],
+                        'order_option_price' => (float)$option['price'],
+                        'quantity' => $qty,
+                    ], $optionColumnMap);
+                }
+            }
+
+            $added++;
+        }
+
+        if ($optionInserts) {
+            DB::table('order_menu_options')->insert($optionInserts);
+        }
+
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'quick_save_items_inserted'
+        );
+
+        return $added;
+    }
+
+    /**
+     * Kitchen ETA is informative, not part of the write acknowledgement.
+     * Defer it until after the HTTP response so Send feels instant while the
+     * exact same order write remains transactional and authoritative.
+     */
+    protected function pmdKitchenEtaAfterSendV1(
+        int $orderId,
+        array $cart,
+        string $reason
+    ): array {
+        $items = [];
+
+        foreach ($cart as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+
+            $menuId = (int)($row['menu_id'] ?? $row['id'] ?? 0);
+            if ($menuId < 1) {
+                continue;
+            }
+
+            $items[] = [
+                'menu_id' => $menuId,
+                'quantity' => max(
+                    1,
+                    (int)($row['quantity'] ?? $row['qty'] ?? 1)
+                ),
+            ];
+        }
+
+        try {
+            app()->terminating(function () use (
+                $orderId,
+                $items,
+                $reason
+            ) {
+                try {
+                    app(
+                        \App\Services\PmdKitchenEtaLifecycleService::class
+                    )->onItemsSent(
+                        $orderId,
+                        $items,
+                        null,
+                        $reason
+                    );
+                } catch (\Throwable $error) {
+                    \Log::warning(
+                        'PMD Quick POS deferred kitchen ETA failed',
+                        [
+                            'order_id' => $orderId,
+                            'reason' => $reason,
+                            'message' => $error->getMessage(),
+                        ]
+                    );
+                }
+            });
+
+            \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+                'quick_save_eta_deferred'
+            );
+
+            return [
+                'deferred' => true,
+                'order_id' => $orderId,
+            ];
+        } catch (\Throwable $error) {
+            return parent::pmdKitchenEtaAfterSendV1(
+                $orderId,
+                $cart,
+                $reason
+            );
+        }
     }
 
     /**
