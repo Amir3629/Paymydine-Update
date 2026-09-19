@@ -297,6 +297,16 @@
           ? json.default_floor_id
           : ''
       ),
+      active_floor_id: String(
+        json && json.active_floor_id
+          ? json.active_floor_id
+          : ''
+      ),
+      floor_cookie_name: String(
+        json && json.floor_cookie_name
+          ? json.floor_cookie_name
+          : ''
+      ),
       tables: Array.isArray(json && json.tables) ? json.tables : [],
       categories: Array.isArray(json && json.categories) ? json.categories : [],
       menu_items: Array.isArray(json && json.menu_items) ? json.menu_items : []
@@ -316,38 +326,12 @@
     }
   }
 
-  function floorPreferenceKey() {
-    return [
-      'pmd:qpos:floor:v1',
-      window.location.host,
-      state.mode
-    ].join(':');
-  }
-
   function normalizeActiveFloor() {
     var valid = state.floors.some(function (floor) {
       return String(floor.id) === String(state.activeFloorId);
     });
 
     if (valid) return;
-
-    var preferred = '';
-    try {
-      preferred = String(
-        window.localStorage.getItem(floorPreferenceKey()) || ''
-      );
-    } catch (ignored) {
-    }
-
-    if (
-      preferred &&
-      state.floors.some(function (floor) {
-        return String(floor.id) === preferred;
-      })
-    ) {
-      state.activeFloorId = preferred;
-      return;
-    }
 
     var defaultId = String(state.defaultFloorId || '');
     if (
@@ -366,13 +350,19 @@
   }
 
   function rememberActiveFloor() {
+    var cookieName = String(
+      state.boot && state.boot.floor_cookie_name
+        ? state.boot.floor_cookie_name
+        : ''
+    );
+
+    if (!cookieName || !state.activeFloorId) return;
+
     try {
-      if (state.activeFloorId) {
-        window.localStorage.setItem(
-          floorPreferenceKey(),
-          String(state.activeFloorId)
-        );
-      }
+      document.cookie =
+        cookieName + '=' +
+        encodeURIComponent(String(state.activeFloorId)) +
+        '; path=/; max-age=2592000; samesite=lax';
     } catch (ignored) {
     }
   }
@@ -394,6 +384,10 @@
       state.settings = Object.assign({}, state.settings, cached.settings || {});
       state.floors = Array.isArray(cached.floors) ? cached.floors : [];
       state.defaultFloorId = String(cached.default_floor_id || '');
+      state.activeFloorId = String(cached.active_floor_id || '');
+      state.boot = Object.assign({}, state.boot || {}, {
+        floor_cookie_name: String(cached.floor_cookie_name || '')
+      });
       normalizeActiveFloor();
       state.tables = Array.isArray(cached.tables) ? cached.tables : [];
       state.categories = Array.isArray(cached.categories) ? cached.categories : [];
@@ -433,6 +427,7 @@
     state.settings = json.settings || {};
     state.floors = Array.isArray(json.floors) ? json.floors : [];
     state.defaultFloorId = String(json.default_floor_id || '');
+    state.activeFloorId = String(json.active_floor_id || '');
     normalizeActiveFloor();
     state.tables = Array.isArray(json.tables) ? json.tables : [];
     state.menu = Array.isArray(json.menu_items) ? json.menu_items : [];
@@ -471,6 +466,11 @@
       state.settings = json.settings || {};
       state.floors = Array.isArray(json.floors) ? json.floors : [];
       state.defaultFloorId = String(json.default_floor_id || '');
+      state.activeFloorId = String(
+        json.active_floor_id ||
+        state.activeFloorId ||
+        ''
+      );
       normalizeActiveFloor();
       state.tables = Array.isArray(json.tables) ? json.tables : [];
       state.menu = Array.isArray(json.menu_items) ? json.menu_items : [];
