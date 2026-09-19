@@ -19,6 +19,7 @@ FILES=(
   "app/admin/assets/js/pmd-site-access-hub-v13.js"
   "app/admin/classes/AdminController.php"
   "app/admin/controllers/PmdQuickPosV1.php"
+  "app/admin/controllers/PmdWaiterTableStateV154.php"
   "app/admin/controllers/concerns/PmdWaiterPosSaveEndpoint.php"
   "app/admin/controllers/concerns/PmdWaiterPosSettleEndpoint.php"
   "app/admin/views/pmd_quick_pos_v1.blade.php"
@@ -36,6 +37,7 @@ PHP_FILES=(
   "app/admin/Services/PmdRoleLandingService.php"
   "app/admin/classes/AdminController.php"
   "app/admin/controllers/PmdQuickPosV1.php"
+  "app/admin/controllers/PmdWaiterTableStateV154.php"
   "app/admin/controllers/concerns/PmdWaiterPosSaveEndpoint.php"
   "app/admin/controllers/concerns/PmdWaiterPosSettleEndpoint.php"
   "app/main/widgets/MediaManager.php"
@@ -167,6 +169,12 @@ grep -q "PMD_QUICK_POS_FAST_WRITE_V2" "$STAGE/app/admin/controllers/PmdQuickPosV
 grep -q "PMD_QUICK_POS_FAST_SETTLE_V1" "$STAGE/app/admin/controllers/concerns/PmdWaiterPosSettleEndpoint.php"
 grep -q "PMD_TOUCH_NUMPAD_V1" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
 grep -q "PMD_TOUCH_NUMPAD_V1" "$STAGE/app/admin/assets/css/pmd-quick-pos-v1.css"
+grep -q "PMD_TABLE_STATE_PREFIX_SAFE_V169" "$STAGE/app/admin/controllers/PmdWaiterTableStateV154.php"
+grep -q "PMD_QPOS_NO_BOOT_FLASH_V1" "$STAGE/app/admin/assets/css/pmd-quick-pos-v1.css"
+if grep -Fq "name: 'Card'" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"; then
+  echo "ERROR: ambiguous Card payment label remains in Quick POS" >&2
+  exit 1
+fi
 grep -q "data-qpos-touch-keypad" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
 grep -Fq "\$\$('[data-cash-value]', box).forEach" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
 grep -q "'cashierlab' =>" "$STAGE/app/Http/Middleware/PmdAdminRetiredPagesR77.php"
