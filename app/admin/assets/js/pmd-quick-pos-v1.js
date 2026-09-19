@@ -125,6 +125,8 @@
       reference: '',
       externalConfirmed: false,
       terminal: null,
+      receiptUrl: '',
+      invoiceUrl: '',
       idempotencyKey: uid('pay')
     }
   };
@@ -1089,6 +1091,8 @@
       reference: '',
       externalConfirmed: false,
       terminal: null,
+      receiptUrl: '',
+      invoiceUrl: '',
       idempotencyKey: uid('pay')
     };
   }
@@ -1272,6 +1276,14 @@
     var changeBox = $('[data-qpos-change]');
     var changeEl = $('[data-qpos-change-amount]');
     var submit = $('[data-qpos-payment-submit]');
+    var receipt = $('[data-qpos-payment-receipt]');
+
+    if (receipt) {
+      receipt.hidden = !state.payment.receiptUrl;
+      if (state.payment.receiptUrl) {
+        receipt.href = state.payment.receiptUrl;
+      }
+    }
 
     if (amountEl && document.activeElement !== amountEl) {
       amountEl.value = state.payment.amount;
@@ -1421,6 +1433,8 @@
       });
 
       state.payment.summary = json.summary || state.payment.summary;
+      state.payment.receiptUrl = String(json.receipt_url || '');
+      state.payment.invoiceUrl = String(json.invoice_url || '');
       state.payment.idempotencyKey = uid('pay');
       state.payment.reference = '';
       state.payment.externalConfirmed = false;
@@ -1442,7 +1456,10 @@
       renderPayment();
       renderAll();
 
-      if (String(json.settlement_status || '').toLowerCase() === 'paid') {
+      if (
+        String(json.settlement_status || '').toLowerCase() === 'paid'
+        && !state.payment.receiptUrl
+      ) {
         setTimeout(closePayment, 900);
       }
     } catch (error) {
