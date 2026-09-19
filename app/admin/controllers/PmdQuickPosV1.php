@@ -989,6 +989,7 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
 
     /**
      * PMD_QPOS_HISTORY_V1
+     * PMD_QPOS_HISTORY_STRUCTURED_V20
      *
      * Compact, schema-safe operational history for the POS. It intentionally
      * reads existing canonical order/payment/note/status tables only; no new
