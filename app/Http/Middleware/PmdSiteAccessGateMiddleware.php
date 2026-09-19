@@ -47,6 +47,10 @@ class PmdSiteAccessGateMiddleware
             $trustedDeviceBeforeResponse = null;
         }
 
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'site_access_trusted_capture'
+        );
+
         // PMD_TRUSTED_DEVICE_RESUME_V1
         // Login.php deliberately clears session verification after every fresh
         // password login. If this browser was verified previously for the same
@@ -65,6 +69,10 @@ class PmdSiteAccessGateMiddleware
                 'path' => $request->path(),
             ]);
         }
+
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'site_access_resume'
+        );
 
         try {
             $gate = app(PmdSiteAccessWorkspaceGateService::class)->gateResponse($request);
@@ -95,6 +103,10 @@ class PmdSiteAccessGateMiddleware
                 ]);
             }
         }
+
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'site_access_workspace_gate'
+        );
 
         $response = $next($request);
 
