@@ -880,6 +880,29 @@ button {
   gap: 9px;
   margin-bottom: 14px;
 }
+.pmd-qpos-cash-presets {
+  display: grid;
+  grid-template-columns: repeat(4,minmax(0,1fr));
+  gap: 7px;
+  margin: -4px 0 14px;
+}
+.pmd-qpos-cash-presets[hidden] { display: none; }
+.pmd-qpos-cash-presets button {
+  min-height: 50px;
+  border: 1px solid var(--q-line);
+  background: #fff;
+  color: var(--q-ink);
+  border-radius: 11px;
+  cursor: pointer;
+  font-weight: 850;
+  font-size: 11px;
+}
+.pmd-qpos-cash-presets button.is-active {
+  border-color: #86efac;
+  background: var(--q-green-soft);
+  color: #166534;
+}
+
 .pmd-qpos-tip-row {
   display: flex;
   align-items: center;
