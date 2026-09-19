@@ -1285,6 +1285,11 @@ function renderOpenChecks() {
   }
 
   function selectFloor(id) {
+    if (state.payment.open) {
+      toast('Close payment first.', true);
+      return;
+    }
+
     id = String(id || '');
     if (
       !id ||
