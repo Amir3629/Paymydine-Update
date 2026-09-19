@@ -26,19 +26,35 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
     {
         $mode = $this->quickPosMode((string)$mode);
 
+        // PMD_QPOS_INLINE_BOOTSTRAP_V1
+        // The first HTML response already contains the authoritative POS
+        // catalogue/table payload. The browser paints the final layout once
+        // instead of painting a shell and waiting for a second bootstrap GET.
+        $initialBootstrap = $this->quickPosBootstrapPayload($mode);
+
         return view()->file(
             base_path('app/admin/views/pmd_quick_pos_v1.blade.php'),
             [
                 'mode' => $mode,
                 'canSwitchMode' => $this->quickPosCanSwitchMode(),
                 'legacyOrdersUrl' => admin_url('orders'),
+                'initialBootstrap' => $initialBootstrap,
             ]
         );
     }
 
     public function bootstrap($mode = 'cashier')
     {
-        $mode = $this->quickPosMode((string)$mode);
+        return response()->json(
+            $this->quickPosBootstrapPayload(
+                $this->quickPosMode((string)$mode)
+            )
+        );
+    }
+
+    protected function quickPosBootstrapPayload(string $mode): array
+    {
+        $mode = $this->quickPosMode($mode);
         $locationId = $this->quickPosLocationId();
 
         \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
@@ -59,7 +75,7 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
 
         $user = $this->currentUser();
 
-        return response()->json([
+        return [
             'ok' => true,
             'version' => 'pmd-quick-pos-v1',
             'mode' => $mode,
@@ -96,7 +112,7 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 'terminal_refresh_url' => '/admin/terminal-payments/attempts/{attempt}/refresh',
                 'table_state_url' => '/admin/pmd-waiter-table-states-v154/{table}',
             ],
-        ]);
+        ];
     }
 
     public function paymentSummary($orderId = null)
