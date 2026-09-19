@@ -37,8 +37,6 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
             base_path('app/admin/views/pmd_quick_pos_v1.blade.php'),
             [
                 'mode' => $mode,
-                'canSwitchMode' => $this->quickPosCanSwitchMode(),
-                'legacyOrdersUrl' => admin_url('orders'),
                 'initialBootstrap' => $initialBootstrap,
             ]
         );
