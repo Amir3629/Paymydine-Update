@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# PMD_QUICK_POS_DEPLOY_ERROR_TRAP_V1
+trap 'status=$?; echo "ERROR: Quick POS deploy aborted at line $LINENO: $BASH_COMMAND (status $status)" >&2' ERR
+
 ROOT="${PMD_ROOT:-/var/www/paymydine}"
 BRANCH="${PMD_QUICK_POS_BRANCH:-origin/feat/quick-pos-v1}"
 STAMP="$(date '+%Y%m%d_%H%M%S')"
