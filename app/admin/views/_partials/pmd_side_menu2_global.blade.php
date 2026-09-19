@@ -9,35 +9,115 @@
     $pmdSideMenuRoleResolved = false;
     $pmdRoleUsesSideMenu = false;
 
+    /*
+     * PMD_PERF_R12_ADMIN_ROLE_CONTEXT_SINGLEFLIGHT
+     * Reuse the body/layout role context when it already exists. Non-clean
+     * pages still resolve once here and publish it for the rest of the request.
+     */
+    $pmdRoleContextCacheKeyR12 =
+        '_pmd_admin_role_context_r12';
+
     try {
-        $pmdRoleUser = null;
+        $pmdRoleRequestR12 = request();
+        $pmdRoleContextR12 =
+            $pmdRoleRequestR12->attributes->get(
+                $pmdRoleContextCacheKeyR12
+            );
 
-        if (class_exists('\\Admin\\Facades\\AdminAuth')) {
-            $pmdRoleUser = \Admin\Facades\AdminAuth::getUser();
-        } elseif (class_exists('AdminAuth')) {
-            $pmdRoleUser = \AdminAuth::getUser();
-        }
+        if (!is_array($pmdRoleContextR12)) {
+            $pmdRoleUser = null;
 
-        if ($pmdRoleUser) {
-            if (!empty($pmdRoleUser->is_super_user)) {
-                $pmdSideMenuRoleResolved = true;
-                $pmdRoleUsesSideMenu = true;
-            } elseif (!empty($pmdRoleUser->staff_id)) {
-                $pmdRoleRow = \Illuminate\Support\Facades\DB::table('staffs as s')
-                    ->leftJoin('staff_roles as r', 'r.staff_role_id', '=', 's.staff_role_id')
-                    ->where('s.staff_id', (int)$pmdRoleUser->staff_id)
-                    ->select('r.code as role_code', 'r.name as role_name')
-                    ->first();
+            if (class_exists('\\Admin\\Facades\\AdminAuth')) {
+                $pmdRoleUser =
+                    \Admin\Facades\AdminAuth::getUser();
+            } elseif (class_exists('AdminAuth')) {
+                $pmdRoleUser =
+                    \AdminAuth::getUser();
+            }
+
+            $pmdRoleContextR12 = [
+                'logged_in' => (bool)$pmdRoleUser,
+                'username' => $pmdRoleUser->username ?? null,
+                'staff_id' => $pmdRoleUser->staff_id ?? null,
+                'staff_name' => null,
+                'staff_email' => null,
+                'role_code' => null,
+                'role_name' => null,
+                'is_super_user' => !empty(
+                    $pmdRoleUser->is_super_user
+                ),
+            ];
+
+            if (
+                $pmdRoleUser
+                && !empty($pmdRoleUser->staff_id)
+            ) {
+                $pmdRoleRow =
+                    \Illuminate\Support\Facades\DB::table('staffs as s')
+                        ->leftJoin(
+                            'staff_roles as r',
+                            'r.staff_role_id',
+                            '=',
+                            's.staff_role_id'
+                        )
+                        ->where(
+                            's.staff_id',
+                            (int)$pmdRoleUser->staff_id
+                        )
+                        ->select(
+                            's.staff_name',
+                            's.staff_email',
+                            'r.code as role_code',
+                            'r.name as role_name'
+                        )
+                        ->first();
 
                 if ($pmdRoleRow) {
-                    $pmdSideMenuRoleResolved = true;
-                    $pmdRoleCode = strtolower(trim((string)($pmdRoleRow->role_code ?? '')));
-                    $pmdRoleName = strtolower(trim((string)($pmdRoleRow->role_name ?? '')));
-                    $pmdRoleUsesSideMenu = in_array($pmdRoleCode, ['owner', 'manager'], true)
-                        || in_array($pmdRoleName, ['owner', 'manager'], true);
+                    $pmdRoleContextR12['staff_name'] =
+                        $pmdRoleRow->staff_name
+                        ?? null;
+                    $pmdRoleContextR12['staff_email'] =
+                        $pmdRoleRow->staff_email
+                        ?? null;
+                    $pmdRoleContextR12['role_code'] =
+                        $pmdRoleRow->role_code
+                        ?? null;
+                    $pmdRoleContextR12['role_name'] =
+                        $pmdRoleRow->role_name
+                        ?? null;
                 }
             }
+
+            $pmdRoleRequestR12->attributes->set(
+                $pmdRoleContextCacheKeyR12,
+                $pmdRoleContextR12
+            );
         }
+
+        $pmdRoleCode = strtolower(trim((string)(
+            $pmdRoleContextR12['role_code']
+            ?? ''
+        )));
+        $pmdRoleName = strtolower(trim((string)(
+            $pmdRoleContextR12['role_name']
+            ?? ''
+        )));
+
+        $pmdSideMenuRoleResolved =
+            !empty($pmdRoleContextR12['logged_in']);
+
+        $pmdRoleUsesSideMenu =
+            !empty($pmdRoleContextR12['is_super_user'])
+            || in_array(
+                $pmdRoleCode,
+                ['owner', 'pmd-owner', 'manager', 'pmd-manager'],
+                true
+            )
+            || in_array(
+                $pmdRoleName,
+                ['owner', 'manager'],
+                true
+            );
     } catch (\Throwable $e) {
         $pmdSideMenuRoleResolved = false;
         $pmdRoleUsesSideMenu = false;

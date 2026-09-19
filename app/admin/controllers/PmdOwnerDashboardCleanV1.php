@@ -1603,35 +1603,132 @@ try {
     protected function floorDueMap($orders, $payments)
     {
         if (!$orders) return [];
-        $tables = $this->find($this->tables(), ['tables', 'restaurant_tables', 'location_tables']);
+
+        $tables = $this->find(
+            $this->tables(),
+            ['tables', 'restaurant_tables', 'location_tables']
+        );
+
         if (!$tables) return [];
+
         $cols = $this->cols($orders);
         $table = $this->pick($cols, ['order_type']);
         $id = $this->pick($cols, ['order_id', 'id']);
-        $total = $this->pick($cols, ['order_total', 'total', 'total_amount', 'grand_total', 'payment_total']);
-        $status = $this->pick($cols, ['status_id', 'order_status_id', 'status', 'status_name', 'order_status', 'state']);
+        $total = $this->pick(
+            $cols,
+            ['order_total', 'total', 'total_amount', 'grand_total', 'payment_total']
+        );
+        $status = $this->pick(
+            $cols,
+            ['status_id', 'order_status_id', 'status', 'status_name', 'order_status', 'state']
+        );
+
         if (!$table) return [];
+
         $tc = $this->cols($tables);
         $tableId = $this->pick($tc, ['table_id', 'id']);
+
         if (!$tableId) return [];
-        $orderTotals = $this->find($this->tables(), ['order_totals']);
-        $normalizedExpr = $this->normalizedOrderTotalExpr('o', $orders, $orderTotals, $id, $total);
-        $open = $status ? $this->currentOpenOrderCondition('o', $status, $cols) : '1=1';
-        $whereCurrent = $this->currentTableWhere('t', $tc, true);
-        $rows = $this->rows(
-            'SELECT CAST(t.'.$this->q($tableId).' AS CHAR) table_ref, COUNT(*) count, COALESCE(SUM('.$normalizedExpr.'),0) amount '.
-            'FROM '.$this->q($tables).' t INNER JOIN '.$this->q($orders).' o '.
-            'ON TRIM(CAST(o.'.$this->q($table).' AS CHAR)) = TRIM(CAST(t.'.$this->q($tableId).' AS CHAR)) '.
-            'WHERE '.$open.' AND '.$whereCurrent.' GROUP BY CAST(t.'.$this->q($tableId).' AS CHAR)'
+
+        /*
+         * PMD_PERF_R16_FLOOR_DUE_AGGREGATE_JOIN
+         *
+         * The previous normalizedOrderTotalExpr() embedded the same correlated
+         * order_totals SUM subquery twice per order row (CASE test + value).
+         * On the hot Floor query that forced MySQL to repeatedly re-scan
+         * order_totals while grouping by table. Pre-aggregate order totals once
+         * and join by order_id instead. Fallback to orders.order_total is
+         * preserved byte-for-byte in meaning.
+         */
+        $orderTotals = $this->find(
+            $this->tables(),
+            ['order_totals']
         );
+
+        $fallbackTotal = $total
+            ? 'CAST(o.'.$this->q($total).' AS DECIMAL(15,2))'
+            : '0';
+
+        $orderTotalJoin = '';
+        $normalizedExpr = $fallbackTotal;
+
+        if ($orderTotals && $id) {
+            $otCols = $this->cols($orderTotals);
+            $otOrder = $this->pick($otCols, ['order_id']);
+            $otValue = $this->pick($otCols, ['value', 'amount', 'total']);
+            $otCode = $this->pick($otCols, ['code']);
+            $otTitle = $this->pick($otCols, ['title', 'name']);
+
+            if ($otOrder && $otValue) {
+                $filter = '';
+
+                if ($otCode) {
+                    $filter =
+                        ' WHERE LOWER(COALESCE('
+                        .$this->q($otCode)
+                        .',"")) IN ("total","order_total","grand_total")';
+                } elseif ($otTitle) {
+                    $filter =
+                        ' WHERE LOWER(COALESCE('
+                        .$this->q($otTitle)
+                        .',"")) LIKE "%total%"';
+                }
+
+                $orderTotalJoin =
+                    ' LEFT JOIN ('
+                    .'SELECT '
+                    .$this->q($otOrder)
+                    .' pmd_order_id, '
+                    .'COALESCE(SUM(CAST('
+                    .$this->q($otValue)
+                    .' AS DECIMAL(15,2))),0) pmd_total '
+                    .'FROM '
+                    .$this->q($orderTotals)
+                    .$filter
+                    .' GROUP BY '
+                    .$this->q($otOrder)
+                    .') pmd_ot ON pmd_ot.pmd_order_id = o.'
+                    .$this->q($id)
+                    .' ';
+
+                $normalizedExpr =
+                    '(CASE WHEN COALESCE(pmd_ot.pmd_total,0) > 0 '
+                    .'THEN pmd_ot.pmd_total ELSE '
+                    .$fallbackTotal
+                    .' END)';
+            }
+        }
+
+        $open = $status
+            ? $this->currentOpenOrderCondition('o', $status, $cols)
+            : '1=1';
+
+        $whereCurrent = $this->currentTableWhere('t', $tc, true);
+
+        $rows = $this->rows(
+            'SELECT CAST(t.'.$this->q($tableId).' AS CHAR) table_ref, '
+            .'COUNT(*) count, COALESCE(SUM('.$normalizedExpr.'),0) amount '
+            .'FROM '.$this->q($tables).' t '
+            .'INNER JOIN '.$this->q($orders).' o '
+            .'ON TRIM(CAST(o.'.$this->q($table).' AS CHAR)) '
+            .'= TRIM(CAST(t.'.$this->q($tableId).' AS CHAR)) '
+            .$orderTotalJoin
+            .'WHERE '.$open.' AND '.$whereCurrent.' '
+            .'GROUP BY CAST(t.'.$this->q($tableId).' AS CHAR)'
+        );
+
         $out = [];
+
         foreach ($rows as $r) {
             $key = strtolower(trim((string)($r['table_ref'] ?? '')));
-            if ($key !== '') $out[$key] = $r;
+
+            if ($key !== '') {
+                $out[$key] = $r;
+            }
         }
+
         return $out;
     }
-
 
     protected function firstMapHit($map, $keys, $default)
     {
@@ -2096,16 +2193,40 @@ try {
     protected function cols($table)
     {
         $table = trim((string)$table);
+
         if ($table === '') return [];
 
         if (array_key_exists($table, $this->pmdColumnListCache)) {
             return $this->pmdColumnListCache[$table];
         }
 
+        /*
+         * PMD_PERF_R16_SHARED_SCHEMA_CATALOG_BRIDGE
+         *
+         * Reuse the request-wide PmdCachedMySqlBuilder catalogue instead of
+         * issuing another raw SHOW COLUMNS for Owner/Floor data helpers.
+         * Physical prefixed names (ti_orders) are supported by the R16 builder.
+         * Keep the old raw SHOW fallback for compatibility if a non-PMD
+         * connection is ever used.
+         */
         try {
-            return $this->pmdColumnListCache[$table] = array_map(function ($row) {
-                return $row->Field;
-            }, DB::select('SHOW COLUMNS FROM '.$this->q($table)));
+            $schema = DB::connection()->getSchemaBuilder();
+            $columns = $schema->getColumnListing($table);
+
+            if (is_array($columns) && $columns) {
+                return $this->pmdColumnListCache[$table] =
+                    array_values($columns);
+            }
+        } catch (\Throwable $e) {
+        }
+
+        try {
+            return $this->pmdColumnListCache[$table] = array_map(
+                static function ($row) {
+                    return $row->Field;
+                },
+                DB::select('SHOW COLUMNS FROM '.$this->q($table))
+            );
         } catch (\Throwable $e) {
             return $this->pmdColumnListCache[$table] = [];
         }

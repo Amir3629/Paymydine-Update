@@ -409,23 +409,48 @@
     const detail = event && event.detail ? event.detail : {};
     setCount(Math.max(0, Number(detail.count || 0)));
     window.PMDNotificationCountDrivenByPush = true;
+
+    if (window.PMDNotificationCountFallbackTimer) {
+      clearTimeout(window.PMDNotificationCountFallbackTimer);
+      window.PMDNotificationCountFallbackTimer = null;
+    }
+
     if (window.notificationCountInterval) {
       clearInterval(window.notificationCountInterval);
       window.notificationCountInterval = null;
     }
   });
 
-  // keep the badge fresh until/unless the push poll becomes the authority
-  refreshCount();
+  // PMD_PERF_R7_NOTIFICATION_FIRST_POLL_DEDUP
+  // push-notifications.js performs its first request after ~1s and already
+  // carries the unread count. Give it a short authority window before falling
+  // back to /count, avoiding two authenticated notification requests on every
+  // full Admin navigation.
+  if (window.PMDNotificationCountFallbackTimer) {
+    clearTimeout(window.PMDNotificationCountFallbackTimer);
+  }
+
+  window.PMDNotificationCountFallbackTimer = setTimeout(() => {
+    window.PMDNotificationCountFallbackTimer = null;
+    if (!window.PMDNotificationCountDrivenByPush) {
+      refreshCount();
+    }
+  }, 2200);
   
-  // Store interval ID in global scope for cleanup and duplicate prevention
+  // Store interval ID in global scope for fallback-only refreshes.
   if (window.notificationCountInterval) {
     clearInterval(window.notificationCountInterval);
   }
-  window.notificationCountInterval = setInterval(refreshCount, 30000);
+  window.notificationCountInterval = setInterval(() => {
+    if (!window.PMDNotificationCountDrivenByPush) refreshCount();
+  }, 30000);
   
   // Clean up interval on page unload to prevent memory leaks and CPU usage
   window.addEventListener('beforeunload', () => {
+    if (window.PMDNotificationCountFallbackTimer) {
+      clearTimeout(window.PMDNotificationCountFallbackTimer);
+      window.PMDNotificationCountFallbackTimer = null;
+    }
     if (window.notificationCountInterval) {
       clearInterval(window.notificationCountInterval);
       window.notificationCountInterval = null;

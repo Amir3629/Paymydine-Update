@@ -1,6 +1,7 @@
-/* PMD_WORKPLACE_HUB_RUNTIME_V12 */
+/* PMD_WORKPLACE_HUB_RUNTIME_V13 */
 /* PMD_SIGNIN_CIRCLE_LIGHT_GREEN_V1 */
 /* PMD_SIGNIN_CIRCLE_WHITE_V1 */
+/* PMD_PERF_R7_ASSET_V13 */
 (function () {
     'use strict';
 
@@ -309,12 +310,15 @@
         schedulePoll(nextPollDelay());
     });
 
+    // PMD_PERF_R7_SIGNIN_COUNTDOWN_NO_REFRESH_STORM
+    // Countdown is display-only. The adaptive poller above is the sole network
+    // refresh authority. Previously every expired countdown tick called
+    // refresh() again, turning a 5s active poll into ~1-2s request traffic.
     window.setInterval(function () {
         if (!isCurrentGeneration()) return;
         if (!root || !lastPayload) return;
         var node = root.querySelector('[data-time]');
         updateCountdown(node);
-        if (expiresAt > 0 && Date.now() >= expiresAt) refresh();
     }, 1000);
 
     document.addEventListener('visibilitychange', function () {

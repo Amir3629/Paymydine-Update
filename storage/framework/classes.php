@@ -162,4 +162,11 @@
   'Admin\\Controllers\\pmdallfoods' => 'app/admin/controllers/Pmdallfoods.php',
   'Admin\\Models\\Cash_drawers_model' => 'app/admin/models/Cash_drawers_model.php',
   'System\\Classes\\ErrorHandler' => 'app/system/classes/ErrorHandler.php',
+  'Admin\\Controllers\\pmdsettings' => 'app/admin/controllers/Pmdsettings.php',
+  'Admin\\Controllers\\kitchensettings' => 'app/admin/controllers/Kitchensettings.php',
+  'Admin\\Controllers\\PmdWaiterTableStateV154' => 'app/admin/controllers/PmdWaiterTableStateV154.php',
+  'Admin\\Controllers\\pmdreports' => 'app/admin/controllers/Pmdreports.php',
+  'Admin\\Controllers\\pmdfinance' => 'app/admin/controllers/Pmdfinance.php',
+  'Igniter\\PayRegister\\Payments\\Mollie' => 'extensions/igniter/payregister/payments/Mollie.php',
+  'Admin\\Controllers\\SumupTerminalSettings' => 'app/admin/controllers/SumupTerminalSettings.php',
 );

@@ -1,3 +1,16 @@
+{{-- PMD_PERF_R16_ROUTE_SCOPED_LEGACY_LAYOUT_LAYERS
+     Large historical Waiter/Reservations repair layers used to be emitted on
+     every Admin document and then self-aborted in JavaScript. Keep their exact
+     behavior, but let the server omit them from unrelated hot workspaces. --}}
+@php
+    $pmdR16RenderLegacyWaiterLayers =
+        request()->is('admin/dashboardwaiter*')
+        || request()->is('admin/reservations2*');
+
+    $pmdR16RenderDashboardReservationLayers =
+        request()->is('admin/reservations2*');
+@endphp
+
 {{-- PMD_ADMIN_TITLE_EARLY_AUTH_R84A
      Authenticated Admin title must exist before the large
      legacy Admin bootstrap begins.
@@ -669,6 +682,7 @@
 
 {{-- PMD_R2_V6_AUTHORITY_GUARD --}}
 @unless (request()->is('admin/reservations2'))
+@if($pmdR16RenderLegacyWaiterLayers)
 <script id="pmd-waiter-dashboard-v56-pause-read-refresh-edit-script">
 (function () {
   if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname) + location.search + location.hash)) return;
@@ -868,12 +882,14 @@
   console.info('[PMD] Waiter Dashboard V56 pause read refresh during edit active');
 })();
 </script>
+@endif
 @endunless
 
 <!-- PMD_WAITER_DASHBOARD_V56_PAUSE_READ_REFRESH_EDIT_END -->
 
 
 <!-- PMD_WAITER_DASHBOARD_V50_REAL_FLOOR_DRAG_CLAMP_START -->
+@if($pmdR16RenderLegacyWaiterLayers)
 <style id="pmd-waiter-dashboard-v50-real-floor-drag-clamp-style">
 /*
   V50:
@@ -910,10 +926,12 @@
   transform: translate(-50%, -50%) !important;
 }
 </style>
+@endif
 
 
 {{-- PMD_R2_V6_AUTHORITY_GUARD --}}
 @unless (request()->is('admin/reservations2'))
+@if($pmdR16RenderLegacyWaiterLayers)
 <script id="pmd-waiter-dashboard-v50-real-floor-drag-clamp-script">
 (function () {
   if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname) + location.search + location.hash)) return;
@@ -1190,6 +1208,7 @@
   console.info('[PMD] Waiter Dashboard V50 real floor drag + clamp active');
 })();
 </script>
+@endif
 @endunless
 
 <!-- PMD_WAITER_DASHBOARD_V50_REAL_FLOOR_DRAG_CLAMP_END -->
@@ -1199,6 +1218,7 @@
 
 {{-- PMD_LEAN_V17_PMD_WAITER_DASHBOARD_V61_STABLE_KIOSK_NO_JUMP_STYLE_BEGIN --}}
 @if(request()->is('admin/dashboardwaiter*'))
+@if($pmdR16RenderLegacyWaiterLayers)
 <style id="pmd-waiter-dashboard-v61-stable-kiosk-no-jump-style">
 /*
   V61:
@@ -1433,12 +1453,14 @@ html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root {
 #pmd-waiter-dashboard-root .pmd-v61-dot-dark { background: #0f172a !important; }
 </style>
 @endif
+@endif
 {{-- PMD_LEAN_V17_PMD_WAITER_DASHBOARD_V61_STABLE_KIOSK_NO_JUMP_STYLE_END --}}
 
 
 
 {{-- PMD_LEAN_V17_PMD_WAITER_DASHBOARD_V61_STABLE_KIOSK_NO_JUMP_SCRIPT_BEGIN --}}
 @if(request()->is('admin/dashboardwaiter*'))
+@if($pmdR16RenderLegacyWaiterLayers)
 <script id="pmd-waiter-dashboard-v61-stable-kiosk-no-jump-script">
 (function () {
   if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname) + location.search + location.hash)) return;
@@ -1788,6 +1810,7 @@ html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root {
 })();
 </script>
 @endif
+@endif
 {{-- PMD_LEAN_V17_PMD_WAITER_DASHBOARD_V61_STABLE_KIOSK_NO_JUMP_SCRIPT_END --}}
 
 <!-- PMD_WAITER_DASHBOARD_V61_STABLE_KIOSK_NO_JUMP_END -->
@@ -1797,6 +1820,7 @@ html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root {
 
 {{-- PMD_LEAN_V17_PMD_WAITER_DASHBOARD_V65_REMOVE_SIDEBAR_DOM_STYLE_BEGIN --}}
 @if(request()->is('admin/dashboardwaiter*'))
+@if($pmdR16RenderLegacyWaiterLayers)
 <style id="pmd-waiter-dashboard-v65-remove-sidebar-dom-style">
 /*
   V65:
@@ -1843,12 +1867,14 @@ html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root {
 }
 </style>
 @endif
+@endif
 {{-- PMD_LEAN_V17_PMD_WAITER_DASHBOARD_V65_REMOVE_SIDEBAR_DOM_STYLE_END --}}
 
 
 
 {{-- PMD_LEAN_V17_PMD_WAITER_DASHBOARD_V65_REMOVE_SIDEBAR_DOM_SCRIPT_BEGIN --}}
 @if(request()->is('admin/dashboardwaiter*'))
+@if($pmdR16RenderLegacyWaiterLayers)
 <script id="pmd-waiter-dashboard-v65-remove-sidebar-dom-script">
 (function () {
   if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname) + location.search + location.hash)) return;
@@ -2115,6 +2141,7 @@ html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root {
 })();
 </script>
 @endif
+@endif
 {{-- PMD_LEAN_V17_PMD_WAITER_DASHBOARD_V65_REMOVE_SIDEBAR_DOM_SCRIPT_END --}}
 
 <!-- PMD_WAITER_DASHBOARD_V65_REMOVE_SIDEBAR_DOM_END -->
@@ -2124,6 +2151,7 @@ html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root {
 
 {{-- PMD_LEAN_V17_PMD_WAITER_DASHBOARD_V69_REMOVE_OWNER_FLOOR_GHOST_STYLE_BEGIN --}}
 @if(request()->is('admin/dashboardwaiter*'))
+@if($pmdR16RenderLegacyWaiterLayers)
 <style id="pmd-waiter-dashboard-v69-remove-owner-floor-ghost-style">
 /*
   V69:
@@ -2158,12 +2186,14 @@ html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root {
 }
 </style>
 @endif
+@endif
 {{-- PMD_LEAN_V17_PMD_WAITER_DASHBOARD_V69_REMOVE_OWNER_FLOOR_GHOST_STYLE_END --}}
 
 
 
 {{-- PMD_LEAN_V17_PMD_WAITER_DASHBOARD_V69_REMOVE_OWNER_FLOOR_GHOST_SCRIPT_BEGIN --}}
 @if(request()->is('admin/dashboardwaiter*'))
+@if($pmdR16RenderLegacyWaiterLayers)
 <script id="pmd-waiter-dashboard-v69-remove-owner-floor-ghost-script">
 (function () {
   if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname) + location.search + location.hash)) return;
@@ -2342,6 +2372,7 @@ html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root {
 })();
 </script>
 @endif
+@endif
 {{-- PMD_LEAN_V17_PMD_WAITER_DASHBOARD_V69_REMOVE_OWNER_FLOOR_GHOST_SCRIPT_END --}}
 
 <!-- PMD_WAITER_DASHBOARD_V69_REMOVE_OWNER_FLOOR_GHOST_END -->
@@ -2351,6 +2382,7 @@ html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root {
 
 {{-- PMD_LEAN_V17_PMD_WAITER_DASHBOARD_V70_REMOVE_404_WRAPPER_LOGO_GHOST_STYLE_BEGIN --}}
 @if(request()->is('admin/dashboardwaiter*'))
+@if($pmdR16RenderLegacyWaiterLayers)
 <style id="pmd-waiter-dashboard-v70-remove-404-wrapper-logo-ghost-style">
 /*
   V70:
@@ -2398,12 +2430,14 @@ html.pmd-dashboardwaiter-kiosk-page .pmd-final-sidebar-logo-img-v20 {
 }
 </style>
 @endif
+@endif
 {{-- PMD_LEAN_V17_PMD_WAITER_DASHBOARD_V70_REMOVE_404_WRAPPER_LOGO_GHOST_STYLE_END --}}
 
 
 
 {{-- PMD_LEAN_V17_PMD_WAITER_DASHBOARD_V70_REMOVE_404_WRAPPER_LOGO_GHOST_SCRIPT_BEGIN --}}
 @if(request()->is('admin/dashboardwaiter*'))
+@if($pmdR16RenderLegacyWaiterLayers)
 <script id="pmd-waiter-dashboard-v70-remove-404-wrapper-logo-ghost-script">
 (function () {
   if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname) + location.search + location.hash)) return;
@@ -2598,6 +2632,7 @@ html.pmd-dashboardwaiter-kiosk-page .pmd-final-sidebar-logo-img-v20 {
 })();
 </script>
 @endif
+@endif
 {{-- PMD_LEAN_V17_PMD_WAITER_DASHBOARD_V70_REMOVE_404_WRAPPER_LOGO_GHOST_SCRIPT_END --}}
 
 <!-- PMD_WAITER_DASHBOARD_V70_REMOVE_404_WRAPPER_LOGO_GHOST_END -->
@@ -2607,6 +2642,7 @@ html.pmd-dashboardwaiter-kiosk-page .pmd-final-sidebar-logo-img-v20 {
 
 {{-- PMD_LEAN_V17_PMD_WAITER_DASHBOARD_V74_INSIDE_TOP_PADDING_STYLE_BEGIN --}}
 @if(request()->is('admin/dashboardwaiter*'))
+@if($pmdR16RenderLegacyWaiterLayers)
 <style id="pmd-waiter-dashboard-v74-inside-top-padding-style">
 /*
   V74:
@@ -2654,12 +2690,14 @@ html.pmd-dashboardwaiter-kiosk-page [data-pmd-v74-owner-blocked="1"] {
 }
 </style>
 @endif
+@endif
 {{-- PMD_LEAN_V17_PMD_WAITER_DASHBOARD_V74_INSIDE_TOP_PADDING_STYLE_END --}}
 
 
 
 {{-- PMD_LEAN_V17_PMD_WAITER_DASHBOARD_V74_INSIDE_TOP_PADDING_SCRIPT_BEGIN --}}
 @if(request()->is('admin/dashboardwaiter*'))
+@if($pmdR16RenderLegacyWaiterLayers)
 <script id="pmd-waiter-dashboard-v74-inside-top-padding-script">
 (function () {
   if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname) + location.search + location.hash)) return;
@@ -2890,12 +2928,14 @@ html.pmd-dashboardwaiter-kiosk-page [data-pmd-v74-owner-blocked="1"] {
 })();
 </script>
 @endif
+@endif
 {{-- PMD_LEAN_V17_PMD_WAITER_DASHBOARD_V74_INSIDE_TOP_PADDING_SCRIPT_END --}}
 
 <!-- PMD_WAITER_DASHBOARD_V74_INSIDE_TOP_PADDING_END -->
 
 
 <!-- PMD_DASHBOARD_RESERVATION_V3_STABLE_NO_JUMP_START -->
+@if($pmdR16RenderDashboardReservationLayers)
 <style id="pmd-dashboardreservation-v3-style">
 html.pmd-dashboardreservation-page,
 html.pmd-dashboardreservation-page body {
@@ -3160,7 +3200,9 @@ html.pmd-dashboardreservation-page .pmd-final-admin-logo-v20 {
   font-weight: 900 !important;
 }
 </style>
+@endif
 
+@if($pmdR16RenderDashboardReservationLayers)
 <script id="pmd-dashboardreservation-v3-script">
 (function () {
   if (!/\/admin\/dashboardreservation(?:$|[?#])/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname) + location.search + location.hash)) return;
@@ -3395,10 +3437,12 @@ html.pmd-dashboardreservation-page .pmd-final-admin-logo-v20 {
   console.info('[PMD] Reservation Dashboard V3 stable no-jump active');
 })();
 </script>
+@endif
 <!-- PMD_DASHBOARD_RESERVATION_V3_STABLE_NO_JUMP_END -->
 
 
 <!-- PMD_DASHBOARD_RESERVATION_V7_BUTTON_POLISH_START -->
+@if($pmdR16RenderDashboardReservationLayers)
 <style id="pmd-dashboardreservation-v7-button-polish-style">
 /*
   V7:
@@ -3493,7 +3537,9 @@ html.pmd-dashboardreservation-page #pmd-reservation-dashboard-root .pmd-res-toas
   transform: translateY(0) !important;
 }
 </style>
+@endif
 
+@if($pmdR16RenderDashboardReservationLayers)
 <script id="pmd-dashboardreservation-v7-button-polish-script">
 (function () {
   if (!/\/admin\/dashboardreservation(?:$|[?#])/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname) + location.search + location.hash)) return;
@@ -3797,12 +3843,14 @@ html.pmd-dashboardreservation-page #pmd-reservation-dashboard-root .pmd-res-toas
   console.info('[PMD] Reservation Dashboard V7 button polish active');
 })();
 </script>
+@endif
 <!-- PMD_DASHBOARD_RESERVATION_V7_BUTTON_POLISH_END -->
 
 
 
 
 <!-- PMD_WAITER_DASHBOARD_V35_CLEAN_REWRITE_CARD_HEADER_START -->
+@if($pmdR16RenderLegacyWaiterLayers)
 <style id="pmd-waiter-dashboard-v35-clean-rewrite-card-header-style">
 /*
   V35 clean rewrite.
@@ -3938,10 +3986,12 @@ html.pmd-dashboardreservation-page #pmd-reservation-dashboard-root .pmd-res-toas
   font-weight: 1000 !important;
 }
 </style>
+@endif
 
 
 {{-- PMD_R2_V6_AUTHORITY_GUARD --}}
 @unless (request()->is('admin/reservations2'))
+@if($pmdR16RenderLegacyWaiterLayers)
 <script id="pmd-waiter-dashboard-v35-clean-rewrite-card-header-script">
 (function () {
   if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname) + location.search + location.hash)) return;
@@ -4092,6 +4142,7 @@ html.pmd-dashboardreservation-page #pmd-reservation-dashboard-root .pmd-res-toas
   console.info('[PMD] Waiter Dashboard V35 clean rewritten card header active');
 })();
 </script>
+@endif
 @endunless
 
 <!-- PMD_WAITER_DASHBOARD_V35_CLEAN_REWRITE_CARD_HEADER_END -->
@@ -5584,6 +5635,14 @@ body .media-manager .media-sidebar .sidebar-preview-toolbar button.btn-outline-d
 <!-- PMD_SIDEBAR_TOGGLE_TOP_GAP_V70_CSS_END -->
 <!-- PMD_ROLE_DASHBOARD_LOCK_V72_CONTEXT_START -->
 @php
+    /*
+     * PMD_PERF_R12_ADMIN_ROLE_CONTEXT_SINGLEFLIGHT
+     * Body views on clean workspaces publish this before makeLayout(); other
+     * pages resolve it here once and Side Menu 2 reuses the same request value.
+     */
+    $__pmdRoleCacheKeyR12 =
+        '_pmd_admin_role_context_r12';
+
     $__pmdRoleDash = [
         'logged_in' => false,
         'username' => null,
@@ -5591,35 +5650,83 @@ body .media-manager .media-sidebar .sidebar-preview-toolbar button.btn-outline-d
         'staff_name' => null,
         'role_code' => null,
         'role_name' => null,
+        'is_super_user' => false,
     ];
 
     try {
-        $__pmdUser = null;
+        $__pmdRoleRequestR12 = request();
+        $__pmdCachedRoleR12 =
+            $__pmdRoleRequestR12->attributes->get(
+                $__pmdRoleCacheKeyR12
+            );
 
-        if (class_exists('\Admin\Facades\AdminAuth')) {
-            $__pmdUser = \Admin\Facades\AdminAuth::getUser();
-        } elseif (class_exists('AdminAuth')) {
-            $__pmdUser = \AdminAuth::getUser();
-        }
+        if (is_array($__pmdCachedRoleR12)) {
+            $__pmdRoleDash = array_merge(
+                $__pmdRoleDash,
+                $__pmdCachedRoleR12
+            );
+        } else {
+            $__pmdUser = null;
 
-        if ($__pmdUser) {
-            $__pmdRoleDash['logged_in'] = true;
-            $__pmdRoleDash['username'] = $__pmdUser->username ?? null;
-            $__pmdRoleDash['staff_id'] = $__pmdUser->staff_id ?? null;
+            if (class_exists('\Admin\Facades\AdminAuth')) {
+                $__pmdUser =
+                    \Admin\Facades\AdminAuth::getUser();
+            } elseif (class_exists('AdminAuth')) {
+                $__pmdUser =
+                    \AdminAuth::getUser();
+            }
 
-            if (!empty($__pmdRoleDash['staff_id'])) {
-                $__pmdStaffRole = \Illuminate\Support\Facades\DB::table('staffs as s')
-                    ->leftJoin('staff_roles as r', 'r.staff_role_id', '=', 's.staff_role_id')
-                    ->where('s.staff_id', $__pmdRoleDash['staff_id'])
-                    ->select('s.staff_name', 'r.code as role_code', 'r.name as role_name')
-                    ->first();
+            if ($__pmdUser) {
+                $__pmdRoleDash['logged_in'] = true;
+                $__pmdRoleDash['username'] =
+                    $__pmdUser->username ?? null;
+                $__pmdRoleDash['staff_id'] =
+                    $__pmdUser->staff_id ?? null;
+                $__pmdRoleDash['is_super_user'] =
+                    !empty($__pmdUser->is_super_user);
 
-                if ($__pmdStaffRole) {
-                    $__pmdRoleDash['staff_name'] = $__pmdStaffRole->staff_name ?? null;
-                    $__pmdRoleDash['role_code'] = $__pmdStaffRole->role_code ?? null;
-                    $__pmdRoleDash['role_name'] = $__pmdStaffRole->role_name ?? null;
+                if (!empty($__pmdRoleDash['staff_id'])) {
+                    $__pmdStaffRole =
+                        \Illuminate\Support\Facades\DB::table('staffs as s')
+                            ->leftJoin(
+                                'staff_roles as r',
+                                'r.staff_role_id',
+                                '=',
+                                's.staff_role_id'
+                            )
+                            ->where(
+                                's.staff_id',
+                                $__pmdRoleDash['staff_id']
+                            )
+                            ->select(
+                                's.staff_name',
+                                's.staff_email',
+                                'r.code as role_code',
+                                'r.name as role_name'
+                            )
+                            ->first();
+
+                    if ($__pmdStaffRole) {
+                        $__pmdRoleDash['staff_name'] =
+                            $__pmdStaffRole->staff_name
+                            ?? null;
+                        $__pmdRoleDash['staff_email'] =
+                            $__pmdStaffRole->staff_email
+                            ?? null;
+                        $__pmdRoleDash['role_code'] =
+                            $__pmdStaffRole->role_code
+                            ?? null;
+                        $__pmdRoleDash['role_name'] =
+                            $__pmdStaffRole->role_name
+                            ?? null;
+                    }
                 }
             }
+
+            $__pmdRoleRequestR12->attributes->set(
+                $__pmdRoleCacheKeyR12,
+                $__pmdRoleDash
+            );
         }
     } catch (\Throwable $e) {
         $__pmdRoleDash['error'] = $e->getMessage();
@@ -6127,6 +6234,7 @@ html.pmd-new-pages-antiflash-v40:not(.pmd-new-pages-antiflash-rendered-v40):not(
 
 
 <!-- PMD_WAITER_DASHBOARD_V5_WORKFLOW_UI_START -->
+@if($pmdR16RenderLegacyWaiterLayers)
 <script id="pmd-waiter-dashboard-v5-boot">
 (function () {
   if (/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname) + location.search + location.hash)) {
@@ -6134,7 +6242,9 @@ html.pmd-new-pages-antiflash-v40:not(.pmd-new-pages-antiflash-rendered-v40):not(
   }
 })();
 </script>
+@endif
 
+@if($pmdR16RenderLegacyWaiterLayers)
 <style id="pmd-waiter-dashboard-v5-style">
 html.pmd-waiter-dashboard-active,
 html.pmd-waiter-dashboard-active body {
@@ -6738,10 +6848,12 @@ html.pmd-waiter-dashboard-active body {
   }
 }
 </style>
+@endif
 
 
 {{-- PMD_R2_V6_AUTHORITY_GUARD --}}
 @unless (request()->is('admin/reservations2'))
+@if($pmdR16RenderLegacyWaiterLayers)
 <script id="pmd-waiter-dashboard-v5-script">
 (function () {
   if (window.PMD_WAITER_DASHBOARD_V5_WORKFLOW_UI) return;
@@ -7601,6 +7713,7 @@ html.pmd-waiter-dashboard-active body {
   else boot();
 })();
 </script>
+@endif
 @endunless
 
 <!-- PMD_WAITER_DASHBOARD_V5_WORKFLOW_UI_END -->
@@ -7608,6 +7721,7 @@ html.pmd-waiter-dashboard-active body {
 
 
 <!-- PMD_WAITER_DASHBOARD_V6_CLEANUP_FIXES_START -->
+@if($pmdR16RenderLegacyWaiterLayers)
 <style id="pmd-waiter-dashboard-v6-cleanup-fixes-style">
 /*
   V6 cleanup:
@@ -7680,6 +7794,7 @@ html.pmd-waiter-dashboard-active .pmd-w5-card:hover {
   box-shadow: 0 18px 44px rgba(15,23,42,.07) !important;
 }
 </style>
+@endif
 
 
 <!-- PMD_WAITER_DASHBOARD_V6_CLEANUP_FIXES_END -->
@@ -7687,6 +7802,7 @@ html.pmd-waiter-dashboard-active .pmd-w5-card:hover {
 
 
 <!-- PMD_WAITER_DASHBOARD_V7_SOFT_FLOOR_REMOVE_TOP_ACTIONS_START -->
+@if($pmdR16RenderLegacyWaiterLayers)
 <style id="pmd-waiter-dashboard-v7-soft-floor-remove-top-actions-style">
 /*
   V7 waiter polish:
@@ -7779,6 +7895,7 @@ html.pmd-waiter-dashboard-active div.pmd-w5-actions:has(button[data-new-order]) 
   display: none !important;
 }
 </style>
+@endif
 
 
 <!-- PMD_WAITER_DASHBOARD_V7_SOFT_FLOOR_REMOVE_TOP_ACTIONS_END -->
@@ -7786,6 +7903,7 @@ html.pmd-waiter-dashboard-active div.pmd-w5-actions:has(button[data-new-order]) 
 
 
 <!-- PMD_WAITER_DASHBOARD_V8_REAL_FLOOR_MAP_STYLE_START -->
+@if($pmdR16RenderLegacyWaiterLayers)
 <style id="pmd-waiter-dashboard-v8-real-floor-map-style">
 /*
   V8:
@@ -7886,10 +8004,12 @@ html.pmd-waiter-dashboard-active .pmd-w5-floor-map-real .pmd-w5-table.is-selecte
   box-shadow: 0 0 0 5px rgba(96,165,250,.16), 0 8px 18px rgba(15,23,42,.055) !important;
 }
 </style>
+@endif
 <!-- PMD_WAITER_DASHBOARD_V8_REAL_FLOOR_MAP_STYLE_END -->
 
 
 <!-- PMD_WAITER_DASHBOARD_V14_ORDER_TABLE_EFFECT_START -->
+@if($pmdR16RenderLegacyWaiterLayers)
 <style id="pmd-waiter-dashboard-v14-order-table-effect-style">
 /*
   V14:
@@ -7935,11 +8055,13 @@ html.pmd-waiter-dashboard-active .pmd-w5-card[data-table="-"] {
   border-color: #fecaca !important;
 }
 </style>
+@endif
 <!-- PMD_WAITER_DASHBOARD_V14_ORDER_TABLE_EFFECT_END -->
 
 
 
 <!-- PMD_WAITER_DASHBOARD_V15_PAYMENT_TABLE_EFFECT_START -->
+@if($pmdR16RenderLegacyWaiterLayers)
 <style id="pmd-waiter-dashboard-v15-payment-table-effect-style">
 /*
   V15:
@@ -7988,11 +8110,13 @@ html.pmd-waiter-dashboard-active .pmd-w5-floor-map-real .pmd-w5-table.is-urgent 
   box-shadow: 0 0 0 5px rgba(248,113,113,.18), 0 18px 34px rgba(15,23,42,.12) !important;
 }
 </style>
+@endif
 <!-- PMD_WAITER_DASHBOARD_V15_PAYMENT_TABLE_EFFECT_END -->
 
 
 
 <!-- PMD_WAITER_DASHBOARD_V16_SHARP_COLOR_BOOST_START -->
+@if($pmdR16RenderLegacyWaiterLayers)
 <style id="pmd-waiter-dashboard-v16-sharp-color-boost-style">
 /*
   V16 sharp color boost.
@@ -8260,11 +8384,13 @@ html.pmd-waiter-dashboard-active .notification-badge {
   box-shadow: 0 6px 14px rgba(220,38,38,.28) !important;
 }
 </style>
+@endif
 <!-- PMD_WAITER_DASHBOARD_V16_SHARP_COLOR_BOOST_END -->
 
 
 
 <!-- PMD_WAITER_DASHBOARD_V17_ORDER_CARD_CLEANUP_START -->
+@if($pmdR16RenderLegacyWaiterLayers)
 <style id="pmd-waiter-dashboard-v17-order-card-cleanup-style">
 /*
   V17 order card cleanup:
@@ -8379,6 +8505,7 @@ html.pmd-waiter-dashboard-active .pmd-w5-tab {
   font-weight: 1000 !important;
 }
 </style>
+@endif
 
 
 
@@ -8389,6 +8516,7 @@ html.pmd-waiter-dashboard-active .pmd-w5-tab {
 
 
 <!-- PMD_WAITER_DASHBOARD_V19_CLEAN_CARDS_WORKING_UNMERGE_START -->
+@if($pmdR16RenderLegacyWaiterLayers)
 <style id="pmd-waiter-dashboard-v19-clean-cards-working-unmerge-style">
 /*
   V19:
@@ -8718,6 +8846,7 @@ html.pmd-waiter-dashboard-active .pmd-w5-btn.active {
   color: #ffffff !important;
 }
 </style>
+@endif
 
 
 
@@ -8726,6 +8855,7 @@ html.pmd-waiter-dashboard-active .pmd-w5-btn.active {
 
 
 <!-- PMD_WAITER_DASHBOARD_V20_UNMERGE_HOTFIX_START -->
+@if($pmdR16RenderLegacyWaiterLayers)
 <style id="pmd-waiter-dashboard-v20-unmerge-hotfix-style">
 /* Keep order cards clean white */
 html.pmd-waiter-dashboard-active .pmd-w5-card,
@@ -8750,6 +8880,7 @@ html.pmd-waiter-dashboard-active .pmd-w5-order-card [class*="items"] {
   background-image: none !important;
 }
 </style>
+@endif
 
 
 
@@ -8758,6 +8889,7 @@ html.pmd-waiter-dashboard-active .pmd-w5-order-card [class*="items"] {
 
 
 <!-- PMD_WAITER_DASHBOARD_V21_STABLE_FLOOR_ORDER_CLEANUP_START -->
+@if($pmdR16RenderLegacyWaiterLayers)
 <style id="pmd-waiter-dashboard-v21-stable-floor-order-cleanup-style">
 /*
   V21 stability polish:
@@ -8855,6 +8987,7 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
   cursor: pointer !important;
 }
 </style>
+@endif
 
 
 
@@ -9083,6 +9216,12 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
 <!-- /PMD_PLATFORM_CARD_SYSTEM_V3_REAL_ADMIN_LAYOUT_HEAD -->
 
 </head>
+@php
+    /* PMD_PERF_R13_LAYOUT_STAGE_PROFILER */
+    \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+        'layout_head'
+    );
+@endphp
 <script>
     // SMART FIX: Force dropdown alignment WITHOUT breaking Bootstrap animations
     (function() {
@@ -9134,7 +9273,27 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
 <body class="page pmd-admin-theme-v1 {{ $this->bodyClass }}">
 @if(AdminAuth::isLogged())
     {!! $this->makePartial('top_nav') !!}
+    @php
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'layout_top_nav'
+        );
+    @endphp
+
     {!! AdminMenu::render('side_nav') !!}
+    @php
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'layout_side_nav'
+        );
+    @endphp
+@else
+    @php
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'layout_top_nav'
+        );
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'layout_side_nav'
+        );
+    @endphp
 @endif
 
 <div class="page-wrapper">
@@ -9142,6 +9301,12 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
         {!! Template::getBlock('body') !!}
     </div>
 </div>
+
+@php
+    \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+        'layout_body_content'
+    );
+@endphp
 
 <div id="notification">
     {!! $this->makePartial('flash') !!}
@@ -9151,6 +9316,13 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
 @endif
 {!! $this->makePartial('confirm_modal') !!}
 {!! Assets::getJsVars() !!}
+
+@php
+    \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+        'layout_shell_partials'
+    );
+@endphp
+
 {{-- Use asset combiner to ensure all widget JS files are included --}}
 @php
     $pmdIsNativeMediaContext = request()->is('admin/settings*') || request()->is('admin/media_manager*');
@@ -9184,6 +9356,13 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
 <!-- PMD_KDS_SERVER_FAST_V82_EARLY_MEDIA_GUARD_END -->
 
 {!! get_script_tags() !!}
+
+@php
+    \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+        'layout_asset_combiner'
+    );
+@endphp
+
 <!-- SlimSelect: dropdown inside form so it scrolls with page (must run before selectList is used) -->
 <script src="{{ asset('app/admin/assets/js/slim-select-relative-position.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 
@@ -10016,8 +10195,20 @@ html.pmd-waiter-dashboard-active
 >
 <!-- /PMD_PLATFORM_CARD_SYSTEM_V3_REAL_ADMIN_LAYOUT_FINAL -->
 
+@php
+    \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+        'layout_body_legacy'
+    );
+@endphp
+
 </body>
 </html>
+
+@php
+    \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+        'layout_html_end'
+    );
+@endphp
 
 <!-- PMD_OWNER_V122_DASHBOARD2_EXACT_MAIN_KPI_COLORS_START -->
 <!-- PMD_OWNER_V122_DASHBOARD2_EXACT_MAIN_KPI_COLORS_END -->
@@ -10042,6 +10233,7 @@ html.pmd-waiter-dashboard-active
 
 
 <!-- PMD_WAITER_DASHBOARD_V36_STATUS_COLORS_SELECT_DRAGFIX_START -->
+@if($pmdR16RenderLegacyWaiterLayers)
 <style id="pmd-waiter-dashboard-v36-status-colors-select-dragfix-style">
 /*
   V36:
@@ -10195,10 +10387,12 @@ html.pmd-waiter-dashboard-active
   user-select: none !important;
 }
 </style>
+@endif
 
 
 {{-- PMD_V181_DISABLE_OLD_WAITER_FLOOR_PATCH_START:V36 --}}
 @if (!request()->is('admin/dashboardwaiter*'))
+@if($pmdR16RenderLegacyWaiterLayers)
 <script id="pmd-waiter-dashboard-v36-status-colors-select-dragfix-script">
 (function () {
   /*
@@ -10686,6 +10880,7 @@ html.pmd-waiter-dashboard-active
 })();
 })();
 </script>
+@endif
 @else
 <script>console.info('[PMD] V181 skipped old waiter floor patch: V36');</script>
 @endif
@@ -10695,6 +10890,7 @@ html.pmd-waiter-dashboard-active
 
 
 <!-- PMD_WAITER_DASHBOARD_V40_AUTHORITATIVE_COMPACT_MERGE_START -->
+@if($pmdR16RenderLegacyWaiterLayers)
 <style id="pmd-waiter-dashboard-v40-authoritative-compact-merge-style">
 /*
   V40:
@@ -10819,10 +11015,12 @@ html.pmd-waiter-dashboard-active
   z-index: 5 !important;
 }
 </style>
+@endif
 
 
 {{-- PMD_V181_DISABLE_OLD_WAITER_FLOOR_PATCH_START:V40 --}}
 @if (!request()->is('admin/dashboardwaiter*'))
+@if($pmdR16RenderLegacyWaiterLayers)
 <script id="pmd-waiter-dashboard-v40-authoritative-compact-merge-script">
 (function () {
   /*
@@ -11257,6 +11455,7 @@ html.pmd-waiter-dashboard-active
 })();
 })();
 </script>
+@endif
 @else
 <script>console.info('[PMD] V181 skipped old waiter floor patch: V40');</script>
 @endif
@@ -11266,6 +11465,7 @@ html.pmd-waiter-dashboard-active
 
 
 <!-- PMD_WAITER_DASHBOARD_V41_FLAT_BOARD_FRAMES_START -->
+@if($pmdR16RenderLegacyWaiterLayers)
 <style id="pmd-waiter-dashboard-v41-flat-board-frames-style">
 /*
   V41:
@@ -11340,10 +11540,12 @@ html.pmd-waiter-dashboard-active
   margin-top: 22px !important;
 }
 </style>
+@endif
 
 
 {{-- PMD_V181_DISABLE_OLD_WAITER_FLOOR_PATCH_START:V41 --}}
 @if (!request()->is('admin/dashboardwaiter*'))
+@if($pmdR16RenderLegacyWaiterLayers)
 <script id="pmd-waiter-dashboard-v41-flat-board-frames-script">
 (function () {
   /*
@@ -11413,6 +11615,7 @@ html.pmd-waiter-dashboard-active
 })();
 })();
 </script>
+@endif
 @else
 <script>console.info('[PMD] V181 skipped old waiter floor patch: V41');</script>
 @endif
@@ -11422,6 +11625,7 @@ html.pmd-waiter-dashboard-active
 
 
 <!-- PMD_WAITER_DASHBOARD_V43_RESTORE_INNER_FLOOR_FRAME_START -->
+@if($pmdR16RenderLegacyWaiterLayers)
 <style id="pmd-waiter-dashboard-v43-restore-inner-floor-frame-style">
 /*
   V43:
@@ -11477,10 +11681,12 @@ html.pmd-waiter-dashboard-active
   margin-left: auto !important;
 }
 </style>
+@endif
 
 
 {{-- PMD_V181_DISABLE_OLD_WAITER_FLOOR_PATCH_START:V43 --}}
 @if (!request()->is('admin/dashboardwaiter*'))
+@if($pmdR16RenderLegacyWaiterLayers)
 <script id="pmd-waiter-dashboard-v43-restore-inner-floor-frame-script">
 (function () {
   /*
@@ -11544,6 +11750,7 @@ html.pmd-waiter-dashboard-active
 })();
 })();
 </script>
+@endif
 @else
 <script>console.info('[PMD] V181 skipped old waiter floor patch: V43');</script>
 @endif
@@ -11553,6 +11760,7 @@ html.pmd-waiter-dashboard-active
 
 
 <!-- PMD_WAITER_DASHBOARD_V44_FLOOR_ICON_SIZE_FIX_START -->
+@if($pmdR16RenderLegacyWaiterLayers)
 <style id="pmd-waiter-dashboard-v44-floor-icon-size-fix-style">
 /*
   V44:
@@ -11649,10 +11857,12 @@ html.pmd-waiter-dashboard-active
   font-size: 22px !important;
 }
 </style>
+@endif
 
 
 {{-- PMD_V181_DISABLE_OLD_WAITER_FLOOR_PATCH_START:V44 --}}
 @if (!request()->is('admin/dashboardwaiter*'))
+@if($pmdR16RenderLegacyWaiterLayers)
 <script id="pmd-waiter-dashboard-v44-floor-icon-size-fix-script">
 (function () {
   /*
@@ -11711,6 +11921,7 @@ html.pmd-waiter-dashboard-active
 })();
 })();
 </script>
+@endif
 @else
 <script>console.info('[PMD] V181 skipped old waiter floor patch: V44');</script>
 @endif
@@ -11720,6 +11931,7 @@ html.pmd-waiter-dashboard-active
 
 
 <!-- PMD_WAITER_DASHBOARD_V46_FLOOR_MAP_TRUE_WHITE_START -->
+@if($pmdR16RenderLegacyWaiterLayers)
 <style id="pmd-waiter-dashboard-v46-floor-map-true-white-style">
 /*
   V46:
@@ -11758,10 +11970,12 @@ html.pmd-waiter-dashboard-active
   background-image: none !important;
 }
 </style>
+@endif
 
 
 {{-- PMD_V181_DISABLE_OLD_WAITER_FLOOR_PATCH_START:V46 --}}
 @if (!request()->is('admin/dashboardwaiter*'))
+@if($pmdR16RenderLegacyWaiterLayers)
 <script id="pmd-waiter-dashboard-v46-floor-map-true-white-script">
 (function () {
   /*
@@ -11819,6 +12033,7 @@ html.pmd-waiter-dashboard-active
 })();
 })();
 </script>
+@endif
 @else
 <script>console.info('[PMD] V181 skipped old waiter floor patch: V46');</script>
 @endif
@@ -11828,6 +12043,7 @@ html.pmd-waiter-dashboard-active
 
 
 <!-- PMD_WAITER_DASHBOARD_V47_COMPACT_TABLE_VISUAL_CLEANUP_START -->
+@if($pmdR16RenderLegacyWaiterLayers)
 <style id="pmd-waiter-dashboard-v47-compact-table-visual-cleanup-style">
 /*
   V47:
@@ -11905,10 +12121,12 @@ html.pmd-waiter-dashboard-active
   border-radius: 16px !important;
 }
 </style>
+@endif
 
 
 {{-- PMD_V181_DISABLE_OLD_WAITER_FLOOR_PATCH_START:V47 --}}
 @if (!request()->is('admin/dashboardwaiter*'))
+@if($pmdR16RenderLegacyWaiterLayers)
 <script id="pmd-waiter-dashboard-v47-compact-table-visual-cleanup-script">
 (function () {
   /*
@@ -11967,6 +12185,7 @@ html.pmd-waiter-dashboard-active
 })();
 })();
 </script>
+@endif
 @else
 <script>console.info('[PMD] V181 skipped old waiter floor patch: V47');</script>
 @endif
@@ -11976,6 +12195,7 @@ html.pmd-waiter-dashboard-active
 
 
 <!-- PMD_WAITER_DASHBOARD_V48_TITLE_CLEANUP_ICONS_START -->
+@if($pmdR16RenderLegacyWaiterLayers)
 <style id="pmd-waiter-dashboard-v48-title-cleanup-icons-style">
 /*
   V48:
@@ -12004,10 +12224,12 @@ html.pmd-waiter-dashboard-active
   line-height: 1 !important;
 }
 </style>
+@endif
 
 
 {{-- PMD_V181_DISABLE_OLD_WAITER_FLOOR_PATCH_START:V48 --}}
 @if (!request()->is('admin/dashboardwaiter*'))
+@if($pmdR16RenderLegacyWaiterLayers)
 <script id="pmd-waiter-dashboard-v48-title-cleanup-icons-script">
 (function () {
   /*
@@ -12080,6 +12302,7 @@ html.pmd-waiter-dashboard-active
 })();
 })();
 </script>
+@endif
 @else
 <script>console.info('[PMD] V181 skipped old waiter floor patch: V48');</script>
 @endif
@@ -12089,6 +12312,7 @@ html.pmd-waiter-dashboard-active
 
 
 <!-- PMD_WAITER_DASHBOARD_V89_FLOOR_POSITION_LOCK_START -->
+@if($pmdR16RenderLegacyWaiterLayers)
 <style id="pmd-waiter-dashboard-v89-floor-position-lock-style">
 /*
   V89:
@@ -12166,10 +12390,12 @@ html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root.pmd-w89-compact .
   border-radius: 999px !important;
 }
 </style>
+@endif
 
 
 {{-- PMD_V181_DISABLE_OLD_WAITER_FLOOR_PATCH_START:V89 --}}
 @if (!request()->is('admin/dashboardwaiter*'))
+@if($pmdR16RenderLegacyWaiterLayers)
 <script id="pmd-waiter-dashboard-v89-floor-position-lock-script">
 (function () {
   /*
@@ -12528,6 +12754,7 @@ html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root.pmd-w89-compact .
 })();
 })();
 </script>
+@endif
 @else
 <script>console.info('[PMD] V181 skipped old waiter floor patch: V89');</script>
 @endif
@@ -12537,6 +12764,7 @@ html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root.pmd-w89-compact .
 
 
 <!-- PMD_WAITER_DASHBOARD_V105_REMOVE_MERGE_FEATURE_START -->
+@if($pmdR16RenderLegacyWaiterLayers)
 <style id="pmd-waiter-dashboard-v105-remove-merge-feature-style">
 /*
   V105:
@@ -12572,10 +12800,12 @@ html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root .pmd-v18-merged-t
   pointer-events: none !important;
 }
 </style>
+@endif
 
 
 {{-- PMD_V181_DISABLE_OLD_WAITER_FLOOR_PATCH_START:V105 --}}
 @if (!request()->is('admin/dashboardwaiter*'))
+@if($pmdR16RenderLegacyWaiterLayers)
 <script id="pmd-waiter-dashboard-v105-remove-merge-feature-script">
 (function () {
   /*
@@ -12888,6 +13118,7 @@ html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root .pmd-v18-merged-t
 })();
 })();
 </script>
+@endif
 @else
 <script>console.info('[PMD] V181 skipped old waiter floor patch: V105');</script>
 @endif
@@ -12904,3 +13135,11 @@ html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root .pmd-v18-merged-t
      plus pmd-dashboard2-rebuild-v1.css/js.
      Reservations2 untouched.
      ============================================================ -->
+
+
+@php
+    /* PMD_PERF_R13_LAYOUT_POST_HTML_STAGE_PROFILER */
+    \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+        'layout_post_html_legacy'
+    );
+@endphp

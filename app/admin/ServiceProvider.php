@@ -51,6 +51,34 @@ class ServiceProvider extends AppServiceProvider
         parent::register('admin');
 
         /*
+         * PMD_PERF_R6_1_MYSQL_SCHEMA_CACHE
+         *
+         * Laravel 8's Schema facade bypasses an IoC "db.schema" binding and
+         * directly calls DB::connection()->getSchemaBuilder(). Register a
+         * MySQL connection resolver instead, so the tenant connection rebuilt
+         * by TenantDatabaseMiddleware returns one cached schema builder for
+         * the whole request. This catches both Schema::... calls and direct
+         * $connection->getSchemaBuilder() calls.
+         *
+         * The resolver is registered only for Admin requests. The actual tenant
+         * connection is purged/reconnected later by TenantDatabaseMiddleware,
+         * so each request/tenant receives a fresh isolated cache.
+         */
+        if ($this->app->runningInAdmin()) {
+            \Illuminate\Database\Connection::resolverFor(
+                'mysql',
+                static function ($connection, $database, $prefix, $config) {
+                    return new \App\Database\PmdCachedMySqlConnection(
+                        $connection,
+                        $database,
+                        $prefix,
+                        $config
+                    );
+                }
+            );
+        }
+
+        /*
          * PMD_PERF_R4_REQUEST_SINGLETONS
          *
          * These services are resolved repeatedly by the Admin security and
@@ -70,6 +98,13 @@ class ServiceProvider extends AppServiceProvider
             \App\Services\PmdOwnerTotpService::class,
             \App\Services\PmdWorkSessionPolicyService::class,
             \Admin\Services\PmdDefaultStaffRoleService::class,
+            // PMD_PERF_R5_WORKSPACE_SINGLETONS
+            // Shared workspace services carry request-local caches and are
+            // resolved repeatedly by Owner/Manager/Cashier/Shifts surfaces.
+            \Admin\Services\PmdSharedFloorRegistryV1::class,
+            \App\Services\PmdKitchenOperationsSchemaService::class,
+            \App\Services\PmdKitchenWorkforceService::class,
+            \App\Services\PmdOperationalRosterReconciler::class,
         ] as $pmdRequestSingleton) {
             $this->app->singleton($pmdRequestSingleton);
         }
@@ -333,7 +368,13 @@ class ServiceProvider extends AppServiceProvider
                 'settings' => [
                     'type' => 'partial',
                     'path' => 'top_settings_menu',
-                    'badgeCount' => ['System\Models\Settings_model', 'updatesCount'],
+                    // PMD_PERF_R15_RETIRED_UPDATE_BADGE_OFF_CRITICAL_PATH
+                    //
+                    // /admin/updates is a retired document surface in the
+                    // current PayMyDine admin. Keep update checks in the
+                    // system scheduler / update backend, not in every page
+                    // render.
+                    'badgeCount' => 0,
                     'options' => ['System\Models\Settings_model', 'listMenuSettingItems'],
                     'permission' => 'Site.Settings',
                 ],

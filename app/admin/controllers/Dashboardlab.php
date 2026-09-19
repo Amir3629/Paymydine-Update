@@ -94,6 +94,18 @@ class Dashboardlab extends AdminController
 
     public function index()
     {
+        /*
+         * PMD_PERF_R8_DASHBOARD_HEAD_FASTPATH
+         *
+         * Canonical Owner URL health/session probes may issue HEAD requests.
+         * Admin permission/auth checks are already enforced before index();
+         * do not build KPI/Floor/Calendar HTML that Symfony will discard.
+         */
+        if (request()->isMethod('HEAD')) {
+            return response('', 200)
+                ->header('X-PMD-Head-Fastpath', 'dashboardlab-r8');
+        }
+
         Template::setTitle('Dashboard Lab');
         Template::setHeading('Dashboard Lab');
 
@@ -106,7 +118,23 @@ class Dashboardlab extends AdminController
             );
         }
 
-        $payload = $this->resolveKpiPayload();
+        /*
+         * PMD_PERF_R8_DASHBOARD_LOCATION_SINGLEFLIGHT
+         * Reuse one workspace-location resolution across KPI, workforce,
+         * Floor preference/registry and Calendar work in this request.
+         */
+        $workspaceLocationId = 0;
+        try {
+            $workspaceLocationId = max(
+                0,
+                (int)app(PmdRoleDashboardDataV1::class)
+                    ->resolveWorkspaceLocation()
+            );
+        } catch (\Throwable $ignored) {
+            $workspaceLocationId = 0;
+        }
+
+        $payload = $this->resolveKpiPayload($workspaceLocationId);
         $cards = [];
 
         foreach (($payload['cards'] ?? []) as $key => $card) {
@@ -135,9 +163,12 @@ class Dashboardlab extends AdminController
             (string)($payload['version'] ?? 'unknown');
 
         try {
-            $pmdKitchenLocationId = (int)app(PmdRoleDashboardDataV1::class)->resolveWorkspaceLocation();
+            $pmdKitchenLocationId = $workspaceLocationId;
+            if ($pmdKitchenLocationId < 1) {
+                throw new \RuntimeException('Dashboard workspace location unavailable.');
+            }
             $this->vars['pmdKitchenTodayTeam'] = app(\App\Services\PmdKitchenWorkforceService::class)
-                ->todayCard(max(1, $pmdKitchenLocationId));
+                ->todayCard($pmdKitchenLocationId);
         } catch (\Throwable $error) {
             $this->vars['pmdKitchenTodayTeam'] = ['ready' => false];
         }
@@ -151,9 +182,11 @@ class Dashboardlab extends AdminController
          * Floor mode/zoom preference.
          */
         try {
-            $pmdFloorViewLocationId =
-                (int)app(PmdRoleDashboardDataV1::class)
-                    ->resolveWorkspaceLocation();
+            $pmdFloorViewLocationId = $workspaceLocationId;
+
+            if ($pmdFloorViewLocationId < 1) {
+                throw new \RuntimeException('Dashboard Floor location unavailable.');
+            }
 
             $floorBootstrap =
                 app(
@@ -209,8 +242,10 @@ class Dashboardlab extends AdminController
          * Floor cookie. No second registry or table assignment authority.
          */
         try {
-            $pmdFloorLocationId = (int)app(PmdRoleDashboardDataV1::class)
-                ->resolveWorkspaceLocation();
+            $pmdFloorLocationId = $workspaceLocationId;
+            if ($pmdFloorLocationId < 1) {
+                throw new \RuntimeException('Dashboard Floor registry location unavailable.');
+            }
             $pmdFloorRegistryService = app(\Admin\Services\PmdSharedFloorRegistryV1::class);
             $pmdFloorRegistrySnapshot = $pmdFloorRegistryService->snapshot($pmdFloorLocationId);
             $pmdFloorCookieName =
@@ -284,11 +319,11 @@ class Dashboardlab extends AdminController
             );
 
             if ($pmdDashboardCalendarLocationId < 1) {
-                $pmdDashboardCalendarLocationId = max(
-                    0,
-                    (int)app(PmdRoleDashboardDataV1::class)
-                        ->resolveWorkspaceLocation()
-                );
+                $pmdDashboardCalendarLocationId = $workspaceLocationId;
+            }
+
+            if ($pmdDashboardCalendarLocationId < 1) {
+                throw new \RuntimeException('Dashboard Calendar location unavailable.');
             }
 
             $pmdDashboardCalendarLocale =
@@ -476,12 +511,14 @@ class Dashboardlab extends AdminController
         }
     }
 
-    private function resolveKpiPayload(): array
+    private function resolveKpiPayload(int $locationId = 0): array
     {
         try {
             /* PMD_DASHBOARD_LAB_EXPLICIT_LOCATION_V3_4_3 */
-            $locationId = app(PmdRoleDashboardDataV1::class)
-                ->resolveWorkspaceLocation();
+            if ($locationId < 1) {
+                $locationId = (int)app(PmdRoleDashboardDataV1::class)
+                    ->resolveWorkspaceLocation();
+            }
 
             if (!$locationId) {
                 throw new \RuntimeException(

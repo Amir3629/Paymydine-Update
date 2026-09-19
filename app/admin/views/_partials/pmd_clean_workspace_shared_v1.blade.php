@@ -16,10 +16,12 @@
     $pmdCleanWorkspaceManagerCalendarSurface =
         (($pmdCleanWorkspacePath ?? '') === '/admin/managerlab');
 
+    // PMD_PERF_R7_CASHIER_NO_HIDDEN_CALENDAR
+    // Cashier may open the canonical Reservation Composer, but it is not a
+    // Calendar/Hour surface. Keep Calendar bootstrap only on Reservations/Manager.
     $pmdCleanWorkspaceCalendarSurface =
         $pmdCleanWorkspaceReservationsSurface
-        || $pmdCleanWorkspaceManagerCalendarSurface
-        || $pmdCleanWorkspaceCashierSurface;
+        || $pmdCleanWorkspaceManagerCalendarSurface;
 
     /*
      * PMD_ACCOUNTANT_HEADER_NO_CALENDAR_V1
@@ -79,33 +81,115 @@
      */
     $pmdCleanWorkspaceRoleUsesSideMenu = false;
 
+    /*
+     * PMD_PERF_R12_ADMIN_ROLE_CONTEXT_SINGLEFLIGHT
+     *
+     * Clean Workspace body renders before the global Admin layout. Resolve the
+     * authenticated staff/role row once here, then expose the same request-local
+     * context to Side Menu 2 and the default layout instead of repeating the
+     * staffs + staff_roles join two more times.
+     */
+    $pmdRoleContextCacheKeyR12 =
+        '_pmd_admin_role_context_r12';
+
     try {
-        $pmdCleanWorkspaceRoleUser = null;
+        $pmdRoleRequestR12 = request();
+        $pmdRoleContextR12 =
+            $pmdRoleRequestR12->attributes->get(
+                $pmdRoleContextCacheKeyR12
+            );
 
-        if (class_exists('\\Admin\\Facades\\AdminAuth')) {
-            $pmdCleanWorkspaceRoleUser = \Admin\Facades\AdminAuth::getUser();
-        } elseif (class_exists('AdminAuth')) {
-            $pmdCleanWorkspaceRoleUser = \AdminAuth::getUser();
-        }
+        if (!is_array($pmdRoleContextR12)) {
+            $pmdCleanWorkspaceRoleUser = null;
 
-        if ($pmdCleanWorkspaceRoleUser) {
-            if (!empty($pmdCleanWorkspaceRoleUser->is_super_user)) {
-                $pmdCleanWorkspaceRoleUsesSideMenu = true;
-            } elseif (!empty($pmdCleanWorkspaceRoleUser->staff_id)) {
-                $pmdCleanWorkspaceRoleRow = \Illuminate\Support\Facades\DB::table('staffs as s')
-                    ->leftJoin('staff_roles as r', 'r.staff_role_id', '=', 's.staff_role_id')
-                    ->where('s.staff_id', (int)$pmdCleanWorkspaceRoleUser->staff_id)
-                    ->select('r.code as role_code', 'r.name as role_name')
-                    ->first();
+            if (class_exists('\\Admin\\Facades\\AdminAuth')) {
+                $pmdCleanWorkspaceRoleUser =
+                    \Admin\Facades\AdminAuth::getUser();
+            } elseif (class_exists('AdminAuth')) {
+                $pmdCleanWorkspaceRoleUser =
+                    \AdminAuth::getUser();
+            }
+
+            $pmdRoleContextR12 = [
+                'logged_in' => (bool)$pmdCleanWorkspaceRoleUser,
+                'username' => $pmdCleanWorkspaceRoleUser->username ?? null,
+                'staff_id' => $pmdCleanWorkspaceRoleUser->staff_id ?? null,
+                'staff_name' => null,
+                'staff_email' => null,
+                'role_code' => null,
+                'role_name' => null,
+                'is_super_user' => !empty(
+                    $pmdCleanWorkspaceRoleUser->is_super_user
+                ),
+            ];
+
+            if (
+                $pmdCleanWorkspaceRoleUser
+                && !empty($pmdCleanWorkspaceRoleUser->staff_id)
+            ) {
+                $pmdCleanWorkspaceRoleRow =
+                    \Illuminate\Support\Facades\DB::table('staffs as s')
+                        ->leftJoin(
+                            'staff_roles as r',
+                            'r.staff_role_id',
+                            '=',
+                            's.staff_role_id'
+                        )
+                        ->where(
+                            's.staff_id',
+                            (int)$pmdCleanWorkspaceRoleUser->staff_id
+                        )
+                        ->select(
+                            's.staff_name',
+                            's.staff_email',
+                            'r.code as role_code',
+                            'r.name as role_name'
+                        )
+                        ->first();
 
                 if ($pmdCleanWorkspaceRoleRow) {
-                    $pmdCleanWorkspaceRoleCode = strtolower(trim((string)($pmdCleanWorkspaceRoleRow->role_code ?? '')));
-                    $pmdCleanWorkspaceRoleName = strtolower(trim((string)($pmdCleanWorkspaceRoleRow->role_name ?? '')));
-                    $pmdCleanWorkspaceRoleUsesSideMenu = in_array($pmdCleanWorkspaceRoleCode, ['owner', 'manager'], true)
-                        || in_array($pmdCleanWorkspaceRoleName, ['owner', 'manager'], true);
+                    $pmdRoleContextR12['staff_name'] =
+                        $pmdCleanWorkspaceRoleRow->staff_name
+                        ?? null;
+                    $pmdRoleContextR12['staff_email'] =
+                        $pmdCleanWorkspaceRoleRow->staff_email
+                        ?? null;
+                    $pmdRoleContextR12['role_code'] =
+                        $pmdCleanWorkspaceRoleRow->role_code
+                        ?? null;
+                    $pmdRoleContextR12['role_name'] =
+                        $pmdCleanWorkspaceRoleRow->role_name
+                        ?? null;
                 }
             }
+
+            $pmdRoleRequestR12->attributes->set(
+                $pmdRoleContextCacheKeyR12,
+                $pmdRoleContextR12
+            );
         }
+
+        $pmdCleanWorkspaceRoleCode = strtolower(trim((string)(
+            $pmdRoleContextR12['role_code']
+            ?? ''
+        )));
+        $pmdCleanWorkspaceRoleName = strtolower(trim((string)(
+            $pmdRoleContextR12['role_name']
+            ?? ''
+        )));
+
+        $pmdCleanWorkspaceRoleUsesSideMenu =
+            !empty($pmdRoleContextR12['is_super_user'])
+            || in_array(
+                $pmdCleanWorkspaceRoleCode,
+                ['owner', 'pmd-owner', 'manager', 'pmd-manager'],
+                true
+            )
+            || in_array(
+                $pmdCleanWorkspaceRoleName,
+                ['owner', 'manager'],
+                true
+            );
     } catch (\Throwable $e) {
         $pmdCleanWorkspaceRoleUsesSideMenu = false;
     }
@@ -1147,7 +1231,7 @@ html body.page.pmd-clean-workspace-page #pmd-dashboard-lab {
                 @include($pmdCleanWorkspaceAfterFloorPartial)
             @endif
 
-            @if($pmdCleanWorkspaceManagerCalendarSurface || $pmdCleanWorkspaceCashierSurface)
+            @if($pmdCleanWorkspaceCalendarSurface)
                 {{-- PMD_MANAGER_CASHIER_CALENDAR_BOOTSTRAP_SHARED_V2 --}}
                 @php
                     $pmdManagerCalendarCssPath =
@@ -1189,6 +1273,7 @@ html body.page.pmd-clean-workspace-page #pmd-dashboard-lab {
                     'floorZoom' => $pmdCleanWorkspaceFloorZoom ?? 1.0,
                     'locationId' => $pmdCleanWorkspaceLocationId ?? 0,
                     'reservationBusyWindows' => $pmdCleanWorkspaceReservationBusyWindows ?? [],
+                    'deferReservationBusy' => !empty($pmdCleanWorkspaceReservationBusyDeferred),
                 ])
 
                 @if($pmdCleanWorkspaceReservationsSurface && $pmdCleanWorkspaceBelowFloorPartial)
@@ -1220,10 +1305,9 @@ html body.page.pmd-clean-workspace-page #pmd-dashboard-lab {
                      already owns __pmdFloorV1. --}}
                 @if($pmdCleanWorkspaceDirectFloorSurface)
                     @php
-                        $pmdExactFloorRuntimePath = base_path('app/admin/assets/js/pmd-dashboard-lab-exact-floor-v1.js');
-                        $pmdExactFloorRuntimeVersion = is_file($pmdExactFloorRuntimePath)
-                            ? (string)filemtime($pmdExactFloorRuntimePath)
-                            : '1';
+                        // PMD_PERF_R8_RELEASE_ASSET_VERSION
+                        // Cache-busting is release-owned; do not stat/hash assets on every request.
+                        $pmdExactFloorRuntimeVersion = 'r10-20260918';
                     @endphp
                     <script
                         id="pmd-reservationslab-parser-floor-runtime-v1"
@@ -1256,14 +1340,11 @@ html body.page.pmd-clean-workspace-page #pmd-dashboard-lab {
                      so Safari could revive an old Composer while Schedule was fresh.
                      One content-derived URL is now the sole browser cache authority. --}}
                 @php
-                    $pmdReservationComposerCssPath = base_path('app/admin/assets/css/pmd-reservation-composer-v1.css');
-                    $pmdReservationComposerJsPath = base_path('app/admin/assets/js/pmd-reservation-composer-v1.js');
-                    $pmdReservationComposerCssVersion = is_file($pmdReservationComposerCssPath)
-                        ? substr(hash_file('sha256', $pmdReservationComposerCssPath), 0, 16)
-                        : '1';
-                    $pmdReservationComposerJsVersion = is_file($pmdReservationComposerJsPath)
-                        ? substr(hash_file('sha256', $pmdReservationComposerJsPath), 0, 16)
-                        : '1';
+                    // PMD_PERF_R8_RELEASE_ASSET_VERSION
+                    // Composer CSS/JS are immutable for this deploy. Avoid full-file
+                    // SHA-256 reads from PHP on every Cashier/Reservations render.
+                    $pmdReservationComposerCssVersion = 'r8-20260918';
+                    $pmdReservationComposerJsVersion = 'r8-20260918';
                 @endphp
                 <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-reservation-composer-v1.css') }}?v={{ $pmdReservationComposerCssVersion }}">
                 @include('admin::reservations2._reservation_composer')

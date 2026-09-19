@@ -1,6 +1,30 @@
 @php
-    $updatesCount = $item->unreadCount();
-    $hasSettingsError = count(array_filter(Session::get('settings.errors', [])))
+    /*
+     * PMD_PERF_R15_RETIRED_UPDATE_BADGE_OFF_CRITICAL_PATH
+     *
+     * The legacy /admin/updates document route is retired by the current
+     * PayMyDine admin middleware. Do not initialize UpdateManager while
+     * rendering every admin page just to decorate this gear icon.
+     *
+     * Scheduled/backend update checks remain untouched.
+     */
+    $updatesCount = 0;
+
+    \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+        'mainmenu_updates_badge'
+    );
+
+    $settingsOptions = $item->options();
+
+    \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+        'mainmenu_settings_options'
+    );
+
+    $hasSettingsError = count(
+        array_filter(
+            Session::get('settings.errors', [])
+        )
+    );
 @endphp
 <li class="nav-item dropdown pmd-topbar-settings-item">
     <span class="media-toolbar-tooltip-wrap" data-no-tooltip="1">
@@ -16,7 +40,7 @@
 
     <ul class="dropdown-menu">
         <div class='menu menu-grid row'>
-            @foreach ($item->options() as $label => [$icon, $link])
+            @foreach ($settingsOptions as $label => [$icon, $link])
                 <div class="menu-item col col-4">
                     <a class="menu-link" href="{{ $link }}" title="@lang($label)" aria-label="@lang($label)">
                         <i class="{{ $icon }}"></i>

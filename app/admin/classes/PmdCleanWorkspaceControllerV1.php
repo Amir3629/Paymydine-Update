@@ -26,6 +26,17 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
         return true;
     }
 
+    /*
+     * PMD_PERF_R10_RESERVATION_BUSY_FIRST_PAINT_POLICY
+     * Default remains deterministic server-first. Individual workspaces may
+     * safely defer this read when the existing Floor runtime hydrates it after
+     * mount through onPmdFloorReservationBusyWindows().
+     */
+    protected function pmdReservationBusyFirstPaint(): bool
+    {
+        return true;
+    }
+
     protected function pmdAfterFloorPartial(): ?string
     {
         return null;
@@ -1457,6 +1468,22 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
 
     public function index()
     {
+        /*
+         * PMD_PERF_R8_CLEAN_WORKSPACE_HEAD_FASTPATH
+         *
+         * HEAD probes only need authenticated/authorized route reachability.
+         * Controller permissions are enforced before index(); do not build
+         * Floor/KPI/role payloads that the HTTP layer will discard.
+         */
+        if (request()->isMethod('HEAD')) {
+            return response('', 200)
+                ->header('X-PMD-Head-Fastpath', 'clean-workspace-r8');
+        }
+
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'workspace_entry'
+        );
+
         /** @var PmdCleanWorkspaceSharedV1 $shared */
         $shared = app(PmdCleanWorkspaceSharedV1::class);
         $locale = $shared->locale();
@@ -1498,6 +1525,10 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
             ? $shared->floorBootstrap()
             : [];
 
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'floor_bootstrap'
+        );
+
         /*
          * PMD_CLEAN_WORKSPACE_USER_PAGE_FLOOR_VIEW_V1
          *
@@ -1529,6 +1560,10 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
             }
         }
 
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'floor_preferences'
+        );
+
         // PMD_R66_SHARED_FLOOR_PHYSICAL_STATUS_AUTHORITY
         // Payment/KDS state is not physical occupancy. Re-apply the canonical
         // tables.operational_status after all Floor view-preference transforms
@@ -1539,6 +1574,10 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
                     $floorBootstrap
                 );
         }
+
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'physical_status'
+        );
 
         $pmdSharedFloorLocationId = $this->pmdUsesFloor()
             ? $this->pmdFloorTableManagerLocationId()
@@ -1594,6 +1633,10 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
             )
             : [];
 
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'floor_registry'
+        );
+
         $mode = $this->pmdKpiMode();
 
         if ($mode === 'reservations') {
@@ -1624,6 +1667,10 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
             );
         }
 
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'kpi'
+        );
+
         $cookieName = 'pmd_'.$key.'_lab_kpis';
         $selection = $shared->readSelection(
             $cookieName,
@@ -1638,9 +1685,22 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
         // PMD_CLEAN_WORKSPACE_LOCATION_CONTEXT_V1
         // One explicit location identity for shared Floor reservation-busy reads.
         $this->vars['pmdCleanWorkspaceLocationId'] = $pmdSharedFloorLocationId;
-        $this->vars['pmdCleanWorkspaceReservationBusyWindows'] = $this->pmdUsesFloor()
-            ? $this->pmdFloorReservationBusyWindows($pmdSharedFloorLocationId)
-            : [];
+
+        $pmdReservationBusyFirstPaint =
+            $this->pmdUsesFloor()
+            && $this->pmdReservationBusyFirstPaint();
+
+        $this->vars['pmdCleanWorkspaceReservationBusyWindows'] =
+            $pmdReservationBusyFirstPaint
+                ? $this->pmdFloorReservationBusyWindows(
+                    $pmdSharedFloorLocationId
+                )
+                : [];
+
+        $this->vars['pmdCleanWorkspaceReservationBusyDeferred'] =
+            $this->pmdUsesFloor()
+            && !$pmdReservationBusyFirstPaint;
+
         $this->vars['pmdCleanWorkspaceKpiCookie'] = $cookieName;
         $this->vars['pmdCleanWorkspaceKpiStorage'] = 'pmd:clean:'.$key.':kpis:v1';
         $this->vars['pmdCleanWorkspaceKpiCards'] = $kpiCards;
@@ -1699,10 +1759,22 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
         $this->vars['pmdCleanWorkspaceFloorTableMap'] = $floorRegistrySnapshot['table_floor_map'] ?? [];
         $this->vars['pmdCleanWorkspaceFloorCookie'] = $floorRegistrySnapshot['cookie_name'] ?? '';
 
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'workspace_common'
+        );
+
         $this->pmdPrepareWorkspaceVars($shared, $locale, $floorBootstrap);
+
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'workspace_prepare'
+        );
 
         // Dashboard2/Floor data controllers may change AdminMenu context.
         $this->applyMenuContext();
+
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'controller_ready'
+        );
 
         /*
          * PMD_CLEAN_WORKSPACE_LIVE_ENDPOINT_V1

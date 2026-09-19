@@ -202,6 +202,11 @@
         'data-pmd-reservation-busy-handler'
       ) || 'onPmdFloorReservationBusyWindows';
 
+    var reservationBusyDeferred =
+      root.getAttribute(
+        'data-pmd-reservation-busy-deferred'
+      ) === '1';
+
     var orderTemplate =
       root.getAttribute(
         'data-order-url'
@@ -7537,6 +7542,21 @@ function saveLayout() {
         'data-pmd-floor-hydrated',
         'true'
       );
+
+      /*
+       * PMD_PERF_R10_DEFERRED_RESERVATION_BUSY_HYDRATION
+       * Cashier intentionally omits reservation windows from critical HTML.
+       * Re-read the same canonical handler immediately after server Floor
+       * hydration so reservation occupancy remains correct without delaying
+       * first paint. One shot only; this is not polling.
+       */
+      if (reservationBusyDeferred) {
+        window.setTimeout(function () {
+          refreshReservationBusyWindows().then(function () {
+            syncReservationBusyStatuses();
+          });
+        }, 0);
+      }
     } else {
       load();
       root.setAttribute(

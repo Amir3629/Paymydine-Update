@@ -90,6 +90,69 @@ class Cashierlab extends PmdCleanWorkspaceControllerV1
     // PMD_CASHIER_QUICK_RESTORED_R48
     public function index()
     {
+        /*
+         * PMD_PERF_R9_CASHIER_ORDERS_SECTION_FASTPATH
+         *
+         * Date-range / Current-History UI replaces only the orders section.
+         * Do not build Floor, KPI, Composer and full workspace HTML when the
+         * browser explicitly requests that section.
+         */
+        if (
+            (string)request()->query(
+                'pmd_cashier_section',
+                ''
+            ) === 'orders'
+        ) {
+            $shared = app(PmdCleanWorkspaceSharedV1::class);
+
+            $locale = \Admin\Classes\PmdPlatformI18n::normalizeLocale(
+                (string)$shared->locale()
+            );
+
+            $adminLocale = strtolower(trim((string)request()->cookie(
+                'pmd_admin_locale',
+                ''
+            )));
+
+            if (preg_match('/^(en|de|tr)(?:[-_][a-z0-9]+)?$/i', $adminLocale, $match)) {
+                $locale = strtolower($match[1]);
+            }
+
+            if (!in_array($locale, ['en', 'de', 'tr'], true)) {
+                $locale = 'en';
+            }
+
+            app()->setLocale($locale);
+
+            if (app()->bound('translator.localization')) {
+                app('translator.localization')->setLocale($locale, false);
+            }
+
+            $this->vars['pmdCleanWorkspaceLocale'] = $locale;
+
+            // Safe here with an empty Floor payload: this method's orders
+            // branch owns its own table/order source and the partial does not
+            // consume full shared Floor bootstrap data.
+            $this->pmdPrepareWorkspaceVars(
+                $shared,
+                $locale,
+                []
+            );
+
+            return response(
+                view(
+                    'admin::_partials.pmd_cashier_lab_current_orders_v1',
+                    $this->vars
+                )->render(),
+                200,
+                [
+                    'Content-Type' => 'text/html; charset=UTF-8',
+                    'Cache-Control' => 'no-store, no-cache, must-revalidate',
+                    'X-PMD-Cashier-Section' => 'orders-r9',
+                ]
+            );
+        }
+
         if (
             (string)request()->query(
                 'pmd_cashier_quick',
@@ -512,6 +575,16 @@ HTML;
         ];
     }
 
+    /*
+     * PMD_PERF_R10_CASHIER_DEFER_RESERVATION_BUSY_FIRST_PAINT
+     * Cashier Floor hydrates reservation busy windows immediately after the
+     * server DOM is mounted. Keep this query off the critical HTML response.
+     */
+    protected function pmdReservationBusyFirstPaint(): bool
+    {
+        return false;
+    }
+
     protected function pmdAfterFloorPartial(): ?string
     {
         return 'admin::_partials.pmd_cashier_lab_current_orders_v1';
@@ -589,23 +662,13 @@ HTML;
             $pmdCashierFloorBootstrap;
 
         /*
-         * PMD_CASHIER_RESERVATION_CALENDAR_PAYLOAD_V1
+         * PMD_PERF_R7_CASHIER_NO_HIDDEN_CALENDAR
          *
-         * Cashier hosts the SAME ReservationsLab Calendar/Hour engine.
-         * No second Calendar data source.
+         * Cashier is a Floor + Orders + Reservation Composer surface, not a
+         * Calendar/Hour surface. Do not build the full ReservationsLab schedule
+         * payload on every Cashier request; the canonical Composer remains
+         * available independently below.
          */
-        try {
-            $this->vars['pmdReservationsLabSchedule'] =
-                app(
-                    \Admin\Services\PmdReservationsLabScheduleV1::class
-                )->payload(
-                    $shared->locationId(),
-                    $locale
-                );
-        } catch (\Throwable $error) {
-            $this->vars['pmdReservationsLabSchedule'] = [];
-        }
-
         $isGerman = strtolower($locale) === 'de';
 
         // PMD_CASHIER_HISTORY_MODE_R46
@@ -619,9 +682,34 @@ HTML;
 
         [$from, $to] = $this->pmdResolveDateRange();
 
+        /*
+         * PMD_PERF_R10_REUSE_CANONICAL_FLOOR_TABLES
+         * Full Cashier first paint already paid for canonical Floor bootstrap
+         * and the physical-status overlay in the parent workspace. Reuse those
+         * rows for order->table mapping instead of querying/building tables again.
+         * Section-only requests intentionally fall back to the existing loader.
+         */
+        $cashierSeedTables = [];
+
+        if (is_array($floorBootstrap['data']['tables'] ?? null)) {
+            $cashierSeedTables = array_values(
+                $floorBootstrap['data']['tables']
+            );
+        } elseif (
+            is_array(
+                $floorBootstrap['data']['sections']['floor_plan']['tables']
+                ?? null
+            )
+        ) {
+            $cashierSeedTables = array_values(
+                $floorBootstrap['data']['sections']['floor_plan']['tables']
+            );
+        }
+
         $source = new class extends PmdWaiterDashboardV151 {
-            protected function pmdCashierBaseState(): array
-            {
+            protected function pmdCashierBaseState(
+                array $seedTables = []
+            ): array {
                 /*
                  * PMD_PERF_R3_CASHIER_LIGHT_BASE
                  *
@@ -630,14 +718,149 @@ HTML;
                  * loaded reservations, the whole menu catalogue and order cards
                  * which Cashier immediately discarded and rebuilt.
                  */
-                $user = $this->userInfo();
-                $tables = $this->loadTables($user);
-                $metrics = $this->loadTableMetrics($tables);
-                $tables = $this->attachOperationalStatusesV152($tables);
+                $tables = [];
+
+                if ($seedTables) {
+                    foreach ($seedTables as $row) {
+                        if (!is_array($row)) continue;
+
+                        $raw = is_array($row['raw'] ?? null)
+                            ? $row['raw']
+                            : $row;
+
+                        $id = (int)(
+                            $row['table_id']
+                            ?? $row['dbTableId']
+                            ?? $row['db_table_id']
+                            ?? $row['id']
+                            ?? $raw['table_id']
+                            ?? $raw['id']
+                            ?? 0
+                        );
+
+                        if ($id < 1) continue;
+
+                        $number = trim((string)(
+                            $row['table_no']
+                            ?? $row['table_number']
+                            ?? $row['number']
+                            ?? $raw['table_no']
+                            ?? $raw['pos_table_label']
+                            ?? $id
+                        ));
+
+                        $label = trim((string)(
+                            $row['table_name']
+                            ?? $row['name']
+                            ?? $row['label']
+                            ?? $raw['table_name']
+                            ?? $raw['pos_table_label']
+                            ?? $number
+                        ));
+
+                        $systemName = strtolower($label);
+                        $systemQr = strtolower(trim((string)(
+                            $row['qr_code']
+                            ?? $raw['qr_code']
+                            ?? ''
+                        )));
+
+                        if (
+                            in_array(
+                                $systemName,
+                                ['cashier', 'delivery'],
+                                true
+                            )
+                            || in_array(
+                                $systemQr,
+                                ['cashier', 'delivery'],
+                                true
+                            )
+                        ) {
+                            continue;
+                        }
+
+                        if ($label === '') {
+                            $label = 'Table '.$number;
+                        } elseif (ctype_digit($label)) {
+                            $label = 'Table '.$label;
+                        }
+
+                        $physical = strtolower(trim((string)(
+                            $row['operational_status']
+                            ?? $row['table_operational_status']
+                            ?? $raw['operational_status']
+                            ?? $raw['table_operational_status']
+                            ?? ''
+                        )));
+
+                        if ($physical === 'free') {
+                            $physical = 'available';
+                        }
+
+                        $tables[] = [
+                            'id' => $id,
+                            'table_id' => $id,
+                            'number' => $number,
+                            'label' => $label,
+                            'name' => $label,
+                            'operational_status' => $physical,
+                            'table_operational_status' => $physical,
+                            'status' => (string)($row['status'] ?? ''),
+                            'raw' => $raw,
+                        ];
+                    }
+                }
+
+                if (!$tables) {
+                    $user = $this->userInfo();
+                    $tables = $this->loadTables($user);
+                    $tables = $this->attachOperationalStatusesV152($tables);
+                }
+
+                /*
+                 * PMD_PERF_R9_SKIP_REDUNDANT_800_ORDER_METRICS
+                 *
+                 * Modern Cashier uses canonical tables.operational_status as
+                 * the physical visit authority, then runs its own bounded
+                 * date-scoped orders query below. The old waiter metrics pass
+                 * materialized up to 800 full order rows first and repeated
+                 * table/status resolution that Cashier immediately redid.
+                 *
+                 * Keep a compatibility fallback only when no table exposes a
+                 * physical operational status at all.
+                 */
+                $hasPhysicalStatus = false;
+
+                foreach ($tables as $table) {
+                    if (!is_array($table)) continue;
+
+                    $raw = is_array($table['raw'] ?? null)
+                        ? $table['raw']
+                        : [];
+
+                    $physical = trim((string)(
+                        $table['operational_status']
+                        ?? $table['table_operational_status']
+                        ?? $raw['operational_status']
+                        ?? $raw['table_operational_status']
+                        ?? ''
+                    ));
+
+                    if ($physical !== '') {
+                        $hasPhysicalStatus = true;
+                        break;
+                    }
+                }
+
+                $metrics = $hasPhysicalStatus
+                    ? []
+                    : $this->loadTableMetrics($tables);
 
                 foreach ($tables as &$table) {
                     $tableId = (int)($table['table_id'] ?? $table['id'] ?? 0);
                     $metric = $metrics[$tableId] ?? [];
+
                     $table['open_orders'] = (int)($metric['open_orders'] ?? 0);
                     $table['open_order_count'] = (int)($metric['open_orders'] ?? 0);
                     $table['latest_order_status'] = (string)($metric['latest_status'] ?? '');
@@ -655,9 +878,12 @@ HTML;
             public function pmdCashierOrdersForRange(
                 Carbon $from,
                 Carbon $to,
-                bool $historyMode = false
+                bool $historyMode = false,
+                array $seedTables = []
             ): array {
-                $base = $this->pmdCashierBaseState();
+                $base = $this->pmdCashierBaseState(
+                    $seedTables
+                );
                 $tables = array_values((array)($base['tables'] ?? []));
 
                 if (!$this->pmdSchemaHasTable('orders') || !$tables) {
@@ -902,30 +1128,21 @@ HTML;
 
                 // PMD_CASHIER_CURRENT_HISTORY_SPLIT_R46
                 // The explicit Manual FREE operation log is the durable visit boundary.
-                // Payment alone never moves an order to History.
+                // PMD_PERF_R7_SCOPED_RELEASE_LOGS
+                // Discover capability now, but defer the actual operation-log read until
+                // we know the <=500 order IDs in this request. Never scan every historical
+                // cashier_table_free row just to render today's Cashier.
                 $releasedOrderIds = [];
+                $canReadReleaseLogs = false;
 
                 if ($this->pmdSchemaHasTable('pmd_waiter_pos_operation_logs')) {
                     try {
                         $logColumns = $this->pmdSchemaColumns('pmd_waiter_pos_operation_logs');
-
-                        if (
+                        $canReadReleaseLogs =
                             in_array('order_id', $logColumns, true)
-                            && in_array('action', $logColumns, true)
-                        ) {
-                            foreach (
-                                DB::table('pmd_waiter_pos_operation_logs')
-                                    ->where('action', 'cashier_table_free')
-                                    ->pluck('order_id')
-                                as $releasedOrderId
-                            ) {
-                                $releasedOrderId = (int)$releasedOrderId;
-                                if ($releasedOrderId > 0) {
-                                    $releasedOrderIds[$releasedOrderId] = true;
-                                }
-                            }
-                        }
+                            && in_array('action', $logColumns, true);
                     } catch (\Throwable $ignored) {
+                        $canReadReleaseLogs = false;
                     }
                 }
 
@@ -956,12 +1173,79 @@ HTML;
                     $query->orderByDesc($dateColumn)->orderByDesc($primaryKey);
                 }
 
+                /*
+                 * PMD_PERF_R7_SLIM_CASHIER_ORDER_ROWS
+                 * The old query fetched every column from up to 500 orders even though
+                 * this renderer uses a small stable subset. Keep dynamic schema support,
+                 * but transfer/materialize only fields this path can actually consume.
+                 */
+                $wantedColumns = array_values(array_unique(array_filter([
+                    $primaryKey,
+                    $tableColumn,
+                    $dateColumn,
+                    $timeColumn,
+                    $statusColumn,
+                    $paymentColumn,
+                    $totalColumn,
+                    'settlement_status',
+                    'settled_amount',
+                    'processed',
+                    'total_items',
+                    'comment',
+                    'order_date',
+                    'created_at',
+                    'updated_at',
+                    'order_type',
+                    'status_id',
+                ])));
+
+                $selectColumns = array_values(array_filter(
+                    $wantedColumns,
+                    static fn ($column) => in_array($column, $columns, true)
+                ));
+
+                if (!in_array($primaryKey, $selectColumns, true)) {
+                    $selectColumns[] = $primaryKey;
+                }
+
+                $selectedOrders = $query
+                    ->limit(500)
+                    ->get($selectColumns);
+
+                if ($canReadReleaseLogs && $selectedOrders->isNotEmpty()) {
+                    try {
+                        $selectedOrderIds = $selectedOrders
+                            ->pluck($primaryKey)
+                            ->map(static fn ($id) => (int)$id)
+                            ->filter(static fn ($id) => $id > 0)
+                            ->unique()
+                            ->values()
+                            ->all();
+
+                        if ($selectedOrderIds) {
+                            foreach (
+                                DB::table('pmd_waiter_pos_operation_logs')
+                                    ->where('action', 'cashier_table_free')
+                                    ->whereIn('order_id', $selectedOrderIds)
+                                    ->pluck('order_id')
+                                as $releasedOrderId
+                            ) {
+                                $releasedOrderId = (int)$releasedOrderId;
+                                if ($releasedOrderId > 0) {
+                                    $releasedOrderIds[$releasedOrderId] = true;
+                                }
+                            }
+                        }
+                    } catch (\Throwable $ignored) {
+                    }
+                }
+
                 $sourceRows = 0;
                 $unmappedRows = 0;
                 $carryoverRows = 0;
                 $rows = [];
 
-                foreach ($query->limit(500)->get() as $order) {
+                foreach ($selectedOrders as $order) {
                     $sourceRows++;
                     $row = (array)$order;
 
@@ -1361,8 +1645,17 @@ HTML;
             }
         };
 
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'cashier_orders_setup'
+        );
+
         try {
-            $payload = $source->pmdCashierOrdersForRange($from, $to, $historyMode);
+            $payload = $source->pmdCashierOrdersForRange(
+                $from,
+                $to,
+                $historyMode,
+                $cashierSeedTables
+            );
         } catch (\Throwable $error) {
             logger()->warning('Cashier Lab real day orders render failed', [
                 'type' => get_class($error),
@@ -1380,6 +1673,10 @@ HTML;
                 ],
             ];
         }
+
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'cashier_orders_build'
+        );
 
         $text = $isGerman
             ? [
@@ -1732,6 +2029,10 @@ HTML;
         );
         $this->vars['pmdCashierOrdersRange']['extra_query'] =
             $historyMode ? ['pmd_history' => 1] : [];
+
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'cashier_prepare_tail'
+        );
     }
 
     private function pmdResolveDateRange(): array
