@@ -458,6 +458,16 @@ button, a { -webkit-tap-highlight-color: transparent; }
   border-bottom: 1px solid var(--q-line);
 }
 .pmd-qpos-cart-head strong { font-size: 16px; }
+.pmd-qpos-cart-close {
+  display: none;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--q-line);
+  background: #fff;
+  border-radius: 10px;
+  font-size: 20px;
+  cursor: pointer;
+}
 .pmd-qpos-guests {
   display: flex;
   align-items: center;
@@ -1025,6 +1035,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
     padding: 8px;
   }
   .pmd-qpos-product { min-height: 118px; }
+  .pmd-qpos-cart-close { display: inline-grid; place-items: center; }
   .pmd-qpos-cart {
     position: fixed;
     z-index: 55;
