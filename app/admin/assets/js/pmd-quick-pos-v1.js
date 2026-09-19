@@ -3208,6 +3208,7 @@
         state.search = search.value;
         renderProducts();
       });
+      bindTextKeyboardField(search, 'Search');
     }
 
     var guestsPlus = $('[data-qpos-guests-plus]');
@@ -3222,9 +3223,12 @@
     };
 
     var note = $('[data-qpos-note]');
-    if (note) note.addEventListener('input', function () {
-      state.note = note.value;
-    });
+    if (note) {
+      note.addEventListener('input', function () {
+        state.note = note.value;
+      });
+      bindTextKeyboardField(note, 'Order note');
+    }
 
     var send = $('[data-qpos-send]');
     var pay = $('[data-qpos-pay]');
@@ -3236,12 +3240,6 @@
       }
       openPayment();
     };
-
-    var newCheckButton = $('[data-qpos-new-check]');
-    if (newCheckButton) newCheckButton.onclick = newCheck;
-
-    var refresh = $('[data-qpos-refresh]');
-    if (refresh) refresh.onclick = function () { bootstrap(false); };
 
     var mobileCart = $('[data-qpos-mobile-cart]');
     var cart = $('.pmd-qpos-cart');
@@ -3282,9 +3280,32 @@
       renderModifier();
     };
     if (modifierAdd) modifierAdd.onclick = addModifierItem;
-    if (modifierNote) modifierNote.addEventListener('input', function () {
-      if (state.modifier) state.modifier.note = modifierNote.value;
+    if (modifierNote) {
+      modifierNote.addEventListener('input', function () {
+        if (state.modifier) state.modifier.note = modifierNote.value;
+      });
+      bindTextKeyboardField(modifierNote, 'Item note');
+    }
+
+    var itemNoteModal = $('[data-qpos-item-note-modal]');
+    var itemNoteClose = $('[data-qpos-item-note-close]');
+    var itemNoteSave = $('[data-qpos-item-note-save]');
+    var itemNoteClear = $('[data-qpos-item-note-clear]');
+    var itemNoteInput = $('[data-qpos-item-note-input]');
+
+    if (itemNoteClose) itemNoteClose.onclick = closeItemNote;
+    if (itemNoteSave) itemNoteSave.onclick = function () {
+      saveItemNote(false);
+    };
+    if (itemNoteClear) itemNoteClear.onclick = function () {
+      saveItemNote(true);
+    };
+    if (itemNoteModal) itemNoteModal.addEventListener('click', function (event) {
+      if (event.target === itemNoteModal) closeItemNote();
     });
+    if (itemNoteInput) {
+      bindTextKeyboardField(itemNoteInput, 'Item note');
+    }
 
     var paymentModal = $('[data-qpos-payment-modal]');
     var paymentClose = $('[data-qpos-payment-close]');
@@ -3297,6 +3318,8 @@
     if (amount) {
       amount.addEventListener('input', function () {
         state.payment.amount = normalizeTouchKeypadValue(amount.value);
+        state.payment.splitMode = 'custom';
+        state.payment.splitParts = 0;
         if (amount.value !== state.payment.amount) {
           amount.value = state.payment.amount;
         }
@@ -3332,7 +3355,44 @@
       });
     }
 
-    $$('[data-qpos-keypad-key]').forEach(function (button) {
+    var tipAmount = $('[data-qpos-tip-amount]');
+    if (tipAmount) {
+      tipAmount.addEventListener('input', function () {
+        state.payment.tipMode = 'custom';
+        state.payment.tipPercent = 0;
+        state.payment.tipAmount = normalizeTouchKeypadValue(tipAmount.value);
+        if (tipAmount.value !== state.payment.tipAmount) {
+          tipAmount.value = state.payment.tipAmount;
+        }
+        if (state.payment.method === 'cash') {
+          state.payment.cashReceived = paymentCharge().toFixed(2);
+        }
+        renderPayment();
+      });
+
+      var openCustomTip = function () {
+        if (state.payment.method !== 'cash') return;
+
+        if (state.payment.tipMode !== 'custom') {
+          state.payment.tipAmount = paymentTip().toFixed(2);
+        }
+        state.payment.tipMode = 'custom';
+        state.payment.tipPercent = 0;
+        openTouchKeypad('tip');
+        renderPayment();
+      };
+
+      tipAmount.addEventListener('focus', openCustomTip);
+      tipAmount.addEventListener('click', openCustomTip);
+    }
+
+    $('[data-qpos-split]').forEach(function (button) {
+      button.onclick = function () {
+        applySplitSelection(button.getAttribute('data-qpos-split'));
+      };
+    });
+
+    $('[data-qpos-keypad-key]').forEach(function (button) {
       button.onclick = function () {
         applyTouchKeypadKey(
           button.getAttribute('data-qpos-keypad-key')
@@ -3352,15 +3412,80 @@
       renderPaymentTotals();
     });
 
-    $$('[data-tip]').forEach(function (button) {
+    $('[data-tip]').forEach(function (button) {
       button.onclick = function () {
-        state.payment.tipPercent = Number(button.getAttribute('data-tip') || 0);
+        if (state.payment.method === 'direct_terminal') return;
+
+        state.payment.tipMode = 'percent';
+        state.payment.tipPercent = Number(
+          button.getAttribute('data-tip') || 0
+        );
+        state.payment.tipAmount = '';
+
+        if (state.payment.method === 'cash') {
+          state.payment.cashReceived = paymentCharge().toFixed(2);
+        }
+
         renderPayment();
       };
     });
 
     var submitPayment = $('[data-qpos-payment-submit]');
     if (submitPayment) submitPayment.onclick = executePayment;
+
+    var historyOpen = $('[data-qpos-history-open]');
+    var historyModal = $('[data-qpos-history-modal]');
+    var historyClose = $('[data-qpos-history-close]');
+
+    if (historyOpen) historyOpen.onclick = function () {
+      openHistory('selected');
+    };
+    if (historyClose) historyClose.onclick = closeHistory;
+    if (historyModal) historyModal.addEventListener('click', function (event) {
+      if (event.target === historyModal) closeHistory();
+    });
+
+    $('[data-qpos-history-scope]').forEach(function (button) {
+      button.onclick = function () {
+        loadHistory(
+          button.getAttribute('data-qpos-history-scope') || 'selected'
+        );
+      };
+    });
+
+    var profileToggle = $('[data-qpos-profile-toggle]');
+    var profileMenu = $('[data-qpos-profile-menu]');
+    if (profileToggle && profileMenu) {
+      profileToggle.onclick = function (event) {
+        event.stopPropagation();
+        var opening = profileMenu.hidden;
+        profileMenu.hidden = !opening;
+        profileToggle.setAttribute(
+          'aria-expanded',
+          opening ? 'true' : 'false'
+        );
+      };
+
+      profileMenu.addEventListener('click', function (event) {
+        event.stopPropagation();
+      });
+
+      document.addEventListener('click', function () {
+        profileMenu.hidden = true;
+        profileToggle.setAttribute('aria-expanded', 'false');
+      });
+    }
+
+    $('[data-qpos-text-key]').forEach(function (button) {
+      button.onclick = function () {
+        applyTextKeyboardKey(
+          button.getAttribute('data-qpos-text-key')
+        );
+      };
+    });
+
+    configureTextKeyboardTargets();
+    window.addEventListener('resize', configureTextKeyboardTargets);
 
     var cleaning = $('[data-qpos-table-cleaning]');
     var free = $('[data-qpos-table-free]');
@@ -3381,15 +3506,15 @@
       updateTableStatus('available', skip);
     };
 
-    window.addEventListener('online', function () { setOnline(true); });
-    window.addEventListener('offline', function () { setOnline(false); });
-    setOnline(navigator.onLine !== false);
     startClock();
 
     window.addEventListener('keydown', function (event) {
       if (event.key === 'Escape') {
         closeModifier();
+        closeItemNote();
+        closeHistory();
         closePayment();
+        closeTextKeyboard();
         if (cart) cart.classList.remove('is-mobile-open');
       }
       if (event.key === '/' && document.activeElement && document.activeElement.tagName !== 'INPUT') {
