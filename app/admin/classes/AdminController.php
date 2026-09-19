@@ -159,6 +159,10 @@ class AdminController extends BaseController
         // Set an instance of the admin user
         $this->setUser(AdminAuth::user());
 
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'admin_auth_user'
+        );
+
         // PMD_ADMIN_SERVER_NATIVE_URLS_R81E
         // Browser URL is canonical at routing time; no History correction
         // asset is registered here.
@@ -168,9 +172,17 @@ class AdminController extends BaseController
         // @deprecated This event will be deprecated soon, use controller.beforeInit
         $this->fireEvent('controller.beforeConstructor', [$this]);
 
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'admin_init_events'
+        );
+
         // Toolbar widget is available on all admin pages
         $toolbar = new Toolbar($this, ['context' => $this->action]);
         $toolbar->bindToController();
+
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'admin_toolbar_bind'
+        );
 
         // PMD_PERF_R19_SKIP_UNUSED_GLOBAL_MEDIAMANAGER
         //
@@ -201,11 +213,23 @@ class AdminController extends BaseController
             $manager->bindToController();
         }
 
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'admin_media_guard'
+        );
+
         // Top menu widget is available on all admin pages
         $this->makeMainMenuWidget();
 
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'admin_mainmenu_bind'
+        );
+
         // @deprecated This event will be deprecated soon, use controller.beforeRemap
         $this->fireEvent('controller.afterConstructor', [$this]);
+
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'admin_after_constructor'
+        );
 
         return $this;
     }
