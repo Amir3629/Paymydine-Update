@@ -381,7 +381,7 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 $query->orderBy($orderColumn);
             }
 
-            return $query
+            $tables = $query
                 ->limit(250)
                 ->get($select ?: ['*'])
                 ->map(function ($row) {
@@ -416,6 +416,65 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 ->filter(fn ($row) => (int)$row['id'] > 0)
                 ->values()
                 ->all();
+
+            /*
+             * PMD_QUICK_POS_TABLE_OPEN_CHECK_OVERLAY_V1
+             *
+             * Older migrated tables may still store "available" while an
+             * unpaid table check exists. Mark those tables Busy using one
+             * grouped query instead of calling openOrdersForTable() per table.
+             */
+            if (
+                $tables
+                && Schema::hasTable('orders')
+            ) {
+                $orderColumns = Schema::getColumnListing('orders');
+
+                if (in_array('table_id', $orderColumns, true)) {
+                    $tableIds = array_values(array_filter(array_map(
+                        static fn ($row): int => (int)($row['id'] ?? 0),
+                        $tables
+                    )));
+
+                    if ($tableIds) {
+                        $openQuery = DB::table('orders')
+                            ->whereIn('table_id', $tableIds);
+
+                        if (
+                            $locationId > 0
+                            && in_array('location_id', $orderColumns, true)
+                        ) {
+                            $openQuery->where('location_id', $locationId);
+                        }
+
+                        $this->applyOpenScope(
+                            $openQuery,
+                            $orderColumns
+                        );
+
+                        $openIds = $openQuery
+                            ->whereNotNull('table_id')
+                            ->distinct()
+                            ->pluck('table_id')
+                            ->map('intval')
+                            ->filter()
+                            ->flip();
+
+                        foreach ($tables as &$table) {
+                            if (
+                                ($table['status'] ?? 'available') === 'available'
+                                && $openIds->has((int)$table['id'])
+                            ) {
+                                $table['status'] = 'occupied';
+                                $table['status_derived_from_open_check'] = true;
+                            }
+                        }
+                        unset($table);
+                    }
+                }
+            }
+
+            return $tables;
         } catch (\Throwable $error) {
             report($error);
             return [];
