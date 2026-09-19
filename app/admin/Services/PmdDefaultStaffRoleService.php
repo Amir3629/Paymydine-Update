@@ -368,12 +368,19 @@ class PmdDefaultStaffRoleService
                     $path
                 ) === 1;
 
+            $isPaymentDocument =
+                preg_match(
+                    '#^admin/orders/split-(?:receipt|invoice)/[0-9]+$#',
+                    $path
+                ) === 1;
+
             return $is('pos')
                 || $is('cashierlab')
                 || $is('pmd-waiter-pos-v1')
                 || $is('pmd-waiter-pos-v22')
                 || $is('terminal-payments')
-                || $isTerminalAttemptList;
+                || $isTerminalAttemptList
+                || $isPaymentDocument;
         }
         if ($code === self::ACCOUNTANT) return $is('accountantlab');
         if ($code === self::RESERVATIONS) return $is('reservationslab');
