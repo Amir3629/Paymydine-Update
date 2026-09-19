@@ -548,14 +548,6 @@ button {
   font-size: 11px;
 }
 .pmd-qpos-sent-line small { color: var(--q-muted); display: block; margin-top: 2px; }
-.pmd-qpos-sent-line.is-pending {
-  opacity: .72;
-}
-.pmd-qpos-syncing {
-  color: var(--q-accent) !important;
-  font-weight: 800;
-}
-
 
 .pmd-qpos-cart-list {
   min-height: 90px;
@@ -1113,16 +1105,8 @@ button {
 
 .pmd-qpos.is-loading .pmd-qpos-product-grid { pointer-events: none; }
 
-/* PMD_QPOS_NO_BOOT_FLASH_V1
-   Hide only the data canvas during the first bootstrap. No skeleton flash,
-   no fade animation; the ready layout appears once with real data. */
-.pmd-qpos.is-booting .pmd-qpos-main {
-  visibility: hidden;
-}
-.pmd-qpos.is-booting .pmd-qpos-topbar {
-  box-shadow: none;
-}
-
+/* PMD_QPOS_STABLE_BOOT_V2
+   Never hide or fade the POS canvas during bootstrap/refresh. */
 /* Waiter mode: Floor is the first-class navigation; cashier order-type selector disappears. */
 .pmd-qpos[data-mode="waiter"] .pmd-qpos-service { display: none; }
 .pmd-qpos[data-mode="waiter"] .pmd-qpos-table-grid {
