@@ -264,5 +264,6 @@ window.PMDQuickPOSConfig = {
 };
 </script>
 <script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260919-1"></script>
+<script src="/app/admin/assets/js/pmd-site-access-hub-v13.js?v=20260919-qpos1"></script>
 </body>
 </html>
