@@ -1111,7 +1111,7 @@ button {
 .pmd-qpos-toast.is-show { opacity: 1; transform: translate(-50%,0); }
 .pmd-qpos-toast.is-error { background: #991b1b; }
 
-.pmd-qpos.is-loading .pmd-qpos-product-grid { opacity: .56; pointer-events: none; }
+.pmd-qpos.is-loading .pmd-qpos-product-grid { pointer-events: none; }
 
 /* PMD_QPOS_NO_BOOT_FLASH_V1
    Hide only the data canvas during the first bootstrap. No skeleton flash,
