@@ -160,6 +160,7 @@ grep -q "'pmd-cashier' => 'pos'"   "$STAGE/app/admin/Services/PmdRoleLandingServ
 grep -q "'pmd-waiter' => 'pos/waiter'"   "$STAGE/app/admin/Services/PmdRoleLandingService.php"
 grep -q "PMD_QUICK_POS_TEAM_SIGNIN_POSITION_V1"   "$STAGE/app/admin/assets/js/pmd-site-access-hub-v13.js"
 grep -q "PMD_QUICK_POS_FORCE_NEW_CHECK_V1"   "$STAGE/app/admin/controllers/concerns/PmdWaiterPosSaveEndpoint.php"
+grep -q "PMD_QUICK_POS_LEAN_TABLE_DATA_V2" "$STAGE/app/admin/controllers/PmdQuickPosV1.php"
 grep -q "'cashierlab' =>" "$STAGE/app/Http/Middleware/PmdAdminRetiredPagesR77.php"
 grep -q "admin_url('pos')" "$STAGE/app/admin/views/_partials/pmd_side_menu2_single_menu.blade.php"
 
@@ -239,6 +240,7 @@ echo "===== ROUTE CONTRACT ====="
 # reliably Composer-reflectable in Artisan.
 grep -q "'/admin/pos/bootstrap/{mode?}'" "$ROOT/routes/admin-quick-mode.php"
 grep -q "'/admin/pos/save-off-premise'" "$ROOT/routes/admin-quick-mode.php"
+grep -q "'/admin/pos/table/{table}'" "$ROOT/routes/admin-quick-mode.php"
 grep -q "'/admin/pos/{mode?}'" "$ROOT/routes/admin-quick-mode.php"
 echo "OK Quick POS route contract present"
 
