@@ -1621,6 +1621,7 @@
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({
           idempotency_key: state.payment.idempotencyKey,
+          quick_pos_fast: true,
           payment_method: state.payment.method,
           provider_code: state.payment.method === 'external_terminal'
             ? 'external_terminal'
