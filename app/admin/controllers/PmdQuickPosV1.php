@@ -1236,9 +1236,17 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                     if ($change > 0) {
                         $parts[] = 'Change '.$money($change);
                     }
+                    $payer = trim((string)($raw['payer_label'] ?? ''));
+                    if ($payer !== '') {
+                        $parts[] = $payer;
+                    }
                     $reference = trim((string)($raw['payment_reference'] ?? ''));
                     if ($reference !== '') {
                         $parts[] = 'Ref '.$reference;
+                    }
+                    $paymentNote = trim((string)($raw['notes'] ?? ''));
+                    if ($paymentNote !== '') {
+                        $parts[] = 'Note: '.$paymentNote;
                     }
                     $entries[] = [
                         'kind' => 'payment',
@@ -1347,6 +1355,54 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                         'title' => 'Table note',
                         'detail' => $note,
                         'order_id' => null,
+                    ];
+                }
+            }
+        }
+
+        $tableStatusTable = null;
+        foreach (['pmd_table_status_history', 'ti_pmd_table_status_history'] as $candidate) {
+            if (Schema::hasTable($candidate)) {
+                $tableStatusTable = $candidate;
+                break;
+            }
+        }
+
+        if ($tableStatusTable && $scope !== 'pickup') {
+            $cols = Schema::getColumnListing($tableStatusTable);
+            if (in_array('table_id', $cols, true)) {
+                $tableStatusQuery = DB::table($tableStatusTable);
+                if ($scope === 'table' && $tableId > 0) {
+                    $tableStatusQuery->where('table_id', $tableId);
+                }
+
+                $rows = $tableStatusQuery
+                    ->orderByDesc(
+                        in_array('created_at', $cols, true)
+                            ? 'created_at'
+                            : 'id'
+                    )
+                    ->limit(min(80, $limit))
+                    ->get();
+
+                foreach ($rows as $row) {
+                    $raw = (array)$row;
+                    $old = ucfirst(str_replace('_', ' ', (string)($raw['old_status'] ?? '')));
+                    $new = ucfirst(str_replace('_', ' ', (string)($raw['new_status'] ?? '')));
+                    $reason = trim((string)($raw['reason'] ?? ''));
+                    $detail = trim($old.' → '.$new);
+                    if ($reason !== '') {
+                        $detail .= ' · '.$reason;
+                    }
+
+                    $entries[] = [
+                        'kind' => 'table_status',
+                        'time' => (string)($raw['created_at'] ?? $raw['updated_at'] ?? ''),
+                        'title' => 'Table '.(int)($raw['table_id'] ?? 0).' · status',
+                        'detail' => $detail,
+                        'order_id' => isset($raw['order_id'])
+                            ? (int)$raw['order_id']
+                            : null,
                     ];
                 }
             }
