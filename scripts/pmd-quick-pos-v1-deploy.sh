@@ -187,6 +187,19 @@ grep -q "data-qpos-clock" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
 grep -q "PMD_QPOS_TOUCH_VISUAL_V10" "$STAGE/app/admin/assets/css/pmd-quick-pos-v1.css"
 grep -q "PMD_QPOS_GREEN_STABLE_V11" "$STAGE/app/admin/assets/css/pmd-quick-pos-v1.css"
 grep -q "PMD_QPOS_PAYMENT_STABLE_V3" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
+grep -q "PMD_QPOS_SPLIT_TIP_V1" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
+grep -q "PMD_QPOS_HISTORY_UI_V1" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
+grep -q "PMD_QPOS_TEXT_KEYBOARD_V1" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
+grep -q "PMD_QPOS_ITEM_NOTE_V1" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
+grep -q "PMD_QPOS_WIDE_PAYMENT_HISTORY_TOUCH_V13" "$STAGE/app/admin/assets/css/pmd-quick-pos-v1.css"
+grep -q "PMD_QPOS_HISTORY_V1" "$STAGE/app/admin/controllers/PmdQuickPosV1.php"
+grep -q "PMD_QPOS_PARTIAL_PAYMENT_SCOPE_V1" "$STAGE/app/admin/controllers/PmdQuickPosV1.php"
+grep -q "/admin/pos/history" "$STAGE/routes/admin-quick-mode.php"
+grep -q "data-qpos-history-modal" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
+grep -q "data-qpos-profile-toggle" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
+grep -q "data-qpos-text-keyboard" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
+grep -q "data-qpos-tip-amount" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
+grep -q "data-qpos-split-row" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
 grep -q "pmd-qpos-product-count" "$STAGE/app/admin/assets/css/pmd-quick-pos-v1.css"
 grep -q "cartQuantityForMenu" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
 grep -q "PMD_QPOS_BLITZ_ACTION_V1" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
@@ -208,17 +221,40 @@ if grep -Fq 'data-qpos-hold' "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
   echo "ERROR: Hold action remains in Quick POS" >&2
   exit 1
 fi
+if grep -Fq 'data-qpos-mode-switch' "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"; then
+  echo "ERROR: Cashier/Waiter mode dock remains in Quick POS" >&2
+  exit 1
+fi
+if grep -Fq 'data-qpos-new-check' "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"; then
+  echo "ERROR: top New Check control remains in Quick POS shell" >&2
+  exit 1
+fi
+if grep -Fq 'data-qpos-online' "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"; then
+  echo "ERROR: Online indicator remains in Quick POS shell" >&2
+  exit 1
+fi
+if grep -Fq 'data-qpos-refresh' "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"; then
+  echo "ERROR: Refresh control remains in Quick POS shell" >&2
+  exit 1
+fi
+if grep -Fq 'pmd-qpos-work-link' "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"; then
+  echo "ERROR: legacy Orders link remains in Quick POS shell" >&2
+  exit 1
+fi
 grep -q "data-qpos-touch-keypad" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
 if grep -Fq 'data-qpos-touch-keypad hidden' "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"; then
   echo "ERROR: payment keypad is hidden in initial Quick POS markup" >&2
   exit 1
 fi
 grep -q "data-qpos-cash-signature" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
-grep -q "pmd-quick-pos-v1.js?v=20260919-12" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
-grep -q "pmd-quick-pos-v1.css?v=20260919-11" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
+grep -q "pmd-quick-pos-v1.js?v=20260919-13" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
+grep -q "pmd-quick-pos-v1.css?v=20260919-13" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
 grep -Fq "\$\$('[data-cash-value]', box).forEach" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
 grep -Fq "\$\$('[data-payment-method]', box).forEach" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
 grep -Fq "\$\$('[data-qpos-keypad-key]', keypad).forEach" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
+grep -Fq "\$\$('[data-qpos-split]', wrap).forEach" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
+grep -Fq "\$\$('[data-qpos-history-scope]').forEach" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
+grep -Fq "\$\$('[data-qpos-text-key]').forEach" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
 grep -q "touchKeypadTarget: 'cash'" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
 grep -q "background: #064e3b" "$STAGE/app/admin/assets/css/pmd-quick-pos-v1.css"
 grep -q "background: #0f766e" "$STAGE/app/admin/assets/css/pmd-quick-pos-v1.css"
