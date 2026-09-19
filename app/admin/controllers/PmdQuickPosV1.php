@@ -1857,6 +1857,7 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
         }
 
         $indexByKey = [];
+        $tableById = [];
         $signals = [];
 
         foreach ($tables as $index => $table) {
@@ -1871,6 +1872,7 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 'waiter_calls' => 0,
                 'note_count' => 0,
             ];
+            $tableById[$id] = $table;
 
             $number = strtolower(trim((string)($table['number'] ?? '')));
             $name = strtolower(trim((string)($table['name'] ?? '')));
@@ -1940,20 +1942,23 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                             continue;
                         }
 
-                        $tableId = (int)($indexByKey[$ref] ?? 0);
+                        $tableId = 0;
+                        if (ctype_digit($ref)) {
+                            $numericRef = (int)$ref;
+                            if (isset($signals[$numericRef])) {
+                                $tableId = $numericRef;
+                            }
+                        }
+                        if ($tableId < 1) {
+                            $tableId = (int)($indexByKey[$ref] ?? 0);
+                        }
+
                         if ($tableId < 1 || isset($seen[$tableId])) {
                             continue;
                         }
                         $seen[$tableId] = true;
 
-                        $tableRow = null;
-                        foreach ($tables as $candidate) {
-                            if ((int)($candidate['id'] ?? 0) === $tableId) {
-                                $tableRow = $candidate;
-                                break;
-                            }
-                        }
-
+                        $tableRow = $tableById[$tableId] ?? [];
                         $physical = strtolower(trim((string)(
                             $tableRow['status'] ?? 'available'
                         )));
