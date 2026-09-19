@@ -2130,6 +2130,7 @@ function renderOpenChecks() {
       return;
     }
 
+    clearPaymentErrorOnEdit();
     mode = String(mode || 'full');
     if (['full', 'equal', 'items', 'shares'].indexOf(mode) === -1) {
       mode = 'full';
@@ -2155,6 +2156,7 @@ function renderOpenChecks() {
 
   function adjustSplitPeople(delta) {
     if (state.payment.splitMode !== 'equal') return;
+    clearPaymentErrorOnEdit();
     state.payment.splitParts = Math.max(
       2,
       Math.min(20, Number(state.payment.splitParts || 2) + Number(delta || 0))
@@ -2166,6 +2168,7 @@ function renderOpenChecks() {
   function toggleSplitItem(orderMenuId) {
     if (state.payment.splitMode !== 'items' || !state.payment.summary) return;
 
+    clearPaymentErrorOnEdit();
     var item = (state.payment.summary.items || []).find(function (row) {
       return Number(row.order_menu_id || 0) === Number(orderMenuId);
     });
@@ -2189,6 +2192,7 @@ function renderOpenChecks() {
   function applySharePercent(value) {
     if (state.payment.method === 'direct_terminal') return;
 
+    clearPaymentErrorOnEdit();
     var percent = Math.max(0, Math.min(100, num(value, 0)));
     state.payment.splitMode = 'shares';
     state.payment.splitPercent = percent;
@@ -2390,6 +2394,13 @@ function renderOpenChecks() {
     el.textContent = String(message || '');
   }
 
+  /* PMD_QPOS_PAYMENT_ERROR_STATE_V18
+   * Server validation stays visible until the cashier changes a payment
+   * control. Once the value/method changes, the previous error is stale. */
+  function clearPaymentErrorOnEdit() {
+    showPaymentError('');
+  }
+
   function renderPaymentMethods() {
     var box = $('[data-qpos-payment-methods]');
     if (!box || !state.payment.summary) return;
@@ -2445,6 +2456,7 @@ function renderOpenChecks() {
         button.onclick = function () {
           if (button.disabled) return;
 
+          clearPaymentErrorOnEdit();
           state.payment.method = button.getAttribute('data-payment-method');
           state.payment.reference = '';
           state.payment.externalConfirmed = false;
@@ -2515,6 +2527,7 @@ function renderOpenChecks() {
 
     $$('[data-terminal-index]', box).forEach(function (button) {
       button.onclick = function () {
+        clearPaymentErrorOnEdit();
         var index = Number(button.getAttribute('data-terminal-index'));
         state.payment.terminal = providers[index] || null;
         renderTerminals();
@@ -2565,6 +2578,7 @@ function renderOpenChecks() {
 
     $$('[data-cash-value]', box).forEach(function (button) {
       button.onclick = function () {
+        clearPaymentErrorOnEdit();
         state.payment.cashReceived = roundMoney(
           num(button.getAttribute('data-cash-value'), paymentCharge())
         ).toFixed(2);
@@ -2767,6 +2781,7 @@ function renderOpenChecks() {
   }
 
   function setTouchKeypadValue(target, raw) {
+    clearPaymentErrorOnEdit();
     raw = normalizeTouchKeypadValue(raw);
 
     if (target === 'cash') {
@@ -2924,6 +2939,16 @@ function renderOpenChecks() {
 
     if (tipRow) {
       tipRow.hidden = state.payment.method === 'direct_terminal';
+    }
+
+    if (state.payment.method === 'direct_terminal') {
+      var paymentError = $('[data-qpos-payment-error]');
+      if (
+        paymentError &&
+        /cash received/i.test(String(paymentError.textContent || ''))
+      ) {
+        showPaymentError('');
+      }
     }
 
     if (tipEl) {
@@ -4250,6 +4275,7 @@ function renderOpenChecks() {
     var amount = $('[data-qpos-payment-amount]');
     if (amount) {
       amount.addEventListener('input', function () {
+        clearPaymentErrorOnEdit();
         state.payment.amount = normalizeTouchKeypadValue(amount.value);
         state.payment.splitMode = 'shares';
         state.payment.splitPercent = paymentRemaining() > 0
@@ -4282,6 +4308,7 @@ function renderOpenChecks() {
     var cash = $('[data-qpos-cash-received]');
     if (cash) {
       cash.addEventListener('input', function () {
+        clearPaymentErrorOnEdit();
         state.payment.cashReceived = normalizeTouchKeypadValue(cash.value);
         if (cash.value !== state.payment.cashReceived) {
           cash.value = state.payment.cashReceived;
@@ -4299,6 +4326,7 @@ function renderOpenChecks() {
     var tipAmount = $('[data-qpos-tip-amount]');
     if (tipAmount) {
       tipAmount.addEventListener('input', function () {
+        clearPaymentErrorOnEdit();
         state.payment.tipMode = 'custom';
         state.payment.tipPercent = 0;
         state.payment.tipAmount = normalizeTouchKeypadValue(tipAmount.value);
@@ -4351,6 +4379,7 @@ function renderOpenChecks() {
     var sharePercent = $('[data-qpos-share-percent]');
     if (sharePercent) {
       sharePercent.addEventListener('input', function () {
+        clearPaymentErrorOnEdit();
         state.payment.splitMode = 'shares';
         state.payment.splitPercent = Math.max(
           0,
@@ -4377,12 +4406,14 @@ function renderOpenChecks() {
 
     var reference = $('[data-qpos-payment-reference]');
     if (reference) reference.addEventListener('input', function () {
+      clearPaymentErrorOnEdit();
       state.payment.reference = reference.value;
       renderPaymentTotals();
     });
 
     var confirmExternal = $('[data-qpos-external-confirm]');
     if (confirmExternal) confirmExternal.addEventListener('change', function () {
+      clearPaymentErrorOnEdit();
       state.payment.externalConfirmed = confirmExternal.checked;
       renderPaymentTotals();
     });
@@ -4391,6 +4422,7 @@ function renderOpenChecks() {
       button.onclick = function () {
         if (state.payment.method === 'direct_terminal') return;
 
+        clearPaymentErrorOnEdit();
         state.payment.tipMode = 'percent';
         state.payment.tipPercent = Number(
           button.getAttribute('data-tip') || 0
