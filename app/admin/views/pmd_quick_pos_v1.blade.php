@@ -7,7 +7,7 @@
     <meta name="theme-color" content="#111827">
     <title>PayMyDine POS</title>
     <link rel="icon" type="image/svg+xml" href="/app/admin/assets/images/pmd-favicon-final-20260822.svg">
-    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-pos-v1.css?v=20260919-11">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-pos-v1.css?v=20260919-13">
 </head>
 <body class="pmd-qpos-body">
 @php
@@ -31,6 +31,12 @@
         'reserved' => 'Res.',
         'cleaning' => 'Clean',
     ];
+    $pmdProfile = (array)($initialBootstrap['profile'] ?? []);
+    $pmdProfileName = trim((string)($pmdProfile['name'] ?? 'Staff')) ?: 'Staff';
+    $pmdProfileRole = trim((string)($pmdProfile['role'] ?? ''));
+    $pmdProfileInitial = mb_strtoupper(mb_substr($pmdProfileName, 0, 1));
+    $pmdDashboardUrl = $pmdProfile['dashboard_url'] ?? null;
+    $pmdLogoutUrl = (string)($pmdProfile['logout_url'] ?? admin_url('logout'));
 @endphp
 <div
     id="pmd-quick-pos"
@@ -80,17 +86,36 @@
                             data-qpos-table="{{ $table['id'] ?? 0 }}"
                             data-status="{{ $pmdStatus }}"
                         >
-                            <strong>{{ $table['name'] ?? ('Table '.($table['number'] ?? '')) }}</strong>
+                            <strong>{{ $table['number'] ?? ($table['id'] ?? '') }}</strong>
                             <small>{{ $pmdStatusLabels[$pmdStatus] ?? 'Free' }}@if($pmdCapacity > 0) · {{ $pmdCapacity }}s @endif</small>
                         </button>
                     @endforeach
                 </div>
             </section>
 
-            <nav class="pmd-qpos-mode-dock" data-qpos-mode-switch @if(!$canSwitchMode) hidden @endif>
-                <a href="/admin/pos" class="{{ $mode === 'cashier' ? 'is-active' : '' }}">Cashier</a>
-                <a href="/admin/pos/waiter" class="{{ $mode === 'waiter' ? 'is-active' : '' }}">Waiter</a>
-            </nav>
+            <div class="pmd-qpos-profile-dock">
+                @if($pmdDashboardUrl)
+                    <a class="pmd-qpos-back-button" href="{{ $pmdDashboardUrl }}">← Back</a>
+                @endif
+                <div class="pmd-qpos-profile">
+                    <button
+                        type="button"
+                        class="pmd-qpos-profile-button"
+                        data-qpos-profile-toggle
+                        aria-expanded="false"
+                    >
+                        <span>{{ $pmdProfileInitial }}</span>
+                        <strong>{{ $pmdProfileName }}</strong>
+                    </button>
+                    <div class="pmd-qpos-profile-menu" data-qpos-profile-menu hidden>
+                        <div>
+                            <strong>{{ $pmdProfileName }}</strong>
+                            @if($pmdProfileRole)<small>{{ $pmdProfileRole }}</small>@endif
+                        </div>
+                        <a href="{{ $pmdLogoutUrl }}">Sign out</a>
+                    </div>
+                </div>
+            </div>
         </aside>
 
         <section class="pmd-qpos-catalog">
@@ -102,12 +127,8 @@
 
                 <div class="pmd-qpos-work-meta">
                     <time class="pmd-qpos-clock" data-qpos-clock>{{ now()->format('H:i') }}</time>
-                    <span class="pmd-qpos-online pmd-qpos-online-dot" data-qpos-online aria-label="Online"><i></i></span>
-                    <button type="button" class="pmd-qpos-work-icon" data-qpos-refresh aria-label="Refresh">↻</button>
-                    <a class="pmd-qpos-work-link" href="{{ $legacyOrdersUrl }}">Orders</a>
+                    <button type="button" class="pmd-qpos-history-button" data-qpos-history-open>History</button>
                 </div>
-
-                <button type="button" class="pmd-qpos-new-check" data-qpos-new-check>+ Check</button>
             </div>
 
             <div class="pmd-qpos-categories" data-qpos-categories>
@@ -256,6 +277,15 @@
                     <button type="button" data-cash-preset="exact">Exact</button>
                 </div>
 
+                <div class="pmd-qpos-split-row" data-qpos-split-row>
+                    <span>Split</span>
+                    <button type="button" class="is-active" data-qpos-split="1">Full</button>
+                    <button type="button" data-qpos-split="2">1/2</button>
+                    <button type="button" data-qpos-split="3">1/3</button>
+                    <button type="button" data-qpos-split="4">1/4</button>
+                    <button type="button" data-qpos-split="custom">Custom</button>
+                </div>
+
                 <section class="pmd-qpos-touch-keypad" data-qpos-touch-keypad>
                     <header>
                         <div>
@@ -293,6 +323,18 @@
                     <button type="button" data-tip="5">5%</button>
                     <button type="button" data-tip="10">10%</button>
                     <button type="button" data-tip="15">15%</button>
+                    <label class="pmd-qpos-tip-custom">
+                        <span>Custom</span>
+                        <input
+                            type="text"
+                            inputmode="none"
+                            autocomplete="off"
+                            spellcheck="false"
+                            placeholder="0.00"
+                            data-qpos-tip-amount
+                            data-qpos-keypad-target="tip"
+                        >
+                    </label>
                 </div>
 
                 <div class="pmd-qpos-terminals" data-qpos-terminals hidden>
@@ -327,6 +369,85 @@
         </div>
     </div>
 
+    <div class="pmd-qpos-modal" data-qpos-history-modal aria-hidden="true">
+        <div class="pmd-qpos-modal-card pmd-qpos-history-card">
+            <header>
+                <div>
+                    <span class="pmd-qpos-section-label">History</span>
+                    <h2 data-qpos-history-title>History</h2>
+                </div>
+                <button type="button" class="pmd-qpos-modal-close" data-qpos-history-close>×</button>
+            </header>
+            <div class="pmd-qpos-history-toolbar">
+                <button type="button" class="is-active" data-qpos-history-scope="selected">Selected</button>
+                <button type="button" data-qpos-history-scope="all">All</button>
+            </div>
+            <div class="pmd-qpos-history-list" data-qpos-history-list>
+                <div class="pmd-qpos-history-empty">Loading…</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="pmd-qpos-modal" data-qpos-item-note-modal aria-hidden="true">
+        <div class="pmd-qpos-modal-card pmd-qpos-item-note-card">
+            <header>
+                <div>
+                    <span class="pmd-qpos-section-label">Item note</span>
+                    <h2 data-qpos-item-note-title>Item</h2>
+                </div>
+                <button type="button" class="pmd-qpos-modal-close" data-qpos-item-note-close>×</button>
+            </header>
+            <div class="pmd-qpos-item-note-body">
+                <label class="pmd-qpos-field">
+                    <span>Kitchen / allergy / request</span>
+                    <input
+                        type="text"
+                        autocomplete="off"
+                        spellcheck="false"
+                        data-qpos-item-note-input
+                        placeholder="No onions, allergy, medium…"
+                    >
+                </label>
+            </div>
+            <footer>
+                <button type="button" class="pmd-qpos-note-clear" data-qpos-item-note-clear>Clear</button>
+                <button type="button" class="pmd-qpos-modal-primary" data-qpos-item-note-save>Save note</button>
+            </footer>
+        </div>
+    </div>
+
+    <section class="pmd-qpos-text-keyboard" data-qpos-text-keyboard hidden aria-hidden="true">
+        <header>
+            <strong data-qpos-text-keyboard-label>Keyboard</strong>
+            <button type="button" data-qpos-text-key="done">Done</button>
+        </header>
+        <div class="pmd-qpos-text-keyboard-row">
+            @foreach(str_split('QWERTYUIOP') as $key)
+                <button type="button" data-qpos-text-key="{{ $key }}">{{ $key }}</button>
+            @endforeach
+        </div>
+        <div class="pmd-qpos-text-keyboard-row">
+            @foreach(str_split('ASDFGHJKL') as $key)
+                <button type="button" data-qpos-text-key="{{ $key }}">{{ $key }}</button>
+            @endforeach
+        </div>
+        <div class="pmd-qpos-text-keyboard-row">
+            <button type="button" class="wide" data-qpos-text-key="shift">ABC</button>
+            @foreach(str_split('ZXCVBNM') as $key)
+                <button type="button" data-qpos-text-key="{{ $key }}">{{ $key }}</button>
+            @endforeach
+            <button type="button" class="wide" data-qpos-text-key="backspace">⌫</button>
+        </div>
+        <div class="pmd-qpos-text-keyboard-row">
+            <button type="button" data-qpos-text-key="-">-</button>
+            <button type="button" data-qpos-text-key="/">/</button>
+            <button type="button" data-qpos-text-key=",">,</button>
+            <button type="button" data-qpos-text-key=".">.</button>
+            <button type="button" class="space" data-qpos-text-key="space">Space</button>
+            <button type="button" data-qpos-text-key="clear">Clear</button>
+        </div>
+    </section>
+
     <div class="pmd-qpos-toast" data-qpos-toast role="status"></div>
 </div>
 
@@ -337,7 +458,7 @@ window.PMDQuickPOSConfig = {
     initialBootstrap: @json($initialBootstrap ?? null)
 };
 </script>
-<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260919-12"></script>
+<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260919-13"></script>
 <script src="/app/admin/assets/js/pmd-site-access-hub-v13.js?v=20260919-qpos1"></script>
 </body>
 </html>
