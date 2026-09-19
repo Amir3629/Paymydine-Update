@@ -1660,7 +1660,8 @@
       receiptUrl: '',
       invoiceUrl: '',
       idempotencyKey: uid('pay'),
-      touchKeypadTarget: null,
+      authoritative: false,
+      touchKeypadTarget: 'cash',
       touchKeypadFresh: true
     };
   }
@@ -1693,13 +1694,13 @@
     ).toFixed(2);
     state.payment.cashReceived = state.payment.amount;
 
+    renderPayment();
+
     var modal = $('[data-qpos-payment-modal]');
     if (modal) {
       modal.classList.add('is-open');
       modal.setAttribute('aria-hidden', 'false');
     }
-
-    renderPayment();
   }
 
   function paymentRemaining() {
@@ -1787,7 +1788,6 @@
         return;
       }
 
-      renderPayment();
     } catch (error) {
       showPaymentError(error.message || 'Payment details could not be loaded.');
     } finally {
@@ -1817,45 +1817,64 @@
       state.payment.externalConfirmed = false;
     }
 
-    var methods = [
-      {code: 'cash', name: 'Cash'}
-    ];
-
-    if (providers.length) {
-      methods.push({code: 'direct_terminal', name: 'Terminal'});
+    if (
+      state.payment.authoritative === true &&
+      state.payment.method === 'direct_terminal' &&
+      !providers.length
+    ) {
+      state.payment.method = 'cash';
+      state.payment.touchKeypadTarget = 'cash';
+      state.payment.touchKeypadFresh = true;
     }
 
-    box.innerHTML = methods.map(function (method) {
-      return (
-        '<button type="button" data-payment-method="' + esc(method.code) + '"' +
-          (state.payment.method === method.code ? ' class="is-active"' : '') + '>' +
-          esc(method.name) +
-        '</button>'
-      );
-    }).join('');
+    var methods = [
+      {code: 'cash', name: 'Cash', disabled: false},
+      {code: 'direct_terminal', name: 'Terminal', disabled: !providers.length}
+    ];
 
-    $$('[data-payment-method]', box).forEach(function (button) {
-      button.onclick = function () {
-        state.payment.method = button.getAttribute('data-payment-method');
-        state.payment.reference = '';
-        state.payment.externalConfirmed = false;
-        state.payment.terminal = null;
+    var methodSignature = methods.map(function (method) {
+      return [
+        method.code,
+        state.payment.method === method.code ? '1' : '0',
+        method.disabled ? '1' : '0'
+      ].join(':');
+    }).join('|');
 
-        if (state.payment.method === 'direct_terminal') {
-          state.payment.amount = roundMoney(paymentRemaining()).toFixed(2);
-          state.payment.tipPercent = 0;
-          state.payment.touchKeypadTarget = null;
-        } else if (
-          state.payment.method !== 'cash' &&
-          state.payment.touchKeypadTarget === 'cash'
-        ) {
-          state.payment.touchKeypadTarget = 'amount';
-          state.payment.touchKeypadFresh = true;
-        }
+    if (box.getAttribute('data-qpos-method-signature') !== methodSignature) {
+      box.setAttribute('data-qpos-method-signature', methodSignature);
+      box.innerHTML = methods.map(function (method) {
+        return (
+          '<button type="button" data-payment-method="' + esc(method.code) + '"' +
+            (state.payment.method === method.code ? ' class="is-active"' : '') +
+            (method.disabled ? ' disabled' : '') + '>' +
+            esc(method.name) +
+          '</button>'
+        );
+      }).join('');
 
-        renderPayment();
-      };
-    });
+      $('[data-payment-method]', box).forEach(function (button) {
+        button.onclick = function () {
+          if (button.disabled) return;
+
+          state.payment.method = button.getAttribute('data-payment-method');
+          state.payment.reference = '';
+          state.payment.externalConfirmed = false;
+          state.payment.terminal = null;
+
+          if (state.payment.method === 'direct_terminal') {
+            state.payment.amount = roundMoney(paymentRemaining()).toFixed(2);
+            state.payment.tipPercent = 0;
+            state.payment.touchKeypadTarget = 'amount';
+            state.payment.touchKeypadFresh = true;
+          } else {
+            state.payment.touchKeypadTarget = 'cash';
+            state.payment.touchKeypadFresh = true;
+          }
+
+          renderPayment();
+        };
+      });
+    }
   }
 
   function renderTerminals() {
@@ -1965,6 +1984,11 @@
     return raw;
   }
 
+  /* PMD_QPOS_PAYMENT_STABLE_V3
+   * The numeric keypad is part of the payment card, not a pop-in control.
+   * It stays visible for the entire payment flow to keep the card geometry
+   * stable on restaurant touch screens.
+   */
   function renderTouchKeypad() {
     var keypad = $('[data-qpos-touch-keypad]');
     var label = $('[data-qpos-touch-keypad-label]');
@@ -1972,7 +1996,28 @@
     var exact = $('[data-qpos-keypad-exact]');
     var amountEl = $('[data-qpos-payment-amount]');
     var cashEl = $('[data-qpos-cash-received]');
+
+    if (!keypad) return;
+
+    if (!state.payment.open) {
+      keypad.hidden = true;
+      return;
+    }
+
     var target = state.payment.touchKeypadTarget;
+    if (target !== 'amount' && target !== 'cash') {
+      target = state.payment.method === 'cash' ? 'cash' : 'amount';
+      state.payment.touchKeypadTarget = target;
+      state.payment.touchKeypadFresh = true;
+    }
+
+    if (state.payment.method !== 'cash' && target === 'cash') {
+      target = 'amount';
+      state.payment.touchKeypadTarget = target;
+      state.payment.touchKeypadFresh = true;
+    }
+
+    var locked = state.payment.method === 'direct_terminal';
 
     if (amountEl) {
       amountEl.classList.toggle('is-keypad-target', target === 'amount');
@@ -1981,21 +2026,21 @@
       cashEl.classList.toggle('is-keypad-target', target === 'cash');
     }
 
-    if (!keypad) return;
+    keypad.hidden = false;
+    keypad.classList.toggle('is-locked', locked);
 
-    var allowed =
-      state.payment.open &&
-      (target === 'amount' || target === 'cash') &&
-      !(target === 'amount' && state.payment.method === 'direct_terminal') &&
-      !(target === 'cash' && state.payment.method !== 'cash');
-
-    keypad.hidden = !allowed;
-    if (!allowed) return;
+    $('[data-qpos-keypad-key]', keypad).forEach(function (button) {
+      button.disabled = locked;
+    });
 
     if (label) {
-      label.textContent = target === 'cash'
-        ? 'Cash'
-        : 'Pay';
+      label.textContent = locked
+        ? 'Terminal amount'
+        : (
+            target === 'cash'
+              ? 'Cash'
+              : 'Pay'
+          );
     }
 
     if (value) {
@@ -2034,16 +2079,6 @@
     state.payment.touchKeypadTarget = target;
     state.payment.touchKeypadFresh = true;
     renderTouchKeypad();
-
-    var keypad = $('[data-qpos-touch-keypad]');
-    if (keypad && keypad.scrollIntoView) {
-      window.requestAnimationFrame(function () {
-        keypad.scrollIntoView({
-          block: 'nearest',
-          behavior: 'smooth'
-        });
-      });
-    }
   }
 
   function normalizeTouchKeypadValue(raw) {
@@ -2097,7 +2132,6 @@
           roundMoney(num(raw, 0)).toFixed(2)
         );
       }
-      state.payment.touchKeypadTarget = null;
       state.payment.touchKeypadFresh = true;
       renderTouchKeypad();
       return;
@@ -2380,24 +2414,36 @@
 
       toast(json.message || 'Payment recorded');
 
-      if (state.serviceMode === 'dine_in' && state.selectedTable) {
-        var paidTableId = Number(state.selectedTable.id);
-        setTimeout(function () {
-          loadTable(paidTableId, true);
-        }, 0);
-      } else if (String(json.settlement_status || '').toLowerCase() === 'paid') {
-        state.offPremiseOrder = Object.assign({}, state.offPremiseOrder || {}, {
-          settlement_status: 'paid'
-        });
-      }
+      var settlementPaid =
+        String(json.settlement_status || '').toLowerCase() === 'paid';
+      var paidTableId =
+        state.serviceMode === 'dine_in' && state.selectedTable
+          ? Number(state.selectedTable.id)
+          : 0;
 
-      if (String(json.settlement_status || '').toLowerCase() === 'paid') {
+      if (settlementPaid) {
+        if (state.serviceMode !== 'dine_in') {
+          state.offPremiseOrder = Object.assign({}, state.offPremiseOrder || {}, {
+            settlement_status: 'paid'
+          });
+        }
+
+        closePayment();
         finishPaidOrderUi();
-        setTimeout(function () {
-          closePayment();
-          toast('Paid');
-        }, 180);
+
+        if (paidTableId) {
+          setTimeout(function () {
+            loadTable(paidTableId, true);
+          }, 0);
+        }
+
+        toast('Paid');
       } else {
+        if (paidTableId) {
+          setTimeout(function () {
+            loadTable(paidTableId, true);
+          }, 0);
+        }
         renderAll();
         renderPayment();
       }
@@ -2479,6 +2525,7 @@
             ? Number(state.selectedTable.id)
             : 0;
 
+        closePayment();
         finishPaidOrderUi();
         toast('Paid');
 
@@ -2488,7 +2535,6 @@
           }, 0);
         }
 
-        setTimeout(closePayment, 180);
         return;
       }
 
