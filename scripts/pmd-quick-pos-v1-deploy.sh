@@ -192,6 +192,8 @@ grep -q "PMD_QPOS_HISTORY_UI_V1" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js
 grep -q "PMD_QPOS_TEXT_KEYBOARD_V1" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
 grep -q "PMD_QPOS_ITEM_NOTE_V1" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
 grep -q "PMD_QPOS_WIDE_PAYMENT_HISTORY_TOUCH_V13" "$STAGE/app/admin/assets/css/pmd-quick-pos-v1.css"
+grep -q "PMD_QPOS_COMPACT_WIDE_PAYMENT_V14" "$STAGE/app/admin/assets/css/pmd-quick-pos-v1.css"
+grep -q "PMD_QPOS_SIMPLIFIED_CHECKS_V14" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
 grep -q "PMD_QPOS_HISTORY_V1" "$STAGE/app/admin/controllers/PmdQuickPosV1.php"
 grep -q "PMD_QPOS_PARTIAL_PAYMENT_SCOPE_V1" "$STAGE/app/admin/controllers/PmdQuickPosV1.php"
 grep -q "/admin/pos/history" "$STAGE/routes/admin-quick-mode.php"
@@ -229,6 +231,10 @@ if grep -Fq 'data-qpos-new-check' "$STAGE/app/admin/views/pmd_quick_pos_v1.blade
   echo "ERROR: top New Check control remains in Quick POS shell" >&2
   exit 1
 fi
+if grep -Fq '>+ Check</button>' "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"; then
+  echo "ERROR: generated + Check action remains in Quick POS" >&2
+  exit 1
+fi
 if grep -Fq 'data-qpos-online' "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"; then
   echo "ERROR: Online indicator remains in Quick POS shell" >&2
   exit 1
@@ -247,8 +253,8 @@ if grep -Fq 'data-qpos-touch-keypad hidden' "$STAGE/app/admin/views/pmd_quick_po
   exit 1
 fi
 grep -q "data-qpos-cash-signature" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
-grep -q "pmd-quick-pos-v1.js?v=20260919-13" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
-grep -q "pmd-quick-pos-v1.css?v=20260919-13" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
+grep -q "pmd-quick-pos-v1.js?v=20260919-14" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
+grep -q "pmd-quick-pos-v1.css?v=20260919-14" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
 grep -Fq "\$\$('[data-cash-value]', box).forEach" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
 grep -Fq "\$\$('[data-payment-method]', box).forEach" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
 grep -Fq "\$\$('[data-qpos-keypad-key]', keypad).forEach" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
