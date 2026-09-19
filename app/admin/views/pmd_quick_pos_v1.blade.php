@@ -64,7 +64,6 @@
                 <div class="pmd-qpos-table-grid" data-qpos-tables>
                     <button type="button" class="pmd-qpos-table pmd-qpos-pickup" data-qpos-pickup>
                         <strong>Pickup</strong>
-                        <small>Counter</small>
                     </button>
                     @foreach($pmdInitialTables as $table)
                         @php
