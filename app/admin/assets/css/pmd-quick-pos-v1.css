@@ -3317,3 +3317,16 @@ body.pmd-qpos-body {
     box-shadow: none;
   }
 }
+
+
+/* Payment owns the whole POS surface; History intentionally keeps the table
+   rail visible so table-to-table audit browsing stays one tap away. */
+@media (min-width: 821px) {
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal] {
+    inset: 10px;
+  }
+
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal] > .pmd-qpos-modal-card {
+    border-left: 0;
+  }
+}
