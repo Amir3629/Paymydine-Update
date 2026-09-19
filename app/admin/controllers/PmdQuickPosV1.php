@@ -7,6 +7,7 @@ use Admin\Models\Menus_model;
 use Admin\Models\Orders_model;
 use Admin\Models\Tables_model;
 use Admin\Services\PmdDefaultStaffRoleService;
+use Admin\Services\PmdRoleLandingService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
@@ -159,6 +160,7 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                     : 'Staff',
                 'role' => $this->quickPosRoleCode(),
             ],
+            'profile' => $this->quickPosProfilePayload(),
             'permissions' => [
                 'orders' => true,
                 'payments' => $this->canManagePayments(),
@@ -186,6 +188,7 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 'terminal_attempts_url' => '/admin/orders/{order}/terminal-payment-attempts',
                 'terminal_refresh_url' => '/admin/terminal-payments/attempts/{attempt}/refresh',
                 'table_state_url' => '/admin/pmd-waiter-table-states-v154/{table}',
+                'history_url' => '/admin/pos/history',
             ],
         ];
     }
@@ -934,6 +937,413 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 'message' => 'The Pickup order could not be saved. '.$error->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * PMD_QPOS_HISTORY_V1
+     *
+     * Compact, schema-safe operational history for the POS. It intentionally
+     * reads existing canonical order/payment/note/status tables only; no new
+     * audit store is introduced.
+     */
+    public function history()
+    {
+        $scope = strtolower(trim((string)request()->query('scope', 'selected')));
+        $tableId = max(0, (int)request()->query('table_id', 0));
+        $limit = max(20, min(160, (int)request()->query('limit', 100)));
+        $locationId = $this->quickPosLocationId();
+        $entries = [];
+        $orderIds = [];
+        $scopeLabel = 'All history';
+
+        if (!Schema::hasTable('orders')) {
+            return response()->json([
+                'ok' => true,
+                'version' => 'pmd-qpos-history-v1',
+                'scope' => $scope,
+                'scope_label' => $scopeLabel,
+                'entries' => [],
+            ]);
+        }
+
+        $orderColumns = Schema::getColumnListing('orders');
+        $primaryKey = in_array('order_id', $orderColumns, true)
+            ? 'order_id'
+            : 'id';
+
+        $query = DB::table('orders');
+
+        if ($locationId > 0 && in_array('location_id', $orderColumns, true)) {
+            $query->where('location_id', $locationId);
+        }
+
+        if ($scope === 'table' && $tableId > 0) {
+            $table = $this->resolveTable($tableId);
+            if ($table) {
+                $this->applyTableScope($query, $orderColumns, $table);
+                $scopeLabel = 'Table '.(string)($table['number'] ?? $tableId);
+            } else {
+                $query->whereRaw('1 = 0');
+                $scopeLabel = 'Selected table';
+            }
+        } elseif ($scope === 'pickup') {
+            if (in_array('order_type', $orderColumns, true)) {
+                $query->where('order_type', Orders_model::COLLECTION);
+            } else {
+                $query->whereRaw('1 = 0');
+            }
+            $scopeLabel = 'Pickup';
+        } else {
+            $scope = 'all';
+            $scopeLabel = 'All history';
+        }
+
+        $orderSort = in_array('created_at', $orderColumns, true)
+            ? 'created_at'
+            : $primaryKey;
+
+        $orders = $query
+            ->orderByDesc($orderSort)
+            ->limit(min(80, $limit))
+            ->get();
+
+        $orderIds = $orders
+            ->map(function ($row) use ($primaryKey) {
+                return (int)($row->order_id ?? $row->id ?? $row->{$primaryKey} ?? 0);
+            })
+            ->filter()
+            ->values()
+            ->all();
+
+        $itemsByOrder = collect();
+        if ($orderIds && Schema::hasTable('order_menus')) {
+            $itemColumns = Schema::getColumnListing('order_menus');
+            if (in_array('order_id', $itemColumns, true)) {
+                $itemsByOrder = DB::table('order_menus')
+                    ->whereIn('order_id', $orderIds)
+                    ->orderBy('order_id')
+                    ->get()
+                    ->groupBy(function ($row) {
+                        return (int)($row->order_id ?? 0);
+                    });
+            }
+        }
+
+        $statusNames = [];
+        if (
+            Schema::hasTable('statuses')
+            && Schema::hasColumn('statuses', 'status_id')
+            && Schema::hasColumn('statuses', 'status_name')
+        ) {
+            $statusNames = DB::table('statuses')
+                ->pluck('status_name', 'status_id')
+                ->mapWithKeys(function ($name, $id) {
+                    return [(int)$id => (string)$name];
+                })
+                ->all();
+        }
+
+        $money = function ($value): string {
+            return $this->currencySymbol().number_format(
+                (float)$value,
+                2,
+                '.',
+                ''
+            );
+        };
+
+        foreach ($orders as $order) {
+            $raw = (array)$order;
+            $orderId = (int)($raw['order_id'] ?? $raw['id'] ?? $raw[$primaryKey] ?? 0);
+            if ($orderId < 1) {
+                continue;
+            }
+
+            $parts = [];
+            $statusId = (int)($raw['status_id'] ?? 0);
+            $statusName = trim((string)($statusNames[$statusId] ?? ''));
+            if ($statusName !== '') {
+                $parts[] = $statusName;
+            }
+
+            $total = (float)($raw['order_total'] ?? $raw['total'] ?? 0);
+            if ($total > 0) {
+                $parts[] = $money($total);
+            }
+
+            $settlement = trim((string)($raw['settlement_status'] ?? ''));
+            if ($settlement !== '') {
+                $parts[] = ucfirst($settlement);
+            }
+
+            $itemRows = collect($itemsByOrder->get($orderId, collect()));
+            if ($itemRows->isNotEmpty()) {
+                $summary = $itemRows
+                    ->take(6)
+                    ->map(function ($item) {
+                        return max(1, (int)($item->quantity ?? 1))
+                            .'× '.trim((string)($item->name ?? 'Item'));
+                    })
+                    ->filter()
+                    ->implode(', ');
+                if ($itemRows->count() > 6) {
+                    $summary .= ' +'.($itemRows->count() - 6);
+                }
+                if ($summary !== '') {
+                    $parts[] = $summary;
+                }
+            }
+
+            $comment = $this->quickPosVisibleNote(
+                (string)($raw['comment'] ?? '')
+            );
+            if ($comment !== '') {
+                $parts[] = 'Note: '.$comment;
+            }
+
+            $entries[] = [
+                'kind' => 'order',
+                'time' => (string)($raw['updated_at'] ?? $raw['created_at'] ?? ''),
+                'title' => 'Order #'.$orderId,
+                'detail' => implode(' · ', $parts),
+                'order_id' => $orderId,
+            ];
+
+            foreach ($itemRows as $item) {
+                $note = $this->quickPosVisibleNote(
+                    (string)($item->comment ?? '')
+                );
+                if ($note === '') {
+                    continue;
+                }
+                $entries[] = [
+                    'kind' => 'item_note',
+                    'time' => (string)($item->updated_at ?? $item->created_at ?? $raw['updated_at'] ?? ''),
+                    'title' => 'Item note · '.trim((string)($item->name ?? 'Item')),
+                    'detail' => $note,
+                    'order_id' => $orderId,
+                ];
+            }
+        }
+
+        if ($orderIds && Schema::hasTable('order_notes')) {
+            $cols = Schema::getColumnListing('order_notes');
+            if (in_array('order_id', $cols, true)) {
+                $rows = DB::table('order_notes')
+                    ->whereIn('order_id', $orderIds)
+                    ->orderByDesc(
+                        in_array('created_at', $cols, true)
+                            ? 'created_at'
+                            : (in_array('id', $cols, true) ? 'id' : 'order_id')
+                    )
+                    ->limit($limit)
+                    ->get();
+
+                foreach ($rows as $row) {
+                    $raw = (array)$row;
+                    $note = trim((string)($raw['note'] ?? $raw['comment'] ?? ''));
+                    if ($note === '') {
+                        continue;
+                    }
+                    $entries[] = [
+                        'kind' => 'note',
+                        'time' => (string)($raw['created_at'] ?? $raw['updated_at'] ?? ''),
+                        'title' => 'Order note · #'.(int)($raw['order_id'] ?? 0),
+                        'detail' => $note,
+                        'order_id' => (int)($raw['order_id'] ?? 0),
+                    ];
+                }
+            }
+        }
+
+        if ($orderIds && Schema::hasTable('order_payment_transactions')) {
+            $cols = Schema::getColumnListing('order_payment_transactions');
+            if (in_array('order_id', $cols, true)) {
+                $rows = DB::table('order_payment_transactions')
+                    ->whereIn('order_id', $orderIds)
+                    ->orderByDesc(
+                        in_array('paid_at', $cols, true)
+                            ? 'paid_at'
+                            : (in_array('created_at', $cols, true) ? 'created_at' : 'id')
+                    )
+                    ->limit($limit)
+                    ->get();
+
+                foreach ($rows as $row) {
+                    $raw = (array)$row;
+                    $parts = [
+                        ucfirst(str_replace('_', ' ', (string)($raw['payment_method'] ?? 'Payment'))),
+                        $money((float)($raw['amount'] ?? 0)),
+                    ];
+                    $tip = (float)($raw['tip_amount'] ?? 0);
+                    if ($tip > 0) {
+                        $parts[] = 'Tip '.$money($tip);
+                    }
+                    if (array_key_exists('cash_received', $raw) && $raw['cash_received'] !== null) {
+                        $parts[] = 'Cash '.$money((float)$raw['cash_received']);
+                    }
+                    $change = (float)($raw['change_due'] ?? 0);
+                    if ($change > 0) {
+                        $parts[] = 'Change '.$money($change);
+                    }
+                    $reference = trim((string)($raw['payment_reference'] ?? ''));
+                    if ($reference !== '') {
+                        $parts[] = 'Ref '.$reference;
+                    }
+                    $entries[] = [
+                        'kind' => 'payment',
+                        'time' => (string)($raw['paid_at'] ?? $raw['created_at'] ?? ''),
+                        'title' => 'Payment · Order #'.(int)($raw['order_id'] ?? 0),
+                        'detail' => implode(' · ', $parts),
+                        'order_id' => (int)($raw['order_id'] ?? 0),
+                    ];
+                }
+            }
+        }
+
+        if ($orderIds && Schema::hasTable('payment_attempts')) {
+            $cols = Schema::getColumnListing('payment_attempts');
+            if (in_array('order_id', $cols, true)) {
+                $rows = DB::table('payment_attempts')
+                    ->whereIn('order_id', $orderIds)
+                    ->orderByDesc(in_array('created_at', $cols, true) ? 'created_at' : 'id')
+                    ->limit(min(50, $limit))
+                    ->get();
+
+                foreach ($rows as $row) {
+                    $raw = (array)$row;
+                    $parts = [
+                        ucfirst(str_replace('_', ' ', (string)($raw['provider_code'] ?? 'Terminal'))),
+                        $money((float)($raw['amount'] ?? 0)),
+                        ucfirst(str_replace('_', ' ', (string)($raw['status'] ?? ''))),
+                    ];
+                    $error = trim((string)($raw['error_message'] ?? ''));
+                    if ($error !== '') {
+                        $parts[] = $error;
+                    }
+                    $entries[] = [
+                        'kind' => 'terminal',
+                        'time' => (string)($raw['updated_at'] ?? $raw['created_at'] ?? ''),
+                        'title' => 'Terminal · Order #'.(int)($raw['order_id'] ?? 0),
+                        'detail' => implode(' · ', array_filter($parts)),
+                        'order_id' => (int)($raw['order_id'] ?? 0),
+                    ];
+                }
+            }
+        }
+
+        if ($orderIds && Schema::hasTable('status_history')) {
+            $cols = Schema::getColumnListing('status_history');
+            if (in_array('object_id', $cols, true)) {
+                $statusQuery = DB::table('status_history')
+                    ->whereIn('object_id', $orderIds);
+
+                if (in_array('object_type', $cols, true)) {
+                    try {
+                        $statusQuery->where(
+                            'object_type',
+                            Orders_model::make()->getMorphClass()
+                        );
+                    } catch (Throwable $ignored) {
+                    }
+                }
+
+                $rows = $statusQuery
+                    ->orderByDesc(in_array('created_at', $cols, true) ? 'created_at' : 'status_history_id')
+                    ->limit($limit)
+                    ->get();
+
+                foreach ($rows as $row) {
+                    $raw = (array)$row;
+                    $statusId = (int)($raw['status_id'] ?? 0);
+                    $detail = trim((string)($raw['comment'] ?? ''));
+                    $statusName = trim((string)($statusNames[$statusId] ?? ''));
+                    if ($statusName !== '') {
+                        $detail = $statusName.($detail !== '' ? ' · '.$detail : '');
+                    }
+                    $entries[] = [
+                        'kind' => 'status',
+                        'time' => (string)($raw['created_at'] ?? $raw['updated_at'] ?? ''),
+                        'title' => 'Status · Order #'.(int)($raw['object_id'] ?? 0),
+                        'detail' => $detail,
+                        'order_id' => (int)($raw['object_id'] ?? 0),
+                    ];
+                }
+            }
+        }
+
+        if ($scope === 'table' && $tableId > 0 && Schema::hasTable('table_notes')) {
+            $cols = Schema::getColumnListing('table_notes');
+            if (in_array('table_id', $cols, true)) {
+                $rows = DB::table('table_notes')
+                    ->where('table_id', $tableId)
+                    ->orderByDesc(
+                        in_array('created_at', $cols, true)
+                            ? 'created_at'
+                            : (in_array('timestamp', $cols, true) ? 'timestamp' : 'id')
+                    )
+                    ->limit(min(50, $limit))
+                    ->get();
+
+                foreach ($rows as $row) {
+                    $raw = (array)$row;
+                    $note = trim((string)($raw['note'] ?? $raw['message'] ?? ''));
+                    if ($note === '') {
+                        continue;
+                    }
+                    $entries[] = [
+                        'kind' => 'table_note',
+                        'time' => (string)($raw['created_at'] ?? $raw['timestamp'] ?? ''),
+                        'title' => 'Table note',
+                        'detail' => $note,
+                        'order_id' => null,
+                    ];
+                }
+            }
+        }
+
+        usort($entries, function (array $a, array $b): int {
+            return (strtotime((string)($b['time'] ?? '')) ?: 0)
+                <=> (strtotime((string)($a['time'] ?? '')) ?: 0);
+        });
+
+        return response()->json([
+            'ok' => true,
+            'version' => 'pmd-qpos-history-v1',
+            'scope' => $scope,
+            'scope_label' => $scopeLabel,
+            'entries' => array_slice($entries, 0, $limit),
+        ]);
+    }
+
+    protected function quickPosProfilePayload(): array
+    {
+        $user = $this->currentUser();
+        $role = $this->quickPosRoleCode();
+        $landing = '';
+
+        try {
+            $landing = (string)(
+                app(PmdRoleLandingService::class)->routeFor($user)
+                ?: ''
+            );
+        } catch (Throwable $ignored) {
+        }
+
+        $canReturn = $landing !== ''
+            && !in_array($landing, ['pos', 'pos/waiter'], true);
+
+        return [
+            'name' => $user
+                ? (string)($user->name ?? $user->username ?? $user->email ?? 'Staff')
+                : 'Staff',
+            'role' => $role,
+            'logout_url' => admin_url('logout'),
+            'dashboard_url' => $canReturn
+                ? admin_url($landing)
+                : null,
+            'can_return_dashboard' => $canReturn,
+        ];
     }
 
     protected function quickPosTables(
