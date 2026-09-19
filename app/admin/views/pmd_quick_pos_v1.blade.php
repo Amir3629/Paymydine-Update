@@ -7,7 +7,7 @@
     <meta name="theme-color" content="#111827">
     <title>PayMyDine POS</title>
     <link rel="icon" type="image/svg+xml" href="/app/admin/assets/images/pmd-favicon-final-20260822.svg">
-    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-pos-v1.css?v=20260919-1">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-pos-v1.css?v=20260919-2">
 </head>
 <body class="pmd-qpos-body">
 <div
@@ -273,7 +273,7 @@ window.PMDQuickPOSConfig = {
     canSwitchMode: @json((bool)$canSwitchMode)
 };
 </script>
-<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260919-1"></script>
+<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260919-2"></script>
 <script src="/app/admin/assets/js/pmd-site-access-hub-v13.js?v=20260919-qpos1"></script>
 </body>
 </html>
