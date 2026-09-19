@@ -2698,7 +2698,14 @@
           provider_code: state.payment.method === 'external_terminal'
             ? 'external_terminal'
             : null,
-          split_mode: Math.abs(amount - remaining) <= 0.02 ? 'full' : 'custom',
+          split_mode:
+            Math.abs(amount - remaining) <= 0.02
+              ? 'full'
+              : (
+                  state.payment.splitMode === 'equal'
+                    ? 'equal'
+                    : 'custom'
+                ),
           amount: amount,
           selected_items: null,
           tip_amount: paymentTip(),
