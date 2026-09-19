@@ -467,7 +467,7 @@ class ServiceProvider extends AppServiceProvider
                         'orders' => [
                             'priority' => 10,
                             'class' => 'orders',
-                            'href' => admin_url('orders'),
+                            'href' => admin_url('pos'),
                             'title' => lang('admin::lang.side_menu.order'),
                             'permission' => 'Admin.Orders',
                         ],

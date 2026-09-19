@@ -455,12 +455,23 @@ class PmdWaiterTableStateV154 extends PmdWaiterDashboardV151
     }
 
 
+    /**
+     * PMD_TABLE_STATE_PREFIX_SAFE_V169
+     *
+     * DB::table() automatically applies the configured tenant prefix. Passing
+     * the physical name "ti_tables" on a connection whose prefix is "ti_"
+     * produces the invalid "ti_ti_tables". Prefer logical table names first.
+     */
     protected function physicalTablesTable(): ?string
     {
-        foreach (['ti_tables', 'tables'] as $table) {
-            if (Schema::hasTable($table)) {
-                return $table;
-            }
+        if (Schema::hasTable('tables')) {
+            return 'tables';
+        }
+
+        $prefix = (string)DB::connection()->getTablePrefix();
+
+        if ($prefix === '' && Schema::hasTable('ti_tables')) {
+            return 'ti_tables';
         }
 
         return null;
@@ -468,10 +479,14 @@ class PmdWaiterTableStateV154 extends PmdWaiterDashboardV151
 
     protected function tableStatusHistoryTable(): ?string
     {
-        foreach (['ti_pmd_table_status_history', 'pmd_table_status_history'] as $table) {
-            if (Schema::hasTable($table)) {
-                return $table;
-            }
+        if (Schema::hasTable('pmd_table_status_history')) {
+            return 'pmd_table_status_history';
+        }
+
+        $prefix = (string)DB::connection()->getTablePrefix();
+
+        if ($prefix === '' && Schema::hasTable('ti_pmd_table_status_history')) {
+            return 'ti_pmd_table_status_history';
         }
 
         return null;

@@ -18,12 +18,12 @@ class PmdRoleLandingService
         'pmd-manager' => 'managerdashboard',
         'manager' => 'managerdashboard',
 
-        'pmd-cashier' => 'orders',
-        'cashier' => 'orders',
+        'pmd-cashier' => 'pos',
+        'cashier' => 'pos',
 
-        // PMD product decision: Waiter and Cashier share the Cashier workspace.
-        'pmd-waiter' => 'orders',
-        'waiter' => 'orders',
+        // Quick POS uses one engine with a dedicated waiter presentation.
+        'pmd-waiter' => 'pos/waiter',
+        'waiter' => 'pos/waiter',
 
         'pmd-accountant' => 'accountantdashboard',
         'accountant' => 'accountantdashboard',
@@ -44,8 +44,8 @@ class PmdRoleLandingService
     private const USERNAME_FALLBACK_MAP = [
         'mehdiowner' => 'ownerdashboard',
         'mehdimanager' => 'managerdashboard',
-        'mehdiwaiter' => 'orders',
-        'mehdicashier' => 'orders',
+        'mehdiwaiter' => 'pos/waiter',
+        'mehdicashier' => 'pos',
         'mehdiaccountant' => 'accountantdashboard',
         'mehdireservations' => 'reservations',
     ];

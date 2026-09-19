@@ -81,7 +81,7 @@
         true
     );
 
-    $pmdSm2OrdersIsActive = $pmdActive(['orders'])
+    $pmdSm2OrdersIsActive = $pmdActive(['pos', 'orders'])
         || ($pmdSm2DashboardRoute !== 'cashierlab' && $pmdActive(['cashierlab']));
     $pmdSm2ReservationsIsActive = $pmdActive(['reservations', 'reservations2'])
         || ($pmdSm2DashboardRoute !== 'reservationslab' && $pmdActive(['reservationslab']));
@@ -165,9 +165,9 @@ html #pmd-sidebar-language {
         </a>
         @endif
 
-        <a class="pmd-sm2__item {{ $pmdSm2OrdersIsActive ? 'is-active' : '' }}" href="{{ admin_url('orders') }}">
+        <a class="pmd-sm2__item {{ $pmdSm2OrdersIsActive ? 'is-active' : '' }}" href="{{ admin_url('pos') }}">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.331 8h11.339a2 2 0 0 1 1.977 2.304l-1.255 8.152a3 3 0 0 1 -2.966 2.544h-6.852a3 3 0 0 1 -2.965 -2.544l-1.255 -8.152a2 2 0 0 1 1.977 -2.304"/><path d="M9 11v-5a3 3 0 0 1 6 0v5"/></svg>
-            <span class="pmd-sm2__label">{{ $pmdSm2T('nav.orders', 'Orders') }}</span>
+            <span class="pmd-sm2__label">POS</span>
         </a>
         <a class="pmd-sm2__item {{ $pmdSm2ReservationsIsActive ? 'is-active' : '' }}" href="{{ admin_url('reservations2') }}">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2z"/><path d="M16 3v4M8 3v4M4 11h16M8 15h2v2h-2z"/></svg>

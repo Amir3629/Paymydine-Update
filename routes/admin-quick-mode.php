@@ -4,6 +4,51 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
+// New Admin controller files are normally discovered by the module loader.
+// Require the Quick POS controller explicitly so a stale generated class map
+// can never block the first deployment before runtime caches are rebuilt.
+require_once base_path('app/admin/controllers/PmdQuickPosV1.php');
+
+// PMD_QUICK_POS_V1
+// Dedicated cashier/waiter POS shell. The existing Waiter POS endpoints below
+// remain the canonical order/payment/table authorities used by this surface.
+Route::middleware(['web'])->group(function () {
+    Route::get(
+        '/admin/pos/bootstrap/{mode?}',
+        [\Admin\Controllers\PmdQuickPosV1::class, 'bootstrap']
+    )->where('mode', 'cashier|waiter');
+
+    Route::post(
+        '/admin/pos/save-off-premise',
+        [\Admin\Controllers\PmdQuickPosV1::class, 'saveOffPremise']
+    );
+
+    Route::post(
+        '/admin/pos/save/{table}',
+        [\Admin\Controllers\PmdQuickPosV1::class, 'save']
+    )->where('table', '[0-9]+');
+
+    Route::get(
+        '/admin/pos/table/{table}',
+        [\Admin\Controllers\PmdQuickPosV1::class, 'tableData']
+    )->where('table', '[0-9]+');
+
+    Route::get(
+        '/admin/pos/payment-summary/{order}',
+        [\Admin\Controllers\PmdQuickPosV1::class, 'paymentSummary']
+    )->where('order', '[0-9]+');
+
+    Route::post(
+        '/admin/pos/payment-settle/{order}',
+        [\Admin\Controllers\PmdQuickPosV1::class, 'settlePayment']
+    )->where('order', '[0-9]+');
+
+    Route::get(
+        '/admin/pos/{mode?}',
+        [\Admin\Controllers\PmdQuickPosV1::class, 'index']
+    )->where('mode', 'cashier|waiter');
+});
+
 // PMD Waiter POS V2 — standalone fallback, lazy dashboard overlay and payment center.
 Route::middleware(['web'])->group(function () {
     // PMD_WAITER_DASHBOARD_NEW_V1_ROUTES_START

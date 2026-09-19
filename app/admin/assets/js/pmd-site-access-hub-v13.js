@@ -24,8 +24,12 @@
         ? path.slice(0, path.indexOf('/admin/') + '/admin'.length)
         : '/admin';
 
+    var quickPosPage = path === adminPrefix + '/pos'
+        || path.indexOf(adminPrefix + '/pos/') === 0;
+
     var authorityPage = path === adminPrefix + '/orders'
         || path.indexOf(adminPrefix + '/orders/') === 0
+        || quickPosPage
         || path === adminPrefix + '/ownerdashboard'
         || path.indexOf(adminPrefix + '/ownerdashboard/') === 0
         || path === adminPrefix + '/managerdashboard'
@@ -102,6 +106,18 @@
         document.body.appendChild(host);
         launcher = root.querySelector('.launcher');
         sheet = root.querySelector('.sheet');
+
+        // PMD_QUICK_POS_TEAM_SIGNIN_POSITION_V1
+        // Keep the Team sign-in launcher above the handheld Quick POS cart bar.
+        if (
+            quickPosPage
+            && window.matchMedia
+            && window.matchMedia('(max-width:760px)').matches
+        ) {
+            launcher.style.bottom = '82px';
+            sheet.style.bottom = '74px';
+            sheet.style.maxHeight = 'calc(76vh - 74px)';
+        }
 
         launcher.addEventListener('click', function () {
             open = !open;

@@ -331,7 +331,7 @@ class PmdAdminRetiredPagesR77
                 'accountantdashboard',
 
             'cashierlab' =>
-                'orders',
+                'pos',
 
             'reservationslab' =>
                 'reservations',

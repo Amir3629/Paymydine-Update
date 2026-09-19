@@ -21,12 +21,12 @@
 <body class="pmd-site-access-standalone">
 <div class="pmd-sa-shell">
     <header class="pmd-sa-topbar">
-        <a class="pmd-sa-brand" href="{{ admin_url('orders') }}">
+        <a class="pmd-sa-brand" href="{{ admin_url('pos') }}">
             <img src="https://mimoza.paymydine.com/brand/paymydine-logo.svg" alt="PayMyDine">
             <span>Site Access</span>
         </a>
         <div style="display:flex;gap:8px">
-            <a class="pmd-sa-top-action" href="{{ admin_url('orders') }}">Cashier</a>
+            <a class="pmd-sa-top-action" href="{{ admin_url('pos') }}">Cashier</a>
             @if($canConfigure)<a class="pmd-sa-top-action" href="{{ admin_url('pmddevices') }}#site-access">Devices</a>@endif
         </div>
     </header>
@@ -86,7 +86,7 @@
                             <span class="pmd-sa-chip">Staff phone pairing</span>
                         </div>
                     </div>
-                    <a class="pmd-sa-secondary" href="{{ admin_url('orders') }}">Back to Cashier</a>
+                    <a class="pmd-sa-secondary" href="{{ admin_url('pos') }}">Back to Cashier</a>
                 </div>
             </section>
 

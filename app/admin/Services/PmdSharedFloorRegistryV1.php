@@ -23,6 +23,15 @@ class PmdSharedFloorRegistryV1
     public const OPTION_KEY = 'pmd_shared_floor_registry_v1';
 
     /*
+     * PMD_PERF_R18_REQUEST_LOCAL_LOCATION_OPTIONS
+     *
+     * Registry state and per-user page view preferences are both stored in
+     * LocationOption. Read each exact location/item pair at most once per
+     * request/service instance; writes refresh the same request-local entry.
+     */
+    private array $pmdPerfR18LocationOptionCache = [];
+
+    /*
      * PMD_ACTIVE_FLOOR_USER_PAGE_COOKIE_V3
      *
      * Active Floor is a VIEW preference.
@@ -165,6 +174,50 @@ class PmdSharedFloorRegistryV1
             .$this->activeFloorUserToken()
             .'_'
             .$this->activeFloorPageToken();
+    }
+
+    protected function pmdPerfR18LocationOptionRow(
+        int $locationId,
+        string $item
+    ) {
+        $locationId = max(0, $locationId);
+        $item = trim($item);
+
+        if ($locationId < 1 || $item === '') {
+            return null;
+        }
+
+        $key = $locationId.'|'.$item;
+        if (array_key_exists($key, $this->pmdPerfR18LocationOptionCache)) {
+            return $this->pmdPerfR18LocationOptionCache[$key];
+        }
+
+        try {
+            return $this->pmdPerfR18LocationOptionCache[$key] =
+                LocationOption::query()
+                    ->where('location_id', $locationId)
+                    ->where('item', $item)
+                    ->first();
+        } catch (\Throwable $error) {
+            return $this->pmdPerfR18LocationOptionCache[$key] = null;
+        }
+    }
+
+    protected function pmdPerfR18RememberLocationOption(
+        int $locationId,
+        string $item,
+        $row
+    ): void {
+        $locationId = max(0, $locationId);
+        $item = trim($item);
+
+        if ($locationId < 1 || $item === '') {
+            return;
+        }
+
+        $this->pmdPerfR18LocationOptionCache[
+            $locationId.'|'.$item
+        ] = $row;
     }
 
     public function snapshot(int $locationId): array
@@ -805,16 +858,10 @@ class PmdSharedFloorRegistryV1
 
         try {
             $row =
-                LocationOption::query()
-                    ->where(
-                        'location_id',
-                        $locationId
-                    )
-                    ->where(
-                        'item',
-                        $item
-                    )
-                    ->first();
+                $this->pmdPerfR18LocationOptionRow(
+                    $locationId,
+                    $item
+                );
 
             if (!$row) {
                 return $bootstrap;
@@ -958,20 +1005,27 @@ class PmdSharedFloorRegistryV1
                 ),
         ];
 
-        LocationOption::query()
-            ->updateOrCreate(
-                [
-                    'location_id' =>
-                        $locationId,
+        $row =
+            LocationOption::query()
+                ->updateOrCreate(
+                    [
+                        'location_id' =>
+                            $locationId,
 
-                    'item' =>
-                        $item,
-                ],
-                [
-                    'value' =>
-                        $value,
-                ]
-            );
+                        'item' =>
+                            $item,
+                    ],
+                    [
+                        'value' =>
+                            $value,
+                    ]
+                );
+
+        $this->pmdPerfR18RememberLocationOption(
+            $locationId,
+            $item,
+            $row
+        );
 
         return $value;
     }
@@ -1091,10 +1145,11 @@ class PmdSharedFloorRegistryV1
         if ($locationId < 1) return ['floors' => [], 'table_assignments' => []];
 
         try {
-            $row = LocationOption::query()
-                ->where('location_id', $locationId)
-                ->where('item', self::OPTION_KEY)
-                ->first();
+            $row =
+                $this->pmdPerfR18LocationOptionRow(
+                    $locationId,
+                    self::OPTION_KEY
+                );
             if (!$row) return ['floors' => [], 'table_assignments' => []];
 
             $value = $row->value;
@@ -1129,7 +1184,7 @@ class PmdSharedFloorRegistryV1
     {
         if ($locationId < 1) throw new \RuntimeException('Active restaurant location is unavailable.');
 
-        LocationOption::query()->updateOrCreate([
+        $row = LocationOption::query()->updateOrCreate([
             'location_id' => $locationId,
             'item' => self::OPTION_KEY,
         ], [
@@ -1140,6 +1195,12 @@ class PmdSharedFloorRegistryV1
                 'table_assignments' => (object)$assignments,
             ],
         ]);
+
+        $this->pmdPerfR18RememberLocationOption(
+            $locationId,
+            self::OPTION_KEY,
+            $row
+        );
     }
 
     protected function normalizeFloors(array $floors): array

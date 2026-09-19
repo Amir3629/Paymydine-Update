@@ -21,12 +21,12 @@
 </head>
 <body class="pmd-workplace-access">
 <header class="pmd-wa-top">
-    <a class="pmd-wa-brand" href="{{ admin_url('orders') }}">
+    <a class="pmd-wa-brand" href="{{ admin_url('pos') }}">
         <img src="https://mimoza.paymydine.com/brand/paymydine-logo.svg" alt="PayMyDine">
         <span>Workplace Access</span>
     </a>
     <div class="pmd-wa-actions">
-        <a class="pmd-wa-link" href="{{ admin_url('orders') }}">Cashier</a>
+        <a class="pmd-wa-link" href="{{ admin_url('pos') }}">Cashier</a>
         <a class="pmd-wa-link" href="{{ admin_url('pmddevices') }}">Devices</a>
     </div>
 </header>

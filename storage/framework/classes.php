@@ -169,4 +169,5 @@
   'Admin\\Controllers\\pmdfinance' => 'app/admin/controllers/Pmdfinance.php',
   'Igniter\\PayRegister\\Payments\\Mollie' => 'extensions/igniter/payregister/payments/Mollie.php',
   'Admin\\Controllers\\SumupTerminalSettings' => 'app/admin/controllers/SumupTerminalSettings.php',
+  'Admin\\Controllers\\Siteaccess' => 'app/admin/controllers/Siteaccess.php',
 );
