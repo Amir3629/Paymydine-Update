@@ -129,8 +129,28 @@
     note: '',
     loading: false,
     visualHydrated: false,
+    floorMapOpen: false,
     submitting: false,
     modifier: null,
+    itemNoteIndex: null,
+    historyScope: 'selected',
+    historyKind: 'orders',
+    historyPreset: '7d',
+    historyFrom: '',
+    historyTo: '',
+    historyData: null,
+    historyDataKey: '',
+    historyRequestSeq: 0,
+    historySelectedOrderId: null,
+    historyLoading: false,
+    textKeyboardTarget: null,
+    textKeyboardUpper: true,
+    transfer: {
+      open: false,
+      scope: 'order',
+      targetTableId: null,
+      submitting: false
+    },
     payment: {
       open: false,
       loading: false,
@@ -140,7 +160,13 @@
       method: 'cash',
       amount: '',
       cashReceived: '',
+      tipMode: 'percent',
       tipPercent: 0,
+      tipAmount: '',
+      splitMode: 'full',
+      splitParts: 1,
+      splitPercent: 50,
+      selectedItems: {},
       reference: '',
       externalConfirmed: false,
       terminal: null,
@@ -169,6 +195,72 @@
     el.__qposTimer = setTimeout(function () {
       el.classList.remove('is-show');
     }, 3200);
+  }
+
+  /* PMD_QPOS_WORKSPACE_TOAST_CLEAN_V22 */
+  function hideToast() {
+    var el = $('[data-qpos-toast]');
+    if (!el) return;
+    clearTimeout(el.__qposTimer);
+    el.classList.remove('is-show', 'is-error');
+  }
+
+  /* PMD_QPOS_PLATFORM_CONFIRM_V16
+   * Never hand cashier actions to the browser's native confirm UI. */
+  var confirmResolver = null;
+
+  function closeConfirm(result) {
+    var modal = $('[data-qpos-confirm-modal]');
+    if (modal) {
+      modal.classList.remove('is-open');
+      modal.setAttribute('aria-hidden', 'true');
+    }
+
+    var resolver = confirmResolver;
+    confirmResolver = null;
+    if (resolver) resolver(!!result);
+  }
+
+  function confirmAction(options) {
+    options = options || {};
+
+    var modal = $('[data-qpos-confirm-modal]');
+    var title = $('[data-qpos-confirm-title]');
+    var message = $('[data-qpos-confirm-message]');
+    var icon = $('[data-qpos-confirm-icon]');
+    var accept = $('[data-qpos-confirm-accept]');
+    var cancel = $('[data-qpos-confirm-cancel]');
+
+    if (!modal || !accept || !cancel) {
+      return Promise.resolve(false);
+    }
+
+    if (confirmResolver) {
+      closeConfirm(false);
+    }
+
+    if (title) title.textContent = String(options.title || 'Confirm action');
+    if (message) {
+      message.textContent = String(options.message || '');
+      message.hidden = !String(options.message || '').trim();
+    }
+    if (icon) icon.textContent = String(options.icon || '!');
+    accept.textContent = String(options.confirmLabel || 'Confirm');
+    cancel.textContent = String(options.cancelLabel || 'Cancel');
+
+    var tone = String(options.tone || 'default');
+    modal.setAttribute('data-tone', tone);
+    accept.classList.toggle('is-danger', tone === 'danger');
+
+    modal.classList.add('is-open');
+    modal.setAttribute('aria-hidden', 'false');
+
+    return new Promise(function (resolve) {
+      confirmResolver = resolve;
+      window.requestAnimationFrame(function () {
+        try { accept.focus(); } catch (ignored) {}
+      });
+    });
   }
 
   function setOnline(online) {
@@ -212,6 +304,18 @@
     return state.openOrders.find(function (order) {
       return Number(order.order_id || order.id || 0) === id;
     }) || null;
+  }
+
+  function activeOrderStructuralLocked() {
+    var order = activeOrder();
+    if (!order) return false;
+
+    var status = String(order.settlement_status || '').toLowerCase();
+    return (
+      order.structural_locked === true ||
+      num(order.settled_amount, 0) > 0.0001 ||
+      ['partial', 'paid', 'settled', 'closed', 'refunded'].indexOf(status) !== -1
+    );
   }
 
   function existingTotal() {
@@ -276,7 +380,7 @@
    */
   function bootCacheKey() {
     return [
-      'pmd:qpos:visual:v1',
+      'pmd:qpos:visual:v25',
       window.location.host,
       state.mode
     ].join(':');
@@ -545,10 +649,28 @@
     renderFloors();
 
     var tableActions = $('[data-qpos-table-actions]');
+    var cleaning = $('[data-qpos-table-cleaning]');
+    var move = $('[data-qpos-table-move]');
+    var free = $('[data-qpos-table-free]');
+    var pickupSelected = state.serviceMode === 'takeaway';
+
     if (tableActions) {
-      tableActions.hidden =
+      tableActions.hidden = !state.selectedTable && !pickupSelected;
+    }
+
+    if (cleaning) {
+      cleaning.disabled = pickupSelected || !state.selectedTable;
+    }
+    if (move) {
+      move.disabled =
+        pickupSelected ||
         !state.selectedTable ||
-        state.serviceMode !== 'dine_in';
+        !state.openOrders.length ||
+        !!state.cart.length ||
+        !!state.submitting;
+    }
+    if (free) {
+      free.disabled = pickupSelected || !state.selectedTable;
     }
   }
 
@@ -561,10 +683,193 @@
     }[String(status || '').toLowerCase()] || 'Free';
   }
 
+  function compactTableLabel(table) {
+    if (!table) return '';
+    var number = String(
+      table.number == null ? '' : table.number
+    ).trim().replace(/^table\s*/i, '');
+    if (number) return number;
+
+    var name = String(table.name == null ? '' : table.name).trim();
+    name = name.replace(/^table\s*/i, '').trim();
+    return name || String(table.id || '');
+  }
+
   function activeFloorTables() {
     var activeId = String(state.activeFloorId || '');
     return state.tables.filter(function (table) {
       return String(table.floor_id || '') === activeId;
+    });
+  }
+
+  /* PMD_QPOS_FLOOR_MAP_UI_V25
+   * Read-only POS floor view. Coordinates are the same canonical floor_x/y
+   * values used by the shared Cashier/Dashboard/Reservations floor map. */
+  function closeFloorMap() {
+    state.floorMapOpen = false;
+    var workspace = $('[data-qpos-floor-map-workspace]');
+    if (workspace) {
+      workspace.hidden = true;
+      workspace.setAttribute('aria-hidden', 'true');
+    }
+    root.classList.remove('is-floor-map-open');
+  }
+
+  function openFloorMap() {
+    if (state.payment.open) {
+      toast('Close payment first.', true);
+      return;
+    }
+
+    closeHistory();
+    closeTransfer();
+    closeTextKeyboard();
+
+    state.floorMapOpen = true;
+    root.classList.add('is-floor-map-open');
+    renderFloorMap();
+  }
+
+  function renderFloorMap() {
+    var workspace = $('[data-qpos-floor-map-workspace]');
+    if (!workspace) return;
+
+    workspace.hidden = !state.floorMapOpen;
+    workspace.setAttribute(
+      'aria-hidden',
+      state.floorMapOpen ? 'false' : 'true'
+    );
+
+    if (!state.floorMapOpen) return;
+
+    var title = $('[data-qpos-floor-map-title]');
+    var tabs = $('[data-qpos-map-floors]');
+    var stage = $('[data-qpos-floor-map-stage]');
+
+    var activeFloor = state.floors.find(function (floor) {
+      return String(floor.id || '') === String(state.activeFloorId || '');
+    }) || state.floors[0] || null;
+
+    if (title) {
+      title.textContent = activeFloor
+        ? String(activeFloor.name || 'Floor')
+        : 'Floor';
+    }
+
+    if (tabs) {
+      tabs.innerHTML = state.floors.map(function (floor) {
+        var id = String(floor.id || '');
+        return (
+          '<button type="button" data-qpos-map-floor="' + esc(id) + '"' +
+            (id === String(state.activeFloorId || '') ? ' class="is-active"' : '') +
+          '>' + esc(floor.name || 'Floor') + '</button>'
+        );
+      }).join('');
+
+      $$('[data-qpos-map-floor]', tabs).forEach(function (button) {
+        button.onclick = function () {
+          selectFloor(button.getAttribute('data-qpos-map-floor'));
+        };
+      });
+    }
+
+    if (!stage) return;
+
+    var tables = activeFloorTables().filter(function (table) {
+      return table.visible_on_floor_plan !== false;
+    });
+
+    if (!tables.length) {
+      stage.innerHTML =
+        '<div class="pmd-qpos-floor-map-empty">No tables on this floor.</div>';
+      return;
+    }
+
+    var floorWidth = Math.max(
+      1000,
+      num(activeFloor && activeFloor.width, 1000)
+    );
+    var floorHeight = Math.max(
+      560,
+      num(activeFloor && activeFloor.height, 560)
+    );
+
+    stage.innerHTML = tables.map(function (table, index) {
+      var width = Math.max(
+        72,
+        Math.min(260, num(table.floor_width, 108))
+      );
+      var height = Math.max(
+        58,
+        Math.min(180, num(table.floor_height, 88))
+      );
+
+      var x = Number(table.floor_x);
+      var y = Number(table.floor_y);
+
+      if (!Number.isFinite(x)) {
+        x = 80 + (index % 6) * 150;
+      }
+      if (!Number.isFinite(y)) {
+        y = 60 + Math.floor(index / 6) * 110;
+      }
+
+      x = Math.max(
+        width / 2 + 12,
+        Math.min(floorWidth - width / 2 - 12, x)
+      );
+      y = Math.max(
+        height / 2 + 12,
+        Math.min(floorHeight - height / 2 - 12, y)
+      );
+
+      var left = x / floorWidth * 100;
+      var top = y / floorHeight * 100;
+      var w = width / floorWidth * 100;
+      var h = height / floorHeight * 100;
+      var status = String(table.status || 'available').toLowerCase();
+      var selected =
+        state.selectedTable &&
+        Number(state.selectedTable.id) === Number(table.id);
+
+      var signal = '';
+      if (num(table.waiter_calls, 0) > 0) {
+        signal = 'call';
+      } else if (
+        ['due', 'partial'].indexOf(
+          String(table.payment_state || '').toLowerCase()
+        ) !== -1
+      ) {
+        signal = 'due';
+      }
+
+      return (
+        '<button type="button" class="pmd-qpos-floor-map-table status-' +
+          esc(status) +
+          (selected ? ' is-selected' : '') +
+          (signal ? ' has-' + esc(signal) : '') +
+          '" data-qpos-map-table="' + esc(table.id) + '"' +
+          ' style="left:' + left.toFixed(3) + '%;' +
+            'top:' + top.toFixed(3) + '%;' +
+            'width:' + w.toFixed(3) + '%;' +
+            'height:' + h.toFixed(3) + '%;">' +
+          '<strong>' + esc(compactTableLabel(table)) + '</strong>' +
+          '<span>' + esc(tableStatusLabel(status)) + '</span>' +
+          (signal
+            ? '<i class="pmd-qpos-floor-map-signal ' + esc(signal) + '"></i>'
+            : '') +
+        '</button>'
+      );
+    }).join('');
+
+    $$('[data-qpos-map-table]', stage).forEach(function (button) {
+      button.onclick = async function () {
+        var id = Number(button.getAttribute('data-qpos-map-table') || 0);
+        if (!id) return;
+
+        closeFloorMap();
+        await selectTable(id);
+      };
     });
   }
 
@@ -583,7 +888,7 @@
           ? 'Pickup'
           : (
               state.selectedTable
-                ? state.selectedTable.name
+                ? compactTableLabel(state.selectedTable)
                 : 'Tables'
             );
     }
@@ -602,15 +907,49 @@
         state.selectedTable &&
         Number(state.selectedTable.id) === Number(table.id);
 
+      var paymentState =
+        String(table.status || 'available') === 'available'
+          ? 'none'
+          : String(table.payment_state || 'none');
+
+      var signals = [];
+      if (num(table.waiter_calls, 0) > 0) {
+        signals.push({kind: 'call', icon: '!', title: 'Waiter call'});
+      }
+      if (paymentState === 'partial') {
+        signals.push({kind: 'due', icon: '½', title: 'Partly paid'});
+      } else if (paymentState === 'due') {
+        signals.push({kind: 'due', icon: '€', title: 'Payment due'});
+      }
+      if (num(table.note_count, 0) > 0) {
+        signals.push({kind: 'note', icon: 'N', title: 'New note'});
+      }
+      if (paymentState === 'paid') {
+        signals.push({kind: 'paid', icon: '✓', title: 'Paid'});
+      }
+
+      var primarySignal = signals.length ? signals[0] : null;
+
       rows.push(
         '<button type="button" class="pmd-qpos-table' +
           (selected ? ' is-selected' : '') + '"' +
           ' data-qpos-table="' + esc(table.id) + '"' +
-          ' data-status="' + esc(table.status || 'available') + '">' +
-          '<strong>' + esc(table.name || ('Table ' + table.number)) + '</strong>' +
+          ' data-status="' + esc(table.status || 'available') + '"' +
+          ' data-payment-state="' + esc(paymentState) + '">' +
+          '<strong>' + esc(compactTableLabel(table)) + '</strong>' +
           '<small>' + esc(tableStatusLabel(table.status)) +
             (num(table.capacity, 0) > 0 ? ' · ' + esc(table.capacity) + 's' : '') +
           '</small>' +
+          (primarySignal
+            ? '<span class="pmd-qpos-table-signal is-' + esc(primarySignal.kind) + '"' +
+                ' title="' + esc(primarySignal.title) + '"' +
+                ' aria-label="' + esc(primarySignal.title) + '">' +
+                '<b>' + esc(primarySignal.icon) + '</b>' +
+                (signals.length > 1
+                  ? '<em>+' + esc(signals.length - 1) + '</em>'
+                  : '') +
+              '</span>'
+            : '') +
         '</button>'
       );
     });
@@ -625,6 +964,31 @@
         selectTable(Number(button.getAttribute('data-qpos-table')));
       };
     });
+  }
+
+  function setSelectedTablePaymentSignal(paymentState, dueAmount) {
+    if (
+      state.serviceMode !== 'dine_in' ||
+      !state.selectedTable
+    ) {
+      return;
+    }
+
+    var tableId = Number(state.selectedTable.id || 0);
+    if (!tableId) return;
+
+    state.selectedTable.payment_state = String(paymentState || 'none');
+    state.selectedTable.due_amount = Math.max(0, num(dueAmount, 0));
+
+    state.tables = state.tables.map(function (table) {
+      if (Number(table.id || 0) !== tableId) return table;
+      return Object.assign({}, table, {
+        payment_state: state.selectedTable.payment_state,
+        due_amount: state.selectedTable.due_amount
+      });
+    });
+
+    renderTables();
   }
 
   function renderCategories() {
@@ -705,6 +1069,8 @@
       if (!search) return true;
 
       var haystack = [
+        item.menu_number,
+        item.menu_number ? ('#' + item.menu_number) : '',
         item.name,
         item.description,
         (item.category_names || []).join(' ')
@@ -724,6 +1090,8 @@
     if (status) {
       if (!canOrderNow()) {
         status.textContent = 'Select table';
+      } else if (activeOrderStructuralLocked()) {
+        status.textContent = 'Payment started · finish payment first';
       } else {
         status.textContent = items.length + ' items';
       }
@@ -757,7 +1125,13 @@
                 esc(selectedQuantity + (selectedQuantity === 1 ? ' selected item' : ' selected items')) +
               '">' + esc(selectedQuantity) + '</span>'
             : '') +
-          '<strong>' + esc(item.name) + '</strong>' +
+          '<strong class="pmd-qpos-product-name">' +
+            (item.menu_number
+              ? '<span class="pmd-qpos-product-number" aria-label="Food number ' +
+                  esc(item.menu_number) + '">#' + esc(item.menu_number) + '</span>'
+              : '') +
+            '<span>' + esc(item.name) + '</span>' +
+          '</strong>' +
           '<footer><span>' +
             (item.has_options ? 'Options' : '') +
           '</span><b>' + (orderable ? money(item.price) : 'No price') + '</b></footer>' +
@@ -769,6 +1143,11 @@
       button.onclick = function () {
         if (!canOrderNow()) {
           toast('Select table or Pickup.', true);
+          return;
+        }
+
+        if (activeOrderStructuralLocked()) {
+          toast('Payment started. Choose + Check for new items.', true);
           return;
         }
 
@@ -810,7 +1189,8 @@
     renderCart();
   }
 
-  function renderOpenChecks() {
+  /* PMD_QPOS_SIMPLIFIED_CHECKS_V14 */
+function renderOpenChecks() {
     var box = $('[data-qpos-open-checks]');
     if (!box) return;
 
@@ -821,11 +1201,7 @@
     }
 
     box.hidden = false;
-    var rows = [
-      '<button type="button" data-qpos-check="new"' +
-        (!state.activeOrderId ? ' class="is-active"' : '') +
-        '>+ Check</button>'
-    ];
+    var rows = [];
 
     state.openOrders.forEach(function (order) {
       var id = orderId(order);
@@ -841,8 +1217,8 @@
 
     $$('[data-qpos-check]', box).forEach(function (button) {
       button.onclick = function () {
-        var value = button.getAttribute('data-qpos-check');
-        selectOrder(value === 'new' ? null : Number(value));
+        var value = Number(button.getAttribute('data-qpos-check') || 0);
+        if (value > 0) selectOrder(value);
       };
     });
   }
@@ -978,6 +1354,9 @@
                   '<b>' + esc(row.quantity) + '</b>' +
                   '<button type="button" data-qpos-inc="' + index + '">+</button>' +
                 '</div>' +
+                '<button type="button" class="pmd-qpos-line-note" data-qpos-line-note="' + index + '">' +
+                  (row.comment ? 'Note ✓' : 'Note') +
+                '</button>' +
                 '<button type="button" class="pmd-qpos-line-remove" data-qpos-remove="' + index + '">×</button>' +
               '</div>' +
             '</article>'
@@ -994,6 +1373,12 @@
             changeCartQty(Number(button.getAttribute('data-qpos-dec')), -1);
           };
         });
+        $$('[data-qpos-line-note]', list).forEach(function (button) {
+          button.onclick = function () {
+            openItemNote(Number(button.getAttribute('data-qpos-line-note')));
+          };
+        });
+
         $$('[data-qpos-remove]', list).forEach(function (button) {
           button.onclick = function () {
             var index = Number(button.getAttribute('data-qpos-remove'));
@@ -1012,7 +1397,7 @@
       } else if (state.serviceMode === 'takeaway') {
         title.textContent = 'Pickup';
       } else if (state.selectedTable) {
-        title.textContent = state.selectedTable.name + ' · New';
+        title.textContent = compactTableLabel(state.selectedTable) + ' · New';
       } else {
         title.textContent = 'New';
       }
@@ -1038,10 +1423,20 @@
     var note = $('[data-qpos-note]');
     if (note && note.value !== state.note) note.value = state.note;
 
+    var floorMapOpen = $('[data-qpos-floor-map-open]');
+    var floorMapClose = $('[data-qpos-floor-map-close]');
+
+    if (floorMapOpen) floorMapOpen.onclick = openFloorMap;
+    if (floorMapClose) floorMapClose.onclick = closeFloorMap;
+
     var send = $('[data-qpos-send]');
     var pay = $('[data-qpos-pay]');
 
-    var canSave = canOrderNow() && state.cart.length > 0 && !state.submitting;
+    var canSave =
+      canOrderNow() &&
+      !activeOrderStructuralLocked() &&
+      state.cart.length > 0 &&
+      !state.submitting;
     root.classList.toggle('is-committing', !!state.submitting);
 
     if (send) {
@@ -1070,11 +1465,260 @@
     renderContext();
   }
 
+  /* PMD_QPOS_TRANSFER_UI_V24
+   * One compact Move action handles both guest table moves and wrong-check
+   * corrections. The server remains authoritative for the reassignment. */
+  function transferTargetAllowed(table) {
+    if (!table || !state.selectedTable) return false;
+    if (Number(table.id) === Number(state.selectedTable.id)) return false;
+
+    if (state.transfer.scope !== 'table') return true;
+
+    var status = String(table.status || 'available').toLowerCase();
+    var paymentState = String(table.payment_state || 'none').toLowerCase();
+
+    return (
+      ['available', 'reserved'].indexOf(status) !== -1 &&
+      ['due', 'partial'].indexOf(paymentState) === -1
+    );
+  }
+
+  function renderTransfer() {
+    var modal = $('[data-qpos-transfer-modal]');
+    if (!modal || !state.transfer.open) return;
+
+    var source = state.selectedTable;
+    var title = $('[data-qpos-transfer-title]');
+    var orderLabel = $('[data-qpos-transfer-order-label]');
+    var tableCount = $('[data-qpos-transfer-table-count]');
+    var selection = $('[data-qpos-transfer-selection]');
+    var targetBox = $('[data-qpos-transfer-tables]');
+    var submit = $('[data-qpos-transfer-submit]');
+
+    if (title) {
+      title.textContent = source
+        ? 'Table ' + compactTableLabel(source)
+        : 'Table';
+    }
+
+    if (orderLabel) {
+      orderLabel.textContent = state.activeOrderId
+        ? '#' + String(state.activeOrderId)
+        : 'Order';
+    }
+
+    if (tableCount) {
+      var count = state.openOrders.length;
+      tableCount.textContent =
+        count + (count === 1 ? ' check' : ' checks');
+    }
+
+    $$('[data-qpos-transfer-scope]', modal).forEach(function (button) {
+      var scope = String(button.getAttribute('data-qpos-transfer-scope') || '');
+      button.classList.toggle('is-active', scope === state.transfer.scope);
+      button.disabled =
+        scope === 'order' && !Number(state.activeOrderId || 0);
+    });
+
+    var target = state.tables.find(function (table) {
+      return Number(table.id) === Number(state.transfer.targetTableId || 0);
+    }) || null;
+
+    if (target && !transferTargetAllowed(target)) {
+      state.transfer.targetTableId = null;
+      target = null;
+    }
+
+    if (selection) {
+      selection.textContent = target
+        ? 'Table ' + compactTableLabel(target)
+        : 'Choose table';
+    }
+
+    if (targetBox) {
+      var candidates = state.tables.filter(function (table) {
+        return !source || Number(table.id) !== Number(source.id);
+      });
+
+      targetBox.innerHTML = candidates.map(function (table) {
+        var allowed = transferTargetAllowed(table);
+        var selected =
+          Number(table.id) === Number(state.transfer.targetTableId || 0);
+        var floor = String(table.floor_name || '').trim();
+        var status = tableStatusLabel(table.status);
+        var paymentState = String(table.payment_state || 'none').toLowerCase();
+        var hasCheck =
+          paymentState === 'due' ||
+          paymentState === 'partial';
+
+        return (
+          '<button type="button" class="pmd-qpos-transfer-table' +
+            (selected ? ' is-selected' : '') +
+            (allowed ? '' : ' is-disabled') + '"' +
+            ' data-qpos-transfer-target="' + esc(table.id) + '"' +
+            (allowed ? '' : ' disabled') + '>' +
+            '<strong>' + esc(compactTableLabel(table)) + '</strong>' +
+            '<span>' + esc(floor || 'Floor') + '</span>' +
+            '<small>' +
+              esc(status + (hasCheck ? ' · has check' : '')) +
+            '</small>' +
+          '</button>'
+        );
+      }).join('');
+
+      $$('[data-qpos-transfer-target]', targetBox).forEach(function (button) {
+        button.onclick = function () {
+          state.transfer.targetTableId = Number(
+            button.getAttribute('data-qpos-transfer-target') || 0
+          ) || null;
+          renderTransfer();
+        };
+      });
+    }
+
+    if (submit) {
+      submit.disabled =
+        state.transfer.submitting ||
+        !target ||
+        !transferTargetAllowed(target);
+      submit.textContent = state.transfer.submitting
+        ? 'Moving…'
+        : (target ? 'Move to ' + compactTableLabel(target) : 'Move');
+    }
+  }
+
+  function closeTransfer() {
+    var modal = $('[data-qpos-transfer-modal]');
+    if (modal) {
+      modal.classList.remove('is-open');
+      modal.setAttribute('aria-hidden', 'true');
+    }
+
+    state.transfer.open = false;
+    state.transfer.targetTableId = null;
+    state.transfer.submitting = false;
+  }
+
+  function openTransfer() {
+    if (state.serviceMode !== 'dine_in' || !state.selectedTable) return;
+
+    if (state.cart.length) {
+      toast('Send or remove new items first.', true);
+      return;
+    }
+
+    if (!state.openOrders.length) {
+      toast('No open checks to move.', true);
+      return;
+    }
+
+    closePayment();
+    closeHistory();
+    closeFloorMap();
+    closeTextKeyboard();
+    hideToast();
+
+    state.transfer.open = true;
+    state.transfer.scope = state.activeOrderId ? 'order' : 'table';
+    state.transfer.targetTableId = null;
+    state.transfer.submitting = false;
+
+    var modal = $('[data-qpos-transfer-modal]');
+    if (modal) {
+      modal.classList.add('is-open');
+      modal.setAttribute('aria-hidden', 'false');
+    }
+
+    renderTransfer();
+  }
+
+  async function executeTransfer() {
+    if (
+      !state.transfer.open ||
+      state.transfer.submitting ||
+      !state.selectedTable ||
+      !state.transfer.targetTableId
+    ) return;
+
+    var sourceId = Number(state.selectedTable.id || 0);
+    var targetId = Number(state.transfer.targetTableId || 0);
+    var orderId = Number(state.activeOrderId || 0);
+
+    if (state.transfer.scope === 'order' && !orderId) {
+      toast('Choose a check first.', true);
+      return;
+    }
+
+    state.transfer.submitting = true;
+    renderTransfer();
+
+    try {
+      var json = await fetchJson(
+        String(state.settings.transfer_url || '/admin/pos/transfer'),
+        {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            source_table_id: sourceId,
+            target_table_id: targetId,
+            scope: state.transfer.scope,
+            order_id: state.transfer.scope === 'order' ? orderId : null
+          })
+        }
+      );
+
+      var sourceTable = state.tables.find(function (table) {
+        return Number(table.id) === sourceId;
+      });
+      var targetTable = state.tables.find(function (table) {
+        return Number(table.id) === targetId;
+      });
+
+      if (sourceTable && json.source_status) {
+        sourceTable.status = String(json.source_status);
+      }
+      if (targetTable && json.target_status) {
+        targetTable.status = String(json.target_status);
+      }
+
+      closeTransfer();
+
+      state.cart = [];
+      state.pendingSend = null;
+      state.note = '';
+      state.tableData = null;
+      state.openOrders = [];
+      state.activeOrderId = null;
+
+      if (targetTable) {
+        state.selectedTable = targetTable;
+        state.activeFloorId = String(
+          targetTable.floor_id || state.activeFloorId || ''
+        );
+        rememberActiveFloor();
+      }
+
+      renderAll();
+      toast(json.message || 'Moved.');
+      await bootstrap(true);
+    } catch (error) {
+      toast(error.message || 'Could not move the check.', true);
+    } finally {
+      state.transfer.submitting = false;
+      if (state.transfer.open) renderTransfer();
+    }
+  }
+
   async function selectTable(id) {
     var table = state.tables.find(function (row) {
       return Number(row.id) === Number(id);
     });
     if (!table) return;
+
+    if (state.payment.open) {
+      toast('Close payment first.', true);
+      return;
+    }
 
     if (
       state.cart.length &&
@@ -1083,7 +1727,13 @@
         !state.selectedTable ||
         Number(state.selectedTable.id) !== Number(table.id)
       ) &&
-      !window.confirm('Change table? Unsent items will be cleared.')
+      !(await confirmAction({
+        title: 'Change table?',
+        message: '',
+        confirmLabel: 'Change table',
+        cancelLabel: 'Keep cart',
+        tone: 'danger'
+      }))
     ) {
       return;
     }
@@ -1097,6 +1747,13 @@
 
     renderAll();
     await loadTable(table.id, false);
+
+    var historyWorkspace = $('[data-qpos-history-modal]');
+    if (historyWorkspace && historyWorkspace.classList.contains('is-open')) {
+      state.historyScope = 'selected';
+      state.historySelectedOrderId = null;
+      await loadHistory('selected', {preserve: true});
+    }
 
     if (window.innerWidth <= 820) {
       var catalog = $('.pmd-qpos-catalog');
@@ -1146,7 +1803,12 @@
     }
   }
 
-  function selectFloor(id) {
+  async function selectFloor(id) {
+    if (state.payment.open) {
+      toast('Close payment first.', true);
+      return;
+    }
+
     id = String(id || '');
     if (
       !id ||
@@ -1168,7 +1830,13 @@
 
     if (
       state.cart.length &&
-      !window.confirm('Change floor? Unsent items will be cleared.')
+      !(await confirmAction({
+        title: 'Change floor?',
+        message: '',
+        confirmLabel: 'Change floor',
+        cancelLabel: 'Keep cart',
+        tone: 'danger'
+      }))
     ) {
       return;
     }
@@ -1189,14 +1857,31 @@
     renderAll();
   }
 
-  function selectPickup() {
+  async function selectPickup() {
+    if (state.payment.open) {
+      toast('Close payment first.', true);
+      return;
+    }
+
     if (state.serviceMode === 'takeaway') {
+      var existingHistory = $('[data-qpos-history-modal]');
+      if (existingHistory && existingHistory.classList.contains('is-open')) {
+        state.historyScope = 'selected';
+        state.historySelectedOrderId = null;
+        loadHistory('selected', {preserve: true});
+      }
       return;
     }
 
     if (
       state.cart.length &&
-      !window.confirm('Switch to Pickup? Unsent table items will be cleared.')
+      !(await confirmAction({
+        title: 'Switch to Pickup?',
+        message: '',
+        confirmLabel: 'Pickup',
+        cancelLabel: 'Keep table',
+        tone: 'danger'
+      }))
     ) {
       return;
     }
@@ -1213,6 +1898,13 @@
     state.forceNewCheck = false;
 
     renderAll();
+
+    var historyWorkspace = $('[data-qpos-history-modal]');
+    if (historyWorkspace && historyWorkspace.classList.contains('is-open')) {
+      state.historyScope = 'selected';
+      state.historySelectedOrderId = null;
+      loadHistory('selected', {preserve: true});
+    }
   }
 
   function optimisticSentItems(rows) {
@@ -1392,7 +2084,10 @@
       state.pendingSend = null;
       state.submitting = false;
       renderAll();
-      toast(json.message || 'Order saved');
+
+      if (!(afterSuccess === 'pay' && state.payment.open)) {
+        toast(json.message || 'Order saved');
+      }
 
       window.dispatchEvent(new CustomEvent('pmd:quick-pos-order-updated', {
         detail: json
@@ -1449,8 +2144,17 @@
     }
   }
 
-  function newCheck() {
-    if (state.cart.length && !window.confirm('Clear the current unsent cart?')) {
+  async function newCheck() {
+    if (
+      state.cart.length &&
+      !(await confirmAction({
+        title: 'Clear cart?',
+        message: '',
+        confirmLabel: 'Clear',
+        cancelLabel: 'Keep items',
+        tone: 'danger'
+      }))
+    ) {
       return;
     }
 
@@ -1461,6 +2165,68 @@
     state.offPremiseOrder = null;
     state.forceNewCheck = state.serviceMode === 'dine_in';
     renderAll();
+  }
+
+  /* PMD_QPOS_ITEM_NOTE_V1 */
+  function openItemNote(index) {
+    var row = state.cart[index];
+    if (!row) return;
+
+    state.itemNoteIndex = index;
+
+    var title = $('[data-qpos-item-note-title]');
+    var input = $('[data-qpos-item-note-input]');
+    var modal = $('[data-qpos-item-note-modal]');
+
+    if (title) title.textContent = row.name || 'Item';
+    if (input) input.value = String(row.comment || '');
+
+    if (modal) {
+      modal.classList.add('is-open');
+      modal.setAttribute('aria-hidden', 'false');
+    }
+
+    if (input) {
+      window.requestAnimationFrame(function () {
+        input.focus();
+        maybeOpenTextKeyboard(input, 'Item note');
+      });
+    }
+  }
+
+  function closeItemNote() {
+    var modal = $('[data-qpos-item-note-modal]');
+    if (modal) {
+      modal.classList.remove('is-open');
+      modal.setAttribute('aria-hidden', 'true');
+    }
+    state.itemNoteIndex = null;
+    closeTextKeyboard();
+  }
+
+  function saveItemNote(clear) {
+    var index = Number(state.itemNoteIndex);
+    var row = state.cart[index];
+    if (!row) {
+      closeItemNote();
+      return;
+    }
+
+    var input = $('[data-qpos-item-note-input]');
+    row.comment = clear
+      ? ''
+      : String(input ? input.value : '').trim();
+
+    row.key = [
+      String(row.menu_id || ''),
+      (row.options || []).map(function (option) {
+        return String(option.id);
+      }).sort().join(','),
+      String(row.comment || '').trim().toLowerCase()
+    ].join(':');
+
+    closeItemNote();
+    renderCart();
   }
 
   /* Product modifier modal */
@@ -1496,6 +2262,7 @@
       modal.setAttribute('aria-hidden', 'true');
     }
     state.modifier = null;
+    closeTextKeyboard();
   }
 
   function selectedModifierOptions() {
@@ -1653,7 +2420,13 @@
       method: 'cash',
       amount: '',
       cashReceived: '',
+      tipMode: 'percent',
       tipPercent: 0,
+      tipAmount: '',
+      splitMode: 'full',
+      splitParts: 1,
+      splitPercent: 50,
+      selectedItems: {},
       reference: '',
       externalConfirmed: false,
       terminal: null,
@@ -1687,6 +2460,9 @@
   }
 
   function showPaymentPreview(total, settled, updatedAt) {
+    closeHistory();
+    closeTextKeyboard();
+    hideToast();
     resetPayment();
     state.payment.summary = paymentPreviewSummary(total, settled, updatedAt);
     state.payment.amount = roundMoney(
@@ -1701,6 +2477,7 @@
       modal.classList.add('is-open');
       modal.setAttribute('aria-hidden', 'false');
     }
+    root.classList.add('is-payment-workspace');
   }
 
   function paymentRemaining() {
@@ -1720,12 +2497,286 @@
     return Math.max(0, Math.min(remaining, roundMoney(amount)));
   }
 
+  function paymentSelectedItemsPayload() {
+    var summary = state.payment.summary;
+    var selected = state.payment.selectedItems || {};
+    if (!summary || !Array.isArray(summary.items)) return [];
+
+    return summary.items.reduce(function (rows, item) {
+      var id = Number(item.order_menu_id || 0);
+      var qty = num(selected[String(id)], 0);
+      var unpaid = num(item.unpaid_quantity, 0);
+      qty = Math.max(0, Math.min(unpaid, qty));
+      if (id > 0 && qty > 0.0001) {
+        rows.push({order_menu_id: id, quantity: qty});
+      }
+      return rows;
+    }, []);
+  }
+
+  function selectedItemsGross() {
+    var summary = state.payment.summary;
+    if (!summary || !Array.isArray(summary.items)) return 0;
+
+    var ratio = Math.max(
+      0.000001,
+      num(summary.settlement && summary.settlement.gross_ratio, 1)
+    );
+    var selected = state.payment.selectedItems || {};
+
+    return roundMoney(summary.items.reduce(function (sum, item) {
+      var id = Number(item.order_menu_id || 0);
+      var qty = Math.max(
+        0,
+        Math.min(
+          num(item.unpaid_quantity, 0),
+          num(selected[String(id)], 0)
+        )
+      );
+      return sum + (num(item.unit_price, 0) * qty * ratio);
+    }, 0));
+  }
+
+  function syncSplitAmount() {
+    var remaining = paymentRemaining();
+    var mode = String(state.payment.splitMode || 'full');
+    var amount = remaining;
+
+    if (mode === 'equal') {
+      var parts = Math.max(2, Math.min(20, Number(state.payment.splitParts || 2)));
+      state.payment.splitParts = parts;
+      amount = roundMoney(remaining / parts);
+    } else if (mode === 'items') {
+      amount = selectedItemsGross();
+    } else if (mode === 'shares') {
+      var percent = Math.max(0, Math.min(100, num(state.payment.splitPercent, 50)));
+      amount = roundMoney(remaining * percent / 100);
+    }
+
+    state.payment.amount = amount > 0 ? amount.toFixed(2) : '';
+
+    if (state.payment.method === 'cash') {
+      state.payment.cashReceived = amount > 0
+        ? paymentCharge().toFixed(2)
+        : '';
+    }
+
+    return amount;
+  }
+
+  /* PMD_QPOS_SPLIT_TIP_V1 */
   function paymentTip() {
-    return roundMoney(paymentAmount() * Math.max(0, num(state.payment.tipPercent, 0)) / 100);
+    if (state.payment.tipMode === 'custom') {
+      return roundMoney(Math.max(0, num(state.payment.tipAmount, 0)));
+    }
+
+    return roundMoney(
+      paymentAmount() *
+      Math.max(0, num(state.payment.tipPercent, 0)) /
+      100
+    );
   }
 
   function paymentCharge() {
     return roundMoney(paymentAmount() + paymentTip());
+  }
+
+  /* PMD_QPOS_SPLIT_BILL_V16
+   * Mirrors the customer digital-menu concepts: equal, items and shares. */
+  function applySplitMode(mode) {
+    if (!state.payment.open || state.payment.method === 'direct_terminal') {
+      return;
+    }
+
+    clearPaymentErrorOnEdit();
+    mode = String(mode || 'full');
+    if (['full', 'equal', 'items', 'shares'].indexOf(mode) === -1) {
+      mode = 'full';
+    }
+
+    state.payment.splitMode = mode;
+
+    if (mode === 'equal' && Number(state.payment.splitParts || 0) < 2) {
+      state.payment.splitParts = 2;
+    }
+    if (mode === 'shares' && num(state.payment.splitPercent, 0) <= 0) {
+      state.payment.splitPercent = 50;
+    }
+
+    syncSplitAmount();
+    state.payment.touchKeypadTarget =
+      mode === 'shares'
+        ? 'share'
+        : (state.payment.method === 'cash' ? 'cash' : 'amount');
+    state.payment.touchKeypadFresh = true;
+    renderPayment();
+  }
+
+  function adjustSplitPeople(delta) {
+    if (state.payment.splitMode !== 'equal') return;
+    clearPaymentErrorOnEdit();
+    state.payment.splitParts = Math.max(
+      2,
+      Math.min(20, Number(state.payment.splitParts || 2) + Number(delta || 0))
+    );
+    syncSplitAmount();
+    renderPayment();
+  }
+
+  function toggleSplitItem(orderMenuId) {
+    if (state.payment.splitMode !== 'items' || !state.payment.summary) return;
+
+    clearPaymentErrorOnEdit();
+    var item = (state.payment.summary.items || []).find(function (row) {
+      return Number(row.order_menu_id || 0) === Number(orderMenuId);
+    });
+    if (!item) return;
+
+    var key = String(Number(orderMenuId));
+    var selected = state.payment.selectedItems || {};
+    var current = num(selected[key], 0);
+
+    if (current > 0.0001) {
+      delete selected[key];
+    } else {
+      selected[key] = num(item.unpaid_quantity, 0);
+    }
+
+    state.payment.selectedItems = selected;
+    syncSplitAmount();
+    renderPayment();
+  }
+
+  function applySharePercent(value) {
+    if (state.payment.method === 'direct_terminal') return;
+
+    clearPaymentErrorOnEdit();
+    var percent = Math.max(0, Math.min(100, num(value, 0)));
+    state.payment.splitMode = 'shares';
+    state.payment.splitPercent = percent;
+    syncSplitAmount();
+    state.payment.touchKeypadTarget = 'share';
+    state.payment.touchKeypadFresh = true;
+    renderPayment();
+  }
+
+  /* PMD_QPOS_PAYMENT_FILL_V23
+   * Expose the current split mode to CSS so the left payment workspace can
+   * use all available height without inventing duplicate summary content. */
+  function renderSplitControls() {
+    var wrap = $('[data-qpos-split-row]');
+    if (!wrap) return;
+
+    var terminal = state.payment.method === 'direct_terminal';
+    wrap.hidden = terminal;
+    if (terminal) {
+      wrap.removeAttribute('data-qpos-active-split');
+      return;
+    }
+
+    var mode = String(state.payment.splitMode || 'full');
+    wrap.setAttribute('data-qpos-active-split', mode);
+    var remaining = paymentRemaining();
+
+    $$('[data-qpos-split-mode]', wrap).forEach(function (button) {
+      var value = String(button.getAttribute('data-qpos-split-mode') || '');
+      button.classList.toggle('is-active', value === mode);
+    });
+
+    var equal = $('[data-qpos-split-equal]', wrap);
+    var items = $('[data-qpos-split-items]', wrap);
+    var shares = $('[data-qpos-split-shares]', wrap);
+    if (equal) equal.hidden = mode !== 'equal';
+    if (items) items.hidden = mode !== 'items';
+    if (shares) shares.hidden = mode !== 'shares';
+
+    var summary = $('[data-qpos-split-summary]', wrap);
+    if (summary) {
+      if (mode === 'equal') {
+        summary.textContent =
+          '1 of ' + Math.max(2, Number(state.payment.splitParts || 2)) +
+          ' · ' + money(paymentAmount());
+      } else if (mode === 'items') {
+        var selectedCount = paymentSelectedItemsPayload().length;
+        summary.textContent =
+          selectedCount
+            ? selectedCount + ' item' + (selectedCount === 1 ? '' : 's') +
+              ' · ' + money(paymentAmount())
+            : 'Choose unpaid items';
+      } else if (mode === 'shares') {
+        summary.textContent =
+          Number(num(state.payment.splitPercent, 0).toFixed(2)) +
+          '% · ' + money(paymentAmount());
+      } else {
+        summary.textContent = 'Pay full bill · ' + money(remaining);
+      }
+    }
+
+    var people = $('[data-qpos-split-people]', wrap);
+    var each = $('[data-qpos-split-each]', wrap);
+    if (people) people.textContent = String(Math.max(2, Number(state.payment.splitParts || 2)));
+    if (each) each.textContent = money(paymentAmount());
+
+    var itemList = $('[data-qpos-split-items-list]', wrap);
+    var itemTotal = $('[data-qpos-split-items-total]', wrap);
+    if (itemTotal) itemTotal.textContent = money(paymentAmount());
+
+    if (itemList && mode === 'items') {
+      var rows = state.payment.summary && Array.isArray(state.payment.summary.items)
+        ? state.payment.summary.items.filter(function (item) {
+            return num(item.unpaid_quantity, 0) > 0.0001;
+          })
+        : [];
+
+      if (!rows.length) {
+        itemList.innerHTML =
+          '<div class="pmd-qpos-split-empty">No unpaid items remain.</div>';
+      } else {
+        itemList.innerHTML = rows.map(function (item) {
+          var id = Number(item.order_menu_id || 0);
+          var selectedQty = num(
+            (state.payment.selectedItems || {})[String(id)],
+            0
+          );
+          var active = selectedQty > 0.0001;
+          var gross = num(item.unpaid_gross, 0);
+          return (
+            '<button type="button" class="pmd-qpos-split-item' +
+              (active ? ' is-selected' : '') + '"' +
+              ' data-qpos-split-item="' + esc(id) + '">' +
+              '<span class="pmd-qpos-split-item-check">' +
+                (active ? '✓' : '') +
+              '</span>' +
+              '<span><b>' + esc(item.name || 'Item') + '</b>' +
+                '<small>' + esc(num(item.unpaid_quantity, 0)) + ' unpaid</small></span>' +
+              '<strong>' + money(gross) + '</strong>' +
+            '</button>'
+          );
+        }).join('');
+
+        $$('[data-qpos-split-item]', itemList).forEach(function (button) {
+          button.onclick = function () {
+            toggleSplitItem(button.getAttribute('data-qpos-split-item'));
+          };
+        });
+      }
+    }
+
+    var shareInput = $('[data-qpos-share-percent]', wrap);
+    var shareAmount = $('[data-qpos-share-amount]', wrap);
+    if (shareInput && document.activeElement !== shareInput) {
+      shareInput.value = String(Number(num(state.payment.splitPercent, 0).toFixed(2)));
+    }
+    if (shareAmount) shareAmount.textContent = money(paymentAmount());
+
+    $$('[data-qpos-share-preset]', wrap).forEach(function (button) {
+      var preset = num(button.getAttribute('data-qpos-share-preset'), 0);
+      button.classList.toggle(
+        'is-active',
+        mode === 'shares' &&
+        Math.abs(preset - num(state.payment.splitPercent, 0)) < 0.02
+      );
+    });
   }
 
   async function openPayment() {
@@ -1754,6 +2805,7 @@
       modal.classList.remove('is-open');
       modal.setAttribute('aria-hidden', 'true');
     }
+    root.classList.remove('is-payment-workspace');
     state.payment.open = false;
     state.payment.touchKeypadTarget = null;
     state.payment.touchKeypadFresh = true;
@@ -1776,7 +2828,11 @@
       state.payment.amount = roundMoney(
         num(json.settlement && json.settlement.remaining_amount, 0)
       ).toFixed(2);
-      state.payment.cashReceived = state.payment.amount;
+      syncSplitAmount();
+      state.payment.cashReceived =
+        state.payment.method === 'cash'
+          ? (paymentAmount() > 0 ? paymentCharge().toFixed(2) : '')
+          : '';
 
       if (
         !silent &&
@@ -1803,6 +2859,13 @@
     el.textContent = String(message || '');
   }
 
+  /* PMD_QPOS_PAYMENT_ERROR_STATE_V18
+   * Server validation stays visible until the cashier changes a payment
+   * control. Once the value/method changes, the previous error is stale. */
+  function clearPaymentErrorOnEdit() {
+    showPaymentError('');
+  }
+
   function renderPaymentMethods() {
     var box = $('[data-qpos-payment-methods]');
     if (!box || !state.payment.summary) return;
@@ -1823,6 +2886,8 @@
       !providers.length
     ) {
       state.payment.method = 'cash';
+      state.payment.amount = roundMoney(paymentRemaining()).toFixed(2);
+      state.payment.cashReceived = paymentCharge().toFixed(2);
       state.payment.touchKeypadTarget = 'cash';
       state.payment.touchKeypadFresh = true;
     }
@@ -1856,6 +2921,7 @@
         button.onclick = function () {
           if (button.disabled) return;
 
+          clearPaymentErrorOnEdit();
           state.payment.method = button.getAttribute('data-payment-method');
           state.payment.reference = '';
           state.payment.externalConfirmed = false;
@@ -1863,10 +2929,26 @@
 
           if (state.payment.method === 'direct_terminal') {
             state.payment.amount = roundMoney(paymentRemaining()).toFixed(2);
+            state.payment.cashReceived = '';
+            state.payment.tipMode = 'percent';
             state.payment.tipPercent = 0;
+            state.payment.tipAmount = '';
+            state.payment.splitMode = 'full';
+            state.payment.splitParts = 1;
+            state.payment.splitPercent = 50;
+            state.payment.selectedItems = {};
             state.payment.touchKeypadTarget = 'amount';
             state.payment.touchKeypadFresh = true;
           } else {
+            state.payment.amount = roundMoney(paymentRemaining()).toFixed(2);
+            state.payment.tipMode = 'percent';
+            state.payment.tipPercent = 0;
+            state.payment.tipAmount = '';
+            state.payment.splitMode = 'full';
+            state.payment.splitParts = 1;
+            state.payment.splitPercent = 50;
+            state.payment.selectedItems = {};
+            state.payment.cashReceived = paymentCharge().toFixed(2);
             state.payment.touchKeypadTarget = 'cash';
             state.payment.touchKeypadFresh = true;
           }
@@ -1910,6 +2992,7 @@
 
     $$('[data-terminal-index]', box).forEach(function (button) {
       button.onclick = function () {
+        clearPaymentErrorOnEdit();
         var index = Number(button.getAttribute('data-terminal-index'));
         state.payment.terminal = providers[index] || null;
         renderTerminals();
@@ -1960,6 +3043,7 @@
 
     $$('[data-cash-value]', box).forEach(function (button) {
       button.onclick = function () {
+        clearPaymentErrorOnEdit();
         state.payment.cashReceived = roundMoney(
           num(button.getAttribute('data-cash-value'), paymentCharge())
         ).toFixed(2);
@@ -1976,10 +3060,34 @@
    * keyboard behavior.
    */
   function touchKeypadRawValue(target) {
+    if (target === 'cash') {
+      return String(
+        state.payment.cashReceived == null
+          ? ''
+          : state.payment.cashReceived
+      );
+    }
+
+    if (target === 'tip') {
+      return String(
+        state.payment.tipAmount == null
+          ? ''
+          : state.payment.tipAmount
+      );
+    }
+
+    if (target === 'share') {
+      return String(
+        state.payment.splitPercent == null
+          ? ''
+          : state.payment.splitPercent
+      );
+    }
+
     return String(
-      target === 'cash'
-        ? (state.payment.cashReceived == null ? '' : state.payment.cashReceived)
-        : (state.payment.amount == null ? '' : state.payment.amount)
+      state.payment.amount == null
+        ? ''
+        : state.payment.amount
     );
   }
 
@@ -2001,6 +3109,8 @@
     var exact = $('[data-qpos-keypad-exact]');
     var amountEl = $('[data-qpos-payment-amount]');
     var cashEl = $('[data-qpos-cash-received]');
+    var tipEl = $('[data-qpos-tip-amount]');
+    var shareEl = $('[data-qpos-share-percent]');
 
     if (!keypad) return;
 
@@ -2010,13 +3120,21 @@
     }
 
     var target = state.payment.touchKeypadTarget;
-    if (target !== 'amount' && target !== 'cash') {
+    if (
+      target !== 'amount' &&
+      target !== 'cash' &&
+      target !== 'tip' &&
+      target !== 'share'
+    ) {
       target = state.payment.method === 'cash' ? 'cash' : 'amount';
       state.payment.touchKeypadTarget = target;
       state.payment.touchKeypadFresh = true;
     }
 
-    if (state.payment.method !== 'cash' && target === 'cash') {
+    if (
+      state.payment.method !== 'cash' &&
+      (target === 'cash' || target === 'tip' || target === 'share')
+    ) {
       target = 'amount';
       state.payment.touchKeypadTarget = target;
       state.payment.touchKeypadFresh = true;
@@ -2030,9 +3148,17 @@
     if (cashEl) {
       cashEl.classList.toggle('is-keypad-target', target === 'cash');
     }
+    if (tipEl) {
+      tipEl.classList.toggle('is-keypad-target', target === 'tip');
+    }
+    if (shareEl) {
+      shareEl.classList.toggle('is-keypad-target', target === 'share');
+    }
 
     keypad.hidden = false;
     keypad.classList.toggle('is-locked', locked);
+    keypad.setAttribute('data-qpos-keypad-target-mode', target);
+    keypad.setAttribute('data-qpos-keypad-payment-method', state.payment.method);
 
     $$('[data-qpos-keypad-key]', keypad).forEach(function (button) {
       button.disabled = locked;
@@ -2044,16 +3170,30 @@
         : (
             target === 'cash'
               ? 'Cash'
-              : 'Pay'
+              : (
+                  target === 'tip'
+                    ? 'Tip'
+                    : (target === 'share' ? 'Share %' : 'Pay')
+                )
           );
     }
 
     if (value) {
-      value.textContent = money(num(touchKeypadDisplayValue(target), 0));
+      value.textContent =
+        target === 'share'
+          ? Number(num(touchKeypadDisplayValue(target), 0).toFixed(2)) + '%'
+          : money(num(touchKeypadDisplayValue(target), 0));
     }
 
     if (exact) {
-      exact.textContent = target === 'cash' ? 'Exact' : 'Full';
+      exact.textContent =
+        target === 'cash'
+          ? 'Exact'
+          : (
+              target === 'tip'
+                ? 'No tip'
+                : (target === 'share' ? '100%' : 'Full')
+            );
     }
   }
 
@@ -2062,7 +3202,9 @@
 
     if (
       target !== 'amount' &&
-      target !== 'cash'
+      target !== 'cash' &&
+      target !== 'tip' &&
+      target !== 'share'
     ) {
       return;
     }
@@ -2075,7 +3217,7 @@
     }
 
     if (
-      target === 'cash' &&
+      (target === 'cash' || target === 'tip') &&
       state.payment.method !== 'cash'
     ) {
       return;
@@ -2106,41 +3248,58 @@
   }
 
   function setTouchKeypadValue(target, raw) {
+    clearPaymentErrorOnEdit();
     raw = normalizeTouchKeypadValue(raw);
 
     if (target === 'cash') {
       state.payment.cashReceived = raw;
-    } else {
-      state.payment.amount = raw;
+    } else if (target === 'tip') {
+      state.payment.tipMode = 'custom';
+      state.payment.tipPercent = 0;
+      state.payment.tipAmount = raw;
 
       if (state.payment.method === 'cash') {
-        state.payment.cashReceived = roundMoney(
-          paymentCharge()
-        ).toFixed(2);
+        state.payment.cashReceived = paymentCharge().toFixed(2);
+      }
+    } else if (target === 'share') {
+      state.payment.splitMode = 'shares';
+      state.payment.splitPercent = Math.max(0, Math.min(100, num(raw, 0)));
+      syncSplitAmount();
+    } else {
+      state.payment.amount = raw;
+      state.payment.splitMode = 'shares';
+      state.payment.splitPercent = paymentRemaining() > 0
+        ? Math.max(
+            0,
+            Math.min(
+              100,
+              num(raw, 0) / paymentRemaining() * 100
+            )
+          )
+        : 0;
+
+      if (state.payment.method === 'cash') {
+        state.payment.cashReceived = paymentCharge().toFixed(2);
       }
     }
 
     renderPaymentTotals();
   }
 
+  /* PMD_QPOS_KEYPAD_PAYMENT_ACTION_V21
+   * The keypad's final green key is now the actual payment action.
+   * Numeric editing no longer needs a separate Done step or footer CTA. */
   function applyTouchKeypadKey(key) {
     var target = state.payment.touchKeypadTarget;
-    if (target !== 'amount' && target !== 'cash') return;
+    if (
+      target !== 'amount' &&
+      target !== 'cash' &&
+      target !== 'tip' &&
+      target !== 'share'
+    ) return;
 
     key = String(key || '');
     var raw = touchKeypadRawValue(target);
-
-    if (key === 'done') {
-      if (raw !== '') {
-        setTouchKeypadValue(
-          target,
-          roundMoney(num(raw, 0)).toFixed(2)
-        );
-      }
-      state.payment.touchKeypadFresh = true;
-      renderTouchKeypad();
-      return;
-    }
 
     if (key === 'clear') {
       state.payment.touchKeypadFresh = false;
@@ -2165,7 +3324,11 @@
       raw = (
         target === 'cash'
           ? paymentCharge()
-          : paymentRemaining()
+          : (
+              target === 'tip'
+                ? 0
+                : (target === 'share' ? 100 : paymentRemaining())
+            )
       ).toFixed(2);
       state.payment.touchKeypadFresh = true;
       setTouchKeypadValue(target, raw);
@@ -2198,26 +3361,57 @@
   function renderPaymentTotals() {
     var amountEl = $('[data-qpos-payment-amount]');
     var cashEl = $('[data-qpos-cash-received]');
-    var chargeEl = $('[data-qpos-payment-charge]');
+    var tipEl = $('[data-qpos-tip-amount]');
+    var tipRow = $('.pmd-qpos-tip-row');
+    var cashField = $('[data-qpos-cash-field]');
     var changeBox = $('[data-qpos-change]');
     var changeEl = $('[data-qpos-change-amount]');
     var submit = $('[data-qpos-payment-submit]');
-    var receipt = $('[data-qpos-payment-receipt]');
-
-    if (receipt) {
-      receipt.hidden = !state.payment.receiptUrl;
-      if (state.payment.receiptUrl) {
-        receipt.href = state.payment.receiptUrl;
-      }
-    }
 
     if (amountEl && document.activeElement !== amountEl) {
       amountEl.value = state.payment.amount;
       amountEl.disabled = state.payment.method === 'direct_terminal';
     }
 
-    if (cashEl && document.activeElement !== cashEl) {
-      cashEl.value = state.payment.cashReceived;
+    if (cashField) {
+      cashField.hidden = state.payment.method !== 'cash';
+    }
+
+    if (cashEl) {
+      cashEl.disabled = state.payment.method !== 'cash';
+      if (state.payment.method !== 'cash') {
+        cashEl.value = '';
+      } else if (document.activeElement !== cashEl) {
+        cashEl.value = state.payment.cashReceived;
+      }
+    }
+
+    if (tipRow) {
+      tipRow.hidden = state.payment.method === 'direct_terminal';
+    }
+
+    if (state.payment.method === 'direct_terminal') {
+      var paymentError = $('[data-qpos-payment-error]');
+      if (
+        paymentError &&
+        /cash received/i.test(String(paymentError.textContent || ''))
+      ) {
+        showPaymentError('');
+      }
+    }
+
+    if (tipEl) {
+      tipEl.disabled = state.payment.method === 'direct_terminal';
+      if (document.activeElement !== tipEl) {
+        tipEl.value =
+          state.payment.tipMode === 'custom'
+            ? state.payment.tipAmount
+            : '';
+      }
+      tipEl.classList.toggle(
+        'is-custom-active',
+        state.payment.tipMode === 'custom'
+      );
     }
 
     var charge = paymentCharge();
@@ -2226,14 +3420,23 @@
       ? Math.max(0, roundMoney(cashReceived - charge))
       : 0;
 
-    if (chargeEl) chargeEl.textContent = money(charge);
-
     if (changeBox) {
       changeBox.hidden = !(state.payment.method === 'cash' && change > 0);
     }
     if (changeEl) changeEl.textContent = money(change);
 
     renderCashPresets();
+    renderSplitControls();
+
+    $$('[data-tip]').forEach(function (button) {
+      button.classList.toggle(
+        'is-active',
+        state.payment.tipMode !== 'custom' &&
+        Number(button.getAttribute('data-tip')) ===
+          Number(state.payment.tipPercent)
+      );
+    });
+
     renderTouchKeypad();
 
     var valid =
@@ -2267,12 +3470,8 @@
           )
         : (
             state.payment.method === 'direct_terminal'
-              ? 'Send to terminal'
-              : (
-                  state.payment.method === 'cash'
-                    ? 'Pay cash ' + money(charge)
-                    : 'Pay ' + money(charge)
-                )
+              ? 'Send ' + money(charge)
+              : 'Pay ' + money(charge)
           );
     }
   }
@@ -2288,6 +3487,14 @@
     var external = $('[data-qpos-external-fields]');
     var reference = $('[data-qpos-payment-reference]');
     var externalConfirm = $('[data-qpos-external-confirm]');
+    var paymentCard = $('.pmd-qpos-payment-card');
+
+    if (paymentCard) {
+      paymentCard.classList.toggle(
+        'is-terminal',
+        state.payment.method === 'direct_terminal'
+      );
+    }
 
     if (title) {
       title.textContent = state.activeOrderId
@@ -2306,6 +3513,13 @@
 
     renderPaymentMethods();
 
+    if (paymentCard) {
+      paymentCard.classList.toggle(
+        'is-terminal',
+        state.payment.method === 'direct_terminal'
+      );
+    }
+
     if (cashField) cashField.hidden = state.payment.method !== 'cash';
     if (external) external.hidden = state.payment.method !== 'external_terminal';
     if (reference && document.activeElement !== reference) {
@@ -2320,7 +3534,9 @@
     $$('[data-tip]').forEach(function (button) {
       button.classList.toggle(
         'is-active',
-        Number(button.getAttribute('data-tip')) === Number(state.payment.tipPercent)
+        state.payment.tipMode !== 'custom' &&
+        Number(button.getAttribute('data-tip')) ===
+          Number(state.payment.tipPercent)
       );
       button.disabled = state.payment.method === 'direct_terminal';
     });
@@ -2370,6 +3586,15 @@
     var summary = state.payment.summary;
     var remaining = paymentRemaining();
     var amount = paymentAmount();
+    var splitModeBefore = state.payment.splitMode;
+    var splitPartsBefore = Math.max(
+      1,
+      Number(state.payment.splitParts || 1)
+    );
+    var selectedItemsBefore =
+      splitModeBefore === 'items'
+        ? paymentSelectedItemsPayload()
+        : [];
 
     try {
       var url = tokenUrl(
@@ -2388,12 +3613,30 @@
           provider_code: state.payment.method === 'external_terminal'
             ? 'external_terminal'
             : null,
-          split_mode: Math.abs(amount - remaining) <= 0.02 ? 'full' : 'custom',
+          split_mode: String(state.payment.splitMode || 'full'),
           amount: amount,
-          selected_items: null,
+          selected_items:
+            state.payment.splitMode === 'items'
+              ? paymentSelectedItemsPayload()
+              : null,
+          share_percent:
+            state.payment.splitMode === 'shares'
+              ? num(state.payment.splitPercent, 0)
+              : null,
           tip_amount: paymentTip(),
           coupon_code: null,
-          payer_label: '',
+          payer_label:
+            state.payment.splitMode === 'equal' && state.payment.splitParts > 1
+              ? ('Equal split 1/' + state.payment.splitParts)
+              : (
+                  state.payment.splitMode === 'items'
+                    ? 'Selected items'
+                    : (
+                        state.payment.splitMode === 'shares'
+                          ? ('Share ' + Number(num(state.payment.splitPercent, 0).toFixed(2)) + '%')
+                          : ''
+                      )
+                ),
           payment_reference: state.payment.reference,
           cash_received: state.payment.method === 'cash'
             ? num(state.payment.cashReceived, paymentCharge())
@@ -2407,20 +3650,150 @@
       });
 
       state.payment.summary = json.summary || state.payment.summary;
+
+      /* PMD_QPOS_SPLIT_ITEMS_OPTIMISTIC_V16
+       * Fast-settle intentionally reuses the pre-payment summary. Keep item
+       * balances correct locally so the next payer never sees just-paid items
+       * as unpaid while the background table refresh catches up. */
+      if (
+        splitModeBefore === 'items' &&
+        selectedItemsBefore.length &&
+        state.payment.summary &&
+        Array.isArray(state.payment.summary.items)
+      ) {
+        var itemGrossRatio = Math.max(
+          0.000001,
+          num(
+            state.payment.summary.settlement &&
+            state.payment.summary.settlement.gross_ratio,
+            1
+          )
+        );
+
+        state.payment.summary.items = state.payment.summary.items.map(
+          function (item) {
+            var paid = selectedItemsBefore.find(function (row) {
+              return Number(row.order_menu_id || 0) ===
+                Number(item.order_menu_id || 0);
+            });
+            if (!paid) return item;
+
+            var quantityPaidNow = Math.max(0, num(paid.quantity, 0));
+            var totalQuantity = Math.max(0, num(item.quantity, 0));
+            var oldPaid = Math.max(0, num(item.paid_quantity, 0));
+            var oldUnpaid = Math.max(0, num(item.unpaid_quantity, 0));
+            var nextUnpaid = Math.max(0, oldUnpaid - quantityPaidNow);
+            var nextPaid = Math.min(
+              totalQuantity,
+              oldPaid + quantityPaidNow
+            );
+            var unitPrice = Math.max(0, num(item.unit_price, 0));
+
+            return Object.assign({}, item, {
+              paid_quantity: roundMoney(nextPaid),
+              unpaid_quantity: roundMoney(nextUnpaid),
+              unpaid_subtotal: roundMoney(unitPrice * nextUnpaid),
+              unpaid_gross: roundMoney(
+                unitPrice * nextUnpaid * itemGrossRatio
+              )
+            });
+          }
+        );
+      }
+
       state.payment.receiptUrl = String(json.receipt_url || '');
       state.payment.invoiceUrl = String(json.invoice_url || '');
       state.payment.idempotencyKey = uid('pay');
       state.payment.reference = '';
       state.payment.externalConfirmed = false;
       state.payment.amount = roundMoney(
-        num(state.payment.summary.settlement && state.payment.summary.settlement.remaining_amount, 0)
+        num(
+          state.payment.summary.settlement &&
+          state.payment.summary.settlement.remaining_amount,
+          0
+        )
       ).toFixed(2);
-      state.payment.cashReceived = state.payment.amount;
+      state.payment.tipMode = 'percent';
+      state.payment.tipPercent = 0;
+      state.payment.tipAmount = '';
+
+      if (
+        splitModeBefore === 'equal' &&
+        splitPartsBefore > 1 &&
+        paymentRemaining() > 0.005
+      ) {
+        var nextParts = splitPartsBefore - 1;
+        state.payment.splitParts = nextParts;
+        state.payment.splitMode = nextParts > 1 ? 'equal' : 'full';
+      } else if (
+        splitModeBefore === 'items' &&
+        paymentRemaining() > 0.005
+      ) {
+        state.payment.splitMode = 'items';
+        state.payment.selectedItems = {};
+      } else if (
+        splitModeBefore === 'shares' &&
+        paymentRemaining() > 0.005
+      ) {
+        state.payment.splitMode = 'shares';
+      } else {
+        state.payment.splitMode = 'full';
+        state.payment.splitParts = 1;
+      }
+      syncSplitAmount();
+
+      state.payment.cashReceived =
+        state.payment.method === 'cash'
+          ? paymentCharge().toFixed(2)
+          : '';
+      state.payment.touchKeypadTarget =
+        state.payment.method === 'cash'
+          ? 'cash'
+          : 'amount';
+      state.payment.touchKeypadFresh = true;
+
+      var locallyPaidOrder = activeOrder();
+      if (locallyPaidOrder && state.payment.summary && state.payment.summary.settlement) {
+        locallyPaidOrder.settled_amount = num(
+          state.payment.summary.settlement.settled_amount,
+          locallyPaidOrder.settled_amount || 0
+        );
+        locallyPaidOrder.settlement_status = String(
+          state.payment.summary.settlement.status ||
+          json.settlement_status ||
+          locallyPaidOrder.settlement_status ||
+          ''
+        );
+        locallyPaidOrder.structural_locked =
+          locallyPaidOrder.settled_amount > 0.0001;
+      }
 
       toast(json.message || 'Payment recorded');
 
+      var remainingAfterPayment = num(
+        state.payment.summary &&
+        state.payment.summary.settlement &&
+        state.payment.summary.settlement.remaining_amount,
+        0
+      );
+      var settledAfterPayment = num(
+        state.payment.summary &&
+        state.payment.summary.settlement &&
+        state.payment.summary.settlement.settled_amount,
+        0
+      );
+
       var settlementPaid =
-        String(json.settlement_status || '').toLowerCase() === 'paid';
+        String(json.settlement_status || '').toLowerCase() === 'paid' ||
+        remainingAfterPayment <= 0.005;
+
+      setSelectedTablePaymentSignal(
+        settlementPaid
+          ? 'paid'
+          : (settledAfterPayment > 0.005 ? 'partial' : 'due'),
+        remainingAfterPayment
+      );
+
       var paidTableId =
         state.serviceMode === 'dine_in' && state.selectedTable
           ? Number(state.selectedTable.id)
@@ -2525,6 +3898,7 @@
 
       if (status === 'paid') {
         await loadPaymentSummary(true);
+        setSelectedTablePaymentSignal('paid', 0);
         var terminalPaidTableId =
           state.serviceMode === 'dine_in' && state.selectedTable
             ? Number(state.selectedTable.id)
@@ -2555,6 +3929,950 @@
 
     await loadPaymentSummary(true);
     throw new Error('Terminal payment is still processing. Check the terminal status before retrying.');
+  }
+
+  /* PMD_QPOS_HISTORY_BROWSER_V15 */
+  function historySelection() {
+    if (state.serviceMode === 'takeaway') {
+      return {scope: 'pickup', tableId: 0};
+    }
+
+    if (state.selectedTable) {
+      return {
+        scope: 'table',
+        tableId: Number(state.selectedTable.id || 0)
+      };
+    }
+
+    return {scope: 'all', tableId: 0};
+  }
+
+  function closeHistory() {
+    var modal = $('[data-qpos-history-modal]');
+    if (modal) {
+      modal.classList.remove('is-open');
+      modal.setAttribute('aria-hidden', 'true');
+    }
+    root.classList.remove('is-history-workspace');
+  }
+
+  function formatHistoryTime(value) {
+    var date = new Date(String(value || ''));
+    if (!Number.isFinite(date.getTime())) {
+      return String(value || '');
+    }
+
+    try {
+      return new Intl.DateTimeFormat([], {
+        month: 'short',
+        day: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      }).format(date);
+    } catch (ignored) {
+      return date.toLocaleString();
+    }
+  }
+
+  function historyKindMatches(entry, kind) {
+    kind = String(kind || 'orders');
+    var entryKind = String(entry && entry.kind || 'event');
+
+    if (kind === 'all') return true;
+    if (kind === 'orders') return entryKind === 'order';
+    if (kind === 'payments') {
+      return ['payment', 'terminal'].indexOf(entryKind) !== -1;
+    }
+    if (kind === 'notes') {
+      return ['note', 'item_note', 'table_note'].indexOf(entryKind) !== -1;
+    }
+    if (kind === 'calls') {
+      return ['waiter_call', 'table_status', 'status'].indexOf(entryKind) !== -1;
+    }
+    return true;
+  }
+
+  function historyEntries(json) {
+    return Array.isArray(json && json.entries) ? json.entries : [];
+  }
+
+  function historyOrderEntries(json) {
+    var seen = {};
+    return historyEntries(json).filter(function (entry) {
+      if (String(entry.kind || '') !== 'order') return false;
+      var id = Number(entry.order_id || 0);
+      if (!id || seen[id]) return false;
+      seen[id] = true;
+      return true;
+    });
+  }
+
+  function historyEntryCount(json, kinds) {
+    return historyEntries(json).filter(function (entry) {
+      return kinds.indexOf(String(entry.kind || '')) !== -1;
+    }).length;
+  }
+
+  function renderHistoryStats(json) {
+    var stats = $('[data-qpos-history-stats]');
+    if (!stats) return;
+
+    var orders = historyOrderEntries(json).length;
+    var payments = historyEntryCount(json, ['payment', 'terminal']);
+    var notes = historyEntryCount(json, ['note', 'item_note', 'table_note']);
+    var calls = historyEntryCount(json, ['waiter_call']);
+
+    stats.innerHTML =
+      '<span><b>' + esc(orders) + '</b> orders</span>' +
+      '<span><b>' + esc(payments) + '</b> payments</span>' +
+      '<span><b>' + esc(notes) + '</b> notes</span>' +
+      (calls ? '<span class="is-attention"><b>' + esc(calls) + '</b> calls</span>' : '');
+  }
+
+  /* PMD_QPOS_HISTORY_CLARITY_V20
+   * History is for scanning, not reading database rows. Keep the order list
+   * short, group the detail panel by purpose, and hide redundant technical
+   * wording while preserving the full raw history behind the filters. */
+  function historyWords(value) {
+    value = String(value || '').replace(/[_-]+/g, ' ').trim();
+    if (!value) return '';
+    return value.replace(/\b\w/g, function (letter) {
+      return letter.toUpperCase();
+    });
+  }
+
+  function historySettlementLabel(value) {
+    value = String(value || '').trim().toLowerCase();
+    if (value === 'paid' || value === 'settled' || value === 'closed') {
+      return 'Paid';
+    }
+    if (value === 'partial' || value === 'partially_paid') {
+      return 'Part paid';
+    }
+    if (value === 'unpaid' || value === 'pending' || value === 'open') {
+      return 'Unpaid';
+    }
+    return value ? historyWords(value) : '';
+  }
+
+  function historySettlementTone(value) {
+    value = String(value || '').trim().toLowerCase();
+    if (value === 'paid' || value === 'settled' || value === 'closed') {
+      return 'paid';
+    }
+    if (value === 'partial' || value === 'partially_paid') {
+      return 'partial';
+    }
+    if (value === 'unpaid' || value === 'pending' || value === 'open') {
+      return 'unpaid';
+    }
+    return 'neutral';
+  }
+
+  function historyShortTime(value) {
+    var date = new Date(String(value || ''));
+    if (!Number.isFinite(date.getTime())) {
+      return String(value || '');
+    }
+
+    try {
+      return new Intl.DateTimeFormat([], {
+        month: 'short',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      }).format(date);
+    } catch (ignored) {
+      return date.toLocaleString();
+    }
+  }
+
+  function historyCompactEvent(entry) {
+    entry = entry || {};
+    var kind = String(entry.kind || 'event');
+    var detailParts = String(entry.detail || '')
+      .split(' · ')
+      .map(function (part) { return part.trim(); })
+      .filter(Boolean);
+
+    var item = {
+      kind: kind,
+      title: 'Activity',
+      value: '',
+      note: '',
+      meta: [],
+      time: entry.time,
+      receiptUrl: String(entry.receipt_url || ''),
+      count: 1
+    };
+
+    if (kind === 'payment') {
+      var method = historyWords(entry.payment_method || detailParts[0] || 'Payment');
+      item.title = method ? method + ' payment' : 'Payment';
+      item.value = entry.amount != null
+        ? money(entry.amount)
+        : (detailParts[1] || '');
+
+      var received = entry.cash_received;
+      var change = num(entry.change_due, 0);
+      var tip = num(entry.tip_amount, 0);
+      var amount = num(entry.amount, 0);
+
+      if (
+        received != null &&
+        Math.abs(num(received, 0) - amount) > 0.005
+      ) {
+        item.meta.push('Received ' + money(received));
+      }
+      if (change > 0.005) {
+        item.meta.push('Change ' + money(change));
+      }
+      if (tip > 0.005) {
+        item.meta.push('Tip ' + money(tip));
+      }
+      if (entry.payer_label) {
+        item.meta.push(String(entry.payer_label));
+      }
+      if (entry.payment_note) {
+        item.note = String(entry.payment_note);
+      }
+      return item;
+    }
+
+    if (kind === 'terminal') {
+      item.title = detailParts[0] || 'Terminal';
+      item.value = detailParts[1] || '';
+      if (detailParts[2]) item.meta.push(detailParts[2]);
+      if (detailParts.length > 3) {
+        item.note = detailParts.slice(3).join(' · ');
+      }
+      return item;
+    }
+
+    if (kind === 'status') {
+      item.title = String(
+        entry.status_name ||
+        detailParts[0] ||
+        'Order status'
+      );
+      return item;
+    }
+
+    if (kind === 'table_status') {
+      var oldStatus = historyWords(entry.old_status || '');
+      var newStatus = historyWords(entry.new_status || '');
+      item.title = entry.table_id
+        ? 'Table ' + String(entry.table_id)
+        : 'Table status';
+      item.value = oldStatus && newStatus
+        ? oldStatus + ' → ' + newStatus
+        : (detailParts[0] || '');
+      return item;
+    }
+
+    if (kind === 'waiter_call') {
+      item.title = 'Waiter call';
+      item.note = String(entry.detail || '');
+      return item;
+    }
+
+    if (kind === 'item_note') {
+      item.title = String(entry.title || 'Item note')
+        .replace(/^Item note\s*·\s*/i, '');
+      item.note = String(entry.detail || '');
+      return item;
+    }
+
+    if (kind === 'note') {
+      item.title = 'Order note';
+      item.note = String(entry.detail || '');
+      return item;
+    }
+
+    if (kind === 'table_note') {
+      item.title = 'Table note';
+      item.note = String(entry.detail || '');
+      return item;
+    }
+
+    item.title = String(entry.title || 'Activity')
+      .replace(/\s*·\s*Order\s*#\d+/i, '');
+    item.note = String(entry.detail || '');
+    return item;
+  }
+
+  function historyGroupedEvents(entries) {
+    var rows = [];
+
+    entries.forEach(function (entry) {
+      var compact = historyCompactEvent(entry);
+      var groupable =
+        compact.kind === 'status' ||
+        compact.kind === 'table_status';
+
+      if (groupable) {
+        var key = [
+          compact.kind,
+          compact.title,
+          compact.value,
+          compact.note
+        ].join('|').toLowerCase();
+
+        var existing = rows.find(function (row) {
+          return row._groupKey === key;
+        });
+
+        if (existing) {
+          existing.count += 1;
+          return;
+        }
+
+        compact._groupKey = key;
+      }
+
+      rows.push(compact);
+    });
+
+    return rows;
+  }
+
+  function historyEventRow(item) {
+    var meta = (item.meta || []).map(function (value) {
+      return '<span>' + esc(value) + '</span>';
+    }).join('');
+
+    var receipt = item.receiptUrl
+      ? '<a href="' + esc(item.receiptUrl) +
+          '" target="_blank" rel="noopener">Receipt</a>'
+      : '';
+
+    return (
+      '<article class="pmd-qpos-history-simple-event" data-kind="' +
+        esc(item.kind || 'event') + '">' +
+        '<div class="pmd-qpos-history-simple-main">' +
+          '<div>' +
+            '<strong>' + esc(item.title || 'Activity') + '</strong>' +
+            (item.value
+              ? '<b>' + esc(item.value) + '</b>'
+              : '') +
+          '</div>' +
+          '<time>' + esc(historyShortTime(item.time)) + '</time>' +
+        '</div>' +
+        ((item.meta && item.meta.length) || item.count > 1 || receipt
+          ? '<div class="pmd-qpos-history-simple-meta">' +
+              meta +
+              (item.count > 1
+                ? '<span>' + esc(item.count) + ' events</span>'
+                : '') +
+              receipt +
+            '</div>'
+          : '') +
+        (item.note
+          ? '<p>' + esc(item.note) + '</p>'
+          : '') +
+      '</article>'
+    );
+  }
+
+  function historySection(title, items) {
+    if (!items.length) return '';
+
+    return (
+      '<section class="pmd-qpos-history-section">' +
+        '<header>' +
+          '<strong>' + esc(title) + '</strong>' +
+          '<span>' + esc(items.length) + '</span>' +
+        '</header>' +
+        items.map(historyEventRow).join('') +
+      '</section>'
+    );
+  }
+
+  function renderHistoryDetail(orderId) {
+    var detail = $('[data-qpos-history-detail]');
+    if (!detail) return;
+
+    orderId = Number(orderId || 0);
+    state.historySelectedOrderId = orderId || null;
+
+    if (!orderId || !state.historyData) {
+      detail.innerHTML =
+        '<div class="pmd-qpos-history-empty">' +
+          'Select an order to see its payments and activity.' +
+        '</div>';
+      return;
+    }
+
+    var entries = historyEntries(state.historyData).filter(function (entry) {
+      return Number(entry.order_id || 0) === orderId;
+    });
+
+    var order = entries.find(function (entry) {
+      return String(entry.kind || '') === 'order';
+    });
+
+    if (!order) {
+      detail.innerHTML =
+        '<div class="pmd-qpos-history-empty">Order details are not available.</div>';
+      return;
+    }
+
+    var invoiceUrl = String(
+      order.invoice_url || ('/admin/orders/invoice/' + encodeURIComponent(orderId))
+    );
+    var settlement = String(order.settlement_status || '').trim();
+    var settlementLabel = historySettlementLabel(settlement);
+    var settlementTone = historySettlementTone(settlement);
+    var total = order.total != null ? money(order.total) : '';
+    var itemSummary = String(order.item_summary || '').trim();
+    var orderNote = String(order.note || '').trim();
+
+    var rawEvents = entries.filter(function (entry) {
+      return String(entry.kind || '') !== 'order';
+    });
+
+    var paymentEvents = historyGroupedEvents(
+      rawEvents.filter(function (entry) {
+        return ['payment', 'terminal'].indexOf(String(entry.kind || '')) !== -1;
+      })
+    );
+
+    var noteEvents = historyGroupedEvents(
+      rawEvents.filter(function (entry) {
+        return ['note', 'item_note', 'table_note', 'waiter_call']
+          .indexOf(String(entry.kind || '')) !== -1;
+      })
+    );
+
+    var activityEvents = historyGroupedEvents(
+      rawEvents.filter(function (entry) {
+        return ['status', 'table_status']
+          .indexOf(String(entry.kind || '')) !== -1;
+      })
+    );
+
+    detail.innerHTML =
+      '<div class="pmd-qpos-history-order-head pmd-qpos-history-order-head-v20">' +
+        '<div class="pmd-qpos-history-order-identity">' +
+          '<span>Order</span>' +
+          '<h3>#' + esc(orderId) + '</h3>' +
+        '</div>' +
+        '<div class="pmd-qpos-history-order-facts">' +
+          (total
+            ? '<strong>' + esc(total) + '</strong>'
+            : '') +
+          (settlementLabel
+            ? '<span class="is-' + esc(settlementTone) + '">' +
+                esc(settlementLabel) +
+              '</span>'
+            : '') +
+          '<time>' + esc(historyShortTime(order.time)) + '</time>' +
+        '</div>' +
+        '<a class="pmd-qpos-history-invoice" href="' + esc(invoiceUrl) +
+          '" target="_blank" rel="noopener">Open invoice</a>' +
+      '</div>' +
+      ((itemSummary || orderNote)
+        ? '<div class="pmd-qpos-history-order-overview">' +
+            (itemSummary
+              ? '<div><span>Items</span><p>' + esc(itemSummary) + '</p></div>'
+              : '') +
+            (orderNote
+              ? '<div><span>Note</span><p>' + esc(orderNote) + '</p></div>'
+              : '') +
+          '</div>'
+        : '') +
+      '<div class="pmd-qpos-history-sections">' +
+        historySection('Payments', paymentEvents) +
+        historySection('Notes & calls', noteEvents) +
+        historySection('Activity', activityEvents) +
+        (
+          !paymentEvents.length &&
+          !noteEvents.length &&
+          !activityEvents.length
+            ? '<div class="pmd-qpos-history-empty">No linked activity.</div>'
+            : ''
+        ) +
+      '</div>';
+  }
+
+  function historyListCompact(entry) {
+    var kind = String(entry.kind || 'event');
+    var orderId = Number(entry.order_id || 0);
+    var title = String(entry.title || 'Activity');
+    var line = '';
+    var badge = '';
+    var badgeTone = 'neutral';
+
+    if (kind === 'order') {
+      title = '#' + String(orderId || '');
+      line = entry.total != null ? money(entry.total) : '';
+      badge = historySettlementLabel(entry.settlement_status || '');
+      badgeTone = historySettlementTone(entry.settlement_status || '');
+      if (Number(entry.item_count || 0) > 0) {
+        line +=
+          (line ? ' · ' : '') +
+          String(Number(entry.item_count || 0)) +
+          (Number(entry.item_count || 0) === 1 ? ' item' : ' items');
+      }
+    } else {
+      var compact = historyCompactEvent(entry);
+      title = compact.title;
+      line = compact.value || compact.note || '';
+      if (orderId) {
+        badge = '#' + String(orderId);
+      }
+    }
+
+    return {
+      title: title,
+      line: line,
+      badge: badge,
+      badgeTone: badgeTone,
+      time: entry.time
+    };
+  }
+
+  function renderHistory(json) {
+    var list = $('[data-qpos-history-list]');
+    var title = $('[data-qpos-history-title]');
+    if (!list) return;
+
+    state.historyData = json || {};
+    renderHistoryStats(json);
+
+    if (title) {
+      title.textContent = String(
+        json && json.scope_label
+          ? json.scope_label
+          : 'History'
+      );
+    }
+
+    var kind = String(state.historyKind || 'orders');
+    var entries = historyEntries(json);
+
+    if (kind === 'orders') {
+      entries = historyOrderEntries(json);
+    } else {
+      entries = entries.filter(function (entry) {
+        return historyKindMatches(entry, kind);
+      });
+    }
+
+    if (!entries.length) {
+      list.innerHTML =
+        '<div class="pmd-qpos-history-empty">No matching history.</div>';
+      renderHistoryDetail(0);
+      return;
+    }
+
+    list.innerHTML = entries.map(function (entry) {
+      var orderId = Number(entry.order_id || 0);
+      var selected =
+        orderId &&
+        Number(state.historySelectedOrderId || 0) === orderId;
+      var row = historyListCompact(entry);
+
+      return (
+        '<button type="button" class="pmd-qpos-history-entry pmd-qpos-history-entry-v20' +
+          (selected ? ' is-selected' : '') + '"' +
+          ' data-kind="' + esc(entry.kind || 'event') + '"' +
+          (orderId ? ' data-qpos-history-order="' + esc(orderId) + '"' : '') + '>' +
+          '<div class="pmd-qpos-history-entry-top">' +
+            '<strong>' + esc(row.title) + '</strong>' +
+            '<time>' + esc(historyShortTime(row.time)) + '</time>' +
+          '</div>' +
+          '<div class="pmd-qpos-history-entry-bottom">' +
+            (row.line
+              ? '<span>' + esc(row.line) + '</span>'
+              : '<span class="is-muted">Activity</span>') +
+            (row.badge
+              ? '<b class="is-' + esc(row.badgeTone) + '">' +
+                  esc(row.badge) +
+                '</b>'
+              : '') +
+          '</div>' +
+        '</button>'
+      );
+    }).join('');
+
+    $$('[data-qpos-history-order]', list).forEach(function (button) {
+      button.onclick = function () {
+        var orderId = Number(button.getAttribute('data-qpos-history-order') || 0);
+        state.historySelectedOrderId = orderId || null;
+        renderHistory(state.historyData);
+        renderHistoryDetail(orderId);
+      };
+    });
+
+    if (
+      state.historySelectedOrderId &&
+      entries.some(function (entry) {
+        return Number(entry.order_id || 0) === Number(state.historySelectedOrderId);
+      })
+    ) {
+      renderHistoryDetail(state.historySelectedOrderId);
+    } else if (kind === 'orders' && entries[0] && entries[0].order_id) {
+      state.historySelectedOrderId = Number(entries[0].order_id);
+      renderHistoryDetail(state.historySelectedOrderId);
+      var first = $('[data-qpos-history-order="' +
+        String(state.historySelectedOrderId) + '"]', list);
+      if (first) first.classList.add('is-selected');
+    } else {
+      renderHistoryDetail(0);
+    }
+  }
+
+  function historyIsoDate(date) {
+    var y = date.getFullYear();
+    var month = date.getMonth() + 1;
+    var day = date.getDate();
+    var m = (month < 10 ? '0' : '') + String(month);
+    var d = (day < 10 ? '0' : '') + String(day);
+    return y + '-' + m + '-' + d;
+  }
+
+  function setHistoryPreset(preset, reload) {
+    preset = String(preset || '7d');
+    state.historyPreset = preset;
+
+    var now = new Date();
+    var from = '';
+    var to = historyIsoDate(now);
+
+    if (preset === 'today') {
+      from = to;
+    } else if (preset === '7d') {
+      var d7 = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6);
+      from = historyIsoDate(d7);
+    } else if (preset === '30d') {
+      var d30 = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 29);
+      from = historyIsoDate(d30);
+    } else {
+      from = '';
+      to = '';
+    }
+
+    state.historyFrom = from;
+    state.historyTo = to;
+
+    var fromInput = $('[data-qpos-history-from]');
+    var toInput = $('[data-qpos-history-to]');
+    if (fromInput) fromInput.value = from;
+    if (toInput) toInput.value = to;
+
+    $$('[data-qpos-history-preset]').forEach(function (button) {
+      button.classList.toggle(
+        'is-active',
+        String(button.getAttribute('data-qpos-history-preset')) === preset
+      );
+    });
+
+    if (reload) loadHistory();
+  }
+
+  /* PMD_QPOS_HISTORY_NO_BLINK_V17 */
+  function historyRequestContext(scopeMode) {
+    var selection = historySelection();
+    var requested = String(scopeMode || state.historyScope || 'selected');
+
+    if (requested === 'all') {
+      selection = {scope: 'all', tableId: 0};
+    }
+
+    return {
+      requested: requested,
+      selection: selection,
+      key: [
+        requested,
+        selection.scope,
+        Number(selection.tableId || 0),
+        state.historyFrom || '',
+        state.historyTo || ''
+      ].join('|')
+    };
+  }
+
+  async function loadHistory(scopeMode, options) {
+    if (!state.settings.history_url) return false;
+
+    options = options || {};
+    var context = historyRequestContext(scopeMode);
+    var selection = context.selection;
+    var requested = context.requested;
+    var requestKey = context.key;
+    var requestSeq = ++state.historyRequestSeq;
+
+    state.historyScope = requested;
+    state.historyLoading = true;
+
+    var list = $('[data-qpos-history-list]');
+    var preserveExisting =
+      options.preserve === true ||
+      (
+        options.preserve !== false &&
+        !!state.historyData
+      );
+
+    if (list && !preserveExisting) {
+      list.innerHTML =
+        '<div class="pmd-qpos-history-empty">Loading history…</div>';
+    }
+
+    $$('[data-qpos-history-scope]').forEach(function (button) {
+      button.classList.toggle(
+        'is-active',
+        String(button.getAttribute('data-qpos-history-scope')) === requested
+      );
+    });
+
+    try {
+      var url = String(state.settings.history_url);
+      var params = new URLSearchParams();
+      params.set('scope', selection.scope);
+      params.set('limit', '500');
+      if (selection.tableId) {
+        params.set('table_id', String(selection.tableId));
+      }
+      if (state.historyFrom) params.set('from', state.historyFrom);
+      if (state.historyTo) params.set('to', state.historyTo);
+
+      var json = await fetchJson(
+        url + '?' + params.toString() + '&_=' + Date.now()
+      );
+
+      if (requestSeq !== state.historyRequestSeq) {
+        return false;
+      }
+
+      state.historyDataKey = requestKey;
+      renderHistory(json);
+      return true;
+    } catch (error) {
+      if (requestSeq !== state.historyRequestSeq) {
+        return false;
+      }
+
+      if (list && !preserveExisting) {
+        list.innerHTML =
+          '<div class="pmd-qpos-history-empty is-error">' +
+            esc(error.message || 'History could not be loaded.') +
+          '</div>';
+        renderHistoryDetail(0);
+      } else {
+        toast(error.message || 'History could not be refreshed.', true);
+      }
+      return false;
+    } finally {
+      if (requestSeq === state.historyRequestSeq) {
+        state.historyLoading = false;
+      }
+    }
+  }
+
+  async function openHistory(scopeMode) {
+    closePayment();
+    closeTextKeyboard();
+    hideToast();
+
+    var modal = $('[data-qpos-history-modal]');
+    if (!modal) return;
+
+    if (!state.historyFrom && !state.historyTo) {
+      setHistoryPreset(state.historyPreset || '7d', false);
+    }
+
+    var requested = String(scopeMode || 'selected');
+    var context = historyRequestContext(requested);
+    var hasCurrentData =
+      !!state.historyData &&
+      state.historyDataKey === context.key;
+
+    if (!hasCurrentData) {
+      await loadHistory(requested, {preserve: false});
+    }
+
+    root.classList.add('is-history-workspace');
+    modal.classList.add('is-open');
+    modal.setAttribute('aria-hidden', 'false');
+
+    if (hasCurrentData) {
+      loadHistory(requested, {preserve: true});
+    }
+  }
+
+  /* PMD_QPOS_TEXT_KEYBOARD_V1
+   * Cashier-only desktop/touch-monitor keyboard. Waiter/mobile/tablet keeps
+   * the operating system keyboard.
+   */
+  function useTextKeyboard() {
+    return state.mode === 'cashier' && window.innerWidth >= 900;
+  }
+
+  function textKeyboardTargets() {
+    return $$(
+      '[data-qpos-search], ' +
+      '[data-qpos-note], ' +
+      '[data-qpos-modifier-note], ' +
+      '[data-qpos-item-note-input]'
+    );
+  }
+
+  function configureTextKeyboardTargets() {
+    var enabled = useTextKeyboard();
+
+    textKeyboardTargets().forEach(function (field) {
+      if (enabled) {
+        field.setAttribute('inputmode', 'none');
+        field.setAttribute('data-qpos-text-keyboard-field', '1');
+      } else {
+        field.removeAttribute('inputmode');
+        field.removeAttribute('data-qpos-text-keyboard-field');
+      }
+    });
+
+    if (!enabled) {
+      closeTextKeyboard();
+    }
+  }
+
+  function maybeOpenTextKeyboard(target, label) {
+    if (!target || !useTextKeyboard()) return;
+
+    state.textKeyboardTarget = target;
+    var keyboard = $('[data-qpos-text-keyboard]');
+    var title = $('[data-qpos-text-keyboard-label]');
+    if (!keyboard) return;
+
+    if (title) {
+      title.textContent = String(label || 'Keyboard');
+    }
+
+    keyboard.hidden = false;
+    keyboard.setAttribute('aria-hidden', 'false');
+  }
+
+  function closeTextKeyboard() {
+    var keyboard = $('[data-qpos-text-keyboard]');
+    if (keyboard) {
+      keyboard.hidden = true;
+      keyboard.setAttribute('aria-hidden', 'true');
+    }
+    state.textKeyboardTarget = null;
+  }
+
+  function insertTextKeyboardValue(target, value) {
+    if (!target) return;
+
+    var current = String(target.value || '');
+    var start = Number.isFinite(target.selectionStart)
+      ? target.selectionStart
+      : current.length;
+    var end = Number.isFinite(target.selectionEnd)
+      ? target.selectionEnd
+      : start;
+
+    target.value =
+      current.slice(0, start) +
+      value +
+      current.slice(end);
+
+    var next = start + value.length;
+    try {
+      target.setSelectionRange(next, next);
+    } catch (ignored) {
+    }
+
+    target.dispatchEvent(new Event('input', {bubbles: true}));
+  }
+
+  function applyTextKeyboardKey(key) {
+    var target = state.textKeyboardTarget;
+    if (!target || !document.documentElement.contains(target)) {
+      closeTextKeyboard();
+      return;
+    }
+
+    key = String(key || '');
+
+    if (key === 'hide') {
+      closeTextKeyboard();
+      try { target.blur(); } catch (ignored) {}
+      return;
+    }
+
+    if (key === 'shift') {
+      state.textKeyboardUpper = !state.textKeyboardUpper;
+      var keyboard = $('[data-qpos-text-keyboard]');
+      if (keyboard) {
+        keyboard.classList.toggle(
+          'is-lowercase',
+          !state.textKeyboardUpper
+        );
+      }
+      return;
+    }
+
+    if (key === 'clear') {
+      target.value = '';
+      target.dispatchEvent(new Event('input', {bubbles: true}));
+      target.focus();
+      return;
+    }
+
+    if (key === 'backspace') {
+      var current = String(target.value || '');
+      var start = Number.isFinite(target.selectionStart)
+        ? target.selectionStart
+        : current.length;
+      var end = Number.isFinite(target.selectionEnd)
+        ? target.selectionEnd
+        : start;
+
+      if (start !== end) {
+        target.value = current.slice(0, start) + current.slice(end);
+      } else if (start > 0) {
+        target.value =
+          current.slice(0, start - 1) +
+          current.slice(end);
+        start -= 1;
+      }
+
+      try {
+        target.setSelectionRange(start, start);
+      } catch (ignored) {
+      }
+      target.dispatchEvent(new Event('input', {bubbles: true}));
+      target.focus();
+      return;
+    }
+
+    if (key === 'space') {
+      insertTextKeyboardValue(target, ' ');
+      target.focus();
+      return;
+    }
+
+    var output = key;
+    if (/^[A-Z]$/.test(key) && !state.textKeyboardUpper) {
+      output = key.toLowerCase();
+    }
+
+    insertTextKeyboardValue(target, output);
+    target.focus();
+  }
+
+  function bindTextKeyboardField(field, label) {
+    if (!field || field.__qposKeyboardBound) return;
+    field.__qposKeyboardBound = true;
+
+    var open = function () {
+      maybeOpenTextKeyboard(field, label);
+    };
+
+    field.addEventListener('focus', open);
+    field.addEventListener('click', open);
   }
 
   /* Table lifecycle */
@@ -2601,6 +4919,7 @@
     renderCategories();
     renderProducts();
     renderCart();
+    renderFloorMap();
   }
 
   /* Binding */
@@ -2611,6 +4930,7 @@
         state.search = search.value;
         renderProducts();
       });
+      bindTextKeyboardField(search, 'Search');
     }
 
     var guestsPlus = $('[data-qpos-guests-plus]');
@@ -2625,9 +4945,12 @@
     };
 
     var note = $('[data-qpos-note]');
-    if (note) note.addEventListener('input', function () {
-      state.note = note.value;
-    });
+    if (note) {
+      note.addEventListener('input', function () {
+        state.note = note.value;
+      });
+      bindTextKeyboardField(note, 'Order note');
+    }
 
     var send = $('[data-qpos-send]');
     var pay = $('[data-qpos-pay]');
@@ -2639,12 +4962,6 @@
       }
       openPayment();
     };
-
-    var newCheckButton = $('[data-qpos-new-check]');
-    if (newCheckButton) newCheckButton.onclick = newCheck;
-
-    var refresh = $('[data-qpos-refresh]');
-    if (refresh) refresh.onclick = function () { bootstrap(false); };
 
     var mobileCart = $('[data-qpos-mobile-cart]');
     var cart = $('.pmd-qpos-cart');
@@ -2685,9 +5002,32 @@
       renderModifier();
     };
     if (modifierAdd) modifierAdd.onclick = addModifierItem;
-    if (modifierNote) modifierNote.addEventListener('input', function () {
-      if (state.modifier) state.modifier.note = modifierNote.value;
+    if (modifierNote) {
+      modifierNote.addEventListener('input', function () {
+        if (state.modifier) state.modifier.note = modifierNote.value;
+      });
+      bindTextKeyboardField(modifierNote, 'Item note');
+    }
+
+    var itemNoteModal = $('[data-qpos-item-note-modal]');
+    var itemNoteClose = $('[data-qpos-item-note-close]');
+    var itemNoteSave = $('[data-qpos-item-note-save]');
+    var itemNoteClear = $('[data-qpos-item-note-clear]');
+    var itemNoteInput = $('[data-qpos-item-note-input]');
+
+    if (itemNoteClose) itemNoteClose.onclick = closeItemNote;
+    if (itemNoteSave) itemNoteSave.onclick = function () {
+      saveItemNote(false);
+    };
+    if (itemNoteClear) itemNoteClear.onclick = function () {
+      saveItemNote(true);
+    };
+    if (itemNoteModal) itemNoteModal.addEventListener('click', function (event) {
+      if (event.target === itemNoteModal) closeItemNote();
     });
+    if (itemNoteInput) {
+      bindTextKeyboardField(itemNoteInput, 'Item note');
+    }
 
     var paymentModal = $('[data-qpos-payment-modal]');
     var paymentClose = $('[data-qpos-payment-close]');
@@ -2699,7 +5039,18 @@
     var amount = $('[data-qpos-payment-amount]');
     if (amount) {
       amount.addEventListener('input', function () {
+        clearPaymentErrorOnEdit();
         state.payment.amount = normalizeTouchKeypadValue(amount.value);
+        state.payment.splitMode = 'shares';
+        state.payment.splitPercent = paymentRemaining() > 0
+          ? Math.max(
+              0,
+              Math.min(
+                100,
+                num(state.payment.amount, 0) / paymentRemaining() * 100
+              )
+            )
+          : 0;
         if (amount.value !== state.payment.amount) {
           amount.value = state.payment.amount;
         }
@@ -2721,6 +5072,7 @@
     var cash = $('[data-qpos-cash-received]');
     if (cash) {
       cash.addEventListener('input', function () {
+        clearPaymentErrorOnEdit();
         state.payment.cashReceived = normalizeTouchKeypadValue(cash.value);
         if (cash.value !== state.payment.cashReceived) {
           cash.value = state.payment.cashReceived;
@@ -2735,6 +5087,79 @@
       });
     }
 
+    var tipAmount = $('[data-qpos-tip-amount]');
+    if (tipAmount) {
+      tipAmount.addEventListener('input', function () {
+        clearPaymentErrorOnEdit();
+        state.payment.tipMode = 'custom';
+        state.payment.tipPercent = 0;
+        state.payment.tipAmount = normalizeTouchKeypadValue(tipAmount.value);
+        if (tipAmount.value !== state.payment.tipAmount) {
+          tipAmount.value = state.payment.tipAmount;
+        }
+        if (state.payment.method === 'cash') {
+          state.payment.cashReceived = paymentCharge().toFixed(2);
+        }
+        renderPayment();
+      });
+
+      var openCustomTip = function () {
+        if (state.payment.method !== 'cash') return;
+
+        if (state.payment.tipMode !== 'custom') {
+          state.payment.tipAmount = paymentTip().toFixed(2);
+        }
+        state.payment.tipMode = 'custom';
+        state.payment.tipPercent = 0;
+        openTouchKeypad('tip');
+        renderPayment();
+      };
+
+      tipAmount.addEventListener('focus', openCustomTip);
+      tipAmount.addEventListener('click', openCustomTip);
+    }
+
+    $$('[data-qpos-split-mode]').forEach(function (button) {
+      button.onclick = function () {
+        applySplitMode(button.getAttribute('data-qpos-split-mode'));
+      };
+    });
+
+    var splitPeopleMinus = $('[data-qpos-split-people-minus]');
+    var splitPeoplePlus = $('[data-qpos-split-people-plus]');
+    if (splitPeopleMinus) splitPeopleMinus.onclick = function () {
+      adjustSplitPeople(-1);
+    };
+    if (splitPeoplePlus) splitPeoplePlus.onclick = function () {
+      adjustSplitPeople(1);
+    };
+
+    $$('[data-qpos-share-preset]').forEach(function (button) {
+      button.onclick = function () {
+        applySharePercent(button.getAttribute('data-qpos-share-preset'));
+      };
+    });
+
+    var sharePercent = $('[data-qpos-share-percent]');
+    if (sharePercent) {
+      sharePercent.addEventListener('input', function () {
+        clearPaymentErrorOnEdit();
+        state.payment.splitMode = 'shares';
+        state.payment.splitPercent = Math.max(
+          0,
+          Math.min(100, num(sharePercent.value, 0))
+        );
+        syncSplitAmount();
+        renderPaymentTotals();
+      });
+      sharePercent.addEventListener('focus', function () {
+        openTouchKeypad('share');
+      });
+      sharePercent.addEventListener('click', function () {
+        openTouchKeypad('share');
+      });
+    }
+
     $$('[data-qpos-keypad-key]').forEach(function (button) {
       button.onclick = function () {
         applyTouchKeypadKey(
@@ -2745,19 +5170,33 @@
 
     var reference = $('[data-qpos-payment-reference]');
     if (reference) reference.addEventListener('input', function () {
+      clearPaymentErrorOnEdit();
       state.payment.reference = reference.value;
       renderPaymentTotals();
     });
 
     var confirmExternal = $('[data-qpos-external-confirm]');
     if (confirmExternal) confirmExternal.addEventListener('change', function () {
+      clearPaymentErrorOnEdit();
       state.payment.externalConfirmed = confirmExternal.checked;
       renderPaymentTotals();
     });
 
     $$('[data-tip]').forEach(function (button) {
       button.onclick = function () {
-        state.payment.tipPercent = Number(button.getAttribute('data-tip') || 0);
+        if (state.payment.method === 'direct_terminal') return;
+
+        clearPaymentErrorOnEdit();
+        state.payment.tipMode = 'percent';
+        state.payment.tipPercent = Number(
+          button.getAttribute('data-tip') || 0
+        );
+        state.payment.tipAmount = '';
+
+        if (state.payment.method === 'cash') {
+          state.payment.cashReceived = paymentCharge().toFixed(2);
+        }
+
         renderPayment();
       };
     });
@@ -2765,34 +5204,201 @@
     var submitPayment = $('[data-qpos-payment-submit]');
     if (submitPayment) submitPayment.onclick = executePayment;
 
+    var historyOpen = $('[data-qpos-history-open]');
+    var historyModal = $('[data-qpos-history-modal]');
+    var historyClose = $('[data-qpos-history-close]');
+
+    if (historyOpen) historyOpen.onclick = function () {
+      openHistory('selected');
+    };
+    if (historyClose) historyClose.onclick = closeHistory;
+    if (historyModal) historyModal.addEventListener('click', function (event) {
+      if (event.target === historyModal) closeHistory();
+    });
+
+    $$('[data-qpos-history-scope]').forEach(function (button) {
+      button.onclick = function () {
+        loadHistory(
+          button.getAttribute('data-qpos-history-scope') || 'selected'
+        );
+      };
+    });
+
+    $$('[data-qpos-history-preset]').forEach(function (button) {
+      button.onclick = function () {
+        setHistoryPreset(
+          button.getAttribute('data-qpos-history-preset') || '7d',
+          true
+        );
+      };
+    });
+
+    $$('[data-qpos-history-kind]').forEach(function (button) {
+      button.onclick = function () {
+        state.historyKind =
+          button.getAttribute('data-qpos-history-kind') || 'orders';
+
+        $$('[data-qpos-history-kind]').forEach(function (row) {
+          row.classList.toggle(
+            'is-active',
+            row === button
+          );
+        });
+
+        if (state.historyData) {
+          state.historySelectedOrderId = null;
+          renderHistory(state.historyData);
+        }
+      };
+    });
+
+    var historyFrom = $('[data-qpos-history-from]');
+    var historyTo = $('[data-qpos-history-to]');
+
+    if (historyFrom) historyFrom.onchange = function () {
+      state.historyFrom = historyFrom.value || '';
+      state.historyPreset = 'custom';
+      $$('[data-qpos-history-preset]').forEach(function (button) {
+        button.classList.remove('is-active');
+      });
+      loadHistory();
+    };
+
+    if (historyTo) historyTo.onchange = function () {
+      state.historyTo = historyTo.value || '';
+      state.historyPreset = 'custom';
+      $$('[data-qpos-history-preset]').forEach(function (button) {
+        button.classList.remove('is-active');
+      });
+      loadHistory();
+    };
+
+    var confirmModal = $('[data-qpos-confirm-modal]');
+    var confirmCancel = $('[data-qpos-confirm-cancel]');
+    var confirmAccept = $('[data-qpos-confirm-accept]');
+
+    if (confirmCancel) confirmCancel.onclick = function () {
+      closeConfirm(false);
+    };
+    if (confirmAccept) confirmAccept.onclick = function () {
+      closeConfirm(true);
+    };
+    if (confirmModal) confirmModal.addEventListener('click', function (event) {
+      if (event.target === confirmModal) closeConfirm(false);
+    });
+
+    var profileToggle = $('[data-qpos-profile-toggle]');
+    var profileMenu = $('[data-qpos-profile-menu]');
+    if (profileToggle && profileMenu) {
+      profileToggle.onclick = function (event) {
+        event.stopPropagation();
+        var opening = profileMenu.hidden;
+        profileMenu.hidden = !opening;
+        profileToggle.setAttribute(
+          'aria-expanded',
+          opening ? 'true' : 'false'
+        );
+      };
+
+      profileMenu.addEventListener('click', function (event) {
+        event.stopPropagation();
+      });
+
+      document.addEventListener('click', function () {
+        profileMenu.hidden = true;
+        profileToggle.setAttribute('aria-expanded', 'false');
+      });
+    }
+
+    $$('[data-qpos-text-key]').forEach(function (button) {
+      button.onclick = function () {
+        applyTextKeyboardKey(
+          button.getAttribute('data-qpos-text-key')
+        );
+      };
+    });
+
+    configureTextKeyboardTargets();
+    window.addEventListener('resize', configureTextKeyboardTargets);
+
+    document.addEventListener('pointerdown', function (event) {
+      var keyboard = $('[data-qpos-text-keyboard]');
+      if (!keyboard || keyboard.hidden) return;
+
+      var target = event.target;
+      if (
+        keyboard.contains(target) ||
+        (
+          target &&
+          target.closest &&
+          target.closest('[data-qpos-text-keyboard-field]')
+        )
+      ) {
+        return;
+      }
+
+      closeTextKeyboard();
+    });
+
     var cleaning = $('[data-qpos-table-cleaning]');
+    var move = $('[data-qpos-table-move]');
     var free = $('[data-qpos-table-free]');
 
     if (cleaning) cleaning.onclick = function () {
       updateTableStatus('cleaning', false);
     };
 
-    if (free) free.onclick = function () {
+    if (move) move.onclick = function () {
+      openTransfer();
+    };
+
+    var transferClose = $('[data-qpos-transfer-close]');
+    var transferCancel = $('[data-qpos-transfer-cancel]');
+    var transferSubmit = $('[data-qpos-transfer-submit]');
+
+    if (transferClose) transferClose.onclick = closeTransfer;
+    if (transferCancel) transferCancel.onclick = closeTransfer;
+    if (transferSubmit) transferSubmit.onclick = executeTransfer;
+
+    $$('[data-qpos-transfer-scope]').forEach(function (button) {
+      button.onclick = function () {
+        state.transfer.scope =
+          String(button.getAttribute('data-qpos-transfer-scope') || 'order');
+        state.transfer.targetTableId = null;
+        renderTransfer();
+      };
+    });
+
+    if (free) free.onclick = async function () {
       var status = String(state.selectedTable && state.selectedTable.status || '');
       var skip = status === 'occupied';
       if (
         skip &&
-        !window.confirm('Set this occupied table directly to free and skip cleaning?')
+        !(await confirmAction({
+          title: 'Make table free?',
+          message: '',
+          confirmLabel: 'Make free',
+          cancelLabel: 'Keep occupied',
+          tone: 'danger'
+        }))
       ) {
         return;
       }
       updateTableStatus('available', skip);
     };
 
-    window.addEventListener('online', function () { setOnline(true); });
-    window.addEventListener('offline', function () { setOnline(false); });
-    setOnline(navigator.onLine !== false);
     startClock();
 
     window.addEventListener('keydown', function (event) {
       if (event.key === 'Escape') {
+        closeConfirm(false);
         closeModifier();
+        closeItemNote();
+        closeHistory();
         closePayment();
+        closeTransfer();
+        closeFloorMap();
+        closeTextKeyboard();
         if (cart) cart.classList.remove('is-mobile-open');
       }
       if (event.key === '/' && document.activeElement && document.activeElement.tagName !== 'INPUT') {
@@ -2818,6 +5424,7 @@
     refresh: function () { return bootstrap(false); },
     selectTable: selectTable,
     newCheck: newCheck,
-    openPayment: openPayment
+    openPayment: openPayment,
+    openFloorMap: openFloorMap
   };
 })();

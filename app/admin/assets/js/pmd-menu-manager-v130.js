@@ -1471,7 +1471,15 @@
     var query = String(filterState.search || '').trim().toLocaleLowerCase();
     var shown = 0;
     node.querySelectorAll('[data-pmd-menu-card]').forEach(function (card) {
-      var searchOk = !query || String(card.dataset.search || '').indexOf(query) !== -1;
+      var numberQuery = query.replace(/^#/, '');
+      var numberOk =
+        card.dataset.itemType === 'food' &&
+        numberQuery !== '' &&
+        String(card.dataset.menuNumber || '') === numberQuery;
+      var searchOk =
+        !query ||
+        String(card.dataset.search || '').indexOf(query) !== -1 ||
+        numberOk;
       var categoryOk = cardHasCategory(card, filterState.category);
       var stockOut = card.dataset.stockOut === '1';
       var stockOk = filterState.stock === 'all' || (filterState.stock === 'out' ? stockOut : !stockOut);
@@ -1500,6 +1508,70 @@
       ? '[data-pmd-menu-card][data-item-type="combo"]'
       : '[data-pmd-menu-card][data-item-type="food"]';
     return Array.from(node.querySelectorAll(selector));
+  }
+
+  /* PMD_MENU_LIVE_NUMBER_V24
+   * Food numbers follow the real DOM/order authority while Edit order moves
+   * cards. No independent number is stored in the database. */
+  function syncFoodNumbers() {
+    sortTargetCards('food').forEach(function (card, index) {
+      var number = index + 1;
+      card.dataset.menuNumber = String(number);
+
+      var badge = card.querySelector('[data-pmd-menu-number]');
+      if (badge) {
+        badge.textContent = '#' + String(number);
+        badge.setAttribute('aria-label', 'Food number ' + String(number));
+      }
+    });
+  }
+
+  function regroupFoodsByCategoryOrderV24() {
+    var node = manager();
+    var grid = node && node.querySelector('[data-pmd-menu-grid]');
+    if (!grid) return;
+
+    var rank = {};
+    categorySortButtons().forEach(function (button, index) {
+      var id = String(button.getAttribute('data-pmd-category-id') || '');
+      if (id) rank[id] = index;
+    });
+
+    var cards = sortTargetCards('food');
+    var position = new Map();
+    cards.forEach(function (card, index) {
+      position.set(card, index);
+    });
+
+    function firstRank(card) {
+      var ids = String(card.dataset.categoryIds || '')
+        .split(',')
+        .map(function (id) { return id.trim(); })
+        .filter(Boolean);
+      var best = Number.MAX_SAFE_INTEGER;
+      ids.forEach(function (id) {
+        if (Object.prototype.hasOwnProperty.call(rank, id)) {
+          best = Math.min(best, rank[id]);
+        }
+      });
+      return best;
+    }
+
+    cards.sort(function (a, b) {
+      var byCategory = firstRank(a) - firstRank(b);
+      if (byCategory !== 0) return byCategory;
+      return Number(position.get(a) || 0) - Number(position.get(b) || 0);
+    });
+
+    var firstCombo =
+      grid.querySelector('[data-pmd-menu-card][data-item-type="combo"]');
+
+    cards.forEach(function (card) {
+      if (firstCombo) grid.insertBefore(card, firstCombo);
+      else grid.appendChild(card);
+    });
+
+    syncFoodNumbers();
   }
 
   function categorySortButtons() {
@@ -2314,10 +2386,19 @@
     } else {
       ids.forEach(function (id) { if (byId[id]) grid.appendChild(byId[id]); });
     }
+
+    if (kind === 'food') {
+      syncFoodNumbers();
+    }
   }
 
   async function persistSortOrder() {
     if (!sortMode || sortSaving) return;
+
+    if (sortKind === 'food') {
+      syncFoodNumbers();
+    }
+
     var ids = capturePersistSortOrder(sortKind);
     if (!ids.length) return;
     sortSaving = true;
@@ -2393,6 +2474,7 @@
     try {
       await backend('/admin/menus', 'onSaveCategoryOrder', formData);
       categorySnapshot = ids.slice();
+      regroupFoodsByCategoryOrderV24();
       sortStatus(tr('sort_saved', 'Order saved'), 'ok');
     } catch (error) {
       restoreCategoryOrder(categorySnapshot);
@@ -4328,6 +4410,7 @@
   installNotificationOnce();
   wireCardImages(root);
   updateHeaderState();
+  syncFoodNumbers();
   syncSortMode();
 
   (function openFromRedirect() {

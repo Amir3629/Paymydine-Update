@@ -7,6 +7,7 @@ use Admin\Models\Menus_model;
 use Admin\Models\Orders_model;
 use Admin\Models\Tables_model;
 use Admin\Services\PmdDefaultStaffRoleService;
+use Admin\Services\PmdRoleLandingService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
@@ -36,8 +37,6 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
             base_path('app/admin/views/pmd_quick_pos_v1.blade.php'),
             [
                 'mode' => $mode,
-                'canSwitchMode' => $this->quickPosCanSwitchMode(),
-                'legacyOrdersUrl' => admin_url('orders'),
                 'initialBootstrap' => $initialBootstrap,
             ]
         );
@@ -159,6 +158,7 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                     : 'Staff',
                 'role' => $this->quickPosRoleCode(),
             ],
+            'profile' => $this->quickPosProfilePayload(),
             'permissions' => [
                 'orders' => true,
                 'payments' => $this->canManagePayments(),
@@ -186,6 +186,8 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 'terminal_attempts_url' => '/admin/orders/{order}/terminal-payment-attempts',
                 'terminal_refresh_url' => '/admin/terminal-payments/attempts/{attempt}/refresh',
                 'table_state_url' => '/admin/pmd-waiter-table-states-v154/{table}',
+                'history_url' => '/admin/pos/history',
+                'transfer_url' => '/admin/pos/transfer',
             ],
         ];
     }
@@ -524,6 +526,531 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
         ]);
     }
 
+    /**
+     * PMD_QPOS_TRANSFER_V24
+     *
+     * Two intentionally different restaurant operations:
+     * - order: correct one check that was opened on the wrong table;
+     * - table: guests physically move, so every payable check moves together.
+     *
+     * Items/payments/invoices stay attached to the same order IDs. Only the
+     * canonical table reference changes.
+     */
+    public function transfer()
+    {
+        $payload = request()->json()->all() ?: request()->all();
+
+        $sourceId = (int)($payload['source_table_id'] ?? 0);
+        $targetId = (int)($payload['target_table_id'] ?? 0);
+        $scope = strtolower(trim((string)($payload['scope'] ?? 'order')));
+        $orderId = (int)($payload['order_id'] ?? 0);
+
+        if (!in_array($scope, ['order', 'table'], true)) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Choose check or whole table.',
+            ], 422);
+        }
+
+        if ($sourceId < 1 || $targetId < 1 || $sourceId === $targetId) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Choose a different destination table.',
+            ], 422);
+        }
+
+        $source = $this->resolveTable($sourceId);
+        $target = $this->resolveTable($targetId);
+
+        if (!$source || !$target) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Source or destination table was not found.',
+            ], 404);
+        }
+
+        $sourceLocation = (int)($source['location_id'] ?? 0);
+        $targetLocation = (int)($target['location_id'] ?? 0);
+
+        if (
+            $sourceLocation > 0
+            && $targetLocation > 0
+            && $sourceLocation !== $targetLocation
+        ) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Tables must belong to the same location.',
+            ], 422);
+        }
+
+        $sourceOrders = $this->quickPosOpenOrdersForTable($source);
+
+        if (!$sourceOrders) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'There are no open checks to move.',
+            ], 422);
+        }
+
+        if ($scope === 'order') {
+            if ($orderId < 1) {
+                return response()->json([
+                    'ok' => false,
+                    'message' => 'Choose a check to move.',
+                ], 422);
+            }
+
+            $selected = array_values(array_filter(
+                $sourceOrders,
+                static function (array $order) use ($orderId): bool {
+                    return (int)($order['order_id'] ?? 0) === $orderId;
+                }
+            ));
+
+            if (!$selected) {
+                return response()->json([
+                    'ok' => false,
+                    'message' => 'That check is no longer on this table.',
+                ], 409);
+            }
+
+            $orderIds = [$orderId];
+        } else {
+            $targetOrders = $this->quickPosOpenOrdersForTable($target);
+
+            if ($targetOrders) {
+                return response()->json([
+                    'ok' => false,
+                    'message' => 'Destination already has a check. Move one check instead.',
+                ], 409);
+            }
+
+            $targetStatus = $this->quickPosTransferTableStatus($targetId);
+
+            if (
+                $targetStatus !== ''
+                && !in_array(
+                    $targetStatus,
+                    ['available', 'reserved'],
+                    true
+                )
+            ) {
+                return response()->json([
+                    'ok' => false,
+                    'message' => 'Choose a free or reserved table for a whole-table move.',
+                ], 409);
+            }
+
+            $orderIds = array_values(array_unique(array_filter(array_map(
+                static fn (array $order): int =>
+                    (int)($order['order_id'] ?? 0),
+                $sourceOrders
+            ))));
+        }
+
+        if (!$orderIds) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'There are no checks to move.',
+            ], 422);
+        }
+
+        try {
+            $result = DB::transaction(function () use (
+                $source,
+                $target,
+                $sourceOrders,
+                $orderIds,
+                $scope
+            ) {
+                if (!Schema::hasTable('orders')) {
+                    throw new \RuntimeException('Orders table is unavailable.');
+                }
+
+                $columns = Schema::getColumnListing('orders');
+                $primaryKey = in_array('order_id', $columns, true)
+                    ? 'order_id'
+                    : (
+                        in_array('id', $columns, true)
+                            ? 'id'
+                            : null
+                    );
+
+                if (!$primaryKey) {
+                    throw new \RuntimeException('Order primary key is unavailable.');
+                }
+
+                $lockedQuery = DB::table('orders')
+                    ->whereIn($primaryKey, $orderIds);
+
+                $this->applyTableScope(
+                    $lockedQuery,
+                    $columns,
+                    $source
+                );
+
+                $lockedIds = $lockedQuery
+                    ->lockForUpdate()
+                    ->pluck($primaryKey)
+                    ->map(static fn ($id): int => (int)$id)
+                    ->filter()
+                    ->values()
+                    ->all();
+
+                sort($lockedIds);
+                $expectedIds = $orderIds;
+                sort($expectedIds);
+
+                if ($lockedIds !== $expectedIds) {
+                    return [
+                        'ok' => false,
+                        'http_status' => 409,
+                        'message' => 'One of the checks moved already. Refresh and try again.',
+                    ];
+                }
+
+                $updates = [];
+
+                foreach (
+                    ['table_id', 'dining_table_id', 'location_table_id']
+                    as $column
+                ) {
+                    if (in_array($column, $columns, true)) {
+                        $updates[$column] = (int)$target['id'];
+                    }
+                }
+
+                if (in_array('table_no', $columns, true)) {
+                    $updates['table_no'] = (string)$target['number'];
+                }
+
+                if (in_array('table_name', $columns, true)) {
+                    $updates['table_name'] = (string)$target['name'];
+                }
+
+                if (in_array('order_type', $columns, true)) {
+                    $updates['order_type'] = (string)(int)$target['id'];
+                }
+
+                if (in_array('updated_at', $columns, true)) {
+                    $updates['updated_at'] = date('Y-m-d H:i:s');
+                }
+
+                if (!$updates) {
+                    throw new \RuntimeException(
+                        'No canonical table reference exists on orders.'
+                    );
+                }
+
+                DB::table('orders')
+                    ->whereIn($primaryKey, $orderIds)
+                    ->update($updates);
+
+                $remainingSourceChecks = max(
+                    0,
+                    count($sourceOrders) - count($orderIds)
+                );
+
+                $sourceCurrentStatus =
+                    $this->quickPosTransferTableStatus(
+                        (int)$source['id']
+                    );
+
+                $sourceNext = $scope === 'table'
+                    ? 'cleaning'
+                    : (
+                        $remainingSourceChecks > 0
+                            ? ($sourceCurrentStatus ?: 'occupied')
+                            : 'available'
+                    );
+
+                $context = [
+                    'source_table_id' => (int)$source['id'],
+                    'target_table_id' => (int)$target['id'],
+                    'scope' => $scope,
+                    'order_ids' => $orderIds,
+                ];
+
+                $historyOrderId = count($orderIds) === 1
+                    ? (int)$orderIds[0]
+                    : null;
+
+                $sourceStatus = $this->quickPosTransferSetTableStatus(
+                    (int)$source['id'],
+                    $sourceNext,
+                    $scope === 'table'
+                        ? 'pos_table_moved_to_'.$target['id']
+                        : 'pos_check_moved_to_'.$target['id'],
+                    $historyOrderId,
+                    $context
+                );
+
+                $targetStatus = $this->quickPosTransferSetTableStatus(
+                    (int)$target['id'],
+                    'occupied',
+                    $scope === 'table'
+                        ? 'pos_table_moved_from_'.$source['id']
+                        : 'pos_check_moved_from_'.$source['id'],
+                    $historyOrderId,
+                    $context
+                );
+
+                return [
+                    'ok' => true,
+                    'moved_order_ids' => $orderIds,
+                    'source_table_id' => (int)$source['id'],
+                    'target_table_id' => (int)$target['id'],
+                    'source_status' => $sourceStatus,
+                    'target_status' => $targetStatus,
+                ];
+            });
+
+            $status = (int)($result['http_status'] ?? 200);
+            unset($result['http_status']);
+
+            if (empty($result['ok'])) {
+                return response()->json($result, $status);
+            }
+
+            $count = count((array)($result['moved_order_ids'] ?? []));
+
+            $result['message'] = $scope === 'table'
+                ? 'Table moved to '.$this->quickPosTransferTableLabel($target).'.'
+                : 'Check #'.(int)$orderIds[0].' moved to '.$this->quickPosTransferTableLabel($target).'.';
+
+            $result['moved_count'] = $count;
+
+            return response()->json($result);
+        } catch (\Throwable $error) {
+            report($error);
+
+            return response()->json([
+                'ok' => false,
+                'message' => 'Could not move the check. Please try again.',
+            ], 500);
+        }
+    }
+
+    protected function quickPosTransferTableLabel(array $table): string
+    {
+        $number = trim((string)($table['number'] ?? ''));
+
+        return $number !== ''
+            ? 'table '.$number
+            : 'table '.(int)($table['id'] ?? 0);
+    }
+
+    protected function quickPosTransferTableStatus(int $tableId): string
+    {
+        if (
+            $tableId < 1
+            || !Schema::hasTable('tables')
+            || !Schema::hasColumn('tables', 'operational_status')
+        ) {
+            return '';
+        }
+
+        $columns = Schema::getColumnListing('tables');
+        $primaryKey = in_array('table_id', $columns, true)
+            ? 'table_id'
+            : (
+                in_array('id', $columns, true)
+                    ? 'id'
+                    : null
+            );
+
+        if (!$primaryKey) {
+            return '';
+        }
+
+        return $this->quickPosNormalizeTableStatus(
+            (string)(
+                DB::table('tables')
+                    ->where($primaryKey, $tableId)
+                    ->value('operational_status')
+                ?? 'available'
+            )
+        );
+    }
+
+    protected function quickPosTransferSetTableStatus(
+        int $tableId,
+        string $next,
+        string $reason,
+        ?int $orderId,
+        array $context
+    ): string {
+        if (
+            $tableId < 1
+            || !Schema::hasTable('tables')
+        ) {
+            return $next;
+        }
+
+        $columns = Schema::getColumnListing('tables');
+        $primaryKey = in_array('table_id', $columns, true)
+            ? 'table_id'
+            : (
+                in_array('id', $columns, true)
+                    ? 'id'
+                    : null
+            );
+
+        if (!$primaryKey) {
+            return $next;
+        }
+
+        $row = DB::table('tables')
+            ->where($primaryKey, $tableId)
+            ->lockForUpdate()
+            ->first();
+
+        if (!$row) {
+            return $next;
+        }
+
+        $raw = (array)$row;
+        $old = $this->quickPosNormalizeTableStatus(
+            (string)($raw['operational_status'] ?? 'available')
+        );
+
+        if (
+            in_array('operational_status', $columns, true)
+            && $old !== $next
+        ) {
+            $updates = [
+                'operational_status' => $next,
+            ];
+
+            if (
+                in_array(
+                    'operational_status_updated_at',
+                    $columns,
+                    true
+                )
+            ) {
+                $updates['operational_status_updated_at'] =
+                    date('Y-m-d H:i:s');
+            }
+
+            if (
+                in_array(
+                    'operational_status_updated_by',
+                    $columns,
+                    true
+                )
+            ) {
+                $updates['operational_status_updated_by'] =
+                    $this->currentUserId();
+            }
+
+            if (in_array('updated_at', $columns, true)) {
+                $updates['updated_at'] = date('Y-m-d H:i:s');
+            }
+
+            DB::table('tables')
+                ->where($primaryKey, $tableId)
+                ->update($updates);
+
+            $this->quickPosWriteTransferHistory(
+                $tableId,
+                $old,
+                $next,
+                $reason,
+                $orderId,
+                $context
+            );
+        }
+
+        return $next;
+    }
+
+    protected function quickPosWriteTransferHistory(
+        int $tableId,
+        string $old,
+        string $new,
+        string $reason,
+        ?int $orderId,
+        array $context
+    ): void {
+        $historyTable = null;
+
+        foreach (
+            ['pmd_table_status_history', 'ti_pmd_table_status_history']
+            as $candidate
+        ) {
+            if (Schema::hasTable($candidate)) {
+                $historyTable = $candidate;
+                break;
+            }
+        }
+
+        if (!$historyTable) {
+            return;
+        }
+
+        $columns = Schema::getColumnListing($historyTable);
+
+        $row = array_intersect_key([
+            'table_id' => $tableId,
+            'old_status' => $old,
+            'new_status' => $new,
+            'reason' => substr($reason, 0, 100),
+            'actor_id' => $this->currentUserId(),
+            'order_id' => $orderId,
+            'context' => json_encode($context),
+            'created_at' => date('Y-m-d H:i:s'),
+            'updated_at' => date('Y-m-d H:i:s'),
+        ], array_flip($columns));
+
+        if ($row) {
+            DB::table($historyTable)->insert($row);
+        }
+    }
+
+    /**
+     * PMD_QPOS_PARTIAL_PAYMENT_SCOPE_V1
+     *
+     * Partial payments lock structural order edits, but the check must remain
+     * visible in Quick POS until its remaining balance is fully settled.
+     */
+    protected function applyQuickPosPayableScope($query, array $columns): void
+    {
+        $cancelled = array_values(array_filter(array_map('intval', [
+            setting('canceled_order_status'),
+        ])));
+
+        if ($cancelled && in_array('status_id', $columns, true)) {
+            $query->whereNotIn('status_id', $cancelled);
+        }
+
+        if (in_array('settlement_status', $columns, true)) {
+            $query->where(function ($q) {
+                $q->whereNull('settlement_status')
+                    ->orWhereNotIn('settlement_status', [
+                        'paid',
+                        'settled',
+                        'closed',
+                        'cancelled',
+                        'canceled',
+                        'refunded',
+                    ]);
+            });
+        } elseif (in_array('payment_status', $columns, true)) {
+            $query->where(function ($q) {
+                $q->whereNull('payment_status')
+                    ->orWhereNotIn('payment_status', [
+                        'paid',
+                        'settled',
+                        'closed',
+                        'cancelled',
+                        'canceled',
+                        'refunded',
+                    ]);
+            });
+        }
+    }
+
     protected function quickPosOpenOrdersForTable(array $table): array
     {
         if (!Schema::hasTable('orders')) {
@@ -534,7 +1061,7 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
         $query = DB::table('orders');
 
         $this->applyTableScope($query, $columns, $table);
-        $this->applyOpenScope($query, $columns);
+        $this->applyQuickPosPayableScope($query, $columns);
 
         $primaryKey = in_array('order_id', $columns, true)
             ? 'order_id'
@@ -644,6 +1171,13 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 'payment' => (string)($raw['payment'] ?? ''),
                 'settlement_status' => (string)($raw['settlement_status'] ?? 'unpaid'),
                 'settled_amount' => (float)($raw['settled_amount'] ?? 0),
+                'structural_locked' =>
+                    (float)($raw['settled_amount'] ?? 0) > 0.0001
+                    || in_array(
+                        strtolower(trim((string)($raw['settlement_status'] ?? ''))),
+                        ['partial', 'paid', 'settled', 'closed', 'refunded'],
+                        true
+                    ),
                 'total' => (float)($raw['order_total'] ?? $raw['total'] ?? 0),
                 'total_items' => (int)($raw['total_items'] ?? 0),
                 'guest_count' => max(1, (int)($raw['guest_count'] ?? 1)),
@@ -936,10 +1470,724 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
         }
     }
 
+    /**
+     * PMD_QPOS_HISTORY_V1
+     * PMD_QPOS_HISTORY_STRUCTURED_V20
+     *
+     * Compact, schema-safe operational history for the POS. It intentionally
+     * reads existing canonical order/payment/note/status tables only; no new
+     * audit store is introduced.
+     */
+    public function history()
+    {
+        $scope = strtolower(trim((string)request()->query('scope', 'selected')));
+        $tableId = max(0, (int)request()->query('table_id', 0));
+        $limit = max(20, min(500, (int)request()->query('limit', 160)));
+        $fromRaw = trim((string)request()->query('from', ''));
+        $toRaw = trim((string)request()->query('to', ''));
+        $fromDate = preg_match('/^\\d{4}-\\d{2}-\\d{2}$/', $fromRaw)
+            ? $fromRaw
+            : '';
+        $toDate = preg_match('/^\\d{4}-\\d{2}-\\d{2}$/', $toRaw)
+            ? $toRaw
+            : '';
+        $locationId = $this->quickPosLocationId();
+        $entries = [];
+        $orderIds = [];
+        $scopeLabel = 'All history';
+
+        if (!Schema::hasTable('orders')) {
+            return response()->json([
+                'ok' => true,
+                'version' => 'pmd-qpos-history-v1',
+                'scope' => $scope,
+                'scope_label' => $scopeLabel,
+                'entries' => [],
+            ]);
+        }
+
+        $orderColumns = Schema::getColumnListing('orders');
+        $primaryKey = in_array('order_id', $orderColumns, true)
+            ? 'order_id'
+            : 'id';
+
+        $query = DB::table('orders');
+
+        if ($locationId > 0 && in_array('location_id', $orderColumns, true)) {
+            $query->where('location_id', $locationId);
+        }
+
+        if ($scope === 'table' && $tableId > 0) {
+            $table = $this->resolveTable($tableId);
+            if ($table) {
+                $this->applyTableScope($query, $orderColumns, $table);
+                $scopeLabel = 'Table '.(string)($table['number'] ?? $tableId);
+            } else {
+                $query->whereRaw('1 = 0');
+                $scopeLabel = 'Selected table';
+            }
+        } elseif ($scope === 'pickup') {
+            if (in_array('order_type', $orderColumns, true)) {
+                $query->where('order_type', Orders_model::COLLECTION);
+            } else {
+                $query->whereRaw('1 = 0');
+            }
+            $scopeLabel = 'Pickup';
+        } else {
+            $scope = 'all';
+            $scopeLabel = 'All history';
+        }
+
+        $orderSort = in_array('created_at', $orderColumns, true)
+            ? 'created_at'
+            : $primaryKey;
+
+        if ($orderSort !== $primaryKey) {
+            if ($fromDate !== '') {
+                $query->where($orderSort, '>=', $fromDate.' 00:00:00');
+            }
+            if ($toDate !== '') {
+                $query->where($orderSort, '<=', $toDate.' 23:59:59');
+            }
+        }
+
+        $orders = $query
+            ->orderByDesc($orderSort)
+            ->limit(min(500, $limit))
+            ->get();
+
+        $orderIds = $orders
+            ->map(function ($row) use ($primaryKey) {
+                return (int)($row->order_id ?? $row->id ?? $row->{$primaryKey} ?? 0);
+            })
+            ->filter()
+            ->values()
+            ->all();
+
+        $itemsByOrder = collect();
+        if ($orderIds && Schema::hasTable('order_menus')) {
+            $itemColumns = Schema::getColumnListing('order_menus');
+            if (in_array('order_id', $itemColumns, true)) {
+                $itemsByOrder = DB::table('order_menus')
+                    ->whereIn('order_id', $orderIds)
+                    ->orderBy('order_id')
+                    ->get()
+                    ->groupBy(function ($row) {
+                        return (int)($row->order_id ?? 0);
+                    });
+            }
+        }
+
+        $statusNames = [];
+        if (
+            Schema::hasTable('statuses')
+            && Schema::hasColumn('statuses', 'status_id')
+            && Schema::hasColumn('statuses', 'status_name')
+        ) {
+            $statusNames = DB::table('statuses')
+                ->pluck('status_name', 'status_id')
+                ->mapWithKeys(function ($name, $id) {
+                    return [(int)$id => (string)$name];
+                })
+                ->all();
+        }
+
+        $money = function ($value): string {
+            return $this->currencySymbol().number_format(
+                (float)$value,
+                2,
+                '.',
+                ''
+            );
+        };
+
+        foreach ($orders as $order) {
+            $raw = (array)$order;
+            $orderId = (int)($raw['order_id'] ?? $raw['id'] ?? $raw[$primaryKey] ?? 0);
+            if ($orderId < 1) {
+                continue;
+            }
+
+            $parts = [];
+            $statusId = (int)($raw['status_id'] ?? 0);
+            $statusName = trim((string)($statusNames[$statusId] ?? ''));
+            if ($statusName !== '') {
+                $parts[] = $statusName;
+            }
+
+            $total = (float)($raw['order_total'] ?? $raw['total'] ?? 0);
+            if ($total > 0) {
+                $parts[] = $money($total);
+            }
+
+            $settlement = trim((string)($raw['settlement_status'] ?? ''));
+            if ($settlement !== '') {
+                $parts[] = ucfirst($settlement);
+            }
+
+            $itemRows = collect($itemsByOrder->get($orderId, collect()));
+            $itemSummary = '';
+            $itemCount = (int)$itemRows->count();
+            if ($itemRows->isNotEmpty()) {
+                $summary = $itemRows
+                    ->take(6)
+                    ->map(function ($item) {
+                        return max(1, (int)($item->quantity ?? 1))
+                            .'× '.trim((string)($item->name ?? 'Item'));
+                    })
+                    ->filter()
+                    ->implode(', ');
+                if ($itemRows->count() > 6) {
+                    $summary .= ' +'.($itemRows->count() - 6);
+                }
+                if ($summary !== '') {
+                    $itemSummary = $summary;
+                    $parts[] = $summary;
+                }
+            }
+
+            $comment = $this->quickPosVisibleNote(
+                (string)($raw['comment'] ?? '')
+            );
+            if ($comment !== '') {
+                $parts[] = 'Note: '.$comment;
+            }
+
+            $invoicePrefix = trim((string)($raw['invoice_prefix'] ?? ''));
+            $invoiceNumber = $invoicePrefix !== ''
+                ? $invoicePrefix.$orderId
+                : '';
+
+            $entries[] = [
+                'kind' => 'order',
+                'time' => (string)($raw['updated_at'] ?? $raw['created_at'] ?? ''),
+                'title' => 'Order #'.$orderId,
+                'detail' => implode(' · ', $parts),
+                'order_id' => $orderId,
+                'total' => $total,
+                'status' => $statusName,
+                'settlement_status' => $settlement,
+                'invoice_number' => $invoiceNumber,
+                'invoice_url' => '/admin/orders/invoice/'.$orderId,
+                'item_count' => $itemCount,
+                'item_summary' => $itemSummary,
+                'note' => $comment,
+            ];
+
+            foreach ($itemRows as $item) {
+                $note = $this->quickPosVisibleNote(
+                    (string)($item->comment ?? '')
+                );
+                if ($note === '') {
+                    continue;
+                }
+                $entries[] = [
+                    'kind' => 'item_note',
+                    'time' => (string)($item->updated_at ?? $item->created_at ?? $raw['updated_at'] ?? ''),
+                    'title' => 'Item note · '.trim((string)($item->name ?? 'Item')),
+                    'detail' => $note,
+                    'order_id' => $orderId,
+                ];
+            }
+        }
+
+        if ($orderIds && Schema::hasTable('order_notes')) {
+            $cols = Schema::getColumnListing('order_notes');
+            if (in_array('order_id', $cols, true)) {
+                $rows = DB::table('order_notes')
+                    ->whereIn('order_id', $orderIds)
+                    ->orderByDesc(
+                        in_array('created_at', $cols, true)
+                            ? 'created_at'
+                            : (in_array('id', $cols, true) ? 'id' : 'order_id')
+                    )
+                    ->limit($limit)
+                    ->get();
+
+                foreach ($rows as $row) {
+                    $raw = (array)$row;
+                    $note = trim((string)($raw['note'] ?? $raw['comment'] ?? ''));
+                    if ($note === '') {
+                        continue;
+                    }
+                    $entries[] = [
+                        'kind' => 'note',
+                        'time' => (string)($raw['created_at'] ?? $raw['updated_at'] ?? ''),
+                        'title' => 'Order note · #'.(int)($raw['order_id'] ?? 0),
+                        'detail' => $note,
+                        'order_id' => (int)($raw['order_id'] ?? 0),
+                    ];
+                }
+            }
+        }
+
+        if ($orderIds && Schema::hasTable('order_payment_transactions')) {
+            $cols = Schema::getColumnListing('order_payment_transactions');
+            if (in_array('order_id', $cols, true)) {
+                $rows = DB::table('order_payment_transactions')
+                    ->whereIn('order_id', $orderIds)
+                    ->orderByDesc(
+                        in_array('paid_at', $cols, true)
+                            ? 'paid_at'
+                            : (in_array('created_at', $cols, true) ? 'created_at' : 'id')
+                    )
+                    ->limit($limit)
+                    ->get();
+
+                foreach ($rows as $row) {
+                    $raw = (array)$row;
+                    $parts = [
+                        ucfirst(str_replace('_', ' ', (string)($raw['payment_method'] ?? 'Payment'))),
+                        $money((float)($raw['amount'] ?? 0)),
+                    ];
+                    $tip = (float)($raw['tip_amount'] ?? 0);
+                    if ($tip > 0) {
+                        $parts[] = 'Tip '.$money($tip);
+                    }
+                    if (array_key_exists('cash_received', $raw) && $raw['cash_received'] !== null) {
+                        $parts[] = 'Cash '.$money((float)$raw['cash_received']);
+                    }
+                    $change = (float)($raw['change_due'] ?? 0);
+                    if ($change > 0) {
+                        $parts[] = 'Change '.$money($change);
+                    }
+                    $payer = trim((string)($raw['payer_label'] ?? ''));
+                    if ($payer !== '') {
+                        $parts[] = $payer;
+                    }
+                    $reference = trim((string)($raw['payment_reference'] ?? ''));
+                    if ($reference !== '') {
+                        $parts[] = 'Ref '.$reference;
+                    }
+                    $paymentNote = trim((string)($raw['notes'] ?? ''));
+                    if ($paymentNote !== '') {
+                        $parts[] = 'Note: '.$paymentNote;
+                    }
+                    $transactionId = (int)(
+                        $raw['id']
+                        ?? $raw['transaction_id']
+                        ?? 0
+                    );
+
+                    $entries[] = [
+                        'kind' => 'payment',
+                        'time' => (string)($raw['paid_at'] ?? $raw['created_at'] ?? ''),
+                        'title' => 'Payment · Order #'.(int)($raw['order_id'] ?? 0),
+                        'detail' => implode(' · ', $parts),
+                        'order_id' => (int)($raw['order_id'] ?? 0),
+                        'payment_method' => (string)($raw['payment_method'] ?? ''),
+                        'amount' => (float)($raw['amount'] ?? 0),
+                        'tip_amount' => $tip,
+                        'cash_received' => array_key_exists('cash_received', $raw)
+                            && $raw['cash_received'] !== null
+                                ? (float)$raw['cash_received']
+                                : null,
+                        'change_due' => $change,
+                        'payer_label' => $payer,
+                        'payment_reference' => $reference,
+                        'payment_note' => $paymentNote,
+                        'transaction_id' => $transactionId ?: null,
+                        'receipt_url' => $transactionId > 0
+                            ? '/admin/orders/split-receipt/'.$transactionId
+                            : null,
+                        'invoice_url' => $transactionId > 0
+                            ? '/admin/orders/split-invoice/'.$transactionId
+                            : null,
+                    ];
+                }
+            }
+        }
+
+        if ($orderIds && Schema::hasTable('payment_attempts')) {
+            $cols = Schema::getColumnListing('payment_attempts');
+            if (in_array('order_id', $cols, true)) {
+                $rows = DB::table('payment_attempts')
+                    ->whereIn('order_id', $orderIds)
+                    ->orderByDesc(in_array('created_at', $cols, true) ? 'created_at' : 'id')
+                    ->limit(min(50, $limit))
+                    ->get();
+
+                foreach ($rows as $row) {
+                    $raw = (array)$row;
+                    $parts = [
+                        ucfirst(str_replace('_', ' ', (string)($raw['provider_code'] ?? 'Terminal'))),
+                        $money((float)($raw['amount'] ?? 0)),
+                        ucfirst(str_replace('_', ' ', (string)($raw['status'] ?? ''))),
+                    ];
+                    $error = trim((string)($raw['error_message'] ?? ''));
+                    if ($error !== '') {
+                        $parts[] = $error;
+                    }
+                    $entries[] = [
+                        'kind' => 'terminal',
+                        'time' => (string)($raw['updated_at'] ?? $raw['created_at'] ?? ''),
+                        'title' => 'Terminal · Order #'.(int)($raw['order_id'] ?? 0),
+                        'detail' => implode(' · ', array_filter($parts)),
+                        'order_id' => (int)($raw['order_id'] ?? 0),
+                    ];
+                }
+            }
+        }
+
+        if ($orderIds && Schema::hasTable('status_history')) {
+            $cols = Schema::getColumnListing('status_history');
+            if (in_array('object_id', $cols, true)) {
+                $statusQuery = DB::table('status_history')
+                    ->whereIn('object_id', $orderIds);
+
+                if (in_array('object_type', $cols, true)) {
+                    try {
+                        $statusQuery->where(
+                            'object_type',
+                            Orders_model::make()->getMorphClass()
+                        );
+                    } catch (\Throwable $ignored) {
+                    }
+                }
+
+                $rows = $statusQuery
+                    ->orderByDesc(in_array('created_at', $cols, true) ? 'created_at' : 'status_history_id')
+                    ->limit($limit)
+                    ->get();
+
+                foreach ($rows as $row) {
+                    $raw = (array)$row;
+                    $statusId = (int)($raw['status_id'] ?? 0);
+                    $detail = trim((string)($raw['comment'] ?? ''));
+                    $statusName = trim((string)($statusNames[$statusId] ?? ''));
+                    if ($statusName !== '') {
+                        $detail = $statusName.($detail !== '' ? ' · '.$detail : '');
+                    }
+                    $entries[] = [
+                        'kind' => 'status',
+                        'time' => (string)($raw['created_at'] ?? $raw['updated_at'] ?? ''),
+                        'title' => 'Status · Order #'.(int)($raw['object_id'] ?? 0),
+                        'detail' => $detail,
+                        'order_id' => (int)($raw['object_id'] ?? 0),
+                        'status_name' => $statusName,
+                        'status_comment' => trim((string)($raw['comment'] ?? '')),
+                    ];
+                }
+            }
+        }
+
+        if ($scope !== 'pickup' && Schema::hasTable('table_notes')) {
+            $cols = Schema::getColumnListing('table_notes');
+            if (in_array('table_id', $cols, true)) {
+                $tableNoteQuery = DB::table('table_notes');
+
+                if ($scope === 'table' && $tableId > 0) {
+                    $tableNoteQuery->where('table_id', $tableId);
+                } elseif ($scope === 'all') {
+                    $locationTableIds = array_values(array_filter(array_map(
+                        'intval',
+                        array_column(
+                            $this->quickPosTables($locationId, [], '', false),
+                            'id'
+                        )
+                    )));
+
+                    if ($locationTableIds) {
+                        $tableNoteQuery->whereIn('table_id', $locationTableIds);
+                    } else {
+                        $tableNoteQuery->whereRaw('1 = 0');
+                    }
+                }
+
+                $timeColumn = in_array('created_at', $cols, true)
+                    ? 'created_at'
+                    : (
+                        in_array('timestamp', $cols, true)
+                            ? 'timestamp'
+                            : null
+                    );
+
+                if ($timeColumn) {
+                    if ($fromDate !== '') {
+                        $tableNoteQuery->where(
+                            $timeColumn,
+                            '>=',
+                            $fromDate.' 00:00:00'
+                        );
+                    }
+                    if ($toDate !== '') {
+                        $tableNoteQuery->where(
+                            $timeColumn,
+                            '<=',
+                            $toDate.' 23:59:59'
+                        );
+                    }
+                }
+
+                $rows = $tableNoteQuery
+                    ->orderByDesc(
+                        $timeColumn
+                            ?: (in_array('id', $cols, true) ? 'id' : 'table_id')
+                    )
+                    ->limit(min(180, $limit))
+                    ->get();
+
+                foreach ($rows as $row) {
+                    $raw = (array)$row;
+                    $note = trim((string)(
+                        $raw['note']
+                        ?? $raw['message']
+                        ?? ''
+                    ));
+                    if ($note === '') {
+                        continue;
+                    }
+
+                    $noteTableId = (int)($raw['table_id'] ?? 0);
+                    $entries[] = [
+                        'kind' => 'table_note',
+                        'time' => (string)(
+                            $raw['created_at']
+                            ?? $raw['timestamp']
+                            ?? $raw['updated_at']
+                            ?? ''
+                        ),
+                        'title' => $noteTableId > 0
+                            ? 'Table note · Table '.$noteTableId
+                            : 'Table note',
+                        'detail' => $note,
+                        'order_id' => isset($raw['order_id'])
+                            ? (int)$raw['order_id']
+                            : null,
+                        'table_id' => $noteTableId ?: null,
+                    ];
+                }
+            }
+        }
+
+        /* PMD_QPOS_HISTORY_NOTIFICATIONS_V15
+         * Waiter calls and table notes are first-class history events. */
+        if ($scope !== 'pickup' && Schema::hasTable('notifications')) {
+            $cols = Schema::getColumnListing('notifications');
+            if (
+                in_array('table_id', $cols, true)
+                && in_array('type', $cols, true)
+            ) {
+                $notificationQuery = DB::table('notifications')
+                    ->whereIn('type', ['waiter_call', 'table_note']);
+
+                if ($scope === 'table' && $tableId > 0) {
+                    $notificationQuery->where('table_id', $tableId);
+                } elseif ($scope === 'all') {
+                    $locationTableIds = array_values(array_filter(array_map(
+                        'intval',
+                        array_column($this->quickPosTables($locationId, [], '', false), 'id')
+                    )));
+                    if ($locationTableIds) {
+                        $notificationQuery->whereIn('table_id', $locationTableIds);
+                    } else {
+                        $notificationQuery->whereRaw('1 = 0');
+                    }
+                }
+
+                if (in_array('created_at', $cols, true)) {
+                    if ($fromDate !== '') {
+                        $notificationQuery->where(
+                            'created_at',
+                            '>=',
+                            $fromDate.' 00:00:00'
+                        );
+                    }
+                    if ($toDate !== '') {
+                        $notificationQuery->where(
+                            'created_at',
+                            '<=',
+                            $toDate.' 23:59:59'
+                        );
+                    }
+                }
+
+                $rows = $notificationQuery
+                    ->orderByDesc(
+                        in_array('created_at', $cols, true)
+                            ? 'created_at'
+                            : (
+                                in_array('notification_id', $cols, true)
+                                    ? 'notification_id'
+                                    : 'table_id'
+                            )
+                    )
+                    ->limit(min(160, $limit))
+                    ->get();
+
+                foreach ($rows as $row) {
+                    $raw = (array)$row;
+                    $type = strtolower(trim((string)($raw['type'] ?? '')));
+                    $title = trim((string)($raw['title'] ?? ''));
+                    $message = trim((string)($raw['message'] ?? ''));
+                    $notificationTableId = (int)($raw['table_id'] ?? 0);
+
+                    $entries[] = [
+                        'kind' => $type === 'waiter_call'
+                            ? 'waiter_call'
+                            : 'table_note',
+                        'time' => (string)(
+                            $raw['created_at']
+                            ?? $raw['updated_at']
+                            ?? ''
+                        ),
+                        'title' => $title !== ''
+                            ? $title
+                            : (
+                                $type === 'waiter_call'
+                                    ? 'Waiter call · Table '.$notificationTableId
+                                    : 'Table note · Table '.$notificationTableId
+                            ),
+                        'detail' => $message,
+                        'order_id' => null,
+                        'table_id' => $notificationTableId,
+                        'status' => (string)($raw['status'] ?? ''),
+                        'priority' => (string)($raw['priority'] ?? ''),
+                    ];
+                }
+            }
+        }
+
+        $tableStatusTable = null;
+        foreach (['pmd_table_status_history', 'ti_pmd_table_status_history'] as $candidate) {
+            if (Schema::hasTable($candidate)) {
+                $tableStatusTable = $candidate;
+                break;
+            }
+        }
+
+        if ($tableStatusTable && $scope !== 'pickup') {
+            $cols = Schema::getColumnListing($tableStatusTable);
+            if (in_array('table_id', $cols, true)) {
+                $tableStatusQuery = DB::table($tableStatusTable);
+                if ($scope === 'table' && $tableId > 0) {
+                    $tableStatusQuery->where('table_id', $tableId);
+                } elseif ($scope === 'all') {
+                    $locationTableIds = array_values(array_filter(array_map(
+                        'intval',
+                        array_column(
+                            $this->quickPosTables($locationId, [], '', false),
+                            'id'
+                        )
+                    )));
+
+                    if ($locationTableIds) {
+                        $tableStatusQuery->whereIn(
+                            'table_id',
+                            $locationTableIds
+                        );
+                    } else {
+                        $tableStatusQuery->whereRaw('1 = 0');
+                    }
+                }
+
+                $rows = $tableStatusQuery
+                    ->orderByDesc(
+                        in_array('created_at', $cols, true)
+                            ? 'created_at'
+                            : 'id'
+                    )
+                    ->limit(min(240, $limit))
+                    ->get();
+
+                foreach ($rows as $row) {
+                    $raw = (array)$row;
+                    $old = ucfirst(str_replace('_', ' ', (string)($raw['old_status'] ?? '')));
+                    $new = ucfirst(str_replace('_', ' ', (string)($raw['new_status'] ?? '')));
+                    $reason = trim((string)($raw['reason'] ?? ''));
+                    $detail = trim($old.' → '.$new);
+                    if ($reason !== '') {
+                        $detail .= ' · '.$reason;
+                    }
+
+                    $entries[] = [
+                        'kind' => 'table_status',
+                        'time' => (string)($raw['created_at'] ?? $raw['updated_at'] ?? ''),
+                        'title' => 'Table '.(int)($raw['table_id'] ?? 0).' · status',
+                        'detail' => $detail,
+                        'order_id' => isset($raw['order_id'])
+                            ? (int)$raw['order_id']
+                            : null,
+                        'table_id' => (int)($raw['table_id'] ?? 0),
+                        'old_status' => (string)($raw['old_status'] ?? ''),
+                        'new_status' => (string)($raw['new_status'] ?? ''),
+                        'reason' => $reason,
+                    ];
+                }
+            }
+        }
+
+        $fromTs = $fromDate !== ''
+            ? (strtotime($fromDate.' 00:00:00') ?: 0)
+            : 0;
+        $toTs = $toDate !== ''
+            ? (strtotime($toDate.' 23:59:59') ?: PHP_INT_MAX)
+            : PHP_INT_MAX;
+
+        if ($fromTs > 0 || $toTs < PHP_INT_MAX) {
+            $entries = array_values(array_filter(
+                $entries,
+                static function (array $entry) use ($fromTs, $toTs): bool {
+                    $time = strtotime((string)($entry['time'] ?? '')) ?: 0;
+                    if ($time <= 0) {
+                        return false;
+                    }
+                    return $time >= $fromTs && $time <= $toTs;
+                }
+            ));
+        }
+
+        usort($entries, function (array $a, array $b): int {
+            return (strtotime((string)($b['time'] ?? '')) ?: 0)
+                <=> (strtotime((string)($a['time'] ?? '')) ?: 0);
+        });
+
+        return response()->json([
+            'ok' => true,
+            'version' => 'pmd-qpos-history-v15',
+            'scope' => $scope,
+            'scope_label' => $scopeLabel,
+            'from' => $fromDate,
+            'to' => $toDate,
+            'entries' => array_slice($entries, 0, $limit),
+        ]);
+    }
+
+    protected function quickPosProfilePayload(): array
+    {
+        $user = $this->currentUser();
+        $role = $this->quickPosRoleCode();
+        $landing = '';
+
+        try {
+            $landing = (string)(
+                app(PmdRoleLandingService::class)->routeFor($user)
+                ?: ''
+            );
+        } catch (\Throwable $ignored) {
+        }
+
+        $canReturn = $landing !== ''
+            && !in_array($landing, ['pos', 'pos/waiter'], true);
+
+        return [
+            'name' => $user
+                ? (string)($user->name ?? $user->username ?? $user->email ?? 'Staff')
+                : 'Staff',
+            'role' => $role,
+            'logout_url' => admin_url('logout'),
+            'dashboard_url' => $canReturn
+                ? admin_url($landing)
+                : null,
+            'can_return_dashboard' => $canReturn,
+        ];
+    }
+
     protected function quickPosTables(
         int $locationId,
         array $floorSnapshot = [],
-        string $defaultFloorId = ''
+        string $defaultFloorId = '',
+        bool $withSignals = true
     ): array {
         try {
             $assignments = (array)(
@@ -991,6 +2239,13 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 'max_capacity',
                 'operational_status',
                 'location_id',
+                'floor_x',
+                'floor_y',
+                'floor_width',
+                'floor_height',
+                'floor_shape',
+                'visible_on_floor_plan',
+                'table_section',
             ], $columns));
 
             $query = Tables_model::query();
@@ -1034,6 +2289,14 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                         ?? $row->table_number
                         ?? $id
                     );
+                    $number = trim((string)(
+                        preg_replace('/^table\\s*/iu', '', $number)
+                        ?? $number
+                    ));
+                    if ($number === '') {
+                        $number = (string)$id;
+                    }
+
                     $name = trim((string)(
                         $row->table_name
                         ?? $row->name
@@ -1048,6 +2311,27 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                     if ($floorId === '') {
                         $floorId = $defaultFloorId;
                     }
+
+                    /* PMD_QPOS_FLOOR_MAP_V25
+                     * Reuse the same physical table coordinates that power the
+                     * shared Cashier/Dashboard/Reservations floor surfaces.
+                     * No second floor-layout authority is introduced here. */
+                    $floorX = isset($row->floor_x)
+                        && is_numeric($row->floor_x)
+                            ? (float)$row->floor_x
+                            : null;
+                    $floorY = isset($row->floor_y)
+                        && is_numeric($row->floor_y)
+                            ? (float)$row->floor_y
+                            : null;
+                    $floorWidth = isset($row->floor_width)
+                        && is_numeric($row->floor_width)
+                            ? max(72.0, (float)$row->floor_width)
+                            : 170.0;
+                    $floorHeight = isset($row->floor_height)
+                        && is_numeric($row->floor_height)
+                            ? max(58.0, (float)$row->floor_height)
+                            : 88.0;
 
                     return [
                         'id' => $id,
@@ -1065,6 +2349,21 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                             $floorNames[$floorId]
                             ?? 'Main Floor'
                         ),
+                        'floor_x' => $floorX,
+                        'floor_y' => $floorY,
+                        'floor_width' => $floorWidth,
+                        'floor_height' => $floorHeight,
+                        'floor_shape' => trim((string)(
+                            $row->floor_shape
+                            ?? 'rectangle'
+                        )) ?: 'rectangle',
+                        'visible_on_floor_plan' => !isset(
+                            $row->visible_on_floor_plan
+                        ) || (bool)$row->visible_on_floor_plan,
+                        'section' => trim((string)(
+                            $row->table_section
+                            ?? ''
+                        )),
                         'status' => $this->quickPosNormalizeTableStatus(
                             (string)($row->operational_status ?? 'available')
                         ),
@@ -1082,11 +2381,254 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
              * table into Busy. The selected table payload still exposes its
              * open checks separately in the right-hand check panel.
              */
-            return $tables;
+            return $withSignals
+                ? $this->quickPosDecorateTableSignals($tables, $locationId)
+                : $tables;
         } catch (\Throwable $error) {
             report($error);
             return [];
         }
+    }
+
+    /**
+     * PMD_QPOS_TABLE_SIGNALS_V15
+     *
+     * Tiny cashier-facing signals only. Physical status remains authoritative;
+     * payment/note/call signals never change Free/Busy/Clean/Reserved.
+     */
+    protected function quickPosDecorateTableSignals(
+        array $tables,
+        int $locationId
+    ): array {
+        if (!$tables) {
+            return [];
+        }
+
+        $indexByKey = [];
+        $tableById = [];
+        $signals = [];
+
+        foreach ($tables as $index => $table) {
+            $id = (int)($table['id'] ?? 0);
+            if ($id < 1) {
+                continue;
+            }
+
+            $signals[$id] = [
+                'payment_state' => 'none',
+                'due_amount' => 0.0,
+                'waiter_calls' => 0,
+                'note_count' => 0,
+            ];
+            $tableById[$id] = $table;
+
+            $number = strtolower(trim((string)($table['number'] ?? '')));
+            $name = strtolower(trim((string)($table['name'] ?? '')));
+
+            foreach (array_unique(array_filter([
+                (string)$id,
+                $number,
+                $name,
+                $number !== '' ? 'table '.$number : '',
+            ])) as $key) {
+                if (!isset($indexByKey[$key])) {
+                    $indexByKey[$key] = $id;
+                }
+            }
+        }
+
+        try {
+            if (Schema::hasTable('orders')) {
+                $cols = Schema::getColumnListing('orders');
+                $primaryKey = in_array('order_id', $cols, true)
+                    ? 'order_id'
+                    : (in_array('id', $cols, true) ? 'id' : null);
+
+                if ($primaryKey && in_array('order_type', $cols, true)) {
+                    $select = array_values(array_intersect([
+                        $primaryKey,
+                        'order_type',
+                        'order_total',
+                        'total',
+                        'settled_amount',
+                        'settlement_status',
+                        'payment_status',
+                        'comment',
+                        'created_at',
+                        'updated_at',
+                        'location_id',
+                    ], $cols));
+
+                    $query = DB::table('orders');
+
+                    if (
+                        $locationId > 0
+                        && in_array('location_id', $cols, true)
+                    ) {
+                        $query->where('location_id', $locationId);
+                    }
+
+                    if (in_array('created_at', $cols, true)) {
+                        $query->where(
+                            'created_at',
+                            '>=',
+                            now()->subHours(36)->format('Y-m-d H:i:s')
+                        );
+                    }
+
+                    $rows = $query
+                        ->orderByDesc($primaryKey)
+                        ->limit(600)
+                        ->get($select ?: ['*']);
+
+                    $seen = [];
+
+                    foreach ($rows as $row) {
+                        $raw = (array)$row;
+                        $ref = strtolower(trim((string)($raw['order_type'] ?? '')));
+                        if ($ref === '') {
+                            continue;
+                        }
+
+                        $tableId = 0;
+                        if (ctype_digit($ref)) {
+                            $numericRef = (int)$ref;
+                            if (isset($signals[$numericRef])) {
+                                $tableId = $numericRef;
+                            }
+                        }
+                        if ($tableId < 1) {
+                            $tableId = (int)($indexByKey[$ref] ?? 0);
+                        }
+
+                        if ($tableId < 1 || isset($seen[$tableId])) {
+                            continue;
+                        }
+                        $seen[$tableId] = true;
+
+                        $tableRow = $tableById[$tableId] ?? [];
+                        $physical = strtolower(trim((string)(
+                            $tableRow['status'] ?? 'available'
+                        )));
+
+                        // Avoid stale financial badges on a physically free table.
+                        if ($physical === 'available') {
+                            continue;
+                        }
+
+                        $total = (float)(
+                            $raw['order_total']
+                            ?? $raw['total']
+                            ?? 0
+                        );
+                        $settled = max(0, (float)(
+                            $raw['settled_amount']
+                            ?? 0
+                        ));
+                        $remaining = max(0, $total - $settled);
+                        $settlement = strtolower(trim((string)(
+                            $raw['settlement_status']
+                            ?? $raw['payment_status']
+                            ?? ''
+                        )));
+
+                        if (
+                            $settlement === 'paid'
+                            || $settlement === 'settled'
+                            || $settlement === 'closed'
+                            || ($total > 0 && $remaining <= 0.005)
+                        ) {
+                            $signals[$tableId]['payment_state'] = 'paid';
+                        } elseif ($settled > 0.005) {
+                            $signals[$tableId]['payment_state'] = 'partial';
+                            $signals[$tableId]['due_amount'] = $remaining;
+                        } elseif ($total > 0.005) {
+                            $signals[$tableId]['payment_state'] = 'due';
+                            $signals[$tableId]['due_amount'] = $remaining;
+                        }
+
+                        $note = $this->quickPosVisibleNote(
+                            (string)($raw['comment'] ?? '')
+                        );
+                        if ($note !== '') {
+                            $signals[$tableId]['note_count']++;
+                        }
+                    }
+                }
+            }
+        } catch (\Throwable $error) {
+            report($error);
+        }
+
+        try {
+            if (Schema::hasTable('notifications')) {
+                $cols = Schema::getColumnListing('notifications');
+                $tableIds = array_values(array_filter(array_map(
+                    'intval',
+                    array_column($tables, 'id')
+                )));
+
+                if (
+                    $tableIds
+                    && in_array('table_id', $cols, true)
+                    && in_array('type', $cols, true)
+                ) {
+                    $query = DB::table('notifications')
+                        ->whereIn('table_id', $tableIds)
+                        ->whereIn('type', ['waiter_call', 'table_note']);
+
+                    if (in_array('status', $cols, true)) {
+                        $query->where(function ($q) {
+                            $q->whereNull('status')
+                                ->orWhere('status', '!=', 'resolved');
+                        });
+                    }
+
+                    if (in_array('created_at', $cols, true)) {
+                        $query->where(
+                            'created_at',
+                            '>=',
+                            now()->subDays(2)->format('Y-m-d H:i:s')
+                        );
+                    }
+
+                    foreach ($query->limit(300)->get() as $row) {
+                        $raw = (array)$row;
+                        $tableId = (int)($raw['table_id'] ?? 0);
+                        if (!isset($signals[$tableId])) {
+                            continue;
+                        }
+
+                        $type = strtolower(trim((string)($raw['type'] ?? '')));
+                        if ($type === 'waiter_call') {
+                            $signals[$tableId]['waiter_calls']++;
+                        } elseif ($type === 'table_note') {
+                            $signals[$tableId]['note_count']++;
+                        }
+                    }
+                }
+            }
+        } catch (\Throwable $error) {
+            report($error);
+        }
+
+        foreach ($tables as &$table) {
+            $id = (int)($table['id'] ?? 0);
+            $signal = $signals[$id] ?? [
+                'payment_state' => 'none',
+                'due_amount' => 0.0,
+                'waiter_calls' => 0,
+                'note_count' => 0,
+            ];
+
+            $table['payment_state'] = (string)$signal['payment_state'];
+            $table['due_amount'] = (float)$signal['due_amount'];
+            $table['waiter_calls'] = (int)$signal['waiter_calls'];
+            $table['note_count'] = (int)$signal['note_count'];
+        }
+        unset($table);
+
+        return $tables;
     }
 
     protected function quickPosNormalizeTableStatus(string $status): string
