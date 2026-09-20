@@ -75,6 +75,7 @@ final class PmdMobileBootstrapService
             'tables' => $this->tables($locationId),
             'menu' => $this->menu($locationId),
             'kds_stations' => $this->kdsStations($locationId),
+            'kds_statuses' => $this->kdsStatuses(),
             'payments' => [
                 // Availability metadata only. Provider credentials never enter the app.
                 'country_profile' => (array)($platform['profile']['payments'] ?? []),
@@ -312,6 +313,46 @@ final class PmdMobileBootstrapService
                     : (int)$station->location_id,
             ];
         })->values()->all();
+    }
+
+    private function kdsStatuses(): array
+    {
+        if (!Schema::hasTable('statuses')) return [];
+
+        try {
+            return DB::table('statuses')
+                ->where('status_for', 'order')
+                ->whereIn('status_name', [
+                    'Received',
+                    'Preparation',
+                    'Delivery',
+                ])
+                ->get([
+                    'status_id',
+                    'status_name',
+                    'status_color',
+                ])
+                ->map(function ($status) {
+                    return [
+                        'status_id' => (int)$status->status_id,
+                        'status_name' => (string)$status->status_name,
+                        'display_name' =>
+                            $status->status_name === 'Preparation'
+                                ? 'Preparing'
+                                : (
+                                    $status->status_name === 'Delivery'
+                                        ? 'Ready'
+                                        : (string)$status->status_name
+                                ),
+                        'status_color' =>
+                            (string)($status->status_color ?? ''),
+                    ];
+                })
+                ->values()
+                ->all();
+        } catch (\Throwable $error) {
+            return [];
+        }
     }
 
     private function surfaces(string $roleCode): array
