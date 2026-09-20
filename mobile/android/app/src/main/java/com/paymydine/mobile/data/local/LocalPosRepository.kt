@@ -121,8 +121,8 @@ class LocalPosRepository(private val database: PmdDatabase) {
         val row = database.readableDatabase.query(
             "pmd_orders",
             null,
-            "table_id = ? AND status IN (?, ?, ?)",
-            arrayOf(tableId, STATUS_DRAFT, STATUS_QUEUED, STATUS_RETRY),
+            "table_id = ? AND status = ?",
+            arrayOf(tableId, STATUS_DRAFT),
             null,
             null,
             "updated_at_ms DESC",
@@ -257,6 +257,21 @@ class LocalPosRepository(private val database: PmdDatabase) {
         ).use { if (it.moveToFirst()) it.getString(0) to it.getInt(1) else null }
             ?: return@transaction null
 
+        val orderStatus = db.query(
+            "pmd_orders",
+            arrayOf("status"),
+            "id = ?",
+            arrayOf(row.first),
+            null,
+            null,
+            null,
+            "1",
+        ).use { if (it.moveToFirst()) it.getString(0) else null }
+
+        require(orderStatus == STATUS_DRAFT) {
+            "This order is no longer editable while a sync command is pending."
+        }
+
         val next = row.second + (delta * 1000)
         if (next <= 0) {
             db.update(
@@ -282,17 +297,23 @@ class LocalPosRepository(private val database: PmdDatabase) {
         database.transaction { db ->
             val current = db.query(
                 "pmd_orders",
-                arrayOf("payload_json"),
+                arrayOf("payload_json", "status"),
                 "id = ?",
                 arrayOf(localOrderId),
                 null,
                 null,
                 null,
                 "1",
-            ).use { if (it.moveToFirst()) it.getString(0) else null }
-                ?: return@transaction null
+            ).use {
+                if (!it.moveToFirst()) null
+                else it.getString(0) to it.getString(1)
+            } ?: return@transaction null
 
-            val json = runCatching { JSONObject(current) }.getOrElse { JSONObject() }
+            require(current.second == STATUS_DRAFT) {
+                "This order is no longer editable while a sync command is pending."
+            }
+
+            val json = runCatching { JSONObject(current.first) }.getOrElse { JSONObject() }
             json.put("guest_count", guestCount.coerceIn(1, 99))
             json.put("note", note.trim())
 
@@ -318,6 +339,9 @@ class LocalPosRepository(private val database: PmdDatabase) {
         userId: Long?,
         hold: Boolean,
     ): CommandEnvelope {
+        require(draft.status == STATUS_DRAFT) {
+            "This order is already queued, retrying, or awaiting reconciliation."
+        }
         require(draft.lines.isNotEmpty()) { "Add at least one item." }
 
         val payload = JSONObject()
@@ -974,8 +998,8 @@ class LocalPosRepository(private val database: PmdDatabase) {
         val existingMutation = db.query(
             "pmd_orders",
             arrayOf("id"),
-            "table_id = ? AND status IN (?, ?)",
-            arrayOf(tableId, STATUS_DRAFT, STATUS_RETRY),
+            "table_id = ? AND status = ?",
+            arrayOf(tableId, STATUS_DRAFT),
             null,
             null,
             "updated_at_ms DESC",
@@ -983,6 +1007,35 @@ class LocalPosRepository(private val database: PmdDatabase) {
         ).use { if (it.moveToFirst()) it.getString(0) else null }
 
         if (existingMutation != null) return existingMutation
+
+        val blockedStatus = db.query(
+            "pmd_orders",
+            arrayOf("status"),
+            "table_id = ? AND status IN (?, ?, ?)",
+            arrayOf(
+                tableId,
+                STATUS_QUEUED,
+                STATUS_RETRY,
+                STATUS_CONFLICT,
+            ),
+            null,
+            null,
+            "updated_at_ms DESC",
+            "1",
+        ).use { if (it.moveToFirst()) it.getString(0) else null }
+
+        if (blockedStatus != null) {
+            error(
+                when (blockedStatus) {
+                    STATUS_CONFLICT ->
+                        "This table has a reconciliation conflict. Sync/review it before adding more items."
+                    STATUS_RETRY ->
+                        "This table still has a command waiting to retry. Do not create another bill."
+                    else ->
+                        "This table already has an order queued for delivery. Wait for the sync result."
+                },
+            )
+        }
 
         // Continue the latest financially-open bill instead of silently
         // creating a second check for the same table.
