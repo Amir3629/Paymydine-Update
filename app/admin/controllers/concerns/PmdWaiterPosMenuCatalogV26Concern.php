@@ -77,6 +77,128 @@ trait PmdWaiterPosMenuCatalogV26Concern
         }
 
         $rows = $query->limit(500)->get();
+
+        /*
+         * PMD_MENU_NUMBER_V24
+         *
+         * Food numbers are a presentation sequence owned by the canonical Menu
+         * layout, not by menu_id. "All Foods" groups by category priority first,
+         * then keeps menu_priority inside each category. Mirror that exact order
+         * here so Menu Manager and Quick POS always show the same number.
+         */
+        $categoryMeta = [];
+
+        foreach ($rows as $menu) {
+            foreach (($menu->categories ?: collect()) as $category) {
+                if (
+                    isset($category->status)
+                    && !(bool)$category->status
+                ) {
+                    continue;
+                }
+
+                $categoryId = (int)(
+                    $category->category_id
+                    ?? $category->getKey()
+                );
+
+                if ($categoryId < 1) {
+                    continue;
+                }
+
+                $categoryMeta[$categoryId] = [
+                    'priority' => (int)(
+                        $category->priority
+                        ?? 999999
+                    ),
+                    'name' => trim((string)(
+                        $category->name
+                        ?? $category->category_name
+                        ?? ''
+                    )),
+                ];
+            }
+        }
+
+        uasort(
+            $categoryMeta,
+            static function (array $a, array $b): int {
+                $priority = ((int)$a['priority'])
+                    <=> ((int)$b['priority']);
+
+                if ($priority !== 0) {
+                    return $priority;
+                }
+
+                return strcasecmp(
+                    (string)$a['name'],
+                    (string)$b['name']
+                );
+            }
+        );
+
+        $categoryRank = [];
+        $rank = 0;
+
+        foreach (array_keys($categoryMeta) as $categoryId) {
+            $categoryRank[(int)$categoryId] = $rank++;
+        }
+
+        $firstCategoryRank = static function ($menu) use (
+            $categoryRank
+        ): int {
+            $best = PHP_INT_MAX;
+
+            foreach (($menu->categories ?: collect()) as $category) {
+                if (
+                    isset($category->status)
+                    && !(bool)$category->status
+                ) {
+                    continue;
+                }
+
+                $categoryId = (int)(
+                    $category->category_id
+                    ?? $category->getKey()
+                );
+
+                if (isset($categoryRank[$categoryId])) {
+                    $best = min(
+                        $best,
+                        (int)$categoryRank[$categoryId]
+                    );
+                }
+            }
+
+            return $best;
+        };
+
+        $rows = $rows
+            ->sort(function ($a, $b) use ($firstCategoryRank) {
+                $categoryCompare =
+                    $firstCategoryRank($a)
+                    <=> $firstCategoryRank($b);
+
+                if ($categoryCompare !== 0) {
+                    return $categoryCompare;
+                }
+
+                $priorityCompare =
+                    (int)($a->menu_priority ?? 999999)
+                    <=>
+                    (int)($b->menu_priority ?? 999999);
+
+                if ($priorityCompare !== 0) {
+                    return $priorityCompare;
+                }
+
+                return strcasecmp(
+                    (string)$a->menu_name,
+                    (string)$b->menu_name
+                );
+            })
+            ->values();
+
         $menuIds = $rows->map(function ($menu) {
             return (int)$menu->getKey();
         })->filter()->values()->all();
@@ -87,7 +209,7 @@ trait PmdWaiterPosMenuCatalogV26Concern
         $unconfiguredPriceItems = 0;
         $bestsellerIds = $this->waiterPosBestsellerIds();
 
-        foreach ($rows as $menu) {
+        foreach ($rows as $menuIndex => $menu) {
             $menuId = (int)$menu->getKey();
             $price = round((float)$menu->menu_price, 4);
             $priceConfigured = $price > 0;
@@ -172,6 +294,7 @@ trait PmdWaiterPosMenuCatalogV26Concern
 
             $items[] = [
                 'id' => $menuId,
+                'menu_number' => (int)$menuIndex + 1,
                 'name' => (string)$menu->menu_name,
                 'description' => trim(strip_tags((string)($menu->menu_description ?? ''))),
                 'price' => $price,
