@@ -18,10 +18,11 @@ const REVIEW_SHARE_FIELDS: Array<{
   label: string
   enabledKey: string
   urlKey: string
+  fallbackUrlKey?: string
 }> = [
   { platform: 'website', label: 'Website', enabledKey: 'pmd_social_website_enabled', urlKey: 'pmd_social_website_url' },
   { platform: 'instagram', label: 'Instagram', enabledKey: 'pmd_social_instagram_enabled', urlKey: 'pmd_social_instagram_url' },
-  { platform: 'google', label: 'Google / Maps', enabledKey: 'pmd_social_google_enabled', urlKey: 'pmd_social_google_url' },
+  { platform: 'google', label: 'Google review', enabledKey: 'pmd_social_google_enabled', urlKey: 'pmd_social_google_review_url', fallbackUrlKey: 'pmd_social_google_url' },
   { platform: 'trustpilot', label: 'Trustpilot', enabledKey: 'pmd_social_trustpilot_enabled', urlKey: 'pmd_social_trustpilot_url' },
 ]
 
@@ -58,7 +59,12 @@ function ShareIcon({ platform }: { platform: ReviewSharePlatform }) {
   return <Globe2 aria-hidden="true" />
 }
 
-/* PMD_REVIEW_SOCIAL_SHARE_R36
+/* PMD_GOOGLE_REVIEW_DIRECT_FLOW_V1
+ * Google customer reviews cannot be published by PayMyDine. The Google button
+ * therefore opens the restaurant's owner-configured Google "Get more reviews"
+ * URL. Existing Google Maps URLs remain a backward-compatible fallback.
+ *
+ * PMD_REVIEW_SOCIAL_SHARE_R36
  * The restaurant-profile settings are the only authority for these links.
  * Nothing is shown unless a review is already successful AND at least one of
  * Website / Instagram / Google Maps / Trustpilot is both enabled and has a
@@ -87,6 +93,7 @@ export function ReviewShareEnhancer() {
         const resolved = REVIEW_SHARE_FIELDS.flatMap((field): ReviewShareLink[] => {
           if (!settingEnabled(settings[field.enabledKey])) return []
           const url = safePublicUrl(settings[field.urlKey])
+            || (field.fallbackUrlKey ? safePublicUrl(settings[field.fallbackUrlKey]) : null)
           return url ? [{ platform: field.platform, label: field.label, url }] : []
         })
         setLinks(resolved)
