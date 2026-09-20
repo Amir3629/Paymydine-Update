@@ -156,26 +156,41 @@ class MobileApiClient {
         deviceToken: String,
         command: CommandEnvelope,
     ): JSONObject {
-        val base = trustedTenantBase("https://$tenantHost")
         val payload = runCatching { JSONObject(command.payloadJson) }
-            .getOrElse { throw IOException("Queued command payload is invalid JSON.") }
+            .getOrElse {
+                throw IOException("Queued command payload is invalid JSON.")
+            }
 
-        val body = JSONObject()
-            .put("command_id", command.commandId)
-            .put("idempotency_key", command.idempotencyKey)
-            .put("aggregate", command.aggregate)
-            .put("aggregate_id", command.aggregateId)
-            .put("base_version", command.baseVersion)
-            .put("command_type", command.commandType)
-            .put("payload", payload)
-            .toString()
+        return sendCommandJson(
+            tenantHost = tenantHost,
+            deviceToken = deviceToken,
+            command = JSONObject()
+                .put("command_id", command.commandId)
+                .put("idempotency_key", command.idempotencyKey)
+                .put("aggregate", command.aggregate)
+                .put("aggregate_id", command.aggregateId)
+                .put("base_version", command.baseVersion)
+                .put("command_type", command.commandType)
+                .put("payload", payload),
+        )
+    }
+
+    fun sendCommandJson(
+        tenantHost: String,
+        deviceToken: String,
+        command: JSONObject,
+    ): JSONObject {
+        val base = trustedTenantBase("https://$tenantHost")
 
         return JSONObject(
             request(
-                url = URL(base.toString().trimEnd('/') + "/admin/api/mobile/v1/sync/commands"),
+                url = URL(
+                    base.toString().trimEnd('/') +
+                        "/admin/api/mobile/v1/sync/commands",
+                ),
                 method = "POST",
                 token = deviceToken,
-                body = body,
+                body = command.toString(),
             ),
         )
     }
