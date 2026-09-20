@@ -2,11 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\PmdMobileSync\PmdMobileCommandProcessor;
 use App\Services\PmdMobileSync\PmdMobileDeviceAuthService;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 final class PmdMobileSyncController extends Controller
 {
@@ -63,19 +66,46 @@ final class PmdMobileSyncController extends Controller
         ]);
     }
 
-    /**
-     * Intentionally fail closed until command processors are individually
-     * certified idempotent. Exposing a generic "save order" replay endpoint
-     * here would be unsafe.
-     */
-    public function commands(Request $request, PmdMobileDeviceAuthService $auth)
-    {
-        $auth->authenticate($request);
+    public function commands(
+        Request $request,
+        PmdMobileDeviceAuthService $auth,
+        PmdMobileCommandProcessor $processor
+    ) {
+        try {
+            $identity = $auth->authenticate($request);
+            $result = $processor->execute(
+                $identity,
+                (array)$request->json()->all()
+            );
 
-        return response()->json([
-            'ok' => false,
-            'error' => 'mobile_commands_not_enabled',
-            'message' => 'Offline command replay is not enabled yet.',
-        ], 503);
+            return response()->json($result, 200, [
+                'Cache-Control' => 'no-store, private',
+            ]);
+        } catch (ValidationException $error) {
+            return response()->json([
+                'ok' => false,
+                'error' => 'mobile_command_invalid',
+                'message' => collect($error->errors())->flatten()->first()
+                    ?: 'The PayMyDine mobile command is invalid.',
+                'errors' => $error->errors(),
+            ], 422);
+        } catch (HttpExceptionInterface $error) {
+            return response()->json([
+                'ok' => false,
+                'error' => $error->getStatusCode() === 409
+                    ? 'mobile_command_conflict'
+                    : 'mobile_command_rejected',
+                'message' => $error->getMessage()
+                    ?: 'The PayMyDine mobile command was rejected.',
+            ], $error->getStatusCode());
+        } catch (\Throwable $error) {
+            report($error);
+
+            return response()->json([
+                'ok' => false,
+                'error' => 'mobile_command_failed',
+                'message' => 'The PayMyDine mobile command could not be applied.',
+            ], 500);
+        }
     }
 }
