@@ -34,7 +34,11 @@ class SyncEngine(
 
             try {
                 val response = api.sendCommand(host, token, command)
-                app.localPosRepository.applyCommandResult(command, response)
+                if (command.commandType == "KDS_STATUS_V1") {
+                    app.kdsRepository.applyCommandResult(command, response)
+                } else {
+                    app.localPosRepository.applyCommandResult(command, response)
+                }
                 app.syncRepository.acknowledge(command.commandId)
             } catch (error: MobileApiException) {
                 if (error.statusCode in listOf(409, 422)) {
@@ -59,6 +63,16 @@ class SyncEngine(
             pullEvents(host, token)
         } catch (_: Throwable) {
             allGood = false
+        }
+
+        if ("kds" in app.bootstrapRepository.surfaces()) {
+            try {
+                val station = app.kdsRepository.ensureDefaultStation()
+                val snapshot = api.kdsSnapshot(host, token, station)
+                app.kdsRepository.applySnapshot(snapshot)
+            } catch (_: Throwable) {
+                allGood = false
+            }
         }
 
         return allGood
@@ -88,7 +102,18 @@ class SyncEngine(
                 )
 
                 if (app.syncRepository.applyEvent(event) && event.aggregate == "order") {
-                    app.localPosRepository.applyOrderEvent(payload, event.aggregateVersion)
+                    if (event.eventType == "KDS_STATUS_CHANGED_V1") {
+                        app.kdsRepository.applyEvent(
+                            event.eventType,
+                            event.aggregateVersion,
+                            payload,
+                        )
+                    } else {
+                        app.localPosRepository.applyOrderEvent(
+                            payload,
+                            event.aggregateVersion,
+                        )
+                    }
                 }
                 cursor = maxOf(cursor, event.sequence)
             }
