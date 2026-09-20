@@ -7,7 +7,7 @@
     <meta name="theme-color" content="#064e3b">
     <title>PayMyDine POS</title>
     <link rel="icon" type="image/svg+xml" href="/app/admin/assets/images/pmd-favicon-final-20260822.svg">
-    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-pos-v1.css?v=20260920-24">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-pos-v1.css?v=20260920-25">
 </head>
 <body class="pmd-qpos-body">
 @php
@@ -686,7 +686,7 @@ window.PMDQuickPOSConfig = {
     initialBootstrap: @json($initialBootstrap ?? null)
 };
 </script>
-<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260920-24"></script>
+<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260920-25"></script>
 <script src="/app/admin/assets/js/pmd-site-access-hub-v13.js?v=20260919-qpos1"></script>
 </body>
 </html>
