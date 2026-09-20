@@ -258,7 +258,7 @@ grep -q "PMD_QPOS_EXACT_DASHBOARD_FLOOR_UI_V26" "$STAGE/app/admin/assets/js/pmd-
 grep -q "PMD_QPOS_EXACT_DASHBOARD_FLOOR_CSS_V26" "$STAGE/app/admin/assets/css/pmd-quick-pos-v1.css"
 grep -q "PMD_QPOS_UI_REBALANCE_V25" "$STAGE/app/admin/assets/css/pmd-quick-pos-v1.css"
 grep -q "PMD_QPOS_DARK_PRIMARY_V25" "$STAGE/app/admin/assets/css/pmd-quick-pos-v1.css"
-grep -q "pmd:qpos:visual:v26" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
+grep -q "pmd:qpos:visual:v27" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
 grep -q "data-qpos-floor-map-open" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
 grep -q "pmd_dashboard_lab_exact_floor_v1" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
 grep -q "pmd-r2-shared-floor-canvas-v310" "$STAGE/app/admin/views/_partials/pmd_dashboard_lab_exact_floor_v1.blade.php"
@@ -267,6 +267,9 @@ grep -q 'data-pmd-r2-tool="zoom-in"' "$STAGE/app/admin/views/_partials/pmd_dashb
 grep -q 'data-pmd-r2-tool="strip"' "$STAGE/app/admin/views/_partials/pmd_dashboard_lab_exact_floor_v1.blade.php"
 grep -q "PMD_DASHBOARD_LAB_EXACT_RESERVATIONS_FLOOR_V1" "$STAGE/app/admin/assets/js/pmd-dashboard-lab-exact-floor-v1.js"
 grep -q "PMD_SHARED_FLOOR_MULTI_FLOOR" "$STAGE/app/admin/assets/js/pmd-shared-floor-multi-floor-v1.js"
+grep -q "PMD_DEFAULT_FLOOR_RENAME_ASSIGNMENT_V1" "$STAGE/app/admin/assets/js/pmd-shared-floor-multi-floor-v1.js"
+grep -q "PMD_DEFAULT_FLOOR_RENAME_SERVER_FILTER_V1" "$STAGE/app/admin/views/_partials/pmd_dashboard_lab_exact_floor_v1.blade.php"
+grep -q "PMD_QPOS_FOOD_NUMBER_PUNCT_V27" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
 grep -q "pmd-qpos-payment-inline-head" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
 if grep -Fq 'data-qpos-floor-map-stage' "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"; then
   echo "ERROR: custom POS Floor renderer still exists; exact Dashboard Floor was requested" >&2
@@ -367,10 +370,10 @@ if grep -Fq 'data-qpos-touch-keypad hidden' "$STAGE/app/admin/views/pmd_quick_po
   exit 1
 fi
 grep -q "data-qpos-cash-signature" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
-grep -q "pmd-quick-pos-v1.js?v=20260920-26" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
+grep -q "pmd-quick-pos-v1.js?v=20260920-27" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
 grep -q "pmd-quick-pos-v1.css?v=20260920-26" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
 grep -q "pmd-dashboard-lab-exact-floor-v1.js?v=20260920-floor-v26" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
-grep -q "pmd-shared-floor-multi-floor-v1.js?v=20260920-floor-v26" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
+grep -q "pmd-shared-floor-multi-floor-v1.js?v=20260920-floor-v27" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
 grep -q "pmd-dashboard-lab-exact-floor-v1.css?v=20260920-floor-v26" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
 grep -Fq "\$\$('[data-cash-value]', box).forEach" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
 grep -Fq "\$\$('[data-payment-method]', box).forEach" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
