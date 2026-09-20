@@ -203,16 +203,48 @@
         ? $pmdCleanWorkspaceFloorTableMap
         : ['by_id' => [], 'by_number' => [], 'by_name' => []];
 
+    /* PMD_DEFAULT_FLOOR_RENAME_SERVER_FILTER_V1
+     *
+     * Default-floor tables have no explicit assignment by design. Therefore
+     * the first server paint must resolve an unassigned table to the CURRENT
+     * name of the stable default Floor, not to the historical "Main Floor"
+     * display label. Otherwise renaming the default Floor to "Indoor" makes
+     * its tables disappear until they are explicitly moved elsewhere.
+     */
+    $pmdDefaultFloorRecord = null;
+    foreach ($pmdFloorRegistry as $pmdDefaultFloorCandidate) {
+        if (
+            is_array($pmdDefaultFloorCandidate)
+            && !empty($pmdDefaultFloorCandidate['is_default'])
+        ) {
+            $pmdDefaultFloorRecord = $pmdDefaultFloorCandidate;
+            break;
+        }
+    }
+    if (!$pmdDefaultFloorRecord) {
+        $pmdDefaultFloorRecord = $pmdFloorRegistry[0] ?? [
+            'name' => 'Main Floor',
+        ];
+    }
+    $pmdDefaultFloorName = trim((string)(
+        $pmdDefaultFloorRecord['name']
+        ?? 'Main Floor'
+    )) ?: 'Main Floor';
+
     $pmdFloorKey = static function ($value): string {
         $text = preg_replace('/\s+/u', ' ', trim((string)$value)) ?: '';
         return function_exists('mb_strtolower') ? mb_strtolower($text, 'UTF-8') : strtolower($text);
     };
 
-    $pmdResolveDisplayFloorName = static function (array $table) use ($pmdFloorTableMap, $pmdFloorKey): string {
+    $pmdResolveDisplayFloorName = static function (array $table) use (
+        $pmdFloorTableMap,
+        $pmdFloorKey,
+        $pmdDefaultFloorName
+    ): string {
         // PMD_SHARED_FLOOR_MULTI_FLOOR_V1_2_ASSIGNMENT_AUTHORITY
         // Legacy table floor_name/section metadata must not silently create or
         // assign PMD Floor maps. Only the explicit canonical table-id map can
-        // move a table away from Main Floor.
+        // move a table away from the stable default Floor.
         foreach (['dbTableId', 'db_table_id', 'table_id', 'id'] as $field) {
             $id = trim((string)($table[$field] ?? ''));
             if ($id !== '' && !empty($pmdFloorTableMap['by_id'][$id])) {
@@ -234,7 +266,7 @@
             }
         }
 
-        return 'Main Floor';
+        return $pmdDefaultFloorName;
     };
 
     $displayTables = array_values(array_filter($displayTables, static function ($table) use (
