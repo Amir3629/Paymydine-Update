@@ -379,7 +379,7 @@
    */
   function bootCacheKey() {
     return [
-      'pmd:qpos:visual:v1',
+      'pmd:qpos:visual:v24',
       window.location.host,
       state.mode
     ].join(':');
