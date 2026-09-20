@@ -1862,12 +1862,67 @@ function renderOpenChecks() {
     }
   }
 
+  /* PMD_QPOS_DIRECT_MOVE_SCOPE_CHOOSER_V44
+   * Keep the fast left-rail workflow, but expose a compact scope choice when
+   * a table has multiple checks: current order or the whole table/all checks.
+   */
+  function closeMoveScopeChoiceV44() {
+    state.transfer.choiceOpen = false;
+
+    var chooser = $('[data-qpos-move-scope-choice]');
+    if (chooser) {
+      chooser.hidden = true;
+      chooser.setAttribute('aria-hidden', 'true');
+    }
+
+    root.classList.remove('is-move-scope-choice-open');
+  }
+
+  function renderMoveScopeChoiceV44() {
+    var chooser = $('[data-qpos-move-scope-choice]');
+    if (!chooser) return;
+
+    var orderButton = $('[data-qpos-direct-move-scope="order"]', chooser);
+    var tableButton = $('[data-qpos-direct-move-scope="table"]', chooser);
+    var orderMeta = $('[data-qpos-direct-move-order-meta]', chooser);
+    var tableMeta = $('[data-qpos-direct-move-table-meta]', chooser);
+    var count = state.openOrders.length;
+
+    if (orderButton) {
+      orderButton.disabled = !Number(state.activeOrderId || 0);
+    }
+    if (orderMeta) {
+      orderMeta.textContent = Number(state.activeOrderId || 0)
+        ? '#' + String(state.activeOrderId)
+        : 'Choose check';
+    }
+    if (tableButton) {
+      tableButton.disabled = count < 1;
+    }
+    if (tableMeta) {
+      tableMeta.textContent =
+        count + (count === 1 ? ' check' : ' checks');
+    }
+
+    chooser.hidden = !state.transfer.choiceOpen;
+    chooser.setAttribute(
+      'aria-hidden',
+      state.transfer.choiceOpen ? 'false' : 'true'
+    );
+    root.classList.toggle(
+      'is-move-scope-choice-open',
+      state.transfer.choiceOpen
+    );
+  }
+
   function closeTransfer() {
     var modal = $('[data-qpos-transfer-modal]');
     if (modal) {
       modal.classList.remove('is-open');
       modal.setAttribute('aria-hidden', 'true');
     }
+
+    closeMoveScopeChoiceV44();
 
     state.transfer.open = false;
     state.transfer.targetTableId = null;
@@ -1876,10 +1931,10 @@ function renderOpenChecks() {
     root.classList.remove('is-direct-order-move');
   }
 
-  /* PMD_QPOS_DIRECT_SIDE_MOVE_V37
-   * Moving the active order is a left-rail operation: tap Move, then tap
-   * the destination table. No second table-picker modal is required. */
-  function openDirectSideMove() {
+  function startDirectSideMoveV44(scope) {
+    scope = scope === 'table' ? 'table' : 'order';
+
+    if (state.transfer.submitting) return;
     if (state.serviceMode !== 'dine_in' || !state.selectedTable) return;
 
     if (state.cart.length) {
@@ -1887,7 +1942,12 @@ function renderOpenChecks() {
       return;
     }
 
-    if (!Number(state.activeOrderId || 0)) {
+    if (!state.openOrders.length) {
+      toast('No open checks to move.', true);
+      return;
+    }
+
+    if (scope === 'order' && !Number(state.activeOrderId || 0)) {
       toast('Choose a check to move first.', true);
       return;
     }
@@ -1897,9 +1957,10 @@ function renderOpenChecks() {
     closeFloorMap();
     closeTextKeyboard();
     hideToast();
+    closeMoveScopeChoiceV44();
 
     state.transfer.open = true;
-    state.transfer.scope = 'order';
+    state.transfer.scope = scope;
     state.transfer.targetTableId = null;
     state.transfer.submitting = false;
     state.transfer.directSide = true;
@@ -1907,11 +1968,46 @@ function renderOpenChecks() {
 
     renderTables();
     renderContext();
-    toast(
-      'Select the destination table for order #' +
-      String(state.activeOrderId) +
-      '.'
-    );
+
+    if (scope === 'table') {
+      toast(
+        'Select the destination table for all ' +
+        String(state.openOrders.length) +
+        (state.openOrders.length === 1 ? ' check.' : ' checks.')
+      );
+    } else {
+      toast(
+        'Select the destination table for order #' +
+        String(state.activeOrderId) +
+        '.'
+      );
+    }
+  }
+
+  /* PMD_QPOS_DIRECT_SIDE_MOVE_V37
+   * A single-check table keeps the original one-tap Move flow. If the source
+   * table has multiple checks, Move opens a tiny scope chooser first. */
+  function openDirectSideMove() {
+    if (state.transfer.submitting) return;
+    if (state.serviceMode !== 'dine_in' || !state.selectedTable) return;
+
+    if (state.cart.length) {
+      toast('Send or remove new items first.', true);
+      return;
+    }
+
+    if (!state.openOrders.length) {
+      toast('No open checks to move.', true);
+      return;
+    }
+
+    if (state.openOrders.length <= 1) {
+      startDirectSideMoveV44('order');
+      return;
+    }
+
+    state.transfer.choiceOpen = !state.transfer.choiceOpen;
+    renderMoveScopeChoiceV44();
   }
 
   async function directMoveOrderToTable(tableId) {
