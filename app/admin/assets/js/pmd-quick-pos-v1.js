@@ -190,6 +190,14 @@
     }, 3200);
   }
 
+  /* PMD_QPOS_WORKSPACE_TOAST_CLEAN_V22 */
+  function hideToast() {
+    var el = $('[data-qpos-toast]');
+    if (!el) return;
+    clearTimeout(el.__qposTimer);
+    el.classList.remove('is-show', 'is-error');
+  }
+
   /* PMD_QPOS_PLATFORM_CONFIRM_V16
    * Never hand cashier actions to the browser's native confirm UI. */
   var confirmResolver = null;
@@ -1631,7 +1639,10 @@ function renderOpenChecks() {
       state.pendingSend = null;
       state.submitting = false;
       renderAll();
-      toast(json.message || 'Order saved');
+
+      if (!(afterSuccess === 'pay' && state.payment.open)) {
+        toast(json.message || 'Order saved');
+      }
 
       window.dispatchEvent(new CustomEvent('pmd:quick-pos-order-updated', {
         detail: json
@@ -2005,6 +2016,8 @@ function renderOpenChecks() {
 
   function showPaymentPreview(total, settled, updatedAt) {
     closeHistory();
+    closeTextKeyboard();
+    hideToast();
     resetPayment();
     state.payment.summary = paymentPreviewSummary(total, settled, updatedAt);
     state.payment.amount = roundMoney(
@@ -3003,12 +3016,8 @@ function renderOpenChecks() {
           )
         : (
             state.payment.method === 'direct_terminal'
-              ? 'Send to terminal'
-              : (
-                  state.payment.method === 'cash'
-                    ? 'Pay cash ' + money(charge)
-                    : 'Pay ' + money(charge)
-                )
+              ? 'Send ' + money(charge)
+              : 'Pay ' + money(charge)
           );
     }
   }
@@ -4210,6 +4219,8 @@ function renderOpenChecks() {
 
   async function openHistory(scopeMode) {
     closePayment();
+    closeTextKeyboard();
+    hideToast();
 
     var modal = $('[data-qpos-history-modal]');
     if (!modal) return;
@@ -4331,7 +4342,7 @@ function renderOpenChecks() {
 
     key = String(key || '');
 
-    if (key === 'done') {
+    if (key === 'hide') {
       closeTextKeyboard();
       try { target.blur(); } catch (ignored) {}
       return;
