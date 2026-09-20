@@ -87,6 +87,10 @@ jobs:
           grep -q "pmd_edge_inbox_scope_seq" mobile/android/app/src/main/java/com/paymydine/mobile/data/local/PmdDatabase.kt
           grep -q "routes/pmd-mobile-sync-v1.php" app/admin/routes.php
           grep -q "PmdMobilePairingService" app/admin/controllers/Login.php
+          grep -q "code_challenge" app/Services/PmdMobileSync/PmdMobilePairingService.php
+          grep -q "code_verifier" app/Http/Controllers/PmdMobilePairController.php
+          grep -q "PairingPkce" mobile/android/app/src/main/java/com/paymydine/mobile/ui/PayMyDineApp.kt
+          grep -q "pairingVerifier" mobile/android/app/src/main/java/com/paymydine/mobile/security/DeviceCredentialStore.kt
           echo "PMD_ANDROID_SERVER_CONTRACT=PASS"
 
   android:
