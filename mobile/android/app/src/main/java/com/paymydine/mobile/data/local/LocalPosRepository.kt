@@ -503,6 +503,71 @@ class LocalPosRepository(private val database: PmdDatabase) {
         )
     }
 
+    fun markRetryForCommand(command: CommandEnvelope) {
+        val serverOrderId = command.aggregateId
+            .takeIf { it.startsWith("order:") }
+            ?.removePrefix("order:")
+            ?.toLongOrNull()
+            ?: 0L
+        resolveLocalOrderId(
+            aggregateId = command.aggregateId,
+            serverOrderId = serverOrderId,
+        )?.let(::markRetry)
+    }
+
+    fun markConflictForCommand(
+        command: CommandEnvelope,
+        message: String,
+    ) {
+        val serverOrderId = command.aggregateId
+            .takeIf { it.startsWith("order:") }
+            ?.removePrefix("order:")
+            ?.toLongOrNull()
+            ?: 0L
+        val localId = resolveLocalOrderId(
+            aggregateId = command.aggregateId,
+            serverOrderId = serverOrderId,
+        ) ?: return
+
+        database.transaction { db ->
+            val raw = db.query(
+                "pmd_orders",
+                arrayOf("payload_json"),
+                "id = ?",
+                arrayOf(localId),
+                null,
+                null,
+                null,
+                "1",
+            ).use { rows ->
+                if (rows.moveToFirst()) rows.getString(0) else "{}"
+            }
+
+            val meta = runCatching {
+                JSONObject(raw)
+            }.getOrElse { JSONObject() }
+
+            meta.put(
+                "reconciliation_error",
+                message.trim().take(1_000),
+            )
+            meta.put("rejected_command_id", command.commandId)
+            meta.put("rejected_command_type", command.commandType)
+
+            db.update(
+                "pmd_orders",
+                ContentValues().apply {
+                    put("status", STATUS_CONFLICT)
+                    put("dirty", 1)
+                    put("payload_json", meta.toString())
+                    put("updated_at_ms", System.currentTimeMillis())
+                },
+                "id = ?",
+                arrayOf(localId),
+            )
+        }
+    }
+
     fun applyCommandResult(command: CommandEnvelope, response: JSONObject) {
         val result = response.optJSONObject("result") ?: return
         val orderId = result.optLong("order_id", 0)
