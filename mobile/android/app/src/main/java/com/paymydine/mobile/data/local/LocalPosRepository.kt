@@ -406,27 +406,26 @@ class LocalPosRepository(private val database: PmdDatabase) {
     }
 
     fun applyCommandResult(command: CommandEnvelope, response: JSONObject) {
-        val localOrderId = command.aggregateId.removePrefix("local:")
         val result = response.optJSONObject("result") ?: return
         val orderId = result.optLong("order_id", 0)
         if (orderId < 1) return
 
-        val version = response.optLong("aggregate_version", command.baseVersion + 1)
-        val updatedAt = result.optString("updated_at")
-        val localId = if (command.aggregateId.startsWith("local:")) {
-            localOrderId
+        val localId = resolveLocalOrderId(
+            aggregateId = command.aggregateId,
+            serverOrderId = orderId,
+        ) ?: return
+        val version = response.optLong(
+            "aggregate_version",
+            command.baseVersion + 1,
+        )
+        val totalMinor = if (result.has("order_total")) {
+            moneyToMinor(
+                result.optDouble("order_total", 0.0),
+                localMinorExponent(),
+            )
         } else {
-            database.readableDatabase.query(
-                "pmd_orders",
-                arrayOf("id"),
-                "server_id = ?",
-                arrayOf(orderId.toString()),
-                null,
-                null,
-                null,
-                "1",
-            ).use { if (it.moveToFirst()) it.getString(0) else null }
-        } ?: return
+            draftTotalMinor(localId)
+        }
 
         database.transaction { db ->
             val old = db.query(
@@ -439,21 +438,36 @@ class LocalPosRepository(private val database: PmdDatabase) {
                 null,
                 "1",
             ).use { if (it.moveToFirst()) it.getString(0) else "{}" }
-            val meta = runCatching { JSONObject(old) }.getOrElse { JSONObject() }
-            meta.put("server_updated_at", updatedAt)
+
+            val meta = runCatching {
+                JSONObject(old)
+            }.getOrElse { JSONObject() }
+
+            meta.put("server_updated_at", result.optString("updated_at"))
             meta.put("last_command_id", command.commandId)
+            meta.put("edge_provisional", false)
+            meta.put("base_total_minor", totalMinor)
 
             db.update(
                 "pmd_orders",
                 ContentValues().apply {
                     put("server_id", orderId.toString())
                     put("version", version)
-                    put("status", if (command.commandType == "ORDER_HOLD_V1") STATUS_HELD else STATUS_SENT)
+                    put("status", STATUS_SERVER_OPEN)
+                    put("total_minor", totalMinor)
                     put("dirty", 0)
                     put("payload_json", meta.toString())
                     put("updated_at_ms", System.currentTimeMillis())
                 },
                 "id = ?",
+                arrayOf(localId),
+            )
+
+            // These lines are now part of the canonical server bill. Keeping
+            // them in the local mutation cart would send them a second time.
+            db.delete(
+                "pmd_order_lines",
+                "order_id = ?",
                 arrayOf(localId),
             )
         }
@@ -464,10 +478,15 @@ class LocalPosRepository(private val database: PmdDatabase) {
         response: JSONObject,
     ) {
         val result = response.optJSONObject("result") ?: return
-        val localId = command.aggregateId
-            .takeIf { it.startsWith("local:") }
-            ?.removePrefix("local:")
-            ?: return
+        val serverIdFromAggregate = command.aggregateId
+            .removePrefix("order:")
+            .takeIf { command.aggregateId.startsWith("order:") }
+            ?.toLongOrNull()
+            ?: 0L
+        val localId = resolveLocalOrderId(
+            aggregateId = command.aggregateId,
+            serverOrderId = serverIdFromAggregate,
+        ) ?: return
 
         val version = response.optLong(
             "aggregate_version",
@@ -477,11 +496,6 @@ class LocalPosRepository(private val database: PmdDatabase) {
             "order_total_minor",
             draftTotalMinor(localId),
         )
-        val status = if (command.commandType == "ORDER_HOLD_V1") {
-            STATUS_EDGE_HELD
-        } else {
-            STATUS_EDGE_SENT
-        }
 
         database.transaction { db ->
             val current = db.query(
@@ -501,25 +515,29 @@ class LocalPosRepository(private val database: PmdDatabase) {
 
             meta.put("edge_command_id", command.commandId)
             meta.put("edge_provisional", true)
-            meta.put(
-                "edge_updated_at",
-                result.optString("updated_at"),
-            )
+            meta.put("edge_updated_at", result.optString("updated_at"))
+            meta.put("base_total_minor", totalMinor)
 
             db.update(
                 "pmd_orders",
                 ContentValues().apply {
                     put("version", version)
-                    put("status", status)
+                    put("status", STATUS_EDGE_OPEN)
                     put("total_minor", totalMinor)
                     put("dirty", 1)
                     put("payload_json", meta.toString())
-                    put(
-                        "updated_at_ms",
-                        System.currentTimeMillis(),
-                    )
+                    put("updated_at_ms", System.currentTimeMillis())
                 },
                 "id = ?",
+                arrayOf(localId),
+            )
+
+            // The Edge has durably accepted these lines. Clear only the local
+            // mutation cart; the provisional bill itself remains dirty until
+            // Cloud reconciliation confirms it.
+            db.delete(
+                "pmd_order_lines",
+                "order_id = ?",
                 arrayOf(localId),
             )
         }
@@ -533,14 +551,21 @@ class LocalPosRepository(private val database: PmdDatabase) {
         when (eventType) {
             "ORDER_SENT_EDGE_V1",
             "ORDER_HELD_EDGE_V1" -> {
-                val aggregate = eventPayload
-                    .optString("client_aggregate_id")
-                val localId = aggregate
-                    .takeIf { it.startsWith("local:") }
-                    ?.removePrefix("local:")
-                    ?: return
-                val order = eventPayload.optJSONObject("order")
-                    ?: return
+                val aggregate = eventPayload.optString("client_aggregate_id")
+                val order = eventPayload.optJSONObject("order") ?: return
+                val serverId = aggregate
+                    .removePrefix("order:")
+                    .takeIf { aggregate.startsWith("order:") }
+                    ?.toLongOrNull()
+                    ?: 0L
+                val localId = resolveLocalOrderId(
+                    aggregateId = aggregate,
+                    serverOrderId = serverId,
+                ) ?: return
+                val totalMinor = order.optLong(
+                    "order_total_minor",
+                    draftTotalMinor(localId),
+                )
 
                 database.transaction { db ->
                     val current = db.query(
@@ -553,66 +578,61 @@ class LocalPosRepository(private val database: PmdDatabase) {
                         null,
                         "1",
                     ).use {
-                        if (it.moveToFirst()) it.getString(0)
-                        else "{}"
+                        if (it.moveToFirst()) it.getString(0) else "{}"
                     }
+
                     val meta = runCatching {
                         JSONObject(current)
                     }.getOrElse { JSONObject() }
+
                     meta.put("edge_provisional", true)
-                    meta.put(
-                        "edge_updated_at",
-                        order.optString("updated_at"),
-                    )
+                    meta.put("edge_updated_at", order.optString("updated_at"))
+                    meta.put("base_total_minor", totalMinor)
+                    eventPayload.optJSONObject("edge_order")?.let {
+                        meta.put("edge_order_snapshot", it)
+                    }
 
                     db.update(
                         "pmd_orders",
                         ContentValues().apply {
                             put("version", version)
-                            put(
-                                "status",
-                                if (eventType == "ORDER_HELD_EDGE_V1") {
-                                    STATUS_EDGE_HELD
-                                } else {
-                                    STATUS_EDGE_SENT
-                                },
-                            )
-                            put(
-                                "total_minor",
-                                order.optLong(
-                                    "order_total_minor",
-                                    draftTotalMinor(localId),
-                                ),
-                            )
+                            put("status", STATUS_EDGE_OPEN)
+                            put("total_minor", totalMinor)
                             put("dirty", 1)
-                            put(
-                                "payload_json",
-                                meta.toString(),
-                            )
-                            put(
-                                "updated_at_ms",
-                                System.currentTimeMillis(),
-                            )
+                            put("payload_json", meta.toString())
+                            put("updated_at_ms", System.currentTimeMillis())
                         },
                         "id = ?",
+                        arrayOf(localId),
+                    )
+                    db.delete(
+                        "pmd_order_lines",
+                        "order_id = ?",
                         arrayOf(localId),
                     )
                 }
             }
 
             "CLOUD_RECONCILED_V1" -> {
-                val localAggregate = eventPayload
+                val sourceAggregate = eventPayload
                     .optString("local_aggregate_id")
-                val localId = localAggregate
-                    .takeIf { it.startsWith("local:") }
-                    ?.removePrefix("local:")
-                    ?: return
-                val cloud = eventPayload.optJSONObject("cloud")
-                    ?: return
-                val result = cloud.optJSONObject("result")
-                    ?: return
+                val cloud = eventPayload.optJSONObject("cloud") ?: return
+                val result = cloud.optJSONObject("result") ?: return
                 val serverId = result.optLong("order_id", 0)
                 if (serverId < 1) return
+
+                val localId = resolveLocalOrderId(
+                    aggregateId = sourceAggregate,
+                    serverOrderId = serverId,
+                ) ?: return
+                val totalMinor = if (result.has("order_total")) {
+                    moneyToMinor(
+                        result.optDouble("order_total", 0.0),
+                        localMinorExponent(),
+                    )
+                } else {
+                    draftTotalMinor(localId)
+                }
 
                 database.transaction { db ->
                     val current = db.query(
@@ -625,18 +645,16 @@ class LocalPosRepository(private val database: PmdDatabase) {
                         null,
                         "1",
                     ).use {
-                        if (it.moveToFirst()) it.getString(0)
-                        else "{}"
+                        if (it.moveToFirst()) it.getString(0) else "{}"
                     }
+
                     val meta = runCatching {
                         JSONObject(current)
                     }.getOrElse { JSONObject() }
 
                     meta.put("edge_provisional", false)
-                    meta.put(
-                        "server_updated_at",
-                        result.optString("updated_at"),
-                    )
+                    meta.put("server_updated_at", result.optString("updated_at"))
+                    meta.put("base_total_minor", totalMinor)
 
                     db.update(
                         "pmd_orders",
@@ -644,30 +662,20 @@ class LocalPosRepository(private val database: PmdDatabase) {
                             put("server_id", serverId.toString())
                             put(
                                 "version",
-                                cloud.optLong(
-                                    "aggregate_version",
-                                    version,
-                                ),
+                                cloud.optLong("aggregate_version", version),
                             )
-                            put(
-                                "status",
-                                if (result.optString("mode") == "hold") {
-                                    STATUS_HELD
-                                } else {
-                                    STATUS_SENT
-                                },
-                            )
+                            put("status", STATUS_SERVER_OPEN)
+                            put("total_minor", totalMinor)
                             put("dirty", 0)
-                            put(
-                                "payload_json",
-                                meta.toString(),
-                            )
-                            put(
-                                "updated_at_ms",
-                                System.currentTimeMillis(),
-                            )
+                            put("payload_json", meta.toString())
+                            put("updated_at_ms", System.currentTimeMillis())
                         },
                         "id = ?",
+                        arrayOf(localId),
+                    )
+                    db.delete(
+                        "pmd_order_lines",
+                        "order_id = ?",
                         arrayOf(localId),
                     )
                 }
@@ -677,14 +685,17 @@ class LocalPosRepository(private val database: PmdDatabase) {
                 val aggregate = eventPayload
                     .optString("aggregate_id")
                     .ifBlank {
-                        eventPayload.optString(
-                            "local_aggregate_id",
-                        )
+                        eventPayload.optString("local_aggregate_id")
                     }
-                val localId = aggregate
-                    .takeIf { it.startsWith("local:") }
-                    ?.removePrefix("local:")
-                    ?: return
+                val serverId = aggregate
+                    .removePrefix("order:")
+                    .takeIf { aggregate.startsWith("order:") }
+                    ?.toLongOrNull()
+                    ?: 0L
+                val localId = resolveLocalOrderId(
+                    aggregateId = aggregate,
+                    serverOrderId = serverId,
+                ) ?: return
 
                 database.transaction { db ->
                     val current = db.query(
@@ -697,9 +708,9 @@ class LocalPosRepository(private val database: PmdDatabase) {
                         null,
                         "1",
                     ).use {
-                        if (it.moveToFirst()) it.getString(0)
-                        else "{}"
+                        if (it.moveToFirst()) it.getString(0) else "{}"
                     }
+
                     val meta = runCatching {
                         JSONObject(current)
                     }.getOrElse { JSONObject() }
@@ -707,20 +718,15 @@ class LocalPosRepository(private val database: PmdDatabase) {
                         "reconciliation_error",
                         eventPayload.optString("message"),
                     )
+                    meta.put("edge_provisional", true)
 
                     db.update(
                         "pmd_orders",
                         ContentValues().apply {
                             put("status", STATUS_CONFLICT)
                             put("dirty", 1)
-                            put(
-                                "payload_json",
-                                meta.toString(),
-                            )
-                            put(
-                                "updated_at_ms",
-                                System.currentTimeMillis(),
-                            )
+                            put("payload_json", meta.toString())
+                            put("updated_at_ms", System.currentTimeMillis())
                         },
                         "id = ?",
                         arrayOf(localId),
@@ -736,47 +742,101 @@ class LocalPosRepository(private val database: PmdDatabase) {
         if (serverId < 1) return
 
         val clientAggregateId = eventPayload.optString("client_aggregate_id")
-        val localId = when {
-            clientAggregateId.startsWith("local:") -> clientAggregateId.removePrefix("local:")
-            else -> database.readableDatabase.query(
-                "pmd_orders",
-                arrayOf("id"),
-                "server_id = ?",
-                arrayOf(serverId.toString()),
-                null,
-                null,
-                null,
-                "1",
-            ).use { if (it.moveToFirst()) it.getString(0) else null }
-        } ?: return
+        val tableId = order.optLong("table_id", 0)
+        var localId = resolveLocalOrderId(
+            aggregateId = clientAggregateId,
+            serverOrderId = serverId,
+        )
+
+        if (localId == null && tableId > 0) {
+            localId = seedServerShadowFromEvent(
+                order = order,
+                serverId = serverId,
+                version = version,
+            )
+        }
+        localId ?: return
+
+        val totalMinor = moneyToMinor(
+            order.optDouble("order_total", 0.0),
+            localMinorExponent(),
+        )
+        val eventCommandId = eventPayload.optString("command_id")
 
         database.transaction { db ->
-            val current = db.query(
+            val row = db.query(
                 "pmd_orders",
-                arrayOf("payload_json"),
+                arrayOf("payload_json", "dirty", "status"),
                 "id = ?",
                 arrayOf(localId),
                 null,
                 null,
                 null,
                 "1",
-            ).use { if (it.moveToFirst()) it.getString(0) else "{}" }
-            val meta = runCatching { JSONObject(current) }.getOrElse { JSONObject() }
+            ).use {
+                if (!it.moveToFirst()) null
+                else Triple(it.getString(0), it.getInt(1), it.getString(2))
+            } ?: return@transaction
+
+            val meta = runCatching {
+                JSONObject(row.first)
+            }.getOrElse { JSONObject() }
+            val localCommandId = meta.optString("edge_command_id")
+                .ifBlank { meta.optString("last_command_id") }
+            val lineCount = db.rawQuery(
+                "SELECT COUNT(*) FROM pmd_order_lines WHERE order_id = ? AND deleted = 0",
+                arrayOf(localId),
+            ).use { if (it.moveToFirst()) it.getInt(0) else 0 }
+
+            val hasUnreconciledLocalWork =
+                row.second != 0 &&
+                    (
+                        lineCount > 0 ||
+                            row.third == STATUS_EDGE_OPEN ||
+                            row.third == STATUS_QUEUED ||
+                            row.third == STATUS_RETRY
+                    )
+            val sameCommand =
+                eventCommandId.isNotBlank() &&
+                    localCommandId.isNotBlank() &&
+                    eventCommandId == localCommandId
+
+            if (hasUnreconciledLocalWork && !sameCommand) {
+                // Never discard a local cart/provisional Edge mutation because
+                // another device changed the same bill. Keep the local work and
+                // force explicit reconciliation.
+                meta.put("remote_conflict_version", version)
+                meta.put("remote_conflict_order", order)
+                meta.put("reconciliation_error", "Order changed on another device.")
+
+                db.update(
+                    "pmd_orders",
+                    ContentValues().apply {
+                        put("status", STATUS_CONFLICT)
+                        put("dirty", 1)
+                        put("payload_json", meta.toString())
+                        put("updated_at_ms", System.currentTimeMillis())
+                    },
+                    "id = ?",
+                    arrayOf(localId),
+                )
+                return@transaction
+            }
+
             meta.put("server_updated_at", order.optString("updated_at"))
+            meta.put("edge_provisional", false)
+            meta.put("base_total_minor", totalMinor)
+            if (eventCommandId.isNotBlank()) {
+                meta.put("last_command_id", eventCommandId)
+            }
 
             db.update(
                 "pmd_orders",
                 ContentValues().apply {
                     put("server_id", serverId.toString())
                     put("version", version)
-                    put("status", if (order.optString("mode") == "hold") STATUS_HELD else STATUS_SENT)
-                    put(
-                        "total_minor",
-                        moneyToMinor(
-                            order.optDouble("order_total", 0.0),
-                            localMinorExponent(),
-                        ),
-                    )
+                    put("status", STATUS_SERVER_OPEN)
+                    put("total_minor", totalMinor)
                     put("dirty", 0)
                     put("payload_json", meta.toString())
                     put("updated_at_ms", System.currentTimeMillis())
@@ -784,7 +844,125 @@ class LocalPosRepository(private val database: PmdDatabase) {
                 "id = ?",
                 arrayOf(localId),
             )
+            db.delete(
+                "pmd_order_lines",
+                "order_id = ?",
+                arrayOf(localId),
+            )
         }
+    }
+
+    private fun resolveLocalOrderId(
+        aggregateId: String,
+        serverOrderId: Long = 0,
+    ): String? {
+        if (aggregateId.startsWith("local:")) {
+            val candidate = aggregateId.removePrefix("local:")
+            val exists = database.readableDatabase.query(
+                "pmd_orders",
+                arrayOf("id"),
+                "id = ?",
+                arrayOf(candidate),
+                null,
+                null,
+                null,
+                "1",
+            ).use { it.moveToFirst() }
+            if (exists) return candidate
+        }
+
+        val canonicalId = when {
+            serverOrderId > 0 -> serverOrderId
+            aggregateId.startsWith("order:") ->
+                aggregateId.removePrefix("order:").toLongOrNull() ?: 0L
+            else -> 0L
+        }
+        if (canonicalId < 1) return null
+
+        return database.readableDatabase.query(
+            "pmd_orders",
+            arrayOf("id"),
+            "server_id = ?",
+            arrayOf(canonicalId.toString()),
+            null,
+            null,
+            "updated_at_ms DESC",
+            "1",
+        ).use { if (it.moveToFirst()) it.getString(0) else null }
+    }
+
+    private fun seedServerShadowFromEvent(
+        order: JSONObject,
+        serverId: Long,
+        version: Long,
+    ): String? {
+        val tableId = order.optLong("table_id", 0)
+        if (tableId < 1) return null
+
+        val locationId = database.readableDatabase.query(
+            "pmd_tables",
+            arrayOf("location_id"),
+            "id = ?",
+            arrayOf(tableId.toString()),
+            null,
+            null,
+            null,
+            "1",
+        ).use { if (it.moveToFirst()) it.getLong(0) else 0L }
+        if (locationId < 1) return null
+
+        val id = "server:$serverId"
+        val totalMinor = moneyToMinor(
+            order.optDouble("order_total", 0.0),
+            localMinorExponent(),
+        )
+        val meta = JSONObject()
+            .put("server_updated_at", order.optString("updated_at"))
+            .put("base_total_minor", totalMinor)
+            .put("guest_count", order.optInt("guest_count", 1).coerceIn(1, 99))
+            .put("note", order.optString("comment"))
+            .put("edge_provisional", false)
+
+        database.writableDatabase.insertWithOnConflict(
+            "pmd_orders",
+            null,
+            ContentValues().apply {
+                put("id", id)
+                put("location_id", locationId)
+                put("version", version)
+                put("server_id", serverId.toString())
+                put("table_id", tableId.toString())
+                put("status", STATUS_SERVER_OPEN)
+                put("total_minor", totalMinor)
+                put("currency", localCurrencyCode())
+                put("payload_json", meta.toString())
+                put("dirty", 0)
+                put("updated_at_ms", System.currentTimeMillis())
+            },
+            SQLiteDatabase.CONFLICT_IGNORE,
+        )
+        return resolveLocalOrderId("order:$serverId", serverId)
+    }
+
+    private fun localCurrencyCode(): String {
+        val raw = database.readableDatabase.query(
+            "pmd_meta",
+            arrayOf("value"),
+            "key = ?",
+            arrayOf("bootstrap_json"),
+            null,
+            null,
+            null,
+            "1",
+        ).use { if (it.moveToFirst()) it.getString(0) else "{}" }
+
+        return runCatching {
+            JSONObject(raw)
+                .optJSONObject("location")
+                ?.optString("currency_code", "EUR")
+                ?.ifBlank { "EUR" }
+                ?: "EUR"
+        }.getOrDefault("EUR")
     }
 
     private fun ensureDraft(
@@ -793,7 +971,7 @@ class LocalPosRepository(private val database: PmdDatabase) {
         tableId: String,
         currency: String,
     ): String {
-        val existing = db.query(
+        val existingMutation = db.query(
             "pmd_orders",
             arrayOf("id"),
             "table_id = ? AND status IN (?, ?)",
@@ -804,7 +982,30 @@ class LocalPosRepository(private val database: PmdDatabase) {
             "1",
         ).use { if (it.moveToFirst()) it.getString(0) else null }
 
-        if (existing != null) return existing
+        if (existingMutation != null) return existingMutation
+
+        // Continue the latest financially-open bill instead of silently
+        // creating a second check for the same table.
+        val reusableOpenBill = db.query(
+            "pmd_orders",
+            arrayOf("id"),
+            "table_id = ? AND status IN (?, ?, ?, ?, ?, ?)",
+            arrayOf(
+                tableId,
+                STATUS_SERVER_OPEN,
+                STATUS_EDGE_OPEN,
+                STATUS_HELD,
+                STATUS_SENT,
+                STATUS_EDGE_HELD,
+                STATUS_EDGE_SENT,
+            ),
+            null,
+            null,
+            "updated_at_ms DESC",
+            "1",
+        ).use { if (it.moveToFirst()) it.getString(0) else null }
+
+        if (reusableOpenBill != null) return reusableOpenBill
 
         val id = UUID.randomUUID().toString()
         db.insertOrThrow(
@@ -824,6 +1025,7 @@ class LocalPosRepository(private val database: PmdDatabase) {
                     JSONObject()
                         .put("guest_count", 1)
                         .put("note", "")
+                        .put("base_total_minor", 0)
                         .toString(),
                 )
                 put("dirty", 1)
@@ -1023,6 +1225,8 @@ class LocalPosRepository(private val database: PmdDatabase) {
         const val STATUS_DRAFT = "DRAFT"
         const val STATUS_QUEUED = "QUEUED"
         const val STATUS_RETRY = "RETRY"
+        const val STATUS_SERVER_OPEN = "SERVER_OPEN"
+        const val STATUS_EDGE_OPEN = "EDGE_OPEN"
         const val STATUS_HELD = "HELD"
         const val STATUS_SENT = "SENT"
         const val STATUS_EDGE_HELD = "EDGE_HELD"
