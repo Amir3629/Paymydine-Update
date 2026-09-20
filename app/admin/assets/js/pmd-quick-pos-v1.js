@@ -149,7 +149,8 @@
       open: false,
       scope: 'order',
       targetTableId: null,
-      submitting: false
+      submitting: false,
+      directSide: false
     },
     payment: {
       open: false,
@@ -653,24 +654,38 @@
     var move = $('[data-qpos-table-move]');
     var free = $('[data-qpos-table-free]');
     var pickupSelected = state.serviceMode === 'takeaway';
+    var directMove =
+      state.transfer.open &&
+      state.transfer.directSide;
 
     if (tableActions) {
       tableActions.hidden = !state.selectedTable && !pickupSelected;
     }
 
     if (cleaning) {
-      cleaning.disabled = pickupSelected || !state.selectedTable;
+      cleaning.disabled =
+        directMove ||
+        pickupSelected ||
+        !state.selectedTable;
     }
     if (move) {
-      move.disabled =
-        pickupSelected ||
-        !state.selectedTable ||
-        !state.openOrders.length ||
-        !!state.cart.length ||
-        !!state.submitting;
+      move.disabled = directMove
+        ? !!state.transfer.submitting
+        : (
+            pickupSelected ||
+            !state.selectedTable ||
+            !Number(state.activeOrderId || 0) ||
+            !!state.cart.length ||
+            !!state.submitting
+          );
+      move.textContent = directMove ? 'Cancel' : 'Move';
+      move.classList.toggle('is-direct-cancel', directMove);
     }
     if (free) {
-      free.disabled = pickupSelected || !state.selectedTable;
+      free.disabled =
+        directMove ||
+        pickupSelected ||
+        !state.selectedTable;
     }
   }
 
@@ -905,32 +920,53 @@
     if (!box) return;
 
     var floorTables = activeFloorTables();
+    var directMove =
+      state.transfer.open &&
+      state.transfer.directSide;
+    var sourceId =
+      directMove && state.selectedTable
+        ? Number(state.selectedTable.id || 0)
+        : 0;
 
     if (count) count.textContent = String(floorTables.length);
     if (title) {
-      title.textContent =
-        state.serviceMode === 'takeaway'
-          ? 'Pickup'
-          : (
-              state.selectedTable
-                ? compactTableLabel(state.selectedTable)
-                : 'Tables'
-            );
+      title.textContent = directMove
+        ? 'Move #' + String(state.activeOrderId || '')
+        : (
+            state.serviceMode === 'takeaway'
+              ? 'Pickup'
+              : (
+                  state.selectedTable
+                    ? compactTableLabel(state.selectedTable)
+                    : 'Tables'
+                )
+          );
     }
 
     var rows = [
       '<button type="button" class="pmd-qpos-table pmd-qpos-pickup' +
         (state.serviceMode === 'takeaway' ? ' is-selected' : '') +
-        '" data-qpos-pickup>' +
+        (directMove ? ' is-move-disabled' : '') + '"' +
+        ' data-qpos-pickup' +
+        (directMove ? ' disabled' : '') + '>' +
         '<strong>Pickup</strong>' +
       '</button>'
     ];
 
     floorTables.forEach(function (table) {
+      var tableId = Number(table.id || 0);
       var selected =
         state.serviceMode === 'dine_in' &&
         state.selectedTable &&
-        Number(state.selectedTable.id) === Number(table.id);
+        Number(state.selectedTable.id) === tableId;
+      var isMoveSource =
+        directMove &&
+        sourceId > 0 &&
+        sourceId === tableId;
+      var isMoveTarget =
+        directMove &&
+        !isMoveSource &&
+        transferTargetAllowed(table);
 
       var paymentState =
         String(table.status || 'available') === 'available'
@@ -957,10 +993,19 @@
 
       rows.push(
         '<button type="button" class="pmd-qpos-table' +
-          (selected ? ' is-selected' : '') + '"' +
+          (selected ? ' is-selected' : '') +
+          (isMoveSource ? ' is-move-source' : '') +
+          (isMoveTarget ? ' is-move-target' : '') + '"' +
           ' data-qpos-table="' + esc(table.id) + '"' +
           ' data-status="' + esc(table.status || 'available') + '"' +
-          ' data-payment-state="' + esc(paymentState) + '">' +
+          ' data-payment-state="' + esc(paymentState) + '"' +
+          (isMoveSource || (directMove && !isMoveTarget) || state.transfer.submitting
+            ? ' disabled'
+            : '') +
+          (isMoveTarget
+            ? ' aria-label="Move order ' + esc(state.activeOrderId || '') +
+              ' to table ' + esc(compactTableLabel(table)) + '"'
+            : '') + '>' +
           '<strong>' + esc(compactTableLabel(table)) + '</strong>' +
           '<small>' + esc(tableStatusLabel(table.status)) +
             (num(table.capacity, 0) > 0 ? ' · ' + esc(table.capacity) + 's' : '') +
@@ -982,11 +1027,19 @@
     box.innerHTML = rows.join('');
 
     var pickup = $('[data-qpos-pickup]', box);
-    if (pickup) pickup.onclick = selectPickup;
+    if (pickup && !directMove) pickup.onclick = selectPickup;
 
     $$('[data-qpos-table]', box).forEach(function (button) {
       button.onclick = function () {
-        selectTable(Number(button.getAttribute('data-qpos-table')));
+        var id = Number(button.getAttribute('data-qpos-table') || 0);
+        if (!id) return;
+
+        if (directMove) {
+          directMoveOrderToTable(id);
+          return;
+        }
+
+        selectTable(id);
       };
     });
   }
@@ -1683,6 +1736,68 @@ function renderOpenChecks() {
     state.transfer.open = false;
     state.transfer.targetTableId = null;
     state.transfer.submitting = false;
+    state.transfer.directSide = false;
+    root.classList.remove('is-direct-order-move');
+  }
+
+  /* PMD_QPOS_DIRECT_SIDE_MOVE_V37
+   * Moving the active order is a left-rail operation: tap Move, then tap
+   * the destination table. No second table-picker modal is required. */
+  function openDirectSideMove() {
+    if (state.serviceMode !== 'dine_in' || !state.selectedTable) return;
+
+    if (state.cart.length) {
+      toast('Send or remove new items first.', true);
+      return;
+    }
+
+    if (!Number(state.activeOrderId || 0)) {
+      toast('Choose a check to move first.', true);
+      return;
+    }
+
+    closePayment();
+    closeHistory();
+    closeFloorMap();
+    closeTextKeyboard();
+    hideToast();
+
+    state.transfer.open = true;
+    state.transfer.scope = 'order';
+    state.transfer.targetTableId = null;
+    state.transfer.submitting = false;
+    state.transfer.directSide = true;
+    root.classList.add('is-direct-order-move');
+
+    renderTables();
+    renderContext();
+    toast(
+      'Select the destination table for order #' +
+      String(state.activeOrderId) +
+      '.'
+    );
+  }
+
+  async function directMoveOrderToTable(tableId) {
+    if (
+      !state.transfer.open ||
+      !state.transfer.directSide ||
+      state.transfer.submitting
+    ) return;
+
+    var target = state.tables.find(function (table) {
+      return Number(table.id || 0) === Number(tableId || 0);
+    }) || null;
+
+    if (!target || !transferTargetAllowed(target)) {
+      toast('Choose a different destination table.', true);
+      return;
+    }
+
+    state.transfer.targetTableId = Number(target.id || 0);
+    renderTables();
+    renderContext();
+    await executeTransfer();
   }
 
   function openTransfer() {
@@ -1735,8 +1850,15 @@ function renderOpenChecks() {
       return;
     }
 
+    var directSide = !!state.transfer.directSide;
+
     state.transfer.submitting = true;
-    renderTransfer();
+    if (directSide) {
+      renderTables();
+      renderContext();
+    } else {
+      renderTransfer();
+    }
 
     try {
       var json = await fetchJson(
@@ -1791,7 +1913,14 @@ function renderOpenChecks() {
       toast(error.message || 'Could not move the check.', true);
     } finally {
       state.transfer.submitting = false;
-      if (state.transfer.open) renderTransfer();
+      if (state.transfer.open) {
+        if (state.transfer.directSide) {
+          renderTables();
+          renderContext();
+        } else {
+          renderTransfer();
+        }
+      }
     }
   }
 
@@ -1903,6 +2032,17 @@ function renderOpenChecks() {
       }) ||
       id === String(state.activeFloorId)
     ) {
+      return;
+    }
+
+    if (
+      state.transfer.open &&
+      state.transfer.directSide
+    ) {
+      state.activeFloorId = id;
+      rememberActiveFloor();
+      renderContext();
+      renderTables();
       return;
     }
 
@@ -5435,7 +5575,18 @@ function renderOpenChecks() {
     };
 
     if (move) move.onclick = function () {
-      openTransfer();
+      if (
+        state.transfer.open &&
+        state.transfer.directSide
+      ) {
+        closeTransfer();
+        renderTables();
+        renderContext();
+        hideToast();
+        return;
+      }
+
+      openDirectSideMove();
     };
 
     var transferClose = $('[data-qpos-transfer-close]');
