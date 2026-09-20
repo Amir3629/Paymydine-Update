@@ -53,6 +53,7 @@ jobs:
           php -l app/Services/PmdMobileSync/PmdMobilePairingService.php
           php -l app/Services/PmdMobileSync/PmdMobileCommandProcessor.php
           php -l app/Http/Controllers/PmdMobileBootstrapController.php
+          php -l app/Http/Controllers/PmdMobileEdgeController.php
           php -l app/Http/Controllers/PmdMobileSyncController.php
           php -l app/Http/Controllers/PmdMobilePairController.php
           php -l app/Http/Controllers/PmdMobileKdsController.php
@@ -78,6 +79,12 @@ jobs:
           grep -q "pmdMobileSnapshot" app/admin/controllers/KitchenDisplay.php
           grep -q "saveMobilePayload" app/admin/controllers/concerns/PmdWaiterPosSaveEndpoint.php
           grep -q "request_hash" app/system/database/migrations/2026_09_20_190000_create_pmd_mobile_sync_tables.php
+          grep -q "client_aggregate_id" app/Services/PmdMobileSync/PmdMobileCommandProcessor.php
+          grep -q "canonicalizeForHash" app/Services/PmdMobileSync/PmdMobileCommandProcessor.php
+          grep -q "sendCommandJson" mobile/android/app/src/main/java/com/paymydine/mobile/network/MobileApiClient.kt
+          grep -q "cloudRoutingForCommand" mobile/android/app/src/main/java/com/paymydine/mobile/data/local/LocalPosRepository.kt
+          grep -q "blockedAggregates" mobile/android/app/src/main/java/com/paymydine/mobile/sync/SyncEngine.kt
+          grep -q "pmd_edge_inbox_scope_seq" mobile/android/app/src/main/java/com/paymydine/mobile/data/local/PmdDatabase.kt
           grep -q "routes/pmd-mobile-sync-v1.php" app/admin/routes.php
           grep -q "PmdMobilePairingService" app/admin/controllers/Login.php
           echo "PMD_ANDROID_SERVER_CONTRACT=PASS"
