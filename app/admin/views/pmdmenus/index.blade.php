@@ -954,7 +954,9 @@
 
             @foreach($cards as $item)
                 @php
-                    $searchText = mb_strtolower(trim($item['name'].' '.$item['description'].' '.implode(' ', $item['category_names'] ?? []).' '.implode(' ', $item['allergen_names'] ?? [])));
+                    // PMD_MENU_CARD_NUMBER_V24
+                    $menuNumber = max(1, (int)($item['menu_number'] ?? $loop->iteration));
+                    $searchText = mb_strtolower(trim('#'.$menuNumber.' '.$menuNumber.' '.$item['name'].' '.$item['description'].' '.implode(' ', $item['category_names'] ?? []).' '.implode(' ', $item['allergen_names'] ?? [])));
                     $categoryIdsText = implode(',', array_map('intval', $item['category_ids'] ?? []));
                     $categoryExtra = max(0, count($item['category_names'] ?? []) - 1);
 
@@ -982,6 +984,7 @@
                     data-pmd-menu-card
                     data-item-type="food"
                     data-menu-id="{{ (int)$item['id'] }}"
+                    data-menu-number="{{ $menuNumber }}"
                     data-category-ids="{{ $categoryIdsText }}"
                     data-stock-out="{{ $item['is_stock_out'] ? '1' : '0' }}"
                     data-published="{{ $item['menu_status'] ? '1' : '0' }}"
@@ -1024,6 +1027,11 @@
                                 data-pmd-menu-image
                             >
                         @endif
+                        <span
+                            class="pmd-menu-card__number"
+                            data-pmd-menu-number
+                            aria-label="Food number {{ $menuNumber }}"
+                        >{{ $menuNumber }}</span>
                         <span class="pmd-menu-card__category">
                             {{ $item['category_name'] === 'Uncategorized' ? $pmdT('uncategorized') : $item['category_name'] }}@if($categoryExtra > 0) <b>+{{ $categoryExtra }}</b>@endif
                         </span>
