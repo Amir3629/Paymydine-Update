@@ -48,6 +48,15 @@ class CreatePmdMobileSyncTables extends Migration
             });
         }
 
+        if (
+            Schema::hasTable('pmd_sync_commands')
+            && !Schema::hasColumn('pmd_sync_commands', 'request_hash')
+        ) {
+            Schema::table('pmd_sync_commands', function (Blueprint $table) {
+                $table->char('request_hash', 64)->nullable()->after('idempotency_key');
+            });
+        }
+
         if (!Schema::hasTable('pmd_sync_events')) {
             Schema::create('pmd_sync_events', function (Blueprint $table) {
                 // Sequence is monotonic inside each tenant database.
