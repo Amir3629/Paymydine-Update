@@ -33,13 +33,415 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
         // instead of painting a shell and waiting for a second bootstrap GET.
         $initialBootstrap = $this->quickPosBootstrapPayload($mode);
 
+        /*
+         * PMD_QPOS_EXACT_DASHBOARD_FLOOR_V26
+         *
+         * Quick POS does not render a second Floor. It supplies the same
+         * canonical Floor context used by Dashboard/Manager/Reservations.
+         */
+        $exactFloor = $this->quickPosExactFloorContext(
+            (int)($initialBootstrap['location_id'] ?? 0)
+        );
+
         return view()->file(
             base_path('app/admin/views/pmd_quick_pos_v1.blade.php'),
             [
                 'mode' => $mode,
                 'initialBootstrap' => $initialBootstrap,
+                'pmdQuickPosExactFloor' => $exactFloor,
             ]
         );
+    }
+
+    /**
+     * Build the exact Dashboard Floor context for the POS Map workspace.
+     * Visual markup/runtime comes from the canonical shared partial/assets;
+     * this method only supplies the same data/registry contract.
+     */
+    protected function quickPosExactFloorContext(int $locationId): array
+    {
+        $locationId = $locationId > 0
+            ? $locationId
+            : $this->quickPosLocationId();
+
+        $floorService = app(
+            \Admin\Services\PmdSharedFloorRegistryV1::class
+        );
+
+        $bootstrap = $this->quickPosExactFloorBootstrap();
+
+        try {
+            $bootstrap = $floorService->applyUserPageViewPreference(
+                $locationId,
+                'quick-pos',
+                $bootstrap
+            );
+        } catch (\Throwable $ignored) {
+        }
+
+        $bootstrap['display_tables'] = $this->quickPosBuildFloorDisplayTables(
+            (array)($bootstrap['data'] ?? []),
+            (array)($bootstrap['layout'] ?? []),
+            (array)($bootstrap['state'] ?? []),
+            (string)($bootstrap['mode'] ?? 'full')
+        );
+
+        try {
+            $snapshot = $floorService->snapshot($locationId);
+        } catch (\Throwable $error) {
+            $snapshot = [
+                'floors' => [[
+                    'id' => $floorService->defaultFloorId(),
+                    'name' => 'Main Floor',
+                    'is_default' => true,
+                    'sort' => 0,
+                ]],
+                'cookie_name' => '',
+                'legacy_cookie_name' => '',
+                'table_floor_map' => [
+                    'by_id' => [],
+                    'by_number' => [],
+                    'by_name' => [],
+                ],
+            ];
+        }
+
+        $floors = array_values((array)($snapshot['floors'] ?? []));
+        $requested = '';
+        $cookieName = trim((string)($snapshot['cookie_name'] ?? ''));
+
+        if ($cookieName !== '') {
+            $requested = trim((string)request()->cookie($cookieName, ''));
+        }
+
+        if (
+            $requested === ''
+            && !empty($snapshot['legacy_cookie_name'])
+        ) {
+            $requested = trim((string)request()->cookie(
+                (string)$snapshot['legacy_cookie_name'],
+                ''
+            ));
+        }
+
+        $active = $floorService->activeFloor($floors, $requested);
+
+        return [
+            'bootstrap' => $bootstrap,
+            'display_tables' => array_values(
+                (array)($bootstrap['display_tables'] ?? [])
+            ),
+            'mode' => (string)($bootstrap['mode'] ?? 'full'),
+            'zoom' => (float)($bootstrap['zoom'] ?? 1.0),
+            'location_id' => $locationId,
+            'registry' => $floors,
+            'active' => $active,
+            'cookie_name' => $cookieName,
+            'table_floor_map' => (array)(
+                $snapshot['table_floor_map']
+                ?? [
+                    'by_id' => [],
+                    'by_number' => [],
+                    'by_name' => [],
+                ]
+            ),
+        ];
+    }
+
+    /**
+     * Same Floor data/layout/state authorities used by DashboardLab.
+     */
+    protected function quickPosExactFloorBootstrap(): array
+    {
+        $data = [];
+        $layout = [
+            'ok' => true,
+            'tables' => [],
+            'floor' => ['width' => 1000, 'height' => 560],
+        ];
+        $state = [
+            'tables' => [],
+            'merges' => [],
+        ];
+        $errors = [];
+
+        try {
+            $source = new class extends PmdWaiterDashboardV151 {
+                public function pmdQuickPosExactFloorData(): array
+                {
+                    return $this->v9CompatiblePayload(false);
+                }
+            };
+
+            $data = $source->pmdQuickPosExactFloorData();
+        } catch (\Throwable $error) {
+            $errors['data'] = $error->getMessage();
+        }
+
+        try {
+            $source = new class extends PmdFloorV1 {
+                public function pmdQuickPosExactFloorState(): array
+                {
+                    return $this->canonicalizeState(
+                        $this->readState()
+                    );
+                }
+            };
+
+            $state = $source->pmdQuickPosExactFloorState();
+        } catch (\Throwable $error) {
+            $errors['state'] = $error->getMessage();
+        }
+
+        try {
+            $source = new PmdOwnerDashboardCleanV1();
+            $response = $source->floorLayout();
+
+            if (is_object($response) && method_exists($response, 'getData')) {
+                $decoded = $response->getData(true);
+                if (is_array($decoded) && ($decoded['ok'] ?? false) === true) {
+                    $layout = $decoded;
+                }
+            }
+        } catch (\Throwable $error) {
+            $errors['layout'] = $error->getMessage();
+        }
+
+        // POS Map starts as a real Floor, not the compact one-row projection.
+        $mode = 'full';
+        $zoom = 1.0;
+
+        return [
+            'version' => 'qpos-exact-dashboard-floor-v26',
+            'server_first_paint' => true,
+            'mode' => $mode,
+            'zoom' => $zoom,
+            'data' => $data,
+            'layout' => $layout,
+            'state' => $state,
+            'display_tables' => $this->quickPosBuildFloorDisplayTables(
+                $data,
+                $layout,
+                $state,
+                $mode
+            ),
+            'endpoints' => [
+                'data' => admin_url('pmd-waiter-dashboard-v9-tenant-data'),
+                'layout' => admin_url('pmd-owner-dashboard-floor-layout'),
+                'state' => admin_url('pmd-floor-v1/state'),
+                // Kept for the canonical runtime; POS intercepts table-open.
+                'order' => admin_url('waiter-pos/{table}'),
+            ],
+            'errors' => $errors,
+        ];
+    }
+
+    /*
+     * PMD_QPOS_EXACT_FLOOR_AJAX_TRANSPORT_V26
+     *
+     * The shared Floor runtime posts its established handler name back to the
+     * current page URL. Quick POS is registered as a plain Laravel route, so
+     * explicitly dispatch the two read/view handlers that the exact Floor uses.
+     */
+    public function floorAjax($mode = 'cashier')
+    {
+        $this->quickPosMode((string)$mode);
+
+        if (!$this->currentUser()) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Unauthenticated.',
+            ], 401);
+        }
+
+        $handler = trim((string)request()->header(
+            'X-IGNITER-REQUEST-HANDLER',
+            ''
+        ));
+
+        if ($handler === 'onSaveFloorViewPreference') {
+            return $this->onSaveFloorViewPreference();
+        }
+
+        if ($handler === 'onPmdFloorReservationBusyWindows') {
+            return $this->onPmdFloorReservationBusyWindows();
+        }
+
+        return response()->json([
+            'ok' => false,
+            'message' => 'Unsupported Floor request.',
+        ], 422);
+    }
+
+    /**
+     * Exact Floor zoom / Full Floor / One-row preference endpoint.
+     */
+    public function onSaveFloorViewPreference()
+    {
+        $user = $this->currentUser();
+        if (!$user) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Unauthenticated.',
+            ], 401);
+        }
+
+        $mode = trim((string)request()->input('layout_mode'));
+        $zoom = request()->input('full_floor_zoom');
+
+        if (!in_array($mode, ['full', 'row'], true)) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Invalid Floor layout mode.',
+            ], 422);
+        }
+
+        if (
+            !is_numeric($zoom)
+            || (float)$zoom < 0.4
+            || (float)$zoom > 1.6
+        ) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Invalid Floor zoom.',
+            ], 422);
+        }
+
+        try {
+            $view = app(
+                \Admin\Services\PmdSharedFloorRegistryV1::class
+            )->saveUserPageViewPreference(
+                $this->quickPosLocationId(),
+                'quick-pos',
+                $mode,
+                (float)$zoom
+            );
+
+            return response()->json([
+                'ok' => true,
+                'scope' => 'authenticated-user-page-location',
+                'view' => $view,
+            ]);
+        } catch (\Throwable $error) {
+            report($error);
+
+            return response()->json([
+                'ok' => false,
+                'message' => 'Floor view preference could not be saved.',
+            ], 500);
+        }
+    }
+
+    /**
+     * Canonical reservation-busy window contract used by the shared Floor.
+     */
+    public function onPmdFloorReservationBusyWindows()
+    {
+        return response()->json([
+            'success' => true,
+            'location_id' => $this->quickPosLocationId(),
+            'windows' => $this->quickPosFloorReservationBusyWindows(
+                $this->quickPosLocationId()
+            ),
+        ]);
+    }
+
+    protected function quickPosFloorReservationBusyWindows(
+        int $locationId
+    ): array {
+        $locationId = max(0, $locationId);
+        if ($locationId < 1) return [];
+
+        try {
+            if (
+                !Schema::hasTable('reservations')
+                || !Schema::hasTable('reservation_tables')
+                || !Schema::hasTable('tables')
+            ) {
+                return [];
+            }
+
+            $now = \Carbon\Carbon::now('Europe/Berlin');
+            $reservations = \Admin\Models\Reservations_model::with('tables')
+                ->where('location_id', $locationId)
+                ->whereBetween('reserve_date', [
+                    $now->copy()->subDay()->toDateString(),
+                    $now->copy()->addDay()->toDateString(),
+                ])
+                ->get();
+
+            $windows = [];
+            $seen = [];
+
+            foreach ($reservations as $reservation) {
+                if (!$reservation || $reservation->isCanceled()) continue;
+
+                $date = substr(
+                    trim((string)$reservation->getOriginal('reserve_date')),
+                    0,
+                    10
+                );
+                $time = substr(
+                    trim((string)$reservation->getOriginal('reserve_time')),
+                    0,
+                    8
+                );
+
+                if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) continue;
+                if (!preg_match('/^\d{2}:\d{2}(?::\d{2})?$/', $time)) continue;
+                if (strlen($time) === 5) $time .= ':00';
+
+                try {
+                    $start = \Carbon\Carbon::createFromFormat(
+                        'Y-m-d H:i:s',
+                        $date.' '.$time,
+                        'Europe/Berlin'
+                    );
+                } catch (\Throwable $ignored) {
+                    continue;
+                }
+
+                if (!$start) continue;
+
+                $duration = max(
+                    1,
+                    (int)($reservation->duration ?? 0)
+                );
+                $end = $start->copy()->addMinutes($duration);
+
+                foreach ($reservation->tables as $table) {
+                    if (!$table) continue;
+
+                    $tableId = (int)($table->table_id ?? 0);
+                    $tableNo = trim((string)($table->table_no ?? ''));
+
+                    if ($tableId < 1 && $tableNo === '') continue;
+
+                    $key = implode(':', [
+                        (int)($reservation->reservation_id ?? 0),
+                        $tableId,
+                        $start->getTimestamp(),
+                    ]);
+
+                    if (isset($seen[$key])) continue;
+                    $seen[$key] = true;
+
+                    $windows[] = [
+                        'reservation_id' =>
+                            (int)($reservation->reservation_id ?? 0),
+                        'table_id' => $tableId,
+                        'table_no' => $tableNo,
+                        'start_ms' => $start->getTimestamp() * 1000,
+                        'end_ms' => $end->getTimestamp() * 1000,
+                    ];
+                }
+            }
+
+            return $windows;
+        } catch (\Throwable $error) {
+            report($error);
+            return [];
+        }
     }
 
     public function bootstrap($mode = 'cashier')
@@ -2182,6 +2584,404 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
             'can_return_dashboard' => $canReturn,
         ];
     }
+
+    /* PMD_QPOS_EXACT_DASHBOARD_FLOOR_SERVER_TABLES_V26
+     * Copied from DashboardLab's server-first exact Floor normalization so
+     * the POS Map cannot drift visually or geometrically from Dashboard.
+     */
+    protected function quickPosBuildFloorDisplayTables(
+        array $data,
+        array $layout,
+        array $state,
+        string $mode
+    ): array {
+        $rawTables = $data['tables']
+            ?? ($data['sections']['floor_plan']['tables'] ?? []);
+
+        if (!is_array($rawTables)) {
+            $rawTables = [];
+        }
+
+        /* PMD_DASHBOARD_LAB_FLOOR_SERVER_NORMALIZE_V2 */
+        $orders = $data['orders']
+            ?? ($data['current_orders'] ?? []);
+
+        if (!is_array($orders)) {
+            $orders = [];
+        }
+
+        $layoutById = [];
+        foreach (($layout['tables'] ?? []) as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+
+            $id = trim((string)(
+                $item['id']
+                ?? $item['table_id']
+                ?? $item['table_no']
+                ?? $item['table_number']
+                ?? ''
+            ));
+
+            if ($id !== '') {
+                $layoutById[$id] = $item;
+            }
+        }
+
+        $tables = [];
+
+        foreach ($rawTables as $index => $raw) {
+            if (!is_array($raw)) {
+                continue;
+            }
+
+            $id = trim((string)(
+                $raw['id']
+                ?? $raw['table_id']
+                ?? $raw['location_table_id']
+                ?? $raw['number']
+                ?? $raw['table_number']
+                ?? ''
+            ));
+
+            $number = trim((string)(
+                $raw['number']
+                ?? $raw['table_number']
+                ?? $raw['table_no']
+                ?? $raw['id']
+                ?? $raw['table_id']
+                ?? ''
+            ));
+
+            if ($id === '' || $number === '') {
+                continue;
+            }
+
+            $cleanFloorKey = static function ($value): string {
+                $value = preg_replace(
+                    '/\s+/',
+                    ' ',
+                    (string)$value
+                );
+
+                return trim((string)$value);
+            };
+
+            $tableKeys = array_values(array_filter(array_map(
+                $cleanFloorKey,
+                [
+                    $raw['id'] ?? null,
+                    $raw['table_id'] ?? null,
+                    $raw['number'] ?? null,
+                    $raw['table_number'] ?? null,
+                    $raw['table_no'] ?? null,
+                    $raw['name'] ?? null,
+                    $raw['label'] ?? null,
+                ]
+            ), static fn ($value) => $value !== ''));
+
+            $linkedOrders = array_values(array_filter(
+                $orders,
+                static function ($order) use (
+                    $tableKeys,
+                    $cleanFloorKey
+                ): bool {
+                    if (!is_array($order)) {
+                        return false;
+                    }
+
+                    $orderKeys = array_values(array_filter(array_map(
+                        $cleanFloorKey,
+                        [
+                            $order['table_id'] ?? null,
+                            $order['location_table_id'] ?? null,
+                            $order['table_number'] ?? null,
+                            $order['table_no'] ?? null,
+                            $order['table_ref'] ?? null,
+                            $order['table'] ?? null,
+                            $order['table_label'] ?? null,
+                        ]
+                    ), static fn ($value) => $value !== ''));
+
+                    return count(
+                        array_intersect($tableKeys, $orderKeys)
+                    ) > 0;
+                }
+            ));
+
+            $linkedOrderHasNote = count(array_filter(
+                $linkedOrders,
+                static function ($order): bool {
+                    return trim((string)(
+                        $order['note']
+                        ?? $order['comment']
+                        ?? ''
+                    )) !== '';
+                }
+            )) > 0;
+
+            $custom = is_array($state['tables'][$id] ?? null)
+                ? $state['tables'][$id]
+                : [];
+
+            $rawStatus = strtolower(trim((string)(
+                $custom['status']
+                ?? $raw['status']
+                ?? $raw['latest_order_status']
+                ?? ''
+            )));
+
+            // PMD_R65_ORDERS_SWITCH_PHYSICAL_FLOOR_AUTHORITY
+            // Physical table occupancy is independent from kitchen/payment state.
+            // If the canonical table row provides operational_status, it owns the
+            // available/occupied/cleaning/reserved decision. Order-derived status
+            // is compatibility fallback only for legacy rows without that field.
+            $operationalStatus = strtolower(trim((string)(
+                $raw['operational_status']
+                ?? $raw['table_operational_status']
+                ?? ''
+            )));
+            if ($operationalStatus === 'free') $operationalStatus = 'available';
+            $hasOperationalAuthority = in_array(
+                $operationalStatus,
+                ['available', 'occupied', 'cleaning', 'reserved'],
+                true
+            );
+
+            $waiterCall = $rawStatus === 'waiter-call'
+                || $this->quickPosFloorBool($raw['waiter_call'] ?? false)
+                || $this->quickPosFloorBool($raw['needs_waiter'] ?? false)
+                || $this->quickPosFloorBool($raw['call_waiter'] ?? false);
+
+            $cleaning = $hasOperationalAuthority
+                ? $operationalStatus === 'cleaning'
+                : ($rawStatus === 'cleaning'
+                    || $this->quickPosFloorBool($raw['cleaning_required'] ?? false)
+                    || $this->quickPosFloorBool($raw['needs_cleaning'] ?? false));
+
+            $reserved = $hasOperationalAuthority
+                ? $operationalStatus === 'reserved'
+                : ($rawStatus === 'reserved'
+                    || $this->quickPosFloorBool($raw['reserved'] ?? false)
+                    || $this->quickPosFloorBool($raw['is_reserved'] ?? false));
+
+            $occupied = $hasOperationalAuthority
+                ? $operationalStatus === 'occupied'
+                : ($rawStatus === 'occupied'
+                    || count($linkedOrders) > 0
+                    || (int)($raw['open_orders'] ?? 0) > 0);
+
+            $note = trim((string)(
+                $custom['note']
+                ?? $raw['note']
+                ?? $raw['comment']
+                ?? ''
+            ));
+
+            $status = ($waiterCall || $note !== '' || $linkedOrderHasNote)
+                ? 'attention'
+                : ($cleaning
+                    ? 'cleaning'
+                    : ($reserved
+                        ? 'reserved'
+                        : ($occupied ? 'occupied' : 'available')));
+
+            /*
+             * Match Floor V1 normalize() exactly for first paint.
+             * The browser engine reads raw.floor_x/raw.floor.y here;
+             * using the secondary layout response on the server caused
+             * a second coordinate authority and a refresh-time position swap.
+             */
+            $floor = is_array($raw['floor'] ?? null)
+                ? $raw['floor']
+                : [];
+
+            $x = $this->quickPosFloorNumber(
+                $raw['floor_x']
+                    ?? $floor['x']
+                    ?? null,
+                80 + (($index % 6) * 150)
+            );
+
+            $y = $this->quickPosFloorNumber(
+                $raw['floor_y']
+                    ?? $floor['y']
+                    ?? null,
+                60 + (floor($index / 6) * 110)
+            );
+
+            // Same initial 1000x560 clamp used by Floor V1 normalize().
+            $x = max(64.0, min(936.0, $x));
+            $y = max(54.0, min(506.0, $y));
+
+            $tables[$id] = [
+                'id' => $id,
+                'number' => $number,
+                'name' => trim((string)(
+                    $raw['name']
+                    ?? $raw['label']
+                    ?? ('Table '.$number)
+                )),
+                'area' => trim((string)(
+                    $raw['section']
+                    ?? $raw['table_section']
+                    ?? $raw['table_zone']
+                    ?? $raw['zone']
+                    ?? $raw['floor_name']
+                    ?? 'Main'
+                )),
+                'capacity' => (int)(
+                    $raw['capacity']
+                    ?? $raw['table_capacity']
+                    ?? 0
+                ),
+                'status' => $status,
+                'waiter_call' => $waiterCall,
+                'cleaning' => $cleaning,
+                'note' => $note,
+                'open_orders' => (int)($raw['open_orders'] ?? 0),
+                'x' => $x,
+                'y' => $y,
+                'w' => 108,
+                'h' => 88,
+                'is_merged' => false,
+                'merge_id' => null,
+                'member_ids' => [],
+                'smallest_number' => is_numeric($number)
+                    ? (float)$number
+                    : 999999,
+            ];
+        }
+
+        $handled = [];
+        $display = [];
+        $merges = is_array($state['merges'] ?? null)
+            ? $state['merges']
+            : [];
+
+        foreach ($tables as $id => $table) {
+            if (isset($handled[$id])) {
+                continue;
+            }
+
+            $mergeId = null;
+            $memberIds = [];
+
+            foreach ($merges as $candidateId => $merge) {
+                $ids = array_map('strval', (array)($merge['table_ids'] ?? []));
+                if (in_array((string)$id, $ids, true)) {
+                    $mergeId = (string)$candidateId;
+                    $memberIds = $ids;
+                    break;
+                }
+            }
+
+            if ($mergeId === null) {
+                $display[] = $table;
+                $handled[$id] = true;
+                continue;
+            }
+
+            $members = [];
+            foreach ($memberIds as $memberId) {
+                if (isset($tables[$memberId])) {
+                    $members[] = $tables[$memberId];
+                    $handled[$memberId] = true;
+                }
+            }
+
+            if (count($members) < 2) {
+                $display[] = $table;
+                continue;
+            }
+
+            usort($members, static function ($left, $right) {
+                return ($left['smallest_number'] <=> $right['smallest_number'])
+                    ?: strnatcasecmp($left['number'], $right['number']);
+            });
+
+            $priority = [
+                'available' => 1,
+                'occupied' => 2,
+                'reserved' => 3,
+                'cleaning' => 4,
+                'attention' => 5,
+                'waiter-call' => 5,
+            ];
+
+            $status = 'available';
+            foreach ($members as $member) {
+                if (($priority[$member['status']] ?? 0) > ($priority[$status] ?? 0)) {
+                    $status = $member['status'];
+                }
+            }
+
+            $numbers = array_column($members, 'number');
+            $display[] = [
+                'id' => $members[0]['id'],
+                'number' => implode(' + ', $numbers),
+                'name' => 'Merged tables '.implode(', ', $numbers),
+                'area' => $members[0]['area'],
+                'capacity' => array_sum(array_column($members, 'capacity')),
+                'status' => $status,
+                'waiter_call' => count(array_filter(
+                    $members,
+                    static fn ($member) => $member['waiter_call']
+                )) > 0,
+                'cleaning' => count(array_filter(
+                    $members,
+                    static fn ($member) => $member['cleaning']
+                )) > 0,
+                'note' => implode(' · ', array_values(array_filter(
+                    array_column($members, 'note')
+                ))),
+                'open_orders' => array_sum(array_column($members, 'open_orders')),
+                'x' => array_sum(array_column($members, 'x')) / count($members),
+                'y' => array_sum(array_column($members, 'y')) / count($members),
+                'w' => $mode === 'row' ? 270 : 178,
+                'h' => $mode === 'row' ? 104 : 146,
+                'is_merged' => true,
+                'merge_id' => $mergeId,
+                'member_ids' => array_column($members, 'id'),
+                'smallest_number' => min(array_column($members, 'smallest_number')),
+            ];
+        }
+
+        if ($mode === 'row') {
+            usort($display, static function ($left, $right) {
+                return ($left['smallest_number'] <=> $right['smallest_number'])
+                    ?: strnatcasecmp($left['number'], $right['number']);
+            });
+
+            $cursor = 24.0;
+            foreach ($display as &$table) {
+                $table['x'] = $cursor + ($table['w'] / 2);
+                $table['y'] = 22 + ($table['h'] / 2);
+                $cursor += $table['w'] + 18;
+            }
+            unset($table);
+        }
+
+        return array_values($display);
+    }
+
+    protected function quickPosFloorBool($value): bool
+    {
+        return in_array(
+            $value,
+            [true, 1, '1', 'true'],
+            true
+        );
+    }
+
+    protected function quickPosFloorNumber($value, float $fallback): float
+    {
+        return is_numeric($value)
+            ? (float)$value
+            : $fallback;
+    }
+
 
     protected function quickPosTables(
         int $locationId,
