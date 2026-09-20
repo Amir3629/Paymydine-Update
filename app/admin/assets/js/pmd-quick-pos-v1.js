@@ -1906,10 +1906,11 @@ function renderOpenChecks() {
       return;
     }
 
+    /* PMD_QPOS_DIRECT_MOVE_NO_PRE_RENDER_V43
+     * Destination click goes straight to the transfer operation. The old
+     * path rebuilt the entire rail twice before the request even started. */
     state.transfer.targetTableId = Number(target.id || 0);
-    renderTables();
-    renderContext();
-    await executeTransfer();
+    executeTransfer();
   }
 
   function openTransfer() {
@@ -1963,10 +1964,93 @@ function renderOpenChecks() {
     }
 
     var directSide = !!state.transfer.directSide;
+    var sourceTable = state.tables.find(function (table) {
+      return Number(table.id) === sourceId;
+    }) || null;
+    var targetTable = state.tables.find(function (table) {
+      return Number(table.id) === targetId;
+    }) || null;
+    var optimisticSnapshot = null;
 
     state.transfer.submitting = true;
-    if (directSide) {
+
+    if (directSide && targetTable) {
+      /* PMD_QPOS_OPTIMISTIC_DIRECT_MOVE_V43
+       * The destination tap paints the completed move immediately. The server
+       * transaction still remains authoritative; on failure we restore the
+       * exact source state and keep Move mode open for another destination. */
+      var movedOrder = activeOrder();
+      var targetCached = tableCacheGet(targetId);
+      var targetOrders =
+        targetCached && Array.isArray(targetCached.open_orders)
+          ? targetCached.open_orders.slice()
+          : [];
+
+      targetOrders = targetOrders.filter(function (order) {
+        return orderId !== Number(order && (order.order_id || order.id) || 0);
+      });
+
+      if (movedOrder) {
+        targetOrders.unshift(movedOrder);
+      } else {
+        targetOrders.unshift({
+          order_id: orderId,
+          total: existingTotal(),
+          guest_count: state.guestCount,
+          items: []
+        });
+      }
+
+      optimisticSnapshot = {
+        sourceStatus: sourceTable ? sourceTable.status : null,
+        targetStatus: targetTable.status,
+        selectedTable: state.selectedTable,
+        activeFloorId: state.activeFloorId,
+        tableData: state.tableData,
+        openOrders: state.openOrders.slice(),
+        activeOrderId: state.activeOrderId,
+        forceNewCheck: state.forceNewCheck
+      };
+
+      if (sourceTable) {
+        sourceTable.status =
+          optimisticSnapshot.openOrders.length > 1
+            ? 'occupied'
+            : 'available';
+      }
+      targetTable.status = 'occupied';
+
+      state.selectedTable = targetTable;
+      state.activeFloorId = String(
+        targetTable.floor_id || state.activeFloorId || ''
+      );
+      state.tableData = targetCached || null;
+      state.openOrders = targetOrders;
+      state.activeOrderId = orderId;
+      state.forceNewCheck = false;
+      state.cart = [];
+      state.pendingSend = null;
+      state.note = '';
+
+      tableCacheDrop(sourceId);
+      tableCacheDrop(targetId);
+      rememberActiveFloor();
+
+      state.transfer.open = false;
+      state.transfer.directSide = false;
+      state.transfer.targetTableId = null;
+      root.classList.remove('is-direct-order-move');
+      root.classList.add('is-transfer-committing');
+
       renderTables();
+      renderContext();
+      renderCart({orderSwitch: true});
+
+      toast(
+        'Moving #' + String(orderId) +
+        ' to table ' + compactTableLabel(targetTable) + '…'
+      );
+    } else if (directSide) {
       renderContext();
     } else {
       renderTransfer();
@@ -1987,13 +2071,6 @@ function renderOpenChecks() {
         }
       );
 
-      var sourceTable = state.tables.find(function (table) {
-        return Number(table.id) === sourceId;
-      });
-      var targetTable = state.tables.find(function (table) {
-        return Number(table.id) === targetId;
-      });
-
       if (sourceTable && json.source_status) {
         sourceTable.status = String(json.source_status);
       }
@@ -2001,33 +2078,84 @@ function renderOpenChecks() {
         targetTable.status = String(json.target_status);
       }
 
-      closeTransfer();
+      tableCacheDrop(sourceId);
+      tableCacheDrop(targetId);
 
-      state.cart = [];
-      state.pendingSend = null;
-      state.note = '';
-      state.tableData = null;
-      state.openOrders = [];
-      state.activeOrderId = null;
-
-      if (targetTable) {
+      if (directSide && targetTable) {
+        /* PMD_QPOS_DIRECT_MOVE_NO_BOOTSTRAP_V43
+         * Never run full bootstrap/renderAll after a direct move. The local
+         * rail is already correct; hydrate only the destination check data. */
         state.selectedTable = targetTable;
         state.activeFloorId = String(
           targetTable.floor_id || state.activeFloorId || ''
         );
         rememberActiveFloor();
+
+        renderTables();
+        renderContext();
+
+        toast(json.message || 'Moved.');
+
+        /* Authoritative destination data arrives in the background without
+         * blocking the completed move interaction. */
+        loadTable(targetId, true, true);
+      } else {
+        closeTransfer();
+
+        state.cart = [];
+        state.pendingSend = null;
+        state.note = '';
+        state.tableData = null;
+        state.openOrders = [];
+        state.activeOrderId = null;
+
+        if (targetTable) {
+          state.selectedTable = targetTable;
+          state.activeFloorId = String(
+            targetTable.floor_id || state.activeFloorId || ''
+          );
+          rememberActiveFloor();
+        }
+
+        renderAll();
+        toast(json.message || 'Moved.');
+        await bootstrap(true);
+      }
+    } catch (error) {
+      if (directSide && optimisticSnapshot) {
+        /* PMD_QPOS_DIRECT_MOVE_ROLLBACK_V43 */
+        if (sourceTable && optimisticSnapshot.sourceStatus != null) {
+          sourceTable.status = optimisticSnapshot.sourceStatus;
+        }
+        if (targetTable) {
+          targetTable.status = optimisticSnapshot.targetStatus;
+        }
+
+        state.selectedTable = optimisticSnapshot.selectedTable;
+        state.activeFloorId = optimisticSnapshot.activeFloorId;
+        state.tableData = optimisticSnapshot.tableData;
+        state.openOrders = optimisticSnapshot.openOrders;
+        state.activeOrderId = optimisticSnapshot.activeOrderId;
+        state.forceNewCheck = optimisticSnapshot.forceNewCheck;
+
+        state.transfer.open = true;
+        state.transfer.scope = 'order';
+        state.transfer.targetTableId = null;
+        state.transfer.directSide = true;
+        root.classList.add('is-direct-order-move');
+
+        renderTables();
+        renderContext();
+        renderCart({orderSwitch: true});
       }
 
-      renderAll();
-      toast(json.message || 'Moved.');
-      await bootstrap(true);
-    } catch (error) {
       toast(error.message || 'Could not move the check.', true);
     } finally {
       state.transfer.submitting = false;
+      root.classList.remove('is-transfer-committing');
+
       if (state.transfer.open) {
         if (state.transfer.directSide) {
-          renderTables();
           renderContext();
         } else {
           renderTransfer();
