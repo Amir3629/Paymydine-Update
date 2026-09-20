@@ -106,6 +106,29 @@ class PmdGoogleBusinessService
         string $tenantHost,
         array $input
     ): array {
+        $hasAnyInput = false;
+        foreach (['client_id', 'client_secret', 'places_api_key', 'pubsub_topic', 'pubsub_token'] as $key) {
+            if (trim((string)($input[$key] ?? '')) !== '') {
+                $hasAnyInput = true;
+                break;
+            }
+        }
+
+        if (
+            !$hasAnyInput
+            && !Schema::hasTable('pmd_google_business_connections')
+        ) {
+            return $this->status($locationId, $tenantHost);
+        }
+
+        if (
+            !$hasAnyInput
+            && Schema::hasTable('pmd_google_business_connections')
+            && !DB::table('pmd_google_business_connections')->where('location_id', $locationId)->exists()
+        ) {
+            return $this->status($locationId, $tenantHost);
+        }
+
         $this->assertTenantTables();
 
         $tenantHost = $this->sanitizeHost($tenantHost);
