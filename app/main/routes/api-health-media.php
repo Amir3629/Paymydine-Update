@@ -113,6 +113,7 @@ Route::group(['prefix' => 'api'], function () {
         ->middleware(['web', \App\Http\Middleware\DetectTenant::class])
         ->group(function () {
             require_once __DIR__.'/api-v1-settings.php';
+            require_once __DIR__.'/api-v1-google-business.php';
             require_once __DIR__.'/api-v1-menu.php';
             require_once __DIR__.'/api-v1-table-info.php';
             require_once __DIR__.'/api-v1-table-order-support.php';
