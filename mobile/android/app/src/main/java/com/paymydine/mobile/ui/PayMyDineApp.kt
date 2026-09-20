@@ -74,6 +74,7 @@ fun PayMyDineApp(app: PayMyDineApplication) {
         cloudOnline = online,
         edge = edge,
         pinnedEdgeFingerprint = app.credentials.edgeFingerprint(),
+        expectedSiteId = app.bootstrapRepository.locationId()?.toString(),
     )
 
     val surfaces = if (ready) {
@@ -134,11 +135,18 @@ fun PayMyDineApp(app: PayMyDineApplication) {
                     paired.tenantHost,
                     paired.deviceToken,
                 )
-                bootstrap.optJSONObject("edge")
+                val edgeFingerprint = bootstrap
+                    .optJSONObject("edge")
                     ?.optString("fingerprint_sha256")
                     ?.trim()
                     ?.takeIf { it.length == 64 }
-                    ?.let(app.credentials::setEdgeFingerprint)
+
+                if (edgeFingerprint != null) {
+                    app.credentials.setEdgeFingerprint(edgeFingerprint)
+                } else {
+                    app.credentials.clearEdgeFingerprint()
+                }
+
                 app.bootstrapRepository.apply(bootstrap)
             }
 
