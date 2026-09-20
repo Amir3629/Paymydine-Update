@@ -13,6 +13,7 @@ data class BootstrapSummary(
     val roleCode: String,
     val menuItems: Int,
     val tables: Int,
+    val openOrders: Int,
     val kdsStations: Int,
     val cursor: Long,
 )
@@ -26,6 +27,7 @@ class BootstrapRepository(private val database: PmdDatabase) {
         val menu = root.optJSONObject("menu") ?: JSONObject()
         val items = menu.optJSONArray("items") ?: JSONArray()
         val tables = root.optJSONArray("tables") ?: JSONArray()
+        val openOrders = root.optJSONArray("open_orders") ?: JSONArray()
         val stations = root.optJSONArray("kds_stations") ?: JSONArray()
         val sync = root.optJSONObject("sync") ?: JSONObject()
 
@@ -37,6 +39,20 @@ class BootstrapRepository(private val database: PmdDatabase) {
         database.transaction { db ->
             db.delete("pmd_menu_items", "location_id = ?", arrayOf(locationId.toString()))
             db.delete("pmd_tables", "location_id = ?", arrayOf(locationId.toString()))
+
+            // Refresh only canonical server shadows. Never delete a dirty local
+            // draft/outbox order while applying a newer bootstrap.
+            db.delete(
+                "pmd_orders",
+                "location_id = ? AND status = ? AND dirty = 0",
+                arrayOf(locationId.toString(), STATUS_SERVER_OPEN),
+            )
+            db.delete(
+                "pmd_edge_orders",
+                "location_id = ? AND status = ?",
+                arrayOf(locationId.toString(), EDGE_STATUS_CLOUD_OPEN),
+            )
+
             db.delete(
                 "pmd_kds_stations",
                 "location_id = ? OR location_id IS NULL",
@@ -86,6 +102,84 @@ class BootstrapRepository(private val database: PmdDatabase) {
                 )
             }
 
+            for (index in 0 until openOrders.length()) {
+                val order = openOrders.getJSONObject(index)
+                val orderId = order.optLong("order_id", 0)
+                val tableId = order.optLong("table_id", 0)
+                if (orderId < 1 || tableId < 1) continue
+
+                val aggregateId = order.optString(
+                    "aggregate_id",
+                    "order:$orderId",
+                ).ifBlank { "order:$orderId" }
+                val version = order.optLong("aggregate_version", 0)
+                val totalMinor = toMinor(order.opt("order_total"), exponent)
+                val serverUpdatedAt = order.optString("updated_at")
+                val state = JSONObject()
+                    .put("server_updated_at", serverUpdatedAt)
+                    .put("base_total_minor", totalMinor)
+                    .put("guest_count", order.optInt("guest_count", 1).coerceIn(1, 99))
+                    .put("note", order.optString("comment"))
+                    .put("status_name", order.optString("status_name"))
+                    .put("settlement_status", order.optString("settlement_status", "unpaid"))
+
+                db.insertWithOnConflict(
+                    "pmd_orders",
+                    null,
+                    ContentValues().apply {
+                        put("id", "server:$orderId")
+                        put("location_id", locationId)
+                        put("version", version)
+                        put("server_id", orderId.toString())
+                        put("table_id", tableId.toString())
+                        put("status", STATUS_SERVER_OPEN)
+                        put("total_minor", totalMinor)
+                        put("currency", currency)
+                        put("payload_json", state.toString())
+                        put("dirty", 0)
+                        put("updated_at_ms", now)
+                    },
+                    SQLiteDatabase.CONFLICT_REPLACE,
+                )
+
+                // A device that later becomes Restaurant Edge must already know
+                // existing Cloud orders, otherwise it would reject safe offline
+                // continuation for a table that was opened while online.
+                val edgeState = JSONObject()
+                    .put("aggregate_id", aggregateId)
+                    .put("table_id", tableId.toString())
+                    .put("server_order_id", orderId)
+                    .put("server_aggregate_id", aggregateId)
+                    .put("server_aggregate_version", version)
+                    .put("server_updated_at", serverUpdatedAt)
+                    .put("guest_count", order.optInt("guest_count", 1).coerceIn(1, 99))
+                    .put("note", order.optString("comment"))
+                    .put("items", JSONArray())
+                    .put("status_id", order.optLong("status_id", 0))
+                    .put("status_name", order.optString("status_name"))
+                    .put("created_at_ms", now)
+                    .put("created_at", serverUpdatedAt)
+                    .put("status_updated_at", serverUpdatedAt)
+
+                db.insertWithOnConflict(
+                    "pmd_edge_orders",
+                    null,
+                    ContentValues().apply {
+                        put("aggregate_id", aggregateId)
+                        put("location_id", locationId)
+                        put("table_id", tableId.toString())
+                        put("status", EDGE_STATUS_CLOUD_OPEN)
+                        put("version", version)
+                        put("total_minor", totalMinor)
+                        put("currency", currency)
+                        put("payload_json", edgeState.toString())
+                        put("created_at_ms", now)
+                        put("updated_at_ms", now)
+                    },
+                    SQLiteDatabase.CONFLICT_REPLACE,
+                )
+            }
+
             for (index in 0 until stations.length()) {
                 val station = stations.getJSONObject(index)
                 db.insertOrThrow(
@@ -132,6 +226,7 @@ class BootstrapRepository(private val database: PmdDatabase) {
             roleCode = identity.optString("role_code"),
             menuItems = items.length(),
             tables = tables.length(),
+            openOrders = openOrders.length(),
             kdsStations = stations.length(),
             cursor = sync.optLong("cursor", 0),
         )
@@ -216,5 +311,10 @@ class BootstrapRepository(private val database: PmdDatabase) {
             .movePointRight(exponent)
             .setScale(0, RoundingMode.HALF_UP)
             .longValueExact()
+    }
+
+    companion object {
+        const val STATUS_SERVER_OPEN = "SERVER_OPEN"
+        const val EDGE_STATUS_CLOUD_OPEN = "CLOUD_OPEN"
     }
 }
