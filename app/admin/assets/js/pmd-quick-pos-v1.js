@@ -1333,7 +1333,7 @@ function renderOpenChecks() {
         count + (count === 1 ? ' check' : ' checks');
     }
 
-    $('[data-qpos-transfer-scope]', modal).forEach(function (button) {
+    $$('[data-qpos-transfer-scope]', modal).forEach(function (button) {
       var scope = String(button.getAttribute('data-qpos-transfer-scope') || '');
       button.classList.toggle('is-active', scope === state.transfer.scope);
       button.disabled =
@@ -1386,7 +1386,7 @@ function renderOpenChecks() {
         );
       }).join('');
 
-      $('[data-qpos-transfer-target]', targetBox).forEach(function (button) {
+      $$('[data-qpos-transfer-target]', targetBox).forEach(function (button) {
         button.onclick = function () {
           state.transfer.targetTableId = Number(
             button.getAttribute('data-qpos-transfer-target') || 0
@@ -5176,7 +5176,7 @@ function renderOpenChecks() {
     if (transferCancel) transferCancel.onclick = closeTransfer;
     if (transferSubmit) transferSubmit.onclick = executeTransfer;
 
-    $('[data-qpos-transfer-scope]').forEach(function (button) {
+    $$('[data-qpos-transfer-scope]').forEach(function (button) {
       button.onclick = function () {
         state.transfer.scope =
           String(button.getAttribute('data-qpos-transfer-scope') || 'order');
