@@ -5740,6 +5740,7 @@ return response()->json([
                 'pmd_social_instagram_url' => $settings['pmd_social_instagram_url']->value ?? '',
                 'pmd_social_google_enabled' => $settings['pmd_social_google_enabled']->value ?? '0',
                 'pmd_social_google_url' => $settings['pmd_social_google_url']->value ?? '',
+                'pmd_social_google_review_url' => $settings['pmd_social_google_review_url']->value ?? '',
                 'pmd_social_website_enabled' => $settings['pmd_social_website_enabled']->value ?? '0',
                 'pmd_social_website_url' => $settings['pmd_social_website_url']->value ?? '',
                 'pmd_social_reviews_enabled' => $settings['pmd_social_reviews_enabled']->value ?? '0',
