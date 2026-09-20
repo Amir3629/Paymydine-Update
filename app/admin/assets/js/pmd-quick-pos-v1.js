@@ -1303,9 +1303,14 @@ function renderOpenChecks() {
       );
     });
 
-    box.innerHTML = rows.join('');
+    /* PMD_QPOS_STABLE_CHECK_DOM_V39
+     * Avoid replacing the check-chip DOM when its markup has not changed. */
+    var nextHtml = rows.join('');
+    if (box.innerHTML !== nextHtml) {
+      box.innerHTML = nextHtml;
+    }
 
-    $$('[data-qpos-check]', box).forEach(function (button) {
+    $('[data-qpos-check]', box).forEach(function (button) {
       button.onclick = function () {
         var value = Number(button.getAttribute('data-qpos-check') || 0);
         if (value > 0) selectOrder(value);
@@ -1960,7 +1965,15 @@ function renderOpenChecks() {
     state.activeOrderId = null;
     state.offPremiseOrder = null;
 
-    renderAll();
+    /* PMD_QPOS_STABLE_TABLE_SWITCH_V39
+     * Do not redraw the check/cart with stale openOrders from the previous
+     * table before the new table request finishes. That double redraw was
+     * the visible check-card blink. Update only the immediate table/catalog
+     * selection, then render the cart once with authoritative table data. */
+    renderTables();
+    renderContext();
+    renderProducts();
+
     await loadTable(table.id, false);
 
     var historyWorkspace = $('[data-qpos-history-modal]');
