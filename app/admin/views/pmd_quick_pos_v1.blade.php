@@ -298,9 +298,17 @@
 
         <button
             type="button"
-            class="pmd-qpos-exact-floor-return"
+            class="pmd-r2-floor-tool-v316 pmd-qpos-exact-floor-return"
             data-qpos-floor-map-close
-        >Back to POS</button>
+            aria-label="Back to POS"
+            title="Back to POS"
+        >
+            <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M15 18l-6-6 6-6"></path>
+                <path d="M9 12h10"></path>
+            </svg>
+            <span>POS</span>
+        </button>
     </section>
 
     <button type="button" class="pmd-qpos-mobile-cart" data-qpos-mobile-cart>
