@@ -6428,3 +6428,58 @@ button[data-qpos-keypad-key="exact"] {
   }
 }
 
+/* ============================================================
+   PMD_QPOS_CARD_POLISH_V34
+   Empty food previews reuse the Menu-page monochrome PayMyDine mark.
+   Selected foods are communicated by the green quantity badge, not a
+   heavy dark frame around the whole card.
+   ============================================================ */
+.pmd-qpos-product-image.is-placeholder {
+  background: #edf2f1 !important;
+}
+
+.pmd-qpos-product-image.is-placeholder::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  top: 18%;
+  left: 18%;
+  width: 64%;
+  height: 54%;
+  pointer-events: none;
+
+  -webkit-mask-image: url('/brand/paymydine-logo.svg');
+  mask-image: url('/brand/paymydine-logo.svg');
+
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+
+  -webkit-mask-position: center center;
+  mask-position: center center;
+
+  -webkit-mask-size: contain;
+  mask-size: contain;
+
+  background-color: #aab3b1;
+  opacity: .78;
+}
+
+.pmd-qpos-product.is-selected,
+.pmd-qpos-product.is-selected:hover {
+  border-color: #d6dbe2 !important;
+  box-shadow: 0 4px 12px rgba(15,23,42,.08) !important;
+}
+
+.pmd-qpos-product.is-selected:active {
+  box-shadow: 0 2px 7px rgba(15,23,42,.08) !important;
+}
+
+@media (max-width: 820px) {
+  .pmd-qpos-product-image.is-placeholder::before {
+    top: 19%;
+    left: 17%;
+    width: 66%;
+    height: 52%;
+  }
+}
+
