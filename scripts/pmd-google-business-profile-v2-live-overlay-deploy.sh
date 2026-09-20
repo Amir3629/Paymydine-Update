@@ -22,6 +22,7 @@ targets=(
   "app/admin/controllers/Pmdgooglebusiness.php"
   "app/admin/controllers/Pmdsettings.php"
   "app/admin/controllers/Reviews.php"
+  "app/admin/assets/css/pmd-settings-restaurant-v1.css"
   "app/admin/database/migrations/2026_09_20_000100_create_pmd_google_business_integration.php"
   "app/admin/database/migrations/2026_09_20_000200_ensure_pmd_google_business_integration_on_tenants.php"
   "app/admin/routes.php"
