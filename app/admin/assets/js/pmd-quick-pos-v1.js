@@ -380,7 +380,7 @@
    */
   function bootCacheKey() {
     return [
-      'pmd:qpos:visual:v25',
+      'pmd:qpos:visual:v26',
       window.location.host,
       state.mode
     ].join(':');
@@ -702,17 +702,124 @@
     });
   }
 
-  /* PMD_QPOS_FLOOR_MAP_UI_V25
-   * Read-only POS floor view. Coordinates are the same canonical floor_x/y
-   * values used by the shared Cashier/Dashboard/Reservations floor map. */
+  /* PMD_QPOS_EXACT_DASHBOARD_FLOOR_UI_V26
+   * There is deliberately NO Quick-POS Floor renderer here. The workspace
+   * embeds DashboardLab's canonical Floor Blade/CSS/JS. This bridge only:
+   *   - opens/closes that existing Floor,
+   *   - keeps its active Floor aligned with POS,
+   *   - converts a canonical table click into Quick POS table selection.
+   */
+  function exactFloorRoot() {
+    return document.getElementById('pmd-r2-shared-floor-canvas-v310');
+  }
+
+  function exactFloorInstance() {
+    var floor = exactFloorRoot();
+    return floor && floor.__pmdFloorV1
+      ? floor.__pmdFloorV1
+      : null;
+  }
+
+  function exactFloorPosTableFromNode(node) {
+    if (!node) return null;
+
+    var instance = exactFloorInstance();
+    var floorState =
+      instance && typeof instance.getState === 'function'
+        ? instance.getState()
+        : null;
+
+    var ids = String(
+      node.getAttribute('data-floor-members') ||
+      node.getAttribute('data-floor-table') ||
+      ''
+    ).split(',').map(function (value) {
+      return String(value || '').trim();
+    }).filter(Boolean);
+
+    var candidates = [];
+
+    if (floorState && Array.isArray(floorState.tables)) {
+      ids.forEach(function (id) {
+        floorState.tables.forEach(function (table) {
+          if (
+            String(table.id || '') === id ||
+            String(table.dbTableId || '') === id
+          ) {
+            candidates.push(table);
+          }
+        });
+      });
+    }
+
+    for (var i = 0; i < candidates.length; i += 1) {
+      var exact = candidates[i];
+      var dbId = Number(exact.dbTableId || 0);
+      if (dbId > 0) {
+        var byDbId = state.tables.find(function (row) {
+          return Number(row.id) === dbId;
+        });
+        if (byDbId) return byDbId;
+      }
+
+      var exactNumber = String(exact.number || '').trim();
+      if (exactNumber) {
+        var byNumber = state.tables.find(function (row) {
+          return String(row.number || '').trim() === exactNumber;
+        });
+        if (byNumber) return byNumber;
+      }
+    }
+
+    var label = node.querySelector('.pmd-floor-v1__table-number');
+    var labelText = String(label ? label.textContent : '').trim();
+
+    if (labelText) {
+      var firstNumber = labelText.match(/\d+/);
+      if (firstNumber) {
+        var byVisibleNumber = state.tables.find(function (row) {
+          return String(row.number || '').trim() === firstNumber[0];
+        });
+        if (byVisibleNumber) return byVisibleNumber;
+      }
+    }
+
+    return null;
+  }
+
+  async function openExactFloorTable(node) {
+    var table = exactFloorPosTableFromNode(node);
+
+    if (!table) {
+      toast('This Floor table could not be matched to POS.', true);
+      return;
+    }
+
+    await selectTable(table.id);
+
+    if (
+      state.selectedTable &&
+      Number(state.selectedTable.id) === Number(table.id)
+    ) {
+      closeFloorMap();
+    }
+  }
+
   function closeFloorMap() {
     state.floorMapOpen = false;
+
     var workspace = $('[data-qpos-floor-map-workspace]');
     if (workspace) {
       workspace.hidden = true;
       workspace.setAttribute('aria-hidden', 'true');
     }
+
     root.classList.remove('is-floor-map-open');
+    document.body.classList.remove(
+      'page',
+      'pmd-dashboard-lab-page',
+      'pmd-qpos-exact-floor-open'
+    );
   }
 
   function openFloorMap() {
@@ -727,7 +834,36 @@
 
     state.floorMapOpen = true;
     root.classList.add('is-floor-map-open');
+
+    /*
+     * Dashboard's exact Floor CSS is intentionally route-scoped to these
+     * classes. Activate the identical scope only while the POS Map is open.
+     */
+    document.body.classList.add(
+      'page',
+      'pmd-dashboard-lab-page',
+      'pmd-qpos-exact-floor-open'
+    );
+
     renderFloorMap();
+
+    var floor = exactFloorRoot();
+    var multiFloor = floor && floor.__pmdSharedMultiFloorV1;
+
+    if (
+      multiFloor &&
+      typeof multiFloor.setActiveFloor === 'function' &&
+      state.activeFloorId
+    ) {
+      multiFloor.setActiveFloor(String(state.activeFloorId));
+    } else {
+      var instance = exactFloorInstance();
+      if (instance && typeof instance.fit === 'function') {
+        window.requestAnimationFrame(function () {
+          instance.fit();
+        });
+      }
+    }
   }
 
   function renderFloorMap() {
@@ -739,138 +875,6 @@
       'aria-hidden',
       state.floorMapOpen ? 'false' : 'true'
     );
-
-    if (!state.floorMapOpen) return;
-
-    var title = $('[data-qpos-floor-map-title]');
-    var tabs = $('[data-qpos-map-floors]');
-    var stage = $('[data-qpos-floor-map-stage]');
-
-    var activeFloor = state.floors.find(function (floor) {
-      return String(floor.id || '') === String(state.activeFloorId || '');
-    }) || state.floors[0] || null;
-
-    if (title) {
-      title.textContent = activeFloor
-        ? String(activeFloor.name || 'Floor')
-        : 'Floor';
-    }
-
-    if (tabs) {
-      tabs.innerHTML = state.floors.map(function (floor) {
-        var id = String(floor.id || '');
-        return (
-          '<button type="button" data-qpos-map-floor="' + esc(id) + '"' +
-            (id === String(state.activeFloorId || '') ? ' class="is-active"' : '') +
-          '>' + esc(floor.name || 'Floor') + '</button>'
-        );
-      }).join('');
-
-      $$('[data-qpos-map-floor]', tabs).forEach(function (button) {
-        button.onclick = function () {
-          selectFloor(button.getAttribute('data-qpos-map-floor'));
-        };
-      });
-    }
-
-    if (!stage) return;
-
-    var tables = activeFloorTables().filter(function (table) {
-      return table.visible_on_floor_plan !== false;
-    });
-
-    if (!tables.length) {
-      stage.innerHTML =
-        '<div class="pmd-qpos-floor-map-empty">No tables on this floor.</div>';
-      return;
-    }
-
-    var floorWidth = Math.max(
-      1000,
-      num(activeFloor && activeFloor.width, 1000)
-    );
-    var floorHeight = Math.max(
-      560,
-      num(activeFloor && activeFloor.height, 560)
-    );
-
-    stage.innerHTML = tables.map(function (table, index) {
-      var width = Math.max(
-        72,
-        Math.min(260, num(table.floor_width, 108))
-      );
-      var height = Math.max(
-        58,
-        Math.min(180, num(table.floor_height, 88))
-      );
-
-      var x = Number(table.floor_x);
-      var y = Number(table.floor_y);
-
-      if (!Number.isFinite(x)) {
-        x = 80 + (index % 6) * 150;
-      }
-      if (!Number.isFinite(y)) {
-        y = 60 + Math.floor(index / 6) * 110;
-      }
-
-      x = Math.max(
-        width / 2 + 12,
-        Math.min(floorWidth - width / 2 - 12, x)
-      );
-      y = Math.max(
-        height / 2 + 12,
-        Math.min(floorHeight - height / 2 - 12, y)
-      );
-
-      var left = x / floorWidth * 100;
-      var top = y / floorHeight * 100;
-      var w = width / floorWidth * 100;
-      var h = height / floorHeight * 100;
-      var status = String(table.status || 'available').toLowerCase();
-      var selected =
-        state.selectedTable &&
-        Number(state.selectedTable.id) === Number(table.id);
-
-      var signal = '';
-      if (num(table.waiter_calls, 0) > 0) {
-        signal = 'call';
-      } else if (
-        ['due', 'partial'].indexOf(
-          String(table.payment_state || '').toLowerCase()
-        ) !== -1
-      ) {
-        signal = 'due';
-      }
-
-      return (
-        '<button type="button" class="pmd-qpos-floor-map-table status-' +
-          esc(status) +
-          (selected ? ' is-selected' : '') +
-          (signal ? ' has-' + esc(signal) : '') +
-          '" data-qpos-map-table="' + esc(table.id) + '"' +
-          ' style="left:' + left.toFixed(3) + '%;' +
-            'top:' + top.toFixed(3) + '%;' +
-            'width:' + w.toFixed(3) + '%;' +
-            'height:' + h.toFixed(3) + '%;">' +
-          '<strong>' + esc(compactTableLabel(table)) + '</strong>' +
-          '<span>' + esc(tableStatusLabel(status)) + '</span>' +
-          (signal
-            ? '<i class="pmd-qpos-floor-map-signal ' + esc(signal) + '"></i>'
-            : '') +
-        '</button>'
-      );
-    }).join('');
-
-    $$('[data-qpos-map-table]', stage).forEach(function (button) {
-      button.onclick = async function () {
-        var id = Number(button.getAttribute('data-qpos-map-table') || 0);
-        if (!id) return;
-
-        closeFloorMap();
-        await selectTable(id);
-      };
-    });
   }
 
   function renderTables() {
@@ -1428,6 +1432,54 @@ function renderOpenChecks() {
 
     if (floorMapOpen) floorMapOpen.onclick = openFloorMap;
     if (floorMapClose) floorMapClose.onclick = closeFloorMap;
+
+    var exactFloorWorkspace = $('[data-qpos-floor-map-workspace]');
+    if (exactFloorWorkspace) {
+      /*
+       * Capture before the Dashboard Floor's normal selection handler. The
+       * table card, colors, zoom, floor switcher and all controls are still
+       * canonical; only the table-open destination is POS-specific.
+       */
+      exactFloorWorkspace.addEventListener('click', function (event) {
+        var tableNode =
+          event.target &&
+          event.target.closest
+            ? event.target.closest('[data-floor-table]')
+            : null;
+
+        if (!tableNode || !exactFloorWorkspace.contains(tableNode)) {
+          return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        if (typeof event.stopImmediatePropagation === 'function') {
+          event.stopImmediatePropagation();
+        }
+
+        openExactFloorTable(tableNode);
+      }, true);
+    }
+
+    window.addEventListener('pmd:floor:changed', function (event) {
+      var detail = event && event.detail ? event.detail : {};
+      var floorId = String(detail.floor_id || '');
+
+      if (
+        !floorId ||
+        !state.floors.some(function (floor) {
+          return String(floor.id || '') === floorId;
+        })
+      ) {
+        return;
+      }
+
+      state.activeFloorId = floorId;
+      rememberActiveFloor();
+      renderContext();
+      renderTables();
+    });
 
     var send = $('[data-qpos-send]');
     var pay = $('[data-qpos-pay]');
