@@ -249,6 +249,8 @@ grep -q "PMD_QPOS_TRANSFER_UI_V24" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.
 grep -q "PMD_QPOS_NUMBER_TRANSFER_V24" "$STAGE/app/admin/assets/css/pmd-quick-pos-v1.css"
 grep -q "PMD_QPOS_FLOOR_MAP_V25" "$STAGE/app/admin/controllers/PmdQuickPosV1.php"
 grep -q "PMD_QPOS_EXACT_DASHBOARD_FLOOR_V26" "$STAGE/app/admin/controllers/PmdQuickPosV1.php"
+grep -q "PMD_QPOS_EXACT_FLOOR_AJAX_TRANSPORT_V26" "$STAGE/app/admin/controllers/PmdQuickPosV1.php"
+grep -q "PMD_QPOS_EXACT_DASHBOARD_FLOOR_AJAX_V26" "$STAGE/routes/admin-quick-mode.php"
 grep -q "PMD_QPOS_EXACT_DASHBOARD_FLOOR_SERVER_TABLES_V26" "$STAGE/app/admin/controllers/PmdQuickPosV1.php"
 grep -q "PMD_QPOS_EXACT_DASHBOARD_FLOOR_VIEW_V26" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
 grep -q "PMD_QPOS_EXACT_DASHBOARD_FLOOR_WORKSPACE_V26" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
