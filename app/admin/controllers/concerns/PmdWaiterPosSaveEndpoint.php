@@ -221,6 +221,252 @@ trait PmdWaiterPosSaveEndpoint
         }
     }
 
+    /**
+     * PMD_MOBILE_ORDER_COMMAND_V1
+     *
+     * Executes the same canonical table/menu/order persistence helpers as the
+     * browser Waiter POS, but accepts an already-validated payload instead of
+     * reading JSON from the global request. The caller is responsible for the
+     * outer idempotent command ledger transaction.
+     */
+    public function saveMobilePayload(int $tableId, array $payload): array
+    {
+        $identity = method_exists($this, 'pmdMobileIdentity')
+            ? $this->pmdMobileIdentity()
+            : null;
+
+        if (
+            !$identity
+            || (int)($identity['location_id'] ?? 0) < 1
+            || !$this->currentUser()
+        ) {
+            throw ValidationException::withMessages([
+                'device' => 'Authenticated PayMyDine mobile identity required.',
+            ]);
+        }
+
+        try {
+            if (!$this->currentUser()->hasPermission('Admin.Orders')) {
+                throw ValidationException::withMessages([
+                    'permission' => 'Order permission required.',
+                ]);
+            }
+        } catch (ValidationException $error) {
+            throw $error;
+        } catch (\Throwable $error) {
+            throw ValidationException::withMessages([
+                'permission' => 'Order permission required.',
+            ]);
+        }
+
+        $table = $this->resolveTable($tableId);
+        if (!$table) {
+            throw ValidationException::withMessages([
+                'table' => 'Table not found.',
+            ]);
+        }
+
+        $identityLocationId = (int)$identity['location_id'];
+        $tableLocationId = (int)($table['location_id'] ?? 0);
+        if (
+            $tableLocationId > 0
+            && $tableLocationId !== $identityLocationId
+        ) {
+            throw ValidationException::withMessages([
+                'table' => 'This table belongs to another restaurant location.',
+            ]);
+        }
+
+        $payload['location_id'] = $identityLocationId;
+        $payload['quick_pos'] = false;
+
+        $mode = strtolower(trim((string)($payload['mode'] ?? 'send')));
+        if (!in_array($mode, ['hold', 'send'], true)) {
+            $mode = 'send';
+        }
+
+        $cart = $payload['items'] ?? [];
+        if (!is_array($cart) || count($cart) < 1) {
+            throw ValidationException::withMessages([
+                'items' => 'Add at least one item.',
+            ]);
+        }
+
+        $result = DB::transaction(function () use ($table, $payload, $cart, $mode) {
+            $requestedOrderId = (int)($payload['order_id'] ?? 0);
+            $forceNewCheck = filter_var(
+                $payload['force_new_check'] ?? false,
+                FILTER_VALIDATE_BOOLEAN
+            );
+
+            $order = (
+                $forceNewCheck
+                && $requestedOrderId < 1
+            )
+                ? null
+                : $this->resolveWritableOrder(
+                    $table,
+                    $requestedOrderId,
+                    true
+                );
+
+            $isNew = !$order;
+
+            if ($order) {
+                $expectedUpdatedAt = trim(
+                    (string)($payload['expected_updated_at'] ?? '')
+                );
+
+                if (
+                    $expectedUpdatedAt !== ''
+                    && $order->updated_at
+                    && (string)$order->updated_at !== $expectedUpdatedAt
+                ) {
+                    throw ValidationException::withMessages([
+                        'order' =>
+                            'This order was changed by another user. Refresh before sending new items.',
+                    ]);
+                }
+            }
+
+            if (!$order) {
+                $order = new Orders_model();
+                $this->fillNewOrder($order, $table, $payload, $mode);
+                $order->saveOrFail();
+                $this->ensureBaseTotals($order);
+            }
+
+            $added = $this->appendItems($order, $cart);
+            if ($added < 1) {
+                throw ValidationException::withMessages([
+                    'items' => 'No valid, priced menu items were added.',
+                ]);
+            }
+
+            $note = trim((string)($payload['note'] ?? ''));
+            if ($note !== '' && Schema::hasColumn('orders', 'comment')) {
+                $existing = trim((string)($order->comment ?? ''));
+                $entry = '[PayMyDine Mobile] '.$note;
+                $alreadyPresent = $existing === $note
+                    || strpos($existing, $entry) !== false
+                    || strpos($existing, $note) !== false;
+
+                if (!$alreadyPresent) {
+                    $order->comment = $existing === ''
+                        ? $entry
+                        : ($existing."\n".$entry);
+                }
+            }
+
+            if (Schema::hasColumn('orders', 'guest_count')) {
+                $order->guest_count = max(
+                    1,
+                    min(99, (int)($payload['guest_count'] ?? 1))
+                );
+            }
+
+            if (
+                Schema::hasColumn('orders', 'payment')
+                && trim((string)$order->payment) === ''
+            ) {
+                $order->payment = 'qr_pay_later';
+            }
+
+            if (
+                Schema::hasColumn('orders', 'settlement_status')
+                && !in_array(
+                    (string)$order->settlement_status,
+                    ['partial', 'paid'],
+                    true
+                )
+            ) {
+                $order->settlement_status = 'unpaid';
+            }
+
+            if (
+                Schema::hasColumn('orders', 'settled_amount')
+                && $order->settled_amount === null
+            ) {
+                $order->settled_amount = 0;
+            }
+
+            $statusId = $this->resolveStatusId($mode);
+            if ($statusId && Schema::hasColumn('orders', 'status_id')) {
+                $order->status_id = $statusId;
+            }
+
+            if (Schema::hasColumn('orders', 'processed')) {
+                $order->processed = $mode === 'send';
+            }
+
+            $order->save();
+
+            $this->recalculateOrder($order);
+            $this->recordWaiterPosNoteHistoryV26(
+                $order,
+                $cart,
+                $note,
+                $mode
+            );
+            $this->markTableOccupiedForWaiterOrderV154($table, $order);
+
+            if ($statusId && method_exists($order, 'addStatusHistory')) {
+                try {
+                    $order->addStatusHistory($statusId, [
+                        'comment' => $mode === 'send'
+                            ? 'Sent from PayMyDine Android'
+                            : 'Saved / held from PayMyDine Android',
+                        'notify' => false,
+                    ]);
+                } catch (\Throwable $ignored) {
+                }
+            }
+
+            $order->refresh();
+
+            $orderTotal = (float)($order->order_total ?? 0);
+            $settledAmount = max(
+                0,
+                (float)($order->settled_amount ?? 0)
+            );
+            $remainingAmount = max(
+                0,
+                round($orderTotal - $settledAmount, 4)
+            );
+
+            return [
+                'ok' => true,
+                'version' => 'pmd-mobile-order-command-v1',
+                'mode' => $mode,
+                'created' => $isNew,
+                'order_id' => (int)$order->getKey(),
+                'table_id' => (int)($table['id'] ?? 0),
+                'order_total' => $orderTotal,
+                'total_items' => (int)($order->total_items ?? 0),
+                'updated_at' => (string)($order->updated_at ?? ''),
+                'settlement_status' =>
+                    (string)($order->settlement_status ?? 'unpaid'),
+                'settled_amount' => $settledAmount,
+                'remaining_amount' => $remainingAmount,
+                'message' => $mode === 'send' ? 'Sent' : 'Saved',
+                'urls' => $this->orderUrls((int)$order->getKey()),
+            ];
+        });
+
+        if (
+            ($result['mode'] ?? '') === 'send'
+            && !empty($result['order_id'])
+        ) {
+            $result['eta'] = $this->pmdKitchenEtaAfterSendV1(
+                (int)$result['order_id'],
+                $cart,
+                'android_order_send'
+            );
+        }
+
+        return $result;
+    }
+
     // PMD_CASHIER_DELIVERY_SAVE_R52
     //
     // No physical table is invented here.
