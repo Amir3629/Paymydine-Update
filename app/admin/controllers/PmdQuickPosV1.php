@@ -2239,6 +2239,13 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 'max_capacity',
                 'operational_status',
                 'location_id',
+                'floor_x',
+                'floor_y',
+                'floor_width',
+                'floor_height',
+                'floor_shape',
+                'visible_on_floor_plan',
+                'table_section',
             ], $columns));
 
             $query = Tables_model::query();
@@ -2305,6 +2312,27 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                         $floorId = $defaultFloorId;
                     }
 
+                    /* PMD_QPOS_FLOOR_MAP_V25
+                     * Reuse the same physical table coordinates that power the
+                     * shared Cashier/Dashboard/Reservations floor surfaces.
+                     * No second floor-layout authority is introduced here. */
+                    $floorX = isset($row->floor_x)
+                        && is_numeric($row->floor_x)
+                            ? (float)$row->floor_x
+                            : null;
+                    $floorY = isset($row->floor_y)
+                        && is_numeric($row->floor_y)
+                            ? (float)$row->floor_y
+                            : null;
+                    $floorWidth = isset($row->floor_width)
+                        && is_numeric($row->floor_width)
+                            ? max(72.0, (float)$row->floor_width)
+                            : 170.0;
+                    $floorHeight = isset($row->floor_height)
+                        && is_numeric($row->floor_height)
+                            ? max(58.0, (float)$row->floor_height)
+                            : 88.0;
+
                     return [
                         'id' => $id,
                         'number' => $number,
@@ -2321,6 +2349,21 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                             $floorNames[$floorId]
                             ?? 'Main Floor'
                         ),
+                        'floor_x' => $floorX,
+                        'floor_y' => $floorY,
+                        'floor_width' => $floorWidth,
+                        'floor_height' => $floorHeight,
+                        'floor_shape' => trim((string)(
+                            $row->floor_shape
+                            ?? 'rectangle'
+                        )) ?: 'rectangle',
+                        'visible_on_floor_plan' => !isset(
+                            $row->visible_on_floor_plan
+                        ) || (bool)$row->visible_on_floor_plan,
+                        'section' => trim((string)(
+                            $row->table_section
+                            ?? ''
+                        )),
                         'status' => $this->quickPosNormalizeTableStatus(
                             (string)($row->operational_status ?? 'available')
                         ),
