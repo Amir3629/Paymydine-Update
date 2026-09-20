@@ -119,6 +119,13 @@ trait PmdWaiterPosBootstrapConcern
 
     protected function currentUser()
     {
+        if (
+            property_exists($this, 'pmdMobileUserOverride')
+            && $this->pmdMobileUserOverride
+        ) {
+            return $this->pmdMobileUserOverride;
+        }
+
         try {
             return AdminAuth::getUser();
         } catch (\Throwable $ignored) {
