@@ -1125,20 +1125,25 @@
                 esc(selectedQuantity + (selectedQuantity === 1 ? ' selected item' : ' selected items')) +
               '">' + esc(selectedQuantity) + '</span>'
             : '') +
-          '<strong class="pmd-qpos-product-name">' +
-            /* PMD_QPOS_FOOD_NUMBER_PUNCT_V27
-             * Food labels use the restaurant-menu convention:
-             *   1. Item name
-             * Never "#1Item name". */
-            (item.menu_number
-              ? '<span class="pmd-qpos-product-number" aria-label="Food number ' +
-                  esc(item.menu_number) + '">' + esc(item.menu_number) + '.</span>'
-              : '') +
-            '<span>' + esc(item.name) + '</span>' +
-          '</strong>' +
-          '<footer><span>' +
-            (item.has_options ? 'Options' : '') +
-          '</span><b>' + (orderable ? money(item.price) : 'No price') + '</b></footer>' +
+          /* PMD_QPOS_REAL_PRODUCT_BODY_V31
+           * Use a real body element instead of a pseudo-element so the
+           * white panel itself can overlap the photo and cast its shadow. */
+          '<span class="pmd-qpos-product-body">' +
+            '<strong class="pmd-qpos-product-name">' +
+              /* PMD_QPOS_FOOD_NUMBER_PUNCT_V27
+               * Food labels use the restaurant-menu convention:
+               *   1. Item name
+               * Never "#1Item name". */
+              (item.menu_number
+                ? '<span class="pmd-qpos-product-number" aria-label="Food number ' +
+                    esc(item.menu_number) + '">' + esc(item.menu_number) + '.</span>'
+                : '') +
+              '<span>' + esc(item.name) + '</span>' +
+            '</strong>' +
+            '<span class="pmd-qpos-product-meta"><span>' +
+              (item.has_options ? 'Options' : '') +
+            '</span><b>' + (orderable ? money(item.price) : 'No price') + '</b></span>' +
+          '</span>' +
         '</button>'
       );
     }).join('');
