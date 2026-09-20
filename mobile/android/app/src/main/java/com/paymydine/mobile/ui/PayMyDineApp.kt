@@ -35,6 +35,8 @@ import com.paymydine.mobile.network.TransportKind
 import com.paymydine.mobile.network.TransportRouter
 import com.paymydine.mobile.sync.SyncEngine
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 
 @Composable
@@ -74,6 +76,38 @@ fun PayMyDineApp(app: PayMyDineApplication) {
         edge = edge,
         pinnedEdgeFingerprint = app.credentials.edgeFingerprint(),
     )
+
+    val surfaces = if (ready) {
+        app.bootstrapRepository.surfaces()
+    } else {
+        emptySet()
+    }
+    val availableWorkspaces = buildList {
+        if ("pos" in surfaces || "waiter" in surfaces) add("pos")
+        if ("kds" in surfaces) add("kds")
+    }.ifEmpty { listOf("pos") }
+    var activeWorkspace by remember(ready, surfaces) {
+        mutableStateOf(
+            if (availableWorkspaces.size == 1) {
+                availableWorkspaces.first()
+            } else if ("pos" in availableWorkspaces) {
+                "pos"
+            } else {
+                availableWorkspaces.first()
+            },
+        )
+    }
+
+    LaunchedEffect(ready) {
+        if (!ready) return@LaunchedEffect
+
+        while (isActive) {
+            withContext(Dispatchers.IO) {
+                runCatching { SyncEngine(app).runOnce() }
+            }
+            delay(5_000)
+        }
+    }
 
     LaunchedEffect(pairingLink) {
         val rawLink = pairingLink ?: return@LaunchedEffect
@@ -145,6 +179,27 @@ fun PayMyDineApp(app: PayMyDineApplication) {
                             )
                         }
 
+                        availableWorkspaces.forEach { workspace ->
+                            val selected = activeWorkspace == workspace
+                            if (selected) {
+                                Button(
+                                    onClick = { activeWorkspace = workspace },
+                                ) {
+                                    Text(
+                                        if (workspace == "kds") "Kitchen" else "POS",
+                                    )
+                                }
+                            } else {
+                                OutlinedButton(
+                                    onClick = { activeWorkspace = workspace },
+                                ) {
+                                    Text(
+                                        if (workspace == "kds") "Kitchen" else "POS",
+                                    )
+                                }
+                            }
+                        }
+
                         OutlinedButton(
                             onClick = { SyncEngine.enqueueImmediate(app) },
                         ) {
@@ -167,10 +222,16 @@ fun PayMyDineApp(app: PayMyDineApplication) {
                         }
                     }
 
-                    LocalPosScreen(
-                        app = app,
-                        modifier = Modifier.weight(1f),
-                    )
+                    when (activeWorkspace) {
+                        "kds" -> KdsScreen(
+                            app = app,
+                            modifier = Modifier.weight(1f),
+                        )
+                        else -> LocalPosScreen(
+                            app = app,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
                 }
             } else {
                 Onboarding(
