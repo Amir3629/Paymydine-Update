@@ -6603,3 +6603,100 @@ body.pmd-qpos-exact-floor-open
   }
 }
 
+/* ============================================================
+   PMD_QPOS_TABLE_STATUS_FILL_V37
+   The left table rail uses the same sharp operational language as the Floor:
+   the whole physical-table button carries the status color. The old corner
+   status dot is removed. Pickup remains neutral because it is not a table.
+   ============================================================ */
+.pmd-qpos-table:not(.pmd-qpos-pickup)::after {
+  content: none !important;
+  display: none !important;
+}
+
+.pmd-qpos-table:not(.pmd-qpos-pickup)[data-status="available"],
+.pmd-qpos-table:not(.pmd-qpos-pickup)[data-status="free"] {
+  background: #22c96f !important;
+  border-color: #087c4d !important;
+  color: #061b14 !important;
+}
+
+.pmd-qpos-table:not(.pmd-qpos-pickup)[data-status="occupied"],
+.pmd-qpos-table:not(.pmd-qpos-pickup)[data-status="busy"] {
+  background: #ff3d52 !important;
+  border-color: #a90f2b !important;
+  color: #19060a !important;
+}
+
+.pmd-qpos-table:not(.pmd-qpos-pickup)[data-status="reserved"] {
+  background: #8b5cf6 !important;
+  border-color: #5b21b6 !important;
+  color: #fff !important;
+}
+
+.pmd-qpos-table:not(.pmd-qpos-pickup)[data-status="cleaning"],
+.pmd-qpos-table:not(.pmd-qpos-pickup)[data-status="clean"] {
+  background: #f59e0b !important;
+  border-color: #b45309 !important;
+  color: #201204 !important;
+}
+
+.pmd-qpos-table:not(.pmd-qpos-pickup)[data-status="available"] > small,
+.pmd-qpos-table:not(.pmd-qpos-pickup)[data-status="free"] > small,
+.pmd-qpos-table:not(.pmd-qpos-pickup)[data-status="occupied"] > small,
+.pmd-qpos-table:not(.pmd-qpos-pickup)[data-status="busy"] > small,
+.pmd-qpos-table:not(.pmd-qpos-pickup)[data-status="cleaning"] > small,
+.pmd-qpos-table:not(.pmd-qpos-pickup)[data-status="clean"] > small {
+  color: rgba(7,18,24,.72) !important;
+}
+
+.pmd-qpos-table:not(.pmd-qpos-pickup)[data-status="reserved"] > small {
+  color: rgba(255,255,255,.82) !important;
+}
+
+/* Keep the status fill when the table is selected. Selection is a quiet
+   white inner ring instead of replacing the table with generic dark green. */
+.pmd-qpos-table:not(.pmd-qpos-pickup).is-selected {
+  box-shadow:
+    inset 0 0 0 3px rgba(255,255,255,.88),
+    0 5px 12px rgba(15,23,42,.13) !important;
+}
+
+.pmd-qpos-table:not(.pmd-qpos-pickup):hover {
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 0 0 2px rgba(255,255,255,.28),
+    0 7px 16px rgba(15,23,42,.14) !important;
+}
+
+/* PMD_QPOS_DIRECT_SIDE_MOVE_STYLE_V37
+   Move is completed from this same rail: source quiets down, every valid
+   destination remains fully colored and tappable. */
+.pmd-qpos.is-direct-order-move .pmd-qpos-table.is-move-source {
+  opacity: .42;
+  cursor: not-allowed;
+  box-shadow: none !important;
+}
+
+.pmd-qpos.is-direct-order-move .pmd-qpos-table.is-move-target {
+  cursor: pointer;
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,.38) !important;
+}
+
+.pmd-qpos.is-direct-order-move .pmd-qpos-table.is-move-target:hover {
+  box-shadow:
+    inset 0 0 0 3px rgba(255,255,255,.72),
+    0 7px 16px rgba(15,23,42,.15) !important;
+}
+
+.pmd-qpos.is-direct-order-move .pmd-qpos-pickup.is-move-disabled {
+  opacity: .38;
+  cursor: not-allowed;
+}
+
+.pmd-qpos-table-actions [data-qpos-table-move].is-direct-cancel {
+  background: #b45309 !important;
+  border-color: #b45309 !important;
+  color: #fff !important;
+}
+
