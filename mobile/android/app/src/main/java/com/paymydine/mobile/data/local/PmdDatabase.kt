@@ -15,7 +15,14 @@ class PmdDatabase(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, n
     override fun onCreate(db: SQLiteDatabase) { schema.forEach(db::execSQL) }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
-        error("No destructive PayMyDine local DB upgrade: $oldVersion -> $newVersion")
+        var version = oldVersion
+        if (version < 2) {
+            createKdsStations(db)
+            version = 2
+        }
+        check(version == newVersion) {
+            "Unsupported PayMyDine local DB upgrade: $oldVersion -> $newVersion"
+        }
     }
 
     fun <T> transaction(block: (SQLiteDatabase) -> T): T {
@@ -30,7 +37,7 @@ class PmdDatabase(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, n
 
     companion object {
         const val DATABASE_NAME = "paymydine-local-v1.db"
-        const val DATABASE_VERSION = 1
+        const val DATABASE_VERSION = 2
         private val schema = listOf(
             """CREATE TABLE pmd_meta (key TEXT PRIMARY KEY NOT NULL, value TEXT NOT NULL)""",
             """CREATE TABLE pmd_menu_items (
@@ -75,7 +82,24 @@ class PmdDatabase(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, n
                 event_type TEXT NOT NULL, payload_json TEXT NOT NULL, created_at_ms INTEGER NOT NULL,
                 applied_at_ms INTEGER NOT NULL)""".trimIndent(),
             "CREATE INDEX idx_pmd_inbox_aggregate ON pmd_inbox_events(aggregate, aggregate_id, aggregate_version)",
+            """CREATE TABLE pmd_kds_stations (
+                station_id TEXT PRIMARY KEY NOT NULL, location_id INTEGER,
+                name TEXT NOT NULL, slug TEXT NOT NULL, payload_json TEXT NOT NULL DEFAULT '{}',
+                updated_at_ms INTEGER NOT NULL)""".trimIndent(),
+            "CREATE INDEX idx_pmd_kds_station_location ON pmd_kds_stations(location_id, slug)",
             """CREATE TABLE pmd_sync_cursor (scope TEXT PRIMARY KEY NOT NULL, cursor INTEGER NOT NULL DEFAULT 0)"""
         )
+
+        private fun createKdsStations(db: SQLiteDatabase) {
+            db.execSQL(
+                """CREATE TABLE IF NOT EXISTS pmd_kds_stations (
+                    station_id TEXT PRIMARY KEY NOT NULL, location_id INTEGER,
+                    name TEXT NOT NULL, slug TEXT NOT NULL, payload_json TEXT NOT NULL DEFAULT '{}',
+                    updated_at_ms INTEGER NOT NULL)""".trimIndent(),
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS idx_pmd_kds_station_location ON pmd_kds_stations(location_id, slug)",
+            )
+        }
     }
 }
