@@ -62,9 +62,10 @@ git diff --binary --full-index "$base_ref..$release_ref" -- "${targets[@]}" > "$
 [[ -s "$patch_file" ]] || fail "Integration patch is empty"
 
 # Build a miniature copy of only the integration target files from the CURRENT live worktree.
+# Parent directories are created even for NEW files so git apply can materialize them in the isolated stage.
 for rel in "${targets[@]}"; do
+  mkdir -p "$stage/tree/$(dirname "$rel")"
   if [[ -f "$PMD_ROOT/$rel" ]]; then
-    mkdir -p "$stage/tree/$(dirname "$rel")"
     cp -a "$PMD_ROOT/$rel" "$stage/tree/$rel"
   fi
 done
@@ -114,6 +115,7 @@ fi
 
 say "Backing up only Google integration target files"
 : > "$backup/new-files.txt"
+: > "$backup/new-dirs.txt"
 for rel in "${targets[@]}"; do
   if [[ -f "$PMD_ROOT/$rel" ]]; then
     mkdir -p "$backup/files/$(dirname "$rel")"
@@ -141,6 +143,13 @@ if [[ -f "\$BACKUP/new-files.txt" ]]; then
 fi
 
 cp -a "\$BACKUP/files/." "\$PMD_ROOT/"
+
+if [[ -f "\$BACKUP/new-dirs.txt" ]]; then
+  tac "\$BACKUP/new-dirs.txt" | while IFS= read -r dir; do
+    [[ -n "\$dir" ]] && rmdir "\$dir" 2>/dev/null || true
+  done
+fi
+
 rm -rf "\$PMD_V2_ROOT/.next"
 if [[ -d "\$BACKUP/next.previous" ]]; then
   mv "\$BACKUP/next.previous" "\$PMD_V2_ROOT/.next"
@@ -174,6 +183,12 @@ rollback_now() {
   fi
   cp -a "$backup/files/." "$PMD_ROOT/"
 
+  if [[ -f "$backup/new-dirs.txt" ]]; then
+    tac "$backup/new-dirs.txt" | while IFS= read -r dir; do
+      [[ -n "$dir" ]] && rmdir "$dir" 2>/dev/null || true
+    done
+  fi
+
   rm -rf "$PMD_V2_ROOT/.next"
   [[ -d "$backup/next.previous" ]] && mv "$backup/next.previous" "$PMD_V2_ROOT/.next"
 
@@ -189,6 +204,15 @@ rollback_now() {
 trap 'rc=$?; if [[ "$activation" == "1" && "$rc" != "0" ]]; then rollback_now "$rc"; fi' EXIT
 
 activation=1
+
+say "Preparing parent directories for new Google integration files"
+for rel in "${targets[@]}"; do
+  dir="$PMD_ROOT/$(dirname "$rel")"
+  if [[ ! -d "$dir" ]]; then
+    printf '%s\n' "$dir" >> "$backup/new-dirs.txt"
+    mkdir -p "$dir"
+  fi
+done
 
 say "Applying Google integration patch only"
 git apply --whitespace=nowarn "$patch_file"
