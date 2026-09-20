@@ -2215,15 +2215,22 @@ function renderOpenChecks() {
     renderPayment();
   }
 
+  /* PMD_QPOS_PAYMENT_FILL_V23
+   * Expose the current split mode to CSS so the left payment workspace can
+   * use all available height without inventing duplicate summary content. */
   function renderSplitControls() {
     var wrap = $('[data-qpos-split-row]');
     if (!wrap) return;
 
     var terminal = state.payment.method === 'direct_terminal';
     wrap.hidden = terminal;
-    if (terminal) return;
+    if (terminal) {
+      wrap.removeAttribute('data-qpos-active-split');
+      return;
+    }
 
     var mode = String(state.payment.splitMode || 'full');
+    wrap.setAttribute('data-qpos-active-split', mode);
     var remaining = paymentRemaining();
 
     $$('[data-qpos-split-mode]', wrap).forEach(function (button) {
