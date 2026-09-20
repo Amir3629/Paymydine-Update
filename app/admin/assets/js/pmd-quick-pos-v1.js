@@ -129,6 +129,7 @@
     note: '',
     loading: false,
     visualHydrated: false,
+    floorMapOpen: false,
     submitting: false,
     modifier: null,
     itemNoteIndex: null,
@@ -701,6 +702,177 @@
     });
   }
 
+  /* PMD_QPOS_FLOOR_MAP_UI_V25
+   * Read-only POS floor view. Coordinates are the same canonical floor_x/y
+   * values used by the shared Cashier/Dashboard/Reservations floor map. */
+  function closeFloorMap() {
+    state.floorMapOpen = false;
+    var workspace = $('[data-qpos-floor-map-workspace]');
+    if (workspace) {
+      workspace.hidden = true;
+      workspace.setAttribute('aria-hidden', 'true');
+    }
+    root.classList.remove('is-floor-map-open');
+  }
+
+  function openFloorMap() {
+    if (state.payment.open) {
+      toast('Close payment first.', true);
+      return;
+    }
+
+    closeHistory();
+    closeTransfer();
+    closeTextKeyboard();
+
+    state.floorMapOpen = true;
+    root.classList.add('is-floor-map-open');
+    renderFloorMap();
+  }
+
+  function renderFloorMap() {
+    var workspace = $('[data-qpos-floor-map-workspace]');
+    if (!workspace) return;
+
+    workspace.hidden = !state.floorMapOpen;
+    workspace.setAttribute(
+      'aria-hidden',
+      state.floorMapOpen ? 'false' : 'true'
+    );
+
+    if (!state.floorMapOpen) return;
+
+    var title = $('[data-qpos-floor-map-title]');
+    var tabs = $('[data-qpos-map-floors]');
+    var stage = $('[data-qpos-floor-map-stage]');
+
+    var activeFloor = state.floors.find(function (floor) {
+      return String(floor.id || '') === String(state.activeFloorId || '');
+    }) || state.floors[0] || null;
+
+    if (title) {
+      title.textContent = activeFloor
+        ? String(activeFloor.name || 'Floor')
+        : 'Floor';
+    }
+
+    if (tabs) {
+      tabs.innerHTML = state.floors.map(function (floor) {
+        var id = String(floor.id || '');
+        return (
+          '<button type="button" data-qpos-map-floor="' + esc(id) + '"' +
+            (id === String(state.activeFloorId || '') ? ' class="is-active"' : '') +
+          '>' + esc(floor.name || 'Floor') + '</button>'
+        );
+      }).join('');
+
+      $$('[data-qpos-map-floor]', tabs).forEach(function (button) {
+        button.onclick = function () {
+          selectFloor(button.getAttribute('data-qpos-map-floor'));
+        };
+      });
+    }
+
+    if (!stage) return;
+
+    var tables = activeFloorTables().filter(function (table) {
+      return table.visible_on_floor_plan !== false;
+    });
+
+    if (!tables.length) {
+      stage.innerHTML =
+        '<div class="pmd-qpos-floor-map-empty">No tables on this floor.</div>';
+      return;
+    }
+
+    var floorWidth = Math.max(
+      1000,
+      num(activeFloor && activeFloor.width, 1000)
+    );
+    var floorHeight = Math.max(
+      560,
+      num(activeFloor && activeFloor.height, 560)
+    );
+
+    stage.innerHTML = tables.map(function (table, index) {
+      var width = Math.max(
+        72,
+        Math.min(260, num(table.floor_width, 108))
+      );
+      var height = Math.max(
+        58,
+        Math.min(180, num(table.floor_height, 88))
+      );
+
+      var x = Number(table.floor_x);
+      var y = Number(table.floor_y);
+
+      if (!Number.isFinite(x)) {
+        x = 80 + (index % 6) * 150;
+      }
+      if (!Number.isFinite(y)) {
+        y = 60 + Math.floor(index / 6) * 110;
+      }
+
+      x = Math.max(
+        width / 2 + 12,
+        Math.min(floorWidth - width / 2 - 12, x)
+      );
+      y = Math.max(
+        height / 2 + 12,
+        Math.min(floorHeight - height / 2 - 12, y)
+      );
+
+      var left = x / floorWidth * 100;
+      var top = y / floorHeight * 100;
+      var w = width / floorWidth * 100;
+      var h = height / floorHeight * 100;
+      var status = String(table.status || 'available').toLowerCase();
+      var selected =
+        state.selectedTable &&
+        Number(state.selectedTable.id) === Number(table.id);
+
+      var signal = '';
+      if (num(table.waiter_calls, 0) > 0) {
+        signal = 'call';
+      } else if (
+        ['due', 'partial'].indexOf(
+          String(table.payment_state || '').toLowerCase()
+        ) !== -1
+      ) {
+        signal = 'due';
+      }
+
+      return (
+        '<button type="button" class="pmd-qpos-floor-map-table status-' +
+          esc(status) +
+          (selected ? ' is-selected' : '') +
+          (signal ? ' has-' + esc(signal) : '') +
+          '" data-qpos-map-table="' + esc(table.id) + '"' +
+          ' style="left:' + left.toFixed(3) + '%;' +
+            'top:' + top.toFixed(3) + '%;' +
+            'width:' + w.toFixed(3) + '%;' +
+            'height:' + h.toFixed(3) + '%;">' +
+          '<strong>' + esc(compactTableLabel(table)) + '</strong>' +
+          '<span>' + esc(tableStatusLabel(status)) + '</span>' +
+          (signal
+            ? '<i class="pmd-qpos-floor-map-signal ' + esc(signal) + '"></i>'
+            : '') +
+        '</button>'
+      );
+    }).join('');
+
+    $$('[data-qpos-map-table]', stage).forEach(function (button) {
+      button.onclick = async function () {
+        var id = Number(button.getAttribute('data-qpos-map-table') || 0);
+        if (!id) return;
+
+        closeFloorMap();
+        await selectTable(id);
+      };
+    });
+  }
+
   function renderTables() {
     var box = $('[data-qpos-tables]');
     var count = $('[data-qpos-table-count]');
@@ -947,17 +1119,19 @@
           (image
             ? '<div class="pmd-qpos-product-image" style="background-image:url(&quot;' + esc(image) + '&quot;)"></div>'
             : '<div class="pmd-qpos-product-image"></div>') +
-          (item.menu_number
-            ? '<span class="pmd-qpos-product-number" aria-label="Food number ' +
-                esc(item.menu_number) + '">#' + esc(item.menu_number) + '</span>'
-            : '') +
           (item.is_bestseller ? '<span class="pmd-qpos-product-badge">Popular</span>' : '') +
           (selectedQuantity > 0
             ? '<span class="pmd-qpos-product-count" data-qpos-product-count aria-label="' +
                 esc(selectedQuantity + (selectedQuantity === 1 ? ' selected item' : ' selected items')) +
               '">' + esc(selectedQuantity) + '</span>'
             : '') +
-          '<strong>' + esc(item.name) + '</strong>' +
+          '<strong class="pmd-qpos-product-name">' +
+            (item.menu_number
+              ? '<span class="pmd-qpos-product-number" aria-label="Food number ' +
+                  esc(item.menu_number) + '">#' + esc(item.menu_number) + '</span>'
+              : '') +
+            '<span>' + esc(item.name) + '</span>' +
+          '</strong>' +
           '<footer><span>' +
             (item.has_options ? 'Options' : '') +
           '</span><b>' + (orderable ? money(item.price) : 'No price') + '</b></footer>' +
@@ -1249,6 +1423,12 @@ function renderOpenChecks() {
     var note = $('[data-qpos-note]');
     if (note && note.value !== state.note) note.value = state.note;
 
+    var floorMapOpen = $('[data-qpos-floor-map-open]');
+    var floorMapClose = $('[data-qpos-floor-map-close]');
+
+    if (floorMapOpen) floorMapOpen.onclick = openFloorMap;
+    if (floorMapClose) floorMapClose.onclick = closeFloorMap;
+
     var send = $('[data-qpos-send]');
     var pay = $('[data-qpos-pay]');
 
@@ -1323,8 +1503,8 @@ function renderOpenChecks() {
 
     if (orderLabel) {
       orderLabel.textContent = state.activeOrderId
-        ? 'Check #' + String(state.activeOrderId)
-        : 'Check';
+        ? '#' + String(state.activeOrderId)
+        : 'Order';
     }
 
     if (tableCount) {
@@ -1434,6 +1614,7 @@ function renderOpenChecks() {
 
     closePayment();
     closeHistory();
+    closeFloorMap();
     closeTextKeyboard();
     hideToast();
 
@@ -2976,6 +3157,8 @@ function renderOpenChecks() {
 
     keypad.hidden = false;
     keypad.classList.toggle('is-locked', locked);
+    keypad.setAttribute('data-qpos-keypad-target-mode', target);
+    keypad.setAttribute('data-qpos-keypad-payment-method', state.payment.method);
 
     $$('[data-qpos-keypad-key]', keypad).forEach(function (button) {
       button.disabled = locked;
@@ -4736,6 +4919,7 @@ function renderOpenChecks() {
     renderCategories();
     renderProducts();
     renderCart();
+    renderFloorMap();
   }
 
   /* Binding */
@@ -5213,6 +5397,7 @@ function renderOpenChecks() {
         closeHistory();
         closePayment();
         closeTransfer();
+        closeFloorMap();
         closeTextKeyboard();
         if (cart) cart.classList.remove('is-mobile-open');
       }
@@ -5239,6 +5424,7 @@ function renderOpenChecks() {
     refresh: function () { return bootstrap(false); },
     selectTable: selectTable,
     newCheck: newCheck,
-    openPayment: openPayment
+    openPayment: openPayment,
+    openFloorMap: openFloorMap
   };
 })();
