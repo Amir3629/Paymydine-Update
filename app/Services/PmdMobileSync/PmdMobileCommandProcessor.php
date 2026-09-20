@@ -2,6 +2,7 @@
 
 namespace App\Services\PmdMobileSync;
 
+use Admin\Controllers\KitchenDisplay;
 use Admin\Controllers\PmdWaiterPosV1;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
@@ -113,7 +114,7 @@ final class PmdMobileCommandProcessor
                     );
                 }
 
-                $result = $this->applyOrderCommand($identity, $command);
+                $result = $this->applyCommand($identity, $command);
                 $newVersion = $currentVersion + 1;
                 $canonicalAggregateId = 'order:'.(int)$result['order_id'];
 
@@ -138,9 +139,11 @@ final class PmdMobileCommandProcessor
                     'aggregate' => 'order',
                     'aggregate_id' => $canonicalAggregateId,
                     'aggregate_version' => $newVersion,
-                    'event_type' => $command['command_type'] === 'ORDER_HOLD_V1'
-                        ? 'ORDER_HELD_V1'
-                        : 'ORDER_SENT_V1',
+                    'event_type' => match ($command['command_type']) {
+                        'ORDER_HOLD_V1' => 'ORDER_HELD_V1',
+                        'KDS_STATUS_V1' => 'KDS_STATUS_CHANGED_V1',
+                        default => 'ORDER_SENT_V1',
+                    },
                     'payload' => json_encode([
                         'command_id' => $command['command_id'],
                         'client_aggregate_id' => $command['aggregate_id'],
@@ -197,8 +200,12 @@ final class PmdMobileCommandProcessor
         }
     }
 
-    private function applyOrderCommand(array $identity, array $command): array
+    private function applyCommand(array $identity, array $command): array
     {
+        if ($command['command_type'] === 'KDS_STATUS_V1') {
+            return $this->applyKdsStatusCommand($identity, $command);
+        }
+
         if (!in_array(
             $command['command_type'],
             ['ORDER_SEND_V1', 'ORDER_HOLD_V1'],
@@ -233,6 +240,43 @@ final class PmdMobileCommandProcessor
         return $pos->saveMobilePayload($tableId, $payload);
     }
 
+    private function applyKdsStatusCommand(
+        array $identity,
+        array $command
+    ): array {
+        $user = $identity['user'] ?? null;
+        if (!$user) {
+            abort(401, 'Authenticated PayMyDine user required.');
+        }
+
+        try {
+            if (!$user->hasPermission('Admin.KitchenDisplay')) {
+                abort(403, 'Kitchen Display permission required.');
+            }
+        } catch (\Symfony\Component\HttpKernel\Exception\HttpExceptionInterface $error) {
+            throw $error;
+        } catch (\Throwable $error) {
+            abort(403, 'Kitchen Display permission required.');
+        }
+
+        $payload = $command['payload'];
+        $orderId = (int)($payload['order_id'] ?? 0);
+        $statusId = (int)($payload['status_id'] ?? 0);
+        $expectedStatusId = (int)($payload['expected_status_id'] ?? 0);
+        $stationSlug = trim((string)($payload['station_slug'] ?? ''));
+
+        /** @var KitchenDisplay $kds */
+        $kds = app(KitchenDisplay::class);
+
+        return $kds->pmdMobileUpdateStatus(
+            $identity,
+            $orderId,
+            $statusId,
+            $expectedStatusId,
+            $stationSlug !== '' ? $stationSlug : null
+        );
+    }
+
     private function normalize(array $identity, array $input): array
     {
         $commandId = strtolower(trim((string)($input['command_id'] ?? '')));
@@ -260,7 +304,7 @@ final class PmdMobileCommandProcessor
         }
         if ($aggregate !== 'order') {
             throw ValidationException::withMessages([
-                'aggregate' => 'Only order commands are enabled in mobile sync V1.',
+                'aggregate' => 'Mobile sync V1 currently accepts order aggregates only.',
             ]);
         }
         if ($aggregateId === '' || strlen($aggregateId) > 128) {
