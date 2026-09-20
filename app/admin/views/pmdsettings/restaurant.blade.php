@@ -334,6 +334,10 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                                         $googlePending = !empty($googleBusiness['pending_location']);
                                     @endphp
 
+                                    <style>
+                                        #pmd-google-business-integration-v2 > summary::-webkit-details-marker { display:none; }
+                                        #pmd-google-business-integration-v2 > summary::marker { content:''; }
+                                    </style>
                                     <details
                                         id="pmd-google-business-integration-v2"
                                         style="margin-top:.75rem;border:1px solid rgba(15,23,42,.12);border-radius:12px;background:rgba(248,250,252,.8);overflow:hidden;"
@@ -576,6 +580,7 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                                                     {{ $pmdSettingsText('Clear Google credentials') }}
                                                 </button>
                                             @endif
+                                        </div>
                                         </div>
                                     </details>
                                 @endif
