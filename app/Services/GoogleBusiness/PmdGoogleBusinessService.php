@@ -1312,6 +1312,12 @@ class PmdGoogleBusinessService
                 $table->bigIncrements('id');
                 $table->unsignedInteger('location_id')->unique();
                 $table->string('tenant_host', 191)->nullable()->index();
+                $table->text('oauth_client_id_encrypted')->nullable();
+                $table->text('oauth_client_secret_encrypted')->nullable();
+                $table->text('places_api_key_encrypted')->nullable();
+                $table->string('pubsub_topic', 500)->nullable();
+                $table->text('pubsub_token_encrypted')->nullable();
+                $table->timestamp('credentials_updated_at')->nullable();
                 $table->string('google_account_name', 191)->nullable()->index();
                 $table->string('google_account_display_name', 191)->nullable();
                 $table->string('google_location_name', 191)->nullable()->index();
@@ -1332,6 +1338,21 @@ class PmdGoogleBusinessService
                 $table->text('last_error')->nullable();
                 $table->timestamps();
             });
+        }
+
+        foreach ([
+            'oauth_client_id_encrypted' => fn (Blueprint $table) => $table->text('oauth_client_id_encrypted')->nullable(),
+            'oauth_client_secret_encrypted' => fn (Blueprint $table) => $table->text('oauth_client_secret_encrypted')->nullable(),
+            'places_api_key_encrypted' => fn (Blueprint $table) => $table->text('places_api_key_encrypted')->nullable(),
+            'pubsub_topic' => fn (Blueprint $table) => $table->string('pubsub_topic', 500)->nullable(),
+            'pubsub_token_encrypted' => fn (Blueprint $table) => $table->text('pubsub_token_encrypted')->nullable(),
+            'credentials_updated_at' => fn (Blueprint $table) => $table->timestamp('credentials_updated_at')->nullable(),
+        ] as $column => $definition) {
+            if (!$schema->hasColumn('pmd_google_business_connections', $column)) {
+                $schema->table('pmd_google_business_connections', function (Blueprint $table) use ($definition) {
+                    $definition($table);
+                });
+            }
         }
 
         if (!$schema->hasTable('pmd_external_reviews')) {
