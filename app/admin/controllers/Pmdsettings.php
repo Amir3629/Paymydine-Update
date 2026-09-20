@@ -629,6 +629,7 @@ class Pmdsettings extends AdminController
         $locationId = $this->currentLocationId();
         $profile = (array)post('profile', []);
         $hours = (array)post('hours', []);
+        $googleBusinessInput = (array)post('google_business', []);
 
         $validator = Validator::make($profile, [
             'name' => ['required', 'string', 'max:191'],
@@ -647,6 +648,28 @@ class Pmdsettings extends AdminController
 
         if ($validator->fails()) {
             throw new ValidationException($validator);
+        }
+
+        $googleValidator = Validator::make($googleBusinessInput, [
+            'client_id' => ['nullable', 'string', 'max:500'],
+            'client_secret' => ['nullable', 'string', 'max:1000'],
+            'places_api_key' => ['nullable', 'string', 'max:1000'],
+            'pubsub_topic' => ['nullable', 'string', 'max:500'],
+            'pubsub_token' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        if ($googleValidator->fails()) {
+            throw new ValidationException($googleValidator);
+        }
+
+        $googleClean = $googleValidator->validated();
+        $pubsubTopic = trim((string)($googleClean['pubsub_topic'] ?? ''));
+        if ($pubsubTopic !== '' && !preg_match('#^projects/[^/]+/topics/[^/]+$#', $pubsubTopic)) {
+            throw ValidationException::withMessages([
+                'google_business.pubsub_topic' => [
+                    'Google Pub/Sub topic must look like projects/PROJECT_ID/topics/TOPIC_NAME.',
+                ],
+            ]);
         }
 
         $clean = $validator->validated();
@@ -682,9 +705,6 @@ class Pmdsettings extends AdminController
                 'pmd_social_trustpilot_url' => trim((string)($clean['trustpilot_url'] ?? '')),
             ];
 
-            // PMD_RESTAURANT_IDENTITY_PERSIST_R25
-            // Owner identity is written to dedicated keys and mirrored to legacy
-            // site_* keys. No broad Settings-manager flush is allowed here.
             $settings['site_logo'] = $resolvedLogo;
             $settings['pmd_restaurant_identity_name'] = trim((string)$clean['name']);
             $settings['pmd_restaurant_identity_logo'] = $resolvedLogo;
@@ -723,6 +743,12 @@ class Pmdsettings extends AdminController
                 );
             }
         });
+
+        app(PmdGoogleBusinessService::class)->saveConfiguration(
+            $locationId,
+            request()->getHost(),
+            $googleClean
+        );
 
         flash()->success(\Admin\Classes\PmdPlatformI18n::fromEnglish('Restaurant profile saved.', 'settings.'));
 
@@ -776,6 +802,21 @@ class Pmdsettings extends AdminController
 
         return [
             '#pmd-google-business-status-v2' => '<span class="label label-default">Disconnected</span>',
+        ];
+    }
+
+    public function onGoogleBusinessClearCredentials()
+    {
+        try {
+            app(PmdGoogleBusinessService::class)
+                ->clearConfiguration($this->currentLocationId());
+            flash()->success('Google Business credentials cleared for this restaurant.');
+        } catch (\Throwable $error) {
+            throw new \RuntimeException($error->getMessage());
+        }
+
+        return [
+            '#pmd-google-business-status-v2' => '<span class="label label-default">Credentials cleared</span>',
         ];
     }
 
