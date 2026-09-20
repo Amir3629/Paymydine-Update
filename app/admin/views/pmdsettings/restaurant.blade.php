@@ -319,7 +319,157 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                                         placeholder="{{ $social['placeholder'] }}"
                                         maxlength="500"
                                     >
+                                    @if($social['key'] === 'google')
+                                        <small style="display:block;margin-top:.45rem;color:#6b7280;">
+                                            {{ $pmdSettingsText('Manual Google Maps URL (fallback). A connected Google Business Profile takes priority for reviews.') }}
+                                        </small>
+                                    @endif
                                 </label>
+
+                                @if($social['key'] === 'google')
+                                    @php
+                                        $googleBusiness = (array)($pmdGoogleBusiness ?? []);
+                                        $googleConfigured = !empty($googleBusiness['configured']);
+                                        $googleConnected = !empty($googleBusiness['connected']);
+                                        $googlePending = !empty($googleBusiness['pending_location']);
+                                    @endphp
+
+                                    <div
+                                        id="pmd-google-business-integration-v2"
+                                        style="margin-top:.85rem;padding:.9rem;border:1px solid rgba(15,23,42,.12);border-radius:12px;background:rgba(248,250,252,.8);"
+                                    >
+                                        <div style="display:flex;align-items:center;justify-content:space-between;gap:.75rem;flex-wrap:wrap;">
+                                            <div>
+                                                <strong>{{ $pmdSettingsText('Google Business Profile') }}</strong>
+                                                <div class="small text-muted">
+                                                    {{ $pmdSettingsText('Sync Google reviews and reply to them from PayMyDine.') }}
+                                                </div>
+                                            </div>
+                                            <div id="pmd-google-business-status-v2">
+                                                @if($googleConnected)
+                                                    <span class="label label-success">{{ $pmdSettingsText('Connected') }}</span>
+                                                @elseif($googlePending)
+                                                    <span class="label label-warning">{{ $pmdSettingsText('Choose location') }}</span>
+                                                @elseif($googleConfigured)
+                                                    <span class="label label-default">{{ $pmdSettingsText('Not connected') }}</span>
+                                                @else
+                                                    <span class="label label-warning">{{ $pmdSettingsText('Setup required') }}</span>
+                                                @endif
+                                            </div>
+                                        </div>
+
+                                        @if(!$googleConfigured)
+                                            <div class="alert alert-warning" style="margin:.85rem 0 0;">
+                                                <strong>{{ $pmdSettingsText('Google API setup is required on the PayMyDine server.') }}</strong>
+                                                <div class="small" style="margin-top:.35rem;">
+                                                    PMD_GOOGLE_BUSINESS_CLIENT_ID,
+                                                    PMD_GOOGLE_BUSINESS_CLIENT_SECRET,
+                                                    PMD_GOOGLE_BUSINESS_REDIRECT_URI
+                                                </div>
+                                                @if(!empty($googleBusiness['redirect_uri']))
+                                                    <div class="small" style="margin-top:.35rem;">
+                                                        OAuth callback:
+                                                        <code>{{ $googleBusiness['redirect_uri'] }}</code>
+                                                    </div>
+                                                @endif
+                                            </div>
+                                        @else
+                                            @if($googleConnected)
+                                                <div style="margin-top:.85rem;display:grid;gap:.35rem;">
+                                                    <div>
+                                                        <strong>{{ $pmdSettingsText('Business') }}:</strong>
+                                                        {{ $googleBusiness['google_location_title'] ?? '—' }}
+                                                    </div>
+                                                    @if(!empty($googleBusiness['google_account_display_name']))
+                                                        <div class="small text-muted">
+                                                            {{ $pmdSettingsText('Google account') }}:
+                                                            {{ $googleBusiness['google_account_display_name'] }}
+                                                        </div>
+                                                    @endif
+                                                    @if(!empty($googleBusiness['google_place_id']))
+                                                        <div class="small text-muted">
+                                                            Place ID:
+                                                            <code>{{ $googleBusiness['google_place_id'] }}</code>
+                                                        </div>
+                                                    @endif
+                                                    <div class="small text-muted">
+                                                        {{ $pmdSettingsText('Google rating') }}:
+                                                        @if($googleBusiness['average_rating'] !== null)
+                                                            {{ number_format((float)$googleBusiness['average_rating'], 1) }} / 5
+                                                            · {{ (int)($googleBusiness['total_review_count'] ?? 0) }} {{ $pmdSettingsText('reviews') }}
+                                                        @else
+                                                            —
+                                                        @endif
+                                                    </div>
+                                                    <div class="small text-muted">
+                                                        {{ $pmdSettingsText('Last sync') }}:
+                                                        {{ $googleBusiness['last_synced_at'] ?? '—' }}
+                                                    </div>
+                                                    <div class="small text-muted">
+                                                        {{ $pmdSettingsText('Real-time notifications') }}:
+                                                        {{ !empty($googleBusiness['notifications_enabled']) ? $pmdSettingsText('Enabled') : $pmdSettingsText('Not enabled') }}
+                                                    </div>
+                                                    <div class="small text-muted">
+                                                        {{ $pmdSettingsText('Direct Google review link') }}:
+                                                        {{ !empty($googleBusiness['google_write_review_uri']) ? $pmdSettingsText('Ready') : $pmdSettingsText('Not available yet') }}
+                                                    </div>
+                                                </div>
+                                            @endif
+
+                                            @if(!empty($googleBusiness['last_error']))
+                                                <div class="alert alert-warning" style="margin:.85rem 0 0;">
+                                                    {{ $googleBusiness['last_error'] }}
+                                                </div>
+                                            @endif
+
+                                            <div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.85rem;">
+                                                @if(!$googleConnected && !$googlePending)
+                                                    <a class="btn btn-primary btn-sm" href="{{ admin_url('pmdgooglebusiness/connect') }}">
+                                                        {{ $pmdSettingsText('Connect Google Business') }}
+                                                    </a>
+                                                @endif
+
+                                                @if($googlePending || $googleConnected)
+                                                    <a class="btn btn-default btn-sm" href="{{ admin_url('pmdgooglebusiness/locations') }}">
+                                                        {{ $googleConnected ? $pmdSettingsText('Change Google location') : $pmdSettingsText('Choose Google location') }}
+                                                    </a>
+                                                @endif
+
+                                                @if($googleConnected)
+                                                    <button
+                                                        type="button"
+                                                        class="btn btn-default btn-sm"
+                                                        data-request="onGoogleBusinessSync"
+                                                        data-request-success="window.location.reload()"
+                                                    >
+                                                        {{ $pmdSettingsText('Sync reviews now') }}
+                                                    </button>
+
+                                                    @if(!empty($googleBusiness['places_configured']))
+                                                        <button
+                                                            type="button"
+                                                            class="btn btn-default btn-sm"
+                                                            data-request="onGoogleBusinessRefreshLinks"
+                                                            data-request-success="window.location.reload()"
+                                                        >
+                                                            {{ $pmdSettingsText('Refresh Google links') }}
+                                                        </button>
+                                                    @endif
+
+                                                    <button
+                                                        type="button"
+                                                        class="btn btn-danger btn-sm"
+                                                        data-request="onGoogleBusinessDisconnect"
+                                                        data-request-confirm="{{ $pmdSettingsText('Disconnect Google Business Profile from this restaurant?') }}"
+                                                        data-request-success="window.location.reload()"
+                                                    >
+                                                        {{ $pmdSettingsText('Disconnect') }}
+                                                    </button>
+                                                @endif
+                                            </div>
+                                        @endif
+                                    </div>
+                                @endif
                             </div>
                         @endforeach
                     </div>
