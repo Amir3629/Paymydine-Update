@@ -627,6 +627,7 @@ class Pmdsettings extends AdminController
             'website_url' => ['nullable', 'url', 'max:500'],
             'instagram_url' => ['nullable', 'url', 'max:500'],
             'google_url' => ['nullable', 'url', 'max:500'],
+            'google_review_url' => ['nullable', 'url', 'max:500'],
             'trustpilot_url' => ['nullable', 'url', 'max:500'],
         ]);
 
@@ -663,6 +664,7 @@ class Pmdsettings extends AdminController
                 'pmd_social_instagram_url' => trim((string)($clean['instagram_url'] ?? '')),
                 'pmd_social_google_enabled' => !empty($profile['google_enabled']) ? 1 : 0,
                 'pmd_social_google_url' => trim((string)($clean['google_url'] ?? '')),
+                'pmd_social_google_review_url' => trim((string)($clean['google_review_url'] ?? '')),
                 'pmd_social_trustpilot_enabled' => !empty($profile['trustpilot_enabled']) ? 1 : 0,
                 'pmd_social_trustpilot_url' => trim((string)($clean['trustpilot_url'] ?? '')),
             ];
@@ -774,6 +776,7 @@ class Pmdsettings extends AdminController
             'instagram_url' => (string)$value('pmd_social_instagram_url', ''),
             'google_enabled' => (bool)$value('pmd_social_google_enabled', 0),
             'google_url' => (string)$value('pmd_social_google_url', ''),
+            'google_review_url' => (string)$value('pmd_social_google_review_url', ''),
             'trustpilot_enabled' => (bool)$value('pmd_social_trustpilot_enabled', 0),
             'trustpilot_url' => (string)$value('pmd_social_trustpilot_url', ''),
             'site_logo' => (string)($siteLogoR24 = $identity['logo']),
