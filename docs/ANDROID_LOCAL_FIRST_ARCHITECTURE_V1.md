@@ -97,18 +97,22 @@ Supporting every historical Android release is not a safe promise because modern
 
 ## Secure pairing
 
-The APK never receives the user's PayMyDine password.
+The APK never receives the user's PayMyDine password. Pairing is also bound to
+the initiating Android installation with a PKCE-style verifier/challenge, so
+intercepting the custom-scheme callback alone is not sufficient to exchange it
+for a long-lived device token.
 
 Flow:
 
 ```text
 Android app
-  -> HTTPS tenant /admin/mobile/pair/start
+  -> generate random verifier in Keystore-backed storage
+  -> HTTPS tenant /admin/mobile/pair/start?code_challenge=SHA256(verifier)
   -> canonical PayMyDine Login
   -> existing MFA / Site Access approval
   -> one-time exchange (120 s)
-  -> Android callback
-  -> exchange consumed once
+  -> Android callback carrying only the short-lived exchange secret
+  -> exchange + original verifier consumed once
   -> rotated staff_personal device token
   -> Android Keystore
 ```
