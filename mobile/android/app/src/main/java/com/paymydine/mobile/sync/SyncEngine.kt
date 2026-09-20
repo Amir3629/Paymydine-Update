@@ -13,6 +13,8 @@ import androidx.work.WorkerParameters
 import com.paymydine.mobile.PayMyDineApplication
 import com.paymydine.mobile.network.MobileApiException
 import com.paymydine.mobile.network.MobileApiClient
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import org.json.JSONObject
 import java.io.IOException
 import java.util.concurrent.TimeUnit
@@ -21,9 +23,9 @@ class SyncEngine(
     private val app: PayMyDineApplication,
     private val api: MobileApiClient = MobileApiClient(),
 ) {
-    suspend fun runOnce(): Boolean {
-        val host = app.credentials.tenantHost() ?: return true
-        val token = app.credentials.deviceToken() ?: return true
+    suspend fun runOnce(): Boolean = processMutex.withLock {
+        val host = app.credentials.tenantHost() ?: return@withLock true
+        val token = app.credentials.deviceToken() ?: return@withLock true
 
         app.syncRepository.recoverInFlight()
 
@@ -75,7 +77,7 @@ class SyncEngine(
             }
         }
 
-        return allGood
+        return@withLock allGood
     }
 
     private fun pullEvents(host: String, token: String) {
@@ -126,6 +128,8 @@ class SyncEngine(
         command.aggregateId.takeIf { it.startsWith("local:") }?.removePrefix("local:")
 
     companion object {
+        private val processMutex = Mutex()
+
         fun enqueueImmediate(context: Context) {
             val constraints = Constraints.Builder()
                 .setRequiredNetworkType(NetworkType.CONNECTED)
