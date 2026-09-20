@@ -6097,7 +6097,7 @@ button[data-qpos-keypad-key="exact"] {
 /* Menu numbers are part of the item name, not tiny metadata. */
 .pmd-qpos-product-number {
   color: #334155;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 950;
   letter-spacing: -.01em;
   line-height: 1.15;
@@ -6109,7 +6109,7 @@ button[data-qpos-keypad-key="exact"] {
   }
 
   .pmd-qpos-product-number {
-    font-size: 12px;
+    font-size: 13px;
   }
 }
 
@@ -6119,7 +6119,7 @@ button[data-qpos-keypad-key="exact"] {
   }
 
   .pmd-qpos-product-number {
-    font-size: 12px;
+    font-size: 13px;
   }
 }
 
