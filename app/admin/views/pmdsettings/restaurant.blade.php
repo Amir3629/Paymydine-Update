@@ -320,6 +320,21 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                                         maxlength="500"
                                     >
                                 </label>
+
+                                @if($social['key'] === 'google')
+                                    <label class="pmd-profile-field">
+                                        <span>{{ $pmdSettingsText('Google review link') }}</span>
+                                        <input
+                                            type="url"
+                                            name="profile[google_review_url]"
+                                            value="{{ $pmdProfile['google_review_url'] ?? '' }}"
+                                            placeholder="https://g.page/r/.../review"
+                                            maxlength="500"
+                                            autocomplete="url"
+                                        >
+                                        <small>{{ $pmdSettingsText('Paste the Get more reviews link from your Google Business Profile. Guests will open Google’s own review form. No Google API key is required, and PayMyDine cannot publish a Google review automatically.') }}</small>
+                                    </label>
+                                @endif
                             </div>
                         @endforeach
                     </div>
