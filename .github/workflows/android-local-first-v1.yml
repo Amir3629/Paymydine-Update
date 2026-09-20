@@ -35,7 +35,7 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   server-contract:
@@ -125,8 +125,39 @@ jobs:
       - name: Lint
         working-directory: mobile/android
         run: gradle --no-daemon lintDebug
+      - name: Prepare preview APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp mobile/android/app/build/outputs/apk/debug/app-debug.apk \
+            mobile/android/PayMyDine-Android-Local-First-Preview.apk
+          sha256sum mobile/android/PayMyDine-Android-Local-First-Preview.apk \
+            > mobile/android/PayMyDine-Android-Local-First-Preview.apk.sha256
       - uses: actions/upload-artifact@v4
         with:
           name: paymydine-android-local-first-v1-debug
-          path: mobile/android/app/build/outputs/apk/debug/app-debug.apk
+          path: |
+            mobile/android/PayMyDine-Android-Local-First-Preview.apk
+            mobile/android/PayMyDine-Android-Local-First-Preview.apk.sha256
           if-no-files-found: error
+      - name: Publish tablet preview release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/feature/android-local-first-v1'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: pmd-android-local-first-preview
+        run: |
+          set -euo pipefail
+          if ! gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create "$TAG" \
+              --repo "$GITHUB_REPOSITORY" \
+              --target "$GITHUB_SHA" \
+              --title "PayMyDine Android Local-First Preview" \
+              --prerelease \
+              --notes "Android tablet/POS preview. Native local-first POS, Waiter and KDS with Restaurant Edge. This is a test build, not the production-signed Play release."
+          fi
+          gh release upload "$TAG" \
+            mobile/android/PayMyDine-Android-Local-First-Preview.apk \
+            mobile/android/PayMyDine-Android-Local-First-Preview.apk.sha256 \
+            --repo "$GITHUB_REPOSITORY" \
+            --clobber
