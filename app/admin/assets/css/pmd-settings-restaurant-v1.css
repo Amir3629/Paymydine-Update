@@ -470,6 +470,80 @@ html.pmd-restaurant-profile-ready .page-wrapper {
   stroke-linejoin: round;
 }
 
+/* PMD_GOOGLE_BUSINESS_PROVIDER_UI_V7
+   Keep the Google integration entry inside the existing Google/Maps card
+   as a flat provider row. The opened dialog uses the shared provider modal
+   classes from pmd-payment-provider-catalogue-v1.css. */
+.pmd-google-business-row-v7 {
+  margin-top: 12px;
+  padding-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid #e5ecef;
+}
+
+.pmd-google-business-row-v7__copy {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.pmd-google-business-row-v7__copy strong {
+  color: #17364a;
+  font-size: 11.5px;
+  font-weight: 850;
+}
+
+.pmd-google-business-row-v7__copy small {
+  color: #788b98;
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.pmd-google-business-row-v7__actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.pmd-google-business-row-v7 .pmd-provider-configure {
+  min-height: 34px;
+  padding: 0 11px;
+}
+
+.pmd-google-business-row-v7 .pmd-provider-status {
+  min-height: 25px;
+  padding: 0 8px;
+}
+
+.pmd-google-business-modal-v7 .pmd-provider-modal-field--full {
+  grid-column: 1 / -1;
+}
+
+.pmd-google-business-modal-v7 .pmd-provider-modal-security code {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+@media (max-width: 620px) {
+  .pmd-google-business-row-v7 {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .pmd-google-business-row-v7__actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .pmd-google-business-modal-v7 .pmd-provider-modal-field--full {
+    grid-column: auto;
+  }
+}
+
 .pmd-profile-bottom-save {
   display: flex;
   justify-content: flex-end;
