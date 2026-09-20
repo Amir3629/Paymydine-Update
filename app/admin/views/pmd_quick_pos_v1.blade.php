@@ -17,7 +17,7 @@
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-reservations2-floor-reservation-v312.css?v=20260920-floor-v35b">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-dashboard-lab-exact-floor-v1.css?v=20260920-floor-v35b">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-shared-floor-multi-floor-v1.css?v=20260920-floor-v35b">
-    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-pos-v1.css?v=20260920-38">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-pos-v1.css?v=20260920-39">
 </head>
 <body class="pmd-qpos-body">
 @php
@@ -74,35 +74,43 @@
                         class="pmd-qpos-floor-map-open"
                         data-qpos-floor-map-open
                     >Map</button>
+
+                    {{-- PMD_QPOS_GUIDE_POPOVER_V39
+                         Keep the rail compact. The legend opens only when the
+                         small info control is requested. --}}
+                    <details class="pmd-qpos-guide-menu">
+                        <summary
+                            class="pmd-qpos-guide-toggle"
+                            aria-label="Guide"
+                            title="Guide"
+                        >i</summary>
+
+                        <div class="pmd-qpos-table-guide" aria-label="Table colors and icon guide">
+                            <div class="pmd-qpos-table-guide-head">
+                                <strong>Guide</strong>
+                                <small>Table colors & icons</small>
+                            </div>
+
+                            <div class="pmd-qpos-table-guide-statuses">
+                                <span><i class="free"></i>Free</span>
+                                <span><i class="busy"></i>Busy</span>
+                                <span><i class="reserved"></i>Reserved</span>
+                                <span><i class="clean"></i>Clean</span>
+                            </div>
+
+                            <div class="pmd-qpos-table-guide-icons">
+                                <span><b>!</b> Call</span>
+                                <span><b>€</b> Due</span>
+                                <span><b>½</b> Part paid</span>
+                                <span><b>N</b> Note</span>
+                                <span><b>✓</b> Paid</span>
+                            </div>
+                        </div>
+                    </details>
                 </div>
             </section>
 
             <section class="pmd-qpos-tables">
-                {{-- PMD_QPOS_TABLE_GUIDE_V38
-                     Compact legend for the full-color table cards and their
-                     operational signal badges. --}}
-                <div class="pmd-qpos-table-guide" aria-label="Table colors and icon guide">
-                    <div class="pmd-qpos-table-guide-head">
-                        <strong>Guide</strong>
-                        <small>Table colors & icons</small>
-                    </div>
-
-                    <div class="pmd-qpos-table-guide-statuses">
-                        <span><i class="free"></i>Free</span>
-                        <span><i class="busy"></i>Busy</span>
-                        <span><i class="reserved"></i>Reserved</span>
-                        <span><i class="clean"></i>Clean</span>
-                    </div>
-
-                    <div class="pmd-qpos-table-guide-icons">
-                        <span><b>!</b> Call</span>
-                        <span><b>€</b> Due</span>
-                        <span><b>½</b> Part paid</span>
-                        <span><b>N</b> Note</span>
-                        <span><b>✓</b> Paid</span>
-                    </div>
-                </div>
-
                 <div class="pmd-qpos-table-grid" data-qpos-tables>
                     <button type="button" class="pmd-qpos-table pmd-qpos-pickup" data-qpos-pickup>
                         <strong>Pickup</strong>
@@ -725,7 +733,7 @@ window.PMDQuickPOSConfig = {
 {{-- Canonical Floor runtime mounts before the POS bridge. --}}
 <script src="/app/admin/assets/js/pmd-dashboard-lab-exact-floor-v1.js?v=20260920-floor-v35b"></script>
 <script src="/app/admin/assets/js/pmd-shared-floor-multi-floor-v1.js?v=20260920-floor-v35b"></script>
-<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260920-37"></script>
+<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260920-39"></script>
 <script src="/app/admin/assets/js/pmd-site-access-hub-v13.js?v=20260919-qpos1"></script>
 </body>
 </html>
