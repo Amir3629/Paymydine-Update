@@ -49,6 +49,7 @@ class PmdSiteAccessService
     public const SESSION_VERIFIED_UNTIL = 'pmd_site_verified_until_v1';
     public const SESSION_VERIFIED_METHOD = 'pmd_site_verified_method_v1';
     public const SESSION_VERIFIED_DEVICE = 'pmd_site_verified_device_v1';
+    public const SESSION_LAST_PAIRED_DEVICE = 'pmd_site_last_paired_device_v1';
 
     public function ready(): bool
     {
@@ -628,6 +629,7 @@ class PmdSiteAccessService
         $staffDeviceToken = null;
         if ($challenge->purpose === self::PURPOSE_PAIR_STAFF) {
             [$device, $staffDeviceToken] = $this->createPersonalDevice($identity, $request, (int)($challenge->approved_by_device_id ?? 0));
+            session()->put(self::SESSION_LAST_PAIRED_DEVICE, (int)$device->id);
             $this->audit('staff_device_paired', true, $identity, (int)$device->id, (int)$challenge->id, $request);
         } else {
             $this->markWorkspaceVerified((int)$challenge->location_id, 'site_access', (int)($challenge->approved_by_device_id ?? 0));
@@ -712,6 +714,7 @@ class PmdSiteAccessService
             self::SESSION_VERIFIED_UNTIL,
             self::SESSION_VERIFIED_METHOD,
             self::SESSION_VERIFIED_DEVICE,
+            self::SESSION_LAST_PAIRED_DEVICE,
         ]);
     }
 
@@ -818,7 +821,7 @@ class PmdSiteAccessService
     private function createPersonalDevice(array $identity, Request $request, int $approvedByDeviceId): array
     {
         $rawToken = bin2hex(random_bytes(32));
-        $deviceId = DB::table('pmd_site_access_devices')->insertGetId([
+        $values = [
             'location_id' => $identity['location_id'],
             'device_kind' => 'staff_personal',
             'staff_id' => $identity['staff_id'],
@@ -832,7 +835,14 @@ class PmdSiteAccessService
             'last_seen_at' => now(),
             'created_at' => now(),
             'updated_at' => now(),
-        ]);
+        ];
+
+        if ($this->pmdSchemaHasTable('pmd_site_access_devices')
+            && in_array('user_id', $this->pmdSchemaColumns('pmd_site_access_devices'), true)) {
+            $values['user_id'] = (int)($identity['user_id'] ?? 0) ?: null;
+        }
+
+        $deviceId = DB::table('pmd_site_access_devices')->insertGetId($values);
         $device = DB::table('pmd_site_access_devices')->where('id', $deviceId)->first();
         return [$device, $rawToken];
     }
