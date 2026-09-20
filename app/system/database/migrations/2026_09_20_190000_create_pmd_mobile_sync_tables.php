@@ -22,6 +22,7 @@ class CreatePmdMobileSyncTables extends Migration
                 $table->bigIncrements('id');
                 $table->uuid('command_id');
                 $table->string('idempotency_key', 96);
+                $table->char('request_hash', 64);
                 $table->unsignedBigInteger('location_id');
                 $table->unsignedBigInteger('device_id');
                 $table->unsignedBigInteger('user_id')->nullable();
