@@ -135,6 +135,11 @@ fun PayMyDineApp(app: PayMyDineApplication) {
                     paired.tenantHost,
                     paired.deviceToken,
                 )
+                bootstrap.optJSONObject("edge")
+                    ?.optString("fingerprint_sha256")
+                    ?.trim()
+                    ?.takeIf { it.length == 64 }
+                    ?.let(app.credentials::setEdgeFingerprint)
                 app.bootstrapRepository.apply(bootstrap)
             }
 
