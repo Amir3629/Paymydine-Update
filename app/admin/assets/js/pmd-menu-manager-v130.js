@@ -1520,7 +1520,7 @@
 
       var badge = card.querySelector('[data-pmd-menu-number]');
       if (badge) {
-        badge.textContent = String(number);
+        badge.textContent = '#' + String(number);
         badge.setAttribute('aria-label', 'Food number ' + String(number));
       }
     });
