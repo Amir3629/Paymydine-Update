@@ -23,9 +23,35 @@ final class PmdMobilePairingService
 
     public function rememberIntent(Request $request): void
     {
+        $host = strtolower((string)$request->getHost());
+        $providedChallenge = trim((string)$request->query('code_challenge', ''));
+        $existing = (array)session()->get(self::SESSION_INTENT, []);
+        $existingCreated = (int)($existing['created_at'] ?? 0);
+        $existingHost = strtolower(trim((string)($existing['host'] ?? '')));
+        $existingChallenge = trim((string)($existing['code_challenge'] ?? ''));
+
+        $reuseExisting = $providedChallenge === ''
+            && $existingCreated > time() - 900
+            && $existingHost !== ''
+            && hash_equals($existingHost, $host)
+            && $this->validCodeChallenge($existingChallenge);
+
+        $codeChallenge = $reuseExisting
+            ? $existingChallenge
+            : $providedChallenge;
+
+        if (!$this->validCodeChallenge($codeChallenge)) {
+            throw new \InvalidArgumentException(
+                'A valid Android pairing code_challenge is required.'
+            );
+        }
+
         session()->put(self::SESSION_INTENT, [
-            'host' => strtolower((string)$request->getHost()),
-            'created_at' => time(),
+            'host' => $host,
+            // Do not let the post-login continuation extend the original
+            // pairing intent forever.
+            'created_at' => $reuseExisting ? $existingCreated : time(),
+            'code_challenge' => $codeChallenge,
         ]);
     }
 
@@ -34,10 +60,12 @@ final class PmdMobilePairingService
         $intent = (array)session()->get(self::SESSION_INTENT, []);
         $created = (int)($intent['created_at'] ?? 0);
         $host = strtolower(trim((string)($intent['host'] ?? '')));
+        $codeChallenge = trim((string)($intent['code_challenge'] ?? ''));
 
         return $created > time() - 900
             && $host !== ''
-            && hash_equals($host, strtolower((string)$request->getHost()));
+            && hash_equals($host, strtolower((string)$request->getHost()))
+            && $this->validCodeChallenge($codeChallenge);
     }
 
     public function start(Request $request): string
@@ -96,7 +124,15 @@ final class PmdMobilePairingService
 
         $site = app(PmdSiteAccessService::class);
         $identity = $site->identity();
+        $intent = (array)session()->get(self::SESSION_INTENT, []);
+        $codeChallenge = trim((string)($intent['code_challenge'] ?? ''));
         $deviceId = (int)session()->pull(PmdSiteAccessService::SESSION_LAST_PAIRED_DEVICE, 0);
+
+        if (!$this->validCodeChallenge($codeChallenge)) {
+            throw new \RuntimeException(
+                'The Android pairing challenge expired. Start again from the app.'
+            );
+        }
 
         if ($deviceId < 1) {
             throw new \RuntimeException('No approved mobile device was found for this session.');
@@ -117,7 +153,13 @@ final class PmdMobilePairingService
         $rawExchange = bin2hex(random_bytes(32));
         $publicId = (string)Str::uuid();
 
-        DB::transaction(function () use ($identity, $deviceId, $rawExchange, $publicId) {
+        DB::transaction(function () use (
+            $identity,
+            $deviceId,
+            $rawExchange,
+            $publicId,
+            $codeChallenge
+        ) {
             DB::table('pmd_mobile_pair_exchanges')
                 ->where('device_id', $deviceId)
                 ->whereNull('used_at')
@@ -128,7 +170,10 @@ final class PmdMobilePairingService
 
             DB::table('pmd_mobile_pair_exchanges')->insert([
                 'public_id' => $publicId,
-                'exchange_hash' => $this->exchangeHash($rawExchange),
+                'exchange_hash' => $this->exchangeHash(
+                    $rawExchange,
+                    $codeChallenge
+                ),
                 'location_id' => (int)$identity['location_id'],
                 'device_id' => $deviceId,
                 'user_id' => (int)$identity['user_id'] ?: null,
@@ -145,20 +190,37 @@ final class PmdMobilePairingService
             .'&tenant='.rawurlencode('https://'.$request->getHost());
     }
 
-    public function exchange(Request $request, string $rawExchange): array
+    public function exchange(
+        Request $request,
+        string $rawExchange,
+        string $codeVerifier
+    ): array
     {
         if (!Schema::hasTable('pmd_mobile_pair_exchanges')) {
             abort(503, 'PayMyDine mobile pairing storage is not ready.');
         }
 
         $rawExchange = strtolower(trim($rawExchange));
+        $codeVerifier = trim($codeVerifier);
         if (!preg_match('/^[a-f0-9]{64}$/', $rawExchange)) {
             abort(422, 'The PayMyDine pairing exchange is not valid.');
         }
+        if (!preg_match('/^[A-Za-z0-9._~-]{43,128}$/', $codeVerifier)) {
+            abort(422, 'The PayMyDine pairing code_verifier is not valid.');
+        }
 
-        return DB::transaction(function () use ($request, $rawExchange) {
+        $codeChallenge = $this->codeChallengeFromVerifier($codeVerifier);
+
+        return DB::transaction(function () use (
+            $request,
+            $rawExchange,
+            $codeChallenge
+        ) {
             $exchange = DB::table('pmd_mobile_pair_exchanges')
-                ->where('exchange_hash', $this->exchangeHash($rawExchange))
+                ->where(
+                    'exchange_hash',
+                    $this->exchangeHash($rawExchange, $codeChallenge)
+                )
                 ->lockForUpdate()
                 ->first();
 
@@ -243,12 +305,31 @@ final class PmdMobilePairingService
         });
     }
 
-    private function exchangeHash(string $raw): string
-    {
+    private function exchangeHash(
+        string $raw,
+        string $codeChallenge
+    ): string {
         return hash_hmac(
             'sha256',
-            'mobile-exchange|'.$raw,
+            'mobile-exchange|'.$codeChallenge.'|'.$raw,
             (string)config('app.key', 'pmd-mobile-pairing')
         );
+    }
+
+    private function codeChallengeFromVerifier(string $verifier): string
+    {
+        return rtrim(
+            strtr(
+                base64_encode(hash('sha256', $verifier, true)),
+                '+/',
+                '-_'
+            ),
+            '='
+        );
+    }
+
+    private function validCodeChallenge(string $value): bool
+    {
+        return (bool)preg_match('/^[A-Za-z0-9_-]{43}$/', $value);
     }
 }
