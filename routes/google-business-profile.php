@@ -1,22 +1,13 @@
 <?php
 
-use App\Http\Controllers\GoogleBusinessIntegrationController;
-use Illuminate\Support\Facades\Route;
-
-if (!defined('PMD_GOOGLE_BUSINESS_PROFILE_ROUTES_V2')) {
-    define('PMD_GOOGLE_BUSINESS_PROFILE_ROUTES_V2', true);
-
-    Route::get(
-        '/integrations/google-business/callback',
-        [GoogleBusinessIntegrationController::class, 'callback']
-    )->name('pmd.google-business.callback');
-
-    Route::post(
-        '/integrations/google-business/pubsub',
-        [GoogleBusinessIntegrationController::class, 'pubsub']
-    )
-        ->withoutMiddleware([
-            \Igniter\Flame\Foundation\Http\Middleware\VerifyCsrfToken::class,
-        ])
-        ->name('pmd.google-business.pubsub');
-}
+/*
+ * PMD_GOOGLE_BUSINESS_LEGACY_ROUTE_STUB_V3
+ *
+ * Google Business Profile OAuth and Pub/Sub are tenant-owned integrations.
+ * Their runtime endpoints live in routes/api.php under /api/v1 so requests
+ * stay on the tenant Laravel/API authority instead of the Frontend V2
+ * storefront catch-all.
+ *
+ * Kept as a compatibility stub because older overlay releases created this
+ * file on production. Do not register public Google routes here.
+ */
