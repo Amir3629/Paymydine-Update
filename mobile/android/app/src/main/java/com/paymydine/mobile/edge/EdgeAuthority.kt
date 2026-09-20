@@ -978,37 +978,44 @@ class EdgeAuthority(
     }
 
     private fun prepareCloudRequest(original: JSONObject): JSONObject? {
-        val aggregateId = original.optString("aggregate_id")
-        if (!aggregateId.startsWith("local:")) {
-            return JSONObject(original.toString())
-        }
+        val sourceAggregateId = original.optString("aggregate_id")
+        val sourceBaseVersion = original.optLong("base_version", 0)
 
-        val mirrored = edgeOrder(aggregateId)
-            ?: return JSONObject(original.toString())
-        val state = mirrored.optJSONObject("state")
-            ?: return JSONObject(original.toString())
-        val serverOrderId = state.optLong("server_order_id", 0)
-        val serverVersion = state.optLong("server_aggregate_version", 0)
+        val mapping = sourceAggregateId
+            .takeIf { it.startsWith("local:") }
+            ?.let(::edgeOrder)
+            ?.optJSONObject("state")
+            ?.let { state ->
+                EdgeCloudOrderMapping(
+                    serverOrderId = state.optLong("server_order_id", 0),
+                    serverVersion = state.optLong("server_aggregate_version", 0),
+                    serverUpdatedAt = state.optString("server_updated_at"),
+                )
+            }
 
-        // First offline mutation for a local order has no Cloud identity yet.
-        // Send it unchanged so Cloud creates the canonical order. Once that
-        // first command reconciles, every later local mutation MUST target the
-        // returned canonical order or it could create a duplicate bill.
-        if (serverOrderId < 1) {
+        val target = EdgeCloudReconciliation.target(
+            sourceAggregateId = sourceAggregateId,
+            sourceBaseVersion = sourceBaseVersion,
+            mapping = mapping,
+        )
+
+        // First offline mutation stays local:<uuid>; Cloud creates the order.
+        // Once a canonical mapping exists, all later queued mutations are
+        // forced onto that exact Cloud order/version.
+        if (target.serverOrderId == null) {
             return JSONObject(original.toString())
         }
 
         val rewritten = JSONObject(original.toString())
-        rewritten.put("aggregate_id", "order:$serverOrderId")
-        rewritten.put("base_version", serverVersion)
+        rewritten.put("aggregate_id", target.aggregateId)
+        rewritten.put("base_version", target.baseVersion)
 
         val payload = rewritten.optJSONObject("payload") ?: JSONObject()
         payload.remove("order_ref")
-        payload.put("order_id", serverOrderId)
-
-        state.optString("server_updated_at")
-            .takeIf { it.isNotBlank() }
-            ?.let { payload.put("expected_updated_at", it) }
+        payload.put("order_id", target.serverOrderId)
+        target.expectedUpdatedAt?.let {
+            payload.put("expected_updated_at", it)
+        }
 
         rewritten.put("payload", payload)
         return rewritten
