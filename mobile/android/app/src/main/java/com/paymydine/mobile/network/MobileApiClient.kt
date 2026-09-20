@@ -61,6 +61,32 @@ class MobileApiClient {
         }
     }
 
+    fun kdsSnapshot(
+        tenantHost: String,
+        deviceToken: String,
+        stationSlug: String? = null,
+    ): JSONObject {
+        val base = trustedTenantBase("https://$tenantHost")
+        val suffix = stationSlug
+            ?.trim()
+            ?.takeIf { it.isNotBlank() }
+            ?.let { "?station=" + java.net.URLEncoder.encode(it, "UTF-8") }
+            .orEmpty()
+
+        return JSONObject(
+            request(
+                url = URL(
+                    base.toString().trimEnd('/') +
+                        "/admin/api/mobile/v1/kds/snapshot" +
+                        suffix,
+                ),
+                method = "GET",
+                token = deviceToken,
+                body = null,
+            ),
+        )
+    }
+
     fun sendCommand(
         tenantHost: String,
         deviceToken: String,
