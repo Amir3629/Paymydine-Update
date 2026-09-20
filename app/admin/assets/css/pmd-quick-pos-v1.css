@@ -6046,3 +6046,79 @@ button[data-qpos-keypad-key="exact"] {
   border-color: #032f25;
   color: #032f25;
 }
+
+
+/* ============================================================
+   PMD_QPOS_EXACT_DASHBOARD_FLOOR_CSS_V26
+
+   Intentionally minimal. Table cards, status colors, Floor toolbar,
+   zoom buttons, One-row/Full-Floor control and floor tabs are NOT
+   restyled here. Those come directly from DashboardLab's canonical
+   Floor CSS loaded by pmd_quick_pos_v1.blade.php.
+   ============================================================ */
+.pmd-qpos-exact-floor-workspace {
+  position: fixed;
+  inset: 0;
+  z-index: 75;
+  overflow: auto;
+  overscroll-behavior: contain;
+  background: #f4f7fa;
+}
+
+.pmd-qpos-exact-floor-workspace[hidden] {
+  display: none !important;
+}
+
+.pmd-qpos-exact-floor-host {
+  width: 100%;
+  min-width: 0;
+  min-height: 100%;
+  padding: 0 18px 28px;
+}
+
+/*
+ * The canonical Dashboard Floor toolbar sits 58px above its Floor root.
+ * Its own stylesheet gives the root the matching top margin. No duplicate
+ * POS toolbar or visual override belongs here.
+ */
+.pmd-qpos-exact-floor-return {
+  position: fixed;
+  top: 10px;
+  left: 16px;
+  z-index: 10020;
+  min-height: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 16px;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  background: #fff;
+  color: #1f2937;
+  box-shadow: 0 4px 14px rgba(15,23,42,.08);
+  font-size: 12px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.pmd-qpos-exact-floor-return:hover {
+  border-color: #94a3b8;
+  background: #f8fafc;
+}
+
+body.pmd-qpos-exact-floor-open {
+  overflow: hidden;
+}
+
+@media (max-width: 820px) {
+  .pmd-qpos-exact-floor-host {
+    padding-inline: 10px;
+  }
+
+  .pmd-qpos-exact-floor-return {
+    top: 8px;
+    left: 10px;
+    min-height: 42px;
+    padding-inline: 12px;
+  }
+}
