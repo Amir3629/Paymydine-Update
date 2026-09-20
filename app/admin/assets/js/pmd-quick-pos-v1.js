@@ -2179,7 +2179,11 @@ function renderOpenChecks() {
     var requestSeq = ++state.tableRequestSeq;
 
     try {
-      var json = await fetchTablePayload(id, !!force);
+      /* PMD_QPOS_AUTHORITATIVE_REFRESH_V41
+       * Existing refresh callers remain authoritative by default. Only the
+       * first-click path explicitly passes false to reuse a warm prefetch. */
+      var shouldForce = force !== false;
+      var json = await fetchTablePayload(id, shouldForce);
 
       if (
         requestSeq !== state.tableRequestSeq ||
@@ -5315,6 +5319,8 @@ function renderOpenChecks() {
         })
       });
 
+      /* PMD_QPOS_TABLE_CACHE_INVALIDATE_V41 */
+      tableCacheDrop(state.selectedTable.id);
       state.selectedTable.status = json.status || status;
 
       state.tables = state.tables.map(function (row) {
