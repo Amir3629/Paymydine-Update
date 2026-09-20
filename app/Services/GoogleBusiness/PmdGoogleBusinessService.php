@@ -289,15 +289,15 @@ class PmdGoogleBusinessService
 
     public function authorizationUrl(string $tenantHost, int $locationId): string
     {
-        if (!$this->configurationReady()) {
-            throw new RuntimeException(
-                'Google Business Profile is not configured on the PayMyDine server yet.'
-            );
-        }
-
         $tenantHost = $this->sanitizeHost($tenantHost);
         if ($tenantHost === '') {
             throw new RuntimeException('Unable to determine the restaurant tenant host.');
+        }
+
+        if (!$this->configurationReady($locationId, $tenantHost)) {
+            throw new RuntimeException(
+                'Save this restaurant\'s Google OAuth Client ID and Client Secret first.'
+            );
         }
 
         $nonce = bin2hex(random_bytes(24));
@@ -322,7 +322,7 @@ class PmdGoogleBusinessService
             ]);
         }
 
-        $config = $this->configuration();
+        $config = $this->configuration($locationId, $tenantHost);
         $query = http_build_query([
             'client_id' => $config['client_id'],
             'redirect_uri' => $config['redirect_uri'],
@@ -428,8 +428,8 @@ class PmdGoogleBusinessService
     {
         $this->assertTenantTables();
 
-        if (!$this->configurationReady()) {
-            throw new RuntimeException('Google Business Profile server configuration is incomplete.');
+        if (!$this->configurationReady($locationId, $tenantHost)) {
+            throw new RuntimeException('This restaurant\'s Google OAuth credentials are incomplete.');
         }
 
         $code = trim($code);
@@ -437,7 +437,7 @@ class PmdGoogleBusinessService
             throw new RuntimeException('Google did not return an authorization code.');
         }
 
-        $config = $this->configuration();
+        $config = $this->configuration($locationId, $tenantHost);
         $response = Http::asForm()
             ->acceptJson()
             ->timeout(25)
