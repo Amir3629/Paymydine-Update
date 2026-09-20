@@ -956,7 +956,7 @@
                 @php
                     // PMD_MENU_CARD_NUMBER_V24
                     $menuNumber = max(1, (int)($item['menu_number'] ?? $loop->iteration));
-                    $searchText = mb_strtolower(trim('#'.$menuNumber.' '.$menuNumber.' '.$item['name'].' '.$item['description'].' '.implode(' ', $item['category_names'] ?? []).' '.implode(' ', $item['allergen_names'] ?? [])));
+                    $searchText = mb_strtolower(trim($item['name'].' '.$item['description'].' '.implode(' ', $item['category_names'] ?? []).' '.implode(' ', $item['allergen_names'] ?? [])));
                     $categoryIdsText = implode(',', array_map('intval', $item['category_ids'] ?? []));
                     $categoryExtra = max(0, count($item['category_names'] ?? []) - 1);
 
