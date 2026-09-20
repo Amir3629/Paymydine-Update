@@ -3,10 +3,12 @@ package com.paymydine.mobile
 import android.app.Application
 import android.content.Intent
 import com.paymydine.mobile.data.local.BootstrapRepository
+import com.paymydine.mobile.data.local.LocalPosRepository
 import com.paymydine.mobile.data.local.PmdDatabase
 import com.paymydine.mobile.network.ConnectivityObserver
 import com.paymydine.mobile.network.EdgeDiscovery
 import com.paymydine.mobile.security.DeviceCredentialStore
+import com.paymydine.mobile.sync.SyncEngine
 import com.paymydine.mobile.sync.SyncRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -17,6 +19,8 @@ class PayMyDineApplication : Application() {
     lateinit var syncRepository: SyncRepository
         private set
     lateinit var bootstrapRepository: BootstrapRepository
+        private set
+    lateinit var localPosRepository: LocalPosRepository
         private set
 
     private val _pairingLink = MutableStateFlow<String?>(null)
@@ -33,9 +37,11 @@ class PayMyDineApplication : Application() {
         database = PmdDatabase(this)
         syncRepository = SyncRepository(database)
         bootstrapRepository = BootstrapRepository(database)
+        localPosRepository = LocalPosRepository(database)
         credentials = DeviceCredentialStore(this)
         connectivity = ConnectivityObserver(this).also { it.start() }
         edgeDiscovery = EdgeDiscovery(this).also { it.start() }
+        SyncEngine.schedulePeriodic(this)
     }
 
     fun handleIntent(intent: Intent?) {
