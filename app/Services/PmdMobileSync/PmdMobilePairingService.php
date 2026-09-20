@@ -76,9 +76,7 @@ final class PmdMobilePairingService
             return admin_url('login');
         }
 
-        if (!Schema::hasTable('pmd_mobile_pair_exchanges')) {
-            throw new \RuntimeException('PayMyDine mobile pairing storage is not ready.');
-        }
+        $this->ensureMobileSyncStorage();
 
         $site = app(PmdSiteAccessService::class);
         $identity = $site->identity();
@@ -196,7 +194,10 @@ final class PmdMobilePairingService
         string $codeVerifier
     ): array
     {
-        if (!Schema::hasTable('pmd_mobile_pair_exchanges')) {
+        try {
+            $this->ensureMobileSyncStorage();
+        } catch (\Throwable $error) {
+            report($error);
             abort(503, 'PayMyDine mobile pairing storage is not ready.');
         }
 
@@ -303,6 +304,46 @@ final class PmdMobilePairingService
                 'staff_id' => (int)$exchange->staff_id,
             ];
         });
+    }
+
+    private function ensureMobileSyncStorage(): void
+    {
+        $tables = [
+            'pmd_sync_commands',
+            'pmd_sync_events',
+            'pmd_sync_aggregate_versions',
+            'pmd_mobile_edges',
+            'pmd_mobile_pair_exchanges',
+        ];
+
+        $ready = true;
+        foreach ($tables as $table) {
+            if (!Schema::hasTable($table)) {
+                $ready = false;
+                break;
+            }
+        }
+        if ($ready) return;
+
+        $migration = base_path(
+            'app/system/database/migrations/2026_09_20_190000_create_pmd_mobile_sync_tables.php'
+        );
+        if (!is_file($migration)) {
+            throw new \RuntimeException(
+                'PayMyDine mobile sync migration file is missing.'
+            );
+        }
+
+        require_once $migration;
+        (new \System\Database\Migrations\CreatePmdMobileSyncTables())->up();
+
+        foreach ($tables as $table) {
+            if (!Schema::hasTable($table)) {
+                throw new \RuntimeException(
+                    'PayMyDine mobile sync schema missing table: '.$table
+                );
+            }
+        }
     }
 
     private function exchangeHash(
