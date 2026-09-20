@@ -274,9 +274,43 @@
                 <button type="button" class="pay" data-qpos-pay disabled>Pay</button>
             </div>
 
+            {{-- PMD_QPOS_DIRECT_MOVE_SCOPE_CHOOSER_VIEW_V44
+                 Compact scope picker only appears when the selected table has
+                 multiple open checks. Destination selection still happens
+                 directly from the left table rail. --}}
+            <div
+                class="pmd-qpos-move-scope-choice"
+                data-qpos-move-scope-choice
+                role="menu"
+                aria-label="Choose what to move"
+                aria-hidden="true"
+                hidden
+            >
+                <button
+                    type="button"
+                    role="menuitem"
+                    data-qpos-direct-move-scope="order"
+                >
+                    <strong>This order</strong>
+                    <small data-qpos-direct-move-order-meta>Current check</small>
+                </button>
+                <button
+                    type="button"
+                    role="menuitem"
+                    data-qpos-direct-move-scope="table"
+                >
+                    <strong>Whole table</strong>
+                    <small data-qpos-direct-move-table-meta>All checks</small>
+                </button>
+            </div>
+
             <div class="pmd-qpos-table-actions" data-qpos-table-actions hidden>
                 <button type="button" data-qpos-table-cleaning>Left</button>
-                <button type="button" data-qpos-table-move>Move</button>
+                <button
+                    type="button"
+                    data-qpos-table-move
+                    aria-haspopup="menu"
+                >Move</button>
                 <button type="button" data-qpos-table-free>Free</button>
             </div>
         </aside>
