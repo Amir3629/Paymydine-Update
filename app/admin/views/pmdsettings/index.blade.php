@@ -1111,6 +1111,11 @@ document.documentElement.classList.add(
             height:24px;
         }
 
+        #pmd-cashier-settings-launcher-v107 .pmd-cashier-launcher-v107__platform--android {
+            color:#3ddc84;
+            background:#eefbf4;
+        }
+
         #pmd-cashier-settings-launcher-v107 .pmd-cashier-launcher-v107__platform--windows {
             color:#0078d4;
             background:#eef7ff;
@@ -1177,6 +1182,27 @@ document.documentElement.classList.add(
             id="pmd-cashier-launcher-menu-v107"
             hidden
         >
+            <a
+                class="pmd-cashier-launcher-v107__download"
+                href="https://github.com/Amir3629/Paymydine-Update/releases/download/pmd-android-local-first-preview/PayMyDine-Android-Local-First-Preview.apk"
+                target="_blank"
+                rel="noopener noreferrer"
+            >
+                <span class="pmd-cashier-launcher-v107__platform pmd-cashier-launcher-v107__platform--android" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M7.2 8.2h9.6a2 2 0 0 1 2 2v7.3a2 2 0 0 1-2 2H7.2a2 2 0 0 1-2-2v-7.3a2 2 0 0 1 2-2Z"/>
+                        <path d="M8.1 8.2A4.2 4.2 0 0 1 12 5.5a4.2 4.2 0 0 1 3.9 2.7M9 5.9 7.6 3.8M15 5.9l1.4-2.1"/>
+                        <path d="M5.2 11.1H3.8v5.3h1.4M18.8 11.1h1.4v5.3h-1.4M8.3 19.5v2M15.7 19.5v2"/>
+                        <circle cx="9.5" cy="10.9" r=".45" fill="currentColor" stroke="none"/>
+                        <circle cx="14.5" cy="10.9" r=".45" fill="currentColor" stroke="none"/>
+                    </svg>
+                </span>
+                <span class="pmd-cashier-launcher-v107__copy">
+                    <strong>Android Tablet / POS</strong>
+                    <small>Android 8+ · Download preview APK</small>
+                </span>
+            </a>
+
             <a
                 class="pmd-cashier-launcher-v107__download"
                 href="https://github.com/Amir3629/Paymydine-Update/releases/download/pmd-desktop-v120-preview/PayMyDine-Desktop-Setup-1.2.0.exe"
