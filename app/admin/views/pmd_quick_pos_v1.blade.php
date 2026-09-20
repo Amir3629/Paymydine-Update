@@ -292,7 +292,7 @@
                 'pmdCleanWorkspaceFloorActive' => (array)($pmdQuickPosExactFloor['active'] ?? []),
                 'pmdCleanWorkspaceFloorCookie' => (string)($pmdQuickPosExactFloor['cookie_name'] ?? ''),
                 'pmdCleanWorkspaceFloorTableMap' => (array)($pmdQuickPosExactFloor['table_floor_map'] ?? []),
-                'deferReservationBusy' => false,
+                'deferReservationBusy' => true,
             ])
         </div>
 
