@@ -16,7 +16,6 @@ fail() { printf '[GOOGLE-BUSINESS-OVERLAY] REFUSED: %s\n' "$*" >&2; exit 2; }
 [[ -f "$PMD_V2_ROOT/package.json" ]] || fail "Active Frontend V2 root not found"
 cd "$PMD_ROOT"
 
-# Only these files belong to this integration. Nothing else is read/written by activation.
 targets=(
   "app/Http/Controllers/GoogleBusinessIntegrationController.php"
   "app/Services/GoogleBusiness/PmdGoogleBusinessService.php"
@@ -49,14 +48,20 @@ release_sha="$(git rev-parse "$release_ref")"
 live_sha="$(git rev-parse HEAD)"
 
 stamp="$(date -u +%Y%m%d_%H%M%S)"
-# IMPORTANT: stage must live OUTSIDE the PayMyDine Git worktree.
-# Running git apply from a nested directory inside the repo can ignore paths
-# that are outside that nested directory while still exiting successfully.
 stage="/tmp/pmd-google-business-overlay-stage-$stamp"
 backup="$PMD_ROOT/storage/pmd-google-business-overlay-backup-$stamp"
 patch_file="$stage/google-business.patch"
+tree="$stage/tree"
+originals="$stage/originals"
+existing_list="$stage/existing-targets.txt"
+new_list="$stage/new-targets.txt"
+new_dirs="$stage/new-dirs.txt"
+
 rm -rf "$stage"
-mkdir -p "$stage/tree" "$backup/files"
+mkdir -p "$tree" "$originals"
+: > "$existing_list"
+: > "$new_list"
+: > "$new_dirs"
 
 cleanup_stage() {
   rm -rf "$stage"
@@ -70,32 +75,36 @@ say "Checking only Google integration files; unrelated dirty/staged files are ig
 git diff --binary --full-index "$base_ref..$release_ref" -- "${targets[@]}" > "$patch_file"
 [[ -s "$patch_file" ]] || fail "Integration patch is empty"
 
-# Build a miniature copy of only the integration target files from the CURRENT live worktree.
-# Parent directories are created even for NEW files so git apply can materialize them in the isolated stage.
 for rel in "${targets[@]}"; do
-  mkdir -p "$stage/tree/$(dirname "$rel")"
+  mkdir -p "$tree/$(dirname "$rel")" "$originals/$(dirname "$rel")"
   if [[ -f "$PMD_ROOT/$rel" ]]; then
-    cp -a "$PMD_ROOT/$rel" "$stage/tree/$rel"
+    cp -a "$PMD_ROOT/$rel" "$tree/$rel"
+    cp -a "$PMD_ROOT/$rel" "$originals/$rel"
+    printf '%s\n' "$rel" >> "$existing_list"
+  else
+    printf '%s\n' "$rel" >> "$new_list"
+    dir="$PMD_ROOT/$(dirname "$rel")"
+    [[ -d "$dir" ]] || printf '%s\n' "$dir" >> "$new_dirs"
   fi
 done
+sort -u -o "$new_dirs" "$new_dirs"
 
-say "Preflight: verifying patch against current live file contents"
-if ! (cd "$stage/tree" && git apply --check --whitespace=nowarn "$patch_file"); then
-  fail "Google patch does not cleanly match the current live files. No production file was changed."
+say "Preflight: applying patch to isolated copy"
+if ! (cd "$tree" && git apply --check --whitespace=nowarn "$patch_file"); then
+  fail "Google patch does not cleanly match the current live target files. No production file was changed."
 fi
-
-(cd "$stage/tree" && git apply --whitespace=nowarn "$patch_file")
+(cd "$tree" && git apply --whitespace=nowarn "$patch_file")
 
 say "Preflight: PHP syntax"
 while IFS= read -r -d '' phpfile; do
   php -l "$phpfile" >/dev/null
-done < <(find "$stage/tree/app" "$stage/tree/routes" -type f -name '*.php' -print0 2>/dev/null)
+done < <(find "$tree/app" "$tree/routes" -type f -name '*.php' -print0 2>/dev/null)
 
-grep -q 'class PmdGoogleBusinessService'   "$stage/tree/app/Services/GoogleBusiness/PmdGoogleBusinessService.php"   || fail "Google Business service marker missing"
+grep -q 'class PmdGoogleBusinessService'   "$tree/app/Services/GoogleBusiness/PmdGoogleBusinessService.php"   || fail "Google Business service marker missing"
 
-grep -q 'PMD_GOOGLE_BUSINESS_PROFILE_INTEGRATION_V2'   "$stage/tree/$PMD_V2_REL/src/runtime/components/ReviewShareEnhancer.tsx"   || fail "Frontend Google integration marker missing"
+grep -q 'PMD_GOOGLE_BUSINESS_PROFILE_INTEGRATION_V2'   "$tree/$PMD_V2_REL/src/runtime/components/ReviewShareEnhancer.tsx"   || fail "Frontend Google integration marker missing"
 
-say "Preflight: isolated Frontend V2 typecheck/build"
+say "Preflight: building current live Frontend V2 baseline"
 v2_stage="$stage/v2"
 mkdir -p "$v2_stage"
 (
@@ -105,134 +114,156 @@ mkdir -p "$v2_stage"
   cd "$v2_stage"
   tar -xf -
 )
-
 [[ -d "$PMD_V2_ROOT/node_modules" ]] || fail "Frontend V2 node_modules is missing"
 cp -al "$PMD_V2_ROOT/node_modules" "$v2_stage/node_modules"
-cp -a   "$stage/tree/$PMD_V2_REL/src/runtime/components/ReviewShareEnhancer.tsx"   "$v2_stage/src/runtime/components/ReviewShareEnhancer.tsx"
 
-(
+baseline_log="$stage/frontend-baseline-build.log"
+if ! (
   cd "$v2_stage"
-  npm run typecheck:offline >/dev/null
-  npm run build >/dev/null
-)
-[[ -d "$v2_stage/.next" ]] || fail "Frontend V2 build did not produce .next"
+  npm run typecheck:offline
+  npm run build
+) >"$baseline_log" 2>&1; then
+  tail -n 80 "$baseline_log" >&2 || true
+  fail "Current live Frontend V2 source does not pass baseline typecheck/build. No production file was changed."
+fi
+[[ -d "$v2_stage/.next" ]] || fail "Baseline Frontend V2 build did not produce .next"
+mv "$v2_stage/.next" "$stage/baseline.next"
 
-# Verify again immediately before activation.
-if ! git apply --check --whitespace=nowarn "$patch_file"; then
-  fail "Live target files changed during preflight. No production file was changed."
+say "Preflight: building Google-integrated Frontend V2"
+cp -a   "$tree/$PMD_V2_REL/src/runtime/components/ReviewShareEnhancer.tsx"   "$v2_stage/src/runtime/components/ReviewShareEnhancer.tsx"
+
+integration_log="$stage/frontend-google-build.log"
+if ! (
+  cd "$v2_stage"
+  npm run typecheck:offline
+  npm run build
+) >"$integration_log" 2>&1; then
+  tail -n 80 "$integration_log" >&2 || true
+  fail "Google-integrated Frontend V2 typecheck/build failed. No production file was changed."
+fi
+[[ -d "$v2_stage/.next" ]] || fail "Google-integrated Frontend V2 build did not produce .next"
+mv "$v2_stage/.next" "$stage/integration.next"
+
+say "Preflight: confirming target files did not change during build"
+while IFS= read -r rel; do
+  [[ -n "$rel" ]] || continue
+  cmp -s "$originals/$rel" "$PMD_ROOT/$rel"     || fail "Live target changed during preflight: $rel. No production file was changed."
+done < "$existing_list"
+
+while IFS= read -r rel; do
+  [[ -n "$rel" ]] || continue
+  [[ ! -e "$PMD_ROOT/$rel" ]]     || fail "A previously-new target appeared during preflight: $rel. No production file was changed."
+done < "$new_list"
+
+say "Preflight passed. Verifying sudo before any production write"
+if ! sudo -n true 2>/dev/null; then
+  sudo -v || fail "sudo authorization is required for protected PayMyDine runtime files"
 fi
 
 say "Backing up only Google integration target files"
-: > "$backup/new-files.txt"
-: > "$backup/new-dirs.txt"
-for rel in "${targets[@]}"; do
-  if [[ -f "$PMD_ROOT/$rel" ]]; then
-    mkdir -p "$backup/files/$(dirname "$rel")"
-    cp -a "$PMD_ROOT/$rel" "$backup/files/$rel"
-  else
-    printf '%s\n' "$rel" >> "$backup/new-files.txt"
-  fi
-done
+sudo mkdir -p "$backup/files"
+sudo chown "$(id -u):$(id -g)" "$backup" 2>/dev/null || true
 
-[[ -d "$PMD_V2_ROOT/.next" ]] || fail "Live Frontend V2 .next is missing"
+while IFS= read -r rel; do
+  [[ -n "$rel" ]] || continue
+  sudo mkdir -p "$backup/files/$(dirname "$rel")"
+  sudo cp -a "$PMD_ROOT/$rel" "$backup/files/$rel"
+done < "$existing_list"
 
-cat > "$backup/rollback.sh" <<ROLLBACK
-#!/usr/bin/env bash
-set -Eeuo pipefail
-PMD_ROOT=$(printf '%q' "$PMD_ROOT")
-PMD_V2_ROOT=$(printf '%q' "$PMD_V2_ROOT")
-PMD_SERVICE=$(printf '%q' "$PMD_SERVICE")
-PMD_PORT=$(printf '%q' "$PMD_PORT")
-BACKUP=$(printf '%q' "$backup")
+cp "$existing_list" "$backup/existing-targets.txt"
+cp "$new_list" "$backup/new-targets.txt"
+cp "$new_dirs" "$backup/new-dirs.txt"
+printf '%s\n' "$live_sha" > "$backup/live-head.txt"
+printf '%s\n' "$release_sha" > "$backup/google-release-sha.txt"
 
-if [[ -f "\$BACKUP/new-files.txt" ]]; then
-  while IFS= read -r rel; do
-    [[ -n "\$rel" ]] && rm -f "\$PMD_ROOT/\$rel"
-  done < "\$BACKUP/new-files.txt"
-fi
-
-cp -a "\$BACKUP/files/." "\$PMD_ROOT/"
-
-if [[ -f "\$BACKUP/new-dirs.txt" ]]; then
-  tac "\$BACKUP/new-dirs.txt" | while IFS= read -r dir; do
-    [[ -n "\$dir" ]] && rmdir "\$dir" 2>/dev/null || true
-  done
-fi
-
-rm -rf "\$PMD_V2_ROOT/.next"
-if [[ -d "\$BACKUP/next.previous" ]]; then
-  mv "\$BACKUP/next.previous" "\$PMD_V2_ROOT/.next"
-fi
-
-cd "\$PMD_ROOT"
-php artisan optimize:clear >/dev/null 2>&1 || true
-if systemctl list-unit-files php8.3-fpm.service >/dev/null 2>&1; then
-  sudo systemctl reload php8.3-fpm || true
-fi
-sudo -u ubuntu -H pm2 restart "\$PMD_SERVICE" --update-env >/dev/null
-curl -fsS "http://127.0.0.1:\$PMD_PORT/api/health" >/dev/null
-
-echo "Google integration rollback complete. Unrelated VPS files/index were not touched."
-ROLLBACK
-chmod 700 "$backup/rollback.sh"
-
-activation=0
+source_changed=0
+next_changed=0
 rolling_back=0
+
 rollback_now() {
   local rc="${1:-1}"
   [[ "$rolling_back" == "0" ]] || exit "$rc"
   rolling_back=1
   set +e
 
-  say "Activation failed; restoring only Google integration target files"
-  if [[ -f "$backup/new-files.txt" ]]; then
+  say "Activation failed; restoring only Google integration files"
+
+  if [[ "$source_changed" == "1" ]]; then
     while IFS= read -r rel; do
-      [[ -n "$rel" ]] && rm -f "$PMD_ROOT/$rel"
-    done < "$backup/new-files.txt"
-  fi
-  cp -a "$backup/files/." "$PMD_ROOT/"
+      [[ -n "$rel" ]] || continue
+      if [[ -f "$backup/files/$rel" ]]; then
+        sudo mkdir -p "$PMD_ROOT/$(dirname "$rel")"
+        sudo cp -a "$backup/files/$rel" "$PMD_ROOT/$rel"
+      fi
+    done < "$existing_list"
 
-  if [[ -f "$backup/new-dirs.txt" ]]; then
-    tac "$backup/new-dirs.txt" | while IFS= read -r dir; do
-      [[ -n "$dir" ]] && rmdir "$dir" 2>/dev/null || true
-    done
+    while IFS= read -r rel; do
+      [[ -n "$rel" ]] || continue
+      sudo rm -f "$PMD_ROOT/$rel"
+    done < "$new_list"
+
+    if [[ -s "$new_dirs" ]]; then
+      tac "$new_dirs" | while IFS= read -r dir; do
+        [[ -n "$dir" ]] && sudo rmdir "$dir" 2>/dev/null || true
+      done
+    fi
   fi
 
-  rm -rf "$PMD_V2_ROOT/.next"
-  [[ -d "$backup/next.previous" ]] && mv "$backup/next.previous" "$PMD_V2_ROOT/.next"
+  if [[ "$next_changed" == "1" ]]; then
+    sudo rm -rf "$PMD_V2_ROOT/.next"
+  fi
+
+  # Always restore a freshly built baseline .next after activation has begun.
+  if [[ -d "$stage/baseline.next" ]]; then
+    sudo rm -rf "$PMD_V2_ROOT/.next"
+    sudo cp -a "$stage/baseline.next" "$PMD_V2_ROOT/.next"
+  fi
 
   cd "$PMD_ROOT"
   php artisan optimize:clear >/dev/null 2>&1 || true
   if systemctl list-unit-files php8.3-fpm.service >/dev/null 2>&1; then
-    sudo systemctl reload php8.3-fpm || true
+    sudo systemctl reload php8.3-fpm >/dev/null 2>&1 || true
   fi
   sudo -u ubuntu -H pm2 restart "$PMD_SERVICE" --update-env >/dev/null 2>&1 || true
-  say "Rollback finished"
+
+  if curl -fsS --max-time 8 "http://127.0.0.1:$PMD_PORT/api/health" >/dev/null 2>&1; then
+    say "Rollback health PASS"
+  else
+    say "WARNING: rollback completed but Frontend V2 health is still failing"
+  fi
+
+  say "Rollback finished; unrelated VPS files/index were not touched"
+  cleanup_stage
   exit "$rc"
 }
-trap 'rc=$?; if [[ "$activation" == "1" && "$rc" != "0" ]]; then rollback_now "$rc"; else cleanup_stage; fi' EXIT
+trap 'rc=$?; if [[ "$source_changed" == "1" || "$next_changed" == "1" ]]; then rollback_now "$rc"; else cleanup_stage; fi' EXIT
 
-activation=1
+say "Activating only staged Google integration source files"
+source_changed=1
 
-say "Preparing parent directories for new Google integration files"
-for rel in "${targets[@]}"; do
-  dir="$PMD_ROOT/$(dirname "$rel")"
-  if [[ ! -d "$dir" ]]; then
-    printf '%s\n' "$dir" >> "$backup/new-dirs.txt"
-    mkdir -p "$dir"
-  fi
-done
+while IFS= read -r rel; do
+  [[ -n "$rel" ]] || continue
+  sudo cp -- "$tree/$rel" "$PMD_ROOT/$rel"
+done < "$existing_list"
 
-say "Applying Google integration patch only"
-git apply --whitespace=nowarn "$patch_file"
+while IFS= read -r rel; do
+  [[ -n "$rel" ]] || continue
+  dest="$PMD_ROOT/$rel"
+  parent="$(dirname "$dest")"
+  sudo mkdir -p "$parent"
+  sudo install -m 0644 "$tree/$rel" "$dest"
+done < "$new_list"
 
-# No git add/commit/reset/checkout/merge and no broad migration command.
-# Tenant Google tables are created lazily on first successful Google connection.
+grep -q 'class PmdGoogleBusinessService'   "$PMD_ROOT/app/Services/GoogleBusiness/PmdGoogleBusinessService.php"   || fail "Live Google Business service marker missing after source activation"
 
-say "Activating tested Frontend V2 build"
-mv "$PMD_V2_ROOT/.next" "$backup/next.previous"
-mv "$v2_stage/.next" "$PMD_V2_ROOT/.next"
+say "Activating tested Google-integrated Frontend V2 build"
+next_changed=1
+if [[ -d "$PMD_V2_ROOT/.next" ]]; then
+  sudo mv "$PMD_V2_ROOT/.next" "$backup/next.previous"
+fi
+sudo mv "$stage/integration.next" "$PMD_V2_ROOT/.next"
 
+cd "$PMD_ROOT"
 php artisan optimize:clear >/dev/null 2>&1 || true
 if systemctl list-unit-files php8.3-fpm.service >/dev/null 2>&1; then
   sudo systemctl reload php8.3-fpm
@@ -240,23 +271,25 @@ fi
 sudo -u ubuntu -H pm2 restart "$PMD_SERVICE" --update-env >/dev/null
 
 for attempt in 1 2 3 4 5 6; do
-  if curl -fsS "http://127.0.0.1:$PMD_PORT/api/health" >/dev/null; then
+  if curl -fsS --max-time 8 "http://127.0.0.1:$PMD_PORT/api/health" >/dev/null; then
     break
   fi
   sleep 2
-  [[ "$attempt" != "6" ]] || fail "Frontend V2 health failed after activation"
+  [[ "$attempt" != "6" ]] || fail "Frontend V2 health failed after Google integration activation"
 done
 
 php artisan route:list 2>/dev/null | grep -q 'integrations/google-business/callback'   || fail "Google OAuth callback route is missing"
 php artisan route:list 2>/dev/null | grep -q 'integrations/google-business/pubsub'   || fail "Google Pub/Sub route is missing"
 
-grep -q 'class PmdGoogleBusinessService'   "$PMD_ROOT/app/Services/GoogleBusiness/PmdGoogleBusinessService.php"   || fail "Google Business service is not live"
+grep -q 'PMD_GOOGLE_BUSINESS_PROFILE_INTEGRATION_V2'   "$PMD_V2_ROOT/src/runtime/components/ReviewShareEnhancer.tsx"   || fail "Live Frontend Google integration marker missing"
 
-activation=0
+source_changed=0
+next_changed=0
 trap - EXIT
 cleanup_stage
 
 say "DEPLOY COMPLETE"
 say "Only Google integration target files and Frontend V2 .next were changed."
-say "No git index, commit, branch, unrelated file, or broad migration was modified."
-say "Rollback: $backup/rollback.sh"
+say "No git index, commit, branch, reset, checkout, merge, or unrelated file was modified."
+say "Existing previous .next (for forensic rollback): $backup/next.previous"
+say "Source backup: $backup/files"
