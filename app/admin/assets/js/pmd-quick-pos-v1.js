@@ -1875,6 +1875,11 @@ function renderOpenChecks() {
       chooser.setAttribute('aria-hidden', 'true');
     }
 
+    var moveButton = $('[data-qpos-table-move]');
+    if (moveButton) {
+      moveButton.setAttribute('aria-expanded', 'false');
+    }
+
     root.classList.remove('is-move-scope-choice-open');
   }
 
@@ -1909,6 +1914,16 @@ function renderOpenChecks() {
       'aria-hidden',
       state.transfer.choiceOpen ? 'false' : 'true'
     );
+
+    /* PMD_QPOS_MOVE_SCOPE_ARIA_V44 */
+    var moveButton = $('[data-qpos-table-move]');
+    if (moveButton) {
+      moveButton.setAttribute(
+        'aria-expanded',
+        state.transfer.choiceOpen ? 'true' : 'false'
+      );
+    }
+
     root.classList.toggle(
       'is-move-scope-choice-open',
       state.transfer.choiceOpen
@@ -2335,6 +2350,12 @@ function renderOpenChecks() {
     } finally {
       state.transfer.submitting = false;
       root.classList.remove('is-transfer-committing');
+
+      /* PMD_QPOS_TRANSFER_BUSY_CLEAR_V44 */
+      var actionBar = $('[data-qpos-table-actions]');
+      if (actionBar) {
+        actionBar.setAttribute('aria-busy', 'false');
+      }
 
       if (state.transfer.open) {
         if (state.transfer.directSide) {
