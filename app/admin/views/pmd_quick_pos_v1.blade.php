@@ -279,6 +279,7 @@
                  multiple open checks. Destination selection still happens
                  directly from the left table rail. --}}
             <div
+                id="pmd-qpos-move-scope-choice-v44"
                 class="pmd-qpos-move-scope-choice"
                 data-qpos-move-scope-choice
                 role="menu"
@@ -310,6 +311,8 @@
                     type="button"
                     data-qpos-table-move
                     aria-haspopup="menu"
+                    aria-controls="pmd-qpos-move-scope-choice-v44"
+                    aria-expanded="false"
                 >Move</button>
                 <button type="button" data-qpos-table-free>Free</button>
             </div>
