@@ -657,9 +657,9 @@ class PmdGoogleBusinessService
 
     public function refreshPlaceLinks(int $locationId): array
     {
-        $config = $this->configuration();
+        $config = $this->configuration($locationId);
         if ($config['places_api_key'] === '') {
-            throw new RuntimeException('PMD_GOOGLE_PLACES_API_KEY is not configured.');
+            throw new RuntimeException('Save this restaurant\'s Google Places API key first.');
         }
 
         $connection = $this->connection($locationId);
@@ -984,7 +984,7 @@ class PmdGoogleBusinessService
 
     public function configureNotifications(int $locationId): bool
     {
-        $config = $this->configuration();
+        $config = $this->configuration($locationId);
         if ($config['pubsub_topic'] === '') {
             return false;
         }
@@ -1063,7 +1063,27 @@ class PmdGoogleBusinessService
         if (Schema::hasTable('pmd_google_business_connections')) {
             DB::table('pmd_google_business_connections')
                 ->where('location_id', $locationId)
-                ->delete();
+                ->update([
+                    'google_account_name' => null,
+                    'google_account_display_name' => null,
+                    'google_location_name' => null,
+                    'google_location_title' => null,
+                    'google_place_id' => null,
+                    'google_maps_uri' => null,
+                    'google_write_review_uri' => null,
+                    'google_reviews_uri' => null,
+                    'access_token_encrypted' => null,
+                    'refresh_token_encrypted' => null,
+                    'token_expires_at' => null,
+                    'scopes' => null,
+                    'status' => 'disconnected',
+                    'google_average_rating' => null,
+                    'google_total_review_count' => 0,
+                    'notifications_enabled' => 0,
+                    'last_synced_at' => null,
+                    'last_error' => null,
+                    'updated_at' => now(),
+                ]);
         }
 
         $this->writePublicSettings($locationId, [
@@ -1078,6 +1098,8 @@ class PmdGoogleBusinessService
 
     public function handlePubSubPush(array $body): array
     {
+        $this->assertTenantTables();
+
         $message = (array)($body['message'] ?? []);
         $encoded = trim((string)($message['data'] ?? ''));
         $decoded = $encoded !== '' ? base64_decode($encoded, true) : false;
@@ -1116,8 +1138,9 @@ class PmdGoogleBusinessService
             'accounts'
         );
 
-        $this->ensureCentralMapTable();
-        $query = DB::connection('mysql')->table(self::CENTRAL_MAP_TABLE);
+        $query = DB::table('pmd_google_business_connections')
+            ->where('status', 'connected');
+
         if ($locationName !== '') {
             $query->where('google_location_name', $locationName);
         } elseif ($accountName !== '') {
@@ -1134,7 +1157,6 @@ class PmdGoogleBusinessService
 
         foreach ($routes as $route) {
             try {
-                $this->activateTenantHost((string)$route->tenant_host);
                 $locationId = (int)$route->location_id;
 
                 if ($reviewName !== '') {
@@ -1146,7 +1168,6 @@ class PmdGoogleBusinessService
                 $processed++;
             } catch (\Throwable $error) {
                 Log::error('PMD Google Pub/Sub review sync failed', [
-                    'tenant_host' => $route->tenant_host ?? null,
                     'location_id' => $route->location_id ?? null,
                     'message' => $error->getMessage(),
                 ]);
@@ -1158,8 +1179,22 @@ class PmdGoogleBusinessService
 
     public function verifyPubSubToken(string $provided): bool
     {
-        $expected = $this->configuration()['pubsub_token'];
-        return $expected !== '' && $provided !== '' && hash_equals($expected, $provided);
+        if ($provided === '' || !Schema::hasTable('pmd_google_business_connections')) {
+            return false;
+        }
+
+        $rows = DB::table('pmd_google_business_connections')
+            ->whereNotNull('pubsub_token_encrypted')
+            ->get(['pubsub_token_encrypted']);
+
+        foreach ($rows as $row) {
+            $expected = $this->decryptNullable($row->pubsub_token_encrypted ?? null);
+            if ($expected !== '' && hash_equals($expected, $provided)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function upsertExternalReview(
@@ -1220,7 +1255,11 @@ class PmdGoogleBusinessService
             throw new RuntimeException('Google authorization expired. Please reconnect Google Business Profile.');
         }
 
-        $config = $this->configuration();
+        $config = $this->configuration($locationId);
+        if ($config['client_id'] === '' || $config['client_secret'] === '') {
+            throw new RuntimeException('This restaurant\'s Google OAuth credentials are missing.');
+        }
+
         $response = Http::asForm()
             ->acceptJson()
             ->timeout(25)
