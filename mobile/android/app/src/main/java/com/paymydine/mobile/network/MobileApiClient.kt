@@ -20,9 +20,16 @@ class MobileApiException(
 ) : IOException(message)
 
 class MobileApiClient {
-    fun exchange(tenantBaseUrl: String, exchange: String): PairExchangeResult {
+    fun exchange(
+        tenantBaseUrl: String,
+        exchange: String,
+        codeVerifier: String,
+    ): PairExchangeResult {
         val base = trustedTenantBase(tenantBaseUrl)
-        val body = JSONObject().put("exchange", exchange).toString()
+        val body = JSONObject()
+            .put("exchange", exchange)
+            .put("code_verifier", codeVerifier)
+            .toString()
         val response = request(
             url = URL(base.toString().trimEnd('/') + "/admin/api/mobile/v1/pair/exchange"),
             method = "POST",
