@@ -163,6 +163,12 @@ class PmdGoogleBusinessService
         $placesApiKey = $placesKeyInput !== '' ? $placesKeyInput : $oldPlacesKey;
         $pubsubToken = $pubsubTokenInput !== '' ? $pubsubTokenInput : $oldPubSubToken;
 
+        if ($existing && !hash_equals($oldClientId, $clientId) && $clientSecretInput === '') {
+            throw new RuntimeException(
+                'Enter the matching Google OAuth Client Secret when changing the Client ID.'
+            );
+        }
+
         $oauthCredentialsChanged = $existing && (
             !hash_equals($oldClientId, $clientId)
             || ($clientSecretInput !== '' && !hash_equals($oldClientSecret, $clientSecret))
@@ -660,15 +666,6 @@ class PmdGoogleBusinessService
         }
 
         try {
-            $this->registerCentralRoute($locationId);
-        } catch (\Throwable $error) {
-            Log::warning('PMD Google Business central route registration failed', [
-                'location_id' => $locationId,
-                'message' => $error->getMessage(),
-            ]);
-        }
-
-        try {
             $this->configureNotifications($locationId);
         } catch (\Throwable $error) {
             $this->recordError($locationId, 'Notifications: '.$error->getMessage());
@@ -1009,7 +1006,7 @@ class PmdGoogleBusinessService
     public function configureNotifications(int $locationId): bool
     {
         $config = $this->configuration($locationId);
-        if ($config['pubsub_topic'] === '') {
+        if ($config['pubsub_topic'] === '' || $config['pubsub_token'] === '') {
             return false;
         }
 
@@ -1070,11 +1067,6 @@ class PmdGoogleBusinessService
                 }
             }
 
-            try {
-                $this->removeCentralRoute($locationId, (string)($connection->tenant_host ?? ''));
-            } catch (\Throwable $error) {
-                Log::warning('PMD Google central map cleanup failed', ['message' => $error->getMessage()]);
-            }
         }
 
         if (Schema::hasTable('pmd_external_reviews')) {
