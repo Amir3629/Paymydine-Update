@@ -42,11 +42,37 @@ targets=(
 say "Fetching integration refs quietly"
 git fetch --quiet origin main "$PMD_BRANCH"
 
-base_ref="origin/main"
 release_ref="origin/$PMD_BRANCH"
-base_sha="$(git rev-parse "$base_ref")"
 release_sha="$(git rev-parse "$release_ref")"
 live_sha="$(git rev-parse HEAD)"
+
+deployed_marker="$PMD_ROOT/storage/pmd-google-business-release-sha"
+legacy_google_base="1a4fad4d65448472a146d616ab23821c30fe5244"
+
+if [[ -s "$deployed_marker" ]]; then
+  candidate_base="$(tr -d '[:space:]' < "$deployed_marker")"
+  if [[ -n "$candidate_base" ]] && git cat-file -e "$candidate_base^{commit}" 2>/dev/null; then
+    base_ref="$candidate_base"
+  else
+    fail "Google release marker exists but does not contain a valid Git commit"
+  fi
+elif [[ -f "$PMD_ROOT/app/Services/GoogleBusiness/PmdGoogleBusinessService.php" ]] \
+  && grep -q 'class PmdGoogleBusinessService' "$PMD_ROOT/app/Services/GoogleBusiness/PmdGoogleBusinessService.php" \
+  && grep -q 'PMD_GOOGLE_BUSINESS_PROFILE_INTEGRATION_V2' "$PMD_V2_ROOT/src/runtime/components/ReviewShareEnhancer.tsx"; then
+  base_ref="$legacy_google_base"
+else
+  base_ref="origin/main"
+fi
+
+base_sha="$(git rev-parse "$base_ref")"
+
+if [[ "$base_sha" == "$release_sha" ]]; then
+  say "Google integration is already at release $release_sha"
+  exit 0
+fi
+
+git merge-base --is-ancestor "$base_sha" "$release_sha" \
+  || fail "Installed Google integration base $base_sha is not an ancestor of release $release_sha"
 
 stamp="$(date -u +%Y%m%d_%H%M%S)"
 stage="/tmp/pmd-google-business-overlay-stage-$stamp"
@@ -277,18 +303,21 @@ grep -q 'class PmdGoogleBusinessService'   "$PMD_ROOT/app/Services/GoogleBusines
 cd "$PMD_ROOT"
 php artisan optimize:clear >/dev/null 2>&1 || true
 
-say "Verifying Google route wiring without booting unrelated legacy Admin routes"
-grep -q "routes/google-business-profile.php" "$PMD_ROOT/routes.php" \
-  || fail "Root route authority does not load Google Business routes"
-grep -q "/integrations/google-business/callback" "$PMD_ROOT/routes/google-business-profile.php" \
-  || fail "Google OAuth callback definition is missing"
-grep -q "/integrations/google-business/pubsub" "$PMD_ROOT/routes/google-business-profile.php" \
-  || fail "Google Pub/Sub definition is missing"
-php -l "$PMD_ROOT/routes.php" >/dev/null
-php -l "$PMD_ROOT/routes/google-business-profile.php" >/dev/null
+say "Verifying tenant Google API route wiring without booting unrelated legacy Admin routes"
+grep -q 'PMD_GOOGLE_BUSINESS_TENANT_OAUTH_V3' "$PMD_ROOT/routes/api.php" \
+  || fail "Tenant Google API route marker is missing"
+grep -q "/integrations/google-business/callback" "$PMD_ROOT/routes/api.php" \
+  || fail "Tenant Google OAuth callback definition is missing"
+grep -q "/integrations/google-business/pubsub" "$PMD_ROOT/routes/api.php" \
+  || fail "Tenant Google Pub/Sub definition is missing"
+if grep -q "routes/google-business-profile.php" "$PMD_ROOT/routes.php"; then
+  fail "Legacy storefront Google callback loader is still active"
+fi
+php -l "$PMD_ROOT/routes/api.php" >/dev/null
 php -l "$PMD_ROOT/app/Http/Controllers/GoogleBusinessIntegrationController.php" >/dev/null
+php -l "$PMD_ROOT/app/Services/GoogleBusiness/PmdGoogleBusinessService.php" >/dev/null
 
-say "Google route source verification PASS; unrelated route:list failures are not used as a deployment gate"
+say "Tenant Google API route source verification PASS"
 
 say "Activating tested Google-integrated Frontend V2 build"
 next_changed=1
@@ -316,6 +345,7 @@ grep -q 'PMD_GOOGLE_BUSINESS_PROFILE_INTEGRATION_V2'   "$PMD_V2_ROOT/src/runtime
 
 source_changed=0
 next_changed=0
+printf '%s\n' "$release_sha" | sudo tee "$deployed_marker" >/dev/null
 trap - EXIT
 cleanup_stage
 
