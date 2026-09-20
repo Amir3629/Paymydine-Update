@@ -248,6 +248,13 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
     {
         $this->quickPosMode((string)$mode);
 
+        if (!$this->currentUser()) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Unauthenticated.',
+            ], 401);
+        }
+
         $handler = trim((string)request()->header(
             'X-IGNITER-REQUEST-HANDLER',
             ''
