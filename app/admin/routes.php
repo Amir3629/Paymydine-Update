@@ -246,7 +246,6 @@ require_once base_path('routes/worldline-probe.php');
 require_once base_path('routes/square-runtime.php');
 require_once base_path('routes/qr-pay.php');
 require_once base_path('routes/review-social.php');
-require_once base_path('routes/google-business-profile.php');
 require_once base_path('routes/terminal-payments.php');
 
 
