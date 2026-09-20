@@ -6,12 +6,28 @@ on:
     paths:
       - 'mobile/android/**'
       - 'docs/ANDROID_LOCAL_FIRST_ARCHITECTURE_V1.md'
+      - 'app/Services/PmdMobileSync/**'
+      - 'app/Http/Controllers/PmdMobile*.php'
+      - 'app/Services/PmdSiteAccessService.php'
+      - 'app/Services/SuperAdminTenantLifecycleService.php'
+      - 'app/admin/controllers/Login.php'
+      - 'app/admin/routes.php'
+      - 'app/system/database/migrations/2026_09_20_190000_create_pmd_mobile_sync_tables.php'
+      - 'routes/pmd-mobile-sync-v1.php'
       - '.github/workflows/android-local-first-v1.yml'
   pull_request:
     branches: [main]
     paths:
       - 'mobile/android/**'
       - 'docs/ANDROID_LOCAL_FIRST_ARCHITECTURE_V1.md'
+      - 'app/Services/PmdMobileSync/**'
+      - 'app/Http/Controllers/PmdMobile*.php'
+      - 'app/Services/PmdSiteAccessService.php'
+      - 'app/Services/SuperAdminTenantLifecycleService.php'
+      - 'app/admin/controllers/Login.php'
+      - 'app/admin/routes.php'
+      - 'app/system/database/migrations/2026_09_20_190000_create_pmd_mobile_sync_tables.php'
+      - 'routes/pmd-mobile-sync-v1.php'
       - '.github/workflows/android-local-first-v1.yml'
 
 concurrency:
@@ -22,6 +38,40 @@ permissions:
   contents: read
 
 jobs:
+  server-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: PHP syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          php -l app/system/database/migrations/2026_09_20_190000_create_pmd_mobile_sync_tables.php
+          php -l app/Services/PmdMobileSync/PmdMobileDeviceAuthService.php
+          php -l app/Services/PmdMobileSync/PmdMobileBootstrapService.php
+          php -l app/Services/PmdMobileSync/PmdMobilePairingService.php
+          php -l app/Http/Controllers/PmdMobileBootstrapController.php
+          php -l app/Http/Controllers/PmdMobileSyncController.php
+          php -l app/Http/Controllers/PmdMobilePairController.php
+          php -l app/Services/PmdSiteAccessService.php
+          php -l app/Services/SuperAdminTenantLifecycleService.php
+          php -l app/admin/controllers/Login.php
+          php -l routes/pmd-mobile-sync-v1.php
+      - name: Safety contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q "trustedDeviceByRawToken" app/Services/PmdSiteAccessService.php
+          grep -q "rotateTrustedDeviceToken" app/Services/PmdSiteAccessService.php
+          grep -q "pmd_sync_commands" app/system/database/migrations/2026_09_20_190000_create_pmd_mobile_sync_tables.php
+          grep -q "pmd_sync_events" app/system/database/migrations/2026_09_20_190000_create_pmd_mobile_sync_tables.php
+          grep -q "ensureMobileSyncSchema" app/Services/SuperAdminTenantLifecycleService.php
+          grep -q "mobile_commands_not_enabled" app/Http/Controllers/PmdMobileSyncController.php
+          grep -q "routes/pmd-mobile-sync-v1.php" app/admin/routes.php
+          grep -q "PmdMobilePairingService" app/admin/controllers/Login.php
+          echo "PMD_ANDROID_SERVER_CONTRACT=PASS"
+
   android:
     runs-on: ubuntu-latest
     timeout-minutes: 35
