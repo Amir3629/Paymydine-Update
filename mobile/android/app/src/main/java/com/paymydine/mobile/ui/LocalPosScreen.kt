@@ -36,6 +36,7 @@ import com.paymydine.mobile.PayMyDineApplication
 import com.paymydine.mobile.data.local.DraftOrder
 import com.paymydine.mobile.data.local.PosMenuItemRow
 import com.paymydine.mobile.data.local.PosTableRow
+import com.paymydine.mobile.data.local.TableBillState
 import com.paymydine.mobile.sync.SyncEngine
 import org.json.JSONArray
 import org.json.JSONObject
@@ -52,6 +53,7 @@ fun LocalPosScreen(
     var menu by remember { mutableStateOf<List<PosMenuItemRow>>(emptyList()) }
     var selectedTableId by remember { mutableStateOf<String?>(null) }
     var draft by remember { mutableStateOf<DraftOrder?>(null) }
+    var bill by remember { mutableStateOf<TableBillState?>(null) }
     var search by remember { mutableStateOf("") }
     var error by remember { mutableStateOf<String?>(null) }
     var message by remember { mutableStateOf<String?>(null) }
@@ -65,10 +67,12 @@ fun LocalPosScreen(
             selectedTableId = tables.firstOrNull()?.id
         }
         draft = selectedTableId?.let(app.localPosRepository::draftForTable)
+        bill = selectedTableId?.let(app.localPosRepository::billForTable)
     }
 
     LaunchedEffect(selectedTableId, revision) {
         draft = selectedTableId?.let(app.localPosRepository::draftForTable)
+        bill = selectedTableId?.let(app.localPosRepository::billForTable)
     }
 
     val visibleMenu = remember(menu, search) {
@@ -140,6 +144,7 @@ fun LocalPosScreen(
                 CartPane(
                     modifier = Modifier.weight(1.15f).fillMaxHeight(),
                     draft = draft,
+                    bill = bill,
                     onQty = { lineId, delta ->
                         draft = app.localPosRepository.changeQuantity(lineId, delta)
                         revision += 1
@@ -211,6 +216,7 @@ fun LocalPosScreen(
                     CartPane(
                         modifier = Modifier.fillMaxWidth(),
                         draft = draft,
+                        bill = bill,
                         onQty = { lineId, delta ->
                             draft = app.localPosRepository.changeQuantity(lineId, delta)
                             revision += 1
@@ -387,6 +393,7 @@ private fun MenuPane(
 private fun CartPane(
     modifier: Modifier,
     draft: DraftOrder?,
+    bill: TableBillState?,
     onQty: (String, Int) -> Unit,
     onGuests: (Int) -> Unit,
     onNote: (String) -> Unit,
@@ -398,6 +405,48 @@ private fun CartPane(
         Column(Modifier.fillMaxWidth().padding(12.dp)) {
             Text("Order", style = MaterialTheme.typography.titleLarge)
             Spacer(Modifier.height(8.dp))
+
+            bill?.let { state ->
+                if (
+                    state.serverId != null ||
+                    state.baseTotalMinor > 0 ||
+                    state.status != "DRAFT"
+                ) {
+                    Text(
+                        buildString {
+                            append("Open bill")
+                            state.serverId?.let { append(" #").append(it) }
+                            append(" · ")
+                            append(
+                                formatMoney(
+                                    state.projectedTotalMinor,
+                                    state.currency,
+                                ),
+                            )
+                        },
+                        style = MaterialTheme.typography.titleSmall,
+                    )
+                    Text(
+                        when (state.status) {
+                            "QUEUED" -> "Sending this batch… editing is locked until the result returns."
+                            "RETRY" -> "Network retry pending. The same command will be retried; no duplicate command is created."
+                            "EDGE_OPEN" -> "Accepted by Restaurant Edge; Cloud reconciliation is pending."
+                            "CONFLICT" -> "Reconciliation required before this table can accept more items."
+                            "SERVER_OPEN" -> "Canonical Cloud bill is open for additional items."
+                            else -> "New items are local until Hold/Send is accepted."
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    state.reconciliationError?.let {
+                        Text(
+                            it,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                    Spacer(Modifier.height(10.dp))
+                }
+            }
 
             if (draft == null || draft.lines.isEmpty()) {
                 Text("No local items yet.")
@@ -453,7 +502,15 @@ private fun CartPane(
 
                 Spacer(Modifier.height(10.dp))
                 Text(
-                    "Total ${formatMoney(draft.totalMinor, draft.currency)}",
+                    if ((bill?.baseTotalMinor ?: 0L) > 0L) {
+                        "New items ${formatMoney(draft.totalMinor, draft.currency)} · projected bill " +
+                            formatMoney(
+                                (bill?.baseTotalMinor ?: 0L) + draft.totalMinor,
+                                draft.currency,
+                            )
+                    } else {
+                        "Total ${formatMoney(draft.totalMinor, draft.currency)}"
+                    },
                     style = MaterialTheme.typography.titleMedium,
                 )
                 Text(
