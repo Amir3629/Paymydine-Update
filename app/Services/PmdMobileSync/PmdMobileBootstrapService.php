@@ -81,6 +81,7 @@ final class PmdMobileBootstrapService
                 'terminal_profile' => (array)($platform['profile']['terminals'] ?? []),
                 'offline_card_approval' => false,
             ],
+            'edge' => $this->edgeMetadata($locationId),
             'sync' => [
                 'cursor' => $this->currentCursor($locationId),
                 'commands_enabled' => false,
@@ -327,6 +328,37 @@ final class PmdMobileBootstrapService
         if ($roleCode === $roles::ACCOUNTANT) return ['accountant'];
 
         return ['mywork'];
+    }
+
+    private function edgeMetadata(int $locationId): ?array
+    {
+        if (!Schema::hasTable('pmd_mobile_edges')) {
+            return null;
+        }
+
+        try {
+            $edge = DB::table('pmd_mobile_edges')
+                ->where('location_id', $locationId)
+                ->where('is_active', 1)
+                ->first();
+
+            if (!$edge) {
+                return null;
+            }
+
+            return [
+                'device_id' => (int)$edge->device_id,
+                'fingerprint_sha256' =>
+                    strtolower((string)$edge->fingerprint_sha256),
+                'port' => (int)$edge->port,
+                'protocol' => (string)$edge->protocol,
+                'last_seen_at' => $edge->last_seen_at
+                    ? (string)$edge->last_seen_at
+                    : null,
+            ];
+        } catch (\Throwable $error) {
+            return null;
+        }
     }
 
     private function currentCursor(int $locationId): int
