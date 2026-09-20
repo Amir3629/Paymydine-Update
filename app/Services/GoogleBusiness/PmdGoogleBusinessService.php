@@ -29,7 +29,7 @@ class PmdGoogleBusinessService
     {
         $redirect = trim((string)env(
             'PMD_GOOGLE_BUSINESS_REDIRECT_URI',
-            'https://paymydine.com/integrations/google-business/callback'
+            ''
         ));
 
         return [
@@ -132,11 +132,17 @@ class PmdGoogleBusinessService
 
         $state = Crypt::encryptString(json_encode($payload, JSON_UNESCAPED_SLASHES));
 
-        Cache::put(
-            'pmd:google-business:oauth:'.$nonce,
-            hash('sha256', $state),
-            now()->addMinutes(15)
-        );
+        try {
+            Cache::put(
+                'pmd:google-business:oauth:'.$nonce,
+                hash('sha256', $state),
+                now()->addMinutes(15)
+            );
+        } catch (\Throwable $error) {
+            Log::warning('PMD Google OAuth nonce cache unavailable', [
+                'message' => $error->getMessage(),
+            ]);
+        }
 
         $config = $this->configuration();
         $query = http_build_query([
@@ -179,11 +185,19 @@ class PmdGoogleBusinessService
         }
 
         $cacheKey = 'pmd:google-business:oauth:'.$nonce;
-        $expected = Cache::get($cacheKey);
-        Cache::forget($cacheKey);
+        try {
+            $expected = Cache::get($cacheKey);
+            Cache::forget($cacheKey);
 
-        if (!is_string($expected) || !hash_equals($expected, hash('sha256', $state))) {
-            throw new RuntimeException('Google OAuth state could not be verified.');
+            if (is_string($expected) && !hash_equals($expected, hash('sha256', $state))) {
+                throw new RuntimeException('Google OAuth state could not be verified.');
+            }
+        } catch (RuntimeException $error) {
+            throw $error;
+        } catch (\Throwable $error) {
+            Log::warning('PMD Google OAuth nonce cache verification skipped', [
+                'message' => $error->getMessage(),
+            ]);
         }
 
         return [
@@ -579,12 +593,17 @@ class PmdGoogleBusinessService
                 $reply = (array)($review['reviewReply'] ?? []);
                 $now = now();
 
+                $reviewIdentity = [
+                    'provider' => 'google',
+                    'location_id' => $locationId,
+                    'provider_review_id' => $reviewId,
+                ];
+                $existingReview = DB::table('pmd_external_reviews')
+                    ->where($reviewIdentity)
+                    ->first();
+
                 DB::table('pmd_external_reviews')->updateOrInsert(
-                    [
-                        'provider' => 'google',
-                        'location_id' => $locationId,
-                        'provider_review_id' => $reviewId,
-                    ],
+                    $reviewIdentity,
                     [
                         'google_location_name' => (string)$connection->google_location_name,
                         'reviewer_name' => trim((string)($reviewer['displayName'] ?? 'Google user')) ?: 'Google user',
@@ -598,7 +617,7 @@ class PmdGoogleBusinessService
                         'raw_payload' => json_encode($review, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
                         'synced_at' => $now,
                         'updated_at' => $now,
-                        'created_at' => $now,
+                        'created_at' => $existingReview->created_at ?? $now,
                     ]
                 );
                 $synced++;
@@ -755,13 +774,16 @@ class PmdGoogleBusinessService
 
         $url = self::NOTIFICATIONS_API
             .'/accounts/'.rawurlencode($accountId)
-            .'/notificationSetting?updateMask=pubsubTopic';
+            .'/notificationSetting?updateMask=pubsubTopic,notificationTypes';
 
         $response = Http::withToken($this->accessToken($locationId))
             ->acceptJson()
             ->asJson()
             ->timeout(25)
-            ->patch($url, ['pubsubTopic' => $config['pubsub_topic']]);
+            ->patch($url, [
+                'pubsubTopic' => $config['pubsub_topic'],
+                'notificationTypes' => ['NEW_REVIEW', 'UPDATED_REVIEW'],
+            ]);
 
         $json = (array)$response->json();
         if (!$response->successful()) {
