@@ -57,6 +57,12 @@ data class TableBillState(
         }
 }
 
+data class CloudCommandRouting(
+    val serverOrderId: Long,
+    val serverVersion: Long,
+    val expectedUpdatedAt: String?,
+)
+
 data class DraftOrder(
     val localId: String,
     val locationId: Long,
@@ -501,6 +507,50 @@ class LocalPosRepository(private val database: PmdDatabase) {
             "id = ?",
             arrayOf(localOrderId),
         )
+    }
+
+    fun cloudRoutingForCommand(
+        command: CommandEnvelope,
+    ): CloudCommandRouting? {
+        if (!command.aggregateId.startsWith("local:")) return null
+
+        val localId = resolveLocalOrderId(
+            aggregateId = command.aggregateId,
+            serverOrderId = 0,
+        ) ?: return null
+
+        return database.readableDatabase.query(
+            "pmd_orders",
+            arrayOf("server_id", "version", "payload_json"),
+            "id = ?",
+            arrayOf(localId),
+            null,
+            null,
+            null,
+            "1",
+        ).use { rows ->
+            if (!rows.moveToFirst() || rows.isNull(0)) {
+                null
+            } else {
+                val serverOrderId = rows.getString(0)
+                    .toLongOrNull()
+                    ?: return@use null
+                if (serverOrderId < 1) return@use null
+
+                val meta = runCatching {
+                    JSONObject(rows.getString(2))
+                }.getOrElse { JSONObject() }
+
+                CloudCommandRouting(
+                    serverOrderId = serverOrderId,
+                    serverVersion = rows.getLong(1).coerceAtLeast(0),
+                    expectedUpdatedAt = meta
+                        .optString("server_updated_at")
+                        .trim()
+                        .takeIf { it.isNotBlank() },
+                )
+            }
+        }
     }
 
     fun markRetryForCommand(command: CommandEnvelope) {
