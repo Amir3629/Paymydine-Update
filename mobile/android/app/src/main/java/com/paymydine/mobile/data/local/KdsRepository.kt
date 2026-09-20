@@ -217,10 +217,22 @@ class KdsRepository(private val database: PmdDatabase) {
             stations().firstOrNull { it.id == stationId }?.slug
         } ?: selectedStationSlug()
 
+        val numericOrderId = ticket.orderId.toLongOrNull()
+        val aggregateId = if (numericOrderId != null) {
+            "order:$numericOrderId"
+        } else {
+            ticket.orderId
+        }
+
         val payload = JSONObject()
-            .put("order_id", ticket.orderId.toLong())
             .put("status_id", newStatusId)
             .put("expected_status_id", ticket.statusId)
+
+        if (numericOrderId != null) {
+            payload.put("order_id", numericOrderId)
+        } else {
+            payload.put("order_ref", ticket.orderId)
+        }
 
         if (!stationSlug.isNullOrBlank()) {
             payload.put("station_slug", stationSlug)
@@ -233,7 +245,7 @@ class KdsRepository(private val database: PmdDatabase) {
             staffId = staffId,
             userId = userId,
             aggregate = "order",
-            aggregateId = "order:${ticket.orderId}",
+            aggregateId = aggregateId,
             baseVersion = ticket.aggregateVersion,
             commandType = "KDS_STATUS_V1",
             payloadJson = payload.toString(),
@@ -244,8 +256,13 @@ class KdsRepository(private val database: PmdDatabase) {
         if (command.commandType != "KDS_STATUS_V1") return
 
         val result = response.optJSONObject("result") ?: return
-        val orderId = result.optLong("order_id", 0)
-        if (orderId < 1) return
+        val numericOrderId = result.optLong("order_id", 0)
+        val orderKey = if (numericOrderId > 0) {
+            numericOrderId.toString()
+        } else {
+            result.optString("order_ref")
+                .ifBlank { command.aggregateId }
+        }
 
         val newVersion = response.optLong(
             "aggregate_version",
@@ -255,7 +272,7 @@ class KdsRepository(private val database: PmdDatabase) {
         val statusName = result.optString("status_name")
 
         updateOrderTickets(
-            orderId = orderId.toString(),
+            orderId = orderKey,
             version = newVersion,
             statusId = statusId,
             statusName = statusName,
@@ -267,14 +284,29 @@ class KdsRepository(private val database: PmdDatabase) {
         aggregateVersion: Long,
         payload: JSONObject,
     ) {
-        if (eventType != "KDS_STATUS_CHANGED_V1") return
+        if (
+            eventType !in setOf(
+                "KDS_STATUS_CHANGED_V1",
+                "KDS_STATUS_EDGE_V1",
+            )
+        ) {
+            return
+        }
 
         val result = payload.optJSONObject("order") ?: return
-        val orderId = result.optLong("order_id", 0)
-        if (orderId < 1) return
+        val numericOrderId = result.optLong("order_id", 0)
+        val orderKey = if (numericOrderId > 0) {
+            numericOrderId.toString()
+        } else {
+            result.optString("order_ref")
+                .ifBlank {
+                    payload.optString("aggregate_id")
+                }
+        }
+        if (orderKey.isBlank()) return
 
         updateOrderTickets(
-            orderId = orderId.toString(),
+            orderId = orderKey,
             version = aggregateVersion,
             statusId = result.optLong("status_id", 0),
             statusName = result.optString("status_name"),
