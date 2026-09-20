@@ -81,14 +81,20 @@ trait PmdWaiterPosMenuCatalogV26Concern
         /*
          * PMD_MENU_NUMBER_V24
          *
-         * Food numbers are a presentation sequence owned by the canonical Menu
-         * layout, not by menu_id. "All Foods" groups by category priority first,
-         * then keeps menu_priority inside each category. Mirror that exact order
-         * here so Menu Manager and Quick POS always show the same number.
+         * The number must remain identical to Menu Manager even when a food is
+         * disabled, stocked out or has no configured POS price. Build numbering
+         * from the full canonical food catalogue, then apply those numbers to
+         * the smaller orderable POS payload.
          */
+        $numberRows = Menus_model::with(['categories'])
+            ->orderByRaw('COALESCE(menu_priority, 999999) ASC')
+            ->orderBy('menu_name', 'asc')
+            ->limit(500)
+            ->get();
+
         $categoryMeta = [];
 
-        foreach ($rows as $menu) {
+        foreach ($numberRows as $menu) {
             foreach (($menu->categories ?: collect()) as $category) {
                 if (
                     isset($category->status)
@@ -173,7 +179,7 @@ trait PmdWaiterPosMenuCatalogV26Concern
             return $best;
         };
 
-        $rows = $rows
+        $numberRows = $numberRows
             ->sort(function ($a, $b) use ($firstCategoryRank) {
                 $categoryCompare =
                     $firstCategoryRank($a)
@@ -195,6 +201,25 @@ trait PmdWaiterPosMenuCatalogV26Concern
                 return strcasecmp(
                     (string)$a->menu_name,
                     (string)$b->menu_name
+                );
+            })
+            ->values();
+
+        $menuNumberById = [];
+
+        foreach ($numberRows as $numberIndex => $numberMenu) {
+            $numberMenuId = (int)$numberMenu->getKey();
+
+            if ($numberMenuId > 0) {
+                $menuNumberById[$numberMenuId] = $numberIndex + 1;
+            }
+        }
+
+        $rows = $rows
+            ->sortBy(function ($menu) use ($menuNumberById) {
+                return (int)(
+                    $menuNumberById[(int)$menu->getKey()]
+                    ?? PHP_INT_MAX
                 );
             })
             ->values();
@@ -294,7 +319,10 @@ trait PmdWaiterPosMenuCatalogV26Concern
 
             $items[] = [
                 'id' => $menuId,
-                'menu_number' => (int)$menuIndex + 1,
+                'menu_number' => (int)(
+                    $menuNumberById[$menuId]
+                    ?? ($menuIndex + 1)
+                ),
                 'name' => (string)$menu->menu_name,
                 'description' => trim(strip_tags((string)($menu->menu_description ?? ''))),
                 'price' => $price,
