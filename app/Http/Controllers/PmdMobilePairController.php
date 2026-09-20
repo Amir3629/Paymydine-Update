@@ -60,10 +60,21 @@ final class PmdMobilePairController extends Controller
     {
         $data = $request->validate([
             'exchange' => ['required', 'string', 'size:64'],
+            'code_verifier' => [
+                'required',
+                'string',
+                'min:43',
+                'max:128',
+                'regex:/^[A-Za-z0-9._~-]+$/',
+            ],
         ]);
 
         return response()->json(
-            $pairing->exchange($request, (string)$data['exchange']),
+            $pairing->exchange(
+                $request,
+                (string)$data['exchange'],
+                (string)$data['code_verifier']
+            ),
             200,
             ['Cache-Control' => 'no-store, private']
         );
