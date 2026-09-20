@@ -23,12 +23,15 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.paymydine.mobile.PayMyDineApplication
 import com.paymydine.mobile.data.local.BootstrapSummary
+import com.paymydine.mobile.edge.EdgeRuntimeState
+import com.paymydine.mobile.edge.EdgeService
 import com.paymydine.mobile.network.MobileApiClient
 import com.paymydine.mobile.network.TransportKind
 import com.paymydine.mobile.network.TransportRouter
@@ -36,6 +39,7 @@ import com.paymydine.mobile.sync.SyncEngine
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 @Composable
@@ -44,6 +48,8 @@ fun PayMyDineApp(app: PayMyDineApplication) {
     val online by app.connectivity.online.collectAsState()
     val edge by app.edgeDiscovery.endpoint.collectAsState()
     val pairingLink by app.pairingLink.collectAsState()
+    val edgeRuntime by EdgeRuntimeState.state.collectAsState()
+    val scope = rememberCoroutineScope()
     val router = remember { TransportRouter() }
     val api = remember { MobileApiClient() }
 
@@ -70,18 +76,31 @@ fun PayMyDineApp(app: PayMyDineApplication) {
         )
     }
 
-    val decision = router.decide(
+    val discoveredDecision = router.decide(
         cloudOnline = online,
         edge = edge,
         pinnedEdgeFingerprint = app.credentials.edgeFingerprint(),
         expectedSiteId = app.bootstrapRepository.locationId()?.toString(),
     )
+    val localEdgeTrusted =
+        edgeRuntime.running &&
+            !edgeRuntime.fingerprintSha256.isNullOrBlank() &&
+            edgeRuntime.fingerprintSha256.equals(
+                app.credentials.edgeFingerprint(),
+                ignoreCase = true,
+            )
+    val runtimeKind = if (localEdgeTrusted) {
+        TransportKind.EDGE
+    } else {
+        discoveredDecision.kind
+    }
 
     val surfaces = if (ready) {
         app.bootstrapRepository.surfaces()
     } else {
         emptySet()
     }
+    val canManageEdge = "manager" in surfaces
     val availableWorkspaces = buildList {
         if ("pos" in surfaces || "waiter" in surfaces) add("pos")
         if ("kds" in surfaces) add("kds")
@@ -181,7 +200,7 @@ fun PayMyDineApp(app: PayMyDineApplication) {
                                 style = MaterialTheme.typography.titleLarge,
                             )
                             Text(
-                                when (decision.kind) {
+                                when (runtimeKind) {
                                     TransportKind.EDGE -> "Restaurant Edge"
                                     TransportKind.CLOUD -> "Cloud connected"
                                     TransportKind.OFFLINE -> "Offline local mode"
@@ -232,6 +251,55 @@ fun PayMyDineApp(app: PayMyDineApplication) {
                         ) {
                             Text("Device")
                         }
+
+                        if (canManageEdge) {
+                            OutlinedButton(
+                                enabled = edgeRuntime.enabled || online,
+                                onClick = {
+                                    val turnOn = !edgeRuntime.enabled
+
+                                    if (turnOn) {
+                                        lastError = null
+                                        EdgeService.setEnabled(app, true)
+                                    } else {
+                                        scope.launch {
+                                            lastError = null
+                                            val host = app.credentials.tenantHost()
+                                            val token = app.credentials.deviceToken()
+
+                                            if (
+                                                online &&
+                                                !host.isNullOrBlank() &&
+                                                !token.isNullOrBlank()
+                                            ) {
+                                                withContext(Dispatchers.IO) {
+                                                    runCatching {
+                                                        api.disableEdge(
+                                                            host,
+                                                            token,
+                                                        )
+                                                    }
+                                                }
+                                            }
+
+                                            EdgeService.setEnabled(app, false)
+                                            app.credentials.clearEdgeFingerprint()
+                                        }
+                                    }
+                                },
+                            ) {
+                                Text(
+                                    when {
+                                        edgeRuntime.running ->
+                                            "Edge On"
+                                        edgeRuntime.enabled ->
+                                            "Edge Starting"
+                                        else ->
+                                            "Make Edge"
+                                    },
+                                )
+                            }
+                        }
                     }
 
                     when (activeWorkspace) {
@@ -256,7 +324,7 @@ fun PayMyDineApp(app: PayMyDineApplication) {
                     pairingStatus = pairingStatus,
                     bootstrapSummary = bootstrapSummary,
                     lastError = lastError,
-                    runtime = when (decision.kind) {
+                    runtime = when (runtimeKind) {
                         TransportKind.EDGE -> "Restaurant Edge"
                         TransportKind.CLOUD -> "Cloud"
                         TransportKind.OFFLINE -> "Offline"
