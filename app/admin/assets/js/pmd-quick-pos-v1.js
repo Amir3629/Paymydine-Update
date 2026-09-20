@@ -847,6 +847,21 @@
 
     renderFloorMap();
 
+    var exactToolbar =
+      document.getElementById('pmd-r2-floor-toolbar-v316');
+    var returnControl = $('[data-qpos-floor-map-close]');
+
+    if (
+      exactToolbar &&
+      returnControl &&
+      returnControl.parentElement !== exactToolbar
+    ) {
+      exactToolbar.insertBefore(
+        returnControl,
+        exactToolbar.firstChild
+      );
+    }
+
     var floor = exactFloorRoot();
     var multiFloor = floor && floor.__pmdSharedMultiFloorV1;
 
