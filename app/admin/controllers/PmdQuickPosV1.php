@@ -985,14 +985,18 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
             ], 422);
         }
 
-        $sourceOrders = $this->quickPosOpenOrdersForTable($source);
-
-        if (!$sourceOrders) {
-            return response()->json([
-                'ok' => false,
-                'message' => 'There are no open checks to move.',
-            ], 422);
-        }
+        /*
+         * PMD_QPOS_FAST_ORDER_TRANSFER_V43
+         *
+         * Direct Move always transfers one known order ID. Do NOT hydrate the
+         * source table's complete checks/items/status labels just to validate
+         * that one order. The transaction below performs a locked, payable,
+         * source-scoped validation using the canonical orders table.
+         *
+         * Whole-table moves keep the richer legacy validation because they
+         * intentionally need the complete set of payable source checks.
+         */
+        $sourceOrders = [];
 
         if ($scope === 'order') {
             if ($orderId < 1) {
@@ -1002,22 +1006,17 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 ], 422);
             }
 
-            $selected = array_values(array_filter(
-                $sourceOrders,
-                static function (array $order) use ($orderId): bool {
-                    return (int)($order['order_id'] ?? 0) === $orderId;
-                }
-            ));
-
-            if (!$selected) {
-                return response()->json([
-                    'ok' => false,
-                    'message' => 'That check is no longer on this table.',
-                ], 409);
-            }
-
             $orderIds = [$orderId];
         } else {
+            $sourceOrders = $this->quickPosOpenOrdersForTable($source);
+
+            if (!$sourceOrders) {
+                return response()->json([
+                    'ok' => false,
+                    'message' => 'There are no open checks to move.',
+                ], 422);
+            }
+
             $targetOrders = $this->quickPosOpenOrdersForTable($target);
 
             if ($targetOrders) {
@@ -1091,6 +1090,14 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                     $source
                 );
 
+                /* PMD_QPOS_TRANSFER_PAYABLE_LOCK_V43
+                 * Validate the selected check under the same payable/open
+                 * rules used by the POS check rail, but without loading items. */
+                $this->applyQuickPosPayableScope(
+                    $lockedQuery,
+                    $columns
+                );
+
                 $lockedIds = $lockedQuery
                     ->lockForUpdate()
                     ->pluck($primaryKey)
@@ -1148,15 +1155,34 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                     ->whereIn($primaryKey, $orderIds)
                     ->update($updates);
 
-                $remainingSourceChecks = max(
-                    0,
-                    count($sourceOrders) - count($orderIds)
-                );
-
-                $sourceCurrentStatus =
-                    $this->quickPosTransferTableStatus(
-                        (int)$source['id']
+                /* PMD_QPOS_TRANSFER_REMAINING_COUNT_V43
+                 * For a one-check move, count remaining source checks with one
+                 * lightweight SQL COUNT after the reassignment. Avoid loading
+                 * order_menus/status rows purely to derive source status. */
+                if ($scope === 'order') {
+                    $remainingQuery = DB::table('orders');
+                    $this->applyTableScope(
+                        $remainingQuery,
+                        $columns,
+                        $source
                     );
+                    $this->applyQuickPosPayableScope(
+                        $remainingQuery,
+                        $columns
+                    );
+                    $remainingSourceChecks = (int)$remainingQuery->count();
+                } else {
+                    $remainingSourceChecks = max(
+                        0,
+                        count($sourceOrders) - count($orderIds)
+                    );
+                }
+
+                $sourceCurrentStatus = $remainingSourceChecks > 0
+                    ? $this->quickPosTransferTableStatus(
+                        (int)$source['id']
+                    )
+                    : '';
 
                 $sourceNext = $scope === 'table'
                     ? 'cleaning'
