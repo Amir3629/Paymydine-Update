@@ -39,6 +39,24 @@ data class DraftLine(
     val note: String,
 )
 
+data class TableBillState(
+    val serverId: String?,
+    val status: String,
+    val version: Long,
+    val baseTotalMinor: Long,
+    val pendingTotalMinor: Long,
+    val currency: String,
+    val reconciliationError: String?,
+) {
+    val projectedTotalMinor: Long
+        get() = when (status) {
+            LocalPosRepository.STATUS_DRAFT,
+            LocalPosRepository.STATUS_QUEUED,
+            LocalPosRepository.STATUS_RETRY -> baseTotalMinor + pendingTotalMinor
+            else -> maxOf(baseTotalMinor, pendingTotalMinor)
+        }
+}
+
 data class DraftOrder(
     val localId: String,
     val locationId: Long,
@@ -76,6 +94,62 @@ class LocalPosRepository(private val database: PmdDatabase) {
             }
         }
     }
+
+    fun billForTable(tableId: String): TableBillState? =
+        database.readableDatabase.query(
+            "pmd_orders",
+            arrayOf(
+                "server_id",
+                "status",
+                "version",
+                "total_minor",
+                "currency",
+                "payload_json",
+            ),
+            "table_id = ?",
+            arrayOf(tableId),
+            null,
+            null,
+            "updated_at_ms DESC",
+            "1",
+        ).use { rows ->
+            if (!rows.moveToFirst()) {
+                null
+            } else {
+                val status = rows.getString(1)
+                val currentTotal = rows.getLong(3)
+                val payload = runCatching {
+                    JSONObject(rows.getString(5))
+                }.getOrElse { JSONObject() }
+                val base = payload.optLong(
+                    "base_total_minor",
+                    if (
+                        status == STATUS_SERVER_OPEN ||
+                        status == STATUS_EDGE_OPEN ||
+                        status == STATUS_HELD ||
+                        status == STATUS_SENT ||
+                        status == STATUS_EDGE_HELD ||
+                        status == STATUS_EDGE_SENT
+                    ) currentTotal else 0L,
+                )
+
+                TableBillState(
+                    serverId = if (rows.isNull(0)) null else rows.getString(0),
+                    status = status,
+                    version = rows.getLong(2),
+                    baseTotalMinor = base,
+                    pendingTotalMinor = if (
+                        status == STATUS_DRAFT ||
+                        status == STATUS_QUEUED ||
+                        status == STATUS_RETRY
+                    ) currentTotal else 0L,
+                    currency = rows.getString(4),
+                    reconciliationError = payload
+                        .optString("reconciliation_error")
+                        .takeIf { it.isNotBlank() },
+                )
+            }
+        }
 
     fun menu(locationId: Long, search: String = ""): List<PosMenuItemRow> {
         val term = search.trim()
