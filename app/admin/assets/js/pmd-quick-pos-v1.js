@@ -1116,9 +1116,12 @@
           (selectedQuantity > 0 ? ' is-selected' : '') + '"' +
           ' data-qpos-product="' + esc(item.id) + '"' +
           (orderable ? '' : ' disabled') + '>' +
+          /* PMD_QPOS_PLACEHOLDER_LOGO_V34
+           * Match the Menu page empty-photo treatment: a neutral preview
+           * with the monochrome PayMyDine brand mark. */
           (image
             ? '<div class="pmd-qpos-product-image" style="background-image:url(&quot;' + esc(image) + '&quot;)"></div>'
-            : '<div class="pmd-qpos-product-image"></div>') +
+            : '<div class="pmd-qpos-product-image is-placeholder" aria-hidden="true"></div>') +
           (item.is_bestseller ? '<span class="pmd-qpos-product-badge">Popular</span>' : '') +
           (selectedQuantity > 0
             ? '<span class="pmd-qpos-product-count" data-qpos-product-count aria-label="' +
