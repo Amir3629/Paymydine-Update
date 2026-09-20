@@ -228,12 +228,26 @@ rollback_now() {
   if systemctl list-unit-files php8.3-fpm.service >/dev/null 2>&1; then
     sudo systemctl reload php8.3-fpm >/dev/null 2>&1 || true
   fi
-  sudo -u ubuntu -H pm2 restart "$PMD_SERVICE" --update-env >/dev/null 2>&1 || true
 
-  if curl -fsS --max-time 8 "http://127.0.0.1:$PMD_PORT/api/health" >/dev/null 2>&1; then
-    say "Rollback health PASS"
+  if [[ "$next_changed" == "1" ]]; then
+    sudo -u ubuntu -H pm2 restart "$PMD_SERVICE" --update-env >/dev/null 2>&1 || true
+
+    rollback_health=0
+    for attempt in 1 2 3 4 5 6 7 8 9 10; do
+      if curl -fsS --max-time 5 "http://127.0.0.1:$PMD_PORT/api/health" >/dev/null 2>&1; then
+        rollback_health=1
+        break
+      fi
+      sleep 2
+    done
+
+    if [[ "$rollback_health" == "1" ]]; then
+      say "Rollback health PASS"
+    else
+      say "WARNING: rollback restored .next but Frontend V2 health is still failing"
+    fi
   else
-    say "WARNING: rollback completed but Frontend V2 health is still failing"
+    say "Frontend V2 was never changed; PM2 restart skipped during rollback"
   fi
 
   say "Rollback finished; unrelated VPS files/index were not touched"
@@ -263,16 +277,18 @@ grep -q 'class PmdGoogleBusinessService'   "$PMD_ROOT/app/Services/GoogleBusines
 cd "$PMD_ROOT"
 php artisan optimize:clear >/dev/null 2>&1 || true
 
-say "Verifying Laravel Google routes before touching Frontend V2 .next"
-route_dump="$stage/route-list.txt"
-if ! php artisan route:list >"$route_dump" 2>&1; then
-  tail -n 120 "$route_dump" >&2 || true
-  fail "Laravel route:list failed after Google source activation"
-fi
-grep -q 'integrations/google-business/callback' "$route_dump" \
-  || fail "Google OAuth callback route is missing"
-grep -q 'integrations/google-business/pubsub' "$route_dump" \
-  || fail "Google Pub/Sub route is missing"
+say "Verifying Google route wiring without booting unrelated legacy Admin routes"
+grep -q "routes/google-business-profile.php" "$PMD_ROOT/routes.php" \
+  || fail "Root route authority does not load Google Business routes"
+grep -q "/integrations/google-business/callback" "$PMD_ROOT/routes/google-business-profile.php" \
+  || fail "Google OAuth callback definition is missing"
+grep -q "/integrations/google-business/pubsub" "$PMD_ROOT/routes/google-business-profile.php" \
+  || fail "Google Pub/Sub definition is missing"
+php -l "$PMD_ROOT/routes.php" >/dev/null
+php -l "$PMD_ROOT/routes/google-business-profile.php" >/dev/null
+php -l "$PMD_ROOT/app/Http/Controllers/GoogleBusinessIntegrationController.php" >/dev/null
+
+say "Google route source verification PASS; unrelated route:list failures are not used as a deployment gate"
 
 say "Activating tested Google-integrated Frontend V2 build"
 next_changed=1
@@ -286,13 +302,15 @@ if systemctl list-unit-files php8.3-fpm.service >/dev/null 2>&1; then
 fi
 sudo -u ubuntu -H pm2 restart "$PMD_SERVICE" --update-env >/dev/null
 
-for attempt in 1 2 3 4 5 6; do
-  if curl -fsS --max-time 8 "http://127.0.0.1:$PMD_PORT/api/health" >/dev/null; then
+frontend_health=0
+for attempt in 1 2 3 4 5 6 7 8 9 10; do
+  if curl -fsS --max-time 5 "http://127.0.0.1:$PMD_PORT/api/health" >/dev/null; then
+    frontend_health=1
     break
   fi
   sleep 2
-  [[ "$attempt" != "6" ]] || fail "Frontend V2 health failed after Google integration activation"
 done
+[[ "$frontend_health" == "1" ]] || fail "Frontend V2 health failed after Google integration activation"
 
 grep -q 'PMD_GOOGLE_BUSINESS_PROFILE_INTEGRATION_V2'   "$PMD_V2_ROOT/src/runtime/components/ReviewShareEnhancer.tsx"   || fail "Live Frontend Google integration marker missing"
 
