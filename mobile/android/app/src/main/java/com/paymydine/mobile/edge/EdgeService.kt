@@ -22,6 +22,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
@@ -212,7 +213,7 @@ class EdgeService : Service() {
         var registered = false
         var heartbeatAt = 0L
 
-        while (isActive && isEnabled(this@EdgeService)) {
+        while (currentCoroutineContext().isActive && isEnabled(this@EdgeService)) {
             if (app.connectivity.online.value) {
                 if (!registered) {
                     registered = runCatching {
