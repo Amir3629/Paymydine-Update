@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\PmdMobileBootstrapController;
+use App\Http\Controllers\PmdMobileKdsController;
 use App\Http\Controllers\PmdMobilePairController;
 use App\Http\Controllers\PmdMobileSyncController;
 use Illuminate\Support\Facades\Route;
@@ -26,6 +27,7 @@ App::before(function () {
         'prefix' => config('system.adminUri', 'admin').'/api/mobile/v1',
     ], function () {
         Route::get('bootstrap', PmdMobileBootstrapController::class);
+        Route::get('kds/snapshot', [PmdMobileKdsController::class, 'snapshot']);
         Route::get('sync/events', [PmdMobileSyncController::class, 'events']);
 
         Route::post('pair/exchange', [PmdMobilePairController::class, 'exchange'])
