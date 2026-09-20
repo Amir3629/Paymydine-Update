@@ -1300,7 +1300,10 @@
     if (order && order.guest_count) {
       state.guestCount = Math.max(1, num(order.guest_count, 1));
     }
-    renderCart();
+    /* PMD_QPOS_FAST_ORDER_SWITCH_V41
+     * Order-number switching uses already-loaded table data. Do not rebuild
+     * the unsent cart or product grid just to activate a different check. */
+    renderCart({orderSwitch: true});
   }
 
   /* PMD_QPOS_SIMPLIFIED_CHECKS_V14 */
@@ -1327,16 +1330,36 @@ function renderOpenChecks() {
       );
     });
 
-    /* PMD_QPOS_STABLE_CHECK_DOM_V39
-     * Avoid replacing the check-chip DOM when its markup has not changed. */
-    var nextHtml = rows.join('');
-    if (box.innerHTML !== nextHtml) {
-      box.innerHTML = nextHtml;
+    /* PMD_QPOS_CHECK_CHIP_REUSE_V41
+     * Reuse existing check buttons when the check set is unchanged. */
+    var mounted = Array.prototype.slice.call(
+      box.querySelectorAll('[data-qpos-check]')
+    );
+    var canReuse =
+      mounted.length === state.openOrders.length &&
+      mounted.every(function (button, index) {
+        return Number(button.getAttribute('data-qpos-check') || 0) ===
+          orderId(state.openOrders[index]);
+      });
+
+    if (canReuse) {
+      mounted.forEach(function (button, index) {
+        var order = state.openOrders[index];
+        var id = orderId(order);
+        button.classList.toggle(
+          'is-active',
+          Number(state.activeOrderId) === id
+        );
+        button.textContent = '#' + id + ' · ' + money(orderTotal(order));
+      });
+    } else {
+      box.innerHTML = rows.join('');
+      mounted = Array.prototype.slice.call(
+        box.querySelectorAll('[data-qpos-check]')
+      );
     }
 
-    /* PMD_QPOS_CHECK_LOOP_FIX_V40
-     * Use the query-all helper here because forEach needs a collection. */
-    Array.prototype.slice.call(box.querySelectorAll('[data-qpos-check]')).forEach(function (button) {
+    mounted.forEach(function (button) {
       button.onclick = function () {
         var value = Number(button.getAttribute('data-qpos-check') || 0);
         if (value > 0) selectOrder(value);
@@ -1442,13 +1465,20 @@ function renderOpenChecks() {
     renderCart();
   }
 
-  function renderCart() {
+  function renderCart(options) {
+    /* PMD_QPOS_RENDER_CART_FAST_PATH_V41 */
+    var renderOptions = options || {};
+    var orderSwitchOnly = !!renderOptions.orderSwitch;
+
     renderOpenChecks();
     renderSentItems();
-    syncProductSelection();
+
+    if (!orderSwitchOnly) {
+      syncProductSelection();
+    }
 
     var list = $('[data-qpos-cart-list]');
-    if (list) {
+    if (list && !orderSwitchOnly) {
       if (!state.cart.length) {
         list.innerHTML =
           '<div class="pmd-qpos-empty-cart">' +
@@ -1513,7 +1543,10 @@ function renderOpenChecks() {
     var order = activeOrder();
     var title = $('[data-qpos-check-title]');
     if (title) {
-      if (order) {
+      if (state.tableSwitching && state.selectedTable) {
+        title.textContent =
+          compactTableLabel(state.selectedTable) + ' · Loading';
+      } else if (order) {
         title.textContent = 'Order #' + orderId(order);
       } else if (state.serviceMode === 'takeaway') {
         title.textContent = 'Pickup';
@@ -1550,13 +1583,15 @@ function renderOpenChecks() {
     if (floorMapOpen) floorMapOpen.onclick = openFloorMap;
     if (floorMapClose) floorMapClose.onclick = closeFloorMap;
 
+    /* PMD_QPOS_SINGLE_FLOOR_BIND_V41
+     * renderCart() runs frequently. Bind these listeners only once. */
     var exactFloorWorkspace = $('[data-qpos-floor-map-workspace]');
-    if (exactFloorWorkspace) {
-      /*
-       * Capture before the Dashboard Floor's normal selection handler. The
-       * table card, colors, zoom, floor switcher and all controls are still
-       * canonical; only the table-open destination is POS-specific.
-       */
+    if (
+      exactFloorWorkspace &&
+      !exactFloorWorkspace.__pmdQposTableOpenBoundV41
+    ) {
+      exactFloorWorkspace.__pmdQposTableOpenBoundV41 = true;
+
       exactFloorWorkspace.addEventListener('click', function (event) {
         var tableNode =
           event.target &&
@@ -1579,24 +1614,28 @@ function renderOpenChecks() {
       }, true);
     }
 
-    window.addEventListener('pmd:floor:changed', function (event) {
-      var detail = event && event.detail ? event.detail : {};
-      var floorId = String(detail.floor_id || '');
+    if (!window.__pmdQposFloorChangedBoundV41) {
+      window.__pmdQposFloorChangedBoundV41 = true;
 
-      if (
-        !floorId ||
-        !state.floors.some(function (floor) {
-          return String(floor.id || '') === floorId;
-        })
-      ) {
-        return;
-      }
+      window.addEventListener('pmd:floor:changed', function (event) {
+        var detail = event && event.detail ? event.detail : {};
+        var floorId = String(detail.floor_id || '');
 
-      state.activeFloorId = floorId;
-      rememberActiveFloor();
-      renderContext();
-      renderTables();
-    });
+        if (
+          !floorId ||
+          !state.floors.some(function (floor) {
+            return String(floor.id || '') === floorId;
+          })
+        ) {
+          return;
+        }
+
+        state.activeFloorId = floorId;
+        rememberActiveFloor();
+        renderContext();
+        renderTables();
+      });
+    }
 
 
     var send = $('[data-qpos-send]');
@@ -1619,6 +1658,7 @@ function renderOpenChecks() {
         (state.boot && state.boot.permissions && state.boot.permissions.payments) !== false;
 
       pay.disabled =
+        state.tableSwitching ||
         !!state.pendingSend ||
         state.submitting ||
         !canPayPermission ||
