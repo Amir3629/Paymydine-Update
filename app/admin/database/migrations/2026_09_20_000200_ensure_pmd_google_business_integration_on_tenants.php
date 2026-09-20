@@ -107,6 +107,12 @@ return new class extends Migration
                 $table->bigIncrements('id');
                 $table->unsignedInteger('location_id')->unique();
                 $table->string('tenant_host', 191)->nullable()->index();
+                $table->text('oauth_client_id_encrypted')->nullable();
+                $table->text('oauth_client_secret_encrypted')->nullable();
+                $table->text('places_api_key_encrypted')->nullable();
+                $table->string('pubsub_topic', 500)->nullable();
+                $table->text('pubsub_token_encrypted')->nullable();
+                $table->timestamp('credentials_updated_at')->nullable();
                 $table->string('google_account_name', 191)->nullable()->index();
                 $table->string('google_account_display_name', 191)->nullable();
                 $table->string('google_location_name', 191)->nullable()->index();
