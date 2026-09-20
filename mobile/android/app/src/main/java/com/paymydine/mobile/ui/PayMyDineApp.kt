@@ -35,12 +35,14 @@ import com.paymydine.mobile.edge.EdgeService
 import com.paymydine.mobile.network.MobileApiClient
 import com.paymydine.mobile.network.TransportKind
 import com.paymydine.mobile.network.TransportRouter
+import com.paymydine.mobile.security.PairingPkce
 import com.paymydine.mobile.sync.SyncEngine
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.net.URI
 
 @Composable
 fun PayMyDineApp(app: PayMyDineApplication) {
@@ -138,14 +140,37 @@ fun PayMyDineApp(app: PayMyDineApplication) {
             val uri = Uri.parse(rawLink)
             val exchange = uri.getQueryParameter("exchange").orEmpty()
             val tenantBase = uri.getQueryParameter("tenant").orEmpty()
+            val codeVerifier = app.credentials.pairingVerifier().orEmpty()
+            val expectedHost = app.credentials.tenantHost()
+                ?.trim()
+                ?.lowercase()
+                .orEmpty()
+            val callbackHost = runCatching {
+                URI(tenantBase).host?.lowercase().orEmpty()
+            }.getOrDefault("")
 
-            require(exchange.length == 64 && tenantBase.isNotBlank()) {
-                "Pairing callback is incomplete."
+            require(
+                exchange.length == 64 &&
+                    tenantBase.isNotBlank() &&
+                    codeVerifier.length in 43..128 &&
+                    expectedHost.isNotBlank() &&
+                    callbackHost == expectedHost
+            ) {
+                "Pairing callback is incomplete or belongs to another restaurant."
             }
 
             val summary = withContext(Dispatchers.IO) {
-                val paired = api.exchange(tenantBase, exchange)
+                val paired = api.exchange(
+                    tenantBase,
+                    exchange,
+                    codeVerifier,
+                )
 
+                require(paired.tenantHost == expectedHost) {
+                    "Pairing response belongs to another restaurant."
+                }
+
+                app.credentials.clearPairingVerifier()
                 app.credentials.setTenantHost(paired.tenantHost)
                 app.credentials.setDeviceId(paired.deviceId)
                 app.credentials.putDeviceToken(paired.deviceToken)
@@ -241,12 +266,27 @@ fun PayMyDineApp(app: PayMyDineApplication) {
                             onClick = {
                                 val host = app.credentials.tenantHost()
                                     ?: return@OutlinedButton
-                                context.startActivity(
-                                    Intent(
-                                        Intent.ACTION_VIEW,
-                                        Uri.parse("https://$host/admin/mobile/pair/start"),
-                                    ),
-                                )
+                                val verifier = PairingPkce.newVerifier()
+                                val challenge = PairingPkce.challenge(verifier)
+                                app.credentials.putPairingVerifier(verifier)
+                                val pairingUrl = Uri.parse(
+                                    "https://$host/admin/mobile/pair/start",
+                                ).buildUpon()
+                                    .appendQueryParameter(
+                                        "code_challenge",
+                                        challenge,
+                                    )
+                                    .build()
+
+                                runCatching {
+                                    context.startActivity(
+                                        Intent(Intent.ACTION_VIEW, pairingUrl),
+                                    )
+                                }.onFailure {
+                                    app.credentials.clearPairingVerifier()
+                                    lastError =
+                                        "No browser is available for secure login."
+                                }
                             },
                         ) {
                             Text("Device")
@@ -331,18 +371,28 @@ fun PayMyDineApp(app: PayMyDineApplication) {
                     },
                     onConnect = {
                         val host = "${tenantCode}.paymydine.com"
+                        val verifier = PairingPkce.newVerifier()
+                        val challenge = PairingPkce.challenge(verifier)
                         app.credentials.setTenantHost(host)
+                        app.credentials.putPairingVerifier(verifier)
                         pairingStatus = "Opening PayMyDine security..."
                         lastError = null
 
+                        val pairingUrl = Uri.parse(
+                            "https://$host/admin/mobile/pair/start",
+                        ).buildUpon()
+                            .appendQueryParameter(
+                                "code_challenge",
+                                challenge,
+                            )
+                            .build()
+
                         runCatching {
                             context.startActivity(
-                                Intent(
-                                    Intent.ACTION_VIEW,
-                                    Uri.parse("https://$host/admin/mobile/pair/start"),
-                                ),
+                                Intent(Intent.ACTION_VIEW, pairingUrl),
                             )
                         }.onFailure {
+                            app.credentials.clearPairingVerifier()
                             pairingStatus = "Pairing failed"
                             lastError = "No browser is available for secure login."
                         }
