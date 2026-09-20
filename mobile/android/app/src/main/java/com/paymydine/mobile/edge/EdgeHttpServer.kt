@@ -413,6 +413,7 @@ class EdgeHttpServer(
             413 -> "Payload Too Large"
             414 -> "URI Too Long"
             422 -> "Unprocessable Entity"
+            425 -> "Too Early"
             429 -> "Too Many Requests"
             431 -> "Request Header Fields Too Large"
             503 -> "Service Unavailable"
