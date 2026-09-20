@@ -677,9 +677,13 @@
       tableActions.hidden = !state.selectedTable && !pickupSelected;
     }
 
+    /* PMD_QPOS_TRANSFER_COMMIT_ACTION_LOCK_V43
+     * Once an optimistic move is painted, keep table actions locked until the
+     * server transaction confirms it. */
     if (cleaning) {
       cleaning.disabled =
         directMove ||
+        !!state.transfer.submitting ||
         pickupSelected ||
         !state.selectedTable ||
         selectedCleaning;
@@ -688,6 +692,7 @@
       move.disabled = directMove
         ? !!state.transfer.submitting
         : (
+            !!state.transfer.submitting ||
             pickupSelected ||
             !state.selectedTable ||
             !Number(state.activeOrderId || 0) ||
@@ -700,6 +705,7 @@
     if (free) {
       free.disabled =
         directMove ||
+        !!state.transfer.submitting ||
         pickupSelected ||
         !state.selectedTable;
     }
