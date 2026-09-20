@@ -123,24 +123,38 @@ class BootstrapRepository(private val database: PmdDatabase) {
                     .put("status_name", order.optString("status_name"))
                     .put("settlement_status", order.optString("settlement_status", "unpaid"))
 
-                db.insertWithOnConflict(
+                val localShadowId = "server:$orderId"
+                val hasPendingLocalChange = db.query(
                     "pmd_orders",
+                    arrayOf("id"),
+                    "(id = ? OR server_id = ?) AND dirty = 1",
+                    arrayOf(localShadowId, orderId.toString()),
                     null,
-                    ContentValues().apply {
-                        put("id", "server:$orderId")
-                        put("location_id", locationId)
-                        put("version", version)
-                        put("server_id", orderId.toString())
-                        put("table_id", tableId.toString())
-                        put("status", STATUS_SERVER_OPEN)
-                        put("total_minor", totalMinor)
-                        put("currency", currency)
-                        put("payload_json", state.toString())
-                        put("dirty", 0)
-                        put("updated_at_ms", now)
-                    },
-                    SQLiteDatabase.CONFLICT_REPLACE,
-                )
+                    null,
+                    null,
+                    "1",
+                ).use { it.moveToFirst() }
+
+                if (!hasPendingLocalChange) {
+                    db.insertWithOnConflict(
+                        "pmd_orders",
+                        null,
+                        ContentValues().apply {
+                            put("id", localShadowId)
+                            put("location_id", locationId)
+                            put("version", version)
+                            put("server_id", orderId.toString())
+                            put("table_id", tableId.toString())
+                            put("status", STATUS_SERVER_OPEN)
+                            put("total_minor", totalMinor)
+                            put("currency", currency)
+                            put("payload_json", state.toString())
+                            put("dirty", 0)
+                            put("updated_at_ms", now)
+                        },
+                        SQLiteDatabase.CONFLICT_REPLACE,
+                    )
+                }
 
                 // A device that later becomes Restaurant Edge must already know
                 // existing Cloud orders, otherwise it would reject safe offline
@@ -161,23 +175,44 @@ class BootstrapRepository(private val database: PmdDatabase) {
                     .put("created_at", serverUpdatedAt)
                     .put("status_updated_at", serverUpdatedAt)
 
-                db.insertWithOnConflict(
+                val existingEdgeStatus = db.query(
                     "pmd_edge_orders",
+                    arrayOf("status"),
+                    "aggregate_id = ?",
+                    arrayOf(aggregateId),
                     null,
-                    ContentValues().apply {
-                        put("aggregate_id", aggregateId)
-                        put("location_id", locationId)
-                        put("table_id", tableId.toString())
-                        put("status", EDGE_STATUS_CLOUD_OPEN)
-                        put("version", version)
-                        put("total_minor", totalMinor)
-                        put("currency", currency)
-                        put("payload_json", edgeState.toString())
-                        put("created_at_ms", now)
-                        put("updated_at_ms", now)
-                    },
-                    SQLiteDatabase.CONFLICT_REPLACE,
-                )
+                    null,
+                    null,
+                    "1",
+                ).use {
+                    if (it.moveToFirst()) it.getString(0) else null
+                }
+
+                // Never overwrite provisional Edge state during reconnect.
+                // Pending Edge commands still need their exact local version and
+                // accumulated items until Cloud reconciliation completes.
+                if (
+                    existingEdgeStatus == null ||
+                    existingEdgeStatus == EDGE_STATUS_CLOUD_OPEN
+                ) {
+                    db.insertWithOnConflict(
+                        "pmd_edge_orders",
+                        null,
+                        ContentValues().apply {
+                            put("aggregate_id", aggregateId)
+                            put("location_id", locationId)
+                            put("table_id", tableId.toString())
+                            put("status", EDGE_STATUS_CLOUD_OPEN)
+                            put("version", version)
+                            put("total_minor", totalMinor)
+                            put("currency", currency)
+                            put("payload_json", edgeState.toString())
+                            put("created_at_ms", now)
+                            put("updated_at_ms", now)
+                        },
+                        SQLiteDatabase.CONFLICT_REPLACE,
+                    )
+                }
             }
 
             for (index in 0 until stations.length()) {
