@@ -49,10 +49,19 @@ release_sha="$(git rev-parse "$release_ref")"
 live_sha="$(git rev-parse HEAD)"
 
 stamp="$(date -u +%Y%m%d_%H%M%S)"
-stage="$PMD_ROOT/storage/pmd-google-business-overlay-stage-$stamp"
+# IMPORTANT: stage must live OUTSIDE the PayMyDine Git worktree.
+# Running git apply from a nested directory inside the repo can ignore paths
+# that are outside that nested directory while still exiting successfully.
+stage="/tmp/pmd-google-business-overlay-stage-$stamp"
 backup="$PMD_ROOT/storage/pmd-google-business-overlay-backup-$stamp"
 patch_file="$stage/google-business.patch"
+rm -rf "$stage"
 mkdir -p "$stage/tree" "$backup/files"
+
+cleanup_stage() {
+  rm -rf "$stage"
+}
+trap cleanup_stage EXIT
 
 say "Live HEAD: $live_sha"
 say "Patch source: $base_sha -> $release_sha"
@@ -201,7 +210,7 @@ rollback_now() {
   say "Rollback finished"
   exit "$rc"
 }
-trap 'rc=$?; if [[ "$activation" == "1" && "$rc" != "0" ]]; then rollback_now "$rc"; fi' EXIT
+trap 'rc=$?; if [[ "$activation" == "1" && "$rc" != "0" ]]; then rollback_now "$rc"; else cleanup_stage; fi' EXIT
 
 activation=1
 
@@ -245,6 +254,7 @@ grep -q 'class PmdGoogleBusinessService'   "$PMD_ROOT/app/Services/GoogleBusines
 
 activation=0
 trap - EXIT
+cleanup_stage
 
 say "DEPLOY COMPLETE"
 say "Only Google integration target files and Frontend V2 .next were changed."
