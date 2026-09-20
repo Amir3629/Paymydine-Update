@@ -26,6 +26,7 @@ data class EdgePeer(
     val locationId: Long,
     val profile: JSONObject,
     val expiresAtMs: Long,
+    val cloudValidatedAtMs: Long = 0,
 ) {
     fun surfaces(): Set<String> {
         val array = profile.optJSONObject("identity")
@@ -77,26 +78,33 @@ class EdgeAuthority(
                 locationId = rows.getLong(rows.getColumnIndexOrThrow("location_id")),
                 profile = JSONObject(rows.getString(rows.getColumnIndexOrThrow("profile_json"))),
                 expiresAtMs = rows.getLong(rows.getColumnIndexOrThrow("profile_expires_at_ms")),
+                cloudValidatedAtMs = rows.getLong(
+                    rows.getColumnIndexOrThrow("cloud_validated_at_ms"),
+                ),
             )
         }
 
-        if (
-            cached != null
-            && cached.locationId == localLocation
-            && cached.expiresAtMs > now
-        ) {
+        val cachedIsUsable =
+            cached != null &&
+                cached.locationId == localLocation &&
+                cached.expiresAtMs > now
+        val recentlyValidated =
+            cachedIsUsable &&
+                cached!!.cloudValidatedAtMs > 0 &&
+                now - cached.cloudValidatedAtMs <= CLOUD_REVALIDATE_MS
+
+        if (cachedIsUsable && (!app.connectivity.online.value || recentlyValidated)) {
+            val encrypted = vault.encrypt(token)
             database.writableDatabase.update(
                 "pmd_edge_peers",
                 ContentValues().apply {
-                    put("token_ciphertext", vault.encrypt(token))
+                    put("token_ciphertext", encrypted)
                     put("last_seen_at_ms", now)
                 },
                 "token_hash = ?",
                 arrayOf(tokenHash),
             )
-            return cached.copy(
-                tokenCiphertext = vault.encrypt(token),
-            )
+            return cached!!.copy(tokenCiphertext = encrypted)
         }
 
         if (!app.connectivity.online.value) {
@@ -117,6 +125,19 @@ class EdgeAuthority(
                 error.message ?: "Cloud device verification failed.",
             )
         } catch (error: IOException) {
+            if (cachedIsUsable) {
+                val encrypted = vault.encrypt(token)
+                database.writableDatabase.update(
+                    "pmd_edge_peers",
+                    ContentValues().apply {
+                        put("token_ciphertext", encrypted)
+                        put("last_seen_at_ms", now)
+                    },
+                    "token_hash = ?",
+                    arrayOf(tokenHash),
+                )
+                return cached!!.copy(tokenCiphertext = encrypted)
+            }
             throw EdgeHttpException(503, "Cloud device verification is unavailable.")
         }
 
@@ -150,6 +171,7 @@ class EdgeAuthority(
                 put("location_id", locationId)
                 put("profile_json", profile.toString())
                 put("profile_expires_at_ms", expiresAt)
+                put("cloud_validated_at_ms", now)
                 put("last_seen_at_ms", now)
             },
             SQLiteDatabase.CONFLICT_REPLACE,
@@ -162,6 +184,7 @@ class EdgeAuthority(
             locationId = locationId,
             profile = profile,
             expiresAtMs = expiresAt,
+            cloudValidatedAtMs = now,
         )
     }
 
@@ -384,6 +407,27 @@ class EdgeAuthority(
     ): JSONObject {
         val peer = authenticate(rawBearer)
         requireSurface(peer, "kds")
+
+        // When WAN is healthy, let the connecting KDS peer refresh the Edge's
+        // canonical ticket cache using its own Cloud-authorized identity. This
+        // means a Cashier-hosted Edge still has a fresh KDS snapshot before a
+        // later WAN outage, without granting the Cashier extra KDS authority.
+        if (app.connectivity.online.value) {
+            val tenantHost = app.credentials.tenantHost()
+            if (!tenantHost.isNullOrBlank()) {
+                runCatching {
+                    cloudApi.kdsSnapshot(
+                        tenantHost,
+                        rawBearer,
+                        stationSlug,
+                    )
+                }.onSuccess { snapshot ->
+                    runCatching {
+                        app.kdsRepository.applySnapshot(snapshot)
+                    }
+                }
+            }
+        }
 
         val statuses = kdsStatuses()
         val station = stationSlug
@@ -1489,5 +1533,6 @@ class EdgeAuthority(
         private const val STATUS_EDGE_APPLIED = "EDGE_APPLIED"
         private const val STATUS_CLOUD_APPLIED = "CLOUD_APPLIED"
         private const val STATUS_CLOUD_REJECTED = "CLOUD_REJECTED"
+        private const val CLOUD_REVALIDATE_MS = 60_000L
     }
 }
