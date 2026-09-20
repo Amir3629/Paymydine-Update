@@ -1471,7 +1471,15 @@
     var query = String(filterState.search || '').trim().toLocaleLowerCase();
     var shown = 0;
     node.querySelectorAll('[data-pmd-menu-card]').forEach(function (card) {
-      var searchOk = !query || String(card.dataset.search || '').indexOf(query) !== -1;
+      var numberQuery = query.replace(/^#/, '');
+      var numberOk =
+        card.dataset.itemType === 'food' &&
+        numberQuery !== '' &&
+        String(card.dataset.menuNumber || '') === numberQuery;
+      var searchOk =
+        !query ||
+        String(card.dataset.search || '').indexOf(query) !== -1 ||
+        numberOk;
       var categoryOk = cardHasCategory(card, filterState.category);
       var stockOut = card.dataset.stockOut === '1';
       var stockOk = filterState.stock === 'all' || (filterState.stock === 'out' ? stockOut : !stockOut);
@@ -1500,6 +1508,22 @@
       ? '[data-pmd-menu-card][data-item-type="combo"]'
       : '[data-pmd-menu-card][data-item-type="food"]';
     return Array.from(node.querySelectorAll(selector));
+  }
+
+  /* PMD_MENU_LIVE_NUMBER_V24
+   * Food numbers follow the real DOM/order authority while Edit order moves
+   * cards. No independent number is stored in the database. */
+  function syncFoodNumbers() {
+    sortTargetCards('food').forEach(function (card, index) {
+      var number = index + 1;
+      card.dataset.menuNumber = String(number);
+
+      var badge = card.querySelector('[data-pmd-menu-number]');
+      if (badge) {
+        badge.textContent = String(number);
+        badge.setAttribute('aria-label', 'Food number ' + String(number));
+      }
+    });
   }
 
   function categorySortButtons() {
@@ -2314,10 +2338,19 @@
     } else {
       ids.forEach(function (id) { if (byId[id]) grid.appendChild(byId[id]); });
     }
+
+    if (kind === 'food') {
+      syncFoodNumbers();
+    }
   }
 
   async function persistSortOrder() {
     if (!sortMode || sortSaving) return;
+
+    if (sortKind === 'food') {
+      syncFoodNumbers();
+    }
+
     var ids = capturePersistSortOrder(sortKind);
     if (!ids.length) return;
     sortSaving = true;
@@ -4328,6 +4361,7 @@
   installNotificationOnce();
   wireCardImages(root);
   updateHeaderState();
+  syncFoodNumbers();
   syncSortMode();
 
   (function openFromRedirect() {
