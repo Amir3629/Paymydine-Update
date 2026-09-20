@@ -2084,6 +2084,7 @@ function renderOpenChecks() {
     }
 
     var directSide = !!state.transfer.directSide;
+    var moveScope = state.transfer.scope === 'table' ? 'table' : 'order';
     var sourceTable = state.tables.find(function (table) {
       return Number(table.id) === sourceId;
     }) || null;
@@ -2095,31 +2096,59 @@ function renderOpenChecks() {
     state.transfer.submitting = true;
 
     if (directSide && targetTable) {
-      /* PMD_QPOS_OPTIMISTIC_DIRECT_MOVE_V43
-       * The destination tap paints the completed move immediately. The server
-       * transaction still remains authoritative; on failure we restore the
-       * exact source state and keep Move mode open for another destination. */
-      var movedOrder = activeOrder();
+      /* PMD_QPOS_OPTIMISTIC_WHOLE_TABLE_MOVE_V44
+       * Both single-check and whole-table direct moves paint immediately.
+       * Server authority is unchanged; any failure restores the exact source
+       * state and re-enters destination-selection mode with the same scope. */
       var targetCached = tableCacheGet(targetId);
       var targetOrders =
-        targetCached && Array.isArray(targetCached.open_orders)
-          ? targetCached.open_orders.slice()
+        moveScope === 'table'
+          ? []
+          : (
+              targetCached && Array.isArray(targetCached.open_orders)
+                ? targetCached.open_orders.slice()
+                : []
+            );
+      var movedOrders =
+        moveScope === 'table'
+          ? state.openOrders.slice()
           : [];
 
-      targetOrders = targetOrders.filter(function (order) {
-        return orderId !== Number(order && (order.order_id || order.id) || 0);
-      });
+      if (moveScope === 'order') {
+        var movedOrder = activeOrder();
 
-      if (movedOrder) {
-        targetOrders.unshift(movedOrder);
-      } else {
-        targetOrders.unshift({
-          order_id: orderId,
-          total: existingTotal(),
-          guest_count: state.guestCount,
-          items: []
+        targetOrders = targetOrders.filter(function (order) {
+          return orderId !== Number(
+            order && (order.order_id || order.id) || 0
+          );
         });
+
+        if (movedOrder) {
+          movedOrders.push(movedOrder);
+        } else {
+          movedOrders.push({
+            order_id: orderId,
+            total: existingTotal(),
+            guest_count: state.guestCount,
+            items: []
+          });
+        }
       }
+
+      movedOrders.forEach(function (order) {
+        var movedId = Number(
+          order && (order.order_id || order.id) || 0
+        );
+
+        targetOrders = targetOrders.filter(function (targetOrder) {
+          return movedId !== Number(
+            targetOrder &&
+            (targetOrder.order_id || targetOrder.id) || 0
+          );
+        });
+
+        targetOrders.push(order);
+      });
 
       optimisticSnapshot = {
         sourceStatus: sourceTable ? sourceTable.status : null,
@@ -2129,14 +2158,19 @@ function renderOpenChecks() {
         tableData: state.tableData,
         openOrders: state.openOrders.slice(),
         activeOrderId: state.activeOrderId,
-        forceNewCheck: state.forceNewCheck
+        forceNewCheck: state.forceNewCheck,
+        moveScope: moveScope
       };
 
       if (sourceTable) {
         sourceTable.status =
-          optimisticSnapshot.openOrders.length > 1
-            ? 'occupied'
-            : 'available';
+          moveScope === 'table'
+            ? 'cleaning'
+            : (
+                optimisticSnapshot.openOrders.length > 1
+                  ? 'occupied'
+                  : 'available'
+              );
       }
       targetTable.status = 'occupied';
 
@@ -2146,7 +2180,21 @@ function renderOpenChecks() {
       );
       state.tableData = targetCached || null;
       state.openOrders = targetOrders;
-      state.activeOrderId = orderId;
+      state.activeOrderId =
+        moveScope === 'table'
+          ? (
+              Number(optimisticSnapshot.activeOrderId || 0) ||
+              (
+                targetOrders.length
+                  ? Number(
+                      targetOrders[0].order_id ||
+                      targetOrders[0].id ||
+                      0
+                    )
+                  : null
+              )
+            )
+          : orderId;
       state.forceNewCheck = false;
       state.cart = [];
       state.pendingSend = null;
@@ -2159,7 +2207,11 @@ function renderOpenChecks() {
       state.transfer.open = false;
       state.transfer.directSide = false;
       state.transfer.targetTableId = null;
-      root.classList.remove('is-direct-order-move');
+      state.transfer.choiceOpen = false;
+      root.classList.remove(
+        'is-direct-order-move',
+        'is-move-scope-choice-open'
+      );
       root.classList.add('is-transfer-committing');
 
       renderTables();
@@ -2167,8 +2219,16 @@ function renderOpenChecks() {
       renderCart({orderSwitch: true});
 
       toast(
-        'Moving #' + String(orderId) +
-        ' to table ' + compactTableLabel(targetTable) + '…'
+        moveScope === 'table'
+          ? (
+              'Moving all ' + String(movedOrders.length) +
+              (movedOrders.length === 1 ? ' check' : ' checks') +
+              ' to table ' + compactTableLabel(targetTable) + '…'
+            )
+          : (
+              'Moving #' + String(orderId) +
+              ' to table ' + compactTableLabel(targetTable) + '…'
+            )
       );
     } else if (directSide) {
       renderContext();
@@ -2259,9 +2319,11 @@ function renderOpenChecks() {
         state.forceNewCheck = optimisticSnapshot.forceNewCheck;
 
         state.transfer.open = true;
-        state.transfer.scope = 'order';
+        state.transfer.scope =
+          optimisticSnapshot.moveScope === 'table' ? 'table' : 'order';
         state.transfer.targetTableId = null;
         state.transfer.directSide = true;
+        state.transfer.choiceOpen = false;
         root.classList.add('is-direct-order-move');
 
         renderTables();
