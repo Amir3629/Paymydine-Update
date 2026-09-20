@@ -853,7 +853,7 @@ class LocalPosRepository(private val database: PmdDatabase) {
                 version = version,
             )
         }
-        localId ?: return
+        val resolvedLocalId = localId ?: return
 
         val totalMinor = moneyToMinor(
             order.optDouble("order_total", 0.0),
@@ -866,7 +866,7 @@ class LocalPosRepository(private val database: PmdDatabase) {
                 "pmd_orders",
                 arrayOf("payload_json", "dirty", "status"),
                 "id = ?",
-                arrayOf(localId),
+                arrayOf(resolvedLocalId),
                 null,
                 null,
                 null,
@@ -883,7 +883,7 @@ class LocalPosRepository(private val database: PmdDatabase) {
                 .ifBlank { meta.optString("last_command_id") }
             val lineCount = db.rawQuery(
                 "SELECT COUNT(*) FROM pmd_order_lines WHERE order_id = ? AND deleted = 0",
-                arrayOf(localId),
+                arrayOf(resolvedLocalId),
             ).use { if (it.moveToFirst()) it.getInt(0) else 0 }
 
             val hasUnreconciledLocalWork =
@@ -916,7 +916,7 @@ class LocalPosRepository(private val database: PmdDatabase) {
                         put("updated_at_ms", System.currentTimeMillis())
                     },
                     "id = ?",
-                    arrayOf(localId),
+                    arrayOf(resolvedLocalId),
                 )
                 return@transaction
             }
@@ -940,12 +940,12 @@ class LocalPosRepository(private val database: PmdDatabase) {
                     put("updated_at_ms", System.currentTimeMillis())
                 },
                 "id = ?",
-                arrayOf(localId),
+                arrayOf(resolvedLocalId),
             )
             db.delete(
                 "pmd_order_lines",
                 "order_id = ?",
-                arrayOf(localId),
+                arrayOf(resolvedLocalId),
             )
         }
     }
