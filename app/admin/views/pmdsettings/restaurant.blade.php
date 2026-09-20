@@ -335,254 +335,530 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                                     @endphp
 
                                     <style>
-                                        #pmd-google-business-integration-v2 > summary::-webkit-details-marker { display:none; }
-                                        #pmd-google-business-integration-v2 > summary::marker { content:''; }
+                                        .pmd-google-business-launcher-v5 {
+                                            width:100%;
+                                            margin-top:.75rem;
+                                            padding:.78rem .85rem;
+                                            display:flex;
+                                            align-items:center;
+                                            justify-content:space-between;
+                                            gap:.8rem;
+                                            border:1px solid rgba(15,23,42,.12);
+                                            border-radius:12px;
+                                            background:rgba(248,250,252,.88);
+                                            color:inherit;
+                                            text-align:left;
+                                            cursor:pointer;
+                                            transition:border-color .16s ease,box-shadow .16s ease,background .16s ease;
+                                        }
+                                        .pmd-google-business-launcher-v5:hover,
+                                        .pmd-google-business-launcher-v5:focus-visible {
+                                            border-color:rgba(18,61,50,.28);
+                                            background:#fff;
+                                            box-shadow:0 8px 24px rgba(15,23,42,.07);
+                                            outline:0;
+                                        }
+                                        .pmd-google-business-launcher-v5__copy {
+                                            min-width:0;
+                                            display:block;
+                                        }
+                                        .pmd-google-business-launcher-v5__title {
+                                            display:block;
+                                            font-weight:800;
+                                            line-height:1.2;
+                                        }
+                                        .pmd-google-business-launcher-v5__sub {
+                                            display:block;
+                                            margin-top:.18rem;
+                                            color:#6b7280;
+                                            font-size:12px;
+                                            white-space:nowrap;
+                                            overflow:hidden;
+                                            text-overflow:ellipsis;
+                                        }
+                                        .pmd-google-business-launcher-v5__right {
+                                            flex:0 0 auto;
+                                            display:flex;
+                                            align-items:center;
+                                            gap:.55rem;
+                                        }
+                                        .pmd-google-business-launcher-v5__arrow {
+                                            width:30px;
+                                            height:30px;
+                                            display:grid;
+                                            place-items:center;
+                                            border-radius:9px;
+                                            background:#fff;
+                                            border:1px solid rgba(15,23,42,.10);
+                                            color:#31584d;
+                                            font-size:18px;
+                                            line-height:1;
+                                        }
+
+                                        .pmd-google-business-modal-v5[hidden] {
+                                            display:none!important;
+                                        }
+                                        .pmd-google-business-modal-v5 {
+                                            position:fixed;
+                                            inset:0;
+                                            z-index:13080;
+                                            display:grid;
+                                            place-items:center;
+                                            padding:22px;
+                                            background:rgba(4,20,17,.46);
+                                            backdrop-filter:blur(8px);
+                                            -webkit-backdrop-filter:blur(8px);
+                                            animation:pmdGoogleBusinessBackdropInV5 180ms cubic-bezier(.2,.8,.2,1) both;
+                                        }
+                                        .pmd-google-business-modal-v5 .pmd-modal-card {
+                                            width:min(840px,calc(100vw - 32px));
+                                            max-height:min(92vh,900px);
+                                            overflow:auto;
+                                            background:#fff;
+                                            border:1px solid rgba(15,23,42,.11);
+                                            border-radius:22px;
+                                            box-shadow:0 26px 80px rgba(3,24,20,.28);
+                                        }
+                                        .pmd-google-business-modal-v5__head {
+                                            position:sticky;
+                                            top:0;
+                                            z-index:3;
+                                            display:flex;
+                                            align-items:flex-start;
+                                            justify-content:space-between;
+                                            gap:16px;
+                                            padding:19px 21px;
+                                            background:rgba(255,255,255,.97);
+                                            border-bottom:1px solid #edf2f0;
+                                            backdrop-filter:blur(10px);
+                                            -webkit-backdrop-filter:blur(10px);
+                                        }
+                                        .pmd-google-business-modal-v5__head h3 {
+                                            margin:0;
+                                            color:#163c33;
+                                            font-size:20px;
+                                            line-height:1.25;
+                                        }
+                                        .pmd-google-business-modal-v5__head p {
+                                            margin:.28rem 0 0;
+                                            color:#70817c;
+                                            font-size:12.5px;
+                                            line-height:1.45;
+                                        }
+                                        .pmd-google-business-modal-v5__close {
+                                            flex:0 0 40px;
+                                            width:40px;
+                                            height:40px;
+                                            display:grid;
+                                            place-items:center;
+                                            border:1px solid #dfe9e5;
+                                            border-radius:12px;
+                                            background:#fff;
+                                            color:#264c42;
+                                            cursor:pointer;
+                                            font-size:24px;
+                                            line-height:1;
+                                        }
+                                        .pmd-google-business-modal-v5__body {
+                                            padding:21px;
+                                        }
+                                        .pmd-google-business-modal-v5__grid {
+                                            display:grid;
+                                            grid-template-columns:repeat(2,minmax(0,1fr));
+                                            gap:14px 16px;
+                                            align-items:start;
+                                        }
+                                        .pmd-google-business-modal-v5__full {
+                                            grid-column:1/-1;
+                                        }
+                                        .pmd-google-business-modal-v5__note {
+                                            margin-top:14px;
+                                            padding:12px 14px;
+                                            border:1px solid #e2ebe8;
+                                            border-radius:13px;
+                                            background:#f8fbfa;
+                                            color:#5d726c;
+                                            font-size:12.5px;
+                                            line-height:1.5;
+                                            overflow-wrap:anywhere;
+                                        }
+                                        .pmd-google-business-modal-v5__status {
+                                            margin-top:16px;
+                                            padding:14px;
+                                            border:1px solid #e2ebe8;
+                                            border-radius:14px;
+                                            background:#fbfdfc;
+                                        }
+                                        .pmd-google-business-modal-v5__actions {
+                                            position:sticky;
+                                            bottom:0;
+                                            z-index:3;
+                                            display:flex;
+                                            justify-content:flex-end;
+                                            flex-wrap:wrap;
+                                            gap:9px;
+                                            margin:20px -21px -21px;
+                                            padding:15px 21px;
+                                            border-top:1px solid #edf2f0;
+                                            background:rgba(255,255,255,.97);
+                                            backdrop-filter:blur(10px);
+                                            -webkit-backdrop-filter:blur(10px);
+                                        }
+                                        body.pmd-google-business-modal-open-v5 {
+                                            overflow:hidden!important;
+                                        }
+                                        @keyframes pmdGoogleBusinessBackdropInV5 {
+                                            from { opacity:0; backdrop-filter:blur(0); -webkit-backdrop-filter:blur(0); }
+                                            to { opacity:1; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); }
+                                        }
+                                        @media (max-width:760px) {
+                                            .pmd-google-business-modal-v5 { padding:10px; }
+                                            .pmd-google-business-modal-v5 .pmd-modal-card {
+                                                width:100%;
+                                                max-height:95vh;
+                                                border-radius:19px;
+                                            }
+                                            .pmd-google-business-modal-v5__grid { grid-template-columns:1fr; }
+                                            .pmd-google-business-modal-v5__full { grid-column:auto; }
+                                            .pmd-google-business-launcher-v5__sub { max-width:210px; }
+                                        }
+                                        @media (prefers-reduced-motion:reduce) {
+                                            .pmd-google-business-modal-v5,
+                                            .pmd-google-business-modal-v5 .pmd-modal-card {
+                                                animation:none!important;
+                                                transition:none!important;
+                                            }
+                                        }
                                     </style>
-                                    <details
-                                        id="pmd-google-business-integration-v2"
-                                        style="margin-top:.75rem;border:1px solid rgba(15,23,42,.12);border-radius:12px;background:rgba(248,250,252,.8);overflow:hidden;"
+
+                                    <button
+                                        type="button"
+                                        class="pmd-google-business-launcher-v5"
+                                        data-pmd-google-business-open-v5
+                                        aria-haspopup="dialog"
+                                        aria-controls="pmd-google-business-modal-v5"
                                     >
-                                        <summary
-                                            style="display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding:.72rem .82rem;cursor:pointer;list-style:none;user-select:none;"
-                                        >
-                                            <div style="min-width:0;display:flex;align-items:center;gap:.65rem;">
-                                                <div style="min-width:0;">
-                                                    <strong style="display:block;line-height:1.2;">{{ $pmdSettingsText('Google Business Profile') }}</strong>
-                                                    <span class="small text-muted" style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-                                                        {{ $googleConnected
-                                                            ? ($googleBusiness['google_location_title'] ?? $pmdSettingsText('Connected Google location'))
-                                                            : $pmdSettingsText('OAuth, reviews and Google review link')
-                                                        }}
-                                                    </span>
-                                                </div>
-                                            </div>
+                                        <span class="pmd-google-business-launcher-v5__copy">
+                                            <span class="pmd-google-business-launcher-v5__title">
+                                                {{ $pmdSettingsText('Google Business Profile') }}
+                                            </span>
+                                            <span class="pmd-google-business-launcher-v5__sub">
+                                                {{ $googleConnected
+                                                    ? ($googleBusiness['google_location_title'] ?? $pmdSettingsText('Connected Google location'))
+                                                    : $pmdSettingsText('OAuth, reviews and Google review link')
+                                                }}
+                                            </span>
+                                        </span>
 
-                                            <div style="display:flex;align-items:center;gap:.55rem;flex-shrink:0;">
-                                                <span id="pmd-google-business-status-v2">
-                                                    @if($googleConnected)
-                                                        <span class="label label-success">{{ $pmdSettingsText('Connected') }}</span>
-                                                    @elseif($googlePending)
-                                                        <span class="label label-warning">{{ $pmdSettingsText('Choose location') }}</span>
-                                                    @elseif($googleConfigured)
-                                                        <span class="label label-default">{{ $pmdSettingsText('Ready to connect') }}</span>
-                                                    @else
-                                                        <span class="label label-warning">{{ $pmdSettingsText('Credentials required') }}</span>
-                                                    @endif
-                                                </span>
-                                                <span
-                                                    class="btn btn-default btn-sm"
-                                                    style="pointer-events:none;padding:.25rem .55rem;line-height:1.2;"
-                                                >
-                                                    {{ $pmdSettingsText('Manage') }}
-                                                </span>
-                                            </div>
-                                        </summary>
-
-                                        <div style="padding:.85rem .9rem .95rem;border-top:1px solid rgba(15,23,42,.09);">
-                                            <div class="small text-muted" style="margin-bottom:.8rem;">
-                                                {{ $pmdSettingsText('This restaurant uses its own Google Cloud credentials. Secrets are encrypted in this tenant database.') }}
-                                            </div>
-
-                                            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:.75rem;">
-                                            <label class="pmd-profile-field">
-                                                <span>{{ $pmdSettingsText('Google OAuth Client ID') }}</span>
-                                                <input
-                                                    type="text"
-                                                    name="google_business[client_id]"
-                                                    value="{{ $googleBusiness['client_id'] ?? '' }}"
-                                                    placeholder="123456789.apps.googleusercontent.com"
-                                                    maxlength="500"
-                                                    autocomplete="off"
-                                                >
-                                            </label>
-
-                                            <label class="pmd-profile-field">
-                                                <span>{{ $pmdSettingsText('Google OAuth Client Secret') }}</span>
-                                                <input
-                                                    type="password"
-                                                    name="google_business[client_secret]"
-                                                    value=""
-                                                    placeholder="{{ !empty($googleBusiness['client_secret_set']) ? $pmdSettingsText('Saved — leave blank to keep') : $pmdSettingsText('Enter client secret') }}"
-                                                    maxlength="1000"
-                                                    autocomplete="new-password"
-                                                >
-                                                @if(!empty($googleBusiness['client_secret_set']))
-                                                    <small style="color:#166534;">{{ $pmdSettingsText('Saved securely') }}</small>
+                                        <span class="pmd-google-business-launcher-v5__right">
+                                            <span id="pmd-google-business-status-v2">
+                                                @if($googleConnected)
+                                                    <span class="label label-success">{{ $pmdSettingsText('Connected') }}</span>
+                                                @elseif($googlePending)
+                                                    <span class="label label-warning">{{ $pmdSettingsText('Choose location') }}</span>
+                                                @elseif($googleConfigured)
+                                                    <span class="label label-default">{{ $pmdSettingsText('Ready to connect') }}</span>
+                                                @else
+                                                    <span class="label label-warning">{{ $pmdSettingsText('Credentials required') }}</span>
                                                 @endif
-                                            </label>
+                                            </span>
+                                            <span class="pmd-google-business-launcher-v5__arrow" aria-hidden="true">›</span>
+                                        </span>
+                                    </button>
 
-                                            <label class="pmd-profile-field">
-                                                <span>{{ $pmdSettingsText('Google Places API Key') }}</span>
-                                                <input
-                                                    type="password"
-                                                    name="google_business[places_api_key]"
-                                                    value=""
-                                                    placeholder="{{ !empty($googleBusiness['places_api_key_set']) ? $pmdSettingsText('Saved — leave blank to keep') : $pmdSettingsText('Enter Places API key') }}"
-                                                    maxlength="1000"
-                                                    autocomplete="new-password"
-                                                >
-                                                <small>{{ $pmdSettingsText('Used to obtain the official Google write-a-review link.') }}</small>
-                                            </label>
-
-                                            <label class="pmd-profile-field">
-                                                <span>{{ $pmdSettingsText('Cloud Pub/Sub Topic (optional)') }}</span>
-                                                <input
-                                                    type="text"
-                                                    name="google_business[pubsub_topic]"
-                                                    value="{{ $googleBusiness['pubsub_topic'] ?? '' }}"
-                                                    placeholder="projects/PROJECT_ID/topics/paymydine-reviews"
-                                                    maxlength="500"
-                                                    autocomplete="off"
-                                                >
-                                            </label>
-
-                                            <label class="pmd-profile-field">
-                                                <span>{{ $pmdSettingsText('Pub/Sub Verification Token (optional)') }}</span>
-                                                <input
-                                                    type="password"
-                                                    name="google_business[pubsub_token]"
-                                                    value=""
-                                                    placeholder="{{ !empty($googleBusiness['pubsub_token_set']) ? $pmdSettingsText('Saved — leave blank to keep') : $pmdSettingsText('Enter a long random token') }}"
-                                                    maxlength="1000"
-                                                    autocomplete="new-password"
-                                                >
-                                                @if(!empty($googleBusiness['pubsub_token_set']))
-                                                    <small style="color:#166534;">{{ $pmdSettingsText('Saved securely') }}</small>
-                                                @endif
-                                            </label>
-
-                                            <label class="pmd-profile-field">
-                                                <span>{{ $pmdSettingsText('Authorized redirect URI') }}</span>
-                                                <input
-                                                    type="text"
-                                                    value="{{ $googleBusiness['redirect_uri'] ?? '' }}"
-                                                    readonly
-                                                    onclick="this.select()"
-                                                >
-                                                <small>{{ $pmdSettingsText('Copy this exact URI into this restaurant OAuth Web Client in Google Cloud.') }}</small>
-                                            </label>
-                                        </div>
-
-                                        @if(!empty($googleBusiness['pubsub_push_uri']))
-                                            <div class="small text-muted" style="margin-top:.7rem;overflow-wrap:anywhere;">
-                                                <strong>{{ $pmdSettingsText('Pub/Sub push endpoint') }}:</strong>
-                                                <code>{{ $googleBusiness['pubsub_push_uri'] }}?token=YOUR_VERIFICATION_TOKEN</code>
-                                            </div>
-                                        @endif
-
-                                        @if(!$googleConfigured)
-                                            <div class="alert alert-warning" style="margin:.85rem 0 0;">
-                                                {{ $pmdSettingsText('Enter this restaurant Google OAuth Client ID and Client Secret, then Save changes. No shared PayMyDine Google secret is required.') }}
-                                            </div>
-                                        @endif
-
-                                        @if($googleConnected)
-                                            <div style="margin-top:.85rem;display:grid;gap:.35rem;">
+                                    <div
+                                        id="pmd-google-business-modal-v5"
+                                        class="pmd-modal pmd-google-business-modal-v5"
+                                        data-pmd-google-business-modal-v5
+                                        role="dialog"
+                                        aria-modal="true"
+                                        aria-labelledby="pmd-google-business-modal-title-v5"
+                                        aria-hidden="true"
+                                        hidden
+                                    >
+                                        <section class="pmd-modal-card" role="document">
+                                            <header class="pmd-google-business-modal-v5__head">
                                                 <div>
-                                                    <strong>{{ $pmdSettingsText('Business') }}:</strong>
-                                                    {{ $googleBusiness['google_location_title'] ?? '—' }}
+                                                    <h3 id="pmd-google-business-modal-title-v5">
+                                                        {{ $pmdSettingsText('Google Business Profile') }}
+                                                    </h3>
+                                                    <p>
+                                                        {{ $pmdSettingsText('This restaurant uses its own Google Cloud credentials. Secrets are encrypted in this tenant database.') }}
+                                                    </p>
                                                 </div>
-                                                @if(!empty($googleBusiness['google_account_display_name']))
-                                                    <div class="small text-muted">
-                                                        {{ $pmdSettingsText('Google account') }}:
-                                                        {{ $googleBusiness['google_account_display_name'] }}
-                                                    </div>
-                                                @endif
-                                                @if(!empty($googleBusiness['google_place_id']))
-                                                    <div class="small text-muted">
-                                                        Place ID:
-                                                        <code>{{ $googleBusiness['google_place_id'] }}</code>
-                                                    </div>
-                                                @endif
-                                                <div class="small text-muted">
-                                                    {{ $pmdSettingsText('Google rating') }}:
-                                                    @if($googleBusiness['average_rating'] !== null)
-                                                        {{ number_format((float)$googleBusiness['average_rating'], 1) }} / 5
-                                                        · {{ (int)($googleBusiness['total_review_count'] ?? 0) }} {{ $pmdSettingsText('reviews') }}
-                                                    @else
-                                                        —
-                                                    @endif
-                                                </div>
-                                                <div class="small text-muted">
-                                                    {{ $pmdSettingsText('Last sync') }}:
-                                                    {{ $googleBusiness['last_synced_at'] ?? '—' }}
-                                                </div>
-                                                <div class="small text-muted">
-                                                    {{ $pmdSettingsText('Real-time notifications') }}:
-                                                    {{ !empty($googleBusiness['notifications_enabled']) ? $pmdSettingsText('Enabled') : $pmdSettingsText('Not enabled') }}
-                                                </div>
-                                                <div class="small text-muted">
-                                                    {{ $pmdSettingsText('Direct Google review link') }}:
-                                                    {{ !empty($googleBusiness['google_write_review_uri']) ? $pmdSettingsText('Ready') : $pmdSettingsText('Not available yet') }}
-                                                </div>
-                                            </div>
-                                        @endif
-
-                                        @if(!empty($googleBusiness['last_error']))
-                                            <div class="alert alert-warning" style="margin:.85rem 0 0;">
-                                                {{ $googleBusiness['last_error'] }}
-                                            </div>
-                                        @endif
-
-                                        <div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.85rem;">
-                                            @if($googleConfigured && !$googleConnected && !$googlePending)
-                                                <a class="btn btn-primary btn-sm" href="{{ admin_url('pmdgooglebusiness/connect') }}">
-                                                    {{ $pmdSettingsText('Connect Google Business') }}
-                                                </a>
-                                            @endif
-
-                                            @if($googlePending || $googleConnected)
-                                                <a class="btn btn-default btn-sm" href="{{ admin_url('pmdgooglebusiness/locations') }}">
-                                                    {{ $googleConnected ? $pmdSettingsText('Change Google location') : $pmdSettingsText('Choose Google location') }}
-                                                </a>
-                                            @endif
-
-                                            @if($googleConnected)
                                                 <button
                                                     type="button"
-                                                    class="btn btn-default btn-sm"
-                                                    data-request="onGoogleBusinessSync"
-                                                    data-request-success="window.location.reload()"
-                                                >
-                                                    {{ $pmdSettingsText('Sync reviews now') }}
-                                                </button>
+                                                    class="pmd-google-business-modal-v5__close"
+                                                    data-pmd-google-business-close-v5
+                                                    aria-label="{{ $pmdSettingsText('Close') }}"
+                                                >×</button>
+                                            </header>
 
-                                                @if(!empty($googleBusiness['places_configured']))
+                                            <div class="pmd-google-business-modal-v5__body">
+                                                <div class="pmd-google-business-modal-v5__grid">
+                                                    <label class="pmd-profile-field">
+                                                        <span>{{ $pmdSettingsText('Google OAuth Client ID') }}</span>
+                                                        <input
+                                                            type="text"
+                                                            name="google_business[client_id]"
+                                                            value="{{ $googleBusiness['client_id'] ?? '' }}"
+                                                            placeholder="123456789.apps.googleusercontent.com"
+                                                            maxlength="500"
+                                                            autocomplete="off"
+                                                        >
+                                                    </label>
+
+                                                    <label class="pmd-profile-field">
+                                                        <span>{{ $pmdSettingsText('Google OAuth Client Secret') }}</span>
+                                                        <input
+                                                            type="password"
+                                                            name="google_business[client_secret]"
+                                                            value=""
+                                                            placeholder="{{ !empty($googleBusiness['client_secret_set']) ? $pmdSettingsText('Saved — leave blank to keep') : $pmdSettingsText('Enter client secret') }}"
+                                                            maxlength="1000"
+                                                            autocomplete="new-password"
+                                                        >
+                                                        @if(!empty($googleBusiness['client_secret_set']))
+                                                            <small style="color:#166534;">{{ $pmdSettingsText('Saved securely') }}</small>
+                                                        @endif
+                                                    </label>
+
+                                                    <label class="pmd-profile-field">
+                                                        <span>{{ $pmdSettingsText('Google Places API Key') }}</span>
+                                                        <input
+                                                            type="password"
+                                                            name="google_business[places_api_key]"
+                                                            value=""
+                                                            placeholder="{{ !empty($googleBusiness['places_api_key_set']) ? $pmdSettingsText('Saved — leave blank to keep') : $pmdSettingsText('Enter Places API key') }}"
+                                                            maxlength="1000"
+                                                            autocomplete="new-password"
+                                                        >
+                                                        <small>{{ $pmdSettingsText('Used to obtain the official Google write-a-review link.') }}</small>
+                                                    </label>
+
+                                                    <label class="pmd-profile-field">
+                                                        <span>{{ $pmdSettingsText('Cloud Pub/Sub Topic (optional)') }}</span>
+                                                        <input
+                                                            type="text"
+                                                            name="google_business[pubsub_topic]"
+                                                            value="{{ $googleBusiness['pubsub_topic'] ?? '' }}"
+                                                            placeholder="projects/PROJECT_ID/topics/paymydine-reviews"
+                                                            maxlength="500"
+                                                            autocomplete="off"
+                                                        >
+                                                    </label>
+
+                                                    <label class="pmd-profile-field">
+                                                        <span>{{ $pmdSettingsText('Pub/Sub Verification Token (optional)') }}</span>
+                                                        <input
+                                                            type="password"
+                                                            name="google_business[pubsub_token]"
+                                                            value=""
+                                                            placeholder="{{ !empty($googleBusiness['pubsub_token_set']) ? $pmdSettingsText('Saved — leave blank to keep') : $pmdSettingsText('Enter a long random token') }}"
+                                                            maxlength="1000"
+                                                            autocomplete="new-password"
+                                                        >
+                                                        @if(!empty($googleBusiness['pubsub_token_set']))
+                                                            <small style="color:#166534;">{{ $pmdSettingsText('Saved securely') }}</small>
+                                                        @endif
+                                                    </label>
+
+                                                    <label class="pmd-profile-field">
+                                                        <span>{{ $pmdSettingsText('Authorized redirect URI') }}</span>
+                                                        <input
+                                                            type="text"
+                                                            value="{{ $googleBusiness['redirect_uri'] ?? '' }}"
+                                                            readonly
+                                                            onclick="this.select()"
+                                                        >
+                                                        <small>{{ $pmdSettingsText('Copy this exact URI into this restaurant OAuth Web Client in Google Cloud.') }}</small>
+                                                    </label>
+                                                </div>
+
+                                                @if(!empty($googleBusiness['pubsub_push_uri']))
+                                                    <div class="pmd-google-business-modal-v5__note">
+                                                        <strong>{{ $pmdSettingsText('Pub/Sub push endpoint') }}:</strong><br>
+                                                        <code>{{ $googleBusiness['pubsub_push_uri'] }}?token=YOUR_VERIFICATION_TOKEN</code>
+                                                    </div>
+                                                @endif
+
+                                                @if(!$googleConfigured)
+                                                    <div class="alert alert-warning" style="margin:14px 0 0;">
+                                                        {{ $pmdSettingsText('Enter this restaurant Google OAuth Client ID and Client Secret, then save. No shared PayMyDine Google secret is required.') }}
+                                                    </div>
+                                                @endif
+
+                                                @if($googleConnected)
+                                                    <div class="pmd-google-business-modal-v5__status">
+                                                        <div>
+                                                            <strong>{{ $pmdSettingsText('Business') }}:</strong>
+                                                            {{ $googleBusiness['google_location_title'] ?? '—' }}
+                                                        </div>
+                                                        @if(!empty($googleBusiness['google_account_display_name']))
+                                                            <div class="small text-muted" style="margin-top:.35rem;">
+                                                                {{ $pmdSettingsText('Google account') }}:
+                                                                {{ $googleBusiness['google_account_display_name'] }}
+                                                            </div>
+                                                        @endif
+                                                        @if(!empty($googleBusiness['google_place_id']))
+                                                            <div class="small text-muted" style="margin-top:.35rem;">
+                                                                Place ID: <code>{{ $googleBusiness['google_place_id'] }}</code>
+                                                            </div>
+                                                        @endif
+                                                        <div class="small text-muted" style="margin-top:.35rem;">
+                                                            {{ $pmdSettingsText('Google rating') }}:
+                                                            @if($googleBusiness['average_rating'] !== null)
+                                                                {{ number_format((float)$googleBusiness['average_rating'], 1) }} / 5
+                                                                · {{ (int)($googleBusiness['total_review_count'] ?? 0) }} {{ $pmdSettingsText('reviews') }}
+                                                            @else
+                                                                —
+                                                            @endif
+                                                        </div>
+                                                        <div class="small text-muted" style="margin-top:.35rem;">
+                                                            {{ $pmdSettingsText('Last sync') }}:
+                                                            {{ $googleBusiness['last_synced_at'] ?? '—' }}
+                                                        </div>
+                                                        <div class="small text-muted" style="margin-top:.35rem;">
+                                                            {{ $pmdSettingsText('Real-time notifications') }}:
+                                                            {{ !empty($googleBusiness['notifications_enabled']) ? $pmdSettingsText('Enabled') : $pmdSettingsText('Not enabled') }}
+                                                        </div>
+                                                    </div>
+                                                @endif
+
+                                                @if(!empty($googleBusiness['last_error']))
+                                                    <div class="alert alert-warning" style="margin:14px 0 0;">
+                                                        {{ $googleBusiness['last_error'] }}
+                                                    </div>
+                                                @endif
+
+                                                <div class="pmd-google-business-modal-v5__actions">
                                                     <button
                                                         type="button"
-                                                        class="btn btn-default btn-sm"
-                                                        data-request="onGoogleBusinessRefreshLinks"
-                                                        data-request-success="window.location.reload()"
+                                                        class="btn btn-default"
+                                                        data-pmd-google-business-close-v5
                                                     >
-                                                        {{ $pmdSettingsText('Refresh Google links') }}
+                                                        {{ $pmdSettingsText('Cancel') }}
                                                     </button>
-                                                @endif
 
-                                                <button
-                                                    type="button"
-                                                    class="btn btn-danger btn-sm"
-                                                    data-request="onGoogleBusinessDisconnect"
-                                                    data-request-confirm="{{ $pmdSettingsText('Disconnect Google Business Profile from this restaurant? Saved Google API credentials will be kept.') }}"
-                                                    data-request-success="window.location.reload()"
-                                                >
-                                                    {{ $pmdSettingsText('Disconnect') }}
-                                                </button>
-                                            @endif
+                                                    @if($googleConfigured && !$googleConnected && !$googlePending)
+                                                        <a class="btn btn-primary" href="{{ admin_url('pmdgooglebusiness/connect') }}">
+                                                            {{ $pmdSettingsText('Connect Google Business') }}
+                                                        </a>
+                                                    @endif
 
-                                            @if($googleConfigured || !empty($googleBusiness['client_secret_set']) || !empty($googleBusiness['places_api_key_set']))
-                                                <button
-                                                    type="button"
-                                                    class="btn btn-default btn-sm"
-                                                    data-request="onGoogleBusinessClearCredentials"
-                                                    data-request-confirm="{{ $pmdSettingsText('Clear this restaurant saved Google API credentials and disconnect Google Business Profile?') }}"
-                                                    data-request-success="window.location.reload()"
-                                                >
-                                                    {{ $pmdSettingsText('Clear Google credentials') }}
-                                                </button>
-                                            @endif
-                                        </div>
-                                        </div>
-                                    </details>
+                                                    @if($googlePending || $googleConnected)
+                                                        <a class="btn btn-default" href="{{ admin_url('pmdgooglebusiness/locations') }}">
+                                                            {{ $googleConnected ? $pmdSettingsText('Change Google location') : $pmdSettingsText('Choose Google location') }}
+                                                        </a>
+                                                    @endif
+
+                                                    @if($googleConnected)
+                                                        <button
+                                                            type="button"
+                                                            class="btn btn-default"
+                                                            data-request="onGoogleBusinessSync"
+                                                            data-request-success="window.location.reload()"
+                                                        >
+                                                            {{ $pmdSettingsText('Sync reviews now') }}
+                                                        </button>
+
+                                                        @if(!empty($googleBusiness['places_configured']))
+                                                            <button
+                                                                type="button"
+                                                                class="btn btn-default"
+                                                                data-request="onGoogleBusinessRefreshLinks"
+                                                                data-request-success="window.location.reload()"
+                                                            >
+                                                                {{ $pmdSettingsText('Refresh Google links') }}
+                                                            </button>
+                                                        @endif
+
+                                                        <button
+                                                            type="button"
+                                                            class="btn btn-danger"
+                                                            data-request="onGoogleBusinessDisconnect"
+                                                            data-request-confirm="{{ $pmdSettingsText('Disconnect Google Business Profile from this restaurant? Saved Google API credentials will be kept.') }}"
+                                                            data-request-success="window.location.reload()"
+                                                        >
+                                                            {{ $pmdSettingsText('Disconnect') }}
+                                                        </button>
+                                                    @endif
+
+                                                    @if($googleConfigured || !empty($googleBusiness['client_secret_set']) || !empty($googleBusiness['places_api_key_set']))
+                                                        <button
+                                                            type="button"
+                                                            class="btn btn-default"
+                                                            data-request="onGoogleBusinessClearCredentials"
+                                                            data-request-confirm="{{ $pmdSettingsText('Clear this restaurant saved Google API credentials and disconnect Google Business Profile?') }}"
+                                                            data-request-success="window.location.reload()"
+                                                        >
+                                                            {{ $pmdSettingsText('Clear credentials') }}
+                                                        </button>
+                                                    @endif
+
+                                                    <button
+                                                        type="submit"
+                                                        class="btn btn-primary"
+                                                        form="pmd-restaurant-profile-form"
+                                                    >
+                                                        {{ $pmdSettingsText('Save changes') }}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </section>
+                                    </div>
+
+                                    <script id="pmd-google-business-modal-script-v5">
+                                    (function () {
+                                        var modal = document.getElementById('pmd-google-business-modal-v5');
+                                        var opener = document.querySelector('[data-pmd-google-business-open-v5]');
+                                        if (!modal || !opener || modal.dataset.pmdBoundV5 === '1') return;
+                                        modal.dataset.pmdBoundV5 = '1';
+
+                                        var lastFocus = null;
+
+                                        function openModal() {
+                                            lastFocus = document.activeElement;
+                                            modal.hidden = false;
+                                            modal.setAttribute('aria-hidden', 'false');
+                                            document.body.classList.add('pmd-google-business-modal-open-v5');
+
+                                            var first = modal.querySelector('input:not([readonly]), button, a');
+                                            window.setTimeout(function () {
+                                                if (first && typeof first.focus === 'function') first.focus();
+                                            }, 0);
+                                        }
+
+                                        function closeModal() {
+                                            modal.hidden = true;
+                                            modal.setAttribute('aria-hidden', 'true');
+                                            document.body.classList.remove('pmd-google-business-modal-open-v5');
+
+                                            if (lastFocus && typeof lastFocus.focus === 'function') {
+                                                lastFocus.focus();
+                                            }
+                                        }
+
+                                        opener.addEventListener('click', function (event) {
+                                            event.preventDefault();
+                                            openModal();
+                                        });
+
+                                        modal.addEventListener('click', function (event) {
+                                            if (event.target === modal || event.target.closest('[data-pmd-google-business-close-v5]')) {
+                                                event.preventDefault();
+                                                closeModal();
+                                            }
+                                        });
+
+                                        document.addEventListener('keydown', function (event) {
+                                            if (event.key === 'Escape' && !modal.hidden) {
+                                                event.preventDefault();
+                                                closeModal();
+                                            }
+                                        });
+                                    })();
+                                    </script>
                                 @endif
                             </div>
                         @endforeach
