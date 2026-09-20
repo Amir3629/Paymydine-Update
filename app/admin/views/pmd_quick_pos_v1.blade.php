@@ -733,7 +733,7 @@ window.PMDQuickPOSConfig = {
 {{-- Canonical Floor runtime mounts before the POS bridge. --}}
 <script src="/app/admin/assets/js/pmd-dashboard-lab-exact-floor-v1.js?v=20260920-floor-v35b"></script>
 <script src="/app/admin/assets/js/pmd-shared-floor-multi-floor-v1.js?v=20260920-floor-v35b"></script>
-<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260920-40"></script>
+<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260920-41"></script>
 <script src="/app/admin/assets/js/pmd-site-access-hub-v13.js?v=20260919-qpos1"></script>
 </body>
 </html>
