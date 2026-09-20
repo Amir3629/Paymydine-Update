@@ -24,6 +24,10 @@ class PmdDatabase(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, n
             createEdgeTables(db)
             version = 3
         }
+        if (version < 4) {
+            addEdgeCloudValidationTimestamp(db)
+            version = 4
+        }
         check(version == newVersion) {
             "Unsupported PayMyDine local DB upgrade: $oldVersion -> $newVersion"
         }
@@ -41,7 +45,7 @@ class PmdDatabase(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, n
 
     companion object {
         const val DATABASE_NAME = "paymydine-local-v1.db"
-        const val DATABASE_VERSION = 3
+        const val DATABASE_VERSION = 4
         private val schema = listOf(
             """CREATE TABLE pmd_meta (key TEXT PRIMARY KEY NOT NULL, value TEXT NOT NULL)""",
             """CREATE TABLE pmd_menu_items (
@@ -98,6 +102,7 @@ class PmdDatabase(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, n
                 location_id INTEGER NOT NULL,
                 profile_json TEXT NOT NULL,
                 profile_expires_at_ms INTEGER NOT NULL,
+                cloud_validated_at_ms INTEGER NOT NULL DEFAULT 0,
                 last_seen_at_ms INTEGER NOT NULL)""".trimIndent(),
             "CREATE INDEX idx_pmd_edge_peers_location ON pmd_edge_peers(location_id, profile_expires_at_ms)",
             """CREATE TABLE pmd_edge_commands (
@@ -169,6 +174,7 @@ class PmdDatabase(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, n
                     location_id INTEGER NOT NULL,
                     profile_json TEXT NOT NULL,
                     profile_expires_at_ms INTEGER NOT NULL,
+                    cloud_validated_at_ms INTEGER NOT NULL DEFAULT 0,
                     last_seen_at_ms INTEGER NOT NULL)""".trimIndent(),
             )
             db.execSQL(
@@ -234,6 +240,27 @@ class PmdDatabase(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, n
                     created_at_ms INTEGER NOT NULL,
                     applied_at_ms INTEGER NOT NULL)""".trimIndent(),
             )
+        }
+
+        private fun addEdgeCloudValidationTimestamp(db: SQLiteDatabase) {
+            val columns = db.rawQuery(
+                "PRAGMA table_info(pmd_edge_peers)",
+                null,
+            ).use { rows ->
+                buildSet {
+                    val nameIndex = rows.getColumnIndexOrThrow("name")
+                    while (rows.moveToNext()) {
+                        add(rows.getString(nameIndex))
+                    }
+                }
+            }
+
+            if ("cloud_validated_at_ms" !in columns) {
+                db.execSQL(
+                    "ALTER TABLE pmd_edge_peers " +
+                        "ADD COLUMN cloud_validated_at_ms INTEGER NOT NULL DEFAULT 0",
+                )
+            }
         }
     }
 }
