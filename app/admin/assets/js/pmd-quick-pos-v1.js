@@ -6303,7 +6303,7 @@ function renderOpenChecks() {
       openDirectSideMove();
     };
 
-    $('[data-qpos-direct-move-scope]').forEach(function (button) {
+    Array.prototype.slice.call(root.querySelectorAll('[data-qpos-direct-move-scope]')).forEach(function (button) {
       button.onclick = function () {
         if (state.transfer.submitting) return;
 
