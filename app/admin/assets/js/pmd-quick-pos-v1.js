@@ -1042,7 +1042,18 @@
     var pickup = $('[data-qpos-pickup]', box);
     if (pickup && !directMove) pickup.onclick = selectPickup;
 
-    $$('[data-qpos-table]', box).forEach(function (button) {
+    $('[data-qpos-table]', box).forEach(function (button) {
+      /* PMD_QPOS_TABLE_HOVER_PREFETCH_V41
+       * Warm only the table the pointer/focus is already heading toward. */
+      var prefetch = function () {
+        if (directMove) return;
+        var id = Number(button.getAttribute('data-qpos-table') || 0);
+        if (id) prefetchTableData(id);
+      };
+
+      button.onpointerenter = prefetch;
+      button.onfocus = prefetch;
+
       button.onclick = function () {
         var id = Number(button.getAttribute('data-qpos-table') || 0);
         if (!id) return;
@@ -1980,16 +1991,26 @@ function renderOpenChecks() {
     state.activeOrderId = null;
     state.offPremiseOrder = null;
 
-    /* PMD_QPOS_STABLE_TABLE_SWITCH_V39
-     * Do not redraw the check/cart with stale openOrders from the previous
-     * table before the new table request finishes. That double redraw was
-     * the visible check-card blink. Update only the immediate table/catalog
-     * selection, then render the cart once with authoritative table data. */
+    /* PMD_QPOS_INSTANT_TABLE_SWITCH_V41
+     * Use a recent payload instantly. If none exists, clear the previous
+     * table's check immediately and show a stable loading title. */
+    var cachedTable = tableCacheGet(table.id);
+
     renderTables();
     renderContext();
     renderProducts();
 
-    await loadTable(table.id, false);
+    if (cachedTable) {
+      applyTablePayload(table.id, cachedTable);
+      await loadTable(table.id, true, true);
+    } else {
+      state.tableSwitching = true;
+      state.tableData = null;
+      state.openOrders = [];
+      state.activeOrderId = null;
+      renderCart({orderSwitch: true});
+      await loadTable(table.id, false, false);
+    }
 
     var historyWorkspace = $('[data-qpos-history-modal]');
     if (historyWorkspace && historyWorkspace.classList.contains('is-open')) {
