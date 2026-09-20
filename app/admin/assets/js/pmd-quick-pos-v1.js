@@ -2277,7 +2277,33 @@ function renderOpenChecks() {
 
     var table = json.table || null;
     if (table && state.selectedTable) {
-      state.selectedTable = Object.assign({}, state.selectedTable, table);
+      var mergedTable = Object.assign({}, state.selectedTable, table);
+      state.selectedTable = mergedTable;
+
+      state.tables = state.tables.map(function (row) {
+        if (Number(row.id || 0) !== Number(id)) return row;
+
+        /* Keep lightweight signal fields from bootstrap unless the table
+         * payload explicitly provides replacements for them. */
+        return Object.assign({}, row, table, {
+          payment_state:
+            table.payment_state != null
+              ? table.payment_state
+              : row.payment_state,
+          due_amount:
+            table.due_amount != null
+              ? table.due_amount
+              : row.due_amount,
+          waiter_calls:
+            table.waiter_calls != null
+              ? table.waiter_calls
+              : row.waiter_calls,
+          note_count:
+            table.note_count != null
+              ? table.note_count
+              : row.note_count
+        });
+      });
     }
 
     var order = activeOrder();
@@ -2285,7 +2311,31 @@ function renderOpenChecks() {
       state.guestCount = Math.max(1, num(order.guest_count, 1));
     }
 
-    renderTables();
+    /* PMD_QPOS_NO_RAIL_REBUILD_ON_HYDRATE_V42
+     * Keep the selected card mounted; only patch selection/status metadata. */
+    syncSelectedTableRailV42();
+
+    var selectedButton = document.querySelector(
+      '[data-qpos-table="' + String(Number(id || 0)) + '"]'
+    );
+    if (selectedButton && state.selectedTable) {
+      selectedButton.setAttribute(
+        'data-status',
+        String(state.selectedTable.status || 'available')
+      );
+
+      var selectedMeta = selectedButton.querySelector('small');
+      if (selectedMeta) {
+        selectedMeta.textContent =
+          tableStatusLabel(state.selectedTable.status) +
+          (
+            num(state.selectedTable.capacity, 0) > 0
+              ? ' · ' + String(state.selectedTable.capacity) + 's'
+              : ''
+          );
+      }
+    }
+
     renderContext();
     renderCart();
 
