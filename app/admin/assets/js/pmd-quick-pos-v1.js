@@ -6250,7 +6250,10 @@ function renderOpenChecks() {
     var move = $('[data-qpos-table-move]');
     var free = $('[data-qpos-table-free]');
 
+    /* PMD_QPOS_MOVE_SCOPE_BINDINGS_V44 */
     if (cleaning) cleaning.onclick = function () {
+      if (state.transfer.submitting) return;
+
       if (
         !state.selectedTable ||
         String(state.selectedTable.status || '').toLowerCase() === 'cleaning'
@@ -6263,6 +6266,8 @@ function renderOpenChecks() {
     };
 
     if (move) move.onclick = function () {
+      if (state.transfer.submitting) return;
+
       if (
         state.transfer.open &&
         state.transfer.directSide
@@ -6276,6 +6281,36 @@ function renderOpenChecks() {
 
       openDirectSideMove();
     };
+
+    $('[data-qpos-direct-move-scope]').forEach(function (button) {
+      button.onclick = function () {
+        if (state.transfer.submitting) return;
+
+        startDirectSideMoveV44(
+          String(
+            button.getAttribute('data-qpos-direct-move-scope') ||
+            'order'
+          )
+        );
+      };
+    });
+
+    document.addEventListener('pointerdown', function (event) {
+      if (!state.transfer.choiceOpen) return;
+
+      var chooser = $('[data-qpos-move-scope-choice]');
+      var moveButton = $('[data-qpos-table-move]');
+      var target = event.target;
+
+      if (
+        (chooser && chooser.contains(target)) ||
+        (moveButton && moveButton.contains(target))
+      ) {
+        return;
+      }
+
+      closeMoveScopeChoiceV44();
+    });
 
     var transferClose = $('[data-qpos-transfer-close]');
     var transferCancel = $('[data-qpos-transfer-cancel]');
@@ -6295,6 +6330,8 @@ function renderOpenChecks() {
     });
 
     if (free) free.onclick = async function () {
+      if (state.transfer.submitting) return;
+
       var status = String(state.selectedTable && state.selectedTable.status || '');
       var skip = status === 'occupied';
       if (
