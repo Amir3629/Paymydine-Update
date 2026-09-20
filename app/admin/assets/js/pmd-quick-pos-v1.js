@@ -654,6 +654,13 @@
     var move = $('[data-qpos-table-move]');
     var free = $('[data-qpos-table-free]');
     var pickupSelected = state.serviceMode === 'takeaway';
+    /* PMD_QPOS_CLEANING_LEFT_LOCK_V40
+     * Left means "mark this table cleaning". Once already cleaning, the action
+     * must be disabled while Free stays available. */
+    var selectedStatus = String(
+      state.selectedTable && state.selectedTable.status || ''
+    ).toLowerCase();
+    var selectedCleaning = selectedStatus === 'cleaning';
     var directMove =
       state.transfer.open &&
       state.transfer.directSide;
@@ -666,7 +673,8 @@
       cleaning.disabled =
         directMove ||
         pickupSelected ||
-        !state.selectedTable;
+        !state.selectedTable ||
+        selectedCleaning;
     }
     if (move) {
       move.disabled = directMove
@@ -1310,6 +1318,8 @@ function renderOpenChecks() {
       box.innerHTML = nextHtml;
     }
 
+    /* PMD_QPOS_CHECK_LOOP_FIX_V40
+     * $() returns one element; $() returns the array used by forEach(). */
     $('[data-qpos-check]', box).forEach(function (button) {
       button.onclick = function () {
         var value = Number(button.getAttribute('data-qpos-check') || 0);
@@ -5584,6 +5594,14 @@ function renderOpenChecks() {
     var free = $('[data-qpos-table-free]');
 
     if (cleaning) cleaning.onclick = function () {
+      if (
+        !state.selectedTable ||
+        String(state.selectedTable.status || '').toLowerCase() === 'cleaning'
+      ) {
+        renderContext();
+        return;
+      }
+
       updateTableStatus('cleaning', false);
     };
 
