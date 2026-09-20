@@ -237,6 +237,36 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
         ];
     }
 
+    /*
+     * PMD_QPOS_EXACT_FLOOR_AJAX_TRANSPORT_V26
+     *
+     * The shared Floor runtime posts its established handler name back to the
+     * current page URL. Quick POS is registered as a plain Laravel route, so
+     * explicitly dispatch the two read/view handlers that the exact Floor uses.
+     */
+    public function floorAjax($mode = 'cashier')
+    {
+        $this->quickPosMode((string)$mode);
+
+        $handler = trim((string)request()->header(
+            'X-IGNITER-REQUEST-HANDLER',
+            ''
+        ));
+
+        if ($handler === 'onSaveFloorViewPreference') {
+            return $this->onSaveFloorViewPreference();
+        }
+
+        if ($handler === 'onPmdFloorReservationBusyWindows') {
+            return $this->onPmdFloorReservationBusyWindows();
+        }
+
+        return response()->json([
+            'ok' => false,
+            'message' => 'Unsupported Floor request.',
+        ], 422);
+    }
+
     /**
      * Exact Floor zoom / Full Floor / One-row preference endpoint.
      */
