@@ -374,7 +374,11 @@ trap - EXIT
 cleanup_stage
 
 say "DEPLOY COMPLETE"
-say "Only Google integration target files and Frontend V2 .next were changed."
+if [[ "$frontend_changed" == "1" ]]; then
+  say "Only Google integration target files and the tested Frontend V2 .next were changed."
+else
+  say "Only Google integration target files were changed; Frontend V2 .next and PM2 were untouched."
+fi
 say "No git index, commit, branch, reset, checkout, merge, or unrelated file was modified."
 say "Existing previous .next (for forensic rollback): $backup/next.previous"
 say "Source backup: $backup/files"
