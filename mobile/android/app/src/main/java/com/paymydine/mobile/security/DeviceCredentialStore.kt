@@ -19,6 +19,7 @@ class DeviceCredentialStore(context: Context) {
     fun deviceId(): String? = prefs.getString("device_id", null)
     fun setEdgeFingerprint(value: String) = prefs.edit().putString("edge_fingerprint", value.trim().lowercase()).apply()
     fun edgeFingerprint(): String? = prefs.getString("edge_fingerprint", null)
+    fun clearEdgeFingerprint() = prefs.edit().remove("edge_fingerprint").apply()
     fun putDeviceToken(value: String) = putSecret("device_token", value)
     fun deviceToken(): String? = getSecret("device_token")
     fun clearIdentity() = prefs.edit().clear().apply()
