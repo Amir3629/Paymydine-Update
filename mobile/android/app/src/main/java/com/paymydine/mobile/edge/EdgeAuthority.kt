@@ -620,13 +620,16 @@ class EdgeAuthority(
             val cloudRequest = prepareCloudRequest(request)
                 ?: continue
             val peer = peerFromProfile(tokenHash, encrypted.first, peerProfile)
-            val command = commandFromRequest(peer, cloudRequest)
 
             try {
-                val cloud = cloudApi.sendCommand(
+                // Send the exact routed envelope. It carries both the
+                // immutable client aggregate/version and the canonical Cloud
+                // routing fields, so the same command UUID hashes identically
+                // if the phone later replays its recovery copy.
+                val cloud = cloudApi.sendCommandJson(
                     tenantHost,
                     token,
-                    command,
+                    cloudRequest,
                 )
                 cloud.put("authority", "cloud")
                 cloud.put("provisional", false)
