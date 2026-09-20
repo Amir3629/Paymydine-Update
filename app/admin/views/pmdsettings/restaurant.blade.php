@@ -334,31 +334,52 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                                         $googlePending = !empty($googleBusiness['pending_location']);
                                     @endphp
 
-                                    <div
+                                    <details
                                         id="pmd-google-business-integration-v2"
-                                        style="margin-top:.85rem;padding:.9rem;border:1px solid rgba(15,23,42,.12);border-radius:12px;background:rgba(248,250,252,.8);"
+                                        style="margin-top:.75rem;border:1px solid rgba(15,23,42,.12);border-radius:12px;background:rgba(248,250,252,.8);overflow:hidden;"
                                     >
-                                        <div style="display:flex;align-items:center;justify-content:space-between;gap:.75rem;flex-wrap:wrap;">
-                                            <div>
-                                                <strong>{{ $pmdSettingsText('Google Business Profile') }}</strong>
-                                                <div class="small text-muted">
-                                                    {{ $pmdSettingsText('This restaurant uses its own Google Cloud credentials. Secrets are encrypted in this tenant database.') }}
+                                        <summary
+                                            style="display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding:.72rem .82rem;cursor:pointer;list-style:none;user-select:none;"
+                                        >
+                                            <div style="min-width:0;display:flex;align-items:center;gap:.65rem;">
+                                                <div style="min-width:0;">
+                                                    <strong style="display:block;line-height:1.2;">{{ $pmdSettingsText('Google Business Profile') }}</strong>
+                                                    <span class="small text-muted" style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                                                        {{ $googleConnected
+                                                            ? ($googleBusiness['google_location_title'] ?? $pmdSettingsText('Connected Google location'))
+                                                            : $pmdSettingsText('OAuth, reviews and Google review link')
+                                                        }}
+                                                    </span>
                                                 </div>
                                             </div>
-                                            <div id="pmd-google-business-status-v2">
-                                                @if($googleConnected)
-                                                    <span class="label label-success">{{ $pmdSettingsText('Connected') }}</span>
-                                                @elseif($googlePending)
-                                                    <span class="label label-warning">{{ $pmdSettingsText('Choose location') }}</span>
-                                                @elseif($googleConfigured)
-                                                    <span class="label label-default">{{ $pmdSettingsText('Ready to connect') }}</span>
-                                                @else
-                                                    <span class="label label-warning">{{ $pmdSettingsText('Credentials required') }}</span>
-                                                @endif
-                                            </div>
-                                        </div>
 
-                                        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:.75rem;margin-top:.9rem;">
+                                            <div style="display:flex;align-items:center;gap:.55rem;flex-shrink:0;">
+                                                <span id="pmd-google-business-status-v2">
+                                                    @if($googleConnected)
+                                                        <span class="label label-success">{{ $pmdSettingsText('Connected') }}</span>
+                                                    @elseif($googlePending)
+                                                        <span class="label label-warning">{{ $pmdSettingsText('Choose location') }}</span>
+                                                    @elseif($googleConfigured)
+                                                        <span class="label label-default">{{ $pmdSettingsText('Ready to connect') }}</span>
+                                                    @else
+                                                        <span class="label label-warning">{{ $pmdSettingsText('Credentials required') }}</span>
+                                                    @endif
+                                                </span>
+                                                <span
+                                                    class="btn btn-default btn-sm"
+                                                    style="pointer-events:none;padding:.25rem .55rem;line-height:1.2;"
+                                                >
+                                                    {{ $pmdSettingsText('Manage') }}
+                                                </span>
+                                            </div>
+                                        </summary>
+
+                                        <div style="padding:.85rem .9rem .95rem;border-top:1px solid rgba(15,23,42,.09);">
+                                            <div class="small text-muted" style="margin-bottom:.8rem;">
+                                                {{ $pmdSettingsText('This restaurant uses its own Google Cloud credentials. Secrets are encrypted in this tenant database.') }}
+                                            </div>
+
+                                            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:.75rem;">
                                             <label class="pmd-profile-field">
                                                 <span>{{ $pmdSettingsText('Google OAuth Client ID') }}</span>
                                                 <input
@@ -556,7 +577,7 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                                                 </button>
                                             @endif
                                         </div>
-                                    </div>
+                                    </details>
                                 @endif
                             </div>
                         @endforeach
