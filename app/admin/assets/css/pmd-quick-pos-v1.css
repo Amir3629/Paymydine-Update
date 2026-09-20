@@ -6965,3 +6965,18 @@ body.pmd-qpos-exact-floor-open
   transition: none !important;
 }
 
+/* ============================================================
+   PMD_QPOS_DIRECT_MOVE_COMMIT_STABILITY_V43
+   Optimistic Move is already painted while the server commits. Keep Move
+   visually blue so it never flashes disabled grey during that short window.
+   ============================================================ */
+.pmd-qpos.is-transfer-committing
+.pmd-qpos-table-actions [data-qpos-table-move]:disabled {
+  background: #1d4ed8 !important;
+  border-color: #1d4ed8 !important;
+  color: #fff !important;
+  opacity: 1 !important;
+  filter: none !important;
+  cursor: wait !important;
+}
+
