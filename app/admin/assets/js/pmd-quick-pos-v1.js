@@ -158,7 +158,9 @@
       scope: 'order',
       targetTableId: null,
       submitting: false,
-      directSide: false
+      directSide: false,
+      /* PMD_QPOS_MOVE_SCOPE_STATE_V44 */
+      choiceOpen: false
     },
     payment: {
       open: false,
@@ -677,25 +679,31 @@
       tableActions.hidden = !state.selectedTable && !pickupSelected;
     }
 
-    /* PMD_QPOS_TRANSFER_COMMIT_ACTION_LOCK_V43
-     * Once an optimistic move is painted, keep table actions locked until the
-     * server transaction confirms it. */
+    /* PMD_QPOS_STABLE_ACTIONS_DURING_MOVE_V44
+     * Do not toggle disabled styling while an optimistic transfer commits.
+     * The action bar is interaction-locked by .is-transfer-committing and
+     * handler guards, so Left / Move / Free keep their exact colors. */
+    if (tableActions) {
+      tableActions.setAttribute(
+        'aria-busy',
+        state.transfer.submitting ? 'true' : 'false'
+      );
+    }
+
     if (cleaning) {
       cleaning.disabled =
         directMove ||
-        !!state.transfer.submitting ||
         pickupSelected ||
         !state.selectedTable ||
         selectedCleaning;
     }
     if (move) {
       move.disabled = directMove
-        ? !!state.transfer.submitting
+        ? false
         : (
-            !!state.transfer.submitting ||
             pickupSelected ||
             !state.selectedTable ||
-            !Number(state.activeOrderId || 0) ||
+            !state.openOrders.length ||
             !!state.cart.length ||
             !!state.submitting
           );
@@ -705,7 +713,6 @@
     if (free) {
       free.disabled =
         directMove ||
-        !!state.transfer.submitting ||
         pickupSelected ||
         !state.selectedTable;
     }
@@ -983,8 +990,13 @@
 
     if (count) count.textContent = String(floorTables.length);
     if (title) {
+      /* PMD_QPOS_DIRECT_MOVE_SCOPE_LABEL_V44 */
       title.textContent = directMove
-        ? 'Move #' + String(state.activeOrderId || '')
+        ? (
+            state.transfer.scope === 'table'
+              ? 'Move all'
+              : 'Move #' + String(state.activeOrderId || '')
+          )
         : (
             state.serviceMode === 'takeaway'
               ? 'Pickup'
@@ -1056,8 +1068,14 @@
             ? ' disabled'
             : '') +
           (isMoveTarget
-            ? ' aria-label="Move order ' + esc(state.activeOrderId || '') +
-              ' to table ' + esc(compactTableLabel(table)) + '"'
+            ? (
+                state.transfer.scope === 'table'
+                  ? ' aria-label="Move all checks to table ' +
+                    esc(compactTableLabel(table)) + '"'
+                  : ' aria-label="Move order ' +
+                    esc(state.activeOrderId || '') +
+                    ' to table ' + esc(compactTableLabel(table)) + '"'
+              )
             : '') + '>' +
           '<strong>' + esc(compactTableLabel(table)) + '</strong>' +
           '<small>' + esc(tableStatusLabel(table.status)) +
