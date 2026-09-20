@@ -27,7 +27,7 @@ final class PmdMobileCommandProcessor
         $command = $this->normalize($identity, $input);
 
         try {
-            return DB::transaction(function () use ($identity, $command) {
+            $transactionResult = DB::transaction(function () use ($identity, $command) {
                 $existing = $this->findExistingCommand(
                     $command['command_id'],
                     $command['idempotency_key']
@@ -93,25 +93,31 @@ final class PmdMobileCommandProcessor
                 );
 
                 if ($currentVersion !== $command['base_version']) {
+                    $rejection = [
+                        'ok' => false,
+                        'error' => 'aggregate_version_conflict',
+                        'message' =>
+                            'This order changed on another device. Refresh before sending.',
+                        'expected_version' => $currentVersion,
+                        'received_version' => $command['base_version'],
+                    ];
+
                     DB::table('pmd_sync_commands')
                         ->where('id', (int)$ledger->id)
                         ->update([
                             'status' => 'REJECTED',
                             'error_code' => 'aggregate_version_conflict',
-                            'result_payload' => json_encode([
-                                'ok' => false,
-                                'error' => 'aggregate_version_conflict',
-                                'expected_version' => $currentVersion,
-                                'received_version' => $command['base_version'],
-                            ]),
+                            'result_payload' => json_encode(
+                                $rejection,
+                                JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+                            ),
                             'rejected_at' => now(),
                             'updated_at' => now(),
                         ]);
 
-                    abort(
-                        409,
-                        'This order changed on another device. Refresh before sending.'
-                    );
+                    // Return from the transaction so the rejection ledger row
+                    // commits. The HTTP 409 is raised only after commit.
+                    return $rejection + ['__http_status' => 409];
                 }
 
                 $result = $this->applyCommand($identity, $command);
@@ -184,6 +190,14 @@ final class PmdMobileCommandProcessor
 
                 return $response;
             }, 3);
+
+            if ((int)($transactionResult['__http_status'] ?? 0) > 0) {
+                $status = (int)$transactionResult['__http_status'];
+                $message = (string)($transactionResult['message'] ?? '');
+                abort($status, $message ?: 'The PayMyDine command was rejected.');
+            }
+
+            return $transactionResult;
         } catch (QueryException $error) {
             // Concurrent duplicate insert: after the winner commits, return the
             // exact stored result instead of executing the business mutation.
