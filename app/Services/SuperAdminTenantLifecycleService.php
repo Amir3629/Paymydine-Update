@@ -374,6 +374,7 @@ class SuperAdminTenantLifecycleService
             'pmd_sync_commands',
             'pmd_sync_events',
             'pmd_sync_aggregate_versions',
+            'pmd_mobile_edges',
             'pmd_mobile_pair_exchanges',
         ] as $table) {
             if (!Schema::connection('mysql')->hasTable($table)) {
