@@ -16,7 +16,8 @@ Native Kotlin/Jetpack Compose restaurant app replacing the remote-page wrapper a
 
 - browser-assisted pairing through the existing PayMyDine Login/MFA/Site Access flow
 - Owner/Manager workplace approval remains canonical
-- one-time 120-second exchange secret returns to the app
+- app-generated PKCE verifier binds the browser flow to the initiating Android installation
+- one-time 120-second exchange secret returns to the app; callback interception alone cannot consume it
 - long-lived device token is rotated server-side and stored only in Android Keystore
 - bearer requests are revalidated against the active tenant user/staff/location/role
 
