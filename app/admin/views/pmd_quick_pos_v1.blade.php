@@ -62,7 +62,10 @@
             <section class="pmd-qpos-tables">
                 <div class="pmd-qpos-panel-head">
                     <strong data-qpos-table-title>Tables</strong>
-                    <span class="pmd-qpos-table-count" data-qpos-table-count>{{ count($pmdInitialTables) }}</span>
+                    <div class="pmd-qpos-panel-head-actions">
+                        <button type="button" class="pmd-qpos-floor-map-open" data-qpos-floor-map-open>Map</button>
+                        <span class="pmd-qpos-table-count" data-qpos-table-count>{{ count($pmdInitialTables) }}</span>
+                    </div>
                 </div>
                 <div class="pmd-qpos-table-legend">
                     <span><i class="available"></i>Free</span>
@@ -241,6 +244,38 @@
         </aside>
     </main>
 
+    {{-- PMD_QPOS_FLOOR_MAP_WORKSPACE_V25
+         Alternative table-selection surface. It uses the exact same table
+         coordinates as Cashier/Dashboard/Reservations and returns straight
+         back to the normal three-column POS after table selection. --}}
+    <section class="pmd-qpos-floor-map-workspace" data-qpos-floor-map-workspace hidden aria-hidden="true">
+        <div class="pmd-qpos-floor-map-topbar">
+            <div>
+                <span class="pmd-qpos-section-label">Floor map</span>
+                <strong data-qpos-floor-map-title>Tables</strong>
+            </div>
+            <div class="pmd-qpos-floor-map-top-actions">
+                <div class="pmd-qpos-floor-map-tabs" data-qpos-map-floors></div>
+                <button type="button" class="pmd-qpos-floor-map-close" data-qpos-floor-map-close>List view</button>
+            </div>
+        </div>
+
+        <div class="pmd-qpos-floor-map-legend">
+            <span><i class="available"></i>Free</span>
+            <span><i class="occupied"></i>Busy</span>
+            <span><i class="reserved"></i>Reserved</span>
+            <span><i class="cleaning"></i>Clean</span>
+            <span><i class="due"></i>Payment</span>
+            <span><i class="call"></i>Call</span>
+        </div>
+
+        <div class="pmd-qpos-floor-map-shell">
+            <div class="pmd-qpos-floor-map-stage" data-qpos-floor-map-stage aria-label="Restaurant floor map"></div>
+        </div>
+
+        <div class="pmd-qpos-floor-map-hint">Select a table to open the POS.</div>
+    </section>
+
     <button type="button" class="pmd-qpos-mobile-cart" data-qpos-mobile-cart>
         <span><b data-qpos-mobile-count>0</b></span>
         <strong data-qpos-mobile-total>€0.00</strong>
@@ -276,16 +311,16 @@
 
     <div class="pmd-qpos-modal pmd-qpos-workspace-modal" data-qpos-payment-modal aria-hidden="true">
         <div class="pmd-qpos-modal-card pmd-qpos-payment-card">
-            <header>
-                <div>
-                    <span class="pmd-qpos-section-label">Payment</span>
-                    <h2 data-qpos-payment-title>Collect payment</h2>
-                </div>
-                <button type="button" class="pmd-qpos-modal-close" data-qpos-payment-close>×</button>
-            </header>
-
             <div class="pmd-qpos-payment-body">
                 <section class="pmd-qpos-payment-main">
+                    <div class="pmd-qpos-payment-inline-head">
+                        <div>
+                            <span class="pmd-qpos-section-label">Payment</span>
+                            <strong data-qpos-payment-title>Collect payment</strong>
+                        </div>
+                        <button type="button" class="pmd-qpos-modal-close" data-qpos-payment-close aria-label="Close payment">×</button>
+                    </div>
+
                     <div class="pmd-qpos-payment-balance">
                         <span>Due</span>
                         <strong data-qpos-payment-remaining>€0.00</strong>
@@ -552,26 +587,27 @@
         </div>
     </div>
 
-    {{-- PMD_QPOS_TRANSFER_V24 --}}
-    <div class="pmd-qpos-modal" data-qpos-transfer-modal aria-hidden="true">
+    {{-- PMD_QPOS_TRANSFER_V25
+         Full workspace instead of another floating card. --}}
+    <div class="pmd-qpos-modal pmd-qpos-workspace-modal pmd-qpos-transfer-workspace" data-qpos-transfer-modal aria-hidden="true">
         <div class="pmd-qpos-modal-card pmd-qpos-transfer-card">
-            <header>
+            <div class="pmd-qpos-transfer-topbar">
                 <div>
                     <span class="pmd-qpos-section-label">Move</span>
-                    <h2 data-qpos-transfer-title>Table</h2>
+                    <strong data-qpos-transfer-title>Table</strong>
                 </div>
-                <button type="button" class="pmd-qpos-modal-close" data-qpos-transfer-close>×</button>
-            </header>
+                <button type="button" class="pmd-qpos-modal-close" data-qpos-transfer-close aria-label="Close move">×</button>
+            </div>
 
             <div class="pmd-qpos-transfer-body">
                 <div class="pmd-qpos-transfer-scope">
                     <button type="button" data-qpos-transfer-scope="order">
-                        <strong data-qpos-transfer-order-label>Check</strong>
-                        <small>Only this check</small>
+                        <strong>Order only</strong>
+                        <span data-qpos-transfer-order-label>Order</span>
                     </button>
                     <button type="button" data-qpos-transfer-scope="table">
                         <strong>Whole table</strong>
-                        <small data-qpos-transfer-table-count>All checks</small>
+                        <span data-qpos-transfer-table-count>All orders</span>
                     </button>
                 </div>
 
@@ -584,7 +620,6 @@
             </div>
 
             <footer>
-                <button type="button" class="pmd-qpos-transfer-cancel" data-qpos-transfer-cancel>Cancel</button>
                 <button type="button" class="pmd-qpos-modal-primary" data-qpos-transfer-submit disabled>Move</button>
             </footer>
         </div>
