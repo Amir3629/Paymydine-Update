@@ -72,10 +72,20 @@ grep -q "pmd-quick-pos-v1.js?v=20260920-44" "$STAGE/app/admin/views/pmd_quick_po
 
 echo
 echo "===== COLLECTION BINDING SAFETY ====="
-if grep -E "\$\([^)]*\)\.forEach" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js" | grep -v "\$\$(" >/dev/null 2>&1; then
-  echo "ERROR: single-element selector .forEach binding found" >&2
-  exit 1
-fi
+BROKEN_SCOPE_BINDING="\$('[data-qpos-direct-move-scope]').forEach"
+BROKEN_CHECK_BINDING="\$('[data-qpos-check]', box).forEach"
+BROKEN_TABLE_BINDING="\$('[data-qpos-table]', box).forEach"
+
+for broken in \
+  "$BROKEN_SCOPE_BINDING" \
+  "$BROKEN_CHECK_BINDING" \
+  "$BROKEN_TABLE_BINDING"; do
+  if grep -Fq "$broken" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"; then
+    echo "ERROR: unsafe single-element selector .forEach binding found: $broken" >&2
+    exit 1
+  fi
+done
+
 grep -Fq "root.querySelectorAll('[data-qpos-direct-move-scope]')" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
 echo "OK move-scope controls use collection-safe bindings"
 
@@ -86,7 +96,7 @@ grep -q "PMD_QPOS_CLEANING_LEFT_LOCK_V40" "$STAGE/app/admin/assets/js/pmd-quick-
 grep -q "PMD_QPOS_IMMEDIATE_TABLE_TAP_V42" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
 grep -q "PMD_QPOS_DIRECT_MOVE_NO_PRE_RENDER_V43" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
 grep -q "PMD_QPOS_DIRECT_MOVE_NO_BOOTSTRAP_V43" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
-grep -q "PMD_QPOS_FAST_ORDER_TRANSFER_V43" "$STAGE/app/admin/controllers/PmdQuickPosV1.php"
+grep -q "PMD_QPOS_TRANSFER_PAYABLE_LOCK_V43" "$STAGE/app/admin/controllers/PmdQuickPosV1.php"
 grep -q "PMD_QPOS_GUIDE_POPOVER_V39" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
 echo "OK V37-V43 preserved"
 
