@@ -17,7 +17,7 @@
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-reservations2-floor-reservation-v312.css?v=20260920-floor-v35b">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-dashboard-lab-exact-floor-v1.css?v=20260920-floor-v35b">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-shared-floor-multi-floor-v1.css?v=20260920-floor-v35b">
-    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-pos-v1.css?v=20260920-35b">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-pos-v1.css?v=20260920-36">
 </head>
 <body class="pmd-qpos-body">
 @php
@@ -705,7 +705,7 @@ window.PMDQuickPOSConfig = {
 {{-- Canonical Floor runtime mounts before the POS bridge. --}}
 <script src="/app/admin/assets/js/pmd-dashboard-lab-exact-floor-v1.js?v=20260920-floor-v35b"></script>
 <script src="/app/admin/assets/js/pmd-shared-floor-multi-floor-v1.js?v=20260920-floor-v35b"></script>
-<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260920-35b"></script>
+<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260920-36"></script>
 <script src="/app/admin/assets/js/pmd-site-access-hub-v13.js?v=20260919-qpos1"></script>
 </body>
 </html>
