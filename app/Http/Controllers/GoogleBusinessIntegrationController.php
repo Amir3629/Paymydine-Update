@@ -17,13 +17,17 @@ class GoogleBusinessIntegrationController extends Controller
             $context = $google->consumeOAuthState($state);
             $tenantHost = (string)$context['tenant_host'];
 
+            $requestHost = strtolower(trim((string)$request->getHost()));
+            if ($requestHost === '' || !hash_equals($tenantHost, $requestHost)) {
+                throw new \RuntimeException('Google OAuth callback tenant does not match the restaurant that started the connection.');
+            }
+
             if ($request->filled('error')) {
                 throw new \RuntimeException(
                     'Google authorization was not completed: '.(string)$request->query('error')
                 );
             }
 
-            $google->activateTenantHost($tenantHost);
             $google->completeOAuth(
                 (int)$context['location_id'],
                 (string)$request->query('code', ''),
