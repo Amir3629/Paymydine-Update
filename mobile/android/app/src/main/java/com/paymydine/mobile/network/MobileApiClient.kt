@@ -61,6 +61,70 @@ class MobileApiClient {
         }
     }
 
+    fun registerEdge(
+        tenantHost: String,
+        deviceToken: String,
+        fingerprintSha256: String,
+        port: Int,
+    ): JSONObject {
+        val base = trustedTenantBase("https://$tenantHost")
+        val body = JSONObject()
+            .put("fingerprint_sha256", fingerprintSha256.lowercase())
+            .put("port", port)
+            .put("protocol", "pmd-edge-v1")
+            .toString()
+
+        return JSONObject(
+            request(
+                url = URL(
+                    base.toString().trimEnd('/') +
+                        "/admin/api/mobile/v1/edge/register",
+                ),
+                method = "POST",
+                token = deviceToken,
+                body = body,
+            ),
+        )
+    }
+
+    fun edgeHeartbeat(
+        tenantHost: String,
+        deviceToken: String,
+    ): JSONObject {
+        val base = trustedTenantBase("https://$tenantHost")
+
+        return JSONObject(
+            request(
+                url = URL(
+                    base.toString().trimEnd('/') +
+                        "/admin/api/mobile/v1/edge/heartbeat",
+                ),
+                method = "POST",
+                token = deviceToken,
+                body = "{}",
+            ),
+        )
+    }
+
+    fun disableEdge(
+        tenantHost: String,
+        deviceToken: String,
+    ): JSONObject {
+        val base = trustedTenantBase("https://$tenantHost")
+
+        return JSONObject(
+            request(
+                url = URL(
+                    base.toString().trimEnd('/') +
+                        "/admin/api/mobile/v1/edge/disable",
+                ),
+                method = "POST",
+                token = deviceToken,
+                body = "{}",
+            ),
+        )
+    }
+
     fun kdsSnapshot(
         tenantHost: String,
         deviceToken: String,
