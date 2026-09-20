@@ -31,7 +31,7 @@ git merge-base --is-ancestor "$main_sha" "$release_sha" || fail "Integration bra
 [[ -z "$(git status --porcelain --untracked-files=no)" ]] || fail "Tracked live worktree changes exist. Commit/sync or audit them before deployment."
 
 mapfile -t changed_rows < <(git diff --name-status "${main_sha}...${release_sha}" --)
-(("${#changed_rows[@]}" > 0)) || fail "No integration changes found"
+(( ${#changed_rows[@]} > 0 )) || fail "No integration changes found"
 
 runtime_files=()
 for row in "${changed_rows[@]}"; do
@@ -43,13 +43,13 @@ for row in "${changed_rows[@]}"; do
   esac
 
   case "$rel" in
-    app/*|routes/*|"$PMD_V2_REL"/*)
+    app/*|routes/*|"$PMD_V2_REL"/*|docs/GOOGLE_BUSINESS_PROFILE_INTEGRATION_V2.md|scripts/pmd-google-business-profile-integration-v2-deploy.sh)
       runtime_files+=("$rel")
       ;;
   esac
 done
 
-(("${#runtime_files[@]}" > 0)) || fail "No runtime files found in the integration diff"
+(( ${#runtime_files[@]} > 0 )) || fail "No runtime files found in the integration diff"
 
 pm2_json="$(sudo -u ubuntu -H pm2 jlist)"
 pm2_cwd="$(printf '%s' "$pm2_json" | PMD_SERVICE="$PMD_SERVICE" php -r '$j=json_decode(stream_get_contents(STDIN),true); foreach($j?:[] as $p){if(($p["name"]??"")===getenv("PMD_SERVICE")){echo $p["pm2_env"]["pm_cwd"]??""; exit;}}')"
