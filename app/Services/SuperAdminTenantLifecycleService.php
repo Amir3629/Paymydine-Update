@@ -265,6 +265,7 @@ class SuperAdminTenantLifecycleService
             // tenants must be security-ready at birth even when newtenantdb is
             // older than the application code currently deployed.
             $this->ensureWorkplaceSecuritySchema();
+            $this->ensureMobileSyncSchema();
 
             // Defense in depth: even if the template changes or an old copy path
             // reappears, visible restaurant/business/security data is removed.
@@ -352,6 +353,35 @@ class SuperAdminTenantLifecycleService
             throw new \RuntimeException(
                 'New tenant trusted-login schema missing user_id.'
             );
+        }
+    }
+
+    /** PMD_NEW_TENANT_MOBILE_SYNC_SCHEMA_V1 */
+    private function ensureMobileSyncSchema(): void
+    {
+        $migration = base_path(
+            'app/system/database/migrations/2026_09_20_190000_create_pmd_mobile_sync_tables.php'
+        );
+
+        if (!is_file($migration)) {
+            throw new \RuntimeException('PayMyDine mobile sync migration file is missing.');
+        }
+
+        require_once $migration;
+        (new \System\Database\Migrations\CreatePmdMobileSyncTables())->up();
+
+        foreach ([
+            'pmd_sync_commands',
+            'pmd_sync_events',
+            'pmd_sync_aggregate_versions',
+            'pmd_mobile_edges',
+            'pmd_mobile_pair_exchanges',
+        ] as $table) {
+            if (!Schema::connection('mysql')->hasTable($table)) {
+                throw new \RuntimeException(
+                    'New tenant mobile sync schema missing table: '.$table
+                );
+            }
         }
     }
 

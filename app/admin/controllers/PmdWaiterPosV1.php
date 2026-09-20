@@ -67,6 +67,29 @@ class PmdWaiterPosV1 extends AdminController
 
     protected $requiredPermissions = 'Admin.Orders';
 
+    /**
+     * PMD_MOBILE_SYNC_V1
+     *
+     * Mobile API authentication remains outside AdminAuth. The command bridge
+     * injects the already-verified tenant user so existing POS helpers keep
+     * their canonical permission/user attribution behavior.
+     */
+    protected $pmdMobileUserOverride = null;
+    protected ?array $pmdMobileIdentityOverride = null;
+
+    public function pmdUseMobileIdentity(array $identity): self
+    {
+        $this->pmdMobileIdentityOverride = $identity;
+        $this->pmdMobileUserOverride = $identity['user'] ?? null;
+
+        return $this;
+    }
+
+    public function pmdMobileIdentity(): ?array
+    {
+        return $this->pmdMobileIdentityOverride;
+    }
+
     /*
      * PMD_PERF_R3_POS_SCHEMA_CACHE
      *

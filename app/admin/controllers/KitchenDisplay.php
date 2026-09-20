@@ -40,6 +40,9 @@ class KitchenDisplay extends AdminController
     protected $pmdKdsOptionNamesByMenuOptionIdV83 = null;
     protected $pmdKdsCategoriesByMenuIdV83 = [];
 
+    /** PMD_MOBILE_KDS_V1 request-local location guard. */
+    protected ?int $pmdMobileLocationIdV1 = null;
+
     /* PMD_KDS_OPERATIONAL_CORE_V134
      * Kitchen Display is an operational surface, not an order-history browser.
      * Keep a generous overnight carry-over while excluding zombie tickets left
@@ -52,6 +55,311 @@ class KitchenDisplay extends AdminController
     public function __construct()
     {
         parent::__construct();
+    }
+
+    /**
+     * PMD_MOBILE_KDS_V1
+     *
+     * Read the exact canonical KDS projection for a bearer-authenticated
+     * Android device. The existing formatter/category routing remains the
+     * single kitchen read authority.
+     */
+    public function pmdMobileSnapshot(
+        array $identity,
+        ?string $stationSlug = null
+    ): array {
+        $locationId = (int)($identity['location_id'] ?? 0);
+        if ($locationId < 1) {
+            throw new \RuntimeException(
+                'A restaurant location is required for mobile KDS.'
+            );
+        }
+
+        $this->pmdMobileLocationIdV1 = $locationId;
+        $this->station = null;
+
+        $stationSlug = trim((string)$stationSlug);
+        if ($stationSlug !== '') {
+            $station = Kds_stations_model::query()
+                ->where('slug', $stationSlug)
+                ->first();
+
+            if (!$station) {
+                abort(404, 'KDS station is unavailable.');
+            }
+
+            if (
+                isset($station->location_id)
+                && (int)$station->location_id > 0
+                && (int)$station->location_id !== $locationId
+            ) {
+                abort(403, 'KDS station belongs to another restaurant location.');
+            }
+
+            $this->station = $station;
+        }
+
+        $versionMap = [];
+        if (Schema::hasTable('pmd_sync_aggregate_versions')) {
+            try {
+                $versionMap = DB::table('pmd_sync_aggregate_versions')
+                    ->where('location_id', $locationId)
+                    ->where('aggregate', 'order')
+                    ->where('aggregate_id', 'like', 'order:%')
+                    ->pluck('version', 'aggregate_id')
+                    ->mapWithKeys(function ($version, $aggregateId) {
+                        return [(string)$aggregateId => (int)$version];
+                    })
+                    ->all();
+            } catch (\Throwable $ignored) {
+                $versionMap = [];
+            }
+        }
+
+        $orders = $this->pmdKdsLoadOperationalOrdersV134()
+            ->map(function ($orderData) use ($versionMap) {
+                foreach (['created_at', 'status_updated_at'] as $key) {
+                    if (
+                        isset($orderData[$key])
+                        && is_object($orderData[$key])
+                        && method_exists($orderData[$key], 'toIso8601String')
+                    ) {
+                        $orderData[$key] = $orderData[$key]->toIso8601String();
+                    }
+                }
+
+                $orderId = (int)($orderData['order_id'] ?? 0);
+                $orderData['aggregate_version'] = (int)(
+                    $versionMap['order:'.$orderId] ?? 0
+                );
+
+                foreach ((array)($orderData['notes'] ?? []) as $index => $note) {
+                    if (
+                        isset($note['created_at'])
+                        && is_object($note['created_at'])
+                        && method_exists($note['created_at'], 'toIso8601String')
+                    ) {
+                        $note['created_at'] = $note['created_at']->toIso8601String();
+                        $orderData['notes'][$index] = $note;
+                    }
+                }
+
+                return $orderData;
+            })
+            ->values()
+            ->all();
+
+        return [
+            'ok' => true,
+            'version' => 'pmd-mobile-kds-v1',
+            'location_id' => $locationId,
+            'station' => $this->station
+                ? [
+                    'id' => (int)$this->station->getKey(),
+                    'name' => (string)$this->station->name,
+                    'slug' => (string)$this->station->slug,
+                ]
+                : null,
+            'statuses' => $this->getKitchenStatuses()
+                ->values()
+                ->all(),
+            'orders' => array_values($orders),
+            'generated_at' => now()->toIso8601String(),
+        ];
+    }
+
+    /**
+     * Canonical KDS status transition for native clients.
+     *
+     * expectedStatusId is mandatory for mutation so two kitchen devices never
+     * silently overwrite each other.
+     */
+    public function pmdMobileUpdateStatus(
+        array $identity,
+        int $orderId,
+        int $statusId,
+        int $expectedStatusId,
+        ?string $stationSlug = null
+    ): array {
+        $locationId = (int)($identity['location_id'] ?? 0);
+        $staffId = (int)($identity['staff_id'] ?? 0);
+
+        if (
+            $locationId < 1
+            || $orderId < 1
+            || $statusId < 1
+            || $expectedStatusId < 1
+        ) {
+            abort(422, 'Order, expected status, new status and location are required.');
+        }
+
+        $this->pmdMobileLocationIdV1 = $locationId;
+        $station = null;
+        $stationSlug = trim((string)$stationSlug);
+
+        if ($stationSlug !== '') {
+            $station = Kds_stations_model::query()
+                ->where('slug', $stationSlug)
+                ->first();
+
+            if (!$station) {
+                abort(404, 'KDS station is unavailable.');
+            }
+
+            if (
+                isset($station->location_id)
+                && (int)$station->location_id > 0
+                && (int)$station->location_id !== $locationId
+            ) {
+                abort(403, 'KDS station belongs to another restaurant location.');
+            }
+        }
+
+        $newStatus = Statuses_model::query()
+            ->where('status_for', 'order')
+            ->where('status_id', $statusId)
+            ->first();
+
+        if (!$newStatus) {
+            abort(422, 'Invalid KDS order status.');
+        }
+
+        $newStatusName = trim((string)$newStatus->status_name);
+        if (!in_array($newStatusName, ['Preparation', 'Delivery'], true)) {
+            abort(422, 'This status is not part of the PayMyDine KDS workflow.');
+        }
+
+        $stationName = $station ? (string)$station->name : 'Kitchen';
+
+        $transition = DB::transaction(function () use (
+            $locationId,
+            $staffId,
+            $orderId,
+            $expectedStatusId,
+            $newStatus,
+            $stationName
+        ) {
+            $order = Orders_model::query()
+                ->where('order_id', $orderId)
+                ->lockForUpdate()
+                ->first();
+
+            if (!$order) {
+                abort(404, 'Order not found.');
+            }
+
+            if (
+                isset($order->location_id)
+                && (int)$order->location_id > 0
+                && (int)$order->location_id !== $locationId
+            ) {
+                abort(403, 'Order belongs to another restaurant location.');
+            }
+
+            $currentStatusId = (int)$order->status_id;
+            $currentStatusName = $order->status
+                ? (string)$order->status->status_name
+                : '';
+
+            if ($currentStatusId !== $expectedStatusId) {
+                abort(
+                    409,
+                    'Order status changed on another kitchen device. Refresh before updating.'
+                );
+            }
+
+            if ($currentStatusId === (int)$newStatus->status_id) {
+                return [
+                    'order' => $order,
+                    'history' => null,
+                    'previous_status_id' => $currentStatusId,
+                    'previous_status_name' => $currentStatusName,
+                    'already' => true,
+                ];
+            }
+
+            $history = Status_history_model::createHistory(
+                $newStatus,
+                $order,
+                [
+                    'staff_id' => $staffId ?: null,
+                    'notify' => false,
+                    'comment' => 'KDS '.$stationName.': '.$newStatusName
+                        .' (PayMyDine Android)',
+                ]
+            );
+
+            if (!$history) {
+                throw new \RuntimeException(
+                    'Status history rejected the KDS transition.'
+                );
+            }
+
+            $order->refresh();
+
+            return [
+                'order' => $order,
+                'history' => $history,
+                'previous_status_id' => $currentStatusId,
+                'previous_status_name' => $currentStatusName,
+                'already' => false,
+            ];
+        });
+
+        $order = $transition['order'];
+        $history = $transition['history'];
+
+        if ($history) {
+            try {
+                $order->fireSystemEvent(
+                    'admin.statusHistory.added',
+                    [$history]
+                );
+            } catch (\Throwable $ignored) {
+            }
+
+            try {
+                $this->createStationNotification(
+                    $order,
+                    $stationName,
+                    $newStatusName
+                );
+            } catch (\Throwable $error) {
+                \Log::warning(
+                    'PMD mobile KDS notification failed: '.$error->getMessage()
+                );
+            }
+        }
+
+        $etaState = [];
+        try {
+            $etaState = app(PmdKitchenEtaLifecycleService::class)
+                ->onKitchenStatus($orderId, $newStatusName);
+        } catch (\Throwable $error) {
+            \Log::warning('PMD mobile KDS ETA update failed', [
+                'order_id' => $orderId,
+                'message' => $error->getMessage(),
+            ]);
+        }
+
+        return [
+            'ok' => true,
+            'version' => 'pmd-mobile-kds-v1',
+            'order_id' => $orderId,
+            'station' => $stationName,
+            'previous_status_id' =>
+                (int)$transition['previous_status_id'],
+            'previous_status_name' =>
+                (string)$transition['previous_status_name'],
+            'status_id' => (int)$newStatus->status_id,
+            'status_name' => $newStatusName,
+            'display_status_name' =>
+                $newStatusName === 'Preparation'
+                    ? 'Preparing'
+                    : 'Ready',
+            'already' => (bool)$transition['already'],
+            'eta' => $etaState,
+        ];
     }
 
     /**
@@ -445,7 +753,11 @@ class KitchenDisplay extends AdminController
 
     protected function pmdKdsStationLocationIdV134()
     {
-        // PMD_KDS_MINIMAL_STATION_V1: PayMyDine no longer exposes per-station locations.
+        if ($this->pmdMobileLocationIdV1 && $this->pmdMobileLocationIdV1 > 0) {
+            return $this->pmdMobileLocationIdV1;
+        }
+
+        // PMD_KDS_MINIMAL_STATION_V1: browser KDS no longer exposes per-station locations.
         return null;
     }
 

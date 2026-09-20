@@ -10,6 +10,7 @@ use Admin\Services\PmdDefaultStaffRoleService;
 use Admin\Traits\HandlesPortalMfa;
 use Admin\Traits\ValidatesForm;
 use App\Services\PmdOwnerTotpService;
+use App\Services\PmdMobileSync\PmdMobilePairingService;
 use App\Services\PmdSiteAccessQrService;
 use App\Services\PmdSiteAccessService;
 use App\Services\PmdSiteAccessSessionBindingService;
@@ -82,6 +83,13 @@ class Login extends \Admin\Classes\AdminController
 
                 $this->pmdInvalidateIncompleteSecurityLogin();
                 return redirect(admin_url('login'));
+            }
+
+            // PMD_MOBILE_PAIR_LOGIN_RESUME_V1
+            // Browser login/MFA stays canonical. Once security is complete,
+            // resume the pairing flow instead of dropping the user on a role dashboard.
+            if (app(PmdMobilePairingService::class)->hasFreshIntent(request())) {
+                return redirect(admin_url('mobile/pair/start'));
             }
 
             $landing = $this->pmdRoleLandingRoute();
@@ -197,10 +205,21 @@ class Login extends \Admin\Classes\AdminController
         }
 
         $destination = (string)$login['destination'];
+        $mobilePairing = app(PmdMobilePairingService::class)
+            ->hasFreshIntent(request());
+
+        // Native pairing always uses the normal role workspace security flow.
+        // The special "usernameportal" destination must not bypass into My Work.
+        if ($mobilePairing) {
+            $destination = 'workspace';
+        }
+
         session()->put(PmdSiteAccessService::SESSION_DESTINATION, $destination);
-        $target = $destination === 'staff'
-            ? admin_url('mywork')
-            : admin_url($landing);
+        $target = $mobilePairing
+            ? admin_url('mobile/pair/start')
+            : ($destination === 'staff'
+                ? admin_url('mywork')
+                : admin_url($landing));
 
         $this->pmdQueueAccountLocale();
 
@@ -237,22 +256,24 @@ class Login extends \Admin\Classes\AdminController
         // Password authentication has established the exact user/location.
         // Resume the trusted browser NOW, before creating another TOTP
         // or Workplace challenge.
-        try {
-            $trustedLogin = app(PmdTrustedLoginDeviceService::class)
-                ->resumeIfPossible(request());
+        if (!$mobilePairing) {
+            try {
+                $trustedLogin = app(PmdTrustedLoginDeviceService::class)
+                    ->resumeIfPossible(request());
 
-            if ($trustedLogin) {
-                return $trustedLogin;
+                if ($trustedLogin) {
+                    return $trustedLogin;
+                }
+            } catch (\Throwable $error) {
+                logger()->warning(
+                    'PMD trusted password-post resume failed',
+                    [
+                        'user_id' =>
+                            (int)optional(AdminAuth::getUser())->getKey(),
+                        'message' => $error->getMessage(),
+                    ]
+                );
             }
-        } catch (\Throwable $error) {
-            logger()->warning(
-                'PMD trusted password-post resume failed',
-                [
-                    'user_id' =>
-                        (int)optional(AdminAuth::getUser())->getKey(),
-                    'message' => $error->getMessage(),
-                ]
-            );
         }
 
         // PMD_WORKPLACE_LOGIN_ALL_USERS_V8
