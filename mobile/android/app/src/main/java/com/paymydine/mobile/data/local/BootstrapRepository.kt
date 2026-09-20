@@ -108,6 +108,11 @@ class BootstrapRepository(private val database: PmdDatabase) {
             putMeta(db, "location_id", locationId.toString())
             putMeta(db, "role_code", identity.optString("role_code"))
             putMeta(db, "profile_expires_at", root.optString("profile_expires_at"))
+            putMeta(
+                db,
+                "bootstrap_applied_at_ms",
+                System.currentTimeMillis().toString(),
+            )
 
             val cursor = sync.optLong("cursor", 0)
             db.insertWithOnConflict(
@@ -166,6 +171,17 @@ class BootstrapRepository(private val database: PmdDatabase) {
         null,
         "1",
     ).use { if (it.moveToFirst()) it.getString(0) else null }
+
+    fun needsRefresh(
+        maxAgeMs: Long = 5L * 60L * 1000L,
+        nowMs: Long = System.currentTimeMillis(),
+    ): Boolean {
+        val applied = meta("bootstrap_applied_at_ms")
+            ?.toLongOrNull()
+            ?: return true
+
+        return nowMs - applied >= maxAgeMs
+    }
 
     fun hasBootstrap(): Boolean = database.readableDatabase.query(
         "pmd_meta",
