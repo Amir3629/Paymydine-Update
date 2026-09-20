@@ -552,8 +552,9 @@ class PmdGoogleBusinessService
         $synced = 0;
         $averageRating = null;
         $totalReviewCount = null;
+        $seenReviewIds = [];
 
-        for ($page = 0; $page < 25; $page++) {
+        for ($page = 0; $page < 200; $page++) {
             $query = ['pageSize' => 50];
             if ($pageToken) $query['pageToken'] = $pageToken;
 
@@ -589,43 +590,23 @@ class PmdGoogleBusinessService
                 }
                 if ($reviewId === '') continue;
 
-                $reviewer = (array)($review['reviewer'] ?? []);
-                $reply = (array)($review['reviewReply'] ?? []);
-                $now = now();
-
-                $reviewIdentity = [
-                    'provider' => 'google',
-                    'location_id' => $locationId,
-                    'provider_review_id' => $reviewId,
-                ];
-                $existingReview = DB::table('pmd_external_reviews')
-                    ->where($reviewIdentity)
-                    ->first();
-
-                DB::table('pmd_external_reviews')->updateOrInsert(
-                    $reviewIdentity,
-                    [
-                        'google_location_name' => (string)$connection->google_location_name,
-                        'reviewer_name' => trim((string)($reviewer['displayName'] ?? 'Google user')) ?: 'Google user',
-                        'reviewer_photo_url' => trim((string)($reviewer['profilePhotoUrl'] ?? '')) ?: null,
-                        'rating' => $this->starRating((string)($review['starRating'] ?? '')),
-                        'comment' => (string)($review['comment'] ?? ''),
-                        'review_created_at' => $this->timestampOrNull($review['createTime'] ?? null),
-                        'review_updated_at' => $this->timestampOrNull($review['updateTime'] ?? null),
-                        'owner_reply' => trim((string)($reply['comment'] ?? '')) ?: null,
-                        'owner_reply_updated_at' => $this->timestampOrNull($reply['updateTime'] ?? null),
-                        'raw_payload' => json_encode($review, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
-                        'synced_at' => $now,
-                        'updated_at' => $now,
-                        'created_at' => $existingReview->created_at ?? $now,
-                    ]
-                );
+                $seenReviewIds[] = $reviewId;
+                $this->upsertExternalReview($locationId, $connection, $review, $reviewId);
                 $synced++;
             }
 
             $pageToken = trim((string)($json['nextPageToken'] ?? ''));
             if ($pageToken === '') break;
         }
+
+        $staleQuery = DB::table('pmd_external_reviews')
+            ->where('location_id', $locationId)
+            ->where('provider', 'google');
+
+        if ($seenReviewIds) {
+            $staleQuery->whereNotIn('provider_review_id', array_values(array_unique($seenReviewIds)));
+        }
+        $staleQuery->delete();
 
         $update = [
             'last_synced_at' => now(),
@@ -644,6 +625,59 @@ class PmdGoogleBusinessService
             'average_rating' => $averageRating,
             'total_review_count' => $totalReviewCount,
         ];
+    }
+
+    public function syncReviewResource(int $locationId, string $reviewName): bool
+    {
+        $connection = $this->connection($locationId);
+        $accountId = $this->resourceId((string)$connection->google_account_name, 'accounts');
+        $googleLocationId = $this->resourceId((string)$connection->google_location_name, 'locations');
+        $reviewId = $this->resourceId(trim($reviewName), 'reviews');
+
+        if ($accountId === '' || $googleLocationId === '' || $reviewId === '') {
+            return false;
+        }
+
+        $url = self::REVIEWS_API
+            .'/accounts/'.rawurlencode($accountId)
+            .'/locations/'.rawurlencode($googleLocationId)
+            .'/reviews/'.rawurlencode($reviewId);
+
+        $response = Http::withToken($this->accessToken($locationId))
+            ->acceptJson()
+            ->timeout(25)
+            ->get($url);
+
+        $review = (array)$response->json();
+        if (!$response->successful()) {
+            throw $this->googleApiException(
+                'Unable to sync the changed Google review.',
+                $review,
+                $response->status()
+            );
+        }
+
+        $this->upsertExternalReview($locationId, $connection, $review, $reviewId);
+
+        $stats = DB::table('pmd_external_reviews')
+            ->where('location_id', $locationId)
+            ->where('provider', 'google')
+            ->selectRaw('COUNT(*) AS review_count, AVG(NULLIF(rating, 0)) AS average_rating')
+            ->first();
+
+        DB::table('pmd_google_business_connections')
+            ->where('location_id', $locationId)
+            ->update([
+                'google_total_review_count' => (int)($stats->review_count ?? 0),
+                'google_average_rating' => isset($stats->average_rating)
+                    ? round((float)$stats->average_rating, 2)
+                    : null,
+                'last_synced_at' => now(),
+                'last_error' => null,
+                'updated_at' => now(),
+            ]);
+
+        return true;
     }
 
     public function externalReviews(int $locationId, int $limit = 200)
@@ -869,6 +903,21 @@ class PmdGoogleBusinessService
             $notification = $body;
         }
 
+        $notificationType = strtoupper(trim((string)(
+            $notification['notificationType']
+            ?? $notification['notification_type']
+            ?? ''
+        )));
+        if ($notificationType !== '' && !in_array($notificationType, ['NEW_REVIEW', 'UPDATED_REVIEW'], true)) {
+            return ['processed' => 0, 'notification' => $notification];
+        }
+
+        $reviewName = trim((string)(
+            $notification['reviewName']
+            ?? $notification['review_name']
+            ?? ''
+        ));
+
         $locationName = $this->normalizeResourceName(
             (string)($notification['locationName'] ?? $notification['location_name'] ?? ''),
             'locations'
@@ -897,7 +946,14 @@ class PmdGoogleBusinessService
         foreach ($routes as $route) {
             try {
                 $this->activateTenantHost((string)$route->tenant_host);
-                $this->syncReviews((int)$route->location_id);
+                $locationId = (int)$route->location_id;
+
+                if ($reviewName !== '') {
+                    $this->syncReviewResource($locationId, $reviewName);
+                } else {
+                    $this->syncReviews($locationId);
+                }
+
                 $processed++;
             } catch (\Throwable $error) {
                 Log::error('PMD Google Pub/Sub review sync failed', [
@@ -915,6 +971,45 @@ class PmdGoogleBusinessService
     {
         $expected = $this->configuration()['pubsub_token'];
         return $expected !== '' && $provided !== '' && hash_equals($expected, $provided);
+    }
+
+    private function upsertExternalReview(
+        int $locationId,
+        object $connection,
+        array $review,
+        string $reviewId
+    ): void {
+        $reviewer = (array)($review['reviewer'] ?? []);
+        $reply = (array)($review['reviewReply'] ?? []);
+        $now = now();
+
+        $reviewIdentity = [
+            'provider' => 'google',
+            'location_id' => $locationId,
+            'provider_review_id' => $reviewId,
+        ];
+        $existingReview = DB::table('pmd_external_reviews')
+            ->where($reviewIdentity)
+            ->first();
+
+        DB::table('pmd_external_reviews')->updateOrInsert(
+            $reviewIdentity,
+            [
+                'google_location_name' => (string)$connection->google_location_name,
+                'reviewer_name' => trim((string)($reviewer['displayName'] ?? 'Google user')) ?: 'Google user',
+                'reviewer_photo_url' => trim((string)($reviewer['profilePhotoUrl'] ?? '')) ?: null,
+                'rating' => $this->starRating((string)($review['starRating'] ?? '')),
+                'comment' => (string)($review['comment'] ?? ''),
+                'review_created_at' => $this->timestampOrNull($review['createTime'] ?? null),
+                'review_updated_at' => $this->timestampOrNull($review['updateTime'] ?? null),
+                'owner_reply' => trim((string)($reply['comment'] ?? '')) ?: null,
+                'owner_reply_updated_at' => $this->timestampOrNull($reply['updateTime'] ?? null),
+                'raw_payload' => json_encode($review, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                'synced_at' => $now,
+                'updated_at' => $now,
+                'created_at' => $existingReview->created_at ?? $now,
+            ]
+        );
     }
 
     private function accessToken(int $locationId): string
