@@ -235,6 +235,7 @@
 
             <div class="pmd-qpos-table-actions" data-qpos-table-actions hidden>
                 <button type="button" data-qpos-table-cleaning>Left</button>
+                <button type="button" data-qpos-table-move>Move</button>
                 <button type="button" data-qpos-table-free>Free</button>
             </div>
         </aside>
@@ -547,6 +548,44 @@
             <footer>
                 <button type="button" class="pmd-qpos-note-clear" data-qpos-item-note-clear>Clear</button>
                 <button type="button" class="pmd-qpos-modal-primary" data-qpos-item-note-save>Save note</button>
+            </footer>
+        </div>
+    </div>
+
+    {{-- PMD_QPOS_TRANSFER_V24 --}}
+    <div class="pmd-qpos-modal" data-qpos-transfer-modal aria-hidden="true">
+        <div class="pmd-qpos-modal-card pmd-qpos-transfer-card">
+            <header>
+                <div>
+                    <span class="pmd-qpos-section-label">Move</span>
+                    <h2 data-qpos-transfer-title>Table</h2>
+                </div>
+                <button type="button" class="pmd-qpos-modal-close" data-qpos-transfer-close>×</button>
+            </header>
+
+            <div class="pmd-qpos-transfer-body">
+                <div class="pmd-qpos-transfer-scope">
+                    <button type="button" data-qpos-transfer-scope="order">
+                        <strong data-qpos-transfer-order-label>Check</strong>
+                        <small>Only this check</small>
+                    </button>
+                    <button type="button" data-qpos-transfer-scope="table">
+                        <strong>Whole table</strong>
+                        <small data-qpos-transfer-table-count>All checks</small>
+                    </button>
+                </div>
+
+                <div class="pmd-qpos-transfer-heading">
+                    <strong>Move to</strong>
+                    <span data-qpos-transfer-selection>Choose table</span>
+                </div>
+
+                <div class="pmd-qpos-transfer-tables" data-qpos-transfer-tables></div>
+            </div>
+
+            <footer>
+                <button type="button" class="pmd-qpos-transfer-cancel" data-qpos-transfer-cancel>Cancel</button>
+                <button type="button" class="pmd-qpos-modal-primary" data-qpos-transfer-submit disabled>Move</button>
             </footer>
         </div>
     </div>
