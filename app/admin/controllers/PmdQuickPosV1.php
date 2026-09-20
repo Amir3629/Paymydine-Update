@@ -36,9 +36,8 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
         /*
          * PMD_QPOS_EXACT_DASHBOARD_FLOOR_V26
          *
-         * Quick POS no longer owns a second Floor renderer. The Map workspace
-         * receives the SAME bootstrap + registry contract consumed by the
-         * Dashboard/Manager/Reservations exact Floor partial/runtime.
+         * Quick POS does not render a second Floor. It supplies the same
+         * canonical Floor context used by Dashboard/Manager/Reservations.
          */
         $exactFloor = $this->quickPosExactFloorContext(
             (int)($initialBootstrap['location_id'] ?? 0)

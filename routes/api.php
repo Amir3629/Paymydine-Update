@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\TableController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\ReviewController;
+use App\Http\Controllers\GoogleBusinessIntegrationController;
 
 /* PMD_PUBLIC_RESTAURANT_IDENTITY_R25 */
 if (!function_exists('pmd_public_restaurant_identity_r25')) {
@@ -280,6 +281,23 @@ Route::middleware(['cors'])->group(function () {
     // API v1 routes
     Route::prefix('v1')->middleware(['web', 'detect.tenant'])->group(function () {
 
+        // PMD_GOOGLE_BUSINESS_TENANT_OAUTH_V3
+        // These endpoints intentionally live under /api/v1 because tenant
+        // storefront catch-all traffic is served by Frontend V2.
+        Route::get(
+            '/integrations/google-business/callback',
+            [GoogleBusinessIntegrationController::class, 'callback']
+        )->name('pmd.google-business.tenant-callback');
+
+        Route::post(
+            '/integrations/google-business/pubsub',
+            [GoogleBusinessIntegrationController::class, 'pubsub']
+        )
+            ->withoutMiddleware([
+                \Igniter\Flame\Foundation\Http\Middleware\VerifyCsrfToken::class,
+            ])
+            ->name('pmd.google-business.tenant-pubsub');
+
         Route::post('/reviews', [ReviewController::class, 'store']);
 
         // Menu endpoints
@@ -416,6 +434,12 @@ Route::middleware(['cors'])->group(function () {
                 'pmd_social_instagram_url' => $settings['pmd_social_instagram_url']->value ?? '',
                 'pmd_social_google_enabled' => $settings['pmd_social_google_enabled']->value ?? '0',
                 'pmd_social_google_url' => $settings['pmd_social_google_url']->value ?? '',
+                'pmd_google_business_connected' => $settings['pmd_google_business_connected']->value ?? '0',
+                'pmd_google_business_location_title' => $settings['pmd_google_business_location_title']->value ?? '',
+                'pmd_google_place_id' => $settings['pmd_google_place_id']->value ?? '',
+                'pmd_google_maps_url' => $settings['pmd_google_maps_url']->value ?? '',
+                'pmd_google_write_review_url' => $settings['pmd_google_write_review_url']->value ?? '',
+                'pmd_google_reviews_url' => $settings['pmd_google_reviews_url']->value ?? '',
                 'pmd_social_website_enabled' => $settings['pmd_social_website_enabled']->value ?? '0',
                 'pmd_social_website_url' => $settings['pmd_social_website_url']->value ?? '',
                 'pmd_social_reviews_enabled' => $settings['pmd_social_reviews_enabled']->value ?? '0',

@@ -7,7 +7,17 @@
     <meta name="theme-color" content="#064e3b">
     <title>PayMyDine POS</title>
     <link rel="icon" type="image/svg+xml" href="/app/admin/assets/images/pmd-favicon-final-20260822.svg">
-    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-pos-v1.css?v=20260920-29">
+    {{-- PMD_QPOS_EXACT_DASHBOARD_FLOOR_VIEW_V35B
+         Reuse the live canonical Dashboard Floor visual stack. --}}
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-floor-v1.css?v=20260920-floor-v35b">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-floor-v1-stable-v11.css?v=20260920-floor-v35b">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-floor-v1-native-smart-v20.css?v=20260920-floor-v35b">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-reservations2-floor-canvas-v310.css?v=20260920-floor-v35b">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-reservations2-floor-toolbar-v316.css?v=20260920-floor-v35b">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-reservations2-floor-reservation-v312.css?v=20260920-floor-v35b">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-dashboard-lab-exact-floor-v1.css?v=20260920-floor-v35b">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-shared-floor-multi-floor-v1.css?v=20260920-floor-v35b">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-pos-v1.css?v=20260920-39">
 </head>
 <body class="pmd-qpos-body">
 @php
@@ -57,22 +67,50 @@
                         >{{ $floor['name'] ?? 'Floor' }}</button>
                     @endforeach
                 </div>
+
+                <div class="pmd-qpos-floor-tools">
+                    <button
+                        type="button"
+                        class="pmd-qpos-floor-map-open"
+                        data-qpos-floor-map-open
+                    >Map</button>
+
+                    {{-- PMD_QPOS_GUIDE_POPOVER_V39
+                         Keep the rail compact. The legend opens only when the
+                         small info control is requested. --}}
+                    <details class="pmd-qpos-guide-menu">
+                        <summary
+                            class="pmd-qpos-guide-toggle"
+                            aria-label="Guide"
+                            title="Guide"
+                        >i</summary>
+
+                        <div class="pmd-qpos-table-guide" aria-label="Table colors and icon guide">
+                            <div class="pmd-qpos-table-guide-head">
+                                <strong>Guide</strong>
+                                <small>Table colors & icons</small>
+                            </div>
+
+                            <div class="pmd-qpos-table-guide-statuses">
+                                <span><i class="free"></i>Free</span>
+                                <span><i class="busy"></i>Busy</span>
+                                <span><i class="reserved"></i>Reserved</span>
+                                <span><i class="clean"></i>Clean</span>
+                            </div>
+
+                            <div class="pmd-qpos-table-guide-icons">
+                                <span><b>!</b> Call</span>
+                                <span><b>€</b> Due</span>
+                                <span><b>½</b> Part paid</span>
+                                <span><b>N</b> Note</span>
+                                <span><b>✓</b> Paid</span>
+                            </div>
+                        </div>
+                    </details>
+                </div>
             </section>
 
             <section class="pmd-qpos-tables">
-                <div class="pmd-qpos-panel-head">
-                    <strong data-qpos-table-title>Tables</strong>
-                    <div class="pmd-qpos-panel-head-actions">
-                        <button type="button" class="pmd-qpos-floor-map-open" data-qpos-floor-map-open>Map</button>
-                        <span class="pmd-qpos-table-count" data-qpos-table-count>{{ count($pmdInitialTables) }}</span>
-                    </div>
-                </div>
-                <div class="pmd-qpos-table-legend">
-                    <span><i class="available"></i>Free</span>
-                    <span><i class="occupied"></i>Busy</span>
-                    <span><i class="reserved"></i>Res.</span>
-                    <span><i class="cleaning"></i>Clean</span>
-                </div>
                 <div class="pmd-qpos-table-grid" data-qpos-tables>
                     <button type="button" class="pmd-qpos-table pmd-qpos-pickup" data-qpos-pickup>
                         <strong>Pickup</strong>
@@ -244,36 +282,42 @@
         </aside>
     </main>
 
-    {{-- PMD_QPOS_FLOOR_MAP_WORKSPACE_V25
-         Alternative table-selection surface. It uses the exact same table
-         coordinates as Cashier/Dashboard/Reservations and returns straight
-         back to the normal three-column POS after table selection. --}}
-    <section class="pmd-qpos-floor-map-workspace" data-qpos-floor-map-workspace hidden aria-hidden="true">
-        <div class="pmd-qpos-floor-map-topbar">
-            <div>
-                <span class="pmd-qpos-section-label">Floor map</span>
-                <strong data-qpos-floor-map-title>Tables</strong>
-            </div>
-            <div class="pmd-qpos-floor-map-top-actions">
-                <div class="pmd-qpos-floor-map-tabs" data-qpos-map-floors></div>
-                <button type="button" class="pmd-qpos-floor-map-close" data-qpos-floor-map-close>List view</button>
-            </div>
+    {{-- PMD_QPOS_EXACT_DASHBOARD_FLOOR_WORKSPACE_V35B
+         Same live shared Floor partial as the main Dashboard Floor. --}}
+    <section
+        class="pmd-qpos-exact-floor-workspace"
+        data-qpos-floor-map-workspace
+        hidden
+        aria-hidden="true"
+    >
+        <div class="pmd-qpos-exact-floor-host">
+            @include('admin::_partials.pmd_dashboard_lab_exact_floor_v1', [
+                'floorBootstrap' => (array)($pmdQuickPosExactFloor['bootstrap'] ?? []),
+                'displayTables' => (array)($pmdQuickPosExactFloor['display_tables'] ?? []),
+                'floorMode' => (string)($pmdQuickPosExactFloor['mode'] ?? 'full'),
+                'floorZoom' => (float)($pmdQuickPosExactFloor['zoom'] ?? 1.0),
+                'pmdCleanWorkspaceLocationId' => (int)($pmdQuickPosExactFloor['location_id'] ?? 0),
+                'pmdCleanWorkspaceFloorRegistry' => (array)($pmdQuickPosExactFloor['registry'] ?? []),
+                'pmdCleanWorkspaceFloorActive' => (array)($pmdQuickPosExactFloor['active'] ?? []),
+                'pmdCleanWorkspaceFloorCookie' => (string)($pmdQuickPosExactFloor['cookie_name'] ?? ''),
+                'pmdCleanWorkspaceFloorTableMap' => (array)($pmdQuickPosExactFloor['table_floor_map'] ?? []),
+                'deferReservationBusy' => true,
+            ])
         </div>
 
-        <div class="pmd-qpos-floor-map-legend">
-            <span><i class="available"></i>Free</span>
-            <span><i class="occupied"></i>Busy</span>
-            <span><i class="reserved"></i>Reserved</span>
-            <span><i class="cleaning"></i>Clean</span>
-            <span><i class="due"></i>Payment</span>
-            <span><i class="call"></i>Call</span>
-        </div>
-
-        <div class="pmd-qpos-floor-map-shell">
-            <div class="pmd-qpos-floor-map-stage" data-qpos-floor-map-stage aria-label="Restaurant floor map"></div>
-        </div>
-
-        <div class="pmd-qpos-floor-map-hint">Select a table to open the POS.</div>
+        <button
+            type="button"
+            class="pmd-r2-floor-tool-v316 pmd-qpos-exact-floor-return"
+            data-qpos-floor-map-close
+            aria-label="Back to POS"
+            title="Back to POS"
+        >
+            <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M15 18l-6-6 6-6"></path>
+                <path d="M9 12h10"></path>
+            </svg>
+            <span>POS</span>
+        </button>
     </section>
 
     <button type="button" class="pmd-qpos-mobile-cart" data-qpos-mobile-cart>
@@ -686,7 +730,10 @@ window.PMDQuickPOSConfig = {
     initialBootstrap: @json($initialBootstrap ?? null)
 };
 </script>
-<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260920-28"></script>
+{{-- Canonical Floor runtime mounts before the POS bridge. --}}
+<script src="/app/admin/assets/js/pmd-dashboard-lab-exact-floor-v1.js?v=20260920-floor-v35b"></script>
+<script src="/app/admin/assets/js/pmd-shared-floor-multi-floor-v1.js?v=20260920-floor-v35b"></script>
+<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260920-40"></script>
 <script src="/app/admin/assets/js/pmd-site-access-hub-v13.js?v=20260919-qpos1"></script>
 </body>
 </html>

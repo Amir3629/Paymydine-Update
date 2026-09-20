@@ -179,4 +179,140 @@ $statusBadge = function (string $status): string {
             </div>
         </div>
     <?php endif; ?>
+
+    <?php
+        $googleStatus = (array)($pmdGoogleBusiness ?? []);
+        $googleRows = $pmdExternalGoogleReviews ?? collect();
+        $googleError = $pmdGoogleReviewsError ?? null;
+    ?>
+
+    <div class="panel panel-default" style="margin-top:24px;">
+        <div class="panel-heading" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+            <div>
+                <strong>Google Reviews</strong>
+                <?php if (!empty($googleStatus['connected'])): ?>
+                    <span class="label label-success" style="margin-left:8px;">Connected</span>
+                <?php endif; ?>
+                <?php if (($googleStatus['average_rating'] ?? null) !== null): ?>
+                    <span class="text-muted" style="margin-left:8px;">
+                        <?= e(number_format((float)$googleStatus['average_rating'], 1)) ?>/5
+                        · <?= e((int)($googleStatus['total_review_count'] ?? 0)) ?> reviews
+                    </span>
+                <?php endif; ?>
+            </div>
+
+            <div>
+                <?php if (!empty($googleStatus['connected'])): ?>
+                    <button
+                        type="button"
+                        class="btn btn-default btn-sm"
+                        data-request="onSyncGoogleReviews"
+                        data-request-success="window.location.reload()"
+                    >
+                        Sync Google reviews
+                    </button>
+                <?php else: ?>
+                    <a class="btn btn-primary btn-sm" href="<?= admin_url('pmdsettings/restaurant') ?>">
+                        Connect Google Business
+                    </a>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <div class="panel-body">
+            <?php if ($googleError): ?>
+                <div class="alert alert-warning"><?= e($googleError) ?></div>
+            <?php elseif (empty($googleStatus['connected'])): ?>
+                <p class="text-muted mb-0">
+                    Connect this restaurant's Google Business Profile in
+                    <strong>Settings → Restaurant → Google / Maps</strong>.
+                </p>
+            <?php elseif ($googleRows->isEmpty()): ?>
+                <p class="text-muted mb-0">
+                    No Google reviews are synced yet. Use “Sync Google reviews”.
+                </p>
+            <?php else: ?>
+                <?php if (!empty($googleStatus['last_synced_at'])): ?>
+                    <p class="small text-muted">
+                        Last synchronized: <?= e($googleStatus['last_synced_at']) ?>
+                    </p>
+                <?php endif; ?>
+
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th style="width:170px;">Reviewer</th>
+                                <th style="width:105px;">Rating</th>
+                                <th>Google review</th>
+                                <th style="width:175px;">Updated</th>
+                                <th style="width:360px;">Reply on Google</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($googleRows as $review): ?>
+                                <?php
+                                    $googleRating = max(0, min(5, (int)($review->rating ?? 0)));
+                                    $reviewDate = (string)($review->review_updated_at ?: $review->review_created_at ?: $review->created_at ?: '—');
+                                    $existingReply = trim((string)($review->owner_reply ?? ''));
+                                ?>
+                                <tr>
+                                    <td>
+                                        <strong><?= e($review->reviewer_name ?: 'Google user') ?></strong>
+                                        <div class="small text-muted">Google</div>
+                                    </td>
+                                    <td>
+                                        <?php if ($googleRating > 0): ?>
+                                            <span style="color:#b88940;font-weight:700;"><?= str_repeat('★', $googleRating) ?></span>
+                                            <div class="small text-muted"><?= e($googleRating) ?>/5</div>
+                                        <?php else: ?>
+                                            —
+                                        <?php endif; ?>
+                                    </td>
+                                    <td style="max-width:520px;white-space:normal;">
+                                        <?= nl2br(e((string)($review->comment ?: 'No written comment.'))) ?>
+                                    </td>
+                                    <td><span class="text-muted"><?= e($reviewDate) ?></span></td>
+                                    <td>
+                                        <form
+                                            data-request="onReplyGoogleReview"
+                                            data-request-success="window.location.reload()"
+                                            style="display:grid;gap:7px;"
+                                        >
+                                            <input type="hidden" name="external_review_id" value="<?= e((int)$review->id) ?>">
+                                            <textarea
+                                                name="reply"
+                                                rows="3"
+                                                maxlength="4096"
+                                                class="form-control"
+                                                placeholder="Reply publicly on Google"
+                                            ><?= e($existingReply) ?></textarea>
+                                            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                                                <button type="submit" class="btn btn-primary btn-sm">
+                                                    <?= $existingReply !== '' ? 'Update Google reply' : 'Publish reply to Google' ?>
+                                                </button>
+
+                                                <?php if ($existingReply !== ''): ?>
+                                                    <button
+                                                        type="button"
+                                                        class="btn btn-default btn-sm"
+                                                        data-request="onDeleteGoogleReviewReply"
+                                                        data-request-data="external_review_id: <?= e((int)$review->id) ?>"
+                                                        data-request-confirm="Delete this public reply from Google?"
+                                                        data-request-success="window.location.reload()"
+                                                    >
+                                                        Delete reply
+                                                    </button>
+                                                <?php endif; ?>
+                                            </div>
+                                        </form>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php endif; ?>
+        </div>
+    </div>
 </div>

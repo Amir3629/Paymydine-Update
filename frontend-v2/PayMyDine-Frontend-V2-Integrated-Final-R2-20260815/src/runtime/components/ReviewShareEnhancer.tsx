@@ -18,10 +18,17 @@ const REVIEW_SHARE_FIELDS: Array<{
   label: string
   enabledKey: string
   urlKey: string
+  fallbackUrlKeys?: string[]
 }> = [
   { platform: 'website', label: 'Website', enabledKey: 'pmd_social_website_enabled', urlKey: 'pmd_social_website_url' },
   { platform: 'instagram', label: 'Instagram', enabledKey: 'pmd_social_instagram_enabled', urlKey: 'pmd_social_instagram_url' },
-  { platform: 'google', label: 'Google / Maps', enabledKey: 'pmd_social_google_enabled', urlKey: 'pmd_social_google_url' },
+  {
+    platform: 'google',
+    label: 'Google review',
+    enabledKey: 'pmd_social_google_enabled',
+    urlKey: 'pmd_google_write_review_url',
+    fallbackUrlKeys: ['pmd_google_maps_url', 'pmd_social_google_url'],
+  },
   { platform: 'trustpilot', label: 'Trustpilot', enabledKey: 'pmd_social_trustpilot_enabled', urlKey: 'pmd_social_trustpilot_url' },
 ]
 
@@ -58,7 +65,13 @@ function ShareIcon({ platform }: { platform: ReviewSharePlatform }) {
   return <Globe2 aria-hidden="true" />
 }
 
-/* PMD_REVIEW_SOCIAL_SHARE_R36
+/* PMD_GOOGLE_BUSINESS_PROFILE_INTEGRATION_V2
+ * When Google Business Profile is connected, the official Places API
+ * writeAReviewUri is the Google handoff authority. The existing manual Maps
+ * URL remains a backward-compatible fallback. PayMyDine never submits a
+ * Google review on the customer's behalf.
+ *
+ * PMD_REVIEW_SOCIAL_SHARE_R36
  * The restaurant-profile settings are the only authority for these links.
  * Nothing is shown unless a review is already successful AND at least one of
  * Website / Instagram / Google Maps / Trustpilot is both enabled and has a
@@ -85,8 +98,17 @@ export function ReviewShareEnhancer() {
         const nested = payload && typeof payload.data === 'object' && payload.data ? payload.data : {}
         const settings = { ...(payload || {}), ...nested } as Record<string, unknown>
         const resolved = REVIEW_SHARE_FIELDS.flatMap((field): ReviewShareLink[] => {
-          if (!settingEnabled(settings[field.enabledKey])) return []
-          const url = safePublicUrl(settings[field.urlKey])
+          const enabled = field.platform === 'google'
+            ? settingEnabled(settings[field.enabledKey]) || settingEnabled(settings.pmd_google_business_connected)
+            : settingEnabled(settings[field.enabledKey])
+          if (!enabled) return []
+
+          const primaryUrl = safePublicUrl(settings[field.urlKey])
+          const fallbackUrl = (field.fallbackUrlKeys || [])
+            .map((key) => safePublicUrl(settings[key]))
+            .find((url): url is string => Boolean(url))
+          const url = primaryUrl || fallbackUrl || null
+
           return url ? [{ platform: field.platform, label: field.label, url }] : []
         })
         setLinks(resolved)
@@ -151,6 +173,13 @@ export function ReviewShareEnhancer() {
 
   if (!reviewCard || links.length === 0) return null
 
+  const copyReviewTextForGoogle = () => {
+    const textarea = reviewCard.querySelector('textarea')
+    const reviewText = textarea instanceof HTMLTextAreaElement ? textarea.value.trim() : ''
+    if (!reviewText || !navigator.clipboard?.writeText) return
+    void navigator.clipboard.writeText(reviewText).catch(() => {})
+  }
+
   return createPortal(
     <section className={styles.reviewShare} data-pmd-review-social-share="r36" aria-label={prompt}>
       <p className={styles.prompt}>{prompt}</p>
@@ -166,6 +195,9 @@ export function ReviewShareEnhancer() {
             aria-label={link.label}
             title={link.label}
             data-pmd-review-share-platform={link.platform}
+            onClick={() => {
+              if (link.platform === 'google') copyReviewTextForGoogle()
+            }}
           >
             <ShareIcon platform={link.platform} />
           </a>

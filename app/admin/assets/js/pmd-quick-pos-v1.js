@@ -149,7 +149,8 @@
       open: false,
       scope: 'order',
       targetTableId: null,
-      submitting: false
+      submitting: false,
+      directSide: false
     },
     payment: {
       open: false,
@@ -653,24 +654,46 @@
     var move = $('[data-qpos-table-move]');
     var free = $('[data-qpos-table-free]');
     var pickupSelected = state.serviceMode === 'takeaway';
+    /* PMD_QPOS_CLEANING_LEFT_LOCK_V40
+     * Left means "mark this table cleaning". Once already cleaning, the action
+     * must be disabled while Free stays available. */
+    var selectedStatus = String(
+      state.selectedTable && state.selectedTable.status || ''
+    ).toLowerCase();
+    var selectedCleaning = selectedStatus === 'cleaning';
+    var directMove =
+      state.transfer.open &&
+      state.transfer.directSide;
 
     if (tableActions) {
       tableActions.hidden = !state.selectedTable && !pickupSelected;
     }
 
     if (cleaning) {
-      cleaning.disabled = pickupSelected || !state.selectedTable;
-    }
-    if (move) {
-      move.disabled =
+      cleaning.disabled =
+        directMove ||
         pickupSelected ||
         !state.selectedTable ||
-        !state.openOrders.length ||
-        !!state.cart.length ||
-        !!state.submitting;
+        selectedCleaning;
+    }
+    if (move) {
+      move.disabled = directMove
+        ? !!state.transfer.submitting
+        : (
+            pickupSelected ||
+            !state.selectedTable ||
+            !Number(state.activeOrderId || 0) ||
+            !!state.cart.length ||
+            !!state.submitting
+          );
+      move.textContent = directMove ? 'Cancel' : 'Move';
+      move.classList.toggle('is-direct-cancel', directMove);
     }
     if (free) {
-      free.disabled = pickupSelected || !state.selectedTable;
+      free.disabled =
+        directMove ||
+        pickupSelected ||
+        !state.selectedTable;
     }
   }
 
@@ -702,17 +725,124 @@
     });
   }
 
-  /* PMD_QPOS_FLOOR_MAP_UI_V25
-   * Read-only POS floor view. Coordinates are the same canonical floor_x/y
-   * values used by the shared Cashier/Dashboard/Reservations floor map. */
+  /* PMD_QPOS_EXACT_DASHBOARD_FLOOR_UI_V26
+   * There is deliberately NO Quick-POS Floor renderer here. The workspace
+   * embeds DashboardLab's canonical Floor Blade/CSS/JS. This bridge only:
+   *   - opens/closes that existing Floor,
+   *   - keeps its active Floor aligned with POS,
+   *   - converts a canonical table click into Quick POS table selection.
+   */
+  function exactFloorRoot() {
+    return document.getElementById('pmd-r2-shared-floor-canvas-v310');
+  }
+
+  function exactFloorInstance() {
+    var floor = exactFloorRoot();
+    return floor && floor.__pmdFloorV1
+      ? floor.__pmdFloorV1
+      : null;
+  }
+
+  function exactFloorPosTableFromNode(node) {
+    if (!node) return null;
+
+    var instance = exactFloorInstance();
+    var floorState =
+      instance && typeof instance.getState === 'function'
+        ? instance.getState()
+        : null;
+
+    var ids = String(
+      node.getAttribute('data-floor-members') ||
+      node.getAttribute('data-floor-table') ||
+      ''
+    ).split(',').map(function (value) {
+      return String(value || '').trim();
+    }).filter(Boolean);
+
+    var candidates = [];
+
+    if (floorState && Array.isArray(floorState.tables)) {
+      ids.forEach(function (id) {
+        floorState.tables.forEach(function (table) {
+          if (
+            String(table.id || '') === id ||
+            String(table.dbTableId || '') === id
+          ) {
+            candidates.push(table);
+          }
+        });
+      });
+    }
+
+    for (var i = 0; i < candidates.length; i += 1) {
+      var exact = candidates[i];
+      var dbId = Number(exact.dbTableId || 0);
+      if (dbId > 0) {
+        var byDbId = state.tables.find(function (row) {
+          return Number(row.id) === dbId;
+        });
+        if (byDbId) return byDbId;
+      }
+
+      var exactNumber = String(exact.number || '').trim();
+      if (exactNumber) {
+        var byNumber = state.tables.find(function (row) {
+          return String(row.number || '').trim() === exactNumber;
+        });
+        if (byNumber) return byNumber;
+      }
+    }
+
+    var label = node.querySelector('.pmd-floor-v1__table-number');
+    var labelText = String(label ? label.textContent : '').trim();
+
+    if (labelText) {
+      var firstNumber = labelText.match(/\d+/);
+      if (firstNumber) {
+        var byVisibleNumber = state.tables.find(function (row) {
+          return String(row.number || '').trim() === firstNumber[0];
+        });
+        if (byVisibleNumber) return byVisibleNumber;
+      }
+    }
+
+    return null;
+  }
+
+  async function openExactFloorTable(node) {
+    var table = exactFloorPosTableFromNode(node);
+
+    if (!table) {
+      toast('This Floor table could not be matched to POS.', true);
+      return;
+    }
+
+    await selectTable(table.id);
+
+    if (
+      state.selectedTable &&
+      Number(state.selectedTable.id) === Number(table.id)
+    ) {
+      closeFloorMap();
+    }
+  }
+
   function closeFloorMap() {
     state.floorMapOpen = false;
+
     var workspace = $('[data-qpos-floor-map-workspace]');
     if (workspace) {
       workspace.hidden = true;
       workspace.setAttribute('aria-hidden', 'true');
     }
+
     root.classList.remove('is-floor-map-open');
+    document.body.classList.remove(
+      'page',
+      'pmd-dashboard-lab-page',
+      'pmd-qpos-exact-floor-open'
+    );
   }
 
   function openFloorMap() {
@@ -727,7 +857,57 @@
 
     state.floorMapOpen = true;
     root.classList.add('is-floor-map-open');
+
+    /*
+     * Dashboard's exact Floor CSS is intentionally route-scoped to these
+     * classes. Activate the identical scope only while the POS Map is open.
+     */
+    document.body.classList.add(
+      'page',
+      'pmd-dashboard-lab-page',
+      'pmd-qpos-exact-floor-open'
+    );
+
     renderFloorMap();
+
+    var exactToolbar =
+      document.getElementById('pmd-r2-floor-toolbar-v316');
+    var returnControl = $('[data-qpos-floor-map-close]');
+
+    if (
+      exactToolbar &&
+      returnControl &&
+      returnControl.parentElement !== exactToolbar
+    ) {
+      exactToolbar.insertBefore(
+        returnControl,
+        exactToolbar.firstChild
+      );
+    }
+
+    var floor = exactFloorRoot();
+    var multiFloor = floor && floor.__pmdSharedMultiFloorV1;
+
+    if (
+      multiFloor &&
+      typeof multiFloor.setActiveFloor === 'function' &&
+      state.activeFloorId
+    ) {
+      multiFloor.setActiveFloor(String(state.activeFloorId));
+    }
+
+    /* PMD_QPOS_FULLSCREEN_FLOOR_REFIT_V36
+     * The POS host expands the canonical Floor after it becomes visible.
+     * Re-fit after two frames so the shared engine measures the real
+     * full-screen viewport instead of its historical 560px initial frame. */
+    var instance = exactFloorInstance();
+    if (instance && typeof instance.fit === 'function') {
+      window.requestAnimationFrame(function () {
+        window.requestAnimationFrame(function () {
+          instance.fit();
+        });
+      });
+    }
   }
 
   function renderFloorMap() {
@@ -739,138 +919,6 @@
       'aria-hidden',
       state.floorMapOpen ? 'false' : 'true'
     );
-
-    if (!state.floorMapOpen) return;
-
-    var title = $('[data-qpos-floor-map-title]');
-    var tabs = $('[data-qpos-map-floors]');
-    var stage = $('[data-qpos-floor-map-stage]');
-
-    var activeFloor = state.floors.find(function (floor) {
-      return String(floor.id || '') === String(state.activeFloorId || '');
-    }) || state.floors[0] || null;
-
-    if (title) {
-      title.textContent = activeFloor
-        ? String(activeFloor.name || 'Floor')
-        : 'Floor';
-    }
-
-    if (tabs) {
-      tabs.innerHTML = state.floors.map(function (floor) {
-        var id = String(floor.id || '');
-        return (
-          '<button type="button" data-qpos-map-floor="' + esc(id) + '"' +
-            (id === String(state.activeFloorId || '') ? ' class="is-active"' : '') +
-          '>' + esc(floor.name || 'Floor') + '</button>'
-        );
-      }).join('');
-
-      $$('[data-qpos-map-floor]', tabs).forEach(function (button) {
-        button.onclick = function () {
-          selectFloor(button.getAttribute('data-qpos-map-floor'));
-        };
-      });
-    }
-
-    if (!stage) return;
-
-    var tables = activeFloorTables().filter(function (table) {
-      return table.visible_on_floor_plan !== false;
-    });
-
-    if (!tables.length) {
-      stage.innerHTML =
-        '<div class="pmd-qpos-floor-map-empty">No tables on this floor.</div>';
-      return;
-    }
-
-    var floorWidth = Math.max(
-      1000,
-      num(activeFloor && activeFloor.width, 1000)
-    );
-    var floorHeight = Math.max(
-      560,
-      num(activeFloor && activeFloor.height, 560)
-    );
-
-    stage.innerHTML = tables.map(function (table, index) {
-      var width = Math.max(
-        72,
-        Math.min(260, num(table.floor_width, 108))
-      );
-      var height = Math.max(
-        58,
-        Math.min(180, num(table.floor_height, 88))
-      );
-
-      var x = Number(table.floor_x);
-      var y = Number(table.floor_y);
-
-      if (!Number.isFinite(x)) {
-        x = 80 + (index % 6) * 150;
-      }
-      if (!Number.isFinite(y)) {
-        y = 60 + Math.floor(index / 6) * 110;
-      }
-
-      x = Math.max(
-        width / 2 + 12,
-        Math.min(floorWidth - width / 2 - 12, x)
-      );
-      y = Math.max(
-        height / 2 + 12,
-        Math.min(floorHeight - height / 2 - 12, y)
-      );
-
-      var left = x / floorWidth * 100;
-      var top = y / floorHeight * 100;
-      var w = width / floorWidth * 100;
-      var h = height / floorHeight * 100;
-      var status = String(table.status || 'available').toLowerCase();
-      var selected =
-        state.selectedTable &&
-        Number(state.selectedTable.id) === Number(table.id);
-
-      var signal = '';
-      if (num(table.waiter_calls, 0) > 0) {
-        signal = 'call';
-      } else if (
-        ['due', 'partial'].indexOf(
-          String(table.payment_state || '').toLowerCase()
-        ) !== -1
-      ) {
-        signal = 'due';
-      }
-
-      return (
-        '<button type="button" class="pmd-qpos-floor-map-table status-' +
-          esc(status) +
-          (selected ? ' is-selected' : '') +
-          (signal ? ' has-' + esc(signal) : '') +
-          '" data-qpos-map-table="' + esc(table.id) + '"' +
-          ' style="left:' + left.toFixed(3) + '%;' +
-            'top:' + top.toFixed(3) + '%;' +
-            'width:' + w.toFixed(3) + '%;' +
-            'height:' + h.toFixed(3) + '%;">' +
-          '<strong>' + esc(compactTableLabel(table)) + '</strong>' +
-          '<span>' + esc(tableStatusLabel(status)) + '</span>' +
-          (signal
-            ? '<i class="pmd-qpos-floor-map-signal ' + esc(signal) + '"></i>'
-            : '') +
-        '</button>'
-      );
-    }).join('');
-
-    $$('[data-qpos-map-table]', stage).forEach(function (button) {
-      button.onclick = async function () {
-        var id = Number(button.getAttribute('data-qpos-map-table') || 0);
-        if (!id) return;
-
-        closeFloorMap();
-        await selectTable(id);
-      };
-    });
   }
 
   function renderTables() {
@@ -880,32 +928,53 @@
     if (!box) return;
 
     var floorTables = activeFloorTables();
+    var directMove =
+      state.transfer.open &&
+      state.transfer.directSide;
+    var sourceId =
+      directMove && state.selectedTable
+        ? Number(state.selectedTable.id || 0)
+        : 0;
 
     if (count) count.textContent = String(floorTables.length);
     if (title) {
-      title.textContent =
-        state.serviceMode === 'takeaway'
-          ? 'Pickup'
-          : (
-              state.selectedTable
-                ? compactTableLabel(state.selectedTable)
-                : 'Tables'
-            );
+      title.textContent = directMove
+        ? 'Move #' + String(state.activeOrderId || '')
+        : (
+            state.serviceMode === 'takeaway'
+              ? 'Pickup'
+              : (
+                  state.selectedTable
+                    ? compactTableLabel(state.selectedTable)
+                    : 'Tables'
+                )
+          );
     }
 
     var rows = [
       '<button type="button" class="pmd-qpos-table pmd-qpos-pickup' +
         (state.serviceMode === 'takeaway' ? ' is-selected' : '') +
-        '" data-qpos-pickup>' +
+        (directMove ? ' is-move-disabled' : '') + '"' +
+        ' data-qpos-pickup' +
+        (directMove ? ' disabled' : '') + '>' +
         '<strong>Pickup</strong>' +
       '</button>'
     ];
 
     floorTables.forEach(function (table) {
+      var tableId = Number(table.id || 0);
       var selected =
         state.serviceMode === 'dine_in' &&
         state.selectedTable &&
-        Number(state.selectedTable.id) === Number(table.id);
+        Number(state.selectedTable.id) === tableId;
+      var isMoveSource =
+        directMove &&
+        sourceId > 0 &&
+        sourceId === tableId;
+      var isMoveTarget =
+        directMove &&
+        !isMoveSource &&
+        transferTargetAllowed(table);
 
       var paymentState =
         String(table.status || 'available') === 'available'
@@ -932,10 +1001,19 @@
 
       rows.push(
         '<button type="button" class="pmd-qpos-table' +
-          (selected ? ' is-selected' : '') + '"' +
+          (selected ? ' is-selected' : '') +
+          (isMoveSource ? ' is-move-source' : '') +
+          (isMoveTarget ? ' is-move-target' : '') + '"' +
           ' data-qpos-table="' + esc(table.id) + '"' +
           ' data-status="' + esc(table.status || 'available') + '"' +
-          ' data-payment-state="' + esc(paymentState) + '">' +
+          ' data-payment-state="' + esc(paymentState) + '"' +
+          (isMoveSource || (directMove && !isMoveTarget) || state.transfer.submitting
+            ? ' disabled'
+            : '') +
+          (isMoveTarget
+            ? ' aria-label="Move order ' + esc(state.activeOrderId || '') +
+              ' to table ' + esc(compactTableLabel(table)) + '"'
+            : '') + '>' +
           '<strong>' + esc(compactTableLabel(table)) + '</strong>' +
           '<small>' + esc(tableStatusLabel(table.status)) +
             (num(table.capacity, 0) > 0 ? ' · ' + esc(table.capacity) + 's' : '') +
@@ -957,11 +1035,19 @@
     box.innerHTML = rows.join('');
 
     var pickup = $('[data-qpos-pickup]', box);
-    if (pickup) pickup.onclick = selectPickup;
+    if (pickup && !directMove) pickup.onclick = selectPickup;
 
     $$('[data-qpos-table]', box).forEach(function (button) {
       button.onclick = function () {
-        selectTable(Number(button.getAttribute('data-qpos-table')));
+        var id = Number(button.getAttribute('data-qpos-table') || 0);
+        if (!id) return;
+
+        if (directMove) {
+          directMoveOrderToTable(id);
+          return;
+        }
+
+        selectTable(id);
       };
     });
   }
@@ -1116,29 +1202,37 @@
           (selectedQuantity > 0 ? ' is-selected' : '') + '"' +
           ' data-qpos-product="' + esc(item.id) + '"' +
           (orderable ? '' : ' disabled') + '>' +
+          /* PMD_QPOS_PLACEHOLDER_LOGO_V34
+           * Match the Menu page empty-photo treatment: a neutral preview
+           * with the monochrome PayMyDine brand mark. */
           (image
             ? '<div class="pmd-qpos-product-image" style="background-image:url(&quot;' + esc(image) + '&quot;)"></div>'
-            : '<div class="pmd-qpos-product-image"></div>') +
+            : '<div class="pmd-qpos-product-image is-placeholder" aria-hidden="true"></div>') +
           (item.is_bestseller ? '<span class="pmd-qpos-product-badge">Popular</span>' : '') +
           (selectedQuantity > 0
             ? '<span class="pmd-qpos-product-count" data-qpos-product-count aria-label="' +
                 esc(selectedQuantity + (selectedQuantity === 1 ? ' selected item' : ' selected items')) +
               '">' + esc(selectedQuantity) + '</span>'
             : '') +
-          '<strong class="pmd-qpos-product-name">' +
-            /* PMD_QPOS_FOOD_NUMBER_PUNCT_V27
-             * Food labels use the restaurant-menu convention:
-             *   1. Item name
-             * Never "#1Item name". */
-            (item.menu_number
-              ? '<span class="pmd-qpos-product-number" aria-label="Food number ' +
-                  esc(item.menu_number) + '">' + esc(item.menu_number) + '.</span>'
-              : '') +
-            '<span>' + esc(item.name) + '</span>' +
-          '</strong>' +
-          '<footer><span>' +
-            (item.has_options ? 'Options' : '') +
-          '</span><b>' + (orderable ? money(item.price) : 'No price') + '</b></footer>' +
+          /* PMD_QPOS_REAL_PRODUCT_BODY_V31
+           * Use a real body element instead of a pseudo-element so the
+           * white panel itself can overlap the photo and cast its shadow. */
+          '<span class="pmd-qpos-product-body">' +
+            '<strong class="pmd-qpos-product-name">' +
+              /* PMD_QPOS_FOOD_NUMBER_PUNCT_V27
+               * Food labels use the restaurant-menu convention:
+               *   1. Item name
+               * Never "#1Item name". */
+              (item.menu_number
+                ? '<span class="pmd-qpos-product-number" aria-label="Food number ' +
+                    esc(item.menu_number) + '">' + esc(item.menu_number) + '.</span>'
+                : '') +
+              '<span>' + esc(item.name) + '</span>' +
+            '</strong>' +
+            '<span class="pmd-qpos-product-meta"><span>' +
+              (item.has_options ? 'Options' : '') +
+            '</span><b>' + (orderable ? money(item.price) : 'No price') + '</b></span>' +
+          '</span>' +
         '</button>'
       );
     }).join('');
@@ -1217,9 +1311,16 @@ function renderOpenChecks() {
       );
     });
 
-    box.innerHTML = rows.join('');
+    /* PMD_QPOS_STABLE_CHECK_DOM_V39
+     * Avoid replacing the check-chip DOM when its markup has not changed. */
+    var nextHtml = rows.join('');
+    if (box.innerHTML !== nextHtml) {
+      box.innerHTML = nextHtml;
+    }
 
-    $$('[data-qpos-check]', box).forEach(function (button) {
+    /* PMD_QPOS_CHECK_LOOP_FIX_V40
+     * Use the query-all helper here because forEach needs a collection. */
+    Array.prototype.slice.call(box.querySelectorAll('[data-qpos-check]')).forEach(function (button) {
       button.onclick = function () {
         var value = Number(button.getAttribute('data-qpos-check') || 0);
         if (value > 0) selectOrder(value);
@@ -1433,6 +1534,55 @@ function renderOpenChecks() {
     if (floorMapOpen) floorMapOpen.onclick = openFloorMap;
     if (floorMapClose) floorMapClose.onclick = closeFloorMap;
 
+    var exactFloorWorkspace = $('[data-qpos-floor-map-workspace]');
+    if (exactFloorWorkspace) {
+      /*
+       * Capture before the Dashboard Floor's normal selection handler. The
+       * table card, colors, zoom, floor switcher and all controls are still
+       * canonical; only the table-open destination is POS-specific.
+       */
+      exactFloorWorkspace.addEventListener('click', function (event) {
+        var tableNode =
+          event.target &&
+          event.target.closest
+            ? event.target.closest('[data-floor-table]')
+            : null;
+
+        if (!tableNode || !exactFloorWorkspace.contains(tableNode)) {
+          return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        if (typeof event.stopImmediatePropagation === 'function') {
+          event.stopImmediatePropagation();
+        }
+
+        openExactFloorTable(tableNode);
+      }, true);
+    }
+
+    window.addEventListener('pmd:floor:changed', function (event) {
+      var detail = event && event.detail ? event.detail : {};
+      var floorId = String(detail.floor_id || '');
+
+      if (
+        !floorId ||
+        !state.floors.some(function (floor) {
+          return String(floor.id || '') === floorId;
+        })
+      ) {
+        return;
+      }
+
+      state.activeFloorId = floorId;
+      rememberActiveFloor();
+      renderContext();
+      renderTables();
+    });
+
+
     var send = $('[data-qpos-send]');
     var pay = $('[data-qpos-pay]');
 
@@ -1601,6 +1751,68 @@ function renderOpenChecks() {
     state.transfer.open = false;
     state.transfer.targetTableId = null;
     state.transfer.submitting = false;
+    state.transfer.directSide = false;
+    root.classList.remove('is-direct-order-move');
+  }
+
+  /* PMD_QPOS_DIRECT_SIDE_MOVE_V37
+   * Moving the active order is a left-rail operation: tap Move, then tap
+   * the destination table. No second table-picker modal is required. */
+  function openDirectSideMove() {
+    if (state.serviceMode !== 'dine_in' || !state.selectedTable) return;
+
+    if (state.cart.length) {
+      toast('Send or remove new items first.', true);
+      return;
+    }
+
+    if (!Number(state.activeOrderId || 0)) {
+      toast('Choose a check to move first.', true);
+      return;
+    }
+
+    closePayment();
+    closeHistory();
+    closeFloorMap();
+    closeTextKeyboard();
+    hideToast();
+
+    state.transfer.open = true;
+    state.transfer.scope = 'order';
+    state.transfer.targetTableId = null;
+    state.transfer.submitting = false;
+    state.transfer.directSide = true;
+    root.classList.add('is-direct-order-move');
+
+    renderTables();
+    renderContext();
+    toast(
+      'Select the destination table for order #' +
+      String(state.activeOrderId) +
+      '.'
+    );
+  }
+
+  async function directMoveOrderToTable(tableId) {
+    if (
+      !state.transfer.open ||
+      !state.transfer.directSide ||
+      state.transfer.submitting
+    ) return;
+
+    var target = state.tables.find(function (table) {
+      return Number(table.id || 0) === Number(tableId || 0);
+    }) || null;
+
+    if (!target || !transferTargetAllowed(target)) {
+      toast('Choose a different destination table.', true);
+      return;
+    }
+
+    state.transfer.targetTableId = Number(target.id || 0);
+    renderTables();
+    renderContext();
+    await executeTransfer();
   }
 
   function openTransfer() {
@@ -1653,8 +1865,15 @@ function renderOpenChecks() {
       return;
     }
 
+    var directSide = !!state.transfer.directSide;
+
     state.transfer.submitting = true;
-    renderTransfer();
+    if (directSide) {
+      renderTables();
+      renderContext();
+    } else {
+      renderTransfer();
+    }
 
     try {
       var json = await fetchJson(
@@ -1709,7 +1928,14 @@ function renderOpenChecks() {
       toast(error.message || 'Could not move the check.', true);
     } finally {
       state.transfer.submitting = false;
-      if (state.transfer.open) renderTransfer();
+      if (state.transfer.open) {
+        if (state.transfer.directSide) {
+          renderTables();
+          renderContext();
+        } else {
+          renderTransfer();
+        }
+      }
     }
   }
 
@@ -1749,7 +1975,15 @@ function renderOpenChecks() {
     state.activeOrderId = null;
     state.offPremiseOrder = null;
 
-    renderAll();
+    /* PMD_QPOS_STABLE_TABLE_SWITCH_V39
+     * Do not redraw the check/cart with stale openOrders from the previous
+     * table before the new table request finishes. That double redraw was
+     * the visible check-card blink. Update only the immediate table/catalog
+     * selection, then render the cart once with authoritative table data. */
+    renderTables();
+    renderContext();
+    renderProducts();
+
     await loadTable(table.id, false);
 
     var historyWorkspace = $('[data-qpos-history-modal]');
@@ -1821,6 +2055,17 @@ function renderOpenChecks() {
       }) ||
       id === String(state.activeFloorId)
     ) {
+      return;
+    }
+
+    if (
+      state.transfer.open &&
+      state.transfer.directSide
+    ) {
+      state.activeFloorId = id;
+      rememberActiveFloor();
+      renderContext();
+      renderTables();
       return;
     }
 
@@ -4883,6 +5128,16 @@ function renderOpenChecks() {
   async function updateTableStatus(status, skipCleaning) {
     if (!state.selectedTable || !state.settings.table_state_url) return;
 
+    /* PMD_QPOS_CLEANING_STATUS_NOOP_V40
+     * Defensive guard: a cleaning table cannot be marked Left/cleaning again. */
+    if (
+      String(status || '').toLowerCase() === 'cleaning' &&
+      String(state.selectedTable.status || '').toLowerCase() === 'cleaning'
+    ) {
+      renderContext();
+      return;
+    }
+
     try {
       var url = tokenUrl(
         state.settings.table_state_url,
@@ -5349,11 +5604,30 @@ function renderOpenChecks() {
     var free = $('[data-qpos-table-free]');
 
     if (cleaning) cleaning.onclick = function () {
+      if (
+        !state.selectedTable ||
+        String(state.selectedTable.status || '').toLowerCase() === 'cleaning'
+      ) {
+        renderContext();
+        return;
+      }
+
       updateTableStatus('cleaning', false);
     };
 
     if (move) move.onclick = function () {
-      openTransfer();
+      if (
+        state.transfer.open &&
+        state.transfer.directSide
+      ) {
+        closeTransfer();
+        renderTables();
+        renderContext();
+        hideToast();
+        return;
+      }
+
+      openDirectSideMove();
     };
 
     var transferClose = $('[data-qpos-transfer-close]');

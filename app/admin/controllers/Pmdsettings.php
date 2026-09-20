@@ -6,6 +6,7 @@ use Admin\Classes\AdminController;
 use Admin\Facades\AdminLocation;
 use Admin\Facades\AdminMenu;
 use Admin\Facades\Template;
+use App\Services\GoogleBusiness\PmdGoogleBusinessService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
@@ -77,6 +78,20 @@ class Pmdsettings extends AdminController
         $this->vars['pmdProfile'] = $this->restaurantProfilePayload($locationId);
         $this->vars['pmdProfileHours'] = $this->openingHours($locationId);
         $this->vars['pmdProfileLocationId'] = $locationId;
+
+        try {
+            $this->vars['pmdGoogleBusiness'] = app(PmdGoogleBusinessService::class)->status($locationId);
+        } catch (\Throwable $error) {
+            $this->vars['pmdGoogleBusiness'] = [
+                'configured' => false,
+                'places_configured' => false,
+                'notifications_configured' => false,
+                'connected' => false,
+                'pending_location' => false,
+                'location_id' => $locationId,
+                'last_error' => $error->getMessage(),
+            ];
+        }
 
         return $this->makeView('pmdsettings/restaurant');
     }
@@ -614,6 +629,7 @@ class Pmdsettings extends AdminController
         $locationId = $this->currentLocationId();
         $profile = (array)post('profile', []);
         $hours = (array)post('hours', []);
+        $googleBusinessInput = (array)post('google_business', []);
 
         $validator = Validator::make($profile, [
             'name' => ['required', 'string', 'max:191'],
@@ -632,6 +648,28 @@ class Pmdsettings extends AdminController
 
         if ($validator->fails()) {
             throw new ValidationException($validator);
+        }
+
+        $googleValidator = Validator::make($googleBusinessInput, [
+            'client_id' => ['nullable', 'string', 'max:500'],
+            'client_secret' => ['nullable', 'string', 'max:1000'],
+            'places_api_key' => ['nullable', 'string', 'max:1000'],
+            'pubsub_topic' => ['nullable', 'string', 'max:500'],
+            'pubsub_token' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        if ($googleValidator->fails()) {
+            throw new ValidationException($googleValidator);
+        }
+
+        $googleClean = $googleValidator->validated();
+        $pubsubTopic = trim((string)($googleClean['pubsub_topic'] ?? ''));
+        if ($pubsubTopic !== '' && !preg_match('#^projects/[^/]+/topics/[^/]+$#', $pubsubTopic)) {
+            throw ValidationException::withMessages([
+                'google_business.pubsub_topic' => [
+                    'Google Pub/Sub topic must look like projects/PROJECT_ID/topics/TOPIC_NAME.',
+                ],
+            ]);
         }
 
         $clean = $validator->validated();
@@ -667,9 +705,6 @@ class Pmdsettings extends AdminController
                 'pmd_social_trustpilot_url' => trim((string)($clean['trustpilot_url'] ?? '')),
             ];
 
-            // PMD_RESTAURANT_IDENTITY_PERSIST_R25
-            // Owner identity is written to dedicated keys and mirrored to legacy
-            // site_* keys. No broad Settings-manager flush is allowed here.
             $settings['site_logo'] = $resolvedLogo;
             $settings['pmd_restaurant_identity_name'] = trim((string)$clean['name']);
             $settings['pmd_restaurant_identity_logo'] = $resolvedLogo;
@@ -709,10 +744,79 @@ class Pmdsettings extends AdminController
             }
         });
 
+        app(PmdGoogleBusinessService::class)->saveConfiguration(
+            $locationId,
+            request()->getHost(),
+            $googleClean
+        );
+
         flash()->success(\Admin\Classes\PmdPlatformI18n::fromEnglish('Restaurant profile saved.', 'settings.'));
 
         return [
             '#pmd-profile-save-status' => '<span class="pmd-profile-save-status is-success">'.\Admin\Classes\PmdPlatformI18n::fromEnglish('Saved', 'settings.').'</span>',
+        ];
+    }
+
+    public function onGoogleBusinessSync()
+    {
+        try {
+            $result = app(PmdGoogleBusinessService::class)
+                ->syncReviews($this->currentLocationId());
+
+            flash()->success(
+                'Google Reviews synced: '.(int)($result['synced'] ?? 0).' review(s).'
+            );
+        } catch (\Throwable $error) {
+            throw new \RuntimeException($error->getMessage());
+        }
+
+        return [
+            '#pmd-google-business-status-v2' => '<span class="label label-success">Synced</span>',
+        ];
+    }
+
+    public function onGoogleBusinessRefreshLinks()
+    {
+        try {
+            app(PmdGoogleBusinessService::class)
+                ->refreshPlaceLinks($this->currentLocationId());
+            flash()->success('Google Maps and direct review links refreshed.');
+        } catch (\Throwable $error) {
+            throw new \RuntimeException($error->getMessage());
+        }
+
+        return [
+            '#pmd-google-business-status-v2' => '<span class="label label-success">Links refreshed</span>',
+        ];
+    }
+
+    public function onGoogleBusinessDisconnect()
+    {
+        try {
+            app(PmdGoogleBusinessService::class)
+                ->disconnect($this->currentLocationId());
+            flash()->success('Google Business Profile disconnected.');
+        } catch (\Throwable $error) {
+            throw new \RuntimeException($error->getMessage());
+        }
+
+        return [
+            '#pmd-google-business-status-v2' => '<span class="label label-default">Disconnected</span>',
+        ];
+    }
+
+    public function onGoogleBusinessClearCredentials()
+    {
+        try {
+            app(PmdGoogleBusinessService::class)
+                ->clearConfiguration($this->currentLocationId());
+            flash()->success('Google Business credentials cleared for this restaurant.');
+        } catch (\Throwable $error) {
+            throw new \RuntimeException($error->getMessage());
+        }
+
+        return [
+            '#pmd-google-business-status-v2' => '<span class="label label-default">Credentials cleared</span>',
         ];
     }
 
