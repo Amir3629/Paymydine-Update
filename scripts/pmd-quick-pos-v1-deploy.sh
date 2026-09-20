@@ -240,7 +240,7 @@ grep -q "PMD_QPOS_FLOOR_MAP_UI_V25" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1
 grep -q "PMD_QPOS_UI_REBALANCE_V25" "$STAGE/app/admin/assets/css/pmd-quick-pos-v1.css"
 grep -q "data-qpos-floor-map-open" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
 grep -q "data-qpos-floor-map-stage" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
-grep -q "pmd-qpos-payment-inline-head" "$STAGE/app/admin/views/pmd_quick-pos-v1.blade.php" 2>/dev/null || grep -q "pmd-qpos-payment-inline-head" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
+grep -q "pmd-qpos-payment-inline-head" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
 grep -q "/admin/pos/transfer" "$STAGE/routes/admin-quick-mode.php"
 grep -q "data-qpos-table-move" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
 grep -q "data-qpos-transfer-modal" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
