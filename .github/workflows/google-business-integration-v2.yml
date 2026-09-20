@@ -43,6 +43,7 @@ jobs:
         run: |
           set -Eeuo pipefail
           bash -n scripts/pmd-google-business-profile-integration-v2-deploy.sh
+          bash -n scripts/pmd-google-business-profile-v2-live-overlay-deploy.sh
 
       - name: Integration contract markers
         shell: bash
