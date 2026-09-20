@@ -1320,7 +1320,7 @@ function renderOpenChecks() {
 
     /* PMD_QPOS_CHECK_LOOP_FIX_V40
      * Use the query-all helper here because forEach needs a collection. */
-    $('[data-qpos-check]', box).forEach(function (button) {
+    Array.prototype.slice.call(box.querySelectorAll('[data-qpos-check]')).forEach(function (button) {
       button.onclick = function () {
         var value = Number(button.getAttribute('data-qpos-check') || 0);
         if (value > 0) selectOrder(value);
@@ -5127,6 +5127,16 @@ function renderOpenChecks() {
   /* Table lifecycle */
   async function updateTableStatus(status, skipCleaning) {
     if (!state.selectedTable || !state.settings.table_state_url) return;
+
+    /* PMD_QPOS_CLEANING_STATUS_NOOP_V40
+     * Defensive guard: a cleaning table cannot be marked Left/cleaning again. */
+    if (
+      String(status || '').toLowerCase() === 'cleaning' &&
+      String(state.selectedTable.status || '').toLowerCase() === 'cleaning'
+    ) {
+      renderContext();
+      return;
+    }
 
     try {
       var url = tokenUrl(
