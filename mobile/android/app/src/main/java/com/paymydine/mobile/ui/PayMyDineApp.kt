@@ -119,6 +119,54 @@ fun PayMyDineApp(app: PayMyDineApplication) {
         )
     }
 
+    LaunchedEffect(online, ready) {
+        if (
+            ready ||
+            !online ||
+            app.credentials.deviceToken().isNullOrBlank() ||
+            app.bootstrapRepository.hasBootstrap()
+        ) {
+            return@LaunchedEffect
+        }
+
+        val host = app.credentials.tenantHost()
+        val token = app.credentials.deviceToken()
+        if (host.isNullOrBlank() || token.isNullOrBlank()) {
+            return@LaunchedEffect
+        }
+
+        pairingStatus = "Finishing secure setup..."
+        lastError = null
+
+        runCatching {
+            withContext(Dispatchers.IO) {
+                val bootstrap = api.bootstrap(host, token)
+                val edgeFingerprint = bootstrap
+                    .optJSONObject("edge")
+                    ?.optString("fingerprint_sha256")
+                    ?.trim()
+                    ?.takeIf { it.length == 64 }
+
+                if (edgeFingerprint != null) {
+                    app.credentials.setEdgeFingerprint(edgeFingerprint)
+                } else {
+                    app.credentials.clearEdgeFingerprint()
+                }
+
+                app.bootstrapRepository.apply(bootstrap)
+            }
+        }.onSuccess { summary ->
+            bootstrapSummary = summary
+            pairingStatus = "Ready offline"
+            ready = true
+            SyncEngine.enqueueImmediate(app)
+        }.onFailure { error ->
+            pairingStatus = "Paired - bootstrap required"
+            lastError = error.message
+                ?: "PayMyDine setup will retry when the connection is available."
+        }
+    }
+
     LaunchedEffect(ready) {
         if (!ready) return@LaunchedEffect
 
