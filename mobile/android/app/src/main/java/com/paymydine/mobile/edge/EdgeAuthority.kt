@@ -217,7 +217,7 @@ class EdgeAuthority(
             val updatedAt = existing.optLong("updated_at_ms", now)
             if (status == STATUS_PROCESSING && updatedAt > now - 30_000L) {
                 throw EdgeHttpException(
-                    409,
+                    425,
                     "This command is already being processed by the restaurant Edge.",
                 )
             }
