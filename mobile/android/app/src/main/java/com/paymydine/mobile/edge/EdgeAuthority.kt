@@ -258,7 +258,7 @@ class EdgeAuthority(
                     cloud,
                     null,
                 )
-                mirrorCloudResult(command, cloud)
+                mirrorCloudResult(command.aggregateId, cloud)
                 emit(
                     peer.locationId,
                     command.aggregate,
@@ -593,7 +593,10 @@ class EdgeAuthority(
                     cloud,
                     null,
                 )
-                mirrorCloudResult(command, cloud)
+                mirrorCloudResult(
+                    request.optString("aggregate_id"),
+                    cloud,
+                )
 
                 emit(
                     peer.locationId,
@@ -975,18 +978,25 @@ class EdgeAuthority(
     }
 
     private fun prepareCloudRequest(original: JSONObject): JSONObject? {
-        val type = original.optString("command_type")
         val aggregateId = original.optString("aggregate_id")
-
-        if (type != "KDS_STATUS_V1" || !aggregateId.startsWith("local:")) {
+        if (!aggregateId.startsWith("local:")) {
             return JSONObject(original.toString())
         }
 
-        val edgeOrder = edgeOrder(aggregateId) ?: return null
-        val state = edgeOrder.optJSONObject("state") ?: return null
+        val mirrored = edgeOrder(aggregateId)
+            ?: return JSONObject(original.toString())
+        val state = mirrored.optJSONObject("state")
+            ?: return JSONObject(original.toString())
         val serverOrderId = state.optLong("server_order_id", 0)
         val serverVersion = state.optLong("server_aggregate_version", 0)
-        if (serverOrderId < 1) return null
+
+        // First offline mutation for a local order has no Cloud identity yet.
+        // Send it unchanged so Cloud creates the canonical order. Once that
+        // first command reconciles, every later local mutation MUST target the
+        // returned canonical order or it could create a duplicate bill.
+        if (serverOrderId < 1) {
+            return JSONObject(original.toString())
+        }
 
         val rewritten = JSONObject(original.toString())
         rewritten.put("aggregate_id", "order:$serverOrderId")
@@ -995,22 +1005,26 @@ class EdgeAuthority(
         val payload = rewritten.optJSONObject("payload") ?: JSONObject()
         payload.remove("order_ref")
         payload.put("order_id", serverOrderId)
-        rewritten.put("payload", payload)
 
+        state.optString("server_updated_at")
+            .takeIf { it.isNotBlank() }
+            ?.let { payload.put("expected_updated_at", it) }
+
+        rewritten.put("payload", payload)
         return rewritten
     }
 
     private fun mirrorCloudResult(
-        command: CommandEnvelope,
+        sourceAggregateId: String,
         cloud: JSONObject,
     ) {
-        if (!command.aggregateId.startsWith("local:")) return
+        if (!sourceAggregateId.startsWith("local:")) return
 
         val result = cloud.optJSONObject("result") ?: return
         val serverOrderId = result.optLong("order_id", 0)
         if (serverOrderId < 1) return
 
-        val existing = edgeOrder(command.aggregateId) ?: return
+        val existing = edgeOrder(sourceAggregateId) ?: return
         val state = existing.optJSONObject("state") ?: JSONObject()
         state.put("server_order_id", serverOrderId)
         state.put(
@@ -1033,7 +1047,7 @@ class EdgeAuthority(
                 put("updated_at_ms", System.currentTimeMillis())
             },
             "aggregate_id = ?",
-            arrayOf(command.aggregateId),
+            arrayOf(sourceAggregateId),
         )
     }
 
