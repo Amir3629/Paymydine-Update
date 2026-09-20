@@ -4308,3 +4308,33 @@ html body.pmd-menu-manager-page
     transition: none !important;
     animation: none !important;
 }
+
+
+/* PMD_MENU_CARD_NUMBER_V24
+   One stable food number, derived from the canonical sorted Menu layout. */
+.pmd-menu-card[data-item-type="food"] .pmd-menu-card__number {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  z-index: 4;
+  min-width: 34px;
+  height: 34px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0 9px;
+  border: 2px solid rgba(255,255,255,.94);
+  border-radius: 11px;
+  background: rgba(6,78,59,.94);
+  color: #fff;
+  box-shadow: 0 5px 16px rgba(6,78,59,.20);
+  font-size: 14px;
+  font-weight: 950;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  pointer-events: none;
+}
+
+#pmd-menu-manager-main[data-pmd-sort-mode]:not([data-pmd-sort-mode="0"])
+.pmd-menu-card[data-item-type="food"] .pmd-menu-card__number {
+  background: #0f766e;
+}
