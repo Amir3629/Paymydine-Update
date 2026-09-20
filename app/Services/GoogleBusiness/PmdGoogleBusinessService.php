@@ -553,6 +553,7 @@ class PmdGoogleBusinessService
         $averageRating = null;
         $totalReviewCount = null;
         $seenReviewIds = [];
+        $syncComplete = false;
 
         for ($page = 0; $page < 200; $page++) {
             $query = ['pageSize' => 50];
@@ -596,17 +597,27 @@ class PmdGoogleBusinessService
             }
 
             $pageToken = trim((string)($json['nextPageToken'] ?? ''));
-            if ($pageToken === '') break;
+            if ($pageToken === '') {
+                $syncComplete = true;
+                break;
+            }
         }
 
-        $staleQuery = DB::table('pmd_external_reviews')
-            ->where('location_id', $locationId)
-            ->where('provider', 'google');
+        if ($syncComplete) {
+            $staleQuery = DB::table('pmd_external_reviews')
+                ->where('location_id', $locationId)
+                ->where('provider', 'google');
 
-        if ($seenReviewIds) {
-            $staleQuery->whereNotIn('provider_review_id', array_values(array_unique($seenReviewIds)));
+            if ($seenReviewIds) {
+                $staleQuery->whereNotIn('provider_review_id', array_values(array_unique($seenReviewIds)));
+            }
+            $staleQuery->delete();
+        } else {
+            Log::warning('PMD Google full review sync reached the pagination safety limit', [
+                'location_id' => $locationId,
+                'seen_reviews' => count($seenReviewIds),
+            ]);
         }
-        $staleQuery->delete();
 
         $update = [
             'last_synced_at' => now(),
