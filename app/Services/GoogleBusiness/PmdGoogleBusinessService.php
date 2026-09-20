@@ -25,40 +25,218 @@ class PmdGoogleBusinessService
     private const OAUTH_SCOPE = 'https://www.googleapis.com/auth/business.manage';
     private const CENTRAL_MAP_TABLE = 'pmd_google_business_tenant_map';
 
-    public function configuration(): array
+    public function callbackUrl(string $tenantHost): string
     {
-        $redirect = trim((string)env(
-            'PMD_GOOGLE_BUSINESS_REDIRECT_URI',
-            ''
-        ));
+        $tenantHost = $this->sanitizeHost($tenantHost);
+        if ($tenantHost === '') {
+            throw new RuntimeException('Unable to determine the restaurant tenant host.');
+        }
+
+        return 'https://'.$tenantHost.'/api/v1/integrations/google-business/callback';
+    }
+
+    public function pubSubPushUrl(string $tenantHost): string
+    {
+        $tenantHost = $this->sanitizeHost($tenantHost);
+        if ($tenantHost === '') {
+            throw new RuntimeException('Unable to determine the restaurant tenant host.');
+        }
+
+        return 'https://'.$tenantHost.'/api/v1/integrations/google-business/pubsub';
+    }
+
+    public function configuration(int $locationId, ?string $tenantHost = null): array
+    {
+        $host = $this->sanitizeHost((string)($tenantHost ?: request()->getHost()));
+        $redirectUri = $host !== '' ? $this->callbackUrl($host) : '';
+        $pubsubPushUri = $host !== '' ? $this->pubSubPushUrl($host) : '';
+
+        $base = [
+            'client_id' => '',
+            'client_secret' => '',
+            'redirect_uri' => $redirectUri,
+            'places_api_key' => '',
+            'pubsub_topic' => '',
+            'pubsub_token' => '',
+            'pubsub_push_uri' => $pubsubPushUri,
+        ];
+
+        if (!Schema::hasTable('pmd_google_business_connections')) {
+            return $base;
+        }
+
+        $row = DB::table('pmd_google_business_connections')
+            ->where('location_id', $locationId)
+            ->first();
+
+        if (!$row) {
+            return $base;
+        }
+
+        $storedHost = $this->sanitizeHost((string)($row->tenant_host ?? ''));
+        if ($host === '' && $storedHost !== '') {
+            $host = $storedHost;
+            $redirectUri = $this->callbackUrl($storedHost);
+            $pubsubPushUri = $this->pubSubPushUrl($storedHost);
+        }
 
         return [
-            'client_id' => trim((string)env('PMD_GOOGLE_BUSINESS_CLIENT_ID', '')),
-            'client_secret' => trim((string)env('PMD_GOOGLE_BUSINESS_CLIENT_SECRET', '')),
-            'redirect_uri' => $redirect,
-            'places_api_key' => trim((string)env('PMD_GOOGLE_PLACES_API_KEY', '')),
-            'pubsub_topic' => trim((string)env('PMD_GOOGLE_BUSINESS_PUBSUB_TOPIC', '')),
-            'pubsub_token' => trim((string)env('PMD_GOOGLE_BUSINESS_PUBSUB_TOKEN', '')),
+            'client_id' => $this->decryptNullable($row->oauth_client_id_encrypted ?? null),
+            'client_secret' => $this->decryptNullable($row->oauth_client_secret_encrypted ?? null),
+            'redirect_uri' => $redirectUri,
+            'places_api_key' => $this->decryptNullable($row->places_api_key_encrypted ?? null),
+            'pubsub_topic' => trim((string)($row->pubsub_topic ?? '')),
+            'pubsub_token' => $this->decryptNullable($row->pubsub_token_encrypted ?? null),
+            'pubsub_push_uri' => $pubsubPushUri,
         ];
     }
 
-    public function configurationReady(): bool
+    public function configurationReady(int $locationId, ?string $tenantHost = null): bool
     {
-        $config = $this->configuration();
+        $config = $this->configuration($locationId, $tenantHost);
 
         return $config['client_id'] !== ''
             && $config['client_secret'] !== ''
             && filter_var($config['redirect_uri'], FILTER_VALIDATE_URL);
     }
 
-    public function status(int $locationId): array
+    public function saveConfiguration(
+        int $locationId,
+        string $tenantHost,
+        array $input
+    ): array {
+        $this->assertTenantTables();
+
+        $tenantHost = $this->sanitizeHost($tenantHost);
+        if ($tenantHost === '') {
+            throw new RuntimeException('Unable to determine the restaurant tenant host.');
+        }
+
+        $existing = DB::table('pmd_google_business_connections')
+            ->where('location_id', $locationId)
+            ->first();
+
+        $oldClientId = $existing
+            ? $this->decryptNullable($existing->oauth_client_id_encrypted ?? null)
+            : '';
+        $oldClientSecret = $existing
+            ? $this->decryptNullable($existing->oauth_client_secret_encrypted ?? null)
+            : '';
+        $oldPlacesKey = $existing
+            ? $this->decryptNullable($existing->places_api_key_encrypted ?? null)
+            : '';
+        $oldPubSubToken = $existing
+            ? $this->decryptNullable($existing->pubsub_token_encrypted ?? null)
+            : '';
+
+        $clientId = trim((string)($input['client_id'] ?? ''));
+        $clientSecretInput = trim((string)($input['client_secret'] ?? ''));
+        $placesKeyInput = trim((string)($input['places_api_key'] ?? ''));
+        $pubsubTopic = trim((string)($input['pubsub_topic'] ?? ''));
+        $pubsubTokenInput = trim((string)($input['pubsub_token'] ?? ''));
+
+        $clientSecret = $clientSecretInput !== '' ? $clientSecretInput : $oldClientSecret;
+        $placesApiKey = $placesKeyInput !== '' ? $placesKeyInput : $oldPlacesKey;
+        $pubsubToken = $pubsubTokenInput !== '' ? $pubsubTokenInput : $oldPubSubToken;
+
+        $oauthCredentialsChanged = $existing && (
+            !hash_equals($oldClientId, $clientId)
+            || ($clientSecretInput !== '' && !hash_equals($oldClientSecret, $clientSecret))
+        );
+
+        $now = now();
+        $payload = [
+            'tenant_host' => $tenantHost,
+            'oauth_client_id_encrypted' => $clientId !== '' ? Crypt::encryptString($clientId) : null,
+            'oauth_client_secret_encrypted' => $clientSecret !== '' ? Crypt::encryptString($clientSecret) : null,
+            'places_api_key_encrypted' => $placesApiKey !== '' ? Crypt::encryptString($placesApiKey) : null,
+            'pubsub_topic' => $pubsubTopic !== '' ? $pubsubTopic : null,
+            'pubsub_token_encrypted' => $pubsubToken !== '' ? Crypt::encryptString($pubsubToken) : null,
+            'credentials_updated_at' => $now,
+            'updated_at' => $now,
+            'created_at' => $existing->created_at ?? $now,
+        ];
+
+        if ($oauthCredentialsChanged) {
+            $payload = array_merge($payload, [
+                'google_account_name' => null,
+                'google_account_display_name' => null,
+                'google_location_name' => null,
+                'google_location_title' => null,
+                'google_place_id' => null,
+                'google_maps_uri' => null,
+                'google_write_review_uri' => null,
+                'google_reviews_uri' => null,
+                'access_token_encrypted' => null,
+                'refresh_token_encrypted' => null,
+                'token_expires_at' => null,
+                'scopes' => null,
+                'status' => 'disconnected',
+                'google_average_rating' => null,
+                'google_total_review_count' => 0,
+                'notifications_enabled' => 0,
+                'last_synced_at' => null,
+                'last_error' => null,
+            ]);
+        } elseif (!$existing) {
+            $payload['status'] = 'disconnected';
+        }
+
+        DB::table('pmd_google_business_connections')->updateOrInsert(
+            ['location_id' => $locationId],
+            $payload
+        );
+
+        if ($oauthCredentialsChanged) {
+            $this->writePublicSettings($locationId, [
+                'pmd_google_business_connected' => '0',
+                'pmd_google_business_location_title' => '',
+                'pmd_google_place_id' => '',
+                'pmd_google_maps_url' => '',
+                'pmd_google_write_review_url' => '',
+                'pmd_google_reviews_url' => '',
+            ]);
+        }
+
+        return $this->status($locationId, $tenantHost);
+    }
+
+    public function clearConfiguration(int $locationId): void
     {
-        $config = $this->configuration();
+        $this->assertTenantTables();
+        $this->disconnect($locationId);
+
+        DB::table('pmd_google_business_connections')
+            ->where('location_id', $locationId)
+            ->update([
+                'oauth_client_id_encrypted' => null,
+                'oauth_client_secret_encrypted' => null,
+                'places_api_key_encrypted' => null,
+                'pubsub_topic' => null,
+                'pubsub_token_encrypted' => null,
+                'credentials_updated_at' => now(),
+                'updated_at' => now(),
+            ]);
+    }
+
+    public function status(int $locationId, ?string $tenantHost = null): array
+    {
+        $host = $this->sanitizeHost((string)($tenantHost ?: request()->getHost()));
+        $config = $this->configuration($locationId, $host ?: null);
+
         $base = [
-            'configured' => $this->configurationReady(),
+            'configured' => $config['client_id'] !== ''
+                && $config['client_secret'] !== ''
+                && filter_var($config['redirect_uri'], FILTER_VALIDATE_URL),
             'places_configured' => $config['places_api_key'] !== '',
             'notifications_configured' => $config['pubsub_topic'] !== '' && $config['pubsub_token'] !== '',
             'redirect_uri' => $config['redirect_uri'],
+            'pubsub_push_uri' => $config['pubsub_push_uri'],
+            'client_id' => $config['client_id'],
+            'client_secret_set' => $config['client_secret'] !== '',
+            'places_api_key_set' => $config['places_api_key'] !== '',
+            'pubsub_topic' => $config['pubsub_topic'],
+            'pubsub_token_set' => $config['pubsub_token'] !== '',
             'connected' => false,
             'pending_location' => false,
             'location_id' => $locationId,
