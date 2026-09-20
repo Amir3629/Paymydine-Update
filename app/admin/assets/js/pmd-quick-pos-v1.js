@@ -125,6 +125,11 @@
     cart: [],
     pendingSend: null,
     tableRequestSeq: 0,
+    /* PMD_QPOS_TABLE_CACHE_STATE_V41
+     * Short in-memory cache + in-flight de-duplication for table checks. */
+    tableCache: Object.create(null),
+    tableFetches: Object.create(null),
+    tableSwitching: false,
     guestCount: 1,
     note: '',
     loading: false,
@@ -2001,14 +2006,119 @@ function renderOpenChecks() {
     }
   }
 
-  async function loadTable(id, silent) {
+  /* PMD_QPOS_TABLE_CACHE_V41
+   * Recent table payloads are shown immediately and then revalidated.
+   * Hover/focus prefetch only requests the table the user is heading toward.
+   */
+  var PMD_QPOS_TABLE_CACHE_TTL_V41 = 12000;
+
+  function tableCacheGet(id) {
+    var key = String(Number(id || 0));
+    var row = state.tableCache[key];
+    if (!row) return null;
+
+    if ((Date.now() - Number(row.saved_at || 0)) > PMD_QPOS_TABLE_CACHE_TTL_V41) {
+      delete state.tableCache[key];
+      return null;
+    }
+
+    return row.payload || null;
+  }
+
+  function tableCachePut(id, payload) {
+    var key = String(Number(id || 0));
+    if (!key || key === '0' || !payload) return;
+
+    state.tableCache[key] = {
+      saved_at: Date.now(),
+      payload: payload
+    };
+  }
+
+  function tableCacheDrop(id) {
+    var key = String(Number(id || 0));
+    if (key && key !== '0') {
+      delete state.tableCache[key];
+    }
+  }
+
+  async function fetchTablePayload(id, force) {
+    id = Number(id || 0);
+    if (!id || !state.settings.table_data_url) return null;
+
+    var key = String(id);
+
+    if (!force) {
+      var cached = tableCacheGet(id);
+      if (cached) return cached;
+    }
+
+    if (state.tableFetches[key]) {
+      return state.tableFetches[key];
+    }
+
+    var url = tokenUrl(state.settings.table_data_url, '{table}', id);
+    var pending = fetchJson(url + '?_=' + Date.now())
+      .then(function (json) {
+        tableCachePut(id, json);
+        return json;
+      })
+      .finally(function () {
+        delete state.tableFetches[key];
+      });
+
+    state.tableFetches[key] = pending;
+    return pending;
+  }
+
+  function prefetchTableData(id) {
+    id = Number(id || 0);
+    if (!id || tableCacheGet(id)) return;
+
+    fetchTablePayload(id, false).catch(function () {
+      /* Opportunistic prefetch: normal click flow owns user-facing errors. */
+    });
+  }
+
+  function applyTablePayload(id, json) {
+    if (
+      !json ||
+      !state.selectedTable ||
+      Number(state.selectedTable.id) !== Number(id)
+    ) {
+      return false;
+    }
+
+    state.tableSwitching = false;
+    state.tableData = json;
+    state.openOrders = Array.isArray(json.open_orders) ? json.open_orders : [];
+    state.activeOrderId = Number(json.active_order_id || 0) || null;
+    state.forceNewCheck = false;
+
+    var table = json.table || null;
+    if (table && state.selectedTable) {
+      state.selectedTable = Object.assign({}, state.selectedTable, table);
+    }
+
+    var order = activeOrder();
+    if (order && order.guest_count) {
+      state.guestCount = Math.max(1, num(order.guest_count, 1));
+    }
+
+    renderTables();
+    renderContext();
+    renderCart();
+
+    return true;
+  }
+
+  async function loadTable(id, silent, force) {
     if (!state.settings.table_data_url) return;
 
     var requestSeq = ++state.tableRequestSeq;
 
     try {
-      var url = tokenUrl(state.settings.table_data_url, '{table}', id);
-      var json = await fetchJson(url + '?_=' + Date.now());
+      var json = await fetchTablePayload(id, !!force);
 
       if (
         requestSeq !== state.tableRequestSeq ||
@@ -2018,24 +2128,13 @@ function renderOpenChecks() {
         return;
       }
 
-      state.tableData = json;
-      state.openOrders = Array.isArray(json.open_orders) ? json.open_orders : [];
-      state.activeOrderId = Number(json.active_order_id || 0) || null;
-      state.forceNewCheck = false;
-
-      var table = json.table || null;
-      if (table && state.selectedTable) {
-        state.selectedTable = Object.assign({}, state.selectedTable, table);
-      }
-
-      var order = activeOrder();
-      if (order && order.guest_count) {
-        state.guestCount = Math.max(1, num(order.guest_count, 1));
-      }
-
-      renderAll();
+      /* PMD_QPOS_TARGETED_TABLE_HYDRATE_V41
+       * Hydrate only the rail/check context instead of renderAll(). */
+      applyTablePayload(id, json);
     } catch (error) {
       if (!silent && requestSeq === state.tableRequestSeq) {
+        state.tableSwitching = false;
+        renderCart({orderSwitch: true});
         toast(error.message || 'Table could not be opened.', true);
       }
     }
