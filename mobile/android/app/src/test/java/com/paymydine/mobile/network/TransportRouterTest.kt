@@ -11,6 +11,27 @@ class TransportRouterTest {
         assertEquals(TransportKind.EDGE, router.decide(true, edge, "ABC123").kind)
     }
 
+    @Test fun trustedFingerprintOnWrongSiteIsRejected() {
+        assertEquals(
+            TransportKind.CLOUD,
+            router.decide(
+                cloudOnline = true,
+                edge = edge,
+                pinnedEdgeFingerprint = "abc123",
+                expectedSiteId = "site-2",
+            ).kind,
+        )
+        assertEquals(
+            TransportKind.OFFLINE,
+            router.decide(
+                cloudOnline = false,
+                edge = edge,
+                pinnedEdgeFingerprint = "abc123",
+                expectedSiteId = "site-2",
+            ).kind,
+        )
+    }
+
     @Test fun untrustedEdgeFailsClosed() {
         assertEquals(TransportKind.CLOUD, router.decide(true, edge, "different").kind)
         assertEquals(TransportKind.OFFLINE, router.decide(false, edge, "different").kind)
