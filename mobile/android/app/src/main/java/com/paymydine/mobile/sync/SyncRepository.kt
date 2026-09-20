@@ -197,6 +197,7 @@ class SyncRepository(private val database: PmdDatabase) {
         scope: String,
     ): Boolean = database.transaction { db ->
         val values = ContentValues().apply {
+            put("scope", scope)
             put("sequence", event.sequence)
             put("event_id", event.eventId)
             put("location_id", event.locationId)
