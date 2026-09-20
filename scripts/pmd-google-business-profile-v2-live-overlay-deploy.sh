@@ -36,6 +36,7 @@ targets=(
   "routes/api.php"
   "routes/google-business-profile.php"
   "routes/pmd-public-compat-handler.php"
+  "routes.php"
 )
 
 say "Fetching integration refs quietly"
@@ -71,6 +72,9 @@ trap cleanup_stage EXIT
 say "Live HEAD: $live_sha"
 say "Patch source: $base_sha -> $release_sha"
 say "Checking only Google integration files; unrelated dirty/staged files are ignored"
+
+curl -fsS --max-time 8 "http://127.0.0.1:$PMD_PORT/api/health" >/dev/null \
+  || fail "Frontend V2 is not healthy before deployment. Recover port $PMD_PORT first."
 
 git diff --binary --full-index "$base_ref..$release_ref" -- "${targets[@]}" > "$patch_file"
 [[ -s "$patch_file" ]] || fail "Integration patch is empty"
@@ -211,12 +215,12 @@ rollback_now() {
 
   if [[ "$next_changed" == "1" ]]; then
     sudo rm -rf "$PMD_V2_ROOT/.next"
-  fi
 
-  # Always restore a freshly built baseline .next after activation has begun.
-  if [[ -d "$stage/baseline.next" ]]; then
-    sudo rm -rf "$PMD_V2_ROOT/.next"
-    sudo cp -a "$stage/baseline.next" "$PMD_V2_ROOT/.next"
+    if [[ -d "$backup/next.previous" ]]; then
+      sudo cp -a "$backup/next.previous" "$PMD_V2_ROOT/.next"
+    elif [[ -d "$stage/baseline.next" ]]; then
+      sudo cp -a "$stage/baseline.next" "$PMD_V2_ROOT/.next"
+    fi
   fi
 
   cd "$PMD_ROOT"
@@ -256,6 +260,20 @@ done < "$new_list"
 
 grep -q 'class PmdGoogleBusinessService'   "$PMD_ROOT/app/Services/GoogleBusiness/PmdGoogleBusinessService.php"   || fail "Live Google Business service marker missing after source activation"
 
+cd "$PMD_ROOT"
+php artisan optimize:clear >/dev/null 2>&1 || true
+
+say "Verifying Laravel Google routes before touching Frontend V2 .next"
+route_dump="$stage/route-list.txt"
+if ! php artisan route:list >"$route_dump" 2>&1; then
+  tail -n 120 "$route_dump" >&2 || true
+  fail "Laravel route:list failed after Google source activation"
+fi
+grep -q 'integrations/google-business/callback' "$route_dump" \
+  || fail "Google OAuth callback route is missing"
+grep -q 'integrations/google-business/pubsub' "$route_dump" \
+  || fail "Google Pub/Sub route is missing"
+
 say "Activating tested Google-integrated Frontend V2 build"
 next_changed=1
 if [[ -d "$PMD_V2_ROOT/.next" ]]; then
@@ -263,8 +281,6 @@ if [[ -d "$PMD_V2_ROOT/.next" ]]; then
 fi
 sudo mv "$stage/integration.next" "$PMD_V2_ROOT/.next"
 
-cd "$PMD_ROOT"
-php artisan optimize:clear >/dev/null 2>&1 || true
 if systemctl list-unit-files php8.3-fpm.service >/dev/null 2>&1; then
   sudo systemctl reload php8.3-fpm
 fi
@@ -277,9 +293,6 @@ for attempt in 1 2 3 4 5 6; do
   sleep 2
   [[ "$attempt" != "6" ]] || fail "Frontend V2 health failed after Google integration activation"
 done
-
-php artisan route:list 2>/dev/null | grep -q 'integrations/google-business/callback'   || fail "Google OAuth callback route is missing"
-php artisan route:list 2>/dev/null | grep -q 'integrations/google-business/pubsub'   || fail "Google Pub/Sub route is missing"
 
 grep -q 'PMD_GOOGLE_BUSINESS_PROFILE_INTEGRATION_V2'   "$PMD_V2_ROOT/src/runtime/components/ReviewShareEnhancer.tsx"   || fail "Live Frontend Google integration marker missing"
 
