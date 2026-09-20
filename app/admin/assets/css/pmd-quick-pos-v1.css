@@ -6358,3 +6358,73 @@ button[data-qpos-keypad-key="exact"] {
   }
 }
 
+/* ============================================================
+   PMD_QPOS_PRODUCT_BLEND_V33
+   Seamless image-to-content transition: no hard dividing line, no raised
+   white slab covering the photo. The body stays flush while a soft white
+   fade rises into the image and a very light shadow adds depth.
+   ============================================================ */
+.pmd-qpos-product-body {
+  min-height: 88px;
+  margin: 0 -11px -11px;
+  padding: 12px 11px 12px;
+  border: 0;
+  border-radius: 0;
+  background: #fff;
+  box-shadow: 0 -10px 18px -17px rgba(15,23,42,.34);
+  overflow: visible;
+}
+
+.pmd-qpos-product-body::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  top: -30px;
+  left: 0;
+  right: 0;
+  height: 31px;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    rgba(255,255,255,0) 0%,
+    rgba(255,255,255,.08) 28%,
+    rgba(255,255,255,.30) 55%,
+    rgba(255,255,255,.68) 78%,
+    #fff 100%
+  );
+}
+
+.pmd-qpos-product-body .pmd-qpos-product-name,
+.pmd-qpos-product-body .pmd-qpos-product-meta {
+  position: relative;
+  z-index: 1;
+}
+
+@media (max-width: 820px) {
+  .pmd-qpos-product-body {
+    min-height: 84px;
+    margin: 0 -11px -11px;
+    padding: 11px 11px 11px;
+    border-radius: 0;
+  }
+
+  .pmd-qpos-product-body::before {
+    top: -27px;
+    height: 28px;
+  }
+}
+
+@media (max-width: 420px) {
+  .pmd-qpos-product-body {
+    min-height: 80px;
+    margin: 0 -9px -9px;
+    padding: 10px 9px 10px;
+    border-radius: 0;
+  }
+
+  .pmd-qpos-product-body::before {
+    top: -24px;
+    height: 25px;
+  }
+}
+
