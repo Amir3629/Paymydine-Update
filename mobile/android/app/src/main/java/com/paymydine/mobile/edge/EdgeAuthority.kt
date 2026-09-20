@@ -1051,6 +1051,8 @@ class EdgeAuthority(
         }
 
         val rewritten = JSONObject(original.toString())
+        rewritten.put("client_aggregate_id", sourceAggregateId)
+        rewritten.put("client_base_version", sourceBaseVersion)
         rewritten.put("aggregate_id", target.aggregateId)
         rewritten.put("base_version", target.baseVersion)
 
