@@ -380,7 +380,7 @@
    */
   function bootCacheKey() {
     return [
-      'pmd:qpos:visual:v26',
+      'pmd:qpos:visual:v27',
       window.location.host,
       state.mode
     ].join(':');
@@ -1145,9 +1145,13 @@
               '">' + esc(selectedQuantity) + '</span>'
             : '') +
           '<strong class="pmd-qpos-product-name">' +
+            /* PMD_QPOS_FOOD_NUMBER_PUNCT_V27
+             * Food labels use the restaurant-menu convention:
+             *   1. Item name
+             * Never "#1Item name". */
             (item.menu_number
               ? '<span class="pmd-qpos-product-number" aria-label="Food number ' +
-                  esc(item.menu_number) + '">#' + esc(item.menu_number) + '</span>'
+                  esc(item.menu_number) + '">' + esc(item.menu_number) + '.</span>'
               : '') +
             '<span>' + esc(item.name) + '</span>' +
           '</strong>' +
