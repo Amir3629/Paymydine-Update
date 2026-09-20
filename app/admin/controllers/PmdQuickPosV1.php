@@ -187,6 +187,7 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 'terminal_refresh_url' => '/admin/terminal-payments/attempts/{attempt}/refresh',
                 'table_state_url' => '/admin/pmd-waiter-table-states-v154/{table}',
                 'history_url' => '/admin/pos/history',
+                'transfer_url' => '/admin/pos/transfer',
             ],
         ];
     }
@@ -523,6 +524,483 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 ? (int)$orders[0]['order_id']
                 : null,
         ]);
+    }
+
+    /**
+     * PMD_QPOS_TRANSFER_V24
+     *
+     * Two intentionally different restaurant operations:
+     * - order: correct one check that was opened on the wrong table;
+     * - table: guests physically move, so every payable check moves together.
+     *
+     * Items/payments/invoices stay attached to the same order IDs. Only the
+     * canonical table reference changes.
+     */
+    public function transfer()
+    {
+        $payload = request()->json()->all() ?: request()->all();
+
+        $sourceId = (int)($payload['source_table_id'] ?? 0);
+        $targetId = (int)($payload['target_table_id'] ?? 0);
+        $scope = strtolower(trim((string)($payload['scope'] ?? 'order')));
+        $orderId = (int)($payload['order_id'] ?? 0);
+
+        if (!in_array($scope, ['order', 'table'], true)) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Choose check or whole table.',
+            ], 422);
+        }
+
+        if ($sourceId < 1 || $targetId < 1 || $sourceId === $targetId) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Choose a different destination table.',
+            ], 422);
+        }
+
+        $source = $this->resolveTable($sourceId);
+        $target = $this->resolveTable($targetId);
+
+        if (!$source || !$target) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Source or destination table was not found.',
+            ], 404);
+        }
+
+        $sourceLocation = (int)($source['location_id'] ?? 0);
+        $targetLocation = (int)($target['location_id'] ?? 0);
+
+        if (
+            $sourceLocation > 0
+            && $targetLocation > 0
+            && $sourceLocation !== $targetLocation
+        ) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Tables must belong to the same location.',
+            ], 422);
+        }
+
+        $sourceOrders = $this->quickPosOpenOrdersForTable($source);
+
+        if (!$sourceOrders) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'There are no open checks to move.',
+            ], 422);
+        }
+
+        if ($scope === 'order') {
+            if ($orderId < 1) {
+                return response()->json([
+                    'ok' => false,
+                    'message' => 'Choose a check to move.',
+                ], 422);
+            }
+
+            $selected = array_values(array_filter(
+                $sourceOrders,
+                static function (array $order) use ($orderId): bool {
+                    return (int)($order['order_id'] ?? 0) === $orderId;
+                }
+            ));
+
+            if (!$selected) {
+                return response()->json([
+                    'ok' => false,
+                    'message' => 'That check is no longer on this table.',
+                ], 409);
+            }
+
+            $orderIds = [$orderId];
+        } else {
+            $targetOrders = $this->quickPosOpenOrdersForTable($target);
+
+            if ($targetOrders) {
+                return response()->json([
+                    'ok' => false,
+                    'message' => 'Destination already has a check. Move one check instead.',
+                ], 409);
+            }
+
+            $targetStatus = $this->quickPosTransferTableStatus($targetId);
+
+            if (
+                $targetStatus !== ''
+                && !in_array(
+                    $targetStatus,
+                    ['available', 'reserved'],
+                    true
+                )
+            ) {
+                return response()->json([
+                    'ok' => false,
+                    'message' => 'Choose a free or reserved table for a whole-table move.',
+                ], 409);
+            }
+
+            $orderIds = array_values(array_unique(array_filter(array_map(
+                static fn (array $order): int =>
+                    (int)($order['order_id'] ?? 0),
+                $sourceOrders
+            ))));
+        }
+
+        if (!$orderIds) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'There are no checks to move.',
+            ], 422);
+        }
+
+        try {
+            $result = DB::transaction(function () use (
+                $source,
+                $target,
+                $sourceOrders,
+                $orderIds,
+                $scope
+            ) {
+                if (!Schema::hasTable('orders')) {
+                    throw new \RuntimeException('Orders table is unavailable.');
+                }
+
+                $columns = Schema::getColumnListing('orders');
+                $primaryKey = in_array('order_id', $columns, true)
+                    ? 'order_id'
+                    : (
+                        in_array('id', $columns, true)
+                            ? 'id'
+                            : null
+                    );
+
+                if (!$primaryKey) {
+                    throw new \RuntimeException('Order primary key is unavailable.');
+                }
+
+                $lockedQuery = DB::table('orders')
+                    ->whereIn($primaryKey, $orderIds);
+
+                $this->applyTableScope(
+                    $lockedQuery,
+                    $columns,
+                    $source
+                );
+
+                $lockedIds = $lockedQuery
+                    ->lockForUpdate()
+                    ->pluck($primaryKey)
+                    ->map(static fn ($id): int => (int)$id)
+                    ->filter()
+                    ->values()
+                    ->all();
+
+                sort($lockedIds);
+                $expectedIds = $orderIds;
+                sort($expectedIds);
+
+                if ($lockedIds !== $expectedIds) {
+                    return [
+                        'ok' => false,
+                        'http_status' => 409,
+                        'message' => 'One of the checks moved already. Refresh and try again.',
+                    ];
+                }
+
+                $updates = [];
+
+                foreach (
+                    ['table_id', 'dining_table_id', 'location_table_id']
+                    as $column
+                ) {
+                    if (in_array($column, $columns, true)) {
+                        $updates[$column] = (int)$target['id'];
+                    }
+                }
+
+                if (in_array('table_no', $columns, true)) {
+                    $updates['table_no'] = (string)$target['number'];
+                }
+
+                if (in_array('table_name', $columns, true)) {
+                    $updates['table_name'] = (string)$target['name'];
+                }
+
+                if (in_array('order_type', $columns, true)) {
+                    $updates['order_type'] = (string)(int)$target['id'];
+                }
+
+                if (in_array('updated_at', $columns, true)) {
+                    $updates['updated_at'] = date('Y-m-d H:i:s');
+                }
+
+                if (!$updates) {
+                    throw new \RuntimeException(
+                        'No canonical table reference exists on orders.'
+                    );
+                }
+
+                DB::table('orders')
+                    ->whereIn($primaryKey, $orderIds)
+                    ->update($updates);
+
+                $remainingSourceChecks = max(
+                    0,
+                    count($sourceOrders) - count($orderIds)
+                );
+
+                $sourceNext = $scope === 'table'
+                    ? 'cleaning'
+                    : (
+                        $remainingSourceChecks > 0
+                            ? 'occupied'
+                            : 'available'
+                    );
+
+                $context = [
+                    'source_table_id' => (int)$source['id'],
+                    'target_table_id' => (int)$target['id'],
+                    'scope' => $scope,
+                    'order_ids' => $orderIds,
+                ];
+
+                $historyOrderId = count($orderIds) === 1
+                    ? (int)$orderIds[0]
+                    : null;
+
+                $sourceStatus = $this->quickPosTransferSetTableStatus(
+                    (int)$source['id'],
+                    $sourceNext,
+                    $scope === 'table'
+                        ? 'pos_table_moved_to_'.$target['id']
+                        : 'pos_check_moved_to_'.$target['id'],
+                    $historyOrderId,
+                    $context
+                );
+
+                $targetStatus = $this->quickPosTransferSetTableStatus(
+                    (int)$target['id'],
+                    'occupied',
+                    $scope === 'table'
+                        ? 'pos_table_moved_from_'.$source['id']
+                        : 'pos_check_moved_from_'.$source['id'],
+                    $historyOrderId,
+                    $context
+                );
+
+                return [
+                    'ok' => true,
+                    'moved_order_ids' => $orderIds,
+                    'source_table_id' => (int)$source['id'],
+                    'target_table_id' => (int)$target['id'],
+                    'source_status' => $sourceStatus,
+                    'target_status' => $targetStatus,
+                ];
+            });
+
+            $status = (int)($result['http_status'] ?? 200);
+            unset($result['http_status']);
+
+            if (empty($result['ok'])) {
+                return response()->json($result, $status);
+            }
+
+            $count = count((array)($result['moved_order_ids'] ?? []));
+
+            $result['message'] = $scope === 'table'
+                ? 'Table moved to '.$this->quickPosTransferTableLabel($target).'.'
+                : 'Check #'.(int)$orderIds[0].' moved to '.$this->quickPosTransferTableLabel($target).'.';
+
+            $result['moved_count'] = $count;
+
+            return response()->json($result);
+        } catch (\Throwable $error) {
+            report($error);
+
+            return response()->json([
+                'ok' => false,
+                'message' => 'Could not move the check. Please try again.',
+            ], 500);
+        }
+    }
+
+    protected function quickPosTransferTableLabel(array $table): string
+    {
+        $number = trim((string)($table['number'] ?? ''));
+
+        return $number !== ''
+            ? 'table '.$number
+            : 'table '.(int)($table['id'] ?? 0);
+    }
+
+    protected function quickPosTransferTableStatus(int $tableId): string
+    {
+        if (
+            $tableId < 1
+            || !Schema::hasTable('tables')
+            || !Schema::hasColumn('tables', 'operational_status')
+        ) {
+            return '';
+        }
+
+        $columns = Schema::getColumnListing('tables');
+        $primaryKey = in_array('table_id', $columns, true)
+            ? 'table_id'
+            : (
+                in_array('id', $columns, true)
+                    ? 'id'
+                    : null
+            );
+
+        if (!$primaryKey) {
+            return '';
+        }
+
+        return $this->quickPosNormalizeTableStatus(
+            (string)(
+                DB::table('tables')
+                    ->where($primaryKey, $tableId)
+                    ->value('operational_status')
+                ?? 'available'
+            )
+        );
+    }
+
+    protected function quickPosTransferSetTableStatus(
+        int $tableId,
+        string $next,
+        string $reason,
+        ?int $orderId,
+        array $context
+    ): string {
+        if (
+            $tableId < 1
+            || !Schema::hasTable('tables')
+        ) {
+            return $next;
+        }
+
+        $columns = Schema::getColumnListing('tables');
+        $primaryKey = in_array('table_id', $columns, true)
+            ? 'table_id'
+            : (
+                in_array('id', $columns, true)
+                    ? 'id'
+                    : null
+            );
+
+        if (!$primaryKey) {
+            return $next;
+        }
+
+        $row = DB::table('tables')
+            ->where($primaryKey, $tableId)
+            ->lockForUpdate()
+            ->first();
+
+        if (!$row) {
+            return $next;
+        }
+
+        $raw = (array)$row;
+        $old = $this->quickPosNormalizeTableStatus(
+            (string)($raw['operational_status'] ?? 'available')
+        );
+
+        if (
+            in_array('operational_status', $columns, true)
+            && $old !== $next
+        ) {
+            $updates = [
+                'operational_status' => $next,
+            ];
+
+            if (
+                in_array(
+                    'operational_status_updated_at',
+                    $columns,
+                    true
+                )
+            ) {
+                $updates['operational_status_updated_at'] =
+                    date('Y-m-d H:i:s');
+            }
+
+            if (
+                in_array(
+                    'operational_status_updated_by',
+                    $columns,
+                    true
+                )
+            ) {
+                $updates['operational_status_updated_by'] =
+                    $this->currentUserId();
+            }
+
+            if (in_array('updated_at', $columns, true)) {
+                $updates['updated_at'] = date('Y-m-d H:i:s');
+            }
+
+            DB::table('tables')
+                ->where($primaryKey, $tableId)
+                ->update($updates);
+
+            $this->quickPosWriteTransferHistory(
+                $tableId,
+                $old,
+                $next,
+                $reason,
+                $orderId,
+                $context
+            );
+        }
+
+        return $next;
+    }
+
+    protected function quickPosWriteTransferHistory(
+        int $tableId,
+        string $old,
+        string $new,
+        string $reason,
+        ?int $orderId,
+        array $context
+    ): void {
+        $historyTable = null;
+
+        foreach (
+            ['pmd_table_status_history', 'ti_pmd_table_status_history']
+            as $candidate
+        ) {
+            if (Schema::hasTable($candidate)) {
+                $historyTable = $candidate;
+                break;
+            }
+        }
+
+        if (!$historyTable) {
+            return;
+        }
+
+        $columns = Schema::getColumnListing($historyTable);
+
+        $row = array_intersect_key([
+            'table_id' => $tableId,
+            'old_status' => $old,
+            'new_status' => $new,
+            'reason' => substr($reason, 0, 100),
+            'actor_id' => $this->currentUserId(),
+            'order_id' => $orderId,
+            'context' => json_encode($context),
+            'created_at' => date('Y-m-d H:i:s'),
+            'updated_at' => date('Y-m-d H:i:s'),
+        ], array_flip($columns));
+
+        if ($row) {
+            DB::table($historyTable)->insert($row);
+        }
     }
 
     /**
