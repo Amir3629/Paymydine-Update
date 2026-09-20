@@ -148,13 +148,44 @@
       return floors.find(function (floor) { return clean(floor && floor.id) === id; }) || null;
     }
 
+    /* PMD_DEFAULT_FLOOR_RENAME_ASSIGNMENT_V1
+     *
+     * The permanent default Floor keeps a stable ID and may be renamed
+     * (for example "Main Floor" -> "Indoor"). Explicit table assignments are
+     * intentionally stored only for non-default Floors, so every unassigned
+     * table MUST resolve to the CURRENT display name of the default Floor.
+     * Hard-coding "Main Floor" here made every default-floor table disappear
+     * immediately after renaming that Floor.
+     */
+    function defaultFloorRecord() {
+      var explicit = floors.find(function (floor) {
+        return floor && (
+          floor.is_default === true ||
+          String(floor.is_default || '') === '1'
+        );
+      });
+
+      return explicit || floors[0] || null;
+    }
+
+    function defaultFloorName() {
+      var floor = defaultFloorRecord();
+
+      return canonicalFloorName(
+        floor && floor.name
+          ? floor.name
+          : 'Main Floor'
+      );
+    }
+
     function floorNameFor(table) {
       // PMD_SHARED_FLOOR_MULTI_FLOOR_V1_2_ASSIGNMENT_AUTHORITY
       // The new PMD Floor identity is NOT raw tables.floor_name. Existing
       // restaurants already used that field for legacy floor/area metadata.
       // Only the explicit canonical table-id assignment map can move a table
-      // away from Main Floor; every unassigned table remains on Main Floor.
-      if (!table) return 'Main Floor';
+      // away from the permanent default Floor; every unassigned table remains
+      // on that default Floor even when its display name changes.
+      if (!table) return defaultFloorName();
       var raw = table.raw || {};
 
       var byId = tableMap.by_id || {};
@@ -179,7 +210,7 @@
         if (byName[names[k]]) return canonicalFloorName(byName[names[k]]);
       }
 
-      return 'Main Floor';
+      return defaultFloorName();
     }
 
     function managedFeatures(value) {
@@ -1200,16 +1231,7 @@
           payload
           && payload.floor
             ? payload.floor
-            : floors.find(
-                function (floor) {
-                  return key(
-                    canonicalFloorName(
-                      floor
-                      && floor.name
-                    )
-                  ) === 'main floor';
-                }
-              );
+            : defaultFloorRecord();
 
         if (
           !fallback
@@ -1911,11 +1933,11 @@
     };
 
     window.PMDSharedFloorMultiFloorV1 = {
-      version: '1.4.17',
+      version: '1.4.18',
       audit: function () { return root.__pmdSharedMultiFloorV1.audit(); }
     };
 
-    console.info('[PMD Shared Floor Multi-Floor V1.4.17] Ready', window.PMDSharedFloorMultiFloorV1.audit());
+    console.info('[PMD Shared Floor Multi-Floor V1.4.18] Ready', window.PMDSharedFloorMultiFloorV1.audit());
   }
 
   if (document.readyState === 'loading') {
