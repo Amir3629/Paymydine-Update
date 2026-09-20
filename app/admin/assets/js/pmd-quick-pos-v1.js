@@ -871,13 +871,19 @@
       state.activeFloorId
     ) {
       multiFloor.setActiveFloor(String(state.activeFloorId));
-    } else {
-      var instance = exactFloorInstance();
-      if (instance && typeof instance.fit === 'function') {
+    }
+
+    /* PMD_QPOS_FULLSCREEN_FLOOR_REFIT_V36
+     * The POS host expands the canonical Floor after it becomes visible.
+     * Re-fit after two frames so the shared engine measures the real
+     * full-screen viewport instead of its historical 560px initial frame. */
+    var instance = exactFloorInstance();
+    if (instance && typeof instance.fit === 'function') {
+      window.requestAnimationFrame(function () {
         window.requestAnimationFrame(function () {
           instance.fit();
         });
-      }
+      });
     }
   }
 
