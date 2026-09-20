@@ -51,7 +51,6 @@ require_once __DIR__.'/routes/sumup.php';
 require_once __DIR__.'/routes/menu-helpers.php';
 require_once __DIR__.'/routes/main-app-before.php';
 require_once __DIR__.'/routes/worldline-public.php';
-require_once base_path('routes/google-business-profile.php');
 
 
 
