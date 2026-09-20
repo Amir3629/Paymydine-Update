@@ -54,6 +54,13 @@ Route::middleware(['web'])->group(function () {
         [\Admin\Controllers\PmdQuickPosV1::class, 'settlePayment']
     )->where('order', '[0-9]+');
 
+    // PMD_QPOS_EXACT_DASHBOARD_FLOOR_AJAX_V26
+    // Canonical Floor zoom/view preference + reservation-window transport.
+    Route::post(
+        '/admin/pos/{mode?}',
+        [\Admin\Controllers\PmdQuickPosV1::class, 'floorAjax']
+    )->where('mode', 'cashier|waiter');
+
     Route::get(
         '/admin/pos/{mode?}',
         [\Admin\Controllers\PmdQuickPosV1::class, 'index']
