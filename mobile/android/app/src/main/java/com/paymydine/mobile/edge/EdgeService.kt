@@ -145,6 +145,17 @@ class EdgeService : Service() {
         try {
             val tlsIdentity = EdgeTlsIdentity().loadOrCreate()
             val edgeAuthority = EdgeAuthority(app)
+
+            // Prime this primary POS as a Cloud-validated Edge peer while WAN
+            // is available. If Android NSD does not discover its own service
+            // after a later WAN cut, direct local Edge routing still has a
+            // current offline trust snapshot for this exact device token.
+            if (app.connectivity.online.value) {
+                runCatching {
+                    edgeAuthority.authenticate(token)
+                }
+            }
+
             val edgeServer = EdgeHttpServer(
                 app = app,
                 authority = edgeAuthority,
