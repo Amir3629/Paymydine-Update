@@ -85,6 +85,7 @@
 
                             'pmd_social_google_enabled' => $get('pmd_social_google_enabled', '0'),
                             'pmd_social_google_url' => $get('pmd_social_google_url', ''),
+                            'pmd_social_google_review_url' => $get('pmd_social_google_review_url', ''),
 
                             'pmd_social_trustpilot_enabled' => $get('pmd_social_trustpilot_enabled', '0'),
                             'pmd_social_trustpilot_url' => $get('pmd_social_trustpilot_url', ''),
