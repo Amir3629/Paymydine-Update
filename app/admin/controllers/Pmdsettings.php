@@ -6,6 +6,7 @@ use Admin\Classes\AdminController;
 use Admin\Facades\AdminLocation;
 use Admin\Facades\AdminMenu;
 use Admin\Facades\Template;
+use App\Services\GoogleBusiness\PmdGoogleBusinessService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
@@ -77,6 +78,20 @@ class Pmdsettings extends AdminController
         $this->vars['pmdProfile'] = $this->restaurantProfilePayload($locationId);
         $this->vars['pmdProfileHours'] = $this->openingHours($locationId);
         $this->vars['pmdProfileLocationId'] = $locationId;
+
+        try {
+            $this->vars['pmdGoogleBusiness'] = app(PmdGoogleBusinessService::class)->status($locationId);
+        } catch (\Throwable $error) {
+            $this->vars['pmdGoogleBusiness'] = [
+                'configured' => false,
+                'places_configured' => false,
+                'notifications_configured' => false,
+                'connected' => false,
+                'pending_location' => false,
+                'location_id' => $locationId,
+                'last_error' => $error->getMessage(),
+            ];
+        }
 
         return $this->makeView('pmdsettings/restaurant');
     }
@@ -713,6 +728,54 @@ class Pmdsettings extends AdminController
 
         return [
             '#pmd-profile-save-status' => '<span class="pmd-profile-save-status is-success">'.\Admin\Classes\PmdPlatformI18n::fromEnglish('Saved', 'settings.').'</span>',
+        ];
+    }
+
+    public function onGoogleBusinessSync()
+    {
+        try {
+            $result = app(PmdGoogleBusinessService::class)
+                ->syncReviews($this->currentLocationId());
+
+            flash()->success(
+                'Google Reviews synced: '.(int)($result['synced'] ?? 0).' review(s).'
+            );
+        } catch (\Throwable $error) {
+            throw new \RuntimeException($error->getMessage());
+        }
+
+        return [
+            '#pmd-google-business-status-v2' => '<span class="label label-success">Synced</span>',
+        ];
+    }
+
+    public function onGoogleBusinessRefreshLinks()
+    {
+        try {
+            app(PmdGoogleBusinessService::class)
+                ->refreshPlaceLinks($this->currentLocationId());
+            flash()->success('Google Maps and direct review links refreshed.');
+        } catch (\Throwable $error) {
+            throw new \RuntimeException($error->getMessage());
+        }
+
+        return [
+            '#pmd-google-business-status-v2' => '<span class="label label-success">Links refreshed</span>',
+        ];
+    }
+
+    public function onGoogleBusinessDisconnect()
+    {
+        try {
+            app(PmdGoogleBusinessService::class)
+                ->disconnect($this->currentLocationId());
+            flash()->success('Google Business Profile disconnected.');
+        } catch (\Throwable $error) {
+            throw new \RuntimeException($error->getMessage());
+        }
+
+        return [
+            '#pmd-google-business-status-v2' => '<span class="label label-default">Disconnected</span>',
         ];
     }
 
