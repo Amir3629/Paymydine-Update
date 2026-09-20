@@ -1319,7 +1319,7 @@ function renderOpenChecks() {
     }
 
     /* PMD_QPOS_CHECK_LOOP_FIX_V40
-     * $() returns one element; $() returns the array used by forEach(). */
+     * Use the query-all helper here because forEach needs a collection. */
     $('[data-qpos-check]', box).forEach(function (button) {
       button.onclick = function () {
         var value = Number(button.getAttribute('data-qpos-check') || 0);
