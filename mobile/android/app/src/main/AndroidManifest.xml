@@ -4,6 +4,7 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
+
     <application
         android:name=".PayMyDineApplication"
         android:allowBackup="false"
@@ -12,10 +13,19 @@
         android:supportsRtl="true"
         android:usesCleartextTraffic="false"
         android:theme="@style/AppTheme">
-        <activity android:name=".MainActivity" android:exported="true" android:launchMode="singleTask">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTask">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="paymydine" android:host="pair" />
             </intent-filter>
         </activity>
     </application>
