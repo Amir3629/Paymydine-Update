@@ -95,6 +95,20 @@ class SyncRepository(private val database: PmdDatabase) {
         )
     }
 
+    fun defer(
+        commandId: String,
+        delayMs: Long = 15_000L,
+        reason: String = "Accepted by restaurant Edge; waiting for cloud reconciliation.",
+        nowMs: Long = System.currentTimeMillis(),
+    ): Boolean = updateStatus(
+        commandId = commandId,
+        allowed = setOf(STATUS_IN_FLIGHT, STATUS_PENDING, STATUS_RETRY),
+        nextStatus = STATUS_RETRY,
+        error = reason.take(1000),
+        nextRetryAtMs = nowMs + delayMs.coerceIn(1_000L, 300_000L),
+        incrementRetry = false,
+    )
+
     fun reject(commandId: String, error: String): Boolean = updateStatus(
         commandId = commandId,
         allowed = setOf(STATUS_IN_FLIGHT, STATUS_PENDING, STATUS_RETRY),
@@ -122,11 +136,12 @@ class SyncRepository(private val database: PmdDatabase) {
         arrayOf(STATUS_REJECTED),
     ).use { if (it.moveToFirst()) it.getInt(0) else 0 }
 
-    fun cursor(): Long = database.readableDatabase.query(
+    fun cursor(scope: String = DEFAULT_SCOPE): Long =
+        database.readableDatabase.query(
         "pmd_sync_cursor",
         arrayOf("cursor"),
         "scope = ?",
-        arrayOf(DEFAULT_SCOPE),
+        arrayOf(scope),
         null,
         null,
         null,
@@ -172,6 +187,51 @@ class SyncRepository(private val database: PmdDatabase) {
             ContentValues().apply { put("cursor", event.sequence) },
             "scope = ? AND cursor < ?",
             arrayOf(DEFAULT_SCOPE, event.sequence.toString()),
+        )
+
+        true
+    }
+
+    fun applyEdgeEvent(
+        event: SyncEvent,
+        scope: String,
+    ): Boolean = database.transaction { db ->
+        val values = ContentValues().apply {
+            put("sequence", event.sequence)
+            put("event_id", event.eventId)
+            put("location_id", event.locationId)
+            put("aggregate", event.aggregate)
+            put("aggregate_id", event.aggregateId)
+            put("aggregate_version", event.aggregateVersion)
+            put("event_type", event.eventType)
+            put("payload_json", event.payloadJson)
+            put("created_at_ms", event.createdAtMs)
+            put("applied_at_ms", System.currentTimeMillis())
+        }
+
+        val inserted = db.insertWithOnConflict(
+            "pmd_edge_inbox_events",
+            null,
+            values,
+            SQLiteDatabase.CONFLICT_IGNORE,
+        )
+        if (inserted == -1L) return@transaction false
+
+        db.insertWithOnConflict(
+            "pmd_sync_cursor",
+            null,
+            ContentValues().apply {
+                put("scope", scope)
+                put("cursor", event.sequence)
+            },
+            SQLiteDatabase.CONFLICT_IGNORE,
+        )
+
+        db.update(
+            "pmd_sync_cursor",
+            ContentValues().apply { put("cursor", event.sequence) },
+            "scope = ? AND cursor < ?",
+            arrayOf(scope, event.sequence.toString()),
         )
 
         true
