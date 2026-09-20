@@ -14,5 +14,9 @@ if (!defined('PMD_GOOGLE_BUSINESS_PROFILE_ROUTES_V2')) {
     Route::post(
         '/integrations/google-business/pubsub',
         [GoogleBusinessIntegrationController::class, 'pubsub']
-    )->name('pmd.google-business.pubsub');
+    )
+        ->withoutMiddleware([
+            \Igniter\Flame\Foundation\Http\Middleware\VerifyCsrfToken::class,
+        ])
+        ->name('pmd.google-business.pubsub');
 }
