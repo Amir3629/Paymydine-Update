@@ -36,6 +36,9 @@ class Pmdsettings extends AdminController
             $this->addCss('css/pmd-settings-restaurant-v1.css');
             $this->addCss('css/pmd-settings-restaurant-platform-header-v4.css');
             $this->addCss('css/pmd-settings-restaurant-spacing-v7.css');
+            // Reuse the exact provider connection modal/card language already
+            // used by PayMyDine Finance instead of inventing a second modal UI.
+            $this->addCss('css/pmd-payment-provider-catalogue-v1.css');
         } else {
             $this->addCss('css/pmd-settings-center-v1.css');
         }
