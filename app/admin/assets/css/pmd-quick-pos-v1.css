@@ -6939,3 +6939,29 @@ body.pmd-qpos-exact-floor-open
   }
 }
 
+/* ============================================================
+   PMD_QPOS_SWITCH_STABILITY_V42
+   Keep the Move action visually stable while a new table payload is loading.
+   It remains functionally disabled, but does not flash grey/blue between taps.
+   ============================================================ */
+.pmd-qpos.is-table-switching
+.pmd-qpos-table-actions [data-qpos-table-move]:disabled {
+  background: #1d4ed8 !important;
+  border-color: #1d4ed8 !important;
+  color: #fff !important;
+  opacity: 1 !important;
+  filter: none !important;
+  cursor: wait !important;
+}
+
+.pmd-qpos.is-table-switching
+.pmd-qpos-table-actions [data-qpos-table-cleaning]:disabled,
+.pmd-qpos.is-table-switching
+.pmd-qpos-table-actions [data-qpos-table-free]:disabled {
+  transition: none !important;
+}
+
+.pmd-qpos-table-actions [data-qpos-table-move] {
+  transition: none !important;
+}
+
