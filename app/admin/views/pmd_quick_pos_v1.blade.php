@@ -7,7 +7,7 @@
     <meta name="theme-color" content="#064e3b">
     <title>PayMyDine POS</title>
     <link rel="icon" type="image/svg+xml" href="/app/admin/assets/images/pmd-favicon-final-20260822.svg">
-    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-pos-v1.css?v=20260919-21">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-pos-v1.css?v=20260920-22">
 </head>
 <body class="pmd-qpos-body">
 @php
@@ -569,7 +569,7 @@
     <section class="pmd-qpos-text-keyboard" data-qpos-text-keyboard hidden aria-hidden="true">
         <header>
             <strong data-qpos-text-keyboard-label>Keyboard</strong>
-            <button type="button" data-qpos-text-key="done">Done</button>
+            <button type="button" data-qpos-text-key="hide">Hide</button>
         </header>
         <div class="pmd-qpos-text-keyboard-row">
             @foreach(str_split('1234567890') as $key)
@@ -612,7 +612,7 @@ window.PMDQuickPOSConfig = {
     initialBootstrap: @json($initialBootstrap ?? null)
 };
 </script>
-<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260919-21"></script>
+<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260920-22"></script>
 <script src="/app/admin/assets/js/pmd-site-access-hub-v13.js?v=20260919-qpos1"></script>
 </body>
 </html>
