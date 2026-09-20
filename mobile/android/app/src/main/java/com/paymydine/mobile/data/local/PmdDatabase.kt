@@ -20,6 +20,10 @@ class PmdDatabase(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, n
             createKdsStations(db)
             version = 2
         }
+        if (version < 3) {
+            createEdgeTables(db)
+            version = 3
+        }
         check(version == newVersion) {
             "Unsupported PayMyDine local DB upgrade: $oldVersion -> $newVersion"
         }
@@ -37,7 +41,7 @@ class PmdDatabase(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, n
 
     companion object {
         const val DATABASE_NAME = "paymydine-local-v1.db"
-        const val DATABASE_VERSION = 2
+        const val DATABASE_VERSION = 3
         private val schema = listOf(
             """CREATE TABLE pmd_meta (key TEXT PRIMARY KEY NOT NULL, value TEXT NOT NULL)""",
             """CREATE TABLE pmd_menu_items (
@@ -87,6 +91,50 @@ class PmdDatabase(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, n
                 name TEXT NOT NULL, slug TEXT NOT NULL, payload_json TEXT NOT NULL DEFAULT '{}',
                 updated_at_ms INTEGER NOT NULL)""".trimIndent(),
             "CREATE INDEX idx_pmd_kds_station_location ON pmd_kds_stations(location_id, slug)",
+            """CREATE TABLE pmd_edge_peers (
+                token_hash TEXT PRIMARY KEY NOT NULL,
+                token_ciphertext TEXT NOT NULL,
+                device_id TEXT NOT NULL,
+                location_id INTEGER NOT NULL,
+                profile_json TEXT NOT NULL,
+                profile_expires_at_ms INTEGER NOT NULL,
+                last_seen_at_ms INTEGER NOT NULL)""".trimIndent(),
+            "CREATE INDEX idx_pmd_edge_peers_location ON pmd_edge_peers(location_id, profile_expires_at_ms)",
+            """CREATE TABLE pmd_edge_commands (
+                command_id TEXT PRIMARY KEY NOT NULL,
+                idempotency_key TEXT NOT NULL UNIQUE,
+                request_hash TEXT NOT NULL,
+                peer_token_hash TEXT NOT NULL,
+                command_json TEXT NOT NULL,
+                status TEXT NOT NULL,
+                result_json TEXT,
+                last_error TEXT,
+                created_at_ms INTEGER NOT NULL,
+                updated_at_ms INTEGER NOT NULL)""".trimIndent(),
+            "CREATE INDEX idx_pmd_edge_commands_status ON pmd_edge_commands(status, updated_at_ms)",
+            """CREATE TABLE pmd_edge_orders (
+                aggregate_id TEXT PRIMARY KEY NOT NULL,
+                location_id INTEGER NOT NULL,
+                table_id TEXT NOT NULL,
+                status TEXT NOT NULL,
+                version INTEGER NOT NULL DEFAULT 0,
+                total_minor INTEGER NOT NULL DEFAULT 0,
+                currency TEXT NOT NULL,
+                payload_json TEXT NOT NULL,
+                created_at_ms INTEGER NOT NULL,
+                updated_at_ms INTEGER NOT NULL)""".trimIndent(),
+            "CREATE INDEX idx_pmd_edge_orders_location_status ON pmd_edge_orders(location_id, status, updated_at_ms)",
+            """CREATE TABLE pmd_edge_events (
+                sequence INTEGER PRIMARY KEY AUTOINCREMENT,
+                event_id TEXT NOT NULL UNIQUE,
+                location_id INTEGER NOT NULL,
+                aggregate TEXT NOT NULL,
+                aggregate_id TEXT NOT NULL,
+                aggregate_version INTEGER NOT NULL DEFAULT 0,
+                event_type TEXT NOT NULL,
+                payload_json TEXT NOT NULL,
+                created_at_ms INTEGER NOT NULL)""".trimIndent(),
+            "CREATE INDEX idx_pmd_edge_events_location_seq ON pmd_edge_events(location_id, sequence)",
             """CREATE TABLE pmd_sync_cursor (scope TEXT PRIMARY KEY NOT NULL, cursor INTEGER NOT NULL DEFAULT 0)"""
         )
 
@@ -99,6 +147,68 @@ class PmdDatabase(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, n
             )
             db.execSQL(
                 "CREATE INDEX IF NOT EXISTS idx_pmd_kds_station_location ON pmd_kds_stations(location_id, slug)",
+            )
+        }
+        private fun createEdgeTables(db: SQLiteDatabase) {
+            db.execSQL(
+                """CREATE TABLE IF NOT EXISTS pmd_edge_peers (
+                    token_hash TEXT PRIMARY KEY NOT NULL,
+                    token_ciphertext TEXT NOT NULL,
+                    device_id TEXT NOT NULL,
+                    location_id INTEGER NOT NULL,
+                    profile_json TEXT NOT NULL,
+                    profile_expires_at_ms INTEGER NOT NULL,
+                    last_seen_at_ms INTEGER NOT NULL)""".trimIndent(),
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS idx_pmd_edge_peers_location ON pmd_edge_peers(location_id, profile_expires_at_ms)",
+            )
+            db.execSQL(
+                """CREATE TABLE IF NOT EXISTS pmd_edge_commands (
+                    command_id TEXT PRIMARY KEY NOT NULL,
+                    idempotency_key TEXT NOT NULL UNIQUE,
+                    request_hash TEXT NOT NULL,
+                    peer_token_hash TEXT NOT NULL,
+                    command_json TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    result_json TEXT,
+                    last_error TEXT,
+                    created_at_ms INTEGER NOT NULL,
+                    updated_at_ms INTEGER NOT NULL)""".trimIndent(),
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS idx_pmd_edge_commands_status ON pmd_edge_commands(status, updated_at_ms)",
+            )
+            db.execSQL(
+                """CREATE TABLE IF NOT EXISTS pmd_edge_orders (
+                    aggregate_id TEXT PRIMARY KEY NOT NULL,
+                    location_id INTEGER NOT NULL,
+                    table_id TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    version INTEGER NOT NULL DEFAULT 0,
+                    total_minor INTEGER NOT NULL DEFAULT 0,
+                    currency TEXT NOT NULL,
+                    payload_json TEXT NOT NULL,
+                    created_at_ms INTEGER NOT NULL,
+                    updated_at_ms INTEGER NOT NULL)""".trimIndent(),
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS idx_pmd_edge_orders_location_status ON pmd_edge_orders(location_id, status, updated_at_ms)",
+            )
+            db.execSQL(
+                """CREATE TABLE IF NOT EXISTS pmd_edge_events (
+                    sequence INTEGER PRIMARY KEY AUTOINCREMENT,
+                    event_id TEXT NOT NULL UNIQUE,
+                    location_id INTEGER NOT NULL,
+                    aggregate TEXT NOT NULL,
+                    aggregate_id TEXT NOT NULL,
+                    aggregate_version INTEGER NOT NULL DEFAULT 0,
+                    event_type TEXT NOT NULL,
+                    payload_json TEXT NOT NULL,
+                    created_at_ms INTEGER NOT NULL)""".trimIndent(),
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS idx_pmd_edge_events_location_seq ON pmd_edge_events(location_id, sequence)",
             )
         }
     }
