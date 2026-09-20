@@ -28,6 +28,10 @@ class PmdDatabase(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, n
             addEdgeCloudValidationTimestamp(db)
             version = 4
         }
+        if (version < 5) {
+            migrateEdgeInboxToScopedSequence(db)
+            version = 5
+        }
         check(version == newVersion) {
             "Unsupported PayMyDine local DB upgrade: $oldVersion -> $newVersion"
         }
@@ -45,7 +49,7 @@ class PmdDatabase(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, n
 
     companion object {
         const val DATABASE_NAME = "paymydine-local-v1.db"
-        const val DATABASE_VERSION = 4
+        const val DATABASE_VERSION = 5
         private val schema = listOf(
             """CREATE TABLE pmd_meta (key TEXT PRIMARY KEY NOT NULL, value TEXT NOT NULL)""",
             """CREATE TABLE pmd_menu_items (
@@ -141,7 +145,9 @@ class PmdDatabase(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, n
                 created_at_ms INTEGER NOT NULL)""".trimIndent(),
             "CREATE INDEX idx_pmd_edge_events_location_seq ON pmd_edge_events(location_id, sequence)",
             """CREATE TABLE pmd_edge_inbox_events (
-                sequence INTEGER PRIMARY KEY NOT NULL,
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                scope TEXT NOT NULL,
+                sequence INTEGER NOT NULL,
                 event_id TEXT NOT NULL UNIQUE,
                 location_id INTEGER NOT NULL,
                 aggregate TEXT NOT NULL,
@@ -150,7 +156,9 @@ class PmdDatabase(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, n
                 event_type TEXT NOT NULL,
                 payload_json TEXT NOT NULL,
                 created_at_ms INTEGER NOT NULL,
-                applied_at_ms INTEGER NOT NULL)""".trimIndent(),
+                applied_at_ms INTEGER NOT NULL,
+                UNIQUE(scope, sequence))""".trimIndent(),
+            "CREATE INDEX idx_pmd_edge_inbox_scope_seq ON pmd_edge_inbox_events(scope, sequence)",
             """CREATE TABLE pmd_sync_cursor (scope TEXT PRIMARY KEY NOT NULL, cursor INTEGER NOT NULL DEFAULT 0)"""
         )
 
@@ -229,7 +237,9 @@ class PmdDatabase(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, n
             )
             db.execSQL(
                 """CREATE TABLE IF NOT EXISTS pmd_edge_inbox_events (
-                    sequence INTEGER PRIMARY KEY NOT NULL,
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    scope TEXT NOT NULL,
+                    sequence INTEGER NOT NULL,
                     event_id TEXT NOT NULL UNIQUE,
                     location_id INTEGER NOT NULL,
                     aggregate TEXT NOT NULL,
@@ -238,7 +248,12 @@ class PmdDatabase(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, n
                     event_type TEXT NOT NULL,
                     payload_json TEXT NOT NULL,
                     created_at_ms INTEGER NOT NULL,
-                    applied_at_ms INTEGER NOT NULL)""".trimIndent(),
+                    applied_at_ms INTEGER NOT NULL,
+                    UNIQUE(scope, sequence))""".trimIndent(),
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS idx_pmd_edge_inbox_scope_seq " +
+                    "ON pmd_edge_inbox_events(scope, sequence)",
             )
         }
 
@@ -261,6 +276,71 @@ class PmdDatabase(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, n
                         "ADD COLUMN cloud_validated_at_ms INTEGER NOT NULL DEFAULT 0",
                 )
             }
+        }
+
+        private fun migrateEdgeInboxToScopedSequence(db: SQLiteDatabase) {
+            val columns = db.rawQuery(
+                "PRAGMA table_info(pmd_edge_inbox_events)",
+                null,
+            ).use { rows ->
+                buildSet {
+                    val nameIndex = rows.getColumnIndexOrThrow("name")
+                    while (rows.moveToNext()) {
+                        add(rows.getString(nameIndex))
+                    }
+                }
+            }
+
+            if ("scope" in columns && "id" in columns) {
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS idx_pmd_edge_inbox_scope_seq " +
+                        "ON pmd_edge_inbox_events(scope, sequence)",
+                )
+                return
+            }
+
+            db.execSQL("DROP TABLE IF EXISTS pmd_edge_inbox_events_v2")
+            db.execSQL(
+                """CREATE TABLE pmd_edge_inbox_events_v2 (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    scope TEXT NOT NULL,
+                    sequence INTEGER NOT NULL,
+                    event_id TEXT NOT NULL UNIQUE,
+                    location_id INTEGER NOT NULL,
+                    aggregate TEXT NOT NULL,
+                    aggregate_id TEXT NOT NULL,
+                    aggregate_version INTEGER NOT NULL DEFAULT 0,
+                    event_type TEXT NOT NULL,
+                    payload_json TEXT NOT NULL,
+                    created_at_ms INTEGER NOT NULL,
+                    applied_at_ms INTEGER NOT NULL,
+                    UNIQUE(scope, sequence))""".trimIndent(),
+            )
+
+            if (columns.isNotEmpty()) {
+                db.execSQL(
+                    """INSERT OR IGNORE INTO pmd_edge_inbox_events_v2 (
+                        scope, sequence, event_id, location_id, aggregate,
+                        aggregate_id, aggregate_version, event_type,
+                        payload_json, created_at_ms, applied_at_ms
+                    )
+                    SELECT
+                        'edge:legacy', sequence, event_id, location_id, aggregate,
+                        aggregate_id, aggregate_version, event_type,
+                        payload_json, created_at_ms, applied_at_ms
+                    FROM pmd_edge_inbox_events""".trimIndent(),
+                )
+                db.execSQL("DROP TABLE pmd_edge_inbox_events")
+            }
+
+            db.execSQL(
+                "ALTER TABLE pmd_edge_inbox_events_v2 " +
+                    "RENAME TO pmd_edge_inbox_events",
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS idx_pmd_edge_inbox_scope_seq " +
+                    "ON pmd_edge_inbox_events(scope, sequence)",
+            )
         }
     }
 }
