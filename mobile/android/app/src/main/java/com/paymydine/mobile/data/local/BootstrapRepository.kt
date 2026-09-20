@@ -132,6 +132,23 @@ class BootstrapRepository(private val database: PmdDatabase) {
         )
     }
 
+    fun locationId(): Long? = meta("location_id")?.toLongOrNull()
+
+    fun roleCode(): String? = meta("role_code")?.takeIf { it.isNotBlank() }
+
+    fun profileExpiresAt(): String? = meta("profile_expires_at")?.takeIf { it.isNotBlank() }
+
+    private fun meta(key: String): String? = database.readableDatabase.query(
+        "pmd_meta",
+        arrayOf("value"),
+        "key = ?",
+        arrayOf(key),
+        null,
+        null,
+        null,
+        "1",
+    ).use { if (it.moveToFirst()) it.getString(0) else null }
+
     fun hasBootstrap(): Boolean = database.readableDatabase.query(
         "pmd_meta",
         arrayOf("value"),
