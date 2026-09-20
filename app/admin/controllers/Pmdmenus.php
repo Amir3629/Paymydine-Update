@@ -250,6 +250,32 @@ class Pmdmenus extends AdminController
 
         $cards = $pmdOrderedCardsV16;
 
+        /*
+         * PMD_MENU_MANAGER_NUMBER_V24
+         *
+         * The visible food number is the 1-based position in the canonical
+         * All Foods order above. Reordering foods/categories therefore changes
+         * the number naturally without introducing a second ordering field.
+         */
+        foreach ($cards as $pmdNumberIndexV24 => &$pmdNumberCardV24) {
+            $pmdNumberV24 = $pmdNumberIndexV24 + 1;
+            $pmdNumberCardV24['menu_number'] = $pmdNumberV24;
+
+            $pmdNumberMenuIdV24 = (string)(
+                $pmdNumberCardV24['id']
+                ?? ''
+            );
+
+            if (
+                $pmdNumberMenuIdV24 !== ''
+                && isset($catalog[$pmdNumberMenuIdV24])
+            ) {
+                $catalog[$pmdNumberMenuIdV24]['menu_number'] =
+                    $pmdNumberV24;
+            }
+        }
+        unset($pmdNumberCardV24);
+
         $user = AdminAuth::getUser();
         $canManageCategories = $user && $user->hasPermission('Admin.Categories');
 
