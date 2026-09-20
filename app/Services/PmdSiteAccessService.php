@@ -234,6 +234,66 @@ class PmdSiteAccessService
         return $query->first();
     }
 
+    /**
+     * Native/mobile bearer lookup using the same Site Access token authority as
+     * browser personal devices. Raw tokens never enter the database.
+     */
+    public function trustedDeviceByRawToken(string $rawToken, ?string $deviceKind = null)
+    {
+        if (!$this->ready()) return null;
+
+        $rawToken = trim($rawToken);
+        if ($rawToken === '') return null;
+
+        $query = DB::table('pmd_site_access_devices')
+            ->where('token_hash', $this->tokenHash($rawToken))
+            ->whereNull('revoked_at');
+
+        if ($deviceKind !== null && trim($deviceKind) !== '') {
+            $query->where('device_kind', trim($deviceKind));
+        }
+
+        return $query->first();
+    }
+
+    /**
+     * Rotate a trusted device token and return the new raw value exactly once.
+     * Intended for one-time native pairing exchanges.
+     */
+    public function rotateTrustedDeviceToken(
+        int $deviceId,
+        string $deviceKind = 'staff_personal'
+    ): string {
+        if (!$this->ready() || $deviceId < 1) {
+            throw new \RuntimeException('Site Access device storage is not ready.');
+        }
+
+        return DB::transaction(function () use ($deviceId, $deviceKind) {
+            $device = DB::table('pmd_site_access_devices')
+                ->where('id', $deviceId)
+                ->where('device_kind', $deviceKind)
+                ->whereNull('revoked_at')
+                ->lockForUpdate()
+                ->first();
+
+            if (!$device) {
+                throw new \RuntimeException('The PayMyDine device is not active.');
+            }
+
+            $rawToken = bin2hex(random_bytes(32));
+
+            DB::table('pmd_site_access_devices')
+                ->where('id', $deviceId)
+                ->update([
+                    'token_hash' => $this->tokenHash($rawToken),
+                    'last_seen_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+            return $rawToken;
+        });
+    }
+
     public function touchDevice(int $deviceId): void
     {
         if (!$this->ready() || $deviceId < 1) return;
