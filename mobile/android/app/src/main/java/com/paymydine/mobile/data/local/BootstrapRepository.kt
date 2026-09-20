@@ -138,6 +138,24 @@ class BootstrapRepository(private val database: PmdDatabase) {
 
     fun profileExpiresAt(): String? = meta("profile_expires_at")?.takeIf { it.isNotBlank() }
 
+    fun surfaces(): Set<String> {
+        val raw = meta("bootstrap_json") ?: return emptySet()
+
+        return runCatching {
+            val root = JSONObject(raw)
+            val array = root.optJSONObject("identity")
+                ?.optJSONArray("surfaces")
+                ?: JSONArray()
+
+            buildSet {
+                for (index in 0 until array.length()) {
+                    val value = array.optString(index).trim().lowercase()
+                    if (value.isNotBlank()) add(value)
+                }
+            }
+        }.getOrDefault(emptySet())
+    }
+
     private fun meta(key: String): String? = database.readableDatabase.query(
         "pmd_meta",
         arrayOf("value"),
