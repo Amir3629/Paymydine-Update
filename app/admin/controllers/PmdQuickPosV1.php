@@ -751,11 +751,16 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                     count($sourceOrders) - count($orderIds)
                 );
 
+                $sourceCurrentStatus =
+                    $this->quickPosTransferTableStatus(
+                        (int)$source['id']
+                    );
+
                 $sourceNext = $scope === 'table'
                     ? 'cleaning'
                     : (
                         $remainingSourceChecks > 0
-                            ? 'occupied'
+                            ? ($sourceCurrentStatus ?: 'occupied')
                             : 'available'
                     );
 
