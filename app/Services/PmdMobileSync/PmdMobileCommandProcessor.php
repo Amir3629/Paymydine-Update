@@ -152,7 +152,7 @@ final class PmdMobileCommandProcessor
                     },
                     'payload' => json_encode([
                         'command_id' => $command['command_id'],
-                        'client_aggregate_id' => $command['aggregate_id'],
+                        'client_aggregate_id' => $command['client_aggregate_id'],
                         'order' => $result,
                     ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
                     'occurred_at' => now(),
@@ -299,8 +299,14 @@ final class PmdMobileCommandProcessor
         ));
         $aggregate = strtolower(trim((string)($input['aggregate'] ?? '')));
         $aggregateId = trim((string)($input['aggregate_id'] ?? ''));
+        $clientAggregateId = trim((string)(
+            $input['client_aggregate_id'] ?? $aggregateId
+        ));
         $commandType = strtoupper(trim((string)($input['command_type'] ?? '')));
         $baseVersion = max(0, (int)($input['base_version'] ?? 0));
+        $clientBaseVersion = max(0, (int)(
+            $input['client_base_version'] ?? $baseVersion
+        ));
         $payload = $input['payload'] ?? [];
 
         if (!$this->validUuid($commandId)) {
@@ -326,6 +332,15 @@ final class PmdMobileCommandProcessor
                 'aggregate_id' => 'A valid order aggregate id is required.',
             ]);
         }
+        if (
+            $clientAggregateId === ''
+            || strlen($clientAggregateId) > 128
+        ) {
+            throw ValidationException::withMessages([
+                'client_aggregate_id' =>
+                    'A valid client order aggregate id is required.',
+            ]);
+        }
         if (!is_array($payload)) {
             throw ValidationException::withMessages([
                 'payload' => 'Command payload must be an object.',
@@ -341,20 +356,66 @@ final class PmdMobileCommandProcessor
             'staff_id' => (int)$identity['staff_id'],
             'aggregate' => $aggregate,
             'aggregate_id' => $aggregateId,
+            'client_aggregate_id' => $clientAggregateId,
             'base_version' => $baseVersion,
+            'client_base_version' => $clientBaseVersion,
             'command_type' => $commandType,
             'payload' => $payload,
+        ];
+
+        // Restaurant Edge is allowed to rewrite only transport-routing fields
+        // after an offline order receives its canonical Cloud order id/version.
+        // Idempotency must still identify the same immutable business intent,
+        // otherwise the phone's recovery copy and the Edge replay could appear
+        // to be two different commands with the same UUID.
+        $intentPayload = $payload;
+        unset(
+            $intentPayload['order_id'],
+            $intentPayload['expected_updated_at'],
+            $intentPayload['order_ref']
+        );
+
+        $intent = [
+            'command_id' => $commandId,
+            'idempotency_key' => $idempotencyKey,
+            'location_id' => (int)$identity['location_id'],
+            'device_id' => (int)$identity['device_id'],
+            'user_id' => (int)$identity['user_id'],
+            'staff_id' => (int)$identity['staff_id'],
+            'aggregate' => $aggregate,
+            'client_aggregate_id' => $clientAggregateId,
+            'client_base_version' => $clientBaseVersion,
+            'command_type' => $commandType,
+            'payload' => $this->canonicalizeForHash($intentPayload),
         ];
 
         $normalized['request_hash'] = hash(
             'sha256',
             json_encode(
-                $normalized,
+                $this->canonicalizeForHash($intent),
                 JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
             )
         );
 
         return $normalized;
+    }
+
+    private function canonicalizeForHash($value)
+    {
+        if (!is_array($value)) return $value;
+
+        $isList = $value === []
+            || array_keys($value) === range(0, count($value) - 1);
+
+        if (!$isList) {
+            ksort($value, SORT_STRING);
+        }
+
+        foreach ($value as $key => $item) {
+            $value[$key] = $this->canonicalizeForHash($item);
+        }
+
+        return $value;
     }
 
     private function replayExisting($row, array $command): array
