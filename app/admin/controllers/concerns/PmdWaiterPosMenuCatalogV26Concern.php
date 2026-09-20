@@ -32,7 +32,7 @@ trait PmdWaiterPosMenuCatalogV26Concern
         } catch (\Throwable $error) {
         }
 
-        $key = 'pmd:waiter-pos:menu:v26:'.sha1($database.'|'.$locationId);
+        $key = 'pmd:waiter-pos:menu:v26-number-v24:'.sha1($database.'|'.$locationId);
 
         try {
             return Cache::remember($key, now()->addSeconds(12), function () use ($locationId) {
