@@ -8,8 +8,8 @@ import com.paymydine.mobile.network.ConnectivityObserver
 import com.paymydine.mobile.network.EdgeDiscovery
 import com.paymydine.mobile.security.DeviceCredentialStore
 import com.paymydine.mobile.sync.SyncRepository
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 class PayMyDineApplication : Application() {
     lateinit var database: PmdDatabase
@@ -19,8 +19,8 @@ class PayMyDineApplication : Application() {
     lateinit var bootstrapRepository: BootstrapRepository
         private set
 
-    private val _pairingLinks = MutableSharedFlow<String>(extraBufferCapacity = 4)
-    val pairingLinks = _pairingLinks.asSharedFlow()
+    private val _pairingLink = MutableStateFlow<String?>(null)
+    val pairingLink = _pairingLink.asStateFlow()
     lateinit var credentials: DeviceCredentialStore
         private set
     lateinit var connectivity: ConnectivityObserver
@@ -41,7 +41,13 @@ class PayMyDineApplication : Application() {
     fun handleIntent(intent: Intent?) {
         val uri = intent?.data ?: return
         if (uri.scheme == "paymydine" && uri.host == "pair") {
-            _pairingLinks.tryEmit(uri.toString())
+            _pairingLink.value = uri.toString()
+        }
+    }
+
+    fun consumePairingLink(value: String) {
+        if (_pairingLink.value == value) {
+            _pairingLink.value = null
         }
     }
 }
