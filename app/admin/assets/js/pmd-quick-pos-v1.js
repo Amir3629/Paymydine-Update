@@ -130,6 +130,9 @@
     tableCache: Object.create(null),
     tableFetches: Object.create(null),
     tableSwitching: false,
+    /* PMD_QPOS_WARMUP_STATE_V42 */
+    tableWarmupKey: '',
+    tableWarmupRunning: false,
     guestCount: 1,
     note: '',
     loading: false,
@@ -926,6 +929,37 @@
     );
   }
 
+  /* PMD_QPOS_RAIL_SELECTION_SYNC_V42
+   * A table tap should visually select immediately without rebuilding all
+   * table buttons. Full table rendering remains for real status changes. */
+  function syncSelectedTableRailV42() {
+    var box = $('[data-qpos-tables]');
+    if (!box) return;
+
+    var selectedId =
+      state.serviceMode === 'dine_in' && state.selectedTable
+        ? Number(state.selectedTable.id || 0)
+        : 0;
+
+    var pickup = $('[data-qpos-pickup]', box);
+    if (pickup) {
+      pickup.classList.toggle(
+        'is-selected',
+        state.serviceMode === 'takeaway'
+      );
+    }
+
+    Array.prototype.slice.call(
+      box.querySelectorAll('[data-qpos-table]')
+    ).forEach(function (button) {
+      var id = Number(button.getAttribute('data-qpos-table') || 0);
+      button.classList.toggle(
+        'is-selected',
+        selectedId > 0 && id === selectedId
+      );
+    });
+  }
+
   function renderTables() {
     var box = $('[data-qpos-tables]');
     var count = $('[data-qpos-table-count]');
@@ -1042,7 +1076,7 @@
     var pickup = $('[data-qpos-pickup]', box);
     if (pickup && !directMove) pickup.onclick = selectPickup;
 
-    $('[data-qpos-table]', box).forEach(function (button) {
+    Array.prototype.slice.call(box.querySelectorAll('[data-qpos-table]')).forEach(function (button) {
       /* PMD_QPOS_TABLE_HOVER_PREFETCH_V41
        * Warm only the table the pointer/focus is already heading toward. */
       var prefetch = function () {
@@ -1052,8 +1086,12 @@
       };
 
       button.onpointerenter = prefetch;
+      button.onpointerdown = prefetch;
+      button.ontouchstart = prefetch;
       button.onfocus = prefetch;
 
+      /* PMD_QPOS_TOUCH_PREFETCH_V42
+       * pointerdown/touchstart begins the table request before click release. */
       button.onclick = function () {
         var id = Number(button.getAttribute('data-qpos-table') || 0);
         if (!id) return;
@@ -1066,6 +1104,9 @@
         selectTable(id);
       };
     });
+
+    /* PMD_QPOS_IDLE_TABLE_WARMUP_CALL_V42 */
+    scheduleTableWarmupV42();
   }
 
   function setSelectedTablePaymentSignal(paymentState, dueAmount) {
@@ -2031,29 +2072,37 @@ function renderOpenChecks() {
     state.activeOrderId = null;
     state.offPremiseOrder = null;
 
-    /* PMD_QPOS_INSTANT_TABLE_SWITCH_V41
-     * Use a recent payload instantly. If none exists, clear the previous
-     * table's check immediately and show a stable loading title. */
+    /* PMD_QPOS_IMMEDIATE_TABLE_TAP_V42
+     * Do not rebuild the full table rail or food catalogue on a table tap.
+     * Paint selection immediately, reuse a warm table payload if available,
+     * and revalidate cached data without blocking the click handler. */
     var cachedTable = tableCacheGet(table.id);
 
-    renderTables();
-    renderContext();
-    renderProducts();
+    state.tableSwitching = !cachedTable;
+    root.classList.toggle('is-table-switching', state.tableSwitching);
+
+    syncSelectedTableRailV42();
+    syncProductSelection();
 
     if (cachedTable) {
       applyTablePayload(table.id, cachedTable);
-      await loadTable(table.id, true, true);
+
+      /* Stale-while-revalidate: visible data is immediate. */
+      loadTable(table.id, true, true);
     } else {
-      state.tableSwitching = true;
       state.tableData = null;
       state.openOrders = [];
       state.activeOrderId = null;
+      renderContext();
       renderCart();
-      await loadTable(table.id, false, false);
+
+      /* Do not block the tap handler; loadTable paints as soon as it resolves. */
+      loadTable(table.id, false, false);
     }
 
     var historyWorkspace = $('[data-qpos-history-modal]');
     if (historyWorkspace && historyWorkspace.classList.contains('is-open')) {
+      /* PMD_QPOS_HISTORY_AFTER_TABLE_V42 */
       state.historyScope = 'selected';
       state.historySelectedOrderId = null;
       await loadHistory('selected', {preserve: true});
@@ -2141,6 +2190,74 @@ function renderOpenChecks() {
     });
   }
 
+  /* PMD_QPOS_IDLE_TABLE_WARMUP_V42
+   * Warm a small number of likely-to-be-open checks sequentially. This avoids
+   * a request burst while making the next few busy-table taps effectively
+   * instant on both mouse and touch devices. */
+  function scheduleTableWarmupV42() {
+    if (state.tableWarmupRunning || state.transfer.open || state.payment.open) {
+      return;
+    }
+
+    var candidates = activeFloorTables()
+      .filter(function (table) {
+        var id = Number(table.id || 0);
+        if (!id) return false;
+        if (
+          state.selectedTable &&
+          Number(state.selectedTable.id || 0) === id
+        ) {
+          return false;
+        }
+        if (tableCacheGet(id)) return false;
+
+        var status = String(table.status || '').toLowerCase();
+        var payment = String(table.payment_state || 'none').toLowerCase();
+
+        return (
+          status === 'occupied' ||
+          payment === 'due' ||
+          payment === 'partial'
+        );
+      })
+      .slice(0, 6);
+
+    if (!candidates.length) return;
+
+    var key =
+      String(state.activeFloorId || '') + ':' +
+      candidates.map(function (table) {
+        return String(table.id || '');
+      }).join(',');
+
+    if (state.tableWarmupKey === key) return;
+    state.tableWarmupKey = key;
+
+    var run = async function () {
+      if (state.tableWarmupRunning) return;
+      state.tableWarmupRunning = true;
+
+      try {
+        for (var i = 0; i < candidates.length; i++) {
+          if (state.payment.open || state.transfer.open) break;
+          await fetchTablePayload(candidates[i].id, false).catch(function () {
+            return null;
+          });
+        }
+      } finally {
+        state.tableWarmupRunning = false;
+      }
+    };
+
+    if (typeof window.requestIdleCallback === 'function') {
+      window.requestIdleCallback(function () {
+        run();
+      }, {timeout: 700});
+    } else {
+      window.setTimeout(run, 260);
+    }
+  }
+
   function applyTablePayload(id, json) {
     if (
       !json ||
@@ -2150,7 +2267,9 @@ function renderOpenChecks() {
       return false;
     }
 
+    /* PMD_QPOS_SWITCH_STATE_CLEAR_V42 */
     state.tableSwitching = false;
+    root.classList.remove('is-table-switching');
     state.tableData = json;
     state.openOrders = Array.isArray(json.open_orders) ? json.open_orders : [];
     state.activeOrderId = Number(json.active_order_id || 0) || null;
@@ -2198,7 +2317,9 @@ function renderOpenChecks() {
       applyTablePayload(id, json);
     } catch (error) {
       if (!silent && requestSeq === state.tableRequestSeq) {
+        /* PMD_QPOS_SWITCH_ERROR_CLEAR_V42 */
         state.tableSwitching = false;
+        root.classList.remove('is-table-switching');
         renderCart();
         toast(error.message || 'Table could not be opened.', true);
       }
