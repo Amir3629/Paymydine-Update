@@ -6,6 +6,7 @@ import com.paymydine.mobile.data.local.BootstrapRepository
 import com.paymydine.mobile.data.local.KdsRepository
 import com.paymydine.mobile.data.local.LocalPosRepository
 import com.paymydine.mobile.data.local.PmdDatabase
+import com.paymydine.mobile.edge.EdgeService
 import com.paymydine.mobile.network.ConnectivityObserver
 import com.paymydine.mobile.network.EdgeDiscovery
 import com.paymydine.mobile.security.DeviceCredentialStore
@@ -46,6 +47,7 @@ class PayMyDineApplication : Application() {
         connectivity = ConnectivityObserver(this).also { it.start() }
         edgeDiscovery = EdgeDiscovery(this).also { it.start() }
         SyncEngine.schedulePeriodic(this)
+        EdgeService.startIfEnabled(this)
     }
 
     fun handleIntent(intent: Intent?) {
