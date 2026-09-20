@@ -51,12 +51,16 @@ jobs:
           php -l app/Services/PmdMobileSync/PmdMobileDeviceAuthService.php
           php -l app/Services/PmdMobileSync/PmdMobileBootstrapService.php
           php -l app/Services/PmdMobileSync/PmdMobilePairingService.php
+          php -l app/Services/PmdMobileSync/PmdMobileCommandProcessor.php
           php -l app/Http/Controllers/PmdMobileBootstrapController.php
           php -l app/Http/Controllers/PmdMobileSyncController.php
           php -l app/Http/Controllers/PmdMobilePairController.php
           php -l app/Services/PmdSiteAccessService.php
           php -l app/Services/SuperAdminTenantLifecycleService.php
           php -l app/admin/controllers/Login.php
+          php -l app/admin/controllers/PmdWaiterPosV1.php
+          php -l app/admin/controllers/concerns/PmdWaiterPosBootstrapConcern.php
+          php -l app/admin/controllers/concerns/PmdWaiterPosSaveEndpoint.php
           php -l routes/pmd-mobile-sync-v1.php
       - name: Safety contract
         shell: bash
@@ -67,7 +71,9 @@ jobs:
           grep -q "pmd_sync_commands" app/system/database/migrations/2026_09_20_190000_create_pmd_mobile_sync_tables.php
           grep -q "pmd_sync_events" app/system/database/migrations/2026_09_20_190000_create_pmd_mobile_sync_tables.php
           grep -q "ensureMobileSyncSchema" app/Services/SuperAdminTenantLifecycleService.php
-          grep -q "mobile_commands_not_enabled" app/Http/Controllers/PmdMobileSyncController.php
+          grep -q "ORDER_SEND_V1" app/Services/PmdMobileSync/PmdMobileCommandProcessor.php
+          grep -q "saveMobilePayload" app/admin/controllers/concerns/PmdWaiterPosSaveEndpoint.php
+          grep -q "request_hash" app/system/database/migrations/2026_09_20_190000_create_pmd_mobile_sync_tables.php
           grep -q "routes/pmd-mobile-sync-v1.php" app/admin/routes.php
           grep -q "PmdMobilePairingService" app/admin/controllers/Login.php
           echo "PMD_ANDROID_SERVER_CONTRACT=PASS"
