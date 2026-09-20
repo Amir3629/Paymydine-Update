@@ -99,8 +99,25 @@ class KitchenDisplay extends AdminController
             $this->station = $station;
         }
 
+        $versionMap = [];
+        if (Schema::hasTable('pmd_sync_aggregate_versions')) {
+            try {
+                $versionMap = DB::table('pmd_sync_aggregate_versions')
+                    ->where('location_id', $locationId)
+                    ->where('aggregate', 'order')
+                    ->where('aggregate_id', 'like', 'order:%')
+                    ->pluck('version', 'aggregate_id')
+                    ->mapWithKeys(function ($version, $aggregateId) {
+                        return [(string)$aggregateId => (int)$version];
+                    })
+                    ->all();
+            } catch (\Throwable $ignored) {
+                $versionMap = [];
+            }
+        }
+
         $orders = $this->pmdKdsLoadOperationalOrdersV134()
-            ->map(function ($orderData) {
+            ->map(function ($orderData) use ($versionMap) {
                 foreach (['created_at', 'status_updated_at'] as $key) {
                     if (
                         isset($orderData[$key])
@@ -110,6 +127,11 @@ class KitchenDisplay extends AdminController
                         $orderData[$key] = $orderData[$key]->toIso8601String();
                     }
                 }
+
+                $orderId = (int)($orderData['order_id'] ?? 0);
+                $orderData['aggregate_version'] = (int)(
+                    $versionMap['order:'.$orderId] ?? 0
+                );
 
                 foreach ((array)($orderData['notes'] ?? []) as $index => $note) {
                     if (
