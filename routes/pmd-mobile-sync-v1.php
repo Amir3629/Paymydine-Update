@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\PmdMobileBootstrapController;
+use App\Http\Controllers\PmdMobileEdgeController;
 use App\Http\Controllers\PmdMobileKdsController;
 use App\Http\Controllers\PmdMobilePairController;
 use App\Http\Controllers\PmdMobileSyncController;
@@ -28,6 +29,12 @@ App::before(function () {
     ], function () {
         Route::get('bootstrap', PmdMobileBootstrapController::class);
         Route::get('kds/snapshot', [PmdMobileKdsController::class, 'snapshot']);
+        Route::post('edge/register', [PmdMobileEdgeController::class, 'register'])
+            ->withoutMiddleware([VerifyCsrfToken::class]);
+        Route::post('edge/heartbeat', [PmdMobileEdgeController::class, 'heartbeat'])
+            ->withoutMiddleware([VerifyCsrfToken::class]);
+        Route::post('edge/disable', [PmdMobileEdgeController::class, 'disable'])
+            ->withoutMiddleware([VerifyCsrfToken::class]);
         Route::get('sync/events', [PmdMobileSyncController::class, 'events']);
 
         Route::post('pair/exchange', [PmdMobilePairController::class, 'exchange'])
