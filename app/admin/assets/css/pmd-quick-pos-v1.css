@@ -5998,3 +5998,51 @@ button[data-qpos-keypad-key="exact"] {
     width: 100%;
   }
 }
+
+
+/* PMD_QPOS_DARK_PRIMARY_V25
+   Final dark-primary pass for legacy rules that still hard-coded the previous
+   green instead of using --q-primary. */
+.pmd-qpos-floor-tabs button.is-active,
+.pmd-qpos-table.is-selected,
+.pmd-qpos-pickup.is-selected,
+.pmd-qpos-open-checks button.is-active,
+.pmd-qpos-cart-actions .primary,
+.pmd-qpos-history-button,
+.pmd-qpos-profile-button > span,
+.pmd-qpos-profile-menu > a,
+.pmd-qpos-text-keyboard > header button,
+.pmd-qpos-text-keyboard.is-lowercase [data-qpos-text-key="shift"],
+.pmd-qpos-history-toolbar button.is-active,
+.pmd-qpos-history-presets button.is-active,
+.pmd-qpos-history-scope button.is-active,
+.pmd-qpos-history-invoice,
+.pmd-qpos-confirm-accept:not(.is-danger),
+.pmd-qpos-split-stepper button {
+  background: #032f25;
+  border-color: #032f25;
+}
+
+.pmd-qpos-table.is-selected,
+.pmd-qpos-pickup.is-selected {
+  box-shadow: 0 0 0 2px #032f25;
+}
+
+.pmd-qpos-product.is-selected {
+  border-color: #032f25;
+  box-shadow: 0 0 0 2px #032f25 !important;
+}
+
+.pmd-qpos-option.is-selected,
+.pmd-qpos-field input[data-qpos-keypad-target].is-keypad-target,
+.pmd-qpos-tip-custom input.is-custom-active,
+.pmd-qpos-tip-custom input.is-keypad-target,
+.pmd-qpos-field input:focus,
+.pmd-qpos-order-note textarea:focus {
+  border-color: #032f25;
+}
+
+.pmd-qpos-line-note {
+  border-color: #032f25;
+  color: #032f25;
+}
