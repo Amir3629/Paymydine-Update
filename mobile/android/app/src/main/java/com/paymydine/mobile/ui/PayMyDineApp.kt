@@ -5,16 +5,16 @@ import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -28,16 +28,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.paymydine.mobile.BuildConfig
 import com.paymydine.mobile.PayMyDineApplication
 import com.paymydine.mobile.data.local.BootstrapSummary
 import com.paymydine.mobile.network.MobileApiClient
 import com.paymydine.mobile.network.TransportKind
 import com.paymydine.mobile.network.TransportRouter
-import com.paymydine.mobile.sync.CommandEnvelope
+import com.paymydine.mobile.sync.SyncEngine
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.util.UUID
 
 @Composable
 fun PayMyDineApp(app: PayMyDineApplication) {
@@ -49,23 +47,37 @@ fun PayMyDineApp(app: PayMyDineApplication) {
     val api = remember { MobileApiClient() }
 
     var tenantCode by remember {
-        mutableStateOf(app.credentials.tenantHost()?.substringBefore(".paymydine.com").orEmpty())
+        mutableStateOf(
+            app.credentials.tenantHost()
+                ?.substringBefore(".paymydine.com")
+                .orEmpty(),
+        )
     }
-    var outboxCount by remember { mutableStateOf(app.syncRepository.outboxCount()) }
     var pairingStatus by remember {
         mutableStateOf(
             if (app.credentials.deviceToken().isNullOrBlank()) "Not paired"
             else if (app.bootstrapRepository.hasBootstrap()) "Ready offline"
-            else "Paired - bootstrap required"
+            else "Paired - bootstrap required",
         )
     }
     var bootstrapSummary by remember { mutableStateOf<BootstrapSummary?>(null) }
     var lastError by remember { mutableStateOf<String?>(null) }
+    var ready by remember {
+        mutableStateOf(
+            !app.credentials.deviceToken().isNullOrBlank()
+                && app.bootstrapRepository.hasBootstrap(),
+        )
+    }
 
-    val decision = router.decide(online, edge, app.credentials.edgeFingerprint())
+    val decision = router.decide(
+        cloudOnline = online,
+        edge = edge,
+        pinnedEdgeFingerprint = app.credentials.edgeFingerprint(),
+    )
 
     LaunchedEffect(pairingLink) {
         val rawLink = pairingLink ?: return@LaunchedEffect
+
         try {
             pairingStatus = "Finishing secure pairing..."
             lastError = null
@@ -73,17 +85,22 @@ fun PayMyDineApp(app: PayMyDineApplication) {
             val uri = Uri.parse(rawLink)
             val exchange = uri.getQueryParameter("exchange").orEmpty()
             val tenantBase = uri.getQueryParameter("tenant").orEmpty()
+
             require(exchange.length == 64 && tenantBase.isNotBlank()) {
                 "Pairing callback is incomplete."
             }
 
             val summary = withContext(Dispatchers.IO) {
                 val paired = api.exchange(tenantBase, exchange)
+
                 app.credentials.setTenantHost(paired.tenantHost)
                 app.credentials.setDeviceId(paired.deviceId)
                 app.credentials.putDeviceToken(paired.deviceToken)
 
-                val bootstrap = api.bootstrap(paired.tenantHost, paired.deviceToken)
+                val bootstrap = api.bootstrap(
+                    paired.tenantHost,
+                    paired.deviceToken,
+                )
                 app.bootstrapRepository.apply(bootstrap)
             }
 
@@ -92,6 +109,8 @@ fun PayMyDineApp(app: PayMyDineApplication) {
                 .orEmpty()
             bootstrapSummary = summary
             pairingStatus = "Ready offline"
+            ready = true
+            SyncEngine.enqueueImmediate(app)
         } catch (error: Throwable) {
             lastError = error.message ?: "Secure pairing failed."
             pairingStatus = "Pairing failed"
@@ -102,120 +121,91 @@ fun PayMyDineApp(app: PayMyDineApplication) {
 
     MaterialTheme {
         Surface(Modifier.fillMaxSize()) {
-            Column(
-                Modifier.verticalScroll(rememberScrollState()).padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
-            ) {
-                Text("PayMyDine", style = MaterialTheme.typography.headlineLarge)
-                Text("Android Local-First", style = MaterialTheme.typography.titleMedium)
+            if (ready) {
+                Column(Modifier.fillMaxSize()) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                "PayMyDine",
+                                style = MaterialTheme.typography.titleLarge,
+                            )
+                            Text(
+                                when (decision.kind) {
+                                    TransportKind.EDGE -> "Restaurant Edge"
+                                    TransportKind.CLOUD -> "Cloud connected"
+                                    TransportKind.OFFLINE -> "Offline local mode"
+                                } + " · " +
+                                    (app.bootstrapRepository.roleCode() ?: "staff"),
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                        }
 
-                StatusCard(
-                    "Runtime",
-                    when (decision.kind) {
-                        TransportKind.EDGE -> "Restaurant Edge"
-                        TransportKind.CLOUD -> "Cloud"
-                        TransportKind.OFFLINE -> "Offline / local DB"
-                    },
-                    decision.reason,
-                )
+                        OutlinedButton(
+                            onClick = { SyncEngine.enqueueImmediate(app) },
+                        ) {
+                            Text("Sync ${app.syncRepository.outboxCount()}")
+                        }
 
-                StatusCard(
-                    "Device trust",
-                    pairingStatus,
-                    "Password and MFA stay in the official PayMyDine browser flow. " +
-                        "The app stores only a rotated device token in Android Keystore.",
-                )
+                        OutlinedButton(
+                            onClick = {
+                                val host = app.credentials.tenantHost()
+                                    ?: return@OutlinedButton
+                                context.startActivity(
+                                    Intent(
+                                        Intent.ACTION_VIEW,
+                                        Uri.parse("https://$host/admin/mobile/pair/start"),
+                                    ),
+                                )
+                            },
+                        ) {
+                            Text("Device")
+                        }
+                    }
 
-                StatusCard(
-                    "Local database",
-                    if (app.bootstrapRepository.hasBootstrap()) "Seeded" else "Waiting",
-                    bootstrapSummary?.let {
-                        "${it.menuItems} menu items · ${it.tables} tables · ${it.kdsStations} KDS stations"
-                    } ?: "Native screens read durable SQLite instead of waiting for web pages.",
-                )
-
-                StatusCard(
-                    "Durable outbox",
-                    "$outboxCount queued",
-                    "Stable command IDs survive process death. Server replay stays disabled until certified idempotent.",
-                )
-
-                OutlinedTextField(
-                    modifier = Modifier.fillMaxWidth(),
-                    value = tenantCode,
-                    onValueChange = {
+                    LocalPosScreen(
+                        app = app,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            } else {
+                Onboarding(
+                    tenantCode = tenantCode,
+                    onTenantCode = {
                         tenantCode = it.lowercase()
                             .filter { ch -> ch.isLetterOrDigit() || ch == '-' }
                     },
-                    label = { Text("Restaurant code") },
-                    singleLine = true,
-                )
-
-                Button(
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = tenantCode.isNotBlank() && online,
-                    onClick = {
+                    online = online,
+                    pairingStatus = pairingStatus,
+                    bootstrapSummary = bootstrapSummary,
+                    lastError = lastError,
+                    runtime = when (decision.kind) {
+                        TransportKind.EDGE -> "Restaurant Edge"
+                        TransportKind.CLOUD -> "Cloud"
+                        TransportKind.OFFLINE -> "Offline"
+                    },
+                    onConnect = {
                         val host = "${tenantCode}.paymydine.com"
                         app.credentials.setTenantHost(host)
                         pairingStatus = "Opening PayMyDine security..."
                         lastError = null
 
-                        val browserIntent = Intent(
-                            Intent.ACTION_VIEW,
-                            Uri.parse("https://$host/admin/mobile/pair/start"),
-                        )
-                        runCatching { context.startActivity(browserIntent) }
-                            .onFailure {
-                                pairingStatus = "Pairing failed"
-                                lastError = "No browser is available for secure login."
-                            }
-                    },
-                ) {
-                    Text(
-                        if (app.credentials.deviceToken().isNullOrBlank()) {
-                            "Connect this Android device"
-                        } else {
-                            "Re-pair this Android device"
-                        },
-                    )
-                }
-
-                lastError?.let {
-                    Text(it, color = MaterialTheme.colorScheme.error)
-                }
-
-                if (BuildConfig.DEBUG) {
-                    Button(
-                        onClick = {
-                            val host = app.credentials.tenantHost() ?: return@Button
-                            val deviceId = app.credentials.deviceId()
-                                ?: UUID.randomUUID().toString().also(app.credentials::setDeviceId)
-                            app.syncRepository.enqueue(
-                                CommandEnvelope.create(
-                                    host,
-                                    bootstrapSummary?.locationId ?: 1,
-                                    deviceId,
-                                    null,
-                                    null,
-                                    "diagnostic",
-                                    deviceId,
-                                    0,
-                                    "DIAGNOSTIC_LOCAL_ONLY",
-                                    "{\"source\":\"android-debug\"}",
+                        runCatching {
+                            context.startActivity(
+                                Intent(
+                                    Intent.ACTION_VIEW,
+                                    Uri.parse("https://$host/admin/mobile/pair/start"),
                                 ),
                             )
-                            outboxCount = app.syncRepository.outboxCount()
-                        },
-                    ) {
-                        Text("Queue local diagnostic command")
-                    }
-                }
-
-                Spacer(Modifier.height(12.dp))
-                Text(
-                    "Current milestone: secure native pairing + read bootstrap + durable local DB. " +
-                        "Order/payment replay remains intentionally fail-closed until the global command processor is idempotent.",
-                    style = MaterialTheme.typography.bodySmall,
+                        }.onFailure {
+                            pairingStatus = "Pairing failed"
+                            lastError = "No browser is available for secure login."
+                        }
+                    },
                 )
             }
         }
@@ -223,10 +213,90 @@ fun PayMyDineApp(app: PayMyDineApplication) {
 }
 
 @Composable
-private fun StatusCard(title: String, value: String, detail: String) {
+private fun Onboarding(
+    tenantCode: String,
+    onTenantCode: (String) -> Unit,
+    online: Boolean,
+    pairingStatus: String,
+    bootstrapSummary: BootstrapSummary?,
+    lastError: String?,
+    runtime: String,
+    onConnect: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        Text("PayMyDine", style = MaterialTheme.typography.headlineLarge)
+        Text(
+            "Native Android · Local-First",
+            style = MaterialTheme.typography.titleMedium,
+        )
+
+        StatusCard(
+            "Runtime",
+            runtime,
+            "The app renders durable SQLite state. It is not a WebView.",
+        )
+        StatusCard(
+            "Device trust",
+            pairingStatus,
+            "Password, MFA and restaurant approval stay in the official PayMyDine security flow.",
+        )
+        StatusCard(
+            "Local database",
+            if (bootstrapSummary != null) "Seeded" else "Waiting",
+            bootstrapSummary?.let {
+                "${it.menuItems} menu items · ${it.tables} tables · ${it.kdsStations} KDS stations"
+            } ?: "Pair once online to seed menu, tables and permissions.",
+        )
+
+        OutlinedTextField(
+            modifier = Modifier.fillMaxWidth(),
+            value = tenantCode,
+            onValueChange = onTenantCode,
+            label = { Text("Restaurant code") },
+            singleLine = true,
+        )
+
+        Button(
+            modifier = Modifier.fillMaxWidth(),
+            enabled = tenantCode.isNotBlank() && online,
+            onClick = onConnect,
+        ) {
+            Text("Connect this Android device")
+        }
+
+        lastError?.let {
+            Text(it, color = MaterialTheme.colorScheme.error)
+        }
+
+        Text(
+            "After the first secure bootstrap, menu browsing and order drafting work from local storage. " +
+                "Queued order sends survive app/process restarts and replay with one stable idempotency key.",
+            style = MaterialTheme.typography.bodySmall,
+        )
+    }
+}
+
+@Composable
+private fun StatusCard(
+    title: String,
+    value: String,
+    detail: String,
+) {
     Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Column(
+            Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
                 Text(title, style = MaterialTheme.typography.titleMedium)
                 Text(value, style = MaterialTheme.typography.labelLarge)
             }
