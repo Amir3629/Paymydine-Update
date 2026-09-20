@@ -213,6 +213,7 @@ grep -q "PMD_QPOS_HISTORY_CLARITY_V20" "$STAGE/app/admin/assets/js/pmd-quick-pos
 grep -q "PMD_QPOS_HISTORY_CLARITY_V20" "$STAGE/app/admin/assets/css/pmd-quick-pos-v1.css"
 grep -q "PMD_QPOS_KEYPAD_PAYMENT_ACTION_V21" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
 grep -q "PMD_QPOS_KEYPAD_PAYMENT_ACTION_V21" "$STAGE/app/admin/assets/css/pmd-quick-pos-v1.css"
+grep -q "PMD_QPOS_WORKSPACE_TOAST_CLEAN_V22" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
 grep -q "PMD_QPOS_HISTORY_STRUCTURED_V20" "$STAGE/app/admin/controllers/PmdQuickPosV1.php"
 grep -q "PMD_QPOS_HISTORY_BROWSER_V15" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
 grep -q "PMD_QPOS_TABLE_SIGNALS_V15" "$STAGE/app/admin/assets/css/pmd-quick-pos-v1.css"
@@ -304,8 +305,8 @@ if grep -Fq 'data-qpos-touch-keypad hidden' "$STAGE/app/admin/views/pmd_quick_po
   exit 1
 fi
 grep -q "data-qpos-cash-signature" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
-grep -q "pmd-quick-pos-v1.js?v=20260919-21" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
-grep -q "pmd-quick-pos-v1.css?v=20260919-21" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
+grep -q "pmd-quick-pos-v1.js?v=20260920-22" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
+grep -q "pmd-quick-pos-v1.css?v=20260920-22" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
 grep -Fq "\$\$('[data-cash-value]', box).forEach" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
 grep -Fq "\$\$('[data-payment-method]', box).forEach" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
 grep -Fq "\$\$('[data-qpos-keypad-key]', keypad).forEach" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
