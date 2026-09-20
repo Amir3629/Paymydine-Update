@@ -29,6 +29,8 @@ targets=(
   "app/admin/views/pmdsettings/restaurant.blade.php"
   "app/admin/views/reviews/index.blade.php"
   "app/main/routes.php"
+  "app/main/routes/api-health-media.php"
+  "app/main/routes/api-v1-google-business.php"
   "app/main/routes/main-public-compat.php"
   "app/main/routes/next-proxy.php"
   "$PMD_V2_REL/src/runtime/components/ReviewShareEnhancer.tsx"
@@ -99,6 +101,12 @@ say "Live HEAD: $live_sha"
 say "Patch source: $base_sha -> $release_sha"
 say "Checking only Google integration files; unrelated dirty/staged files are ignored"
 
+frontend_changed=0
+if ! git diff --quiet "$base_ref..$release_ref" -- "$PMD_V2_REL"; then
+  frontend_changed=1
+fi
+say "Frontend V2 changed in this release: $frontend_changed"
+
 curl -fsS --max-time 8 "http://127.0.0.1:$PMD_PORT/api/health" >/dev/null \
   || fail "Frontend V2 is not healthy before deployment. Recover port $PMD_PORT first."
 
@@ -134,45 +142,49 @@ grep -q 'class PmdGoogleBusinessService'   "$tree/app/Services/GoogleBusiness/Pm
 
 grep -q 'PMD_GOOGLE_BUSINESS_PROFILE_INTEGRATION_V2'   "$tree/$PMD_V2_REL/src/runtime/components/ReviewShareEnhancer.tsx"   || fail "Frontend Google integration marker missing"
 
-say "Preflight: building current live Frontend V2 baseline"
-v2_stage="$stage/v2"
-mkdir -p "$v2_stage"
-(
-  cd "$PMD_V2_ROOT"
-  tar --exclude='./node_modules' --exclude='./.next' -cf - .
-) | (
-  cd "$v2_stage"
-  tar -xf -
-)
-[[ -d "$PMD_V2_ROOT/node_modules" ]] || fail "Frontend V2 node_modules is missing"
-cp -al "$PMD_V2_ROOT/node_modules" "$v2_stage/node_modules"
-
-baseline_log="$stage/frontend-baseline-build.log"
-if ! (
-  cd "$v2_stage"
-  npm run typecheck:offline
-  npm run build
-) >"$baseline_log" 2>&1; then
-  tail -n 80 "$baseline_log" >&2 || true
-  fail "Current live Frontend V2 source does not pass baseline typecheck/build. No production file was changed."
+if [[ "$frontend_changed" == "1" ]]; then
+  say "Preflight: building current live Frontend V2 baseline"
+  v2_stage="$stage/v2"
+  mkdir -p "$v2_stage"
+  (
+    cd "$PMD_V2_ROOT"
+    tar --exclude='./node_modules' --exclude='./.next' -cf - .
+  ) | (
+    cd "$v2_stage"
+    tar -xf -
+  )
+  [[ -d "$PMD_V2_ROOT/node_modules" ]] || fail "Frontend V2 node_modules is missing"
+  cp -al "$PMD_V2_ROOT/node_modules" "$v2_stage/node_modules"
+  
+  baseline_log="$stage/frontend-baseline-build.log"
+  if ! (
+    cd "$v2_stage"
+    npm run typecheck:offline
+    npm run build
+  ) >"$baseline_log" 2>&1; then
+    tail -n 80 "$baseline_log" >&2 || true
+    fail "Current live Frontend V2 source does not pass baseline typecheck/build. No production file was changed."
+  fi
+  [[ -d "$v2_stage/.next" ]] || fail "Baseline Frontend V2 build did not produce .next"
+  mv "$v2_stage/.next" "$stage/baseline.next"
+  
+  say "Preflight: building Google-integrated Frontend V2"
+  cp -a   "$tree/$PMD_V2_REL/src/runtime/components/ReviewShareEnhancer.tsx"   "$v2_stage/src/runtime/components/ReviewShareEnhancer.tsx"
+  
+  integration_log="$stage/frontend-google-build.log"
+  if ! (
+    cd "$v2_stage"
+    npm run typecheck:offline
+    npm run build
+  ) >"$integration_log" 2>&1; then
+    tail -n 80 "$integration_log" >&2 || true
+    fail "Google-integrated Frontend V2 typecheck/build failed. No production file was changed."
+  fi
+  [[ -d "$v2_stage/.next" ]] || fail "Google-integrated Frontend V2 build did not produce .next"
+  mv "$v2_stage/.next" "$stage/integration.next"
+else
+  say "Preflight: Frontend V2 unchanged; skipping Next typecheck/build/swap for this incremental release"
 fi
-[[ -d "$v2_stage/.next" ]] || fail "Baseline Frontend V2 build did not produce .next"
-mv "$v2_stage/.next" "$stage/baseline.next"
-
-say "Preflight: building Google-integrated Frontend V2"
-cp -a   "$tree/$PMD_V2_REL/src/runtime/components/ReviewShareEnhancer.tsx"   "$v2_stage/src/runtime/components/ReviewShareEnhancer.tsx"
-
-integration_log="$stage/frontend-google-build.log"
-if ! (
-  cd "$v2_stage"
-  npm run typecheck:offline
-  npm run build
-) >"$integration_log" 2>&1; then
-  tail -n 80 "$integration_log" >&2 || true
-  fail "Google-integrated Frontend V2 typecheck/build failed. No production file was changed."
-fi
-[[ -d "$v2_stage/.next" ]] || fail "Google-integrated Frontend V2 build did not produce .next"
-mv "$v2_stage/.next" "$stage/integration.next"
 
 say "Preflight: confirming target files did not change during build"
 while IFS= read -r rel; do
@@ -303,43 +315,55 @@ grep -q 'class PmdGoogleBusinessService'   "$PMD_ROOT/app/Services/GoogleBusines
 cd "$PMD_ROOT"
 php artisan optimize:clear >/dev/null 2>&1 || true
 
-say "Verifying tenant Google API route wiring without booting unrelated legacy Admin routes"
-grep -q 'PMD_GOOGLE_BUSINESS_TENANT_OAUTH_V3' "$PMD_ROOT/routes/api.php" \
-  || fail "Tenant Google API route marker is missing"
-grep -q "/integrations/google-business/callback" "$PMD_ROOT/routes/api.php" \
+say "Verifying Google callback on the active PayMyDine API route authority"
+grep -q "api-v1-google-business.php" "$PMD_ROOT/app/main/routes/api-health-media.php" \
+  || fail "Active API v1 loader does not load Google Business routes"
+grep -q 'PMD_GOOGLE_BUSINESS_ACTIVE_TENANT_ROUTES_V4' "$PMD_ROOT/app/main/routes/api-v1-google-business.php" \
+  || fail "Active tenant Google route module marker is missing"
+grep -q "/integrations/google-business/callback" "$PMD_ROOT/app/main/routes/api-v1-google-business.php" \
   || fail "Tenant Google OAuth callback definition is missing"
-grep -q "/integrations/google-business/pubsub" "$PMD_ROOT/routes/api.php" \
+grep -q "/integrations/google-business/pubsub" "$PMD_ROOT/app/main/routes/api-v1-google-business.php" \
   || fail "Tenant Google Pub/Sub definition is missing"
 if grep -q "routes/google-business-profile.php" "$PMD_ROOT/routes.php"; then
   fail "Legacy storefront Google callback loader is still active"
 fi
-php -l "$PMD_ROOT/routes/api.php" >/dev/null
+php -l "$PMD_ROOT/app/main/routes/api-health-media.php" >/dev/null
+php -l "$PMD_ROOT/app/main/routes/api-v1-google-business.php" >/dev/null
 php -l "$PMD_ROOT/app/Http/Controllers/GoogleBusinessIntegrationController.php" >/dev/null
 php -l "$PMD_ROOT/app/Services/GoogleBusiness/PmdGoogleBusinessService.php" >/dev/null
 
-say "Tenant Google API route source verification PASS"
+say "Active tenant Google API route source verification PASS"
 
-say "Activating tested Google-integrated Frontend V2 build"
-next_changed=1
-if [[ -d "$PMD_V2_ROOT/.next" ]]; then
-  sudo mv "$PMD_V2_ROOT/.next" "$backup/next.previous"
-fi
-sudo mv "$stage/integration.next" "$PMD_V2_ROOT/.next"
-
-if systemctl list-unit-files php8.3-fpm.service >/dev/null 2>&1; then
-  sudo systemctl reload php8.3-fpm
-fi
-sudo -u ubuntu -H pm2 restart "$PMD_SERVICE" --update-env >/dev/null
-
-frontend_health=0
-for attempt in 1 2 3 4 5 6 7 8 9 10; do
-  if curl -fsS --max-time 5 "http://127.0.0.1:$PMD_PORT/api/health" >/dev/null; then
-    frontend_health=1
-    break
+if [[ "$frontend_changed" == "1" ]]; then
+  say "Activating tested Google-integrated Frontend V2 build"
+  next_changed=1
+  if [[ -d "$PMD_V2_ROOT/.next" ]]; then
+    sudo mv "$PMD_V2_ROOT/.next" "$backup/next.previous"
   fi
-  sleep 2
-done
-[[ "$frontend_health" == "1" ]] || fail "Frontend V2 health failed after Google integration activation"
+  sudo mv "$stage/integration.next" "$PMD_V2_ROOT/.next"
+  
+  if systemctl list-unit-files php8.3-fpm.service >/dev/null 2>&1; then
+    sudo systemctl reload php8.3-fpm
+  fi
+  sudo -u ubuntu -H pm2 restart "$PMD_SERVICE" --update-env >/dev/null
+  
+  frontend_health=0
+  for attempt in 1 2 3 4 5 6 7 8 9 10; do
+    if curl -fsS --max-time 5 "http://127.0.0.1:$PMD_PORT/api/health" >/dev/null; then
+      frontend_health=1
+      break
+    fi
+    sleep 2
+  done
+  [[ "$frontend_health" == "1" ]] || fail "Frontend V2 health failed after Google integration activation"
+else
+  say "Frontend V2 unchanged; leaving .next and PM2 untouched"
+  if systemctl list-unit-files php8.3-fpm.service >/dev/null 2>&1; then
+    sudo systemctl reload php8.3-fpm
+  fi
+  curl -fsS --max-time 8 "http://127.0.0.1:$PMD_PORT/api/health" >/dev/null \
+    || fail "Frontend V2 health changed during backend-only Google activation"
+fi
 
 grep -q 'PMD_GOOGLE_BUSINESS_PROFILE_INTEGRATION_V2'   "$PMD_V2_ROOT/src/runtime/components/ReviewShareEnhancer.tsx"   || fail "Live Frontend Google integration marker missing"
 
