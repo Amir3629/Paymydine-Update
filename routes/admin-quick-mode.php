@@ -43,6 +43,12 @@ Route::middleware(['web'])->group(function () {
         [\Admin\Controllers\PmdQuickPosV1::class, 'history']
     );
 
+    // PMD_QPOS_TRANSFER_V24
+    Route::post(
+        '/admin/pos/transfer',
+        [\Admin\Controllers\PmdQuickPosV1::class, 'transfer']
+    );
+
     Route::post(
         '/admin/pos/payment-settle/{order}',
         [\Admin\Controllers\PmdQuickPosV1::class, 'settlePayment']
