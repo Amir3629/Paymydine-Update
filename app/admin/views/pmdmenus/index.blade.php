@@ -1031,7 +1031,7 @@
                             class="pmd-menu-card__number"
                             data-pmd-menu-number
                             aria-label="Food number {{ $menuNumber }}"
-                        >{{ $menuNumber }}</span>
+                        >#{{ $menuNumber }}</span>
                         <span class="pmd-menu-card__category">
                             {{ $item['category_name'] === 'Uncategorized' ? $pmdT('uncategorized') : $item['category_name'] }}@if($categoryExtra > 0) <b>+{{ $categoryExtra }}</b>@endif
                         </span>
