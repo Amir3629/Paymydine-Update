@@ -546,14 +546,11 @@ final class PmdMobileBootstrapService
             $edge = DB::table('pmd_mobile_edges')
                 ->where('location_id', $locationId)
                 ->where('is_active', 1)
-                ->where(function ($query) {
-                    $query->whereNull('last_seen_at')
-                        ->orWhere(
-                            'last_seen_at',
-                            '>=',
-                            now()->subMinutes(2)
-                        );
-                })
+                ->where(
+                    'last_seen_at',
+                    '>=',
+                    now()->subMinutes(2)
+                )
                 ->first();
 
             if (!$edge) {
