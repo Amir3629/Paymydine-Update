@@ -52,8 +52,9 @@ jobs:
           grep -q 'class PmdGoogleBusinessService' app/Services/GoogleBusiness/PmdGoogleBusinessService.php
           grep -q 'PMD_GOOGLE_TENANT_CREDENTIALS_V3' app/Services/GoogleBusiness/PmdGoogleBusinessService.php
           grep -q 'oauth_client_secret_encrypted' app/Services/GoogleBusiness/PmdGoogleBusinessService.php
-          grep -q 'PMD_GOOGLE_BUSINESS_TENANT_OAUTH_V3' routes/api.php
-          grep -q '/integrations/google-business/callback' routes/api.php
+          grep -q 'api-v1-google-business.php' app/main/routes/api-health-media.php
+          grep -q 'PMD_GOOGLE_BUSINESS_ACTIVE_TENANT_ROUTES_V4' app/main/routes/api-v1-google-business.php
+          grep -q '/integrations/google-business/callback' app/main/routes/api-v1-google-business.php
           grep -q 'google_business\[client_id\]' app/admin/views/pmdsettings/restaurant.blade.php
           grep -q 'google_business\[client_secret\]' app/admin/views/pmdsettings/restaurant.blade.php
           grep -q 'NEW_REVIEW' app/Services/GoogleBusiness/PmdGoogleBusinessService.php
