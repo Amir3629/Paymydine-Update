@@ -598,7 +598,16 @@ class EdgeAuthority(
             }
         }
 
+        val blockedAggregates = mutableSetOf<String>()
+
         for ((commandId, tokenHash, rawJson) in pending) {
+            val request = JSONObject(rawJson)
+            val sourceAggregateId = request.optString("aggregate_id")
+
+            if (sourceAggregateId in blockedAggregates) {
+                continue
+            }
+
             val encrypted = database.readableDatabase.query(
                 "pmd_edge_peers",
                 arrayOf("token_ciphertext", "profile_json"),
@@ -615,7 +624,6 @@ class EdgeAuthority(
 
             val token = vault.decrypt(encrypted.first) ?: continue
             val peerProfile = JSONObject(encrypted.second)
-            val request = JSONObject(rawJson)
 
             val cloudRequest = prepareCloudRequest(request)
                 ?: continue
@@ -659,13 +667,20 @@ class EdgeAuthority(
                         .put("cloud", cloud),
                 )
             } catch (error: MobileApiException) {
-                if (error.statusCode in listOf(409, 422, 403)) {
+                val terminalClientError =
+                    error.statusCode in 400..499 &&
+                        error.statusCode !in setOf(408, 425, 429)
+
+                if (terminalClientError) {
                     val rejected = JSONObject()
                         .put("ok", false)
                         .put("authority", "cloud")
                         .put("provisional", false)
                         .put("error", "reconciliation_required")
-                        .put("message", error.message ?: "Cloud reconciliation rejected.")
+                        .put(
+                            "message",
+                            error.message ?: "Cloud reconciliation rejected.",
+                        )
 
                     markCommand(
                         commandId,
@@ -673,21 +688,30 @@ class EdgeAuthority(
                         rejected,
                         error.message,
                     )
+                    blockedAggregates += sourceAggregateId
 
                     emit(
                         peer.locationId,
                         "order",
-                        request.optString("aggregate_id"),
+                        sourceAggregateId,
                         request.optLong("base_version", 0),
                         "RECONCILIATION_REQUIRED_V1",
                         JSONObject()
                             .put("command_id", commandId)
                             .put(
                                 "local_aggregate_id",
-                                request.optString("aggregate_id"),
+                                sourceAggregateId,
                             )
-                            .put("message", error.message ?: "Cloud reconciliation rejected."),
+                            .put(
+                                "message",
+                                error.message
+                                    ?: "Cloud reconciliation rejected.",
+                            ),
                     )
+                } else {
+                    // Preserve queue order. A later mutation for the same order
+                    // must never overtake an unresolved earlier command.
+                    return
                 }
             } catch (_: IOException) {
                 return
