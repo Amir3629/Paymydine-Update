@@ -238,6 +238,8 @@ grep -q "PMD_QPOS_FLOOR_MAP_V25" "$STAGE/app/admin/controllers/PmdQuickPosV1.php
 grep -q "PMD_QPOS_FLOOR_MAP_WORKSPACE_V25" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
 grep -q "PMD_QPOS_FLOOR_MAP_UI_V25" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
 grep -q "PMD_QPOS_UI_REBALANCE_V25" "$STAGE/app/admin/assets/css/pmd-quick-pos-v1.css"
+grep -q "PMD_QPOS_DARK_PRIMARY_V25" "$STAGE/app/admin/assets/css/pmd-quick-pos-v1.css"
+grep -q "pmd:qpos:visual:v25" "$STAGE/app/admin/assets/js/pmd-quick-pos-v1.js"
 grep -q "data-qpos-floor-map-open" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
 grep -q "data-qpos-floor-map-stage" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
 grep -q "pmd-qpos-payment-inline-head" "$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
