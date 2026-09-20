@@ -7,7 +7,17 @@
     <meta name="theme-color" content="#064e3b">
     <title>PayMyDine POS</title>
     <link rel="icon" type="image/svg+xml" href="/app/admin/assets/images/pmd-favicon-final-20260822.svg">
-    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-pos-v1.css?v=20260920-25">
+    {{-- PMD_QPOS_EXACT_DASHBOARD_FLOOR_VIEW_V26
+         Load the SAME Floor visual authorities as DashboardLab. --}}
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-floor-v1.css?v=20260920-floor-v26">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-floor-v1-stable-v11.css?v=20260920-floor-v26">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-floor-v1-native-smart-v20.css?v=20260920-floor-v26">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-reservations2-floor-canvas-v310.css?v=20260920-floor-v26">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-reservations2-floor-toolbar-v316.css?v=20260920-floor-v26">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-reservations2-floor-reservation-v312.css?v=20260920-floor-v26">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-dashboard-lab-exact-floor-v1.css?v=20260920-floor-v26">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-shared-floor-multi-floor-v1.css?v=20260920-floor-v26">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-pos-v1.css?v=20260920-26">
 </head>
 <body class="pmd-qpos-body">
 @php
@@ -37,6 +47,23 @@
     $pmdProfileInitial = mb_strtoupper(mb_substr($pmdProfileName, 0, 1));
     $pmdDashboardUrl = $pmdProfile['dashboard_url'] ?? null;
     $pmdLogoutUrl = (string)($pmdProfile['logout_url'] ?? admin_url('logout'));
+
+    $pmdQuickPosExactFloor = is_array($pmdQuickPosExactFloor ?? null)
+        ? $pmdQuickPosExactFloor
+        : [];
+    $pmdQuickPosExactFloorBootstrap = is_array(
+        $pmdQuickPosExactFloor['bootstrap'] ?? null
+    ) ? $pmdQuickPosExactFloor['bootstrap'] : [];
+    $pmdQuickPosExactFloorDisplayTables = array_values((array)(
+        $pmdQuickPosExactFloor['display_tables'] ?? []
+    ));
+    $pmdQuickPosExactFloorMode =
+        ($pmdQuickPosExactFloor['mode'] ?? 'full') === 'row'
+            ? 'row'
+            : 'full';
+    $pmdQuickPosExactFloorZoom = is_numeric(
+        $pmdQuickPosExactFloor['zoom'] ?? null
+    ) ? (float)$pmdQuickPosExactFloor['zoom'] : 1.0;
 @endphp
 <div
     id="pmd-quick-pos"
@@ -244,36 +271,36 @@
         </aside>
     </main>
 
-    {{-- PMD_QPOS_FLOOR_MAP_WORKSPACE_V25
-         Alternative table-selection surface. It uses the exact same table
-         coordinates as Cashier/Dashboard/Reservations and returns straight
-         back to the normal three-column POS after table selection. --}}
-    <section class="pmd-qpos-floor-map-workspace" data-qpos-floor-map-workspace hidden aria-hidden="true">
-        <div class="pmd-qpos-floor-map-topbar">
-            <div>
-                <span class="pmd-qpos-section-label">Floor map</span>
-                <strong data-qpos-floor-map-title>Tables</strong>
-            </div>
-            <div class="pmd-qpos-floor-map-top-actions">
-                <div class="pmd-qpos-floor-map-tabs" data-qpos-map-floors></div>
-                <button type="button" class="pmd-qpos-floor-map-close" data-qpos-floor-map-close>List view</button>
-            </div>
+    {{-- PMD_QPOS_EXACT_DASHBOARD_FLOOR_WORKSPACE_V26
+         This is not a POS-specific recreation. It embeds the exact shared
+         Dashboard/Manager/Reservations Floor partial, toolbar, zoom engine,
+         floor switcher, status colors and table geometry. --}}
+    <section
+        class="pmd-qpos-exact-floor-workspace"
+        data-qpos-floor-map-workspace
+        hidden
+        aria-hidden="true"
+    >
+        <div class="pmd-qpos-exact-floor-host">
+            @include('admin::_partials.pmd_dashboard_lab_exact_floor_v1', [
+                'floorBootstrap' => $pmdQuickPosExactFloorBootstrap,
+                'displayTables' => $pmdQuickPosExactFloorDisplayTables,
+                'floorMode' => $pmdQuickPosExactFloorMode,
+                'floorZoom' => $pmdQuickPosExactFloorZoom,
+                'pmdCleanWorkspaceLocationId' => (int)($pmdQuickPosExactFloor['location_id'] ?? 0),
+                'pmdCleanWorkspaceFloorRegistry' => (array)($pmdQuickPosExactFloor['registry'] ?? []),
+                'pmdCleanWorkspaceFloorActive' => (array)($pmdQuickPosExactFloor['active'] ?? []),
+                'pmdCleanWorkspaceFloorCookie' => (string)($pmdQuickPosExactFloor['cookie_name'] ?? ''),
+                'pmdCleanWorkspaceFloorTableMap' => (array)($pmdQuickPosExactFloor['table_floor_map'] ?? []),
+                'deferReservationBusy' => false,
+            ])
         </div>
 
-        <div class="pmd-qpos-floor-map-legend">
-            <span><i class="available"></i>Free</span>
-            <span><i class="occupied"></i>Busy</span>
-            <span><i class="reserved"></i>Reserved</span>
-            <span><i class="cleaning"></i>Clean</span>
-            <span><i class="due"></i>Payment</span>
-            <span><i class="call"></i>Call</span>
-        </div>
-
-        <div class="pmd-qpos-floor-map-shell">
-            <div class="pmd-qpos-floor-map-stage" data-qpos-floor-map-stage aria-label="Restaurant floor map"></div>
-        </div>
-
-        <div class="pmd-qpos-floor-map-hint">Select a table to open the POS.</div>
+        <button
+            type="button"
+            class="pmd-qpos-exact-floor-return"
+            data-qpos-floor-map-close
+        >Back to POS</button>
     </section>
 
     <button type="button" class="pmd-qpos-mobile-cart" data-qpos-mobile-cart>
@@ -686,7 +713,10 @@ window.PMDQuickPOSConfig = {
     initialBootstrap: @json($initialBootstrap ?? null)
 };
 </script>
-<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260920-25"></script>
+{{-- The exact Dashboard Floor runtime mounts before the POS bridge. --}}
+<script src="/app/admin/assets/js/pmd-dashboard-lab-exact-floor-v1.js?v=20260920-floor-v26"></script>
+<script src="/app/admin/assets/js/pmd-shared-floor-multi-floor-v1.js?v=20260920-floor-v26"></script>
+<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260920-26"></script>
 <script src="/app/admin/assets/js/pmd-site-access-hub-v13.js?v=20260919-qpos1"></script>
 </body>
 </html>
