@@ -2048,7 +2048,7 @@ function renderOpenChecks() {
       state.tableData = null;
       state.openOrders = [];
       state.activeOrderId = null;
-      renderCart({orderSwitch: true});
+      renderCart();
       await loadTable(table.id, false, false);
     }
 
@@ -2199,7 +2199,7 @@ function renderOpenChecks() {
     } catch (error) {
       if (!silent && requestSeq === state.tableRequestSeq) {
         state.tableSwitching = false;
-        renderCart({orderSwitch: true});
+        renderCart();
         toast(error.message || 'Table could not be opened.', true);
       }
     }
