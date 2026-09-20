@@ -85,6 +85,7 @@ if (!function_exists('pmd_public_compat_response_20260606')) {
 
                         'pmd_social_google_enabled' => pmd_public_compat_setting_get_20260606($settings, 'pmd_social_google_enabled', '0'),
                         'pmd_social_google_url' => pmd_public_compat_setting_get_20260606($settings, 'pmd_social_google_url', ''),
+                        'pmd_social_google_review_url' => pmd_public_compat_setting_get_20260606($settings, 'pmd_social_google_review_url', ''),
 
                         'pmd_social_trustpilot_enabled' => pmd_public_compat_setting_get_20260606($settings, 'pmd_social_trustpilot_enabled', '0'),
                         'pmd_social_trustpilot_url' => pmd_public_compat_setting_get_20260606($settings, 'pmd_social_trustpilot_url', ''),
