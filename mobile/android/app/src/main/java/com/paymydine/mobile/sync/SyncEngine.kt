@@ -60,7 +60,27 @@ class SyncEngine(
         app.syncRepository.recoverInFlight()
 
         val commands = app.syncRepository.pending(50)
+        val blockedAggregates = mutableSetOf<String>()
+
         for (command in commands) {
+            // Preserve command order inside one order aggregate. If an earlier
+            // command could not reach an authority, a later local mutation
+            // must not jump ahead and accidentally create/modify a different
+            // canonical bill.
+            if (command.aggregateId in blockedAggregates) {
+                app.syncRepository.defer(
+                    commandId = command.commandId,
+                    delayMs = 5_000L,
+                    reason = "Waiting for an earlier command on the same order.",
+                )
+                if (command.commandType != "KDS_STATUS_V1") {
+                    app.localPosRepository.markRetryForCommand(command)
+                }
+                blockedAggregates += command.aggregateId
+                allGood = false
+                continue
+            }
+
             if (!app.syncRepository.markInFlight(command.commandId)) continue
 
             if (route.kind == TransportKind.OFFLINE) {
@@ -121,6 +141,8 @@ class SyncEngine(
                             reason = error.message
                                 ?: "Restaurant Edge is already processing this command.",
                         )
+                        blockedAggregates += command.aggregateId
+                        allGood = false
                     }
 
                     error.statusCode in setOf(401, 403, 409, 422) -> {
@@ -135,6 +157,8 @@ class SyncEngine(
                                 message,
                             )
                         }
+                        blockedAggregates += command.aggregateId
+                        allGood = false
                     }
 
                     else -> {
@@ -147,6 +171,7 @@ class SyncEngine(
                         if (command.commandType != "KDS_STATUS_V1") {
                             app.localPosRepository.markRetryForCommand(command)
                         }
+                        blockedAggregates += command.aggregateId
                         allGood = false
                     }
                 }
@@ -159,6 +184,7 @@ class SyncEngine(
                 if (command.commandType != "KDS_STATUS_V1") {
                     app.localPosRepository.markRetryForCommand(command)
                 }
+                blockedAggregates += command.aggregateId
                 allGood = false
             } catch (error: Throwable) {
                 app.syncRepository.defer(
@@ -169,6 +195,7 @@ class SyncEngine(
                 if (command.commandType != "KDS_STATUS_V1") {
                     app.localPosRepository.markRetryForCommand(command)
                 }
+                blockedAggregates += command.aggregateId
                 allGood = false
             }
         }
@@ -333,9 +360,41 @@ class SyncEngine(
         host: String,
         token: String,
         command: CommandEnvelope,
-    ): JSONObject = api.sendCommand(host, token, command).apply {
-        put("authority", "cloud")
-        put("provisional", false)
+    ): JSONObject {
+        val routing = app.localPosRepository
+            .cloudRoutingForCommand(command)
+
+        val response = if (routing == null) {
+            api.sendCommand(host, token, command)
+        } else {
+            val routed = commandJson(command)
+                .put("client_aggregate_id", command.aggregateId)
+                .put("client_base_version", command.baseVersion)
+                .put(
+                    "aggregate_id",
+                    "order:${routing.serverOrderId}",
+                )
+                .put("base_version", routing.serverVersion)
+
+            val payload = routed.getJSONObject("payload")
+            payload.remove("order_ref")
+            payload.put("order_id", routing.serverOrderId)
+            routing.expectedUpdatedAt?.let {
+                payload.put("expected_updated_at", it)
+            }
+            routed.put("payload", payload)
+
+            api.sendCommandJson(
+                tenantHost = host,
+                deviceToken = token,
+                command = routed,
+            )
+        }
+
+        return response.apply {
+            put("authority", "cloud")
+            put("provisional", false)
+        }
     }
 
     private fun pullCloudEvents(
