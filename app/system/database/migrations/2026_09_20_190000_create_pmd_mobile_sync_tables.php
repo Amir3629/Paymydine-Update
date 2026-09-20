@@ -99,6 +99,23 @@ class CreatePmdMobileSyncTables extends Migration
             });
         }
 
+        if (!Schema::hasTable('pmd_mobile_edges')) {
+            Schema::create('pmd_mobile_edges', function (Blueprint $table) {
+                $table->bigIncrements('id');
+                $table->unsignedBigInteger('location_id');
+                $table->unsignedBigInteger('device_id');
+                $table->char('fingerprint_sha256', 64);
+                $table->unsignedInteger('port')->default(8443);
+                $table->string('protocol', 32)->default('pmd-edge-v1');
+                $table->boolean('is_active')->default(true);
+                $table->timestamp('last_seen_at')->nullable();
+                $table->timestamps();
+
+                $table->unique('location_id', 'pmd_mobile_edge_location_uidx');
+                $table->index(['device_id', 'is_active'], 'pmd_mobile_edge_device_idx');
+            });
+        }
+
         if (!Schema::hasTable('pmd_mobile_pair_exchanges')) {
             Schema::create('pmd_mobile_pair_exchanges', function (Blueprint $table) {
                 $table->bigIncrements('id');
@@ -122,6 +139,7 @@ class CreatePmdMobileSyncTables extends Migration
     public function down()
     {
         Schema::dropIfExists('pmd_mobile_pair_exchanges');
+        Schema::dropIfExists('pmd_mobile_edges');
         Schema::dropIfExists('pmd_sync_aggregate_versions');
         Schema::dropIfExists('pmd_sync_events');
         Schema::dropIfExists('pmd_sync_commands');
