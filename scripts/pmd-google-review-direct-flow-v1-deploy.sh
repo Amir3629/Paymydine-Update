@@ -70,9 +70,17 @@ curl -fsS "http://127.0.0.1:$PMD_PORT/api/health" >/dev/null || fail "Frontend V
 say "Build isolated V2 stage"
 v2_stage="$stage/v2"
 mkdir -p "$v2_stage"
-cp -a "$PMD_V2_ROOT/." "$v2_stage/"
-rm -rf "$v2_stage/.next"
-cp -a "$stage/files/$PMD_V2_REL/src/runtime/components/ReviewShareEnhancer.tsx"   "$v2_stage/src/runtime/components/ReviewShareEnhancer.tsx"
+(
+  cd "$PMD_V2_ROOT"
+  tar --exclude='./node_modules' --exclude='./.next' -cf - .
+) | (
+  cd "$v2_stage"
+  tar -xf -
+)
+[[ -d "$PMD_V2_ROOT/node_modules" ]] || fail "Live V2 node_modules missing"
+cp -al "$PMD_V2_ROOT/node_modules" "$v2_stage/node_modules"
+cp -a "$stage/files/$PMD_V2_REL/src/runtime/components/ReviewShareEnhancer.tsx" \
+  "$v2_stage/src/runtime/components/ReviewShareEnhancer.tsx"
 
 (
   cd "$v2_stage"
@@ -93,7 +101,6 @@ for rel in "${files[@]}"; do
   cp -a "$live_path" "$backup/files/$rel"
 done
 [[ -d "$PMD_V2_ROOT/.next" ]] || fail "Live .next missing"
-mv "$PMD_V2_ROOT/.next" "$backup/next.previous"
 
 activation=0
 rollback_running=0
@@ -115,6 +122,8 @@ rollback() {
 trap 'rc=$?; if [[ "$activation" == "1" && "$rc" != "0" ]]; then rollback "$rc"; fi' EXIT
 
 activation=1
+mv "$PMD_V2_ROOT/.next" "$backup/next.previous"
+
 say "Activate reviewed backend/frontend sources"
 for rel in "${files[@]}"; do
   mkdir -p "$PMD_ROOT/$(dirname "$rel")"
