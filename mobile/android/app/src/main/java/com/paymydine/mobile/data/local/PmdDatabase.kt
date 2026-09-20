@@ -135,6 +135,17 @@ class PmdDatabase(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, n
                 payload_json TEXT NOT NULL,
                 created_at_ms INTEGER NOT NULL)""".trimIndent(),
             "CREATE INDEX idx_pmd_edge_events_location_seq ON pmd_edge_events(location_id, sequence)",
+            """CREATE TABLE pmd_edge_inbox_events (
+                sequence INTEGER PRIMARY KEY NOT NULL,
+                event_id TEXT NOT NULL UNIQUE,
+                location_id INTEGER NOT NULL,
+                aggregate TEXT NOT NULL,
+                aggregate_id TEXT NOT NULL,
+                aggregate_version INTEGER NOT NULL DEFAULT 0,
+                event_type TEXT NOT NULL,
+                payload_json TEXT NOT NULL,
+                created_at_ms INTEGER NOT NULL,
+                applied_at_ms INTEGER NOT NULL)""".trimIndent(),
             """CREATE TABLE pmd_sync_cursor (scope TEXT PRIMARY KEY NOT NULL, cursor INTEGER NOT NULL DEFAULT 0)"""
         )
 
@@ -209,6 +220,19 @@ class PmdDatabase(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, n
             )
             db.execSQL(
                 "CREATE INDEX IF NOT EXISTS idx_pmd_edge_events_location_seq ON pmd_edge_events(location_id, sequence)",
+            )
+            db.execSQL(
+                """CREATE TABLE IF NOT EXISTS pmd_edge_inbox_events (
+                    sequence INTEGER PRIMARY KEY NOT NULL,
+                    event_id TEXT NOT NULL UNIQUE,
+                    location_id INTEGER NOT NULL,
+                    aggregate TEXT NOT NULL,
+                    aggregate_id TEXT NOT NULL,
+                    aggregate_version INTEGER NOT NULL DEFAULT 0,
+                    event_type TEXT NOT NULL,
+                    payload_json TEXT NOT NULL,
+                    created_at_ms INTEGER NOT NULL,
+                    applied_at_ms INTEGER NOT NULL)""".trimIndent(),
             )
         }
     }
