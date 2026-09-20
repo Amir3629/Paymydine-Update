@@ -68,3 +68,7 @@ jobs:
       - name: Frontend TypeScript
         working-directory: frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815
         run: npm run typecheck:offline
+
+      - name: Frontend production build
+        working-directory: frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815
+        run: npm run build
