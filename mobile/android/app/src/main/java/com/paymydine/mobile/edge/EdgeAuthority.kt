@@ -191,13 +191,26 @@ class EdgeAuthority(
                 status in setOf(
                     STATUS_EDGE_APPLIED,
                     STATUS_CLOUD_APPLIED,
-                    STATUS_CLOUD_REJECTED,
                 )
                 && result.isNotBlank()
             ) {
                 return JSONObject(result).put(
                     "replayed",
                     true,
+                )
+            }
+
+            if (
+                status == STATUS_CLOUD_REJECTED
+                && result.isNotBlank()
+            ) {
+                val rejected = JSONObject(result)
+                throw EdgeHttpException(
+                    409,
+                    rejected.optString("message")
+                        .ifBlank {
+                            "Cloud reconciliation requires attention."
+                        },
                 )
             }
 
@@ -619,6 +632,10 @@ class EdgeAuthority(
                         "RECONCILIATION_REQUIRED_V1",
                         JSONObject()
                             .put("command_id", commandId)
+                            .put(
+                                "local_aggregate_id",
+                                request.optString("aggregate_id"),
+                            )
                             .put("message", error.message ?: "Cloud reconciliation rejected."),
                     )
                 }
