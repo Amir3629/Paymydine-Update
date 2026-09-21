@@ -269,6 +269,26 @@ class BootstrapRepository(private val database: PmdDatabase) {
 
     fun locationId(): Long? = meta("location_id")?.toLongOrNull()
 
+    fun locationName(): String? {
+        val raw = meta("bootstrap_json") ?: return null
+        return runCatching {
+            JSONObject(raw)
+                .optJSONObject("location")
+                ?.optString("name")
+                ?.takeIf { it.isNotBlank() }
+        }.getOrNull()
+    }
+
+    fun staffName(): String? {
+        val raw = meta("bootstrap_json") ?: return null
+        return runCatching {
+            JSONObject(raw)
+                .optJSONObject("identity")
+                ?.optString("staff_name")
+                ?.takeIf { it.isNotBlank() }
+        }.getOrNull()
+    }
+
     fun roleCode(): String? = meta("role_code")?.takeIf { it.isNotBlank() }
 
     fun profileExpiresAt(): String? = meta("profile_expires_at")?.takeIf { it.isNotBlank() }
