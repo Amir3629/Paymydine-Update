@@ -49,7 +49,7 @@ android {
 }
 kotlin { jvmToolchain(17) }
 dependencies {
-    val composeBom = platform("androidx.compose:compose-bom:2026.04.01")
+    // PMD_ZCS_VENDOR_SDK_V1\n    // The proprietary ZCS SmartPos AAR is supplied by the device vendor and\n    // intentionally not committed to this repository. Drop it into app/libs/.\n    implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar", "*.aar"))))\n    val composeBom = platform("androidx.compose:compose-bom:2026.04.01")
     implementation(composeBom)
     androidTestImplementation(composeBom)
     implementation("androidx.core:core-ktx:1.17.0")
