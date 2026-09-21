@@ -25,10 +25,10 @@ class MainActivity : ComponentActivity() {
         val app = application as PayMyDineApplication
         app.handleIntent(intent)
 
-        // PMD_ANDROID_WORKSPACE_LAUNCHER_V1
-        // A paired device always returns to the PayMyDine workspace chooser.
-        // Cashier/Waiter, KDS and Reservations are explicit surfaces instead of
-        // forcing every launcher open straight into POS.
+        // PMD_ANDROID_DIRECT_LOGIN_LAUNCHER_V2
+        // A paired device always opens the PayMyDine staff login. The server
+        // selects the canonical destination from the authenticated staff role;
+        // there is no workspace chooser in the Android launch flow.
         requestOperationalPermissions()
         setContent { PayMyDineApp(app) }
     }
