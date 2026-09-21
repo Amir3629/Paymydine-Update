@@ -120,6 +120,12 @@ jobs:
           grep -q "PMD_ANDROID_POS_OFFLINE_FAILOVER_V9" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
           grep -q "LocalPosScreen" mobile/android/app/src/main/java/com/paymydine/mobile/OfflinePosActivity.kt
           grep -q "PMD_ANDROID_LOCAL_POS_PROJECTION_REFRESH_V2" mobile/android/app/src/main/java/com/paymydine/mobile/ui/LocalPosScreen.kt
+          grep -q "PMD_ANDROID_WORKSPACE_HUB_V1" mobile/android/app/src/main/java/com/paymydine/mobile/ui/PmdWorkspaceHome.kt
+          grep -q "PMD_ANDROID_KDS_ACTIVITY_V1" mobile/android/app/src/main/java/com/paymydine/mobile/KdsActivity.kt
+          grep -q "PMD_ANDROID_RESERVATIONS_ACTIVITY_V1" mobile/android/app/src/main/java/com/paymydine/mobile/ReservationsActivity.kt
+          grep -q "PMD_MOBILE_PAIR_DASHBOARD_APPROVAL_V4" app/Services/PmdMobileSync/PmdMobilePairingService.php
+          grep -q "pmd_mobile_pair_requests" app/system/database/migrations/2026_09_20_190000_create_pmd_mobile_sync_tables.php
+          grep -q 'android:icon="@mipmap/ic_launcher"' mobile/android/app/src/main/AndroidManifest.xml
           grep -q "SyncEngine(app).runOnce" mobile/android/app/src/main/java/com/paymydine/mobile/OfflinePosActivity.kt
           grep -q "outboxCount" mobile/android/app/src/main/java/com/paymydine/mobile/OfflinePosActivity.kt
           grep -q "offline_payment_enabled.*false" app/Services/PmdMobileSync/PmdMobileBootstrapService.php
@@ -231,11 +237,11 @@ jobs:
           cp mobile/android/app/build/outputs/apk/debug/app-debug.apk \
             mobile/android/PayMyDine-POS-Tablet-Preview.apk
           cp mobile/android/app/build/outputs/apk/debug/app-debug.apk \
-            mobile/android/PayMyDine-POS-Tablet-Preview-0.2.8.apk
+            mobile/android/PayMyDine-POS-Tablet-Preview-0.3.0.apk
           sha256sum mobile/android/PayMyDine-POS-Tablet-Preview.apk \
             > mobile/android/PayMyDine-POS-Tablet-Preview.apk.sha256
-          sha256sum mobile/android/PayMyDine-POS-Tablet-Preview-0.2.8.apk \
-            > mobile/android/PayMyDine-POS-Tablet-Preview-0.2.8.apk.sha256
+          sha256sum mobile/android/PayMyDine-POS-Tablet-Preview-0.3.0.apk \
+            > mobile/android/PayMyDine-POS-Tablet-Preview-0.3.0.apk.sha256
       - name: Verify preview APK identity
         shell: bash
         run: |
@@ -250,11 +256,11 @@ jobs:
           BADGING="$("$AAPT" dump badging "$APK" | head -1)"
           echo "$BADGING"
           grep -Fq "package: name='com.paymydine.mobile.pospreview'" <<<"$BADGING"
-          grep -Fq "versionCode='12'" <<<"$BADGING"
-          grep -Fq "versionName='0.2.8-pos-shell-debug'" <<<"$BADGING"
+          grep -Fq "versionCode='13'" <<<"$BADGING"
+          grep -Fq "versionName='0.3.0-pos-shell-debug'" <<<"$BADGING"
 
           echo "PMD_PREVIEW_PACKAGE=com.paymydine.mobile.pospreview"
-          echo "PMD_PREVIEW_VERSION=0.2.8-pos-shell-debug"
+          echo "PMD_PREVIEW_VERSION=0.3.0-pos-shell-debug"
 
           # PR checks intentionally use the runner's ephemeral debug key. Only a
           # direct push to the preview branch may verify/publish the pinned key.
@@ -283,8 +289,8 @@ jobs:
           path: |
             mobile/android/PayMyDine-POS-Tablet-Preview.apk
             mobile/android/PayMyDine-POS-Tablet-Preview.apk.sha256
-            mobile/android/PayMyDine-POS-Tablet-Preview-0.2.8.apk
-            mobile/android/PayMyDine-POS-Tablet-Preview-0.2.8.apk.sha256
+            mobile/android/PayMyDine-POS-Tablet-Preview-0.3.0.apk
+            mobile/android/PayMyDine-POS-Tablet-Preview-0.3.0.apk.sha256
           if-no-files-found: error
       - name: Publish tablet preview release
         if: github.event_name == 'push' && github.ref == 'refs/heads/feature/android-local-first-v1'
@@ -305,7 +311,7 @@ jobs:
           gh release upload "$TAG" \
             mobile/android/PayMyDine-POS-Tablet-Preview.apk \
             mobile/android/PayMyDine-POS-Tablet-Preview.apk.sha256 \
-            mobile/android/PayMyDine-POS-Tablet-Preview-0.2.8.apk \
-            mobile/android/PayMyDine-POS-Tablet-Preview-0.2.8.apk.sha256 \
+            mobile/android/PayMyDine-POS-Tablet-Preview-0.3.0.apk \
+            mobile/android/PayMyDine-POS-Tablet-Preview-0.3.0.apk.sha256 \
             --repo "$GITHUB_REPOSITORY" \
             --clobber
