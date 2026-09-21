@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -41,8 +40,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.net.URI
+import java.util.UUID
 
 @Composable
 fun PayMyDineApp(app: PayMyDineApplication) {
@@ -54,6 +56,7 @@ fun PayMyDineApp(app: PayMyDineApplication) {
     val scope = rememberCoroutineScope()
     val router = remember { TransportRouter() }
     val api = remember { MobileApiClient() }
+    val pairingMutex = remember { Mutex() }
 
     var tenantCode by remember {
         mutableStateOf(
@@ -64,10 +67,23 @@ fun PayMyDineApp(app: PayMyDineApplication) {
     }
     var pairingStatus by remember {
         mutableStateOf(
-            if (app.credentials.deviceToken().isNullOrBlank()) "Not paired"
-            else if (app.bootstrapRepository.hasBootstrap()) "Ready offline"
-            else "Paired - bootstrap required",
+            when {
+                !app.credentials.deviceToken().isNullOrBlank()
+                    && app.bootstrapRepository.hasBootstrap() ->
+                    "Ready offline"
+                !app.credentials.deviceToken().isNullOrBlank() ->
+                    "Paired - bootstrap required"
+                !app.credentials.pairingVerifier().isNullOrBlank()
+                    && !app.credentials.pairingRequest().isNullOrBlank()
+                    && !app.credentials.tenantHost().isNullOrBlank() ->
+                    "Waiting for browser approval"
+                else ->
+                    "Not paired"
+            },
         )
+    }
+    var pairingAttempt by remember {
+        mutableStateOf(app.credentials.pairingRequest().orEmpty())
     }
     var bootstrapSummary by remember { mutableStateOf<BootstrapSummary?>(null) }
     var lastError by remember { mutableStateOf<String?>(null) }
@@ -76,6 +92,80 @@ fun PayMyDineApp(app: PayMyDineApplication) {
             !app.credentials.deviceToken().isNullOrBlank()
                 && app.bootstrapRepository.hasBootstrap(),
         )
+    }
+
+    suspend fun completePairing(
+        tenantBase: String,
+        exchange: String,
+    ): BootstrapSummary? = pairingMutex.withLock {
+        val expectedHost = app.credentials.tenantHost()
+            ?.trim()
+            ?.lowercase()
+            .orEmpty()
+        val callbackHost = runCatching {
+            URI(tenantBase).host?.lowercase().orEmpty()
+        }.getOrDefault("")
+
+        require(
+            exchange.length == 64 &&
+                expectedHost.isNotBlank() &&
+                callbackHost == expectedHost
+        ) {
+            "Pairing response belongs to another restaurant."
+        }
+
+        var token = app.credentials.deviceToken()
+        var pairedHost = expectedHost
+
+        if (token.isNullOrBlank()) {
+            val verifier = app.credentials.pairingVerifier().orEmpty()
+            require(verifier.length in 43..128) {
+                "Secure pairing expired. Tap Connect again."
+            }
+
+            val paired = withContext(Dispatchers.IO) {
+                api.exchange(
+                    tenantBase,
+                    exchange,
+                    verifier,
+                )
+            }
+
+            require(paired.tenantHost == expectedHost) {
+                "Pairing response belongs to another restaurant."
+            }
+
+            pairedHost = paired.tenantHost
+            token = paired.deviceToken
+            app.credentials.setTenantHost(pairedHost)
+            app.credentials.setDeviceId(paired.deviceId)
+            app.credentials.putDeviceToken(token)
+            app.credentials.clearPairingAttempt()
+            pairingAttempt = ""
+        }
+
+        if (app.bootstrapRepository.hasBootstrap()) {
+            return@withLock null
+        }
+
+        val bootstrap = withContext(Dispatchers.IO) {
+            api.bootstrap(pairedHost, token)
+        }
+        val edgeFingerprint = bootstrap
+            .optJSONObject("edge")
+            ?.optString("fingerprint_sha256")
+            ?.trim()
+            ?.takeIf { it.length == 64 }
+
+        if (edgeFingerprint != null) {
+            app.credentials.setEdgeFingerprint(edgeFingerprint)
+        } else {
+            app.credentials.clearEdgeFingerprint()
+        }
+
+        withContext(Dispatchers.IO) {
+            app.bootstrapRepository.apply(bootstrap)
+        }
     }
 
     val discoveredDecision = router.decide(
@@ -119,7 +209,104 @@ fun PayMyDineApp(app: PayMyDineApplication) {
         )
     }
 
-    LaunchedEffect(online, ready) {
+    LaunchedEffect(online, ready, pairingAttempt) {
+        if (
+            ready ||
+            !online ||
+            pairingAttempt.isBlank() ||
+            !app.credentials.deviceToken().isNullOrBlank()
+        ) {
+            return@LaunchedEffect
+        }
+
+        val host = app.credentials.tenantHost().orEmpty()
+        val verifier = app.credentials.pairingVerifier().orEmpty()
+        val requestId = pairingAttempt
+
+        if (
+            host.isBlank() ||
+            verifier.length !in 43..128 ||
+            requestId.isBlank()
+        ) {
+            return@LaunchedEffect
+        }
+
+        pairingStatus = "Waiting for browser approval"
+        lastError = null
+
+        while (
+            isActive &&
+            !ready &&
+            app.credentials.deviceToken().isNullOrBlank() &&
+            pairingAttempt == requestId
+        ) {
+            val status = runCatching {
+                withContext(Dispatchers.IO) {
+                    api.pairStatus(
+                        tenantBaseUrl = "https://$host",
+                        pairRequest = requestId,
+                        codeVerifier = verifier,
+                    )
+                }
+            }.getOrNull()
+
+            when (status?.status) {
+                "approved" -> {
+                    pairingStatus = "Finishing secure pairing..."
+                    lastError = null
+
+                    try {
+                        val summary = completePairing(
+                            tenantBase = status.tenantBaseUrl
+                                ?: "https://$host",
+                            exchange = status.exchange.orEmpty(),
+                        )
+                        tenantCode = app.credentials.tenantHost()
+                            ?.substringBefore(".paymydine.com")
+                            .orEmpty()
+                        bootstrapSummary = summary
+                        pairingStatus = "Ready offline"
+                        ready = true
+                        SyncEngine.enqueueImmediate(app)
+                    } catch (error: Throwable) {
+                        pairingStatus =
+                            if (app.credentials.deviceToken().isNullOrBlank()) {
+                                "Pairing failed"
+                            } else {
+                                "Paired - bootstrap required"
+                            }
+                        lastError = error.message
+                            ?: "Secure pairing could not be completed."
+                    }
+                    return@LaunchedEffect
+                }
+
+                "expired" -> {
+                    app.credentials.clearPairingAttempt()
+                    pairingAttempt = ""
+                    pairingStatus = "Pairing expired"
+                    lastError =
+                        "The connection request expired. Tap Connect and try again."
+                    return@LaunchedEffect
+                }
+
+                "used" -> {
+                    if (app.credentials.deviceToken().isNullOrBlank()) {
+                        app.credentials.clearPairingAttempt()
+                        pairingAttempt = ""
+                        pairingStatus = "Pairing expired"
+                        lastError =
+                            "This connection request was already used. Tap Connect again."
+                    }
+                    return@LaunchedEffect
+                }
+            }
+
+            delay(2_000)
+        }
+    }
+
+    LaunchedEffect(online, ready, pairingStatus) {
         if (
             ready ||
             !online ||
@@ -182,65 +369,28 @@ fun PayMyDineApp(app: PayMyDineApplication) {
         val rawLink = pairingLink ?: return@LaunchedEffect
 
         try {
+            // If the polling fallback already completed pairing while the
+            // browser was open, this callback is simply redundant.
+            if (
+                !app.credentials.deviceToken().isNullOrBlank() &&
+                app.bootstrapRepository.hasBootstrap()
+            ) {
+                pairingStatus = "Ready offline"
+                ready = true
+                return@LaunchedEffect
+            }
+
             pairingStatus = "Finishing secure pairing..."
             lastError = null
 
             val uri = Uri.parse(rawLink)
             val exchange = uri.getQueryParameter("exchange").orEmpty()
             val tenantBase = uri.getQueryParameter("tenant").orEmpty()
-            val codeVerifier = app.credentials.pairingVerifier().orEmpty()
-            val expectedHost = app.credentials.tenantHost()
-                ?.trim()
-                ?.lowercase()
-                .orEmpty()
-            val callbackHost = runCatching {
-                URI(tenantBase).host?.lowercase().orEmpty()
-            }.getOrDefault("")
 
-            require(
-                exchange.length == 64 &&
-                    tenantBase.isNotBlank() &&
-                    codeVerifier.length in 43..128 &&
-                    expectedHost.isNotBlank() &&
-                    callbackHost == expectedHost
-            ) {
-                "Pairing callback is incomplete or belongs to another restaurant."
-            }
-
-            val summary = withContext(Dispatchers.IO) {
-                val paired = api.exchange(
-                    tenantBase,
-                    exchange,
-                    codeVerifier,
-                )
-
-                require(paired.tenantHost == expectedHost) {
-                    "Pairing response belongs to another restaurant."
-                }
-
-                app.credentials.clearPairingVerifier()
-                app.credentials.setTenantHost(paired.tenantHost)
-                app.credentials.setDeviceId(paired.deviceId)
-                app.credentials.putDeviceToken(paired.deviceToken)
-
-                val bootstrap = api.bootstrap(
-                    paired.tenantHost,
-                    paired.deviceToken,
-                )
-                val edgeFingerprint = bootstrap
-                    .optJSONObject("edge")
-                    ?.optString("fingerprint_sha256")
-                    ?.trim()
-                    ?.takeIf { it.length == 64 }
-
-                if (edgeFingerprint != null) {
-                    app.credentials.setEdgeFingerprint(edgeFingerprint)
-                } else {
-                    app.credentials.clearEdgeFingerprint()
-                }
-
-                app.bootstrapRepository.apply(bootstrap)
-            }
+            val summary = completePairing(
+                tenantBase = tenantBase,
+                exchange = exchange,
+            )
 
             tenantCode = app.credentials.tenantHost()
                 ?.substringBefore(".paymydine.com")
@@ -250,8 +400,13 @@ fun PayMyDineApp(app: PayMyDineApplication) {
             ready = true
             SyncEngine.enqueueImmediate(app)
         } catch (error: Throwable) {
+            pairingStatus =
+                if (app.credentials.deviceToken().isNullOrBlank()) {
+                    "Pairing failed"
+                } else {
+                    "Paired - bootstrap required"
+                }
             lastError = error.message ?: "Secure pairing failed."
-            pairingStatus = "Pairing failed"
         } finally {
             app.consumePairingLink(rawLink)
         }
@@ -316,13 +471,20 @@ fun PayMyDineApp(app: PayMyDineApplication) {
                                     ?: return@OutlinedButton
                                 val verifier = PairingPkce.newVerifier()
                                 val challenge = PairingPkce.challenge(verifier)
+                                val requestId = UUID.randomUUID().toString()
                                 app.credentials.putPairingVerifier(verifier)
+                                app.credentials.setPairingRequest(requestId)
+                                pairingAttempt = requestId
                                 val pairingUrl = Uri.parse(
                                     "https://$host/admin/mobile/pair/start",
                                 ).buildUpon()
                                     .appendQueryParameter(
                                         "code_challenge",
                                         challenge,
+                                    )
+                                    .appendQueryParameter(
+                                        "pair_request",
+                                        requestId,
                                     )
                                     .build()
 
@@ -331,7 +493,8 @@ fun PayMyDineApp(app: PayMyDineApplication) {
                                         Intent(Intent.ACTION_VIEW, pairingUrl),
                                     )
                                 }.onFailure {
-                                    app.credentials.clearPairingVerifier()
+                                    app.credentials.clearPairingAttempt()
+                                    pairingAttempt = ""
                                     lastError =
                                         "No browser is available for secure login."
                                 }
@@ -405,43 +568,83 @@ fun PayMyDineApp(app: PayMyDineApplication) {
                 Onboarding(
                     tenantCode = tenantCode,
                     onTenantCode = {
-                        tenantCode = it.lowercase()
-                            .filter { ch -> ch.isLetterOrDigit() || ch == '-' }
+                        tenantCode = it.trim().lowercase()
                     },
                     online = online,
                     pairingStatus = pairingStatus,
                     lastError = lastError,
                     onConnect = {
-                        val host = "${tenantCode}.paymydine.com"
-                        val verifier = PairingPkce.newVerifier()
-                        val challenge = PairingPkce.challenge(verifier)
-                        app.credentials.setTenantHost(host)
-                        app.credentials.putPairingVerifier(verifier)
-                        pairingStatus = "Opening PayMyDine security..."
-                        lastError = null
+                        val code = normalizeTenantCode(tenantCode)
 
-                        val pairingUrl = Uri.parse(
-                            "https://$host/admin/mobile/pair/start",
-                        ).buildUpon()
-                            .appendQueryParameter(
-                                "code_challenge",
-                                challenge,
-                            )
-                            .build()
+                        if (code == null) {
+                            pairingStatus = "Not paired"
+                            lastError =
+                                "Use the restaurant code from your PayMyDine URL. " +
+                                    "For example, tommo.paymydine.com means the code is tommo."
+                        } else {
+                            val host = "$code.paymydine.com"
+                            val verifier = PairingPkce.newVerifier()
+                            val challenge = PairingPkce.challenge(verifier)
+                            val requestId = UUID.randomUUID().toString()
 
-                        runCatching {
-                            context.startActivity(
-                                Intent(Intent.ACTION_VIEW, pairingUrl),
-                            )
-                        }.onFailure {
-                            app.credentials.clearPairingVerifier()
-                            pairingStatus = "Pairing failed"
-                            lastError = "No browser is available for secure login."
+                            tenantCode = code
+                            app.credentials.setTenantHost(host)
+                            app.credentials.putPairingVerifier(verifier)
+                            app.credentials.setPairingRequest(requestId)
+                            pairingAttempt = requestId
+                            pairingStatus = "Opening PayMyDine security..."
+                            lastError = null
+
+                            val pairingUrl = Uri.parse(
+                                "https://$host/admin/mobile/pair/start",
+                            ).buildUpon()
+                                .appendQueryParameter(
+                                    "code_challenge",
+                                    challenge,
+                                )
+                                .appendQueryParameter(
+                                    "pair_request",
+                                    requestId,
+                                )
+                                .build()
+
+                            runCatching {
+                                context.startActivity(
+                                    Intent(Intent.ACTION_VIEW, pairingUrl),
+                                )
+                            }.onFailure {
+                                app.credentials.clearPairingAttempt()
+                                pairingAttempt = ""
+                                pairingStatus = "Pairing failed"
+                                lastError =
+                                    "No browser is available for secure login."
+                            }
                         }
                     },
                 )
             }
         }
+    }
+}
+
+internal fun normalizeTenantCode(raw: String): String? {
+    var value = raw.trim().lowercase()
+    value = value
+        .removePrefix("https://")
+        .removePrefix("http://")
+        .substringBefore('/')
+        .substringBefore('?')
+        .substringBefore('#')
+        .substringBefore(':')
+
+    if (value.endsWith(".paymydine.com")) {
+        value = value.removeSuffix(".paymydine.com")
+    }
+
+    return value.takeIf {
+        it.matches(
+            Regex("^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$"),
+        )
     }
 }
 
@@ -471,7 +674,9 @@ private fun Onboarding(
             style = MaterialTheme.typography.titleLarge,
         )
         Text(
-            "Enter your restaurant code. Secure sign-in opens in your browser once and then returns to the app automatically.",
+            "Restaurant code is the part before .paymydine.com. " +
+                "For example, if your URL is tommo.paymydine.com, enter tommo. " +
+                "You can also paste the full PayMyDine URL.",
             modifier = Modifier.padding(top = 10.dp, bottom = 26.dp),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -481,8 +686,8 @@ private fun Onboarding(
             modifier = Modifier.fillMaxWidth(),
             value = tenantCode,
             onValueChange = onTenantCode,
-            label = { Text("Restaurant code") },
-            placeholder = { Text("your-restaurant") },
+            label = { Text("Restaurant code or PayMyDine URL") },
+            placeholder = { Text("tommo") },
             singleLine = true,
         )
 
@@ -509,8 +714,9 @@ private fun Onboarding(
         ) {
             Text(
                 when (pairingStatus) {
-                    "Opening PayMyDine security..." ->
-                        "Complete the secure step in your browser. PayMyDine will return here automatically."
+                    "Opening PayMyDine security...",
+                    "Waiting for browser approval" ->
+                        "Finish PayMyDine sign-in in the browser, then tap Connect device. You may return to this app at any time; it checks approval automatically."
                     "Finishing secure pairing..." ->
                         "Connecting this tablet…"
                     "Finishing secure setup..." ->
