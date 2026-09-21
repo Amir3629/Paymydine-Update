@@ -32,10 +32,27 @@ class MainActivity : ComponentActivity() {
             intent?.action == Intent.ACTION_MAIN ||
                 intent?.action.isNullOrBlank()
 
-        if (paired && normalLauncherOpen) {
+        if (
+            paired &&
+            normalLauncherOpen &&
+            app.bootstrapRepository.hasBootstrap()
+        ) {
+            val destination =
+                if (app.connectivity.online.value) {
+                    PosActivity::class.java
+                } else {
+                    OfflinePosActivity::class.java
+                }
+
             startActivity(
-                Intent(this, PosActivity::class.java).apply {
+                Intent(this, destination).apply {
                     addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                    if (destination == OfflinePosActivity::class.java) {
+                        putExtra(
+                            OfflinePosActivity.EXTRA_REASON,
+                            "Cloud is unavailable. Using the last trusted restaurant data.",
+                        )
+                    }
                 },
             )
             finish()
