@@ -4,7 +4,7 @@ set -Eeuo pipefail
 PMD_ROOT="${PMD_ROOT:-/var/www/paymydine}"
 PMD_HOST="${PMD_HOST:-tomo.paymydine.com}"
 BASE_COMMIT="${BASE_COMMIT:-0ed06393933ebe5bbac0961c70f493c189cc4c1d}"
-TARGET_COMMIT="${TARGET_COMMIT:-91b164e0453c5146f4b2ee104398106013ba022a}"
+TARGET_COMMIT="${TARGET_COMMIT:-afd6721e6380832befee9f41fec7c9aad5036110}"
 
 log(){ printf '\n[PMD POS V9] %s\n' "$*"; }
 warn(){ printf '\n[PMD POS V9][WARN] %s\n' "$*" >&2; }
@@ -19,6 +19,7 @@ GIT=(git -c "safe.directory=$PMD_ROOT" -C "$PMD_ROOT")
 MERGE_FILES=(
   "routes/pmd-mobile-sync-v1.php"
   "app/Services/PmdSiteAccessWorkspaceGateService.php"
+  "app/Http/Middleware/PmdSiteAccessGateMiddleware.php"
 )
 NEW_FILE="app/Http/Controllers/PmdMobilePosSessionController.php"
 
@@ -117,6 +118,8 @@ done < <(find "$STAGE/tree" -type f -name '*.php' -print0)
 grep -q "mobile/pos/open" "$STAGE/tree/routes/pmd-mobile-sync-v1.php"   || fail "mobile/pos/open route missing."
 grep -q "PMD_MOBILE_POS_WEB_SESSION_V1" "$STAGE/tree/$NEW_FILE"   || fail "POS web session controller marker missing."
 grep -q "PMD_MOBILE_OWNER_POS_SESSION_V1"   "$STAGE/tree/app/Services/PmdSiteAccessWorkspaceGateService.php"   || fail "Owner Android POS session gate marker missing."
+grep -q "PMD_MOBILE_ANDROID_SESSION_REVOCATION_V1"   "$STAGE/tree/app/Services/PmdSiteAccessWorkspaceGateService.php"   || fail "Android session revocation marker missing."
+grep -q "PMD_MOBILE_ANDROID_NO_BROWSER_TRUST_V1"   "$STAGE/tree/app/Http/Middleware/PmdSiteAccessGateMiddleware.php"   || fail "Android browser-trust isolation marker missing."
 
 log "Installing V9 files atomically..."
 for rel in "${MERGE_FILES[@]}" "$NEW_FILE"; do
@@ -193,6 +196,8 @@ Confirmed:
   /admin/mobile/pos/open reaches the mobile controller
   unauthenticated access fails 401
   no Admin Login redirect captures the endpoint
+  embedded POS sessions remain bound to the paired Android device
+  revocation fails closed and no second browser-trust credential is minted
 
 Android V0.2.0 uses this endpoint with its Keystore-backed bearer token,
 then redirects inside the app to the canonical:
