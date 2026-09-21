@@ -1,68 +1,51 @@
 package com.paymydine.mobile
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
+import android.webkit.JavascriptInterface
+import android.webkit.WebResourceRequest
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
 import com.paymydine.mobile.edge.EdgeRuntimeState
-import com.paymydine.mobile.network.TransportKind
-import com.paymydine.mobile.network.TransportRouter
 import com.paymydine.mobile.sync.SyncEngine
-import com.paymydine.mobile.ui.LocalPosScreen
-import com.paymydine.mobile.ui.PmdTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.json.JSONArray
+import org.json.JSONObject
 
 /**
- * PMD_ANDROID_OFFLINE_POS_V1
+ * PMD_ANDROID_OFFLINE_POS_V2_CANONICAL_UI
  *
- * Durable native fallback for restaurant operation when Cloud is unavailable.
- * The local screen reads the last trusted bootstrap from SQLite and writes
- * order mutations to the same durable outbox used by Cloud/Restaurant Edge.
+ * Offline POS uses the same pmd-qpos DOM/class contract and the exact canonical
+ * pmd-quick-pos-v1.css shipped by the web platform. Only the data/command
+ * transport changes: Cloud WebView online, SQLite/Restaurant Edge bridge
+ * offline. This prevents the offline product from becoming a second UI.
  *
- * Payments intentionally stay outside this offline surface: the server
- * bootstrap advertises offline_payment_enabled=false and no certified payment
- * command exists in pmd-sync-v1 yet.
+ * No device bearer token, username or password is exposed to JavaScript.
+ * Payments remain fail-closed and can only jump back to canonical Cloud POS.
  */
 class OfflinePosActivity : ComponentActivity() {
     private val app: PayMyDineApplication
         get() = application as PayMyDineApplication
 
+    private lateinit var webView: WebView
     private var sawOfflineSignal = false
     private var returningToCloud = false
 
+    @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        if (!app.bootstrapRepository.hasBootstrap()) {
+        if (
+            !app.bootstrapRepository.hasBootstrap() ||
+            !app.credentials.workspaceLeaseValid("pos")
+        ) {
             startActivity(
                 Intent(this, MainActivity::class.java).apply {
                     addFlags(
@@ -77,27 +60,60 @@ class OfflinePosActivity : ComponentActivity() {
 
         sawOfflineSignal = !app.connectivity.online.value
 
-        setContent {
-            OfflinePosShell(
-                app = app,
-                reason = intent.getStringExtra(EXTRA_REASON),
-                onTryCloud = ::returnToCloud,
-            )
+        webView = WebView(this).apply {
+            setBackgroundColor(android.graphics.Color.rgb(244, 246, 248))
+            settings.apply {
+                javaScriptEnabled = true
+                domStorageEnabled = false
+                databaseEnabled = false
+                allowFileAccess = true
+                allowContentAccess = false
+                blockNetworkLoads = true
+                javaScriptCanOpenWindowsAutomatically = false
+                setSupportMultipleWindows(false)
+            }
+            addJavascriptInterface(OfflineBridge(), "PayMyDineOffline")
+            webViewClient = object : WebViewClient() {
+                override fun shouldOverrideUrlLoading(
+                    view: WebView,
+                    request: WebResourceRequest,
+                ): Boolean {
+                    return !request.url.toString()
+                        .startsWith("file:///android_asset/")
+                }
+            }
+            loadUrl("file:///android_asset/pmd-offline-pos.html")
         }
+        setContentView(webView)
 
         SyncEngine.enqueueImmediate(app)
+        observeConnectivity()
+    }
 
+    override fun onDestroy() {
+        if (::webView.isInitialized) {
+            webView.removeJavascriptInterface("PayMyDineOffline")
+            webView.stopLoading()
+            webView.loadUrl("about:blank")
+            webView.removeAllViews()
+            webView.destroy()
+        }
+        super.onDestroy()
+    }
+
+    private fun observeConnectivity() {
         lifecycleScope.launch {
             app.connectivity.online.collectLatest { online ->
                 if (!online) {
                     sawOfflineSignal = true
+                    refreshWeb()
                     return@collectLatest
                 }
 
-                // Only auto-return after a real offline -> online transition.
-                // If WebView fell back because Cloud returned 5xx/SSL while the
-                // network stayed validated, remain safely local until the
-                // cashier explicitly taps "Try Cloud".
+                refreshWeb()
+
+                // Preserve the proven V15/V16 behavior: after a real WAN
+                // outage, drain local commands and return to canonical Cloud POS.
                 if (!sawOfflineSignal || returningToCloud) {
                     return@collectLatest
                 }
@@ -110,6 +126,16 @@ class OfflinePosActivity : ComponentActivity() {
         }
     }
 
+    private fun refreshWeb() {
+        if (!::webView.isInitialized || isFinishing || isDestroyed) return
+        webView.post {
+            webView.evaluateJavascript(
+                "if(window.pmdOfflineRefresh){window.pmdOfflineRefresh();}",
+                null,
+            )
+        }
+    }
+
     private fun returnToCloud() {
         if (returningToCloud || isFinishing || isDestroyed) return
         if (!app.connectivity.online.value) return
@@ -117,9 +143,7 @@ class OfflinePosActivity : ComponentActivity() {
         returningToCloud = true
         lifecycleScope.launch {
             withContext(Dispatchers.IO) {
-                runCatching {
-                    SyncEngine(app).runOnce()
-                }
+                runCatching { SyncEngine(app).runOnce() }
             }
 
             if (
@@ -142,158 +166,252 @@ class OfflinePosActivity : ComponentActivity() {
         }
     }
 
-    companion object {
-        const val EXTRA_REASON = "pmd.offline.reason"
-    }
-}
+    private inner class OfflineBridge {
+        @JavascriptInterface
+        fun snapshot(selectedTableId: String): String {
+            return runCatching {
+                val locationId = app.bootstrapRepository.locationId()
+                    ?: error("Restaurant snapshot is unavailable.")
+                val tables = app.localPosRepository.tables(locationId)
+                val menu = app.localPosRepository.menu(locationId)
+                val selected = selectedTableId
+                    .trim()
+                    .takeIf { id -> tables.any { it.id == id } }
+                    ?: tables.firstOrNull()?.id
+                val draft = selected?.let(app.localPosRepository::draftForTable)
+                val bill = selected?.let(app.localPosRepository::billForTable)
 
-@Composable
-private fun OfflinePosShell(
-    app: PayMyDineApplication,
-    reason: String?,
-    onTryCloud: () -> Unit,
-) {
-    val online by app.connectivity.online.collectAsState()
-    val discoveredEdge by app.edgeDiscovery.endpoint.collectAsState()
-    val localEdge by EdgeRuntimeState.state.collectAsState()
-    val router = remember { TransportRouter() }
-
-    var queued by remember {
-        mutableIntStateOf(app.syncRepository.outboxCount())
-    }
-
-    val pinned = app.credentials.edgeFingerprint()
-    val locationId = app.bootstrapRepository.locationId()
-        ?.toString()
-
-    val decision = router.decide(
-        cloudOnline = online,
-        edge = discoveredEdge,
-        pinnedEdgeFingerprint = pinned,
-        expectedSiteId = locationId,
-    )
-    val localEdgeTrusted =
-        localEdge.running &&
-            !localEdge.fingerprintSha256.isNullOrBlank() &&
-            !pinned.isNullOrBlank() &&
-            localEdge.fingerprintSha256.equals(
-                pinned,
-                ignoreCase = true,
-            )
-
-    val authorityLabel = when {
-        online ->
-            "Cloud connection available"
-        localEdgeTrusted || decision.kind == TransportKind.EDGE ->
-            "Restaurant Edge connected on local network"
-        else ->
-            "Offline on this tablet"
-    }
-
-    LaunchedEffect(Unit) {
-        while (isActive) {
-            queued = withContext(Dispatchers.IO) {
-                app.syncRepository.outboxCount()
-            }
-
-            // Keep looking for Cloud/Edge and drain the durable outbox while
-            // the native local POS remains open.
-            withContext(Dispatchers.IO) {
-                runCatching {
-                    SyncEngine(app).runOnce()
-                }
-            }
-            delay(5_000)
-        }
-    }
-
-    PmdTheme {
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-        ) {
-            Column(
-                modifier = Modifier.fillMaxSize(),
-            ) {
-                Surface(
-                    tonalElevation = 2.dp,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(
-                                horizontal = 14.dp,
-                                vertical = 9.dp,
-                            ),
-                        horizontalArrangement =
-                            Arrangement.SpaceBetween,
-                    ) {
-                        Row(
-                            modifier = Modifier.weight(1f),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        ) {
-                            Image(
-                                painter = painterResource(R.drawable.pmd_brand_mark),
-                                contentDescription = "PayMyDine",
-                                modifier = Modifier.size(34.dp),
-                            )
-                            Column {
-                                Text(
-                                    "PayMyDine Local POS",
-                                    style =
-                                        MaterialTheme.typography.titleMedium,
+                JSONObject()
+                    .put("ok", true)
+                    .put("location_name", app.bootstrapRepository.locationName().orEmpty())
+                    .put("staff_name", app.bootstrapRepository.staffName().orEmpty())
+                    .put("role_code", app.bootstrapRepository.roleCode().orEmpty())
+                    .put("selected_table_id", selected ?: JSONObject.NULL)
+                    .put(
+                        "selected_table_label",
+                        tables.firstOrNull { it.id == selected }?.label.orEmpty(),
+                    )
+                    .put("cloud_available", app.connectivity.online.value)
+                    .put("authority", authorityLabel())
+                    .put("queued", app.syncRepository.outboxCount())
+                    .put(
+                        "tables",
+                        JSONArray().apply {
+                            tables.forEach { table ->
+                                put(
+                                    JSONObject()
+                                        .put("id", table.id)
+                                        .put("number", table.number)
+                                        .put("label", table.label)
+                                        .put("status", table.status)
+                                        .put("status_label", statusLabel(table.status)),
                                 )
-                                Text(
-                                    buildString {
-                                        append(authorityLabel)
-                                        append(" · ")
-                                        append(queued)
-                                        append(
-                                            if (queued == 1) {
-                                                " queued command"
-                                            } else {
-                                                " queued commands"
-                                            },
+                            }
+                        },
+                    )
+                    .put(
+                        "menu",
+                        JSONArray().apply {
+                            menu.forEach { item ->
+                                put(
+                                    JSONObject()
+                                        .put("id", item.id)
+                                        .put("name", item.name)
+                                        .put("price_minor", item.priceMinor)
+                                        .put("currency", item.currency)
+                                        .put(
+                                            "category_id",
+                                            item.categoryId ?: JSONObject.NULL,
                                         )
-                                    },
-                                    style =
-                                        MaterialTheme.typography.bodySmall,
+                                        .put(
+                                            "payload",
+                                            runCatching {
+                                                JSONObject(item.payloadJson)
+                                            }.getOrElse { JSONObject() },
+                                        ),
                                 )
-                                if (!reason.isNullOrBlank()) {
-                                    Text(
-                                        reason,
-                                        style =
-                                            MaterialTheme.typography.bodySmall,
-                                    )
-                                }
-                                if (!online) {
-                                    Text(
-                                        "Orders are saved locally. Payments require Cloud.",
-                                        style =
-                                            MaterialTheme.typography.bodySmall,
-                                    )
-                                }
                             }
-                        }
+                        },
+                    )
+                    .put("draft", draft?.toJson() ?: JSONObject.NULL)
+                    .put(
+                        "bill",
+                        bill?.let {
+                            JSONObject()
+                                .put("status", it.status)
+                                .put("version", it.version)
+                                .put("base_total_minor", it.baseTotalMinor)
+                                .put("pending_total_minor", it.pendingTotalMinor)
+                                .put("currency", it.currency)
+                        } ?: JSONObject.NULL,
+                    )
+                    .toString()
+            }.getOrElse { errorJson(it) }
+        }
 
-                        if (online) {
-                            Button(
-                                onClick = onTryCloud,
-                            ) {
-                                Text("Try Cloud")
-                            }
-                        }
+        @JavascriptInterface
+        fun addItem(
+            tableId: String,
+            itemId: String,
+            optionIdsJson: String,
+            note: String,
+        ): String {
+            return action {
+                val locationId = app.bootstrapRepository.locationId()
+                    ?: error("Restaurant snapshot is unavailable.")
+                val options = JSONArray(optionIdsJson)
+                val ids = buildList {
+                    for (index in 0 until options.length()) {
+                        add(options.optLong(index))
                     }
                 }
-
-                LocalPosScreen(
-                    app = app,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .weight(1f),
+                app.localPosRepository.addItem(
+                    locationId = locationId,
+                    tableId = tableId,
+                    menuItemId = itemId,
+                    selectedOptionIds = ids,
+                    note = note,
                 )
+                "Item added."
             }
         }
+
+        @JavascriptInterface
+        fun changeQuantity(lineId: String, delta: Int): String =
+            action {
+                app.localPosRepository.changeQuantity(lineId, delta)
+                "Check updated."
+            }
+
+        @JavascriptInterface
+        fun setDraftMeta(
+            localOrderId: String,
+            guestCount: Int,
+            note: String,
+        ): String =
+            action {
+                app.localPosRepository.setDraftMeta(
+                    localOrderId,
+                    guestCount,
+                    note,
+                )
+                "Check updated."
+            }
+
+        @JavascriptInterface
+        fun queueOrder(tableId: String, hold: Boolean): String =
+            action {
+                val draft = app.localPosRepository.draftForTable(tableId)
+                    ?: error("Add items first.")
+                val host = app.credentials.tenantHost()
+                    ?: error("Pair this device first.")
+                val deviceId = app.credentials.deviceId()
+                    ?: error("Pair this device first.")
+
+                val command = app.localPosRepository.buildSendCommand(
+                    draft = draft,
+                    tenantHost = host,
+                    deviceId = deviceId,
+                    staffId = null,
+                    userId = null,
+                    hold = hold,
+                )
+                check(app.syncRepository.enqueue(command)) {
+                    "This exact command is already queued."
+                }
+                app.localPosRepository.markQueued(draft.localId)
+                SyncEngine.enqueueImmediate(app)
+
+                if (hold) {
+                    "Order saved to durable outbox."
+                } else {
+                    "Order queued safely."
+                }
+            }
+
+        @JavascriptInterface
+        fun syncNow(): String =
+            action {
+                SyncEngine.enqueueImmediate(app)
+                "Sync requested."
+            }
+
+        @JavascriptInterface
+        fun tryCloud() {
+            runOnUiThread { returnToCloud() }
+        }
+
+        @JavascriptInterface
+        fun workspaces() {
+            runOnUiThread { finish() }
+        }
+
+        private fun action(block: () -> String): String =
+            runCatching {
+                JSONObject()
+                    .put("ok", true)
+                    .put("message", block())
+                    .toString()
+            }.getOrElse { errorJson(it) }
+    }
+
+    private fun com.paymydine.mobile.data.local.DraftOrder.toJson(): JSONObject =
+        JSONObject()
+            .put("local_id", localId)
+            .put("status", status)
+            .put("guest_count", guestCount)
+            .put("note", note)
+            .put("currency", currency)
+            .put("total_minor", totalMinor)
+            .put(
+                "lines",
+                JSONArray().apply {
+                    lines.forEach { line ->
+                        put(
+                            JSONObject()
+                                .put("line_id", line.lineId)
+                                .put("item_id", line.itemId)
+                                .put("name", line.name)
+                                .put("quantity", line.quantity)
+                                .put("unit_price_minor", line.unitPriceMinor)
+                                .put("note", line.note)
+                                .put("option_ids", JSONArray(line.optionIds)),
+                        )
+                    }
+                },
+            )
+
+    private fun authorityLabel(): String {
+        val edge = EdgeRuntimeState.state.value
+        val pinned = app.credentials.edgeFingerprint()
+        val trustedLocalEdge =
+            edge.running &&
+                !edge.fingerprintSha256.isNullOrBlank() &&
+                !pinned.isNullOrBlank() &&
+                edge.fingerprintSha256.equals(pinned, ignoreCase = true)
+
+        return when {
+            app.connectivity.online.value -> "Cloud available"
+            trustedLocalEdge -> "Restaurant Edge"
+            else -> "Offline on this tablet"
+        }
+    }
+
+    private fun statusLabel(status: String): String =
+        when (status.lowercase()) {
+            "occupied" -> "Busy"
+            "reserved" -> "Reserved"
+            "cleaning" -> "Clean"
+            else -> "Free"
+        }
+
+    private fun errorJson(error: Throwable): String =
+        JSONObject()
+            .put("ok", false)
+            .put("message", error.message ?: "Local POS action failed.")
+            .toString()
+
+    companion object {
+        const val EXTRA_REASON = "pmd.offline.reason"
     }
 }
