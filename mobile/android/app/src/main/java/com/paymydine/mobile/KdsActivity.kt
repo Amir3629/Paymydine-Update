@@ -1,5 +1,6 @@
 package com.paymydine.mobile
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -35,6 +36,7 @@ import com.paymydine.mobile.ui.PmdTheme
 class KdsActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val app = application as PayMyDineApplication
 
         // PMD_ANDROID_WORKSPACE_ACTIVITY_GATE_V1
         if (!app.credentials.workspaceLeaseValid("kds")) {
@@ -49,7 +51,6 @@ class KdsActivity : ComponentActivity() {
             finish()
             return
         }
-        val app = application as PayMyDineApplication
 
         setContent {
             PmdTheme {
