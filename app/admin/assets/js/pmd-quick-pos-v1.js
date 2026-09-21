@@ -4891,6 +4891,10 @@ function renderOpenChecks() {
       return;
     }
 
+    if (payload.tip_amount === null || payload.tip_amount === '') {
+      return;
+    }
+
     var tip = Number(payload.tip_amount);
     if (!Number.isFinite(tip) || tip < 0) return;
 
