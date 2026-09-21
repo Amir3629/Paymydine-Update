@@ -17,7 +17,9 @@
         android:name=".PayMyDineApplication"
         android:allowBackup="false"
         android:fullBackupContent="false"
-        android:label="PayMyDine POS"
+        android:label="PayMyDine"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:usesCleartextTraffic="false"
         android:hardwareAccelerated="true"
@@ -35,6 +37,16 @@
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
+
+        <activity
+            android:name=".KdsActivity"
+            android:exported="false"
+            android:screenOrientation="sensorLandscape" />
+
+        <activity
+            android:name=".ReservationsActivity"
+            android:exported="false"
+            android:screenOrientation="sensorLandscape" />
 
         <activity
             android:name=".OfflinePosActivity"
