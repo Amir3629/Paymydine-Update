@@ -422,6 +422,7 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                                                             <input
                                                                 type="text"
                                                                 name="google_business[client_id]"
+                                                                form="pmd-restaurant-profile-form"
                                                                 value="{{ $googleBusiness['client_id'] ?? '' }}"
                                                                 placeholder="123456789.apps.googleusercontent.com"
                                                                 maxlength="500"
@@ -434,6 +435,7 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                                                             <input
                                                                 type="password"
                                                                 name="google_business[client_secret]"
+                                                                form="pmd-restaurant-profile-form"
                                                                 value=""
                                                                 placeholder="{{ !empty($googleBusiness['client_secret_set']) ? $pmdSettingsText('Saved — leave blank to keep') : $pmdSettingsText('Enter client secret') }}"
                                                                 maxlength="1000"
@@ -449,6 +451,7 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                                                             <input
                                                                 type="password"
                                                                 name="google_business[places_api_key]"
+                                                                form="pmd-restaurant-profile-form"
                                                                 value=""
                                                                 placeholder="{{ !empty($googleBusiness['places_api_key_set']) ? $pmdSettingsText('Saved — leave blank to keep') : $pmdSettingsText('Enter Places API key') }}"
                                                                 maxlength="1000"
@@ -487,6 +490,7 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                                                             <input
                                                                 type="text"
                                                                 name="google_business[pubsub_topic]"
+                                                                form="pmd-restaurant-profile-form"
                                                                 value="{{ $googleBusiness['pubsub_topic'] ?? '' }}"
                                                                 placeholder="projects/PROJECT_ID/topics/paymydine-reviews"
                                                                 maxlength="500"
@@ -499,6 +503,7 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                                                             <input
                                                                 type="password"
                                                                 name="google_business[pubsub_token]"
+                                                                form="pmd-restaurant-profile-form"
                                                                 value=""
                                                                 placeholder="{{ !empty($googleBusiness['pubsub_token_set']) ? $pmdSettingsText('Saved — leave blank to keep') : $pmdSettingsText('Enter a long random token') }}"
                                                                 maxlength="1000"
@@ -623,6 +628,14 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                                         var modal = document.querySelector('[data-pmd-google-business-modal-v7]');
                                         var opener = document.querySelector('[data-pmd-google-business-open-v7]');
                                         if (!modal || !opener || modal.dataset.pmdBoundV7 === '1') return;
+
+                                        // Provider modals must live directly under <body>. Keeping a
+                                        // fixed modal inside the Restaurant Settings card makes it
+                                        // inherit that card's clipping/containing block and breaks the
+                                        // full-screen backdrop and dialog width.
+                                        if (modal.parentNode !== document.body) {
+                                            document.body.appendChild(modal);
+                                        }
 
                                         modal.dataset.pmdBoundV7 = '1';
                                         var previousBodyOverflow = '';
