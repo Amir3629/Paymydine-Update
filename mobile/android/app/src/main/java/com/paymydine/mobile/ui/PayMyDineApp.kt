@@ -3,12 +3,14 @@ package com.paymydine.mobile.ui
 import android.app.Activity
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -27,10 +29,15 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.paymydine.mobile.KdsActivity
 import com.paymydine.mobile.OfflinePosActivity
 import com.paymydine.mobile.PayMyDineApplication
 import com.paymydine.mobile.PosActivity
+import com.paymydine.mobile.R
+import com.paymydine.mobile.ReservationsActivity
 import com.paymydine.mobile.data.local.BootstrapSummary
 import com.paymydine.mobile.edge.EdgeRuntimeState
 import com.paymydine.mobile.edge.EdgeService
@@ -90,6 +97,7 @@ fun PayMyDineApp(app: PayMyDineApplication) {
     }
     var bootstrapSummary by remember { mutableStateOf<BootstrapSummary?>(null) }
     var lastError by remember { mutableStateOf<String?>(null) }
+    var pairingCode by remember { mutableStateOf<String?>(null) }
     var paired by remember {
         mutableStateOf(
             !app.credentials.deviceToken().isNullOrBlank()
@@ -205,23 +213,6 @@ fun PayMyDineApp(app: PayMyDineApplication) {
     } else {
         emptySet()
     }
-    val canManageEdge = "manager" in surfaces
-    val availableWorkspaces = buildList {
-        if ("pos" in surfaces || "waiter" in surfaces) add("pos")
-        if ("kds" in surfaces) add("kds")
-    }.ifEmpty { listOf("pos") }
-    var activeWorkspace by remember(ready, surfaces) {
-        mutableStateOf(
-            if (availableWorkspaces.size == 1) {
-                availableWorkspaces.first()
-            } else if ("pos" in availableWorkspaces) {
-                "pos"
-            } else {
-                availableWorkspaces.first()
-            },
-        )
-    }
-
     LaunchedEffect(online, ready, pairingAttempt) {
         if (
             ready ||
@@ -263,6 +254,10 @@ fun PayMyDineApp(app: PayMyDineApplication) {
                 }
             }.getOrNull()
 
+            status?.requestCode?.let {
+                pairingCode = it
+            }
+
             when (status?.status) {
                 "approved" -> {
                     pairingStatus = "Finishing secure pairing..."
@@ -279,6 +274,7 @@ fun PayMyDineApp(app: PayMyDineApplication) {
                             .orEmpty()
                         bootstrapSummary = summary
                         pairingAttempt = ""
+                        pairingCode = null
                         pairingStatus = "Ready offline"
                         ready = true
                         SyncEngine.enqueueImmediate(app)
@@ -314,10 +310,21 @@ fun PayMyDineApp(app: PayMyDineApplication) {
                     if (app.credentials.deviceToken().isNullOrBlank()) {
                         app.credentials.clearPairingAttempt()
                         pairingAttempt = ""
+                        pairingCode = null
                         pairingStatus = "Pairing expired"
                         lastError =
                             "This connection request was already used. Tap Connect again."
                     }
+                    return@LaunchedEffect
+                }
+
+                "declined" -> {
+                    app.credentials.clearPairingAttempt()
+                    pairingAttempt = ""
+                    pairingCode = null
+                    pairingStatus = "Pairing declined"
+                    lastError =
+                        "The restaurant declined this Android connection. Tap Connect to request again."
                     return@LaunchedEffect
                 }
             }
@@ -440,39 +447,45 @@ fun PayMyDineApp(app: PayMyDineApplication) {
         }
     }
 
-    MaterialTheme {
-        Surface(Modifier.fillMaxSize()) {
+    PmdTheme {
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = PmdBackground,
+        ) {
             if (paired && ready) {
-                // PMD_ANDROID_POS_ACTIVITY_LAUNCH_V9
-                // Pairing/bootstrap stays in Compose. Once the durable local
-                // snapshot exists, validated Cloud opens the canonical WebView
-                // POS and WAN loss opens the native SQLite POS instead.
-                LaunchedEffect(online) {
-                    val destination =
-                        if (online) {
-                            PosActivity::class.java
-                        } else {
-                            OfflinePosActivity::class.java
-                        }
-
-                    context.startActivity(
-                        Intent(context, destination).apply {
-                            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                            if (destination == OfflinePosActivity::class.java) {
-                                putExtra(
-                                    OfflinePosActivity.EXTRA_REASON,
-                                    "Cloud is unavailable. Using the last trusted restaurant data.",
-                                )
+                // PMD_ANDROID_WORKSPACE_HUB_V1
+                PmdWorkspaceHome(
+                    app = app,
+                    surfaces = surfaces,
+                    online = online,
+                    runtimeKind = runtimeKind,
+                    onOpenPos = {
+                        val destination =
+                            if (online) {
+                                PosActivity::class.java
+                            } else {
+                                OfflinePosActivity::class.java
                             }
-                        },
-                    )
-                    (context as? Activity)?.finish()
-                }
-                Text(
-                    if (online) {
-                        "Opening PayMyDine POS..."
-                    } else {
-                        "Opening PayMyDine Local POS..."
+                        context.startActivity(
+                            Intent(context, destination).apply {
+                                if (destination == OfflinePosActivity::class.java) {
+                                    putExtra(
+                                        OfflinePosActivity.EXTRA_REASON,
+                                        "Cloud is unavailable. Using the last trusted restaurant data.",
+                                    )
+                                }
+                            },
+                        )
+                    },
+                    onOpenKds = {
+                        context.startActivity(
+                            Intent(context, KdsActivity::class.java),
+                        )
+                    },
+                    onOpenReservations = {
+                        context.startActivity(
+                            Intent(context, ReservationsActivity::class.java),
+                        )
                     },
                 )
             } else if (paired) {
@@ -482,17 +495,26 @@ fun PayMyDineApp(app: PayMyDineApplication) {
                         .padding(28.dp),
                     verticalArrangement = Arrangement.Center,
                 ) {
+                    Image(
+                        painter = painterResource(R.drawable.pmd_brand_mark),
+                        contentDescription = "PayMyDine",
+                        modifier = Modifier.size(58.dp),
+                    )
                     Text(
-                        "Preparing offline POS",
+                        "Preparing PayMyDine",
+                        modifier = Modifier.padding(top = 16.dp),
+                        color = PmdDeepGreen,
+                        fontWeight = FontWeight.Black,
                         style = MaterialTheme.typography.headlineSmall,
                     )
                     Text(
                         if (online) {
-                            "Downloading the restaurant menu, tables and open bills for secure local use."
+                            "Downloading the restaurant menu, tables, open bills and operational data for secure local use."
                         } else {
                             "Connect this tablet to the internet once so PayMyDine can download the trusted restaurant snapshot."
                         },
                         modifier = Modifier.padding(top = 10.dp),
+                        color = PmdMuted,
                     )
                     lastError?.let {
                         Text(
@@ -510,6 +532,7 @@ fun PayMyDineApp(app: PayMyDineApplication) {
                     },
                     online = online,
                     pairingStatus = pairingStatus,
+                    pairingCode = pairingCode,
                     lastError = lastError,
                     onConnect = {
                         val code = normalizeTenantCode(tenantCode)
@@ -526,6 +549,7 @@ fun PayMyDineApp(app: PayMyDineApplication) {
                             val requestId = UUID.randomUUID().toString()
 
                             tenantCode = code
+                            pairingCode = null
                             app.credentials.setTenantHost(host)
                             app.credentials.putPairingVerifier(verifier)
                             app.credentials.setPairingRequest(requestId)
@@ -544,6 +568,10 @@ fun PayMyDineApp(app: PayMyDineApplication) {
                                     "pair_request",
                                     requestId,
                                 )
+                                .appendQueryParameter(
+                                    "device_name",
+                                    "PayMyDine Android Tablet",
+                                )
                                 .build()
 
                             runCatching {
@@ -553,9 +581,10 @@ fun PayMyDineApp(app: PayMyDineApplication) {
                             }.onFailure {
                                 app.credentials.clearPairingAttempt()
                                 pairingAttempt = ""
+                                pairingCode = null
                                 pairingStatus = "Pairing failed"
                                 lastError =
-                                    "No browser is available for secure login."
+                                    "No browser is available for secure PayMyDine sign-in."
                             }
                         }
                     },
@@ -563,7 +592,6 @@ fun PayMyDineApp(app: PayMyDineApplication) {
             }
         }
     }
-
 }
 
 internal fun normalizeTenantCode(raw: String): String? {
@@ -593,6 +621,7 @@ private fun Onboarding(
     onTenantCode: (String) -> Unit,
     online: Boolean,
     pairingStatus: String,
+    pairingCode: String?,
     lastError: String?,
     onConnect: () -> Unit,
 ) {
@@ -600,25 +629,45 @@ private fun Onboarding(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 28.dp, vertical = 34.dp),
+            .padding(horizontal = 30.dp, vertical = 34.dp),
         verticalArrangement = Arrangement.Center,
     ) {
+        Row(
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Image(
+                painter = painterResource(R.drawable.pmd_brand_mark),
+                contentDescription = "PayMyDine",
+                modifier = Modifier.size(62.dp),
+            )
+            Column {
+                Text(
+                    "PayMyDine",
+                    color = PmdDeepGreen,
+                    fontWeight = FontWeight.Black,
+                    style = MaterialTheme.typography.headlineMedium,
+                )
+                Text(
+                    "Restaurant Operations",
+                    color = PmdMuted,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+        }
+
         Text(
-            "PayMyDine",
-            style = MaterialTheme.typography.headlineLarge,
+            "Connect this Android device",
+            modifier = Modifier.padding(top = 28.dp),
+            color = PmdText,
+            fontWeight = FontWeight.Black,
+            style = MaterialTheme.typography.headlineSmall,
         )
         Text(
-            "Connect this tablet",
-            modifier = Modifier.padding(top = 6.dp),
-            style = MaterialTheme.typography.titleLarge,
-        )
-        Text(
-            "Restaurant code is the part before .paymydine.com. " +
-                "For example, if your URL is tommo.paymydine.com, enter tommo. " +
-                "You can also paste the full PayMyDine URL.",
-            modifier = Modifier.padding(top = 10.dp, bottom = 26.dp),
+            "Enter the restaurant code. PayMyDine will use the normal Login/MFA flow, then send a connection request to the small security icon on a trusted Cashier, Manager or Owner dashboard.",
+            modifier = Modifier.padding(top = 8.dp, bottom = 22.dp),
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = PmdMuted,
         )
 
         OutlinedTextField(
@@ -626,7 +675,7 @@ private fun Onboarding(
             value = tenantCode,
             onValueChange = onTenantCode,
             label = { Text("Restaurant code or PayMyDine URL") },
-            placeholder = { Text("tommo") },
+            placeholder = { Text("tomo") },
             singleLine = true,
         )
 
@@ -637,13 +686,52 @@ private fun Onboarding(
             enabled = tenantCode.isNotBlank() && online,
             onClick = onConnect,
         ) {
-            Text("Connect")
+            Text("Connect to restaurant")
+        }
+
+        pairingCode?.let { raw ->
+            val digits = raw.filter(Char::isDigit).take(6)
+            if (digits.length == 6) {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 18.dp),
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(18.dp),
+                    color = PmdSurfaceSoft,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, PmdLine),
+                ) {
+                    Column(
+                        modifier = Modifier.padding(18.dp),
+                        horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
+                    ) {
+                        Text(
+                            "CONNECTION CODE",
+                            color = PmdMuted,
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                        Text(
+                            digits.take(3) + " " + digits.drop(3),
+                            modifier = Modifier.padding(top = 7.dp),
+                            color = PmdDeepGreen,
+                            fontWeight = FontWeight.Black,
+                            style = MaterialTheme.typography.headlineLarge,
+                        )
+                        Text(
+                            "Match this code on the bottom-right approval card in PayMyDine.",
+                            modifier = Modifier.padding(top = 8.dp),
+                            color = PmdMuted,
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                }
+            }
         }
 
         if (!online) {
             Text(
-                "Internet is required for the first connection.",
-                modifier = Modifier.padding(top = 12.dp),
+                "Internet is required only for the first secure connection.",
+                modifier = Modifier.padding(top = 14.dp),
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodySmall,
             )
@@ -653,17 +741,18 @@ private fun Onboarding(
         ) {
             Text(
                 when (pairingStatus) {
-                    "Opening PayMyDine security...",
+                    "Opening PayMyDine security..." ->
+                        "Complete PayMyDine sign-in in the browser."
                     "Waiting for browser approval" ->
-                        "Finish PayMyDine sign-in in the browser, then tap Connect device. You may return to this app at any time; it checks approval automatically."
+                        "Waiting for a Cashier, Manager or Owner to approve this Android device from the PayMyDine security icon."
                     "Finishing secure pairing..." ->
-                        "Connecting this tablet…"
+                        "Restaurant approval received. Securing this device…"
                     "Finishing secure setup..." ->
                         "Preparing restaurant data for offline use…"
                     else -> pairingStatus
                 },
-                modifier = Modifier.padding(top = 12.dp),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 14.dp),
+                color = PmdMuted,
                 style = MaterialTheme.typography.bodySmall,
             )
         }
@@ -678,4 +767,3 @@ private fun Onboarding(
         }
     }
 }
-
