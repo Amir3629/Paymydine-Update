@@ -25,16 +25,27 @@ final class PmdMobilePairingService
     {
         $host = strtolower((string)$request->getHost());
         $providedChallenge = trim((string)$request->query('code_challenge', ''));
+        $providedRequest = strtolower(trim((string)$request->query('pair_request', '')));
+
+        if ($providedRequest !== '' && !$this->validPairRequest($providedRequest)) {
+            throw new \InvalidArgumentException(
+                'A valid Android pair_request is required.'
+            );
+        }
+
         $existing = (array)session()->get(self::SESSION_INTENT, []);
         $existingCreated = (int)($existing['created_at'] ?? 0);
         $existingHost = strtolower(trim((string)($existing['host'] ?? '')));
         $existingChallenge = trim((string)($existing['code_challenge'] ?? ''));
+        $existingRequest = strtolower(trim((string)($existing['pair_request'] ?? '')));
 
         $reuseExisting = $providedChallenge === ''
+            && $providedRequest === ''
             && $existingCreated > time() - 900
             && $existingHost !== ''
             && hash_equals($existingHost, $host)
-            && $this->validCodeChallenge($existingChallenge);
+            && $this->validCodeChallenge($existingChallenge)
+            && $this->validPairRequest($existingRequest);
 
         $codeChallenge = $reuseExisting
             ? $existingChallenge
@@ -46,12 +57,17 @@ final class PmdMobilePairingService
             );
         }
 
+        $pairRequest = $reuseExisting
+            ? $existingRequest
+            : ($providedRequest !== '' ? $providedRequest : (string)Str::uuid());
+
         session()->put(self::SESSION_INTENT, [
             'host' => $host,
             // Do not let the post-login continuation extend the original
             // pairing intent forever.
             'created_at' => $reuseExisting ? $existingCreated : time(),
             'code_challenge' => $codeChallenge,
+            'pair_request' => $pairRequest,
         ]);
     }
 
@@ -61,11 +77,13 @@ final class PmdMobilePairingService
         $created = (int)($intent['created_at'] ?? 0);
         $host = strtolower(trim((string)($intent['host'] ?? '')));
         $codeChallenge = trim((string)($intent['code_challenge'] ?? ''));
+        $pairRequest = strtolower(trim((string)($intent['pair_request'] ?? '')));
 
         return $created > time() - 900
             && $host !== ''
             && hash_equals($host, strtolower((string)$request->getHost()))
-            && $this->validCodeChallenge($codeChallenge);
+            && $this->validCodeChallenge($codeChallenge)
+            && $this->validPairRequest($pairRequest);
     }
 
     public function start(Request $request): string
@@ -140,9 +158,10 @@ final class PmdMobilePairingService
         $identity = $site->identity();
         $intent = (array)session()->get(self::SESSION_INTENT, []);
         $codeChallenge = trim((string)($intent['code_challenge'] ?? ''));
+        $pairRequest = strtolower(trim((string)($intent['pair_request'] ?? '')));
         $deviceId = (int)session()->pull(PmdSiteAccessService::SESSION_LAST_PAIRED_DEVICE, 0);
 
-        if (!$this->validCodeChallenge($codeChallenge)) {
+        if (!$this->validCodeChallenge($codeChallenge) || !$this->validPairRequest($pairRequest)) {
             throw new \RuntimeException(
                 'The Android pairing challenge expired. Start again from the app.'
             );
@@ -164,8 +183,15 @@ final class PmdMobilePairingService
             throw new \RuntimeException('The approved mobile device no longer matches this account.');
         }
 
-        $rawExchange = bin2hex(random_bytes(32));
-        $publicId = (string)Str::uuid();
+        // The raw exchange is deterministic from the app-owned request id and
+        // PKCE challenge. It is never stored in plaintext. This lets the Android
+        // app recover the approved exchange by polling when a browser blocks the
+        // custom-scheme callback.
+        $rawExchange = $this->pairExchangeSecret(
+            $pairRequest,
+            $codeChallenge
+        );
+        $publicId = $pairRequest;
 
         DB::transaction(function () use (
             $identity,
@@ -182,26 +208,96 @@ final class PmdMobilePairingService
                     'updated_at' => now(),
                 ]);
 
-            DB::table('pmd_mobile_pair_exchanges')->insert([
-                'public_id' => $publicId,
-                'exchange_hash' => $this->exchangeHash(
-                    $rawExchange,
-                    $codeChallenge
-                ),
-                'location_id' => (int)$identity['location_id'],
-                'device_id' => $deviceId,
-                'user_id' => (int)$identity['user_id'] ?: null,
-                'staff_id' => (int)$identity['staff_id'] ?: null,
-                'expires_at' => now()->addSeconds(self::EXCHANGE_TTL_SECONDS),
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+            DB::table('pmd_mobile_pair_exchanges')->updateOrInsert(
+                ['public_id' => $publicId],
+                [
+                    'exchange_hash' => $this->exchangeHash(
+                        $rawExchange,
+                        $codeChallenge
+                    ),
+                    'location_id' => (int)$identity['location_id'],
+                    'device_id' => $deviceId,
+                    'user_id' => (int)$identity['user_id'] ?: null,
+                    'staff_id' => (int)$identity['staff_id'] ?: null,
+                    'expires_at' => now()->addSeconds(self::EXCHANGE_TTL_SECONDS),
+                    'used_at' => null,
+                    'updated_at' => now(),
+                    'created_at' => now(),
+                ]
+            );
         });
 
         session()->forget(self::SESSION_INTENT);
 
         return 'paymydine://pair?exchange='.rawurlencode($rawExchange)
-            .'&tenant='.rawurlencode('https://'.$request->getHost());
+            .'&tenant='.rawurlencode('https://'.$request->getHost())
+            .'&pair_request='.rawurlencode($publicId);
+    }
+
+    public function status(
+        Request $request,
+        string $pairRequest,
+        string $codeVerifier
+    ): array {
+        try {
+            $this->ensureMobileSyncStorage();
+        } catch (\Throwable $error) {
+            report($error);
+            abort(503, 'PayMyDine mobile pairing storage is not ready.');
+        }
+
+        $pairRequest = strtolower(trim($pairRequest));
+        $codeVerifier = trim($codeVerifier);
+
+        if (!$this->validPairRequest($pairRequest)) {
+            abort(422, 'The PayMyDine pair_request is not valid.');
+        }
+        if (!preg_match('/^[A-Za-z0-9._~-]{43,128}$/', $codeVerifier)) {
+            abort(422, 'The PayMyDine pairing code_verifier is not valid.');
+        }
+
+        $codeChallenge = $this->codeChallengeFromVerifier($codeVerifier);
+        $rawExchange = $this->pairExchangeSecret(
+            $pairRequest,
+            $codeChallenge
+        );
+
+        $exchange = DB::table('pmd_mobile_pair_exchanges')
+            ->where('public_id', $pairRequest)
+            ->where(
+                'exchange_hash',
+                $this->exchangeHash($rawExchange, $codeChallenge)
+            )
+            ->first();
+
+        if (!$exchange) {
+            return [
+                'ok' => true,
+                'status' => 'pending',
+            ];
+        }
+
+        if ($exchange->used_at) {
+            return [
+                'ok' => true,
+                'status' => 'used',
+            ];
+        }
+
+        if (now()->greaterThanOrEqualTo($exchange->expires_at)) {
+            return [
+                'ok' => true,
+                'status' => 'expired',
+            ];
+        }
+
+        return [
+            'ok' => true,
+            'status' => 'approved',
+            'exchange' => $rawExchange,
+            'tenant' => 'https://'.$request->getHost(),
+            'expires_at' => (string)$exchange->expires_at,
+        ];
     }
 
     public function exchange(
@@ -360,6 +456,25 @@ final class PmdMobilePairingService
                 );
             }
         }
+    }
+
+    private function pairExchangeSecret(
+        string $pairRequest,
+        string $codeChallenge
+    ): string {
+        return hash_hmac(
+            'sha256',
+            'mobile-pair-secret|'.$pairRequest.'|'.$codeChallenge,
+            (string)config('app.key', 'pmd-mobile-pairing')
+        );
+    }
+
+    private function validPairRequest(string $value): bool
+    {
+        return (bool)preg_match(
+            '/^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/',
+            strtolower(trim($value))
+        );
     }
 
     private function exchangeHash(
