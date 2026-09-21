@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Admin\Facades\AdminAuth;
 use Admin\Services\PmdDefaultStaffRoleService;
 use App\Services\PmdOwnerTotpService;
+use App\Services\PmdMobileSync\PmdMobilePairingService;
 use App\Services\PmdSiteAccessService;
 use App\Services\PmdSiteAccessSessionBindingService;
 use App\Services\PmdTrustedLoginDeviceService;
@@ -117,6 +118,25 @@ class PmdFirstWorkplaceDeviceController
 
     private function target(PmdDefaultStaffRoleService $roles, ?string $role): string
     {
+        // PMD_MOBILE_PAIR_FIRST_OWNER_RESUME_V1
+        // When Android pairing triggered the Owner's first-ever restaurant
+        // security bootstrap, activating this browser as the first workplace
+        // device must resume the pairing request instead of dropping the Owner
+        // on the normal role dashboard.
+        try {
+            if (
+                app(PmdMobilePairingService::class)
+                    ->hasFreshIntent(request())
+            ) {
+                return admin_url('mobile/pair/start');
+            }
+        } catch (\Throwable $error) {
+            logger()->warning(
+                'PMD first workplace mobile pairing resume check failed',
+                ['message' => $error->getMessage()]
+            );
+        }
+
         $destination = (string)session()->get(
             PmdSiteAccessService::SESSION_DESTINATION,
             'workspace'
