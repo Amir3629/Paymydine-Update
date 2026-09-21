@@ -861,6 +861,7 @@ private fun Onboarding(
     }
 }
 
+// PMD_ANDROID_PREPAIR_WORKSPACE_CHOOSER_V2
 @Composable
 private fun PairWorkspaceChooser(
     onWorkspace: (String) -> Unit,
