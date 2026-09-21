@@ -25,6 +25,11 @@ data class PairStatusResult(
 data class WorkspaceAuthorizationResult(
     val surface: String,
     val username: String,
+    val staffName: String,
+    val userId: Long,
+    val staffId: Long,
+    val roleCode: String,
+    val route: String,
     val leaseExpiresAt: Long,
 )
 
@@ -156,12 +161,47 @@ class MobileApiClient {
         require(normalizedSurface in setOf("pos", "kds", "reservations")) {
             "Unsupported PayMyDine workspace."
         }
+        return authorizeStaffInternal(
+            tenantHost = tenantHost,
+            deviceToken = deviceToken,
+            surface = normalizedSurface,
+            username = username,
+            password = password,
+        ).also {
+            require(it.surface == normalizedSurface) {
+                "Workspace authorization response is incomplete."
+            }
+        }
+    }
 
+    fun authorizeStaff(
+        tenantHost: String,
+        deviceToken: String,
+        username: String,
+        password: String,
+    ): WorkspaceAuthorizationResult =
+        authorizeStaffInternal(
+            tenantHost = tenantHost,
+            deviceToken = deviceToken,
+            surface = null,
+            username = username,
+            password = password,
+        )
+
+    private fun authorizeStaffInternal(
+        tenantHost: String,
+        deviceToken: String,
+        surface: String?,
+        username: String,
+        password: String,
+    ): WorkspaceAuthorizationResult {
         val base = trustedTenantBase("https://$tenantHost")
         val body = JSONObject()
-            .put("surface", normalizedSurface)
             .put("username", username.trim())
             .put("password", password)
+            .apply {
+                if (!surface.isNullOrBlank()) put("surface", surface)
+            }
             .toString()
 
         val json = JSONObject(
@@ -177,26 +217,31 @@ class MobileApiClient {
         )
 
         if (!json.optBoolean("ok")) {
-            throw IOException("Workspace authorization was rejected.")
+            throw IOException("PayMyDine sign-in was rejected.")
         }
 
-        val authorizedSurface = json.optString("surface").trim().lowercase()
-        val authorizedUsername = json.optString("username").trim()
-        val leaseExpiresAt = json.optLong("lease_expires_at", 0L)
+        val result = WorkspaceAuthorizationResult(
+            surface = json.optString("surface").trim().lowercase(),
+            username = json.optString("username").trim(),
+            staffName = json.optString("staff_name").trim(),
+            userId = json.optLong("user_id", 0L),
+            staffId = json.optLong("staff_id", 0L),
+            roleCode = json.optString("role_code").trim().lowercase(),
+            route = json.optString("route").trim().trim('/'),
+            leaseExpiresAt = json.optLong("lease_expires_at", 0L),
+        )
 
         require(
-            authorizedSurface == normalizedSurface &&
-                authorizedUsername.isNotBlank() &&
-                leaseExpiresAt > System.currentTimeMillis() / 1000L
+            result.surface in setOf("pos", "kds", "reservations", "web") &&
+                result.username.isNotBlank() &&
+                result.roleCode.isNotBlank() &&
+                result.route.isNotBlank() &&
+                result.leaseExpiresAt > System.currentTimeMillis() / 1000L
         ) {
-            "Workspace authorization response is incomplete."
+            "PayMyDine sign-in response is incomplete."
         }
 
-        return WorkspaceAuthorizationResult(
-            surface = authorizedSurface,
-            username = authorizedUsername,
-            leaseExpiresAt = leaseExpiresAt,
-        )
+        return result
     }
 
     fun registerEdge(
