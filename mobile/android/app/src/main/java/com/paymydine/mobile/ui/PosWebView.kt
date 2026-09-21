@@ -158,6 +158,33 @@ fun PosWebView(
                         setLayerType(View.LAYER_TYPE_HARDWARE, null)
                         setBackgroundColor(android.graphics.Color.WHITE)
 
+                        addOnLayoutChangeListener {
+                                view,
+                                left,
+                                top,
+                                right,
+                                bottom,
+                                oldLeft,
+                                oldTop,
+                                oldRight,
+                                oldBottom,
+                            ->
+                            val sizeChanged =
+                                (right - left) != (oldRight - oldLeft) ||
+                                    (bottom - top) != (oldBottom - oldTop)
+
+                            if (sizeChanged && view is WebView) {
+                                view.post {
+                                    view.requestLayout()
+                                    view.invalidate()
+                                    view.evaluateJavascript(
+                                        "(function(){window.dispatchEvent(new Event('resize'));return true;})()",
+                                        null,
+                                    )
+                                }
+                            }
+                        }
+
                         val cookies = CookieManager.getInstance()
                         cookies.setAcceptCookie(true)
                         cookies.setAcceptThirdPartyCookies(this, true)
