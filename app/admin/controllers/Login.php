@@ -183,6 +183,13 @@ class Login extends \Admin\Classes\AdminController
             'password' => array_get($data, 'password'),
         ];
 
+        // PMD_MOBILE_PAIR_PREAUTH_RESUME_V2
+        // Capture the sealed pairing intent before authentication. Canonical
+        // auth/security is allowed to rotate the Laravel session, but it must
+        // not silently change the user's requested destination to Dashboard.
+        $pairing = app(PmdMobilePairingService::class);
+        $mobilePairingBeforeAuth = $pairing->hasFreshIntent(request());
+
         if (!AdminAuth::authenticate($credentials, true, true)) {
             throw new ValidationException([
                 'username' => lang('admin::lang.login.alert_username_not_found'),
@@ -205,8 +212,8 @@ class Login extends \Admin\Classes\AdminController
         }
 
         $destination = (string)$login['destination'];
-        $mobilePairing = app(PmdMobilePairingService::class)
-            ->hasFreshIntent(request());
+        $mobilePairing = $mobilePairingBeforeAuth
+            || $pairing->hasFreshIntent(request());
 
         // Native pairing always uses the normal role workspace security flow.
         // The special "usernameportal" destination must not bypass into My Work.
