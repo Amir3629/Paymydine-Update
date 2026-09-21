@@ -4200,6 +4200,20 @@ function renderOpenChecks() {
 
     var input = $('[data-qpos-keypad-target="' + target + '"]');
     if (input && !input.disabled && !input.hidden) {
+      /* Keep the focused field synchronized with the authoritative state. */
+      if (target === 'cash') {
+        input.value = state.payment.cashReceived;
+      } else if (target === 'amount') {
+        input.value = state.payment.amount;
+      } else if (target === 'tip') {
+        input.value =
+          state.payment.tipMode === 'custom'
+            ? state.payment.tipAmount
+            : '';
+      } else if (target === 'share') {
+        input.value = String(state.payment.splitPercent || '');
+      }
+
       try {
         input.focus({preventScroll: true});
       } catch (ignored) {
