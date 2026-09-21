@@ -6,6 +6,7 @@ use Admin\Facades\AdminLocation;
 use Admin\Models\Menus_model;
 use Admin\Models\Orders_model;
 use Admin\Models\Tables_model;
+use Admin\Classes\PermissionManager;
 use Admin\Services\PmdDefaultStaffRoleService;
 use Admin\Services\PmdRoleLandingService;
 use Illuminate\Support\Facades\DB;
@@ -22,6 +23,107 @@ use Illuminate\Validation\ValidationException;
 class PmdQuickPosV1 extends PmdWaiterPosV1
 {
     protected $requiredPermissions = 'Admin.Orders';
+
+    /**
+     * PMD_QPOS_PAYMENT_AUTHORITY_V50
+     *
+     * Quick POS is an operational ordering/payment surface. A user who is
+     * authenticated and is allowed to operate orders in Quick POS must not be
+     * stranded by an old/stale Admin.Payments bit. Keep explicit Payments as
+     * the first authority, then allow the same Admin.Orders authority required
+     * to enter this controller. Managed PMD cashier/waiter/manager/owner roles
+     * remain an explicit final fallback for older role records.
+     */
+    protected function canManagePayments(): bool
+    {
+        $user = $this->currentUser();
+        if (!$user) {
+            return false;
+        }
+
+        /* PMD_QPOS_RAW_PAYMENT_AUTHORITY_V56
+         *
+         * Users_model::hasPermission() is intentionally route-aware because it
+         * also enforces PMD workspace boundaries. Payment authorization inside
+         * Quick POS must not recursively depend on that route-aware helper.
+         *
+         * Authorize from the authenticated user's real role and RAW role
+         * permission map instead. This keeps Cashier/Waiter/Manager/Owner and
+         * custom Admin.Orders/Admin.Payments roles valid while unrelated roles
+         * stay denied.
+         */
+        try {
+            if (method_exists($user, 'isSuperUser') && $user->isSuperUser()) {
+                return true;
+            }
+        } catch (\Throwable $ignored) {
+        }
+
+        $roleCode = '';
+        $roleName = '';
+
+        try {
+            $roleService = app(PmdDefaultStaffRoleService::class);
+            $roleCode = strtolower(trim((string)$roleService->roleCodeForUser($user)));
+        } catch (\Throwable $ignored) {
+        }
+
+        try {
+            $staffRole = optional($user->staff)->role;
+            $roleName = strtolower(trim((string)($staffRole->name ?? '')));
+
+            if ($roleCode === '') {
+                $roleCode = strtolower(trim((string)($staffRole->code ?? '')));
+            }
+        } catch (\Throwable $ignored) {
+        }
+
+        $operatorRoles = [
+            PmdDefaultStaffRoleService::OWNER,
+            PmdDefaultStaffRoleService::MANAGER,
+            PmdDefaultStaffRoleService::CASHIER,
+            PmdDefaultStaffRoleService::WAITER,
+            'owner',
+            'manager',
+            'cashier',
+            'waiter',
+        ];
+
+        if (
+            in_array($roleCode, $operatorRoles, true)
+            || in_array($roleName, ['owner', 'manager', 'cashier', 'waiter'], true)
+        ) {
+            return true;
+        }
+
+        try {
+            $rawPermissions = method_exists($user, 'getPermissions')
+                ? (array)$user->getPermissions()
+                : [];
+
+            if ($rawPermissions) {
+                $permissionManager = PermissionManager::instance();
+
+                if (
+                    $permissionManager->checkPermission(
+                        $rawPermissions,
+                        ['Admin.Payments'],
+                        true
+                    )
+                    || $permissionManager->checkPermission(
+                        $rawPermissions,
+                        ['Admin.Orders'],
+                        true
+                    )
+                ) {
+                    return true;
+                }
+            }
+        } catch (\Throwable $ignored) {
+        }
+
+        return false;
+    }
 
     public function index($mode = 'cashier')
     {
@@ -226,7 +328,8 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 $mode
             ),
             'endpoints' => [
-                'data' => admin_url('pmd-waiter-dashboard-v9-tenant-data'),
+                'data' => '/admin/pos/floor-data',
+                'reservation_busy' => '/admin/pos/reservation-busy',
                 'layout' => admin_url('pmd-owner-dashboard-floor-layout'),
                 'state' => admin_url('pmd-floor-v1/state'),
                 // Kept for the canonical runtime; POS intercepts table-open.
@@ -271,6 +374,61 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
             'ok' => false,
             'message' => 'Unsupported Floor request.',
         ], 422);
+    }
+
+    /**
+     * PMD_QPOS_RESERVATION_BUSY_V53
+     *
+     * Exact Floor used to post reservation-window refreshes back to the current
+     * page URL (/admin/pos). Give that background request its own authenticated
+     * endpoint so it cannot collide with the page route or optional mode route.
+     */
+    public function reservationBusy()
+    {
+        if (!$this->currentUser()) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Unauthenticated.',
+            ], 401);
+        }
+
+        return $this->onPmdFloorReservationBusyWindows();
+    }
+
+    /**
+     * PMD_QPOS_FLOOR_DATA_V52
+     *
+     * Shared Floor refresh stays inside /admin/pos. Cashier/Waiter route
+     * boundaries intentionally reject the legacy waiter-dashboard data URL.
+     */
+    public function floorData()
+    {
+        if (!$this->currentUser()) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Unauthenticated.',
+            ], 401);
+        }
+
+        try {
+            $source = new class extends PmdWaiterDashboardV151 {
+                public function pmdQuickPosFloorDataV52(): array
+                {
+                    return $this->v9CompatiblePayload(false);
+                }
+            };
+
+            return response()->json(
+                $source->pmdQuickPosFloorDataV52()
+            );
+        } catch (\Throwable $error) {
+            report($error);
+
+            return response()->json([
+                'ok' => false,
+                'message' => 'Floor data could not be loaded.',
+            ], 500);
+        }
     }
 
     /**
@@ -583,8 +741,8 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 'off_premise_save_url' => '/admin/pos/save-off-premise',
                 'payment_summary_url' => '/admin/pos/payment-summary/{order}',
                 'payment_settle_url' => '/admin/pos/payment-settle/{order}',
-                'payment_coupon_url' => '/admin/pmd-waiter-pos-v1/payment-coupon/{order}',
-                'terminal_payment_url' => '/admin/pmd-waiter-pos-v1/terminal-payment/{order}',
+                'payment_coupon_url' => '/admin/pos/payment-coupon/{order}',
+                'terminal_payment_url' => '/admin/pos/terminal-payment/{order}',
                 'terminal_attempts_url' => '/admin/orders/{order}/terminal-payment-attempts',
                 'terminal_refresh_url' => '/admin/terminal-payments/attempts/{attempt}/refresh',
                 'table_state_url' => '/admin/pmd-waiter-table-states-v154/{table}',
