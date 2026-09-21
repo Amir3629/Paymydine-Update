@@ -7567,3 +7567,55 @@ body.pmd-qpos-body {
     overflow: hidden;
   }
 }
+
+
+/* ============================================================
+   PMD_QPOS_ANDROID_TOUCH_RAIL_FIT_V49
+   Keep bottom operator controls visible on coarse-pointer landscape tablets.
+   The scrollable middle regions must absorb short viewport pressure; fixed
+   actions/profile controls must never be pushed below the visible workspace.
+   ============================================================ */
+@media (min-width: 821px) and (pointer: coarse) {
+  .pmd-qpos-cart,
+  .pmd-qpos-left,
+  .pmd-qpos-tables {
+    min-height: 0 !important;
+  }
+
+  .pmd-qpos-cart-head,
+  .pmd-qpos-open-checks,
+  .pmd-qpos-sent,
+  .pmd-qpos-order-note,
+  .pmd-qpos-cart-summary,
+  .pmd-qpos-cart-actions,
+  .pmd-qpos-table-actions,
+  .pmd-qpos-floor-switch,
+  .pmd-qpos-profile-dock {
+    flex: 0 0 auto !important;
+  }
+
+  .pmd-qpos-cart-list {
+    min-height: 0 !important;
+    flex: 1 1 0 !important;
+    overflow-y: auto !important;
+  }
+
+  .pmd-qpos-sent {
+    max-height: min(160px, 22vh) !important;
+    overflow-y: auto !important;
+  }
+
+  .pmd-qpos-tables {
+    flex: 1 1 0 !important;
+  }
+
+  .pmd-qpos-table-grid {
+    min-height: 0 !important;
+    overflow-y: auto !important;
+  }
+
+  .pmd-qpos-profile-dock {
+    position: relative;
+    z-index: 5;
+  }
+}
