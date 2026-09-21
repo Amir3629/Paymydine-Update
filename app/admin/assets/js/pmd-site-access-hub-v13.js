@@ -90,7 +90,7 @@
             + '.sheet{position:fixed;right:18px;bottom:84px;width:min(390px,calc(100vw - 28px));max-height:min(650px,calc(100vh - 108px));overflow:hidden;border:1px solid #dce7e4;border-radius:20px;background:#fff;box-shadow:0 25px 70px rgba(5,42,36,.24);color:#152d28;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;opacity:0;transform:translateY(10px) scale(.985);pointer-events:none;transition:opacity .16s ease,transform .16s ease}'
             + '.sheet.open{opacity:1;transform:none;pointer-events:auto}.head{display:flex;align-items:center;justify-content:space-between;padding:13px 14px;border-bottom:1px solid #e7edeb}.title{font-size:13px;font-weight:900}.close{width:34px;height:34px;border:0;border-radius:11px;background:#f2f6f4;color:#536761;font:700 20px/1 Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;cursor:pointer}'
             + '.body{max-height:585px;padding:13px 14px 15px;overflow:auto;overscroll-behavior:contain}.codecard{display:grid;grid-template-columns:minmax(0,1fr) 92px;gap:12px;align-items:center;padding:13px;border:1px solid #cee3dc;border-radius:16px;background:linear-gradient(180deg,#f5fbf9,#eef8f4)}.code{color:#063f36;font-size:32px;line-height:1;font-weight:950;letter-spacing:.14em;font-variant-numeric:tabular-nums}.time{margin-top:7px;color:#7b8985;font-size:9px}.qr{width:92px;height:92px;padding:3px;border:1px solid #d8e5e1;border-radius:12px;background:#fff;display:grid;place-items:center;overflow:hidden}.qr svg{display:block;width:100%!important;height:100%!important}.qr-empty{color:#85928e;font-size:9px;text-align:center}'
-            + '.hint{margin:9px 2px 13px;color:#71807c;font-size:10px;line-height:1.4}.section{margin:0 1px 8px;font-size:11px;font-weight:900}.list{display:grid;gap:9px}.request{padding:11px;border:1px solid #e0e9e6;border-radius:14px;background:#fbfcfc}.request strong{display:block;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.request small{display:block;margin-top:3px;color:#7a8884;font-size:10px}.actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:10px}.actions button{height:36px;border-radius:10px;font:850 10px Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;cursor:pointer}.approve{border:1px solid #bee0d0;background:#edf8f3;color:#126847}.decline{border:1px solid #efcbc6;background:#fff3f2;color:#962f27}'
+            + '.hint{margin:9px 2px 13px;color:#71807c;font-size:10px;line-height:1.4}.section{margin:0 1px 8px;font-size:11px;font-weight:900}.list{display:grid;gap:9px}.request{padding:11px;border:1px solid #e0e9e6;border-radius:14px;background:#fbfcfc}.request.is-android{border-color:#c8dfd7;background:linear-gradient(180deg,#fbfefd,#f2f9f6)}.request strong{display:block;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.request small{display:block;margin-top:3px;color:#7a8884;font-size:10px}.pairtag{display:inline-flex;margin-bottom:7px;padding:4px 7px;border-radius:999px;background:#e6f5ee;color:#0b684f;font-size:9px;font-weight:900;letter-spacing:.04em;text-transform:uppercase}.paircode-label{margin-top:9px;color:#74817e;font-size:9px;font-weight:850;text-transform:uppercase;letter-spacing:.08em}.paircode{margin-top:2px;color:#063f36;font-size:26px;line-height:1.05;font-weight:950;letter-spacing:.13em;font-variant-numeric:tabular-nums}.actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:10px}.actions button{height:36px;border-radius:10px;font:850 10px Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;cursor:pointer}.approve{border:1px solid #bee0d0;background:#edf8f3;color:#126847}.decline{border:1px solid #efcbc6;background:#fff3f2;color:#962f27}'
             + '@media(max-width:760px){.launcher{right:max(12px,env(safe-area-inset-right));bottom:max(12px,env(safe-area-inset-bottom));width:52px;height:52px}.sheet{right:0;bottom:0;width:100%;max-height:min(76vh,680px);border-radius:21px 21px 0 0;padding-bottom:env(safe-area-inset-bottom);transform:translateY(22px)}.sheet.open{transform:none}.code{font-size:28px}.codecard{grid-template-columns:minmax(0,1fr) 86px}.qr{width:86px;height:86px}}'
             + '</style>'
             + '<button type="button" class="launcher" aria-label="Team sign-in" aria-expanded="false">' + icon() + '<span class="badge">1</span></button>'
@@ -216,15 +216,38 @@
             row.className = 'request';
 
             var name = document.createElement('strong');
-            name.textContent = String(item.staff_name || 'Team member');
             var device = document.createElement('small');
             var isAndroidPair = String(item.purpose || '') === 'pair_staff_device';
             var pairCode = formatCode(item.request_code || '');
-            device.textContent = isAndroidPair
-                ? 'Android connection · ' + pairCode
-                : String(item.device_name || 'Browser device');
-            row.appendChild(name);
-            row.appendChild(device);
+
+            if (isAndroidPair) {
+                row.classList.add('is-android');
+
+                var tag = document.createElement('span');
+                tag.className = 'pairtag';
+                tag.textContent = 'Android device connection';
+                row.appendChild(tag);
+
+                name.textContent = String(item.device_name || 'PayMyDine Android');
+                device.textContent = 'Requested by ' + String(item.staff_name || 'Team member');
+                row.appendChild(name);
+                row.appendChild(device);
+
+                var codeLabel = document.createElement('div');
+                codeLabel.className = 'paircode-label';
+                codeLabel.textContent = 'Match code shown in the app';
+                row.appendChild(codeLabel);
+
+                var code = document.createElement('div');
+                code.className = 'paircode';
+                code.textContent = pairCode;
+                row.appendChild(code);
+            } else {
+                name.textContent = String(item.staff_name || 'Team member');
+                device.textContent = String(item.device_name || 'Browser device');
+                row.appendChild(name);
+                row.appendChild(device);
+            }
 
             var actions = document.createElement('div');
             actions.className = 'actions';
