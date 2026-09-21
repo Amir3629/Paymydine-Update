@@ -51,6 +51,23 @@ class Login extends \Admin\Classes\AdminController
 
     public function index()
     {
+        // PMD_MOBILE_PAIR_SIGNED_LOGIN_RESTORE_V3
+        // The initial Android request carries a signed, non-secret PKCE handoff.
+        // Restore it before deciding whether an authenticated browser should
+        // continue to pairing or use its normal role landing page.
+        $pairing = app(PmdMobilePairingService::class);
+        $hasHandoff = trim((string)request()->input(
+            PmdMobilePairingService::HANDOFF_PARAM,
+            ''
+        )) !== '';
+
+        if ($hasHandoff && !$pairing->restoreSignedHandoff(request())) {
+            return redirect(admin_url('login'))->with(
+                'error',
+                'The Android connection request expired. Return to the app and tap Connect again.'
+            );
+        }
+
         if (AdminAuth::isLogged()) {
             // PMD_PORTAL_PERSONAL_MFA_LOGIN_INTEGRATION_V1
             $portalMfa = $this->pmdPortalMfaIndexResponse();
@@ -184,10 +201,11 @@ class Login extends \Admin\Classes\AdminController
         ];
 
         // PMD_MOBILE_PAIR_PREAUTH_RESUME_V2
-        // Capture the sealed pairing intent before authentication. Canonical
-        // auth/security is allowed to rotate the Laravel session, but it must
-        // not silently change the user's requested destination to Dashboard.
+        // Capture the pairing destination before authentication. V7 first
+        // restores the signed handoff carried by the Login form, then falls
+        // back to the sealed cookie/session state from V6.
         $pairing = app(PmdMobilePairingService::class);
+        $pairing->restoreSignedHandoff(request());
         $mobilePairingBeforeAuth = $pairing->hasFreshIntent(request());
 
         if (!AdminAuth::authenticate($credentials, true, true)) {
