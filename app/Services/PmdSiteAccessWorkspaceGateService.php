@@ -88,6 +88,56 @@ class PmdSiteAccessWorkspaceGateService
         $workspaceVerified = $site->isWorkspaceVerified($locationId)
             && $binding->isBoundToCurrentUser();
 
+        // PMD_MOBILE_ANDROID_SESSION_REVOCATION_V1
+        // Embedded POS sessions are backed by the paired personal-device row.
+        // Re-check it on every Admin request so revocation takes effect
+        // immediately instead of waiting for the work-session expiry.
+        if (
+            $workspaceVerified
+            && (string)session()->get(
+                PmdSiteAccessService::SESSION_VERIFIED_METHOD,
+                ''
+            ) === 'mobile_android_device'
+        ) {
+            $mobileDeviceId = (int)session()->get(
+                PmdSiteAccessService::SESSION_VERIFIED_DEVICE,
+                0
+            );
+
+            $mobileDeviceValid = false;
+            try {
+                $mobileDeviceValid = $mobileDeviceId > 0
+                    && DB::table('pmd_site_access_devices')
+                        ->where('id', $mobileDeviceId)
+                        ->where('location_id', $locationId)
+                        ->where('user_id', (int)$identity['user_id'])
+                        ->where('device_kind', 'staff_personal')
+                        ->whereNull('revoked_at')
+                        ->exists();
+            } catch (\Throwable $error) {
+                $mobileDeviceValid = false;
+            }
+
+            if (!$mobileDeviceValid) {
+                try {
+                    $site->clearVerification();
+                    $workSession->clear();
+                    $binding->clear();
+                    AdminAuth::logout();
+                } catch (\Throwable $error) {
+                }
+
+                session()->invalidate();
+                session()->regenerateToken();
+
+                return response(
+                    'The paired PayMyDine Android device is no longer authorized.',
+                    401,
+                    ['Cache-Control' => 'no-store']
+                );
+            }
+        }
+
         // PMD_OWNER_SUPPORT_MFA_RESET_SESSION_GUARD_V18B
         // A SuperAdmin Owner-MFA reset must invalidate the already-open Owner
         // workspace as well as remembered browsers. Direct Owner-TOTP sessions
