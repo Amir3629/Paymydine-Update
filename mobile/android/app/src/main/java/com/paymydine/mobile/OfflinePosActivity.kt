@@ -184,8 +184,20 @@ class OfflinePosActivity : ComponentActivity() {
                 JSONObject()
                     .put("ok", true)
                     .put("location_name", app.bootstrapRepository.locationName().orEmpty())
-                    .put("staff_name", app.bootstrapRepository.staffName().orEmpty())
-                    .put("role_code", app.bootstrapRepository.roleCode().orEmpty())
+                    .put(
+                        "staff_name",
+                        app.credentials.staffSession()
+                            ?.staffName
+                            ?.ifBlank { null }
+                            ?: app.bootstrapRepository.staffName().orEmpty(),
+                    )
+                    .put(
+                        "role_code",
+                        app.credentials.staffSession()
+                            ?.roleCode
+                            ?.ifBlank { null }
+                            ?: app.bootstrapRepository.roleCode().orEmpty(),
+                    )
                     .put("selected_table_id", selected ?: JSONObject.NULL)
                     .put(
                         "selected_table_label",
