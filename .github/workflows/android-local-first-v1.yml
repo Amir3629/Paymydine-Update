@@ -69,6 +69,7 @@ jobs:
           php -l app/Services/PmdSiteAccessService.php
           php -l app/Services/SuperAdminTenantLifecycleService.php
           php -l app/admin/controllers/Login.php
+          php -l app/admin/controllers/Siteaccess.php
           php -l app/admin/controllers/PmdWaiterPosV1.php
           php -l app/admin/controllers/KitchenDisplay.php
           php -l app/admin/controllers/concerns/PmdWaiterPosBootstrapConcern.php
