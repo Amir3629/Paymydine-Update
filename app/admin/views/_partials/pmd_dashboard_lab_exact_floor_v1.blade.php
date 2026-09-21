@@ -892,7 +892,11 @@
     data-layout-save-handler="{{ $endpoints['layout_save_handler'] }}"
     @endif
     data-state-url="{{ $endpoints['state'] ?? admin_url('pmd-floor-v1/state') }}"
-    data-pmd-reservation-busy-url="{{ request()->url() }}"
+    {{-- PMD_QPOS_RESERVATION_BUSY_URL_OVERRIDE_V53
+         Default behavior is unchanged for Dashboard/Manager/Reservations.
+         Quick POS supplies a dedicated authenticated endpoint through its
+         Floor bootstrap to avoid POSTing background refreshes to /admin/pos. --}}
+    data-pmd-reservation-busy-url="{{ $endpoints['reservation_busy'] ?? request()->url() }}"
     data-pmd-reservation-busy-handler="onPmdFloorReservationBusyWindows"
     @if($pmdFloorCanManageTables)
     data-pmd-floor-table-manager="true"
