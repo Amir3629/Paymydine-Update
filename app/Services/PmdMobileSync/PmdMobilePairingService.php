@@ -335,6 +335,16 @@ final class PmdMobilePairingService
                 )
                 && now()->lessThan($existingChallenge->expires_at)
             ) {
+                DB::table('pmd_site_access_challenges')
+                    ->where('id', (int)$existingChallenge->id)
+                    ->update([
+                        'requested_device_name' => mb_substr(
+                            $deviceName !== '' ? $deviceName : 'PayMyDine Android Tablet',
+                            0,
+                            128
+                        ),
+                        'updated_at' => now(),
+                    ]);
                 session()->put(PmdSiteAccessService::SESSION_PENDING, [
                     'public_id' => (string)$existingChallenge->public_id,
                     'purpose' => PmdSiteAccessService::PURPOSE_PAIR_STAFF,
@@ -360,6 +370,20 @@ final class PmdMobilePairingService
                 'The restaurant Android approval request could not be created.'
             );
         }
+
+        // PMD_MOBILE_PAIR_APPROVAL_CARD_DEVICE_V5
+        // The dashboard approval card must identify the Android purpose selected
+        // in the app, not the browser that transported Login/MFA.
+        DB::table('pmd_site_access_challenges')
+            ->where('id', (int)$challenge->id)
+            ->update([
+                'requested_device_name' => mb_substr(
+                    $deviceName !== '' ? $deviceName : 'PayMyDine Android Tablet',
+                    0,
+                    128
+                ),
+                'updated_at' => now(),
+            ]);
 
         DB::table('pmd_mobile_pair_requests')->updateOrInsert(
             ['pair_request' => $pairRequest],
