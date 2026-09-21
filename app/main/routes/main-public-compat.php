@@ -50,6 +50,12 @@ Route::get('/api/v1/settings-wrapped', function () {
 
                 'pmd_social_google_enabled' => $get('pmd_social_google_enabled', '0'),
                 'pmd_social_google_url' => $get('pmd_social_google_url', ''),
+                'pmd_google_business_connected' => $get('pmd_google_business_connected', '0'),
+                'pmd_google_business_location_title' => $get('pmd_google_business_location_title', ''),
+                'pmd_google_place_id' => $get('pmd_google_place_id', ''),
+                'pmd_google_maps_url' => $get('pmd_google_maps_url', ''),
+                'pmd_google_write_review_url' => $get('pmd_google_write_review_url', ''),
+                'pmd_google_reviews_url' => $get('pmd_google_reviews_url', ''),
 
                 'pmd_social_trustpilot_enabled' => $get('pmd_social_trustpilot_enabled', '0'),
                 'pmd_social_trustpilot_url' => $get('pmd_social_trustpilot_url', ''),

@@ -85,6 +85,12 @@ if (!function_exists('pmd_public_compat_response_20260606')) {
 
                         'pmd_social_google_enabled' => pmd_public_compat_setting_get_20260606($settings, 'pmd_social_google_enabled', '0'),
                         'pmd_social_google_url' => pmd_public_compat_setting_get_20260606($settings, 'pmd_social_google_url', ''),
+                        'pmd_google_business_connected' => pmd_public_compat_setting_get_20260606($settings, 'pmd_google_business_connected', '0'),
+                        'pmd_google_business_location_title' => pmd_public_compat_setting_get_20260606($settings, 'pmd_google_business_location_title', ''),
+                        'pmd_google_place_id' => pmd_public_compat_setting_get_20260606($settings, 'pmd_google_place_id', ''),
+                        'pmd_google_maps_url' => pmd_public_compat_setting_get_20260606($settings, 'pmd_google_maps_url', ''),
+                        'pmd_google_write_review_url' => pmd_public_compat_setting_get_20260606($settings, 'pmd_google_write_review_url', ''),
+                        'pmd_google_reviews_url' => pmd_public_compat_setting_get_20260606($settings, 'pmd_google_reviews_url', ''),
 
                         'pmd_social_trustpilot_enabled' => pmd_public_compat_setting_get_20260606($settings, 'pmd_social_trustpilot_enabled', '0'),
                         'pmd_social_trustpilot_url' => pmd_public_compat_setting_get_20260606($settings, 'pmd_social_trustpilot_url', ''),

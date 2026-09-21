@@ -107,7 +107,13 @@ final class SquareTerminalProvider implements TerminalPaymentProviderInterface
                 'device_options' => [
                     'device_id' => (string)$config['device_id'],
                     'skip_receipt_screen' => false,
-                    'tip_settings' => ['allow_tipping' => false],
+                    // PMD_SQUARE_TERMINAL_TIP_V48
+                    // Customer chooses gratuity on the physical Square Terminal.
+                    'tip_settings' => [
+                        'allow_tipping' => true,
+                        'separate_tip_screen' => true,
+                        'custom_tip_field' => true,
+                    ],
                 ],
                 'payment_options' => ['autocomplete' => true],
                 'note' => 'PayMyDine order #'.(int)($attempt['order_id'] ?? 0),
@@ -137,15 +143,19 @@ final class SquareTerminalProvider implements TerminalPaymentProviderInterface
             }
 
             $status = strtoupper(trim((string)($checkout['status'] ?? 'PENDING')));
+            if ($status === 'COMPLETED') {
+                $verified = $this->verifiedCompletedStatus($attempt, $config, $checkout);
+                $verified['response'] = $json;
+                return $verified;
+            }
+
             return [
                 'ok' => true,
-                'status' => $status === 'COMPLETED' ? $this->verifiedCompletedStatus($attempt, $config, $checkout)['status'] : 'sent_to_terminal',
+                'status' => 'sent_to_terminal',
                 'provider_reference' => $checkoutId,
                 'square_checkout_status' => $status,
                 'reference_id' => $referenceId,
-                'message' => $status === 'COMPLETED'
-                    ? 'Square Terminal checkout completed.'
-                    : 'Payment sent to Square Terminal. Waiting for the customer.',
+                'message' => 'Payment sent to Square Terminal. Waiting for the customer.',
                 'response' => $json,
             ];
         } catch (\Throwable $e) {
@@ -231,6 +241,11 @@ final class SquareTerminalProvider implements TerminalPaymentProviderInterface
             ];
         }
 
+        /* PMD_SQUARE_TERMINAL_TIP_CAPTURE_V48
+         * Square Payment.amount_money excludes tip_money. Read the verified
+         * payment object so gratuity selected on the terminal is returned
+         * separately without changing the order amount. */
+        $rawPayment = $runtime->getPayment($paymentIds[0]);
         $payment = $runtime->verifyPayment(
             $paymentIds[0],
             $expectedMinor,
@@ -238,6 +253,9 @@ final class SquareTerminalProvider implements TerminalPaymentProviderInterface
             $referenceId,
             (string)$config['location_id']
         );
+        $tipMoney = (array)($rawPayment['tip_money'] ?? []);
+        $tipMinor = max(0, (int)($tipMoney['amount'] ?? 0));
+        $tipCurrency = strtoupper(trim((string)($tipMoney['currency'] ?? $currency))) ?: $currency;
         if (!($payment['is_paid'] ?? false)) {
             return [
                 'ok' => false,
@@ -256,6 +274,10 @@ final class SquareTerminalProvider implements TerminalPaymentProviderInterface
             'square_payment_id' => $paymentIds[0],
             'reference_id' => $referenceId,
             'message' => 'Square Terminal payment approved and server-verified.',
+            'tip_money' => [
+                'amount' => $tipMinor,
+                'currency' => $tipCurrency,
+            ],
             'square_payment' => $payment,
         ];
     }

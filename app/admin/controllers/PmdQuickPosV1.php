@@ -23,6 +23,51 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
 {
     protected $requiredPermissions = 'Admin.Orders';
 
+    /**
+     * PMD_QPOS_PAYMENT_AUTHORITY_V50
+     *
+     * Quick POS is an operational ordering/payment surface. A user who is
+     * authenticated and is allowed to operate orders in Quick POS must not be
+     * stranded by an old/stale Admin.Payments bit. Keep explicit Payments as
+     * the first authority, then allow the same Admin.Orders authority required
+     * to enter this controller. Managed PMD cashier/waiter/manager/owner roles
+     * remain an explicit final fallback for older role records.
+     */
+    protected function canManagePayments(): bool
+    {
+        $user = $this->currentUser();
+        if (!$user) {
+            return false;
+        }
+
+        try {
+            if ((bool)$user->hasPermission('Admin.Payments')) {
+                return true;
+            }
+        } catch (\Throwable $ignored) {
+        }
+
+        try {
+            if ((bool)$user->hasPermission('Admin.Orders')) {
+                return true;
+            }
+        } catch (\Throwable $ignored) {
+        }
+
+        $role = strtolower(trim($this->quickPosRoleCode()));
+
+        return in_array($role, [
+            PmdDefaultStaffRoleService::OWNER,
+            PmdDefaultStaffRoleService::MANAGER,
+            PmdDefaultStaffRoleService::CASHIER,
+            PmdDefaultStaffRoleService::WAITER,
+            'owner',
+            'manager',
+            'cashier',
+            'waiter',
+        ], true);
+    }
+
     public function index($mode = 'cashier')
     {
         $mode = $this->quickPosMode((string)$mode);
@@ -36,9 +81,8 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
         /*
          * PMD_QPOS_EXACT_DASHBOARD_FLOOR_V26
          *
-         * Quick POS no longer owns a second Floor renderer. The Map workspace
-         * receives the SAME bootstrap + registry contract consumed by the
-         * Dashboard/Manager/Reservations exact Floor partial/runtime.
+         * Quick POS does not render a second Floor. It supplies the same
+         * canonical Floor context used by Dashboard/Manager/Reservations.
          */
         $exactFloor = $this->quickPosExactFloorContext(
             (int)($initialBootstrap['location_id'] ?? 0)
@@ -227,7 +271,8 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 $mode
             ),
             'endpoints' => [
-                'data' => admin_url('pmd-waiter-dashboard-v9-tenant-data'),
+                'data' => '/admin/pos/floor-data',
+                'reservation_busy' => '/admin/pos/reservation-busy',
                 'layout' => admin_url('pmd-owner-dashboard-floor-layout'),
                 'state' => admin_url('pmd-floor-v1/state'),
                 // Kept for the canonical runtime; POS intercepts table-open.
@@ -272,6 +317,61 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
             'ok' => false,
             'message' => 'Unsupported Floor request.',
         ], 422);
+    }
+
+    /**
+     * PMD_QPOS_RESERVATION_BUSY_V53
+     *
+     * Exact Floor used to post reservation-window refreshes back to the current
+     * page URL (/admin/pos). Give that background request its own authenticated
+     * endpoint so it cannot collide with the page route or optional mode route.
+     */
+    public function reservationBusy()
+    {
+        if (!$this->currentUser()) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Unauthenticated.',
+            ], 401);
+        }
+
+        return $this->onPmdFloorReservationBusyWindows();
+    }
+
+    /**
+     * PMD_QPOS_FLOOR_DATA_V52
+     *
+     * Shared Floor refresh stays inside /admin/pos. Cashier/Waiter route
+     * boundaries intentionally reject the legacy waiter-dashboard data URL.
+     */
+    public function floorData()
+    {
+        if (!$this->currentUser()) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Unauthenticated.',
+            ], 401);
+        }
+
+        try {
+            $source = new class extends PmdWaiterDashboardV151 {
+                public function pmdQuickPosFloorDataV52(): array
+                {
+                    return $this->v9CompatiblePayload(false);
+                }
+            };
+
+            return response()->json(
+                $source->pmdQuickPosFloorDataV52()
+            );
+        } catch (\Throwable $error) {
+            report($error);
+
+            return response()->json([
+                'ok' => false,
+                'message' => 'Floor data could not be loaded.',
+            ], 500);
+        }
     }
 
     /**
@@ -584,8 +684,8 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 'off_premise_save_url' => '/admin/pos/save-off-premise',
                 'payment_summary_url' => '/admin/pos/payment-summary/{order}',
                 'payment_settle_url' => '/admin/pos/payment-settle/{order}',
-                'payment_coupon_url' => '/admin/pmd-waiter-pos-v1/payment-coupon/{order}',
-                'terminal_payment_url' => '/admin/pmd-waiter-pos-v1/terminal-payment/{order}',
+                'payment_coupon_url' => '/admin/pos/payment-coupon/{order}',
+                'terminal_payment_url' => '/admin/pos/terminal-payment/{order}',
                 'terminal_attempts_url' => '/admin/orders/{order}/terminal-payment-attempts',
                 'terminal_refresh_url' => '/admin/terminal-payments/attempts/{attempt}/refresh',
                 'table_state_url' => '/admin/pmd-waiter-table-states-v154/{table}',
@@ -986,15 +1086,14 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
             ], 422);
         }
 
-        $sourceOrders = $this->quickPosOpenOrdersForTable($source);
-
-        if (!$sourceOrders) {
-            return response()->json([
-                'ok' => false,
-                'message' => 'There are no open checks to move.',
-            ], 422);
-        }
-
+        /*
+         * PMD_QPOS_FAST_WHOLE_TABLE_TRANSFER_V44
+         *
+         * Neither direct order moves nor whole-table moves need hydrated
+         * order items/status labels for validation. Whole-table scope now
+         * loads only payable order IDs from source/target before the locked
+         * transaction, keeping "move all" on the same lightweight path.
+         */
         if ($scope === 'order') {
             if ($orderId < 1) {
                 return response()->json([
@@ -1003,25 +1102,18 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 ], 422);
             }
 
-            $selected = array_values(array_filter(
-                $sourceOrders,
-                static function (array $order) use ($orderId): bool {
-                    return (int)($order['order_id'] ?? 0) === $orderId;
-                }
-            ));
-
-            if (!$selected) {
-                return response()->json([
-                    'ok' => false,
-                    'message' => 'That check is no longer on this table.',
-                ], 409);
-            }
-
             $orderIds = [$orderId];
         } else {
-            $targetOrders = $this->quickPosOpenOrdersForTable($target);
+            $orderIds = $this->quickPosTransferOpenOrderIdsV44($source);
 
-            if ($targetOrders) {
+            if (!$orderIds) {
+                return response()->json([
+                    'ok' => false,
+                    'message' => 'There are no open checks to move.',
+                ], 422);
+            }
+
+            if ($this->quickPosTransferOpenOrderIdsV44($target)) {
                 return response()->json([
                     'ok' => false,
                     'message' => 'Destination already has a check. Move one check instead.',
@@ -1043,12 +1135,6 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                     'message' => 'Choose a free or reserved table for a whole-table move.',
                 ], 409);
             }
-
-            $orderIds = array_values(array_unique(array_filter(array_map(
-                static fn (array $order): int =>
-                    (int)($order['order_id'] ?? 0),
-                $sourceOrders
-            ))));
         }
 
         if (!$orderIds) {
@@ -1062,7 +1148,6 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
             $result = DB::transaction(function () use (
                 $source,
                 $target,
-                $sourceOrders,
                 $orderIds,
                 $scope
             ) {
@@ -1090,6 +1175,14 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                     $lockedQuery,
                     $columns,
                     $source
+                );
+
+                /* PMD_QPOS_TRANSFER_PAYABLE_LOCK_V43
+                 * Validate the selected check under the same payable/open
+                 * rules used by the POS check rail, but without loading items. */
+                $this->applyQuickPosPayableScope(
+                    $lockedQuery,
+                    $columns
                 );
 
                 $lockedIds = $lockedQuery
@@ -1149,15 +1242,32 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                     ->whereIn($primaryKey, $orderIds)
                     ->update($updates);
 
-                $remainingSourceChecks = max(
-                    0,
-                    count($sourceOrders) - count($orderIds)
-                );
-
-                $sourceCurrentStatus =
-                    $this->quickPosTransferTableStatus(
-                        (int)$source['id']
+                /* PMD_QPOS_TRANSFER_REMAINING_COUNT_V43
+                 * For a one-check move, count remaining source checks with one
+                 * lightweight SQL COUNT after the reassignment. Avoid loading
+                 * order_menus/status rows purely to derive source status. */
+                if ($scope === 'order') {
+                    $remainingQuery = DB::table('orders');
+                    $this->applyTableScope(
+                        $remainingQuery,
+                        $columns,
+                        $source
                     );
+                    $this->applyQuickPosPayableScope(
+                        $remainingQuery,
+                        $columns
+                    );
+                    $remainingSourceChecks = (int)$remainingQuery->count();
+                } else {
+                    /* Whole-table scope moves every payable source check. */
+                    $remainingSourceChecks = 0;
+                }
+
+                $sourceCurrentStatus = $remainingSourceChecks > 0
+                    ? $this->quickPosTransferTableStatus(
+                        (int)$source['id']
+                    )
+                    : '';
 
                 $sourceNext = $scope === 'table'
                     ? 'cleaning'
@@ -1452,6 +1562,46 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                     ]);
             });
         }
+    }
+
+    /**
+     * PMD_QPOS_FAST_WHOLE_TABLE_IDS_V44
+     *
+     * Transfer validation only needs payable order IDs. Avoid hydrating
+     * order_menus, status names and full check payloads for source/target.
+     */
+    protected function quickPosTransferOpenOrderIdsV44(array $table): array
+    {
+        if (!Schema::hasTable('orders')) {
+            return [];
+        }
+
+        $columns = Schema::getColumnListing('orders');
+        $primaryKey = in_array('order_id', $columns, true)
+            ? 'order_id'
+            : (
+                in_array('id', $columns, true)
+                    ? 'id'
+                    : null
+            );
+
+        if (!$primaryKey) {
+            return [];
+        }
+
+        $query = DB::table('orders');
+        $this->applyTableScope($query, $columns, $table);
+        $this->applyQuickPosPayableScope($query, $columns);
+
+        return $query
+            ->orderByDesc($primaryKey)
+            ->limit(20)
+            ->pluck($primaryKey)
+            ->map(static fn ($id): int => (int)$id)
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
     }
 
     protected function quickPosOpenOrdersForTable(array $table): array
