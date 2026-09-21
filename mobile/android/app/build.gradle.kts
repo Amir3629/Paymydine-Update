@@ -15,10 +15,22 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "SYNC_PROTOCOL_VERSION", "\"pmd-sync-v1\"")
     }
+    signingConfigs {
+        create("preview") {
+            storeFile = file(
+                System.getProperty("user.home") +
+                    "/.android/debug.keystore",
+            )
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
     buildTypes {
         debug {
             applicationIdSuffix = ".pospreview"
             versionNameSuffix = "-debug"
+            signingConfig = signingConfigs.getByName("preview")
         }
         release {
             isMinifyEnabled = true
