@@ -87,6 +87,12 @@ fun PayMyDineApp(app: PayMyDineApplication) {
     }
     var bootstrapSummary by remember { mutableStateOf<BootstrapSummary?>(null) }
     var lastError by remember { mutableStateOf<String?>(null) }
+    var paired by remember {
+        mutableStateOf(
+            !app.credentials.deviceToken().isNullOrBlank()
+                && !app.credentials.tenantHost().isNullOrBlank(),
+        )
+    }
     var ready by remember {
         mutableStateOf(
             !app.credentials.deviceToken().isNullOrBlank()
@@ -141,6 +147,7 @@ fun PayMyDineApp(app: PayMyDineApplication) {
             app.credentials.setDeviceId(paired.deviceId)
             app.credentials.putDeviceToken(paired.deviceToken)
             app.credentials.clearPairingAttempt()
+            paired = true
         }
 
         if (app.bootstrapRepository.hasBootstrap()) {
@@ -273,13 +280,14 @@ fun PayMyDineApp(app: PayMyDineApplication) {
                         ready = true
                         SyncEngine.enqueueImmediate(app)
                     } catch (error: Throwable) {
-                        val paired =
+                        val hasDeviceToken =
                             !app.credentials.deviceToken().isNullOrBlank()
-                        if (paired) {
+                        if (hasDeviceToken) {
+                            paired = true
                             pairingAttempt = ""
                         }
                         pairingStatus =
-                            if (!paired) {
+                            if (!hasDeviceToken) {
                                 "Pairing failed"
                             } else {
                                 "Paired - bootstrap required"
@@ -384,6 +392,7 @@ fun PayMyDineApp(app: PayMyDineApplication) {
                 !app.credentials.deviceToken().isNullOrBlank() &&
                 app.bootstrapRepository.hasBootstrap()
             ) {
+                paired = true
                 pairingStatus = "Ready offline"
                 ready = true
                 return@LaunchedEffect
@@ -405,17 +414,19 @@ fun PayMyDineApp(app: PayMyDineApplication) {
                 ?.substringBefore(".paymydine.com")
                 .orEmpty()
             bootstrapSummary = summary
+            paired = true
             pairingAttempt = ""
             pairingStatus = "Ready offline"
             ready = true
             SyncEngine.enqueueImmediate(app)
         } catch (error: Throwable) {
-            val paired = !app.credentials.deviceToken().isNullOrBlank()
-            if (paired) {
+            val hasDeviceToken = !app.credentials.deviceToken().isNullOrBlank()
+            if (hasDeviceToken) {
+                paired = true
                 pairingAttempt = ""
             }
             pairingStatus =
-                if (!paired) {
+                if (!hasDeviceToken) {
                     "Pairing failed"
                 } else {
                     "Paired - bootstrap required"
@@ -428,156 +439,12 @@ fun PayMyDineApp(app: PayMyDineApplication) {
 
     MaterialTheme {
         Surface(Modifier.fillMaxSize()) {
-            if (ready) {
-                Column(Modifier.fillMaxSize()) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 14.dp, vertical = 10.dp),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    ) {
-                        Column(Modifier.weight(1f)) {
-                            Text(
-                                "PayMyDine",
-                                style = MaterialTheme.typography.titleLarge,
-                            )
-                            Text(
-                                when (runtimeKind) {
-                                    TransportKind.EDGE -> "Restaurant Edge"
-                                    TransportKind.CLOUD -> "Cloud connected"
-                                    TransportKind.OFFLINE -> "Offline local mode"
-                                } + " · " +
-                                    (app.bootstrapRepository.roleCode() ?: "staff"),
-                                style = MaterialTheme.typography.bodySmall,
-                            )
-                        }
-
-                        availableWorkspaces.forEach { workspace ->
-                            val selected = activeWorkspace == workspace
-                            if (selected) {
-                                Button(
-                                    onClick = { activeWorkspace = workspace },
-                                ) {
-                                    Text(
-                                        if (workspace == "kds") "Kitchen" else "POS",
-                                    )
-                                }
-                            } else {
-                                OutlinedButton(
-                                    onClick = { activeWorkspace = workspace },
-                                ) {
-                                    Text(
-                                        if (workspace == "kds") "Kitchen" else "POS",
-                                    )
-                                }
-                            }
-                        }
-
-                        OutlinedButton(
-                            onClick = { SyncEngine.enqueueImmediate(app) },
-                        ) {
-                            Text("Sync ${app.syncRepository.outboxCount()}")
-                        }
-
-                        OutlinedButton(
-                            onClick = {
-                                val host = app.credentials.tenantHost()
-                                    ?: return@OutlinedButton
-                                val verifier = PairingPkce.newVerifier()
-                                val challenge = PairingPkce.challenge(verifier)
-                                val requestId = UUID.randomUUID().toString()
-                                app.credentials.putPairingVerifier(verifier)
-                                app.credentials.setPairingRequest(requestId)
-                                pairingAttempt = requestId
-                                val pairingUrl = Uri.parse(
-                                    "https://$host/admin/mobile/pair/start",
-                                ).buildUpon()
-                                    .appendQueryParameter(
-                                        "code_challenge",
-                                        challenge,
-                                    )
-                                    .appendQueryParameter(
-                                        "pair_request",
-                                        requestId,
-                                    )
-                                    .build()
-
-                                runCatching {
-                                    context.startActivity(
-                                        Intent(Intent.ACTION_VIEW, pairingUrl),
-                                    )
-                                }.onFailure {
-                                    app.credentials.clearPairingAttempt()
-                                    pairingAttempt = ""
-                                    lastError =
-                                        "No browser is available for secure login."
-                                }
-                            },
-                        ) {
-                            Text("Device")
-                        }
-
-                        if (canManageEdge) {
-                            OutlinedButton(
-                                enabled = edgeRuntime.enabled || online,
-                                onClick = {
-                                    val turnOn = !edgeRuntime.enabled
-
-                                    if (turnOn) {
-                                        lastError = null
-                                        EdgeService.setEnabled(app, true)
-                                    } else {
-                                        scope.launch {
-                                            lastError = null
-                                            val host = app.credentials.tenantHost()
-                                            val token = app.credentials.deviceToken()
-
-                                            if (
-                                                online &&
-                                                !host.isNullOrBlank() &&
-                                                !token.isNullOrBlank()
-                                            ) {
-                                                withContext(Dispatchers.IO) {
-                                                    runCatching {
-                                                        api.disableEdge(
-                                                            host,
-                                                            token,
-                                                        )
-                                                    }
-                                                }
-                                            }
-
-                                            EdgeService.setEnabled(app, false)
-                                            app.credentials.clearEdgeFingerprint()
-                                        }
-                                    }
-                                },
-                            ) {
-                                Text(
-                                    when {
-                                        edgeRuntime.running ->
-                                            "Edge On"
-                                        edgeRuntime.enabled ->
-                                            "Edge Starting"
-                                        else ->
-                                            "Make Edge"
-                                    },
-                                )
-                            }
-                        }
-                    }
-
-                    when (activeWorkspace) {
-                        "kds" -> KdsScreen(
-                            app = app,
-                            modifier = Modifier.weight(1f),
-                        )
-                        else -> LocalPosScreen(
-                            app = app,
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
-                }
+            if (paired) {
+                PosWebView(
+                    tenantHost = app.credentials.tenantHost().orEmpty(),
+                    deviceToken = app.credentials.deviceToken().orEmpty(),
+                    modifier = Modifier.fillMaxSize(),
+                )
             } else {
                 Onboarding(
                     tenantCode = tenantCode,
@@ -594,7 +461,7 @@ fun PayMyDineApp(app: PayMyDineApplication) {
                             pairingStatus = "Not paired"
                             lastError =
                                 "Use the restaurant code from your PayMyDine URL. " +
-                                    "For example, tommo.paymydine.com means the code is tommo."
+                                    "For example, tomo.paymydine.com means the code is tomo."
                         } else {
                             val host = "$code.paymydine.com"
                             val verifier = PairingPkce.newVerifier()
@@ -639,6 +506,7 @@ fun PayMyDineApp(app: PayMyDineApplication) {
             }
         }
     }
+
 }
 
 internal fun normalizeTenantCode(raw: String): String? {
