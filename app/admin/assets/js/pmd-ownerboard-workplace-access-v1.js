@@ -65,7 +65,16 @@
       if (!id) return '';
 
       var staff = escapeHtml(item.staff_name || 'Team member');
-      var device = escapeHtml(item.device_name || text.device);
+      var isAndroidPair = String(item.purpose || '') === 'pair_staff_device';
+      var rawCode = String(item.request_code || '').replace(/\D+/g, '').slice(0, 6);
+      var displayCode = rawCode.length === 6
+        ? rawCode.slice(0, 3) + ' ' + rawCode.slice(3)
+        : '';
+      var device = escapeHtml(
+        isAndroidPair
+          ? 'Android connection' + (displayCode ? ' · ' + displayCode : '')
+          : (item.device_name || text.device)
+      );
       var qr = escapeHtml(item.qr_image_url || '');
 
       return ''
