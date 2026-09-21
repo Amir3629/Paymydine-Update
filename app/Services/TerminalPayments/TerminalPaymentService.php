@@ -211,6 +211,13 @@ class TerminalPaymentService
             (array)$result,
             (string)($attempt['currency']??($config['currency']??'EUR'))
         );
+        if($tipAmount===null){
+            $tipAmount=$this->terminalTipForAttemptV46(
+                $attemptId,
+                $attempt,
+                []
+            );
+        }
         $isPmdVrSimulator=$this->isPmdVrSimulatorAttempt($attempt);
         $rawStatus=(string)($result['status']??($attempt['status']??'pending'));
         $status=$isPmdVrSimulator?$this->mapPmdVrSimulatorStatus($rawStatus):$rawStatus;
