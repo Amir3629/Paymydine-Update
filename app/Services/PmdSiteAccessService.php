@@ -818,6 +818,61 @@ class PmdSiteAccessService
         }
     }
 
+    public function pairCurrentVerifiedPersonalDevice(Request $request)
+    {
+        if (!$this->ready() || !AdminAuth::isLogged()) {
+            throw new \RuntimeException('PayMyDine security verification is required.');
+        }
+
+        $identity = $this->identity();
+        $locationId = (int)($identity['location_id'] ?? 0);
+        if (
+            (int)($identity['user_id'] ?? 0) < 1
+            || (int)($identity['staff_id'] ?? 0) < 1
+            || $locationId < 1
+        ) {
+            throw new \RuntimeException(
+                'This PayMyDine account cannot pair an Android device.'
+            );
+        }
+
+        if (!$this->policyEnabled($locationId)) {
+            throw new \RuntimeException(
+                'Restaurant security must be activated before pairing Android devices.'
+            );
+        }
+
+        if (
+            !$this->isWorkspaceVerified($locationId)
+            || !app(PmdSiteAccessSessionBindingService::class)
+                ->isBoundToCurrentUser()
+        ) {
+            throw new \RuntimeException(
+                'Complete PayMyDine security verification before connecting this device.'
+            );
+        }
+
+        [$device] = $this->createPersonalDevice(
+            $identity,
+            $request,
+            (int)session()->get(self::SESSION_VERIFIED_DEVICE, 0)
+        );
+
+        session()->put(self::SESSION_LAST_PAIRED_DEVICE, (int)$device->id);
+
+        $this->audit(
+            'mobile_device_pair_verified_session',
+            true,
+            $identity,
+            (int)$device->id,
+            null,
+            $request,
+            ['protocol' => 'pmd-sync-v1']
+        );
+
+        return $device;
+    }
+
     private function createPersonalDevice(array $identity, Request $request, int $approvedByDeviceId): array
     {
         $rawToken = bin2hex(random_bytes(32));
