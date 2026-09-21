@@ -26,7 +26,8 @@ import java.util.concurrent.TimeUnit
 
 class SyncEngine(
     private val app: PayMyDineApplication,
-    private val api: MobileApiClient = MobileApiClient(),
+    private val api: MobileApiClient =
+        MobileApiClient(app.credentials.staffSession()?.staffGrant),
     private val edgeApi: EdgeApiClient = EdgeApiClient(),
     private val router: TransportRouter = TransportRouter(),
 ) {
