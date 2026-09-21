@@ -57,6 +57,20 @@ class PosActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // PMD_ANDROID_WORKSPACE_ACTIVITY_GATE_V1
+        if (!app.credentials.workspaceLeaseValid("pos")) {
+            startActivity(
+                Intent(this, MainActivity::class.java).apply {
+                    addFlags(
+                        Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                            Intent.FLAG_ACTIVITY_SINGLE_TOP,
+                    )
+                },
+            )
+            finish()
+            return
+        }
+
         val host = trustedHost()
         val token = app.credentials.deviceToken().orEmpty()
         if (host == null || token.isBlank()) {
