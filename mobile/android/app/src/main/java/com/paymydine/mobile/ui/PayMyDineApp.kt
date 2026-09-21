@@ -129,7 +129,7 @@ fun PayMyDineApp(app: PayMyDineApplication) {
                 "Secure pairing expired. Tap Connect again."
             }
 
-            val paired = withContext(Dispatchers.IO) {
+            val pairedResult = withContext(Dispatchers.IO) {
                 api.exchange(
                     tenantBase,
                     exchange,
@@ -137,15 +137,15 @@ fun PayMyDineApp(app: PayMyDineApplication) {
                 )
             }
 
-            require(paired.tenantHost == expectedHost) {
+            require(pairedResult.tenantHost == expectedHost) {
                 "Pairing response belongs to another restaurant."
             }
 
-            pairedHost = paired.tenantHost
-            token = paired.deviceToken
+            pairedHost = pairedResult.tenantHost
+            token = pairedResult.deviceToken
             app.credentials.setTenantHost(pairedHost)
-            app.credentials.setDeviceId(paired.deviceId)
-            app.credentials.putDeviceToken(paired.deviceToken)
+            app.credentials.setDeviceId(pairedResult.deviceId)
+            app.credentials.putDeviceToken(pairedResult.deviceToken)
             app.credentials.clearPairingAttempt()
             paired = true
         }
