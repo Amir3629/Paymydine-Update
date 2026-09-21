@@ -3,8 +3,11 @@ package com.paymydine.mobile.ui
 import android.app.Activity
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
@@ -27,7 +31,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -74,6 +80,9 @@ fun PayMyDineApp(app: PayMyDineApplication) {
                 ?.substringBefore(".paymydine.com")
                 .orEmpty(),
         )
+    }
+    var requestedWorkspace by remember {
+        mutableStateOf(app.credentials.preferredWorkspace())
     }
     var pairingStatus by remember {
         mutableStateOf(
@@ -530,12 +539,19 @@ fun PayMyDineApp(app: PayMyDineApplication) {
                     onTenantCode = {
                         tenantCode = it.trim().lowercase()
                     },
+                    selectedWorkspace = requestedWorkspace,
+                    onWorkspace = { workspace ->
+                        requestedWorkspace = workspace
+                        app.credentials.setPreferredWorkspace(workspace)
+                        lastError = null
+                    },
                     online = online,
                     pairingStatus = pairingStatus,
                     pairingCode = pairingCode,
                     lastError = lastError,
                     onConnect = {
                         val code = normalizeTenantCode(tenantCode)
+                        val workspace = requestedWorkspace ?: "pos"
 
                         if (code == null) {
                             pairingStatus = "Not paired"
@@ -570,7 +586,18 @@ fun PayMyDineApp(app: PayMyDineApplication) {
                                 )
                                 .appendQueryParameter(
                                     "device_name",
-                                    "PayMyDine Android Tablet",
+                                    when (workspace) {
+                                        "kds" ->
+                                            "PayMyDine Android · Kitchen Display"
+                                        "reservations" ->
+                                            "PayMyDine Android · Reservations"
+                                        else ->
+                                            "PayMyDine Android · Cashier / Waiter"
+                                    },
+                                )
+                                .appendQueryParameter(
+                                    "workspace",
+                                    workspace,
                                 )
                                 .build()
 
@@ -619,12 +646,33 @@ internal fun normalizeTenantCode(raw: String): String? {
 private fun Onboarding(
     tenantCode: String,
     onTenantCode: (String) -> Unit,
+    selectedWorkspace: String?,
+    onWorkspace: (String?) -> Unit,
     online: Boolean,
     pairingStatus: String,
     pairingCode: String?,
     lastError: String?,
     onConnect: () -> Unit,
 ) {
+    if (selectedWorkspace == null) {
+        PairWorkspaceChooser(onWorkspace = { onWorkspace(it) })
+        return
+    }
+
+    val workspaceTitle = when (selectedWorkspace) {
+        "kds" -> "Kitchen Display"
+        "reservations" -> "Reservations"
+        else -> "Cashier / Waiter"
+    }
+    val workspaceDetail = when (selectedWorkspace) {
+        "kds" ->
+            "Kitchen tickets and preparation status. KDS can continue through Restaurant Edge when internet is down."
+        "reservations" ->
+            "Reservations opens the canonical PayMyDine reservation workspace. Cloud is required for reservation changes."
+        else ->
+            "Tables, menu, checks and order service. Cashier and Waiter use the same PayMyDine order engine."
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -633,7 +681,7 @@ private fun Onboarding(
         verticalArrangement = Arrangement.Center,
     ) {
         Row(
-            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+            verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Image(
@@ -656,15 +704,60 @@ private fun Onboarding(
             }
         }
 
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 24.dp),
+            shape = RoundedCornerShape(18.dp),
+            color = Color.White,
+            border = BorderStroke(1.dp, PmdLine),
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        "CONNECT AS",
+                        color = PmdMuted,
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                    Text(
+                        workspaceTitle,
+                        modifier = Modifier.padding(top = 4.dp),
+                        color = PmdDeepGreen,
+                        fontWeight = FontWeight.Black,
+                        style = MaterialTheme.typography.titleLarge,
+                    )
+                    Text(
+                        workspaceDetail,
+                        modifier = Modifier.padding(top = 5.dp),
+                        color = PmdMuted,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+                OutlinedButton(
+                    modifier = Modifier.padding(start = 14.dp),
+                    onClick = { onWorkspace(null) },
+                ) {
+                    Text("Change")
+                }
+            }
+        }
+
         Text(
             "Connect this Android device",
-            modifier = Modifier.padding(top = 28.dp),
+            modifier = Modifier.padding(top = 24.dp),
             color = PmdText,
             fontWeight = FontWeight.Black,
             style = MaterialTheme.typography.headlineSmall,
         )
         Text(
-            "Enter the restaurant code. PayMyDine will use the normal Login/MFA flow, then send a connection request to the small security icon on a trusted Cashier, Manager or Owner dashboard.",
+            "Enter the restaurant code. PayMyDine uses the normal Login/MFA security flow, then sends this Android request to the small approval icon on a trusted Cashier, Manager or Owner dashboard.",
             modifier = Modifier.padding(top = 8.dp, bottom = 22.dp),
             style = MaterialTheme.typography.bodyMedium,
             color = PmdMuted,
@@ -686,7 +779,7 @@ private fun Onboarding(
             enabled = tenantCode.isNotBlank() && online,
             onClick = onConnect,
         ) {
-            Text("Connect to restaurant")
+            Text("Request connection")
         }
 
         pairingCode?.let { raw ->
@@ -696,13 +789,13 @@ private fun Onboarding(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 18.dp),
-                    shape = androidx.compose.foundation.shape.RoundedCornerShape(18.dp),
+                    shape = RoundedCornerShape(18.dp),
                     color = PmdSurfaceSoft,
-                    border = androidx.compose.foundation.BorderStroke(1.dp, PmdLine),
+                    border = BorderStroke(1.dp, PmdLine),
                 ) {
                     Column(
                         modifier = Modifier.padding(18.dp),
-                        horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
+                        horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         Text(
                             "CONNECTION CODE",
@@ -718,7 +811,7 @@ private fun Onboarding(
                             style = MaterialTheme.typography.headlineLarge,
                         )
                         Text(
-                            "Match this code on the bottom-right approval card in PayMyDine.",
+                            "Match this code on the bottom-right Android approval card in PayMyDine.",
                             modifier = Modifier.padding(top = 8.dp),
                             color = PmdMuted,
                             style = MaterialTheme.typography.bodySmall,
@@ -742,9 +835,9 @@ private fun Onboarding(
             Text(
                 when (pairingStatus) {
                     "Opening PayMyDine security..." ->
-                        "Complete PayMyDine sign-in in the browser."
+                        "Complete PayMyDine sign-in in the browser. This browser does not approve the Android device."
                     "Waiting for browser approval" ->
-                        "Waiting for a Cashier, Manager or Owner to approve this Android device from the PayMyDine security icon."
+                        "Waiting for a Cashier, Manager or Owner to approve this Android device from the small PayMyDine approval icon."
                     "Finishing secure pairing..." ->
                         "Restaurant approval received. Securing this device…"
                     "Finishing secure setup..." ->
@@ -763,6 +856,200 @@ private fun Onboarding(
                 modifier = Modifier.padding(top = 10.dp),
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodySmall,
+            )
+        }
+    }
+}
+
+@Composable
+private fun PairWorkspaceChooser(
+    onWorkspace: (String) -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 28.dp, vertical = 26.dp),
+        verticalArrangement = Arrangement.spacedBy(18.dp),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Image(
+                painter = painterResource(R.drawable.pmd_brand_mark),
+                contentDescription = "PayMyDine",
+                modifier = Modifier.size(66.dp),
+            )
+            Column {
+                Text(
+                    "PayMyDine",
+                    color = PmdDeepGreen,
+                    fontWeight = FontWeight.Black,
+                    style = MaterialTheme.typography.headlineMedium,
+                )
+                Text(
+                    "One app for restaurant operations",
+                    color = PmdMuted,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+        }
+
+        Column {
+            Text(
+                "How will this device be used?",
+                color = PmdText,
+                fontWeight = FontWeight.Black,
+                style = MaterialTheme.typography.headlineMedium,
+            )
+            Text(
+                "Choose the workspace you want to connect. PayMyDine will confirm the signed-in staff permissions after restaurant approval.",
+                modifier = Modifier.padding(top = 6.dp),
+                color = PmdMuted,
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        }
+
+        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+            if (maxWidth >= 760.dp) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                ) {
+                    PairWorkspaceCard(
+                        modifier = Modifier.weight(1f),
+                        badge = "POS",
+                        title = "Cashier / Waiter",
+                        description = "Tables, menu, checks, Send/Hold and offline order service.",
+                        footer = "POS + Waiter",
+                        onClick = { onWorkspace("pos") },
+                    )
+                    PairWorkspaceCard(
+                        modifier = Modifier.weight(1f),
+                        badge = "KDS",
+                        title = "Kitchen Display",
+                        description = "Kitchen tickets, preparation status and LAN operation with Restaurant Edge.",
+                        footer = "Local-first KDS",
+                        onClick = { onWorkspace("kds") },
+                    )
+                    PairWorkspaceCard(
+                        modifier = Modifier.weight(1f),
+                        badge = "RES",
+                        title = "Reservations",
+                        description = "Open the PayMyDine reservation workspace using this paired device identity.",
+                        footer = "Cloud workspace",
+                        onClick = { onWorkspace("reservations") },
+                    )
+                }
+            } else {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    PairWorkspaceCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        badge = "POS",
+                        title = "Cashier / Waiter",
+                        description = "Tables, menu, checks, Send/Hold and offline order service.",
+                        footer = "POS + Waiter",
+                        onClick = { onWorkspace("pos") },
+                    )
+                    PairWorkspaceCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        badge = "KDS",
+                        title = "Kitchen Display",
+                        description = "Kitchen tickets, preparation status and LAN operation with Restaurant Edge.",
+                        footer = "Local-first KDS",
+                        onClick = { onWorkspace("kds") },
+                    )
+                    PairWorkspaceCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        badge = "RES",
+                        title = "Reservations",
+                        description = "Open the PayMyDine reservation workspace using this paired device identity.",
+                        footer = "Cloud workspace",
+                        onClick = { onWorkspace("reservations") },
+                    )
+                }
+            }
+        }
+
+        Text(
+            "PayMyDine · secure restaurant pairing",
+            color = PmdMuted,
+            style = MaterialTheme.typography.labelSmall,
+        )
+    }
+}
+
+@Composable
+private fun PairWorkspaceCard(
+    modifier: Modifier,
+    badge: String,
+    title: String,
+    description: String,
+    footer: String,
+    onClick: () -> Unit,
+) {
+    Surface(
+        modifier = modifier.clickable(onClick = onClick),
+        shape = RoundedCornerShape(22.dp),
+        color = Color.White,
+        border = BorderStroke(1.dp, PmdLine),
+        tonalElevation = 1.dp,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Surface(
+                modifier = Modifier.size(54.dp),
+                shape = RoundedCornerShape(16.dp),
+                color = PmdDeepGreen,
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    Text(
+                        badge,
+                        color = Color.White,
+                        fontWeight = FontWeight.Black,
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                }
+            }
+            Text(
+                title,
+                color = PmdText,
+                fontWeight = FontWeight.Black,
+                style = MaterialTheme.typography.titleLarge,
+            )
+            Text(
+                description,
+                color = PmdMuted,
+                style = MaterialTheme.typography.bodySmall,
+            )
+            Surface(
+                shape = RoundedCornerShape(999.dp),
+                color = PmdSurfaceSoft,
+            ) {
+                Text(
+                    footer,
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                    color = PmdGreen,
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.labelSmall,
+                )
+            }
+            Text(
+                "Select →",
+                color = PmdDeepGreen,
+                fontWeight = FontWeight.ExtraBold,
             )
         }
     }
