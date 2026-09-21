@@ -704,6 +704,50 @@ final class PmdMobilePairingService
             $codeChallenge
         );
 
+        $pair = DB::table('pmd_mobile_pair_requests')
+            ->where('pair_request', $pairRequest)
+            ->where('code_challenge', $codeChallenge)
+            ->first();
+        $challenge = $pair
+            ? DB::table('pmd_site_access_challenges')
+                ->where('id', (int)$pair->challenge_id)
+                ->first()
+            : null;
+        $requestCode = $challenge
+            ? app(PmdSiteAccessService::class)->challengeCodeForHub($challenge)
+            : null;
+
+        if (
+            $challenge
+            && (string)$challenge->status === 'declined'
+        ) {
+            DB::table('pmd_mobile_pair_requests')
+                ->where('id', (int)$pair->id)
+                ->update(['status' => 'declined', 'updated_at' => now()]);
+
+            return [
+                'ok' => true,
+                'status' => 'declined',
+                'request_code' => $requestCode,
+            ];
+        }
+
+        if (
+            $pair
+            && now()->greaterThanOrEqualTo($pair->expires_at)
+            && !in_array((string)$pair->status, ['approved', 'exchanged'], true)
+        ) {
+            DB::table('pmd_mobile_pair_requests')
+                ->where('id', (int)$pair->id)
+                ->update(['status' => 'expired', 'updated_at' => now()]);
+
+            return [
+                'ok' => true,
+                'status' => 'expired',
+                'request_code' => $requestCode,
+            ];
+        }
+
         $exchange = DB::table('pmd_mobile_pair_exchanges')
             ->where('public_id', $pairRequest)
             ->where(
@@ -716,6 +760,9 @@ final class PmdMobilePairingService
             return [
                 'ok' => true,
                 'status' => 'pending',
+                'request_code' => $requestCode,
+                'device_name' => $pair ? (string)$pair->device_name : null,
+                'expires_at' => $pair ? (string)$pair->expires_at : null,
             ];
         }
 
@@ -723,6 +770,7 @@ final class PmdMobilePairingService
             return [
                 'ok' => true,
                 'status' => 'used',
+                'request_code' => $requestCode,
             ];
         }
 
@@ -730,6 +778,7 @@ final class PmdMobilePairingService
             return [
                 'ok' => true,
                 'status' => 'expired',
+                'request_code' => $requestCode,
             ];
         }
 
@@ -739,6 +788,7 @@ final class PmdMobilePairingService
             'exchange' => $rawExchange,
             'tenant' => 'https://'.$request->getHost(),
             'expires_at' => (string)$exchange->expires_at,
+            'request_code' => $requestCode,
         ];
     }
 
@@ -832,6 +882,15 @@ final class PmdMobilePairingService
                     'used_at' => now(),
                     'updated_at' => now(),
                 ]);
+
+            if (Schema::hasTable('pmd_mobile_pair_requests')) {
+                DB::table('pmd_mobile_pair_requests')
+                    ->where('pair_request', (string)$exchange->public_id)
+                    ->update([
+                        'status' => 'exchanged',
+                        'updated_at' => now(),
+                    ]);
+            }
 
             $identity = [
                 'location_id' => (int)$exchange->location_id,
