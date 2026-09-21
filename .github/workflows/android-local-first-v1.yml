@@ -65,6 +65,7 @@ jobs:
           php -l app/admin/controllers/KitchenDisplay.php
           php -l app/admin/controllers/concerns/PmdWaiterPosBootstrapConcern.php
           php -l app/admin/controllers/concerns/PmdWaiterPosSaveEndpoint.php
+          php -l routes.php
           php -l routes/pmd-mobile-sync-v1.php
       - name: Safety contract
         shell: bash
@@ -96,6 +97,9 @@ jobs:
           grep -q "pairCurrentVerifiedPersonalDevice" app/Services/PmdSiteAccessService.php
           grep -q "approveVerifiedSession" app/Services/PmdMobileSync/PmdMobilePairingService.php
           grep -q "mobile/pair/approve" routes/pmd-mobile-sync-v1.php
+          grep -q "PMD_MOBILE_SYNC_EARLY_ROOT_LOADER_V8" routes.php
+          grep -q "PMD_MOBILE_SYNC_DIRECT_REGISTER_V8" routes/pmd-mobile-sync-v1.php
+          ! grep -q "App::before(function" routes/pmd-mobile-sync-v1.php
           grep -q "pair/status" routes/pmd-mobile-sync-v1.php
           grep -q "pairExchangeSecret" app/Services/PmdMobileSync/PmdMobilePairingService.php
           grep -q "pair_request" app/Http/Controllers/PmdMobilePairController.php
