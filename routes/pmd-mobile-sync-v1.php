@@ -38,8 +38,13 @@ App::before(function () {
             ->withoutMiddleware([VerifyCsrfToken::class]);
         Route::get('sync/events', [PmdMobileSyncController::class, 'events']);
 
+        Route::post('pair/status', [PmdMobilePairController::class, 'status'])
+            ->withoutMiddleware([VerifyCsrfToken::class])
+            ->middleware('throttle:60,1');
+
         Route::post('pair/exchange', [PmdMobilePairController::class, 'exchange'])
-            ->withoutMiddleware([VerifyCsrfToken::class]);
+            ->withoutMiddleware([VerifyCsrfToken::class])
+            ->middleware('throttle:30,1');
 
         Route::post('sync/commands', [PmdMobileSyncController::class, 'commands'])
             ->withoutMiddleware([VerifyCsrfToken::class]);
