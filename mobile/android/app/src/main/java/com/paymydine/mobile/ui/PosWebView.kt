@@ -4,12 +4,15 @@ import android.annotation.SuppressLint
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
+import android.view.View
+import android.view.ViewTreeObserver
 import android.webkit.CookieManager
 import android.webkit.SslErrorHandler
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
+import android.webkit.RenderProcessGoneDetail
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -22,12 +25,14 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import com.paymydine.mobile.BuildConfig
@@ -49,6 +54,7 @@ fun PosWebView(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    val configuration = LocalConfiguration.current
     val normalizedHost = remember(tenantHost) {
         tenantHost.trim().lowercase()
     }
@@ -85,6 +91,28 @@ fun PosWebView(
         )
     }
 
+    fun openPosWhenLaidOut(view: WebView) {
+        if (view.width > 0 && view.height > 0) {
+            view.post { openPos(view) }
+            return
+        }
+
+        val observer = view.viewTreeObserver
+        val listener = object : ViewTreeObserver.OnGlobalLayoutListener {
+            override fun onGlobalLayout() {
+                if (view.width <= 0 || view.height <= 0) {
+                    return
+                }
+
+                if (view.viewTreeObserver.isAlive) {
+                    view.viewTreeObserver.removeOnGlobalLayoutListener(this)
+                }
+                view.post { openPos(view) }
+            }
+        }
+        observer.addOnGlobalLayoutListener(listener)
+    }
+
     BackHandler(enabled = canGoBack) {
         webView?.goBack()
     }
@@ -101,6 +129,25 @@ fun PosWebView(
         }
     }
 
+    // PMD_ANDROID_POS_ORIENTATION_STABILITY_V3
+    // MainActivity handles orientation/screen-size changes without destroying
+    // the WebView. Re-measure and explicitly notify the canonical POS runtime
+    // so landscape/portrait changes cannot leave a stale white compositor.
+    LaunchedEffect(
+        configuration.orientation,
+        configuration.screenWidthDp,
+        configuration.screenHeightDp,
+    ) {
+        webView?.post {
+            requestLayout()
+            invalidate()
+            evaluateJavascript(
+                "(function(){window.dispatchEvent(new Event('resize'));document.documentElement.getBoundingClientRect();return true;})()",
+                null,
+            )
+        }
+    }
+
     Surface(modifier.fillMaxSize()) {
         Box(Modifier.fillMaxSize()) {
             AndroidView(
@@ -108,6 +155,8 @@ fun PosWebView(
                 factory = { androidContext ->
                     WebView(androidContext).apply {
                         webView = this
+                        setLayerType(View.LAYER_TYPE_HARDWARE, null)
+                        setBackgroundColor(android.graphics.Color.WHITE)
 
                         val cookies = CookieManager.getInstance()
                         cookies.setAcceptCookie(true)
@@ -293,9 +342,25 @@ fun PosWebView(
                                 fatalError =
                                     "The secure connection to PayMyDine could not be verified."
                             }
+
+                            override fun onRenderProcessGone(
+                                view: WebView,
+                                detail: RenderProcessGoneDetail,
+                            ): Boolean {
+                                pageReady = false
+                                fatalError =
+                                    "PayMyDine POS renderer restarted. Tap Retry POS."
+                                return true
+                            }
                         }
 
-                        openPos(this)
+                        openPosWhenLaidOut(this)
+                    }
+                },
+                update = { view ->
+                    view.post {
+                        view.requestLayout()
+                        view.invalidate()
                     }
                 },
             )
