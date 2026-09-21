@@ -24,6 +24,24 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         val app = application as PayMyDineApplication
         app.handleIntent(intent)
+
+        val paired =
+            !app.credentials.tenantHost().isNullOrBlank() &&
+                !app.credentials.deviceToken().isNullOrBlank()
+        val normalLauncherOpen =
+            intent?.action == Intent.ACTION_MAIN ||
+                intent?.action.isNullOrBlank()
+
+        if (paired && normalLauncherOpen) {
+            startActivity(
+                Intent(this, PosActivity::class.java).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                },
+            )
+            finish()
+            return
+        }
+
         requestOperationalPermissions()
         setContent { PayMyDineApp(app) }
     }
