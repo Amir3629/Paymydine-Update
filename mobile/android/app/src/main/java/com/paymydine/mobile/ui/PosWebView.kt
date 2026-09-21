@@ -2,7 +2,6 @@ package com.paymydine.mobile.ui
 
 import android.annotation.SuppressLint
 import android.content.Intent
-import android.content.res.Configuration
 import android.net.Uri
 import android.os.Build
 import android.view.View
@@ -92,71 +91,109 @@ fun PosWebView(
         )
     }
 
-    fun useSoftwareLandscapeCompatibility(view: WebView) {
-        val samsungDevice =
-            Build.MANUFACTURER.equals("samsung", ignoreCase = true) ||
-                Build.BRAND.equals("samsung", ignoreCase = true)
-        val landscape =
-            configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
-        val desiredLayer =
-            if (samsungDevice && landscape) {
-                View.LAYER_TYPE_SOFTWARE
-            } else {
-                View.LAYER_TYPE_NONE
-            }
-
-        if (view.layerType != desiredLayer) {
-            view.setLayerType(desiredLayer, null)
-        }
-    }
-
-    // PMD_ANDROID_POS_VISUAL_STATE_V4
-    // onPageFinished does not mean the current DOM has reached an actual
-    // WebView draw. Force a viewport reflow, then wait for a visual-state
-    // callback before removing the native loading surface.
+    // PMD_ANDROID_POS_LANDSCAPE_VIEWPORT_V5
+    // Some tablet WebView builds report a usable DOM while CSS dynamic viewport
+    // units are still stale during landscape startup. Use the actual WebView
+    // viewport as an explicit native height authority and never switch layer
+    // types during rotation.
     fun synchronizeVisibleFrame(
         view: WebView,
         onVisible: (() -> Unit)? = null,
     ) {
-        useSoftwareLandscapeCompatibility(view)
         view.post {
+            view.setLayerType(View.LAYER_TYPE_NONE, null)
             view.requestLayout()
             view.invalidate()
             view.evaluateJavascript(
                 """
                 (function(){
-                  window.dispatchEvent(new Event('resize'));
-                  window.dispatchEvent(new Event('orientationchange'));
-                  if (window.visualViewport) {
-                    try {
-                      window.visualViewport.dispatchEvent(new Event('resize'));
-                    } catch (e) {}
-                  }
+                  var vv = window.visualViewport;
+                  var w = Math.max(
+                    1,
+                    window.innerWidth || 0,
+                    document.documentElement.clientWidth || 0,
+                    vv ? Math.round(vv.width || 0) : 0
+                  );
+                  var h = Math.max(
+                    1,
+                    window.innerHeight || 0,
+                    document.documentElement.clientHeight || 0,
+                    vv ? Math.round(vv.height || 0) : 0
+                  );
+
+                  document.documentElement.style.setProperty(
+                    '--pmd-android-viewport-width',
+                    w + 'px'
+                  );
+                  document.documentElement.style.setProperty(
+                    '--pmd-android-viewport-height',
+                    h + 'px'
+                  );
+
                   var root = document.getElementById('pmd-quick-pos');
-                  void document.documentElement.offsetWidth;
                   if (root) {
+                    root.style.height = h + 'px';
+                    root.style.minHeight = h + 'px';
+                    root.style.maxHeight = h + 'px';
+                    root.style.width = '100%';
+                    root.style.minWidth = '0';
+                    root.style.display = 'grid';
+
+                    var main = root.querySelector('.pmd-qpos-main');
+                    if (main) {
+                      main.style.height = '100%';
+                      main.style.minHeight = '0';
+                    }
+
                     void root.offsetWidth;
+                    void root.offsetHeight;
                     root.getBoundingClientRect();
                   }
-                  return !!root;
+
+                  window.dispatchEvent(new Event('resize'));
+                  window.dispatchEvent(new Event('orientationchange'));
+                  if (vv) {
+                    try {
+                      vv.dispatchEvent(new Event('resize'));
+                    } catch (e) {}
+                  }
+
+                  return JSON.stringify({
+                    root: !!root,
+                    width: w,
+                    height: h,
+                    rootHeight: root ? root.getBoundingClientRect().height : 0
+                  });
                 })()
                 """.trimIndent(),
                 null,
             )
+
+            // VisualStateCallback remains a useful compositor hint, but it is
+            // deliberately non-blocking. A Samsung/Chromium callback stall must
+            // never keep the native loading surface over a valid POS DOM.
+            var delivered = false
+            fun deliverVisible() {
+                if (delivered) return
+                delivered = true
+                view.requestLayout()
+                view.invalidate()
+                onVisible?.invoke()
+            }
+
+            view.postVisualStateCallback(
+                System.nanoTime(),
+                object : WebView.VisualStateCallback() {
+                    override fun onComplete(requestId: Long) {
+                        deliverVisible()
+                    }
+                },
+            )
             view.postDelayed(
                 {
-                    view.postVisualStateCallback(
-                        System.nanoTime(),
-                        object : WebView.VisualStateCallback() {
-                            override fun onComplete(requestId: Long) {
-                                view.requestLayout()
-                                view.invalidate()
-                                onVisible?.invoke()
-                            }
-                        },
-                    )
+                    deliverVisible()
                 },
-                80L,
+                450L,
             )
         }
     }
@@ -219,14 +256,11 @@ fun PosWebView(
                 factory = { androidContext ->
                     WebView(androidContext).apply {
                         webView = this
-                        // Do not force WebView into a dedicated hardware
-                        // texture. Samsung tablet WebView builds can leave that
-                        // texture white after a landscape resize. The app stays
-                        // hardware accelerated; only this WebView falls back to
-                        // software composition in Samsung landscape mode.
+                        // Keep the default compositor. Switching a live WebView
+                        // between hardware/software layers during rotation can
+                        // itself produce a blank texture on tablet Chromium.
                         setLayerType(View.LAYER_TYPE_NONE, null)
-                        useSoftwareLandscapeCompatibility(this)
-                        setBackgroundColor(android.graphics.Color.WHITE)
+                        setBackgroundColor(android.graphics.Color.rgb(244, 246, 248))
 
                         addOnLayoutChangeListener {
                                 view,
@@ -244,14 +278,7 @@ fun PosWebView(
                                     (bottom - top) != (oldBottom - oldTop)
 
                             if (sizeChanged && view is WebView) {
-                                view.post {
-                                    view.requestLayout()
-                                    view.invalidate()
-                                    view.evaluateJavascript(
-                                        "(function(){window.dispatchEvent(new Event('resize'));return true;})()",
-                                        null,
-                                    )
-                                }
+                                synchronizeVisibleFrame(view)
                             }
                         }
 
@@ -389,14 +416,17 @@ fun PosWebView(
                                     "(function(){return !!document.getElementById('pmd-quick-pos');})()",
                                 ) { result ->
                                     if (result == "true") {
-                                        synchronizeVisibleFrame(view) {
-                                            if (webView === view) {
-                                                view.clearHistory()
-                                                canGoBack = false
-                                                pageReady = true
-                                                fatalError = null
-                                            }
+                                        // DOM presence is the readiness gate.
+                                        // Do not let a compositor callback stall
+                                        // leave an opaque native loading surface
+                                        // over a valid landscape POS.
+                                        if (webView === view) {
+                                            view.clearHistory()
+                                            canGoBack = false
+                                            pageReady = true
+                                            fatalError = null
                                         }
+                                        synchronizeVisibleFrame(view)
                                     } else {
                                         pageReady = false
                                         fatalError =
@@ -479,18 +509,14 @@ fun PosWebView(
                     }
                 },
                 update = { view ->
-                    useSoftwareLandscapeCompatibility(view)
-                    view.post {
-                        view.requestLayout()
-                        view.invalidate()
-                    }
+                    synchronizeVisibleFrame(view)
                 },
             )
 
             if (!pageReady && fatalError == null) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.surface,
+                    color = MaterialTheme.colorScheme.surfaceVariant,
                 ) {
                     Box(
                         modifier = Modifier.fillMaxSize(),
