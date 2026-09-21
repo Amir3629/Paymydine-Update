@@ -28,6 +28,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.paymydine.mobile.OfflinePosActivity
 import com.paymydine.mobile.PayMyDineApplication
 import com.paymydine.mobile.PosActivity
 import com.paymydine.mobile.data.local.BootstrapSummary
@@ -441,19 +442,66 @@ fun PayMyDineApp(app: PayMyDineApplication) {
 
     MaterialTheme {
         Surface(Modifier.fillMaxSize()) {
-            if (paired) {
-                // PMD_ANDROID_POS_ACTIVITY_LAUNCH_V6
-                // Keep onboarding/pairing in Compose, but move the canonical
-                // tablet POS renderer out of AndroidView entirely.
-                LaunchedEffect(Unit) {
+            if (paired && ready) {
+                // PMD_ANDROID_POS_ACTIVITY_LAUNCH_V9
+                // Pairing/bootstrap stays in Compose. Once the durable local
+                // snapshot exists, validated Cloud opens the canonical WebView
+                // POS and WAN loss opens the native SQLite POS instead.
+                LaunchedEffect(online) {
+                    val destination =
+                        if (online) {
+                            PosActivity::class.java
+                        } else {
+                            OfflinePosActivity::class.java
+                        }
+
                     context.startActivity(
-                        Intent(context, PosActivity::class.java).apply {
+                        Intent(context, destination).apply {
                             addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                            if (destination == OfflinePosActivity::class.java) {
+                                putExtra(
+                                    OfflinePosActivity.EXTRA_REASON,
+                                    "Cloud is unavailable. Using the last trusted restaurant data.",
+                                )
+                            }
                         },
                     )
                     (context as? Activity)?.finish()
                 }
-                Text("Opening PayMyDine POS...")
+                Text(
+                    if (online) {
+                        "Opening PayMyDine POS..."
+                    } else {
+                        "Opening PayMyDine Local POS..."
+                    },
+                )
+            } else if (paired) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(28.dp),
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    Text(
+                        "Preparing offline POS",
+                        style = MaterialTheme.typography.headlineSmall,
+                    )
+                    Text(
+                        if (online) {
+                            "Downloading the restaurant menu, tables and open bills for secure local use."
+                        } else {
+                            "Connect this tablet to the internet once so PayMyDine can download the trusted restaurant snapshot."
+                        },
+                        modifier = Modifier.padding(top = 10.dp),
+                    )
+                    lastError?.let {
+                        Text(
+                            it,
+                            modifier = Modifier.padding(top = 10.dp),
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                }
             } else {
                 Onboarding(
                     tenantCode = tenantCode,
