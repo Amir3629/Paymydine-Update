@@ -22,6 +22,7 @@ final class PmdMobilePairingService
 {
     public const SESSION_INTENT = 'pmd_mobile_pair_intent_v1';
     public const INTENT_COOKIE = 'pmd_mobile_pair_intent_v2';
+    public const HANDOFF_PARAM = 'pmd_pair';
     private const INTENT_TTL_SECONDS = 900;
     private const EXCHANGE_TTL_SECONDS = 120;
 
@@ -94,6 +95,105 @@ final class PmdMobilePairingService
             $this->intent($request),
             $request
         );
+    }
+
+    /** PMD_MOBILE_PAIR_SIGNED_HANDOFF_V3 */
+    public function signedHandoff(Request $request): string
+    {
+        $intent = $this->intent($request);
+        if (!$this->validIntent($intent, $request)) {
+            throw new \RuntimeException(
+                'The Android pairing request expired. Start again from the app.'
+            );
+        }
+
+        $body = $this->base64UrlEncode(
+            json_encode(
+                [
+                    'v' => 1,
+                    'host' => strtolower(trim((string)($intent['host'] ?? ''))),
+                    'created_at' => (int)($intent['created_at'] ?? 0),
+                    'code_challenge' => trim((string)($intent['code_challenge'] ?? '')),
+                    'pair_request' => strtolower(trim((string)($intent['pair_request'] ?? ''))),
+                ],
+                JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR
+            )
+        );
+
+        $signature = $this->base64UrlEncode(
+            hash_hmac(
+                'sha256',
+                'pmd-mobile-pair-handoff-v1|'.$body,
+                (string)config('app.key', 'pmd-mobile-pairing'),
+                true
+            )
+        );
+
+        return $body.'.'.$signature;
+    }
+
+    public function loginUrl(Request $request): string
+    {
+        return admin_url('login').'?'.http_build_query([
+            self::HANDOFF_PARAM => $this->signedHandoff($request),
+        ]);
+    }
+
+    public function restoreSignedHandoff(Request $request): bool
+    {
+        $token = trim((string)$request->input(self::HANDOFF_PARAM, ''));
+        if ($token === '') {
+            return false;
+        }
+
+        $parts = explode('.', $token, 2);
+        if (count($parts) !== 2) {
+            return false;
+        }
+
+        [$body, $signature] = $parts;
+        if ($body === '' || $signature === '') {
+            return false;
+        }
+
+        $expected = $this->base64UrlEncode(
+            hash_hmac(
+                'sha256',
+                'pmd-mobile-pair-handoff-v1|'.$body,
+                (string)config('app.key', 'pmd-mobile-pairing'),
+                true
+            )
+        );
+
+        if (!hash_equals($expected, $signature)) {
+            return false;
+        }
+
+        try {
+            $decoded = json_decode(
+                $this->base64UrlDecode($body),
+                true,
+                16,
+                JSON_THROW_ON_ERROR
+            );
+        } catch (\Throwable $error) {
+            return false;
+        }
+
+        if (!is_array($decoded) || !$this->validIntent($decoded, $request)) {
+            return false;
+        }
+
+        session()->put(self::SESSION_INTENT, $decoded);
+        $this->queueIntentCookie($decoded);
+
+        logger()->info('PMD mobile pairing signed handoff restored', [
+            'host' => strtolower((string)$request->getHost()),
+            'pair_request' => strtolower(trim((string)($decoded['pair_request'] ?? ''))),
+            'transport' => 'signed_login_handoff',
+        ]);
+
+        return true;
     }
 
     public function start(Request $request): string
@@ -592,6 +692,37 @@ final class PmdMobilePairingService
             ),
             '='
         );
+    }
+
+    private function base64UrlEncode(string $value): string
+    {
+        return rtrim(
+            strtr(base64_encode($value), '+/', '-_'),
+            '='
+        );
+    }
+
+    private function base64UrlDecode(string $value): string
+    {
+        if (!preg_match('/^[A-Za-z0-9_-]+$/', $value)) {
+            throw new \InvalidArgumentException('Invalid base64url payload.');
+        }
+
+        $padding = strlen($value) % 4;
+        if ($padding > 0) {
+            $value .= str_repeat('=', 4 - $padding);
+        }
+
+        $decoded = base64_decode(
+            strtr($value, '-_', '+/'),
+            true
+        );
+
+        if ($decoded === false) {
+            throw new \InvalidArgumentException('Invalid base64url payload.');
+        }
+
+        return $decoded;
     }
 
     private function validCodeChallenge(string $value): bool
