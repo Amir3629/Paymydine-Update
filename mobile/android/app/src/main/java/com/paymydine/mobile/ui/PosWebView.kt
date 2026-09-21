@@ -123,7 +123,8 @@ fun PosWebView(
                             loadWithOverviewMode = false
                             builtInZoomControls = false
                             displayZoomControls = false
-                            javaScriptCanOpenWindowsAutomatically = false
+                            javaScriptCanOpenWindowsAutomatically = true
+                            setSupportMultipleWindows(true)
                             mediaPlaybackRequiresUserGesture = false
                             userAgentString =
                                 userAgentString +
@@ -134,7 +135,54 @@ fun PosWebView(
                             }
                         }
 
-                        webChromeClient = WebChromeClient()
+                        webChromeClient = object : WebChromeClient() {
+                            override fun onCreateWindow(
+                                view: WebView,
+                                isDialog: Boolean,
+                                isUserGesture: Boolean,
+                                resultMsg: android.os.Message,
+                            ): Boolean {
+                                val popup = WebView(view.context)
+                                popup.webViewClient = object : WebViewClient() {
+                                    override fun shouldOverrideUrlLoading(
+                                        child: WebView,
+                                        request: WebResourceRequest,
+                                    ): Boolean {
+                                        val uri = request.url
+                                        val sameTenant =
+                                            uri.scheme.equals("https", true) &&
+                                                uri.host.equals(
+                                                    trustedHost,
+                                                    true,
+                                                )
+
+                                        child.stopLoading()
+                                        child.destroy()
+
+                                        if (sameTenant) {
+                                            view.loadUrl(uri.toString())
+                                        } else {
+                                            runCatching {
+                                                context.startActivity(
+                                                    Intent(
+                                                        Intent.ACTION_VIEW,
+                                                        uri,
+                                                    ),
+                                                )
+                                            }
+                                        }
+                                        return true
+                                    }
+                                }
+
+                                val transport =
+                                    resultMsg.obj as? WebView.WebViewTransport
+                                        ?: return false
+                                transport.webView = popup
+                                resultMsg.sendToTarget()
+                                return true
+                            }
+                        }
                         webViewClient = object : WebViewClient() {
                             override fun shouldOverrideUrlLoading(
                                 view: WebView,
