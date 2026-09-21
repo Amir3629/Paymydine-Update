@@ -18,6 +18,8 @@ data class PairStatusResult(
     val status: String,
     val exchange: String?,
     val tenantBaseUrl: String?,
+    val requestCode: String?,
+    val deviceName: String?,
 )
 
 class MobileApiException(
@@ -54,7 +56,7 @@ class MobileApiClient {
         }
 
         val status = json.optString("status").trim().lowercase()
-        require(status in setOf("pending", "approved", "expired", "used")) {
+        require(status in setOf("pending", "approved", "expired", "used", "declined")) {
             "Pairing status is invalid."
         }
 
@@ -62,6 +64,12 @@ class MobileApiClient {
             .trim()
             .takeIf { it.length == 64 }
         val tenant = json.optString("tenant")
+            .trim()
+            .takeIf { it.isNotBlank() }
+        val requestCode = json.optString("request_code")
+            .filter(Char::isDigit)
+            .takeIf { it.length == 6 }
+        val deviceName = json.optString("device_name")
             .trim()
             .takeIf { it.isNotBlank() }
 
@@ -78,6 +86,8 @@ class MobileApiClient {
             status = status,
             exchange = exchange,
             tenantBaseUrl = tenant,
+            requestCode = requestCode,
+            deviceName = deviceName,
         )
     }
 
