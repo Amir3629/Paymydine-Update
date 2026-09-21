@@ -17,7 +17,7 @@
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-reservations2-floor-reservation-v312.css?v=20260920-floor-v35b">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-dashboard-lab-exact-floor-v1.css?v=20260920-floor-v35b">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-shared-floor-multi-floor-v1.css?v=20260920-floor-v35b">
-    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-pos-v1.css?v=20260920-44">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-pos-v1.css?v=20260921-49">
 </head>
 <body class="pmd-qpos-body">
 @php
@@ -306,7 +306,7 @@
             </div>
 
             <div class="pmd-qpos-table-actions" data-qpos-table-actions hidden>
-                <button type="button" data-qpos-table-cleaning>Left</button>
+                <button type="button" data-qpos-table-cleaning>Cleaning</button>
                 <button
                     type="button"
                     data-qpos-table-move
@@ -412,18 +412,10 @@
                         <button type="button" class="is-active" data-payment-method="cash">Cash</button>
                     </div>
 
+                    {{-- PMD_QPOS_CASH_FIRST_FIELD_V46
+                         Cash received is intentionally first so the payment
+                         screen opens ready for cashier entry. --}}
                     <div class="pmd-qpos-payment-grid">
-                        <label class="pmd-qpos-field">
-                            <span>Pay now</span>
-                            <input
-                                type="text"
-                                inputmode="none"
-                                autocomplete="off"
-                                spellcheck="false"
-                                data-qpos-payment-amount
-                                data-qpos-keypad-target="amount"
-                            >
-                        </label>
                         <label class="pmd-qpos-field" data-qpos-cash-field>
                             <span>Cash received</span>
                             <input
@@ -433,6 +425,17 @@
                                 spellcheck="false"
                                 data-qpos-cash-received
                                 data-qpos-keypad-target="cash"
+                            >
+                        </label>
+                        <label class="pmd-qpos-field">
+                            <span>Pay now</span>
+                            <input
+                                type="text"
+                                inputmode="none"
+                                autocomplete="off"
+                                spellcheck="false"
+                                data-qpos-payment-amount
+                                data-qpos-keypad-target="amount"
                             >
                         </label>
                     </div>
@@ -538,6 +541,14 @@
                         <div data-qpos-terminal-list></div>
                     </div>
 
+                    {{-- PMD_QPOS_TERMINAL_TIP_DISPLAY_V46
+                         Terminal tips are read-only here. The customer chooses
+                         the tip on the physical terminal. --}}
+                    <div class="pmd-qpos-terminal-tip" data-qpos-terminal-tip hidden>
+                        <span>Terminal tip</span>
+                        <strong data-qpos-terminal-tip-amount>€0.00</strong>
+                    </div>
+
                     <div class="pmd-qpos-change" data-qpos-change hidden>
                         Change <strong data-qpos-change-amount>€0.00</strong>
                     </div>
@@ -567,7 +578,19 @@
                             <button type="button" data-qpos-keypad-key="7">7</button>
                             <button type="button" data-qpos-keypad-key="8">8</button>
                             <button type="button" data-qpos-keypad-key="9">9</button>
-                            <button type="button" class="exact" data-qpos-keypad-key="exact" data-qpos-keypad-exact>Exact</button>
+                            {{-- PMD_QPOS_KEYPAD_NEXT_FIELD_V46 --}}
+                            <button
+                                type="button"
+                                class="next-field"
+                                data-qpos-keypad-key="next"
+                                data-qpos-keypad-next
+                                aria-label="Next field"
+                                title="Next field"
+                            >
+                                <svg viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M5 12h12m-5-5 5 5-5 5"></path>
+                                </svg>
+                            </button>
 
                             <button type="button" data-qpos-keypad-key="00">00</button>
                             <button type="button" data-qpos-keypad-key="0">0</button>
@@ -770,7 +793,7 @@ window.PMDQuickPOSConfig = {
 {{-- Canonical Floor runtime mounts before the POS bridge. --}}
 <script src="/app/admin/assets/js/pmd-dashboard-lab-exact-floor-v1.js?v=20260920-floor-v35b"></script>
 <script src="/app/admin/assets/js/pmd-shared-floor-multi-floor-v1.js?v=20260920-floor-v35b"></script>
-<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260921-45"></script>
+<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260921-49"></script>
 <script src="/app/admin/assets/js/pmd-site-access-hub-v13.js?v=20260919-qpos1"></script>
 </body>
 </html>
