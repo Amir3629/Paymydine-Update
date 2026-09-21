@@ -145,32 +145,38 @@ jobs:
         with:
           path: ~/.android/debug.keystore
           key: paymydine-android-preview-debug-keystore-v1
-      - name: Ensure stable preview signing key
+      - name: Verify stable preview signing key
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p "$HOME/.android"
+          EXPECTED_PREVIEW_SHA256="C1:A7:58:7B:41:F3:87:3B:5C:1C:45:52:D3:80:FA:45:97:F3:30:52:35:47:50:A2:B6:8C:F6:2B:75:5D:B5:C1"
+
           if [[ ! -f "$HOME/.android/debug.keystore" ]]; then
-            keytool -genkeypair \
-              -keystore "$HOME/.android/debug.keystore" \
-              -storepass android \
-              -alias androiddebugkey \
-              -keypass android \
-              -keyalg RSA \
-              -keysize 2048 \
-              -validity 10000 \
-              -dname "CN=PayMyDine Android Preview,O=PayMyDine,C=DE"
+            echo "::error::Stable PayMyDine preview signing key is missing. Refusing to publish an APK with a new signature."
+            exit 1
           fi
-          keytool -list \
-            -keystore "$HOME/.android/debug.keystore" \
-            -storepass android \
-            -alias androiddebugkey >/dev/null
-          echo "PMD_PREVIEW_SIGNING_SHA256=$(keytool -list -v \
+
+          ACTUAL_PREVIEW_SHA256="$(keytool -list -v \
             -keystore "$HOME/.android/debug.keystore" \
             -storepass android \
             -alias androiddebugkey \
             | sed -n 's/^[[:space:]]*SHA256:[[:space:]]*//p' \
             | head -1)"
+
+          [[ -n "$ACTUAL_PREVIEW_SHA256" ]] || {
+            echo "::error::Unable to read PayMyDine preview signing certificate."
+            exit 1
+          }
+
+          if [[ "$ACTUAL_PREVIEW_SHA256" != "$EXPECTED_PREVIEW_SHA256" ]]; then
+            echo "::error::PayMyDine preview signing certificate changed. Refusing to publish an incompatible update."
+            echo "expected=$EXPECTED_PREVIEW_SHA256"
+            echo "actual=$ACTUAL_PREVIEW_SHA256"
+            exit 1
+          fi
+
+          echo "PMD_PREVIEW_SIGNING_SHA256=$ACTUAL_PREVIEW_SHA256"
+          echo "PMD_PREVIEW_SIGNING_PIN=PASS"
       - name: Unit tests
         working-directory: mobile/android
         run: gradle --no-daemon testDebugUnitTest
