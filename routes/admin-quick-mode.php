@@ -54,6 +54,19 @@ Route::middleware(['web'])->group(function () {
         [\Admin\Controllers\PmdQuickPosV1::class, 'settlePayment']
     )->where('order', '[0-9]+');
 
+    // PMD_QPOS_PAYMENT_ENDPOINTS_V50
+    // Keep every payment action inside the Quick POS controller so the same
+    // Quick POS operator authority is applied to Cash, Coupon and Terminal.
+    Route::post(
+        '/admin/pos/payment-coupon/{order}',
+        [\Admin\Controllers\PmdQuickPosV1::class, 'validatePaymentCoupon']
+    )->where('order', '[0-9]+');
+
+    Route::post(
+        '/admin/pos/terminal-payment/{order}',
+        [\Admin\Controllers\PmdQuickPosV1::class, 'terminalPayment']
+    )->where('order', '[0-9]+');
+
     // PMD_QPOS_EXACT_DASHBOARD_FLOOR_AJAX_V26
     // Canonical Floor zoom/view preference + reservation-window transport.
     Route::post(

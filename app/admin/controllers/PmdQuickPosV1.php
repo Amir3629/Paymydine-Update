@@ -23,6 +23,51 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
 {
     protected $requiredPermissions = 'Admin.Orders';
 
+    /**
+     * PMD_QPOS_PAYMENT_AUTHORITY_V50
+     *
+     * Quick POS is an operational ordering/payment surface. A user who is
+     * authenticated and is allowed to operate orders in Quick POS must not be
+     * stranded by an old/stale Admin.Payments bit. Keep explicit Payments as
+     * the first authority, then allow the same Admin.Orders authority required
+     * to enter this controller. Managed PMD cashier/waiter/manager/owner roles
+     * remain an explicit final fallback for older role records.
+     */
+    protected function canManagePayments(): bool
+    {
+        $user = $this->currentUser();
+        if (!$user) {
+            return false;
+        }
+
+        try {
+            if ((bool)$user->hasPermission('Admin.Payments')) {
+                return true;
+            }
+        } catch (\Throwable $ignored) {
+        }
+
+        try {
+            if ((bool)$user->hasPermission('Admin.Orders')) {
+                return true;
+            }
+        } catch (\Throwable $ignored) {
+        }
+
+        $role = strtolower(trim($this->quickPosRoleCode()));
+
+        return in_array($role, [
+            PmdDefaultStaffRoleService::OWNER,
+            PmdDefaultStaffRoleService::MANAGER,
+            PmdDefaultStaffRoleService::CASHIER,
+            PmdDefaultStaffRoleService::WAITER,
+            'owner',
+            'manager',
+            'cashier',
+            'waiter',
+        ], true);
+    }
+
     public function index($mode = 'cashier')
     {
         $mode = $this->quickPosMode((string)$mode);
@@ -583,8 +628,8 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 'off_premise_save_url' => '/admin/pos/save-off-premise',
                 'payment_summary_url' => '/admin/pos/payment-summary/{order}',
                 'payment_settle_url' => '/admin/pos/payment-settle/{order}',
-                'payment_coupon_url' => '/admin/pmd-waiter-pos-v1/payment-coupon/{order}',
-                'terminal_payment_url' => '/admin/pmd-waiter-pos-v1/terminal-payment/{order}',
+                'payment_coupon_url' => '/admin/pos/payment-coupon/{order}',
+                'terminal_payment_url' => '/admin/pos/terminal-payment/{order}',
                 'terminal_attempts_url' => '/admin/orders/{order}/terminal-payment-attempts',
                 'terminal_refresh_url' => '/admin/terminal-payments/attempts/{attempt}/refresh',
                 'table_state_url' => '/admin/pmd-waiter-table-states-v154/{table}',

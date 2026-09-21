@@ -4,6 +4,7 @@ namespace Admin\Controllers\Concerns;
 
 use Admin\Facades\AdminAuth;
 use Admin\Models\Menus_model;
+use Admin\Services\PmdDefaultStaffRoleService;
 use App\Services\MenuPopularityService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -145,8 +146,33 @@ trait PmdWaiterPosBootstrapConcern
         if (!$user) {
             return false;
         }
+
+        /* PMD_QPOS_PAYMENT_ROLE_FALLBACK_V49
+         * Cashier/Waiter/Owner/Manager are payment-capable operational roles.
+         * Keep Admin.Payments as the primary authority, but do not strand an
+         * existing PMD role whose stored legacy permission map is stale. */
         try {
-            return (bool)$user->hasPermission('Admin.Payments');
+            if ((bool)$user->hasPermission('Admin.Payments')) {
+                return true;
+            }
+        } catch (\Throwable $ignored) {
+        }
+
+        try {
+            $roleCode = strtolower(trim((string)app(
+                PmdDefaultStaffRoleService::class
+            )->roleCodeForUser($user)));
+
+            return in_array($roleCode, [
+                PmdDefaultStaffRoleService::OWNER,
+                PmdDefaultStaffRoleService::MANAGER,
+                PmdDefaultStaffRoleService::CASHIER,
+                PmdDefaultStaffRoleService::WAITER,
+                'owner',
+                'manager',
+                'cashier',
+                'waiter',
+            ], true);
         } catch (\Throwable $ignored) {
             return false;
         }

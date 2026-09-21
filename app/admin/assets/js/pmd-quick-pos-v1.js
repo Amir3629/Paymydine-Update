@@ -181,6 +181,10 @@
       reference: '',
       externalConfirmed: false,
       terminal: null,
+      /* PMD_QPOS_TERMINAL_TIP_STATE_V46
+       * Read-only tip reported by the physical terminal/provider. */
+      terminalTipAmount: 0,
+      terminalTipKnown: false,
       receiptUrl: '',
       invoiceUrl: '',
       idempotencyKey: uid('pay')
@@ -831,6 +835,28 @@
     return null;
   }
 
+  /* PMD_QPOS_MAP_RAIL_SCROLL_V46
+   * When a table is chosen from the full-screen map, return to POS with the
+   * selected table already visible in the table rail. No smooth wait. */
+  function scrollTableRailToV46(tableId) {
+    tableId = Number(tableId || 0);
+    if (!tableId) return;
+
+    var grid = $('[data-qpos-tables]');
+    if (!grid) return;
+
+    var button = grid.querySelector(
+      '[data-qpos-table="' + String(tableId) + '"]'
+    );
+    if (!button) return;
+
+    var top =
+      button.offsetTop -
+      Math.max(0, (grid.clientHeight - button.offsetHeight) / 2);
+
+    grid.scrollTop = Math.max(0, top);
+  }
+
   async function openExactFloorTable(node) {
     var table = exactFloorPosTableFromNode(node);
 
@@ -846,6 +872,10 @@
       Number(state.selectedTable.id) === Number(table.id)
     ) {
       closeFloorMap();
+
+      window.requestAnimationFrame(function () {
+        scrollTableRailToV46(table.id);
+      });
     }
   }
 
@@ -1719,16 +1749,20 @@ function renderOpenChecks() {
     }
 
     if (pay) {
-      var canPayPermission =
-        (state.boot && state.boot.permissions && state.boot.permissions.payments) !== false;
+      /* PMD_QPOS_PAY_BACKEND_AUTHORITY_V50
+       * The button is a workflow control, not a permission authority.
+       * Quick POS payment endpoints enforce authorization server-side.
+       * If a real check is already loaded, Pay must be usable immediately. */
+      var payableOrder = activeOrder();
+      var waitingForPayableOrder =
+        state.tableSwitching && !payableOrder;
 
       pay.disabled =
-        state.tableSwitching ||
+        waitingForPayableOrder ||
         !!state.pendingSend ||
         state.submitting ||
-        !canPayPermission ||
         (
-          !activeOrder() &&
+          !payableOrder &&
           !(canOrderNow() && state.cart.length > 0)
         );
 
@@ -3417,6 +3451,12 @@ function renderOpenChecks() {
       modal.setAttribute('aria-hidden', 'false');
     }
     root.classList.add('is-payment-workspace');
+
+    /* PMD_QPOS_CASH_AUTO_FOCUS_V46
+     * Payment opens ready for immediate cashier input. */
+    window.requestAnimationFrame(function () {
+      focusPaymentKeypadTargetV46('cash');
+    });
   }
 
   function paymentRemaining() {
@@ -3736,6 +3776,12 @@ function renderOpenChecks() {
     );
 
     await loadPaymentSummary(false);
+
+    if (state.payment.open && state.payment.method === 'cash') {
+      window.requestAnimationFrame(function () {
+        focusPaymentKeypadTargetV46('cash');
+      });
+    }
   }
 
   function closePayment() {
@@ -3865,6 +3911,8 @@ function renderOpenChecks() {
           state.payment.reference = '';
           state.payment.externalConfirmed = false;
           state.payment.terminal = null;
+          state.payment.terminalTipAmount = 0;
+          state.payment.terminalTipKnown = false;
 
           if (state.payment.method === 'direct_terminal') {
             state.payment.amount = roundMoney(paymentRemaining()).toFixed(2);
@@ -3893,6 +3941,13 @@ function renderOpenChecks() {
           }
 
           renderPayment();
+
+          /* PMD_QPOS_PAYMENT_METHOD_FOCUS_V46 */
+          if (state.payment.method === 'cash') {
+            window.requestAnimationFrame(function () {
+              focusPaymentKeypadTargetV46('cash');
+            });
+          }
         };
       });
     }
@@ -4045,7 +4100,7 @@ function renderOpenChecks() {
     var keypad = $('[data-qpos-touch-keypad]');
     var label = $('[data-qpos-touch-keypad-label]');
     var value = $('[data-qpos-touch-keypad-value]');
-    var exact = $('[data-qpos-keypad-exact]');
+    var nextField = $('[data-qpos-keypad-next]');
     var amountEl = $('[data-qpos-payment-amount]');
     var cashEl = $('[data-qpos-cash-received]');
     var tipEl = $('[data-qpos-tip-amount]');
@@ -4124,16 +4179,68 @@ function renderOpenChecks() {
           : money(num(touchKeypadDisplayValue(target), 0));
     }
 
-    if (exact) {
-      exact.textContent =
-        target === 'cash'
-          ? 'Exact'
-          : (
-              target === 'tip'
-                ? 'No tip'
-                : (target === 'share' ? '100%' : 'Full')
-            );
+    /* PMD_QPOS_KEYPAD_NEXT_FIELD_RUNTIME_V46 */
+    if (nextField) {
+      nextField.disabled =
+        locked || paymentKeypadTargetsV46().length < 2;
+      nextField.setAttribute(
+        'aria-label',
+        locked ? 'No next field' : 'Next field'
+      );
     }
+  }
+
+  function paymentKeypadTargetsV46() {
+    if (state.payment.method !== 'cash') return [];
+
+    var targets = ['cash', 'amount', 'tip'];
+    if (state.payment.splitMode === 'shares') {
+      targets.push('share');
+    }
+    return targets;
+  }
+
+  function focusPaymentKeypadTargetV46(target) {
+    target = String(target || '');
+    if (paymentKeypadTargetsV46().indexOf(target) === -1) {
+      return;
+    }
+
+    openTouchKeypad(target);
+
+    var input = $('[data-qpos-keypad-target="' + target + '"]');
+    if (input && !input.disabled && !input.hidden) {
+      /* Keep the focused field synchronized with the authoritative state. */
+      if (target === 'cash') {
+        input.value = state.payment.cashReceived;
+      } else if (target === 'amount') {
+        input.value = state.payment.amount;
+      } else if (target === 'tip') {
+        input.value =
+          state.payment.tipMode === 'custom'
+            ? state.payment.tipAmount
+            : '';
+      } else if (target === 'share') {
+        input.value = String(state.payment.splitPercent || '');
+      }
+
+      try {
+        input.focus({preventScroll: true});
+      } catch (ignored) {
+        input.focus();
+      }
+    }
+  }
+
+  function advancePaymentKeypadTargetV46() {
+    var targets = paymentKeypadTargetsV46();
+    if (!targets.length) return;
+
+    var current = String(state.payment.touchKeypadTarget || '');
+    var index = targets.indexOf(current);
+    var next = targets[(index + 1 + targets.length) % targets.length];
+
+    focusPaymentKeypadTargetV46(next);
   }
 
   function openTouchKeypad(target) {
@@ -4259,19 +4366,8 @@ function renderOpenChecks() {
       return;
     }
 
-    if (key === 'exact') {
-      raw = (
-        target === 'cash'
-          ? paymentCharge()
-          : (
-              target === 'tip'
-                ? 0
-                : (target === 'share' ? 100 : paymentRemaining())
-            )
-      ).toFixed(2);
-      state.payment.touchKeypadFresh = true;
-      setTouchKeypadValue(target, raw);
-      renderTouchKeypad();
+    if (key === 'next') {
+      advancePaymentKeypadTargetV46();
       return;
     }
 
@@ -4303,6 +4399,8 @@ function renderOpenChecks() {
     var tipEl = $('[data-qpos-tip-amount]');
     var tipRow = $('.pmd-qpos-tip-row');
     var cashField = $('[data-qpos-cash-field]');
+    var terminalTip = $('[data-qpos-terminal-tip]');
+    var terminalTipAmount = $('[data-qpos-terminal-tip-amount]');
     var changeBox = $('[data-qpos-change]');
     var changeEl = $('[data-qpos-change-amount]');
     var submit = $('[data-qpos-payment-submit]');
@@ -4325,8 +4423,22 @@ function renderOpenChecks() {
       }
     }
 
+    /* PMD_QPOS_CASH_ONLY_TIP_V46
+     * Cashier tip controls exist only for Cash. Terminal tipping belongs to
+     * the customer-facing device and is displayed read-only when reported. */
     if (tipRow) {
-      tipRow.hidden = state.payment.method === 'direct_terminal';
+      tipRow.hidden = state.payment.method !== 'cash';
+    }
+
+    if (terminalTip) {
+      terminalTip.hidden =
+        state.payment.method !== 'direct_terminal' ||
+        !state.payment.terminalTipKnown;
+    }
+    if (terminalTipAmount) {
+      terminalTipAmount.textContent = money(
+        num(state.payment.terminalTipAmount, 0)
+      );
     }
 
     if (state.payment.method === 'direct_terminal') {
@@ -4775,6 +4887,26 @@ function renderOpenChecks() {
     }
   }
 
+  /* PMD_QPOS_TERMINAL_TIP_RUNTIME_V46
+   * Terminal tip is provider-owned. POS never edits it; it only displays the
+   * amount reported by the terminal integration. */
+  function applyTerminalTipV46(payload) {
+    if (!payload || !Object.prototype.hasOwnProperty.call(payload, 'tip_amount')) {
+      return;
+    }
+
+    if (payload.tip_amount === null || payload.tip_amount === '') {
+      return;
+    }
+
+    var tip = Number(payload.tip_amount);
+    if (!Number.isFinite(tip) || tip < 0) return;
+
+    state.payment.terminalTipAmount = roundMoney(tip);
+    state.payment.terminalTipKnown = true;
+    renderPaymentTotals();
+  }
+
   async function executeTerminalPayment() {
     if (!state.payment.terminal) {
       showPaymentError('Choose a terminal.');
@@ -4801,6 +4933,7 @@ function renderOpenChecks() {
         })
       });
 
+      applyTerminalTipV46(json);
       toast(json.message || 'Payment sent to terminal');
 
       var attemptId = Number(json.attempt_id || 0);
@@ -4833,6 +4966,8 @@ function renderOpenChecks() {
         body: JSON.stringify({})
       });
 
+      applyTerminalTipV46(result);
+
       var status = String(result.status || '').toLowerCase();
 
       if (status === 'paid') {
@@ -4843,9 +4978,17 @@ function renderOpenChecks() {
             ? Number(state.selectedTable.id)
             : 0;
 
+        var terminalTipPaid = state.payment.terminalTipKnown
+          ? num(state.payment.terminalTipAmount, 0)
+          : null;
+
         closePayment();
         finishPaidOrderUi();
-        toast('Paid');
+        toast(
+          terminalTipPaid !== null && terminalTipPaid > 0.0001
+            ? 'Paid · Tip ' + money(terminalTipPaid)
+            : 'Paid'
+        );
 
         if (terminalPaidTableId) {
           setTimeout(function () {
