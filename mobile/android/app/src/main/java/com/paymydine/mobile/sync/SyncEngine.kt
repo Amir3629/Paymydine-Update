@@ -219,7 +219,10 @@ class SyncEngine(
             }
         }
 
-        if ("kds" in app.bootstrapRepository.surfaces()) {
+        if (
+            app.credentials.staffSession()?.surface == "kds" ||
+            "kds" in app.bootstrapRepository.surfaces()
+        ) {
             try {
                 refreshKds(host, token, route)
             } catch (_: Throwable) {
