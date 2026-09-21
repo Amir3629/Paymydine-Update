@@ -20,6 +20,22 @@ class DeviceCredentialStore(context: Context) {
     fun setEdgeFingerprint(value: String) = prefs.edit().putString("edge_fingerprint", value.trim().lowercase()).apply()
     fun edgeFingerprint(): String? = prefs.getString("edge_fingerprint", null)
     fun clearEdgeFingerprint() = prefs.edit().remove("edge_fingerprint").apply()
+
+    // PMD_ANDROID_WORKSPACE_INTENT_V2
+    // This is a UX preference only, never an authorization claim. Cloud
+    // bootstrap permissions still decide which workspaces the paired identity
+    // may actually open.
+    fun setPreferredWorkspace(value: String?) {
+        val normalized = value?.trim()?.lowercase()
+        if (normalized in setOf("pos", "kds", "reservations")) {
+            prefs.edit().putString("preferred_workspace", normalized).apply()
+        } else {
+            prefs.edit().remove("preferred_workspace").apply()
+        }
+    }
+    fun preferredWorkspace(): String? =
+        prefs.getString("preferred_workspace", null)
+            ?.takeIf { it in setOf("pos", "kds", "reservations") }
     fun putDeviceToken(value: String) = putSecret("device_token", value)
     fun deviceToken(): String? = getSecret("device_token")
     fun putPairingVerifier(value: String) = putSecret("pairing_verifier", value)
