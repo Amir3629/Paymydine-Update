@@ -6,6 +6,7 @@ use App\Http\Controllers\PmdMobileKdsController;
 use App\Http\Controllers\PmdMobilePairController;
 use App\Http\Controllers\PmdMobilePosSessionController;
 use App\Http\Controllers\PmdMobileSyncController;
+use App\Http\Controllers\PmdMobileWorkspaceSessionController;
 use Illuminate\Support\Facades\Route;
 use Igniter\Flame\Foundation\Http\Middleware\VerifyCsrfToken;
 
@@ -33,6 +34,8 @@ Route::group([
         Route::get('mobile/pair/wait', [PmdMobilePairController::class, 'wait']);
         Route::get('mobile/pair/finish', [PmdMobilePairController::class, 'finish']);
     Route::get('mobile/pos/open', PmdMobilePosSessionController::class)
+        ->middleware('throttle:30,1');
+    Route::get('mobile/workspace/open', PmdMobileWorkspaceSessionController::class)
         ->middleware('throttle:30,1');
 });
 
