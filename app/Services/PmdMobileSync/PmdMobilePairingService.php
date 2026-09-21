@@ -24,13 +24,17 @@ final class PmdMobilePairingService
     public const INTENT_COOKIE = 'pmd_mobile_pair_intent_v2';
     public const HANDOFF_PARAM = 'pmd_pair';
     private const INTENT_TTL_SECONDS = 900;
-    private const EXCHANGE_TTL_SECONDS = 120;
+    private const EXCHANGE_TTL_SECONDS = 300;
 
     public function rememberIntent(Request $request): void
     {
         $host = strtolower((string)$request->getHost());
         $providedChallenge = trim((string)$request->query('code_challenge', ''));
         $providedRequest = strtolower(trim((string)$request->query('pair_request', '')));
+        $providedDeviceName = trim((string)$request->query(
+            'device_name',
+            'PayMyDine Android Tablet'
+        ));
 
         if ($providedRequest !== '' && !$this->validPairRequest($providedRequest)) {
             throw new \InvalidArgumentException(
@@ -47,6 +51,7 @@ final class PmdMobilePairingService
         $existingHost = strtolower(trim((string)($existing['host'] ?? '')));
         $existingChallenge = trim((string)($existing['code_challenge'] ?? ''));
         $existingRequest = strtolower(trim((string)($existing['pair_request'] ?? '')));
+        $existingDeviceName = trim((string)($existing['device_name'] ?? ''));
 
         $reuseExisting = $providedChallenge === ''
             && $providedRequest === ''
@@ -77,6 +82,13 @@ final class PmdMobilePairingService
             'created_at' => $reuseExisting ? $existingCreated : time(),
             'code_challenge' => $codeChallenge,
             'pair_request' => $pairRequest,
+            'device_name' => mb_substr(
+                $reuseExisting && $existingDeviceName !== ''
+                    ? $existingDeviceName
+                    : ($providedDeviceName !== '' ? $providedDeviceName : 'PayMyDine Android Tablet'),
+                0,
+                128
+            ),
         ];
 
         session()->put(self::SESSION_INTENT, $intent);
@@ -115,6 +127,11 @@ final class PmdMobilePairingService
                     'created_at' => (int)($intent['created_at'] ?? 0),
                     'code_challenge' => trim((string)($intent['code_challenge'] ?? '')),
                     'pair_request' => strtolower(trim((string)($intent['pair_request'] ?? ''))),
+                    'device_name' => mb_substr(
+                        trim((string)($intent['device_name'] ?? 'PayMyDine Android Tablet')),
+                        0,
+                        128
+                    ),
                 ],
                 JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR
             )
@@ -535,6 +552,7 @@ final class PmdMobilePairingService
             'pmd_sync_events',
             'pmd_sync_aggregate_versions',
             'pmd_mobile_edges',
+            'pmd_mobile_pair_requests',
             'pmd_mobile_pair_exchanges',
         ];
 
