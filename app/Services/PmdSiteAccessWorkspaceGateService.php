@@ -23,6 +23,7 @@ class PmdSiteAccessWorkspaceGateService
         $site = app(PmdSiteAccessService::class);
         if (!$site->ready()) return null;
 
+        $relative = $this->relativeAdminPath($request);
         $workSession = app(PmdWorkSessionPolicyService::class);
         if (session()->has(PmdSiteAccessService::SESSION_VERIFIED_UNTIL) && $workSession->isExpired()) {
             try {
@@ -34,7 +35,11 @@ class PmdSiteAccessWorkspaceGateService
             session()->invalidate();
             session()->regenerateToken();
 
-            return redirect(admin_url('login?session=work-expired'))
+            $restart = $relative === 'mobile/pair/start'
+                ? $request->fullUrl()
+                : admin_url('login?session=work-expired');
+
+            return redirect($restart)
                 ->with('error', 'Your work session ended. Sign in again to continue.');
         }
 
@@ -47,7 +52,6 @@ class PmdSiteAccessWorkspaceGateService
         if ($identity['user_id'] < 1 || $locationId < 1) return null;
         if ($identity['staff_id'] < 1 && !$isOwner) return null;
 
-        $relative = $this->relativeAdminPath($request);
         if (str_starts_with($relative, '_pmd/language-switch')) return null;
 
         // PMD_PORTAL_SESSION_ROUTE_ISOLATION_V1
@@ -148,7 +152,11 @@ class PmdSiteAccessWorkspaceGateService
                 session()->invalidate();
                 session()->regenerateToken();
 
-                return redirect(admin_url('login?owner=security-reset'))->with(
+                $restart = $relative === 'mobile/pair/start'
+                    ? $request->fullUrl()
+                    : admin_url('login?owner=security-reset');
+
+                return redirect($restart)->with(
                     'error',
                     'Your Owner Authenticator or trusted sign-in was reset by PayMyDine Support. Sign in again and connect a new Authenticator.'
                 );
