@@ -7,6 +7,7 @@ use App\Http\Controllers\PmdMobilePairController;
 use App\Http\Controllers\PmdMobilePosSessionController;
 use App\Http\Controllers\PmdMobileSyncController;
 use App\Http\Controllers\PmdMobileWorkspaceSessionController;
+use App\Http\Controllers\PmdMobileWorkspaceAuthController;
 use Illuminate\Support\Facades\Route;
 use Igniter\Flame\Foundation\Http\Middleware\VerifyCsrfToken;
 
@@ -59,6 +60,10 @@ Route::group([
         Route::post('pair/exchange', [PmdMobilePairController::class, 'exchange'])
             ->withoutMiddleware([VerifyCsrfToken::class])
             ->middleware('throttle:30,1');
+
+        Route::post('workspace/authorize', PmdMobileWorkspaceAuthController::class)
+            ->withoutMiddleware([VerifyCsrfToken::class])
+            ->middleware('throttle:8,15');
 
     Route::post('sync/commands', [PmdMobileSyncController::class, 'commands'])
         ->withoutMiddleware([VerifyCsrfToken::class]);
