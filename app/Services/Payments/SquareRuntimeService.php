@@ -239,6 +239,9 @@ final class SquareRuntimeService
         $status = strtoupper(trim((string)($payment['status'] ?? '')));
         $amountMinor = (int)($payment['amount_money']['amount'] ?? -1);
         $currency = strtoupper(trim((string)($payment['amount_money']['currency'] ?? '')));
+        /* PMD_TERMINAL_TIP_SQUARE_V46
+         * Preserve Square's verified tip separately from the order amount. */
+        $tipMinor = max(0, (int)($payment['tip_money']['amount'] ?? 0));
         $referenceId = trim((string)($payment['reference_id'] ?? ''));
         $locationId = trim((string)($payment['location_id'] ?? ''));
 
@@ -257,6 +260,7 @@ final class SquareRuntimeService
             'verification_ok' => $amountOk && $currencyOk && $referenceOk && $locationOk,
             'amount_minor' => $amountMinor,
             'currency' => $currency,
+            'tip_minor' => $tipMinor,
             'reference_id' => $referenceId,
             'location_id' => $locationId,
             'card_details' => [
