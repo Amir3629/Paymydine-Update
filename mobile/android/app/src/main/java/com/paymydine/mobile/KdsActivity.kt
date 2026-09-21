@@ -35,6 +35,20 @@ import com.paymydine.mobile.ui.PmdTheme
 class KdsActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // PMD_ANDROID_WORKSPACE_ACTIVITY_GATE_V1
+        if (!app.credentials.workspaceLeaseValid("kds")) {
+            startActivity(
+                Intent(this, MainActivity::class.java).apply {
+                    addFlags(
+                        Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                            Intent.FLAG_ACTIVITY_SINGLE_TOP,
+                    )
+                },
+            )
+            finish()
+            return
+        }
         val app = application as PayMyDineApplication
 
         setContent {
