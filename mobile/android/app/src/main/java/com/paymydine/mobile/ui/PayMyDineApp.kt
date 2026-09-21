@@ -141,7 +141,6 @@ fun PayMyDineApp(app: PayMyDineApplication) {
             app.credentials.setDeviceId(paired.deviceId)
             app.credentials.putDeviceToken(paired.deviceToken)
             app.credentials.clearPairingAttempt()
-            pairingAttempt = ""
         }
 
         if (app.bootstrapRepository.hasBootstrap()) {
@@ -269,12 +268,18 @@ fun PayMyDineApp(app: PayMyDineApplication) {
                             ?.substringBefore(".paymydine.com")
                             .orEmpty()
                         bootstrapSummary = summary
+                        pairingAttempt = ""
                         pairingStatus = "Ready offline"
                         ready = true
                         SyncEngine.enqueueImmediate(app)
                     } catch (error: Throwable) {
+                        val paired =
+                            !app.credentials.deviceToken().isNullOrBlank()
+                        if (paired) {
+                            pairingAttempt = ""
+                        }
                         pairingStatus =
-                            if (app.credentials.deviceToken().isNullOrBlank()) {
+                            if (!paired) {
                                 "Pairing failed"
                             } else {
                                 "Paired - bootstrap required"
@@ -310,7 +315,7 @@ fun PayMyDineApp(app: PayMyDineApplication) {
         }
     }
 
-    LaunchedEffect(online, ready, pairingStatus) {
+    LaunchedEffect(online, ready, pairingAttempt) {
         if (
             ready ||
             !online ||
@@ -400,12 +405,17 @@ fun PayMyDineApp(app: PayMyDineApplication) {
                 ?.substringBefore(".paymydine.com")
                 .orEmpty()
             bootstrapSummary = summary
+            pairingAttempt = ""
             pairingStatus = "Ready offline"
             ready = true
             SyncEngine.enqueueImmediate(app)
         } catch (error: Throwable) {
+            val paired = !app.credentials.deviceToken().isNullOrBlank()
+            if (paired) {
+                pairingAttempt = ""
+            }
             pairingStatus =
-                if (app.credentials.deviceToken().isNullOrBlank()) {
+                if (!paired) {
                     "Pairing failed"
                 } else {
                     "Paired - bootstrap required"
