@@ -22,6 +22,12 @@ data class PairStatusResult(
     val deviceName: String?,
 )
 
+data class WorkspaceAuthorizationResult(
+    val surface: String,
+    val username: String,
+    val leaseExpiresAt: Long,
+)
+
 class MobileApiException(
     val statusCode: Int,
     message: String,
@@ -137,6 +143,60 @@ class MobileApiClient {
         return JSONObject(response).also {
             if (!it.optBoolean("ok")) throw IOException("Bootstrap was rejected.")
         }
+    }
+
+    fun authorizeWorkspace(
+        tenantHost: String,
+        deviceToken: String,
+        surface: String,
+        username: String,
+        password: String,
+    ): WorkspaceAuthorizationResult {
+        val normalizedSurface = surface.trim().lowercase()
+        require(normalizedSurface in setOf("pos", "kds", "reservations")) {
+            "Unsupported PayMyDine workspace."
+        }
+
+        val base = trustedTenantBase("https://$tenantHost")
+        val body = JSONObject()
+            .put("surface", normalizedSurface)
+            .put("username", username.trim())
+            .put("password", password)
+            .toString()
+
+        val json = JSONObject(
+            request(
+                url = URL(
+                    base.toString().trimEnd('/') +
+                        "/admin/api/mobile/v1/workspace/authorize",
+                ),
+                method = "POST",
+                token = deviceToken,
+                body = body,
+            ),
+        )
+
+        if (!json.optBoolean("ok")) {
+            throw IOException("Workspace authorization was rejected.")
+        }
+
+        val authorizedSurface = json.optString("surface").trim().lowercase()
+        val authorizedUsername = json.optString("username").trim()
+        val leaseExpiresAt = json.optLong("lease_expires_at", 0L)
+
+        require(
+            authorizedSurface == normalizedSurface &&
+                authorizedUsername.isNotBlank() &&
+                leaseExpiresAt > System.currentTimeMillis() / 1000L
+        ) {
+            "Workspace authorization response is incomplete."
+        }
+
+        return WorkspaceAuthorizationResult(
+            surface = authorizedSurface,
+            username = authorizedUsername,
+            leaseExpiresAt = leaseExpiresAt,
+        )
     }
 
     fun registerEdge(
