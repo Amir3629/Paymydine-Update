@@ -24,6 +24,11 @@ import androidx.activity.ComponentActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.lifecycle.lifecycleScope
+import com.paymydine.mobile.sync.SyncEngine
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 import java.net.URI
 
 /**
@@ -44,6 +49,7 @@ class PosActivity : ComponentActivity() {
     private var windowFocusedOnce = false
     private var buildGeneration = 0
     private var canonicalReady = false
+    private var offlineSwitching = false
 
     private val app: PayMyDineApplication
         get() = application as PayMyDineApplication
@@ -57,6 +63,23 @@ class PosActivity : ComponentActivity() {
             finish()
             return
         }
+
+        // PMD_ANDROID_POS_OFFLINE_FAILOVER_V9
+        // Paired devices with a durable bootstrap never need a blank/error
+        // screen just because Cloud vanished. Route immediately to the native
+        // SQLite POS and keep the canonical WebView for validated Cloud only.
+        if (
+            !app.connectivity.online.value &&
+            app.bootstrapRepository.hasBootstrap()
+        ) {
+            switchToOffline(
+                "Cloud is unavailable. Orders will be saved on this tablet.",
+            )
+            return
+        }
+
+        observeCloudAvailability()
+        SyncEngine.enqueueImmediate(app)
 
         // PMD_ANDROID_POS_SYSTEM_INSETS_V8
         // Target SDK 36 uses edge-to-edge windows. Handle status/navigation
@@ -357,8 +380,16 @@ class PosActivity : ComponentActivity() {
                     request: WebResourceRequest,
                     error: WebResourceError,
                 ) {
-                    if (request.isForMainFrame) {
-                        showFatal("PayMyDine POS could not be loaded. Check the connection and retry.")
+                    if (!request.isForMainFrame) return
+
+                    if (app.bootstrapRepository.hasBootstrap()) {
+                        switchToOffline(
+                            "Cloud connection was lost. Local POS is active.",
+                        )
+                    } else {
+                        showFatal(
+                            "PayMyDine POS could not be loaded. Check the connection and retry.",
+                        )
                     }
                 }
 
@@ -367,14 +398,27 @@ class PosActivity : ComponentActivity() {
                     request: WebResourceRequest,
                     response: WebResourceResponse,
                 ) {
-                    if (request.isForMainFrame && response.statusCode >= 400) {
-                        showFatal(
-                            if (response.statusCode == 401 || response.statusCode == 403) {
-                                "This paired device is no longer authorized for POS."
-                            } else {
-                                "PayMyDine POS returned HTTP ${response.statusCode}."
-                            },
-                        )
+                    if (!request.isForMainFrame || response.statusCode < 400) {
+                        return
+                    }
+
+                    when {
+                        response.statusCode == 401 ||
+                            response.statusCode == 403 ->
+                            showFatal(
+                                "This paired device is no longer authorized for POS.",
+                            )
+
+                        response.statusCode >= 500 &&
+                            app.bootstrapRepository.hasBootstrap() ->
+                            switchToOffline(
+                                "PayMyDine Cloud is temporarily unavailable. Local POS is active.",
+                            )
+
+                        else ->
+                            showFatal(
+                                "PayMyDine POS returned HTTP ${response.statusCode}.",
+                            )
                     }
                 }
 
@@ -384,7 +428,15 @@ class PosActivity : ComponentActivity() {
                     error: android.net.http.SslError,
                 ) {
                     handler.cancel()
-                    showFatal("The secure connection to PayMyDine could not be verified.")
+                    if (app.bootstrapRepository.hasBootstrap()) {
+                        switchToOffline(
+                            "Secure Cloud connection could not be verified. Local POS is active.",
+                        )
+                    } else {
+                        showFatal(
+                            "The secure connection to PayMyDine could not be verified.",
+                        )
+                    }
                 }
 
                 override fun onRenderProcessGone(
@@ -443,6 +495,50 @@ class PosActivity : ComponentActivity() {
         view.post {
             openCanonicalPos(view, host, token)
         }
+    }
+
+    private fun observeCloudAvailability() {
+        lifecycleScope.launch {
+            app.connectivity.online.collectLatest { online ->
+                if (online) {
+                    SyncEngine.enqueueImmediate(app)
+                    return@collectLatest
+                }
+
+                if (!app.bootstrapRepository.hasBootstrap()) {
+                    return@collectLatest
+                }
+
+                // Avoid bouncing to local mode for a sub-second network
+                // capability transition during Android window startup.
+                delay(1_200L)
+                if (!app.connectivity.online.value) {
+                    switchToOffline(
+                        "Internet connection is unavailable. Local POS is active.",
+                    )
+                }
+            }
+        }
+    }
+
+    private fun switchToOffline(reason: String) {
+        if (
+            offlineSwitching ||
+            isFinishing ||
+            isDestroyed ||
+            !app.bootstrapRepository.hasBootstrap()
+        ) {
+            return
+        }
+
+        offlineSwitching = true
+        startActivity(
+            Intent(this, OfflinePosActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                putExtra(OfflinePosActivity.EXTRA_REASON, reason)
+            },
+        )
+        finish()
     }
 
     private fun revealWebView(view: WebView) {
