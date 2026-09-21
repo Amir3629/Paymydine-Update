@@ -30,7 +30,6 @@ Route::group([
     'prefix' => config('system.adminUri', 'admin'),
 ], function () {
         Route::get('mobile/pair/start', [PmdMobilePairController::class, 'start']);
-        Route::post('mobile/pair/approve', [PmdMobilePairController::class, 'approve']);
         Route::get('mobile/pair/wait', [PmdMobilePairController::class, 'wait']);
         Route::get('mobile/pair/finish', [PmdMobilePairController::class, 'finish']);
     Route::get('mobile/pos/open', PmdMobilePosSessionController::class)
