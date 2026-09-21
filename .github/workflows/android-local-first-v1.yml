@@ -151,7 +151,7 @@ jobs:
           grep -q "PMD_ANDROID_POS_OFFLINE_FAILOVER_V9" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
           ! grep -q "LocalPosScreen" mobile/android/app/src/main/java/com/paymydine/mobile/OfflinePosActivity.kt
           grep -q "PMD_ANDROID_LOCAL_POS_PROJECTION_REFRESH_V2" mobile/android/app/src/main/java/com/paymydine/mobile/ui/LocalPosScreen.kt
-          grep -q "PMD_ANDROID_WORKSPACE_HUB_V1" mobile/android/app/src/main/java/com/paymydine/mobile/ui/PmdWorkspaceHome.kt
+          test ! -e mobile/android/app/src/main/java/com/paymydine/mobile/ui/PmdWorkspaceHome.kt
           grep -q "PMD_ANDROID_KDS_ACTIVITY_V1" mobile/android/app/src/main/java/com/paymydine/mobile/KdsActivity.kt
           grep -q "PMD_ANDROID_RESERVATIONS_ACTIVITY_V1" mobile/android/app/src/main/java/com/paymydine/mobile/ReservationsActivity.kt
           grep -q "PMD_MOBILE_PAIR_DASHBOARD_APPROVAL_V4" app/Services/PmdMobileSync/PmdMobilePairingService.php
