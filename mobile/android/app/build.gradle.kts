@@ -10,8 +10,8 @@ android {
         applicationId = "com.paymydine.mobile"
         minSdk = 26
         targetSdk = 36
-        versionCode = 8
-        versionName = "0.2.4-pos-shell"
+        versionCode = 9
+        versionName = "0.2.5-pos-shell"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "SYNC_PROTOCOL_VERSION", "\"pmd-sync-v1\"")
     }
