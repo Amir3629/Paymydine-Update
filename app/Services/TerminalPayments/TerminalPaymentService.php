@@ -85,6 +85,14 @@ class TerminalPaymentService
         $attempt=(array)DB::table('payment_attempts')->where('id',$id)->first();
         $result=$provider->createPayment($attempt,$config);
 
+        /* PMD_TERMINAL_TIP_CREATE_V46
+         * Some terminal APIs return gratuity immediately, others only during
+         * status refresh. Keep it separate from the restaurant order amount. */
+        $tipAmount=$this->terminalTipAmountFromResultV46(
+            (array)$result,
+            (string)($attempt['currency']??$currency)
+        );
+
         // PMD_VR_PAYMENT_SAFETY_R6_20260905
         // PMD's local VR simulators are diagnostics only. They MUST NEVER settle
         // an order or generate a paid invoice/receipt.
@@ -97,6 +105,7 @@ class TerminalPaymentService
             'status'=>$status,
             'provider_reference'=>$result['provider_reference']??null,
             'response_payload'=>json_encode($this->redact($result)),
+            'tip_amount'=>$tipAmount,
             'error_message'=>$isPmdVrSimulator?null:(($result['ok']??false)?null:($result['message']??'Terminal payment failed.')),
             'updated_at'=>now(),
         ]));
@@ -112,6 +121,7 @@ class TerminalPaymentService
                 : ($result['message']??null),
             'simulated'=>$isPmdVrSimulator,
             'payment_recorded'=>$isPmdVrSimulator?false:($status==='paid'),
+            'tip_amount'=>$tipAmount,
             'simulator_scenario'=>$isPmdVrSimulator?($result['simulator_scenario']??null):null,
         ];
     }
@@ -138,7 +148,18 @@ class TerminalPaymentService
                 'payment_recorded'=>false,
             ];
         }
-        if(($attempt['status']??'')==='paid'){ $this->settleSuccessfulAttempt($attemptId,[]); return ['success'=>true,'attempt_id'=>$attemptId,'status'=>'paid','message'=>'Payment already confirmed.','simulated'=>false,'payment_recorded'=>true]; }
+        if(($attempt['status']??'')==='paid'){
+            $this->settleSuccessfulAttempt($attemptId,[]);
+            return [
+                'success'=>true,
+                'attempt_id'=>$attemptId,
+                'status'=>'paid',
+                'message'=>'Payment already confirmed.',
+                'simulated'=>false,
+                'payment_recorded'=>true,
+                'tip_amount'=>$this->terminalTipForAttemptV46($attemptId,$attempt,[]),
+            ];
+        }
         $providerCode=strtolower((string)($attempt['provider_code']??''));$provider=$this->provider($providerCode);$config=$this->providerConfig($providerCode);
         if($providerCode==='sumup'){$terminal=$this->resolveSumupTerminal((string)($attempt['terminal_id']??''));if(!$terminal)return ['success'=>false,'error'=>'SumUp terminal for this attempt was not found.'];$config['reader_id']=(string)$terminal->reader_id;$config['terminal_device_id']=(int)$terminal->terminal_device_id;$config['affiliate_key']=trim((string)($terminal->affiliate_key??''))?:($config['affiliate_key']??null);}
         if($providerCode==='vr_payment'){
@@ -185,10 +206,21 @@ class TerminalPaymentService
             $config['terminal_device_id']=(int)$terminal->terminal_device_id;
         }
         $result=$provider->checkStatus($attempt,$config);
+        /* PMD_TERMINAL_TIP_REFRESH_V46 */
+        $tipAmount=$this->terminalTipAmountFromResultV46(
+            (array)$result,
+            (string)($attempt['currency']??($config['currency']??'EUR'))
+        );
         $isPmdVrSimulator=$this->isPmdVrSimulatorAttempt($attempt);
         $rawStatus=(string)($result['status']??($attempt['status']??'pending'));
         $status=$isPmdVrSimulator?$this->mapPmdVrSimulatorStatus($rawStatus):$rawStatus;
-        DB::table('payment_attempts')->where('id',$attemptId)->update($this->filterColumns('payment_attempts',['status'=>$status,'response_payload'=>json_encode($this->redact($result)),'error_message'=>($result['ok']??false)?null:($result['message']??null),'updated_at'=>now()]));
+        DB::table('payment_attempts')->where('id',$attemptId)->update($this->filterColumns('payment_attempts',[
+            'status'=>$status,
+            'response_payload'=>json_encode($this->redact($result)),
+            'tip_amount'=>$tipAmount,
+            'error_message'=>($result['ok']??false)?null:($result['message']??null),
+            'updated_at'=>now(),
+        ]));
         if(!$isPmdVrSimulator&&$status==='paid')$this->settleSuccessfulAttempt($attemptId,$result);
         return [
             'success'=>$isPmdVrSimulator?true:(bool)($result['ok']??false),
@@ -199,6 +231,7 @@ class TerminalPaymentService
                 : ($result['message']??null),
             'simulated'=>$isPmdVrSimulator,
             'payment_recorded'=>$isPmdVrSimulator?false:($status==='paid'),
+            'tip_amount'=>$tipAmount,
             'simulator_scenario'=>$isPmdVrSimulator?($result['simulator_scenario']??null):null,
         ];
     }
