@@ -139,7 +139,7 @@ fun PayMyDineApp(app: PayMyDineApplication) {
             token = paired.deviceToken
             app.credentials.setTenantHost(pairedHost)
             app.credentials.setDeviceId(paired.deviceId)
-            app.credentials.putDeviceToken(token)
+            app.credentials.putDeviceToken(paired.deviceToken)
             app.credentials.clearPairingAttempt()
             pairingAttempt = ""
         }
@@ -148,8 +148,12 @@ fun PayMyDineApp(app: PayMyDineApplication) {
             return@withLock null
         }
 
+        val deviceToken = requireNotNull(token) {
+            "Secure device token is unavailable."
+        }
+
         val bootstrap = withContext(Dispatchers.IO) {
-            api.bootstrap(pairedHost, token)
+            api.bootstrap(pairedHost, deviceToken)
         }
         val edgeFingerprint = bootstrap
             .optJSONObject("edge")
