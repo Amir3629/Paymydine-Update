@@ -360,11 +360,105 @@ class TerminalPaymentService
         $base=request()->getSchemeAndHttpHost();$adminUri=trim((string)config('system.adminUri','admin'),'/');$path='/'.$adminUri.'/terminal-payments/sumup/callback';if($attemptId)$path.='/'.$attemptId;return rtrim($base,'/').$path;
     }
 
+    /**
+     * PMD_TERMINAL_TIP_EXTRACT_V46
+     *
+     * Return only gratuity explicitly reported by a terminal/provider. Never
+     * infer a tip from the difference between the bill and charged amount.
+     */
+    private function terminalTipAmountFromResultV46(array $payload,string $currency='EUR'):?float
+    {
+        $currency=strtoupper(trim($currency))?:'EUR';
+
+        $walk=function($value,$key='')use(&$walk,$currency){
+            $normalized=strtolower(preg_replace('/[^a-z0-9]/i','',(string)$key));
+
+            if(is_array($value)){
+                if(in_array($normalized,['tipamount','gratuityamount'],true)
+                    && array_key_exists('value',$value)
+                    && array_key_exists('minor_unit',$value)
+                    && is_numeric($value['value'])
+                    && is_numeric($value['minor_unit'])){
+                    return round(max(0,(float)$value['value'])/(10**max(0,(int)$value['minor_unit'])),4);
+                }
+
+                if(in_array($normalized,['tipmoney','gratuitymoney'],true)
+                    && array_key_exists('amount',$value)
+                    && is_numeric($value['amount'])){
+                    $moneyCurrency=strtoupper(trim((string)($value['currency']??$currency)))?:$currency;
+                    $exp=$this->terminalCurrencyExponentV46($moneyCurrency);
+                    return round(max(0,(float)$value['amount'])/(10**$exp),4);
+                }
+
+                foreach($value as $childKey=>$childValue){
+                    $found=$walk($childValue,(string)$childKey);
+                    if($found!==null)return $found;
+                }
+                return null;
+            }
+
+            if(!is_scalar($value)||$value==='')return null;
+
+            if(in_array($normalized,['tipamount','gratuityamount','tip','gratuity'],true)
+                && is_numeric($value)){
+                return round(max(0,(float)$value),4);
+            }
+
+            if(in_array($normalized,['tipminor','gratuityminor'],true)
+                && is_numeric($value)){
+                return round(max(0,(float)$value)/(10**$this->terminalCurrencyExponentV46($currency)),4);
+            }
+
+            return null;
+        };
+
+        return $walk($payload,'');
+    }
+
+    private function terminalCurrencyExponentV46(string $currency):int
+    {
+        $currency=strtoupper(trim($currency));
+        if(in_array($currency,['BHD','IQD','JOD','KWD','LYD','OMR','TND'],true))return 3;
+        if(in_array($currency,['BIF','CLP','DJF','GNF','JPY','KMF','KRW','PYG','RWF','UGX','VND','VUV','XAF','XOF','XPF'],true))return 0;
+        return 2;
+    }
+
+    private function terminalTipForAttemptV46(int $attemptId,array $attempt,array $providerResult=[]):?float
+    {
+        $currency=(string)($attempt['currency']??'EUR');
+
+        $tip=$providerResult
+            ? $this->terminalTipAmountFromResultV46($providerResult,$currency)
+            : null;
+        if($tip!==null)return $tip;
+
+        $stored=json_decode((string)($attempt['response_payload']??''),true);
+        if(is_array($stored)){
+            $tip=$this->terminalTipAmountFromResultV46($stored,$currency);
+            if($tip!==null)return $tip;
+        }
+
+        if(array_key_exists('tip_amount',$attempt)&&is_numeric($attempt['tip_amount'])){
+            return round(max(0,(float)$attempt['tip_amount']),4);
+        }
+
+        if(Schema::hasTable('order_payment_transactions')
+            && Schema::hasColumn('order_payment_transactions','tip_amount')
+            && Schema::hasColumn('order_payment_transactions','idempotency_key')){
+            $storedTip=DB::table('order_payment_transactions')
+                ->where('idempotency_key','terminal-attempt-'.$attemptId)
+                ->value('tip_amount');
+            if($storedTip!==null&&is_numeric($storedTip)){
+                return round(max(0,(float)$storedTip),4);
+            }
+        }
+
+        return null;
+    }
+
     private function settleSuccessfulAttempt(int $attemptId,array $providerResult):void
     {
         // PMD_VR_PAYMENT_SAFETY_R6_20260905
-        // Defense in depth: even if a caller accidentally passes status=paid for a
-        // PMD VR simulator, settlement is blocked here before touching the order.
         $preview=(array)(DB::table('payment_attempts')->where('id',$attemptId)->first()?:[]);
         if($preview&&$this->isPmdVrSimulatorAttempt($preview)){
             DB::table('payment_attempts')->where('id',$attemptId)->update($this->filterColumns('payment_attempts',[
@@ -380,15 +474,147 @@ class TerminalPaymentService
             return;
         }
 
-        DB::transaction(function()use($attemptId,$providerResult){
-            $attempt=DB::table('payment_attempts')->where('id',$attemptId)->lockForUpdate()->first();if(!$attempt)throw new \RuntimeException('Payment attempt not found during settlement.');$order=DB::table('orders')->where('order_id',(int)$attempt->order_id)->lockForUpdate()->first();if(!$order)throw new \RuntimeException('Order not found during terminal settlement.');
-            $orderTotal=round((float)($order->order_total??$attempt->amount??0),4);$alreadySettled=round((float)($order->settled_amount??0),4);$settlementStatus=strtolower((string)($order->settlement_status??''));
-            if($settlementStatus==='paid'||($orderTotal>0&&$alreadySettled>=$orderTotal-.0001)){DB::table('payment_attempts')->where('id',$attemptId)->update($this->filterColumns('payment_attempts',['status'=>'paid','updated_at'=>now()]));return;}
-            if($alreadySettled>.0001){DB::table('payment_attempts')->where('id',$attemptId)->update($this->filterColumns('payment_attempts',['status'=>'reconciliation_required','error_message'=>'The terminal provider approved the charge after another partial payment was recorded. Manual reconciliation required.','updated_at'=>now()]));Log::error('PMD_TERMINAL_RECONCILIATION_REQUIRED',['attempt_id'=>$attemptId,'order_id'=>(int)$attempt->order_id]);return;}
-            $reference=(string)($attempt->provider_reference??'');$transactionId=null;
-            if(Schema::hasTable('order_payment_transactions')){$idempotencyKey='terminal-attempt-'.$attemptId;if(Schema::hasColumn('order_payment_transactions','idempotency_key')){$existing=DB::table('order_payment_transactions')->where('idempotency_key',$idempotencyKey)->first();if($existing)$transactionId=(int)$existing->id;}if(!$transactionId){$transactionId=(int)DB::table('order_payment_transactions')->insertGetId($this->filterColumns('order_payment_transactions',['order_id'=>(int)$attempt->order_id,'payment_method'=>'direct_terminal','payment_reference'=>$reference?:null,'amount'=>(float)$attempt->amount,'settlement_status'=>'paid','provider_code'=>(string)$attempt->provider_code,'paid_at'=>now(),'idempotency_key'=>$idempotencyKey,'notes'=>'Confirmed by terminal provider.','created_at'=>now(),'updated_at'=>now()]));}$this->allocateAllOrderItems($transactionId,(int)$attempt->order_id);}
-            $orderUpdate=$this->filterColumns('orders',['settled_amount'=>$orderTotal,'settlement_status'=>'paid','settlement_method'=>'direct_terminal','settlement_reference'=>$reference?:null,'settled_at'=>now(),'processed'=>1,'updated_at'=>now()]);if($orderUpdate)DB::table('orders')->where('order_id',(int)$attempt->order_id)->update($orderUpdate);
-            DB::table('payment_attempts')->where('id',$attemptId)->update($this->filterColumns('payment_attempts',['status'=>'paid','response_payload'=>json_encode($this->redact($providerResult)),'error_message'=>null,'updated_at'=>now()]));Log::info('PMD_TERMINAL_PAYMENT_SETTLED',['attempt_id'=>$attemptId,'order_id'=>(int)$attempt->order_id,'provider_code'=>(string)$attempt->provider_code,'transaction_id'=>$transactionId,'amount'=>(float)$attempt->amount]);
+        /* PMD_TERMINAL_TIP_SETTLEMENT_V46 */
+        $tipAmount=$this->terminalTipForAttemptV46(
+            $attemptId,
+            $preview,
+            $providerResult
+        );
+
+        DB::transaction(function()use($attemptId,$providerResult,$tipAmount){
+            $attempt=DB::table('payment_attempts')
+                ->where('id',$attemptId)
+                ->lockForUpdate()
+                ->first();
+            if(!$attempt)throw new RuntimeException('Payment attempt not found during settlement.');
+
+            $order=DB::table('orders')
+                ->where('order_id',(int)$attempt->order_id)
+                ->lockForUpdate()
+                ->first();
+            if(!$order)throw new RuntimeException('Order not found during terminal settlement.');
+
+            $orderTotal=round((float)($order->order_total??$attempt->amount??0),4);
+            $alreadySettled=round((float)($order->settled_amount??0),4);
+            $settlementStatus=strtolower((string)($order->settlement_status??''));
+            $reference=(string)($attempt->provider_reference??'');
+            $transactionId=null;
+            $idempotencyKey='terminal-attempt-'.$attemptId;
+
+            if(Schema::hasTable('order_payment_transactions')
+                && Schema::hasColumn('order_payment_transactions','idempotency_key')){
+                $existing=DB::table('order_payment_transactions')
+                    ->where('idempotency_key',$idempotencyKey)
+                    ->first();
+                if($existing)$transactionId=(int)$existing->id;
+            }
+
+            if($settlementStatus==='paid'||($orderTotal>0&&$alreadySettled>=$orderTotal-.0001)){
+                if($transactionId&&$tipAmount!==null){
+                    DB::table('order_payment_transactions')
+                        ->where('id',$transactionId)
+                        ->update($this->filterColumns('order_payment_transactions',[
+                            'tip_amount'=>$tipAmount,
+                            'updated_at'=>now(),
+                        ]));
+                }
+
+                DB::table('payment_attempts')
+                    ->where('id',$attemptId)
+                    ->update($this->filterColumns('payment_attempts',[
+                        'status'=>'paid',
+                        'tip_amount'=>$tipAmount,
+                        'updated_at'=>now(),
+                    ]));
+                return;
+            }
+
+            if($alreadySettled>.0001){
+                DB::table('payment_attempts')->where('id',$attemptId)->update($this->filterColumns('payment_attempts',[
+                    'status'=>'reconciliation_required',
+                    'tip_amount'=>$tipAmount,
+                    'error_message'=>'The terminal provider approved the charge after another partial payment was recorded. Manual reconciliation required.',
+                    'updated_at'=>now(),
+                ]));
+                Log::error('PMD_TERMINAL_RECONCILIATION_REQUIRED',[
+                    'attempt_id'=>$attemptId,
+                    'order_id'=>(int)$attempt->order_id,
+                ]);
+                return;
+            }
+
+            if(Schema::hasTable('order_payment_transactions')){
+                if(!$transactionId){
+                    $transactionId=(int)DB::table('order_payment_transactions')->insertGetId(
+                        $this->filterColumns('order_payment_transactions',[
+                            'order_id'=>(int)$attempt->order_id,
+                            'payment_method'=>'direct_terminal',
+                            'payment_reference'=>$reference?:null,
+                            'amount'=>(float)$attempt->amount,
+                            'tip_amount'=>$tipAmount,
+                            'settlement_status'=>'paid',
+                            'provider_code'=>(string)$attempt->provider_code,
+                            'paid_at'=>now(),
+                            'idempotency_key'=>$idempotencyKey,
+                            'notes'=>'Confirmed by terminal provider.',
+                            'created_at'=>now(),
+                            'updated_at'=>now(),
+                        ])
+                    );
+                }elseif($tipAmount!==null){
+                    DB::table('order_payment_transactions')
+                        ->where('id',$transactionId)
+                        ->update($this->filterColumns('order_payment_transactions',[
+                            'tip_amount'=>$tipAmount,
+                            'updated_at'=>now(),
+                        ]));
+                }
+
+                $this->allocateAllOrderItems(
+                    $transactionId,
+                    (int)$attempt->order_id
+                );
+            }
+
+            $orderUpdate=$this->filterColumns('orders',[
+                'settled_amount'=>$orderTotal,
+                'settlement_status'=>'paid',
+                'settlement_method'=>'direct_terminal',
+                'settlement_reference'=>$reference?:null,
+                'settled_at'=>now(),
+                'processed'=>1,
+                'updated_at'=>now(),
+            ]);
+            if($orderUpdate){
+                DB::table('orders')
+                    ->where('order_id',(int)$attempt->order_id)
+                    ->update($orderUpdate);
+            }
+
+            $attemptUpdate=[
+                'status'=>'paid',
+                'tip_amount'=>$tipAmount,
+                'error_message'=>null,
+                'updated_at'=>now(),
+            ];
+            if($providerResult){
+                $attemptUpdate['response_payload']=json_encode(
+                    $this->redact($providerResult)
+                );
+            }
+
+            DB::table('payment_attempts')
+                ->where('id',$attemptId)
+                ->update($this->filterColumns('payment_attempts',$attemptUpdate));
+
+            Log::info('PMD_TERMINAL_PAYMENT_SETTLED',[
+                'attempt_id'=>$attemptId,
+                'order_id'=>(int)$attempt->order_id,
+                'provider_code'=>(string)$attempt->provider_code,
+                'transaction_id'=>$transactionId,
+                'amount'=>(float)$attempt->amount,
+                'tip_amount'=>$tipAmount,
+            ]);
         });
     }
 
