@@ -30,6 +30,7 @@ data class WorkspaceAuthorizationResult(
     val staffId: Long,
     val roleCode: String,
     val route: String,
+    val staffGrant: String,
     val leaseExpiresAt: Long,
 )
 
@@ -38,7 +39,7 @@ class MobileApiException(
     message: String,
 ) : IOException(message)
 
-class MobileApiClient {
+class MobileApiClient(private val staffGrant: String? = null) {
     fun pairStatus(
         tenantBaseUrl: String,
         pairRequest: String,
@@ -228,6 +229,7 @@ class MobileApiClient {
             staffId = json.optLong("staff_id", 0L),
             roleCode = json.optString("role_code").trim().lowercase(),
             route = json.optString("route").trim().trim('/'),
+            staffGrant = json.optString("staff_grant").trim(),
             leaseExpiresAt = json.optLong("lease_expires_at", 0L),
         )
 
@@ -236,6 +238,7 @@ class MobileApiClient {
                 result.username.isNotBlank() &&
                 result.roleCode.isNotBlank() &&
                 result.route.isNotBlank() &&
+                result.staffGrant.isNotBlank() &&
                 result.leaseExpiresAt > System.currentTimeMillis() / 1000L
         ) {
             "PayMyDine sign-in response is incomplete."
@@ -433,6 +436,9 @@ class MobileApiClient {
             setRequestProperty("User-Agent", "PayMyDine-Android/0.1")
             if (!token.isNullOrBlank()) {
                 setRequestProperty("Authorization", "Bearer $token")
+            }
+            if (!staffGrant.isNullOrBlank()) {
+                setRequestProperty("X-PayMyDine-Staff-Grant", staffGrant)
             }
             if (body != null) {
                 doOutput = true
