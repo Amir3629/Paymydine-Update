@@ -1,0 +1,221 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#064e3b">
+  <title>PayMyDine POS</title>
+  <link rel="stylesheet" href="pmd-quick-pos-v1.css">
+  <style>
+    .pmd-offline-pill{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 10px;border:1px solid #fed7aa;border-radius:999px;background:#fff7ed;color:#9a3412;font-size:10px;font-weight:850}
+    .pmd-offline-pill i{width:7px;height:7px;border-radius:50%;background:#f97316}
+    .pmd-offline-toast{position:fixed;left:50%;bottom:18px;z-index:120;transform:translateX(-50%);max-width:min(680px,calc(100% - 36px));padding:11px 15px;border-radius:12px;background:#111827;color:#fff;font-size:12px;font-weight:700;box-shadow:0 18px 45px rgba(0,0,0,.22);display:none}
+    .pmd-offline-toast.is-visible{display:block}
+    .pmd-qpos-product-image{display:none}.pmd-qpos-product{min-height:86px}
+    .pmd-qpos-profile-dock{padding:9px 10px;border-top:1px solid var(--q-line);display:flex;gap:8px;align-items:center}
+    .pmd-qpos-profile{flex:1}.pmd-qpos-profile-button,.pmd-qpos-back-button{width:100%;min-height:44px;border:1px solid var(--q-line);background:#fff;border-radius:10px;color:#374151;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:800;font-size:11px}
+    .pmd-qpos-profile-button span{width:25px;height:25px;border-radius:50%;background:#064e3b;color:#fff;display:grid;place-items:center}
+    .pmd-qpos-profile-menu{position:absolute;left:12px;bottom:62px;width:220px;padding:12px;border:1px solid var(--q-line);border-radius:12px;background:#fff;box-shadow:var(--q-shadow);z-index:30}
+    .pmd-qpos-profile-menu small{display:block;color:var(--q-muted);margin-top:2px}
+    .pmd-qpos-profile-menu button{margin-top:10px;width:100%;height:38px;border:1px solid var(--q-line);border-radius:8px;background:#fff;font-weight:800}
+    .pmd-qpos-local-meta{font-size:10px;color:var(--q-muted);padding:0 12px 7px}
+    .pmd-qpos-product footer span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  </style>
+</head>
+<body class="pmd-qpos-body">
+<div id="pmd-quick-pos" class="pmd-qpos">
+  <main class="pmd-qpos-main">
+    <aside class="pmd-qpos-left">
+      <section class="pmd-qpos-floor-switch">
+        <div class="pmd-qpos-section-label">Floor</div>
+        <div class="pmd-qpos-floor-tabs"><button type="button" class="is-active">All tables</button></div>
+        <div class="pmd-qpos-floor-tools">
+          <span class="pmd-offline-pill"><i></i><b data-authority>Offline</b></span>
+        </div>
+      </section>
+      <section class="pmd-qpos-tables">
+        <div class="pmd-qpos-table-grid" data-tables></div>
+      </section>
+      <div class="pmd-qpos-local-meta" data-queue></div>
+      <div class="pmd-qpos-profile-dock">
+        <div class="pmd-qpos-profile">
+          <button type="button" class="pmd-qpos-profile-button" data-profile><span data-initial>P</span><strong data-staff>PayMyDine</strong></button>
+          <div class="pmd-qpos-profile-menu" data-profile-menu hidden>
+            <div><strong data-staff-menu>PayMyDine</strong><small data-role></small></div>
+            <button type="button" data-workspaces>Workspaces</button>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <section class="pmd-qpos-catalog">
+      <div class="pmd-qpos-catalog-head">
+        <label class="pmd-qpos-search"><span>⌕</span><input type="search" autocomplete="off" placeholder="Search…" data-search></label>
+        <div class="pmd-qpos-work-meta">
+          <time class="pmd-qpos-clock" data-clock>--:--</time>
+          <button type="button" class="pmd-qpos-history-button" data-sync>Sync</button>
+        </div>
+      </div>
+      <div class="pmd-qpos-categories" data-categories><button type="button" class="is-active" data-category="all">All</button></div>
+      <div class="pmd-qpos-catalog-status" data-status>Select table</div>
+      <div class="pmd-qpos-product-grid" data-products></div>
+    </section>
+
+    <aside class="pmd-qpos-cart">
+      <div class="pmd-qpos-cart-head">
+        <div><span class="pmd-qpos-section-label">Check</span><strong data-check-title>New</strong></div>
+        <div class="pmd-qpos-guests">
+          <button type="button" data-guests-minus>−</button>
+          <span><b data-guests>1</b><small>pax</small></span>
+          <button type="button" data-guests-plus>+</button>
+        </div>
+      </div>
+      <div class="pmd-qpos-sent" data-sent hidden>
+        <div class="pmd-qpos-subhead"><strong>Sent</strong><span data-sent-total></span></div>
+        <div data-sent-items></div>
+      </div>
+      <div class="pmd-qpos-cart-list" data-cart><div class="pmd-qpos-empty-cart"><strong>No items</strong></div></div>
+      <label class="pmd-qpos-order-note"><span>Note</span><textarea rows="2" placeholder="Kitchen / allergy / request" data-note></textarea></label>
+      <div class="pmd-qpos-cart-summary">
+        <div><span>New</span><strong data-new-total>€0.00</strong></div>
+        <div class="grand"><span>Total</span><strong data-total>€0.00</strong></div>
+      </div>
+      <div class="pmd-qpos-cart-actions">
+        <button type="button" class="secondary" data-hold>Hold</button>
+        <button type="button" class="primary" data-send>Send</button>
+        <button type="button" class="pay" data-pay>Pay</button>
+      </div>
+    </aside>
+  </main>
+</div>
+
+<div class="pmd-qpos-modal" data-modifier aria-hidden="true">
+  <div class="pmd-qpos-modal-card pmd-qpos-modifier-card">
+    <header><div><span class="pmd-qpos-section-label">Item</span><h2 data-mod-name>Product</h2></div><button class="pmd-qpos-modal-close" data-mod-close>×</button></header>
+    <div class="pmd-qpos-modifier-body"><div class="pmd-qpos-modifier-meta" data-mod-meta></div><div data-mod-options></div><label class="pmd-qpos-field"><span>Note</span><input type="text" data-mod-note placeholder="No onions, medium, allergy…"></label></div>
+    <footer><span></span><button type="button" class="pmd-qpos-modal-primary" data-mod-add>Add</button></footer>
+  </div>
+</div>
+
+<div class="pmd-offline-toast" data-toast></div>
+
+<script>
+(function(){
+'use strict';
+var state={snapshot:null,selectedTable:null,search:'',category:'all',modifier:null,selectedOptions:{}};
+function el(q){return document.querySelector(q)}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]})}
+function money(minor,currency){
+  try{return new Intl.NumberFormat(undefined,{style:'currency',currency:currency||'EUR'}).format((Number(minor)||0)/100)}
+  catch(e){return ((Number(minor)||0)/100).toFixed(2)+' '+(currency||'EUR')}
+}
+function toast(message){var n=el('[data-toast]');n.textContent=message||'';n.classList.add('is-visible');clearTimeout(toast.t);toast.t=setTimeout(function(){n.classList.remove('is-visible')},2600)}
+function bridge(method){
+  if(!window.PayMyDineOffline||typeof window.PayMyDineOffline[method]!=='function')throw new Error('Local POS bridge unavailable');
+  var args=[].slice.call(arguments,1);
+  return window.PayMyDineOffline[method].apply(window.PayMyDineOffline,args);
+}
+function read(){
+  try{state.snapshot=JSON.parse(bridge('snapshot',state.selectedTable||''));state.selectedTable=state.snapshot.selected_table_id||state.selectedTable;render()}
+  catch(e){toast(e.message||'Could not read local restaurant data')}
+}
+function render(){
+  var s=state.snapshot;if(!s)return;
+  el('[data-staff]').textContent=s.staff_name||'Staff';el('[data-staff-menu]').textContent=s.staff_name||'Staff';
+  el('[data-initial]').textContent=(s.staff_name||'P').trim().charAt(0).toUpperCase();
+  el('[data-role]').textContent=s.role_code||'';el('[data-authority]').textContent=s.authority||'Offline';
+  el('[data-queue]').textContent=(s.queued||0)+' queued command'+((s.queued||0)===1?'':'s');
+  renderTables();renderCategories();renderProducts();renderCart();
+}
+function renderTables(){
+  var s=state.snapshot,host=el('[data-tables]');host.innerHTML='';
+  (s.tables||[]).forEach(function(t){
+    var b=document.createElement('button');b.type='button';b.className='pmd-qpos-table'+(String(t.id)===String(state.selectedTable)?' is-selected':'');
+    b.dataset.status=t.status||'available';b.innerHTML='<strong>'+esc(t.number||t.label||t.id)+'</strong><small>'+esc(t.status_label||t.status||'Free')+'</small>';
+    b.onclick=function(){state.selectedTable=String(t.id);read()};host.appendChild(b);
+  });
+}
+function itemCategory(item){
+  var p=item.payload||{};var ids=p.category_ids||[];return ids.length?String(ids[0]):(item.category_id?String(item.category_id):'uncategorized');
+}
+function renderCategories(){
+  var host=el('[data-categories]'),seen={all:'All'};
+  (state.snapshot.menu||[]).forEach(function(i){var p=i.payload||{},ids=p.category_ids||[],names=p.category_names||[];ids.forEach(function(id,k){seen[String(id)]=String(names[k]||('Category '+id))})});
+  host.innerHTML='';Object.keys(seen).forEach(function(id){var b=document.createElement('button');b.type='button';b.textContent=seen[id];b.className=state.category===id?'is-active':'';b.onclick=function(){state.category=id;renderCategories();renderProducts()};host.appendChild(b)});
+}
+function renderProducts(){
+  var host=el('[data-products]'),q=state.search.trim().toLowerCase(),menu=(state.snapshot.menu||[]).filter(function(i){return (!q||String(i.name).toLowerCase().indexOf(q)>=0)&&(state.category==='all'||itemCategory(i)===state.category)});
+  host.innerHTML='';
+  if(!state.selectedTable){host.innerHTML='<div class="pmd-qpos-no-products">Select a table first</div>';return}
+  if(!menu.length){host.innerHTML='<div class="pmd-qpos-no-products">No products</div>';return}
+  menu.forEach(function(i){var b=document.createElement('button');b.type='button';b.className='pmd-qpos-product';b.innerHTML='<strong>'+esc(i.name)+'</strong><footer><span>'+esc((i.payload&&i.payload.category_names||[])[0]||'')+'</span><b>'+esc(money(i.price_minor,i.currency))+'</b></footer>';b.onclick=function(){beginAdd(i)};host.appendChild(b)});
+}
+function beginAdd(item){
+  var options=(item.payload&&item.payload.options)||[];
+  if(!options.length){mutate('addItem',state.selectedTable,String(item.id),'[]','');return}
+  state.modifier=item;state.selectedOptions={};el('[data-mod-name]').textContent=item.name;el('[data-mod-meta]').textContent=money(item.price_minor,item.currency);
+  var host=el('[data-mod-options]');host.innerHTML='';
+  options.forEach(function(group){
+    var wrap=document.createElement('section');wrap.className='pmd-qpos-option-group';
+    wrap.innerHTML='<header><strong>'+esc(group.name||'Options')+'</strong><span>'+(group.required?'Required':'Optional')+'</span></header><div class="pmd-qpos-option-grid"></div>';
+    var grid=wrap.querySelector('.pmd-qpos-option-grid');(group.values||[]).forEach(function(v){
+      var b=document.createElement('button');b.type='button';b.className='pmd-qpos-option';b.innerHTML='<strong>'+esc(v.name)+'</strong><small>'+esc(money(v.price_minor||Math.round(Number(v.price||0)*100),item.currency))+'</small>';
+      b.onclick=function(){
+        var key=String(group.id),arr=state.selectedOptions[key]||[],id=Number(v.id),multi=Number(group.max||1)>1;
+        if(multi){var at=arr.indexOf(id);if(at>=0)arr.splice(at,1);else if(arr.length<Number(group.max||99))arr.push(id)}
+        else{arr=arr[0]===id?[]:[id]}
+        state.selectedOptions[key]=arr;b.classList.toggle('is-active',arr.indexOf(id)>=0);
+      };grid.appendChild(b)
+    });host.appendChild(wrap)
+  });
+  el('[data-mod-note]').value='';el('[data-modifier]').classList.add('is-open');el('[data-modifier]').setAttribute('aria-hidden','false');
+}
+function closeMod(){el('[data-modifier]').classList.remove('is-open');el('[data-modifier]').setAttribute('aria-hidden','true');state.modifier=null}
+function addModified(){
+  if(!state.modifier)return;var ids=[];Object.keys(state.selectedOptions).forEach(function(k){ids=ids.concat(state.selectedOptions[k])});
+  mutate('addItem',state.selectedTable,String(state.modifier.id),JSON.stringify(ids),el('[data-mod-note]').value||'');closeMod()
+}
+function renderCart(){
+  var s=state.snapshot,d=s.draft,b=s.bill,currency=(d&&d.currency)||(b&&b.currency)||s.currency||'EUR',base=(b&&b.base_total_minor)||0,newTotal=(d&&d.total_minor)||0;
+  el('[data-check-title]').textContent=state.selectedTable?(s.selected_table_label||'New'):'New';
+  el('[data-guests]').textContent=(d&&d.guest_count)||1;el('[data-note]').value=(d&&d.note)||'';
+  el('[data-new-total]').textContent=money(newTotal,currency);el('[data-total]').textContent=money(base+newTotal,currency);
+  var sent=el('[data-sent]');if(base>0){sent.hidden=false;el('[data-sent-total]').textContent=money(base,currency);el('[data-sent-items]').innerHTML='<div class="pmd-qpos-sent-line"><span>✓</span><strong>Existing check</strong><b>'+esc(money(base,currency))+'</b></div>'}else sent.hidden=true;
+  var host=el('[data-cart]');host.innerHTML='';
+  if(!d||!(d.lines||[]).length){host.innerHTML='<div class="pmd-qpos-empty-cart"><strong>No items</strong></div>'}
+  else (d.lines||[]).forEach(function(line){
+    var row=document.createElement('div');row.className='pmd-qpos-cart-line';
+    row.innerHTML='<div class="pmd-qpos-cart-line-top"><div><strong>'+esc(line.name)+'</strong><small>'+esc(line.note||'')+'</small></div><b>'+esc(money(line.unit_price_minor*line.quantity,currency))+'</b></div><div class="pmd-qpos-cart-line-actions"><div class="pmd-qpos-line-qty"><button data-minus>−</button><b>'+line.quantity+'</b><button data-plus>+</button></div><button class="pmd-qpos-line-remove" data-remove>×</button></div>';
+    row.querySelector('[data-minus]').onclick=function(){mutate('changeQuantity',line.line_id,-1)};
+    row.querySelector('[data-plus]').onclick=function(){mutate('changeQuantity',line.line_id,1)};
+    row.querySelector('[data-remove]').onclick=function(){mutate('changeQuantity',line.line_id,-999)};
+    host.appendChild(row)
+  });
+  var editable=!!(d&&d.status==='DRAFT'&&(d.lines||[]).length);el('[data-hold]').disabled=!editable;el('[data-send]').disabled=!editable;
+  el('[data-pay]').disabled=!s.cloud_available;el('[data-status]').textContent=state.selectedTable?(s.authority+' · '+(s.selected_table_label||'')):'Select table';
+}
+function mutate(method){
+  try{var args=[method].concat([].slice.call(arguments,1));var result=JSON.parse(bridge.apply(null,args));if(!result.ok)toast(result.message||'Action failed');else if(result.message)toast(result.message);read()}
+  catch(e){toast(e.message||'Action failed')}
+}
+function meta(delta){
+  var d=state.snapshot&&state.snapshot.draft;if(!d){toast('Add an item first');return}
+  mutate('setDraftMeta',d.local_id,Math.max(1,Math.min(99,Number(d.guest_count||1)+delta)),el('[data-note]').value||'')
+}
+el('[data-search]').addEventListener('input',function(){state.search=this.value||'';renderProducts()});
+el('[data-guests-minus]').onclick=function(){meta(-1)};el('[data-guests-plus]').onclick=function(){meta(1)};
+el('[data-note]').addEventListener('change',function(){var d=state.snapshot&&state.snapshot.draft;if(d)mutate('setDraftMeta',d.local_id,Number(d.guest_count||1),this.value||'')});
+el('[data-hold]').onclick=function(){mutate('queueOrder',state.selectedTable||'',true)};
+el('[data-send]').onclick=function(){mutate('queueOrder',state.selectedTable||'',false)};
+el('[data-pay]').onclick=function(){if(state.snapshot&&state.snapshot.cloud_available)bridge('tryCloud');else toast('Payments require PayMyDine Cloud.')};
+el('[data-sync]').onclick=function(){mutate('syncNow')};
+el('[data-profile]').onclick=function(){var m=el('[data-profile-menu]');m.hidden=!m.hidden};
+el('[data-workspaces]').onclick=function(){bridge('workspaces')};
+el('[data-mod-close]').onclick=closeMod;el('[data-mod-add]').onclick=addModified;
+function clock(){el('[data-clock]').textContent=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}clock();setInterval(clock,30000);
+window.pmdOfflineRefresh=read;
+read();setInterval(read,2000);
+})();
+</script>
+</body>
+</html>
