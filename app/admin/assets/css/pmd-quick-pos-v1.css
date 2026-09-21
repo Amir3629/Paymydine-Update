@@ -7527,3 +7527,43 @@ body.pmd-qpos-exact-floor-open
     border-right: 1px solid var(--q-line) !important;
   }
 }
+
+
+/* ============================================================
+   PMD_QPOS_ANDROID_LANDSCAPE_VIEWPORT_V47
+   Android POS may provide an explicit viewport height from WebView. Prefer
+   that value over dynamic viewport units so tablet landscape cannot collapse
+   to a zero/stale height while portrait remains healthy.
+   ============================================================ */
+html,
+body.pmd-qpos-body {
+  width: 100%;
+  height: 100%;
+}
+
+.pmd-qpos {
+  height: var(--pmd-android-viewport-height, 100vh);
+  min-height: 0;
+  max-height: var(--pmd-android-viewport-height, 100vh);
+}
+
+@supports (height: 100dvh) {
+  .pmd-qpos {
+    height: var(--pmd-android-viewport-height, 100dvh);
+    max-height: var(--pmd-android-viewport-height, 100dvh);
+  }
+}
+
+@media (min-width: 821px) {
+  body.pmd-qpos-body {
+    overflow: hidden;
+  }
+
+  .pmd-qpos-main {
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+  }
+}
