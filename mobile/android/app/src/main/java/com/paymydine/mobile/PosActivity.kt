@@ -680,10 +680,14 @@ class PosActivity : ComponentActivity() {
 
         view.loadUrl(
             "https://$host/admin/mobile/pos/open",
-            mapOf(
-                "Authorization" to "Bearer $token",
-                "X-PayMyDine-Android-POS" to "1",
-            ),
+            buildMap {
+                put("Authorization", "Bearer $token")
+                put("X-PayMyDine-Android-POS", "1")
+                app.credentials.staffSession()
+                    ?.staffGrant
+                    ?.takeIf { it.isNotBlank() }
+                    ?.let { put("X-PayMyDine-Staff-Grant", it) }
+            },
         )
     }
 
