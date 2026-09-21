@@ -17,7 +17,7 @@
         android:name=".PayMyDineApplication"
         android:allowBackup="false"
         android:fullBackupContent="false"
-        android:label="PayMyDine"
+        android:label="PayMyDine POS"
         android:supportsRtl="true"
         android:usesCleartextTraffic="false"
         android:hardwareAccelerated="true"
