@@ -166,6 +166,14 @@
 
     @if(!$securityActive)
         {!! form_open(['id'=>'edit-form','class'=>'form','role'=>'form','method'=>'POST','data-request'=>'onLogin']) !!}
+            {{-- PMD_MOBILE_PAIR_SIGNED_LOGIN_FORM_V3 --}}
+            @if(request()->filled(\App\Services\PmdMobileSync\PmdMobilePairingService::HANDOFF_PARAM))
+                <input
+                    type="hidden"
+                    name="{{ \App\Services\PmdMobileSync\PmdMobilePairingService::HANDOFF_PARAM }}"
+                    value="{{ request()->input(\App\Services\PmdMobileSync\PmdMobilePairingService::HANDOFF_PARAM) }}"
+                >
+            @endif
             <label class="field">
                 <span>{{ $copy['username'] }}</span>
                 <input type="text" name="username" id="input-username" autocomplete="username" placeholder="{{ $copy['username_placeholder'] }}" value="{{ old('username') }}" required autofocus>
