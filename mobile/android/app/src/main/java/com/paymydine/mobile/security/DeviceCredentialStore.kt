@@ -36,6 +36,47 @@ class DeviceCredentialStore(context: Context) {
     fun preferredWorkspace(): String? =
         prefs.getString("preferred_workspace", null)
             ?.takeIf { it in setOf("pos", "kds", "reservations") }
+    // PMD_ANDROID_WORKSPACE_LEASE_V1
+    // Passwords are never persisted. A successful Cloud re-auth only stores an
+    // encrypted, short-lived continuation lease for the exact workspace.
+    fun putWorkspaceLease(
+        surface: String,
+        username: String,
+        expiresAtEpochSeconds: Long,
+    ) {
+        val normalized = normalizeWorkspace(surface) ?: return
+        putSecret(
+            "workspace_lease_$normalized",
+            expiresAtEpochSeconds.toString() + "|" + username.trim(),
+        )
+        setPreferredWorkspace(normalized)
+    }
+
+    fun workspaceLeaseValid(
+        surface: String,
+        nowEpochSeconds: Long = System.currentTimeMillis() / 1000L,
+    ): Boolean {
+        val normalized = normalizeWorkspace(surface) ?: return false
+        val raw = getSecret("workspace_lease_$normalized") ?: return false
+        val expiresAt = raw.substringBefore('|').toLongOrNull() ?: return false
+        return expiresAt > nowEpochSeconds
+    }
+
+    fun workspaceLeaseUsername(surface: String): String? {
+        val normalized = normalizeWorkspace(surface) ?: return null
+        val raw = getSecret("workspace_lease_$normalized") ?: return null
+        return raw.substringAfter('|', "").trim().takeIf { it.isNotBlank() }
+    }
+
+    fun clearWorkspaceLease(surface: String) {
+        val normalized = normalizeWorkspace(surface) ?: return
+        prefs.edit().remove("workspace_lease_$normalized").apply()
+    }
+
+    private fun normalizeWorkspace(value: String?): String? =
+        value?.trim()?.lowercase()
+            ?.takeIf { it in setOf("pos", "kds", "reservations") }
+
     fun putDeviceToken(value: String) = putSecret("device_token", value)
     fun deviceToken(): String? = getSecret("device_token")
     fun putPairingVerifier(value: String) = putSecret("pairing_verifier", value)
