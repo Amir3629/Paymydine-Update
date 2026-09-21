@@ -107,6 +107,9 @@ jobs:
           grep -q "PMD_ANDROID_CANONICAL_POS_WEBVIEW_V1" mobile/android/app/src/main/java/com/paymydine/mobile/ui/PosWebView.kt
           grep -q "PMD_ANDROID_POS_RENDER_PROBE_V2" mobile/android/app/src/main/java/com/paymydine/mobile/ui/PosWebView.kt
           grep -q "PMD_ANDROID_POS_ORIENTATION_STABILITY_V3" mobile/android/app/src/main/java/com/paymydine/mobile/ui/PosWebView.kt
+          grep -q "PMD_ANDROID_POS_VISUAL_STATE_V4" mobile/android/app/src/main/java/com/paymydine/mobile/ui/PosWebView.kt
+          grep -q "postVisualStateCallback" mobile/android/app/src/main/java/com/paymydine/mobile/ui/PosWebView.kt
+          grep -q "LAYER_TYPE_SOFTWARE" mobile/android/app/src/main/java/com/paymydine/mobile/ui/PosWebView.kt
           grep -q 'configChanges="screenLayout|orientation|screenSize|smallestScreenSize|keyboard|keyboardHidden"' mobile/android/app/src/main/AndroidManifest.xml
           grep -q "PosWebView(" mobile/android/app/src/main/java/com/paymydine/mobile/ui/PayMyDineApp.kt
           grep -q "pair/status" routes/pmd-mobile-sync-v1.php
@@ -210,11 +213,11 @@ jobs:
           BADGING="$("$AAPT" dump badging "$APK" | head -1)"
           echo "$BADGING"
           grep -Fq "package: name='com.paymydine.mobile.pospreview'" <<<"$BADGING"
-          grep -Fq "versionCode='7'" <<<"$BADGING"
-          grep -Fq "versionName='0.2.3-pos-shell-debug'" <<<"$BADGING"
+          grep -Fq "versionCode='8'" <<<"$BADGING"
+          grep -Fq "versionName='0.2.4-pos-shell-debug'" <<<"$BADGING"
 
           echo "PMD_PREVIEW_PACKAGE=com.paymydine.mobile.pospreview"
-          echo "PMD_PREVIEW_VERSION=0.2.3-pos-shell-debug"
+          echo "PMD_PREVIEW_VERSION=0.2.4-pos-shell-debug"
 
           # PR checks intentionally use the runner's ephemeral debug key. Only a
           # direct push to the preview branch may verify/publish the pinned key.
