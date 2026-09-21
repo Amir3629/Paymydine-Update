@@ -42,6 +42,10 @@ trait PmdWaiterPosTerminalEndpoint
             'attempt_id' => $result['attempt_id'] ?? null,
             'status' => $result['status'] ?? null,
             'provider_code' => $provider,
+            // PMD_QPOS_TERMINAL_TIP_RESPONSE_V46
+            'tip_amount' => array_key_exists('tip_amount', $result)
+                ? $result['tip_amount']
+                : null,
             'fake_success_disabled' => true,
         ], !empty($result['success']) ? 200 : 422);
     }
