@@ -293,8 +293,32 @@ class PosActivity : ComponentActivity() {
                                     current === webView &&
                                     !isFinishing
                                 ) {
+                                    // PMD_ANDROID_POS_GEOMETRY_NUDGE_V7
+                                    // requestLayout()/invalidate() were not
+                                    // sufficient on the affected tablet. Force
+                                    // a real one-pixel Android layout delta,
+                                    // then restore MATCH_PARENT on the next
+                                    // animation frame. This reproduces the
+                                    // geometry change that physical rotation
+                                    // used to provide.
+                                    val width = root.width.coerceAtLeast(2)
+                                    val height = root.height.coerceAtLeast(2)
                                     current.visibility = View.INVISIBLE
-                                    current.post {
+                                    current.layoutParams =
+                                        FrameLayout.LayoutParams(
+                                            width - 1,
+                                            height - 1,
+                                        )
+
+                                    current.postOnAnimation {
+                                        if (current !== webView || isFinishing) {
+                                            return@postOnAnimation
+                                        }
+                                        current.layoutParams =
+                                            FrameLayout.LayoutParams(
+                                                ViewGroup.LayoutParams.MATCH_PARENT,
+                                                ViewGroup.LayoutParams.MATCH_PARENT,
+                                            )
                                         current.visibility = View.VISIBLE
                                         current.requestLayout()
                                         current.invalidate()
