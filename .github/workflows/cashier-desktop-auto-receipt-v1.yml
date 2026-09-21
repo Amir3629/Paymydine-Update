@@ -1,0 +1,247 @@
+name: PayMyDine Cashier V1.0.3 Auto Receipt
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/cashier-desktop-auto-receipt-v1
+    paths:
+      - 'apps/cashier-desktop/**'
+      - 'deploy/pmd-cashier-desktop-auto-receipt-v1-patch.py'
+      - 'deploy/pmd-cashier-desktop-auto-receipt-v1.sh'
+      - '.github/workflows/cashier-desktop-auto-receipt-v1.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  contract-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Download production-authority files and patcher through GitHub API
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PMD_REPOSITORY: ${{ github.repository }}
+          PMD_REF: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          stage="$PWD/stage"
+          mkdir -p "$stage"
+          files=(
+            app/admin/assets/js/pmd-waiter-pos-payment-v3.js
+            app/admin/assets/js/pmd-cashier-lab-order-center.js
+            app/admin/views/orders/customer_invoice.blade.php
+            app/admin/views/pmddevices/index.blade.php
+            app/admin/Services/CashDrawerService/CashDrawerSettlementBridge.php
+          )
+          for relative in "${files[@]}"; do
+            destination="$stage/$relative"
+            mkdir -p "$(dirname "$destination")"
+            api="https://api.github.com/repos/$PMD_REPOSITORY/contents/$relative?ref=$PMD_REF"
+            curl -fsSL \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "$api" \
+              | python3 -c 'import sys,json,base64; d=json.load(sys.stdin); sys.stdout.buffer.write(base64.b64decode(d["content"]))' \
+              > "$destination"
+          done
+
+          api="https://api.github.com/repos/$PMD_REPOSITORY/contents/deploy/pmd-cashier-desktop-auto-receipt-v1-patch.py?ref=$PMD_REF"
+          curl -fsSL \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "$api" \
+            | python3 -c 'import sys,json,base64; d=json.load(sys.stdin); sys.stdout.buffer.write(base64.b64decode(d["content"]))' \
+            > "$PWD/patch.py"
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+
+      - name: Apply latest-main contract patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile patch.py
+          python3 patch.py stage
+          node --check stage/app/admin/assets/js/pmd-waiter-pos-payment-v3.js
+          node --check stage/app/admin/assets/js/pmd-cashier-lab-order-center.js
+          php -l stage/app/admin/Services/CashDrawerService/CashDrawerSettlementBridge.php
+          php -l stage/app/admin/views/orders/customer_invoice.blade.php
+          php -l stage/app/admin/views/pmddevices/index.blade.php
+          grep -q PMD_DESKTOP_AUTO_RECEIPT_R1 stage/app/admin/assets/js/pmd-waiter-pos-payment-v3.js
+          grep -q PMD_DESKTOP_DIRECT_PRINT_R1 stage/app/admin/assets/js/pmd-cashier-lab-order-center.js
+          grep -q PMD_DESKTOP_HARDWARE_OWNER_R1 stage/app/admin/Services/CashDrawerService/CashDrawerSettlementBridge.php
+          grep -q PMD_DESKTOP_INVOICE_REPRINT_R1 stage/app/admin/views/orders/customer_invoice.blade.php
+          grep -q PayMyDine-Cashier-Setup-1.0.3.exe stage/app/admin/views/pmddevices/index.blade.php
+          echo 'LATEST_MAIN_PATCH_CONTRACT=PASS'
+
+  build-windows:
+    needs: contract-test
+    runs-on: windows-latest
+    timeout-minutes: 35
+    steps:
+      - name: Download Cashier app files through GitHub API
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PMD_REPOSITORY: ${{ github.repository }}
+          PMD_REF: ${{ github.sha }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $root = Join-Path $PWD 'apps/cashier-desktop'
+          New-Item -ItemType Directory -Force -Path (Join-Path $root 'src') | Out-Null
+          $files = @(
+            'package.json',
+            'README.md',
+            'src/main.js',
+            'src/preload.js',
+            'src/hardware.js',
+            'src/receipt.js',
+            'src/setup.html',
+            'src/setup.js',
+            'src/hardware.html',
+            'src/hardware-page.js',
+            'src/offline.html',
+            'src/offline.js'
+          )
+          $headers = @{
+            Authorization = "Bearer $env:GH_TOKEN"
+            Accept = 'application/vnd.github+json'
+            'X-GitHub-Api-Version' = '2022-11-28'
+            'User-Agent' = 'PayMyDine-Cashier-V103-Build'
+          }
+          foreach ($relative in $files) {
+            $encodedPath = ($relative -split '/' | ForEach-Object { [uri]::EscapeDataString($_) }) -join '/'
+            $uri = "https://api.github.com/repos/$env:PMD_REPOSITORY/contents/apps/cashier-desktop/$encodedPath`?ref=$env:PMD_REF"
+            $item = Invoke-RestMethod -Headers $headers -Uri $uri -Method Get
+            $destination = Join-Path $root ($relative -replace '/', [IO.Path]::DirectorySeparatorChar)
+            New-Item -ItemType Directory -Force -Path (Split-Path -Parent $destination) | Out-Null
+            [IO.File]::WriteAllBytes($destination, [Convert]::FromBase64String(($item.content -replace '\s', '')))
+          }
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        working-directory: apps/cashier-desktop
+        run: npm install
+
+      - name: Syntax check
+        working-directory: apps/cashier-desktop
+        run: npm run check
+
+      - name: Build Windows installer
+        working-directory: apps/cashier-desktop
+        run: npm run dist:win
+
+      - name: Upload Windows release file
+        uses: actions/upload-artifact@v4
+        with:
+          name: pmd-v103-windows
+          path: apps/cashier-desktop/dist/PayMyDine-Cashier-Setup-1.0.3.exe
+          if-no-files-found: error
+
+  build-macos:
+    needs: contract-test
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [arm64, x64]
+    runs-on: macos-14
+    timeout-minutes: 40
+    steps:
+      - name: Download Cashier app files through GitHub API
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PMD_REPOSITORY: ${{ github.repository }}
+          PMD_REF: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          root="$PWD/apps/cashier-desktop"
+          mkdir -p "$root/src"
+          files=(
+            package.json README.md src/main.js src/preload.js src/hardware.js src/receipt.js
+            src/setup.html src/setup.js src/hardware.html src/hardware-page.js
+            src/offline.html src/offline.js
+          )
+          for relative in "${files[@]}"; do
+            destination="$root/$relative"
+            mkdir -p "$(dirname "$destination")"
+            api="https://api.github.com/repos/$PMD_REPOSITORY/contents/apps/cashier-desktop/$relative?ref=$PMD_REF"
+            curl -fsSL \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "$api" \
+              | python3 -c 'import sys,json,base64; d=json.load(sys.stdin); sys.stdout.buffer.write(base64.b64decode(d["content"]))' \
+              > "$destination"
+          done
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        working-directory: apps/cashier-desktop
+        run: npm install
+
+      - name: Syntax check
+        working-directory: apps/cashier-desktop
+        run: npm run check
+
+      - name: Build macOS DMG
+        working-directory: apps/cashier-desktop
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: npm run dist:mac -- --${{ matrix.arch }}
+
+      - name: Upload macOS release file
+        uses: actions/upload-artifact@v4
+        with:
+          name: pmd-v103-macos-${{ matrix.arch }}
+          path: apps/cashier-desktop/dist/PayMyDine-Cashier-1.0.3-mac-${{ matrix.arch }}.dmg
+          if-no-files-found: error
+
+  publish-preview:
+    needs: [contract-test, build-windows, build-macos]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download release files
+        uses: actions/download-artifact@v4
+        with:
+          pattern: pmd-v103-*
+          path: release
+          merge-multiple: true
+
+      - name: Publish stable preview URLs
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          tag='pmd-cashier-v1-preview'
+          notes='PayMyDine Cashier V1.0.3. Adds automatic one-time receipt printing after successful Cashier payments, direct Print/Reprint through the saved desktop printer, explicit single-owner desktop cash-drawer behavior, Windows Generic / Text Only ESC/POS raster printing, and Windows/macOS builds. Browser printing remains unchanged. Physical POS validation is required before broad rollout.'
+          if gh release view "$tag" --repo "$GH_REPO" >/dev/null 2>&1; then
+            gh release upload "$tag" release/* --clobber --repo "$GH_REPO"
+            gh release edit "$tag" --target "$GITHUB_SHA" --prerelease --title 'PayMyDine Cashier V1 Preview' --notes "$notes" --repo "$GH_REPO"
+          else
+            gh release create "$tag" release/* --target "$GITHUB_SHA" --prerelease --title 'PayMyDine Cashier V1 Preview' --notes "$notes" --repo "$GH_REPO"
+          fi
