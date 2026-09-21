@@ -525,7 +525,7 @@ final class PmdMobileBootstrapService
         $roles = PmdDefaultStaffRoleService::class;
 
         if ($roleCode === $roles::OWNER || $roleCode === $roles::MANAGER) {
-            return ['manager', 'orders', 'pos', 'waiter', 'kds'];
+            return ['manager', 'orders', 'pos', 'waiter', 'kds', 'reservations'];
         }
         if ($roleCode === $roles::CASHIER) return ['orders', 'pos'];
         if ($roleCode === $roles::WAITER) return ['waiter', 'pos'];
