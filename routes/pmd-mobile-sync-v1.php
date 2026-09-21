@@ -11,23 +11,31 @@ use Igniter\Flame\Foundation\Http\Middleware\VerifyCsrfToken;
 /**
  * PMD_MOBILE_SYNC_V1_ROUTES
  *
- * Routes intentionally keep tenant middleware via the normal Admin request
- * stack. Authentication is native bearer-device authentication, not AdminAuth.
+ * PMD_MOBILE_SYNC_DIRECT_REGISTER_V8
+ *
+ * IMPORTANT: these routes are loaded directly from app/admin/routes.php,
+ * already early in the tenant Admin route bootstrap. Do NOT defer them through
+ * App::before(). On production the Admin catch-all/auth redirect is resolved
+ * before that deferred callback, causing /admin/mobile/pair/start to be
+ * redirected to /admin/login without ever reaching PmdMobilePairController.
+ *
+ * Authentication for native API calls remains bearer-device authentication,
+ * not AdminAuth. Browser pairing still performs canonical Admin security in
+ * PmdMobilePairController/Login.
  */
-App::before(function () {
-    Route::group([
-        'middleware' => ['web'],
-        'prefix' => config('system.adminUri', 'admin'),
-    ], function () {
+Route::group([
+    'middleware' => ['web'],
+    'prefix' => config('system.adminUri', 'admin'),
+], function () {
         Route::get('mobile/pair/start', [PmdMobilePairController::class, 'start']);
         Route::post('mobile/pair/approve', [PmdMobilePairController::class, 'approve']);
         Route::get('mobile/pair/finish', [PmdMobilePairController::class, 'finish']);
-    });
+});
 
-    Route::group([
-        'middleware' => ['web'],
-        'prefix' => config('system.adminUri', 'admin').'/api/mobile/v1',
-    ], function () {
+Route::group([
+    'middleware' => ['web'],
+    'prefix' => config('system.adminUri', 'admin').'/api/mobile/v1',
+], function () {
         Route::get('bootstrap', PmdMobileBootstrapController::class);
         Route::get('kds/snapshot', [PmdMobileKdsController::class, 'snapshot']);
         Route::post('edge/register', [PmdMobileEdgeController::class, 'register'])
@@ -46,7 +54,6 @@ App::before(function () {
             ->withoutMiddleware([VerifyCsrfToken::class])
             ->middleware('throttle:30,1');
 
-        Route::post('sync/commands', [PmdMobileSyncController::class, 'commands'])
-            ->withoutMiddleware([VerifyCsrfToken::class]);
-    });
+    Route::post('sync/commands', [PmdMobileSyncController::class, 'commands'])
+        ->withoutMiddleware([VerifyCsrfToken::class]);
 });
