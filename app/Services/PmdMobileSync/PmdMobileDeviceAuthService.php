@@ -72,7 +72,7 @@ final class PmdMobileDeviceAuthService
 
         $siteAccess->touchDevice((int)$device->id);
 
-        return [
+        $identity = [
             'device' => $device,
             'device_id' => (int)$device->id,
             'location_id' => $locationId,
@@ -83,6 +83,13 @@ final class PmdMobileDeviceAuthService
             'role_code' => $roleCode,
             'permissions' => (array)$user->getPermissions(),
         ];
+
+        // PMD_MOBILE_STAFF_GRANT_OVERRIDE_V1
+        // A shared trusted restaurant device may be used by a different active
+        // staff member after that person signs in with canonical credentials.
+        return app(PmdMobileStaffGrantService::class)
+            ->resolve($request, $identity)
+            ?? $identity;
     }
 
     private function userMayUseLocation($user, $staff, int $locationId): bool
