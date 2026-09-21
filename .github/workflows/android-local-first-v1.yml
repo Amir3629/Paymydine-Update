@@ -119,6 +119,7 @@ jobs:
           grep -q "PMD_ANDROID_OFFLINE_POS_V1" mobile/android/app/src/main/java/com/paymydine/mobile/OfflinePosActivity.kt
           grep -q "PMD_ANDROID_POS_OFFLINE_FAILOVER_V9" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
           grep -q "LocalPosScreen" mobile/android/app/src/main/java/com/paymydine/mobile/OfflinePosActivity.kt
+          grep -q "PMD_ANDROID_LOCAL_POS_PROJECTION_REFRESH_V2" mobile/android/app/src/main/java/com/paymydine/mobile/ui/LocalPosScreen.kt
           grep -q "SyncEngine(app).runOnce" mobile/android/app/src/main/java/com/paymydine/mobile/OfflinePosActivity.kt
           grep -q "outboxCount" mobile/android/app/src/main/java/com/paymydine/mobile/OfflinePosActivity.kt
           grep -q "offline_payment_enabled.*false" app/Services/PmdMobileSync/PmdMobileBootstrapService.php
