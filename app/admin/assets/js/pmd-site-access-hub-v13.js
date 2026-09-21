@@ -218,7 +218,11 @@
             var name = document.createElement('strong');
             name.textContent = String(item.staff_name || 'Team member');
             var device = document.createElement('small');
-            device.textContent = String(item.device_name || 'Browser device');
+            var isAndroidPair = String(item.purpose || '') === 'pair_staff_device';
+            var pairCode = formatCode(item.request_code || '');
+            device.textContent = isAndroidPair
+                ? 'Android connection · ' + pairCode
+                : String(item.device_name || 'Browser device');
             row.appendChild(name);
             row.appendChild(device);
 
