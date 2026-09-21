@@ -13,7 +13,7 @@ set -Eeuo pipefail
 #   sudo PMD_ROOT=/var/www/paymydine bash /tmp/pmd-android-pairing-v3-dirty-safe.sh
 
 PMD_ROOT="${PMD_ROOT:-/var/www/paymydine}"
-TARGET_COMMIT="${TARGET_COMMIT:-d6d5a4469829986e6d18506c8b42d08d11a475e4}"
+TARGET_COMMIT="${TARGET_COMMIT:-67878f5ac6b43b8dc2b4fa48b37ee9bba1d889a6}"
 ANDROID_BASE="${ANDROID_BASE:-cd73ce8982be3b365f6611836f96c192f5876176}"
 GATE_BASE="${GATE_BASE:-50ff9beb14c5bc48915e19cb3d7b3044e50ffc3f}"
 
@@ -48,6 +48,7 @@ fi
 
 FILES=(
   "app/Http/Middleware/PmdSiteAccessGateMiddleware.php"
+  "app/Services/PmdSiteAccessWorkspaceGateService.php"
   "app/Services/PmdSiteAccessService.php"
   "app/Services/PmdMobileSync/PmdMobilePairingService.php"
   "app/Http/Controllers/PmdMobilePairController.php"
@@ -56,7 +57,7 @@ FILES=(
 
 base_for() {
   case "$1" in
-    app/Http/Middleware/PmdSiteAccessGateMiddleware.php)
+    app/Http/Middleware/PmdSiteAccessGateMiddleware.php|app/Services/PmdSiteAccessWorkspaceGateService.php)
       printf '%s\n' "$GATE_BASE"
       ;;
     *)
@@ -148,6 +149,8 @@ while IFS= read -r -d '' phpfile; do
 done < <(find "$STAGE/tree" -type f -name '*.php' -print0)
 
 grep -q "PMD_MOBILE_PAIR_TRANSPORT_BYPASS_V2"   "$STAGE/tree/app/Http/Middleware/PmdSiteAccessGateMiddleware.php"   || fail "Pairing transport bypass marker missing."
+
+grep -q "mobile/pair/start"   "$STAGE/tree/app/Services/PmdSiteAccessWorkspaceGateService.php"   || fail "Pairing restart preservation missing."
 
 grep -q "pairCurrentVerifiedPersonalDevice"   "$STAGE/tree/app/Services/PmdSiteAccessService.php"   || fail "Verified-session device pairing method missing."
 
