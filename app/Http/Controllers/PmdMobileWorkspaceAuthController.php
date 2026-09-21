@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Admin\Models\Users_model;
 use Admin\Services\PmdDefaultStaffRoleService;
 use App\Services\PmdMobileSync\PmdMobileDeviceAuthService;
+use App\Services\PmdMobileSync\PmdMobileStaffGrantService;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Hash;
@@ -31,30 +32,39 @@ final class PmdMobileWorkspaceAuthController extends Controller
         ]);
 
         $deviceIdentity = $deviceAuth->authenticate($request);
-        $pairedUser = $deviceIdentity['user'] ?? null;
-        if (!$pairedUser || !(bool)($pairedUser->is_activated ?? false)) {
-            abort(403, 'This paired PayMyDine account is no longer active.');
+        $typedUsername = trim((string)$data['username']);
+        if ($typedUsername === '') {
+            abort(401, 'Username or password is incorrect.');
         }
 
-        $typedUsername = trim((string)$data['username']);
-        $storedUsername = trim((string)($pairedUser->username ?? ''));
-        $passwordHash = (string)($pairedUser->password ?? '');
+        $user = Users_model::query()
+            ->whereRaw(
+                'LOWER(username) = ?',
+                [mb_strtolower($typedUsername)]
+            )
+            ->first();
+        $staff = $user ? $user->staff : null;
+        $passwordHash = (string)($user->password ?? '');
 
         if (
-            $typedUsername === ''
-            || $storedUsername === ''
-            || !hash_equals(
-                mb_strtolower($storedUsername),
-                mb_strtolower($typedUsername)
-            )
+            !$user
+            || !$staff
+            || (isset($user->is_activated) && !(bool)$user->is_activated)
+            || (isset($staff->staff_status) && !(bool)$staff->staff_status)
             || $passwordHash === ''
             || !Hash::check((string)$data['password'], $passwordHash)
         ) {
             abort(401, 'Username or password is incorrect.');
         }
 
+        $grants = app(PmdMobileStaffGrantService::class);
+        $locationId = (int)($deviceIdentity['location_id'] ?? 0);
+        if (!$grants->userMayUseLocation($user, $staff, $locationId)) {
+            abort(403, 'This PayMyDine account cannot use this restaurant location.');
+        }
+
         $roles = app(PmdDefaultStaffRoleService::class);
-        $roleCode = $roles->roleCodeForUser($pairedUser);
+        $roleCode = $roles->roleCodeForUser($user);
         $route = $roles->routeForRoleCode($roleCode);
 
         if ($roleCode === '' || $route === null || trim($route) === '') {
@@ -73,16 +83,19 @@ final class PmdMobileWorkspaceAuthController extends Controller
 
         $surface = $this->surfaceForRole($roleCode);
         $leaseUntil = now()->addHours(8);
+        $staffGrant = $grants->issue($deviceIdentity, $user);
+        $storedUsername = trim((string)($user->username ?? $typedUsername));
 
         return response()->json([
             'ok' => true,
             'surface' => $surface,
             'username' => $storedUsername,
-            'staff_name' => (string)($pairedUser->staff_name ?? $storedUsername),
-            'user_id' => (int)$pairedUser->getKey(),
-            'staff_id' => (int)($pairedUser->staff_id ?? 0),
+            'staff_name' => (string)($user->staff_name ?? $storedUsername),
+            'user_id' => (int)$user->getKey(),
+            'staff_id' => (int)($user->staff_id ?? 0),
             'role_code' => $roleCode,
             'route' => $route,
+            'staff_grant' => $staffGrant,
             'lease_expires_at' => $leaseUntil->timestamp,
             'lease_expires_iso' => $leaseUntil->toIso8601String(),
         ], 200, ['Cache-Control' => 'no-store, private']);
