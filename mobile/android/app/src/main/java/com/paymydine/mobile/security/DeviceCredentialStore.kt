@@ -19,6 +19,7 @@ data class StaffSession(
     val roleCode: String,
     val route: String,
     val surface: String,
+    val staffGrant: String,
     val expiresAtEpochSeconds: Long,
 )
 
@@ -103,6 +104,7 @@ class DeviceCredentialStore(context: Context) {
                 .put("role_code", session.roleCode)
                 .put("route", session.route)
                 .put("surface", session.surface)
+                .put("staff_grant", session.staffGrant)
                 .put("expires_at", session.expiresAtEpochSeconds)
                 .toString(),
         )
@@ -120,6 +122,7 @@ class DeviceCredentialStore(context: Context) {
                 roleCode = json.getString("role_code"),
                 route = json.getString("route"),
                 surface = json.getString("surface"),
+                staffGrant = json.getString("staff_grant"),
                 expiresAtEpochSeconds = json.getLong("expires_at"),
             )
         }.getOrNull()
