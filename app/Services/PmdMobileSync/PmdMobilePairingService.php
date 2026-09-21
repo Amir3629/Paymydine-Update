@@ -5,6 +5,8 @@ namespace App\Services\PmdMobileSync;
 use Admin\Facades\AdminAuth;
 use App\Services\PmdSiteAccessService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cookie;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -19,6 +21,8 @@ use Illuminate\Support\Str;
 final class PmdMobilePairingService
 {
     public const SESSION_INTENT = 'pmd_mobile_pair_intent_v1';
+    public const INTENT_COOKIE = 'pmd_mobile_pair_intent_v2';
+    private const INTENT_TTL_SECONDS = 900;
     private const EXCHANGE_TTL_SECONDS = 120;
 
     public function rememberIntent(Request $request): void
@@ -33,7 +37,11 @@ final class PmdMobilePairingService
             );
         }
 
-        $existing = (array)session()->get(self::SESSION_INTENT, []);
+        // PMD_MOBILE_PAIR_SEALED_INTENT_V2
+        // Admin login/security may rotate or invalidate the Laravel session.
+        // Recover the short-lived pairing intent from an encrypted, host-only
+        // cookie so the Android destination survives that canonical flow.
+        $existing = $this->intent($request);
         $existingCreated = (int)($existing['created_at'] ?? 0);
         $existingHost = strtolower(trim((string)($existing['host'] ?? '')));
         $existingChallenge = trim((string)($existing['code_challenge'] ?? ''));
@@ -61,29 +69,31 @@ final class PmdMobilePairingService
             ? $existingRequest
             : ($providedRequest !== '' ? $providedRequest : (string)Str::uuid());
 
-        session()->put(self::SESSION_INTENT, [
+        $intent = [
             'host' => $host,
             // Do not let the post-login continuation extend the original
             // pairing intent forever.
             'created_at' => $reuseExisting ? $existingCreated : time(),
             'code_challenge' => $codeChallenge,
             'pair_request' => $pairRequest,
+        ];
+
+        session()->put(self::SESSION_INTENT, $intent);
+        $this->queueIntentCookie($intent);
+
+        logger()->info('PMD mobile pairing intent stored', [
+            'host' => $host,
+            'pair_request' => $pairRequest,
+            'transport' => 'session+sealed_cookie',
         ]);
     }
 
     public function hasFreshIntent(Request $request): bool
     {
-        $intent = (array)session()->get(self::SESSION_INTENT, []);
-        $created = (int)($intent['created_at'] ?? 0);
-        $host = strtolower(trim((string)($intent['host'] ?? '')));
-        $codeChallenge = trim((string)($intent['code_challenge'] ?? ''));
-        $pairRequest = strtolower(trim((string)($intent['pair_request'] ?? '')));
-
-        return $created > time() - 900
-            && $host !== ''
-            && hash_equals($host, strtolower((string)$request->getHost()))
-            && $this->validCodeChallenge($codeChallenge)
-            && $this->validPairRequest($pairRequest);
+        return $this->validIntent(
+            $this->intent($request),
+            $request
+        );
     }
 
     public function start(Request $request): string
@@ -156,7 +166,7 @@ final class PmdMobilePairingService
 
         $site = app(PmdSiteAccessService::class);
         $identity = $site->identity();
-        $intent = (array)session()->get(self::SESSION_INTENT, []);
+        $intent = $this->intent($request);
         $codeChallenge = trim((string)($intent['code_challenge'] ?? ''));
         $pairRequest = strtolower(trim((string)($intent['pair_request'] ?? '')));
         $deviceId = (int)session()->pull(PmdSiteAccessService::SESSION_LAST_PAIRED_DEVICE, 0);
@@ -227,7 +237,7 @@ final class PmdMobilePairingService
             );
         });
 
-        session()->forget(self::SESSION_INTENT);
+        $this->clearIntent();
 
         return 'paymydine://pair?exchange='.rawurlencode($rawExchange)
             .'&tenant='.rawurlencode('https://'.$request->getHost())
@@ -456,6 +466,90 @@ final class PmdMobilePairingService
                 );
             }
         }
+    }
+
+    private function intent(Request $request): array
+    {
+        $sessionIntent = (array)session()->get(self::SESSION_INTENT, []);
+        if ($this->validIntent($sessionIntent, $request)) {
+            return $sessionIntent;
+        }
+
+        $sealed = trim((string)$request->cookie(self::INTENT_COOKIE, ''));
+        if ($sealed === '') {
+            return [];
+        }
+
+        try {
+            $decoded = json_decode(
+                Crypt::decryptString($sealed),
+                true,
+                16,
+                JSON_THROW_ON_ERROR
+            );
+        } catch (\Throwable $error) {
+            return [];
+        }
+
+        if (!is_array($decoded) || !$this->validIntent($decoded, $request)) {
+            return [];
+        }
+
+        session()->put(self::SESSION_INTENT, $decoded);
+
+        logger()->info('PMD mobile pairing intent recovered', [
+            'host' => strtolower((string)$request->getHost()),
+            'pair_request' => strtolower(trim((string)($decoded['pair_request'] ?? ''))),
+            'transport' => 'sealed_cookie',
+        ]);
+
+        return $decoded;
+    }
+
+    private function validIntent(array $intent, Request $request): bool
+    {
+        $created = (int)($intent['created_at'] ?? 0);
+        $host = strtolower(trim((string)($intent['host'] ?? '')));
+        $codeChallenge = trim((string)($intent['code_challenge'] ?? ''));
+        $pairRequest = strtolower(trim((string)($intent['pair_request'] ?? '')));
+
+        return $created > time() - self::INTENT_TTL_SECONDS
+            && $created <= time() + 30
+            && $host !== ''
+            && hash_equals(
+                $host,
+                strtolower(trim((string)$request->getHost()))
+            )
+            && $this->validCodeChallenge($codeChallenge)
+            && $this->validPairRequest($pairRequest);
+    }
+
+    private function queueIntentCookie(array $intent): void
+    {
+        $payload = Crypt::encryptString(
+            json_encode(
+                $intent,
+                JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR
+            )
+        );
+
+        Cookie::queue(
+            self::INTENT_COOKIE,
+            $payload,
+            (int)ceil(self::INTENT_TTL_SECONDS / 60),
+            '/',
+            null,
+            true,
+            true,
+            false,
+            'lax'
+        );
+    }
+
+    private function clearIntent(): void
+    {
+        session()->forget(self::SESSION_INTENT);
+        Cookie::queue(Cookie::forget(self::INTENT_COOKIE, '/'));
     }
 
     private function pairExchangeSecret(
