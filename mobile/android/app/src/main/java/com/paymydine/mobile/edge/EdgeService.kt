@@ -393,7 +393,7 @@ class EdgeService : Service() {
         text: String,
     ): Notification =
         NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.stat_notify_sync)
+            .setSmallIcon(com.paymydine.mobile.R.drawable.pmd_notification_icon)
             .setContentTitle(title)
             .setContentText(text)
             .setOngoing(true)
