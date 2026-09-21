@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Admin\Facades\AdminAuth;
 use Admin\Facades\AdminLocation;
 use Admin\Models\Locations_model;
+use Admin\Services\PmdDefaultStaffRoleService;
 use App\Services\PmdMobileSync\PmdMobileDeviceAuthService;
 use App\Services\PmdSiteAccessService;
 use App\Services\PmdSiteAccessSessionBindingService;
@@ -97,7 +98,14 @@ final class PmdMobilePosSessionController extends Controller
             ]
         );
 
-        return redirect(admin_url('pos'))
+        $roleCode = (string)($identity['role_code'] ?? '');
+        $roleRoute = app(PmdDefaultStaffRoleService::class)
+            ->routeForRoleCode($roleCode);
+        $target = in_array($roleRoute, ['pos', 'pos/waiter'], true)
+            ? $roleRoute
+            : 'pos';
+
+        return redirect(admin_url($target))
             ->header('Cache-Control', 'no-store, private');
     }
 }
