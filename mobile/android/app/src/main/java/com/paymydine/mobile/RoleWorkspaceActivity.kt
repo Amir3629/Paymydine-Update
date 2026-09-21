@@ -225,10 +225,14 @@ class RoleWorkspaceActivity : ComponentActivity() {
     ) {
         view.loadUrl(
             "https://$host/admin/mobile/workspace/open?surface=auto",
-            mapOf(
-                "Authorization" to "Bearer $token",
-                "X-PayMyDine-Android-Workspace" to "auto",
-            ),
+            buildMap {
+                put("Authorization", "Bearer $token")
+                put("X-PayMyDine-Android-Workspace", "auto")
+                app.credentials.staffSession()
+                    ?.staffGrant
+                    ?.takeIf { it.isNotBlank() }
+                    ?.let { put("X-PayMyDine-Staff-Grant", it) }
+            },
         )
     }
 
