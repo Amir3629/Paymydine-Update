@@ -2286,6 +2286,19 @@ function renderOpenChecks() {
         );
         rememberActiveFloor();
 
+        /* PMD_QPOS_POST_MOVE_SELECTION_FIX_V45
+         * V44 rendered the rail while transfer.submitting was still true.
+         * renderTables() therefore stamped disabled on every table button,
+         * and finally() cleared only JS state, not those DOM attributes.
+         * Clear the commit lock BEFORE the final authoritative rail render. */
+        state.transfer.submitting = false;
+        root.classList.remove('is-transfer-committing');
+
+        var actionBar = $('[data-qpos-table-actions]');
+        if (actionBar) {
+          actionBar.setAttribute('aria-busy', 'false');
+        }
+
         renderTables();
         renderContext();
 
@@ -2340,6 +2353,17 @@ function renderOpenChecks() {
         state.transfer.directSide = true;
         state.transfer.choiceOpen = false;
         root.classList.add('is-direct-order-move');
+
+        /* PMD_QPOS_POST_MOVE_ROLLBACK_SELECTION_FIX_V45
+         * Failed moves must also clear the submitting flag before rebuilding
+         * the destination rail, otherwise every table stays disabled. */
+        state.transfer.submitting = false;
+        root.classList.remove('is-transfer-committing');
+
+        var rollbackActionBar = $('[data-qpos-table-actions]');
+        if (rollbackActionBar) {
+          rollbackActionBar.setAttribute('aria-busy', 'false');
+        }
 
         renderTables();
         renderContext();
