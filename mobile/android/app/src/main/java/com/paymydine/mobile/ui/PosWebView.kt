@@ -138,10 +138,11 @@ fun PosWebView(
         configuration.screenWidthDp,
         configuration.screenHeightDp,
     ) {
-        webView?.post {
-            requestLayout()
-            invalidate()
-            evaluateJavascript(
+        val currentWebView = webView ?: return@LaunchedEffect
+        currentWebView.post {
+            currentWebView.requestLayout()
+            currentWebView.invalidate()
+            currentWebView.evaluateJavascript(
                 "(function(){window.dispatchEvent(new Event('resize'));document.documentElement.getBoundingClientRect();return true;})()",
                 null,
             )
