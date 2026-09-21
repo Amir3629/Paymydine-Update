@@ -104,15 +104,15 @@ jobs:
           grep -q "mobile/pos/open" routes/pmd-mobile-sync-v1.php
           grep -q "PMD_MOBILE_POS_WEB_SESSION_V1" app/Http/Controllers/PmdMobilePosSessionController.php
           grep -q "PMD_MOBILE_OWNER_POS_SESSION_V1" app/Services/PmdSiteAccessWorkspaceGateService.php
-          grep -q "PMD_ANDROID_CANONICAL_POS_WEBVIEW_V1" mobile/android/app/src/main/java/com/paymydine/mobile/ui/PosWebView.kt
-          grep -q "PMD_ANDROID_POS_RENDER_PROBE_V2" mobile/android/app/src/main/java/com/paymydine/mobile/ui/PosWebView.kt
-          grep -q "PMD_ANDROID_POS_ORIENTATION_STABILITY_V3" mobile/android/app/src/main/java/com/paymydine/mobile/ui/PosWebView.kt
-          grep -q "PMD_ANDROID_POS_LANDSCAPE_VIEWPORT_V5" mobile/android/app/src/main/java/com/paymydine/mobile/ui/PosWebView.kt
-          grep -q "postVisualStateCallback" mobile/android/app/src/main/java/com/paymydine/mobile/ui/PosWebView.kt
-          ! grep -q "LAYER_TYPE_SOFTWARE" mobile/android/app/src/main/java/com/paymydine/mobile/ui/PosWebView.kt
-          grep -q -- "--pmd-android-viewport-height" mobile/android/app/src/main/java/com/paymydine/mobile/ui/PosWebView.kt
-          grep -q 'configChanges="screenLayout|orientation|screenSize|smallestScreenSize|keyboard|keyboardHidden"' mobile/android/app/src/main/AndroidManifest.xml
-          grep -q "PosWebView(" mobile/android/app/src/main/java/com/paymydine/mobile/ui/PayMyDineApp.kt
+          grep -q "PMD_ANDROID_POS_DEDICATED_ACTIVITY_V6" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
+          grep -q "PMD_ANDROID_POS_SURFACE_PULSE_V6" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
+          grep -q -- "--pmd-android-viewport-height" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
+          ! grep -q "LAYER_TYPE_SOFTWARE" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
+          grep -q 'android:name=".PosActivity"' mobile/android/app/src/main/AndroidManifest.xml
+          grep -q 'android:screenOrientation="sensorLandscape"' mobile/android/app/src/main/AndroidManifest.xml
+          grep -q "PMD_ANDROID_POS_ACTIVITY_LAUNCH_V6" mobile/android/app/src/main/java/com/paymydine/mobile/ui/PayMyDineApp.kt
+          grep -q "PosActivity::class.java" mobile/android/app/src/main/java/com/paymydine/mobile/MainActivity.kt
+          ! grep -q "PosWebView(" mobile/android/app/src/main/java/com/paymydine/mobile/ui/PayMyDineApp.kt
           grep -q "pair/status" routes/pmd-mobile-sync-v1.php
           grep -q "pairExchangeSecret" app/Services/PmdMobileSync/PmdMobilePairingService.php
           grep -q "pair_request" app/Http/Controllers/PmdMobilePairController.php
@@ -217,11 +217,11 @@ jobs:
           cp mobile/android/app/build/outputs/apk/debug/app-debug.apk \
             mobile/android/PayMyDine-POS-Tablet-Preview.apk
           cp mobile/android/app/build/outputs/apk/debug/app-debug.apk \
-            mobile/android/PayMyDine-POS-Tablet-Preview-0.2.5.apk
+            mobile/android/PayMyDine-POS-Tablet-Preview-0.2.6.apk
           sha256sum mobile/android/PayMyDine-POS-Tablet-Preview.apk \
             > mobile/android/PayMyDine-POS-Tablet-Preview.apk.sha256
-          sha256sum mobile/android/PayMyDine-POS-Tablet-Preview-0.2.5.apk \
-            > mobile/android/PayMyDine-POS-Tablet-Preview-0.2.5.apk.sha256
+          sha256sum mobile/android/PayMyDine-POS-Tablet-Preview-0.2.6.apk \
+            > mobile/android/PayMyDine-POS-Tablet-Preview-0.2.6.apk.sha256
       - name: Verify preview APK identity
         shell: bash
         run: |
@@ -236,11 +236,11 @@ jobs:
           BADGING="$("$AAPT" dump badging "$APK" | head -1)"
           echo "$BADGING"
           grep -Fq "package: name='com.paymydine.mobile.pospreview'" <<<"$BADGING"
-          grep -Fq "versionCode='9'" <<<"$BADGING"
-          grep -Fq "versionName='0.2.5-pos-shell-debug'" <<<"$BADGING"
+          grep -Fq "versionCode='10'" <<<"$BADGING"
+          grep -Fq "versionName='0.2.6-pos-shell-debug'" <<<"$BADGING"
 
           echo "PMD_PREVIEW_PACKAGE=com.paymydine.mobile.pospreview"
-          echo "PMD_PREVIEW_VERSION=0.2.5-pos-shell-debug"
+          echo "PMD_PREVIEW_VERSION=0.2.6-pos-shell-debug"
 
           # PR checks intentionally use the runner's ephemeral debug key. Only a
           # direct push to the preview branch may verify/publish the pinned key.
@@ -269,8 +269,8 @@ jobs:
           path: |
             mobile/android/PayMyDine-POS-Tablet-Preview.apk
             mobile/android/PayMyDine-POS-Tablet-Preview.apk.sha256
-            mobile/android/PayMyDine-POS-Tablet-Preview-0.2.5.apk
-            mobile/android/PayMyDine-POS-Tablet-Preview-0.2.5.apk.sha256
+            mobile/android/PayMyDine-POS-Tablet-Preview-0.2.6.apk
+            mobile/android/PayMyDine-POS-Tablet-Preview-0.2.6.apk.sha256
           if-no-files-found: error
       - name: Publish tablet preview release
         if: github.event_name == 'push' && github.ref == 'refs/heads/feature/android-local-first-v1'
@@ -291,7 +291,7 @@ jobs:
           gh release upload "$TAG" \
             mobile/android/PayMyDine-POS-Tablet-Preview.apk \
             mobile/android/PayMyDine-POS-Tablet-Preview.apk.sha256 \
-            mobile/android/PayMyDine-POS-Tablet-Preview-0.2.5.apk \
-            mobile/android/PayMyDine-POS-Tablet-Preview-0.2.5.apk.sha256 \
+            mobile/android/PayMyDine-POS-Tablet-Preview-0.2.6.apk \
+            mobile/android/PayMyDine-POS-Tablet-Preview-0.2.6.apk.sha256 \
             --repo "$GITHUB_REPOSITORY" \
             --clobber
