@@ -1,5 +1,6 @@
 package com.paymydine.mobile.ui
 
+import android.app.Activity
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
@@ -28,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.paymydine.mobile.PayMyDineApplication
+import com.paymydine.mobile.PosActivity
 import com.paymydine.mobile.data.local.BootstrapSummary
 import com.paymydine.mobile.edge.EdgeRuntimeState
 import com.paymydine.mobile.edge.EdgeService
@@ -440,11 +442,18 @@ fun PayMyDineApp(app: PayMyDineApplication) {
     MaterialTheme {
         Surface(Modifier.fillMaxSize()) {
             if (paired) {
-                PosWebView(
-                    tenantHost = app.credentials.tenantHost().orEmpty(),
-                    deviceToken = app.credentials.deviceToken().orEmpty(),
-                    modifier = Modifier.fillMaxSize(),
-                )
+                // PMD_ANDROID_POS_ACTIVITY_LAUNCH_V6
+                // Keep onboarding/pairing in Compose, but move the canonical
+                // tablet POS renderer out of AndroidView entirely.
+                LaunchedEffect(Unit) {
+                    context.startActivity(
+                        Intent(context, PosActivity::class.java).apply {
+                            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                        },
+                    )
+                    (context as? Activity)?.finish()
+                }
+                Text("Opening PayMyDine POS...")
             } else {
                 Onboarding(
                     tenantCode = tenantCode,
