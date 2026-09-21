@@ -18,7 +18,10 @@ final class PmdMobilePairController extends Controller
             $pairing->rememberIntent($request);
 
             if (!AdminAuth::isLogged()) {
-                return redirect(admin_url('login'));
+                // PMD_MOBILE_PAIR_SIGNED_HANDOFF_V3
+                // Carry the public PKCE challenge + request id explicitly
+                // through Login instead of relying only on browser session state.
+                return redirect($pairing->loginUrl($request));
             }
 
             $security = app(PmdSiteAccessWorkspaceGateService::class)
