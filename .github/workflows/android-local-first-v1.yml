@@ -106,6 +106,8 @@ jobs:
           grep -q "PMD_MOBILE_OWNER_POS_SESSION_V1" app/Services/PmdSiteAccessWorkspaceGateService.php
           grep -q "PMD_ANDROID_CANONICAL_POS_WEBVIEW_V1" mobile/android/app/src/main/java/com/paymydine/mobile/ui/PosWebView.kt
           grep -q "PMD_ANDROID_POS_RENDER_PROBE_V2" mobile/android/app/src/main/java/com/paymydine/mobile/ui/PosWebView.kt
+          grep -q "PMD_ANDROID_POS_ORIENTATION_STABILITY_V3" mobile/android/app/src/main/java/com/paymydine/mobile/ui/PosWebView.kt
+          grep -q 'configChanges="orientation|screenSize|smallestScreenSize|keyboardHidden"' mobile/android/app/src/main/AndroidManifest.xml
           grep -q "PosWebView(" mobile/android/app/src/main/java/com/paymydine/mobile/ui/PayMyDineApp.kt
           grep -q "pair/status" routes/pmd-mobile-sync-v1.php
           grep -q "pairExchangeSecret" app/Services/PmdMobileSync/PmdMobilePairingService.php
