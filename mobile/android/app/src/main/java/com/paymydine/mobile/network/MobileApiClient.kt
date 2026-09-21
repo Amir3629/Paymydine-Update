@@ -14,12 +14,73 @@ data class PairExchangeResult(
     val locationId: Long,
 )
 
+data class PairStatusResult(
+    val status: String,
+    val exchange: String?,
+    val tenantBaseUrl: String?,
+)
+
 class MobileApiException(
     val statusCode: Int,
     message: String,
 ) : IOException(message)
 
 class MobileApiClient {
+    fun pairStatus(
+        tenantBaseUrl: String,
+        pairRequest: String,
+        codeVerifier: String,
+    ): PairStatusResult {
+        val base = trustedTenantBase(tenantBaseUrl)
+        val body = JSONObject()
+            .put("pair_request", pairRequest)
+            .put("code_verifier", codeVerifier)
+            .toString()
+
+        val json = JSONObject(
+            request(
+                url = URL(
+                    base.toString().trimEnd('/') +
+                        "/admin/api/mobile/v1/pair/status",
+                ),
+                method = "POST",
+                token = null,
+                body = body,
+            ),
+        )
+
+        if (!json.optBoolean("ok")) {
+            throw IOException("Pairing status was rejected.")
+        }
+
+        val status = json.optString("status").trim().lowercase()
+        require(status in setOf("pending", "approved", "expired", "used")) {
+            "Pairing status is invalid."
+        }
+
+        val exchange = json.optString("exchange")
+            .trim()
+            .takeIf { it.length == 64 }
+        val tenant = json.optString("tenant")
+            .trim()
+            .takeIf { it.isNotBlank() }
+
+        if (status == "approved") {
+            require(exchange != null && tenant != null) {
+                "Approved pairing response is incomplete."
+            }
+            require(trustedTenantBase(tenant).host.equals(base.host, ignoreCase = true)) {
+                "Pairing status belongs to another restaurant."
+            }
+        }
+
+        return PairStatusResult(
+            status = status,
+            exchange = exchange,
+            tenantBaseUrl = tenant,
+        )
+    }
+
     fun exchange(
         tenantBaseUrl: String,
         exchange: String,
