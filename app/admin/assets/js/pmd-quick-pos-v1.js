@@ -103,6 +103,252 @@
     return json;
   }
 
+
+  /* PMD_ZCS_CUSTOMER_DISPLAY_BRIDGE_V1
+   * Device-local bridge: only the Android POS WebView exposes PayMyDineHardware.
+   * A normal browser never gets this object, so two cashiers cannot cross-talk. */
+  var customerDisplayLastSignature = '';
+  var customerDisplaySuccessTimer = null;
+
+  function customerDisplayBridge() {
+    if (state && state.mode !== 'cashier') return null;
+    var bridge = window.PayMyDineHardware;
+    return bridge && typeof bridge.pushCustomerDisplay === 'function'
+      ? bridge
+      : null;
+  }
+
+  function customerDisplayCurrency() {
+    return String(
+      (state.boot && state.boot.settings && state.boot.settings.currency) ||
+      (state.settings && state.settings.currency) ||
+      '€'
+    );
+  }
+
+  function customerDisplayTableLabel() {
+    if (state.serviceMode === 'takeaway') return 'Pickup';
+    if (!state.selectedTable) return '';
+    return compactTableLabel(state.selectedTable);
+  }
+
+  function customerDisplayImageForMenu(menuId) {
+    var row = state.menu.find(function (item) {
+      return Number(item.id || 0) === Number(menuId || 0);
+    });
+    return row ? String(row.image || '') : '';
+  }
+
+  function customerDisplayCartRows() {
+    return state.cart.map(function (row) {
+      return {
+        menu_id: Number(row.menu_id || 0) || null,
+        name: String(row.name || 'Item'),
+        quantity: Math.max(0, num(row.quantity, 0)),
+        unit_price: roundMoney(num(row.price, 0)),
+        line_total: lineTotal(row),
+        image: customerDisplayImageForMenu(row.menu_id)
+      };
+    });
+  }
+
+  function customerDisplayOrderPayload(phase, extras) {
+    extras = extras || {};
+    var order = activeOrder();
+    var total = roundMoney(
+      existingTotal() + pendingSendTotal() + cartTotal()
+    );
+    var highlight = state.customerDisplayHighlight || null;
+
+    return Object.assign({
+      phase: phase || 'order',
+      currency: customerDisplayCurrency(),
+      total: total,
+      amount_due:
+        phase === 'payment'
+          ? roundMoney(
+              state.payment && state.payment.open
+                ? paymentCharge()
+                : total
+            )
+          : total,
+      table_label: customerDisplayTableLabel(),
+      order_label:
+        order && orderId(order)
+          ? ('Order #' + orderId(order))
+          : '',
+      highlight_name:
+        highlight ? String(highlight.name || '') : '',
+      highlight_image:
+        highlight ? String(highlight.image || '') : '',
+      items: customerDisplayCartRows()
+    }, extras);
+  }
+
+  function pushCustomerDisplay(phase, extras, force) {
+    var bridge = customerDisplayBridge();
+    if (!bridge) return;
+
+    var payload = customerDisplayOrderPayload(phase, extras);
+    var signature = JSON.stringify(payload);
+    if (!force && signature === customerDisplayLastSignature) return;
+    customerDisplayLastSignature = signature;
+
+    try {
+      bridge.pushCustomerDisplay(signature);
+    } catch (ignored) {
+    }
+  }
+
+  function pushCustomerDisplayIdle(force) {
+    var bridge = customerDisplayBridge();
+    if (!bridge) return;
+    customerDisplayLastSignature = '';
+    try {
+      bridge.showCustomerDisplayIdle();
+    } catch (ignored) {
+    }
+  }
+
+  function pushCustomerDisplaySuccess(amount, message) {
+    var bridge = customerDisplayBridge();
+    if (!bridge) return;
+
+    clearTimeout(customerDisplaySuccessTimer);
+    pushCustomerDisplay(
+      'success',
+      {
+        total: roundMoney(amount),
+        amount_due: 0,
+        headline: 'Paid',
+        message: String(message || 'Thank you!'),
+        items: []
+      },
+      true
+    );
+
+    customerDisplaySuccessTimer = setTimeout(function () {
+      pushCustomerDisplayIdle(true);
+    }, 4500);
+  }
+
+  function installCustomerDisplayControls() {
+    var bridge = customerDisplayBridge();
+    if (!bridge || document.getElementById('pmd-customer-display-control')) return;
+
+    var capabilities = {};
+    try {
+      capabilities = JSON.parse(
+        String(bridge.customerDisplayCapabilities() || '{}')
+      );
+    } catch (ignored) {
+    }
+
+    var wrap = document.createElement('div');
+    wrap.id = 'pmd-customer-display-control';
+    wrap.innerHTML =
+      '<button type="button" data-pmd-customer-display-toggle ' +
+        'style="position:fixed;right:18px;bottom:18px;z-index:2200;border:1px solid #d4d4d8;' +
+        'background:#fff;color:#18181b;border-radius:999px;padding:10px 14px;font:700 13px/1 sans-serif;' +
+        'box-shadow:0 8px 24px rgba(0,0,0,.14)">Customer display</button>' +
+      '<section data-pmd-customer-display-panel hidden ' +
+        'style="position:fixed;right:18px;bottom:66px;z-index:2201;width:300px;background:#fff;' +
+        'border:1px solid #e4e4e7;border-radius:16px;padding:16px;box-shadow:0 18px 50px rgba(0,0,0,.22);' +
+        'font:14px/1.4 sans-serif;color:#18181b">' +
+        '<div style="display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:12px">' +
+          '<strong>Customer display</strong>' +
+          '<span style="font-size:12px;color:#71717a">' +
+            (capabilities.customer_display ? 'ZCS connected' : 'Preview / SDK not detected') +
+          '</span>' +
+        '</div>' +
+        '<label style="display:flex;justify-content:space-between;align-items:center;margin:10px 0">' +
+          '<span>Enabled</span><input type="checkbox" data-pmd-customer-display-enabled ' +
+            (capabilities.enabled === false ? '' : 'checked') + '>' +
+        '</label>' +
+        '<label style="display:flex;justify-content:space-between;align-items:center;margin:10px 0">' +
+          '<span>Show food images</span><input type="checkbox" data-pmd-customer-display-images ' +
+            (capabilities.images_enabled === false ? '' : 'checked') + '>' +
+        '</label>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px">' +
+          '<button type="button" data-pmd-customer-display-test="order" style="padding:9px;border:1px solid #d4d4d8;border-radius:10px;background:#fafafa">Test order</button>' +
+          '<button type="button" data-pmd-customer-display-test="payment" style="padding:9px;border:1px solid #d4d4d8;border-radius:10px;background:#fafafa">Test payment</button>' +
+          '<button type="button" data-pmd-customer-display-test="success" style="padding:9px;border:1px solid #d4d4d8;border-radius:10px;background:#fafafa">Test success</button>' +
+          '<button type="button" data-pmd-customer-display-test="idle" style="padding:9px;border:1px solid #d4d4d8;border-radius:10px;background:#fafafa">Idle</button>' +
+        '</div>' +
+      '</section>';
+
+    document.body.appendChild(wrap);
+
+    var toggle = wrap.querySelector('[data-pmd-customer-display-toggle]');
+    var panel = wrap.querySelector('[data-pmd-customer-display-panel]');
+    var enabled = wrap.querySelector('[data-pmd-customer-display-enabled]');
+    var images = wrap.querySelector('[data-pmd-customer-display-images]');
+
+    toggle.onclick = function () {
+      panel.hidden = !panel.hidden;
+    };
+
+    enabled.onchange = function () {
+      try {
+        bridge.setCustomerDisplayEnabled(!!enabled.checked);
+      } catch (ignored) {
+      }
+      if (enabled.checked) {
+        pushCustomerDisplay('order', {}, true);
+      }
+    };
+
+    images.onchange = function () {
+      try {
+        bridge.setCustomerDisplayImages(!!images.checked);
+      } catch (ignored) {
+      }
+      pushCustomerDisplay(
+        state.payment.open ? 'payment' : 'order',
+        {},
+        true
+      );
+    };
+
+    Array.prototype.slice.call(
+      wrap.querySelectorAll('[data-pmd-customer-display-test]')
+    ).forEach(function (button) {
+      button.onclick = function () {
+        var kind = button.getAttribute('data-pmd-customer-display-test');
+        if (kind === 'idle') {
+          pushCustomerDisplayIdle(true);
+          return;
+        }
+        if (kind === 'success') {
+          pushCustomerDisplaySuccess(
+            cartTotal() || existingTotal() || 18,
+            'Thank you!'
+          );
+          return;
+        }
+        if (kind === 'payment') {
+          pushCustomerDisplay(
+            'payment',
+            {
+              headline: 'Please pay',
+              message: 'Tap, insert, or follow the cashier',
+              amount_due: cartTotal() || existingTotal() || 18
+            },
+            true
+          );
+          return;
+        }
+        pushCustomerDisplay(
+          'order',
+          {
+            headline: 'Your order'
+          },
+          true
+        );
+      };
+    });
+  }
+
   var state = {
     boot: null,
     mode: String(root.getAttribute('data-mode') || 'cashier'),
@@ -124,6 +370,7 @@
     forceNewCheck: false,
     cart: [],
     pendingSend: null,
+    customerDisplayHighlight: null,
     tableRequestSeq: 0,
     /* PMD_QPOS_TABLE_CACHE_STATE_V41
      * Short in-memory cache + in-flight de-duplication for table checks. */
@@ -1550,6 +1797,12 @@ function renderOpenChecks() {
       });
     }
 
+    state.customerDisplayHighlight = {
+      menu_id: Number(item.id || 0),
+      name: String(item.name || 'Item'),
+      image: String(item.image || '')
+    };
+
     renderCart();
   }
 
@@ -1666,6 +1919,14 @@ function renderOpenChecks() {
     if (totalEl) totalEl.textContent = money(total);
     if (mobileTotal) mobileTotal.textContent = money(total);
     if (mobileCount) mobileCount.textContent = String(itemCount());
+
+    if (!state.payment.open) {
+      if (state.cart.length || activeOrder()) {
+        pushCustomerDisplay('order');
+      } else {
+        pushCustomerDisplayIdle();
+      }
+    }
 
     var guests = $('[data-qpos-guests]');
     if (guests) guests.textContent = String(state.guestCount);
@@ -3454,6 +3715,19 @@ function renderOpenChecks() {
     }
     root.classList.add('is-payment-workspace');
 
+    pushCustomerDisplay(
+      'payment',
+      {
+        headline: 'Please pay',
+        message:
+          state.payment.method === 'direct_terminal'
+            ? 'Tap or insert your card'
+            : 'Please follow the cashier',
+        amount_due: paymentCharge()
+      },
+      true
+    );
+
     /* PMD_QPOS_CASH_AUTO_FOCUS_V46
      * Payment opens ready for immediate cashier input. */
     window.requestAnimationFrame(function () {
@@ -3863,9 +4137,22 @@ function renderOpenChecks() {
 
   function showPaymentError(message) {
     var el = $('[data-qpos-payment-error]');
-    if (!el) return;
-    el.hidden = !message;
-    el.textContent = String(message || '');
+    if (el) {
+      el.hidden = !message;
+      el.textContent = String(message || '');
+    }
+
+    if (message && state.payment.open) {
+      pushCustomerDisplay(
+        'error',
+        {
+          headline: 'Please try again',
+          message: String(message || 'Payment was not completed.'),
+          amount_due: paymentCharge()
+        },
+        true
+      );
+    }
   }
 
   /* PMD_QPOS_PAYMENT_ERROR_STATE_V18
@@ -4625,6 +4912,21 @@ function renderOpenChecks() {
     });
 
     renderPaymentTotals();
+
+    pushCustomerDisplay(
+      'payment',
+      {
+        headline:
+          state.payment.method === 'direct_terminal'
+            ? 'Tap or insert card'
+            : 'Please pay',
+        message:
+          state.payment.method === 'direct_terminal'
+            ? 'Use the payment reader'
+            : 'Please follow the cashier',
+        amount_due: paymentCharge()
+      }
+    );
   }
 
   function finishPaidOrderUi() {
@@ -4901,6 +5203,16 @@ function renderOpenChecks() {
           : 0;
 
       if (settlementPaid) {
+        pushCustomerDisplaySuccess(
+          num(
+            state.payment.summary &&
+            state.payment.summary.settlement &&
+            state.payment.summary.settlement.order_total,
+            paymentCharge()
+          ),
+          'Thank you!'
+        );
+
         if (state.serviceMode !== 'dine_in') {
           state.offPremiseOrder = Object.assign({}, state.offPremiseOrder || {}, {
             settlement_status: 'paid'
@@ -5022,6 +5334,15 @@ function renderOpenChecks() {
 
       if (status === 'paid') {
         await loadPaymentSummary(true);
+        pushCustomerDisplaySuccess(
+          num(
+            state.payment.summary &&
+            state.payment.summary.settlement &&
+            state.payment.summary.settlement.order_total,
+            paymentCharge()
+          ),
+          'Thank you!'
+        );
         setSelectedTablePaymentSignal('paid', 0);
         var terminalPaidTableId =
           state.serviceMode === 'dine_in' && state.selectedTable
@@ -6588,6 +6909,7 @@ function renderOpenChecks() {
     };
 
     startClock();
+    installCustomerDisplayControls();
 
     window.addEventListener('keydown', function (event) {
       if (event.key === 'Escape') {
@@ -6625,6 +6947,18 @@ function renderOpenChecks() {
     selectTable: selectTable,
     newCheck: newCheck,
     openPayment: openPayment,
-    openFloorMap: openFloorMap
+    openFloorMap: openFloorMap,
+    customerDisplay: {
+      refresh: function () {
+        pushCustomerDisplay(
+          state.payment.open ? 'payment' : 'order',
+          {},
+          true
+        );
+      },
+      idle: function () {
+        pushCustomerDisplayIdle(true);
+      }
+    }
   };
 })();
