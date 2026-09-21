@@ -164,7 +164,7 @@ log "Live endpoint smoke test (unauthenticated request must reach controller and
 TMP="$(mktemp -d /tmp/pmd-pos-v9-smoke.XXXXXX)"
 trap 'rm -rf "$TMP"' EXIT
 
-curl -sS   --connect-timeout 15   --max-time 30   -D "$TMP/headers"   -o "$TMP/body"   "https://$PMD_HOST/admin/mobile/pos/open"
+curl -sS   --connect-timeout 15   --max-time 30   -H "Accept: application/json"   -D "$TMP/headers"   -o "$TMP/body"   "https://$PMD_HOST/admin/mobile/pos/open"
 
 STATUS="$(awk 'toupper($1) ~ /^HTTP\// {code=$2} END{print code}' "$TMP/headers")"
 LOCATION="$(awk 'BEGIN{IGNORECASE=1} /^Location:/ {sub(/^[^:]+:[[:space:]]*/, ""); sub(/\r$/, ""); print; exit}' "$TMP/headers")"
