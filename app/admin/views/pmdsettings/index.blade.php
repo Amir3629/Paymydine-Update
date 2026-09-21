@@ -1199,7 +1199,7 @@ document.documentElement.classList.add(
                     </svg>
                 </span>
                 <span class="pmd-cashier-launcher-v107__copy">
-                    <strong>Android Tablet / POS</strong>
+                    <strong>Android Restaurant App</strong>
                     <small>Android 8+ · Operations Preview 0.3.1</small>
                 </span>
             </a>
