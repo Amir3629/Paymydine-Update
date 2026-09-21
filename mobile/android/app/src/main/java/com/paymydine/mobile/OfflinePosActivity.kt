@@ -308,12 +308,13 @@ class OfflinePosActivity : ComponentActivity() {
                 val deviceId = app.credentials.deviceId()
                     ?: error("Pair this device first.")
 
+                val staffSession = app.credentials.staffSession()
                 val command = app.localPosRepository.buildSendCommand(
                     draft = draft,
                     tenantHost = host,
                     deviceId = deviceId,
-                    staffId = null,
-                    userId = null,
+                    staffId = staffSession?.staffId,
+                    userId = staffSession?.userId,
                     hold = hold,
                 )
                 check(app.syncRepository.enqueue(command)) {
