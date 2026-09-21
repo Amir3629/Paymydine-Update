@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Admin\Facades\AdminAuth;
 use Admin\Facades\AdminLocation;
 use Admin\Models\Locations_model;
+use Admin\Services\PmdDefaultStaffRoleService;
 use App\Services\PmdMobileSync\PmdMobileDeviceAuthService;
 use App\Services\PmdSiteAccessService;
 use App\Services\PmdSiteAccessSessionBindingService;
@@ -13,12 +14,13 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 
 /**
- * PMD_MOBILE_WORKSPACE_WEB_SESSION_V1
+ * PMD_MOBILE_ROLE_WORKSPACE_SESSION_V2
  *
- * Opens approved non-POS Cloud workspaces from the already-paired Android app.
- * The bearer credential is validated server-side and never appears in a URL or
- * browser cookie. Reservations deliberately remains Cloud-authoritative for
- * this milestone; Android does not fabricate offline reservation mutations.
+ * Creates a normal short-lived Admin session from the paired Android identity
+ * and redirects to the canonical default page for that staff role. Android
+ * never needs to hard-code Owner/Manager/Accountant/My Work route policy.
+ *
+ * ?surface=reservations remains supported for the V17 Reservations client.
  */
 final class PmdMobileWorkspaceSessionController extends Controller
 {
@@ -26,31 +28,34 @@ final class PmdMobileWorkspaceSessionController extends Controller
         Request $request,
         PmdMobileDeviceAuthService $deviceAuth
     ) {
-        $surface = strtolower(trim((string)$request->query('surface', '')));
-        $targets = [
-            'reservations' => [
-                'permission' => 'Admin.Reservations',
-                'route' => 'reservations',
-            ],
-        ];
-
-        if (!isset($targets[$surface])) {
-            abort(404, 'This PayMyDine Android workspace is not available.');
-        }
-
         $identity = $deviceAuth->authenticate($request);
         $user = $identity['user'] ?? null;
         $locationId = (int)($identity['location_id'] ?? 0);
         $deviceId = (int)($identity['device_id'] ?? 0);
-        $target = $targets[$surface];
+        $roleCode = (string)($identity['role_code'] ?? '');
+
+        $roles = app(PmdDefaultStaffRoleService::class);
+        $route = $roles->routeForRoleCode($roleCode);
+
+        $legacySurface = strtolower(trim((string)$request->query('surface', '')));
+        if ($legacySurface === 'reservations') {
+            if (!$user || !$user->hasPermission('Admin.Reservations')) {
+                abort(403, 'This paired account cannot use PayMyDine Reservations.');
+            }
+            $route = 'reservations';
+        } elseif ($legacySurface !== '' && $legacySurface !== 'auto') {
+            abort(404, 'This PayMyDine Android workspace is not available.');
+        }
 
         if (
             !$user
             || $locationId < 1
             || $deviceId < 1
-            || !$user->hasPermission($target['permission'])
+            || $roleCode === ''
+            || $route === null
+            || trim($route) === ''
         ) {
-            abort(403, 'This paired account cannot use this PayMyDine workspace.');
+            abort(403, 'This paired account has no PayMyDine workspace.');
         }
 
         $location = Locations_model::query()->find($locationId);
@@ -86,20 +91,22 @@ final class PmdMobileWorkspaceSessionController extends Controller
         $policy = app(PmdWorkSessionPolicyService::class)->apply($identity);
 
         $site->audit(
-            'mobile_android_workspace_session',
+            'mobile_android_role_workspace_session',
             true,
             $identity,
             $deviceId,
             null,
             $request,
             [
-                'surface' => $surface,
+                'role_code' => $roleCode,
+                'route' => $route,
+                'legacy_surface' => $legacySurface ?: null,
                 'session_until' => $policy['expires_at']->toIso8601String(),
                 'protocol' => 'pmd-sync-v1',
             ]
         );
 
-        return redirect(admin_url($target['route']))
+        return redirect(admin_url($route))
             ->header('Cache-Control', 'no-store, private');
     }
 }
