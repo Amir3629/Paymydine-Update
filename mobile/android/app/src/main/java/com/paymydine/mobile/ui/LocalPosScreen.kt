@@ -300,12 +300,13 @@ private fun queueDraft(
     val deviceId = app.credentials.deviceId() ?: return "Pair this device first."
 
     return runCatching {
+        val staffSession = app.credentials.staffSession()
         val command = app.localPosRepository.buildSendCommand(
             draft = current,
             tenantHost = host,
             deviceId = deviceId,
-            staffId = null,
-            userId = null,
+            staffId = staffSession?.staffId,
+            userId = staffSession?.userId,
             hold = hold,
         )
 
