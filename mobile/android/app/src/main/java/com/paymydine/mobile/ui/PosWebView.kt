@@ -107,10 +107,9 @@ fun PosWebView(
                     WebView(androidContext).apply {
                         webView = this
 
-                        CookieManager.getInstance().apply {
-                            setAcceptCookie(true)
-                            setAcceptThirdPartyCookies(this@apply, true)
-                        }
+                        val cookies = CookieManager.getInstance()
+                        cookies.setAcceptCookie(true)
+                        cookies.setAcceptThirdPartyCookies(this, true)
 
                         settings.apply {
                             javaScriptEnabled = true
@@ -178,6 +177,11 @@ fun PosWebView(
                                     ) == true &&
                                     current.path?.startsWith("/admin/pos") == true
                                 ) {
+                                    // Keep Android as a single-purpose POS
+                                    // surface. The bearer bootstrap redirect
+                                    // must not remain in the browser back stack.
+                                    view.clearHistory()
+                                    canGoBack = false
                                     fatalError = null
                                 }
                             }
