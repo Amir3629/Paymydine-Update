@@ -464,7 +464,9 @@ class PmdSiteAccessService
 
         $publicId = (string)Str::uuid();
         $code = $this->challengeCode($publicId, $identity['location_id']);
-        $expiresAt = now()->addSeconds(90);
+        $expiresAt = now()->addSeconds(
+            $purpose === self::PURPOSE_PAIR_STAFF ? 300 : 90
+        );
 
         $id = DB::table('pmd_site_access_challenges')->insertGetId([
             'public_id' => $publicId,
