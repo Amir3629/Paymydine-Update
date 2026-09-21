@@ -479,6 +479,8 @@ fun PayMyDineApp(app: PayMyDineApplication) {
             else -> RoleWorkspaceActivity::class.java
         }
 
+        SyncEngine.enqueueImmediate(app)
+
         context.startActivity(
             Intent(context, destination).apply {
                 if (destination == OfflinePosActivity::class.java) {
