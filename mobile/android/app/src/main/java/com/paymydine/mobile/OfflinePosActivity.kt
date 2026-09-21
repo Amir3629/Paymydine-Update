@@ -4,12 +4,14 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -21,7 +23,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
 import com.paymydine.mobile.edge.EdgeRuntimeState
@@ -224,43 +228,52 @@ private fun OfflinePosShell(
                         horizontalArrangement =
                             Arrangement.SpaceBetween,
                     ) {
-                        Column(
+                        Row(
                             modifier = Modifier.weight(1f),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
-                            Text(
-                                "PayMyDine Local POS",
-                                style =
-                                    MaterialTheme.typography.titleMedium,
+                            Image(
+                                painter = painterResource(R.drawable.pmd_brand_mark),
+                                contentDescription = "PayMyDine",
+                                modifier = Modifier.size(34.dp),
                             )
-                            Text(
-                                buildString {
-                                    append(authorityLabel)
-                                    append(" · ")
-                                    append(queued)
-                                    append(
-                                        if (queued == 1) {
-                                            " queued command"
-                                        } else {
-                                            " queued commands"
-                                        },
+                            Column {
+                                Text(
+                                    "PayMyDine Local POS",
+                                    style =
+                                        MaterialTheme.typography.titleMedium,
+                                )
+                                Text(
+                                    buildString {
+                                        append(authorityLabel)
+                                        append(" · ")
+                                        append(queued)
+                                        append(
+                                            if (queued == 1) {
+                                                " queued command"
+                                            } else {
+                                                " queued commands"
+                                            },
+                                        )
+                                    },
+                                    style =
+                                        MaterialTheme.typography.bodySmall,
+                                )
+                                if (!reason.isNullOrBlank()) {
+                                    Text(
+                                        reason,
+                                        style =
+                                            MaterialTheme.typography.bodySmall,
                                     )
-                                },
-                                style =
-                                    MaterialTheme.typography.bodySmall,
-                            )
-                            if (!reason.isNullOrBlank()) {
-                                Text(
-                                    reason,
-                                    style =
-                                        MaterialTheme.typography.bodySmall,
-                                )
-                            }
-                            if (!online) {
-                                Text(
-                                    "Orders are saved locally. Payments require Cloud.",
-                                    style =
-                                        MaterialTheme.typography.bodySmall,
-                                )
+                                }
+                                if (!online) {
+                                    Text(
+                                        "Orders are saved locally. Payments require Cloud.",
+                                        style =
+                                            MaterialTheme.typography.bodySmall,
+                                    )
+                                }
                             }
                         }
 
