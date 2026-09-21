@@ -334,7 +334,7 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                                         $googlePending = !empty($googleBusiness['pending_location']);
                                     @endphp
 
-                                    {{-- PMD_GOOGLE_BUSINESS_PROVIDER_UI_V7 --}}
+                                    {{-- PMD_GOOGLE_BUSINESS_COMPACT_MODAL_V8 --}}
                                     <div class="pmd-google-business-row-v7">
                                         <div class="pmd-google-business-row-v7__copy">
                                             <strong>{{ $pmdSettingsText('Google Business Profile') }}</strong>
@@ -360,7 +360,7 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                                             <button
                                                 type="button"
                                                 class="pmd-provider-configure"
-                                                data-pmd-google-business-open-v7
+                                                data-pmd-google-business-open-v8
                                             >
                                                 {{ $pmdSettingsText('Configure') }}
                                             </button>
@@ -368,15 +368,15 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                                     </div>
 
                                     <div
-                                        class="pmd-provider-modal pmd-google-business-modal-v7"
-                                        data-pmd-google-business-modal-v7
+                                        class="pmd-provider-modal pmd-google-business-modal-v8"
+                                        data-pmd-google-business-modal-v8
                                         aria-hidden="true"
                                         hidden
                                     >
                                         <button
                                             type="button"
                                             class="pmd-provider-modal__backdrop"
-                                            data-pmd-google-business-close-v7
+                                            data-pmd-google-business-close-v8
                                             aria-label="{{ $pmdSettingsText('Close') }}"
                                         ></button>
 
@@ -384,106 +384,100 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                                             class="pmd-provider-modal__dialog"
                                             role="dialog"
                                             aria-modal="true"
-                                            aria-labelledby="pmd-google-business-title-v7"
+                                            aria-labelledby="pmd-google-business-title-v8"
                                         >
                                             <header class="pmd-provider-modal__header">
                                                 <div>
                                                     <span class="pmd-provider-modal__kicker">
                                                         {{ $pmdSettingsText('GOOGLE BUSINESS PROFILE') }}
                                                     </span>
-                                                    <h2 id="pmd-google-business-title-v7">
-                                                        {{ $pmdSettingsText('Google connection') }}
+                                                    <h2 id="pmd-google-business-title-v8">
+                                                        {{ $pmdSettingsText('Google Business Profile') }}
                                                     </h2>
                                                 </div>
 
                                                 <button
                                                     type="button"
                                                     class="pmd-provider-modal__close"
-                                                    data-pmd-google-business-close-v7
+                                                    data-pmd-google-business-close-v8
                                                     aria-label="{{ $pmdSettingsText('Close') }}"
                                                 >×</button>
                                             </header>
 
                                             <div class="pmd-provider-modal__body">
-                                                <section class="pmd-provider-modal-section">
-                                                    <div class="pmd-provider-modal-section__head">
-                                                        <div>
-                                                            <strong>{{ $pmdSettingsText('Google Cloud credentials') }}</strong>
-                                                            <span>{{ $pmdSettingsText('These credentials belong only to this restaurant and are encrypted in this tenant database.') }}</span>
-                                                        </div>
-                                                        @if($googleConfigured)
-                                                            <em>{{ $pmdSettingsText('Credentials saved') }}</em>
-                                                        @endif
-                                                    </div>
+                                                <p class="pmd-google-business-security-v8">
+                                                    {{ $pmdSettingsText('Credentials are stored only for this restaurant and encrypted in its tenant database.') }}
+                                                </p>
 
-                                                    <div class="pmd-provider-modal-fields">
-                                                        <label class="pmd-provider-modal-field">
-                                                            <span>{{ $pmdSettingsText('OAuth Client ID') }}</span>
-                                                            <input
-                                                                type="text"
-                                                                name="google_business[client_id]"
-                                                                form="pmd-restaurant-profile-form"
-                                                                value="{{ $googleBusiness['client_id'] ?? '' }}"
-                                                                placeholder="123456789.apps.googleusercontent.com"
-                                                                maxlength="500"
-                                                                autocomplete="off"
-                                                            >
-                                                        </label>
+                                                <div class="pmd-provider-modal-fields pmd-google-business-primary-grid-v8">
+                                                    <label class="pmd-provider-modal-field">
+                                                        <span>{{ $pmdSettingsText('OAuth Client ID') }}</span>
+                                                        <input
+                                                            type="text"
+                                                            name="google_business[client_id]"
+                                                            form="pmd-restaurant-profile-form"
+                                                            value="{{ $googleBusiness['client_id'] ?? '' }}"
+                                                            placeholder="123456789.apps.googleusercontent.com"
+                                                            maxlength="500"
+                                                            autocomplete="off"
+                                                        >
+                                                    </label>
 
-                                                        <label class="pmd-provider-modal-field">
-                                                            <span>{{ $pmdSettingsText('OAuth Client Secret') }}</span>
-                                                            <input
-                                                                type="password"
-                                                                name="google_business[client_secret]"
-                                                                form="pmd-restaurant-profile-form"
-                                                                value=""
-                                                                placeholder="{{ !empty($googleBusiness['client_secret_set']) ? $pmdSettingsText('Saved — leave blank to keep') : $pmdSettingsText('Enter client secret') }}"
-                                                                maxlength="1000"
-                                                                autocomplete="new-password"
-                                                            >
-                                                            @if(!empty($googleBusiness['client_secret_set']))
-                                                                <small>{{ $pmdSettingsText('Saved securely. Leave blank to keep the current secret.') }}</small>
-                                                            @endif
-                                                        </label>
+                                                    <label class="pmd-provider-modal-field">
+                                                        <span>{{ $pmdSettingsText('OAuth Client Secret') }}</span>
+                                                        <input
+                                                            type="password"
+                                                            name="google_business[client_secret]"
+                                                            form="pmd-restaurant-profile-form"
+                                                            value=""
+                                                            placeholder="{{ !empty($googleBusiness['client_secret_set']) ? $pmdSettingsText('Saved — leave blank to keep') : $pmdSettingsText('Enter client secret') }}"
+                                                            maxlength="1000"
+                                                            autocomplete="new-password"
+                                                        >
+                                                    </label>
 
-                                                        <label class="pmd-provider-modal-field">
-                                                            <span>{{ $pmdSettingsText('Places API Key') }}</span>
-                                                            <input
-                                                                type="password"
-                                                                name="google_business[places_api_key]"
-                                                                form="pmd-restaurant-profile-form"
-                                                                value=""
-                                                                placeholder="{{ !empty($googleBusiness['places_api_key_set']) ? $pmdSettingsText('Saved — leave blank to keep') : $pmdSettingsText('Enter Places API key') }}"
-                                                                maxlength="1000"
-                                                                autocomplete="new-password"
-                                                            >
-                                                            <small>{{ $pmdSettingsText('Used for the official Google write-a-review link.') }}</small>
-                                                        </label>
+                                                    <label class="pmd-provider-modal-field">
+                                                        <span>{{ $pmdSettingsText('Places API Key') }}</span>
+                                                        <input
+                                                            type="password"
+                                                            name="google_business[places_api_key]"
+                                                            form="pmd-restaurant-profile-form"
+                                                            value=""
+                                                            placeholder="{{ !empty($googleBusiness['places_api_key_set']) ? $pmdSettingsText('Saved — leave blank to keep') : $pmdSettingsText('Enter Places API key') }}"
+                                                            maxlength="1000"
+                                                            autocomplete="new-password"
+                                                        >
+                                                    </label>
 
-                                                        <label class="pmd-provider-modal-field">
-                                                            <span>{{ $pmdSettingsText('Authorized redirect URI') }}</span>
-                                                            <input
-                                                                type="text"
-                                                                value="{{ $googleBusiness['redirect_uri'] ?? '' }}"
-                                                                readonly
-                                                                onclick="this.select()"
-                                                            >
-                                                            <small>{{ $pmdSettingsText('Add this exact URI to this restaurant OAuth Web Client in Google Cloud.') }}</small>
-                                                        </label>
-                                                    </div>
-                                                </section>
+                                                    <label class="pmd-provider-modal-field">
+                                                        <span>{{ $pmdSettingsText('Authorized redirect URI') }}</span>
+                                                        <input
+                                                            type="text"
+                                                            value="{{ $googleBusiness['redirect_uri'] ?? '' }}"
+                                                            readonly
+                                                            onclick="this.select()"
+                                                        >
+                                                    </label>
+                                                </div>
 
-                                                <section class="pmd-provider-modal-section">
-                                                    <div class="pmd-provider-modal-section__head">
-                                                        <div>
-                                                            <strong>{{ $pmdSettingsText('Real-time review notifications') }}</strong>
-                                                            <span>{{ $pmdSettingsText('Optional. Configure Pub/Sub only when this restaurant wants automatic Google review updates.') }}</span>
-                                                        </div>
-                                                        @if(!empty($googleBusiness['notifications_enabled']))
-                                                            <em>{{ $pmdSettingsText('Enabled') }}</em>
-                                                        @endif
-                                                    </div>
+                                                <button
+                                                    type="button"
+                                                    class="pmd-google-business-advanced-toggle-v8"
+                                                    data-pmd-google-business-advanced-toggle-v8
+                                                    aria-expanded="false"
+                                                >
+                                                    <span>
+                                                        <strong>{{ $pmdSettingsText('Advanced') }}</strong>
+                                                        <small>{{ $pmdSettingsText('Real-time review notifications (optional)') }}</small>
+                                                    </span>
+                                                    <b aria-hidden="true">+</b>
+                                                </button>
 
+                                                <div
+                                                    class="pmd-google-business-advanced-v8"
+                                                    data-pmd-google-business-advanced-v8
+                                                    hidden
+                                                >
                                                     <div class="pmd-provider-modal-fields">
                                                         <label class="pmd-provider-modal-field">
                                                             <span>{{ $pmdSettingsText('Cloud Pub/Sub Topic') }}</span>
@@ -509,32 +503,29 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                                                                 maxlength="1000"
                                                                 autocomplete="new-password"
                                                             >
-                                                            @if(!empty($googleBusiness['pubsub_token_set']))
-                                                                <small>{{ $pmdSettingsText('Saved securely. Leave blank to keep the current token.') }}</small>
-                                                            @endif
                                                         </label>
                                                     </div>
 
                                                     @if(!empty($googleBusiness['pubsub_push_uri']))
                                                         <p class="pmd-provider-modal-security">
-                                                            <strong>{{ $pmdSettingsText('Push endpoint') }}:</strong><br>
+                                                            <strong>{{ $pmdSettingsText('Push endpoint') }}:</strong>
                                                             <code>{{ $googleBusiness['pubsub_push_uri'] }}?token=YOUR_VERIFICATION_TOKEN</code>
                                                         </p>
                                                     @endif
-                                                </section>
+                                                </div>
 
                                                 @if(!$googleConfigured)
                                                     <div class="pmd-provider-modal-message">
-                                                        {{ $pmdSettingsText('Save this restaurant OAuth Client ID and Client Secret before connecting Google Business.') }}
+                                                        {{ $pmdSettingsText('Enter Client ID and Client Secret, then save before connecting Google.') }}
                                                     </div>
                                                 @endif
 
                                                 @if($googleConnected)
                                                     <div class="pmd-provider-modal-message">
-                                                        {{ $pmdSettingsText('Connected to') }}
+                                                        {{ $pmdSettingsText('Connected') }}:
                                                         {{ $googleBusiness['google_location_title'] ?? $pmdSettingsText('Google Business Profile') }}
                                                         @if($googleBusiness['average_rating'] !== null)
-                                                            · {{ number_format((float)$googleBusiness['average_rating'], 1) }} / 5
+                                                            · {{ number_format((float)$googleBusiness['average_rating'], 1) }}/5
                                                             · {{ (int)($googleBusiness['total_review_count'] ?? 0) }} {{ $pmdSettingsText('reviews') }}
                                                         @endif
                                                     </div>
@@ -596,7 +587,7 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                                                     <button
                                                         type="button"
                                                         class="pmd-provider-secondary"
-                                                        data-pmd-google-business-close-v7
+                                                        data-pmd-google-business-close-v8
                                                     >
                                                         {{ $pmdSettingsText('Cancel') }}
                                                     </button>
@@ -623,11 +614,11 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                                         </section>
                                     </div>
 
-                                    <script id="pmd-google-business-provider-modal-v7">
+                                    <script id="pmd-google-business-provider-modal-v8">
                                     (function () {
-                                        var modal = document.querySelector('[data-pmd-google-business-modal-v7]');
-                                        var opener = document.querySelector('[data-pmd-google-business-open-v7]');
-                                        if (!modal || !opener || modal.dataset.pmdBoundV7 === '1') return;
+                                        var modal = document.querySelector('[data-pmd-google-business-modal-v8]');
+                                        var opener = document.querySelector('[data-pmd-google-business-open-v8]');
+                                        if (!modal || !opener || modal.dataset.pmdBoundV8 === '1') return;
 
                                         // Provider modals must live directly under <body>. Keeping a
                                         // fixed modal inside the Restaurant Settings card makes it
@@ -637,8 +628,20 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                                             document.body.appendChild(modal);
                                         }
 
-                                        modal.dataset.pmdBoundV7 = '1';
+                                        modal.dataset.pmdBoundV8 = '1';
                                         var previousBodyOverflow = '';
+                                        var advancedToggle = modal.querySelector('[data-pmd-google-business-advanced-toggle-v8]');
+                                        var advancedPanel = modal.querySelector('[data-pmd-google-business-advanced-v8]');
+
+                                        if (advancedToggle && advancedPanel) {
+                                            advancedToggle.addEventListener('click', function () {
+                                                var opening = advancedPanel.hidden;
+                                                advancedPanel.hidden = !opening;
+                                                advancedToggle.setAttribute('aria-expanded', opening ? 'true' : 'false');
+                                                var mark = advancedToggle.querySelector('b');
+                                                if (mark) mark.textContent = opening ? '−' : '+';
+                                            });
+                                        }
 
                                         function openModal() {
                                             previousBodyOverflow = document.body.style.overflow;
@@ -664,7 +667,7 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                                             openModal();
                                         });
 
-                                        modal.querySelectorAll('[data-pmd-google-business-close-v7]').forEach(function (button) {
+                                        modal.querySelectorAll('[data-pmd-google-business-close-v8]').forEach(function (button) {
                                             button.addEventListener('click', function (event) {
                                                 event.preventDefault();
                                                 closeModal();
