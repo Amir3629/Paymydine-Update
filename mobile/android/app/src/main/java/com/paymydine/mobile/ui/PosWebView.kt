@@ -2,6 +2,7 @@ package com.paymydine.mobile.ui
 
 import android.annotation.SuppressLint
 import android.content.Intent
+import android.content.res.Configuration
 import android.net.Uri
 import android.os.Build
 import android.view.View
@@ -91,6 +92,75 @@ fun PosWebView(
         )
     }
 
+    fun useSoftwareLandscapeCompatibility(view: WebView) {
+        val samsungDevice =
+            Build.MANUFACTURER.equals("samsung", ignoreCase = true) ||
+                Build.BRAND.equals("samsung", ignoreCase = true)
+        val landscape =
+            configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+        val desiredLayer =
+            if (samsungDevice && landscape) {
+                View.LAYER_TYPE_SOFTWARE
+            } else {
+                View.LAYER_TYPE_NONE
+            }
+
+        if (view.layerType != desiredLayer) {
+            view.setLayerType(desiredLayer, null)
+        }
+    }
+
+    // PMD_ANDROID_POS_VISUAL_STATE_V4
+    // onPageFinished does not mean the current DOM has reached an actual
+    // WebView draw. Force a viewport reflow, then wait for a visual-state
+    // callback before removing the native loading surface.
+    fun synchronizeVisibleFrame(
+        view: WebView,
+        onVisible: (() -> Unit)? = null,
+    ) {
+        useSoftwareLandscapeCompatibility(view)
+        view.post {
+            view.requestLayout()
+            view.invalidate()
+            view.evaluateJavascript(
+                """
+                (function(){
+                  window.dispatchEvent(new Event('resize'));
+                  window.dispatchEvent(new Event('orientationchange'));
+                  if (window.visualViewport) {
+                    try {
+                      window.visualViewport.dispatchEvent(new Event('resize'));
+                    } catch (e) {}
+                  }
+                  var root = document.getElementById('pmd-quick-pos');
+                  void document.documentElement.offsetWidth;
+                  if (root) {
+                    void root.offsetWidth;
+                    root.getBoundingClientRect();
+                  }
+                  return !!root;
+                })()
+                """.trimIndent(),
+                null,
+            )
+            view.postDelayed(
+                {
+                    view.postVisualStateCallback(
+                        System.nanoTime(),
+                        object : WebView.VisualStateCallback() {
+                            override fun onComplete(requestId: Long) {
+                                view.requestLayout()
+                                view.invalidate()
+                                onVisible?.invoke()
+                            }
+                        },
+                    )
+                },
+                80L,
+            )
+        }
+    }
+
     fun openPosWhenLaidOut(view: WebView) {
         if (view.width > 0 && view.height > 0) {
             view.post { openPos(view) }
@@ -139,14 +209,7 @@ fun PosWebView(
         configuration.screenHeightDp,
     ) {
         val currentWebView = webView ?: return@LaunchedEffect
-        currentWebView.post {
-            currentWebView.requestLayout()
-            currentWebView.invalidate()
-            currentWebView.evaluateJavascript(
-                "(function(){window.dispatchEvent(new Event('resize'));document.documentElement.getBoundingClientRect();return true;})()",
-                null,
-            )
-        }
+        synchronizeVisibleFrame(currentWebView)
     }
 
     Surface(modifier.fillMaxSize()) {
@@ -156,7 +219,13 @@ fun PosWebView(
                 factory = { androidContext ->
                     WebView(androidContext).apply {
                         webView = this
-                        setLayerType(View.LAYER_TYPE_HARDWARE, null)
+                        // Do not force WebView into a dedicated hardware
+                        // texture. Samsung tablet WebView builds can leave that
+                        // texture white after a landscape resize. The app stays
+                        // hardware accelerated; only this WebView falls back to
+                        // software composition in Samsung landscape mode.
+                        setLayerType(View.LAYER_TYPE_NONE, null)
+                        useSoftwareLandscapeCompatibility(this)
                         setBackgroundColor(android.graphics.Color.WHITE)
 
                         addOnLayoutChangeListener {
@@ -198,6 +267,7 @@ fun PosWebView(
                             allowContentAccess = false
                             mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
                             cacheMode = WebSettings.LOAD_DEFAULT
+                            offscreenPreRaster = true
                             useWideViewPort = true
                             loadWithOverviewMode = false
                             builtInZoomControls = false
@@ -308,6 +378,8 @@ fun PosWebView(
                                     return
                                 }
 
+                                synchronizeVisibleFrame(view)
+
                                 // PMD_ANDROID_POS_RENDER_PROBE_V2
                                 // A 200 response is not enough: verify that the
                                 // canonical POS DOM actually rendered before
@@ -317,15 +389,36 @@ fun PosWebView(
                                     "(function(){return !!document.getElementById('pmd-quick-pos');})()",
                                 ) { result ->
                                     if (result == "true") {
-                                        view.clearHistory()
-                                        canGoBack = false
-                                        pageReady = true
-                                        fatalError = null
+                                        synchronizeVisibleFrame(view) {
+                                            if (webView === view) {
+                                                view.clearHistory()
+                                                canGoBack = false
+                                                pageReady = true
+                                                fatalError = null
+                                            }
+                                        }
                                     } else {
                                         pageReady = false
                                         fatalError =
                                             "PayMyDine POS loaded but did not render. Retry POS."
                                     }
+                                }
+                            }
+
+                            override fun onPageCommitVisible(
+                                view: WebView,
+                                url: String,
+                            ) {
+                                val current = runCatching { URI(url) }.getOrNull()
+                                val isCanonicalPos =
+                                    current?.host?.equals(
+                                        trustedHost,
+                                        ignoreCase = true,
+                                    ) == true &&
+                                        current.path?.startsWith("/admin/pos") == true
+
+                                if (isCanonicalPos) {
+                                    synchronizeVisibleFrame(view)
                                 }
                             }
 
@@ -386,6 +479,7 @@ fun PosWebView(
                     }
                 },
                 update = { view ->
+                    useSoftwareLandscapeCompatibility(view)
                     view.post {
                         view.requestLayout()
                         view.invalidate()
