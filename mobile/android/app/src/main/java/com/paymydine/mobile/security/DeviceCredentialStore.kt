@@ -4,11 +4,23 @@ import android.content.Context
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
+import org.json.JSONObject
 import java.security.KeyStore
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
+
+data class StaffSession(
+    val username: String,
+    val staffName: String,
+    val userId: Long,
+    val staffId: Long,
+    val roleCode: String,
+    val route: String,
+    val surface: String,
+    val expiresAtEpochSeconds: Long,
+)
 
 class DeviceCredentialStore(context: Context) {
     private val prefs = context.getSharedPreferences("pmd-device-v1", Context.MODE_PRIVATE)
@@ -76,6 +88,52 @@ class DeviceCredentialStore(context: Context) {
     private fun normalizeWorkspace(value: String?): String? =
         value?.trim()?.lowercase()
             ?.takeIf { it in setOf("pos", "kds", "reservations") }
+
+    // PMD_ANDROID_STAFF_SESSION_V1
+    // Human credentials are never stored. Only the post-auth identity/routing
+    // lease is encrypted with Android Keystore for offline continuation.
+    fun putStaffSession(session: StaffSession) {
+        putSecret(
+            "staff_session_v1",
+            JSONObject()
+                .put("username", session.username)
+                .put("staff_name", session.staffName)
+                .put("user_id", session.userId)
+                .put("staff_id", session.staffId)
+                .put("role_code", session.roleCode)
+                .put("route", session.route)
+                .put("surface", session.surface)
+                .put("expires_at", session.expiresAtEpochSeconds)
+                .toString(),
+        )
+    }
+
+    fun staffSession(): StaffSession? {
+        val raw = getSecret("staff_session_v1") ?: return null
+        return runCatching {
+            val json = JSONObject(raw)
+            StaffSession(
+                username = json.getString("username"),
+                staffName = json.optString("staff_name"),
+                userId = json.optLong("user_id"),
+                staffId = json.optLong("staff_id"),
+                roleCode = json.getString("role_code"),
+                route = json.getString("route"),
+                surface = json.getString("surface"),
+                expiresAtEpochSeconds = json.getLong("expires_at"),
+            )
+        }.getOrNull()
+    }
+
+    fun staffSessionValid(
+        nowEpochSeconds: Long = System.currentTimeMillis() / 1000L,
+    ): Boolean = staffSession()
+        ?.expiresAtEpochSeconds
+        ?.let { it > nowEpochSeconds }
+        ?: false
+
+    fun clearStaffSession() =
+        prefs.edit().remove("staff_session_v1").apply()
 
     fun putDeviceToken(value: String) = putSecret("device_token", value)
     fun deviceToken(): String? = getSecret("device_token")
