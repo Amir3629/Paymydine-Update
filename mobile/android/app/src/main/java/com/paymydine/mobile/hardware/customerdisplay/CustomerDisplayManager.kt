@@ -291,7 +291,7 @@ class CustomerDisplayManager(
                         .getMethod(
                             "showBitmapOnSecondaryScreen",
                             Bitmap::class.java,
-                            Boolean::class.javaPrimitiveType,
+                            java.lang.Boolean.TYPE,
                         )
                         .invoke(target, bitmap, true)
 
