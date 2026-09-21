@@ -15,10 +15,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -26,8 +30,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -39,11 +46,13 @@ import com.paymydine.mobile.PayMyDineApplication
 import com.paymydine.mobile.R
 import com.paymydine.mobile.edge.EdgeRuntimeState
 import com.paymydine.mobile.edge.EdgeService
+import com.paymydine.mobile.network.MobileApiClient
 import com.paymydine.mobile.network.TransportKind
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.launch
 
 /**
  * PMD_ANDROID_WORKSPACE_HUB_V1
@@ -67,6 +76,51 @@ fun PmdWorkspaceHome(
     val canKds = "kds" in surfaces
     val canReservations = "reservations" in surfaces
     var queued by remember { mutableIntStateOf(app.syncRepository.outboxCount()) }
+    val authScope = rememberCoroutineScope()
+    var pendingSurface by remember { mutableStateOf<String?>(null) }
+    var authUsername by remember { mutableStateOf("") }
+    var authPassword by remember { mutableStateOf("") }
+    var authError by remember { mutableStateOf<String?>(null) }
+    var authBusy by remember { mutableStateOf(false) }
+
+    fun openAuthorizedSurface(surface: String) {
+        when (surface) {
+            "pos" -> onOpenPos()
+            "kds" -> onOpenKds()
+            "reservations" -> onOpenReservations()
+        }
+    }
+
+    fun requestWorkspace(surface: String) {
+        if (surface == "reservations" && !online) {
+            authError = "Reservations requires PayMyDine Cloud."
+            pendingSurface = surface
+            return
+        }
+
+        if (!online) {
+            val sameWorkspace =
+                app.credentials.preferredWorkspace() == surface &&
+                    app.credentials.workspaceLeaseValid(surface)
+
+            if (sameWorkspace) {
+                openAuthorizedSurface(surface)
+            } else {
+                authError =
+                    "برای ورود یا تغییر Workspace باید یک‌بار با اینترنت، نام کاربری و رمز عبور همین بخش تأیید شود."
+                authUsername =
+                    app.credentials.workspaceLeaseUsername(surface).orEmpty()
+                authPassword = ""
+                pendingSurface = surface
+            }
+            return
+        }
+
+        authUsername = app.credentials.workspaceLeaseUsername(surface).orEmpty()
+        authPassword = ""
+        authError = null
+        pendingSurface = surface
+    }
 
     LaunchedEffect(Unit) {
         while (isActive) {
@@ -190,7 +244,7 @@ fun PmdWorkspaceHome(
                             description = "Tables, menu, checks and order service. Works locally when Cloud is unavailable.",
                             state = if (canPos) "Ready" else "Not assigned",
                             enabled = canPos,
-                            onClick = onOpenPos,
+                            onClick = { requestWorkspace("pos") },
                         )
                         WorkspaceCard(
                             modifier = Modifier.weight(1f),
@@ -199,7 +253,7 @@ fun PmdWorkspaceHome(
                             description = "Kitchen tickets and preparation status. Uses Restaurant Edge on the LAN during WAN outages.",
                             state = if (canKds) "Local-first" else "Not assigned",
                             enabled = canKds,
-                            onClick = onOpenKds,
+                            onClick = { requestWorkspace("kds") },
                         )
                         WorkspaceCard(
                             modifier = Modifier.weight(1f),
@@ -212,7 +266,7 @@ fun PmdWorkspaceHome(
                                 else -> "Ready"
                             },
                             enabled = canReservations && online,
-                            onClick = onOpenReservations,
+                            onClick = { requestWorkspace("reservations") },
                         )
                     }
                 } else {
@@ -227,7 +281,7 @@ fun PmdWorkspaceHome(
                             description = "Tables, menu, checks and local order service.",
                             state = if (canPos) "Ready" else "Not assigned",
                             enabled = canPos,
-                            onClick = onOpenPos,
+                            onClick = { requestWorkspace("pos") },
                         )
                         WorkspaceCard(
                             modifier = Modifier.fillMaxWidth(),
@@ -236,7 +290,7 @@ fun PmdWorkspaceHome(
                             description = "Kitchen tickets and LAN status updates.",
                             state = if (canKds) "Local-first" else "Not assigned",
                             enabled = canKds,
-                            onClick = onOpenKds,
+                            onClick = { requestWorkspace("kds") },
                         )
                         WorkspaceCard(
                             modifier = Modifier.fillMaxWidth(),
@@ -249,7 +303,7 @@ fun PmdWorkspaceHome(
                                 else -> "Ready"
                             },
                             enabled = canReservations && online,
-                            onClick = onOpenReservations,
+                            onClick = { requestWorkspace("reservations") },
                         )
                     }
                 }
@@ -333,6 +387,136 @@ fun PmdWorkspaceHome(
                     app.bootstrapRepository.roleCode().orEmpty(),
                 color = PmdMuted,
                 style = androidx.compose.material3.MaterialTheme.typography.labelSmall,
+            )
+        }
+
+        pendingSurface?.let { surface ->
+            val title = when (surface) {
+                "pos" -> "Cashier / Waiter"
+                "kds" -> "Kitchen Display"
+                else -> "Reservations"
+            }
+            AlertDialog(
+                onDismissRequest = {
+                    if (!authBusy) {
+                        pendingSurface = null
+                        authPassword = ""
+                        authError = null
+                    }
+                },
+                title = {
+                    Text(
+                        "Sign in to $title",
+                        color = PmdText,
+                        fontWeight = FontWeight.Black,
+                    )
+                },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text(
+                            if (online) {
+                                "Use the same PayMyDine username and password as the web platform. Access is checked for this workspace only."
+                            } else {
+                                "This workspace cannot be unlocked for the first time while Cloud is unavailable."
+                            },
+                            color = PmdMuted,
+                        )
+                        OutlinedTextField(
+                            modifier = Modifier.fillMaxWidth(),
+                            value = authUsername,
+                            onValueChange = { authUsername = it },
+                            enabled = online && !authBusy,
+                            singleLine = true,
+                            label = { Text("Username") },
+                        )
+                        OutlinedTextField(
+                            modifier = Modifier.fillMaxWidth(),
+                            value = authPassword,
+                            onValueChange = { authPassword = it },
+                            enabled = online && !authBusy,
+                            singleLine = true,
+                            visualTransformation = PasswordVisualTransformation(),
+                            label = { Text("Password") },
+                        )
+                        authError?.let {
+                            Text(
+                                it,
+                                color = androidx.compose.material3.MaterialTheme.colorScheme.error,
+                                style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
+                            )
+                        }
+                    }
+                },
+                confirmButton = {
+                    if (online) {
+                        Button(
+                            enabled =
+                                !authBusy &&
+                                    authUsername.isNotBlank() &&
+                                    authPassword.length >= 6,
+                            onClick = {
+                                val host = app.credentials.tenantHost().orEmpty()
+                                val token = app.credentials.deviceToken().orEmpty()
+                                if (host.isBlank() || token.isBlank()) {
+                                    authError = "This tablet must be paired again."
+                                    return@Button
+                                }
+
+                                authBusy = true
+                                authError = null
+                                authScope.launch {
+                                    runCatching {
+                                        withContext(Dispatchers.IO) {
+                                            MobileApiClient().authorizeWorkspace(
+                                                tenantHost = host,
+                                                deviceToken = token,
+                                                surface = surface,
+                                                username = authUsername,
+                                                password = authPassword,
+                                            )
+                                        }
+                                    }.onSuccess { result ->
+                                        app.credentials.putWorkspaceLease(
+                                            result.surface,
+                                            result.username,
+                                            result.leaseExpiresAt,
+                                        )
+                                        pendingSurface = null
+                                        authPassword = ""
+                                        authBusy = false
+                                        openAuthorizedSurface(surface)
+                                    }.onFailure { error ->
+                                        authBusy = false
+                                        authPassword = ""
+                                        authError = error.message
+                                            ?: "PayMyDine could not authorize this workspace."
+                                    }
+                                }
+                            },
+                        ) {
+                            if (authBusy) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(18.dp),
+                                    strokeWidth = 2.dp,
+                                )
+                            } else {
+                                Text("Sign in")
+                            }
+                        }
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        enabled = !authBusy,
+                        onClick = {
+                            pendingSurface = null
+                            authPassword = ""
+                            authError = null
+                        },
+                    ) {
+                        Text("Cancel")
+                    }
+                },
             )
         }
     }
