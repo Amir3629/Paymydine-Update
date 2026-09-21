@@ -116,6 +116,31 @@ class CreatePmdMobileSyncTables extends Migration
             });
         }
 
+        if (!Schema::hasTable('pmd_mobile_pair_requests')) {
+            Schema::create('pmd_mobile_pair_requests', function (Blueprint $table) {
+                $table->bigIncrements('id');
+                $table->uuid('pair_request');
+                $table->unsignedBigInteger('challenge_id');
+                $table->char('code_challenge', 43);
+                $table->unsignedBigInteger('location_id');
+                $table->unsignedBigInteger('user_id');
+                $table->unsignedBigInteger('staff_id');
+                $table->string('device_name', 128)->default('PayMyDine Android');
+                $table->string('status', 24)->default('pending');
+                $table->unsignedBigInteger('device_id')->nullable();
+                $table->timestamp('approved_at')->nullable();
+                $table->timestamp('expires_at');
+                $table->timestamps();
+
+                $table->unique('pair_request', 'pmd_mobile_pair_request_uidx');
+                $table->unique('challenge_id', 'pmd_mobile_pair_challenge_uidx');
+                $table->index(
+                    ['location_id', 'status', 'expires_at'],
+                    'pmd_mobile_pair_loc_status_idx'
+                );
+            });
+        }
+
         if (!Schema::hasTable('pmd_mobile_pair_exchanges')) {
             Schema::create('pmd_mobile_pair_exchanges', function (Blueprint $table) {
                 $table->bigIncrements('id');
@@ -139,6 +164,7 @@ class CreatePmdMobileSyncTables extends Migration
     public function down()
     {
         Schema::dropIfExists('pmd_mobile_pair_exchanges');
+        Schema::dropIfExists('pmd_mobile_pair_requests');
         Schema::dropIfExists('pmd_mobile_edges');
         Schema::dropIfExists('pmd_sync_aggregate_versions');
         Schema::dropIfExists('pmd_sync_events');
