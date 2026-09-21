@@ -28,13 +28,17 @@ if [[ "${EUID:-$(id -u)}" -ne 0 ]]; then
 fi
 
 find_root() {
-  if [[ -n "${PMD_ROOT:-}" && -d "${PMD_ROOT}/.git" ]]; then
-    printf '%s\n' "$PMD_ROOT"
-    return
+  if [[ -n "${PMD_ROOT:-}" ]]; then
+    if [[ -d "${PMD_ROOT}/.git" ]]; then
+      printf '%s\n' "$PMD_ROOT"
+      return
+    fi
+    warn "PMD_ROOT was set but is not a git checkout: $PMD_ROOT"
   fi
 
   local candidate
   for candidate in \
+    /var/www/paymydine \
     /var/www/paymydine/frontend/Paymydine-Update \
     /var/www/paymydine/Paymydine-Update \
     /var/www/Paymydine-Update
@@ -45,7 +49,20 @@ find_root() {
     fi
   done
 
-  fail "Could not find the PayMyDine git checkout. Set PMD_ROOT=/absolute/path and run again."
+  # VPS layouts have changed over time. Search a small, safe area instead of
+  # requiring the operator to know the exact checkout path.
+  if [[ -d /var/www/paymydine ]]; then
+    while IFS= read -r gitdir; do
+      candidate="${gitdir%/.git}"
+      if git -c "safe.directory=$candidate" -C "$candidate" remote get-url origin 2>/dev/null \
+          | grep -q 'Amir3629/Paymydine-Update'; then
+        printf '%s\n' "$candidate"
+        return
+      fi
+    done < <(find /var/www/paymydine -maxdepth 5 -type d -name .git -print 2>/dev/null)
+  fi
+
+  fail "Could not find the PayMyDine git checkout under /var/www/paymydine."
 }
 
 PMD_ROOT="$(find_root)"
