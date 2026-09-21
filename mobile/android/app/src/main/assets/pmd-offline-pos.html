@@ -53,7 +53,7 @@
         <label class="pmd-qpos-search"><span>⌕</span><input type="search" autocomplete="off" placeholder="Search…" data-search></label>
         <div class="pmd-qpos-work-meta">
           <time class="pmd-qpos-clock" data-clock>--:--</time>
-          <button type="button" class="pmd-qpos-history-button" data-sync>Sync</button>
+          <button type="button" class="pmd-qpos-history-button" data-history>History</button>
         </div>
       </div>
       <div class="pmd-qpos-categories" data-categories><button type="button" class="is-active" data-category="all">All</button></div>
@@ -84,6 +84,11 @@
         <button type="button" class="secondary" data-hold>Hold</button>
         <button type="button" class="primary" data-send>Send</button>
         <button type="button" class="pay" data-pay>Pay</button>
+      </div>
+      <div class="pmd-qpos-table-actions" data-table-actions>
+        <button type="button" disabled title="Cloud command not certified offline">Cleaning</button>
+        <button type="button" disabled title="Cloud command not certified offline">Move</button>
+        <button type="button" disabled title="Cloud command not certified offline">Free</button>
       </div>
     </aside>
   </main>
@@ -208,7 +213,7 @@ el('[data-note]').addEventListener('change',function(){var d=state.snapshot&&sta
 el('[data-hold]').onclick=function(){mutate('queueOrder',state.selectedTable||'',true)};
 el('[data-send]').onclick=function(){mutate('queueOrder',state.selectedTable||'',false)};
 el('[data-pay]').onclick=function(){if(state.snapshot&&state.snapshot.cloud_available)bridge('tryCloud');else toast('Payments require PayMyDine Cloud.')};
-el('[data-sync]').onclick=function(){mutate('syncNow')};
+el('[data-history]').onclick=function(){toast('Full order history requires PayMyDine Cloud. Open checks remain visible from the local snapshot.')};
 el('[data-profile]').onclick=function(){var m=el('[data-profile-menu]');m.hidden=!m.hidden};
 el('[data-workspaces]').onclick=function(){bridge('workspaces')};
 el('[data-mod-close]').onclick=closeMod;el('[data-mod-add]').onclick=addModified;
