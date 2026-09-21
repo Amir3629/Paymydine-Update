@@ -63,6 +63,7 @@ fun PosWebView(
 
     var webView by remember { mutableStateOf<WebView?>(null) }
     var canGoBack by remember { mutableStateOf(false) }
+    var pageReady by remember { mutableStateOf(false) }
     var fatalError by remember { mutableStateOf<String?>(null) }
 
     fun openPos(view: WebView) {
@@ -72,6 +73,7 @@ fun PosWebView(
             return
         }
 
+        pageReady = false
         fatalError = null
         val url = "https://$host/admin/mobile/pos/open"
         view.loadUrl(
@@ -218,19 +220,35 @@ fun PosWebView(
                             ) {
                                 canGoBack = view.canGoBack()
                                 val current = runCatching { URI(url) }.getOrNull()
-                                if (
+                                val isCanonicalPos =
                                     current?.host?.equals(
                                         trustedHost,
                                         ignoreCase = true,
                                     ) == true &&
-                                    current.path?.startsWith("/admin/pos") == true
-                                ) {
-                                    // Keep Android as a single-purpose POS
-                                    // surface. The bearer bootstrap redirect
-                                    // must not remain in the browser back stack.
-                                    view.clearHistory()
-                                    canGoBack = false
-                                    fatalError = null
+                                        current.path?.startsWith("/admin/pos") == true
+
+                                if (!isCanonicalPos) {
+                                    return
+                                }
+
+                                // PMD_ANDROID_POS_RENDER_PROBE_V2
+                                // A 200 response is not enough: verify that the
+                                // canonical POS DOM actually rendered before
+                                // removing the loading surface. This prevents a
+                                // silent all-white WebView on runtime failures.
+                                view.evaluateJavascript(
+                                    "(function(){return !!document.getElementById('pmd-quick-pos');})()",
+                                ) { result ->
+                                    if (result == "true") {
+                                        view.clearHistory()
+                                        canGoBack = false
+                                        pageReady = true
+                                        fatalError = null
+                                    } else {
+                                        pageReady = false
+                                        fatalError =
+                                            "PayMyDine POS loaded but did not render. Retry POS."
+                                    }
                                 }
                             }
 
@@ -240,6 +258,7 @@ fun PosWebView(
                                 error: WebResourceError,
                             ) {
                                 if (request.isForMainFrame) {
+                                    pageReady = false
                                     fatalError =
                                         "PayMyDine POS could not be loaded. Check the connection and retry."
                                 }
@@ -254,6 +273,7 @@ fun PosWebView(
                                     request.isForMainFrame &&
                                     errorResponse.statusCode >= 400
                                 ) {
+                                    pageReady = false
                                     fatalError = when (errorResponse.statusCode) {
                                         401, 403 ->
                                             "This paired device is no longer authorized for POS."
@@ -269,6 +289,7 @@ fun PosWebView(
                                 error: android.net.http.SslError,
                             ) {
                                 handler.cancel()
+                                pageReady = false
                                 fatalError =
                                     "The secure connection to PayMyDine could not be verified."
                             }
@@ -278,6 +299,23 @@ fun PosWebView(
                     }
                 },
             )
+
+            if (!pageReady && fatalError == null) {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.surface,
+                ) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            "Opening PayMyDine POS…",
+                            style = MaterialTheme.typography.bodyLarge,
+                        )
+                    }
+                }
+            }
 
             fatalError?.let { message ->
                 Surface(
