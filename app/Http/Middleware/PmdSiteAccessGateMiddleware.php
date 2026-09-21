@@ -32,6 +32,23 @@ class PmdSiteAccessGateMiddleware
             return $next($request);
         }
 
+        $relative = $path === $admin
+            ? ''
+            : substr($path, strlen($admin) + 1);
+
+        // PMD_MOBILE_PAIR_TRANSPORT_BYPASS_V2
+        // The initial Android pairing URL must reach its controller before the
+        // generic Workspace gate runs so the PKCE intent can be saved. The
+        // controller immediately invokes the canonical Workspace gate itself
+        // and never authorizes a device without a verified, user-bound session.
+        if (
+            $relative === 'mobile/pair/start'
+            || $relative === 'mobile/pair/approve'
+            || $relative === 'mobile/pair/finish'
+        ) {
+            return $next($request);
+        }
+
         // PMD_TRUSTED_COOKIE_SURVIVES_LOGOUT_V3
         // Capture only an already-valid trusted browser before downstream
         // logout/session invalidation. Ordinary Sign out must not revoke it.
