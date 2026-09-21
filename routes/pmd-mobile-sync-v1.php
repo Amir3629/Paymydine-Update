@@ -63,7 +63,7 @@ Route::group([
 
         Route::post('workspace/authorize', PmdMobileWorkspaceAuthController::class)
             ->withoutMiddleware([VerifyCsrfToken::class])
-            ->middleware('throttle:8,15');
+            ->middleware('throttle:20,1');
 
     Route::post('sync/commands', [PmdMobileSyncController::class, 'commands'])
         ->withoutMiddleware([VerifyCsrfToken::class]);
