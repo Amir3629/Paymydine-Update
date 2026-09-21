@@ -70,9 +70,12 @@
       var displayCode = rawCode.length === 6
         ? rawCode.slice(0, 3) + ' ' + rawCode.slice(3)
         : '';
+      var requestedDevice = escapeHtml(item.device_name || 'PayMyDine Android');
+      var primary = isAndroidPair ? requestedDevice : staff;
       var device = escapeHtml(
         isAndroidPair
-          ? 'Android connection' + (displayCode ? ' · ' + displayCode : '')
+          ? 'Requested by ' + (item.staff_name || 'Team member') +
+              (displayCode ? ' · Match code ' + displayCode : '')
           : (item.device_name || text.device)
       );
       var qr = escapeHtml(item.qr_image_url || '');
@@ -80,7 +83,7 @@
       return ''
         + '<article class="pmd-owner-workplace-request" data-challenge-id="' + id + '">'
         +   '<div class="pmd-owner-workplace-request__copy">'
-        +     '<strong>' + staff + '</strong>'
+        +     '<strong>' + primary + '</strong>'
         +     '<span>' + device + '</span>'
         +   '</div>'
         +   (qr
