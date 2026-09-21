@@ -182,6 +182,24 @@ jobs:
 
           echo "PMD_PREVIEW_SIGNING_SHA256=$ACTUAL_PREVIEW_SHA256"
           echo "PMD_PREVIEW_SIGNING_PIN=PASS"
+      - name: Create isolated PR debug signing key
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.android"
+          rm -f "$HOME/.android/debug.keystore"
+          keytool -genkeypair \
+            -keystore "$HOME/.android/debug.keystore" \
+            -storepass android \
+            -alias androiddebugkey \
+            -keypass android \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -dname "CN=PayMyDine PR Debug,O=PayMyDine,C=DE" \
+            -noprompt
+          echo "PMD_PR_EPHEMERAL_SIGNING_KEY=READY"
       - name: Unit tests
         working-directory: mobile/android
         run: gradle --no-daemon testDebugUnitTest
