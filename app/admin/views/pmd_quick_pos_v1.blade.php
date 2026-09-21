@@ -17,7 +17,7 @@
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-reservations2-floor-reservation-v312.css?v=20260920-floor-v35b">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-dashboard-lab-exact-floor-v1.css?v=20260920-floor-v35b">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-shared-floor-multi-floor-v1.css?v=20260920-floor-v35b">
-    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-pos-v1.css?v=20260920-39">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-pos-v1.css?v=20260920-44">
 </head>
 <body class="pmd-qpos-body">
 @php
@@ -274,9 +274,46 @@
                 <button type="button" class="pay" data-qpos-pay disabled>Pay</button>
             </div>
 
+            {{-- PMD_QPOS_DIRECT_MOVE_SCOPE_CHOOSER_VIEW_V44
+                 Compact scope picker only appears when the selected table has
+                 multiple open checks. Destination selection still happens
+                 directly from the left table rail. --}}
+            <div
+                id="pmd-qpos-move-scope-choice-v44"
+                class="pmd-qpos-move-scope-choice"
+                data-qpos-move-scope-choice
+                role="menu"
+                aria-label="Choose what to move"
+                aria-hidden="true"
+                hidden
+            >
+                <button
+                    type="button"
+                    role="menuitem"
+                    data-qpos-direct-move-scope="order"
+                >
+                    <strong>This order</strong>
+                    <small data-qpos-direct-move-order-meta>Current check</small>
+                </button>
+                <button
+                    type="button"
+                    role="menuitem"
+                    data-qpos-direct-move-scope="table"
+                >
+                    <strong>Whole table</strong>
+                    <small data-qpos-direct-move-table-meta>All checks</small>
+                </button>
+            </div>
+
             <div class="pmd-qpos-table-actions" data-qpos-table-actions hidden>
                 <button type="button" data-qpos-table-cleaning>Left</button>
-                <button type="button" data-qpos-table-move>Move</button>
+                <button
+                    type="button"
+                    data-qpos-table-move
+                    aria-haspopup="menu"
+                    aria-controls="pmd-qpos-move-scope-choice-v44"
+                    aria-expanded="false"
+                >Move</button>
                 <button type="button" data-qpos-table-free>Free</button>
             </div>
         </aside>
@@ -733,7 +770,7 @@ window.PMDQuickPOSConfig = {
 {{-- Canonical Floor runtime mounts before the POS bridge. --}}
 <script src="/app/admin/assets/js/pmd-dashboard-lab-exact-floor-v1.js?v=20260920-floor-v35b"></script>
 <script src="/app/admin/assets/js/pmd-shared-floor-multi-floor-v1.js?v=20260920-floor-v35b"></script>
-<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260920-40"></script>
+<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260921-45"></script>
 <script src="/app/admin/assets/js/pmd-site-access-hub-v13.js?v=20260919-qpos1"></script>
 </body>
 </html>

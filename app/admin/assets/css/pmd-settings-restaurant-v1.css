@@ -470,6 +470,195 @@ html.pmd-restaurant-profile-ready .page-wrapper {
   stroke-linejoin: round;
 }
 
+/* PMD_GOOGLE_BUSINESS_PROVIDER_UI_V7
+   Keep the Google integration entry inside the existing Google/Maps card
+   as a flat provider row. The opened dialog uses the shared provider modal
+   classes from pmd-payment-provider-catalogue-v1.css. */
+.pmd-google-business-row-v7 {
+  margin-top: 12px;
+  padding-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid #e5ecef;
+}
+
+.pmd-google-business-row-v7__copy {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.pmd-google-business-row-v7__copy strong {
+  color: #17364a;
+  font-size: 11.5px;
+  font-weight: 850;
+}
+
+.pmd-google-business-row-v7__copy small {
+  color: #788b98;
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.pmd-google-business-row-v7__actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.pmd-google-business-row-v7 .pmd-provider-configure {
+  min-height: 34px;
+  padding: 0 11px;
+}
+
+.pmd-google-business-row-v7 .pmd-provider-status {
+  min-height: 25px;
+  padding: 0 8px;
+}
+
+.pmd-google-business-modal-v7 .pmd-provider-modal-field--full {
+  grid-column: 1 / -1;
+}
+
+.pmd-google-business-modal-v7 .pmd-provider-modal-security code {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+@media (max-width: 620px) {
+  .pmd-google-business-row-v7 {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .pmd-google-business-row-v7__actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .pmd-google-business-modal-v7 .pmd-provider-modal-field--full {
+    grid-column: auto;
+  }
+}
+
+/* PMD_GOOGLE_BUSINESS_COMPACT_MODAL_V8 */
+.pmd-google-business-modal-v8 .pmd-provider-modal__dialog {
+  width: min(760px, calc(100vw - 48px));
+  background: #fff;
+}
+
+.pmd-google-business-modal-v8 .pmd-provider-modal__header {
+  padding: 17px 20px 15px;
+  background: #fff;
+}
+
+.pmd-google-business-modal-v8 .pmd-provider-modal__header h2 {
+  font-size: 19px;
+}
+
+.pmd-google-business-modal-v8 .pmd-provider-modal__body {
+  gap: 16px;
+  padding: 18px 20px 20px;
+  background: #fff;
+}
+
+.pmd-google-business-modal-v8 .pmd-provider-modal-fields {
+  gap: 14px 16px;
+}
+
+.pmd-google-business-modal-v8 .pmd-provider-modal-field {
+  gap: 6px;
+}
+
+.pmd-google-business-modal-v8 .pmd-provider-modal-field input {
+  min-height: 44px;
+  box-shadow: none;
+}
+
+.pmd-google-business-security-v8 {
+  margin: 0;
+  color: #74857f;
+  font-size: 10.5px;
+  line-height: 1.45;
+}
+
+.pmd-google-business-advanced-toggle-v8 {
+  width: 100%;
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 0;
+  border: 0;
+  border-top: 1px solid #e7efed;
+  border-bottom: 1px solid #e7efed;
+  background: transparent;
+  color: #18384d;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pmd-google-business-advanced-toggle-v8 > span {
+  display: grid;
+  gap: 2px;
+}
+
+.pmd-google-business-advanced-toggle-v8 strong {
+  font-size: 11.5px;
+  font-weight: 900;
+}
+
+.pmd-google-business-advanced-toggle-v8 small {
+  color: #7a8b86;
+  font-size: 10px;
+}
+
+.pmd-google-business-advanced-toggle-v8 b {
+  color: #0d4d42;
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.pmd-google-business-advanced-v8 {
+  display: grid;
+  gap: 10px;
+}
+
+.pmd-google-business-advanced-v8[hidden] {
+  display: none !important;
+}
+
+.pmd-google-business-modal-v8 .pmd-provider-modal-security {
+  display: grid;
+  gap: 3px;
+  margin-top: 2px;
+}
+
+.pmd-google-business-modal-v8 .pmd-provider-modal-security code {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.pmd-google-business-modal-v8 .pmd-provider-modal__footer {
+  padding: 12px 20px;
+  background: #fff;
+}
+
+@media (max-width: 760px) {
+  .pmd-google-business-modal-v8 .pmd-provider-modal__dialog {
+    width: calc(100vw - 20px);
+  }
+
+  .pmd-google-business-modal-v8 .pmd-provider-modal__body {
+    padding: 16px;
+  }
+}
+
 .pmd-profile-bottom-save {
   display: flex;
   justify-content: flex-end;

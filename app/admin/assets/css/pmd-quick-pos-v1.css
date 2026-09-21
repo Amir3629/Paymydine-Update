@@ -6939,3 +6939,132 @@ body.pmd-qpos-exact-floor-open
   }
 }
 
+/* ============================================================
+   PMD_QPOS_SWITCH_STABILITY_V42
+   Keep the Move action visually stable while a new table payload is loading.
+   It remains functionally disabled, but does not flash grey/blue between taps.
+   ============================================================ */
+.pmd-qpos.is-table-switching
+.pmd-qpos-table-actions [data-qpos-table-move]:disabled {
+  background: #1d4ed8 !important;
+  border-color: #1d4ed8 !important;
+  color: #fff !important;
+  opacity: 1 !important;
+  filter: none !important;
+  cursor: wait !important;
+}
+
+.pmd-qpos.is-table-switching
+.pmd-qpos-table-actions [data-qpos-table-cleaning]:disabled,
+.pmd-qpos.is-table-switching
+.pmd-qpos-table-actions [data-qpos-table-free]:disabled {
+  transition: none !important;
+}
+
+.pmd-qpos-table-actions [data-qpos-table-move] {
+  transition: none !important;
+}
+
+/* ============================================================
+   PMD_QPOS_DIRECT_MOVE_COMMIT_STABILITY_V43
+   Optimistic Move is already painted while the server commits. Keep Move
+   visually blue so it never flashes disabled grey during that short window.
+   ============================================================ */
+.pmd-qpos.is-transfer-committing
+.pmd-qpos-table-actions [data-qpos-table-move]:disabled {
+  background: #1d4ed8 !important;
+  border-color: #1d4ed8 !important;
+  color: #fff !important;
+  opacity: 1 !important;
+  filter: none !important;
+  cursor: wait !important;
+}
+
+/* ============================================================
+   PMD_QPOS_WHOLE_TABLE_MOVE_V44
+   Compact direct-move scope chooser + stable action bar while the optimistic
+   transfer is committing. No Left / Move / Free color blink.
+   ============================================================ */
+.pmd-qpos-cart {
+  position: relative;
+}
+
+.pmd-qpos-move-scope-choice[hidden] {
+  display: none !important;
+}
+
+.pmd-qpos-move-scope-choice {
+  position: absolute;
+  z-index: 32;
+  right: 10px;
+  bottom: 70px;
+  left: 10px;
+  display: grid;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 14px;
+  background: rgba(255,255,255,.98);
+  box-shadow: 0 16px 34px rgba(15,23,42,.18);
+  backdrop-filter: blur(10px);
+}
+
+.pmd-qpos-move-scope-choice button {
+  min-width: 0;
+  min-height: 58px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 3px;
+  padding: 8px 10px;
+  border: 1px solid #d7dee7;
+  border-radius: 11px;
+  background: #f8fafc;
+  color: #0f172a;
+  cursor: pointer;
+}
+
+.pmd-qpos-move-scope-choice button:hover,
+.pmd-qpos-move-scope-choice button:focus-visible {
+  border-color: #1d4ed8;
+  background: #eff6ff;
+  outline: none;
+}
+
+.pmd-qpos-move-scope-choice button:disabled {
+  opacity: .42;
+  cursor: not-allowed;
+}
+
+.pmd-qpos-move-scope-choice strong {
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.1;
+}
+
+.pmd-qpos-move-scope-choice small {
+  max-width: 100%;
+  overflow: hidden;
+  color: #64748b;
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pmd-qpos.is-transfer-committing .pmd-qpos-table-actions {
+  pointer-events: none;
+}
+
+.pmd-qpos.is-transfer-committing .pmd-qpos-table-actions button {
+  transition: none !important;
+}
+
+@media (max-width: 820px) {
+  .pmd-qpos-move-scope-choice {
+    bottom: 68px;
+  }
+}
+

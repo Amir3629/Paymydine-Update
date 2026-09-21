@@ -985,15 +985,14 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
             ], 422);
         }
 
-        $sourceOrders = $this->quickPosOpenOrdersForTable($source);
-
-        if (!$sourceOrders) {
-            return response()->json([
-                'ok' => false,
-                'message' => 'There are no open checks to move.',
-            ], 422);
-        }
-
+        /*
+         * PMD_QPOS_FAST_WHOLE_TABLE_TRANSFER_V44
+         *
+         * Neither direct order moves nor whole-table moves need hydrated
+         * order items/status labels for validation. Whole-table scope now
+         * loads only payable order IDs from source/target before the locked
+         * transaction, keeping "move all" on the same lightweight path.
+         */
         if ($scope === 'order') {
             if ($orderId < 1) {
                 return response()->json([
@@ -1002,25 +1001,18 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 ], 422);
             }
 
-            $selected = array_values(array_filter(
-                $sourceOrders,
-                static function (array $order) use ($orderId): bool {
-                    return (int)($order['order_id'] ?? 0) === $orderId;
-                }
-            ));
-
-            if (!$selected) {
-                return response()->json([
-                    'ok' => false,
-                    'message' => 'That check is no longer on this table.',
-                ], 409);
-            }
-
             $orderIds = [$orderId];
         } else {
-            $targetOrders = $this->quickPosOpenOrdersForTable($target);
+            $orderIds = $this->quickPosTransferOpenOrderIdsV44($source);
 
-            if ($targetOrders) {
+            if (!$orderIds) {
+                return response()->json([
+                    'ok' => false,
+                    'message' => 'There are no open checks to move.',
+                ], 422);
+            }
+
+            if ($this->quickPosTransferOpenOrderIdsV44($target)) {
                 return response()->json([
                     'ok' => false,
                     'message' => 'Destination already has a check. Move one check instead.',
@@ -1042,12 +1034,6 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                     'message' => 'Choose a free or reserved table for a whole-table move.',
                 ], 409);
             }
-
-            $orderIds = array_values(array_unique(array_filter(array_map(
-                static fn (array $order): int =>
-                    (int)($order['order_id'] ?? 0),
-                $sourceOrders
-            ))));
         }
 
         if (!$orderIds) {
@@ -1061,7 +1047,6 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
             $result = DB::transaction(function () use (
                 $source,
                 $target,
-                $sourceOrders,
                 $orderIds,
                 $scope
             ) {
@@ -1089,6 +1074,14 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                     $lockedQuery,
                     $columns,
                     $source
+                );
+
+                /* PMD_QPOS_TRANSFER_PAYABLE_LOCK_V43
+                 * Validate the selected check under the same payable/open
+                 * rules used by the POS check rail, but without loading items. */
+                $this->applyQuickPosPayableScope(
+                    $lockedQuery,
+                    $columns
                 );
 
                 $lockedIds = $lockedQuery
@@ -1148,15 +1141,32 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                     ->whereIn($primaryKey, $orderIds)
                     ->update($updates);
 
-                $remainingSourceChecks = max(
-                    0,
-                    count($sourceOrders) - count($orderIds)
-                );
-
-                $sourceCurrentStatus =
-                    $this->quickPosTransferTableStatus(
-                        (int)$source['id']
+                /* PMD_QPOS_TRANSFER_REMAINING_COUNT_V43
+                 * For a one-check move, count remaining source checks with one
+                 * lightweight SQL COUNT after the reassignment. Avoid loading
+                 * order_menus/status rows purely to derive source status. */
+                if ($scope === 'order') {
+                    $remainingQuery = DB::table('orders');
+                    $this->applyTableScope(
+                        $remainingQuery,
+                        $columns,
+                        $source
                     );
+                    $this->applyQuickPosPayableScope(
+                        $remainingQuery,
+                        $columns
+                    );
+                    $remainingSourceChecks = (int)$remainingQuery->count();
+                } else {
+                    /* Whole-table scope moves every payable source check. */
+                    $remainingSourceChecks = 0;
+                }
+
+                $sourceCurrentStatus = $remainingSourceChecks > 0
+                    ? $this->quickPosTransferTableStatus(
+                        (int)$source['id']
+                    )
+                    : '';
 
                 $sourceNext = $scope === 'table'
                     ? 'cleaning'
@@ -1451,6 +1461,46 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                     ]);
             });
         }
+    }
+
+    /**
+     * PMD_QPOS_FAST_WHOLE_TABLE_IDS_V44
+     *
+     * Transfer validation only needs payable order IDs. Avoid hydrating
+     * order_menus, status names and full check payloads for source/target.
+     */
+    protected function quickPosTransferOpenOrderIdsV44(array $table): array
+    {
+        if (!Schema::hasTable('orders')) {
+            return [];
+        }
+
+        $columns = Schema::getColumnListing('orders');
+        $primaryKey = in_array('order_id', $columns, true)
+            ? 'order_id'
+            : (
+                in_array('id', $columns, true)
+                    ? 'id'
+                    : null
+            );
+
+        if (!$primaryKey) {
+            return [];
+        }
+
+        $query = DB::table('orders');
+        $this->applyTableScope($query, $columns, $table);
+        $this->applyQuickPosPayableScope($query, $columns);
+
+        return $query
+            ->orderByDesc($primaryKey)
+            ->limit(20)
+            ->pluck($primaryKey)
+            ->map(static fn ($id): int => (int)$id)
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
     }
 
     protected function quickPosOpenOrdersForTable(array $table): array

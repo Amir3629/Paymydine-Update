@@ -118,30 +118,6 @@ final class PmdMobilePairController extends Controller
         }
     }
 
-    public function status(Request $request, PmdMobilePairingService $pairing)
-    {
-        $data = $request->validate([
-            'pair_request' => ['required', 'uuid'],
-            'code_verifier' => [
-                'required',
-                'string',
-                'min:43',
-                'max:128',
-                'regex:/^[A-Za-z0-9._~-]+$/',
-            ],
-        ]);
-
-        return response()->json(
-            $pairing->status(
-                $request,
-                (string)$data['pair_request'],
-                (string)$data['code_verifier']
-            ),
-            200,
-            ['Cache-Control' => 'no-store, private']
-        );
-    }
-
     public function exchange(Request $request, PmdMobilePairingService $pairing)
     {
         $data = $request->validate([
