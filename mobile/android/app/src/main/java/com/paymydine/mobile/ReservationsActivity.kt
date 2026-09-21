@@ -230,10 +230,14 @@ class ReservationsActivity : ComponentActivity() {
     ) {
         view.loadUrl(
             "https://$host/admin/mobile/workspace/open?surface=reservations",
-            mapOf(
-                "Authorization" to "Bearer $token",
-                "X-PayMyDine-Android-Workspace" to "reservations",
-            ),
+            buildMap {
+                put("Authorization", "Bearer $token")
+                put("X-PayMyDine-Android-Workspace", "reservations")
+                app.credentials.staffSession()
+                    ?.staffGrant
+                    ?.takeIf { it.isNotBlank() }
+                    ?.let { put("X-PayMyDine-Staff-Grant", it) }
+            },
         )
     }
 
