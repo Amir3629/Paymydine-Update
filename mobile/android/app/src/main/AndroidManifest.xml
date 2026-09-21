@@ -20,6 +20,7 @@
         android:label="PayMyDine"
         android:supportsRtl="true"
         android:usesCleartextTraffic="false"
+        android:hardwareAccelerated="true"
         android:theme="@style/AppTheme">
         <service
             android:name=".edge.EdgeService"
@@ -38,7 +39,8 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:launchMode="singleTask">
+            android:launchMode="singleTask"
+            android:configChanges="orientation|screenSize|smallestScreenSize|keyboardHidden">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
