@@ -4,6 +4,7 @@ namespace Admin\Controllers\Concerns;
 
 use Admin\Facades\AdminAuth;
 use Admin\Models\Menus_model;
+use Admin\Services\PmdDefaultStaffRoleService;
 use App\Services\MenuPopularityService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -126,11 +127,30 @@ trait PmdWaiterPosBootstrapConcern
             return $this->pmdMobileUserOverride;
         }
 
+        /* PMD_QPOS_ADMIN_AUTH_HYDRATE_V53
+         * Match the proven Site Access flow: force AdminAuth::isLogged() first
+         * so the manager hydrates its user from the admin session, then read the
+         * cached user with getUser(). Direct Laravel routes do not pass through
+         * AdminController::remap(), so they must perform this hydration here. */
         try {
-            return AdminAuth::getUser();
+            if (AdminAuth::isLogged()) {
+                $user = AdminAuth::getUser();
+                if ($user) {
+                    return $user;
+                }
+            }
         } catch (\Throwable $ignored) {
-            return null;
         }
+
+        try {
+            $auth = app('admin.auth');
+            if ($auth && $auth->isLogged()) {
+                return $auth->getUser();
+            }
+        } catch (\Throwable $ignored) {
+        }
+
+        return null;
     }
 
     protected function currentUserId(): ?int
@@ -145,8 +165,33 @@ trait PmdWaiterPosBootstrapConcern
         if (!$user) {
             return false;
         }
+
+        /* PMD_QPOS_PAYMENT_ROLE_FALLBACK_V49
+         * Cashier/Waiter/Owner/Manager are payment-capable operational roles.
+         * Keep Admin.Payments as the primary authority, but do not strand an
+         * existing PMD role whose stored legacy permission map is stale. */
         try {
-            return (bool)$user->hasPermission('Admin.Payments');
+            if ((bool)$user->hasPermission('Admin.Payments')) {
+                return true;
+            }
+        } catch (\Throwable $ignored) {
+        }
+
+        try {
+            $roleCode = strtolower(trim((string)app(
+                PmdDefaultStaffRoleService::class
+            )->roleCodeForUser($user)));
+
+            return in_array($roleCode, [
+                PmdDefaultStaffRoleService::OWNER,
+                PmdDefaultStaffRoleService::MANAGER,
+                PmdDefaultStaffRoleService::CASHIER,
+                PmdDefaultStaffRoleService::WAITER,
+                'owner',
+                'manager',
+                'cashier',
+                'waiter',
+            ], true);
         } catch (\Throwable $ignored) {
             return false;
         }

@@ -12,6 +12,10 @@ require_once base_path('app/admin/controllers/PmdQuickPosV1.php');
 // PMD_QUICK_POS_V1
 // Dedicated cashier/waiter POS shell. The existing Waiter POS endpoints below
 // remain the canonical order/payment/table authorities used by this surface.
+// PMD_QPOS_ROUTE_STACK_SAFE_V55
+// This file is loaded from app/admin/routes.php, whose legacy admin stack does
+// not safely support applying AdminAuthenticate to this direct Laravel group.
+// Keep the proven web group and perform AdminAuth hydration inside Quick POS.
 Route::middleware(['web'])->group(function () {
     Route::get(
         '/admin/pos/bootstrap/{mode?}',
@@ -33,6 +37,18 @@ Route::middleware(['web'])->group(function () {
         [\Admin\Controllers\PmdQuickPosV1::class, 'tableData']
     )->where('table', '[0-9]+');
 
+    // PMD_QPOS_FLOOR_DATA_ROUTE_V52
+    Route::get(
+        '/admin/pos/floor-data',
+        [\Admin\Controllers\PmdQuickPosV1::class, 'floorData']
+    );
+
+    // PMD_QPOS_RESERVATION_BUSY_ROUTE_V53
+    Route::post(
+        '/admin/pos/reservation-busy',
+        [\Admin\Controllers\PmdQuickPosV1::class, 'reservationBusy']
+    );
+
     Route::get(
         '/admin/pos/payment-summary/{order}',
         [\Admin\Controllers\PmdQuickPosV1::class, 'paymentSummary']
@@ -52,6 +68,19 @@ Route::middleware(['web'])->group(function () {
     Route::post(
         '/admin/pos/payment-settle/{order}',
         [\Admin\Controllers\PmdQuickPosV1::class, 'settlePayment']
+    )->where('order', '[0-9]+');
+
+    // PMD_QPOS_PAYMENT_ENDPOINTS_V50
+    // Keep every payment action inside the Quick POS controller so the same
+    // Quick POS operator authority is applied to Cash, Coupon and Terminal.
+    Route::post(
+        '/admin/pos/payment-coupon/{order}',
+        [\Admin\Controllers\PmdQuickPosV1::class, 'validatePaymentCoupon']
+    )->where('order', '[0-9]+');
+
+    Route::post(
+        '/admin/pos/terminal-payment/{order}',
+        [\Admin\Controllers\PmdQuickPosV1::class, 'terminalPayment']
     )->where('order', '[0-9]+');
 
     // PMD_QPOS_EXACT_DASHBOARD_FLOOR_AJAX_V26
