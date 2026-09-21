@@ -101,7 +101,24 @@ class PmdSiteAccessWorkspaceGateService
             $ownerSessionValid = false;
 
             if ($ownerTotp->ready() && $ownerTotp->enabled($ownerUserId)) {
-                if ($method === 'trusted_login_device') {
+                if ($method === 'mobile_android_device') {
+                    // PMD_MOBILE_OWNER_POS_SESSION_V1
+                    // Pairing already required canonical Owner security. For
+                    // embedded POS sessions, re-check that exact personal
+                    // device row on every request so revoke/reset fails closed.
+                    try {
+                        $ownerSessionValid = $deviceId > 0
+                            && DB::table('pmd_site_access_devices')
+                                ->where('id', $deviceId)
+                                ->where('location_id', $locationId)
+                                ->where('user_id', $ownerUserId)
+                                ->where('device_kind', 'staff_personal')
+                                ->whereNull('revoked_at')
+                                ->exists();
+                    } catch (\Throwable $error) {
+                        $ownerSessionValid = false;
+                    }
+                } elseif ($method === 'trusted_login_device') {
                     try {
                         $trusted = app(PmdTrustedLoginDeviceService::class)
                             ->current($request, $identity);
