@@ -103,8 +103,9 @@ jobs:
           grep -q "pairingVerifier" mobile/android/app/src/main/java/com/paymydine/mobile/security/DeviceCredentialStore.kt
           grep -q "PMD_MOBILE_PAIR_TRANSPORT_BYPASS_V2" app/Http/Middleware/PmdSiteAccessGateMiddleware.php
           grep -q "pairCurrentVerifiedPersonalDevice" app/Services/PmdSiteAccessService.php
-          grep -q "approveVerifiedSession" app/Services/PmdMobileSync/PmdMobilePairingService.php
-          grep -q "mobile/pair/approve" routes/pmd-mobile-sync-v1.php
+          grep -q "beginDashboardApproval" app/Services/PmdMobileSync/PmdMobilePairingService.php
+          grep -q "completeApprovedChallenge" app/Services/PmdMobileSync/PmdMobilePairingService.php
+          ! grep -q "mobile/pair/approve" routes/pmd-mobile-sync-v1.php
           grep -q "PMD_MOBILE_SYNC_EARLY_ROOT_LOADER_V8" routes.php
           grep -q "PMD_MOBILE_SYNC_DIRECT_REGISTER_V8" routes/pmd-mobile-sync-v1.php
           ! grep -q "App::before(function" routes/pmd-mobile-sync-v1.php
