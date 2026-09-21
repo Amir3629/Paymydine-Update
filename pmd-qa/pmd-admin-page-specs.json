@@ -1,0 +1,1458 @@
+{
+  "version": "1.0",
+  "intent": "Planning-only universal PMD admin page specs. Do not implement UI from this file without separate task.",
+  "reference_design": {
+    "list": "/admin/kds_stations",
+    "form": "/admin/kds_stations/create"
+  },
+  "global_rules": [
+    "Do not modify production UI in this spec task.",
+    "Do not invent database fields; fields are taken from controller/model config static review.",
+    "KPIs not already exposed by list model/filter should use fallback until backend support is explicitly added."
+  ],
+  "blocking_errors": [
+    {
+      "type": "environment",
+      "finding": "php artisan route:list cannot run in this workspace because setup/foundation files are missing; runtime route 500/asset verification must be performed on VPS with Playwright.",
+      "evidence_command": "php artisan route:list --path=admin --columns=Method,URI,Name,Action",
+      "status": "blocked locally"
+    },
+    {
+      "type": "asset-risk",
+      "finding": "Static references exist to PMD mediafix vendor assets and pmd-waiter JS that should be checked by Playwright network-failure capture on production.",
+      "status": "needs VPS verification"
+    }
+  ],
+  "pages": [
+    {
+      "key": "orders",
+      "list_page": {
+        "path": "/admin/orders",
+        "page_title": "Orders",
+        "top_header_actions": [
+          "New/Create when existing toolbar supports it",
+          "Secondary page-specific action where existing toolbar supports it",
+          "Bulk/status/delete only if already present; otherwise do not add"
+        ],
+        "kpi_cards": [
+          {
+            "label": "Today orders",
+            "value_source": "orders created today",
+            "fallback_value": "0",
+            "icon": "fa-calendar-day",
+            "meaning": "Daily order volume",
+            "backend_support": "needs backend support or existing setting lookup"
+          },
+          {
+            "label": "Open orders",
+            "value_source": "orders not completed/paid/canceled",
+            "fallback_value": "0",
+            "icon": "fa-hourglass-half",
+            "meaning": "Operational workload",
+            "backend_support": "needs backend support or existing setting lookup"
+          },
+          {
+            "label": "Revenue today",
+            "value_source": "sum order_total for today paid/completed orders",
+            "fallback_value": "€0.00",
+            "icon": "fa-euro-sign",
+            "meaning": "Daily gross sales",
+            "backend_support": "available via model/query if safely exposed"
+          },
+          {
+            "label": "Attention needed",
+            "value_source": "failed/overdue/canceled/rejected orders",
+            "fallback_value": "0",
+            "icon": "fa-triangle-exclamation",
+            "meaning": "Exceptions needing review",
+            "backend_support": "needs backend support or existing setting lookup"
+          }
+        ],
+        "main_content_card": {
+          "structure": [
+            "Single universal content card containing search/filter controls and existing list/table area",
+            "Preserve existing list widget behavior and row actions",
+            "Mobile may switch table rows to cards in future implementation only after visual QA"
+          ],
+          "columns_or_content": [
+            "order_id",
+            "location",
+            "customer name",
+            "order type/table",
+            "time/date",
+            "status",
+            "payment",
+            "assignee",
+            "total"
+          ]
+        },
+        "requirements": {
+          "search": "Use existing searchable columns only; do not add backend search now.",
+          "filters": "Expose existing filter scopes only.",
+          "table": "Preserve current columns, row actions, pagination, bulk behavior, and permissions.",
+          "cards": "Mobile card representation may mirror table columns but must remain read-only until implemented safely."
+        },
+        "old_elements_to_hide_or_move": [
+          "Move old in-page title into universal header when implementation begins",
+          "Move existing toolbar buttons into universal top header when safe",
+          "Do not hide legacy actions until replacement actions are verified"
+        ],
+        "risks": [
+          "Status calculations may vary by installation status ids",
+          "Revenue card may need backend support if totals/status filters are not already exposed safely"
+        ]
+      },
+      "form_page": {
+        "paths": [
+          "/admin/orders/create",
+          "/admin/orders/edit/{id}"
+        ],
+        "header_actions": [
+          "Back",
+          "Save",
+          "Delete on edit only when existing form toolbar supports delete"
+        ],
+        "section_cards": [
+          {
+            "title": "Order info",
+            "icon": "fa-circle-info",
+            "fields": "Use existing form config fields belonging to this section/tab"
+          },
+          {
+            "title": "Customer",
+            "icon": "fa-folder-open",
+            "fields": "Use existing form config fields belonging to this section/tab"
+          },
+          {
+            "title": "Restaurant/location",
+            "icon": "fa-folder-open",
+            "fields": "Use existing form config fields belonging to this section/tab"
+          },
+          {
+            "title": "Menus/items",
+            "icon": "fa-folder-open",
+            "fields": "Use existing form config fields belonging to this section/tab"
+          },
+          {
+            "title": "Status history",
+            "icon": "fa-folder-open",
+            "fields": "Use existing form config fields belonging to this section/tab"
+          },
+          {
+            "title": "Payment logs",
+            "icon": "fa-folder-open",
+            "fields": "Use existing form config fields belonging to this section/tab"
+          },
+          {
+            "title": "Notes",
+            "icon": "fa-folder-open",
+            "fields": "Use existing form config fields belonging to this section/tab"
+          }
+        ],
+        "preview_sidebar": "Use only if existing media/status/summary data is already available; otherwise omit or show safe placeholder.",
+        "risks": [
+          "Status calculations may vary by installation status ids",
+          "Revenue card may need backend support if totals/status filters are not already exposed safely"
+        ]
+      }
+    },
+    {
+      "key": "reservations",
+      "list_page": {
+        "path": "/admin/reservations",
+        "page_title": "Reservations",
+        "top_header_actions": [
+          "New/Create when existing toolbar supports it",
+          "Secondary page-specific action where existing toolbar supports it",
+          "Bulk/status/delete only if already present; otherwise do not add"
+        ],
+        "kpi_cards": [
+          {
+            "label": "Today reservations",
+            "value_source": "reservations for today",
+            "fallback_value": "0",
+            "icon": "fa-calendar-day",
+            "meaning": "Expected covers today",
+            "backend_support": "needs backend support or existing setting lookup"
+          },
+          {
+            "label": "Guests today",
+            "value_source": "sum guest_num for today",
+            "fallback_value": "0",
+            "icon": "fa-users",
+            "meaning": "Expected guest load",
+            "backend_support": "available via model/query if safely exposed"
+          },
+          {
+            "label": "Pending/active",
+            "value_source": "reservations not completed/canceled",
+            "fallback_value": "0",
+            "icon": "fa-clock",
+            "meaning": "Reservations requiring action",
+            "backend_support": "needs backend support or existing setting lookup"
+          },
+          {
+            "label": "Assigned tables",
+            "value_source": "reservations with table relation",
+            "fallback_value": "0",
+            "icon": "fa-chair",
+            "meaning": "Table planning readiness",
+            "backend_support": "needs backend support or existing setting lookup"
+          }
+        ],
+        "main_content_card": {
+          "structure": [
+            "Single universal content card containing search/filter controls and existing list/table area",
+            "Preserve existing list widget behavior and row actions",
+            "Mobile may switch table rows to cards in future implementation only after visual QA"
+          ],
+          "columns_or_content": [
+            "reservation_id",
+            "location",
+            "guest name",
+            "guest count",
+            "table",
+            "status",
+            "staff",
+            "time/date"
+          ]
+        },
+        "requirements": {
+          "search": "Use existing searchable columns only; do not add backend search now.",
+          "filters": "Expose existing filter scopes only.",
+          "table": "Preserve current columns, row actions, pagination, bulk behavior, and permissions.",
+          "cards": "Mobile card representation may mirror table columns but must remain read-only until implemented safely."
+        },
+        "old_elements_to_hide_or_move": [
+          "Move old in-page title into universal header when implementation begins",
+          "Move existing toolbar buttons into universal top header when safe",
+          "Do not hide legacy actions until replacement actions are verified"
+        ],
+        "risks": [
+          "Calendar/list dual mode must not lose existing switch action",
+          "Guest sum needs backend support if not exposed"
+        ]
+      },
+      "form_page": {
+        "paths": [
+          "/admin/reservations/create",
+          "/admin/reservations/edit/{id}"
+        ],
+        "header_actions": [
+          "Back",
+          "Save",
+          "Delete on edit only when existing form toolbar supports delete"
+        ],
+        "section_cards": [
+          {
+            "title": "Reservation details",
+            "icon": "fa-circle-info",
+            "fields": "Use existing form config fields belonging to this section/tab"
+          },
+          {
+            "title": "Guest contact",
+            "icon": "fa-folder-open",
+            "fields": "Use existing form config fields belonging to this section/tab"
+          },
+          {
+            "title": "Restaurant/location",
+            "icon": "fa-folder-open",
+            "fields": "Use existing form config fields belonging to this section/tab"
+          },
+          {
+            "title": "Status history",
+            "icon": "fa-folder-open",
+            "fields": "Use existing form config fields belonging to this section/tab"
+          }
+        ],
+        "preview_sidebar": "Use only if existing media/status/summary data is already available; otherwise omit or show safe placeholder.",
+        "risks": [
+          "Calendar/list dual mode must not lose existing switch action",
+          "Guest sum needs backend support if not exposed"
+        ]
+      }
+    },
+    {
+      "key": "locations",
+      "list_page": {
+        "path": "/admin/locations",
+        "page_title": "Locations",
+        "top_header_actions": [
+          "New/Create when existing toolbar supports it",
+          "Secondary page-specific action where existing toolbar supports it",
+          "Bulk/status/delete only if already present; otherwise do not add"
+        ],
+        "kpi_cards": [
+          {
+            "label": "Total locations",
+            "value_source": "count locations",
+            "fallback_value": "0",
+            "icon": "fa-store",
+            "meaning": "Location coverage",
+            "backend_support": "available via model/query if safely exposed"
+          },
+          {
+            "label": "Enabled",
+            "value_source": "count where status enabled",
+            "fallback_value": "0",
+            "icon": "fa-toggle-on",
+            "meaning": "Active service locations",
+            "backend_support": "available via model/query if safely exposed"
+          },
+          {
+            "label": "Missing contact",
+            "value_source": "locations missing email or telephone",
+            "fallback_value": "0",
+            "icon": "fa-address-book",
+            "meaning": "Operational setup gaps",
+            "backend_support": "needs backend support or existing setting lookup"
+          },
+          {
+            "label": "Needs geo review",
+            "value_source": "locations missing lat/lng or auto geocode disabled",
+            "fallback_value": "0",
+            "icon": "fa-map-location-dot",
+            "meaning": "Map/delivery readiness",
+            "backend_support": "needs backend support or existing setting lookup"
+          }
+        ],
+        "main_content_card": {
+          "structure": [
+            "Single universal content card containing search/filter controls and existing list/table area",
+            "Preserve existing list widget behavior and row actions",
+            "Mobile may switch table rows to cards in future implementation only after visual QA"
+          ],
+          "columns_or_content": [
+            "name",
+            "city",
+            "state",
+            "postcode",
+            "telephone",
+            "status"
+          ]
+        },
+        "requirements": {
+          "search": "Use existing searchable columns only; do not add backend search now.",
+          "filters": "Expose existing filter scopes only.",
+          "table": "Preserve current columns, row actions, pagination, bulk behavior, and permissions.",
+          "cards": "Mobile card representation may mirror table columns but must remain read-only until implemented safely."
+        },
+        "old_elements_to_hide_or_move": [
+          "Move old in-page title into universal header when implementation begins",
+          "Move existing toolbar buttons into universal top header when safe",
+          "Do not hide legacy actions until replacement actions are verified"
+        ],
+        "risks": [
+          "Single-location installs may have only one record",
+          "Geo KPI needs backend support if not exposed"
+        ]
+      },
+      "form_page": {
+        "paths": [
+          "/admin/locations/create",
+          "/admin/locations/edit/{id}"
+        ],
+        "header_actions": [
+          "Back",
+          "Save",
+          "Delete on edit only when existing form toolbar supports delete"
+        ],
+        "section_cards": [
+          {
+            "title": "Identity",
+            "icon": "fa-circle-info",
+            "fields": "Use existing form config fields belonging to this section/tab"
+          },
+          {
+            "title": "Contact",
+            "icon": "fa-folder-open",
+            "fields": "Use existing form config fields belonging to this section/tab"
+          },
+          {
+            "title": "Address",
+            "icon": "fa-folder-open",
+            "fields": "Use existing form config fields belonging to this section/tab"
+          },
+          {
+            "title": "Map/geocode",
+            "icon": "fa-folder-open",
+            "fields": "Use existing form config fields belonging to this section/tab"
+          },
+          {
+            "title": "Schedule",
+            "icon": "fa-folder-open",
+            "fields": "Use existing form config fields belonging to this section/tab"
+          },
+          {
+            "title": "Delivery area",
+            "icon": "fa-folder-open",
+            "fields": "Use existing form config fields belonging to this section/tab"
+          },
+          {
+            "title": "Gallery",
+            "icon": "fa-folder-open",
+            "fields": "Use existing form config fields belonging to this section/tab"
+          },
+          {
+            "title": "Options",
+            "icon": "fa-folder-open",
+            "fields": "Use existing form config fields belonging to this section/tab"
+          }
+        ],
+        "preview_sidebar": "Use only if existing media/status/summary data is already available; otherwise omit or show safe placeholder.",
+        "risks": [
+          "Single-location installs may have only one record",
+          "Geo KPI needs backend support if not exposed"
+        ]
+      }
+    },
+    {
+      "key": "categories",
+      "list_page": {
+        "path": "/admin/categories",
+        "page_title": "Categories",
+        "top_header_actions": [
+          "New/Create when existing toolbar supports it",
+          "Secondary page-specific action where existing toolbar supports it",
+          "Bulk/status/delete only if already present; otherwise do not add"
+        ],
+        "kpi_cards": [
+          {
+            "label": "Total categories",
+            "value_source": "count categories",
+            "fallback_value": "0",
+            "icon": "fa-layer-group",
+            "meaning": "Menu organization size",
+            "backend_support": "available via model/query if safely exposed"
+          },
+          {
+            "label": "Enabled",
+            "value_source": "count categories status enabled",
+            "fallback_value": "0",
+            "icon": "fa-toggle-on",
+            "meaning": "Visible taxonomy",
+            "backend_support": "available via model/query if safely exposed"
+          },
+          {
+            "label": "Hidden from frontend",
+            "value_source": "count frontend_visible false",
+            "fallback_value": "0",
+            "icon": "fa-eye-slash",
+            "meaning": "Customer visibility exceptions",
+            "backend_support": "available via model/query if safely exposed"
+          },
+          {
+            "label": "Needs image",
+            "value_source": "count missing image",
+            "fallback_value": "0",
+            "icon": "fa-image",
+            "meaning": "Merchandising gaps",
+            "backend_support": "available via model/query if safely exposed"
+          }
+        ],
+        "main_content_card": {
+          "structure": [
+            "Single universal content card containing search/filter controls and existing list/table area",
+            "Preserve existing list widget behavior and row actions",
+            "Mobile may switch table rows to cards in future implementation only after visual QA"
+          ],
+          "columns_or_content": [
+            "name",
+            "parent",
+            "priority",
+            "status"
+          ]
+        },
+        "requirements": {
+          "search": "Use existing searchable columns only; do not add backend search now.",
+          "filters": "Expose existing filter scopes only.",
+          "table": "Preserve current columns, row actions, pagination, bulk behavior, and permissions.",
+          "cards": "Mobile card representation may mirror table columns but must remain read-only until implemented safely."
+        },
+        "old_elements_to_hide_or_move": [
+          "Move old in-page title into universal header when implementation begins",
+          "Move existing toolbar buttons into universal top header when safe",
+          "Do not hide legacy actions until replacement actions are verified"
+        ],
+        "risks": [
+          "Frontend visibility exists in form but KPI needs backend aggregate",
+          "Parent field may be numeric relation depending current config"
+        ]
+      },
+      "form_page": {
+        "paths": [
+          "/admin/categories/create",
+          "/admin/categories/edit/{id}"
+        ],
+        "header_actions": [
+          "Back",
+          "Save",
+          "Delete on edit only when existing form toolbar supports delete"
+        ],
+        "section_cards": [
+          {
+            "title": "Basics",
+            "icon": "fa-circle-info",
+            "fields": "Use existing form config fields belonging to this section/tab"
+          },
+          {
+            "title": "Hierarchy & sorting",
+            "icon": "fa-folder-open",
+            "fields": "Use existing form config fields belonging to this section/tab"
+          },
+          {
+            "title": "Visibility",
+            "icon": "fa-folder-open",
+            "fields": "Use existing form config fields belonging to this section/tab"
+          },
+          {
+            "title": "Media",
+            "icon": "fa-folder-open",
+            "fields": "Use existing form config fields belonging to this section/tab"
+          }
+        ],
+        "preview_sidebar": "Use only if existing media/status/summary data is already available; otherwise omit or show safe placeholder.",
+        "risks": [
+          "Frontend visibility exists in form but KPI needs backend aggregate",
+          "Parent field may be numeric relation depending current config"
+        ]
+      }
+    },
+    {
+      "key": "mealtimes",
+      "list_page": {
+        "path": "/admin/mealtimes",
+        "page_title": "Mealtimes",
+        "top_header_actions": [
+          "New/Create when existing toolbar supports it",
+          "Secondary page-specific action where existing toolbar supports it",
+          "Bulk/status/delete only if already present; otherwise do not add"
+        ],
+        "kpi_cards": [
+          {
+            "label": "Total mealtimes",
+            "value_source": "count mealtimes",
+            "fallback_value": "0",
+            "icon": "fa-clock",
+            "meaning": "Configured service windows",
+            "backend_support": "available via model/query if safely exposed"
+          },
+          {
+            "label": "Enabled",
+            "value_source": "count enabled mealtimes",
+            "fallback_value": "0",
+            "icon": "fa-toggle-on",
+            "meaning": "Active windows",
+            "backend_support": "available via model/query if safely exposed"
+          },
+          {
+            "label": "Locations covered",
+            "value_source": "distinct locations relation count",
+            "fallback_value": "0",
+            "icon": "fa-location-dot",
+            "meaning": "Coverage by restaurant",
+            "backend_support": "available via model/query if safely exposed"
+          },
+          {
+            "label": "Overlaps to review",
+            "value_source": "overlapping time windows",
+            "fallback_value": "0",
+            "icon": "fa-triangle-exclamation",
+            "meaning": "Scheduling conflict risk",
+            "backend_support": "needs backend support or existing setting lookup"
+          }
+        ],
+        "main_content_card": {
+          "structure": [
+            "Single universal content card containing search/filter controls and existing list/table area",
+            "Preserve existing list widget behavior and row actions",
+            "Mobile may switch table rows to cards in future implementation only after visual QA"
+          ],
+          "columns_or_content": [
+            "name",
+            "start time",
+            "end time",
+            "status",
+            "locations"
+          ]
+        },
+        "requirements": {
+          "search": "Use existing searchable columns only; do not add backend search now.",
+          "filters": "Expose existing filter scopes only.",
+          "table": "Preserve current columns, row actions, pagination, bulk behavior, and permissions.",
+          "cards": "Mobile card representation may mirror table columns but must remain read-only until implemented safely."
+        },
+        "old_elements_to_hide_or_move": [
+          "Move old in-page title into universal header when implementation begins",
+          "Move existing toolbar buttons into universal top header when safe",
+          "Do not hide legacy actions until replacement actions are verified"
+        ],
+        "risks": [
+          "Overlap KPI needs backend support",
+          "Relation-based location counts may need eager aggregate"
+        ]
+      },
+      "form_page": {
+        "paths": [
+          "/admin/mealtimes/create",
+          "/admin/mealtimes/edit/{id}"
+        ],
+        "header_actions": [
+          "Back",
+          "Save",
+          "Delete on edit only when existing form toolbar supports delete"
+        ],
+        "section_cards": [
+          {
+            "title": "Basics",
+            "icon": "fa-circle-info",
+            "fields": "Use existing form config fields belonging to this section/tab"
+          },
+          {
+            "title": "Schedule window",
+            "icon": "fa-folder-open",
+            "fields": "Use existing form config fields belonging to this section/tab"
+          },
+          {
+            "title": "Location assignment",
+            "icon": "fa-folder-open",
+            "fields": "Use existing form config fields belonging to this section/tab"
+          },
+          {
+            "title": "Status",
+            "icon": "fa-folder-open",
+            "fields": "Use existing form config fields belonging to this section/tab"
+          }
+        ],
+        "preview_sidebar": "Use only if existing media/status/summary data is already available; otherwise omit or show safe placeholder.",
+        "risks": [
+          "Overlap KPI needs backend support",
+          "Relation-based location counts may need eager aggregate"
+        ]
+      }
+    },
+    {
+      "key": "tables",
+      "list_page": {
+        "path": "/admin/tables",
+        "page_title": "Tables",
+        "top_header_actions": [
+          "New/Create when existing toolbar supports it",
+          "Secondary page-specific action where existing toolbar supports it",
+          "Bulk/status/delete only if already present; otherwise do not add"
+        ],
+        "kpi_cards": [
+          {
+            "label": "Total tables",
+            "value_source": "count tables",
+            "fallback_value": "0",
+            "icon": "fa-chair",
+            "meaning": "Floor capacity objects",
+            "backend_support": "available via model/query if safely exposed"
+          },
+          {
+            "label": "Enabled/available",
+            "value_source": "count table_status enabled/free",
+            "fallback_value": "0",
+            "icon": "fa-toggle-on",
+            "meaning": "Usable tables",
+            "backend_support": "available via model/query if safely exposed"
+          },
+          {
+            "label": "Total capacity",
+            "value_source": "sum min/max capacity where available",
+            "fallback_value": "0",
+            "icon": "fa-users",
+            "meaning": "Seating capacity",
+            "backend_support": "available via model/query if safely exposed"
+          },
+          {
+            "label": "POS linked",
+            "value_source": "tables with pos_table_label/table_no",
+            "fallback_value": "0",
+            "icon": "fa-cash-register",
+            "meaning": "POS sync coverage",
+            "backend_support": "needs backend support or existing setting lookup"
+          }
+        ],
+        "main_content_card": {
+          "structure": [
+            "Single universal content card containing search/filter controls and existing list/table area",
+            "Preserve existing list widget behavior and row actions",
+            "Mobile may switch table rows to cards in future implementation only after visual QA"
+          ],
+          "columns_or_content": [
+            "table name/no",
+            "min capacity",
+            "max capacity",
+            "status",
+            "location",
+            "priority",
+            "joinable"
+          ]
+        },
+        "requirements": {
+          "search": "Use existing searchable columns only; do not add backend search now.",
+          "filters": "Expose existing filter scopes only.",
+          "table": "Preserve current columns, row actions, pagination, bulk behavior, and permissions.",
+          "cards": "Mobile card representation may mirror table columns but must remain read-only until implemented safely."
+        },
+        "old_elements_to_hide_or_move": [
+          "Move old in-page title into universal header when implementation begins",
+          "Move existing toolbar buttons into universal top header when safe",
+          "Do not hide legacy actions until replacement actions are verified"
+        ],
+        "risks": [
+          "Capacity fields are PMD extensions; confirm columns before aggregate",
+          "Existing controller mutates field labels/options dynamically"
+        ]
+      },
+      "form_page": {
+        "paths": [
+          "/admin/tables/create",
+          "/admin/tables/edit/{id}"
+        ],
+        "header_actions": [
+          "Back",
+          "Save",
+          "Delete on edit only when existing form toolbar supports delete"
+        ],
+        "section_cards": [
+          {
+            "title": "Identity",
+            "icon": "fa-circle-info",
+            "fields": "Use existing form config fields belonging to this section/tab"
+          },
+          {
+            "title": "Capacity",
+            "icon": "fa-folder-open",
+            "fields": "Use existing form config fields belonging to this section/tab"
+          },
+          {
+            "title": "Location/POS mapping",
+            "icon": "fa-folder-open",
+            "fields": "Use existing form config fields belonging to this section/tab"
+          },
+          {
+            "title": "Join/priority options",
+            "icon": "fa-folder-open",
+            "fields": "Use existing form config fields belonging to this section/tab"
+          },
+          {
+            "title": "Status",
+            "icon": "fa-folder-open",
+            "fields": "Use existing form config fields belonging to this section/tab"
+          }
+        ],
+        "preview_sidebar": "Use only if existing media/status/summary data is already available; otherwise omit or show safe placeholder.",
+        "risks": [
+          "Capacity fields are PMD extensions; confirm columns before aggregate",
+          "Existing controller mutates field labels/options dynamically"
+        ]
+      }
+    },
+    {
+      "key": "themes",
+      "list_page": {
+        "path": "/admin/themes",
+        "page_title": "Themes",
+        "top_header_actions": [
+          "New/Create when existing toolbar supports it",
+          "Secondary page-specific action where existing toolbar supports it",
+          "Bulk/status/delete only if already present; otherwise do not add"
+        ],
+        "kpi_cards": [
+          {
+            "label": "Installed themes",
+            "value_source": "count theme records",
+            "fallback_value": "0",
+            "icon": "fa-palette",
+            "meaning": "Available storefront themes",
+            "backend_support": "available via model/query if safely exposed"
+          },
+          {
+            "label": "Active theme",
+            "value_source": "current default/active theme",
+            "fallback_value": "—",
+            "icon": "fa-star",
+            "meaning": "Live customer theme",
+            "backend_support": "needs backend support or existing setting lookup"
+          },
+          {
+            "label": "Child themes",
+            "value_source": "themes marked child",
+            "fallback_value": "0",
+            "icon": "fa-code-branch",
+            "meaning": "Customization footprint",
+            "backend_support": "needs backend support or existing setting lookup"
+          },
+          {
+            "label": "Missing assets",
+            "value_source": "themes missing screenshot/assets",
+            "fallback_value": "0",
+            "icon": "fa-image",
+            "meaning": "Theme health risks",
+            "backend_support": "needs backend support or existing setting lookup"
+          }
+        ],
+        "main_content_card": {
+          "structure": [
+            "Single universal content card containing search/filter controls and existing list/table area",
+            "Preserve existing list widget behavior and row actions",
+            "Mobile may switch table rows to cards in future implementation only after visual QA"
+          ],
+          "columns_or_content": [
+            "name",
+            "active/default action",
+            "customize/source actions",
+            "created/updated hidden"
+          ]
+        },
+        "requirements": {
+          "search": "Use existing searchable columns only; do not add backend search now.",
+          "filters": "Expose existing filter scopes only.",
+          "table": "Preserve current columns, row actions, pagination, bulk behavior, and permissions.",
+          "cards": "Mobile card representation may mirror table columns but must remain read-only until implemented safely."
+        },
+        "old_elements_to_hide_or_move": [
+          "Move old in-page title into universal header when implementation begins",
+          "Move existing toolbar buttons into universal top header when safe",
+          "Do not hide legacy actions until replacement actions are verified"
+        ],
+        "risks": [
+          "Theme controller is under system namespace",
+          "Source editor can be risky; implementation should avoid behavior changes"
+        ]
+      },
+      "form_page": {
+        "paths": [
+          "/admin/themes/edit/{code}",
+          "/admin/themes/source/{code}"
+        ],
+        "header_actions": [
+          "Back",
+          "Save",
+          "Delete on edit only when existing form toolbar supports delete"
+        ],
+        "section_cards": [
+          {
+            "title": "Theme identity",
+            "icon": "fa-circle-info",
+            "fields": "Use existing form config fields belonging to this section/tab"
+          },
+          {
+            "title": "Theme configuration",
+            "icon": "fa-folder-open",
+            "fields": "Use existing form config fields belonging to this section/tab"
+          },
+          {
+            "title": "Colors",
+            "icon": "fa-folder-open",
+            "fields": "Use existing form config fields belonging to this section/tab"
+          },
+          {
+            "title": "Template editor/source",
+            "icon": "fa-folder-open",
+            "fields": "Use existing form config fields belonging to this section/tab"
+          }
+        ],
+        "preview_sidebar": "Use only if existing media/status/summary data is already available; otherwise omit or show safe placeholder.",
+        "risks": [
+          "Theme controller is under system namespace",
+          "Source editor can be risky; implementation should avoid behavior changes"
+        ]
+      }
+    },
+    {
+      "key": "staffs",
+      "list_page": {
+        "path": "/admin/staffs",
+        "page_title": "Staff",
+        "top_header_actions": [
+          "New/Create when existing toolbar supports it",
+          "Secondary page-specific action where existing toolbar supports it",
+          "Bulk/status/delete only if already present; otherwise do not add"
+        ],
+        "kpi_cards": [
+          {
+            "label": "Total staff",
+            "value_source": "count staff",
+            "fallback_value": "0",
+            "icon": "fa-users",
+            "meaning": "Staff accounts",
+            "backend_support": "available via model/query if safely exposed"
+          },
+          {
+            "label": "Active staff",
+            "value_source": "count staff_status active",
+            "fallback_value": "0",
+            "icon": "fa-user-check",
+            "meaning": "Accounts able to operate",
+            "backend_support": "available via model/query if safely exposed"
+          },
+          {
+            "label": "Super staff",
+            "value_source": "count super_user true",
+            "fallback_value": "0",
+            "icon": "fa-user-shield",
+            "meaning": "Privileged access",
+            "backend_support": "available via model/query if safely exposed"
+          },
+          {
+            "label": "Missing security setup",
+            "value_source": "missing role/group/location or inactive invite",
+            "fallback_value": "0",
+            "icon": "fa-triangle-exclamation",
+            "meaning": "Access-control cleanup",
+            "backend_support": "needs backend support or existing setting lookup"
+          }
+        ],
+        "main_content_card": {
+          "structure": [
+            "Single universal content card containing search/filter controls and existing list/table area",
+            "Preserve existing list widget behavior and row actions",
+            "Mobile may switch table rows to cards in future implementation only after visual QA"
+          ],
+          "columns_or_content": [
+            "name",
+            "email",
+            "username",
+            "group",
+            "role",
+            "status",
+            "last login/date updated"
+          ]
+        },
+        "requirements": {
+          "search": "Use existing searchable columns only; do not add backend search now.",
+          "filters": "Expose existing filter scopes only.",
+          "table": "Preserve current columns, row actions, pagination, bulk behavior, and permissions.",
+          "cards": "Mobile card representation may mirror table columns but must remain read-only until implemented safely."
+        },
+        "old_elements_to_hide_or_move": [
+          "Move old in-page title into universal header when implementation begins",
+          "Move existing toolbar buttons into universal top header when safe",
+          "Do not hide legacy actions until replacement actions are verified"
+        ],
+        "risks": [
+          "Do not expose password fields in visual summaries",
+          "Role field is removed for non-super users in controller"
+        ]
+      },
+      "form_page": {
+        "paths": [
+          "/admin/staffs/create",
+          "/admin/staffs/edit/{id}"
+        ],
+        "header_actions": [
+          "Back",
+          "Save",
+          "Delete on edit only when existing form toolbar supports delete"
+        ],
+        "section_cards": [
+          {
+            "title": "Account",
+            "icon": "fa-circle-info",
+            "fields": "Use existing form config fields belonging to this section/tab"
+          },
+          {
+            "title": "Credentials/invite",
+            "icon": "fa-folder-open",
+            "fields": "Use existing form config fields belonging to this section/tab"
+          },
+          {
+            "title": "Location & group",
+            "icon": "fa-folder-open",
+            "fields": "Use existing form config fields belonging to this section/tab"
+          },
+          {
+            "title": "Role & permissions",
+            "icon": "fa-folder-open",
+            "fields": "Use existing form config fields belonging to this section/tab"
+          },
+          {
+            "title": "POS/RFID/Biometric",
+            "icon": "fa-folder-open",
+            "fields": "Use existing form config fields belonging to this section/tab"
+          }
+        ],
+        "preview_sidebar": "Use only if existing media/status/summary data is already available; otherwise omit or show safe placeholder.",
+        "risks": [
+          "Do not expose password fields in visual summaries",
+          "Role field is removed for non-super users in controller"
+        ]
+      }
+    },
+    {
+      "key": "statuses",
+      "list_page": {
+        "path": "/admin/statuses",
+        "page_title": "Statuses",
+        "top_header_actions": [
+          "New/Create when existing toolbar supports it",
+          "Secondary page-specific action where existing toolbar supports it",
+          "Bulk/status/delete only if already present; otherwise do not add"
+        ],
+        "kpi_cards": [
+          {
+            "label": "Total statuses",
+            "value_source": "count statuses",
+            "fallback_value": "0",
+            "icon": "fa-tags",
+            "meaning": "Workflow states",
+            "backend_support": "available via model/query if safely exposed"
+          },
+          {
+            "label": "Order statuses",
+            "value_source": "count type=order",
+            "fallback_value": "0",
+            "icon": "fa-receipt",
+            "meaning": "Order workflow coverage",
+            "backend_support": "available via model/query if safely exposed"
+          },
+          {
+            "label": "Reservation statuses",
+            "value_source": "count type=reservation",
+            "fallback_value": "0",
+            "icon": "fa-calendar-check",
+            "meaning": "Reservation workflow coverage",
+            "backend_support": "available via model/query if safely exposed"
+          },
+          {
+            "label": "Notifications enabled",
+            "value_source": "count notify true",
+            "fallback_value": "0",
+            "icon": "fa-bell",
+            "meaning": "Customer/staff notification footprint",
+            "backend_support": "available via model/query if safely exposed"
+          }
+        ],
+        "main_content_card": {
+          "structure": [
+            "Single universal content card containing search/filter controls and existing list/table area",
+            "Preserve existing list widget behavior and row actions",
+            "Mobile may switch table rows to cards in future implementation only after visual QA"
+          ],
+          "columns_or_content": [
+            "name",
+            "comment",
+            "type/for",
+            "notify",
+            "color"
+          ]
+        },
+        "requirements": {
+          "search": "Use existing searchable columns only; do not add backend search now.",
+          "filters": "Expose existing filter scopes only.",
+          "table": "Preserve current columns, row actions, pagination, bulk behavior, and permissions.",
+          "cards": "Mobile card representation may mirror table columns but must remain read-only until implemented safely."
+        },
+        "old_elements_to_hide_or_move": [
+          "Move old in-page title into universal header when implementation begins",
+          "Move existing toolbar buttons into universal top header when safe",
+          "Do not hide legacy actions until replacement actions are verified"
+        ],
+        "risks": [
+          "Controller disables checkbox/bulk/row click; preserve behavior",
+          "Status ids may be hard-coded elsewhere; no delete-first implementation"
+        ]
+      },
+      "form_page": {
+        "paths": [
+          "/admin/statuses/create",
+          "/admin/statuses/edit/{id}"
+        ],
+        "header_actions": [
+          "Back",
+          "Save",
+          "Delete on edit only when existing form toolbar supports delete"
+        ],
+        "section_cards": [
+          {
+            "title": "Identity",
+            "icon": "fa-circle-info",
+            "fields": "Use existing form config fields belonging to this section/tab"
+          },
+          {
+            "title": "Type/usage",
+            "icon": "fa-folder-open",
+            "fields": "Use existing form config fields belonging to this section/tab"
+          },
+          {
+            "title": "Color",
+            "icon": "fa-folder-open",
+            "fields": "Use existing form config fields belonging to this section/tab"
+          },
+          {
+            "title": "Notification",
+            "icon": "fa-folder-open",
+            "fields": "Use existing form config fields belonging to this section/tab"
+          },
+          {
+            "title": "Comment",
+            "icon": "fa-folder-open",
+            "fields": "Use existing form config fields belonging to this section/tab"
+          }
+        ],
+        "preview_sidebar": "Use only if existing media/status/summary data is already available; otherwise omit or show safe placeholder.",
+        "risks": [
+          "Controller disables checkbox/bulk/row click; preserve behavior",
+          "Status ids may be hard-coded elsewhere; no delete-first implementation"
+        ]
+      }
+    },
+    {
+      "key": "payments",
+      "list_page": {
+        "path": "/admin/payments?mode=methods",
+        "page_title": "Payment methods",
+        "top_header_actions": [
+          "New/Create when existing toolbar supports it",
+          "Secondary page-specific action where existing toolbar supports it",
+          "Bulk/status/delete only if already present; otherwise do not add"
+        ],
+        "kpi_cards": [
+          {
+            "label": "Methods",
+            "value_source": "count method records",
+            "fallback_value": "0",
+            "icon": "fa-credit-card",
+            "meaning": "Customer payment options",
+            "backend_support": "available via model/query if safely exposed"
+          },
+          {
+            "label": "Enabled",
+            "value_source": "count enabled records",
+            "fallback_value": "0",
+            "icon": "fa-toggle-on",
+            "meaning": "Available payment methods",
+            "backend_support": "available via model/query if safely exposed"
+          },
+          {
+            "label": "Default",
+            "value_source": "default method/provider",
+            "fallback_value": "—",
+            "icon": "fa-star",
+            "meaning": "Fallback payment choice",
+            "backend_support": "needs backend support or existing setting lookup"
+          },
+          {
+            "label": "Provider issues",
+            "value_source": "incompatible/missing provider config",
+            "fallback_value": "0",
+            "icon": "fa-triangle-exclamation",
+            "meaning": "Checkout/payment readiness",
+            "backend_support": "needs backend support or existing setting lookup"
+          }
+        ],
+        "main_content_card": {
+          "structure": [
+            "Single universal content card containing search/filter controls and existing list/table area",
+            "Preserve existing list widget behavior and row actions",
+            "Mobile may switch table rows to cards in future implementation only after visual QA"
+          ],
+          "columns_or_content": [
+            "name",
+            "description",
+            "provider",
+            "status",
+            "default",
+            "updated"
+          ]
+        },
+        "requirements": {
+          "search": "Use existing searchable columns only; do not add backend search now.",
+          "filters": "Expose existing filter scopes only.",
+          "table": "Preserve current columns, row actions, pagination, bulk behavior, and permissions.",
+          "cards": "Mobile card representation may mirror table columns but must remain read-only until implemented safely."
+        },
+        "old_elements_to_hide_or_move": [
+          "Move old in-page title into universal header when implementation begins",
+          "Move existing toolbar buttons into universal top header when safe",
+          "Do not hide legacy actions until replacement actions are verified"
+        ],
+        "risks": [
+          "Do not change payment code",
+          "Compatibility KPI needs backend support and redacted provider metadata"
+        ]
+      },
+      "form_page": {
+        "paths": [
+          "/admin/payments/edit/{code}?mode=methods"
+        ],
+        "header_actions": [
+          "Back",
+          "Save",
+          "Delete on edit only when existing form toolbar supports delete"
+        ],
+        "section_cards": [
+          {
+            "title": "Method basics",
+            "icon": "fa-circle-info",
+            "fields": "Use existing form config fields belonging to this section/tab"
+          },
+          {
+            "title": "Provider assignment",
+            "icon": "fa-folder-open",
+            "fields": "Use existing form config fields belonging to this section/tab"
+          },
+          {
+            "title": "Status/default",
+            "icon": "fa-folder-open",
+            "fields": "Use existing form config fields belonging to this section/tab"
+          },
+          {
+            "title": "Provider-specific config",
+            "icon": "fa-folder-open",
+            "fields": "Use existing form config fields belonging to this section/tab"
+          }
+        ],
+        "preview_sidebar": "Use only if existing media/status/summary data is already available; otherwise omit or show safe placeholder.",
+        "risks": [
+          "Do not change payment code",
+          "Compatibility KPI needs backend support and redacted provider metadata"
+        ]
+      }
+    },
+    {
+      "key": "coupons",
+      "list_page": {
+        "path": "/admin/coupons",
+        "page_title": "Coupons & Gift Cards",
+        "top_header_actions": [
+          "New/Create when existing toolbar supports it",
+          "Secondary page-specific action where existing toolbar supports it",
+          "Bulk/status/delete only if already present; otherwise do not add"
+        ],
+        "kpi_cards": [
+          {
+            "label": "Total incentives",
+            "value_source": "count coupons/gift cards",
+            "fallback_value": "0",
+            "icon": "fa-ticket",
+            "meaning": "Promotion inventory",
+            "backend_support": "available via model/query if safely exposed"
+          },
+          {
+            "label": "Active",
+            "value_source": "count status enabled",
+            "fallback_value": "0",
+            "icon": "fa-toggle-on",
+            "meaning": "Currently usable incentives",
+            "backend_support": "available via model/query if safely exposed"
+          },
+          {
+            "label": "Gift-card balance",
+            "value_source": "sum balance for gift cards",
+            "fallback_value": "€0.00",
+            "icon": "fa-gift",
+            "meaning": "Outstanding stored value",
+            "backend_support": "available via model/query if safely exposed"
+          },
+          {
+            "label": "Expiring soon",
+            "value_source": "expiry date within 30 days",
+            "fallback_value": "0",
+            "icon": "fa-calendar-xmark",
+            "meaning": "Promotion follow-up",
+            "backend_support": "needs backend support or existing setting lookup"
+          }
+        ],
+        "main_content_card": {
+          "structure": [
+            "Single universal content card containing search/filter controls and existing list/table area",
+            "Preserve existing list widget behavior and row actions",
+            "Mobile may switch table rows to cards in future implementation only after visual QA"
+          ],
+          "columns_or_content": [
+            "name",
+            "code",
+            "card type",
+            "discount type",
+            "discount/balance",
+            "min order",
+            "max uses",
+            "status"
+          ]
+        },
+        "requirements": {
+          "search": "Use existing searchable columns only; do not add backend search now.",
+          "filters": "Expose existing filter scopes only.",
+          "table": "Preserve current columns, row actions, pagination, bulk behavior, and permissions.",
+          "cards": "Mobile card representation may mirror table columns but must remain read-only until implemented safely."
+        },
+        "old_elements_to_hide_or_move": [
+          "Move old in-page title into universal header when implementation begins",
+          "Move existing toolbar buttons into universal top header when safe",
+          "Do not hide legacy actions until replacement actions are verified"
+        ],
+        "risks": [
+          "Balance aggregate must not expose sensitive customer data",
+          "Expiry KPI needs backend support if not indexed/exposed"
+        ]
+      },
+      "form_page": {
+        "paths": [
+          "/admin/coupons/create",
+          "/admin/coupons/edit/{id}"
+        ],
+        "header_actions": [
+          "Back",
+          "Save",
+          "Delete on edit only when existing form toolbar supports delete"
+        ],
+        "section_cards": [
+          {
+            "title": "Identity",
+            "icon": "fa-circle-info",
+            "fields": "Use existing form config fields belonging to this section/tab"
+          },
+          {
+            "title": "Discount setup",
+            "icon": "fa-folder-open",
+            "fields": "Use existing form config fields belonging to this section/tab"
+          },
+          {
+            "title": "Gift card balance/purchase",
+            "icon": "fa-folder-open",
+            "fields": "Use existing form config fields belonging to this section/tab"
+          },
+          {
+            "title": "Redemption limits",
+            "icon": "fa-folder-open",
+            "fields": "Use existing form config fields belonging to this section/tab"
+          },
+          {
+            "title": "Status & expiry",
+            "icon": "fa-folder-open",
+            "fields": "Use existing form config fields belonging to this section/tab"
+          }
+        ],
+        "preview_sidebar": "Use only if existing media/status/summary data is already available; otherwise omit or show safe placeholder.",
+        "risks": [
+          "Balance aggregate must not expose sensitive customer data",
+          "Expiry KPI needs backend support if not indexed/exposed"
+        ]
+      }
+    },
+    {
+      "key": "pos_configs",
+      "list_page": {
+        "path": "/admin/pos_configs",
+        "page_title": "POS configurations",
+        "top_header_actions": [
+          "New/Create when existing toolbar supports it",
+          "Secondary page-specific action where existing toolbar supports it",
+          "Bulk/status/delete only if already present; otherwise do not add"
+        ],
+        "kpi_cards": [
+          {
+            "label": "Total configs",
+            "value_source": "count pos configs",
+            "fallback_value": "0",
+            "icon": "fa-cash-register",
+            "meaning": "Integration records",
+            "backend_support": "available via model/query if safely exposed"
+          },
+          {
+            "label": "Ready2Order",
+            "value_source": "configs whose device code is ready2order",
+            "fallback_value": "0",
+            "icon": "fa-plug",
+            "meaning": "R2O sync coverage",
+            "backend_support": "needs backend support or existing setting lookup"
+          },
+          {
+            "label": "Webhook registered",
+            "value_source": "exists_webhook true",
+            "fallback_value": "0",
+            "icon": "fa-link",
+            "meaning": "Webhook setup status",
+            "backend_support": "needs backend support or existing setting lookup"
+          },
+          {
+            "label": "Needs credentials",
+            "value_source": "missing url/token/username where required",
+            "fallback_value": "0",
+            "icon": "fa-key",
+            "meaning": "Integration setup risk",
+            "backend_support": "available via model/query if safely exposed"
+          }
+        ],
+        "main_content_card": {
+          "structure": [
+            "Single universal content card containing search/filter controls and existing list/table area",
+            "Preserve existing list widget behavior and row actions",
+            "Mobile may switch table rows to cards in future implementation only after visual QA"
+          ],
+          "columns_or_content": [
+            "device",
+            "url",
+            "username",
+            "access token redacted",
+            "application id",
+            "created/updated"
+          ]
+        },
+        "requirements": {
+          "search": "Use existing searchable columns only; do not add backend search now.",
+          "filters": "Expose existing filter scopes only.",
+          "table": "Preserve current columns, row actions, pagination, bulk behavior, and permissions.",
+          "cards": "Mobile card representation may mirror table columns but must remain read-only until implemented safely."
+        },
+        "old_elements_to_hide_or_move": [
+          "Move old in-page title into universal header when implementation begins",
+          "Move existing toolbar buttons into universal top header when safe",
+          "Do not hide legacy actions until replacement actions are verified"
+        ],
+        "risks": [
+          "Secrets must be redacted",
+          "Existing toolbar has integration test/sync actions; do not trigger during QA"
+        ]
+      },
+      "form_page": {
+        "paths": [
+          "/admin/pos_configs/create",
+          "/admin/pos_configs/edit/{id}"
+        ],
+        "header_actions": [
+          "Back",
+          "Save",
+          "Delete on edit only when existing form toolbar supports delete"
+        ],
+        "section_cards": [
+          {
+            "title": "Device",
+            "icon": "fa-circle-info",
+            "fields": "Use existing form config fields belonging to this section/tab"
+          },
+          {
+            "title": "Endpoint",
+            "icon": "fa-folder-open",
+            "fields": "Use existing form config fields belonging to this section/tab"
+          },
+          {
+            "title": "Credentials",
+            "icon": "fa-folder-open",
+            "fields": "Use existing form config fields belonging to this section/tab"
+          },
+          {
+            "title": "Provider-specific fields",
+            "icon": "fa-folder-open",
+            "fields": "Use existing form config fields belonging to this section/tab"
+          },
+          {
+            "title": "Diagnostics/actions",
+            "icon": "fa-folder-open",
+            "fields": "Use existing form config fields belonging to this section/tab"
+          }
+        ],
+        "preview_sidebar": "Use only if existing media/status/summary data is already available; otherwise omit or show safe placeholder.",
+        "risks": [
+          "Secrets must be redacted",
+          "Existing toolbar has integration test/sync actions; do not trigger during QA"
+        ]
+      }
+    }
+  ]
+}
