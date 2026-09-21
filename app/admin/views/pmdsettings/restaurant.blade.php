@@ -373,12 +373,11 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                                         aria-hidden="true"
                                         hidden
                                     >
-                                        <button
-                                            type="button"
+                                        <div
                                             class="pmd-provider-modal__backdrop"
                                             data-pmd-google-business-close-v8
-                                            aria-label="{{ $pmdSettingsText('Close') }}"
-                                        ></button>
+                                            aria-hidden="true"
+                                        ></div>
 
                                         <section
                                             class="pmd-provider-modal__dialog"
