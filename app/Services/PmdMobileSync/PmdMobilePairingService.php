@@ -24,13 +24,17 @@ final class PmdMobilePairingService
     public const INTENT_COOKIE = 'pmd_mobile_pair_intent_v2';
     public const HANDOFF_PARAM = 'pmd_pair';
     private const INTENT_TTL_SECONDS = 900;
-    private const EXCHANGE_TTL_SECONDS = 120;
+    private const EXCHANGE_TTL_SECONDS = 300;
 
     public function rememberIntent(Request $request): void
     {
         $host = strtolower((string)$request->getHost());
         $providedChallenge = trim((string)$request->query('code_challenge', ''));
         $providedRequest = strtolower(trim((string)$request->query('pair_request', '')));
+        $providedDeviceName = trim((string)$request->query(
+            'device_name',
+            'PayMyDine Android Tablet'
+        ));
 
         if ($providedRequest !== '' && !$this->validPairRequest($providedRequest)) {
             throw new \InvalidArgumentException(
@@ -47,6 +51,7 @@ final class PmdMobilePairingService
         $existingHost = strtolower(trim((string)($existing['host'] ?? '')));
         $existingChallenge = trim((string)($existing['code_challenge'] ?? ''));
         $existingRequest = strtolower(trim((string)($existing['pair_request'] ?? '')));
+        $existingDeviceName = trim((string)($existing['device_name'] ?? ''));
 
         $reuseExisting = $providedChallenge === ''
             && $providedRequest === ''
@@ -77,6 +82,13 @@ final class PmdMobilePairingService
             'created_at' => $reuseExisting ? $existingCreated : time(),
             'code_challenge' => $codeChallenge,
             'pair_request' => $pairRequest,
+            'device_name' => mb_substr(
+                $reuseExisting && $existingDeviceName !== ''
+                    ? $existingDeviceName
+                    : ($providedDeviceName !== '' ? $providedDeviceName : 'PayMyDine Android Tablet'),
+                0,
+                128
+            ),
         ];
 
         session()->put(self::SESSION_INTENT, $intent);
@@ -115,6 +127,11 @@ final class PmdMobilePairingService
                     'created_at' => (int)($intent['created_at'] ?? 0),
                     'code_challenge' => trim((string)($intent['code_challenge'] ?? '')),
                     'pair_request' => strtolower(trim((string)($intent['pair_request'] ?? ''))),
+                    'device_name' => mb_substr(
+                        trim((string)($intent['device_name'] ?? 'PayMyDine Android Tablet')),
+                        0,
+                        128
+                    ),
                 ],
                 JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR
             )
@@ -240,6 +257,345 @@ final class PmdMobilePairingService
         }
 
         return admin_url('login');
+    }
+
+    /**
+     * PMD_MOBILE_PAIR_DASHBOARD_APPROVAL_V4
+     *
+     * Pairing no longer asks the requesting browser to approve itself. Once
+     * canonical Login/MFA/Workspace security is complete, create a normal Site
+     * Access challenge. The existing bottom-right restaurant approval surface
+     * on Cashier/Manager/Owner then becomes the only approval UX.
+     */
+    public function beginDashboardApproval(Request $request)
+    {
+        $this->ensureMobileSyncStorage();
+
+        if (!AdminAuth::isLogged() || !$this->hasFreshIntent($request)) {
+            throw new \RuntimeException(
+                'The Android pairing request expired. Start again from the app.'
+            );
+        }
+
+        $site = app(PmdSiteAccessService::class);
+        $identity = $site->identity();
+        $locationId = (int)($identity['location_id'] ?? 0);
+        $userId = (int)($identity['user_id'] ?? 0);
+        $staffId = (int)($identity['staff_id'] ?? 0);
+
+        if (!$site->ready() || $locationId < 1 || $userId < 1 || $staffId < 1) {
+            throw new \RuntimeException(
+                'This PayMyDine account cannot request an Android connection.'
+            );
+        }
+        if (!$site->policyEnabled($locationId)) {
+            throw new \RuntimeException(
+                'Restaurant security must be active before connecting Android devices.'
+            );
+        }
+        if (
+            !$site->isWorkspaceVerified($locationId)
+            || !app(\App\Services\PmdSiteAccessSessionBindingService::class)
+                ->isBoundToCurrentUser()
+        ) {
+            throw new \RuntimeException(
+                'Complete PayMyDine security verification before connecting this device.'
+            );
+        }
+
+        $intent = $this->intent($request);
+        $pairRequest = strtolower(trim((string)($intent['pair_request'] ?? '')));
+        $codeChallenge = trim((string)($intent['code_challenge'] ?? ''));
+        $deviceName = trim((string)($intent['device_name'] ?? 'PayMyDine Android Tablet'));
+
+        if (
+            !$this->validPairRequest($pairRequest)
+            || !$this->validCodeChallenge($codeChallenge)
+        ) {
+            throw new \RuntimeException(
+                'The Android PKCE pairing request is no longer valid.'
+            );
+        }
+
+        $existingRequest = DB::table('pmd_mobile_pair_requests')
+            ->where('pair_request', $pairRequest)
+            ->first();
+
+        if ($existingRequest) {
+            $existingChallenge = DB::table('pmd_site_access_challenges')
+                ->where('id', (int)$existingRequest->challenge_id)
+                ->first();
+
+            if (
+                $existingChallenge
+                && in_array(
+                    (string)$existingChallenge->status,
+                    ['pending', 'approved', 'used'],
+                    true
+                )
+                && now()->lessThan($existingChallenge->expires_at)
+            ) {
+                DB::table('pmd_site_access_challenges')
+                    ->where('id', (int)$existingChallenge->id)
+                    ->update([
+                        'requested_device_name' => mb_substr(
+                            $deviceName !== '' ? $deviceName : 'PayMyDine Android Tablet',
+                            0,
+                            128
+                        ),
+                        'updated_at' => now(),
+                    ]);
+                session()->put(PmdSiteAccessService::SESSION_PENDING, [
+                    'public_id' => (string)$existingChallenge->public_id,
+                    'purpose' => PmdSiteAccessService::PURPOSE_PAIR_STAFF,
+                    'redirect' => admin_url('mobile/pair/start'),
+                ]);
+                return $existingChallenge;
+            }
+        }
+
+        // A browser that already has a personal-device cookie must not silently
+        // self-authorize a new Android installation.
+        $challengeRequest = clone $request;
+        $challengeRequest->cookies->remove(PmdSiteAccessService::STAFF_DEVICE_COOKIE);
+
+        $challenge = $site->beginChallenge(
+            PmdSiteAccessService::PURPOSE_PAIR_STAFF,
+            admin_url('mobile/pair/start'),
+            $challengeRequest
+        );
+
+        if (!$challenge) {
+            throw new \RuntimeException(
+                'The restaurant Android approval request could not be created.'
+            );
+        }
+
+        // PMD_MOBILE_PAIR_APPROVAL_CARD_DEVICE_V5
+        // The dashboard approval card must identify the Android purpose selected
+        // in the app, not the browser that transported Login/MFA.
+        DB::table('pmd_site_access_challenges')
+            ->where('id', (int)$challenge->id)
+            ->update([
+                'requested_device_name' => mb_substr(
+                    $deviceName !== '' ? $deviceName : 'PayMyDine Android Tablet',
+                    0,
+                    128
+                ),
+                'updated_at' => now(),
+            ]);
+
+        DB::table('pmd_mobile_pair_requests')->updateOrInsert(
+            ['pair_request' => $pairRequest],
+            [
+                'challenge_id' => (int)$challenge->id,
+                'code_challenge' => $codeChallenge,
+                'location_id' => $locationId,
+                'user_id' => $userId,
+                'staff_id' => $staffId,
+                'device_name' => mb_substr(
+                    $deviceName !== '' ? $deviceName : 'PayMyDine Android Tablet',
+                    0,
+                    128
+                ),
+                'status' => 'pending',
+                'device_id' => null,
+                'approved_at' => null,
+                'expires_at' => $challenge->expires_at,
+                'updated_at' => now(),
+                'created_at' => now(),
+            ]
+        );
+
+        $site->audit(
+            'mobile_device_pair_requested',
+            true,
+            $identity,
+            null,
+            (int)$challenge->id,
+            $request,
+            [
+                'pair_request' => $pairRequest,
+                'device_name' => $deviceName,
+                'approval_surface' => 'restaurant_inline_approval',
+            ]
+        );
+
+        return $challenge;
+    }
+
+    /**
+     * Called by the existing restaurant approval endpoint after an Owner,
+     * Manager or trusted Cashier approves the Site Access challenge.
+     *
+     * Device creation + one-time PKCE exchange are persisted here, so Android
+     * can finish pairing even if the requesting browser is closed afterwards.
+     */
+    public function completeApprovedChallenge(
+        int $challengeId,
+        int $approvedByDeviceId = 0,
+        ?int $approvedByStaffId = null
+    ): bool {
+        $this->ensureMobileSyncStorage();
+
+        return DB::transaction(function () use (
+            $challengeId,
+            $approvedByDeviceId,
+            $approvedByStaffId
+        ) {
+            $pair = DB::table('pmd_mobile_pair_requests')
+                ->where('challenge_id', $challengeId)
+                ->lockForUpdate()
+                ->first();
+
+            if (!$pair) {
+                return false;
+            }
+
+            if (in_array((string)$pair->status, ['approved', 'exchanged'], true)) {
+                return true;
+            }
+
+            $challenge = DB::table('pmd_site_access_challenges')
+                ->where('id', $challengeId)
+                ->lockForUpdate()
+                ->first();
+
+            if (!$challenge) {
+                throw new \RuntimeException('Android approval request was not found.');
+            }
+            if ((string)$challenge->status !== 'approved') {
+                throw new \RuntimeException(
+                    'Android connection must be approved before device creation.'
+                );
+            }
+            if (now()->greaterThanOrEqualTo($challenge->expires_at)) {
+                DB::table('pmd_mobile_pair_requests')
+                    ->where('id', (int)$pair->id)
+                    ->update([
+                        'status' => 'expired',
+                        'updated_at' => now(),
+                    ]);
+                throw new \RuntimeException('Android connection request expired.');
+            }
+
+            $site = app(PmdSiteAccessService::class);
+            $identity = [
+                'location_id' => (int)$pair->location_id,
+                'user_id' => (int)$pair->user_id,
+                'staff_id' => (int)$pair->staff_id,
+            ];
+            $device = $site->createApprovedMobileDevice(
+                $identity,
+                (string)$pair->device_name,
+                $approvedByDeviceId,
+                $approvedByStaffId
+            );
+
+            $rawExchange = $this->pairExchangeSecret(
+                (string)$pair->pair_request,
+                (string)$pair->code_challenge
+            );
+
+            DB::table('pmd_mobile_pair_exchanges')->updateOrInsert(
+                ['public_id' => (string)$pair->pair_request],
+                [
+                    'exchange_hash' => $this->exchangeHash(
+                        $rawExchange,
+                        (string)$pair->code_challenge
+                    ),
+                    'location_id' => (int)$pair->location_id,
+                    'device_id' => (int)$device->id,
+                    'user_id' => (int)$pair->user_id,
+                    'staff_id' => (int)$pair->staff_id,
+                    'expires_at' => now()->addSeconds(self::EXCHANGE_TTL_SECONDS),
+                    'used_at' => null,
+                    'updated_at' => now(),
+                    'created_at' => now(),
+                ]
+            );
+
+            DB::table('pmd_mobile_pair_requests')
+                ->where('id', (int)$pair->id)
+                ->update([
+                    'status' => 'approved',
+                    'device_id' => (int)$device->id,
+                    'approved_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+            DB::table('pmd_site_access_challenges')
+                ->where('id', $challengeId)
+                ->update([
+                    'status' => 'used',
+                    'used_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+            return true;
+        });
+    }
+
+    public function browserApprovalStatus(Request $request): array
+    {
+        $this->ensureMobileSyncStorage();
+
+        if (!AdminAuth::isLogged() || !$this->hasFreshIntent($request)) {
+            return ['ok' => false, 'status' => 'expired'];
+        }
+
+        $intent = $this->intent($request);
+        $pairRequest = strtolower(trim((string)($intent['pair_request'] ?? '')));
+        $codeChallenge = trim((string)($intent['code_challenge'] ?? ''));
+
+        $pair = DB::table('pmd_mobile_pair_requests')
+            ->where('pair_request', $pairRequest)
+            ->where('code_challenge', $codeChallenge)
+            ->first();
+
+        if (!$pair) {
+            return ['ok' => false, 'status' => 'missing'];
+        }
+
+        $challenge = DB::table('pmd_site_access_challenges')
+            ->where('id', (int)$pair->challenge_id)
+            ->first();
+
+        $status = strtolower((string)($pair->status ?? 'pending'));
+        if ($challenge && (string)$challenge->status === 'declined') {
+            $status = 'declined';
+        }
+        if (
+            now()->greaterThanOrEqualTo($pair->expires_at)
+            && !in_array($status, ['approved', 'exchanged'], true)
+        ) {
+            $status = 'expired';
+        }
+
+        $response = [
+            'ok' => true,
+            'status' => $status,
+            'device_name' => (string)$pair->device_name,
+            'expires_at' => (string)$pair->expires_at,
+        ];
+
+        if ($challenge) {
+            $response['request_code'] = app(PmdSiteAccessService::class)
+                ->challengeCodeForHub($challenge);
+        }
+
+        if (in_array($status, ['approved', 'exchanged'], true)) {
+            $rawExchange = $this->pairExchangeSecret(
+                $pairRequest,
+                $codeChallenge
+            );
+            $response['deep_link'] =
+                'paymydine://pair?exchange='.rawurlencode($rawExchange)
+                .'&tenant='.rawurlencode('https://'.$request->getHost())
+                .'&pair_request='.rawurlencode($pairRequest);
+        }
+
+        return $response;
     }
 
     public function approveVerifiedSession(Request $request): string
@@ -372,6 +728,50 @@ final class PmdMobilePairingService
             $codeChallenge
         );
 
+        $pair = DB::table('pmd_mobile_pair_requests')
+            ->where('pair_request', $pairRequest)
+            ->where('code_challenge', $codeChallenge)
+            ->first();
+        $challenge = $pair
+            ? DB::table('pmd_site_access_challenges')
+                ->where('id', (int)$pair->challenge_id)
+                ->first()
+            : null;
+        $requestCode = $challenge
+            ? app(PmdSiteAccessService::class)->challengeCodeForHub($challenge)
+            : null;
+
+        if (
+            $challenge
+            && (string)$challenge->status === 'declined'
+        ) {
+            DB::table('pmd_mobile_pair_requests')
+                ->where('id', (int)$pair->id)
+                ->update(['status' => 'declined', 'updated_at' => now()]);
+
+            return [
+                'ok' => true,
+                'status' => 'declined',
+                'request_code' => $requestCode,
+            ];
+        }
+
+        if (
+            $pair
+            && now()->greaterThanOrEqualTo($pair->expires_at)
+            && !in_array((string)$pair->status, ['approved', 'exchanged'], true)
+        ) {
+            DB::table('pmd_mobile_pair_requests')
+                ->where('id', (int)$pair->id)
+                ->update(['status' => 'expired', 'updated_at' => now()]);
+
+            return [
+                'ok' => true,
+                'status' => 'expired',
+                'request_code' => $requestCode,
+            ];
+        }
+
         $exchange = DB::table('pmd_mobile_pair_exchanges')
             ->where('public_id', $pairRequest)
             ->where(
@@ -384,6 +784,9 @@ final class PmdMobilePairingService
             return [
                 'ok' => true,
                 'status' => 'pending',
+                'request_code' => $requestCode,
+                'device_name' => $pair ? (string)$pair->device_name : null,
+                'expires_at' => $pair ? (string)$pair->expires_at : null,
             ];
         }
 
@@ -391,6 +794,7 @@ final class PmdMobilePairingService
             return [
                 'ok' => true,
                 'status' => 'used',
+                'request_code' => $requestCode,
             ];
         }
 
@@ -398,6 +802,7 @@ final class PmdMobilePairingService
             return [
                 'ok' => true,
                 'status' => 'expired',
+                'request_code' => $requestCode,
             ];
         }
 
@@ -407,6 +812,7 @@ final class PmdMobilePairingService
             'exchange' => $rawExchange,
             'tenant' => 'https://'.$request->getHost(),
             'expires_at' => (string)$exchange->expires_at,
+            'request_code' => $requestCode,
         ];
     }
 
@@ -501,6 +907,15 @@ final class PmdMobilePairingService
                     'updated_at' => now(),
                 ]);
 
+            if (Schema::hasTable('pmd_mobile_pair_requests')) {
+                DB::table('pmd_mobile_pair_requests')
+                    ->where('pair_request', (string)$exchange->public_id)
+                    ->update([
+                        'status' => 'exchanged',
+                        'updated_at' => now(),
+                    ]);
+            }
+
             $identity = [
                 'location_id' => (int)$exchange->location_id,
                 'user_id' => (int)$exchange->user_id,
@@ -535,6 +950,7 @@ final class PmdMobilePairingService
             'pmd_sync_events',
             'pmd_sync_aggregate_versions',
             'pmd_mobile_edges',
+            'pmd_mobile_pair_requests',
             'pmd_mobile_pair_exchanges',
         ];
 

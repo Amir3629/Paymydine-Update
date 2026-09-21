@@ -5,6 +5,7 @@ namespace Admin\Controllers;
 use Admin\Classes\AdminController;
 use Admin\Facades\AdminAuth;
 use Admin\Services\PmdDefaultStaffRoleService;
+use App\Services\PmdMobileSync\PmdMobilePairingService;
 use App\Services\PmdOwnerTotpService;
 use App\Services\PmdSiteAccessQrService;
 use App\Services\PmdSiteAccessService;
@@ -506,9 +507,55 @@ class Siteaccess extends AdminController
     {
         $request = $request ?: request();
         $id = max(0, (int)$request->input('challenge_id', 0));
-        $ok = AdminAuth::isLogged() && app(PmdSiteAccessService::class)->approveChallenge($id, $request);
-        if ($request->expectsJson()) return response()->json(['ok' => $ok], $ok ? 200 : 422);
-        return redirect(admin_url('siteaccess/hub'))->with($ok ? 'success' : 'error', $ok ? 'Login request approved.' : 'Could not approve this login request.');
+        $service = app(PmdSiteAccessService::class);
+        $challenge = $id > 0
+            ? DB::table('pmd_site_access_challenges')->where('id', $id)->first()
+            : null;
+        $ok = AdminAuth::isLogged() && $service->approveChallenge($id, $request);
+
+        if (
+            $ok
+            && $challenge
+            && (string)($challenge->purpose ?? '') === PmdSiteAccessService::PURPOSE_PAIR_STAFF
+        ) {
+            try {
+                $approved = DB::table('pmd_site_access_challenges')
+                    ->where('id', $id)
+                    ->first();
+
+                app(PmdMobilePairingService::class)->completeApprovedChallenge(
+                    $id,
+                    (int)($approved->approved_by_device_id ?? 0),
+                    (int)($approved->approved_by_staff_id ?? 0) ?: null
+                );
+            } catch (\Throwable $error) {
+                DB::table('pmd_site_access_challenges')
+                    ->where('id', $id)
+                    ->whereIn('status', ['approved', 'used'])
+                    ->update([
+                        'status' => 'pending',
+                        'approved_by_device_id' => null,
+                        'approved_by_staff_id' => null,
+                        'approved_at' => null,
+                        'used_at' => null,
+                        'updated_at' => now(),
+                    ]);
+                $ok = false;
+                logger()->error('PMD Android dashboard pairing completion failed', [
+                    'challenge_id' => $id,
+                    'message' => $error->getMessage(),
+                ]);
+            }
+        }
+
+        if ($request->expectsJson()) {
+            return response()->json(['ok' => $ok], $ok ? 200 : 422);
+        }
+
+        return redirect(admin_url('siteaccess/hub'))->with(
+            $ok ? 'success' : 'error',
+            $ok ? 'Login request approved.' : 'Could not approve this login request.'
+        );
     }
 
     public function decline(Request $request = null)

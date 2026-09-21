@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Admin\Facades\AdminAuth;
 use Admin\Services\PmdDefaultStaffRoleService;
 use App\Services\PmdRestaurantApprovalPresenceService;
+use App\Services\PmdMobileSync\PmdMobilePairingService;
 use App\Services\PmdSiteAccessQrService;
 use App\Services\PmdSiteAccessService;
 use App\Services\PmdSiteAccessSessionBindingService;
@@ -23,6 +24,7 @@ class PmdRestaurantSignInApprovalController
         if (!$authority) return $this->forbidden();
 
         $identity = $authority['identity'];
+        $site = $authority['site'];
         $locationId = (int)$identity['location_id'];
 
         // This is intentionally cache-only presence. The UI polls frequently;
@@ -41,7 +43,10 @@ class PmdRestaurantSignInApprovalController
             ->where('pmd_site_access_challenges.expires_at', '>', now())
             ->select([
                 'pmd_site_access_challenges.id',
+                'pmd_site_access_challenges.public_id',
+                'pmd_site_access_challenges.location_id',
                 'pmd_site_access_challenges.staff_id',
+                'pmd_site_access_challenges.purpose',
                 'pmd_site_access_challenges.requested_device_name',
                 'pmd_site_access_challenges.expires_at',
                 'pmd_site_access_challenges.created_at',
@@ -50,12 +55,14 @@ class PmdRestaurantSignInApprovalController
             ->orderBy('pmd_site_access_challenges.created_at')
             ->limit(8)
             ->get()
-            ->map(function ($item) {
+            ->map(function ($item) use ($site) {
                 return [
                     'id' => (int)$item->id,
                     'staff_id' => (int)($item->staff_id ?? 0),
                     'staff_name' => (string)($item->staff_name ?: 'Team member'),
                     'device_name' => (string)($item->requested_device_name ?: 'Browser device'),
+                    'purpose' => (string)($item->purpose ?? ''),
+                    'request_code' => $site->challengeCodeForHub($item),
                     'expires_at' => (string)$item->expires_at,
                 ];
             })
@@ -147,6 +154,36 @@ class PmdRestaurantSignInApprovalController
 
         if ($updated !== 1) {
             return response()->json(['ok' => false, 'message' => 'Login request changed.'], 409);
+        }
+
+        if (
+            $approve
+            && (string)($challenge->purpose ?? '') === PmdSiteAccessService::PURPOSE_PAIR_STAFF
+        ) {
+            try {
+                app(PmdMobilePairingService::class)->completeApprovedChallenge(
+                    $challengeId,
+                    (int)($authority['device_id'] ?? 0),
+                    (int)($identity['staff_id'] ?? 0) ?: null
+                );
+            } catch (\Throwable $error) {
+                DB::table('pmd_site_access_challenges')
+                    ->where('id', $challengeId)
+                    ->whereIn('status', ['approved', 'used'])
+                    ->update([
+                        'status' => 'pending',
+                        'approved_by_device_id' => null,
+                        'approved_by_staff_id' => null,
+                        'approved_at' => null,
+                        'used_at' => null,
+                        'updated_at' => now(),
+                    ]);
+
+                return response()->json([
+                    'ok' => false,
+                    'message' => $error->getMessage(),
+                ], 409);
+            }
         }
 
         /** @var PmdSiteAccessService $site */

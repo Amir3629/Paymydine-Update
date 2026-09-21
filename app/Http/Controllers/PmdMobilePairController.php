@@ -30,8 +30,14 @@ final class PmdMobilePairController extends Controller
                 return $security;
             }
 
+            $pairing->beginDashboardApproval($request);
+            $status = $pairing->browserApprovalStatus($request);
+
             return response(
-                $this->approvalPage((string)$request->getHost()),
+                $this->waitingPage(
+                    (string)$request->getHost(),
+                    (string)($status['request_code'] ?? '')
+                ),
                 200,
                 [
                     'Content-Type' => 'text/html; charset=UTF-8',
@@ -121,6 +127,23 @@ final class PmdMobilePairController extends Controller
         }
     }
 
+    /** PMD_MOBILE_PAIR_DASHBOARD_WAIT_V4 */
+    public function wait(Request $request, PmdMobilePairingService $pairing)
+    {
+        if (!AdminAuth::isLogged()) {
+            return response()->json([
+                'ok' => false,
+                'status' => 'authentication_required',
+            ], 401, ['Cache-Control' => 'no-store, private']);
+        }
+
+        return response()->json(
+            $pairing->browserApprovalStatus($request),
+            200,
+            ['Cache-Control' => 'no-store, private']
+        );
+    }
+
     public function status(Request $request, PmdMobilePairingService $pairing)
     {
         $data = $request->validate([
@@ -169,33 +192,68 @@ final class PmdMobilePairController extends Controller
         );
     }
 
-    private function approvalPage(string $host): string
+    private function waitingPage(string $host, string $requestCode): string
     {
         $safeHost = htmlspecialchars($host, ENT_QUOTES, 'UTF-8');
-        $action = htmlspecialchars(
-            admin_url('mobile/pair/approve'),
+        $code = preg_replace('/\D+/', '', $requestCode);
+        $safeCode = htmlspecialchars(
+            strlen($code) === 6
+                ? substr($code, 0, 3).' '.substr($code, 3)
+                : '--- ---',
             ENT_QUOTES,
             'UTF-8'
         );
-        $csrf = htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8');
+        $waitUrl = htmlspecialchars(
+            admin_url('mobile/pair/wait'),
+            ENT_QUOTES,
+            'UTF-8'
+        );
+        $logo = htmlspecialchars(
+            url('/app/admin/assets/images/pmd-brand-mark.svg'),
+            ENT_QUOTES,
+            'UTF-8'
+        );
 
         return '<!doctype html><html><head><meta charset="utf-8">'
             .'<meta name="viewport" content="width=device-width,initial-scale=1">'
-            .'<title>Connect PayMyDine</title>'
+            .'<title>Connect PayMyDine Android</title>'
             .'<style>'
-            .'body{margin:0;background:#f6f8f7;color:#102f2a;font-family:system-ui,-apple-system,sans-serif}'
-            .'.card{max-width:460px;margin:12vh auto;padding:28px;background:#fff;border:1px solid #dce8e4;border-radius:22px;box-shadow:0 18px 50px rgba(7,48,41,.09)}'
-            .'h1{margin:0 0 10px;font-size:26px}p{color:#667a74;line-height:1.5}'
-            .'button{width:100%;height:52px;border:0;border-radius:14px;background:#073f35;color:#fff;font-size:16px;font-weight:800;cursor:pointer}'
-            .'.host{padding:12px 14px;border-radius:12px;background:#f1f7f5;font-weight:750;margin:18px 0}'
+            .':root{color-scheme:light}*{box-sizing:border-box}'
+            .'body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px;background:#f4f8f6;color:#17342f;font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif}'
+            .'.card{width:min(520px,100%);padding:30px;border:1px solid #d9e6e2;border-radius:24px;background:#fff;box-shadow:0 24px 70px rgba(5,42,36,.12)}'
+            .'.brand{display:flex;align-items:center;gap:13px}.brand img{width:52px;height:52px;object-fit:contain}.brand strong{font-size:20px;letter-spacing:-.02em}'
+            .'h1{margin:26px 0 8px;font-size:27px;letter-spacing:-.03em}p{margin:0;color:#687a75;line-height:1.55}'
+            .'.codebox{margin:24px 0 14px;padding:20px;border:1px solid #c8dfd7;border-radius:18px;background:#f1f8f5;text-align:center}'
+            .'.label{color:#6c7c78;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em}.code{margin-top:8px;color:#063f36;font-size:38px;font-weight:950;letter-spacing:.14em;font-variant-numeric:tabular-nums}'
+            .'.steps{display:grid;gap:8px;margin-top:18px;padding:0;list-style:none}.steps li{display:flex;gap:10px;align-items:flex-start;color:#49635c;font-size:13px;line-height:1.45}.n{display:grid;place-items:center;flex:0 0 24px;height:24px;border-radius:999px;background:#063f36;color:#fff;font-size:11px;font-weight:900}'
+            .'.status{margin-top:20px;padding:12px 14px;border-radius:13px;background:#fbfcfc;color:#567069;font-size:12px;font-weight:750}.host{margin-top:12px;color:#8a9995;font-size:11px;text-align:center}'
             .'</style></head><body><main class="card">'
-            .'<h1>Connect this Android device?</h1>'
-            .'<p>Your PayMyDine security check is complete. Confirm once to connect this tablet to the restaurant.</p>'
+            .'<div class="brand"><img src="'.$logo.'" alt=""><strong>PayMyDine</strong></div>'
+            .'<h1>Approve this Android device</h1>'
+            .'<p>No second confirmation page is required here. The connection request is waiting on an already trusted restaurant dashboard.</p>'
+            .'<div class="codebox"><div class="label">Connection code</div><div class="code" data-code>'.$safeCode.'</div></div>'
+            .'<ul class="steps">'
+            .'<li><span class="n">1</span><span>Open PayMyDine on a trusted Cashier, Manager or Owner dashboard.</span></li>'
+            .'<li><span class="n">2</span><span>Tap the small security/person icon at the bottom-right.</span></li>'
+            .'<li><span class="n">3</span><span>Match this six-digit code and approve the Android connection card.</span></li>'
+            .'</ul>'
+            .'<div class="status" data-status>Waiting for restaurant approval…</div>'
             .'<div class="host">'.$safeHost.'</div>'
-            .'<form method="post" action="'.$action.'">'
-            .'<input type="hidden" name="_token" value="'.$csrf.'">'
-            .'<button type="submit">Connect device</button>'
-            .'</form></main></body></html>';
+            .'</main><script>'
+            .'(function(){'
+            .'var u='.json_encode($waitUrl, JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT).';'
+            .'var s=document.querySelector("[data-status]"),c=document.querySelector("[data-code]");'
+            .'function fmt(v){v=String(v||"").replace(/\D+/g,"").slice(0,6);return v.length===6?v.slice(0,3)+" "+v.slice(3):"--- ---"}'
+            .'function poll(){fetch(u,{credentials:"same-origin",cache:"no-store",headers:{"Accept":"application/json","X-Requested-With":"XMLHttpRequest"}})'
+            .'.then(function(r){if(r.status===401){throw new Error("Sign-in expired.");}return r.json();})'
+            .'.then(function(d){if(d.request_code)c.textContent=fmt(d.request_code);'
+            .'if(d.status==="approved"||d.status==="exchanged"){s.textContent="Approved. Returning to PayMyDine…";if(d.deep_link)setTimeout(function(){location.href=d.deep_link;},120);return;}'
+            .'if(d.status==="declined"){s.textContent="Connection declined. Return to the PayMyDine app and try again.";return;}'
+            .'if(d.status==="expired"){s.textContent="Connection request expired. Return to the PayMyDine app and try again.";return;}'
+            .'s.textContent="Waiting for restaurant approval…";setTimeout(poll,1400);})'
+            .'.catch(function(e){s.textContent=e.message||"Waiting for approval…";setTimeout(poll,2500);});}'
+            .'poll();})();'
+            .'</script></body></html>';
     }
 
     private function approvedPage(string $deepLink): string

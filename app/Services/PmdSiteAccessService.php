@@ -464,7 +464,9 @@ class PmdSiteAccessService
 
         $publicId = (string)Str::uuid();
         $code = $this->challengeCode($publicId, $identity['location_id']);
-        $expiresAt = now()->addSeconds(90);
+        $expiresAt = now()->addSeconds(
+            $purpose === self::PURPOSE_PAIR_STAFF ? 300 : 90
+        );
 
         $id = DB::table('pmd_site_access_challenges')->insertGetId([
             'public_id' => $publicId,
@@ -868,6 +870,93 @@ class PmdSiteAccessService
             null,
             $request,
             ['protocol' => 'pmd-sync-v1']
+        );
+
+        return $device;
+    }
+
+    /**
+     * Create the durable staff-personal row for an Android pairing request that
+     * was approved from the restaurant approval surface. The temporary token
+     * created here is never returned; the PKCE exchange rotates it exactly once
+     * before Android receives any bearer credential.
+     */
+    public function createApprovedMobileDevice(
+        array $identity,
+        string $deviceName,
+        int $approvedByDeviceId = 0,
+        ?int $approvedByStaffId = null
+    ) {
+        if (!$this->ready()) {
+            throw new \RuntimeException('PayMyDine Site Access storage is not ready.');
+        }
+
+        $locationId = (int)($identity['location_id'] ?? 0);
+        $userId = (int)($identity['user_id'] ?? 0);
+        $staffId = (int)($identity['staff_id'] ?? 0);
+
+        if ($locationId < 1 || $userId < 1 || $staffId < 1) {
+            throw new \RuntimeException(
+                'The Android pairing request no longer has a valid restaurant identity.'
+            );
+        }
+
+        $safeName = trim($deviceName);
+        if ($safeName === '') $safeName = 'PayMyDine Android';
+        $safeName = mb_substr($safeName, 0, 128);
+
+        $rawPlaceholder = bin2hex(random_bytes(32));
+        $values = [
+            'location_id' => $locationId,
+            'device_kind' => 'staff_personal',
+            'staff_id' => $staffId,
+            'pos_device_id' => null,
+            'device_name' => $safeName,
+            'token_hash' => $this->tokenHash($rawPlaceholder),
+            'capabilities' => json_encode([
+                'staff_portal',
+                'mobile_app',
+                'mobile_sync_v1',
+            ]),
+            'platform_info' => json_encode([
+                'name' => $safeName,
+                'platform' => 'android',
+                'pairing' => 'restaurant_inline_approval',
+            ]),
+            'paired_by_staff_id' => $approvedByStaffId ?: null,
+            'paired_at' => now(),
+            'last_seen_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ];
+
+        if (
+            Schema::hasColumn('pmd_site_access_devices', 'user_id')
+        ) {
+            $values['user_id'] = $userId;
+        }
+
+        $deviceId = DB::table('pmd_site_access_devices')->insertGetId($values);
+        $device = DB::table('pmd_site_access_devices')
+            ->where('id', $deviceId)
+            ->first();
+
+        if (!$device) {
+            throw new \RuntimeException('The approved Android device could not be created.');
+        }
+
+        $this->audit(
+            'mobile_device_pair_approved',
+            true,
+            $identity,
+            (int)$deviceId,
+            null,
+            request(),
+            [
+                'approved_by_device_id' => $approvedByDeviceId ?: null,
+                'approved_by_staff_id' => $approvedByStaffId,
+                'protocol' => 'pmd-sync-v1',
+            ]
         );
 
         return $device;
