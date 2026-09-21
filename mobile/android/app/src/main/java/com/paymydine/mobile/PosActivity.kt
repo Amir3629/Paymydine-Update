@@ -21,6 +21,9 @@ import android.webkit.WebViewClient
 import android.widget.FrameLayout
 import android.widget.TextView
 import androidx.activity.ComponentActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import java.net.URI
 
 /**
@@ -55,8 +58,25 @@ class PosActivity : ComponentActivity() {
             return
         }
 
+        // PMD_ANDROID_POS_SYSTEM_INSETS_V8
+        // Target SDK 36 uses edge-to-edge windows. Handle status/navigation
+        // bars explicitly so the POS WebView's measured height is the usable
+        // restaurant workspace, not the physical display including system UI.
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+
         root = FrameLayout(this).apply {
             setBackgroundColor(Color.rgb(244, 246, 248))
+        }
+        ViewCompat.setOnApplyWindowInsetsListener(root) { view, insets ->
+            val safe = insets.getInsets(
+                WindowInsetsCompat.Type.systemBars() or
+                    WindowInsetsCompat.Type.displayCutout(),
+            )
+            view.setPadding(safe.left, safe.top, safe.right, safe.bottom)
+            webView?.post {
+                webView?.let(::synchronizeViewport)
+            }
+            insets
         }
         loading = TextView(this).apply {
             text = "Opening PayMyDine POS..."
@@ -74,6 +94,7 @@ class PosActivity : ComponentActivity() {
             ),
         )
         setContentView(root)
+        ViewCompat.requestApplyInsets(root)
 
         // Do not construct WebView during Activity inflation. The window can
         // still report transitional dimensions at that point on Samsung
@@ -443,19 +464,51 @@ class PosActivity : ComponentActivity() {
         loading.bringToFront()
     }
 
+    // PMD_ANDROID_POS_CSS_PIXEL_VIEWPORT_V8
+    // Android View dimensions are physical pixels; CSS px inside WebView are
+    // density/page-scale adjusted. V13 incorrectly copied view.height directly
+    // into CSS px, making the POS root too tall on high-density tablets and
+    // pushing Pay/Profile/table actions below the visible screen.
     private fun synchronizeViewport(view: WebView) {
         if (view !== webView || isFinishing) return
 
         view.post {
             if (view !== webView || isFinishing) return@post
 
-            val nativeWidth = view.width.coerceAtLeast(1)
-            val nativeHeight = view.height.coerceAtLeast(1)
+            val nativeWidthPx = view.width.coerceAtLeast(1)
+            val nativeHeightPx = view.height.coerceAtLeast(1)
             view.evaluateJavascript(
                 """
                 (function(){
-                  var w = ${nativeWidth};
-                  var h = ${nativeHeight};
+                  var dpr = Math.max(1, Number(window.devicePixelRatio) || 1);
+                  var vv = window.visualViewport;
+                  var doc = document.documentElement;
+
+                  var nativeCssWidth = ${nativeWidthPx} / dpr;
+                  var nativeCssHeight = ${nativeHeightPx} / dpr;
+                  var innerWidth = Number(window.innerWidth) || 0;
+                  var innerHeight = Number(window.innerHeight) || 0;
+                  var clientWidth = Number(doc.clientWidth) || 0;
+                  var clientHeight = Number(doc.clientHeight) || 0;
+                  var visualWidth = vv ? (Number(vv.width) || 0) : 0;
+                  var visualHeight = vv ? (Number(vv.height) || 0) : 0;
+
+                  function smallestPositive(values, fallback) {
+                    var positive = values.filter(function(value) {
+                      return Number.isFinite(value) && value > 1;
+                    });
+                    if (!positive.length) return Math.max(1, Math.round(fallback));
+                    return Math.max(1, Math.round(Math.min.apply(Math, positive)));
+                  }
+
+                  var w = smallestPositive(
+                    [visualWidth, innerWidth, clientWidth],
+                    nativeCssWidth
+                  );
+                  var h = smallestPositive(
+                    [visualHeight, innerHeight, clientHeight],
+                    nativeCssHeight
+                  );
 
                   document.documentElement.style.setProperty(
                     '--pmd-android-viewport-width',
@@ -474,18 +527,29 @@ class PosActivity : ComponentActivity() {
                     root.style.maxHeight = h + 'px';
                     root.style.minWidth = '0';
                     root.style.display = 'grid';
+                    root.style.boxSizing = 'border-box';
                     void root.offsetWidth;
                     void root.offsetHeight;
                   }
 
                   window.dispatchEvent(new Event('resize'));
-                  window.dispatchEvent(new Event('orientationchange'));
-                  if (window.visualViewport) {
+                  if (vv) {
                     try {
-                      window.visualViewport.dispatchEvent(new Event('resize'));
+                      vv.dispatchEvent(new Event('resize'));
                     } catch (e) {}
                   }
-                  return true;
+
+                  return JSON.stringify({
+                    width: w,
+                    height: h,
+                    dpr: dpr,
+                    nativeWidthPx: ${nativeWidthPx},
+                    nativeHeightPx: ${nativeHeightPx},
+                    innerWidth: innerWidth,
+                    innerHeight: innerHeight,
+                    visualWidth: visualWidth,
+                    visualHeight: visualHeight
+                  });
                 })()
                 """.trimIndent(),
                 null,
