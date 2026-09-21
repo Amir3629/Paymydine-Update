@@ -831,6 +831,28 @@
     return null;
   }
 
+  /* PMD_QPOS_MAP_RAIL_SCROLL_V46
+   * When a table is chosen from the full-screen map, return to POS with the
+   * selected table already visible in the table rail. No smooth wait. */
+  function scrollTableRailToV46(tableId) {
+    tableId = Number(tableId || 0);
+    if (!tableId) return;
+
+    var grid = $('[data-qpos-tables]');
+    if (!grid) return;
+
+    var button = grid.querySelector(
+      '[data-qpos-table="' + String(tableId) + '"]'
+    );
+    if (!button) return;
+
+    var top =
+      button.offsetTop -
+      Math.max(0, (grid.clientHeight - button.offsetHeight) / 2);
+
+    grid.scrollTop = Math.max(0, top);
+  }
+
   async function openExactFloorTable(node) {
     var table = exactFloorPosTableFromNode(node);
 
@@ -846,6 +868,10 @@
       Number(state.selectedTable.id) === Number(table.id)
     ) {
       closeFloorMap();
+
+      window.requestAnimationFrame(function () {
+        scrollTableRailToV46(table.id);
+      });
     }
   }
 
