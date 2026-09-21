@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PayMyDine Cashier Setup</title>
+  <style>
+    :root { font-family: Inter, Arial, sans-serif; color: #17324d; background: #f8fbfd; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 28px; }
+    .card { width: 100%; max-width: 470px; background: #fff; border: 1px solid #dbe6ee; border-radius: 18px; padding: 28px; box-shadow: 0 12px 40px rgba(31, 60, 88, .08); }
+    .mark { width: 48px; height: 48px; border-radius: 14px; display: grid; place-items: center; background: #163a5f; color: #fff; font-weight: 800; letter-spacing: .5px; }
+    h1 { margin: 18px 0 8px; font-size: 25px; }
+    p { margin: 0 0 22px; line-height: 1.55; color: #5b7185; }
+    label { display: block; font-weight: 700; margin-bottom: 8px; }
+    .domain { display: flex; align-items: stretch; }
+    input { min-width: 0; flex: 1; height: 48px; border: 1px solid #cfdde7; border-right: 0; border-radius: 12px 0 0 12px; padding: 0 14px; font-size: 16px; outline: none; }
+    input:focus { border-color: #4c779b; box-shadow: 0 0 0 3px rgba(76,119,155,.12); }
+    .suffix { display: grid; place-items: center; padding: 0 13px; border: 1px solid #cfdde7; border-radius: 0 12px 12px 0; background: #f5f8fa; color: #657d90; font-size: 14px; white-space: nowrap; }
+    button { width: 100%; height: 48px; margin-top: 16px; border: 0; border-radius: 12px; background: #163a5f; color: #fff; font-size: 16px; font-weight: 800; cursor: pointer; }
+    .hint { margin-top: 12px; font-size: 13px; color: #7890a4; line-height: 1.45; }
+    .error { min-height: 20px; margin-top: 12px; color: #b42318; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <div class="mark">PMD</div>
+    <h1>Set up this Cashier POS</h1>
+    <p>Choose the restaurant once. Then sign in with the normal PayMyDine username and password.</p>
+    <form id="setup-form">
+      <label for="tenant">Restaurant code</label>
+      <div class="domain">
+        <input id="tenant" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="a" required>
+        <span class="suffix">.paymydine.com</span>
+      </div>
+      <button type="submit">Continue</button>
+      <div class="hint">Examples: <b>a</b>, <b>mimoza</b>, <b>tomo</b>. You can change the restaurant later from the PayMyDine menu.</div>
+      <div class="error" id="error" role="alert"></div>
+    </form>
+  </main>
+  <script src="./setup.js"></script>
+</body>
+</html>
