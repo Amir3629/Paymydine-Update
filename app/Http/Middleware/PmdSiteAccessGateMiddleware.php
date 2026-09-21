@@ -127,31 +127,42 @@ class PmdSiteAccessGateMiddleware
 
         $response = $next($request);
 
-        // PMD_TRUSTED_DEVICE_REMEMBER_V1
-        // Only a genuinely verified + session-bound response can create or renew
-        // the persistent browser token. Merely knowing the password never does.
-        try {
-            $response = app(PmdTrustedLoginDeviceService::class)
-                ->rememberVerifiedResponse($request, $response);
-        } catch (\Throwable $error) {
-            logger()->warning('PMD trusted login device remember failed', [
-                'message' => $error->getMessage(),
-                'path' => $request->path(),
-            ]);
-        }
+        // PMD_MOBILE_ANDROID_NO_BROWSER_TRUST_V1
+        // A paired Android WebView already has its own revocable Keystore-backed
+        // device credential. Never mint/renew a second persistent browser-trust
+        // credential from that embedded session.
+        $mobileAndroidSession = (string)session()->get(
+            PmdSiteAccessService::SESSION_VERIFIED_METHOD,
+            ''
+        ) === 'mobile_android_device';
 
-        if ($trustedDeviceBeforeResponse) {
+        if (!$mobileAndroidSession) {
+            // PMD_TRUSTED_DEVICE_REMEMBER_V1
+            // Only a genuinely verified + session-bound response can create or renew
+            // the persistent browser token. Merely knowing the password never does.
             try {
                 $response = app(PmdTrustedLoginDeviceService::class)
-                    ->renewExistingCookie($request, $response);
+                    ->rememberVerifiedResponse($request, $response);
             } catch (\Throwable $error) {
-                logger()->warning(
-                    'PMD trusted cookie logout preservation failed',
-                    [
-                        'message' => $error->getMessage(),
-                        'path' => $request->path(),
-                    ]
-                );
+                logger()->warning('PMD trusted login device remember failed', [
+                    'message' => $error->getMessage(),
+                    'path' => $request->path(),
+                ]);
+            }
+
+            if ($trustedDeviceBeforeResponse) {
+                try {
+                    $response = app(PmdTrustedLoginDeviceService::class)
+                        ->renewExistingCookie($request, $response);
+                } catch (\Throwable $error) {
+                    logger()->warning(
+                        'PMD trusted cookie logout preservation failed',
+                        [
+                            'message' => $error->getMessage(),
+                            'path' => $request->path(),
+                        ]
+                    );
+                }
             }
         }
 
