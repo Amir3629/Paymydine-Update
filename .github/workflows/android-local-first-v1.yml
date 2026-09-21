@@ -53,6 +53,7 @@ jobs:
           set -euo pipefail
           php -l app/system/database/migrations/2026_09_20_190000_create_pmd_mobile_sync_tables.php
           php -l app/Services/PmdMobileSync/PmdMobileDeviceAuthService.php
+          php -l app/Services/PmdMobileSync/PmdMobileStaffGrantService.php
           php -l app/Services/PmdMobileSync/PmdMobileBootstrapService.php
           php -l app/Services/PmdMobileSync/PmdMobilePairingService.php
           php -l app/Services/PmdMobileSync/PmdMobileCommandProcessor.php
@@ -141,6 +142,10 @@ jobs:
           grep -q "PMD_ANDROID_ROLE_WORKSPACE_ACTIVITY_V1" mobile/android/app/src/main/java/com/paymydine/mobile/RoleWorkspaceActivity.kt
           grep -q 'android:name=".RoleWorkspaceActivity"' mobile/android/app/src/main/AndroidManifest.xml
           grep -q "workspace/authorize" routes/pmd-mobile-sync-v1.php
+          grep -q "PMD_MOBILE_STAFF_GRANT_V1" app/Services/PmdMobileSync/PmdMobileStaffGrantService.php
+          grep -q "PMD_MOBILE_STAFF_GRANT_OVERRIDE_V1" app/Services/PmdMobileSync/PmdMobileDeviceAuthService.php
+          grep -q "X-PayMyDine-Staff-Grant" mobile/android/app/src/main/java/com/paymydine/mobile/network/MobileApiClient.kt
+          grep -q "authorizeStaff" mobile/android/app/src/main/java/com/paymydine/mobile/network/MobileApiClient.kt
           grep -q "authorizeWorkspace" mobile/android/app/src/main/java/com/paymydine/mobile/network/MobileApiClient.kt
           grep -q "workspaceLeaseValid" mobile/android/app/src/main/java/com/paymydine/mobile/security/DeviceCredentialStore.kt
           grep -q "PMD_ANDROID_POS_OFFLINE_FAILOVER_V9" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
