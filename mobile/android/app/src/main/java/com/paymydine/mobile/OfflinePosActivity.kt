@@ -29,6 +29,7 @@ import com.paymydine.mobile.network.TransportKind
 import com.paymydine.mobile.network.TransportRouter
 import com.paymydine.mobile.sync.SyncEngine
 import com.paymydine.mobile.ui.LocalPosScreen
+import com.paymydine.mobile.ui.PmdTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
@@ -202,7 +203,7 @@ private fun OfflinePosShell(
         }
     }
 
-    MaterialTheme {
+    PmdTheme {
         Surface(
             modifier = Modifier.fillMaxSize(),
         ) {
