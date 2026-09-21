@@ -37,6 +37,11 @@
         </receiver>
 
         <activity
+            android:name=".PosActivity"
+            android:exported="false"
+            android:screenOrientation="sensorLandscape" />
+
+        <activity
             android:name=".MainActivity"
             android:exported="true"
             android:launchMode="singleTask"
