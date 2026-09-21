@@ -114,6 +114,22 @@ final class PmdMobilePairingService
         return admin_url('login');
     }
 
+    public function approveVerifiedSession(Request $request): string
+    {
+        if (!AdminAuth::isLogged() || !$this->hasFreshIntent($request)) {
+            throw new \RuntimeException(
+                'The Android pairing request expired. Start again from the app.'
+            );
+        }
+
+        $this->ensureMobileSyncStorage();
+
+        $site = app(PmdSiteAccessService::class);
+        $site->pairCurrentVerifiedPersonalDevice($request);
+
+        return $this->finish($request);
+    }
+
     public function finish(Request $request): string
     {
         if (!AdminAuth::isLogged() || !$this->hasFreshIntent($request)) {
