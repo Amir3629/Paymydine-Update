@@ -3772,6 +3772,12 @@ function renderOpenChecks() {
     );
 
     await loadPaymentSummary(false);
+
+    if (state.payment.open && state.payment.method === 'cash') {
+      window.requestAnimationFrame(function () {
+        focusPaymentKeypadTargetV46('cash');
+      });
+    }
   }
 
   function closePayment() {
