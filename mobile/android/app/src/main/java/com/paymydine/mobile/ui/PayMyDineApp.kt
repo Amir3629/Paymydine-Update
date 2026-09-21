@@ -410,13 +410,7 @@ fun PayMyDineApp(app: PayMyDineApplication) {
                     },
                     online = online,
                     pairingStatus = pairingStatus,
-                    bootstrapSummary = bootstrapSummary,
                     lastError = lastError,
-                    runtime = when (runtimeKind) {
-                        TransportKind.EDGE -> "Restaurant Edge"
-                        TransportKind.CLOUD -> "Cloud"
-                        TransportKind.OFFLINE -> "Offline"
-                    },
                     onConnect = {
                         val host = "${tenantCode}.paymydine.com"
                         val verifier = PairingPkce.newVerifier()
@@ -457,40 +451,30 @@ private fun Onboarding(
     onTenantCode: (String) -> Unit,
     online: Boolean,
     pairingStatus: String,
-    bootstrapSummary: BootstrapSummary?,
     lastError: String?,
-    runtime: String,
     onConnect: () -> Unit,
 ) {
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
+            .padding(horizontal = 28.dp, vertical = 34.dp),
+        verticalArrangement = Arrangement.Center,
     ) {
-        Text("PayMyDine", style = MaterialTheme.typography.headlineLarge)
         Text(
-            "Native Android · Local-First",
-            style = MaterialTheme.typography.titleMedium,
+            "PayMyDine",
+            style = MaterialTheme.typography.headlineLarge,
         )
-
-        StatusCard(
-            "Runtime",
-            runtime,
-            "The app renders durable SQLite state. It is not a WebView.",
+        Text(
+            "Connect this tablet",
+            modifier = Modifier.padding(top = 6.dp),
+            style = MaterialTheme.typography.titleLarge,
         )
-        StatusCard(
-            "Device trust",
-            pairingStatus,
-            "Password, MFA and restaurant approval stay in the official PayMyDine security flow.",
-        )
-        StatusCard(
-            "Local database",
-            if (bootstrapSummary != null) "Seeded" else "Waiting",
-            bootstrapSummary?.let {
-                "${it.menuItems} menu items · ${it.tables} tables · ${it.kdsStations} KDS stations"
-            } ?: "Pair once online to seed menu, tables and permissions.",
+        Text(
+            "Enter your restaurant code. Secure sign-in opens in your browser once and then returns to the app automatically.",
+            modifier = Modifier.padding(top = 10.dp, bottom = 26.dp),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
         OutlinedTextField(
@@ -498,48 +482,55 @@ private fun Onboarding(
             value = tenantCode,
             onValueChange = onTenantCode,
             label = { Text("Restaurant code") },
+            placeholder = { Text("your-restaurant") },
             singleLine = true,
         )
 
         Button(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 14.dp),
             enabled = tenantCode.isNotBlank() && online,
             onClick = onConnect,
         ) {
-            Text("Connect this Android device")
+            Text("Connect")
+        }
+
+        if (!online) {
+            Text(
+                "Internet is required for the first connection.",
+                modifier = Modifier.padding(top = 12.dp),
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
+            )
+        } else if (
+            pairingStatus != "Not paired" &&
+            pairingStatus != "Ready offline"
+        ) {
+            Text(
+                when (pairingStatus) {
+                    "Opening PayMyDine security..." ->
+                        "Complete the secure step in your browser. PayMyDine will return here automatically."
+                    "Finishing secure pairing..." ->
+                        "Connecting this tablet…"
+                    "Finishing secure setup..." ->
+                        "Preparing restaurant data for offline use…"
+                    else -> pairingStatus
+                },
+                modifier = Modifier.padding(top = 12.dp),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodySmall,
+            )
         }
 
         lastError?.let {
-            Text(it, color = MaterialTheme.colorScheme.error)
-        }
-
-        Text(
-            "After the first secure bootstrap, menu browsing and order drafting work from local storage. " +
-                "Queued order sends survive app/process restarts and replay with one stable idempotency key.",
-            style = MaterialTheme.typography.bodySmall,
-        )
-    }
-}
-
-@Composable
-private fun StatusCard(
-    title: String,
-    value: String,
-    detail: String,
-) {
-    Card(Modifier.fillMaxWidth()) {
-        Column(
-            Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Text(title, style = MaterialTheme.typography.titleMedium)
-                Text(value, style = MaterialTheme.typography.labelLarge)
-            }
-            Text(detail, style = MaterialTheme.typography.bodyMedium)
+            Text(
+                it,
+                modifier = Modifier.padding(top = 10.dp),
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
+            )
         }
     }
 }
+
