@@ -44,6 +44,7 @@ import com.paymydine.mobile.PayMyDineApplication
 import com.paymydine.mobile.PosActivity
 import com.paymydine.mobile.R
 import com.paymydine.mobile.ReservationsActivity
+import com.paymydine.mobile.RoleWorkspaceActivity
 import com.paymydine.mobile.data.local.BootstrapSummary
 import com.paymydine.mobile.edge.EdgeRuntimeState
 import com.paymydine.mobile.edge.EdgeService
@@ -51,6 +52,7 @@ import com.paymydine.mobile.network.MobileApiClient
 import com.paymydine.mobile.network.TransportKind
 import com.paymydine.mobile.network.TransportRouter
 import com.paymydine.mobile.security.PairingPkce
+import com.paymydine.mobile.security.StaffSession
 import com.paymydine.mobile.sync.SyncEngine
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -80,9 +82,6 @@ fun PayMyDineApp(app: PayMyDineApplication) {
                 ?.substringBefore(".paymydine.com")
                 .orEmpty(),
         )
-    }
-    var requestedWorkspace by remember {
-        mutableStateOf(app.credentials.preferredWorkspace())
     }
     var pairingStatus by remember {
         mutableStateOf(
@@ -456,45 +455,70 @@ fun PayMyDineApp(app: PayMyDineApplication) {
         }
     }
 
+    fun openStaffSession(session: StaffSession) {
+        if (session.surface == "kds") {
+            session.roleCode
+                .removePrefix("pmd-kds:")
+                .takeIf { session.roleCode.startsWith("pmd-kds:") && it.isNotBlank() }
+                ?.let { app.kdsRepository.selectStation(it) }
+        }
+
+        if (session.surface in setOf("pos", "kds", "reservations")) {
+            app.credentials.putWorkspaceLease(
+                surface = session.surface,
+                username = session.username,
+                expiresAtEpochSeconds = session.expiresAtEpochSeconds,
+            )
+        }
+
+        val destination = when (session.surface) {
+            "pos" -> if (online) {
+                PosActivity::class.java
+            } else {
+                OfflinePosActivity::class.java
+            }
+            "kds" -> KdsActivity::class.java
+            else -> RoleWorkspaceActivity::class.java
+        }
+
+        context.startActivity(
+            Intent(context, destination).apply {
+                if (destination == OfflinePosActivity::class.java) {
+                    putExtra(
+                        OfflinePosActivity.EXTRA_REASON,
+                        "PayMyDine Cloud is unavailable. Continuing the last verified POS session locally.",
+                    )
+                }
+            },
+        )
+    }
+
     PmdTheme {
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = PmdBackground,
         ) {
             if (paired && ready) {
-                // PMD_ANDROID_WORKSPACE_HUB_V1
-                PmdWorkspaceHome(
+                // PMD_ANDROID_DIRECT_LOGIN_ROUTER_V1
+                PmdStaffLogin(
                     app = app,
-                    surfaces = surfaces,
                     online = online,
-                    runtimeKind = runtimeKind,
-                    onOpenPos = {
-                        val destination =
-                            if (online) {
-                                PosActivity::class.java
-                            } else {
-                                OfflinePosActivity::class.java
-                            }
-                        context.startActivity(
-                            Intent(context, destination).apply {
-                                if (destination == OfflinePosActivity::class.java) {
-                                    putExtra(
-                                        OfflinePosActivity.EXTRA_REASON,
-                                        "Cloud is unavailable. Using the last trusted restaurant data.",
-                                    )
-                                }
-                            },
+                    onAuthorized = { result ->
+                        val session = StaffSession(
+                            username = result.username,
+                            staffName = result.staffName,
+                            userId = result.userId,
+                            staffId = result.staffId,
+                            roleCode = result.roleCode,
+                            route = result.route,
+                            surface = result.surface,
+                            expiresAtEpochSeconds = result.leaseExpiresAt,
                         )
+                        app.credentials.putStaffSession(session)
+                        openStaffSession(session)
                     },
-                    onOpenKds = {
-                        context.startActivity(
-                            Intent(context, KdsActivity::class.java),
-                        )
-                    },
-                    onOpenReservations = {
-                        context.startActivity(
-                            Intent(context, ReservationsActivity::class.java),
-                        )
+                    onContinueOffline = { session ->
+                        openStaffSession(session)
                     },
                 )
             } else if (paired) {
@@ -539,19 +563,12 @@ fun PayMyDineApp(app: PayMyDineApplication) {
                     onTenantCode = {
                         tenantCode = it.trim().lowercase()
                     },
-                    selectedWorkspace = requestedWorkspace,
-                    onWorkspace = { workspace ->
-                        requestedWorkspace = workspace
-                        app.credentials.setPreferredWorkspace(workspace)
-                        lastError = null
-                    },
                     online = online,
                     pairingStatus = pairingStatus,
                     pairingCode = pairingCode,
                     lastError = lastError,
                     onConnect = {
                         val code = normalizeTenantCode(tenantCode)
-                        val workspace = requestedWorkspace ?: "pos"
 
                         if (code == null) {
                             pairingStatus = "Not paired"
@@ -586,18 +603,7 @@ fun PayMyDineApp(app: PayMyDineApplication) {
                                 )
                                 .appendQueryParameter(
                                     "device_name",
-                                    when (workspace) {
-                                        "kds" ->
-                                            "PayMyDine Android · Kitchen Display"
-                                        "reservations" ->
-                                            "PayMyDine Android · Reservations"
-                                        else ->
-                                            "PayMyDine Android · Cashier / Waiter"
-                                    },
-                                )
-                                .appendQueryParameter(
-                                    "workspace",
-                                    workspace,
+                                    "PayMyDine Android · Restaurant App",
                                 )
                                 .build()
 
@@ -646,33 +652,12 @@ internal fun normalizeTenantCode(raw: String): String? {
 private fun Onboarding(
     tenantCode: String,
     onTenantCode: (String) -> Unit,
-    selectedWorkspace: String?,
-    onWorkspace: (String?) -> Unit,
     online: Boolean,
     pairingStatus: String,
     pairingCode: String?,
     lastError: String?,
     onConnect: () -> Unit,
 ) {
-    if (selectedWorkspace == null) {
-        PairWorkspaceChooser(onWorkspace = { onWorkspace(it) })
-        return
-    }
-
-    val workspaceTitle = when (selectedWorkspace) {
-        "kds" -> "Kitchen Display"
-        "reservations" -> "Reservations"
-        else -> "Cashier / Waiter"
-    }
-    val workspaceDetail = when (selectedWorkspace) {
-        "kds" ->
-            "Kitchen tickets and preparation status. KDS can continue through Restaurant Edge when internet is down."
-        "reservations" ->
-            "Reservations opens the canonical PayMyDine reservation workspace. Cloud is required for reservation changes."
-        else ->
-            "Tables, menu, checks and order service. Cashier and Waiter use the same PayMyDine order engine."
-    }
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -704,60 +689,15 @@ private fun Onboarding(
             }
         }
 
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 24.dp),
-            shape = RoundedCornerShape(18.dp),
-            color = Color.White,
-            border = BorderStroke(1.dp, PmdLine),
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        "CONNECT AS",
-                        color = PmdMuted,
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.labelSmall,
-                    )
-                    Text(
-                        workspaceTitle,
-                        modifier = Modifier.padding(top = 4.dp),
-                        color = PmdDeepGreen,
-                        fontWeight = FontWeight.Black,
-                        style = MaterialTheme.typography.titleLarge,
-                    )
-                    Text(
-                        workspaceDetail,
-                        modifier = Modifier.padding(top = 5.dp),
-                        color = PmdMuted,
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                }
-                OutlinedButton(
-                    modifier = Modifier.padding(start = 14.dp),
-                    onClick = { onWorkspace(null) },
-                ) {
-                    Text("Change")
-                }
-            }
-        }
-
         Text(
-            "Connect this Android device",
+            "Connect your restaurant",
             modifier = Modifier.padding(top = 24.dp),
             color = PmdText,
             fontWeight = FontWeight.Black,
             style = MaterialTheme.typography.headlineSmall,
         )
         Text(
-            "Enter the restaurant code. PayMyDine uses the normal Login/MFA security flow, then sends this Android request to the small approval icon on a trusted Cashier, Manager or Owner dashboard.",
+            "Enter your restaurant name/code first. On the first installation only, PayMyDine completes the normal secure device approval. After that, the app always opens the staff login page directly.",
             modifier = Modifier.padding(top = 8.dp, bottom = 22.dp),
             style = MaterialTheme.typography.bodyMedium,
             color = PmdMuted,
@@ -779,7 +719,7 @@ private fun Onboarding(
             enabled = tenantCode.isNotBlank() && online,
             onClick = onConnect,
         ) {
-            Text("Request connection")
+            Text("Continue")
         }
 
         pairingCode?.let { raw ->
