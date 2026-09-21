@@ -4863,6 +4863,22 @@ function renderOpenChecks() {
     }
   }
 
+  /* PMD_QPOS_TERMINAL_TIP_RUNTIME_V46
+   * Terminal tip is provider-owned. POS never edits it; it only displays the
+   * amount reported by the terminal integration. */
+  function applyTerminalTipV46(payload) {
+    if (!payload || !Object.prototype.hasOwnProperty.call(payload, 'tip_amount')) {
+      return;
+    }
+
+    var tip = Number(payload.tip_amount);
+    if (!Number.isFinite(tip) || tip < 0) return;
+
+    state.payment.terminalTipAmount = roundMoney(tip);
+    state.payment.terminalTipKnown = true;
+    renderPaymentTotals();
+  }
+
   async function executeTerminalPayment() {
     if (!state.payment.terminal) {
       showPaymentError('Choose a terminal.');
@@ -4889,6 +4905,7 @@ function renderOpenChecks() {
         })
       });
 
+      applyTerminalTipV46(json);
       toast(json.message || 'Payment sent to terminal');
 
       var attemptId = Number(json.attempt_id || 0);
@@ -4921,6 +4938,8 @@ function renderOpenChecks() {
         body: JSON.stringify({})
       });
 
+      applyTerminalTipV46(result);
+
       var status = String(result.status || '').toLowerCase();
 
       if (status === 'paid') {
@@ -4931,9 +4950,17 @@ function renderOpenChecks() {
             ? Number(state.selectedTable.id)
             : 0;
 
+        var terminalTipPaid = state.payment.terminalTipKnown
+          ? num(state.payment.terminalTipAmount, 0)
+          : null;
+
         closePayment();
         finishPaidOrderUi();
-        toast('Paid');
+        toast(
+          terminalTipPaid !== null && terminalTipPaid > 0.0001
+            ? 'Paid · Tip ' + money(terminalTipPaid)
+            : 'Paid'
+        );
 
         if (terminalPaidTableId) {
           setTimeout(function () {
