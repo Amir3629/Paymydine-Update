@@ -141,11 +141,13 @@ jobs:
         with:
           gradle-version: '8.13'
       - name: Restore stable preview signing key
+        if: github.event_name == 'push' && github.ref == 'refs/heads/feature/android-local-first-v1'
         uses: actions/cache@v4
         with:
           path: ~/.android/debug.keystore
           key: paymydine-android-preview-debug-keystore-v1
       - name: Verify stable preview signing key
+        if: github.event_name == 'push' && github.ref == 'refs/heads/feature/android-local-first-v1'
         shell: bash
         run: |
           set -euo pipefail
@@ -211,23 +213,31 @@ jobs:
           grep -Fq "versionCode='7'" <<<"$BADGING"
           grep -Fq "versionName='0.2.3-pos-shell-debug'" <<<"$BADGING"
 
-          EXPECTED_CERT="c1a7587b41f3873b5c1c4552d380fa4597f33052354750a2b68cf62b755db5c1"
-          ACTUAL_CERT="$("$APKSIGNER" verify --print-certs "$APK" \
-            | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' \
-            | head -1 \
-            | tr '[:upper:]' '[:lower:]')"
-
-          [[ "$ACTUAL_CERT" == "$EXPECTED_CERT" ]] || {
-            echo "::error::Built APK signing certificate does not match the pinned PayMyDine POS preview certificate."
-            echo "expected=$EXPECTED_CERT"
-            echo "actual=$ACTUAL_CERT"
-            exit 1
-          }
-
           echo "PMD_PREVIEW_PACKAGE=com.paymydine.mobile.pospreview"
           echo "PMD_PREVIEW_VERSION=0.2.3-pos-shell-debug"
-          echo "PMD_PREVIEW_APK_SIGNING_PIN=PASS"
+
+          # PR checks intentionally use the runner's ephemeral debug key. Only a
+          # direct push to the preview branch may verify/publish the pinned key.
+          if [[ "$GITHUB_EVENT_NAME" == "push" && "$GITHUB_REF" == "refs/heads/feature/android-local-first-v1" ]]; then
+            EXPECTED_CERT="c1a7587b41f3873b5c1c4552d380fa4597f33052354750a2b68cf62b755db5c1"
+            ACTUAL_CERT="$("$APKSIGNER" verify --print-certs "$APK" \
+              | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' \
+              | head -1 \
+              | tr '[:upper:]' '[:lower:]')"
+
+            [[ "$ACTUAL_CERT" == "$EXPECTED_CERT" ]] || {
+              echo "::error::Built APK signing certificate does not match the pinned PayMyDine POS preview certificate."
+              echo "expected=$EXPECTED_CERT"
+              echo "actual=$ACTUAL_CERT"
+              exit 1
+            }
+
+            echo "PMD_PREVIEW_APK_SIGNING_PIN=PASS"
+          else
+            echo "PMD_PREVIEW_APK_SIGNING_PIN=SKIPPED_PR_EPHEMERAL_KEY"
+          fi
       - uses: actions/upload-artifact@v4
+        if: github.event_name == 'push' && github.ref == 'refs/heads/feature/android-local-first-v1'
         with:
           name: paymydine-pos-tablet-preview
           path: |
