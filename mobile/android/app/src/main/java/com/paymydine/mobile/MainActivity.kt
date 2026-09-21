@@ -25,40 +25,10 @@ class MainActivity : ComponentActivity() {
         val app = application as PayMyDineApplication
         app.handleIntent(intent)
 
-        val paired =
-            !app.credentials.tenantHost().isNullOrBlank() &&
-                !app.credentials.deviceToken().isNullOrBlank()
-        val normalLauncherOpen =
-            intent?.action == Intent.ACTION_MAIN ||
-                intent?.action.isNullOrBlank()
-
-        if (
-            paired &&
-            normalLauncherOpen &&
-            app.bootstrapRepository.hasBootstrap()
-        ) {
-            val destination =
-                if (app.connectivity.online.value) {
-                    PosActivity::class.java
-                } else {
-                    OfflinePosActivity::class.java
-                }
-
-            startActivity(
-                Intent(this, destination).apply {
-                    addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                    if (destination == OfflinePosActivity::class.java) {
-                        putExtra(
-                            OfflinePosActivity.EXTRA_REASON,
-                            "Cloud is unavailable. Using the last trusted restaurant data.",
-                        )
-                    }
-                },
-            )
-            finish()
-            return
-        }
-
+        // PMD_ANDROID_WORKSPACE_LAUNCHER_V1
+        // A paired device always returns to the PayMyDine workspace chooser.
+        // Cashier/Waiter, KDS and Reservations are explicit surfaces instead of
+        // forcing every launcher open straight into POS.
         requestOperationalPermissions()
         setContent { PayMyDineApp(app) }
     }
