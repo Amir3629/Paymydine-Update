@@ -38,6 +38,8 @@ import com.paymydine.mobile.data.local.PosMenuItemRow
 import com.paymydine.mobile.data.local.PosTableRow
 import com.paymydine.mobile.data.local.TableBillState
 import com.paymydine.mobile.sync.SyncEngine
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import org.json.JSONArray
 import org.json.JSONObject
 import java.text.NumberFormat
@@ -73,6 +75,17 @@ fun LocalPosScreen(
     LaunchedEffect(selectedTableId, revision) {
         draft = selectedTableId?.let(app.localPosRepository::draftForTable)
         bill = selectedTableId?.let(app.localPosRepository::billForTable)
+    }
+
+    // PMD_ANDROID_LOCAL_POS_PROJECTION_REFRESH_V2
+    // Edge/Cloud reconciliation writes SQLite outside this composable. Poll the
+    // cheap local projection so table/order state from another LAN device
+    // becomes visible without restarting the POS.
+    LaunchedEffect(locationId) {
+        while (isActive) {
+            delay(2_000L)
+            revision += 1
+        }
     }
 
     val visibleMenu = remember(menu, search) {
