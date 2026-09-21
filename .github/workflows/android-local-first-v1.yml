@@ -57,6 +57,7 @@ jobs:
           php -l app/Http/Controllers/PmdMobileSyncController.php
           php -l app/Http/Controllers/PmdMobilePairController.php
           php -l app/Http/Controllers/PmdMobileKdsController.php
+          php -l app/Http/Controllers/PmdMobilePosSessionController.php
           php -l app/Http/Middleware/PmdSiteAccessGateMiddleware.php
           php -l app/Services/PmdSiteAccessService.php
           php -l app/Services/SuperAdminTenantLifecycleService.php
@@ -100,6 +101,11 @@ jobs:
           grep -q "PMD_MOBILE_SYNC_EARLY_ROOT_LOADER_V8" routes.php
           grep -q "PMD_MOBILE_SYNC_DIRECT_REGISTER_V8" routes/pmd-mobile-sync-v1.php
           ! grep -q "App::before(function" routes/pmd-mobile-sync-v1.php
+          grep -q "mobile/pos/open" routes/pmd-mobile-sync-v1.php
+          grep -q "PMD_MOBILE_POS_WEB_SESSION_V1" app/Http/Controllers/PmdMobilePosSessionController.php
+          grep -q "PMD_MOBILE_OWNER_POS_SESSION_V1" app/Services/PmdSiteAccessWorkspaceGateService.php
+          grep -q "PMD_ANDROID_CANONICAL_POS_WEBVIEW_V1" mobile/android/app/src/main/java/com/paymydine/mobile/ui/PosWebView.kt
+          grep -q "PosWebView(" mobile/android/app/src/main/java/com/paymydine/mobile/ui/PayMyDineApp.kt
           grep -q "pair/status" routes/pmd-mobile-sync-v1.php
           grep -q "pairExchangeSecret" app/Services/PmdMobileSync/PmdMobilePairingService.php
           grep -q "pair_request" app/Http/Controllers/PmdMobilePairController.php
