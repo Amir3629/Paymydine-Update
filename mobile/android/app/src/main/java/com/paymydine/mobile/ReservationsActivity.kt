@@ -115,10 +115,9 @@ class ReservationsActivity : ComponentActivity() {
                     userAgentString + " PayMyDine-Android-Reservations/" + BuildConfig.VERSION_NAME
             }
 
-            CookieManager.getInstance().apply {
-                setAcceptCookie(true)
-                setAcceptThirdPartyCookies(this@apply, true)
-            }
+            val cookieManager = CookieManager.getInstance()
+            cookieManager.setAcceptCookie(true)
+            cookieManager.setAcceptThirdPartyCookies(this, true)
 
             webViewClient = object : WebViewClient() {
                 override fun shouldOverrideUrlLoading(
