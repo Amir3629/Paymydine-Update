@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=PayMyDine Appliance
+Comment=Dedicated PayMyDine restaurant POS session
+Exec=/usr/local/bin/paymydine-kiosk-session
+TryExec=/usr/local/bin/paymydine-kiosk-session
+Type=Application
+DesktopNames=PayMyDine

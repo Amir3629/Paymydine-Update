@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' https: data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'none';">
+  <title>PayMyDine Cashier</title>
+  <link rel="stylesheet" href="./app.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">PMD</div>
+        <div><b>PayMyDine</b><small>Cashier</small></div>
+      </div>
+      <nav>
+        <button class="nav-item is-active" data-view="cashier"><span>▦</span> Cashier</button>
+        <button class="nav-item" data-view="orders"><span>☰</span> Orders</button>
+        <button class="nav-item" data-view="kds"><span>◴</span> KDS</button>
+      </nav>
+      <div class="sidebar-bottom">
+        <button class="nav-item" id="hardwareBtn"><span>⌁</span> Hardware</button>
+        <button class="nav-item" id="restaurantBtn"><span>⌂</span> Restaurant</button>
+        <div class="version" id="versionLabel">v1.1.0</div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <h1 id="pageTitle">Cashier</h1>
+          <div class="tenant" id="tenantLabel">Loading restaurant…</div>
+        </div>
+        <div class="top-actions">
+          <div class="sync-badge is-checking" id="syncBadge"><span></span><b>Checking…</b></div>
+          <button class="ghost" id="loginBtn" hidden>Sign in</button>
+          <button class="ghost" id="refreshBtn">Refresh</button>
+        </div>
+      </header>
+
+      <div class="notice" id="notice" hidden></div>
+
+      <section class="workspace" id="floorView">
+        <div class="workspace-head">
+          <div>
+            <h2>Tables</h2>
+            <p>Select a table. The floor and menu are cached on this computer for fast startup.</p>
+          </div>
+          <div class="metrics" id="metrics"></div>
+        </div>
+        <div class="table-grid" id="tableGrid">
+          <div class="empty-card">Loading tables…</div>
+        </div>
+      </section>
+
+      <section class="workspace pos-view" id="posView" hidden>
+        <div class="pos-head">
+          <button class="back" id="backBtn">← Tables</button>
+          <div>
+            <h2 id="tableTitle">Table</h2>
+            <p id="tableMeta"></p>
+          </div>
+          <div class="pos-head-actions">
+            <button class="ghost" id="paymentBtn">Payment</button>
+            <button class="ghost" id="printBtn">Print</button>
+          </div>
+        </div>
+
+        <div class="pos-layout">
+          <section class="catalog">
+            <div class="catalog-toolbar">
+              <input id="searchInput" type="search" placeholder="Search menu, category or allergen…" autocomplete="off">
+              <div class="categories" id="categories"></div>
+            </div>
+            <div class="menu-grid" id="menuGrid"></div>
+          </section>
+
+          <aside class="cart-panel">
+            <div class="cart-title">
+              <div><h3>Current order</h3><small id="orderStatus">New draft</small></div>
+              <button class="tiny" id="clearCartBtn">Clear</button>
+            </div>
+            <div class="existing-order" id="existingOrder" hidden></div>
+            <div class="cart-lines" id="cartLines"></div>
+            <div class="cart-empty" id="cartEmpty">Tap a menu item to add it.</div>
+            <label class="field"><span>Guests</span><input id="guestInput" type="number" min="1" max="99" value="1"></label>
+            <label class="field"><span>Table note</span><textarea id="noteInput" maxlength="500" placeholder="Optional note…"></textarea></label>
+            <div class="totals">
+              <div><span>New items</span><b id="cartTotal">€0.00</b></div>
+            </div>
+            <div class="cart-actions">
+              <button class="secondary" id="holdBtn">Save / Hold</button>
+              <button class="primary" id="sendBtn">Send to kitchen</button>
+            </div>
+            <div class="offline-help" id="offlineHelp" hidden>Offline: this draft stays safely on this computer. Sending to kitchen and payments resume when internet returns.</div>
+          </aside>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal" id="modifierModal" hidden>
+    <div class="modal-card modifier-card">
+      <button class="modal-close" data-close-modal>×</button>
+      <div id="modifierContent"></div>
+    </div>
+  </div>
+
+  <div class="modal" id="paymentModal" hidden>
+    <div class="modal-card payment-card">
+      <button class="modal-close" data-close-payment>×</button>
+      <div class="payment-heading"><span>Payment</span><h2 id="paymentTitle">Order payment</h2></div>
+      <div id="paymentContent"><div class="loading">Loading payment…</div></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <script src="./app.js"></script>
+</body>
+</html>
