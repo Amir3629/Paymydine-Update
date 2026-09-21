@@ -55,6 +55,7 @@ class PmdSiteAccessHubDataController
                     'id' => (int)$item->id,
                     'staff_name' => (string)($item->staff_name ?: 'Team member'),
                     'device_name' => (string)($item->requested_device_name ?: 'Browser device'),
+                    'purpose' => (string)($item->purpose ?? ''),
                     'request_code' => (string)($item->display_code ?? ''),
                     'expires_at' => (string)$item->expires_at,
                     'qr_svg' => $svg,
