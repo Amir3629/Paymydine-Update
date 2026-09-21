@@ -96,6 +96,11 @@ jobs:
           grep -q "pairCurrentVerifiedPersonalDevice" app/Services/PmdSiteAccessService.php
           grep -q "approveVerifiedSession" app/Services/PmdMobileSync/PmdMobilePairingService.php
           grep -q "mobile/pair/approve" routes/pmd-mobile-sync-v1.php
+          grep -q "pair/status" routes/pmd-mobile-sync-v1.php
+          grep -q "pairExchangeSecret" app/Services/PmdMobileSync/PmdMobilePairingService.php
+          grep -q "pair_request" app/Http/Controllers/PmdMobilePairController.php
+          grep -q "pairStatus" mobile/android/app/src/main/java/com/paymydine/mobile/network/MobileApiClient.kt
+          grep -q "pairingRequest" mobile/android/app/src/main/java/com/paymydine/mobile/security/DeviceCredentialStore.kt
           grep -q "Connect this Android device?" app/Http/Controllers/PmdMobilePairController.php
           echo "PMD_ANDROID_SERVER_CONTRACT=PASS"
 
