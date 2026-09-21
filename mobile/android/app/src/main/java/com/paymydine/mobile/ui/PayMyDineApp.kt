@@ -510,6 +510,7 @@ fun PayMyDineApp(app: PayMyDineApplication) {
                             roleCode = result.roleCode,
                             route = result.route,
                             surface = result.surface,
+                            staffGrant = result.staffGrant,
                             expiresAtEpochSeconds = result.leaseExpiresAt,
                         )
                         app.credentials.putStaffSession(session)
