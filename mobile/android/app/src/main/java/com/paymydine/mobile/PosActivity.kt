@@ -25,6 +25,8 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
+import com.paymydine.mobile.hardware.customerdisplay.CustomerDisplayManager
+import com.paymydine.mobile.hardware.customerdisplay.PosCustomerDisplayJavascriptBridge
 import com.paymydine.mobile.sync.SyncEngine
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -49,12 +51,18 @@ class PosActivity : ComponentActivity() {
     private var buildGeneration = 0
     private var canonicalReady = false
     private var offlineSwitching = false
+    private lateinit var customerDisplay: CustomerDisplayManager
 
     private val app: PayMyDineApplication
         get() = application as PayMyDineApplication
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // PMD_ZCS_CUSTOMER_DISPLAY_V2
+        // One manager per physical POS device; cashier sessions never share display state.
+        customerDisplay = CustomerDisplayManager(this)
+        customerDisplay.showIdle()
 
         // PMD_ANDROID_OFFLINE_POS_AUTHORITY_V12
         val posAuthorized = if (app.connectivity.online.value) {
@@ -185,6 +193,9 @@ class PosActivity : ComponentActivity() {
 
     override fun onDestroy() {
         destroyWebView()
+        if (::customerDisplay.isInitialized) {
+            customerDisplay.close()
+        }
         super.onDestroy()
     }
 
@@ -233,6 +244,13 @@ class PosActivity : ComponentActivity() {
                     userAgentString + " PayMyDine-Android-POS/" + BuildConfig.VERSION_NAME
                 safeBrowsingEnabled = true
             }
+
+            // PMD_ZCS_CUSTOMER_DISPLAY_JS_BRIDGE_V2
+            // This exposes only local display controls to the trusted PayMyDine POS WebView.
+            addJavascriptInterface(
+                PosCustomerDisplayJavascriptBridge(customerDisplay),
+                "PayMyDineHardware",
+            )
 
             val cookieManager = CookieManager.getInstance()
             cookieManager.setAcceptCookie(true)
