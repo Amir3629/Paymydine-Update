@@ -153,6 +153,10 @@ jobs:
           grep -q "routeForRoleCode" app/Http/Controllers/PmdMobileWorkspaceAuthController.php
           grep -q "PMD_MOBILE_ROLE_WORKSPACE_SESSION_V2" app/Http/Controllers/PmdMobileWorkspaceSessionController.php
           grep -q "PMD_MOBILE_SESSION_LOCATION_AUTHORITY_V6" app/Services/PmdSiteAccessService.php
+          grep -q "SESSION_MOBILE_LOCATION" app/Services/PmdSiteAccessService.php
+          grep -q "SESSION_MOBILE_DEVICE" app/Services/PmdSiteAccessService.php
+          grep -q "PMD_MOBILE_ADMIN_SESSION_BINDING_V6" app/Http/Controllers/PmdMobilePosSessionController.php
+          grep -q "PMD_MOBILE_ADMIN_SESSION_BINDING_V6" app/Http/Controllers/PmdMobileWorkspaceSessionController.php
           grep -q "PMD_MOBILE_SHARED_DEVICE_REVOCATION_V2" app/Services/PmdSiteAccessWorkspaceGateService.php
           grep -q "PMD_MOBILE_SESSION_REENTRY_BYPASS_V5" app/Services/PmdSiteAccessWorkspaceGateService.php
           grep -q "\$relative === 'mobile/pos/open'" app/Services/PmdSiteAccessWorkspaceGateService.php
