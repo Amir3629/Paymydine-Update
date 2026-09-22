@@ -39,7 +39,14 @@ class KdsActivity : ComponentActivity() {
         val app = application as PayMyDineApplication
 
         // PMD_ANDROID_OFFLINE_KDS_AUTHORITY_V12
-        val kdsAuthorized = if (app.connectivity.online.value) {
+        val forceOffline = intent.getBooleanExtra(
+            EXTRA_FORCE_OFFLINE,
+            false,
+        )
+        val kdsAuthorized = if (
+            app.connectivity.online.value &&
+            !forceOffline
+        ) {
             app.credentials.workspaceLeaseValid("kds")
         } else {
             app.bootstrapRepository.hasBootstrap() &&
@@ -107,5 +114,10 @@ class KdsActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    companion object {
+        const val EXTRA_FORCE_OFFLINE =
+            "com.paymydine.mobile.extra.FORCE_OFFLINE"
     }
 }
