@@ -124,6 +124,10 @@ class BootstrapRepository(private val database: PmdDatabase) {
                     .put("note", order.optString("comment"))
                     .put("status_name", order.optString("status_name"))
                     .put("settlement_status", order.optString("settlement_status", "unpaid"))
+                    .put(
+                        "settled_amount_minor",
+                        toMinor(order.opt("settled_amount"), exponent),
+                    )
 
                 val localShadowId = "server:$orderId"
                 val hasPendingLocalChange = db.query(
