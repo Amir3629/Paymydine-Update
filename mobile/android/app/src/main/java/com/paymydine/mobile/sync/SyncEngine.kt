@@ -253,6 +253,18 @@ class SyncEngine(
         }
 
         app.bootstrapRepository.apply(bootstrap)
+
+        // PMD_ANDROID_POS_LIVE_CACHE_WARM_V17
+        // Every successful restaurant snapshot refresh also refreshes the
+        // app-private image cache. A physical WAN cut therefore uses the
+        // latest menu photos instead of only whatever pairing happened to warm.
+        val locationId = app.bootstrapRepository.locationId()
+        if (locationId != null) {
+            app.offlineImageCache.prefetch(
+                host,
+                app.localPosRepository.menu(locationId),
+            )
+        }
     }
 
     private fun authorityRoute(): AuthorityRoute {
