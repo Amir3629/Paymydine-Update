@@ -110,7 +110,9 @@ final class PmdMobileWorkspaceAuthController extends Controller
             $route = 'mywork';
         }
 
-        $surface = $this->surfaceForRole($roleCode);
+        $surface = $destination === 'staff'
+            ? 'web'
+            : $this->surfaceForRole($roleCode);
         $leaseUntil = now()->addHours(8);
         $staffGrant = $grants->issue($deviceIdentity, $user);
         $storedUsername = trim((string)($user->username ?? $typedUsername));
