@@ -1920,6 +1920,80 @@ function renderOpenChecks() {
     });
   }
 
+  async function mutateCommittedItemQuantityV68(button, direction) {
+    var order = activeOrder();
+    var mutation = order && order.item_mutation ? order.item_mutation : {};
+
+    if (
+      !order ||
+      state.serviceMode !== 'dine_in' ||
+      !state.selectedTable ||
+      mutation.allowed !== true
+    ) {
+      toast(
+        mutation.reason ||
+          'This ordered item can no longer be changed.',
+        true
+      );
+      return;
+    }
+
+    var itemId = Number(
+      button.getAttribute('data-order-menu-id') || 0
+    );
+    if (itemId < 1) return;
+
+    var template = direction > 0
+      ? state.settings.item_increase_url
+      : state.settings.item_decrease_url;
+
+    if (!template) {
+      toast('Item quantity action is unavailable.', true);
+      return;
+    }
+
+    button.disabled = true;
+
+    try {
+      await fetchJson(
+        tokenUrl(template, '{order}', orderId(order)),
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            order_menu_id: itemId,
+            quantity: 1,
+            expected_updated_at: String(order.updated_at || ''),
+            reason: direction < 0
+              ? 'Quick POS quantity correction before kitchen preparation'
+              : ''
+          })
+        }
+      );
+
+      await loadTable(
+        Number(state.selectedTable.id || 0),
+        true,
+        true
+      );
+
+      toast(
+        direction > 0
+          ? 'Quantity increased.'
+          : 'Quantity reduced.'
+      );
+    } catch (error) {
+      toast(
+        error.message || 'Item quantity could not be changed.',
+        true
+      );
+    } finally {
+      button.disabled = false;
+    }
+  }
+
   function renderSentItems() {
     var section = $('[data-qpos-sent]');
     var box = $('[data-qpos-sent-items]');
@@ -1959,19 +2033,107 @@ function renderOpenChecks() {
       );
     }
 
-    box.innerHTML = items.map(function (item) {
-      var qty = num(item.quantity != null ? item.quantity : item.qty, 1);
-      var subtotal = num(item.subtotal != null ? item.subtotal : item.line_subtotal, 0);
+    var mutation = order && order.item_mutation
+      ? order.item_mutation
+      : {};
+    var canEditCommitted =
+      state.serviceMode === 'dine_in' &&
+      !!state.selectedTable &&
+      mutation.allowed === true;
+
+    var rows = items.map(function (item) {
+      var qty = num(
+        item.quantity != null ? item.quantity : item.qty,
+        1
+      );
+      var subtotal = num(
+        item.subtotal != null
+          ? item.subtotal
+          : item.line_subtotal,
+        0
+      );
+      var orderMenuId = Number(
+        item.order_menu_id || item.id || 0
+      );
+
+      var controls = (
+        !item.__pending &&
+        canEditCommitted &&
+        qty > 0 &&
+        orderMenuId > 0
+      )
+        ? (
+            '<span class="pmd-qpos-sent-qty-v68">' +
+              '<button type="button" data-qpos-sent-decrease data-order-menu-id="' +
+                esc(orderMenuId) +
+                '" aria-label="Reduce ordered quantity">−</button>' +
+              '<button type="button" data-qpos-sent-increase data-order-menu-id="' +
+                esc(orderMenuId) +
+                '" aria-label="Increase ordered quantity">+</button>' +
+            '</span>'
+          )
+        : '';
+
       return (
-        '<div class="pmd-qpos-sent-line' + (item.__pending ? ' is-pending' : '') + '">' +
+        '<div class="pmd-qpos-sent-line' +
+          (item.__pending ? ' is-pending' : '') +
+          '">' +
           '<b>' + esc(qty) + '×</b>' +
-          '<span>' + esc(item.name || item.menu_name || 'Item') +
-            (visibleNote(item.comment) ? '<small>' + esc(visibleNote(item.comment)) + '</small>' : '') +
+          '<span>' +
+            esc(item.name || item.menu_name || 'Item') +
+            (
+              visibleNote(item.comment)
+                ? '<small>' +
+                    esc(visibleNote(item.comment)) +
+                  '</small>'
+                : ''
+            ) +
           '</span>' +
-          '<strong>' + money(subtotal) + '</strong>' +
+          '<span class="pmd-qpos-sent-tail-v68">' +
+            '<strong>' + money(subtotal) + '</strong>' +
+            controls +
+          '</span>' +
         '</div>'
       );
-    }).join('');
+    });
+
+    if (
+      order &&
+      mutation.allowed === false &&
+      (mutation.reason || mutation.kitchen_started || mutation.payment_started)
+    ) {
+      var lockText = mutation.kitchen_started
+        ? 'Kitchen preparing/ready · sent item quantities are locked.'
+        : (
+            mutation.payment_started
+              ? 'Payment started · paid item quantities are locked. Add new food with + Check; reduce paid value only through refund/correction.'
+              : String(mutation.reason || 'Sent item quantities are locked.')
+          );
+
+      rows.push(
+        '<div class="pmd-qpos-sent-lock-v68">' +
+          esc(lockText) +
+        '</div>'
+      );
+    }
+
+    box.innerHTML = rows.join('');
+
+    Array.prototype.slice.call(
+      box.querySelectorAll('[data-qpos-sent-decrease]')
+    ).forEach(function (button) {
+      button.onclick = function () {
+        mutateCommittedItemQuantityV68(button, -1);
+      };
+    });
+
+    Array.prototype.slice.call(
+      box.querySelectorAll('[data-qpos-sent-increase]')
+    ).forEach(function (button) {
+      button.onclick = function () {
+        mutateCommittedItemQuantityV68(button, 1);
+      };
+    });
   }
 
   function cartSignature(item, options, comment) {

@@ -621,6 +621,239 @@ trait PmdWaiterPosOperationsSummaryV12Concern
         }
     }
 
+    /**
+     * PMD_QPOS_ITEM_INCREASE_V68
+     * Increase an already-sent line only while it is still financially open
+     * and before the kitchen enters Preparation/Preparing or a later state.
+     * After payment begins the original paid line remains immutable; additional
+     * food must be recorded by the normal new-line/new-check ordering flow.
+     */
+    public function increaseItemV68($orderId)
+    {
+        $payload = $this->requestPayload();
+        $itemId = (int)($payload['order_menu_id'] ?? 0);
+        $quantity = (int)($payload['quantity'] ?? 1);
+
+        if ($itemId < 1 || $quantity < 1 || $quantity > 99) {
+            return response()->json([
+                'ok' => false,
+                'version' => 'pmd-qpos-v68',
+                'message' => 'Choose a valid item and quantity.',
+            ], 422);
+        }
+
+        try {
+            $result = DB::transaction(function () use (
+                $orderId,
+                $itemId,
+                $quantity,
+                $payload
+            ) {
+                $order = \Admin\Models\Orders_model::query()
+                    ->where('order_id', (int)$orderId)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (!$order) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'order' => 'Order not found.',
+                    ]);
+                }
+
+                $this->pmdR39AssertItemMutationAllowed($order, $payload);
+
+                if (!Schema::hasTable('order_menus')) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'item' => 'Order items are unavailable.',
+                    ]);
+                }
+
+                $row = DB::table('order_menus')
+                    ->where('order_id', (int)$order->getKey())
+                    ->where('order_menu_id', $itemId)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (!$row) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'item' => 'Order item was not found.',
+                    ]);
+                }
+
+                $order->refresh();
+                $this->pmdR39AssertItemMutationAllowed(
+                    $order,
+                    $payload,
+                    false
+                );
+
+                $data = (array)$row;
+                $currentQuantity = max(0, (int)($data['quantity'] ?? 0));
+
+                if ($currentQuantity < 1) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'quantity' => 'This item has already been removed.',
+                    ]);
+                }
+
+                $newQuantity = $currentQuantity + $quantity;
+                if ($newQuantity > 99) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'quantity' => 'Item quantity cannot exceed 99.',
+                    ]);
+                }
+
+                $oldSubtotal = (float)($data['subtotal'] ?? 0);
+                $unitSubtotal = $currentQuantity > 0
+                    ? ($oldSubtotal / $currentQuantity)
+                    : (float)($data['price'] ?? 0);
+
+                DB::table('order_menus')
+                    ->where('order_id', (int)$order->getKey())
+                    ->where('order_menu_id', $itemId)
+                    ->update([
+                        'quantity' => $newQuantity,
+                        'subtotal' => round($unitSubtotal * $newQuantity, 4),
+                    ]);
+
+                if (
+                    Schema::hasTable('order_menu_options')
+                    && Schema::hasColumn('order_menu_options', 'quantity')
+                    && Schema::hasColumn('order_menu_options', 'order_menu_id')
+                ) {
+                    $optionColumns = Schema::getColumnListing('order_menu_options');
+                    $optionPrimary = in_array('order_option_id', $optionColumns, true)
+                        ? 'order_option_id'
+                        : (in_array('id', $optionColumns, true) ? 'id' : null);
+
+                    $optionQuery = DB::table('order_menu_options')
+                        ->where('order_menu_id', $itemId);
+
+                    if (in_array('order_id', $optionColumns, true)) {
+                        $optionQuery->where('order_id', (int)$order->getKey());
+                    }
+
+                    $optionRows = $optionQuery->lockForUpdate()->get();
+
+                    foreach ($optionRows as $optionRow) {
+                        $optionData = (array)$optionRow;
+                        $oldOptionQuantity = max(
+                            0,
+                            (int)($optionData['quantity'] ?? $currentQuantity)
+                        );
+
+                        $newOptionQuantity = $currentQuantity > 0
+                            ? max(
+                                1,
+                                (int)round(
+                                    $oldOptionQuantity
+                                    * ($newQuantity / $currentQuantity)
+                                )
+                            )
+                            : $newQuantity;
+
+                        $updateQuery = DB::table('order_menu_options');
+                        if (
+                            $optionPrimary
+                            && array_key_exists($optionPrimary, $optionData)
+                        ) {
+                            $updateQuery->where(
+                                $optionPrimary,
+                                $optionData[$optionPrimary]
+                            );
+                        } else {
+                            $updateQuery->where('order_menu_id', $itemId);
+                        }
+
+                        $updateQuery->update([
+                            'quantity' => $newOptionQuantity,
+                        ]);
+                    }
+                }
+
+                if (Schema::hasTable('pmd_waiter_pos_operation_logs')) {
+                    $logColumns = Schema::getColumnListing(
+                        'pmd_waiter_pos_operation_logs'
+                    );
+                    $actorId = null;
+
+                    if (method_exists($this, 'currentUserId')) {
+                        try {
+                            $actorId = $this->currentUserId();
+                        } catch (\Throwable $ignored) {
+                            $actorId = null;
+                        }
+                    }
+
+                    $log = [
+                        'order_id' => (int)$order->getKey(),
+                        'action' => 'increase_item_before_preparation',
+                        'payload' => json_encode([
+                            'order_menu_id' => $itemId,
+                            'added_quantity' => $quantity,
+                            'previous_quantity' => $currentQuantity,
+                            'new_quantity' => $newQuantity,
+                        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                        'actor_id' => $actorId,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
+
+                    $log = array_intersect_key(
+                        $log,
+                        array_flip($logColumns)
+                    );
+
+                    DB::table('pmd_waiter_pos_operation_logs')->insert($log);
+                }
+
+                $this->recalculateOrder($order);
+
+                if (Schema::hasColumn('orders', 'updated_at')) {
+                    DB::table('orders')
+                        ->where('order_id', (int)$order->getKey())
+                        ->update(['updated_at' => now()]);
+                }
+
+                $fresh = \Admin\Models\Orders_model::query()
+                    ->where('order_id', (int)$order->getKey())
+                    ->first();
+
+                return [
+                    'ok' => true,
+                    'version' => 'pmd-qpos-v68',
+                    'order_id' => (int)$order->getKey(),
+                    'order_menu_id' => $itemId,
+                    'added_quantity' => $quantity,
+                    'new_quantity' => $newQuantity,
+                    'order_total' => (float)($fresh->order_total ?? 0),
+                    'total_items' => (int)($fresh->total_items ?? 0),
+                    'updated_at' => (string)($fresh->updated_at ?? ''),
+                    'message' => 'Item quantity increased.',
+                ];
+            });
+
+            return response()->json($result);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'ok' => false,
+                'version' => 'pmd-qpos-v68',
+                'message' => collect($e->errors())->flatten()->first()
+                    ?: 'The item could not be changed.',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return response()->json([
+                'ok' => false,
+                'version' => 'pmd-qpos-v68',
+                'message' => 'The item could not be changed. '.$e->getMessage(),
+            ], 500);
+        }
+    }
+
+
     // PMD_CASHIER_R60H_CANCEL_ORDER_OWNER
     // PMD_CASHIER_R60R_CANCEL_DB_OWNER
     public function voidOrderV22($orderId)
@@ -1143,6 +1376,19 @@ trait PmdWaiterPosOperationsSummaryV12Concern
             }
         }
 
+        /* PMD_QPOS_KITCHEN_MUTATION_LOCK_V68
+         * Existing ordered lines may be corrected only before the kitchen
+         * starts preparation. "Preparation" / "Preparing" are the live KDS
+         * states; Delivery/Ready/Served are later states and stay locked.
+         * New food can still be added as a separate line/check by the normal
+         * ordering flow, but the already-sent line itself is immutable.
+         */
+        $kitchenStarted =
+            (bool)preg_match(
+                '/prepar|cook|delivery|ready|served/',
+                $operationalStatusName
+            );
+
         $operationalLocked =
             (bool)preg_match(
                 '/cancel|void|closed|complete|completed/',
@@ -1176,9 +1422,8 @@ trait PmdWaiterPosOperationsSummaryV12Concern
             'refunded',
         ];
 
-        $locked =
-            $operationalLocked
-            || $settledAmount > 0.0001
+        $paymentStarted =
+            $settledAmount > 0.0001
             || in_array(
                 $settlementStatus,
                 $lockedStatuses,
@@ -1186,21 +1431,30 @@ trait PmdWaiterPosOperationsSummaryV12Concern
             )
             || $hasTransaction;
 
+        $locked =
+            $operationalLocked
+            || $kitchenStarted
+            || $paymentStarted;
+
         $reason = '';
 
         if ($locked) {
-            if ($operationalLocked) {
+            if ($kitchenStarted) {
+                $reason =
+                    'Kitchen preparation has started. '
+                    .'Ordered item quantities are locked.';
+            } elseif ($operationalLocked) {
                 $reason =
                     'This order is cancelled or closed. '
                     .'Order items are locked.';
             } elseif ($hasTransaction) {
                 $reason =
                     'Payment history already exists. '
-                    .'Order items are locked.';
+                    .'Paid item quantities are locked; use a refund/correction flow.';
             } elseif ($settledAmount > 0.0001) {
                 $reason =
                     'Payment has already started. '
-                    .'Order items are locked.';
+                    .'Paid item quantities are locked; use a refund/correction flow.';
             } else {
                 $reason =
                     'This bill is no longer financially mutable.';
@@ -1210,7 +1464,9 @@ trait PmdWaiterPosOperationsSummaryV12Concern
         return [
             'allowed' => !$locked,
             'locked' => $locked,
-            'payment_started' => $locked,
+            'payment_started' => $paymentStarted,
+            'kitchen_started' => $kitchenStarted,
+            'operational_status' => $operationalStatusName,
             'settlement_status' => $settlementStatus,
             'settled_amount' => $settledAmount,
             'has_payment_transaction' => $hasTransaction,

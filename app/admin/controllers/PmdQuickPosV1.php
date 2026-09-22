@@ -739,6 +739,8 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 'table_data_url' => '/admin/pos/table/{table}',
                 'table_save_url' => '/admin/pos/save/{table}',
                 'off_premise_save_url' => '/admin/pos/save-off-premise',
+                'item_decrease_url' => '/admin/pmd-waiter-pos-v22/operations/{order}/void-item',
+                'item_increase_url' => '/admin/pmd-waiter-pos-v22/operations/{order}/increase-item',
                 'payment_summary_url' => '/admin/pos/payment-summary/{order}',
                 'payment_settle_url' => '/admin/pos/payment-settle/{order}',
                 'payment_coupon_url' => '/admin/pos/payment-coupon/{order}',
@@ -1735,10 +1737,32 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 ->all();
         }
 
+        /* PMD_QPOS_ITEM_MUTATION_BATCH_V68
+         * The rows above are query-builder stdClass rows, not Orders_model
+         * instances. Batch payment-history presence once and build the item
+         * mutation authority without an N+1 Eloquent lookup.
+         */
+        $paymentTransactionLookup = [];
+
+        if (
+            $orderIds
+            && Schema::hasTable('order_payment_transactions')
+            && Schema::hasColumn('order_payment_transactions', 'order_id')
+        ) {
+            $paymentTransactionLookup = DB::table('order_payment_transactions')
+                ->whereIn('order_id', $orderIds)
+                ->pluck('order_id')
+                ->mapWithKeys(function ($id) {
+                    return [(int)$id => true];
+                })
+                ->all();
+        }
+
         return $rows->map(function ($row) use (
             $primaryKey,
             $itemsByOrder,
-            $statusNames
+            $statusNames,
+            $paymentTransactionLookup
         ) {
             $raw = (array)$row;
             $orderId = (int)(
@@ -1774,11 +1798,12 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 ->all();
 
             $statusId = (int)($raw['status_id'] ?? 0);
+            $statusName = (string)($statusNames[$statusId] ?? '');
 
             return [
                 'order_id' => $orderId,
                 'status_id' => $statusId ?: null,
-                'status_name' => (string)($statusNames[$statusId] ?? ''),
+                'status_name' => $statusName,
                 'payment' => (string)($raw['payment'] ?? ''),
                 'settlement_status' => (string)($raw['settlement_status'] ?? 'unpaid'),
                 'settled_amount' => (float)($raw['settled_amount'] ?? 0),
@@ -1797,10 +1822,99 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 'comment' => $this->quickPosVisibleNote(
                     (string)($raw['comment'] ?? '')
                 ),
+                'item_mutation' => $this->quickPosItemMutationStateV68(
+                    $raw,
+                    $statusName,
+                    !empty($paymentTransactionLookup[$orderId])
+                ),
                 'items' => $items,
                 'urls' => $this->orderUrls($orderId),
             ];
         })->values()->all();
+    }
+
+    /**
+     * PMD_QPOS_ITEM_MUTATION_STATE_V68
+     * Read-only mirror of the server write guard for Quick POS rendering.
+     * The actual mutation endpoints still re-check under row locks.
+     */
+    protected function quickPosItemMutationStateV68(
+        array $raw,
+        string $statusName,
+        bool $hasTransaction
+    ): array {
+        $settledAmount = max(
+            0,
+            (float)($raw['settled_amount'] ?? 0)
+        );
+        $settlementStatus = strtolower(trim((string)(
+            $raw['settlement_status']
+            ?? $raw['payment_status']
+            ?? 'unpaid'
+        )));
+        $operationalStatus = strtolower(trim($statusName));
+
+        $kitchenStarted = (bool)preg_match(
+            '/prepar|cook|delivery|ready|served/',
+            $operationalStatus
+        );
+        $operationalLocked = (bool)preg_match(
+            '/cancel|void|closed|complete|completed/',
+            $operationalStatus
+        );
+        $paymentStarted =
+            $settledAmount > 0.0001
+            || in_array(
+                $settlementStatus,
+                [
+                    'partial',
+                    'paid',
+                    'settled',
+                    'closed',
+                    'cancelled',
+                    'canceled',
+                    'refunded',
+                ],
+                true
+            )
+            || $hasTransaction;
+
+        $locked =
+            $operationalLocked
+            || $kitchenStarted
+            || $paymentStarted;
+
+        $reason = '';
+        if ($locked) {
+            if ($kitchenStarted) {
+                $reason =
+                    'Kitchen preparation has started. '
+                    .'Ordered item quantities are locked.';
+            } elseif ($operationalLocked) {
+                $reason =
+                    'This order is cancelled or closed. '
+                    .'Order items are locked.';
+            } elseif ($hasTransaction || $settledAmount > 0.0001) {
+                $reason =
+                    'Payment has already started. '
+                    .'Paid item quantities are locked; use a refund/correction flow.';
+            } else {
+                $reason =
+                    'This bill is no longer financially mutable.';
+            }
+        }
+
+        return [
+            'allowed' => !$locked,
+            'locked' => $locked,
+            'payment_started' => $paymentStarted,
+            'kitchen_started' => $kitchenStarted,
+            'operational_status' => $operationalStatus,
+            'settlement_status' => $settlementStatus,
+            'settled_amount' => $settledAmount,
+            'has_payment_transaction' => $hasTransaction,
+            'reason' => $reason,
+        ];
     }
 
     protected function quickPosVisibleNote(string $value): string
