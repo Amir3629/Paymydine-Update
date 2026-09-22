@@ -69,6 +69,7 @@ class PosActivity : ComponentActivity() {
     private var canonicalReady = false
     private var transportMode = TransportMode.CLOUD
     private var localBridge: LocalPosBridge? = null
+    private lateinit var customerDisplay: CustomerDisplayManager
 
     private val app: PayMyDineApplication
         get() = application as PayMyDineApplication
