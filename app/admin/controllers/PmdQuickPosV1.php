@@ -2091,6 +2091,28 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 });
         }
 
+        $paymentLockedOrderIds = [];
+
+        if (
+            $orderIds
+            && Schema::hasTable('order_payment_transactions')
+            && Schema::hasColumn(
+                'order_payment_transactions',
+                'order_id'
+            )
+        ) {
+            $paymentLockedOrderIds = DB::table(
+                'order_payment_transactions'
+            )
+                ->whereIn('order_id', $orderIds)
+                ->pluck('order_id')
+                ->map(static fn ($id): int => (int)$id)
+                ->filter()
+                ->unique()
+                ->values()
+                ->all();
+        }
+
         $statusIds = $rows
             ->map(fn ($row) => (int)($row->status_id ?? 0))
             ->filter()
@@ -2117,7 +2139,8 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
         return $rows->map(function ($row) use (
             $primaryKey,
             $itemsByOrder,
-            $statusNames
+            $statusNames,
+            $paymentLockedOrderIds
         ) {
             $raw = (array)$row;
             $orderId = (int)(
@@ -2165,6 +2188,7 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
             );
             $structuralLocked =
                 (float)($raw['settled_amount'] ?? 0) > 0.0001
+                || in_array($orderId, $paymentLockedOrderIds, true)
                 || in_array(
                     $settlementStatus,
                     ['partial', 'paid', 'settled', 'closed', 'refunded'],
