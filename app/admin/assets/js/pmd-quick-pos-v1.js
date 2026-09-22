@@ -386,6 +386,7 @@
     visualHydrated: false,
     floorMapOpen: false,
     submitting: false,
+    sentItemQuantityBusy: false,
     modifier: null,
     itemNoteIndex: null,
     historyScope: 'selected',
@@ -1251,6 +1252,41 @@
     });
   }
 
+  function tableFeatureIconsV68(features) {
+    var allowed = {
+      near_window: {
+        label: 'Near window',
+        svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"></rect><path d="M4 12h16M12 4v16"></path></svg>'
+      },
+      quiet_area: {
+        label: 'Quiet area',
+        svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4z"></path><path d="m16 9 5 6M21 9l-5 6"></path></svg>'
+      },
+      accessible: {
+        label: 'Accessible',
+        svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="5" r="2"></circle><path d="M7 9h5l2 5h3M9 9v5a4 4 0 1 0 4 4M13 14l2 6h4"></path></svg>'
+      }
+    };
+
+    var rows = Array.isArray(features) ? features : [];
+    var icons = rows.map(function (feature) {
+      var key = String(feature || '').toLowerCase();
+      var meta = allowed[key];
+      if (!meta) return '';
+      return (
+        '<span class="pmd-qpos-table-feature-v68 is-' + esc(key) + '"' +
+          ' title="' + esc(meta.label) + '"' +
+          ' aria-label="' + esc(meta.label) + '">' +
+          meta.svg +
+        '</span>'
+      );
+    }).filter(Boolean);
+
+    return icons.length
+      ? '<span class="pmd-qpos-table-features-v68">' + icons.join('') + '</span>'
+      : '';
+  }
+
   function renderTables() {
     var box = $('[data-qpos-tables]');
     var count = $('[data-qpos-table-count]');
@@ -1359,6 +1395,7 @@
           '<small>' + esc(tableStatusLabel(table.status)) +
             (num(table.capacity, 0) > 0 ? ' · ' + esc(table.capacity) + 's' : '') +
           '</small>' +
+          tableFeatureIconsV68(table.features) +
           (primarySignal
             ? '<span class="pmd-qpos-table-signal is-' + esc(primarySignal.kind) + '"' +
                 ' title="' + esc(primarySignal.title) + '"' +
@@ -1710,6 +1747,101 @@ function renderOpenChecks() {
     });
   }
 
+  function sentItemQuantityMutableV68(order, item) {
+    if (!order || !item || item.__pending) return false;
+    if (state.sentItemQuantityBusy) return false;
+    if (order.item_quantity_mutable === false) return false;
+    if (order.kitchen_item_locked === true) return false;
+    if (activeOrderStructuralLocked()) return false;
+    return Number(item.order_menu_id || item.id || 0) > 0;
+  }
+
+  async function adjustSentItemQuantityV68(item, delta) {
+    var order = activeOrder();
+    if (!order || !item || state.sentItemQuantityBusy) return;
+
+    var orderIdValue = orderId(order);
+    var itemIdValue = Number(item.order_menu_id || item.id || 0);
+    if (!orderIdValue || !itemIdValue || !state.settings.item_quantity_url) {
+      return;
+    }
+
+    if (!sentItemQuantityMutableV68(order, item)) {
+      if (activeOrderStructuralLocked()) {
+        toast(
+          delta > 0
+            ? 'Payment already exists. Use + Check for additional food.'
+            : 'Paid items must be corrected through refund/cancellation.',
+          true
+        );
+      } else {
+        toast('Kitchen preparation has started. This item is locked.', true);
+      }
+      return;
+    }
+
+    var reason = '';
+    if (delta < 0) {
+      var answer = window.prompt(
+        'Reason for reducing this sent item:',
+        'Customer changed order before preparation'
+      );
+      if (answer === null) return;
+      reason = String(answer || '').trim();
+      if (!reason) {
+        toast('A reduction reason is required.', true);
+        return;
+      }
+    }
+
+    var url = tokenUrl(
+      tokenUrl(
+        state.settings.item_quantity_url,
+        '{order}',
+        orderIdValue
+      ),
+      '{item}',
+      itemIdValue
+    );
+
+    state.sentItemQuantityBusy = true;
+    renderSentItems();
+
+    try {
+      await fetchJson(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          delta: delta,
+          reason: reason,
+          expected_updated_at: String(order.updated_at || '')
+        })
+      });
+
+      if (
+        state.serviceMode === 'dine_in' &&
+        state.selectedTable
+      ) {
+        await loadTable(state.selectedTable.id, true, true);
+      }
+
+      toast(delta > 0 ? 'Quantity increased.' : 'Quantity reduced.');
+    } catch (error) {
+      toast(error.message || 'Quantity could not be changed.', true);
+      if (
+        state.serviceMode === 'dine_in' &&
+        state.selectedTable
+      ) {
+        loadTable(state.selectedTable.id, true, true);
+      }
+    } finally {
+      state.sentItemQuantityBusy = false;
+      renderSentItems();
+    }
+  }
+
   function renderSentItems() {
     var section = $('[data-qpos-sent]');
     var box = $('[data-qpos-sent-items]');
@@ -1752,16 +1884,44 @@ function renderOpenChecks() {
     box.innerHTML = items.map(function (item) {
       var qty = num(item.quantity != null ? item.quantity : item.qty, 1);
       var subtotal = num(item.subtotal != null ? item.subtotal : item.line_subtotal, 0);
+      var mutable = sentItemQuantityMutableV68(order, item);
+      var itemIdValue = Number(item.order_menu_id || item.id || 0);
       return (
-        '<div class="pmd-qpos-sent-line' + (item.__pending ? ' is-pending' : '') + '">' +
+        '<div class="pmd-qpos-sent-line' +
+          (item.__pending ? ' is-pending' : '') +
+          (mutable ? ' is-quantity-editable' : '') +
+        '">' +
           '<b>' + esc(qty) + '×</b>' +
           '<span>' + esc(item.name || item.menu_name || 'Item') +
             (visibleNote(item.comment) ? '<small>' + esc(visibleNote(item.comment)) + '</small>' : '') +
           '</span>' +
+          (mutable
+            ? '<span class="pmd-qpos-sent-qty-v68" aria-label="Change quantity">' +
+                '<button type="button" data-qpos-sent-qty="-1" data-qpos-sent-item="' +
+                  esc(itemIdValue) + '" aria-label="Reduce quantity">−</button>' +
+                '<button type="button" data-qpos-sent-qty="1" data-qpos-sent-item="' +
+                  esc(itemIdValue) + '" aria-label="Increase quantity">+</button>' +
+              '</span>'
+            : '') +
           '<strong>' + money(subtotal) + '</strong>' +
         '</div>'
       );
     }).join('');
+
+    Array.prototype.slice.call(
+      box.querySelectorAll('[data-qpos-sent-qty]')
+    ).forEach(function (button) {
+      button.onclick = function () {
+        var delta = Number(button.getAttribute('data-qpos-sent-qty') || 0);
+        var itemIdValue = Number(button.getAttribute('data-qpos-sent-item') || 0);
+        var item = committed.find(function (row) {
+          return Number(row.order_menu_id || row.id || 0) === itemIdValue;
+        });
+        if (item && (delta === -1 || delta === 1)) {
+          adjustSentItemQuantityV68(item, delta);
+        }
+      };
+    });
   }
 
   function cartSignature(item, options, comment) {
