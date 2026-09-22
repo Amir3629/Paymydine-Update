@@ -306,11 +306,12 @@ class LocalPosBridge(
                 cashReceivedMinor = cashReceivedMinor,
             )
 
-        check(app.syncRepository.enqueue(send)) {
-            "This order is already queued."
-        }
-        check(app.syncRepository.enqueue(cash)) {
-            "This cash payment is already queued."
+        check(
+            app.syncRepository.enqueueOrdered(
+                listOf(send, cash),
+            ),
+        ) {
+            "Order/payment sequence could not be queued."
         }
 
         app.localPosRepository.markQueued(draft.localId)
