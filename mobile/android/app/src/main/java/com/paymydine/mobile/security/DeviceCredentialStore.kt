@@ -19,8 +19,10 @@ data class StaffSession(
     val roleCode: String,
     val route: String,
     val surface: String,
+    val destination: String,
     val staffGrant: String,
     val expiresAtEpochSeconds: Long,
+    val offlineExpiresAtEpochSeconds: Long,
 )
 
 class DeviceCredentialStore(context: Context) {
@@ -104,8 +106,13 @@ class DeviceCredentialStore(context: Context) {
                 .put("role_code", session.roleCode)
                 .put("route", session.route)
                 .put("surface", session.surface)
+                .put("destination", session.destination)
                 .put("staff_grant", session.staffGrant)
                 .put("expires_at", session.expiresAtEpochSeconds)
+                .put(
+                    "offline_expires_at",
+                    session.offlineExpiresAtEpochSeconds,
+                )
                 .toString(),
         )
     }
@@ -122,8 +129,16 @@ class DeviceCredentialStore(context: Context) {
                 roleCode = json.getString("role_code"),
                 route = json.getString("route"),
                 surface = json.getString("surface"),
+                destination = json.optString(
+                    "destination",
+                    "workspace",
+                ),
                 staffGrant = json.getString("staff_grant"),
                 expiresAtEpochSeconds = json.getLong("expires_at"),
+                offlineExpiresAtEpochSeconds = json.optLong(
+                    "offline_expires_at",
+                    json.getLong("expires_at"),
+                ),
             )
         }.getOrNull()
     }
@@ -134,6 +149,24 @@ class DeviceCredentialStore(context: Context) {
         ?.expiresAtEpochSeconds
         ?.let { it > nowEpochSeconds }
         ?: false
+
+    /**
+     * PMD_ANDROID_OFFLINE_SESSION_AUTHORITY_V12
+     *
+     * Cloud bearer lifetime and local-work authority are intentionally
+     * separate. POS/KDS can continue from durable SQLite through the canonical
+     * work-session boundary even when the short-lived Cloud grant has expired.
+     */
+    fun offlineSessionValid(
+        surface: String,
+        nowEpochSeconds: Long = System.currentTimeMillis() / 1000L,
+    ): Boolean {
+        val session = staffSession() ?: return false
+        val requested = surface.trim().lowercase()
+        if (session.surface != requested) return false
+        if (requested !in setOf("pos", "kds")) return false
+        return session.offlineExpiresAtEpochSeconds > nowEpochSeconds
+    }
 
     fun clearStaffSession() =
         prefs.edit().remove("staff_session_v1").apply()
