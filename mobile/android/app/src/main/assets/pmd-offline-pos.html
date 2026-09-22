@@ -196,7 +196,7 @@
 <script>
 (function(){
 'use strict';
-var state={snapshot:null,selectedTable:null,activeFloor:'all',search:'',category:'all',modifier:null,selectedOptions:{},images:{},history:null,historyScope:'selected',historySelectedOrder:null,moveScope:'order'};
+var state={snapshot:null,selectedTable:null,activeFloor:'all',search:'',category:'all',modifier:null,selectedOptions:{},images:{},history:null,historyScope:'selected',historySelectedOrder:null,moveScope:'order',paymentOpen:false,customerDisplaySignature:''};
 function el(q){return document.querySelector(q)}
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]})}
 function money(minor,currency){
@@ -208,6 +208,45 @@ function bridge(method){
   if(!window.PayMyDineOffline||typeof window.PayMyDineOffline[method]!=='function')throw new Error('Local POS bridge unavailable');
   var args=[].slice.call(arguments,1);
   return window.PayMyDineOffline[method].apply(window.PayMyDineOffline,args);
+}
+function customerDisplayBridge(){
+  var hw=window.PayMyDineHardware;
+  return hw&&typeof hw.pushCustomerDisplay==='function'?hw:null
+}
+function pushCustomerDisplay(phase){
+  var hw=customerDisplayBridge();if(!hw)return;
+  var s=state.snapshot||{},d=s.draft,b=s.bill;
+  if(!state.selectedTable){
+    state.customerDisplaySignature='';
+    try{hw.showCustomerDisplayIdle()}catch(e){}
+    return
+  }
+  var currency=(d&&d.currency)||(b&&b.currency)||s.currency||'EUR';
+  var base=Number(b&&b.base_total_minor||0),pending=Number(d&&d.total_minor||0);
+  var rows=(d&&d.lines||[]).map(function(line){
+    return {
+      menu_id:Number(line.item_id||0)||null,
+      name:String(line.name||'Item'),
+      quantity:Number(line.quantity||0),
+      unit_price:Number(line.unit_price_minor||0)/100,
+      line_total:Number(line.unit_price_minor||0)*Number(line.quantity||0)/100,
+      image:localImage({id:line.item_id})
+    }
+  });
+  var payload={
+    phase:phase||'order',
+    currency:currency,
+    total:(base+pending)/100,
+    amount_due:paymentDueMinor()/100,
+    table_label:String(s.selected_table_label||''),
+    headline:phase==='payment'?'Please pay':'Your order',
+    message:phase==='payment'?'Cash can be recorded now and reconciled securely when Cloud returns.':'',
+    items:rows
+  };
+  var signature=JSON.stringify(payload);
+  if(signature===state.customerDisplaySignature)return;
+  state.customerDisplaySignature=signature;
+  try{hw.pushCustomerDisplay(signature)}catch(e){}
 }
 function localImage(item){
   var id=String(item&&item.id||'');if(!id)return '';
@@ -408,6 +447,7 @@ function renderCart(){
   if(cleaning)cleaning.disabled=!selected||selectedStatus==='cleaning';
   if(free)free.disabled=!selected;
   if(move)move.disabled=!selected||editable||!b||!b.server_id;
+  pushCustomerDisplay(state.paymentOpen?'payment':'order');
 }
 function mutate(method){
   try{var args=[method].concat([].slice.call(arguments,1));var result=JSON.parse(bridge.apply(null,args));if(!result.ok)toast(result.message||'Action failed');else if(result.message)toast(result.message);read()}
@@ -430,8 +470,12 @@ function openPayment(){
   el('[data-payment-due]').textContent=money(due,currency);
   el('[data-payment-cash]').value=(due/100).toFixed(2);
   var m=el('[data-offline-payment]');m.classList.add('is-open');m.setAttribute('aria-hidden','false');
+  state.paymentOpen=true;pushCustomerDisplay('payment');
 }
-function closePayment(){var m=el('[data-offline-payment]');m.classList.remove('is-open');m.setAttribute('aria-hidden','true')}
+function closePayment(){
+  var m=el('[data-offline-payment]');m.classList.remove('is-open');m.setAttribute('aria-hidden','true');
+  state.paymentOpen=false;pushCustomerDisplay('order')
+}
 function submitPayment(){
   var cash=Math.round(Number(el('[data-payment-cash]').value||0)*100),d=state.snapshot&&state.snapshot.draft,due=paymentDueMinor();
   if(cash<due){toast('Cash received is lower than the amount due.');return}
