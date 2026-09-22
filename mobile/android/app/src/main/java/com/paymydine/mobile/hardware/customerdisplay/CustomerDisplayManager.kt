@@ -3,6 +3,7 @@ package com.paymydine.mobile.hardware.customerdisplay
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.util.Base64
 import android.util.LruCache
 import org.json.JSONObject
 import java.net.HttpURLConnection
@@ -218,6 +219,35 @@ class CustomerDisplayManager(
 
     private fun loadImage(rawUrl: String?): Bitmap? {
         val value = rawUrl?.trim().orEmpty()
+        if (value.isBlank()) return null
+
+        imageCache.get(value)?.let { cached ->
+            if (!cached.isRecycled) return cached
+        }
+
+        // PMD_ZCS_OFFLINE_CACHED_IMAGE_V17
+        // Local POS exposes only app-private cached menu images as data URIs.
+        // Decode them in-process so the customer display never needs WAN access.
+        if (value.startsWith("data:image/", ignoreCase = true)) {
+            val marker = ";base64,"
+            val split = value.indexOf(marker, ignoreCase = true)
+            if (split < 0) return null
+
+            return runCatching {
+                val bytes = Base64.decode(
+                    value.substring(split + marker.length),
+                    Base64.DEFAULT,
+                )
+                val decoded = BitmapFactory.decodeByteArray(
+                    bytes,
+                    0,
+                    bytes.size,
+                ) ?: return@runCatching null
+                imageCache.put(value, decoded)
+                decoded
+            }.getOrNull()
+        }
+
         if (!value.startsWith("https://", ignoreCase = true)) {
             return null
         }
