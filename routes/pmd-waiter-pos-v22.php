@@ -16,6 +16,8 @@ Route::middleware(['web'])->group(function () {
         ->where('orderId', '[0-9]+');
     Route::post('/admin/pmd-waiter-pos-v22/operations/{orderId}/void-item', [\Admin\Controllers\PmdWaiterPosV1::class, 'voidItemV22'])
         ->where('orderId', '[0-9]+');
+    Route::post('/admin/pmd-waiter-pos-v22/operations/{orderId}/increase-item', [\Admin\Controllers\PmdWaiterPosV1::class, 'increaseItemV68'])
+        ->where('orderId', '[0-9]+');
     Route::post('/admin/pmd-waiter-pos-v22/operations/{orderId}/void-order', [\Admin\Controllers\PmdWaiterPosV1::class, 'voidOrderV22'])
         ->where('orderId', '[0-9]+');
     Route::post('/admin/pmd-waiter-pos-v22/operations/{orderId}/reopen', [\Admin\Controllers\PmdWaiterPosV1::class, 'reopenOrderV22'])
