@@ -62,3 +62,5 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
     testImplementation("junit:junit:4.13.2")
 }
+
+// PMD_ANDROID_0_3_4_RELEASE_READY_V2
