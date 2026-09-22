@@ -148,6 +148,7 @@ final class PmdMobileCommandProcessor
                     'event_type' => match ($command['command_type']) {
                         'ORDER_HOLD_V1' => 'ORDER_HELD_V1',
                         'KDS_STATUS_V1' => 'KDS_STATUS_CHANGED_V1',
+                        'CASH_PAYMENT_V1' => 'PAYMENT_CASH_RECORDED_V1',
                         default => 'ORDER_SENT_V1',
                     },
                     'payload' => json_encode([
@@ -220,6 +221,10 @@ final class PmdMobileCommandProcessor
             return $this->applyKdsStatusCommand($identity, $command);
         }
 
+        if ($command['command_type'] === 'CASH_PAYMENT_V1') {
+            return $this->applyCashPaymentCommand($identity, $command);
+        }
+
         if (!in_array(
             $command['command_type'],
             ['ORDER_SEND_V1', 'ORDER_HOLD_V1'],
@@ -252,6 +257,93 @@ final class PmdMobileCommandProcessor
         $pos->pmdUseMobileIdentity($identity);
 
         return $pos->saveMobilePayload($tableId, $payload);
+    }
+
+    /**
+     * PMD_MOBILE_OFFLINE_CASH_PAYMENT_V17
+     *
+     * The tablet records only the business intent while disconnected. When an
+     * authority is reachable, the intent is replayed through the exact
+     * canonical settlement endpoint with the verified mobile identity.
+     *
+     * No card/provider approval is synthesized offline.
+     */
+    private function applyCashPaymentCommand(
+        array $identity,
+        array $command
+    ): array {
+        $payload = (array)$command['payload'];
+        $orderId = (int)($payload['order_id'] ?? 0);
+        if ($orderId < 1) {
+            throw ValidationException::withMessages([
+                'order_id' => 'A canonical order is required for offline cash.',
+            ]);
+        }
+
+        $payload['payment_method'] = 'cash';
+        $payload['idempotency_key'] = $command['idempotency_key'];
+        $payload['quick_pos_fast'] = true;
+        unset(
+            $payload['external_confirmed'],
+            $payload['provider_code'],
+            $payload['payment_reference']
+        );
+
+        /** @var PmdWaiterPosV1 $pos */
+        $pos = app(PmdWaiterPosV1::class);
+        $pos->pmdUseMobileIdentity($identity);
+        $pos->pmdUseMobilePayload($payload);
+
+        $response = $pos->settlePayment($orderId);
+        $status = method_exists($response, 'getStatusCode')
+            ? (int)$response->getStatusCode()
+            : 500;
+        $data = method_exists($response, 'getData')
+            ? (array)$response->getData(true)
+            : [];
+
+        if ($status >= 400 || empty($data['ok'])) {
+            throw ValidationException::withMessages([
+                'payment' => (string)(
+                    $data['message']
+                    ?? 'Offline cash payment could not be reconciled.'
+                ),
+            ]);
+        }
+
+        $summary = (array)($data['summary'] ?? []);
+        $settlement = (array)($summary['settlement'] ?? []);
+        $order = (array)($summary['order'] ?? []);
+
+        return [
+            'order_id' => $orderId,
+            'table_id' => (int)($payload['table_id'] ?? 0),
+            'order_total' => (float)(
+                $settlement['order_total']
+                ?? $payload['expected_remaining']
+                ?? 0
+            ),
+            'settled_amount' => (float)(
+                $settlement['settled_amount']
+                ?? $data['settled_base_amount']
+                ?? 0
+            ),
+            'remaining_amount' => (float)(
+                $settlement['remaining_amount']
+                ?? $data['remaining_amount']
+                ?? 0
+            ),
+            'settlement_status' => (string)(
+                $settlement['status']
+                ?? $data['settlement_status']
+                ?? ''
+            ),
+            'updated_at' => (string)($order['updated_at'] ?? ''),
+            'transaction_id' => (int)($data['transaction_id'] ?? 0),
+            'paid_amount' => (float)($data['paid_amount'] ?? 0),
+            'cash_received' => (float)($data['cash_received'] ?? 0),
+            'change_due' => (float)($data['change_due'] ?? 0),
+        ];
     }
 
     private function applyKdsStatusCommand(
