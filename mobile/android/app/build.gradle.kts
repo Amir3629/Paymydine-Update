@@ -11,7 +11,7 @@ android {
         minSdk = 26
         targetSdk = 36
         versionCode = 17
-        versionName = "0.3.4-session-authority"
+        versionName = "0.3.4-session-authority" // PMD_ANDROID_0_3_4_FINAL_SESSION_AUTHORITY
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "SYNC_PROTOCOL_VERSION", "\"pmd-sync-v1\"")
     }
