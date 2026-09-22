@@ -155,7 +155,8 @@ jobs:
           grep -q "PMD_ANDROID_STAFF_LOGIN_ROUTER_V3" app/Http/Controllers/PmdMobileWorkspaceAuthController.php
           grep -q "PMD_ANDROID_CANONICAL_LOGIN_WAIT_V12" app/Http/Controllers/PmdMobileWorkspaceAuthController.php
           grep -q "offline_expires_at" app/Http/Controllers/PmdMobileWorkspaceAuthController.php
-          grep -q "PMD_ANDROID_DEVICE_TRUST_BEFORE_STAFF_LOGIN_V3" app/Http/Controllers/PmdMobileWorkspaceAuthController.php
+          grep -q "PMD_ANDROID_CANONICAL_LOGIN_REQUEST_V12" app/Http/Controllers/PmdMobileWorkspaceAuthController.php
+          grep -q "authenticateDevice" app/Http/Controllers/PmdMobileWorkspaceAuthController.php
           grep -q "routeForRoleCode" app/Http/Controllers/PmdMobileWorkspaceAuthController.php
           grep -q "PMD_MOBILE_ROLE_WORKSPACE_SESSION_V2" app/Http/Controllers/PmdMobileWorkspaceSessionController.php
           grep -q "PMD_MOBILE_SESSION_LOCATION_AUTHORITY_V6" app/Services/PmdSiteAccessService.php
