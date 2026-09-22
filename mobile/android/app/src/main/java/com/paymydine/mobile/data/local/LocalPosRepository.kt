@@ -872,7 +872,11 @@ class LocalPosRepository(private val database: PmdDatabase) {
                 )
             }
 
-            updateTable(sourceTableId, "available", targetTableId)
+            updateTable(
+                sourceTableId,
+                if (scope == "table") "available" else "occupied",
+                targetTableId,
+            )
             updateTable(targetTableId, "occupied", sourceTableId)
 
             if (scope == "order" && orderId != null && orderId > 0) {
