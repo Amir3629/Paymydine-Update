@@ -209,7 +209,7 @@ function renderHistory(){
     list.innerHTML='<div class="pmd-qpos-history-empty">'+(state.historyScope==='selected'&&!state.selectedTable?'Select a table to see its cached history.':'No cached history in this scope yet.')+'</div>';
     state.historySelectedOrder=null;renderHistoryDetail(0);return;
   }
-  if(!entries.some(function(row){return Number(row.order_id||0)===Number(state.historySelectedOrder||0)}){
+  if(!entries.some(function(row){return Number(row.order_id||0)===Number(state.historySelectedOrder||0)})){
     state.historySelectedOrder=Number(entries[0].order_id||0)||null;
   }
   list.innerHTML=entries.map(function(row){
