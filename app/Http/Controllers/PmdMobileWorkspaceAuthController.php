@@ -6,6 +6,7 @@ use Admin\Models\Users_model;
 use Admin\Services\PmdDefaultStaffRoleService;
 use App\Services\PmdMobileSync\PmdMobileDeviceAuthService;
 use App\Services\PmdMobileSync\PmdMobileStaffGrantService;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Hash;
@@ -31,16 +32,40 @@ final class PmdMobileWorkspaceAuthController extends Controller
             'password' => ['required', 'string', 'min:6', 'max:191'],
         ]);
 
-        $deviceIdentity = $deviceAuth->authenticate($request);
+        // PMD_ANDROID_DEVICE_TRUST_BEFORE_STAFF_LOGIN_V3
+        // The tablet was already paired. At this point verify only device +
+        // restaurant trust; the human identity is exactly what this request is
+        // about to authenticate.
+        $deviceIdentity = $deviceAuth->authenticateDevice($request);
+
         $typedUsername = trim((string)$data['username']);
         if ($typedUsername === '') {
-            abort(401, 'Username or password is incorrect.');
+            $this->fail(401, 'Username or password is incorrect.');
+        }
+
+        // Keep the Android login identity compatible with the canonical web
+        // login convention: "usernameportal" selects My Work for that person.
+        $destination = 'workspace';
+        $lookupUsername = $typedUsername;
+        $lower = mb_strtolower($typedUsername);
+        if (
+            mb_strlen($typedUsername) > 6
+            && str_ends_with($lower, 'portal')
+        ) {
+            $lookupUsername = trim(
+                mb_substr($typedUsername, 0, mb_strlen($typedUsername) - 6)
+            );
+            $destination = 'staff';
+        }
+
+        if ($lookupUsername === '') {
+            $this->fail(401, 'Username or password is incorrect.');
         }
 
         $user = Users_model::query()
             ->whereRaw(
                 'LOWER(username) = ?',
-                [mb_strtolower($typedUsername)]
+                [mb_strtolower($lookupUsername)]
             )
             ->first();
         $staff = $user ? $user->staff : null;
@@ -54,13 +79,13 @@ final class PmdMobileWorkspaceAuthController extends Controller
             || $passwordHash === ''
             || !Hash::check((string)$data['password'], $passwordHash)
         ) {
-            abort(401, 'Username or password is incorrect.');
+            $this->fail(401, 'Username or password is incorrect.');
         }
 
         $grants = app(PmdMobileStaffGrantService::class);
         $locationId = (int)($deviceIdentity['location_id'] ?? 0);
         if (!$grants->userMayUseLocation($user, $staff, $locationId)) {
-            abort(403, 'This PayMyDine account cannot use this restaurant location.');
+            $this->fail(403, 'This PayMyDine account cannot use this restaurant location.');
         }
 
         $roles = app(PmdDefaultStaffRoleService::class);
@@ -68,7 +93,7 @@ final class PmdMobileWorkspaceAuthController extends Controller
         $route = $roles->routeForRoleCode($roleCode);
 
         if ($roleCode === '' || $route === null || trim($route) === '') {
-            abort(403, 'This PayMyDine account has no Android destination.');
+            $this->fail(403, 'This PayMyDine account has no Android destination.');
         }
 
         // Backward compatibility for 0.3.2: if the old app explicitly asks for
@@ -78,7 +103,11 @@ final class PmdMobileWorkspaceAuthController extends Controller
             $requestedSurface !== ''
             && !$this->roleMayOpen($roleCode, $requestedSurface)
         ) {
-            abort(403, 'This PayMyDine account cannot open that workspace.');
+            $this->fail(403, 'This PayMyDine account cannot open that workspace.');
+        }
+
+        if ($destination === 'staff') {
+            $route = 'mywork';
         }
 
         $surface = $this->surfaceForRole($roleCode);
@@ -99,6 +128,20 @@ final class PmdMobileWorkspaceAuthController extends Controller
             'lease_expires_at' => $leaseUntil->timestamp,
             'lease_expires_iso' => $leaseUntil->toIso8601String(),
         ], 200, ['Cache-Control' => 'no-store, private']);
+    }
+
+    private function fail(int $status, string $message): void
+    {
+        throw new HttpResponseException(
+            response()->json(
+                [
+                    'ok' => false,
+                    'message' => $message,
+                ],
+                $status,
+                ['Cache-Control' => 'no-store, private']
+            )
+        );
     }
 
     private function surfaceForRole(string $roleCode): string
