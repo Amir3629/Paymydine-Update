@@ -997,7 +997,11 @@
       return;
     }
 
-    setHistoryKindV57(kind === 'calls' ? 'calls' : 'notes');
+    setHistoryKindV57(
+      kind === 'attention'
+        ? 'attention'
+        : (kind === 'calls' ? 'calls' : 'notes')
+    );
     await openHistory('selected');
   }
 
@@ -1418,6 +1422,7 @@
       var waiterCalls = Math.max(0, num(table.waiter_calls, 0));
       var noteCount = Math.max(0, num(table.note_count, 0));
       var hasAttention = waiterCalls > 0 || noteCount > 0;
+      var attentionHistoryKind = hasAttention ? 'attention' : '';
       var signals = [];
 
       if (waiterCalls > 0) {
@@ -1469,6 +1474,9 @@
           ' data-status="' + esc(effectiveTableStatusV62(table)) + '"' +
           ' data-payment-state="' + esc(paymentState) + '"' +
           (hasAttention ? ' data-qpos-attention="1"' : '') +
+          (attentionHistoryKind
+            ? ' data-qpos-attention-kind-default="' + esc(attentionHistoryKind) + '"'
+            : '') +
           (isMoveSource || (directMove && !isMoveTarget) || state.transfer.submitting
             ? ' disabled'
             : '') +
@@ -1501,7 +1509,7 @@
                           : signal.title
                       ) + '">' +
                       '<b>' + esc(signal.icon) + '</b>' +
-                      (num(signal.count, 0) > 1
+                      (signal.kind !== 'note' && num(signal.count, 0) > 1
                         ? '<em>' + esc(signal.count) + '</em>'
                         : '') +
                     '</span>'
@@ -1557,6 +1565,15 @@
 
         if (directMove) {
           directMoveOrderToTable(id);
+          return;
+        }
+
+        var defaultAttentionKind = String(
+          button.getAttribute('data-qpos-attention-kind-default') || ''
+        );
+
+        if (defaultAttentionKind) {
+          openTableAttentionV57(id, defaultAttentionKind);
           return;
         }
 
@@ -5530,6 +5547,9 @@ function renderOpenChecks() {
     if (kind === 'calls') {
       return ['waiter_call', 'table_status', 'status'].indexOf(entryKind) !== -1;
     }
+    if (kind === 'attention') {
+      return ['waiter_call', 'table_note'].indexOf(entryKind) !== -1;
+    }
     return true;
   }
 
@@ -6908,6 +6928,7 @@ function renderOpenChecks() {
     var historyClose = $('[data-qpos-history-close]');
 
     if (historyOpen) historyOpen.onclick = function () {
+      setHistoryKindV57('orders');
       openHistory('selected');
     };
     if (historyClose) historyClose.onclick = closeHistory;

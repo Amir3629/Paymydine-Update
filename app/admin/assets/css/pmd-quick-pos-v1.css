@@ -8246,3 +8246,33 @@ body.pmd-qpos-body {
   font-size: 15px !important;
   line-height: 1.4;
 }
+
+
+/* ============================================================
+   PMD_QPOS_TABLE_CENTER_V66
+   Attention remains visible at the edges while the table identity stays
+   larger and geometrically centered inside the touch target.
+   ============================================================ */
+.pmd-qpos-table:not(.pmd-qpos-pickup) {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+}
+
+.pmd-qpos-table:not(.pmd-qpos-pickup) > strong {
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  text-align: center !important;
+  font-size: clamp(26px, 2.2vw, 32px) !important;
+  line-height: 1 !important;
+}
+
+.pmd-qpos-table:not(.pmd-qpos-pickup) > small {
+  width: 100% !important;
+  margin-top: 9px !important;
+  padding: 0 !important;
+  text-align: center !important;
+}
