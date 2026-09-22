@@ -71,6 +71,15 @@ Route::middleware(['web'])->group(function () {
         [\Admin\Controllers\PmdQuickPosV1::class, 'transfer']
     );
 
+    // PMD_QPOS_SAFE_SENT_ITEM_QUANTITY_V68
+    Route::post(
+        '/admin/pos/order/{order}/item/{item}/quantity',
+        [\Admin\Controllers\PmdQuickPosV1::class, 'adjustSentItemQuantity']
+    )->where([
+        'order' => '[0-9]+',
+        'item' => '[0-9]+',
+    ]);
+
     Route::post(
         '/admin/pos/payment-settle/{order}',
         [\Admin\Controllers\PmdQuickPosV1::class, 'settlePayment']
