@@ -538,6 +538,22 @@ final class PmdMobileBootstrapService
 
     private function tables(int $locationId): array
     {
+        $versionMap = [];
+        if (Schema::hasTable('pmd_sync_aggregate_versions')) {
+            try {
+                $versionMap = DB::table('pmd_sync_aggregate_versions')
+                    ->where('location_id', $locationId)
+                    ->where('aggregate', 'table')
+                    ->pluck('version', 'aggregate_id')
+                    ->mapWithKeys(function ($version, $aggregateId) {
+                        return [(string)$aggregateId => (int)$version];
+                    })
+                    ->all();
+            } catch (\Throwable $error) {
+                $versionMap = [];
+            }
+        }
+
         return Tables_model::query()
             ->whereHasOrDoesntHaveLocation($locationId)
             ->isEnabled()
@@ -545,9 +561,15 @@ final class PmdMobileBootstrapService
             ->orderBy('table_id')
             ->limit(500)
             ->get()
-            ->map(function ($table) {
+            ->map(function ($table) use ($versionMap) {
+                $tableId = (int)$table->getKey();
+
                 return [
-                    'id' => (int)$table->getKey(),
+                    'id' => $tableId,
+                    'aggregate_version' => (int)(
+                        $versionMap['table:'.$tableId]
+                        ?? 0
+                    ),
                     'number' => (string)($table->table_no ?? $table->getKey()),
                     'name' => (string)($table->table_name ?? ''),
                     'section' => (string)($table->table_section ?? ''),
