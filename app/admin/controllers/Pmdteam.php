@@ -10,6 +10,7 @@ use Admin\Models\Staffs_model;
 use Admin\Services\PmdDefaultStaffRoleService;
 use App\Services\PmdKitchenOperationsSchemaService;
 use App\Services\PmdKitchenWorkforceService;
+use App\Services\PmdStaffPinService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
@@ -19,7 +20,8 @@ use Illuminate\Validation\ValidationException;
  *
  * One Team identity owns both the operational profile and the PMD login.
  * Every active restaurant team member is expected to have one Staff account,
- * one username/password and one role. The role decides the operational
+ * one username/password, optional trusted-terminal Quick PIN and one role.
+ * The role decides the operational
  * workspace after login; the same credentials also open the Staff Portal.
  */
 class Pmdteam extends AdminController
@@ -116,6 +118,7 @@ class Pmdteam extends AdminController
         $userId = $existingStaff && $existingStaff->user ? (int)$existingStaff->user->user_id : 0;
 
         $managedRoles = collect(app(PmdDefaultStaffRoleService::class)->ensure())->keyBy('staff_role_id');
+        $pinService = app(PmdStaffPinService::class);
         $input = [
             'display_name' => trim((string)post('display_name', '')),
             'department' => trim((string)post('department', '')),
@@ -124,6 +127,7 @@ class Pmdteam extends AdminController
             'staff_role_id' => max(0, (int)post('staff_role_id', 0)),
             'username' => trim((string)post('username', '')),
             'password' => (string)post('password', ''),
+            'quick_pin' => trim((string)post('quick_pin', '')),
         ];
 
         $rules = [
@@ -142,6 +146,17 @@ class Pmdteam extends AdminController
                 'unique:users,username'.($userId ? ','.$userId.',user_id' : ''),
             ],
             'password' => [$existingStaff ? 'nullable' : 'required', 'between:6,32'],
+            'quick_pin' => ['nullable', function ($attribute, $value, $fail) use ($pinService) {
+                $value = trim((string)$value);
+                if ($value === '') return;
+                if (!preg_match('/^[0-9]{6}$/', $value)) {
+                    $fail('Quick PIN must be exactly 6 digits.');
+                    return;
+                }
+                if ($pinService->isWeakPin($value)) {
+                    $fail('Choose a stronger Quick PIN. Avoid repeated or sequential digits.');
+                }
+            }],
         ];
 
         $validator = Validator::make($input, $rules, [
@@ -152,8 +167,30 @@ class Pmdteam extends AdminController
         if ($validator->fails()) throw new ValidationException($validator);
         $clean = $validator->validated();
 
+        $quickPin = trim((string)($clean['quick_pin'] ?? ''));
+        if ($quickPin !== '') {
+            $selectedRole = $managedRoles->get((int)$clean['staff_role_id']);
+            $roleCode = strtolower(trim((string)($selectedRole->code ?? '')));
+
+            if (!$pinService->ensureReady()) {
+                throw ValidationException::withMessages([
+                    'quick_pin' => 'Quick PIN storage is not ready on this restaurant yet.',
+                ]);
+            }
+            if (!$pinService->canUseRole($roleCode)) {
+                throw ValidationException::withMessages([
+                    'quick_pin' => 'Quick PIN is for operational staff. Owner, Manager and Accountant must use username and password.',
+                ]);
+            }
+            if (!$pinService->availableForUser($quickPin, $userId)) {
+                throw ValidationException::withMessages([
+                    'quick_pin' => 'That Quick PIN is already used by another team member.',
+                ]);
+            }
+        }
+
         try {
-            DB::transaction(function () use ($existingStaff, $existing, $clean, $locationId, $id) {
+            DB::transaction(function () use ($existingStaff, $existing, $clean, $locationId, $id, $pinService) {
                 $member = $existingStaff ?: new Staffs_model();
                 $member->staff_name = $clean['display_name'];
                 $member->staff_role_id = (int)$clean['staff_role_id'];
@@ -171,9 +208,17 @@ class Pmdteam extends AdminController
                     'activate' => true,
                 ];
                 if (($clean['password'] ?? '') !== '') $user['password'] = $clean['password'];
-                $member->addStaffUser($user);
+                $userModel = $member->addStaffUser($user);
                 if ($locationId > 0) $member->addStaffLocations([$locationId]);
                 $member->addStaffGroups([]);
+
+                if (($clean['quick_pin'] ?? '') !== '') {
+                    $pinService->setPin(
+                        (int)$userModel->getKey(),
+                        (int)$member->staff_id,
+                        (string)$clean['quick_pin']
+                    );
+                }
 
                 $values = [
                     'location_id' => $locationId,
@@ -195,7 +240,7 @@ class Pmdteam extends AdminController
             });
         } catch (\Throwable $error) {
             report($error);
-            throw ValidationException::withMessages(['username' => 'Could not save this team member. Check the name, username and password and try again.']);
+            throw ValidationException::withMessages(['username' => 'Could not save this team member. Check the name, username, password and Quick PIN and try again.']);
         }
 
         flash()->success(\Admin\Classes\PmdPlatformI18n::fromEnglish($id ? 'Team member updated.' : 'Team member added.', 'settings.'));

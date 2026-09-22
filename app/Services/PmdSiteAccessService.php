@@ -52,6 +52,7 @@ class PmdSiteAccessService
     public const SESSION_LAST_PAIRED_DEVICE = 'pmd_site_last_paired_device_v1';
     public const SESSION_MOBILE_LOCATION = 'pmd_mobile_session_location_v1';
     public const SESSION_MOBILE_DEVICE = 'pmd_mobile_session_device_v1';
+    public const SESSION_LOGIN_LOCATION = 'pmd_login_location_v1';
 
     public function ready(): bool
     {
@@ -90,6 +91,16 @@ class PmdSiteAccessService
         // have another primary/operational location while still being assigned
         // to this restaurant; do not overwrite the mobile device location with
         // that profile default on the redirect request.
+        // PMD_STAFF_QUICK_PIN_LOCATION_V1
+        // A trusted restaurant terminal can identify its location before the
+        // employee is authenticated. Preserve that exact location for the
+        // resulting PIN session instead of falling back to another assigned
+        // location on multi-location accounts.
+        $loginSessionLocation = (int)session()->get(
+            self::SESSION_LOGIN_LOCATION,
+            0
+        );
+
         $mobileSessionLocation = (int)session()->get(
             self::SESSION_MOBILE_LOCATION,
             0
@@ -106,9 +117,9 @@ class PmdSiteAccessService
             );
         }
 
-        $locationId = $mobileSessionLocation > 0
-            ? $mobileSessionLocation
-            : 0;
+        $locationId = $loginSessionLocation > 0
+            ? $loginSessionLocation
+            : ($mobileSessionLocation > 0 ? $mobileSessionLocation : 0);
 
         if (
             $locationId < 1
@@ -831,6 +842,7 @@ class PmdSiteAccessService
             self::SESSION_LAST_PAIRED_DEVICE,
             self::SESSION_MOBILE_LOCATION,
             self::SESSION_MOBILE_DEVICE,
+            self::SESSION_LOGIN_LOCATION,
         ]);
     }
 
