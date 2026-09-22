@@ -204,10 +204,33 @@ fun PmdStaffLogin(
                         }
                     }
                 }.onFailure { failure ->
-                    cloudUnavailable =
+                    val cloudFailure =
                         failure !is MobileApiException ||
                             failure.statusCode >= 500
-                    error = failure.message ?: "PayMyDine sign-in failed."
+                    cloudUnavailable = cloudFailure
+
+                    // PMD_ANDROID_LOGIN_OFFLINE_ERROR_SUPPRESSION_V15
+                    // A WAN cut is an offline-mode transition, not a failed
+                    // credential attempt. Never surface low-level
+                    // "Failed to fetch", DNS, socket or connection errors when
+                    // a verified local POS/KDS session can continue safely.
+                    val offlineSession = app.credentials.staffSession()
+                    val canContinueOffline =
+                        cloudFailure &&
+                            offlineSession != null &&
+                            app.bootstrapRepository.hasBootstrap() &&
+                            app.credentials.offlineSessionValid(
+                                offlineSession.surface,
+                            )
+
+                    error = when {
+                        canContinueOffline -> null
+                        cloudFailure ->
+                            "PayMyDine Cloud is unavailable. Reconnect to sign in, " +
+                                "or continue the last verified POS/KDS session offline."
+                        else ->
+                            failure.message ?: "PayMyDine sign-in failed."
+                    }
                 }
             }
         },
