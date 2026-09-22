@@ -465,7 +465,10 @@ fun PayMyDineApp(app: PayMyDineApplication) {
         }
     }
 
-    fun openStaffSession(session: StaffSession) {
+    fun openStaffSession(
+        session: StaffSession,
+        forceOffline: Boolean = false,
+    ) {
         if (session.surface == "kds") {
             session.roleCode
                 .removePrefix("pmd-kds:")
@@ -482,7 +485,7 @@ fun PayMyDineApp(app: PayMyDineApplication) {
         }
 
         val destination = when (session.surface) {
-            "pos" -> if (online) {
+            "pos" -> if (online && !forceOffline) {
                 PosActivity::class.java
             } else {
                 OfflinePosActivity::class.java
@@ -499,6 +502,15 @@ fun PayMyDineApp(app: PayMyDineApplication) {
                     putExtra(
                         OfflinePosActivity.EXTRA_REASON,
                         "PayMyDine Cloud is unavailable. Continuing the last verified POS session locally.",
+                    )
+                }
+                if (
+                    destination == KdsActivity::class.java &&
+                    forceOffline
+                ) {
+                    putExtra(
+                        KdsActivity.EXTRA_FORCE_OFFLINE,
+                        true,
                     )
                 }
             },
@@ -534,7 +546,10 @@ fun PayMyDineApp(app: PayMyDineApplication) {
                         openStaffSession(session)
                     },
                     onContinueOffline = { session ->
-                        openStaffSession(session)
+                        openStaffSession(
+                            session,
+                            forceOffline = true,
+                        )
                     },
                 )
             } else if (paired) {
