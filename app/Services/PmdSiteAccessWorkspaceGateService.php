@@ -162,15 +162,16 @@ class PmdSiteAccessWorkspaceGateService
                     // embedded POS sessions, re-check that exact personal
                     // device row on every request so revoke/reset fails closed.
                     try {
-                        // PMD_MOBILE_SHARED_OWNER_DEVICE_V2
-                        // Owner may be the CURRENT signed-in operator on a
-                        // restaurant tablet that was paired by another trusted
-                        // manager/owner. Device revocation is checked here;
-                        // current-owner identity is already session-bound.
+                        // PMD_MOBILE_OWNER_DEVICE_PROOF_V3
+                        // A mobile_android_device proof may satisfy Owner MFA
+                        // only when this exact device was originally paired by
+                        // this Owner. Shared restaurant tablets use the normal
+                        // canonical Owner security continuation instead.
                         $ownerSessionValid = $deviceId > 0
                             && DB::table('pmd_site_access_devices')
                                 ->where('id', $deviceId)
                                 ->where('location_id', $locationId)
+                                ->where('user_id', $ownerUserId)
                                 ->where('device_kind', 'staff_personal')
                                 ->whereNull('revoked_at')
                                 ->exists();
