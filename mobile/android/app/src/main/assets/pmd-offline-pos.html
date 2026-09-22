@@ -39,6 +39,10 @@
     .pmd-offline-history-block{margin-top:15px;padding-top:14px;border-top:1px solid var(--q-line)}
     .pmd-offline-history-block>strong{display:block;margin-bottom:8px;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--q-muted)}
     .pmd-offline-history-line{display:flex;justify-content:space-between;gap:12px;padding:6px 0;font-size:12px}
+    .pmd-offline-history-item{display:grid;grid-template-columns:46px minmax(0,1fr);gap:10px;align-items:center;padding:7px 0}
+    .pmd-offline-history-item-image{width:46px;height:42px;border-radius:8px;background:#f3f4f6 center/cover no-repeat}
+    .pmd-offline-history-item-copy{min-width:0;display:flex;justify-content:space-between;gap:10px;font-size:12px}
+    .pmd-offline-history-item-copy small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--q-muted)}
     .pmd-offline-history-note{padding:8px 10px;margin:6px 0;border-radius:9px;background:#f8fafc;font-size:12px;line-height:1.45}
   </style>
 </head>
@@ -232,7 +236,7 @@ function renderHistoryDetail(orderId){
   var items=(row.items||[]),payments=(row.payments||[]),notes=(row.notes||[]);
   detail.innerHTML='<div class="pmd-offline-history-detail-head"><div><span class="pmd-qpos-section-label">Order</span><h3>#'+esc(row.order_id)+'</h3><small>'+esc(historyTime(row.time))+'</small></div><strong>'+esc(historyMoney(row.total))+'</strong></div>'+
     '<div class="pmd-offline-history-block"><strong>Items</strong>'+
-      (items.length?items.map(function(item){return '<div class="pmd-offline-history-line"><span>'+esc((item.quantity||1)+'× '+(item.name||'Item'))+'</span><small>'+esc(item.note||'')+'</small></div>'}).join(''):'<div class="pmd-qpos-history-empty">No item detail cached.</div>')+
+      (items.length?items.map(function(item){var img=item.menu_id?localImage({id:item.menu_id}):'';return '<div class="pmd-offline-history-item">'+(img?'<div class="pmd-offline-history-item-image" style="background-image:url(&quot;'+esc(img)+'&quot;)"></div>':'<div class="pmd-offline-history-item-image"></div>')+'<div class="pmd-offline-history-item-copy"><span>'+esc((item.quantity||1)+'× '+(item.name||'Item'))+'</span><small>'+esc(item.note||'')+'</small></div></div>'}).join(''):'<div class="pmd-qpos-history-empty">No item detail cached.</div>')+
     '</div>'+
     '<div class="pmd-offline-history-block"><strong>Payments</strong>'+
       (payments.length?payments.map(function(payment){return '<div class="pmd-offline-history-line"><span>'+esc(String(payment.method||'Payment').replace(/_/g,' '))+'</span><b>'+esc(historyMoney(payment.amount))+'</b></div>'}).join(''):'<div class="pmd-qpos-history-empty">No payment recorded in this cached order.</div>')+
