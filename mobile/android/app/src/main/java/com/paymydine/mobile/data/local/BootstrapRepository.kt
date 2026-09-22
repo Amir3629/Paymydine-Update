@@ -77,6 +77,7 @@ class BootstrapRepository(private val database: PmdDatabase) {
                         put("price_minor", toMinor(item.opt("price"), exponent))
                         put("currency", currency)
                         if (firstCategory == null) putNull("category_id") else put("category_id", firstCategory)
+                        put("sort_order", index)
                         put("payload_json", item.toString())
                         put("deleted", 0)
                         put("updated_at_ms", now)
@@ -96,6 +97,7 @@ class BootstrapRepository(private val database: PmdDatabase) {
                         put("number", table.optString("number"))
                         put("label", table.optString("name", table.optString("number")))
                         put("status", table.optString("operational_status", "available"))
+                        put("sort_order", index)
                         put("payload_json", table.toString())
                         put("updated_at_ms", now)
                     },
@@ -306,6 +308,20 @@ class BootstrapRepository(private val database: PmdDatabase) {
     fun hasHistorySnapshot(): Boolean =
         historySnapshot()?.optJSONArray("entries") != null
 
+    fun floorsSnapshot(): JSONArray =
+        runCatching {
+            JSONObject(meta("bootstrap_json").orEmpty())
+                .optJSONArray("floors")
+                ?: JSONArray()
+        }.getOrElse { JSONArray() }
+
+    fun tableFloorMapSnapshot(): JSONObject =
+        runCatching {
+            JSONObject(meta("bootstrap_json").orEmpty())
+                .optJSONObject("table_floor_map")
+                ?: JSONObject()
+        }.getOrElse { JSONObject() }
+
     fun currencyCode(): String =
         runCatching {
             JSONObject(meta("bootstrap_json").orEmpty())
@@ -347,7 +363,7 @@ class BootstrapRepository(private val database: PmdDatabase) {
     ).use { if (it.moveToFirst()) it.getString(0) else null }
 
     fun needsRefresh(
-        maxAgeMs: Long = 5L * 60L * 1000L,
+        maxAgeMs: Long = 60_000L,
         nowMs: Long = System.currentTimeMillis(),
     ): Boolean {
         val applied = meta("bootstrap_applied_at_ms")
