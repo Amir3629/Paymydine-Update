@@ -353,6 +353,94 @@ class PmdWaiterTableStateV154 extends PmdWaiterDashboardV151
 
     protected function activeOrdersForTable(int $tableId): array
     {
+        if (is_array($this->pmdMobileIdentityOverride)) {
+            // PMD_MOBILE_TABLE_STATE_ACTIVE_ORDERS_V17
+            // Signed mobile commands do not depend on a browser AdminAuth
+            // dashboard session. Read the minimum canonical open-order facts
+            // needed by the same table transition rules.
+            if (
+                $tableId < 1
+                || !Schema::hasTable('orders')
+            ) {
+                return [];
+            }
+
+            $columns = Schema::getColumnListing('orders');
+            $primaryKey = in_array('order_id', $columns, true)
+                ? 'order_id'
+                : (in_array('id', $columns, true) ? 'id' : null);
+            if (!$primaryKey || !in_array('table_id', $columns, true)) {
+                return [];
+            }
+
+            $query = DB::table('orders')->where('table_id', $tableId);
+            $locationId = (int)(
+                $this->pmdMobileIdentityOverride['location_id']
+                ?? 0
+            );
+            if (
+                $locationId > 0
+                && in_array('location_id', $columns, true)
+            ) {
+                $query->where('location_id', $locationId);
+            }
+
+            $cancelled = array_values(array_filter(array_map('intval', [
+                setting('canceled_order_status'),
+            ])));
+            if ($cancelled && in_array('status_id', $columns, true)) {
+                $query->whereNotIn('status_id', $cancelled);
+            }
+
+            if (in_array('settled_amount', $columns, true)) {
+                $query->where(function ($q) {
+                    $q->whereNull('settled_amount')
+                        ->orWhere('settled_amount', '<=', 0.0001);
+                });
+            }
+
+            $financialColumn = in_array('settlement_status', $columns, true)
+                ? 'settlement_status'
+                : (
+                    in_array('payment_status', $columns, true)
+                        ? 'payment_status'
+                        : null
+                );
+            if ($financialColumn) {
+                $query->where(function ($q) use ($financialColumn) {
+                    $q->whereNull($financialColumn)
+                        ->orWhereNotIn($financialColumn, [
+                            'paid',
+                            'settled',
+                            'closed',
+                            'cancelled',
+                            'canceled',
+                            'refunded',
+                        ]);
+                });
+            }
+
+            return $query
+                ->orderByDesc($primaryKey)
+                ->limit(20)
+                ->get()
+                ->map(function ($row) use ($primaryKey) {
+                    $raw = (array)$row;
+
+                    return [
+                        'order_id' => (int)($raw[$primaryKey] ?? 0),
+                        'table_id' => (int)($raw['table_id'] ?? 0),
+                        'created_at' => (string)(
+                            $raw['created_at']
+                            ?? $raw['updated_at']
+                            ?? ''
+                        ),
+                    ];
+                })
+                ->values()
+                ->all();
+        }
+
         $dashboard = $this->v9CompatiblePayload();
         $orders = array_values((array)($dashboard['sections']['active_orders'] ?? $dashboard['orders'] ?? []));
 
