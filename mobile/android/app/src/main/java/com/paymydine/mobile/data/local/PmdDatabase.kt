@@ -32,6 +32,10 @@ class PmdDatabase(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, n
             migrateEdgeInboxToScopedSequence(db)
             version = 5
         }
+        if (version < 6) {
+            addCanonicalSortOrder(db)
+            version = 6
+        }
         check(version == newVersion) {
             "Unsupported PayMyDine local DB upgrade: $oldVersion -> $newVersion"
         }
@@ -49,18 +53,20 @@ class PmdDatabase(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, n
 
     companion object {
         const val DATABASE_NAME = "paymydine-local-v1.db"
-        const val DATABASE_VERSION = 5
+        const val DATABASE_VERSION = 6
         private val schema = listOf(
             """CREATE TABLE pmd_meta (key TEXT PRIMARY KEY NOT NULL, value TEXT NOT NULL)""",
             """CREATE TABLE pmd_menu_items (
                 id TEXT PRIMARY KEY NOT NULL, location_id INTEGER NOT NULL, version INTEGER NOT NULL DEFAULT 0,
                 name TEXT NOT NULL, price_minor INTEGER NOT NULL DEFAULT 0, currency TEXT NOT NULL,
-                category_id TEXT, payload_json TEXT NOT NULL DEFAULT '{}', deleted INTEGER NOT NULL DEFAULT 0,
+                category_id TEXT, sort_order INTEGER NOT NULL DEFAULT 0,
+                payload_json TEXT NOT NULL DEFAULT '{}', deleted INTEGER NOT NULL DEFAULT 0,
                 updated_at_ms INTEGER NOT NULL)""".trimIndent(),
             "CREATE INDEX idx_pmd_menu_location ON pmd_menu_items(location_id, deleted)",
             """CREATE TABLE pmd_tables (
                 id TEXT PRIMARY KEY NOT NULL, location_id INTEGER NOT NULL, version INTEGER NOT NULL DEFAULT 0,
                 number TEXT NOT NULL, label TEXT NOT NULL, status TEXT NOT NULL,
+                sort_order INTEGER NOT NULL DEFAULT 0,
                 payload_json TEXT NOT NULL DEFAULT '{}', updated_at_ms INTEGER NOT NULL)""".trimIndent(),
             "CREATE INDEX idx_pmd_tables_location ON pmd_tables(location_id, status)",
             """CREATE TABLE pmd_orders (
@@ -254,6 +260,36 @@ class PmdDatabase(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, n
             db.execSQL(
                 "CREATE INDEX IF NOT EXISTS idx_pmd_edge_inbox_scope_seq " +
                     "ON pmd_edge_inbox_events(scope, sequence)",
+            )
+        }
+
+        private fun addCanonicalSortOrder(db: SQLiteDatabase) {
+            fun ensureColumn(table: String) {
+                val columns = db.rawQuery(
+                    "PRAGMA table_info($table)",
+                    null,
+                ).use { rows ->
+                    buildSet {
+                        val nameIndex = rows.getColumnIndexOrThrow("name")
+                        while (rows.moveToNext()) add(rows.getString(nameIndex))
+                    }
+                }
+                if ("sort_order" !in columns) {
+                    db.execSQL(
+                        "ALTER TABLE $table ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0",
+                    )
+                }
+            }
+
+            ensureColumn("pmd_menu_items")
+            ensureColumn("pmd_tables")
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS idx_pmd_menu_location_sort " +
+                    "ON pmd_menu_items(location_id, deleted, sort_order)",
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS idx_pmd_tables_location_sort " +
+                    "ON pmd_tables(location_id, sort_order)",
             )
         }
 
