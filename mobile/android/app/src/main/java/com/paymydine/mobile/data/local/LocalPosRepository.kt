@@ -45,9 +45,18 @@ data class TableBillState(
     val version: Long,
     val baseTotalMinor: Long,
     val pendingTotalMinor: Long,
+    val settledMinor: Long,
+    val paymentQueuedMinor: Long,
+    val serverUpdatedAt: String?,
     val currency: String,
     val reconciliationError: String?,
 ) {
+    val remainingMinor: Long
+        get() = maxOf(0L, baseTotalMinor - settledMinor)
+
+    val remainingAfterQueuedMinor: Long
+        get() = maxOf(0L, remainingMinor - paymentQueuedMinor)
+
     val projectedTotalMinor: Long
         get() = when (status) {
             LocalPosRepository.STATUS_DRAFT,
@@ -149,6 +158,14 @@ class LocalPosRepository(private val database: PmdDatabase) {
                         status == STATUS_QUEUED ||
                         status == STATUS_RETRY
                     ) currentTotal else 0L,
+                    settledMinor = payload.optLong("settled_amount_minor", 0L),
+                    paymentQueuedMinor = payload.optLong(
+                        "offline_cash_queued_minor",
+                        0L,
+                    ),
+                    serverUpdatedAt = payload.optString("server_updated_at")
+                        .trim()
+                        .takeIf { it.isNotBlank() },
                     currency = rows.getString(4),
                     reconciliationError = payload
                         .optString("reconciliation_error")
@@ -483,6 +500,157 @@ class LocalPosRepository(private val database: PmdDatabase) {
         )
     }
 
+    fun buildCashPaymentCommand(
+        tableId: String,
+        tenantHost: String,
+        deviceId: String,
+        staffId: Long?,
+        userId: Long?,
+        cashReceivedMinor: Long,
+    ): CommandEnvelope {
+        require(draftForTable(tableId) == null) {
+            "Send the current cart before recording payment."
+        }
+
+        val bill = billForTable(tableId)
+            ?: error("No open bill is available for this table.")
+        val serverId = bill.serverId
+            ?.toLongOrNull()
+            ?.takeIf { it > 0 }
+            ?: error("Sync this bill to Cloud before recording payment.")
+        require(bill.paymentQueuedMinor <= 0L) {
+            "A cash payment is already queued for this bill."
+        }
+
+        val dueMinor = bill.remainingMinor
+        require(dueMinor > 0L) {
+            "This bill has no remaining balance."
+        }
+        require(cashReceivedMinor >= dueMinor) {
+            "Cash received is lower than the amount due."
+        }
+
+        val exponent = localMinorExponent()
+        val payload = JSONObject()
+            .put("order_id", serverId)
+            .put("table_id", tableId.toLongOrNull() ?: 0L)
+            .put("split_mode", "full")
+            .put("expected_remaining", minorToMoney(dueMinor, exponent))
+            .put("cash_received", minorToMoney(cashReceivedMinor, exponent))
+            .put("tip_amount", 0)
+            .put("quick_pos_fast", true)
+
+        bill.serverUpdatedAt?.let {
+            payload.put("expected_updated_at", it)
+        }
+
+        return CommandEnvelope.create(
+            tenantHost = tenantHost,
+            locationId = database.readableDatabase.query(
+                "pmd_orders",
+                arrayOf("location_id"),
+                "server_id = ?",
+                arrayOf(serverId.toString()),
+                null,
+                null,
+                "updated_at_ms DESC",
+                "1",
+            ).use {
+                if (it.moveToFirst()) it.getLong(0)
+                else error("Restaurant location is unavailable.")
+            },
+            deviceId = deviceId,
+            staffId = staffId,
+            userId = userId,
+            aggregate = "order",
+            aggregateId = "order:$serverId",
+            baseVersion = bill.version,
+            commandType = "CASH_PAYMENT_V1",
+            payloadJson = payload.toString(),
+        )
+    }
+
+    fun markCashPaymentQueued(
+        tableId: String,
+        commandId: String,
+        amountMinor: Long,
+    ) {
+        database.transaction { db ->
+            val row = db.query(
+                "pmd_orders",
+                arrayOf("id", "payload_json"),
+                "table_id = ? AND server_id IS NOT NULL",
+                arrayOf(tableId),
+                null,
+                null,
+                "updated_at_ms DESC",
+                "1",
+            ).use {
+                if (!it.moveToFirst()) null
+                else it.getString(0) to it.getString(1)
+            } ?: error("Open bill disappeared.")
+
+            val meta = runCatching {
+                JSONObject(row.second)
+            }.getOrElse { JSONObject() }
+            meta.put("offline_cash_command_id", commandId)
+            meta.put("offline_cash_queued_minor", amountMinor)
+            meta.remove("reconciliation_error")
+
+            db.update(
+                "pmd_orders",
+                ContentValues().apply {
+                    put("payload_json", meta.toString())
+                    put("updated_at_ms", System.currentTimeMillis())
+                },
+                "id = ?",
+                arrayOf(row.first),
+            )
+        }
+    }
+
+    fun markCashPaymentConflict(
+        command: CommandEnvelope,
+        message: String,
+    ) {
+        val serverId = command.aggregateId
+            .removePrefix("order:")
+            .toLongOrNull()
+            ?: return
+        database.transaction { db ->
+            val row = db.query(
+                "pmd_orders",
+                arrayOf("id", "payload_json"),
+                "server_id = ?",
+                arrayOf(serverId.toString()),
+                null,
+                null,
+                "updated_at_ms DESC",
+                "1",
+            ).use {
+                if (!it.moveToFirst()) null
+                else it.getString(0) to it.getString(1)
+            } ?: return@transaction
+
+            val meta = runCatching {
+                JSONObject(row.second)
+            }.getOrElse { JSONObject() }
+            meta.remove("offline_cash_queued_minor")
+            meta.remove("offline_cash_command_id")
+            meta.put("reconciliation_error", message.take(1_000))
+
+            db.update(
+                "pmd_orders",
+                ContentValues().apply {
+                    put("payload_json", meta.toString())
+                    put("updated_at_ms", System.currentTimeMillis())
+                },
+                "id = ?",
+                arrayOf(row.first),
+            )
+        }
+    }
+
     fun markQueued(localOrderId: String) {
         database.writableDatabase.update(
             "pmd_orders",
@@ -620,6 +788,10 @@ class LocalPosRepository(private val database: PmdDatabase) {
 
     fun applyCommandResult(command: CommandEnvelope, response: JSONObject) {
         val result = response.optJSONObject("result") ?: return
+        if (command.commandType == "CASH_PAYMENT_V1") {
+            applyCashPaymentResult(command, response, result)
+            return
+        }
         val orderId = result.optLong("order_id", 0)
         if (orderId < 1) return
 
@@ -1065,6 +1237,72 @@ class LocalPosRepository(private val database: PmdDatabase) {
         }
     }
 
+    private fun applyCashPaymentResult(
+        command: CommandEnvelope,
+        response: JSONObject,
+        result: JSONObject,
+    ) {
+        val orderId = result.optLong("order_id", 0L)
+        if (orderId < 1) return
+        val version = response.optLong(
+            "aggregate_version",
+            command.baseVersion + 1,
+        )
+        val totalMinor = moneyToMinor(
+            result.optDouble("order_total", 0.0),
+            localMinorExponent(),
+        )
+        val settledMinor = moneyToMinor(
+            result.optDouble("settled_amount", 0.0),
+            localMinorExponent(),
+        )
+
+        database.transaction { db ->
+            val row = db.query(
+                "pmd_orders",
+                arrayOf("id", "payload_json"),
+                "server_id = ?",
+                arrayOf(orderId.toString()),
+                null,
+                null,
+                "updated_at_ms DESC",
+                "1",
+            ).use {
+                if (!it.moveToFirst()) null
+                else it.getString(0) to it.getString(1)
+            } ?: return@transaction
+
+            val meta = runCatching {
+                JSONObject(row.second)
+            }.getOrElse { JSONObject() }
+            meta.put("base_total_minor", totalMinor)
+            meta.put("settled_amount_minor", settledMinor)
+            meta.put(
+                "settlement_status",
+                result.optString("settlement_status"),
+            )
+            meta.put("server_updated_at", result.optString("updated_at"))
+            meta.put("last_command_id", command.commandId)
+            meta.remove("offline_cash_queued_minor")
+            meta.remove("offline_cash_command_id")
+            meta.remove("reconciliation_error")
+
+            db.update(
+                "pmd_orders",
+                ContentValues().apply {
+                    put("version", version)
+                    put("total_minor", totalMinor)
+                    put("status", STATUS_SERVER_OPEN)
+                    put("dirty", 0)
+                    put("payload_json", meta.toString())
+                    put("updated_at_ms", System.currentTimeMillis())
+                },
+                "id = ?",
+                arrayOf(row.first),
+            )
+        }
+    }
+
     private fun resolveLocalOrderId(
         aggregateId: String,
         serverOrderId: Long = 0,
@@ -1462,6 +1700,11 @@ class LocalPosRepository(private val database: PmdDatabase) {
     ): Long = kotlin.math.round(
         value * Math.pow(10.0, exponent.toDouble()),
     ).toLong()
+
+    private fun minorToMoney(
+        value: Long,
+        exponent: Int,
+    ): Double = value.toDouble() / Math.pow(10.0, exponent.toDouble())
 
     companion object {
         const val STATUS_DRAFT = "DRAFT"
