@@ -15,6 +15,20 @@ use Illuminate\Support\Facades\Schema;
  */
 class PmdWaiterTableStateV154 extends PmdWaiterDashboardV151
 {
+    // PMD_MOBILE_TABLE_STATE_CONTEXT_V17
+    private ?array $pmdMobileIdentityOverride = null;
+    private ?array $pmdMobilePayloadOverride = null;
+
+    public function pmdUseMobileContext(
+        array $identity,
+        array $payload
+    ): self {
+        $this->pmdMobileIdentityOverride = $identity;
+        $this->pmdMobilePayloadOverride = $payload;
+
+        return $this;
+    }
+
     private const TABLE_STATES = [
         'available' => ['label' => 'Available', 'color' => 'green'],
         'occupied' => ['label' => 'Occupied', 'color' => 'red'],
@@ -57,7 +71,9 @@ class PmdWaiterTableStateV154 extends PmdWaiterDashboardV151
         }
 
         $tableId = (int)$tableId;
-        $payload = request()->json()->all() ?: request()->all();
+        $payload = is_array($this->pmdMobilePayloadOverride)
+            ? $this->pmdMobilePayloadOverride
+            : (request()->json()->all() ?: request()->all());
         $next = strtolower(trim((string)($payload['status'] ?? '')));
         $reason = trim((string)($payload['reason'] ?? 'manual_waiter_update'));
         $skipCleaning = filter_var($payload['skip_cleaning'] ?? false, FILTER_VALIDATE_BOOLEAN);
@@ -494,6 +510,16 @@ class PmdWaiterTableStateV154 extends PmdWaiterDashboardV151
 
     protected function actorId(): ?int
     {
+        if (is_array($this->pmdMobileIdentityOverride)) {
+            $userId = (int)(
+                $this->pmdMobileIdentityOverride['user_id']
+                ?? 0
+            );
+            if ($userId > 0) {
+                return $userId;
+            }
+        }
+
         try {
             $user = AdminAuth::getUser();
             return $user ? (int)$user->getKey() : null;
