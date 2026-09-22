@@ -6,6 +6,7 @@ use Admin\Facades\AdminLocation;
 use Admin\Models\Menus_model;
 use Admin\Models\Orders_model;
 use Admin\Models\Tables_model;
+use Admin\Classes\PermissionManager;
 use Admin\Services\PmdDefaultStaffRoleService;
 use Admin\Services\PmdRoleLandingService;
 use Illuminate\Support\Facades\DB;
@@ -40,23 +41,44 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
             return false;
         }
 
+        /* PMD_QPOS_RAW_PAYMENT_AUTHORITY_V56
+         *
+         * Users_model::hasPermission() is intentionally route-aware because it
+         * also enforces PMD workspace boundaries. Payment authorization inside
+         * Quick POS must not recursively depend on that route-aware helper.
+         *
+         * Authorize from the authenticated user's real role and RAW role
+         * permission map instead. This keeps Cashier/Waiter/Manager/Owner and
+         * custom Admin.Orders/Admin.Payments roles valid while unrelated roles
+         * stay denied.
+         */
         try {
-            if ((bool)$user->hasPermission('Admin.Payments')) {
+            if (method_exists($user, 'isSuperUser') && $user->isSuperUser()) {
                 return true;
             }
         } catch (\Throwable $ignored) {
         }
 
+        $roleCode = '';
+        $roleName = '';
+
         try {
-            if ((bool)$user->hasPermission('Admin.Orders')) {
-                return true;
+            $roleService = app(PmdDefaultStaffRoleService::class);
+            $roleCode = strtolower(trim((string)$roleService->roleCodeForUser($user)));
+        } catch (\Throwable $ignored) {
+        }
+
+        try {
+            $staffRole = optional($user->staff)->role;
+            $roleName = strtolower(trim((string)($staffRole->name ?? '')));
+
+            if ($roleCode === '') {
+                $roleCode = strtolower(trim((string)($staffRole->code ?? '')));
             }
         } catch (\Throwable $ignored) {
         }
 
-        $role = strtolower(trim($this->quickPosRoleCode()));
-
-        return in_array($role, [
+        $operatorRoles = [
             PmdDefaultStaffRoleService::OWNER,
             PmdDefaultStaffRoleService::MANAGER,
             PmdDefaultStaffRoleService::CASHIER,
@@ -65,7 +87,42 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
             'manager',
             'cashier',
             'waiter',
-        ], true);
+        ];
+
+        if (
+            in_array($roleCode, $operatorRoles, true)
+            || in_array($roleName, ['owner', 'manager', 'cashier', 'waiter'], true)
+        ) {
+            return true;
+        }
+
+        try {
+            $rawPermissions = method_exists($user, 'getPermissions')
+                ? (array)$user->getPermissions()
+                : [];
+
+            if ($rawPermissions) {
+                $permissionManager = PermissionManager::instance();
+
+                if (
+                    $permissionManager->checkPermission(
+                        $rawPermissions,
+                        ['Admin.Payments'],
+                        true
+                    )
+                    || $permissionManager->checkPermission(
+                        $rawPermissions,
+                        ['Admin.Orders'],
+                        true
+                    )
+                ) {
+                    return true;
+                }
+            }
+        } catch (\Throwable $ignored) {
+        }
+
+        return false;
     }
 
     public function index($mode = 'cashier')

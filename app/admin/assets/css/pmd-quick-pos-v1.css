@@ -7619,3 +7619,87 @@ body.pmd-qpos-body {
     z-index: 5;
   }
 }
+
+
+/* ============================================================
+   PMD_QPOS_TABLE_ATTENTION_V57
+   Table physical state is color-only. Calls/notes pulse without changing
+   Free/Busy/Clean/Reserved authority; payment icons are Part paid / Paid only.
+   ============================================================ */
+
+.pmd-qpos-table-signals-v57 {
+  position: absolute;
+  top: 7px;
+  left: 7px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: calc(100% - 36px);
+}
+
+.pmd-qpos-table-signals-v57 .pmd-qpos-table-signal {
+  position: static;
+  flex: 0 0 auto;
+  min-width: 27px;
+  height: 27px;
+  padding: 0 6px;
+}
+
+.pmd-qpos-table-signals-v57 .pmd-qpos-table-signal em {
+  margin-left: 2px;
+  font-size: 9px;
+}
+
+.pmd-qpos-table-signals-v57
+.pmd-qpos-table-signal[data-qpos-attention-kind] {
+  pointer-events: auto;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.pmd-qpos-table-signals-v57 .pmd-qpos-table-signal.is-partial {
+  border-color: #fed7aa;
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+@keyframes pmd-qpos-attention-pulse-v57 {
+  0%,
+  100% {
+    outline-color: rgba(251, 191, 36, 0);
+    box-shadow: 0 0 0 0 rgba(251, 191, 36, 0);
+  }
+
+  50% {
+    outline-color: rgba(251, 191, 36, .95);
+    box-shadow:
+      0 0 0 4px rgba(251, 191, 36, .30),
+      0 0 20px rgba(251, 191, 36, .38);
+  }
+}
+
+.pmd-qpos-table.has-attention:not(:disabled) {
+  outline: 3px solid transparent;
+  outline-offset: -3px;
+  animation: pmd-qpos-attention-pulse-v57 1.35s ease-in-out infinite;
+}
+
+.pmd-qpos-table.is-attention-focus-v57 {
+  outline-color: rgba(251, 191, 36, 1) !important;
+  box-shadow:
+    0 0 0 5px rgba(251, 191, 36, .38),
+    0 0 26px rgba(251, 191, 36, .48) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pmd-qpos-table.has-attention:not(:disabled) {
+    animation: none;
+    outline-color: rgba(251, 191, 36, .95);
+  }
+}
+
+/* Canonical push toasts must stay above the standalone Quick POS shell. */
+.pmd-qpos-body .notification-toast-container {
+  z-index: 1000005;
+}
