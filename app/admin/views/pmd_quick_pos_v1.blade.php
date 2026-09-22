@@ -17,7 +17,8 @@
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-reservations2-floor-reservation-v312.css?v=20260920-floor-v35b">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-dashboard-lab-exact-floor-v1.css?v=20260920-floor-v35b">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-shared-floor-multi-floor-v1.css?v=20260920-floor-v35b">
-    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-pos-v1.css?v=20260921-57">
+    <link rel="stylesheet" href="/app/admin/assets/css/push-notifications.css?v=20260922-qpos-v57">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-pos-v1.css?v=20260922-57">
 </head>
 <body class="pmd-qpos-body">
 @php
@@ -100,9 +101,8 @@
 
                             <div class="pmd-qpos-table-guide-icons">
                                 <span><b>!</b> Call</span>
-                                <span><b>€</b> Due</span>
-                                <span><b>½</b> Part paid</span>
                                 <span><b>N</b> Note</span>
+                                <span><b>½</b> Part paid</span>
                                 <span><b>✓</b> Paid</span>
                             </div>
                         </div>
@@ -123,55 +123,65 @@
                             $pmdWaiterCalls = (int)($table['waiter_calls'] ?? 0);
                             $pmdNoteCount = (int)($table['note_count'] ?? 0);
 
-                            $pmdSignalCount =
-                                ($pmdWaiterCalls > 0 ? 1 : 0)
-                                + ($pmdPaymentState !== 'none' ? 1 : 0)
-                                + ($pmdNoteCount > 0 ? 1 : 0);
+                            $pmdHasAttention =
+                                $pmdWaiterCalls > 0
+                                || $pmdNoteCount > 0;
 
-                            $pmdSignalKind = '';
-                            $pmdSignalIcon = '';
-                            $pmdSignalTitle = '';
-
-                            if ($pmdWaiterCalls > 0) {
-                                $pmdSignalKind = 'call';
-                                $pmdSignalIcon = '!';
-                                $pmdSignalTitle = 'Waiter call';
-                            } elseif ($pmdPaymentState === 'partial') {
-                                $pmdSignalKind = 'due';
-                                $pmdSignalIcon = '½';
-                                $pmdSignalTitle = 'Partly paid';
-                            } elseif ($pmdPaymentState === 'due') {
-                                $pmdSignalKind = 'due';
-                                $pmdSignalIcon = '€';
-                                $pmdSignalTitle = 'Payment due';
-                            } elseif ($pmdNoteCount > 0) {
-                                $pmdSignalKind = 'note';
-                                $pmdSignalIcon = 'N';
-                                $pmdSignalTitle = 'New note';
-                            } elseif ($pmdPaymentState === 'paid') {
-                                $pmdSignalKind = 'paid';
-                                $pmdSignalIcon = '✓';
-                                $pmdSignalTitle = 'Paid';
-                            }
+                            // PMD_QPOS_TABLE_SIGNAL_RULES_V57
+                            // Due has no icon. Payment icons are shown only for
+                            // Part paid and Paid; call/note remain attention signals.
+                            $pmdShowPartial = $pmdPaymentState === 'partial';
+                            $pmdShowPaid = $pmdPaymentState === 'paid';
                         @endphp
                         <button
                             type="button"
-                            class="pmd-qpos-table"
+                            class="pmd-qpos-table{{ $pmdHasAttention ? ' has-attention' : '' }}"
                             data-qpos-table="{{ $table['id'] ?? 0 }}"
                             data-status="{{ $pmdStatus }}"
                             data-payment-state="{{ $pmdPaymentState }}"
+                            @if($pmdHasAttention) data-qpos-attention="1" @endif
                         >
                             <strong>{{ $table['number'] ?? ($table['id'] ?? '') }}</strong>
-                            <small>{{ $pmdStatusLabels[$pmdStatus] ?? 'Free' }}@if($pmdCapacity > 0) · {{ $pmdCapacity }}s @endif</small>
-                            @if($pmdSignalKind !== '')
-                                <span
-                                    class="pmd-qpos-table-signal is-{{ $pmdSignalKind }}"
-                                    title="{{ $pmdSignalTitle }}"
-                                    aria-label="{{ $pmdSignalTitle }}"
-                                >
-                                    <b>{{ $pmdSignalIcon }}</b>
-                                    @if($pmdSignalCount > 1)
-                                        <em>+{{ $pmdSignalCount - 1 }}</em>
+                            <small @if($pmdCapacity < 1) hidden @endif>@if($pmdCapacity > 0){{ $pmdCapacity }}s@endif</small>
+
+                            @if($pmdWaiterCalls > 0 || $pmdNoteCount > 0 || $pmdShowPartial || $pmdShowPaid)
+                                <span class="pmd-qpos-table-signals-v57">
+                                    @if($pmdWaiterCalls > 0)
+                                        <span
+                                            class="pmd-qpos-table-signal is-call"
+                                            data-qpos-attention-kind="calls"
+                                            title="Waiter call"
+                                            aria-label="Open waiter calls"
+                                        >
+                                            <b>!</b>
+                                            @if($pmdWaiterCalls > 1)<em>{{ $pmdWaiterCalls }}</em>@endif
+                                        </span>
+                                    @endif
+
+                                    @if($pmdNoteCount > 0)
+                                        <span
+                                            class="pmd-qpos-table-signal is-note"
+                                            data-qpos-attention-kind="notes"
+                                            title="Table note"
+                                            aria-label="Open table notes"
+                                        >
+                                            <b>N</b>
+                                            @if($pmdNoteCount > 1)<em>{{ $pmdNoteCount }}</em>@endif
+                                        </span>
+                                    @endif
+
+                                    @if($pmdShowPartial)
+                                        <span
+                                            class="pmd-qpos-table-signal is-partial"
+                                            title="Part paid"
+                                            aria-label="Part paid"
+                                        ><b>½</b></span>
+                                    @elseif($pmdShowPaid)
+                                        <span
+                                            class="pmd-qpos-table-signal is-paid"
+                                            title="Paid"
+                                            aria-label="Paid"
+                                        ><b>✓</b></span>
                                     @endif
                                 </span>
                             @endif
@@ -806,7 +816,10 @@ window.PMDQuickPOSConfig = {
 {{-- Canonical Floor runtime mounts after the Quick POS endpoint override. --}}
 <script src="/app/admin/assets/js/pmd-dashboard-lab-exact-floor-v1.js?v=20260920-floor-v35b"></script>
 <script src="/app/admin/assets/js/pmd-shared-floor-multi-floor-v1.js?v=20260920-floor-v35b"></script>
-<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260921-55"></script>
+{{-- PMD_QPOS_PUSH_NOTIFICATIONS_V57
+     Reuse the canonical Admin push stream; do not add another polling loop. --}}
+<script src="/app/admin/assets/js/push-notifications.js?v=20260922-qpos-v57"></script>
+<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260922-57"></script>
 <script src="/app/admin/assets/js/pmd-site-access-hub-v13.js?v=20260921-androidpair-v16"></script>
 </body>
 </html>
