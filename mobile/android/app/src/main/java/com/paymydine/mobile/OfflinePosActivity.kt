@@ -205,6 +205,7 @@ class OfflinePosActivity : ComponentActivity() {
                     )
                     .put("cloud_available", app.connectivity.online.value)
                     .put("authority", authorityLabel())
+                    .put("currency", app.bootstrapRepository.currencyCode())
                     .put("queued", app.syncRepository.outboxCount())
                     .put(
                         "tables",
@@ -283,9 +284,11 @@ class OfflinePosActivity : ComponentActivity() {
                 val entryTableId = entry.optLong("table_id", 0L)
                 if (
                     showAll ||
-                    selectedTableId == null ||
-                    selectedTableId < 1 ||
-                    entryTableId == selectedTableId
+                    (
+                        selectedTableId != null &&
+                            selectedTableId > 0 &&
+                            entryTableId == selectedTableId
+                    )
                 ) {
                     entries.put(JSONObject(entry.toString()))
                 }
