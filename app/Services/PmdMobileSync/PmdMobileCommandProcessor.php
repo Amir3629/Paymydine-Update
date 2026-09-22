@@ -3,7 +3,9 @@
 namespace App\Services\PmdMobileSync;
 
 use Admin\Controllers\KitchenDisplay;
+use Admin\Controllers\PmdQuickPosV1;
 use Admin\Controllers\PmdWaiterPosV1;
+use Admin\Controllers\PmdWaiterTableStateV154;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -89,6 +91,7 @@ final class PmdMobileCommandProcessor
                 $versionKey = $this->versionKey($command);
                 $currentVersion = $this->lockAggregateVersion(
                     $command['location_id'],
+                    $command['aggregate'],
                     $versionKey
                 );
 
@@ -122,15 +125,34 @@ final class PmdMobileCommandProcessor
 
                 $result = $this->applyCommand($identity, $command);
                 $newVersion = $currentVersion + 1;
-                $canonicalAggregateId = 'order:'.(int)$result['order_id'];
+                $canonicalAggregateId =
+                    $command['aggregate'] === 'table'
+                        ? 'table:'.(int)(
+                            $result['table_id']
+                            ?? $command['payload']['table_id']
+                            ?? $command['payload']['source_table_id']
+                            ?? 0
+                        )
+                        : 'order:'.(int)$result['order_id'];
+
+                if (
+                    $canonicalAggregateId === 'table:0'
+                    || $canonicalAggregateId === 'order:0'
+                ) {
+                    throw new \RuntimeException(
+                        'Canonical aggregate identity is unavailable.'
+                    );
+                }
 
                 $this->setAggregateVersion(
                     $command['location_id'],
+                    $command['aggregate'],
                     $versionKey,
                     $newVersion
                 );
                 $this->setAggregateVersion(
                     $command['location_id'],
+                    $command['aggregate'],
                     $canonicalAggregateId,
                     $newVersion
                 );
@@ -142,19 +164,21 @@ final class PmdMobileCommandProcessor
                     'device_id' => $command['device_id'],
                     'user_id' => $command['user_id'],
                     'staff_id' => $command['staff_id'],
-                    'aggregate' => 'order',
+                    'aggregate' => $command['aggregate'],
                     'aggregate_id' => $canonicalAggregateId,
                     'aggregate_version' => $newVersion,
                     'event_type' => match ($command['command_type']) {
                         'ORDER_HOLD_V1' => 'ORDER_HELD_V1',
                         'KDS_STATUS_V1' => 'KDS_STATUS_CHANGED_V1',
                         'CASH_PAYMENT_V1' => 'PAYMENT_CASH_RECORDED_V1',
+                        'TABLE_STATE_V1' => 'TABLE_STATE_CHANGED_V1',
+                        'TABLE_MOVE_V1' => 'TABLE_MOVED_V1',
                         default => 'ORDER_SENT_V1',
                     },
                     'payload' => json_encode([
                         'command_id' => $command['command_id'],
                         'client_aggregate_id' => $command['client_aggregate_id'],
-                        'order' => $result,
+                        $command['aggregate'] => $result,
                     ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
                     'occurred_at' => now(),
                     'created_at' => now(),
@@ -168,7 +192,7 @@ final class PmdMobileCommandProcessor
                     'protocol' => self::PROTOCOL,
                     'command_id' => $command['command_id'],
                     'idempotency_key' => $command['idempotency_key'],
-                    'aggregate' => 'order',
+                    'aggregate' => $command['aggregate'],
                     'aggregate_id' => $canonicalAggregateId,
                     'aggregate_version' => $newVersion,
                     'sequence' => $sequence,
@@ -223,6 +247,14 @@ final class PmdMobileCommandProcessor
 
         if ($command['command_type'] === 'CASH_PAYMENT_V1') {
             return $this->applyCashPaymentCommand($identity, $command);
+        }
+
+        if ($command['command_type'] === 'TABLE_STATE_V1') {
+            return $this->applyTableStateCommand($identity, $command);
+        }
+
+        if ($command['command_type'] === 'TABLE_MOVE_V1') {
+            return $this->applyTableMoveCommand($identity, $command);
         }
 
         if (!in_array(
