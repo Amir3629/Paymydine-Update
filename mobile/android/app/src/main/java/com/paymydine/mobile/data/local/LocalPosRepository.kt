@@ -85,7 +85,7 @@ class LocalPosRepository(private val database: PmdDatabase) {
         arrayOf(locationId.toString()),
         null,
         null,
-        "label COLLATE NOCASE ASC",
+        "sort_order ASC, label COLLATE NOCASE ASC",
     ).use { rows ->
         buildList {
             while (rows.moveToNext()) {
@@ -177,7 +177,7 @@ class LocalPosRepository(private val database: PmdDatabase) {
             args,
             null,
             null,
-            "name COLLATE NOCASE ASC",
+            "sort_order ASC, name COLLATE NOCASE ASC",
             "750",
         ).use { rows ->
             buildList {
