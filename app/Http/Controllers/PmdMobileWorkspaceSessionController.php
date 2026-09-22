@@ -9,6 +9,7 @@ use Admin\Services\PmdDefaultStaffRoleService;
 use App\Services\PmdMobileSync\PmdMobileDeviceAuthService;
 use App\Services\PmdSiteAccessService;
 use App\Services\PmdOwnerTotpService;
+use App\Services\PmdPortalTotpService;
 use App\Services\PmdSiteAccessSessionBindingService;
 use App\Services\PmdWorkSessionPolicyService;
 use Illuminate\Http\Request;
@@ -37,6 +38,15 @@ final class PmdMobileWorkspaceSessionController extends Controller
 
         $roles = app(PmdDefaultStaffRoleService::class);
         $route = $roles->routeForRoleCode($roleCode);
+        $destination = strtolower(trim(
+            (string)$request->query('destination', 'workspace')
+        ));
+        if (!in_array($destination, ['workspace', 'staff'], true)) {
+            abort(404, 'This PayMyDine Android destination is not available.');
+        }
+        if ($destination === 'staff') {
+            $route = 'mywork';
+        }
 
         $legacySurface = strtolower(trim((string)$request->query('surface', '')));
         if ($legacySurface === 'reservations') {
@@ -92,7 +102,55 @@ final class PmdMobileWorkspaceSessionController extends Controller
             PmdSiteAccessService::SESSION_MOBILE_DEVICE,
             $deviceId
         );
-        session()->put(PmdSiteAccessService::SESSION_DESTINATION, 'workspace');
+        session()->put(
+            PmdSiteAccessService::SESSION_DESTINATION,
+            $destination
+        );
+
+        // PMD_MOBILE_PORTAL_CANONICAL_SECURITY_V12
+        // usernameportal must behave exactly like canonical web Login: the
+        // already password-authenticated user remains on /admin/login for their
+        // personal Portal Authenticator before My Work opens.
+        if ($destination === 'staff') {
+            $portal = app(PmdPortalTotpService::class);
+            if (!$portal->ensureReady()) {
+                AdminAuth::logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+                abort(503, 'Portal security is temporarily unavailable.');
+            }
+
+            $portal->clearSessionVerification();
+            $portal->resetEnrollment();
+            $portal->clearRecoveryDisplay();
+
+            session()->put('pmd_login_portal_security_v1', [
+                'mode' => $portal->enabled(
+                    (int)$identity['user_id'],
+                    $locationId
+                ) ? 'verify' : 'setup',
+                'user_id' => (int)$identity['user_id'],
+                'location_id' => $locationId,
+                'session_id' => (string)session()->getId(),
+                'created_at' => time(),
+            ]);
+
+            $site->audit(
+                'mobile_android_portal_security_session',
+                true,
+                $identity,
+                $deviceId,
+                null,
+                $request,
+                [
+                    'route' => 'mywork',
+                    'protocol' => 'pmd-sync-v1',
+                ]
+            );
+
+            return redirect(admin_url('login'))
+                ->header('Cache-Control', 'no-store, private');
+        }
 
         // PMD_MOBILE_OWNER_CANONICAL_SECURITY_V6
         // Do not redirect Owner to the dashboard and rely on a later middleware
