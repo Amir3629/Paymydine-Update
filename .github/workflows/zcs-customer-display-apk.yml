@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feature/zcs-customer-display-v5
+      - feature/android-local-first-v1
     paths:
       - 'mobile/android/**'
       - '.github/workflows/zcs-customer-display-apk.yml'
