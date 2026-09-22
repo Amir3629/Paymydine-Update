@@ -26,7 +26,6 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import com.paymydine.mobile.sync.SyncEngine
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import java.net.URI
@@ -84,13 +83,14 @@ class PosActivity : ComponentActivity() {
             return
         }
 
-        // PMD_ANDROID_POS_OFFLINE_FAILOVER_V9
-        // Paired devices with a durable bootstrap never need a blank/error
-        // screen just because Cloud vanished. Route immediately to the native
-        // SQLite POS and keep the canonical WebView for validated Cloud only.
+        // PMD_ANDROID_POS_OFFLINE_FAILOVER_V15
+        // A physical WAN cut (including simply turning Wi-Fi off) must switch
+        // to the already-authorized local POS before the Cloud page can expose
+        // fetch/network errors. Offline authority still requires the durable
+        // bootstrap plus the current verified POS work-session boundary.
         if (
             !app.connectivity.online.value &&
-            app.bootstrapRepository.hasBootstrap()
+            offlinePosAvailable()
         ) {
             switchToOffline(
                 "Cloud is unavailable. Orders will be saved on this tablet.",
@@ -416,9 +416,23 @@ class PosActivity : ComponentActivity() {
                     request: WebResourceRequest,
                     error: WebResourceError,
                 ) {
+                    // PMD_ANDROID_POS_RESOURCE_FAILOVER_V15
+                    // Once Android reports WAN loss, a failed XHR/fetch/resource
+                    // is enough to move to SQLite. Do not wait for a main-frame
+                    // navigation error while the canonical POS is already open.
+                    if (
+                        !app.connectivity.online.value &&
+                        offlinePosAvailable()
+                    ) {
+                        switchToOffline(
+                            "Cloud connection was lost. Local POS is active.",
+                        )
+                        return
+                    }
+
                     if (!request.isForMainFrame) return
 
-                    if (app.bootstrapRepository.hasBootstrap()) {
+                    if (offlinePosAvailable()) {
                         switchToOffline(
                             "Cloud connection was lost. Local POS is active.",
                         )
@@ -469,7 +483,7 @@ class PosActivity : ComponentActivity() {
                         }
 
                         response.statusCode >= 500 &&
-                            app.bootstrapRepository.hasBootstrap() ->
+                            offlinePosAvailable() ->
                             switchToOffline(
                                 "PayMyDine Cloud is temporarily unavailable. Local POS is active.",
                             )
@@ -487,7 +501,7 @@ class PosActivity : ComponentActivity() {
                     error: android.net.http.SslError,
                 ) {
                     handler.cancel()
-                    if (app.bootstrapRepository.hasBootstrap()) {
+                    if (offlinePosAvailable()) {
                         switchToOffline(
                             "Secure Cloud connection could not be verified. Local POS is active.",
                         )
@@ -573,14 +587,11 @@ class PosActivity : ComponentActivity() {
                     return@collectLatest
                 }
 
-                if (!app.bootstrapRepository.hasBootstrap()) {
-                    return@collectLatest
-                }
-
-                // Avoid bouncing to local mode for a sub-second network
-                // capability transition during Android window startup.
-                delay(1_200L)
-                if (!app.connectivity.online.value) {
+                // PMD_ANDROID_POS_WIFI_CUT_FAILOVER_V15
+                // NET_CAPABILITY_VALIDATED has already fallen away. Switching
+                // immediately prevents the live web POS from rendering its own
+                // Failed to fetch / network error before local mode takes over.
+                if (offlinePosAvailable()) {
                     switchToOffline(
                         "Internet connection is unavailable. Local POS is active.",
                     )
@@ -589,12 +600,16 @@ class PosActivity : ComponentActivity() {
         }
     }
 
+    private fun offlinePosAvailable(): Boolean =
+        app.bootstrapRepository.hasBootstrap() &&
+            app.credentials.offlineSessionValid("pos")
+
     private fun switchToOffline(reason: String) {
         if (
             offlineSwitching ||
             isFinishing ||
             isDestroyed ||
-            !app.bootstrapRepository.hasBootstrap()
+            !offlinePosAvailable()
         ) {
             return
         }
