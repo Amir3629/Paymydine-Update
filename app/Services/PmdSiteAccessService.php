@@ -50,6 +50,8 @@ class PmdSiteAccessService
     public const SESSION_VERIFIED_METHOD = 'pmd_site_verified_method_v1';
     public const SESSION_VERIFIED_DEVICE = 'pmd_site_verified_device_v1';
     public const SESSION_LAST_PAIRED_DEVICE = 'pmd_site_last_paired_device_v1';
+    public const SESSION_MOBILE_LOCATION = 'pmd_mobile_session_location_v1';
+    public const SESSION_MOBILE_DEVICE = 'pmd_mobile_session_device_v1';
 
     public function ready(): bool
     {
@@ -88,9 +90,14 @@ class PmdSiteAccessService
         // have another primary/operational location while still being assigned
         // to this restaurant; do not overwrite the mobile device location with
         // that profile default on the redirect request.
-        $mobileSessionLocation = 0;
+        $mobileSessionLocation = (int)session()->get(
+            self::SESSION_MOBILE_LOCATION,
+            0
+        );
+
         if (
-            (string)session()->get(self::SESSION_VERIFIED_METHOD, '') ===
+            $mobileSessionLocation < 1
+            && (string)session()->get(self::SESSION_VERIFIED_METHOD, '') ===
                 'mobile_android_device'
         ) {
             $mobileSessionLocation = (int)session()->get(
@@ -742,6 +749,8 @@ class PmdSiteAccessService
             self::SESSION_VERIFIED_METHOD,
             self::SESSION_VERIFIED_DEVICE,
             self::SESSION_LAST_PAIRED_DEVICE,
+            self::SESSION_MOBILE_LOCATION,
+            self::SESSION_MOBILE_DEVICE,
         ]);
     }
 
