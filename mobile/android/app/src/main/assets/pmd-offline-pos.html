@@ -448,8 +448,17 @@ function openMove(){
 function closeMove(){var m=el('[data-offline-move]');m.classList.remove('is-open');m.setAttribute('aria-hidden','true')}
 el('[data-pay]').onclick=openPayment;
 el('[data-payment-close]').onclick=closePayment;el('[data-payment-cancel]').onclick=closePayment;el('[data-payment-confirm]').onclick=submitPayment;
-el('[data-table-cleaning]').onclick=function(){mutate('queueTableState',state.selectedTable||'','cleaning',false)};
-el('[data-table-free]').onclick=function(){mutate('queueTableState',state.selectedTable||'','available',true)};
+el('[data-table-cleaning]').onclick=function(){
+  mutate('queueTableState',state.selectedTable||'','cleaning',false)
+};
+el('[data-table-free]').onclick=function(){
+  var s=state.snapshot||{},selected=(s.tables||[]).find(function(t){
+    return String(t.id)===String(state.selectedTable)
+  });
+  var occupied=String(selected&&selected.status||'').toLowerCase()==='occupied';
+  if(occupied&&!window.confirm('Make table free?'))return;
+  mutate('queueTableState',state.selectedTable||'','available',occupied)
+};
 el('[data-table-move]').onclick=openMove;el('[data-move-close]').onclick=closeMove;
 document.querySelectorAll('[data-move-scope]').forEach(function(b){b.onclick=function(){state.moveScope=b.getAttribute('data-move-scope')||'order';document.querySelectorAll('[data-move-scope]').forEach(function(x){x.classList.toggle('is-active',x===b)})}});
 el('[data-history]').onclick=openHistory;
