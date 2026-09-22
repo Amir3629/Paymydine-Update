@@ -38,8 +38,14 @@ class KdsActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         val app = application as PayMyDineApplication
 
-        // PMD_ANDROID_WORKSPACE_ACTIVITY_GATE_V1
-        if (!app.credentials.workspaceLeaseValid("kds")) {
+        // PMD_ANDROID_OFFLINE_KDS_AUTHORITY_V12
+        val kdsAuthorized = if (app.connectivity.online.value) {
+            app.credentials.workspaceLeaseValid("kds")
+        } else {
+            app.bootstrapRepository.hasBootstrap() &&
+                app.credentials.offlineSessionValid("kds")
+        }
+        if (!kdsAuthorized) {
             startActivity(
                 Intent(this, MainActivity::class.java).apply {
                     addFlags(
