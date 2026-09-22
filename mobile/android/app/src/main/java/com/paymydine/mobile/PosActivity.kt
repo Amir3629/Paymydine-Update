@@ -57,8 +57,14 @@ class PosActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // PMD_ANDROID_WORKSPACE_ACTIVITY_GATE_V1
-        if (!app.credentials.workspaceLeaseValid("pos")) {
+        // PMD_ANDROID_OFFLINE_POS_AUTHORITY_V12
+        val posAuthorized = if (app.connectivity.online.value) {
+            app.credentials.workspaceLeaseValid("pos")
+        } else {
+            app.bootstrapRepository.hasBootstrap() &&
+                app.credentials.offlineSessionValid("pos")
+        }
+        if (!posAuthorized) {
             startActivity(
                 Intent(this, MainActivity::class.java).apply {
                     addFlags(
