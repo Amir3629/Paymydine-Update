@@ -72,7 +72,18 @@ class OfflinePosActivity : ComponentActivity() {
                 javaScriptCanOpenWindowsAutomatically = false
                 setSupportMultipleWindows(false)
             }
-            addJavascriptInterface(OfflineBridge(), "PayMyDineOffline")
+            // PMD_ANDROID_OFFLINE_SHARED_BRIDGE_V17
+            // App-start-offline uses the same bridge/capabilities as seamless
+            // in-place failover. There is no reduced second offline product.
+            addJavascriptInterface(
+                LocalPosBridge(
+                    activity = this@OfflinePosActivity,
+                    app = app,
+                    onTryCloud = { returnToCloud() },
+                    onWorkspaces = { finish() },
+                ),
+                "PayMyDineOffline",
+            )
             webViewClient = object : WebViewClient() {
                 override fun shouldOverrideUrlLoading(
                     view: WebView,
@@ -148,6 +159,7 @@ class OfflinePosActivity : ComponentActivity() {
 
             if (
                 app.connectivity.online.value &&
+                app.syncRepository.outboxCount() == 0 &&
                 !isFinishing &&
                 !isDestroyed
             ) {
@@ -161,7 +173,10 @@ class OfflinePosActivity : ComponentActivity() {
                 )
                 finish()
             } else {
+                // Keep the local POS visible until every durable mutation has
+                // reconciled or explicitly surfaced a conflict.
                 returningToCloud = false
+                refreshWeb()
             }
         }
     }
