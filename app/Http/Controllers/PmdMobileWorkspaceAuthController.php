@@ -344,7 +344,7 @@ final class PmdMobileWorkspaceAuthController extends Controller
         $policy = app(PmdWorkSessionPolicyService::class)->policy($identity);
         $grantExpiresAt = now()->addHours(8);
         $staffGrant = app(PmdMobileStaffGrantService::class)
-            ->issue($deviceIdentity, $user);
+            ->issue($deviceIdentity, $user, $destination);
 
         return response()->json([
             'ok' => true,
