@@ -15,17 +15,17 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 /**
- * PMD_ANDROID_STAFF_LOGIN_ROUTER_V3
- * PMD_ANDROID_CANONICAL_LOGIN_WAIT_V12
+ * PMD_ANDROID_STAFF_LOGIN_ROUTER_V4
+ * PMD_ANDROID_PAIRED_DEVICE_PASSWORD_LOGIN_V13
  *
- * Android has no workspace chooser. Device trust selects the restaurant,
- * canonical username/password resolves the same PayMyDine role/destination as
- * web Login, and non-Owner workspace users wait for the same Site Access
- * challenge that appears on Owner/Manager/trusted-Cashier dashboards.
+ * Android has no workspace chooser. The one-time pairing approval establishes
+ * restaurant-device trust. Every later dashboard/workspace switch requires the
+ * staff member's canonical username/password, then the server resolves the same
+ * PayMyDine role/destination and location boundary as the web platform.
  *
- * Owner and usernameportal continue immediately because their canonical second
- * factor is rendered by /admin/login after the bearer-authenticated Admin
- * session is created.
+ * Do not require a second restaurant approval for every sign-in on an already
+ * paired Android device. Owner and usernameportal still continue through their
+ * canonical Owner/Portal Authenticator step inside /admin/login.
  */
 final class PmdMobileWorkspaceAuthController extends Controller
 {
@@ -48,83 +48,29 @@ final class PmdMobileWorkspaceAuthController extends Controller
         );
     }
 
-    /** PMD_ANDROID_CANONICAL_LOGIN_REQUEST_V12 */
+    /** PMD_ANDROID_PAIRED_DEVICE_PASSWORD_REQUEST_V13 */
     public function request(
         Request $request,
         PmdMobileDeviceAuthService $deviceAuth
     ) {
         $resolved = $this->resolveCredentials($request, $deviceAuth);
 
-        // Owner uses canonical Owner Authenticator and usernameportal uses the
-        // canonical personal Portal Authenticator after the native grant opens
-        // /admin/login. They must not receive an unrelated restaurant approval.
-        if (
-            $resolved['role_code'] === PmdDefaultStaffRoleService::OWNER
-            || $resolved['destination'] === 'staff'
-        ) {
-            return $this->authorizedResponse(
-                $resolved['device_identity'],
-                $resolved['user'],
-                $resolved['staff'],
-                $resolved['role_code'],
-                $resolved['route'],
-                $resolved['surface'],
-                $resolved['destination'],
-                $resolved['username']
-            );
-        }
-
-        $identity = $this->grantIdentity(
+        // PMD_ANDROID_NO_SECOND_APPROVAL_V13
+        // The device already passed one-time restaurant pairing approval.
+        // A workspace switch now proves the human with canonical credentials,
+        // then role/location policy selects the destination. Requiring another
+        // Owner/Manager/Cashier approval here made every non-Owner role depend
+        // on an unrelated second screen and left the Android app stuck/erroring.
+        return $this->authorizedResponse(
             $resolved['device_identity'],
             $resolved['user'],
             $resolved['staff'],
-            $resolved['role_code']
+            $resolved['role_code'],
+            $resolved['route'],
+            $resolved['surface'],
+            $resolved['destination'],
+            $resolved['username']
         );
-
-        $site = app(PmdSiteAccessService::class);
-        $challenge = $site->beginChallengeForIdentity(
-            $identity,
-            PmdSiteAccessService::PURPOSE_WORKSPACE,
-            '',
-            $request,
-            false
-        );
-
-        if (!$challenge) {
-            $this->fail(
-                409,
-                'Restaurant approval could not be started for this account.'
-            );
-        }
-
-        $token = $this->loginRequestToken([
-            'v' => 1,
-            'challenge_id' => (int)$challenge->id,
-            'public_id' => (string)$challenge->public_id,
-            'device_id' => (int)$resolved['device_identity']['device_id'],
-            'location_id' => (int)$resolved['device_identity']['location_id'],
-            'user_id' => (int)$resolved['user']->getKey(),
-            'staff_id' => (int)$resolved['staff']->getKey(),
-            'role_code' => $resolved['role_code'],
-            'route' => $resolved['route'],
-            'surface' => $resolved['surface'],
-            'destination' => $resolved['destination'],
-            'username' => $resolved['username'],
-            'iat' => time(),
-            'exp' => strtotime((string)$challenge->expires_at),
-        ]);
-
-        return response()->json([
-            'ok' => true,
-            'status' => 'pending',
-            'login_request' => $token,
-            'request_code' => $site->challengeCodeForHub($challenge),
-            'expires_at' => (string)$challenge->expires_at,
-            'role_code' => $resolved['role_code'],
-            'route' => $resolved['route'],
-            'surface' => $resolved['surface'],
-            'destination' => $resolved['destination'],
-        ], 200, ['Cache-Control' => 'no-store, private']);
     }
 
     /** PMD_ANDROID_CANONICAL_LOGIN_STATUS_V12 */
