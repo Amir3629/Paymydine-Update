@@ -256,7 +256,11 @@
     }
     if (teamPasswordHint) {
       teamPasswordHint.textContent = !quickPin
-        ? (teamHasExistingAccess ? 'leave blank to keep current password' : 'required')
+        ? (
+            roleCodeUsesQuickPin(teamOriginalRoleCode)
+              ? 'required after switching from PIN access'
+              : (teamHasExistingAccess ? 'leave blank to keep current password' : 'required')
+          )
         : '';
     }
   }
