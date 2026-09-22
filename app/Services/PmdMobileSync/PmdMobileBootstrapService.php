@@ -75,6 +75,11 @@ final class PmdMobileBootstrapService
             'table_floor_map' => $floors['table_floor_map'],
             'tables' => $this->tables($locationId),
             'open_orders' => $openOrders,
+            // PMD_ANDROID_OFFLINE_HISTORY_SNAPSHOT_V16
+            // Quick POS history is carried in the same trusted restaurant
+            // bootstrap so a verified POS session can inspect recent orders,
+            // items, notes and payments after WAN loss without a second API.
+            'history' => $this->recentHistory($locationId),
             'menu' => $this->menu($locationId),
             'kds_stations' => $this->kdsStations($locationId),
             'kds_statuses' => $this->kdsStatuses(),
@@ -96,6 +101,288 @@ final class PmdMobileBootstrapService
                 'offline_payment_enabled' => false,
             ],
         ];
+    }
+
+    /**
+     * PMD_ANDROID_OFFLINE_HISTORY_SNAPSHOT_V16
+     *
+     * A bounded, read-only Quick POS history projection for local Android use.
+     * It deliberately carries display facts only; invoice/receipt/payment
+     * mutation endpoints remain Cloud-only.
+     */
+    private function recentHistory(int $locationId): array
+    {
+        $snapshot = [
+            'version' => 'pmd-mobile-history-v1',
+            'generated_at' => now()->toIso8601String(),
+            'entries' => [],
+        ];
+
+        if (!Schema::hasTable('orders')) {
+            return $snapshot;
+        }
+
+        try {
+            $orderColumns = Schema::getColumnListing('orders');
+            $primaryKey = in_array('order_id', $orderColumns, true)
+                ? 'order_id'
+                : (in_array('id', $orderColumns, true) ? 'id' : null);
+
+            if ($primaryKey === null) {
+                return $snapshot;
+            }
+
+            $query = DB::table('orders');
+            if (
+                $locationId > 0
+                && in_array('location_id', $orderColumns, true)
+            ) {
+                $query->where('location_id', $locationId);
+            }
+
+            $sort = in_array('created_at', $orderColumns, true)
+                ? 'created_at'
+                : $primaryKey;
+
+            $orders = $query
+                ->orderByDesc($sort)
+                ->limit(300)
+                ->get();
+
+            if ($orders->isEmpty()) {
+                return $snapshot;
+            }
+
+            $orderIds = $orders
+                ->map(function ($row) use ($primaryKey) {
+                    $raw = (array)$row;
+                    return (int)($raw['order_id']
+                        ?? $raw['id']
+                        ?? $raw[$primaryKey]
+                        ?? 0);
+                })
+                ->filter()
+                ->values()
+                ->all();
+
+            $itemsByOrder = collect();
+            if ($orderIds && Schema::hasTable('order_menus')) {
+                $itemColumns = Schema::getColumnListing('order_menus');
+                if (in_array('order_id', $itemColumns, true)) {
+                    $itemsByOrder = DB::table('order_menus')
+                        ->whereIn('order_id', $orderIds)
+                        ->orderBy('order_id')
+                        ->get()
+                        ->groupBy(function ($row) {
+                            return (int)($row->order_id ?? 0);
+                        });
+                }
+            }
+
+            $notesByOrder = collect();
+            if ($orderIds && Schema::hasTable('order_notes')) {
+                $noteColumns = Schema::getColumnListing('order_notes');
+                if (in_array('order_id', $noteColumns, true)) {
+                    $notesByOrder = DB::table('order_notes')
+                        ->whereIn('order_id', $orderIds)
+                        ->get()
+                        ->groupBy(function ($row) {
+                            return (int)($row->order_id ?? 0);
+                        });
+                }
+            }
+
+            $paymentsByOrder = collect();
+            if (
+                $orderIds
+                && Schema::hasTable('order_payment_transactions')
+                && Schema::hasColumn(
+                    'order_payment_transactions',
+                    'order_id'
+                )
+            ) {
+                $paymentsByOrder = DB::table('order_payment_transactions')
+                    ->whereIn('order_id', $orderIds)
+                    ->get()
+                    ->groupBy(function ($row) {
+                        return (int)($row->order_id ?? 0);
+                    });
+            }
+
+            $statusNames = [];
+            if (
+                Schema::hasTable('statuses')
+                && Schema::hasColumn('statuses', 'status_id')
+                && Schema::hasColumn('statuses', 'status_name')
+            ) {
+                $statusNames = DB::table('statuses')
+                    ->pluck('status_name', 'status_id')
+                    ->mapWithKeys(function ($name, $id) {
+                        return [(int)$id => (string)$name];
+                    })
+                    ->all();
+            }
+
+            $entries = [];
+            foreach ($orders as $order) {
+                $raw = (array)$order;
+                $orderId = (int)($raw['order_id']
+                    ?? $raw['id']
+                    ?? $raw[$primaryKey]
+                    ?? 0);
+                if ($orderId < 1) {
+                    continue;
+                }
+
+                $tableId = (int)(
+                    $raw['table_id']
+                    ?? $raw['location_table_id']
+                    ?? 0
+                );
+                $statusId = (int)($raw['status_id'] ?? 0);
+                $statusName = trim((string)($statusNames[$statusId] ?? ''));
+                $settlement = trim((string)(
+                    $raw['settlement_status']
+                    ?? $raw['payment_status']
+                    ?? ''
+                ));
+                $total = (float)(
+                    $raw['order_total']
+                    ?? $raw['total']
+                    ?? 0
+                );
+                $time = (string)(
+                    $raw['updated_at']
+                    ?? $raw['created_at']
+                    ?? ''
+                );
+
+                $itemRows = collect(
+                    $itemsByOrder->get($orderId, collect())
+                );
+                $items = [];
+                foreach ($itemRows as $item) {
+                    $itemRaw = (array)$item;
+                    $name = trim((string)(
+                        $itemRaw['name']
+                        ?? $itemRaw['menu_name']
+                        ?? 'Item'
+                    ));
+                    $quantity = max(1, (int)(
+                        $itemRaw['quantity']
+                        ?? $itemRaw['qty']
+                        ?? 1
+                    ));
+                    $note = trim((string)(
+                        $itemRaw['comment']
+                        ?? $itemRaw['note']
+                        ?? ''
+                    ));
+                    $items[] = [
+                        'menu_id' => (int)(
+                            $itemRaw['menu_id']
+                            ?? $itemRaw['menu_item_id']
+                            ?? 0
+                        ) ?: null,
+                        'name' => $name !== '' ? $name : 'Item',
+                        'quantity' => $quantity,
+                        'note' => $note,
+                    ];
+                }
+
+                $summary = collect($items)
+                    ->take(8)
+                    ->map(function ($item) {
+                        return (int)$item['quantity'].'× '.(string)$item['name'];
+                    })
+                    ->implode(', ');
+                if (count($items) > 8) {
+                    $summary .= ' +'.(count($items) - 8);
+                }
+
+                $payments = [];
+                foreach (
+                    collect($paymentsByOrder->get($orderId, collect()))
+                    as $payment
+                ) {
+                    $paymentRaw = (array)$payment;
+                    $payments[] = [
+                        'time' => (string)(
+                            $paymentRaw['paid_at']
+                            ?? $paymentRaw['created_at']
+                            ?? ''
+                        ),
+                        'method' => (string)(
+                            $paymentRaw['payment_method']
+                            ?? 'payment'
+                        ),
+                        'amount' => (float)($paymentRaw['amount'] ?? 0),
+                        'tip_amount' => (float)(
+                            $paymentRaw['tip_amount']
+                            ?? 0
+                        ),
+                        'reference' => trim((string)(
+                            $paymentRaw['payment_reference']
+                            ?? ''
+                        )),
+                    ];
+                }
+
+                $notes = [];
+                $orderComment = trim((string)($raw['comment'] ?? ''));
+                if ($orderComment !== '') {
+                    $notes[] = $orderComment;
+                }
+                foreach (
+                    collect($notesByOrder->get($orderId, collect()))
+                    as $noteRow
+                ) {
+                    $noteRaw = (array)$noteRow;
+                    $note = trim((string)(
+                        $noteRaw['note']
+                        ?? $noteRaw['comment']
+                        ?? ''
+                    ));
+                    if ($note !== '') {
+                        $notes[] = $note;
+                    }
+                }
+                foreach ($items as $item) {
+                    if ((string)$item['note'] !== '') {
+                        $notes[] = (string)$item['name'].': '.(string)$item['note'];
+                    }
+                }
+                $notes = array_values(array_unique($notes));
+
+                $entries[] = [
+                    'kind' => 'order',
+                    'time' => $time,
+                    'title' => 'Order #'.$orderId,
+                    'order_id' => $orderId,
+                    'table_id' => $tableId ?: null,
+                    'total' => $total,
+                    'status' => $statusName,
+                    'settlement_status' => $settlement,
+                    'item_count' => count($items),
+                    'item_summary' => $summary,
+                    'items' => $items,
+                    'notes' => $notes,
+                    'payments' => $payments,
+                ];
+            }
+
+            usort($entries, function (array $left, array $right): int {
+                $a = strtotime((string)($left['time'] ?? '')) ?: 0;
+                $b = strtotime((string)($right['time'] ?? '')) ?: 0;
+                return $b <=> $a;
+            });
+
+            $snapshot['entries'] = array_slice($entries, 0, 300);
+        } catch (\Throwable $error) {
+            report($error);
+        }
+
+        return $snapshot;
     }
 
     private function menu(int $locationId): array
