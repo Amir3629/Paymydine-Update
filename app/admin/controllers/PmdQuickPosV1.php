@@ -739,6 +739,8 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 'table_data_url' => '/admin/pos/table/{table}',
                 'table_save_url' => '/admin/pos/save/{table}',
                 'off_premise_save_url' => '/admin/pos/save-off-premise',
+                'item_decrease_url' => '/admin/pmd-waiter-pos-v22/operations/{order}/void-item',
+                'item_increase_url' => '/admin/pmd-waiter-pos-v22/operations/{order}/increase-item',
                 'payment_summary_url' => '/admin/pos/payment-summary/{order}',
                 'payment_settle_url' => '/admin/pos/payment-settle/{order}',
                 'payment_coupon_url' => '/admin/pos/payment-coupon/{order}',
@@ -1797,6 +1799,7 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 'comment' => $this->quickPosVisibleNote(
                     (string)($raw['comment'] ?? '')
                 ),
+                'item_mutation' => $this->pmdR39ItemMutationState($row),
                 'items' => $items,
                 'urls' => $this->orderUrls($orderId),
             ];
