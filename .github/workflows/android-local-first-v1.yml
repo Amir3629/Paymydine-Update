@@ -205,7 +205,12 @@ jobs:
           grep -q "authorizeStaff" mobile/android/app/src/main/java/com/paymydine/mobile/network/MobileApiClient.kt
           grep -q "authorizeWorkspace" mobile/android/app/src/main/java/com/paymydine/mobile/network/MobileApiClient.kt
           grep -q "workspaceLeaseValid" mobile/android/app/src/main/java/com/paymydine/mobile/security/DeviceCredentialStore.kt
-          grep -q "PMD_ANDROID_POS_OFFLINE_FAILOVER_V9" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
+          grep -q "PMD_ANDROID_POS_OFFLINE_FAILOVER_V15" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
+          grep -q "PMD_ANDROID_POS_WIFI_CUT_FAILOVER_V15" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
+          grep -q "PMD_ANDROID_POS_RESOURCE_FAILOVER_V15" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
+          grep -q "PMD_ANDROID_LOGIN_OFFLINE_ERROR_SUPPRESSION_V15" mobile/android/app/src/main/java/com/paymydine/mobile/ui/PmdStaffLogin.kt
+          grep -q "PMD_ANDROID_LOGIN_TABLET_FRAME_V15" mobile/android/app/src/main/assets/pmd-login-workplace-v11-native.html
+          grep -q "PMD_ANDROID_0_3_6_OFFLINE_FAILOVER_LOGIN_FRAME" mobile/android/app/build.gradle.kts
           grep -q "PMD_ANDROID_FRESH_WEB_SESSION_V10" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
           grep -q "PMD_ANDROID_POS_LOGIN_LOOP_GUARD_V10" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
           grep -q "PMD_ANDROID_POS_AUTH_RECOVERY_V10" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
@@ -332,11 +337,11 @@ jobs:
           cp mobile/android/app/build/outputs/apk/debug/app-debug.apk \
             mobile/android/PayMyDine-POS-Tablet-Preview.apk
           cp mobile/android/app/build/outputs/apk/debug/app-debug.apk \
-            mobile/android/PayMyDine-POS-Tablet-Preview-0.3.5.apk
+            mobile/android/PayMyDine-POS-Tablet-Preview-0.3.6.apk
           sha256sum mobile/android/PayMyDine-POS-Tablet-Preview.apk \
             > mobile/android/PayMyDine-POS-Tablet-Preview.apk.sha256
-          sha256sum mobile/android/PayMyDine-POS-Tablet-Preview-0.3.5.apk \
-            > mobile/android/PayMyDine-POS-Tablet-Preview-0.3.5.apk.sha256
+          sha256sum mobile/android/PayMyDine-POS-Tablet-Preview-0.3.6.apk \
+            > mobile/android/PayMyDine-POS-Tablet-Preview-0.3.6.apk.sha256
       - name: Verify preview APK identity
         shell: bash
         run: |
@@ -351,11 +356,11 @@ jobs:
           BADGING="$("$AAPT" dump badging "$APK" | head -1)"
           echo "$BADGING"
           grep -Fq "package: name='com.paymydine.mobile.pospreview'" <<<"$BADGING"
-          grep -Fq "versionCode='18'" <<<"$BADGING"
-          grep -Fq "versionName='0.3.5-canonical-login-offline-debug'" <<<"$BADGING"
+          grep -Fq "versionCode='19'" <<<"$BADGING"
+          grep -Fq "versionName='0.3.6-offline-failover-login-frame-debug'" <<<"$BADGING"
 
           echo "PMD_PREVIEW_PACKAGE=com.paymydine.mobile.pospreview"
-          echo "PMD_PREVIEW_VERSION=0.3.5-canonical-login-offline-debug"
+          echo "PMD_PREVIEW_VERSION=0.3.6-offline-failover-login-frame-debug"
 
           # PR checks intentionally use the runner's ephemeral debug key. Only a
           # direct push to the preview branch may verify/publish the pinned key.
@@ -384,8 +389,8 @@ jobs:
           path: |
             mobile/android/PayMyDine-POS-Tablet-Preview.apk
             mobile/android/PayMyDine-POS-Tablet-Preview.apk.sha256
-            mobile/android/PayMyDine-POS-Tablet-Preview-0.3.5.apk
-            mobile/android/PayMyDine-POS-Tablet-Preview-0.3.5.apk.sha256
+            mobile/android/PayMyDine-POS-Tablet-Preview-0.3.6.apk
+            mobile/android/PayMyDine-POS-Tablet-Preview-0.3.6.apk.sha256
           if-no-files-found: error
       - name: Publish tablet preview release
         if: github.event_name == 'push' && github.ref == 'refs/heads/feature/android-local-first-v1' && !startsWith(github.event.head_commit.message, 'CI:') && !startsWith(github.event.head_commit.message, 'Deploy:')
@@ -406,7 +411,7 @@ jobs:
           gh release upload "$TAG" \
             mobile/android/PayMyDine-POS-Tablet-Preview.apk \
             mobile/android/PayMyDine-POS-Tablet-Preview.apk.sha256 \
-            mobile/android/PayMyDine-POS-Tablet-Preview-0.3.5.apk \
-            mobile/android/PayMyDine-POS-Tablet-Preview-0.3.5.apk.sha256 \
+            mobile/android/PayMyDine-POS-Tablet-Preview-0.3.6.apk \
+            mobile/android/PayMyDine-POS-Tablet-Preview-0.3.6.apk.sha256 \
             --repo "$GITHUB_REPOSITORY" \
             --clobber
