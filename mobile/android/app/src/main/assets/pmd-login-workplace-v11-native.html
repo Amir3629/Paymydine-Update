@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#032d27">
+<title>Login - PayMyDine</title>
+<style>
+:root{--jade:#063f36;--jade-dark:#032d27;--gold:#c89b4a;--line:#e1e9e6;--text:#122321;--muted:#6d7b78;--danger:#b42318;--content:350px}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%}
+body{min-height:100vh;min-height:100dvh;overflow:auto;padding:14px;background:radial-gradient(circle at 50% 8%,rgba(200,155,74,.16),transparent 31%),linear-gradient(180deg,#011714 0%,#032c27 100%);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--text);-webkit-font-smoothing:antialiased}
+.card{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(470px,calc(100vw - 28px));max-height:calc(100dvh - 28px);overflow:auto;padding:24px 32px 32px;border:1px solid rgba(200,155,74,.35);border-radius:23px;background:#fff;box-shadow:0 28px 80px rgba(0,25,22,.35)}
+.card.is-security{min-height:590px;padding-top:26px;padding-bottom:36px}
+.lang,.back{width:43px;height:39px;border:1px solid #dfd1b8;border-radius:11px;background:#fffaf1;color:var(--jade);font:inherit;font-size:12px;font-weight:900;cursor:pointer}
+.lang{position:absolute;right:14px;top:14px}.back{position:absolute;left:14px;top:14px;display:none;place-items:center;padding:0}
+.brand{height:166px;display:grid;place-items:center;margin:-8px 42px 24px}.brand img{width:260px;max-width:100%;height:156px;object-fit:contain}
+.card.is-security .brand{height:178px;margin:-6px 42px 40px}.card.is-security .brand img{height:166px}
+.form,.security-head,.wait{width:min(var(--content),100%);margin-left:auto;margin-right:auto}
+.form{display:grid;gap:14px}.field{display:grid;gap:7px}.field>span{font-size:13px;font-weight:850}.input{position:relative}
+.field input{width:100%;height:46px;padding:0 13px;border:1px solid var(--line);border-radius:13px;background:#fff;color:var(--text);font:inherit;font-size:15px;outline:none}
+.field input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(200,155,74,.13)}.field input[type=password]{padding-right:44px}
+.toggle{position:absolute;right:4px;top:4px;width:38px;height:38px;border:0;border-radius:10px;background:transparent;color:#74827f;cursor:pointer}
+.submit,.secondary{height:46px;display:flex;align-items:center;justify-content:center;border-radius:13px;font:inherit;font-size:15px;font-weight:900;cursor:pointer;text-decoration:none}
+.submit{border:1px solid var(--jade);background:var(--jade);color:#fff}.submit:disabled{opacity:.55;cursor:default}.secondary{border:1px solid var(--line);background:#f8fbfa;color:var(--jade)}
+.forgot{border:0;padding:0;background:transparent;text-align:left;color:var(--jade);font:inherit;font-size:12.5px;font-weight:800;cursor:pointer}
+.notice{width:min(var(--content),100%);margin:0 auto 14px;padding:11px 12px;border-radius:12px;font-size:12.5px;line-height:1.45;border:1px solid #f0c6c1;background:#fff3f2;color:#8b2c25}.notice[hidden]{display:none}.notice strong{display:block;margin-bottom:2px}
+.security-head{text-align:center;margin-top:0;margin-bottom:22px}.security-head h1{margin:0 0 8px;color:#0c2c28;font-size:23px;letter-spacing:-.035em}.security-head p{margin:0 auto;max-width:320px;color:var(--muted);font-size:13px;line-height:1.5}
+.codebox{width:min(var(--content),100%);margin:0 auto 18px;padding:22px;border:1px solid #d3e6e0;border-radius:16px;background:#f5fbf9;text-align:center}.code-label{font-size:11px;font-weight:850;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}.code{margin-top:8px;color:var(--jade);font-size:34px;line-height:1;font-weight:950;letter-spacing:.16em;font-variant-numeric:tabular-nums}
+.wait{min-height:20px;text-align:center;color:#71807c;font-size:12px;font-weight:750}.spinner{width:28px;height:28px;margin:2px auto 15px;border:3px solid #dfe9e6;border-top-color:var(--jade);border-radius:50%;animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+.offline{width:min(var(--content),100%);margin:14px auto 0;padding-top:14px;border-top:1px solid var(--line);display:none;gap:10px}.offline.show{display:grid}.offline p{margin:0;color:var(--muted);font-size:12px;line-height:1.45}
+@media(max-width:540px){body{padding:10px}.card{width:calc(100vw - 18px);max-height:calc(100dvh - 18px);padding:21px 18px 27px;border-radius:20px}.card.is-security{min-height:min(570px,calc(100dvh - 18px));padding-bottom:28px}.brand{height:140px;margin:-3px 38px 20px}.brand img{height:134px}.card.is-security .brand{height:150px;margin:-2px 38px 30px}.card.is-security .brand img{height:143px}}
+</style>
+</head>
+<body>
+<main class="card" id="card">
+<button type="button" class="lang" id="lang">DE</button>
+<button type="button" class="back" id="back" aria-label="Back">←</button>
+<div class="brand"><img src="pmd-login-logo.svg" alt="PayMyDine"></div>
+<div class="notice" id="notice" hidden><strong id="noticeTitle">Login failed</strong><span id="noticeText"></span></div>
+<section id="loginPanel">
+<form class="form" id="loginForm">
+<label class="field"><span data-copy="username">Username</span><input id="username" type="text" autocomplete="username" placeholder="Enter your username" required></label>
+<label class="field"><span data-copy="password">Password</span><span class="input"><input id="password" type="password" autocomplete="current-password" minlength="6" placeholder="Enter your password" required><button type="button" class="toggle" id="toggle" aria-label="Show password">◉</button></span></label>
+<button type="submit" class="submit" id="submit" data-copy="continue">Continue</button>
+<button type="button" class="forgot" id="forgot" data-copy="forgot">Forgot password?</button>
+</form>
+<div class="offline" id="offline"><p id="offlineText"></p><button type="button" class="secondary" id="offlineButton">Continue offline</button></div>
+</section>
+<section id="waitPanel" hidden>
+<div class="security-head"><h1 data-copy="approvalTitle">Restaurant approval</h1><p data-copy="approvalText">Waiting for approval on a trusted PayMyDine dashboard.</p></div>
+<div class="codebox"><div class="code-label" data-copy="codeLabel">Request code</div><div class="code" id="requestCode">--- ---</div></div>
+<div class="spinner"></div>
+<div class="wait" id="waitText">Waiting for restaurant approval…</div>
+</section>
+</main>
+<script>
+(function(){
+'use strict';
+var locale='en',busy=false,mode='login';
+var copy={
+en:{username:'Username',password:'Password',continue:'Continue',forgot:'Forgot password?',approvalTitle:'Restaurant approval',approvalText:'Waiting for approval on a trusted PayMyDine dashboard.',codeLabel:'Request code',waiting:'Waiting for restaurant approval…',failed:'Login failed'},
+de:{username:'Benutzername',password:'Passwort',continue:'Weiter',forgot:'Passwort vergessen?',approvalTitle:'Restaurant-Freigabe',approvalText:'Warte auf die Freigabe in einem vertrauenswürdigen PayMyDine-Dashboard.',codeLabel:'Anfragecode',waiting:'Warte auf Restaurant-Freigabe…',failed:'Anmeldung fehlgeschlagen'}
+};
+function applyCopy(){
+ document.documentElement.lang=locale;document.getElementById('lang').textContent=locale==='en'?'DE':'EN';
+ document.querySelectorAll('[data-copy]').forEach(function(n){var k=n.getAttribute('data-copy');if(copy[locale][k])n.textContent=copy[locale][k]});
+ document.getElementById('username').placeholder=locale==='en'?'Enter your username':'Benutzername eingeben';
+ document.getElementById('password').placeholder=locale==='en'?'Enter your password':'Passwort eingeben';
+ if(mode==='wait')document.getElementById('waitText').textContent=copy[locale].waiting;
+}
+function fmt(v){v=String(v||'').replace(/\D+/g,'').slice(0,6);return v.length===6?v.slice(0,3)+' '+v.slice(3):'--- ---'}
+function notice(message){
+ var root=document.getElementById('notice');document.getElementById('noticeTitle').textContent=copy[locale].failed;document.getElementById('noticeText').textContent=String(message||'');root.hidden=!message;
+}
+window.pmdNativeLoginState=function(s){
+ s=s||{};mode=s.mode==='wait'?'wait':'login';
+ document.getElementById('card').classList.toggle('is-security',mode==='wait');
+ document.getElementById('loginPanel').hidden=mode==='wait';document.getElementById('waitPanel').hidden=mode!=='wait';
+ document.getElementById('back').style.display=(mode==='wait'&&s.allowCancel)?'grid':'none';
+ if(s.username!=null&&!document.getElementById('username').value)document.getElementById('username').value=String(s.username||'');
+ if(s.clearPassword)document.getElementById('password').value='';
+ if(s.requestCode!=null)document.getElementById('requestCode').textContent=fmt(s.requestCode);
+ if(s.message)document.getElementById('waitText').textContent=String(s.message);
+ busy=!!s.busy;document.getElementById('submit').disabled=busy||s.online===false;
+ var off=document.getElementById('offline');off.classList.toggle('show',!!s.offlineAvailable);
+ document.getElementById('offlineText').textContent=String(s.offlineText||'');
+ document.getElementById('offlineButton').textContent=String(s.offlineLabel||'Continue offline');
+ notice(s.error||'');applyCopy();
+};
+document.getElementById('loginForm').onsubmit=function(e){
+ e.preventDefault();if(busy)return;notice('');
+ var u=document.getElementById('username').value.trim(),p=document.getElementById('password').value;
+ if(!u||p.length<6)return;
+ if(window.PayMyDineNative)window.PayMyDineNative.submit(u,p);
+};
+document.getElementById('toggle').onclick=function(){var p=document.getElementById('password');p.type=p.type==='password'?'text':'password'};
+document.getElementById('lang').onclick=function(){locale=locale==='en'?'de':'en';applyCopy()};
+document.getElementById('forgot').onclick=function(){if(window.PayMyDineNative)window.PayMyDineNative.forgotPassword()};
+document.getElementById('offlineButton').onclick=function(){if(window.PayMyDineNative)window.PayMyDineNative.continueOffline()};
+document.getElementById('back').onclick=function(){if(window.PayMyDineNative)window.PayMyDineNative.cancelWaiting()};
+applyCopy();if(window.PayMyDineNative)window.PayMyDineNative.ready();
+})();
+</script>
+</body>
+</html>
