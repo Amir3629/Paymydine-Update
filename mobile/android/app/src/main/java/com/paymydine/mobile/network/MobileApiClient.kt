@@ -245,6 +245,35 @@ class MobileApiClient(private val staffGrant: String? = null) {
         return parseStaffLoginRequest(json)
     }
 
+    /** PMD_ANDROID_STAFF_QUICK_PIN_CLIENT_V17 */
+    fun requestStaffPinLogin(
+        tenantHost: String,
+        deviceToken: String,
+        pin: String,
+    ): StaffLoginRequestResult {
+        val normalizedPin = pin.filter(Char::isDigit)
+        require(normalizedPin.length == 6) {
+            "Staff PIN must contain 6 digits."
+        }
+
+        val base = trustedTenantBase("https://$tenantHost")
+        val json = JSONObject(
+            request(
+                url = URL(
+                    base.toString().trimEnd('/') +
+                        "/admin/api/mobile/v1/workspace/request",
+                ),
+                method = "POST",
+                token = deviceToken,
+                body = JSONObject()
+                    .put("pin", normalizedPin)
+                    .toString(),
+            ),
+        )
+
+        return parseStaffLoginRequest(json)
+    }
+
     fun staffLoginStatus(
         tenantHost: String,
         deviceToken: String,

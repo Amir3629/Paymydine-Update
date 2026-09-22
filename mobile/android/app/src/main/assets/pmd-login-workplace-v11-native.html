@@ -31,6 +31,7 @@ body{min-height:100vh;min-height:100dvh;overflow-y:auto;padding:20px;display:fle
 .codebox{width:min(var(--content),100%);margin:0 auto 18px;padding:22px;border:1px solid #d3e6e0;border-radius:16px;background:#f5fbf9;text-align:center}.code-label{font-size:11px;font-weight:850;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}.code{margin-top:8px;color:var(--jade);font-size:34px;line-height:1;font-weight:950;letter-spacing:.16em;font-variant-numeric:tabular-nums}
 .wait{min-height:20px;text-align:center;color:#71807c;font-size:12px;font-weight:750}.spinner{width:28px;height:28px;margin:2px auto 15px;border:3px solid #dfe9e6;border-top-color:var(--jade);border-radius:50%;animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
 .offline{width:min(var(--content),100%);margin:14px auto 0;padding-top:14px;border-top:1px solid var(--line);display:none;gap:10px}.offline.show{display:grid}.offline p{margin:0;color:var(--muted);font-size:12px;line-height:1.45}
+.pin-panel,.full-panel{width:min(var(--content),100%);margin:0 auto}.pin-head{text-align:center;margin:0 0 14px}.pin-head h1{margin:0 0 5px;color:#0c2c28;font-size:21px}.pin-head p{margin:0;color:var(--muted);font-size:12.5px}.pin-dots{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;width:min(284px,100%);margin:0 auto 12px}.pin-dot{height:44px;display:grid;place-items:center;border:1px solid #dbe5e2;border-radius:12px;background:#f8fbfa;color:var(--jade);font-size:24px;font-weight:900}.pin-dot.filled{border-color:#cbb27c;background:#fffaf0}.pin-dot.filled:after{content:'•'}.pin-keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;width:min(284px,100%);margin:0 auto 12px}.pin-key{height:54px;border:1px solid #dce7e4;border-radius:14px;background:#fff;color:#16332e;font:inherit;font-size:21px;font-weight:850;cursor:pointer}.pin-key.action{font-size:14px;color:#60706d;background:#f7faf9}.mode-switch{width:100%;margin:10px 0 0;padding:8px;border:0;background:transparent;color:#536b65;font:inherit;font-size:12px;font-weight:850;cursor:pointer}.pin-submit{width:min(284px,100%);margin:0 auto}.pin-hidden{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}.card.is-pin .brand{height:112px;margin:-4px 42px 10px}.card.is-pin .brand img{height:108px}
 /* PMD_ANDROID_LOGIN_TABLET_FRAME_V16 */
 @media(max-width:620px){body{padding:12px}.card{width:calc(100vw - 24px);min-height:590px;padding:26px 28px 34px;border-radius:21px}.card.is-security{min-height:610px;padding-bottom:34px}.brand{height:146px;margin:0 38px 22px}.brand img{height:140px}.card.is-security .brand{height:154px;margin:0 38px 30px}.card.is-security .brand img{height:147px}}
 @media(max-height:680px){body{padding:10px}.card{min-height:590px;margin:0;padding:26px 36px 34px}.card.is-security{min-height:610px;padding-top:28px;padding-bottom:36px}.brand{height:146px;margin:0 42px 22px}.brand img{height:140px}.card.is-security .brand{height:154px;margin:0 42px 28px}.card.is-security .brand img{height:147px}}
@@ -43,12 +44,32 @@ body{min-height:100vh;min-height:100dvh;overflow-y:auto;padding:20px;display:fle
 <div class="brand"><img src="pmd-login-logo.svg" alt="PayMyDine"></div>
 <div class="notice" id="notice" hidden><strong id="noticeTitle">Login failed</strong><span id="noticeText"></span></div>
 <section id="loginPanel">
+<div class="pin-panel" id="pinPanel">
+<div class="pin-head"><h1 data-copy="pinTitle">Staff PIN</h1><p data-copy="pinText">Enter your 6-digit Quick PIN.</p></div>
+<form id="pinForm">
+<input class="pin-hidden" id="staffPin" type="password" inputmode="numeric" maxlength="6" autocomplete="off">
+<div class="pin-dots" aria-hidden="true">
+<span class="pin-dot"></span><span class="pin-dot"></span><span class="pin-dot"></span><span class="pin-dot"></span><span class="pin-dot"></span><span class="pin-dot"></span>
+</div>
+<div class="pin-keypad" aria-label="6-digit Staff PIN">
+<button type="button" class="pin-key" data-pin="1">1</button><button type="button" class="pin-key" data-pin="2">2</button><button type="button" class="pin-key" data-pin="3">3</button>
+<button type="button" class="pin-key" data-pin="4">4</button><button type="button" class="pin-key" data-pin="5">5</button><button type="button" class="pin-key" data-pin="6">6</button>
+<button type="button" class="pin-key" data-pin="7">7</button><button type="button" class="pin-key" data-pin="8">8</button><button type="button" class="pin-key" data-pin="9">9</button>
+<button type="button" class="pin-key action" id="pinClear">C</button><button type="button" class="pin-key" data-pin="0">0</button><button type="button" class="pin-key action" id="pinDelete">⌫</button>
+</div>
+<button type="submit" class="submit pin-submit" id="pinSubmit" data-copy="signIn">Sign in</button>
+</form>
+<button type="button" class="mode-switch" id="useFull" data-copy="useFull">Manager / Accountant · Full sign-in</button>
+</div>
+<div class="full-panel" id="fullPanel" hidden>
 <form class="form" id="loginForm">
 <label class="field"><span data-copy="username">Username</span><input id="username" type="text" autocomplete="username" placeholder="Enter your username" required></label>
 <label class="field"><span data-copy="password">Password</span><span class="input"><input id="password" type="password" autocomplete="current-password" minlength="6" placeholder="Enter your password" required><button type="button" class="toggle" id="toggle" aria-label="Show password">◉</button></span></label>
 <button type="submit" class="submit" id="submit" data-copy="continue">Continue</button>
 <button type="button" class="forgot" id="forgot" data-copy="forgot">Forgot password?</button>
 </form>
+<button type="button" class="mode-switch" id="usePin" data-copy="usePin">Use Staff PIN</button>
+</div>
 <div class="offline" id="offline"><p id="offlineText"></p><button type="button" class="secondary" id="offlineButton">Continue offline</button></div>
 </section>
 <section id="waitPanel" hidden>
@@ -61,10 +82,10 @@ body{min-height:100vh;min-height:100dvh;overflow-y:auto;padding:20px;display:fle
 <script>
 (function(){
 'use strict';
-var locale='en',busy=false,mode='login';
+var locale='en',busy=false,online=true,mode='login',credentialMode='staff',authMode='pin',lastCredentialMode='';
 var copy={
-en:{username:'Username',password:'Password',continue:'Continue',forgot:'Forgot password?',approvalTitle:'Restaurant approval',approvalText:'Waiting for approval on a trusted PayMyDine dashboard.',codeLabel:'Request code',waiting:'Waiting for restaurant approval…',failed:'Login failed'},
-de:{username:'Benutzername',password:'Passwort',continue:'Weiter',forgot:'Passwort vergessen?',approvalTitle:'Restaurant-Freigabe',approvalText:'Warte auf die Freigabe in einem vertrauenswürdigen PayMyDine-Dashboard.',codeLabel:'Anfragecode',waiting:'Warte auf Restaurant-Freigabe…',failed:'Anmeldung fehlgeschlagen'}
+en:{username:'Username',password:'Password',continue:'Continue',forgot:'Forgot password?',pinTitle:'Staff PIN',pinText:'Enter your 6-digit Quick PIN.',signIn:'Sign in',useFull:'Manager / Accountant · Full sign-in',usePin:'Use Staff PIN',approvalTitle:'Restaurant approval',approvalText:'Waiting for approval on a trusted PayMyDine dashboard.',codeLabel:'Request code',waiting:'Waiting for restaurant approval…',failed:'Login failed'},
+de:{username:'Benutzername',password:'Passwort',continue:'Weiter',forgot:'Passwort vergessen?',pinTitle:'Mitarbeiter-PIN',pinText:'6-stellige Quick PIN eingeben.',signIn:'Anmelden',useFull:'Manager / Buchhaltung · Vollständige Anmeldung',usePin:'Mitarbeiter-PIN verwenden',approvalTitle:'Restaurant-Freigabe',approvalText:'Warte auf die Freigabe in einem vertrauenswürdigen PayMyDine-Dashboard.',codeLabel:'Anfragecode',waiting:'Warte auf Restaurant-Freigabe…',failed:'Anmeldung fehlgeschlagen'}
 };
 function applyCopy(){
  document.documentElement.lang=locale;document.getElementById('lang').textContent=locale==='en'?'DE':'EN';
@@ -77,21 +98,44 @@ function fmt(v){v=String(v||'').replace(/\D+/g,'').slice(0,6);return v.length===
 function notice(message){
  var root=document.getElementById('notice');document.getElementById('noticeTitle').textContent=copy[locale].failed;document.getElementById('noticeText').textContent=String(message||'');root.hidden=!message;
 }
+function renderPin(){
+ var input=document.getElementById('staffPin');var pin=String(input.value||'').replace(/\D+/g,'').slice(0,6);input.value=pin;
+ document.querySelectorAll('.pin-dot').forEach(function(dot,index){dot.classList.toggle('filled',index<pin.length)});
+ document.getElementById('pinSubmit').disabled=busy||!online||pin.length!==6;
+}
+function setAuthMode(next){
+ authMode=next==='full'?'full':'pin';
+ if(credentialMode==='pair')authMode='full';
+ document.getElementById('pinPanel').hidden=authMode!=='pin';
+ document.getElementById('fullPanel').hidden=authMode!=='full';
+ document.getElementById('usePin').hidden=credentialMode==='pair';
+ document.getElementById('card').classList.toggle('is-pin',mode==='login'&&authMode==='pin');
+}
 window.pmdNativeLoginState=function(s){
- s=s||{};mode=s.mode==='wait'?'wait':'login';
+ s=s||{};mode=s.mode==='wait'?'wait':'login';credentialMode=s.credentialMode==='pair'?'pair':'staff';
+ if(lastCredentialMode!==credentialMode){authMode=credentialMode==='pair'?'full':'pin';lastCredentialMode=credentialMode}
  document.getElementById('card').classList.toggle('is-security',mode==='wait');
  document.getElementById('loginPanel').hidden=mode==='wait';document.getElementById('waitPanel').hidden=mode!=='wait';
  document.getElementById('back').style.display=(mode==='wait'&&s.allowCancel)?'grid':'none';
  if(s.username!=null&&!document.getElementById('username').value)document.getElementById('username').value=String(s.username||'');
- if(s.clearPassword)document.getElementById('password').value='';
+ if(s.clearPassword){document.getElementById('password').value='';document.getElementById('staffPin').value=''}
  if(s.requestCode!=null)document.getElementById('requestCode').textContent=fmt(s.requestCode);
  if(s.message)document.getElementById('waitText').textContent=String(s.message);
- busy=!!s.busy;document.getElementById('submit').disabled=busy||s.online===false;
+ busy=!!s.busy;online=s.online!==false;document.getElementById('submit').disabled=busy||!online;
  var off=document.getElementById('offline');off.classList.toggle('show',!!s.offlineAvailable);
  document.getElementById('offlineText').textContent=String(s.offlineText||'');
  document.getElementById('offlineButton').textContent=String(s.offlineLabel||'Continue offline');
- notice(s.error||'');applyCopy();
+ setAuthMode(authMode);renderPin();notice(s.error||'');applyCopy();
 };
+document.getElementById('pinForm').onsubmit=function(e){
+ e.preventDefault();if(busy)return;var pin=document.getElementById('staffPin').value;if(pin.length!==6)return;notice('');
+ if(window.PayMyDineNative)window.PayMyDineNative.submit('',pin);
+};
+document.querySelectorAll('[data-pin]').forEach(function(button){button.onclick=function(){var input=document.getElementById('staffPin');if(input.value.length<6)input.value+=button.getAttribute('data-pin');renderPin()}});
+document.getElementById('pinClear').onclick=function(){document.getElementById('staffPin').value='';renderPin()};
+document.getElementById('pinDelete').onclick=function(){var input=document.getElementById('staffPin');input.value=input.value.slice(0,-1);renderPin()};
+document.getElementById('useFull').onclick=function(){setAuthMode('full')};
+document.getElementById('usePin').onclick=function(){setAuthMode('pin')};
 document.getElementById('loginForm').onsubmit=function(e){
  e.preventDefault();if(busy)return;notice('');
  var u=document.getElementById('username').value.trim(),p=document.getElementById('password').value;
@@ -103,8 +147,9 @@ document.getElementById('lang').onclick=function(){locale=locale==='en'?'de':'en
 document.getElementById('forgot').onclick=function(){if(window.PayMyDineNative)window.PayMyDineNative.forgotPassword()};
 document.getElementById('offlineButton').onclick=function(){if(window.PayMyDineNative)window.PayMyDineNative.continueOffline()};
 document.getElementById('back').onclick=function(){if(window.PayMyDineNative)window.PayMyDineNative.cancelWaiting()};
-applyCopy();if(window.PayMyDineNative)window.PayMyDineNative.ready();
+setAuthMode('pin');renderPin();applyCopy();if(window.PayMyDineNative)window.PayMyDineNative.ready();
 })();
+
 </script>
 </body>
 </html>
