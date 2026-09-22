@@ -6,6 +6,7 @@ import android.net.Uri
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -142,7 +143,7 @@ fun PmdStaffLogin(
     }
 
     PmdCanonicalLoginCard(
-        modifier = Modifier,
+        modifier = Modifier.fillMaxSize(),
         state = state,
         onSubmit = { username, password ->
             if (!online || busy || pendingRequest != null) {
@@ -283,7 +284,7 @@ fun PmdPairLogin(
     )
 
     PmdCanonicalLoginCard(
-        modifier = Modifier,
+        modifier = Modifier.fillMaxSize(),
         state = state,
         onSubmit = { username, password ->
             if (!online || busy || waiting) {
