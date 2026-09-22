@@ -84,6 +84,25 @@ class SyncEngine(
 
             if (!app.syncRepository.markInFlight(command.commandId)) continue
 
+            // PMD_ANDROID_CASH_CLOUD_RECONCILIATION_V17
+            // Cash can be recorded while WAN is down, but its canonical
+            // settlement/cash-drawer/fiscalization effects execute only when
+            // Cloud is reachable. Restaurant Edge must never invent those
+            // financial side effects locally.
+            if (
+                command.commandType == "CASH_PAYMENT_V1" &&
+                !app.connectivity.online.value
+            ) {
+                app.syncRepository.defer(
+                    commandId = command.commandId,
+                    delayMs = 5_000L,
+                    reason = "Cash payment is stored locally and waiting for PayMyDine Cloud.",
+                )
+                blockedAggregates += command.aggregateId
+                allGood = false
+                continue
+            }
+
             if (route.kind == TransportKind.OFFLINE) {
                 app.syncRepository.defer(
                     commandId = command.commandId,
@@ -152,7 +171,12 @@ class SyncEngine(
                             command.commandId,
                             message,
                         )
-                        if (command.commandType != "KDS_STATUS_V1") {
+                        if (command.commandType == "CASH_PAYMENT_V1") {
+                            app.localPosRepository.markCashPaymentConflict(
+                                command,
+                                message,
+                            )
+                        } else if (command.commandType != "KDS_STATUS_V1") {
                             app.localPosRepository.markConflictForCommand(
                                 command,
                                 message,
@@ -322,6 +346,13 @@ class SyncEngine(
         command: CommandEnvelope,
         route: AuthorityRoute,
     ): JSONObject {
+        if (
+            command.commandType == "CASH_PAYMENT_V1" &&
+            app.connectivity.online.value
+        ) {
+            return sendCloudCommand(host, token, command)
+        }
+
         if (route.kind == TransportKind.CLOUD) {
             return sendCloudCommand(host, token, command)
         }
