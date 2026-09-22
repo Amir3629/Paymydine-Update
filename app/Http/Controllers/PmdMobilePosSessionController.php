@@ -72,6 +72,16 @@ final class PmdMobilePosSessionController extends Controller
 
         AdminLocation::setCurrent($location);
 
+        // PMD_MOBILE_ADMIN_SESSION_BINDING_V6
+        session()->put(
+            PmdSiteAccessService::SESSION_MOBILE_LOCATION,
+            $locationId
+        );
+        session()->put(
+            PmdSiteAccessService::SESSION_MOBILE_DEVICE,
+            $deviceId
+        );
+
         session()->put(
             PmdSiteAccessService::SESSION_DESTINATION,
             'workspace'
