@@ -263,33 +263,15 @@ trait PmdWaiterPosOperationsSummaryV12Concern
                     4
                 );
 
-                $comment = trim(
-                    (string)($data['comment'] ?? '')
-                );
-
-                $auditEntry = sprintf(
-                    '[VOID %d] %s',
-                    $quantity,
-                    $reason
-                );
-
+                /* PMD_QPOS_CLEAN_QUANTITY_AUDIT_V71
+                 * The visible item comment is guest/cashier-facing content.
+                 * Quantity corrections are already preserved below in the PMD
+                 * item-meta + operation-log audit stores, so never append
+                 * internal [VOID ...] text to the menu comment. */
                 $updates = [
                     'quantity' => $remainingQuantity,
                     'subtotal' => $newSubtotal,
                 ];
-
-                if (
-                    Schema::hasColumn(
-                        'order_menus',
-                        'comment'
-                    )
-                ) {
-                    $updates['comment'] = trim(
-                        $comment === ''
-                            ? $auditEntry
-                            : ($comment."\n".$auditEntry)
-                    );
-                }
 
                 DB::table('order_menus')
                     ->where('order_id', (int)$order->getKey())
@@ -578,6 +560,8 @@ trait PmdWaiterPosOperationsSummaryV12Concern
                     'order_menu_id' => $itemId,
                     'removed_quantity' => $quantity,
                     'remaining_quantity' => $remainingQuantity,
+                    'new_quantity' => $remainingQuantity,
+                    'line_subtotal' => $newSubtotal,
                     'order_total' => (float)(
                         $fresh->order_total ?? 0
                     ),
@@ -708,12 +692,17 @@ trait PmdWaiterPosOperationsSummaryV12Concern
                     ? ($oldSubtotal / $currentQuantity)
                     : (float)($data['price'] ?? 0);
 
+                $newSubtotal = round(
+                    $unitSubtotal * $newQuantity,
+                    4
+                );
+
                 DB::table('order_menus')
                     ->where('order_id', (int)$order->getKey())
                     ->where('order_menu_id', $itemId)
                     ->update([
                         'quantity' => $newQuantity,
-                        'subtotal' => round($unitSubtotal * $newQuantity, 4),
+                        'subtotal' => $newSubtotal,
                     ]);
 
                 if (
@@ -826,6 +815,7 @@ trait PmdWaiterPosOperationsSummaryV12Concern
                     'order_menu_id' => $itemId,
                     'added_quantity' => $quantity,
                     'new_quantity' => $newQuantity,
+                    'line_subtotal' => $newSubtotal,
                     'order_total' => (float)($fresh->order_total ?? 0),
                     'total_items' => (int)($fresh->total_items ?? 0),
                     'updated_at' => (string)($fresh->updated_at ?? ''),
