@@ -40,6 +40,13 @@ jobs:
         with:
           gradle-version: '8.13'
 
+      - name: Prime Gradle dependency cache
+        working-directory: mobile/android
+        shell: bash
+        run: |
+          set -euo pipefail
+          gradle --no-daemon testDebugUnitTest assembleDebug
+
       - name: Package portable build kit
         shell: bash
         run: |
@@ -51,7 +58,8 @@ jobs:
 
           cp -a mobile/android "$OUT/source/android"
 
-          cp -a "$JAVA_HOME" "$OUT/toolchain/jdk17"
+          # Dereference setup-java's symlink so the artifact contains a real JDK.
+          cp -aL "$JAVA_HOME" "$OUT/toolchain/jdk17"
 
           mkdir -p "$OUT/toolchain/android-sdk/platforms"
           mkdir -p "$OUT/toolchain/android-sdk/build-tools"
@@ -68,14 +76,22 @@ jobs:
           GRADLE_HOME="$(cd "$(dirname "$GRADLE_BIN")/.." && pwd)"
           cp -a "$GRADLE_HOME" "$OUT/toolchain/gradle-8.13"
 
+          # Carry the dependency/transforms cache populated by the successful build,
+          # so the local ZCS rebuild can run with --offline after injecting the AAR.
+          mkdir -p "$OUT/toolchain/gradle-user-home"
+          cp -a "$GRADLE_USER_HOME/caches" "$OUT/toolchain/gradle-user-home/caches"
+
           cat > "$OUT/BUILD_KIT_INFO.txt" <<EOF
           source_commit=$GITHUB_SHA
           java_home=toolchain/jdk17
           android_home=toolchain/android-sdk
           gradle_home=toolchain/gradle-8.13
+          gradle_user_home=toolchain/gradle-user-home
           EOF
 
-          find "$OUT" -type f -print0 | sort -z | xargs -0 sha256sum             > "$OUT/SHA256SUMS.txt"
+          sha256sum "$OUT/source/android/app/build.gradle.kts" \
+            "$OUT/source/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt" \
+            > "$OUT/SOURCE_SHA256SUMS.txt"
 
           tar -C "$RUNNER_TEMP" -czf "$RUNNER_TEMP/pmd-zcs-build-kit.tar.gz"             pmd-zcs-build-kit
 
