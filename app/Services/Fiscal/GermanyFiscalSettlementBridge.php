@@ -24,11 +24,15 @@ final class GermanyFiscalSettlementBridge
         ?string $paymentMethod = null,
         ?string $paymentReference = null
     ): array {
-        if ($orderId < 1 || !Schema::hasTable('orders')) {
+        $connection = $this->connectionName();
+        $schema = Schema::connection($connection);
+        $db = DB::connection($connection);
+
+        if ($orderId < 1 || !$schema->hasTable('orders')) {
             return $this->notRequired('Order is unavailable.');
         }
 
-        $order = DB::table('orders')
+        $order = $db->table('orders')
             ->where('order_id', $orderId)
             ->first();
 
@@ -38,19 +42,19 @@ final class GermanyFiscalSettlementBridge
 
         $locationId = max(1, (int)($order->location_id ?? 1));
 
-        if (!Schema::hasTable('fiskaly_configs')) {
+        if (!$schema->hasTable('fiskaly_configs')) {
             return $this->notRequired('Fiskaly is not configured for this tenant.');
         }
 
-        $query = DB::table('fiskaly_configs')
+        $query = $db->table('fiskaly_configs')
             ->where('provider', 'fiskaly')
             ->where('is_enabled', 1);
 
-        if (Schema::hasColumn('fiskaly_configs', 'location_id')) {
+        if ($schema->hasColumn('fiskaly_configs', 'location_id')) {
             $config = (clone $query)
                 ->where('location_id', $locationId)
                 ->orderByDesc(
-                    Schema::hasColumn('fiskaly_configs', 'fiskaly_config_id')
+                    $schema->hasColumn('fiskaly_configs', 'fiskaly_config_id')
                         ? 'fiskaly_config_id'
                         : 'location_id'
                 )
@@ -60,7 +64,7 @@ final class GermanyFiscalSettlementBridge
                 $config = (clone $query)
                     ->where('location_id', 1)
                     ->orderByDesc(
-                        Schema::hasColumn('fiskaly_configs', 'fiskaly_config_id')
+                        $schema->hasColumn('fiskaly_configs', 'fiskaly_config_id')
                             ? 'fiskaly_config_id'
                             : 'location_id'
                     )
@@ -157,6 +161,18 @@ final class GermanyFiscalSettlementBridge
 
             return $result;
         }
+    }
+
+    private function connectionName(): string
+    {
+        try {
+            if (app()->bound('tenant')) {
+                return 'tenant';
+            }
+        } catch (\Throwable $ignored) {
+        }
+
+        return DB::getDefaultConnection();
     }
 
     private function normalizePaymentMethod(?string $method): string
