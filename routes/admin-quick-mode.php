@@ -59,6 +59,12 @@ Route::middleware(['web'])->group(function () {
         [\Admin\Controllers\PmdQuickPosV1::class, 'history']
     );
 
+    // PMD_QPOS_ATTENTION_SEEN_ROUTE_V64
+    Route::post(
+        '/admin/pos/attention/{notification}/seen',
+        [\Admin\Controllers\PmdQuickPosV1::class, 'markAttentionSeen']
+    )->where('notification', '[0-9]+');
+
     // PMD_QPOS_TRANSFER_V24
     Route::post(
         '/admin/pos/transfer',
