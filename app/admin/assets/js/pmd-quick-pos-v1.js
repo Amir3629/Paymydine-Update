@@ -7304,8 +7304,38 @@ function renderOpenChecks() {
         return row;
       });
 
+      /* PMD_QPOS_VISIT_RELEASE_V71
+       * Settled checks stay in the active table overview until this explicit
+       * Free transition. At that point they become history-only immediately. */
+      if (
+        ['available', 'free'].indexOf(
+          String(state.selectedTable.status || '').toLowerCase()
+        ) !== -1
+      ) {
+        state.openOrders = state.openOrders.filter(function (order) {
+          var settlement = String(order.settlement_status || '').toLowerCase();
+          return ['paid', 'settled', 'closed'].indexOf(settlement) === -1;
+        });
+
+        if (
+          state.activeOrderId &&
+          !state.openOrders.some(function (order) {
+            return orderId(order) === Number(state.activeOrderId);
+          })
+        ) {
+          state.activeOrderId = state.openOrders.length
+            ? orderId(state.openOrders[0])
+            : null;
+        }
+
+        state.forceNewCheck =
+          !!state.activeOrderId &&
+          activeOrderStructuralLocked();
+      }
+
       renderTables();
       renderContext();
+      renderCart({orderSwitch: true});
       toast(json.status_label || 'Table updated');
     } catch (error) {
       toast(error.message || 'Table status could not be changed.', true);
