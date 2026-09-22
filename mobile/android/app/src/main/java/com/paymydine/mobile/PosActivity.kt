@@ -26,8 +26,14 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import com.paymydine.mobile.sync.SyncEngine
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.json.JSONObject
+import org.json.JSONTokener
 import java.net.URI
 
 /**
@@ -42,13 +48,25 @@ import java.net.URI
  * recovery inside the Android view system.
  */
 class PosActivity : ComponentActivity() {
+    private enum class TransportMode {
+        CLOUD,
+        LOCAL,
+        RECONNECTING,
+    }
+
+    private data class LocalUiSeed(
+        val tableId: String? = null,
+        val floorId: String? = null,
+    )
+
     private lateinit var root: FrameLayout
     private lateinit var loading: TextView
     private var webView: WebView? = null
     private var windowFocusedOnce = false
     private var buildGeneration = 0
     private var canonicalReady = false
-    private var offlineSwitching = false
+    private var transportMode = TransportMode.CLOUD
+    private var localBridge: LocalPosBridge? = null
 
     private val app: PayMyDineApplication
         get() = application as PayMyDineApplication
@@ -82,24 +100,6 @@ class PosActivity : ComponentActivity() {
             finish()
             return
         }
-
-        // PMD_ANDROID_POS_OFFLINE_FAILOVER_V15
-        // A physical WAN cut (including simply turning Wi-Fi off) must switch
-        // to the already-authorized local POS before the Cloud page can expose
-        // fetch/network errors. Offline authority still requires the durable
-        // bootstrap plus the current verified POS work-session boundary.
-        if (
-            !app.connectivity.online.value &&
-            offlinePosAvailable()
-        ) {
-            switchToOffline(
-                "Cloud is unavailable. Orders will be saved on this tablet.",
-            )
-            return
-        }
-
-        observeCloudAvailability()
-        SyncEngine.enqueueImmediate(app)
 
         // PMD_ANDROID_POS_SYSTEM_INSETS_V8
         // Target SDK 36 uses edge-to-edge windows. Handle status/navigation
@@ -139,12 +139,34 @@ class PosActivity : ComponentActivity() {
         setContentView(root)
         ViewCompat.requestApplyInsets(root)
 
+        observeCloudAvailability()
+        startLiveSyncLoop()
+        SyncEngine.enqueueImmediate(app)
+
+        // PMD_ANDROID_POS_SEAMLESS_FAILOVER_V17
+        // Stay inside this exact Activity. A WAN cut changes only the transport
+        // authority/WebView content; it never logs the staff member out and
+        // never navigates through a separate "offline mode" screen.
+        if (
+            !app.connectivity.online.value &&
+            offlinePosAvailable()
+        ) {
+            enterLocalMode(
+                "Cloud is unavailable. Local POS is active.",
+            )
+        }
+
         // Do not construct WebView during Activity inflation. The window can
         // still report transitional dimensions at that point on Samsung
         // tablets. onWindowFocusChanged creates it after landscape is stable.
         root.postDelayed(
             {
-                if (!windowFocusedOnce && webView == null && !isFinishing) {
+                if (
+                    !windowFocusedOnce &&
+                    webView == null &&
+                    !isFinishing &&
+                    transportMode == TransportMode.CLOUD
+                ) {
                     createCanonicalWebView()
                 }
             },
@@ -157,10 +179,17 @@ class PosActivity : ComponentActivity() {
         if (!hasFocus || isFinishing) return
 
         windowFocusedOnce = true
-        if (webView == null) {
+        if (
+            webView == null &&
+            transportMode == TransportMode.CLOUD
+        ) {
             root.postDelayed(
                 {
-                    if (webView == null && !isFinishing) {
+                    if (
+                        webView == null &&
+                        !isFinishing &&
+                        transportMode == TransportMode.CLOUD
+                    ) {
                         createCanonicalWebView()
                     }
                 },
@@ -191,6 +220,17 @@ class PosActivity : ComponentActivity() {
     @SuppressLint("SetJavaScriptEnabled")
     private fun createCanonicalWebView() {
         if (isFinishing || isDestroyed) return
+        if (!app.connectivity.online.value) {
+            if (offlinePosAvailable()) {
+                enterLocalMode(
+                    "Internet connection is unavailable. Local POS is active.",
+                )
+            }
+            return
+        }
+
+        transportMode = TransportMode.CLOUD
+        localBridge = null
 
         val host = trustedHost() ?: run {
             finish()
@@ -584,18 +624,42 @@ class PosActivity : ComponentActivity() {
             app.connectivity.online.collectLatest { online ->
                 if (online) {
                     SyncEngine.enqueueImmediate(app)
+                    if (transportMode == TransportMode.LOCAL) {
+                        attemptReturnToCloud()
+                    }
                     return@collectLatest
                 }
 
-                // PMD_ANDROID_POS_WIFI_CUT_FAILOVER_V15
-                // NET_CAPABILITY_VALIDATED has already fallen away. Switching
-                // immediately prevents the live web POS from rendering its own
-                // Failed to fetch / network error before local mode takes over.
+                // PMD_ANDROID_POS_WIFI_CUT_FAILOVER_V17
+                // NET_CAPABILITY_VALIDATED has fallen away. Swap transport in
+                // this Activity before the Cloud DOM can expose fetch errors.
                 if (offlinePosAvailable()) {
-                    switchToOffline(
+                    enterLocalMode(
                         "Internet connection is unavailable. Local POS is active.",
                     )
                 }
+            }
+        }
+    }
+
+    private fun startLiveSyncLoop() {
+        lifecycleScope.launch {
+            while (isActive && !isFinishing) {
+                if (app.connectivity.online.value) {
+                    withContext(Dispatchers.IO) {
+                        runCatching { SyncEngine(app).runOnce() }
+                    }
+
+                    if (
+                        transportMode == TransportMode.LOCAL &&
+                        app.syncRepository.outboxCount() == 0
+                    ) {
+                        attemptReturnToCloud()
+                    } else if (transportMode == TransportMode.LOCAL) {
+                        refreshLocalWeb()
+                    }
+                }
+                delay(5_000L)
             }
         }
     }
@@ -604,24 +668,206 @@ class PosActivity : ComponentActivity() {
         app.bootstrapRepository.hasBootstrap() &&
             app.credentials.offlineSessionValid("pos")
 
-    private fun switchToOffline(reason: String) {
+    private fun enterLocalMode(reason: String) {
         if (
-            offlineSwitching ||
             isFinishing ||
             isDestroyed ||
-            !offlinePosAvailable()
+            !offlinePosAvailable() ||
+            transportMode == TransportMode.LOCAL
         ) {
             return
         }
 
-        offlineSwitching = true
-        startActivity(
-            Intent(this, OfflinePosActivity::class.java).apply {
-                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                putExtra(OfflinePosActivity.EXTRA_REASON, reason)
-            },
+        transportMode = TransportMode.LOCAL
+        captureCloudUiState { seed ->
+            if (
+                !isFinishing &&
+                !isDestroyed &&
+                transportMode == TransportMode.LOCAL
+            ) {
+                createLocalWebView(seed, reason)
+            }
+        }
+    }
+
+    private fun captureCloudUiState(onCaptured: (LocalUiSeed) -> Unit) {
+        val current = webView
+        if (
+            current == null ||
+            !canonicalReady ||
+            transportMode != TransportMode.LOCAL
+        ) {
+            onCaptured(LocalUiSeed())
+            return
+        }
+
+        current.evaluateJavascript(
+            """
+            (function(){
+              try {
+                var api = window.PMDQuickPOSV1 || {};
+                var state = api.state || {};
+                return JSON.stringify({
+                  table_id: state.selectedTable && state.selectedTable.id
+                    ? String(state.selectedTable.id)
+                    : '',
+                  floor_id: state.activeFloorId
+                    ? String(state.activeFloorId)
+                    : ''
+                });
+              } catch (e) {
+                return '{}';
+              }
+            })()
+            """.trimIndent(),
+        ) { raw ->
+            val seed = runCatching {
+                val decoded = JSONTokener(raw).nextValue() as? String
+                    ?: return@runCatching LocalUiSeed()
+                val json = JSONObject(decoded)
+                LocalUiSeed(
+                    tableId = json.optString("table_id")
+                        .takeIf { it.isNotBlank() },
+                    floorId = json.optString("floor_id")
+                        .takeIf { it.isNotBlank() },
+                )
+            }.getOrDefault(LocalUiSeed())
+            onCaptured(seed)
+        }
+    }
+
+    @SuppressLint("SetJavaScriptEnabled")
+    private fun createLocalWebView(
+        seed: LocalUiSeed,
+        reason: String,
+    ) {
+        destroyWebView()
+        transportMode = TransportMode.LOCAL
+        buildGeneration += 1
+        val generation = buildGeneration
+
+        val bridge = LocalPosBridge(
+            activity = this,
+            app = app,
+            initialSelectedTableId = seed.tableId,
+            initialFloorId = seed.floorId,
+            onTryCloud = { attemptReturnToCloud() },
+            onWorkspaces = { finish() },
         )
-        finish()
+        localBridge = bridge
+
+        val view = WebView(this).apply {
+            setBackgroundColor(Color.rgb(244, 246, 248))
+            isVerticalScrollBarEnabled = false
+            isHorizontalScrollBarEnabled = false
+            settings.apply {
+                javaScriptEnabled = true
+                domStorageEnabled = false
+                databaseEnabled = false
+                allowFileAccess = true
+                allowContentAccess = false
+                blockNetworkLoads = true
+                javaScriptCanOpenWindowsAutomatically = false
+                setSupportMultipleWindows(false)
+                useWideViewPort = true
+                loadWithOverviewMode = false
+            }
+            addJavascriptInterface(bridge, "PayMyDineOffline")
+            webViewClient = object : WebViewClient() {
+                override fun shouldOverrideUrlLoading(
+                    current: WebView,
+                    request: WebResourceRequest,
+                ): Boolean = !request.url.toString()
+                    .startsWith("file:///android_asset/")
+
+                override fun onPageFinished(
+                    current: WebView,
+                    url: String,
+                ) {
+                    if (
+                        generation != buildGeneration ||
+                        current !== webView ||
+                        !url.startsWith("file:///android_asset/")
+                    ) {
+                        return
+                    }
+                    canonicalReady = true
+                    synchronizeViewport(current)
+                    revealWebView(current)
+                }
+            }
+            loadUrl("file:///android_asset/pmd-offline-pos.html")
+        }
+
+        webView = view
+        root.addView(
+            view,
+            0,
+            FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT,
+            ),
+        )
+        loading.text = reason
+        loading.visibility = View.VISIBLE
+        loading.bringToFront()
+    }
+
+    private fun refreshLocalWeb() {
+        if (transportMode != TransportMode.LOCAL) return
+        val current = webView ?: return
+        current.post {
+            if (
+                current === webView &&
+                transportMode == TransportMode.LOCAL
+            ) {
+                current.evaluateJavascript(
+                    "if(window.pmdOfflineRefresh){window.pmdOfflineRefresh();}",
+                    null,
+                )
+            }
+        }
+    }
+
+    private fun attemptReturnToCloud() {
+        if (
+            isFinishing ||
+            isDestroyed ||
+            !app.connectivity.online.value ||
+            transportMode != TransportMode.LOCAL
+        ) {
+            return
+        }
+
+        transportMode = TransportMode.RECONNECTING
+        loading.text = "Syncing local work to PayMyDine Cloud..."
+        loading.visibility = View.VISIBLE
+        loading.bringToFront()
+
+        lifecycleScope.launch {
+            withContext(Dispatchers.IO) {
+                runCatching { SyncEngine(app).runOnce() }
+            }
+
+            if (!app.connectivity.online.value) {
+                transportMode = TransportMode.LOCAL
+                loading.visibility = View.GONE
+                refreshLocalWeb()
+                return@launch
+            }
+
+            if (app.syncRepository.outboxCount() > 0) {
+                // Keep serving the fully functional local surface until every
+                // durable command has either reconciled or been explicitly
+                // rejected. Do not hide unsynced restaurant work behind Cloud.
+                transportMode = TransportMode.LOCAL
+                loading.visibility = View.GONE
+                refreshLocalWeb()
+                return@launch
+            }
+
+            createCanonicalWebView()
+        }
     }
 
     private fun revealWebView(view: WebView) {
@@ -784,6 +1030,10 @@ class PosActivity : ComponentActivity() {
         val current = webView ?: return
         webView = null
         canonicalReady = false
+        localBridge = null
+        runCatching {
+            current.removeJavascriptInterface("PayMyDineOffline")
+        }
         root.removeView(current)
         current.stopLoading()
         current.loadUrl("about:blank")
