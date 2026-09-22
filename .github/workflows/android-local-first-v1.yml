@@ -225,9 +225,9 @@ jobs:
           grep -q "PMD_MOBILE_PAIR_INITIAL_STAFF_GRANT_V16" app/Services/PmdMobileSync/PmdMobilePairingService.php
           grep -q "PMD_ANDROID_0_3_8_STAFF_QUICK_PIN" mobile/android/app/build.gradle.kts
           ! grep -q "PMD_ANDROID_0_3_6_OFFLINE_FAILOVER_LOGIN_FRAME" mobile/android/app/build.gradle.kts
-          grep -q "PMD_ANDROID_FRESH_WEB_SESSION_V10" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
+          grep -q "PMD_ANDROID_POS_SEAMLESS_FAILOVER_V17" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
+          grep -q "PMD_ANDROID_POS_RESOURCE_FAILOVER_V15" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
           grep -q "PMD_ANDROID_POS_LOGIN_LOOP_GUARD_V10" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
-          grep -q "PMD_ANDROID_POS_AUTH_RECOVERY_V10" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
           grep -q "removeSessionCookies" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
           ! grep -q "LocalPosScreen" mobile/android/app/src/main/java/com/paymydine/mobile/OfflinePosActivity.kt
           grep -q "PMD_ANDROID_LOCAL_POS_PROJECTION_REFRESH_V2" mobile/android/app/src/main/java/com/paymydine/mobile/ui/LocalPosScreen.kt
