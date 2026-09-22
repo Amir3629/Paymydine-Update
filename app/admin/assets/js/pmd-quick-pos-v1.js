@@ -6163,7 +6163,7 @@ function renderOpenChecks() {
       );
     }).join('');
 
-    $('[data-qpos-history-seen]', list).forEach(function (control) {
+    $$('[data-qpos-history-seen]', list).forEach(function (control) {
       var runSeen = function (event) {
         event.preventDefault();
         event.stopPropagation();
@@ -6184,7 +6184,7 @@ function renderOpenChecks() {
       };
     });
 
-    $('[data-qpos-history-order]', list).forEach(function (button) {
+    $$('[data-qpos-history-order]', list).forEach(function (button) {
       button.onclick = function () {
         var orderId = Number(button.getAttribute('data-qpos-history-order') || 0);
         state.historySelectedOrderId = orderId || null;
