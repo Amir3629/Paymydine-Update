@@ -23,6 +23,7 @@ on:
       - 'deploy/pmd-android-v18-first-party-download-hotfix.sh'
       - 'deploy/pmd-android-v18-2-throttle-isolation-hotfix.sh'
       - 'deploy/pmd-android-v18-3-shared-device-login-hotfix.sh'
+      - 'deploy/pmd-android-v18-4-shared-device-pos-auth-hotfix.sh'
   pull_request:
     branches: [main]
     paths:
@@ -90,6 +91,7 @@ jobs:
           bash -n deploy/pmd-android-v18-first-party-download-hotfix.sh
           bash -n deploy/pmd-android-v18-2-throttle-isolation-hotfix.sh
           bash -n deploy/pmd-android-v18-3-shared-device-login-hotfix.sh
+          bash -n deploy/pmd-android-v18-4-shared-device-pos-auth-hotfix.sh
           grep -q "trustedDeviceByRawToken" app/Services/PmdSiteAccessService.php
           grep -q "rotateTrustedDeviceToken" app/Services/PmdSiteAccessService.php
           grep -q "pmd_sync_commands" app/system/database/migrations/2026_09_20_190000_create_pmd_mobile_sync_tables.php
@@ -148,6 +150,9 @@ jobs:
           grep -q "PMD_ANDROID_DEVICE_TRUST_BEFORE_STAFF_LOGIN_V3" app/Http/Controllers/PmdMobileWorkspaceAuthController.php
           grep -q "routeForRoleCode" app/Http/Controllers/PmdMobileWorkspaceAuthController.php
           grep -q "PMD_MOBILE_ROLE_WORKSPACE_SESSION_V2" app/Http/Controllers/PmdMobileWorkspaceSessionController.php
+          grep -q "PMD_MOBILE_SHARED_DEVICE_REVOCATION_V2" app/Services/PmdSiteAccessWorkspaceGateService.php
+          grep -q "PMD_MOBILE_OWNER_DEVICE_PROOF_V3" app/Services/PmdSiteAccessWorkspaceGateService.php
+          grep -q "PMD_MOBILE_OWNER_CANONICAL_SECURITY_V3" app/Http/Controllers/PmdMobileWorkspaceSessionController.php
           grep -q "PMD_ANDROID_ROLE_WORKSPACE_ACTIVITY_V1" mobile/android/app/src/main/java/com/paymydine/mobile/RoleWorkspaceActivity.kt
           grep -q 'android:name=".RoleWorkspaceActivity"' mobile/android/app/src/main/AndroidManifest.xml
           grep -q "workspace/authorize" routes/pmd-mobile-sync-v1.php
