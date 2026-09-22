@@ -100,7 +100,8 @@ final class PmdMobileCommandProcessor
                         'ok' => false,
                         'error' => 'aggregate_version_conflict',
                         'message' =>
-                            'This order changed on another device. Refresh before sending.',
+                            ucfirst($command['aggregate']).
+                            ' changed on another device. Refresh before sending.',
                         'expected_version' => $currentVersion,
                         'received_version' => $command['base_version'],
                     ];
@@ -639,17 +640,25 @@ final class PmdMobileCommandProcessor
             'payload' => $payload,
         ];
 
-        // Restaurant Edge is allowed to rewrite only transport-routing fields
-        // after an offline order receives its canonical Cloud order id/version.
-        // Idempotency must still identify the same immutable business intent,
-        // otherwise the phone's recovery copy and the Edge replay could appear
-        // to be two different commands with the same UUID.
+        // Restaurant Edge may rewrite transport-routing fields only for
+        // local order SEND/HOLD commands after a provisional bill receives its
+        // canonical Cloud id/version. For cash, KDS and table operations,
+        // order_id is business intent and MUST stay inside the idempotency hash.
         $intentPayload = $payload;
-        unset(
-            $intentPayload['order_id'],
-            $intentPayload['expected_updated_at'],
-            $intentPayload['order_ref']
-        );
+        if (
+            $aggregate === 'order'
+            && in_array(
+                $commandType,
+                ['ORDER_SEND_V1', 'ORDER_HOLD_V1'],
+                true
+            )
+        ) {
+            unset(
+                $intentPayload['order_id'],
+                $intentPayload['expected_updated_at'],
+                $intentPayload['order_ref']
+            );
+        }
 
         $intent = [
             'command_id' => $commandId,
