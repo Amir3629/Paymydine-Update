@@ -2059,6 +2059,7 @@ function renderOpenChecks() {
       var controls = (
         !item.__pending &&
         canEditCommitted &&
+        qty > 0 &&
         orderMenuId > 0
       )
         ? (
