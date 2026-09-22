@@ -425,6 +425,150 @@ final class PmdMobilePairingService
     }
 
     /**
+     * PMD_MOBILE_NATIVE_PAIR_DASHBOARD_WAIT_V12
+     *
+     * Starts Android pairing without a browser handoff. Username/password have
+     * already been verified by the native controller; this method creates the
+     * same pair_staff_device Site Access challenge consumed by the existing
+     * Owner/Manager/trusted-Cashier dashboard approval card.
+     */
+    public function beginNativeDashboardApproval(
+        Request $request,
+        array $identity,
+        string $pairRequest,
+        string $codeChallenge,
+        string $deviceName
+    ): array {
+        $this->ensureMobileSyncStorage();
+
+        $pairRequest = strtolower(trim($pairRequest));
+        $codeChallenge = trim($codeChallenge);
+        $deviceName = trim($deviceName);
+        if ($deviceName === '') $deviceName = 'PayMyDine Android · Restaurant App';
+
+        if (
+            !$this->validPairRequest($pairRequest)
+            || !$this->validCodeChallenge($codeChallenge)
+        ) {
+            throw new \InvalidArgumentException(
+                'The Android secure pairing request is invalid.'
+            );
+        }
+
+        $site = app(PmdSiteAccessService::class);
+        $locationId = (int)($identity['location_id'] ?? 0);
+        $userId = (int)($identity['user_id'] ?? 0);
+        $staffId = (int)($identity['staff_id'] ?? 0);
+
+        if (
+            !$site->ready()
+            || $locationId < 1
+            || $userId < 1
+            || $staffId < 1
+        ) {
+            throw new \RuntimeException(
+                'This PayMyDine account cannot request an Android connection.'
+            );
+        }
+
+        if (!$site->policyEnabled($locationId)) {
+            throw new \RuntimeException(
+                'Restaurant security must be active before connecting Android devices.'
+            );
+        }
+
+        $existing = DB::table('pmd_mobile_pair_requests')
+            ->where('pair_request', $pairRequest)
+            ->where('code_challenge', $codeChallenge)
+            ->first();
+
+        if ($existing) {
+            $challenge = DB::table('pmd_site_access_challenges')
+                ->where('id', (int)$existing->challenge_id)
+                ->first();
+
+            if (
+                $challenge
+                && in_array(
+                    (string)$challenge->status,
+                    ['pending', 'approved', 'used'],
+                    true
+                )
+                && now()->lessThan($existing->expires_at)
+            ) {
+                return [
+                    'ok' => true,
+                    'status' => (string)$existing->status,
+                    'request_code' => $site->challengeCodeForHub($challenge),
+                    'expires_at' => (string)$existing->expires_at,
+                ];
+            }
+        }
+
+        $challenge = $site->beginChallengeForIdentity(
+            $identity,
+            PmdSiteAccessService::PURPOSE_PAIR_STAFF,
+            '',
+            $request,
+            false
+        );
+
+        if (!$challenge) {
+            throw new \RuntimeException(
+                'The restaurant Android approval request could not be created.'
+            );
+        }
+
+        $safeName = mb_substr($deviceName, 0, 128);
+        DB::table('pmd_site_access_challenges')
+            ->where('id', (int)$challenge->id)
+            ->update([
+                'requested_device_name' => $safeName,
+                'updated_at' => now(),
+            ]);
+
+        DB::table('pmd_mobile_pair_requests')->updateOrInsert(
+            ['pair_request' => $pairRequest],
+            [
+                'challenge_id' => (int)$challenge->id,
+                'code_challenge' => $codeChallenge,
+                'location_id' => $locationId,
+                'user_id' => $userId,
+                'staff_id' => $staffId,
+                'device_name' => $safeName,
+                'status' => 'pending',
+                'device_id' => null,
+                'approved_at' => null,
+                'expires_at' => $challenge->expires_at,
+                'updated_at' => now(),
+                'created_at' => now(),
+            ]
+        );
+
+        $site->audit(
+            'mobile_device_pair_requested',
+            true,
+            $identity,
+            null,
+            (int)$challenge->id,
+            $request,
+            [
+                'pair_request' => $pairRequest,
+                'device_name' => $safeName,
+                'approval_surface' => 'restaurant_inline_approval',
+                'transport' => 'native_wait',
+            ]
+        );
+
+        return [
+            'ok' => true,
+            'status' => 'pending',
+            'request_code' => $site->challengeCodeForHub($challenge),
+            'expires_at' => (string)$challenge->expires_at,
+        ];
+    }
+
+    /**
      * Called by the existing restaurant approval endpoint after an Owner,
      * Manager or trusted Cashier approves the Site Access challenge.
      *
