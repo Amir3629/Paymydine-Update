@@ -5,6 +5,7 @@ import android.content.Intent
 import com.paymydine.mobile.data.local.BootstrapRepository
 import com.paymydine.mobile.data.local.KdsRepository
 import com.paymydine.mobile.data.local.LocalPosRepository
+import com.paymydine.mobile.data.local.OfflineImageCache
 import com.paymydine.mobile.data.local.PmdDatabase
 import com.paymydine.mobile.edge.EdgeService
 import com.paymydine.mobile.network.ConnectivityObserver
@@ -24,6 +25,8 @@ class PayMyDineApplication : Application() {
         private set
     lateinit var localPosRepository: LocalPosRepository
         private set
+    lateinit var offlineImageCache: OfflineImageCache
+        private set
     lateinit var kdsRepository: KdsRepository
         private set
 
@@ -42,6 +45,7 @@ class PayMyDineApplication : Application() {
         syncRepository = SyncRepository(database)
         bootstrapRepository = BootstrapRepository(database)
         localPosRepository = LocalPosRepository(database)
+        offlineImageCache = OfflineImageCache(this)
         kdsRepository = KdsRepository(database)
         credentials = DeviceCredentialStore(this)
         connectivity = ConnectivityObserver(this).also { it.start() }
