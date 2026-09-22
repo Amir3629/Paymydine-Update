@@ -749,6 +749,7 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 'history_url' => '/admin/pos/history',
                 'attention_seen_url' => '/admin/pos/attention/{notification}/seen',
                 'transfer_url' => '/admin/pos/transfer',
+                'item_quantity_url' => '/admin/pos/order/{order}/item/{item}/quantity',
             ],
         ];
     }
@@ -796,6 +797,384 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
         );
 
         return $response;
+    }
+
+    /**
+     * PMD_QPOS_SAFE_SENT_ITEM_QUANTITY_V68
+     *
+     * Existing sent lines may change only while:
+     * - no payment/fiscal history has started; and
+     * - the kitchen order has not reached Preparation or later.
+     *
+     * After payment, additions belong on + Check/new sale; reductions require
+     * the explicit refund/cancellation workflow. The original paid line is
+     * never rewritten.
+     */
+    public function adjustSentItemQuantity($orderId = null, $itemId = null)
+    {
+        if (!$this->currentUser()) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Unauthenticated.',
+            ], 401);
+        }
+
+        $orderId = (int)$orderId;
+        $itemId = (int)$itemId;
+        $payload = $this->requestPayload();
+        $delta = (int)($payload['delta'] ?? 0);
+        $reason = trim((string)($payload['reason'] ?? ''));
+
+        if (
+            $orderId < 1
+            || $itemId < 1
+            || !in_array($delta, [-1, 1], true)
+        ) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Invalid quantity change.',
+            ], 422);
+        }
+
+        if ($delta < 0 && $reason === '') {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Enter a reason before reducing a sent item.',
+            ], 422);
+        }
+
+        try {
+            $result = DB::transaction(function () use (
+                $orderId,
+                $itemId,
+                $delta,
+                $reason,
+                $payload
+            ) {
+                $order = Orders_model::query()
+                    ->where('order_id', $orderId)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (!$order) {
+                    throw ValidationException::withMessages([
+                        'order' => 'Order not found.',
+                    ]);
+                }
+
+                $expected = trim((string)(
+                    $payload['expected_updated_at'] ?? ''
+                ));
+
+                if (
+                    $expected !== ''
+                    && (string)($order->updated_at ?? '') !== $expected
+                ) {
+                    throw ValidationException::withMessages([
+                        'order' =>
+                            'This order changed on another device. Refresh before changing quantity.',
+                    ]);
+                }
+
+                $mutationState = method_exists(
+                    $this,
+                    'pmdR39ItemMutationState'
+                )
+                    ? $this->pmdR39ItemMutationState($order)
+                    : [
+                        'allowed' => $this->orderIsOpen($order),
+                        'reason' => '',
+                    ];
+
+                $fiscalStatus = strtolower(trim((string)(
+                    $order->fiskaly_status ?? ''
+                )));
+                $fiscalized =
+                    in_array(
+                        $fiscalStatus,
+                        ['finished', 'signed', 'completed'],
+                        true
+                    )
+                    || !empty($order->fiskaly_transaction_id_ref);
+
+                if (empty($mutationState['allowed']) || $fiscalized) {
+                    throw ValidationException::withMessages([
+                        'order' => $delta > 0
+                            ? 'Payment or fiscalization already exists. Use + Check for additional food so the original paid sale stays unchanged.'
+                            : 'Paid or fiscalized food cannot be reduced here. Use the refund/cancellation workflow instead.',
+                    ]);
+                }
+
+                $statusName = '';
+                if (
+                    Schema::hasTable('statuses')
+                    && !empty($order->status_id)
+                ) {
+                    $statusName = (string)(
+                        DB::table('statuses')
+                            ->where('status_id', (int)$order->status_id)
+                            ->value('status_name')
+                        ?: ''
+                    );
+                }
+
+                if (!$this->quickPosKitchenAllowsLineMutationV68($statusName)) {
+                    throw ValidationException::withMessages([
+                        'order' =>
+                            'Kitchen preparation has started. Sent item quantities are locked.',
+                    ]);
+                }
+
+                if (!Schema::hasTable('order_menus')) {
+                    throw ValidationException::withMessages([
+                        'item' => 'Order items are unavailable.',
+                    ]);
+                }
+
+                $item = DB::table('order_menus')
+                    ->where('order_id', $orderId)
+                    ->where('order_menu_id', $itemId)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (!$item) {
+                    throw ValidationException::withMessages([
+                        'item' => 'Order item was not found.',
+                    ]);
+                }
+
+                $itemData = (array)$item;
+                $currentQty = max(
+                    0,
+                    (float)($itemData['quantity'] ?? 0)
+                );
+                $newQty = round($currentQty + $delta, 3);
+
+                if ($newQty < 0) {
+                    throw ValidationException::withMessages([
+                        'quantity' => 'Quantity cannot be below zero.',
+                    ]);
+                }
+
+                if ($newQty > 99) {
+                    throw ValidationException::withMessages([
+                        'quantity' => 'Quantity cannot be above 99.',
+                    ]);
+                }
+
+                if ($currentQty <= 0 && $delta < 0) {
+                    throw ValidationException::withMessages([
+                        'quantity' => 'This item has already been removed.',
+                    ]);
+                }
+
+                $oldSubtotal = (float)($itemData['subtotal'] ?? 0);
+                $unitSubtotal = $currentQty > 0
+                    ? ($oldSubtotal / $currentQty)
+                    : (float)($itemData['price'] ?? 0);
+
+                $newSubtotal = round(
+                    $unitSubtotal * $newQty,
+                    4
+                );
+
+                DB::table('order_menus')
+                    ->where('order_id', $orderId)
+                    ->where('order_menu_id', $itemId)
+                    ->update([
+                        'quantity' => $newQty,
+                        'subtotal' => $newSubtotal,
+                    ]);
+
+                if (
+                    Schema::hasTable('order_menu_options')
+                    && Schema::hasColumn(
+                        'order_menu_options',
+                        'order_menu_id'
+                    )
+                    && Schema::hasColumn(
+                        'order_menu_options',
+                        'quantity'
+                    )
+                ) {
+                    $optionColumns = Schema::getColumnListing(
+                        'order_menu_options'
+                    );
+                    $optionPrimary = in_array(
+                        'order_option_id',
+                        $optionColumns,
+                        true
+                    )
+                        ? 'order_option_id'
+                        : (
+                            in_array('id', $optionColumns, true)
+                                ? 'id'
+                                : null
+                        );
+
+                    $optionQuery = DB::table('order_menu_options')
+                        ->where('order_menu_id', $itemId);
+
+                    if (in_array('order_id', $optionColumns, true)) {
+                        $optionQuery->where('order_id', $orderId);
+                    }
+
+                    $optionRows = $optionQuery
+                        ->lockForUpdate()
+                        ->get();
+
+                    foreach ($optionRows as $optionRow) {
+                        $row = (array)$optionRow;
+                        $oldOptionQty = max(
+                            0,
+                            (float)($row['quantity'] ?? $currentQty)
+                        );
+
+                        $newOptionQty = $currentQty > 0
+                            ? round(
+                                $oldOptionQty * ($newQty / $currentQty),
+                                3
+                            )
+                            : $newQty;
+
+                        $update = DB::table('order_menu_options');
+
+                        if (
+                            $optionPrimary
+                            && array_key_exists($optionPrimary, $row)
+                        ) {
+                            $update->where(
+                                $optionPrimary,
+                                $row[$optionPrimary]
+                            );
+                        } else {
+                            $update->where(
+                                'order_menu_id',
+                                $itemId
+                            );
+                        }
+
+                        if (in_array('order_id', $optionColumns, true)) {
+                            $update->where('order_id', $orderId);
+                        }
+
+                        $update->update([
+                            'quantity' => $newOptionQty,
+                        ]);
+                    }
+                }
+
+                $this->recalculateOrder($order);
+
+                $orderColumns = Schema::getColumnListing('orders');
+                if (in_array('updated_at', $orderColumns, true)) {
+                    DB::table('orders')
+                        ->where('order_id', $orderId)
+                        ->update(['updated_at' => now()]);
+                }
+
+                if (
+                    Schema::hasTable(
+                        'pmd_waiter_pos_operation_logs'
+                    )
+                ) {
+                    $columns = Schema::getColumnListing(
+                        'pmd_waiter_pos_operation_logs'
+                    );
+
+                    $actorId = null;
+                    try {
+                        $actorId = $this->currentUserId();
+                    } catch (\Throwable $ignored) {
+                    }
+
+                    $log = [
+                        'order_id' => $orderId,
+                        'action' => $delta > 0
+                            ? 'increase_item_quantity'
+                            : 'reduce_item_quantity',
+                        'payload' => json_encode([
+                            'order_menu_id' => $itemId,
+                            'previous_quantity' => $currentQty,
+                            'new_quantity' => $newQty,
+                            'delta' => $delta,
+                            'reason' => $reason,
+                            'kitchen_status' => $statusName,
+                        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                        'actor_id' => $actorId,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
+
+                    $log = array_intersect_key(
+                        $log,
+                        array_flip($columns)
+                    );
+
+                    if (
+                        isset($log['order_id'])
+                        && isset($log['action'])
+                    ) {
+                        DB::table(
+                            'pmd_waiter_pos_operation_logs'
+                        )->insert($log);
+                    }
+                }
+
+                logger()->info(
+                    'PMD_QPOS_SENT_ITEM_QUANTITY_V68',
+                    [
+                        'order_id' => $orderId,
+                        'order_menu_id' => $itemId,
+                        'delta' => $delta,
+                        'previous_quantity' => $currentQty,
+                        'new_quantity' => $newQty,
+                        'reason' => $reason,
+                        'actor_id' => $this->currentUserId(),
+                    ]
+                );
+
+                $fresh = Orders_model::query()
+                    ->where('order_id', $orderId)
+                    ->first();
+
+                return [
+                    'ok' => true,
+                    'order_id' => $orderId,
+                    'order_menu_id' => $itemId,
+                    'quantity' => $newQty,
+                    'subtotal' => $newSubtotal,
+                    'order_total' => (float)(
+                        $fresh->order_total
+                        ?? $fresh->total
+                        ?? 0
+                    ),
+                    'updated_at' => (string)(
+                        $fresh->updated_at
+                        ?? ''
+                    ),
+                ];
+            });
+
+            return response()->json($result);
+        } catch (ValidationException $error) {
+            return response()->json([
+                'ok' => false,
+                'message' =>
+                    collect($error->errors())
+                        ->flatten()
+                        ->first()
+                    ?: 'Quantity could not be changed.',
+                'errors' => $error->errors(),
+            ], 422);
+        } catch (\Throwable $error) {
+            report($error);
+
+            return response()->json([
+                'ok' => false,
+                'message' => 'Quantity could not be changed.',
+            ], 500);
+        }
     }
 
     protected function recalculateOrder(Orders_model $order): void
@@ -1774,21 +2153,40 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 ->all();
 
             $statusId = (int)($raw['status_id'] ?? 0);
+            $statusName = (string)($statusNames[$statusId] ?? '');
+            $settlementStatus = strtolower(
+                trim((string)($raw['settlement_status'] ?? ''))
+            );
+            $fiscalStatus = strtolower(
+                trim((string)($raw['fiskaly_status'] ?? ''))
+            );
+            $kitchenLocked = !$this->quickPosKitchenAllowsLineMutationV68(
+                $statusName
+            );
+            $structuralLocked =
+                (float)($raw['settled_amount'] ?? 0) > 0.0001
+                || in_array(
+                    $settlementStatus,
+                    ['partial', 'paid', 'settled', 'closed', 'refunded'],
+                    true
+                )
+                || in_array(
+                    $fiscalStatus,
+                    ['finished', 'signed', 'completed'],
+                    true
+                )
+                || !empty($raw['fiskaly_transaction_id_ref']);
 
             return [
                 'order_id' => $orderId,
                 'status_id' => $statusId ?: null,
-                'status_name' => (string)($statusNames[$statusId] ?? ''),
+                'status_name' => $statusName,
                 'payment' => (string)($raw['payment'] ?? ''),
                 'settlement_status' => (string)($raw['settlement_status'] ?? 'unpaid'),
                 'settled_amount' => (float)($raw['settled_amount'] ?? 0),
-                'structural_locked' =>
-                    (float)($raw['settled_amount'] ?? 0) > 0.0001
-                    || in_array(
-                        strtolower(trim((string)($raw['settlement_status'] ?? ''))),
-                        ['partial', 'paid', 'settled', 'closed', 'refunded'],
-                        true
-                    ),
+                'structural_locked' => $structuralLocked,
+                'kitchen_item_locked' => $kitchenLocked,
+                'item_quantity_mutable' => !$structuralLocked && !$kitchenLocked,
                 'total' => (float)($raw['order_total'] ?? $raw['total'] ?? 0),
                 'total_items' => (int)($raw['total_items'] ?? 0),
                 'guest_count' => max(1, (int)($raw['guest_count'] ?? 1)),
@@ -3382,6 +3780,7 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 'floor_shape',
                 'visible_on_floor_plan',
                 'table_section',
+                'table_features',
             ], $columns));
 
             $query = Tables_model::query();
@@ -3500,6 +3899,9 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                             $row->table_section
                             ?? ''
                         )),
+                        'features' => $this->quickPosTableFeaturesV68(
+                            $row->table_features ?? []
+                        ),
                         'status' => $this->quickPosNormalizeTableStatus(
                             (string)($row->operational_status ?? 'available')
                         ),
@@ -3532,6 +3934,62 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
      * Tiny cashier-facing signals only. Physical status remains authoritative;
      * payment/note/call signals never change Free/Busy/Clean/Reserved.
      */
+    /**
+     * PMD_QPOS_TABLE_FEATURES_V68
+     * Quick POS displays only the persisted canonical Floor feature flags.
+     */
+    protected function quickPosTableFeaturesV68($value): array
+    {
+        $allowed = ['near_window', 'quiet_area', 'accessible'];
+
+        if (is_string($value)) {
+            $decoded = json_decode($value, true);
+            $value = is_array($decoded) ? $decoded : [];
+        }
+
+        if (!is_array($value)) {
+            return [];
+        }
+
+        $selected = [];
+        foreach ($value as $key => $item) {
+            if (!is_int($key) && !ctype_digit((string)$key)) {
+                if (!$item) {
+                    continue;
+                }
+                $item = $key;
+            }
+
+            $item = strtolower(trim((string)$item));
+            if ($item !== '' && in_array($item, $allowed, true)) {
+                $selected[$item] = true;
+            }
+        }
+
+        return array_values(array_keys($selected));
+    }
+
+    /**
+     * PMD_QPOS_KITCHEN_MUTATION_GATE_V68
+     * Existing sent lines are editable only before the kitchen starts
+     * Preparation. KDS status is order-level in the current production model,
+     * so the safe authority locks the whole check at Preparation and later.
+     */
+    protected function quickPosKitchenAllowsLineMutationV68(
+        string $statusName
+    ): bool {
+        $status = strtolower(trim($statusName));
+
+        if ($status === '') {
+            return true;
+        }
+
+        return !preg_match(
+            '/prepar|ready|deliver|serve|complete|cancel|void|closed|fulfill|finish/',
+            $status
+        );
+    }
+
     protected function quickPosDecorateTableSignals(
         array $tables,
         int $locationId
