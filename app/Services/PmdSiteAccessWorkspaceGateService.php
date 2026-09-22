@@ -54,6 +54,27 @@ class PmdSiteAccessWorkspaceGateService
 
         if (str_starts_with($relative, '_pmd/language-switch')) return null;
 
+        // PMD_MOBILE_SESSION_REENTRY_BYPASS_V5
+        //
+        // A WebView can legitimately arrive here carrying an OLD Admin session
+        // cookie from a previous staff/device session. These two endpoints are
+        // the authenticated re-entry points whose job is to replace that stale
+        // session after verifying the native bearer credential + Staff Grant.
+        //
+        // If Workspace Gate evaluates the stale browser session first, it can
+        // return "paired device is no longer authorized" before the mobile
+        // controller ever gets a chance to verify the fresh native authority.
+        //
+        // This is NOT an authentication bypass: both endpoints perform their
+        // own bearer/device/staff/permission validation before creating a new
+        // Admin session.
+        if (
+            $relative === 'mobile/pos/open'
+            || $relative === 'mobile/workspace/open'
+        ) {
+            return null;
+        }
+
         // PMD_PORTAL_SESSION_ROUTE_ISOLATION_V1
         // usernameportal is a Staff Portal session, never an Admin workspace session.
         if ((string)session()->get(
