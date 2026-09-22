@@ -113,72 +113,25 @@ if (!function_exists('pmdCleanGuestSessionComment')) {
 
     $__orderRow = null;
     $__txRow = null;
-    $__fiskalyConfigRow = null;
-
-    $__conn = method_exists($model, 'getConnectionName')
-        ? ($model->getConnectionName() ?: config('database.default'))
-        : config('database.default');
 
     try {
+        $__conn = method_exists($model, 'getConnectionName') ? ($model->getConnectionName() ?: config('database.default')) : config('database.default');
+
         if ($__orderId > 0) {
             $__orderRow = \Illuminate\Support\Facades\DB::connection($__conn)
                 ->table('orders')
                 ->where('order_id', $__orderId)
                 ->first();
 
-            if (
-                \Illuminate\Support\Facades\Schema::connection($__conn)
-                    ->hasTable('fiskaly_transactions')
-            ) {
-                $__txRow = \Illuminate\Support\Facades\DB::connection($__conn)
-                    ->table('fiskaly_transactions')
-                    ->where('order_id', $__orderId)
-                    ->orderByDesc('fiskaly_transaction_id')
-                    ->first();
-            }
+            $__txRow = \Illuminate\Support\Facades\DB::connection($__conn)
+                ->table('fiskaly_transactions')
+                ->where('order_id', $__orderId)
+                ->orderByDesc('fiskaly_transaction_id')
+                ->first();
         }
     } catch (\Throwable $e) {
         $__orderRow = null;
         $__txRow = null;
-    }
-
-    /* PMD_GERMANY_RECEIPT_CONFIG_GUARD_V69
-     * Fiskaly configuration is optional receipt metadata. A missing/legacy
-     * config table must never erase a valid signed transaction already loaded.
-     */
-    try {
-        if (
-            $__orderId > 0
-            && \Illuminate\Support\Facades\Schema::connection($__conn)
-                ->hasTable('fiskaly_configs')
-        ) {
-            $pmdFiscalLocationId = max(
-                1,
-                (int)(
-                    $__orderRow->location_id
-                    ?? $model->location_id
-                    ?? 1
-                )
-            );
-
-            $pmdFiscalConfigQuery = \Illuminate\Support\Facades\DB::connection($__conn)
-                ->table('fiskaly_configs')
-                ->where('provider', 'fiskaly');
-
-            $__fiskalyConfigRow = (clone $pmdFiscalConfigQuery)
-                ->where('location_id', $pmdFiscalLocationId)
-                ->orderByDesc('fiskaly_config_id')
-                ->first();
-
-            if (!$__fiskalyConfigRow && $pmdFiscalLocationId !== 1) {
-                $__fiskalyConfigRow = (clone $pmdFiscalConfigQuery)
-                    ->where('location_id', 1)
-                    ->orderByDesc('fiskaly_config_id')
-                    ->first();
-            }
-        }
-    } catch (\Throwable $e) {
-        $__fiskalyConfigRow = null;
     }
 
     $__resp = $__decode($__txRow->response_payload ?? null);
@@ -247,27 +200,6 @@ if (!function_exists('pmdCleanGuestSessionComment')) {
 
     $__fClientId = $__txRow->client_id
         ?? $__pick($__sources, ['client_id', 'responses.update.client_id', 'responses.finish.client_id', 'responses.start.client_id']);
-
-    /* PMD_GERMANY_RECEIPT_METADATA_V69
-     * Print the persisted TSE lifecycle and verification values alongside the
-     * QR payload. These fields come from the signed transaction/config records;
-     * no receipt value is synthesized in the view.
-     */
-    $__fStartedAt = $__txRow->started_at
-        ?? $__pick($__sources, ['started_at', 'time_start', 'responses.start.time_start']);
-
-    $__fFinishedAt = $__txRow->finished_at
-        ?? $__pick($__sources, ['finished_at', 'time_end', 'responses.finish.time_end']);
-
-    $__fSignatureValue = $__txRow->signature_value
-        ?? $__pick($__sources, [
-            'signature.value',
-            'responses.update.signature.value',
-            'responses.finish.signature.value',
-            'responses.start.signature.value',
-        ]);
-
-    $__fCashRegisterId = $__fiskalyConfigRow->cash_register_id ?? null;
 
     $__showFiskaly = !empty($__fQr) || !empty($__fTxNo) || !empty($__fCounter) || !empty($__fSerial) || !empty($__fTxId);
 @endphp
@@ -1157,50 +1089,13 @@ TOTALS:
 
                     @if(!empty($__fTssId))
                         <div class="pmd-fiskaly-row">
-                            <span class="pmd-fiskaly-label">TSS ID</span>
                             <span class="pmd-fiskaly-value">{{ $__fTssId }}</span>
                         </div>
                     @endif
 
                     @if(!empty($__fClientId))
                         <div class="pmd-fiskaly-row">
-                            <span class="pmd-fiskaly-label">Client / Register ID</span>
                             <span class="pmd-fiskaly-value">{{ $__fClientId }}</span>
-                        </div>
-                    @endif
-
-                    @if(!empty($__fCashRegisterId))
-                        <div class="pmd-fiskaly-row">
-                            <span class="pmd-fiskaly-label">Cash Register Serial</span>
-                            <span class="pmd-fiskaly-value">{{ $__fCashRegisterId }}</span>
-                        </div>
-                    @endif
-
-                    @if(!empty($__fStartedAt))
-                        <div class="pmd-fiskaly-row">
-                            <span class="pmd-fiskaly-label">TSE Start</span>
-                            <span class="pmd-fiskaly-value">{{ $__fStartedAt }}</span>
-                        </div>
-                    @endif
-
-                    @if(!empty($__fFinishedAt))
-                        <div class="pmd-fiskaly-row">
-                            <span class="pmd-fiskaly-label">TSE End</span>
-                            <span class="pmd-fiskaly-value">{{ $__fFinishedAt }}</span>
-                        </div>
-                    @endif
-
-                    @if(!empty($__fAlgo))
-                        <div class="pmd-fiskaly-row">
-                            <span class="pmd-fiskaly-label">Signature Algorithm</span>
-                            <span class="pmd-fiskaly-value">{{ $__fAlgo }}</span>
-                        </div>
-                    @endif
-
-                    @if(!empty($__fSignatureValue))
-                        <div class="pmd-fiskaly-row">
-                            <span class="pmd-fiskaly-label">TSE Verification Value</span>
-                            <span class="pmd-fiskaly-value">{{ $__fSignatureValue }}</span>
                         </div>
                     @endif
                 </div>

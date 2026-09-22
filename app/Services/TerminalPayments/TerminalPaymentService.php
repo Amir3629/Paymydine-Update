@@ -3,7 +3,6 @@
 namespace App\Services\TerminalPayments;
 
 use Admin\Models\Terminal_devices_model;
-use App\Services\Fiscal\GermanyFiscalSettlementBridge;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
@@ -112,10 +111,7 @@ class TerminalPaymentService
         ]));
         Log::info(($result['ok']??false)?'PMD_TERMINAL_PAYMENT_SENT':'PMD_TERMINAL_PAYMENT_FAILED',['attempt_id'=>$id,'provider_code'=>$providerCode,'status'=>$status]);
         // PMD_TERMINAL_IMMEDIATE_SETTLEMENT_R1
-        $fiscalization=null;
-        if(!$isPmdVrSimulator&&$status==='paid'){
-            $fiscalization=$this->settleSuccessfulAttempt($id,$result);
-        }
+        if(!$isPmdVrSimulator&&$status==='paid')$this->settleSuccessfulAttempt($id,$result);
         return [
             'success'=>$isPmdVrSimulator?true:(bool)($result['ok']??false),
             'attempt_id'=>$id,
@@ -127,7 +123,6 @@ class TerminalPaymentService
             'payment_recorded'=>$isPmdVrSimulator?false:($status==='paid'),
             'tip_amount'=>$tipAmount,
             'simulator_scenario'=>$isPmdVrSimulator?($result['simulator_scenario']??null):null,
-            'fiscalization'=>$fiscalization,
         ];
     }
 
@@ -154,7 +149,7 @@ class TerminalPaymentService
             ];
         }
         if(($attempt['status']??'')==='paid'){
-            $fiscalization=$this->settleSuccessfulAttempt($attemptId,[]);
+            $this->settleSuccessfulAttempt($attemptId,[]);
             return [
                 'success'=>true,
                 'attempt_id'=>$attemptId,
@@ -163,7 +158,6 @@ class TerminalPaymentService
                 'simulated'=>false,
                 'payment_recorded'=>true,
                 'tip_amount'=>$this->terminalTipForAttemptV46($attemptId,$attempt,[]),
-                'fiscalization'=>$fiscalization,
             ];
         }
         $providerCode=strtolower((string)($attempt['provider_code']??''));$provider=$this->provider($providerCode);$config=$this->providerConfig($providerCode);
@@ -234,10 +228,7 @@ class TerminalPaymentService
             'error_message'=>($result['ok']??false)?null:($result['message']??null),
             'updated_at'=>now(),
         ]));
-        $fiscalization=null;
-        if(!$isPmdVrSimulator&&$status==='paid'){
-            $fiscalization=$this->settleSuccessfulAttempt($attemptId,$result);
-        }
+        if(!$isPmdVrSimulator&&$status==='paid')$this->settleSuccessfulAttempt($attemptId,$result);
         return [
             'success'=>$isPmdVrSimulator?true:(bool)($result['ok']??false),
             'attempt_id'=>$attemptId,
@@ -249,7 +240,6 @@ class TerminalPaymentService
             'payment_recorded'=>$isPmdVrSimulator?false:($status==='paid'),
             'tip_amount'=>$tipAmount,
             'simulator_scenario'=>$isPmdVrSimulator?($result['simulator_scenario']??null):null,
-            'fiscalization'=>$fiscalization,
         ];
     }
 
@@ -473,7 +463,7 @@ class TerminalPaymentService
         return null;
     }
 
-    private function settleSuccessfulAttempt(int $attemptId,array $providerResult):array
+    private function settleSuccessfulAttempt(int $attemptId,array $providerResult):void
     {
         // PMD_VR_PAYMENT_SAFETY_R6_20260905
         $preview=(array)(DB::table('payment_attempts')->where('id',$attemptId)->first()?:[]);
@@ -488,13 +478,7 @@ class TerminalPaymentService
                 'order_id'=>(int)($preview['order_id']??0),
                 'terminal_id'=>(string)($preview['terminal_id']??''),
             ]);
-            return [
-                'required'=>false,
-                'ok'=>true,
-                'provider'=>'fiskaly',
-                'status'=>'not_applicable',
-                'message'=>'Simulator payments are never fiscalized.',
-            ];
+            return;
         }
 
         /* PMD_TERMINAL_TIP_SETTLEMENT_V46 */
@@ -639,42 +623,6 @@ class TerminalPaymentService
                 'tip_amount'=>$tipAmount,
             ]);
         });
-
-        /* PMD_GERMANY_TERMINAL_FISCAL_SETTLEMENT_V69
-         * Provider settlement is committed first. SIGN DE runs afterwards so
-         * a TSE outage cannot undo an already-approved card transaction.
-         */
-        $attempt=(array)(DB::table('payment_attempts')
-            ->where('id',$attemptId)
-            ->first()?:[]);
-        $orderId=(int)($attempt['order_id']??0);
-        $order=$orderId>0
-            ? DB::table('orders')->where('order_id',$orderId)->first()
-            : null;
-        $orderTotal=(float)($order->order_total??0);
-        $settled=(float)($order->settled_amount??0);
-        $status=strtolower((string)($order->settlement_status??''));
-        $fullyPaid=$order&&(
-            in_array($status,['paid','settled'],true)
-            || ($orderTotal>0&&$settled>=$orderTotal-.0001)
-        );
-
-        if(!$fullyPaid){
-            return [
-                'required'=>false,
-                'ok'=>true,
-                'provider'=>'fiskaly',
-                'status'=>'not_due',
-                'message'=>'Order is not fully settled.',
-            ];
-        }
-
-        return app(GermanyFiscalSettlementBridge::class)
-            ->finalizeIfEnabled(
-                $orderId,
-                (string)($attempt['provider_code']??'direct_terminal'),
-                (string)($attempt['provider_reference']??'')
-            );
     }
 
     private function allocateAllOrderItems(int $transactionId,int $orderId):void

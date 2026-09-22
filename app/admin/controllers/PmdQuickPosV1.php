@@ -739,8 +739,6 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 'table_data_url' => '/admin/pos/table/{table}',
                 'table_save_url' => '/admin/pos/save/{table}',
                 'off_premise_save_url' => '/admin/pos/save-off-premise',
-                'item_decrease_url' => '/admin/pmd-waiter-pos-v22/operations/{order}/void-item',
-                'item_increase_url' => '/admin/pmd-waiter-pos-v22/operations/{order}/increase-item',
                 'payment_summary_url' => '/admin/pos/payment-summary/{order}',
                 'payment_settle_url' => '/admin/pos/payment-settle/{order}',
                 'payment_coupon_url' => '/admin/pos/payment-coupon/{order}',
@@ -1737,32 +1735,10 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 ->all();
         }
 
-        /* PMD_QPOS_ITEM_MUTATION_BATCH_V68
-         * The rows above are query-builder stdClass rows, not Orders_model
-         * instances. Batch payment-history presence once and build the item
-         * mutation authority without an N+1 Eloquent lookup.
-         */
-        $paymentTransactionLookup = [];
-
-        if (
-            $orderIds
-            && Schema::hasTable('order_payment_transactions')
-            && Schema::hasColumn('order_payment_transactions', 'order_id')
-        ) {
-            $paymentTransactionLookup = DB::table('order_payment_transactions')
-                ->whereIn('order_id', $orderIds)
-                ->pluck('order_id')
-                ->mapWithKeys(function ($id) {
-                    return [(int)$id => true];
-                })
-                ->all();
-        }
-
         return $rows->map(function ($row) use (
             $primaryKey,
             $itemsByOrder,
-            $statusNames,
-            $paymentTransactionLookup
+            $statusNames
         ) {
             $raw = (array)$row;
             $orderId = (int)(
@@ -1798,12 +1774,11 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 ->all();
 
             $statusId = (int)($raw['status_id'] ?? 0);
-            $statusName = (string)($statusNames[$statusId] ?? '');
 
             return [
                 'order_id' => $orderId,
                 'status_id' => $statusId ?: null,
-                'status_name' => $statusName,
+                'status_name' => (string)($statusNames[$statusId] ?? ''),
                 'payment' => (string)($raw['payment'] ?? ''),
                 'settlement_status' => (string)($raw['settlement_status'] ?? 'unpaid'),
                 'settled_amount' => (float)($raw['settled_amount'] ?? 0),
@@ -1822,99 +1797,10 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 'comment' => $this->quickPosVisibleNote(
                     (string)($raw['comment'] ?? '')
                 ),
-                'item_mutation' => $this->quickPosItemMutationStateV68(
-                    $raw,
-                    $statusName,
-                    !empty($paymentTransactionLookup[$orderId])
-                ),
                 'items' => $items,
                 'urls' => $this->orderUrls($orderId),
             ];
         })->values()->all();
-    }
-
-    /**
-     * PMD_QPOS_ITEM_MUTATION_STATE_V68
-     * Read-only mirror of the server write guard for Quick POS rendering.
-     * The actual mutation endpoints still re-check under row locks.
-     */
-    protected function quickPosItemMutationStateV68(
-        array $raw,
-        string $statusName,
-        bool $hasTransaction
-    ): array {
-        $settledAmount = max(
-            0,
-            (float)($raw['settled_amount'] ?? 0)
-        );
-        $settlementStatus = strtolower(trim((string)(
-            $raw['settlement_status']
-            ?? $raw['payment_status']
-            ?? 'unpaid'
-        )));
-        $operationalStatus = strtolower(trim($statusName));
-
-        $kitchenStarted = (bool)preg_match(
-            '/prepar|cook|delivery|ready|served/',
-            $operationalStatus
-        );
-        $operationalLocked = (bool)preg_match(
-            '/cancel|void|closed|complete|completed/',
-            $operationalStatus
-        );
-        $paymentStarted =
-            $settledAmount > 0.0001
-            || in_array(
-                $settlementStatus,
-                [
-                    'partial',
-                    'paid',
-                    'settled',
-                    'closed',
-                    'cancelled',
-                    'canceled',
-                    'refunded',
-                ],
-                true
-            )
-            || $hasTransaction;
-
-        $locked =
-            $operationalLocked
-            || $kitchenStarted
-            || $paymentStarted;
-
-        $reason = '';
-        if ($locked) {
-            if ($kitchenStarted) {
-                $reason =
-                    'Kitchen preparation has started. '
-                    .'Ordered item quantities are locked.';
-            } elseif ($operationalLocked) {
-                $reason =
-                    'This order is cancelled or closed. '
-                    .'Order items are locked.';
-            } elseif ($hasTransaction || $settledAmount > 0.0001) {
-                $reason =
-                    'Payment has already started. '
-                    .'Paid item quantities are locked; use a refund/correction flow.';
-            } else {
-                $reason =
-                    'This bill is no longer financially mutable.';
-            }
-        }
-
-        return [
-            'allowed' => !$locked,
-            'locked' => $locked,
-            'payment_started' => $paymentStarted,
-            'kitchen_started' => $kitchenStarted,
-            'operational_status' => $operationalStatus,
-            'settlement_status' => $settlementStatus,
-            'settled_amount' => $settledAmount,
-            'has_payment_transaction' => $hasTransaction,
-            'reason' => $reason,
-        ];
     }
 
     protected function quickPosVisibleNote(string $value): string
@@ -3496,7 +3382,6 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 'floor_shape',
                 'visible_on_floor_plan',
                 'table_section',
-                'table_features',
             ], $columns));
 
             $query = Tables_model::query();
@@ -3615,9 +3500,6 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                             $row->table_section
                             ?? ''
                         )),
-                        'features' => $this->quickPosTableFeaturesV67(
-                            $row->table_features ?? []
-                        ),
                         'status' => $this->quickPosNormalizeTableStatus(
                             (string)($row->operational_status ?? 'available')
                         ),
@@ -3650,42 +3532,6 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
      * Tiny cashier-facing signals only. Physical status remains authoritative;
      * payment/note/call signals never change Free/Busy/Clean/Reserved.
      */
-    /**
-     * PMD_QPOS_TABLE_FEATURES_V67
-     * Reuse the exact Floor feature authority; Quick POS only displays the
-     * persisted canonical flags and never invents restaurant attributes.
-     */
-    protected function quickPosTableFeaturesV67($value): array
-    {
-        $allowed = ['near_window', 'quiet_area', 'accessible'];
-
-        if (is_string($value)) {
-            $decoded = json_decode($value, true);
-            $value = is_array($decoded) ? $decoded : [];
-        }
-
-        if (!is_array($value)) {
-            return [];
-        }
-
-        $selected = [];
-        foreach ($value as $key => $item) {
-            if (!is_int($key) && !ctype_digit((string)$key)) {
-                if (!$item) {
-                    continue;
-                }
-                $item = $key;
-            }
-
-            $item = strtolower(trim((string)$item));
-            if ($item !== '' && in_array($item, $allowed, true)) {
-                $selected[$item] = true;
-            }
-        }
-
-        return array_values(array_keys($selected));
-    }
-
     protected function quickPosDecorateTableSignals(
         array $tables,
         int $locationId
