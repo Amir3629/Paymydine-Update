@@ -434,10 +434,33 @@ class PosActivity : ComponentActivity() {
 
                     when {
                         response.statusCode == 401 ||
-                            response.statusCode == 403 ->
-                            showFatal(
-                                "This paired device is no longer authorized for POS.",
-                            )
+                            response.statusCode == 403 -> {
+                            // PMD_ANDROID_POS_AUTH_RECOVERY_V10
+                            // 401/403 can mean staff grant, role, location or
+                            // session authority. Do not mislabel every auth
+                            // failure as device revocation.
+                            app.credentials.clearStaffSession()
+                            loading.text =
+                                "PayMyDine needs a fresh staff sign-in " +
+                                    "(HTTP ${response.statusCode}).\n\n" +
+                                    "Tap to return to Sign in."
+                            loading.visibility = View.VISIBLE
+                            loading.setOnClickListener {
+                                startActivity(
+                                    Intent(
+                                        this@PosActivity,
+                                        MainActivity::class.java,
+                                    ).apply {
+                                        addFlags(
+                                            Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                                                Intent.FLAG_ACTIVITY_SINGLE_TOP,
+                                        )
+                                    },
+                                )
+                                finish()
+                            }
+                            loading.bringToFront()
+                        }
 
                         response.statusCode >= 500 &&
                             app.bootstrapRepository.hasBootstrap() ->
