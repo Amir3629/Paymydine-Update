@@ -141,7 +141,20 @@ class RoleWorkspaceActivity : ComponentActivity() {
 
                     if (sameTenant) {
                         if (uri.path == "/admin/login") {
-                            openWorkspace(current, host, token)
+                            val ownerSecurity =
+                                app.credentials.staffSession()?.roleCode ==
+                                    "pmd-owner"
+
+                            // PMD_ANDROID_OWNER_MFA_WEBVIEW_V2
+                            // Owner must be allowed to render the canonical
+                            // /admin/login MFA continuation. Re-opening the
+                            // mobile bootstrap here creates an infinite loop.
+                            if (ownerSecurity) {
+                                return false
+                            }
+
+                            app.credentials.clearStaffSession()
+                            returnHome()
                             return true
                         }
                         return false
@@ -157,11 +170,20 @@ class RoleWorkspaceActivity : ComponentActivity() {
                     val parsed = runCatching { URI(url) }.getOrNull()
                     if (
                         parsed?.host.equals(host, ignoreCase = true) &&
-                        parsed?.path?.startsWith("/admin/") == true &&
-                        parsed.path != "/admin/login"
+                        parsed?.path?.startsWith("/admin/") == true
                     ) {
-                        current.visibility = View.VISIBLE
-                        status.visibility = View.GONE
+                        val ownerLogin =
+                            parsed.path == "/admin/login" &&
+                                app.credentials.staffSession()?.roleCode ==
+                                    "pmd-owner"
+
+                        if (
+                            parsed.path != "/admin/login" ||
+                            ownerLogin
+                        ) {
+                            current.visibility = View.VISIBLE
+                            status.visibility = View.GONE
+                        }
                     }
                 }
 
@@ -215,7 +237,16 @@ class RoleWorkspaceActivity : ComponentActivity() {
             ),
         )
         view.visibility = View.INVISIBLE
-        openWorkspace(view, host, token)
+
+        // PMD_ANDROID_FRESH_ROLE_WEB_SESSION_V2
+        CookieManager.getInstance().removeSessionCookies {
+            CookieManager.getInstance().flush()
+            view.post {
+                if (view === webView && !isFinishing) {
+                    openWorkspace(view, host, token)
+                }
+            }
+        }
     }
 
     private fun openWorkspace(
