@@ -1,0 +1,272 @@
+name: PayMyDine ZCS Customer Display APK
+
+on:
+  push:
+    branches:
+      - feature/zcs-customer-display-v5
+    paths:
+      - 'mobile/android/**'
+      - '.github/workflows/zcs-customer-display-apk.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: pmd-zcs-customer-display-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-zcs-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Android SDK 36
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          if [[ ! -x "$SDKMANAGER" ]]; then
+            SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager -print -quit)"
+          fi
+          test -n "$SDKMANAGER" && test -x "$SDKMANAGER"
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" 'platform-tools' 'platforms;android-36' 'build-tools;35.0.0'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+
+      - name: Create isolated debug signing key
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.android"
+          rm -f "$HOME/.android/debug.keystore"
+          keytool -genkeypair             -keystore "$HOME/.android/debug.keystore"             -storepass android             -alias androiddebugkey             -keypass android             -keyalg RSA             -keysize 2048             -validity 10000             -dname "CN=PayMyDine ZCS Preview,O=PayMyDine,C=DE"             -noprompt
+
+      - name: Download official ZCS SmartPos SDK
+        shell: bash
+        env:
+          EXPECTED_AAR_SHA256: fe2269746167064571ae23fc655838f203436deeb145606ff5c2d34b0054db18
+        run: |
+          set -euo pipefail
+          PAGE_URL='https://www.szzcs.com/Support-Service/SDK-Download/'
+          WORK='/tmp/pmd-zcs-sdk'
+          rm -rf "$WORK"
+          mkdir -p "$WORK"
+
+          python3 - <<'PY'
+          import html.parser
+          import re
+          import urllib.parse
+          import urllib.request
+          from pathlib import Path
+
+          page_url = 'https://www.szzcs.com/Support-Service/SDK-Download/'
+          req = urllib.request.Request(
+              page_url,
+              headers={
+                  'User-Agent': 'Mozilla/5.0 PayMyDine-ZCS-Builder/1.0',
+                  'Accept': 'text/html,application/xhtml+xml',
+              },
+          )
+          with urllib.request.urlopen(req, timeout=30) as response:
+              raw = response.read()
+          html = raw.decode('utf-8', 'replace')
+          Path('/tmp/pmd-zcs-sdk/page.html').write_text(html, encoding='utf-8')
+
+          class Parser(html.parser.HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.links = []
+                  self.current = None
+              def handle_starttag(self, tag, attrs):
+                  if tag.lower() == 'a':
+                      data = dict(attrs)
+                      self.current = [data.get('href', ''), []]
+              def handle_data(self, data):
+                  if self.current is not None:
+                      self.current[1].append(data)
+              def handle_endtag(self, tag):
+                  if tag.lower() == 'a' and self.current is not None:
+                      href, parts = self.current
+                      text = ' '.join(''.join(parts).split())
+                      self.links.append((href, text))
+                      self.current = None
+
+          parser = Parser()
+          parser.feed(html)
+
+          candidates = []
+          for href, text in parser.links:
+              blob = (href + ' ' + text).lower()
+              if (
+                  ('z90' in blob and 'sdk' in blob)
+                  or ('z91' in blob and 'sdk' in blob)
+                  or ('z92' in blob and 'sdk' in blob)
+                  or ('z100' in blob and 'sdk' in blob)
+                  or re.search(r'\.(zip|7z|rar)(?:$|[?#])', href, re.I)
+              ):
+                  candidates.append((href, text))
+
+          # Some CMS templates hide the real target in JS/data fields. Capture
+          # direct archive-looking URLs from the raw page as fallbacks.
+          for match in re.findall(
+              r'''https?://[^"'<>\s]+(?:\.zip|\.7z|\.rar)(?:\?[^"'<>\s]*)?''',
+              html,
+              re.I,
+          ):
+              candidates.append((match, 'raw-page archive URL'))
+
+          # Relative archive URLs in HTML.
+          for match in re.findall(
+              r'''(?:href|data-url|data-href)=["']([^"']+(?:\.zip|\.7z|\.rar)(?:\?[^"']*)?)["']''',
+              html,
+              re.I,
+          ):
+              candidates.append((match, 'relative archive URL'))
+
+          normalized = []
+          seen = set()
+          for href, text in candidates:
+              href = href.strip()
+              if not href or href.lower().startswith('javascript:'):
+                  continue
+              url = urllib.parse.urljoin(page_url, href)
+              if url in seen:
+                  continue
+              seen.add(url)
+              normalized.append((url, text))
+
+          print('ZCS_DOWNLOAD_CANDIDATES:')
+          for url, text in normalized:
+              print(f'  {url} :: {text}')
+
+          if not normalized:
+              # Print local context around the known label to make a failed run
+              # immediately diagnosable without guessing.
+              idx = html.lower().find('z90/z91/z92/z100')
+              if idx >= 0:
+                  print('HTML_CONTEXT:')
+                  print(html[max(0, idx-1200):idx+1800])
+              raise SystemExit('No downloadable ZCS SDK archive URL found on official page')
+
+          Path('/tmp/pmd-zcs-sdk/candidates.txt').write_text(
+              '\n'.join(url for url, _ in normalized) + '\n',
+              encoding='utf-8',
+          )
+          PY
+
+          SDK_ARCHIVE=''
+          while IFS= read -r URL; do
+            [[ -n "$URL" ]] || continue
+            echo "Trying official ZCS SDK URL: $URL"
+            if curl -fL --retry 2 --connect-timeout 20 --max-time 120               -A 'Mozilla/5.0 PayMyDine-ZCS-Builder/1.0'               "$URL" -o "$WORK/sdk-download"; then
+              if file "$WORK/sdk-download" | grep -Eqi 'Zip archive|7-zip|RAR archive'; then
+                SDK_ARCHIVE="$WORK/sdk-download"
+                break
+              fi
+              echo "Downloaded candidate is not an archive:"
+              file "$WORK/sdk-download" || true
+            fi
+          done < "$WORK/candidates.txt"
+
+          if [[ -z "$SDK_ARCHIVE" ]]; then
+            echo "::error::Official ZCS page did not yield a usable SDK archive."
+            exit 1
+          fi
+
+          mkdir -p "$WORK/extracted"
+          if file "$SDK_ARCHIVE" | grep -qi 'Zip archive'; then
+            unzip -q "$SDK_ARCHIVE" -d "$WORK/extracted"
+          else
+            7z x -y "$SDK_ARCHIVE" -o"$WORK/extracted" >/dev/null
+          fi
+
+          echo "SmartPos AAR files found:"
+          find "$WORK/extracted" -type f -iname 'SmartPos*.aar' -print || true
+
+          AAR="$(find "$WORK/extracted" -type f -name 'SmartPos_2.0.6_R260615.aar' -print -quit)"
+          if [[ -z "$AAR" ]]; then
+            echo "::error::Official archive did not contain SmartPos_2.0.6_R260615.aar."
+            exit 1
+          fi
+
+          ACTUAL_SHA="$(sha256sum "$AAR" | awk '{print $1}')"
+          echo "ZCS_AAR_SHA256=$ACTUAL_SHA"
+          if [[ "$ACTUAL_SHA" != "$EXPECTED_AAR_SHA256" ]]; then
+            echo "::error::ZCS SmartPos AAR checksum mismatch."
+            exit 1
+          fi
+
+          mkdir -p mobile/android/app/libs
+          cp "$AAR" mobile/android/app/libs/SmartPos_2.0.6_R260615.aar
+          echo "ZCS_SDK_INJECTED=PASS"
+
+      - name: Verify ZCS source contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f mobile/android/app/libs/SmartPos_2.0.6_R260615.aar
+          grep -q 'PayMyDineHardware' mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
+          grep -q 'CustomerDisplayManager' mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
+          grep -q 'showBitmapOnSecondaryScreen' mobile/android/app/src/main/java/com/paymydine/mobile/hardware/customerdisplay/CustomerDisplayManager.kt
+          grep -q 'fileTree' mobile/android/app/build.gradle.kts
+          echo "PMD_ZCS_SOURCE_CONTRACT=PASS"
+
+      - name: Unit tests
+        working-directory: mobile/android
+        run: gradle --no-daemon testDebugUnitTest
+
+      - name: Assemble ZCS debug APK
+        working-directory: mobile/android
+        run: gradle --no-daemon assembleDebug
+
+      - name: Verify ZCS SDK is packaged in APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK='mobile/android/app/build/outputs/apk/debug/app-debug.apk'
+          test -f "$APK"
+
+          FOUND=0
+          while IFS= read -r DEX; do
+            if unzip -p "$APK" "$DEX" | strings | grep -Fq 'com/zcs/sdk/DriverManager'; then
+              FOUND=1
+              echo "ZCS SDK class found in $DEX"
+              break
+            fi
+          done < <(zipinfo -1 "$APK" | grep -E '^classes[0-9]*\.dex$')
+
+          if [[ "$FOUND" != '1' ]]; then
+            echo "::error::ZCS SDK classes are not present in the built APK."
+            exit 1
+          fi
+
+          echo "PMD_ZCS_APK_SDK_PACKAGING=PASS"
+
+      - name: Prepare ZCS APK artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          cp mobile/android/app/build/outputs/apk/debug/app-debug.apk             out/PayMyDine-ZCS-Customer-Display-V5.apk
+          sha256sum out/PayMyDine-ZCS-Customer-Display-V5.apk             > out/PayMyDine-ZCS-Customer-Display-V5.apk.sha256
+          cat out/PayMyDine-ZCS-Customer-Display-V5.apk.sha256
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: paymydine-zcs-customer-display-v5
+          path: |
+            out/PayMyDine-ZCS-Customer-Display-V5.apk
+            out/PayMyDine-ZCS-Customer-Display-V5.apk.sha256
+          if-no-files-found: error
