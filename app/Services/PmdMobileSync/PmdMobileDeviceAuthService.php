@@ -5,21 +5,30 @@ namespace App\Services\PmdMobileSync;
 use Admin\Models\Users_model;
 use Admin\Services\PmdDefaultStaffRoleService;
 use App\Services\PmdSiteAccessService;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
 
 /**
  * Native-device bearer authentication.
  *
- * Device trust is delegated to the existing Site Access token authority.
- * Human role/permission state is resolved fresh from the tenant database.
+ * PMD_MOBILE_DEVICE_TRUST_FIRST_V2
+ *
+ * A paired Android tablet is device/location trust. The current human identity
+ * comes from a short-lived signed Staff Grant when one is present. The account
+ * that originally paired the tablet is only a backwards-compatible fallback
+ * for bootstrap/legacy calls before a staff login exists.
  */
 final class PmdMobileDeviceAuthService
 {
-    public function authenticate(Request $request): array
+    /**
+     * Device/location trust only. Safe to use before the current staff member
+     * has authenticated.
+     */
+    public function authenticateDevice(Request $request): array
     {
         $rawToken = trim((string)$request->bearerToken());
         if ($rawToken === '') {
-            abort(401, 'PayMyDine device token required.');
+            $this->fail(401, 'PayMyDine device token required.');
         }
 
         $siteAccess = app(PmdSiteAccessService::class);
@@ -29,8 +38,45 @@ final class PmdMobileDeviceAuthService
         );
 
         if (!$device) {
-            abort(401, 'PayMyDine device token is invalid or revoked.');
+            $this->fail(
+                401,
+                'This Android device is no longer trusted. Connect the restaurant again.'
+            );
         }
+
+        $locationId = (int)($device->location_id ?? 0);
+        if ($locationId < 1) {
+            $this->fail(
+                403,
+                'The paired PayMyDine device has no restaurant location.'
+            );
+        }
+
+        $siteAccess->touchDevice((int)$device->id);
+
+        return [
+            'device' => $device,
+            'device_id' => (int)$device->id,
+            'location_id' => $locationId,
+        ];
+    }
+
+    public function authenticate(Request $request): array
+    {
+        $deviceIdentity = $this->authenticateDevice($request);
+
+        // PMD_MOBILE_STAFF_GRANT_FIRST_V2
+        // Resolve the current signed-in human BEFORE touching the historical
+        // pairing identity. This is what makes a trusted restaurant tablet a
+        // true shared device.
+        $granted = app(PmdMobileStaffGrantService::class)
+            ->resolve($request, $deviceIdentity);
+        if ($granted !== null) {
+            return $granted;
+        }
+
+        $device = $deviceIdentity['device'];
+        $locationId = (int)$deviceIdentity['location_id'];
 
         $user = null;
         $userId = (int)($device->user_id ?? 0);
@@ -52,44 +98,39 @@ final class PmdMobileDeviceAuthService
             || isset($user->is_activated) && !(bool)$user->is_activated
             || isset($staff->staff_status) && !(bool)$staff->staff_status
         ) {
-            abort(401, 'The paired PayMyDine staff account is not active.');
-        }
-
-        $locationId = (int)($device->location_id ?? 0);
-        if ($locationId < 1) {
-            abort(403, 'The paired PayMyDine device has no restaurant location.');
+            $this->fail(
+                401,
+                'The original pairing account is no longer active. Sign in again on this trusted device.'
+            );
         }
 
         if (!$this->userMayUseLocation($user, $staff, $locationId)) {
-            abort(403, 'The paired account no longer has access to this restaurant location.');
+            $this->fail(
+                403,
+                'The original pairing account no longer has access to this restaurant location.'
+            );
         }
 
         $roles = app(PmdDefaultStaffRoleService::class);
         $roleCode = $roles->roleCodeForUser($user);
         if ($roleCode === '') {
-            abort(403, 'The paired account has no active PayMyDine role.');
+            $this->fail(
+                403,
+                'The original pairing account has no active PayMyDine role.'
+            );
         }
 
-        $siteAccess->touchDevice((int)$device->id);
-
-        $identity = [
-            'device' => $device,
-            'device_id' => (int)$device->id,
-            'location_id' => $locationId,
-            'user' => $user,
-            'user_id' => (int)$user->getKey(),
-            'staff' => $staff,
-            'staff_id' => (int)$staff->getKey(),
-            'role_code' => $roleCode,
-            'permissions' => (array)$user->getPermissions(),
-        ];
-
-        // PMD_MOBILE_STAFF_GRANT_OVERRIDE_V1
-        // A shared trusted restaurant device may be used by a different active
-        // staff member after that person signs in with canonical credentials.
-        return app(PmdMobileStaffGrantService::class)
-            ->resolve($request, $identity)
-            ?? $identity;
+        return array_merge(
+            $deviceIdentity,
+            [
+                'user' => $user,
+                'user_id' => (int)$user->getKey(),
+                'staff' => $staff,
+                'staff_id' => (int)$staff->getKey(),
+                'role_code' => $roleCode,
+                'permissions' => (array)$user->getPermissions(),
+            ]
+        );
     }
 
     private function userMayUseLocation($user, $staff, int $locationId): bool
@@ -112,5 +153,19 @@ final class PmdMobileDeviceAuthService
         } catch (\Throwable $error) {
             return false;
         }
+    }
+
+    private function fail(int $status, string $message): void
+    {
+        throw new HttpResponseException(
+            response()->json(
+                [
+                    'ok' => false,
+                    'message' => $message,
+                ],
+                $status,
+                ['Cache-Control' => 'no-store, private']
+            )
+        );
     }
 }
