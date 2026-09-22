@@ -291,6 +291,21 @@ class BootstrapRepository(private val database: PmdDatabase) {
 
     fun roleCode(): String? = meta("role_code")?.takeIf { it.isNotBlank() }
 
+    // PMD_ANDROID_OFFLINE_HISTORY_CACHE_V16
+    // History is part of the trusted bootstrap blob, so it survives WAN loss
+    // without a second SQLite schema or a Cloud request from the offline UI.
+    fun historySnapshot(): JSONObject? {
+        val raw = meta("bootstrap_json") ?: return null
+        return runCatching {
+            JSONObject(raw)
+                .optJSONObject("history")
+                ?.takeIf { it.optJSONArray("entries") != null }
+        }.getOrNull()
+    }
+
+    fun hasHistorySnapshot(): Boolean =
+        historySnapshot()?.optJSONArray("entries") != null
+
     fun profileExpiresAt(): String? = meta("profile_expires_at")?.takeIf { it.isNotBlank() }
 
     fun surfaces(): Set<String> {
