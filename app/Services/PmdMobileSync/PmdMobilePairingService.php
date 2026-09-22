@@ -3,7 +3,10 @@
 namespace App\Services\PmdMobileSync;
 
 use Admin\Facades\AdminAuth;
+use Admin\Models\Users_model;
+use Admin\Services\PmdDefaultStaffRoleService;
 use App\Services\PmdSiteAccessService;
+use App\Services\PmdWorkSessionPolicyService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Crypt;
@@ -1075,6 +1078,20 @@ final class PmdMobilePairingService
                 ['protocol' => 'pmd-sync-v1']
             );
 
+            // PMD_MOBILE_PAIR_INITIAL_STAFF_GRANT_V16
+            // The human credentials used to request pairing were already
+            // verified before restaurant approval. Once that exact identity's
+            // device is approved, issue the first signed staff session here so
+            // Android does not ask for the same password a second time.
+            $initialAuthorization = $this->initialAuthorization(
+                [
+                    'device_id' => (int)$device->id,
+                    'location_id' => (int)$exchange->location_id,
+                ],
+                (int)$exchange->user_id,
+                (int)$exchange->staff_id
+            );
+
             return [
                 'ok' => true,
                 'protocol' => 'pmd-sync-v1',
@@ -1083,8 +1100,117 @@ final class PmdMobilePairingService
                 'location_id' => (int)$exchange->location_id,
                 'user_id' => (int)$exchange->user_id,
                 'staff_id' => (int)$exchange->staff_id,
+                'initial_authorization' => $initialAuthorization,
             ];
         });
+    }
+
+    /**
+     * PMD_MOBILE_PAIR_INITIAL_STAFF_GRANT_V16
+     *
+     * Pairing establishes device trust and the initial human password was
+     * already verified by PmdMobilePairController. Re-validate current account,
+     * location and role state before issuing a device-bound Staff Grant.
+     */
+    private function initialAuthorization(
+        array $deviceIdentity,
+        int $userId,
+        int $staffId
+    ): ?array {
+        $user = $userId > 0
+            ? Users_model::query()->find($userId)
+            : null;
+        $staff = $user ? $user->staff : null;
+
+        if (
+            !$user
+            || !$staff
+            || (int)$staff->getKey() !== $staffId
+            || (isset($user->is_activated) && !(bool)$user->is_activated)
+            || (isset($staff->staff_status) && !(bool)$staff->staff_status)
+        ) {
+            return null;
+        }
+
+        $grants = app(PmdMobileStaffGrantService::class);
+        if (!$grants->userMayUseLocation(
+            $user,
+            $staff,
+            (int)$deviceIdentity['location_id']
+        )) {
+            return null;
+        }
+
+        $roles = app(PmdDefaultStaffRoleService::class);
+        $roleCode = $roles->roleCodeForUser($user);
+        $route = $roleCode !== ''
+            ? $roles->routeForRoleCode($roleCode)
+            : null;
+
+        if ($roleCode === '' || $route === null || trim($route) === '') {
+            return null;
+        }
+
+        $surface = 'web';
+        if (
+            $roleCode === PmdDefaultStaffRoleService::CASHIER
+            || $roleCode === PmdDefaultStaffRoleService::WAITER
+        ) {
+            $surface = 'pos';
+        } elseif (
+            str_starts_with(
+                $roleCode,
+                PmdDefaultStaffRoleService::KDS_PREFIX
+            )
+        ) {
+            $surface = 'kds';
+        } elseif (
+            $roleCode === PmdDefaultStaffRoleService::RESERVATIONS
+        ) {
+            $surface = 'reservations';
+        }
+
+        $identity = array_merge($deviceIdentity, [
+            'user' => $user,
+            'user_id' => (int)$user->getKey(),
+            'staff' => $staff,
+            'staff_id' => (int)$staff->getKey(),
+            'role_code' => $roleCode,
+            'permissions' => (array)$user->getPermissions(),
+        ]);
+        $policy = app(PmdWorkSessionPolicyService::class)->policy($identity);
+        $grantExpiresAt = min(
+            now()->addHours(8)->timestamp,
+            $policy['expires_at']->timestamp
+        );
+
+        return [
+            'surface' => $surface,
+            'destination' => 'workspace',
+            'username' => trim((string)$user->username),
+            'staff_name' => (string)(
+                $staff->staff_name
+                ?? $user->staff_name
+                ?? $user->username
+                ?? ''
+            ),
+            'user_id' => (int)$user->getKey(),
+            'staff_id' => (int)$staff->getKey(),
+            'role_code' => $roleCode,
+            'route' => trim((string)$route, '/'),
+            'staff_grant' => $grants->issue(
+                $deviceIdentity,
+                $user,
+                'workspace',
+                $grantExpiresAt
+            ),
+            'lease_expires_at' => $grantExpiresAt,
+            'lease_expires_iso' => date(DATE_ATOM, $grantExpiresAt),
+            'offline_expires_at' => $policy['expires_at']->timestamp,
+            'offline_expires_iso' =>
+                $policy['expires_at']->toIso8601String(),
+            'offline_session_reason' => $policy['reason'],
+        ];
     }
 
     private function ensureMobileSyncStorage(): void
