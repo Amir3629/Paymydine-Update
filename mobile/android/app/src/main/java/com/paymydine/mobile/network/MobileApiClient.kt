@@ -12,6 +12,8 @@ data class PairExchangeResult(
     val deviceToken: String,
     val deviceId: String,
     val locationId: Long,
+    // PMD_ANDROID_PAIR_INITIAL_AUTH_V16
+    val initialAuthorization: WorkspaceAuthorizationResult?,
 )
 
 data class PairStatusResult(
@@ -191,11 +193,16 @@ class MobileApiClient(private val staffGrant: String? = null) {
             throw IOException("Pairing response is incomplete.")
         }
 
+        val initialAuthorization = json
+            .optJSONObject("initial_authorization")
+            ?.let(::parseAuthorization)
+
         return PairExchangeResult(
             tenantHost = base.host.lowercase(),
             deviceToken = token,
             deviceId = deviceId,
             locationId = locationId,
+            initialAuthorization = initialAuthorization,
         )
     }
 
