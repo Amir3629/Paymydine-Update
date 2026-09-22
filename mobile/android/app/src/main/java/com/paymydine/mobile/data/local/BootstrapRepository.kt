@@ -306,6 +306,15 @@ class BootstrapRepository(private val database: PmdDatabase) {
     fun hasHistorySnapshot(): Boolean =
         historySnapshot()?.optJSONArray("entries") != null
 
+    fun currencyCode(): String =
+        runCatching {
+            JSONObject(meta("bootstrap_json").orEmpty())
+                .optJSONObject("location")
+                ?.optString("currency_code", "EUR")
+                ?.ifBlank { "EUR" }
+                ?: "EUR"
+        }.getOrDefault("EUR")
+
     fun profileExpiresAt(): String? = meta("profile_expires_at")?.takeIf { it.isNotBlank() }
 
     fun surfaces(): Set<String> {
