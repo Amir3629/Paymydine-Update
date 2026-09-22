@@ -279,6 +279,11 @@ final class PmdMobileBootstrapService
                         ?? ''
                     ));
                     $items[] = [
+                        'menu_id' => (int)(
+                            $itemRaw['menu_id']
+                            ?? $itemRaw['menu_item_id']
+                            ?? 0
+                        ) ?: null,
                         'name' => $name !== '' ? $name : 'Item',
                         'quantity' => $quantity,
                         'note' => $note,
