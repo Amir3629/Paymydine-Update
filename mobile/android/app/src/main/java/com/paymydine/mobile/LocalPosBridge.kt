@@ -34,7 +34,7 @@ class LocalPosBridge(
             val selected = requested
                 .takeIf { id -> tables.any { it.id == id } }
                 ?: tables.firstOrNull()?.id
-            val draft = selected?.let(app.localPosRepository::draftForTable)
+            val draft = selected?.let(app.localPosRepository::localWorkForTable)
             val bill = selected?.let(app.localPosRepository::billForTable)
 
             JSONObject()
@@ -271,6 +271,56 @@ class LocalPosBridge(
         } else {
             "Order queued safely."
         }
+    }
+
+    @JavascriptInterface
+    fun queueSendAndCash(
+        tableId: String,
+        cashReceivedMinor: Long,
+    ): String = action {
+        val draft = app.localPosRepository.draftForTable(tableId)
+            ?: error("Add items first.")
+        val host = app.credentials.tenantHost()
+            ?: error("Pair this device first.")
+        val deviceId = app.credentials.deviceId()
+            ?: error("Pair this device first.")
+        val session = app.credentials.staffSession()
+            ?: error("Verified staff session is unavailable.")
+
+        val send = app.localPosRepository.buildSendCommand(
+            draft = draft,
+            tenantHost = host,
+            deviceId = deviceId,
+            staffId = session.staffId,
+            userId = session.userId,
+            hold = false,
+        )
+        val (cash, amountMinor) =
+            app.localPosRepository.buildCashPaymentAfterSendCommand(
+                draft = draft,
+                sendCommand = send,
+                tenantHost = host,
+                deviceId = deviceId,
+                staffId = session.staffId,
+                userId = session.userId,
+                cashReceivedMinor = cashReceivedMinor,
+            )
+
+        check(app.syncRepository.enqueue(send)) {
+            "This order is already queued."
+        }
+        check(app.syncRepository.enqueue(cash)) {
+            "This cash payment is already queued."
+        }
+
+        app.localPosRepository.markQueued(draft.localId)
+        app.localPosRepository.markCashPaymentQueued(
+            tableId = tableId,
+            commandId = cash.commandId,
+            amountMinor = amountMinor,
+        )
+        SyncEngine.enqueueImmediate(app)
+        "Order and cash payment saved locally in sequence."
     }
 
     @JavascriptInterface
