@@ -226,7 +226,7 @@ fun PayMyDineApp(app: PayMyDineApplication) {
     } else {
         emptySet()
     }
-    LaunchedEffect(online, ready, pairingAttempt) {
+    LaunchedEffect(online, ready, pairingAttempt, pairingRequestSubmitted) {
         if (
             ready ||
             !online ||
@@ -626,7 +626,6 @@ fun PayMyDineApp(app: PayMyDineApplication) {
                         } else {
                             val host = "$code.paymydine.com"
                             val verifier = PairingPkce.newVerifier()
-                            val challenge = PairingPkce.challenge(verifier)
                             val requestId = UUID.randomUUID().toString()
 
                             tenantCode = code
