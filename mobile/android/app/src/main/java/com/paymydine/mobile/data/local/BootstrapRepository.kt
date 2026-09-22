@@ -93,7 +93,7 @@ class BootstrapRepository(private val database: PmdDatabase) {
                     ContentValues().apply {
                         put("id", table.get("id").toString())
                         put("location_id", locationId)
-                        put("version", 0)
+                        put("version", table.optLong("aggregate_version", 0L))
                         put("number", table.optString("number"))
                         put("label", table.optString("name", table.optString("number")))
                         put("status", table.optString("operational_status", "available"))
