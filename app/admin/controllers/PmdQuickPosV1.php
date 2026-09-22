@@ -1041,7 +1041,8 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
      */
     public function transfer()
     {
-        $payload = request()->json()->all() ?: request()->all();
+        // PMD_MOBILE_CANONICAL_TRANSFER_PAYLOAD_V17
+        $payload = $this->requestPayload();
 
         $sourceId = (int)($payload['source_table_id'] ?? 0);
         $targetId = (int)($payload['target_table_id'] ?? 0);
