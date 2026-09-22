@@ -82,13 +82,23 @@ final class PmdMobileWorkspaceSessionController extends Controller
 
         AdminLocation::setCurrent($location);
         session()->put(PmdSiteAccessService::SESSION_DESTINATION, 'workspace');
-        $site->markWorkspaceVerified(
-            $locationId,
-            'mobile_android_device',
-            $deviceId
-        );
-        app(PmdSiteAccessSessionBindingService::class)->bindCurrentUser();
-        $policy = app(PmdWorkSessionPolicyService::class)->apply($identity);
+
+        // PMD_MOBILE_OWNER_CANONICAL_SECURITY_V3
+        // Shared Android tablets authenticate the Owner password, but they do
+        // not replace the Owner's canonical MFA / workplace security. Let the
+        // normal Workspace Gate continue that security flow for Owner.
+        $isOwner = $roleCode === PmdDefaultStaffRoleService::OWNER;
+        $policy = null;
+
+        if (!$isOwner) {
+            $site->markWorkspaceVerified(
+                $locationId,
+                'mobile_android_device',
+                $deviceId
+            );
+            app(PmdSiteAccessSessionBindingService::class)->bindCurrentUser();
+            $policy = app(PmdWorkSessionPolicyService::class)->apply($identity);
+        }
 
         $site->audit(
             'mobile_android_role_workspace_session',
@@ -101,7 +111,12 @@ final class PmdMobileWorkspaceSessionController extends Controller
                 'role_code' => $roleCode,
                 'route' => $route,
                 'legacy_surface' => $legacySurface ?: null,
-                'session_until' => $policy['expires_at']->toIso8601String(),
+                'session_until' => $policy
+                    ? $policy['expires_at']->toIso8601String()
+                    : null,
+                'security_continuation' => $isOwner
+                    ? 'canonical_owner_gate'
+                    : 'mobile_android_device',
                 'protocol' => 'pmd-sync-v1',
             ]
         );
