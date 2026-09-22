@@ -3,7 +3,11 @@
 namespace App\Http\Controllers;
 
 use Admin\Facades\AdminAuth;
+use Admin\Models\Users_model;
+use Admin\Services\PmdDefaultStaffRoleService;
 use App\Services\PmdMobileSync\PmdMobilePairingService;
+use App\Services\PmdSiteAccessService;
+use Illuminate\Support\Facades\Hash;
 use App\Services\PmdSiteAccessWorkspaceGateService;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -142,6 +146,123 @@ final class PmdMobilePairController extends Controller
             200,
             ['Cache-Control' => 'no-store, private']
         );
+    }
+
+    /** PMD_MOBILE_NATIVE_PAIR_REQUEST_V12 */
+    public function requestNative(
+        Request $request,
+        PmdMobilePairingService $pairing
+    ) {
+        $data = $request->validate([
+            'pair_request' => ['required', 'uuid'],
+            'code_challenge' => [
+                'required',
+                'string',
+                'size:43',
+                'regex:/^[A-Za-z0-9_-]+$/',
+            ],
+            'device_name' => ['nullable', 'string', 'max:128'],
+            'username' => ['required', 'string', 'max:191'],
+            'password' => ['required', 'string', 'min:6', 'max:191'],
+        ]);
+
+        $typedUsername = trim((string)$data['username']);
+        $lookupUsername = $typedUsername;
+        $lower = mb_strtolower($typedUsername);
+
+        // Pairing always uses the normal workspace identity, matching the
+        // canonical web pairing behavior even if someone typed usernameportal.
+        if (
+            mb_strlen($typedUsername) > 6
+            && str_ends_with($lower, 'portal')
+        ) {
+            $lookupUsername = trim(
+                mb_substr(
+                    $typedUsername,
+                    0,
+                    mb_strlen($typedUsername) - 6
+                )
+            );
+        }
+
+        $user = $lookupUsername !== ''
+            ? Users_model::query()
+                ->whereRaw(
+                    'LOWER(username) = ?',
+                    [mb_strtolower($lookupUsername)]
+                )
+                ->first()
+            : null;
+        $staff = $user ? $user->staff : null;
+        $passwordHash = (string)($user->password ?? '');
+
+        if (
+            !$user
+            || !$staff
+            || (isset($user->is_activated) && !(bool)$user->is_activated)
+            || (isset($staff->staff_status) && !(bool)$staff->staff_status)
+            || $passwordHash === ''
+            || !Hash::check((string)$data['password'], $passwordHash)
+        ) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Username or password is incorrect.',
+            ], 401, ['Cache-Control' => 'no-store, private']);
+        }
+
+        $roles = app(PmdDefaultStaffRoleService::class);
+        $roleCode = $roles->roleCodeForUser($user);
+        if (
+            $roleCode === ''
+            || $roles->routeForRoleCode($roleCode) === null
+        ) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'This PayMyDine account has no active workspace role.',
+            ], 403, ['Cache-Control' => 'no-store, private']);
+        }
+
+        $site = app(PmdSiteAccessService::class);
+        $identity = $site->identity($user);
+
+        if (
+            (int)($identity['user_id'] ?? 0) < 1
+            || (int)($identity['staff_id'] ?? 0) < 1
+            || (int)($identity['location_id'] ?? 0) < 1
+        ) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'This PayMyDine account is not assigned to an active restaurant location.',
+            ], 403, ['Cache-Control' => 'no-store, private']);
+        }
+
+        try {
+            return response()->json(
+                $pairing->beginNativeDashboardApproval(
+                    $request,
+                    $identity,
+                    (string)$data['pair_request'],
+                    (string)$data['code_challenge'],
+                    (string)($data['device_name']
+                        ?? 'PayMyDine Android · Restaurant App')
+                ),
+                200,
+                ['Cache-Control' => 'no-store, private']
+            );
+        } catch (\InvalidArgumentException $error) {
+            return response()->json([
+                'ok' => false,
+                'message' => $error->getMessage(),
+            ], 422, ['Cache-Control' => 'no-store, private']);
+        } catch (\Throwable $error) {
+            report($error);
+
+            return response()->json([
+                'ok' => false,
+                'message' => $error->getMessage()
+                    ?: 'Android connection could not be requested.',
+            ], 409, ['Cache-Control' => 'no-store, private']);
+        }
     }
 
     public function status(Request $request, PmdMobilePairingService $pairing)

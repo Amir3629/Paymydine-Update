@@ -466,63 +466,143 @@ class PmdSiteAccessService
     public function beginChallenge(string $purpose, string $redirectPath, Request $request)
     {
         if (!$this->ready()) return null;
-        $identity = $this->identity();
-        if ($identity['user_id'] < 1 || $identity['staff_id'] < 1 || $identity['location_id'] < 1) return null;
-        if (!$this->policyEnabled($identity['location_id'])) return null;
+
+        return $this->beginChallengeForIdentity(
+            $this->identity(),
+            $purpose,
+            $redirectPath,
+            $request,
+            true
+        );
+    }
+
+    /**
+     * PMD_SITE_ACCESS_EXPLICIT_IDENTITY_CHALLENGE_V12
+     *
+     * Creates the exact same Site Access challenge used by canonical web Login,
+     * but allows a bearer-authenticated Android request to supply the already
+     * password-verified staff identity without creating an Admin/browser
+     * session. Dashboard approval remains the authority; native callers do not
+     * receive a browser redirect or a self-approval path.
+     */
+    public function beginChallengeForIdentity(
+        array $identity,
+        string $purpose,
+        string $redirectPath,
+        Request $request,
+        bool $storeInSession = false
+    ) {
+        if (!$this->ready()) return null;
+
+        $userId = (int)($identity['user_id'] ?? 0);
+        $staffId = (int)($identity['staff_id'] ?? 0);
+        $locationId = (int)($identity['location_id'] ?? 0);
+
+        if ($userId < 1 || $staffId < 1 || $locationId < 1) return null;
+        if (!$this->policyEnabled($locationId)) return null;
 
         if ($purpose === self::PURPOSE_WORKSPACE) {
-            $hub = $this->currentHub($request, $identity['location_id']);
+            $hub = $this->currentHub($request, $locationId);
             if ($hub) {
                 $this->touchDevice((int)$hub->id);
-                $this->markWorkspaceVerified($identity['location_id'], 'trusted_site_hub', (int)$hub->id);
-                $this->audit('workspace_auto_verified', true, $identity, (int)$hub->id, null, $request);
-                return null;
+
+                // Browser Login may auto-resume from the exact trusted
+                // restaurant browser. Native Android requests deliberately do
+                // not use browser cookies, so they still become a pending
+                // dashboard approval card.
+                if ($storeInSession) {
+                    $this->markWorkspaceVerified(
+                        $locationId,
+                        'trusted_site_hub',
+                        (int)$hub->id
+                    );
+                    $this->audit(
+                        'workspace_auto_verified',
+                        true,
+                        $identity,
+                        (int)$hub->id,
+                        null,
+                        $request
+                    );
+                    return null;
+                }
             }
         }
 
-        if ($purpose === self::PURPOSE_PAIR_STAFF) {
-            $personal = $this->currentStaffDevice($request, $identity['staff_id'], $identity['location_id']);
+        if ($purpose === self::PURPOSE_PAIR_STAFF && $storeInSession) {
+            $personal = $this->currentStaffDevice(
+                $request,
+                $staffId,
+                $locationId
+            );
             if ($personal) {
                 $this->touchDevice((int)$personal->id);
-                $this->audit('staff_device_recognized', true, $identity, (int)$personal->id, null, $request);
+                $this->audit(
+                    'staff_device_recognized',
+                    true,
+                    $identity,
+                    (int)$personal->id,
+                    null,
+                    $request
+                );
                 return null;
             }
         }
 
         DB::table('pmd_site_access_challenges')
-            ->where('user_id', $identity['user_id'])
+            ->where('user_id', $userId)
             ->where('status', 'pending')
             ->update(['status' => 'expired', 'updated_at' => now()]);
 
         $publicId = (string)Str::uuid();
-        $code = $this->challengeCode($publicId, $identity['location_id']);
+        $code = $this->challengeCode($publicId, $locationId);
         $expiresAt = now()->addSeconds(
             $purpose === self::PURPOSE_PAIR_STAFF ? 300 : 90
         );
 
         $id = DB::table('pmd_site_access_challenges')->insertGetId([
             'public_id' => $publicId,
-            'location_id' => $identity['location_id'],
-            'user_id' => $identity['user_id'],
-            'staff_id' => $identity['staff_id'],
+            'location_id' => $locationId,
+            'user_id' => $userId,
+            'staff_id' => $staffId,
             'purpose' => $purpose,
             'status' => 'pending',
             'code_hash' => $this->codeHash($publicId, $code),
             'requested_device_name' => $this->deviceName($request),
             'requested_ip' => substr((string)$request->ip(), 0, 45),
-            'requested_user_agent' => substr((string)$request->userAgent(), 0, 2000),
+            'requested_user_agent' => substr(
+                (string)$request->userAgent(),
+                0,
+                2000
+            ),
             'expires_at' => $expiresAt,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
 
-        session()->put(self::SESSION_PENDING, [
-            'public_id' => $publicId,
-            'purpose' => $purpose,
-            'redirect' => $redirectPath,
-        ]);
+        if ($storeInSession) {
+            session()->put(self::SESSION_PENDING, [
+                'public_id' => $publicId,
+                'purpose' => $purpose,
+                'redirect' => $redirectPath,
+            ]);
+        }
 
-        $this->audit('challenge_created', true, $identity, null, $id, $request, ['purpose' => $purpose]);
+        $this->audit(
+            'challenge_created',
+            true,
+            $identity,
+            null,
+            $id,
+            $request,
+            [
+                'purpose' => $purpose,
+                'transport' => $storeInSession
+                    ? 'browser_session'
+                    : 'native_wait',
+            ]
+        );
+
         return $this->challengeByPublicId($publicId);
     }
 
