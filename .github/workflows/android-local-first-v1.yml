@@ -209,9 +209,7 @@ jobs:
           grep -q "authorizeStaff" mobile/android/app/src/main/java/com/paymydine/mobile/network/MobileApiClient.kt
           grep -q "authorizeWorkspace" mobile/android/app/src/main/java/com/paymydine/mobile/network/MobileApiClient.kt
           grep -q "workspaceLeaseValid" mobile/android/app/src/main/java/com/paymydine/mobile/security/DeviceCredentialStore.kt
-          grep -q "PMD_ANDROID_POS_OFFLINE_FAILOVER_V15" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
-          grep -q "PMD_ANDROID_POS_WIFI_CUT_FAILOVER_V15" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
-          grep -q "PMD_ANDROID_POS_RESOURCE_FAILOVER_V15" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
+          grep -q "PMD_ANDROID_POS_SEAMLESS_FAILOVER_V17" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
           grep -q "PMD_ANDROID_LOGIN_OFFLINE_ERROR_SUPPRESSION_V15" mobile/android/app/src/main/java/com/paymydine/mobile/ui/PmdStaffLogin.kt
           grep -q "PMD_ANDROID_LOGIN_HEIGHT_FRAME_V16" mobile/android/app/src/main/assets/pmd-login-workplace-v11-native.html
           grep -q "PMD_ANDROID_LOGIN_TABLET_FRAME_V16" mobile/android/app/src/main/assets/pmd-login-workplace-v11-native.html
