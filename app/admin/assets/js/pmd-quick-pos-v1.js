@@ -6044,6 +6044,27 @@ function renderOpenChecks() {
       renderHistory(state.historyData);
       toast('Seen');
 
+      /* Keep the current bell/new-count in sync immediately. Other staff
+       * clients receive the shared DB status on their normal notification poll. */
+      fetchJson('/admin/notifications-api/count?_=' + Date.now())
+        .then(function (countJson) {
+          window.dispatchEvent(new CustomEvent('pmd:notification:count', {
+            detail: {count: Math.max(0, num(countJson.new, 0))}
+          }));
+        })
+        .catch(function () {});
+
+      try {
+        window.dispatchEvent(new CustomEvent('pmd:notification:seen', {
+          detail: {
+            notification_id: notificationId,
+            table_id: tableId,
+            kind: kind
+          }
+        }));
+      } catch (ignored) {
+      }
+
       // Reconcile against shared server authority without blocking the click.
       bootstrap(true);
     } catch (error) {
