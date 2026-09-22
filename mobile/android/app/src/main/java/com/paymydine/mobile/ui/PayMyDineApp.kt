@@ -37,7 +37,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.paymydine.mobile.KdsActivity
-import com.paymydine.mobile.OfflinePosActivity
 import com.paymydine.mobile.PayMyDineApplication
 import com.paymydine.mobile.PosActivity
 import com.paymydine.mobile.R
@@ -555,12 +554,13 @@ fun PayMyDineApp(app: PayMyDineApplication) {
             )
         }
 
+        // PMD_ANDROID_SINGLE_POS_ACTIVITY_V17
+        // POS always enters the same activity. PosActivity chooses Cloud or
+        // durable local authority from connectivity without changing the
+        // staff workspace/session, so app-start-offline and mid-shift WAN loss
+        // have the same operator flow and never require a second POS screen.
         val destination = when (session.surface) {
-            "pos" -> if (online && !forceOffline) {
-                PosActivity::class.java
-            } else {
-                OfflinePosActivity::class.java
-            }
+            "pos" -> PosActivity::class.java
             "kds" -> KdsActivity::class.java
             else -> RoleWorkspaceActivity::class.java
         }
@@ -569,12 +569,6 @@ fun PayMyDineApp(app: PayMyDineApplication) {
 
         context.startActivity(
             Intent(context, destination).apply {
-                if (destination == OfflinePosActivity::class.java) {
-                    putExtra(
-                        OfflinePosActivity.EXTRA_REASON,
-                        "PayMyDine Cloud is unavailable. Continuing the last verified POS session locally.",
-                    )
-                }
                 if (
                     destination == KdsActivity::class.java &&
                     forceOffline
