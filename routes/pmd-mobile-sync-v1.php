@@ -34,9 +34,9 @@ Route::group([
         Route::get('mobile/pair/wait', [PmdMobilePairController::class, 'wait']);
         Route::get('mobile/pair/finish', [PmdMobilePairController::class, 'finish']);
     Route::get('mobile/pos/open', PmdMobilePosSessionController::class)
-        ->middleware('throttle:30,1');
+        ->middleware('throttle:30,1,pmd-mobile-pos-open');
     Route::get('mobile/workspace/open', PmdMobileWorkspaceSessionController::class)
-        ->middleware('throttle:30,1');
+        ->middleware('throttle:30,1,pmd-mobile-workspace-open');
 });
 
 Route::group([
@@ -55,15 +55,15 @@ Route::group([
 
         Route::post('pair/status', [PmdMobilePairController::class, 'status'])
             ->withoutMiddleware([VerifyCsrfToken::class])
-            ->middleware('throttle:60,1');
+            ->middleware('throttle:60,1,pmd-mobile-pair-status');
 
         Route::post('pair/exchange', [PmdMobilePairController::class, 'exchange'])
             ->withoutMiddleware([VerifyCsrfToken::class])
-            ->middleware('throttle:30,1');
+            ->middleware('throttle:30,1,pmd-mobile-pair-exchange');
 
         Route::post('workspace/authorize', PmdMobileWorkspaceAuthController::class)
             ->withoutMiddleware([VerifyCsrfToken::class])
-            ->middleware('throttle:20,1');
+            ->middleware('throttle:20,1,pmd-mobile-staff-login');
 
     Route::post('sync/commands', [PmdMobileSyncController::class, 'commands'])
         ->withoutMiddleware([VerifyCsrfToken::class]);
