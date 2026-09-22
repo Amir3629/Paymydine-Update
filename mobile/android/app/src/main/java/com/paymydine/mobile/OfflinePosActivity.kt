@@ -261,6 +261,59 @@ class OfflinePosActivity : ComponentActivity() {
             }.getOrElse { errorJson(it) }
         }
 
+        /**
+         * PMD_ANDROID_OFFLINE_HISTORY_BRIDGE_V16
+         *
+         * History and product photos are served only from trusted local state.
+         * No Cloud request is initiated from the offline WebView.
+         */
+        @JavascriptInterface
+        fun history(
+            scope: String,
+            tableId: String,
+        ): String {
+            val cached = app.bootstrapRepository.historySnapshot()
+            val source = cached?.optJSONArray("entries") ?: JSONArray()
+            val selectedTableId = tableId.trim().toLongOrNull()
+            val showAll = scope.trim().lowercase() == "all"
+
+            val entries = JSONArray()
+            for (index in 0 until source.length()) {
+                val entry = source.optJSONObject(index) ?: continue
+                val entryTableId = entry.optLong("table_id", 0L)
+                if (
+                    showAll ||
+                    selectedTableId == null ||
+                    selectedTableId < 1 ||
+                    entryTableId == selectedTableId
+                ) {
+                    entries.put(JSONObject(entry.toString()))
+                }
+            }
+
+            return JSONObject()
+                .put("ok", true)
+                .put(
+                    "version",
+                    cached?.optString(
+                        "version",
+                        "pmd-mobile-history-v1",
+                    ) ?: "pmd-mobile-history-v1",
+                )
+                .put(
+                    "generated_at",
+                    cached?.optString("generated_at").orEmpty(),
+                )
+                .put("scope", if (showAll) "all" else "selected")
+                .put("table_id", selectedTableId ?: JSONObject.NULL)
+                .put("entries", entries)
+                .toString()
+        }
+
+        @JavascriptInterface
+        fun image(itemId: String): String =
+            app.offlineImageCache.dataUriForItem(itemId.trim())
+
         @JavascriptInterface
         fun addItem(
             tableId: String,
