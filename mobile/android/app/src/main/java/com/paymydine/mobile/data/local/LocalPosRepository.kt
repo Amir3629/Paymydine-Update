@@ -1608,6 +1608,29 @@ class LocalPosRepository(private val database: PmdDatabase) {
             meta.put("server_updated_at", order.optString("updated_at"))
             meta.put("edge_provisional", false)
             meta.put("base_total_minor", totalMinor)
+            if (order.has("settled_amount")) {
+                meta.put(
+                    "settled_amount_minor",
+                    moneyToMinor(
+                        order.optDouble("settled_amount", 0.0),
+                        localMinorExponent(),
+                    ),
+                )
+            }
+            if (order.has("settlement_status")) {
+                meta.put(
+                    "settlement_status",
+                    order.optString("settlement_status"),
+                )
+            }
+            if (
+                eventCommandId.isNotBlank() &&
+                eventCommandId == meta.optString("offline_cash_command_id")
+            ) {
+                meta.remove("offline_cash_command_id")
+                meta.remove("offline_cash_queued_minor")
+                meta.remove("reconciliation_error")
+            }
             if (eventCommandId.isNotBlank()) {
                 meta.put("last_command_id", eventCommandId)
             }
