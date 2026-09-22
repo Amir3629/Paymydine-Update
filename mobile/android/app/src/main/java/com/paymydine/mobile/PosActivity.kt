@@ -283,7 +283,23 @@ class PosActivity : ComponentActivity() {
 
                     if (sameTenant) {
                         if (uri.path == "/admin/login") {
-                            openCanonicalPos(current, host, token)
+                            // PMD_ANDROID_POS_LOGIN_LOOP_GUARD_V10
+                            // A redirect back to Login means the server did not
+                            // create/accept the POS Admin session. Never recurse
+                            // into /mobile/pos/open from the same WebView cookie.
+                            app.credentials.clearStaffSession()
+                            startActivity(
+                                Intent(
+                                    this@PosActivity,
+                                    MainActivity::class.java,
+                                ).apply {
+                                    addFlags(
+                                        Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                                            Intent.FLAG_ACTIVITY_SINGLE_TOP,
+                                    )
+                                },
+                            )
+                            finish()
                             return true
                         }
                         return false
@@ -506,8 +522,17 @@ class PosActivity : ComponentActivity() {
             }
         }
 
-        view.post {
-            openCanonicalPos(view, host, token)
+        // PMD_ANDROID_FRESH_WEB_SESSION_V10
+        // The native Staff Grant is the authority for a new WebView Admin
+        // session. Remove only old session cookies so a previous cashier/owner
+        // browser session cannot contaminate this bootstrap request.
+        CookieManager.getInstance().removeSessionCookies {
+            CookieManager.getInstance().flush()
+            view.post {
+                if (view === webView && !isFinishing) {
+                    openCanonicalPos(view, host, token)
+                }
+            }
         }
     }
 
