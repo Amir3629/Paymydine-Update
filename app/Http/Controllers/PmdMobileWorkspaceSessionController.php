@@ -38,9 +38,23 @@ final class PmdMobileWorkspaceSessionController extends Controller
 
         $roles = app(PmdDefaultStaffRoleService::class);
         $route = $roles->routeForRoleCode($roleCode);
-        $destination = strtolower(trim(
+
+        // PMD_MOBILE_SIGNED_DESTINATION_AUTHORITY_V12
+        // New Staff Grants bind workspace/staff destination cryptographically.
+        // Query fallback exists only for older 0.3.4 grants that did not carry
+        // the claim.
+        $signedDestination = strtolower(trim(
+            (string)($identity['destination'] ?? '')
+        ));
+        $requestedDestination = strtolower(trim(
             (string)$request->query('destination', 'workspace')
         ));
+        $destination = in_array(
+            $signedDestination,
+            ['workspace', 'staff'],
+            true
+        ) ? $signedDestination : $requestedDestination;
+
         if (!in_array($destination, ['workspace', 'staff'], true)) {
             abort(404, 'This PayMyDine Android destination is not available.');
         }
