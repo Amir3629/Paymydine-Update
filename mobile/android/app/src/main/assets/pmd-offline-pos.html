@@ -11,7 +11,10 @@
     .pmd-offline-pill i{width:7px;height:7px;border-radius:50%;background:#f97316}
     .pmd-offline-toast{position:fixed;left:50%;bottom:18px;z-index:120;transform:translateX(-50%);max-width:min(680px,calc(100% - 36px));padding:11px 15px;border-radius:12px;background:#111827;color:#fff;font-size:12px;font-weight:700;box-shadow:0 18px 45px rgba(0,0,0,.22);display:none}
     .pmd-offline-toast.is-visible{display:block}
-    .pmd-qpos-product-image{display:none}.pmd-qpos-product{min-height:86px}
+    /* PMD_ANDROID_OFFLINE_IMAGES_V16 */
+    .pmd-qpos-product{min-height:154px}
+    .pmd-qpos-product-image{display:block;background-size:cover;background-position:center}
+    .pmd-qpos-product-image.is-placeholder{background-size:58% auto;background-repeat:no-repeat}
     .pmd-qpos-profile-dock{padding:9px 10px;border-top:1px solid var(--q-line);display:flex;gap:8px;align-items:center}
     .pmd-qpos-profile{flex:1}.pmd-qpos-profile-button,.pmd-qpos-back-button{width:100%;min-height:44px;border:1px solid var(--q-line);background:#fff;border-radius:10px;color:#374151;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:800;font-size:11px}
     .pmd-qpos-profile-button span{width:25px;height:25px;border-radius:50%;background:#064e3b;color:#fff;display:grid;place-items:center}
@@ -20,6 +23,23 @@
     .pmd-qpos-profile-menu button{margin-top:10px;width:100%;height:38px;border:1px solid var(--q-line);border-radius:8px;background:#fff;font-weight:800}
     .pmd-qpos-local-meta{font-size:10px;color:var(--q-muted);padding:0 12px 7px}
     .pmd-qpos-product footer span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    /* PMD_ANDROID_OFFLINE_HISTORY_UI_V16 */
+    .pmd-offline-history-meta{display:flex;align-items:center;gap:7px;color:var(--q-muted);font-size:11px;font-weight:750}
+    .pmd-offline-history-meta i{width:7px;height:7px;border-radius:50%;background:#f97316}
+    .pmd-offline-history-order{width:100%;display:grid;gap:7px;padding:13px 14px;border:0;border-bottom:1px solid var(--q-line);background:#fff;text-align:left;color:inherit;cursor:pointer}
+    .pmd-offline-history-order:hover,.pmd-offline-history-order.is-active{background:#ecfdf5}
+    .pmd-offline-history-order>div{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .pmd-offline-history-order strong{font-size:14px;color:#111827}
+    .pmd-offline-history-order time{font-size:10px;color:var(--q-muted)}
+    .pmd-offline-history-order p{margin:0;color:#4b5563;font-size:11px;line-height:1.45}
+    .pmd-offline-history-order span{font-size:11px;font-weight:850;color:#064e3b}
+    .pmd-offline-history-detail-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:18px}
+    .pmd-offline-history-detail-head h3{margin:3px 0 0;font-size:23px;color:#111827}
+    .pmd-offline-history-detail-head strong{font-size:20px;color:#064e3b}
+    .pmd-offline-history-block{margin-top:15px;padding-top:14px;border-top:1px solid var(--q-line)}
+    .pmd-offline-history-block>strong{display:block;margin-bottom:8px;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--q-muted)}
+    .pmd-offline-history-line{display:flex;justify-content:space-between;gap:12px;padding:6px 0;font-size:12px}
+    .pmd-offline-history-note{padding:8px 10px;margin:6px 0;border-radius:9px;background:#f8fafc;font-size:12px;line-height:1.45}
   </style>
 </head>
 <body class="pmd-qpos-body">
@@ -94,6 +114,30 @@
   </main>
 </div>
 
+<div class="pmd-qpos-modal pmd-qpos-workspace-modal" data-qpos-history-modal aria-hidden="true">
+  <div class="pmd-qpos-modal-card pmd-qpos-history-card">
+    <header>
+      <div><span class="pmd-qpos-section-label">History</span><h2 data-qpos-history-title>History</h2></div>
+      <button type="button" class="pmd-qpos-modal-close" data-qpos-history-close>×</button>
+    </header>
+    <div class="pmd-qpos-history-toolbar">
+      <div class="pmd-qpos-history-scope">
+        <button type="button" class="is-active" data-qpos-history-scope="selected">Selected</button>
+        <button type="button" data-qpos-history-scope="all">All tables</button>
+      </div>
+      <div class="pmd-offline-history-meta"><i></i><span>Cached on this tablet · read-only offline</span></div>
+    </div>
+    <div class="pmd-qpos-history-layout">
+      <div class="pmd-qpos-history-list" data-qpos-history-list>
+        <div class="pmd-qpos-history-empty">Open History to read the cached restaurant snapshot.</div>
+      </div>
+      <aside class="pmd-qpos-history-detail" data-qpos-history-detail>
+        <div class="pmd-qpos-history-empty">Select an order to see items, payments and notes.</div>
+      </aside>
+    </div>
+  </div>
+</div>
+
 <div class="pmd-qpos-modal" data-modifier aria-hidden="true">
   <div class="pmd-qpos-modal-card pmd-qpos-modifier-card">
     <header><div><span class="pmd-qpos-section-label">Item</span><h2 data-mod-name>Product</h2></div><button class="pmd-qpos-modal-close" data-mod-close>×</button></header>
@@ -107,7 +151,7 @@
 <script>
 (function(){
 'use strict';
-var state={snapshot:null,selectedTable:null,search:'',category:'all',modifier:null,selectedOptions:{}};
+var state={snapshot:null,selectedTable:null,search:'',category:'all',modifier:null,selectedOptions:{},images:{},history:null,historyScope:'selected',historySelectedOrder:null};
 function el(q){return document.querySelector(q)}
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]})}
 function money(minor,currency){
@@ -119,6 +163,83 @@ function bridge(method){
   if(!window.PayMyDineOffline||typeof window.PayMyDineOffline[method]!=='function')throw new Error('Local POS bridge unavailable');
   var args=[].slice.call(arguments,1);
   return window.PayMyDineOffline[method].apply(window.PayMyDineOffline,args);
+}
+function localImage(item){
+  var id=String(item&&item.id||'');if(!id)return '';
+  if(Object.prototype.hasOwnProperty.call(state.images,id))return state.images[id];
+  try{state.images[id]=String(bridge('image',id)||'')}catch(e){state.images[id]=''}
+  return state.images[id];
+}
+function historyTime(value){
+  var raw=String(value||'').trim();if(!raw)return '';
+  var d=new Date(raw.replace(' ','T'));if(isNaN(d.getTime()))return raw;
+  return d.toLocaleString([],{month:'short',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+}
+function historyMoney(value){
+  return money(Math.round((Number(value)||0)*100),(state.snapshot&&state.snapshot.currency)||'EUR');
+}
+function closeHistory(){
+  var modal=el('[data-qpos-history-modal]');modal.classList.remove('is-open');modal.setAttribute('aria-hidden','true');
+}
+function loadHistory(scope){
+  state.historyScope=scope||state.historyScope||'selected';
+  try{
+    state.history=JSON.parse(bridge('history',state.historyScope,state.selectedTable||''));
+    renderHistory();
+  }catch(e){
+    state.history={entries:[]};
+    var list=el('[data-qpos-history-list]');
+    list.innerHTML='<div class="pmd-qpos-history-empty is-error">'+esc(e.message||'Cached history could not be read.')+'</div>';
+  }
+}
+function openHistory(){
+  var modal=el('[data-qpos-history-modal]');
+  modal.classList.add('is-open');modal.setAttribute('aria-hidden','false');
+  loadHistory(state.historyScope);
+}
+function renderHistory(){
+  var entries=(state.history&&state.history.entries)||[],list=el('[data-qpos-history-list]');
+  $historyScopes();
+  el('[data-qpos-history-title]').textContent=state.historyScope==='all'?'All history':(state.selectedTable?'Table '+state.selectedTable+' history':'Selected history');
+  if(!entries.length){
+    list.innerHTML='<div class="pmd-qpos-history-empty">'+(state.historyScope==='selected'&&!state.selectedTable?'Select a table to see its cached history.':'No cached history in this scope yet.')+'</div>';
+    state.historySelectedOrder=null;renderHistoryDetail(0);return;
+  }
+  if(!entries.some(function(row){return Number(row.order_id||0)===Number(state.historySelectedOrder||0)}){
+    state.historySelectedOrder=Number(entries[0].order_id||0)||null;
+  }
+  list.innerHTML=entries.map(function(row){
+    var id=Number(row.order_id||0),active=id===Number(state.historySelectedOrder||0);
+    var meta=[String(row.status||''),String(row.settlement_status||''),String(row.item_summary||'')].filter(Boolean).join(' · ');
+    return '<button type="button" class="pmd-offline-history-order'+(active?' is-active':'')+'" data-offline-history-order="'+esc(id)+'">'+
+      '<div><strong>#'+esc(id)+'</strong><span>'+esc(historyMoney(row.total))+'</span></div>'+
+      '<p>'+esc(meta||'Order')+'</p><time>'+esc(historyTime(row.time))+'</time></button>';
+  }).join('');
+  list.querySelectorAll('[data-offline-history-order]').forEach(function(button){
+    button.onclick=function(){state.historySelectedOrder=Number(button.getAttribute('data-offline-history-order')||0);renderHistory()};
+  });
+  renderHistoryDetail(state.historySelectedOrder);
+}
+function $historyScopes(){
+  document.querySelectorAll('[data-qpos-history-scope]').forEach(function(button){
+    button.classList.toggle('is-active',button.getAttribute('data-qpos-history-scope')===state.historyScope);
+  });
+}
+function renderHistoryDetail(orderId){
+  var detail=el('[data-qpos-history-detail]'),entries=(state.history&&state.history.entries)||[];
+  var row=entries.find(function(item){return Number(item.order_id||0)===Number(orderId||0)});
+  if(!row){detail.innerHTML='<div class="pmd-qpos-history-empty">Select an order to see items, payments and notes.</div>';return}
+  var items=(row.items||[]),payments=(row.payments||[]),notes=(row.notes||[]);
+  detail.innerHTML='<div class="pmd-offline-history-detail-head"><div><span class="pmd-qpos-section-label">Order</span><h3>#'+esc(row.order_id)+'</h3><small>'+esc(historyTime(row.time))+'</small></div><strong>'+esc(historyMoney(row.total))+'</strong></div>'+
+    '<div class="pmd-offline-history-block"><strong>Items</strong>'+
+      (items.length?items.map(function(item){return '<div class="pmd-offline-history-line"><span>'+esc((item.quantity||1)+'× '+(item.name||'Item'))+'</span><small>'+esc(item.note||'')+'</small></div>'}).join(''):'<div class="pmd-qpos-history-empty">No item detail cached.</div>')+
+    '</div>'+
+    '<div class="pmd-offline-history-block"><strong>Payments</strong>'+
+      (payments.length?payments.map(function(payment){return '<div class="pmd-offline-history-line"><span>'+esc(String(payment.method||'Payment').replace(/_/g,' '))+'</span><b>'+esc(historyMoney(payment.amount))+'</b></div>'}).join(''):'<div class="pmd-qpos-history-empty">No payment recorded in this cached order.</div>')+
+    '</div>'+
+    '<div class="pmd-offline-history-block"><strong>Notes</strong>'+
+      (notes.length?notes.map(function(note){return '<div class="pmd-offline-history-note">'+esc(note)+'</div>'}).join(''):'<div class="pmd-qpos-history-empty">No notes.</div>')+
+    '</div>';
 }
 function read(){
   try{state.snapshot=JSON.parse(bridge('snapshot',state.selectedTable||''));state.selectedTable=state.snapshot.selected_table_id||state.selectedTable;render()}
@@ -153,7 +274,14 @@ function renderProducts(){
   host.innerHTML='';
   if(!state.selectedTable){host.innerHTML='<div class="pmd-qpos-no-products">Select a table first</div>';return}
   if(!menu.length){host.innerHTML='<div class="pmd-qpos-no-products">No products</div>';return}
-  menu.forEach(function(i){var b=document.createElement('button');b.type='button';b.className='pmd-qpos-product';b.innerHTML='<strong>'+esc(i.name)+'</strong><footer><span>'+esc((i.payload&&i.payload.category_names||[])[0]||'')+'</span><b>'+esc(money(i.price_minor,i.currency))+'</b></footer>';b.onclick=function(){beginAdd(i)};host.appendChild(b)});
+  menu.forEach(function(i){
+    var b=document.createElement('button'),image=localImage(i),category=(i.payload&&i.payload.category_names||[])[0]||'';
+    b.type='button';b.className='pmd-qpos-product';
+    b.innerHTML=(image?'<div class="pmd-qpos-product-image" style="background-image:url(&quot;'+esc(image)+'&quot;)"></div>':'<div class="pmd-qpos-product-image is-placeholder" aria-hidden="true"></div>')+
+      '<span class="pmd-qpos-product-body"><strong class="pmd-qpos-product-name"><span>'+esc(i.name)+'</span></strong>'+
+      '<span class="pmd-qpos-product-meta"><span>'+esc(category)+'</span><b>'+esc(money(i.price_minor,i.currency))+'</b></span></span>';
+    b.onclick=function(){beginAdd(i)};host.appendChild(b)
+  });
 }
 function beginAdd(item){
   var options=(item.payload&&item.payload.options)||[];
@@ -213,7 +341,11 @@ el('[data-note]').addEventListener('change',function(){var d=state.snapshot&&sta
 el('[data-hold]').onclick=function(){mutate('queueOrder',state.selectedTable||'',true)};
 el('[data-send]').onclick=function(){mutate('queueOrder',state.selectedTable||'',false)};
 el('[data-pay]').onclick=function(){if(state.snapshot&&state.snapshot.cloud_available)bridge('tryCloud');else toast('Payments require PayMyDine Cloud.')};
-el('[data-history]').onclick=function(){toast('Full order history requires PayMyDine Cloud. Open checks remain visible from the local snapshot.')};
+el('[data-history]').onclick=openHistory;
+el('[data-qpos-history-close]').onclick=closeHistory;
+document.querySelectorAll('[data-qpos-history-scope]').forEach(function(button){
+  button.onclick=function(){loadHistory(button.getAttribute('data-qpos-history-scope')||'selected')};
+});
 el('[data-profile]').onclick=function(){var m=el('[data-profile-menu]');m.hidden=!m.hidden};
 el('[data-workspaces]').onclick=function(){bridge('workspaces')};
 el('[data-mod-close]').onclick=closeMod;el('[data-mod-add]').onclick=addModified;
