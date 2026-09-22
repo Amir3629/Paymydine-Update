@@ -22,8 +22,21 @@ data class PairStatusResult(
     val deviceName: String?,
 )
 
+data class PairRequestResult(
+    val status: String,
+    val requestCode: String?,
+)
+
+data class StaffLoginRequestResult(
+    val status: String,
+    val loginRequest: String?,
+    val requestCode: String?,
+    val authorization: WorkspaceAuthorizationResult?,
+)
+
 data class WorkspaceAuthorizationResult(
     val surface: String,
+    val destination: String,
     val username: String,
     val staffName: String,
     val userId: Long,
@@ -32,6 +45,7 @@ data class WorkspaceAuthorizationResult(
     val route: String,
     val staffGrant: String,
     val leaseExpiresAt: Long,
+    val offlineExpiresAt: Long,
 )
 
 class MobileApiException(
@@ -40,6 +54,53 @@ class MobileApiException(
 ) : IOException(message)
 
 class MobileApiClient(private val staffGrant: String? = null) {
+    /** PMD_ANDROID_NATIVE_PAIR_REQUEST_V12 */
+    fun requestPairing(
+        tenantBaseUrl: String,
+        pairRequest: String,
+        codeChallenge: String,
+        deviceName: String,
+        username: String,
+        password: String,
+    ): PairRequestResult {
+        val base = trustedTenantBase(tenantBaseUrl)
+        val body = JSONObject()
+            .put("pair_request", pairRequest)
+            .put("code_challenge", codeChallenge)
+            .put("device_name", deviceName)
+            .put("username", username.trim())
+            .put("password", password)
+            .toString()
+
+        val json = JSONObject(
+            request(
+                url = URL(
+                    base.toString().trimEnd('/') +
+                        "/admin/api/mobile/v1/pair/request",
+                ),
+                method = "POST",
+                token = null,
+                body = body,
+            ),
+        )
+
+        if (!json.optBoolean("ok")) {
+            throw IOException("Pairing request was rejected.")
+        }
+
+        val status = json.optString("status").trim().lowercase()
+        require(status == "pending") {
+            "Pairing request status is invalid."
+        }
+
+        return PairRequestResult(
+            status = status,
+            requestCode = json.optString("request_code")
+                .filter(Char::isDigit)
+                .takeIf { it.length == 6 },
+        )
+    }
+
     fun pairStatus(
         tenantBaseUrl: String,
         pairRequest: String,
@@ -151,6 +212,55 @@ class MobileApiClient(private val staffGrant: String? = null) {
         }
     }
 
+    /** PMD_ANDROID_CANONICAL_LOGIN_WAIT_CLIENT_V12 */
+    fun requestStaffLogin(
+        tenantHost: String,
+        deviceToken: String,
+        username: String,
+        password: String,
+    ): StaffLoginRequestResult {
+        val base = trustedTenantBase("https://$tenantHost")
+        val json = JSONObject(
+            request(
+                url = URL(
+                    base.toString().trimEnd('/') +
+                        "/admin/api/mobile/v1/workspace/request",
+                ),
+                method = "POST",
+                token = deviceToken,
+                body = JSONObject()
+                    .put("username", username.trim())
+                    .put("password", password)
+                    .toString(),
+            ),
+        )
+
+        return parseStaffLoginRequest(json)
+    }
+
+    fun staffLoginStatus(
+        tenantHost: String,
+        deviceToken: String,
+        loginRequest: String,
+    ): StaffLoginRequestResult {
+        val base = trustedTenantBase("https://$tenantHost")
+        val json = JSONObject(
+            request(
+                url = URL(
+                    base.toString().trimEnd('/') +
+                        "/admin/api/mobile/v1/workspace/status",
+                ),
+                method = "POST",
+                token = deviceToken,
+                body = JSONObject()
+                    .put("login_request", loginRequest)
+                    .toString(),
+            ),
+        )
+
+        return parseStaffLoginRequest(json)
+    }
+
     fun authorizeWorkspace(
         tenantHost: String,
         deviceToken: String,
@@ -221,8 +331,59 @@ class MobileApiClient(private val staffGrant: String? = null) {
             throw IOException("PayMyDine sign-in was rejected.")
         }
 
+        return parseAuthorization(json)
+    }
+
+    private fun parseStaffLoginRequest(
+        json: JSONObject,
+    ): StaffLoginRequestResult {
+        if (!json.optBoolean("ok")) {
+            throw IOException("PayMyDine sign-in was rejected.")
+        }
+
+        val status = json.optString("status").trim().lowercase()
+        require(status in setOf("pending", "authorized", "declined", "expired")) {
+            "PayMyDine sign-in status is invalid."
+        }
+
+        val authorization = if (status == "authorized") {
+            parseAuthorization(json)
+        } else {
+            null
+        }
+
+        return StaffLoginRequestResult(
+            status = status,
+            loginRequest = json.optString("login_request")
+                .trim()
+                .takeIf { it.isNotBlank() },
+            requestCode = json.optString("request_code")
+                .filter(Char::isDigit)
+                .takeIf { it.length == 6 },
+            authorization = authorization,
+        ).also {
+            if (status == "pending") {
+                require(!it.loginRequest.isNullOrBlank()) {
+                    "Restaurant approval request is incomplete."
+                }
+            }
+        }
+    }
+
+    private fun parseAuthorization(
+        json: JSONObject,
+    ): WorkspaceAuthorizationResult {
+        val leaseExpiresAt = json.optLong("lease_expires_at", 0L)
+        val offlineExpiresAt = json.optLong(
+            "offline_expires_at",
+            leaseExpiresAt,
+        )
+
         val result = WorkspaceAuthorizationResult(
             surface = json.optString("surface").trim().lowercase(),
+            destination = json.optString("destination", "workspace")
+                .trim()
+                .lowercase(),
             username = json.optString("username").trim(),
             staffName = json.optString("staff_name").trim(),
             userId = json.optLong("user_id", 0L),
@@ -230,16 +391,19 @@ class MobileApiClient(private val staffGrant: String? = null) {
             roleCode = json.optString("role_code").trim().lowercase(),
             route = json.optString("route").trim().trim('/'),
             staffGrant = json.optString("staff_grant").trim(),
-            leaseExpiresAt = json.optLong("lease_expires_at", 0L),
+            leaseExpiresAt = leaseExpiresAt,
+            offlineExpiresAt = offlineExpiresAt,
         )
 
         require(
             result.surface in setOf("pos", "kds", "reservations", "web") &&
+                result.destination in setOf("workspace", "staff") &&
                 result.username.isNotBlank() &&
                 result.roleCode.isNotBlank() &&
                 result.route.isNotBlank() &&
                 result.staffGrant.isNotBlank() &&
-                result.leaseExpiresAt > System.currentTimeMillis() / 1000L
+                result.leaseExpiresAt > System.currentTimeMillis() / 1000L &&
+                result.offlineExpiresAt > System.currentTimeMillis() / 1000L
         ) {
             "PayMyDine sign-in response is incomplete."
         }
