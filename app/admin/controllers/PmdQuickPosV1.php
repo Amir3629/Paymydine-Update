@@ -1625,6 +1625,64 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
     }
 
     /**
+     * PMD_QPOS_ACTIVE_VISIT_SCOPE_V71
+     *
+     * Payment completes a bill, not the physical table visit. While staff have
+     * not explicitly made the table Free, keep paid/settled checks visible in
+     * Quick POS for table overview. They remain financially/structurally locked.
+     */
+    protected function applyQuickPosActiveVisitScopeV71(
+        $query,
+        array $columns,
+        array $table
+    ): void {
+        $physicalStatus = strtolower(trim((string)(
+            $table['status']
+            ?? $table['operational_status']
+            ?? 'available'
+        )));
+
+        if (in_array($physicalStatus, ['', 'available', 'free'], true)) {
+            $this->applyQuickPosPayableScope($query, $columns);
+            return;
+        }
+
+        $cancelled = array_values(array_filter(array_map('intval', [
+            setting('canceled_order_status'),
+        ])));
+
+        if ($cancelled && in_array('status_id', $columns, true)) {
+            $query->whereNotIn('status_id', $cancelled);
+        }
+
+        $hiddenFinancialStates = [
+            'cancelled',
+            'canceled',
+            'refunded',
+            'void',
+            'voided',
+        ];
+
+        if (in_array('settlement_status', $columns, true)) {
+            $query->where(function ($q) use ($hiddenFinancialStates) {
+                $q->whereNull('settlement_status')
+                    ->orWhereNotIn(
+                        'settlement_status',
+                        $hiddenFinancialStates
+                    );
+            });
+        } elseif (in_array('payment_status', $columns, true)) {
+            $query->where(function ($q) use ($hiddenFinancialStates) {
+                $q->whereNull('payment_status')
+                    ->orWhereNotIn(
+                        'payment_status',
+                        $hiddenFinancialStates
+                    );
+            });
+        }
+    }
+
+    /**
      * PMD_QPOS_FAST_WHOLE_TABLE_IDS_V44
      *
      * Transfer validation only needs payable order IDs. Avoid hydrating
@@ -1674,7 +1732,11 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
         $query = DB::table('orders');
 
         $this->applyTableScope($query, $columns, $table);
-        $this->applyQuickPosPayableScope($query, $columns);
+        $this->applyQuickPosActiveVisitScopeV71(
+            $query,
+            $columns,
+            $table
+        );
 
         $primaryKey = in_array('order_id', $columns, true)
             ? 'order_id'
@@ -1925,8 +1987,18 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
             $value
         ) ?? $value;
 
+        /* PMD_QPOS_HIDE_INTERNAL_VOID_NOTE_V71
+         * Internal quantity-correction audit stays in audit/meta storage and
+         * never appears beneath a food item in Quick POS. */
+        $value = preg_replace(
+            '/(?:^|\\R)\\s*\\[VOID\\s+[0-9.]+\\]\\s*[^\\r\\n]*/iu',
+            '',
+            $value
+        ) ?? $value;
+
         $value = preg_replace('/\\s*\\|\\s*\\|\\s*/u', ' | ', $value) ?? $value;
-        $value = preg_replace('/\\s{2,}/u', ' ', $value) ?? $value;
+        $value = preg_replace('/[ \\t]{2,}/u', ' ', $value) ?? $value;
+        $value = preg_replace('/(?:\\R\\s*){2,}/u', "\\n", $value) ?? $value;
 
         return trim($value, " |\\t\\n\\r\\0\\x0B");
     }
