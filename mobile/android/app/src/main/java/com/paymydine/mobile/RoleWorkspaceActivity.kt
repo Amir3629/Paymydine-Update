@@ -204,7 +204,22 @@ class RoleWorkspaceActivity : ComponentActivity() {
                     request: WebResourceRequest,
                     response: WebResourceResponse,
                 ) {
-                    if (request.isForMainFrame && response.statusCode >= 400) {
+                    if (!request.isForMainFrame || response.statusCode < 400) {
+                        return
+                    }
+
+                    if (
+                        response.statusCode == 401 ||
+                        response.statusCode == 403
+                    ) {
+                        app.credentials.clearStaffSession()
+                        showMessage(
+                            "PayMyDine needs a fresh staff sign-in " +
+                                "(HTTP ${response.statusCode}).\n\n" +
+                                "Tap to return to Sign in.",
+                            returnHome = true,
+                        )
+                    } else {
                         showMessage(
                             "PayMyDine returned HTTP " +
                                 response.statusCode +
