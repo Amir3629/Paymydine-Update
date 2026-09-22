@@ -74,7 +74,13 @@ class SyncEngine(
                     delayMs = 5_000L,
                     reason = "Waiting for an earlier command on the same order.",
                 )
-                if (command.commandType != "KDS_STATUS_V1") {
+                if (
+                    command.aggregate == "order" &&
+                    command.commandType !in setOf(
+                        "KDS_STATUS_V1",
+                        "CASH_PAYMENT_V1",
+                    )
+                ) {
                     app.localPosRepository.markRetryForCommand(command)
                 }
                 blockedAggregates += command.aggregateId
@@ -90,7 +96,11 @@ class SyncEngine(
             // Cloud is reachable. Restaurant Edge must never invent those
             // financial side effects locally.
             if (
-                command.commandType == "CASH_PAYMENT_V1" &&
+                command.commandType in setOf(
+                    "CASH_PAYMENT_V1",
+                    "TABLE_STATE_V1",
+                    "TABLE_MOVE_V1",
+                ) &&
                 !app.connectivity.online.value
             ) {
                 app.syncRepository.defer(
@@ -109,7 +119,13 @@ class SyncEngine(
                     delayMs = 5_000L,
                     reason = "No trusted PayMyDine Cloud or Restaurant Edge authority is reachable.",
                 )
-                if (command.commandType != "KDS_STATUS_V1") {
+                if (
+                    command.aggregate == "order" &&
+                    command.commandType !in setOf(
+                        "KDS_STATUS_V1",
+                        "CASH_PAYMENT_V1",
+                    )
+                ) {
                     app.localPosRepository.markRetryForCommand(command)
                 }
                 allGood = false
@@ -127,6 +143,11 @@ class SyncEngine(
 
                 if (command.commandType == "KDS_STATUS_V1") {
                     app.kdsRepository.applyCommandResult(command, response)
+                } else if (command.aggregate == "table") {
+                    app.localPosRepository.applyTableCommandResult(
+                        command,
+                        response,
+                    )
                 } else if (provisional) {
                     app.localPosRepository.applyEdgeCommandResult(
                         command,
@@ -176,6 +197,11 @@ class SyncEngine(
                                 command,
                                 message,
                             )
+                        } else if (command.aggregate == "table") {
+                            app.localPosRepository.markTableCommandConflict(
+                                command,
+                                message,
+                            )
                         } else if (command.commandType != "KDS_STATUS_V1") {
                             app.localPosRepository.markConflictForCommand(
                                 command,
@@ -206,7 +232,13 @@ class SyncEngine(
                     delayMs = 5_000L,
                     reason = error.message ?: "Restaurant network is unavailable.",
                 )
-                if (command.commandType != "KDS_STATUS_V1") {
+                if (
+                    command.aggregate == "order" &&
+                    command.commandType !in setOf(
+                        "KDS_STATUS_V1",
+                        "CASH_PAYMENT_V1",
+                    )
+                ) {
                     app.localPosRepository.markRetryForCommand(command)
                 }
                 blockedAggregates += command.aggregateId
@@ -217,7 +249,13 @@ class SyncEngine(
                     delayMs = 10_000L,
                     reason = error.message ?: "Sync failed.",
                 )
-                if (command.commandType != "KDS_STATUS_V1") {
+                if (
+                    command.aggregate == "order" &&
+                    command.commandType !in setOf(
+                        "KDS_STATUS_V1",
+                        "CASH_PAYMENT_V1",
+                    )
+                ) {
                     app.localPosRepository.markRetryForCommand(command)
                 }
                 blockedAggregates += command.aggregateId
@@ -347,7 +385,11 @@ class SyncEngine(
         route: AuthorityRoute,
     ): JSONObject {
         if (
-            command.commandType == "CASH_PAYMENT_V1" &&
+            command.commandType in setOf(
+                "CASH_PAYMENT_V1",
+                "TABLE_STATE_V1",
+                "TABLE_MOVE_V1",
+            ) &&
             app.connectivity.online.value
         ) {
             return sendCloudCommand(host, token, command)
@@ -473,21 +515,29 @@ class SyncEngine(
                     createdAtMs = System.currentTimeMillis(),
                 )
 
-                if (
-                    app.syncRepository.applyEvent(event) &&
-                    event.aggregate == "order"
-                ) {
-                    if (event.eventType == "KDS_STATUS_CHANGED_V1") {
-                        app.kdsRepository.applyEvent(
-                            event.eventType,
-                            event.aggregateVersion,
-                            payload,
-                        )
-                    } else {
-                        app.localPosRepository.applyOrderEvent(
-                            payload,
-                            event.aggregateVersion,
-                        )
+                if (app.syncRepository.applyEvent(event)) {
+                    when (event.aggregate) {
+                        "order" -> {
+                            if (event.eventType == "KDS_STATUS_CHANGED_V1") {
+                                app.kdsRepository.applyEvent(
+                                    event.eventType,
+                                    event.aggregateVersion,
+                                    payload,
+                                )
+                            } else {
+                                app.localPosRepository.applyOrderEvent(
+                                    payload,
+                                    event.aggregateVersion,
+                                )
+                            }
+                        }
+                        "table" -> {
+                            app.localPosRepository.applyTableEvent(
+                                event.eventType,
+                                payload,
+                                event.aggregateVersion,
+                            )
+                        }
                     }
                 }
                 cursor = maxOf(cursor, event.sequence)
