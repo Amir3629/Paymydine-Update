@@ -5530,6 +5530,8 @@ function renderOpenChecks() {
           });
         }
 
+        var fiscalWarning = fiscalizationWarningV69(json);
+
         closePayment();
         finishPaidOrderUi();
 
@@ -5539,7 +5541,10 @@ function renderOpenChecks() {
           }, 0);
         }
 
-        toast('Paid');
+        toast(
+          fiscalWarning || 'Paid',
+          !!fiscalWarning
+        );
       } else {
         if (paidTableId) {
           setTimeout(function () {
@@ -5558,6 +5563,24 @@ function renderOpenChecks() {
       state.payment.submitting = false;
       renderPaymentTotals();
     }
+  }
+
+  /* PMD_GERMANY_FISCAL_NOTICE_V69
+   * Payment success and TSE success are intentionally separate. Never tell the
+   * cashier that a fiscalization failure means the card/cash payment failed. */
+  function fiscalizationWarningV69(payload) {
+    var fiscal = payload && payload.fiscalization
+      ? payload.fiscalization
+      : null;
+
+    if (!fiscal || fiscal.required !== true || fiscal.ok !== false) {
+      return '';
+    }
+
+    return String(
+      fiscal.message ||
+      'Payment recorded. TSE fiscalization requires reconciliation.'
+    );
   }
 
   /* PMD_QPOS_TERMINAL_TIP_RUNTIME_V46
@@ -5655,12 +5678,18 @@ function renderOpenChecks() {
           ? num(state.payment.terminalTipAmount, 0)
           : null;
 
+        var fiscalWarning = fiscalizationWarningV69(result);
+
         closePayment();
         finishPaidOrderUi();
         toast(
-          terminalTipPaid !== null && terminalTipPaid > 0.0001
-            ? 'Paid · Tip ' + money(terminalTipPaid)
-            : 'Paid'
+          fiscalWarning ||
+            (
+              terminalTipPaid !== null && terminalTipPaid > 0.0001
+                ? 'Paid · Tip ' + money(terminalTipPaid)
+                : 'Paid'
+            ),
+          !!fiscalWarning
         );
 
         if (terminalPaidTableId) {
