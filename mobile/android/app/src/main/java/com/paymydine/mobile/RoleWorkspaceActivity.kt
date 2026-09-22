@@ -141,15 +141,16 @@ class RoleWorkspaceActivity : ComponentActivity() {
 
                     if (sameTenant) {
                         if (uri.path == "/admin/login") {
-                            val ownerSecurity =
-                                app.credentials.staffSession()?.roleCode ==
-                                    "pmd-owner"
+                            val session = app.credentials.staffSession()
+                            val canonicalSecurity =
+                                session?.roleCode == "pmd-owner" ||
+                                    session?.destination == "staff"
 
-                            // PMD_ANDROID_OWNER_MFA_WEBVIEW_V2
-                            // Owner must be allowed to render the canonical
-                            // /admin/login MFA continuation. Re-opening the
-                            // mobile bootstrap here creates an infinite loop.
-                            if (ownerSecurity) {
+                            // PMD_ANDROID_CANONICAL_MFA_WEBVIEW_V12
+                            // Owner and usernameportal both use the real
+                            // /admin/login security continuation. Never recurse
+                            // those pages into mobile workspace bootstrap.
+                            if (canonicalSecurity) {
                                 return false
                             }
 
@@ -172,14 +173,17 @@ class RoleWorkspaceActivity : ComponentActivity() {
                         parsed?.host.equals(host, ignoreCase = true) &&
                         parsed?.path?.startsWith("/admin/") == true
                     ) {
-                        val ownerLogin =
+                        val session = app.credentials.staffSession()
+                        val canonicalSecurityLogin =
                             parsed.path == "/admin/login" &&
-                                app.credentials.staffSession()?.roleCode ==
-                                    "pmd-owner"
+                                (
+                                    session?.roleCode == "pmd-owner" ||
+                                        session?.destination == "staff"
+                                )
 
                         if (
                             parsed.path != "/admin/login" ||
-                            ownerLogin
+                            canonicalSecurityLogin
                         ) {
                             current.visibility = View.VISIBLE
                             status.visibility = View.GONE
@@ -269,8 +273,14 @@ class RoleWorkspaceActivity : ComponentActivity() {
         host: String,
         token: String,
     ) {
+        val destination = app.credentials.staffSession()
+            ?.destination
+            ?.takeIf { it == "staff" || it == "workspace" }
+            ?: "workspace"
+
         view.loadUrl(
-            "https://$host/admin/mobile/workspace/open?surface=auto",
+            "https://$host/admin/mobile/workspace/open" +
+                "?surface=auto&destination=$destination",
             buildMap {
                 put("Authorization", "Bearer $token")
                 put("X-PayMyDine-Android-Workspace", "auto")
