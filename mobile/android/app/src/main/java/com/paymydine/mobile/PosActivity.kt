@@ -25,6 +25,8 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
+import com.paymydine.mobile.hardware.customerdisplay.CustomerDisplayManager
+import com.paymydine.mobile.hardware.customerdisplay.PosCustomerDisplayJavascriptBridge
 import com.paymydine.mobile.sync.SyncEngine
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -73,6 +75,11 @@ class PosActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // PMD_ZCS_CUSTOMER_DISPLAY_V3
+        // The customer display belongs to this physical POS only.
+        customerDisplay = CustomerDisplayManager(this)
+        customerDisplay.showIdle()
 
         // PMD_ANDROID_OFFLINE_POS_AUTHORITY_V12
         val posAuthorized = if (app.connectivity.online.value) {
@@ -214,6 +221,9 @@ class PosActivity : ComponentActivity() {
 
     override fun onDestroy() {
         destroyWebView()
+        if (::customerDisplay.isInitialized) {
+            customerDisplay.close()
+        }
         super.onDestroy()
     }
 
@@ -273,6 +283,13 @@ class PosActivity : ComponentActivity() {
                     userAgentString + " PayMyDine-Android-POS/" + BuildConfig.VERSION_NAME
                 safeBrowsingEnabled = true
             }
+
+            // PMD_ZCS_CUSTOMER_DISPLAY_JS_BRIDGE_V3
+            // Display-only bridge; payment/card authority stays outside this interface.
+            addJavascriptInterface(
+                PosCustomerDisplayJavascriptBridge(customerDisplay),
+                "PayMyDineHardware",
+            )
 
             val cookieManager = CookieManager.getInstance()
             cookieManager.setAcceptCookie(true)
