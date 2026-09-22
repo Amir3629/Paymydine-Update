@@ -6,6 +6,7 @@ use Admin\Facades\AdminLocation;
 use Admin\Models\Menus_model;
 use Admin\Models\Orders_model;
 use Admin\Models\Tables_model;
+use Admin\Classes\PermissionManager;
 use Admin\Services\PmdDefaultStaffRoleService;
 use Admin\Services\PmdRoleLandingService;
 use Illuminate\Support\Facades\DB;
@@ -40,23 +41,44 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
             return false;
         }
 
+        /* PMD_QPOS_RAW_PAYMENT_AUTHORITY_V56
+         *
+         * Users_model::hasPermission() is intentionally route-aware because it
+         * also enforces PMD workspace boundaries. Payment authorization inside
+         * Quick POS must not recursively depend on that route-aware helper.
+         *
+         * Authorize from the authenticated user's real role and RAW role
+         * permission map instead. This keeps Cashier/Waiter/Manager/Owner and
+         * custom Admin.Orders/Admin.Payments roles valid while unrelated roles
+         * stay denied.
+         */
         try {
-            if ((bool)$user->hasPermission('Admin.Payments')) {
+            if (method_exists($user, 'isSuperUser') && $user->isSuperUser()) {
                 return true;
             }
         } catch (\Throwable $ignored) {
         }
 
+        $roleCode = '';
+        $roleName = '';
+
         try {
-            if ((bool)$user->hasPermission('Admin.Orders')) {
-                return true;
+            $roleService = app(PmdDefaultStaffRoleService::class);
+            $roleCode = strtolower(trim((string)$roleService->roleCodeForUser($user)));
+        } catch (\Throwable $ignored) {
+        }
+
+        try {
+            $staffRole = optional($user->staff)->role;
+            $roleName = strtolower(trim((string)($staffRole->name ?? '')));
+
+            if ($roleCode === '') {
+                $roleCode = strtolower(trim((string)($staffRole->code ?? '')));
             }
         } catch (\Throwable $ignored) {
         }
 
-        $role = strtolower(trim($this->quickPosRoleCode()));
-
-        return in_array($role, [
+        $operatorRoles = [
             PmdDefaultStaffRoleService::OWNER,
             PmdDefaultStaffRoleService::MANAGER,
             PmdDefaultStaffRoleService::CASHIER,
@@ -65,7 +87,42 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
             'manager',
             'cashier',
             'waiter',
-        ], true);
+        ];
+
+        if (
+            in_array($roleCode, $operatorRoles, true)
+            || in_array($roleName, ['owner', 'manager', 'cashier', 'waiter'], true)
+        ) {
+            return true;
+        }
+
+        try {
+            $rawPermissions = method_exists($user, 'getPermissions')
+                ? (array)$user->getPermissions()
+                : [];
+
+            if ($rawPermissions) {
+                $permissionManager = PermissionManager::instance();
+
+                if (
+                    $permissionManager->checkPermission(
+                        $rawPermissions,
+                        ['Admin.Payments'],
+                        true
+                    )
+                    || $permissionManager->checkPermission(
+                        $rawPermissions,
+                        ['Admin.Orders'],
+                        true
+                    )
+                ) {
+                    return true;
+                }
+            }
+        } catch (\Throwable $ignored) {
+        }
+
+        return false;
     }
 
     public function index($mode = 'cashier')
@@ -690,6 +747,7 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 'terminal_refresh_url' => '/admin/terminal-payments/attempts/{attempt}/refresh',
                 'table_state_url' => '/admin/pmd-waiter-table-states-v154/{table}',
                 'history_url' => '/admin/pos/history',
+                'attention_seen_url' => '/admin/pos/attention/{notification}/seen',
                 'transfer_url' => '/admin/pos/transfer',
             ],
         ];
@@ -2031,6 +2089,101 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
      * reads existing canonical order/payment/note/status tables only; no new
      * audit store is introduced.
      */
+    /**
+     * PMD_QPOS_ATTENTION_SEEN_V64
+     * Shared acknowledgement for customer Table Notes / Waiter Calls.
+     * One operator marking Seen updates the tenant notification row itself,
+     * so every other staff screen observes the same state.
+     */
+    public function markAttentionSeen($notificationId = null)
+    {
+        $user = $this->currentUser();
+        if (!$user) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Unauthenticated.',
+            ], 401);
+        }
+
+        $notificationId = (int)$notificationId;
+        if ($notificationId < 1 || !Schema::hasTable('notifications')) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Notification not found.',
+            ], 404);
+        }
+
+        $cols = Schema::getColumnListing('notifications');
+        $primaryKey = in_array('notification_id', $cols, true)
+            ? 'notification_id'
+            : (in_array('id', $cols, true) ? 'id' : null);
+
+        if (!$primaryKey) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Notification key is unavailable.',
+            ], 500);
+        }
+
+        $row = DB::table('notifications')
+            ->where($primaryKey, $notificationId)
+            ->first();
+
+        if (!$row) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Notification not found.',
+            ], 404);
+        }
+
+        $raw = (array)$row;
+        $type = strtolower(trim((string)($raw['type'] ?? '')));
+        if (!in_array($type, ['waiter_call', 'table_note'], true)) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Only Table Notes and Waiter Calls can be acknowledged here.',
+            ], 422);
+        }
+
+        $updates = [];
+        if (in_array('status', $cols, true)) {
+            $updates['status'] = 'seen';
+        }
+        if (in_array('seen_at', $cols, true)) {
+            $updates['seen_at'] = now();
+        }
+        if (in_array('updated_at', $cols, true)) {
+            $updates['updated_at'] = now();
+        }
+        if (in_array('acted_at', $cols, true)) {
+            $updates['acted_at'] = now();
+        }
+        if (in_array('acted_by', $cols, true)) {
+            $staffId = (int)(
+                $user->staff_id
+                ?? optional($user->staff)->staff_id
+                ?? 0
+            );
+            if ($staffId > 0) {
+                $updates['acted_by'] = $staffId;
+            }
+        }
+
+        if ($updates) {
+            DB::table('notifications')
+                ->where($primaryKey, $notificationId)
+                ->update($updates);
+        }
+
+        return response()->json([
+            'ok' => true,
+            'notification_id' => $notificationId,
+            'table_id' => (int)($raw['table_id'] ?? 0),
+            'type' => $type,
+            'status' => 'seen',
+        ]);
+    }
+
     public function history()
     {
         $scope = strtolower(trim((string)request()->query('scope', 'selected')));
@@ -2574,6 +2727,35 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                     $title = trim((string)($raw['title'] ?? ''));
                     $message = trim((string)($raw['message'] ?? ''));
                     $notificationTableId = (int)($raw['table_id'] ?? 0);
+                    $notificationId = (int)(
+                        $raw['notification_id']
+                        ?? $raw['id']
+                        ?? 0
+                    );
+                    $notificationStatus = strtolower(trim((string)(
+                        $raw['status'] ?? 'new'
+                    )));
+
+                    /* PMD_QPOS_HISTORY_NOTIFICATION_PAYLOAD_V64
+                     * Customer Table Notes / Waiter Calls commonly store the
+                     * human text inside payload, while message may be empty. */
+                    if ($message === '' && isset($raw['payload'])) {
+                        $payload = $raw['payload'];
+                        if (is_string($payload)) {
+                            $decoded = json_decode($payload, true);
+                            $payload = is_array($decoded) ? $decoded : [];
+                        } elseif (is_object($payload)) {
+                            $payload = (array)$payload;
+                        }
+
+                        if (is_array($payload)) {
+                            $message = trim((string)(
+                                $type === 'waiter_call'
+                                    ? ($payload['message'] ?? $payload['note'] ?? '')
+                                    : ($payload['note'] ?? $payload['message'] ?? '')
+                            ));
+                        }
+                    }
 
                     $entries[] = [
                         'kind' => $type === 'waiter_call'
@@ -2594,7 +2776,10 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                         'detail' => $message,
                         'order_id' => null,
                         'table_id' => $notificationTableId,
-                        'status' => (string)($raw['status'] ?? ''),
+                        'notification_id' => $notificationId ?: null,
+                        'status' => $notificationStatus,
+                        'is_new' => $notificationStatus === '' || $notificationStatus === 'new',
+                        'seen_at' => (string)($raw['seen_at'] ?? ''),
                         'priority' => (string)($raw['priority'] ?? ''),
                     ];
                 }
@@ -3370,6 +3555,7 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 'due_amount' => 0.0,
                 'waiter_calls' => 0,
                 'note_count' => 0,
+                'has_active_order' => false,
             ];
             $tableById[$id] = $table;
 
@@ -3395,10 +3581,20 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                     ? 'order_id'
                     : (in_array('id', $cols, true) ? 'id' : null);
 
-                if ($primaryKey && in_array('order_type', $cols, true)) {
+                if (
+                    $primaryKey
+                    && (
+                        in_array('order_type', $cols, true)
+                        || in_array('table_id', $cols, true)
+                        || in_array('location_table_id', $cols, true)
+                    )
+                ) {
                     $select = array_values(array_intersect([
                         $primaryKey,
                         'order_type',
+                        'table_id',
+                        'location_table_id',
+                        'status',
                         'order_total',
                         'total',
                         'settled_amount',
@@ -3437,19 +3633,31 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                     foreach ($rows as $row) {
                         $raw = (array)$row;
                         $ref = strtolower(trim((string)($raw['order_type'] ?? '')));
-                        if ($ref === '') {
-                            continue;
+
+                        // PMD_QPOS_DERIVED_BUSY_V62
+                        // Prefer the canonical table foreign key when present.
+                        // order_type remains a compatibility fallback for older data.
+                        $tableId = (int)(
+                            $raw['table_id']
+                            ?? $raw['location_table_id']
+                            ?? 0
+                        );
+
+                        if ($tableId > 0 && !isset($signals[$tableId])) {
+                            $tableId = 0;
                         }
 
-                        $tableId = 0;
-                        if (ctype_digit($ref)) {
-                            $numericRef = (int)$ref;
-                            if (isset($signals[$numericRef])) {
-                                $tableId = $numericRef;
+                        if ($tableId < 1 && $ref !== '') {
+                            if (ctype_digit($ref)) {
+                                $numericRef = (int)$ref;
+                                if (isset($signals[$numericRef])) {
+                                    $tableId = $numericRef;
+                                }
                             }
-                        }
-                        if ($tableId < 1) {
-                            $tableId = (int)($indexByKey[$ref] ?? 0);
+
+                            if ($tableId < 1) {
+                                $tableId = (int)($indexByKey[$ref] ?? 0);
+                            }
                         }
 
                         if ($tableId < 1 || isset($seen[$tableId])) {
@@ -3458,14 +3666,9 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                         $seen[$tableId] = true;
 
                         $tableRow = $tableById[$tableId] ?? [];
-                        $physical = strtolower(trim((string)(
-                            $tableRow['status'] ?? 'available'
-                        )));
-
-                        // Avoid stale financial badges on a physically free table.
-                        if ($physical === 'available') {
-                            continue;
-                        }
+                        $physical = $this->quickPosNormalizeTableStatus(
+                            (string)($tableRow['status'] ?? 'available')
+                        );
 
                         $total = (float)(
                             $raw['order_total']
@@ -3482,18 +3685,81 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                             ?? $raw['payment_status']
                             ?? ''
                         )));
+                        $orderStatus = strtolower(trim((string)(
+                            $raw['status'] ?? ''
+                        )));
 
-                        if (
-                            $settlement === 'paid'
-                            || $settlement === 'settled'
-                            || $settlement === 'closed'
+                        $closedSettlement = in_array(
+                            $settlement,
+                            [
+                                'paid',
+                                'settled',
+                                'closed',
+                                'cancelled',
+                                'canceled',
+                                'void',
+                                'voided',
+                                'refunded',
+                                'failed',
+                            ],
+                            true
+                        );
+
+                        $closedOrder = in_array(
+                            $orderStatus,
+                            [
+                                'paid',
+                                'settled',
+                                'closed',
+                                'completed',
+                                'complete',
+                                'cancelled',
+                                'canceled',
+                                'void',
+                                'voided',
+                                'refunded',
+                                'failed',
+                            ],
+                            true
+                        );
+
+                        $isPaid = (
+                            in_array($settlement, ['paid', 'settled', 'closed'], true)
                             || ($total > 0 && $remaining <= 0.005)
-                        ) {
-                            $signals[$tableId]['payment_state'] = 'paid';
-                        } elseif ($settled > 0.005) {
+                        );
+
+                        $hasActiveOrder = (
+                            !$closedSettlement
+                            && !$closedOrder
+                            && (
+                                $total > 0.005
+                                || in_array(
+                                    $orderStatus,
+                                    ['open', 'active', 'pending', 'received', 'in_progress'],
+                                    true
+                                )
+                                || in_array(
+                                    $settlement,
+                                    ['unpaid', 'partial', 'partially_paid', 'pending', 'open'],
+                                    true
+                                )
+                            )
+                        );
+
+                        if ($hasActiveOrder) {
+                            $signals[$tableId]['has_active_order'] = true;
+                        }
+
+                        // A released/free table must not inherit a stale Paid badge.
+                        // Open/partial orders are different: they derive Busy below.
+                        if ($isPaid) {
+                            if ($physical !== 'available') {
+                                $signals[$tableId]['payment_state'] = 'paid';
+                            }
+                        } elseif ($settled > 0.005 && $hasActiveOrder) {
                             $signals[$tableId]['payment_state'] = 'partial';
                             $signals[$tableId]['due_amount'] = $remaining;
-                        } elseif ($total > 0.005) {
+                        } elseif ($total > 0.005 && $hasActiveOrder) {
                             $signals[$tableId]['payment_state'] = 'due';
                             $signals[$tableId]['due_amount'] = $remaining;
                         }
@@ -3501,7 +3767,7 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                         $note = $this->quickPosVisibleNote(
                             (string)($raw['comment'] ?? '')
                         );
-                        if ($note !== '') {
+                        if ($hasActiveOrder && $note !== '') {
                             $signals[$tableId]['note_count']++;
                         }
                     }
@@ -3529,9 +3795,12 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                         ->whereIn('type', ['waiter_call', 'table_note']);
 
                     if (in_array('status', $cols, true)) {
+                        /* PMD_QPOS_ATTENTION_UNSEEN_ONLY_V64
+                         * "Seen" is a shared acknowledgement: once any operator
+                         * sees a Call/Note it stops blinking for everyone. */
                         $query->where(function ($q) {
                             $q->whereNull('status')
-                                ->orWhere('status', '!=', 'resolved');
+                                ->orWhereIn('status', ['new', 'in_progress']);
                         });
                     }
 
@@ -3570,12 +3839,43 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 'due_amount' => 0.0,
                 'waiter_calls' => 0,
                 'note_count' => 0,
+                'has_active_order' => false,
             ];
 
             $table['payment_state'] = (string)$signal['payment_state'];
             $table['due_amount'] = (float)$signal['due_amount'];
             $table['waiter_calls'] = (int)$signal['waiter_calls'];
             $table['note_count'] = (int)$signal['note_count'];
+            $table['has_active_order'] = (bool)$signal['has_active_order'];
+
+            /* PMD_QPOS_EFFECTIVE_BUSY_V62
+             * Available/Free becomes effectively Occupied when restaurant work is
+             * attached to the table: an active order, unresolved waiter call, or
+             * unresolved note. Reserved/Cleaning remain authoritative. */
+            $status = $this->quickPosNormalizeTableStatus(
+                (string)($table['status'] ?? 'available')
+            );
+
+            $busyReasons = [];
+            if ($table['has_active_order']) {
+                $busyReasons[] = 'active_order';
+            }
+            if ($table['waiter_calls'] > 0) {
+                $busyReasons[] = 'waiter_call';
+            }
+            if ($table['note_count'] > 0) {
+                $busyReasons[] = 'note';
+            }
+
+            if ($status === 'available' && $busyReasons) {
+                $table['status'] = 'occupied';
+                $table['derived_busy'] = true;
+                $table['derived_busy_reasons'] = $busyReasons;
+            } else {
+                $table['status'] = $status;
+                $table['derived_busy'] = false;
+                $table['derived_busy_reasons'] = [];
+            }
         }
         unset($table);
 
