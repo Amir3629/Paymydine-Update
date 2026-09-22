@@ -92,7 +92,11 @@ fun PayMyDineApp(app: PayMyDineApplication) {
                 !app.credentials.pairingVerifier().isNullOrBlank()
                     && !app.credentials.pairingRequest().isNullOrBlank()
                     && !app.credentials.tenantHost().isNullOrBlank() ->
-                    "Waiting for browser approval"
+                    if (app.credentials.pairingSubmitted()) {
+                        "Waiting for restaurant approval"
+                    } else {
+                        "Sign in to request connection"
+                    }
                 else ->
                     "Not paired"
             },
@@ -100,6 +104,9 @@ fun PayMyDineApp(app: PayMyDineApplication) {
     }
     var pairingAttempt by remember {
         mutableStateOf(app.credentials.pairingRequest().orEmpty())
+    }
+    var pairingRequestSubmitted by remember {
+        mutableStateOf(app.credentials.pairingSubmitted())
     }
     var bootstrapSummary by remember { mutableStateOf<BootstrapSummary?>(null) }
     var lastError by remember { mutableStateOf<String?>(null) }
@@ -224,6 +231,7 @@ fun PayMyDineApp(app: PayMyDineApplication) {
             ready ||
             !online ||
             pairingAttempt.isBlank() ||
+            !pairingRequestSubmitted ||
             !app.credentials.deviceToken().isNullOrBlank()
         ) {
             return@LaunchedEffect
@@ -241,7 +249,7 @@ fun PayMyDineApp(app: PayMyDineApplication) {
             return@LaunchedEffect
         }
 
-        pairingStatus = "Waiting for browser approval"
+        pairingStatus = "Waiting for restaurant approval"
         lastError = null
 
         while (
@@ -280,6 +288,7 @@ fun PayMyDineApp(app: PayMyDineApplication) {
                             .orEmpty()
                         bootstrapSummary = summary
                         pairingAttempt = ""
+                        pairingRequestSubmitted = false
                         pairingCode = null
                         pairingStatus = "Ready offline"
                         ready = true
@@ -306,6 +315,7 @@ fun PayMyDineApp(app: PayMyDineApplication) {
                 "expired" -> {
                     app.credentials.clearPairingAttempt()
                     pairingAttempt = ""
+                    pairingRequestSubmitted = false
                     pairingStatus = "Pairing expired"
                     lastError =
                         "The connection request expired. Tap Connect and try again."
@@ -316,6 +326,7 @@ fun PayMyDineApp(app: PayMyDineApplication) {
                     if (app.credentials.deviceToken().isNullOrBlank()) {
                         app.credentials.clearPairingAttempt()
                         pairingAttempt = ""
+                        pairingRequestSubmitted = false
                         pairingCode = null
                         pairingStatus = "Pairing expired"
                         lastError =
@@ -432,6 +443,7 @@ fun PayMyDineApp(app: PayMyDineApplication) {
             bootstrapSummary = summary
             paired = true
             pairingAttempt = ""
+            pairingRequestSubmitted = false
             pairingStatus = "Ready offline"
             ready = true
             SyncEngine.enqueueImmediate(app)
@@ -512,8 +524,11 @@ fun PayMyDineApp(app: PayMyDineApplication) {
                             roleCode = result.roleCode,
                             route = result.route,
                             surface = result.surface,
+                            destination = result.destination,
                             staffGrant = result.staffGrant,
                             expiresAtEpochSeconds = result.leaseExpiresAt,
+                            offlineExpiresAtEpochSeconds =
+                                result.offlineExpiresAt,
                         )
                         app.credentials.putStaffSession(session)
                         openStaffSession(session)
@@ -558,6 +573,38 @@ fun PayMyDineApp(app: PayMyDineApplication) {
                         )
                     }
                 }
+            } else if (pairingAttempt.isNotBlank()) {
+                val verifier = app.credentials.pairingVerifier().orEmpty()
+                val challenge = if (verifier.length in 43..128) {
+                    PairingPkce.challenge(verifier)
+                } else {
+                    ""
+                }
+
+                PmdPairLogin(
+                    app = app,
+                    online = online,
+                    pairRequest = pairingAttempt,
+                    codeChallenge = challenge,
+                    requestCode = pairingCode,
+                    waiting = pairingRequestSubmitted,
+                    errorMessage = lastError,
+                    onRequested = { result ->
+                        pairingCode = result.requestCode
+                        pairingRequestSubmitted = true
+                        app.credentials.setPairingSubmitted(true)
+                        pairingStatus = "Waiting for restaurant approval"
+                        lastError = null
+                    },
+                    onCancel = {
+                        app.credentials.clearPairingAttempt()
+                        pairingAttempt = ""
+                        pairingRequestSubmitted = false
+                        pairingCode = null
+                        pairingStatus = "Not paired"
+                        lastError = null
+                    },
+                )
             } else {
                 Onboarding(
                     tenantCode = tenantCode,
@@ -587,39 +634,11 @@ fun PayMyDineApp(app: PayMyDineApplication) {
                             app.credentials.setTenantHost(host)
                             app.credentials.putPairingVerifier(verifier)
                             app.credentials.setPairingRequest(requestId)
+                            app.credentials.setPairingSubmitted(false)
                             pairingAttempt = requestId
-                            pairingStatus = "Opening PayMyDine security..."
+                            pairingRequestSubmitted = false
+                            pairingStatus = "Sign in to request connection"
                             lastError = null
-
-                            val pairingUrl = Uri.parse(
-                                "https://$host/admin/mobile/pair/start",
-                            ).buildUpon()
-                                .appendQueryParameter(
-                                    "code_challenge",
-                                    challenge,
-                                )
-                                .appendQueryParameter(
-                                    "pair_request",
-                                    requestId,
-                                )
-                                .appendQueryParameter(
-                                    "device_name",
-                                    "PayMyDine Android · Restaurant App",
-                                )
-                                .build()
-
-                            runCatching {
-                                context.startActivity(
-                                    Intent(Intent.ACTION_VIEW, pairingUrl),
-                                )
-                            }.onFailure {
-                                app.credentials.clearPairingAttempt()
-                                pairingAttempt = ""
-                                pairingCode = null
-                                pairingStatus = "Pairing failed"
-                                lastError =
-                                    "No browser is available for secure PayMyDine sign-in."
-                            }
                         }
                     },
                 )
