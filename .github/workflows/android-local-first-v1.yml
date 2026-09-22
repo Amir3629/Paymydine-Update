@@ -89,6 +89,7 @@ jobs:
       - name: Safety contract
         shell: bash
         run: |
+          set -x
           set -euo pipefail
           bash -n deploy/pmd-android-operations-v18-direct-login-first-party.sh
           bash -n deploy/pmd-android-v18-first-party-download-hotfix.sh
