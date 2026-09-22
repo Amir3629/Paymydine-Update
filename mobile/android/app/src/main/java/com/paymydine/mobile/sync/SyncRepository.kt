@@ -7,6 +7,31 @@ import com.paymydine.mobile.data.local.PmdDatabase
 
 class SyncRepository(private val database: PmdDatabase) {
     fun enqueue(command: CommandEnvelope): Boolean = database.transaction { db ->
+        insertPending(db, command)
+    }
+
+    /**
+     * Multi-step POS intentions (for example Send -> Cash) must enter the
+     * outbox atomically. If either insert fails, SQLite rolls the whole
+     * transaction back so a partial financial sequence cannot be stranded.
+     */
+    fun enqueueOrdered(commands: List<CommandEnvelope>): Boolean {
+        if (commands.isEmpty()) return true
+
+        return database.transaction { db ->
+            commands.forEach { command ->
+                check(insertPending(db, command)) {
+                    "A PayMyDine command in this sequence is already queued."
+                }
+            }
+            true
+        }
+    }
+
+    private fun insertPending(
+        db: SQLiteDatabase,
+        command: CommandEnvelope,
+    ): Boolean {
         val values = ContentValues().apply {
             put("command_id", command.commandId)
             put("idempotency_key", command.idempotencyKey)
@@ -26,7 +51,7 @@ class SyncRepository(private val database: PmdDatabase) {
             put("next_retry_at_ms", 0)
         }
 
-        db.insertWithOnConflict(
+        return db.insertWithOnConflict(
             "pmd_outbox",
             null,
             values,
