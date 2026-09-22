@@ -464,7 +464,7 @@ class PosActivity : ComponentActivity() {
                         !app.connectivity.online.value &&
                         offlinePosAvailable()
                     ) {
-                        switchToOffline(
+                        enterLocalMode(
                             "Cloud connection was lost. Local POS is active.",
                         )
                         return
@@ -473,7 +473,7 @@ class PosActivity : ComponentActivity() {
                     if (!request.isForMainFrame) return
 
                     if (offlinePosAvailable()) {
-                        switchToOffline(
+                        enterLocalMode(
                             "Cloud connection was lost. Local POS is active.",
                         )
                     } else {
@@ -524,7 +524,7 @@ class PosActivity : ComponentActivity() {
 
                         response.statusCode >= 500 &&
                             offlinePosAvailable() ->
-                            switchToOffline(
+                            enterLocalMode(
                                 "PayMyDine Cloud is temporarily unavailable. Local POS is active.",
                             )
 
@@ -542,7 +542,7 @@ class PosActivity : ComponentActivity() {
                 ) {
                     handler.cancel()
                     if (offlinePosAvailable()) {
-                        switchToOffline(
+                        enterLocalMode(
                             "Secure Cloud connection could not be verified. Local POS is active.",
                         )
                     } else {
