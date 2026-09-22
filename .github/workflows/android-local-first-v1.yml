@@ -26,6 +26,7 @@ on:
       - 'deploy/pmd-android-v18-4-shared-device-pos-auth-hotfix.sh'
       - 'deploy/pmd-android-v18-5-mobile-session-reentry-hotfix.sh'
       - 'deploy/pmd-android-v18-6-final-session-authority.sh'
+      - 'deploy/pmd-android-v18-7-canonical-login-offline.sh'
   pull_request:
     branches: [main]
     paths:
@@ -96,6 +97,7 @@ jobs:
           bash -n deploy/pmd-android-v18-4-shared-device-pos-auth-hotfix.sh
           bash -n deploy/pmd-android-v18-5-mobile-session-reentry-hotfix.sh
           bash -n deploy/pmd-android-v18-6-final-session-authority.sh
+          bash -n deploy/pmd-android-v18-7-canonical-login-offline.sh
           grep -q "trustedDeviceByRawToken" app/Services/PmdSiteAccessService.php
           grep -q "rotateTrustedDeviceToken" app/Services/PmdSiteAccessService.php
           grep -q "pmd_sync_commands" app/system/database/migrations/2026_09_20_190000_create_pmd_mobile_sync_tables.php
@@ -182,6 +184,8 @@ jobs:
           grep -q "PMD_SITE_ACCESS_EXPLICIT_IDENTITY_CHALLENGE_V12" app/Services/PmdSiteAccessService.php
           grep -q "PMD_MOBILE_NATIVE_PAIR_DASHBOARD_WAIT_V12" app/Services/PmdMobileSync/PmdMobilePairingService.php
           grep -q "PMD_MOBILE_NATIVE_PAIR_REQUEST_V12" app/Http/Controllers/PmdMobilePairController.php
+          grep -q "PMD_ANDROID_POS_PREVIEW_V5_CANONICAL_LOGIN_OFFLINE" app/admin/views/pmdsettings/index.blade.php
+          grep -q "PayMyDine-Android-0.3.5.apk" app/admin/views/pmdsettings/index.blade.php
           grep -q "PMD_MOBILE_SIGNED_DESTINATION_AUTHORITY_V12" app/Http/Controllers/PmdMobileWorkspaceSessionController.php
           grep -q "PMD_MOBILE_PORTAL_CANONICAL_SECURITY_V12" app/Http/Controllers/PmdMobileWorkspaceSessionController.php
           grep -q "PMD_ANDROID_OFFLINE_SESSION_AUTHORITY_V12" mobile/android/app/src/main/java/com/paymydine/mobile/security/DeviceCredentialStore.kt
