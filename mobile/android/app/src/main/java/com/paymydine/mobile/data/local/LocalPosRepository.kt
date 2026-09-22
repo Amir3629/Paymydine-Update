@@ -651,6 +651,403 @@ class LocalPosRepository(private val database: PmdDatabase) {
         }
     }
 
+    fun buildTableStateCommand(
+        tableId: String,
+        status: String,
+        skipCleaning: Boolean,
+        tenantHost: String,
+        deviceId: String,
+        staffId: Long?,
+        userId: Long?,
+    ): CommandEnvelope {
+        val normalized = status.trim().lowercase()
+        require(normalized in setOf("available", "occupied", "cleaning", "reserved")) {
+            "Unsupported table status."
+        }
+
+        val row = database.readableDatabase.query(
+            "pmd_tables",
+            arrayOf("location_id", "version", "status"),
+            "id = ?",
+            arrayOf(tableId),
+            null,
+            null,
+            null,
+            "1",
+        ).use {
+            if (!it.moveToFirst()) error("Table is unavailable.")
+            Triple(it.getLong(0), it.getLong(1), it.getString(2))
+        }
+
+        return CommandEnvelope.create(
+            tenantHost = tenantHost,
+            locationId = row.first,
+            deviceId = deviceId,
+            staffId = staffId,
+            userId = userId,
+            aggregate = "table",
+            aggregateId = "table:$tableId",
+            baseVersion = row.second,
+            commandType = "TABLE_STATE_V1",
+            payloadJson = JSONObject()
+                .put("table_id", tableId.toLongOrNull() ?: error("Invalid table id."))
+                .put("status", normalized)
+                .put("reason", "android_local_pos")
+                .put("skip_cleaning", skipCleaning)
+                .put("previous_status", row.third)
+                .toString(),
+        )
+    }
+
+    fun markTableStateQueued(
+        tableId: String,
+        status: String,
+        commandId: String,
+    ) {
+        database.transaction { db ->
+            val raw = db.query(
+                "pmd_tables",
+                arrayOf("payload_json", "status"),
+                "id = ?",
+                arrayOf(tableId),
+                null,
+                null,
+                null,
+                "1",
+            ).use {
+                if (!it.moveToFirst()) error("Table is unavailable.")
+                it.getString(0) to it.getString(1)
+            }
+            val payload = runCatching {
+                JSONObject(raw.first)
+            }.getOrElse { JSONObject() }
+            payload.put("pending_table_command_id", commandId)
+            payload.put("pending_previous_status", raw.second)
+            payload.put("pending_status", status)
+
+            db.update(
+                "pmd_tables",
+                ContentValues().apply {
+                    put("status", status)
+                    put("payload_json", payload.toString())
+                    put("updated_at_ms", System.currentTimeMillis())
+                },
+                "id = ?",
+                arrayOf(tableId),
+            )
+        }
+    }
+
+    fun buildTableMoveCommand(
+        sourceTableId: String,
+        targetTableId: String,
+        scope: String,
+        tenantHost: String,
+        deviceId: String,
+        staffId: Long?,
+        userId: Long?,
+    ): CommandEnvelope {
+        val normalizedScope = scope.trim().lowercase()
+        require(normalizedScope in setOf("order", "table")) {
+            "Move scope must be order or table."
+        }
+        require(sourceTableId != targetTableId) {
+            "Choose a different destination table."
+        }
+        require(draftForTable(sourceTableId) == null) {
+            "Send the current cart before moving this table."
+        }
+
+        data class TableMeta(
+            val locationId: Long,
+            val version: Long,
+            val status: String,
+        )
+
+        fun tableMeta(id: String): TableMeta =
+            database.readableDatabase.query(
+                "pmd_tables",
+                arrayOf("location_id", "version", "status"),
+                "id = ?",
+                arrayOf(id),
+                null,
+                null,
+                null,
+                "1",
+            ).use {
+                if (!it.moveToFirst()) error("Table is unavailable.")
+                TableMeta(it.getLong(0), it.getLong(1), it.getString(2))
+            }
+
+        val source = tableMeta(sourceTableId)
+        val target = tableMeta(targetTableId)
+        require(source.locationId == target.locationId) {
+            "Tables belong to different restaurant locations."
+        }
+
+        val sourceBill = billForTable(sourceTableId)
+            ?: error("There is no open check to move.")
+        val orderId = sourceBill.serverId
+            ?.toLongOrNull()
+            ?.takeIf { it > 0 }
+            ?: error("Sync the open check before moving it.")
+
+        if (normalizedScope == "table") {
+            val uncanonical = database.readableDatabase.rawQuery(
+                """SELECT COUNT(*) FROM pmd_orders
+                   WHERE table_id = ? AND server_id IS NULL""",
+                arrayOf(sourceTableId),
+            ).use { if (it.moveToFirst()) it.getInt(0) else 0 }
+            require(uncanonical == 0) {
+                "Sync every local check before moving the whole table."
+            }
+        }
+
+        return CommandEnvelope.create(
+            tenantHost = tenantHost,
+            locationId = source.locationId,
+            deviceId = deviceId,
+            staffId = staffId,
+            userId = userId,
+            aggregate = "table",
+            aggregateId = "table:$sourceTableId",
+            baseVersion = source.version,
+            commandType = "TABLE_MOVE_V1",
+            payloadJson = JSONObject()
+                .put("source_table_id", sourceTableId.toLong())
+                .put("target_table_id", targetTableId.toLong())
+                .put("scope", normalizedScope)
+                .put(
+                    "order_id",
+                    if (normalizedScope == "order") orderId
+                    else JSONObject.NULL,
+                )
+                .put("source_status_before", source.status)
+                .put("target_status_before", target.status)
+                .toString(),
+        )
+    }
+
+    fun markTableMoveQueued(
+        sourceTableId: String,
+        targetTableId: String,
+        scope: String,
+        orderId: Long?,
+        commandId: String,
+    ) {
+        database.transaction { db ->
+            fun updateTable(
+                id: String,
+                status: String,
+                otherId: String,
+            ) {
+                val row = db.query(
+                    "pmd_tables",
+                    arrayOf("payload_json", "status"),
+                    "id = ?",
+                    arrayOf(id),
+                    null,
+                    null,
+                    null,
+                    "1",
+                ).use {
+                    if (!it.moveToFirst()) return
+                    it.getString(0) to it.getString(1)
+                }
+                val payload = runCatching {
+                    JSONObject(row.first)
+                }.getOrElse { JSONObject() }
+                payload.put("pending_table_command_id", commandId)
+                payload.put("pending_previous_status", row.second)
+                payload.put("pending_move_other_table", otherId)
+                db.update(
+                    "pmd_tables",
+                    ContentValues().apply {
+                        put("status", status)
+                        put("payload_json", payload.toString())
+                        put("updated_at_ms", System.currentTimeMillis())
+                    },
+                    "id = ?",
+                    arrayOf(id),
+                )
+            }
+
+            updateTable(sourceTableId, "available", targetTableId)
+            updateTable(targetTableId, "occupied", sourceTableId)
+
+            if (scope == "order" && orderId != null && orderId > 0) {
+                db.update(
+                    "pmd_orders",
+                    ContentValues().apply {
+                        put("table_id", targetTableId)
+                        put("updated_at_ms", System.currentTimeMillis())
+                    },
+                    "server_id = ?",
+                    arrayOf(orderId.toString()),
+                )
+            } else {
+                db.update(
+                    "pmd_orders",
+                    ContentValues().apply {
+                        put("table_id", targetTableId)
+                        put("updated_at_ms", System.currentTimeMillis())
+                    },
+                    "table_id = ?",
+                    arrayOf(sourceTableId),
+                )
+            }
+        }
+    }
+
+    fun applyTableCommandResult(
+        command: CommandEnvelope,
+        response: JSONObject,
+    ) {
+        val result = response.optJSONObject("result") ?: return
+        val version = response.optLong(
+            "aggregate_version",
+            command.baseVersion + 1,
+        )
+
+        if (command.commandType == "TABLE_STATE_V1") {
+            val tableId = result.optLong("table_id", 0L).toString()
+            val status = result.optString("status").trim().lowercase()
+            if (tableId == "0" || status.isBlank()) return
+            applyCanonicalTableState(tableId, status, version)
+            return
+        }
+
+        if (command.commandType == "TABLE_MOVE_V1") {
+            val sourceId = result.optLong("source_table_id", 0L).toString()
+            val targetId = result.optLong("target_table_id", 0L).toString()
+            if (sourceId == "0" || targetId == "0") return
+
+            applyCanonicalTableState(
+                sourceId,
+                result.optString("source_status", "available"),
+                version,
+            )
+            applyCanonicalTableState(
+                targetId,
+                result.optString("target_status", "occupied"),
+                null,
+            )
+        }
+    }
+
+    fun applyTableEvent(
+        eventType: String,
+        payload: JSONObject,
+        version: Long,
+    ) {
+        val table = payload.optJSONObject("table") ?: return
+        when (eventType) {
+            "TABLE_STATE_CHANGED_V1" -> {
+                val tableId = table.optLong("table_id", 0L)
+                val status = table.optString("status")
+                if (tableId > 0 && status.isNotBlank()) {
+                    applyCanonicalTableState(
+                        tableId.toString(),
+                        status,
+                        version,
+                    )
+                }
+            }
+            "TABLE_MOVED_V1" -> {
+                val sourceId = table.optLong("source_table_id", 0L)
+                val targetId = table.optLong("target_table_id", 0L)
+                if (sourceId > 0) {
+                    applyCanonicalTableState(
+                        sourceId.toString(),
+                        table.optString("source_status", "available"),
+                        version,
+                    )
+                }
+                if (targetId > 0) {
+                    applyCanonicalTableState(
+                        targetId.toString(),
+                        table.optString("target_status", "occupied"),
+                        null,
+                    )
+                }
+            }
+        }
+    }
+
+    fun markTableCommandConflict(
+        command: CommandEnvelope,
+        message: String,
+    ) {
+        val payload = runCatching {
+            JSONObject(command.payloadJson)
+        }.getOrElse { JSONObject() }
+
+        if (command.commandType == "TABLE_STATE_V1") {
+            val tableId = payload.optLong("table_id", 0L)
+            val previous = payload.optString(
+                "previous_status",
+                "available",
+            )
+            if (tableId > 0) {
+                revertTableState(
+                    tableId.toString(),
+                    previous,
+                    message,
+                )
+            }
+            return
+        }
+
+        if (command.commandType == "TABLE_MOVE_V1") {
+            val sourceId = payload.optLong("source_table_id", 0L)
+            val targetId = payload.optLong("target_table_id", 0L)
+            val sourceStatus = payload.optString(
+                "source_status_before",
+                "occupied",
+            )
+            val targetStatus = payload.optString(
+                "target_status_before",
+                "available",
+            )
+            if (sourceId > 0) {
+                revertTableState(
+                    sourceId.toString(),
+                    sourceStatus,
+                    message,
+                )
+            }
+            if (targetId > 0) {
+                revertTableState(
+                    targetId.toString(),
+                    targetStatus,
+                    message,
+                )
+            }
+
+            val scope = payload.optString("scope", "order")
+            val orderId = payload.optLong("order_id", 0L)
+            database.writableDatabase.update(
+                "pmd_orders",
+                ContentValues().apply {
+                    put("table_id", sourceId.toString())
+                    put("updated_at_ms", System.currentTimeMillis())
+                },
+                if (scope == "order" && orderId > 0) {
+                    "server_id = ?"
+                } else {
+                    "table_id = ?"
+                },
+                arrayOf(
+                    if (scope == "order" && orderId > 0) {
+                        orderId.toString()
+                    } else {
+                        targetId.toString()
+                    },
+                ),
+            )
+        }
+    }
+
     fun markQueued(localOrderId: String) {
         database.writableDatabase.update(
             "pmd_orders",
@@ -1233,6 +1630,87 @@ class LocalPosRepository(private val database: PmdDatabase) {
                 "pmd_order_lines",
                 "order_id = ?",
                 arrayOf(resolvedLocalId),
+            )
+        }
+    }
+
+    private fun applyCanonicalTableState(
+        tableId: String,
+        status: String,
+        version: Long?,
+    ) {
+        database.transaction { db ->
+            val raw = db.query(
+                "pmd_tables",
+                arrayOf("payload_json"),
+                "id = ?",
+                arrayOf(tableId),
+                null,
+                null,
+                null,
+                "1",
+            ).use {
+                if (it.moveToFirst()) it.getString(0) else "{}"
+            }
+            val payload = runCatching {
+                JSONObject(raw)
+            }.getOrElse { JSONObject() }
+            payload.remove("pending_table_command_id")
+            payload.remove("pending_previous_status")
+            payload.remove("pending_status")
+            payload.remove("pending_move_other_table")
+            payload.remove("reconciliation_error")
+
+            db.update(
+                "pmd_tables",
+                ContentValues().apply {
+                    put("status", status.trim().lowercase())
+                    if (version != null) put("version", version)
+                    put("payload_json", payload.toString())
+                    put("updated_at_ms", System.currentTimeMillis())
+                },
+                "id = ?",
+                arrayOf(tableId),
+            )
+        }
+    }
+
+    private fun revertTableState(
+        tableId: String,
+        status: String,
+        message: String,
+    ) {
+        database.transaction { db ->
+            val raw = db.query(
+                "pmd_tables",
+                arrayOf("payload_json"),
+                "id = ?",
+                arrayOf(tableId),
+                null,
+                null,
+                null,
+                "1",
+            ).use {
+                if (it.moveToFirst()) it.getString(0) else "{}"
+            }
+            val payload = runCatching {
+                JSONObject(raw)
+            }.getOrElse { JSONObject() }
+            payload.remove("pending_table_command_id")
+            payload.remove("pending_previous_status")
+            payload.remove("pending_status")
+            payload.remove("pending_move_other_table")
+            payload.put("reconciliation_error", message.take(1_000))
+
+            db.update(
+                "pmd_tables",
+                ContentValues().apply {
+                    put("status", status.trim().lowercase())
+                    put("payload_json", payload.toString())
+                    put("updated_at_ms", System.currentTimeMillis())
+                },
+                "id = ?",
+                arrayOf(tableId),
             )
         }
     }
