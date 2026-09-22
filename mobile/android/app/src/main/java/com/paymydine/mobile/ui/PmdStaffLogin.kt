@@ -19,6 +19,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import com.paymydine.mobile.PayMyDineApplication
 import com.paymydine.mobile.network.MobileApiClient
+import com.paymydine.mobile.network.MobileApiException
 import com.paymydine.mobile.network.PairRequestResult
 import com.paymydine.mobile.network.WorkspaceAuthorizationResult
 import com.paymydine.mobile.security.StaffSession
@@ -53,10 +54,11 @@ fun PmdStaffLogin(
     var error by remember { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
     var clearPassword by remember { mutableStateOf(false) }
+    var cloudUnavailable by remember { mutableStateOf(false) }
 
     val remembered = app.credentials.staffSession()
     val offlineAvailable =
-        !online &&
+        (!online || cloudUnavailable) &&
             remembered != null &&
             app.bootstrapRepository.hasBootstrap() &&
             app.credentials.offlineSessionValid(remembered.surface)
@@ -160,6 +162,7 @@ fun PmdStaffLogin(
 
             busy = true
             error = null
+            cloudUnavailable = false
             clearPassword = false
 
             scope.launch {
@@ -200,8 +203,11 @@ fun PmdStaffLogin(
                             error = "PayMyDine sign-in could not continue."
                         }
                     }
-                }.onFailure {
-                    error = it.message ?: "PayMyDine sign-in failed."
+                }.onFailure { failure ->
+                    cloudUnavailable =
+                        failure !is MobileApiException ||
+                            failure.statusCode >= 500
+                    error = failure.message ?: "PayMyDine sign-in failed."
                 }
             }
         },
