@@ -375,6 +375,8 @@
                                     data-has-access="{{ !empty($person['has_access']) ? '1' : '0' }}"
                                     data-username="{{ $person['username'] ?? '' }}"
                                     data-staff-role-id="{{ $person['staff_role_id'] ?? '' }}"
+                                    data-has-quick-pin="{{ !empty($person['has_quick_pin']) ? '1' : '0' }}"
+                                    data-access-role-code="{{ $person['access_role_code'] ?? '' }}"
                                 >
                                     {{ $person['name'] }}
                                 </button>

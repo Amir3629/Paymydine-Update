@@ -7,6 +7,7 @@ use Admin\Services\PmdDefaultStaffRoleService;
 use App\Services\PmdMobileSync\PmdMobileDeviceAuthService;
 use App\Services\PmdMobileSync\PmdMobileStaffGrantService;
 use App\Services\PmdSiteAccessService;
+use App\Services\PmdStaffPinService;
 use App\Services\PmdWorkSessionPolicyService;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
@@ -16,12 +17,12 @@ use Illuminate\Support\Facades\Hash;
 
 /**
  * PMD_ANDROID_STAFF_LOGIN_ROUTER_V4
- * PMD_ANDROID_PAIRED_DEVICE_PASSWORD_LOGIN_V13
+ * PMD_ANDROID_PAIRED_DEVICE_QUICK_PIN_V17
  *
- * Android has no workspace chooser. The one-time pairing approval establishes
- * restaurant-device trust. Every later dashboard/workspace switch requires the
- * staff member's canonical username/password, then the server resolves the same
- * PayMyDine role/destination and location boundary as the web platform.
+ * Android has no workspace chooser. One-time pairing establishes restaurant
+ * device trust. Operational staff then switch workspaces with their six-digit
+ * Quick PIN; Manager/Accountant and legacy clients may still use full
+ * username/password. Role, location and work-session policy remain server-side.
  *
  * Do not require a second restaurant approval for every sign-in on an already
  * paired Android device. Owner and usernameportal still continue through their
@@ -48,7 +49,7 @@ final class PmdMobileWorkspaceAuthController extends Controller
         );
     }
 
-    /** PMD_ANDROID_PAIRED_DEVICE_PASSWORD_REQUEST_V13 */
+    /** PMD_ANDROID_PAIRED_DEVICE_QUICK_PIN_REQUEST_V17 */
     public function request(
         Request $request,
         PmdMobileDeviceAuthService $deviceAuth
@@ -193,37 +194,64 @@ final class PmdMobileWorkspaceAuthController extends Controller
     ): array {
         $data = $request->validate([
             'surface' => ['nullable', 'string', 'in:pos,kds,reservations'],
-            'username' => ['required', 'string', 'max:191'],
-            'password' => ['required', 'string', 'min:6', 'max:191'],
+            'pin' => ['nullable', 'regex:/^[0-9]{6}$/'],
+            'username' => ['nullable', 'string', 'max:191'],
+            'password' => ['nullable', 'string', 'min:6', 'max:191'],
         ]);
 
+        // PMD_ANDROID_TRUSTED_DEVICE_QUICK_PIN_V17
+        // The bearer-authenticated paired device establishes restaurant trust
+        // before a human credential is evaluated.
         $deviceIdentity = $deviceAuth->authenticateDevice($request);
-        $typedUsername = trim((string)$data['username']);
-        if ($typedUsername === '') {
-            $this->fail(401, 'Username or password is incorrect.');
-        }
+        $locationId = (int)$deviceIdentity['location_id'];
 
-        [$lookupUsername, $destination] =
-            $this->canonicalLoginIdentity($typedUsername);
+        $pin = trim((string)($data['pin'] ?? ''));
+        $typedUsername = trim((string)($data['username'] ?? ''));
+        $password = (string)($data['password'] ?? '');
+        $usingQuickPin = $pin !== '';
+        $destination = 'workspace';
+        $pins = app(PmdStaffPinService::class);
 
-        $user = Users_model::query()
-            ->whereRaw('LOWER(username) = ?', [mb_strtolower($lookupUsername)])
-            ->first();
-        $staff = $user ? $user->staff : null;
-        $passwordHash = (string)($user->password ?? '');
+        if ($usingQuickPin) {
+            if (!$pins->ready()) {
+                $this->fail(401, 'Staff PIN is not available for this restaurant.');
+            }
 
-        if (
-            !$user
-            || !$staff
-            || !$this->activeUser($user, $staff)
-            || $passwordHash === ''
-            || !Hash::check((string)$data['password'], $passwordHash)
-        ) {
-            $this->fail(401, 'Username or password is incorrect.');
+            $user = $pins->userForPin($pin);
+            $staff = $user ? $user->staff : null;
+
+            if (!$user || !$staff || !$this->activeUser($user, $staff)) {
+                $this->fail(401, 'Staff PIN is incorrect.');
+            }
+        } else {
+            if ($typedUsername === '' || $password === '') {
+                $this->fail(401, 'Username or password is incorrect.');
+            }
+
+            [$lookupUsername, $destination] =
+                $this->canonicalLoginIdentity($typedUsername);
+
+            $user = Users_model::query()
+                ->whereRaw(
+                    'LOWER(username) = ?',
+                    [mb_strtolower($lookupUsername)]
+                )
+                ->first();
+            $staff = $user ? $user->staff : null;
+            $passwordHash = (string)($user->password ?? '');
+
+            if (
+                !$user
+                || !$staff
+                || !$this->activeUser($user, $staff)
+                || $passwordHash === ''
+                || !Hash::check($password, $passwordHash)
+            ) {
+                $this->fail(401, 'Username or password is incorrect.');
+            }
         }
 
         $grants = app(PmdMobileStaffGrantService::class);
-        $locationId = (int)$deviceIdentity['location_id'];
         if (!$grants->userMayUseLocation($user, $staff, $locationId)) {
             $this->fail(
                 403,
@@ -233,6 +261,39 @@ final class PmdMobileWorkspaceAuthController extends Controller
 
         $roles = app(PmdDefaultStaffRoleService::class);
         $roleCode = $roles->roleCodeForUser($user);
+
+        if ($usingQuickPin && !$pins->canUseRole($roleCode)) {
+            $this->fail(
+                403,
+                'This account requires full username and password sign-in.'
+            );
+        }
+
+        if ($usingQuickPin) {
+            try {
+                $activePerson = DB::table('pmd_operational_people')
+                    ->where('location_id', $locationId)
+                    ->where('staff_id', (int)$staff->getKey())
+                    ->where('is_active', 1)
+                    ->exists();
+            } catch (\Throwable $error) {
+                $activePerson = false;
+            }
+
+            if (!$activePerson) {
+                $this->fail(401, 'Staff PIN is incorrect.');
+            }
+
+            try {
+                $pins->touchUser((int)$user->getKey());
+            } catch (\Throwable $error) {
+                logger()->warning('PMD Android Quick PIN usage update failed', [
+                    'user_id' => (int)$user->getKey(),
+                    'message' => $error->getMessage(),
+                ]);
+            }
+        }
+
         $route = $destination === 'staff'
             ? 'mywork'
             : $roles->routeForRoleCode($roleCode);

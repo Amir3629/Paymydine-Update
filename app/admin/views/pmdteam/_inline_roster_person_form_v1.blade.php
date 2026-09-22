@@ -11,15 +11,6 @@
     $roles = collect($roles ?? []);
     $title = $isEdit ? 'Edit team member' : 'Add team member';
     $username = $member && $member->user ? (string)$member->user->username : '';
-    $hasQuickPin = false;
-    if ($member && $member->user) {
-        try {
-            $hasQuickPin = app(\App\Services\PmdStaffPinService::class)
-                ->hasPinForUser((int)$member->user->user_id);
-        } catch (\Throwable $error) {
-            $hasQuickPin = false;
-        }
-    }
     $selectedRole = $member ? (int)$member->staff_role_id : (int)optional($roles->first(fn($role) => strtolower((string)$role->code) === \Admin\Services\PmdDefaultStaffRoleService::TEAM_MEMBER))->staff_role_id;
 @endphp
 <form
@@ -83,19 +74,6 @@
                 <label>{{ $member ? $pmdSettingsText('New password') : $pmdSettingsText('Password') }}</label>
                 <input type="password" name="password" minlength="6" maxlength="32" autocomplete="new-password" {{ $member ? '' : 'required' }}>
                 @if($member)<small>{{ $pmdSettingsText('Leave blank to keep the current password.') }}</small>@endif
-            </div>
-
-            <div class="pmd-inline-field">
-                <label>{{ $pmdSettingsText('Quick PIN') }} <small>POS</small></label>
-                <input type="password" name="quick_pin" inputmode="numeric" minlength="6" maxlength="6" pattern="[0-9]{6}" autocomplete="off" placeholder="••••••">
-                <small>
-                    @if($hasQuickPin)
-                        {{ $pmdSettingsText('Quick PIN is active. Enter a new 6-digit PIN only to change it.') }}
-                    @else
-                        {{ $pmdSettingsText('Optional 6-digit PIN for fast sign-in on the trusted restaurant terminal.') }}
-                    @endif
-                    {{ $pmdSettingsText('Owner, Manager and Accountant continue to use username and password.') }}
-                </small>
             </div>
 
             <div class="pmd-inline-field pmd-inline-field--full">
