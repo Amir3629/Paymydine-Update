@@ -17,7 +17,8 @@
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-reservations2-floor-reservation-v312.css?v=20260920-floor-v35b">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-dashboard-lab-exact-floor-v1.css?v=20260920-floor-v35b">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-shared-floor-multi-floor-v1.css?v=20260920-floor-v35b">
-    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-pos-v1.css?v=20260921-57">
+    <link rel="stylesheet" href="/app/admin/assets/css/push-notifications.css?v=20260922-qpos-v59">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-pos-v1.css?v=20260923-70">
 </head>
 <body class="pmd-qpos-body">
 @php
@@ -100,9 +101,8 @@
 
                             <div class="pmd-qpos-table-guide-icons">
                                 <span><b>!</b> Call</span>
-                                <span><b>€</b> Due</span>
-                                <span><b>½</b> Part paid</span>
                                 <span><b>N</b> Note</span>
+                                <span><b>½</b> Part paid</span>
                                 <span><b>✓</b> Paid</span>
                             </div>
                         </div>
@@ -117,42 +117,13 @@
                     </button>
                     @foreach($pmdInitialTables as $table)
                         @php
+                            // PMD_QPOS_TABLE_SERVER_MARKUP_SAFE_V59
+                            // Keep the first server paint deliberately simple.
+                            // JS is the authoritative renderer for attention/payment
+                            // signals immediately after bootstrap.
                             $pmdStatus = (string)($table['status'] ?? 'available');
-                            $pmdCapacity = (int)($table['capacity'] ?? 0);
+                            $pmdCapacity = max(0, (int)($table['capacity'] ?? 0));
                             $pmdPaymentState = (string)($table['payment_state'] ?? 'none');
-                            $pmdWaiterCalls = (int)($table['waiter_calls'] ?? 0);
-                            $pmdNoteCount = (int)($table['note_count'] ?? 0);
-
-                            $pmdSignalCount =
-                                ($pmdWaiterCalls > 0 ? 1 : 0)
-                                + ($pmdPaymentState !== 'none' ? 1 : 0)
-                                + ($pmdNoteCount > 0 ? 1 : 0);
-
-                            $pmdSignalKind = '';
-                            $pmdSignalIcon = '';
-                            $pmdSignalTitle = '';
-
-                            if ($pmdWaiterCalls > 0) {
-                                $pmdSignalKind = 'call';
-                                $pmdSignalIcon = '!';
-                                $pmdSignalTitle = 'Waiter call';
-                            } elseif ($pmdPaymentState === 'partial') {
-                                $pmdSignalKind = 'due';
-                                $pmdSignalIcon = '½';
-                                $pmdSignalTitle = 'Partly paid';
-                            } elseif ($pmdPaymentState === 'due') {
-                                $pmdSignalKind = 'due';
-                                $pmdSignalIcon = '€';
-                                $pmdSignalTitle = 'Payment due';
-                            } elseif ($pmdNoteCount > 0) {
-                                $pmdSignalKind = 'note';
-                                $pmdSignalIcon = 'N';
-                                $pmdSignalTitle = 'New note';
-                            } elseif ($pmdPaymentState === 'paid') {
-                                $pmdSignalKind = 'paid';
-                                $pmdSignalIcon = '✓';
-                                $pmdSignalTitle = 'Paid';
-                            }
                         @endphp
                         <button
                             type="button"
@@ -162,19 +133,7 @@
                             data-payment-state="{{ $pmdPaymentState }}"
                         >
                             <strong>{{ $table['number'] ?? ($table['id'] ?? '') }}</strong>
-                            <small>{{ $pmdStatusLabels[$pmdStatus] ?? 'Free' }}@if($pmdCapacity > 0) · {{ $pmdCapacity }}s @endif</small>
-                            @if($pmdSignalKind !== '')
-                                <span
-                                    class="pmd-qpos-table-signal is-{{ $pmdSignalKind }}"
-                                    title="{{ $pmdSignalTitle }}"
-                                    aria-label="{{ $pmdSignalTitle }}"
-                                >
-                                    <b>{{ $pmdSignalIcon }}</b>
-                                    @if($pmdSignalCount > 1)
-                                        <em>+{{ $pmdSignalCount - 1 }}</em>
-                                    @endif
-                                </span>
-                            @endif
+                            <small>{{ $pmdCapacity > 0 ? $pmdCapacity . 's' : '' }}</small>
                         </button>
                     @endforeach
                 </div>
@@ -645,7 +604,6 @@
                     <button type="button" data-qpos-history-kind="payments">Payments</button>
                     <button type="button" data-qpos-history-kind="notes">Notes</button>
                     <button type="button" data-qpos-history-kind="calls">Calls & status</button>
-                    <button type="button" data-qpos-history-kind="all">All activity</button>
                 </div>
                 <div class="pmd-qpos-history-stats" data-qpos-history-stats></div>
             </div>
@@ -806,7 +764,10 @@ window.PMDQuickPOSConfig = {
 {{-- Canonical Floor runtime mounts after the Quick POS endpoint override. --}}
 <script src="/app/admin/assets/js/pmd-dashboard-lab-exact-floor-v1.js?v=20260920-floor-v35b"></script>
 <script src="/app/admin/assets/js/pmd-shared-floor-multi-floor-v1.js?v=20260920-floor-v35b"></script>
-<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260922-zcs-display-v1"></script>
+{{-- PMD_QPOS_PUSH_NOTIFICATIONS_V57
+     Reuse the canonical Admin push stream; do not add another polling loop. --}}
+<script src="/app/admin/assets/js/push-notifications.js?v=20260922-qpos-v59"></script>
+<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260923-70"></script>
 <script src="/app/admin/assets/js/pmd-site-access-hub-v13.js?v=20260921-androidpair-v16"></script>
 </body>
 </html>
