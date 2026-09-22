@@ -3,6 +3,7 @@
 namespace App\Services\Fiscal;
 
 use Admin\Services\Fiskaly\FiskalySignDeService;
+use App\Services\Platform\LocationPlatformContext;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
@@ -41,6 +42,23 @@ final class GermanyFiscalSettlementBridge
         }
 
         $locationId = max(1, (int)($order->location_id ?? 1));
+
+        /* A resolved non-Germany location must never be signed by SIGN DE just
+         * because stale Fiskaly credentials exist. For legacy locations whose
+         * country cannot be resolved, the explicitly enabled Fiskaly config
+         * remains the backwards-compatible authority. */
+        try {
+            $countryCode = strtoupper(trim((string)app(
+                LocationPlatformContext::class
+            )->countryCode($locationId)));
+
+            if ($countryCode !== '' && $countryCode !== 'DE') {
+                return $this->notRequired(
+                    'SIGN DE is not required for this restaurant location.'
+                );
+            }
+        } catch (\Throwable $ignored) {
+        }
 
         if (!$schema->hasTable('fiskaly_configs')) {
             return $this->notRequired('Fiskaly is not configured for this tenant.');
