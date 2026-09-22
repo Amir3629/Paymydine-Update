@@ -103,10 +103,20 @@ class SyncEngine(
                 ) &&
                 !app.connectivity.online.value
             ) {
+                val waitingReason = when (command.commandType) {
+                    "CASH_PAYMENT_V1" ->
+                        "Cash payment is stored locally and waiting for PayMyDine Cloud."
+                    "TABLE_STATE_V1" ->
+                        "Table status is stored locally and waiting for PayMyDine Cloud."
+                    "TABLE_MOVE_V1" ->
+                        "Table move is stored locally and waiting for PayMyDine Cloud."
+                    else ->
+                        "Operation is stored locally and waiting for PayMyDine Cloud."
+                }
                 app.syncRepository.defer(
                     commandId = command.commandId,
                     delayMs = 5_000L,
-                    reason = "Cash payment is stored locally and waiting for PayMyDine Cloud.",
+                    reason = waitingReason,
                 )
                 blockedAggregates += command.aggregateId
                 allGood = false
