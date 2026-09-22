@@ -115,37 +115,70 @@ if (!function_exists('pmdCleanGuestSessionComment')) {
     $__txRow = null;
     $__fiskalyConfigRow = null;
 
-    try {
-        $__conn = method_exists($model, 'getConnectionName') ? ($model->getConnectionName() ?: config('database.default')) : config('database.default');
+    $__conn = method_exists($model, 'getConnectionName')
+        ? ($model->getConnectionName() ?: config('database.default'))
+        : config('database.default');
 
+    try {
         if ($__orderId > 0) {
             $__orderRow = \Illuminate\Support\Facades\DB::connection($__conn)
                 ->table('orders')
                 ->where('order_id', $__orderId)
                 ->first();
 
-            $__txRow = \Illuminate\Support\Facades\DB::connection($__conn)
-                ->table('fiskaly_transactions')
-                ->where('order_id', $__orderId)
-                ->orderByDesc('fiskaly_transaction_id')
-                ->first();
-
-            $pmdFiscalLocationId = (int)(
-                $__orderRow->location_id
-                ?? $model->location_id
-                ?? 1
-            );
-
-            $__fiskalyConfigRow = \Illuminate\Support\Facades\DB::connection($__conn)
-                ->table('fiskaly_configs')
-                ->where('provider', 'fiskaly')
-                ->where('location_id', $pmdFiscalLocationId)
-                ->orderByDesc('fiskaly_config_id')
-                ->first();
+            if (
+                \Illuminate\Support\Facades\Schema::connection($__conn)
+                    ->hasTable('fiskaly_transactions')
+            ) {
+                $__txRow = \Illuminate\Support\Facades\DB::connection($__conn)
+                    ->table('fiskaly_transactions')
+                    ->where('order_id', $__orderId)
+                    ->orderByDesc('fiskaly_transaction_id')
+                    ->first();
+            }
         }
     } catch (\Throwable $e) {
         $__orderRow = null;
         $__txRow = null;
+    }
+
+    /* PMD_GERMANY_RECEIPT_CONFIG_GUARD_V69
+     * Fiskaly configuration is optional receipt metadata. A missing/legacy
+     * config table must never erase a valid signed transaction already loaded.
+     */
+    try {
+        if (
+            $__orderId > 0
+            && \Illuminate\Support\Facades\Schema::connection($__conn)
+                ->hasTable('fiskaly_configs')
+        ) {
+            $pmdFiscalLocationId = max(
+                1,
+                (int)(
+                    $__orderRow->location_id
+                    ?? $model->location_id
+                    ?? 1
+                )
+            );
+
+            $pmdFiscalConfigQuery = \Illuminate\Support\Facades\DB::connection($__conn)
+                ->table('fiskaly_configs')
+                ->where('provider', 'fiskaly');
+
+            $__fiskalyConfigRow = (clone $pmdFiscalConfigQuery)
+                ->where('location_id', $pmdFiscalLocationId)
+                ->orderByDesc('fiskaly_config_id')
+                ->first();
+
+            if (!$__fiskalyConfigRow && $pmdFiscalLocationId !== 1) {
+                $__fiskalyConfigRow = (clone $pmdFiscalConfigQuery)
+                    ->where('location_id', 1)
+                    ->orderByDesc('fiskaly_config_id')
+                    ->first();
+            }
+        }
+    } catch (\Throwable $e) {
+        $__fiskalyConfigRow = null;
     }
 
     $__resp = $__decode($__txRow->response_payload ?? null);
