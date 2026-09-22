@@ -97,6 +97,8 @@ final class PmdMobileBootstrapService
                     'ORDER_HOLD_V1',
                     'ORDER_SEND_V1',
                     'CASH_PAYMENT_V1',
+                    'TABLE_STATE_V1',
+                    'TABLE_MOVE_V1',
                     'KDS_STATUS_V1',
                 ],
                 'offline_payment_enabled' => false,
