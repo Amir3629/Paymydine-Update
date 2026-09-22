@@ -791,6 +791,13 @@ class PosActivity : ComponentActivity() {
                 loadWithOverviewMode = false
             }
             addJavascriptInterface(bridge, "PayMyDineOffline")
+            // Keep the physical/customer-facing display alive through the
+            // exact same WAN failover. Only display-safe cart/order data is
+            // exposed; payment credentials are never bridged.
+            addJavascriptInterface(
+                PosCustomerDisplayJavascriptBridge(customerDisplay),
+                "PayMyDineHardware",
+            )
             webViewClient = object : WebViewClient() {
                 override fun shouldOverrideUrlLoading(
                     current: WebView,
@@ -1051,6 +1058,7 @@ class PosActivity : ComponentActivity() {
         localBridge = null
         runCatching {
             current.removeJavascriptInterface("PayMyDineOffline")
+            current.removeJavascriptInterface("PayMyDineHardware")
         }
         root.removeView(current)
         current.stopLoading()
