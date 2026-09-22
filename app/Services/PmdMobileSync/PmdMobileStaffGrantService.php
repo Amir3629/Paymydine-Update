@@ -23,7 +23,8 @@ final class PmdMobileStaffGrantService
     public function issue(
         array $deviceIdentity,
         $user,
-        string $destination = 'workspace'
+        string $destination = 'workspace',
+        ?int $maxExpiresAt = null
     ): string {
         $destination = strtolower(trim($destination));
         if (!in_array($destination, ['workspace', 'staff'], true)) {
@@ -57,6 +58,11 @@ final class PmdMobileStaffGrantService
         }
 
         $now = time();
+        $expiresAt = $now + self::TTL_SECONDS;
+        if ($maxExpiresAt !== null && $maxExpiresAt > $now) {
+            $expiresAt = min($expiresAt, $maxExpiresAt);
+        }
+
         $payload = [
             'v' => self::VERSION,
             'device_id' => $deviceId,
@@ -66,7 +72,7 @@ final class PmdMobileStaffGrantService
             'role_code' => $roleCode,
             'destination' => $destination,
             'iat' => $now,
-            'exp' => $now + self::TTL_SECONDS,
+            'exp' => $expiresAt,
         ];
 
         $body = $this->base64UrlEncode(

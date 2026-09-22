@@ -342,9 +342,17 @@ final class PmdMobileWorkspaceAuthController extends Controller
             $roleCode
         );
         $policy = app(PmdWorkSessionPolicyService::class)->policy($identity);
-        $grantExpiresAt = now()->addHours(8);
+        $grantExpiresAt = min(
+            now()->addHours(8)->timestamp,
+            $policy['expires_at']->timestamp
+        );
         $staffGrant = app(PmdMobileStaffGrantService::class)
-            ->issue($deviceIdentity, $user, $destination);
+            ->issue(
+                $deviceIdentity,
+                $user,
+                $destination,
+                $grantExpiresAt
+            );
 
         return response()->json([
             'ok' => true,
@@ -362,8 +370,8 @@ final class PmdMobileWorkspaceAuthController extends Controller
             'role_code' => $roleCode,
             'route' => $route,
             'staff_grant' => $staffGrant,
-            'lease_expires_at' => $grantExpiresAt->timestamp,
-            'lease_expires_iso' => $grantExpiresAt->toIso8601String(),
+            'lease_expires_at' => $grantExpiresAt,
+            'lease_expires_iso' => date(DATE_ATOM, $grantExpiresAt),
             'offline_expires_at' => $policy['expires_at']->timestamp,
             'offline_expires_iso' =>
                 $policy['expires_at']->toIso8601String(),
