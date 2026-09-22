@@ -248,6 +248,7 @@ class FiskalySignDeService
     protected function detectPaymentMethod($order, $paymentMethod = null)
     {
         $pm = $paymentMethod
+            ?? ($order->settlement_method ?? null)
             ?? ($order->payment_method ?? null)
             ?? ($order->payment ?? null)
             ?? 'card';
@@ -261,12 +262,18 @@ class FiskalySignDeService
         return 'NON_CASH';
     }
 
-    protected function buildProcessData($order, array $menus = []): string
-    {
+    protected function buildProcessData(
+        $order,
+        array $menus = [],
+        ?string $paymentMethod = null
+    ): string {
         $items = [];
 
         $orderId = (int)($order->order_id ?? 0);
-        $paymentType = $this->detectPaymentMethod($order, null);
+        $paymentType = $this->detectPaymentMethod(
+            $order,
+            $paymentMethod
+        );
 
         /* PMD_GERMANY_FISKALY_TAX_AUTHORITY_V69
          * Canonical PMD setting semantics are:
@@ -459,7 +466,7 @@ class FiskalySignDeService
             'url' => $url,
             'payload_masked' => [
                 'api_key_prefix' => substr((string)$apiKey, 0, 8),
-                'api_secret_prefix' => substr((string)$apiSecret, 0, 8),
+                'api_secret_present' => $apiSecret !== '',
             ],
         ]);
 
@@ -469,7 +476,7 @@ class FiskalySignDeService
 
         \Log::info('[Fiskaly] auth response', [
             'status' => $response->status(),
-            'body' => $response->body(),
+            'successful' => $response->successful(),
         ]);
 
         if (!$response->successful()) {
@@ -491,7 +498,6 @@ class FiskalySignDeService
 
         \Log::info('[Fiskaly] bearer request', [
             'url' => $url,
-            'token_prefix' => substr((string)$accessToken, 0, 16),
             'payload' => $payload,
         ]);
 
@@ -610,7 +616,11 @@ class FiskalySignDeService
             }
 
             $items = $this->resolveMenus($order);
-            $processData = $this->buildProcessData($order, $items);
+            $processData = $this->buildProcessData(
+                $order,
+                $items,
+                $paymentMethod
+            );
 
             if (!is_string($processData) || trim($processData) === '') {
                 throw new \RuntimeException('process_data could not be built');
