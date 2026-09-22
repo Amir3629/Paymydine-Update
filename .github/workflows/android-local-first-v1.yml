@@ -21,6 +21,7 @@ on:
       - '.github/workflows/android-local-first-v1.yml'
       - 'deploy/pmd-android-operations-v18-direct-login-first-party.sh'
       - 'deploy/pmd-android-v18-first-party-download-hotfix.sh'
+      - 'deploy/pmd-android-v18-2-throttle-isolation-hotfix.sh'
   pull_request:
     branches: [main]
     paths:
@@ -86,6 +87,7 @@ jobs:
           set -euo pipefail
           bash -n deploy/pmd-android-operations-v18-direct-login-first-party.sh
           bash -n deploy/pmd-android-v18-first-party-download-hotfix.sh
+          bash -n deploy/pmd-android-v18-2-throttle-isolation-hotfix.sh
           grep -q "trustedDeviceByRawToken" app/Services/PmdSiteAccessService.php
           grep -q "rotateTrustedDeviceToken" app/Services/PmdSiteAccessService.php
           grep -q "pmd_sync_commands" app/system/database/migrations/2026_09_20_190000_create_pmd_mobile_sync_tables.php
@@ -146,6 +148,11 @@ jobs:
           grep -q "PMD_ANDROID_ROLE_WORKSPACE_ACTIVITY_V1" mobile/android/app/src/main/java/com/paymydine/mobile/RoleWorkspaceActivity.kt
           grep -q 'android:name=".RoleWorkspaceActivity"' mobile/android/app/src/main/AndroidManifest.xml
           grep -q "workspace/authorize" routes/pmd-mobile-sync-v1.php
+          grep -q "throttle:60,1,pmd-mobile-pair-status" routes/pmd-mobile-sync-v1.php
+          grep -q "throttle:30,1,pmd-mobile-pair-exchange" routes/pmd-mobile-sync-v1.php
+          grep -q "throttle:20,1,pmd-mobile-staff-login" routes/pmd-mobile-sync-v1.php
+          grep -q "throttle:30,1,pmd-mobile-pos-open" routes/pmd-mobile-sync-v1.php
+          grep -q "throttle:30,1,pmd-mobile-workspace-open" routes/pmd-mobile-sync-v1.php
           grep -q "PMD_MOBILE_STAFF_GRANT_V1" app/Services/PmdMobileSync/PmdMobileStaffGrantService.php
           grep -q "PMD_MOBILE_STAFF_GRANT_OVERRIDE_V1" app/Services/PmdMobileSync/PmdMobileDeviceAuthService.php
           grep -q "X-PayMyDine-Staff-Grant" mobile/android/app/src/main/java/com/paymydine/mobile/network/MobileApiClient.kt
