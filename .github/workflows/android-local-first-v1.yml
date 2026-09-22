@@ -200,13 +200,13 @@ jobs:
         with:
           gradle-version: '8.13'
       - name: Restore stable preview signing key
-        if: github.event_name == 'push' && github.ref == 'refs/heads/feature/android-local-first-v1'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/feature/android-local-first-v1' && !startsWith(github.event.head_commit.message, 'CI:') && !startsWith(github.event.head_commit.message, 'Deploy:')
         uses: actions/cache@v4
         with:
           path: ~/.android/debug.keystore
           key: paymydine-android-preview-debug-keystore-v1
       - name: Verify stable preview signing key
-        if: github.event_name == 'push' && github.ref == 'refs/heads/feature/android-local-first-v1'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/feature/android-local-first-v1' && !startsWith(github.event.head_commit.message, 'CI:') && !startsWith(github.event.head_commit.message, 'Deploy:')
         shell: bash
         run: |
           set -euo pipefail
@@ -318,7 +318,7 @@ jobs:
             echo "PMD_PREVIEW_APK_SIGNING_PIN=SKIPPED_PR_EPHEMERAL_KEY"
           fi
       - uses: actions/upload-artifact@v4
-        if: github.event_name == 'push' && github.ref == 'refs/heads/feature/android-local-first-v1'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/feature/android-local-first-v1' && !startsWith(github.event.head_commit.message, 'CI:') && !startsWith(github.event.head_commit.message, 'Deploy:')
         with:
           name: paymydine-pos-tablet-preview
           path: |
@@ -328,7 +328,7 @@ jobs:
             mobile/android/PayMyDine-POS-Tablet-Preview-0.3.3.apk.sha256
           if-no-files-found: error
       - name: Publish tablet preview release
-        if: github.event_name == 'push' && github.ref == 'refs/heads/feature/android-local-first-v1'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/feature/android-local-first-v1' && !startsWith(github.event.head_commit.message, 'CI:') && !startsWith(github.event.head_commit.message, 'Deploy:')
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
