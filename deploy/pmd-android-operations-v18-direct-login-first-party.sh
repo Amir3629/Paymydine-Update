@@ -27,7 +27,7 @@ fail(){ printf '\n[PMD POS V18][ERROR] %s\n' "$*" >&2; exit 1; }
 
 [[ -d "$PMD_ROOT/.git" ]] || fail "Not a git checkout: $PMD_ROOT"
 [[ -f "$PMD_ROOT/artisan" ]] || fail "artisan missing: $PMD_ROOT/artisan"
-[[ -d "$PMD_ROOT/public" ]] || fail "public directory missing: $PMD_ROOT/public"
+[[ -f "$PMD_ROOT/index.php" ]] || fail "TastyIgniter web entrypoint missing: $PMD_ROOT/index.php"
 
 for cmd in git curl sha256sum php tar stat cmp; do
   command -v "$cmd" >/dev/null 2>&1 || fail "$cmd is required"
@@ -59,8 +59,8 @@ STAGE="$PMD_ROOT/storage/pmd-pos-v18-stage-$STAMP"
 CONFLICT="$PMD_ROOT/storage/pmd-pos-v18-conflicts-$STAMP"
 BACKUP="$BACKUP_DIR/android-operations-v18-before-$STAMP.tar.gz"
 META="$BACKUP_DIR/android-operations-v18-before-$STAMP.txt"
-PUBLIC_DIR="$PMD_ROOT/public/downloads/paymydine"
-PUBLIC_APK="$PUBLIC_DIR/$APK_PUBLIC_NAME"
+WEB_DOWNLOAD_DIR="$PMD_ROOT/downloads/paymydine"
+PUBLIC_APK="$WEB_DOWNLOAD_DIR/$APK_PUBLIC_NAME"
 PUBLIC_SHA="$PUBLIC_APK.sha256"
 
 mkdir -p "$BACKUP_DIR" "$STAGE/base" "$STAGE/target" "$STAGE/candidate" "$CONFLICT"
@@ -215,10 +215,10 @@ for rel in \
     || fail "PHP syntax failed: $rel"
 done
 
-log "Publishing verified APK on the PayMyDine domain..."
-mkdir -p "$PUBLIC_DIR"
-public_uid="$(stat -c '%u' "$PMD_ROOT/public")"
-public_gid="$(stat -c '%g' "$PMD_ROOT/public")"
+log "Publishing verified APK in the TastyIgniter document root..."
+mkdir -p "$WEB_DOWNLOAD_DIR"
+public_uid="$(stat -c '%u' "$PMD_ROOT")"
+public_gid="$(stat -c '%g' "$PMD_ROOT")"
 
 apk_tmp="$PUBLIC_APK.pmd-v18-new"
 sha_tmp="$PUBLIC_SHA.pmd-v18-new"
@@ -297,7 +297,7 @@ Verified APK SHA-256:
   $ACTUAL_APK_SHA256
 
 First-party file:
-  public/downloads/paymydine/PayMyDine-Android-0.3.3.apk
+  downloads/paymydine/PayMyDine-Android-0.3.3.apk
 
 What V18 enables:
   - Launcher logo is reduced into the Android adaptive-icon safe zone.
