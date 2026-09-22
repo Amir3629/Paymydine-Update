@@ -31,7 +31,8 @@ import kotlinx.coroutines.withContext
 import org.json.JSONObject
 
 /**
- * PMD_ANDROID_CANONICAL_LOGIN_UI_V12
+ * PMD_ANDROID_CANONICAL_LOGIN_UI_V17
+ * PMD_ANDROID_STAFF_QUICK_PIN_UI_V17
  *
  * Android renders the same PayMyDine Login card contract as
  * auth/login_workplace_v4, but from a local asset. Restaurant approval changes
@@ -65,6 +66,7 @@ fun PmdStaffLogin(
 
     val state = NativeLoginState(
         mode = if (pendingRequest != null) "wait" else "login",
+        credentialMode = "staff",
         online = online,
         busy = busy,
         username = remembered?.username.orEmpty(),
@@ -168,12 +170,20 @@ fun PmdStaffLogin(
             scope.launch {
                 val result = runCatching {
                     withContext(Dispatchers.IO) {
-                        api.requestStaffLogin(
-                            tenantHost = host,
-                            deviceToken = token,
-                            username = username,
-                            password = password,
-                        )
+                        if (username.isBlank()) {
+                            api.requestStaffPinLogin(
+                                tenantHost = host,
+                                deviceToken = token,
+                                pin = password,
+                            )
+                        } else {
+                            api.requestStaffLogin(
+                                tenantHost = host,
+                                deviceToken = token,
+                                username = username,
+                                password = password,
+                            )
+                        }
                     }
                 }
 
@@ -300,6 +310,7 @@ fun PmdPairLogin(
 
     val state = NativeLoginState(
         mode = if (waiting) "wait" else "login",
+        credentialMode = "pair",
         online = online,
         busy = busy,
         username = "",
@@ -386,6 +397,7 @@ fun PmdPairLogin(
 
 private data class NativeLoginState(
     val mode: String,
+    val credentialMode: String,
     val online: Boolean,
     val busy: Boolean,
     val username: String,
@@ -503,6 +515,7 @@ private fun pushNativeState(
 ) {
     val json = JSONObject()
         .put("mode", state.mode)
+        .put("credentialMode", state.credentialMode)
         .put("online", state.online)
         .put("busy", state.busy)
         .put("username", state.username)
