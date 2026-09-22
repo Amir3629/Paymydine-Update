@@ -340,6 +340,19 @@ class PmdDefaultStaffRoleService
                 );
         }
 
+        // PMD_ANDROID_AUTHENTICATED_TRANSPORT_V14
+        // These are bearer + signed-staff-grant transport endpoints, not
+        // product workspaces. Let the normal permission map decide access
+        // inside the endpoint instead of denying every managed non-superuser
+        // purely because request()->path() is a mobile transport URL.
+        if (
+            $path === 'admin/mobile/pos/open'
+            || $path === 'admin/mobile/workspace/open'
+            || str_starts_with($path, 'admin/api/mobile/v1/')
+        ) {
+            return true;
+        }
+
         if (!$this->isManagedCode($code)) return true;
         if ($code === self::OWNER) return true;
 
