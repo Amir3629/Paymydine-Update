@@ -1354,6 +1354,41 @@
     });
   }
 
+  function tableFeatureIconsV67(features) {
+    var allowed = {
+      near_window: {
+        label: 'Near window',
+        svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"></rect><path d="M4 12h16M12 4v16"></path></svg>'
+      },
+      quiet_area: {
+        label: 'Quiet area',
+        svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4z"></path><path d="m16 9 5 6M21 9l-5 6"></path></svg>'
+      },
+      accessible: {
+        label: 'Accessible',
+        svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="5" r="2"></circle><path d="M7 9h5l2 5h3M9 9v5a4 4 0 1 0 4 4M13 14l2 6h4"></path></svg>'
+      }
+    };
+
+    var rows = Array.isArray(features) ? features : [];
+    var icons = rows.map(function (feature) {
+      var key = String(feature || '').toLowerCase();
+      var meta = allowed[key];
+      if (!meta) return '';
+      return (
+        '<span class="pmd-qpos-table-feature-v67 is-' + esc(key) + '"' +
+          ' title="' + esc(meta.label) + '"' +
+          ' aria-label="' + esc(meta.label) + '">' +
+          meta.svg +
+        '</span>'
+      );
+    }).filter(Boolean);
+
+    return icons.length
+      ? '<span class="pmd-qpos-table-features-v67">' + icons.join('') + '</span>'
+      : '';
+  }
+
   function renderTables() {
     var box = $('[data-qpos-tables]');
     var count = $('[data-qpos-table-count]');
@@ -1494,6 +1529,7 @@
           '<small' + (num(table.capacity, 0) > 0 ? '' : ' hidden') + '>' +
             (num(table.capacity, 0) > 0 ? esc(table.capacity) + 's' : '') +
           '</small>' +
+          tableFeatureIconsV67(table.features) +
           (signals.length
             ? '<span class="pmd-qpos-table-signals-v57">' +
                 signals.map(function (signal) {

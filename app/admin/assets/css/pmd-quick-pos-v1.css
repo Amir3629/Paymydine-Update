@@ -8276,3 +8276,62 @@ body.pmd-qpos-body {
   padding: 0 !important;
   text-align: center !important;
 }
+
+
+/* ============================================================
+   PMD_QPOS_TABLE_FEATURE_ICONS_V67
+   Canonical Floor features in Quick POS + remove accidental mobile/WebView
+   text-selection/tap highlight from the read-only History counters.
+   ============================================================ */
+.pmd-qpos-history-stats,
+.pmd-qpos-history-stats * {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.pmd-qpos-history-stats *::selection {
+  background: transparent;
+  color: inherit;
+}
+
+.pmd-qpos-table-features-v67 {
+  position: absolute;
+  right: 7px;
+  bottom: 7px;
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  pointer-events: none;
+}
+
+.pmd-qpos-table-feature-v67 {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(15,23,42,.18);
+  border-radius: 999px;
+  background: rgba(255,255,255,.88);
+  color: #0f172a;
+  box-shadow: 0 2px 6px rgba(15,23,42,.12);
+}
+
+.pmd-qpos-table-feature-v67 svg {
+  width: 13px;
+  height: 13px;
+  display: block;
+}
+
+.pmd-qpos-table-feature-v67.is-accessible {
+  color: #075985;
+}
+
+.pmd-qpos-table-feature-v67.is-near_window {
+  color: #1d4ed8;
+}
+
+.pmd-qpos-table-feature-v67.is-quiet_area {
+  color: #475569;
+}

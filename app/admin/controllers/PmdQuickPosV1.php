@@ -3382,6 +3382,7 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 'floor_shape',
                 'visible_on_floor_plan',
                 'table_section',
+                'table_features',
             ], $columns));
 
             $query = Tables_model::query();
@@ -3500,6 +3501,9 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                             $row->table_section
                             ?? ''
                         )),
+                        'features' => $this->quickPosTableFeaturesV67(
+                            $row->table_features ?? []
+                        ),
                         'status' => $this->quickPosNormalizeTableStatus(
                             (string)($row->operational_status ?? 'available')
                         ),
@@ -3532,6 +3536,42 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
      * Tiny cashier-facing signals only. Physical status remains authoritative;
      * payment/note/call signals never change Free/Busy/Clean/Reserved.
      */
+    /**
+     * PMD_QPOS_TABLE_FEATURES_V67
+     * Reuse the exact Floor feature authority; Quick POS only displays the
+     * persisted canonical flags and never invents restaurant attributes.
+     */
+    protected function quickPosTableFeaturesV67($value): array
+    {
+        $allowed = ['near_window', 'quiet_area', 'accessible'];
+
+        if (is_string($value)) {
+            $decoded = json_decode($value, true);
+            $value = is_array($decoded) ? $decoded : [];
+        }
+
+        if (!is_array($value)) {
+            return [];
+        }
+
+        $selected = [];
+        foreach ($value as $key => $item) {
+            if (!is_int($key) && !ctype_digit((string)$key)) {
+                if (!$item) {
+                    continue;
+                }
+                $item = $key;
+            }
+
+            $item = strtolower(trim((string)$item));
+            if ($item !== '' && in_array($item, $allowed, true)) {
+                $selected[$item] = true;
+            }
+        }
+
+        return array_values(array_keys($selected));
+    }
+
     protected function quickPosDecorateTableSignals(
         array $tables,
         int $locationId
