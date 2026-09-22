@@ -8335,3 +8335,58 @@ body.pmd-qpos-body {
 .pmd-qpos-table-feature-v67.is-quiet_area {
   color: #475569;
 }
+
+
+/* ============================================================
+   PMD_QPOS_SENT_ITEM_MUTATION_V68
+   Existing sent lines are editable only while the backend mutation authority
+   says payment has not started and kitchen preparation has not begun.
+   ============================================================ */
+.pmd-qpos-sent-tail-v68 {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 0;
+}
+
+.pmd-qpos-sent-qty-v68 {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pmd-qpos-sent-qty-v68 button {
+  width: 34px;
+  height: 34px;
+  border: 1px solid #d8dde5;
+  border-radius: 9px;
+  background: #fff;
+  color: #111827;
+  font: inherit;
+  font-size: 19px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.pmd-qpos-sent-qty-v68 button:hover {
+  background: #f8fafc;
+  border-color: #b8c0cc;
+}
+
+.pmd-qpos-sent-qty-v68 button:disabled {
+  opacity: .45;
+  cursor: wait;
+}
+
+.pmd-qpos-sent-lock-v68 {
+  margin-top: 7px;
+  padding: 8px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 9px;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 11px;
+  line-height: 1.35;
+}
