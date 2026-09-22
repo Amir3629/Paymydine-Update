@@ -22,7 +22,7 @@ fail(){ printf '\n[PMD V18.11 ANDROID 0.3.6 OFFLINE][ERROR] %s\n' "$*" >&2; exit
 [[ -f "$PMD_ROOT/artisan" ]] || fail "artisan missing: $PMD_ROOT/artisan"
 [[ -f "$PMD_ROOT/$SETTINGS_REL" ]] || fail "PayMyDine Settings view is missing."
 
-for cmd in git curl sha256sum tar stat grep awk tr; do
+for cmd in git curl sha256sum php tar stat grep awk tr; do
   command -v "$cmd" >/dev/null 2>&1 || fail "$cmd is required"
 done
 
