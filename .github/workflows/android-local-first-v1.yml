@@ -44,7 +44,7 @@ on:
 
 concurrency:
   group: pmd-android-v1-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 permissions:
   contents: write
