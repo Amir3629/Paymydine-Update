@@ -179,11 +179,20 @@ class DeviceCredentialStore(context: Context) {
     fun setPairingRequest(value: String) =
         prefs.edit().putString("pairing_request", value.trim().lowercase()).apply()
     fun pairingRequest(): String? = prefs.getString("pairing_request", null)
-    fun clearPairingRequest() = prefs.edit().remove("pairing_request").apply()
+    fun setPairingSubmitted(value: Boolean) =
+        prefs.edit().putBoolean("pairing_submitted", value).apply()
+    fun pairingSubmitted(): Boolean =
+        prefs.getBoolean("pairing_submitted", false)
+    fun clearPairingRequest() =
+        prefs.edit()
+            .remove("pairing_request")
+            .remove("pairing_submitted")
+            .apply()
     fun clearPairingAttempt() =
         prefs.edit()
             .remove("pairing_verifier")
             .remove("pairing_request")
+            .remove("pairing_submitted")
             .apply()
     fun clearIdentity() = prefs.edit().clear().apply()
 
