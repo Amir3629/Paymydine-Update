@@ -1352,32 +1352,64 @@
           ? 'none'
           : String(table.payment_state || 'none');
 
+      var waiterCalls = Math.max(0, num(table.waiter_calls, 0));
+      var noteCount = Math.max(0, num(table.note_count, 0));
+      var hasAttention = waiterCalls > 0 || noteCount > 0;
+      var attentionHistoryKind = hasAttention ? 'attention' : '';
       var signals = [];
-      if (num(table.waiter_calls, 0) > 0) {
-        signals.push({kind: 'call', icon: '!', title: 'Waiter call'});
-      }
-      if (paymentState === 'partial') {
-        signals.push({kind: 'due', icon: '½', title: 'Partly paid'});
-      } else if (paymentState === 'due') {
-        signals.push({kind: 'due', icon: '€', title: 'Payment due'});
-      }
-      if (num(table.note_count, 0) > 0) {
-        signals.push({kind: 'note', icon: 'N', title: 'New note'});
-      }
-      if (paymentState === 'paid') {
-        signals.push({kind: 'paid', icon: '✓', title: 'Paid'});
+
+      if (waiterCalls > 0) {
+        signals.push({
+          kind: 'call',
+          icon: '!',
+          title: 'Waiter call',
+          attentionKind: 'calls',
+          count: waiterCalls
+        });
       }
 
-      var primarySignal = signals.length ? signals[0] : null;
+      if (noteCount > 0) {
+        signals.push({
+          kind: 'note',
+          icon: 'N',
+          title: 'Table note',
+          attentionKind: 'notes',
+          count: noteCount
+        });
+      }
+
+      /* PMD_QPOS_PAYMENT_ICON_RULE_V57
+       * Due is represented by the table/check state itself. Only actual payment
+       * progress gets a payment icon: half = Part paid, check = Paid. */
+      if (paymentState === 'partial') {
+        signals.push({
+          kind: 'partial',
+          icon: '½',
+          title: 'Part paid',
+          count: 0
+        });
+      } else if (paymentState === 'paid') {
+        signals.push({
+          kind: 'paid',
+          icon: '✓',
+          title: 'Paid',
+          count: 0
+        });
+      }
 
       rows.push(
         '<button type="button" class="pmd-qpos-table' +
           (selected ? ' is-selected' : '') +
           (isMoveSource ? ' is-move-source' : '') +
-          (isMoveTarget ? ' is-move-target' : '') + '"' +
+          (isMoveTarget ? ' is-move-target' : '') +
+          (hasAttention ? ' has-attention' : '') + '"' +
           ' data-qpos-table="' + esc(table.id) + '"' +
-          ' data-status="' + esc(table.status || 'available') + '"' +
+          ' data-status="' + esc(effectiveTableStatusV62(table)) + '"' +
           ' data-payment-state="' + esc(paymentState) + '"' +
+          (hasAttention ? ' data-qpos-attention="1"' : '') +
+          (attentionHistoryKind
+            ? ' data-qpos-attention-kind-default="' + esc(attentionHistoryKind) + '"'
+            : '') +
           (isMoveSource || (directMove && !isMoveTarget) || state.transfer.submitting
             ? ' disabled'
             : '') +
@@ -1392,18 +1424,31 @@
               )
             : '') + '>' +
           '<strong>' + esc(compactTableLabel(table)) + '</strong>' +
-          '<small>' + esc(tableStatusLabel(table.status)) +
-            (num(table.capacity, 0) > 0 ? ' · ' + esc(table.capacity) + 's' : '') +
+          '<small' + (num(table.capacity, 0) > 0 ? '' : ' hidden') + '>' +
+            (num(table.capacity, 0) > 0 ? esc(table.capacity) + 's' : '') +
           '</small>' +
           tableFeatureIconsV68(table.features) +
-          (primarySignal
-            ? '<span class="pmd-qpos-table-signal is-' + esc(primarySignal.kind) + '"' +
-                ' title="' + esc(primarySignal.title) + '"' +
-                ' aria-label="' + esc(primarySignal.title) + '">' +
-                '<b>' + esc(primarySignal.icon) + '</b>' +
-                (signals.length > 1
-                  ? '<em>+' + esc(signals.length - 1) + '</em>'
-                  : '') +
+          (signals.length
+            ? '<span class="pmd-qpos-table-signals-v57">' +
+                signals.map(function (signal) {
+                  return (
+                    '<span class="pmd-qpos-table-signal is-' + esc(signal.kind) + '"' +
+                      (signal.attentionKind
+                        ? ' data-qpos-attention-kind="' + esc(signal.attentionKind) + '"'
+                        : '') +
+                      ' title="' + esc(signal.title) + '"' +
+                      ' aria-label="' + esc(
+                        signal.attentionKind
+                          ? 'Open ' + signal.title
+                          : signal.title
+                      ) + '">' +
+                      '<b>' + esc(signal.icon) + '</b>' +
+                      (signal.kind !== 'note' && num(signal.count, 0) > 1
+                        ? '<em>' + esc(signal.count) + '</em>'
+                        : '') +
+                    '</span>'
+                  );
+                }).join('') +
               '</span>'
             : '') +
         '</button>'
@@ -1431,12 +1476,38 @@
 
       /* PMD_QPOS_TOUCH_PREFETCH_V42
        * pointerdown/touchstart begins the table request before click release. */
-      button.onclick = function () {
+      button.onclick = function (event) {
         var id = Number(button.getAttribute('data-qpos-table') || 0);
         if (!id) return;
 
+        var attentionTarget =
+          event &&
+          event.target &&
+          event.target.closest
+            ? event.target.closest('[data-qpos-attention-kind]')
+            : null;
+
+        if (attentionTarget && !directMove) {
+          event.preventDefault();
+          event.stopPropagation();
+          openTableAttentionV57(
+            id,
+            attentionTarget.getAttribute('data-qpos-attention-kind')
+          );
+          return;
+        }
+
         if (directMove) {
           directMoveOrderToTable(id);
+          return;
+        }
+
+        var defaultAttentionKind = String(
+          button.getAttribute('data-qpos-attention-kind-default') || ''
+        );
+
+        if (defaultAttentionKind) {
+          openTableAttentionV57(id, defaultAttentionKind);
           return;
         }
 
