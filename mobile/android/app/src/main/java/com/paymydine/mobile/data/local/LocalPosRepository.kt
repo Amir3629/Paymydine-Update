@@ -231,6 +231,34 @@ class LocalPosRepository(private val database: PmdDatabase) {
         return row.copy(lines = lines(row.localId))
     }
 
+    /**
+     * Visible local work includes a draft plus work already committed to the
+     * durable outbox. It is read-only outside DRAFT, but keeping the lines
+     * visible prevents a WAN cut / Send tap from making the check appear lost.
+     */
+    fun localWorkForTable(tableId: String): DraftOrder? {
+        val row = database.readableDatabase.query(
+            "pmd_orders",
+            null,
+            "table_id = ? AND status IN (?, ?, ?, ?)",
+            arrayOf(
+                tableId,
+                STATUS_DRAFT,
+                STATUS_QUEUED,
+                STATUS_RETRY,
+                STATUS_CONFLICT,
+            ),
+            null,
+            null,
+            "updated_at_ms DESC",
+            "1",
+        ).use { rows ->
+            if (!rows.moveToFirst()) null else rows.toDraftHeader()
+        } ?: return null
+
+        return row.copy(lines = lines(row.localId))
+    }
+
     fun addItem(
         locationId: Long,
         tableId: String,
@@ -570,6 +598,84 @@ class LocalPosRepository(private val database: PmdDatabase) {
         )
     }
 
+    /**
+     * Canonical Quick POS lets Pay send an unsent cart first. Offline does the
+     * same by queuing two ordered intents on the same aggregate: SEND, then
+     * full CASH settlement. The cash command is Cloud-only and receives the
+     * canonical order id from cloudRoutingForCommand after SEND succeeds.
+     */
+    fun buildCashPaymentAfterSendCommand(
+        draft: DraftOrder,
+        sendCommand: CommandEnvelope,
+        tenantHost: String,
+        deviceId: String,
+        staffId: Long?,
+        userId: Long?,
+        cashReceivedMinor: Long,
+    ): Pair<CommandEnvelope, Long> {
+        require(draft.status == STATUS_DRAFT && draft.lines.isNotEmpty()) {
+            "Add items before using Pay."
+        }
+        require(sendCommand.commandType == "ORDER_SEND_V1") {
+            "Cash settlement must follow a Send command."
+        }
+
+        val bill = billForTable(draft.tableId)
+            ?: error("Local bill is unavailable.")
+        require(bill.paymentQueuedMinor <= 0L) {
+            "A cash payment is already queued for this bill."
+        }
+
+        val dueMinor = maxOf(
+            0L,
+            bill.projectedTotalMinor - bill.settledMinor,
+        )
+        require(dueMinor > 0L) {
+            "This bill has no remaining balance."
+        }
+        require(cashReceivedMinor >= dueMinor) {
+            "Cash received is lower than the amount due."
+        }
+
+        val exponent = localMinorExponent()
+        val payload = JSONObject()
+            .put(
+                "table_id",
+                draft.tableId.toLongOrNull() ?: error("Invalid table id."),
+            )
+            .put("split_mode", "full")
+            .put("expected_remaining", minorToMoney(dueMinor, exponent))
+            .put("cash_received", minorToMoney(cashReceivedMinor, exponent))
+            .put("tip_amount", 0)
+            .put("quick_pos_fast", true)
+
+        if (!draft.serverId.isNullOrBlank()) {
+            payload.put("order_id", draft.serverId.toLong())
+        }
+
+        val payment = CommandEnvelope.create(
+            tenantHost = tenantHost,
+            locationId = draft.locationId,
+            deviceId = deviceId,
+            staffId = staffId,
+            userId = userId,
+            aggregate = "order",
+            aggregateId = sendCommand.aggregateId,
+            // SEND owns version N -> N+1. The following cash intent therefore
+            // starts at N+1. Local aggregates are additionally rewritten to
+            // the canonical Cloud version after SEND receives its server id.
+            baseVersion = draft.version + 1,
+            commandType = "CASH_PAYMENT_V1",
+            payloadJson = payload.toString(),
+            nowMs = maxOf(
+                System.currentTimeMillis(),
+                sendCommand.createdAtMs + 1,
+            ),
+        )
+
+        return payment to dueMinor
+    }
+
     fun markCashPaymentQueued(
         tableId: String,
         commandId: String,
@@ -579,7 +685,7 @@ class LocalPosRepository(private val database: PmdDatabase) {
             val row = db.query(
                 "pmd_orders",
                 arrayOf("id", "payload_json"),
-                "table_id = ? AND server_id IS NOT NULL",
+                "table_id = ?",
                 arrayOf(tableId),
                 null,
                 null,
@@ -614,18 +720,24 @@ class LocalPosRepository(private val database: PmdDatabase) {
         message: String,
     ) {
         val serverId = command.aggregateId
-            .removePrefix("order:")
-            .toLongOrNull()
-            ?: return
+            .takeIf { it.startsWith("order:") }
+            ?.removePrefix("order:")
+            ?.toLongOrNull()
+            ?: 0L
+        val localId = resolveLocalOrderId(
+            aggregateId = command.aggregateId,
+            serverOrderId = serverId,
+        ) ?: return
+
         database.transaction { db ->
             val row = db.query(
                 "pmd_orders",
                 arrayOf("id", "payload_json"),
-                "server_id = ?",
-                arrayOf(serverId.toString()),
+                "id = ?",
+                arrayOf(localId),
                 null,
                 null,
-                "updated_at_ms DESC",
+                null,
                 "1",
             ).use {
                 if (!it.moveToFirst()) null
