@@ -44,7 +44,7 @@ class OfflinePosActivity : ComponentActivity() {
 
         if (
             !app.bootstrapRepository.hasBootstrap() ||
-            !app.credentials.workspaceLeaseValid("pos")
+            !app.credentials.offlineSessionValid("pos")
         ) {
             startActivity(
                 Intent(this, MainActivity::class.java).apply {
