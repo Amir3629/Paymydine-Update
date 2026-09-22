@@ -251,6 +251,19 @@ jobs:
           ! grep -q "Connect this Android device?" app/Http/Controllers/PmdMobilePairController.php
           grep -q "PMD_MOBILE_PAIR_DASHBOARD_WAIT_V4" app/Http/Controllers/PmdMobilePairController.php
           grep -q "Approve this Android device" app/Http/Controllers/PmdMobilePairController.php
+          node - <<'NODE'
+          const fs = require('fs');
+          for (const file of [
+            'mobile/android/app/src/main/assets/pmd-offline-pos.html',
+            'mobile/android/app/src/main/assets/pmd-login-workplace-v11-native.html',
+          ]) {
+            const html = fs.readFileSync(file, 'utf8');
+            const scripts = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)];
+            if (!scripts.length) throw new Error(file + ': no inline script found');
+            for (const match of scripts) new Function(match[1]);
+            console.log(file + ': inline JavaScript syntax PASS');
+          }
+          NODE
           echo "PMD_ANDROID_SERVER_CONTRACT=PASS"
 
   android:
