@@ -378,6 +378,158 @@ final class PmdMobileCommandProcessor
         ];
     }
 
+    /**
+     * PMD_MOBILE_OFFLINE_TABLE_ACTIONS_V17
+     *
+     * Replay table lifecycle and move intents through the existing canonical
+     * controllers. The mobile command ledger supplies durable idempotent
+     * transport; controller business rules remain authoritative.
+     */
+    private function applyTableStateCommand(
+        array $identity,
+        array $command
+    ): array {
+        $payload = (array)$command['payload'];
+        $tableId = (int)($payload['table_id'] ?? 0);
+        if ($tableId < 1) {
+            throw ValidationException::withMessages([
+                'table_id' => 'A restaurant table is required.',
+            ]);
+        }
+
+        $this->assertTableLocation(
+            $tableId,
+            (int)$identity['location_id']
+        );
+
+        /** @var PmdWaiterTableStateV154 $controller */
+        $controller = app(PmdWaiterTableStateV154::class);
+        $controller->pmdUseMobileContext($identity, $payload);
+        $data = $this->responseData(
+            $controller->update($tableId)
+        );
+
+        return array_merge($data, ['table_id' => $tableId]);
+    }
+
+    private function applyTableMoveCommand(
+        array $identity,
+        array $command
+    ): array {
+        $payload = (array)$command['payload'];
+        $sourceId = (int)($payload['source_table_id'] ?? 0);
+        $targetId = (int)($payload['target_table_id'] ?? 0);
+        if ($sourceId < 1 || $targetId < 1) {
+            throw ValidationException::withMessages([
+                'table_id' => 'Source and destination tables are required.',
+            ]);
+        }
+
+        $this->assertTableLocation(
+            $sourceId,
+            (int)$identity['location_id']
+        );
+        $this->assertTableLocation(
+            $targetId,
+            (int)$identity['location_id']
+        );
+
+        /** @var PmdQuickPosV1 $pos */
+        $pos = app(PmdQuickPosV1::class);
+        $pos->pmdUseMobileIdentity($identity);
+        $pos->pmdUseMobilePayload($payload);
+        $data = $this->responseData($pos->transfer());
+
+        return array_merge(
+            $data,
+            [
+                'table_id' => $sourceId,
+                'source_table_id' => $sourceId,
+                'target_table_id' => $targetId,
+                'scope' => (string)($payload['scope'] ?? 'order'),
+                'order_id' => (int)($payload['order_id'] ?? 0),
+            ]
+        );
+    }
+
+    private function responseData($response): array
+    {
+        $status = is_object($response)
+            && method_exists($response, 'getStatusCode')
+                ? (int)$response->getStatusCode()
+                : 500;
+        $data = is_object($response)
+            && method_exists($response, 'getData')
+                ? (array)$response->getData(true)
+                : [];
+
+        if ($status >= 400 || empty($data['ok'])) {
+            throw ValidationException::withMessages([
+                'operation' => (string)(
+                    $data['message']
+                    ?? 'PayMyDine operation could not be reconciled.'
+                ),
+            ]);
+        }
+
+        return $data;
+    }
+
+    private function assertTableLocation(
+        int $tableId,
+        int $locationId
+    ): void {
+        if (
+            $tableId < 1
+            || $locationId < 1
+            || !Schema::hasTable('tables')
+        ) {
+            abort(403, 'Restaurant table authority is unavailable.');
+        }
+
+        $columns = Schema::getColumnListing('tables');
+        $pk = in_array('table_id', $columns, true)
+            ? 'table_id'
+            : (in_array('id', $columns, true) ? 'id' : null);
+        if (!$pk) {
+            abort(403, 'Restaurant table authority is unavailable.');
+        }
+
+        if (in_array('location_id', $columns, true)) {
+            if (
+                !DB::table('tables')
+                    ->where($pk, $tableId)
+                    ->where('location_id', $locationId)
+                    ->exists()
+            ) {
+                abort(403, 'This table belongs to another restaurant.');
+            }
+            return;
+        }
+
+        if (
+            Schema::hasTable('locationables')
+            && Schema::hasColumn('locationables', 'location_id')
+            && Schema::hasColumn('locationables', 'locationable_id')
+            && Schema::hasColumn('locationables', 'locationable_type')
+        ) {
+            $matches = DB::table('locationables')
+                ->where('locationable_id', $tableId)
+                ->where('location_id', $locationId)
+                ->whereIn(
+                    'locationable_type',
+                    ['tables', 'Admin\\Models\\Tables_model']
+                )
+                ->exists();
+
+            if ($matches) {
+                return;
+            }
+        }
+
+        abort(403, 'This table has no verified restaurant location.');
+    }
+
     private function applyKdsStatusCommand(
         array $identity,
         array $command
@@ -446,9 +598,9 @@ final class PmdMobileCommandProcessor
                 'idempotency_key' => 'A valid idempotency key is required.',
             ]);
         }
-        if ($aggregate !== 'order') {
+        if (!in_array($aggregate, ['order', 'table'], true)) {
             throw ValidationException::withMessages([
-                'aggregate' => 'Mobile sync V1 currently accepts order aggregates only.',
+                'aggregate' => 'Mobile sync accepts order or table aggregates.',
             ]);
         }
         if ($aggregateId === '' || strlen($aggregateId) > 128) {
@@ -598,6 +750,10 @@ final class PmdMobileCommandProcessor
 
     private function versionKey(array $command): string
     {
+        if ($command['aggregate'] === 'table') {
+            return $command['aggregate_id'];
+        }
+
         $orderId = (int)($command['payload']['order_id'] ?? 0);
         if ($orderId > 0) return 'order:'.$orderId;
 
@@ -606,11 +762,12 @@ final class PmdMobileCommandProcessor
 
     private function lockAggregateVersion(
         int $locationId,
+        string $aggregate,
         string $aggregateId
     ): int {
         DB::table('pmd_sync_aggregate_versions')->insertOrIgnore([
             'location_id' => $locationId,
-            'aggregate' => 'order',
+            'aggregate' => $aggregate,
             'aggregate_id' => $aggregateId,
             'version' => 0,
             'updated_at' => now(),
@@ -618,7 +775,7 @@ final class PmdMobileCommandProcessor
 
         $row = DB::table('pmd_sync_aggregate_versions')
             ->where('location_id', $locationId)
-            ->where('aggregate', 'order')
+            ->where('aggregate', $aggregate)
             ->where('aggregate_id', $aggregateId)
             ->lockForUpdate()
             ->first();
@@ -634,13 +791,14 @@ final class PmdMobileCommandProcessor
 
     private function setAggregateVersion(
         int $locationId,
+        string $aggregate,
         string $aggregateId,
         int $version
     ): void {
         DB::table('pmd_sync_aggregate_versions')->updateOrInsert(
             [
                 'location_id' => $locationId,
-                'aggregate' => 'order',
+                'aggregate' => $aggregate,
                 'aggregate_id' => $aggregateId,
             ],
             [
