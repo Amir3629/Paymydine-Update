@@ -11,9 +11,11 @@ use Admin\Traits\HandlesPortalMfa;
 use Admin\Traits\ValidatesForm;
 use App\Services\PmdOwnerTotpService;
 use App\Services\PmdMobileSync\PmdMobilePairingService;
+use App\Services\PmdMobileSync\PmdMobileStaffGrantService;
 use App\Services\PmdSiteAccessQrService;
 use App\Services\PmdSiteAccessService;
 use App\Services\PmdSiteAccessSessionBindingService;
+use App\Services\PmdStaffPinService;
 use App\Services\PmdTrustedLoginDeviceService;
 use App\Services\PmdWorkplaceCodeService;
 use App\Services\PmdWorkSessionPolicyService;
@@ -47,6 +49,10 @@ class Login extends \Admin\Classes\AdminController
             'onRequestResetPassword',
             'onResetPassword',
         ]);
+        // PMD_STAFF_QUICK_PIN_RATE_LIMIT_V1
+        // Shared restaurant terminals need a larger bucket than remote password
+        // auth, but a six-digit PIN must still be impractical to brute-force.
+        $this->middleware('throttle:30,5')->only(['onStaffPinLogin']);
     }
 
     public function index()
@@ -175,6 +181,192 @@ class Login extends \Admin\Classes\AdminController
             'username' => $username,
             'destination' => $portal ? 'staff' : 'workspace',
         ];
+    }
+
+    /** PMD_STAFF_QUICK_PIN_LOGIN_V1 */
+    public function onStaffPinLogin()
+    {
+        $data = post();
+        $this->validate($data, [
+            'pin' => ['required', 'regex:/^[0-9]{6}$/'],
+        ], [], [
+            'pin' => 'Quick PIN',
+        ]);
+
+        $pin = trim((string)array_get($data, 'pin', ''));
+        $pairing = app(PmdMobilePairingService::class);
+        if (
+            request()->filled(PmdMobilePairingService::HANDOFF_PARAM)
+            || $pairing->hasFreshIntent(request())
+        ) {
+            throw new ValidationException([
+                'pin' => 'Use username and password while connecting the PayMyDine app.',
+            ]);
+        }
+
+        $site = app(PmdSiteAccessService::class);
+        $pins = app(PmdStaffPinService::class);
+        if (!$site->ready() || !$pins->ready()) {
+            throw new ValidationException([
+                'pin' => 'Quick PIN is not available on this restaurant yet. Use username and password.',
+            ]);
+        }
+
+        // PIN-only authentication is accepted only on the exact browser that
+        // was activated as the restaurant Site Access hub. A remote browser
+        // never gets a chance to test staff PINs.
+        $hub = $site->currentHub(request());
+        if (!$hub || (int)($hub->location_id ?? 0) < 1) {
+            throw new ValidationException([
+                'pin' => 'Quick PIN works only on the trusted restaurant terminal. Use username and password.',
+            ]);
+        }
+
+        $user = $pins->userForPin($pin);
+        $staff = $user ? $user->staff : null;
+        if (!$user || !$staff) {
+            throw new ValidationException([
+                'pin' => 'That Quick PIN is not correct.',
+            ]);
+        }
+
+        $roles = app(PmdDefaultStaffRoleService::class);
+        $roleCode = $roles->roleCodeForUser($user);
+        if (!$pins->canUseRole($roleCode)) {
+            throw new ValidationException([
+                'pin' => 'This account uses username and password for sign-in.',
+            ]);
+        }
+
+        $locationId = (int)$hub->location_id;
+        if (!app(PmdMobileStaffGrantService::class)->userMayUseLocation(
+            $user,
+            $staff,
+            $locationId
+        )) {
+            throw new ValidationException([
+                'pin' => 'That Quick PIN is not correct.',
+            ]);
+        }
+
+        try {
+            $activePerson = DB::table('pmd_operational_people')
+                ->where('location_id', $locationId)
+                ->where('staff_id', (int)$staff->staff_id)
+                ->where('is_active', 1)
+                ->exists();
+        } catch (\Throwable $error) {
+            $activePerson = false;
+        }
+        if (!$activePerson) {
+            throw new ValidationException([
+                'pin' => 'That Quick PIN is not correct.',
+            ]);
+        }
+
+        $landing = $roles->routeForRoleCode($roleCode);
+        if (!$landing) {
+            throw new ValidationException([
+                'pin' => 'This account has no available PayMyDine workspace.',
+            ]);
+        }
+
+        AdminAuth::login($user, false);
+        session()->regenerate();
+
+        try {
+            $site->clearVerification();
+            app(PmdWorkSessionPolicyService::class)->clear();
+            app(PmdOwnerTotpService::class)->clearSessionVerification();
+
+            session()->put(
+                PmdSiteAccessService::SESSION_DESTINATION,
+                'workspace'
+            );
+            session()->put(
+                PmdSiteAccessService::SESSION_LOGIN_LOCATION,
+                $locationId
+            );
+
+            $identity = $site->identity(AdminAuth::getUser());
+            if (
+                (int)($identity['user_id'] ?? 0) !== (int)$user->getKey()
+                || (int)($identity['staff_id'] ?? 0) !== (int)$staff->staff_id
+                || (int)($identity['location_id'] ?? 0) !== $locationId
+            ) {
+                throw new \RuntimeException(
+                    'Quick PIN identity did not bind to the trusted restaurant location.'
+                );
+            }
+
+            $site->markWorkspaceVerified(
+                $locationId,
+                'staff_quick_pin',
+                (int)$hub->id
+            );
+            app(PmdSiteAccessSessionBindingService::class)->bindCurrentUser();
+            $policy = app(PmdWorkSessionPolicyService::class)->apply($identity);
+            $site->touchDevice((int)$hub->id);
+        } catch (\Throwable $error) {
+            logger()->error('PMD staff Quick PIN session bootstrap failed', [
+                'user_id' => (int)$user->getKey(),
+                'staff_id' => (int)$staff->staff_id,
+                'location_id' => $locationId,
+                'message' => $error->getMessage(),
+            ]);
+            $this->pmdAbortPinLogin(
+                'Quick PIN sign-in is temporarily unavailable. Use username and password.'
+            );
+        }
+
+        try {
+            $pins->touchUser((int)$user->getKey());
+        } catch (\Throwable $error) {
+            logger()->warning('PMD staff Quick PIN last-used update failed', [
+                'user_id' => (int)$user->getKey(),
+                'message' => $error->getMessage(),
+            ]);
+        }
+
+        $this->pmdQueueAccountLocale();
+
+        try {
+            app(\Admin\Services\PmdAdminPresenceService::class)
+                ->loginCurrentSession();
+        } catch (\Throwable $error) {
+            logger()->warning('PMD Quick PIN presence registration failed', [
+                'user_id' => (int)$user->getKey(),
+                'message' => $error->getMessage(),
+            ]);
+        }
+
+        try {
+            $site->audit(
+                'staff_quick_pin_login',
+                true,
+                $identity,
+                (int)$hub->id,
+                null,
+                request(),
+                [
+                    'role_code' => $roleCode,
+                    'route' => $landing,
+                    'session_until' => $policy['expires_at']->toIso8601String(),
+                    'session_reason' => $policy['reason'],
+                ]
+            );
+        } catch (\Throwable $error) {
+            logger()->warning('PMD staff Quick PIN audit failed', [
+                'user_id' => (int)$user->getKey(),
+                'message' => $error->getMessage(),
+            ]);
+        }
+
+        return redirect(admin_url($landing))
+            ->header(
+                'Cache-Control',
+                'no-store, no-cache, must-revalidate, max-age=0'
+            );
     }
 
     public function onLogin()
@@ -684,6 +876,17 @@ class Login extends \Admin\Classes\AdminController
         throw new ValidationException([
             'username' => lang('admin::lang.login.alert_username_not_found'),
         ]);
+    }
+
+    private function pmdAbortPinLogin(string $message): void
+    {
+        try {
+            AdminAuth::logout();
+        } catch (\Throwable $logoutError) {
+        }
+        session()->invalidate();
+        session()->regenerateToken();
+        throw new ValidationException(['pin' => $message]);
     }
 
     private function pmdAbortBootstrapLogin(string $message): void

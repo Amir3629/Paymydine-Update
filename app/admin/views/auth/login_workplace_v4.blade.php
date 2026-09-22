@@ -1,5 +1,5 @@
 @php
-    // PMD_LOGIN_WORKPLACE_V11
+    // PMD_LOGIN_WORKPLACE_V12
     $locale = strtolower(trim((string)request()->cookie('pmd_admin_locale', app()->getLocale())));
     $locale = in_array($locale, ['en', 'de'], true) ? $locale : 'en';
     $security = isset($pmdLoginSecurity) && is_array($pmdLoginSecurity) ? $pmdLoginSecurity : null;
@@ -21,6 +21,25 @@
 
     $securityActive = in_array($securityMode, ['setup', 'verify', 'workplace', 'recovery_codes'], true);
 
+    // PMD_STAFF_QUICK_PIN_LOGIN_VIEW_V1
+    // Quick PIN is deliberately visible only on the browser that already owns
+    // the restaurant Site Access hub cookie. Remote/untrusted browsers keep the
+    // full username/password login as their primary surface.
+    $pinLoginAvailable = false;
+    $hasMobileHandoff = request()->filled(\App\Services\PmdMobileSync\PmdMobilePairingService::HANDOFF_PARAM);
+    if (!$securityActive && !$hasMobileHandoff) {
+        try {
+            $siteAccess = app(\App\Services\PmdSiteAccessService::class);
+            $pinLoginAvailable = $siteAccess->ready()
+                && (bool)$siteAccess->currentHub(request())
+                && app(\App\Services\PmdStaffPinService::class)->hasAnyPin();
+        } catch (\Throwable $error) {
+            $pinLoginAvailable = false;
+        }
+    }
+    $requestedLoginMode = strtolower(trim((string)request()->input('mode', '')));
+    $pinDefault = $pinLoginAvailable && $requestedLoginMode !== 'password';
+
     app()->setLocale($locale);
     if (app()->bound('translator.localization')) {
         app('translator.localization')->setLocale($locale, false);
@@ -34,6 +53,14 @@
             'username_placeholder' => 'Benutzername eingeben',
             'password' => 'Passwort',
             'password_placeholder' => 'Passwort eingeben',
+            'pin_title' => 'Mitarbeiter-PIN',
+            'pin_text' => '6-stellige Quick PIN eingeben.',
+            'pin_label' => '6-stellige PIN',
+            'pin_submit' => 'Anmelden',
+            'use_password' => 'Vollständige Anmeldung · Benutzername & Passwort',
+            'use_pin' => 'Mitarbeiter-PIN verwenden',
+            'pin_clear' => 'Löschen',
+            'pin_delete' => 'Letzte Ziffer löschen',
             'continue' => 'Weiter',
             'forgot' => 'Passwort vergessen?',
             'failed_title' => 'Anmeldung fehlgeschlagen',
@@ -73,6 +100,14 @@
             'username_placeholder' => 'Enter your username',
             'password' => 'Password',
             'password_placeholder' => 'Enter your password',
+            'pin_title' => 'Staff PIN',
+            'pin_text' => 'Enter your 6-digit Quick PIN.',
+            'pin_label' => '6-digit PIN',
+            'pin_submit' => 'Sign in',
+            'use_password' => 'Full sign-in · Username & password',
+            'use_pin' => 'Use Staff PIN',
+            'pin_clear' => 'Clear',
+            'pin_delete' => 'Delete last digit',
             'continue' => 'Continue',
             'forgot' => 'Forgot password?',
             'failed_title' => 'Login failed',
@@ -115,7 +150,7 @@
     <meta name="robots" content="noindex,nofollow">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Login - PayMyDine</title>
-    <link rel="shortcut icon" href="/app/admin/assets/images/pmd-brand-mark.svg?v=pmd-login-v11">
+    <link rel="shortcut icon" href="/app/admin/assets/images/pmd-brand-mark.svg?v=pmd-login-v12">
     <style>
         :root{--jade:#063f36;--jade-dark:#032d27;--gold:#c89b4a;--line:#e1e9e6;--text:#122321;--muted:#6d7b78;--danger:#b42318;--content:350px}
         *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%}
@@ -132,11 +167,12 @@
         .security-head{text-align:center;margin-top:0;margin-bottom:22px}.security-head h1{margin:0 0 8px;color:#0c2c28;font-size:23px;letter-spacing:-.035em}.security-head p{margin:0 auto;max-width:320px;color:var(--muted);font-size:13px;line-height:1.5}.qrbox{display:grid;place-items:center;min-height:218px;padding:10px;border:1px solid #d3e6e0;border-radius:16px;background:#f5fbf9}.qrbox svg{display:block;width:205px!important;height:205px!important;max-width:100%}.qr-fallback{padding:24px;text-align:center;color:var(--muted);font-size:12px}.code-input{text-align:center;font-size:25px!important;font-weight:900;letter-spacing:.3em;font-variant-numeric:tabular-nums;padding-left:calc(13px + .3em)!important}.secret{border:1px solid var(--line);border-radius:12px;background:#f8fbfa;padding:10px 12px}.secret summary{cursor:pointer;color:#536461;font-size:12px;font-weight:850}.secret-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px;margin-top:9px}.secret-row input{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}.copy{height:46px;padding:0 12px;border:1px solid var(--line);border-radius:13px;background:#fff;color:var(--jade);font:inherit;font-size:11px;font-weight:900;cursor:pointer}
         .security-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}.wait{min-height:20px;text-align:center;color:#71807c;font-size:12px;font-weight:750}.text-action{width:100%;margin-top:14px;padding:6px;border:0;background:transparent;color:#536b65;font:inherit;font-size:12px;font-weight:850;cursor:pointer}.text-action:hover{color:var(--jade);text-decoration:underline}.recovery-panel[hidden]{display:none}.recovery-input{text-align:center;text-transform:uppercase;font-family:ui-monospace,SFMono-Regular,Menlo,monospace!important;font-size:20px!important;font-weight:850;letter-spacing:.12em}.recovery-list{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}.recovery-item{padding:10px 9px;border:1px solid #dce7e4;border-radius:11px;background:#f8fbfa;text-align:center;color:#183a33;font:800 13px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.04em}.recovery-actions{display:grid;gap:9px}.copy-recovery{height:44px;border:1px solid var(--line);border-radius:12px;background:#f8fbfa;color:var(--jade);font:inherit;font-size:12px;font-weight:900;cursor:pointer}
         .scanner{position:fixed;inset:0;z-index:30;display:grid;place-items:center;padding:18px;background:rgba(0,22,19,.82);backdrop-filter:blur(7px)}.scanner[hidden]{display:none}.scanner-card{width:min(430px,100%);padding:15px;border-radius:18px;background:#fff}.scanner video{display:block;width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:13px;background:#071d1a}.scanner-foot{display:grid;gap:9px;margin-top:11px}.scanner-message{color:var(--muted);font-size:12px;text-align:center}
-        @media(max-width:540px){body{padding:10px}.card{width:calc(100vw - 18px);max-height:calc(100dvh - 18px);padding:21px 18px 27px;border-radius:20px}.card.is-security{min-height:min(570px,calc(100dvh - 18px));padding-bottom:28px}.brand{height:140px;margin:-3px 38px 20px}.brand img{height:134px}.card.is-security .brand{height:150px;margin:-2px 38px 30px}.card.is-security .brand img{height:143px}.qrbox{min-height:195px}.qrbox svg{width:185px!important;height:185px!important}.security-actions{grid-template-columns:1fr}.recovery-list{grid-template-columns:1fr 1fr}.field>span{font-size:12.5px}.security-head p{font-size:12.5px}}
+        .card.is-pin{padding-bottom:24px}.card.is-pin .brand{height:112px;margin:-4px 42px 10px}.card.is-pin .brand img{height:108px}.pin-panel,.password-panel{width:min(var(--content),100%);margin:0 auto}.pin-head{text-align:center;margin:0 0 14px}.pin-head h1{margin:0 0 5px;color:#0c2c28;font-size:21px;letter-spacing:-.03em}.pin-head p{margin:0;color:var(--muted);font-size:12.5px}.pin-form{display:grid;gap:12px}.pin-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0;opacity:0}.pin-dots{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;width:min(284px,100%);margin:0 auto 2px}.pin-dot{height:44px;display:grid;place-items:center;border:1px solid #dbe5e2;border-radius:12px;background:#f8fbfa;color:var(--jade);font-size:24px;font-weight:900}.pin-dot.is-filled{border-color:#cbb27c;background:#fffaf0}.pin-dot.is-filled::after{content:'•';line-height:1}.pin-keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;width:min(284px,100%);margin:0 auto}.pin-key{height:54px;border:1px solid #dce7e4;border-radius:14px;background:#fff;color:#16332e;font:inherit;font-size:21px;font-weight:850;cursor:pointer;box-shadow:0 2px 0 rgba(6,63,54,.04)}.pin-key:hover{background:#f3f8f6}.pin-key:active{transform:translateY(1px)}.pin-key.is-action{font-size:14px;color:#60706d;background:#f7faf9}.pin-form .submit:disabled{opacity:.45;cursor:not-allowed}.mode-switch{width:100%;margin:12px 0 0;padding:7px;border:0;background:transparent;color:#536b65;font:inherit;font-size:12px;font-weight:850;cursor:pointer}.mode-switch:hover{color:var(--jade);text-decoration:underline}
+        @media(max-width:540px){body{padding:10px}.card{width:calc(100vw - 18px);max-height:calc(100dvh - 18px);padding:21px 18px 27px;border-radius:20px}.card.is-security{min-height:min(570px,calc(100dvh - 18px));padding-bottom:28px}.brand{height:140px;margin:-3px 38px 20px}.brand img{height:134px}.card.is-security .brand{height:150px;margin:-2px 38px 30px}.card.is-security .brand img{height:143px}.qrbox{min-height:195px}.qrbox svg{width:185px!important;height:185px!important}.security-actions{grid-template-columns:1fr}.recovery-list{grid-template-columns:1fr 1fr}.field>span{font-size:12.5px}.security-head p{font-size:12.5px}.card.is-pin .brand{height:96px;margin:0 38px 8px}.card.is-pin .brand img{height:92px}.pin-key{height:50px}.pin-dot{height:40px}}
     </style>
 </head>
 <body>
-<main class="card{{ $securityActive ? ' is-security' : '' }}" @if($securityMode === 'workplace' && !empty($security['expires_at'])) data-pmd-workplace-login data-expires-at="{{ $security['expires_at'] }}" @endif>
+<main class="card{{ $securityActive ? ' is-security' : ($pinDefault ? ' is-pin' : '') }}" @if($securityMode === 'workplace' && !empty($security['expires_at'])) data-pmd-workplace-login data-expires-at="{{ $security['expires_at'] }}" @endif>
     <button type="button" class="lang" data-lang="{{ $nextLocale }}">{{ strtoupper($nextLocale) }}</button>
     @if($securityActive)
         <form class="back-form" method="post" action="{{ admin_url('siteaccess/login-cancel') }}">
@@ -146,7 +182,7 @@
             </button>
         </form>
     @endif
-    <div class="brand"><img src="{{ asset('app/admin/assets/images/pmd-login-logo.svg') }}?v=pmd-login-v11" alt="PayMyDine"></div>
+    <div class="brand"><img src="{{ asset('app/admin/assets/images/pmd-login-logo.svg') }}?v=pmd-login-v12" alt="PayMyDine"></div>
 
     @if(input('reset') === 'success')
         <div class="success">{{ $copy['reset'] }}</div>
@@ -165,31 +201,63 @@
     </div>
 
     @if(!$securityActive)
-        {!! form_open(['id'=>'edit-form','class'=>'form','role'=>'form','method'=>'POST','data-request'=>'onLogin']) !!}
-            {{-- PMD_MOBILE_PAIR_SIGNED_LOGIN_FORM_V3 --}}
-            @if(request()->filled(\App\Services\PmdMobileSync\PmdMobilePairingService::HANDOFF_PARAM))
-                <input
-                    type="hidden"
-                    name="{{ \App\Services\PmdMobileSync\PmdMobilePairingService::HANDOFF_PARAM }}"
-                    value="{{ request()->input(\App\Services\PmdMobileSync\PmdMobilePairingService::HANDOFF_PARAM) }}"
-                >
+        @if($pinLoginAvailable)
+            <div class="pin-panel" data-login-panel="pin" @if(!$pinDefault) hidden @endif>
+                <section class="pin-head">
+                    <h1>{{ $copy['pin_title'] }}</h1>
+                    <p>{{ $copy['pin_text'] }}</p>
+                </section>
+                {!! form_open(['id'=>'pmd-pin-form','class'=>'pin-form','role'=>'form','method'=>'POST','data-request'=>'onStaffPinLogin']) !!}
+                    <label for="pmd-staff-pin" class="pin-hidden">{{ $copy['pin_label'] }}</label>
+                    <input id="pmd-staff-pin" class="pin-hidden" data-pin-input type="password" name="pin" inputmode="numeric" autocomplete="off" pattern="[0-9]{6}" minlength="6" maxlength="6" required @if($pinDefault) autofocus @endif>
+                    <div class="pin-dots" aria-hidden="true">
+                        @for($i = 0; $i < 6; $i++)<span class="pin-dot" data-pin-dot></span>@endfor
+                    </div>
+                    <div class="pin-keypad" aria-label="{{ $copy['pin_label'] }}">
+                        @foreach([1,2,3,4,5,6,7,8,9] as $digit)
+                            <button class="pin-key" type="button" data-pin-key="{{ $digit }}">{{ $digit }}</button>
+                        @endforeach
+                        <button class="pin-key is-action" type="button" data-pin-clear aria-label="{{ $copy['pin_clear'] }}">C</button>
+                        <button class="pin-key" type="button" data-pin-key="0">0</button>
+                        <button class="pin-key is-action" type="button" data-pin-delete aria-label="{{ $copy['pin_delete'] }}">⌫</button>
+                    </div>
+                    {!! form_error('pin', '<small class="error">', '</small>') !!}
+                    <button type="submit" class="submit" data-pin-submit data-attach-loading disabled>{{ $copy['pin_submit'] }}</button>
+                {!! form_close() !!}
+                <button type="button" class="mode-switch" data-login-mode="password">{{ $copy['use_password'] }}</button>
+            </div>
+        @endif
+
+        <div class="password-panel" data-login-panel="password" @if($pinDefault) hidden @endif>
+            {!! form_open(['id'=>'edit-form','class'=>'form','role'=>'form','method'=>'POST','data-request'=>'onLogin']) !!}
+                {{-- PMD_MOBILE_PAIR_SIGNED_LOGIN_FORM_V3 --}}
+                @if(request()->filled(\App\Services\PmdMobileSync\PmdMobilePairingService::HANDOFF_PARAM))
+                    <input
+                        type="hidden"
+                        name="{{ \App\Services\PmdMobileSync\PmdMobilePairingService::HANDOFF_PARAM }}"
+                        value="{{ request()->input(\App\Services\PmdMobileSync\PmdMobilePairingService::HANDOFF_PARAM) }}"
+                    >
+                @endif
+                <label class="field">
+                    <span>{{ $copy['username'] }}</span>
+                    <input type="text" name="username" id="input-username" autocomplete="username" placeholder="{{ $copy['username_placeholder'] }}" value="{{ old('username') }}" required @if(!$pinDefault) autofocus @endif>
+                    {!! form_error('username', '<small class="error">', '</small>') !!}
+                </label>
+                <label class="field">
+                    <span>{{ $copy['password'] }}</span>
+                    <span class="input">
+                        <input type="password" name="password" id="input-password" autocomplete="current-password" minlength="6" placeholder="{{ $copy['password_placeholder'] }}" required>
+                        <button type="button" class="toggle" data-password-toggle aria-label="Show password">◉</button>
+                    </span>
+                    {!! form_error('password', '<small class="error">', '</small>') !!}
+                </label>
+                <button type="submit" class="submit" data-attach-loading>{{ $copy['continue'] }}</button>
+                <a class="forgot" href="{{ admin_url('login/reset') }}">{{ $copy['forgot'] }}</a>
+            {!! form_close() !!}
+            @if($pinLoginAvailable)
+                <button type="button" class="mode-switch" data-login-mode="pin">{{ $copy['use_pin'] }}</button>
             @endif
-            <label class="field">
-                <span>{{ $copy['username'] }}</span>
-                <input type="text" name="username" id="input-username" autocomplete="username" placeholder="{{ $copy['username_placeholder'] }}" value="{{ old('username') }}" required autofocus>
-                {!! form_error('username', '<small class="error">', '</small>') !!}
-            </label>
-            <label class="field">
-                <span>{{ $copy['password'] }}</span>
-                <span class="input">
-                    <input type="password" name="password" id="input-password" autocomplete="current-password" minlength="6" placeholder="{{ $copy['password_placeholder'] }}" required>
-                    <button type="button" class="toggle" data-password-toggle aria-label="Show password">◉</button>
-                </span>
-                {!! form_error('password', '<small class="error">', '</small>') !!}
-            </label>
-            <button type="submit" class="submit" data-attach-loading>{{ $copy['continue'] }}</button>
-            <a class="forgot" href="{{ admin_url('login/reset') }}">{{ $copy['forgot'] }}</a>
-        {!! form_close() !!}
+        </div>
 
     @elseif($securityMode === 'setup')
         <section class="security-head"><h1>{{ $copy['setup_title'] }}</h1><p>{{ $copy['setup_text'] }}</p></section>
@@ -310,6 +378,75 @@
         var reveal = password.type === 'password';
         password.type = reveal ? 'text' : 'password';
         toggle.textContent = reveal ? '×' : '◉';
+    });
+
+    // PMD_STAFF_QUICK_PIN_KEYPAD_V1
+    var loginCard = document.querySelector('main.card');
+    var pinInput = document.querySelector('[data-pin-input]');
+    var pinSubmit = document.querySelector('[data-pin-submit]');
+    var pinDots = Array.prototype.slice.call(document.querySelectorAll('[data-pin-dot]'));
+    function renderPin() {
+        if (!pinInput) return;
+        var clean = String(pinInput.value || '').replace(/\D+/g, '').slice(0, 6);
+        if (pinInput.value !== clean) pinInput.value = clean;
+        pinDots.forEach(function (dot, index) {
+            dot.classList.toggle('is-filled', index < clean.length);
+        });
+        if (pinSubmit) pinSubmit.disabled = clean.length !== 6;
+    }
+    function focusPin() {
+        if (!pinInput) return;
+        window.setTimeout(function () { pinInput.focus({preventScroll:true}); }, 0);
+    }
+    if (pinInput) {
+        pinInput.addEventListener('input', renderPin);
+        pinInput.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') {
+                pinInput.value = '';
+                renderPin();
+            }
+        });
+        renderPin();
+    }
+    document.querySelectorAll('[data-pin-key]').forEach(function (button) {
+        button.addEventListener('click', function () {
+            if (!pinInput || pinInput.value.length >= 6) return focusPin();
+            pinInput.value += String(button.getAttribute('data-pin-key') || '').replace(/\D+/g, '').slice(0, 1);
+            renderPin();
+            focusPin();
+        });
+    });
+    var pinDelete = document.querySelector('[data-pin-delete]');
+    if (pinDelete) pinDelete.addEventListener('click', function () {
+        if (!pinInput) return;
+        pinInput.value = String(pinInput.value || '').slice(0, -1);
+        renderPin();
+        focusPin();
+    });
+    var pinClear = document.querySelector('[data-pin-clear]');
+    if (pinClear) pinClear.addEventListener('click', function () {
+        if (!pinInput) return;
+        pinInput.value = '';
+        renderPin();
+        focusPin();
+    });
+    var pinForm = document.getElementById('pmd-pin-form');
+    if (pinForm) pinForm.addEventListener('submit', function (event) {
+        if (!pinInput || String(pinInput.value || '').length !== 6) {
+            event.preventDefault();
+            focusPin();
+        }
+    });
+    document.querySelectorAll('[data-login-mode]').forEach(function (button) {
+        button.addEventListener('click', function () {
+            var mode = button.getAttribute('data-login-mode') === 'pin' ? 'pin' : 'password';
+            document.querySelectorAll('[data-login-panel]').forEach(function (panel) {
+                panel.hidden = panel.getAttribute('data-login-panel') !== mode;
+            });
+            if (loginCard) loginCard.classList.toggle('is-pin', mode === 'pin');
+            var target = mode === 'pin' ? pinInput : document.getElementById('input-username');
+            if (target) window.setTimeout(function () { target.focus({preventScroll:true}); }, 0);
+        });
     });
 
     document.querySelectorAll('[data-security-code],#pmd-workplace-code').forEach(function (input) {
@@ -523,7 +660,7 @@
 if (window.jQuery) {
     jQuery.ajaxSetup({headers:{'X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]').getAttribute('content')}});
     (function ($) {
-        var form = $('#edit-form');
+        var form = $('#edit-form, #pmd-pin-form');
         var notice = document.getElementById('pmd-login-notice');
         if (!form.length || !notice) return;
         function show(message) {
@@ -531,7 +668,15 @@ if (window.jQuery) {
             if (span && message) span.textContent = message;
             notice.hidden = false;
         }
-        form.on('ajaxFail ajaxError ajaxInvalidField', function () { show(); });
+        form.on('ajaxFail ajaxError ajaxInvalidField', function () {
+            show();
+            var pin = document.querySelector('[data-pin-input]');
+            if (pin && !pin.closest('[hidden]')) {
+                pin.value = '';
+                pin.dispatchEvent(new Event('input', {bubbles:true}));
+                pin.focus();
+            }
+        });
         $(document).on('ajaxErrorMessage', function (event, message) {
             if (event && event.preventDefault) event.preventDefault();
             show(message);

@@ -50,6 +50,7 @@ class SuperAdminTenantLifecycleService
         'pmd_owner_mfa',
         'pmd_portal_mfa',
         'pmd_portal_mfa_recovery_codes',
+        'pmd_staff_login_pins',
 
         // Reservations / floor / service activity
         'reservations',
@@ -292,7 +293,7 @@ class SuperAdminTenantLifecycleService
         }
     }
 
-    /** PMD_NEW_TENANT_SITE_ACCESS_SCHEMA_V1 */
+    /** PMD_NEW_TENANT_SITE_ACCESS_SCHEMA_V2 */
     private function ensureWorkplaceSecuritySchema(): void
     {
         $siteMigration = base_path(
@@ -308,8 +309,14 @@ class SuperAdminTenantLifecycleService
         $portalMigration = base_path(
             'app/system/database/migrations/2026_09_01_000000_create_pmd_portal_mfa_table.php'
         );
+        $staffPinMigration = base_path(
+            'app/system/database/migrations/2026_09_23_000000_create_pmd_staff_login_pins_table.php'
+        );
         if (!is_file($portalMigration)) {
             throw new \RuntimeException('Portal MFA migration file is missing.');
+        }
+        if (!is_file($staffPinMigration)) {
+            throw new \RuntimeException('Staff Quick PIN migration file is missing.');
         }
 
         if (
@@ -324,11 +331,13 @@ class SuperAdminTenantLifecycleService
         require_once $trustedUserMigration;
         require_once $ownerMigration;
         require_once $portalMigration;
+        require_once $staffPinMigration;
 
         (new \System\Database\Migrations\CreatePmdSiteAccessTables())->up();
         (new \System\Database\Migrations\AddUserIdToPmdSiteAccessDevices())->up();
         (new \System\Database\Migrations\CreatePmdOwnerMfaTable())->up();
         (new \System\Database\Migrations\CreatePmdPortalMfaTable())->up();
+        (new \System\Database\Migrations\CreatePmdStaffLoginPinsTable())->up();
 
         foreach ([
             'pmd_site_access_devices',
@@ -338,6 +347,7 @@ class SuperAdminTenantLifecycleService
             'pmd_owner_mfa',
             'pmd_portal_mfa',
             'pmd_portal_mfa_recovery_codes',
+            'pmd_staff_login_pins',
         ] as $table) {
             if (!Schema::connection('mysql')->hasTable($table)) {
                 throw new \RuntimeException('New tenant security schema missing table: '.$table);
