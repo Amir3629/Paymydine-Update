@@ -106,11 +106,16 @@ class PmdSiteAccessWorkspaceGateService
 
             $mobileDeviceValid = false;
             try {
+                // PMD_MOBILE_SHARED_DEVICE_REVOCATION_V2
+                // The Android row proves trusted restaurant DEVICE + location.
+                // The current human identity is independently bound to this
+                // Admin session by Staff Grant + session binding. Never compare
+                // the device row's historical pairer user_id to the current
+                // shared-tablet staff user.
                 $mobileDeviceValid = $mobileDeviceId > 0
                     && DB::table('pmd_site_access_devices')
                         ->where('id', $mobileDeviceId)
                         ->where('location_id', $locationId)
-                        ->where('user_id', (int)$identity['user_id'])
                         ->where('device_kind', 'staff_personal')
                         ->whereNull('revoked_at')
                         ->exists();
@@ -157,6 +162,11 @@ class PmdSiteAccessWorkspaceGateService
                     // embedded POS sessions, re-check that exact personal
                     // device row on every request so revoke/reset fails closed.
                     try {
+                        // PMD_MOBILE_OWNER_DEVICE_PROOF_V3
+                        // A mobile_android_device proof may satisfy Owner MFA
+                        // only when this exact device was originally paired by
+                        // this Owner. Shared restaurant tablets use the normal
+                        // canonical Owner security continuation instead.
                         $ownerSessionValid = $deviceId > 0
                             && DB::table('pmd_site_access_devices')
                                 ->where('id', $deviceId)
