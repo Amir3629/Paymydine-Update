@@ -49,6 +49,9 @@ android {
 }
 kotlin { jvmToolchain(17) }
 dependencies {
+    // PMD_ZCS_VENDOR_SDK_V3
+    // Vendor AAR is supplied separately; normal builds remain compatible.
+    implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar", "*.aar"))))
     val composeBom = platform("androidx.compose:compose-bom:2026.04.01")
     implementation(composeBom)
     androidTestImplementation(composeBom)
