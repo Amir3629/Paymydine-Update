@@ -141,7 +141,9 @@ jobs:
           grep -q 'android:name=".PosActivity"' mobile/android/app/src/main/AndroidManifest.xml
           grep -q 'android:screenOrientation="sensorLandscape"' mobile/android/app/src/main/AndroidManifest.xml
           grep -q "PMD_ANDROID_DIRECT_LOGIN_ROUTER_V1" mobile/android/app/src/main/java/com/paymydine/mobile/ui/PayMyDineApp.kt
-          grep -q "PMD_ANDROID_DIRECT_STAFF_LOGIN_V1" mobile/android/app/src/main/java/com/paymydine/mobile/ui/PmdStaffLogin.kt
+          grep -q "PMD_ANDROID_CANONICAL_LOGIN_UI_V12" mobile/android/app/src/main/java/com/paymydine/mobile/ui/PmdStaffLogin.kt
+          grep -q "pmd-login-workplace-v11-native.html" mobile/android/app/src/main/java/com/paymydine/mobile/ui/PmdStaffLogin.kt
+          grep -q "Restaurant approval" mobile/android/app/src/main/assets/pmd-login-workplace-v11-native.html
           ! grep -q "PMD_ANDROID_PREPAIR_WORKSPACE_CHOOSER_V2" mobile/android/app/src/main/java/com/paymydine/mobile/ui/PayMyDineApp.kt
           grep -q "preferredWorkspace" mobile/android/app/src/main/java/com/paymydine/mobile/security/DeviceCredentialStore.kt
           grep -q "PMD_MOBILE_PAIR_APPROVAL_CARD_DEVICE_V5" app/Services/PmdMobileSync/PmdMobilePairingService.php
@@ -150,7 +152,9 @@ jobs:
           grep -q "pmd-offline-pos.html" mobile/android/app/src/main/java/com/paymydine/mobile/OfflinePosActivity.kt
           grep -q "pmd-qpos-main" mobile/android/app/src/main/assets/pmd-offline-pos.html
           grep -q "PMD Quick POS V1" mobile/android/app/src/main/assets/pmd-quick-pos-v1.css
-          grep -q "PMD_ANDROID_STAFF_LOGIN_ROUTER_V2" app/Http/Controllers/PmdMobileWorkspaceAuthController.php
+          grep -q "PMD_ANDROID_STAFF_LOGIN_ROUTER_V3" app/Http/Controllers/PmdMobileWorkspaceAuthController.php
+          grep -q "PMD_ANDROID_CANONICAL_LOGIN_WAIT_V12" app/Http/Controllers/PmdMobileWorkspaceAuthController.php
+          grep -q "offline_expires_at" app/Http/Controllers/PmdMobileWorkspaceAuthController.php
           grep -q "PMD_ANDROID_DEVICE_TRUST_BEFORE_STAFF_LOGIN_V3" app/Http/Controllers/PmdMobileWorkspaceAuthController.php
           grep -q "routeForRoleCode" app/Http/Controllers/PmdMobileWorkspaceAuthController.php
           grep -q "PMD_MOBILE_ROLE_WORKSPACE_SESSION_V2" app/Http/Controllers/PmdMobileWorkspaceSessionController.php
@@ -166,11 +170,23 @@ jobs:
           grep -q "PMD_MOBILE_OWNER_DEVICE_PROOF_V3" app/Services/PmdSiteAccessWorkspaceGateService.php
           grep -q "PMD_MOBILE_OWNER_CANONICAL_SECURITY_V6" app/Http/Controllers/PmdMobileWorkspaceSessionController.php
           grep -q "PMD_ANDROID_ROLE_WORKSPACE_ACTIVITY_V1" mobile/android/app/src/main/java/com/paymydine/mobile/RoleWorkspaceActivity.kt
-          grep -q "PMD_ANDROID_OWNER_MFA_WEBVIEW_V2" mobile/android/app/src/main/java/com/paymydine/mobile/RoleWorkspaceActivity.kt
+          grep -q "PMD_ANDROID_CANONICAL_MFA_WEBVIEW_V12" mobile/android/app/src/main/java/com/paymydine/mobile/RoleWorkspaceActivity.kt
           grep -q "PMD_ANDROID_FRESH_ROLE_WEB_SESSION_V2" mobile/android/app/src/main/java/com/paymydine/mobile/RoleWorkspaceActivity.kt
           grep -q "fresh staff sign-in" mobile/android/app/src/main/java/com/paymydine/mobile/RoleWorkspaceActivity.kt
           grep -q 'android:name=".RoleWorkspaceActivity"' mobile/android/app/src/main/AndroidManifest.xml
           grep -q "workspace/authorize" routes/pmd-mobile-sync-v1.php
+          grep -q "workspace/request" routes/pmd-mobile-sync-v1.php
+          grep -q "workspace/status" routes/pmd-mobile-sync-v1.php
+          grep -q "pair/request" routes/pmd-mobile-sync-v1.php
+          grep -q "PMD_SITE_ACCESS_EXPLICIT_IDENTITY_CHALLENGE_V12" app/Services/PmdSiteAccessService.php
+          grep -q "PMD_MOBILE_NATIVE_PAIR_DASHBOARD_WAIT_V12" app/Services/PmdMobileSync/PmdMobilePairingService.php
+          grep -q "PMD_MOBILE_NATIVE_PAIR_REQUEST_V12" app/Http/Controllers/PmdMobilePairController.php
+          grep -q "PMD_MOBILE_SIGNED_DESTINATION_AUTHORITY_V12" app/Http/Controllers/PmdMobileWorkspaceSessionController.php
+          grep -q "PMD_MOBILE_PORTAL_CANONICAL_SECURITY_V12" app/Http/Controllers/PmdMobileWorkspaceSessionController.php
+          grep -q "PMD_ANDROID_OFFLINE_SESSION_AUTHORITY_V12" mobile/android/app/src/main/java/com/paymydine/mobile/security/DeviceCredentialStore.kt
+          grep -q "PMD_ANDROID_OFFLINE_POS_AUTHORITY_V12" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
+          grep -q "PMD_ANDROID_OFFLINE_KDS_AUTHORITY_V12" mobile/android/app/src/main/java/com/paymydine/mobile/KdsActivity.kt
+          grep -q "offlineSessionValid(\"pos\")" mobile/android/app/src/main/java/com/paymydine/mobile/OfflinePosActivity.kt
           grep -q "throttle:60,1,pmd-mobile-pair-status" routes/pmd-mobile-sync-v1.php
           grep -q "throttle:30,1,pmd-mobile-pair-exchange" routes/pmd-mobile-sync-v1.php
           grep -q "throttle:20,1,pmd-mobile-staff-login" routes/pmd-mobile-sync-v1.php
@@ -311,11 +327,11 @@ jobs:
           cp mobile/android/app/build/outputs/apk/debug/app-debug.apk \
             mobile/android/PayMyDine-POS-Tablet-Preview.apk
           cp mobile/android/app/build/outputs/apk/debug/app-debug.apk \
-            mobile/android/PayMyDine-POS-Tablet-Preview-0.3.4.apk
+            mobile/android/PayMyDine-POS-Tablet-Preview-0.3.5.apk
           sha256sum mobile/android/PayMyDine-POS-Tablet-Preview.apk \
             > mobile/android/PayMyDine-POS-Tablet-Preview.apk.sha256
-          sha256sum mobile/android/PayMyDine-POS-Tablet-Preview-0.3.4.apk \
-            > mobile/android/PayMyDine-POS-Tablet-Preview-0.3.4.apk.sha256
+          sha256sum mobile/android/PayMyDine-POS-Tablet-Preview-0.3.5.apk \
+            > mobile/android/PayMyDine-POS-Tablet-Preview-0.3.5.apk.sha256
       - name: Verify preview APK identity
         shell: bash
         run: |
@@ -330,11 +346,11 @@ jobs:
           BADGING="$("$AAPT" dump badging "$APK" | head -1)"
           echo "$BADGING"
           grep -Fq "package: name='com.paymydine.mobile.pospreview'" <<<"$BADGING"
-          grep -Fq "versionCode='17'" <<<"$BADGING"
-          grep -Fq "versionName='0.3.4-session-authority-debug'" <<<"$BADGING"
+          grep -Fq "versionCode='18'" <<<"$BADGING"
+          grep -Fq "versionName='0.3.5-canonical-login-offline-debug'" <<<"$BADGING"
 
           echo "PMD_PREVIEW_PACKAGE=com.paymydine.mobile.pospreview"
-          echo "PMD_PREVIEW_VERSION=0.3.4-session-authority-debug"
+          echo "PMD_PREVIEW_VERSION=0.3.5-canonical-login-offline-debug"
 
           # PR checks intentionally use the runner's ephemeral debug key. Only a
           # direct push to the preview branch may verify/publish the pinned key.
@@ -363,8 +379,8 @@ jobs:
           path: |
             mobile/android/PayMyDine-POS-Tablet-Preview.apk
             mobile/android/PayMyDine-POS-Tablet-Preview.apk.sha256
-            mobile/android/PayMyDine-POS-Tablet-Preview-0.3.4.apk
-            mobile/android/PayMyDine-POS-Tablet-Preview-0.3.4.apk.sha256
+            mobile/android/PayMyDine-POS-Tablet-Preview-0.3.5.apk
+            mobile/android/PayMyDine-POS-Tablet-Preview-0.3.5.apk.sha256
           if-no-files-found: error
       - name: Publish tablet preview release
         if: github.event_name == 'push' && github.ref == 'refs/heads/feature/android-local-first-v1' && !startsWith(github.event.head_commit.message, 'CI:') && !startsWith(github.event.head_commit.message, 'Deploy:')
@@ -385,7 +401,7 @@ jobs:
           gh release upload "$TAG" \
             mobile/android/PayMyDine-POS-Tablet-Preview.apk \
             mobile/android/PayMyDine-POS-Tablet-Preview.apk.sha256 \
-            mobile/android/PayMyDine-POS-Tablet-Preview-0.3.4.apk \
-            mobile/android/PayMyDine-POS-Tablet-Preview-0.3.4.apk.sha256 \
+            mobile/android/PayMyDine-POS-Tablet-Preview-0.3.5.apk \
+            mobile/android/PayMyDine-POS-Tablet-Preview-0.3.5.apk.sha256 \
             --repo "$GITHUB_REPOSITORY" \
             --clobber
