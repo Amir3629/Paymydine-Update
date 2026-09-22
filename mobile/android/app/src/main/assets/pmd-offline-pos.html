@@ -374,8 +374,14 @@ function addModified(){
   if(!state.modifier)return;var ids=[];Object.keys(state.selectedOptions).forEach(function(k){ids=ids.concat(state.selectedOptions[k])});
   mutate('addItem',state.selectedTable,String(state.modifier.id),JSON.stringify(ids),el('[data-mod-note]').value||'');closeMod()
 }
+function paymentDueMinor(){
+  var s=state.snapshot||{},d=s.draft,b=s.bill;
+  var remaining=Number(b&&b.remaining_minor||0);
+  var pending=Number(d&&d.total_minor||0);
+  return Math.max(0,remaining+pending)
+}
 function renderCart(){
-  var s=state.snapshot,d=s.draft,b=s.bill,currency=(d&&d.currency)||(b&&b.currency)||s.currency||'EUR',base=(b&&b.base_total_minor)||0,newTotal=(d&&d.total_minor)||0;
+  var s=state.snapshot,d=s.draft,b=s.bill,currency=(d&&d.currency)||(b&&b.currency)||s.currency||'EUR',base=(b&&b.base_total_minor)||0,newTotal=(d&&d.total_minor)||Number(b&&b.pending_total_minor||0);
   el('[data-check-title]').textContent=state.selectedTable?(s.selected_table_label||'New'):'New';
   el('[data-guests]').textContent=(d&&d.guest_count)||1;el('[data-note]').value=(d&&d.note)||'';
   el('[data-new-total]').textContent=money(newTotal,currency);el('[data-total]').textContent=money(base+newTotal,currency);
@@ -391,8 +397,8 @@ function renderCart(){
     host.appendChild(row)
   });
   var editable=!!(d&&d.status==='DRAFT'&&(d.lines||[]).length);el('[data-hold]').disabled=!editable;el('[data-send]').disabled=!editable;
-  var due=Number(b&&b.remaining_minor||0),paymentQueued=Number(b&&b.payment_queued_minor||0);
-  el('[data-pay]').disabled=!state.selectedTable||editable||due<=0||paymentQueued>0;
+  var due=paymentDueMinor(),paymentQueued=Number(b&&b.payment_queued_minor||0);
+  el('[data-pay]').disabled=!state.selectedTable||due<=0||paymentQueued>0;
   el('[data-pay]').textContent=paymentQueued>0?'Cash queued':'Pay';
   var status=state.selectedTable?(s.authority+' · '+(s.selected_table_label||'')):'Select table';
   if(paymentQueued>0)status+=' · payment queued';
@@ -417,18 +423,25 @@ el('[data-note]').addEventListener('change',function(){var d=state.snapshot&&sta
 el('[data-hold]').onclick=function(){mutate('queueOrder',state.selectedTable||'',true)};
 el('[data-send]').onclick=function(){mutate('queueOrder',state.selectedTable||'',false)};
 function openPayment(){
-  var b=state.snapshot&&state.snapshot.bill,due=Number(b&&b.remaining_minor||0);
-  if(!state.selectedTable||!b||due<=0){toast('No unpaid bill is available.');return}
-  if(Number(b.payment_queued_minor||0)>0){toast('Cash payment is already queued.');return}
-  el('[data-payment-due]').textContent=money(due,b.currency||state.snapshot.currency);
+  var b=state.snapshot&&state.snapshot.bill,d=state.snapshot&&state.snapshot.draft,due=paymentDueMinor();
+  if(!state.selectedTable||due<=0){toast('No unpaid bill is available.');return}
+  if(Number(b&&b.payment_queued_minor||0)>0){toast('Cash payment is already queued.');return}
+  var currency=(d&&d.currency)||(b&&b.currency)||state.snapshot.currency;
+  el('[data-payment-due]').textContent=money(due,currency);
   el('[data-payment-cash]').value=(due/100).toFixed(2);
   var m=el('[data-offline-payment]');m.classList.add('is-open');m.setAttribute('aria-hidden','false');
 }
 function closePayment(){var m=el('[data-offline-payment]');m.classList.remove('is-open');m.setAttribute('aria-hidden','true')}
 function submitPayment(){
-  var cash=Math.round(Number(el('[data-payment-cash]').value||0)*100),b=state.snapshot&&state.snapshot.bill,due=Number(b&&b.remaining_minor||0);
+  var cash=Math.round(Number(el('[data-payment-cash]').value||0)*100),d=state.snapshot&&state.snapshot.draft,due=paymentDueMinor();
   if(cash<due){toast('Cash received is lower than the amount due.');return}
-  try{var result=JSON.parse(bridge('queueCashPayment',state.selectedTable||'',cash));if(!result.ok)toast(result.message||'Payment failed');else{toast(result.message||'Cash queued');closePayment();read()}}catch(e){toast(e.message||'Payment failed')}
+  try{
+    var hasDraft=!!(d&&d.status==='DRAFT'&&(d.lines||[]).length);
+    var method=hasDraft?'queueSendAndCash':'queueCashPayment';
+    var result=JSON.parse(bridge(method,state.selectedTable||'',cash));
+    if(!result.ok)toast(result.message||'Payment failed');
+    else{toast(result.message||'Cash queued');closePayment();read()}
+  }catch(e){toast(e.message||'Payment failed')}
 }
 function openMove(){
   var modal=el('[data-offline-move]'),grid=el('[data-move-grid]'),tables=(state.snapshot&&state.snapshot.tables)||[];
