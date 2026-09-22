@@ -80,9 +80,34 @@ class PmdSiteAccessService
 
         $staff = $user ? $user->staff : null;
         $staffId = (int)($staff->staff_id ?? 0);
-        $locationId = 0;
 
-        if ($staffId > 0 && $this->pmdSchemaHasTable('pmd_operational_people')) {
+        // PMD_MOBILE_SESSION_LOCATION_AUTHORITY_V6
+        // Once a native Android session has been created, the restaurant
+        // location verified from the bearer-authenticated device is the
+        // authority for this Admin session. A staff member may legitimately
+        // have another primary/operational location while still being assigned
+        // to this restaurant; do not overwrite the mobile device location with
+        // that profile default on the redirect request.
+        $mobileSessionLocation = 0;
+        if (
+            (string)session()->get(self::SESSION_VERIFIED_METHOD, '') ===
+                'mobile_android_device'
+        ) {
+            $mobileSessionLocation = (int)session()->get(
+                self::SESSION_VERIFIED_LOCATION,
+                0
+            );
+        }
+
+        $locationId = $mobileSessionLocation > 0
+            ? $mobileSessionLocation
+            : 0;
+
+        if (
+            $locationId < 1
+            && $staffId > 0
+            && $this->pmdSchemaHasTable('pmd_operational_people')
+        ) {
             try {
                 $person = DB::table('pmd_operational_people')
                     ->where('staff_id', $staffId)

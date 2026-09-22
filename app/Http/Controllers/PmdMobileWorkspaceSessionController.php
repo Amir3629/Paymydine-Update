@@ -8,6 +8,7 @@ use Admin\Models\Locations_model;
 use Admin\Services\PmdDefaultStaffRoleService;
 use App\Services\PmdMobileSync\PmdMobileDeviceAuthService;
 use App\Services\PmdSiteAccessService;
+use App\Services\PmdOwnerTotpService;
 use App\Services\PmdSiteAccessSessionBindingService;
 use App\Services\PmdWorkSessionPolicyService;
 use Illuminate\Http\Request;
@@ -83,14 +84,30 @@ final class PmdMobileWorkspaceSessionController extends Controller
         AdminLocation::setCurrent($location);
         session()->put(PmdSiteAccessService::SESSION_DESTINATION, 'workspace');
 
-        // PMD_MOBILE_OWNER_CANONICAL_SECURITY_V3
-        // Shared Android tablets authenticate the Owner password, but they do
-        // not replace the Owner's canonical MFA / workplace security. Let the
-        // normal Workspace Gate continue that security flow for Owner.
+        // PMD_MOBILE_OWNER_CANONICAL_SECURITY_V6
+        // Do not redirect Owner to the dashboard and rely on a later middleware
+        // pass to discover that MFA is missing. Queue the exact canonical Owner
+        // security state here and send the already password-authenticated Admin
+        // session straight to /admin/login, where the normal Owner MFA UI lives.
         $isOwner = $roleCode === PmdDefaultStaffRoleService::OWNER;
         $policy = null;
 
-        if (!$isOwner) {
+        if ($isOwner) {
+            $ownerTotp = app(PmdOwnerTotpService::class);
+            session()->put('pmd_login_owner_security_v1', [
+                'mode' => $ownerTotp->enabled((int)$identity['user_id'])
+                    ? 'verify'
+                    : 'setup',
+                'user_id' => (int)$identity['user_id'],
+                'location_id' => $locationId,
+                'session_id' => (string)session()->getId(),
+                'created_at' => time(),
+            ]);
+            session()->put(
+                'pmd_owner_totp_after_v1',
+                admin_url($route)
+            );
+        } else {
             $site->markWorkspaceVerified(
                 $locationId,
                 'mobile_android_device',
@@ -121,7 +138,10 @@ final class PmdMobileWorkspaceSessionController extends Controller
             ]
         );
 
-        return redirect(admin_url($route))
-            ->header('Cache-Control', 'no-store, private');
+        return redirect(
+            $isOwner
+                ? admin_url('login')
+                : admin_url($route)
+        )->header('Cache-Control', 'no-store, private');
     }
 }
