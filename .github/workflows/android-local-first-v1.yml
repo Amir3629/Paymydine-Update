@@ -19,6 +19,7 @@ on:
       - 'app/system/database/migrations/2026_09_20_190000_create_pmd_mobile_sync_tables.php'
       - 'routes/pmd-mobile-sync-v1.php'
       - '.github/workflows/android-local-first-v1.yml'
+      - 'deploy/pmd-android-operations-v18-direct-login-first-party.sh'
   pull_request:
     branches: [main]
     paths:
@@ -82,6 +83,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          bash -n deploy/pmd-android-operations-v18-direct-login-first-party.sh
           grep -q "trustedDeviceByRawToken" app/Services/PmdSiteAccessService.php
           grep -q "rotateTrustedDeviceToken" app/Services/PmdSiteAccessService.php
           grep -q "pmd_sync_commands" app/system/database/migrations/2026_09_20_190000_create_pmd_mobile_sync_tables.php
