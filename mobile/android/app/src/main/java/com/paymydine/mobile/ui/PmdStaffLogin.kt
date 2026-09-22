@@ -431,33 +431,41 @@ private fun PmdCanonicalLoginCard(
     AndroidView(
         modifier = modifier,
         factory = { context ->
-            WebView(context).apply {
-                setBackgroundColor(android.graphics.Color.TRANSPARENT)
-                settings.apply {
-                    javaScriptEnabled = true
-                    domStorageEnabled = false
-                    databaseEnabled = false
-                    allowFileAccess = true
-                    allowContentAccess = false
-                    blockNetworkLoads = true
-                    javaScriptCanOpenWindowsAutomatically = false
-                    setSupportMultipleWindows(false)
-                }
-                addJavascriptInterface(bridge, "PayMyDineNative")
-                webViewClient = object : WebViewClient() {
-                    override fun onPageFinished(
-                        view: WebView,
-                        url: String,
-                    ) {
-                        pushNativeState(view, state)
-                    }
-                }
-                bridge.webView = this
-                loadUrl(
-                    "file:///android_asset/" +
-                        "pmd-login-workplace-v11-native.html",
-                )
+            // PMD_ANDROID_CANONICAL_LOGIN_BRIDGE_V12
+            // Keep the receiver statically typed as WebView. Android Lint can
+            // otherwise lose the concrete type through Kotlin's generic apply()
+            // receiver and incorrectly report that @JavascriptInterface
+            // methods are missing.
+            val view = WebView(context)
+            view.setBackgroundColor(android.graphics.Color.TRANSPARENT)
+            view.settings.apply {
+                javaScriptEnabled = true
+                domStorageEnabled = false
+                databaseEnabled = false
+                allowFileAccess = true
+                allowContentAccess = false
+                blockNetworkLoads = true
+                javaScriptCanOpenWindowsAutomatically = false
+                setSupportMultipleWindows(false)
             }
+            view.addJavascriptInterface(
+                bridge as NativeLoginBridge,
+                "PayMyDineNative",
+            )
+            view.webViewClient = object : WebViewClient() {
+                override fun onPageFinished(
+                    current: WebView,
+                    url: String,
+                ) {
+                    pushNativeState(current, state)
+                }
+            }
+            bridge.webView = view
+            view.loadUrl(
+                "file:///android_asset/" +
+                    "pmd-login-workplace-v11-native.html",
+            )
+            view
         },
         update = { view ->
             bridge.webView = view
