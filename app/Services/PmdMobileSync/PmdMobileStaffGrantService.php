@@ -20,8 +20,17 @@ final class PmdMobileStaffGrantService
     private const VERSION = 1;
     private const TTL_SECONDS = 8 * 60 * 60;
 
-    public function issue(array $deviceIdentity, $user): string
-    {
+    public function issue(
+        array $deviceIdentity,
+        $user,
+        string $destination = 'workspace'
+    ): string {
+        $destination = strtolower(trim($destination));
+        if (!in_array($destination, ['workspace', 'staff'], true)) {
+            throw new \InvalidArgumentException(
+                'Invalid PayMyDine staff destination.'
+            );
+        }
         $locationId = (int)($deviceIdentity['location_id'] ?? 0);
         $deviceId = (int)($deviceIdentity['device_id'] ?? 0);
         $staff = $user ? $user->staff : null;
@@ -55,6 +64,7 @@ final class PmdMobileStaffGrantService
             'user_id' => (int)$user->getKey(),
             'staff_id' => (int)$staff->getKey(),
             'role_code' => $roleCode,
+            'destination' => $destination,
             'iat' => $now,
             'exp' => $now + self::TTL_SECONDS,
         ];
@@ -123,6 +133,12 @@ final class PmdMobileStaffGrantService
         $userId = (int)($payload['user_id'] ?? 0);
         $staffId = (int)($payload['staff_id'] ?? 0);
         $expectedRole = strtolower(trim((string)($payload['role_code'] ?? '')));
+        $destination = strtolower(trim(
+            (string)($payload['destination'] ?? 'workspace')
+        ));
+        if (!in_array($destination, ['workspace', 'staff'], true)) {
+            abort(401, 'PayMyDine staff destination is invalid.');
+        }
 
         $user = $userId > 0
             ? Users_model::query()->find($userId)
@@ -157,6 +173,7 @@ final class PmdMobileStaffGrantService
                 'staff' => $staff,
                 'staff_id' => (int)$staff->getKey(),
                 'role_code' => $roleCode,
+                'destination' => $destination,
                 'permissions' => (array)$user->getPermissions(),
                 'staff_grant' => $raw,
                 'staff_grant_expires_at' => (int)$payload['exp'],
