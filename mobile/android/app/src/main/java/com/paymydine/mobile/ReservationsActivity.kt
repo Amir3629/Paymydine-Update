@@ -145,7 +145,19 @@ class ReservationsActivity : ComponentActivity() {
 
                     if (sameTenant) {
                         if (uri.path == "/admin/login") {
-                            openWorkspace(current, host, token)
+                            app.credentials.clearStaffSession()
+                            startActivity(
+                                Intent(
+                                    this@ReservationsActivity,
+                                    MainActivity::class.java,
+                                ).apply {
+                                    addFlags(
+                                        Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                                            Intent.FLAG_ACTIVITY_SINGLE_TOP,
+                                    )
+                                },
+                            )
+                            finish()
                             return true
                         }
                         return false
@@ -220,7 +232,16 @@ class ReservationsActivity : ComponentActivity() {
             ),
         )
         view.visibility = View.INVISIBLE
-        openWorkspace(view, host, token)
+
+        // PMD_ANDROID_FRESH_RESERVATIONS_WEB_SESSION_V2
+        CookieManager.getInstance().removeSessionCookies {
+            CookieManager.getInstance().flush()
+            view.post {
+                if (view === webView && !isFinishing) {
+                    openWorkspace(view, host, token)
+                }
+            }
+        }
     }
 
     private fun openWorkspace(
