@@ -44,6 +44,23 @@
     .pmd-offline-history-item-copy{min-width:0;display:flex;justify-content:space-between;gap:10px;font-size:12px}
     .pmd-offline-history-item-copy small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--q-muted)}
     .pmd-offline-history-note{padding:8px 10px;margin:6px 0;border-radius:9px;background:#f8fafc;font-size:12px;line-height:1.45}
+    /* PMD_ANDROID_OFFLINE_FULL_ACTIONS_V17 */
+    .pmd-offline-action-body{padding:18px;display:grid;gap:14px;min-width:min(520px,calc(100vw - 36px))}
+    .pmd-offline-action-copy{margin:0;color:var(--q-muted);font-size:12px;line-height:1.5}
+    .pmd-offline-pay-total{display:flex;align-items:center;justify-content:space-between;padding:14px;border-radius:12px;background:#f0fdf4}
+    .pmd-offline-pay-total strong{font-size:22px;color:#064e3b}
+    .pmd-offline-pay-field{display:grid;gap:7px;font-size:12px;font-weight:800}
+    .pmd-offline-pay-field input{height:50px;border:1px solid var(--q-line);border-radius:11px;padding:0 13px;font:inherit;font-size:17px}
+    .pmd-offline-provider-lock{padding:10px 12px;border:1px solid #fde68a;border-radius:10px;background:#fffbeb;color:#92400e;font-size:11px;line-height:1.45}
+    .pmd-offline-action-footer{display:flex;justify-content:flex-end;gap:9px;padding:0 18px 18px}
+    .pmd-offline-action-footer button{min-height:44px;padding:0 16px;border-radius:10px;border:1px solid var(--q-line);background:#fff;font-weight:850}
+    .pmd-offline-action-footer .primary{background:#064e3b;border-color:#064e3b;color:#fff}
+    .pmd-offline-move-scope{display:flex;gap:8px}
+    .pmd-offline-move-scope button{flex:1;min-height:42px;border:1px solid var(--q-line);border-radius:9px;background:#fff;font-weight:800}
+    .pmd-offline-move-scope button.is-active{border-color:#064e3b;background:#ecfdf5;color:#064e3b}
+    .pmd-offline-move-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;max-height:320px;overflow:auto}
+    .pmd-offline-move-grid button{min-height:54px;border:1px solid var(--q-line);border-radius:10px;background:#fff;font-weight:850}
+    .pmd-offline-move-grid button:disabled{opacity:.45}
   </style>
 </head>
 <body class="pmd-qpos-body">
@@ -52,7 +69,7 @@
     <aside class="pmd-qpos-left">
       <section class="pmd-qpos-floor-switch">
         <div class="pmd-qpos-section-label">Floor</div>
-        <div class="pmd-qpos-floor-tabs"><button type="button" class="is-active">All tables</button></div>
+        <div class="pmd-qpos-floor-tabs" data-floors><button type="button" class="is-active">All tables</button></div>
         <div class="pmd-qpos-floor-tools">
           <span class="pmd-offline-pill"><i></i><b data-authority>Offline</b></span>
         </div>
@@ -110,9 +127,9 @@
         <button type="button" class="pay" data-pay>Pay</button>
       </div>
       <div class="pmd-qpos-table-actions" data-table-actions>
-        <button type="button" disabled title="Cloud command not certified offline">Cleaning</button>
-        <button type="button" disabled title="Cloud command not certified offline">Move</button>
-        <button type="button" disabled title="Cloud command not certified offline">Free</button>
+        <button type="button" data-table-cleaning>Cleaning</button>
+        <button type="button" data-table-move>Move</button>
+        <button type="button" data-table-free>Free</button>
       </div>
     </aside>
   </main>
@@ -142,6 +159,30 @@
   </div>
 </div>
 
+<div class="pmd-qpos-modal" data-offline-payment aria-hidden="true">
+  <div class="pmd-qpos-modal-card">
+    <header><div><span class="pmd-qpos-section-label">Payment</span><h2>Cash</h2></div><button class="pmd-qpos-modal-close" data-payment-close>×</button></header>
+    <div class="pmd-offline-action-body">
+      <div class="pmd-offline-pay-total"><span>Amount due</span><strong data-payment-due>€0.00</strong></div>
+      <label class="pmd-offline-pay-field"><span>Cash received</span><input type="number" inputmode="decimal" min="0" step="0.01" data-payment-cash></label>
+      <p class="pmd-offline-action-copy">Cash is stored durably on this tablet and reconciled to PayMyDine automatically when Cloud returns.</p>
+      <div class="pmd-offline-provider-lock">Card / integrated terminal approval still requires the payment provider connection. PayMyDine never fabricates a provider approval while offline.</div>
+    </div>
+    <div class="pmd-offline-action-footer"><button type="button" data-payment-cancel>Cancel</button><button type="button" class="primary" data-payment-confirm>Record cash</button></div>
+  </div>
+</div>
+
+<div class="pmd-qpos-modal" data-offline-move aria-hidden="true">
+  <div class="pmd-qpos-modal-card">
+    <header><div><span class="pmd-qpos-section-label">Move</span><h2 data-move-title>Move table</h2></div><button class="pmd-qpos-modal-close" data-move-close>×</button></header>
+    <div class="pmd-offline-action-body">
+      <div class="pmd-offline-move-scope"><button type="button" class="is-active" data-move-scope="order">Check only</button><button type="button" data-move-scope="table">Whole table</button></div>
+      <p class="pmd-offline-action-copy">Choose the destination. The move is applied locally now and re-validated by PayMyDine Cloud on reconnect.</p>
+      <div class="pmd-offline-move-grid" data-move-grid></div>
+    </div>
+  </div>
+</div>
+
 <div class="pmd-qpos-modal" data-modifier aria-hidden="true">
   <div class="pmd-qpos-modal-card pmd-qpos-modifier-card">
     <header><div><span class="pmd-qpos-section-label">Item</span><h2 data-mod-name>Product</h2></div><button class="pmd-qpos-modal-close" data-mod-close>×</button></header>
@@ -155,7 +196,7 @@
 <script>
 (function(){
 'use strict';
-var state={snapshot:null,selectedTable:null,search:'',category:'all',modifier:null,selectedOptions:{},images:{},history:null,historyScope:'selected',historySelectedOrder:null};
+var state={snapshot:null,selectedTable:null,activeFloor:'all',search:'',category:'all',modifier:null,selectedOptions:{},images:{},history:null,historyScope:'selected',historySelectedOrder:null,moveScope:'order'};
 function el(q){return document.querySelector(q)}
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]})}
 function money(minor,currency){
@@ -246,8 +287,12 @@ function renderHistoryDetail(orderId){
     '</div>';
 }
 function read(){
-  try{state.snapshot=JSON.parse(bridge('snapshot',state.selectedTable||''));state.selectedTable=state.snapshot.selected_table_id||state.selectedTable;render()}
-  catch(e){toast(e.message||'Could not read local restaurant data')}
+  try{
+    state.snapshot=JSON.parse(bridge('snapshot',state.selectedTable||''));
+    state.selectedTable=state.snapshot.selected_table_id||state.selectedTable;
+    if(state.activeFloor==='all'&&state.snapshot.active_floor_id){state.activeFloor=String(state.snapshot.active_floor_id)}
+    render()
+  }catch(e){toast(e.message||'Could not read local restaurant data')}
 }
 function render(){
   var s=state.snapshot;if(!s)return;
@@ -255,14 +300,31 @@ function render(){
   el('[data-initial]').textContent=(s.staff_name||'P').trim().charAt(0).toUpperCase();
   el('[data-role]').textContent=s.role_code||'';el('[data-authority]').textContent=s.authority||'Offline';
   el('[data-queue]').textContent=(s.queued||0)+' queued command'+((s.queued||0)===1?'':'s');
-  renderTables();renderCategories();renderProducts();renderCart();
+  renderFloors();renderTables();renderCategories();renderProducts();renderCart();
+}
+function floorForTable(table){
+  var s=state.snapshot||{},floors=s.floors||[],map=(s.table_floor_map&&s.table_floor_map.by_id)||{},name=String(map[String(table.id)]||'');
+  var hit=floors.find(function(f){return name&&String(f.name||'')===name});
+  if(hit)return String(hit.id||'');
+  var def=floors.find(function(f){return !!f.is_default});
+  return def?String(def.id||''):'';
+}
+function renderFloors(){
+  var host=el('[data-floors]'),floors=(state.snapshot&&state.snapshot.floors)||[];
+  host.innerHTML='';
+  var all=document.createElement('button');all.type='button';all.textContent='All tables';all.className=state.activeFloor==='all'?'is-active':'';
+  all.onclick=function(){state.activeFloor='all';renderFloors();renderTables()};host.appendChild(all);
+  floors.forEach(function(f){
+    var id=String(f.id||''),b=document.createElement('button');b.type='button';b.textContent=String(f.name||'Floor');b.className=state.activeFloor===id?'is-active':'';
+    b.onclick=function(){state.activeFloor=id;renderFloors();renderTables()};host.appendChild(b);
+  });
 }
 function renderTables(){
   var s=state.snapshot,host=el('[data-tables]');host.innerHTML='';
-  (s.tables||[]).forEach(function(t){
+  (s.tables||[]).filter(function(t){return state.activeFloor==='all'||floorForTable(t)===state.activeFloor}).forEach(function(t){
     var b=document.createElement('button');b.type='button';b.className='pmd-qpos-table'+(String(t.id)===String(state.selectedTable)?' is-selected':'');
     b.dataset.status=t.status||'available';b.innerHTML='<strong>'+esc(t.number||t.label||t.id)+'</strong><small>'+esc(t.status_label||t.status||'Free')+'</small>';
-    b.onclick=function(){state.selectedTable=String(t.id);read()};host.appendChild(b);
+    b.onclick=function(){state.selectedTable=String(t.id);var f=floorForTable(t);if(f)state.activeFloor=f;read()};host.appendChild(b);
   });
 }
 function itemCategory(item){
@@ -329,7 +391,17 @@ function renderCart(){
     host.appendChild(row)
   });
   var editable=!!(d&&d.status==='DRAFT'&&(d.lines||[]).length);el('[data-hold]').disabled=!editable;el('[data-send]').disabled=!editable;
-  el('[data-pay]').disabled=!s.cloud_available;el('[data-status]').textContent=state.selectedTable?(s.authority+' · '+(s.selected_table_label||'')):'Select table';
+  var due=Number(b&&b.remaining_minor||0),paymentQueued=Number(b&&b.payment_queued_minor||0);
+  el('[data-pay]').disabled=!state.selectedTable||editable||due<=0||paymentQueued>0;
+  el('[data-pay]').textContent=paymentQueued>0?'Cash queued':'Pay';
+  var status=state.selectedTable?(s.authority+' · '+(s.selected_table_label||'')):'Select table';
+  if(paymentQueued>0)status+=' · payment queued';
+  el('[data-status]').textContent=status;
+  var cleaning=el('[data-table-cleaning]'),move=el('[data-table-move]'),free=el('[data-table-free]');
+  var selected=(s.tables||[]).find(function(t){return String(t.id)===String(state.selectedTable)}),selectedStatus=String(selected&&selected.status||'');
+  if(cleaning)cleaning.disabled=!selected||selectedStatus==='cleaning';
+  if(free)free.disabled=!selected;
+  if(move)move.disabled=!selected||editable||!b||!b.server_id;
 }
 function mutate(method){
   try{var args=[method].concat([].slice.call(arguments,1));var result=JSON.parse(bridge.apply(null,args));if(!result.ok)toast(result.message||'Action failed');else if(result.message)toast(result.message);read()}
@@ -344,7 +416,42 @@ el('[data-guests-minus]').onclick=function(){meta(-1)};el('[data-guests-plus]').
 el('[data-note]').addEventListener('change',function(){var d=state.snapshot&&state.snapshot.draft;if(d)mutate('setDraftMeta',d.local_id,Number(d.guest_count||1),this.value||'')});
 el('[data-hold]').onclick=function(){mutate('queueOrder',state.selectedTable||'',true)};
 el('[data-send]').onclick=function(){mutate('queueOrder',state.selectedTable||'',false)};
-el('[data-pay]').onclick=function(){if(state.snapshot&&state.snapshot.cloud_available)bridge('tryCloud');else toast('Payments require PayMyDine Cloud.')};
+function openPayment(){
+  var b=state.snapshot&&state.snapshot.bill,due=Number(b&&b.remaining_minor||0);
+  if(!state.selectedTable||!b||due<=0){toast('No unpaid bill is available.');return}
+  if(Number(b.payment_queued_minor||0)>0){toast('Cash payment is already queued.');return}
+  el('[data-payment-due]').textContent=money(due,b.currency||state.snapshot.currency);
+  el('[data-payment-cash]').value=(due/100).toFixed(2);
+  var m=el('[data-offline-payment]');m.classList.add('is-open');m.setAttribute('aria-hidden','false');
+}
+function closePayment(){var m=el('[data-offline-payment]');m.classList.remove('is-open');m.setAttribute('aria-hidden','true')}
+function submitPayment(){
+  var cash=Math.round(Number(el('[data-payment-cash]').value||0)*100),b=state.snapshot&&state.snapshot.bill,due=Number(b&&b.remaining_minor||0);
+  if(cash<due){toast('Cash received is lower than the amount due.');return}
+  try{var result=JSON.parse(bridge('queueCashPayment',state.selectedTable||'',cash));if(!result.ok)toast(result.message||'Payment failed');else{toast(result.message||'Cash queued');closePayment();read()}}catch(e){toast(e.message||'Payment failed')}
+}
+function openMove(){
+  var modal=el('[data-offline-move]'),grid=el('[data-move-grid]'),tables=(state.snapshot&&state.snapshot.tables)||[];
+  state.moveScope='order';document.querySelectorAll('[data-move-scope]').forEach(function(b){b.classList.toggle('is-active',b.getAttribute('data-move-scope')==='order')});
+  el('[data-move-title]').textContent='Move '+(state.snapshot.selected_table_label||'table');
+  grid.innerHTML='';
+  tables.forEach(function(t){
+    if(String(t.id)===String(state.selectedTable))return;
+    var b=document.createElement('button');b.type='button';b.textContent=String(t.number||t.label||t.id)+' · '+String(t.status_label||t.status||'');
+    b.disabled=!['available','reserved'].includes(String(t.status||'').toLowerCase());
+    b.onclick=function(){
+      try{var result=JSON.parse(bridge('queueTableMove',state.selectedTable||'',String(t.id),state.moveScope));if(!result.ok)toast(result.message||'Move failed');else{toast(result.message||'Move queued');closeMove();state.selectedTable=String(t.id);read()}}catch(e){toast(e.message||'Move failed')}
+    };grid.appendChild(b)
+  });
+  modal.classList.add('is-open');modal.setAttribute('aria-hidden','false');
+}
+function closeMove(){var m=el('[data-offline-move]');m.classList.remove('is-open');m.setAttribute('aria-hidden','true')}
+el('[data-pay]').onclick=openPayment;
+el('[data-payment-close]').onclick=closePayment;el('[data-payment-cancel]').onclick=closePayment;el('[data-payment-confirm]').onclick=submitPayment;
+el('[data-table-cleaning]').onclick=function(){mutate('queueTableState',state.selectedTable||'','cleaning',false)};
+el('[data-table-free]').onclick=function(){mutate('queueTableState',state.selectedTable||'','available',true)};
+el('[data-table-move]').onclick=openMove;el('[data-move-close]').onclick=closeMove;
+document.querySelectorAll('[data-move-scope]').forEach(function(b){b.onclick=function(){state.moveScope=b.getAttribute('data-move-scope')||'order';document.querySelectorAll('[data-move-scope]').forEach(function(x){x.classList.toggle('is-active',x===b)})}});
 el('[data-history]').onclick=openHistory;
 el('[data-qpos-history-close]').onclick=closeHistory;
 document.querySelectorAll('[data-qpos-history-scope]').forEach(function(button){
