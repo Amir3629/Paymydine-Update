@@ -129,6 +129,13 @@ class LocalPosBridge(
                             .put("base_total_minor", it.baseTotalMinor)
                             .put("pending_total_minor", it.pendingTotalMinor)
                             .put("projected_total_minor", it.projectedTotalMinor)
+                            .put("settled_minor", it.settledMinor)
+                            .put("remaining_minor", it.remainingMinor)
+                            .put("payment_queued_minor", it.paymentQueuedMinor)
+                            .put(
+                                "remaining_after_queued_minor",
+                                it.remainingAfterQueuedMinor,
+                            )
                             .put("currency", it.currency)
                             .put(
                                 "reconciliation_error",
@@ -264,6 +271,44 @@ class LocalPosBridge(
         } else {
             "Order queued safely."
         }
+    }
+
+    @JavascriptInterface
+    fun queueCashPayment(
+        tableId: String,
+        cashReceivedMinor: Long,
+    ): String = action {
+        val host = app.credentials.tenantHost()
+            ?: error("Pair this device first.")
+        val deviceId = app.credentials.deviceId()
+            ?: error("Pair this device first.")
+        val staffSession = app.credentials.staffSession()
+            ?: error("Verified staff session is unavailable.")
+        val bill = app.localPosRepository.billForTable(tableId)
+            ?: error("No open bill is available.")
+        val amountMinor = bill.remainingMinor
+        require(amountMinor > 0L) {
+            "This bill has no remaining balance."
+        }
+
+        val command = app.localPosRepository.buildCashPaymentCommand(
+            tableId = tableId,
+            tenantHost = host,
+            deviceId = deviceId,
+            staffId = staffSession.staffId,
+            userId = staffSession.userId,
+            cashReceivedMinor = cashReceivedMinor,
+        )
+        check(app.syncRepository.enqueue(command)) {
+            "This cash payment is already queued."
+        }
+        app.localPosRepository.markCashPaymentQueued(
+            tableId = tableId,
+            commandId = command.commandId,
+            amountMinor = amountMinor,
+        )
+        SyncEngine.enqueueImmediate(app)
+        "Cash payment saved locally and queued for Cloud."
     }
 
     @JavascriptInterface
