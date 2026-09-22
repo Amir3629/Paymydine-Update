@@ -312,6 +312,78 @@ class LocalPosBridge(
     }
 
     @JavascriptInterface
+    fun queueTableState(
+        tableId: String,
+        status: String,
+        skipCleaning: Boolean,
+    ): String = action {
+        val host = app.credentials.tenantHost()
+            ?: error("Pair this device first.")
+        val deviceId = app.credentials.deviceId()
+            ?: error("Pair this device first.")
+        val session = app.credentials.staffSession()
+            ?: error("Verified staff session is unavailable.")
+
+        val command = app.localPosRepository.buildTableStateCommand(
+            tableId = tableId,
+            status = status,
+            skipCleaning = skipCleaning,
+            tenantHost = host,
+            deviceId = deviceId,
+            staffId = session.staffId,
+            userId = session.userId,
+        )
+        check(app.syncRepository.enqueue(command)) {
+            "This table action is already queued."
+        }
+        app.localPosRepository.markTableStateQueued(
+            tableId,
+            status.trim().lowercase(),
+            command.commandId,
+        )
+        SyncEngine.enqueueImmediate(app)
+        "Table update saved locally and queued."
+    }
+
+    @JavascriptInterface
+    fun queueTableMove(
+        sourceTableId: String,
+        targetTableId: String,
+        scope: String,
+    ): String = action {
+        val host = app.credentials.tenantHost()
+            ?: error("Pair this device first.")
+        val deviceId = app.credentials.deviceId()
+            ?: error("Pair this device first.")
+        val session = app.credentials.staffSession()
+            ?: error("Verified staff session is unavailable.")
+
+        val command = app.localPosRepository.buildTableMoveCommand(
+            sourceTableId = sourceTableId,
+            targetTableId = targetTableId,
+            scope = scope,
+            tenantHost = host,
+            deviceId = deviceId,
+            staffId = session.staffId,
+            userId = session.userId,
+        )
+        check(app.syncRepository.enqueue(command)) {
+            "This move is already queued."
+        }
+        val payload = JSONObject(command.payloadJson)
+        app.localPosRepository.markTableMoveQueued(
+            sourceTableId = sourceTableId,
+            targetTableId = targetTableId,
+            scope = payload.optString("scope", "order"),
+            orderId = payload.optLong("order_id", 0L)
+                .takeIf { it > 0L },
+            commandId = command.commandId,
+        )
+        SyncEngine.enqueueImmediate(app)
+        "Move saved locally and queued."
+    }
+
+    @JavascriptInterface
     fun syncNow(): String = action {
         SyncEngine.enqueueImmediate(app)
         "Sync requested."
