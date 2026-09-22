@@ -1143,6 +1143,19 @@ trait PmdWaiterPosOperationsSummaryV12Concern
             }
         }
 
+        /* PMD_QPOS_KITCHEN_MUTATION_LOCK_V68
+         * Existing ordered lines may be corrected only before the kitchen
+         * starts preparation. "Preparation" / "Preparing" are the live KDS
+         * states; Delivery/Ready/Served are later states and stay locked.
+         * New food can still be added as a separate line/check by the normal
+         * ordering flow, but the already-sent line itself is immutable.
+         */
+        $kitchenStarted =
+            (bool)preg_match(
+                '/prepar|cook|delivery|ready|served/',
+                $operationalStatusName
+            );
+
         $operationalLocked =
             (bool)preg_match(
                 '/cancel|void|closed|complete|completed/',
@@ -1176,9 +1189,8 @@ trait PmdWaiterPosOperationsSummaryV12Concern
             'refunded',
         ];
 
-        $locked =
-            $operationalLocked
-            || $settledAmount > 0.0001
+        $paymentStarted =
+            $settledAmount > 0.0001
             || in_array(
                 $settlementStatus,
                 $lockedStatuses,
@@ -1186,21 +1198,30 @@ trait PmdWaiterPosOperationsSummaryV12Concern
             )
             || $hasTransaction;
 
+        $locked =
+            $operationalLocked
+            || $kitchenStarted
+            || $paymentStarted;
+
         $reason = '';
 
         if ($locked) {
-            if ($operationalLocked) {
+            if ($kitchenStarted) {
+                $reason =
+                    'Kitchen preparation has started. '
+                    .'Ordered item quantities are locked.';
+            } elseif ($operationalLocked) {
                 $reason =
                     'This order is cancelled or closed. '
                     .'Order items are locked.';
             } elseif ($hasTransaction) {
                 $reason =
                     'Payment history already exists. '
-                    .'Order items are locked.';
+                    .'Paid item quantities are locked; use a refund/correction flow.';
             } elseif ($settledAmount > 0.0001) {
                 $reason =
                     'Payment has already started. '
-                    .'Order items are locked.';
+                    .'Paid item quantities are locked; use a refund/correction flow.';
             } else {
                 $reason =
                     'This bill is no longer financially mutable.';
@@ -1210,7 +1231,9 @@ trait PmdWaiterPosOperationsSummaryV12Concern
         return [
             'allowed' => !$locked,
             'locked' => $locked,
-            'payment_started' => $locked,
+            'payment_started' => $paymentStarted,
+            'kitchen_started' => $kitchenStarted,
+            'operational_status' => $operationalStatusName,
             'settlement_status' => $settlementStatus,
             'settled_amount' => $settledAmount,
             'has_payment_transaction' => $hasTransaction,
