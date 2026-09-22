@@ -34,6 +34,10 @@
         /\[(?:guest_session|table_session|table_draft_id|submitted_by):[^\]]*\]/gi,
         ''
       )
+      .replace(
+        /(?:^|\n)\s*\[VOID\s+[0-9.]+\]\s*[^\r\n]*/gi,
+        ''
+      )
       .replace(/\s*\|\s*\|\s*/g, ' | ')
       .replace(/^\s*\|\s*|\s*\|\s*$/g, '')
       .replace(/\s{2,}/g, ' ')
@@ -369,6 +373,7 @@
     forceNewCheck: false,
     cart: [],
     pendingSend: null,
+    sentMutationBusy: Object.create(null),
     customerDisplayHighlight: null,
     tableRequestSeq: 0,
     /* PMD_QPOS_TABLE_CACHE_STATE_V41
@@ -2094,8 +2099,10 @@
   function selectOrder(id) {
     id = Number(id || 0);
     state.activeOrderId = id > 0 ? id : null;
-    state.forceNewCheck = id < 1;
     var order = activeOrder();
+    state.forceNewCheck =
+      id < 1 ||
+      (!!order && activeOrderStructuralLocked());
     if (order && order.guest_count) {
       state.guestCount = Math.max(1, num(order.guest_count, 1));
     }
@@ -2121,10 +2128,16 @@ function renderOpenChecks() {
 
     state.openOrders.forEach(function (order) {
       var id = orderId(order);
+      var settlement = String(order.settlement_status || '').toLowerCase();
+      var isPaid = ['paid', 'settled', 'closed'].indexOf(settlement) !== -1;
+      var classes = [];
+      if (Number(state.activeOrderId) === id) classes.push('is-active');
+      if (isPaid) classes.push('is-paid-v71');
       rows.push(
         '<button type="button" data-qpos-check="' + esc(id) + '"' +
-          (Number(state.activeOrderId) === id ? ' class="is-active"' : '') + '>' +
+          (classes.length ? ' class="' + classes.join(' ') + '"' : '') + '>' +
           '#' + esc(id) + ' · ' + money(orderTotal(order)) +
+          (isPaid ? ' · Paid' : '') +
         '</button>'
       );
     });
@@ -2145,11 +2158,16 @@ function renderOpenChecks() {
       mounted.forEach(function (button, index) {
         var order = state.openOrders[index];
         var id = orderId(order);
+        var settlement = String(order.settlement_status || '').toLowerCase();
+        var isPaid = ['paid', 'settled', 'closed'].indexOf(settlement) !== -1;
         button.classList.toggle(
           'is-active',
           Number(state.activeOrderId) === id
         );
-        button.textContent = '#' + id + ' · ' + money(orderTotal(order));
+        button.classList.toggle('is-paid-v71', isPaid);
+        button.textContent =
+          '#' + id + ' · ' + money(orderTotal(order)) +
+          (isPaid ? ' · Paid' : '');
       });
     } else {
       box.innerHTML = rows.join('');
@@ -2189,6 +2207,18 @@ function renderOpenChecks() {
     );
     if (itemId < 1) return;
 
+    var busyKey = String(itemId);
+    if (state.sentMutationBusy[busyKey]) return;
+
+    var item = orderItems(order).find(function (row) {
+      return Number(row.order_menu_id || row.id || 0) === itemId;
+    });
+    if (!item) return;
+
+    var currentQty = Math.max(0, num(item.quantity, 0));
+    var nextQty = currentQty + (direction > 0 ? 1 : -1);
+    if (nextQty < 0 || (direction < 0 && currentQty <= 0)) return;
+
     var template = direction > 0
       ? state.settings.item_increase_url
       : state.settings.item_decrease_url;
@@ -2198,10 +2228,33 @@ function renderOpenChecks() {
       return;
     }
 
-    button.disabled = true;
+    var oldSubtotal = num(item.subtotal, 0);
+    var unitSubtotal = currentQty > 0
+      ? oldSubtotal / currentQty
+      : num(item.price, 0);
+    var oldOrderTotal = orderTotal(order);
+    var oldTotalItems = num(order.total_items, 0);
+    var oldUpdatedAt = String(order.updated_at || '');
+
+    state.sentMutationBusy[busyKey] = true;
+
+    /* PMD_QPOS_INSTANT_QUANTITY_V71
+     * Paint the change immediately. The server remains authoritative; any
+     * rejection restores the exact previous values. */
+    item.quantity = nextQty;
+    item.subtotal = roundMoney(unitSubtotal * nextQty);
+    order.total = Math.max(
+      0,
+      roundMoney(oldOrderTotal + (direction > 0 ? unitSubtotal : -unitSubtotal))
+    );
+    order.order_total = order.total;
+    if (oldTotalItems > 0 || Object.prototype.hasOwnProperty.call(order, 'total_items')) {
+      order.total_items = Math.max(0, oldTotalItems + (direction > 0 ? 1 : -1));
+    }
+    renderCart({orderSwitch: true});
 
     try {
-      await fetchJson(
+      var json = await fetchJson(
         tokenUrl(template, '{order}', orderId(order)),
         {
           method: 'POST',
@@ -2211,7 +2264,7 @@ function renderOpenChecks() {
           body: JSON.stringify({
             order_menu_id: itemId,
             quantity: 1,
-            expected_updated_at: String(order.updated_at || ''),
+            expected_updated_at: oldUpdatedAt,
             reason: direction < 0
               ? 'Quick POS quantity correction before kitchen preparation'
               : ''
@@ -2219,11 +2272,32 @@ function renderOpenChecks() {
         }
       );
 
-      await loadTable(
-        Number(state.selectedTable.id || 0),
-        true,
-        true
+      var authoritativeQty = Math.max(
+        0,
+        num(
+          json.new_quantity != null
+            ? json.new_quantity
+            : json.remaining_quantity,
+          nextQty
+        )
       );
+
+      item.quantity = authoritativeQty;
+      item.subtotal = num(
+        json.line_subtotal,
+        roundMoney(unitSubtotal * authoritativeQty)
+      );
+
+      if (json.order_total != null) {
+        order.total = num(json.order_total, order.total);
+        order.order_total = order.total;
+      }
+      if (json.total_items != null) {
+        order.total_items = Math.max(0, num(json.total_items, order.total_items));
+      }
+      if (json.updated_at) {
+        order.updated_at = String(json.updated_at);
+      }
 
       toast(
         direction > 0
@@ -2231,12 +2305,20 @@ function renderOpenChecks() {
           : 'Quantity reduced.'
       );
     } catch (error) {
+      item.quantity = currentQty;
+      item.subtotal = oldSubtotal;
+      order.total = oldOrderTotal;
+      order.order_total = oldOrderTotal;
+      order.total_items = oldTotalItems;
+      order.updated_at = oldUpdatedAt;
+
       toast(
         error.message || 'Item quantity could not be changed.',
         true
       );
     } finally {
-      button.disabled = false;
+      delete state.sentMutationBusy[busyKey];
+      renderCart({orderSwitch: true});
     }
   }
 
@@ -2248,7 +2330,12 @@ function renderOpenChecks() {
 
     if (!section || !box) return;
 
-    var committed = orderItems(order);
+    var committed = orderItems(order).filter(function (row) {
+      return num(
+        row && (row.quantity != null ? row.quantity : row.qty),
+        0
+      ) > 0.0001;
+    });
     var pending = (
       state.pendingSend &&
       Array.isArray(state.pendingSend.cart)
@@ -2301,6 +2388,7 @@ function renderOpenChecks() {
       var orderMenuId = Number(
         item.order_menu_id || item.id || 0
       );
+      var quantityBusy = !!state.sentMutationBusy[String(orderMenuId)];
 
       var controls = (
         !item.__pending &&
@@ -2311,11 +2399,13 @@ function renderOpenChecks() {
         ? (
             '<span class="pmd-qpos-sent-qty-v68">' +
               '<button type="button" data-qpos-sent-decrease data-order-menu-id="' +
-                esc(orderMenuId) +
-                '" aria-label="Reduce ordered quantity">−</button>' +
+                esc(orderMenuId) + '"' +
+                (quantityBusy ? ' disabled' : '') +
+                ' aria-label="Reduce ordered quantity">−</button>' +
               '<button type="button" data-qpos-sent-increase data-order-menu-id="' +
-                esc(orderMenuId) +
-                '" aria-label="Increase ordered quantity">+</button>' +
+                esc(orderMenuId) + '"' +
+                (quantityBusy ? ' disabled' : '') +
+                ' aria-label="Increase ordered quantity">+</button>' +
             '</span>'
           )
         : '';
@@ -2391,6 +2481,17 @@ function renderOpenChecks() {
   }
 
   function addCartLine(item, options, quantity, comment) {
+    if (
+      state.serviceMode === 'dine_in' &&
+      state.activeOrderId &&
+      activeOrderStructuralLocked()
+    ) {
+      state.activeOrderId = null;
+      state.forceNewCheck = true;
+      state.guestCount = 1;
+      state.note = '';
+    }
+
     var qty = Math.max(
       Math.max(1, num(item.minimum_qty, 1)),
       Math.min(99, num(quantity, 1))
@@ -3542,7 +3643,9 @@ function renderOpenChecks() {
     state.tableData = json;
     state.openOrders = Array.isArray(json.open_orders) ? json.open_orders : [];
     state.activeOrderId = Number(json.active_order_id || 0) || null;
-    state.forceNewCheck = false;
+    state.forceNewCheck =
+      !!state.activeOrderId &&
+      activeOrderStructuralLocked();
 
     var table = json.table || null;
     if (table && state.selectedTable) {
@@ -5553,18 +5656,48 @@ function renderOpenChecks() {
 
   function finishPaidOrderUi() {
     var paidId = Number(state.activeOrderId || 0);
+    var dineInVisit =
+      state.serviceMode === 'dine_in' &&
+      !!state.selectedTable;
 
-    if (paidId > 0) {
-      state.openOrders = state.openOrders.filter(function (row) {
-        return orderId(row) !== paidId;
-      });
-    }
+    if (dineInVisit && paidId > 0) {
+      var paidOrder = activeOrder();
+      if (paidOrder) {
+        paidOrder.settlement_status = 'paid';
+        paidOrder.settled_amount = Math.max(
+          num(paidOrder.settled_amount, 0),
+          orderTotal(paidOrder)
+        );
+        paidOrder.structural_locked = true;
+        paidOrder.item_mutation = Object.assign(
+          {},
+          paidOrder.item_mutation || {},
+          {
+            allowed: false,
+            locked: true,
+            payment_started: true,
+            reason:
+              'Payment completed. This bill stays visible until the table is made Free.'
+          }
+        );
+      }
 
-    state.activeOrderId = null;
-    state.forceNewCheck = state.serviceMode === 'dine_in';
+      /* PMD_QPOS_ACTIVE_VISIT_PAID_V71
+       * Keep the settled check on the occupied table for cashier overview.
+       * New food starts a separate check automatically. */
+      state.forceNewCheck = true;
+    } else {
+      if (paidId > 0) {
+        state.openOrders = state.openOrders.filter(function (row) {
+          return orderId(row) !== paidId;
+        });
+      }
+      state.activeOrderId = null;
+      state.forceNewCheck = state.serviceMode === 'dine_in';
 
-    if (state.serviceMode !== 'dine_in') {
-      state.offPremiseOrder = null;
+      if (state.serviceMode !== 'dine_in') {
+        state.offPremiseOrder = null;
+      }
     }
 
     state.cart = [];
