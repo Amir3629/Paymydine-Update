@@ -8390,3 +8390,58 @@ body.pmd-qpos-body {
   font-size: 11px;
   line-height: 1.35;
 }
+
+
+/* ============================================================
+   PMD_QPOS_TABLE_ICON_CORNERS_V71
+   Keep the table identity visually clean: operational/payment signals live in
+   the lower-left corner; canonical table-feature icons live in the upper-right.
+   Neither group may cover the centered table number or seat count.
+   ============================================================ */
+.pmd-qpos-table-signals-v57 {
+  left: 8px !important;
+  top: auto !important;
+  bottom: 8px !important;
+  right: auto !important;
+  transform: none !important;
+  max-width: 48px !important;
+}
+
+.pmd-qpos-table-features-v67 {
+  top: 8px !important;
+  right: 8px !important;
+  bottom: auto !important;
+  left: auto !important;
+}
+
+.pmd-qpos-table:not(.pmd-qpos-pickup) > strong {
+  padding-inline: 42px !important;
+  box-sizing: border-box !important;
+}
+
+.pmd-qpos-table:not(.pmd-qpos-pickup) > small {
+  padding-inline: 42px !important;
+  box-sizing: border-box !important;
+}
+
+.pmd-qpos-open-checks button.is-paid-v71 {
+  border-color: rgba(5, 150, 105, .34) !important;
+  background: rgba(236, 253, 245, .92) !important;
+  color: #047857 !important;
+}
+
+.pmd-qpos-open-checks button.is-paid-v71.is-active {
+  box-shadow: inset 0 0 0 2px rgba(5, 150, 105, .22) !important;
+}
+
+.pmd-qpos-sent-qty-v68 button:disabled {
+  opacity: .48 !important;
+  cursor: wait !important;
+}
+
+@media (max-width: 760px) {
+  .pmd-qpos-table:not(.pmd-qpos-pickup) > strong,
+  .pmd-qpos-table:not(.pmd-qpos-pickup) > small {
+    padding-inline: 38px !important;
+  }
+}
