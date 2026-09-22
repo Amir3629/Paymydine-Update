@@ -82,8 +82,8 @@ jobs:
           )
           with urllib.request.urlopen(req, timeout=30) as response:
               raw = response.read()
-          html = raw.decode('utf-8', 'replace')
-          Path('/tmp/pmd-zcs-sdk/page.html').write_text(html, encoding='utf-8')
+          html_text = raw.decode('utf-8', 'replace')
+          Path('/tmp/pmd-zcs-sdk/page.html').write_text(html_text, encoding='utf-8')
 
           class Parser(html.parser.HTMLParser):
               def __init__(self):
@@ -105,7 +105,7 @@ jobs:
                       self.current = None
 
           parser = Parser()
-          parser.feed(html)
+          parser.feed(html_text)
 
           candidates = []
           for href, text in parser.links:
@@ -123,7 +123,7 @@ jobs:
           # direct archive-looking URLs from the raw page as fallbacks.
           for match in re.findall(
               r'''https?://[^"'<>\s]+(?:\.zip|\.7z|\.rar)(?:\?[^"'<>\s]*)?''',
-              html,
+              html_text,
               re.I,
           ):
               candidates.append((match, 'raw-page archive URL'))
@@ -131,7 +131,7 @@ jobs:
           # Relative archive URLs in HTML.
           for match in re.findall(
               r'''(?:href|data-url|data-href)=["']([^"']+(?:\.zip|\.7z|\.rar)(?:\?[^"']*)?)["']''',
-              html,
+              html_text,
               re.I,
           ):
               candidates.append((match, 'relative archive URL'))
@@ -155,10 +155,10 @@ jobs:
           if not normalized:
               # Print local context around the known label to make a failed run
               # immediately diagnosable without guessing.
-              idx = html.lower().find('z90/z91/z92/z100')
+              idx = html_text.lower().find('z90/z91/z92/z100')
               if idx >= 0:
                   print('HTML_CONTEXT:')
-                  print(html[max(0, idx-1200):idx+1800])
+                  print(html_text[max(0, idx-1200):idx+1800])
               raise SystemExit('No downloadable ZCS SDK archive URL found on official page')
 
           Path('/tmp/pmd-zcs-sdk/candidates.txt').write_text(
