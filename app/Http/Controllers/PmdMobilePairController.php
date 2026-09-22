@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Admin\Facades\AdminAuth;
 use Admin\Models\Users_model;
+use Admin\Services\PmdDefaultStaffRoleService;
 use App\Services\PmdMobileSync\PmdMobilePairingService;
 use App\Services\PmdSiteAccessService;
 use Illuminate\Support\Facades\Hash;
@@ -207,6 +208,18 @@ final class PmdMobilePairController extends Controller
                 'ok' => false,
                 'message' => 'Username or password is incorrect.',
             ], 401, ['Cache-Control' => 'no-store, private']);
+        }
+
+        $roles = app(PmdDefaultStaffRoleService::class);
+        $roleCode = $roles->roleCodeForUser($user);
+        if (
+            $roleCode === ''
+            || $roles->routeForRoleCode($roleCode) === null
+        ) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'This PayMyDine account has no active workspace role.',
+            ], 403, ['Cache-Control' => 'no-store, private']);
         }
 
         $site = app(PmdSiteAccessService::class);
