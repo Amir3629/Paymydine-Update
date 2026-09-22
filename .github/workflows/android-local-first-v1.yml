@@ -152,12 +152,13 @@ jobs:
           grep -q "PMD_ANDROID_DEVICE_TRUST_BEFORE_STAFF_LOGIN_V3" app/Http/Controllers/PmdMobileWorkspaceAuthController.php
           grep -q "routeForRoleCode" app/Http/Controllers/PmdMobileWorkspaceAuthController.php
           grep -q "PMD_MOBILE_ROLE_WORKSPACE_SESSION_V2" app/Http/Controllers/PmdMobileWorkspaceSessionController.php
+          grep -q "PMD_MOBILE_SESSION_LOCATION_AUTHORITY_V6" app/Services/PmdSiteAccessService.php
           grep -q "PMD_MOBILE_SHARED_DEVICE_REVOCATION_V2" app/Services/PmdSiteAccessWorkspaceGateService.php
           grep -q "PMD_MOBILE_SESSION_REENTRY_BYPASS_V5" app/Services/PmdSiteAccessWorkspaceGateService.php
           grep -q "\$relative === 'mobile/pos/open'" app/Services/PmdSiteAccessWorkspaceGateService.php
           grep -q "\$relative === 'mobile/workspace/open'" app/Services/PmdSiteAccessWorkspaceGateService.php
           grep -q "PMD_MOBILE_OWNER_DEVICE_PROOF_V3" app/Services/PmdSiteAccessWorkspaceGateService.php
-          grep -q "PMD_MOBILE_OWNER_CANONICAL_SECURITY_V3" app/Http/Controllers/PmdMobileWorkspaceSessionController.php
+          grep -q "PMD_MOBILE_OWNER_CANONICAL_SECURITY_V6" app/Http/Controllers/PmdMobileWorkspaceSessionController.php
           grep -q "PMD_ANDROID_ROLE_WORKSPACE_ACTIVITY_V1" mobile/android/app/src/main/java/com/paymydine/mobile/RoleWorkspaceActivity.kt
           grep -q "PMD_ANDROID_OWNER_MFA_WEBVIEW_V2" mobile/android/app/src/main/java/com/paymydine/mobile/RoleWorkspaceActivity.kt
           grep -q "PMD_ANDROID_FRESH_ROLE_WEB_SESSION_V2" mobile/android/app/src/main/java/com/paymydine/mobile/RoleWorkspaceActivity.kt
