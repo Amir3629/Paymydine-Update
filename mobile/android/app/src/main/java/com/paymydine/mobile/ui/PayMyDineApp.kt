@@ -49,6 +49,7 @@ import com.paymydine.mobile.edge.EdgeService
 import com.paymydine.mobile.network.MobileApiClient
 import com.paymydine.mobile.network.TransportKind
 import com.paymydine.mobile.network.TransportRouter
+import com.paymydine.mobile.network.WorkspaceAuthorizationResult
 import com.paymydine.mobile.security.PairingPkce
 import com.paymydine.mobile.security.StaffSession
 import com.paymydine.mobile.sync.SyncEngine
@@ -61,6 +62,11 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.net.URI
 import java.util.UUID
+
+private data class PairingCompletion(
+    val summary: BootstrapSummary?,
+    val initialAuthorization: WorkspaceAuthorizationResult?,
+)
 
 @Composable
 fun PayMyDineApp(app: PayMyDineApplication) {
@@ -109,6 +115,12 @@ fun PayMyDineApp(app: PayMyDineApplication) {
         mutableStateOf(app.credentials.pairingSubmitted())
     }
     var bootstrapSummary by remember { mutableStateOf<BootstrapSummary?>(null) }
+    // PMD_ANDROID_PAIR_SINGLE_LOGIN_V16
+    // Exists only for the current approved pairing completion. It is not a
+    // password and is never used to skip later dashboard re-authentication.
+    var initialPairingAuthorization by remember {
+        mutableStateOf<WorkspaceAuthorizationResult?>(null)
+    }
     var lastError by remember { mutableStateOf<String?>(null) }
     var pairingCode by remember { mutableStateOf<String?>(null) }
     var paired by remember {
@@ -127,7 +139,7 @@ fun PayMyDineApp(app: PayMyDineApplication) {
     suspend fun completePairing(
         tenantBase: String,
         exchange: String,
-    ): BootstrapSummary? = pairingMutex.withLock {
+    ): PairingCompletion = pairingMutex.withLock {
         val expectedHost = app.credentials.tenantHost()
             ?.trim()
             ?.lowercase()
@@ -146,6 +158,7 @@ fun PayMyDineApp(app: PayMyDineApplication) {
 
         var token = app.credentials.deviceToken()
         var pairedHost = expectedHost
+        var initialAuthorization: WorkspaceAuthorizationResult? = null
 
         if (token.isNullOrBlank()) {
             val verifier = app.credentials.pairingVerifier().orEmpty()
@@ -167,6 +180,7 @@ fun PayMyDineApp(app: PayMyDineApplication) {
 
             pairedHost = pairedResult.tenantHost
             token = pairedResult.deviceToken
+            initialAuthorization = pairedResult.initialAuthorization
             app.credentials.setTenantHost(pairedHost)
             app.credentials.setDeviceId(pairedResult.deviceId)
             app.credentials.putDeviceToken(pairedResult.deviceToken)
@@ -175,7 +189,10 @@ fun PayMyDineApp(app: PayMyDineApplication) {
         }
 
         if (app.bootstrapRepository.hasBootstrap()) {
-            return@withLock null
+            return@withLock PairingCompletion(
+                summary = null,
+                initialAuthorization = initialAuthorization,
+            )
         }
 
         val deviceToken = requireNotNull(token) {
@@ -197,9 +214,14 @@ fun PayMyDineApp(app: PayMyDineApplication) {
             app.credentials.clearEdgeFingerprint()
         }
 
-        withContext(Dispatchers.IO) {
+        val summary = withContext(Dispatchers.IO) {
             app.bootstrapRepository.apply(bootstrap)
         }
+
+        PairingCompletion(
+            summary = summary,
+            initialAuthorization = initialAuthorization,
+        )
     }
 
     val discoveredDecision = router.decide(
@@ -278,7 +300,7 @@ fun PayMyDineApp(app: PayMyDineApplication) {
                     lastError = null
 
                     try {
-                        val summary = completePairing(
+                        val completion = completePairing(
                             tenantBase = status.tenantBaseUrl
                                 ?: "https://$host",
                             exchange = status.exchange.orEmpty(),
@@ -286,7 +308,9 @@ fun PayMyDineApp(app: PayMyDineApplication) {
                         tenantCode = app.credentials.tenantHost()
                             ?.substringBefore(".paymydine.com")
                             .orEmpty()
-                        bootstrapSummary = summary
+                        bootstrapSummary = completion.summary
+                        initialPairingAuthorization =
+                            completion.initialAuthorization
                         pairingAttempt = ""
                         pairingRequestSubmitted = false
                         pairingCode = null
@@ -398,6 +422,35 @@ fun PayMyDineApp(app: PayMyDineApplication) {
         }
     }
 
+    // PMD_ANDROID_OFFLINE_SNAPSHOT_REFRESH_V16
+    // On every online app session refresh the restaurant snapshot once. This
+    // upgrades existing paired tablets with History immediately and warms the
+    // app-private menu image cache before a physical Wi-Fi/WAN cut.
+    LaunchedEffect(online, ready) {
+        if (!online || !ready) return@LaunchedEffect
+
+        val host = app.credentials.tenantHost().orEmpty()
+        val token = app.credentials.deviceToken().orEmpty()
+        if (host.isBlank() || token.isBlank()) return@LaunchedEffect
+
+        runCatching {
+            withContext(Dispatchers.IO) {
+                val bootstrap = api.bootstrap(host, token)
+                val summary = app.bootstrapRepository.apply(bootstrap)
+                val locationId = app.bootstrapRepository.locationId()
+                if (locationId != null) {
+                    app.offlineImageCache.prefetch(
+                        host,
+                        app.localPosRepository.menu(locationId),
+                    )
+                }
+                summary
+            }
+        }.onSuccess { summary ->
+            bootstrapSummary = summary
+        }
+    }
+
     LaunchedEffect(ready) {
         if (!ready) return@LaunchedEffect
 
@@ -432,7 +485,7 @@ fun PayMyDineApp(app: PayMyDineApplication) {
             val exchange = uri.getQueryParameter("exchange").orEmpty()
             val tenantBase = uri.getQueryParameter("tenant").orEmpty()
 
-            val summary = completePairing(
+            val completion = completePairing(
                 tenantBase = tenantBase,
                 exchange = exchange,
             )
@@ -440,7 +493,9 @@ fun PayMyDineApp(app: PayMyDineApplication) {
             tenantCode = app.credentials.tenantHost()
                 ?.substringBefore(".paymydine.com")
                 .orEmpty()
-            bootstrapSummary = summary
+            bootstrapSummary = completion.summary
+            initialPairingAuthorization =
+                completion.initialAuthorization
             paired = true
             pairingAttempt = ""
             pairingRequestSubmitted = false
@@ -464,6 +519,22 @@ fun PayMyDineApp(app: PayMyDineApplication) {
             app.consumePairingLink(rawLink)
         }
     }
+
+    fun staffSessionFrom(
+        result: WorkspaceAuthorizationResult,
+    ): StaffSession = StaffSession(
+        username = result.username,
+        staffName = result.staffName,
+        userId = result.userId,
+        staffId = result.staffId,
+        roleCode = result.roleCode,
+        route = result.route,
+        surface = result.surface,
+        destination = result.destination,
+        staffGrant = result.staffGrant,
+        expiresAtEpochSeconds = result.leaseExpiresAt,
+        offlineExpiresAtEpochSeconds = result.offlineExpiresAt,
+    )
 
     fun openStaffSession(
         session: StaffSession,
@@ -522,26 +593,51 @@ fun PayMyDineApp(app: PayMyDineApplication) {
             modifier = Modifier.fillMaxSize(),
             color = PmdBackground,
         ) {
-            if (paired && ready) {
+            if (
+                paired &&
+                ready &&
+                initialPairingAuthorization != null
+            ) {
+                // PMD_ANDROID_PAIR_SINGLE_LOGIN_V16
+                // The pairing password already authenticated this exact human.
+                // Consume the one-time signed initial grant and go directly to
+                // the canonical role destination. Later switches still use the
+                // normal username/password login card.
+                val authorization = initialPairingAuthorization
+                LaunchedEffect(authorization) {
+                    if (authorization == null) return@LaunchedEffect
+                    initialPairingAuthorization = null
+                    val session = staffSessionFrom(authorization)
+                    app.credentials.putStaffSession(session)
+                    openStaffSession(session)
+                }
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(28.dp),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Image(
+                        painter = painterResource(R.drawable.pmd_brand_mark),
+                        contentDescription = "PayMyDine",
+                        modifier = Modifier.size(58.dp),
+                    )
+                    Text(
+                        "Opening your PayMyDine workspace…",
+                        modifier = Modifier.padding(top = 14.dp),
+                        color = PmdDeepGreen,
+                        fontWeight = FontWeight.Black,
+                    )
+                }
+            } else if (paired && ready) {
                 // PMD_ANDROID_DIRECT_LOGIN_ROUTER_V1
                 PmdStaffLogin(
                     app = app,
                     online = online,
                     onAuthorized = { result ->
-                        val session = StaffSession(
-                            username = result.username,
-                            staffName = result.staffName,
-                            userId = result.userId,
-                            staffId = result.staffId,
-                            roleCode = result.roleCode,
-                            route = result.route,
-                            surface = result.surface,
-                            destination = result.destination,
-                            staffGrant = result.staffGrant,
-                            expiresAtEpochSeconds = result.leaseExpiresAt,
-                            offlineExpiresAtEpochSeconds =
-                                result.offlineExpiresAt,
-                        )
+                        val session = staffSessionFrom(result)
                         app.credentials.putStaffSession(session)
                         openStaffSession(session)
                     },
