@@ -22,17 +22,17 @@
     $securityActive = in_array($securityMode, ['setup', 'verify', 'workplace', 'recovery_codes'], true);
 
     // PMD_STAFF_QUICK_PIN_LOGIN_VIEW_V1
-    // Quick PIN is deliberately visible only on the browser that already owns
-    // the restaurant Site Access hub cookie. Remote/untrusted browsers keep the
-    // full username/password login as their primary surface.
+    // Quick PIN is the default Staff surface on a trusted restaurant terminal.
+    // It remains visible even before the first employee PIN is configured so the
+    // POS login experience is stable from day one. Remote/untrusted browsers keep
+    // full username/password as their primary surface.
     $pinLoginAvailable = false;
     $hasMobileHandoff = request()->filled(\App\Services\PmdMobileSync\PmdMobilePairingService::HANDOFF_PARAM);
     if (!$securityActive && !$hasMobileHandoff) {
         try {
             $siteAccess = app(\App\Services\PmdSiteAccessService::class);
             $pinLoginAvailable = $siteAccess->ready()
-                && (bool)$siteAccess->currentHub(request())
-                && app(\App\Services\PmdStaffPinService::class)->hasAnyPin();
+                && (bool)$siteAccess->currentHub(request());
         } catch (\Throwable $error) {
             $pinLoginAvailable = false;
         }

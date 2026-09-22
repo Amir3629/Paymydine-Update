@@ -170,8 +170,17 @@
         if (count($kpiSelection) === 4) break;
     }
 
-    $bootPeople = $people->map(function($person) use ($departments, $accessStaff) {
+    $pmdQuickPinService = app(\App\Services\PmdStaffPinService::class);
+    $pmdQuickPinReady = $pmdQuickPinService->ready();
+
+    $bootPeople = $people->map(function($person) use (
+        $departments,
+        $accessStaff,
+        $pmdQuickPinService,
+        $pmdQuickPinReady
+    ) {
         $staff = !empty($person->staff_id) ? $accessStaff->get((int)$person->staff_id) : null;
+        $userId = $staff && $staff->user ? (int)$staff->user->user_id : 0;
         return [
             'id' => (int)$person->id,
             'name' => (string)$person->display_name,
@@ -183,6 +192,9 @@
             'staff_role_id' => $staff ? (int)$staff->staff_role_id : null,
             'access_role_code' => $staff && $staff->role ? strtolower(trim((string)$staff->role->code)) : '',
             'access_role_name' => $staff && $staff->role ? (string)$staff->role->name : '',
+            'has_quick_pin' => $userId > 0
+                && $pmdQuickPinReady
+                && $pmdQuickPinService->hasPinForUser($userId),
         ];
     })->values();
 
@@ -360,11 +372,29 @@
                     </div>
                     <input type="hidden" name="give_access" value="1">
                     <div class="pmd-shifts__team-access-fields is-required" data-pmd-team-access-fields>
-                        <label><span>Username</span><input maxlength="32" name="username" autocomplete="off" required data-pmd-team-username></label>
+                        <label data-pmd-team-username-field><span>Username</span><input maxlength="32" name="username" autocomplete="off" data-pmd-team-username></label>
                         <label><span>Access</span><select name="staff_role_id" required data-pmd-team-access-role>
-                            @foreach($accessRoles as $accessRole)<option value="{{ (int)$accessRole->staff_role_id }}">{{ $accessRole->name }}</option>@endforeach
+                            @foreach($accessRoles as $accessRole)
+                                <option
+                                    value="{{ (int)$accessRole->staff_role_id }}"
+                                    data-role-code="{{ strtolower(trim((string)$accessRole->code)) }}"
+                                >{{ $accessRole->name }}</option>
+                            @endforeach
                         </select></label>
-                        <label class="is-password"><span>Password <small data-pmd-team-password-hint>required</small></span><span class="pmd-shifts__team-password-row"><input type="password" minlength="6" maxlength="32" name="password" autocomplete="new-password" required data-pmd-team-password><button type="button" data-pmd-team-password-generate>Generate</button></span></label>
+                        <label class="is-password" data-pmd-team-pin-field>
+                            <span>Quick PIN <small data-pmd-team-pin-hint>6 digits</small></span>
+                            <span class="pmd-shifts__team-password-row">
+                                <input type="password" inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6" name="quick_pin" autocomplete="off" data-pmd-team-pin placeholder="••••••">
+                                <button type="button" data-pmd-team-pin-generate>Generate</button>
+                            </span>
+                        </label>
+                        <label class="is-password" data-pmd-team-password-field>
+                            <span>Password <small data-pmd-team-password-hint>required</small></span>
+                            <span class="pmd-shifts__team-password-row">
+                                <input type="password" minlength="6" maxlength="32" name="password" autocomplete="new-password" data-pmd-team-password>
+                                <button type="button" data-pmd-team-password-generate>Generate</button>
+                            </span>
+                        </label>
                     </div>
                     <footer class="pmd-shifts__modal-footer pmd-shifts__team-editor-footer">
                         <button type="button" class="pmd-shifts__button is-soft" data-pmd-team-close>Cancel</button>
