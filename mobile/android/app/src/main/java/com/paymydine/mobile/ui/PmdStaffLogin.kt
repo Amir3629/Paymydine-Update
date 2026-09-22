@@ -73,7 +73,7 @@ fun PmdStaffLogin(
         clearPassword = clearPassword,
         offlineAvailable = offlineAvailable,
         offlineText = if (offlineAvailable) {
-            "PayMyDine Cloud is offline. Your last verified work session " +
+            "PayMyDine Cloud is unavailable. Your last verified work session " +
                 "is available from this tablet."
         } else {
             ""
