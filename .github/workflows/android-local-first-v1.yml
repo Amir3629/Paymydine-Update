@@ -22,6 +22,7 @@ on:
       - 'deploy/pmd-android-operations-v18-direct-login-first-party.sh'
       - 'deploy/pmd-android-v18-first-party-download-hotfix.sh'
       - 'deploy/pmd-android-v18-2-throttle-isolation-hotfix.sh'
+      - 'deploy/pmd-android-v18-3-shared-device-login-hotfix.sh'
   pull_request:
     branches: [main]
     paths:
@@ -88,6 +89,7 @@ jobs:
           bash -n deploy/pmd-android-operations-v18-direct-login-first-party.sh
           bash -n deploy/pmd-android-v18-first-party-download-hotfix.sh
           bash -n deploy/pmd-android-v18-2-throttle-isolation-hotfix.sh
+          bash -n deploy/pmd-android-v18-3-shared-device-login-hotfix.sh
           grep -q "trustedDeviceByRawToken" app/Services/PmdSiteAccessService.php
           grep -q "rotateTrustedDeviceToken" app/Services/PmdSiteAccessService.php
           grep -q "pmd_sync_commands" app/system/database/migrations/2026_09_20_190000_create_pmd_mobile_sync_tables.php
@@ -143,6 +145,7 @@ jobs:
           grep -q "pmd-qpos-main" mobile/android/app/src/main/assets/pmd-offline-pos.html
           grep -q "PMD Quick POS V1" mobile/android/app/src/main/assets/pmd-quick-pos-v1.css
           grep -q "PMD_ANDROID_STAFF_LOGIN_ROUTER_V2" app/Http/Controllers/PmdMobileWorkspaceAuthController.php
+          grep -q "PMD_ANDROID_DEVICE_TRUST_BEFORE_STAFF_LOGIN_V3" app/Http/Controllers/PmdMobileWorkspaceAuthController.php
           grep -q "routeForRoleCode" app/Http/Controllers/PmdMobileWorkspaceAuthController.php
           grep -q "PMD_MOBILE_ROLE_WORKSPACE_SESSION_V2" app/Http/Controllers/PmdMobileWorkspaceSessionController.php
           grep -q "PMD_ANDROID_ROLE_WORKSPACE_ACTIVITY_V1" mobile/android/app/src/main/java/com/paymydine/mobile/RoleWorkspaceActivity.kt
@@ -154,7 +157,9 @@ jobs:
           grep -q "throttle:30,1,pmd-mobile-pos-open" routes/pmd-mobile-sync-v1.php
           grep -q "throttle:30,1,pmd-mobile-workspace-open" routes/pmd-mobile-sync-v1.php
           grep -q "PMD_MOBILE_STAFF_GRANT_V1" app/Services/PmdMobileSync/PmdMobileStaffGrantService.php
-          grep -q "PMD_MOBILE_STAFF_GRANT_OVERRIDE_V1" app/Services/PmdMobileSync/PmdMobileDeviceAuthService.php
+          grep -q "PMD_MOBILE_DEVICE_TRUST_FIRST_V2" app/Services/PmdMobileSync/PmdMobileDeviceAuthService.php
+          grep -q "PMD_MOBILE_STAFF_GRANT_FIRST_V2" app/Services/PmdMobileSync/PmdMobileDeviceAuthService.php
+          grep -q "authenticateDevice" app/Services/PmdMobileSync/PmdMobileDeviceAuthService.php
           grep -q "X-PayMyDine-Staff-Grant" mobile/android/app/src/main/java/com/paymydine/mobile/network/MobileApiClient.kt
           grep -q "authorizeStaff" mobile/android/app/src/main/java/com/paymydine/mobile/network/MobileApiClient.kt
           grep -q "authorizeWorkspace" mobile/android/app/src/main/java/com/paymydine/mobile/network/MobileApiClient.kt
