@@ -582,6 +582,27 @@ fun PayMyDineApp(app: PayMyDineApplication) {
         )
     }
 
+    // PMD_ANDROID_OFFLINE_POS_AUTO_RESUME_V17
+    // A process/activity restart during a real WAN outage is not a workspace
+    // switch. Re-open the same still-valid verified POS work session directly,
+    // without asking the operator to tap a separate offline-mode button.
+    LaunchedEffect(online, ready) {
+        if (online || !ready) return@LaunchedEffect
+
+        val remembered = app.credentials.staffSession()
+        if (
+            remembered != null &&
+            remembered.surface == "pos" &&
+            app.bootstrapRepository.hasBootstrap() &&
+            app.credentials.offlineSessionValid("pos")
+        ) {
+            openStaffSession(
+                remembered,
+                forceOffline = true,
+            )
+        }
+    }
+
     PmdTheme {
         Surface(
             modifier = Modifier.fillMaxSize(),
