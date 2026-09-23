@@ -8694,10 +8694,9 @@ body.pmd-qpos-body {
 
 
 /* ============================================================
-   PMD_QPOS_REFRESH_STABILITY_V77
-   Refresh must not flash operational controls or pulse attention tables.
-   Attention stays obvious with a static ring; the 10s rail movement provides
-   the motion. Hidden table actions must beat their generic display:grid rule.
+   PMD_QPOS_ATTENTION_VISUAL_V80
+   Attention must be visible without yellow/orange glow, pulse or "blush".
+   Use the same dark-green/white visual language as the cashier selection UI.
    ============================================================ */
 .pmd-qpos-table-actions[hidden] {
   display: none !important;
@@ -8706,9 +8705,10 @@ body.pmd-qpos-body {
 .pmd-qpos-table.has-attention:not(:disabled) {
   animation: none !important;
   filter: none !important;
-  outline: 3px solid rgba(245, 158, 11, .82) !important;
+  outline: 3px solid #064e3b !important;
   outline-offset: -3px !important;
-  box-shadow: inset 0 0 0 2px rgba(255,255,255,.76) !important;
+  box-shadow:
+    inset 0 0 0 2px rgba(255,255,255,.82) !important;
 }
 
 .pmd-qpos-table.is-attention-focus-v57 {
@@ -8717,6 +8717,14 @@ body.pmd-qpos-body {
   outline: 4px solid #fff !important;
   outline-offset: -4px !important;
   box-shadow:
-    0 0 0 5px rgba(245, 158, 11, .58),
-    inset 0 0 0 2px rgba(255,255,255,.82) !important;
+    0 0 0 4px #064e3b,
+    inset 0 0 0 2px rgba(255,255,255,.90) !important;
+}
+
+/* Kill any older attention keyframe/glow rules that may win through cached
+   stylesheet order or duplicated legacy selectors. */
+.pmd-qpos-table.has-attention:not(:disabled),
+.pmd-qpos-table.has-attention.is-attention-focus-v57:not(:disabled) {
+  animation-name: none !important;
+  text-shadow: none !important;
 }
