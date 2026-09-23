@@ -8679,9 +8679,11 @@ function renderOpenChecks() {
     document.addEventListener('visibilitychange', function () {
       if (document.visibilityState === 'hidden') {
         stopLiveSyncTimerV73();
+        stopAttentionCycleTimerV79();
         return;
       }
       requestLiveSyncV73(0);
+      scheduleAttentionCycleV79();
     });
 
     window.addEventListener('focus', function () {
