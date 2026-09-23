@@ -8445,3 +8445,228 @@ body.pmd-qpos-body {
     padding-inline: 38px !important;
   }
 }
+
+
+/* ============================================================
+   PMD_QPOS_UX_FLOW_V72
+   - Stable inline empty-food logo (no SVG/mask network flash)
+   - Minimal, faster option chooser
+   - Truly centered table number with icon-only corners
+   - One-level sent-item quantity Undo
+   ============================================================ */
+
+/* Empty food image: the inline SVG is painted in the same frame as the card. */
+.pmd-qpos-product-image.is-placeholder.is-inline-v72 {
+  position: relative !important;
+  background: #edf2f1 !important;
+  overflow: hidden !important;
+  animation: none !important;
+  transition: none !important;
+}
+
+.pmd-qpos-product-image.is-placeholder.is-inline-v72::before,
+.pmd-qpos-product-image.is-placeholder.is-inline-v72::after {
+  content: none !important;
+  display: none !important;
+  -webkit-mask-image: none !important;
+  mask-image: none !important;
+}
+
+.pmd-qpos-product-image.is-placeholder.is-inline-v72 svg {
+  position: absolute !important;
+  left: 50% !important;
+  top: 46% !important;
+  width: 54% !important;
+  height: 62% !important;
+  transform: translate(-50%, -50%) !important;
+  display: block !important;
+  fill: #aab3b1 !important;
+  color: #aab3b1 !important;
+  opacity: .82 !important;
+  pointer-events: none !important;
+}
+
+/* Option chooser: only group name + large option buttons. */
+.pmd-qpos-modifier-meta {
+  display: none !important;
+}
+
+.pmd-qpos-modifier-body > .pmd-qpos-field {
+  display: none !important;
+}
+
+.pmd-qpos-option-group {
+  margin: 0 0 22px !important;
+}
+
+.pmd-qpos-option-group header {
+  display: block !important;
+  margin: 0 0 11px !important;
+}
+
+.pmd-qpos-option-group header strong {
+  display: block !important;
+  font-size: 20px !important;
+  line-height: 1.18 !important;
+  font-weight: 900 !important;
+  color: #111827 !important;
+}
+
+.pmd-qpos-option-group header span,
+.pmd-qpos-option > span {
+  display: none !important;
+}
+
+.pmd-qpos-option-grid {
+  gap: 10px !important;
+}
+
+.pmd-qpos-option {
+  min-height: 68px !important;
+  padding: 12px 16px !important;
+  border-radius: 13px !important;
+  font-size: 19px !important;
+  font-weight: 850 !important;
+  line-height: 1.15 !important;
+}
+
+.pmd-qpos-option b {
+  display: block !important;
+  font-size: 19px !important;
+  font-weight: 900 !important;
+  line-height: 1.15 !important;
+}
+
+.pmd-qpos-option.is-selected {
+  border-color: #064e3b !important;
+  background: #ecfdf5 !important;
+  color: #064e3b !important;
+  box-shadow: inset 0 0 0 1px rgba(6,78,59,.12) !important;
+}
+
+/* Table identity: the number itself is geometrically centered in the card.
+   Feature and attention/payment icons live only in the top corners. */
+.pmd-qpos-table:not(.pmd-qpos-pickup) {
+  position: relative !important;
+  display: block !important;
+  text-align: center !important;
+}
+
+.pmd-qpos-table:not(.pmd-qpos-pickup)::after {
+  display: none !important;
+}
+
+.pmd-qpos-table:not(.pmd-qpos-pickup) > strong {
+  position: absolute !important;
+  left: 50% !important;
+  top: 50% !important;
+  width: auto !important;
+  max-width: calc(100% - 76px) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  transform: translate(-50%, -50%) !important;
+  text-align: center !important;
+  font-size: clamp(30px, 2.5vw, 38px) !important;
+  line-height: 1 !important;
+  z-index: 2 !important;
+  pointer-events: none !important;
+}
+
+.pmd-qpos-table:not(.pmd-qpos-pickup) > small {
+  position: absolute !important;
+  left: 50% !important;
+  top: calc(50% + 31px) !important;
+  width: auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  transform: translateX(-50%) !important;
+  text-align: center !important;
+  font-size: 14px !important;
+  line-height: 1 !important;
+  z-index: 2 !important;
+  pointer-events: none !important;
+}
+
+.pmd-qpos-table-signals-v57 {
+  left: 7px !important;
+  top: 7px !important;
+  right: auto !important;
+  bottom: auto !important;
+  transform: none !important;
+  max-width: 46px !important;
+  z-index: 5 !important;
+}
+
+.pmd-qpos-table-features-v67 {
+  left: auto !important;
+  top: 7px !important;
+  right: 7px !important;
+  bottom: auto !important;
+  z-index: 5 !important;
+}
+
+.pmd-qpos-table-feature-v67 {
+  width: 20px !important;
+  height: 20px !important;
+}
+
+.pmd-qpos-table-feature-v67 svg {
+  width: 12px !important;
+  height: 12px !important;
+}
+
+/* Sent item Undo: deliberately scoped to quantity corrections only. */
+.pmd-qpos-sent-head-v72 {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 8px !important;
+}
+
+.pmd-qpos-undo-v72 {
+  min-height: 30px !important;
+  padding: 0 10px !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 8px !important;
+  background: #fff !important;
+  color: #334155 !important;
+  font: inherit !important;
+  font-size: 12px !important;
+  font-weight: 850 !important;
+  cursor: pointer !important;
+  touch-action: manipulation !important;
+}
+
+.pmd-qpos-undo-v72:hover {
+  border-color: #94a3b8 !important;
+  background: #f8fafc !important;
+}
+
+.pmd-qpos-undo-v72:disabled {
+  opacity: .45 !important;
+  cursor: wait !important;
+}
+
+@media (max-width: 760px) {
+  .pmd-qpos-option-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .pmd-qpos-option {
+    min-height: 62px !important;
+    font-size: 18px !important;
+  }
+
+  .pmd-qpos-option b {
+    font-size: 18px !important;
+  }
+
+  .pmd-qpos-table:not(.pmd-qpos-pickup) > strong {
+    max-width: calc(100% - 68px) !important;
+    font-size: clamp(29px, 8vw, 36px) !important;
+  }
+
+  .pmd-qpos-table:not(.pmd-qpos-pickup) > small {
+    top: calc(50% + 29px) !important;
+  }
+}
