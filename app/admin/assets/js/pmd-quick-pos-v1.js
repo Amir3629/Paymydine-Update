@@ -2034,7 +2034,10 @@
       if (!canOrderNow()) {
         status.textContent = 'Select table';
       } else if (activeOrderStructuralLocked()) {
-        status.textContent = 'Payment started · finish payment first';
+        status.textContent =
+          state.serviceMode === 'dine_in'
+            ? 'Viewing paid/locked check · new food starts a new check'
+            : 'Payment started · start a new check';
       } else {
         status.textContent = items.length + ' items';
       }
@@ -2234,7 +2237,12 @@ function renderOpenChecks() {
     });
   }
 
-  async function mutateCommittedItemQuantityV68(button, direction) {
+  async function mutateCommittedItemQuantityV68(
+    button,
+    direction,
+    options
+  ) {
+    var mutationOptions = options || {};
     var order = activeOrder();
     var mutation = order && order.item_mutation ? order.item_mutation : {};
 
@@ -2288,18 +2296,26 @@ function renderOpenChecks() {
 
     state.sentMutationBusy[busyKey] = true;
 
-    /* PMD_QPOS_INSTANT_QUANTITY_V71
-     * Paint the change immediately. The server remains authoritative; any
-     * rejection restores the exact previous values. */
+    /* PMD_QPOS_INSTANT_QUANTITY_V72
+     * Paint immediately; server authority can still reject and roll back. */
     item.quantity = nextQty;
     item.subtotal = roundMoney(unitSubtotal * nextQty);
     order.total = Math.max(
       0,
-      roundMoney(oldOrderTotal + (direction > 0 ? unitSubtotal : -unitSubtotal))
+      roundMoney(
+        oldOrderTotal +
+        (direction > 0 ? unitSubtotal : -unitSubtotal)
+      )
     );
     order.order_total = order.total;
-    if (oldTotalItems > 0 || Object.prototype.hasOwnProperty.call(order, 'total_items')) {
-      order.total_items = Math.max(0, oldTotalItems + (direction > 0 ? 1 : -1));
+    if (
+      oldTotalItems > 0 ||
+      Object.prototype.hasOwnProperty.call(order, 'total_items')
+    ) {
+      order.total_items = Math.max(
+        0,
+        oldTotalItems + (direction > 0 ? 1 : -1)
+      );
     }
     renderCart({orderSwitch: true});
 
@@ -2316,8 +2332,14 @@ function renderOpenChecks() {
             quantity: 1,
             expected_updated_at: oldUpdatedAt,
             reason: direction < 0
-              ? 'Quick POS quantity correction before kitchen preparation'
-              : ''
+              ? (
+                  mutationOptions.isUndo
+                    ? 'Undo Quick POS quantity increase before kitchen preparation'
+                    : 'Quick POS quantity correction before kitchen preparation'
+                )
+              : '',
+            undo_quantity_correction:
+              !!mutationOptions.isUndo && direction > 0
           })
         }
       );
@@ -2343,17 +2365,32 @@ function renderOpenChecks() {
         order.order_total = order.total;
       }
       if (json.total_items != null) {
-        order.total_items = Math.max(0, num(json.total_items, order.total_items));
+        order.total_items = Math.max(
+          0,
+          num(json.total_items, order.total_items)
+        );
       }
       if (json.updated_at) {
         order.updated_at = String(json.updated_at);
       }
 
-      toast(
-        direction > 0
-          ? 'Quantity increased.'
-          : 'Quantity reduced.'
-      );
+      if (mutationOptions.isUndo) {
+        state.lastQuantityUndoV72 = null;
+        toast('Last quantity change undone.');
+      } else {
+        state.lastQuantityUndoV72 = {
+          order_id: orderId(order),
+          order_menu_id: itemId,
+          direction: direction > 0 ? -1 : 1,
+          created_at: Date.now()
+        };
+
+        toast(
+          direction > 0
+            ? 'Quantity increased.'
+            : 'Quantity reduced.'
+        );
+      }
     } catch (error) {
       item.quantity = currentQty;
       item.subtotal = oldSubtotal;
@@ -2372,10 +2409,49 @@ function renderOpenChecks() {
     }
   }
 
+  async function undoLastQuantityV72() {
+    var undo = state.lastQuantityUndoV72;
+    var order = activeOrder();
+
+    if (
+      !undo ||
+      !order ||
+      orderId(order) !== Number(undo.order_id || 0)
+    ) {
+      state.lastQuantityUndoV72 = null;
+      renderSentItems();
+      return;
+    }
+
+    var itemId = Number(undo.order_menu_id || 0);
+    var item = orderItems(order).find(function (row) {
+      return Number(row.order_menu_id || row.id || 0) === itemId;
+    });
+
+    if (!item) {
+      state.lastQuantityUndoV72 = null;
+      renderSentItems();
+      return;
+    }
+
+    await mutateCommittedItemQuantityV68(
+      {
+        getAttribute: function (name) {
+          return name === 'data-order-menu-id'
+            ? String(itemId)
+            : '';
+        }
+      },
+      Number(undo.direction || 0),
+      {isUndo: true}
+    );
+  }
+
   function renderSentItems() {
     var section = $('[data-qpos-sent]');
     var box = $('[data-qpos-sent-items]');
     var total = $('[data-qpos-sent-total]');
+    var undoButton = $('[data-qpos-sent-undo]');
     var order = activeOrder();
 
     if (!section || !box) return;
@@ -2403,7 +2479,28 @@ function renderOpenChecks() {
 
     var items = committed.concat(pending);
 
-    if (!items.length) {
+    var mutation = order && order.item_mutation
+      ? order.item_mutation
+      : {};
+
+    var undo = state.lastQuantityUndoV72;
+    var canUndo =
+      !!undo &&
+      !!order &&
+      orderId(order) === Number(undo.order_id || 0) &&
+      mutation.allowed === true;
+
+    if (undoButton) {
+      undoButton.hidden = !canUndo;
+      undoButton.disabled =
+        !canUndo ||
+        Object.keys(state.sentMutationBusy).length > 0;
+      undoButton.onclick = canUndo
+        ? undoLastQuantityV72
+        : null;
+    }
+
+    if (!items.length && !canUndo) {
       section.hidden = true;
       box.innerHTML = '';
       return;
@@ -2416,9 +2513,6 @@ function renderOpenChecks() {
       );
     }
 
-    var mutation = order && order.item_mutation
-      ? order.item_mutation
-      : {};
     var canEditCommitted =
       state.serviceMode === 'dine_in' &&
       !!state.selectedTable &&
