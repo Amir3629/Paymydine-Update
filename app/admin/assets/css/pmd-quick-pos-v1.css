@@ -3162,18 +3162,39 @@ body.pmd-qpos-body {
   line-height: 1.45;
 }
 
+/* PMD_QPOS_HISTORY_DOCUMENT_ACTIONS_V75 */
+.pmd-qpos-history-document-actions-v75 {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
 .pmd-qpos-history-invoice {
   min-height: 44px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   padding: 0 15px;
+  border: 1px solid #064e3b;
   border-radius: 10px;
   background: #064e3b;
   color: #fff;
   text-decoration: none;
   font-size: 11px;
   font-weight: 850;
+  white-space: nowrap;
+}
+
+.pmd-qpos-history-invoice:hover,
+.pmd-qpos-history-invoice:focus-visible {
+  filter: brightness(.96);
+}
+
+.pmd-qpos-history-invoice.pmd-qpos-history-print-v75 {
+  background: #fff;
+  color: #064e3b;
 }
 
 .pmd-qpos-history-order-summary {
