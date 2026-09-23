@@ -2192,23 +2192,23 @@
       var attentionHistoryKind = hasAttention ? 'attention' : '';
       var signals = [];
 
-      if (waiterCalls > 0) {
-        signals.push({
-          kind: 'call',
-          icon: '!',
-          title: 'Waiter call',
-          attentionKind: 'calls',
-          count: waiterCalls
-        });
-      }
+      /* PMD_QPOS_UNIFIED_ATTENTION_ICON_V81
+       * Waiter calls and table notes share one table badge. This prevents a
+       * single table from accumulating multiple service-attention icons while
+       * keeping payment badges independent. */
+      if (hasAttention) {
+        var attentionCountV81 = waiterCalls + noteCount;
+        var attentionTitleV81 =
+          waiterCalls > 0 && noteCount > 0
+            ? 'Waiter call + table note'
+            : (waiterCalls > 0 ? 'Waiter call' : 'Table note');
 
-      if (noteCount > 0) {
         signals.push({
-          kind: 'note',
-          icon: 'N',
-          title: 'Table note',
-          attentionKind: 'notes',
-          count: noteCount
+          kind: 'attention-v81',
+          icon: '!',
+          title: attentionTitleV81,
+          attentionKind: 'attention',
+          count: attentionCountV81
         });
       }
 
