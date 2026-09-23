@@ -1818,7 +1818,8 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
 
     protected function quickPosOpenOrdersForTable(
         array $table,
-        ?callable $scope = null
+        ?callable $scope = null,
+        int $limit = 20
     ): array {
         if (!Schema::hasTable('orders')) {
             return [];
@@ -1845,7 +1846,7 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
 
         $rows = $query
             ->orderByDesc($primaryKey)
-            ->limit(20)
+            ->limit(max(1, min(200, $limit)))
             ->get();
 
         if ($rows->isEmpty()) {
@@ -2128,7 +2129,8 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                     'takeaway',
                     'take-away',
                 ])));
-            }
+            },
+            100
         );
     }
 
