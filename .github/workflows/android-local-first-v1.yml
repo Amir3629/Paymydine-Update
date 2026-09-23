@@ -101,6 +101,15 @@ jobs:
           bash -n deploy/pmd-android-v18-6-final-session-authority.sh
           bash -n deploy/pmd-android-v18-7-canonical-login-offline.sh
           bash -n deploy/pmd-android-v18-13-seamless-offline-pos.sh
+          grep -q "PMD_MOBILE_OFFLINE_CASH_PAYMENT_V17" app/Services/PmdMobileSync/PmdMobileCommandProcessor.php
+          grep -q "PMD_MOBILE_OFFLINE_TABLE_ACTIONS_V17" app/Services/PmdMobileSync/PmdMobileCommandProcessor.php
+          grep -q "PMD_ANDROID_SINGLE_POS_ACTIVITY_V17" mobile/android/app/src/main/java/com/paymydine/mobile/ui/PayMyDineApp.kt
+          grep -q "PMD_ANDROID_OFFLINE_POS_AUTO_RESUME_V17" mobile/android/app/src/main/java/com/paymydine/mobile/ui/PayMyDineApp.kt
+          grep -q "queueSendAndCash" mobile/android/app/src/main/java/com/paymydine/mobile/LocalPosBridge.kt
+          grep -q "enqueueOrdered" mobile/android/app/src/main/java/com/paymydine/mobile/sync/SyncRepository.kt
+          grep -q "buildCashPaymentAfterSendCommand" mobile/android/app/src/main/java/com/paymydine/mobile/data/local/LocalPosRepository.kt
+          grep -q "PMD_ZCS_OFFLINE_CACHED_IMAGE_V17" mobile/android/app/src/main/java/com/paymydine/mobile/hardware/customerdisplay/CustomerDisplayManager.kt
+          grep -q "pushCustomerDisplay" mobile/android/app/src/main/assets/pmd-offline-pos.html
           grep -q "trustedDeviceByRawToken" app/Services/PmdSiteAccessService.php
           grep -q "rotateTrustedDeviceToken" app/Services/PmdSiteAccessService.php
           grep -q "pmd_sync_commands" app/system/database/migrations/2026_09_20_190000_create_pmd_mobile_sync_tables.php
