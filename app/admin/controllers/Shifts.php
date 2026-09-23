@@ -79,8 +79,9 @@ class Shifts extends AdminController
         // PMD_SHIFTS_STAFF_PIN_UI_V18A
         $this->addCss('css/pmd-shifts-staff-pin-ui-v18a.css');
         // PMD_SHIFTS_MIDNIGHT_TIMELINE_V17N
-        // PMD_SHIFTS_SCROLL_MEMORY_V17O
-        $this->addJs('js/pmd-shifts-inpage-day-nav-v17o.js');
+        // PMD_SHIFTS_ROLE_DRIVEN_CREDENTIAL_UI_V18B
+        // New filename intentionally busts the old cached Shifts runtime.
+        $this->addJs('js/pmd-shifts-inpage-day-nav-v18b.js');
         // PMD_SHIFTS_BIG_CALENDAR_V14
         $this->addJs('js/pmd-shifts-big-calendar-v14.js');
         $this->addJs('js/pmd-shifts-reservation-jade-time-v17c.js');
