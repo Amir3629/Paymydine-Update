@@ -37,6 +37,12 @@ Route::middleware(['web'])->group(function () {
         [\Admin\Controllers\PmdQuickPosV1::class, 'tableData']
     )->where('table', '[0-9]+');
 
+    // PMD_QPOS_PICKUP_DATA_ROUTE_V78
+    Route::get(
+        '/admin/pos/pickup',
+        [\Admin\Controllers\PmdQuickPosV1::class, 'pickupData']
+    );
+
     // PMD_QPOS_FLOOR_DATA_ROUTE_V52
     Route::get(
         '/admin/pos/floor-data',
