@@ -693,12 +693,16 @@
 
   function existingVatV74(tax) {
     var order = activeOrder();
-    if (!order || !tax.enabled) return 0;
+    if (!order) return 0;
 
+    /* Stored order tax wins even if the restaurant VAT setting changes later.
+     * This keeps a historical/paid check internally consistent on screen. */
     var stored = num(order.tax_amount, -1);
     if (stored >= 0) {
       return roundMoney(stored);
     }
+
+    if (!tax.enabled) return 0;
 
     var subtotal = num(order.subtotal, -1);
     var gross = Math.max(0, existingTotal());
@@ -723,9 +727,27 @@
     );
     var existingGross = roundMoney(existingTotal());
     var existingVat = existingVatV74(tax);
+    var order = activeOrder();
+    var orderVatRate = order
+      ? Math.max(0, num(order.tax_percentage, 0))
+      : 0;
+    var orderVatTitle = order
+      ? String(order.tax_title || '').trim()
+      : '';
+    var displayTax = Object.assign({}, tax, {
+      enabled: tax.enabled || existingVat > 0.0001,
+      percentage:
+        existingVat > 0.0001 && orderVatRate > 0
+          ? orderVatRate
+          : tax.percentage,
+      title:
+        existingVat > 0.0001 && orderVatTitle
+          ? orderVatTitle
+          : tax.title
+    });
 
     return {
-      tax: tax,
+      tax: displayTax,
       newSubtotal: newSubtotal,
       pendingSubtotal: pendingSubtotal,
       vat: roundMoney(existingVat + unsentVat),
@@ -7105,10 +7127,13 @@ function renderOpenChecks() {
       return;
     }
 
-    var invoiceUrl = String(
-      order.invoice_url || ('/admin/pmd-cashier-order-center/invoice/' + encodeURIComponent(orderId))
-    );
     var settlement = String(order.settlement_status || '').trim();
+    var invoiceUrl = String(order.invoice_url || '');
+    var invoiceReady =
+      !!invoiceUrl &&
+      ['paid', 'settled', 'closed'].indexOf(
+        settlement.toLowerCase()
+      ) !== -1;
     var settlementLabel = historySettlementLabel(settlement);
     var settlementTone = historySettlementTone(settlement);
     var total = order.total != null ? money(order.total) : '';
@@ -7149,8 +7174,10 @@ function renderOpenChecks() {
             : '') +
           '<time>' + esc(historyShortTime(order.time)) + '</time>' +
         '</div>' +
-        '<a class="pmd-qpos-history-invoice" href="' + esc(invoiceUrl) +
-          '" target="_blank" rel="noopener">Open invoice</a>' +
+        (invoiceReady
+          ? '<a class="pmd-qpos-history-invoice" href="' + esc(invoiceUrl) +
+              '" target="_blank" rel="noopener">Open invoice</a>'
+          : '') +
       '</div>' +
       ((itemSummary || orderNote)
         ? '<div class="pmd-qpos-history-order-overview">' +
