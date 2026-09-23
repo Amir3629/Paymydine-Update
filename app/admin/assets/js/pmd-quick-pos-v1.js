@@ -2631,6 +2631,7 @@ function renderOpenChecks() {
       activeOrderStructuralLocked()
     ) {
       state.activeOrderId = null;
+      state.orderSelectionExplicitV72 = false;
       state.forceNewCheck = true;
       state.guestCount = 1;
       state.note = '';
