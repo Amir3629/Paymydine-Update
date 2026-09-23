@@ -1364,7 +1364,7 @@ trait PmdWaiterPosOperationsSummaryV12Concern
         return response()->json([
             'ok' => true,
             'order_id' => (int)$order->getKey(),
-            'invoice_url' => '/admin/orders/invoice/'.rawurlencode((string)$order->getKey()),
+            'invoice_url' => '/admin/pmd-cashier-order-center/invoice/'.rawurlencode((string)$order->getKey()),
             'edit_url' => '/admin/orders/edit/'.rawurlencode((string)$order->getKey()),
         ]);
     }
