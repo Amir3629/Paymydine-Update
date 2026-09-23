@@ -1578,15 +1578,13 @@
       window.clearInterval(state.attentionCycleTimer);
     }
 
-    /* PMD_QPOS_ATTENTION_ROTATION_V76
-     * Give the operator a full ten seconds on each attention table before the
-     * rail smoothly rotates to the next unresolved call/note. */
+    /* PMD_QPOS_ATTENTION_ROTATION_V77
+     * No page-load jump or flash. The first automatic attention move happens
+     * after the same ten-second interval as every later move. */
     state.attentionCycleTimer = window.setInterval(
       cycleAttentionTablesV57,
       10000
     );
-
-    window.setTimeout(cycleAttentionTablesV57, 900);
   }
 
   function setHistoryKindV57(kind) {
@@ -6838,7 +6836,7 @@ function renderOpenChecks() {
       '<span><b>' + esc(orders) + '</b> orders</span>' +
       '<span><b>' + esc(payments) + '</b> payments</span>' +
       '<span><b>' + esc(notes) + '</b> notes</span>' +
-      (calls ? '<span class="is-attention"><b>' + esc(calls) + '</b> calls</span>' : '');
+      (calls ? '<span><b>' + esc(calls) + '</b> calls</span>' : '');
   }
 
   /* PMD_QPOS_HISTORY_CLARITY_V20
@@ -7663,17 +7661,20 @@ function renderOpenChecks() {
       !!state.historyData &&
       state.historyDataKey === context.key;
 
-    if (!hasCurrentData) {
-      await loadHistory(requested, {preserve: false});
-    }
-
+    /* PMD_QPOS_HISTORY_OPEN_IMMEDIATE_V77
+     * Open the workspace before the network request. A cold History click now
+     * paints immediately with its loading row instead of appearing to ignore
+     * the operator until /admin/pos/history has finished. */
     root.classList.add('is-history-workspace');
     modal.classList.add('is-open');
     modal.setAttribute('aria-hidden', 'false');
 
-    if (hasCurrentData) {
-      loadHistory(requested, {preserve: true});
+    if (!hasCurrentData) {
+      await loadHistory(requested, {preserve: false});
+      return;
     }
+
+    loadHistory(requested, {preserve: true});
   }
 
   /* PMD_QPOS_TEXT_KEYBOARD_V1
