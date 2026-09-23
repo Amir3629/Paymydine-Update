@@ -400,6 +400,8 @@
     liveSyncFailuresV73: 0,
     liveTablesSignatureV73: '',
     liveSelectedSignatureV73: '',
+    /* PMD_QPOS_PICKUP_CHECK_STATE_V78 */
+    pickupOrdersSignatureV78: '',
     livePollAfterMsV73: 2000,
     visualHydrated: false,
     floorMapOpen: false,
@@ -586,16 +588,28 @@
   }
 
   function activeOrder() {
-    if (state.serviceMode !== 'dine_in') {
-      return state.offPremiseOrder;
-    }
-
     var id = Number(state.activeOrderId || 0);
     if (!id) return null;
 
-    return state.openOrders.find(function (order) {
+    var railOrder = state.openOrders.find(function (order) {
       return Number(order.order_id || order.id || 0) === id;
     }) || null;
+
+    if (railOrder) return railOrder;
+
+    if (
+      state.serviceMode !== 'dine_in' &&
+      state.offPremiseOrder &&
+      Number(
+        state.offPremiseOrder.order_id ||
+        state.offPremiseOrder.id ||
+        0
+      ) === id
+    ) {
+      return state.offPremiseOrder;
+    }
+
+    return null;
   }
 
   function activeOrderStructuralLocked() {
@@ -603,7 +617,13 @@
     if (!order) return false;
 
     var status = String(order.settlement_status || '').toLowerCase();
+    var pickupKitchenLocked =
+      state.serviceMode === 'takeaway' &&
+      order.item_mutation &&
+      order.item_mutation.allowed === false;
+
     return (
+      pickupKitchenLocked ||
       order.structural_locked === true ||
       num(order.settled_amount, 0) > 0.0001 ||
       ['partial', 'paid', 'settled', 'closed', 'refunded'].indexOf(status) !== -1
@@ -1203,8 +1223,13 @@
       : 0;
 
     var glue = baseUrl.indexOf('?') === -1 ? '?' : '&';
+    var pickupLive =
+      state.serviceMode === 'takeaway'
+        ? '&pickup=1'
+        : '';
     var url = baseUrl + glue +
       'live=1&table=' + encodeURIComponent(String(selectedId || 0)) +
+      pickupLive +
       '&_=' + Date.now();
 
     state.liveSyncInFlightV73 = true;
@@ -1254,6 +1279,14 @@
         }
       } else if (!selectedId) {
         state.liveSelectedSignatureV73 = '';
+      }
+
+      if (
+        state.serviceMode === 'takeaway' &&
+        Array.isArray(json.pickup_orders) &&
+        !liveSyncSelectedBlockedV73()
+      ) {
+        applyPickupOrdersV78(json.pickup_orders, !!force);
       }
     } catch (ignored) {
       /* Background sync is deliberately silent. Normal operator actions keep
@@ -2407,7 +2440,13 @@
         status.textContent =
           state.serviceMode === 'dine_in'
             ? 'Viewing paid/locked check · new food starts a new check'
-            : 'Payment started · start a new check';
+            : (
+                activeOrder() &&
+                activeOrder().item_mutation &&
+                activeOrder().item_mutation.kitchen_started
+                  ? 'Kitchen preparation started · this Pickup is locked'
+                  : 'Payment started · this Pickup is locked'
+              );
       } else {
         status.textContent = items.length + ' items';
       }
@@ -2487,7 +2526,15 @@
           state.note = '';
           renderCart({orderSwitch: true});
         } else if (activeOrderStructuralLocked()) {
-          toast('Payment started. Start a new check for additional items.', true);
+          var lockedPickupOrder = activeOrder();
+          toast(
+            lockedPickupOrder &&
+            lockedPickupOrder.item_mutation &&
+            lockedPickupOrder.item_mutation.reason
+              ? lockedPickupOrder.item_mutation.reason
+              : 'This Pickup order can no longer be changed.',
+            true
+          );
           return;
         }
 
@@ -2524,6 +2571,10 @@
     state.orderSelectionExplicitV72 = id > 0;
     state.lastQuantityUndoV72 = null;
     var order = activeOrder();
+
+    if (state.serviceMode === 'takeaway') {
+      state.offPremiseOrder = order || null;
+    }
     state.forceNewCheck =
       id < 1 ||
       (!!order && activeOrderStructuralLocked());
@@ -2541,7 +2592,16 @@ function renderOpenChecks() {
     var box = $('[data-qpos-open-checks]');
     if (!box) return;
 
-    if (state.serviceMode !== 'dine_in' || !state.selectedTable || !state.openOrders.length) {
+    var tableCheckContext =
+      state.serviceMode === 'dine_in' &&
+      !!state.selectedTable;
+    var pickupCheckContext =
+      state.serviceMode === 'takeaway';
+
+    if (
+      (!tableCheckContext && !pickupCheckContext) ||
+      !state.openOrders.length
+    ) {
       box.hidden = true;
       box.innerHTML = '';
       return;
@@ -2617,10 +2677,16 @@ function renderOpenChecks() {
     var order = activeOrder();
     var mutation = order && order.item_mutation ? order.item_mutation : {};
 
+    var mutationContextAllowed =
+      (
+        state.serviceMode === 'dine_in' &&
+        !!state.selectedTable
+      ) ||
+      state.serviceMode === 'takeaway';
+
     if (
       !order ||
-      state.serviceMode !== 'dine_in' ||
-      !state.selectedTable ||
+      !mutationContextAllowed ||
       mutation.allowed !== true
     ) {
       toast(
@@ -2885,8 +2951,13 @@ function renderOpenChecks() {
     }
 
     var canEditCommitted =
-      state.serviceMode === 'dine_in' &&
-      !!state.selectedTable &&
+      (
+        (
+          state.serviceMode === 'dine_in' &&
+          !!state.selectedTable
+        ) ||
+        state.serviceMode === 'takeaway'
+      ) &&
       mutation.allowed === true;
 
     var rows = items.map(function (item) {
@@ -4370,6 +4441,110 @@ function renderOpenChecks() {
     renderAll();
   }
 
+  /* PMD_QPOS_PICKUP_ACTIVE_CHECKS_V78
+   * Pickup mirrors a table's check rail: every Received/Preparing collection
+   * order is visible, but nothing is auto-selected. KDS Ready removes the chip
+   * on the next live heartbeat; History remains the long-term record. */
+  function pickupOrdersSignatureV78(orders) {
+    try {
+      return JSON.stringify((orders || []).map(function (order) {
+        return [
+          orderId(order),
+          String(order.status_name || ''),
+          String(order.settlement_status || ''),
+          num(order.total, num(order.order_total, 0)),
+          String(order.updated_at || ''),
+          !!(
+            order.item_mutation &&
+            order.item_mutation.allowed === true
+          ),
+          orderItems(order).map(function (item) {
+            return [
+              Number(item.order_menu_id || item.id || 0),
+              num(item.quantity, 0),
+              num(item.subtotal, 0)
+            ];
+          })
+        ];
+      }));
+    } catch (ignored) {
+      return '';
+    }
+  }
+
+  function applyPickupOrdersV78(orders, force) {
+    if (!Array.isArray(orders)) return false;
+
+    var signature = pickupOrdersSignatureV78(orders);
+    if (!force && signature === state.pickupOrdersSignatureV78) {
+      return false;
+    }
+
+    var selectedId = Number(state.activeOrderId || 0);
+    var hadSelectedId = selectedId > 0;
+
+    state.pickupOrdersSignatureV78 = signature;
+    state.openOrders = orders;
+
+    var selected = selectedId
+      ? state.openOrders.find(function (order) {
+          return orderId(order) === selectedId;
+        }) || null
+      : null;
+
+    if (selected) {
+      state.offPremiseOrder = selected;
+    } else if (hadSelectedId) {
+      state.activeOrderId = null;
+      state.orderSelectionExplicitV72 = false;
+      state.lastQuantityUndoV72 = null;
+      state.offPremiseOrder = null;
+
+      if (state.cart.length) {
+        toast(
+          'Pickup #' + selectedId +
+          ' is Ready. Unsent items remain in the cart as a new Pickup order.'
+        );
+      }
+    } else {
+      state.offPremiseOrder = null;
+    }
+
+    renderCart({orderSwitch: true});
+    renderProducts();
+    return true;
+  }
+
+  async function loadPickupOrdersV78(silent) {
+    if (!state.settings.pickup_data_url) return false;
+
+    try {
+      var json = await fetchJson(
+        String(state.settings.pickup_data_url) +
+        '?_=' + Date.now()
+      );
+
+      if (
+        !json ||
+        json.ok !== true ||
+        !Array.isArray(json.open_orders)
+      ) {
+        throw new Error('Invalid Pickup check data.');
+      }
+
+      applyPickupOrdersV78(json.open_orders, true);
+      return true;
+    } catch (error) {
+      if (!silent) {
+        toast(
+          error.message || 'Pickup orders could not be loaded.',
+          true
+        );
+      }
+      return false;
+    }
+  }
+
   async function selectPickup() {
     if (state.payment.open) {
       toast('Close payment first.', true);
@@ -4377,6 +4552,19 @@ function renderOpenChecks() {
     }
 
     if (state.serviceMode === 'takeaway') {
+      /* Tapping Pickup again while viewing an existing #check returns to a
+       * fresh Pickup without hiding the other active check chips. */
+      if (state.activeOrderId && !state.cart.length) {
+        state.activeOrderId = null;
+        state.orderSelectionExplicitV72 = false;
+        state.lastQuantityUndoV72 = null;
+        state.offPremiseOrder = null;
+        renderCart({orderSwitch: true});
+        renderProducts();
+      }
+
+      loadPickupOrdersV78(true);
+
       var existingHistory = $('[data-qpos-history-modal]');
       if (existingHistory && existingHistory.classList.contains('is-open')) {
         state.historyScope = 'selected';
@@ -4411,8 +4599,10 @@ function renderOpenChecks() {
     state.note = '';
     state.guestCount = 1;
     state.forceNewCheck = false;
+    state.pickupOrdersSignatureV78 = '';
 
     renderAll();
+    loadPickupOrdersV78(false);
 
     var historyWorkspace = $('[data-qpos-history-modal]');
     if (historyWorkspace && historyWorkspace.classList.contains('is-open')) {
@@ -4443,7 +4633,7 @@ function renderOpenChecks() {
     var sentItems = optimisticSentItems(snapshot.cart);
 
     state.activeOrderId = id;
-    state.orderSelectionExplicitV72 = snapshot.serviceMode === 'dine_in';
+    state.orderSelectionExplicitV72 = true;
     state.forceNewCheck = false;
 
     if (snapshot.serviceMode === 'dine_in') {
@@ -4477,24 +4667,51 @@ function renderOpenChecks() {
         });
       }
     } else {
+      var existingPickup = state.openOrders.find(function (row) {
+        return orderId(row) === id;
+      }) || state.offPremiseOrder || null;
       var existingItems =
-        state.offPremiseOrder && Array.isArray(state.offPremiseOrder.items)
-          ? state.offPremiseOrder.items
+        existingPickup && Array.isArray(existingPickup.items)
+          ? existingPickup.items
           : [];
 
-      state.offPremiseOrder = Object.assign(
+      var pickupOrder = Object.assign(
         {},
-        state.offPremiseOrder || {},
+        existingPickup || {},
         {
           order_id: id,
           order_total: total,
           total: total,
-          total_items: num(json.total_items, 0),
+          total_items: num(
+            json.total_items,
+            existingPickup && existingPickup.total_items
+              ? existingPickup.total_items
+              : 0
+          ),
           updated_at: json.updated_at || '',
           settlement_status: 'unpaid',
+          item_mutation: Object.assign(
+            {
+              allowed: true,
+              locked: false,
+              payment_started: false,
+              kitchen_started: false
+            },
+            existingPickup && existingPickup.item_mutation
+              ? existingPickup.item_mutation
+              : {}
+          ),
           items: existingItems.concat(sentItems)
         }
       );
+
+      state.openOrders = [
+        pickupOrder
+      ].concat(state.openOrders.filter(function (row) {
+        return orderId(row) !== id;
+      }));
+      state.offPremiseOrder = pickupOrder;
+      state.pickupOrdersSignatureV78 = '';
     }
   }
 
@@ -4647,6 +4864,11 @@ function renderOpenChecks() {
         setTimeout(function () {
           state.liveSelectedSignatureV73 = '';
           loadTable(snapshot.tableId, true);
+        }, 0);
+      } else if (snapshot.serviceMode === 'takeaway') {
+        setTimeout(function () {
+          state.pickupOrdersSignatureV78 = '';
+          loadPickupOrdersV78(true);
         }, 0);
       }
     } catch (error) {
