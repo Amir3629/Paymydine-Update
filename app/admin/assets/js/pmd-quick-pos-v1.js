@@ -369,11 +369,18 @@
     tableData: null,
     openOrders: [],
     activeOrderId: null,
+    /* PMD_QPOS_EXPLICIT_CHECK_SELECTION_V72
+     * Opening a table starts a fresh check. Existing checks receive new food
+     * only after the cashier explicitly taps the matching #check chip. */
+    orderSelectionExplicitV72: false,
     offPremiseOrder: null,
     forceNewCheck: false,
     cart: [],
     pendingSend: null,
     sentMutationBusy: Object.create(null),
+    /* PMD_QPOS_QUANTITY_UNDO_STATE_V72
+     * One reversible sent-item quantity action only; payments never enter it. */
+    lastQuantityUndoV72: null,
     customerDisplayHighlight: null,
     tableRequestSeq: 0,
     /* PMD_QPOS_TABLE_CACHE_STATE_V41
@@ -644,6 +651,7 @@
     state.tableData = null;
     state.openOrders = [];
     state.activeOrderId = null;
+    state.orderSelectionExplicitV72 = false;
     state.offPremiseOrder = null;
     if (!keepCart) {
       state.cart = [];
@@ -1986,6 +1994,35 @@
     });
   }
 
+  function productUsesBrandPlaceholderV72(image) {
+    var source = String(image || '').trim();
+    if (!source) return true;
+
+    try {
+      var path = new URL(source, window.location.href).pathname.toLowerCase();
+      return (
+        path === '/brand/paymydine-logo.svg' ||
+        path === '/app/admin/assets/images/paymydine-logo.svg'
+      );
+    } catch (ignored) {
+      return /(?:^|\/)paymydine-logo\.svg(?:$|[?#])/i.test(source);
+    }
+  }
+
+  function productPlaceholderMarkupV72() {
+    /* PMD_QPOS_INLINE_PLACEHOLDER_V72
+     * Inline vector = no separate SVG/mask request and therefore no refresh
+     * flash for foods that intentionally use the PayMyDine placeholder. */
+    return (
+      '<div class="pmd-qpos-product-image is-placeholder is-inline-v72" aria-hidden="true">' +
+        '<svg viewBox="0 0 428.72 420" focusable="false" aria-hidden="true">' +
+          '<path d="M242.42 38.65H45.83c8.89 34.02 37.63 60.01 73.1 64.85 3.93.54 7.94.82 12.02.82h111.47c46.54 0 84.28 37.73 84.28 84.28s-37.74 84.28-84.28 84.28h-67.53c-16.46 0-29.8 13.34-29.8 29.8v35.87h95.89c83.02 0 151.35-66.86 151.39-149.89.03-82.85-67.12-150.01-149.95-150.01Z"></path>' +
+          '<path d="M219.64 246.47v-25.53h-91.75c-6.1 0-11.05 4.95-11.05 11.05v88.72c0 4.08-.28 8.09-.82 12.02-4.84 35.47-30.83 64.21-64.85 73.1V209.24c0-1.3 0-2.58.01-3.84 1.73-25.71 21.8-46.39 47.24-49.07h11.14l110.08-.07v-25.53l58.55 57.87-58.55 57.87Z"></path>' +
+        '</svg>' +
+      '</div>'
+    );
+  }
+
   function renderProducts() {
     var box = $('[data-qpos-products]');
     var status = $('[data-qpos-catalog-status]');
@@ -1997,7 +2034,10 @@
       if (!canOrderNow()) {
         status.textContent = 'Select table';
       } else if (activeOrderStructuralLocked()) {
-        status.textContent = 'Payment started · finish payment first';
+        status.textContent =
+          state.serviceMode === 'dine_in'
+            ? 'Viewing paid/locked check · new food starts a new check'
+            : 'Payment started · start a new check';
       } else {
         status.textContent = items.length + ' items';
       }
@@ -2015,6 +2055,7 @@
         num(item.price, 0) > 0;
 
       var image = String(item.image || '');
+      var placeholder = productUsesBrandPlaceholderV72(image);
       var selectedQuantity = cartQuantityForMenu(item.id);
       return (
         '<button type="button" class="pmd-qpos-product' +
@@ -2025,9 +2066,9 @@
           /* PMD_QPOS_PLACEHOLDER_LOGO_V34
            * Match the Menu page empty-photo treatment: a neutral preview
            * with the monochrome PayMyDine brand mark. */
-          (image
-            ? '<div class="pmd-qpos-product-image" style="background-image:url(&quot;' + esc(image) + '&quot;)"></div>'
-            : '<div class="pmd-qpos-product-image is-placeholder" aria-hidden="true"></div>') +
+          (placeholder
+            ? productPlaceholderMarkupV72()
+            : '<div class="pmd-qpos-product-image" style="background-image:url(&quot;' + esc(image) + '&quot;)"></div>') +
           (item.is_bestseller ? '<span class="pmd-qpos-product-badge">Popular</span>' : '') +
           (selectedQuantity > 0
             ? '<span class="pmd-qpos-product-count" data-qpos-product-count aria-label="' +
@@ -2064,8 +2105,19 @@
           return;
         }
 
-        if (activeOrderStructuralLocked()) {
-          toast('Payment started. Choose + Check for new items.', true);
+        if (
+          activeOrderStructuralLocked() &&
+          state.serviceMode === 'dine_in' &&
+          state.selectedTable
+        ) {
+          state.activeOrderId = null;
+          state.orderSelectionExplicitV72 = false;
+          state.forceNewCheck = true;
+          state.guestCount = 1;
+          state.note = '';
+          renderCart({orderSwitch: true});
+        } else if (activeOrderStructuralLocked()) {
+          toast('Payment started. Start a new check for additional items.', true);
           return;
         }
 
@@ -2099,6 +2151,7 @@
   function selectOrder(id) {
     id = Number(id || 0);
     state.activeOrderId = id > 0 ? id : null;
+    state.orderSelectionExplicitV72 = id > 0;
     var order = activeOrder();
     state.forceNewCheck =
       id < 1 ||
@@ -2184,7 +2237,12 @@ function renderOpenChecks() {
     });
   }
 
-  async function mutateCommittedItemQuantityV68(button, direction) {
+  async function mutateCommittedItemQuantityV68(
+    button,
+    direction,
+    options
+  ) {
+    var mutationOptions = options || {};
     var order = activeOrder();
     var mutation = order && order.item_mutation ? order.item_mutation : {};
 
@@ -2238,18 +2296,26 @@ function renderOpenChecks() {
 
     state.sentMutationBusy[busyKey] = true;
 
-    /* PMD_QPOS_INSTANT_QUANTITY_V71
-     * Paint the change immediately. The server remains authoritative; any
-     * rejection restores the exact previous values. */
+    /* PMD_QPOS_INSTANT_QUANTITY_V72
+     * Paint immediately; server authority can still reject and roll back. */
     item.quantity = nextQty;
     item.subtotal = roundMoney(unitSubtotal * nextQty);
     order.total = Math.max(
       0,
-      roundMoney(oldOrderTotal + (direction > 0 ? unitSubtotal : -unitSubtotal))
+      roundMoney(
+        oldOrderTotal +
+        (direction > 0 ? unitSubtotal : -unitSubtotal)
+      )
     );
     order.order_total = order.total;
-    if (oldTotalItems > 0 || Object.prototype.hasOwnProperty.call(order, 'total_items')) {
-      order.total_items = Math.max(0, oldTotalItems + (direction > 0 ? 1 : -1));
+    if (
+      oldTotalItems > 0 ||
+      Object.prototype.hasOwnProperty.call(order, 'total_items')
+    ) {
+      order.total_items = Math.max(
+        0,
+        oldTotalItems + (direction > 0 ? 1 : -1)
+      );
     }
     renderCart({orderSwitch: true});
 
@@ -2266,8 +2332,14 @@ function renderOpenChecks() {
             quantity: 1,
             expected_updated_at: oldUpdatedAt,
             reason: direction < 0
-              ? 'Quick POS quantity correction before kitchen preparation'
-              : ''
+              ? (
+                  mutationOptions.isUndo
+                    ? 'Undo Quick POS quantity increase before kitchen preparation'
+                    : 'Quick POS quantity correction before kitchen preparation'
+                )
+              : '',
+            undo_quantity_correction:
+              !!mutationOptions.isUndo && direction > 0
           })
         }
       );
@@ -2293,17 +2365,32 @@ function renderOpenChecks() {
         order.order_total = order.total;
       }
       if (json.total_items != null) {
-        order.total_items = Math.max(0, num(json.total_items, order.total_items));
+        order.total_items = Math.max(
+          0,
+          num(json.total_items, order.total_items)
+        );
       }
       if (json.updated_at) {
         order.updated_at = String(json.updated_at);
       }
 
-      toast(
-        direction > 0
-          ? 'Quantity increased.'
-          : 'Quantity reduced.'
-      );
+      if (mutationOptions.isUndo) {
+        state.lastQuantityUndoV72 = null;
+        toast('Last quantity change undone.');
+      } else {
+        state.lastQuantityUndoV72 = {
+          order_id: orderId(order),
+          order_menu_id: itemId,
+          direction: direction > 0 ? -1 : 1,
+          created_at: Date.now()
+        };
+
+        toast(
+          direction > 0
+            ? 'Quantity increased.'
+            : 'Quantity reduced.'
+        );
+      }
     } catch (error) {
       item.quantity = currentQty;
       item.subtotal = oldSubtotal;
@@ -2322,10 +2409,49 @@ function renderOpenChecks() {
     }
   }
 
+  async function undoLastQuantityV72() {
+    var undo = state.lastQuantityUndoV72;
+    var order = activeOrder();
+
+    if (
+      !undo ||
+      !order ||
+      orderId(order) !== Number(undo.order_id || 0)
+    ) {
+      state.lastQuantityUndoV72 = null;
+      renderSentItems();
+      return;
+    }
+
+    var itemId = Number(undo.order_menu_id || 0);
+    var item = orderItems(order).find(function (row) {
+      return Number(row.order_menu_id || row.id || 0) === itemId;
+    });
+
+    if (!item) {
+      state.lastQuantityUndoV72 = null;
+      renderSentItems();
+      return;
+    }
+
+    await mutateCommittedItemQuantityV68(
+      {
+        getAttribute: function (name) {
+          return name === 'data-order-menu-id'
+            ? String(itemId)
+            : '';
+        }
+      },
+      Number(undo.direction || 0),
+      {isUndo: true}
+    );
+  }
+
   function renderSentItems() {
     var section = $('[data-qpos-sent]');
     var box = $('[data-qpos-sent-items]');
     var total = $('[data-qpos-sent-total]');
+    var undoButton = $('[data-qpos-sent-undo]');
     var order = activeOrder();
 
     if (!section || !box) return;
@@ -2353,7 +2479,28 @@ function renderOpenChecks() {
 
     var items = committed.concat(pending);
 
-    if (!items.length) {
+    var mutation = order && order.item_mutation
+      ? order.item_mutation
+      : {};
+
+    var undo = state.lastQuantityUndoV72;
+    var canUndo =
+      !!undo &&
+      !!order &&
+      orderId(order) === Number(undo.order_id || 0) &&
+      mutation.allowed === true;
+
+    if (undoButton) {
+      undoButton.hidden = !canUndo;
+      undoButton.disabled =
+        !canUndo ||
+        Object.keys(state.sentMutationBusy).length > 0;
+      undoButton.onclick = canUndo
+        ? undoLastQuantityV72
+        : null;
+    }
+
+    if (!items.length && !canUndo) {
       section.hidden = true;
       box.innerHTML = '';
       return;
@@ -2366,9 +2513,6 @@ function renderOpenChecks() {
       );
     }
 
-    var mutation = order && order.item_mutation
-      ? order.item_mutation
-      : {};
     var canEditCommitted =
       state.serviceMode === 'dine_in' &&
       !!state.selectedTable &&
@@ -2487,6 +2631,7 @@ function renderOpenChecks() {
       activeOrderStructuralLocked()
     ) {
       state.activeOrderId = null;
+      state.orderSelectionExplicitV72 = false;
       state.forceNewCheck = true;
       state.guestCount = 1;
       state.note = '';
@@ -3440,6 +3585,8 @@ function renderOpenChecks() {
     state.cart = [];
     state.note = '';
     state.activeOrderId = null;
+    state.orderSelectionExplicitV72 = false;
+    state.forceNewCheck = true;
     state.offPremiseOrder = null;
 
     /* PMD_QPOS_IMMEDIATE_TABLE_TAP_V42
@@ -3463,6 +3610,8 @@ function renderOpenChecks() {
       state.tableData = null;
       state.openOrders = [];
       state.activeOrderId = null;
+      state.orderSelectionExplicitV72 = false;
+      state.forceNewCheck = true;
       renderContext();
       renderCart();
 
@@ -3641,10 +3790,29 @@ function renderOpenChecks() {
     state.tableSwitching = false;
     root.classList.remove('is-table-switching');
     state.tableData = json;
+
+    var explicitOrderId = state.orderSelectionExplicitV72
+      ? Number(state.activeOrderId || 0)
+      : 0;
+
     state.openOrders = Array.isArray(json.open_orders) ? json.open_orders : [];
-    state.activeOrderId = Number(json.active_order_id || 0) || null;
+
+    var explicitOrderStillExists =
+      explicitOrderId > 0 &&
+      state.openOrders.some(function (order) {
+        return orderId(order) === explicitOrderId;
+      });
+
+    state.activeOrderId = explicitOrderStillExists
+      ? explicitOrderId
+      : null;
+
+    if (!explicitOrderStillExists) {
+      state.orderSelectionExplicitV72 = false;
+    }
+
     state.forceNewCheck =
-      !!state.activeOrderId &&
+      !state.activeOrderId ||
       activeOrderStructuralLocked();
 
     var table = json.table || null;
@@ -3849,6 +4017,7 @@ function renderOpenChecks() {
     state.tableData = null;
     state.openOrders = [];
     state.activeOrderId = null;
+    state.orderSelectionExplicitV72 = false;
     state.offPremiseOrder = null;
     state.cart = [];
     state.note = '';
@@ -3886,6 +4055,7 @@ function renderOpenChecks() {
     var sentItems = optimisticSentItems(snapshot.cart);
 
     state.activeOrderId = id;
+    state.orderSelectionExplicitV72 = snapshot.serviceMode === 'dine_in';
     state.forceNewCheck = false;
 
     if (snapshot.serviceMode === 'dine_in') {
@@ -4120,6 +4290,7 @@ function renderOpenChecks() {
     state.note = '';
     state.guestCount = 1;
     state.activeOrderId = null;
+    state.orderSelectionExplicitV72 = false;
     state.offPremiseOrder = null;
     state.forceNewCheck = state.serviceMode === 'dine_in';
     renderAll();
@@ -4293,26 +4464,20 @@ function renderOpenChecks() {
 
     if (name) name.textContent = item.name;
     if (meta) {
-      var details = [];
-      if (item.description) details.push(item.description);
-      if (item.allergens && item.allergens.length) {
-        details.push('Allergens: ' + item.allergens.map(function (row) { return row.name; }).join(', '));
-      }
-      meta.textContent = details.join(' · ');
+      /* PMD_QPOS_SIMPLE_OPTIONS_V72
+       * The cashier only needs the option group and tap targets here. Product
+       * description/allergen prose stays out of this fast ordering surface. */
+      meta.textContent = '';
+      meta.hidden = true;
     }
 
     if (box) {
       box.innerHTML = (item.options || []).map(function (group) {
         var selected = state.modifier.selected[String(group.id)] || [];
-        var min = num(group.min, 0);
-        var max = Math.max(1, num(group.max, 1));
-        var requirement = group.required
-          ? 'Required' + (max > 1 ? ' · up to ' + max : '')
-          : (max > 1 ? 'Choose up to ' + max : 'Optional');
 
         return (
           '<section class="pmd-qpos-option-group">' +
-            '<header><strong>' + esc(group.name) + '</strong><span>' + esc(requirement) + '</span></header>' +
+            '<header><strong>' + esc(group.name) + '</strong></header>' +
             '<div class="pmd-qpos-option-grid">' +
               (group.values || []).map(function (value) {
                 var active = selected.indexOf(Number(value.id)) !== -1;
@@ -4321,7 +4486,6 @@ function renderOpenChecks() {
                     ' data-option-group="' + esc(group.id) + '"' +
                     ' data-option-value="' + esc(value.id) + '">' +
                     '<b>' + esc(value.name) + '</b>' +
-                    '<span>' + (num(value.price, 0) ? '+' + money(value.price) : 'Included') + '</span>' +
                   '</button>'
                 );
               }).join('') +
@@ -5682,10 +5846,14 @@ function renderOpenChecks() {
         );
       }
 
-      /* PMD_QPOS_ACTIVE_VISIT_PAID_V71
-       * Keep the settled check on the occupied table for cashier overview.
-       * New food starts a separate check automatically. */
+      /* PMD_QPOS_ACTIVE_VISIT_PAID_V72
+       * Keep the settled check chip on the occupied table, but do not keep it
+       * selected. The rail is an overview; new food starts a fresh check until
+       * the cashier explicitly taps an existing #check chip. */
+      state.activeOrderId = null;
+      state.orderSelectionExplicitV72 = false;
       state.forceNewCheck = true;
+      state.lastQuantityUndoV72 = null;
     } else {
       if (paidId > 0) {
         state.openOrders = state.openOrders.filter(function (row) {
@@ -5693,7 +5861,9 @@ function renderOpenChecks() {
         });
       }
       state.activeOrderId = null;
+      state.orderSelectionExplicitV72 = false;
       state.forceNewCheck = state.serviceMode === 'dine_in';
+      state.lastQuantityUndoV72 = null;
 
       if (state.serviceMode !== 'dine_in') {
         state.offPremiseOrder = null;
