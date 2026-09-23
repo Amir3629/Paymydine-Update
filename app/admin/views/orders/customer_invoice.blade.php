@@ -749,7 +749,14 @@ $wMap=['58mm'=>'50mm','80mm'=>'72mm','112mm'=>'102mm','a4'=>'190mm'];
 $rw=$wMap[$paper]??'72mm';
 $compact=(string)$pmdSetting('invoice_compact_mode','1')==='1';
 $font=(string)$pmdSetting('invoice_font_size_preset','normal');
-$auto=(string)$pmdSetting('invoice_auto_print_dialog','0')==='1';
+// PMD_CANONICAL_INVOICE_PRINT_REQUEST_V75
+// Quick POS Print opens this exact canonical invoice with ?print=1.
+$printRequested=in_array(
+    strtolower(trim((string)request()->query('print','0'))),
+    ['1','true','yes','on'],
+    true
+);
+$auto=$printRequested || (string)$pmdSetting('invoice_auto_print_dialog','0')==='1';
 @endphp
 <body style="--pmd-page-width:{{$paper}};--pmd-receipt-width:{{$rw}};" class="template-{{ $tpl === 'modern' ? 'modern' : ($tpl === 'minimal' ? 'minimal' : 'classic') }}">
 <div class="receipt">
@@ -831,7 +838,19 @@ window.pmdPrintReceipt = function (event) {
     return false;
 };
 </script>
-@if($auto)<script>window.addEventListener('load',function(){setTimeout(function(){window.print();},250);});</script>@endif
+@if($auto)
+<script>
+window.addEventListener('load', function () {
+    window.setTimeout(function () {
+        if (typeof window.pmdPrintReceipt === 'function') {
+            window.pmdPrintReceipt();
+            return;
+        }
+        window.print();
+    }, 250);
+});
+</script>
+@endif
 <script src="/app/admin/assets/js/pmd-waiter-v98-single-source.js?v=98"></script>
 
 
