@@ -18,7 +18,7 @@
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-dashboard-lab-exact-floor-v1.css?v=20260920-floor-v35b">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-shared-floor-multi-floor-v1.css?v=20260920-floor-v35b">
     <link rel="stylesheet" href="/app/admin/assets/css/push-notifications.css?v=20260922-qpos-v59">
-    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-pos-v1.css?v=20260923-82">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-pos-v1.css?v=20260923-83">
 </head>
 <body class="pmd-qpos-body">
 @php
@@ -899,7 +899,7 @@ window.PMDQuickPOSConfig = {
      Reuse the canonical Admin push stream for immediate notifications.
      V73 also runs one lean operational-state heartbeat for table/KDS sync. --}}
 <script src="/app/admin/assets/js/push-notifications.js?v=20260922-qpos-v59"></script>
-<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260923-82"></script>
+<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260923-83"></script>
 <script src="/app/admin/assets/js/pmd-site-access-hub-v13.js?v=20260921-androidpair-v16"></script>
 </body>
 </html>
