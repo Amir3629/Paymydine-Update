@@ -638,8 +638,16 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
             }
         }
 
+        /* PMD_QPOS_PICKUP_LIVE_CHECKS_V78
+         * Pickup is a real multi-check context too. Feed the same live
+         * heartbeat with active collection checks so KDS Ready removes a
+         * Pickup chip without requiring a POS refresh. */
+        $pickupOrders = request()->boolean('pickup')
+            ? $this->quickPosOpenPickupOrdersV78($locationId)
+            : [];
+
         $revisionSource = json_encode(
-            [$tables, $selectedPayload],
+            [$tables, $selectedPayload, $pickupOrders],
             JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
         );
 
@@ -654,6 +662,7 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
             ),
             'tables' => $tables,
             'selected_table' => $selectedPayload,
+            'pickup_orders' => $pickupOrders,
         ];
     }
 
@@ -802,6 +811,7 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                     trim((string)setting('tax_title', 'VAT')) ?: 'VAT',
                 'table_data_url' => '/admin/pos/table/{table}',
                 'table_save_url' => '/admin/pos/save/{table}',
+                'pickup_data_url' => '/admin/pos/pickup',
                 'off_premise_save_url' => '/admin/pos/save-off-premise',
                 'item_decrease_url' => '/admin/pmd-waiter-pos-v22/operations/{order}/void-item',
                 'item_increase_url' => '/admin/pmd-waiter-pos-v22/operations/{order}/increase-item',
@@ -1149,6 +1159,26 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
             'active_order_id' => count($orders)
                 ? (int)$orders[0]['order_id']
                 : null,
+        ]);
+    }
+
+    /**
+     * PMD_QPOS_PICKUP_DATA_V78
+     * Return every active Pickup check for the current restaurant location.
+     * No check is auto-selected: tapping Pickup means "new pickup", while
+     * tapping a #check chip explicitly reopens that existing check.
+     */
+    public function pickupData()
+    {
+        $orders = $this->quickPosOpenPickupOrdersV78(
+            $this->quickPosLocationId()
+        );
+
+        return response()->json([
+            'ok' => true,
+            'version' => 'pmd-quick-pos-pickup-v78',
+            'open_orders' => $orders,
+            'active_order_id' => null,
         ]);
     }
 
@@ -1786,8 +1816,10 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
             ->all();
     }
 
-    protected function quickPosOpenOrdersForTable(array $table): array
-    {
+    protected function quickPosOpenOrdersForTable(
+        array $table,
+        ?callable $scope = null
+    ): array {
         if (!Schema::hasTable('orders')) {
             return [];
         }
@@ -1795,7 +1827,12 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
         $columns = Schema::getColumnListing('orders');
         $query = DB::table('orders');
 
-        $this->applyTableScope($query, $columns, $table);
+        if ($scope) {
+            $scope($query, $columns);
+        } else {
+            $this->applyTableScope($query, $columns, $table);
+        }
+
         $this->applyQuickPosActiveVisitScopeV71(
             $query,
             $columns,
@@ -2023,7 +2060,76 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 'items' => $items,
                 'urls' => $this->orderUrls($orderId),
             ];
+        })->filter(function (array $order): bool {
+            return $this->quickPosCheckRailVisibleV78($order);
         })->values()->all();
+    }
+
+    /**
+     * PMD_QPOS_CHECK_RAIL_READY_EXIT_V78
+     *
+     * The check rail is an active-service workspace, not History. Received and
+     * Preparation stay visible. KDS maps Delivery to the operator-facing
+     * "Ready / Delivery" action, so Ready/Delivery and every later terminal
+     * state leave the rail immediately while remaining in normal History.
+     */
+    protected function quickPosCheckRailVisibleV78(array $order): bool
+    {
+        $status = strtolower(trim((string)($order['status_name'] ?? '')));
+
+        if ($status === '') {
+            return true;
+        }
+
+        return !preg_match(
+            '/ready|delivery|served|done|complete|completed|cancel|void|closed/',
+            $status
+        );
+    }
+
+    /**
+     * PMD_QPOS_PICKUP_ACTIVE_CHECKS_V78
+     *
+     * Reuse the exact table-check hydrator (items, VAT, payment state and
+     * mutation authority), but scope it to this location's Collection orders.
+     * A virtual occupied context keeps a paid Pickup visible until KDS Ready;
+     * Ready itself is removed by quickPosCheckRailVisibleV78().
+     */
+    protected function quickPosOpenPickupOrdersV78(int $locationId): array
+    {
+        $virtualPickup = [
+            'id' => 0,
+            'number' => '',
+            'name' => 'Pickup',
+            'status' => 'occupied',
+            'location_id' => $locationId,
+        ];
+
+        return $this->quickPosOpenOrdersForTable(
+            $virtualPickup,
+            function ($query, array $columns) use ($locationId): void {
+                if (
+                    $locationId > 0
+                    && in_array('location_id', $columns, true)
+                ) {
+                    $query->where('location_id', $locationId);
+                }
+
+                if (!in_array('order_type', $columns, true)) {
+                    $query->whereRaw('1 = 0');
+                    return;
+                }
+
+                $query->whereIn('order_type', array_values(array_unique([
+                    Orders_model::COLLECTION,
+                    'collection',
+                    'pickup',
+                    'pick-up',
+                    'takeaway',
+                    'take-away',
+                ])));
+            }
+        );
     }
 
     /**
@@ -2190,6 +2296,21 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                     if (!$this->orderIsOpen($order)) {
                         throw ValidationException::withMessages([
                             'order' => 'This Pickup order can no longer accept item changes because payment has started or the order was cancelled.',
+                        ]);
+                    }
+
+                    /* PMD_QPOS_PICKUP_KITCHEN_EDIT_GUARD_V78
+                     * Collection orders use the same mutation authority as
+                     * sent table lines. Received is editable; Preparation,
+                     * Ready/Delivery, payment, cancellation and later states
+                     * are server-locked even if a stale browser tries to append. */
+                    $mutationStateV78 = $this->pmdR39ItemMutationState($order);
+                    if (empty($mutationStateV78['allowed'])) {
+                        throw ValidationException::withMessages([
+                            'order' => (string)(
+                                $mutationStateV78['reason']
+                                ?? 'This Pickup order can no longer be changed.'
+                            ),
                         ]);
                     }
 
