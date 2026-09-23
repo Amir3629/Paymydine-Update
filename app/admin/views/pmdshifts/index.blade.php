@@ -373,14 +373,38 @@
                     <input type="hidden" name="give_access" value="1">
                     <div class="pmd-shifts__team-access-fields is-required" data-pmd-team-access-fields>
                         <label data-pmd-team-username-field><span>Username <small>Web / Portal</small></span><input maxlength="32" name="username" autocomplete="off" data-pmd-team-username></label>
-                        <label data-pmd-team-access-field><span>Access</span><select name="staff_role_id" required data-pmd-team-access-role>
-                            @foreach($accessRoles as $accessRole)
-                                <option
-                                    value="{{ (int)$accessRole->staff_role_id }}"
-                                    data-role-code="{{ strtolower(trim((string)$accessRole->code)) }}"
-                                >{{ $accessRole->name }}</option>
-                            @endforeach
-                        </select></label>
+                        <div class="pmd-shifts__role-field" data-pmd-team-access-field>
+                            <span class="pmd-shifts__role-label">Access</span>
+                            <select
+                                class="pmd-shifts__role-select-source"
+                                name="staff_role_id"
+                                required
+                                data-pmd-team-access-role
+                                tabindex="-1"
+                                aria-hidden="true"
+                            >
+                                @foreach($accessRoles as $accessRole)
+                                    <option
+                                        value="{{ (int)$accessRole->staff_role_id }}"
+                                        data-role-code="{{ strtolower(trim((string)$accessRole->code)) }}"
+                                    >{{ $accessRole->name }}</option>
+                                @endforeach
+                            </select>
+                            <div class="pmd-shifts__role-picker" data-pmd-team-role-picker role="group" aria-label="Access role">
+                                @foreach($accessRoles as $accessRole)
+                                    <button
+                                        type="button"
+                                        class="pmd-shifts__role-card"
+                                        data-pmd-team-role-card
+                                        data-role-id="{{ (int)$accessRole->staff_role_id }}"
+                                        data-role-code="{{ strtolower(trim((string)$accessRole->code)) }}"
+                                        aria-pressed="false"
+                                    >
+                                        <span>{{ $accessRole->name }}</span>
+                                    </button>
+                                @endforeach
+                            </div>
+                        </div>
                         <label class="is-password" data-pmd-team-pin-field>
                             <span>Quick PIN <small data-pmd-team-pin-hint>App / POS · 6 digits</small></span>
                             <span class="pmd-shifts__team-password-row">
