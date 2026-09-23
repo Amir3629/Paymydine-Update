@@ -129,6 +129,13 @@
                         'updated_at' => now(),
                     ]);
 
+                    // PMD_TABLE_ACTIVITY_OCCUPANCY_V76
+                    // Guest service activity starts/continues the physical visit.
+                    AppHelpersTableHelper::markOccupiedFromActivity(
+                        $tableOnly,
+                        'guest_waiter_call'
+                    );
+
                     return response()->json(['ok' => true, 'notification_id' => $id], 201);
                 });
 
@@ -165,6 +172,12 @@
                         'created_at' => now(),
                         'updated_at' => now(),
                     ]);
+
+                    // PMD_TABLE_ACTIVITY_OCCUPANCY_V76
+                    AppHelpersTableHelper::markOccupiedFromActivity(
+                        $tableOnly,
+                        'guest_table_note'
+                    );
 
                     return response()->json(['ok' => true, 'notification_id' => $id], 201);
                 });
