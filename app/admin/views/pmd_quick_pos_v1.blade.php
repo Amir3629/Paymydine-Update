@@ -233,11 +233,16 @@
 
             <div class="pmd-qpos-cart-summary">
                 <div><span>New</span><strong data-qpos-new-total>€0.00</strong></div>
+                {{-- PMD_QPOS_VAT_SUMMARY_VIEW_V74 --}}
+                <div data-qpos-vat-row hidden>
+                    <span data-qpos-vat-label>VAT</span>
+                    <strong data-qpos-vat-total>€0.00</strong>
+                </div>
                 <div class="grand"><span>Total</span><strong data-qpos-total>€0.00</strong></div>
             </div>
 
             <div class="pmd-qpos-cart-actions">
-                <button type="button" class="primary" data-qpos-send>Send</button>
+                <button type="button" class="primary" data-qpos-send>Send to Kitchen</button>
                 <button type="button" class="pay" data-qpos-pay disabled>Pay</button>
             </div>
 
@@ -776,7 +781,7 @@ window.PMDQuickPOSConfig = {
      Reuse the canonical Admin push stream for immediate notifications.
      V73 also runs one lean operational-state heartbeat for table/KDS sync. --}}
 <script src="/app/admin/assets/js/push-notifications.js?v=20260922-qpos-v59"></script>
-<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260923-73"></script>
+<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260923-74"></script>
 <script src="/app/admin/assets/js/pmd-site-access-hub-v13.js?v=20260921-androidpair-v16"></script>
 </body>
 </html>

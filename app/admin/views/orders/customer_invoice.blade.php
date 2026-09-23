@@ -721,7 +721,26 @@ section.pmd962-hero,
     $taxRow = $orderTotals->firstWhere('code', 'tax');
     $subtotal = (float)(optional($orderTotals->firstWhere('code', 'subtotal'))->value ?? 0);
     $vatAmount = (float)(optional($taxRow)->value ?? 0);
-    $taxTitle = (string)(optional($taxRow)->title ?? 'VAT');
+
+    // PMD_CANONICAL_INVOICE_VAT_RATE_V74
+    // Prefer the rate implied by this order's persisted tax amount so an old
+    // paid invoice does not silently adopt a later restaurant VAT setting.
+    $configuredTaxTitle = trim((string)$pmdSetting('tax_title', 'VAT'));
+    $taxTitle = $configuredTaxTitle !== ''
+        ? $configuredTaxTitle
+        : trim((string)(optional($taxRow)->title ?? 'VAT'));
+    if ($taxTitle === '' || strtolower($taxTitle) === 'tax') {
+        $taxTitle = 'VAT';
+    }
+
+    $taxPercentage = ($subtotal > 0 && $vatAmount > 0)
+        ? round(($vatAmount / $subtotal) * 100, 4)
+        : max(0, (float)$pmdSetting('tax_percentage', 0));
+
+    $taxRateLabel = rtrim(
+        rtrim(number_format($taxPercentage, 4, '.', ''), '0'),
+        '.'
+    );
 @endphp
 @php
 $receiptMode=(string)$pmdSetting('invoice_receipt_mode','1')==='1';
@@ -783,7 +802,7 @@ $auto=(string)$pmdSetting('invoice_auto_print_dialog','0')==='1';
     <div class="small totals" style="line-height:1.5;">
         @if($vatAmount > 0)
             <div class="row"><span>Subtotal</span><strong>{{ number_format($subtotal, 2) }}</strong></div>
-            <div class="row"><span>{{ $taxTitle }}</span><span>{{ number_format($vatAmount,2) }}</span></div>
+            <div class="row"><span>{{ $taxTitle }}{{ $taxRateLabel !== '' ? ' ('.$taxRateLabel.'%)' : '' }}</span><span>{{ number_format($vatAmount,2) }}</span></div>
         @endif
         <div class="row total"><span>Total</span><strong>{{ number_format($orderTotal, 2) }}</strong></div>
     </div>
