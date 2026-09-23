@@ -617,6 +617,10 @@ trait PmdWaiterPosOperationsSummaryV12Concern
         $payload = $this->requestPayload();
         $itemId = (int)($payload['order_menu_id'] ?? 0);
         $quantity = (int)($payload['quantity'] ?? 1);
+        $undoQuantityCorrection = filter_var(
+            $payload['undo_quantity_correction'] ?? false,
+            FILTER_VALIDATE_BOOLEAN
+        );
 
         if ($itemId < 1 || $quantity < 1 || $quantity > 99) {
             return response()->json([
@@ -631,7 +635,8 @@ trait PmdWaiterPosOperationsSummaryV12Concern
                 $orderId,
                 $itemId,
                 $quantity,
-                $payload
+                $payload,
+                $undoQuantityCorrection
             ) {
                 $order = \Admin\Models\Orders_model::query()
                     ->where('order_id', (int)$orderId)
@@ -674,7 +679,7 @@ trait PmdWaiterPosOperationsSummaryV12Concern
                 $data = (array)$row;
                 $currentQuantity = max(0, (int)($data['quantity'] ?? 0));
 
-                if ($currentQuantity < 1) {
+                if ($currentQuantity < 1 && !$undoQuantityCorrection) {
                     throw \Illuminate\Validation\ValidationException::withMessages([
                         'quantity' => 'This item has already been removed.',
                     ]);
@@ -776,12 +781,16 @@ trait PmdWaiterPosOperationsSummaryV12Concern
 
                     $log = [
                         'order_id' => (int)$order->getKey(),
-                        'action' => 'increase_item_before_preparation',
+                        'action' => $undoQuantityCorrection
+                            ? 'undo_item_quantity_correction'
+                            : 'increase_item_before_preparation',
                         'payload' => json_encode([
                             'order_menu_id' => $itemId,
                             'added_quantity' => $quantity,
                             'previous_quantity' => $currentQuantity,
                             'new_quantity' => $newQuantity,
+                            'undo_quantity_correction' =>
+                                $undoQuantityCorrection,
                         ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
                         'actor_id' => $actorId,
                         'created_at' => now(),
@@ -819,7 +828,9 @@ trait PmdWaiterPosOperationsSummaryV12Concern
                     'order_total' => (float)($fresh->order_total ?? 0),
                     'total_items' => (int)($fresh->total_items ?? 0),
                     'updated_at' => (string)($fresh->updated_at ?? ''),
-                    'message' => 'Item quantity increased.',
+                    'message' => $undoQuantityCorrection
+                        ? 'Quantity change undone.'
+                        : 'Item quantity increased.',
                 ];
             });
 
