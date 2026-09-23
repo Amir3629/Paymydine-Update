@@ -86,7 +86,7 @@ jobs:
           html_text = raw.decode('utf-8', 'replace')
           Path('/tmp/pmd-zcs-sdk/page.html').write_text(html_text, encoding='utf-8')
 
-          class Parser(html.parser.HTMLParser):
+          class Parser(HTMLParser):
               def __init__(self):
                   super().__init__()
                   self.links = []
