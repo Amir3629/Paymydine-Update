@@ -90,6 +90,14 @@ class NotificationHelper
             return null;
         }
 
+        // PMD_TABLE_ACTIVITY_OCCUPANCY_V76
+        // A waiter call starts/continues the physical visit. Seen only
+        // acknowledges the alert; it must never release the table.
+        TableHelper::markOccupiedFromActivity(
+            $data['table_id'],
+            'waiter_call'
+        );
+
         return self::createNotification([
             'tenant_id' => $data['tenant_id'],
             'type' => 'waiter_call',
@@ -163,6 +171,12 @@ class NotificationHelper
             return null;
         }
 
+        // PMD_TABLE_ACTIVITY_OCCUPANCY_V76
+        TableHelper::markOccupiedFromActivity(
+            $data['table_id'],
+            'table_note'
+        );
+
         return self::createNotification([
             'tenant_id' => $data['tenant_id'],
             'type' => 'table_note',
@@ -204,6 +218,21 @@ class NotificationHelper
      */
     public static function createOrderNotification($data)
     {
+        // PMD_TABLE_ACTIVITY_OCCUPANCY_V76
+        // Only a newly-arrived table order may auto-occupy. Later kitchen or
+        // payment status notifications must never re-open a table after Free.
+        $activityStatus = strtolower(trim((string)($data['status'] ?? '')));
+        $activityTableId = $data['table_id'] ?? null;
+        if (
+            $activityTableId
+            && in_array($activityStatus, ['new', 'received', 'created'], true)
+        ) {
+            TableHelper::markOccupiedFromActivity(
+                $activityTableId,
+                'new_table_order'
+            );
+        }
+
         // Check if order notifications are enabled
         if (!\App\Helpers\SettingsHelper::areOrderNotificationsEnabled()) {
             \Log::info('Order notifications disabled, skipping notification creation', [

@@ -2399,6 +2399,115 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
     }
 
     /**
+     * PMD_QPOS_ATTENTION_SEEN_V76
+     *
+     * Acknowledge one waiter-call/table-note notification. This deliberately
+     * changes notification state only. The physical table remains Busy until
+     * Cashier/Waiter explicitly uses the Table Free action.
+     */
+    public function markAttentionSeen($notificationId = null)
+    {
+        $notificationId = max(0, (int)$notificationId);
+
+        if (
+            $notificationId < 1
+            || !Schema::hasTable('notifications')
+        ) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Notification not found.',
+            ], 404);
+        }
+
+        $columns = Schema::getColumnListing('notifications');
+        $primaryKey = in_array('notification_id', $columns, true)
+            ? 'notification_id'
+            : (in_array('id', $columns, true) ? 'id' : null);
+
+        if (!$primaryKey) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Notification storage is unavailable.',
+            ], 409);
+        }
+
+        try {
+            $result = DB::transaction(function () use (
+                $notificationId,
+                $columns,
+                $primaryKey
+            ) {
+                $query = DB::table('notifications')
+                    ->where($primaryKey, $notificationId);
+
+                if (in_array('type', $columns, true)) {
+                    $query->whereIn('type', ['waiter_call', 'table_note']);
+                }
+
+                $row = $query->lockForUpdate()->first();
+
+                if (!$row) {
+                    return null;
+                }
+
+                $raw = (array)$row;
+                $updates = [];
+
+                if (in_array('status', $columns, true)) {
+                    $updates['status'] = 'seen';
+                }
+                if (in_array('seen_at', $columns, true)) {
+                    $updates['seen_at'] = now();
+                }
+                if (in_array('acted_by', $columns, true)) {
+                    $updates['acted_by'] = $this->currentUserId();
+                }
+                if (in_array('acted_at', $columns, true)) {
+                    $updates['acted_at'] = now();
+                }
+                if (in_array('updated_at', $columns, true)) {
+                    $updates['updated_at'] = now();
+                }
+
+                if ($updates) {
+                    DB::table('notifications')
+                        ->where($primaryKey, $notificationId)
+                        ->update($updates);
+                }
+
+                return [
+                    'notification_id' => $notificationId,
+                    'table_id' => (int)($raw['table_id'] ?? 0),
+                    'kind' => strtolower(trim((string)($raw['type'] ?? ''))),
+                ];
+            });
+
+            if (!$result) {
+                return response()->json([
+                    'ok' => false,
+                    'message' => 'Notification not found.',
+                ], 404);
+            }
+
+            return response()->json([
+                'ok' => true,
+                'version' => 'pmd-qpos-attention-seen-v76',
+                'notification_id' => $result['notification_id'],
+                'table_id' => $result['table_id'],
+                'kind' => $result['kind'],
+                'status' => 'seen',
+            ]);
+        } catch (\Throwable $error) {
+            report($error);
+
+            return response()->json([
+                'ok' => false,
+                'message' => 'Could not mark attention as seen.',
+            ], 500);
+        }
+    }
+
+    /**
      * PMD_QPOS_HISTORY_V1
      * PMD_QPOS_HISTORY_STRUCTURED_V20
      *
@@ -2970,6 +3079,14 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                     $title = trim((string)($raw['title'] ?? ''));
                     $message = trim((string)($raw['message'] ?? ''));
                     $notificationTableId = (int)($raw['table_id'] ?? 0);
+                    $notificationId = (int)(
+                        $raw['notification_id']
+                        ?? $raw['id']
+                        ?? 0
+                    );
+                    $notificationStatus = strtolower(trim((string)(
+                        $raw['status'] ?? ''
+                    )));
 
                     $entries[] = [
                         'kind' => $type === 'waiter_call'
@@ -2990,7 +3107,14 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                         'detail' => $message,
                         'order_id' => null,
                         'table_id' => $notificationTableId,
-                        'status' => (string)($raw['status'] ?? ''),
+                        /* PMD_QPOS_HISTORY_SEEN_PAYLOAD_V76
+                         * The client needs the canonical notification id to
+                         * restore the Seen action for NEW calls/notes. */
+                        'notification_id' => $notificationId ?: null,
+                        'status' => $notificationStatus,
+                        'is_new' => $notificationStatus === ''
+                            || $notificationStatus === 'new',
+                        'seen_at' => (string)($raw['seen_at'] ?? ''),
                         'priority' => (string)($raw['priority'] ?? ''),
                     ];
                 }
@@ -3925,9 +4049,13 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                         ->whereIn('type', ['waiter_call', 'table_note']);
 
                     if (in_array('status', $cols, true)) {
+                        /* PMD_QPOS_ATTENTION_NEW_ONLY_V76
+                         * Seen acknowledges the alert only. Do not keep a seen
+                         * call/note in the active attention counter; physical
+                         * Busy remains persisted on tables.operational_status. */
                         $query->where(function ($q) {
                             $q->whereNull('status')
-                                ->orWhere('status', '!=', 'resolved');
+                                ->orWhere('status', 'new');
                         });
                     }
 
