@@ -4463,26 +4463,20 @@ function renderOpenChecks() {
 
     if (name) name.textContent = item.name;
     if (meta) {
-      var details = [];
-      if (item.description) details.push(item.description);
-      if (item.allergens && item.allergens.length) {
-        details.push('Allergens: ' + item.allergens.map(function (row) { return row.name; }).join(', '));
-      }
-      meta.textContent = details.join(' · ');
+      /* PMD_QPOS_SIMPLE_OPTIONS_V72
+       * The cashier only needs the option group and tap targets here. Product
+       * description/allergen prose stays out of this fast ordering surface. */
+      meta.textContent = '';
+      meta.hidden = true;
     }
 
     if (box) {
       box.innerHTML = (item.options || []).map(function (group) {
         var selected = state.modifier.selected[String(group.id)] || [];
-        var min = num(group.min, 0);
-        var max = Math.max(1, num(group.max, 1));
-        var requirement = group.required
-          ? 'Required' + (max > 1 ? ' · up to ' + max : '')
-          : (max > 1 ? 'Choose up to ' + max : 'Optional');
 
         return (
           '<section class="pmd-qpos-option-group">' +
-            '<header><strong>' + esc(group.name) + '</strong><span>' + esc(requirement) + '</span></header>' +
+            '<header><strong>' + esc(group.name) + '</strong></header>' +
             '<div class="pmd-qpos-option-grid">' +
               (group.values || []).map(function (value) {
                 var active = selected.indexOf(Number(value.id)) !== -1;
@@ -4491,7 +4485,6 @@ function renderOpenChecks() {
                     ' data-option-group="' + esc(group.id) + '"' +
                     ' data-option-value="' + esc(value.id) + '">' +
                     '<b>' + esc(value.name) + '</b>' +
-                    '<span>' + (num(value.price, 0) ? '+' + money(value.price) : 'Included') + '</span>' +
                   '</button>'
                 );
               }).join('') +
