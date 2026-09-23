@@ -416,11 +416,6 @@ class Login extends \Admin\Classes\AdminController
         } catch (\Throwable $error) {
         }
 
-        $landing = $this->pmdRoleLandingRoute();
-        if (!$landing) {
-            $this->pmdAbortInvalidAccount();
-        }
-
         $destination = (string)$login['destination'];
         $mobilePairing = $mobilePairingBeforeAuth
             || $pairing->hasFreshIntent(request());
@@ -429,6 +424,16 @@ class Login extends \Admin\Classes\AdminController
         // The special "usernameportal" destination must not bypass into My Work.
         if ($mobilePairing) {
             $destination = 'workspace';
+        }
+
+        $landing = $this->pmdRoleLandingRoute();
+
+        // PMD_PORTAL_ONLY_ROLE_LOGIN_V18E
+        // A portal-only role intentionally has no platform landing route.
+        // Allow it only when the user explicitly requested Staff Portal with
+        // usernameportal. Normal web login and mobile pairing remain denied.
+        if ($destination !== 'staff' && !$landing) {
+            $this->pmdAbortInvalidAccount();
         }
 
         session()->put(PmdSiteAccessService::SESSION_DESTINATION, $destination);

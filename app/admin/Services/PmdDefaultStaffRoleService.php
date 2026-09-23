@@ -202,7 +202,10 @@ class PmdDefaultStaffRoleService
             self::ACCOUNTANT => 'accountantdashboard', 'accountant' => 'accountantdashboard',
             self::RESERVATIONS => 'reservations', 'reservation' => 'reservations', 'reservations' => 'reservations',
             self::TEAM_MEMBER => 'mywork', 'team-member' => 'mywork', 'team member' => 'mywork', 'kitchen staff' => 'mywork',
-            self::SONSTIGE => 'mywork', 'sonstige' => 'mywork',
+            // PMD_SONSTIGE_PORTAL_ONLY_V18E
+            // Sonstige has no operational/admin workspace. The personal Staff
+            // Portal still resolves directly to /admin/mywork from the explicit
+            // usernameportal destination.
         ];
         if (isset($map[$code])) return $map[$code];
         if (str_starts_with($code, self::KDS_PREFIX)) {
