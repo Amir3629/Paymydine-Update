@@ -8694,37 +8694,90 @@ body.pmd-qpos-body {
 
 
 /* ============================================================
-   PMD_QPOS_ATTENTION_VISUAL_V80
-   Attention must be visible without yellow/orange glow, pulse or "blush".
-   Use the same dark-green/white visual language as the cashier selection UI.
+   PMD_QPOS_ATTENTION_VISUAL_V81
+   Unresolved service attention uses one red badge and an unmistakable
+   red blush + gentle shake. No yellow/orange attention styling.
    ============================================================ */
 .pmd-qpos-table-actions[hidden] {
   display: none !important;
 }
 
+.pmd-qpos-table-signal.is-attention-v81 {
+  border-color: #fecaca !important;
+  background: #fff1f2 !important;
+  color: #b91c1c !important;
+}
+
+@keyframes pmd-qpos-attention-red-blush-v81 {
+  0%,
+  100% {
+    outline-color: rgba(255, 255, 255, .92);
+    box-shadow:
+      0 0 0 2px rgba(220, 38, 38, .28),
+      0 0 8px rgba(220, 38, 38, .18),
+      inset 0 0 0 2px rgba(255, 255, 255, .84);
+  }
+
+  50% {
+    outline-color: #fff;
+    box-shadow:
+      0 0 0 5px rgba(220, 38, 38, .88),
+      0 0 24px rgba(220, 38, 38, .72),
+      inset 0 0 0 3px rgba(255, 255, 255, .96);
+  }
+}
+
+@keyframes pmd-qpos-attention-shake-v81 {
+  0%,
+  82%,
+  100% {
+    transform: translateX(0);
+  }
+
+  86% {
+    transform: translateX(-2px) rotate(-.35deg);
+  }
+
+  90% {
+    transform: translateX(2px) rotate(.35deg);
+  }
+
+  94% {
+    transform: translateX(-1px) rotate(-.2deg);
+  }
+
+  98% {
+    transform: translateX(1px) rotate(.2deg);
+  }
+}
+
 .pmd-qpos-table.has-attention:not(:disabled) {
-  animation: none !important;
+  outline: 3px solid #fff !important;
+  outline-offset: -4px !important;
   filter: none !important;
-  outline: 3px solid #064e3b !important;
-  outline-offset: -3px !important;
-  box-shadow:
-    inset 0 0 0 2px rgba(255,255,255,.82) !important;
+  text-shadow: none !important;
+  animation:
+    pmd-qpos-attention-red-blush-v81 1.35s ease-in-out infinite,
+    pmd-qpos-attention-shake-v81 2.6s ease-in-out infinite !important;
 }
 
 .pmd-qpos-table.is-attention-focus-v57 {
-  animation: none !important;
-  filter: none !important;
   outline: 4px solid #fff !important;
   outline-offset: -4px !important;
-  box-shadow:
-    0 0 0 4px #064e3b,
-    inset 0 0 0 2px rgba(255,255,255,.90) !important;
+  filter: none !important;
+  text-shadow: none !important;
+  animation:
+    pmd-qpos-attention-red-blush-v81 1.05s ease-in-out infinite,
+    pmd-qpos-attention-shake-v81 2.1s ease-in-out infinite !important;
 }
 
-/* Kill any older attention keyframe/glow rules that may win through cached
-   stylesheet order or duplicated legacy selectors. */
-.pmd-qpos-table.has-attention:not(:disabled),
-.pmd-qpos-table.has-attention.is-attention-focus-v57:not(:disabled) {
-  animation-name: none !important;
-  text-shadow: none !important;
+@media (prefers-reduced-motion: reduce) {
+  .pmd-qpos-table.has-attention:not(:disabled),
+  .pmd-qpos-table.is-attention-focus-v57 {
+    animation: none !important;
+    outline: 4px solid #fff !important;
+    box-shadow:
+      0 0 0 4px rgba(220, 38, 38, .88),
+      inset 0 0 0 2px rgba(255, 255, 255, .92) !important;
+  }
 }

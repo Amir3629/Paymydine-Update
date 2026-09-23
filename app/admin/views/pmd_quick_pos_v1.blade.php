@@ -18,7 +18,7 @@
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-dashboard-lab-exact-floor-v1.css?v=20260920-floor-v35b">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-shared-floor-multi-floor-v1.css?v=20260920-floor-v35b">
     <link rel="stylesheet" href="/app/admin/assets/css/push-notifications.css?v=20260922-qpos-v59">
-    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-pos-v1.css?v=20260923-80">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-pos-v1.css?v=20260923-81">
 </head>
 <body class="pmd-qpos-body">
 @php
@@ -111,8 +111,7 @@
                             </div>
 
                             <div class="pmd-qpos-table-guide-icons">
-                                <span><b>!</b> Call</span>
-                                <span><b>N</b> Note</span>
+                                <span><b>!</b> Attention</span>
                                 <span><b>½</b> Part paid</span>
                                 <span><b>✓</b> Paid</span>
                             </div>
@@ -138,6 +137,11 @@
                             $pmdWaiterCalls = max(0, (int)($table['waiter_calls'] ?? 0));
                             $pmdNoteCount = max(0, (int)($table['note_count'] ?? 0));
                             $pmdHasAttention = $pmdWaiterCalls > 0 || $pmdNoteCount > 0;
+                            $pmdAttentionCountV81 = $pmdWaiterCalls + $pmdNoteCount;
+                            $pmdAttentionTitleV81 =
+                                $pmdWaiterCalls > 0 && $pmdNoteCount > 0
+                                    ? 'Waiter call + table note'
+                                    : ($pmdWaiterCalls > 0 ? 'Waiter call' : 'Table note');
                         @endphp
                         <button
                             type="button"
@@ -154,21 +158,14 @@
                             <small>{{ $pmdCapacity > 0 ? $pmdCapacity . 's' : '' }}</small>
                             @if($pmdHasAttention || in_array($pmdPaymentState, ['partial', 'paid'], true))
                                 <span class="pmd-qpos-table-signals-v57">
-                                    @if($pmdWaiterCalls > 0)
+                                    @if($pmdHasAttention)
+                                        {{-- PMD_QPOS_UNIFIED_ATTENTION_ICON_V81 --}}
                                         <span
-                                            class="pmd-qpos-table-signal is-call"
-                                            data-qpos-attention-kind="calls"
-                                            title="Waiter call"
-                                            aria-label="Open Waiter call"
-                                        ><b>!</b>@if($pmdWaiterCalls > 1)<em>{{ $pmdWaiterCalls }}</em>@endif</span>
-                                    @endif
-                                    @if($pmdNoteCount > 0)
-                                        <span
-                                            class="pmd-qpos-table-signal is-note"
-                                            data-qpos-attention-kind="notes"
-                                            title="Table note"
-                                            aria-label="Open Table note"
-                                        ><b>N</b></span>
+                                            class="pmd-qpos-table-signal is-attention-v81"
+                                            data-qpos-attention-kind="attention"
+                                            title="{{ $pmdAttentionTitleV81 }}"
+                                            aria-label="Open attention"
+                                        ><b>!</b>@if($pmdAttentionCountV81 > 1)<em>{{ $pmdAttentionCountV81 }}</em>@endif</span>
                                     @endif
                                     @if($pmdPaymentState === 'partial')
                                         <span class="pmd-qpos-table-signal is-partial" title="Part paid" aria-label="Part paid"><b>½</b></span>
@@ -890,7 +887,7 @@ window.PMDQuickPOSConfig = {
      Reuse the canonical Admin push stream for immediate notifications.
      V73 also runs one lean operational-state heartbeat for table/KDS sync. --}}
 <script src="/app/admin/assets/js/push-notifications.js?v=20260922-qpos-v59"></script>
-<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260923-79"></script>
+<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260923-81"></script>
 <script src="/app/admin/assets/js/pmd-site-access-hub-v13.js?v=20260921-androidpair-v16"></script>
 </body>
 </html>
