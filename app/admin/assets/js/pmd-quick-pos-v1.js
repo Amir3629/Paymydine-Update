@@ -2152,6 +2152,7 @@
     id = Number(id || 0);
     state.activeOrderId = id > 0 ? id : null;
     state.orderSelectionExplicitV72 = id > 0;
+    state.lastQuantityUndoV72 = null;
     var order = activeOrder();
     state.forceNewCheck =
       id < 1 ||
@@ -3587,6 +3588,7 @@ function renderOpenChecks() {
     state.activeOrderId = null;
     state.orderSelectionExplicitV72 = false;
     state.forceNewCheck = true;
+    state.lastQuantityUndoV72 = null;
     state.offPremiseOrder = null;
 
     /* PMD_QPOS_IMMEDIATE_TABLE_TAP_V42
@@ -4018,6 +4020,7 @@ function renderOpenChecks() {
     state.openOrders = [];
     state.activeOrderId = null;
     state.orderSelectionExplicitV72 = false;
+    state.lastQuantityUndoV72 = null;
     state.offPremiseOrder = null;
     state.cart = [];
     state.note = '';
@@ -4291,6 +4294,7 @@ function renderOpenChecks() {
     state.guestCount = 1;
     state.activeOrderId = null;
     state.orderSelectionExplicitV72 = false;
+    state.lastQuantityUndoV72 = null;
     state.offPremiseOrder = null;
     state.forceNewCheck = state.serviceMode === 'dine_in';
     renderAll();
