@@ -1,0 +1,147 @@
+/* PMD_SHIFTS_ROLE_CARDS_UI_V18D
+ *
+ * Compact Access-role cards replace the visible select in the Shifts
+ * member editor. The select remains in the form as the canonical submitted
+ * staff_role_id so backend behavior and permissions do not change.
+ */
+body.pmd-shifts-page
+.pmd-shifts__team-editor
+.pmd-shifts__role-field {
+  grid-column: 1 / -1 !important;
+  display: grid !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  gap: 7px !important;
+}
+
+body.pmd-shifts-page
+.pmd-shifts__team-editor
+.pmd-shifts__role-label {
+  color: #27433f !important;
+  font-size: 10.5px !important;
+  font-weight: 850 !important;
+}
+
+body.pmd-shifts-page
+.pmd-shifts__team-editor
+.pmd-shifts__role-select-source {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  margin: -1px !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  clip: rect(0 0 0 0) !important;
+  clip-path: inset(50%) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+body.pmd-shifts-page
+.pmd-shifts__team-editor
+.pmd-shifts__role-picker {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 8px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+body.pmd-shifts-page
+.pmd-shifts__team-editor
+.pmd-shifts__role-card {
+  position: relative !important;
+  display: grid !important;
+  min-width: 0 !important;
+  min-height: 62px !important;
+  place-items: center !important;
+  margin: 0 !important;
+  padding: 9px 10px !important;
+  border: 1px solid #d3e2df !important;
+  border-radius: 13px !important;
+  background: #fff !important;
+  color: #29443f !important;
+  box-shadow: 0 2px 7px rgba(16, 55, 47, .035) !important;
+  font: inherit !important;
+  font-size: 12px !important;
+  font-weight: 850 !important;
+  line-height: 1.2 !important;
+  text-align: center !important;
+  cursor: pointer !important;
+  box-sizing: border-box !important;
+  transition:
+    border-color .12s ease,
+    background .12s ease,
+    box-shadow .12s ease,
+    transform .12s ease !important;
+}
+
+body.pmd-shifts-page
+.pmd-shifts__team-editor
+.pmd-shifts__role-card:hover {
+  border-color: #9fc9bc !important;
+  background: #f7fbf9 !important;
+}
+
+body.pmd-shifts-page
+.pmd-shifts__team-editor
+.pmd-shifts__role-card:focus-visible {
+  border-color: #6cb49e !important;
+  outline: 0 !important;
+  box-shadow: 0 0 0 3px rgba(108, 180, 158, .18) !important;
+}
+
+body.pmd-shifts-page
+.pmd-shifts__team-editor
+.pmd-shifts__role-card.is-selected {
+  border-color: #08745c !important;
+  background: #edf8f4 !important;
+  color: #075c47 !important;
+  box-shadow:
+    0 0 0 1px rgba(8, 116, 92, .08),
+    0 5px 12px rgba(8, 116, 92, .08) !important;
+}
+
+body.pmd-shifts-page
+.pmd-shifts__team-editor
+.pmd-shifts__role-card.is-selected::after {
+  content: '✓';
+  position: absolute;
+  top: 6px;
+  right: 7px;
+  display: grid;
+  width: 16px;
+  height: 16px;
+  place-items: center;
+  border-radius: 999px;
+  background: #08745c;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+body.pmd-shifts-page
+.pmd-shifts__team-editor
+.pmd-shifts__role-card span {
+  display: block !important;
+  max-width: 100% !important;
+  overflow-wrap: anywhere !important;
+}
+
+@media (max-width: 760px) {
+  body.pmd-shifts-page
+  .pmd-shifts__team-editor
+  .pmd-shifts__role-picker {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  body.pmd-shifts-page
+  .pmd-shifts__team-editor
+  .pmd-shifts__role-card {
+    min-height: 56px !important;
+    font-size: 11.5px !important;
+  }
+}
