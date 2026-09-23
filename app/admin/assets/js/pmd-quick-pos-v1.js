@@ -416,6 +416,10 @@
     historyData: null,
     historyDataKey: '',
     historyRequestSeq: 0,
+    /* PMD_QPOS_HISTORY_CACHE_STATE_V83
+     * Short stale-while-revalidate cache keeps table-to-table History instant. */
+    historyCacheV83: Object.create(null),
+    historyFetchesV83: Object.create(null),
     historySelectedOrderId: null,
     historyLoading: false,
     /* PMD_QPOS_TABLE_ATTENTION_STATE_V57 */
@@ -2299,7 +2303,10 @@
       var prefetch = function () {
         if (directMove) return;
         var id = Number(button.getAttribute('data-qpos-table') || 0);
-        if (id) prefetchTableData(id);
+        if (id) {
+          prefetchTableData(id);
+          prefetchHistoryForTableV83(id);
+        }
       };
 
       button.onpointerenter = prefetch;
@@ -4148,10 +4155,36 @@ function renderOpenChecks() {
 
     var historyWorkspace = $('[data-qpos-history-modal]');
     if (historyWorkspace && historyWorkspace.classList.contains('is-open')) {
-      /* PMD_QPOS_HISTORY_AFTER_TABLE_V42 */
+      /* PMD_QPOS_HISTORY_SWITCH_FAST_V83
+       * Never leave the previous table's History on screen while waiting.
+       * Paint a warm cached History immediately when available; otherwise show
+       * the new table identity/loading state and reconcile in background. */
       state.historyScope = 'selected';
       state.historySelectedOrderId = null;
-      await loadHistory('selected', {preserve: true});
+
+      var historyContextV83 = historyContextForTableV83(table.id);
+      var cachedHistoryV83 = historyCacheGetV83(historyContextV83.key);
+      var historyTitleV83 = $('[data-qpos-history-title]');
+      var historyListV83 = $('[data-qpos-history-list]');
+
+      if (cachedHistoryV83) {
+        state.historyDataKey = historyContextV83.key;
+        renderHistory(cachedHistoryV83);
+      } else {
+        if (historyTitleV83) {
+          historyTitleV83.textContent =
+            'Table ' + String(table.number || table.id || '');
+        }
+        if (historyListV83) {
+          historyListV83.innerHTML =
+            '<div class="pmd-qpos-history-empty">Loading history…</div>';
+        }
+        renderHistoryDetail(0);
+      }
+
+      loadHistory('selected', {
+        preserve: !!cachedHistoryV83
+      });
     }
 
     if (window.innerWidth <= 820) {
@@ -4166,7 +4199,10 @@ function renderOpenChecks() {
    * Recent table payloads are shown immediately and then revalidated.
    * Hover/focus prefetch only requests the table the user is heading toward.
    */
-  var PMD_QPOS_TABLE_CACHE_TTL_V41 = 12000;
+  /* PMD_QPOS_TABLE_CACHE_TTL_V83
+   * Keep warm checks visible longer; every cached tap still revalidates in
+   * background, so this improves switching without making server state final. */
+  var PMD_QPOS_TABLE_CACHE_TTL_V41 = 30000;
 
   function tableCacheGet(id) {
     var key = String(Number(id || 0));
@@ -4266,7 +4302,7 @@ function renderOpenChecks() {
           payment === 'partial'
         );
       })
-      .slice(0, 6);
+      .slice(0, 10);
 
     if (!candidates.length) return;
 
@@ -4284,11 +4320,19 @@ function renderOpenChecks() {
       state.tableWarmupRunning = true;
 
       try {
-        for (var i = 0; i < candidates.length; i++) {
+        /* PMD_QPOS_TABLE_WARMUP_BATCH_V83
+         * Warm small groups in parallel instead of serially waiting on every
+         * occupied table. Keep concurrency capped so the POS does not burst. */
+        for (var i = 0; i < candidates.length; i += 3) {
           if (state.payment.open || state.transfer.open) break;
-          await fetchTablePayload(candidates[i].id, false).catch(function () {
-            return null;
-          });
+
+          await Promise.all(
+            candidates.slice(i, i + 3).map(function (candidate) {
+              return fetchTablePayload(candidate.id, false).catch(function () {
+                return null;
+              });
+            })
+          );
         }
       } finally {
         state.tableWarmupRunning = false;
@@ -7396,6 +7440,21 @@ function renderOpenChecks() {
     );
   }
 
+  function historyItemSummaryMarkupV83(value) {
+    return String(value || '')
+      .split(',')
+      .map(function (part) {
+        return part.trim();
+      })
+      .filter(Boolean)
+      .map(function (part) {
+        return '<span class="pmd-qpos-history-item-chip-v83">' +
+          esc(part) +
+        '</span>';
+      })
+      .join('');
+  }
+
   function renderHistoryDetail(orderId) {
     var detail = $('[data-qpos-history-detail]');
     if (!detail) return;
@@ -7445,6 +7504,7 @@ function renderOpenChecks() {
     var settlementTone = historySettlementTone(settlement);
     var total = order.total != null ? money(order.total) : '';
     var itemSummary = String(order.item_summary || '').trim();
+    var itemSummaryMarkupV83 = historyItemSummaryMarkupV83(itemSummary);
     var orderNote = String(order.note || '').trim();
 
     var rawEvents = entries.filter(function (entry) {
@@ -7492,12 +7552,20 @@ function renderOpenChecks() {
           : '') +
       '</div>' +
       ((itemSummary || orderNote)
-        ? '<div class="pmd-qpos-history-order-overview">' +
+        ? '<div class="pmd-qpos-history-order-overview pmd-qpos-history-order-overview-v83">' +
             (itemSummary
-              ? '<div><span>Items</span><p>' + esc(itemSummary) + '</p></div>'
+              ? '<section class="pmd-qpos-history-items-card-v83">' +
+                  '<header><span>Items</span></header>' +
+                  '<div class="pmd-qpos-history-item-chips-v83">' +
+                    itemSummaryMarkupV83 +
+                  '</div>' +
+                '</section>'
               : '') +
             (orderNote
-              ? '<div><span>Note</span><p>' + esc(orderNote) + '</p></div>'
+              ? '<section class="pmd-qpos-history-note-card-v83">' +
+                  '<header><span>Note</span></header>' +
+                  '<p>' + esc(orderNote) + '</p>' +
+                '</section>'
               : '') +
           '</div>'
         : '') +
@@ -7851,17 +7919,125 @@ function renderOpenChecks() {
       selection = {scope: 'all', tableId: 0};
     }
 
+    var from = state.historyFrom || '';
+    var to = state.historyTo || '';
+
     return {
       requested: requested,
       selection: selection,
+      from: from,
+      to: to,
       key: [
         requested,
         selection.scope,
         Number(selection.tableId || 0),
-        state.historyFrom || '',
-        state.historyTo || ''
+        from,
+        to
       ].join('|')
     };
+  }
+
+  /* PMD_QPOS_HISTORY_CACHE_V83 */
+  var PMD_QPOS_HISTORY_CACHE_TTL_V83 = 30000;
+
+  function historyContextForTableV83(tableId) {
+    tableId = Number(tableId || 0);
+    var from = state.historyFrom || '';
+    var to = state.historyTo || '';
+
+    return {
+      requested: 'selected',
+      selection: {scope: 'table', tableId: tableId},
+      from: from,
+      to: to,
+      key: ['selected', 'table', tableId, from, to].join('|')
+    };
+  }
+
+  function historyCacheGetV83(key) {
+    key = String(key || '');
+    var row = state.historyCacheV83[key];
+    if (!row) return null;
+
+    if (
+      (Date.now() - Number(row.saved_at || 0)) >
+      PMD_QPOS_HISTORY_CACHE_TTL_V83
+    ) {
+      delete state.historyCacheV83[key];
+      return null;
+    }
+
+    return row.payload || null;
+  }
+
+  function historyCachePutV83(key, payload) {
+    key = String(key || '');
+    if (!key || !payload) return;
+
+    state.historyCacheV83[key] = {
+      saved_at: Date.now(),
+      payload: payload
+    };
+  }
+
+  function fetchHistoryContextV83(context, force) {
+    if (!state.settings.history_url || !context) {
+      return Promise.resolve(null);
+    }
+
+    var key = String(context.key || '');
+
+    if (!force) {
+      var cached = historyCacheGetV83(key);
+      if (cached) return Promise.resolve(cached);
+    }
+
+    if (state.historyFetchesV83[key]) {
+      return state.historyFetchesV83[key];
+    }
+
+    var url = String(state.settings.history_url);
+    var params = new URLSearchParams();
+    params.set('scope', context.selection.scope);
+    params.set('limit', '500');
+
+    if (context.selection.tableId) {
+      params.set('table_id', String(context.selection.tableId));
+    }
+    if (context.from) params.set('from', context.from);
+    if (context.to) params.set('to', context.to);
+
+    var pending = fetchJson(
+      url + '?' + params.toString() + '&_=' + Date.now()
+    ).then(function (json) {
+      historyCachePutV83(key, json);
+      return json;
+    }).finally(function () {
+      delete state.historyFetchesV83[key];
+    });
+
+    state.historyFetchesV83[key] = pending;
+    return pending;
+  }
+
+  function prefetchHistoryForTableV83(tableId) {
+    tableId = Number(tableId || 0);
+    if (!tableId) return;
+
+    var modal = $('[data-qpos-history-modal]');
+    if (!modal || !modal.classList.contains('is-open')) return;
+
+    var context = historyContextForTableV83(tableId);
+    if (
+      historyCacheGetV83(context.key) ||
+      state.historyFetchesV83[context.key]
+    ) {
+      return;
+    }
+
+    fetchHistoryContextV83(context, false).catch(function () {
+      /* Opportunistic History prefetch has no user-facing error. */
+    });
   }
 
   async function loadHistory(scopeMode, options) {
@@ -7878,14 +8054,22 @@ function renderOpenChecks() {
     state.historyLoading = true;
 
     var list = $('[data-qpos-history-list]');
+    var cachedHistoryV83 =
+      options.cache === false
+        ? null
+        : historyCacheGetV83(requestKey);
     var preserveExisting =
+      !!cachedHistoryV83 ||
       options.preserve === true ||
       (
         options.preserve !== false &&
         !!state.historyData
       );
 
-    if (list && !preserveExisting) {
+    if (cachedHistoryV83) {
+      state.historyDataKey = requestKey;
+      renderHistory(cachedHistoryV83);
+    } else if (list && !preserveExisting) {
       list.innerHTML =
         '<div class="pmd-qpos-history-empty">Loading history…</div>';
     }
@@ -7898,21 +8082,13 @@ function renderOpenChecks() {
     });
 
     try {
-      var url = String(state.settings.history_url);
-      var params = new URLSearchParams();
-      params.set('scope', selection.scope);
-      params.set('limit', '500');
-      if (selection.tableId) {
-        params.set('table_id', String(selection.tableId));
-      }
-      if (state.historyFrom) params.set('from', state.historyFrom);
-      if (state.historyTo) params.set('to', state.historyTo);
+      /* Always revalidate server authority after an instant cached paint. */
+      var json = await fetchHistoryContextV83(context, true);
 
-      var json = await fetchJson(
-        url + '?' + params.toString() + '&_=' + Date.now()
-      );
-
-      if (requestSeq !== state.historyRequestSeq) {
+      if (
+        requestSeq !== state.historyRequestSeq ||
+        !json
+      ) {
         return false;
       }
 
