@@ -9232,6 +9232,15 @@ body.pmd-qpos-body {
   background: #fff;
 }
 
+.pmd-qpos-history-left-card-v84
+.pmd-qpos-history-kind-tabs-v82 button {
+  min-height: 42px;
+  padding-inline: 3px;
+  font-size: 11px;
+  letter-spacing: -.01em;
+  text-overflow: clip;
+}
+
 .pmd-qpos-history-left-card-v84 .pmd-qpos-history-list {
   flex: 1 1 auto;
   min-height: 0;
