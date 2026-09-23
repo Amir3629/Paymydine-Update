@@ -137,7 +137,6 @@
                             $pmdWaiterCalls = max(0, (int)($table['waiter_calls'] ?? 0));
                             $pmdNoteCount = max(0, (int)($table['note_count'] ?? 0));
                             $pmdHasAttention = $pmdWaiterCalls > 0 || $pmdNoteCount > 0;
-                            $pmdAttentionCountV81 = $pmdWaiterCalls + $pmdNoteCount;
                             $pmdAttentionTitleV81 =
                                 $pmdWaiterCalls > 0 && $pmdNoteCount > 0
                                     ? 'Waiter call + table note'
