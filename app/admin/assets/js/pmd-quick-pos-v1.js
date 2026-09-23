@@ -421,6 +421,9 @@
     /* PMD_QPOS_TABLE_ATTENTION_STATE_V57 */
     attentionCycleIndex: 0,
     attentionCycleTimer: null,
+    /* PMD_QPOS_ATTENTION_PROGRESSIVE_DELAY_V79
+     * 0 => next automatic attention move in 10s, then 20s, 30s, ... */
+    attentionCycleStepV79: 0,
     attentionResumeTimer: null,
     attentionScrollFrame: null,
     attentionPauseUntil: 0,
@@ -1464,22 +1467,59 @@
     return activeFloorTables().filter(tableNeedsAttentionV57);
   }
 
+  function stopAttentionCycleTimerV79() {
+    if (!state.attentionCycleTimer) return;
+    window.clearTimeout(state.attentionCycleTimer);
+    state.attentionCycleTimer = null;
+  }
+
+  function attentionCycleDelayV79() {
+    var nextStep = Math.max(
+      1,
+      Number(state.attentionCycleStepV79 || 0) + 1
+    );
+
+    /* setTimeout has a signed 32-bit practical ceiling in browsers. */
+    return Math.min(2147483647, nextStep * 10000);
+  }
+
+  function scheduleAttentionCycleV79(delayOverride) {
+    stopAttentionCycleTimerV79();
+
+    if (document.visibilityState === 'hidden') return;
+
+    var delay = delayOverride == null
+      ? attentionCycleDelayV79()
+      : Math.max(1000, num(delayOverride, 10000));
+
+    state.attentionCycleTimer = window.setTimeout(function () {
+      state.attentionCycleTimer = null;
+      cycleAttentionTablesV57();
+    }, delay);
+  }
+
+  function resetAttentionCycleV79() {
+    state.attentionCycleStepV79 = 0;
+    scheduleAttentionCycleV79(10000);
+  }
+
   function pauseAttentionCycleV57(ms) {
     var duration = Math.max(700, num(ms, 2800));
 
     state.attentionPauseUntil = Date.now() + duration;
+    stopAttentionCycleTimerV79();
 
     if (state.attentionResumeTimer) {
       window.clearTimeout(state.attentionResumeTimer);
     }
 
-    /* PMD_QPOS_ATTENTION_AUTO_RETURN_V62
-     * When the operator stops touching/scrolling/typing, do not wait for a
-     * lucky interval tick. Re-center the next attention table immediately. */
+    /* PMD_QPOS_ATTENTION_PROGRESSIVE_RESUME_V79
+     * Operator interaction postpones attention movement. When interaction ends,
+     * resume the current progressive delay instead of jumping immediately. */
     state.attentionResumeTimer = window.setTimeout(function () {
       state.attentionResumeTimer = null;
       state.attentionPauseUntil = 0;
-      cycleAttentionTablesV57();
+      scheduleAttentionCycleV79();
     }, duration + 180);
   }
 
@@ -1550,19 +1590,19 @@
 
   function focusAttentionTableV57(tableId, immediate) {
     tableId = Number(tableId || 0);
-    if (!tableId || attentionInteractionBusyV57()) return;
+    if (!tableId || attentionInteractionBusyV57()) return false;
     if (!immediate && Date.now() < Number(state.attentionPauseUntil || 0)) {
-      return;
+      return false;
     }
 
     /* PMD_QPOS_ATTENTION_RAIL_GEOMETRY_V63 */
     var grid = $('[data-qpos-tables]');
-    if (!grid) return;
+    if (!grid) return false;
 
     var button = grid.querySelector(
       '[data-qpos-table="' + String(tableId) + '"]'
     );
-    if (!button) return;
+    if (!button) return false;
 
     var gridRect = grid.getBoundingClientRect();
     var buttonRect = button.getBoundingClientRect();
@@ -1587,37 +1627,54 @@
         button.classList.remove('is-attention-focus-v57');
       }
     }, 1900);
+
+    return true;
   }
 
   function cycleAttentionTablesV57() {
-    if (attentionInteractionBusyV57()) return;
-    if (Date.now() < Number(state.attentionPauseUntil || 0)) return;
+    if (
+      attentionInteractionBusyV57() ||
+      Date.now() < Number(state.attentionPauseUntil || 0)
+    ) {
+      scheduleAttentionCycleV79();
+      return;
+    }
 
     var rows = attentionTablesV57();
     if (!rows.length) {
       state.attentionCycleIndex = 0;
+      state.attentionCycleStepV79 = 0;
+      scheduleAttentionCycleV79(10000);
       return;
     }
 
     var index =
       Math.max(0, Number(state.attentionCycleIndex || 0)) % rows.length;
 
-    focusAttentionTableV57(rows[index].id, false);
+    if (!focusAttentionTableV57(rows[index].id, false)) {
+      scheduleAttentionCycleV79();
+      return;
+    }
+
     state.attentionCycleIndex = (index + 1) % rows.length;
+
+    /* PMD_QPOS_ATTENTION_PROGRESSIVE_DELAY_V79
+     * Successful automatic moves back off linearly:
+     * first move after 10s -> next after 20s -> 30s -> 40s -> ... */
+    state.attentionCycleStepV79 =
+      Math.max(0, Number(state.attentionCycleStepV79 || 0)) + 1;
+
+    scheduleAttentionCycleV79();
   }
 
   function startAttentionCycleV57() {
-    if (state.attentionCycleTimer) {
-      window.clearInterval(state.attentionCycleTimer);
-    }
+    stopAttentionCycleTimerV79();
 
-    /* PMD_QPOS_ATTENTION_ROTATION_V77
-     * No page-load jump or flash. The first automatic attention move happens
-     * after the same ten-second interval as every later move. */
-    state.attentionCycleTimer = window.setInterval(
-      cycleAttentionTablesV57,
-      10000
-    );
+    /* PMD_QPOS_ATTENTION_ROTATION_V79
+     * No page-load jump. Start at 10 seconds and increase only after an
+     * automatic attention move actually succeeds. */
+    state.attentionCycleStepV79 = 0;
+    scheduleAttentionCycleV79(10000);
   }
 
   function setHistoryKindV57(kind) {
@@ -1759,7 +1816,20 @@
 
     renderTables();
     window.setTimeout(function () {
-      focusAttentionTableV57(tableId, true);
+      if (!focusAttentionTableV57(tableId, true)) return;
+
+      /* A new push attention is itself a scroll event. Its next automatic
+       * rotation therefore starts the requested sequence again at 10 seconds. */
+      var rows = attentionTablesV57();
+      var pushedIndex = rows.findIndex(function (row) {
+        return Number(row.id || 0) === tableId;
+      });
+
+      if (pushedIndex >= 0 && rows.length) {
+        state.attentionCycleIndex = (pushedIndex + 1) % rows.length;
+      }
+
+      resetAttentionCycleV79();
     }, 80);
   }
 
@@ -8609,9 +8679,11 @@ function renderOpenChecks() {
     document.addEventListener('visibilitychange', function () {
       if (document.visibilityState === 'hidden') {
         stopLiveSyncTimerV73();
+        stopAttentionCycleTimerV79();
         return;
       }
       requestLiveSyncV73(0);
+      scheduleAttentionCycleV79();
     });
 
     window.addEventListener('focus', function () {
@@ -8620,10 +8692,7 @@ function renderOpenChecks() {
 
     window.addEventListener('beforeunload', function () {
       stopLiveSyncTimerV73();
-      if (state.attentionCycleTimer) {
-        window.clearInterval(state.attentionCycleTimer);
-        state.attentionCycleTimer = null;
-      }
+      stopAttentionCycleTimerV79();
       if (state.attentionResumeTimer) {
         window.clearTimeout(state.attentionResumeTimer);
         state.attentionResumeTimer = null;
