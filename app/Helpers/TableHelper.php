@@ -77,9 +77,14 @@ class TableHelper
      *
      * @param mixed $tableId
      * @param string $reason
+     * @param mixed $activityAt Optional event timestamp for safe reconciliation
      * @return bool
      */
-    public static function markOccupiedFromActivity($tableId, $reason = 'table_activity')
+    public static function markOccupiedFromActivity(
+        $tableId,
+        $reason = 'table_activity',
+        $activityAt = null
+    )
     {
         $raw = trim((string)$tableId);
         if (preg_match('/^table\s+(\d+)$/i', $raw, $matches)) {
@@ -112,6 +117,7 @@ class TableHelper
             return (bool)DB::transaction(function () use (
                 $requestedId,
                 $reason,
+                $activityAt,
                 $columns,
                 $primaryKey
             ) {
@@ -149,6 +155,25 @@ class TableHelper
 
                 if ($old === 'occupied') {
                     return true;
+                }
+
+                /* PMD_TABLE_ACTIVITY_RECONCILE_V76B
+                 * During live reconciliation an older unresolved notification
+                 * must never override a newer explicit Free action. Direct
+                 * event creation omits $activityAt and remains immediate. */
+                if ($activityAt !== null) {
+                    $activityTs = strtotime((string)$activityAt) ?: 0;
+                    $stateTs = strtotime((string)(
+                        $rawRow['operational_status_updated_at'] ?? ''
+                    )) ?: 0;
+
+                    if (
+                        $activityTs > 0
+                        && $stateTs > 0
+                        && $activityTs <= $stateTs
+                    ) {
+                        return false;
+                    }
                 }
 
                 $updates = [
