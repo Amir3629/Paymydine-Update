@@ -547,11 +547,114 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
 
     public function bootstrap($mode = 'cashier')
     {
+        $mode = $this->quickPosMode((string)$mode);
+
+        /* PMD_QPOS_LIVE_STATE_V73
+         * Keep the cashier rail and the currently opened check synchronized
+         * without reloading the full menu catalogue on every heartbeat. */
+        if (request()->boolean('live')) {
+            if (!$this->currentUser()) {
+                return response()->json([
+                    'ok' => false,
+                    'message' => 'Unauthenticated.',
+                ], 401);
+            }
+
+            return response()->json(
+                $this->quickPosLiveStatePayloadV73($mode)
+            );
+        }
+
         return response()->json(
-            $this->quickPosBootstrapPayload(
-                $this->quickPosMode((string)$mode)
-            )
+            $this->quickPosBootstrapPayload($mode)
         );
+    }
+
+    protected function quickPosLiveStatePayloadV73(string $mode): array
+    {
+        $mode = $this->quickPosMode($mode);
+        $locationId = $this->quickPosLocationId();
+        $floorService = app(
+            \Admin\Services\PmdSharedFloorRegistryV1::class
+        );
+
+        try {
+            $floorSnapshot = $floorService->snapshot($locationId);
+        } catch (\Throwable $error) {
+            $floorSnapshot = [
+                'floors' => [[
+                    'id' => $floorService->defaultFloorId(),
+                    'name' => 'Main Floor',
+                    'is_default' => true,
+                    'sort' => 0,
+                ]],
+                'table_assignments' => [],
+            ];
+        }
+
+        $defaultFloorId = '';
+        foreach ((array)($floorSnapshot['floors'] ?? []) as $floor) {
+            if (!empty($floor['is_default'])) {
+                $defaultFloorId = trim((string)($floor['id'] ?? ''));
+                break;
+            }
+        }
+        if ($defaultFloorId === '') {
+            $floorRows = (array)($floorSnapshot['floors'] ?? []);
+            $firstFloor = $floorRows
+                ? (array)reset($floorRows)
+                : [];
+            $defaultFloorId = trim((string)($firstFloor['id'] ?? ''));
+        }
+        if ($defaultFloorId === '') {
+            $defaultFloorId = (string)$floorService->defaultFloorId();
+        }
+
+        $tables = $this->quickPosTables(
+            $locationId,
+            $floorSnapshot,
+            $defaultFloorId
+        );
+
+        $selectedPayload = null;
+        $selectedTableId = max(
+            0,
+            (int)request()->query('table', 0)
+        );
+
+        if ($selectedTableId > 0) {
+            $table = $this->resolveTable($selectedTableId);
+            if ($table) {
+                $orders = $this->quickPosOpenOrdersForTable($table);
+                $selectedPayload = [
+                    'ok' => true,
+                    'version' => 'pmd-quick-pos-v2',
+                    'table' => $table,
+                    'open_orders' => $orders,
+                    'active_order_id' => count($orders)
+                        ? (int)$orders[0]['order_id']
+                        : null,
+                ];
+            }
+        }
+
+        $revisionSource = json_encode(
+            [$tables, $selectedPayload],
+            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+        );
+
+        return [
+            'ok' => true,
+            'version' => 'pmd-quick-pos-live-v73',
+            'mode' => $mode,
+            'location_id' => $locationId,
+            'poll_after_ms' => 2000,
+            'revision' => sha1(
+                is_string($revisionSource) ? $revisionSource : ''
+            ),
+            'tables' => $tables,
+            'selected_table' => $selectedPayload,
+        ];
     }
 
     protected function quickPosBootstrapPayload(string $mode): array

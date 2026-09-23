@@ -394,6 +394,15 @@
     guestCount: 1,
     note: '',
     loading: false,
+    /* PMD_QPOS_LIVE_SYNC_STATE_V73
+     * One visible-page heartbeat keeps tables, guest attention and the opened
+     * check synchronized across customer, kitchen and other staff surfaces. */
+    liveSyncTimerV73: null,
+    liveSyncInFlightV73: false,
+    liveSyncFailuresV73: 0,
+    liveTablesSignatureV73: '',
+    liveSelectedSignatureV73: '',
+    livePollAfterMsV73: 2000,
     visualHydrated: false,
     floorMapOpen: false,
     submitting: false,
@@ -903,6 +912,241 @@
       state.loading = false;
       root.classList.remove('is-loading');
     }
+  }
+
+  /* PMD_QPOS_LIVE_SYNC_V73
+   * Background heartbeat intentionally reuses /admin/pos/bootstrap with
+   * ?live=1 so no second routing/authentication surface is introduced.
+   * The server omits menu/categories and can additionally hydrate the one
+   * selected table in the same request. */
+  function liveSyncTableSignatureV73(tables) {
+    try {
+      return JSON.stringify((tables || []).map(function (table) {
+        return [
+          Number(table.id || 0),
+          String(table.status || ''),
+          String(table.payment_state || ''),
+          roundMoney(num(table.due_amount, 0)),
+          Math.max(0, num(table.waiter_calls, 0)),
+          Math.max(0, num(table.note_count, 0)),
+          String(table.floor_id || ''),
+          String(table.number || ''),
+          String(table.name || ''),
+          Math.max(0, num(table.capacity, 0))
+        ];
+      }));
+    } catch (ignored) {
+      return '';
+    }
+  }
+
+  function liveSyncSelectedSignatureV73(payload) {
+    try {
+      return payload ? JSON.stringify(payload) : '';
+    } catch (ignored) {
+      return '';
+    }
+  }
+
+  function liveSyncSelectedBlockedV73() {
+    return !!(
+      state.loading ||
+      state.tableSwitching ||
+      state.submitting ||
+      state.pendingSend ||
+      state.transfer.submitting ||
+      state.payment.submitting ||
+      Object.keys(state.sentMutationBusy || {}).length
+    );
+  }
+
+  function stopLiveSyncTimerV73() {
+    if (!state.liveSyncTimerV73) return;
+    window.clearTimeout(state.liveSyncTimerV73);
+    state.liveSyncTimerV73 = null;
+  }
+
+  function scheduleLiveSyncV73(delay) {
+    stopLiveSyncTimerV73();
+    if (document.visibilityState === 'hidden') return;
+
+    state.liveSyncTimerV73 = window.setTimeout(function () {
+      state.liveSyncTimerV73 = null;
+      refreshLiveStateV73(false);
+    }, Math.max(0, num(delay, state.livePollAfterMsV73)));
+  }
+
+  function requestLiveSyncV73(delay) {
+    if (document.visibilityState === 'hidden') return;
+    scheduleLiveSyncV73(delay == null ? 0 : delay);
+  }
+
+  function markSelectedTableOccupiedV73(tableId) {
+    tableId = Number(tableId || 0);
+    if (!tableId) return;
+
+    /* Force the next heartbeat to confirm or roll back this optimistic paint. */
+    state.liveTablesSignatureV73 = '';
+
+    state.tables = state.tables.map(function (table) {
+      if (Number(table.id || 0) !== tableId) return table;
+      return Object.assign({}, table, {status: 'occupied'});
+    });
+
+    if (
+      state.selectedTable &&
+      Number(state.selectedTable.id || 0) === tableId
+    ) {
+      state.selectedTable = Object.assign({}, state.selectedTable, {
+        status: 'occupied'
+      });
+    }
+  }
+
+  function applyLiveTablesV73(tables) {
+    if (!Array.isArray(tables)) return false;
+
+    var nextSignature = liveSyncTableSignatureV73(tables);
+    if (nextSignature === state.liveTablesSignatureV73) {
+      return false;
+    }
+
+    state.liveTablesSignatureV73 = nextSignature;
+    var selectedId = state.selectedTable
+      ? Number(state.selectedTable.id || 0)
+      : 0;
+    var rail = $('[data-qpos-tables]');
+    var scrollLeft = rail ? rail.scrollLeft : 0;
+
+    var previousById = Object.create(null);
+    state.tables.forEach(function (table) {
+      previousById[String(Number(table.id || 0))] = table;
+    });
+
+    /* Preserve any presentation-only fields that are not part of the lean
+     * live payload while letting operational fields remain authoritative. */
+    state.tables = tables.map(function (table) {
+      var previous = previousById[String(Number(table.id || 0))] || {};
+      return Object.assign({}, previous, table);
+    });
+
+    if (selectedId) {
+      var nextSelected = state.tables.find(function (table) {
+        return Number(table.id || 0) === selectedId;
+      });
+
+      if (nextSelected) {
+        state.selectedTable = Object.assign(
+          {},
+          state.selectedTable || {},
+          nextSelected
+        );
+      }
+    }
+
+    renderTables();
+    renderContext();
+
+    rail = $('[data-qpos-tables]');
+    if (rail && Number.isFinite(scrollLeft)) {
+      rail.scrollLeft = scrollLeft;
+    }
+
+    return true;
+  }
+
+  async function refreshLiveStateV73(force) {
+    if (state.loading) {
+      scheduleLiveSyncV73(600);
+      return;
+    }
+
+    if (state.liveSyncInFlightV73) {
+      if (force) scheduleLiveSyncV73(250);
+      return;
+    }
+    if (document.visibilityState === 'hidden') return;
+
+    var baseUrl = String(root.getAttribute('data-bootstrap-url') || '');
+    if (!baseUrl) return;
+
+    var selectedId = (
+      state.serviceMode === 'dine_in' && state.selectedTable
+    )
+      ? Number(state.selectedTable.id || 0)
+      : 0;
+
+    var glue = baseUrl.indexOf('?') === -1 ? '?' : '&';
+    var url = baseUrl + glue +
+      'live=1&table=' + encodeURIComponent(String(selectedId || 0)) +
+      '&_=' + Date.now();
+
+    state.liveSyncInFlightV73 = true;
+
+    try {
+      var json = await fetchJson(url);
+
+      if (
+        !json ||
+        json.ok !== true ||
+        json.version !== 'pmd-quick-pos-live-v73' ||
+        !Array.isArray(json.tables)
+      ) {
+        throw new Error('Invalid Quick POS live state.');
+      }
+
+      state.liveSyncFailuresV73 = 0;
+      state.livePollAfterMsV73 = Math.max(
+        1200,
+        Math.min(5000, num(json.poll_after_ms, 2000))
+      );
+
+      applyLiveTablesV73(json.tables);
+
+      var selectedPayload = json.selected_table || null;
+      var selectedStillMatches =
+        selectedId > 0 &&
+        state.serviceMode === 'dine_in' &&
+        state.selectedTable &&
+        Number(state.selectedTable.id || 0) === selectedId;
+
+      if (selectedStillMatches && selectedPayload) {
+        tableCachePut(selectedId, selectedPayload);
+
+        var selectedSignature =
+          liveSyncSelectedSignatureV73(selectedPayload);
+
+        if (
+          !liveSyncSelectedBlockedV73() &&
+          (
+            force ||
+            selectedSignature !== state.liveSelectedSignatureV73
+          )
+        ) {
+          state.liveSelectedSignatureV73 = selectedSignature;
+          applyTablePayload(selectedId, selectedPayload);
+        }
+      } else if (!selectedId) {
+        state.liveSelectedSignatureV73 = '';
+      }
+    } catch (ignored) {
+      /* Background sync is deliberately silent. Normal operator actions keep
+       * their own explicit errors and the next heartbeat retries. */
+      state.liveSyncFailuresV73++;
+    } finally {
+      state.liveSyncInFlightV73 = false;
+
+      var retryDelay = state.liveSyncFailuresV73 > 0
+        ? Math.min(10000, 3500 + (state.liveSyncFailuresV73 * 1000))
+        : state.livePollAfterMsV73;
+
+      scheduleLiveSyncV73(retryDelay);
+    }
+  }
+
+  function startLiveSyncV73() {
+    state.liveTablesSignatureV73 = liveSyncTableSignatureV73(state.tables);
+    scheduleLiveSyncV73(700);
   }
 
   function renderFloors() {
@@ -4214,7 +4458,16 @@ function renderOpenChecks() {
       applyQuickSaveResponse(json, snapshot);
       state.pendingSend = null;
       state.submitting = false;
+
+      /* PMD_QPOS_LOCAL_OCCUPIED_V73
+       * A successful dine-in save should color the table Busy immediately;
+       * the live heartbeat then confirms the authoritative physical state. */
+      if (snapshot.serviceMode === 'dine_in' && snapshot.tableId) {
+        markSelectedTableOccupiedV73(snapshot.tableId);
+      }
+
       renderAll();
+      requestLiveSyncV73(0);
 
       if (!(afterSuccess === 'pay' && state.payment.open)) {
         toast(json.message || 'Order saved');
@@ -4251,6 +4504,7 @@ function renderOpenChecks() {
         Number(state.selectedTable.id) === Number(snapshot.tableId)
       ) {
         setTimeout(function () {
+          state.liveSelectedSignatureV73 = '';
           loadTable(snapshot.tableId, true);
         }, 0);
       }
@@ -7959,7 +8213,24 @@ function renderOpenChecks() {
       applyPushAttentionV57
     );
 
+    window.addEventListener('pmd:notification:new', function () {
+      requestLiveSyncV73(120);
+    });
+
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'hidden') {
+        stopLiveSyncTimerV73();
+        return;
+      }
+      requestLiveSyncV73(0);
+    });
+
+    window.addEventListener('focus', function () {
+      requestLiveSyncV73(0);
+    });
+
     window.addEventListener('beforeunload', function () {
+      stopLiveSyncTimerV73();
       if (state.attentionCycleTimer) {
         window.clearInterval(state.attentionCycleTimer);
         state.attentionCycleTimer = null;
@@ -8126,6 +8397,7 @@ function renderOpenChecks() {
   }
 
   bind();
+  startLiveSyncV73();
 
   if (!hasInlineBootstrap) {
     bootstrap(true);
@@ -8134,6 +8406,7 @@ function renderOpenChecks() {
   window.PMDQuickPOSV1 = {
     state: state,
     refresh: function () { return bootstrap(false); },
+    refreshLive: function () { return refreshLiveStateV73(true); },
     selectTable: selectTable,
     newCheck: newCheck,
     openPayment: openPayment,
