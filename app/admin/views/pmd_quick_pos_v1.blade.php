@@ -18,7 +18,7 @@
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-dashboard-lab-exact-floor-v1.css?v=20260920-floor-v35b">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-shared-floor-multi-floor-v1.css?v=20260920-floor-v35b">
     <link rel="stylesheet" href="/app/admin/assets/css/push-notifications.css?v=20260922-qpos-v59">
-    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-pos-v1.css?v=20260923-81">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-pos-v1.css?v=20260923-82">
 </head>
 <body class="pmd-qpos-body">
 @php
@@ -165,7 +165,7 @@
                                             data-qpos-attention-kind="attention"
                                             title="{{ $pmdAttentionTitleV81 }}"
                                             aria-label="Open attention"
-                                        ><b>!</b>@if($pmdAttentionCountV81 > 1)<em>{{ $pmdAttentionCountV81 }}</em>@endif</span>
+                                        ><b>!</b></span>
                                     @endif
                                     @if($pmdPaymentState === 'partial')
                                         <span class="pmd-qpos-table-signal is-partial" title="Part paid" aria-label="Part paid"><b>½</b></span>
@@ -201,6 +201,23 @@
                         <a href="{{ $pmdLogoutUrl }}">Sign out</a>
                     </div>
                 </div>
+            </div>
+
+            {{-- PMD_QPOS_HISTORY_RAIL_ACTIONS_V82
+                 History replaces Back/Profile with scope + close controls. --}}
+            <div class="pmd-qpos-history-rail-actions-v82" aria-label="History controls">
+                <button
+                    type="button"
+                    class="pmd-qpos-history-all-v82"
+                    data-qpos-history-scope="all"
+                >All tables</button>
+                <button
+                    type="button"
+                    class="pmd-qpos-history-close-v82"
+                    data-qpos-history-close
+                    aria-label="Close history"
+                    title="Close history"
+                >×</button>
             </div>
         </aside>
 
@@ -684,18 +701,12 @@
 
     <div class="pmd-qpos-modal pmd-qpos-workspace-modal" data-qpos-history-modal aria-hidden="true">
         <div class="pmd-qpos-modal-card pmd-qpos-history-card">
-            <header>
-                <div>
+            {{-- PMD_QPOS_HISTORY_HEADER_V82
+                 Date controls now live in the true top header. --}}
+            <header class="pmd-qpos-history-topbar-v82">
+                <div class="pmd-qpos-history-heading-v82">
                     <span class="pmd-qpos-section-label">History</span>
                     <h2 data-qpos-history-title>History</h2>
-                </div>
-                <button type="button" class="pmd-qpos-modal-close" data-qpos-history-close>×</button>
-            </header>
-
-            <div class="pmd-qpos-history-toolbar">
-                <div class="pmd-qpos-history-scope">
-                    <button type="button" class="is-active" data-qpos-history-scope="selected">Selected</button>
-                    <button type="button" data-qpos-history-scope="all">All tables</button>
                 </div>
 
                 <div class="pmd-qpos-history-range">
@@ -715,22 +726,24 @@
                         <input type="date" data-qpos-history-to>
                     </label>
                 </div>
-            </div>
-
-            <div class="pmd-qpos-history-filters">
-                <div>
-                    <button type="button" class="is-active" data-qpos-history-kind="orders">Orders & invoices</button>
-                    <button type="button" data-qpos-history-kind="payments">Payments</button>
-                    <button type="button" data-qpos-history-kind="notes">Notes</button>
-                    <button type="button" data-qpos-history-kind="calls">Calls & status</button>
-                </div>
-                <div class="pmd-qpos-history-stats" data-qpos-history-stats></div>
-            </div>
+            </header>
 
             <div class="pmd-qpos-history-layout">
-                <div class="pmd-qpos-history-list" data-qpos-history-list>
-                    <div class="pmd-qpos-history-empty">Loading…</div>
-                </div>
+                {{-- PMD_QPOS_HISTORY_MASTER_V82
+                     Kind filters belong to the history index they control. --}}
+                <section class="pmd-qpos-history-master-v82">
+                    <div class="pmd-qpos-history-kind-tabs-v82">
+                        <button type="button" class="is-active" data-qpos-history-kind="orders">Orders</button>
+                        <button type="button" data-qpos-history-kind="payments">Payments</button>
+                        <button type="button" data-qpos-history-kind="notes">Notes</button>
+                        <button type="button" data-qpos-history-kind="calls">Call</button>
+                    </div>
+
+                    <div class="pmd-qpos-history-list" data-qpos-history-list>
+                        <div class="pmd-qpos-history-empty">Loading…</div>
+                    </div>
+                </section>
+
                 <aside class="pmd-qpos-history-detail" data-qpos-history-detail>
                     <div class="pmd-qpos-history-empty">
                         Select an order to see invoice, items, payments and notes.
@@ -887,7 +900,7 @@ window.PMDQuickPOSConfig = {
      Reuse the canonical Admin push stream for immediate notifications.
      V73 also runs one lean operational-state heartbeat for table/KDS sync. --}}
 <script src="/app/admin/assets/js/push-notifications.js?v=20260922-qpos-v59"></script>
-<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260923-81"></script>
+<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260923-82"></script>
 <script src="/app/admin/assets/js/pmd-site-access-hub-v13.js?v=20260921-androidpair-v16"></script>
 </body>
 </html>
