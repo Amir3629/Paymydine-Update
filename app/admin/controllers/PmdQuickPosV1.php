@@ -2553,6 +2553,25 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 $parts[] = ucfirst($settlement);
             }
 
+            /* PMD_QPOS_HISTORY_INVOICE_READY_V74
+             * The canonical invoice route intentionally serves final customer
+             * invoices only after full payment. Do not expose a dead invoice
+             * action for an unpaid/partial history entry. */
+            $settledAmount = max(
+                0.0,
+                (float)($raw['settled_amount'] ?? 0)
+            );
+            $invoiceReady =
+                in_array(
+                    strtolower($settlement),
+                    ['paid', 'settled', 'closed'],
+                    true
+                )
+                || (
+                    $total > 0
+                    && $settledAmount >= $total - 0.0001
+                );
+
             $itemRows = collect($itemsByOrder->get($orderId, collect()));
             $itemSummary = '';
             $itemCount = (int)$itemRows->count();
@@ -2596,7 +2615,9 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 'status' => $statusName,
                 'settlement_status' => $settlement,
                 'invoice_number' => $invoiceNumber,
-                'invoice_url' => '/admin/pmd-cashier-order-center/invoice/'.$orderId,
+                'invoice_url' => $invoiceReady
+                    ? '/admin/pmd-cashier-order-center/invoice/'.$orderId
+                    : null,
                 'item_count' => $itemCount,
                 'item_summary' => $itemSummary,
                 'note' => $comment,
