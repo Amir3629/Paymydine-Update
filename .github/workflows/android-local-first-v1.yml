@@ -27,6 +27,7 @@ on:
       - 'deploy/pmd-android-v18-5-mobile-session-reentry-hotfix.sh'
       - 'deploy/pmd-android-v18-6-final-session-authority.sh'
       - 'deploy/pmd-android-v18-7-canonical-login-offline.sh'
+      - 'deploy/pmd-android-v18-13-seamless-offline-pos.sh'
   pull_request:
     branches: [main]
     paths:
@@ -99,6 +100,7 @@ jobs:
           bash -n deploy/pmd-android-v18-5-mobile-session-reentry-hotfix.sh
           bash -n deploy/pmd-android-v18-6-final-session-authority.sh
           bash -n deploy/pmd-android-v18-7-canonical-login-offline.sh
+          bash -n deploy/pmd-android-v18-13-seamless-offline-pos.sh
           grep -q "trustedDeviceByRawToken" app/Services/PmdSiteAccessService.php
           grep -q "rotateTrustedDeviceToken" app/Services/PmdSiteAccessService.php
           grep -q "pmd_sync_commands" app/system/database/migrations/2026_09_20_190000_create_pmd_mobile_sync_tables.php
