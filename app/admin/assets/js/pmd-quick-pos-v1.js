@@ -4171,6 +4171,9 @@ function renderOpenChecks() {
         state.historyDataKey = historyContextV83.key;
         renderHistory(cachedHistoryV83);
       } else {
+        state.historyData = null;
+        state.historyDataKey = '';
+
         if (historyTitleV83) {
           historyTitleV83.textContent =
             'Table ' + String(table.number || table.id || '');
