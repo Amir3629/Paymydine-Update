@@ -765,6 +765,52 @@ trait PmdWaiterPosOperationsSummaryV12Concern
                     }
                 }
 
+                /* PMD_QPOS_QUANTITY_UNDO_META_V72
+                 * pmd_waiter_pos_item_meta stores the current net voided
+                 * quantity, while operation_logs keeps the immutable event
+                 * trail. Undoing a pre-preparation reduction therefore restores
+                 * the net metadata without deleting either audit event. */
+                if (
+                    $undoQuantityCorrection
+                    && Schema::hasTable('pmd_waiter_pos_item_meta')
+                ) {
+                    $metaColumns = Schema::getColumnListing(
+                        'pmd_waiter_pos_item_meta'
+                    );
+
+                    if (in_array('voided_quantity', $metaColumns, true)) {
+                        $existingMeta = DB::table(
+                            'pmd_waiter_pos_item_meta'
+                        )
+                            ->where('order_menu_id', $itemId)
+                            ->lockForUpdate()
+                            ->first();
+
+                        if ($existingMeta) {
+                            $metaUpdate = [
+                                'voided_quantity' => max(
+                                    0,
+                                    round(
+                                        (float)(
+                                            $existingMeta->voided_quantity
+                                            ?? 0
+                                        ) - $quantity,
+                                        3
+                                    )
+                                ),
+                            ];
+
+                            if (in_array('updated_at', $metaColumns, true)) {
+                                $metaUpdate['updated_at'] = now();
+                            }
+
+                            DB::table('pmd_waiter_pos_item_meta')
+                                ->where('order_menu_id', $itemId)
+                                ->update($metaUpdate);
+                        }
+                    }
+                }
+
                 if (Schema::hasTable('pmd_waiter_pos_operation_logs')) {
                     $logColumns = Schema::getColumnListing(
                         'pmd_waiter_pos_operation_logs'
