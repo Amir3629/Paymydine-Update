@@ -782,6 +782,24 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
             'settings' => [
                 'currency' => $this->currencySymbol(),
                 'currency_code' => $this->currencyCode(),
+                /* PMD_QPOS_VAT_SUMMARY_V74
+                 * Mirror the same tenant tax authority used by order
+                 * persistence so the POS preview matches the committed bill. */
+                'tax_enabled' =>
+                    (string)setting(
+                        'tax_mode',
+                        setting('tax_enabled', '0')
+                    ) === '1',
+                'tax_percentage' => max(
+                    0.0,
+                    (float)setting('tax_percentage', 0)
+                ),
+                'tax_menu_price' =>
+                    (string)setting('tax_menu_price', '1') === '0'
+                        ? 0
+                        : 1,
+                'tax_title' =>
+                    trim((string)setting('tax_title', 'VAT')) ?: 'VAT',
                 'table_data_url' => '/admin/pos/table/{table}',
                 'table_save_url' => '/admin/pos/save/{table}',
                 'off_premise_save_url' => '/admin/pos/save-off-premise',
@@ -1822,6 +1840,35 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 });
         }
 
+        /* PMD_QPOS_ORDER_TAX_BREAKDOWN_V74
+         * Load canonical subtotal/tax/total rows in one batch. This lets the
+         * cart show the VAT amount of an existing check without recomputing a
+         * historical bill from today's menu/settings. */
+        $totalsByOrder = collect();
+
+        if (
+            $orderIds
+            && Schema::hasTable('order_totals')
+            && Schema::hasColumn('order_totals', 'order_id')
+            && Schema::hasColumn('order_totals', 'code')
+            && Schema::hasColumn('order_totals', 'value')
+        ) {
+            $totalsByOrder = DB::table('order_totals')
+                ->whereIn('order_id', $orderIds)
+                ->whereIn('code', ['subtotal', 'tax', 'total'])
+                ->get(['order_id', 'code', 'value'])
+                ->groupBy(function ($row) {
+                    return (int)($row->order_id ?? 0);
+                });
+        }
+
+        $taxPercentageV74 = max(
+            0.0,
+            (float)setting('tax_percentage', 0)
+        );
+        $taxTitleV74 =
+            trim((string)setting('tax_title', 'VAT')) ?: 'VAT';
+
         $statusIds = $rows
             ->map(fn ($row) => (int)($row->status_id ?? 0))
             ->filter()
@@ -1870,7 +1917,10 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
             $primaryKey,
             $itemsByOrder,
             $statusNames,
-            $paymentTransactionLookup
+            $paymentTransactionLookup,
+            $totalsByOrder,
+            $taxPercentageV74,
+            $taxTitleV74
         ) {
             $raw = (array)$row;
             $orderId = (int)(
@@ -1905,6 +1955,37 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 ->values()
                 ->all();
 
+            $orderTotalsV74 = collect(
+                $totalsByOrder->get($orderId, collect())
+            )->mapWithKeys(function ($totalRow) {
+                return [
+                    (string)($totalRow->code ?? '') =>
+                        (float)($totalRow->value ?? 0),
+                ];
+            });
+
+            $subtotalV74 = (float)(
+                $orderTotalsV74['subtotal']
+                ?? collect($items)->sum('subtotal')
+            );
+            $taxAmountV74 = max(
+                0.0,
+                (float)($orderTotalsV74['tax'] ?? 0)
+            );
+            $orderTotalV74 = (float)(
+                $orderTotalsV74['total']
+                ?? $raw['order_total']
+                ?? $raw['total']
+                ?? 0
+            );
+            $orderTaxPercentageV74 =
+                $subtotalV74 > 0 && $taxAmountV74 > 0
+                    ? round(
+                        ($taxAmountV74 / $subtotalV74) * 100,
+                        4
+                    )
+                    : $taxPercentageV74;
+
             $statusId = (int)($raw['status_id'] ?? 0);
             $statusName = (string)($statusNames[$statusId] ?? '');
 
@@ -1922,7 +2003,11 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                         ['partial', 'paid', 'settled', 'closed', 'refunded'],
                         true
                     ),
-                'total' => (float)($raw['order_total'] ?? $raw['total'] ?? 0),
+                'subtotal' => $subtotalV74,
+                'tax_amount' => $taxAmountV74,
+                'tax_percentage' => $orderTaxPercentageV74,
+                'tax_title' => $taxTitleV74,
+                'total' => $orderTotalV74,
                 'total_items' => (int)($raw['total_items'] ?? 0),
                 'guest_count' => max(1, (int)($raw['guest_count'] ?? 1)),
                 'created_at' => (string)($raw['created_at'] ?? ''),
@@ -2511,7 +2596,7 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 'status' => $statusName,
                 'settlement_status' => $settlement,
                 'invoice_number' => $invoiceNumber,
-                'invoice_url' => '/admin/orders/invoice/'.$orderId,
+                'invoice_url' => '/admin/pmd-cashier-order-center/invoice/'.$orderId,
                 'item_count' => $itemCount,
                 'item_summary' => $itemSummary,
                 'note' => $comment,
