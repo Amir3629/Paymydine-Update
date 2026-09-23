@@ -259,7 +259,7 @@
                         type="button"
                         class="pmd-qpos-product{{ $pmdOrderable ? '' : ' is-disabled' }}"
                         data-qpos-product="{{ $pmdItemId }}"
-                        @disabled(!$pmdOrderable)
+                        @if(!$pmdOrderable) disabled @endif
                     >
                         @if($pmdPlaceholder)
                             <div class="pmd-qpos-product-image is-placeholder is-inline-v72" aria-hidden="true">
