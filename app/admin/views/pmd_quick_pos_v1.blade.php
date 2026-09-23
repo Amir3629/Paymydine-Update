@@ -18,7 +18,7 @@
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-dashboard-lab-exact-floor-v1.css?v=20260920-floor-v35b">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-shared-floor-multi-floor-v1.css?v=20260920-floor-v35b">
     <link rel="stylesheet" href="/app/admin/assets/css/push-notifications.css?v=20260922-qpos-v59">
-    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-pos-v1.css?v=20260923-84">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-pos-v1.css?v=20260923-85">
 </head>
 <body class="pmd-qpos-body">
 @php
@@ -178,10 +178,10 @@
                 </div>
             </section>
 
-            <div class="pmd-qpos-profile-dock">
-                @if($pmdDashboardUrl)
-                    <a class="pmd-qpos-back-button" href="{{ $pmdDashboardUrl }}">← Back</a>
-                @endif
+            {{-- PMD_QPOS_PROFILE_HISTORY_DOCK_V85
+                 Keep the rail bottom focused: Profile on the left, History on the right.
+                 Dashboard now belongs inside the profile menu. --}}
+            <div class="pmd-qpos-profile-dock pmd-qpos-profile-dock-v85">
                 <div class="pmd-qpos-profile">
                     <button
                         type="button"
@@ -197,9 +197,21 @@
                             <strong>{{ $pmdProfileName }}</strong>
                             @if($pmdProfileRole)<small>{{ $pmdProfileRole }}</small>@endif
                         </div>
+                        @if($pmdDashboardUrl)
+                            <a
+                                class="pmd-qpos-profile-dashboard-v85"
+                                href="{{ $pmdDashboardUrl }}"
+                            >Dashboard</a>
+                        @endif
                         <a href="{{ $pmdLogoutUrl }}">Sign out</a>
                     </div>
                 </div>
+
+                <button
+                    type="button"
+                    class="pmd-qpos-history-button pmd-qpos-history-rail-button-v85"
+                    data-qpos-history-open
+                >History</button>
             </div>
 
             {{-- PMD_QPOS_HISTORY_RAIL_ACTIONS_V82
@@ -229,7 +241,6 @@
 
                 <div class="pmd-qpos-work-meta">
                     <time class="pmd-qpos-clock" data-qpos-clock>{{ now()->format('H:i') }}</time>
-                    <button type="button" class="pmd-qpos-history-button" data-qpos-history-open>History</button>
                 </div>
             </div>
 
@@ -729,14 +740,26 @@
                         <button type="button" class="is-all-v84" data-qpos-history-preset="all">All time</button>
                     </div>
 
-                    <div class="pmd-qpos-history-dates-v84">
-                        <label>
-                            <span>From</span>
-                            <input type="date" data-qpos-history-from>
+                    {{-- PMD_QPOS_HISTORY_DATES_V85
+                         No From/To captions; the arrow makes the range direction obvious. --}}
+                    <div class="pmd-qpos-history-dates-v84 pmd-qpos-history-dates-v85">
+                        <label aria-label="History start date">
+                            <input
+                                type="date"
+                                aria-label="History start date"
+                                data-qpos-history-from
+                            >
                         </label>
-                        <label>
-                            <span>To</span>
-                            <input type="date" data-qpos-history-to>
+                        <span
+                            class="pmd-qpos-history-date-arrow-v85"
+                            aria-hidden="true"
+                        >→</span>
+                        <label aria-label="History end date">
+                            <input
+                                type="date"
+                                aria-label="History end date"
+                                data-qpos-history-to
+                            >
                         </label>
                     </div>
                 </div>
@@ -918,7 +941,7 @@ window.PMDQuickPOSConfig = {
      Reuse the canonical Admin push stream for immediate notifications.
      V73 also runs one lean operational-state heartbeat for table/KDS sync. --}}
 <script src="/app/admin/assets/js/push-notifications.js?v=20260922-qpos-v59"></script>
-<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260923-84"></script>
+<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260923-85"></script>
 <script src="/app/admin/assets/js/pmd-site-access-hub-v13.js?v=20260921-androidpair-v16"></script>
 </body>
 </html>
