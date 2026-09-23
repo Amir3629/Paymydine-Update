@@ -651,6 +651,7 @@
     state.tableData = null;
     state.openOrders = [];
     state.activeOrderId = null;
+    state.orderSelectionExplicitV72 = false;
     state.offPremiseOrder = null;
     if (!keepCart) {
       state.cart = [];
@@ -3489,6 +3490,8 @@ function renderOpenChecks() {
     state.cart = [];
     state.note = '';
     state.activeOrderId = null;
+    state.orderSelectionExplicitV72 = false;
+    state.forceNewCheck = true;
     state.offPremiseOrder = null;
 
     /* PMD_QPOS_IMMEDIATE_TABLE_TAP_V42
@@ -3512,6 +3515,8 @@ function renderOpenChecks() {
       state.tableData = null;
       state.openOrders = [];
       state.activeOrderId = null;
+      state.orderSelectionExplicitV72 = false;
+      state.forceNewCheck = true;
       renderContext();
       renderCart();
 
@@ -3690,10 +3695,29 @@ function renderOpenChecks() {
     state.tableSwitching = false;
     root.classList.remove('is-table-switching');
     state.tableData = json;
+
+    var explicitOrderId = state.orderSelectionExplicitV72
+      ? Number(state.activeOrderId || 0)
+      : 0;
+
     state.openOrders = Array.isArray(json.open_orders) ? json.open_orders : [];
-    state.activeOrderId = Number(json.active_order_id || 0) || null;
+
+    var explicitOrderStillExists =
+      explicitOrderId > 0 &&
+      state.openOrders.some(function (order) {
+        return orderId(order) === explicitOrderId;
+      });
+
+    state.activeOrderId = explicitOrderStillExists
+      ? explicitOrderId
+      : null;
+
+    if (!explicitOrderStillExists) {
+      state.orderSelectionExplicitV72 = false;
+    }
+
     state.forceNewCheck =
-      !!state.activeOrderId &&
+      !state.activeOrderId ||
       activeOrderStructuralLocked();
 
     var table = json.table || null;
@@ -3898,6 +3922,7 @@ function renderOpenChecks() {
     state.tableData = null;
     state.openOrders = [];
     state.activeOrderId = null;
+    state.orderSelectionExplicitV72 = false;
     state.offPremiseOrder = null;
     state.cart = [];
     state.note = '';
@@ -3935,6 +3960,7 @@ function renderOpenChecks() {
     var sentItems = optimisticSentItems(snapshot.cart);
 
     state.activeOrderId = id;
+    state.orderSelectionExplicitV72 = snapshot.serviceMode === 'dine_in';
     state.forceNewCheck = false;
 
     if (snapshot.serviceMode === 'dine_in') {
@@ -4169,6 +4195,7 @@ function renderOpenChecks() {
     state.note = '';
     state.guestCount = 1;
     state.activeOrderId = null;
+    state.orderSelectionExplicitV72 = false;
     state.offPremiseOrder = null;
     state.forceNewCheck = state.serviceMode === 'dine_in';
     renderAll();
@@ -5731,10 +5758,14 @@ function renderOpenChecks() {
         );
       }
 
-      /* PMD_QPOS_ACTIVE_VISIT_PAID_V71
-       * Keep the settled check on the occupied table for cashier overview.
-       * New food starts a separate check automatically. */
+      /* PMD_QPOS_ACTIVE_VISIT_PAID_V72
+       * Keep the settled check chip on the occupied table, but do not keep it
+       * selected. The rail is an overview; new food starts a fresh check until
+       * the cashier explicitly taps an existing #check chip. */
+      state.activeOrderId = null;
+      state.orderSelectionExplicitV72 = false;
       state.forceNewCheck = true;
+      state.lastQuantityUndoV72 = null;
     } else {
       if (paidId > 0) {
         state.openOrders = state.openOrders.filter(function (row) {
@@ -5742,7 +5773,9 @@ function renderOpenChecks() {
         });
       }
       state.activeOrderId = null;
+      state.orderSelectionExplicitV72 = false;
       state.forceNewCheck = state.serviceMode === 'dine_in';
+      state.lastQuantityUndoV72 = null;
 
       if (state.serviceMode !== 'dine_in') {
         state.offPremiseOrder = null;
