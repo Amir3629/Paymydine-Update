@@ -372,8 +372,8 @@
                     </div>
                     <input type="hidden" name="give_access" value="1">
                     <div class="pmd-shifts__team-access-fields is-required" data-pmd-team-access-fields>
-                        <label data-pmd-team-username-field><span>Username</span><input maxlength="32" name="username" autocomplete="off" data-pmd-team-username></label>
-                        <label><span>Access</span><select name="staff_role_id" required data-pmd-team-access-role>
+                        <label data-pmd-team-username-field><span>Username <small>Web / Portal</small></span><input maxlength="32" name="username" autocomplete="off" data-pmd-team-username></label>
+                        <label data-pmd-team-access-field><span>Access</span><select name="staff_role_id" required data-pmd-team-access-role>
                             @foreach($accessRoles as $accessRole)
                                 <option
                                     value="{{ (int)$accessRole->staff_role_id }}"
@@ -382,14 +382,14 @@
                             @endforeach
                         </select></label>
                         <label class="is-password" data-pmd-team-pin-field>
-                            <span>Quick PIN <small data-pmd-team-pin-hint>6 digits</small></span>
+                            <span>Quick PIN <small data-pmd-team-pin-hint>App / POS · 6 digits</small></span>
                             <span class="pmd-shifts__team-password-row">
                                 <input type="password" inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6" name="quick_pin" autocomplete="off" data-pmd-team-pin placeholder="••••••">
                                 <button type="button" data-pmd-team-pin-generate>Generate</button>
                             </span>
                         </label>
                         <label class="is-password" data-pmd-team-password-field>
-                            <span>Password <small data-pmd-team-password-hint>required</small></span>
+                            <span>Password <small data-pmd-team-password-hint>Web / Portal</small></span>
                             <span class="pmd-shifts__team-password-row">
                                 <input type="password" minlength="6" maxlength="32" name="password" autocomplete="new-password" data-pmd-team-password>
                                 <button type="button" data-pmd-team-password-generate>Generate</button>

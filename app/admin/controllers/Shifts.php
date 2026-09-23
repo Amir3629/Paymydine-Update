@@ -18,7 +18,6 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -76,12 +75,11 @@ class Shifts extends AdminController
         $this->addCss('css/pmd-shifts-bar-first-paint-fit-v17l.css');
         // PMD_SHIFTS_DYNAMIC_BAR_GEOMETRY_V17M
         $this->addCss('css/pmd-shifts-bar-fit-v17m.css');
-        // PMD_SHIFTS_STAFF_PIN_UI_V18A
-        $this->addCss('css/pmd-shifts-staff-pin-ui-v18a.css');
+        // PMD_SHIFTS_WEB_CREDENTIALS_PLUS_PIN_UI_V18C
+        $this->addCss('css/pmd-shifts-web-credentials-plus-pin-v18c.css');
         // PMD_SHIFTS_MIDNIGHT_TIMELINE_V17N
-        // PMD_SHIFTS_ROLE_DRIVEN_CREDENTIAL_UI_V18B
-        // New filename intentionally busts the old cached Shifts runtime.
-        $this->addJs('js/pmd-shifts-inpage-day-nav-v18b.js');
+        // Versioned filename intentionally busts older PIN-only browser cache.
+        $this->addJs('js/pmd-shifts-inpage-day-nav-v18c.js');
         // PMD_SHIFTS_BIG_CALENDAR_V14
         $this->addJs('js/pmd-shifts-big-calendar-v14.js');
         $this->addJs('js/pmd-shifts-reservation-jade-time-v17c.js');
@@ -323,16 +321,11 @@ class Shifts extends AdminController
             $requestedRoleCode
         );
 
+        // PMD_SHIFTS_WEB_CREDENTIALS_PLUS_PIN_V18C
+        // Every Staff account keeps a real username/password for web login and
+        // usernameportal Staff Portal access. Operational roles additionally
+        // receive a Quick PIN for paired restaurant devices.
         $username = trim((string)request()->input('username', ''));
-        if ($requestedUsesQuickPin) {
-            if ($existingStaff && $existingStaff->user) {
-                $username = trim((string)$existingStaff->user->username);
-            } else {
-                $username = $this->pmdQuickPinInternalUsername(
-                    trim((string)request()->input('display_name', ''))
-                );
-            }
-        }
 
         $input = [
             'display_name' => trim((string)request()->input('display_name', '')),
@@ -360,7 +353,7 @@ class Shifts extends AdminController
                 'required', 'alpha_dash', 'between:2,32',
                 'unique:users,username'.($userId ? ','.$userId.',user_id' : ''),
             ];
-            $rules['password'] = ['nullable', 'between:6,32'];
+            $rules['password'] = [$existingStaff ? 'nullable' : 'required', 'between:6,32'];
             $rules['quick_pin'] = ['nullable', function ($attribute, $value, $fail) use ($pinService) {
                 $value = trim((string)$value);
                 if ($value === '') return;
@@ -414,12 +407,14 @@ class Shifts extends AdminController
                     'That Quick PIN is already used by another team member.'
                 );
             }
-        } elseif (
-            (!$existingStaff || $existingUsedQuickPin)
+        }
+
+        if (
+            !$existingStaff
             && trim((string)($clean['password'] ?? '')) === ''
         ) {
             return $this->redirectTeamFailure(
-                'Add a password for Manager or Accountant access.'
+                'Add a password for this PMD web login.'
             );
         }
 
@@ -456,12 +451,6 @@ class Shifts extends AdminController
                 ];
                 if (($clean['password'] ?? '') !== '') {
                     $user['password'] = $clean['password'];
-                } elseif (!$existingStaff && $usesQuickPin) {
-                    // Operational staff authenticate on trusted restaurant
-                    // devices with Quick PIN. Keep an unshared high-entropy
-                    // framework password underneath so the legacy user model
-                    // remains valid without exposing another credential.
-                    $user['password'] = bin2hex(random_bytes(24));
                 }
 
                 $userModel = $member->addStaffUser($user);
@@ -1394,30 +1383,6 @@ class Shifts extends AdminController
         $local = strtolower(trim(preg_replace('/[^a-z0-9._-]+/i', '-', $username), '-'));
         if ($local === '') $local = 'staff';
         return 'pmd-'.$local.'@staff.local';
-    }
-
-    /** PMD_SHIFTS_PIN_INTERNAL_USERNAME_V18 */
-    private function pmdQuickPinInternalUsername(string $displayName): string
-    {
-        $slug = trim(Str::slug($displayName, '-'), '-');
-        if ($slug === '') $slug = 'staff';
-        $slug = substr($slug, 0, 18);
-
-        for ($attempt = 0; $attempt < 24; $attempt++) {
-            $suffix = (string)random_int(1000, 9999);
-            $candidate = 'pmd-'.$slug.'-'.$suffix;
-
-            if (!DB::table('users')
-                ->whereRaw('LOWER(username) = ?', [mb_strtolower($candidate)])
-                ->exists()
-            ) {
-                return $candidate;
-            }
-        }
-
-        throw new \RuntimeException(
-            'Could not allocate an internal PMD staff identity.'
-        );
     }
 
     private function redirectTeamFailure(string $message)
