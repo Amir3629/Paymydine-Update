@@ -7134,6 +7134,15 @@ function renderOpenChecks() {
       ['paid', 'settled', 'closed'].indexOf(
         settlement.toLowerCase()
       ) !== -1;
+    /* PMD_QPOS_HISTORY_DOCUMENT_ACTIONS_V75
+     * Invoice opens the canonical document. Print uses the same document with
+     * an explicit print request so browser/Desktop print handling stays on the
+     * invoice page instead of duplicating receipt rendering inside Quick POS. */
+    var printInvoiceUrl = invoiceReady
+      ? invoiceUrl +
+        (invoiceUrl.indexOf('?') === -1 ? '?' : '&') +
+        'print=1'
+      : '';
     var settlementLabel = historySettlementLabel(settlement);
     var settlementTone = historySettlementTone(settlement);
     var total = order.total != null ? money(order.total) : '';
@@ -7175,8 +7184,13 @@ function renderOpenChecks() {
           '<time>' + esc(historyShortTime(order.time)) + '</time>' +
         '</div>' +
         (invoiceReady
-          ? '<a class="pmd-qpos-history-invoice" href="' + esc(invoiceUrl) +
-              '" target="_blank" rel="noopener">Open invoice</a>'
+          ? '<div class="pmd-qpos-history-document-actions-v75">' +
+              '<a class="pmd-qpos-history-invoice" href="' + esc(invoiceUrl) +
+                '" target="_blank" rel="noopener">Invoice</a>' +
+              '<a class="pmd-qpos-history-invoice pmd-qpos-history-print-v75" href="' +
+                esc(printInvoiceUrl) +
+                '" target="_blank" rel="noopener">Print</a>' +
+            '</div>'
           : '') +
       '</div>' +
       ((itemSummary || orderNote)
