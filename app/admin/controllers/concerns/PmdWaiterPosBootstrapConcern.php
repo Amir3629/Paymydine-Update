@@ -52,6 +52,16 @@ trait PmdWaiterPosBootstrapConcern
 
     protected function requestPayload(): array
     {
+        // PMD_MOBILE_CANONICAL_PAYLOAD_OVERRIDE_V17
+        // Mobile sync calls the same canonical POS/payment authorities without
+        // fabricating an HTTP request. Identity is still injected separately.
+        if (
+            property_exists($this, 'pmdMobilePayloadOverride')
+            && is_array($this->pmdMobilePayloadOverride)
+        ) {
+            return $this->pmdMobilePayloadOverride;
+        }
+
         $payload = request()->json()->all();
         return $payload ?: request()->all();
     }

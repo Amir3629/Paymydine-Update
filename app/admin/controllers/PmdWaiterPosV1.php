@@ -76,6 +76,19 @@ class PmdWaiterPosV1 extends AdminController
      */
     protected $pmdMobileUserOverride = null;
     protected ?array $pmdMobileIdentityOverride = null;
+    protected ?array $pmdMobilePayloadOverride = null;
+
+    public function pmdUseMobilePayload(array $payload): self
+    {
+        $this->pmdMobilePayloadOverride = $payload;
+
+        return $this;
+    }
+
+    public function pmdMobilePayload(): ?array
+    {
+        return $this->pmdMobilePayloadOverride;
+    }
 
     public function pmdUseMobileIdentity(array $identity): self
     {

@@ -96,6 +96,9 @@ final class PmdMobileBootstrapService
                 'certified_commands' => [
                     'ORDER_HOLD_V1',
                     'ORDER_SEND_V1',
+                    'CASH_PAYMENT_V1',
+                    'TABLE_STATE_V1',
+                    'TABLE_MOVE_V1',
                     'KDS_STATUS_V1',
                 ],
                 'offline_payment_enabled' => false,
@@ -112,9 +115,13 @@ final class PmdMobileBootstrapService
      */
     private function recentHistory(int $locationId): array
     {
+        $dayStart = now()->startOfDay();
+
         $snapshot = [
-            'version' => 'pmd-mobile-history-v1',
+            'version' => 'pmd-mobile-history-v2',
             'generated_at' => now()->toIso8601String(),
+            'today_started_at' => $dayStart->toIso8601String(),
+            'today_complete' => true,
             'entries' => [],
         ];
 
@@ -132,22 +139,57 @@ final class PmdMobileBootstrapService
                 return $snapshot;
             }
 
-            $query = DB::table('orders');
+            $baseQuery = DB::table('orders');
             if (
                 $locationId > 0
                 && in_array('location_id', $orderColumns, true)
             ) {
-                $query->where('location_id', $locationId);
+                $baseQuery->where('location_id', $locationId);
             }
 
-            $sort = in_array('created_at', $orderColumns, true)
+            $dateColumn = in_array('created_at', $orderColumns, true)
                 ? 'created_at'
-                : $primaryKey;
+                : (
+                    in_array('updated_at', $orderColumns, true)
+                        ? 'updated_at'
+                        : null
+                );
+            $sort = $dateColumn ?: $primaryKey;
 
-            $orders = $query
-                ->orderByDesc($sort)
-                ->limit(300)
-                ->get();
+            // PMD_ANDROID_OFFLINE_TODAY_HISTORY_V17
+            // Carry the whole current restaurant day first. A bounded cap
+            // prevents pathological payload growth while still covering a
+            // high-volume service day. Older rows are only backfilled when
+            // today contains fewer than the legacy 300-row history window.
+            if ($dateColumn !== null) {
+                $todayRows = (clone $baseQuery)
+                    ->where($dateColumn, '>=', $dayStart->toDateTimeString())
+                    ->orderByDesc($sort)
+                    ->limit(1201)
+                    ->get();
+
+                if ($todayRows->count() > 1200) {
+                    $snapshot['today_complete'] = false;
+                    $todayRows = $todayRows->take(1200)->values();
+                }
+
+                $orders = $todayRows;
+
+                if ($orders->count() < 300) {
+                    $needed = 300 - $orders->count();
+                    $older = (clone $baseQuery)
+                        ->where($dateColumn, '<', $dayStart->toDateTimeString())
+                        ->orderByDesc($sort)
+                        ->limit($needed)
+                        ->get();
+                    $orders = $orders->concat($older)->values();
+                }
+            } else {
+                $orders = $baseQuery
+                    ->orderByDesc($sort)
+                    ->limit(300)
+                    ->get();
+            }
 
             if ($orders->isEmpty()) {
                 return $snapshot;
@@ -377,7 +419,7 @@ final class PmdMobileBootstrapService
                 return $b <=> $a;
             });
 
-            $snapshot['entries'] = array_slice($entries, 0, 300);
+            $snapshot['entries'] = $entries;
         } catch (\Throwable $error) {
             report($error);
         }
@@ -535,6 +577,22 @@ final class PmdMobileBootstrapService
 
     private function tables(int $locationId): array
     {
+        $versionMap = [];
+        if (Schema::hasTable('pmd_sync_aggregate_versions')) {
+            try {
+                $versionMap = DB::table('pmd_sync_aggregate_versions')
+                    ->where('location_id', $locationId)
+                    ->where('aggregate', 'table')
+                    ->pluck('version', 'aggregate_id')
+                    ->mapWithKeys(function ($version, $aggregateId) {
+                        return [(string)$aggregateId => (int)$version];
+                    })
+                    ->all();
+            } catch (\Throwable $error) {
+                $versionMap = [];
+            }
+        }
+
         return Tables_model::query()
             ->whereHasOrDoesntHaveLocation($locationId)
             ->isEnabled()
@@ -542,9 +600,15 @@ final class PmdMobileBootstrapService
             ->orderBy('table_id')
             ->limit(500)
             ->get()
-            ->map(function ($table) {
+            ->map(function ($table) use ($versionMap) {
+                $tableId = (int)$table->getKey();
+
                 return [
-                    'id' => (int)$table->getKey(),
+                    'id' => $tableId,
+                    'aggregate_version' => (int)(
+                        $versionMap['table:'.$tableId]
+                        ?? 0
+                    ),
                     'number' => (string)($table->table_no ?? $table->getKey()),
                     'name' => (string)($table->table_name ?? ''),
                     'section' => (string)($table->table_section ?? ''),

@@ -3,7 +3,9 @@
 namespace App\Services\PmdMobileSync;
 
 use Admin\Controllers\KitchenDisplay;
+use Admin\Controllers\PmdQuickPosV1;
 use Admin\Controllers\PmdWaiterPosV1;
+use Admin\Controllers\PmdWaiterTableStateV154;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -89,6 +91,7 @@ final class PmdMobileCommandProcessor
                 $versionKey = $this->versionKey($command);
                 $currentVersion = $this->lockAggregateVersion(
                     $command['location_id'],
+                    $command['aggregate'],
                     $versionKey
                 );
 
@@ -97,7 +100,8 @@ final class PmdMobileCommandProcessor
                         'ok' => false,
                         'error' => 'aggregate_version_conflict',
                         'message' =>
-                            'This order changed on another device. Refresh before sending.',
+                            ucfirst($command['aggregate']).
+                            ' changed on another device. Refresh before sending.',
                         'expected_version' => $currentVersion,
                         'received_version' => $command['base_version'],
                     ];
@@ -122,15 +126,34 @@ final class PmdMobileCommandProcessor
 
                 $result = $this->applyCommand($identity, $command);
                 $newVersion = $currentVersion + 1;
-                $canonicalAggregateId = 'order:'.(int)$result['order_id'];
+                $canonicalAggregateId =
+                    $command['aggregate'] === 'table'
+                        ? 'table:'.(int)(
+                            $result['table_id']
+                            ?? $command['payload']['table_id']
+                            ?? $command['payload']['source_table_id']
+                            ?? 0
+                        )
+                        : 'order:'.(int)$result['order_id'];
+
+                if (
+                    $canonicalAggregateId === 'table:0'
+                    || $canonicalAggregateId === 'order:0'
+                ) {
+                    throw new \RuntimeException(
+                        'Canonical aggregate identity is unavailable.'
+                    );
+                }
 
                 $this->setAggregateVersion(
                     $command['location_id'],
+                    $command['aggregate'],
                     $versionKey,
                     $newVersion
                 );
                 $this->setAggregateVersion(
                     $command['location_id'],
+                    $command['aggregate'],
                     $canonicalAggregateId,
                     $newVersion
                 );
@@ -142,18 +165,21 @@ final class PmdMobileCommandProcessor
                     'device_id' => $command['device_id'],
                     'user_id' => $command['user_id'],
                     'staff_id' => $command['staff_id'],
-                    'aggregate' => 'order',
+                    'aggregate' => $command['aggregate'],
                     'aggregate_id' => $canonicalAggregateId,
                     'aggregate_version' => $newVersion,
                     'event_type' => match ($command['command_type']) {
                         'ORDER_HOLD_V1' => 'ORDER_HELD_V1',
                         'KDS_STATUS_V1' => 'KDS_STATUS_CHANGED_V1',
+                        'CASH_PAYMENT_V1' => 'PAYMENT_CASH_RECORDED_V1',
+                        'TABLE_STATE_V1' => 'TABLE_STATE_CHANGED_V1',
+                        'TABLE_MOVE_V1' => 'TABLE_MOVED_V1',
                         default => 'ORDER_SENT_V1',
                     },
                     'payload' => json_encode([
                         'command_id' => $command['command_id'],
                         'client_aggregate_id' => $command['client_aggregate_id'],
-                        'order' => $result,
+                        $command['aggregate'] => $result,
                     ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
                     'occurred_at' => now(),
                     'created_at' => now(),
@@ -167,7 +193,7 @@ final class PmdMobileCommandProcessor
                     'protocol' => self::PROTOCOL,
                     'command_id' => $command['command_id'],
                     'idempotency_key' => $command['idempotency_key'],
-                    'aggregate' => 'order',
+                    'aggregate' => $command['aggregate'],
                     'aggregate_id' => $canonicalAggregateId,
                     'aggregate_version' => $newVersion,
                     'sequence' => $sequence,
@@ -220,6 +246,18 @@ final class PmdMobileCommandProcessor
             return $this->applyKdsStatusCommand($identity, $command);
         }
 
+        if ($command['command_type'] === 'CASH_PAYMENT_V1') {
+            return $this->applyCashPaymentCommand($identity, $command);
+        }
+
+        if ($command['command_type'] === 'TABLE_STATE_V1') {
+            return $this->applyTableStateCommand($identity, $command);
+        }
+
+        if ($command['command_type'] === 'TABLE_MOVE_V1') {
+            return $this->applyTableMoveCommand($identity, $command);
+        }
+
         if (!in_array(
             $command['command_type'],
             ['ORDER_SEND_V1', 'ORDER_HOLD_V1'],
@@ -252,6 +290,245 @@ final class PmdMobileCommandProcessor
         $pos->pmdUseMobileIdentity($identity);
 
         return $pos->saveMobilePayload($tableId, $payload);
+    }
+
+    /**
+     * PMD_MOBILE_OFFLINE_CASH_PAYMENT_V17
+     *
+     * The tablet records only the business intent while disconnected. When an
+     * authority is reachable, the intent is replayed through the exact
+     * canonical settlement endpoint with the verified mobile identity.
+     *
+     * No card/provider approval is synthesized offline.
+     */
+    private function applyCashPaymentCommand(
+        array $identity,
+        array $command
+    ): array {
+        $payload = (array)$command['payload'];
+        $orderId = (int)($payload['order_id'] ?? 0);
+        if ($orderId < 1) {
+            throw ValidationException::withMessages([
+                'order_id' => 'A canonical order is required for offline cash.',
+            ]);
+        }
+
+        $payload['payment_method'] = 'cash';
+        $payload['idempotency_key'] = $command['idempotency_key'];
+        $payload['quick_pos_fast'] = true;
+        unset(
+            $payload['external_confirmed'],
+            $payload['provider_code'],
+            $payload['payment_reference']
+        );
+
+        /** @var PmdWaiterPosV1 $pos */
+        $pos = app(PmdWaiterPosV1::class);
+        $pos->pmdUseMobileIdentity($identity);
+        $pos->pmdUseMobilePayload($payload);
+
+        $response = $pos->settlePayment($orderId);
+        $status = method_exists($response, 'getStatusCode')
+            ? (int)$response->getStatusCode()
+            : 500;
+        $data = method_exists($response, 'getData')
+            ? (array)$response->getData(true)
+            : [];
+
+        if ($status >= 400 || empty($data['ok'])) {
+            throw ValidationException::withMessages([
+                'payment' => (string)(
+                    $data['message']
+                    ?? 'Offline cash payment could not be reconciled.'
+                ),
+            ]);
+        }
+
+        $summary = (array)($data['summary'] ?? []);
+        $settlement = (array)($summary['settlement'] ?? []);
+        $order = (array)($summary['order'] ?? []);
+
+        return [
+            'order_id' => $orderId,
+            'table_id' => (int)($payload['table_id'] ?? 0),
+            'order_total' => (float)(
+                $settlement['order_total']
+                ?? $payload['expected_remaining']
+                ?? 0
+            ),
+            'settled_amount' => (float)(
+                $settlement['settled_amount']
+                ?? $data['settled_base_amount']
+                ?? 0
+            ),
+            'remaining_amount' => (float)(
+                $settlement['remaining_amount']
+                ?? $data['remaining_amount']
+                ?? 0
+            ),
+            'settlement_status' => (string)(
+                $settlement['status']
+                ?? $data['settlement_status']
+                ?? ''
+            ),
+            'updated_at' => (string)($order['updated_at'] ?? ''),
+            'transaction_id' => (int)($data['transaction_id'] ?? 0),
+            'paid_amount' => (float)($data['paid_amount'] ?? 0),
+            'cash_received' => (float)($data['cash_received'] ?? 0),
+            'change_due' => (float)($data['change_due'] ?? 0),
+        ];
+    }
+
+    /**
+     * PMD_MOBILE_OFFLINE_TABLE_ACTIONS_V17
+     *
+     * Replay table lifecycle and move intents through the existing canonical
+     * controllers. The mobile command ledger supplies durable idempotent
+     * transport; controller business rules remain authoritative.
+     */
+    private function applyTableStateCommand(
+        array $identity,
+        array $command
+    ): array {
+        $payload = (array)$command['payload'];
+        $tableId = (int)($payload['table_id'] ?? 0);
+        if ($tableId < 1) {
+            throw ValidationException::withMessages([
+                'table_id' => 'A restaurant table is required.',
+            ]);
+        }
+
+        $this->assertTableLocation(
+            $tableId,
+            (int)$identity['location_id']
+        );
+
+        /** @var PmdWaiterTableStateV154 $controller */
+        $controller = app(PmdWaiterTableStateV154::class);
+        $controller->pmdUseMobileContext($identity, $payload);
+        $data = $this->responseData(
+            $controller->update($tableId)
+        );
+
+        return array_merge($data, ['table_id' => $tableId]);
+    }
+
+    private function applyTableMoveCommand(
+        array $identity,
+        array $command
+    ): array {
+        $payload = (array)$command['payload'];
+        $sourceId = (int)($payload['source_table_id'] ?? 0);
+        $targetId = (int)($payload['target_table_id'] ?? 0);
+        if ($sourceId < 1 || $targetId < 1) {
+            throw ValidationException::withMessages([
+                'table_id' => 'Source and destination tables are required.',
+            ]);
+        }
+
+        $this->assertTableLocation(
+            $sourceId,
+            (int)$identity['location_id']
+        );
+        $this->assertTableLocation(
+            $targetId,
+            (int)$identity['location_id']
+        );
+
+        /** @var PmdQuickPosV1 $pos */
+        $pos = app(PmdQuickPosV1::class);
+        $pos->pmdUseMobileIdentity($identity);
+        $pos->pmdUseMobilePayload($payload);
+        $data = $this->responseData($pos->transfer());
+
+        return array_merge(
+            $data,
+            [
+                'table_id' => $sourceId,
+                'source_table_id' => $sourceId,
+                'target_table_id' => $targetId,
+                'scope' => (string)($payload['scope'] ?? 'order'),
+                'order_id' => (int)($payload['order_id'] ?? 0),
+            ]
+        );
+    }
+
+    private function responseData($response): array
+    {
+        $status = is_object($response)
+            && method_exists($response, 'getStatusCode')
+                ? (int)$response->getStatusCode()
+                : 500;
+        $data = is_object($response)
+            && method_exists($response, 'getData')
+                ? (array)$response->getData(true)
+                : [];
+
+        if ($status >= 400 || empty($data['ok'])) {
+            throw ValidationException::withMessages([
+                'operation' => (string)(
+                    $data['message']
+                    ?? 'PayMyDine operation could not be reconciled.'
+                ),
+            ]);
+        }
+
+        return $data;
+    }
+
+    private function assertTableLocation(
+        int $tableId,
+        int $locationId
+    ): void {
+        if (
+            $tableId < 1
+            || $locationId < 1
+            || !Schema::hasTable('tables')
+        ) {
+            abort(403, 'Restaurant table authority is unavailable.');
+        }
+
+        $columns = Schema::getColumnListing('tables');
+        $pk = in_array('table_id', $columns, true)
+            ? 'table_id'
+            : (in_array('id', $columns, true) ? 'id' : null);
+        if (!$pk) {
+            abort(403, 'Restaurant table authority is unavailable.');
+        }
+
+        if (in_array('location_id', $columns, true)) {
+            if (
+                !DB::table('tables')
+                    ->where($pk, $tableId)
+                    ->where('location_id', $locationId)
+                    ->exists()
+            ) {
+                abort(403, 'This table belongs to another restaurant.');
+            }
+            return;
+        }
+
+        if (
+            Schema::hasTable('locationables')
+            && Schema::hasColumn('locationables', 'location_id')
+            && Schema::hasColumn('locationables', 'locationable_id')
+            && Schema::hasColumn('locationables', 'locationable_type')
+        ) {
+            $matches = DB::table('locationables')
+                ->where('locationable_id', $tableId)
+                ->where('location_id', $locationId)
+                ->whereIn(
+                    'locationable_type',
+                    ['tables', 'Admin\\Models\\Tables_model']
+                )
+                ->exists();
+
+            if ($matches) {
+                return;
+            }
+        }
+
+        abort(403, 'This table has no verified restaurant location.');
     }
 
     private function applyKdsStatusCommand(
@@ -322,9 +599,9 @@ final class PmdMobileCommandProcessor
                 'idempotency_key' => 'A valid idempotency key is required.',
             ]);
         }
-        if ($aggregate !== 'order') {
+        if (!in_array($aggregate, ['order', 'table'], true)) {
             throw ValidationException::withMessages([
-                'aggregate' => 'Mobile sync V1 currently accepts order aggregates only.',
+                'aggregate' => 'Mobile sync accepts order or table aggregates.',
             ]);
         }
         if ($aggregateId === '' || strlen($aggregateId) > 128) {
@@ -363,17 +640,25 @@ final class PmdMobileCommandProcessor
             'payload' => $payload,
         ];
 
-        // Restaurant Edge is allowed to rewrite only transport-routing fields
-        // after an offline order receives its canonical Cloud order id/version.
-        // Idempotency must still identify the same immutable business intent,
-        // otherwise the phone's recovery copy and the Edge replay could appear
-        // to be two different commands with the same UUID.
+        // Restaurant Edge may rewrite transport-routing fields only for
+        // local order SEND/HOLD commands after a provisional bill receives its
+        // canonical Cloud id/version. For cash, KDS and table operations,
+        // order_id is business intent and MUST stay inside the idempotency hash.
         $intentPayload = $payload;
-        unset(
-            $intentPayload['order_id'],
-            $intentPayload['expected_updated_at'],
-            $intentPayload['order_ref']
-        );
+        if (
+            $aggregate === 'order'
+            && in_array(
+                $commandType,
+                ['ORDER_SEND_V1', 'ORDER_HOLD_V1'],
+                true
+            )
+        ) {
+            unset(
+                $intentPayload['order_id'],
+                $intentPayload['expected_updated_at'],
+                $intentPayload['order_ref']
+            );
+        }
 
         $intent = [
             'command_id' => $commandId,
@@ -474,6 +759,10 @@ final class PmdMobileCommandProcessor
 
     private function versionKey(array $command): string
     {
+        if ($command['aggregate'] === 'table') {
+            return $command['aggregate_id'];
+        }
+
         $orderId = (int)($command['payload']['order_id'] ?? 0);
         if ($orderId > 0) return 'order:'.$orderId;
 
@@ -482,11 +771,12 @@ final class PmdMobileCommandProcessor
 
     private function lockAggregateVersion(
         int $locationId,
+        string $aggregate,
         string $aggregateId
     ): int {
         DB::table('pmd_sync_aggregate_versions')->insertOrIgnore([
             'location_id' => $locationId,
-            'aggregate' => 'order',
+            'aggregate' => $aggregate,
             'aggregate_id' => $aggregateId,
             'version' => 0,
             'updated_at' => now(),
@@ -494,7 +784,7 @@ final class PmdMobileCommandProcessor
 
         $row = DB::table('pmd_sync_aggregate_versions')
             ->where('location_id', $locationId)
-            ->where('aggregate', 'order')
+            ->where('aggregate', $aggregate)
             ->where('aggregate_id', $aggregateId)
             ->lockForUpdate()
             ->first();
@@ -510,13 +800,14 @@ final class PmdMobileCommandProcessor
 
     private function setAggregateVersion(
         int $locationId,
+        string $aggregate,
         string $aggregateId,
         int $version
     ): void {
         DB::table('pmd_sync_aggregate_versions')->updateOrInsert(
             [
                 'location_id' => $locationId,
-                'aggregate' => 'order',
+                'aggregate' => $aggregate,
                 'aggregate_id' => $aggregateId,
             ],
             [
