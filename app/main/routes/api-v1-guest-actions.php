@@ -131,7 +131,7 @@
 
                     // PMD_TABLE_ACTIVITY_OCCUPANCY_V76
                     // Guest service activity starts/continues the physical visit.
-                    AppHelpersTableHelper::markOccupiedFromActivity(
+                    \App\Helpers\TableHelper::markOccupiedFromActivity(
                         $tableOnly,
                         'guest_waiter_call'
                     );
@@ -174,7 +174,7 @@
                     ]);
 
                     // PMD_TABLE_ACTIVITY_OCCUPANCY_V76
-                    AppHelpersTableHelper::markOccupiedFromActivity(
+                    \App\Helpers\TableHelper::markOccupiedFromActivity(
                         $tableOnly,
                         'guest_table_note'
                     );
