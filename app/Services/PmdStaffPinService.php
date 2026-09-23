@@ -214,7 +214,6 @@ final class PmdStaffPinService
             PmdDefaultStaffRoleService::WAITER,
             PmdDefaultStaffRoleService::RESERVATIONS,
             PmdDefaultStaffRoleService::TEAM_MEMBER,
-            PmdDefaultStaffRoleService::SONSTIGE,
         ], true);
     }
 
