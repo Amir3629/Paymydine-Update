@@ -3890,6 +3890,7 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 'due_amount' => 0.0,
                 'waiter_calls' => 0,
                 'note_count' => 0,
+                'force_occupied' => false,
             ];
             $tableById[$id] = $table;
 
@@ -4075,6 +4076,38 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                         }
 
                         $type = strtolower(trim((string)($raw['type'] ?? '')));
+                        $activityAt = trim((string)($raw['created_at'] ?? ''));
+                        $physicalStatus = strtolower(trim((string)(
+                            $tableById[$tableId]['status'] ?? 'available'
+                        )));
+
+                        /* PMD_QPOS_ATTENTION_BUSY_RECONCILE_V76B
+                         * Backfill NEW attention that predates V76 deployment,
+                         * but only when the event is newer than the last table
+                         * lifecycle change. An explicit later Free always wins. */
+                        if (
+                            in_array(
+                                $physicalStatus,
+                                ['', 'available', 'free'],
+                                true
+                            )
+                            && $activityAt !== ''
+                        ) {
+                            $reason = $type === 'waiter_call'
+                                ? 'reconcile_waiter_call'
+                                : 'reconcile_table_note';
+
+                            if (
+                                \App\Helpers\TableHelper::markOccupiedFromActivity(
+                                    $tableId,
+                                    $reason,
+                                    $activityAt
+                                )
+                            ) {
+                                $signals[$tableId]['force_occupied'] = true;
+                            }
+                        }
+
                         if ($type === 'waiter_call') {
                             $signals[$tableId]['waiter_calls']++;
                         } elseif ($type === 'table_note') {
@@ -4094,7 +4127,17 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 'due_amount' => 0.0,
                 'waiter_calls' => 0,
                 'note_count' => 0,
+                'force_occupied' => false,
             ];
+
+            if (
+                !empty($signal['force_occupied'])
+                && $this->quickPosNormalizeTableStatus(
+                    (string)($table['status'] ?? 'available')
+                ) === 'available'
+            ) {
+                $table['status'] = 'occupied';
+            }
 
             $table['payment_state'] = (string)$signal['payment_state'];
             $table['due_amount'] = (float)$signal['due_amount'];
