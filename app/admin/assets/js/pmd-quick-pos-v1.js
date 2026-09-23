@@ -2197,7 +2197,6 @@
        * single table from accumulating multiple service-attention icons while
        * keeping payment badges independent. */
       if (hasAttention) {
-        var attentionCountV81 = waiterCalls + noteCount;
         var attentionTitleV81 =
           waiterCalls > 0 && noteCount > 0
             ? 'Waiter call + table note'
@@ -2208,7 +2207,7 @@
           icon: '!',
           title: attentionTitleV81,
           attentionKind: 'attention',
-          count: attentionCountV81
+          count: 0
         });
       }
 
@@ -3419,9 +3418,9 @@ function renderOpenChecks() {
           !(canOrderNow() && state.cart.length > 0)
         );
 
-      pay.textContent = state.cart.length > 0
-        ? 'Send to Kitchen & Pay'
-        : 'Pay';
+      /* PMD_QPOS_PAY_LABEL_V82
+       * Keep the proven send-then-pay workflow behind one simple operator label. */
+      pay.textContent = 'Pay';
     }
 
     renderContext();
