@@ -158,9 +158,7 @@
   function customerDisplayOrderPayload(phase, extras) {
     extras = extras || {};
     var order = activeOrder();
-    var total = roundMoney(
-      existingTotal() + pendingSendTotal() + cartTotal()
-    );
+    var total = qposTotalsV74().total;
     var highlight = state.customerDisplayHighlight || null;
 
     return Object.assign({
@@ -646,6 +644,95 @@
     }, 0));
   }
 
+  /* PMD_QPOS_VAT_PREVIEW_V74
+   * Order persistence is authoritative and currently stores menu prices net
+   * when tax_menu_price=1. Preview the same rule for unsent food and reuse the
+   * canonical stored order_totals tax for already-sent food. */
+  function taxSettingsV74() {
+    var settings = state.settings || {};
+    var enabledRaw = settings.tax_enabled;
+    var enabled = enabledRaw === true ||
+      ['1', 'true', 'yes', 'on'].indexOf(
+        String(enabledRaw == null ? '' : enabledRaw).toLowerCase()
+      ) !== -1;
+    var percentage = Math.max(0, num(settings.tax_percentage, 0));
+    var addAtCheckout = String(
+      settings.tax_menu_price == null ? '1' : settings.tax_menu_price
+    ) !== '0';
+    var title = String(settings.tax_title || 'VAT').trim() || 'VAT';
+
+    return {
+      enabled: enabled && percentage > 0,
+      percentage: percentage,
+      addAtCheckout: addAtCheckout,
+      title: title
+    };
+  }
+
+  function taxRateLabelV74(rate) {
+    var value = Math.max(0, num(rate, 0));
+    return String(
+      Math.round(value * 10000) / 10000
+    ).replace(/\.0+$/, '');
+  }
+
+  function vatForAmountV74(amount, tax) {
+    amount = Math.max(0, num(amount, 0));
+    tax = tax || taxSettingsV74();
+
+    if (!tax.enabled || amount <= 0 || tax.percentage <= 0) {
+      return 0;
+    }
+
+    return roundMoney(
+      tax.addAtCheckout
+        ? amount * (tax.percentage / 100)
+        : amount * (tax.percentage / (100 + tax.percentage))
+    );
+  }
+
+  function existingVatV74(tax) {
+    var order = activeOrder();
+    if (!order || !tax.enabled) return 0;
+
+    var stored = num(order.tax_amount, -1);
+    if (stored >= 0) {
+      return roundMoney(stored);
+    }
+
+    var subtotal = num(order.subtotal, -1);
+    var gross = Math.max(0, existingTotal());
+
+    if (tax.addAtCheckout && subtotal >= 0 && gross >= subtotal) {
+      return roundMoney(gross - subtotal);
+    }
+
+    return roundMoney(
+      gross * (tax.percentage / (100 + tax.percentage))
+    );
+  }
+
+  function qposTotalsV74() {
+    var tax = taxSettingsV74();
+    var newSubtotal = cartTotal();
+    var pendingSubtotal = pendingSendTotal();
+    var unsentSubtotal = roundMoney(newSubtotal + pendingSubtotal);
+    var unsentVat = vatForAmountV74(unsentSubtotal, tax);
+    var unsentGross = roundMoney(
+      unsentSubtotal + (tax.enabled && tax.addAtCheckout ? unsentVat : 0)
+    );
+    var existingGross = roundMoney(existingTotal());
+    var existingVat = existingVatV74(tax);
+
+    return {
+      tax: tax,
+      newSubtotal: newSubtotal,
+      pendingSubtotal: pendingSubtotal,
+      vat: roundMoney(existingVat + unsentVat),
+      total: roundMoney(existingGross + unsentGross)
+    };
+  }
+
   function itemCount() {
     return state.cart.reduce(function (sum, row) {
       return sum + Math.max(1, num(row.quantity, 1));
@@ -688,7 +775,24 @@
         currency:
           json && json.settings
             ? String(json.settings.currency || '€')
-            : '€'
+            : '€',
+        /* PMD_QPOS_VAT_CACHE_V74
+         * Cache presentation-only tax settings with the menu so refresh never
+         * flashes a tax-less total before bootstrap reconciliation. */
+        tax_enabled:
+          !!(json && json.settings && json.settings.tax_enabled),
+        tax_percentage:
+          json && json.settings
+            ? num(json.settings.tax_percentage, 0)
+            : 0,
+        tax_menu_price:
+          json && json.settings
+            ? num(json.settings.tax_menu_price, 1)
+            : 1,
+        tax_title:
+          json && json.settings
+            ? String(json.settings.tax_title || 'VAT')
+            : 'VAT'
       },
       floors: Array.isArray(json && json.floors) ? json.floors : [],
       default_floor_id: String(
@@ -3015,16 +3119,31 @@ function renderOpenChecks() {
       }
     }
 
-    var newTotal = cartTotal();
-    var total = roundMoney(
-      existingTotal() + pendingSendTotal() + newTotal
-    );
+    var totalsV74 = qposTotalsV74();
+    var newTotal = totalsV74.newSubtotal;
+    var total = totalsV74.total;
 
     var newTotalEl = $('[data-qpos-new-total]');
+    var vatRowV74 = $('[data-qpos-vat-row]');
+    var vatLabelV74 = $('[data-qpos-vat-label]');
+    var vatTotalV74 = $('[data-qpos-vat-total]');
     var totalEl = $('[data-qpos-total]');
     var mobileTotal = $('[data-qpos-mobile-total]');
     var mobileCount = $('[data-qpos-mobile-count]');
     if (newTotalEl) newTotalEl.textContent = money(newTotal);
+
+    if (vatRowV74) {
+      vatRowV74.hidden = !totalsV74.tax.enabled;
+    }
+    if (vatLabelV74) {
+      vatLabelV74.textContent =
+        totalsV74.tax.title +
+        ' (' + taxRateLabelV74(totalsV74.tax.percentage) + '%)';
+    }
+    if (vatTotalV74) {
+      vatTotalV74.textContent = money(totalsV74.vat);
+    }
+
     if (totalEl) totalEl.textContent = money(total);
     if (mobileTotal) mobileTotal.textContent = money(total);
     if (mobileCount) mobileCount.textContent = String(itemCount());
@@ -3116,7 +3235,7 @@ function renderOpenChecks() {
 
     if (send) {
       send.disabled = !canSave;
-      send.textContent = 'Send';
+      send.textContent = 'Send to Kitchen';
     }
 
     if (pay) {
@@ -3138,7 +3257,7 @@ function renderOpenChecks() {
         );
 
       pay.textContent = state.cart.length > 0
-        ? 'Send & Pay'
+        ? 'Send to Kitchen & Pay'
         : 'Pay';
     }
 
@@ -6987,7 +7106,7 @@ function renderOpenChecks() {
     }
 
     var invoiceUrl = String(
-      order.invoice_url || ('/admin/orders/invoice/' + encodeURIComponent(orderId))
+      order.invoice_url || ('/admin/pmd-cashier-order-center/invoice/' + encodeURIComponent(orderId))
     );
     var settlement = String(order.settlement_status || '').trim();
     var settlementLabel = historySettlementLabel(settlement);
