@@ -410,6 +410,7 @@
     itemNoteIndex: null,
     historyScope: 'selected',
     historyKind: 'orders',
+    historySearch: '',
     historyPreset: '7d',
     historyFrom: '',
     historyTo: '',
@@ -584,9 +585,22 @@
 
     function paint() {
       var now = new Date();
-      clock.textContent = formatter.format(now);
-      clock.dateTime = now.toISOString();
-      clock.title = now.toLocaleDateString();
+      var value = formatter.format(now);
+      var iso = now.toISOString();
+      var title = now.toLocaleDateString();
+
+      clock.textContent = value;
+      clock.dateTime = iso;
+      clock.title = title;
+
+      /* PMD_QPOS_HISTORY_CLOCK_V84
+       * History has the same clock placement as the live catalogue. */
+      var historyClock = $('[data-qpos-history-clock]');
+      if (historyClock) {
+        historyClock.textContent = value;
+        historyClock.dateTime = iso;
+        historyClock.title = title;
+      }
     }
 
     paint();
@@ -7527,58 +7541,63 @@ function renderOpenChecks() {
       })
     );
 
+    /* PMD_QPOS_HISTORY_ORDER_CARD_V84
+     * The order is the first section card, using the same visual grammar as
+     * Payments. The old standalone "Order" eyebrow/header is intentionally gone. */
     detail.innerHTML =
-      '<div class="pmd-qpos-history-order-head pmd-qpos-history-order-head-v20">' +
-        '<div class="pmd-qpos-history-order-identity">' +
-          '<span>Order</span>' +
-          '<h3>#' + esc(orderId) + '</h3>' +
-        '</div>' +
-        '<div class="pmd-qpos-history-order-facts">' +
-          (total
-            ? '<strong>' + esc(total) + '</strong>'
-            : '') +
-          (settlementLabel
-            ? '<span class="is-' + esc(settlementTone) + '">' +
-                esc(settlementLabel) +
-              '</span>'
-            : '') +
-          '<time>' + esc(historyShortTime(order.time)) + '</time>' +
-        '</div>' +
-        (invoiceReady
-          ? '<div class="pmd-qpos-history-document-actions-v75">' +
-              '<a class="pmd-qpos-history-invoice" href="' + esc(invoiceUrl) +
-                '" target="_blank" rel="noopener">Invoice</a>' +
-              '<a class="pmd-qpos-history-invoice pmd-qpos-history-print-v75" href="' +
-                esc(printInvoiceUrl) +
-                '" target="_blank" rel="noopener">Print</a>' +
-            '</div>'
-          : '') +
-      '</div>' +
-      ((itemSummary || orderNote)
-        ? '<div class="pmd-qpos-history-order-overview pmd-qpos-history-order-overview-v83">' +
+      '<div class="pmd-qpos-history-sections pmd-qpos-history-sections-v84">' +
+        '<section class="pmd-qpos-history-section pmd-qpos-history-order-card-v84">' +
+          '<header>' +
+            '<strong>#' + esc(orderId) + '</strong>' +
+            (settlementLabel
+              ? '<span class="pmd-qpos-history-order-status-v84 is-' +
+                  esc(settlementTone) + '">' +
+                  esc(settlementLabel) +
+                '</span>'
+              : '') +
+          '</header>' +
+          '<article class="pmd-qpos-history-order-event-v84">' +
+            '<div class="pmd-qpos-history-simple-main pmd-qpos-history-order-main-v84">' +
+              '<div>' +
+                (total
+                  ? '<strong>' + esc(total) + '</strong>'
+                  : '') +
+              '</div>' +
+              '<time>' + esc(historyShortTime(order.time)) + '</time>' +
+            '</div>' +
             (itemSummary
-              ? '<section class="pmd-qpos-history-items-card-v83">' +
-                  '<header><span>Items</span></header>' +
+              ? '<div class="pmd-qpos-history-order-items-v84">' +
+                  '<span>Items</span>' +
                   '<div class="pmd-qpos-history-item-chips-v83">' +
                     itemSummaryMarkupV83 +
                   '</div>' +
-                '</section>'
+                '</div>'
               : '') +
             (orderNote
-              ? '<section class="pmd-qpos-history-note-card-v83">' +
-                  '<header><span>Note</span></header>' +
+              ? '<div class="pmd-qpos-history-order-note-v84">' +
+                  '<span>Note</span>' +
                   '<p>' + esc(orderNote) + '</p>' +
-                '</section>'
+                '</div>'
               : '') +
-          '</div>'
-        : '') +
-      '<div class="pmd-qpos-history-sections">' +
+            (invoiceReady
+              ? '<div class="pmd-qpos-history-document-actions-v75 pmd-qpos-history-document-actions-v84">' +
+                  '<a class="pmd-qpos-history-invoice" href="' + esc(invoiceUrl) +
+                    '" target="_blank" rel="noopener">Invoice</a>' +
+                  '<a class="pmd-qpos-history-invoice pmd-qpos-history-print-v75" href="' +
+                    esc(printInvoiceUrl) +
+                    '" target="_blank" rel="noopener">Print</a>' +
+                '</div>'
+              : '') +
+          '</article>' +
+        '</section>' +
         historySection('Payments', paymentEvents) +
         historySection('Notes & calls', noteEvents) +
         (
           !paymentEvents.length &&
           !noteEvents.length
-            ? '<div class="pmd-qpos-history-empty">No linked payments or notes.</div>'
+            ? '<div class="pmd-qpos-history-empty pmd-qpos-history-empty-v84">' +
+                'No linked payments or notes.' +
+              '</div>'
             : ''
         ) +
       '</div>';
@@ -7730,6 +7749,37 @@ function renderOpenChecks() {
     }
   }
 
+  function historySearchMatchesV84(entry, query) {
+    query = String(query || '').trim().toLowerCase();
+    if (!query) return true;
+
+    entry = entry || {};
+    var compact = historyListCompact(entry);
+    var values = [
+      entry.order_id,
+      entry.title,
+      entry.detail,
+      entry.item_summary,
+      entry.note,
+      entry.payment_method,
+      entry.payment_note,
+      entry.status_name,
+      entry.settlement_status,
+      entry.payer_label,
+      compact.title,
+      compact.line,
+      compact.badge,
+      formatHistoryTime(entry.time)
+    ];
+
+    return values
+      .map(function (value) {
+        return String(value == null ? '' : value).toLowerCase();
+      })
+      .join(' ')
+      .indexOf(query) !== -1;
+  }
+
   function renderHistory(json) {
     var list = $('[data-qpos-history-list]');
     var title = $('[data-qpos-history-title]');
@@ -7754,6 +7804,14 @@ function renderOpenChecks() {
     } else {
       entries = entries.filter(function (entry) {
         return historyKindMatches(entry, kind);
+      });
+    }
+
+    /* PMD_QPOS_HISTORY_SEARCH_V84 */
+    var historyQueryV84 = String(state.historySearch || '').trim();
+    if (historyQueryV84) {
+      entries = entries.filter(function (entry) {
+        return historySearchMatchesV84(entry, historyQueryV84);
       });
     }
 
@@ -8740,6 +8798,18 @@ function renderOpenChecks() {
 
     var historyFrom = $('[data-qpos-history-from]');
     var historyTo = $('[data-qpos-history-to]');
+    var historySearchV84 = $('[data-qpos-history-search]');
+
+    if (historySearchV84) {
+      historySearchV84.oninput = function () {
+        state.historySearch = String(historySearchV84.value || '');
+
+        if (state.historyData) {
+          state.historySelectedOrderId = null;
+          renderHistory(state.historyData);
+        }
+      };
+    }
 
     if (historyFrom) historyFrom.onchange = function () {
       state.historyFrom = historyFrom.value || '';

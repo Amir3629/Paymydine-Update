@@ -18,7 +18,7 @@
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-dashboard-lab-exact-floor-v1.css?v=20260920-floor-v35b">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-shared-floor-multi-floor-v1.css?v=20260920-floor-v35b">
     <link rel="stylesheet" href="/app/admin/assets/css/push-notifications.css?v=20260922-qpos-v59">
-    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-pos-v1.css?v=20260923-83">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-pos-v1.css?v=20260923-84">
 </head>
 <body class="pmd-qpos-body">
 @php
@@ -699,56 +699,75 @@
     </div>
 
     <div class="pmd-qpos-modal pmd-qpos-workspace-modal" data-qpos-history-modal aria-hidden="true">
-        <div class="pmd-qpos-modal-card pmd-qpos-history-card">
-            {{-- PMD_QPOS_HISTORY_HEADER_V82
-                 Date controls now live in the true top header. --}}
-            <header class="pmd-qpos-history-topbar-v82">
-                <div class="pmd-qpos-history-heading-v82">
+        {{-- PMD_QPOS_HISTORY_CARD_SHELL_V84
+             History mirrors the live POS: left card | large middle card | table rail. --}}
+        <div class="pmd-qpos-modal-card pmd-qpos-history-card pmd-qpos-history-shell-v84">
+            <section class="pmd-qpos-history-master-v82 pmd-qpos-history-left-card-v84">
+                <header class="pmd-qpos-history-left-head-v84">
                     <span class="pmd-qpos-section-label">History</span>
                     <h2 data-qpos-history-title>History</h2>
+                </header>
+
+                <div class="pmd-qpos-history-kind-tabs-v82">
+                    <button type="button" class="is-active" data-qpos-history-kind="orders">Orders</button>
+                    <button type="button" data-qpos-history-kind="payments">Payments</button>
+                    <button type="button" data-qpos-history-kind="notes">Notes</button>
+                    <button type="button" data-qpos-history-kind="calls">Call</button>
                 </div>
 
-                <div class="pmd-qpos-history-range">
+                <div class="pmd-qpos-history-list" data-qpos-history-list>
+                    <div class="pmd-qpos-history-empty">Loading…</div>
+                </div>
+
+                {{-- PMD_QPOS_HISTORY_RANGE_DOCK_V84
+                     Date range behaves like the bottom action dock of Check. --}}
+                <div class="pmd-qpos-history-range pmd-qpos-history-range-v84">
                     <div class="pmd-qpos-history-presets">
-                        <button type="button" data-qpos-history-preset="today">Today</button>
-                        <button type="button" class="is-active" data-qpos-history-preset="7d">7 days</button>
-                        <button type="button" data-qpos-history-preset="30d">30 days</button>
-                        <button type="button" data-qpos-history-preset="all">All time</button>
+                        <button type="button" class="is-today-v84" data-qpos-history-preset="today">Today</button>
+                        <button type="button" class="is-active is-week-v84" data-qpos-history-preset="7d">7 days</button>
+                        <button type="button" class="is-month-v84" data-qpos-history-preset="30d">30 days</button>
+                        <button type="button" class="is-all-v84" data-qpos-history-preset="all">All time</button>
                     </div>
 
-                    <label>
-                        <span>From</span>
-                        <input type="date" data-qpos-history-from>
-                    </label>
-                    <label>
-                        <span>To</span>
-                        <input type="date" data-qpos-history-to>
-                    </label>
+                    <div class="pmd-qpos-history-dates-v84">
+                        <label>
+                            <span>From</span>
+                            <input type="date" data-qpos-history-from>
+                        </label>
+                        <label>
+                            <span>To</span>
+                            <input type="date" data-qpos-history-to>
+                        </label>
+                    </div>
                 </div>
-            </header>
+            </section>
 
-            <div class="pmd-qpos-history-layout">
-                {{-- PMD_QPOS_HISTORY_MASTER_V82
-                     Kind filters belong to the history index they control. --}}
-                <section class="pmd-qpos-history-master-v82">
-                    <div class="pmd-qpos-history-kind-tabs-v82">
-                        <button type="button" class="is-active" data-qpos-history-kind="orders">Orders</button>
-                        <button type="button" data-qpos-history-kind="payments">Payments</button>
-                        <button type="button" data-qpos-history-kind="notes">Notes</button>
-                        <button type="button" data-qpos-history-kind="calls">Call</button>
-                    </div>
+            <section class="pmd-qpos-history-center-card-v84">
+                {{-- PMD_QPOS_HISTORY_WORKBAR_V84
+                     Same placement/language as Search + Clock in the live catalogue. --}}
+                <header class="pmd-qpos-history-workbar-v84">
+                    <label class="pmd-qpos-search pmd-qpos-history-search-v84">
+                        <span>⌕</span>
+                        <input
+                            type="search"
+                            autocomplete="off"
+                            placeholder="Search history…"
+                            data-qpos-history-search
+                        >
+                    </label>
 
-                    <div class="pmd-qpos-history-list" data-qpos-history-list>
-                        <div class="pmd-qpos-history-empty">Loading…</div>
-                    </div>
-                </section>
+                    <time
+                        class="pmd-qpos-clock pmd-qpos-history-clock-v84"
+                        data-qpos-history-clock
+                    >{{ now()->format('H:i') }}</time>
+                </header>
 
                 <aside class="pmd-qpos-history-detail" data-qpos-history-detail>
                     <div class="pmd-qpos-history-empty">
                         Select an order to see invoice, items, payments and notes.
                     </div>
                 </aside>
-            </div>
+            </section>
         </div>
     </div>
 
@@ -899,7 +918,7 @@ window.PMDQuickPOSConfig = {
      Reuse the canonical Admin push stream for immediate notifications.
      V73 also runs one lean operational-state heartbeat for table/KDS sync. --}}
 <script src="/app/admin/assets/js/push-notifications.js?v=20260922-qpos-v59"></script>
-<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260923-83"></script>
+<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260923-84"></script>
 <script src="/app/admin/assets/js/pmd-site-access-hub-v13.js?v=20260921-androidpair-v16"></script>
 </body>
 </html>
