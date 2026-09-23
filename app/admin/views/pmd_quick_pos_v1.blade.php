@@ -18,7 +18,7 @@
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-dashboard-lab-exact-floor-v1.css?v=20260920-floor-v35b">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-shared-floor-multi-floor-v1.css?v=20260920-floor-v35b">
     <link rel="stylesheet" href="/app/admin/assets/css/push-notifications.css?v=20260922-qpos-v59">
-    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-pos-v1.css?v=20260923-71">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-pos-v1.css?v=20260923-72">
 </head>
 <body class="pmd-qpos-body">
 @php
@@ -207,7 +207,15 @@
             <div class="pmd-qpos-sent" data-qpos-sent hidden>
                 <div class="pmd-qpos-subhead">
                     <strong>Sent</strong>
-                    <span data-qpos-sent-total></span>
+                    <span class="pmd-qpos-sent-head-v72">
+                        <button
+                            type="button"
+                            class="pmd-qpos-undo-v72"
+                            data-qpos-sent-undo
+                            hidden
+                        >↶ Undo</button>
+                        <span data-qpos-sent-total></span>
+                    </span>
                 </div>
                 <div data-qpos-sent-items></div>
             </div>
@@ -767,7 +775,7 @@ window.PMDQuickPOSConfig = {
 {{-- PMD_QPOS_PUSH_NOTIFICATIONS_V57
      Reuse the canonical Admin push stream; do not add another polling loop. --}}
 <script src="/app/admin/assets/js/push-notifications.js?v=20260922-qpos-v59"></script>
-<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260923-71"></script>
+<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260923-72"></script>
 <script src="/app/admin/assets/js/pmd-site-access-hub-v13.js?v=20260921-androidpair-v16"></script>
 </body>
 </html>
