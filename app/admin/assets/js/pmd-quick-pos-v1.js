@@ -1391,10 +1391,11 @@
     });
   }
 
-  /* PMD_QPOS_TABLE_ATTENTION_V57
-   * Calls/notes are operational attention, not physical table status.
-   * Never auto-select a table because that could discard/switch cashier work.
-   * Instead pulse the card and gently rotate the visible rail to attention. */
+  /* PMD_QPOS_TABLE_ATTENTION_V76
+   * Calls/notes are attention signals whose creation also persists physical
+   * Busy on the server. This renderer never frees that physical visit.
+   * Never auto-select a table because that could discard/switch cashier work;
+   * pulse the card and gently rotate the visible rail instead. */
   function tableNeedsAttentionV57(table) {
     return !!table && (
       num(table.waiter_calls, 0) > 0 ||
@@ -1577,11 +1578,12 @@
       window.clearInterval(state.attentionCycleTimer);
     }
 
-    /* PMD_QPOS_ATTENTION_ROTATION_V61
-     * Rotate assertively enough that an off-screen table cannot stay hidden. */
+    /* PMD_QPOS_ATTENTION_ROTATION_V76
+     * Give the operator a full ten seconds on each attention table before the
+     * rail smoothly rotates to the next unresolved call/note. */
     state.attentionCycleTimer = window.setInterval(
       cycleAttentionTablesV57,
-      4000
+      10000
     );
 
     window.setTimeout(cycleAttentionTablesV57, 900);
@@ -7298,14 +7300,11 @@ function renderOpenChecks() {
             next.note_count = Math.max(0, num(next.note_count, 0) - 1);
           }
 
-          if (
-            next.derived_busy &&
-            !next.has_active_order &&
-            num(next.waiter_calls, 0) < 1 &&
-            num(next.note_count, 0) < 1
-          ) {
-            next.status = 'available';
-            next.derived_busy = false;
+          /* PMD_QPOS_SEEN_DOES_NOT_FREE_V76
+           * Seen acknowledges the service signal only. The physical visit stays
+           * Busy until Cashier/Waiter explicitly presses Free. */
+          if (next.derived_busy) {
+            next.status = 'occupied';
           }
 
           return next;
