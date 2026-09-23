@@ -7592,14 +7592,6 @@ function renderOpenChecks() {
         '</section>' +
         historySection('Payments', paymentEvents) +
         historySection('Notes & calls', noteEvents) +
-        (
-          !paymentEvents.length &&
-          !noteEvents.length
-            ? '<div class="pmd-qpos-history-empty pmd-qpos-history-empty-v84">' +
-                'No linked payments or notes.' +
-              '</div>'
-            : ''
-        ) +
       '</div>';
   }
 
