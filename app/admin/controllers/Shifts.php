@@ -76,6 +76,8 @@ class Shifts extends AdminController
         $this->addCss('css/pmd-shifts-bar-first-paint-fit-v17l.css');
         // PMD_SHIFTS_DYNAMIC_BAR_GEOMETRY_V17M
         $this->addCss('css/pmd-shifts-bar-fit-v17m.css');
+        // PMD_SHIFTS_STAFF_PIN_UI_V18A
+        $this->addCss('css/pmd-shifts-staff-pin-ui-v18a.css');
         // PMD_SHIFTS_MIDNIGHT_TIMELINE_V17N
         // PMD_SHIFTS_SCROLL_MEMORY_V17O
         $this->addJs('js/pmd-shifts-inpage-day-nav-v17o.js');
