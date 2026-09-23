@@ -6444,8 +6444,10 @@ function renderOpenChecks() {
     var dineInVisit =
       state.serviceMode === 'dine_in' &&
       !!state.selectedTable;
+    var pickupVisit =
+      state.serviceMode === 'takeaway';
 
-    if (dineInVisit && paidId > 0) {
+    if ((dineInVisit || pickupVisit) && paidId > 0) {
       var paidOrder = activeOrder();
       if (paidOrder) {
         paidOrder.settlement_status = 'paid';
@@ -6461,20 +6463,25 @@ function renderOpenChecks() {
             allowed: false,
             locked: true,
             payment_started: true,
-            reason:
-              'Payment completed. This bill stays visible until the table is made Free.'
+            reason: pickupVisit
+              ? 'Payment completed. This Pickup stays visible until Kitchen marks it Ready.'
+              : 'Payment completed. This bill stays visible until the table is made Free.'
           }
         );
       }
 
-      /* PMD_QPOS_ACTIVE_VISIT_PAID_V72
-       * Keep the settled check chip on the occupied table, but do not keep it
-       * selected. The rail is an overview; new food starts a fresh check until
-       * the cashier explicitly taps an existing #check chip. */
+      /* PMD_QPOS_ACTIVE_VISIT_PAID_V78
+       * Payment is financial state, not the check-rail exit. Table checks stay
+       * until Ready/visit lifecycle and Pickup checks stay until KDS Ready. */
       state.activeOrderId = null;
       state.orderSelectionExplicitV72 = false;
-      state.forceNewCheck = true;
+      state.forceNewCheck = dineInVisit;
       state.lastQuantityUndoV72 = null;
+
+      if (pickupVisit) {
+        state.offPremiseOrder = null;
+        state.pickupOrdersSignatureV78 = '';
+      }
     } else {
       if (paidId > 0) {
         state.openOrders = state.openOrders.filter(function (row) {
