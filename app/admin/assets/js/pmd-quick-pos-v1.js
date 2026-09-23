@@ -369,11 +369,18 @@
     tableData: null,
     openOrders: [],
     activeOrderId: null,
+    /* PMD_QPOS_EXPLICIT_CHECK_SELECTION_V72
+     * Opening a table starts a fresh check. Existing checks receive new food
+     * only after the cashier explicitly taps the matching #check chip. */
+    orderSelectionExplicitV72: false,
     offPremiseOrder: null,
     forceNewCheck: false,
     cart: [],
     pendingSend: null,
     sentMutationBusy: Object.create(null),
+    /* PMD_QPOS_QUANTITY_UNDO_STATE_V72
+     * One reversible sent-item quantity action only; payments never enter it. */
+    lastQuantityUndoV72: null,
     customerDisplayHighlight: null,
     tableRequestSeq: 0,
     /* PMD_QPOS_TABLE_CACHE_STATE_V41
@@ -1986,6 +1993,35 @@
     });
   }
 
+  function productUsesBrandPlaceholderV72(image) {
+    var source = String(image || '').trim();
+    if (!source) return true;
+
+    try {
+      var path = new URL(source, window.location.href).pathname.toLowerCase();
+      return (
+        path === '/brand/paymydine-logo.svg' ||
+        path === '/app/admin/assets/images/paymydine-logo.svg'
+      );
+    } catch (ignored) {
+      return /(?:^|\/)paymydine-logo\.svg(?:$|[?#])/i.test(source);
+    }
+  }
+
+  function productPlaceholderMarkupV72() {
+    /* PMD_QPOS_INLINE_PLACEHOLDER_V72
+     * Inline vector = no separate SVG/mask request and therefore no refresh
+     * flash for foods that intentionally use the PayMyDine placeholder. */
+    return (
+      '<div class="pmd-qpos-product-image is-placeholder is-inline-v72" aria-hidden="true">' +
+        '<svg viewBox="0 0 428.72 420" focusable="false" aria-hidden="true">' +
+          '<path d="M242.42 38.65H45.83c8.89 34.02 37.63 60.01 73.1 64.85 3.93.54 7.94.82 12.02.82h111.47c46.54 0 84.28 37.73 84.28 84.28s-37.74 84.28-84.28 84.28h-67.53c-16.46 0-29.8 13.34-29.8 29.8v35.87h95.89c83.02 0 151.35-66.86 151.39-149.89.03-82.85-67.12-150.01-149.95-150.01Z"></path>' +
+          '<path d="M219.64 246.47v-25.53h-91.75c-6.1 0-11.05 4.95-11.05 11.05v88.72c0 4.08-.28 8.09-.82 12.02-4.84 35.47-30.83 64.21-64.85 73.1V209.24c0-1.3 0-2.58.01-3.84 1.73-25.71 21.8-46.39 47.24-49.07h11.14l110.08-.07v-25.53l58.55 57.87-58.55 57.87Z"></path>' +
+        '</svg>' +
+      '</div>'
+    );
+  }
+
   function renderProducts() {
     var box = $('[data-qpos-products]');
     var status = $('[data-qpos-catalog-status]');
@@ -2015,6 +2051,7 @@
         num(item.price, 0) > 0;
 
       var image = String(item.image || '');
+      var placeholder = productUsesBrandPlaceholderV72(image);
       var selectedQuantity = cartQuantityForMenu(item.id);
       return (
         '<button type="button" class="pmd-qpos-product' +
@@ -2025,9 +2062,9 @@
           /* PMD_QPOS_PLACEHOLDER_LOGO_V34
            * Match the Menu page empty-photo treatment: a neutral preview
            * with the monochrome PayMyDine brand mark. */
-          (image
-            ? '<div class="pmd-qpos-product-image" style="background-image:url(&quot;' + esc(image) + '&quot;)"></div>'
-            : '<div class="pmd-qpos-product-image is-placeholder" aria-hidden="true"></div>') +
+          (placeholder
+            ? productPlaceholderMarkupV72()
+            : '<div class="pmd-qpos-product-image" style="background-image:url(&quot;' + esc(image) + '&quot;)"></div>') +
           (item.is_bestseller ? '<span class="pmd-qpos-product-badge">Popular</span>' : '') +
           (selectedQuantity > 0
             ? '<span class="pmd-qpos-product-count" data-qpos-product-count aria-label="' +
@@ -2064,8 +2101,19 @@
           return;
         }
 
-        if (activeOrderStructuralLocked()) {
-          toast('Payment started. Choose + Check for new items.', true);
+        if (
+          activeOrderStructuralLocked() &&
+          state.serviceMode === 'dine_in' &&
+          state.selectedTable
+        ) {
+          state.activeOrderId = null;
+          state.orderSelectionExplicitV72 = false;
+          state.forceNewCheck = true;
+          state.guestCount = 1;
+          state.note = '';
+          renderCart({orderSwitch: true});
+        } else if (activeOrderStructuralLocked()) {
+          toast('Payment started. Start a new check for additional items.', true);
           return;
         }
 
@@ -2099,6 +2147,7 @@
   function selectOrder(id) {
     id = Number(id || 0);
     state.activeOrderId = id > 0 ? id : null;
+    state.orderSelectionExplicitV72 = id > 0;
     var order = activeOrder();
     state.forceNewCheck =
       id < 1 ||
