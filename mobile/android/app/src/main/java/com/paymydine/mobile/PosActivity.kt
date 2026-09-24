@@ -36,6 +36,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import org.json.JSONTokener
+import java.io.ByteArrayInputStream
 import java.net.URI
 
 /**
@@ -56,11 +57,6 @@ class PosActivity : ComponentActivity() {
         RECONNECTING,
     }
 
-    private data class LocalUiSeed(
-        val tableId: String? = null,
-        val floorId: String? = null,
-    )
-
     private lateinit var root: FrameLayout
     private lateinit var loading: TextView
     private var webView: WebView? = null
@@ -70,6 +66,7 @@ class PosActivity : ComponentActivity() {
     private var transportMode = TransportMode.CLOUD
     private var localBridge: LocalPosBridge? = null
     private lateinit var customerDisplay: CustomerDisplayManager
+    private lateinit var posShellCache: PosShellCache
 
     private val app: PayMyDineApplication
         get() = application as PayMyDineApplication
@@ -81,6 +78,7 @@ class PosActivity : ComponentActivity() {
         // One display manager belongs to one physical PayMyDine POS device.
         customerDisplay = CustomerDisplayManager(this)
         customerDisplay.showIdle()
+        posShellCache = PosShellCache(this)
 
         // PMD_ANDROID_OFFLINE_POS_AUTHORITY_V12
         val posAuthorized = if (app.connectivity.online.value) {
