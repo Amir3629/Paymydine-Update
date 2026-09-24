@@ -572,7 +572,7 @@ final class PmdMobileCommandProcessor
         }
 
         try {
-            $moment = CarbonCarbon::createFromTimestamp(
+            $moment = \Carbon\Carbon::createFromTimestamp(
                 (int)floor($clientCreatedAtMs / 1000),
                 'UTC'
             )->setTimezone(now()->getTimezone());
@@ -595,7 +595,7 @@ final class PmdMobileCommandProcessor
                     ->where('order_id', $orderId)
                     ->update($updates);
             }
-        } catch (Throwable $error) {
+        } catch (\Throwable $error) {
             report($error);
         }
     }
@@ -661,7 +661,7 @@ final class PmdMobileCommandProcessor
             return now();
         }
 
-        return CarbonCarbon::createFromTimestamp(
+        return \Carbon\Carbon::createFromTimestamp(
             (int)floor($clientMs / 1000),
             'UTC'
         )->setTimezone(now()->getTimezone());
