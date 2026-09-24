@@ -1141,6 +1141,58 @@
     el.setAttribute('title', online ? 'Online' : 'Offline');
   }
 
+  // PMD_QPOS_SYNC_VISIBILITY_V104
+  // Local-first POS keeps cashier work independent from network state. This
+  // indicator reports delivery/reconciliation state without blocking the UI.
+  function refreshNativeSyncStatusV104() {
+    var el = $('[data-qpos-sync-state]');
+    if (!el) return;
+
+    var bridge = window.PayMyDineOffline;
+    if (!bridge || typeof bridge.syncStatus !== 'function') {
+      el.textContent = window.__PMD_NATIVE_OFFLINE__ ? 'Local' : 'Cloud';
+      el.classList.remove('is-attention');
+      return;
+    }
+
+    try {
+      var raw = bridge.syncStatus();
+      var status = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      if (!status || status.ok !== true) return;
+
+      var active = Number(status.active || 0);
+      var rejected = Number(status.rejected || 0);
+      var cloudState = String(
+        status.cloud_state || (status.cloud_available === true ? 'online' : 'offline')
+      );
+      var cloud = cloudState === 'online';
+
+      el.classList.toggle('is-attention', rejected > 0);
+      if (rejected > 0) {
+        el.textContent = 'Needs attention · ' + rejected;
+        el.setAttribute('title', rejected + ' rejected change(s) need review');
+      } else if (active > 0) {
+        var waitingLabel = cloud
+          ? 'Syncing'
+          : (cloudState === 'checking' ? 'Connecting' : 'Offline');
+        el.textContent = waitingLabel + ' · ' + active + ' waiting';
+        el.setAttribute('title', active + ' local change(s) waiting for Cloud');
+      } else if (cloudState === 'checking') {
+        el.textContent = 'Local · checking Cloud';
+        el.setAttribute('title', 'POS is local-first while PayMyDine Cloud is checked');
+      } else if (cloudState === 'unreachable') {
+        el.textContent = 'Local · Cloud unavailable';
+        el.setAttribute('title', 'Internet exists but PayMyDine Cloud did not answer');
+      } else {
+        el.textContent = cloud ? 'Synced' : 'Offline · saved locally';
+        el.setAttribute(
+          'title',
+          cloud ? 'All local changes are synced' : 'Work is safe on this tablet'
+        );
+      }
+    } catch (ignored) {}
+  }
+
   function startClock() {
     var clock = $('[data-qpos-clock]');
     if (!clock) return;
@@ -10251,6 +10303,8 @@ function renderOpenChecks() {
     };
 
     startClock();
+    refreshNativeSyncStatusV104();
+    window.setInterval(refreshNativeSyncStatusV104, 2500);
     installCustomerDisplayControls();
 
     window.addEventListener('keydown', function (event) {
@@ -10298,6 +10352,7 @@ function renderOpenChecks() {
     setNativeOffline: function (enabled) {
       window.__PMD_NATIVE_OFFLINE__ = enabled === true;
       setOnline(!window.__PMD_NATIVE_OFFLINE__);
+      refreshNativeSyncStatusV104();
       root.classList.toggle(
         'is-native-offline',
         window.__PMD_NATIVE_OFFLINE__
@@ -10342,6 +10397,7 @@ function renderOpenChecks() {
         // local bootstrap has restored the cashier's exact unsent work.
         window.__PMD_NATIVE_UI_DRAFT_RESTORE_PENDING__ = false;
         persistNativeUiDraftV18();
+        refreshNativeSyncStatusV104();
 
         try {
           if (
