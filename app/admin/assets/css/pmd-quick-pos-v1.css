@@ -13332,3 +13332,772 @@ body.pmd-qpos-body {
   }
 }
 
+
+
+/* ============================================================
+   PMD_QPOS_ANDROID_FORM_FACTOR_MATRIX_V105
+   Dedicated Android Cashier POS must be treated as a tablet by product
+   identity, not by CSS-pixel width. Cheap/embedded 1280x800 tablets can report
+   <600 CSS px in portrait and were therefore misclassified as phones.
+   The portrait rules clone the proven V102 tablet matrix at all reported widths.
+   Landscape explicitly neutralizes legacy <=820 handheld sizing.
+   ============================================================ */
+@media (orientation: portrait) {
+  html.pmd-qpos-android-pos-v105,
+  html.pmd-qpos-android-pos-v105 body.pmd-qpos-body {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  html.pmd-qpos-android-pos-v105 body.pmd-qpos-body {
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos {
+    width: 100% !important;
+    max-width: 100vw !important;
+    min-width: 0 !important;
+    height: auto !important;
+    max-height: none !important;
+    min-height: 100dvh !important;
+    overflow-x: hidden !important;
+    font-size: 16px !important;
+    line-height: 1.35 !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos *,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos *::before,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos *::after {
+    box-sizing: border-box !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-main {
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    height: auto !important;
+    min-height: 100dvh !important;
+    overflow: visible !important;
+    padding: 8px !important;
+    padding-bottom: calc(78px + env(safe-area-inset-bottom)) !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-left,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-catalog,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-cart {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    border-radius: 14px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-left {
+    height: auto !important;
+    min-height: 0 !important;
+    margin-bottom: 8px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-floor-switch {
+    padding: 8px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-floor-tabs {
+    display: grid !important;
+    grid-template-columns: repeat(4,minmax(0,1fr)) !important;
+    gap: 8px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-floor-tabs button {
+    min-width: 0 !important;
+    min-height: 48px !important;
+    height: 48px !important;
+    padding: 0 10px !important;
+    border-radius: 10px !important;
+    font-size: 15px !important;
+    line-height: 1.1 !important;
+    font-weight: 850 !important;
+    white-space: normal !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-floor-map-open {
+    min-height: 48px !important;
+    height: 48px !important;
+    font-size: 15px !important;
+    font-weight: 850 !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-guide-toggle {
+    min-width: 48px !important;
+    width: 48px !important;
+    min-height: 48px !important;
+    height: 48px !important;
+    font-size: 18px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-tables {
+    min-height: 270px !important;
+    max-height: 350px !important;
+    overflow-y: auto !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-table-grid,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos[data-mode="waiter"] .pmd-qpos-table-grid,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-history-tables-v93 .pmd-qpos-table-grid {
+    grid-template-columns: repeat(4,minmax(0,1fr)) !important;
+    gap: 8px !important;
+    padding: 7px 9px 11px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-table,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-history-tables-v93 .pmd-qpos-table {
+    min-width: 0 !important;
+    min-height: 82px !important;
+    padding: 10px 8px !important;
+    border-radius: 11px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-table strong,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-table:not(.pmd-qpos-pickup) > strong,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-history-tables-v93 .pmd-qpos-table strong {
+    padding-inline: 0 !important;
+    font-size: 24px !important;
+    line-height: 1 !important;
+    font-weight: 900 !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-pickup strong,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-history-tables-v93 .pmd-qpos-pickup strong {
+    font-size: 17px !important;
+    line-height: 1.1 !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-table small,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-history-tables-v93 .pmd-qpos-table small {
+    margin-top: 6px !important;
+    padding-inline: 0 !important;
+    font-size: 13px !important;
+    line-height: 1.1 !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-table-signal {
+    width: 28px !important;
+    min-width: 28px !important;
+    height: 28px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-table-signal b {
+    font-size: 13px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-profile-dock {
+    gap: 8px !important;
+    padding: 8px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-profile-button,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-history-button {
+    min-height: 48px !important;
+    height: 48px !important;
+    border-radius: 10px !important;
+    font-size: 15px !important;
+    font-weight: 850 !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-profile-button > span {
+    width: 30px !important;
+    height: 30px !important;
+    font-size: 13px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-profile-button > strong {
+    font-size: 15px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-catalog {
+    min-height: 0 !important;
+    height: auto !important;
+    margin-bottom: 8px !important;
+    overflow: visible !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-catalog-head {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 20 !important;
+    gap: 8px !important;
+    padding: 8px !important;
+    background: #fff !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-search,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-clock {
+    height: 52px !important;
+    min-height: 52px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-search {
+    min-width: 0 !important;
+    padding-inline: 14px !important;
+    border-radius: 10px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-search span {
+    font-size: 19px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-search input,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos input,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos textarea,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos select,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos input::placeholder,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos textarea::placeholder {
+    min-width: 0 !important;
+    font-size: 16px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-clock {
+    min-width: 78px !important;
+    width: auto !important;
+    padding-inline: 10px !important;
+    font-size: 16px !important;
+    font-weight: 850 !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-categories {
+    width: 100% !important;
+    max-width: 100% !important;
+    gap: 8px !important;
+    padding: 8px !important;
+    overflow-x: auto !important;
+    overscroll-behavior-inline: contain !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-categories button {
+    flex: 0 0 auto !important;
+    min-width: 96px !important;
+    min-height: 48px !important;
+    height: 48px !important;
+    padding-inline: 12px !important;
+    border-radius: 10px !important;
+    font-size: 15px !important;
+    line-height: 1.05 !important;
+    font-weight: 850 !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-catalog-status,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-section-label {
+    padding-top: 8px !important;
+    padding-bottom: 5px !important;
+    font-size: 15px !important;
+    line-height: 1.2 !important;
+    letter-spacing: 0 !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-product-grid {
+    grid-template-columns: repeat(3,minmax(0,1fr)) !important;
+    gap: 10px !important;
+    padding: 8px !important;
+    overflow: visible !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-product,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-product:hover,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-product.is-selected,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-product.is-selected:hover {
+    min-width: 0 !important;
+    min-height: 0 !important;
+    aspect-ratio: 1 / 1 !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-product-body .pmd-qpos-product-name {
+    top: 12px !important;
+    left: 12px !important;
+    right: 12px !important;
+    gap: 5px !important;
+    font-size: 20px !important;
+    line-height: 1.08 !important;
+    font-weight: 900 !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-product-body .pmd-qpos-product-number {
+    font-size: 18px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-product-meta {
+    left: 12px !important;
+    right: 12px !important;
+    bottom: 12px !important;
+    gap: 7px !important;
+    font-size: 15px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-product-meta > span {
+    min-width: 0 !important;
+    font-size: 15px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-product-meta > b {
+    font-size: 26px !important;
+    line-height: 1 !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-product-badge {
+    padding: 6px 9px !important;
+    font-size: 13px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-product-count {
+    min-width: 30px !important;
+    height: 30px !important;
+    font-size: 14px !important;
+  }
+
+  /* Tablet portrait uses a sheet cart; it does not stretch the whole cashier UI. */
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-cart {
+    position: fixed !important;
+    z-index: 55 !important;
+    inset: 0 !important;
+    height: 100dvh !important;
+    margin: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    transform: translateY(110%) !important;
+    transition: transform .2s ease !important;
+    overflow: auto !important;
+    padding-bottom: max(24px,env(safe-area-inset-bottom)) !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-cart.is-mobile-open {
+    transform: translateY(0) !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-cart-close {
+    display: inline-grid !important;
+    place-items: center !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-cart-head {
+    min-height: 58px !important;
+    padding: 10px 13px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-cart-head strong {
+    font-size: 19px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-cart-line strong,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-sent-line {
+    font-size: 18px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-cart-line small,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-sent-line small,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-order-note > span,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-cart-summary span {
+    font-size: 15px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-cart-summary strong {
+    font-size: 20px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-open-checks button,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-cart-actions button,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-table-actions button,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-option,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-modal-primary,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-payment-methods button,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-tip-row button,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-terminal {
+    min-height: 48px !important;
+    font-size: 15px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-mobile-cart {
+    position: fixed !important;
+    left: 12px !important;
+    right: 12px !important;
+    bottom: max(12px,env(safe-area-inset-bottom)) !important;
+    z-index: 50 !important;
+    width: auto !important;
+    max-width: calc(100% - 24px) !important;
+    height: 60px !important;
+    min-height: 60px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding-inline: 18px !important;
+    border-radius: 14px !important;
+    font-size: 17px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-mobile-cart span,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-mobile-cart b {
+    font-size: 17px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-mobile-cart strong {
+    font-size: 23px !important;
+  }
+
+  /* Tablet History stays two-pane instead of using the phone full-screen drill-in. */
+  html.pmd-qpos-android-pos-v105 .pmd-qpos
+  .pmd-qpos-workspace-modal[data-qpos-history-modal] {
+    left: 8px !important;
+    right: 8px !important;
+    top: 8px !important;
+    bottom: 8px !important;
+    padding: 0 !important;
+    align-items: stretch !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos
+  .pmd-qpos-workspace-modal[data-qpos-history-modal]
+  > .pmd-qpos-history-shell-v84 {
+    width: 100% !important;
+    height: calc(100dvh - 16px) !important;
+    max-height: calc(100dvh - 16px) !important;
+    display: grid !important;
+    grid-template-columns: 270px minmax(0,1fr) !important;
+    overflow: hidden !important;
+    border-radius: 14px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-history-left-card-v84,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-history-center-card-v84 {
+    min-width: 0 !important;
+    height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-history-center-card-v84 {
+    position: relative !important;
+    inset: auto !important;
+    z-index: auto !important;
+    width: auto !important;
+    background: #fff !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-history-mobile-back-v87 {
+    display: none !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-history-left-head-v84 {
+    min-height: 58px !important;
+    padding: 10px 13px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-history-left-head-v84 h2 {
+    font-size: 21px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-history-kind-tabs-v82 button,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-history-all-v93,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-history-presets button,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-history-toolbar button {
+    min-height: 44px !important;
+    height: auto !important;
+    font-size: 14px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-history-dates-v85 input {
+    min-height: 44px !important;
+    height: 44px !important;
+    font-size: 14px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-history-workbar-v84 {
+    min-height: 56px !important;
+    padding: 8px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-history-workbar-v84 .pmd-qpos-search,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-history-workbar-v84 .pmd-qpos-clock {
+    height: 46px !important;
+    min-height: 46px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-history-entry,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-history-simple-event {
+    min-height: 84px !important;
+    padding: 12px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-history-entry-top strong,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-history-entry strong,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-history-simple-event strong {
+    font-size: 17px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-history-entry small,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-history-simple-event small,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-history-entry footer,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-history-simple-event footer {
+    font-size: 14px !important;
+  }
+}
+
+
+@media (orientation: landscape) {
+  html.pmd-qpos-android-pos-v105,
+  html.pmd-qpos-android-pos-v105 body.pmd-qpos-body {
+    -webkit-text-size-adjust: 100% !important;
+    text-size-adjust: 100% !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 body.pmd-qpos-body {
+    overflow: hidden !important;
+    font-size: 16px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos {
+    width: 100% !important;
+    max-width: 100vw !important;
+    min-width: 0 !important;
+    height: 100dvh !important;
+    min-height: 0 !important;
+    max-height: 100dvh !important;
+    overflow: hidden !important;
+    font-size: 16px !important;
+    line-height: 1.3 !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos-main {
+    display: grid !important;
+    grid-template-columns: 200px minmax(300px,1fr) 300px !important;
+    gap: 8px !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    padding: 8px !important;
+    padding-bottom: 8px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos-left,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos-catalog,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos-cart {
+    position: relative !important;
+    inset: auto !important;
+    transform: none !important;
+    width: auto !important;
+    max-width: none !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    border-radius: 12px !important;
+    overflow: hidden !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos-left,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos-catalog {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos-cart {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos-cart-close,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos-mobile-cart {
+    display: none !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos-floor-switch {
+    padding: 8px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos-floor-tabs {
+    gap: 6px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos-floor-tabs button,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos-floor-map-open {
+    min-height: 44px !important;
+    height: auto !important;
+    padding-inline: 10px !important;
+    font-size: 14px !important;
+    line-height: 1.1 !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos-guide-toggle {
+    min-width: 44px !important;
+    min-height: 44px !important;
+    font-size: 17px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos-tables {
+    min-height: 0 !important;
+    max-height: none !important;
+    flex: 1 1 auto !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos-table-grid,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos[data-mode="waiter"] .pmd-qpos-table-grid {
+    grid-template-columns: repeat(2,minmax(0,1fr)) !important;
+    gap: 7px !important;
+    padding: 7px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos-table {
+    min-height: 86px !important;
+    padding: 10px 8px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos-table strong,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos-table:not(.pmd-qpos-pickup) > strong {
+    font-size: 24px !important;
+    line-height: 1 !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos-pickup strong {
+    font-size: 17px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos-table small,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos-table:not(.pmd-qpos-pickup) > small {
+    margin-top: 7px !important;
+    font-size: 13px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos-profile-button,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos-history-button {
+    min-height: 46px !important;
+    height: 46px !important;
+    padding-inline: 10px !important;
+    font-size: 14px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos-profile-button strong {
+    font-size: 14px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos-catalog-head {
+    position: relative !important;
+    top: auto !important;
+    z-index: auto !important;
+    padding: 8px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos-search,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos-clock {
+    height: 46px !important;
+    min-height: 46px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos-search {
+    padding-inline: 11px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos-search span {
+    font-size: 18px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos-search input,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos input,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos textarea,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos select,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos-modal input,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos-modal textarea,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos-modal select {
+    font-size: 14px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos-clock {
+    min-width: 64px !important;
+    padding-inline: 8px !important;
+    font-size: 14px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos-categories {
+    gap: 7px !important;
+    padding: 7px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos-categories button {
+    min-width: 92px !important;
+    min-height: 46px !important;
+    height: 46px !important;
+    padding-inline: 12px !important;
+    font-size: 14px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos-catalog-status {
+    padding: 7px 9px 2px !important;
+    font-size: 13px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos-product-grid {
+    grid-template-columns: repeat(auto-fill,minmax(145px,1fr)) !important;
+    gap: 8px !important;
+    padding: 8px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos-product {
+    min-height: 0 !important;
+    aspect-ratio: 1 / 1 !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos-product-body .pmd-qpos-product-name {
+    top: 11px !important;
+    left: 11px !important;
+    right: 11px !important;
+    font-size: 18px !important;
+    line-height: 1.1 !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos-product-body .pmd-qpos-product-number {
+    font-size: 16px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos-product-meta {
+    left: 11px !important;
+    right: 11px !important;
+    bottom: 11px !important;
+    font-size: 13px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos-product-meta > b {
+    font-size: 23px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos-product-badge {
+    font-size: 11px !important;
+    padding: 5px 8px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos-cart-actions button,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos-table-actions button,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos-open-checks button,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos-line-qty button,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos-sent-qty-v68 button,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos-line-note,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos-option,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos-modal-primary,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos-modal-qty button {
+    min-height: 46px !important;
+    font-size: 14px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos-cart-line strong,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos-sent-line {
+    font-size: 16px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos-cart-line small,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos-sent-line small,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos-order-note > span,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos-cart-summary span {
+    font-size: 13px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos-cart-summary strong {
+    font-size: 19px !important;
+  }
+}
+
