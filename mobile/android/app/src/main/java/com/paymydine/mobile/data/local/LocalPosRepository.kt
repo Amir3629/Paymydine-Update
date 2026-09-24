@@ -488,8 +488,85 @@ class LocalPosRepository(private val database: PmdDatabase) {
             }
         }
 
+        val requestedOrderId = payload.optLong("order_id", 0L)
+        val forceNewCheck = payload.optBoolean("force_new_check", false)
+
+        // PMD_ANDROID_EXACT_MULTI_CHECK_CONTINUATION_V18
+        // A table may have several open checks. Never fall back to whichever
+        // local row happens to be newest: continue only the exact V86 order_id
+        // selected by the cashier.
+        if (requestedOrderId > 0L && !forceNewCheck) {
+            database.transaction { db ->
+                val existingDraft = db.query(
+                    "pmd_orders",
+                    arrayOf("id", "server_id"),
+                    "table_id = ? AND status = ?",
+                    arrayOf(tableId, STATUS_DRAFT),
+                    null,
+                    null,
+                    "updated_at_ms DESC",
+                    "1",
+                ).use { rows ->
+                    if (!rows.moveToFirst()) null
+                    else rows.getString(0) to
+                        (if (rows.isNull(1)) null else rows.getString(1))
+                }
+
+                if (existingDraft != null) {
+                    require(
+                        existingDraft.second?.toLongOrNull() == requestedOrderId,
+                    ) {
+                        "Finish the current unsent check before editing another check."
+                    }
+                    return@transaction
+                }
+
+                val target = db.query(
+                    "pmd_orders",
+                    arrayOf("id", "status"),
+                    "location_id = ? AND table_id = ? AND server_id = ?",
+                    arrayOf(
+                        locationId.toString(),
+                        tableId,
+                        requestedOrderId.toString(),
+                    ),
+                    null,
+                    null,
+                    "updated_at_ms DESC",
+                    "1",
+                ).use { rows ->
+                    if (!rows.moveToFirst()) null
+                    else rows.getString(0) to rows.getString(1)
+                } ?: error("The selected check is not available offline.")
+
+                require(
+                    target.second in setOf(
+                        STATUS_SERVER_OPEN,
+                        STATUS_EDGE_OPEN,
+                        STATUS_HELD,
+                        STATUS_SENT,
+                        STATUS_EDGE_HELD,
+                        STATUS_EDGE_SENT,
+                    ),
+                ) {
+                    "The selected check must sync before it can be edited."
+                }
+
+                db.update(
+                    "pmd_orders",
+                    ContentValues().apply {
+                        put("status", STATUS_DRAFT)
+                        put("dirty", 1)
+                        put("updated_at_ms", System.currentTimeMillis())
+                    },
+                    "id = ?",
+                    arrayOf(target.first),
+                )
+            }
+        }
+
         if (
-            payload.optBoolean("force_new_check", false) &&
+            forceNewCheck &&
             draftForTable(tableId) == null
         ) {
             val firstMenuId = staged.firstOrNull()?.menuId
