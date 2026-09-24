@@ -11,6 +11,7 @@ android {
         minSdk = 26
         targetSdk = 36
         versionCode = 31
+        // PMD_ANDROID_0_3_18_SEAMLESS_WAN_AND_LOGIN_V22
         versionName = "0.3.18-v91-request-failover" // PMD_ANDROID_0_3_18_REQUEST_FAILOVER
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "SYNC_PROTOCOL_VERSION", "\"pmd-sync-v1\"")
