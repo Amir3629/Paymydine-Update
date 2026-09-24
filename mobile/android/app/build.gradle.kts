@@ -11,6 +11,8 @@ android {
         minSdk = 26
         targetSdk = 36
         versionCode = 43
+        // PMD_ANDROID_0_3_30_LOCAL_FIRST_V104
+        // V104 Local-First V2 keeps SQLite as the cashier-facing authority; Cloud is background sync.
         // PMD_ANDROID_0_3_30_PAGE_SCALE_V104
         // V104 resets WebView page scale on rotation and lets online Quick POS CSS hotfix from Cloud.
         // PMD_ANDROID_0_3_29_PORTRAIT_SCALE_V103
@@ -30,7 +32,7 @@ android {
         // PMD_ANDROID_0_3_20_MOBILE_UI_V94 (preserved baseline)
         // PMD_ANDROID_0_3_20_OFFLINE_COMPLETE_V23 (preserved contract)
         // V99 trims the V98 scale slightly while preserving natural mobile fit.
-        versionName = "0.3.30-v104-page-scale" // PMD_ANDROID_0_3_28_RESPONSIVE_MATRIX_V102
+        versionName = "0.3.30-v104-local-first-v2" // PMD_ANDROID_0_3_28_RESPONSIVE_MATRIX_V102
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "SYNC_PROTOCOL_VERSION", "\"pmd-sync-v1\"")
     }
