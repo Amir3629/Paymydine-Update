@@ -21,7 +21,9 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.activity.ComponentActivity
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -36,6 +38,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import com.paymydine.mobile.KdsActivity
 import com.paymydine.mobile.PayMyDineApplication
 import com.paymydine.mobile.PosActivity
@@ -75,6 +79,24 @@ fun PayMyDineApp(app: PayMyDineApplication) {
     val pairingLink by app.pairingLink.collectAsState()
     val edgeRuntime by EdgeRuntimeState.state.collectAsState()
     val scope = rememberCoroutineScope()
+    val hostActivity = context as? ComponentActivity
+    var resumeGeneration by remember { mutableStateOf(0) }
+
+    // PMD_ANDROID_MAIN_RESUME_GUARD_V20
+    // MainActivity remains underneath the dedicated POS Activity. Connectivity
+    // changes while POS is visible must never launch a second POS instance.
+    DisposableEffect(hostActivity) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                resumeGeneration += 1
+            }
+        }
+        hostActivity?.lifecycle?.addObserver(observer)
+        onDispose {
+            hostActivity?.lifecycle?.removeObserver(observer)
+        }
+    }
+
     val router = remember { TransportRouter() }
     val api = remember { MobileApiClient() }
     val pairingMutex = remember { Mutex() }
@@ -582,12 +604,20 @@ fun PayMyDineApp(app: PayMyDineApplication) {
         )
     }
 
-    // PMD_ANDROID_OFFLINE_POS_AUTO_RESUME_V17
+    // PMD_ANDROID_OFFLINE_POS_AUTO_RESUME_V20
     // A process/activity restart during a real WAN outage is not a workspace
-    // switch. Re-open the same still-valid verified POS work session directly,
-    // without asking the operator to tap a separate offline-mode button.
-    LaunchedEffect(online, ready) {
+    // switch. Resume the same verified POS automatically. The lifecycle guard
+    // is critical: MainActivity sits under PosActivity and must not relaunch a
+    // duplicate POS merely because connectivity changed in the background.
+    LaunchedEffect(online, ready, resumeGeneration) {
         if (online || !ready) return@LaunchedEffect
+        if (
+            hostActivity?.lifecycle?.currentState?.isAtLeast(
+                Lifecycle.State.RESUMED,
+            ) != true
+        ) {
+            return@LaunchedEffect
+        }
 
         val remembered = app.credentials.staffSession()
         if (
