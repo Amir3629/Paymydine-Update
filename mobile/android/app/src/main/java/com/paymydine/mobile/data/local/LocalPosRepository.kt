@@ -259,6 +259,127 @@ class LocalPosRepository(private val database: PmdDatabase) {
         return row.copy(lines = lines(row.localId))
     }
 
+    /**
+     * PMD_ANDROID_CANONICAL_POS_LOCAL_TRANSPORT_V18
+     *
+     * Materialize the canonical Quick POS cart into the existing durable draft
+     * representation before it is queued. Validation happens against the
+     * locally cached menu/options first so an invalid row cannot silently
+     * become a different order during an outage.
+     */
+    fun stageQuickPosCart(
+        locationId: Long,
+        tableId: String,
+        payload: JSONObject,
+    ): DraftOrder {
+        val items = payload.optJSONArray("items") ?: JSONArray()
+        require(items.length() > 0) { "Add at least one item." }
+
+        data class StagedLine(
+            val menuId: String,
+            val quantity: Int,
+            val optionIds: List<Long>,
+            val note: String,
+        )
+
+        val staged = buildList {
+            for (index in 0 until items.length()) {
+                val item = items.optJSONObject(index)
+                    ?: error("One menu item could not be read.")
+                val menuId = item.optLong("menu_id", item.optLong("id", 0L))
+                require(menuId > 0L) { "A menu item is unavailable." }
+
+                val cached = database.readableDatabase.query(
+                    "pmd_menu_items",
+                    arrayOf("payload_json"),
+                    "id = ? AND location_id = ? AND deleted = 0",
+                    arrayOf(menuId.toString(), locationId.toString()),
+                    null,
+                    null,
+                    null,
+                    "1",
+                ).use {
+                    if (it.moveToFirst()) it.getString(0) else null
+                } ?: error("A menu item is no longer available.")
+
+                val optionIdsJson = item.optJSONArray("options") ?: JSONArray()
+                val optionIds = buildList {
+                    for (optionIndex in 0 until optionIdsJson.length()) {
+                        add(optionIdsJson.optLong(optionIndex))
+                    }
+                }
+
+                // Validate every line before the first mutation.
+                validateOptions(cached, optionIds)
+
+                add(
+                    StagedLine(
+                        menuId = menuId.toString(),
+                        quantity = item.optInt("quantity", 1).coerceIn(1, 99),
+                        optionIds = optionIds,
+                        note = item.optString("comment").trim(),
+                    ),
+                )
+            }
+        }
+
+        var draft: DraftOrder? = draftForTable(tableId)
+
+        staged.forEach { line ->
+            repeat(line.quantity) {
+                draft = addItem(
+                    locationId = locationId,
+                    tableId = tableId,
+                    menuItemId = line.menuId,
+                    selectedOptionIds = line.optionIds,
+                    note = line.note,
+                )
+            }
+        }
+
+        val ready = draft ?: error("Order draft could not be created.")
+        return setDraftMeta(
+            ready.localId,
+            payload.optInt("guest_count", ready.guestCount).coerceIn(1, 99),
+            payload.optString("note", ready.note),
+        ) ?: error("Order draft could not be updated.")
+    }
+
+    fun pseudoOrderId(localId: String): Long {
+        val value = localId.hashCode().toLong().let {
+            if (it == Long.MIN_VALUE) 1L else kotlin.math.abs(it)
+        }.coerceAtLeast(1L)
+        return -value
+    }
+
+    fun tableForPseudoOrderId(pseudoOrderId: Long): String? {
+        if (pseudoOrderId >= 0L) return null
+
+        return database.readableDatabase.query(
+            "pmd_orders",
+            arrayOf("id", "table_id"),
+            "server_id IS NULL AND status IN (?, ?, ?, ?)",
+            arrayOf(
+                STATUS_DRAFT,
+                STATUS_QUEUED,
+                STATUS_RETRY,
+                STATUS_CONFLICT,
+            ),
+            null,
+            null,
+            "updated_at_ms DESC",
+            "250",
+        ).use { rows ->
+            while (rows.moveToNext()) {
+                val localId = rows.getString(0)
+                if (pseudoOrderId(localId) == pseudoOrderId) {
+                    return@use rows.getString(1)
+                }
+            }
+            null
+        }
+    }
+
     fun addItem(
         locationId: Long,
         tableId: String,
