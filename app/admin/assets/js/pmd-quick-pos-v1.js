@@ -1162,15 +1162,27 @@
 
       var active = Number(status.active || 0);
       var rejected = Number(status.rejected || 0);
-      var cloud = status.cloud_available === true;
+      var cloudState = String(
+        status.cloud_state || (status.cloud_available === true ? 'online' : 'offline')
+      );
+      var cloud = cloudState === 'online';
 
       el.classList.toggle('is-attention', rejected > 0);
       if (rejected > 0) {
         el.textContent = 'Needs attention · ' + rejected;
         el.setAttribute('title', rejected + ' rejected change(s) need review');
       } else if (active > 0) {
-        el.textContent = (cloud ? 'Syncing' : 'Offline') + ' · ' + active + ' waiting';
+        var waitingLabel = cloud
+          ? 'Syncing'
+          : (cloudState === 'checking' ? 'Connecting' : 'Offline');
+        el.textContent = waitingLabel + ' · ' + active + ' waiting';
         el.setAttribute('title', active + ' local change(s) waiting for Cloud');
+      } else if (cloudState === 'checking') {
+        el.textContent = 'Local · checking Cloud';
+        el.setAttribute('title', 'POS is local-first while PayMyDine Cloud is checked');
+      } else if (cloudState === 'unreachable') {
+        el.textContent = 'Local · Cloud unavailable';
+        el.setAttribute('title', 'Internet exists but PayMyDine Cloud did not answer');
       } else {
         el.textContent = cloud ? 'Synced' : 'Offline · saved locally';
         el.setAttribute(
