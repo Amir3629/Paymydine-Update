@@ -333,6 +333,19 @@ final class PmdMobileCommandProcessor
     ): array {
         $payload = (array)$command['payload'];
         $orderId = (int)($payload['order_id'] ?? 0);
+
+        // PMD_MOBILE_CASH_LOCAL_AGGREGATE_RESOLVE_V101
+        // Android builds before V101 can legitimately queue CASH immediately
+        // after an offline SEND while the check still has only local:<uuid>.
+        // Resolve that already-applied SEND/HOLD from the durable command ledger
+        // instead of rejecting the financial intent before it can reconcile.
+        if ($orderId < 1) {
+            $orderId = $this->resolveCanonicalCashOrderId($command);
+            if ($orderId > 0) {
+                $payload['order_id'] = $orderId;
+            }
+        }
+
         if ($orderId < 1) {
             throw ValidationException::withMessages([
                 'order_id' => 'A canonical order is required for offline cash.',
@@ -414,6 +427,53 @@ final class PmdMobileCommandProcessor
             'cash_received' => (float)($data['cash_received'] ?? 0),
             'change_due' => (float)($data['change_due'] ?? 0),
         ];
+    }
+
+    private function resolveCanonicalCashOrderId(array $command): int
+    {
+        $clientAggregateId = trim((string)(
+            $command['client_aggregate_id']
+            ?? $command['aggregate_id']
+            ?? ''
+        ));
+
+        if (
+            $clientAggregateId === ''
+            || !str_starts_with($clientAggregateId, 'local:')
+        ) {
+            return 0;
+        }
+
+        try {
+            $rows = DB::table('pmd_sync_commands')
+                ->where('location_id', (int)$command['location_id'])
+                ->where('device_id', (int)$command['device_id'])
+                ->where('aggregate', 'order')
+                ->where('aggregate_id', $clientAggregateId)
+                ->whereIn('command_type', ['ORDER_SEND_V1', 'ORDER_HOLD_V1'])
+                ->where('status', 'APPLIED')
+                ->orderByDesc('id')
+                ->limit(10)
+                ->get(['result_payload']);
+
+            foreach ($rows as $row) {
+                $stored = json_decode(
+                    (string)($row->result_payload ?? ''),
+                    true
+                );
+                $orderId = is_array($stored)
+                    ? (int)($stored['result']['order_id'] ?? 0)
+                    : 0;
+
+                if ($orderId > 0) {
+                    return $orderId;
+                }
+            }
+        } catch (\Throwable $error) {
+            report($error);
+        }
+
+        return 0;
     }
 
     /**
