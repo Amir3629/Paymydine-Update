@@ -25,6 +25,20 @@ class LocalPosBridge(
     private val onWorkspaces: () -> Unit,
 ) {
     @JavascriptInterface
+    fun persistUiDraft(payloadJson: String): String =
+        runCatching {
+            app.localPosRepository.saveQuickPosUiDraft(payloadJson)
+            """{"ok":true}"""
+        }.getOrElse(::errorJson)
+
+    @JavascriptInterface
+    fun clearUiDraft(): String =
+        runCatching {
+            app.localPosRepository.clearQuickPosUiDraft()
+            """{"ok":true}"""
+        }.getOrElse(::errorJson)
+
+    @JavascriptInterface
     fun snapshot(selectedTableId: String): String {
         return runCatching {
             val locationId = app.bootstrapRepository.locationId()
@@ -359,6 +373,11 @@ class LocalPosBridge(
                             ?: identity.optString("staff_name", "Staff"),
                     )
                     .put("role", roleCode),
+            )
+            .put(
+                "native_ui_draft",
+                app.localPosRepository.quickPosUiDraft(locationId)
+                    ?: JSONObject.NULL,
             )
     }
 
