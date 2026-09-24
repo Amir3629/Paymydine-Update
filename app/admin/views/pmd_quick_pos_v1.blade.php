@@ -2,7 +2,53 @@
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+    >
+    {{-- PMD_QPOS_ANDROID_PAGE_SCALE_LOCK_V104
+         Current Android 0.3.28 loads this HTML from Cloud even though its Quick
+         POS CSS/JS are bundled. Reassert a 1:1 visual viewport on rotation so
+         Chromium cannot carry portrait page-scale into landscape. --}}
+    <script>
+    (function () {
+        var desired = 'width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover';
+        var frame = null;
+
+        function normalizePmdViewportV104() {
+            if (frame) cancelAnimationFrame(frame);
+            frame = requestAnimationFrame(function () {
+                frame = null;
+                var meta = document.querySelector('meta[name="viewport"]');
+                if (!meta) {
+                    meta = document.createElement('meta');
+                    meta.setAttribute('name', 'viewport');
+                    (document.head || document.documentElement).appendChild(meta);
+                }
+                meta.setAttribute('content', desired);
+                document.documentElement.style.webkitTextSizeAdjust = '100%';
+                document.documentElement.style.textSizeAdjust = '100%';
+                document.documentElement.setAttribute('data-pmd-page-scale-v104', '1');
+            });
+        }
+
+        normalizePmdViewportV104();
+        window.addEventListener('orientationchange', function () {
+            normalizePmdViewportV104();
+            setTimeout(normalizePmdViewportV104, 80);
+            setTimeout(normalizePmdViewportV104, 320);
+        }, { passive: true });
+        window.addEventListener('resize', normalizePmdViewportV104, { passive: true });
+
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', function () {
+                if (Math.abs(Number(window.visualViewport.scale || 1) - 1) > 0.01) {
+                    normalizePmdViewportV104();
+                }
+            }, { passive: true });
+        }
+    })();
+    </script>
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="theme-color" content="#064e3b">
     <title>PayMyDine POS</title>
