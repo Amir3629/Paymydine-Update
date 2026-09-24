@@ -102,8 +102,8 @@ assert.ok(
   view.includes('<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">'),
   'natural viewport meta contract missing'
 );
-assert.ok(view.includes('pmd-quick-pos-v1.css?v=20260924-v103'), 'V102 CSS cache bust missing');
-assert.ok(view.includes('pmd-quick-pos-v1.js?v=20260924-v103'), 'V102 JS cache bust missing');
+assert.ok(view.includes('pmd-quick-pos-v1.css?v=20260924-v104'), 'V104 CSS cache bust missing');
+assert.ok(view.includes('pmd-quick-pos-v1.js?v=20260924-v104'), 'V104 JS cache bust missing');
 
 assert.equal(
   (posActivity.match(/textZoom = 100/g) || []).length,
