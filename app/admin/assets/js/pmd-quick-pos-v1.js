@@ -6714,10 +6714,18 @@ function renderOpenChecks() {
         window.__PMD_NATIVE_OFFLINE__
       );
       hideToast();
-      return bootstrap(true);
+
+      // PMD_QPOS_NATIVE_TRANSPORT_ONLY_SWITCH_V18
+      // A connectivity change must not repaint the cashier's workspace. Keep
+      // the exact selected table, cart, scroll position and open modal. The
+      // next real POS action reads/writes through the new authority.
+      return Promise.resolve(true);
     },
     refreshNativeState: function () {
       if (!nativeLocalTransportAvailable()) return Promise.resolve(false);
+
+      // Refresh only after local durable state actually changed (for example
+      // sync acknowledgement). This is event-driven, never timer-driven.
       return bootstrap(true);
     }
   };
