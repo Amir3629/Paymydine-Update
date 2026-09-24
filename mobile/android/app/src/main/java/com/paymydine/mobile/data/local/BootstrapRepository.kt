@@ -19,17 +19,33 @@ data class BootstrapSummary(
 )
 
 class BootstrapRepository(private val database: PmdDatabase) {
-    fun apply(root: JSONObject): BootstrapSummary {
+    /**
+     * PMD_ANDROID_NON_DESTRUCTIVE_RECONNECT_SNAPSHOT_V23
+     *
+     * A reconnect bootstrap is not allowed to replace a healthy local floor/menu
+     * with a transiently empty response. Cold/pair bootstrap remains strict;
+     * reconnect callers opt into preserving only critical non-empty sections.
+     */
+    fun apply(
+        root: JSONObject,
+        preserveCriticalOnEmpty: Boolean = false,
+    ): BootstrapSummary {
         check(root.optBoolean("ok")) { "Bootstrap payload is not successful." }
 
-        val location = root.getJSONObject("location")
-        val identity = root.getJSONObject("identity")
-        val menu = root.optJSONObject("menu") ?: JSONObject()
+        val appliedRoot = if (preserveCriticalOnEmpty) {
+            mergeCriticalSnapshot(root)
+        } else {
+            JSONObject(root.toString())
+        }
+
+        val location = appliedRoot.getJSONObject("location")
+        val identity = appliedRoot.getJSONObject("identity")
+        val menu = appliedRoot.optJSONObject("menu") ?: JSONObject()
         val items = menu.optJSONArray("items") ?: JSONArray()
-        val tables = root.optJSONArray("tables") ?: JSONArray()
-        val openOrders = root.optJSONArray("open_orders") ?: JSONArray()
-        val stations = root.optJSONArray("kds_stations") ?: JSONArray()
-        val sync = root.optJSONObject("sync") ?: JSONObject()
+        val tables = appliedRoot.optJSONArray("tables") ?: JSONArray()
+        val openOrders = appliedRoot.optJSONArray("open_orders") ?: JSONArray()
+        val stations = appliedRoot.optJSONArray("kds_stations") ?: JSONArray()
+        val sync = appliedRoot.optJSONObject("sync") ?: JSONObject()
 
         val locationId = location.getLong("id")
         val currency = location.optString("currency_code", "EUR").ifBlank { "EUR" }
@@ -246,8 +262,64 @@ class BootstrapRepository(private val database: PmdDatabase) {
                 )
             }
 
-            putMeta(db, "bootstrap_json", root.toString())
-            putMeta(db, "tenant_host", root.optJSONObject("tenant")?.optString("host").orEmpty())
+            // Re-project pending local work after every Cloud refresh so a
+            // delayed server table status cannot make an active offline check
+            // appear available again.
+            db.query(
+                "pmd_orders",
+                arrayOf("table_id", "id"),
+                "dirty = 1 AND status IN (?, ?, ?)",
+                arrayOf(
+                    LocalPosRepository.STATUS_QUEUED,
+                    LocalPosRepository.STATUS_RETRY,
+                    LocalPosRepository.STATUS_CONFLICT,
+                ),
+                null,
+                null,
+                "updated_at_ms DESC",
+            ).use { pending ->
+                while (pending.moveToNext()) {
+                    val tableId = pending.getString(0)
+                    val localOrderId = pending.getString(1)
+                    val rawTable = db.query(
+                        "pmd_tables",
+                        arrayOf("payload_json"),
+                        "id = ?",
+                        arrayOf(tableId),
+                        null,
+                        null,
+                        null,
+                        "1",
+                    ).use { tableRows ->
+                        if (tableRows.moveToFirst()) tableRows.getString(0)
+                        else null
+                    } ?: continue
+
+                    val tablePayload = runCatching {
+                        JSONObject(rawTable)
+                    }.getOrElse { JSONObject() }
+                        .put("native_local_order_id", localOrderId)
+                        .put("native_local_order_pending", true)
+
+                    db.update(
+                        "pmd_tables",
+                        ContentValues().apply {
+                            put("status", "occupied")
+                            put("payload_json", tablePayload.toString())
+                            put("updated_at_ms", now)
+                        },
+                        "id = ?",
+                        arrayOf(tableId),
+                    )
+                }
+            }
+
+            putMeta(db, "bootstrap_json", appliedRoot.toString())
+            putMeta(
+                db,
+                "tenant_host",
+                appliedRoot.optJSONObject("tenant")?.optString("host").orEmpty(),
+            )
             putMeta(db, "location_id", locationId.toString())
             putMeta(db, "role_code", identity.optString("role_code"))
             putMeta(db, "profile_expires_at", root.optString("profile_expires_at"))
@@ -279,6 +351,67 @@ class BootstrapRepository(private val database: PmdDatabase) {
             kdsStations = stations.length(),
             cursor = sync.optLong("cursor", 0),
         )
+    }
+
+    private fun mergeCriticalSnapshot(incoming: JSONObject): JSONObject {
+        val merged = JSONObject(incoming.toString())
+        val previous = bootstrapSnapshot() ?: return merged
+
+        val incomingMenu = merged.optJSONObject("menu")
+        val incomingItems = incomingMenu?.optJSONArray("items")
+        val previousMenu = previous.optJSONObject("menu")
+        val previousItems = previousMenu?.optJSONArray("items")
+
+        if (
+            (incomingItems == null || incomingItems.length() == 0) &&
+            previousItems != null &&
+            previousItems.length() > 0
+        ) {
+            merged.put("menu", JSONObject(previousMenu.toString()))
+        }
+
+        val incomingTables = merged.optJSONArray("tables")
+        val previousTables = previous.optJSONArray("tables")
+        if (
+            (incomingTables == null || incomingTables.length() == 0) &&
+            previousTables != null &&
+            previousTables.length() > 0
+        ) {
+            merged.put("tables", JSONArray(previousTables.toString()))
+
+            for (key in listOf(
+                "floors",
+                "table_floor_map",
+                "default_floor_id",
+                "active_floor_id",
+            )) {
+                val current = merged.opt(key)
+                val empty = current == null ||
+                    current === JSONObject.NULL ||
+                    (current is JSONArray && current.length() == 0) ||
+                    (current is JSONObject && current.length() == 0) ||
+                    (current is String && current.isBlank())
+                if (empty && previous.has(key)) {
+                    when (val old = previous.opt(key)) {
+                        is JSONArray -> merged.put(key, JSONArray(old.toString()))
+                        is JSONObject -> merged.put(key, JSONObject(old.toString()))
+                        else -> merged.put(key, old)
+                    }
+                }
+            }
+        }
+
+        if (
+            merged.optJSONObject("history") == null &&
+            previous.optJSONObject("history") != null
+        ) {
+            merged.put(
+                "history",
+                JSONObject(previous.getJSONObject("history").toString()),
+            )
+        }
+
+        return merged
     }
 
     fun locationId(): Long? = meta("location_id")?.toLongOrNull()
