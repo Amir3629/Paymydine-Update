@@ -203,10 +203,6 @@ JS="$STAGE/candidate/app/admin/assets/js/pmd-quick-pos-v1.js"
 BOOTSTRAP="$STAGE/candidate/app/Services/PmdMobileSync/PmdMobileBootstrapService.php"
 COMMAND="$STAGE/candidate/app/Services/PmdMobileSync/PmdMobileCommandProcessor.php"
 
-# Normalize any accidental literal "\n" immediately before the Quick POS script.
-sed -i 's#--}}\\n<script src="/app/admin/assets/js/pmd-quick-pos-v1.js#--}}>\
-<script src="/app/admin/assets/js/pmd-quick-pos-v1.js#g' "$VIEW"
-
 grep -Eq 'pmd-quick-pos-v1\.css\?v=[^"]+' "$VIEW" ||
   fail "Quick POS CSS asset tag not found in live Blade."
 grep -Eq 'pmd-quick-pos-v1\.js\?v=[^"]+' "$VIEW" ||
