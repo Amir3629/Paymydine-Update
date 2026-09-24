@@ -1467,11 +1467,30 @@ class PosActivity : ComponentActivity() {
     }
 
     private fun prepareOfflineShell(html: String): String {
+        // PMD_ANDROID_V107_OFFLINE_SHELL_ASSETS
+        // Existing installations may still have a V103/V105 cached HTML shell.
+        // Inject the isolated V107 Android form-factor assets when that shell
+        // predates V107. Both URLs are served from APK assets while offline.
+        val v107Css =
+            if (html.contains("pmd-qpos-android-form-factor-v107.css")) {
+                ""
+            } else {
+                """<link rel="stylesheet" href="/app/admin/assets/css/pmd-qpos-android-form-factor-v107.css?v=20260925-v107-offline">"""
+            }
+        val v107Js =
+            if (html.contains("pmd-qpos-android-form-factor-v107.js")) {
+                ""
+            } else {
+                """<script defer src="/app/admin/assets/js/pmd-qpos-android-form-factor-v107.js?v=20260925-v107-offline"></script>"""
+            }
+
         val bootstrap = """
             <script>
             window.__PMD_NATIVE_OFFLINE__ = true;
             document.documentElement.classList.add('pmd-native-offline');
             </script>
+            $v107Css
+            $v107Js
         """.trimIndent()
 
         return when {
@@ -1551,6 +1570,9 @@ class PosActivity : ComponentActivity() {
                     // bundled stylesheet.
                     null
                 }
+            "/app/admin/assets/css/pmd-qpos-android-form-factor-v107.css" ->
+                "pmd-canonical/css/pmd-qpos-android-form-factor-v107.css" to
+                    "text/css"
             "/app/admin/assets/js/pmd-dashboard-lab-exact-floor-v1.js" ->
                 "pmd-canonical/js/pmd-dashboard-lab-exact-floor-v1.js" to
                     "application/javascript"
@@ -1562,6 +1584,9 @@ class PosActivity : ComponentActivity() {
                     "application/javascript"
             "/app/admin/assets/js/pmd-quick-pos-v1.js" ->
                 "pmd-canonical/js/pmd-quick-pos-v1.js" to
+                    "application/javascript"
+            "/app/admin/assets/js/pmd-qpos-android-form-factor-v107.js" ->
+                "pmd-canonical/js/pmd-qpos-android-form-factor-v107.js" to
                     "application/javascript"
             "/app/admin/assets/js/pmd-site-access-hub-v13.js" ->
                 "pmd-canonical/js/pmd-site-access-hub-v13.js" to
