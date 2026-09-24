@@ -28,6 +28,7 @@ assert.ok(bridge.includes('projectPendingItemAdjustmentsV106'));
 assert.ok(bridge.includes('"CASH_PAYMENT_V1"'));
 assert.ok(bridge.includes('Card and terminal payments need an internet connection.'));
 assert.ok(localRepo.includes('PMD_ANDROID_CLOUD_LINE_ACK_V106'));
+assert.ok(localRepo.includes('PMD_ANDROID_CLOUD_LINE_REMOTE_EVENT_V106'));
 assert.ok(localRepo.includes('expected_updated_at'));
 assert.ok(localRepo.includes('trustedBusinessTimeMs()'));
 assert.ok(imageCache.includes('.put("sha256", contentSha256)'));
