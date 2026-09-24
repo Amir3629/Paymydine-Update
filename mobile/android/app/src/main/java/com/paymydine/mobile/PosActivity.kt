@@ -167,6 +167,9 @@ class PosActivity : ComponentActivity() {
             warmLocalSnapshot(refreshUi = false)
         }
 
+        // PMD_ANDROID_POS_SEAMLESS_FAILOVER_V17
+        // V104 supersedes the old Cloud-first failover decision while preserving
+        // the same no-navigation/no-logout seamless-session guarantee.
         // PMD_ANDROID_LOCAL_FIRST_V2_V104
         // Once this device has a valid bootstrap/session, SQLite is always the
         // cashier-facing authority. Cloud availability changes background sync,
