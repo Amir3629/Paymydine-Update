@@ -3162,18 +3162,39 @@ body.pmd-qpos-body {
   line-height: 1.45;
 }
 
+/* PMD_QPOS_HISTORY_DOCUMENT_ACTIONS_V75 */
+.pmd-qpos-history-document-actions-v75 {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
 .pmd-qpos-history-invoice {
   min-height: 44px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   padding: 0 15px;
+  border: 1px solid #064e3b;
   border-radius: 10px;
   background: #064e3b;
   color: #fff;
   text-decoration: none;
   font-size: 11px;
   font-weight: 850;
+  white-space: nowrap;
+}
+
+.pmd-qpos-history-invoice:hover,
+.pmd-qpos-history-invoice:focus-visible {
+  filter: brightness(.96);
+}
+
+.pmd-qpos-history-invoice.pmd-qpos-history-print-v75 {
+  background: #fff;
+  color: #064e3b;
 }
 
 .pmd-qpos-history-order-summary {
@@ -7617,5 +7638,2190 @@ body.pmd-qpos-body {
   .pmd-qpos-profile-dock {
     position: relative;
     z-index: 5;
+  }
+}
+
+
+/* ============================================================
+   PMD_QPOS_TABLE_ATTENTION_V57
+   Table physical state is color-only. Calls/notes pulse without changing
+   Free/Busy/Clean/Reserved authority; payment icons are Part paid / Paid only.
+   ============================================================ */
+
+.pmd-qpos-table-signals-v57 {
+  position: absolute;
+  top: 7px;
+  left: 7px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: calc(100% - 36px);
+}
+
+.pmd-qpos-table-signals-v57 .pmd-qpos-table-signal {
+  position: static;
+  flex: 0 0 auto;
+  min-width: 27px;
+  height: 27px;
+  padding: 0 6px;
+}
+
+.pmd-qpos-table-signals-v57 .pmd-qpos-table-signal em {
+  margin-left: 2px;
+  font-size: 9px;
+}
+
+.pmd-qpos-table-signals-v57
+.pmd-qpos-table-signal[data-qpos-attention-kind] {
+  pointer-events: auto;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.pmd-qpos-table-signals-v57 .pmd-qpos-table-signal.is-partial {
+  border-color: #fed7aa;
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+@keyframes pmd-qpos-attention-pulse-v57 {
+  0%,
+  100% {
+    outline-color: rgba(251, 191, 36, 0);
+    box-shadow: 0 0 0 0 rgba(251, 191, 36, 0);
+  }
+
+  50% {
+    outline-color: rgba(251, 191, 36, .95);
+    box-shadow:
+      0 0 0 4px rgba(251, 191, 36, .30),
+      0 0 20px rgba(251, 191, 36, .38);
+  }
+}
+
+.pmd-qpos-table.has-attention:not(:disabled) {
+  outline: 3px solid transparent;
+  outline-offset: -3px;
+  animation: pmd-qpos-attention-pulse-v57 1.35s ease-in-out infinite;
+}
+
+.pmd-qpos-table.is-attention-focus-v57 {
+  outline-color: rgba(251, 191, 36, 1) !important;
+  box-shadow:
+    0 0 0 5px rgba(251, 191, 36, .38),
+    0 0 26px rgba(251, 191, 36, .48) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pmd-qpos-table.has-attention:not(:disabled) {
+    animation: none;
+    outline-color: rgba(251, 191, 36, .95);
+  }
+}
+
+/* Canonical push toasts must stay above the standalone Quick POS shell. */
+.pmd-qpos-body .notification-toast-container {
+  z-index: 1000005;
+}
+
+
+/* ============================================================
+   PMD_QPOS_ATTENTION_VISIBILITY_V61
+   Keep every signal in a vertical lane on the LEFT so badges never cover the
+   centered table number. Make active Call/Note tables impossible to miss.
+   ============================================================ */
+
+.pmd-qpos-table-signals-v57 {
+  left: 9px !important;
+  top: 50% !important;
+  right: auto !important;
+  transform: translateY(-50%) !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  max-width: 58px !important;
+  pointer-events: none;
+}
+
+.pmd-qpos-table-signals-v57 .pmd-qpos-table-signal {
+  min-width: 34px !important;
+  max-width: 54px;
+  height: 34px !important;
+  padding: 0 8px !important;
+  justify-content: center;
+  font-size: 14px !important;
+  box-sizing: border-box;
+}
+
+.pmd-qpos-table-signals-v57 .pmd-qpos-table-signal b {
+  font-size: 15px !important;
+  line-height: 1 !important;
+}
+
+.pmd-qpos-table-signals-v57 .pmd-qpos-table-signal em {
+  margin-left: 3px !important;
+  font-size: 11px !important;
+  line-height: 1 !important;
+}
+
+.pmd-qpos-table-signals-v57
+.pmd-qpos-table-signal[data-qpos-attention-kind] {
+  pointer-events: auto;
+}
+
+@keyframes pmd-qpos-attention-pulse-v61 {
+  0%,
+  100% {
+    outline-color: rgba(255, 255, 255, .12);
+    box-shadow:
+      0 0 0 0 rgba(245, 158, 11, 0),
+      inset 0 0 0 0 rgba(255, 255, 255, 0);
+    filter: brightness(1);
+  }
+
+  42% {
+    outline-color: rgba(255, 255, 255, 1);
+    box-shadow:
+      0 0 0 7px rgba(245, 158, 11, .62),
+      0 0 30px rgba(245, 158, 11, .75),
+      inset 0 0 0 4px rgba(255, 255, 255, .95);
+    filter: brightness(1.16);
+  }
+
+  58% {
+    outline-color: rgba(255, 255, 255, 1);
+    box-shadow:
+      0 0 0 5px rgba(245, 158, 11, .48),
+      0 0 22px rgba(245, 158, 11, .62),
+      inset 0 0 0 3px rgba(255, 255, 255, .84);
+    filter: brightness(1.1);
+  }
+}
+
+.pmd-qpos-table.has-attention:not(:disabled) {
+  outline: 4px solid transparent !important;
+  outline-offset: -4px !important;
+  animation:
+    pmd-qpos-attention-pulse-v61 .82s ease-in-out infinite !important;
+}
+
+.pmd-qpos-table.is-attention-focus-v57 {
+  outline: 5px solid #fff !important;
+  outline-offset: -5px !important;
+  box-shadow:
+    0 0 0 8px rgba(245, 158, 11, .78),
+    0 0 36px rgba(245, 158, 11, .9),
+    inset 0 0 0 4px rgba(255, 255, 255, .95) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pmd-qpos-table.has-attention:not(:disabled) {
+    animation: none !important;
+    outline: 4px solid #fff !important;
+    box-shadow:
+      0 0 0 6px rgba(245, 158, 11, .65),
+      0 0 24px rgba(245, 158, 11, .72) !important;
+  }
+}
+
+
+/* ============================================================
+   PMD_QPOS_ATTENTION_RED_SHAKE_V62
+   Restaurant attention uses the same red family as Busy, with a short shake.
+   ============================================================ */
+
+@keyframes pmd-qpos-attention-red-pulse-v62 {
+  0%,
+  100% {
+    outline-color: rgba(255, 61, 82, .28);
+    box-shadow:
+      0 0 0 0 rgba(255, 61, 82, 0),
+      0 0 0 rgba(255, 61, 82, 0),
+      inset 0 0 0 2px rgba(255,255,255,.20);
+    filter: brightness(1);
+  }
+
+  45% {
+    outline-color: rgba(255, 61, 82, 1);
+    box-shadow:
+      0 0 0 7px rgba(255, 61, 82, .50),
+      0 0 30px rgba(255, 61, 82, .78),
+      inset 0 0 0 4px rgba(255,255,255,.90);
+    filter: brightness(1.14);
+  }
+}
+
+@keyframes pmd-qpos-attention-shake-v62 {
+  0%,
+  68%,
+  100% {
+    transform: translateX(0) scale(var(--pmd-qpos-attention-scale, 1));
+  }
+
+  72% {
+    transform: translateX(-4px) scale(var(--pmd-qpos-attention-scale, 1));
+  }
+
+  76% {
+    transform: translateX(4px) scale(var(--pmd-qpos-attention-scale, 1));
+  }
+
+  80% {
+    transform: translateX(-3px) scale(var(--pmd-qpos-attention-scale, 1));
+  }
+
+  84% {
+    transform: translateX(3px) scale(var(--pmd-qpos-attention-scale, 1));
+  }
+
+  88% {
+    transform: translateX(0) scale(var(--pmd-qpos-attention-scale, 1));
+  }
+}
+
+.pmd-qpos-table.has-attention:not(:disabled) {
+  --pmd-qpos-attention-scale: 1;
+  outline: 4px solid rgba(255,61,82,.45) !important;
+  outline-offset: -4px !important;
+  animation:
+    pmd-qpos-attention-red-pulse-v62 .82s ease-in-out infinite,
+    pmd-qpos-attention-shake-v62 1.75s ease-in-out infinite !important;
+  will-change: transform, box-shadow, filter;
+}
+
+.pmd-qpos-table.has-attention.is-selected:not(:disabled) {
+  --pmd-qpos-attention-scale: 1.025;
+}
+
+.pmd-qpos-table.is-attention-focus-v57 {
+  outline: 5px solid #ff3d52 !important;
+  outline-offset: -5px !important;
+  box-shadow:
+    0 0 0 8px rgba(255,61,82,.55),
+    0 0 38px rgba(255,61,82,.88),
+    inset 0 0 0 4px rgba(255,255,255,.90) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pmd-qpos-table.has-attention:not(:disabled) {
+    animation: none !important;
+    outline: 4px solid #ff3d52 !important;
+    box-shadow:
+      0 0 0 6px rgba(255,61,82,.50),
+      0 0 26px rgba(255,61,82,.72) !important;
+  }
+}
+
+
+/* ============================================================
+   PMD_QPOS_ATTENTION_POLISH_V63
+   Compact signal chips + gentler Busy-red pulse/shake.
+   ============================================================ */
+.pmd-qpos-table-signals-v57 {
+  left: 7px !important;
+  top: 50% !important;
+  right: auto !important;
+  transform: translateY(-50%) !important;
+  gap: 4px !important;
+  max-width: 46px !important;
+}
+.pmd-qpos-table-signals-v57 .pmd-qpos-table-signal {
+  min-width: 27px !important;
+  max-width: 43px !important;
+  height: 27px !important;
+  padding: 0 6px !important;
+  gap: 2px !important;
+  border-width: 1px !important;
+  border-radius: 999px !important;
+  font-size: 11px !important;
+  line-height: 1 !important;
+  box-shadow:
+    0 2px 7px rgba(15,23,42,.12),
+    inset 0 0 0 1px rgba(255,255,255,.42);
+}
+.pmd-qpos-table-signals-v57 .pmd-qpos-table-signal b {
+  font-size: 12px !important;
+  line-height: 1 !important;
+}
+.pmd-qpos-table-signals-v57 .pmd-qpos-table-signal em {
+  margin-left: 1px !important;
+  font-size: 9px !important;
+  line-height: 1 !important;
+  opacity: .76;
+}
+.pmd-qpos-table-signals-v57 .pmd-qpos-table-signal.is-call {
+  background: #fff5f6 !important;
+  border-color: #fda4af !important;
+  color: #be123c !important;
+}
+.pmd-qpos-table-signals-v57 .pmd-qpos-table-signal.is-note {
+  background: #eff6ff !important;
+  border-color: #bfdbfe !important;
+  color: #1d4ed8 !important;
+}
+.pmd-qpos-table-signals-v57 .pmd-qpos-table-signal.is-paid {
+  background: #ecfdf5 !important;
+  border-color: #a7f3d0 !important;
+  color: #047857 !important;
+}
+.pmd-qpos-table-signals-v57 .pmd-qpos-table-signal.is-partial {
+  background: #fff7ed !important;
+  border-color: #fed7aa !important;
+  color: #c2410c !important;
+}
+
+@keyframes pmd-qpos-attention-red-pulse-v63 {
+  0%, 100% {
+    outline-color: rgba(255,61,82,.30);
+    box-shadow:
+      0 0 0 0 rgba(255,61,82,0),
+      0 0 0 rgba(255,61,82,0),
+      inset 0 0 0 2px rgba(255,255,255,.18);
+    filter: brightness(1);
+  }
+  50% {
+    outline-color: rgba(255,61,82,.92);
+    box-shadow:
+      0 0 0 4px rgba(255,61,82,.28),
+      0 0 18px rgba(255,61,82,.46),
+      inset 0 0 0 3px rgba(255,255,255,.64);
+    filter: brightness(1.06);
+  }
+}
+@keyframes pmd-qpos-attention-soft-shake-v63 {
+  0%, 76%, 100% {
+    transform: translateX(0) scale(var(--pmd-qpos-attention-scale, 1));
+  }
+  80% {
+    transform: translateX(-1.5px) scale(var(--pmd-qpos-attention-scale, 1));
+  }
+  84% {
+    transform: translateX(1.5px) scale(var(--pmd-qpos-attention-scale, 1));
+  }
+  88% {
+    transform: translateX(-1px) scale(var(--pmd-qpos-attention-scale, 1));
+  }
+  92% {
+    transform: translateX(1px) scale(var(--pmd-qpos-attention-scale, 1));
+  }
+  96% {
+    transform: translateX(0) scale(var(--pmd-qpos-attention-scale, 1));
+  }
+}
+.pmd-qpos-table.has-attention:not(:disabled) {
+  outline: 3px solid rgba(255,61,82,.42) !important;
+  outline-offset: -3px !important;
+  animation:
+    pmd-qpos-attention-red-pulse-v63 1.35s ease-in-out infinite,
+    pmd-qpos-attention-soft-shake-v63 3.2s ease-in-out infinite !important;
+}
+.pmd-qpos-table.is-attention-focus-v57 {
+  outline: 4px solid #ff3d52 !important;
+  outline-offset: -4px !important;
+  box-shadow:
+    0 0 0 5px rgba(255,61,82,.35),
+    0 0 22px rgba(255,61,82,.58),
+    inset 0 0 0 3px rgba(255,255,255,.76) !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .pmd-qpos-table.has-attention:not(:disabled) {
+    animation: none !important;
+    outline: 3px solid #ff3d52 !important;
+    box-shadow:
+      0 0 0 4px rgba(255,61,82,.30),
+      0 0 16px rgba(255,61,82,.42) !important;
+  }
+}
+
+
+/* ============================================================
+   PMD_QPOS_HISTORY_ATTENTION_V64
+   Larger touch-readable History + obvious NEW Note/Call state.
+   ============================================================ */
+
+.pmd-qpos-workspace-modal[data-qpos-history-modal] > .pmd-qpos-history-card > header {
+  min-height: 96px;
+  padding: 18px 24px;
+}
+
+.pmd-qpos-workspace-modal[data-qpos-history-modal]
+.pmd-qpos-history-card > header .pmd-qpos-section-label {
+  font-size: 15px !important;
+  letter-spacing: .08em;
+}
+
+.pmd-qpos-workspace-modal[data-qpos-history-modal]
+.pmd-qpos-history-card > header h2 {
+  margin-top: 4px;
+  font-size: 30px !important;
+  line-height: 1.1;
+}
+
+.pmd-qpos-workspace-modal[data-qpos-history-modal]
+.pmd-qpos-history-toolbar {
+  padding: 16px 20px;
+}
+
+.pmd-qpos-workspace-modal[data-qpos-history-modal]
+.pmd-qpos-history-scope button,
+.pmd-qpos-workspace-modal[data-qpos-history-modal]
+.pmd-qpos-history-presets button,
+.pmd-qpos-workspace-modal[data-qpos-history-modal]
+.pmd-qpos-history-filters button {
+  min-height: 52px;
+  padding-inline: 16px;
+  border-radius: 12px;
+  font-size: 15px !important;
+  font-weight: 850;
+}
+
+.pmd-qpos-workspace-modal[data-qpos-history-modal]
+.pmd-qpos-history-range label > span {
+  font-size: 12px !important;
+  font-weight: 850;
+}
+
+.pmd-qpos-workspace-modal[data-qpos-history-modal]
+.pmd-qpos-history-range input {
+  height: 52px;
+  font-size: 16px !important;
+  font-weight: 800;
+}
+
+.pmd-qpos-workspace-modal[data-qpos-history-modal]
+.pmd-qpos-history-filters {
+  min-height: 68px;
+  padding: 10px 20px;
+}
+
+.pmd-qpos-workspace-modal[data-qpos-history-modal]
+.pmd-qpos-history-stats {
+  gap: 12px;
+  font-size: 14px !important;
+}
+
+.pmd-qpos-workspace-modal[data-qpos-history-modal]
+.pmd-qpos-history-stats span,
+.pmd-qpos-workspace-modal[data-qpos-history-modal]
+.pmd-qpos-history-stats b {
+  font-size: 14px !important;
+}
+
+.pmd-qpos-history-entry-v20 {
+  gap: 10px !important;
+  padding: 17px 18px !important;
+  border-radius: 15px !important;
+}
+
+.pmd-qpos-history-entry-top strong {
+  font-size: 20px !important;
+}
+
+.pmd-qpos-history-entry-top time {
+  font-size: 13px !important;
+}
+
+.pmd-qpos-history-entry-bottom {
+  justify-content: flex-start !important;
+  flex-wrap: wrap;
+}
+
+.pmd-qpos-history-entry-bottom > span:not(.pmd-qpos-history-new-pill):not(.pmd-qpos-history-seen-action) {
+  flex: 1 1 180px;
+  font-size: 15px !important;
+  line-height: 1.35;
+}
+
+.pmd-qpos-history-entry-bottom > b {
+  min-height: 30px !important;
+  padding: 0 11px !important;
+  font-size: 12px !important;
+}
+
+/* New table note: blue; new waiter call: red. */
+.pmd-qpos-history-entry-v20.is-new-table_note {
+  border-color: #60a5fa !important;
+  background: #eff6ff !important;
+  box-shadow:
+    inset 5px 0 #2563eb,
+    0 5px 16px rgba(37,99,235,.10) !important;
+}
+
+.pmd-qpos-history-entry-v20.is-new-waiter_call {
+  border-color: #fb7185 !important;
+  background: #fff1f2 !important;
+  box-shadow:
+    inset 5px 0 #e11d48,
+    0 5px 16px rgba(225,29,72,.10) !important;
+}
+
+.pmd-qpos-history-new-pill {
+  flex: 0 0 auto !important;
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 9px;
+  border-radius: 999px;
+  background: #111827;
+  color: #fff !important;
+  font-size: 11px !important;
+  font-weight: 950;
+  letter-spacing: .06em;
+}
+
+.pmd-qpos-history-seen-action {
+  flex: 0 0 auto !important;
+  min-height: 34px;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  padding: 0 13px;
+  border: 1px solid #0f766e;
+  border-radius: 10px;
+  background: #fff;
+  color: #0f766e !important;
+  font-size: 13px !important;
+  font-weight: 900;
+  cursor: pointer;
+  user-select: none;
+}
+
+.pmd-qpos-history-seen-action:hover,
+.pmd-qpos-history-seen-action:focus-visible {
+  background: #ecfdf5;
+  outline: 3px solid rgba(15,118,110,.18);
+  outline-offset: 1px;
+}
+
+.pmd-qpos-history-seen-action.is-loading {
+  opacity: .55;
+  pointer-events: none;
+}
+
+.pmd-qpos-history-empty {
+  font-size: 17px !important;
+  line-height: 1.45;
+}
+
+.pmd-qpos-history-order-head-v20 .pmd-qpos-history-order-identity > span,
+.pmd-qpos-history-order-overview span {
+  font-size: 13px !important;
+}
+
+.pmd-qpos-history-order-head-v20 .pmd-qpos-history-order-identity h3 {
+  font-size: 34px !important;
+}
+
+.pmd-qpos-history-order-facts > strong {
+  font-size: 23px !important;
+}
+
+.pmd-qpos-history-order-facts > span {
+  min-height: 32px;
+  font-size: 12px !important;
+}
+
+.pmd-qpos-history-order-facts > time {
+  font-size: 13px !important;
+}
+
+.pmd-qpos-history-invoice {
+  min-height: 50px;
+  padding-inline: 18px;
+  font-size: 15px !important;
+}
+
+.pmd-qpos-history-order-overview p {
+  font-size: 16px !important;
+  line-height: 1.4;
+}
+
+.pmd-qpos-history-section > header strong {
+  font-size: 17px !important;
+}
+
+.pmd-qpos-history-section > header span {
+  font-size: 13px !important;
+}
+
+.pmd-qpos-history-simple-main strong {
+  font-size: 17px !important;
+}
+
+.pmd-qpos-history-simple-main b {
+  font-size: 17px !important;
+}
+
+.pmd-qpos-history-simple-main time {
+  font-size: 13px !important;
+}
+
+.pmd-qpos-history-simple-meta span,
+.pmd-qpos-history-simple-meta a {
+  font-size: 13px !important;
+}
+
+.pmd-qpos-history-simple-event > p {
+  font-size: 15px !important;
+  line-height: 1.4;
+}
+
+
+/* ============================================================
+   PMD_QPOS_TABLE_CENTER_V66
+   Attention remains visible at the edges while the table identity stays
+   larger and geometrically centered inside the touch target.
+   ============================================================ */
+.pmd-qpos-table:not(.pmd-qpos-pickup) {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+}
+
+.pmd-qpos-table:not(.pmd-qpos-pickup) > strong {
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  text-align: center !important;
+  font-size: clamp(26px, 2.2vw, 32px) !important;
+  line-height: 1 !important;
+}
+
+.pmd-qpos-table:not(.pmd-qpos-pickup) > small {
+  width: 100% !important;
+  margin-top: 9px !important;
+  padding: 0 !important;
+  text-align: center !important;
+}
+
+
+/* ============================================================
+   PMD_QPOS_TABLE_FEATURE_ICONS_V67
+   Canonical Floor features in Quick POS + remove accidental mobile/WebView
+   text-selection/tap highlight from the read-only History counters.
+   ============================================================ */
+.pmd-qpos-history-stats,
+.pmd-qpos-history-stats * {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.pmd-qpos-history-stats *::selection {
+  background: transparent;
+  color: inherit;
+}
+
+.pmd-qpos-table-features-v67 {
+  position: absolute;
+  right: 7px;
+  bottom: 7px;
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  pointer-events: none;
+}
+
+.pmd-qpos-table-feature-v67 {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(15,23,42,.18);
+  border-radius: 999px;
+  background: rgba(255,255,255,.88);
+  color: #0f172a;
+  box-shadow: 0 2px 6px rgba(15,23,42,.12);
+}
+
+.pmd-qpos-table-feature-v67 svg {
+  width: 13px;
+  height: 13px;
+  display: block;
+}
+
+.pmd-qpos-table-feature-v67.is-accessible {
+  color: #075985;
+}
+
+.pmd-qpos-table-feature-v67.is-near_window {
+  color: #1d4ed8;
+}
+
+.pmd-qpos-table-feature-v67.is-quiet_area {
+  color: #475569;
+}
+
+
+/* ============================================================
+   PMD_QPOS_SENT_ITEM_MUTATION_V68
+   Existing sent lines are editable only while the backend mutation authority
+   says payment has not started and kitchen preparation has not begun.
+   ============================================================ */
+.pmd-qpos-sent-tail-v68 {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 0;
+}
+
+.pmd-qpos-sent-qty-v68 {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pmd-qpos-sent-qty-v68 button {
+  width: 34px;
+  height: 34px;
+  border: 1px solid #d8dde5;
+  border-radius: 9px;
+  background: #fff;
+  color: #111827;
+  font: inherit;
+  font-size: 19px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.pmd-qpos-sent-qty-v68 button:hover {
+  background: #f8fafc;
+  border-color: #b8c0cc;
+}
+
+.pmd-qpos-sent-qty-v68 button:disabled {
+  opacity: .45;
+  cursor: wait;
+}
+
+.pmd-qpos-sent-lock-v68 {
+  margin-top: 7px;
+  padding: 8px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 9px;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+
+/* ============================================================
+   PMD_QPOS_TABLE_ICON_CORNERS_V71
+   Keep the table identity visually clean: operational/payment signals live in
+   the lower-left corner; canonical table-feature icons live in the upper-right.
+   Neither group may cover the centered table number or seat count.
+   ============================================================ */
+.pmd-qpos-table-signals-v57 {
+  left: 8px !important;
+  top: auto !important;
+  bottom: 8px !important;
+  right: auto !important;
+  transform: none !important;
+  max-width: 48px !important;
+}
+
+.pmd-qpos-table-features-v67 {
+  top: 8px !important;
+  right: 8px !important;
+  bottom: auto !important;
+  left: auto !important;
+}
+
+.pmd-qpos-table:not(.pmd-qpos-pickup) > strong {
+  padding-inline: 42px !important;
+  box-sizing: border-box !important;
+}
+
+.pmd-qpos-table:not(.pmd-qpos-pickup) > small {
+  padding-inline: 42px !important;
+  box-sizing: border-box !important;
+}
+
+.pmd-qpos-open-checks button.is-paid-v71 {
+  border-color: rgba(5, 150, 105, .34) !important;
+  background: rgba(236, 253, 245, .92) !important;
+  color: #047857 !important;
+}
+
+.pmd-qpos-open-checks button.is-paid-v71.is-active {
+  box-shadow: inset 0 0 0 2px rgba(5, 150, 105, .22) !important;
+}
+
+.pmd-qpos-sent-qty-v68 button:disabled {
+  opacity: .48 !important;
+  cursor: wait !important;
+}
+
+@media (max-width: 760px) {
+  .pmd-qpos-table:not(.pmd-qpos-pickup) > strong,
+  .pmd-qpos-table:not(.pmd-qpos-pickup) > small {
+    padding-inline: 38px !important;
+  }
+}
+
+
+/* ============================================================
+   PMD_QPOS_UX_FLOW_V72
+   - Stable inline empty-food logo (no SVG/mask network flash)
+   - Minimal, faster option chooser
+   - Truly centered table number with icon-only corners
+   - One-level sent-item quantity Undo
+   ============================================================ */
+
+/* Empty food image: the inline SVG is painted in the same frame as the card. */
+.pmd-qpos-product-image.is-placeholder.is-inline-v72 {
+  position: relative !important;
+  background: #edf2f1 !important;
+  overflow: hidden !important;
+  animation: none !important;
+  transition: none !important;
+}
+
+.pmd-qpos-product-image.is-placeholder.is-inline-v72::before,
+.pmd-qpos-product-image.is-placeholder.is-inline-v72::after {
+  content: none !important;
+  display: none !important;
+  -webkit-mask-image: none !important;
+  mask-image: none !important;
+}
+
+.pmd-qpos-product-image.is-placeholder.is-inline-v72 svg {
+  position: absolute !important;
+  left: 50% !important;
+  top: 46% !important;
+  width: 54% !important;
+  height: 62% !important;
+  transform: translate(-50%, -50%) !important;
+  display: block !important;
+  fill: #aab3b1 !important;
+  color: #aab3b1 !important;
+  opacity: .82 !important;
+  pointer-events: none !important;
+}
+
+/* Option chooser: only group name + large option buttons. */
+.pmd-qpos-modifier-meta {
+  display: none !important;
+}
+
+.pmd-qpos-modifier-body > .pmd-qpos-field {
+  display: none !important;
+}
+
+.pmd-qpos-option-group {
+  margin: 0 0 22px !important;
+}
+
+.pmd-qpos-option-group header {
+  display: block !important;
+  margin: 0 0 11px !important;
+}
+
+.pmd-qpos-option-group header strong {
+  display: block !important;
+  font-size: 20px !important;
+  line-height: 1.18 !important;
+  font-weight: 900 !important;
+  color: #111827 !important;
+}
+
+.pmd-qpos-option-group header span,
+.pmd-qpos-option > span {
+  display: none !important;
+}
+
+.pmd-qpos-option-grid {
+  gap: 10px !important;
+}
+
+.pmd-qpos-option {
+  min-height: 68px !important;
+  padding: 12px 16px !important;
+  border-radius: 13px !important;
+  font-size: 19px !important;
+  font-weight: 850 !important;
+  line-height: 1.15 !important;
+}
+
+.pmd-qpos-option b {
+  display: block !important;
+  font-size: 19px !important;
+  font-weight: 900 !important;
+  line-height: 1.15 !important;
+}
+
+.pmd-qpos-option.is-selected {
+  border-color: #064e3b !important;
+  background: #ecfdf5 !important;
+  color: #064e3b !important;
+  box-shadow: inset 0 0 0 1px rgba(6,78,59,.12) !important;
+}
+
+/* Table identity: the number itself is geometrically centered in the card.
+   Feature and attention/payment icons live only in the top corners. */
+.pmd-qpos-table:not(.pmd-qpos-pickup) {
+  position: relative !important;
+  display: block !important;
+  text-align: center !important;
+}
+
+.pmd-qpos-table:not(.pmd-qpos-pickup)::after {
+  display: none !important;
+}
+
+.pmd-qpos-table:not(.pmd-qpos-pickup) > strong {
+  position: absolute !important;
+  left: 50% !important;
+  top: 50% !important;
+  width: auto !important;
+  max-width: calc(100% - 76px) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  transform: translate(-50%, -50%) !important;
+  text-align: center !important;
+  font-size: clamp(30px, 2.5vw, 38px) !important;
+  line-height: 1 !important;
+  z-index: 2 !important;
+  pointer-events: none !important;
+}
+
+.pmd-qpos-table:not(.pmd-qpos-pickup) > small {
+  position: absolute !important;
+  left: 50% !important;
+  top: calc(50% + 31px) !important;
+  width: auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  transform: translateX(-50%) !important;
+  text-align: center !important;
+  font-size: 14px !important;
+  line-height: 1 !important;
+  z-index: 2 !important;
+  pointer-events: none !important;
+}
+
+.pmd-qpos-table-signals-v57 {
+  left: 7px !important;
+  top: 7px !important;
+  right: auto !important;
+  bottom: auto !important;
+  transform: none !important;
+  max-width: 46px !important;
+  z-index: 5 !important;
+}
+
+.pmd-qpos-table-features-v67 {
+  left: auto !important;
+  top: 7px !important;
+  right: 7px !important;
+  bottom: auto !important;
+  z-index: 5 !important;
+}
+
+.pmd-qpos-table-feature-v67 {
+  width: 20px !important;
+  height: 20px !important;
+}
+
+.pmd-qpos-table-feature-v67 svg {
+  width: 12px !important;
+  height: 12px !important;
+}
+
+/* Sent item Undo: deliberately scoped to quantity corrections only. */
+.pmd-qpos-sent-head-v72 {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 8px !important;
+}
+
+.pmd-qpos-undo-v72 {
+  min-height: 30px !important;
+  padding: 0 10px !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 8px !important;
+  background: #fff !important;
+  color: #334155 !important;
+  font: inherit !important;
+  font-size: 12px !important;
+  font-weight: 850 !important;
+  cursor: pointer !important;
+  touch-action: manipulation !important;
+}
+
+.pmd-qpos-undo-v72:hover {
+  border-color: #94a3b8 !important;
+  background: #f8fafc !important;
+}
+
+.pmd-qpos-undo-v72:disabled {
+  opacity: .45 !important;
+  cursor: wait !important;
+}
+
+@media (max-width: 760px) {
+  .pmd-qpos-option-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .pmd-qpos-option {
+    min-height: 62px !important;
+    font-size: 18px !important;
+  }
+
+  .pmd-qpos-option b {
+    font-size: 18px !important;
+  }
+
+  .pmd-qpos-table:not(.pmd-qpos-pickup) > strong {
+    max-width: calc(100% - 68px) !important;
+    font-size: clamp(29px, 8vw, 36px) !important;
+  }
+
+  .pmd-qpos-table:not(.pmd-qpos-pickup) > small {
+    top: calc(50% + 29px) !important;
+  }
+}
+
+
+/* ============================================================
+   PMD_QPOS_ATTENTION_VISUAL_V81
+   Unresolved service attention uses one red badge and an unmistakable
+   red blush + gentle shake. No yellow/orange attention styling.
+   ============================================================ */
+.pmd-qpos-table-actions[hidden] {
+  display: none !important;
+}
+
+.pmd-qpos-table-signal.is-attention-v81 {
+  border-color: #fecaca !important;
+  background: #fff1f2 !important;
+  color: #b91c1c !important;
+}
+
+@keyframes pmd-qpos-attention-red-blush-v81 {
+  0%,
+  100% {
+    outline-color: rgba(255, 255, 255, .92);
+    box-shadow:
+      0 0 0 2px rgba(220, 38, 38, .28),
+      0 0 8px rgba(220, 38, 38, .18),
+      inset 0 0 0 2px rgba(255, 255, 255, .84);
+  }
+
+  50% {
+    outline-color: #fff;
+    box-shadow:
+      0 0 0 5px rgba(220, 38, 38, .88),
+      0 0 24px rgba(220, 38, 38, .72),
+      inset 0 0 0 3px rgba(255, 255, 255, .96);
+  }
+}
+
+@keyframes pmd-qpos-attention-shake-v81 {
+  0%,
+  82%,
+  100% {
+    transform: translateX(0);
+  }
+
+  86% {
+    transform: translateX(-2px) rotate(-.35deg);
+  }
+
+  90% {
+    transform: translateX(2px) rotate(.35deg);
+  }
+
+  94% {
+    transform: translateX(-1px) rotate(-.2deg);
+  }
+
+  98% {
+    transform: translateX(1px) rotate(.2deg);
+  }
+}
+
+.pmd-qpos-table.has-attention:not(:disabled) {
+  outline: 3px solid #fff !important;
+  outline-offset: -4px !important;
+  filter: none !important;
+  text-shadow: none !important;
+  animation:
+    pmd-qpos-attention-red-blush-v81 1.35s ease-in-out infinite,
+    pmd-qpos-attention-shake-v81 2.6s ease-in-out infinite !important;
+}
+
+.pmd-qpos-table.is-attention-focus-v57 {
+  outline: 4px solid #fff !important;
+  outline-offset: -4px !important;
+  filter: none !important;
+  text-shadow: none !important;
+  animation:
+    pmd-qpos-attention-red-blush-v81 1.05s ease-in-out infinite,
+    pmd-qpos-attention-shake-v81 2.1s ease-in-out infinite !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pmd-qpos-table.has-attention:not(:disabled),
+  .pmd-qpos-table.is-attention-focus-v57 {
+    animation: none !important;
+    outline: 4px solid #fff !important;
+    box-shadow:
+      0 0 0 4px rgba(220, 38, 38, .88),
+      inset 0 0 0 2px rgba(255, 255, 255, .92) !important;
+  }
+}
+
+
+/* ============================================================
+   PMD_QPOS_HISTORY_LAYOUT_V82
+   History controls are consolidated: date range in the top header, kind
+   filters inside the left index column, and All tables / Close in the live
+   table rail. Back/Profile disappear only while History owns the workspace.
+   ============================================================ */
+
+.pmd-qpos-history-rail-actions-v82 {
+  display: none;
+}
+
+.pmd-qpos.is-history-workspace .pmd-qpos-profile-dock {
+  display: none !important;
+}
+
+.pmd-qpos.is-history-workspace .pmd-qpos-history-rail-actions-v82 {
+  position: relative;
+  z-index: 6;
+  flex: 0 0 auto;
+  display: grid !important;
+  grid-template-columns: minmax(0,1fr) 52px;
+  gap: 8px;
+  padding: 9px 10px 10px;
+  border-top: 1px solid var(--q-line);
+  background: #fff;
+}
+
+.pmd-qpos-history-all-v82,
+.pmd-qpos-history-close-v82 {
+  min-height: 46px;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  background: #fff;
+  color: #111827;
+  font: inherit;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.pmd-qpos-history-all-v82 {
+  padding: 0 12px;
+}
+
+.pmd-qpos-history-all-v82.is-active {
+  border-color: #064e3b;
+  background: #064e3b;
+  color: #fff;
+}
+
+.pmd-qpos-history-close-v82 {
+  display: grid;
+  place-items: center;
+  padding: 0;
+  font-size: 29px;
+  line-height: 1;
+}
+
+.pmd-qpos-history-close-v82:hover,
+.pmd-qpos-history-close-v82:focus-visible {
+  border-color: #9ca3af;
+  background: #f8fafc;
+}
+
+.pmd-qpos-history-card > .pmd-qpos-history-topbar-v82 {
+  flex: 0 0 auto;
+  min-height: 98px;
+  display: grid;
+  grid-template-columns: minmax(190px,.72fr) minmax(620px,1.55fr);
+  align-items: center;
+  gap: 18px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--q-line);
+  background: #fff;
+}
+
+.pmd-qpos-history-heading-v82 {
+  min-width: 0;
+}
+
+.pmd-qpos-history-heading-v82 h2 {
+  margin: 3px 0 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pmd-qpos-history-topbar-v82 .pmd-qpos-history-range {
+  min-width: 0;
+  width: 100%;
+  justify-content: flex-end;
+  align-items: end;
+  flex-wrap: nowrap;
+  gap: 8px;
+}
+
+.pmd-qpos-history-topbar-v82 .pmd-qpos-history-presets {
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
+}
+
+.pmd-qpos-history-topbar-v82 .pmd-qpos-history-presets button {
+  min-height: 46px;
+  padding: 0 14px;
+  white-space: nowrap;
+}
+
+.pmd-qpos-history-topbar-v82 .pmd-qpos-history-range label {
+  flex: 0 0 auto;
+}
+
+.pmd-qpos-history-topbar-v82 .pmd-qpos-history-range input {
+  height: 46px;
+  min-width: 138px;
+}
+
+.pmd-qpos-history-layout {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.pmd-qpos-history-master-v82 {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-right: 1px solid var(--q-line);
+  background: #f8fafc;
+}
+
+.pmd-qpos-history-kind-tabs-v82 {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: repeat(4,minmax(0,1fr));
+  gap: 6px;
+  padding: 10px 10px 2px;
+  background: #f8fafc;
+}
+
+.pmd-qpos-history-kind-tabs-v82 button {
+  min-width: 0;
+  min-height: 42px;
+  padding: 0 7px;
+  overflow: hidden;
+  border: 1px solid #d1d5db;
+  border-radius: 9px;
+  background: #fff;
+  color: #374151;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.pmd-qpos-history-kind-tabs-v82 button.is-active {
+  border-color: #111827;
+  background: #111827;
+  color: #fff;
+}
+
+.pmd-qpos-history-master-v82 .pmd-qpos-history-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  border-right: 0 !important;
+  padding-top: 8px !important;
+}
+
+@media (min-width: 821px) and (max-width: 1220px) {
+  .pmd-qpos-history-card > .pmd-qpos-history-topbar-v82 {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+
+  .pmd-qpos-history-topbar-v82 .pmd-qpos-history-range {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 820px) {
+  .pmd-qpos-history-card > .pmd-qpos-history-topbar-v82 {
+    min-height: 0;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .pmd-qpos-history-topbar-v82 .pmd-qpos-history-range {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .pmd-qpos-history-topbar-v82 .pmd-qpos-history-presets {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .pmd-qpos-history-kind-tabs-v82 {
+    position: sticky;
+    top: 0;
+    z-index: 4;
+  }
+
+  .pmd-qpos-history-master-v82 {
+    border-right: 0;
+  }
+}
+
+
+/* ============================================================
+   PMD_QPOS_HISTORY_POLISH_V83
+   Keep History visually anchored to the normal Check column, flatten the
+   range controls, and present order items as a quiet card/chip collection.
+   ============================================================ */
+
+@media (min-width: 1181px) {
+  .pmd-qpos-workspace-modal[data-qpos-history-modal] .pmd-qpos-history-layout {
+    grid-template-columns: 320px minmax(0,1fr) !important;
+  }
+}
+
+@media (min-width: 821px) and (max-width: 1180px) {
+  .pmd-qpos-workspace-modal[data-qpos-history-modal] .pmd-qpos-history-layout {
+    grid-template-columns: 300px minmax(0,1fr) !important;
+  }
+}
+
+.pmd-qpos-history-topbar-v82 .pmd-qpos-history-presets button {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  min-width: 0 !important;
+  min-height: 44px !important;
+  height: 44px !important;
+  padding: 0 15px !important;
+  border: 1px solid #d6dce3 !important;
+  border-radius: 10px !important;
+  background: #fff !important;
+  color: #334155 !important;
+  box-shadow: none !important;
+  filter: none !important;
+  font-size: 13px !important;
+  font-weight: 850 !important;
+  line-height: 1 !important;
+  text-shadow: none !important;
+}
+
+.pmd-qpos-history-topbar-v82 .pmd-qpos-history-presets button:hover {
+  border-color: #aeb8c4 !important;
+  background: #f8fafc !important;
+}
+
+.pmd-qpos-history-topbar-v82 .pmd-qpos-history-presets button.is-active {
+  border-color: #064e3b !important;
+  background: #064e3b !important;
+  color: #fff !important;
+  box-shadow: none !important;
+}
+
+.pmd-qpos-history-topbar-v82 .pmd-qpos-history-range input {
+  appearance: none;
+  -webkit-appearance: none;
+  min-height: 44px !important;
+  height: 44px !important;
+  border: 1px solid #d6dce3 !important;
+  border-radius: 10px !important;
+  background: #fff !important;
+  color: #172033 !important;
+  box-shadow: none !important;
+  font-size: 13px !important;
+  font-weight: 800 !important;
+}
+
+.pmd-qpos-history-topbar-v82 .pmd-qpos-history-range label > span {
+  margin-bottom: 1px;
+  color: #64748b !important;
+  font-size: 10px !important;
+  font-weight: 850 !important;
+}
+
+.pmd-qpos-history-order-overview-v83 {
+  gap: 10px !important;
+  padding: 12px 16px !important;
+  background: #f8fafc !important;
+}
+
+.pmd-qpos-history-items-card-v83,
+.pmd-qpos-history-note-card-v83 {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 9px !important;
+  padding: 12px 13px !important;
+  border: 1px solid #e0e6ed !important;
+  border-radius: 12px !important;
+  background: #fff !important;
+  box-shadow: 0 1px 2px rgba(15,23,42,.025);
+}
+
+.pmd-qpos-history-items-card-v83 > header,
+.pmd-qpos-history-note-card-v83 > header {
+  display: flex;
+  align-items: center;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.pmd-qpos-history-items-card-v83 > header > span,
+.pmd-qpos-history-note-card-v83 > header > span {
+  color: #64748b !important;
+  font-size: 10px !important;
+  font-weight: 900 !important;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.pmd-qpos-history-item-chips-v83 {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.pmd-qpos-history-item-chip-v83 {
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  padding: 0 10px;
+  overflow: hidden;
+  border: 1px solid #dbe2e9;
+  border-radius: 9px;
+  background: #f8fafc;
+  color: #263244;
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pmd-qpos-history-note-card-v83 > p {
+  margin: 0 !important;
+  overflow: visible !important;
+  color: #334155 !important;
+  font-size: 13px !important;
+  line-height: 1.45 !important;
+  text-overflow: clip !important;
+  white-space: pre-wrap !important;
+}
+
+@media (max-width: 820px) {
+  .pmd-qpos-history-item-chip-v83 {
+    white-space: normal;
+  }
+}
+
+
+/* ============================================================
+   PMD_QPOS_HISTORY_CARD_SHELL_V84
+   Desktop History mirrors the normal POS card rhythm:
+   History index | History detail | live Table rail.
+   ============================================================ */
+
+@media (min-width: 821px) {
+  .pmd-qpos-workspace-modal[data-qpos-history-modal] {
+    background: transparent !important;
+    overflow: visible !important;
+  }
+
+  .pmd-qpos-workspace-modal[data-qpos-history-modal]
+  > .pmd-qpos-history-shell-v84 {
+    height: 100% !important;
+    display: grid !important;
+    grid-template-columns: 320px minmax(0,1fr) !important;
+    gap: 10px !important;
+    overflow: visible !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .pmd-qpos-history-left-card-v84,
+  .pmd-qpos-history-center-card-v84 {
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+    border: 1px solid var(--q-line);
+    border-radius: var(--q-radius);
+    background: #fff;
+    box-shadow: var(--q-shadow);
+  }
+
+  .pmd-qpos-history-left-card-v84 {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .pmd-qpos-history-center-card-v84 {
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+@media (min-width: 821px) and (max-width: 1180px) {
+  .pmd-qpos-workspace-modal[data-qpos-history-modal]
+  > .pmd-qpos-history-shell-v84 {
+    grid-template-columns: 300px minmax(0,1fr) !important;
+  }
+}
+
+.pmd-qpos-history-left-head-v84 {
+  flex: 0 0 auto;
+  min-height: 98px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--q-line);
+  background: #fff;
+}
+
+.pmd-qpos-history-left-head-v84 .pmd-qpos-section-label {
+  margin-bottom: 5px;
+  color: #667085;
+}
+
+.pmd-qpos-history-left-head-v84 h2 {
+  margin: 0;
+  overflow: hidden;
+  color: #111827;
+  font-size: 27px;
+  font-weight: 900;
+  line-height: 1.08;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pmd-qpos-history-left-card-v84 .pmd-qpos-history-kind-tabs-v82 {
+  padding: 10px 10px 6px;
+  border-bottom: 1px solid #edf0f3;
+  background: #fff;
+}
+
+.pmd-qpos-history-left-card-v84
+.pmd-qpos-history-kind-tabs-v82 button {
+  min-height: 42px;
+  padding-inline: 3px;
+  font-size: 11px;
+  letter-spacing: -.01em;
+  text-overflow: clip;
+}
+
+.pmd-qpos-history-left-card-v84 .pmd-qpos-history-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 8px 10px 12px !important;
+  border-right: 0 !important;
+  background: #f8fafc;
+}
+
+.pmd-qpos-history-workbar-v84 {
+  flex: 0 0 auto;
+  min-height: 70px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border-bottom: 1px solid var(--q-line);
+  background: #fff;
+}
+
+.pmd-qpos-history-search-v84 {
+  flex: 1 1 auto;
+}
+
+.pmd-qpos-history-clock-v84 {
+  flex: 0 0 auto;
+}
+
+.pmd-qpos-history-center-card-v84 > .pmd-qpos-history-detail {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  background: #f8fafc;
+}
+
+/* History date controls now behave like Check's bottom action dock. */
+.pmd-qpos-history-range-v84 {
+  flex: 0 0 auto;
+  width: 100%;
+  display: grid !important;
+  gap: 8px !important;
+  padding: 9px 10px 10px;
+  border-top: 1px solid var(--q-line);
+  background: #fff;
+}
+
+.pmd-qpos-history-range-v84 .pmd-qpos-history-presets {
+  width: 100%;
+  display: grid !important;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  gap: 7px;
+}
+
+.pmd-qpos-history-range-v84 .pmd-qpos-history-presets button {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  min-width: 0 !important;
+  min-height: 46px !important;
+  height: 46px !important;
+  padding: 0 8px !important;
+  border: 1px solid transparent !important;
+  border-radius: 11px !important;
+  color: #fff !important;
+  box-shadow: none !important;
+  filter: none !important;
+  font-size: 12px !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+}
+
+.pmd-qpos-history-range-v84
+.pmd-qpos-history-presets button.is-today-v84 {
+  background: #0f766e !important;
+  border-color: #0f766e !important;
+}
+
+.pmd-qpos-history-range-v84
+.pmd-qpos-history-presets button.is-week-v84 {
+  background: #064e3b !important;
+  border-color: #064e3b !important;
+}
+
+.pmd-qpos-history-range-v84
+.pmd-qpos-history-presets button.is-month-v84 {
+  background: #2454d6 !important;
+  border-color: #2454d6 !important;
+}
+
+.pmd-qpos-history-range-v84
+.pmd-qpos-history-presets button.is-all-v84 {
+  background: #475569 !important;
+  border-color: #475569 !important;
+}
+
+.pmd-qpos-history-range-v84
+.pmd-qpos-history-presets button:not(.is-active) {
+  opacity: .76;
+}
+
+.pmd-qpos-history-range-v84
+.pmd-qpos-history-presets button.is-active {
+  opacity: 1;
+  box-shadow:
+    inset 0 0 0 2px rgba(255,255,255,.92),
+    0 0 0 2px rgba(15,23,42,.12) !important;
+}
+
+.pmd-qpos-history-dates-v84 {
+  display: grid;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  gap: 7px;
+}
+
+.pmd-qpos-history-range-v84 .pmd-qpos-history-dates-v84 label {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.pmd-qpos-history-range-v84 .pmd-qpos-history-dates-v84 label > span {
+  color: #64748b !important;
+  font-size: 10px !important;
+  font-weight: 850 !important;
+  letter-spacing: .04em;
+}
+
+.pmd-qpos-history-range-v84 .pmd-qpos-history-dates-v84 input {
+  width: 100%;
+  min-width: 0 !important;
+  height: 42px !important;
+  padding: 0 7px !important;
+  border: 1px solid #d7dde5 !important;
+  border-radius: 9px !important;
+  background: #f8fafc !important;
+  color: #172033 !important;
+  box-shadow: none !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+}
+
+/* The Order is now a section card just like Payments. */
+.pmd-qpos-history-sections-v84 {
+  gap: 12px !important;
+  padding: 14px 16px 26px !important;
+}
+
+.pmd-qpos-history-order-card-v84 > header
+.pmd-qpos-history-order-status-v84 {
+  min-width: auto;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+}
+
+.pmd-qpos-history-order-status-v84.is-paid {
+  background: #dcfce7 !important;
+  color: #166534 !important;
+}
+
+.pmd-qpos-history-order-status-v84.is-partial {
+  background: #fff7ed !important;
+  color: #c2410c !important;
+}
+
+.pmd-qpos-history-order-status-v84.is-unpaid {
+  background: #fff1f2 !important;
+  color: #b91c1c !important;
+}
+
+.pmd-qpos-history-order-event-v84 {
+  display: grid;
+  gap: 12px;
+  padding: 13px;
+}
+
+.pmd-qpos-history-order-main-v84 {
+  padding-bottom: 2px;
+}
+
+.pmd-qpos-history-order-main-v84 > div > strong {
+  color: #111827;
+  font-size: 20px !important;
+  font-weight: 900;
+}
+
+.pmd-qpos-history-order-items-v84,
+.pmd-qpos-history-order-note-v84 {
+  display: grid;
+  gap: 7px;
+  padding-top: 10px;
+  border-top: 1px solid #edf0f3;
+}
+
+.pmd-qpos-history-order-items-v84 > span,
+.pmd-qpos-history-order-note-v84 > span {
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.pmd-qpos-history-order-note-v84 > p {
+  margin: 0;
+  color: #334155;
+  font-size: 13px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
+.pmd-qpos-history-document-actions-v84 {
+  margin-left: 0 !important;
+  padding-top: 2px;
+}
+
+.pmd-qpos-history-document-actions-v84 .pmd-qpos-history-invoice {
+  min-height: 42px;
+}
+
+.pmd-qpos-history-empty-v84 {
+  padding: 24px 16px !important;
+  border: 1px dashed #d7dde5;
+  border-radius: 12px;
+  background: #fff;
+}
+
+/* V83 top-header rules are obsolete now that range is docked left. */
+.pmd-qpos-history-topbar-v82 {
+  display: none !important;
+}
+
+@media (max-width: 820px) {
+  .pmd-qpos-history-shell-v84 {
+    display: block !important;
+    overflow: auto !important;
+  }
+
+  .pmd-qpos-history-left-card-v84,
+  .pmd-qpos-history-center-card-v84 {
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .pmd-qpos-history-center-card-v84 {
+    min-height: 60vh;
+  }
+}
+
+
+/* ============================================================
+   PMD_QPOS_RAIL_PROFILE_HISTORY_V85
+   Profile + History own the normal table-rail dock. Dashboard lives inside
+   the profile menu; Map is a strong filled action. History date controls fill
+   the left-card footer without redundant From/To captions.
+   ============================================================ */
+
+.pmd-qpos-profile-dock-v85 {
+  grid-template-columns: minmax(0,1.18fr) minmax(92px,.82fr) !important;
+  align-items: stretch;
+}
+
+.pmd-qpos-profile-dock-v85 .pmd-qpos-profile {
+  min-width: 0;
+}
+
+.pmd-qpos-profile-dock-v85 .pmd-qpos-profile-button,
+.pmd-qpos-history-rail-button-v85 {
+  min-height: 48px !important;
+  height: 48px !important;
+  border-radius: 10px !important;
+}
+
+.pmd-qpos-history-rail-button-v85 {
+  width: 100%;
+  min-width: 0 !important;
+  padding: 0 10px !important;
+  border: 1px solid #032f25 !important;
+  background: #032f25 !important;
+  color: #fff !important;
+  font-size: 13px !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+  cursor: pointer;
+}
+
+.pmd-qpos-history-rail-button-v85:hover,
+.pmd-qpos-history-rail-button-v85:focus-visible {
+  background: #064e3b !important;
+  border-color: #064e3b !important;
+}
+
+.pmd-qpos-profile-menu .pmd-qpos-profile-dashboard-v85 {
+  border: 1px solid #cbd5e1 !important;
+  background: #f8fafc !important;
+  color: #334155 !important;
+}
+
+.pmd-qpos-profile-menu .pmd-qpos-profile-dashboard-v85:hover,
+.pmd-qpos-profile-menu .pmd-qpos-profile-dashboard-v85:focus-visible {
+  border-color: #94a3b8 !important;
+  background: #eef2f7 !important;
+}
+
+/* Strong, unmistakable Map affordance. */
+.pmd-qpos-floor-map-open {
+  min-height: 38px !important;
+  padding: 0 15px !important;
+  border: 1px solid #1d4ed8 !important;
+  background: #1d4ed8 !important;
+  color: #fff !important;
+  box-shadow: none !important;
+  font-size: 12px !important;
+  font-weight: 900 !important;
+}
+
+.pmd-qpos-floor-map-open:hover,
+.pmd-qpos-floor-map-open:focus-visible {
+  border-color: #1e40af !important;
+  background: #1e40af !important;
+}
+
+/* Fill the History footer instead of leaving unused card-corner space. */
+.pmd-qpos-history-range-v84 {
+  gap: 9px !important;
+  padding: 10px !important;
+}
+
+.pmd-qpos-history-range-v84 .pmd-qpos-history-presets {
+  gap: 8px !important;
+}
+
+.pmd-qpos-history-range-v84 .pmd-qpos-history-presets button {
+  min-height: 54px !important;
+  height: 54px !important;
+  padding: 0 10px !important;
+  border-radius: 12px !important;
+  font-size: 14px !important;
+}
+
+.pmd-qpos-history-dates-v85 {
+  width: 100%;
+  display: grid !important;
+  grid-template-columns: minmax(0,1fr) 34px minmax(0,1fr) !important;
+  align-items: center;
+  gap: 6px !important;
+}
+
+.pmd-qpos-history-dates-v85 label {
+  min-width: 0;
+  display: block !important;
+}
+
+.pmd-qpos-history-dates-v85 label > span {
+  display: none !important;
+}
+
+.pmd-qpos-history-range-v84
+.pmd-qpos-history-dates-v85 input {
+  width: 100% !important;
+  min-width: 0 !important;
+  height: 50px !important;
+  padding: 0 8px !important;
+  border: 1px solid #cfd8e3 !important;
+  border-radius: 11px !important;
+  background: #f8fafc !important;
+  color: #111827 !important;
+  box-sizing: border-box;
+  font-size: 12px !important;
+  font-weight: 900 !important;
+}
+
+.pmd-qpos-history-date-arrow-v85 {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  justify-self: center;
+  border: 1px solid #b7ddd1;
+  border-radius: 999px;
+  background: #e9f7f1;
+  color: #032f25;
+  font-size: 16px;
+  font-weight: 950;
+  line-height: 1;
+}
+
+@media (min-width: 821px) and (max-width: 1180px) {
+  .pmd-qpos-profile-dock-v85 {
+    grid-template-columns: minmax(0,1fr) minmax(82px,.78fr) !important;
+  }
+
+  .pmd-qpos-history-range-v84 .pmd-qpos-history-presets button {
+    font-size: 13px !important;
+  }
+
+  .pmd-qpos-history-range-v84
+  .pmd-qpos-history-dates-v85 input {
+    font-size: 11px !important;
+  }
+}
+
+
+/* ============================================================
+   PMD_QPOS_CATEGORY_TOUCH_V86
+   Categories use the same rectangular touch language as Floor buttons.
+   ============================================================ */
+.pmd-qpos-categories {
+  gap: 8px !important;
+  padding: 10px 12px 11px !important;
+}
+
+.pmd-qpos-categories button {
+  min-width: 82px !important;
+  min-height: 50px !important;
+  height: 50px !important;
+  padding: 0 16px !important;
+  border: 1px solid var(--q-line) !important;
+  border-radius: 10px !important;
+  background: #fff !important;
+  color: #374151 !important;
+  font-size: 14px !important;
+  font-weight: 850 !important;
+  line-height: 1 !important;
+  box-shadow: none !important;
+  white-space: nowrap;
+}
+
+.pmd-qpos-categories button.is-active {
+  border-color: var(--q-primary) !important;
+  background: var(--q-primary) !important;
+  color: #fff !important;
+}
+
+@media (pointer: coarse) {
+  .pmd-qpos-categories button {
+    min-height: 54px !important;
+    height: 54px !important;
+    padding-inline: 18px !important;
+  }
+}
+
+/* ============================================================
+   PMD_QPOS_TABLET_PORTRAIT_V86
+   When the WebView/browser actually rotates, do not keep the desktop
+   three-column cashier canvas squeezed into portrait. Use the existing
+   mobile-cart interaction while giving tablet portrait more columns/space.
+   ============================================================ */
+@media (min-width: 821px) and (max-width: 1180px) {
+  body.pmd-qpos-body.pmd-qpos-portrait-v86 {
+    overflow: auto !important;
+  }
+
+  .pmd-qpos.is-portrait-v86 {
+    height: auto !important;
+    max-height: none !important;
+    min-height: 100dvh !important;
+  }
+
+  .pmd-qpos.is-portrait-v86 .pmd-qpos-main {
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 100dvh !important;
+    overflow: visible !important;
+    padding: 8px !important;
+  }
+
+  .pmd-qpos.is-portrait-v86 .pmd-qpos-left,
+  .pmd-qpos.is-portrait-v86 .pmd-qpos-catalog,
+  .pmd-qpos.is-portrait-v86 .pmd-qpos-cart {
+    min-width: 0 !important;
+    border-radius: 14px !important;
+  }
+
+  .pmd-qpos.is-portrait-v86 .pmd-qpos-left {
+    height: 360px !important;
+    margin-bottom: 8px !important;
+  }
+
+  .pmd-qpos.is-portrait-v86 .pmd-qpos-floor-switch {
+    padding: 9px !important;
+  }
+
+  .pmd-qpos.is-portrait-v86 .pmd-qpos-tables {
+    min-height: 0 !important;
+    flex: 1 1 auto !important;
+  }
+
+  .pmd-qpos.is-portrait-v86 .pmd-qpos-table-grid {
+    grid-template-columns: repeat(4,minmax(0,1fr)) !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    padding: 6px 9px 10px !important;
+  }
+
+  .pmd-qpos.is-portrait-v86 .pmd-qpos-table {
+    min-height: 72px !important;
+  }
+
+  .pmd-qpos.is-portrait-v86 .pmd-qpos-catalog {
+    min-height: calc(100dvh - 100px) !important;
+    margin-bottom: 82px !important;
+    overflow: hidden !important;
+  }
+
+  .pmd-qpos.is-portrait-v86 .pmd-qpos-catalog-head {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    padding: 9px !important;
+    background: #fff;
+  }
+
+  .pmd-qpos.is-portrait-v86 .pmd-qpos-product-grid {
+    grid-template-columns: repeat(3,minmax(0,1fr)) !important;
+    padding: 9px !important;
+  }
+
+  .pmd-qpos.is-portrait-v86 .pmd-qpos-cart-close {
+    display: inline-grid !important;
+    place-items: center;
+  }
+
+  .pmd-qpos.is-portrait-v86 .pmd-qpos-cart {
+    position: fixed !important;
+    z-index: 55 !important;
+    inset: 0 !important;
+    height: 100dvh !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    transform: translateY(110%) !important;
+    transition: transform .2s ease !important;
+  }
+
+  .pmd-qpos.is-portrait-v86 .pmd-qpos-cart.is-mobile-open {
+    transform: translateY(0) !important;
+  }
+
+  .pmd-qpos.is-portrait-v86 .pmd-qpos-mobile-cart {
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    bottom: max(12px,env(safe-area-inset-bottom));
+    z-index: 50;
+    height: 62px;
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    border: 0;
+    border-radius: 14px;
+    padding: 0 18px;
+    background: #111827;
+    color: #fff;
+    box-shadow: 0 16px 36px rgba(15,23,42,.30);
+    font-weight: 850;
+  }
+
+  .pmd-qpos.is-portrait-v86 .pmd-qpos-mobile-cart strong {
+    font-size: 19px;
+  }
+
+  .pmd-qpos.is-portrait-v86 .pmd-qpos-modal {
+    padding: 0 !important;
+    align-items: end !important;
+  }
+
+  .pmd-qpos.is-portrait-v86 .pmd-qpos-modal-card {
+    width: 100% !important;
+    max-height: 94dvh !important;
+    border-radius: 20px 20px 0 0 !important;
+  }
+
+  .pmd-qpos.is-portrait-v86
+  .pmd-qpos-workspace-modal[data-qpos-history-modal] {
+    left: 8px !important;
+    right: 8px !important;
+    bottom: 8px !important;
+  }
+
+  .pmd-qpos.is-portrait-v86
+  .pmd-qpos-workspace-modal[data-qpos-history-modal]
+  > .pmd-qpos-history-shell-v84 {
+    grid-template-columns: 300px minmax(0,1fr) !important;
   }
 }
