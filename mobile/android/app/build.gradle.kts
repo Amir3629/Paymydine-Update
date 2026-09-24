@@ -10,7 +10,7 @@ android {
         applicationId = "com.paymydine.mobile"
         minSdk = 26
         targetSdk = 36
-        versionCode = 43
+        versionCode = 44
         // PMD_ANDROID_0_3_30_LOCAL_FIRST_V104
         // V104 Local-First V2 keeps SQLite as the cashier-facing authority; Cloud is background sync.
         // PMD_ANDROID_0_3_30_PAGE_SCALE_V104
@@ -32,9 +32,10 @@ android {
         // PMD_ANDROID_0_3_20_MOBILE_UI_V94 (preserved baseline)
         // PMD_ANDROID_0_3_20_OFFLINE_COMPLETE_V23 (preserved contract)
         // V99 trims the V98 scale slightly while preserving natural mobile fit.
-        versionName = "0.3.30-v104-local-first-v2" // PMD_ANDROID_0_3_28_RESPONSIVE_MATRIX_V102
+        versionName = "0.3.31-v106-local-first" // PMD_ANDROID_0_3_28_RESPONSIVE_MATRIX_V102
         // PMD_ANDROID_V104_LOCAL_FIRST_RELEASE_PROMOTED
         // PMD_ANDROID_V105_BUNDLED_ASSETS_SYNCED
+        // PMD_ANDROID_0_3_31_V106_LOCAL_FIRST
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "SYNC_PROTOCOL_VERSION", "\"pmd-sync-v1\"")
     }
