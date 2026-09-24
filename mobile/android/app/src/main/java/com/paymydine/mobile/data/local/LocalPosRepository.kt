@@ -3,6 +3,7 @@ package com.paymydine.mobile.data.local
 import android.content.ContentValues
 import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
+import android.os.SystemClock
 import com.paymydine.mobile.sync.CommandEnvelope
 import org.json.JSONArray
 import org.json.JSONObject
@@ -1125,7 +1126,7 @@ class LocalPosRepository(private val database: PmdDatabase) {
         }
         require(draft.lines.isNotEmpty()) { "Add at least one item." }
 
-        val nowMs = System.currentTimeMillis()
+        val nowMs = trustedBusinessTimeMs()
         val clientCreatedAtMs = if (draft.serverId.isNullOrBlank()) {
             pinLocalBusinessCreatedAtMs(draft.localId, nowMs)
         } else {
@@ -1227,7 +1228,7 @@ class LocalPosRepository(private val database: PmdDatabase) {
         }
 
         val exponent = localMinorExponent()
-        val paidAtMs = System.currentTimeMillis()
+        val paidAtMs = trustedBusinessTimeMs()
         val payload = JSONObject()
             .put("client_paid_at_ms", paidAtMs)
             .put("table_id", tableId.toLongOrNull() ?: 0L)
@@ -1353,7 +1354,7 @@ class LocalPosRepository(private val database: PmdDatabase) {
         }
 
         val exponent = localMinorExponent()
-        val paidAtMs = System.currentTimeMillis()
+        val paidAtMs = trustedBusinessTimeMs()
         val payload = JSONObject()
             .put("client_paid_at_ms", paidAtMs)
             .put("order_id", orderId)
@@ -1428,7 +1429,7 @@ class LocalPosRepository(private val database: PmdDatabase) {
         }
 
         val exponent = localMinorExponent()
-        val paidAtMs = System.currentTimeMillis()
+        val paidAtMs = trustedBusinessTimeMs()
         val payload = JSONObject()
             .put("client_paid_at_ms", paidAtMs)
             .put("order_id", serverId)
@@ -1511,7 +1512,7 @@ class LocalPosRepository(private val database: PmdDatabase) {
 
         val exponent = localMinorExponent()
         val paidAtMs = maxOf(
-            System.currentTimeMillis(),
+            trustedBusinessTimeMs(),
             sendCommand.createdAtMs + 1,
         )
         val payload = JSONObject()
@@ -3024,6 +3025,32 @@ class LocalPosRepository(private val database: PmdDatabase) {
             SQLiteDatabase.CONFLICT_IGNORE,
         )
         return resolveLocalOrderId("order:$serverId", serverId)
+    }
+
+    // PMD_ANDROID_TRUSTED_BUSINESS_TIME_V104
+    // Prefer Cloud-anchored epoch + monotonic elapsed time. If the device has
+    // never received a trusted bootstrap, fall back to the wall clock.
+    private fun trustedBusinessTimeMs(): Long {
+        fun meta(key: String): Long = database.readableDatabase.query(
+            "pmd_meta",
+            arrayOf("value"),
+            "key = ?",
+            arrayOf(key),
+            null,
+            null,
+            null,
+            "1",
+        ).use {
+            if (it.moveToFirst()) it.getString(0).toLongOrNull() ?: 0L else 0L
+        }
+
+        val epoch = meta("trusted_server_epoch_ms")
+        val elapsed = meta("trusted_server_elapsed_ms")
+        if (epoch > 0L && elapsed > 0L) {
+            val delta = (SystemClock.elapsedRealtime() - elapsed).coerceAtLeast(0L)
+            return epoch + delta
+        }
+        return System.currentTimeMillis()
     }
 
     private fun localCurrencyCode(): String {
