@@ -162,7 +162,7 @@ jobs:
           grep -q "PMD_ANDROID_BUNDLED_CANONICAL_POS_UI_V18" mobile/android/app/build.gradle.kts
           grep -q "PMD_ANDROID_CANONICAL_POS_SHELL_CACHE_V18" mobile/android/app/src/main/java/com/paymydine/mobile/PosShellCache.kt
           grep -q "PMD_ANDROID_CANONICAL_IMAGE_INTERCEPT_V18" mobile/android/app/src/main/java/com/paymydine/mobile/data/local/OfflineImageCache.kt
-          grep -q "PMD_MOBILE_OFFLINE_ORIGINAL_TIME_V18" app/Services/PmdMobileSync/PmdMobileCommandProcessor.php
+          grep -q "PMD_MOBILE_OFFLINE_ORIGINAL_TIME_V23" app/Services/PmdMobileSync/PmdMobileCommandProcessor.php
           grep -q "PMD_MOBILE_OFFLINE_PAYMENT_TIME_V18" app/Services/PmdMobileSync/PmdMobileCommandProcessor.php
           grep -q "PMD_ANDROID_HISTORY_BUSINESS_TIME_V18" app/Services/PmdMobileSync/PmdMobileBootstrapService.php
           grep -q "client_paid_at_ms" mobile/android/app/src/main/java/com/paymydine/mobile/data/local/LocalPosRepository.kt
@@ -329,7 +329,9 @@ jobs:
           grep -q 'android:icon="@mipmap/ic_launcher"' mobile/android/app/src/main/AndroidManifest.xml
           grep -q "SyncEngine(app).runOnce" mobile/android/app/src/main/java/com/paymydine/mobile/OfflinePosActivity.kt
           grep -q "outboxCount" mobile/android/app/src/main/java/com/paymydine/mobile/OfflinePosActivity.kt
-          grep -q "offline_payment_enabled.*false" app/Services/PmdMobileSync/PmdMobileBootstrapService.php
+          grep -Fq "'offline_payment_enabled' => true" app/Services/PmdMobileSync/PmdMobileBootstrapService.php
+          grep -Fq "'offline_cash_payment_enabled' => true" app/Services/PmdMobileSync/PmdMobileBootstrapService.php
+          grep -Fq "'offline_card_payment_enabled' => false" app/Services/PmdMobileSync/PmdMobileBootstrapService.php
           ! grep -q 'android:name=".OfflinePosActivity"' mobile/android/app/src/main/AndroidManifest.xml
           grep -q "PMD_ANDROID_DIRECT_LOGIN_LAUNCHER_V2" mobile/android/app/src/main/java/com/paymydine/mobile/MainActivity.kt
           ! grep -q "PosActivity::class.java" mobile/android/app/src/main/java/com/paymydine/mobile/MainActivity.kt
