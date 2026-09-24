@@ -1587,6 +1587,9 @@ class LocalPosBridge(
     }
 
     @JavascriptInterface
+    fun cloudAvailable(): Boolean = app.connectivity.online.value
+
+    @JavascriptInterface
     fun localUiReady() {
         activity.runOnUiThread(onLocalUiReady)
     }
