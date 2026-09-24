@@ -11,8 +11,12 @@
 /* PMD_ANDROID_LOGIN_HEIGHT_FRAME_V16
  * The card keeps its real tablet height. When the IME/keyboard makes the
  * viewport shorter, the page scrolls; controls are never crushed to fit. */
-body{min-height:100vh;min-height:100dvh;overflow-y:auto;padding:20px;display:flex;justify-content:center;align-items:flex-start;background:radial-gradient(circle at 50% 8%,rgba(200,155,74,.16),transparent 31%),linear-gradient(180deg,#011714 0%,#032c27 100%);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--text);-webkit-font-smoothing:antialiased}
-.card{position:relative;flex:0 0 auto;width:min(560px,calc(100vw - 40px));min-height:590px;margin:auto 0;overflow:visible;padding:30px 42px 40px;border:1px solid rgba(200,155,74,.35);border-radius:24px;background:#fff;box-shadow:0 28px 80px rgba(0,25,22,.35)}
+/* PMD_ANDROID_LOGIN_TRUE_CENTER_V18G
+ * Normal tablet/login viewport: center the complete login card on both axes.
+ * Short/IME viewports deliberately fall back to top alignment below so the
+ * fixed-height credential card remains fully scrollable instead of clipping. */
+body{min-height:100vh;min-height:100dvh;overflow-y:auto;padding:20px;display:grid;place-items:center;background:radial-gradient(circle at 50% 8%,rgba(200,155,74,.16),transparent 31%),linear-gradient(180deg,#011714 0%,#032c27 100%);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--text);-webkit-font-smoothing:antialiased}
+.card{position:relative;width:min(560px,calc(100vw - 40px));min-height:590px;margin:0;overflow:visible;padding:30px 42px 40px;border:1px solid rgba(200,155,74,.35);border-radius:24px;background:#fff;box-shadow:0 28px 80px rgba(0,25,22,.35)}
 .card.is-security{min-height:620px;padding-top:30px;padding-bottom:40px}
 .lang,.back{width:43px;height:39px;border:1px solid #dfd1b8;border-radius:11px;background:#fffaf1;color:var(--jade);font:inherit;font-size:12px;font-weight:900;cursor:pointer}
 .lang{position:absolute;right:14px;top:14px}.back{position:absolute;left:14px;top:14px;display:none;place-items:center;padding:0}
@@ -34,7 +38,7 @@ body{min-height:100vh;min-height:100dvh;overflow-y:auto;padding:20px;display:fle
 .pin-panel,.full-panel{width:min(var(--content),100%);margin:0 auto}.pin-head{text-align:center;margin:0 0 14px}.pin-head h1{margin:0 0 5px;color:#0c2c28;font-size:21px}.pin-head p{margin:0;color:var(--muted);font-size:12.5px}.pin-dots{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;width:min(284px,100%);margin:0 auto 12px}.pin-dot{height:44px;display:grid;place-items:center;border:1px solid #dbe5e2;border-radius:12px;background:#f8fbfa;color:var(--jade);font-size:24px;font-weight:900}.pin-dot.filled{border-color:#cbb27c;background:#fffaf0}.pin-dot.filled:after{content:'•'}.pin-keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;width:min(284px,100%);margin:0 auto 12px}.pin-key{height:54px;border:1px solid #dce7e4;border-radius:14px;background:#fff;color:#16332e;font:inherit;font-size:21px;font-weight:850;cursor:pointer}.pin-key.action{font-size:14px;color:#60706d;background:#f7faf9}.mode-switch{width:100%;margin:10px 0 0;padding:8px;border:0;background:transparent;color:#536b65;font:inherit;font-size:12px;font-weight:850;cursor:pointer}.pin-submit{width:min(284px,100%);margin:0 auto}.pin-hidden{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}.card.is-pin .brand{height:112px;margin:-4px 42px 10px}.card.is-pin .brand img{height:108px}
 /* PMD_ANDROID_LOGIN_TABLET_FRAME_V16 */
 @media(max-width:620px){body{padding:12px}.card{width:calc(100vw - 24px);min-height:590px;padding:26px 28px 34px;border-radius:21px}.card.is-security{min-height:610px;padding-bottom:34px}.brand{height:146px;margin:0 38px 22px}.brand img{height:140px}.card.is-security .brand{height:154px;margin:0 38px 30px}.card.is-security .brand img{height:147px}}
-@media(max-height:680px){body{padding:10px}.card{min-height:590px;margin:0;padding:26px 36px 34px}.card.is-security{min-height:610px;padding-top:28px;padding-bottom:36px}.brand{height:146px;margin:0 42px 22px}.brand img{height:140px}.card.is-security .brand{height:154px;margin:0 42px 28px}.card.is-security .brand img{height:147px}}
+@media(max-height:680px){body{padding:10px;place-items:start center}.card{min-height:590px;margin:0;padding:26px 36px 34px}.card.is-security{min-height:610px;padding-top:28px;padding-bottom:36px}.brand{height:146px;margin:0 42px 22px}.brand img{height:140px}.card.is-security .brand{height:154px;margin:0 42px 28px}.card.is-security .brand img{height:147px}}
 </style>
 </head>
 <body>
