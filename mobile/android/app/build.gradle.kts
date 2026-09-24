@@ -12,7 +12,7 @@ android {
         targetSdk = 36
         versionCode = 31
         // PMD_ANDROID_0_3_18_SEAMLESS_WAN_AND_LOGIN_V22
-        versionName = "0.3.18-v91-request-failover" // PMD_ANDROID_0_3_18_REQUEST_FAILOVER
+        versionName = "0.3.18-v92-seamless-local" // PMD_ANDROID_0_3_18_SEAMLESS_LOCAL_V22
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "SYNC_PROTOCOL_VERSION", "\"pmd-sync-v1\"")
     }
