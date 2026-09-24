@@ -4,6 +4,7 @@ import android.app.Activity
 import android.net.Uri
 import android.webkit.JavascriptInterface
 import com.paymydine.mobile.edge.EdgeRuntimeState
+import com.paymydine.mobile.sync.CommandEnvelope
 import com.paymydine.mobile.sync.SyncEngine
 import org.json.JSONArray
 import org.json.JSONObject
@@ -300,8 +301,10 @@ class LocalPosBridge(
                     increase = match.groupValues[2] == "increase-item",
                 )
             }
-            return unavailable(
-                "Changing an already-sent Cloud item needs an internet connection right now.",
+            return canonicalServerItemMutationV106(
+                orderId = orderId,
+                payload = payload,
+                increase = match.groupValues[2] == "increase-item",
             )
         }
 
@@ -571,7 +574,7 @@ class LocalPosBridge(
         for (index in 0 until rawOrders.length()) {
             val order = rawOrders.optJSONObject(index) ?: continue
             if (order.opt("table_id")?.toString() != tableId) continue
-            openOrders.put(cloneObject(order))
+            openOrders.put(projectPendingItemAdjustmentsV106(order))
         }
 
         val work = app.localPosRepository.localWorkForTable(tableId)
@@ -1239,6 +1242,251 @@ class LocalPosBridge(
                     .put("comment", line.note),
             )
         }
+    }
+
+    // PMD_ANDROID_CLOUD_LINE_EDIT_V106
+    // Existing Cloud lines keep their canonical order_menu_id. The tablet queues
+    // only a quantity intent; modifiers/options are never reconstructed locally.
+    private fun canonicalServerItemMutationV106(
+        orderId: Long,
+        payload: JSONObject,
+        increase: Boolean,
+    ): JSONObject {
+        require(orderId > 0L) { "This check is unavailable." }
+        val tableId = tableIdForOrder(orderId)
+            ?: error("This check is not available on this tablet.")
+        require(
+            !app.syncRepository.hasActiveOrderCommand(
+                orderId,
+                "CASH_PAYMENT_V1",
+            ),
+        ) {
+            "Cash is already queued for this check. Sync/review it before changing items."
+        }
+
+        val tableData = canonicalTableData(tableId)
+        val orders = tableData.optJSONArray("open_orders") ?: JSONArray()
+        var order: JSONObject? = null
+        for (index in 0 until orders.length()) {
+            val candidate = orders.optJSONObject(index) ?: continue
+            if (candidate.optLong("order_id", 0L) == orderId) {
+                order = candidate
+                break
+            }
+        }
+        val currentOrder = order ?: error("This check is unavailable.")
+        val settlement = currentOrder.optString("settlement_status", "unpaid")
+            .trim()
+            .lowercase()
+        val settledAmount = currentOrder.optDouble("settled_amount", 0.0)
+        val operational = currentOrder.optString("status_name")
+            .trim()
+            .lowercase()
+        require(
+            settledAmount <= 0.0001 &&
+                settlement !in setOf(
+                    "partial",
+                    "paid",
+                    "settled",
+                    "closed",
+                    "cancelled",
+                    "canceled",
+                    "refunded",
+                ),
+        ) {
+            "Payment has already started. Ordered item quantities are locked."
+        }
+        require(
+            !Regex("prepar|cook|delivery|ready|served|cancel|void|closed|complete")
+                .containsMatchIn(operational),
+        ) {
+            "Kitchen preparation has started or this order is closed. Ordered item quantities are locked."
+        }
+
+        val itemId = payload.optLong("order_menu_id", 0L)
+        require(itemId > 0L) { "This ordered item is unavailable." }
+        val items = currentOrder.optJSONArray("items") ?: JSONArray()
+        var item: JSONObject? = null
+        for (index in 0 until items.length()) {
+            val candidate = items.optJSONObject(index) ?: continue
+            if (
+                candidate.optLong(
+                    "order_menu_id",
+                    candidate.optLong("id", 0L),
+                ) == itemId
+            ) {
+                item = candidate
+                break
+            }
+        }
+        val currentItem = item ?: error("This ordered item is unavailable.")
+        val currentQty = currentItem.optInt("quantity", 0).coerceAtLeast(0)
+        val changeQty = payload.optInt("quantity", 1).coerceIn(1, 99)
+        val delta = if (increase) changeQty else -changeQty
+        val nextQty = currentQty + delta
+        require(nextQty in 0..99) { "Item quantity is outside the allowed range." }
+
+        val currentSubtotal = currentItem.optDouble("subtotal", 0.0)
+        val unitPrice = if (currentQty > 0 && currentSubtotal > 0.0) {
+            currentSubtotal / currentQty
+        } else {
+            currentItem.optDouble(
+                "price",
+                currentItem.optDouble("unit_price", 0.0),
+            )
+        }
+        val serverBaseVersion = currentOrder.optLong("aggregate_version", 0L)
+        val baseVersion = app.syncRepository.nextAggregateBaseVersion(
+            "order:$orderId",
+            serverBaseVersion,
+        )
+        val host = app.credentials.tenantHost()
+            ?: error("This tablet is not paired.")
+        val deviceId = app.credentials.deviceId()
+            ?: error("This tablet is not paired.")
+        val session = app.credentials.staffSession()
+            ?: error("Sign in again to continue.")
+        val nowMs = System.currentTimeMillis()
+        val commandPayload = JSONObject()
+            .put("action", if (increase) "increase" else "void")
+            .put("order_id", orderId)
+            .put("order_menu_id", itemId)
+            .put("quantity", changeQty)
+            .put("unit_price_minor", majorToMinor(unitPrice))
+            .put(
+                "expected_updated_at",
+                currentOrder.optString("updated_at"),
+            )
+        if (!increase) {
+            commandPayload.put(
+                "reason",
+                payload.optString(
+                    "reason",
+                    "Quick POS quantity correction before kitchen preparation",
+                ),
+            )
+        }
+        commandPayload.put(
+            "undo_quantity_correction",
+            payload.optBoolean("undo_quantity_correction", false),
+        )
+
+        val command = CommandEnvelope.create(
+            tenantHost = host,
+            locationId = app.bootstrapRepository.locationId()
+                ?: error("Restaurant data is not available on this tablet."),
+            deviceId = deviceId,
+            staffId = session.staffId,
+            userId = session.userId,
+            aggregate = "order",
+            aggregateId = "order:$orderId",
+            baseVersion = baseVersion,
+            commandType = "ORDER_ITEM_ADJUST_V1",
+            payloadJson = commandPayload.toString(),
+            nowMs = nowMs,
+        )
+        check(app.syncRepository.enqueue(command)) {
+            "This item change is already saved."
+        }
+        SyncEngine.enqueueImmediate(app)
+
+        val oldTotal = currentOrder.optDouble(
+            "order_total",
+            currentOrder.optDouble("total", 0.0),
+        )
+        val nextSubtotal = maxOf(0.0, unitPrice * nextQty)
+        val nextTotal = maxOf(0.0, oldTotal + (unitPrice * delta))
+        val oldTotalItems = currentOrder.optInt("total_items", 0)
+        return JSONObject()
+            .put("ok", true)
+            .put("order_id", orderId)
+            .put("order_menu_id", itemId)
+            .put("new_quantity", nextQty)
+            .put("remaining_quantity", nextQty)
+            .put("line_subtotal", nextSubtotal)
+            .put("order_total", nextTotal)
+            .put(
+                "total_items",
+                maxOf(0, oldTotalItems + delta),
+            )
+            .put("updated_at", currentOrder.optString("updated_at"))
+            .put("native_reconciliation_pending", true)
+            .put(
+                "message",
+                if (increase) "Quantity saved locally."
+                else "Quantity correction saved locally.",
+            )
+    }
+
+    private fun projectPendingItemAdjustmentsV106(
+        source: JSONObject,
+    ): JSONObject {
+        val order = cloneObject(source)
+        val orderId = order.optLong("order_id", 0L)
+        if (orderId < 1L) return order
+
+        val pending = app.syncRepository.pendingItemAdjustments(orderId)
+        if (pending.isEmpty()) return order
+
+        val items = cloneArray(order.optJSONArray("items"))
+        var totalDeltaMinor = 0L
+        var quantityDelta = 0
+        pending.forEach { adjustment ->
+            for (index in 0 until items.length()) {
+                val item = items.optJSONObject(index) ?: continue
+                val itemId = item.optLong(
+                    "order_menu_id",
+                    item.optLong("id", 0L),
+                )
+                if (itemId != adjustment.orderMenuId) continue
+
+                val oldQty = item.optInt("quantity", 0).coerceAtLeast(0)
+                val newQty = maxOf(0, oldQty + adjustment.delta)
+                val unitMinor = if (adjustment.unitPriceMinor > 0L) {
+                    adjustment.unitPriceMinor
+                } else {
+                    val subtotal = item.optDouble("subtotal", 0.0)
+                    majorToMinor(
+                        if (oldQty > 0 && subtotal > 0.0) subtotal / oldQty
+                        else item.optDouble("price", 0.0),
+                    )
+                }
+                val appliedDelta = newQty - oldQty
+                item
+                    .put("quantity", newQty)
+                    .put(
+                        "subtotal",
+                        minorToMajor(unitMinor * newQty),
+                    )
+                    .put("native_reconciliation_pending", true)
+                totalDeltaMinor += unitMinor * appliedDelta
+                quantityDelta += appliedDelta
+                break
+            }
+        }
+
+        val baseTotalMinor = majorToMinor(
+            order.optDouble(
+                "order_total",
+                order.optDouble("total", 0.0),
+            ),
+        )
+        order
+            .put("items", items)
+            .put(
+                "order_total",
+                minorToMajor(maxOf(0L, baseTotalMinor + totalDeltaMinor)),
+            )
+            .put(
+                "total",
+                minorToMajor(maxOf(0L, baseTotalMinor + totalDeltaMinor)),
+            )
+            .put(
+                "total_items",
+                maxOf(0, order.optInt("total_items", 0) + quantityDelta),
+            )
+            .put("native_item_adjust_pending", true)
+        return order
     }
 
     // PMD_ANDROID_PROVISIONAL_ITEM_MUTATION_V23
