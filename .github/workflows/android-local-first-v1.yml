@@ -104,6 +104,10 @@ jobs:
           bash -n deploy/pmd-android-v18-7-canonical-login-offline.sh
           bash -n deploy/pmd-android-v18-13-seamless-offline-pos.sh
           grep -q "PMD_QPOS_NATIVE_LOCAL_TRANSPORT_V18" app/admin/assets/js/pmd-quick-pos-v1.js
+          grep -q "PMD_QPOS_DURABLE_UI_DRAFT_V18" app/admin/assets/js/pmd-quick-pos-v1.js
+          grep -q "PMD_QPOS_NATIVE_BOOTSTRAP_MERGE_V18" app/admin/assets/js/pmd-quick-pos-v1.js
+          grep -q "PMD_ANDROID_DURABLE_QPOS_UI_DRAFT_V18" mobile/android/app/src/main/java/com/paymydine/mobile/data/local/LocalPosRepository.kt
+          grep -q "PMD_ANDROID_EXACT_MULTI_CHECK_CONTINUATION_V18" mobile/android/app/src/main/java/com/paymydine/mobile/data/local/LocalPosRepository.kt
           grep -q "PMD_QPOS_ORIENTATION_BINDINGS_V86" app/admin/assets/js/pmd-quick-pos-v1.js
           grep -q "PMD_QPOS_NATIVE_OFFLINE_NO_HEARTBEAT_V18" app/admin/assets/js/pmd-quick-pos-v1.js
           grep -q "PMD_PUSH_NATIVE_OFFLINE_SUSPEND_V18" app/admin/assets/js/push-notifications.js
@@ -117,6 +121,10 @@ jobs:
           grep -q "PMD_ANDROID_CANONICAL_POS_SHELL_CACHE_V18" mobile/android/app/src/main/java/com/paymydine/mobile/PosShellCache.kt
           grep -q "PMD_ANDROID_CANONICAL_IMAGE_INTERCEPT_V18" mobile/android/app/src/main/java/com/paymydine/mobile/data/local/OfflineImageCache.kt
           grep -q "PMD_MOBILE_OFFLINE_ORIGINAL_TIME_V18" app/Services/PmdMobileSync/PmdMobileCommandProcessor.php
+          grep -q "PMD_MOBILE_OFFLINE_PAYMENT_TIME_V18" app/Services/PmdMobileSync/PmdMobileCommandProcessor.php
+          grep -q "PMD_ANDROID_HISTORY_BUSINESS_TIME_V18" app/Services/PmdMobileSync/PmdMobileBootstrapService.php
+          grep -q "client_paid_at_ms" mobile/android/app/src/main/java/com/paymydine/mobile/data/local/LocalPosRepository.kt
+          grep -q "client_paid_at_ms" app/Services/PmdMobileSync/PmdMobileCommandProcessor.php
           grep -q "PMD_ANDROID_CANONICAL_MULTI_CHECK_SNAPSHOT_V18" app/Services/PmdMobileSync/PmdMobileBootstrapService.php
           grep -q "PMD_ANDROID_NO_POLLING_OFFLINE_FALLBACK_V18" mobile/android/app/src/main/assets/pmd-offline-pos.html
           ! grep -q "setInterval(read,2000)" mobile/android/app/src/main/assets/pmd-offline-pos.html
