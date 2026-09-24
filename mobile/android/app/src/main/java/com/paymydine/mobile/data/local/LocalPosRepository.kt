@@ -2892,6 +2892,16 @@ class LocalPosRepository(private val database: PmdDatabase) {
         )
         val eventCommandId = eventPayload.optString("command_id")
 
+        if (
+            order.has("order_menu_id") &&
+            (order.has("new_quantity") || order.has("remaining_quantity"))
+        ) {
+            applyRemoteItemAdjustmentToBootstrapV106(
+                order = order,
+                version = version,
+            )
+        }
+
         database.transaction { db ->
             val row = db.query(
                 "pmd_orders",
@@ -3000,6 +3010,94 @@ class LocalPosRepository(private val database: PmdDatabase) {
                 "pmd_order_lines",
                 "order_id = ?",
                 arrayOf(resolvedLocalId),
+            )
+        }
+    }
+
+    // PMD_ANDROID_CLOUD_LINE_REMOTE_EVENT_V106
+    // A different tablet must see an acknowledged line correction immediately
+    // from the durable local snapshot, without waiting for the next full
+    // bootstrap refresh.
+    private fun applyRemoteItemAdjustmentToBootstrapV106(
+        order: JSONObject,
+        version: Long,
+    ) {
+        val orderId = order.optLong("order_id", 0L)
+        val orderMenuId = order.optLong("order_menu_id", 0L)
+        if (orderId < 1L || orderMenuId < 1L) return
+
+        database.transaction { db ->
+            val raw = db.query(
+                "pmd_meta",
+                arrayOf("value"),
+                "key = ?",
+                arrayOf("bootstrap_json"),
+                null,
+                null,
+                null,
+                "1",
+            ).use { rows ->
+                if (rows.moveToFirst()) rows.getString(0) else null
+            } ?: return@transaction
+
+            val root = runCatching { JSONObject(raw) }.getOrNull()
+                ?: return@transaction
+            val orders = root.optJSONArray("open_orders") ?: return@transaction
+
+            for (orderIndex in 0 until orders.length()) {
+                val target = orders.optJSONObject(orderIndex) ?: continue
+                if (target.optLong("order_id", 0L) != orderId) continue
+
+                target.put("aggregate_version", version)
+                if (order.has("order_total")) {
+                    target.put("order_total", order.optDouble("order_total", 0.0))
+                }
+                if (order.has("total_items")) {
+                    target.put("total_items", order.optInt("total_items", 0))
+                }
+                val updatedAt = order.optString("updated_at").trim()
+                if (updatedAt.isNotBlank()) target.put("updated_at", updatedAt)
+
+                val items = target.optJSONArray("items") ?: JSONArray()
+                for (itemIndex in 0 until items.length()) {
+                    val item = items.optJSONObject(itemIndex) ?: continue
+                    if (
+                        item.optLong(
+                            "order_menu_id",
+                            item.optLong("id", 0L),
+                        ) != orderMenuId
+                    ) {
+                        continue
+                    }
+                    item.put(
+                        "quantity",
+                        order.optInt(
+                            "new_quantity",
+                            order.optInt(
+                                "remaining_quantity",
+                                item.optInt("quantity", 0),
+                            ),
+                        ),
+                    )
+                    if (order.has("line_subtotal")) {
+                        item.put(
+                            "subtotal",
+                            order.optDouble("line_subtotal", 0.0),
+                        )
+                    }
+                    break
+                }
+                break
+            }
+
+            db.insertWithOnConflict(
+                "pmd_meta",
+                null,
+                ContentValues().apply {
+                    put("key", "bootstrap_json")
+                    put("value", root.toString())
+                },
+                SQLiteDatabase.CONFLICT_REPLACE,
             )
         }
     }
