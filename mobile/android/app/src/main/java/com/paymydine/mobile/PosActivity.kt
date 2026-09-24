@@ -438,6 +438,32 @@ class PosActivity : ComponentActivity() {
                             uri.host.equals(host, true)
 
                     if (sameTenant) {
+                        if (uri.path == "/admin/logout") {
+                            // PMD_ANDROID_NATIVE_SIGN_OUT_V22
+                            // Sign out is device-local first so it also works
+                            // with no WAN. End only the active staff/WebView
+                            // session; the salted offline Login verifier remains
+                            // available until its server-issued offline expiry.
+                            app.credentials.clearWorkspaceLease("pos")
+                            app.credentials.clearStaffSession()
+                            CookieManager.getInstance().removeSessionCookies {
+                                CookieManager.getInstance().flush()
+                            }
+                            startActivity(
+                                Intent(
+                                    this@PosActivity,
+                                    MainActivity::class.java,
+                                ).apply {
+                                    addFlags(
+                                        Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                                            Intent.FLAG_ACTIVITY_SINGLE_TOP,
+                                    )
+                                },
+                            )
+                            finish()
+                            return true
+                        }
+
                         if (uri.path == "/admin/login") {
                             // PMD_ANDROID_POS_LOGIN_LOOP_GUARD_V10
                             // A redirect back to Login means the server did not
