@@ -9366,11 +9366,27 @@ function renderOpenChecks() {
 
       if (window.__PMD_NATIVE_OFFLINE__) {
         stopLiveSyncTimerV73();
+        try {
+          if (
+            window.pushNotif &&
+            typeof window.pushNotif.stopListening === 'function'
+          ) {
+            window.pushNotif.stopListening();
+          }
+        } catch (ignored) {}
       } else {
         state.liveSyncFailuresV73 = 0;
         state.liveTablesSignatureV73 = '';
         state.liveSelectedSignatureV73 = '';
         startLiveSyncV73();
+        try {
+          if (
+            window.pushNotif &&
+            typeof window.pushNotif.startListening === 'function'
+          ) {
+            window.pushNotif.startListening();
+          }
+        } catch (ignored) {}
       }
 
       return Promise.resolve(true);
