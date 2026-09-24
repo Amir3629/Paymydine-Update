@@ -378,6 +378,12 @@ class BootstrapRepository(private val database: PmdDatabase) {
         "1",
     ).use { if (it.moveToFirst()) it.getString(0) else null }
 
+    fun markStale() {
+        database.transaction { db ->
+            putMeta(db, "bootstrap_applied_at_ms", "0")
+        }
+    }
+
     fun needsRefresh(
         maxAgeMs: Long = 60_000L,
         nowMs: Long = System.currentTimeMillis(),
