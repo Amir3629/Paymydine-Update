@@ -4,6 +4,7 @@ import android.content.ContentValues
 import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import com.paymydine.mobile.data.local.PmdDatabase
+import org.json.JSONObject
 
 data class SyncStatusCounts(
     val pending: Int,
@@ -13,6 +14,15 @@ data class SyncStatusCounts(
 ) {
     val active: Int get() = pending + retrying + inFlight
 }
+
+data class PendingItemAdjustment(
+    val commandId: String,
+    val orderMenuId: Long,
+    val delta: Int,
+    val unitPriceMinor: Long,
+    val createdAtMs: Long,
+)
+
 
 class SyncRepository(private val database: PmdDatabase) {
     fun enqueue(command: CommandEnvelope): Boolean = database.transaction { db ->
@@ -67,6 +77,85 @@ class SyncRepository(private val database: PmdDatabase) {
             SQLiteDatabase.CONFLICT_IGNORE,
         ) != -1L
     }
+
+    // PMD_ANDROID_CLOUD_LINE_OUTBOX_PROJECTION_V106
+    // The visible local check can project queued canonical line corrections
+    // without rewriting modifiers/options or pretending a new order line exists.
+    fun pendingItemAdjustments(orderId: Long): List<PendingItemAdjustment> {
+        if (orderId < 1L) return emptyList()
+        return database.readableDatabase.query(
+            "pmd_outbox",
+            arrayOf("command_id", "payload_json", "created_at_ms"),
+            "aggregate_id = ? AND command_type = ? AND status IN (?, ?, ?)",
+            arrayOf(
+                "order:$orderId",
+                "ORDER_ITEM_ADJUST_V1",
+                STATUS_PENDING,
+                STATUS_RETRY,
+                STATUS_IN_FLIGHT,
+            ),
+            null,
+            null,
+            "created_at_ms ASC",
+        ).use { rows ->
+            buildList {
+                while (rows.moveToNext()) {
+                    val payload = runCatching {
+                        JSONObject(rows.getString(1))
+                    }.getOrElse { JSONObject() }
+                    val action = payload.optString("action")
+                    val quantity = payload.optInt("quantity", 1).coerceAtLeast(1)
+                    val delta = if (action == "void") -quantity else quantity
+                    add(
+                        PendingItemAdjustment(
+                            commandId = rows.getString(0),
+                            orderMenuId = payload.optLong("order_menu_id", 0L),
+                            delta = delta,
+                            unitPriceMinor = payload.optLong("unit_price_minor", 0L),
+                            createdAtMs = rows.getLong(2),
+                        ),
+                    )
+                }
+            }
+        }
+    }
+
+    fun nextAggregateBaseVersion(
+        aggregateId: String,
+        serverBaseVersion: Long,
+    ): Long {
+        val maxQueued = database.readableDatabase.rawQuery(
+            """SELECT MAX(base_version) FROM pmd_outbox
+               WHERE aggregate_id = ? AND status IN (?, ?, ?)""",
+            arrayOf(
+                aggregateId,
+                STATUS_PENDING,
+                STATUS_RETRY,
+                STATUS_IN_FLIGHT,
+            ),
+        ).use { rows ->
+            if (rows.moveToFirst() && !rows.isNull(0)) rows.getLong(0) else -1L
+        }
+        return maxOf(serverBaseVersion, maxQueued + 1L)
+    }
+
+    fun hasActiveOrderCommand(orderId: Long, commandType: String): Boolean =
+        database.readableDatabase.query(
+            "pmd_outbox",
+            arrayOf("command_id"),
+            "aggregate_id = ? AND command_type = ? AND status IN (?, ?, ?)",
+            arrayOf(
+                "order:$orderId",
+                commandType,
+                STATUS_PENDING,
+                STATUS_RETRY,
+                STATUS_IN_FLIGHT,
+            ),
+            null,
+            null,
+            null,
+            "1",
+        ).use { it.moveToFirst() }
 
     fun pending(
         limit: Int = 50,
