@@ -47,6 +47,55 @@ android {
         resources.excludes += setOf("/META-INF/{AL2.0,LGPL2.1}", "META-INF/LICENSE*", "META-INF/NOTICE*")
     }
 }
+
+val canonicalPosAssetsDir =
+    layout.buildDirectory.dir("generated/pmdCanonicalPosAssets")
+
+android.sourceSets.getByName("main").assets.srcDir(
+    canonicalPosAssetsDir,
+)
+
+val prepareCanonicalPosAssets by tasks.registering(Copy::class) {
+    // PMD_ANDROID_BUNDLED_CANONICAL_POS_UI_V18
+    // Package the exact production Quick POS CSS/JS in the APK. The offline
+    // shell therefore renders the same product instead of a hand-built clone.
+    into(canonicalPosAssetsDir)
+
+    from(rootProject.projectDir.resolve("../../app/admin/assets/css")) {
+        include(
+            "pmd-floor-v1.css",
+            "pmd-floor-v1-stable-v11.css",
+            "pmd-floor-v1-native-smart-v20.css",
+            "pmd-reservations2-floor-canvas-v310.css",
+            "pmd-reservations2-floor-toolbar-v316.css",
+            "pmd-reservations2-floor-reservation-v312.css",
+            "pmd-dashboard-lab-exact-floor-v1.css",
+            "pmd-shared-floor-multi-floor-v1.css",
+            "pmd-quick-pos-v1.css",
+        )
+        into("pmd-canonical/css")
+    }
+
+    from(rootProject.projectDir.resolve("../../app/admin/assets/js")) {
+        include(
+            "pmd-dashboard-lab-exact-floor-v1.js",
+            "pmd-shared-floor-multi-floor-v1.js",
+            "pmd-quick-pos-v1.js",
+            "pmd-site-access-hub-v13.js",
+        )
+        into("pmd-canonical/js")
+    }
+
+    from(rootProject.projectDir.resolve("../../app/admin/assets/images")) {
+        include("pmd-favicon-final-20260822.svg")
+        into("pmd-canonical/images")
+    }
+}
+
+tasks.named("preBuild").configure {
+    dependsOn(prepareCanonicalPosAssets)
+}
+
 kotlin { jvmToolchain(17) }
 dependencies {
     // PMD_ZCS_VENDOR_SDK_V5
