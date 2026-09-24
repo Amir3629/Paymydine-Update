@@ -5315,7 +5315,9 @@ function renderOpenChecks() {
     if (!id) return;
 
     var total = num(json.order_total, 0);
-    var sentItems = optimisticSentItems(snapshot.cart);
+    var sentItems = Array.isArray(json.items)
+      ? json.items.map(function (row) { return Object.assign({}, row); })
+      : optimisticSentItems(snapshot.cart);
 
     state.activeOrderId = id;
     state.orderSelectionExplicitV72 = true;
@@ -5348,6 +5350,18 @@ function renderOpenChecks() {
           updated_at: json.updated_at || '',
           guest_count: snapshot.guestCount,
           settlement_status: 'unpaid',
+          native_provisional: json.native_provisional === true,
+          structural_locked: false,
+          item_mutation: json.item_mutation || (
+            id < 0
+              ? {
+                  allowed: true,
+                  locked: false,
+                  payment_started: false,
+                  reason: ''
+                }
+              : {}
+          ),
           items: sentItems
         });
       }
