@@ -48,7 +48,7 @@ on:
       - '.github/workflows/android-local-first-v1.yml'
 
 concurrency:
-  group: pmd-android-v1-${{ github.event.pull_request.number || github.ref }}
+  group: pmd-android-v107-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 permissions:
