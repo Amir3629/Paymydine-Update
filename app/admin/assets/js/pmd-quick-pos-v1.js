@@ -125,11 +125,96 @@
    * Android keeps this exact canonical Quick POS DOM/CSS/JS during WAN loss.
    * Only fetchJson changes authority: Cloud while online, signed/native local
    * state while offline. No alternate POS page and no 2-second repaint loop. */
+  function nativeBridgeTransportAvailableV91() {
+    return (
+      window.PayMyDineOffline &&
+      typeof window.PayMyDineOffline.fetchJson === 'function'
+    );
+  }
+
   function nativeLocalTransportAvailable() {
     return (
       window.__PMD_NATIVE_OFFLINE__ === true &&
-      window.PayMyDineOffline &&
-      typeof window.PayMyDineOffline.fetchJson === 'function'
+      nativeBridgeTransportAvailableV91()
+    );
+  }
+
+  /* PMD_QPOS_REQUEST_FAILOVER_V91
+   * Connectivity callbacks are advisory only. The request itself is the final
+   * authority: if Cloud transport dies between the Wi-Fi cut and Android's
+   * network callback, retry that exact request against SQLite immediately.
+   * This removes the race that surfaced browser "Failed to fetch" to staff. */
+  function activateNativeLocalTransportV91() {
+    window.__PMD_NATIVE_OFFLINE__ = true;
+
+    try {
+      if (
+        window.PayMyDineOffline &&
+        typeof window.PayMyDineOffline.activateLocalTransport === 'function'
+      ) {
+        window.PayMyDineOffline.activateLocalTransport();
+      }
+    } catch (ignored) {}
+
+    try {
+      setOnline(false);
+      root.classList.add('is-native-offline');
+      stopLiveSyncTimerV73();
+    } catch (ignored) {}
+
+    try {
+      if (
+        window.pushNotif &&
+        typeof window.pushNotif.stopListening === 'function'
+      ) {
+        window.pushNotif.stopListening();
+      }
+    } catch (ignored) {}
+  }
+
+  function nativeFetchJsonV91(url, opts) {
+    var nativeRaw = window.PayMyDineOffline.fetchJson(
+      String(url || ''),
+      String(opts.method || 'GET').toUpperCase(),
+      typeof opts.body === 'string' ? opts.body : ''
+    );
+    var nativeJson = {};
+    try {
+      nativeJson = JSON.parse(String(nativeRaw || '{}'));
+    } catch (ignored) {
+      nativeJson = {
+        ok: false,
+        status: 500,
+        message: 'Local restaurant data could not be read.'
+      };
+    }
+
+    if (nativeJson.ok === false || nativeJson.success === false) {
+      var nativeError = new Error(
+        friendlyOfflineMessage(
+          nativeJson.message ||
+          (nativeJson.error && nativeJson.error.message) ||
+          nativeJson.error
+        )
+      );
+      nativeError.status = Number(nativeJson.status || 422);
+      nativeError.payload = nativeJson;
+      throw nativeError;
+    }
+
+    return nativeJson;
+  }
+
+  function shouldFailOverHttpV91(status) {
+    status = Number(status || 0);
+    return (
+      status === 401 ||
+      status === 403 ||
+      status === 408 ||
+      status === 419 ||
+      status === 425 ||
+      status === 429 ||
+      status >= 500
     );
   }
 
@@ -300,39 +385,29 @@
     }
 
     if (nativeLocalTransportAvailable()) {
-      var nativeRaw = window.PayMyDineOffline.fetchJson(
-        String(url || ''),
-        String(opts.method || 'GET').toUpperCase(),
-        typeof opts.body === 'string' ? opts.body : ''
-      );
-      var nativeJson = {};
-      try {
-        nativeJson = JSON.parse(String(nativeRaw || '{}'));
-      } catch (ignored) {
-        nativeJson = {
-          ok: false,
-          status: 500,
-          message: 'Local restaurant data could not be read.'
-        };
-      }
-
-      if (nativeJson.ok === false || nativeJson.success === false) {
-        var nativeError = new Error(
-          friendlyOfflineMessage(
-            nativeJson.message ||
-            (nativeJson.error && nativeJson.error.message) ||
-            nativeJson.error
-          )
-        );
-        nativeError.status = Number(nativeJson.status || 422);
-        nativeError.payload = nativeJson;
-        throw nativeError;
-      }
-
-      return nativeJson;
+      return nativeFetchJsonV91(url, opts);
     }
 
-    var response = await fetch(url, opts);
+    var response;
+    try {
+      response = await fetch(url, opts);
+    } catch (networkError) {
+      if (nativeBridgeTransportAvailableV91()) {
+        activateNativeLocalTransportV91();
+        return nativeFetchJsonV91(url, opts);
+      }
+      throw networkError;
+    }
+
+    if (
+      !response.ok &&
+      shouldFailOverHttpV91(response.status) &&
+      nativeBridgeTransportAvailableV91()
+    ) {
+      activateNativeLocalTransportV91();
+      return nativeFetchJsonV91(url, opts);
+    }
+
     var json = await response.json().catch(function () { return {}; });
 
     if (!response.ok || json.ok === false || json.success === false) {
