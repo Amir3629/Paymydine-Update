@@ -2246,6 +2246,10 @@ class LocalPosRepository(private val database: PmdDatabase) {
             applyCashPaymentResult(command, response, result)
             return
         }
+        if (command.commandType == "ORDER_ITEM_ADJUST_V1") {
+            applyOrderItemAdjustmentResultV106(command, response, result)
+            return
+        }
         val orderId = result.optLong("order_id", 0)
         if (orderId < 1) return
 
@@ -2322,6 +2326,218 @@ class LocalPosRepository(private val database: PmdDatabase) {
                 "order_id = ?",
                 arrayOf(localId),
             )
+        }
+    }
+
+    // PMD_ANDROID_CLOUD_LINE_ACK_V106
+    // Canonical Cloud result replaces the optimistic outbox projection in the
+    // durable bootstrap. The next queued correction is rebound to the new
+    // updated_at token so sequential offline +/- intents stay canonical.
+    private fun applyOrderItemAdjustmentResultV106(
+        command: CommandEnvelope,
+        response: JSONObject,
+        result: JSONObject,
+    ) {
+        val orderId = result.optLong("order_id", 0L)
+        val orderMenuId = result.optLong("order_menu_id", 0L)
+        if (orderId < 1L || orderMenuId < 1L) return
+
+        val version = response.optLong(
+            "aggregate_version",
+            command.baseVersion + 1L,
+        )
+        val updatedAt = result.optString("updated_at").trim()
+        val totalMinor = moneyToMinor(
+            result.optDouble("order_total", 0.0),
+            localMinorExponent(),
+        )
+
+        database.transaction { db ->
+            val bootstrapRaw = db.query(
+                "pmd_meta",
+                arrayOf("value"),
+                "key = ?",
+                arrayOf("bootstrap_json"),
+                null,
+                null,
+                null,
+                "1",
+            ).use {
+                if (it.moveToFirst()) it.getString(0) else null
+            }
+
+            if (!bootstrapRaw.isNullOrBlank()) {
+                val root = runCatching {
+                    JSONObject(bootstrapRaw)
+                }.getOrNull()
+                val orders = root?.optJSONArray("open_orders")
+                if (root != null && orders != null) {
+                    for (orderIndex in 0 until orders.length()) {
+                        val order = orders.optJSONObject(orderIndex) ?: continue
+                        if (order.optLong("order_id", 0L) != orderId) continue
+
+                        order
+                            .put("aggregate_version", version)
+                            .put(
+                                "order_total",
+                                result.optDouble(
+                                    "order_total",
+                                    order.optDouble("order_total", 0.0),
+                                ),
+                            )
+                            .put(
+                                "total_items",
+                                result.optInt(
+                                    "total_items",
+                                    order.optInt("total_items", 0),
+                                ),
+                            )
+                        if (updatedAt.isNotBlank()) {
+                            order.put("updated_at", updatedAt)
+                        }
+
+                        val items = order.optJSONArray("items") ?: JSONArray()
+                        for (itemIndex in 0 until items.length()) {
+                            val item = items.optJSONObject(itemIndex) ?: continue
+                            if (
+                                item.optLong(
+                                    "order_menu_id",
+                                    item.optLong("id", 0L),
+                                ) != orderMenuId
+                            ) {
+                                continue
+                            }
+                            item.put(
+                                "quantity",
+                                result.optInt(
+                                    "new_quantity",
+                                    result.optInt(
+                                        "remaining_quantity",
+                                        item.optInt("quantity", 0),
+                                    ),
+                                ),
+                            )
+                            if (result.has("line_subtotal")) {
+                                item.put(
+                                    "subtotal",
+                                    result.optDouble("line_subtotal", 0.0),
+                                )
+                            }
+                            item.remove("native_reconciliation_pending")
+                            break
+                        }
+                        break
+                    }
+
+                    db.insertWithOnConflict(
+                        "pmd_meta",
+                        null,
+                        ContentValues().apply {
+                            put("key", "bootstrap_json")
+                            put("value", root.toString())
+                        },
+                        SQLiteDatabase.CONFLICT_REPLACE,
+                    )
+                }
+            }
+
+            val shadowId = "server:$orderId"
+            val shadowRaw = db.query(
+                "pmd_orders",
+                arrayOf("payload_json"),
+                "id = ? OR server_id = ?",
+                arrayOf(shadowId, orderId.toString()),
+                null,
+                null,
+                "updated_at_ms DESC",
+                "1",
+            ).use {
+                if (it.moveToFirst()) it.getString(0) else "{}"
+            }
+            val meta = runCatching {
+                JSONObject(shadowRaw)
+            }.getOrElse { JSONObject() }
+            if (updatedAt.isNotBlank()) {
+                meta.put("server_updated_at", updatedAt)
+            }
+            meta
+                .put("last_command_id", command.commandId)
+                .put("base_total_minor", totalMinor)
+                .remove("reconciliation_error")
+            meta.remove("rejected_command_id")
+            meta.remove("rejected_command_type")
+
+            val remainingActive = db.query(
+                "pmd_outbox",
+                arrayOf("command_id"),
+                "aggregate_id = ? AND command_id != ? AND status IN (?, ?, ?)",
+                arrayOf(
+                    "order:$orderId",
+                    command.commandId,
+                    "PENDING",
+                    "RETRY",
+                    "IN_FLIGHT",
+                ),
+                null,
+                null,
+                null,
+                "1",
+            ).use { it.moveToFirst() }
+
+            db.update(
+                "pmd_orders",
+                ContentValues().apply {
+                    put("version", version)
+                    put("server_id", orderId.toString())
+                    put("status", STATUS_SERVER_OPEN)
+                    put("total_minor", totalMinor)
+                    put("dirty", if (remainingActive) 1 else 0)
+                    put("payload_json", meta.toString())
+                    put("updated_at_ms", System.currentTimeMillis())
+                },
+                "id = ? OR server_id = ?",
+                arrayOf(shadowId, orderId.toString()),
+            )
+
+            if (updatedAt.isNotBlank()) {
+                val next = db.query(
+                    "pmd_outbox",
+                    arrayOf("command_id", "payload_json"),
+                    """aggregate_id = ? AND command_type = ? AND command_id != ?
+                       AND status IN (?, ?, ?)""",
+                    arrayOf(
+                        "order:$orderId",
+                        "ORDER_ITEM_ADJUST_V1",
+                        command.commandId,
+                        "PENDING",
+                        "RETRY",
+                        "IN_FLIGHT",
+                    ),
+                    null,
+                    null,
+                    "created_at_ms ASC",
+                    "1",
+                ).use { rows ->
+                    if (!rows.moveToFirst()) null
+                    else rows.getString(0) to rows.getString(1)
+                }
+
+                if (next != null) {
+                    val nextPayload = runCatching {
+                        JSONObject(next.second)
+                    }.getOrElse { JSONObject() }
+                        .put("expected_updated_at", updatedAt)
+
+                    db.update(
+                        "pmd_outbox",
+                        ContentValues().apply {
+                            put("payload_json", nextPayload.toString())
+                        },
+                        "command_id = ?",
+                        arrayOf(next.first),
+                    )
+                }
+            }
         }
     }
 
