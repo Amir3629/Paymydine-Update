@@ -2301,12 +2301,86 @@ class LocalPosRepository(private val database: PmdDatabase) {
                 arrayOf(localId),
             )
 
+            // PMD_ANDROID_CASH_REBIND_AFTER_ORDER_ACK_V101
+            // Cash collected while this check still had only a local id must
+            // not reach Cloud as local:<uuid>. Once SEND/HOLD returns the
+            // canonical order id, rewrite the still-pending durable cash intent
+            // in place. command_id/idempotency_key/paid_at remain unchanged.
+            rebindPendingCashAfterOrderAck(
+                db = db,
+                localId = localId,
+                orderId = orderId,
+                version = version,
+                serverUpdatedAt = result.optString("updated_at"),
+            )
+
             // These lines are now part of the canonical server bill. Keeping
             // them in the local mutation cart would send them a second time.
             db.delete(
                 "pmd_order_lines",
                 "order_id = ?",
                 arrayOf(localId),
+            )
+        }
+    }
+
+    private fun rebindPendingCashAfterOrderAck(
+        db: SQLiteDatabase,
+        localId: String,
+        orderId: Long,
+        version: Long,
+        serverUpdatedAt: String,
+    ) {
+        if (orderId < 1L) return
+
+        val localAggregate = "local:$localId"
+        val rows = mutableListOf<Triple<String, String, String>>()
+        db.query(
+            "pmd_outbox",
+            arrayOf("command_id", "payload_json", "status"),
+            "aggregate_id = ? AND command_type = ? AND status IN (?, ?)",
+            arrayOf(
+                localAggregate,
+                "CASH_PAYMENT_V1",
+                "PENDING",
+                "RETRY",
+            ),
+            null,
+            null,
+            "created_at_ms ASC",
+        ).use { cursor ->
+            while (cursor.moveToNext()) {
+                rows += Triple(
+                    cursor.getString(0),
+                    cursor.getString(1),
+                    cursor.getString(2),
+                )
+            }
+        }
+
+        rows.forEach { (commandId, rawPayload, oldStatus) ->
+            val payload = runCatching {
+                JSONObject(rawPayload)
+            }.getOrElse { JSONObject() }
+                .put("order_id", orderId)
+            payload.remove("order_ref")
+            serverUpdatedAt.trim().takeIf { it.isNotBlank() }?.let {
+                payload.put("expected_updated_at", it)
+            }
+
+            db.update(
+                "pmd_outbox",
+                ContentValues().apply {
+                    put("aggregate_id", "order:$orderId")
+                    put("base_version", version)
+                    put("payload_json", payload.toString())
+                    put("status", "PENDING")
+                    put("retry_count", 0)
+                    put("next_retry_at_ms", 0)
+                    putNull("last_error")
+                },
+                "command_id = ? AND status = ?",
+                arrayOf(commandId, oldStatus),
             )
         }
     }
