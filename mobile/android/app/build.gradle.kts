@@ -12,6 +12,8 @@ android {
         targetSdk = 36
         versionCode = 34
         // PMD_ANDROID_0_3_21_LARGE_TOUCH_V95
+        // PMD_ANDROID_0_3_20_MOBILE_UI_V94 (preserved baseline)
+        // PMD_ANDROID_0_3_20_OFFLINE_COMPLETE_V23 (preserved contract)
         // V95 aggressive phone scale + preserved V94/V23 offline-complete authority.
         versionName = "0.3.21-v95-large-touch" // PMD_ANDROID_0_3_21_LARGE_TOUCH_V95
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
