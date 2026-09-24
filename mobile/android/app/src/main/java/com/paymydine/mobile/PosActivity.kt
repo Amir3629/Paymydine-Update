@@ -704,16 +704,23 @@ class PosActivity : ComponentActivity() {
         lifecycleScope.launch {
             while (isActive && !isFinishing) {
                 if (app.connectivity.online.value) {
+                    val before = app.syncRepository.outboxCount()
                     withContext(Dispatchers.IO) {
                         runCatching { SyncEngine(app).runOnce() }
                     }
+                    val after = app.syncRepository.outboxCount()
 
                     if (
                         transportMode == TransportMode.LOCAL &&
-                        app.syncRepository.outboxCount() == 0
+                        after == 0
                     ) {
                         attemptReturnToCloud()
-                    } else if (transportMode == TransportMode.LOCAL) {
+                    } else if (
+                        transportMode == TransportMode.LOCAL &&
+                        after != before
+                    ) {
+                        // Event-driven only. Never repaint the POS every few
+                        // seconds just because a timer fired.
                         refreshLocalWeb()
                     }
                 }
@@ -730,85 +737,83 @@ class PosActivity : ComponentActivity() {
         if (
             isFinishing ||
             isDestroyed ||
-            !offlinePosAvailable() ||
-            transportMode == TransportMode.LOCAL
+            !offlinePosAvailable()
         ) {
             return
         }
 
+        if (transportMode == TransportMode.LOCAL) return
         transportMode = TransportMode.LOCAL
-        captureCloudUiState { seed ->
-            if (
-                !isFinishing &&
-                !isDestroyed &&
-                transportMode == TransportMode.LOCAL
-            ) {
-                createLocalWebView(seed, reason)
-            }
-        }
-    }
 
-    private fun captureCloudUiState(onCaptured: (LocalUiSeed) -> Unit) {
         val current = webView
-        if (
-            current == null ||
-            !canonicalReady ||
-            transportMode != TransportMode.LOCAL
-        ) {
-            onCaptured(LocalUiSeed())
+        if (current != null && canonicalReady) {
+            // PMD_ANDROID_CANONICAL_POS_IN_PLACE_FAILOVER_V18
+            // Do not destroy/reload the browser. Keep the exact DOM, current
+            // table, scroll position, cart and open modal; switch fetchJson's
+            // authority inside that same canonical page.
+            current.post {
+                if (
+                    current === webView &&
+                    transportMode == TransportMode.LOCAL &&
+                    !isFinishing
+                ) {
+                    current.evaluateJavascript(
+                        """
+                        (function(){
+                          if (
+                            window.PMDQuickPOSV1 &&
+                            typeof window.PMDQuickPOSV1.setNativeOffline === 'function'
+                          ) {
+                            window.PMDQuickPOSV1.setNativeOffline(true);
+                            return 'local';
+                          }
+                          return 'missing';
+                        })()
+                        """.trimIndent(),
+                        null,
+                    )
+                    loading.visibility = View.GONE
+                    current.visibility = View.VISIBLE
+                }
+            }
             return
         }
 
-        current.evaluateJavascript(
-            """
-            (function(){
-              try {
-                var api = window.PMDQuickPOSV1 || {};
-                var state = api.state || {};
-                return JSON.stringify({
-                  table_id: state.selectedTable && state.selectedTable.id
-                    ? String(state.selectedTable.id)
-                    : '',
-                  floor_id: state.activeFloorId
-                    ? String(state.activeFloorId)
-                    : ''
-                });
-              } catch (e) {
-                return '{}';
-              }
-            })()
-            """.trimIndent(),
-        ) { raw ->
-            val seed = runCatching {
-                val decoded = JSONTokener(raw).nextValue() as? String
-                    ?: return@runCatching LocalUiSeed()
-                val json = JSONObject(decoded)
-                LocalUiSeed(
-                    tableId = json.optString("table_id")
-                        .takeIf { it.isNotBlank() },
-                    floorId = json.optString("floor_id")
-                        .takeIf { it.isNotBlank() },
-                )
-            }.getOrDefault(LocalUiSeed())
-            onCaptured(seed)
-        }
+        createCachedCanonicalWebView(reason)
     }
 
     @SuppressLint("SetJavaScriptEnabled")
-    private fun createLocalWebView(
-        seed: LocalUiSeed,
-        reason: String,
-    ) {
+    private fun createCachedCanonicalWebView(reason: String) {
+        if (
+            isFinishing ||
+            isDestroyed ||
+            !offlinePosAvailable()
+        ) {
+            return
+        }
+
+        val shell = posShellCache.read()
+        if (shell.isNullOrBlank()) {
+            canonicalReady = false
+            loading.text =
+                "PayMyDine POS needs one successful online opening " +
+                    "to finish local setup."
+            loading.visibility = View.VISIBLE
+            loading.setOnClickListener(null)
+            loading.bringToFront()
+            return
+        }
+
+        val host = trustedHost() ?: return
         destroyWebView()
         transportMode = TransportMode.LOCAL
+        canonicalReady = false
         buildGeneration += 1
         val generation = buildGeneration
 
         val bridge = LocalPosBridge(
             activity = this,
             app = app,
-            initialSelectedTableId = seed.tableId,
-            initialFloorId = seed.floorId,
             onTryCloud = { attemptReturnToCloud() },
             onWorkspaces = { finish() },
         )
@@ -816,34 +821,69 @@ class PosActivity : ComponentActivity() {
 
         val view = WebView(this).apply {
             setBackgroundColor(Color.rgb(244, 246, 248))
+            setLayerType(View.LAYER_TYPE_NONE, null)
             isVerticalScrollBarEnabled = false
             isHorizontalScrollBarEnabled = false
+
             settings.apply {
                 javaScriptEnabled = true
-                domStorageEnabled = false
-                databaseEnabled = false
-                allowFileAccess = true
+                domStorageEnabled = true
+                databaseEnabled = true
+                allowFileAccess = false
                 allowContentAccess = false
-                blockNetworkLoads = true
-                javaScriptCanOpenWindowsAutomatically = false
-                setSupportMultipleWindows(false)
+                mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
+                cacheMode = WebSettings.LOAD_CACHE_ELSE_NETWORK
+                offscreenPreRaster = true
                 useWideViewPort = true
                 loadWithOverviewMode = false
+                builtInZoomControls = false
+                displayZoomControls = false
+                javaScriptCanOpenWindowsAutomatically = false
+                setSupportMultipleWindows(false)
+                userAgentString =
+                    userAgentString + " PayMyDine-Android-POS/" + BuildConfig.VERSION_NAME
+                safeBrowsingEnabled = true
             }
+
             addJavascriptInterface(bridge, "PayMyDineOffline")
-            // Keep the physical/customer-facing display alive through the
-            // exact same WAN failover. Only display-safe cart/order data is
-            // exposed; payment credentials are never bridged.
             addJavascriptInterface(
                 PosCustomerDisplayJavascriptBridge(customerDisplay),
                 "PayMyDineHardware",
             )
+
             webViewClient = object : WebViewClient() {
+                override fun shouldInterceptRequest(
+                    current: WebView,
+                    request: WebResourceRequest,
+                ): WebResourceResponse? {
+                    canonicalBundledAsset(request.url)?.let { return it }
+
+                    app.offlineImageCache
+                        .cachedForUrl(request.url.toString())
+                        ?.let { cached ->
+                            return WebResourceResponse(
+                                cached.mime,
+                                null,
+                                ByteArrayInputStream(cached.bytes),
+                            )
+                        }
+
+                    return super.shouldInterceptRequest(current, request)
+                }
+
                 override fun shouldOverrideUrlLoading(
                     current: WebView,
                     request: WebResourceRequest,
-                ): Boolean = !request.url.toString()
-                    .startsWith("file:///android_asset/")
+                ): Boolean {
+                    val uri = request.url
+                    if (
+                        uri.scheme.equals("https", true) &&
+                        uri.host.equals(host, true)
+                    ) {
+                        return false
+                    }
+                    return true
+                }
 
                 override fun onPageFinished(
                     current: WebView,
@@ -851,17 +891,40 @@ class PosActivity : ComponentActivity() {
                 ) {
                     if (
                         generation != buildGeneration ||
-                        current !== webView ||
-                        !url.startsWith("file:///android_asset/")
+                        current !== webView
                     ) {
                         return
                     }
+
+                    current.evaluateJavascript(
+                        """
+                        (function(){
+                          window.__PMD_NATIVE_OFFLINE__ = true;
+                          if (
+                            window.PMDQuickPOSV1 &&
+                            typeof window.PMDQuickPOSV1.setNativeOffline === 'function'
+                          ) {
+                            window.PMDQuickPOSV1.setNativeOffline(true);
+                            return 'ok';
+                          }
+                          return 'missing';
+                        })()
+                        """.trimIndent(),
+                        null,
+                    )
                     canonicalReady = true
                     synchronizeViewport(current)
                     revealWebView(current)
                 }
             }
-            loadUrl("file:///android_asset/pmd-offline-pos.html")
+
+            loadDataWithBaseURL(
+                "https://$host/admin/pos",
+                prepareOfflineShell(shell),
+                "text/html",
+                "UTF-8",
+                "https://$host/admin/pos",
+            )
         }
 
         webView = view
@@ -887,7 +950,14 @@ class PosActivity : ComponentActivity() {
                 transportMode == TransportMode.LOCAL
             ) {
                 current.evaluateJavascript(
-                    "if(window.pmdOfflineRefresh){window.pmdOfflineRefresh();}",
+                    """
+                    if (
+                      window.PMDQuickPOSV1 &&
+                      typeof window.PMDQuickPOSV1.refreshNativeState === 'function'
+                    ) {
+                      window.PMDQuickPOSV1.refreshNativeState();
+                    }
+                    """.trimIndent(),
                     null,
                 )
             }
@@ -905,9 +975,6 @@ class PosActivity : ComponentActivity() {
         }
 
         transportMode = TransportMode.RECONNECTING
-        loading.text = "Syncing local work to PayMyDine Cloud..."
-        loading.visibility = View.VISIBLE
-        loading.bringToFront()
 
         lifecycleScope.launch {
             withContext(Dispatchers.IO) {
@@ -916,22 +983,38 @@ class PosActivity : ComponentActivity() {
 
             if (!app.connectivity.online.value) {
                 transportMode = TransportMode.LOCAL
-                loading.visibility = View.GONE
-                refreshLocalWeb()
                 return@launch
             }
 
             if (app.syncRepository.outboxCount() > 0) {
-                // Keep serving the fully functional local surface until every
-                // durable command has either reconciled or been explicitly
-                // rejected. Do not hide unsynced restaurant work behind Cloud.
                 transportMode = TransportMode.LOCAL
-                loading.visibility = View.GONE
-                refreshLocalWeb()
                 return@launch
             }
 
-            createCanonicalWebView()
+            val current = webView
+            if (current == null || !canonicalReady) {
+                createCanonicalWebView()
+                return@launch
+            }
+
+            // Same canonical document, now backed by Cloud again. This is one
+            // authoritative refresh after reconciliation, not a page reload.
+            transportMode = TransportMode.CLOUD
+            current.evaluateJavascript(
+                """
+                (function(){
+                  if (
+                    window.PMDQuickPOSV1 &&
+                    typeof window.PMDQuickPOSV1.setNativeOffline === 'function'
+                  ) {
+                    window.PMDQuickPOSV1.setNativeOffline(false);
+                    return 'cloud';
+                  }
+                  return 'missing';
+                })()
+                """.trimIndent(),
+                null,
+            )
         }
     }
 
