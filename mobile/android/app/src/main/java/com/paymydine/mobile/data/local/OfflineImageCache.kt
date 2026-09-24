@@ -104,6 +104,15 @@ class OfflineImageCache(context: Context) {
             if (bytes.isEmpty() || bytes.size > MAX_IMAGE_BYTES) {
                 return@runCatching null
             }
+            val expectedSha = meta.optString("sha256").trim()
+            if (expectedSha.isNotBlank()) {
+                val actualSha = MessageDigest.getInstance("SHA-256")
+                    .digest(bytes)
+                    .joinToString("") { byte -> "%02x".format(byte) }
+                if (!actualSha.equals(expectedSha, ignoreCase = true)) {
+                    return@runCatching null
+                }
+            }
             CachedImage(mime, bytes)
         }.getOrNull()
     }
@@ -134,6 +143,15 @@ class OfflineImageCache(context: Context) {
             val bytes = files.bytes.readBytes()
             if (bytes.isEmpty() || bytes.size > MAX_IMAGE_BYTES) {
                 return@runCatching null
+            }
+            val expectedSha = meta.optString("sha256").trim()
+            if (expectedSha.isNotBlank()) {
+                val actualSha = MessageDigest.getInstance("SHA-256")
+                    .digest(bytes)
+                    .joinToString("") { byte -> "%02x".format(byte) }
+                if (!actualSha.equals(expectedSha, ignoreCase = true)) {
+                    return@runCatching null
+                }
             }
             CachedImage(mime, bytes)
         }.getOrNull()
@@ -269,10 +287,16 @@ class OfflineImageCache(context: Context) {
                 val tmpMeta = File(files.meta.absolutePath + ".tmp")
 
                 tmpBytes.writeBytes(bytes)
+                val contentSha256 = MessageDigest.getInstance("SHA-256")
+                    .digest(bytes)
+                    .joinToString("") { byte -> "%02x".format(byte) }
+
                 tmpMeta.writeText(
                     JSONObject()
                         .put("source_key", sourceKey)
                         .put("mime", mime)
+                        .put("sha256", contentSha256)
+                        .put("size", bytes.size)
                         .toString(),
                     Charsets.UTF_8,
                 )
