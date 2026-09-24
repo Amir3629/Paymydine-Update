@@ -401,6 +401,55 @@ class LocalPosRepository(private val database: PmdDatabase) {
             }
         }
 
+        if (
+            payload.optBoolean("force_new_check", false) &&
+            draftForTable(tableId) == null
+        ) {
+            val firstMenuId = staged.firstOrNull()?.menuId
+                ?: error("Add at least one item.")
+            val currency = database.readableDatabase.query(
+                "pmd_menu_items",
+                arrayOf("currency"),
+                "id = ? AND location_id = ? AND deleted = 0",
+                arrayOf(firstMenuId, locationId.toString()),
+                null,
+                null,
+                null,
+                "1",
+            ).use {
+                if (it.moveToFirst()) it.getString(0) else "EUR"
+            }
+
+            database.transaction { db ->
+                val id = UUID.randomUUID().toString()
+                db.insertOrThrow(
+                    "pmd_orders",
+                    null,
+                    ContentValues().apply {
+                        put("id", id)
+                        put("location_id", locationId)
+                        put("version", 0)
+                        putNull("server_id")
+                        put("table_id", tableId)
+                        put("status", STATUS_DRAFT)
+                        put("total_minor", 0)
+                        put("currency", currency)
+                        put(
+                            "payload_json",
+                            JSONObject()
+                                .put("guest_count", 1)
+                                .put("note", "")
+                                .put("base_total_minor", 0)
+                                .put("forced_new_check", true)
+                                .toString(),
+                        )
+                        put("dirty", 1)
+                        put("updated_at_ms", System.currentTimeMillis())
+                    },
+                )
+            }
+        }
+
         var draft: DraftOrder? = draftForTable(tableId)
 
         staged.forEach { line ->
