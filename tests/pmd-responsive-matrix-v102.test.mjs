@@ -10,6 +10,8 @@ const posActivity = fs.readFileSync('mobile/android/app/src/main/java/com/paymyd
 assert.ok(css.includes('PMD_QPOS_RESPONSIVE_MATRIX_V102'), 'V102 CSS marker missing');
 assert.ok(css.includes('PMD_QPOS_PHONE_ONLY_SCOPE_V102'), 'phone-only scope missing');
 assert.ok(css.includes('PMD_QPOS_TABLET_PORTRAIT_SCALE_ISOLATION_V103'), 'V103 tablet portrait scale-isolation marker missing');
+assert.ok(css.includes('PMD_QPOS_ANDROID_FORM_FACTOR_MATRIX_V105'), 'V105 Android form-factor CSS marker missing');
+assert.ok(js.includes('PMD_QPOS_ANDROID_FORM_FACTOR_RUNTIME_V105'), 'V105 Android form-factor runtime marker missing');
 
 function mediaAfter(marker) {
   const start = css.indexOf(marker);
@@ -102,8 +104,8 @@ assert.ok(
   view.includes('<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">'),
   'natural viewport meta contract missing'
 );
-assert.ok(view.includes('pmd-quick-pos-v1.css?v=20260924-v104'), 'V102 CSS cache bust missing');
-assert.ok(view.includes('pmd-quick-pos-v1.js?v=20260924-v104'), 'V102 JS cache bust missing');
+assert.ok(view.includes('pmd-quick-pos-v1.css?v=20260924-v105'), 'V102 CSS cache bust missing');
+assert.ok(view.includes('pmd-quick-pos-v1.js?v=20260924-v105'), 'V102 JS cache bust missing');
 
 assert.equal(
   (posActivity.match(/textZoom = 100/g) || []).length,
@@ -156,6 +158,6 @@ assert.ok(
   'Android natural-scale marker missing'
 );
 
-console.log('PMD responsive matrix V102 + portrait isolation V103: PASS');
+console.log('PMD responsive matrix V102 + V103 isolation + V105 Android form-factor: PASS');
 console.log('PosActivity WebView 100% rotation-scale + Local-First V104 contract: PASS');
 console.log('phone portrait / phone landscape / tablet portrait / tablet landscape / desktop: PASS');
