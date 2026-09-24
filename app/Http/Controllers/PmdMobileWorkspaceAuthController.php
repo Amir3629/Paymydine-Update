@@ -213,8 +213,22 @@ final class PmdMobileWorkspaceAuthController extends Controller
         $pins = app(PmdStaffPinService::class);
 
         if ($usingQuickPin) {
-            if (!$pins->ready()) {
-                $this->fail(401, 'Staff PIN is not available for this restaurant.');
+            // PMD_ANDROID_PIN_STORAGE_SELFHEAL_V18F
+            // Older tenants may predate the Quick PIN table. The Shifts editor
+            // provisions it when a PIN is saved, but native login must be
+            // equally safe if schema rollout lagged behind the app release.
+            // Always repair only this additive PIN table on the already-selected
+            // tenant connection before evaluating the submitted PIN.
+            if (!$pins->ensureReady()) {
+                logger()->error('PMD Android Staff PIN storage unavailable', [
+                    'host' => $request->getHost(),
+                    'database' => DB::connection()->getDatabaseName(),
+                    'location_id' => $locationId,
+                ]);
+                $this->fail(
+                    503,
+                    'Staff PIN storage is temporarily unavailable for this restaurant.'
+                );
             }
 
             $user = $pins->userForPin($pin);
