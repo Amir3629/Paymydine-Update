@@ -1121,7 +1121,10 @@ class PosActivity : ComponentActivity() {
 
             runCatching {
                 val bootstrap = MobileApiClient().bootstrap(host, token)
-                app.bootstrapRepository.apply(bootstrap)
+                app.bootstrapRepository.apply(
+                    bootstrap,
+                    preserveCriticalOnEmpty = true,
+                )
                 app.bootstrapRepository.locationId()?.let { locationId ->
                     app.offlineImageCache.prefetch(
                         host,
