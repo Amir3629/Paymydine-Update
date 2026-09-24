@@ -10601,3 +10601,459 @@ body.pmd-qpos-body {
   }
 }
 
+/* ============================================================
+   PMD_QPOS_VISUAL_CLEANUP_V90
+   - remove every legacy white/shadow band from food photography
+   - true 1:1 food tiles on desktop and mobile
+   - food name top-left, price bottom-right
+   - mobile total bar belongs to document flow under the Check card
+   - iOS-safe form typography prevents focus zoom
+   - substantially larger restaurant-touch controls on phones
+   ============================================================ */
+
+/* Kill V13/V16/V28/V30/V33 transition artifacts permanently. */
+.pmd-qpos-product-image::before,
+.pmd-qpos-product-image::after,
+.pmd-qpos-product-body::before,
+.pmd-qpos-product-body::after {
+  content: none !important;
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: none !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+/* The card itself has only ONE visual overlay: this dark readability layer. */
+.pmd-qpos-product::before {
+  content: none !important;
+  display: none !important;
+}
+
+.pmd-qpos-product::after {
+  content: "" !important;
+  display: block !important;
+  position: absolute !important;
+  z-index: 1 !important;
+  top: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  inset: 0 !important;
+  width: auto !important;
+  height: auto !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  pointer-events: none !important;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(1,12,9,.58) 0%,
+      rgba(1,12,9,.18) 28%,
+      rgba(1,12,9,.16) 57%,
+      rgba(1,12,9,.56) 78%,
+      rgba(1,12,9,.84) 100%
+    ) !important;
+}
+
+/* Real square food tiles. */
+.pmd-qpos-product,
+.pmd-qpos-product:hover,
+.pmd-qpos-product.is-selected,
+.pmd-qpos-product.is-selected:hover {
+  aspect-ratio: 1 / 1 !important;
+  width: 100% !important;
+  height: auto !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  overflow: hidden !important;
+  background: #071b15 !important;
+}
+
+.pmd-qpos-product-image,
+.pmd-qpos-product-image.is-placeholder.is-inline-v72 {
+  position: absolute !important;
+  z-index: 0 !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  margin: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background-position: center center !important;
+  background-size: cover !important;
+  background-repeat: no-repeat !important;
+  box-shadow: none !important;
+}
+
+/* Body becomes only a transparent positioning layer. */
+.pmd-qpos-product-body {
+  position: absolute !important;
+  z-index: 3 !important;
+  inset: 0 !important;
+  width: auto !important;
+  height: auto !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  overflow: visible !important;
+}
+
+/* Requested hierarchy: NAME top-left. */
+.pmd-qpos-product-body .pmd-qpos-product-name {
+  position: absolute !important;
+  z-index: 3 !important;
+  top: 14px !important;
+  left: 14px !important;
+  right: 14px !important;
+  bottom: auto !important;
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 6px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  color: #fff !important;
+  font-size: clamp(18px,1.22vw,23px) !important;
+  font-weight: 950 !important;
+  line-height: 1.12 !important;
+  letter-spacing: -.025em !important;
+  text-shadow: 0 2px 8px rgba(0,0,0,.70) !important;
+}
+
+.pmd-qpos-product-body .pmd-qpos-product-name > span:last-child {
+  display: -webkit-box !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.pmd-qpos-product-body .pmd-qpos-product-number {
+  flex: 0 0 auto !important;
+  color: #fff !important;
+  font-size: clamp(17px,1.08vw,21px) !important;
+  font-weight: 950 !important;
+  line-height: 1.12 !important;
+}
+
+/* Requested hierarchy: options bottom-left, PRICE bottom-right. */
+.pmd-qpos-product-meta {
+  position: absolute !important;
+  z-index: 3 !important;
+  left: 14px !important;
+  right: 14px !important;
+  bottom: 13px !important;
+  top: auto !important;
+  display: flex !important;
+  align-items: flex-end !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  color: rgba(255,255,255,.94) !important;
+  font-size: clamp(14px,.95vw,18px) !important;
+  font-weight: 750 !important;
+  line-height: 1.1 !important;
+  text-shadow: 0 2px 7px rgba(0,0,0,.72) !important;
+}
+
+.pmd-qpos-product-meta > b {
+  margin-left: auto !important;
+  color: #fff !important;
+  font-size: clamp(20px,1.35vw,27px) !important;
+  font-weight: 950 !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+  text-shadow: 0 2px 8px rgba(0,0,0,.78) !important;
+}
+
+.pmd-qpos-product-badge {
+  z-index: 5 !important;
+  top: 11px !important;
+  right: 11px !important;
+  left: auto !important;
+  bottom: auto !important;
+  padding: 6px 9px !important;
+  border-radius: 999px !important;
+  background: rgba(0,47,35,.94) !important;
+  color: #fff !important;
+  font-size: 12px !important;
+  font-weight: 900 !important;
+}
+
+.pmd-qpos-product-count {
+  z-index: 5 !important;
+  top: 45px !important;
+  right: 11px !important;
+  left: auto !important;
+  bottom: auto !important;
+}
+
+/* ============================================================
+   Phone / portrait readability
+   ============================================================ */
+@media (max-width: 820px) {
+  html,
+  body.pmd-qpos-body {
+    -webkit-text-size-adjust: 100% !important;
+    text-size-adjust: 100% !important;
+  }
+
+  body.pmd-qpos-body {
+    font-size: 18px !important;
+  }
+
+  /* Safari/iOS does not auto-focus-zoom controls at >= 16px. */
+  .pmd-qpos input,
+  .pmd-qpos textarea,
+  .pmd-qpos select,
+  .pmd-qpos-modal input,
+  .pmd-qpos-modal textarea,
+  .pmd-qpos-modal select {
+    font-size: 17px !important;
+    line-height: 1.35 !important;
+  }
+
+  .pmd-qpos input::placeholder,
+  .pmd-qpos textarea::placeholder {
+    font-size: 17px !important;
+  }
+
+  .pmd-qpos-main {
+    padding: 9px !important;
+  }
+
+  .pmd-qpos-floor-tabs {
+    gap: 8px !important;
+  }
+
+  .pmd-qpos-floor-tabs button {
+    min-height: 58px !important;
+    padding-inline: 14px !important;
+    font-size: 17px !important;
+    font-weight: 900 !important;
+  }
+
+  .pmd-qpos-floor-map-open {
+    min-height: 54px !important;
+    font-size: 17px !important;
+  }
+
+  .pmd-qpos-guide-toggle {
+    min-width: 54px !important;
+    min-height: 54px !important;
+    font-size: 19px !important;
+  }
+
+  .pmd-qpos-table {
+    min-height: 112px !important;
+    padding: 13px 8px !important;
+  }
+
+  .pmd-qpos-table strong {
+    font-size: 27px !important;
+  }
+
+  .pmd-qpos-table small {
+    margin-top: 10px !important;
+    font-size: 15px !important;
+  }
+
+  .pmd-qpos-pickup strong {
+    font-size: 18px !important;
+  }
+
+  .pmd-qpos-profile-button,
+  .pmd-qpos-history-button {
+    min-height: 60px !important;
+    font-size: 17px !important;
+  }
+
+  .pmd-qpos-search,
+  .pmd-qpos-clock {
+    height: 64px !important;
+  }
+
+  .pmd-qpos-search {
+    padding-inline: 15px !important;
+  }
+
+  .pmd-qpos-search input {
+    font-size: 18px !important;
+  }
+
+  .pmd-qpos-clock {
+    min-width: 74px !important;
+    font-size: 17px !important;
+  }
+
+  .pmd-qpos-categories {
+    gap: 10px !important;
+    padding: 10px !important;
+  }
+
+  .pmd-qpos-categories button {
+    min-width: 108px !important;
+    min-height: 62px !important;
+    height: 62px !important;
+    padding-inline: 18px !important;
+    font-size: 17px !important;
+    font-weight: 900 !important;
+  }
+
+  .pmd-qpos-catalog-status {
+    padding: 11px 12px 3px !important;
+    font-size: 16px !important;
+  }
+
+  .pmd-qpos-product-grid {
+    grid-template-columns: repeat(2,minmax(0,1fr)) !important;
+    gap: 12px !important;
+    padding: 11px !important;
+  }
+
+  .pmd-qpos-product,
+  .pmd-qpos-product:hover,
+  .pmd-qpos-product.is-selected,
+  .pmd-qpos-product.is-selected:hover {
+    aspect-ratio: 1 / 1 !important;
+    min-height: 0 !important;
+  }
+
+  .pmd-qpos-product-body .pmd-qpos-product-name {
+    top: 13px !important;
+    left: 13px !important;
+    right: 13px !important;
+    font-size: 20px !important;
+    line-height: 1.12 !important;
+  }
+
+  .pmd-qpos-product-body .pmd-qpos-product-number {
+    font-size: 18px !important;
+  }
+
+  .pmd-qpos-product-meta {
+    left: 13px !important;
+    right: 13px !important;
+    bottom: 13px !important;
+    font-size: 16px !important;
+  }
+
+  .pmd-qpos-product-meta > b {
+    font-size: 23px !important;
+  }
+
+  /* Touch controls throughout cart/history/modifiers. */
+  .pmd-qpos-cart-actions button,
+  .pmd-qpos-table-actions button,
+  .pmd-qpos-open-checks button,
+  .pmd-qpos-line-qty button,
+  .pmd-qpos-sent-qty-v68 button,
+  .pmd-qpos-line-note,
+  .pmd-qpos-option,
+  .pmd-qpos-modal-primary,
+  .pmd-qpos-modal-qty button,
+  .pmd-qpos-history-toolbar button,
+  .pmd-qpos-history-presets button,
+  .pmd-qpos-history-scope-v87 button,
+  .pmd-qpos-history-table-rail-v88 button {
+    min-height: 52px !important;
+    font-size: 16px !important;
+    font-weight: 850 !important;
+  }
+
+  .pmd-qpos-cart-line strong,
+  .pmd-qpos-sent-line {
+    font-size: 18px !important;
+  }
+
+  .pmd-qpos-cart-line small,
+  .pmd-qpos-sent-line small,
+  .pmd-qpos-order-note > span,
+  .pmd-qpos-cart-summary span {
+    font-size: 15px !important;
+  }
+
+  .pmd-qpos-cart-summary strong {
+    font-size: 19px !important;
+  }
+
+  .pmd-qpos-cart {
+    padding-bottom: 14px !important;
+  }
+
+  /*
+   * PMD_QPOS_MOBILE_CART_IN_FLOW_V90
+   * No overlay on food/check content. The total strip physically follows
+   * the full POS main/check card and therefore appears underneath it.
+   */
+  .pmd-qpos-mobile-cart,
+  .pmd-qpos.is-portrait-v86 .pmd-qpos-mobile-cart {
+    position: relative !important;
+    inset: auto !important;
+    left: auto !important;
+    right: auto !important;
+    top: auto !important;
+    bottom: auto !important;
+    z-index: 2 !important;
+    width: calc(100% - 18px) !important;
+    height: 72px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    margin: 12px auto max(14px,env(safe-area-inset-bottom)) !important;
+    padding: 0 20px !important;
+    border: 1px solid #001d16 !important;
+    border-radius: 12px !important;
+    background: #002f24 !important;
+    color: #fff !important;
+    box-shadow: none !important;
+    font-size: 20px !important;
+    font-weight: 900 !important;
+  }
+
+  .pmd-qpos-mobile-cart span,
+  .pmd-qpos-mobile-cart b {
+    font-size: 20px !important;
+  }
+
+  .pmd-qpos-mobile-cart strong {
+    font-size: 24px !important;
+    font-weight: 950 !important;
+  }
+}
+
+@media (max-width: 430px) {
+  .pmd-qpos-floor-tabs button,
+  .pmd-qpos-categories button {
+    font-size: 16.5px !important;
+  }
+
+  .pmd-qpos-table {
+    min-height: 108px !important;
+  }
+
+  .pmd-qpos-table strong {
+    font-size: 25px !important;
+  }
+
+  .pmd-qpos-product-body .pmd-qpos-product-name {
+    font-size: 19px !important;
+  }
+
+  .pmd-qpos-product-meta > b {
+    font-size: 22px !important;
+  }
+}
+
