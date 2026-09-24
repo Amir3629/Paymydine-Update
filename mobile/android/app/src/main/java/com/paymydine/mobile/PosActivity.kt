@@ -287,13 +287,16 @@ class PosActivity : ComponentActivity() {
     }
 
     @SuppressLint("SetJavaScriptEnabled")
-    private fun createCanonicalWebView() {
+    private fun createCanonicalWebView(
+        allowShellSeed: Boolean = false,
+    ) {
         if (isFinishing || isDestroyed) return
 
-        // PMD_ANDROID_LOCAL_FIRST_V2_V104
-        // Cloud rendering is only allowed as a first-time canonical shell seed.
-        // A valid local setup must never switch the cashier back to Cloud-first.
-        if (offlinePosAvailable()) {
+        // PMD_ANDROID_LOCAL_FIRST_SHELL_SEED_GUARD_V106
+        // A valid local setup normally stays SQLite-first. The sole exception
+        // is an explicit first/recovery shell seed when bootstrap/session exists
+        // but the cached canonical HTML shell is missing.
+        if (!allowShellSeed && offlinePosAvailable()) {
             enterLocalMode("Opening PayMyDine POS...")
             return
         }
@@ -946,7 +949,7 @@ class PosActivity : ComponentActivity() {
             // is promoted back to local transport after canonical readiness.
             if (app.connectivity.isOnlineNow()) {
                 transportMode = TransportMode.CLOUD
-                createCanonicalWebView()
+                createCanonicalWebView(allowShellSeed = true)
                 return
             }
 
