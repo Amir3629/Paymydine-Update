@@ -13,11 +13,22 @@ const bootstrap = read('app/Services/PmdMobileSync/PmdMobileBootstrapService.php
 const processor = read('app/Services/PmdMobileSync/PmdMobileCommandProcessor.php');
 const qpos = read('app/admin/assets/js/pmd-quick-pos-v1.js');
 const qposCss = read('app/admin/assets/css/pmd-quick-pos-v1.css');
+const androidV107Css = read('app/admin/assets/css/pmd-qpos-android-form-factor-v107.css');
+const androidV107Js = read('app/admin/assets/js/pmd-qpos-android-form-factor-v107.js');
+const gradle = read('mobile/android/app/build.gradle.kts');
 
 assert.ok(pos.includes('PMD_ANDROID_LOCAL_FIRST_V2_V104'));
 assert.ok(pos.includes('PMD_ANDROID_LOCAL_FIRST_FIRST_RUN_PROMOTION_V104'));
 assert.ok(pos.includes('PMD_ANDROID_LOCAL_FIRST_SHELL_SEED_GUARD_V106'));
 assert.ok(pos.includes('createCanonicalWebView(allowShellSeed = true)'));
+assert.ok(pos.includes('PMD_ANDROID_V107_OFFLINE_SHELL_ASSETS'));
+assert.ok(pos.includes('/app/admin/assets/css/pmd-qpos-android-form-factor-v107.css'));
+assert.ok(pos.includes('/app/admin/assets/js/pmd-qpos-android-form-factor-v107.js'));
+assert.ok(gradle.includes('PMD_ANDROID_V107_OFFLINE_OVERRIDE_BUNDLE'));
+assert.ok(gradle.includes('"pmd-qpos-android-form-factor-v107.css"'));
+assert.ok(gradle.includes('"pmd-qpos-android-form-factor-v107.js"'));
+assert.ok(androidV107Css.includes('PMD_QPOS_ANDROID_SAFE_MATRIX_V107'));
+assert.ok(androidV107Js.includes('PMD_QPOS_ANDROID_SAFE_RUNTIME_V107'));
 assert.ok(syncRepo.includes('PMD_ANDROID_SYNC_VISIBILITY_V104'));
 assert.ok(syncRepo.includes('PMD_ANDROID_CLOUD_HEALTH_V104'));
 assert.ok(syncRepo.includes('PMD_ANDROID_CLOUD_LINE_OUTBOX_PROJECTION_V106'));
@@ -67,4 +78,4 @@ assert.ok(cloudOnlyBlock.includes('"ORDER_ITEM_ADJUST_V1"'));
 assert.ok(cloudOnlyBlock.includes('"CASH_PAYMENT_V1"'));
 
 console.log('PMD Local-First V106 offline chaos contract matrix: PASS');
-console.log('Covered contracts: WAN cut, durable queue, process restart recovery, aggregate ordering, reconnect without WebView replacement, rejected reconciliation, multi-device remote conflict, Cash durability, Cloud-line +/- reconciliation, Cloud health split, trusted clock, image integrity, V105 UI bundle.');
+console.log('Covered contracts: WAN cut, durable queue, process restart recovery, aggregate ordering, reconnect without WebView replacement, rejected reconciliation, multi-device remote conflict, Cash durability, Cloud-line +/- reconciliation, Cloud health split, trusted clock, image integrity, V107 offline-safe Android form-factor bundle.');
