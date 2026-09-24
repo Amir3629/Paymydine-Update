@@ -325,6 +325,10 @@ class PosActivity : ComponentActivity() {
         localBridge = bridge
 
         val view = WebView(this).apply {
+            // PMD_ANDROID_NORMAL_PAGE_SCALE_V100
+            // Zero means use the platform's natural initial scale; do not force
+            // the cashier page into an artificial zoomed-in/out presentation.
+            setInitialScale(0)
             setBackgroundColor(Color.rgb(244, 246, 248))
             setLayerType(View.LAYER_TYPE_NONE, null)
             isVerticalScrollBarEnabled = false
@@ -341,6 +345,9 @@ class PosActivity : ComponentActivity() {
                 offscreenPreRaster = true
                 useWideViewPort = true
                 loadWithOverviewMode = false
+                // PMD_ANDROID_NORMAL_PAGE_SCALE_V100
+                // Keep the canonical POS at the WebView's natural device scale.
+                textZoom = 100
                 builtInZoomControls = false
                 displayZoomControls = false
                 javaScriptCanOpenWindowsAutomatically = true
@@ -956,6 +963,10 @@ class PosActivity : ComponentActivity() {
         localBridge = bridge
 
         val view = WebView(this).apply {
+            // PMD_ANDROID_NORMAL_PAGE_SCALE_V100
+            // Zero means use the platform's natural initial scale; do not force
+            // the cashier page into an artificial zoomed-in/out presentation.
+            setInitialScale(0)
             setBackgroundColor(Color.rgb(244, 246, 248))
             setLayerType(View.LAYER_TYPE_NONE, null)
             isVerticalScrollBarEnabled = false
@@ -972,6 +983,9 @@ class PosActivity : ComponentActivity() {
                 offscreenPreRaster = true
                 useWideViewPort = true
                 loadWithOverviewMode = false
+                // PMD_ANDROID_NORMAL_PAGE_SCALE_V100
+                // Keep the canonical POS at the WebView's natural device scale.
+                textZoom = 100
                 builtInZoomControls = false
                 displayZoomControls = false
                 javaScriptCanOpenWindowsAutomatically = false

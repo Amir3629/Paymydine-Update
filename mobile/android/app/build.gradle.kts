@@ -10,8 +10,10 @@ android {
         applicationId = "com.paymydine.mobile"
         minSdk = 26
         targetSdk = 36
-        versionCode = 38
-        // PMD_ANDROID_0_3_25_MOBILE_BALANCED_V99
+        versionCode = 39
+        // PMD_ANDROID_0_3_26_NORMAL_BUTTONS_V100
+        // PMD_ANDROID_NORMAL_PAGE_SCALE_V100
+        // PMD_ANDROID_0_3_25_MOBILE_BALANCED_V99 (preserved baseline)
         // PMD_ANDROID_0_3_24_MOBILE_FIT_V98 (preserved baseline)
         // PMD_ANDROID_0_3_23_PORTRAIT_XL_V97 (superseded presentation baseline)
         // PMD_ANDROID_0_3_22_PORTRAIT_BREAKPOINT_V96 (preserved baseline)
@@ -19,7 +21,7 @@ android {
         // PMD_ANDROID_0_3_20_MOBILE_UI_V94 (preserved baseline)
         // PMD_ANDROID_0_3_20_OFFLINE_COMPLETE_V23 (preserved contract)
         // V99 trims the V98 scale slightly while preserving natural mobile fit.
-        versionName = "0.3.25-v99-mobile-balanced" // PMD_ANDROID_0_3_25_MOBILE_BALANCED_V99
+        versionName = "0.3.26-v100-normal-mobile" // PMD_ANDROID_0_3_26_NORMAL_BUTTONS_V100
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "SYNC_PROTOCOL_VERSION", "\"pmd-sync-v1\"")
     }
