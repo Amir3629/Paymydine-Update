@@ -57,6 +57,31 @@ final class PmdMobileBootstrapService
                     ?? 2,
             ],
             'platform_context' => $platform,
+            // PMD_ANDROID_CANONICAL_QPOS_SETTINGS_V18
+            // Display/calculation facts required by the exact V86 Quick POS
+            // shell while WAN is unavailable. No provider credentials or
+            // payment secrets are included.
+            'quick_pos_settings' => [
+                'currency_code' => strtoupper((string)(
+                    $platform['profile']['currency']['code']
+                    ?? setting('default_currency_code', 'EUR')
+                )),
+                'tax_enabled' =>
+                    (string)setting(
+                        'tax_mode',
+                        setting('tax_enabled', '0')
+                    ) === '1',
+                'tax_percentage' => max(
+                    0.0,
+                    (float)setting('tax_percentage', 0)
+                ),
+                'tax_menu_price' =>
+                    (string)setting('tax_menu_price', '1') === '0'
+                        ? 0
+                        : 1,
+                'tax_title' =>
+                    trim((string)setting('tax_title', 'VAT')) ?: 'VAT',
+            ],
             'identity' => [
                 'device_id' => (int)$identity['device_id'],
                 'user_id' => (int)$identity['user_id'],
