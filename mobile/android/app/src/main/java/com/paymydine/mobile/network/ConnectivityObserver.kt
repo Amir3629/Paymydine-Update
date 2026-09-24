@@ -23,9 +23,17 @@ class ConnectivityObserver(context: Context) {
         manager.registerDefaultNetworkCallback(callback)
     }
 
-    private fun refresh() {
+    // PMD_ANDROID_CONNECTIVITY_SYNC_PROBE_V21
+    // Request-path failover cannot wait for NetworkCallback delivery. Quick POS
+    // asks this synchronously immediately before a Cloud fetch.
+    fun isOnlineNow(): Boolean {
         val network = manager.activeNetwork
         val capabilities = network?.let(manager::getNetworkCapabilities)
-        _online.value = capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED) == true
+        return capabilities
+            ?.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED) == true
+    }
+
+    private fun refresh() {
+        _online.value = isOnlineNow()
     }
 }
