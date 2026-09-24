@@ -1201,6 +1201,20 @@ class PosActivity : ComponentActivity() {
         lifecycleScope.launch {
             val refreshed = refreshLocalSnapshotFromCloud()
             snapshotWarmInFlight = false
+
+            // PMD_ANDROID_LOCAL_FIRST_FIRST_RUN_PROMOTION_V104
+            // First-run Cloud rendering may finish before the bootstrap refresh.
+            // Promote only after the durable snapshot exists, keeping the same
+            // visible WebView/DOM and switching its request authority to SQLite.
+            if (
+                refreshed &&
+                transportMode == TransportMode.CLOUD &&
+                offlinePosAvailable()
+            ) {
+                enterLocalMode("Opening PayMyDine POS...")
+                return@launch
+            }
+
             if (
                 refreshed &&
                 refreshUi &&
