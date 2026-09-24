@@ -152,6 +152,11 @@ jobs:
           grep -q "PMD_QPOS_HANDHELD_PORTRAIT_RUNTIME_V96" app/admin/assets/js/pmd-quick-pos-v1.js
           grep -q "PMD_QPOS_RESPONSIVE_MATRIX_RUNTIME_V102" app/admin/assets/js/pmd-quick-pos-v1.js
           node tests/pmd-responsive-matrix-v102.test.mjs
+          node tests/pmd-local-first-v106.test.mjs
+          grep -q "PMD_ANDROID_CLOUD_LINE_EDIT_V106" mobile/android/app/src/main/java/com/paymydine/mobile/LocalPosBridge.kt
+          grep -q "PMD_ANDROID_CLOUD_LINE_ACK_V106" mobile/android/app/src/main/java/com/paymydine/mobile/data/local/LocalPosRepository.kt
+          grep -q "PMD_MOBILE_ORDER_ITEM_ADJUST_V106" app/Services/PmdMobileSync/PmdMobileCommandProcessor.php
+          grep -Fq "'ORDER_ITEM_ADJUST_V1'" app/Services/PmdMobileSync/PmdMobileBootstrapService.php
           grep -q "PMD_ANDROID_PROVISIONAL_ITEM_MUTATION_V23" mobile/android/app/src/main/java/com/paymydine/mobile/LocalPosBridge.kt
           grep -q "PMD_ANDROID_LOCAL_TABLE_OCCUPIED_V23" mobile/android/app/src/main/java/com/paymydine/mobile/LocalPosBridge.kt
           grep -q "PMD_ANDROID_PROVISIONAL_ORDER_EDIT_V23" mobile/android/app/src/main/java/com/paymydine/mobile/data/local/LocalPosRepository.kt
