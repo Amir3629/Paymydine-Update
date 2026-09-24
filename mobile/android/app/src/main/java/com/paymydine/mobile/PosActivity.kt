@@ -239,7 +239,6 @@ class PosActivity : ComponentActivity() {
         }
 
         transportMode = TransportMode.CLOUD
-        localBridge = null
 
         val host = trustedHost() ?: run {
             finish()
@@ -255,6 +254,14 @@ class PosActivity : ComponentActivity() {
         canonicalReady = false
         buildGeneration += 1
         val generation = buildGeneration
+
+        val bridge = LocalPosBridge(
+            activity = this,
+            app = app,
+            onTryCloud = { attemptReturnToCloud() },
+            onWorkspaces = { finish() },
+        )
+        localBridge = bridge
 
         val view = WebView(this).apply {
             setBackgroundColor(Color.rgb(244, 246, 248))
@@ -288,6 +295,10 @@ class PosActivity : ComponentActivity() {
             addJavascriptInterface(
                 PosCustomerDisplayJavascriptBridge(customerDisplay),
                 "PayMyDineHardware",
+            )
+            addJavascriptInterface(
+                bridge,
+                "PayMyDineOffline",
             )
 
             val cookieManager = CookieManager.getInstance()
