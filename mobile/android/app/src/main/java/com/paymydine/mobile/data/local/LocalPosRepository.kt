@@ -983,7 +983,9 @@ class LocalPosRepository(private val database: PmdDatabase) {
         }
 
         val exponent = localMinorExponent()
+        val paidAtMs = System.currentTimeMillis()
         val payload = JSONObject()
+            .put("client_paid_at_ms", paidAtMs)
             .put("table_id", tableId.toLongOrNull() ?: 0L)
             .put("split_mode", "full")
             .put("expected_remaining", minorToMoney(dueMinor, exponent))
@@ -1010,6 +1012,7 @@ class LocalPosRepository(private val database: PmdDatabase) {
             baseVersion = work.version + 1,
             commandType = "CASH_PAYMENT_V1",
             payloadJson = payload.toString(),
+            nowMs = paidAtMs,
         )
     }
 
@@ -1106,7 +1109,9 @@ class LocalPosRepository(private val database: PmdDatabase) {
         }
 
         val exponent = localMinorExponent()
+        val paidAtMs = System.currentTimeMillis()
         val payload = JSONObject()
+            .put("client_paid_at_ms", paidAtMs)
             .put("order_id", orderId)
             .put("table_id", tableId.toLongOrNull() ?: 0L)
             .put("split_mode", "full")
@@ -1144,6 +1149,7 @@ class LocalPosRepository(private val database: PmdDatabase) {
             baseVersion = bill.version,
             commandType = "CASH_PAYMENT_V1",
             payloadJson = payload.toString(),
+            nowMs = paidAtMs,
         )
     }
 
@@ -1178,7 +1184,9 @@ class LocalPosRepository(private val database: PmdDatabase) {
         }
 
         val exponent = localMinorExponent()
+        val paidAtMs = System.currentTimeMillis()
         val payload = JSONObject()
+            .put("client_paid_at_ms", paidAtMs)
             .put("order_id", serverId)
             .put("table_id", tableId.toLongOrNull() ?: 0L)
             .put("split_mode", "full")
@@ -1214,6 +1222,7 @@ class LocalPosRepository(private val database: PmdDatabase) {
             baseVersion = bill.version,
             commandType = "CASH_PAYMENT_V1",
             payloadJson = payload.toString(),
+            nowMs = paidAtMs,
         )
     }
 
@@ -1257,7 +1266,12 @@ class LocalPosRepository(private val database: PmdDatabase) {
         }
 
         val exponent = localMinorExponent()
+        val paidAtMs = maxOf(
+            System.currentTimeMillis(),
+            sendCommand.createdAtMs + 1,
+        )
         val payload = JSONObject()
+            .put("client_paid_at_ms", paidAtMs)
             .put(
                 "table_id",
                 draft.tableId.toLongOrNull() ?: error("Invalid table id."),
@@ -1286,10 +1300,7 @@ class LocalPosRepository(private val database: PmdDatabase) {
             baseVersion = draft.version + 1,
             commandType = "CASH_PAYMENT_V1",
             payloadJson = payload.toString(),
-            nowMs = maxOf(
-                System.currentTimeMillis(),
-                sendCommand.createdAtMs + 1,
-            ),
+            nowMs = paidAtMs,
         )
 
         return payment to dueMinor
