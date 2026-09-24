@@ -2,6 +2,7 @@ package com.paymydine.mobile.data.local
 
 import android.content.ContentValues
 import android.database.sqlite.SQLiteDatabase
+import android.os.SystemClock
 import org.json.JSONArray
 import org.json.JSONObject
 import java.math.BigDecimal
@@ -328,6 +329,15 @@ class BootstrapRepository(private val database: PmdDatabase) {
                 "bootstrap_applied_at_ms",
                 System.currentTimeMillis().toString(),
             )
+            val serverTimeMs = appliedRoot.optLong("server_time_ms", 0L)
+            if (serverTimeMs > 0L) {
+                putMeta(db, "trusted_server_epoch_ms", serverTimeMs.toString())
+                putMeta(
+                    db,
+                    "trusted_server_elapsed_ms",
+                    SystemClock.elapsedRealtime().toString(),
+                )
+            }
 
             val cursor = sync.optLong("cursor", 0)
             db.insertWithOnConflict(
