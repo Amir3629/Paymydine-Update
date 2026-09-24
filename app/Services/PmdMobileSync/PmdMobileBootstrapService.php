@@ -39,6 +39,11 @@ final class PmdMobileBootstrapService
             'ok' => true,
             'version' => self::VERSION,
             'generated_at' => now()->toIso8601String(),
+            // PMD_MOBILE_TRUSTED_TIME_ANCHOR_V104
+            // Android stores this Cloud epoch beside elapsedRealtime(). Offline
+            // business timestamps can then advance monotonically even if the
+            // tablet wall clock is changed.
+            'server_time_ms' => (int)round(microtime(true) * 1000),
             'profile_expires_at' => now()->addHours(8)->toIso8601String(),
             'sync_protocol' => 'pmd-sync-v1',
             'tenant' => [
