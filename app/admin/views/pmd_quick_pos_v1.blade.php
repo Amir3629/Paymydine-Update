@@ -1,8 +1,74 @@
+@php
+    $pmdAndroidPosV105 = request()->header('X-PayMyDine-Android-POS') === '1';
+    $pmdServerCssV105 = '';
+    $pmdServerJsV105 = '';
+    if ($pmdAndroidPosV105) {
+        $pmdServerCssPathV105 = base_path('app/admin/assets/css/pmd-quick-pos-v1.css');
+        if (is_readable($pmdServerCssPathV105)) {
+            $pmdServerCssV105 = (string) file_get_contents($pmdServerCssPathV105);
+        }
+
+        $pmdServerJsPathV105 = base_path('app/admin/assets/js/pmd-quick-pos-v1.js');
+        if (is_readable($pmdServerJsPathV105)) {
+            $pmdServerJsV105 = (string) file_get_contents($pmdServerJsPathV105);
+        }
+    }
+@endphp
 <!doctype html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<html
+    lang="{{ str_replace('_', '-', app()->getLocale()) }}"
+    class="{{ $pmdAndroidPosV105 ? 'pmd-qpos-android-pos-v105' : '' }}"
+>
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+    >
+    {{-- PMD_QPOS_FIRST_PAINT_SCALE_V105
+         Apply viewport normalization synchronously in <head>. V104 scheduled
+         the first write in requestAnimationFrame, allowing one wrong-scale
+         frame to become visible on refresh. --}}
+    <script>
+    (function () {
+        var desired = 'width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover';
+        var frame = null;
+
+        function writePmdViewportV105() {
+            var meta = document.querySelector('meta[name="viewport"]');
+            if (!meta) {
+                meta = document.createElement('meta');
+                meta.setAttribute('name', 'viewport');
+                (document.head || document.documentElement).appendChild(meta);
+            }
+            meta.setAttribute('content', desired);
+            document.documentElement.style.webkitTextSizeAdjust = '100%';
+            document.documentElement.style.textSizeAdjust = '100%';
+            document.documentElement.setAttribute('data-pmd-page-scale-v105', '1');
+        }
+
+        function schedulePmdViewportV105() {
+            if (frame) cancelAnimationFrame(frame);
+            frame = requestAnimationFrame(function () {
+                frame = null;
+                writePmdViewportV105();
+            });
+        }
+
+        writePmdViewportV105();
+
+        window.addEventListener('orientationchange', function () {
+            writePmdViewportV105();
+            setTimeout(writePmdViewportV105, 80);
+            setTimeout(writePmdViewportV105, 320);
+        }, { passive: true });
+        window.addEventListener('resize', schedulePmdViewportV105, { passive: true });
+
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', schedulePmdViewportV105, { passive: true });
+        }
+    })();
+    </script>
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="theme-color" content="#064e3b">
     <title>PayMyDine POS</title>
@@ -18,9 +84,16 @@
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-dashboard-lab-exact-floor-v1.css?v=20260920-floor-v35b">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-shared-floor-multi-floor-v1.css?v=20260920-floor-v35b">
     <link rel="stylesheet" href="/app/admin/assets/css/push-notifications.css?v=20260922-qpos-v59">
-    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-pos-v1.css?v=20260924-v104">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-pos-v1.css?v=20260924-v105">
+    @if($pmdAndroidPosV105 && $pmdServerCssV105 !== '')
+        {{-- PMD_QPOS_ANDROID_SERVER_CSS_OVERRIDE_V105
+             Android 0.3.28 intercepts the linked Quick POS stylesheet with its
+             bundled copy. Inline the current server stylesheet after that link
+             so the live V105 matrix is authoritative immediately. --}}
+        <style id="pmd-qpos-android-server-css-v105">{!! $pmdServerCssV105 !!}</style>
+    @endif
 </head>
-<body class="pmd-qpos-body">
+<body class="pmd-qpos-body {{ $pmdAndroidPosV105 ? 'pmd-qpos-android-pos-v105' : '' }}">
 @php
     $pmdInitialFloors = array_values((array)($initialBootstrap['floors'] ?? []));
     $pmdInitialFloorId = (string)(
@@ -63,7 +136,7 @@
 @endphp
 <div
     id="pmd-quick-pos"
-    class="pmd-qpos"
+    class="pmd-qpos {{ $pmdAndroidPosV105 ? 'is-android-tablet-v105' : '' }}"
     data-mode="{{ $mode }}"
     data-bootstrap-url="/admin/pos/bootstrap/{{ $mode }}"
 >
@@ -943,7 +1016,16 @@ window.PMDQuickPOSConfig = {
      V73 also runs one lean operational-state heartbeat for table/KDS sync. --}}
 <script src="/app/admin/assets/js/push-notifications.js?v=20260922-qpos-v59"></script>
 {{-- PMD_QPOS_OFFLINE_COMPLETE_CACHE_BUSTER_V94 --}}
-<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260924-v104"></script>
+@if($pmdAndroidPosV105 && $pmdServerJsV105 !== '')
+<script>
+/* PMD_QPOS_ANDROID_SERVER_JS_OVERRIDE_V105
+ * Execute the current server runtime first. Android 0.3.28 intercepts the
+ * external file with its older bundled JS; that later script exits because
+ * window.PMDQuickPOSV1 is already initialized by this copy. */
+{!! $pmdServerJsV105 !!}
+</script>
+@endif
+<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260924-v105"></script>
 <script src="/app/admin/assets/js/pmd-site-access-hub-v13.js?v=20260921-androidpair-v16"></script>
 </body>
 </html>
