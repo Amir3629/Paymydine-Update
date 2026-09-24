@@ -1587,7 +1587,7 @@ class LocalPosBridge(
     }
 
     @JavascriptInterface
-    fun cloudAvailable(): Boolean = app.connectivity.online.value
+    fun cloudAvailable(): Boolean = app.connectivity.isOnlineNow()
 
     @JavascriptInterface
     fun localUiReady() {
