@@ -65,6 +65,38 @@
     return String(template || '').replace(token, encodeURIComponent(String(value || '')));
   }
 
+  /* PMD_QPOS_NATIVE_LOCAL_TRANSPORT_V18
+   * Android keeps this exact canonical Quick POS DOM/CSS/JS during WAN loss.
+   * Only fetchJson changes authority: Cloud while online, signed/native local
+   * state while offline. No alternate POS page and no 2-second repaint loop. */
+  function nativeLocalTransportAvailable() {
+    return (
+      window.__PMD_NATIVE_OFFLINE__ === true &&
+      window.PayMyDineOffline &&
+      typeof window.PayMyDineOffline.fetchJson === 'function'
+    );
+  }
+
+  function friendlyOfflineMessage(value) {
+    var raw = String(value || '').trim();
+    if (!raw) return 'This action is not available offline yet.';
+
+    var lower = raw.toLowerCase();
+    if (
+      lower.indexOf('failed to fetch') !== -1 ||
+      lower.indexOf('network') !== -1 ||
+      lower.indexOf('dns') !== -1 ||
+      lower.indexOf('http ') !== -1 ||
+      lower.indexOf('ssl') !== -1 ||
+      lower.indexOf('socket') !== -1 ||
+      lower.indexOf('exception') !== -1
+    ) {
+      return 'Connection is unavailable. PayMyDine is using the local restaurant copy.';
+    }
+
+    return raw;
+  }
+
   async function fetchJson(url, options) {
     var opts = Object.assign({
       credentials: 'same-origin',
@@ -84,6 +116,39 @@
       opts.headers['X-CSRF-TOKEN'] = csrf();
     }
 
+    if (nativeLocalTransportAvailable()) {
+      var nativeRaw = window.PayMyDineOffline.fetchJson(
+        String(url || ''),
+        String(opts.method || 'GET').toUpperCase(),
+        typeof opts.body === 'string' ? opts.body : ''
+      );
+      var nativeJson = {};
+      try {
+        nativeJson = JSON.parse(String(nativeRaw || '{}'));
+      } catch (ignored) {
+        nativeJson = {
+          ok: false,
+          status: 500,
+          message: 'Local restaurant data could not be read.'
+        };
+      }
+
+      if (nativeJson.ok === false || nativeJson.success === false) {
+        var nativeError = new Error(
+          friendlyOfflineMessage(
+            nativeJson.message ||
+            (nativeJson.error && nativeJson.error.message) ||
+            nativeJson.error
+          )
+        );
+        nativeError.status = Number(nativeJson.status || 422);
+        nativeError.payload = nativeJson;
+        throw nativeError;
+      }
+
+      return nativeJson;
+    }
+
     var response = await fetch(url, opts);
     var json = await response.json().catch(function () { return {}; });
 
@@ -94,7 +159,7 @@
         json.error ||
         ('HTTP ' + response.status);
 
-      var error = new Error(String(message));
+      var error = new Error(friendlyOfflineMessage(message));
       error.status = response.status;
       error.payload = json;
       throw error;
@@ -6625,6 +6690,21 @@ function renderOpenChecks() {
     selectTable: selectTable,
     newCheck: newCheck,
     openPayment: openPayment,
-    openFloorMap: openFloorMap
+    openFloorMap: openFloorMap,
+    // PMD_QPOS_NATIVE_LOCAL_TRANSPORT_V18
+    setNativeOffline: function (enabled) {
+      window.__PMD_NATIVE_OFFLINE__ = enabled === true;
+      setOnline(!window.__PMD_NATIVE_OFFLINE__);
+      root.classList.toggle(
+        'is-native-offline',
+        window.__PMD_NATIVE_OFFLINE__
+      );
+      hideToast();
+      return bootstrap(true);
+    },
+    refreshNativeState: function () {
+      if (!nativeLocalTransportAvailable()) return Promise.resolve(false);
+      return bootstrap(true);
+    }
   };
 })();
