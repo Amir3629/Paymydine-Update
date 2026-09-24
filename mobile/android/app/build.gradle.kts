@@ -36,6 +36,7 @@ android {
         // PMD_ANDROID_V104_LOCAL_FIRST_RELEASE_PROMOTED
         // PMD_ANDROID_V105_BUNDLED_ASSETS_SYNCED
         // PMD_ANDROID_0_3_31_V106_LOCAL_FIRST
+        // PMD_ANDROID_0_3_31_V106_RELEASE_FINAL
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "SYNC_PROTOCOL_VERSION", "\"pmd-sync-v1\"")
     }
