@@ -168,16 +168,11 @@ class PosActivity : ComponentActivity() {
         }
 
         // PMD_ANDROID_POS_SEAMLESS_FAILOVER_V17
-        // Stay inside this exact Activity. A WAN cut changes only the transport
-        // authority/WebView content; it never logs the staff member out and
-        // never navigates through a separate "offline mode" screen.
-        if (
-            localAuthorized &&
-            (
-                !app.connectivity.online.value ||
-                    !cloudAuthorized
-            )
-        ) {
+        // PMD_ANDROID_LOCAL_FIRST_V2_V104
+        // Stay inside this exact Activity, but V104 removes the normal
+        // Cloud-first transport race: once local setup is valid, SQLite is the
+        // cashier-facing authority even while WAN/Cloud are healthy.
+        if (localAuthorized) {
             enterLocalMode("Opening PayMyDine POS...")
         }
 
@@ -294,12 +289,16 @@ class PosActivity : ComponentActivity() {
     @SuppressLint("SetJavaScriptEnabled")
     private fun createCanonicalWebView() {
         if (isFinishing || isDestroyed) return
+
+        // PMD_ANDROID_LOCAL_FIRST_V2_V104
+        // Cloud rendering is only allowed as a first-time canonical shell seed.
+        // A valid local setup must never switch the cashier back to Cloud-first.
+        if (offlinePosAvailable()) {
+            enterLocalMode("Opening PayMyDine POS...")
+            return
+        }
+
         if (!app.connectivity.online.value) {
-            if (offlinePosAvailable()) {
-                enterLocalMode(
-                    "Internet connection is unavailable. Local POS is active.",
-                )
-            }
             return
         }
 
@@ -571,6 +570,14 @@ class PosActivity : ComponentActivity() {
                         captureCanonicalShell(current)
                         revealWebView(current)
                         warmLocalSnapshot(refreshUi = false)
+
+                        // PMD_ANDROID_LOCAL_FIRST_PROMOTION_V104
+                        // First-run Cloud rendering only seeds the canonical
+                        // shell. Keep the same DOM and immediately route the POS
+                        // through SQLite/native transport once local setup exists.
+                        if (offlinePosAvailable()) {
+                            enterLocalMode("Opening PayMyDine POS...")
+                        }
 
                         // PMD_ANDROID_POS_SURFACE_PULSE_V6
                         // Force one real Android surface visibility transition
@@ -934,6 +941,15 @@ class PosActivity : ComponentActivity() {
 
         val shell = posShellCache.read()
         if (shell.isNullOrBlank()) {
+            // PMD_ANDROID_LOCAL_FIRST_BOOTSTRAP_ESCAPE_V104
+            // First setup may seed the exact Cloud shell once. The same WebView
+            // is promoted back to local transport after canonical readiness.
+            if (app.connectivity.isOnlineNow()) {
+                transportMode = TransportMode.CLOUD
+                createCanonicalWebView()
+                return
+            }
+
             canonicalReady = false
             loading.text =
                 "PayMyDine POS needs one successful online opening " +
