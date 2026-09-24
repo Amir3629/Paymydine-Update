@@ -819,6 +819,22 @@ class PosActivity : ComponentActivity() {
             app = app,
             onTryCloud = { attemptReturnToCloud() },
             onWorkspaces = { finish() },
+            // PMD_ANDROID_LOCAL_UI_RESTORE_BARRIER_V18
+            // Cached canonical HTML stays covered until SQLite/bootstrap/cart
+            // restoration has actually completed inside V86.
+            onLocalUiReady = {
+                val restored = webView
+                if (
+                    restored != null &&
+                    transportMode == TransportMode.LOCAL &&
+                    loadedFromCachedShell &&
+                    !isFinishing
+                ) {
+                    canonicalReady = true
+                    synchronizeViewport(restored)
+                    revealWebView(restored)
+                }
+            },
         )
         localBridge = bridge
 
@@ -919,20 +935,11 @@ class PosActivity : ComponentActivity() {
                         """.trimIndent(),
                         null,
                     )
-                    canonicalReady = true
+                    // PMD_ANDROID_LOCAL_UI_RESTORE_BARRIER_V18
+                    // refreshNativeState() calls PayMyDineOffline.localUiReady()
+                    // only after the local bootstrap + durable cart restore.
+                    // Do not reveal this cached shell on a timer.
                     synchronizeViewport(current)
-                    current.postDelayed(
-                        {
-                            if (
-                                current === webView &&
-                                transportMode == TransportMode.LOCAL &&
-                                !isFinishing
-                            ) {
-                                revealWebView(current)
-                            }
-                        },
-                        80L,
-                    )
                 }
             }
 
