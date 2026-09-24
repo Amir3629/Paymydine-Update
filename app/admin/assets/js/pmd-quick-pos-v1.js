@@ -237,56 +237,133 @@
     var bridge = customerDisplayBridge();
     if (!bridge || document.getElementById('pmd-customer-display-control')) return;
 
-    var capabilities = {};
-    try {
-      capabilities = JSON.parse(
-        String(bridge.customerDisplayCapabilities() || '{}')
-      );
-    } catch (ignored) {
-    }
+    var profileMenu = document.querySelector('[data-qpos-profile-menu]');
+    if (!profileMenu) return;
 
+    /* PMD_ZCS_CUSTOMER_DISPLAY_PROFILE_V2
+     * Keep customer-display controls inside the existing operator profile card.
+     * This avoids floating controls covering Quick POS actions on compact POS
+     * displays and keeps hardware controls out of normal browser sessions. */
     var wrap = document.createElement('div');
     wrap.id = 'pmd-customer-display-control';
+    wrap.style.cssText =
+      'border-top:1px solid rgba(148,163,184,.22);margin-top:8px;padding-top:8px';
+
     wrap.innerHTML =
       '<button type="button" data-pmd-customer-display-toggle ' +
-        'style="position:fixed;right:18px;bottom:18px;z-index:2200;border:1px solid #d4d4d8;' +
-        'background:#fff;color:#18181b;border-radius:999px;padding:10px 14px;font:700 13px/1 sans-serif;' +
-        'box-shadow:0 8px 24px rgba(0,0,0,.14)">Customer display</button>' +
+        'style="width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;' +
+        'border:0;background:transparent;color:inherit;text-align:left;padding:9px 2px;font:inherit;cursor:pointer">' +
+        '<span>Customer display</span>' +
+        '<small data-pmd-customer-display-status style="opacity:.7">Checking…</small>' +
+      '</button>' +
       '<section data-pmd-customer-display-panel hidden ' +
-        'style="position:fixed;right:18px;bottom:66px;z-index:2201;width:300px;background:#fff;' +
-        'border:1px solid #e4e4e7;border-radius:16px;padding:16px;box-shadow:0 18px 50px rgba(0,0,0,.22);' +
-        'font:14px/1.4 sans-serif;color:#18181b">' +
-        '<div style="display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:12px">' +
-          '<strong>Customer display</strong>' +
-          '<span style="font-size:12px;color:#71717a">' +
-            (capabilities.customer_display ? 'ZCS connected' : 'Preview / SDK not detected') +
-          '</span>' +
+        'style="padding:8px 0 2px">' +
+        '<div data-pmd-customer-display-diagnostic ' +
+          'style="font-size:11px;line-height:1.45;padding:8px 10px;margin-bottom:8px;' +
+          'border-radius:8px;background:rgba(148,163,184,.10);white-space:normal;word-break:break-word">' +
+          'Reading ZCS status…' +
         '</div>' +
-        '<label style="display:flex;justify-content:space-between;align-items:center;margin:10px 0">' +
-          '<span>Enabled</span><input type="checkbox" data-pmd-customer-display-enabled ' +
-            (capabilities.enabled === false ? '' : 'checked') + '>' +
+        '<label style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:7px 2px">' +
+          '<span>Enabled</span><input type="checkbox" data-pmd-customer-display-enabled>' +
         '</label>' +
-        '<label style="display:flex;justify-content:space-between;align-items:center;margin:10px 0">' +
-          '<span>Show food images</span><input type="checkbox" data-pmd-customer-display-images ' +
-            (capabilities.images_enabled === false ? '' : 'checked') + '>' +
+        '<label style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:7px 2px">' +
+          '<span>Show food images</span><input type="checkbox" data-pmd-customer-display-images>' +
         '</label>' +
-        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px">' +
-          '<button type="button" data-pmd-customer-display-test="order" style="padding:9px;border:1px solid #d4d4d8;border-radius:10px;background:#fafafa">Test order</button>' +
-          '<button type="button" data-pmd-customer-display-test="payment" style="padding:9px;border:1px solid #d4d4d8;border-radius:10px;background:#fafafa">Test payment</button>' +
-          '<button type="button" data-pmd-customer-display-test="success" style="padding:9px;border:1px solid #d4d4d8;border-radius:10px;background:#fafafa">Test success</button>' +
-          '<button type="button" data-pmd-customer-display-test="idle" style="padding:9px;border:1px solid #d4d4d8;border-radius:10px;background:#fafafa">Idle</button>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px">' +
+          '<button type="button" data-pmd-customer-display-test="order" style="padding:8px 6px">Test order</button>' +
+          '<button type="button" data-pmd-customer-display-test="payment" style="padding:8px 6px">Test payment</button>' +
+          '<button type="button" data-pmd-customer-display-test="success" style="padding:8px 6px">Test success</button>' +
+          '<button type="button" data-pmd-customer-display-test="idle" style="padding:8px 6px">Idle</button>' +
         '</div>' +
       '</section>';
 
-    document.body.appendChild(wrap);
+    profileMenu.appendChild(wrap);
 
     var toggle = wrap.querySelector('[data-pmd-customer-display-toggle]');
     var panel = wrap.querySelector('[data-pmd-customer-display-panel]');
     var enabled = wrap.querySelector('[data-pmd-customer-display-enabled]');
     var images = wrap.querySelector('[data-pmd-customer-display-images]');
+    var status = wrap.querySelector('[data-pmd-customer-display-status]');
+    var diagnostic = wrap.querySelector('[data-pmd-customer-display-diagnostic]');
+
+    function readCapabilities() {
+      try {
+        return JSON.parse(
+          String(bridge.customerDisplayCapabilities() || '{}')
+        );
+      } catch (error) {
+        return {
+          customer_display: false,
+          last_error: error && error.message ? error.message : 'Bridge status unavailable'
+        };
+      }
+    }
+
+    function renderCapabilities(capabilities) {
+      capabilities = capabilities || {};
+
+      if (enabled) {
+        enabled.checked = capabilities.enabled !== false;
+      }
+      if (images) {
+        images.checked = capabilities.images_enabled !== false;
+      }
+
+      var connected = capabilities.customer_display === true;
+      if (status) {
+        status.textContent = connected ? 'Connected' : 'Unavailable';
+      }
+
+      var details = [];
+      if (capabilities.vendor) details.push(String(capabilities.vendor));
+      if (capabilities.model) details.push(String(capabilities.model));
+
+      if (capabilities.large_secondary_supported === true) {
+        details.push('large screen: yes');
+      } else if (capabilities.large_secondary_supported === false) {
+        details.push('large screen: no');
+      }
+
+      if (capabilities.touch_secondary_supported === true) {
+        details.push('touch: yes');
+      } else if (capabilities.touch_secondary_supported === false) {
+        details.push('touch: no');
+      }
+
+      if (capabilities.sdk_init_status !== undefined && capabilities.sdk_init_status !== null) {
+        details.push('sdkInit=' + capabilities.sdk_init_status);
+      }
+      if (capabilities.last_awake_status !== undefined && capabilities.last_awake_status !== null) {
+        details.push('awake=' + capabilities.last_awake_status);
+      }
+      if (capabilities.last_show_status !== undefined && capabilities.last_show_status !== null) {
+        details.push('show=' + capabilities.last_show_status);
+      }
+
+      if (capabilities.last_error) {
+        details.push('ERROR: ' + String(capabilities.last_error));
+      } else if (connected) {
+        details.push('Hardware bridge ready');
+      } else {
+        details.push('ZCS hardware not ready');
+      }
+
+      if (diagnostic) {
+        diagnostic.textContent = details.join(' · ');
+      }
+    }
+
+    function refreshCapabilities(delay) {
+      window.setTimeout(function () {
+        renderCapabilities(readCapabilities());
+      }, Math.max(0, Number(delay || 0)));
+    }
+
+    renderCapabilities(readCapabilities());
 
     toggle.onclick = function () {
       panel.hidden = !panel.hidden;
+      if (!panel.hidden) refreshCapabilities(0);
     };
 
     enabled.onchange = function () {
@@ -297,6 +374,7 @@
       if (enabled.checked) {
         pushCustomerDisplay('order', {}, true);
       }
+      refreshCapabilities(700);
     };
 
     images.onchange = function () {
@@ -309,6 +387,7 @@
         {},
         true
       );
+      refreshCapabilities(700);
     };
 
     Array.prototype.slice.call(
@@ -318,6 +397,7 @@
         var kind = button.getAttribute('data-pmd-customer-display-test');
         if (kind === 'idle') {
           pushCustomerDisplayIdle(true);
+          refreshCapabilities(900);
           return;
         }
         if (kind === 'success') {
@@ -325,6 +405,7 @@
             cartTotal() || existingTotal() || 18,
             'Thank you!'
           );
+          refreshCapabilities(900);
           return;
         }
         if (kind === 'payment') {
@@ -337,6 +418,7 @@
             },
             true
           );
+          refreshCapabilities(900);
           return;
         }
         pushCustomerDisplay(
@@ -346,6 +428,7 @@
           },
           true
         );
+        refreshCapabilities(900);
       };
     });
   }
