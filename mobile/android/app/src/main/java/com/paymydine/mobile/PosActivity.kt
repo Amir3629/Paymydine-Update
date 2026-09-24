@@ -345,6 +345,27 @@ class PosActivity : ComponentActivity() {
             }
 
             webViewClient = object : WebViewClient() {
+                override fun shouldInterceptRequest(
+                    current: WebView,
+                    request: WebResourceRequest,
+                ): WebResourceResponse? {
+                    canonicalBundledAsset(request.url)?.let { return it }
+
+                    if (transportMode == TransportMode.LOCAL) {
+                        app.offlineImageCache
+                            .cachedForUrl(request.url.toString())
+                            ?.let { cached ->
+                                return WebResourceResponse(
+                                    cached.mime,
+                                    null,
+                                    ByteArrayInputStream(cached.bytes),
+                                )
+                            }
+                    }
+
+                    return super.shouldInterceptRequest(current, request)
+                }
+
                 override fun shouldOverrideUrlLoading(
                     current: WebView,
                     request: WebResourceRequest,
