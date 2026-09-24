@@ -590,8 +590,10 @@ class LocalPosRepository(private val database: PmdDatabase) {
         }
         require(draft.lines.isNotEmpty()) { "Add at least one item." }
 
+        val clientCreatedAtMs = System.currentTimeMillis()
         val payload = JSONObject()
             .put("table_id", draft.tableId.toLongOrNull() ?: error("Invalid table id."))
+            .put("client_created_at_ms", clientCreatedAtMs)
             .put("guest_count", draft.guestCount)
             .put("note", draft.note)
             .put("force_new_check", draft.serverId.isNullOrBlank())
@@ -646,9 +648,94 @@ class LocalPosRepository(private val database: PmdDatabase) {
             baseVersion = draft.version,
             commandType = if (hold) "ORDER_HOLD_V1" else "ORDER_SEND_V1",
             payloadJson = payload.toString(),
+            nowMs = clientCreatedAtMs,
         )
     }
 
+    fun buildCashPaymentForQueuedOrder(
+        tableId: String,
+        tenantHost: String,
+        deviceId: String,
+        staffId: Long?,
+        userId: Long?,
+        cashReceivedMinor: Long,
+    ): CommandEnvelope {
+        val work = localWorkForTable(tableId)
+            ?: error("No local check is waiting to sync.")
+        require(
+            work.status == STATUS_QUEUED ||
+                work.status == STATUS_RETRY
+        ) {
+            "Send the current check before recording payment."
+        }
+
+        val bill = billForTable(tableId)
+            ?: error("No open bill is available.")
+        require(bill.paymentQueuedMinor <= 0L) {
+            "Cash is already saved for this check."
+        }
+
+        val dueMinor = maxOf(
+            0L,
+            bill.projectedTotalMinor - bill.settledMinor,
+        )
+        require(dueMinor > 0L) {
+            "This bill has no remaining balance."
+        }
+        require(cashReceivedMinor >= dueMinor) {
+            "Cash received is lower than the amount due."
+        }
+
+        val exponent = localMinorExponent()
+        val payload = JSONObject()
+            .put("table_id", tableId.toLongOrNull() ?: 0L)
+            .put("split_mode", "full")
+            .put("expected_remaining", minorToMoney(dueMinor, exponent))
+            .put("cash_received", minorToMoney(cashReceivedMinor, exponent))
+            .put("tip_amount", 0)
+            .put("quick_pos_fast", true)
+
+        val aggregateId = if (work.serverId.isNullOrBlank()) {
+            "local:" + work.localId
+        } else {
+            payload.put("order_id", work.serverId.toLong())
+            "order:" + work.serverId
+        }
+
+        return CommandEnvelope.create(
+            tenantHost = tenantHost,
+            locationId = work.locationId,
+            deviceId = deviceId,
+            staffId = staffId,
+            userId = userId,
+            aggregate = "order",
+            aggregateId = aggregateId,
+            // The queued SEND/HOLD owns the next aggregate version first.
+            baseVersion = work.version + 1,
+            commandType = "CASH_PAYMENT_V1",
+            payloadJson = payload.toString(),
+        )
+    }
+
+    fun localWorkUpdatedAtMs(tableId: String): Long =
+        database.readableDatabase.query(
+            "pmd_orders",
+            arrayOf("updated_at_ms"),
+            "table_id = ? AND status IN (?, ?, ?, ?)",
+            arrayOf(
+                tableId,
+                STATUS_DRAFT,
+                STATUS_QUEUED,
+                STATUS_RETRY,
+                STATUS_CONFLICT,
+            ),
+            null,
+            null,
+            "updated_at_ms DESC",
+            "1",
+        ).use { rows ->
+            if (rows.moveToFirst()) rows.getLong(0) else 0L
+        }
     fun buildCashPaymentCommand(
         tableId: String,
         tenantHost: String,
