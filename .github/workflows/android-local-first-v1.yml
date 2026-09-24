@@ -22,6 +22,7 @@ on:
       - 'routes/pmd-mobile-sync-v1.php'
       - '.github/workflows/android-local-first-v1.yml'
       - 'tests/pmd-responsive-matrix-v102.test.mjs'
+      - 'tests/pmd-local-first-v106.test.mjs'
       - 'deploy/pmd-android-operations-v18-direct-login-first-party.sh'
       - 'deploy/pmd-android-v18-first-party-download-hotfix.sh'
       - 'deploy/pmd-android-v18-2-throttle-isolation-hotfix.sh'
