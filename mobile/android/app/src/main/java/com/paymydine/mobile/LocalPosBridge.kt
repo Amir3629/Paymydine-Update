@@ -23,6 +23,7 @@ class LocalPosBridge(
     private val initialFloorId: String? = null,
     private val onTryCloud: () -> Unit,
     private val onWorkspaces: () -> Unit,
+    private val onLocalUiReady: () -> Unit = {},
 ) {
     @JavascriptInterface
     fun persistUiDraft(payloadJson: String): String =
@@ -1467,6 +1468,11 @@ class LocalPosBridge(
     fun syncNow(): String = action {
         SyncEngine.enqueueImmediate(app)
         "Sync requested."
+    }
+
+    @JavascriptInterface
+    fun localUiReady() {
+        activity.runOnUiThread(onLocalUiReady)
     }
 
     @JavascriptInterface
