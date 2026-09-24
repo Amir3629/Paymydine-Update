@@ -73,7 +73,13 @@ const classifier = vm.runInNewContext(
    var PMD_QPOS_TABLET_MAX_V102 = ${tabletMax[1]};
    function classifyViewportV102(width, height) {${fn[1]}
    }
-   classifyViewportV102;`
+   classifyViewportV102;`,
+  {
+    document: {
+      documentElement: {classList: {contains: () => false}},
+      body: {classList: {contains: () => false}}
+    }
+  }
 );
 
 const matrix = [
@@ -99,6 +105,22 @@ for (const [width, height, expected] of matrix) {
     `viewport ${width}x${height} classified incorrectly`
   );
 }
+
+const androidTabletClassifier = vm.runInNewContext(
+  `var PMD_QPOS_PHONE_MAX_V102 = ${phoneMax[1]};
+   var PMD_QPOS_TABLET_MAX_V102 = ${tabletMax[1]};
+   function classifyViewportV102(width, height) {${fn[1]}
+   }
+   classifyViewportV102;`,
+  {
+    document: {
+      documentElement: {classList: {contains: () => true}},
+      body: {classList: {contains: () => true}}
+    }
+  }
+);
+assert.equal(androidTabletClassifier(480, 800), 'tablet-portrait');
+assert.equal(androidTabletClassifier(800, 480), 'tablet-landscape');
 
 assert.ok(
   view.includes('<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">'),
