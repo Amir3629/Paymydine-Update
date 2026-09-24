@@ -1255,6 +1255,13 @@ class LocalPosBridge(
         require(orderId > 0L) { "This check is unavailable." }
         val tableId = tableIdForOrder(orderId)
             ?: error("This check is not available on this tablet.")
+        app.localPosRepository.billForServerOrder(orderId)
+            ?.reconciliationError
+            ?.trim()
+            ?.takeIf { it.isNotBlank() }
+            ?.let {
+                error("This check needs sync review before more item changes. $it")
+            }
         require(
             !app.syncRepository.hasActiveOrderCommand(
                 orderId,
