@@ -168,6 +168,121 @@ class DeviceCredentialStore(context: Context) {
         return session.offlineExpiresAtEpochSeconds > nowEpochSeconds
     }
 
+    // PMD_ANDROID_SAME_LOGIN_OFFLINE_V22
+    // Explicit Sign out ends the active session, but the last successfully
+    // authorized POS/KDS identity may be re-authenticated offline through the
+    // SAME Login card. Only a salted PBKDF2 verifier is retained; the submitted
+    // password/PIN itself is never persisted.
+    fun rememberOfflineLogin(
+        session: StaffSession,
+        submittedUsername: String,
+        secret: String,
+    ) {
+        if (
+            secret.isBlank() ||
+            session.surface !in setOf("pos", "kds") ||
+            session.offlineExpiresAtEpochSeconds <=
+                System.currentTimeMillis() / 1000L
+        ) {
+            return
+        }
+
+        val mode = if (submittedUsername.isBlank()) "pin" else "password"
+        val normalizedUsername = if (mode == "password") {
+            submittedUsername.trim().lowercase()
+        } else {
+            ""
+        }
+        val salt = OfflineCredentialCrypto.newSalt()
+        val verifier = OfflineCredentialCrypto.derive(secret, salt)
+
+        putSecret(
+            OFFLINE_LOGIN_KEY,
+            JSONObject()
+                .put("version", 1)
+                .put("tenant_host", tenantHost().orEmpty())
+                .put("mode", mode)
+                .put("login_username", normalizedUsername)
+                .put(
+                    "salt",
+                    Base64.encodeToString(salt, Base64.NO_WRAP),
+                )
+                .put(
+                    "verifier",
+                    Base64.encodeToString(verifier, Base64.NO_WRAP),
+                )
+                .put("session", staffSessionJson(session))
+                .toString(),
+        )
+    }
+
+    fun offlineLoginAvailable(
+        nowEpochSeconds: Long = System.currentTimeMillis() / 1000L,
+    ): Boolean {
+        val record = offlineLoginRecord() ?: return false
+        val session = record.optJSONObject("session")
+            ?.let(::staffSessionFromJson)
+            ?: return false
+        return (
+            session.surface in setOf("pos", "kds") &&
+                session.offlineExpiresAtEpochSeconds > nowEpochSeconds
+        )
+    }
+
+    fun offlineLoginUsername(): String? {
+        val record = offlineLoginRecord() ?: return null
+        if (record.optString("mode") != "password") return null
+        return record.optString("login_username")
+            .trim()
+            .takeIf { it.isNotBlank() }
+    }
+
+    fun verifyOfflineLogin(
+        submittedUsername: String,
+        secret: String,
+        nowEpochSeconds: Long = System.currentTimeMillis() / 1000L,
+    ): StaffSession? {
+        if (secret.isBlank()) return null
+        val record = offlineLoginRecord() ?: return null
+        val mode = record.optString("mode")
+        val expectedUsername = record
+            .optString("login_username")
+            .trim()
+            .lowercase()
+        val actualUsername = submittedUsername.trim().lowercase()
+
+        if (
+            (mode == "password" && actualUsername != expectedUsername) ||
+            (mode == "pin" && actualUsername.isNotBlank()) ||
+            mode !in setOf("password", "pin")
+        ) {
+            return null
+        }
+
+        val salt = runCatching {
+            Base64.decode(record.getString("salt"), Base64.NO_WRAP)
+        }.getOrNull() ?: return null
+        val verifier = runCatching {
+            Base64.decode(record.getString("verifier"), Base64.NO_WRAP)
+        }.getOrNull() ?: return null
+
+        if (!OfflineCredentialCrypto.matches(secret, salt, verifier)) {
+            return null
+        }
+
+        val session = record.optJSONObject("session")
+            ?.let(::staffSessionFromJson)
+            ?: return null
+        if (
+            session.surface !in setOf("pos", "kds") ||
+            session.offlineExpiresAtEpochSeconds <= nowEpochSeconds
+        ) {
+            return null
+        }
+
+        return session
+    }
+
     fun clearStaffSession() =
         prefs.edit().remove("staff_session_v1").apply()
 
@@ -195,6 +310,51 @@ class DeviceCredentialStore(context: Context) {
             .remove("pairing_submitted")
             .apply()
     fun clearIdentity() = prefs.edit().clear().apply()
+
+    private fun offlineLoginRecord(): JSONObject? {
+        val raw = getSecret(OFFLINE_LOGIN_KEY) ?: return null
+        return runCatching { JSONObject(raw) }
+            .getOrNull()
+            ?.takeIf {
+                it.optInt("version") == 1 &&
+                    it.optString("tenant_host") == tenantHost().orEmpty()
+            }
+    }
+
+    private fun staffSessionJson(session: StaffSession): JSONObject =
+        JSONObject()
+            .put("username", session.username)
+            .put("staff_name", session.staffName)
+            .put("user_id", session.userId)
+            .put("staff_id", session.staffId)
+            .put("role_code", session.roleCode)
+            .put("route", session.route)
+            .put("surface", session.surface)
+            .put("destination", session.destination)
+            .put("staff_grant", session.staffGrant)
+            .put("expires_at", session.expiresAtEpochSeconds)
+            .put(
+                "offline_expires_at",
+                session.offlineExpiresAtEpochSeconds,
+            )
+
+    private fun staffSessionFromJson(json: JSONObject): StaffSession =
+        StaffSession(
+            username = json.getString("username"),
+            staffName = json.optString("staff_name"),
+            userId = json.optLong("user_id"),
+            staffId = json.optLong("staff_id"),
+            roleCode = json.getString("role_code"),
+            route = json.getString("route"),
+            surface = json.getString("surface"),
+            destination = json.optString("destination", "workspace"),
+            staffGrant = json.getString("staff_grant"),
+            expiresAtEpochSeconds = json.getLong("expires_at"),
+            offlineExpiresAtEpochSeconds = json.optLong(
+                "offline_expires_at",
+                json.getLong("expires_at"),
+            ),
+        )
 
     private fun putSecret(name: String, plaintext: String) {
         val cipher = Cipher.getInstance(TRANSFORMATION)
@@ -240,5 +400,6 @@ class DeviceCredentialStore(context: Context) {
     companion object {
         private const val KEY_ALIAS = "paymydine-device-secret-v1"
         private const val TRANSFORMATION = "AES/GCM/NoPadding"
+        private const val OFFLINE_LOGIN_KEY = "staff_offline_login_v1"
     }
 }
