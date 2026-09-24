@@ -10,8 +10,8 @@ android {
         applicationId = "com.paymydine.mobile"
         minSdk = 26
         targetSdk = 36
-        versionCode = 25
-        versionName = "0.3.12-portrait-rotation" // PMD_ANDROID_0_3_12_PORTRAIT_ROTATION
+        versionCode = 26
+        versionName = "0.3.13-mobile-flow" // PMD_ANDROID_0_3_13_MOBILE_FLOW
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "SYNC_PROTOCOL_VERSION", "\"pmd-sync-v1\"")
     }

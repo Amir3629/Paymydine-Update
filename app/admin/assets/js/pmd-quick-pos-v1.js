@@ -7514,6 +7514,7 @@ function renderOpenChecks() {
   }
 
   function closeHistory() {
+    closeHistoryMobileDetailV87();
     var modal = $('[data-qpos-history-modal]');
     if (modal) {
       modal.classList.remove('is-open');
@@ -8295,6 +8296,7 @@ function renderOpenChecks() {
         state.historySelectedOrderId = orderId || null;
         renderHistory(state.historyData);
         renderHistoryDetail(orderId);
+        openHistoryMobileDetailV87();
       };
     });
 
@@ -8578,6 +8580,10 @@ function renderOpenChecks() {
 
     var modal = $('[data-qpos-history-modal]');
     if (!modal) return;
+
+    ensureHistoryControlsV87();
+    closeHistoryMobileDetailV87();
+    syncHistoryMobileLayoutV87();
 
     if (!state.historyFrom && !state.historyTo) {
       setHistoryPreset(state.historyPreset || '7d', false);
@@ -8867,8 +8873,103 @@ function renderOpenChecks() {
     renderFloorMap();
   }
 
+  /* PMD_QPOS_MOBILE_HISTORY_V87
+   * Mobile History is one viewport: controls stay visible, only the list
+   * scrolls, and an explicit order tap opens a full-screen detail panel. */
+  function isMobileHistoryV87() {
+    return window.innerWidth <= 820;
+  }
+
+  function isMobileCartFlowV87() {
+    return (
+      window.innerWidth <= 820 ||
+      root.classList.contains('is-portrait-v86')
+    );
+  }
+
+  function closeHistoryMobileDetailV87() {
+    var shell = $('.pmd-qpos-history-shell-v84');
+    if (shell) shell.classList.remove('is-mobile-detail-v87');
+  }
+
+  function openHistoryMobileDetailV87() {
+    if (!isMobileHistoryV87()) return;
+
+    var shell = $('.pmd-qpos-history-shell-v84');
+    var detail = $('[data-qpos-history-detail]');
+    if (!shell || !detail) return;
+
+    shell.classList.add('is-mobile-detail-v87');
+    detail.scrollTop = 0;
+  }
+
+  function syncHistoryMobileLayoutV87() {
+    var modal = $('[data-qpos-history-modal]');
+    if (!modal) return;
+
+    var shell = modal.querySelector('.pmd-qpos-history-shell-v84');
+    var left = modal.querySelector('.pmd-qpos-history-left-card-v84');
+    var center = modal.querySelector('.pmd-qpos-history-center-card-v84');
+    var workbar = modal.querySelector('.pmd-qpos-history-workbar-v84');
+    var list = modal.querySelector('[data-qpos-history-list]');
+    var detail = modal.querySelector('[data-qpos-history-detail]');
+
+    if (!shell || !left || !center || !workbar || !list || !detail) return;
+
+    if (isMobileHistoryV87()) {
+      if (workbar.parentNode !== left) {
+        left.insertBefore(workbar, list);
+      }
+    } else {
+      if (workbar.parentNode !== center) {
+        center.insertBefore(workbar, detail);
+      }
+      shell.classList.remove('is-mobile-detail-v87');
+    }
+  }
+
+  function ensureHistoryControlsV87() {
+    var modal = $('[data-qpos-history-modal]');
+    if (!modal) return;
+
+    var shell = modal.querySelector('.pmd-qpos-history-shell-v84');
+    var left = modal.querySelector('.pmd-qpos-history-left-card-v84');
+    var center = modal.querySelector('.pmd-qpos-history-center-card-v84');
+
+    if (!shell || !left || !center) return;
+
+    var tabs = left.querySelector('.pmd-qpos-history-kind-tabs-v82');
+    var scope = left.querySelector('.pmd-qpos-history-scope-v87');
+
+    if (!scope && tabs) {
+      scope = document.createElement('div');
+      scope.className = 'pmd-qpos-history-scope-v87';
+      scope.innerHTML =
+        '<button type="button" data-qpos-history-scope="selected">Selected table</button>' +
+        '<button type="button" data-qpos-history-scope="all">All tables</button>';
+      tabs.insertAdjacentElement('afterend', scope);
+    }
+
+    var back = center.querySelector('[data-qpos-history-mobile-back]');
+    if (!back) {
+      back = document.createElement('button');
+      back.type = 'button';
+      back.className = 'pmd-qpos-history-mobile-back-v87';
+      back.setAttribute('data-qpos-history-mobile-back', '');
+      back.textContent = '← History';
+      center.insertBefore(back, center.firstChild);
+    }
+
+    back.onclick = function () {
+      closeHistoryMobileDetailV87();
+    };
+
+    syncHistoryMobileLayoutV87();
+  }
+
   /* Binding */
   function bind() {
+    ensureHistoryControlsV87();
     var search = $('[data-qpos-search]');
     if (search) {
       search.addEventListener('input', function () {
@@ -8914,6 +9015,14 @@ function renderOpenChecks() {
     var closeCart = $('[data-qpos-cart-close]');
     if (mobileCart && cart) {
       mobileCart.onclick = function () {
+        if (isMobileCartFlowV87()) {
+          cart.classList.remove('is-mobile-open');
+          if (cart.scrollIntoView) {
+            cart.scrollIntoView({behavior: 'smooth', block: 'start'});
+          }
+          return;
+        }
+
         cart.classList.add('is-mobile-open');
       };
     }
@@ -9270,6 +9379,7 @@ function renderOpenChecks() {
 
     configureTextKeyboardTargets();
     window.addEventListener('resize', configureTextKeyboardTargets);
+    window.addEventListener('resize', syncHistoryMobileLayoutV87, {passive: true});
 
     /* PMD_QPOS_ORIENTATION_BINDINGS_V86 */
     releaseWebOrientationLockV86();

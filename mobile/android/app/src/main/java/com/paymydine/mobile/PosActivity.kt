@@ -2,6 +2,7 @@ package com.paymydine.mobile
 
 import android.annotation.SuppressLint
 import android.content.Intent
+import android.content.pm.ActivityInfo
 import android.content.res.Configuration
 import android.graphics.Color
 import android.net.Uri
@@ -76,6 +77,11 @@ class PosActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // PMD_ANDROID_POS_LIVE_ROTATION_V87
+        // Reassert sensor ownership on every POS Activity instance. The vendor
+        // task/window must not keep the orientation that was active at login.
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR
 
         // PMD_ZCS_CUSTOMER_DISPLAY_V5
         // One display manager belongs to one physical PayMyDine POS device.
@@ -211,6 +217,7 @@ class PosActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR
         webView?.onResume()
         webView?.resumeTimers()
         webView?.let(::synchronizeViewport)
@@ -223,12 +230,15 @@ class PosActivity : ComponentActivity() {
     // canonical Quick POS layout between landscape and portrait immediately.
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR
 
         if (::root.isInitialized) {
             ViewCompat.requestApplyInsets(root)
         }
 
         webView?.let { current ->
+            current.requestLayout()
+            current.invalidate()
             current.post {
                 synchronizeViewport(current)
             }
@@ -236,7 +246,13 @@ class PosActivity : ComponentActivity() {
                 {
                     synchronizeViewport(current)
                 },
-                180L,
+                80L,
+            )
+            current.postDelayed(
+                {
+                    synchronizeViewport(current)
+                },
+                320L,
             )
         }
     }
@@ -1129,22 +1145,39 @@ class PosActivity : ComponentActivity() {
                   var visualWidth = vv ? (Number(vv.width) || 0) : 0;
                   var visualHeight = vv ? (Number(vv.height) || 0) : 0;
 
-                  function smallestPositive(values, fallback) {
-                    var positive = values.filter(function(value) {
-                      return Number.isFinite(value) && value > 1;
-                    });
-                    if (!positive.length) return Math.max(1, Math.round(fallback));
-                    return Math.max(1, Math.round(Math.min.apply(Math, positive)));
-                  }
+                  /* PMD_ANDROID_POS_VIEWPORT_ROTATION_V87
+                   * The old "smallest of everything" rule could keep the
+                   * previous portrait width/landscape height after rotation.
+                   * Native WebView bounds are authoritative for orientation.
+                   * visualViewport may reduce height only when its width still
+                   * matches the current native orientation (for the IME). */
+                  var w = Math.max(1, Math.round(nativeCssWidth));
+                  var h = Math.max(1, Math.round(nativeCssHeight));
+                  var widthTolerance = Math.max(32, nativeCssWidth * 0.18);
+                  var visualMatchesNative =
+                    visualWidth > 1 &&
+                    Math.abs(visualWidth - nativeCssWidth) <= widthTolerance;
+                  var innerMatchesNative =
+                    innerWidth > 1 &&
+                    Math.abs(innerWidth - nativeCssWidth) <= widthTolerance;
 
-                  var w = smallestPositive(
-                    [visualWidth, innerWidth, clientWidth],
-                    nativeCssWidth
-                  );
-                  var h = smallestPositive(
-                    [visualHeight, innerHeight, clientHeight],
-                    nativeCssHeight
-                  );
+                  if (visualMatchesNative) {
+                    w = Math.max(1, Math.round(visualWidth));
+                    if (
+                      visualHeight > 1 &&
+                      visualHeight <= nativeCssHeight * 1.08
+                    ) {
+                      h = Math.max(1, Math.round(visualHeight));
+                    }
+                  } else if (innerMatchesNative) {
+                    w = Math.max(1, Math.round(innerWidth));
+                    if (
+                      innerHeight > 1 &&
+                      innerHeight <= nativeCssHeight * 1.08
+                    ) {
+                      h = Math.max(1, Math.round(innerHeight));
+                    }
+                  }
 
                   document.documentElement.style.setProperty(
                     '--pmd-android-viewport-width',
