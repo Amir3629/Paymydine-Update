@@ -54,11 +54,6 @@
             android:screenOrientation="sensorLandscape" />
 
         <activity
-            android:name=".OfflinePosActivity"
-            android:exported="false"
-            android:screenOrientation="sensorLandscape" />
-
-        <activity
             android:name=".PosActivity"
             android:exported="false"
             android:screenOrientation="sensorLandscape" />
