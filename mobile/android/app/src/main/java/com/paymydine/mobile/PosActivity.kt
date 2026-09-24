@@ -65,6 +65,7 @@ class PosActivity : ComponentActivity() {
     private var canonicalReady = false
     private var transportMode = TransportMode.CLOUD
     private var localBridge: LocalPosBridge? = null
+    private var loadedFromCachedShell = false
     private lateinit var customerDisplay: CustomerDisplayManager
     private lateinit var posShellCache: PosShellCache
 
@@ -239,6 +240,7 @@ class PosActivity : ComponentActivity() {
         }
 
         transportMode = TransportMode.CLOUD
+        loadedFromCachedShell = false
 
         val host = trustedHost() ?: run {
             finish()
@@ -807,6 +809,7 @@ class PosActivity : ComponentActivity() {
         val host = trustedHost() ?: return
         destroyWebView()
         transportMode = TransportMode.LOCAL
+        loadedFromCachedShell = true
         canonicalReady = false
         buildGeneration += 1
         val generation = buildGeneration
@@ -1007,7 +1010,14 @@ class PosActivity : ComponentActivity() {
             }
 
             val current = webView
-            if (current == null || !canonicalReady) {
+            if (
+                current == null ||
+                !canonicalReady ||
+                loadedFromCachedShell
+            ) {
+                // A cold-start offline shell has no fresh Admin WebView
+                // session/cookie authority. Re-enter through mobile/pos/open
+                // after durable local work is reconciled.
                 createCanonicalWebView()
                 return@launch
             }
