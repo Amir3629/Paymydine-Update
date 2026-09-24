@@ -341,7 +341,7 @@ class LocalPosBridge(
             .put("tables", canonicalTables(root))
             .put(
                 "menu_items",
-                cloneArray(rawMenu.optJSONArray("items")),
+                canonicalMenuItems(rawMenu),
             )
             .put(
                 "categories",
@@ -453,6 +453,39 @@ class LocalPosBridge(
                 app.localPosRepository.quickPosUiDraft(locationId)
                     ?: JSONObject.NULL,
             )
+    }
+
+    // PMD_ANDROID_OFFLINE_IMAGE_ROUTE_V20
+    // Local mode never asks the network for a menu thumbnail. Cached products
+    // use a synthetic same-tenant HTTPS path intercepted by PosActivity.
+    private fun canonicalMenuItems(rawMenu: JSONObject): JSONArray {
+        val items = rawMenu.optJSONArray("items") ?: JSONArray()
+        val host = app.credentials.tenantHost().orEmpty()
+
+        return JSONArray().apply {
+            for (index in 0 until items.length()) {
+                val row = cloneObject(items.optJSONObject(index))
+                val itemId = row.opt("id")?.toString().orEmpty()
+                val cached = if (itemId.isNotBlank()) {
+                    app.offlineImageCache.cachedForItem(itemId)
+                } else {
+                    null
+                }
+
+                if (cached != null && host.isNotBlank()) {
+                    val localUrl =
+                        "https://$host/__pmd_offline/image/" +
+                            Uri.encode(itemId)
+                    row.put("image", localUrl)
+                    row.put("images", JSONArray().put(localUrl))
+                } else if (row.optString("image").isNotBlank()) {
+                    row.put("image", "")
+                    row.put("images", JSONArray())
+                }
+
+                put(row)
+            }
+        }
     }
 
     private fun canonicalTables(root: JSONObject): JSONArray {
