@@ -2,7 +2,7 @@ name: PayMyDine Android Local-First V1
 
 on:
   push:
-    branches: [feature/android-local-first-v1]
+    branches: [feature/android-local-first-v1, feature/android-local-first-v2-v104]
     paths:
       - 'mobile/android/**'
       - 'docs/ANDROID_LOCAL_FIRST_ARCHITECTURE_V1.md'
@@ -105,6 +105,11 @@ jobs:
           bash -n deploy/pmd-android-v18-7-canonical-login-offline.sh
           bash -n deploy/pmd-android-v18-13-seamless-offline-pos.sh
           bash -n deploy/pmd-android-v18-14-canonical-offline-pos.sh
+          grep -q "PMD_ANDROID_LOCAL_FIRST_V2_V104" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
+          grep -q "PMD_ANDROID_SYNC_VISIBILITY_V104" mobile/android/app/src/main/java/com/paymydine/mobile/sync/SyncRepository.kt
+          grep -q "PMD_ANDROID_TRUSTED_BUSINESS_TIME_V104" mobile/android/app/src/main/java/com/paymydine/mobile/data/local/LocalPosRepository.kt
+          grep -q "PMD_QPOS_SYNC_VISIBILITY_V104" app/admin/assets/js/pmd-quick-pos-v1.js
+          grep -q "PMD_QPOS_SYNC_STATE_V104" app/admin/assets/css/pmd-quick-pos-v1.css
           grep -q "PMD_QPOS_NATIVE_LOCAL_TRANSPORT_V18" app/admin/assets/js/pmd-quick-pos-v1.js
           grep -q "PMD_QPOS_DURABLE_UI_DRAFT_V18" app/admin/assets/js/pmd-quick-pos-v1.js
           grep -q "PMD_QPOS_NATIVE_BOOTSTRAP_MERGE_V18" app/admin/assets/js/pmd-quick-pos-v1.js
