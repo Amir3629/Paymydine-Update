@@ -79,6 +79,7 @@ class SyncEngine(
                     command.commandType !in setOf(
                         "KDS_STATUS_V1",
                         "CASH_PAYMENT_V1",
+                        "ORDER_ITEM_ADJUST_V1",
                     )
                 ) {
                     app.localPosRepository.markRetryForCommand(command)
@@ -100,6 +101,7 @@ class SyncEngine(
                     "CASH_PAYMENT_V1",
                     "TABLE_STATE_V1",
                     "TABLE_MOVE_V1",
+                    "ORDER_ITEM_ADJUST_V1",
                 ) &&
                 !app.connectivity.online.value
             ) {
@@ -110,6 +112,8 @@ class SyncEngine(
                         "Table status is stored locally and waiting for PayMyDine Cloud."
                     "TABLE_MOVE_V1" ->
                         "Table move is stored locally and waiting for PayMyDine Cloud."
+                    "ORDER_ITEM_ADJUST_V1" ->
+                        "Item change is stored locally and waiting for PayMyDine Cloud."
                     else ->
                         "Operation is stored locally and waiting for PayMyDine Cloud."
                 }
@@ -134,6 +138,7 @@ class SyncEngine(
                     command.commandType !in setOf(
                         "KDS_STATUS_V1",
                         "CASH_PAYMENT_V1",
+                        "ORDER_ITEM_ADJUST_V1",
                     )
                 ) {
                     app.localPosRepository.markRetryForCommand(command)
@@ -264,6 +269,7 @@ class SyncEngine(
                     command.commandType !in setOf(
                         "KDS_STATUS_V1",
                         "CASH_PAYMENT_V1",
+                        "ORDER_ITEM_ADJUST_V1",
                     )
                 ) {
                     app.localPosRepository.markRetryForCommand(command)
@@ -281,6 +287,7 @@ class SyncEngine(
                     command.commandType !in setOf(
                         "KDS_STATUS_V1",
                         "CASH_PAYMENT_V1",
+                        "ORDER_ITEM_ADJUST_V1",
                     )
                 ) {
                     app.localPosRepository.markRetryForCommand(command)
@@ -426,6 +433,7 @@ class SyncEngine(
                 "CASH_PAYMENT_V1",
                 "TABLE_STATE_V1",
                 "TABLE_MOVE_V1",
+                "ORDER_ITEM_ADJUST_V1",
             ) &&
             app.connectivity.online.value
         ) {
