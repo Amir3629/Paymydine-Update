@@ -111,9 +111,29 @@ assert.equal(
   'both Android WebViews must keep textZoom=100'
 );
 assert.equal(
+  (posActivity.match(/setInitialScale\(100\)/g) || []).length >= 2,
+  true,
+  'both Android WebViews must start at explicit 100% scale'
+);
+assert.equal(
   (posActivity.match(/setInitialScale\(0\)/g) || []).length,
+  0,
+  'Android POS must not leave initial scale implicit'
+);
+assert.ok(
+  posActivity.includes('PMD_ANDROID_PAGE_SCALE_RESET_V104') &&
+  posActivity.includes('PMD_ANDROID_PAGE_SCALE_ROTATION_V104'),
+  'V104 page-scale reset contract missing'
+);
+assert.equal(
+  (posActivity.match(/setSupportZoom\(false\)/g) || []).length,
   2,
-  'both Android WebViews must start at natural initial scale'
+  'both POS WebViews must disable gesture zoom'
+);
+assert.ok(
+  posActivity.includes('PMD_ANDROID_ONLINE_STYLE_HOTFIX_V104') &&
+  posActivity.includes('allowQuickPosStyle = transportMode == TransportMode.LOCAL'),
+  'online CSS hotfix/offline bundle split missing'
 );
 assert.equal(
   (posActivity.match(/loadWithOverviewMode = false/g) || []).length,
@@ -131,5 +151,5 @@ assert.ok(
 );
 
 console.log('PMD responsive matrix V102 + portrait isolation V103: PASS');
-console.log('PosActivity WebView natural-scale contract: PASS');
+console.log('PosActivity WebView 100% rotation-scale V104 contract: PASS');
 console.log('phone portrait / phone landscape / tablet portrait / tablet landscape / desktop: PASS');

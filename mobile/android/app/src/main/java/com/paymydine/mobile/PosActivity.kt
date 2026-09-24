@@ -230,7 +230,10 @@ class PosActivity : ComponentActivity() {
         requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR
         webView?.onResume()
         webView?.resumeTimers()
-        webView?.let(::synchronizeViewport)
+        webView?.let { current ->
+            normalizePageScaleV104(current)
+            synchronizeViewport(current)
+        }
     }
 
     // PMD_ANDROID_POS_ROTATION_V19
@@ -247,19 +250,27 @@ class PosActivity : ComponentActivity() {
         }
 
         webView?.let { current ->
+            // PMD_ANDROID_PAGE_SCALE_ROTATION_V104
+            // Android WebView may retain the portrait visual/page scale after a
+            // configuration change. Reset scale without reloading so cart/table
+            // state and the active DOM remain intact.
+            normalizePageScaleV104(current)
             current.requestLayout()
             current.invalidate()
             current.post {
+                normalizePageScaleV104(current)
                 synchronizeViewport(current)
             }
             current.postDelayed(
                 {
+                    normalizePageScaleV104(current)
                     synchronizeViewport(current)
                 },
                 80L,
             )
             current.postDelayed(
                 {
+                    normalizePageScaleV104(current)
                     synchronizeViewport(current)
                 },
                 320L,
@@ -325,10 +336,10 @@ class PosActivity : ComponentActivity() {
         localBridge = bridge
 
         val view = WebView(this).apply {
-            // PMD_ANDROID_NORMAL_PAGE_SCALE_V100
-            // Zero means use the platform's natural initial scale; do not force
-            // the cashier page into an artificial zoomed-in/out presentation.
-            setInitialScale(0)
+            // PMD_ANDROID_PAGE_SCALE_RESET_V104
+            // Use an explicit 100% initial scale. WebView can preserve the
+            // portrait page scale across rotation when initialScale is left at 0.
+            setInitialScale(100)
             setBackgroundColor(Color.rgb(244, 246, 248))
             setLayerType(View.LAYER_TYPE_NONE, null)
             isVerticalScrollBarEnabled = false
@@ -350,6 +361,7 @@ class PosActivity : ComponentActivity() {
                 textZoom = 100
                 builtInZoomControls = false
                 displayZoomControls = false
+                setSupportZoom(false)
                 javaScriptCanOpenWindowsAutomatically = true
                 setSupportMultipleWindows(true)
                 mediaPlaybackRequiresUserGesture = false
@@ -418,7 +430,10 @@ class PosActivity : ComponentActivity() {
                     request: WebResourceRequest,
                 ): WebResourceResponse? {
                     offlineCachedImage(request.url)?.let { return it }
-                    canonicalBundledAsset(request.url)?.let { return it }
+                    canonicalBundledAsset(
+                        request.url,
+                        allowQuickPosStyle = transportMode == TransportMode.LOCAL,
+                    )?.let { return it }
 
                     if (transportMode == TransportMode.LOCAL) {
                         app.offlineImageCache
@@ -511,6 +526,7 @@ class PosActivity : ComponentActivity() {
 
                 override fun onPageCommitVisible(current: WebView, url: String) {
                     if (isCanonicalPos(url, host)) {
+                        normalizePageScaleV104(current)
                         synchronizeViewport(current)
                     }
                 }
@@ -523,6 +539,7 @@ class PosActivity : ComponentActivity() {
                         return
                     }
 
+                    normalizePageScaleV104(current)
                     synchronizeViewport(current)
                     current.evaluateJavascript(
                         """
@@ -963,10 +980,10 @@ class PosActivity : ComponentActivity() {
         localBridge = bridge
 
         val view = WebView(this).apply {
-            // PMD_ANDROID_NORMAL_PAGE_SCALE_V100
-            // Zero means use the platform's natural initial scale; do not force
-            // the cashier page into an artificial zoomed-in/out presentation.
-            setInitialScale(0)
+            // PMD_ANDROID_PAGE_SCALE_RESET_V104
+            // Use an explicit 100% initial scale. WebView can preserve the
+            // portrait page scale across rotation when initialScale is left at 0.
+            setInitialScale(100)
             setBackgroundColor(Color.rgb(244, 246, 248))
             setLayerType(View.LAYER_TYPE_NONE, null)
             isVerticalScrollBarEnabled = false
@@ -988,6 +1005,7 @@ class PosActivity : ComponentActivity() {
                 textZoom = 100
                 builtInZoomControls = false
                 displayZoomControls = false
+                setSupportZoom(false)
                 javaScriptCanOpenWindowsAutomatically = false
                 setSupportMultipleWindows(false)
                 userAgentString =
@@ -1007,7 +1025,10 @@ class PosActivity : ComponentActivity() {
                     request: WebResourceRequest,
                 ): WebResourceResponse? {
                     offlineCachedImage(request.url)?.let { return it }
-                    canonicalBundledAsset(request.url)?.let { return it }
+                    canonicalBundledAsset(
+                        request.url,
+                        allowQuickPosStyle = transportMode == TransportMode.LOCAL,
+                    )?.let { return it }
 
                     app.offlineImageCache
                         .cachedForUrl(request.url.toString())
@@ -1067,6 +1088,7 @@ class PosActivity : ComponentActivity() {
                         """.trimIndent(),
                         null,
                     )
+                    normalizePageScaleV104(current)
                     // PMD_ANDROID_LOCAL_UI_RESTORE_BARRIER_V18
                     // refreshNativeState() calls PayMyDineOffline.localUiReady()
                     // only after the local bootstrap + durable cart restore.
@@ -1232,6 +1254,49 @@ class PosActivity : ComponentActivity() {
             createCanonicalWebView()
         }
         loading.bringToFront()
+    }
+
+    // PMD_ANDROID_PAGE_SCALE_RESET_V104
+    // Keep the dedicated cashier WebView at a true 1:1 CSS/page scale. Replacing
+    // the viewport meta forces Chromium to recalculate its visual viewport after
+    // rotation without reloading the document or losing the active cart.
+    private fun normalizePageScaleV104(view: WebView) {
+        if (view !== webView || isFinishing) return
+
+        view.setInitialScale(100)
+        view.evaluateJavascript(
+            """
+            (function(){
+              var desired =
+                'width=device-width, initial-scale=1, minimum-scale=1, ' +
+                'maximum-scale=1, user-scalable=no, viewport-fit=cover';
+              var old = document.querySelector('meta[name="viewport"]');
+              var fresh = document.createElement('meta');
+              fresh.setAttribute('name', 'viewport');
+              fresh.setAttribute('content', desired);
+
+              if (old && old.parentNode) {
+                old.parentNode.replaceChild(fresh, old);
+              } else {
+                (document.head || document.documentElement).appendChild(fresh);
+              }
+
+              document.documentElement.style.webkitTextSizeAdjust = '100%';
+              document.documentElement.style.textSizeAdjust = '100%';
+
+              var root = document.getElementById('pmd-quick-pos');
+              if (root) {
+                root.dataset.pmdAndroidScaleReset = 'v104';
+              }
+
+              return String(
+                window.visualViewport &&
+                Number(window.visualViewport.scale || 1)
+              );
+            })();
+            """.trimIndent(),
+            null,
+        )
     }
 
     // PMD_ANDROID_POS_CSS_PIXEL_VIEWPORT_V8
@@ -1414,10 +1479,16 @@ class PosActivity : ComponentActivity() {
      * PMD_ANDROID_BUNDLED_CANONICAL_POS_UI_V18
      *
      * The Android package contains the exact Quick POS stylesheet/script files
-     * from this source commit. Online and offline therefore execute the same
-     * presentation/runtime files. Query strings are intentionally ignored.
+     * from this source commit. Runtime JS remains pinned in the APK. The Quick
+     * POS stylesheet may come from the server while Cloud is active so urgent
+     * presentation fixes can ship without replacing the APK. Offline remains
+     * fully bundle-backed. Query strings are intentionally ignored for bundled
+     * resources.
      */
-    private fun canonicalBundledAsset(uri: Uri): WebResourceResponse? {
+    private fun canonicalBundledAsset(
+        uri: Uri,
+        allowQuickPosStyle: Boolean = true,
+    ): WebResourceResponse? {
         val asset = when (uri.path.orEmpty()) {
             "/app/admin/assets/css/pmd-floor-v1.css" ->
                 "pmd-canonical/css/pmd-floor-v1.css" to "text/css"
@@ -1438,7 +1509,15 @@ class PosActivity : ComponentActivity() {
             "/app/admin/assets/css/push-notifications.css" ->
                 "pmd-canonical/css/push-notifications.css" to "text/css"
             "/app/admin/assets/css/pmd-quick-pos-v1.css" ->
-                "pmd-canonical/css/pmd-quick-pos-v1.css" to "text/css"
+                if (allowQuickPosStyle) {
+                    "pmd-canonical/css/pmd-quick-pos-v1.css" to "text/css"
+                } else {
+                    // PMD_ANDROID_ONLINE_STYLE_HOTFIX_V104
+                    // Online presentation comes from the server so CSS hotfixes
+                    // do not require another APK. Offline still uses this exact
+                    // bundled stylesheet.
+                    null
+                }
             "/app/admin/assets/js/pmd-dashboard-lab-exact-floor-v1.js" ->
                 "pmd-canonical/js/pmd-dashboard-lab-exact-floor-v1.js" to
                     "application/javascript"
