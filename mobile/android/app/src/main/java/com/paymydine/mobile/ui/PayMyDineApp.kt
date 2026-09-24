@@ -457,7 +457,10 @@ fun PayMyDineApp(app: PayMyDineApplication) {
         runCatching {
             withContext(Dispatchers.IO) {
                 val bootstrap = api.bootstrap(host, token)
-                val summary = app.bootstrapRepository.apply(bootstrap)
+                val summary = app.bootstrapRepository.apply(
+                    bootstrap,
+                    preserveCriticalOnEmpty = true,
+                )
                 val locationId = app.bootstrapRepository.locationId()
                 if (locationId != null) {
                     app.offlineImageCache.prefetch(
