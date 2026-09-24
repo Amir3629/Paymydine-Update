@@ -13332,3 +13332,24 @@ body.pmd-qpos-body {
   }
 }
 
+
+
+/* PMD_QPOS_SYNC_STATE_V104 */
+.pmd-qpos-sync-state-v104 {
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    padding: 0 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(15, 23, 42, .12);
+    background: rgba(255, 255, 255, .72);
+    color: #334155;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+.pmd-qpos-sync-state-v104.is-attention {
+    border-color: rgba(185, 28, 28, .35);
+    background: rgba(254, 226, 226, .92);
+    color: #991b1b;
+}
