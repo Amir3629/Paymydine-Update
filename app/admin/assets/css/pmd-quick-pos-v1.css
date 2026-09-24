@@ -10407,7 +10407,7 @@ body.pmd-qpos-body {
    Three table columns retain more tables while taller cards protect capacity.
    ============================================================ */
 
-@media (max-width: 820px) {
+@media (max-width: 599px) {
   body.pmd-qpos-body {
     font-size: 17px !important;
   }
@@ -10803,7 +10803,7 @@ body.pmd-qpos-body {
 /* ============================================================
    Phone / portrait readability
    ============================================================ */
-@media (max-width: 820px) {
+@media (max-width: 599px) {
   html,
   body.pmd-qpos-body {
     -webkit-text-size-adjust: 100% !important;
@@ -11070,7 +11070,7 @@ body.pmd-qpos-body {
   display: none;
 }
 
-@media (max-width: 820px) {
+@media (max-width: 599px) {
   body.pmd-qpos-body {
     font-size: 20px !important;
   }
@@ -11543,7 +11543,7 @@ body.pmd-qpos-body {
    - food/card/history typography is materially larger
    - tablets keep the denser V93 three-column layout
    ============================================================ */
-@media (max-width: 820px) {
+@media (max-width: 599px) {
   body.pmd-qpos-body {
     font-size: 22px !important;
     line-height: 1.35 !important;
@@ -12817,6 +12817,13 @@ body.pmd-qpos-body {
 }
 }
 
+
+/* PMD_QPOS_TABLET_PORTRAIT_SCALE_ISOLATION_V103
+ * Legacy phone-size layers V89/V90/V93/V95 are capped at <=599 CSS px.
+ * Tablet portrait 600..1024 is owned by the V102 tablet matrix only, so
+ * 7/8/10-inch portrait WebViews cannot stack aggressive phone typography,
+ * touch heights or card sizing on top of the tablet layout.
+ */
 
 /* ============================================================
    PMD_QPOS_RESPONSIVE_MATRIX_V102
