@@ -34,6 +34,7 @@ android {
         // V99 trims the V98 scale slightly while preserving natural mobile fit.
         versionName = "0.3.30-v104-local-first-v2" // PMD_ANDROID_0_3_28_RESPONSIVE_MATRIX_V102
         // PMD_ANDROID_V104_LOCAL_FIRST_RELEASE_PROMOTED
+        // PMD_ANDROID_V105_BUNDLED_ASSETS_SYNCED
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "SYNC_PROTOCOL_VERSION", "\"pmd-sync-v1\"")
     }
