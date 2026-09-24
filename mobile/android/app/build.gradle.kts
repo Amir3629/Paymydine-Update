@@ -82,6 +82,7 @@ android.sourceSets.getByName("main").assets.srcDir(
 
 val prepareCanonicalPosAssets by tasks.registering(Copy::class) {
     // PMD_ANDROID_BUNDLED_CANONICAL_POS_UI_V18
+    // PMD_ANDROID_V107_OFFLINE_OVERRIDE_BUNDLE
     // Package the exact production Quick POS CSS/JS in the APK. The offline
     // shell therefore renders the same product instead of a hand-built clone.
     into(canonicalPosAssetsDir)
@@ -98,6 +99,7 @@ val prepareCanonicalPosAssets by tasks.registering(Copy::class) {
             "pmd-shared-floor-multi-floor-v1.css",
             "push-notifications.css",
             "pmd-quick-pos-v1.css",
+            "pmd-qpos-android-form-factor-v107.css",
         )
         into("pmd-canonical/css")
     }
@@ -108,6 +110,7 @@ val prepareCanonicalPosAssets by tasks.registering(Copy::class) {
             "pmd-shared-floor-multi-floor-v1.js",
             "push-notifications.js",
             "pmd-quick-pos-v1.js",
+            "pmd-qpos-android-form-factor-v107.js",
             "pmd-site-access-hub-v13.js",
         )
         into("pmd-canonical/js")
