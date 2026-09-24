@@ -182,6 +182,44 @@
     } catch (ignored) {}
   }
 
+  /* PMD_QPOS_NATIVE_DURABLE_MUTATIONS_V92
+   * Android mutation authority is SQLite/outbox first even while Cloud is
+   * healthy. This gives SEND/HOLD/Cash/table operations one idempotent command
+   * path across online, WAN-cut and reconnect states instead of racing a direct
+   * browser POST against ConnectivityObserver. Card/terminal/provider actions
+   * remain Cloud-only and are deliberately excluded here. */
+  function nativeRequestPathV92(url) {
+    try {
+      return new URL(String(url || ''), window.location.href).pathname || '';
+    } catch (ignored) {
+      return String(url || '').split('?')[0];
+    }
+  }
+
+  function isNativeDurableMutationV92(url, opts) {
+    if (!nativeBridgeTransportAvailableV91()) return false;
+    if (String(opts.method || 'GET').toUpperCase() !== 'POST') return false;
+
+    var path = nativeRequestPathV92(url);
+    if (/^\/admin\/pos\/save\/\d+$/.test(path)) return true;
+    if (/^\/admin\/pmd-waiter-table-states-v154\/\d+$/.test(path)) {
+      return true;
+    }
+    if (path === '/admin/pos/transfer') return true;
+
+    if (/^\/admin\/pos\/payment-settle\/-?\d+$/.test(path)) {
+      var payload = {};
+      try {
+        payload = JSON.parse(String(opts.body || '{}'));
+      } catch (ignored) {}
+      var method = String(payload.payment_method || 'cash').toLowerCase();
+      var splitMode = String(payload.split_mode || 'full').toLowerCase();
+      return method === 'cash' && splitMode === 'full';
+    }
+
+    return false;
+  }
+
   function nativeFetchJsonV91(url, opts) {
     var nativeRaw = window.PayMyDineOffline.fetchJson(
       String(url || ''),
@@ -392,6 +430,10 @@
 
     if (opts.method && String(opts.method).toUpperCase() !== 'GET') {
       opts.headers['X-CSRF-TOKEN'] = csrf();
+    }
+
+    if (isNativeDurableMutationV92(url, opts)) {
+      return nativeFetchJsonV91(url, opts);
     }
 
     if (
