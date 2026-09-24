@@ -1132,6 +1132,107 @@ class PosActivity : ComponentActivity() {
         }
     }
 
+    private fun captureCanonicalShell(view: WebView) {
+        if (view !== webView || !canonicalReady) return
+
+        view.evaluateJavascript(
+            """
+            (function(){
+              var root = document.getElementById('pmd-quick-pos');
+              if (!root) return '';
+              return document.documentElement.outerHTML || '';
+            })()
+            """.trimIndent(),
+        ) { raw ->
+            if (view !== webView || isFinishing) return@evaluateJavascript
+            val html = runCatching {
+                JSONTokener(raw).nextValue() as? String
+            }.getOrNull().orEmpty()
+            if (html.isNotBlank()) {
+                runCatching { posShellCache.save(html) }
+            }
+        }
+    }
+
+    private fun prepareOfflineShell(html: String): String {
+        val bootstrap = """
+            <script>
+            window.__PMD_NATIVE_OFFLINE__ = true;
+            document.documentElement.classList.add('pmd-native-offline');
+            </script>
+        """.trimIndent()
+
+        return when {
+            html.contains("<head>") ->
+                html.replaceFirst("<head>", "<head>$bootstrap")
+            html.contains("<head ") -> {
+                val end = html.indexOf('>', html.indexOf("<head "))
+                if (end >= 0) {
+                    html.substring(0, end + 1) +
+                        bootstrap +
+                        html.substring(end + 1)
+                } else {
+                    bootstrap + html
+                }
+            }
+            else -> bootstrap + html
+        }
+    }
+
+    /**
+     * PMD_ANDROID_BUNDLED_CANONICAL_POS_UI_V18
+     *
+     * The Android package contains the exact Quick POS stylesheet/script files
+     * from this source commit. Online and offline therefore execute the same
+     * presentation/runtime files. Query strings are intentionally ignored.
+     */
+    private fun canonicalBundledAsset(uri: Uri): WebResourceResponse? {
+        val asset = when (uri.path.orEmpty()) {
+            "/app/admin/assets/css/pmd-floor-v1.css" ->
+                "pmd-canonical/css/pmd-floor-v1.css" to "text/css"
+            "/app/admin/assets/css/pmd-floor-v1-stable-v11.css" ->
+                "pmd-canonical/css/pmd-floor-v1-stable-v11.css" to "text/css"
+            "/app/admin/assets/css/pmd-floor-v1-native-smart-v20.css" ->
+                "pmd-canonical/css/pmd-floor-v1-native-smart-v20.css" to "text/css"
+            "/app/admin/assets/css/pmd-reservations2-floor-canvas-v310.css" ->
+                "pmd-canonical/css/pmd-reservations2-floor-canvas-v310.css" to "text/css"
+            "/app/admin/assets/css/pmd-reservations2-floor-toolbar-v316.css" ->
+                "pmd-canonical/css/pmd-reservations2-floor-toolbar-v316.css" to "text/css"
+            "/app/admin/assets/css/pmd-reservations2-floor-reservation-v312.css" ->
+                "pmd-canonical/css/pmd-reservations2-floor-reservation-v312.css" to "text/css"
+            "/app/admin/assets/css/pmd-dashboard-lab-exact-floor-v1.css" ->
+                "pmd-canonical/css/pmd-dashboard-lab-exact-floor-v1.css" to "text/css"
+            "/app/admin/assets/css/pmd-shared-floor-multi-floor-v1.css" ->
+                "pmd-canonical/css/pmd-shared-floor-multi-floor-v1.css" to "text/css"
+            "/app/admin/assets/css/pmd-quick-pos-v1.css" ->
+                "pmd-canonical/css/pmd-quick-pos-v1.css" to "text/css"
+            "/app/admin/assets/js/pmd-dashboard-lab-exact-floor-v1.js" ->
+                "pmd-canonical/js/pmd-dashboard-lab-exact-floor-v1.js" to
+                    "application/javascript"
+            "/app/admin/assets/js/pmd-shared-floor-multi-floor-v1.js" ->
+                "pmd-canonical/js/pmd-shared-floor-multi-floor-v1.js" to
+                    "application/javascript"
+            "/app/admin/assets/js/pmd-quick-pos-v1.js" ->
+                "pmd-canonical/js/pmd-quick-pos-v1.js" to
+                    "application/javascript"
+            "/app/admin/assets/js/pmd-site-access-hub-v13.js" ->
+                "pmd-canonical/js/pmd-site-access-hub-v13.js" to
+                    "application/javascript"
+            "/app/admin/assets/images/pmd-favicon-final-20260822.svg" ->
+                "pmd-canonical/images/pmd-favicon-final-20260822.svg" to
+                    "image/svg+xml"
+            else -> null
+        } ?: return null
+
+        return runCatching {
+            WebResourceResponse(
+                asset.second,
+                if (asset.second.startsWith("image/")) null else "UTF-8",
+                assets.open(asset.first),
+            )
+        }.getOrNull()
+    }
+
     private fun openCanonicalPos(
         view: WebView,
         host: String,
