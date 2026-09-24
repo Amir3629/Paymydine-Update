@@ -10,12 +10,13 @@ android {
         applicationId = "com.paymydine.mobile"
         minSdk = 26
         targetSdk = 36
-        versionCode = 34
-        // PMD_ANDROID_0_3_21_LARGE_TOUCH_V95
+        versionCode = 35
+        // PMD_ANDROID_0_3_22_PORTRAIT_BREAKPOINT_V96
+        // PMD_ANDROID_0_3_21_LARGE_TOUCH_V95 (preserved baseline)
         // PMD_ANDROID_0_3_20_MOBILE_UI_V94 (preserved baseline)
         // PMD_ANDROID_0_3_20_OFFLINE_COMPLETE_V23 (preserved contract)
-        // V95 aggressive phone scale + preserved V94/V23 offline-complete authority.
-        versionName = "0.3.21-v95-large-touch" // PMD_ANDROID_0_3_21_LARGE_TOUCH_V95
+        // V96 fixes wide-CSS-pixel portrait handheld classification.
+        versionName = "0.3.22-v96-portrait-mobile" // PMD_ANDROID_0_3_22_PORTRAIT_BREAKPOINT_V96
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "SYNC_PROTOCOL_VERSION", "\"pmd-sync-v1\"")
     }

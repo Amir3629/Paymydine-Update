@@ -87,13 +87,16 @@
       if (!width || !height) return;
 
       var portrait = height > width;
+      var handheldPortraitV96 = portrait && width <= 1024;
 
       root.classList.toggle('is-portrait-v86', portrait);
       root.classList.toggle('is-landscape-v86', !portrait);
+      root.classList.toggle('is-handheld-portrait-v96', handheldPortraitV96);
 
       if (document.body) {
         document.body.classList.toggle('pmd-qpos-portrait-v86', portrait);
         document.body.classList.toggle('pmd-qpos-landscape-v86', !portrait);
+        document.body.classList.toggle('pmd-qpos-handheld-portrait-v96', handheldPortraitV96);
       }
     });
   }
@@ -110,6 +113,21 @@
     } catch (error) {
       /* Native manifest/activity policy may still own orientation. */
     }
+  }
+
+  /* PMD_QPOS_HANDHELD_PORTRAIT_RUNTIME_V96
+   * A phone/WebView may expose a CSS viewport wider than the old 820px
+   * breakpoint. Aspect and width together are the handheld authority. */
+  function isHandheldPortraitV96() {
+    var width = Math.max(
+      Number(window.innerWidth || 0),
+      Number(document.documentElement.clientWidth || 0)
+    );
+    var height = Math.max(
+      Number(window.innerHeight || 0),
+      Number(document.documentElement.clientHeight || 0)
+    );
+    return !!width && !!height && width <= 1024 && height > width;
   }
 
   function csrf() {
@@ -4761,7 +4779,7 @@ function renderOpenChecks() {
       });
     }
 
-    if (window.innerWidth <= 820) {
+    if (window.innerWidth <= 820 || isHandheldPortraitV96()) {
       var catalog = $('.pmd-qpos-catalog');
       if (catalog && catalog.scrollIntoView) {
         catalog.scrollIntoView({behavior: 'smooth', block: 'start'});
@@ -9067,7 +9085,7 @@ function renderOpenChecks() {
    * Mobile History is one viewport: controls stay visible, only the list
    * scrolls, and an explicit order tap opens a full-screen detail panel. */
   function isMobileHistoryV87() {
-    return window.innerWidth <= 820;
+    return window.innerWidth <= 820 || isHandheldPortraitV96();
   }
 
   function isMobileCartFlowV87() {

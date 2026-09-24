@@ -1215,7 +1215,7 @@ button {
 }
 
 /* Mobile / handheld waiter */
-@media (max-width: 820px) {
+@media (max-width: 820px), (max-width: 1024px) and (orientation: portrait) {
   body.pmd-qpos-body { overflow: auto; }
   .pmd-qpos {
     height: auto;
@@ -1778,7 +1778,7 @@ body.pmd-qpos-body {
   font-size: 14px;
 }
 
-@media (max-width: 820px) {
+@media (max-width: 820px), (max-width: 1024px) and (orientation: portrait) {
   .pmd-qpos-floor-tabs button {
     min-height: 44px;
     font-size: 12px;
@@ -1986,7 +1986,7 @@ body.pmd-qpos-body {
   box-shadow: none;
 }
 
-@media (max-width: 820px) {
+@media (max-width: 820px), (max-width: 1024px) and (orientation: portrait) {
   .pmd-qpos-payment-card {
     max-height: 96dvh;
   }
@@ -2441,7 +2441,7 @@ body.pmd-qpos-body {
 }
 
 /* Mobile/tablet stays native-scroll friendly; no desktop keyboard is used. */
-@media (max-width: 820px) {
+@media (max-width: 820px), (max-width: 1024px) and (orientation: portrait) {
   .pmd-qpos-payment-card {
     width: min(720px,calc(100vw - 12px));
     max-height: calc(100dvh - 12px);
@@ -2832,7 +2832,7 @@ body.pmd-qpos-body {
   }
 }
 
-@media (min-width: 821px) and (max-width: 1180px) {
+@media (min-width: 1025px) and (max-width: 1180px) {
   .pmd-qpos-workspace-modal {
     left: 240px;
   }
@@ -3279,7 +3279,7 @@ body.pmd-qpos-body {
   }
 }
 
-@media (max-width: 820px) {
+@media (max-width: 820px), (max-width: 1024px) and (orientation: portrait) {
   .pmd-qpos-workspace-modal {
     inset: 0;
     padding: 0;
@@ -4117,7 +4117,7 @@ body.pmd-qpos-body {
   }
 }
 
-@media (max-width: 820px) {
+@media (max-width: 820px), (max-width: 1024px) and (orientation: portrait) {
   .pmd-qpos-payment-body {
     display: block;
     overflow: auto;
@@ -4923,7 +4923,7 @@ body.pmd-qpos-body {
   }
 }
 
-@media (max-width: 820px) {
+@media (max-width: 820px), (max-width: 1024px) and (orientation: portrait) {
   .pmd-qpos-history-entry-v20 {
     padding: 12px;
     border-radius: 12px;
@@ -5306,7 +5306,7 @@ body.pmd-qpos-body {
   font-size: 15px;
 }
 
-@media (max-width: 820px) {
+@media (max-width: 820px), (max-width: 1024px) and (orientation: portrait) {
   .pmd-qpos-product-number {
     top: 36px;
     left: 6px;
@@ -5986,7 +5986,7 @@ button[data-qpos-keypad-key="exact"] {
   font-size: 15px;
 }
 
-@media (max-width: 820px) {
+@media (max-width: 820px), (max-width: 1024px) and (orientation: portrait) {
   .pmd-qpos-product-number {
     position: static;
     min-width: 0;
@@ -6124,7 +6124,7 @@ button[data-qpos-keypad-key="exact"] {
   line-height: 1.15;
 }
 
-@media (max-width: 820px) {
+@media (max-width: 820px), (max-width: 1024px) and (orientation: portrait) {
   .pmd-qpos-product::before {
     top: 64px;
   }
@@ -6157,7 +6157,7 @@ button[data-qpos-keypad-key="exact"] {
     0 -4px 10px -4px rgba(15,23,42,.24);
 }
 
-@media (max-width: 820px) {
+@media (max-width: 820px), (max-width: 1024px) and (orientation: portrait) {
   .pmd-qpos-product::before {
     top: 62px;
   }
@@ -6207,7 +6207,7 @@ button[data-qpos-keypad-key="exact"] {
   z-index: 3;
 }
 
-@media (max-width: 820px) {
+@media (max-width: 820px), (max-width: 1024px) and (orientation: portrait) {
   .pmd-qpos-product::before {
     top: 62px;
   }
@@ -6311,7 +6311,7 @@ button[data-qpos-keypad-key="exact"] {
   white-space: nowrap;
 }
 
-@media (max-width: 820px) {
+@media (max-width: 820px), (max-width: 1024px) and (orientation: portrait) {
   .pmd-qpos-product-body {
     min-height: 94px;
     margin: -17px -11px -11px;
@@ -6364,7 +6364,7 @@ button[data-qpos-keypad-key="exact"] {
     0 0 0 1px rgba(15,23,42,.045);
 }
 
-@media (max-width: 820px) {
+@media (max-width: 820px), (max-width: 1024px) and (orientation: portrait) {
   .pmd-qpos-product-body {
     margin: -19px -5px -11px;
     padding-top: 27px;
@@ -6421,7 +6421,7 @@ button[data-qpos-keypad-key="exact"] {
   z-index: 1;
 }
 
-@media (max-width: 820px) {
+@media (max-width: 820px), (max-width: 1024px) and (orientation: portrait) {
   .pmd-qpos-product-body {
     min-height: 84px;
     margin: 0 -11px -11px;
@@ -6495,7 +6495,7 @@ button[data-qpos-keypad-key="exact"] {
   box-shadow: 0 2px 7px rgba(15,23,42,.08) !important;
 }
 
-@media (max-width: 820px) {
+@media (max-width: 820px), (max-width: 1024px) and (orientation: portrait) {
   .pmd-qpos-product-image.is-placeholder::before {
     top: 19%;
     left: 17%;
@@ -6545,7 +6545,7 @@ body.pmd-qpos-exact-floor-open {
   overflow: hidden;
 }
 
-@media (max-width: 820px) {
+@media (max-width: 820px), (max-width: 1024px) and (orientation: portrait) {
   .pmd-qpos-exact-floor-host {
     padding-inline: 10px;
   }
@@ -6607,7 +6607,7 @@ body.pmd-qpos-exact-floor-open
   }
 }
 
-@media (max-width: 820px) {
+@media (max-width: 820px), (max-width: 1024px) and (orientation: portrait) {
   body.pmd-qpos-exact-floor-open .pmd-qpos-exact-floor-host {
     padding-inline: 10px;
   }
@@ -6831,7 +6831,7 @@ body.pmd-qpos-exact-floor-open
   padding-top: 8px;
 }
 
-@media (max-width: 820px) {
+@media (max-width: 820px), (max-width: 1024px) and (orientation: portrait) {
   .pmd-qpos-table-guide {
     margin-inline: 8px;
     padding: 9px 10px;
@@ -6954,7 +6954,7 @@ body.pmd-qpos-exact-floor-open
     0 11px 22px rgba(15,23,42,.24) !important;
 }
 
-@media (max-width: 820px) {
+@media (max-width: 820px), (max-width: 1024px) and (orientation: portrait) {
   .pmd-qpos-guide-menu .pmd-qpos-table-guide {
     width: min(238px, calc(100vw - 28px));
   }
@@ -7083,7 +7083,7 @@ body.pmd-qpos-exact-floor-open
   transition: none !important;
 }
 
-@media (max-width: 820px) {
+@media (max-width: 820px), (max-width: 1024px) and (orientation: portrait) {
   .pmd-qpos-move-scope-choice {
     bottom: 68px;
   }
@@ -7121,7 +7121,7 @@ body.pmd-qpos-exact-floor-open
   }
 }
 
-@media (min-width: 821px) and (max-width: 1180px) {
+@media (min-width: 1025px) and (max-width: 1180px) {
   .pmd-qpos-main {
     grid-template-columns: 300px minmax(360px,1fr) 220px !important;
   }
@@ -7315,7 +7315,7 @@ body.pmd-qpos-exact-floor-open
 
 /* Mobile keeps its established single-column navigation, but type stays
    readable rather than dropping back to the old tiny labels. */
-@media (max-width: 820px) {
+@media (max-width: 820px), (max-width: 1024px) and (orientation: portrait) {
   .pmd-qpos-product-body .pmd-qpos-product-name {
     font-size: 15px !important;
   }
@@ -7350,7 +7350,7 @@ body.pmd-qpos-exact-floor-open
   }
 }
 
-@media (min-width: 821px) and (max-width: 1180px) {
+@media (min-width: 1025px) and (max-width: 1180px) {
   .pmd-qpos-workspace-modal[data-qpos-history-modal] {
     left: 320px !important;
     right: 10px !important;
@@ -7532,7 +7532,7 @@ body.pmd-qpos-exact-floor-open
   }
 }
 
-@media (min-width: 821px) and (max-width: 1180px) {
+@media (min-width: 1025px) and (max-width: 1180px) {
   .pmd-qpos.is-history-workspace .pmd-qpos-cart {
     visibility: hidden !important;
     pointer-events: none !important;
@@ -8967,7 +8967,7 @@ body.pmd-qpos-body {
   }
 }
 
-@media (max-width: 820px) {
+@media (max-width: 820px), (max-width: 1024px) and (orientation: portrait) {
   .pmd-qpos-history-card > .pmd-qpos-history-topbar-v82 {
     min-height: 0;
     grid-template-columns: 1fr;
@@ -9009,7 +9009,7 @@ body.pmd-qpos-body {
   }
 }
 
-@media (min-width: 821px) and (max-width: 1180px) {
+@media (min-width: 1025px) and (max-width: 1180px) {
   .pmd-qpos-workspace-modal[data-qpos-history-modal] .pmd-qpos-history-layout {
     grid-template-columns: 300px minmax(0,1fr) !important;
   }
@@ -9138,7 +9138,7 @@ body.pmd-qpos-body {
   white-space: pre-wrap !important;
 }
 
-@media (max-width: 820px) {
+@media (max-width: 820px), (max-width: 1024px) and (orientation: portrait) {
   .pmd-qpos-history-item-chip-v83 {
     white-space: normal;
   }
@@ -9192,7 +9192,7 @@ body.pmd-qpos-body {
   }
 }
 
-@media (min-width: 821px) and (max-width: 1180px) {
+@media (min-width: 1025px) and (max-width: 1180px) {
   .pmd-qpos-workspace-modal[data-qpos-history-modal]
   > .pmd-qpos-history-shell-v84 {
     grid-template-columns: 300px minmax(0,1fr) !important;
@@ -9471,7 +9471,7 @@ body.pmd-qpos-body {
   display: none !important;
 }
 
-@media (max-width: 820px) {
+@media (max-width: 820px), (max-width: 1024px) and (orientation: portrait) {
   .pmd-qpos-history-shell-v84 {
     display: block !important;
     overflow: auto !important;
@@ -9626,7 +9626,7 @@ body.pmd-qpos-body {
   line-height: 1;
 }
 
-@media (min-width: 821px) and (max-width: 1180px) {
+@media (min-width: 1025px) and (max-width: 1180px) {
   .pmd-qpos-profile-dock-v85 {
     grid-template-columns: minmax(0,1fr) minmax(82px,.78fr) !important;
   }
@@ -9687,7 +9687,7 @@ body.pmd-qpos-body {
    three-column cashier canvas squeezed into portrait. Use the existing
    mobile-cart interaction while giving tablet portrait more columns/space.
    ============================================================ */
-@media (min-width: 821px) and (max-width: 1180px) {
+@media (min-width: 1025px) and (max-width: 1180px) {
   body.pmd-qpos-body.pmd-qpos-portrait-v86 {
     overflow: auto !important;
   }
@@ -9867,7 +9867,7 @@ body.pmd-qpos-body {
   display: none;
 }
 
-@media (max-width: 820px) {
+@media (max-width: 820px), (max-width: 1024px) and (orientation: portrait) {
   .pmd-qpos-left {
     margin-bottom: 10px !important;
   }
@@ -10110,7 +10110,7 @@ body.pmd-qpos-body {
   }
 }
 
-@media (min-width: 821px) and (max-width: 1180px) {
+@media (min-width: 1025px) and (max-width: 1180px) {
   .pmd-qpos.is-portrait-v86 .pmd-qpos-left {
     height: 430px !important;
   }
@@ -10172,7 +10172,7 @@ body.pmd-qpos-body {
   display: none;
 }
 
-@media (max-width: 820px) {
+@media (max-width: 820px), (max-width: 1024px) and (orientation: portrait) {
   .pmd-qpos-catalog-head {
     position: static !important;
     top: auto !important;
@@ -10251,7 +10251,7 @@ body.pmd-qpos-body {
   }
 }
 
-@media (min-width: 821px) and (max-width: 1180px) {
+@media (min-width: 1025px) and (max-width: 1180px) {
   .pmd-qpos.is-portrait-v86 .pmd-qpos-categories {
     position: sticky !important;
     top: 0 !important;
@@ -10407,7 +10407,7 @@ body.pmd-qpos-body {
    Three table columns retain more tables while taller cards protect capacity.
    ============================================================ */
 
-@media (max-width: 820px) {
+@media (max-width: 820px), (max-width: 1024px) and (orientation: portrait) {
   body.pmd-qpos-body {
     font-size: 17px !important;
   }
@@ -10803,7 +10803,7 @@ body.pmd-qpos-body {
 /* ============================================================
    Phone / portrait readability
    ============================================================ */
-@media (max-width: 820px) {
+@media (max-width: 820px), (max-width: 1024px) and (orientation: portrait) {
   html,
   body.pmd-qpos-body {
     -webkit-text-size-adjust: 100% !important;
@@ -11070,7 +11070,7 @@ body.pmd-qpos-body {
   display: none;
 }
 
-@media (max-width: 820px) {
+@media (max-width: 820px), (max-width: 1024px) and (orientation: portrait) {
   body.pmd-qpos-body {
     font-size: 20px !important;
   }
@@ -11528,7 +11528,7 @@ body.pmd-qpos-body {
 /* PMD_QPOS_FLOATING_CART_MODAL_SAFETY_V94
  * The persistent total rail belongs to the POS browsing surface, never above
  * full-screen History or Payment workspaces. */
-@media (max-width: 820px) {
+@media (max-width: 820px), (max-width: 1024px) and (orientation: portrait) {
   .pmd-qpos.is-history-workspace .pmd-qpos-mobile-cart,
   .pmd-qpos.is-payment-workspace .pmd-qpos-mobile-cart {
     display: none !important;
@@ -11543,7 +11543,7 @@ body.pmd-qpos-body {
    - food/card/history typography is materially larger
    - tablets keep the denser V93 three-column layout
    ============================================================ */
-@media (max-width: 820px) {
+@media (max-width: 820px), (max-width: 1024px) and (orientation: portrait) {
   body.pmd-qpos-body {
     font-size: 22px !important;
     line-height: 1.35 !important;
@@ -11819,7 +11819,7 @@ body.pmd-qpos-body {
   }
 }
 
-@media (max-width: 600px) {
+@media (max-width: 600px), (max-width: 900px) and (orientation: portrait) {
   .pmd-qpos-main {
     padding: 10px !important;
     padding-bottom: calc(128px + env(safe-area-inset-bottom)) !important;
@@ -11891,3 +11891,40 @@ body.pmd-qpos-body {
   }
 }
 
+
+
+/* ============================================================
+   PMD_QPOS_PORTRAIT_BREAKPOINT_V96
+   Some real handheld/WebView surfaces report ~847 CSS px in portrait.
+   Those must use the handheld branch, not the compact tablet branch.
+   Keep the final grid override equally specific to the V86 portrait rules.
+   ============================================================ */
+@media (max-width: 900px) and (orientation: portrait) {
+  .pmd-qpos.is-portrait-v86 .pmd-qpos-table-grid,
+  .pmd-qpos.is-portrait-v86[data-mode="waiter"] .pmd-qpos-table-grid,
+  .pmd-qpos.is-portrait-v86 .pmd-qpos-history-tables-v93 .pmd-qpos-table-grid {
+    grid-template-columns: repeat(2,minmax(0,1fr)) !important;
+    gap: 12px !important;
+  }
+
+  .pmd-qpos.is-portrait-v86 .pmd-qpos-product-grid {
+    grid-template-columns: repeat(2,minmax(0,1fr)) !important;
+    gap: 12px !important;
+  }
+
+  .pmd-qpos.is-portrait-v86 .pmd-qpos-table,
+  .pmd-qpos.is-portrait-v86 .pmd-qpos-history-tables-v93 .pmd-qpos-table {
+    min-height: 148px !important;
+  }
+
+  .pmd-qpos.is-portrait-v86 .pmd-qpos-table strong,
+  .pmd-qpos.is-portrait-v86 .pmd-qpos-history-tables-v93 .pmd-qpos-table strong {
+    font-size: 38px !important;
+    line-height: 1 !important;
+  }
+
+  .pmd-qpos.is-portrait-v86 .pmd-qpos-pickup strong,
+  .pmd-qpos.is-portrait-v86 .pmd-qpos-history-tables-v93 .pmd-qpos-pickup strong {
+    font-size: 25px !important;
+  }
+}
