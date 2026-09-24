@@ -1223,6 +1223,8 @@ class PosActivity : ComponentActivity() {
                 "pmd-canonical/css/pmd-dashboard-lab-exact-floor-v1.css" to "text/css"
             "/app/admin/assets/css/pmd-shared-floor-multi-floor-v1.css" ->
                 "pmd-canonical/css/pmd-shared-floor-multi-floor-v1.css" to "text/css"
+            "/app/admin/assets/css/push-notifications.css" ->
+                "pmd-canonical/css/push-notifications.css" to "text/css"
             "/app/admin/assets/css/pmd-quick-pos-v1.css" ->
                 "pmd-canonical/css/pmd-quick-pos-v1.css" to "text/css"
             "/app/admin/assets/js/pmd-dashboard-lab-exact-floor-v1.js" ->
@@ -1230,6 +1232,9 @@ class PosActivity : ComponentActivity() {
                     "application/javascript"
             "/app/admin/assets/js/pmd-shared-floor-multi-floor-v1.js" ->
                 "pmd-canonical/js/pmd-shared-floor-multi-floor-v1.js" to
+                    "application/javascript"
+            "/app/admin/assets/js/push-notifications.js" ->
+                "pmd-canonical/js/push-notifications.js" to
                     "application/javascript"
             "/app/admin/assets/js/pmd-quick-pos-v1.js" ->
                 "pmd-canonical/js/pmd-quick-pos-v1.js" to
