@@ -9,16 +9,16 @@ PMD_HOST="${PMD_HOST:-}"
 # main relative to this commit; V18.14 adds only canonical-offline V18 facts.
 BASE_COMMIT="${BASE_COMMIT:-f62c20deffe080746d58152fb7a07eca0e508282}"
 TARGET_COMMIT="${TARGET_COMMIT:-01b91443b0c7fcf2a0dd75079c0c78e678a7c284}"
-ANDROID_SOURCE_COMMIT="${ANDROID_SOURCE_COMMIT:-8d3889284b4f331877aebd44346f48ecc14f4a4b}"
+ANDROID_SOURCE_COMMIT="${ANDROID_SOURCE_COMMIT:-49ee2ecb47606ffad6d265fe8c0bb55f12a5085c}"
 
-APK_VERSION="0.3.11"
+APK_VERSION="0.3.12"
 APK_RELEASE_NAME="PayMyDine-POS-Tablet-Preview-${APK_VERSION}.apk"
 APK_PUBLIC_NAME="PayMyDine-Android-${APK_VERSION}.apk"
 APK_RELEASE_URL="https://github.com/Amir3629/Paymydine-Update/releases/download/pmd-android-local-first-preview/${APK_RELEASE_NAME}"
 APK_SHA_URL="${APK_RELEASE_URL}.sha256"
 
-# Replaced with the checksum from the final signed/pinned 0.3.11 Actions run.
-EXPECTED_APK_SHA256="605e8a6cfeeb180db9073014c163222d8218538be07b95c168a45a72e4c58a87"
+# Replaced with the checksum from the final signed/pinned 0.3.12 Actions run.
+EXPECTED_APK_SHA256="44a98900c00e3eac357039c218ebb3ce224ff8c04c9b03e7805b2da4d96fecaf"
 
 MERGE_FILES=(
   "app/Services/PmdMobileSync/PmdMobileBootstrapService.php"
@@ -26,8 +26,8 @@ MERGE_FILES=(
 )
 SETTINGS_FILE="app/admin/views/pmdsettings/index.blade.php"
 
-log(){ printf '\n[PMD V18.14 ANDROID 0.3.11] %s\n' "$*"; }
-fail(){ printf '\n[PMD V18.14 ANDROID 0.3.11][ERROR] %s\n' "$*" >&2; exit 1; }
+log(){ printf '\n[PMD V18.14 ANDROID 0.3.12] %s\n' "$*"; }
+fail(){ printf '\n[PMD V18.14 ANDROID 0.3.12][ERROR] %s\n' "$*" >&2; exit 1; }
 
 [[ -d "$PMD_ROOT/.git" ]] || fail "Not a git checkout: $PMD_ROOT"
 [[ -f "$PMD_ROOT/artisan" ]] || fail "artisan missing: $PMD_ROOT/artisan"
@@ -60,10 +60,10 @@ grep -q "PMD_MOBILE_OFFLINE_TABLE_ACTIONS_V17"   "$PMD_ROOT/app/Services/PmdMobi
 
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 BACKUP_DIR="$PMD_ROOT/storage/pmd-deploy-backups"
-STAGE="$PMD_ROOT/storage/pmd-v1814-android-0311-$STAMP"
-CONFLICT="$PMD_ROOT/storage/pmd-v1814-android-0311-conflicts-$STAMP"
-BACKUP="$BACKUP_DIR/android-v1814-0311-before-$STAMP.tar.gz"
-META="$BACKUP_DIR/android-v1814-0311-before-$STAMP.txt"
+STAGE="$PMD_ROOT/storage/pmd-v1814-android-0312-$STAMP"
+CONFLICT="$PMD_ROOT/storage/pmd-v1814-android-0312-conflicts-$STAMP"
+BACKUP="$BACKUP_DIR/android-v1814-0312-before-$STAMP.tar.gz"
+META="$BACKUP_DIR/android-v1814-0312-before-$STAMP.txt"
 
 WEB_DIR="$PMD_ROOT/downloads/paymydine"
 WEB_APK="$WEB_DIR/$APK_PUBLIC_NAME"
@@ -145,10 +145,10 @@ SETTINGS="$STAGE/candidate/$SETTINGS_FILE"
 
 grep -Eq 'PayMyDine-Android-0\.3\.[0-9]+\.apk' "$SETTINGS"   || fail "Current Android download pointer was not found in Settings."
 
-sed -E -i   's/PayMyDine-Android-0\.3\.[0-9]+\.apk/PayMyDine-Android-0.3.11.apk/g'   "$SETTINGS"
+sed -E -i   's/PayMyDine-Android-0\.3\.[0-9]+\.apk/PayMyDine-Android-0.3.12.apk/g'   "$SETTINGS"
 
 if grep -Eq '(Operations Preview|Canonical Offline POS) 0\.3\.[0-9]+' "$SETTINGS"; then
-  sed -E -i     's/(Operations Preview|Canonical Offline POS) 0\.3\.[0-9]+/Canonical Offline POS 0.3.11/g'     "$SETTINGS"
+  sed -E -i     's/(Operations Preview|Canonical Offline POS) 0\.3\.[0-9]+/Canonical Offline POS 0.3.12/g'     "$SETTINGS"
 fi
 
 BOOT="$STAGE/candidate/app/Services/PmdMobileSync/PmdMobileBootstrapService.php"
@@ -163,13 +163,13 @@ grep -q "PMD_ANDROID_CANONICAL_MULTI_CHECK_SNAPSHOT_V18" "$BOOT"   || fail "Offl
 grep -q "PMD_MOBILE_OFFLINE_ORIGINAL_TIME_V18" "$COMMANDS"   || fail "Original offline order-time marker missing."
 grep -q "PMD_MOBILE_OFFLINE_PAYMENT_TIME_V18" "$COMMANDS"   || fail "Original offline payment-time marker missing."
 grep -q "client_paid_at_ms" "$COMMANDS"   || fail "Offline payment timestamp payload support missing."
-grep -q "PayMyDine-Android-0.3.11.apk" "$SETTINGS"   || fail "Settings does not point to Android 0.3.11."
+grep -q "PayMyDine-Android-0.3.12.apk" "$SETTINGS"   || fail "Settings does not point to Android 0.3.12."
 
 for rel in "${MERGE_FILES[@]}"; do
   php -l "$STAGE/candidate/$rel" >/dev/null     || fail "PHP syntax failed: $rel"
 done
 
-log "Publishing verified Android 0.3.11 on the PayMyDine domain..."
+log "Publishing verified Android 0.3.12 on the PayMyDine domain..."
 mkdir -p "$WEB_DIR"
 root_uid="$(stat -c '%u' "$PMD_ROOT")"
 root_gid="$(stat -c '%g' "$PMD_ROOT")"
@@ -220,7 +220,7 @@ grep -n "PMD_ANDROID_CANONICAL_QPOS_SETTINGS_V18"   "$PMD_ROOT/app/Services/PmdM
 grep -n "PMD_ANDROID_CANONICAL_MULTI_CHECK_SNAPSHOT_V18"   "$PMD_ROOT/app/Services/PmdMobileSync/PmdMobileBootstrapService.php" | head -1
 grep -n "PMD_MOBILE_OFFLINE_ORIGINAL_TIME_V18"   "$PMD_ROOT/app/Services/PmdMobileSync/PmdMobileCommandProcessor.php" | head -1
 grep -n "PMD_MOBILE_OFFLINE_PAYMENT_TIME_V18"   "$PMD_ROOT/app/Services/PmdMobileSync/PmdMobileCommandProcessor.php" | head -1
-grep -n "PayMyDine-Android-0.3.11.apk"   "$PMD_ROOT/$SETTINGS_FILE" | head -1
+grep -n "PayMyDine-Android-0.3.12.apk"   "$PMD_ROOT/$SETTINGS_FILE" | head -1
 
 for rel in "${MERGE_FILES[@]}"; do
   php -l "$PMD_ROOT/$rel"
@@ -238,7 +238,7 @@ fi
 cat <<EOF
 
 ============================================================
-PayMyDine Android V18.14 / APK 0.3.11 deployed.
+PayMyDine Android V18.14 / APK 0.3.12 deployed.
 
 Canonical online/offline POS:
   - Android uses the exact bundled Quick POS V86 CSS/JS online and offline.
