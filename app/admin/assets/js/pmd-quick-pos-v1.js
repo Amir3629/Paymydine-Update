@@ -34,6 +34,10 @@
         /\[(?:guest_session|table_session|table_draft_id|submitted_by):[^\]]*\]/gi,
         ''
       )
+      .replace(
+        /(?:^|\n)\s*\[VOID\s+[0-9.]+\]\s*[^\r\n]*/gi,
+        ''
+      )
       .replace(/\s*\|\s*\|\s*/g, ' | ')
       .replace(/^\s*\|\s*|\s*\|\s*$/g, '')
       .replace(/\s{2,}/g, ' ')
@@ -54,6 +58,58 @@
       return String(prefix || 'qpos') + ':' + window.crypto.randomUUID();
     }
     return String(prefix || 'qpos') + ':' + Date.now() + ':' + Math.random().toString(36).slice(2);
+  }
+
+  /* PMD_QPOS_ORIENTATION_RUNTIME_V86
+   * Do not keep the web POS logically landscape-only. The native Android shell
+   * may rotate the WebView, and the browser Screen Orientation API may also be
+   * able to release a previous web-level lock. The class is authoritative for
+   * the tablet portrait CSS below. */
+  var orientationFrameV86 = null;
+
+  function syncOrientationV86() {
+    if (orientationFrameV86) {
+      window.cancelAnimationFrame(orientationFrameV86);
+    }
+
+    orientationFrameV86 = window.requestAnimationFrame(function () {
+      orientationFrameV86 = null;
+
+      var width = Math.max(
+        Number(window.innerWidth || 0),
+        Number(document.documentElement.clientWidth || 0)
+      );
+      var height = Math.max(
+        Number(window.innerHeight || 0),
+        Number(document.documentElement.clientHeight || 0)
+      );
+
+      if (!width || !height) return;
+
+      var portrait = height > width;
+
+      root.classList.toggle('is-portrait-v86', portrait);
+      root.classList.toggle('is-landscape-v86', !portrait);
+
+      if (document.body) {
+        document.body.classList.toggle('pmd-qpos-portrait-v86', portrait);
+        document.body.classList.toggle('pmd-qpos-landscape-v86', !portrait);
+      }
+    });
+  }
+
+  function releaseWebOrientationLockV86() {
+    try {
+      if (
+        window.screen &&
+        window.screen.orientation &&
+        typeof window.screen.orientation.unlock === 'function'
+      ) {
+        window.screen.orientation.unlock();
+      }
+    } catch (error) {
+      /* Native manifest/activity policy may still own orientation. */
+    }
   }
 
   function csrf() {
@@ -182,6 +238,332 @@
     return json;
   }
 
+  /* PMD_ZCS_CUSTOMER_DISPLAY_BRIDGE_V1
+   * Device-local bridge: only the Android POS WebView exposes PayMyDineHardware.
+   * A normal browser never gets this object, so two cashiers cannot cross-talk. */
+  var customerDisplayLastSignature = '';
+  var customerDisplaySuccessTimer = null;
+
+  function customerDisplayBridge() {
+    if (state && state.mode !== 'cashier') return null;
+    var bridge = window.PayMyDineHardware;
+    return bridge && typeof bridge.pushCustomerDisplay === 'function'
+      ? bridge
+      : null;
+  }
+
+  function customerDisplayCurrency() {
+    return String(
+      (state.boot && state.boot.settings && state.boot.settings.currency) ||
+      (state.settings && state.settings.currency) ||
+      '€'
+    );
+  }
+
+  function customerDisplayTableLabel() {
+    if (state.serviceMode === 'takeaway') return 'Pickup';
+    if (!state.selectedTable) return '';
+    return compactTableLabel(state.selectedTable);
+  }
+
+  function customerDisplayImageForMenu(menuId) {
+    var row = state.menu.find(function (item) {
+      return Number(item.id || 0) === Number(menuId || 0);
+    });
+    return row ? String(row.image || '') : '';
+  }
+
+  function customerDisplayCartRows() {
+    return state.cart.map(function (row) {
+      return {
+        menu_id: Number(row.menu_id || 0) || null,
+        name: String(row.name || 'Item'),
+        quantity: Math.max(0, num(row.quantity, 0)),
+        unit_price: roundMoney(num(row.price, 0)),
+        line_total: lineTotal(row),
+        image: customerDisplayImageForMenu(row.menu_id)
+      };
+    });
+  }
+
+  function customerDisplayOrderPayload(phase, extras) {
+    extras = extras || {};
+    var order = activeOrder();
+    var total = qposTotalsV74().total;
+    var highlight = state.customerDisplayHighlight || null;
+
+    return Object.assign({
+      phase: phase || 'order',
+      currency: customerDisplayCurrency(),
+      total: total,
+      amount_due:
+        phase === 'payment'
+          ? roundMoney(
+              state.payment && state.payment.open
+                ? paymentCharge()
+                : total
+            )
+          : total,
+      table_label: customerDisplayTableLabel(),
+      order_label:
+        order && orderId(order)
+          ? ('Order #' + orderId(order))
+          : '',
+      highlight_name:
+        highlight ? String(highlight.name || '') : '',
+      highlight_image:
+        highlight ? String(highlight.image || '') : '',
+      items: customerDisplayCartRows()
+    }, extras);
+  }
+
+  function pushCustomerDisplay(phase, extras, force) {
+    var bridge = customerDisplayBridge();
+    if (!bridge) return;
+
+    var payload = customerDisplayOrderPayload(phase, extras);
+    var signature = JSON.stringify(payload);
+    if (!force && signature === customerDisplayLastSignature) return;
+    customerDisplayLastSignature = signature;
+
+    try {
+      bridge.pushCustomerDisplay(signature);
+    } catch (ignored) {
+    }
+  }
+
+  function pushCustomerDisplayIdle(force) {
+    var bridge = customerDisplayBridge();
+    if (!bridge) return;
+    customerDisplayLastSignature = '';
+    try {
+      bridge.showCustomerDisplayIdle();
+    } catch (ignored) {
+    }
+  }
+
+  function pushCustomerDisplaySuccess(amount, message) {
+    var bridge = customerDisplayBridge();
+    if (!bridge) return;
+
+    clearTimeout(customerDisplaySuccessTimer);
+    pushCustomerDisplay(
+      'success',
+      {
+        total: roundMoney(amount),
+        amount_due: 0,
+        headline: 'Paid',
+        message: String(message || 'Thank you!'),
+        items: []
+      },
+      true
+    );
+
+    customerDisplaySuccessTimer = setTimeout(function () {
+      pushCustomerDisplayIdle(true);
+    }, 4500);
+  }
+
+  function installCustomerDisplayControls() {
+    var bridge = customerDisplayBridge();
+    if (!bridge || document.getElementById('pmd-customer-display-control')) return;
+
+    var profileMenu = document.querySelector('[data-qpos-profile-menu]');
+    if (!profileMenu) return;
+
+    /* PMD_ZCS_CUSTOMER_DISPLAY_PROFILE_V2
+     * Keep customer-display controls inside the existing operator profile card.
+     * This avoids floating controls covering Quick POS actions on compact POS
+     * displays and keeps hardware controls out of normal browser sessions. */
+    var wrap = document.createElement('div');
+    wrap.id = 'pmd-customer-display-control';
+    wrap.style.cssText =
+      'border-top:1px solid rgba(148,163,184,.22);margin-top:8px;padding-top:8px';
+
+    wrap.innerHTML =
+      '<button type="button" data-pmd-customer-display-toggle ' +
+        'style="width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;' +
+        'border:0;background:transparent;color:inherit;text-align:left;padding:9px 2px;font:inherit;cursor:pointer">' +
+        '<span>Customer display</span>' +
+        '<small data-pmd-customer-display-status style="opacity:.7">Checking…</small>' +
+      '</button>' +
+      '<section data-pmd-customer-display-panel hidden ' +
+        'style="padding:8px 0 2px">' +
+        '<div data-pmd-customer-display-diagnostic ' +
+          'style="font-size:11px;line-height:1.45;padding:8px 10px;margin-bottom:8px;' +
+          'border-radius:8px;background:rgba(148,163,184,.10);white-space:normal;word-break:break-word">' +
+          'Reading ZCS status…' +
+        '</div>' +
+        '<label style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:7px 2px">' +
+          '<span>Enabled</span><input type="checkbox" data-pmd-customer-display-enabled>' +
+        '</label>' +
+        '<label style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:7px 2px">' +
+          '<span>Show food images</span><input type="checkbox" data-pmd-customer-display-images>' +
+        '</label>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px">' +
+          '<button type="button" data-pmd-customer-display-test="order" style="padding:8px 6px">Test order</button>' +
+          '<button type="button" data-pmd-customer-display-test="payment" style="padding:8px 6px">Test payment</button>' +
+          '<button type="button" data-pmd-customer-display-test="success" style="padding:8px 6px">Test success</button>' +
+          '<button type="button" data-pmd-customer-display-test="idle" style="padding:8px 6px">Idle</button>' +
+        '</div>' +
+      '</section>';
+
+    profileMenu.appendChild(wrap);
+
+    var toggle = wrap.querySelector('[data-pmd-customer-display-toggle]');
+    var panel = wrap.querySelector('[data-pmd-customer-display-panel]');
+    var enabled = wrap.querySelector('[data-pmd-customer-display-enabled]');
+    var images = wrap.querySelector('[data-pmd-customer-display-images]');
+    var status = wrap.querySelector('[data-pmd-customer-display-status]');
+    var diagnostic = wrap.querySelector('[data-pmd-customer-display-diagnostic]');
+
+    function readCapabilities() {
+      try {
+        return JSON.parse(
+          String(bridge.customerDisplayCapabilities() || '{}')
+        );
+      } catch (error) {
+        return {
+          customer_display: false,
+          last_error: error && error.message ? error.message : 'Bridge status unavailable'
+        };
+      }
+    }
+
+    function renderCapabilities(capabilities) {
+      capabilities = capabilities || {};
+
+      if (enabled) {
+        enabled.checked = capabilities.enabled !== false;
+      }
+      if (images) {
+        images.checked = capabilities.images_enabled !== false;
+      }
+
+      var connected = capabilities.customer_display === true;
+      if (status) {
+        status.textContent = connected ? 'Connected' : 'Unavailable';
+      }
+
+      var details = [];
+      if (capabilities.vendor) details.push(String(capabilities.vendor));
+      if (capabilities.model) details.push(String(capabilities.model));
+
+      if (capabilities.large_secondary_supported === true) {
+        details.push('large screen: yes');
+      } else if (capabilities.large_secondary_supported === false) {
+        details.push('large screen: no');
+      }
+
+      if (capabilities.touch_secondary_supported === true) {
+        details.push('touch: yes');
+      } else if (capabilities.touch_secondary_supported === false) {
+        details.push('touch: no');
+      }
+
+      if (capabilities.sdk_init_status !== undefined && capabilities.sdk_init_status !== null) {
+        details.push('sdkInit=' + capabilities.sdk_init_status);
+      }
+      if (capabilities.last_awake_status !== undefined && capabilities.last_awake_status !== null) {
+        details.push('awake=' + capabilities.last_awake_status);
+      }
+      if (capabilities.last_show_status !== undefined && capabilities.last_show_status !== null) {
+        details.push('show=' + capabilities.last_show_status);
+      }
+
+      if (capabilities.last_error) {
+        details.push('ERROR: ' + String(capabilities.last_error));
+      } else if (connected) {
+        details.push('Hardware bridge ready');
+      } else {
+        details.push('ZCS hardware not ready');
+      }
+
+      if (diagnostic) {
+        diagnostic.textContent = details.join(' · ');
+      }
+    }
+
+    function refreshCapabilities(delay) {
+      window.setTimeout(function () {
+        renderCapabilities(readCapabilities());
+      }, Math.max(0, Number(delay || 0)));
+    }
+
+    renderCapabilities(readCapabilities());
+
+    toggle.onclick = function () {
+      panel.hidden = !panel.hidden;
+      if (!panel.hidden) refreshCapabilities(0);
+    };
+
+    enabled.onchange = function () {
+      try {
+        bridge.setCustomerDisplayEnabled(!!enabled.checked);
+      } catch (ignored) {
+      }
+      if (enabled.checked) {
+        pushCustomerDisplay('order', {}, true);
+      }
+      refreshCapabilities(700);
+    };
+
+    images.onchange = function () {
+      try {
+        bridge.setCustomerDisplayImages(!!images.checked);
+      } catch (ignored) {
+      }
+      pushCustomerDisplay(
+        state.payment.open ? 'payment' : 'order',
+        {},
+        true
+      );
+      refreshCapabilities(700);
+    };
+
+    Array.prototype.slice.call(
+      wrap.querySelectorAll('[data-pmd-customer-display-test]')
+    ).forEach(function (button) {
+      button.onclick = function () {
+        var kind = button.getAttribute('data-pmd-customer-display-test');
+        if (kind === 'idle') {
+          pushCustomerDisplayIdle(true);
+          refreshCapabilities(900);
+          return;
+        }
+        if (kind === 'success') {
+          pushCustomerDisplaySuccess(
+            cartTotal() || existingTotal() || 18,
+            'Thank you!'
+          );
+          refreshCapabilities(900);
+          return;
+        }
+        if (kind === 'payment') {
+          pushCustomerDisplay(
+            'payment',
+            {
+              headline: 'Please pay',
+              message: 'Tap, insert, or follow the cashier',
+              amount_due: cartTotal() || existingTotal() || 18
+            },
+            true
+          );
+          refreshCapabilities(900);
+          return;
+        }
+        pushCustomerDisplay(
+          'order',
+          {
+            headline: 'Your order'
+          },
+          true
+        );
+        refreshCapabilities(900);
+      };
+    });
+  }
+
   var state = {
     boot: null,
     mode: String(root.getAttribute('data-mode') || 'cashier'),
@@ -199,10 +581,19 @@
     tableData: null,
     openOrders: [],
     activeOrderId: null,
+    /* PMD_QPOS_EXPLICIT_CHECK_SELECTION_V72
+     * Opening a table starts a fresh check. Existing checks receive new food
+     * only after the cashier explicitly taps the matching #check chip. */
+    orderSelectionExplicitV72: false,
     offPremiseOrder: null,
     forceNewCheck: false,
     cart: [],
     pendingSend: null,
+    sentMutationBusy: Object.create(null),
+    /* PMD_QPOS_QUANTITY_UNDO_STATE_V72
+     * One reversible sent-item quantity action only; payments never enter it. */
+    lastQuantityUndoV72: null,
+    customerDisplayHighlight: null,
     tableRequestSeq: 0,
     /* PMD_QPOS_TABLE_CACHE_STATE_V41
      * Short in-memory cache + in-flight de-duplication for table checks. */
@@ -215,6 +606,17 @@
     guestCount: 1,
     note: '',
     loading: false,
+    /* PMD_QPOS_LIVE_SYNC_STATE_V73
+     * One visible-page heartbeat keeps tables, guest attention and the opened
+     * check synchronized across customer, kitchen and other staff surfaces. */
+    liveSyncTimerV73: null,
+    liveSyncInFlightV73: false,
+    liveSyncFailuresV73: 0,
+    liveTablesSignatureV73: '',
+    liveSelectedSignatureV73: '',
+    /* PMD_QPOS_PICKUP_CHECK_STATE_V78 */
+    pickupOrdersSignatureV78: '',
+    livePollAfterMsV73: 2000,
     visualHydrated: false,
     floorMapOpen: false,
     submitting: false,
@@ -222,14 +624,29 @@
     itemNoteIndex: null,
     historyScope: 'selected',
     historyKind: 'orders',
+    historySearch: '',
     historyPreset: '7d',
     historyFrom: '',
     historyTo: '',
     historyData: null,
     historyDataKey: '',
     historyRequestSeq: 0,
+    /* PMD_QPOS_HISTORY_CACHE_STATE_V83
+     * Short stale-while-revalidate cache keeps table-to-table History instant. */
+    historyCacheV83: Object.create(null),
+    historyFetchesV83: Object.create(null),
     historySelectedOrderId: null,
     historyLoading: false,
+    /* PMD_QPOS_TABLE_ATTENTION_STATE_V57 */
+    attentionCycleIndex: 0,
+    attentionCycleTimer: null,
+    /* PMD_QPOS_ATTENTION_PROGRESSIVE_DELAY_V79
+     * 0 => next automatic attention move in 10s, then 20s, 30s, ... */
+    attentionCycleStepV79: 0,
+    attentionResumeTimer: null,
+    attentionScrollFrame: null,
+    attentionPauseUntil: 0,
+    attentionSeenNotificationIds: Object.create(null),
     textKeyboardTarget: null,
     textKeyboardUpper: true,
     transfer: {
@@ -319,6 +736,10 @@
   function confirmAction(options) {
     options = options || {};
 
+    /* PMD_QPOS_OVERLAY_INPUT_SAFE_V63
+     * Close the floating cashier keyboard before confirmation overlays. */
+    closeTextKeyboard();
+
     var modal = $('[data-qpos-confirm-modal]');
     var title = $('[data-qpos-confirm-title]');
     var message = $('[data-qpos-confirm-message]');
@@ -378,9 +799,22 @@
 
     function paint() {
       var now = new Date();
-      clock.textContent = formatter.format(now);
-      clock.dateTime = now.toISOString();
-      clock.title = now.toLocaleDateString();
+      var value = formatter.format(now);
+      var iso = now.toISOString();
+      var title = now.toLocaleDateString();
+
+      clock.textContent = value;
+      clock.dateTime = iso;
+      clock.title = title;
+
+      /* PMD_QPOS_HISTORY_CLOCK_V84
+       * History has the same clock placement as the live catalogue. */
+      var historyClock = $('[data-qpos-history-clock]');
+      if (historyClock) {
+        historyClock.textContent = value;
+        historyClock.dateTime = iso;
+        historyClock.title = title;
+      }
     }
 
     paint();
@@ -389,16 +823,28 @@
   }
 
   function activeOrder() {
-    if (state.serviceMode !== 'dine_in') {
-      return state.offPremiseOrder;
-    }
-
     var id = Number(state.activeOrderId || 0);
     if (!id) return null;
 
-    return state.openOrders.find(function (order) {
+    var railOrder = state.openOrders.find(function (order) {
       return Number(order.order_id || order.id || 0) === id;
     }) || null;
+
+    if (railOrder) return railOrder;
+
+    if (
+      state.serviceMode !== 'dine_in' &&
+      state.offPremiseOrder &&
+      Number(
+        state.offPremiseOrder.order_id ||
+        state.offPremiseOrder.id ||
+        0
+      ) === id
+    ) {
+      return state.offPremiseOrder;
+    }
+
+    return null;
   }
 
   function activeOrderStructuralLocked() {
@@ -406,7 +852,13 @@
     if (!order) return false;
 
     var status = String(order.settlement_status || '').toLowerCase();
+    var pickupKitchenLocked =
+      state.serviceMode === 'takeaway' &&
+      order.item_mutation &&
+      order.item_mutation.allowed === false;
+
     return (
+      pickupKitchenLocked ||
       order.structural_locked === true ||
       num(order.settled_amount, 0) > 0.0001 ||
       ['partial', 'paid', 'settled', 'closed', 'refunded'].indexOf(status) !== -1
@@ -447,6 +899,117 @@
     }, 0));
   }
 
+  /* PMD_QPOS_VAT_PREVIEW_V74
+   * Order persistence is authoritative and currently stores menu prices net
+   * when tax_menu_price=1. Preview the same rule for unsent food and reuse the
+   * canonical stored order_totals tax for already-sent food. */
+  function taxSettingsV74() {
+    var settings = state.settings || {};
+    var enabledRaw = settings.tax_enabled;
+    var enabled = enabledRaw === true ||
+      ['1', 'true', 'yes', 'on'].indexOf(
+        String(enabledRaw == null ? '' : enabledRaw).toLowerCase()
+      ) !== -1;
+    var percentage = Math.max(0, num(settings.tax_percentage, 0));
+    var addAtCheckout = String(
+      settings.tax_menu_price == null ? '1' : settings.tax_menu_price
+    ) !== '0';
+    var title = String(settings.tax_title || 'VAT').trim() || 'VAT';
+
+    return {
+      enabled: enabled && percentage > 0,
+      percentage: percentage,
+      addAtCheckout: addAtCheckout,
+      title: title
+    };
+  }
+
+  function taxRateLabelV74(rate) {
+    var value = Math.max(0, num(rate, 0));
+    return String(
+      Math.round(value * 10000) / 10000
+    ).replace(/\.0+$/, '');
+  }
+
+  function vatForAmountV74(amount, tax) {
+    amount = Math.max(0, num(amount, 0));
+    tax = tax || taxSettingsV74();
+
+    if (!tax.enabled || amount <= 0 || tax.percentage <= 0) {
+      return 0;
+    }
+
+    return roundMoney(
+      tax.addAtCheckout
+        ? amount * (tax.percentage / 100)
+        : amount * (tax.percentage / (100 + tax.percentage))
+    );
+  }
+
+  function existingVatV74(tax) {
+    var order = activeOrder();
+    if (!order) return 0;
+
+    /* Stored order tax wins even if the restaurant VAT setting changes later.
+     * This keeps a historical/paid check internally consistent on screen. */
+    var stored = num(order.tax_amount, -1);
+    if (stored >= 0) {
+      return roundMoney(stored);
+    }
+
+    if (!tax.enabled) return 0;
+
+    var subtotal = num(order.subtotal, -1);
+    var gross = Math.max(0, existingTotal());
+
+    if (tax.addAtCheckout && subtotal >= 0 && gross >= subtotal) {
+      return roundMoney(gross - subtotal);
+    }
+
+    return roundMoney(
+      gross * (tax.percentage / (100 + tax.percentage))
+    );
+  }
+
+  function qposTotalsV74() {
+    var tax = taxSettingsV74();
+    var newSubtotal = cartTotal();
+    var pendingSubtotal = pendingSendTotal();
+    var unsentSubtotal = roundMoney(newSubtotal + pendingSubtotal);
+    var unsentVat = vatForAmountV74(unsentSubtotal, tax);
+    var unsentGross = roundMoney(
+      unsentSubtotal + (tax.enabled && tax.addAtCheckout ? unsentVat : 0)
+    );
+    var existingGross = roundMoney(existingTotal());
+    var existingVat = existingVatV74(tax);
+    var order = activeOrder();
+    var orderVatRate = order
+      ? Math.max(0, num(order.tax_percentage, 0))
+      : 0;
+    var orderVatTitle = order
+      ? String(order.tax_title || '').trim()
+      : '';
+    var displayTax = Object.assign({}, tax, {
+      enabled: tax.enabled || existingVat > 0.0001,
+      percentage:
+        existingVat > 0.0001 && orderVatRate > 0
+          ? orderVatRate
+          : tax.percentage,
+      title:
+        existingVat > 0.0001 && orderVatTitle
+          ? orderVatTitle
+          : tax.title
+    });
+
+    return {
+      tax: displayTax,
+      newSubtotal: newSubtotal,
+      pendingSubtotal: pendingSubtotal,
+      vat: roundMoney(existingVat + unsentVat),
+      total: roundMoney(existingGross + unsentGross)
+    };
+  }
+
   function itemCount() {
     return state.cart.reduce(function (sum, row) {
       return sum + Math.max(1, num(row.quantity, 1));
@@ -461,6 +1024,7 @@
     state.tableData = null;
     state.openOrders = [];
     state.activeOrderId = null;
+    state.orderSelectionExplicitV72 = false;
     state.offPremiseOrder = null;
     if (!keepCart) {
       state.cart = [];
@@ -488,7 +1052,24 @@
         currency:
           json && json.settings
             ? String(json.settings.currency || '€')
-            : '€'
+            : '€',
+        /* PMD_QPOS_VAT_CACHE_V74
+         * Cache presentation-only tax settings with the menu so refresh never
+         * flashes a tax-less total before bootstrap reconciliation. */
+        tax_enabled:
+          !!(json && json.settings && json.settings.tax_enabled),
+        tax_percentage:
+          json && json.settings
+            ? num(json.settings.tax_percentage, 0)
+            : 0,
+        tax_menu_price:
+          json && json.settings
+            ? num(json.settings.tax_menu_price, 1)
+            : 1,
+        tax_title:
+          json && json.settings
+            ? String(json.settings.tax_title || 'VAT')
+            : 'VAT'
       },
       floors: Array.isArray(json && json.floors) ? json.floors : [],
       default_floor_id: String(
@@ -714,6 +1295,264 @@
     }
   }
 
+  /* PMD_QPOS_LIVE_SYNC_V73
+   * Background heartbeat intentionally reuses /admin/pos/bootstrap with
+   * ?live=1 so no second routing/authentication surface is introduced.
+   * The server omits menu/categories and can additionally hydrate the one
+   * selected table in the same request. */
+  function liveSyncTableSignatureV73(tables) {
+    try {
+      return JSON.stringify((tables || []).map(function (table) {
+        return [
+          Number(table.id || 0),
+          String(table.status || ''),
+          String(table.payment_state || ''),
+          roundMoney(num(table.due_amount, 0)),
+          Math.max(0, num(table.waiter_calls, 0)),
+          Math.max(0, num(table.note_count, 0)),
+          String(table.floor_id || ''),
+          String(table.number || ''),
+          String(table.name || ''),
+          Math.max(0, num(table.capacity, 0))
+        ];
+      }));
+    } catch (ignored) {
+      return '';
+    }
+  }
+
+  function liveSyncSelectedSignatureV73(payload) {
+    try {
+      return payload ? JSON.stringify(payload) : '';
+    } catch (ignored) {
+      return '';
+    }
+  }
+
+  function liveSyncSelectedBlockedV73() {
+    return !!(
+      state.loading ||
+      state.tableSwitching ||
+      state.submitting ||
+      state.pendingSend ||
+      state.transfer.submitting ||
+      state.payment.submitting ||
+      Object.keys(state.sentMutationBusy || {}).length
+    );
+  }
+
+  function stopLiveSyncTimerV73() {
+    if (!state.liveSyncTimerV73) return;
+    window.clearTimeout(state.liveSyncTimerV73);
+    state.liveSyncTimerV73 = null;
+  }
+
+  function scheduleLiveSyncV73(delay) {
+    stopLiveSyncTimerV73();
+    if (document.visibilityState === 'hidden') return;
+
+    // PMD_QPOS_NATIVE_OFFLINE_NO_HEARTBEAT_V18
+    // The Cloud heartbeat is useful online, but offline state is event-driven.
+    // Never poll/repaint the cashier workspace every few seconds after WAN loss.
+    if (nativeLocalTransportAvailable()) return;
+
+    state.liveSyncTimerV73 = window.setTimeout(function () {
+      state.liveSyncTimerV73 = null;
+      refreshLiveStateV73(false);
+    }, Math.max(0, num(delay, state.livePollAfterMsV73)));
+  }
+
+  function requestLiveSyncV73(delay) {
+    if (document.visibilityState === 'hidden') return;
+    scheduleLiveSyncV73(delay == null ? 0 : delay);
+  }
+
+  function markSelectedTableOccupiedV73(tableId) {
+    tableId = Number(tableId || 0);
+    if (!tableId) return;
+
+    /* Force the next heartbeat to confirm or roll back this optimistic paint. */
+    state.liveTablesSignatureV73 = '';
+
+    state.tables = state.tables.map(function (table) {
+      if (Number(table.id || 0) !== tableId) return table;
+      return Object.assign({}, table, {status: 'occupied'});
+    });
+
+    if (
+      state.selectedTable &&
+      Number(state.selectedTable.id || 0) === tableId
+    ) {
+      state.selectedTable = Object.assign({}, state.selectedTable, {
+        status: 'occupied'
+      });
+    }
+  }
+
+  function applyLiveTablesV73(tables) {
+    if (!Array.isArray(tables)) return false;
+
+    var nextSignature = liveSyncTableSignatureV73(tables);
+    if (nextSignature === state.liveTablesSignatureV73) {
+      return false;
+    }
+
+    state.liveTablesSignatureV73 = nextSignature;
+    var selectedId = state.selectedTable
+      ? Number(state.selectedTable.id || 0)
+      : 0;
+    var rail = $('[data-qpos-tables]');
+    var scrollLeft = rail ? rail.scrollLeft : 0;
+
+    var previousById = Object.create(null);
+    state.tables.forEach(function (table) {
+      previousById[String(Number(table.id || 0))] = table;
+    });
+
+    /* Preserve any presentation-only fields that are not part of the lean
+     * live payload while letting operational fields remain authoritative. */
+    state.tables = tables.map(function (table) {
+      var previous = previousById[String(Number(table.id || 0))] || {};
+      return Object.assign({}, previous, table);
+    });
+
+    if (selectedId) {
+      var nextSelected = state.tables.find(function (table) {
+        return Number(table.id || 0) === selectedId;
+      });
+
+      if (nextSelected) {
+        state.selectedTable = Object.assign(
+          {},
+          state.selectedTable || {},
+          nextSelected
+        );
+      }
+    }
+
+    renderTables();
+    renderContext();
+
+    rail = $('[data-qpos-tables]');
+    if (rail && Number.isFinite(scrollLeft)) {
+      rail.scrollLeft = scrollLeft;
+    }
+
+    return true;
+  }
+
+  async function refreshLiveStateV73(force) {
+    if (nativeLocalTransportAvailable()) {
+      stopLiveSyncTimerV73();
+      return false;
+    }
+
+    if (state.loading) {
+      scheduleLiveSyncV73(600);
+      return;
+    }
+
+    if (state.liveSyncInFlightV73) {
+      if (force) scheduleLiveSyncV73(250);
+      return;
+    }
+    if (document.visibilityState === 'hidden') return;
+
+    var baseUrl = String(root.getAttribute('data-bootstrap-url') || '');
+    if (!baseUrl) return;
+
+    var selectedId = (
+      state.serviceMode === 'dine_in' && state.selectedTable
+    )
+      ? Number(state.selectedTable.id || 0)
+      : 0;
+
+    var glue = baseUrl.indexOf('?') === -1 ? '?' : '&';
+    var pickupLive =
+      state.serviceMode === 'takeaway'
+        ? '&pickup=1'
+        : '';
+    var url = baseUrl + glue +
+      'live=1&table=' + encodeURIComponent(String(selectedId || 0)) +
+      pickupLive +
+      '&_=' + Date.now();
+
+    state.liveSyncInFlightV73 = true;
+
+    try {
+      var json = await fetchJson(url);
+
+      if (
+        !json ||
+        json.ok !== true ||
+        json.version !== 'pmd-quick-pos-live-v73' ||
+        !Array.isArray(json.tables)
+      ) {
+        throw new Error('Invalid Quick POS live state.');
+      }
+
+      state.liveSyncFailuresV73 = 0;
+      state.livePollAfterMsV73 = Math.max(
+        1200,
+        Math.min(5000, num(json.poll_after_ms, 2000))
+      );
+
+      applyLiveTablesV73(json.tables);
+
+      var selectedPayload = json.selected_table || null;
+      var selectedStillMatches =
+        selectedId > 0 &&
+        state.serviceMode === 'dine_in' &&
+        state.selectedTable &&
+        Number(state.selectedTable.id || 0) === selectedId;
+
+      if (selectedStillMatches && selectedPayload) {
+        tableCachePut(selectedId, selectedPayload);
+
+        var selectedSignature =
+          liveSyncSelectedSignatureV73(selectedPayload);
+
+        if (
+          !liveSyncSelectedBlockedV73() &&
+          (
+            force ||
+            selectedSignature !== state.liveSelectedSignatureV73
+          )
+        ) {
+          state.liveSelectedSignatureV73 = selectedSignature;
+          applyTablePayload(selectedId, selectedPayload);
+        }
+      } else if (!selectedId) {
+        state.liveSelectedSignatureV73 = '';
+      }
+
+      if (
+        state.serviceMode === 'takeaway' &&
+        Array.isArray(json.pickup_orders) &&
+        !liveSyncSelectedBlockedV73()
+      ) {
+        applyPickupOrdersV78(json.pickup_orders, !!force);
+      }
+    } catch (ignored) {
+      /* Background sync is deliberately silent. Normal operator actions keep
+       * their own explicit errors and the next heartbeat retries. */
+      state.liveSyncFailuresV73++;
+    } finally {
+      state.liveSyncInFlightV73 = false;
+
+      var retryDelay = state.liveSyncFailuresV73 > 0
+        ? Math.min(10000, 3500 + (state.liveSyncFailuresV73 * 1000))
+        : state.livePollAfterMsV73;
+
+      scheduleLiveSyncV73(retryDelay);
+    }
+  }
+
+  function startLiveSyncV73() {
+    state.liveTablesSignatureV73 = liveSyncTableSignatureV73(state.tables);
+    scheduleLiveSyncV73(700);
+  }
+
   function renderFloors() {
     var box = $('[data-qpos-floors]');
     if (!box) return;
@@ -828,6 +1667,412 @@
     return state.tables.filter(function (table) {
       return String(table.floor_id || '') === activeId;
     });
+  }
+
+  /* PMD_QPOS_TABLE_ATTENTION_V76
+   * Calls/notes are attention signals whose creation also persists physical
+   * Busy on the server. This renderer never frees that physical visit.
+   * Never auto-select a table because that could discard/switch cashier work;
+   * pulse the card and gently rotate the visible rail instead. */
+  function tableNeedsAttentionV57(table) {
+    return !!table && (
+      num(table.waiter_calls, 0) > 0 ||
+      num(table.note_count, 0) > 0
+    );
+  }
+
+  function effectiveTableStatusV62(table) {
+    var status = String(
+      table && table.status != null ? table.status : 'available'
+    ).toLowerCase().trim();
+
+    if (!status || status === 'free') status = 'available';
+
+    if (
+      status === 'available' &&
+      table &&
+      (
+        !!table.has_active_order ||
+        num(table.waiter_calls, 0) > 0 ||
+        num(table.note_count, 0) > 0 ||
+        String(table.payment_state || '') === 'due' ||
+        String(table.payment_state || '') === 'partial'
+      )
+    ) {
+      return 'occupied';
+    }
+
+    return status;
+  }
+
+  function attentionTablesV57() {
+    return activeFloorTables().filter(tableNeedsAttentionV57);
+  }
+
+  function stopAttentionCycleTimerV79() {
+    if (!state.attentionCycleTimer) return;
+    window.clearTimeout(state.attentionCycleTimer);
+    state.attentionCycleTimer = null;
+  }
+
+  function attentionCycleDelayV79() {
+    var nextStep = Math.max(
+      1,
+      Number(state.attentionCycleStepV79 || 0) + 1
+    );
+
+    /* setTimeout has a signed 32-bit practical ceiling in browsers. */
+    return Math.min(2147483647, nextStep * 10000);
+  }
+
+  function scheduleAttentionCycleV79(delayOverride) {
+    stopAttentionCycleTimerV79();
+
+    if (document.visibilityState === 'hidden') return;
+
+    var delay = delayOverride == null
+      ? attentionCycleDelayV79()
+      : Math.max(1000, num(delayOverride, 10000));
+
+    state.attentionCycleTimer = window.setTimeout(function () {
+      state.attentionCycleTimer = null;
+      cycleAttentionTablesV57();
+    }, delay);
+  }
+
+  function resetAttentionCycleV79() {
+    state.attentionCycleStepV79 = 0;
+    scheduleAttentionCycleV79(10000);
+  }
+
+  function pauseAttentionCycleV57(ms) {
+    var duration = Math.max(700, num(ms, 2800));
+
+    state.attentionPauseUntil = Date.now() + duration;
+    stopAttentionCycleTimerV79();
+
+    if (state.attentionResumeTimer) {
+      window.clearTimeout(state.attentionResumeTimer);
+    }
+
+    /* PMD_QPOS_ATTENTION_PROGRESSIVE_RESUME_V79
+     * Operator interaction postpones attention movement. When interaction ends,
+     * resume the current progressive delay instead of jumping immediately. */
+    state.attentionResumeTimer = window.setTimeout(function () {
+      state.attentionResumeTimer = null;
+      state.attentionPauseUntil = 0;
+      scheduleAttentionCycleV79();
+    }, duration + 180);
+  }
+
+  function attentionOverlayOpenV63() {
+    var keyboard = $('[data-qpos-text-keyboard]');
+    if (keyboard && !keyboard.hidden) return true;
+
+    return !!document.querySelector('.pmd-qpos-modal.is-open');
+  }
+
+  function attentionInteractionBusyV57() {
+    if (document.hidden) return true;
+
+    return !!(
+      state.payment.open ||
+      state.transfer.open ||
+      state.floorMapOpen ||
+      state.modifier ||
+      state.itemNoteIndex !== null ||
+      state.textKeyboardTarget ||
+      confirmResolver ||
+      attentionOverlayOpenV63()
+    );
+  }
+
+  function animateAttentionRailV64(grid, targetTop) {
+    if (!grid) return;
+
+    if (state.attentionScrollFrame) {
+      window.cancelAnimationFrame(state.attentionScrollFrame);
+      state.attentionScrollFrame = null;
+    }
+
+    var from = Number(grid.scrollTop || 0);
+    var distance = targetTop - from;
+    if (Math.abs(distance) < 2) {
+      grid.scrollTop = targetTop;
+      return;
+    }
+
+    /* PMD_QPOS_ATTENTION_SLOW_SCROLL_V64
+     * Slightly slower than browser-native smooth scrolling so a cashier can
+     * visually follow where the rail is taking them. */
+    var duration = 950;
+    var started = null;
+
+    function easeInOutCubic(t) {
+      return t < 0.5
+        ? 4 * t * t * t
+        : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    }
+
+    function step(timestamp) {
+      if (started === null) started = timestamp;
+      var progress = Math.min(1, (timestamp - started) / duration);
+      grid.scrollTop = from + distance * easeInOutCubic(progress);
+
+      if (progress < 1) {
+        state.attentionScrollFrame = window.requestAnimationFrame(step);
+      } else {
+        grid.scrollTop = targetTop;
+        state.attentionScrollFrame = null;
+      }
+    }
+
+    state.attentionScrollFrame = window.requestAnimationFrame(step);
+  }
+
+  function focusAttentionTableV57(tableId, immediate) {
+    tableId = Number(tableId || 0);
+    if (!tableId || attentionInteractionBusyV57()) return false;
+    if (!immediate && Date.now() < Number(state.attentionPauseUntil || 0)) {
+      return false;
+    }
+
+    /* PMD_QPOS_ATTENTION_RAIL_GEOMETRY_V63 */
+    var grid = $('[data-qpos-tables]');
+    if (!grid) return false;
+
+    var button = grid.querySelector(
+      '[data-qpos-table="' + String(tableId) + '"]'
+    );
+    if (!button) return false;
+
+    var gridRect = grid.getBoundingClientRect();
+    var buttonRect = button.getBoundingClientRect();
+    var delta =
+      (buttonRect.top + buttonRect.height / 2) -
+      (gridRect.top + gridRect.height / 2);
+    var targetTop = grid.scrollTop + delta;
+
+    targetTop = Math.max(
+      0,
+      Math.min(
+        targetTop,
+        Math.max(0, grid.scrollHeight - grid.clientHeight)
+      )
+    );
+
+    animateAttentionRailV64(grid, targetTop);
+
+    button.classList.add('is-attention-focus-v57');
+    window.setTimeout(function () {
+      if (button && button.classList) {
+        button.classList.remove('is-attention-focus-v57');
+      }
+    }, 1900);
+
+    return true;
+  }
+
+  function cycleAttentionTablesV57() {
+    if (
+      attentionInteractionBusyV57() ||
+      Date.now() < Number(state.attentionPauseUntil || 0)
+    ) {
+      scheduleAttentionCycleV79();
+      return;
+    }
+
+    var rows = attentionTablesV57();
+    if (!rows.length) {
+      state.attentionCycleIndex = 0;
+      state.attentionCycleStepV79 = 0;
+      scheduleAttentionCycleV79(10000);
+      return;
+    }
+
+    var index =
+      Math.max(0, Number(state.attentionCycleIndex || 0)) % rows.length;
+
+    if (!focusAttentionTableV57(rows[index].id, false)) {
+      scheduleAttentionCycleV79();
+      return;
+    }
+
+    state.attentionCycleIndex = (index + 1) % rows.length;
+
+    /* PMD_QPOS_ATTENTION_PROGRESSIVE_DELAY_V79
+     * Successful automatic moves back off linearly:
+     * first move after 10s -> next after 20s -> 30s -> 40s -> ... */
+    state.attentionCycleStepV79 =
+      Math.max(0, Number(state.attentionCycleStepV79 || 0)) + 1;
+
+    scheduleAttentionCycleV79();
+  }
+
+  function startAttentionCycleV57() {
+    stopAttentionCycleTimerV79();
+
+    /* PMD_QPOS_ATTENTION_ROTATION_V79
+     * No page-load jump. Start at 10 seconds and increase only after an
+     * automatic attention move actually succeeds. */
+    state.attentionCycleStepV79 = 0;
+    scheduleAttentionCycleV79(10000);
+  }
+
+  function setHistoryKindV57(kind) {
+    kind = String(kind || 'orders');
+    state.historyKind = kind;
+
+    /* PMD_QPOS_ATTENTION_DETAIL_CLICK_V61
+     * Use the querySelectorAll helper; the single-element helper cannot be iterated. */
+    $$('[data-qpos-history-kind]').forEach(function (button) {
+      button.classList.toggle(
+        'is-active',
+        String(button.getAttribute('data-qpos-history-kind')) === kind
+      );
+    });
+
+    if (state.historyData) {
+      state.historySelectedOrderId = null;
+      renderHistory(state.historyData);
+    }
+  }
+
+  async function openTableAttentionV57(tableId, kind) {
+    tableId = Number(tableId || 0);
+    if (!tableId || state.transfer.submitting) return;
+
+    pauseAttentionCycleV57(12000);
+
+    if (
+      !state.selectedTable ||
+      Number(state.selectedTable.id || 0) !== tableId
+    ) {
+      await selectTable(tableId);
+    }
+
+    if (
+      !state.selectedTable ||
+      Number(state.selectedTable.id || 0) !== tableId
+    ) {
+      return;
+    }
+
+    setHistoryKindV57(
+      kind === 'attention'
+        ? 'attention'
+        : (kind === 'calls' ? 'calls' : 'notes')
+    );
+    await openHistory('selected');
+  }
+
+  function notificationTableIdV57(notification, payload) {
+    return Number(
+      (notification && (
+        notification.table_id ||
+        notification.location_table_id
+      )) ||
+      (payload && (
+        payload.table_id ||
+        payload.location_table_id
+      )) ||
+      0
+    );
+  }
+
+  function applyPushAttentionV57(event) {
+    var detail = event && event.detail ? event.detail : {};
+    var notification = detail.notification || {};
+    var payload = detail.payload || {};
+    var type = String(
+      notification.type ||
+      payload.type ||
+      payload.notification_type ||
+      ''
+    ).toLowerCase();
+
+    var kind = '';
+    if (type === 'waiter_call') {
+      kind = 'calls';
+    } else if (type === 'table_note' || type === 'staff_note') {
+      kind = 'notes';
+    } else {
+      return;
+    }
+
+    var tableId = notificationTableIdV57(notification, payload);
+    if (!tableId) return;
+
+    var eventKey = String(
+      notification.id ||
+      notification.notification_id ||
+      [
+        type,
+        tableId,
+        notification.created_at || payload.created_at || ''
+      ].join(':')
+    );
+
+    if (state.attentionSeenNotificationIds[eventKey]) return;
+    state.attentionSeenNotificationIds[eventKey] = true;
+
+    var found = false;
+    state.tables = state.tables.map(function (table) {
+      if (Number(table.id || 0) !== tableId) return table;
+      found = true;
+
+      var next = Object.assign({}, table);
+      if (kind === 'calls') {
+        next.waiter_calls = Math.max(1, num(next.waiter_calls, 0) + 1);
+      } else {
+        next.note_count = Math.max(1, num(next.note_count, 0) + 1);
+      }
+
+      // PMD_QPOS_PUSH_DERIVED_BUSY_V62
+      // New unresolved service work makes a previously Free table Busy now.
+      if (effectiveTableStatusV62(next) === 'occupied') {
+        next.status = 'occupied';
+        next.derived_busy = true;
+      }
+
+      return next;
+    });
+
+    if (!found) return;
+
+    if (
+      state.selectedTable &&
+      Number(state.selectedTable.id || 0) === tableId
+    ) {
+      var selectedFresh = state.tables.find(function (table) {
+        return Number(table.id || 0) === tableId;
+      });
+      if (selectedFresh) {
+        state.selectedTable = Object.assign(
+          {},
+          state.selectedTable,
+          selectedFresh
+        );
+      }
+    }
+
+    renderTables();
+    window.setTimeout(function () {
+      if (!focusAttentionTableV57(tableId, true)) return;
+
+      /* A new push attention is itself a scroll event. Its next automatic
+       * rotation therefore starts the requested sequence again at 10 seconds. */
+      var rows = attentionTablesV57();
+      var pushedIndex = rows.findIndex(function (row) {
+        return Number(row.id || 0) === tableId;
+      });
+
+      if (pushedIndex >= 0 && rows.length) {
+        state.attentionCycleIndex = (pushedIndex + 1) % rows.length;
+      }
+
+      resetAttentionCycleV79();
+    }, 80);
   }
 
   /* PMD_QPOS_EXACT_DASHBOARD_FLOOR_UI_V26
@@ -1083,6 +2328,41 @@
     });
   }
 
+  function tableFeatureIconsV67(features) {
+    var allowed = {
+      near_window: {
+        label: 'Near window',
+        svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"></rect><path d="M4 12h16M12 4v16"></path></svg>'
+      },
+      quiet_area: {
+        label: 'Quiet area',
+        svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4z"></path><path d="m16 9 5 6M21 9l-5 6"></path></svg>'
+      },
+      accessible: {
+        label: 'Accessible',
+        svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="5" r="2"></circle><path d="M7 9h5l2 5h3M9 9v5a4 4 0 1 0 4 4M13 14l2 6h4"></path></svg>'
+      }
+    };
+
+    var rows = Array.isArray(features) ? features : [];
+    var icons = rows.map(function (feature) {
+      var key = String(feature || '').toLowerCase();
+      var meta = allowed[key];
+      if (!meta) return '';
+      return (
+        '<span class="pmd-qpos-table-feature-v67 is-' + esc(key) + '"' +
+          ' title="' + esc(meta.label) + '"' +
+          ' aria-label="' + esc(meta.label) + '">' +
+          meta.svg +
+        '</span>'
+      );
+    }).filter(Boolean);
+
+    return icons.length
+      ? '<span class="pmd-qpos-table-features-v67">' + icons.join('') + '</span>'
+      : '';
+  }
+
   function renderTables() {
     var box = $('[data-qpos-tables]');
     var count = $('[data-qpos-table-count]');
@@ -1148,32 +2428,63 @@
           ? 'none'
           : String(table.payment_state || 'none');
 
+      var waiterCalls = Math.max(0, num(table.waiter_calls, 0));
+      var noteCount = Math.max(0, num(table.note_count, 0));
+      var hasAttention = waiterCalls > 0 || noteCount > 0;
+      var attentionHistoryKind = hasAttention ? 'attention' : '';
       var signals = [];
-      if (num(table.waiter_calls, 0) > 0) {
-        signals.push({kind: 'call', icon: '!', title: 'Waiter call'});
-      }
-      if (paymentState === 'partial') {
-        signals.push({kind: 'due', icon: '½', title: 'Partly paid'});
-      } else if (paymentState === 'due') {
-        signals.push({kind: 'due', icon: '€', title: 'Payment due'});
-      }
-      if (num(table.note_count, 0) > 0) {
-        signals.push({kind: 'note', icon: 'N', title: 'New note'});
-      }
-      if (paymentState === 'paid') {
-        signals.push({kind: 'paid', icon: '✓', title: 'Paid'});
+
+      /* PMD_QPOS_UNIFIED_ATTENTION_ICON_V81
+       * Waiter calls and table notes share one table badge. This prevents a
+       * single table from accumulating multiple service-attention icons while
+       * keeping payment badges independent. */
+      if (hasAttention) {
+        var attentionTitleV81 =
+          waiterCalls > 0 && noteCount > 0
+            ? 'Waiter call + table note'
+            : (waiterCalls > 0 ? 'Waiter call' : 'Table note');
+
+        signals.push({
+          kind: 'attention-v81',
+          icon: '!',
+          title: attentionTitleV81,
+          attentionKind: 'attention',
+          count: 0
+        });
       }
 
-      var primarySignal = signals.length ? signals[0] : null;
+      /* PMD_QPOS_PAYMENT_ICON_RULE_V57
+       * Due is represented by the table/check state itself. Only actual payment
+       * progress gets a payment icon: half = Part paid, check = Paid. */
+      if (paymentState === 'partial') {
+        signals.push({
+          kind: 'partial',
+          icon: '½',
+          title: 'Part paid',
+          count: 0
+        });
+      } else if (paymentState === 'paid') {
+        signals.push({
+          kind: 'paid',
+          icon: '✓',
+          title: 'Paid',
+          count: 0
+        });
+      }
 
       rows.push(
         '<button type="button" class="pmd-qpos-table' +
           (selected ? ' is-selected' : '') +
           (isMoveSource ? ' is-move-source' : '') +
-          (isMoveTarget ? ' is-move-target' : '') + '"' +
+          (isMoveTarget ? ' is-move-target' : '') +
+          (hasAttention ? ' has-attention' : '') + '"' +
           ' data-qpos-table="' + esc(table.id) + '"' +
-          ' data-status="' + esc(table.status || 'available') + '"' +
+          ' data-status="' + esc(effectiveTableStatusV62(table)) + '"' +
           ' data-payment-state="' + esc(paymentState) + '"' +
+          (hasAttention ? ' data-qpos-attention="1"' : '') +
+          (attentionHistoryKind
+            ? ' data-qpos-attention-kind-default="' + esc(attentionHistoryKind) + '"'
+            : '') +
           (isMoveSource || (directMove && !isMoveTarget) || state.transfer.submitting
             ? ' disabled'
             : '') +
@@ -1188,17 +2499,31 @@
               )
             : '') + '>' +
           '<strong>' + esc(compactTableLabel(table)) + '</strong>' +
-          '<small>' + esc(tableStatusLabel(table.status)) +
-            (num(table.capacity, 0) > 0 ? ' · ' + esc(table.capacity) + 's' : '') +
+          '<small' + (num(table.capacity, 0) > 0 ? '' : ' hidden') + '>' +
+            (num(table.capacity, 0) > 0 ? esc(table.capacity) + 's' : '') +
           '</small>' +
-          (primarySignal
-            ? '<span class="pmd-qpos-table-signal is-' + esc(primarySignal.kind) + '"' +
-                ' title="' + esc(primarySignal.title) + '"' +
-                ' aria-label="' + esc(primarySignal.title) + '">' +
-                '<b>' + esc(primarySignal.icon) + '</b>' +
-                (signals.length > 1
-                  ? '<em>+' + esc(signals.length - 1) + '</em>'
-                  : '') +
+          tableFeatureIconsV67(table.features) +
+          (signals.length
+            ? '<span class="pmd-qpos-table-signals-v57">' +
+                signals.map(function (signal) {
+                  return (
+                    '<span class="pmd-qpos-table-signal is-' + esc(signal.kind) + '"' +
+                      (signal.attentionKind
+                        ? ' data-qpos-attention-kind="' + esc(signal.attentionKind) + '"'
+                        : '') +
+                      ' title="' + esc(signal.title) + '"' +
+                      ' aria-label="' + esc(
+                        signal.attentionKind
+                          ? 'Open ' + signal.title
+                          : signal.title
+                      ) + '">' +
+                      '<b>' + esc(signal.icon) + '</b>' +
+                      (signal.kind !== 'note' && num(signal.count, 0) > 1
+                        ? '<em>' + esc(signal.count) + '</em>'
+                        : '') +
+                    '</span>'
+                  );
+                }).join('') +
               '</span>'
             : '') +
         '</button>'
@@ -1216,7 +2541,10 @@
       var prefetch = function () {
         if (directMove) return;
         var id = Number(button.getAttribute('data-qpos-table') || 0);
-        if (id) prefetchTableData(id);
+        if (id) {
+          prefetchTableData(id);
+          prefetchHistoryForTableV83(id);
+        }
       };
 
       button.onpointerenter = prefetch;
@@ -1226,12 +2554,38 @@
 
       /* PMD_QPOS_TOUCH_PREFETCH_V42
        * pointerdown/touchstart begins the table request before click release. */
-      button.onclick = function () {
+      button.onclick = function (event) {
         var id = Number(button.getAttribute('data-qpos-table') || 0);
         if (!id) return;
 
+        var attentionTarget =
+          event &&
+          event.target &&
+          event.target.closest
+            ? event.target.closest('[data-qpos-attention-kind]')
+            : null;
+
+        if (attentionTarget && !directMove) {
+          event.preventDefault();
+          event.stopPropagation();
+          openTableAttentionV57(
+            id,
+            attentionTarget.getAttribute('data-qpos-attention-kind')
+          );
+          return;
+        }
+
         if (directMove) {
           directMoveOrderToTable(id);
+          return;
+        }
+
+        var defaultAttentionKind = String(
+          button.getAttribute('data-qpos-attention-kind-default') || ''
+        );
+
+        if (defaultAttentionKind) {
+          openTableAttentionV57(id, defaultAttentionKind);
           return;
         }
 
@@ -1357,6 +2711,35 @@
     });
   }
 
+  function productUsesBrandPlaceholderV72(image) {
+    var source = String(image || '').trim();
+    if (!source) return true;
+
+    try {
+      var path = new URL(source, window.location.href).pathname.toLowerCase();
+      return (
+        path === '/brand/paymydine-logo.svg' ||
+        path === '/app/admin/assets/images/paymydine-logo.svg'
+      );
+    } catch (ignored) {
+      return /(?:^|\/)paymydine-logo\.svg(?:$|[?#])/i.test(source);
+    }
+  }
+
+  function productPlaceholderMarkupV72() {
+    /* PMD_QPOS_INLINE_PLACEHOLDER_V72
+     * Inline vector = no separate SVG/mask request and therefore no refresh
+     * flash for foods that intentionally use the PayMyDine placeholder. */
+    return (
+      '<div class="pmd-qpos-product-image is-placeholder is-inline-v72" aria-hidden="true">' +
+        '<svg viewBox="0 0 428.72 420" focusable="false" aria-hidden="true">' +
+          '<path d="M242.42 38.65H45.83c8.89 34.02 37.63 60.01 73.1 64.85 3.93.54 7.94.82 12.02.82h111.47c46.54 0 84.28 37.73 84.28 84.28s-37.74 84.28-84.28 84.28h-67.53c-16.46 0-29.8 13.34-29.8 29.8v35.87h95.89c83.02 0 151.35-66.86 151.39-149.89.03-82.85-67.12-150.01-149.95-150.01Z"></path>' +
+          '<path d="M219.64 246.47v-25.53h-91.75c-6.1 0-11.05 4.95-11.05 11.05v88.72c0 4.08-.28 8.09-.82 12.02-4.84 35.47-30.83 64.21-64.85 73.1V209.24c0-1.3 0-2.58.01-3.84 1.73-25.71 21.8-46.39 47.24-49.07h11.14l110.08-.07v-25.53l58.55 57.87-58.55 57.87Z"></path>' +
+        '</svg>' +
+      '</div>'
+    );
+  }
+
   function renderProducts() {
     var box = $('[data-qpos-products]');
     var status = $('[data-qpos-catalog-status]');
@@ -1368,7 +2751,16 @@
       if (!canOrderNow()) {
         status.textContent = 'Select table';
       } else if (activeOrderStructuralLocked()) {
-        status.textContent = 'Payment started · finish payment first';
+        status.textContent =
+          state.serviceMode === 'dine_in'
+            ? 'Viewing paid/locked check · new food starts a new check'
+            : (
+                activeOrder() &&
+                activeOrder().item_mutation &&
+                activeOrder().item_mutation.kitchen_started
+                  ? 'Kitchen preparation started · this Pickup is locked'
+                  : 'Payment started · this Pickup is locked'
+              );
       } else {
         status.textContent = items.length + ' items';
       }
@@ -1386,6 +2778,7 @@
         num(item.price, 0) > 0;
 
       var image = String(item.image || '');
+      var placeholder = productUsesBrandPlaceholderV72(image);
       var selectedQuantity = cartQuantityForMenu(item.id);
       return (
         '<button type="button" class="pmd-qpos-product' +
@@ -1396,9 +2789,9 @@
           /* PMD_QPOS_PLACEHOLDER_LOGO_V34
            * Match the Menu page empty-photo treatment: a neutral preview
            * with the monochrome PayMyDine brand mark. */
-          (image
-            ? '<div class="pmd-qpos-product-image" style="background-image:url(&quot;' + esc(image) + '&quot;)"></div>'
-            : '<div class="pmd-qpos-product-image is-placeholder" aria-hidden="true"></div>') +
+          (placeholder
+            ? productPlaceholderMarkupV72()
+            : '<div class="pmd-qpos-product-image" style="background-image:url(&quot;' + esc(image) + '&quot;)"></div>') +
           (item.is_bestseller ? '<span class="pmd-qpos-product-badge">Popular</span>' : '') +
           (selectedQuantity > 0
             ? '<span class="pmd-qpos-product-count" data-qpos-product-count aria-label="' +
@@ -1435,8 +2828,27 @@
           return;
         }
 
-        if (activeOrderStructuralLocked()) {
-          toast('Payment started. Choose + Check for new items.', true);
+        if (
+          activeOrderStructuralLocked() &&
+          state.serviceMode === 'dine_in' &&
+          state.selectedTable
+        ) {
+          state.activeOrderId = null;
+          state.orderSelectionExplicitV72 = false;
+          state.forceNewCheck = true;
+          state.guestCount = 1;
+          state.note = '';
+          renderCart({orderSwitch: true});
+        } else if (activeOrderStructuralLocked()) {
+          var lockedPickupOrder = activeOrder();
+          toast(
+            lockedPickupOrder &&
+            lockedPickupOrder.item_mutation &&
+            lockedPickupOrder.item_mutation.reason
+              ? lockedPickupOrder.item_mutation.reason
+              : 'This Pickup order can no longer be changed.',
+            true
+          );
           return;
         }
 
@@ -1470,8 +2882,16 @@
   function selectOrder(id) {
     id = Number(id || 0);
     state.activeOrderId = id > 0 ? id : null;
-    state.forceNewCheck = id < 1;
+    state.orderSelectionExplicitV72 = id > 0;
+    state.lastQuantityUndoV72 = null;
     var order = activeOrder();
+
+    if (state.serviceMode === 'takeaway') {
+      state.offPremiseOrder = order || null;
+    }
+    state.forceNewCheck =
+      id < 1 ||
+      (!!order && activeOrderStructuralLocked());
     if (order && order.guest_count) {
       state.guestCount = Math.max(1, num(order.guest_count, 1));
     }
@@ -1486,7 +2906,16 @@ function renderOpenChecks() {
     var box = $('[data-qpos-open-checks]');
     if (!box) return;
 
-    if (state.serviceMode !== 'dine_in' || !state.selectedTable || !state.openOrders.length) {
+    var tableCheckContext =
+      state.serviceMode === 'dine_in' &&
+      !!state.selectedTable;
+    var pickupCheckContext =
+      state.serviceMode === 'takeaway';
+
+    if (
+      (!tableCheckContext && !pickupCheckContext) ||
+      !state.openOrders.length
+    ) {
       box.hidden = true;
       box.innerHTML = '';
       return;
@@ -1497,10 +2926,16 @@ function renderOpenChecks() {
 
     state.openOrders.forEach(function (order) {
       var id = orderId(order);
+      var settlement = String(order.settlement_status || '').toLowerCase();
+      var isPaid = ['paid', 'settled', 'closed'].indexOf(settlement) !== -1;
+      var classes = [];
+      if (Number(state.activeOrderId) === id) classes.push('is-active');
+      if (isPaid) classes.push('is-paid-v71');
       rows.push(
         '<button type="button" data-qpos-check="' + esc(id) + '"' +
-          (Number(state.activeOrderId) === id ? ' class="is-active"' : '') + '>' +
+          (classes.length ? ' class="' + classes.join(' ') + '"' : '') + '>' +
           '#' + esc(id) + ' · ' + money(orderTotal(order)) +
+          (isPaid ? ' · Paid' : '') +
         '</button>'
       );
     });
@@ -1521,11 +2956,16 @@ function renderOpenChecks() {
       mounted.forEach(function (button, index) {
         var order = state.openOrders[index];
         var id = orderId(order);
+        var settlement = String(order.settlement_status || '').toLowerCase();
+        var isPaid = ['paid', 'settled', 'closed'].indexOf(settlement) !== -1;
         button.classList.toggle(
           'is-active',
           Number(state.activeOrderId) === id
         );
-        button.textContent = '#' + id + ' · ' + money(orderTotal(order));
+        button.classList.toggle('is-paid-v71', isPaid);
+        button.textContent =
+          '#' + id + ' · ' + money(orderTotal(order)) +
+          (isPaid ? ' · Paid' : '');
       });
     } else {
       box.innerHTML = rows.join('');
@@ -1542,15 +2982,237 @@ function renderOpenChecks() {
     });
   }
 
+  async function mutateCommittedItemQuantityV68(
+    button,
+    direction,
+    options
+  ) {
+    var mutationOptions = options || {};
+    var order = activeOrder();
+    var mutation = order && order.item_mutation ? order.item_mutation : {};
+
+    var mutationContextAllowed =
+      (
+        state.serviceMode === 'dine_in' &&
+        !!state.selectedTable
+      ) ||
+      state.serviceMode === 'takeaway';
+
+    if (
+      !order ||
+      !mutationContextAllowed ||
+      mutation.allowed !== true
+    ) {
+      toast(
+        mutation.reason ||
+          'This ordered item can no longer be changed.',
+        true
+      );
+      return;
+    }
+
+    var itemId = Number(
+      button.getAttribute('data-order-menu-id') || 0
+    );
+    if (itemId < 1) return;
+
+    var busyKey = String(itemId);
+    if (state.sentMutationBusy[busyKey]) return;
+
+    var item = orderItems(order).find(function (row) {
+      return Number(row.order_menu_id || row.id || 0) === itemId;
+    });
+    if (!item) return;
+
+    var currentQty = Math.max(0, num(item.quantity, 0));
+    var nextQty = currentQty + (direction > 0 ? 1 : -1);
+    if (nextQty < 0 || (direction < 0 && currentQty <= 0)) return;
+
+    var template = direction > 0
+      ? state.settings.item_increase_url
+      : state.settings.item_decrease_url;
+
+    if (!template) {
+      toast('Item quantity action is unavailable.', true);
+      return;
+    }
+
+    var oldSubtotal = num(item.subtotal, 0);
+    var unitSubtotal = currentQty > 0
+      ? oldSubtotal / currentQty
+      : num(item.price, 0);
+    var oldOrderTotal = orderTotal(order);
+    var oldTotalItems = num(order.total_items, 0);
+    var oldUpdatedAt = String(order.updated_at || '');
+
+    state.sentMutationBusy[busyKey] = true;
+
+    /* PMD_QPOS_INSTANT_QUANTITY_V72
+     * Paint immediately; server authority can still reject and roll back. */
+    item.quantity = nextQty;
+    item.subtotal = roundMoney(unitSubtotal * nextQty);
+    order.total = Math.max(
+      0,
+      roundMoney(
+        oldOrderTotal +
+        (direction > 0 ? unitSubtotal : -unitSubtotal)
+      )
+    );
+    order.order_total = order.total;
+    if (
+      oldTotalItems > 0 ||
+      Object.prototype.hasOwnProperty.call(order, 'total_items')
+    ) {
+      order.total_items = Math.max(
+        0,
+        oldTotalItems + (direction > 0 ? 1 : -1)
+      );
+    }
+    renderCart({orderSwitch: true});
+
+    try {
+      var json = await fetchJson(
+        tokenUrl(template, '{order}', orderId(order)),
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            order_menu_id: itemId,
+            quantity: 1,
+            expected_updated_at: oldUpdatedAt,
+            reason: direction < 0
+              ? (
+                  mutationOptions.isUndo
+                    ? 'Undo Quick POS quantity increase before kitchen preparation'
+                    : 'Quick POS quantity correction before kitchen preparation'
+                )
+              : '',
+            undo_quantity_correction:
+              !!mutationOptions.isUndo && direction > 0
+          })
+        }
+      );
+
+      var authoritativeQty = Math.max(
+        0,
+        num(
+          json.new_quantity != null
+            ? json.new_quantity
+            : json.remaining_quantity,
+          nextQty
+        )
+      );
+
+      item.quantity = authoritativeQty;
+      item.subtotal = num(
+        json.line_subtotal,
+        roundMoney(unitSubtotal * authoritativeQty)
+      );
+
+      if (json.order_total != null) {
+        order.total = num(json.order_total, order.total);
+        order.order_total = order.total;
+      }
+      if (json.total_items != null) {
+        order.total_items = Math.max(
+          0,
+          num(json.total_items, order.total_items)
+        );
+      }
+      if (json.updated_at) {
+        order.updated_at = String(json.updated_at);
+      }
+
+      if (mutationOptions.isUndo) {
+        state.lastQuantityUndoV72 = null;
+        toast('Last quantity change undone.');
+      } else {
+        state.lastQuantityUndoV72 = {
+          order_id: orderId(order),
+          order_menu_id: itemId,
+          direction: direction > 0 ? -1 : 1,
+          created_at: Date.now()
+        };
+
+        toast(
+          direction > 0
+            ? 'Quantity increased.'
+            : 'Quantity reduced.'
+        );
+      }
+    } catch (error) {
+      item.quantity = currentQty;
+      item.subtotal = oldSubtotal;
+      order.total = oldOrderTotal;
+      order.order_total = oldOrderTotal;
+      order.total_items = oldTotalItems;
+      order.updated_at = oldUpdatedAt;
+
+      toast(
+        error.message || 'Item quantity could not be changed.',
+        true
+      );
+    } finally {
+      delete state.sentMutationBusy[busyKey];
+      renderCart({orderSwitch: true});
+    }
+  }
+
+  async function undoLastQuantityV72() {
+    var undo = state.lastQuantityUndoV72;
+    var order = activeOrder();
+
+    if (
+      !undo ||
+      !order ||
+      orderId(order) !== Number(undo.order_id || 0)
+    ) {
+      state.lastQuantityUndoV72 = null;
+      renderSentItems();
+      return;
+    }
+
+    var itemId = Number(undo.order_menu_id || 0);
+    var item = orderItems(order).find(function (row) {
+      return Number(row.order_menu_id || row.id || 0) === itemId;
+    });
+
+    if (!item) {
+      state.lastQuantityUndoV72 = null;
+      renderSentItems();
+      return;
+    }
+
+    await mutateCommittedItemQuantityV68(
+      {
+        getAttribute: function (name) {
+          return name === 'data-order-menu-id'
+            ? String(itemId)
+            : '';
+        }
+      },
+      Number(undo.direction || 0),
+      {isUndo: true}
+    );
+  }
+
   function renderSentItems() {
     var section = $('[data-qpos-sent]');
     var box = $('[data-qpos-sent-items]');
     var total = $('[data-qpos-sent-total]');
+    var undoButton = $('[data-qpos-sent-undo]');
     var order = activeOrder();
 
     if (!section || !box) return;
 
-    var committed = orderItems(order);
+    var committed = orderItems(order).filter(function (row) {
+      return num(
+        row && (row.quantity != null ? row.quantity : row.qty),
+        0
+      ) > 0.0001;
+    });
     var pending = (
       state.pendingSend &&
       Array.isArray(state.pendingSend.cart)
@@ -1568,7 +3230,28 @@ function renderOpenChecks() {
 
     var items = committed.concat(pending);
 
-    if (!items.length) {
+    var mutation = order && order.item_mutation
+      ? order.item_mutation
+      : {};
+
+    var undo = state.lastQuantityUndoV72;
+    var canUndo =
+      !!undo &&
+      !!order &&
+      orderId(order) === Number(undo.order_id || 0) &&
+      mutation.allowed === true;
+
+    if (undoButton) {
+      undoButton.hidden = !canUndo;
+      undoButton.disabled =
+        !canUndo ||
+        Object.keys(state.sentMutationBusy).length > 0;
+      undoButton.onclick = canUndo
+        ? undoLastQuantityV72
+        : null;
+    }
+
+    if (!items.length && !canUndo) {
       section.hidden = true;
       box.innerHTML = '';
       return;
@@ -1581,19 +3264,112 @@ function renderOpenChecks() {
       );
     }
 
-    box.innerHTML = items.map(function (item) {
-      var qty = num(item.quantity != null ? item.quantity : item.qty, 1);
-      var subtotal = num(item.subtotal != null ? item.subtotal : item.line_subtotal, 0);
+    var canEditCommitted =
+      (
+        (
+          state.serviceMode === 'dine_in' &&
+          !!state.selectedTable
+        ) ||
+        state.serviceMode === 'takeaway'
+      ) &&
+      mutation.allowed === true;
+
+    var rows = items.map(function (item) {
+      var qty = num(
+        item.quantity != null ? item.quantity : item.qty,
+        1
+      );
+      var subtotal = num(
+        item.subtotal != null
+          ? item.subtotal
+          : item.line_subtotal,
+        0
+      );
+      var orderMenuId = Number(
+        item.order_menu_id || item.id || 0
+      );
+      var quantityBusy = !!state.sentMutationBusy[String(orderMenuId)];
+
+      var controls = (
+        !item.__pending &&
+        canEditCommitted &&
+        qty > 0 &&
+        orderMenuId > 0
+      )
+        ? (
+            '<span class="pmd-qpos-sent-qty-v68">' +
+              '<button type="button" data-qpos-sent-decrease data-order-menu-id="' +
+                esc(orderMenuId) + '"' +
+                (quantityBusy ? ' disabled' : '') +
+                ' aria-label="Reduce ordered quantity">−</button>' +
+              '<button type="button" data-qpos-sent-increase data-order-menu-id="' +
+                esc(orderMenuId) + '"' +
+                (quantityBusy ? ' disabled' : '') +
+                ' aria-label="Increase ordered quantity">+</button>' +
+            '</span>'
+          )
+        : '';
+
       return (
-        '<div class="pmd-qpos-sent-line' + (item.__pending ? ' is-pending' : '') + '">' +
+        '<div class="pmd-qpos-sent-line' +
+          (item.__pending ? ' is-pending' : '') +
+          '">' +
           '<b>' + esc(qty) + '×</b>' +
-          '<span>' + esc(item.name || item.menu_name || 'Item') +
-            (visibleNote(item.comment) ? '<small>' + esc(visibleNote(item.comment)) + '</small>' : '') +
+          '<span>' +
+            esc(item.name || item.menu_name || 'Item') +
+            (
+              visibleNote(item.comment)
+                ? '<small>' +
+                    esc(visibleNote(item.comment)) +
+                  '</small>'
+                : ''
+            ) +
           '</span>' +
-          '<strong>' + money(subtotal) + '</strong>' +
+          '<span class="pmd-qpos-sent-tail-v68">' +
+            '<strong>' + money(subtotal) + '</strong>' +
+            controls +
+          '</span>' +
         '</div>'
       );
-    }).join('');
+    });
+
+    if (
+      order &&
+      mutation.allowed === false &&
+      (mutation.reason || mutation.kitchen_started || mutation.payment_started)
+    ) {
+      var lockText = mutation.kitchen_started
+        ? 'Kitchen preparing/ready · sent item quantities are locked.'
+        : (
+            mutation.payment_started
+              ? 'Payment started · paid item quantities are locked. Add new food with + Check; reduce paid value only through refund/correction.'
+              : String(mutation.reason || 'Sent item quantities are locked.')
+          );
+
+      rows.push(
+        '<div class="pmd-qpos-sent-lock-v68">' +
+          esc(lockText) +
+        '</div>'
+      );
+    }
+
+    box.innerHTML = rows.join('');
+
+    Array.prototype.slice.call(
+      box.querySelectorAll('[data-qpos-sent-decrease]')
+    ).forEach(function (button) {
+      button.onclick = function () {
+        mutateCommittedItemQuantityV68(button, -1);
+      };
+    });
+
+    Array.prototype.slice.call(
+      box.querySelectorAll('[data-qpos-sent-increase]')
+    ).forEach(function (button) {
+      button.onclick = function () {
+        mutateCommittedItemQuantityV68(button, 1);
+      };
+    });
   }
 
   function cartSignature(item, options, comment) {
@@ -1605,6 +3381,18 @@ function renderOpenChecks() {
   }
 
   function addCartLine(item, options, quantity, comment) {
+    if (
+      state.serviceMode === 'dine_in' &&
+      state.activeOrderId &&
+      activeOrderStructuralLocked()
+    ) {
+      state.activeOrderId = null;
+      state.orderSelectionExplicitV72 = false;
+      state.forceNewCheck = true;
+      state.guestCount = 1;
+      state.note = '';
+    }
+
     var qty = Math.max(
       Math.max(1, num(item.minimum_qty, 1)),
       Math.min(99, num(quantity, 1))
@@ -1628,6 +3416,12 @@ function renderOpenChecks() {
         comment: String(comment || '').trim()
       });
     }
+
+    state.customerDisplayHighlight = {
+      menu_id: Number(item.id || 0),
+      name: String(item.name || 'Item'),
+      image: String(item.image || '')
+    };
 
     renderCart();
   }
@@ -1732,19 +3526,42 @@ function renderOpenChecks() {
       }
     }
 
-    var newTotal = cartTotal();
-    var total = roundMoney(
-      existingTotal() + pendingSendTotal() + newTotal
-    );
+    var totalsV74 = qposTotalsV74();
+    var newTotal = totalsV74.newSubtotal;
+    var total = totalsV74.total;
 
     var newTotalEl = $('[data-qpos-new-total]');
+    var vatRowV74 = $('[data-qpos-vat-row]');
+    var vatLabelV74 = $('[data-qpos-vat-label]');
+    var vatTotalV74 = $('[data-qpos-vat-total]');
     var totalEl = $('[data-qpos-total]');
     var mobileTotal = $('[data-qpos-mobile-total]');
     var mobileCount = $('[data-qpos-mobile-count]');
     if (newTotalEl) newTotalEl.textContent = money(newTotal);
+
+    if (vatRowV74) {
+      vatRowV74.hidden = !totalsV74.tax.enabled;
+    }
+    if (vatLabelV74) {
+      vatLabelV74.textContent =
+        totalsV74.tax.title +
+        ' (' + taxRateLabelV74(totalsV74.tax.percentage) + '%)';
+    }
+    if (vatTotalV74) {
+      vatTotalV74.textContent = money(totalsV74.vat);
+    }
+
     if (totalEl) totalEl.textContent = money(total);
     if (mobileTotal) mobileTotal.textContent = money(total);
     if (mobileCount) mobileCount.textContent = String(itemCount());
+
+    if (!state.payment.open) {
+      if (state.cart.length || activeOrder()) {
+        pushCustomerDisplay('order');
+      } else {
+        pushCustomerDisplayIdle();
+      }
+    }
 
     var guests = $('[data-qpos-guests]');
     if (guests) guests.textContent = String(state.guestCount);
@@ -1825,7 +3642,7 @@ function renderOpenChecks() {
 
     if (send) {
       send.disabled = !canSave;
-      send.textContent = 'Send';
+      send.textContent = 'Send to Kitchen';
     }
 
     if (pay) {
@@ -1846,9 +3663,9 @@ function renderOpenChecks() {
           !(canOrderNow() && state.cart.length > 0)
         );
 
-      pay.textContent = state.cart.length > 0
-        ? 'Send & Pay'
-        : 'Pay';
+      /* PMD_QPOS_PAY_LABEL_V82
+       * Keep the proven send-then-pay workflow behind one simple operator label. */
+      pay.textContent = 'Pay';
     }
 
     renderContext();
@@ -2539,6 +4356,9 @@ function renderOpenChecks() {
     state.cart = [];
     state.note = '';
     state.activeOrderId = null;
+    state.orderSelectionExplicitV72 = false;
+    state.forceNewCheck = true;
+    state.lastQuantityUndoV72 = null;
     state.offPremiseOrder = null;
 
     /* PMD_QPOS_IMMEDIATE_TABLE_TAP_V42
@@ -2562,6 +4382,8 @@ function renderOpenChecks() {
       state.tableData = null;
       state.openOrders = [];
       state.activeOrderId = null;
+      state.orderSelectionExplicitV72 = false;
+      state.forceNewCheck = true;
       renderContext();
       renderCart();
 
@@ -2571,10 +4393,39 @@ function renderOpenChecks() {
 
     var historyWorkspace = $('[data-qpos-history-modal]');
     if (historyWorkspace && historyWorkspace.classList.contains('is-open')) {
-      /* PMD_QPOS_HISTORY_AFTER_TABLE_V42 */
+      /* PMD_QPOS_HISTORY_SWITCH_FAST_V83
+       * Never leave the previous table's History on screen while waiting.
+       * Paint a warm cached History immediately when available; otherwise show
+       * the new table identity/loading state and reconcile in background. */
       state.historyScope = 'selected';
       state.historySelectedOrderId = null;
-      await loadHistory('selected', {preserve: true});
+
+      var historyContextV83 = historyContextForTableV83(table.id);
+      var cachedHistoryV83 = historyCacheGetV83(historyContextV83.key);
+      var historyTitleV83 = $('[data-qpos-history-title]');
+      var historyListV83 = $('[data-qpos-history-list]');
+
+      if (cachedHistoryV83) {
+        state.historyDataKey = historyContextV83.key;
+        renderHistory(cachedHistoryV83);
+      } else {
+        state.historyData = null;
+        state.historyDataKey = '';
+
+        if (historyTitleV83) {
+          historyTitleV83.textContent =
+            'Table ' + String(table.number || table.id || '');
+        }
+        if (historyListV83) {
+          historyListV83.innerHTML =
+            '<div class="pmd-qpos-history-empty">Loading history…</div>';
+        }
+        renderHistoryDetail(0);
+      }
+
+      loadHistory('selected', {
+        preserve: !!cachedHistoryV83
+      });
     }
 
     if (window.innerWidth <= 820) {
@@ -2589,7 +4440,10 @@ function renderOpenChecks() {
    * Recent table payloads are shown immediately and then revalidated.
    * Hover/focus prefetch only requests the table the user is heading toward.
    */
-  var PMD_QPOS_TABLE_CACHE_TTL_V41 = 12000;
+  /* PMD_QPOS_TABLE_CACHE_TTL_V83
+   * Keep warm checks visible longer; every cached tap still revalidates in
+   * background, so this improves switching without making server state final. */
+  var PMD_QPOS_TABLE_CACHE_TTL_V41 = 30000;
 
   function tableCacheGet(id) {
     var key = String(Number(id || 0));
@@ -2689,7 +4543,7 @@ function renderOpenChecks() {
           payment === 'partial'
         );
       })
-      .slice(0, 6);
+      .slice(0, 10);
 
     if (!candidates.length) return;
 
@@ -2707,11 +4561,19 @@ function renderOpenChecks() {
       state.tableWarmupRunning = true;
 
       try {
-        for (var i = 0; i < candidates.length; i++) {
+        /* PMD_QPOS_TABLE_WARMUP_BATCH_V83
+         * Warm small groups in parallel instead of serially waiting on every
+         * occupied table. Keep concurrency capped so the POS does not burst. */
+        for (var i = 0; i < candidates.length; i += 3) {
           if (state.payment.open || state.transfer.open) break;
-          await fetchTablePayload(candidates[i].id, false).catch(function () {
-            return null;
-          });
+
+          await Promise.all(
+            candidates.slice(i, i + 3).map(function (candidate) {
+              return fetchTablePayload(candidate.id, false).catch(function () {
+                return null;
+              });
+            })
+          );
         }
       } finally {
         state.tableWarmupRunning = false;
@@ -2740,9 +4602,30 @@ function renderOpenChecks() {
     state.tableSwitching = false;
     root.classList.remove('is-table-switching');
     state.tableData = json;
+
+    var explicitOrderId = state.orderSelectionExplicitV72
+      ? Number(state.activeOrderId || 0)
+      : 0;
+
     state.openOrders = Array.isArray(json.open_orders) ? json.open_orders : [];
-    state.activeOrderId = Number(json.active_order_id || 0) || null;
-    state.forceNewCheck = false;
+
+    var explicitOrderStillExists =
+      explicitOrderId > 0 &&
+      state.openOrders.some(function (order) {
+        return orderId(order) === explicitOrderId;
+      });
+
+    state.activeOrderId = explicitOrderStillExists
+      ? explicitOrderId
+      : null;
+
+    if (!explicitOrderStillExists) {
+      state.orderSelectionExplicitV72 = false;
+    }
+
+    state.forceNewCheck =
+      !state.activeOrderId ||
+      activeOrderStructuralLocked();
 
     var table = json.table || null;
     if (table && state.selectedTable) {
@@ -2795,13 +4678,15 @@ function renderOpenChecks() {
 
       var selectedMeta = selectedButton.querySelector('small');
       if (selectedMeta) {
+        var selectedCapacity = Math.max(
+          0,
+          num(state.selectedTable.capacity, 0)
+        );
+        selectedMeta.hidden = selectedCapacity < 1;
         selectedMeta.textContent =
-          tableStatusLabel(state.selectedTable.status) +
-          (
-            num(state.selectedTable.capacity, 0) > 0
-              ? ' · ' + String(state.selectedTable.capacity) + 's'
-              : ''
-          );
+          selectedCapacity > 0
+            ? String(selectedCapacity) + 's'
+            : '';
       }
     }
 
@@ -2910,6 +4795,110 @@ function renderOpenChecks() {
     renderAll();
   }
 
+  /* PMD_QPOS_PICKUP_ACTIVE_CHECKS_V78
+   * Pickup mirrors a table's check rail: every Received/Preparing collection
+   * order is visible, but nothing is auto-selected. KDS Ready removes the chip
+   * on the next live heartbeat; History remains the long-term record. */
+  function pickupOrdersSignatureV78(orders) {
+    try {
+      return JSON.stringify((orders || []).map(function (order) {
+        return [
+          orderId(order),
+          String(order.status_name || ''),
+          String(order.settlement_status || ''),
+          num(order.total, num(order.order_total, 0)),
+          String(order.updated_at || ''),
+          !!(
+            order.item_mutation &&
+            order.item_mutation.allowed === true
+          ),
+          orderItems(order).map(function (item) {
+            return [
+              Number(item.order_menu_id || item.id || 0),
+              num(item.quantity, 0),
+              num(item.subtotal, 0)
+            ];
+          })
+        ];
+      }));
+    } catch (ignored) {
+      return '';
+    }
+  }
+
+  function applyPickupOrdersV78(orders, force) {
+    if (!Array.isArray(orders)) return false;
+
+    var signature = pickupOrdersSignatureV78(orders);
+    if (!force && signature === state.pickupOrdersSignatureV78) {
+      return false;
+    }
+
+    var selectedId = Number(state.activeOrderId || 0);
+    var hadSelectedId = selectedId > 0;
+
+    state.pickupOrdersSignatureV78 = signature;
+    state.openOrders = orders;
+
+    var selected = selectedId
+      ? state.openOrders.find(function (order) {
+          return orderId(order) === selectedId;
+        }) || null
+      : null;
+
+    if (selected) {
+      state.offPremiseOrder = selected;
+    } else if (hadSelectedId) {
+      state.activeOrderId = null;
+      state.orderSelectionExplicitV72 = false;
+      state.lastQuantityUndoV72 = null;
+      state.offPremiseOrder = null;
+
+      if (state.cart.length) {
+        toast(
+          'Pickup #' + selectedId +
+          ' is Ready. Unsent items remain in the cart as a new Pickup order.'
+        );
+      }
+    } else {
+      state.offPremiseOrder = null;
+    }
+
+    renderCart({orderSwitch: true});
+    renderProducts();
+    return true;
+  }
+
+  async function loadPickupOrdersV78(silent) {
+    if (!state.settings.pickup_data_url) return false;
+
+    try {
+      var json = await fetchJson(
+        String(state.settings.pickup_data_url) +
+        '?_=' + Date.now()
+      );
+
+      if (
+        !json ||
+        json.ok !== true ||
+        !Array.isArray(json.open_orders)
+      ) {
+        throw new Error('Invalid Pickup check data.');
+      }
+
+      applyPickupOrdersV78(json.open_orders, true);
+      return true;
+    } catch (error) {
+      if (!silent) {
+        toast(
+          error.message || 'Pickup orders could not be loaded.',
+          true
+        );
+      }
+      return false;
+    }
+  }
+
   async function selectPickup() {
     if (state.payment.open) {
       toast('Close payment first.', true);
@@ -2917,6 +4906,19 @@ function renderOpenChecks() {
     }
 
     if (state.serviceMode === 'takeaway') {
+      /* Tapping Pickup again while viewing an existing #check returns to a
+       * fresh Pickup without hiding the other active check chips. */
+      if (state.activeOrderId && !state.cart.length) {
+        state.activeOrderId = null;
+        state.orderSelectionExplicitV72 = false;
+        state.lastQuantityUndoV72 = null;
+        state.offPremiseOrder = null;
+        renderCart({orderSwitch: true});
+        renderProducts();
+      }
+
+      loadPickupOrdersV78(true);
+
       var existingHistory = $('[data-qpos-history-modal]');
       if (existingHistory && existingHistory.classList.contains('is-open')) {
         state.historyScope = 'selected';
@@ -2944,13 +4946,17 @@ function renderOpenChecks() {
     state.tableData = null;
     state.openOrders = [];
     state.activeOrderId = null;
+    state.orderSelectionExplicitV72 = false;
+    state.lastQuantityUndoV72 = null;
     state.offPremiseOrder = null;
     state.cart = [];
     state.note = '';
     state.guestCount = 1;
     state.forceNewCheck = false;
+    state.pickupOrdersSignatureV78 = '';
 
     renderAll();
+    loadPickupOrdersV78(false);
 
     var historyWorkspace = $('[data-qpos-history-modal]');
     if (historyWorkspace && historyWorkspace.classList.contains('is-open')) {
@@ -2981,6 +4987,7 @@ function renderOpenChecks() {
     var sentItems = optimisticSentItems(snapshot.cart);
 
     state.activeOrderId = id;
+    state.orderSelectionExplicitV72 = true;
     state.forceNewCheck = false;
 
     if (snapshot.serviceMode === 'dine_in') {
@@ -3014,24 +5021,51 @@ function renderOpenChecks() {
         });
       }
     } else {
+      var existingPickup = state.openOrders.find(function (row) {
+        return orderId(row) === id;
+      }) || state.offPremiseOrder || null;
       var existingItems =
-        state.offPremiseOrder && Array.isArray(state.offPremiseOrder.items)
-          ? state.offPremiseOrder.items
+        existingPickup && Array.isArray(existingPickup.items)
+          ? existingPickup.items
           : [];
 
-      state.offPremiseOrder = Object.assign(
+      var pickupOrder = Object.assign(
         {},
-        state.offPremiseOrder || {},
+        existingPickup || {},
         {
           order_id: id,
           order_total: total,
           total: total,
-          total_items: num(json.total_items, 0),
+          total_items: num(
+            json.total_items,
+            existingPickup && existingPickup.total_items
+              ? existingPickup.total_items
+              : 0
+          ),
           updated_at: json.updated_at || '',
           settlement_status: 'unpaid',
+          item_mutation: Object.assign(
+            {
+              allowed: true,
+              locked: false,
+              payment_started: false,
+              kitchen_started: false
+            },
+            existingPickup && existingPickup.item_mutation
+              ? existingPickup.item_mutation
+              : {}
+          ),
           items: existingItems.concat(sentItems)
         }
       );
+
+      state.openOrders = [
+        pickupOrder
+      ].concat(state.openOrders.filter(function (row) {
+        return orderId(row) !== id;
+      }));
+      state.offPremiseOrder = pickupOrder;
+      state.pickupOrdersSignatureV78 = '';
     }
   }
 
@@ -3136,7 +5170,16 @@ function renderOpenChecks() {
       applyQuickSaveResponse(json, snapshot);
       state.pendingSend = null;
       state.submitting = false;
+
+      /* PMD_QPOS_LOCAL_OCCUPIED_V73
+       * A successful dine-in save should color the table Busy immediately;
+       * the live heartbeat then confirms the authoritative physical state. */
+      if (snapshot.serviceMode === 'dine_in' && snapshot.tableId) {
+        markSelectedTableOccupiedV73(snapshot.tableId);
+      }
+
       renderAll();
+      requestLiveSyncV73(0);
 
       if (!(afterSuccess === 'pay' && state.payment.open)) {
         toast(json.message || 'Order saved');
@@ -3173,7 +5216,13 @@ function renderOpenChecks() {
         Number(state.selectedTable.id) === Number(snapshot.tableId)
       ) {
         setTimeout(function () {
+          state.liveSelectedSignatureV73 = '';
           loadTable(snapshot.tableId, true);
+        }, 0);
+      } else if (snapshot.serviceMode === 'takeaway') {
+        setTimeout(function () {
+          state.pickupOrdersSignatureV78 = '';
+          loadPickupOrdersV78(true);
         }, 0);
       }
     } catch (error) {
@@ -3215,6 +5264,8 @@ function renderOpenChecks() {
     state.note = '';
     state.guestCount = 1;
     state.activeOrderId = null;
+    state.orderSelectionExplicitV72 = false;
+    state.lastQuantityUndoV72 = null;
     state.offPremiseOrder = null;
     state.forceNewCheck = state.serviceMode === 'dine_in';
     renderAll();
@@ -3388,26 +5439,20 @@ function renderOpenChecks() {
 
     if (name) name.textContent = item.name;
     if (meta) {
-      var details = [];
-      if (item.description) details.push(item.description);
-      if (item.allergens && item.allergens.length) {
-        details.push('Allergens: ' + item.allergens.map(function (row) { return row.name; }).join(', '));
-      }
-      meta.textContent = details.join(' · ');
+      /* PMD_QPOS_SIMPLE_OPTIONS_V72
+       * The cashier only needs the option group and tap targets here. Product
+       * description/allergen prose stays out of this fast ordering surface. */
+      meta.textContent = '';
+      meta.hidden = true;
     }
 
     if (box) {
       box.innerHTML = (item.options || []).map(function (group) {
         var selected = state.modifier.selected[String(group.id)] || [];
-        var min = num(group.min, 0);
-        var max = Math.max(1, num(group.max, 1));
-        var requirement = group.required
-          ? 'Required' + (max > 1 ? ' · up to ' + max : '')
-          : (max > 1 ? 'Choose up to ' + max : 'Optional');
 
         return (
           '<section class="pmd-qpos-option-group">' +
-            '<header><strong>' + esc(group.name) + '</strong><span>' + esc(requirement) + '</span></header>' +
+            '<header><strong>' + esc(group.name) + '</strong></header>' +
             '<div class="pmd-qpos-option-grid">' +
               (group.values || []).map(function (value) {
                 var active = selected.indexOf(Number(value.id)) !== -1;
@@ -3416,7 +5461,6 @@ function renderOpenChecks() {
                     ' data-option-group="' + esc(group.id) + '"' +
                     ' data-option-value="' + esc(value.id) + '">' +
                     '<b>' + esc(value.name) + '</b>' +
-                    '<span>' + (num(value.price, 0) ? '+' + money(value.price) : 'Included') + '</span>' +
                   '</button>'
                 );
               }).join('') +
@@ -3532,6 +5576,19 @@ function renderOpenChecks() {
       modal.setAttribute('aria-hidden', 'false');
     }
     root.classList.add('is-payment-workspace');
+
+    pushCustomerDisplay(
+      'payment',
+      {
+        headline: 'Please pay',
+        message:
+          state.payment.method === 'direct_terminal'
+            ? 'Tap or insert your card'
+            : 'Please follow the cashier',
+        amount_due: paymentCharge()
+      },
+      true
+    );
 
     /* PMD_QPOS_CASH_AUTO_FOCUS_V46
      * Payment opens ready for immediate cashier input. */
@@ -3840,6 +5897,8 @@ function renderOpenChecks() {
   }
 
   async function openPayment() {
+    closeTextKeyboard();
+
     if (state.cart.length) {
       toast('Send first.', true);
       return;
@@ -3942,9 +6001,22 @@ function renderOpenChecks() {
 
   function showPaymentError(message) {
     var el = $('[data-qpos-payment-error]');
-    if (!el) return;
-    el.hidden = !message;
-    el.textContent = String(message || '');
+    if (el) {
+      el.hidden = !message;
+      el.textContent = String(message || '');
+    }
+
+    if (message && state.payment.open) {
+      pushCustomerDisplay(
+        'error',
+        {
+          headline: 'Please try again',
+          message: String(message || 'Payment was not completed.'),
+          amount_due: paymentCharge()
+        },
+        true
+      );
+    }
   }
 
   /* PMD_QPOS_PAYMENT_ERROR_STATE_V18
@@ -4704,22 +6776,80 @@ function renderOpenChecks() {
     });
 
     renderPaymentTotals();
+
+    pushCustomerDisplay(
+      'payment',
+      {
+        headline:
+          state.payment.method === 'direct_terminal'
+            ? 'Tap or insert card'
+            : 'Please pay',
+        message:
+          state.payment.method === 'direct_terminal'
+            ? 'Use the payment reader'
+            : 'Please follow the cashier',
+        amount_due: paymentCharge()
+      }
+    );
   }
 
   function finishPaidOrderUi() {
     var paidId = Number(state.activeOrderId || 0);
+    var dineInVisit =
+      state.serviceMode === 'dine_in' &&
+      !!state.selectedTable;
+    var pickupVisit =
+      state.serviceMode === 'takeaway';
 
-    if (paidId > 0) {
-      state.openOrders = state.openOrders.filter(function (row) {
-        return orderId(row) !== paidId;
-      });
-    }
+    if ((dineInVisit || pickupVisit) && paidId > 0) {
+      var paidOrder = activeOrder();
+      if (paidOrder) {
+        paidOrder.settlement_status = 'paid';
+        paidOrder.settled_amount = Math.max(
+          num(paidOrder.settled_amount, 0),
+          orderTotal(paidOrder)
+        );
+        paidOrder.structural_locked = true;
+        paidOrder.item_mutation = Object.assign(
+          {},
+          paidOrder.item_mutation || {},
+          {
+            allowed: false,
+            locked: true,
+            payment_started: true,
+            reason: pickupVisit
+              ? 'Payment completed. This Pickup stays visible until Kitchen marks it Ready.'
+              : 'Payment completed. This bill stays visible until the table is made Free.'
+          }
+        );
+      }
 
-    state.activeOrderId = null;
-    state.forceNewCheck = state.serviceMode === 'dine_in';
+      /* PMD_QPOS_ACTIVE_VISIT_PAID_V78
+       * Payment is financial state, not the check-rail exit. Table checks stay
+       * until Ready/visit lifecycle and Pickup checks stay until KDS Ready. */
+      state.activeOrderId = null;
+      state.orderSelectionExplicitV72 = false;
+      state.forceNewCheck = dineInVisit;
+      state.lastQuantityUndoV72 = null;
 
-    if (state.serviceMode !== 'dine_in') {
-      state.offPremiseOrder = null;
+      if (pickupVisit) {
+        state.offPremiseOrder = null;
+        state.pickupOrdersSignatureV78 = '';
+      }
+    } else {
+      if (paidId > 0) {
+        state.openOrders = state.openOrders.filter(function (row) {
+          return orderId(row) !== paidId;
+        });
+      }
+      state.activeOrderId = null;
+      state.orderSelectionExplicitV72 = false;
+      state.forceNewCheck = state.serviceMode === 'dine_in';
+      state.lastQuantityUndoV72 = null;
+
+      if (state.serviceMode !== 'dine_in') {
+        state.offPremiseOrder = null;
+      }
     }
 
     state.cart = [];
@@ -4980,11 +7110,23 @@ function renderOpenChecks() {
           : 0;
 
       if (settlementPaid) {
+        pushCustomerDisplaySuccess(
+          num(
+            state.payment.summary &&
+            state.payment.summary.settlement &&
+            state.payment.summary.settlement.order_total,
+            paymentCharge()
+          ),
+          'Thank you!'
+        );
+
         if (state.serviceMode !== 'dine_in') {
           state.offPremiseOrder = Object.assign({}, state.offPremiseOrder || {}, {
             settlement_status: 'paid'
           });
         }
+
+        var fiscalWarning = fiscalizationWarningV69(json);
 
         closePayment();
         finishPaidOrderUi();
@@ -4995,7 +7137,10 @@ function renderOpenChecks() {
           }, 0);
         }
 
-        toast('Paid');
+        toast(
+          fiscalWarning || 'Paid',
+          !!fiscalWarning
+        );
       } else {
         if (paidTableId) {
           setTimeout(function () {
@@ -5014,6 +7159,24 @@ function renderOpenChecks() {
       state.payment.submitting = false;
       renderPaymentTotals();
     }
+  }
+
+  /* PMD_GERMANY_FISCAL_NOTICE_V69
+   * Payment success and TSE success are intentionally separate. Never tell the
+   * cashier that a fiscalization failure means the card/cash payment failed. */
+  function fiscalizationWarningV69(payload) {
+    var fiscal = payload && payload.fiscalization
+      ? payload.fiscalization
+      : null;
+
+    if (!fiscal || fiscal.required !== true || fiscal.ok !== false) {
+      return '';
+    }
+
+    return String(
+      fiscal.message ||
+      'Payment recorded. TSE fiscalization requires reconciliation.'
+    );
   }
 
   /* PMD_QPOS_TERMINAL_TIP_RUNTIME_V46
@@ -5101,6 +7264,15 @@ function renderOpenChecks() {
 
       if (status === 'paid') {
         await loadPaymentSummary(true);
+        pushCustomerDisplaySuccess(
+          num(
+            state.payment.summary &&
+            state.payment.summary.settlement &&
+            state.payment.summary.settlement.order_total,
+            paymentCharge()
+          ),
+          'Thank you!'
+        );
         setSelectedTablePaymentSignal('paid', 0);
         var terminalPaidTableId =
           state.serviceMode === 'dine_in' && state.selectedTable
@@ -5111,12 +7283,18 @@ function renderOpenChecks() {
           ? num(state.payment.terminalTipAmount, 0)
           : null;
 
+        var fiscalWarning = fiscalizationWarningV69(result);
+
         closePayment();
         finishPaidOrderUi();
         toast(
-          terminalTipPaid !== null && terminalTipPaid > 0.0001
-            ? 'Paid · Tip ' + money(terminalTipPaid)
-            : 'Paid'
+          fiscalWarning ||
+            (
+              terminalTipPaid !== null && terminalTipPaid > 0.0001
+                ? 'Paid · Tip ' + money(terminalTipPaid)
+                : 'Paid'
+            ),
+          !!fiscalWarning
         );
 
         if (terminalPaidTableId) {
@@ -5201,6 +7379,9 @@ function renderOpenChecks() {
     if (kind === 'calls') {
       return ['waiter_call', 'table_status', 'status'].indexOf(entryKind) !== -1;
     }
+    if (kind === 'attention') {
+      return ['waiter_call', 'table_note'].indexOf(entryKind) !== -1;
+    }
     return true;
   }
 
@@ -5238,7 +7419,7 @@ function renderOpenChecks() {
       '<span><b>' + esc(orders) + '</b> orders</span>' +
       '<span><b>' + esc(payments) + '</b> payments</span>' +
       '<span><b>' + esc(notes) + '</b> notes</span>' +
-      (calls ? '<span class="is-attention"><b>' + esc(calls) + '</b> calls</span>' : '');
+      (calls ? '<span><b>' + esc(calls) + '</b> calls</span>' : '');
   }
 
   /* PMD_QPOS_HISTORY_CLARITY_V20
@@ -5309,7 +7490,7 @@ function renderOpenChecks() {
 
     var item = {
       kind: kind,
-      title: 'Activity',
+      title: 'History event',
       value: '',
       note: '',
       meta: [],
@@ -5407,7 +7588,7 @@ function renderOpenChecks() {
       return item;
     }
 
-    item.title = String(entry.title || 'Activity')
+    item.title = String(entry.title || 'History event')
       .replace(/\s*·\s*Order\s*#\d+/i, '');
     item.note = String(entry.detail || '');
     return item;
@@ -5500,6 +7681,21 @@ function renderOpenChecks() {
     );
   }
 
+  function historyItemSummaryMarkupV83(value) {
+    return String(value || '')
+      .split(',')
+      .map(function (part) {
+        return part.trim();
+      })
+      .filter(Boolean)
+      .map(function (part) {
+        return '<span class="pmd-qpos-history-item-chip-v83">' +
+          esc(part) +
+        '</span>';
+      })
+      .join('');
+  }
+
   function renderHistoryDetail(orderId) {
     var detail = $('[data-qpos-history-detail]');
     if (!detail) return;
@@ -5510,7 +7706,7 @@ function renderOpenChecks() {
     if (!orderId || !state.historyData) {
       detail.innerHTML =
         '<div class="pmd-qpos-history-empty">' +
-          'Select an order to see its payments and activity.' +
+          'Select an order to see its payments and notes.' +
         '</div>';
       return;
     }
@@ -5529,14 +7725,27 @@ function renderOpenChecks() {
       return;
     }
 
-    var invoiceUrl = String(
-      order.invoice_url || ('/admin/orders/invoice/' + encodeURIComponent(orderId))
-    );
     var settlement = String(order.settlement_status || '').trim();
+    var invoiceUrl = String(order.invoice_url || '');
+    var invoiceReady =
+      !!invoiceUrl &&
+      ['paid', 'settled', 'closed'].indexOf(
+        settlement.toLowerCase()
+      ) !== -1;
+    /* PMD_QPOS_HISTORY_DOCUMENT_ACTIONS_V75
+     * Invoice opens the canonical document. Print uses the same document with
+     * an explicit print request so browser/Desktop print handling stays on the
+     * invoice page instead of duplicating receipt rendering inside Quick POS. */
+    var printInvoiceUrl = invoiceReady
+      ? invoiceUrl +
+        (invoiceUrl.indexOf('?') === -1 ? '?' : '&') +
+        'print=1'
+      : '';
     var settlementLabel = historySettlementLabel(settlement);
     var settlementTone = historySettlementTone(settlement);
     var total = order.total != null ? money(order.total) : '';
     var itemSummary = String(order.item_summary || '').trim();
+    var itemSummaryMarkupV83 = historyItemSummaryMarkupV83(itemSummary);
     var orderNote = String(order.note || '').trim();
 
     var rawEvents = entries.filter(function (entry) {
@@ -5556,61 +7765,64 @@ function renderOpenChecks() {
       })
     );
 
-    var activityEvents = historyGroupedEvents(
-      rawEvents.filter(function (entry) {
-        return ['status', 'table_status']
-          .indexOf(String(entry.kind || '')) !== -1;
-      })
-    );
-
+    /* PMD_QPOS_HISTORY_ORDER_CARD_V84
+     * The order is the first section card, using the same visual grammar as
+     * Payments. The old standalone "Order" eyebrow/header is intentionally gone. */
     detail.innerHTML =
-      '<div class="pmd-qpos-history-order-head pmd-qpos-history-order-head-v20">' +
-        '<div class="pmd-qpos-history-order-identity">' +
-          '<span>Order</span>' +
-          '<h3>#' + esc(orderId) + '</h3>' +
-        '</div>' +
-        '<div class="pmd-qpos-history-order-facts">' +
-          (total
-            ? '<strong>' + esc(total) + '</strong>'
-            : '') +
-          (settlementLabel
-            ? '<span class="is-' + esc(settlementTone) + '">' +
-                esc(settlementLabel) +
-              '</span>'
-            : '') +
-          '<time>' + esc(historyShortTime(order.time)) + '</time>' +
-        '</div>' +
-        '<a class="pmd-qpos-history-invoice" href="' + esc(invoiceUrl) +
-          '" target="_blank" rel="noopener">Open invoice</a>' +
-      '</div>' +
-      ((itemSummary || orderNote)
-        ? '<div class="pmd-qpos-history-order-overview">' +
+      '<div class="pmd-qpos-history-sections pmd-qpos-history-sections-v84">' +
+        '<section class="pmd-qpos-history-section pmd-qpos-history-order-card-v84">' +
+          '<header>' +
+            '<strong>#' + esc(orderId) + '</strong>' +
+            (settlementLabel
+              ? '<span class="pmd-qpos-history-order-status-v84 is-' +
+                  esc(settlementTone) + '">' +
+                  esc(settlementLabel) +
+                '</span>'
+              : '') +
+          '</header>' +
+          '<article class="pmd-qpos-history-order-event-v84">' +
+            '<div class="pmd-qpos-history-simple-main pmd-qpos-history-order-main-v84">' +
+              '<div>' +
+                (total
+                  ? '<strong>' + esc(total) + '</strong>'
+                  : '') +
+              '</div>' +
+              '<time>' + esc(historyShortTime(order.time)) + '</time>' +
+            '</div>' +
             (itemSummary
-              ? '<div><span>Items</span><p>' + esc(itemSummary) + '</p></div>'
+              ? '<div class="pmd-qpos-history-order-items-v84">' +
+                  '<span>Items</span>' +
+                  '<div class="pmd-qpos-history-item-chips-v83">' +
+                    itemSummaryMarkupV83 +
+                  '</div>' +
+                '</div>'
               : '') +
             (orderNote
-              ? '<div><span>Note</span><p>' + esc(orderNote) + '</p></div>'
+              ? '<div class="pmd-qpos-history-order-note-v84">' +
+                  '<span>Note</span>' +
+                  '<p>' + esc(orderNote) + '</p>' +
+                '</div>'
               : '') +
-          '</div>'
-        : '') +
-      '<div class="pmd-qpos-history-sections">' +
+            (invoiceReady
+              ? '<div class="pmd-qpos-history-document-actions-v75 pmd-qpos-history-document-actions-v84">' +
+                  '<a class="pmd-qpos-history-invoice" href="' + esc(invoiceUrl) +
+                    '" target="_blank" rel="noopener">Invoice</a>' +
+                  '<a class="pmd-qpos-history-invoice pmd-qpos-history-print-v75" href="' +
+                    esc(printInvoiceUrl) +
+                    '" target="_blank" rel="noopener">Print</a>' +
+                '</div>'
+              : '') +
+          '</article>' +
+        '</section>' +
         historySection('Payments', paymentEvents) +
         historySection('Notes & calls', noteEvents) +
-        historySection('Activity', activityEvents) +
-        (
-          !paymentEvents.length &&
-          !noteEvents.length &&
-          !activityEvents.length
-            ? '<div class="pmd-qpos-history-empty">No linked activity.</div>'
-            : ''
-        ) +
       '</div>';
   }
 
   function historyListCompact(entry) {
     var kind = String(entry.kind || 'event');
     var orderId = Number(entry.order_id || 0);
-    var title = String(entry.title || 'Activity');
+    var title = String(entry.title || 'History event');
     var line = '';
     var badge = '';
     var badgeTone = 'neutral';
@@ -5644,6 +7856,146 @@ function renderOpenChecks() {
     };
   }
 
+  async function markHistoryAttentionSeenV64(notificationId, kind, tableId, control) {
+    notificationId = Number(notificationId || 0);
+    tableId = Number(tableId || 0);
+    if (!notificationId) return;
+
+    if (control) {
+      control.setAttribute('aria-busy', 'true');
+      control.classList.add('is-loading');
+    }
+
+    try {
+      var url = tokenUrl(
+        state.settings.attention_seen_url ||
+          '/admin/pos/attention/{notification}/seen',
+        '{notification}',
+        notificationId
+      );
+
+      await fetchJson(url, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({status: 'seen'})
+      });
+
+      /* PMD_QPOS_HISTORY_SEEN_SYNC_V64
+       * Update this screen instantly. The server row is shared, so other
+       * staff clients lose "new" on their next notification refresh too. */
+      historyEntries(state.historyData).forEach(function (entry) {
+        if (Number(entry.notification_id || 0) === notificationId) {
+          entry.status = 'seen';
+          entry.is_new = false;
+          entry.seen_at = new Date().toISOString();
+        }
+      });
+
+      if (tableId > 0) {
+        state.tables = state.tables.map(function (table) {
+          if (Number(table.id || 0) !== tableId) return table;
+
+          var next = Object.assign({}, table);
+          if (kind === 'waiter_call') {
+            next.waiter_calls = Math.max(0, num(next.waiter_calls, 0) - 1);
+          } else if (kind === 'table_note') {
+            next.note_count = Math.max(0, num(next.note_count, 0) - 1);
+          }
+
+          /* PMD_QPOS_SEEN_DOES_NOT_FREE_V76
+           * Seen acknowledges the service signal only. The physical visit stays
+           * Busy until Cashier/Waiter explicitly presses Free. */
+          if (next.derived_busy) {
+            next.status = 'occupied';
+          }
+
+          return next;
+        });
+
+        if (
+          state.selectedTable &&
+          Number(state.selectedTable.id || 0) === tableId
+        ) {
+          var selectedFresh = state.tables.find(function (table) {
+            return Number(table.id || 0) === tableId;
+          });
+          if (selectedFresh) {
+            state.selectedTable = Object.assign(
+              {},
+              state.selectedTable,
+              selectedFresh
+            );
+          }
+        }
+      }
+
+      renderTables();
+      renderHistory(state.historyData);
+      toast('Seen');
+
+      /* Keep the current bell/new-count in sync immediately. Other staff
+       * clients receive the shared DB status on their normal notification poll. */
+      fetchJson('/admin/notifications-api/count?_=' + Date.now())
+        .then(function (countJson) {
+          window.dispatchEvent(new CustomEvent('pmd:notification:count', {
+            detail: {count: Math.max(0, num(countJson.new, 0))}
+          }));
+        })
+        .catch(function () {});
+
+      try {
+        window.dispatchEvent(new CustomEvent('pmd:notification:seen', {
+          detail: {
+            notification_id: notificationId,
+            table_id: tableId,
+            kind: kind
+          }
+        }));
+      } catch (ignored) {
+      }
+
+      // Reconcile against shared server authority without blocking the click.
+      bootstrap(true);
+    } catch (error) {
+      toast(error.message || 'Could not mark as seen.', true);
+      if (control) {
+        control.removeAttribute('aria-busy');
+        control.classList.remove('is-loading');
+      }
+    }
+  }
+
+  function historySearchMatchesV84(entry, query) {
+    query = String(query || '').trim().toLowerCase();
+    if (!query) return true;
+
+    entry = entry || {};
+    var compact = historyListCompact(entry);
+    var values = [
+      entry.order_id,
+      entry.title,
+      entry.detail,
+      entry.item_summary,
+      entry.note,
+      entry.payment_method,
+      entry.payment_note,
+      entry.status_name,
+      entry.settlement_status,
+      entry.payer_label,
+      compact.title,
+      compact.line,
+      compact.badge,
+      formatHistoryTime(entry.time)
+    ];
+
+    return values
+      .map(function (value) {
+        return String(value == null ? '' : value).toLowerCase();
+      })
+      .join(' ')
+      .indexOf(query) !== -1;
+  }
+
   function renderHistory(json) {
     var list = $('[data-qpos-history-list]');
     var title = $('[data-qpos-history-title]');
@@ -5671,6 +8023,14 @@ function renderOpenChecks() {
       });
     }
 
+    /* PMD_QPOS_HISTORY_SEARCH_V84 */
+    var historyQueryV84 = String(state.historySearch || '').trim();
+    if (historyQueryV84) {
+      entries = entries.filter(function (entry) {
+        return historySearchMatchesV84(entry, historyQueryV84);
+      });
+    }
+
     if (!entries.length) {
       list.innerHTML =
         '<div class="pmd-qpos-history-empty">No matching history.</div>';
@@ -5684,11 +8044,25 @@ function renderOpenChecks() {
         orderId &&
         Number(state.historySelectedOrderId || 0) === orderId;
       var row = historyListCompact(entry);
+      var notificationId = Number(entry.notification_id || 0);
+      var attentionKind =
+        String(entry.kind || '') === 'waiter_call' ||
+        String(entry.kind || '') === 'table_note';
+      var isNewAttention =
+        attentionKind &&
+        notificationId > 0 &&
+        (
+          entry.is_new === true ||
+          String(entry.status || '').toLowerCase() === 'new' ||
+          String(entry.status || '') === ''
+        );
 
       return (
         '<button type="button" class="pmd-qpos-history-entry pmd-qpos-history-entry-v20' +
-          (selected ? ' is-selected' : '') + '"' +
+          (selected ? ' is-selected' : '') +
+          (isNewAttention ? ' is-new-attention is-new-' + esc(entry.kind || '') : '') + '"' +
           ' data-kind="' + esc(entry.kind || 'event') + '"' +
+          (notificationId ? ' data-qpos-history-notification="' + esc(notificationId) + '"' : '') +
           (orderId ? ' data-qpos-history-order="' + esc(orderId) + '"' : '') + '>' +
           '<div class="pmd-qpos-history-entry-top">' +
             '<strong>' + esc(row.title) + '</strong>' +
@@ -5697,16 +8071,46 @@ function renderOpenChecks() {
           '<div class="pmd-qpos-history-entry-bottom">' +
             (row.line
               ? '<span>' + esc(row.line) + '</span>'
-              : '<span class="is-muted">Activity</span>') +
+              : '') +
             (row.badge
               ? '<b class="is-' + esc(row.badgeTone) + '">' +
                   esc(row.badge) +
                 '</b>'
               : '') +
+            (isNewAttention
+              ? '<span class="pmd-qpos-history-new-pill">NEW</span>' +
+                '<span class="pmd-qpos-history-seen-action" role="button" tabindex="0"' +
+                  ' data-qpos-history-seen="' + esc(notificationId) + '"' +
+                  ' data-qpos-history-seen-kind="' + esc(entry.kind || '') + '"' +
+                  ' data-qpos-history-seen-table="' + esc(Number(entry.table_id || 0)) + '">' +
+                  'Seen' +
+                '</span>'
+              : '') +
           '</div>' +
         '</button>'
       );
     }).join('');
+
+    $$('[data-qpos-history-seen]', list).forEach(function (control) {
+      var runSeen = function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        markHistoryAttentionSeenV64(
+          control.getAttribute('data-qpos-history-seen'),
+          control.getAttribute('data-qpos-history-seen-kind'),
+          control.getAttribute('data-qpos-history-seen-table'),
+          control
+        );
+      };
+
+      control.onclick = runSeen;
+      control.onkeydown = function (event) {
+        if (event.key === 'Enter' || event.key === ' ') {
+          runSeen(event);
+        }
+      };
+    });
 
     $$('[data-qpos-history-order]', list).forEach(function (button) {
       button.onclick = function () {
@@ -5792,17 +8196,125 @@ function renderOpenChecks() {
       selection = {scope: 'all', tableId: 0};
     }
 
+    var from = state.historyFrom || '';
+    var to = state.historyTo || '';
+
     return {
       requested: requested,
       selection: selection,
+      from: from,
+      to: to,
       key: [
         requested,
         selection.scope,
         Number(selection.tableId || 0),
-        state.historyFrom || '',
-        state.historyTo || ''
+        from,
+        to
       ].join('|')
     };
+  }
+
+  /* PMD_QPOS_HISTORY_CACHE_V83 */
+  var PMD_QPOS_HISTORY_CACHE_TTL_V83 = 30000;
+
+  function historyContextForTableV83(tableId) {
+    tableId = Number(tableId || 0);
+    var from = state.historyFrom || '';
+    var to = state.historyTo || '';
+
+    return {
+      requested: 'selected',
+      selection: {scope: 'table', tableId: tableId},
+      from: from,
+      to: to,
+      key: ['selected', 'table', tableId, from, to].join('|')
+    };
+  }
+
+  function historyCacheGetV83(key) {
+    key = String(key || '');
+    var row = state.historyCacheV83[key];
+    if (!row) return null;
+
+    if (
+      (Date.now() - Number(row.saved_at || 0)) >
+      PMD_QPOS_HISTORY_CACHE_TTL_V83
+    ) {
+      delete state.historyCacheV83[key];
+      return null;
+    }
+
+    return row.payload || null;
+  }
+
+  function historyCachePutV83(key, payload) {
+    key = String(key || '');
+    if (!key || !payload) return;
+
+    state.historyCacheV83[key] = {
+      saved_at: Date.now(),
+      payload: payload
+    };
+  }
+
+  function fetchHistoryContextV83(context, force) {
+    if (!state.settings.history_url || !context) {
+      return Promise.resolve(null);
+    }
+
+    var key = String(context.key || '');
+
+    if (!force) {
+      var cached = historyCacheGetV83(key);
+      if (cached) return Promise.resolve(cached);
+    }
+
+    if (state.historyFetchesV83[key]) {
+      return state.historyFetchesV83[key];
+    }
+
+    var url = String(state.settings.history_url);
+    var params = new URLSearchParams();
+    params.set('scope', context.selection.scope);
+    params.set('limit', '500');
+
+    if (context.selection.tableId) {
+      params.set('table_id', String(context.selection.tableId));
+    }
+    if (context.from) params.set('from', context.from);
+    if (context.to) params.set('to', context.to);
+
+    var pending = fetchJson(
+      url + '?' + params.toString() + '&_=' + Date.now()
+    ).then(function (json) {
+      historyCachePutV83(key, json);
+      return json;
+    }).finally(function () {
+      delete state.historyFetchesV83[key];
+    });
+
+    state.historyFetchesV83[key] = pending;
+    return pending;
+  }
+
+  function prefetchHistoryForTableV83(tableId) {
+    tableId = Number(tableId || 0);
+    if (!tableId) return;
+
+    var modal = $('[data-qpos-history-modal]');
+    if (!modal || !modal.classList.contains('is-open')) return;
+
+    var context = historyContextForTableV83(tableId);
+    if (
+      historyCacheGetV83(context.key) ||
+      state.historyFetchesV83[context.key]
+    ) {
+      return;
+    }
+
+    fetchHistoryContextV83(context, false).catch(function () {
+      /* Opportunistic History prefetch has no user-facing error. */
+    });
   }
 
   async function loadHistory(scopeMode, options) {
@@ -5819,14 +8331,22 @@ function renderOpenChecks() {
     state.historyLoading = true;
 
     var list = $('[data-qpos-history-list]');
+    var cachedHistoryV83 =
+      options.cache === false
+        ? null
+        : historyCacheGetV83(requestKey);
     var preserveExisting =
+      !!cachedHistoryV83 ||
       options.preserve === true ||
       (
         options.preserve !== false &&
         !!state.historyData
       );
 
-    if (list && !preserveExisting) {
+    if (cachedHistoryV83) {
+      state.historyDataKey = requestKey;
+      renderHistory(cachedHistoryV83);
+    } else if (list && !preserveExisting) {
       list.innerHTML =
         '<div class="pmd-qpos-history-empty">Loading history…</div>';
     }
@@ -5839,21 +8359,13 @@ function renderOpenChecks() {
     });
 
     try {
-      var url = String(state.settings.history_url);
-      var params = new URLSearchParams();
-      params.set('scope', selection.scope);
-      params.set('limit', '500');
-      if (selection.tableId) {
-        params.set('table_id', String(selection.tableId));
-      }
-      if (state.historyFrom) params.set('from', state.historyFrom);
-      if (state.historyTo) params.set('to', state.historyTo);
+      /* Always revalidate server authority after an instant cached paint. */
+      var json = await fetchHistoryContextV83(context, true);
 
-      var json = await fetchJson(
-        url + '?' + params.toString() + '&_=' + Date.now()
-      );
-
-      if (requestSeq !== state.historyRequestSeq) {
+      if (
+        requestSeq !== state.historyRequestSeq ||
+        !json
+      ) {
         return false;
       }
 
@@ -5900,17 +8412,20 @@ function renderOpenChecks() {
       !!state.historyData &&
       state.historyDataKey === context.key;
 
-    if (!hasCurrentData) {
-      await loadHistory(requested, {preserve: false});
-    }
-
+    /* PMD_QPOS_HISTORY_OPEN_IMMEDIATE_V77
+     * Open the workspace before the network request. A cold History click now
+     * paints immediately with its loading row instead of appearing to ignore
+     * the operator until /admin/pos/history has finished. */
     root.classList.add('is-history-workspace');
     modal.classList.add('is-open');
     modal.setAttribute('aria-hidden', 'false');
 
-    if (hasCurrentData) {
-      loadHistory(requested, {preserve: true});
+    if (!hasCurrentData) {
+      await loadHistory(requested, {preserve: false});
+      return;
     }
+
+    loadHistory(requested, {preserve: true});
   }
 
   /* PMD_QPOS_TEXT_KEYBOARD_V1
@@ -6128,8 +8643,38 @@ function renderOpenChecks() {
         return row;
       });
 
+      /* PMD_QPOS_VISIT_RELEASE_V71
+       * Settled checks stay in the active table overview until this explicit
+       * Free transition. At that point they become history-only immediately. */
+      if (
+        ['available', 'free'].indexOf(
+          String(state.selectedTable.status || '').toLowerCase()
+        ) !== -1
+      ) {
+        state.openOrders = state.openOrders.filter(function (order) {
+          var settlement = String(order.settlement_status || '').toLowerCase();
+          return ['paid', 'settled', 'closed'].indexOf(settlement) === -1;
+        });
+
+        if (
+          state.activeOrderId &&
+          !state.openOrders.some(function (order) {
+            return orderId(order) === Number(state.activeOrderId);
+          })
+        ) {
+          state.activeOrderId = state.openOrders.length
+            ? orderId(state.openOrders[0])
+            : null;
+        }
+
+        state.forceNewCheck =
+          !!state.activeOrderId &&
+          activeOrderStructuralLocked();
+      }
+
       renderTables();
       renderContext();
+      renderCart({orderSwitch: true});
       toast(json.status_label || 'Table updated');
     } catch (error) {
       toast(error.message || 'Table status could not be changed.', true);
@@ -6432,6 +8977,7 @@ function renderOpenChecks() {
     var historyClose = $('[data-qpos-history-close]');
 
     if (historyOpen) historyOpen.onclick = function () {
+      setHistoryKindV57('orders');
       openHistory('selected');
     };
     if (historyClose) historyClose.onclick = closeHistory;
@@ -6456,27 +9002,30 @@ function renderOpenChecks() {
       };
     });
 
+    /* PMD_QPOS_INIT_BINDINGS_SAFE_V63
+     * $() returns one element; history kind buttons are a collection. */
     $$('[data-qpos-history-kind]').forEach(function (button) {
       button.onclick = function () {
-        state.historyKind =
-          button.getAttribute('data-qpos-history-kind') || 'orders';
+        setHistoryKindV57(
+          button.getAttribute('data-qpos-history-kind') || 'orders'
+        );
+      };
+    });
 
-        $$('[data-qpos-history-kind]').forEach(function (row) {
-          row.classList.toggle(
-            'is-active',
-            row === button
-          );
-        });
+    var historyFrom = $('[data-qpos-history-from]');
+    var historyTo = $('[data-qpos-history-to]');
+    var historySearchV84 = $('[data-qpos-history-search]');
+
+    if (historySearchV84) {
+      historySearchV84.oninput = function () {
+        state.historySearch = String(historySearchV84.value || '');
 
         if (state.historyData) {
           state.historySelectedOrderId = null;
           renderHistory(state.historyData);
         }
       };
-    });
-
-    var historyFrom = $('[data-qpos-history-from]');
-    var historyTo = $('[data-qpos-history-to]');
+    }
 
     if (historyFrom) historyFrom.onchange = function () {
       state.historyFrom = historyFrom.value || '';
@@ -6543,6 +9092,101 @@ function renderOpenChecks() {
 
     configureTextKeyboardTargets();
     window.addEventListener('resize', configureTextKeyboardTargets);
+
+    /* PMD_QPOS_ORIENTATION_BINDINGS_V86 */
+    releaseWebOrientationLockV86();
+    syncOrientationV86();
+
+    window.addEventListener('resize', syncOrientationV86, {passive: true});
+    window.addEventListener('orientationchange', function () {
+      releaseWebOrientationLockV86();
+      window.setTimeout(syncOrientationV86, 80);
+      window.setTimeout(syncOrientationV86, 260);
+    }, {passive: true});
+
+    if (
+      window.screen &&
+      window.screen.orientation &&
+      typeof window.screen.orientation.addEventListener === 'function'
+    ) {
+      window.screen.orientation.addEventListener('change', syncOrientationV86);
+    }
+
+    /* PMD_QPOS_GUIDE_AUTO_CLOSE_V57
+     * One outside/inside action is enough: any pointer action away from the
+     * summary toggle closes the guide before the requested action continues. */
+    document.addEventListener('pointerdown', function (event) {
+      Array.prototype.slice.call(
+        document.querySelectorAll('.pmd-qpos-guide-menu[open]')
+      ).forEach(function (guide) {
+        var toggle = guide.querySelector('.pmd-qpos-guide-toggle');
+        if (
+          toggle &&
+          (
+            event.target === toggle ||
+            (toggle.contains && toggle.contains(event.target))
+          )
+        ) {
+          return;
+        }
+        guide.open = false;
+      });
+    }, true);
+
+    /* PMD_QPOS_MANUAL_ACTIVITY_PAUSE_V62
+     * Any real operator activity postpones attention auto-return. Programmatic
+     * rail scrolling does not emit these input events, so it cannot self-pause. */
+    ['pointerdown', 'touchstart', 'wheel'].forEach(function (eventName) {
+      document.addEventListener(eventName, function () {
+        if (state.attentionScrollFrame) {
+          window.cancelAnimationFrame(state.attentionScrollFrame);
+          state.attentionScrollFrame = null;
+        }
+        pauseAttentionCycleV57(2800);
+      }, {passive: true, capture: true});
+    });
+
+    document.addEventListener('keydown', function () {
+      pauseAttentionCycleV57(2800);
+    }, true);
+
+    window.addEventListener(
+      'pmd:notification:new',
+      applyPushAttentionV57
+    );
+
+    window.addEventListener('pmd:notification:new', function () {
+      requestLiveSyncV73(120);
+    });
+
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'hidden') {
+        stopLiveSyncTimerV73();
+        stopAttentionCycleTimerV79();
+        return;
+      }
+      requestLiveSyncV73(0);
+      scheduleAttentionCycleV79();
+    });
+
+    window.addEventListener('focus', function () {
+      requestLiveSyncV73(0);
+    });
+
+    window.addEventListener('beforeunload', function () {
+      stopLiveSyncTimerV73();
+      stopAttentionCycleTimerV79();
+      if (state.attentionResumeTimer) {
+        window.clearTimeout(state.attentionResumeTimer);
+        state.attentionResumeTimer = null;
+      }
+      if (state.attentionScrollFrame) {
+        window.cancelAnimationFrame(state.attentionScrollFrame);
+        state.attentionScrollFrame = null;
+      }
+    });
+
+    startAttentionCycleV57();
 
     document.addEventListener('pointerdown', function (event) {
       var keyboard = $('[data-qpos-text-keyboard]');
@@ -6667,6 +9311,7 @@ function renderOpenChecks() {
     };
 
     startClock();
+    installCustomerDisplayControls();
 
     window.addEventListener('keydown', function (event) {
       if (event.key === 'Escape') {
@@ -6693,6 +9338,7 @@ function renderOpenChecks() {
   }
 
   bind();
+  startLiveSyncV73();
 
   if (!hasInlineBootstrap) {
     bootstrap(true);
@@ -6701,11 +9347,14 @@ function renderOpenChecks() {
   window.PMDQuickPOSV1 = {
     state: state,
     refresh: function () { return bootstrap(false); },
+    refreshLive: function () { return refreshLiveStateV73(true); },
     selectTable: selectTable,
     newCheck: newCheck,
     openPayment: openPayment,
     openFloorMap: openFloorMap,
-    // PMD_QPOS_NATIVE_LOCAL_TRANSPORT_V18
+
+    // PMD_QPOS_NATIVE_TRANSPORT_ONLY_SWITCH_V18
+    // Connectivity changes never replace/reload this canonical UI.
     setNativeOffline: function (enabled) {
       window.__PMD_NATIVE_OFFLINE__ = enabled === true;
       setOnline(!window.__PMD_NATIVE_OFFLINE__);
@@ -6715,18 +9364,32 @@ function renderOpenChecks() {
       );
       hideToast();
 
-      // PMD_QPOS_NATIVE_TRANSPORT_ONLY_SWITCH_V18
-      // A connectivity change must not repaint the cashier's workspace. Keep
-      // the exact selected table, cart, scroll position and open modal. The
-      // next real POS action reads/writes through the new authority.
+      if (window.__PMD_NATIVE_OFFLINE__) {
+        stopLiveSyncTimerV73();
+      } else {
+        state.liveSyncFailuresV73 = 0;
+        state.liveTablesSignatureV73 = '';
+        state.liveSelectedSignatureV73 = '';
+        startLiveSyncV73();
+      }
+
       return Promise.resolve(true);
     },
     refreshNativeState: function () {
       if (!nativeLocalTransportAvailable()) return Promise.resolve(false);
-
-      // Refresh only after local durable state actually changed (for example
-      // sync acknowledgement). This is event-driven, never timer-driven.
       return bootstrap(true);
+    },
+    customerDisplay: {
+      refresh: function () {
+        pushCustomerDisplay(
+          state.payment.open ? 'payment' : 'order',
+          {},
+          true
+        );
+      },
+      idle: function () {
+        pushCustomerDisplayIdle(true);
+      }
     }
   };
 })();
