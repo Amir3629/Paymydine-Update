@@ -182,6 +182,23 @@ class SyncEngine(
                     )
                 } else {
                     app.syncRepository.acknowledge(command.commandId)
+
+                    // PMD_ANDROID_DEPENDENT_COMMAND_RELOAD_V101
+                    // applyCommandResult may have rebound a queued CASH command
+                    // from local:<uuid> to order:<serverId>. The current loop
+                    // was loaded before that rewrite, so never execute its stale
+                    // in-memory envelope in the same pass. Defer it by command
+                    // id and reload the canonical routing on the next pass.
+                    if (
+                        command.aggregate == "order" &&
+                        command.aggregateId.startsWith("local:") &&
+                        command.commandType in setOf(
+                            "ORDER_SEND_V1",
+                            "ORDER_HOLD_V1",
+                        )
+                    ) {
+                        blockedAggregates += command.aggregateId
+                    }
                 }
             } catch (error: MobileApiException) {
                 when {
