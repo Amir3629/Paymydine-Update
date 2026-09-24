@@ -437,6 +437,15 @@ class PosActivity : ComponentActivity() {
                             // A redirect back to Login means the server did not
                             // create/accept the POS Admin session. Never recurse
                             // into /mobile/pos/open from the same WebView cookie.
+                            // PMD_ANDROID_POS_LOGIN_REDIRECT_LOCAL_V20
+                            // Losing the Cloud browser session must not terminate
+                            // a still-valid local restaurant work session.
+                            app.credentials.clearWorkspaceLease("pos")
+                            if (offlinePosAvailable()) {
+                                enterLocalMode("Opening PayMyDine POS...")
+                                return true
+                            }
+
                             app.credentials.clearStaffSession()
                             startActivity(
                                 Intent(
