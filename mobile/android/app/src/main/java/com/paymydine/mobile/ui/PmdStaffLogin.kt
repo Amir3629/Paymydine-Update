@@ -56,8 +56,19 @@ fun PmdStaffLogin(
     var busy by remember { mutableStateOf(false) }
     var clearPassword by remember { mutableStateOf(false) }
     var cloudUnavailable by remember { mutableStateOf(false) }
+    var pendingCredentialUsername by remember {
+        mutableStateOf<String?>(null)
+    }
+    var pendingCredentialSecret by remember {
+        mutableStateOf<String?>(null)
+    }
 
     val remembered = app.credentials.staffSession()
+    val offlineCredentialAvailable =
+        app.credentials.offlineLoginAvailable()
+    val rememberedUsername =
+        remembered?.username
+            ?: app.credentials.offlineLoginUsername().orEmpty()
 
     // PMD_ANDROID_LOGIN_NO_OFFLINE_BUTTON_V20
     // A valid remembered POS session is resumed by PayMyDineApp itself.
@@ -70,7 +81,7 @@ fun PmdStaffLogin(
         credentialMode = "staff",
         online = online,
         busy = busy,
-        username = remembered?.username.orEmpty(),
+        username = rememberedUsername,
         requestCode = requestCode,
         error = error,
         clearPassword = clearPassword,
@@ -78,6 +89,7 @@ fun PmdStaffLogin(
         offlineText = "",
         offlineLabel = "",
         allowCancel = pendingRequest != null,
+        allowOfflineCredentialSubmit = offlineCredentialAvailable,
     )
 
     LaunchedEffect(pendingRequest, online) {
@@ -111,6 +123,21 @@ fun PmdStaffLogin(
                 "authorized" -> {
                     val authorization = result.authorization
                     if (authorization != null) {
+                        val submittedUsername =
+                            pendingCredentialUsername.orEmpty()
+                        val submittedSecret =
+                            pendingCredentialSecret.orEmpty()
+                        if (submittedSecret.isNotEmpty()) {
+                            withContext(Dispatchers.Default) {
+                                app.credentials.rememberOfflineLogin(
+                                    authorization.toStaffSession(),
+                                    submittedUsername,
+                                    submittedSecret,
+                                )
+                            }
+                        }
+                        pendingCredentialUsername = null
+                        pendingCredentialSecret = null
                         pendingRequest = null
                         requestCode = null
                         error = null
@@ -120,6 +147,8 @@ fun PmdStaffLogin(
                 }
 
                 "declined" -> {
+                    pendingCredentialUsername = null
+                    pendingCredentialSecret = null
                     pendingRequest = null
                     requestCode = null
                     clearPassword = true
@@ -128,6 +157,8 @@ fun PmdStaffLogin(
                 }
 
                 "expired" -> {
+                    pendingCredentialUsername = null
+                    pendingCredentialSecret = null
                     pendingRequest = null
                     requestCode = null
                     clearPassword = true
@@ -143,7 +174,43 @@ fun PmdStaffLogin(
         modifier = Modifier.fillMaxSize(),
         state = state,
         onSubmit = { username, password ->
-            if (!online || busy || pendingRequest != null) {
+            if (busy || pendingRequest != null) {
+                return@PmdCanonicalLoginCard
+            }
+
+            // PMD_ANDROID_SAME_LOGIN_OFFLINE_V22
+            // The canonical Login card is the only entry point. When Cloud is
+            // unavailable, validate the submitted credential against the
+            // Keystore-encrypted salted verifier from the last successful
+            // online authorization. No offline-mode button is exposed.
+            if (!online) {
+                busy = true
+                error = null
+                clearPassword = false
+
+                scope.launch {
+                    val session = withContext(Dispatchers.Default) {
+                        app.credentials.verifyOfflineLogin(
+                            submittedUsername = username,
+                            secret = password,
+                        )
+                    }
+
+                    busy = false
+                    clearPassword = true
+
+                    if (
+                        session != null &&
+                        app.bootstrapRepository.hasBootstrap()
+                    ) {
+                        app.credentials.putStaffSession(session)
+                        error = null
+                        onContinueOffline(session)
+                    } else {
+                        error =
+                            "This staff login is not available offline on this device. Sign in once while connected, then it can be verified locally until the offline session expires."
+                    }
+                }
                 return@PmdCanonicalLoginCard
             }
 
@@ -183,7 +250,8 @@ fun PmdStaffLogin(
                 busy = false
                 clearPassword = true
 
-                result.onSuccess { login ->
+                val login = result.getOrNull()
+                if (login != null) {
                     when (login.status) {
                         "authorized" -> {
                             val authorization = login.authorization
@@ -191,12 +259,21 @@ fun PmdStaffLogin(
                                 error =
                                     "PayMyDine sign-in response is incomplete."
                             } else {
+                                withContext(Dispatchers.Default) {
+                                    app.credentials.rememberOfflineLogin(
+                                        authorization.toStaffSession(),
+                                        username,
+                                        password,
+                                    )
+                                }
                                 error = null
                                 onAuthorized(authorization)
                             }
                         }
 
                         "pending" -> {
+                            pendingCredentialUsername = username
+                            pendingCredentialSecret = password
                             pendingRequest = login.loginRequest
                             requestCode = login.requestCode
                             error = null
@@ -206,7 +283,11 @@ fun PmdStaffLogin(
                             error = "PayMyDine sign-in could not continue."
                         }
                     }
-                }.onFailure { failure ->
+                } else {
+                    val failure = result.exceptionOrNull()
+                        ?: IllegalStateException(
+                            "PayMyDine sign-in failed.",
+                        )
                     val cloudFailure =
                         failure !is MobileApiException ||
                             failure.statusCode >= 500
@@ -214,9 +295,8 @@ fun PmdStaffLogin(
 
                     // PMD_ANDROID_LOGIN_OFFLINE_ERROR_SUPPRESSION_V15
                     // A WAN cut is an offline-mode transition, not a failed
-                    // credential attempt. Never surface low-level
-                    // "Failed to fetch", DNS, socket or connection errors when
-                    // a verified local POS/KDS session can continue safely.
+                    // credential attempt. Never surface low-level network
+                    // errors when the existing local work session is valid.
                     val offlineSession = app.credentials.staffSession()
                     val canContinueOffline =
                         cloudFailure &&
@@ -226,12 +306,15 @@ fun PmdStaffLogin(
                                 offlineSession.surface,
                             )
 
-                    error = when {
-                        canContinueOffline -> null
-                        cloudFailure ->
-                            "PayMyDine Cloud is unavailable. Reconnect to start a new staff session."
-                        else ->
+                    if (canContinueOffline && offlineSession != null) {
+                        error = null
+                        onContinueOffline(offlineSession)
+                    } else {
+                        error = if (cloudFailure) {
+                            "PayMyDine Cloud is unavailable. Use the same staff login if it has already been verified on this device."
+                        } else {
                             failure.message ?: "PayMyDine sign-in failed."
+                        }
                     }
                 }
             }
@@ -247,6 +330,8 @@ fun PmdStaffLogin(
             }
         },
         onCancelWaiting = {
+            pendingCredentialUsername = null
+            pendingCredentialSecret = null
             pendingRequest = null
             requestCode = null
             error = null
@@ -313,6 +398,7 @@ fun PmdPairLogin(
         offlineText = "",
         offlineLabel = "",
         allowCancel = true,
+        allowOfflineCredentialSubmit = false,
     )
 
     PmdCanonicalLoginCard(
@@ -387,6 +473,21 @@ fun PmdPairLogin(
     }
 }
 
+private fun WorkspaceAuthorizationResult.toStaffSession(): StaffSession =
+    StaffSession(
+        username = username,
+        staffName = staffName,
+        userId = userId,
+        staffId = staffId,
+        roleCode = roleCode,
+        route = route,
+        surface = surface,
+        destination = destination,
+        staffGrant = staffGrant,
+        expiresAtEpochSeconds = leaseExpiresAt,
+        offlineExpiresAtEpochSeconds = offlineExpiresAt,
+    )
+
 private data class NativeLoginState(
     val mode: String,
     val credentialMode: String,
@@ -400,6 +501,7 @@ private data class NativeLoginState(
     val offlineText: String,
     val offlineLabel: String,
     val allowCancel: Boolean,
+    val allowOfflineCredentialSubmit: Boolean,
 )
 
 private class NativeLoginBridge {
@@ -518,6 +620,10 @@ private fun pushNativeState(
         .put("offlineText", state.offlineText)
         .put("offlineLabel", state.offlineLabel)
         .put("allowCancel", state.allowCancel)
+        .put(
+            "allowOfflineCredentialSubmit",
+            state.allowOfflineCredentialSubmit,
+        )
 
     view.post {
         view.evaluateJavascript(
