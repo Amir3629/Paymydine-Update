@@ -139,6 +139,16 @@
     );
   }
 
+  function nativeCloudUnavailableV91() {
+    if (!nativeBridgeTransportAvailableV91()) return false;
+    try {
+      if (typeof window.PayMyDineOffline.cloudAvailable === 'function') {
+        return window.PayMyDineOffline.cloudAvailable() !== true;
+      }
+    } catch (ignored) {}
+    return false;
+  }
+
   /* PMD_QPOS_REQUEST_FAILOVER_V91
    * Connectivity callbacks are advisory only. The request itself is the final
    * authority: if Cloud transport dies between the Wi-Fi cut and Android's
@@ -384,7 +394,13 @@
       opts.headers['X-CSRF-TOKEN'] = csrf();
     }
 
-    if (nativeLocalTransportAvailable()) {
+    if (
+      nativeLocalTransportAvailable() ||
+      nativeCloudUnavailableV91()
+    ) {
+      if (!nativeLocalTransportAvailable()) {
+        activateNativeLocalTransportV91();
+      }
       return nativeFetchJsonV91(url, opts);
     }
 
