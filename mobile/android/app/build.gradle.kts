@@ -38,6 +38,7 @@ android {
         // PMD_ANDROID_0_3_31_V106_LOCAL_FIRST
         // PMD_ANDROID_0_3_31_V106_RELEASE_FINAL
         // PMD_ANDROID_0_3_32_V107_LOCAL_FIRST
+        // PMD_ANDROID_0_3_32_V107_RELEASE_FINAL
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "SYNC_PROTOCOL_VERSION", "\"pmd-sync-v1\"")
     }
