@@ -9415,7 +9415,7 @@ function renderOpenChecks() {
       if (event.target === historyModal) closeHistory();
     });
 
-    $('[data-qpos-history-scope]').forEach(function (button) {
+    $$('[data-qpos-history-scope]').forEach(function (button) {
       button.onclick = function () {
         var requested =
           button.getAttribute('data-qpos-history-scope') || 'selected';
