@@ -60,6 +60,58 @@
     return String(prefix || 'qpos') + ':' + Date.now() + ':' + Math.random().toString(36).slice(2);
   }
 
+  /* PMD_QPOS_ORIENTATION_RUNTIME_V86
+   * Do not keep the web POS logically landscape-only. The native Android shell
+   * may rotate the WebView, and the browser Screen Orientation API may also be
+   * able to release a previous web-level lock. The class is authoritative for
+   * the tablet portrait CSS below. */
+  var orientationFrameV86 = null;
+
+  function syncOrientationV86() {
+    if (orientationFrameV86) {
+      window.cancelAnimationFrame(orientationFrameV86);
+    }
+
+    orientationFrameV86 = window.requestAnimationFrame(function () {
+      orientationFrameV86 = null;
+
+      var width = Math.max(
+        Number(window.innerWidth || 0),
+        Number(document.documentElement.clientWidth || 0)
+      );
+      var height = Math.max(
+        Number(window.innerHeight || 0),
+        Number(document.documentElement.clientHeight || 0)
+      );
+
+      if (!width || !height) return;
+
+      var portrait = height > width;
+
+      root.classList.toggle('is-portrait-v86', portrait);
+      root.classList.toggle('is-landscape-v86', !portrait);
+
+      if (document.body) {
+        document.body.classList.toggle('pmd-qpos-portrait-v86', portrait);
+        document.body.classList.toggle('pmd-qpos-landscape-v86', !portrait);
+      }
+    });
+  }
+
+  function releaseWebOrientationLockV86() {
+    try {
+      if (
+        window.screen &&
+        window.screen.orientation &&
+        typeof window.screen.orientation.unlock === 'function'
+      ) {
+        window.screen.orientation.unlock();
+      }
+    } catch (error) {
+      /* Native manifest/activity policy may still own orientation. */
+    }
+  }
+
   function csrf() {
     var meta = document.querySelector('meta[name="csrf-token"]');
     return meta ? meta.content : '';
@@ -8951,6 +9003,25 @@ function renderOpenChecks() {
 
     configureTextKeyboardTargets();
     window.addEventListener('resize', configureTextKeyboardTargets);
+
+    /* PMD_QPOS_ORIENTATION_BINDINGS_V86 */
+    releaseWebOrientationLockV86();
+    syncOrientationV86();
+
+    window.addEventListener('resize', syncOrientationV86, {passive: true});
+    window.addEventListener('orientationchange', function () {
+      releaseWebOrientationLockV86();
+      window.setTimeout(syncOrientationV86, 80);
+      window.setTimeout(syncOrientationV86, 260);
+    }, {passive: true});
+
+    if (
+      window.screen &&
+      window.screen.orientation &&
+      typeof window.screen.orientation.addEventListener === 'function'
+    ) {
+      window.screen.orientation.addEventListener('change', syncOrientationV86);
+    }
 
     /* PMD_QPOS_GUIDE_AUTO_CLOSE_V57
      * One outside/inside action is enough: any pointer action away from the
