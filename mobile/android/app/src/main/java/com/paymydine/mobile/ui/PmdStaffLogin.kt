@@ -58,11 +58,12 @@ fun PmdStaffLogin(
     var cloudUnavailable by remember { mutableStateOf(false) }
 
     val remembered = app.credentials.staffSession()
-    val offlineAvailable =
-        (!online || cloudUnavailable) &&
-            remembered != null &&
-            app.bootstrapRepository.hasBootstrap() &&
-            app.credentials.offlineSessionValid(remembered.surface)
+
+    // PMD_ANDROID_LOGIN_NO_OFFLINE_BUTTON_V20
+    // A valid remembered POS session is resumed by PayMyDineApp itself.
+    // Login is only for starting/switching identity; it must never expose a
+    // second "offline mode" choice to the operator.
+    val offlineAvailable = false
 
     val state = NativeLoginState(
         mode = if (pendingRequest != null) "wait" else "login",
@@ -74,16 +75,8 @@ fun PmdStaffLogin(
         error = error,
         clearPassword = clearPassword,
         offlineAvailable = offlineAvailable,
-        offlineText = if (offlineAvailable) {
-            "PayMyDine Cloud is unavailable. Your last verified work session " +
-                "is available from this tablet."
-        } else {
-            ""
-        },
-        offlineLabel = remembered?.let {
-            "Continue offline as " +
-                it.staffName.ifBlank { it.username }
-        }.orEmpty(),
+        offlineText = "",
+        offlineLabel = "",
         allowCancel = pendingRequest != null,
     )
 
@@ -236,8 +229,7 @@ fun PmdStaffLogin(
                     error = when {
                         canContinueOffline -> null
                         cloudFailure ->
-                            "PayMyDine Cloud is unavailable. Reconnect to sign in, " +
-                                "or continue the last verified POS/KDS session offline."
+                            "PayMyDine Cloud is unavailable. Reconnect to start a new staff session."
                         else ->
                             failure.message ?: "PayMyDine sign-in failed."
                     }
