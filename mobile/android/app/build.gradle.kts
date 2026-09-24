@@ -10,8 +10,8 @@ android {
         applicationId = "com.paymydine.mobile"
         minSdk = 26
         targetSdk = 36
-        versionCode = 26
-        versionName = "0.3.13-mobile-flow" // PMD_ANDROID_0_3_13_MOBILE_FLOW
+        versionCode = 27
+        versionName = "0.3.14-sticky-history" // PMD_ANDROID_0_3_14_STICKY_HISTORY
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "SYNC_PROTOCOL_VERSION", "\"pmd-sync-v1\"")
     }
