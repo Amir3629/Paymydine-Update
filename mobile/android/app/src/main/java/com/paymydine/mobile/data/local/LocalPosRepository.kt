@@ -112,8 +112,7 @@ class LocalPosRepository(private val database: PmdDatabase) {
                 tableId.isBlank() ||
                 (
                     cart.length() == 0 &&
-                    note.isBlank() &&
-                    guestCount == 1
+                    note.isBlank()
                 )
             ) {
                 db.delete(
