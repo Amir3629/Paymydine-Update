@@ -297,6 +297,18 @@ class BootstrapRepository(private val database: PmdDatabase) {
 
     fun roleCode(): String? = meta("role_code")?.takeIf { it.isNotBlank() }
 
+    // PMD_ANDROID_CANONICAL_POS_LOCAL_TRANSPORT_V18
+    // The native Quick POS transport consumes the same trusted bootstrap
+    // document that seeds SQLite, so the canonical web UI can keep its exact
+    // structure while only the data authority changes.
+    fun bootstrapSnapshot(): JSONObject? =
+        meta("bootstrap_json")?.let { raw ->
+            runCatching { JSONObject(raw) }.getOrNull()
+        }
+
+    fun menuSnapshot(): JSONObject =
+        bootstrapSnapshot()?.optJSONObject("menu") ?: JSONObject()
+
     // PMD_ANDROID_OFFLINE_HISTORY_CACHE_V16
     // History is part of the trusted bootstrap blob, so it survives WAN loss
     // without a second SQLite schema or a Cloud request from the offline UI.
