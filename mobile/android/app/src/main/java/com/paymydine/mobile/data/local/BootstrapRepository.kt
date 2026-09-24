@@ -539,29 +539,6 @@ class BootstrapRepository(private val database: PmdDatabase) {
         else -> value
     }
 
-    private companion object {
-        val MENU_MEDIA_KEYS_V101 = setOf(
-            "image",
-            "image_url",
-            "imageUrl",
-            "image_path",
-            "imagePath",
-            "thumb",
-            "thumbnail",
-            "media_url",
-            "mediaUrl",
-            "photo_url",
-            "photoUrl",
-            "photo",
-            "primary_image",
-            "primaryImage",
-            "images",
-            "gallery",
-            "media",
-            "additional_images",
-        )
-    }
-
     fun locationId(): Long? = meta("location_id")?.toLongOrNull()
 
     fun locationName(): String? {
@@ -722,5 +699,26 @@ class BootstrapRepository(private val database: PmdDatabase) {
     companion object {
         const val STATUS_SERVER_OPEN = "SERVER_OPEN"
         const val EDGE_STATUS_CLOUD_OPEN = "CLOUD_OPEN"
+
+        private val MENU_MEDIA_KEYS_V101 = setOf(
+            "image",
+            "image_url",
+            "imageUrl",
+            "image_path",
+            "imagePath",
+            "thumb",
+            "thumbnail",
+            "media_url",
+            "mediaUrl",
+            "photo_url",
+            "photoUrl",
+            "photo",
+            "primary_image",
+            "primaryImage",
+            "images",
+            "gallery",
+            "media",
+            "additional_images",
+        )
     }
 }
