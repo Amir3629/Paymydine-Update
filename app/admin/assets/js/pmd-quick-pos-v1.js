@@ -94,6 +94,22 @@
     var portrait = height > width;
     var shortSide = Math.min(width, height);
 
+    /* PMD_QPOS_ANDROID_FORM_FACTOR_RUNTIME_V105
+     * Dedicated Android Cashier POS is a tablet product. Some embedded/cheap
+     * tablets report <600 CSS px in portrait, which must not demote them to the
+     * phone matrix. The server/native shell marks that product identity before
+     * this runtime starts. */
+    var androidTabletV105 =
+      document.documentElement.classList.contains('pmd-qpos-android-pos-v105') ||
+      !!(
+        document.body &&
+        document.body.classList.contains('pmd-qpos-android-pos-v105')
+      );
+
+    if (androidTabletV105) {
+      return portrait ? 'tablet-portrait' : 'tablet-landscape';
+    }
+
     if (shortSide <= PMD_QPOS_PHONE_MAX_V102) {
       return portrait ? 'phone-portrait' : 'phone-landscape';
     }
@@ -1142,8 +1158,6 @@
   }
 
   // PMD_QPOS_SYNC_VISIBILITY_V104
-  // Local-first POS keeps cashier work independent from network state. This
-  // indicator reports delivery/reconciliation state without blocking the UI.
   function refreshNativeSyncStatusV104() {
     var el = $('[data-qpos-sync-state]');
     if (!el) return;
