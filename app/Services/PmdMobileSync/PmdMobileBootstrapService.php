@@ -819,20 +819,20 @@ final class PmdMobileBootstrapService
             }
         }
 
-        // Keep only the latest editable bill per table for automatic waiter/POS
-        // continuation. Multi-check selection can be added as a later UI slice.
-        $seenTables = [];
+        // PMD_ANDROID_CANONICAL_MULTI_CHECK_SNAPSHOT_V18
+        // Canonical Quick POS supports multiple financially-open checks on the
+        // same table. Carry every open check into the trusted tablet snapshot
+        // so the offline check rail is the same product, not a reduced view.
         $out = [];
 
         foreach ($rows as $row) {
             $r = (array)$row;
             $orderId = (int)($r[$pk] ?? 0);
             $tableId = (int)($r['table_id'] ?? 0);
-            if ($orderId < 1 || $tableId < 1 || isset($seenTables[$tableId])) {
+            if ($orderId < 1 || $tableId < 1) {
                 continue;
             }
 
-            $seenTables[$tableId] = true;
             $aggregateId = 'order:'.$orderId;
             $statusId = (int)($r['status_id'] ?? 0);
 
