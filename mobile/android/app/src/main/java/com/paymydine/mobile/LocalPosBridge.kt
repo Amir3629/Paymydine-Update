@@ -729,6 +729,16 @@ class LocalPosBridge(
             )
             .put("guest_count", queued.guestCount)
             .put("updated_at", instantString(command.createdAtMs))
+            .put("native_provisional", orderId < 0L)
+            .put("items", canonicalDraftItems(queued))
+            .put(
+                "item_mutation",
+                JSONObject()
+                    .put("allowed", orderId < 0L)
+                    .put("locked", false)
+                    .put("payment_started", false)
+                    .put("reason", ""),
+            )
             .put(
                 "message",
                 if (hold) "Saved on this tablet."
