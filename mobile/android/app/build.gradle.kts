@@ -10,9 +10,9 @@ android {
         applicationId = "com.paymydine.mobile"
         minSdk = 26
         targetSdk = 36
-        versionCode = 31
-        // PMD_ANDROID_0_3_18_SEAMLESS_WAN_AND_LOGIN_V22
-        versionName = "0.3.18-v92-seamless-local" // PMD_ANDROID_0_3_18_SEAMLESS_LOCAL_V22
+        versionCode = 32
+        // PMD_ANDROID_0_3_19_OFFLINE_COMPLETE_V23
+        versionName = "0.3.19-v93-offline-complete" // PMD_ANDROID_0_3_19_OFFLINE_COMPLETE_V23
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "SYNC_PROTOCOL_VERSION", "\"pmd-sync-v1\"")
     }
