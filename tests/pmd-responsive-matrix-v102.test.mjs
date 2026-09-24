@@ -9,6 +9,25 @@ const posActivity = fs.readFileSync('mobile/android/app/src/main/java/com/paymyd
 
 assert.ok(css.includes('PMD_QPOS_RESPONSIVE_MATRIX_V102'), 'V102 CSS marker missing');
 assert.ok(css.includes('PMD_QPOS_PHONE_ONLY_SCOPE_V102'), 'phone-only scope missing');
+assert.ok(css.includes('PMD_QPOS_TABLET_PORTRAIT_SCALE_ISOLATION_V103'), 'V103 tablet portrait scale-isolation marker missing');
+
+function mediaAfter(marker) {
+  const start = css.indexOf(marker);
+  assert.ok(start >= 0, `missing CSS marker: ${marker}`);
+  return css.slice(start, start + 1800);
+}
+
+for (const marker of [
+  'PMD_QPOS_MOBILE_SCALE_V89',
+  'Phone / portrait readability',
+  'PMD_QPOS_MOBILE_TOUCH_HISTORY_V93',
+  'PMD_QPOS_PHONE_SCALE_V95'
+]) {
+  assert.ok(
+    mediaAfter(marker).includes('@media (max-width: 599px)'),
+    `${marker} must be phone-only at <=599px in V103`
+  );
+}
 assert.ok(
   css.includes('@media (min-width: 600px) and (max-width: 1024px) and (orientation: portrait)'),
   'tablet portrait media query missing'
@@ -83,8 +102,8 @@ assert.ok(
   view.includes('<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">'),
   'natural viewport meta contract missing'
 );
-assert.ok(view.includes('pmd-quick-pos-v1.css?v=20260924-v102'), 'V102 CSS cache bust missing');
-assert.ok(view.includes('pmd-quick-pos-v1.js?v=20260924-v102'), 'V102 JS cache bust missing');
+assert.ok(view.includes('pmd-quick-pos-v1.css?v=20260924-v103'), 'V102 CSS cache bust missing');
+assert.ok(view.includes('pmd-quick-pos-v1.js?v=20260924-v103'), 'V102 JS cache bust missing');
 
 assert.equal(
   (posActivity.match(/textZoom = 100/g) || []).length,
@@ -111,6 +130,6 @@ assert.ok(
   'Android natural-scale marker missing'
 );
 
-console.log('PMD responsive matrix V102: PASS');
+console.log('PMD responsive matrix V102 + portrait isolation V103: PASS');
 console.log('PosActivity WebView natural-scale contract: PASS');
 console.log('phone portrait / phone landscape / tablet portrait / tablet landscape / desktop: PASS');

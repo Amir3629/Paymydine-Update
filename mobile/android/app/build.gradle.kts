@@ -10,7 +10,9 @@ android {
         applicationId = "com.paymydine.mobile"
         minSdk = 26
         targetSdk = 36
-        versionCode = 41
+        versionCode = 42
+        // PMD_ANDROID_0_3_29_PORTRAIT_SCALE_V103
+        // V103 preserves V102 device classes while isolating legacy phone-scale CSS from tablet portrait.
         // PMD_ANDROID_0_3_28_RESPONSIVE_MATRIX_V102
         // V102 separates phone/tablet portrait modes and preserves natural scale.
         // PMD_ANDROID_0_3_27_RECONNECT_CASH_V101
@@ -26,7 +28,7 @@ android {
         // PMD_ANDROID_0_3_20_MOBILE_UI_V94 (preserved baseline)
         // PMD_ANDROID_0_3_20_OFFLINE_COMPLETE_V23 (preserved contract)
         // V99 trims the V98 scale slightly while preserving natural mobile fit.
-        versionName = "0.3.28-v102-responsive-matrix" // PMD_ANDROID_0_3_28_RESPONSIVE_MATRIX_V102
+        versionName = "0.3.29-v103-portrait-scale" // PMD_ANDROID_0_3_28_RESPONSIVE_MATRIX_V102
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "SYNC_PROTOCOL_VERSION", "\"pmd-sync-v1\"")
     }
