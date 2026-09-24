@@ -1435,6 +1435,16 @@ class LocalPosBridge(
     }
 
     @JavascriptInterface
+    fun cloudMutationCommitted(
+        url: String,
+        method: String,
+    ) {
+        if (method.trim().uppercase() == "GET") return
+        app.bootstrapRepository.markStale()
+        SyncEngine.enqueueImmediate(app)
+    }
+
+    @JavascriptInterface
     fun syncNow(): String = action {
         SyncEngine.enqueueImmediate(app)
         "Sync requested."
