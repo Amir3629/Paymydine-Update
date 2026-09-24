@@ -22,6 +22,8 @@ assert.ok(pos.includes('PMD_ANDROID_LOCAL_FIRST_FIRST_RUN_PROMOTION_V104'));
 assert.ok(pos.includes('PMD_ANDROID_LOCAL_FIRST_SHELL_SEED_GUARD_V106'));
 assert.ok(pos.includes('createCanonicalWebView(allowShellSeed = true)'));
 assert.ok(pos.includes('PMD_ANDROID_V107_OFFLINE_SHELL_ASSETS'));
+assert.ok(pos.includes('PMD_ANDROID_V107_OFFLINE_SYNC_CHIP_BACKFILL'));
+assert.ok(pos.includes("meta.querySelector('[data-qpos-sync-state]')"));
 assert.ok(pos.includes('/app/admin/assets/css/pmd-qpos-android-form-factor-v107.css'));
 assert.ok(pos.includes('/app/admin/assets/js/pmd-qpos-android-form-factor-v107.js'));
 assert.ok(gradle.includes('PMD_ANDROID_V107_OFFLINE_OVERRIDE_BUNDLE'));
