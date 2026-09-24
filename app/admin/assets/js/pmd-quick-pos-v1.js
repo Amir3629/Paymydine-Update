@@ -1357,10 +1357,23 @@
         state.floors
       );
 
-      state.boot = json;
+      if (nativeLocalTransportAvailable()) {
+        // PMD_QPOS_NATIVE_BOOTSTRAP_MERGE_V18
+        // Keep every V86 feature flag/URL/presentation setting from the
+        // canonical shell. Local bootstrap overrides only the authorities it
+        // can serve, so cold-start offline never becomes a reduced UI.
+        state.boot = Object.assign({}, state.boot || {}, json);
+        state.settings = Object.assign(
+          {},
+          state.settings || {},
+          json.settings || {}
+        );
+      } else {
+        state.boot = json;
+        state.settings = json.settings || {};
+      }
       state.mode = json.mode || state.mode;
       root.setAttribute('data-mode', state.mode);
-      state.settings = json.settings || {};
       state.floors = Array.isArray(json.floors) ? json.floors : [];
       state.defaultFloorId = String(json.default_floor_id || '');
       state.activeFloorId = String(
