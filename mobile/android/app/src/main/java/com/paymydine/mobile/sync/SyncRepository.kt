@@ -191,6 +191,55 @@ class SyncRepository(private val database: PmdDatabase) {
 
     fun rejectedCount(): Int = statusCounts().rejected
 
+    // PMD_ANDROID_CLOUD_HEALTH_V104
+    // Generic Android internet validation is not the same as PayMyDine Cloud.
+    // Persist the result of real sync API calls so UI can distinguish them.
+    fun markCloudHealth(ok: Boolean, error: String? = null) = database.transaction { db ->
+        val now = System.currentTimeMillis()
+        fun put(key: String, value: String) {
+            db.insertWithOnConflict(
+                "pmd_meta",
+                null,
+                ContentValues().apply {
+                    put("key", key)
+                    put("value", value)
+                },
+                SQLiteDatabase.CONFLICT_REPLACE,
+            )
+        }
+        if (ok) {
+            put("cloud_last_success_ms", now.toString())
+            put("cloud_last_error", "")
+        } else {
+            put("cloud_last_failure_ms", now.toString())
+            put("cloud_last_error", error.orEmpty().take(500))
+        }
+    }
+
+    fun cloudHealthState(networkValidated: Boolean): String {
+        if (!networkValidated) return "offline"
+        fun read(key: String): Long = database.readableDatabase.query(
+            "pmd_meta",
+            arrayOf("value"),
+            "key = ?",
+            arrayOf(key),
+            null,
+            null,
+            null,
+            "1",
+        ).use {
+            if (it.moveToFirst()) it.getString(0).toLongOrNull() ?: 0L else 0L
+        }
+        val success = read("cloud_last_success_ms")
+        val failure = read("cloud_last_failure_ms")
+        return when {
+            success <= 0L && failure <= 0L -> "checking"
+            failure > success -> "unreachable"
+            System.currentTimeMillis() - success > 60_000L -> "checking"
+            else -> "online"
+        }
+    }
+
     fun cursor(scope: String = DEFAULT_SCOPE): Long =
         database.readableDatabase.query(
         "pmd_sync_cursor",
