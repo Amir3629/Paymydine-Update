@@ -900,11 +900,15 @@ class PosActivity : ComponentActivity() {
                         """
                         (function(){
                           window.__PMD_NATIVE_OFFLINE__ = true;
+                          var api = window.PMDQuickPOSV1;
                           if (
-                            window.PMDQuickPOSV1 &&
-                            typeof window.PMDQuickPOSV1.setNativeOffline === 'function'
+                            api &&
+                            typeof api.setNativeOffline === 'function'
                           ) {
-                            window.PMDQuickPOSV1.setNativeOffline(true);
+                            api.setNativeOffline(true);
+                            if (typeof api.refreshNativeState === 'function') {
+                              api.refreshNativeState();
+                            }
                             return 'ok';
                           }
                           return 'missing';
@@ -914,7 +918,18 @@ class PosActivity : ComponentActivity() {
                     )
                     canonicalReady = true
                     synchronizeViewport(current)
-                    revealWebView(current)
+                    current.postDelayed(
+                        {
+                            if (
+                                current === webView &&
+                                transportMode == TransportMode.LOCAL &&
+                                !isFinishing
+                            ) {
+                                revealWebView(current)
+                            }
+                        },
+                        80L,
+                    )
                 }
             }
 
@@ -997,17 +1012,21 @@ class PosActivity : ComponentActivity() {
                 return@launch
             }
 
-            // Same canonical document, now backed by Cloud again. This is one
-            // authoritative refresh after reconciliation, not a page reload.
+            // Same canonical document, now backed by Cloud again. Reconcile
+            // exactly once after the durable outbox drains; never page-reload.
             transportMode = TransportMode.CLOUD
             current.evaluateJavascript(
                 """
                 (function(){
+                  var api = window.PMDQuickPOSV1;
                   if (
-                    window.PMDQuickPOSV1 &&
-                    typeof window.PMDQuickPOSV1.setNativeOffline === 'function'
+                    api &&
+                    typeof api.setNativeOffline === 'function'
                   ) {
-                    window.PMDQuickPOSV1.setNativeOffline(false);
+                    api.setNativeOffline(false);
+                    if (typeof api.refresh === 'function') {
+                      api.refresh();
+                    }
                     return 'cloud';
                   }
                   return 'missing';
