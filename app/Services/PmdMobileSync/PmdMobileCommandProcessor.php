@@ -181,7 +181,8 @@ final class PmdMobileCommandProcessor
                         'client_aggregate_id' => $command['client_aggregate_id'],
                         $command['aggregate'] => $result,
                     ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
-                    'occurred_at' => now(),
+                    'occurred_at' =>
+                        $this->eventOccurredAt($command, $result),
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
@@ -289,7 +290,23 @@ final class PmdMobileCommandProcessor
         $pos = app(PmdWaiterPosV1::class);
         $pos->pmdUseMobileIdentity($identity);
 
-        return $pos->saveMobilePayload($tableId, $payload);
+        $result = $pos->saveMobilePayload($tableId, $payload);
+
+        // PMD_MOBILE_OFFLINE_ORIGINAL_TIME_V18
+        // A newly-created offline order keeps the time the staff actually
+        // created/sent it on the restaurant tablet, not the later WAN-recovery
+        // replay time. Existing canonical orders are never backdated.
+        if (
+            !empty($result['created'])
+            && !empty($result['order_id'])
+        ) {
+            $this->applyOriginalOfflineOrderTime(
+                (int)$result['order_id'],
+                (int)($payload['client_created_at_ms'] ?? 0)
+            );
+        }
+
+        return $result;
     }
 
     /**
@@ -342,6 +359,17 @@ final class PmdMobileCommandProcessor
                     ?? 'Offline cash payment could not be reconciled.'
                 ),
             ]);
+        }
+
+        // PMD_MOBILE_OFFLINE_PAYMENT_TIME_V18
+        // The financial mutation is still performed by the canonical payment
+        // endpoint; only the business paid_at is corrected to the verified
+        // offline collection time after the transaction exists.
+        if (!empty($data['transaction_id'])) {
+            $this->applyOriginalOfflinePaymentTime(
+                (int)$data['transaction_id'],
+                (int)($payload['client_paid_at_ms'] ?? 0)
+            );
         }
 
         $summary = (array)($data['summary'] ?? []);
@@ -531,6 +559,99 @@ final class PmdMobileCommandProcessor
         abort(403, 'This table has no verified restaurant location.');
     }
 
+    private function applyOriginalOfflineOrderTime(
+        int $orderId,
+        int $clientCreatedAtMs
+    ): void {
+        if (
+            $orderId < 1
+            || $clientCreatedAtMs < 1
+            || !Schema::hasTable('orders')
+        ) {
+            return;
+        }
+
+        $nowMs = (int)round(microtime(true) * 1000);
+        $oldestAllowed = $nowMs - (36 * 60 * 60 * 1000);
+        $futureLimit = $nowMs + (5 * 60 * 1000);
+
+        if (
+            $clientCreatedAtMs < $oldestAllowed
+            || $clientCreatedAtMs > $futureLimit
+        ) {
+            return;
+        }
+
+        try {
+            $moment = \Carbon\Carbon::createFromTimestamp(
+                (int)floor($clientCreatedAtMs / 1000),
+                'UTC'
+            )->setTimezone(now()->getTimezone());
+
+            $columns = Schema::getColumnListing('orders');
+            $updates = [];
+
+            if (in_array('created_at', $columns, true)) {
+                $updates['created_at'] = $moment->copy();
+            }
+            if (in_array('order_date', $columns, true)) {
+                $updates['order_date'] = $moment->toDateString();
+            }
+            if (in_array('order_time', $columns, true)) {
+                $updates['order_time'] = $moment->format('H:i:s');
+            }
+
+            if ($updates) {
+                DB::table('orders')
+                    ->where('order_id', $orderId)
+                    ->update($updates);
+            }
+        } catch (\Throwable $error) {
+            report($error);
+        }
+    }
+
+    private function applyOriginalOfflinePaymentTime(
+        int $transactionId,
+        int $clientPaidAtMs
+    ): void {
+        if (
+            $transactionId < 1
+            || $clientPaidAtMs < 1
+            || !Schema::hasTable('order_payment_transactions')
+        ) {
+            return;
+        }
+
+        $nowMs = (int)round(microtime(true) * 1000);
+        if (
+            $clientPaidAtMs < $nowMs - (36 * 60 * 60 * 1000)
+            || $clientPaidAtMs > $nowMs + (5 * 60 * 1000)
+        ) {
+            return;
+        }
+
+        try {
+            $columns = Schema::getColumnListing(
+                'order_payment_transactions'
+            );
+            if (!in_array('paid_at', $columns, true)) {
+                return;
+            }
+
+            $moment = \Carbon\Carbon::createFromTimestamp(
+                (int)floor($clientPaidAtMs / 1000),
+                'UTC'
+            )->setTimezone(now()->getTimezone());
+
+            DB::table('order_payment_transactions')
+                ->where('id', $transactionId)
+                ->update(['paid_at' => $moment]);
+        } catch (\Throwable $error) {
+            report($error);
+        }
+    }
+
     private function applyKdsStatusCommand(
         array $identity,
         array $command
@@ -566,6 +687,43 @@ final class PmdMobileCommandProcessor
             $expectedStatusId,
             $stationSlug !== '' ? $stationSlug : null
         );
+    }
+
+    private function eventOccurredAt(
+        array $command,
+        array $result
+    ) {
+        if ($command['aggregate'] !== 'order') {
+            return now();
+        }
+
+        if ($command['command_type'] === 'CASH_PAYMENT_V1') {
+            $clientMs = (int)(
+                $command['payload']['client_paid_at_ms']
+                ?? 0
+            );
+        } elseif (!empty($result['created'])) {
+            $clientMs = (int)(
+                $command['payload']['client_created_at_ms']
+                ?? 0
+            );
+        } else {
+            return now();
+        }
+
+        $nowMs = (int)round(microtime(true) * 1000);
+
+        if (
+            $clientMs < $nowMs - (36 * 60 * 60 * 1000)
+            || $clientMs > $nowMs + (5 * 60 * 1000)
+        ) {
+            return now();
+        }
+
+        return \Carbon\Carbon::createFromTimestamp(
+            (int)floor($clientMs / 1000),
+            'UTC'
+        )->setTimezone(now()->getTimezone());
     }
 
     private function normalize(array $identity, array $input): array

@@ -57,6 +57,31 @@ final class PmdMobileBootstrapService
                     ?? 2,
             ],
             'platform_context' => $platform,
+            // PMD_ANDROID_CANONICAL_QPOS_SETTINGS_V18
+            // Display/calculation facts required by the exact V86 Quick POS
+            // shell while WAN is unavailable. No provider credentials or
+            // payment secrets are included.
+            'quick_pos_settings' => [
+                'currency_code' => strtoupper((string)(
+                    $platform['profile']['currency']['code']
+                    ?? setting('default_currency_code', 'EUR')
+                )),
+                'tax_enabled' =>
+                    (string)setting(
+                        'tax_mode',
+                        setting('tax_enabled', '0')
+                    ) === '1',
+                'tax_percentage' => max(
+                    0.0,
+                    (float)setting('tax_percentage', 0)
+                ),
+                'tax_menu_price' =>
+                    (string)setting('tax_menu_price', '1') === '0'
+                        ? 0
+                        : 1,
+                'tax_title' =>
+                    trim((string)setting('tax_title', 'VAT')) ?: 'VAT',
+            ],
             'identity' => [
                 'device_id' => (int)$identity['device_id'],
                 'user_id' => (int)$identity['user_id'],
@@ -293,11 +318,25 @@ final class PmdMobileBootstrapService
                     ?? $raw['total']
                     ?? 0
                 );
+                // PMD_ANDROID_HISTORY_BUSINESS_TIME_V18
+                // History is ordered/displayed by when the order was created,
+                // never by the later WAN-reconciliation update timestamp.
                 $time = (string)(
-                    $raw['updated_at']
-                    ?? $raw['created_at']
+                    $raw['created_at']
+                    ?? $raw['updated_at']
                     ?? ''
                 );
+                if ($time !== '') {
+                    try {
+                        $time = \Carbon\Carbon::parse(
+                            $time,
+                            now()->getTimezone()
+                        )->toIso8601String();
+                    } catch (\Throwable $ignored) {
+                        // Keep the raw database value only as a last-resort
+                        // display fallback. Sorting still has strtotime below.
+                    }
+                }
 
                 $itemRows = collect(
                     $itemsByOrder->get($orderId, collect())
@@ -348,12 +387,23 @@ final class PmdMobileBootstrapService
                     as $payment
                 ) {
                     $paymentRaw = (array)$payment;
+                    $paymentTime = (string)(
+                        $paymentRaw['paid_at']
+                        ?? $paymentRaw['created_at']
+                        ?? ''
+                    );
+                    if ($paymentTime !== '') {
+                        try {
+                            $paymentTime = \Carbon\Carbon::parse(
+                                $paymentTime,
+                                now()->getTimezone()
+                            )->toIso8601String();
+                        } catch (\Throwable $ignored) {
+                        }
+                    }
+
                     $payments[] = [
-                        'time' => (string)(
-                            $paymentRaw['paid_at']
-                            ?? $paymentRaw['created_at']
-                            ?? ''
-                        ),
+                        'time' => $paymentTime,
                         'method' => (string)(
                             $paymentRaw['payment_method']
                             ?? 'payment'
@@ -760,6 +810,35 @@ final class PmdMobileBootstrapService
 
         if ($rows->isEmpty()) return [];
 
+        // PMD_ANDROID_CANONICAL_OPEN_ORDER_ITEMS_V18
+        // The canonical Quick POS "Sent" area must remain identical offline.
+        // Carry the same order line facts in the trusted restaurant snapshot so
+        // selecting a table after WAN loss still shows its sent items, notes,
+        // quantities and prices instead of only a total.
+        $rowOrderIds = $rows
+            ->map(function ($row) use ($pk) {
+                $raw = (array)$row;
+                return (int)($raw[$pk] ?? 0);
+            })
+            ->filter()
+            ->values()
+            ->all();
+
+        $itemsByOrder = collect();
+        if ($rowOrderIds && Schema::hasTable('order_menus')) {
+            $itemColumns = Schema::getColumnListing('order_menus');
+
+            if (in_array('order_id', $itemColumns, true)) {
+                $itemsByOrder = DB::table('order_menus')
+                    ->whereIn('order_id', $rowOrderIds)
+                    ->orderBy('order_id')
+                    ->get()
+                    ->groupBy(function ($item) {
+                        return (int)($item->order_id ?? 0);
+                    });
+            }
+        }
+
         $statusMap = [];
         if (Schema::hasTable('statuses')) {
             try {
@@ -790,22 +869,67 @@ final class PmdMobileBootstrapService
             }
         }
 
-        // Keep only the latest editable bill per table for automatic waiter/POS
-        // continuation. Multi-check selection can be added as a later UI slice.
-        $seenTables = [];
+        // PMD_ANDROID_CANONICAL_MULTI_CHECK_SNAPSHOT_V18
+        // Canonical Quick POS supports multiple financially-open checks on the
+        // same table. Carry every open check into the trusted tablet snapshot
+        // so the offline check rail is the same product, not a reduced view.
         $out = [];
 
         foreach ($rows as $row) {
             $r = (array)$row;
             $orderId = (int)($r[$pk] ?? 0);
             $tableId = (int)($r['table_id'] ?? 0);
-            if ($orderId < 1 || $tableId < 1 || isset($seenTables[$tableId])) {
+            if ($orderId < 1 || $tableId < 1) {
                 continue;
             }
 
-            $seenTables[$tableId] = true;
             $aggregateId = 'order:'.$orderId;
             $statusId = (int)($r['status_id'] ?? 0);
+
+            $orderItems = collect(
+                $itemsByOrder->get($orderId, collect())
+            )->map(function ($item) {
+                $rawItem = (array)$item;
+
+                return [
+                    'order_menu_id' => (int)(
+                        $rawItem['order_menu_id']
+                        ?? $rawItem['id']
+                        ?? 0
+                    ),
+                    'menu_id' => (int)(
+                        $rawItem['menu_id']
+                        ?? 0
+                    ),
+                    'name' => (string)(
+                        $rawItem['name']
+                        ?? $rawItem['menu_name']
+                        ?? 'Item'
+                    ),
+                    'quantity' => max(
+                        1,
+                        (int)(
+                            $rawItem['quantity']
+                            ?? $rawItem['qty']
+                            ?? 1
+                        )
+                    ),
+                    'price' => (float)(
+                        $rawItem['price']
+                        ?? $rawItem['unit_price']
+                        ?? 0
+                    ),
+                    'subtotal' => (float)(
+                        $rawItem['subtotal']
+                        ?? 0
+                    ),
+                    'comment' => trim((string)(
+                        $rawItem['comment']
+                        ?? $rawItem['note']
+                        ?? ''
+                    )),
+                ];
+            })->values()->all();
 
             $out[] = [
                 'order_id' => $orderId,
@@ -825,6 +949,7 @@ final class PmdMobileBootstrapService
                 'guest_count' => max(1, (int)($r['guest_count'] ?? 1)),
                 'comment' => (string)($r['comment'] ?? ''),
                 'updated_at' => (string)($r['updated_at'] ?? ''),
+                'items' => $orderItems,
             ];
         }
 
