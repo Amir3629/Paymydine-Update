@@ -18,7 +18,15 @@ import javax.net.ssl.HttpsURLConnection
  * by those trusted cached bytes.
  */
 class OfflineImageCache(context: Context) {
+    data class CachedImage(
+        val mime: String,
+        val bytes: ByteArray,
+    )
+
     private val directory = File(context.filesDir, "pmd-menu-images-v1")
+    private val urlIndex = mutableMapOf<String, CacheFiles>()
+    @Volatile
+    private var indexLoaded = false
 
     fun prefetch(
         tenantHost: String,
@@ -54,6 +62,9 @@ class OfflineImageCache(context: Context) {
                 current?.optString("source_key") == sourceKey &&
                 supportedMime(current.optString("mime"))
             ) {
+                synchronized(urlIndex) {
+                    urlIndex[url.toString()] = files
+                }
                 return@forEach
             }
 
@@ -80,6 +91,69 @@ class OfflineImageCache(context: Context) {
             "data:$mime;base64," +
                 Base64.encodeToString(bytes, Base64.NO_WRAP)
         }.getOrDefault("")
+    }
+
+    /**
+     * PMD_ANDROID_CANONICAL_IMAGE_INTERCEPT_V18
+     *
+     * Canonical Quick POS keeps its original image URLs. During WAN loss the
+     * WebView asks this cache for those same URLs and receives the exact bytes
+     * downloaded while online.
+     */
+    fun cachedForUrl(rawUrl: String): CachedImage? {
+        val url = rawUrl.trim().substringBefore('#')
+        if (url.isBlank()) return null
+        ensureUrlIndex()
+
+        val files = synchronized(urlIndex) {
+            urlIndex[url]
+        } ?: return null
+
+        return runCatching {
+            if (!files.bytes.isFile || !files.meta.isFile) {
+                return@runCatching null
+            }
+            val meta = JSONObject(files.meta.readText(Charsets.UTF_8))
+            val mime = meta.optString("mime").trim().lowercase()
+            if (!supportedMime(mime)) return@runCatching null
+            val bytes = files.bytes.readBytes()
+            if (bytes.isEmpty() || bytes.size > MAX_IMAGE_BYTES) {
+                return@runCatching null
+            }
+            CachedImage(mime, bytes)
+        }.getOrNull()
+    }
+
+    private fun ensureUrlIndex() {
+        if (indexLoaded) return
+
+        synchronized(urlIndex) {
+            if (indexLoaded) return
+            directory.mkdirs()
+            directory.listFiles { file ->
+                file.isFile && file.name.endsWith(".json")
+            }?.forEach { metaFile ->
+                runCatching {
+                    val meta = JSONObject(metaFile.readText(Charsets.UTF_8))
+                    val source = meta.optString("source_key")
+                    val url = source.substringBefore('|').trim()
+                    if (url.isBlank()) return@runCatching
+
+                    val bytes = File(
+                        metaFile.parentFile,
+                        metaFile.name.removeSuffix(".json") + ".bin",
+                    )
+                    if (
+                        bytes.isFile &&
+                        bytes.length() in 1..MAX_IMAGE_BYTES.toLong() &&
+                        supportedMime(meta.optString("mime"))
+                    ) {
+                        urlIndex[url] = CacheFiles(bytes, metaFile)
+                    }
+                }
+            }
+            indexLoaded = true
+        }
     }
 
     private fun download(
@@ -154,6 +228,10 @@ class OfflineImageCache(context: Context) {
                 tmpMeta.copyTo(files.meta, overwrite = true)
                 tmpMeta.delete()
             }
+
+            synchronized(urlIndex) {
+                urlIndex[url.toString()] = files
+            }
         } finally {
             connection.disconnect()
         }
@@ -188,6 +266,9 @@ class OfflineImageCache(context: Context) {
 
     private fun remove(itemId: String) {
         val files = filesFor(itemId)
+        synchronized(urlIndex) {
+            urlIndex.entries.removeAll { it.value == files }
+        }
         files.bytes.delete()
         files.meta.delete()
     }
