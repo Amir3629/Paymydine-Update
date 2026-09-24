@@ -266,14 +266,22 @@ class LocalPosBridge(
             )
         }
 
-        if (
-            Regex(
-                "^/admin/pmd-waiter-pos-v22/operations/\\d+/" +
-                    "(?:void-item|increase-item)$",
-            ).matches(path)
-        ) {
+        Regex(
+            "^/admin/pmd-waiter-pos-v22/operations/(-?\\d+)/" +
+                "(void-item|increase-item)$",
+        ).matchEntire(path)?.let { match ->
+            require(method == "POST") { "This action is not available." }
+            val orderId = match.groupValues[1].toLongOrNull()
+                ?: error("This check is unavailable.")
+            if (orderId < 0L) {
+                return canonicalProvisionalItemMutation(
+                    orderId = orderId,
+                    payload = payload,
+                    increase = match.groupValues[2] == "increase-item",
+                )
+            }
             return unavailable(
-                "Changing an already-sent item needs an internet connection right now.",
+                "Changing an already-sent Cloud item needs an internet connection right now.",
             )
         }
 
@@ -604,6 +612,26 @@ class LocalPosBridge(
                         .put("settlement_status", "unpaid")
                         .put("settled_amount", 0)
                         .put("status_name", "Open")
+                        .put("structural_locked", false)
+                        .put(
+                            "item_mutation",
+                            JSONObject()
+                                .put(
+                                    "allowed",
+                                    work.status in setOf("QUEUED", "RETRY") &&
+                                        (bill?.paymentQueuedMinor ?: 0L) <= 0L,
+                                )
+                                .put("locked", false)
+                                .put("payment_started", (bill?.paymentQueuedMinor ?: 0L) > 0L)
+                                .put(
+                                    "reason",
+                                    if ((bill?.paymentQueuedMinor ?: 0L) > 0L) {
+                                        "Cash is already saved for this check."
+                                    } else {
+                                        ""
+                                    },
+                                ),
+                        )
                         .put(
                             "updated_at",
                             instantString(
@@ -674,6 +702,13 @@ class LocalPosBridge(
             "This check is already saved."
         }
         app.localPosRepository.markQueued(draft.localId)
+        // PMD_ANDROID_LOCAL_TABLE_OCCUPIED_V23
+        // The Cloud save will persist canonical table state later; the local
+        // projection turns the floor occupied immediately during the outage.
+        app.localPosRepository.markTableOccupiedProjection(
+            tableId = tableId,
+            localOrderId = draft.localId,
+        )
         SyncEngine.enqueueImmediate(app)
 
         val queued = app.localPosRepository.localWorkForTable(tableId)
@@ -1154,7 +1189,10 @@ class LocalPosBridge(
         order.lines.forEach { line ->
             put(
                 JSONObject()
-                    .put("order_menu_id", pseudoLineId(line.lineId))
+                    .put(
+                        "order_menu_id",
+                        app.localPosRepository.pseudoLineId(line.lineId),
+                    )
                     .put(
                         "menu_id",
                         line.itemId.toLongOrNull() ?: line.itemId,
@@ -1171,6 +1209,55 @@ class LocalPosBridge(
                     .put("comment", line.note),
             )
         }
+    }
+
+    // PMD_ANDROID_PROVISIONAL_ITEM_MUTATION_V23
+    // Before first Cloud reconciliation, the queued SEND/HOLD payload itself is
+    // the canonical local mutation. Rewriting it preserves one idempotent
+    // command and lets +/- work immediately on the same visible check.
+    private fun canonicalProvisionalItemMutation(
+        orderId: Long,
+        payload: JSONObject,
+        increase: Boolean,
+    ): JSONObject {
+        val itemId = payload.optLong("order_menu_id", 0L)
+        require(itemId < 0L) {
+            "This local ordered item is unavailable."
+        }
+
+        val updated = app.localPosRepository.adjustQueuedProvisionalLine(
+            pseudoOrderId = orderId,
+            pseudoLineId = itemId,
+            delta = if (increase) 1 else -1,
+        )
+        val changedLine = updated.lines.firstOrNull {
+            app.localPosRepository.pseudoLineId(it.lineId) == itemId
+        }
+        val updatedAtMs = app.localPosRepository.localWorkUpdatedAtMs(
+            updated.tableId,
+        )
+
+        return JSONObject()
+            .put("ok", true)
+            .put("order_id", orderId)
+            .put("order_menu_id", itemId)
+            .put("new_quantity", changedLine?.quantity ?: 0)
+            .put("remaining_quantity", changedLine?.quantity ?: 0)
+            .put(
+                "line_subtotal",
+                minorToMajor(
+                    (changedLine?.unitPriceMinor ?: 0L) *
+                        (changedLine?.quantity ?: 0),
+                ),
+            )
+            .put("order_total", minorToMajor(updated.totalMinor))
+            .put("total_items", updated.lines.sumOf { it.quantity })
+            .put("updated_at", instantString(updatedAtMs))
+            .put(
+                "message",
+                if (increase) "Quantity increased."
+                else "Quantity reduced.",
+            )
     }
 
     private fun canonicalPaymentItems(items: JSONArray): JSONArray =
@@ -1227,13 +1314,6 @@ class LocalPosBridge(
                 ?: 0
         }
         return total
-    }
-
-    private fun pseudoLineId(value: String): Long {
-        val raw = value.hashCode().toLong()
-        val positive = if (raw == Long.MIN_VALUE) 1L
-            else kotlin.math.abs(raw).coerceAtLeast(1L)
-        return -positive
     }
 
     private fun currencySymbol(): String =
