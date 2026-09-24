@@ -2,8 +2,8 @@
 set -Eeuo pipefail
 
 PMD_ROOT="${PMD_ROOT:-/var/www/paymydine}"
-SOURCE_COMMIT="7bd3a32e97f9c7cb1b59af0e36eeec8be0f9469c"
-SOURCE_BRANCH="feature/platform-local-first-v2-v105-rebase"
+SOURCE_COMMIT="0c24c801c9bd1df9e0f36fb7e5058448a5a9a429"
+SOURCE_BRANCH="main"
 
 FILES=(
   "app/Services/PmdMobileSync/PmdMobileBootstrapService.php"
