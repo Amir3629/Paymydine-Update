@@ -2,6 +2,7 @@ package com.paymydine.mobile.data.local
 
 import android.content.Context
 import android.util.Base64
+import android.webkit.CookieManager
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
 import java.io.File
@@ -75,22 +76,33 @@ class OfflineImageCache(context: Context) {
     }
 
     fun dataUriForItem(itemId: String): String {
-        val files = filesFor(itemId)
-        if (!files.bytes.isFile || !files.meta.isFile) return ""
+        val cached = cachedForItem(itemId) ?: return ""
+        return "data:" + cached.mime + ";base64," +
+            Base64.encodeToString(cached.bytes, Base64.NO_WRAP)
+    }
+
+    // PMD_ANDROID_OFFLINE_IMAGE_ROUTE_V20
+    // Local Quick POS receives a synthetic same-tenant image URL keyed by menu
+    // id. The WebView intercepts it and serves these bytes without depending on
+    // the original thumbnail URL/query string.
+    fun cachedForItem(itemId: String): CachedImage? {
+        val normalized = itemId.trim()
+        if (normalized.isBlank()) return null
+        val files = filesFor(normalized)
 
         return runCatching {
+            if (!files.bytes.isFile || !files.meta.isFile) {
+                return@runCatching null
+            }
             val meta = JSONObject(files.meta.readText(Charsets.UTF_8))
             val mime = meta.optString("mime").trim().lowercase()
-            if (!supportedMime(mime)) return@runCatching ""
-
+            if (!supportedMime(mime)) return@runCatching null
             val bytes = files.bytes.readBytes()
             if (bytes.isEmpty() || bytes.size > MAX_IMAGE_BYTES) {
-                return@runCatching ""
+                return@runCatching null
             }
-
-            "data:$mime;base64," +
-                Base64.encodeToString(bytes, Base64.NO_WRAP)
-        }.getOrDefault("")
+            CachedImage(mime, bytes)
+        }.getOrNull()
     }
 
     /**
@@ -156,84 +168,129 @@ class OfflineImageCache(context: Context) {
         }
     }
 
+    // PMD_ANDROID_OFFLINE_IMAGE_COOKIE_V20
+    // Thumbnails may rely on the already-established Admin WebView cookie and
+    // may redirect. Only same-tenant HTTPS redirects are followed.
     private fun download(
         url: URL,
         sourceKey: String,
         files: CacheFiles,
     ) {
-        val connection = (url.openConnection() as HttpsURLConnection).apply {
-            requestMethod = "GET"
-            connectTimeout = 3_500
-            readTimeout = 7_000
-            useCaches = false
-            instanceFollowRedirects = false
-            setRequestProperty("Accept", "image/avif,image/webp,image/png,image/jpeg,image/gif")
-            setRequestProperty("User-Agent", "PayMyDine-Android-Offline-Image/1")
-        }
+        var currentUrl = url
 
-        try {
-            val code = connection.responseCode
-            if (code !in 200..299) return
-
-            val mime = connection.contentType
-                ?.substringBefore(';')
-                ?.trim()
-                ?.lowercase()
-                .orEmpty()
-            if (!supportedMime(mime)) return
-
-            val declared = connection.contentLengthLong
-            if (declared > MAX_IMAGE_BYTES) return
-
-            val output = ByteArrayOutputStream(
-                when {
-                    declared in 1..MAX_IMAGE_BYTES.toLong() -> declared.toInt()
-                    else -> 32 * 1024
-                },
-            )
-
-            connection.inputStream.use { input ->
-                val buffer = ByteArray(16 * 1024)
-                var total = 0
-                while (true) {
-                    val count = input.read(buffer)
-                    if (count < 0) break
-                    total += count
-                    if (total > MAX_IMAGE_BYTES) return
-                    output.write(buffer, 0, count)
+        repeat(MAX_REDIRECTS + 1) { hop ->
+            val connection = (currentUrl.openConnection() as HttpsURLConnection).apply {
+                requestMethod = "GET"
+                connectTimeout = 3_500
+                readTimeout = 7_000
+                useCaches = false
+                instanceFollowRedirects = false
+                setRequestProperty(
+                    "Accept",
+                    "image/avif,image/webp,image/png,image/jpeg,image/gif",
+                )
+                setRequestProperty(
+                    "User-Agent",
+                    "PayMyDine-Android-Offline-Image/2",
+                )
+                runCatching {
+                    CookieManager.getInstance()
+                        .getCookie(currentUrl.toString())
+                        ?.takeIf { it.isNotBlank() }
+                        ?.let { setRequestProperty("Cookie", it) }
                 }
             }
 
-            val bytes = output.toByteArray()
-            if (bytes.isEmpty()) return
+            try {
+                val code = connection.responseCode
+                if (code in setOf(301, 302, 303, 307, 308)) {
+                    if (hop >= MAX_REDIRECTS) return
+                    val location = connection.getHeaderField("Location")
+                        ?.trim()
+                        ?.takeIf { it.isNotBlank() }
+                        ?: return
+                    val next = runCatching {
+                        currentUrl.toURI().resolve(location)
+                    }.getOrNull() ?: return
 
-            directory.mkdirs()
-            val tmpBytes = File(files.bytes.absolutePath + ".tmp")
-            val tmpMeta = File(files.meta.absolutePath + ".tmp")
+                    if (
+                        !next.scheme.equals("https", ignoreCase = true) ||
+                        !next.host.equals(url.host, ignoreCase = true) ||
+                        next.userInfo != null ||
+                        next.port !in setOf(-1, 443)
+                    ) {
+                        return
+                    }
 
-            tmpBytes.writeBytes(bytes)
-            tmpMeta.writeText(
-                JSONObject()
-                    .put("source_key", sourceKey)
-                    .put("mime", mime)
-                    .toString(),
-                Charsets.UTF_8,
-            )
+                    currentUrl = next.toURL()
+                    return@repeat
+                }
 
-            if (!tmpBytes.renameTo(files.bytes)) {
-                tmpBytes.copyTo(files.bytes, overwrite = true)
-                tmpBytes.delete()
+                if (code !in 200..299) return
+
+                val mime = connection.contentType
+                    ?.substringBefore(';')
+                    ?.trim()
+                    ?.lowercase()
+                    .orEmpty()
+                if (!supportedMime(mime)) return
+
+                val declared = connection.contentLengthLong
+                if (declared > MAX_IMAGE_BYTES) return
+
+                val output = ByteArrayOutputStream(
+                    when {
+                        declared in 1..MAX_IMAGE_BYTES.toLong() ->
+                            declared.toInt()
+                        else -> 32 * 1024
+                    },
+                )
+
+                connection.inputStream.use { input ->
+                    val buffer = ByteArray(16 * 1024)
+                    var total = 0
+                    while (true) {
+                        val count = input.read(buffer)
+                        if (count < 0) break
+                        total += count
+                        if (total > MAX_IMAGE_BYTES) return
+                        output.write(buffer, 0, count)
+                    }
+                }
+
+                val bytes = output.toByteArray()
+                if (bytes.isEmpty()) return
+
+                directory.mkdirs()
+                val tmpBytes = File(files.bytes.absolutePath + ".tmp")
+                val tmpMeta = File(files.meta.absolutePath + ".tmp")
+
+                tmpBytes.writeBytes(bytes)
+                tmpMeta.writeText(
+                    JSONObject()
+                        .put("source_key", sourceKey)
+                        .put("mime", mime)
+                        .toString(),
+                    Charsets.UTF_8,
+                )
+
+                if (!tmpBytes.renameTo(files.bytes)) {
+                    tmpBytes.copyTo(files.bytes, overwrite = true)
+                    tmpBytes.delete()
+                }
+                if (!tmpMeta.renameTo(files.meta)) {
+                    tmpMeta.copyTo(files.meta, overwrite = true)
+                    tmpMeta.delete()
+                }
+
+                synchronized(urlIndex) {
+                    urlIndex[url.toString()] = files
+                    urlIndex[currentUrl.toString()] = files
+                }
+                return
+            } finally {
+                connection.disconnect()
             }
-            if (!tmpMeta.renameTo(files.meta)) {
-                tmpMeta.copyTo(files.meta, overwrite = true)
-                tmpMeta.delete()
-            }
-
-            synchronized(urlIndex) {
-                urlIndex[url.toString()] = files
-            }
-        } finally {
-            connection.disconnect()
         }
     }
 
@@ -291,5 +348,6 @@ class OfflineImageCache(context: Context) {
 
     companion object {
         private const val MAX_IMAGE_BYTES = 1_500_000
+        private const val MAX_REDIRECTS = 3
     }
 }
