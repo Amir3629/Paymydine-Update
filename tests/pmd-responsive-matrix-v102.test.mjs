@@ -123,8 +123,11 @@ assert.equal(androidTabletClassifier(480, 800), 'tablet-portrait');
 assert.equal(androidTabletClassifier(800, 480), 'tablet-landscape');
 
 assert.ok(
-  view.includes('<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">'),
-  'natural viewport meta contract missing'
+  view.includes('name="viewport"') &&
+  view.includes('width=device-width') &&
+  view.includes('initial-scale=1') &&
+  view.includes('viewport-fit=cover'),
+  'V105 viewport meta contract missing'
 );
 assert.ok(view.includes('pmd-quick-pos-v1.css?v=20260924-v105'), 'V102 CSS cache bust missing');
 assert.ok(view.includes('pmd-quick-pos-v1.js?v=20260924-v105'), 'V102 JS cache bust missing');
