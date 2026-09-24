@@ -14,6 +14,8 @@ fail(){ printf '\n[PayMyDine V103][ERROR] %s\n' "$*" >&2; exit 1; }
 
 [[ -d "$PMD_ROOT/.git" ]] || fail "Not a git checkout: $PMD_ROOT"
 [[ -f "$PMD_ROOT/artisan" ]] || fail "artisan missing: $PMD_ROOT"
+command -v sudo >/dev/null 2>&1 || fail "sudo is required"
+sudo -n true || fail "passwordless sudo is required for this deploy"
 
 cd "$PMD_ROOT"
 GIT=(git -c "safe.directory=$PMD_ROOT" -C "$PMD_ROOT")
@@ -29,7 +31,7 @@ BACKUP="$BACKUP_DIR/v103-portrait-scale-before-${STAMP}.tar.gz"
 
 rm -rf "$STAGE"
 mkdir -p "$STAGE"
-mkdir -p "$BACKUP_DIR"
+sudo mkdir -p "$BACKUP_DIR"
 trap 'rm -rf "$STAGE"' EXIT
 
 for rel in "${FILES[@]}"; do
@@ -57,7 +59,8 @@ EXISTING=()
 for rel in "${FILES[@]}"; do
   [[ -f "$rel" ]] && EXISTING+=("$rel")
 done
-tar -czf "$BACKUP" "${EXISTING[@]}"
+sudo tar -czf "$BACKUP" "${EXISTING[@]}"
+sudo chmod 0640 "$BACKUP" || true
 
 log "Installing exact V103 CSS/View"
 for rel in "${FILES[@]}"; do
@@ -65,12 +68,12 @@ for rel in "${FILES[@]}"; do
   uid="$(stat -c '%u' "$dst")"
   gid="$(stat -c '%g' "$dst")"
   mode="$(stat -c '%a' "$dst")"
-  install -m "$mode" -o "$uid" -g "$gid" "$STAGE/$rel" "$dst"
+  sudo install -m "$mode" -o "$uid" -g "$gid" "$STAGE/$rel" "$dst"
   echo "UPDATED: $rel"
 done
 
-php artisan view:clear >/dev/null 2>&1 || true
-php artisan cache:clear >/dev/null 2>&1 || true
+sudo -u www-data php artisan view:clear >/dev/null 2>&1 || php artisan view:clear >/dev/null 2>&1 || true
+sudo -u www-data php artisan cache:clear >/dev/null 2>&1 || php artisan cache:clear >/dev/null 2>&1 || true
 
 grep -Fq "PMD_QPOS_TABLET_PORTRAIT_SCALE_ISOLATION_V103"   app/admin/assets/css/pmd-quick-pos-v1.css
 grep -Fq "pmd-quick-pos-v1.css?v=20260924-v103"   app/admin/views/pmd_quick_pos_v1.blade.php
