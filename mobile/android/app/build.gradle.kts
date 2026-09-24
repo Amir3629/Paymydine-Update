@@ -10,8 +10,8 @@ android {
         applicationId = "com.paymydine.mobile"
         minSdk = 26
         targetSdk = 36
-        versionCode = 23
-        versionName = "0.3.10-login-center" // PMD_ANDROID_0_3_10_LOGIN_CENTER
+        versionCode = 24
+        versionName = "0.3.11-canonical-offline" // PMD_ANDROID_0_3_11_CANONICAL_OFFLINE
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "SYNC_PROTOCOL_VERSION", "\"pmd-sync-v1\"")
     }
