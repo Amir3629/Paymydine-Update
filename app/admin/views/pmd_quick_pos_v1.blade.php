@@ -1,10 +1,16 @@
 @php
     $pmdAndroidPosV105 = request()->header('X-PayMyDine-Android-POS') === '1';
     $pmdServerCssV105 = '';
+    $pmdServerJsV105 = '';
     if ($pmdAndroidPosV105) {
         $pmdServerCssPathV105 = base_path('app/admin/assets/css/pmd-quick-pos-v1.css');
         if (is_readable($pmdServerCssPathV105)) {
             $pmdServerCssV105 = (string) file_get_contents($pmdServerCssPathV105);
+        }
+
+        $pmdServerJsPathV105 = base_path('app/admin/assets/js/pmd-quick-pos-v1.js');
+        if (is_readable($pmdServerJsPathV105)) {
+            $pmdServerJsV105 = (string) file_get_contents($pmdServerJsPathV105);
         }
     }
 @endphp
@@ -1009,6 +1015,15 @@ window.PMDQuickPOSConfig = {
      V73 also runs one lean operational-state heartbeat for table/KDS sync. --}}
 <script src="/app/admin/assets/js/push-notifications.js?v=20260922-qpos-v59"></script>
 {{-- PMD_QPOS_OFFLINE_COMPLETE_CACHE_BUSTER_V94 --}}
+@if($pmdAndroidPosV105 && $pmdServerJsV105 !== '')
+<script>
+/* PMD_QPOS_ANDROID_SERVER_JS_OVERRIDE_V105
+ * Execute the current server runtime first. Android 0.3.28 intercepts the
+ * external file with its older bundled JS; that later script exits because
+ * window.PMDQuickPOSV1 is already initialized by this copy. */
+{!! $pmdServerJsV105 !!}
+</script>
+@endif
 <script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260924-v105"></script>
 <script src="/app/admin/assets/js/pmd-site-access-hub-v13.js?v=20260921-androidpair-v16"></script>
 </body>
