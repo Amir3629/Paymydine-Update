@@ -71,6 +71,7 @@ val prepareCanonicalPosAssets by tasks.registering(Copy::class) {
             "pmd-reservations2-floor-reservation-v312.css",
             "pmd-dashboard-lab-exact-floor-v1.css",
             "pmd-shared-floor-multi-floor-v1.css",
+            "push-notifications.css",
             "pmd-quick-pos-v1.css",
         )
         into("pmd-canonical/css")
@@ -80,6 +81,7 @@ val prepareCanonicalPosAssets by tasks.registering(Copy::class) {
         include(
             "pmd-dashboard-lab-exact-floor-v1.js",
             "pmd-shared-floor-multi-floor-v1.js",
+            "push-notifications.js",
             "pmd-quick-pos-v1.js",
             "pmd-site-access-hub-v13.js",
         )
