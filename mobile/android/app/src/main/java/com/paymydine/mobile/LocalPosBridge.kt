@@ -1531,9 +1531,47 @@ class LocalPosBridge(
         JSONObject()
             .put("ok", false)
             .put("status", 422)
-            .put(
-                "message",
-                error.message ?: "This action could not be completed.",
-            )
+            .put("message", cashierMessage(error.message))
             .toString()
+
+    // PMD_ANDROID_CASHIER_SAFE_MESSAGES_V18
+    // Repository/sync terminology is useful in logs, not at the till.
+    private fun cashierMessage(raw: String?): String {
+        val value = raw.orEmpty().trim()
+        if (value.isBlank()) return "This action could not be completed."
+
+        val lower = value.lowercase()
+        return when {
+            "snapshot" in lower ->
+                "Offline restaurant data is not ready yet."
+            "pair this device" in lower ||
+                "not paired" in lower ->
+                "This tablet needs to reconnect before this action."
+            "verified staff session" in lower ->
+                "Sign in again to continue."
+            "already queued" in lower ||
+                "waiting to retry" in lower ||
+                "command is pending" in lower ||
+                "order queued" in lower ->
+                "Already saved. Waiting to sync."
+            "reconciliation" in lower ||
+                "aggregate_version" in lower ||
+                "conflict" in lower ->
+                "This check changed elsewhere. Reconnect before editing it."
+            "idempot" in lower ->
+                "Already saved."
+            "http " in lower ||
+                "exception" in lower ||
+                "socket" in lower ||
+                "ssl" in lower ||
+                "dns" in lower ->
+                "Connection is unavailable. Keep working offline."
+            "invalid table id" in lower ->
+                "This table is not available."
+            "menu item is no longer available" in lower ||
+                "menu item is unavailable" in lower ->
+                "This item is no longer available."
+            else -> value.take(180)
+        }
+    }
 }
