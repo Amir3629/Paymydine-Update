@@ -29,6 +29,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import com.paymydine.mobile.hardware.customerdisplay.CustomerDisplayManager
 import com.paymydine.mobile.hardware.customerdisplay.PosCustomerDisplayJavascriptBridge
+import com.paymydine.mobile.network.MobileApiClient
 import com.paymydine.mobile.sync.SyncEngine
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -57,7 +58,6 @@ class PosActivity : ComponentActivity() {
     private enum class TransportMode {
         CLOUD,
         LOCAL,
-        RECONNECTING,
     }
 
     private lateinit var root: FrameLayout
@@ -69,6 +69,9 @@ class PosActivity : ComponentActivity() {
     private var transportMode = TransportMode.CLOUD
     private var localBridge: LocalPosBridge? = null
     private var loadedFromCachedShell = false
+    private var snapshotWarmInFlight = false
+    private var localReconnectRefreshInFlight = false
+    private var localReconnectRefreshComplete = false
     private lateinit var customerDisplay: CustomerDisplayManager
     private lateinit var posShellCache: PosShellCache
 
@@ -90,12 +93,15 @@ class PosActivity : ComponentActivity() {
         posShellCache = PosShellCache(this)
 
         // PMD_ANDROID_OFFLINE_POS_AUTHORITY_V12
-        val posAuthorized = if (app.connectivity.online.value) {
-            app.credentials.workspaceLeaseValid("pos")
-        } else {
+        // PMD_ANDROID_POS_SESSION_CONTINUATION_V20
+        // A still-valid local shift is authority for continuing this exact POS
+        // activity even when the short Cloud lease has expired. Starting or
+        // switching a staff identity still happens only through MainActivity.
+        val cloudAuthorized = app.credentials.workspaceLeaseValid("pos")
+        val localAuthorized =
             app.bootstrapRepository.hasBootstrap() &&
                 app.credentials.offlineSessionValid("pos")
-        }
+        val posAuthorized = cloudAuthorized || localAuthorized
         if (!posAuthorized) {
             startActivity(
                 Intent(this, MainActivity::class.java).apply {
@@ -157,18 +163,22 @@ class PosActivity : ComponentActivity() {
         observeCloudAvailability()
         startLiveSyncLoop()
         SyncEngine.enqueueImmediate(app)
+        if (app.connectivity.online.value) {
+            warmLocalSnapshot(refreshUi = false)
+        }
 
         // PMD_ANDROID_POS_SEAMLESS_FAILOVER_V17
         // Stay inside this exact Activity. A WAN cut changes only the transport
         // authority/WebView content; it never logs the staff member out and
         // never navigates through a separate "offline mode" screen.
         if (
-            !app.connectivity.online.value &&
-            offlinePosAvailable()
-        ) {
-            enterLocalMode(
-                "Cloud is unavailable. Local POS is active.",
+            localAuthorized &&
+            (
+                !app.connectivity.online.value ||
+                    !cloudAuthorized
             )
+        ) {
+            enterLocalMode("Opening PayMyDine POS...")
         }
 
         // Do not construct WebView during Activity inflation. The window can
@@ -394,6 +404,7 @@ class PosActivity : ComponentActivity() {
                     current: WebView,
                     request: WebResourceRequest,
                 ): WebResourceResponse? {
+                    offlineCachedImage(request.url)?.let { return it }
                     canonicalBundledAsset(request.url)?.let { return it }
 
                     if (transportMode == TransportMode.LOCAL) {
@@ -494,6 +505,7 @@ class PosActivity : ComponentActivity() {
                         current.clearHistory()
                         captureCanonicalShell(current)
                         revealWebView(current)
+                        warmLocalSnapshot(refreshUi = false)
 
                         // PMD_ANDROID_POS_SURFACE_PULSE_V6
                         // Force one real Android surface visibility transition
@@ -593,7 +605,10 @@ class PosActivity : ComponentActivity() {
                             // 401/403 can mean staff grant, role, location or
                             // session authority. Do not mislabel every auth
                             // failure as device revocation.
-                            app.credentials.clearStaffSession()
+                            // PMD_ANDROID_POS_PRESERVE_OFFLINE_SESSION_V20
+                            // A Cloud web-session failure invalidates the Cloud
+                            // lease only. Never erase the verified local shift.
+                            app.credentials.clearWorkspaceLease("pos")
                             loading.text =
                                 "PayMyDine needs a fresh staff sign-in " +
                                     "(HTTP ${response.statusCode}).\n\n" +
@@ -733,6 +748,8 @@ class PosActivity : ComponentActivity() {
                     return@collectLatest
                 }
 
+                localReconnectRefreshComplete = false
+
                 // PMD_ANDROID_POS_WIFI_CUT_FAILOVER_V17
                 // NET_CAPABILITY_VALIDATED has fallen away. Swap transport in
                 // this Activity before the Cloud DOM can expose fetch errors.
@@ -757,7 +774,8 @@ class PosActivity : ComponentActivity() {
 
                     if (
                         transportMode == TransportMode.LOCAL &&
-                        after == 0
+                        after == 0 &&
+                        !localReconnectRefreshComplete
                     ) {
                         attemptReturnToCloud()
                     } else if (
@@ -789,6 +807,7 @@ class PosActivity : ComponentActivity() {
 
         if (transportMode == TransportMode.LOCAL) return
         transportMode = TransportMode.LOCAL
+        localReconnectRefreshComplete = false
 
         val current = webView
         if (current != null && canonicalReady) {
@@ -918,6 +937,7 @@ class PosActivity : ComponentActivity() {
                     current: WebView,
                     request: WebResourceRequest,
                 ): WebResourceResponse? {
+                    offlineCachedImage(request.url)?.let { return it }
                     canonicalBundledAsset(request.url)?.let { return it }
 
                     app.offlineImageCache
@@ -1004,7 +1024,10 @@ class PosActivity : ComponentActivity() {
                 ViewGroup.LayoutParams.MATCH_PARENT,
             ),
         )
-        loading.text = reason
+        // PMD_ANDROID_POS_NO_MODE_OVERLAY_V20
+        // Local restore is the same POS launch. Do not display a separate
+        // Cloud/offline transition message to the cashier.
+        loading.text = "Opening PayMyDine POS..."
         loading.visibility = View.VISIBLE
         loading.bringToFront()
     }
@@ -1032,68 +1055,91 @@ class PosActivity : ComponentActivity() {
         }
     }
 
+    // PMD_ANDROID_POS_SNAPSHOT_WARM_V20
+    // The POS itself owns offline readiness. MainActivity does not need to stay
+    // visible for menu/table/history/image snapshots to be current.
+    private suspend fun refreshLocalSnapshotFromCloud(): Boolean =
+        withContext(Dispatchers.IO) {
+            val host = trustedHost() ?: return@withContext false
+            val token = app.credentials.deviceToken().orEmpty()
+            if (token.isBlank()) return@withContext false
+
+            runCatching {
+                val bootstrap = MobileApiClient().bootstrap(host, token)
+                app.bootstrapRepository.apply(bootstrap)
+                app.bootstrapRepository.locationId()?.let { locationId ->
+                    app.offlineImageCache.prefetch(
+                        host,
+                        app.localPosRepository.menu(locationId),
+                    )
+                }
+                true
+            }.getOrDefault(false)
+        }
+
+    private fun warmLocalSnapshot(refreshUi: Boolean) {
+        if (
+            snapshotWarmInFlight ||
+            !app.connectivity.online.value ||
+            isFinishing ||
+            isDestroyed
+        ) {
+            return
+        }
+
+        snapshotWarmInFlight = true
+        lifecycleScope.launch {
+            val refreshed = refreshLocalSnapshotFromCloud()
+            snapshotWarmInFlight = false
+            if (
+                refreshed &&
+                refreshUi &&
+                transportMode == TransportMode.LOCAL
+            ) {
+                refreshLocalWeb()
+            }
+        }
+    }
+
+    // PMD_ANDROID_POS_STICKY_LOCAL_V20
+    // Once WAN loss moves the POS to SQLite, keep the exact canonical DOM and
+    // local transport. Reconnect drains durable work and refreshes the trusted
+    // snapshot/images in the background without destroying/reloading WebView.
     private fun attemptReturnToCloud() {
         if (
             isFinishing ||
             isDestroyed ||
             !app.connectivity.online.value ||
-            transportMode != TransportMode.LOCAL
+            transportMode != TransportMode.LOCAL ||
+            localReconnectRefreshInFlight ||
+            localReconnectRefreshComplete
         ) {
             return
         }
 
-        transportMode = TransportMode.RECONNECTING
-
+        localReconnectRefreshInFlight = true
         lifecycleScope.launch {
             withContext(Dispatchers.IO) {
                 runCatching { SyncEngine(app).runOnce() }
             }
 
-            if (!app.connectivity.online.value) {
-                transportMode = TransportMode.LOCAL
-                return@launch
-            }
-
-            if (app.syncRepository.outboxCount() > 0) {
-                transportMode = TransportMode.LOCAL
-                return@launch
-            }
-
-            val current = webView
             if (
-                current == null ||
-                !canonicalReady ||
-                loadedFromCachedShell
+                !app.connectivity.online.value ||
+                app.syncRepository.outboxCount() > 0
             ) {
-                // A cold-start offline shell has no fresh Admin WebView
-                // session/cookie authority. Re-enter through mobile/pos/open
-                // after durable local work is reconciled.
-                createCanonicalWebView()
+                localReconnectRefreshInFlight = false
                 return@launch
             }
 
-            // Same canonical document, now backed by Cloud again. Reconcile
-            // exactly once after the durable outbox drains; never page-reload.
-            transportMode = TransportMode.CLOUD
-            current.evaluateJavascript(
-                """
-                (function(){
-                  var api = window.PMDQuickPOSV1;
-                  if (
-                    api &&
-                    typeof api.setNativeOffline === 'function'
-                  ) {
-                    api.setNativeOffline(false);
-                    if (typeof api.refresh === 'function') {
-                      api.refresh();
-                    }
-                    return 'cloud';
-                  }
-                  return 'missing';
-                })()
-                """.trimIndent(),
-                null,
-            )
+            val refreshed = refreshLocalSnapshotFromCloud()
+            localReconnectRefreshInFlight = false
+            if (!app.connectivity.online.value) return@launch
+
+            localReconnectRefreshComplete = refreshed
+            transportMode = TransportMode.LOCAL
+            if (refreshed) {
+                refreshLocalWeb()
+            }
         }
     }
 
@@ -1273,6 +1319,23 @@ class PosActivity : ComponentActivity() {
             }
             else -> bootstrap + html
         }
+    }
+
+    // PMD_ANDROID_OFFLINE_IMAGE_ROUTE_V20
+    private fun offlineCachedImage(uri: Uri): WebResourceResponse? {
+        val prefix = "/__pmd_offline/image/"
+        val path = uri.path.orEmpty()
+        if (!path.startsWith(prefix)) return null
+
+        val itemId = Uri.decode(path.removePrefix(prefix)).trim()
+        if (itemId.isBlank() || itemId.contains('/')) return null
+
+        val cached = app.offlineImageCache.cachedForItem(itemId) ?: return null
+        return WebResourceResponse(
+            cached.mime,
+            null,
+            ByteArrayInputStream(cached.bytes),
+        )
     }
 
     /**
