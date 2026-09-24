@@ -324,7 +324,10 @@ class SyncEngine(
             app.credentials.setEdgeFingerprint(fingerprint)
         }
 
-        app.bootstrapRepository.apply(bootstrap)
+        app.bootstrapRepository.apply(
+            bootstrap,
+            preserveCriticalOnEmpty = true,
+        )
 
         // PMD_ANDROID_POS_LIVE_CACHE_WARM_V17
         // Every successful restaurant snapshot refresh also refreshes the
