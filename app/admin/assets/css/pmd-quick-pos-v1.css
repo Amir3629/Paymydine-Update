@@ -9640,3 +9640,190 @@ body.pmd-qpos-body {
     font-size: 11px !important;
   }
 }
+
+
+/* ============================================================
+   PMD_QPOS_CATEGORY_TOUCH_V86
+   Categories use the same rectangular touch language as Floor buttons.
+   ============================================================ */
+.pmd-qpos-categories {
+  gap: 8px !important;
+  padding: 10px 12px 11px !important;
+}
+
+.pmd-qpos-categories button {
+  min-width: 82px !important;
+  min-height: 50px !important;
+  height: 50px !important;
+  padding: 0 16px !important;
+  border: 1px solid var(--q-line) !important;
+  border-radius: 10px !important;
+  background: #fff !important;
+  color: #374151 !important;
+  font-size: 14px !important;
+  font-weight: 850 !important;
+  line-height: 1 !important;
+  box-shadow: none !important;
+  white-space: nowrap;
+}
+
+.pmd-qpos-categories button.is-active {
+  border-color: var(--q-primary) !important;
+  background: var(--q-primary) !important;
+  color: #fff !important;
+}
+
+@media (pointer: coarse) {
+  .pmd-qpos-categories button {
+    min-height: 54px !important;
+    height: 54px !important;
+    padding-inline: 18px !important;
+  }
+}
+
+/* ============================================================
+   PMD_QPOS_TABLET_PORTRAIT_V86
+   When the WebView/browser actually rotates, do not keep the desktop
+   three-column cashier canvas squeezed into portrait. Use the existing
+   mobile-cart interaction while giving tablet portrait more columns/space.
+   ============================================================ */
+@media (min-width: 821px) and (max-width: 1180px) {
+  body.pmd-qpos-body.pmd-qpos-portrait-v86 {
+    overflow: auto !important;
+  }
+
+  .pmd-qpos.is-portrait-v86 {
+    height: auto !important;
+    max-height: none !important;
+    min-height: 100dvh !important;
+  }
+
+  .pmd-qpos.is-portrait-v86 .pmd-qpos-main {
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 100dvh !important;
+    overflow: visible !important;
+    padding: 8px !important;
+  }
+
+  .pmd-qpos.is-portrait-v86 .pmd-qpos-left,
+  .pmd-qpos.is-portrait-v86 .pmd-qpos-catalog,
+  .pmd-qpos.is-portrait-v86 .pmd-qpos-cart {
+    min-width: 0 !important;
+    border-radius: 14px !important;
+  }
+
+  .pmd-qpos.is-portrait-v86 .pmd-qpos-left {
+    height: 360px !important;
+    margin-bottom: 8px !important;
+  }
+
+  .pmd-qpos.is-portrait-v86 .pmd-qpos-floor-switch {
+    padding: 9px !important;
+  }
+
+  .pmd-qpos.is-portrait-v86 .pmd-qpos-tables {
+    min-height: 0 !important;
+    flex: 1 1 auto !important;
+  }
+
+  .pmd-qpos.is-portrait-v86 .pmd-qpos-table-grid {
+    grid-template-columns: repeat(4,minmax(0,1fr)) !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    padding: 6px 9px 10px !important;
+  }
+
+  .pmd-qpos.is-portrait-v86 .pmd-qpos-table {
+    min-height: 72px !important;
+  }
+
+  .pmd-qpos.is-portrait-v86 .pmd-qpos-catalog {
+    min-height: calc(100dvh - 100px) !important;
+    margin-bottom: 82px !important;
+    overflow: hidden !important;
+  }
+
+  .pmd-qpos.is-portrait-v86 .pmd-qpos-catalog-head {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    padding: 9px !important;
+    background: #fff;
+  }
+
+  .pmd-qpos.is-portrait-v86 .pmd-qpos-product-grid {
+    grid-template-columns: repeat(3,minmax(0,1fr)) !important;
+    padding: 9px !important;
+  }
+
+  .pmd-qpos.is-portrait-v86 .pmd-qpos-cart-close {
+    display: inline-grid !important;
+    place-items: center;
+  }
+
+  .pmd-qpos.is-portrait-v86 .pmd-qpos-cart {
+    position: fixed !important;
+    z-index: 55 !important;
+    inset: 0 !important;
+    height: 100dvh !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    transform: translateY(110%) !important;
+    transition: transform .2s ease !important;
+  }
+
+  .pmd-qpos.is-portrait-v86 .pmd-qpos-cart.is-mobile-open {
+    transform: translateY(0) !important;
+  }
+
+  .pmd-qpos.is-portrait-v86 .pmd-qpos-mobile-cart {
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    bottom: max(12px,env(safe-area-inset-bottom));
+    z-index: 50;
+    height: 62px;
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    border: 0;
+    border-radius: 14px;
+    padding: 0 18px;
+    background: #111827;
+    color: #fff;
+    box-shadow: 0 16px 36px rgba(15,23,42,.30);
+    font-weight: 850;
+  }
+
+  .pmd-qpos.is-portrait-v86 .pmd-qpos-mobile-cart strong {
+    font-size: 19px;
+  }
+
+  .pmd-qpos.is-portrait-v86 .pmd-qpos-modal {
+    padding: 0 !important;
+    align-items: end !important;
+  }
+
+  .pmd-qpos.is-portrait-v86 .pmd-qpos-modal-card {
+    width: 100% !important;
+    max-height: 94dvh !important;
+    border-radius: 20px 20px 0 0 !important;
+  }
+
+  /* History in portrait uses the full working width instead of keeping the
+     landscape-only right-rail reservation. */
+  .pmd-qpos.is-portrait-v86
+  .pmd-qpos-workspace-modal[data-qpos-history-modal] {
+    left: 8px !important;
+    right: 8px !important;
+    bottom: 8px !important;
+  }
+
+  .pmd-qpos.is-portrait-v86
+  .pmd-qpos-workspace-modal[data-qpos-history-modal]
+  > .pmd-qpos-history-shell-v84 {
+    grid-template-columns: 300px minmax(0,1fr) !important;
+  }
+}
