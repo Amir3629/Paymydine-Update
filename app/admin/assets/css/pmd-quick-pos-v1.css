@@ -12385,3 +12385,320 @@ body.pmd-qpos-body {
   font-size: 20px !important;
 }
 
+/* ============================================================
+   PMD_QPOS_MOBILE_BALANCED_V99
+   Slightly denser than V98 while preserving natural 100% browser zoom,
+   two-column mobile structure, readable text, and touch-friendly targets.
+   ============================================================ */
+.pmd-qpos.is-portrait-v86 {
+  font-size: 17px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-floor-tabs button {
+  min-height: 60px !important;
+  height: 60px !important;
+  font-size: 18px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-floor-map-open {
+  min-height: 58px !important;
+  height: 58px !important;
+  font-size: 18px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-guide-toggle {
+  min-width: 54px !important;
+  width: 54px !important;
+  min-height: 58px !important;
+  height: 58px !important;
+  font-size: 20px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-table,
+.pmd-qpos.is-portrait-v86 .pmd-qpos-history-tables-v93 .pmd-qpos-table {
+  min-height: 104px !important;
+  padding: 10px 8px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-table strong,
+.pmd-qpos.is-portrait-v86 .pmd-qpos-table:not(.pmd-qpos-pickup) > strong,
+.pmd-qpos.is-portrait-v86 .pmd-qpos-history-tables-v93 .pmd-qpos-table strong {
+  font-size: 30px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-pickup strong,
+.pmd-qpos.is-portrait-v86 .pmd-qpos-history-tables-v93 .pmd-qpos-pickup strong {
+  font-size: 20px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-table small,
+.pmd-qpos.is-portrait-v86 .pmd-qpos-history-tables-v93 .pmd-qpos-table small {
+  margin-top: 7px !important;
+  font-size: 16px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-table-signal {
+  width: 32px !important;
+  min-width: 32px !important;
+  height: 32px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-table-signal b {
+  font-size: 15px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-profile-button,
+.pmd-qpos.is-portrait-v86 .pmd-qpos-history-button {
+  min-height: 58px !important;
+  height: 58px !important;
+  font-size: 18px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-profile-button > span {
+  width: 32px !important;
+  height: 32px !important;
+  font-size: 14px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-profile-button > strong {
+  font-size: 18px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-search,
+.pmd-qpos.is-portrait-v86 .pmd-qpos-clock {
+  height: 58px !important;
+  min-height: 58px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-search span {
+  font-size: 21px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-search input,
+.pmd-qpos.is-portrait-v86 input,
+.pmd-qpos.is-portrait-v86 textarea,
+.pmd-qpos.is-portrait-v86 select,
+.pmd-qpos.is-portrait-v86 input::placeholder,
+.pmd-qpos.is-portrait-v86 textarea::placeholder {
+  font-size: 18px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-clock {
+  min-width: 78px !important;
+  font-size: 18px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-categories button {
+  min-width: 108px !important;
+  min-height: 56px !important;
+  height: 56px !important;
+  padding-inline: 14px !important;
+  font-size: 17px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-catalog-status,
+.pmd-qpos.is-portrait-v86 .pmd-qpos-section-label {
+  font-size: 17px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-product-body .pmd-qpos-product-name {
+  top: 12px !important;
+  left: 12px !important;
+  right: 12px !important;
+  font-size: 22px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-product-body .pmd-qpos-product-number {
+  font-size: 20px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-product-meta {
+  left: 12px !important;
+  right: 12px !important;
+  bottom: 12px !important;
+  font-size: 17px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-product-meta > span {
+  font-size: 17px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-product-meta > b {
+  font-size: 28px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-product-badge {
+  padding: 6px 9px !important;
+  font-size: 14px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-product-count {
+  min-width: 32px !important;
+  height: 32px !important;
+  font-size: 16px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-cart-head {
+  min-height: 60px !important;
+  padding: 10px 12px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-cart-head strong {
+  font-size: 20px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-guests button,
+.pmd-qpos.is-portrait-v86 .pmd-qpos-line-qty button,
+.pmd-qpos.is-portrait-v86 .pmd-qpos-line-remove,
+.pmd-qpos.is-portrait-v86 .pmd-qpos-sent-qty-v68 button {
+  min-width: 48px !important;
+  width: 48px !important;
+  min-height: 48px !important;
+  height: 48px !important;
+  font-size: 21px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-open-checks button,
+.pmd-qpos.is-portrait-v86 .pmd-qpos-cart-actions button,
+.pmd-qpos.is-portrait-v86 .pmd-qpos-table-actions button,
+.pmd-qpos.is-portrait-v86 .pmd-qpos-option,
+.pmd-qpos.is-portrait-v86 .pmd-qpos-modal-primary,
+.pmd-qpos.is-portrait-v86 .pmd-qpos-payment-methods button,
+.pmd-qpos.is-portrait-v86 .pmd-qpos-tip-row button,
+.pmd-qpos.is-portrait-v86 .pmd-qpos-terminal {
+  min-height: 56px !important;
+  font-size: 17px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-empty-cart strong,
+.pmd-qpos.is-portrait-v86 .pmd-qpos-cart-line strong,
+.pmd-qpos.is-portrait-v86 .pmd-qpos-sent-line {
+  font-size: 19px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-empty-cart span,
+.pmd-qpos.is-portrait-v86 .pmd-qpos-cart-line small,
+.pmd-qpos.is-portrait-v86 .pmd-qpos-sent-line small,
+.pmd-qpos.is-portrait-v86 .pmd-qpos-order-note > span,
+.pmd-qpos.is-portrait-v86 .pmd-qpos-cart-summary > div,
+.pmd-qpos.is-portrait-v86 .pmd-qpos-cart-summary span {
+  font-size: 16px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-order-note textarea {
+  min-height: 70px !important;
+  font-size: 17px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-cart-summary .grand,
+.pmd-qpos.is-portrait-v86 .pmd-qpos-cart-summary strong {
+  font-size: 20px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-cart-summary .grand strong {
+  font-size: 26px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-mobile-cart {
+  height: 70px !important;
+  min-height: 70px !important;
+  padding-inline: 18px !important;
+  font-size: 20px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-mobile-cart span,
+.pmd-qpos.is-portrait-v86 .pmd-qpos-mobile-cart b {
+  font-size: 20px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-mobile-cart strong {
+  font-size: 28px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-history-left-head-v84 {
+  min-height: 66px !important;
+  padding: 10px 13px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-history-left-head-v84 h2 {
+  font-size: 24px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-history-kind-tabs-v82 button,
+.pmd-qpos.is-portrait-v86 .pmd-qpos-history-all-v93,
+.pmd-qpos.is-portrait-v86 .pmd-qpos-history-presets button,
+.pmd-qpos.is-portrait-v86 .pmd-qpos-history-toolbar button {
+  min-height: 56px !important;
+  font-size: 17px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-history-dates-v85 input {
+  min-height: 52px !important;
+  height: 52px !important;
+  font-size: 17px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-history-date-arrow-v85 {
+  min-width: 42px !important;
+  min-height: 42px !important;
+  font-size: 20px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-history-workbar-v84 {
+  min-height: 66px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-history-workbar-v84 .pmd-qpos-search,
+.pmd-qpos.is-portrait-v86 .pmd-qpos-history-workbar-v84 .pmd-qpos-clock {
+  height: 56px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-history-entry,
+.pmd-qpos.is-portrait-v86 .pmd-qpos-history-simple-event {
+  min-height: 96px !important;
+  padding: 14px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-history-entry-top strong,
+.pmd-qpos.is-portrait-v86 .pmd-qpos-history-entry strong,
+.pmd-qpos.is-portrait-v86 .pmd-qpos-history-simple-event strong {
+  font-size: 20px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-history-entry-top time {
+  font-size: 16px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-history-entry-bottom > span:not(.pmd-qpos-history-new-pill):not(.pmd-qpos-history-seen-action),
+.pmd-qpos.is-portrait-v86 .pmd-qpos-history-entry small,
+.pmd-qpos.is-portrait-v86 .pmd-qpos-history-simple-event small,
+.pmd-qpos.is-portrait-v86 .pmd-qpos-history-entry footer,
+.pmd-qpos.is-portrait-v86 .pmd-qpos-history-simple-event footer {
+  font-size: 16px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-history-entry-bottom > b {
+  min-height: 32px !important;
+  font-size: 14px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-history-detail-event strong {
+  font-size: 19px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-history-detail-event time,
+.pmd-qpos.is-portrait-v86 .pmd-qpos-history-detail-event footer a {
+  font-size: 15px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-history-detail-event p,
+.pmd-qpos.is-portrait-v86 .pmd-qpos-history-invoice,
+.pmd-qpos.is-portrait-v86 .pmd-qpos-history-note-card-v83 > p {
+  font-size: 17px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-history-mobile-back-v87 {
+  min-height: 56px !important;
+  font-size: 18px !important;
+}
+
