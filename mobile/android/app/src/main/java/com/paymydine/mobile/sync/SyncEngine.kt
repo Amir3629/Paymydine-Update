@@ -303,9 +303,16 @@ class SyncEngine(
         if (app.connectivity.online.value) {
             try {
                 pullCloudEvents(host, token)
-            } catch (_: Throwable) {
+                app.syncRepository.markCloudHealth(true)
+            } catch (error: Throwable) {
+                app.syncRepository.markCloudHealth(
+                    false,
+                    error.message ?: "PayMyDine Cloud is unreachable.",
+                )
                 allGood = false
             }
+        } else {
+            app.syncRepository.markCloudHealth(false, "Network is offline.")
         }
 
         if (
