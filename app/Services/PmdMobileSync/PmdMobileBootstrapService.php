@@ -362,12 +362,23 @@ final class PmdMobileBootstrapService
                     as $payment
                 ) {
                     $paymentRaw = (array)$payment;
+                    $paymentTime = (string)(
+                        $paymentRaw['paid_at']
+                        ?? $paymentRaw['created_at']
+                        ?? ''
+                    );
+                    if ($paymentTime !== '') {
+                        try {
+                            $paymentTime = \Carbon\Carbon::parse(
+                                $paymentTime,
+                                now()->getTimezone()
+                            )->toIso8601String();
+                        } catch (\Throwable $ignored) {
+                        }
+                    }
+
                     $payments[] = [
-                        'time' => (string)(
-                            $paymentRaw['paid_at']
-                            ?? $paymentRaw['created_at']
-                            ?? ''
-                        ),
+                        'time' => $paymentTime,
                         'method' => (string)(
                             $paymentRaw['payment_method']
                             ?? 'payment'
