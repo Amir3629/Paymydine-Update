@@ -361,6 +361,17 @@ final class PmdMobileCommandProcessor
             ]);
         }
 
+        // PMD_MOBILE_OFFLINE_PAYMENT_TIME_V18
+        // The financial mutation is still performed by the canonical payment
+        // endpoint; only the business paid_at is corrected to the verified
+        // offline collection time after the transaction exists.
+        if (!empty($data['transaction_id'])) {
+            $this->applyOriginalOfflinePaymentTime(
+                (int)$data['transaction_id'],
+                (int)($payload['client_paid_at_ms'] ?? 0)
+            );
+        }
+
         $summary = (array)($data['summary'] ?? []);
         $settlement = (array)($summary['settlement'] ?? []);
         $order = (array)($summary['order'] ?? []);
@@ -600,6 +611,47 @@ final class PmdMobileCommandProcessor
         }
     }
 
+    private function applyOriginalOfflinePaymentTime(
+        int $transactionId,
+        int $clientPaidAtMs
+    ): void {
+        if (
+            $transactionId < 1
+            || $clientPaidAtMs < 1
+            || !Schema::hasTable('order_payment_transactions')
+        ) {
+            return;
+        }
+
+        $nowMs = (int)round(microtime(true) * 1000);
+        if (
+            $clientPaidAtMs < $nowMs - (36 * 60 * 60 * 1000)
+            || $clientPaidAtMs > $nowMs + (5 * 60 * 1000)
+        ) {
+            return;
+        }
+
+        try {
+            $columns = Schema::getColumnListing(
+                'order_payment_transactions'
+            );
+            if (!in_array('paid_at', $columns, true)) {
+                return;
+            }
+
+            $moment = \Carbon\Carbon::createFromTimestamp(
+                (int)floor($clientPaidAtMs / 1000),
+                'UTC'
+            )->setTimezone(now()->getTimezone());
+
+            DB::table('order_payment_transactions')
+                ->where('id', $transactionId)
+                ->update(['paid_at' => $moment]);
+        } catch (\Throwable $error) {
+            report($error);
+        }
+    }
+
     private function applyKdsStatusCommand(
         array $identity,
         array $command
@@ -641,17 +693,24 @@ final class PmdMobileCommandProcessor
         array $command,
         array $result
     ) {
-        if (
-            $command['aggregate'] !== 'order'
-            || empty($result['created'])
-        ) {
+        if ($command['aggregate'] !== 'order') {
             return now();
         }
 
-        $clientMs = (int)(
-            $command['payload']['client_created_at_ms']
-            ?? 0
-        );
+        if ($command['command_type'] === 'CASH_PAYMENT_V1') {
+            $clientMs = (int)(
+                $command['payload']['client_paid_at_ms']
+                ?? 0
+            );
+        } elseif (!empty($result['created'])) {
+            $clientMs = (int)(
+                $command['payload']['client_created_at_ms']
+                ?? 0
+            );
+        } else {
+            return now();
+        }
+
         $nowMs = (int)round(microtime(true) * 1000);
 
         if (
