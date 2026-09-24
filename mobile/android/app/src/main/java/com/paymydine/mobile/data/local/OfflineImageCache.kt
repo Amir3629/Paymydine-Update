@@ -44,7 +44,10 @@ class OfflineImageCache(context: Context) {
 
             val rawImage = payload.optString("image").trim()
             if (rawImage.isBlank()) {
-                remove(item.id)
+                // PMD_ANDROID_IMAGE_CACHE_PRESERVE_PARTIAL_REFRESH_V101
+                // A reconnect payload can temporarily omit media while the
+                // restaurant snapshot is converging. Never erase known-good
+                // bytes just because this refresh lacks an image reference.
                 return@forEach
             }
 
