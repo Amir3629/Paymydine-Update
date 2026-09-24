@@ -115,6 +115,7 @@ jobs:
           grep -q '"push-notifications.js"' mobile/android/app/build.gradle.kts
           grep -q '"push-notifications.css"' mobile/android/app/build.gradle.kts
           grep -q "PMD_QPOS_CATEGORY_TOUCH_V86" app/admin/assets/css/pmd-quick-pos-v1.css
+          node --check app/admin/assets/js/pmd-quick-pos-v1.js
           grep -q "PMD_QPOS_TABLET_PORTRAIT_V86" app/admin/assets/css/pmd-quick-pos-v1.css
           grep -q "PMD_QPOS_MOBILE_FLOW_V87" app/admin/assets/css/pmd-quick-pos-v1.css
           grep -q "PMD_QPOS_MOBILE_HISTORY_V87" app/admin/assets/js/pmd-quick-pos-v1.js
@@ -124,7 +125,9 @@ jobs:
           grep -q "PMD_QPOS_VISUAL_CLEANUP_V90" app/admin/assets/css/pmd-quick-pos-v1.css
           grep -q "PMD_QPOS_MOBILE_CART_IN_FLOW_V90" app/admin/assets/css/pmd-quick-pos-v1.css
           grep -q "PMD_QPOS_HISTORY_TABLE_RAIL_V88" app/admin/assets/js/pmd-quick-pos-v1.js
-          grep -q "PMD_QPOS_REQUEST_FAILOVER_V91" app/admin/assets/js/pmd-quick-pos-v1.js\n          grep -q "PMD_QPOS_NATIVE_DURABLE_MUTATIONS_V92" app/admin/assets/js/pmd-quick-pos-v1.js
+          grep -q "PMD_QPOS_REQUEST_FAILOVER_V91" app/admin/assets/js/pmd-quick-pos-v1.js
+          grep -q "PMD_QPOS_NATIVE_DURABLE_MUTATIONS_V92" app/admin/assets/js/pmd-quick-pos-v1.js
+          grep -q "PMD_QPOS_TERMINAL_SAFE_FAILOVER_V92" app/admin/assets/js/pmd-quick-pos-v1.js
           grep -q "PMD_ANDROID_POS_REQUEST_FAILOVER_V21" mobile/android/app/src/main/java/com/paymydine/mobile/LocalPosBridge.kt
           grep -q "PMD_ANDROID_CONNECTIVITY_SYNC_PROBE_V21" mobile/android/app/src/main/java/com/paymydine/mobile/network/ConnectivityObserver.kt
           grep -q "PMD_ANDROID_OFFLINE_LOGIN_VERIFIER_V22" mobile/android/app/src/main/java/com/paymydine/mobile/security/OfflineCredentialCrypto.kt

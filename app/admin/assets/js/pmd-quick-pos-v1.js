@@ -183,6 +183,7 @@
   }
 
   /* PMD_QPOS_NATIVE_DURABLE_MUTATIONS_V92
+   * PMD_QPOS_TERMINAL_SAFE_FAILOVER_V92
    * Identify mutations that have certified SQLite/outbox authority. They move
    * to native transport when the synchronous network probe says Cloud is gone.
    * While Cloud is healthy, the existing Cloud path remains intact so online
