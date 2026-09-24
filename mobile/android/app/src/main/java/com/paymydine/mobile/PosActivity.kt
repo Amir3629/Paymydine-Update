@@ -609,6 +609,17 @@ class PosActivity : ComponentActivity() {
                             // A Cloud web-session failure invalidates the Cloud
                             // lease only. Never erase the verified local shift.
                             app.credentials.clearWorkspaceLease("pos")
+
+                            // PMD_ANDROID_POS_AUTH_LOCAL_FALLBACK_V20
+                            // An expired/rejected Cloud WebView session is not a
+                            // reason to interrupt a still-valid restaurant work
+                            // session. Keep the cashier inside the same POS and
+                            // move transport to the durable local snapshot.
+                            if (offlinePosAvailable()) {
+                                enterLocalMode("Opening PayMyDine POS...")
+                                return
+                            }
+
                             loading.text =
                                 "PayMyDine needs a fresh staff sign-in " +
                                     "(HTTP ${response.statusCode}).\n\n" +
