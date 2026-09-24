@@ -292,18 +292,27 @@ final class PmdMobileCommandProcessor
 
         $result = $pos->saveMobilePayload($tableId, $payload);
 
-        // PMD_MOBILE_OFFLINE_ORIGINAL_TIME_V18
-        // A newly-created offline order keeps the time the staff actually
-        // created/sent it on the restaurant tablet, not the later WAN-recovery
-        // replay time. Existing canonical orders are never backdated.
+        // PMD_MOBILE_OFFLINE_ORIGINAL_TIME_V23
+        // A locally-created command owns its business timestamp independently
+        // of the later Cloud replay. Do not rely only on the controller's
+        // "created" flag: the local aggregate/force-new contract is authoritative
+        // for deciding whether this is the first canonical creation.
         if (
-            !empty($result['created'])
-            && !empty($result['order_id'])
+            !empty($result['order_id'])
+            && $this->isOriginalLocalCreateCommand($command)
         ) {
-            $this->applyOriginalOfflineOrderTime(
+            $originalMoment = $this->applyOriginalOfflineOrderTime(
                 (int)$result['order_id'],
                 (int)($payload['client_created_at_ms'] ?? 0)
             );
+
+            if ($originalMoment) {
+                $result['placed_at'] = $originalMoment->toIso8601String();
+                $result['order_date'] = $originalMoment->toDateString();
+                $result['order_time'] = $originalMoment->format('H:i:s');
+                $result['client_created_at_ms'] =
+                    (int)($payload['client_created_at_ms'] ?? 0);
+            }
         }
 
         return $result;
@@ -562,13 +571,13 @@ final class PmdMobileCommandProcessor
     private function applyOriginalOfflineOrderTime(
         int $orderId,
         int $clientCreatedAtMs
-    ): void {
+    ): ?\Carbon\Carbon {
         if (
             $orderId < 1
             || $clientCreatedAtMs < 1
             || !Schema::hasTable('orders')
         ) {
-            return;
+            return null;
         }
 
         $nowMs = (int)round(microtime(true) * 1000);
@@ -579,7 +588,7 @@ final class PmdMobileCommandProcessor
             $clientCreatedAtMs < $oldestAllowed
             || $clientCreatedAtMs > $futureLimit
         ) {
-            return;
+            return null;
         }
 
         try {
@@ -606,9 +615,39 @@ final class PmdMobileCommandProcessor
                     ->where('order_id', $orderId)
                     ->update($updates);
             }
+
+            return $moment;
         } catch (\Throwable $error) {
             report($error);
+            return null;
         }
+    }
+
+    private function isOriginalLocalCreateCommand(array $command): bool
+    {
+        if (!in_array(
+            (string)($command['command_type'] ?? ''),
+            ['ORDER_SEND_V1', 'ORDER_HOLD_V1'],
+            true
+        )) {
+            return false;
+        }
+
+        $payload = (array)($command['payload'] ?? []);
+        $aggregateId = (string)(
+            $command['client_aggregate_id']
+            ?? $command['aggregate_id']
+            ?? ''
+        );
+
+        return str_starts_with($aggregateId, 'local:')
+            || (
+                (int)($payload['order_id'] ?? 0) < 1
+                && filter_var(
+                    $payload['force_new_check'] ?? false,
+                    FILTER_VALIDATE_BOOLEAN
+                )
+            );
     }
 
     private function applyOriginalOfflinePaymentTime(
@@ -702,7 +741,7 @@ final class PmdMobileCommandProcessor
                 $command['payload']['client_paid_at_ms']
                 ?? 0
             );
-        } elseif (!empty($result['created'])) {
+        } elseif ($this->isOriginalLocalCreateCommand($command)) {
             $clientMs = (int)(
                 $command['payload']['client_created_at_ms']
                 ?? 0
