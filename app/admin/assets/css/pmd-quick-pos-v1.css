@@ -12702,3 +12702,116 @@ body.pmd-qpos-body {
   font-size: 18px !important;
 }
 
+/* ============================================================
+   PMD_QPOS_MOBILE_NORMAL_BUTTONS_V100
+   Keep V99 typography/card readability but reduce oversized touch chrome.
+   Food names/prices and table readability remain unchanged.
+   ============================================================ */
+.pmd-qpos.is-portrait-v86 .pmd-qpos-floor-tabs button {
+  min-height: 52px !important;
+  height: 52px !important;
+  padding-inline: 10px !important;
+  font-size: 16px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-floor-map-open {
+  min-height: 50px !important;
+  height: 50px !important;
+  font-size: 16px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-guide-toggle {
+  min-width: 48px !important;
+  width: 48px !important;
+  min-height: 50px !important;
+  height: 50px !important;
+  font-size: 18px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-profile-button,
+.pmd-qpos.is-portrait-v86 .pmd-qpos-history-button {
+  min-height: 52px !important;
+  height: 52px !important;
+  font-size: 16px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-profile-button > span {
+  width: 30px !important;
+  height: 30px !important;
+  font-size: 13px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-profile-button > strong {
+  font-size: 16px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-search,
+.pmd-qpos.is-portrait-v86 .pmd-qpos-clock {
+  height: 54px !important;
+  min-height: 54px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-search span {
+  font-size: 19px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-search input,
+.pmd-qpos.is-portrait-v86 input::placeholder,
+.pmd-qpos.is-portrait-v86 textarea::placeholder {
+  font-size: 17px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-clock {
+  min-width: 74px !important;
+  font-size: 17px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-categories button {
+  min-width: 102px !important;
+  min-height: 50px !important;
+  height: 50px !important;
+  padding-inline: 12px !important;
+  font-size: 16px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-open-checks button,
+.pmd-qpos.is-portrait-v86 .pmd-qpos-cart-actions button,
+.pmd-qpos.is-portrait-v86 .pmd-qpos-table-actions button,
+.pmd-qpos.is-portrait-v86 .pmd-qpos-option,
+.pmd-qpos.is-portrait-v86 .pmd-qpos-modal-primary,
+.pmd-qpos.is-portrait-v86 .pmd-qpos-payment-methods button,
+.pmd-qpos.is-portrait-v86 .pmd-qpos-tip-row button,
+.pmd-qpos.is-portrait-v86 .pmd-qpos-terminal {
+  min-height: 52px !important;
+  font-size: 16px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-mobile-cart {
+  height: 64px !important;
+  min-height: 64px !important;
+  padding-inline: 16px !important;
+  font-size: 18px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-mobile-cart span,
+.pmd-qpos.is-portrait-v86 .pmd-qpos-mobile-cart b {
+  font-size: 18px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-mobile-cart strong {
+  font-size: 26px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-history-kind-tabs-v82 button,
+.pmd-qpos.is-portrait-v86 .pmd-qpos-history-all-v93,
+.pmd-qpos.is-portrait-v86 .pmd-qpos-history-presets button,
+.pmd-qpos.is-portrait-v86 .pmd-qpos-history-toolbar button {
+  min-height: 50px !important;
+  font-size: 16px !important;
+}
+
+.pmd-qpos.is-portrait-v86 .pmd-qpos-history-mobile-back-v87 {
+  min-height: 50px !important;
+  font-size: 16px !important;
+}
+
