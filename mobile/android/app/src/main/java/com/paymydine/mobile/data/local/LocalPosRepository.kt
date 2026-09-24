@@ -643,6 +643,13 @@ class LocalPosRepository(private val database: PmdDatabase) {
         return -value
     }
 
+    fun pseudoLineId(lineId: String): Long {
+        val value = lineId.hashCode().toLong().let {
+            if (it == Long.MIN_VALUE) 1L else kotlin.math.abs(it)
+        }.coerceAtLeast(1L)
+        return -value
+    }
+
     fun tableForPseudoOrderId(pseudoOrderId: Long): String? {
         if (pseudoOrderId >= 0L) return null
 
@@ -828,6 +835,243 @@ class LocalPosRepository(private val database: PmdDatabase) {
 
         recalculate(db, row.first)
         readDraft(db, row.first)
+    }
+
+    /**
+     * PMD_ANDROID_PROVISIONAL_ORDER_EDIT_V23
+     *
+     * A new offline check has no server order/menu ids yet. Its queued SEND/HOLD
+     * command is still fully local, so quantity correction edits that exact
+     * durable command instead of inventing a second mutation command.
+     *
+     * The outbox row must still be PENDING/RETRY. Once it is IN_FLIGHT the edit
+     * is rejected to avoid changing a command that Cloud may already be applying.
+     */
+    fun adjustQueuedProvisionalLine(
+        pseudoOrderId: Long,
+        pseudoLineId: Long,
+        delta: Int,
+    ): DraftOrder = database.transaction { db ->
+        require(pseudoOrderId < 0L && pseudoLineId < 0L) {
+            "This local check is not editable."
+        }
+        require(delta == -1 || delta == 1) {
+            "Quantity change is invalid."
+        }
+
+        var localId: String? = null
+        var tableId: String? = null
+        var orderStatus: String? = null
+        db.query(
+            "pmd_orders",
+            arrayOf("id", "table_id", "status", "payload_json"),
+            "server_id IS NULL AND status IN (?, ?)",
+            arrayOf(STATUS_QUEUED, STATUS_RETRY),
+            null,
+            null,
+            "updated_at_ms DESC",
+            "250",
+        ).use { rows ->
+            while (rows.moveToNext()) {
+                val candidate = rows.getString(0)
+                if (pseudoOrderId(candidate) == pseudoOrderId) {
+                    val meta = runCatching {
+                        JSONObject(rows.getString(3))
+                    }.getOrElse { JSONObject() }
+                    require(meta.optLong("offline_cash_queued_minor", 0L) <= 0L) {
+                        "This check already has a cash payment waiting to sync."
+                    }
+                    localId = candidate
+                    tableId = rows.getString(1)
+                    orderStatus = rows.getString(2)
+                    break
+                }
+            }
+        }
+
+        val resolvedLocalId = localId
+            ?: error("This local check is no longer available.")
+        require(orderStatus == STATUS_QUEUED || orderStatus == STATUS_RETRY) {
+            "This local check is no longer editable."
+        }
+
+        var lineId: String? = null
+        var quantityMilli = 0
+        db.query(
+            "pmd_order_lines",
+            arrayOf("line_id", "quantity_milli"),
+            "order_id = ? AND deleted = 0",
+            arrayOf(resolvedLocalId),
+            null,
+            null,
+            "rowid ASC",
+        ).use { rows ->
+            while (rows.moveToNext()) {
+                val candidate = rows.getString(0)
+                if (pseudoLineId(candidate) == pseudoLineId) {
+                    lineId = candidate
+                    quantityMilli = rows.getInt(1)
+                    break
+                }
+            }
+        }
+
+        val resolvedLineId = lineId
+            ?: error("This ordered item is no longer available.")
+
+        val nextMilli = quantityMilli + (delta * 1000)
+        if (nextMilli <= 0) {
+            val activeLines = db.rawQuery(
+                "SELECT COUNT(*) FROM pmd_order_lines " +
+                    "WHERE order_id = ? AND deleted = 0",
+                arrayOf(resolvedLocalId),
+            ).use { if (it.moveToFirst()) it.getInt(0) else 0 }
+
+            require(activeLines > 1) {
+                "At least one item must remain on a sent check."
+            }
+
+            db.update(
+                "pmd_order_lines",
+                ContentValues().apply { put("deleted", 1) },
+                "line_id = ?",
+                arrayOf(resolvedLineId),
+            )
+        } else {
+            db.update(
+                "pmd_order_lines",
+                ContentValues().apply { put("quantity_milli", nextMilli) },
+                "line_id = ?",
+                arrayOf(resolvedLineId),
+            )
+        }
+
+        val totalMinor = db.rawQuery(
+            """SELECT COALESCE(
+                SUM((quantity_milli / 1000.0) * unit_price_minor), 0
+            ) FROM pmd_order_lines
+            WHERE order_id = ? AND deleted = 0""".trimIndent(),
+            arrayOf(resolvedLocalId),
+        ).use { if (it.moveToFirst()) it.getDouble(0).toLong() else 0L }
+
+        db.update(
+            "pmd_orders",
+            ContentValues().apply {
+                put("total_minor", totalMinor)
+                put("dirty", 1)
+                put("updated_at_ms", System.currentTimeMillis())
+            },
+            "id = ?",
+            arrayOf(resolvedLocalId),
+        )
+
+        val currentLines = lines(db, resolvedLocalId)
+        val queued = db.query(
+            "pmd_outbox",
+            arrayOf("command_id", "payload_json", "status"),
+            "aggregate_id = ? " +
+                "AND command_type IN (?, ?) " +
+                "AND status IN (?, ?)",
+            arrayOf(
+                "local:$resolvedLocalId",
+                "ORDER_SEND_V1",
+                "ORDER_HOLD_V1",
+                "PENDING",
+                "RETRY",
+            ),
+            null,
+            null,
+            "created_at_ms ASC",
+            "1",
+        ).use { rows ->
+            if (!rows.moveToFirst()) null
+            else Triple(rows.getString(0), rows.getString(1), rows.getString(2))
+        } ?: error(
+            "This check is already syncing. Wait for reconciliation before editing it.",
+        )
+
+        val payload = runCatching {
+            JSONObject(queued.second)
+        }.getOrElse {
+            error("The queued order payload is invalid.")
+        }
+
+        payload.put(
+            "items",
+            JSONArray().apply {
+                currentLines.forEach { line ->
+                    put(
+                        JSONObject()
+                            .put(
+                                "menu_id",
+                                line.itemId.toLongOrNull() ?: line.itemId,
+                            )
+                            .put("quantity", line.quantity)
+                            .put("comment", line.note)
+                            .put("options", JSONArray(line.optionIds)),
+                    )
+                }
+            },
+        )
+
+        db.update(
+            "pmd_outbox",
+            ContentValues().apply {
+                put("payload_json", payload.toString())
+                put("status", "PENDING")
+                put("next_retry_at_ms", 0)
+                putNull("last_error")
+            },
+            "command_id = ? AND status = ?",
+            arrayOf(queued.first, queued.third),
+        ).also { changed ->
+            check(changed == 1) {
+                "This check began syncing while it was being edited."
+            }
+        }
+
+        readDraft(db, resolvedLocalId)
+    }
+
+    /**
+     * Local floor projection only. ORDER_SEND/HOLD remains the single Cloud
+     * business command; this makes the table turn occupied immediately offline.
+     */
+    fun markTableOccupiedProjection(
+        tableId: String,
+        localOrderId: String,
+    ) {
+        database.transaction { db ->
+            val current = db.query(
+                "pmd_tables",
+                arrayOf("payload_json"),
+                "id = ?",
+                arrayOf(tableId),
+                null,
+                null,
+                null,
+                "1",
+            ).use {
+                if (it.moveToFirst()) it.getString(0) else null
+            } ?: return@transaction
+
+            val payload = runCatching {
+                JSONObject(current)
+            }.getOrElse { JSONObject() }
+                .put("native_local_order_id", localOrderId)
+                .put("native_local_order_pending", true)
+
+            db.update(
+                "pmd_tables",
+                ContentValues().apply {
+                    put("status", "occupied")
+                    put("payload_json", payload.toString())
+                    put("updated_at_ms", System.currentTimeMillis())
+                },
+                "id = ?",
+                arrayOf(tableId),
+            )
+        }
     }
 
     fun setDraftMeta(localOrderId: String, guestCount: Int, note: String): DraftOrder? =
