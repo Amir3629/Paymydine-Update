@@ -301,6 +301,17 @@ final class PmdMobileBootstrapService
                     ?? $raw['updated_at']
                     ?? ''
                 );
+                if ($time !== '') {
+                    try {
+                        $time = \Carbon\Carbon::parse(
+                            $time,
+                            now()->getTimezone()
+                        )->toIso8601String();
+                    } catch (\Throwable $ignored) {
+                        // Keep the raw database value only as a last-resort
+                        // display fallback. Sorting still has strtotime below.
+                    }
+                }
 
                 $itemRows = collect(
                     $itemsByOrder->get($orderId, collect())
