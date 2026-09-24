@@ -736,6 +736,49 @@ class LocalPosRepository(private val database: PmdDatabase) {
         ).use { rows ->
             if (rows.moveToFirst()) rows.getLong(0) else 0L
         }
+
+    fun pendingLocalOrders(
+        locationId: Long,
+    ): List<Pair<DraftOrder, Long>> =
+        database.readableDatabase.query(
+            "pmd_orders",
+            arrayOf("id", "updated_at_ms"),
+            "location_id = ? AND status IN (?, ?, ?)",
+            arrayOf(
+                locationId.toString(),
+                STATUS_QUEUED,
+                STATUS_RETRY,
+                STATUS_CONFLICT,
+            ),
+            null,
+            null,
+            "updated_at_ms DESC",
+            "500",
+        ).use { rows ->
+            buildList {
+                while (rows.moveToNext()) {
+                    val localId = rows.getString(0)
+                    val updatedAt = rows.getLong(1)
+                    val draft = runCatching {
+                        database.readableDatabase.query(
+                            "pmd_orders",
+                            null,
+                            "id = ?",
+                            arrayOf(localId),
+                            null,
+                            null,
+                            null,
+                            "1",
+                        ).use { orderRows ->
+                            if (!orderRows.moveToFirst()) null
+                            else orderRows.toDraftHeader()
+                        }?.copy(lines = lines(localId))
+                    }.getOrNull() ?: continue
+                    add(draft to updatedAt)
+                }
+            }
+        }
+
     fun buildCashPaymentCommand(
         tableId: String,
         tenantHost: String,
