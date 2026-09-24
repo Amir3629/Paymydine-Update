@@ -165,6 +165,10 @@
     );
   }
 
+  function nativeUiDraftRestorePendingV18() {
+    return window.__PMD_NATIVE_UI_DRAFT_RESTORE_PENDING__ === true;
+  }
+
   function nativeUiDraftPayloadV18() {
     return {
       location_id: Number(state.boot && state.boot.location_id || 0),
@@ -198,7 +202,10 @@
   }
 
   function persistNativeUiDraftV18() {
-    if (!nativeUiDraftBridgeV18()) return;
+    if (
+      !nativeUiDraftBridgeV18() ||
+      nativeUiDraftRestorePendingV18()
+    ) return;
     try {
       window.PayMyDineOffline.persistUiDraft(
         JSON.stringify(nativeUiDraftPayloadV18())
@@ -207,7 +214,10 @@
   }
 
   function scheduleNativeUiDraftV18() {
-    if (!nativeUiDraftBridgeV18()) return;
+    if (
+      !nativeUiDraftBridgeV18() ||
+      nativeUiDraftRestorePendingV18()
+    ) return;
     window.clearTimeout(nativeUiDraftTimerV18);
     nativeUiDraftTimerV18 = window.setTimeout(function () {
       nativeUiDraftTimerV18 = null;
@@ -9562,7 +9572,18 @@ function renderOpenChecks() {
     },
     refreshNativeState: function () {
       if (!nativeLocalTransportAvailable()) return Promise.resolve(false);
-      return bootstrap(true);
+
+      return bootstrap(true).then(function (result) {
+        // PMD_QPOS_NATIVE_DRAFT_RESTORE_BARRIER_V18
+        // Cold-start cached HTML may contain an empty/stale server-rendered
+        // cart. It must never overwrite the durable Android cart before the
+        // local bootstrap has restored the cashier's exact unsent work.
+        window.__PMD_NATIVE_UI_DRAFT_RESTORE_PENDING__ = false;
+        persistNativeUiDraftV18();
+        return result;
+      }, function (error) {
+        throw error;
+      });
     },
     customerDisplay: {
       refresh: function () {
