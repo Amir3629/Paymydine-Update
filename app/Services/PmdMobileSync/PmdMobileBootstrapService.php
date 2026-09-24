@@ -126,7 +126,12 @@ final class PmdMobileBootstrapService
                     'TABLE_MOVE_V1',
                     'KDS_STATUS_V1',
                 ],
-                'offline_payment_enabled' => false,
+                // PMD_MOBILE_OFFLINE_CASH_CAPABILITY_V23
+                // Full cash settlement is a certified durable command. Card,
+                // terminal/provider approval remains Cloud-only.
+                'offline_payment_enabled' => true,
+                'offline_cash_payment_enabled' => true,
+                'offline_card_payment_enabled' => false,
             ],
         ];
     }
@@ -135,8 +140,9 @@ final class PmdMobileBootstrapService
      * PMD_ANDROID_OFFLINE_HISTORY_SNAPSHOT_V16
      *
      * A bounded, read-only Quick POS history projection for local Android use.
-     * It deliberately carries display facts only; invoice/receipt/payment
-     * mutation endpoints remain Cloud-only.
+     * It deliberately carries display facts only. Full cash settlement has a
+     * certified durable mobile command; card/terminal/invoice/receipt provider
+     * actions remain Cloud-only.
      */
     private function recentHistory(int $locationId): array
     {
