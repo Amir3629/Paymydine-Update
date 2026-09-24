@@ -760,6 +760,35 @@ final class PmdMobileBootstrapService
 
         if ($rows->isEmpty()) return [];
 
+        // PMD_ANDROID_CANONICAL_OPEN_ORDER_ITEMS_V18
+        // The canonical Quick POS "Sent" area must remain identical offline.
+        // Carry the same order line facts in the trusted restaurant snapshot so
+        // selecting a table after WAN loss still shows its sent items, notes,
+        // quantities and prices instead of only a total.
+        $rowOrderIds = $rows
+            ->map(function ($row) use ($pk) {
+                $raw = (array)$row;
+                return (int)($raw[$pk] ?? 0);
+            })
+            ->filter()
+            ->values()
+            ->all();
+
+        $itemsByOrder = collect();
+        if ($rowOrderIds && Schema::hasTable('order_menus')) {
+            $itemColumns = Schema::getColumnListing('order_menus');
+
+            if (in_array('order_id', $itemColumns, true)) {
+                $itemsByOrder = DB::table('order_menus')
+                    ->whereIn('order_id', $rowOrderIds)
+                    ->orderBy('order_id')
+                    ->get()
+                    ->groupBy(function ($item) {
+                        return (int)($item->order_id ?? 0);
+                    });
+            }
+        }
+
         $statusMap = [];
         if (Schema::hasTable('statuses')) {
             try {
@@ -807,6 +836,51 @@ final class PmdMobileBootstrapService
             $aggregateId = 'order:'.$orderId;
             $statusId = (int)($r['status_id'] ?? 0);
 
+            $orderItems = collect(
+                $itemsByOrder->get($orderId, collect())
+            )->map(function ($item) {
+                $rawItem = (array)$item;
+
+                return [
+                    'order_menu_id' => (int)(
+                        $rawItem['order_menu_id']
+                        ?? $rawItem['id']
+                        ?? 0
+                    ),
+                    'menu_id' => (int)(
+                        $rawItem['menu_id']
+                        ?? 0
+                    ),
+                    'name' => (string)(
+                        $rawItem['name']
+                        ?? $rawItem['menu_name']
+                        ?? 'Item'
+                    ),
+                    'quantity' => max(
+                        1,
+                        (int)(
+                            $rawItem['quantity']
+                            ?? $rawItem['qty']
+                            ?? 1
+                        )
+                    ),
+                    'price' => (float)(
+                        $rawItem['price']
+                        ?? $rawItem['unit_price']
+                        ?? 0
+                    ),
+                    'subtotal' => (float)(
+                        $rawItem['subtotal']
+                        ?? 0
+                    ),
+                    'comment' => trim((string)(
+                        $rawItem['comment']
+                        ?? $rawItem['note']
+                        ?? ''
+                    )),
+                ];
+            })->values()->all();
+
             $out[] = [
                 'order_id' => $orderId,
                 'aggregate_id' => $aggregateId,
@@ -825,6 +899,7 @@ final class PmdMobileBootstrapService
                 'guest_count' => max(1, (int)($r['guest_count'] ?? 1)),
                 'comment' => (string)($r['comment'] ?? ''),
                 'updated_at' => (string)($r['updated_at'] ?? ''),
+                'items' => $orderItems,
             ];
         }
 
