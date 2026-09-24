@@ -527,8 +527,11 @@ el('[data-profile]').onclick=function(){var m=el('[data-profile-menu]');m.hidden
 el('[data-workspaces]').onclick=function(){bridge('workspaces')};
 el('[data-mod-close]').onclick=closeMod;el('[data-mod-add]').onclick=addModified;
 function clock(){el('[data-clock]').textContent=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}clock();setInterval(clock,30000);
+// PMD_ANDROID_NO_POLLING_OFFLINE_FALLBACK_V18
+// Legacy fallback is event-driven only; canonical PosActivity no longer uses
+// this page for normal WAN failover.
 window.pmdOfflineRefresh=read;
-read();setInterval(read,2000);
+read();
 })();
 </script>
 </body>
