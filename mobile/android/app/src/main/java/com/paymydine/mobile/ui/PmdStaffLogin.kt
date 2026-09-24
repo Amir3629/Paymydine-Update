@@ -306,14 +306,41 @@ fun PmdStaffLogin(
                                 offlineSession.surface,
                             )
 
-                    if (canContinueOffline && offlineSession != null) {
-                        error = null
-                        onContinueOffline(offlineSession)
-                    } else {
-                        error = if (cloudFailure) {
-                            "PayMyDine Cloud is unavailable. Use the same staff login if it has already been verified on this device."
+                    val verifiedOfflineSession =
+                        if (
+                            cloudFailure &&
+                            app.bootstrapRepository.hasBootstrap()
+                        ) {
+                            withContext(Dispatchers.Default) {
+                                app.credentials.verifyOfflineLogin(
+                                    submittedUsername = username,
+                                    secret = password,
+                                )
+                            }
                         } else {
-                            failure.message ?: "PayMyDine sign-in failed."
+                            null
+                        }
+
+                    when {
+                        verifiedOfflineSession != null -> {
+                            app.credentials.putStaffSession(
+                                verifiedOfflineSession,
+                            )
+                            error = null
+                            onContinueOffline(verifiedOfflineSession)
+                        }
+
+                        canContinueOffline && offlineSession != null -> {
+                            error = null
+                            onContinueOffline(offlineSession)
+                        }
+
+                        else -> {
+                            error = if (cloudFailure) {
+                                "PayMyDine Cloud is unavailable. Use the same staff login if it has already been verified on this device."
+                            } else {
+                                failure.message ?: "PayMyDine sign-in failed."
+                            }
                         }
                     }
                 }
