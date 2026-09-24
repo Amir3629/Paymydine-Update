@@ -293,9 +293,12 @@ final class PmdMobileBootstrapService
                     ?? $raw['total']
                     ?? 0
                 );
+                // PMD_ANDROID_HISTORY_BUSINESS_TIME_V18
+                // History is ordered/displayed by when the order was created,
+                // never by the later WAN-reconciliation update timestamp.
                 $time = (string)(
-                    $raw['updated_at']
-                    ?? $raw['created_at']
+                    $raw['created_at']
+                    ?? $raw['updated_at']
                     ?? ''
                 );
 
