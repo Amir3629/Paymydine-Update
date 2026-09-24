@@ -150,7 +150,7 @@ jobs:
           grep -q "PMD_MOBILE_OFFLINE_CASH_PAYMENT_V17" app/Services/PmdMobileSync/PmdMobileCommandProcessor.php
           grep -q "PMD_MOBILE_OFFLINE_TABLE_ACTIONS_V17" app/Services/PmdMobileSync/PmdMobileCommandProcessor.php
           grep -q "PMD_ANDROID_SINGLE_POS_ACTIVITY_V17" mobile/android/app/src/main/java/com/paymydine/mobile/ui/PayMyDineApp.kt
-          grep -q "PMD_ANDROID_OFFLINE_POS_AUTO_RESUME_V17" mobile/android/app/src/main/java/com/paymydine/mobile/ui/PayMyDineApp.kt
+          grep -q "PMD_ANDROID_OFFLINE_POS_AUTO_RESUME_V20" mobile/android/app/src/main/java/com/paymydine/mobile/ui/PayMyDineApp.kt
           grep -q "queueSendAndCash" mobile/android/app/src/main/java/com/paymydine/mobile/LocalPosBridge.kt
           grep -q "enqueueOrdered" mobile/android/app/src/main/java/com/paymydine/mobile/sync/SyncRepository.kt
           grep -q "buildCashPaymentAfterSendCommand" mobile/android/app/src/main/java/com/paymydine/mobile/data/local/LocalPosRepository.kt
