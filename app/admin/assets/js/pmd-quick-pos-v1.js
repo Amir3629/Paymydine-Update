@@ -9580,6 +9580,16 @@ function renderOpenChecks() {
         // local bootstrap has restored the cashier's exact unsent work.
         window.__PMD_NATIVE_UI_DRAFT_RESTORE_PENDING__ = false;
         persistNativeUiDraftV18();
+
+        try {
+          if (
+            window.PayMyDineOffline &&
+            typeof window.PayMyDineOffline.localUiReady === 'function'
+          ) {
+            window.PayMyDineOffline.localUiReady();
+          }
+        } catch (ignored) {}
+
         return result;
       }, function (error) {
         throw error;
