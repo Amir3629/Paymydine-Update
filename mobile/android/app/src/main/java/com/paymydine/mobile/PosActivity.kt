@@ -447,6 +447,7 @@ class PosActivity : ComponentActivity() {
 
                         canonicalReady = true
                         current.clearHistory()
+                        captureCanonicalShell(current)
                         revealWebView(current)
 
                         // PMD_ANDROID_POS_SURFACE_PULSE_V6
@@ -608,7 +609,16 @@ class PosActivity : ComponentActivity() {
                         root.postDelayed(
                             {
                                 if (!isFinishing) {
-                                    createCanonicalWebView()
+                                    if (
+                                        transportMode == TransportMode.LOCAL &&
+                                        offlinePosAvailable()
+                                    ) {
+                                        createCachedCanonicalWebView(
+                                            "Local POS is active.",
+                                        )
+                                    } else {
+                                        createCanonicalWebView()
+                                    }
                                 }
                             },
                             250L,
