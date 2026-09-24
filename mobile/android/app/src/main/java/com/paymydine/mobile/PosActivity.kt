@@ -315,6 +315,9 @@ class PosActivity : ComponentActivity() {
             app = app,
             onTryCloud = { attemptReturnToCloud() },
             onWorkspaces = { finish() },
+            // PMD_ANDROID_POS_REQUEST_FAILOVER_BINDING_V21
+            // A failed Cloud request can promote this exact WebView to SQLite
+            // before ConnectivityObserver reports the WAN transition.
             onRequireLocalTransport = {
                 enterLocalMode("Opening PayMyDine POS...")
             },
