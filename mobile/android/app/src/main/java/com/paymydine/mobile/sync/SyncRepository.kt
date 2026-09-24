@@ -5,6 +5,15 @@ import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import com.paymydine.mobile.data.local.PmdDatabase
 
+data class SyncStatusCounts(
+    val pending: Int,
+    val retrying: Int,
+    val inFlight: Int,
+    val rejected: Int,
+) {
+    val active: Int get() = pending + retrying + inFlight
+}
+
 class SyncRepository(private val database: PmdDatabase) {
     fun enqueue(command: CommandEnvelope): Boolean = database.transaction { db ->
         insertPending(db, command)
@@ -156,10 +165,31 @@ class SyncRepository(private val database: PmdDatabase) {
         )
     }
 
-    fun outboxCount(): Int = database.readableDatabase.rawQuery(
-        "SELECT COUNT(*) FROM pmd_outbox WHERE status != ?",
-        arrayOf(STATUS_REJECTED),
-    ).use { if (it.moveToFirst()) it.getInt(0) else 0 }
+    // PMD_ANDROID_SYNC_VISIBILITY_V104
+    // Rejected work is intentionally separate from active work: the cashier
+    // must be able to see reconciliation problems instead of treating an empty
+    // active outbox as "everything synced".
+    fun statusCounts(): SyncStatusCounts {
+        val counts = mutableMapOf<String, Int>()
+        database.readableDatabase.rawQuery(
+            "SELECT status, COUNT(*) FROM pmd_outbox GROUP BY status",
+            null,
+        ).use { rows ->
+            while (rows.moveToNext()) {
+                counts[rows.getString(0)] = rows.getInt(1)
+            }
+        }
+        return SyncStatusCounts(
+            pending = counts[STATUS_PENDING] ?: 0,
+            retrying = counts[STATUS_RETRY] ?: 0,
+            inFlight = counts[STATUS_IN_FLIGHT] ?: 0,
+            rejected = counts[STATUS_REJECTED] ?: 0,
+        )
+    }
+
+    fun outboxCount(): Int = statusCounts().active
+
+    fun rejectedCount(): Int = statusCounts().rejected
 
     fun cursor(scope: String = DEFAULT_SCOPE): Long =
         database.readableDatabase.query(
