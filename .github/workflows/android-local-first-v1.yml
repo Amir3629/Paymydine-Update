@@ -106,6 +106,9 @@ jobs:
           grep -q "PMD_QPOS_NATIVE_LOCAL_TRANSPORT_V18" app/admin/assets/js/pmd-quick-pos-v1.js
           grep -q "PMD_QPOS_ORIENTATION_BINDINGS_V86" app/admin/assets/js/pmd-quick-pos-v1.js
           grep -q "PMD_QPOS_NATIVE_OFFLINE_NO_HEARTBEAT_V18" app/admin/assets/js/pmd-quick-pos-v1.js
+          grep -q "PMD_PUSH_NATIVE_OFFLINE_SUSPEND_V18" app/admin/assets/js/push-notifications.js
+          grep -q '"push-notifications.js"' mobile/android/app/build.gradle.kts
+          grep -q '"push-notifications.css"' mobile/android/app/build.gradle.kts
           grep -q "PMD_QPOS_CATEGORY_TOUCH_V86" app/admin/assets/css/pmd-quick-pos-v1.css
           grep -q "PMD_QPOS_TABLET_PORTRAIT_V86" app/admin/assets/css/pmd-quick-pos-v1.css
           grep -q "PMD_ANDROID_CANONICAL_POS_LOCAL_TRANSPORT_V18" mobile/android/app/src/main/java/com/paymydine/mobile/data/local/BootstrapRepository.kt
@@ -293,6 +296,14 @@ jobs:
             if (!scripts.length) throw new Error(file + ': no inline script found');
             for (const match of scripts) new Function(match[1]);
             console.log(file + ': inline JavaScript syntax PASS');
+          }
+
+          for (const file of [
+            'app/admin/assets/js/pmd-quick-pos-v1.js',
+            'app/admin/assets/js/push-notifications.js',
+          ]) {
+            new Function(fs.readFileSync(file, 'utf8'));
+            console.log(file + ': JavaScript syntax PASS');
           }
           NODE
           echo "PMD_ANDROID_SERVER_CONTRACT=PASS"
