@@ -16,6 +16,8 @@ const qposCss = read('app/admin/assets/css/pmd-quick-pos-v1.css');
 
 assert.ok(pos.includes('PMD_ANDROID_LOCAL_FIRST_V2_V104'));
 assert.ok(pos.includes('PMD_ANDROID_LOCAL_FIRST_FIRST_RUN_PROMOTION_V104'));
+assert.ok(pos.includes('PMD_ANDROID_LOCAL_FIRST_SHELL_SEED_GUARD_V106'));
+assert.ok(pos.includes('createCanonicalWebView(allowShellSeed = true)'));
 assert.ok(syncRepo.includes('PMD_ANDROID_SYNC_VISIBILITY_V104'));
 assert.ok(syncRepo.includes('PMD_ANDROID_CLOUD_HEALTH_V104'));
 assert.ok(syncRepo.includes('PMD_ANDROID_CLOUD_LINE_OUTBOX_PROJECTION_V106'));
