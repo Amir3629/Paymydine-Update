@@ -1416,13 +1416,24 @@
         await loadTable(state.selectedTable.id, true);
 
         if (
-          nativeDraftOrderId &&
-          state.openOrders.some(function (row) {
-            return orderId(row) === nativeDraftOrderId;
-          })
+          nativeDraftApplied &&
+          json.native_ui_draft &&
+          typeof json.native_ui_draft === 'object'
         ) {
-          state.activeOrderId = nativeDraftOrderId;
-          state.orderSelectionExplicitV72 = true;
+          // loadTable hydrates server guest/check state. Re-apply the unsent
+          // local UI draft last so the exact cashier work wins on restart.
+          applyNativeUiDraftV18(json.native_ui_draft);
+
+          if (
+            nativeDraftOrderId &&
+            !state.openOrders.some(function (row) {
+              return orderId(row) === nativeDraftOrderId;
+            })
+          ) {
+            state.activeOrderId = null;
+            state.orderSelectionExplicitV72 = false;
+          }
+
           renderCart({orderSwitch: true});
         }
       }
