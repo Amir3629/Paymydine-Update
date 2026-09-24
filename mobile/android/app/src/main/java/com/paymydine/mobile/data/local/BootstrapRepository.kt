@@ -174,7 +174,15 @@ class BootstrapRepository(private val database: PmdDatabase) {
                     .put("server_updated_at", serverUpdatedAt)
                     .put("guest_count", order.optInt("guest_count", 1).coerceIn(1, 99))
                     .put("note", order.optString("comment"))
-                    .put("items", JSONArray())
+                    // PMD_ANDROID_EDGE_OPEN_ORDER_ITEMS_V18
+                    // Existing Cloud checks keep their sent line projection on
+                    // the Restaurant Edge as well as in the tablet bootstrap.
+                    .put(
+                        "items",
+                        order.optJSONArray("items")
+                            ?.let { JSONArray(it.toString()) }
+                            ?: JSONArray(),
+                    )
                     .put("status_id", order.optLong("status_id", 0))
                     .put("status_name", order.optString("status_name"))
                     .put("created_at_ms", now)
