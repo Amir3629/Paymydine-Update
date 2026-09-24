@@ -87,6 +87,94 @@ data class DraftOrder(
 )
 
 class LocalPosRepository(private val database: PmdDatabase) {
+    // PMD_ANDROID_DURABLE_QPOS_UI_DRAFT_V18
+    // This is UI continuity state, not a business command. It preserves the
+    // exact unsent canonical cart/guest/note across process death without
+    // creating a fake order or touching the sync ledger.
+    fun saveQuickPosUiDraft(payloadJson: String) {
+        require(payloadJson.length <= 256_000) {
+            "Local cart is too large to save."
+        }
+
+        val payload = JSONObject(payloadJson)
+        val serviceMode = payload.optString("service_mode", "dine_in")
+        val tableId = payload.opt("table_id")
+            ?.takeUnless { it === JSONObject.NULL }
+            ?.toString()
+            .orEmpty()
+        val cart = payload.optJSONArray("cart") ?: JSONArray()
+        val note = payload.optString("note").trim()
+        val guestCount = payload.optInt("guest_count", 1).coerceIn(1, 99)
+
+        database.transaction { db ->
+            if (
+                serviceMode != "dine_in" ||
+                tableId.isBlank() ||
+                (
+                    cart.length() == 0 &&
+                    note.isBlank() &&
+                    guestCount == 1
+                )
+            ) {
+                db.delete(
+                    "pmd_meta",
+                    "key = ?",
+                    arrayOf(QPOS_UI_DRAFT_KEY),
+                )
+                return@transaction
+            }
+
+            payload
+                .put("version", 1)
+                .put("service_mode", "dine_in")
+                .put("table_id", tableId)
+                .put("guest_count", guestCount)
+                .put("saved_at_ms", System.currentTimeMillis())
+
+            db.insertWithOnConflict(
+                "pmd_meta",
+                null,
+                ContentValues().apply {
+                    put("key", QPOS_UI_DRAFT_KEY)
+                    put("value", payload.toString())
+                },
+                SQLiteDatabase.CONFLICT_REPLACE,
+            )
+        }
+    }
+
+    fun quickPosUiDraft(locationId: Long): JSONObject? =
+        database.readableDatabase.query(
+            "pmd_meta",
+            arrayOf("value"),
+            "key = ?",
+            arrayOf(QPOS_UI_DRAFT_KEY),
+            null,
+            null,
+            null,
+            "1",
+        ).use { rows ->
+            if (!rows.moveToFirst()) {
+                null
+            } else {
+                runCatching {
+                    JSONObject(rows.getString(0))
+                }.getOrNull()?.takeIf { draft ->
+                    draft.optLong("location_id", locationId) == locationId &&
+                        draft.optString("service_mode") == "dine_in" &&
+                        draft.optString("table_id").isNotBlank()
+                }
+            }
+        }
+
+    fun clearQuickPosUiDraft() {
+        database.writableDatabase.delete(
+            "pmd_meta",
+            "key = ?",
+            arrayOf(QPOS_UI_DRAFT_KEY),
+        )
+    }
+
     fun tables(locationId: Long): List<PosTableRow> = database.readableDatabase.query(
         "pmd_tables",
         arrayOf("id", "number", "label", "status"),
@@ -2833,6 +2921,8 @@ class LocalPosRepository(private val database: PmdDatabase) {
     ): Double = value.toDouble() / Math.pow(10.0, exponent.toDouble())
 
     companion object {
+        private const val QPOS_UI_DRAFT_KEY = "qpos_ui_draft_v18"
+
         const val STATUS_DRAFT = "DRAFT"
         const val STATUS_QUEUED = "QUEUED"
         const val STATUS_RETRY = "RETRY"
