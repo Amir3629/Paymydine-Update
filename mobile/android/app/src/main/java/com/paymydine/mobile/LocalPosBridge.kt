@@ -250,10 +250,44 @@ class LocalPosBridge(
             return canonicalHistory(uri)
         }
 
+        if (path == "/admin/pos/pickup") {
+            // Keep the canonical Pickup workspace shape present offline. New
+            // Pickup persistence remains Cloud-only until it has its own
+            // certified durable command.
+            return JSONObject()
+                .put("ok", true)
+                .put("open_orders", JSONArray())
+        }
+
         if (path == "/admin/pos/save-off-premise") {
             return unavailable(
                 "Pickup orders need an internet connection right now.",
             )
+        }
+
+        if (
+            Regex(
+                "^/admin/pmd-waiter-pos-v22/operations/\\d+/" +
+                    "(?:void-item|increase-item)$",
+            ).matches(path)
+        ) {
+            return unavailable(
+                "Changing an already-sent item needs an internet connection right now.",
+            )
+        }
+
+        if (
+            Regex("^/admin/pos/attention/\\d+/seen$").matches(path)
+        ) {
+            return unavailable(
+                "Marking this alert as seen needs an internet connection right now.",
+            )
+        }
+
+        if (path == "/admin/notifications-api/count") {
+            return JSONObject()
+                .put("ok", true)
+                .put("new", 0)
         }
 
         if (
@@ -278,6 +312,8 @@ class LocalPosBridge(
             ?: error("Restaurant data is not available on this tablet.")
         val identity = root.optJSONObject("identity") ?: JSONObject()
         val rawMenu = root.optJSONObject("menu") ?: JSONObject()
+        val quickPosSettings =
+            root.optJSONObject("quick_pos_settings") ?: JSONObject()
         val roleCode = app.credentials.staffSession()
             ?.roleCode
             ?.takeIf { it.isNotBlank() }
@@ -296,6 +332,7 @@ class LocalPosBridge(
             .put("ok", true)
             .put("version", "pmd-quick-pos-v2-native-local")
             .put("mode", mode)
+            .put("can_switch_mode", mode == "cashier")
             .put("location_id", locationId)
             .put("location_name", app.bootstrapRepository.locationName().orEmpty())
             .put("active_floor_id", activeFloor)
@@ -314,10 +351,42 @@ class LocalPosBridge(
                 "settings",
                 JSONObject()
                     .put("currency", currencySymbol())
+                    .put(
+                        "currency_code",
+                        quickPosSettings.optString(
+                            "currency_code",
+                            app.bootstrapRepository.currencyCode(),
+                        ),
+                    )
+                    .put(
+                        "tax_enabled",
+                        quickPosSettings.optBoolean("tax_enabled", false),
+                    )
+                    .put(
+                        "tax_percentage",
+                        quickPosSettings.optDouble("tax_percentage", 0.0),
+                    )
+                    .put(
+                        "tax_menu_price",
+                        quickPosSettings.optInt("tax_menu_price", 1),
+                    )
+                    .put(
+                        "tax_title",
+                        quickPosSettings.optString("tax_title", "VAT"),
+                    )
                     .put("can_switch_mode", mode == "cashier")
                     .put("table_data_url", "/admin/pos/table/{table}")
                     .put("table_save_url", "/admin/pos/save/{table}")
+                    .put("pickup_data_url", "/admin/pos/pickup")
                     .put("off_premise_save_url", "/admin/pos/save-off-premise")
+                    .put(
+                        "item_decrease_url",
+                        "/admin/pmd-waiter-pos-v22/operations/{order}/void-item",
+                    )
+                    .put(
+                        "item_increase_url",
+                        "/admin/pmd-waiter-pos-v22/operations/{order}/increase-item",
+                    )
                     .put(
                         "payment_summary_url",
                         "/admin/pos/payment-summary/{order}",
@@ -347,6 +416,10 @@ class LocalPosBridge(
                         "/admin/pmd-waiter-table-states-v154/{table}",
                     )
                     .put("history_url", "/admin/pos/history")
+                    .put(
+                        "attention_seen_url",
+                        "/admin/pos/attention/{notification}/seen",
+                    )
                     .put("transfer_url", "/admin/pos/transfer"),
             )
             .put(
