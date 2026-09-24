@@ -102,8 +102,8 @@ assert.ok(
   view.includes('<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">'),
   'natural viewport meta contract missing'
 );
-assert.ok(view.includes('pmd-quick-pos-v1.css?v=20260924-v103'), 'V102 CSS cache bust missing');
-assert.ok(view.includes('pmd-quick-pos-v1.js?v=20260924-v103'), 'V102 JS cache bust missing');
+assert.ok(view.includes('pmd-quick-pos-v1.css?v=20260924-v104'), 'V102 CSS cache bust missing');
+assert.ok(view.includes('pmd-quick-pos-v1.js?v=20260924-v104'), 'V102 JS cache bust missing');
 
 assert.equal(
   (posActivity.match(/textZoom = 100/g) || []).length,
@@ -124,6 +124,12 @@ assert.ok(
   posActivity.includes('PMD_ANDROID_PAGE_SCALE_RESET_V104') &&
   posActivity.includes('PMD_ANDROID_PAGE_SCALE_ROTATION_V104'),
   'V104 page-scale reset contract missing'
+);
+
+assert.ok(
+  posActivity.includes('PMD_ANDROID_LOCAL_FIRST_V2_V104') &&
+  posActivity.includes('PMD_ANDROID_LOCAL_FIRST_PROMOTION_V104'),
+  'V104 local-first transport contract missing'
 );
 assert.equal(
   (posActivity.match(/setSupportZoom\(false\)/g) || []).length,
@@ -151,5 +157,5 @@ assert.ok(
 );
 
 console.log('PMD responsive matrix V102 + portrait isolation V103: PASS');
-console.log('PosActivity WebView 100% rotation-scale V104 contract: PASS');
+console.log('PosActivity WebView 100% rotation-scale + Local-First V104 contract: PASS');
 console.log('phone portrait / phone landscape / tablet portrait / tablet landscape / desktop: PASS');
