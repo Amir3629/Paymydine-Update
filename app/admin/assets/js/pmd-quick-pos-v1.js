@@ -183,11 +183,10 @@
   }
 
   /* PMD_QPOS_NATIVE_DURABLE_MUTATIONS_V92
-   * Android mutation authority is SQLite/outbox first even while Cloud is
-   * healthy. This gives SEND/HOLD/Cash/table operations one idempotent command
-   * path across online, WAN-cut and reconnect states instead of racing a direct
-   * browser POST against ConnectivityObserver. Card/terminal/provider actions
-   * remain Cloud-only and are deliberately excluded here. */
+   * Identify mutations that have certified SQLite/outbox authority. They move
+   * to native transport when the synchronous network probe says Cloud is gone.
+   * While Cloud is healthy, the existing Cloud path remains intact so online
+   * card/terminal provider handoff keeps its real server order id. */
   function nativeRequestPathV92(url) {
     try {
       return new URL(String(url || ''), window.location.href).pathname || '';
@@ -432,10 +431,6 @@
       opts.headers['X-CSRF-TOKEN'] = csrf();
     }
 
-    if (isNativeDurableMutationV92(url, opts)) {
-      return nativeFetchJsonV91(url, opts);
-    }
-
     if (
       nativeLocalTransportAvailable() ||
       nativeCloudUnavailableV91()
@@ -451,8 +446,16 @@
       response = await fetch(url, opts);
     } catch (networkError) {
       if (nativeBridgeTransportAvailableV91()) {
-        activateNativeLocalTransportV91();
-        return nativeFetchJsonV91(url, opts);
+        var durableMutation = isNativeDurableMutationV92(url, opts);
+
+        // GETs can always be replayed locally. Durable POS mutations are
+        // replayed only after the synchronous Android probe confirms that the
+        // validated network is actually gone; this avoids duplicating a Cloud
+        // mutation whose response was merely lost.
+        if (!durableMutation || nativeCloudUnavailableV91()) {
+          activateNativeLocalTransportV91();
+          return nativeFetchJsonV91(url, opts);
+        }
       }
       throw networkError;
     }
@@ -462,8 +465,18 @@
       shouldFailOverHttpV91(response.status) &&
       nativeBridgeTransportAvailableV91()
     ) {
-      activateNativeLocalTransportV91();
-      return nativeFetchJsonV91(url, opts);
+      var isMutation =
+        String(opts.method || 'GET').toUpperCase() !== 'GET';
+      var safeMutationStatus =
+        response.status === 401 ||
+        response.status === 403 ||
+        response.status === 419 ||
+        response.status === 429;
+
+      if (!isMutation || safeMutationStatus || nativeCloudUnavailableV91()) {
+        activateNativeLocalTransportV91();
+        return nativeFetchJsonV91(url, opts);
+      }
     }
 
     var json = await response.json().catch(function () { return {}; });
