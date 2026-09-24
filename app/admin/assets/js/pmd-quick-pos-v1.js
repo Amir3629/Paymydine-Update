@@ -899,6 +899,7 @@
     historyScope: 'selected',
     historyTargetScopeV88: '',
     historyTargetTableIdV88: 0,
+    historyFloorIdV93: '',
     historyKind: 'orders',
     historySearch: '',
     historyPreset: '7d',
@@ -2918,6 +2919,7 @@
     });
 
     renderHistoryTableRailV88();
+    renderHistoryTableWorkspaceV93();
 
     /* PMD_QPOS_IDLE_TABLE_WARMUP_CALL_V42 */
     scheduleTableWarmupV42();
@@ -8693,6 +8695,7 @@ function renderOpenChecks() {
     state.historyScope = requested;
     state.historyLoading = true;
     renderHistoryTableRailV88();
+    renderHistoryTableWorkspaceV93();
 
     var list = $('[data-qpos-history-list]');
     var cachedHistoryV83 =
@@ -8768,6 +8771,7 @@ function renderOpenChecks() {
 
     ensureHistoryControlsV87();
     ensureHistoryTableRailV88();
+    ensureHistoryTableWorkspaceV93();
     closeHistoryMobileDetailV87();
     syncHistoryMobileLayoutV87();
 
@@ -9273,10 +9277,267 @@ function renderOpenChecks() {
     renderHistoryTableRailV88();
   }
 
+  /* PMD_QPOS_HISTORY_TABLE_WORKSPACE_V93
+   * Mobile History now reuses the POS floor/table visual language instead of
+   * the tiny horizontal V88 rail. History browsing is intentionally isolated:
+   * tapping a History table never changes the live POS table/check. */
+  function historyFloorIdV93() {
+    var candidate = String(state.historyFloorIdV93 || '');
+
+    if (!candidate) {
+      if (
+        String(state.historyTargetScopeV88 || '') === 'table' &&
+        Number(state.historyTargetTableIdV88 || 0) > 0
+      ) {
+        var target = (state.tables || []).find(function (table) {
+          return Number(table.id || 0) === Number(state.historyTargetTableIdV88 || 0);
+        });
+        candidate = target ? String(target.floor_id || '') : '';
+      }
+    }
+
+    if (!candidate && state.selectedTable) {
+      candidate = String(state.selectedTable.floor_id || '');
+    }
+
+    if (!candidate) candidate = String(state.activeFloorId || '');
+    if (!candidate && state.floors && state.floors.length) {
+      candidate = String(state.floors[0].id || '');
+    }
+
+    var valid = (state.floors || []).some(function (floor) {
+      return String(floor.id || '') === candidate;
+    });
+
+    if (!valid && state.floors && state.floors.length) {
+      candidate = String(state.floors[0].id || '');
+    }
+
+    state.historyFloorIdV93 = candidate;
+    return candidate;
+  }
+
+  function historyFloorTablesV93(floorId) {
+    var id = String(floorId || '');
+    return (state.tables || [])
+      .filter(function (table) {
+        return String(table.floor_id || '') === id;
+      })
+      .sort(function (a, b) {
+        return String(compactTableLabel(a)).localeCompare(
+          String(compactTableLabel(b)),
+          undefined,
+          {numeric: true}
+        );
+      });
+  }
+
+  function historyTableMarkupV93(table, active) {
+    var id = Number(table && table.id || 0);
+    if (!id) return '';
+
+    var paymentState =
+      String(table.status || 'available') === 'available'
+        ? 'none'
+        : String(table.payment_state || 'none');
+    var waiterCalls = Math.max(0, num(table.waiter_calls, 0));
+    var noteCount = Math.max(0, num(table.note_count, 0));
+    var hasAttention = waiterCalls > 0 || noteCount > 0;
+    var signals = [];
+
+    if (hasAttention) {
+      signals.push(
+        '<span class="pmd-qpos-table-signal is-attention-v81"' +
+          ' title="Attention" aria-label="Attention"><b>!</b></span>'
+      );
+    }
+
+    if (paymentState === 'partial') {
+      signals.push(
+        '<span class="pmd-qpos-table-signal is-partial"' +
+          ' title="Part paid" aria-label="Part paid"><b>½</b></span>'
+      );
+    } else if (paymentState === 'paid') {
+      signals.push(
+        '<span class="pmd-qpos-table-signal is-paid"' +
+          ' title="Paid" aria-label="Paid"><b>✓</b></span>'
+      );
+    }
+
+    return (
+      '<button type="button" class="pmd-qpos-table' +
+        (active ? ' is-selected' : '') +
+        (hasAttention ? ' has-attention' : '') + '"' +
+        ' data-qpos-history-table-v93="' + esc(id) + '"' +
+        ' data-status="' + esc(effectiveTableStatusV62(table)) + '"' +
+        ' data-payment-state="' + esc(paymentState) + '">' +
+        '<strong>' + esc(compactTableLabel(table)) + '</strong>' +
+        '<small' + (num(table.capacity, 0) > 0 ? '' : ' hidden') + '>' +
+          (num(table.capacity, 0) > 0 ? esc(table.capacity) + 's' : '') +
+        '</small>' +
+        tableFeatureIconsV67(table.features) +
+        (signals.length
+          ? '<span class="pmd-qpos-table-signals-v57">' +
+              signals.join('') +
+            '</span>'
+          : '') +
+      '</button>'
+    );
+  }
+
+  function renderHistoryTableWorkspaceV93() {
+    var modal = $('[data-qpos-history-modal]');
+    if (!modal) return;
+
+    var workspace = modal.querySelector('[data-qpos-history-table-workspace-v93]');
+    if (!workspace) return;
+
+    var floorBox = workspace.querySelector('[data-qpos-history-floors-v93]');
+    var tableBox = workspace.querySelector('[data-qpos-history-tables-v93]');
+    var allButton = workspace.querySelector('[data-qpos-history-all-v93]');
+    if (!floorBox || !tableBox || !allButton) return;
+
+    var floorId = historyFloorIdV93();
+    var allMode = String(state.historyScope || '') === 'all';
+    var targetScope = String(state.historyTargetScopeV88 || '');
+    var targetTableId = Number(state.historyTargetTableIdV88 || 0);
+    var currentTableId =
+      !targetScope && state.selectedTable
+        ? Number(state.selectedTable.id || 0)
+        : 0;
+    var pickupActive =
+      !allMode &&
+      (
+        targetScope === 'pickup' ||
+        (!targetScope && state.serviceMode === 'takeaway')
+      );
+
+    floorBox.innerHTML = (state.floors || []).map(function (floor) {
+      var id = String(floor.id || '');
+      return (
+        '<button type="button" data-qpos-history-floor-v93="' + esc(id) + '"' +
+          (id === floorId ? ' class="is-active"' : '') +
+        '>' + esc(floor.name || 'Floor') + '</button>'
+      );
+    }).join('');
+
+    allButton.classList.toggle('is-active', allMode);
+
+    var rows = [
+      '<button type="button" class="pmd-qpos-table pmd-qpos-pickup' +
+        (pickupActive ? ' is-selected' : '') + '"' +
+        ' data-qpos-history-pickup-v93>' +
+        '<strong>Pickup</strong>' +
+      '</button>'
+    ];
+
+    historyFloorTablesV93(floorId).forEach(function (table) {
+      var id = Number(table.id || 0);
+      var active =
+        !allMode &&
+        (
+          (targetScope === 'table' && targetTableId === id) ||
+          (!targetScope && currentTableId === id)
+        );
+      rows.push(historyTableMarkupV93(table, active));
+    });
+
+    tableBox.innerHTML = rows.join('');
+
+    Array.prototype.slice.call(
+      floorBox.querySelectorAll('[data-qpos-history-floor-v93]')
+    ).forEach(function (button) {
+      button.onclick = function () {
+        state.historyFloorIdV93 = String(
+          button.getAttribute('data-qpos-history-floor-v93') || ''
+        );
+        renderHistoryTableWorkspaceV93();
+      };
+    });
+
+    allButton.onclick = function () {
+      state.historyTargetScopeV88 = '';
+      state.historyTargetTableIdV88 = 0;
+      state.historySelectedOrderId = null;
+      closeHistoryMobileDetailV87();
+      renderHistoryTableWorkspaceV93();
+      loadHistory('all', {preserve: false});
+    };
+
+    var pickup = tableBox.querySelector('[data-qpos-history-pickup-v93]');
+    if (pickup) {
+      pickup.onclick = function () {
+        state.historyTargetScopeV88 = 'pickup';
+        state.historyTargetTableIdV88 = 0;
+        state.historySelectedOrderId = null;
+        closeHistoryMobileDetailV87();
+        renderHistoryTableWorkspaceV93();
+        loadHistory('selected', {preserve: false});
+      };
+    }
+
+    Array.prototype.slice.call(
+      tableBox.querySelectorAll('[data-qpos-history-table-v93]')
+    ).forEach(function (button) {
+      button.onclick = function () {
+        var id = Number(
+          button.getAttribute('data-qpos-history-table-v93') || 0
+        );
+        if (!id) return;
+
+        var table = (state.tables || []).find(function (row) {
+          return Number(row.id || 0) === id;
+        });
+
+        if (table) {
+          state.historyFloorIdV93 = String(table.floor_id || floorId);
+        }
+
+        state.historyTargetScopeV88 = 'table';
+        state.historyTargetTableIdV88 = id;
+        state.historySelectedOrderId = null;
+        closeHistoryMobileDetailV87();
+        renderHistoryTableWorkspaceV93();
+        loadHistory('selected', {preserve: false});
+      };
+    });
+  }
+
+  function ensureHistoryTableWorkspaceV93() {
+    var modal = $('[data-qpos-history-modal]');
+    if (!modal) return;
+
+    var left = modal.querySelector('.pmd-qpos-history-left-card-v84');
+    var tabs = modal.querySelector('.pmd-qpos-history-kind-tabs-v82');
+    if (!left || !tabs) return;
+
+    var workspace = modal.querySelector('[data-qpos-history-table-workspace-v93]');
+    if (!workspace) {
+      workspace = document.createElement('section');
+      workspace.className = 'pmd-qpos-history-table-workspace-v93';
+      workspace.setAttribute('data-qpos-history-table-workspace-v93', '');
+      workspace.innerHTML =
+        '<div class="pmd-qpos-floor-switch pmd-qpos-history-floor-switch-v93">' +
+          '<div class="pmd-qpos-floor-tabs" data-qpos-history-floors-v93></div>' +
+          '<div class="pmd-qpos-history-floor-tools-v93">' +
+            '<button type="button" class="pmd-qpos-history-all-v93"' +
+              ' data-qpos-history-all-v93>All tables</button>' +
+          '</div>' +
+        '</div>' +
+        '<div class="pmd-qpos-tables pmd-qpos-history-tables-v93">' +
+          '<div class="pmd-qpos-table-grid" data-qpos-history-tables-v93></div>' +
+        '</div>';
+      tabs.insertAdjacentElement('afterend', workspace);
+    }
+
+    renderHistoryTableWorkspaceV93();
+  }
+
   /* Binding */
   function bind() {
     ensureHistoryTableRailV88();
     ensureHistoryControlsV87();
+    ensureHistoryTableWorkspaceV93();
     var search = $('[data-qpos-search]');
     if (search) {
       search.addEventListener('input', function () {
@@ -9589,6 +9850,7 @@ function renderOpenChecks() {
         state.historySelectedOrderId = null;
         closeHistoryMobileDetailV87();
         renderHistoryTableRailV88();
+        renderHistoryTableWorkspaceV93();
         loadHistory(requested, {preserve: false});
       };
     });

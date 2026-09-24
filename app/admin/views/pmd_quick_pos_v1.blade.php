@@ -17,7 +17,8 @@
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-reservations2-floor-reservation-v312.css?v=20260920-floor-v35b">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-dashboard-lab-exact-floor-v1.css?v=20260920-floor-v35b">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-shared-floor-multi-floor-v1.css?v=20260920-floor-v35b">
-    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-pos-v1.css?v=20260921-57">
+    <link rel="stylesheet" href="/app/admin/assets/css/push-notifications.css?v=20260922-qpos-v59">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-pos-v1.css?v=20260924-v93">
 </head>
 <body class="pmd-qpos-body">
 @php
@@ -35,6 +36,18 @@
         static fn ($table) =>
             (string)($table['floor_id'] ?? '') === $pmdInitialFloorId
     ));
+    // PMD_QPOS_FIRST_PAINT_PARITY_V77
+    // Render the same catalogue data already present in the inline bootstrap so
+    // refresh never paints an empty "All only" shell before Quick POS JS runs.
+    $pmdInitialCategories = array_values(
+        (array)($initialBootstrap['categories'] ?? [])
+    );
+    $pmdInitialMenu = array_values(
+        (array)($initialBootstrap['menu_items'] ?? [])
+    );
+    $pmdInitialCurrency = (string)(
+        $initialBootstrap['settings']['currency'] ?? '€'
+    );
     $pmdStatusLabels = [
         'available' => 'Free',
         'occupied' => 'Busy',
@@ -57,7 +70,6 @@
     <main class="pmd-qpos-main">
         <aside class="pmd-qpos-left">
             <section class="pmd-qpos-floor-switch">
-                <div class="pmd-qpos-section-label">Floor</div>
                 <div class="pmd-qpos-floor-tabs" data-qpos-floors>
                     @foreach($pmdInitialFloors as $floor)
                         <button
@@ -99,10 +111,8 @@
                             </div>
 
                             <div class="pmd-qpos-table-guide-icons">
-                                <span><b>!</b> Call</span>
-                                <span><b>€</b> Due</span>
+                                <span><b>!</b> Attention</span>
                                 <span><b>½</b> Part paid</span>
-                                <span><b>N</b> Note</span>
                                 <span><b>✓</b> Paid</span>
                             </div>
                         </div>
@@ -117,61 +127,49 @@
                     </button>
                     @foreach($pmdInitialTables as $table)
                         @php
+                            // PMD_QPOS_TABLE_SERVER_MARKUP_SAFE_V59
+                            // Keep the first server paint deliberately simple.
+                            // JS is the authoritative renderer for attention/payment
+                            // signals immediately after bootstrap.
                             $pmdStatus = (string)($table['status'] ?? 'available');
-                            $pmdCapacity = (int)($table['capacity'] ?? 0);
+                            $pmdCapacity = max(0, (int)($table['capacity'] ?? 0));
                             $pmdPaymentState = (string)($table['payment_state'] ?? 'none');
-                            $pmdWaiterCalls = (int)($table['waiter_calls'] ?? 0);
-                            $pmdNoteCount = (int)($table['note_count'] ?? 0);
-
-                            $pmdSignalCount =
-                                ($pmdWaiterCalls > 0 ? 1 : 0)
-                                + ($pmdPaymentState !== 'none' ? 1 : 0)
-                                + ($pmdNoteCount > 0 ? 1 : 0);
-
-                            $pmdSignalKind = '';
-                            $pmdSignalIcon = '';
-                            $pmdSignalTitle = '';
-
-                            if ($pmdWaiterCalls > 0) {
-                                $pmdSignalKind = 'call';
-                                $pmdSignalIcon = '!';
-                                $pmdSignalTitle = 'Waiter call';
-                            } elseif ($pmdPaymentState === 'partial') {
-                                $pmdSignalKind = 'due';
-                                $pmdSignalIcon = '½';
-                                $pmdSignalTitle = 'Partly paid';
-                            } elseif ($pmdPaymentState === 'due') {
-                                $pmdSignalKind = 'due';
-                                $pmdSignalIcon = '€';
-                                $pmdSignalTitle = 'Payment due';
-                            } elseif ($pmdNoteCount > 0) {
-                                $pmdSignalKind = 'note';
-                                $pmdSignalIcon = 'N';
-                                $pmdSignalTitle = 'New note';
-                            } elseif ($pmdPaymentState === 'paid') {
-                                $pmdSignalKind = 'paid';
-                                $pmdSignalIcon = '✓';
-                                $pmdSignalTitle = 'Paid';
-                            }
+                            $pmdWaiterCalls = max(0, (int)($table['waiter_calls'] ?? 0));
+                            $pmdNoteCount = max(0, (int)($table['note_count'] ?? 0));
+                            $pmdHasAttention = $pmdWaiterCalls > 0 || $pmdNoteCount > 0;
+                            $pmdAttentionTitleV81 =
+                                $pmdWaiterCalls > 0 && $pmdNoteCount > 0
+                                    ? 'Waiter call + table note'
+                                    : ($pmdWaiterCalls > 0 ? 'Waiter call' : 'Table note');
                         @endphp
                         <button
                             type="button"
-                            class="pmd-qpos-table"
+                            class="pmd-qpos-table{{ $pmdHasAttention ? ' has-attention' : '' }}"
                             data-qpos-table="{{ $table['id'] ?? 0 }}"
                             data-status="{{ $pmdStatus }}"
                             data-payment-state="{{ $pmdPaymentState }}"
+                            @if($pmdHasAttention)
+                                data-qpos-attention="1"
+                                data-qpos-attention-kind-default="attention"
+                            @endif
                         >
                             <strong>{{ $table['number'] ?? ($table['id'] ?? '') }}</strong>
-                            <small>{{ $pmdStatusLabels[$pmdStatus] ?? 'Free' }}@if($pmdCapacity > 0) · {{ $pmdCapacity }}s @endif</small>
-                            @if($pmdSignalKind !== '')
-                                <span
-                                    class="pmd-qpos-table-signal is-{{ $pmdSignalKind }}"
-                                    title="{{ $pmdSignalTitle }}"
-                                    aria-label="{{ $pmdSignalTitle }}"
-                                >
-                                    <b>{{ $pmdSignalIcon }}</b>
-                                    @if($pmdSignalCount > 1)
-                                        <em>+{{ $pmdSignalCount - 1 }}</em>
+                            <small>{{ $pmdCapacity > 0 ? $pmdCapacity . 's' : '' }}</small>
+                            @if($pmdHasAttention || in_array($pmdPaymentState, ['partial', 'paid'], true))
+                                <span class="pmd-qpos-table-signals-v57">
+                                    @if($pmdHasAttention)
+                                        {{-- PMD_QPOS_UNIFIED_ATTENTION_ICON_V81 --}}
+                                        <span
+                                            class="pmd-qpos-table-signal is-attention-v81"
+                                            data-qpos-attention-kind="attention"
+                                            title="{{ $pmdAttentionTitleV81 }}"
+                                            aria-label="Open attention"
+                                        ><b>!</b></span>
+                                    @endif
+                                    @if($pmdPaymentState === 'partial')
+                                        <span class="pmd-qpos-table-signal is-partial" title="Part paid" aria-label="Part paid"><b>½</b></span>
+                                    @elseif($pmdPaymentState === 'paid')
+                                        <span class="pmd-qpos-table-signal is-paid" title="Paid" aria-label="Paid"><b>✓</b></span>
                                     @endif
                                 </span>
                             @endif
@@ -180,10 +178,10 @@
                 </div>
             </section>
 
-            <div class="pmd-qpos-profile-dock">
-                @if($pmdDashboardUrl)
-                    <a class="pmd-qpos-back-button" href="{{ $pmdDashboardUrl }}">← Back</a>
-                @endif
+            {{-- PMD_QPOS_PROFILE_HISTORY_DOCK_V85
+                 Keep the rail bottom focused: Profile on the left, History on the right.
+                 Dashboard now belongs inside the profile menu. --}}
+            <div class="pmd-qpos-profile-dock pmd-qpos-profile-dock-v85">
                 <div class="pmd-qpos-profile">
                     <button
                         type="button"
@@ -199,9 +197,38 @@
                             <strong>{{ $pmdProfileName }}</strong>
                             @if($pmdProfileRole)<small>{{ $pmdProfileRole }}</small>@endif
                         </div>
+                        @if($pmdDashboardUrl)
+                            <a
+                                class="pmd-qpos-profile-dashboard-v85"
+                                href="{{ $pmdDashboardUrl }}"
+                            >Dashboard</a>
+                        @endif
                         <a href="{{ $pmdLogoutUrl }}">Sign out</a>
                     </div>
                 </div>
+
+                <button
+                    type="button"
+                    class="pmd-qpos-history-button pmd-qpos-history-rail-button-v85"
+                    data-qpos-history-open
+                >History</button>
+            </div>
+
+            {{-- PMD_QPOS_HISTORY_RAIL_ACTIONS_V82
+                 History replaces Back/Profile with scope + close controls. --}}
+            <div class="pmd-qpos-history-rail-actions-v82" aria-label="History controls">
+                <button
+                    type="button"
+                    class="pmd-qpos-history-all-v82"
+                    data-qpos-history-scope="all"
+                >All tables</button>
+                <button
+                    type="button"
+                    class="pmd-qpos-history-close-v82"
+                    data-qpos-history-close
+                    aria-label="Close history"
+                    title="Close history"
+                >×</button>
             </div>
         </aside>
 
@@ -214,25 +241,90 @@
 
                 <div class="pmd-qpos-work-meta">
                     <time class="pmd-qpos-clock" data-qpos-clock>{{ now()->format('H:i') }}</time>
-                    <button type="button" class="pmd-qpos-history-button" data-qpos-history-open>History</button>
                 </div>
             </div>
 
             <div class="pmd-qpos-categories" data-qpos-categories>
-                <button type="button" class="is-active" data-category="all">All</button>
+                <button type="button" class="is-active" data-qpos-category="all">All</button>
+                @foreach($pmdInitialCategories as $category)
+                    @php
+                        $pmdCategoryId = (string)($category['id'] ?? '');
+                    @endphp
+                    @if($pmdCategoryId !== '' && $pmdCategoryId !== 'all')
+                        <button type="button" data-qpos-category="{{ $pmdCategoryId }}">{{ $category['name'] ?? 'Menu' }}</button>
+                    @endif
+                @endforeach
             </div>
 
             <div class="pmd-qpos-catalog-status" data-qpos-catalog-status>
                 Select table
             </div>
 
-            <div class="pmd-qpos-product-grid" data-qpos-products></div>
+            <div class="pmd-qpos-product-grid" data-qpos-products>
+                @forelse($pmdInitialMenu as $item)
+                    @php
+                        $pmdItemId = (int)($item['id'] ?? 0);
+                        $pmdPrice = (float)($item['price'] ?? 0);
+                        $pmdOrderable =
+                            ($item['orderable'] ?? true) !== false
+                            && ($item['price_configured'] ?? true) !== false
+                            && $pmdPrice > 0;
+                        $pmdImage = trim((string)($item['image'] ?? ''));
+                        $pmdPlaceholder =
+                            $pmdImage === ''
+                            || preg_match(
+                                '~(?:^|/)paymydine-logo\.svg(?:$|[?#])~i',
+                                $pmdImage
+                            );
+                        $pmdMenuNumber = (int)($item['menu_number'] ?? 0);
+                        $pmdHasOptions = !empty($item['has_options']);
+                    @endphp
+                    <button
+                        type="button"
+                        class="pmd-qpos-product{{ $pmdOrderable ? '' : ' is-disabled' }}"
+                        data-qpos-product="{{ $pmdItemId }}"
+                        @if(!$pmdOrderable) disabled @endif
+                    >
+                        @if($pmdPlaceholder)
+                            <div class="pmd-qpos-product-image is-placeholder is-inline-v72" aria-hidden="true">
+                                <svg viewBox="0 0 428.72 420" focusable="false" aria-hidden="true">
+                                    <path d="M242.42 38.65H45.83c8.89 34.02 37.63 60.01 73.1 64.85 3.93.54 7.94.82 12.02.82h111.47c46.54 0 84.28 37.73 84.28 84.28s-37.74 84.28-84.28 84.28h-67.53c-16.46 0-29.8 13.34-29.8 29.8v35.87h95.89c83.02 0 151.35-66.86 151.39-149.89.03-82.85-67.12-150.01-149.95-150.01Z"></path>
+                                    <path d="M219.64 246.47v-25.53h-91.75c-6.1 0-11.05 4.95-11.05 11.05v88.72c0 4.08-.28 8.09-.82 12.02-4.84 35.47-30.83 64.21-64.85 73.1V209.24c0-1.3 0-2.58.01-3.84 1.73-25.71 21.8-46.39 47.24-49.07h11.14l110.08-.07v-25.53l58.55 57.87-58.55 57.87Z"></path>
+                                </svg>
+                            </div>
+                        @else
+                            <div
+                                class="pmd-qpos-product-image"
+                                style="background-image:url(&quot;{{ $pmdImage }}&quot;)"
+                            ></div>
+                        @endif
+
+                        @if(!empty($item['is_bestseller']))
+                            <span class="pmd-qpos-product-badge">Popular</span>
+                        @endif
+
+                        <span class="pmd-qpos-product-body">
+                            <strong class="pmd-qpos-product-name">
+                                @if($pmdMenuNumber > 0)
+                                    <span class="pmd-qpos-product-number" aria-label="Food number {{ $pmdMenuNumber }}">{{ $pmdMenuNumber }}.</span>
+                                @endif
+                                <span>{{ $item['name'] ?? 'Item' }}</span>
+                            </strong>
+                            <span class="pmd-qpos-product-meta">
+                                <span>{{ $pmdHasOptions ? 'Options' : '' }}</span>
+                                <b>{{ $pmdOrderable ? $pmdInitialCurrency.number_format($pmdPrice, 2, '.', '') : 'No price' }}</b>
+                            </span>
+                        </span>
+                    </button>
+                @empty
+                    <div class="pmd-qpos-no-products">No menu items match this filter.</div>
+                @endforelse
+            </div>
         </section>
 
         <aside class="pmd-qpos-cart">
             <div class="pmd-qpos-cart-head">
                 <div>
-                    <span class="pmd-qpos-section-label">Check</span>
                     <strong data-qpos-check-title>New</strong>
                 </div>
                 <button type="button" class="pmd-qpos-cart-close" data-qpos-cart-close aria-label="Close cart">×</button>
@@ -248,7 +340,15 @@
             <div class="pmd-qpos-sent" data-qpos-sent hidden>
                 <div class="pmd-qpos-subhead">
                     <strong>Sent</strong>
-                    <span data-qpos-sent-total></span>
+                    <span class="pmd-qpos-sent-head-v72">
+                        <button
+                            type="button"
+                            class="pmd-qpos-undo-v72"
+                            data-qpos-sent-undo
+                            hidden
+                        >↶ Undo</button>
+                        <span data-qpos-sent-total></span>
+                    </span>
                 </div>
                 <div data-qpos-sent-items></div>
             </div>
@@ -266,11 +366,16 @@
 
             <div class="pmd-qpos-cart-summary">
                 <div><span>New</span><strong data-qpos-new-total>€0.00</strong></div>
+                {{-- PMD_QPOS_VAT_SUMMARY_VIEW_V74 --}}
+                <div data-qpos-vat-row hidden>
+                    <span data-qpos-vat-label>VAT</span>
+                    <strong data-qpos-vat-total>€0.00</strong>
+                </div>
                 <div class="grand"><span>Total</span><strong data-qpos-total>€0.00</strong></div>
             </div>
 
             <div class="pmd-qpos-cart-actions">
-                <button type="button" class="primary" data-qpos-send>Send</button>
+                <button type="button" class="primary" data-qpos-send disabled>Send to Kitchen</button>
                 <button type="button" class="pay" data-qpos-pay disabled>Pay</button>
             </div>
 
@@ -605,61 +710,87 @@
     </div>
 
     <div class="pmd-qpos-modal pmd-qpos-workspace-modal" data-qpos-history-modal aria-hidden="true">
-        <div class="pmd-qpos-modal-card pmd-qpos-history-card">
-            <header>
-                <div>
+        {{-- PMD_QPOS_HISTORY_CARD_SHELL_V84
+             History mirrors the live POS: left card | large middle card | table rail. --}}
+        <div class="pmd-qpos-modal-card pmd-qpos-history-card pmd-qpos-history-shell-v84">
+            <section class="pmd-qpos-history-master-v82 pmd-qpos-history-left-card-v84">
+                <header class="pmd-qpos-history-left-head-v84">
                     <span class="pmd-qpos-section-label">History</span>
                     <h2 data-qpos-history-title>History</h2>
-                </div>
-                <button type="button" class="pmd-qpos-modal-close" data-qpos-history-close>×</button>
-            </header>
+                </header>
 
-            <div class="pmd-qpos-history-toolbar">
-                <div class="pmd-qpos-history-scope">
-                    <button type="button" class="is-active" data-qpos-history-scope="selected">Selected</button>
-                    <button type="button" data-qpos-history-scope="all">All tables</button>
-                </div>
-
-                <div class="pmd-qpos-history-range">
-                    <div class="pmd-qpos-history-presets">
-                        <button type="button" data-qpos-history-preset="today">Today</button>
-                        <button type="button" class="is-active" data-qpos-history-preset="7d">7 days</button>
-                        <button type="button" data-qpos-history-preset="30d">30 days</button>
-                        <button type="button" data-qpos-history-preset="all">All time</button>
-                    </div>
-
-                    <label>
-                        <span>From</span>
-                        <input type="date" data-qpos-history-from>
-                    </label>
-                    <label>
-                        <span>To</span>
-                        <input type="date" data-qpos-history-to>
-                    </label>
-                </div>
-            </div>
-
-            <div class="pmd-qpos-history-filters">
-                <div>
-                    <button type="button" class="is-active" data-qpos-history-kind="orders">Orders & invoices</button>
+                <div class="pmd-qpos-history-kind-tabs-v82">
+                    <button type="button" class="is-active" data-qpos-history-kind="orders">Orders</button>
                     <button type="button" data-qpos-history-kind="payments">Payments</button>
                     <button type="button" data-qpos-history-kind="notes">Notes</button>
-                    <button type="button" data-qpos-history-kind="calls">Calls & status</button>
-                    <button type="button" data-qpos-history-kind="all">All activity</button>
+                    <button type="button" data-qpos-history-kind="calls">Call</button>
                 </div>
-                <div class="pmd-qpos-history-stats" data-qpos-history-stats></div>
-            </div>
 
-            <div class="pmd-qpos-history-layout">
                 <div class="pmd-qpos-history-list" data-qpos-history-list>
                     <div class="pmd-qpos-history-empty">Loading…</div>
                 </div>
+
+                {{-- PMD_QPOS_HISTORY_RANGE_DOCK_V84
+                     Date range behaves like the bottom action dock of Check. --}}
+                <div class="pmd-qpos-history-range pmd-qpos-history-range-v84">
+                    <div class="pmd-qpos-history-presets">
+                        <button type="button" class="is-today-v84" data-qpos-history-preset="today">Today</button>
+                        <button type="button" class="is-active is-week-v84" data-qpos-history-preset="7d">7 days</button>
+                        <button type="button" class="is-month-v84" data-qpos-history-preset="30d">30 days</button>
+                        <button type="button" class="is-all-v84" data-qpos-history-preset="all">All time</button>
+                    </div>
+
+                    {{-- PMD_QPOS_HISTORY_DATES_V85
+                         No From/To captions; the arrow makes the range direction obvious. --}}
+                    <div class="pmd-qpos-history-dates-v84 pmd-qpos-history-dates-v85">
+                        <label aria-label="History start date">
+                            <input
+                                type="date"
+                                aria-label="History start date"
+                                data-qpos-history-from
+                            >
+                        </label>
+                        <span
+                            class="pmd-qpos-history-date-arrow-v85"
+                            aria-hidden="true"
+                        >→</span>
+                        <label aria-label="History end date">
+                            <input
+                                type="date"
+                                aria-label="History end date"
+                                data-qpos-history-to
+                            >
+                        </label>
+                    </div>
+                </div>
+            </section>
+
+            <section class="pmd-qpos-history-center-card-v84">
+                {{-- PMD_QPOS_HISTORY_WORKBAR_V84
+                     Same placement/language as Search + Clock in the live catalogue. --}}
+                <header class="pmd-qpos-history-workbar-v84">
+                    <label class="pmd-qpos-search pmd-qpos-history-search-v84">
+                        <span>⌕</span>
+                        <input
+                            type="search"
+                            autocomplete="off"
+                            placeholder="Search history…"
+                            data-qpos-history-search
+                        >
+                    </label>
+
+                    <time
+                        class="pmd-qpos-clock pmd-qpos-history-clock-v84"
+                        data-qpos-history-clock
+                    >{{ now()->format('H:i') }}</time>
+                </header>
+
                 <aside class="pmd-qpos-history-detail" data-qpos-history-detail>
                     <div class="pmd-qpos-history-empty">
                         Select an order to see invoice, items, payments and notes.
                     </div>
                 </aside>
-            </div>
+            </section>
         </div>
     </div>
 
@@ -806,7 +937,11 @@ window.PMDQuickPOSConfig = {
 {{-- Canonical Floor runtime mounts after the Quick POS endpoint override. --}}
 <script src="/app/admin/assets/js/pmd-dashboard-lab-exact-floor-v1.js?v=20260920-floor-v35b"></script>
 <script src="/app/admin/assets/js/pmd-shared-floor-multi-floor-v1.js?v=20260920-floor-v35b"></script>
-<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260921-55"></script>
+{{-- PMD_QPOS_PUSH_NOTIFICATIONS_V57
+     Reuse the canonical Admin push stream for immediate notifications.
+     V73 also runs one lean operational-state heartbeat for table/KDS sync. --}}
+<script src="/app/admin/assets/js/push-notifications.js?v=20260922-qpos-v59"></script>
+<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260924-v93"></script>
 <script src="/app/admin/assets/js/pmd-site-access-hub-v13.js?v=20260921-androidpair-v16"></script>
 </body>
 </html>
