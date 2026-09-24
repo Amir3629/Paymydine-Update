@@ -315,6 +315,9 @@ class PosActivity : ComponentActivity() {
             app = app,
             onTryCloud = { attemptReturnToCloud() },
             onWorkspaces = { finish() },
+            onRequireLocalTransport = {
+                enterLocalMode("Opening PayMyDine POS...")
+            },
         )
         localBridge = bridge
 
@@ -901,6 +904,9 @@ class PosActivity : ComponentActivity() {
             app = app,
             onTryCloud = { attemptReturnToCloud() },
             onWorkspaces = { finish() },
+            onRequireLocalTransport = {
+                enterLocalMode("Opening PayMyDine POS...")
+            },
             // PMD_ANDROID_LOCAL_UI_RESTORE_BARRIER_V18
             // Cached canonical HTML stays covered until SQLite/bootstrap/cart
             // restoration has actually completed inside V86.
