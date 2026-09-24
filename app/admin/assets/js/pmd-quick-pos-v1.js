@@ -165,6 +165,20 @@
       throw error;
     }
 
+    try {
+      var nativeBridge = window.PayMyDineOffline;
+      if (
+        nativeBridge &&
+        typeof nativeBridge.cloudMutationCommitted === 'function' &&
+        String(opts.method || 'GET').toUpperCase() !== 'GET'
+      ) {
+        nativeBridge.cloudMutationCommitted(
+          String(url || ''),
+          String(opts.method || 'GET').toUpperCase()
+        );
+      }
+    } catch (ignored) {}
+
     return json;
   }
 
