@@ -56,7 +56,8 @@
         <activity
             android:name=".PosActivity"
             android:exported="false"
-            android:screenOrientation="sensorLandscape" />
+            android:screenOrientation="fullSensor"
+            android:configChanges="screenLayout|orientation|screenSize|smallestScreenSize|keyboard|keyboardHidden" />
 
         <activity
             android:name=".MainActivity"

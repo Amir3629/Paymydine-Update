@@ -2,6 +2,7 @@ package com.paymydine.mobile
 
 import android.annotation.SuppressLint
 import android.content.Intent
+import android.content.res.Configuration
 import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
@@ -44,11 +45,12 @@ import java.net.URI
  *
  * Canonical POS runs in a plain Android view hierarchy instead of Compose
  * AndroidView. On affected tablets the Compose/WebView surface can remain blank
- * when the app starts directly in landscape even though the DOM is healthy.
+ * when the app starts before the window has stable dimensions even though the
+ * DOM is healthy.
  *
- * The dedicated activity is landscape-only for the POS surface, waits for a
- * focused/stable window before creating WebView, and keeps all renderer
- * recovery inside the Android view system.
+ * The dedicated activity preserves one WebView while the tablet rotates
+ * between portrait and landscape, waits for a focused/stable window before
+ * creating WebView, and keeps all renderer recovery inside Android views.
  */
 class PosActivity : ComponentActivity() {
     private enum class TransportMode {
@@ -165,7 +167,7 @@ class PosActivity : ComponentActivity() {
 
         // Do not construct WebView during Activity inflation. The window can
         // still report transitional dimensions at that point on Samsung
-        // tablets. onWindowFocusChanged creates it after landscape is stable.
+        // tablets. onWindowFocusChanged creates it after the window is stable.
         root.postDelayed(
             {
                 if (
@@ -212,6 +214,31 @@ class PosActivity : ComponentActivity() {
         webView?.onResume()
         webView?.resumeTimers()
         webView?.let(::synchronizeViewport)
+    }
+
+    // PMD_ANDROID_POS_ROTATION_V19
+    // Keep the same POS/WebView instance across tablet rotation so the active
+    // cart, selected table and in-page state are not discarded. V86 listens
+    // for the resize event emitted by synchronizeViewport() and switches the
+    // canonical Quick POS layout between landscape and portrait immediately.
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+
+        if (::root.isInitialized) {
+            ViewCompat.requestApplyInsets(root)
+        }
+
+        webView?.let { current ->
+            current.post {
+                synchronizeViewport(current)
+            }
+            current.postDelayed(
+                {
+                    synchronizeViewport(current)
+                },
+                180L,
+            )
+        }
     }
 
     override fun onPause() {
