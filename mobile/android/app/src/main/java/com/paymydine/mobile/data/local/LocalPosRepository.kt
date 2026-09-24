@@ -881,7 +881,12 @@ class LocalPosRepository(private val database: PmdDatabase) {
         }
         require(draft.lines.isNotEmpty()) { "Add at least one item." }
 
-        val clientCreatedAtMs = System.currentTimeMillis()
+        val nowMs = System.currentTimeMillis()
+        val clientCreatedAtMs = if (draft.serverId.isNullOrBlank()) {
+            pinLocalBusinessCreatedAtMs(draft.localId, nowMs)
+        } else {
+            nowMs
+        }
         val payload = JSONObject()
             .put("table_id", draft.tableId.toLongOrNull() ?: error("Invalid table id."))
             .put("client_created_at_ms", clientCreatedAtMs)
@@ -1033,7 +1038,7 @@ class LocalPosRepository(private val database: PmdDatabase) {
     ): List<Pair<DraftOrder, Long>> =
         database.readableDatabase.query(
             "pmd_orders",
-            arrayOf("id", "updated_at_ms"),
+            arrayOf("id", "updated_at_ms", "payload_json"),
             "location_id = ? AND status IN (?, ?, ?)",
             arrayOf(
                 locationId.toString(),
@@ -1050,6 +1055,13 @@ class LocalPosRepository(private val database: PmdDatabase) {
                 while (rows.moveToNext()) {
                     val localId = rows.getString(0)
                     val updatedAt = rows.getLong(1)
+                    val meta = runCatching {
+                        JSONObject(rows.getString(2))
+                    }.getOrElse { JSONObject() }
+                    val businessCreatedAt = meta.optLong(
+                        "client_created_at_ms",
+                        updatedAt,
+                    ).takeIf { it > 0L } ?: updatedAt
                     val draft = runCatching {
                         database.readableDatabase.query(
                             "pmd_orders",
@@ -1065,7 +1077,7 @@ class LocalPosRepository(private val database: PmdDatabase) {
                             else orderRows.toDraftHeader()
                         }?.copy(lines = lines(localId))
                     }.getOrNull() ?: continue
-                    add(draft to updatedAt)
+                    add(draft to businessCreatedAt)
                 }
             }
         }
@@ -2960,6 +2972,42 @@ class LocalPosRepository(private val database: PmdDatabase) {
         ).use {
             if (it.moveToFirst()) it.getLong(0) else 0L
         }
+
+    private fun pinLocalBusinessCreatedAtMs(
+        localId: String,
+        fallbackMs: Long,
+    ): Long = database.transaction { db ->
+        val raw = db.query(
+            "pmd_orders",
+            arrayOf("payload_json"),
+            "id = ?",
+            arrayOf(localId),
+            null,
+            null,
+            null,
+            "1",
+        ).use { rows ->
+            if (rows.moveToFirst()) rows.getString(0) else "{}"
+        }
+        val meta = runCatching {
+            JSONObject(raw)
+        }.getOrElse { JSONObject() }
+        val existing = meta.optLong("client_created_at_ms", 0L)
+        if (existing > 0L) {
+            existing
+        } else {
+            meta.put("client_created_at_ms", fallbackMs)
+            db.update(
+                "pmd_orders",
+                ContentValues().apply {
+                    put("payload_json", meta.toString())
+                },
+                "id = ?",
+                arrayOf(localId),
+            )
+            fallbackMs
+        }
+    }
 
     private fun localMinorExponent(): Int {
         val raw = database.readableDatabase.query(
