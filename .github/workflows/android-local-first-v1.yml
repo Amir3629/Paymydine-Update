@@ -129,7 +129,8 @@ jobs:
           grep -q "PMD_QPOS_NATIVE_DURABLE_MUTATIONS_V92" app/admin/assets/js/pmd-quick-pos-v1.js
           grep -q "PMD_QPOS_TERMINAL_SAFE_FAILOVER_V92" app/admin/assets/js/pmd-quick-pos-v1.js
           grep -q "PMD_QPOS_NATIVE_PROVISIONAL_CHECK_IDS_V93" app/admin/assets/js/pmd-quick-pos-v1.js
-          grep -q "PMD_QPOS_MOBILE_TOUCH_HISTORY_V93" app/admin/assets/css/pmd-quick-pos-v1.css\n          grep -q "PMD_QPOS_FLOATING_CART_MODAL_SAFETY_V94" app/admin/assets/css/pmd-quick-pos-v1.css
+          grep -q "PMD_QPOS_MOBILE_TOUCH_HISTORY_V93" app/admin/assets/css/pmd-quick-pos-v1.css
+          grep -q "PMD_QPOS_FLOATING_CART_MODAL_SAFETY_V94" app/admin/assets/css/pmd-quick-pos-v1.css
           grep -q "PMD_QPOS_HISTORY_TABLE_WORKSPACE_V93" app/admin/assets/js/pmd-quick-pos-v1.js
           grep -q "PMD_ANDROID_PROVISIONAL_ITEM_MUTATION_V23" mobile/android/app/src/main/java/com/paymydine/mobile/LocalPosBridge.kt
           grep -q "PMD_ANDROID_LOCAL_TABLE_OCCUPIED_V23" mobile/android/app/src/main/java/com/paymydine/mobile/LocalPosBridge.kt
