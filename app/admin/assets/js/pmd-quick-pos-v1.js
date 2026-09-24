@@ -3343,7 +3343,7 @@ function renderOpenChecks() {
     var itemId = Number(
       button.getAttribute('data-order-menu-id') || 0
     );
-    if (itemId < 1) return;
+    if (itemId === 0) return;
 
     var busyKey = String(itemId);
     if (state.sentMutationBusy[busyKey]) return;
@@ -3623,7 +3623,7 @@ function renderOpenChecks() {
         !item.__pending &&
         canEditCommitted &&
         qty > 0 &&
-        orderMenuId > 0
+        orderMenuId !== 0
       )
         ? (
             '<span class="pmd-qpos-sent-qty-v68">' +
