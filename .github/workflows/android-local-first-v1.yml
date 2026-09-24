@@ -131,6 +131,7 @@ jobs:
           grep -q "PMD_QPOS_NATIVE_PROVISIONAL_CHECK_IDS_V93" app/admin/assets/js/pmd-quick-pos-v1.js
           grep -q "PMD_QPOS_MOBILE_TOUCH_HISTORY_V93" app/admin/assets/css/pmd-quick-pos-v1.css
           grep -q "PMD_QPOS_FLOATING_CART_MODAL_SAFETY_V94" app/admin/assets/css/pmd-quick-pos-v1.css
+          grep -q "PMD_QPOS_PHONE_SCALE_V95" app/admin/assets/css/pmd-quick-pos-v1.css
           grep -q "PMD_QPOS_HISTORY_TABLE_WORKSPACE_V93" app/admin/assets/js/pmd-quick-pos-v1.js
           grep -q "PMD_ANDROID_PROVISIONAL_ITEM_MUTATION_V23" mobile/android/app/src/main/java/com/paymydine/mobile/LocalPosBridge.kt
           grep -q "PMD_ANDROID_LOCAL_TABLE_OCCUPIED_V23" mobile/android/app/src/main/java/com/paymydine/mobile/LocalPosBridge.kt
@@ -275,7 +276,7 @@ jobs:
           grep -q "PMD_MOBILE_NATIVE_PAIR_DASHBOARD_WAIT_V12" app/Services/PmdMobileSync/PmdMobilePairingService.php
           grep -q "PMD_MOBILE_NATIVE_PAIR_REQUEST_V12" app/Http/Controllers/PmdMobilePairController.php
           grep -q "PMD_ANDROID_POS_PREVIEW_V18_CANONICAL_OFFLINE_POS" app/admin/views/pmdsettings/index.blade.php
-          grep -q "PayMyDine-Android-0.3.20.apk" app/admin/views/pmdsettings/index.blade.php
+          grep -q "PayMyDine-Android-0.3.21.apk" app/admin/views/pmdsettings/index.blade.php
           grep -q "PMD_MOBILE_SIGNED_DESTINATION_AUTHORITY_V12" app/Http/Controllers/PmdMobileWorkspaceSessionController.php
           grep -q "PMD_MOBILE_PORTAL_CANONICAL_SECURITY_V12" app/Http/Controllers/PmdMobileWorkspaceSessionController.php
           grep -q "PMD_ANDROID_OFFLINE_SESSION_AUTHORITY_V12" mobile/android/app/src/main/java/com/paymydine/mobile/security/DeviceCredentialStore.kt
@@ -468,11 +469,11 @@ jobs:
           cp mobile/android/app/build/outputs/apk/debug/app-debug.apk \
             mobile/android/PayMyDine-POS-Tablet-Preview.apk
           cp mobile/android/app/build/outputs/apk/debug/app-debug.apk \
-            mobile/android/PayMyDine-POS-Tablet-Preview-0.3.20.apk
+            mobile/android/PayMyDine-POS-Tablet-Preview-0.3.21.apk
           sha256sum mobile/android/PayMyDine-POS-Tablet-Preview.apk \
             > mobile/android/PayMyDine-POS-Tablet-Preview.apk.sha256
-          sha256sum mobile/android/PayMyDine-POS-Tablet-Preview-0.3.20.apk \
-            > mobile/android/PayMyDine-POS-Tablet-Preview-0.3.20.apk.sha256
+          sha256sum mobile/android/PayMyDine-POS-Tablet-Preview-0.3.21.apk \
+            > mobile/android/PayMyDine-POS-Tablet-Preview-0.3.21.apk.sha256
       - name: Verify preview APK identity
         shell: bash
         run: |
@@ -487,11 +488,11 @@ jobs:
           BADGING="$("$AAPT" dump badging "$APK" | head -1)"
           echo "$BADGING"
           grep -Fq "package: name='com.paymydine.mobile.pospreview'" <<<"$BADGING"
-          grep -Fq "versionCode='33'" <<<"$BADGING"
-          grep -Fq "versionName='0.3.20-v94-mobile-ui-debug'" <<<"$BADGING"
+          grep -Fq "versionCode='34'" <<<"$BADGING"
+          grep -Fq "versionName='0.3.21-v95-large-touch-debug'" <<<"$BADGING"
 
           echo "PMD_PREVIEW_PACKAGE=com.paymydine.mobile.pospreview"
-          echo "PMD_PREVIEW_VERSION=0.3.20-v94-mobile-ui-debug"
+          echo "PMD_PREVIEW_VERSION=0.3.21-v95-large-touch-debug"
 
           # PR checks intentionally use the runner's ephemeral debug key. Only a
           # direct push to the preview branch may verify/publish the pinned key.
@@ -520,8 +521,8 @@ jobs:
           path: |
             mobile/android/PayMyDine-POS-Tablet-Preview.apk
             mobile/android/PayMyDine-POS-Tablet-Preview.apk.sha256
-            mobile/android/PayMyDine-POS-Tablet-Preview-0.3.20.apk
-            mobile/android/PayMyDine-POS-Tablet-Preview-0.3.20.apk.sha256
+            mobile/android/PayMyDine-POS-Tablet-Preview-0.3.21.apk
+            mobile/android/PayMyDine-POS-Tablet-Preview-0.3.21.apk.sha256
           if-no-files-found: error
       - name: Publish tablet preview release
         if: github.event_name == 'push' && github.ref == 'refs/heads/feature/android-local-first-v1' && !startsWith(github.event.head_commit.message, 'CI:') && !startsWith(github.event.head_commit.message, 'Deploy:')
@@ -542,7 +543,7 @@ jobs:
           gh release upload "$TAG" \
             mobile/android/PayMyDine-POS-Tablet-Preview.apk \
             mobile/android/PayMyDine-POS-Tablet-Preview.apk.sha256 \
-            mobile/android/PayMyDine-POS-Tablet-Preview-0.3.20.apk \
-            mobile/android/PayMyDine-POS-Tablet-Preview-0.3.20.apk.sha256 \
+            mobile/android/PayMyDine-POS-Tablet-Preview-0.3.21.apk \
+            mobile/android/PayMyDine-POS-Tablet-Preview-0.3.21.apk.sha256 \
             --repo "$GITHUB_REPOSITORY" \
             --clobber

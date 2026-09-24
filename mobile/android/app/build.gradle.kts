@@ -10,10 +10,10 @@ android {
         applicationId = "com.paymydine.mobile"
         minSdk = 26
         targetSdk = 36
-        versionCode = 33
-        // PMD_ANDROID_0_3_20_OFFLINE_COMPLETE_V23
-        // V94 presentation + V93/V23 local order/payment/reconnect/time authority.
-        versionName = "0.3.20-v94-mobile-ui" // PMD_ANDROID_0_3_20_MOBILE_UI_V94
+        versionCode = 34
+        // PMD_ANDROID_0_3_21_LARGE_TOUCH_V95
+        // V95 aggressive phone scale + preserved V94/V23 offline-complete authority.
+        versionName = "0.3.21-v95-large-touch" // PMD_ANDROID_0_3_21_LARGE_TOUCH_V95
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "SYNC_PROTOCOL_VERSION", "\"pmd-sync-v1\"")
     }
