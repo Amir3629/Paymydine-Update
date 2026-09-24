@@ -1488,6 +1488,31 @@ class PosActivity : ComponentActivity() {
             <script>
             window.__PMD_NATIVE_OFFLINE__ = true;
             document.documentElement.classList.add('pmd-native-offline');
+
+            // PMD_ANDROID_V107_OFFLINE_SYNC_CHIP_BACKFILL
+            // Older cached HTML shells predate the Local-First sync indicator.
+            // Backfill only the missing DOM node; the bundled Quick POS runtime
+            // owns its contents and refresh cadence.
+            (function () {
+              function ensurePmdSyncStateV107() {
+                var meta = document.querySelector('.pmd-qpos-work-meta');
+                if (!meta || meta.querySelector('[data-qpos-sync-state]')) return;
+                var chip = document.createElement('span');
+                chip.className = 'pmd-qpos-sync-state-v104';
+                chip.setAttribute('data-qpos-sync-state', '');
+                chip.textContent = 'Checking sync…';
+                meta.insertBefore(chip, meta.firstChild);
+              }
+              if (document.readyState === 'loading') {
+                document.addEventListener(
+                  'DOMContentLoaded',
+                  ensurePmdSyncStateV107,
+                  { once: true }
+                );
+              } else {
+                ensurePmdSyncStateV107();
+              }
+            })();
             </script>
             $v107Css
             $v107Js
