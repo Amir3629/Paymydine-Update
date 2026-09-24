@@ -121,6 +121,298 @@
     return String(template || '').replace(token, encodeURIComponent(String(value || '')));
   }
 
+  /* PMD_QPOS_NATIVE_LOCAL_TRANSPORT_V18
+   * Android keeps this exact canonical Quick POS DOM/CSS/JS during WAN loss.
+   * Only fetchJson changes authority: Cloud while online, signed/native local
+   * state while offline. No alternate POS page and no 2-second repaint loop. */
+  function nativeBridgeTransportAvailableV91() {
+    return (
+      window.PayMyDineOffline &&
+      typeof window.PayMyDineOffline.fetchJson === 'function'
+    );
+  }
+
+  function nativeLocalTransportAvailable() {
+    return (
+      window.__PMD_NATIVE_OFFLINE__ === true &&
+      nativeBridgeTransportAvailableV91()
+    );
+  }
+
+  function nativeCloudUnavailableV91() {
+    if (!nativeBridgeTransportAvailableV91()) return false;
+    try {
+      if (typeof window.PayMyDineOffline.cloudAvailable === 'function') {
+        return window.PayMyDineOffline.cloudAvailable() !== true;
+      }
+    } catch (ignored) {}
+    return false;
+  }
+
+  /* PMD_QPOS_REQUEST_FAILOVER_V91
+   * Connectivity callbacks are advisory only. The request itself is the final
+   * authority: if Cloud transport dies between the Wi-Fi cut and Android's
+   * network callback, retry that exact request against SQLite immediately.
+   * This removes the race that surfaced browser "Failed to fetch" to staff. */
+  function activateNativeLocalTransportV91() {
+    window.__PMD_NATIVE_OFFLINE__ = true;
+
+    try {
+      if (
+        window.PayMyDineOffline &&
+        typeof window.PayMyDineOffline.activateLocalTransport === 'function'
+      ) {
+        window.PayMyDineOffline.activateLocalTransport();
+      }
+    } catch (ignored) {}
+
+    try {
+      setOnline(false);
+      root.classList.add('is-native-offline');
+      stopLiveSyncTimerV73();
+    } catch (ignored) {}
+
+    try {
+      if (
+        window.pushNotif &&
+        typeof window.pushNotif.stopListening === 'function'
+      ) {
+        window.pushNotif.stopListening();
+      }
+    } catch (ignored) {}
+  }
+
+  /* PMD_QPOS_NATIVE_DURABLE_MUTATIONS_V92
+   * PMD_QPOS_TERMINAL_SAFE_FAILOVER_V92
+   * Identify mutations that have certified SQLite/outbox authority. They move
+   * to native transport when the synchronous network probe says Cloud is gone.
+   * While Cloud is healthy, the existing Cloud path remains intact so online
+   * card/terminal provider handoff keeps its real server order id. */
+  function nativeRequestPathV92(url) {
+    try {
+      return new URL(String(url || ''), window.location.href).pathname || '';
+    } catch (ignored) {
+      return String(url || '').split('?')[0];
+    }
+  }
+
+  function isNativeDurableMutationV92(url, opts) {
+    if (!nativeBridgeTransportAvailableV91()) return false;
+    if (String(opts.method || 'GET').toUpperCase() !== 'POST') return false;
+
+    var path = nativeRequestPathV92(url);
+    if (/^\/admin\/pos\/save\/\d+$/.test(path)) return true;
+    if (/^\/admin\/pmd-waiter-table-states-v154\/\d+$/.test(path)) {
+      return true;
+    }
+    if (path === '/admin/pos/transfer') return true;
+
+    if (/^\/admin\/pos\/payment-settle\/-?\d+$/.test(path)) {
+      var payload = {};
+      try {
+        payload = JSON.parse(String(opts.body || '{}'));
+      } catch (ignored) {}
+      var method = String(payload.payment_method || 'cash').toLowerCase();
+      var splitMode = String(payload.split_mode || 'full').toLowerCase();
+      return method === 'cash' && splitMode === 'full';
+    }
+
+    return false;
+  }
+
+  function nativeFetchJsonV91(url, opts) {
+    var nativeRaw = window.PayMyDineOffline.fetchJson(
+      String(url || ''),
+      String(opts.method || 'GET').toUpperCase(),
+      typeof opts.body === 'string' ? opts.body : ''
+    );
+    var nativeJson = {};
+    try {
+      nativeJson = JSON.parse(String(nativeRaw || '{}'));
+    } catch (ignored) {
+      nativeJson = {
+        ok: false,
+        status: 500,
+        message: 'Local restaurant data could not be read.'
+      };
+    }
+
+    if (nativeJson.ok === false || nativeJson.success === false) {
+      var nativeError = new Error(
+        friendlyOfflineMessage(
+          nativeJson.message ||
+          (nativeJson.error && nativeJson.error.message) ||
+          nativeJson.error
+        )
+      );
+      nativeError.status = Number(nativeJson.status || 422);
+      nativeError.payload = nativeJson;
+      throw nativeError;
+    }
+
+    return nativeJson;
+  }
+
+  function shouldFailOverHttpV91(status) {
+    status = Number(status || 0);
+    return (
+      status === 401 ||
+      status === 403 ||
+      status === 408 ||
+      status === 419 ||
+      status === 425 ||
+      status === 429 ||
+      status >= 500
+    );
+  }
+
+  function friendlyOfflineMessage(value) {
+    var raw = String(value || '').trim();
+    if (!raw) return 'This action is not available offline yet.';
+
+    var lower = raw.toLowerCase();
+    if (
+      lower.indexOf('failed to fetch') !== -1 ||
+      lower.indexOf('network') !== -1 ||
+      lower.indexOf('dns') !== -1 ||
+      lower.indexOf('http ') !== -1 ||
+      lower.indexOf('ssl') !== -1 ||
+      lower.indexOf('socket') !== -1 ||
+      lower.indexOf('exception') !== -1
+    ) {
+      return 'Connection is unavailable. PayMyDine is using the local restaurant copy.';
+    }
+
+    return raw;
+  }
+
+  /* PMD_QPOS_DURABLE_UI_DRAFT_V18
+   * Android keeps the exact unsent V86 cart locally as UI continuity state.
+   * This is not a sync command and never creates an order until Send/Pay. */
+  var nativeUiDraftTimerV18 = null;
+
+  function nativeUiDraftBridgeV18() {
+    return (
+      window.PayMyDineOffline &&
+      typeof window.PayMyDineOffline.persistUiDraft === 'function'
+    );
+  }
+
+  function nativeUiDraftRestorePendingV18() {
+    return window.__PMD_NATIVE_UI_DRAFT_RESTORE_PENDING__ === true;
+  }
+
+  function nativeUiDraftPayloadV18() {
+    return {
+      location_id: Number(state.boot && state.boot.location_id || 0),
+      service_mode: String(state.serviceMode || 'dine_in'),
+      table_id:
+        state.selectedTable && state.selectedTable.id
+          ? Number(state.selectedTable.id)
+          : null,
+      active_order_id: state.activeOrderId || null,
+      force_new_check: !!state.forceNewCheck,
+      guest_count: Math.max(1, Number(state.guestCount || 1)),
+      note: String(state.note || ''),
+      cart: (state.cart || []).map(function (row) {
+        return {
+          key: String(row.key || ''),
+          menu_id: Number(row.menu_id || 0),
+          name: String(row.name || ''),
+          price: num(row.price, 0),
+          quantity: Math.max(1, Number(row.quantity || 1)),
+          comment: String(row.comment || ''),
+          options: (row.options || []).map(function (option) {
+            return {
+              id: Number(option.id || 0),
+              name: String(option.name || ''),
+              price: num(option.price, 0)
+            };
+          })
+        };
+      })
+    };
+  }
+
+  function persistNativeUiDraftV18() {
+    if (
+      !nativeUiDraftBridgeV18() ||
+      nativeUiDraftRestorePendingV18()
+    ) return;
+    try {
+      window.PayMyDineOffline.persistUiDraft(
+        JSON.stringify(nativeUiDraftPayloadV18())
+      );
+    } catch (ignored) {}
+  }
+
+  function scheduleNativeUiDraftV18() {
+    if (
+      !nativeUiDraftBridgeV18() ||
+      nativeUiDraftRestorePendingV18()
+    ) return;
+    window.clearTimeout(nativeUiDraftTimerV18);
+    nativeUiDraftTimerV18 = window.setTimeout(function () {
+      nativeUiDraftTimerV18 = null;
+      persistNativeUiDraftV18();
+    }, 120);
+  }
+
+  function applyNativeUiDraftV18(draft) {
+    if (!draft || typeof draft !== 'object') return false;
+    if (String(draft.service_mode || '') !== 'dine_in') return false;
+
+    var tableId = Number(draft.table_id || 0);
+    if (!tableId) return false;
+
+    var table = state.tables.find(function (row) {
+      return Number(row.id || 0) === tableId;
+    }) || null;
+    if (!table) return false;
+
+    var rows = Array.isArray(draft.cart) ? draft.cart : [];
+    state.serviceMode = 'dine_in';
+    state.selectedTable = table;
+    if (table.floor_id != null && String(table.floor_id) !== '') {
+      state.activeFloorId = String(table.floor_id);
+    }
+    state.guestCount = Math.max(
+      1,
+      Math.min(99, Number(draft.guest_count || 1))
+    );
+    state.note = String(draft.note || '');
+    state.forceNewCheck = !!draft.force_new_check;
+    state.cart = rows
+      .filter(function (row) {
+        return Number(row && row.menu_id || 0) > 0 &&
+          Number(row && row.quantity || 0) > 0;
+      })
+      .map(function (row) {
+        return {
+          key: String(row.key || ''),
+          menu_id: Number(row.menu_id || 0),
+          name: String(row.name || ''),
+          price: num(row.price, 0),
+          quantity: Math.max(1, Number(row.quantity || 1)),
+          comment: String(row.comment || ''),
+          options: Array.isArray(row.options)
+            ? row.options.map(function (option) {
+                return {
+                  id: Number(option.id || 0),
+                  name: String(option.name || ''),
+                  price: num(option.price, 0)
+                };
+              })
+            : []
+        };
+      });
+
+    var activeId = Number(draft.active_order_id || 0);
+    state.activeOrderId = activeId || null;
+    state.orderSelectionExplicitV72 = !!activeId;
+    return true;
+  }
+
   async function fetchJson(url, options) {
     var opts = Object.assign({
       credentials: 'same-origin',
@@ -140,7 +432,54 @@
       opts.headers['X-CSRF-TOKEN'] = csrf();
     }
 
-    var response = await fetch(url, opts);
+    if (
+      nativeLocalTransportAvailable() ||
+      nativeCloudUnavailableV91()
+    ) {
+      if (!nativeLocalTransportAvailable()) {
+        activateNativeLocalTransportV91();
+      }
+      return nativeFetchJsonV91(url, opts);
+    }
+
+    var response;
+    try {
+      response = await fetch(url, opts);
+    } catch (networkError) {
+      if (nativeBridgeTransportAvailableV91()) {
+        var durableMutation = isNativeDurableMutationV92(url, opts);
+
+        // GETs can always be replayed locally. Durable POS mutations are
+        // replayed only after the synchronous Android probe confirms that the
+        // validated network is actually gone; this avoids duplicating a Cloud
+        // mutation whose response was merely lost.
+        if (!durableMutation || nativeCloudUnavailableV91()) {
+          activateNativeLocalTransportV91();
+          return nativeFetchJsonV91(url, opts);
+        }
+      }
+      throw networkError;
+    }
+
+    if (
+      !response.ok &&
+      shouldFailOverHttpV91(response.status) &&
+      nativeBridgeTransportAvailableV91()
+    ) {
+      var isMutation =
+        String(opts.method || 'GET').toUpperCase() !== 'GET';
+      var safeMutationStatus =
+        response.status === 401 ||
+        response.status === 403 ||
+        response.status === 419 ||
+        response.status === 429;
+
+      if (!isMutation || safeMutationStatus || nativeCloudUnavailableV91()) {
+        activateNativeLocalTransportV91();
+        return nativeFetchJsonV91(url, opts);
+      }
+    }
+
     var json = await response.json().catch(function () { return {}; });
 
     if (!response.ok || json.ok === false || json.success === false) {
@@ -150,11 +489,25 @@
         json.error ||
         ('HTTP ' + response.status);
 
-      var error = new Error(String(message));
+      var error = new Error(friendlyOfflineMessage(message));
       error.status = response.status;
       error.payload = json;
       throw error;
     }
+
+    try {
+      var nativeBridge = window.PayMyDineOffline;
+      if (
+        nativeBridge &&
+        typeof nativeBridge.cloudMutationCommitted === 'function' &&
+        String(opts.method || 'GET').toUpperCase() !== 'GET'
+      ) {
+        nativeBridge.cloudMutationCommitted(
+          String(url || ''),
+          String(opts.method || 'GET').toUpperCase()
+        );
+      }
+    } catch (ignored) {}
 
     return json;
   }
@@ -1163,10 +1516,23 @@
         state.floors
       );
 
-      state.boot = json;
+      if (nativeLocalTransportAvailable()) {
+        // PMD_QPOS_NATIVE_BOOTSTRAP_MERGE_V18
+        // Keep every V86 feature flag/URL/presentation setting from the
+        // canonical shell. Local bootstrap overrides only the authorities it
+        // can serve, so cold-start offline never becomes a reduced UI.
+        state.boot = Object.assign({}, state.boot || {}, json);
+        state.settings = Object.assign(
+          {},
+          state.settings || {},
+          json.settings || {}
+        );
+      } else {
+        state.boot = json;
+        state.settings = json.settings || {};
+      }
       state.mode = json.mode || state.mode;
       root.setAttribute('data-mode', state.mode);
-      state.settings = json.settings || {};
       state.floors = Array.isArray(json.floors) ? json.floors : [];
       state.defaultFloorId = String(json.default_floor_id || '');
       state.activeFloorId = String(
@@ -1182,7 +1548,20 @@
       var user = $('[data-qpos-user]');
       if (user) user.textContent = (json.user && json.user.name) || 'Staff';
 
-      if (selectedId) {
+      var nativeDraftApplied = false;
+      var nativeDraftOrderId = 0;
+      if (
+        nativeLocalTransportAvailable() &&
+        json.native_ui_draft &&
+        typeof json.native_ui_draft === 'object'
+      ) {
+        nativeDraftApplied = applyNativeUiDraftV18(json.native_ui_draft);
+        nativeDraftOrderId = nativeDraftApplied
+          ? Number(json.native_ui_draft.active_order_id || 0)
+          : 0;
+      }
+
+      if (!nativeDraftApplied && selectedId) {
         state.selectedTable = state.tables.find(function (table) {
           return Number(table.id) === selectedId;
         }) || null;
@@ -1207,6 +1586,28 @@
 
       if (state.selectedTable && state.serviceMode === 'dine_in') {
         await loadTable(state.selectedTable.id, true);
+
+        if (
+          nativeDraftApplied &&
+          json.native_ui_draft &&
+          typeof json.native_ui_draft === 'object'
+        ) {
+          // loadTable hydrates server guest/check state. Re-apply the unsent
+          // local UI draft last so the exact cashier work wins on restart.
+          applyNativeUiDraftV18(json.native_ui_draft);
+
+          if (
+            nativeDraftOrderId &&
+            !state.openOrders.some(function (row) {
+              return orderId(row) === nativeDraftOrderId;
+            })
+          ) {
+            state.activeOrderId = null;
+            state.orderSelectionExplicitV72 = false;
+          }
+
+          renderCart({orderSwitch: true});
+        }
       }
 
 
@@ -1273,6 +1674,11 @@
   function scheduleLiveSyncV73(delay) {
     stopLiveSyncTimerV73();
     if (document.visibilityState === 'hidden') return;
+
+    // PMD_QPOS_NATIVE_OFFLINE_NO_HEARTBEAT_V18
+    // The Cloud heartbeat is useful online, but offline state is event-driven.
+    // Never poll/repaint the cashier workspace every few seconds after WAN loss.
+    if (nativeLocalTransportAvailable()) return;
 
     state.liveSyncTimerV73 = window.setTimeout(function () {
       state.liveSyncTimerV73 = null;
@@ -1360,6 +1766,11 @@
   }
 
   async function refreshLiveStateV73(force) {
+    if (nativeLocalTransportAvailable()) {
+      stopLiveSyncTimerV73();
+      return false;
+    }
+
     if (state.loading) {
       scheduleLiveSyncV73(600);
       return;
@@ -3352,6 +3763,8 @@ function renderOpenChecks() {
   function renderCart(options) {
     /* PMD_QPOS_RENDER_CART_FAST_PATH_V41 */
     var renderOptions = options || {};
+
+    scheduleNativeUiDraftV18();
     var orderSwitchOnly = !!renderOptions.orderSwitch;
 
     renderOpenChecks();
@@ -8871,6 +9284,7 @@ function renderOpenChecks() {
     if (note) {
       note.addEventListener('input', function () {
         state.note = note.value;
+        scheduleNativeUiDraftV18();
       });
       bindTextKeyboardField(note, 'Order note');
     }
@@ -9522,6 +9936,71 @@ function renderOpenChecks() {
     newCheck: newCheck,
     openPayment: openPayment,
     openFloorMap: openFloorMap,
+
+    // PMD_QPOS_NATIVE_TRANSPORT_ONLY_SWITCH_V18
+    // Connectivity changes never replace/reload this canonical UI.
+    setNativeOffline: function (enabled) {
+      window.__PMD_NATIVE_OFFLINE__ = enabled === true;
+      setOnline(!window.__PMD_NATIVE_OFFLINE__);
+      root.classList.toggle(
+        'is-native-offline',
+        window.__PMD_NATIVE_OFFLINE__
+      );
+      hideToast();
+
+      if (window.__PMD_NATIVE_OFFLINE__) {
+        persistNativeUiDraftV18();
+        stopLiveSyncTimerV73();
+        try {
+          if (
+            window.pushNotif &&
+            typeof window.pushNotif.stopListening === 'function'
+          ) {
+            window.pushNotif.stopListening();
+          }
+        } catch (ignored) {}
+      } else {
+        state.liveSyncFailuresV73 = 0;
+        state.liveTablesSignatureV73 = '';
+        state.liveSelectedSignatureV73 = '';
+        startLiveSyncV73();
+        try {
+          if (
+            window.pushNotif &&
+            typeof window.pushNotif.startListening === 'function'
+          ) {
+            window.pushNotif.startListening();
+          }
+        } catch (ignored) {}
+      }
+
+      return Promise.resolve(true);
+    },
+    refreshNativeState: function () {
+      if (!nativeLocalTransportAvailable()) return Promise.resolve(false);
+
+      return bootstrap(true).then(function (result) {
+        // PMD_QPOS_NATIVE_DRAFT_RESTORE_BARRIER_V18
+        // Cold-start cached HTML may contain an empty/stale server-rendered
+        // cart. It must never overwrite the durable Android cart before the
+        // local bootstrap has restored the cashier's exact unsent work.
+        window.__PMD_NATIVE_UI_DRAFT_RESTORE_PENDING__ = false;
+        persistNativeUiDraftV18();
+
+        try {
+          if (
+            window.PayMyDineOffline &&
+            typeof window.PayMyDineOffline.localUiReady === 'function'
+          ) {
+            window.PayMyDineOffline.localUiReady();
+          }
+        } catch (ignored) {}
+
+        return result;
+      }, function (error) {
+        throw error;
+      });
+    },
     customerDisplay: {
       refresh: function () {
         pushCustomerDisplay(
