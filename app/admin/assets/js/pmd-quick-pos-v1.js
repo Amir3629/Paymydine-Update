@@ -3207,10 +3207,13 @@
     return Array.isArray(order && order.items) ? order.items : [];
   }
 
+  /* PMD_QPOS_NATIVE_PROVISIONAL_CHECK_IDS_V93
+   * Android local checks use stable negative ids until Cloud reconciliation.
+   * Zero means "no check"; negative ids are real selectable/payable checks. */
   function selectOrder(id) {
     id = Number(id || 0);
-    state.activeOrderId = id > 0 ? id : null;
-    state.orderSelectionExplicitV72 = id > 0;
+    state.activeOrderId = id !== 0 ? id : null;
+    state.orderSelectionExplicitV72 = id !== 0;
     state.lastQuantityUndoV72 = null;
     var order = activeOrder();
 
@@ -3218,7 +3221,7 @@
       state.offPremiseOrder = order || null;
     }
     state.forceNewCheck =
-      id < 1 ||
+      id === 0 ||
       (!!order && activeOrderStructuralLocked());
     if (order && order.guest_count) {
       state.guestCount = Math.max(1, num(order.guest_count, 1));
@@ -3305,7 +3308,7 @@ function renderOpenChecks() {
     mounted.forEach(function (button) {
       button.onclick = function () {
         var value = Number(button.getAttribute('data-qpos-check') || 0);
-        if (value > 0) selectOrder(value);
+        if (value !== 0) selectOrder(value);
       };
     });
   }
@@ -3342,7 +3345,7 @@ function renderOpenChecks() {
     var itemId = Number(
       button.getAttribute('data-order-menu-id') || 0
     );
-    if (itemId < 1) return;
+    if (itemId === 0) return;
 
     var busyKey = String(itemId);
     if (state.sentMutationBusy[busyKey]) return;
@@ -3622,7 +3625,7 @@ function renderOpenChecks() {
         !item.__pending &&
         canEditCommitted &&
         qty > 0 &&
-        orderMenuId > 0
+        orderMenuId !== 0
       )
         ? (
             '<span class="pmd-qpos-sent-qty-v68">' +
@@ -5314,7 +5317,9 @@ function renderOpenChecks() {
     if (!id) return;
 
     var total = num(json.order_total, 0);
-    var sentItems = optimisticSentItems(snapshot.cart);
+    var sentItems = Array.isArray(json.items)
+      ? json.items.map(function (row) { return Object.assign({}, row); })
+      : optimisticSentItems(snapshot.cart);
 
     state.activeOrderId = id;
     state.orderSelectionExplicitV72 = true;
@@ -5347,6 +5352,18 @@ function renderOpenChecks() {
           updated_at: json.updated_at || '',
           guest_count: snapshot.guestCount,
           settlement_status: 'unpaid',
+          native_provisional: json.native_provisional === true,
+          structural_locked: false,
+          item_mutation: json.item_mutation || (
+            id < 0
+              ? {
+                  allowed: true,
+                  locked: false,
+                  payment_started: false,
+                  reason: ''
+                }
+              : {}
+          ),
           items: sentItems
         });
       }

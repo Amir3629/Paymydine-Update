@@ -941,7 +941,7 @@ window.PMDQuickPOSConfig = {
      Reuse the canonical Admin push stream for immediate notifications.
      V73 also runs one lean operational-state heartbeat for table/KDS sync. --}}
 <script src="/app/admin/assets/js/push-notifications.js?v=20260922-qpos-v59"></script>
-<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260924-v94"></script>
+{{-- PMD_QPOS_OFFLINE_COMPLETE_CACHE_BUSTER_V94 --}}\n<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260924-offline-complete-v94"></script>
 <script src="/app/admin/assets/js/pmd-site-access-hub-v13.js?v=20260921-androidpair-v16"></script>
 </body>
 </html>
