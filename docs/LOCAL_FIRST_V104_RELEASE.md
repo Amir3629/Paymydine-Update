@@ -8,7 +8,7 @@ Date: 2026-09-24
 - Platform branch: `feature/platform-local-first-v2-v104`
 - Platform deploy payload commit: `8969d817354a1959c54efe17b38111e563530481`
 - Android branch: `feature/android-local-first-v2-v104`
-- Android source commit for this manifest: `1b78ba4e1f74c96c99f8f8749ca6ade85680a618`
+- Android source commit for this manifest: `bb104c1129e9656fc8b319fe679b7e58f13b207e`
 - Android versionCode: `43`
 - Android versionName: `0.3.30-v104-local-first-v2`
 - Sync protocol: `pmd-sync-v1`
