@@ -353,51 +353,75 @@ class BootstrapRepository(private val database: PmdDatabase) {
         )
     }
 
+    /**
+     * PMD_ANDROID_NON_DESTRUCTIVE_RECONNECT_UNION_V101
+     *
+     * Online bootstrap is a refresh hint, not permission to erase the durable
+     * restaurant copy. Some reconnect responses are transiently partial while
+     * tenant/session state is converging. Merge critical collections by stable
+     * id so an omitted table/menu item cannot disappear from SQLite.
+     *
+     * Incoming rows still win for canonical mutable fields. For menu media
+     * fields, blank/missing reconnect values never erase a previously usable
+     * image reference; a later explicit media-deletion contract can own that.
+     */
     private fun mergeCriticalSnapshot(incoming: JSONObject): JSONObject {
         val merged = JSONObject(incoming.toString())
         val previous = bootstrapSnapshot() ?: return merged
 
-        val incomingMenu = merged.optJSONObject("menu")
-        val incomingItems = incomingMenu?.optJSONArray("items")
         val previousMenu = previous.optJSONObject("menu")
-        val previousItems = previousMenu?.optJSONArray("items")
-
-        if (
-            (incomingItems == null || incomingItems.length() == 0) &&
-            previousItems != null &&
-            previousItems.length() > 0
-        ) {
-            merged.put("menu", JSONObject(previousMenu.toString()))
+        val incomingMenu = merged.optJSONObject("menu")
+        if (previousMenu != null) {
+            val menu = overlayObject(
+                previous = previousMenu,
+                incoming = incomingMenu,
+            )
+            menu.put(
+                "items",
+                mergeRowsByIdentity(
+                    previous = previousMenu.optJSONArray("items"),
+                    incoming = incomingMenu?.optJSONArray("items"),
+                    identityKeys = listOf("id"),
+                    preserveBlankKeys = MENU_MEDIA_KEYS_V101,
+                ),
+            )
+            merged.put("menu", menu)
         }
 
-        val incomingTables = merged.optJSONArray("tables")
-        val previousTables = previous.optJSONArray("tables")
-        if (
-            (incomingTables == null || incomingTables.length() == 0) &&
-            previousTables != null &&
-            previousTables.length() > 0
-        ) {
-            merged.put("tables", JSONArray(previousTables.toString()))
+        merged.put(
+            "tables",
+            mergeRowsByIdentity(
+                previous = previous.optJSONArray("tables"),
+                incoming = merged.optJSONArray("tables"),
+                identityKeys = listOf("id"),
+            ),
+        )
 
-            for (key in listOf(
-                "floors",
+        val previousFloorMap = previous.optJSONObject("table_floor_map")
+        val incomingFloorMap = merged.optJSONObject("table_floor_map")
+        if (previousFloorMap != null) {
+            merged.put(
                 "table_floor_map",
-                "default_floor_id",
-                "active_floor_id",
-            )) {
-                val current = merged.opt(key)
-                val empty = current == null ||
-                    current === JSONObject.NULL ||
-                    (current is JSONArray && current.length() == 0) ||
-                    (current is JSONObject && current.length() == 0) ||
-                    (current is String && current.isBlank())
-                if (empty && previous.has(key)) {
-                    when (val old = previous.opt(key)) {
-                        is JSONArray -> merged.put(key, JSONArray(old.toString()))
-                        is JSONObject -> merged.put(key, JSONObject(old.toString()))
-                        else -> merged.put(key, old)
-                    }
-                }
+                overlayObject(previousFloorMap, incomingFloorMap),
+            )
+        }
+
+        val previousFloors = previous.optJSONArray("floors")
+        if (previousFloors != null && previousFloors.length() > 0) {
+            merged.put(
+                "floors",
+                mergeRowsByIdentity(
+                    previous = previousFloors,
+                    incoming = merged.optJSONArray("floors"),
+                    identityKeys = listOf("id", "floor_id", "slug", "name"),
+                ),
+            )
+        }
+
+        for (key in listOf("default_floor_id", "active_floor_id")) {
+            val current = merged.opt(key)
+            if (isBlankJsonValue(current) && previous.has(key)) {
+                merged.put(key, cloneJsonValue(previous.opt(key)))
             }
         }
 
@@ -412,6 +436,130 @@ class BootstrapRepository(private val database: PmdDatabase) {
         }
 
         return merged
+    }
+
+    private fun mergeRowsByIdentity(
+        previous: JSONArray?,
+        incoming: JSONArray?,
+        identityKeys: List<String>,
+        preserveBlankKeys: Set<String> = emptySet(),
+    ): JSONArray {
+        if (previous == null || previous.length() == 0) {
+            return incoming?.let { JSONArray(it.toString()) } ?: JSONArray()
+        }
+        if (incoming == null || incoming.length() == 0) {
+            return JSONArray(previous.toString())
+        }
+
+        val previousById = linkedMapOf<String, JSONObject>()
+        val previousWithoutId = mutableListOf<JSONObject>()
+        for (index in 0 until previous.length()) {
+            val row = previous.optJSONObject(index) ?: continue
+            val identity = jsonIdentity(row, identityKeys)
+            if (identity == null) {
+                previousWithoutId += JSONObject(row.toString())
+            } else {
+                previousById[identity] = JSONObject(row.toString())
+            }
+        }
+
+        val result = JSONArray()
+        val seen = mutableSetOf<String>()
+
+        for (index in 0 until incoming.length()) {
+            val incomingRow = incoming.optJSONObject(index) ?: continue
+            val identity = jsonIdentity(incomingRow, identityKeys)
+            if (identity == null) {
+                result.put(JSONObject(incomingRow.toString()))
+                continue
+            }
+
+            val oldRow = previousById[identity]
+            result.put(
+                overlayObject(
+                    previous = oldRow,
+                    incoming = incomingRow,
+                    preserveBlankKeys = preserveBlankKeys,
+                ),
+            )
+            seen += identity
+        }
+
+        previousById.forEach { (identity, row) ->
+            if (identity !in seen) result.put(JSONObject(row.toString()))
+        }
+        previousWithoutId.forEach { result.put(JSONObject(it.toString())) }
+
+        return result
+    }
+
+    private fun overlayObject(
+        previous: JSONObject?,
+        incoming: JSONObject?,
+        preserveBlankKeys: Set<String> = emptySet(),
+    ): JSONObject {
+        val result = previous?.let { JSONObject(it.toString()) } ?: JSONObject()
+        if (incoming == null) return result
+
+        val keys = incoming.keys()
+        while (keys.hasNext()) {
+            val key = keys.next()
+            val value = incoming.opt(key)
+            if (key in preserveBlankKeys && isBlankJsonValue(value)) continue
+            result.put(key, cloneJsonValue(value))
+        }
+        return result
+    }
+
+    private fun jsonIdentity(
+        row: JSONObject,
+        keys: List<String>,
+    ): String? {
+        for (key in keys) {
+            if (!row.has(key)) continue
+            val value = row.opt(key)
+            if (isBlankJsonValue(value)) continue
+            return key + ":" + value.toString().trim()
+        }
+        return null
+    }
+
+    private fun isBlankJsonValue(value: Any?): Boolean = when (value) {
+        null,
+        JSONObject.NULL -> true
+        is String -> value.isBlank()
+        is JSONArray -> value.length() == 0
+        is JSONObject -> value.length() == 0
+        else -> false
+    }
+
+    private fun cloneJsonValue(value: Any?): Any? = when (value) {
+        is JSONObject -> JSONObject(value.toString())
+        is JSONArray -> JSONArray(value.toString())
+        else -> value
+    }
+
+    private companion object {
+        val MENU_MEDIA_KEYS_V101 = setOf(
+            "image",
+            "image_url",
+            "imageUrl",
+            "image_path",
+            "imagePath",
+            "thumb",
+            "thumbnail",
+            "media_url",
+            "mediaUrl",
+            "photo_url",
+            "photoUrl",
+            "photo",
+            "primary_image",
+            "primaryImage",
+            "images",
+            "gallery",
+            "media",
+            "additional_images",
+        )
     }
 
     fun locationId(): Long? = meta("location_id")?.toLongOrNull()
