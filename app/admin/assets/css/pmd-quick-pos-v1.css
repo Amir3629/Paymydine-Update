@@ -10162,3 +10162,103 @@ body.pmd-qpos-body {
   }
 }
 
+/* ============================================================
+   PMD_QPOS_MOBILE_STICKY_CATEGORIES_V88
+   Mobile menu categories remain reachable while the operator scrolls food.
+   History also exposes a real horizontally-scrollable table picker.
+   ============================================================ */
+
+.pmd-qpos-history-table-rail-v88 {
+  display: none;
+}
+
+@media (max-width: 820px) {
+  .pmd-qpos-catalog-head {
+    position: static !important;
+    top: auto !important;
+    z-index: auto !important;
+  }
+
+  .pmd-qpos-categories {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 48 !important;
+    background: rgba(255,255,255,.98) !important;
+    border-top: 1px solid var(--q-line);
+    border-bottom: 1px solid var(--q-line) !important;
+    box-shadow: 0 8px 18px rgba(15,23,42,.08);
+    padding-top: 8px !important;
+    padding-bottom: 8px !important;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .pmd-qpos-history-table-rail-v88 {
+    order: 4;
+    flex: 0 0 auto;
+    display: flex;
+    gap: 7px;
+    width: 100%;
+    overflow-x: auto;
+    padding: 0 10px 9px;
+    background: #fff;
+    border-bottom: 1px solid var(--q-line);
+    scrollbar-width: none;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .pmd-qpos-history-table-rail-v88::-webkit-scrollbar {
+    display: none;
+  }
+
+  .pmd-qpos-history-table-rail-v88 button {
+    flex: 0 0 auto;
+    min-width: 70px;
+    min-height: 46px;
+    padding: 0 14px;
+    border: 1px solid #d7dde5;
+    border-radius: 10px;
+    background: #fff;
+    color: #334155;
+    font-size: 13px;
+    font-weight: 900;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+
+  .pmd-qpos-history-table-rail-v88 button.is-active {
+    border-color: var(--q-primary);
+    background: var(--q-primary);
+    color: #fff;
+  }
+
+  .pmd-qpos-history-table-rail-v88 button.is-busy:not(.is-active) {
+    border-color: #f59e0b;
+    background: #fff7ed;
+  }
+
+  .pmd-qpos-history-range-v84 {
+    order: 5 !important;
+  }
+
+  .pmd-qpos-history-workbar-v84 {
+    order: 6 !important;
+  }
+
+  .pmd-qpos-history-left-card-v84 .pmd-qpos-history-list {
+    order: 7 !important;
+  }
+}
+
+@media (min-width: 821px) and (max-width: 1180px) {
+  .pmd-qpos.is-portrait-v86 .pmd-qpos-categories {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 48 !important;
+    background: rgba(255,255,255,.98) !important;
+    box-shadow: 0 8px 18px rgba(15,23,42,.08);
+    -webkit-overflow-scrolling: touch;
+  }
+}
+

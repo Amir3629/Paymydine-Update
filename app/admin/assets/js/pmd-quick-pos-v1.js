@@ -544,6 +544,8 @@
     modifier: null,
     itemNoteIndex: null,
     historyScope: 'selected',
+    historyTargetScopeV88: '',
+    historyTargetTableIdV88: 0,
     historyKind: 'orders',
     historySearch: '',
     historyPreset: '7d',
@@ -2503,6 +2505,8 @@
         selectTable(id);
       };
     });
+
+    renderHistoryTableRailV88();
 
     /* PMD_QPOS_IDLE_TABLE_WARMUP_CALL_V42 */
     scheduleTableWarmupV42();
@@ -7233,6 +7237,22 @@ function renderOpenChecks() {
 
   /* PMD_QPOS_HISTORY_BROWSER_V15 */
   function historySelection() {
+    /* PMD_QPOS_HISTORY_TABLE_RAIL_V88
+     * History table browsing must not change the active POS table/check. */
+    if (state.historyTargetScopeV88 === 'pickup') {
+      return {scope: 'pickup', tableId: 0};
+    }
+
+    if (
+      state.historyTargetScopeV88 === 'table' &&
+      Number(state.historyTargetTableIdV88 || 0) > 0
+    ) {
+      return {
+        scope: 'table',
+        tableId: Number(state.historyTargetTableIdV88 || 0)
+      };
+    }
+
     if (state.serviceMode === 'takeaway') {
       return {scope: 'pickup', tableId: 0};
     }
@@ -8242,6 +8262,7 @@ function renderOpenChecks() {
 
     state.historyScope = requested;
     state.historyLoading = true;
+    renderHistoryTableRailV88();
 
     var list = $('[data-qpos-history-list]');
     var cachedHistoryV83 =
@@ -8316,6 +8337,7 @@ function renderOpenChecks() {
     if (!modal) return;
 
     ensureHistoryControlsV87();
+    ensureHistoryTableRailV88();
     closeHistoryMobileDetailV87();
     syncHistoryMobileLayoutV87();
 
@@ -8701,8 +8723,129 @@ function renderOpenChecks() {
     syncHistoryMobileLayoutV87();
   }
 
+  /* PMD_QPOS_HISTORY_TABLE_RAIL_V88
+   * Mobile History gets the same physical-table context operators expect from
+   * the POS rail. Browsing History never changes the live check/table. */
+  function historyRailTablesV88() {
+    return (state.tables || []).slice().sort(function (a, b) {
+      var af = String(a.floor_name || a.floor_id || '');
+      var bf = String(b.floor_name || b.floor_id || '');
+      if (af !== bf) return af.localeCompare(bf, undefined, {numeric: true});
+
+      return String(compactTableLabel(a)).localeCompare(
+        String(compactTableLabel(b)),
+        undefined,
+        {numeric: true}
+      );
+    });
+  }
+
+  function renderHistoryTableRailV88() {
+    var modal = $('[data-qpos-history-modal]');
+    if (!modal) return;
+
+    var rail = modal.querySelector('[data-qpos-history-table-rail-v88]');
+    if (!rail) return;
+
+    var allMode = String(state.historyScope || '') === 'all';
+    var targetScope = String(state.historyTargetScopeV88 || '');
+    var targetTableId = Number(state.historyTargetTableIdV88 || 0);
+    var currentTableId =
+      !targetScope && state.selectedTable
+        ? Number(state.selectedTable.id || 0)
+        : 0;
+    var pickupActive =
+      !allMode &&
+      (
+        targetScope === 'pickup' ||
+        (!targetScope && state.serviceMode === 'takeaway')
+      );
+
+    var rows = [
+      '<button type="button"' +
+        ' data-qpos-history-pickup-v88' +
+        (pickupActive ? ' class="is-active"' : '') +
+        '>Pickup</button>'
+    ];
+
+    historyRailTablesV88().forEach(function (table) {
+      var id = Number(table.id || 0);
+      if (!id) return;
+
+      var active =
+        !allMode &&
+        (
+          (targetScope === 'table' && targetTableId === id) ||
+          (!targetScope && currentTableId === id)
+        );
+      var busy = effectiveTableStatusV62(table) !== 'available';
+
+      rows.push(
+        '<button type="button" data-qpos-history-table-v88="' + esc(id) + '"' +
+          ' class="' +
+            (active ? 'is-active' : '') +
+            (busy ? (active ? ' is-busy' : 'is-busy') : '') +
+          '">' +
+          esc(compactTableLabel(table)) +
+        '</button>'
+      );
+    });
+
+    rail.innerHTML = rows.join('');
+
+    var pickup = rail.querySelector('[data-qpos-history-pickup-v88]');
+    if (pickup) {
+      pickup.onclick = function () {
+        state.historyTargetScopeV88 = 'pickup';
+        state.historyTargetTableIdV88 = 0;
+        state.historySelectedOrderId = null;
+        closeHistoryMobileDetailV87();
+        renderHistoryTableRailV88();
+        loadHistory('selected', {preserve: false});
+      };
+    }
+
+    Array.prototype.slice.call(
+      rail.querySelectorAll('[data-qpos-history-table-v88]')
+    ).forEach(function (button) {
+      button.onclick = function () {
+        var id = Number(
+          button.getAttribute('data-qpos-history-table-v88') || 0
+        );
+        if (!id) return;
+
+        state.historyTargetScopeV88 = 'table';
+        state.historyTargetTableIdV88 = id;
+        state.historySelectedOrderId = null;
+        closeHistoryMobileDetailV87();
+        renderHistoryTableRailV88();
+        loadHistory('selected', {preserve: false});
+      };
+    });
+  }
+
+  function ensureHistoryTableRailV88() {
+    var modal = $('[data-qpos-history-modal]');
+    if (!modal) return;
+
+    var left = modal.querySelector('.pmd-qpos-history-left-card-v84');
+    var scope = modal.querySelector('.pmd-qpos-history-scope-v87');
+    if (!left || !scope) return;
+
+    var rail = modal.querySelector('[data-qpos-history-table-rail-v88]');
+    if (!rail) {
+      rail = document.createElement('div');
+      rail.className = 'pmd-qpos-history-table-rail-v88';
+      rail.setAttribute('data-qpos-history-table-rail-v88', '');
+      scope.insertAdjacentElement('afterend', rail);
+    }
+
+    renderHistoryTableRailV88();
+  }
+
   /* Binding */
   function bind() {
+    ensureHistoryTableRailV88();
     ensureHistoryControlsV87();
     var search = $('[data-qpos-search]');
     if (search) {
@@ -9005,11 +9148,17 @@ function renderOpenChecks() {
       if (event.target === historyModal) closeHistory();
     });
 
-    $$('[data-qpos-history-scope]').forEach(function (button) {
+    $('[data-qpos-history-scope]').forEach(function (button) {
       button.onclick = function () {
-        loadHistory(
-          button.getAttribute('data-qpos-history-scope') || 'selected'
-        );
+        var requested =
+          button.getAttribute('data-qpos-history-scope') || 'selected';
+
+        state.historyTargetScopeV88 = '';
+        state.historyTargetTableIdV88 = 0;
+        state.historySelectedOrderId = null;
+        closeHistoryMobileDetailV87();
+        renderHistoryTableRailV88();
+        loadHistory(requested, {preserve: false});
       };
     });
 
