@@ -41,6 +41,25 @@ class LocalPosBridge(
         }.getOrElse(::errorJson)
 
     @JavascriptInterface
+    fun syncStatus(): String = runCatching {
+        val counts = app.syncRepository.statusCounts()
+        val networkValidated = app.connectivity.online.value
+        val cloudState = app.syncRepository.cloudHealthState(networkValidated)
+        JSONObject()
+            .put("ok", true)
+            .put("local_first", true)
+            .put("network_validated", networkValidated)
+            .put("cloud_state", cloudState)
+            .put("cloud_available", cloudState == "online")
+            .put("pending", counts.pending)
+            .put("retrying", counts.retrying)
+            .put("in_flight", counts.inFlight)
+            .put("active", counts.active)
+            .put("rejected", counts.rejected)
+            .toString()
+    }.getOrElse(::errorJson)
+
+    @JavascriptInterface
     fun snapshot(selectedTableId: String): String {
         return runCatching {
             val locationId = app.bootstrapRepository.locationId()
@@ -84,6 +103,7 @@ class LocalPosBridge(
                 .put("authority", authorityLabel())
                 .put("currency", app.bootstrapRepository.currencyCode())
                 .put("queued", app.syncRepository.outboxCount())
+                .put("rejected", app.syncRepository.rejectedCount())
                 .put(
                     "active_floor_id",
                     initialFloorId?.takeIf { it.isNotBlank() }
