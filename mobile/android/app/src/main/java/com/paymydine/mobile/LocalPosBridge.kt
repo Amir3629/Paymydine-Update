@@ -23,6 +23,7 @@ class LocalPosBridge(
     private val initialFloorId: String? = null,
     private val onTryCloud: () -> Unit,
     private val onWorkspaces: () -> Unit,
+    private val onRequireLocalTransport: () -> Unit = {},
     private val onLocalUiReady: () -> Unit = {},
 ) {
     @JavascriptInterface
@@ -1574,6 +1575,15 @@ class LocalPosBridge(
     fun syncNow(): String = action {
         SyncEngine.enqueueImmediate(app)
         "Sync requested."
+    }
+
+    // PMD_ANDROID_POS_REQUEST_FAILOVER_V21
+    // Quick POS can discover a dead Cloud path before Android connectivity
+    // callbacks fire. Promote the native transport immediately so the same
+    // Activity/WebView remains on SQLite for all following requests.
+    @JavascriptInterface
+    fun activateLocalTransport() {
+        activity.runOnUiThread(onRequireLocalTransport)
     }
 
     @JavascriptInterface
