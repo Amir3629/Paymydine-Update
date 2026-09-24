@@ -11534,3 +11534,360 @@ body.pmd-qpos-body {
     display: none !important;
   }
 }
+
+/* ============================================================
+   PMD_QPOS_PHONE_SCALE_V95
+   Aggressive handheld sizing for real restaurant use:
+   - phones use two-column table grids, not compressed three-column tiles
+   - core controls are 76-96px tall with 21-24px labels
+   - food/card/history typography is materially larger
+   - tablets keep the denser V93 three-column layout
+   ============================================================ */
+@media (max-width: 820px) {
+  body.pmd-qpos-body {
+    font-size: 22px !important;
+    line-height: 1.35 !important;
+  }
+
+  .pmd-qpos-floor-tabs button {
+    min-height: 76px !important;
+    padding-inline: 18px !important;
+    font-size: 22px !important;
+    font-weight: 950 !important;
+  }
+
+  .pmd-qpos-floor-map-open {
+    min-height: 74px !important;
+    font-size: 22px !important;
+    font-weight: 950 !important;
+  }
+
+  .pmd-qpos-guide-toggle {
+    min-width: 72px !important;
+    min-height: 72px !important;
+    font-size: 24px !important;
+  }
+
+  .pmd-qpos-profile-button,
+  .pmd-qpos-history-button {
+    min-height: 76px !important;
+    font-size: 22px !important;
+    font-weight: 950 !important;
+  }
+
+  .pmd-qpos-profile-button strong {
+    font-size: 21px !important;
+  }
+
+  .pmd-qpos-search,
+  .pmd-qpos-clock {
+    height: 80px !important;
+  }
+
+  .pmd-qpos-search {
+    padding-inline: 20px !important;
+  }
+
+  .pmd-qpos-search span {
+    font-size: 28px !important;
+  }
+
+  .pmd-qpos-search input,
+  .pmd-qpos input,
+  .pmd-qpos textarea,
+  .pmd-qpos select,
+  .pmd-qpos-modal input,
+  .pmd-qpos-modal textarea,
+  .pmd-qpos-modal select {
+    font-size: 21px !important;
+  }
+
+  .pmd-qpos input::placeholder,
+  .pmd-qpos textarea::placeholder {
+    font-size: 21px !important;
+  }
+
+  .pmd-qpos-clock {
+    min-width: 92px !important;
+    font-size: 22px !important;
+    font-weight: 950 !important;
+  }
+
+  .pmd-qpos-categories {
+    gap: 12px !important;
+    padding: 12px !important;
+  }
+
+  .pmd-qpos-categories button {
+    min-width: 142px !important;
+    min-height: 78px !important;
+    height: 78px !important;
+    padding-inline: 22px !important;
+    font-size: 21px !important;
+    font-weight: 950 !important;
+  }
+
+  .pmd-qpos-catalog-status {
+    font-size: 20px !important;
+  }
+
+  .pmd-qpos-product-body .pmd-qpos-product-name {
+    top: 16px !important;
+    left: 16px !important;
+    right: 16px !important;
+    font-size: 26px !important;
+    line-height: 1.08 !important;
+    font-weight: 950 !important;
+  }
+
+  .pmd-qpos-product-body .pmd-qpos-product-number {
+    font-size: 23px !important;
+  }
+
+  .pmd-qpos-product-meta {
+    left: 16px !important;
+    right: 16px !important;
+    bottom: 16px !important;
+    font-size: 20px !important;
+  }
+
+  .pmd-qpos-product-meta > b {
+    font-size: 34px !important;
+    line-height: 1 !important;
+  }
+
+  .pmd-qpos-product-badge {
+    font-size: 16px !important;
+    padding: 8px 11px !important;
+  }
+
+  .pmd-qpos-cart-actions button,
+  .pmd-qpos-table-actions button,
+  .pmd-qpos-open-checks button,
+  .pmd-qpos-line-qty button,
+  .pmd-qpos-sent-qty-v68 button,
+  .pmd-qpos-line-note,
+  .pmd-qpos-option,
+  .pmd-qpos-modal-primary,
+  .pmd-qpos-modal-qty button,
+  .pmd-qpos-history-toolbar button,
+  .pmd-qpos-history-presets button,
+  .pmd-qpos-history-kind-tabs-v82 button {
+    min-height: 70px !important;
+    font-size: 21px !important;
+  }
+
+  .pmd-qpos-cart-line strong,
+  .pmd-qpos-sent-line {
+    font-size: 23px !important;
+  }
+
+  .pmd-qpos-cart-line small,
+  .pmd-qpos-sent-line small,
+  .pmd-qpos-order-note > span,
+  .pmd-qpos-cart-summary span {
+    font-size: 19px !important;
+  }
+
+  .pmd-qpos-cart-summary strong {
+    font-size: 26px !important;
+  }
+
+  .pmd-qpos-mobile-cart,
+  .pmd-qpos.is-portrait-v86 .pmd-qpos-mobile-cart {
+    height: 94px !important;
+    padding-inline: 26px !important;
+    border-radius: 16px !important;
+    font-size: 26px !important;
+  }
+
+  .pmd-qpos-mobile-cart span,
+  .pmd-qpos-mobile-cart b {
+    font-size: 26px !important;
+  }
+
+  .pmd-qpos-mobile-cart strong {
+    font-size: 36px !important;
+  }
+
+  .pmd-qpos-history-left-head-v84 {
+    min-height: 88px !important;
+    padding: 14px 18px !important;
+  }
+
+  .pmd-qpos-history-left-head-v84 h2 {
+    font-size: 34px !important;
+  }
+
+  .pmd-qpos-history-left-card-v84
+  .pmd-qpos-history-kind-tabs-v82 button {
+    min-height: 72px !important;
+    font-size: 20px !important;
+  }
+
+  .pmd-qpos-history-all-v93 {
+    min-height: 72px !important;
+    font-size: 21px !important;
+  }
+
+  .pmd-qpos-history-range-v84 .pmd-qpos-history-presets button {
+    min-height: 66px !important;
+    height: 66px !important;
+    font-size: 19px !important;
+  }
+
+  .pmd-qpos-history-range-v84
+  .pmd-qpos-history-dates-v85 input {
+    height: 64px !important;
+    font-size: 20px !important;
+  }
+
+  .pmd-qpos-history-date-arrow-v85 {
+    min-width: 48px !important;
+    min-height: 48px !important;
+    font-size: 23px !important;
+  }
+
+  .pmd-qpos-history-workbar-v84 {
+    min-height: 88px !important;
+    padding: 10px 12px !important;
+  }
+
+  .pmd-qpos-history-workbar-v84 .pmd-qpos-search,
+  .pmd-qpos-history-workbar-v84 .pmd-qpos-clock {
+    height: 76px !important;
+  }
+
+  .pmd-qpos-history-workbar-v84 .pmd-qpos-search input {
+    font-size: 21px !important;
+  }
+
+  .pmd-qpos-history-workbar-v84 .pmd-qpos-clock {
+    min-width: 92px !important;
+    font-size: 21px !important;
+  }
+
+  .pmd-qpos-history-entry,
+  .pmd-qpos-history-simple-event {
+    min-height: 124px !important;
+    padding: 18px !important;
+  }
+
+  .pmd-qpos-history-entry-top strong,
+  .pmd-qpos-history-entry strong,
+  .pmd-qpos-history-simple-event strong {
+    font-size: 23px !important;
+  }
+
+  .pmd-qpos-history-entry-top time {
+    font-size: 18px !important;
+  }
+
+  .pmd-qpos-history-entry-bottom > span:not(.pmd-qpos-history-new-pill):not(.pmd-qpos-history-seen-action),
+  .pmd-qpos-history-entry small,
+  .pmd-qpos-history-simple-event small,
+  .pmd-qpos-history-entry footer,
+  .pmd-qpos-history-simple-event footer {
+    font-size: 19px !important;
+  }
+
+  .pmd-qpos-history-entry-bottom > b {
+    min-height: 38px !important;
+    padding-inline: 13px !important;
+    font-size: 16px !important;
+  }
+
+  .pmd-qpos-history-detail-event strong {
+    font-size: 21px !important;
+  }
+
+  .pmd-qpos-history-detail-event time,
+  .pmd-qpos-history-detail-event footer a {
+    font-size: 17px !important;
+  }
+
+  .pmd-qpos-history-detail-event p,
+  .pmd-qpos-history-invoice,
+  .pmd-qpos-history-note-card-v83 > p {
+    font-size: 19px !important;
+    line-height: 1.5 !important;
+  }
+
+  .pmd-qpos-history-mobile-back-v87 {
+    min-height: 76px !important;
+    font-size: 21px !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .pmd-qpos-main {
+    padding: 10px !important;
+    padding-bottom: calc(128px + env(safe-area-inset-bottom)) !important;
+  }
+
+  .pmd-qpos-tables {
+    min-height: 430px !important;
+    max-height: 560px !important;
+  }
+
+  .pmd-qpos-table-grid,
+  .pmd-qpos[data-mode="waiter"] .pmd-qpos-table-grid,
+  .pmd-qpos-history-tables-v93 .pmd-qpos-table-grid {
+    grid-template-columns: repeat(2,minmax(0,1fr)) !important;
+    gap: 12px !important;
+    padding: 10px 12px 16px !important;
+  }
+
+  .pmd-qpos-table,
+  .pmd-qpos-history-tables-v93 .pmd-qpos-table {
+    min-height: 148px !important;
+    padding: 16px 10px !important;
+  }
+
+  .pmd-qpos-table strong,
+  .pmd-qpos-table:not(.pmd-qpos-pickup) > strong,
+  .pmd-qpos-history-tables-v93 .pmd-qpos-table strong {
+    font-size: 38px !important;
+    line-height: 1 !important;
+  }
+
+  .pmd-qpos-pickup strong,
+  .pmd-qpos-history-tables-v93 .pmd-qpos-pickup strong {
+    font-size: 25px !important;
+    line-height: 1.1 !important;
+  }
+
+  .pmd-qpos-table small,
+  .pmd-qpos-table:not(.pmd-qpos-pickup) > small,
+  .pmd-qpos-history-tables-v93 .pmd-qpos-table small {
+    margin-top: 13px !important;
+    font-size: 20px !important;
+  }
+
+  .pmd-qpos-table-signal {
+    min-width: 38px !important;
+    height: 38px !important;
+  }
+
+  .pmd-qpos-table-signal b {
+    font-size: 18px !important;
+  }
+
+  .pmd-qpos-product-grid {
+    gap: 12px !important;
+    padding: 12px !important;
+  }
+
+  .pmd-qpos-product-body .pmd-qpos-product-name {
+    font-size: 27px !important;
+  }
+
+  .pmd-qpos-product-meta > b {
+    font-size: 35px !important;
+  }
+
+  .pmd-qpos-history-tables-v93 {
+    max-height: 470px !important;
+  }
+}
+
