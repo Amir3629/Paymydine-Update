@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 const css = fs.readFileSync('app/admin/assets/css/pmd-quick-pos-v1.css', 'utf8');
 const js = fs.readFileSync('app/admin/assets/js/pmd-quick-pos-v1.js', 'utf8');
 const view = fs.readFileSync('app/admin/views/pmd_quick_pos_v1.blade.php', 'utf8');
+const posActivity = fs.readFileSync('mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt', 'utf8');
 
 assert.ok(css.includes('PMD_QPOS_RESPONSIVE_MATRIX_V102'), 'V102 CSS marker missing');
 assert.ok(css.includes('PMD_QPOS_PHONE_ONLY_SCOPE_V102'), 'phone-only scope missing');
@@ -85,5 +86,31 @@ assert.ok(
 assert.ok(view.includes('pmd-quick-pos-v1.css?v=20260924-v102'), 'V102 CSS cache bust missing');
 assert.ok(view.includes('pmd-quick-pos-v1.js?v=20260924-v102'), 'V102 JS cache bust missing');
 
+assert.equal(
+  (posActivity.match(/textZoom = 100/g) || []).length,
+  2,
+  'both Android WebViews must keep textZoom=100'
+);
+assert.equal(
+  (posActivity.match(/setInitialScale\(0\)/g) || []).length,
+  2,
+  'both Android WebViews must start at natural initial scale'
+);
+assert.equal(
+  (posActivity.match(/loadWithOverviewMode = false/g) || []).length,
+  2,
+  'both Android WebViews must avoid overview zoom'
+);
+assert.equal(
+  (posActivity.match(/useWideViewPort = true/g) || []).length,
+  2,
+  'both Android WebViews must honor the page viewport'
+);
+assert.ok(
+  posActivity.includes('PMD_ANDROID_NORMAL_PAGE_SCALE_V100'),
+  'Android natural-scale marker missing'
+);
+
 console.log('PMD responsive matrix V102: PASS');
+console.log('PosActivity WebView natural-scale contract: PASS');
 console.log('phone portrait / phone landscape / tablet portrait / tablet landscape / desktop: PASS');
