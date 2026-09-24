@@ -153,6 +153,123 @@
     return raw;
   }
 
+  /* PMD_QPOS_DURABLE_UI_DRAFT_V18
+   * Android keeps the exact unsent V86 cart locally as UI continuity state.
+   * This is not a sync command and never creates an order until Send/Pay. */
+  var nativeUiDraftTimerV18 = null;
+
+  function nativeUiDraftBridgeV18() {
+    return (
+      window.PayMyDineOffline &&
+      typeof window.PayMyDineOffline.persistUiDraft === 'function'
+    );
+  }
+
+  function nativeUiDraftPayloadV18() {
+    return {
+      location_id: Number(state.boot && state.boot.location_id || 0),
+      service_mode: String(state.serviceMode || 'dine_in'),
+      table_id:
+        state.selectedTable && state.selectedTable.id
+          ? Number(state.selectedTable.id)
+          : null,
+      active_order_id: state.activeOrderId || null,
+      force_new_check: !!state.forceNewCheck,
+      guest_count: Math.max(1, Number(state.guestCount || 1)),
+      note: String(state.note || ''),
+      cart: (state.cart || []).map(function (row) {
+        return {
+          key: String(row.key || ''),
+          menu_id: Number(row.menu_id || 0),
+          name: String(row.name || ''),
+          price: num(row.price, 0),
+          quantity: Math.max(1, Number(row.quantity || 1)),
+          comment: String(row.comment || ''),
+          options: (row.options || []).map(function (option) {
+            return {
+              id: Number(option.id || 0),
+              name: String(option.name || ''),
+              price: num(option.price, 0)
+            };
+          })
+        };
+      })
+    };
+  }
+
+  function persistNativeUiDraftV18() {
+    if (!nativeUiDraftBridgeV18()) return;
+    try {
+      window.PayMyDineOffline.persistUiDraft(
+        JSON.stringify(nativeUiDraftPayloadV18())
+      );
+    } catch (ignored) {}
+  }
+
+  function scheduleNativeUiDraftV18() {
+    if (!nativeUiDraftBridgeV18()) return;
+    window.clearTimeout(nativeUiDraftTimerV18);
+    nativeUiDraftTimerV18 = window.setTimeout(function () {
+      nativeUiDraftTimerV18 = null;
+      persistNativeUiDraftV18();
+    }, 120);
+  }
+
+  function applyNativeUiDraftV18(draft) {
+    if (!draft || typeof draft !== 'object') return false;
+    if (String(draft.service_mode || '') !== 'dine_in') return false;
+
+    var tableId = Number(draft.table_id || 0);
+    if (!tableId) return false;
+
+    var table = state.tables.find(function (row) {
+      return Number(row.id || 0) === tableId;
+    }) || null;
+    if (!table) return false;
+
+    var rows = Array.isArray(draft.cart) ? draft.cart : [];
+    state.serviceMode = 'dine_in';
+    state.selectedTable = table;
+    if (table.floor_id != null && String(table.floor_id) !== '') {
+      state.activeFloorId = String(table.floor_id);
+    }
+    state.guestCount = Math.max(
+      1,
+      Math.min(99, Number(draft.guest_count || 1))
+    );
+    state.note = String(draft.note || '');
+    state.forceNewCheck = !!draft.force_new_check;
+    state.cart = rows
+      .filter(function (row) {
+        return Number(row && row.menu_id || 0) > 0 &&
+          Number(row && row.quantity || 0) > 0;
+      })
+      .map(function (row) {
+        return {
+          key: String(row.key || ''),
+          menu_id: Number(row.menu_id || 0),
+          name: String(row.name || ''),
+          price: num(row.price, 0),
+          quantity: Math.max(1, Number(row.quantity || 1)),
+          comment: String(row.comment || ''),
+          options: Array.isArray(row.options)
+            ? row.options.map(function (option) {
+                return {
+                  id: Number(option.id || 0),
+                  name: String(option.name || ''),
+                  price: num(option.price, 0)
+                };
+              })
+            : []
+        };
+      });
+
+    var activeId = Number(draft.active_order_id || 0);
+    state.activeOrderId = activeId || null;
+    state.orderSelectionExplicitV72 = !!activeId;
+    return true;
+  }
+
   async function fetchJson(url, options) {
     var opts = Object.assign({
       credentials: 'same-origin',
@@ -1259,7 +1376,20 @@
       var user = $('[data-qpos-user]');
       if (user) user.textContent = (json.user && json.user.name) || 'Staff';
 
-      if (selectedId) {
+      var nativeDraftApplied = false;
+      var nativeDraftOrderId = 0;
+      if (
+        nativeLocalTransportAvailable() &&
+        json.native_ui_draft &&
+        typeof json.native_ui_draft === 'object'
+      ) {
+        nativeDraftApplied = applyNativeUiDraftV18(json.native_ui_draft);
+        nativeDraftOrderId = nativeDraftApplied
+          ? Number(json.native_ui_draft.active_order_id || 0)
+          : 0;
+      }
+
+      if (!nativeDraftApplied && selectedId) {
         state.selectedTable = state.tables.find(function (table) {
           return Number(table.id) === selectedId;
         }) || null;
@@ -1284,6 +1414,17 @@
 
       if (state.selectedTable && state.serviceMode === 'dine_in') {
         await loadTable(state.selectedTable.id, true);
+
+        if (
+          nativeDraftOrderId &&
+          state.openOrders.some(function (row) {
+            return orderId(row) === nativeDraftOrderId;
+          })
+        ) {
+          state.activeOrderId = nativeDraftOrderId;
+          state.orderSelectionExplicitV72 = true;
+          renderCart({orderSwitch: true});
+        }
       }
 
 
@@ -3437,6 +3578,8 @@ function renderOpenChecks() {
   function renderCart(options) {
     /* PMD_QPOS_RENDER_CART_FAST_PATH_V41 */
     var renderOptions = options || {};
+
+    scheduleNativeUiDraftV18();
     var orderSwitchOnly = !!renderOptions.orderSwitch;
 
     renderOpenChecks();
@@ -8716,6 +8859,7 @@ function renderOpenChecks() {
     if (note) {
       note.addEventListener('input', function () {
         state.note = note.value;
+        scheduleNativeUiDraftV18();
       });
       bindTextKeyboardField(note, 'Order note');
     }
@@ -9365,6 +9509,7 @@ function renderOpenChecks() {
       hideToast();
 
       if (window.__PMD_NATIVE_OFFLINE__) {
+        persistNativeUiDraftV18();
         stopLiveSyncTimerV73();
         try {
           if (
