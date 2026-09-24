@@ -10,7 +10,10 @@ android {
         applicationId = "com.paymydine.mobile"
         minSdk = 26
         targetSdk = 36
-        versionCode = 39
+        versionCode = 40
+        // PMD_ANDROID_0_3_27_RECONNECT_CASH_V101
+        // V101 makes reconnect snapshots non-destructive and guarantees queued
+        // offline Cash is rebound to the canonical Cloud order before replay.
         // PMD_ANDROID_0_3_26_NORMAL_BUTTONS_V100
         // PMD_ANDROID_NORMAL_PAGE_SCALE_V100
         // PMD_ANDROID_0_3_25_MOBILE_BALANCED_V99 (preserved baseline)
@@ -21,7 +24,7 @@ android {
         // PMD_ANDROID_0_3_20_MOBILE_UI_V94 (preserved baseline)
         // PMD_ANDROID_0_3_20_OFFLINE_COMPLETE_V23 (preserved contract)
         // V99 trims the V98 scale slightly while preserving natural mobile fit.
-        versionName = "0.3.26-v100-normal-mobile" // PMD_ANDROID_0_3_26_NORMAL_BUTTONS_V100
+        versionName = "0.3.27-v101-reconnect-cash" // PMD_ANDROID_0_3_27_RECONNECT_CASH_V101
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "SYNC_PROTOCOL_VERSION", "\"pmd-sync-v1\"")
     }
