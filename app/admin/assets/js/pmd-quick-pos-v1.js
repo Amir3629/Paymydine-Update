@@ -67,6 +67,57 @@
    * the tablet portrait CSS below. */
   var orientationFrameV86 = null;
 
+  /* PMD_QPOS_RESPONSIVE_MATRIX_RUNTIME_V102
+   * Use CSS-pixel viewport dimensions. Phone and tablet are deliberately
+   * distinct; portrait alone is never authority for phone-scale UI. */
+  var PMD_QPOS_PHONE_MAX_V102 = 599;
+  var PMD_QPOS_TABLET_MAX_V102 = 1024;
+
+  function viewportMetricsV102() {
+    return {
+      width: Math.max(
+        Number(window.innerWidth || 0),
+        Number(document.documentElement.clientWidth || 0)
+      ),
+      height: Math.max(
+        Number(window.innerHeight || 0),
+        Number(document.documentElement.clientHeight || 0)
+      )
+    };
+  }
+
+  function classifyViewportV102(width, height) {
+    width = Number(width || 0);
+    height = Number(height || 0);
+    if (!width || !height) return 'unknown';
+
+    var portrait = height > width;
+    var shortSide = Math.min(width, height);
+
+    if (shortSide <= PMD_QPOS_PHONE_MAX_V102) {
+      return portrait ? 'phone-portrait' : 'phone-landscape';
+    }
+
+    if (shortSide <= PMD_QPOS_TABLET_MAX_V102) {
+      return portrait ? 'tablet-portrait' : 'tablet-landscape';
+    }
+
+    return portrait ? 'desktop-portrait' : 'desktop-landscape';
+  }
+
+  function currentViewportClassV102() {
+    var metrics = viewportMetricsV102();
+    return classifyViewportV102(metrics.width, metrics.height);
+  }
+
+  function isPhoneViewportV102() {
+    return currentViewportClassV102().indexOf('phone-') === 0;
+  }
+
+  function isTabletPortraitV102() {
+    return currentViewportClassV102() === 'tablet-portrait';
+  }
+
   function syncOrientationV86() {
     if (orientationFrameV86) {
       window.cancelAnimationFrame(orientationFrameV86);
@@ -87,16 +138,32 @@
       if (!width || !height) return;
 
       var portrait = height > width;
-      var handheldPortraitV96 = portrait && width <= 1024;
+      var viewportClassV102 = classifyViewportV102(width, height);
+      var phonePortraitV102 = viewportClassV102 === 'phone-portrait';
+      var phoneLandscapeV102 = viewportClassV102 === 'phone-landscape';
+      var tabletPortraitV102 = viewportClassV102 === 'tablet-portrait';
+      var tabletLandscapeV102 = viewportClassV102 === 'tablet-landscape';
+      var handheldPortraitV96 = phonePortraitV102; // compatibility alias only
 
       root.classList.toggle('is-portrait-v86', portrait);
       root.classList.toggle('is-landscape-v86', !portrait);
       root.classList.toggle('is-handheld-portrait-v96', handheldPortraitV96);
+      root.classList.toggle('is-phone-portrait-v102', phonePortraitV102);
+      root.classList.toggle('is-phone-landscape-v102', phoneLandscapeV102);
+      root.classList.toggle('is-tablet-portrait-v102', tabletPortraitV102);
+      root.classList.toggle('is-tablet-landscape-v102', tabletLandscapeV102);
+      root.dataset.qposViewportClass = viewportClassV102;
+      root.dataset.qposViewportWidth = String(Math.round(width));
+      root.dataset.qposViewportHeight = String(Math.round(height));
 
       if (document.body) {
         document.body.classList.toggle('pmd-qpos-portrait-v86', portrait);
         document.body.classList.toggle('pmd-qpos-landscape-v86', !portrait);
         document.body.classList.toggle('pmd-qpos-handheld-portrait-v96', handheldPortraitV96);
+        document.body.classList.toggle('pmd-qpos-phone-portrait-v102', phonePortraitV102);
+        document.body.classList.toggle('pmd-qpos-phone-landscape-v102', phoneLandscapeV102);
+        document.body.classList.toggle('pmd-qpos-tablet-portrait-v102', tabletPortraitV102);
+        document.body.classList.toggle('pmd-qpos-tablet-landscape-v102', tabletLandscapeV102);
       }
     });
   }
@@ -116,18 +183,10 @@
   }
 
   /* PMD_QPOS_HANDHELD_PORTRAIT_RUNTIME_V96
-   * A phone/WebView may expose a CSS viewport wider than the old 820px
-   * breakpoint. Aspect and width together are the handheld authority. */
+   * Compatibility alias: from V102 onward "handheld portrait" means phone,
+   * not every portrait tablet up to 1024px. */
   function isHandheldPortraitV96() {
-    var width = Math.max(
-      Number(window.innerWidth || 0),
-      Number(document.documentElement.clientWidth || 0)
-    );
-    var height = Math.max(
-      Number(window.innerHeight || 0),
-      Number(document.documentElement.clientHeight || 0)
-    );
-    return !!width && !!height && width <= 1024 && height > width;
+    return currentViewportClassV102() === 'phone-portrait';
   }
 
   function csrf() {
@@ -4779,7 +4838,7 @@ function renderOpenChecks() {
       });
     }
 
-    if (window.innerWidth <= 820 || isHandheldPortraitV96()) {
+    if (isPhoneViewportV102()) {
       var catalog = $('.pmd-qpos-catalog');
       if (catalog && catalog.scrollIntoView) {
         catalog.scrollIntoView({behavior: 'smooth', block: 'start'});
@@ -9085,13 +9144,13 @@ function renderOpenChecks() {
    * Mobile History is one viewport: controls stay visible, only the list
    * scrolls, and an explicit order tap opens a full-screen detail panel. */
   function isMobileHistoryV87() {
-    return window.innerWidth <= 820 || isHandheldPortraitV96();
+    return isPhoneViewportV102();
   }
 
   function isMobileCartFlowV87() {
     return (
-      window.innerWidth <= 820 ||
-      root.classList.contains('is-portrait-v86')
+      isPhoneViewportV102() ||
+      root.classList.contains('is-tablet-portrait-v102')
     );
   }
 

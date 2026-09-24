@@ -18,7 +18,7 @@
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-dashboard-lab-exact-floor-v1.css?v=20260920-floor-v35b">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-shared-floor-multi-floor-v1.css?v=20260920-floor-v35b">
     <link rel="stylesheet" href="/app/admin/assets/css/push-notifications.css?v=20260922-qpos-v59">
-    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-pos-v1.css?v=20260924-v100">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-pos-v1.css?v=20260924-v102">
 </head>
 <body class="pmd-qpos-body">
 @php
@@ -942,7 +942,7 @@ window.PMDQuickPOSConfig = {
      V73 also runs one lean operational-state heartbeat for table/KDS sync. --}}
 <script src="/app/admin/assets/js/push-notifications.js?v=20260922-qpos-v59"></script>
 {{-- PMD_QPOS_OFFLINE_COMPLETE_CACHE_BUSTER_V94 --}}
-<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260924-v96"></script>
+<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260924-v102"></script>
 <script src="/app/admin/assets/js/pmd-site-access-hub-v13.js?v=20260921-androidpair-v16"></script>
 </body>
 </html>
