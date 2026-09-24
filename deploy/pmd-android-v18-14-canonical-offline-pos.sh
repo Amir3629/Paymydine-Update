@@ -9,7 +9,7 @@ PMD_HOST="${PMD_HOST:-}"
 # main relative to this commit; V18.14 adds only canonical-offline V18 facts.
 BASE_COMMIT="${BASE_COMMIT:-f62c20deffe080746d58152fb7a07eca0e508282}"
 TARGET_COMMIT="${TARGET_COMMIT:-01b91443b0c7fcf2a0dd75079c0c78e678a7c284}"
-ANDROID_SOURCE_COMMIT="${ANDROID_SOURCE_COMMIT:-PENDING_FINAL_0_3_11_BUILD}"
+ANDROID_SOURCE_COMMIT="${ANDROID_SOURCE_COMMIT:-8d3889284b4f331877aebd44346f48ecc14f4a4b}"
 
 APK_VERSION="0.3.11"
 APK_RELEASE_NAME="PayMyDine-POS-Tablet-Preview-${APK_VERSION}.apk"
@@ -18,7 +18,7 @@ APK_RELEASE_URL="https://github.com/Amir3629/Paymydine-Update/releases/download/
 APK_SHA_URL="${APK_RELEASE_URL}.sha256"
 
 # Replaced with the checksum from the final signed/pinned 0.3.11 Actions run.
-EXPECTED_APK_SHA256="0000000000000000000000000000000000000000000000000000000000000000"
+EXPECTED_APK_SHA256="605e8a6cfeeb180db9073014c163222d8218538be07b95c168a45a72e4c58a87"
 
 MERGE_FILES=(
   "app/Services/PmdMobileSync/PmdMobileBootstrapService.php"
@@ -36,9 +36,6 @@ for cmd in git curl sha256sum php tar stat grep awk tr sed cp mv mkdir; do
   command -v "$cmd" >/dev/null 2>&1 || fail "$cmd is required"
 done
 
-if [[ "$EXPECTED_APK_SHA256" == "0000000000000000000000000000000000000000000000000000000000000000" ]]; then
-  fail "V18.14 release checksum has not been finalized yet."
-fi
 [[ "$EXPECTED_APK_SHA256" =~ ^[0-9a-f]{64}$ ]]   || fail "Invalid pinned APK SHA-256."
 
 for rel in "${MERGE_FILES[@]}" "$SETTINGS_FILE"; do
