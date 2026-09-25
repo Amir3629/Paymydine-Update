@@ -8898,12 +8898,21 @@
 
   function historyOrderEntryByIdV127(orderId) {
     orderId = Number(orderId || 0);
-    return historyEntries(state.historyData).find(function (entry) {
-      return (
-        String(entry.kind || '') === 'order' &&
-        Number(entry.order_id || 0) === orderId
-      );
-    }) || null;
+
+    var lookup = Array.isArray(
+      state.historyData && state.historyData.order_entries
+    )
+      ? state.historyData.order_entries
+      : [];
+
+    return lookup.concat(historyEntries(state.historyData)).find(
+      function (entry) {
+        return (
+          String(entry.kind || '') === 'order' &&
+          Number(entry.order_id || 0) === orderId
+        );
+      }
+    ) || null;
   }
 
   function historyOrderItemsV127(order) {
