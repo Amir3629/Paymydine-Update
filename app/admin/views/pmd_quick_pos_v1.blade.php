@@ -295,6 +295,9 @@
                 </label>
 
                 <div class="pmd-qpos-work-meta">
+                    @if($pmdAndroidPosV107)
+                        <span class="pmd-qpos-sync-state-v104" data-qpos-sync-state>Checking sync…</span>
+                    @endif
                     <time class="pmd-qpos-clock" data-qpos-clock>{{ now()->format('H:i') }}</time>
                 </div>
             </div>
