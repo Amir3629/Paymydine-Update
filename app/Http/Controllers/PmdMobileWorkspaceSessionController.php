@@ -74,8 +74,8 @@ final class PmdMobileWorkspaceSessionController extends Controller
         // PMD_ANDROID_CLOUD_REENTRY_V129
         // PMD_RESERVATIONS_CANONICAL_ROUTE_V131
         // /admin/reservations is the canonical clean Reservations workspace;
-        // routes/admin-app-before.php internally runs Reservationslab for
-        // document navigation. Cashier owns the visible Reservations side-menu
+        // /admin/reservations is served directly by the canonical Reservations controller.
+        // Cashier owns the visible Reservations side-menu
         // entry, so mobile bootstrap must target that public canonical URL.
         $cashierMayUseReservationsV129 = in_array(
             strtolower($roleCode),
