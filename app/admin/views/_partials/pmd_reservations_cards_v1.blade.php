@@ -338,8 +338,8 @@
             class="pmd-ops-add-card pmd-r2-simple-add-link-v460"
             href="{{ admin_url('reservations/create').'?reserve_date='.$pmdOpsToday }}"
             aria-label="{{ $pmdOpsText['add_reservation'] }}"
-            data-pmd-res-lab-card-create="1"
-            data-pmd-res-lab-create-date="{{ $pmdOpsToday }}"
+            data-pmd-reservations-card-create="1"
+            data-pmd-reservations-create-date="{{ $pmdOpsToday }}"
         >
             <span class="pmd-r2-simple-add-icon-v460" aria-hidden="true">＋</span>
             <span class="pmd-r2-simple-add-title-v460">{{ $pmdOpsText['add_reservation'] }}</span>
@@ -388,9 +388,9 @@
                     <footer class="pmd-ops-card__footer">
                         <a
                             href="{{ admin_url('reservations/edit/'.$card['id']) }}"
-                            data-pmd-res-lab-card-edit="{{ $card['id'] }}"
-                            data-pmd-res-lab-card-date="{{ $card['date'] }}"
-                            data-pmd-res-lab-card-time="{{ $card['time'] === '—' ? '' : $card['time'] }}"
+                            data-pmd-reservations-card-edit="{{ $card['id'] }}"
+                            data-pmd-reservations-card-date="{{ $card['date'] }}"
+                            data-pmd-reservations-card-time="{{ $card['time'] === '—' ? '' : $card['time'] }}"
                         >
                             {{ $pmdOpsText['open'] }}
                         </a>
