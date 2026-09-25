@@ -14886,3 +14886,187 @@ body.pmd-qpos-body {
     border-top: 0 !important;
   }
 }
+
+
+/* ============================================================
+   PMD_QPOS_HISTORY_INLINE_MOBILE_V123
+   Real-device History refinements: full-width date presets, no blank All-time
+   fields, inline mobile order detail, and an in-frame desktop calendar.
+   ============================================================ */
+.pmd-qpos-history-dates-v85[hidden] {
+  display: none !important;
+}
+
+.pmd-qpos-history-date-picker-v123 {
+  position: fixed;
+  z-index: 2147483200;
+  max-height: calc(100dvh - 16px);
+  overflow: auto;
+  padding: 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 22px 50px rgba(15,23,42,.26);
+  box-sizing: border-box;
+}
+
+.pmd-qpos-history-date-picker-head-v123 {
+  display: grid;
+  grid-template-columns: 44px minmax(0,1fr) 44px;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.pmd-qpos-history-date-picker-head-v123 strong {
+  text-align: center;
+  color: #111827;
+  font-size: 15px;
+  font-weight: 950;
+}
+
+.pmd-qpos-history-date-picker-head-v123 button {
+  width: 44px;
+  height: 40px;
+  border: 1px solid #d7dde5;
+  border-radius: 9px;
+  background: #f8fafc;
+  color: #111827;
+  font-size: 24px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.pmd-qpos-history-date-week-v123,
+.pmd-qpos-history-date-days-v123 {
+  display: grid;
+  grid-template-columns: repeat(7,minmax(0,1fr));
+  gap: 4px;
+}
+
+.pmd-qpos-history-date-week-v123 {
+  margin-bottom: 4px;
+}
+
+.pmd-qpos-history-date-week-v123 span {
+  min-height: 26px;
+  display: grid;
+  place-items: center;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.pmd-qpos-history-date-days-v123 > span,
+.pmd-qpos-history-date-days-v123 > button {
+  aspect-ratio: 1 / 1;
+  min-width: 0;
+}
+
+.pmd-qpos-history-date-days-v123 > button {
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #172033;
+  font-size: 13px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.pmd-qpos-history-date-days-v123 > button:hover,
+.pmd-qpos-history-date-days-v123 > button:focus-visible {
+  border-color: #0f766e;
+  background: #ecfdf5;
+}
+
+.pmd-qpos-history-date-days-v123 > button.is-today {
+  border-color: #94a3b8;
+}
+
+.pmd-qpos-history-date-days-v123 > button.is-selected {
+  border-color: #064e3b;
+  background: #064e3b;
+  color: #fff;
+}
+
+.pmd-qpos-history-dates-v85 input.is-custom-date-v123 {
+  cursor: pointer !important;
+}
+
+@media (max-width: 599px) {
+  .pmd-qpos-history-range-v84 {
+    width: 100% !important;
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+    box-sizing: border-box !important;
+  }
+
+  .pmd-qpos-history-range-v84 .pmd-qpos-history-presets {
+    width: 100% !important;
+    max-width: none !important;
+    display: grid !important;
+    grid-template-columns: repeat(4,minmax(0,1fr)) !important;
+    gap: 7px !important;
+  }
+
+  .pmd-qpos-history-range-v84 .pmd-qpos-history-presets button,
+  .pmd-qpos.is-portrait-v86 .pmd-qpos-history-presets button {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    padding-left: 3px !important;
+    padding-right: 3px !important;
+    font-size: clamp(13px,3.9vw,17px) !important;
+    white-space: nowrap !important;
+  }
+
+  .pmd-qpos-history-range-v84 .pmd-qpos-history-dates-v85 {
+    width: 100% !important;
+    grid-template-columns: minmax(0,1fr) 48px minmax(0,1fr) !important;
+    gap: 8px !important;
+  }
+
+  .pmd-qpos-history-shell-v84.is-mobile-detail-v87
+  .pmd-qpos-history-center-card-v84 {
+    display: none !important;
+  }
+
+  .pmd-qpos-history-entry.is-selected {
+    margin-bottom: 0 !important;
+    border-bottom-left-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+  }
+
+  .pmd-qpos-history-inline-detail-v123 {
+    min-width: 0;
+    width: 100%;
+    margin-top: -10px;
+    margin-bottom: 10px;
+    overflow: hidden;
+    border: 1px solid #9bd8c5;
+    border-top: 0;
+    border-radius: 0 0 16px 16px;
+    background: #f8fafc;
+    box-sizing: border-box;
+  }
+
+  .pmd-qpos-history-inline-detail-v123 .pmd-qpos-history-sections-v84 {
+    width: 100%;
+    display: grid;
+    gap: 10px !important;
+    padding: 10px !important;
+    box-sizing: border-box;
+  }
+
+  .pmd-qpos-history-inline-detail-v123 .pmd-qpos-history-section {
+    min-width: 0;
+    margin: 0 !important;
+  }
+
+  .pmd-qpos-history-inline-detail-v123
+  .pmd-qpos-history-simple-event,
+  .pmd-qpos-history-inline-detail-v123
+  .pmd-qpos-history-order-event-v84 {
+    min-height: 0 !important;
+  }
+}

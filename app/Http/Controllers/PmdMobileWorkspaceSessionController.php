@@ -65,12 +65,24 @@ final class PmdMobileWorkspaceSessionController extends Controller
         }
 
         $legacySurface = strtolower(trim((string)$request->query('surface', '')));
-        if ($legacySurface === 'reservations') {
+        $signedSurface = strtolower(trim((string)($identity['surface'] ?? '')));
+        $effectiveSurface = $legacySurface === 'auto'
+            ? $signedSurface
+            : $legacySurface;
+
+        // PMD_MOBILE_RESERVATIONS_ROUTE_V123
+        // Reservations2 is the canonical Admin workspace. The signed surface
+        // also fixes older Android builds that enter through surface=auto.
+        if ($effectiveSurface === 'reservations') {
             if (!$user || !$user->hasPermission('Admin.Reservations')) {
                 abort(403, 'This paired account cannot use PayMyDine Reservations.');
             }
-            $route = 'reservations';
-        } elseif ($legacySurface !== '' && $legacySurface !== 'auto') {
+            $route = 'reservations2';
+        } elseif (
+            $effectiveSurface !== ''
+            && $effectiveSurface !== 'auto'
+            && $effectiveSurface !== 'web'
+        ) {
             abort(404, 'This PayMyDine Android workspace is not available.');
         }
 

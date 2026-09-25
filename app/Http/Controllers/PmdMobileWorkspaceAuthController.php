@@ -332,6 +332,21 @@ final class PmdMobileWorkspaceAuthController extends Controller
             );
         }
 
+        // PMD_MOBILE_REQUESTED_SURFACE_AUTHORITY_V123
+        // Owner/Manager can deliberately open Reservations. Do not replace
+        // that requested workspace with their default dashboard surface.
+        $resolvedSurface = $destination === 'staff'
+            ? 'web'
+            : (
+                $requestedSurface !== ''
+                    ? $requestedSurface
+                    : $this->surfaceForRole($roleCode)
+            );
+
+        if ($resolvedSurface === 'reservations') {
+            $route = 'reservations2';
+        }
+
         return [
             'device_identity' => $deviceIdentity,
             'user' => $user,
@@ -339,9 +354,7 @@ final class PmdMobileWorkspaceAuthController extends Controller
             'username' => trim((string)($user->username ?? $typedUsername)),
             'role_code' => $roleCode,
             'route' => $route,
-            'surface' => $destination === 'staff'
-                ? 'web'
-                : $this->surfaceForRole($roleCode),
+            'surface' => $resolvedSurface,
             'destination' => $destination,
         ];
     }
@@ -372,7 +385,8 @@ final class PmdMobileWorkspaceAuthController extends Controller
                 $deviceIdentity,
                 $user,
                 $destination,
-                $grantExpiresAt
+                $grantExpiresAt,
+                $surface
             );
 
         return response()->json([

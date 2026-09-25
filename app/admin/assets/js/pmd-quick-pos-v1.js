@@ -7073,13 +7073,13 @@
           {code: 'cash', name: 'Cash', disabled: false},
           {
             code: 'external_terminal',
-            name: 'External terminal',
+            name: 'Card',
             disabled: false
           }
         ]
       : [
           {code: 'cash', name: 'Cash', disabled: false},
-          {code: 'direct_terminal', name: 'Terminal', disabled: !providers.length}
+          {code: 'direct_terminal', name: 'Card', disabled: !providers.length}
         ];
 
     var methodSignature = methods.map(function (method) {
@@ -7178,7 +7178,7 @@
       return (
         '<button type="button" class="pmd-qpos-terminal' + (selected ? ' is-selected' : '') + '"' +
           ' data-terminal-index="' + index + '">' +
-          '<strong>' + esc(terminal.name || terminal.provider_code || 'Terminal') + '</strong>' +
+          '<strong>' + esc(terminal.name || terminal.provider_code || 'Card reader') + '</strong>' +
           (terminal.terminal_status ? ' · ' + esc(terminal.terminal_status) : '') +
         '</button>'
       );
@@ -9113,6 +9113,33 @@
     }
   }
 
+  /* PMD_QPOS_HISTORY_INLINE_V123
+   * Phone History expands the selected order in place so later cards move
+   * down naturally. Desktop keeps the existing two-card master/detail view. */
+  function historyInlineDetailActiveV123() {
+    return isMobileHistoryV87();
+  }
+
+  function renderHistoryInlineDetailV123(orderId, list) {
+    orderId = Number(orderId || 0);
+    if (!historyInlineDetailActiveV123() || !orderId || !list) return;
+
+    var button = list.querySelector(
+      '[data-qpos-history-order="' + String(orderId) + '"]'
+    );
+    var detail = $('[data-qpos-history-detail]');
+    if (!button || !detail) return;
+
+    var inline = document.createElement('div');
+    inline.className = 'pmd-qpos-history-inline-detail-v123';
+    inline.setAttribute(
+      'data-qpos-history-inline-detail-v123',
+      String(orderId)
+    );
+    inline.innerHTML = detail.innerHTML;
+    button.insertAdjacentElement('afterend', inline);
+  }
+
   function historySearchMatchesV84(entry, query) {
     query = String(query || '').trim().toLowerCase();
     if (!query) return true;
@@ -9260,9 +9287,18 @@
       };
     });
 
-    $$('[data-qpos-history-order]', list).forEach(function (button) {
+    $('[data-qpos-history-order]', list).forEach(function (button) {
       button.onclick = function () {
         var orderId = Number(button.getAttribute('data-qpos-history-order') || 0);
+
+        if (historyInlineDetailActiveV123()) {
+          var sameOrder =
+            Number(state.historySelectedOrderId || 0) === orderId;
+          state.historySelectedOrderId = sameOrder ? null : (orderId || null);
+          renderHistory(state.historyData);
+          return;
+        }
+
         state.historySelectedOrderId = orderId || null;
         renderHistory(state.historyData);
         renderHistoryDetail(orderId);
@@ -9277,13 +9313,23 @@
       })
     ) {
       renderHistoryDetail(state.historySelectedOrderId);
-    } else if (kind === 'orders' && entries[0] && entries[0].order_id) {
+      renderHistoryInlineDetailV123(
+        state.historySelectedOrderId,
+        list
+      );
+    } else if (
+      !historyInlineDetailActiveV123() &&
+      kind === 'orders' &&
+      entries[0] &&
+      entries[0].order_id
+    ) {
       state.historySelectedOrderId = Number(entries[0].order_id);
       renderHistoryDetail(state.historySelectedOrderId);
       var first = $('[data-qpos-history-order="' +
         String(state.historySelectedOrderId) + '"]', list);
       if (first) first.classList.add('is-selected');
     } else {
+      state.historySelectedOrderId = null;
       renderHistoryDetail(0);
     }
   }
@@ -9295,6 +9341,276 @@
     var m = (month < 10 ? '0' : '') + String(month);
     var d = (day < 10 ? '0' : '') + String(day);
     return y + '-' + m + '-' + d;
+  }
+
+  /* PMD_QPOS_HISTORY_DATE_RANGE_V123
+   * All time has no boundaries, so blank date inputs disappear. Desktop uses
+   * an app-owned fixed calendar that is clamped inside the visible frame. */
+  function syncHistoryDateRangeVisibilityV123() {
+    var dates = $('.pmd-qpos-history-dates-v85');
+    if (!dates) return;
+
+    var hidden = String(state.historyPreset || '') === 'all';
+    dates.hidden = hidden;
+    dates.setAttribute('aria-hidden', hidden ? 'true' : 'false');
+  }
+
+  var historyDatePickerStateV123 = {
+    input: null,
+    month: null,
+    popover: null
+  };
+
+  function historyUsesCustomDatePickerV123() {
+    return window.innerWidth >= 821;
+  }
+
+  function historyDatePartsV123(value) {
+    var match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || ''));
+    if (!match) return null;
+
+    return {
+      year: Number(match[1]),
+      month: Number(match[2]) - 1,
+      day: Number(match[3])
+    };
+  }
+
+  function closeHistoryDatePickerV123() {
+    var popover = historyDatePickerStateV123.popover;
+    if (popover && popover.parentNode) {
+      popover.parentNode.removeChild(popover);
+    }
+    historyDatePickerStateV123.input = null;
+    historyDatePickerStateV123.month = null;
+    historyDatePickerStateV123.popover = null;
+  }
+
+  function positionHistoryDatePickerV123() {
+    var input = historyDatePickerStateV123.input;
+    var popover = historyDatePickerStateV123.popover;
+    if (!input || !popover) return;
+
+    var rect = input.getBoundingClientRect();
+    var width = Math.min(320, Math.max(260, window.innerWidth - 16));
+    popover.style.width = width + 'px';
+
+    var height = Math.max(300, Number(popover.offsetHeight || 0));
+    var left = Math.min(
+      Math.max(8, rect.left),
+      Math.max(8, window.innerWidth - width - 8)
+    );
+    var below = rect.bottom + 8;
+    var above = rect.top - height - 8;
+    var top = below;
+
+    if (below + height > window.innerHeight - 8 && above >= 8) {
+      top = above;
+    }
+
+    top = Math.max(
+      8,
+      Math.min(top, Math.max(8, window.innerHeight - height - 8))
+    );
+
+    popover.style.left = Math.round(left) + 'px';
+    popover.style.top = Math.round(top) + 'px';
+  }
+
+  function renderHistoryDatePickerV123() {
+    var input = historyDatePickerStateV123.input;
+    var popover = historyDatePickerStateV123.popover;
+    var monthDate = historyDatePickerStateV123.month;
+    if (!input || !popover || !monthDate) return;
+
+    var year = monthDate.getFullYear();
+    var month = monthDate.getMonth();
+    var selected = historyDatePartsV123(input.value);
+    var today = new Date();
+    var firstWeekday = (new Date(year, month, 1).getDay() + 6) % 7;
+    var daysInMonth = new Date(year, month + 1, 0).getDate();
+    var monthLabel;
+
+    try {
+      monthLabel = new Intl.DateTimeFormat([], {
+        month: 'long',
+        year: 'numeric'
+      }).format(monthDate);
+    } catch (ignored) {
+      monthLabel = String(month + 1) + '/' + String(year);
+    }
+
+    var days = [];
+    for (var blank = 0; blank < firstWeekday; blank += 1) {
+      days.push('<span class="is-empty" aria-hidden="true"></span>');
+    }
+
+    for (var day = 1; day <= daysInMonth; day += 1) {
+      var isSelected =
+        selected &&
+        selected.year === year &&
+        selected.month === month &&
+        selected.day === day;
+      var isToday =
+        today.getFullYear() === year &&
+        today.getMonth() === month &&
+        today.getDate() === day;
+      var dayClass = isSelected
+        ? ' class="is-selected"'
+        : (isToday ? ' class="is-today"' : '');
+
+      days.push(
+        '<button type="button"' +
+          ' data-qpos-history-date-day-v123="' + String(day) + '"' +
+          dayClass +
+          ' aria-label="' + esc(String(day) + ' ' + monthLabel) + '">' +
+          String(day) +
+        '</button>'
+      );
+    }
+
+    popover.innerHTML =
+      '<div class="pmd-qpos-history-date-picker-head-v123">' +
+        '<button type="button" data-qpos-history-date-prev-v123 aria-label="Previous month">‹</button>' +
+        '<strong>' + esc(monthLabel) + '</strong>' +
+        '<button type="button" data-qpos-history-date-next-v123 aria-label="Next month">›</button>' +
+      '</div>' +
+      '<div class="pmd-qpos-history-date-week-v123" aria-hidden="true">' +
+        '<span>Mo</span><span>Tu</span><span>We</span><span>Th</span>' +
+        '<span>Fr</span><span>Sa</span><span>Su</span>' +
+      '</div>' +
+      '<div class="pmd-qpos-history-date-days-v123">' +
+        days.join('') +
+      '</div>';
+
+    var previous = popover.querySelector('[data-qpos-history-date-prev-v123]');
+    var next = popover.querySelector('[data-qpos-history-date-next-v123]');
+
+    if (previous) {
+      previous.onclick = function () {
+        historyDatePickerStateV123.month =
+          new Date(year, month - 1, 1);
+        renderHistoryDatePickerV123();
+      };
+    }
+
+    if (next) {
+      next.onclick = function () {
+        historyDatePickerStateV123.month =
+          new Date(year, month + 1, 1);
+        renderHistoryDatePickerV123();
+      };
+    }
+
+    Array.prototype.slice.call(
+      popover.querySelectorAll('[data-qpos-history-date-day-v123]')
+    ).forEach(function (button) {
+      button.onclick = function () {
+        var day = Number(
+          button.getAttribute('data-qpos-history-date-day-v123') || 0
+        );
+        if (!day) return;
+
+        input.value = historyIsoDate(new Date(year, month, day));
+        input.dispatchEvent(new Event('change', {bubbles: true}));
+        closeHistoryDatePickerV123();
+      };
+    });
+
+    window.requestAnimationFrame(positionHistoryDatePickerV123);
+  }
+
+  function openHistoryDatePickerV123(input) {
+    if (!input || !historyUsesCustomDatePickerV123()) return;
+
+    closeHistoryDatePickerV123();
+
+    var selected = historyDatePartsV123(input.value);
+    var seed = selected
+      ? new Date(selected.year, selected.month, 1)
+      : new Date();
+
+    var popover = document.createElement('div');
+    popover.className = 'pmd-qpos-history-date-picker-v123';
+    popover.setAttribute('role', 'dialog');
+    popover.setAttribute('aria-label', 'Choose history date');
+
+    historyDatePickerStateV123.input = input;
+    historyDatePickerStateV123.month =
+      new Date(seed.getFullYear(), seed.getMonth(), 1);
+    historyDatePickerStateV123.popover = popover;
+
+    document.body.appendChild(popover);
+    renderHistoryDatePickerV123();
+  }
+
+  function configureHistoryDatePickersV123() {
+    var fields = [
+      $('[data-qpos-history-from]'),
+      $('[data-qpos-history-to]')
+    ].filter(Boolean);
+
+    fields.forEach(function (input) {
+      var custom = historyUsesCustomDatePickerV123();
+      input.readOnly = custom;
+      input.classList.toggle('is-custom-date-v123', custom);
+
+      if (input.getAttribute('data-qpos-date-picker-v123') === '1') return;
+      input.setAttribute('data-qpos-date-picker-v123', '1');
+
+      input.addEventListener('pointerdown', function (event) {
+        if (!historyUsesCustomDatePickerV123()) return;
+        event.preventDefault();
+        openHistoryDatePickerV123(input);
+      });
+
+      input.addEventListener('click', function (event) {
+        if (historyUsesCustomDatePickerV123()) event.preventDefault();
+      });
+
+      input.addEventListener('keydown', function (event) {
+        if (
+          historyUsesCustomDatePickerV123() &&
+          (event.key === 'Enter' || event.key === ' ')
+        ) {
+          event.preventDefault();
+          openHistoryDatePickerV123(input);
+        }
+      });
+    });
+
+    if (!window.__pmdQposHistoryDatePickerBoundV123) {
+      window.__pmdQposHistoryDatePickerBoundV123 = true;
+
+      document.addEventListener('pointerdown', function (event) {
+        var popover = historyDatePickerStateV123.popover;
+        if (!popover) return;
+
+        if (
+          popover.contains(event.target) ||
+          (
+            event.target &&
+            event.target.matches &&
+            event.target.matches(
+              '[data-qpos-history-from], [data-qpos-history-to]'
+            )
+          )
+        ) {
+          return;
+        }
+
+        closeHistoryDatePickerV123();
+      }, true);
+
+      window.addEventListener('resize', function () {
+        configureHistoryDatePickersV123();
+        closeHistoryDatePickerV123();
+      }, {passive: true});
+
+      window.addEventListener('scroll', function () {
+        closeHistoryDatePickerV123();
+      }, true);
+    }
   }
 
   function setHistoryPreset(preset, reload) {
@@ -9326,12 +9642,15 @@
     if (fromInput) fromInput.value = from;
     if (toInput) toInput.value = to;
 
-    $$('[data-qpos-history-preset]').forEach(function (button) {
+    $('[data-qpos-history-preset]').forEach(function (button) {
       button.classList.toggle(
         'is-active',
         String(button.getAttribute('data-qpos-history-preset')) === preset
       );
     });
+
+    syncHistoryDateRangeVisibilityV123();
+    closeHistoryDatePickerV123();
 
     if (reload) loadHistory();
   }
@@ -9558,6 +9877,8 @@
     ensureHistoryTableWorkspaceV93();
     closeHistoryMobileDetailV87();
     syncHistoryMobileLayoutV87();
+    configureHistoryDatePickersV123();
+    syncHistoryDateRangeVisibilityV123();
 
     if (!state.historyFrom && !state.historyTo) {
       setHistoryPreset(state.historyPreset || '7d', false);
@@ -10697,6 +11018,9 @@
     var historyTo = $('[data-qpos-history-to]');
     var historySearchV84 = $('[data-qpos-history-search]');
 
+    configureHistoryDatePickersV123();
+    syncHistoryDateRangeVisibilityV123();
+
     if (historySearchV84) {
       historySearchV84.oninput = function () {
         state.historySearch = String(historySearchV84.value || '');
@@ -10711,18 +11035,20 @@
     if (historyFrom) historyFrom.onchange = function () {
       state.historyFrom = historyFrom.value || '';
       state.historyPreset = 'custom';
-      $$('[data-qpos-history-preset]').forEach(function (button) {
+      $('[data-qpos-history-preset]').forEach(function (button) {
         button.classList.remove('is-active');
       });
+      syncHistoryDateRangeVisibilityV123();
       loadHistory();
     };
 
     if (historyTo) historyTo.onchange = function () {
       state.historyTo = historyTo.value || '';
       state.historyPreset = 'custom';
-      $$('[data-qpos-history-preset]').forEach(function (button) {
+      $('[data-qpos-history-preset]').forEach(function (button) {
         button.classList.remove('is-active');
       });
+      syncHistoryDateRangeVisibilityV123();
       loadHistory();
     };
 

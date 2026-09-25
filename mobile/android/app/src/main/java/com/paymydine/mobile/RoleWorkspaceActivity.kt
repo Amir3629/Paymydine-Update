@@ -273,17 +273,22 @@ class RoleWorkspaceActivity : ComponentActivity() {
         host: String,
         token: String,
     ) {
-        val destination = app.credentials.staffSession()
+        val session = app.credentials.staffSession()
+        val destination = session
             ?.destination
             ?.takeIf { it == "staff" || it == "workspace" }
             ?: "workspace"
+        val surface = session
+            ?.surface
+            ?.takeIf { it == "reservations" }
+            ?: "auto"
 
         view.loadUrl(
             "https://$host/admin/mobile/workspace/open" +
-                "?surface=auto&destination=$destination",
+                "?surface=$surface&destination=$destination",
             buildMap {
                 put("Authorization", "Bearer $token")
-                put("X-PayMyDine-Android-Workspace", "auto")
+                put("X-PayMyDine-Android-Workspace", surface)
                 app.credentials.staffSession()
                     ?.staffGrant
                     ?.takeIf { it.isNotBlank() }

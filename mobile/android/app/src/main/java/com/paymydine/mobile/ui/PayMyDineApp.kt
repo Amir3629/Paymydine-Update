@@ -587,6 +587,7 @@ fun PayMyDineApp(app: PayMyDineApplication) {
         val destination = when (session.surface) {
             "pos" -> PosActivity::class.java
             "kds" -> KdsActivity::class.java
+            "reservations" -> ReservationsActivity::class.java
             else -> RoleWorkspaceActivity::class.java
         }
 

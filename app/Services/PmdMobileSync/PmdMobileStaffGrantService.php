@@ -24,12 +24,23 @@ final class PmdMobileStaffGrantService
         array $deviceIdentity,
         $user,
         string $destination = 'workspace',
-        ?int $maxExpiresAt = null
+        ?int $maxExpiresAt = null,
+        string $surface = 'web'
     ): string {
         $destination = strtolower(trim($destination));
         if (!in_array($destination, ['workspace', 'staff'], true)) {
             throw new \InvalidArgumentException(
                 'Invalid PayMyDine staff destination.'
+            );
+        }
+
+        // PMD_MOBILE_GRANT_SURFACE_V123
+        // Surface is signed into the opaque grant so an existing Android
+        // build entering generic RoleWorkspace still preserves Reservations.
+        $surface = strtolower(trim($surface));
+        if (!in_array($surface, ['pos', 'kds', 'reservations', 'web'], true)) {
+            throw new \InvalidArgumentException(
+                'Invalid PayMyDine staff surface.'
             );
         }
         $locationId = (int)($deviceIdentity['location_id'] ?? 0);
@@ -71,6 +82,7 @@ final class PmdMobileStaffGrantService
             'staff_id' => (int)$staff->getKey(),
             'role_code' => $roleCode,
             'destination' => $destination,
+            'surface' => $surface,
             'iat' => $now,
             'exp' => $expiresAt,
         ];
@@ -146,6 +158,13 @@ final class PmdMobileStaffGrantService
             abort(401, 'PayMyDine staff destination is invalid.');
         }
 
+        $surface = strtolower(trim(
+            (string)($payload['surface'] ?? 'web')
+        ));
+        if (!in_array($surface, ['pos', 'kds', 'reservations', 'web'], true)) {
+            abort(401, 'PayMyDine staff surface is invalid.');
+        }
+
         $user = $userId > 0
             ? Users_model::query()->find($userId)
             : null;
@@ -180,6 +199,7 @@ final class PmdMobileStaffGrantService
                 'staff_id' => (int)$staff->getKey(),
                 'role_code' => $roleCode,
                 'destination' => $destination,
+                'surface' => $surface,
                 'permissions' => (array)$user->getPermissions(),
                 'staff_grant' => $raw,
                 'staff_grant_expires_at' => (int)$payload['exp'],
