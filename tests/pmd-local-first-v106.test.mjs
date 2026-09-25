@@ -25,8 +25,8 @@ assert.ok(pos.includes('createCanonicalWebView(allowShellSeed = true)'));
 assert.equal(parityJs, qpos);
 assert.equal(parityCss, qposCss);
 assert.ok(view.includes('PMD_QPOS_WEB_PARITY_V112'));
-assert.ok(view.includes('pmd-qpos-web-parity-v112.css?v=20260925-v112'));
-assert.ok(view.includes('pmd-qpos-web-parity-v112.js?v=20260925-v112'));
+assert.ok(view.includes('pmd-qpos-web-parity-v112.css?v=20260925-v120'));
+assert.ok(view.includes('pmd-qpos-web-parity-v112.js?v=20260925-v120'));
 assert.ok(qpos.includes('PMD_QPOS_PAY_BEFORE_KITCHEN_V108'));
 assert.ok(pos.includes('PMD_ANDROID_V112_OFFLINE_WEB_PARITY'));
 assert.ok(pos.includes('PMD_ANDROID_V112_OFFLINE_SYNC_CHIP_BACKFILL'));
@@ -80,7 +80,14 @@ assert.ok(bridge.includes('.put("can_append_selected_items", false)'));
 assert.ok(qpos.includes('PMD_QPOS_APPEND_AUTHORITY_V116'));
 assert.ok(qpos.includes('PMD_QPOS_BATCH_BILL_PREVIEW_V116'));
 assert.ok(qpos.includes('PMD_QPOS_IMMEDIATE_APPEND_AUTHORITY_V117'));
-assert.ok(qpos.includes('PMD_QPOS_EXPLICIT_ORDER_APPEND_V118'));
+assert.ok(qpos.includes('PMD_QPOS_KITCHEN_ROUND_SPLIT_V119'));
+assert.ok(qpos.includes('PMD_QPOS_SILENT_KITCHEN_LOCK_V119'));
+assert.ok(qpos.includes('orderAcceptsReceivedAppendV113(order)'));
+assert.ok(qpos.includes('var appendOrderIdV113'));
+assert.ok(localRepo.includes('PMD_ANDROID_EXACT_MULTI_CHECK_CONTINUATION_V18'));
+assert.ok(localRepo.includes('val requestedOrderId = payload.optLong("order_id", 0L)'));
+assert.ok(localRepo.includes('val forceNewCheck = payload.optBoolean("force_new_check", false)'));
+assert.ok(!qpos.includes('PMD_QPOS_EXPLICIT_ORDER_APPEND_V118'));
 assert.ok(qpos.includes('PMD_QPOS_MULTI_CHECK_OFFLINE_GUARD_V115'));
 assert.ok(localRepo.includes('PMD_ANDROID_CLOUD_LINE_ACK_V106'));
 assert.ok(localRepo.includes('PMD_ANDROID_CLOUD_LINE_REMOTE_EVENT_V106'));
@@ -97,6 +104,7 @@ assert.ok(processor.includes("'ORDER_ITEM_ADJUST_V1' => 'ORDER_ITEM_ADJUSTED_V1'
 assert.ok(qpos.includes('PMD_QPOS_SYNC_VISIBILITY_V104'));
 assert.ok(qposCss.includes('PMD_QPOS_ANDROID_FORM_FACTOR_MATRIX_V105'));
 assert.ok(qposCss.includes('PMD_QPOS_SYNC_STATE_V104'));
+assert.ok(qposCss.includes('PMD_QPOS_MOBILE_PAYMENT_STACK_V120'));
 
 // Critical safety invariants: payment/provider approval remains Cloud-only and
 // canonical Cloud-line adjustment is never delegated to Restaurant Edge while
@@ -110,5 +118,5 @@ assert.ok(cloudOnlyBlock.includes('"CASH_PAYMENT_V1"'));
 assert.ok(syncEngine.includes('command.commandType != "ORDER_HOLD_V1"'));
 assert.ok(syncEngine.includes('.optBoolean("payment_gate", false)'));
 
-console.log('PMD Local-First V118 offline chaos contract matrix: PASS');
-console.log('Covered contracts: WAN cut, durable queue, process restart recovery, aggregate ordering, reconnect without WebView replacement, rejected reconciliation, multi-device remote conflict, Cash durability, Cloud-line +/- reconciliation, Cloud health split, trusted clock, image integrity, V117 exact Web parity offline bundle, V108 pay-before-Kitchen durability, V116/V117/V118 append authority.');
+console.log('PMD Local-First V120 offline chaos contract matrix: PASS');
+console.log('Covered contracts: WAN cut, durable queue, process restart recovery, aggregate ordering, reconnect without WebView replacement, rejected reconciliation, multi-device remote conflict, Cash durability, Cloud-line +/- reconciliation, Cloud health split, trusted clock, image integrity, exact Web parity offline bundle, V108 pay-before-Kitchen durability, V119 kitchen-round split, V120 mobile payment layout.');
