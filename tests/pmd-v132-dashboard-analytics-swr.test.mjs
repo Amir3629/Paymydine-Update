@@ -60,8 +60,21 @@ assert.ok(
 
 for (const controller of [owner, manager, accountant]) {
   assert.ok(
-    controller.includes('pmd-dashboard-lab-analytics-v1.js?v=132-swr'),
-    'role dashboard must cache-bust V132 analytics runtime'
+    controller.includes(
+      "asset('app/admin/assets/js/pmd-dashboard-lab-analytics-v1.js')"
+    ),
+    'role dashboard must register canonical public analytics asset URL'
+  );
+  assert.ok(
+    controller.includes('@filemtime('),
+    'role dashboard must cache-bust analytics runtime by filemtime'
+  );
+  assert.equal(
+    controller.includes(
+      "addJs('js/pmd-dashboard-lab-analytics-v1.js?v="
+    ),
+    false,
+    'query string must never be embedded in a local AssetMaker path'
   );
   assert.ok(
     controller.includes('PmdDashboardAnalyticsSnapshotV132'),
