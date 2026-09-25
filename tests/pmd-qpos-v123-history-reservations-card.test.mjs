@@ -30,10 +30,10 @@ assert.ok(css.includes('grid-template-columns: repeat(4,minmax(0,1fr)) !importan
 assert.ok(css.includes('.pmd-qpos-history-inline-detail-v123'));
 assert.ok(css.includes('.pmd-qpos-history-date-picker-v123'));
 
-assert.ok(view.includes('pmd-qpos-web-parity-v112.css?v=20260925-v126'));
-assert.ok(view.includes('pmd-quick-pos-v1.css?v=20260925-v126'));
-assert.ok(view.includes('pmd-qpos-web-parity-v112.js?v=20260925-v126'));
-assert.ok(view.includes('pmd-quick-pos-v1.js?v=20260925-v126'));
+assert.ok(view.includes('pmd-qpos-web-parity-v112.css?v=20260925-v127'));
+assert.ok(view.includes('pmd-quick-pos-v1.css?v=20260925-v127'));
+assert.ok(view.includes('pmd-qpos-web-parity-v112.js?v=20260925-v127'));
+assert.ok(view.includes('pmd-quick-pos-v1.js?v=20260925-v127'));
 
 assert.ok(auth.includes('PMD_MOBILE_REQUESTED_SURFACE_AUTHORITY_V123'));
 assert.ok(auth.includes("$route = 'reservations2'"));
