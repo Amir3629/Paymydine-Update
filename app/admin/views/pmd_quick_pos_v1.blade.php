@@ -74,9 +74,9 @@
         {{-- PMD_QPOS_ANDROID_SAFE_OVERRIDE_V107
              Unique path: Android 0.3.28 does not intercept this resource. --}}
         <link rel="stylesheet" href="/app/admin/assets/css/pmd-qpos-android-form-factor-v107.css?v=20260925-v107">
-        {{-- PMD_QPOS_ANDROID_TABLET_LAYOUT_V109
-             Tablet-only proportions/portrait Check visibility. Mobile is untouched. --}}
-        <link rel="stylesheet" href="/app/admin/assets/css/pmd-qpos-android-tablet-v109.css?v=20260925-v109">
+        {{-- PMD_QPOS_ANDROID_TABLET_DESKTOP_PARITY_V110
+             Android tablet keeps Desktop cards; portrait flow ends with Check. --}}
+        <link rel="stylesheet" href="/app/admin/assets/css/pmd-qpos-android-tablet-v110.css?v=20260925-v110">
     @endif
 </head>
 <body class="pmd-qpos-body {{ $pmdAndroidPosV107 ? 'pmd-qpos-android-pos-v107' : '' }}">
