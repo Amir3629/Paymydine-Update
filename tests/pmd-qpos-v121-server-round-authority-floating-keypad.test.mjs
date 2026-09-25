@@ -36,10 +36,10 @@ assert.ok(css.includes('PMD_QPOS_MOBILE_FLOATING_KEYPAD_V121'));
 assert.ok(css.includes('position: fixed !important'));
 assert.ok(css.includes('padding-bottom: calc(326px + env(safe-area-inset-bottom)) !important'));
 
-assert.ok(view.includes('pmd-qpos-web-parity-v112.css?v=20260925-v121'));
-assert.ok(view.includes('pmd-quick-pos-v1.css?v=20260925-v121'));
-assert.ok(view.includes('pmd-qpos-web-parity-v112.js?v=20260925-v121'));
-assert.ok(view.includes('pmd-quick-pos-v1.js?v=20260925-v121'));
+assert.ok(view.includes('pmd-qpos-web-parity-v112.css?v=20260925-v122'));
+assert.ok(view.includes('pmd-quick-pos-v1.css?v=20260925-v122'));
+assert.ok(view.includes('pmd-qpos-web-parity-v112.js?v=20260925-v122'));
+assert.ok(view.includes('pmd-quick-pos-v1.js?v=20260925-v122'));
 
 assert.ok(js.includes('PMD_QPOS_KITCHEN_ROUND_SPLIT_V119'));
 assert.ok(js.includes('PMD_QPOS_IMMEDIATE_APPEND_AUTHORITY_V117'));

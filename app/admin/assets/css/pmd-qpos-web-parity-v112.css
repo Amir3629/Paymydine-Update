@@ -14857,3 +14857,32 @@ body.pmd-qpos-body {
     height: 46px !important;
   }
 }
+
+
+/* ============================================================
+   PMD_QPOS_MOBILE_LAYER_TOP_V122
+   - the fixed mobile total rail sits behind the in-flow Check card
+   - sticky categories touch the top edge with no artificial top gap
+   ============================================================ */
+@media (max-width: 599px) {
+  .pmd-qpos-cart {
+    position: relative !important;
+    z-index: 45 !important;
+    background: #fff !important;
+    isolation: isolate;
+  }
+
+  .pmd-qpos-mobile-cart,
+  .pmd-qpos.is-portrait-v86 .pmd-qpos-mobile-cart {
+    z-index: 40 !important;
+  }
+
+  .pmd-qpos-categories,
+  .pmd-qpos.is-portrait-v86 .pmd-qpos-categories {
+    position: sticky !important;
+    top: 0 !important;
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+    border-top: 0 !important;
+  }
+}
