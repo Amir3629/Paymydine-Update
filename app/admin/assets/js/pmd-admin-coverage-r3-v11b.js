@@ -371,7 +371,7 @@
     }
 
     window.PMDAdminCoverageR3 = {
-        version:'3.2.1-v137-shifts-prepaint',
+        version:'3.2.0-perf',
         run:run,
         audit:audit,
         perf:function () {
@@ -385,41 +385,12 @@
         }
     };
 
-    // PMD_SHIFTS_PREPAINT_I18N_V137
-    // This asset is deferred. On Shifts the DOM is already parsed while
-    // document.readyState may still be "loading". Translate immediately here,
-    // before DOMContentLoaded/first visible timetable paint, so German/Turkish
-    // labels cannot resize the server-pinned frame one paint later.
-    var isShiftsPrepaintRouteV137 =
-        /^\/admin\/(?:shifts|pmdshifts)(?:\/|$)/.test(normalizedPath());
-
-    if (
-        isShiftsPrepaintRouteV137 &&
-        document.body
-    ) {
-        run();
-        startObserver();
-    } else if (document.readyState === 'loading') {
-        document.addEventListener(
-            'DOMContentLoaded',
-            function () { run(); startObserver(); },
-            {once:true}
-        );
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function () { run(); startObserver(); }, {once:true});
     } else {
-        run();
-        startObserver();
+        run(); startObserver();
     }
-
-    // The Shifts prepaint pass already owns the initial full-body translation.
-    // Do not repeat another full walk at window.load on that route.
-    if (!isShiftsPrepaintRouteV137) {
-        window.addEventListener(
-            'load',
-            function () { requestRun(0); },
-            {once:true}
-        );
-    }
-
+    window.addEventListener('load', function () { requestRun(0); }, {once:true});
     document.addEventListener('ajaxUpdateComplete', function () { requestRun(40); }, true);
     document.addEventListener('ajaxPromiseDone', function () { requestRun(40); }, true);
 })();
