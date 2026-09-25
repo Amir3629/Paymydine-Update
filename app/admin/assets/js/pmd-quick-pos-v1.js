@@ -5069,6 +5069,33 @@ function renderOpenChecks() {
     }
   }
 
+  /* PMD_QPOS_RECEIVED_REUSE_V113
+   * Same-table additions continue the current order only while Kitchen is
+   * still in Received. Once Preparation starts, the next items form a new order. */
+  function orderAcceptsReceivedAppendV113(order) {
+    if (!order) return false;
+
+    var status = String(order.status_name || '').trim().toLowerCase();
+    var settlement = String(order.settlement_status || 'unpaid').toLowerCase();
+    var settled = num(order.settled_amount, 0);
+
+    return (
+      ['received', 'accepted', 'confirmed'].indexOf(status) !== -1 &&
+      Number(order.processed || 0) === 1 &&
+      order.payment_gate !== true &&
+      order.structural_locked !== true &&
+      settled <= 0.0001 &&
+      [
+        'partial','paid','settled','closed',
+        'cancelled','canceled','failed','refunded'
+      ].indexOf(settlement) === -1
+    );
+  }
+
+  function reusableReceivedOrderV113() {
+    return state.openOrders.find(orderAcceptsReceivedAppendV113) || null;
+  }
+
   function applyTablePayload(id, json) {
     if (
       !json ||
@@ -5095,9 +5122,16 @@ function renderOpenChecks() {
         return orderId(order) === explicitOrderId;
       });
 
+    var reusableReceivedV113 =
+      explicitOrderStillExists ? null : reusableReceivedOrderV113();
+
     state.activeOrderId = explicitOrderStillExists
       ? explicitOrderId
-      : null;
+      : (
+          reusableReceivedV113
+            ? orderId(reusableReceivedV113)
+            : null
+        );
 
     if (!explicitOrderStillExists) {
       state.orderSelectionExplicitV72 = false;
@@ -5105,7 +5139,8 @@ function renderOpenChecks() {
 
     state.forceNewCheck =
       !state.activeOrderId ||
-      activeOrderStructuralLocked();
+      activeOrderStructuralLocked() ||
+      (!!activeOrder() && !orderAcceptsReceivedAppendV113(activeOrder()));
 
     var table = json.table || null;
     if (table && state.selectedTable) {
@@ -5579,15 +5614,27 @@ function renderOpenChecks() {
     }
 
     var order = activeOrder();
+    var canAppendReceivedV113 =
+      !order || orderAcceptsReceivedAppendV113(order);
+    var appendOrderIdV113 =
+      order && canAppendReceivedV113
+        ? state.activeOrderId
+        : null;
+
     var snapshot = {
       mode: mode,
       serviceMode: state.serviceMode,
       tableId: state.selectedTable ? Number(state.selectedTable.id) : null,
-      activeOrderId: state.activeOrderId,
-      expectedUpdatedAt: order && order.updated_at ? order.updated_at : null,
+      activeOrderId: appendOrderIdV113,
+      expectedUpdatedAt:
+        order && canAppendReceivedV113 && order.updated_at
+          ? order.updated_at
+          : null,
       guestCount: state.guestCount,
       note: state.note,
-      forceNewCheck: !!state.forceNewCheck,
+      forceNewCheck:
+        !!state.forceNewCheck ||
+        (!!order && !canAppendReceivedV113),
       // PMD_QPOS_PAY_BEFORE_KITCHEN_V108
       // Fresh direct-pay checks are persisted as payment-gated orders:
       // KDS-compatible status, processed=0 until full settlement.
@@ -5778,7 +5825,22 @@ function renderOpenChecks() {
     state.orderSelectionExplicitV72 = false;
     state.lastQuantityUndoV72 = null;
     state.offPremiseOrder = null;
-    state.forceNewCheck = state.serviceMode === 'dine_in';
+    if (state.serviceMode === 'dine_in') {
+      var receivedV113 = reusableReceivedOrderV113();
+      if (receivedV113) {
+        state.activeOrderId = orderId(receivedV113);
+        state.forceNewCheck = false;
+        toast(
+          'Continuing Order #' + String(state.activeOrderId) +
+          ' until Kitchen starts preparation.'
+        );
+      } else {
+        state.forceNewCheck = true;
+      }
+    } else {
+      state.forceNewCheck = false;
+    }
+
     renderAll();
   }
 

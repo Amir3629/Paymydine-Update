@@ -95,10 +95,62 @@ trait PmdWaiterPosOrderPersistenceConcern
     // If Cashier explicitly asks to append to Order #X, never silently
     // fall back to another check and never create a new order because
     // Order #X became financially locked.
+    /**
+     * PMD_QPOS_RECEIVED_APPEND_GATE_V113
+     *
+     * Same-table additions append only before Kitchen starts Preparation.
+     * Accepted/Confirmed are legacy aliases of the Received/preparation-not-
+     * started phase. Preparation/Processing and later phases start a new order.
+     */
+    protected function pmdOrderKitchenPhaseNameV113(Orders_model $order): string
+    {
+        $statusId = (int)($order->status_id ?? 0);
+        if ($statusId < 1 || !Schema::hasTable('statuses')) {
+            return '';
+        }
+
+        $cols = Schema::getColumnListing('statuses');
+        $idCol = in_array('status_id', $cols, true)
+            ? 'status_id'
+            : (in_array('id', $cols, true) ? 'id' : null);
+        $nameCol = in_array('status_name', $cols, true)
+            ? 'status_name'
+            : (in_array('name', $cols, true) ? 'name' : null);
+
+        if (!$idCol || !$nameCol) {
+            return '';
+        }
+
+        return strtolower(trim((string)(
+            DB::table('statuses')
+                ->where($idCol, $statusId)
+                ->value($nameCol)
+            ?? ''
+        )));
+    }
+
+    protected function pmdOrderAcceptsReceivedAppendV113(Orders_model $order): bool
+    {
+        if (!$this->orderIsOpen($order)) {
+            return false;
+        }
+
+        if ((int)($order->processed ?? 0) !== 1) {
+            return false;
+        }
+
+        return in_array(
+            $this->pmdOrderKitchenPhaseNameV113($order),
+            ['received', 'accepted', 'confirmed'],
+            true
+        );
+    }
+
     protected function resolveWritableOrder(
         array $table,
         int $requestedOrderId,
-        bool $lock = false
+        bool $lock = false,
+        bool $requireReceivedAppendV113 = false
     ): ?Orders_model {
         if ($requestedOrderId > 0) {
             $q = Orders_model::query()
@@ -143,6 +195,16 @@ trait PmdWaiterPosOrderPersistenceConcern
                 ]);
             }
 
+            if (
+                $requireReceivedAppendV113
+                && !$this->pmdOrderAcceptsReceivedAppendV113($order)
+            ) {
+                throw ValidationException::withMessages([
+                    'order' =>
+                        'Kitchen has already started preparation for this order. Start a new check for additional items.',
+                ]);
+            }
+
             return $order;
         }
 
@@ -175,8 +237,42 @@ trait PmdWaiterPosOrderPersistenceConcern
             && $this->orderIsOpen(
                 $fallback
             )
+            && (
+                !$requireReceivedAppendV113
+                || $this->pmdOrderAcceptsReceivedAppendV113($fallback)
+            )
         ) {
             return $fallback;
+        }
+
+        if ($requireReceivedAppendV113) {
+            foreach ($rows as $row) {
+                $candidateId = (int)($row['order_id'] ?? 0);
+                if (
+                    $candidateId < 1
+                    || (
+                        $fallback
+                        && $candidateId === (int)$fallback->getKey()
+                    )
+                ) {
+                    continue;
+                }
+
+                $candidateQuery = Orders_model::query()
+                    ->where('order_id', $candidateId);
+
+                if ($lock) {
+                    $candidateQuery->lockForUpdate();
+                }
+
+                $candidate = $candidateQuery->first();
+                if (
+                    $candidate
+                    && $this->pmdOrderAcceptsReceivedAppendV113($candidate)
+                ) {
+                    return $candidate;
+                }
+            }
         }
 
         return null;
