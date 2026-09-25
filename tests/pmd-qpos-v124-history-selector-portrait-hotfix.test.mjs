@@ -29,10 +29,10 @@ assert.ok(css.includes('grid-template-columns: repeat(4,minmax(0,1fr)) !importan
 assert.ok(css.includes('html.pmd-qpos-android-pos-v105'));
 assert.ok(css.includes('html.pmd-qpos-android-pos-v107'));
 
-assert.ok(view.includes('pmd-qpos-web-parity-v112.css?v=20260925-v125'));
-assert.ok(view.includes('pmd-quick-pos-v1.css?v=20260925-v125'));
-assert.ok(view.includes('pmd-qpos-web-parity-v112.js?v=20260925-v125'));
-assert.ok(view.includes('pmd-quick-pos-v1.js?v=20260925-v125'));
+assert.ok(view.includes('pmd-qpos-web-parity-v112.css?v=20260925-v126'));
+assert.ok(view.includes('pmd-quick-pos-v1.css?v=20260925-v126'));
+assert.ok(view.includes('pmd-qpos-web-parity-v112.js?v=20260925-v126'));
+assert.ok(view.includes('pmd-quick-pos-v1.js?v=20260925-v126'));
 
 assert.ok(js.includes('PMD_QPOS_HISTORY_INLINE_V123'));
 assert.ok(js.includes('PMD_QPOS_HISTORY_DATE_RANGE_V123'));
