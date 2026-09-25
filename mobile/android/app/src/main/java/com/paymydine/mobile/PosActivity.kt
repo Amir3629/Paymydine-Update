@@ -1467,29 +1467,39 @@ class PosActivity : ComponentActivity() {
     }
 
     private fun prepareOfflineShell(html: String): String {
-        // PMD_ANDROID_V111_OFFLINE_SHELL_UPGRADE
-        // A cached shell may predate V108/V111. Replace the legacy Quick POS
-        // runtime path before parsing so V108 Pay-before-Kitchen semantics own
-        // window.PMDQuickPOSV1, then backfill isolated Android assets from APK.
+        // PMD_ANDROID_V112_OFFLINE_WEB_PARITY
+        // V112 makes Android render the exact same Quick POS CSS/JS as Web.
+        // Upgrade any cached pre-V112 shell before parsing: swap the old core
+        // or V108 Android runtime to the unique V112 parity path, remove older
+        // Android-only layout/runtime overrides, then serve parity from APK.
         var prepared = html
-        if (!prepared.contains("pmd-qpos-android-runtime-v108.js")) {
-            prepared = prepared.replaceFirst(
-                "/app/admin/assets/js/pmd-quick-pos-v1.js",
+            .replace(
                 "/app/admin/assets/js/pmd-qpos-android-runtime-v108.js",
+                "/app/admin/assets/js/pmd-qpos-web-parity-v112.js",
             )
-        }
+            .replace(
+                "/app/admin/assets/js/pmd-quick-pos-v1.js",
+                "/app/admin/assets/js/pmd-qpos-web-parity-v112.js",
+            )
+            .replace(
+                "/app/admin/assets/css/pmd-quick-pos-v1.css",
+                "/app/admin/assets/css/pmd-qpos-web-parity-v112.css",
+            )
 
-        val v107Css =
-            if (prepared.contains("pmd-qpos-android-form-factor-v107.css")) {
+        val oldAndroidCss = Regex(
+            """(?is)<link\b[^>]*href=["'][^"']*pmd-qpos-android-[^"']+\.css[^"']*["'][^>]*>""",
+        )
+        val oldAndroidJs = Regex(
+            """(?is)<script\b[^>]*src=["'][^"']*pmd-qpos-android-[^"']+\.js[^"']*["'][^>]*>\s*</script>""",
+        )
+        prepared = oldAndroidCss.replace(prepared, "")
+        prepared = oldAndroidJs.replace(prepared, "")
+
+        val parityCss =
+            if (prepared.contains("pmd-qpos-web-parity-v112.css")) {
                 ""
             } else {
-                """<link rel="stylesheet" href="/app/admin/assets/css/pmd-qpos-android-form-factor-v107.css?v=20260925-v107-offline">"""
-            }
-        val v111Css =
-            if (prepared.contains("pmd-qpos-android-tablet-v111.css")) {
-                ""
-            } else {
-                """<link rel="stylesheet" href="/app/admin/assets/css/pmd-qpos-android-tablet-v111.css?v=20260925-v111-offline">"""
+                """<link rel="stylesheet" href="/app/admin/assets/css/pmd-qpos-web-parity-v112.css?v=20260925-v112-offline">"""
             }
 
         val bootstrap = """
@@ -1497,10 +1507,9 @@ class PosActivity : ComponentActivity() {
             window.__PMD_NATIVE_OFFLINE__ = true;
             document.documentElement.classList.add('pmd-native-offline');
 
-            // PMD_ANDROID_V107_OFFLINE_SYNC_CHIP_BACKFILL
-            // Older cached HTML shells predate the Local-First sync indicator.
+            // PMD_ANDROID_V112_OFFLINE_SYNC_CHIP_BACKFILL
             (function () {
-              function ensurePmdSyncStateV107() {
+              function ensurePmdSyncStateV112() {
                 var meta = document.querySelector('.pmd-qpos-work-meta');
                 if (!meta || meta.querySelector('[data-qpos-sync-state]')) return;
                 var chip = document.createElement('span');
@@ -1512,16 +1521,15 @@ class PosActivity : ComponentActivity() {
               if (document.readyState === 'loading') {
                 document.addEventListener(
                   'DOMContentLoaded',
-                  ensurePmdSyncStateV107,
+                  ensurePmdSyncStateV112,
                   { once: true }
                 );
               } else {
-                ensurePmdSyncStateV107();
+                ensurePmdSyncStateV112();
               }
             })();
             </script>
-            $v107Css
-            $v111Css
+            $parityCss
         """.trimIndent()
 
         prepared = when {
@@ -1540,24 +1548,13 @@ class PosActivity : ComponentActivity() {
             else -> bootstrap + prepared
         }
 
-        val bodyScripts = buildString {
-            if (!prepared.contains("pmd-qpos-android-runtime-v108.js")) {
-                append(
-                    """<script src="/app/admin/assets/js/pmd-qpos-android-runtime-v108.js?v=20260925-v108-offline"></script>"""
-                )
-            }
-            if (!prepared.contains("pmd-qpos-android-form-factor-v107.js")) {
-                append(
-                    """<script src="/app/admin/assets/js/pmd-qpos-android-form-factor-v107.js?v=20260925-v107-offline"></script>"""
-                )
-            }
-        }
-
-        if (bodyScripts.isNotBlank()) {
+        if (!prepared.contains("pmd-qpos-web-parity-v112.js")) {
+            val parityJs =
+                """<script src="/app/admin/assets/js/pmd-qpos-web-parity-v112.js?v=20260925-v112-offline"></script>"""
             prepared = if (prepared.contains("</body>")) {
-                prepared.replaceFirst("</body>", "$bodyScripts</body>")
+                prepared.replaceFirst("</body>", "$parityJs</body>")
             } else {
-                prepared + bodyScripts
+                prepared + parityJs
             }
         }
 
@@ -1624,11 +1621,8 @@ class PosActivity : ComponentActivity() {
                     // bundled stylesheet.
                     null
                 }
-            "/app/admin/assets/css/pmd-qpos-android-form-factor-v107.css" ->
-                "pmd-canonical/css/pmd-qpos-android-form-factor-v107.css" to
-                    "text/css"
-            "/app/admin/assets/css/pmd-qpos-android-tablet-v111.css" ->
-                "pmd-canonical/css/pmd-qpos-android-tablet-v111.css" to
+            "/app/admin/assets/css/pmd-qpos-web-parity-v112.css" ->
+                "pmd-canonical/css/pmd-qpos-web-parity-v112.css" to
                     "text/css"
             "/app/admin/assets/js/pmd-dashboard-lab-exact-floor-v1.js" ->
                 "pmd-canonical/js/pmd-dashboard-lab-exact-floor-v1.js" to
@@ -1642,11 +1636,8 @@ class PosActivity : ComponentActivity() {
             "/app/admin/assets/js/pmd-quick-pos-v1.js" ->
                 "pmd-canonical/js/pmd-quick-pos-v1.js" to
                     "application/javascript"
-            "/app/admin/assets/js/pmd-qpos-android-runtime-v108.js" ->
-                "pmd-canonical/js/pmd-qpos-android-runtime-v108.js" to
-                    "application/javascript"
-            "/app/admin/assets/js/pmd-qpos-android-form-factor-v107.js" ->
-                "pmd-canonical/js/pmd-qpos-android-form-factor-v107.js" to
+            "/app/admin/assets/js/pmd-qpos-web-parity-v112.js" ->
+                "pmd-canonical/js/pmd-qpos-web-parity-v112.js" to
                     "application/javascript"
             "/app/admin/assets/js/pmd-site-access-hub-v13.js" ->
                 "pmd-canonical/js/pmd-site-access-hub-v13.js" to
