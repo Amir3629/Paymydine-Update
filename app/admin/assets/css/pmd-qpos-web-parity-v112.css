@@ -14245,3 +14245,64 @@ body.pmd-qpos-body {
     font-size: 15px;
   }
 }
+
+
+/* ============================================================
+   PMD_QPOS_BATCH_BILL_PREVIEW_V116
+   The existing Check panel becomes the selected-orders bill.
+   ============================================================ */
+.pmd-qpos-sent-order-v116 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 38px;
+  margin-top: 8px;
+  padding: 8px 10px 6px;
+  border-top: 1px solid var(--q-line);
+  color: #111827;
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.pmd-qpos-sent-order-v116:first-child {
+  margin-top: 0;
+  border-top: 0;
+}
+
+.pmd-qpos-sent-order-v116 span {
+  color: #475569;
+  font-weight: 900;
+}
+
+.pmd-qpos-batch-empty-v116 {
+  padding: 18px 12px;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.35;
+  text-align: center;
+}
+
+.pmd-qpos.is-batch-selecting-v116 .pmd-qpos-product-grid {
+  pointer-events: none;
+  opacity: .5;
+}
+
+.pmd-qpos.is-batch-selecting-v116 .pmd-qpos-order-note {
+  pointer-events: none;
+  opacity: .55;
+}
+
+@media (max-width: 599px) {
+  .pmd-qpos-sent-order-v116 {
+    min-height: 50px;
+    padding: 10px 12px 8px;
+    font-size: 16px;
+  }
+
+  .pmd-qpos-batch-empty-v116 {
+    padding: 22px 14px;
+    font-size: 16px;
+  }
+}
