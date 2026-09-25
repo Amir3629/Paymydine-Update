@@ -32,10 +32,10 @@ assert.ok(kds.includes('!card.dataset.renderSignatureV1'));
 assert.ok(kds.includes("cache: 'no-store'"));
 assert.ok(kds.includes("formData.append('_v122', String(Date.now()))"));
 
-assert.ok(view.includes('pmd-qpos-web-parity-v112.css?v=20260925-v126'));
-assert.ok(view.includes('pmd-quick-pos-v1.css?v=20260925-v126'));
-assert.ok(view.includes('pmd-qpos-web-parity-v112.js?v=20260925-v126'));
-assert.ok(view.includes('pmd-quick-pos-v1.js?v=20260925-v126'));
+assert.ok(view.includes('pmd-qpos-web-parity-v112.css?v=20260925-v127'));
+assert.ok(view.includes('pmd-quick-pos-v1.css?v=20260925-v127'));
+assert.ok(view.includes('pmd-qpos-web-parity-v112.js?v=20260925-v127'));
+assert.ok(view.includes('pmd-quick-pos-v1.js?v=20260925-v127'));
 
 assert.ok(js.includes('PMD_QPOS_SERVER_ROUND_AUTHORITY_V121'));
 assert.ok(css.includes('PMD_QPOS_MOBILE_FLOATING_KEYPAD_V121'));
