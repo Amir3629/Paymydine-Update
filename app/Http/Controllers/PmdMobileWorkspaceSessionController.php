@@ -100,6 +100,12 @@ final class PmdMobileWorkspaceSessionController extends Controller
             $effectiveSurface !== ''
             && $effectiveSurface !== 'auto'
             && $effectiveSurface !== 'web'
+            // PMD_ANDROID_CLOUD_REENTRY_POS_SURFACE_V129
+            // Cashier/Waiter grants are intentionally signed as surface=pos.
+            // Local-First Cloud re-entry uses that signed grant, so POS is a
+            // valid generic workspace bootstrap surface. The exact continuation
+            // is still restricted below by mayOpenPath().
+            && $effectiveSurface !== 'pos'
         ) {
             abort(404, 'This PayMyDine Android workspace is not available.');
         }
