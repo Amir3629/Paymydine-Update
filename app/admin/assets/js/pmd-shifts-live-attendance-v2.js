@@ -1,5 +1,6 @@
 /* PMD_SHIFTS_LIVE_ATTENDANCE_V1 */
 /* PMD_SHIFTS_LIVE_ATTENDANCE_V2_NO_LATE_SHIFT_PAINT
+/* PMD_SHIFT_ATTENDANCE_IDEMPOTENT_V134 */
  * Attendance may update badges/KPIs after load, but it must never restyle
  * or recompute already-painted shift bars. Server/V17 own bar geometry/text.
  */
@@ -12,15 +13,10 @@
     var root = document.querySelector('[data-pmd-shifts-root]');
     if (!root) return;
 
-    var style = document.createElement('style');
-    style.setAttribute('data-pmd-shifts-live-style', '');
-    style.textContent = '' +
-      'body.pmd-shifts-page .pmd-shifts-live-state{display:inline-flex!important;width:max-content!important;max-width:100%!important;min-height:18px!important;align-items:center!important;margin-top:4px!important;padding:2px 7px!important;border:1px solid #d9e5e2!important;border-radius:999px!important;background:#f4f8f7!important;color:#657973!important;font-size:9px!important;font-weight:850!important;line-height:1.15!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;}' +
-      'body.pmd-shifts-page .pmd-shifts-live-state.is-working{border-color:#a7d9c7!important;background:#eaf8f2!important;color:#087155!important;}' +
-      'body.pmd-shifts-page .pmd-shifts-live-state.is-worked{border-color:#c7dbea!important;background:#f2f8fc!important;color:#315f7c!important;}' +
-      'body.pmd-shifts-page .pmd-shifts-live-state.is-not_started{border-color:#eed7a5!important;background:#fff9e9!important;color:#896414!important;}' +
-      'body.pmd-shifts-page .pmd-shifts-live-state.is-open{border-color:#e5c1bc!important;background:#fff3f1!important;color:#914a42!important;}';
-    document.head.appendChild(style);
+    /* PMD_SHIFT_ATTENDANCE_FIRST_PAINT_V134
+     * Badge geometry/colors now come from static first-paint CSS.
+     * Runtime owns data freshness only.
+     */
 
     function minutes(clock) {
       var match = String(clock || '').match(/^([01]\d|2[0-3]):([0-5]\d)$/);
@@ -86,31 +82,72 @@
     var lastFetchKey = '';
     var fetchTimer = null;
 
+    function bootAttendanceV134() {
+      try {
+        var node = document.getElementById('pmd-shifts-bootstrap');
+        var boot = JSON.parse((node && node.textContent) || '{}');
+        var live = boot && boot.live_attendance;
+        return live && live.ok && live.ready ? live : null;
+      } catch (error) {
+        return null;
+      }
+    }
+
     function setKpi(title, value) {
       if (value == null) return;
       root.querySelectorAll('.pmd-r2-kpi-v2401-card').forEach(function (card) {
         var label = card.querySelector('.pmd-r2-kpi-v2401-title');
         if (!label || String(label.textContent || '').trim().toLowerCase() !== String(title).toLowerCase()) return;
         var node = card.querySelector('.pmd-r2-kpi-v2401-value');
-        if (node) node.textContent = String(value);
+        if (node && String(node.textContent || '').trim() !== String(value)) {
+          node.textContent = String(value);
+        }
       });
     }
 
     function paintAttendance(payload) {
       var rows = payload && payload.rows ? payload.rows : {};
+
       root.querySelectorAll('.pmd-shifts-final-row[data-person-id]').forEach(function (row) {
         var personId = String(Number(row.getAttribute('data-person-id') || 0));
         var copy = row.querySelector('.pmd-shifts-final-person-copy');
         if (!copy) return;
-        var old = copy.querySelector('[data-pmd-shifts-live-state]');
-        if (old) old.remove();
 
-        var state = rows[personId] || null;
-        if (!state || !state.label || state.state === 'off') return;
+        var current = copy.querySelector('[data-pmd-shifts-live-state]');
+        var next = rows[personId] || null;
+        var nextState = next && next.state
+          ? String(next.state).replace(/[^a-z_]/g, '')
+          : 'off';
+        var nextLabel = next && next.label
+          ? String(next.label)
+          : '';
+
+        if (!nextLabel || nextState === 'off') {
+          if (current) current.remove();
+          return;
+        }
+
+        if (current) {
+          var currentState = String(
+            current.getAttribute('data-pmd-shifts-live-state-code') || ''
+          );
+          var currentLabel = String(current.textContent || '');
+
+          if (currentState === nextState && currentLabel === nextLabel) {
+            return;
+          }
+
+          current.className = 'pmd-shifts-live-state is-' + nextState;
+          current.setAttribute('data-pmd-shifts-live-state-code', nextState);
+          current.textContent = nextLabel;
+          return;
+        }
+
         var badge = document.createElement('span');
-        badge.className = 'pmd-shifts-live-state is-' + String(state.state || 'off').replace(/[^a-z_]/g, '');
+        badge.className = 'pmd-shifts-live-state is-' + nextState;
         badge.setAttribute('data-pmd-shifts-live-state', '');
-        badge.textContent = String(state.label || '');
+        badge.setAttribute('data-pmd-shifts-live-state-code', nextState);
+        badge.textContent = nextLabel;
         copy.appendChild(badge);
       });
 
@@ -153,6 +190,14 @@
       });
     }
 
+    var bootLiveV134 = bootAttendanceV134();
+    if (bootLiveV134) {
+      // Server HTML already carries these values. Idempotent paint is useful
+      // for client-rendered day navigation and performs zero DOM writes when
+      // the first paint is already identical.
+      paintAttendance(bootLiveV134);
+    }
+
     fetchAttendance(true);
 
     var host = root.querySelector('[data-pmd-shifts-hour-host]') || root;
@@ -160,6 +205,10 @@
       // Ignore our own attendance badge changes; react only when the canonical
       // Shifts renderer replaces the day board or its shift buttons.
       if (!hasRenderedBoardMutation(mutations)) return;
+
+      var embedded = bootAttendanceV134();
+      if (embedded) paintAttendance(embedded);
+
       lastFetchKey = '';
       refreshSoon(true);
     });
