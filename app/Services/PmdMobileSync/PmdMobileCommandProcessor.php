@@ -174,7 +174,6 @@ final class PmdMobileCommandProcessor
                         'CASH_PAYMENT_V1' => 'PAYMENT_CASH_RECORDED_V1',
                         'TABLE_STATE_V1' => 'TABLE_STATE_CHANGED_V1',
                         'TABLE_MOVE_V1' => 'TABLE_MOVED_V1',
-                        'ORDER_ITEM_ADJUST_V1' => 'ORDER_ITEM_ADJUSTED_V1',
                         default => 'ORDER_SENT_V1',
                     },
                     'payload' => json_encode([
@@ -260,10 +259,6 @@ final class PmdMobileCommandProcessor
             return $this->applyTableMoveCommand($identity, $command);
         }
 
-        if ($command['command_type'] === 'ORDER_ITEM_ADJUST_V1') {
-            return $this->applyOrderItemAdjustCommand($identity, $command);
-        }
-
         if (!in_array(
             $command['command_type'],
             ['ORDER_SEND_V1', 'ORDER_HOLD_V1'],
@@ -321,70 +316,6 @@ final class PmdMobileCommandProcessor
         }
 
         return $result;
-    }
-
-    /**
-     * PMD_MOBILE_ORDER_ITEM_ADJUST_V106
-     *
-     * Replays an offline quantity correction through the existing canonical
-     * Quick POS mutation methods. Payment/KDS/version/manager rules therefore
-     * stay identical to online behavior; the mobile command layer supplies
-     * durable ordering and idempotency only.
-     */
-    private function applyOrderItemAdjustCommand(
-        array $identity,
-        array $command
-    ): array {
-        $payload = (array)$command['payload'];
-        $orderId = (int)($payload['order_id'] ?? 0);
-        $itemId = (int)($payload['order_menu_id'] ?? 0);
-        $quantity = max(1, (int)($payload['quantity'] ?? 1));
-        $action = strtolower(trim((string)($payload['action'] ?? '')));
-
-        if ($orderId < 1 || $itemId < 1) {
-            throw ValidationException::withMessages([
-                'order_item' => 'A canonical order item is required.',
-            ]);
-        }
-
-        if (!in_array($action, ['increase', 'void'], true)) {
-            throw ValidationException::withMessages([
-                'action' => 'Item adjustment must be increase or void.',
-            ]);
-        }
-
-        $payload['order_menu_id'] = $itemId;
-        $payload['quantity'] = $quantity;
-        if ($action === 'void') {
-            $payload['reason'] = trim((string)(
-                $payload['reason'] ?? 'Offline quantity correction'
-            ));
-        }
-
-        /** @var PmdWaiterPosV1 $pos */
-        $pos = app(PmdWaiterPosV1::class);
-        $pos->pmdUseMobileIdentity($identity);
-        $pos->pmdUseMobilePayload($payload);
-
-        $response = $action === 'increase'
-            ? $pos->increaseItemV68($orderId)
-            : $pos->voidItemV22($orderId);
-
-        $data = $this->responseData($response);
-        if (empty($data['ok'])) {
-            throw ValidationException::withMessages([
-                'order_item' => (string)(
-                    $data['message']
-                    ?? 'The offline item change could not be reconciled.'
-                ),
-            ]);
-        }
-
-        $data['order_id'] = $orderId;
-        $data['order_menu_id'] = $itemId;
-        $data['offline_action'] = $action;
-
-        return $data;
     }
 
     /**

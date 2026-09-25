@@ -126,7 +126,6 @@ final class PmdMobileBootstrapService
                 'certified_commands' => [
                     'ORDER_HOLD_V1',
                     'ORDER_SEND_V1',
-                    'ORDER_ITEM_ADJUST_V1',
                     'CASH_PAYMENT_V1',
                     'TABLE_STATE_V1',
                     'TABLE_MOVE_V1',
