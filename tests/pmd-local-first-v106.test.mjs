@@ -75,6 +75,8 @@ assert.ok(bridge.includes('Combined payment needs an internet connection right n
 assert.ok(bridge.includes('PMD_ANDROID_BATCH_PAYMENT_CLOUD_ONLY_V117'));
 assert.ok(bridge.includes('PMD_ANDROID_V117_APPEND_AUTHORITY'));
 assert.ok(bridge.includes('.put("can_append_items", false)'));
+assert.ok(bridge.includes('PMD_ANDROID_V118_SELECTED_APPEND_AUTHORITY'));
+assert.ok(bridge.includes('.put("can_append_selected_items", false)'));
 assert.ok(qpos.includes('PMD_QPOS_APPEND_AUTHORITY_V116'));
 assert.ok(qpos.includes('PMD_QPOS_BATCH_BILL_PREVIEW_V116'));
 assert.ok(qpos.includes('PMD_QPOS_IMMEDIATE_APPEND_AUTHORITY_V117'));
