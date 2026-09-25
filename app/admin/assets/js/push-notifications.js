@@ -2,6 +2,13 @@
 (function () {
   'use strict';
 
+  // PMD_PUSH_NATIVE_OFFLINE_SUSPEND_V18
+  // Native Android POS owns local History/attention while offline. Do not
+  // wake a dead WAN every 15 seconds from the shared Web notification loop.
+  function nativeOffline() {
+    return window.__PMD_NATIVE_OFFLINE__ === true;
+  }
+
   if (/^\/admin\/kds_stations(?:\/|$)/.test(window.location.pathname)) return;
   if (window.PushNotificationManagerInitialized === true || window.PushNotificationManagerInitialized === 'claiming') return;
   window.PushNotificationManagerInitialized = 'claiming';
@@ -135,7 +142,7 @@
     }
 
     startListening() {
-      if (this.pollInterval) return;
+      if (this.pollInterval || nativeOffline()) return;
       this.pollInterval = setInterval(() => this.checkForNewNotifications(), 15000);
       setTimeout(() => this.checkForNewNotifications(), 1000);
 
@@ -143,6 +150,11 @@
       window.addEventListener('beforeunload', this._beforeUnloadHandler);
 
       this._visibilityHandler = () => {
+        if (nativeOffline()) {
+          if (this.pollInterval) clearInterval(this.pollInterval);
+          this.pollInterval = null;
+          return;
+        }
         if (document.hidden) {
           if (this.pollInterval) clearInterval(this.pollInterval);
           this.pollInterval = null;
@@ -166,6 +178,7 @@
     }
 
     async checkForNewNotifications() {
+      if (nativeOffline()) return;
       try {
         const response = await fetch('/admin/notifications-api?limit=1&_=' + Date.now(), {
           cache: 'no-cache',
