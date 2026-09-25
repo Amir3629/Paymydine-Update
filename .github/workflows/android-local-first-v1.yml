@@ -12,10 +12,9 @@ on:
       - 'app/Http/Controllers/PmdSiteAccessHubDataController.php'
       - 'app/admin/assets/js/pmd-site-access-hub-v13.js'
       - 'app/admin/assets/js/pmd-quick-pos-v1.js'
-      - 'app/admin/assets/js/pmd-qpos-android-runtime-v108.js'
+      - 'app/admin/assets/js/pmd-qpos-web-parity-v112.js'
       - 'app/admin/assets/css/pmd-quick-pos-v1.css'
-      - 'app/admin/assets/css/pmd-qpos-android-form-factor-v107.css'
-      - 'app/admin/assets/css/pmd-qpos-android-tablet-v111.css'
+      - 'app/admin/assets/css/pmd-qpos-web-parity-v112.css'
       - 'app/admin/assets/js/pmd-ownerboard-workplace-access-v1.js'
       - 'app/Services/PmdSiteAccessService.php'
       - 'app/Services/SuperAdminTenantLifecycleService.php'
@@ -26,6 +25,8 @@ on:
       - '.github/workflows/android-local-first-v1.yml'
       - 'tests/pmd-responsive-matrix-v102.test.mjs'
       - 'tests/pmd-local-first-v106.test.mjs'
+      - 'tests/pmd-qpos-pay-before-kitchen-v108.test.mjs'
+      - 'tests/pmd-qpos-web-parity-v112.test.mjs'
       - 'deploy/pmd-android-operations-v18-direct-login-first-party.sh'
       - 'deploy/pmd-android-v18-first-party-download-hotfix.sh'
       - 'deploy/pmd-android-v18-2-throttle-isolation-hotfix.sh'
@@ -51,7 +52,7 @@ on:
       - '.github/workflows/android-local-first-v1.yml'
 
 concurrency:
-  group: pmd-android-v111-${{ github.event.pull_request.number || github.ref }}
+  group: pmd-android-v112-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -92,6 +93,10 @@ jobs:
           php -l app/admin/controllers/KitchenDisplay.php
           php -l app/admin/controllers/concerns/PmdWaiterPosBootstrapConcern.php
           php -l app/admin/controllers/concerns/PmdWaiterPosSaveEndpoint.php
+          php -l app/admin/controllers/concerns/PmdWaiterPosOrderPersistenceConcern.php
+          php -l app/admin/controllers/concerns/PmdWaiterPosSettleEndpoint.php
+          php -l app/admin/controllers/PmdQuickPosV1.php
+          php -l app/Services/TerminalPayments/TerminalPaymentService.php
           php -l routes.php
           php -l routes/pmd-mobile-sync-v1.php
       - name: Safety contract
@@ -157,13 +162,14 @@ jobs:
           grep -q "PMD_QPOS_RESPONSIVE_MATRIX_RUNTIME_V102" app/admin/assets/js/pmd-quick-pos-v1.js
           node tests/pmd-responsive-matrix-v102.test.mjs
           node tests/pmd-local-first-v106.test.mjs
-          node --check app/admin/assets/js/pmd-qpos-android-runtime-v108.js
-          grep -q "PMD_QPOS_PAY_BEFORE_KITCHEN_V108" app/admin/assets/js/pmd-qpos-android-runtime-v108.js
-          grep -q "PMD_QPOS_ANDROID_TABLET_SQUARE_GEOMETRY_V111" app/admin/assets/css/pmd-qpos-android-tablet-v111.css
+          node tests/pmd-qpos-pay-before-kitchen-v108.test.mjs
+          node tests/pmd-qpos-web-parity-v112.test.mjs
+          node --check app/admin/assets/js/pmd-qpos-web-parity-v112.js
+          grep -q "PMD_QPOS_WEB_PARITY_RUNTIME_V112" app/admin/views/pmd_quick_pos_v1.blade.php
           grep -q "PMD_ANDROID_PAY_BEFORE_KITCHEN_V112" mobile/android/app/src/main/java/com/paymydine/mobile/LocalPosBridge.kt
-          grep -q "PMD_ANDROID_V111_OFFLINE_SHELL_UPGRADE" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
-          grep -q "pmd-canonical/js/pmd-qpos-android-runtime-v108.js" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
-          grep -q "pmd-canonical/css/pmd-qpos-android-tablet-v111.css" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
+          grep -q "PMD_ANDROID_V112_OFFLINE_WEB_PARITY" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
+          grep -q "pmd-canonical/js/pmd-qpos-web-parity-v112.js" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
+          grep -q "pmd-canonical/css/pmd-qpos-web-parity-v112.css" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
           grep -q "PMD_ANDROID_CLOUD_LINE_EDIT_V106" mobile/android/app/src/main/java/com/paymydine/mobile/LocalPosBridge.kt
           grep -q "PMD_ANDROID_CLOUD_LINE_ACK_V106" mobile/android/app/src/main/java/com/paymydine/mobile/data/local/LocalPosRepository.kt
           grep -q "PMD_MOBILE_ORDER_ITEM_ADJUST_V106" app/Services/PmdMobileSync/PmdMobileCommandProcessor.php
@@ -555,10 +561,10 @@ jobs:
           echo "$BADGING"
           grep -Fq "package: name='com.paymydine.mobile.pospreview'" <<<"$BADGING"
           grep -Fq "versionCode='46'" <<<"$BADGING"
-          grep -Fq "versionName='0.3.33-v111-local-first-debug'" <<<"$BADGING"
+          grep -Fq "versionName='0.3.33-v112-local-first-debug'" <<<"$BADGING"
 
           echo "PMD_PREVIEW_PACKAGE=com.paymydine.mobile.pospreview"
-          echo "PMD_PREVIEW_VERSION=0.3.33-v111-local-first-debug"
+          echo "PMD_PREVIEW_VERSION=0.3.33-v112-local-first-debug"
 
           # PR checks intentionally use the runner's ephemeral debug key. Only a
           # direct push to the preview branch may verify/publish the pinned key.

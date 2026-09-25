@@ -32,7 +32,7 @@ android {
         // PMD_ANDROID_0_3_20_MOBILE_UI_V94 (preserved baseline)
         // PMD_ANDROID_0_3_20_OFFLINE_COMPLETE_V23 (preserved contract)
         // V99 trims the V98 scale slightly while preserving natural mobile fit.
-        versionName = "0.3.33-v111-local-first" // PMD_ANDROID_0_3_28_RESPONSIVE_MATRIX_V102
+        versionName = "0.3.33-v112-local-first" // PMD_ANDROID_0_3_28_RESPONSIVE_MATRIX_V102
         // PMD_ANDROID_V104_LOCAL_FIRST_RELEASE_PROMOTED
         // PMD_ANDROID_V105_BUNDLED_ASSETS_SYNCED
         // PMD_ANDROID_0_3_31_V106_LOCAL_FIRST
@@ -44,6 +44,8 @@ android {
         // PMD_ANDROID_0_3_32_V107_RELEASE_FINAL_R4
         // PMD_ANDROID_0_3_32_V107_RELEASE_FINAL_R5
         // PMD_ANDROID_0_3_33_V111_LOCAL_FIRST
+        // PMD_ANDROID_0_3_33_V112_LOCAL_FIRST
+        // V112 keeps Local-First transport while rendering exact Web Quick POS parity.
         // V111 carries V108 pay-before-Kitchen intent and V111 tablet UI offline.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "SYNC_PROTOCOL_VERSION", "\"pmd-sync-v1\"")
