@@ -49,6 +49,25 @@ trait PmdWaiterPosSaveEndpoint
             $result = DB::transaction(function () use ($table, $payload, $cart, $mode, $paymentGate) {
                 $requestedOrderId = (int)($payload['order_id'] ?? 0);
 
+            // PMD_QPOS_EXPLICIT_ORDER_APPEND_V118
+            $explicitSelectedAppendV118 =
+                $requestedOrderId > 0
+                && filter_var(
+                    $payload['explicit_order_selection'] ?? false,
+                    FILTER_VALIDATE_BOOLEAN
+                );
+
+                // PMD_QPOS_EXPLICIT_ORDER_APPEND_V118
+                // Explicit order selection means "append to this exact unpaid
+                // bill", regardless of Kitchen phase. Server-side structural
+                // locks remain authoritative.
+                $explicitSelectedAppendV118 =
+                    $requestedOrderId > 0
+                    && filter_var(
+                        $payload['explicit_order_selection'] ?? false,
+                        FILTER_VALIDATE_BOOLEAN
+                    );
+
                 /*
                  * PMD_QUICK_POS_FORCE_NEW_CHECK_V1
                  *
@@ -71,10 +90,40 @@ trait PmdWaiterPosSaveEndpoint
                         $table,
                         $requestedOrderId,
                         true,
-                        $mode === 'send' && !$paymentGate
+                        $mode === 'send' && !$paymentGate && !$explicitSelectedAppendV118
                     ); // PMD_QPOS_RECEIVED_APPEND_SAVE_V113
 
                 $isNew = !$order;
+
+            $existingStatusIdV118 = !$isNew
+                ? (int)($order->status_id ?? 0)
+                : 0;
+
+            if (
+                $explicitSelectedAppendV118
+                && $order
+                && !$this->pmdOrderAcceptsExplicitAppendV118($order)
+            ) {
+                throw ValidationException::withMessages([
+                    'order' =>
+                        'This selected bill can no longer accept new items because payment has started or it was cancelled.',
+                ]);
+            }
+
+                $existingStatusIdV118 = !$isNew
+                    ? (int)($order->status_id ?? 0)
+                    : 0;
+
+                if (
+                    $explicitSelectedAppendV118
+                    && $order
+                    && !$this->pmdOrderAcceptsExplicitAppendV118($order)
+                ) {
+                    throw ValidationException::withMessages([
+                        'order' =>
+                            'This selected bill can no longer accept new items because payment has started or it was cancelled.',
+                    ]);
+                }
 
                 if (
                     $paymentGate
@@ -136,9 +185,18 @@ trait PmdWaiterPosSaveEndpoint
                     $order->settled_amount = 0;
                 }
 
-                $statusId = $this->resolveStatusId(
-                    $paymentGate ? 'send' : $mode
-                );
+                // PMD_QPOS_EXPLICIT_ORDER_APPEND_V118
+                // Do not rewind Preparation/Delivery/etc. back to Received just
+                // because another course was appended to the same bill.
+                $statusId = (
+                    $explicitSelectedAppendV118
+                    && !$isNew
+                    && $existingStatusIdV118 > 0
+                )
+                    ? $existingStatusIdV118
+                    : $this->resolveStatusId(
+                        $paymentGate ? 'send' : $mode
+                    );
                 if ($statusId && Schema::hasColumn('orders', 'status_id')) {
                     $order->status_id = $statusId;
                 }
@@ -200,6 +258,8 @@ trait PmdWaiterPosSaveEndpoint
                     'status_name' => $this->pmdOrderKitchenPhaseNameV113($order),
                     'processed' => (int)($order->processed ?? 0),
                     'can_append_items' => $this->pmdOrderAcceptsReceivedAppendV113($order),
+                    'can_append_selected_items' => $this->pmdOrderAcceptsExplicitAppendV118($order),
+                    'can_append_selected_items' => $this->pmdOrderAcceptsExplicitAppendV118($order),
                     'settlement_status' => (string)($order->settlement_status ?? 'unpaid'),
                     'settled_amount' => $settledAmount,
                     'remaining_amount' => $remainingAmount,
@@ -351,7 +411,7 @@ trait PmdWaiterPosSaveEndpoint
                     $table,
                     $requestedOrderId,
                     true,
-                    $mode === 'send' && !$paymentGate
+                    $mode === 'send' && !$paymentGate && !$explicitSelectedAppendV118
                 ); // PMD_QPOS_RECEIVED_APPEND_SAVE_V113
 
             $isNew = !$order;
@@ -445,9 +505,16 @@ trait PmdWaiterPosSaveEndpoint
                 $order->settled_amount = 0;
             }
 
-            $statusId = $this->resolveStatusId(
-                $paymentGate ? 'send' : $mode
-            );
+            // PMD_QPOS_EXPLICIT_ORDER_APPEND_V118
+            $statusId = (
+                $explicitSelectedAppendV118
+                && !$isNew
+                && $existingStatusIdV118 > 0
+            )
+                ? $existingStatusIdV118
+                : $this->resolveStatusId(
+                    $paymentGate ? 'send' : $mode
+                );
             if ($statusId && Schema::hasColumn('orders', 'status_id')) {
                 $order->status_id = $statusId;
             }

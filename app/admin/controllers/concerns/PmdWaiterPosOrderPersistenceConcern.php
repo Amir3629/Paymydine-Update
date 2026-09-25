@@ -69,12 +69,19 @@ trait PmdWaiterPosOrderPersistenceConcern
             $canAppendItemsV116 = $appendOrderV116
                 ? $this->pmdOrderAcceptsReceivedAppendV113($appendOrderV116)
                 : false;
+            // PMD_QPOS_EXPLICIT_ORDER_APPEND_V118
+            // A cashier-selected bill is an exact structural target. Kitchen
+            // lifecycle must not split that bill; payment/cancellation still lock it.
+            $canAppendSelectedItemsV118 = $appendOrderV116
+                ? $this->pmdOrderAcceptsExplicitAppendV118($appendOrderV116)
+                : false;
 
             $out[] = [
                 'order_id' => $id,
                 'status_id' => $r['status_id'] ?? null,
                 'status_name' => (string)($statusName ?? ''),
                 'can_append_items' => $canAppendItemsV116,
+                'can_append_selected_items' => $canAppendSelectedItemsV118,
                 'payment' => (string)($r['payment'] ?? ''),
                 'settlement_status' => (string)($r['settlement_status'] ?? 'unpaid'),
                 'settled_amount' => (float)($r['settled_amount'] ?? 0),
@@ -155,6 +162,30 @@ trait PmdWaiterPosOrderPersistenceConcern
             ['received', 'accepted', 'confirmed'],
             true
         );
+    }
+
+    /**
+     * PMD_QPOS_EXPLICIT_ORDER_APPEND_V118
+     *
+     * Explicit #order selection is stronger than Kitchen phase. A restaurant
+     * can add another course to the same unpaid bill even after Preparation
+     * started. Only financial/cancellation structural locks block the append.
+     *
+     * Automatic table reuse remains Received-only via V113 above.
+     */
+    protected function pmdOrderAcceptsExplicitAppendV118(Orders_model $order): bool
+    {
+        if (!$this->orderIsOpen($order)) {
+            return false;
+        }
+
+        // Pay-before-Kitchen is already inside a payment flow and must not have
+        // its amount changed behind that flow.
+        if ($this->pmdQuickPosPaymentGateV108($order)) {
+            return false;
+        }
+
+        return true;
     }
 
     protected function resolveWritableOrder(
