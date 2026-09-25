@@ -36,7 +36,7 @@ assert.ok(pos.includes('X-PayMyDine-Staff-Grant'));
 assert.ok(pos.includes('CookieManager.getInstance()'));
 assert.ok(pos.includes('URLEncoder.encode'));
 
-assert.ok(gradle.includes('versionCode = 50'));
-assert.ok(gradle.includes('versionName = "0.3.37-v129-cloud-reentry"'));
+assert.ok(gradle.includes('versionCode = 51'));
+assert.ok(gradle.includes('versionName = "0.3.38-v129-cloud-reentry"'));
 
 console.log('PMD V129 Local-First cloud re-entry + Reservations authority: PASS');
