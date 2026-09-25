@@ -343,6 +343,36 @@
                                     }
                                 )
                                 ->values();
+
+                        // PMD_SHIFT_ATTENDANCE_FIRST_PAINT_V134
+                        // Render the same badge that the live endpoint would
+                        // otherwise add after load, preserving row height.
+                        $pmdLiveRowV134 = is_array(
+                            $liveAttendanceRows[(string)$personId]
+                            ?? null
+                        )
+                            ? $liveAttendanceRows[(string)$personId]
+                            : [];
+
+                        $pmdLiveStateV134 = preg_replace(
+                            '/[^a-z_]/',
+                            '',
+                            strtolower(
+                                trim(
+                                    (string)(
+                                        $pmdLiveRowV134['state']
+                                        ?? 'off'
+                                    )
+                                )
+                            )
+                        ) ?: 'off';
+
+                        $pmdLiveLabelV134 = trim(
+                            (string)(
+                                $pmdLiveRowV134['label']
+                                ?? ''
+                            )
+                        );
                     @endphp
 
 
@@ -384,6 +414,17 @@
                                 <small>
                                     {{ $person['role'] ?? 'Team' }}
                                 </small>
+
+                                @if(
+                                    $pmdLiveLabelV134 !== ''
+                                    && $pmdLiveStateV134 !== 'off'
+                                )
+                                    <span
+                                        class="pmd-shifts-live-state is-{{ $pmdLiveStateV134 }}"
+                                        data-pmd-shifts-live-state
+                                        data-pmd-shifts-live-state-code="{{ $pmdLiveStateV134 }}"
+                                    >{{ $pmdLiveLabelV134 }}</span>
+                                @endif
 
                             </span>
 
