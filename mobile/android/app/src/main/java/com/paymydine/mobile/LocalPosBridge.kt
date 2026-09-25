@@ -241,6 +241,11 @@ class LocalPosBridge(
             path == "/admin/pos/payment-batch-summary" ||
             path == "/admin/pos/payment-batch-settle"
         ) {
+            // PMD_ANDROID_BATCH_PAYMENT_CLOUD_ONLY_V117
+            // V114 settles multiple canonical checks in one Cloud DB
+            // transaction. Never emulate that with independent local Cash
+            // commands because partial reconciliation would change fiscal
+            // meaning across the selected checks.
             return unavailable(
                 "Combined payment needs an internet connection right now.",
             )
