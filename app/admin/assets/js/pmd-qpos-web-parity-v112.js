@@ -5829,9 +5829,24 @@
       ? json.items.map(function (row) { return Object.assign({}, row); })
       : optimisticSentItems(snapshot.cart);
 
+    // PMD_QPOS_IMMEDIATE_APPEND_AUTHORITY_V117
+    // The POST already knows whether this exact order can accept another
+    // Kitchen send. Keep that decision locally so a fast second Send cannot
+    // fall through to a brand-new check while table hydration is in flight.
+    var responseAppendAuthorityV117 =
+      json.can_append_items == null
+        ? null
+        : (
+            json.can_append_items === true ||
+            Number(json.can_append_items) === 1
+          );
+
     state.activeOrderId = id;
     state.orderSelectionExplicitV72 = true;
-    state.forceNewCheck = false;
+    state.forceNewCheck =
+      responseAppendAuthorityV117 === null
+        ? false
+        : !responseAppendAuthorityV117;
 
     if (snapshot.serviceMode === 'dine_in') {
       var found = false;
@@ -5846,6 +5861,28 @@
           order_total: total,
           total_items: num(json.total_items, row.total_items || 0),
           updated_at: json.updated_at || row.updated_at || '',
+          status_id:
+            json.status_id != null ? Number(json.status_id) : row.status_id,
+          status_name:
+            json.status_name != null
+              ? String(json.status_name)
+              : (row.status_name || ''),
+          processed:
+            json.processed != null
+              ? Number(json.processed)
+              : num(row.processed, 0),
+          can_append_items:
+            responseAppendAuthorityV117 === null
+              ? row.can_append_items
+              : responseAppendAuthorityV117,
+          settlement_status:
+            json.settlement_status != null
+              ? String(json.settlement_status)
+              : (row.settlement_status || 'unpaid'),
+          settled_amount:
+            json.settled_amount != null
+              ? num(json.settled_amount, 0)
+              : num(row.settled_amount, 0),
           guest_count: snapshot.guestCount,
           payment_gate:
             json.payment_gate === true ||
@@ -5861,8 +5898,22 @@
           order_total: total,
           total_items: num(json.total_items, 0),
           updated_at: json.updated_at || '',
+          status_id:
+            json.status_id != null ? Number(json.status_id) : null,
+          status_name:
+            json.status_name != null ? String(json.status_name) : '',
+          processed:
+            json.processed != null
+              ? Number(json.processed)
+              : (snapshot.mode === 'send' ? 1 : 0),
+          can_append_items: responseAppendAuthorityV117,
+          settled_amount:
+            json.settled_amount != null ? num(json.settled_amount, 0) : 0,
           guest_count: snapshot.guestCount,
-          settlement_status: 'unpaid',
+          settlement_status:
+            json.settlement_status != null
+              ? String(json.settlement_status)
+              : 'unpaid',
           payment_gate: json.payment_gate === true,
           native_provisional: json.native_provisional === true,
           structural_locked: false,

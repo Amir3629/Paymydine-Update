@@ -193,6 +193,13 @@ trait PmdWaiterPosSaveEndpoint
                     'order_total' => $orderTotal,
                     'total_items' => (int)($order->total_items ?? 0),
                     'updated_at' => (string)($order->updated_at ?? ''),
+                    // PMD_QPOS_IMMEDIATE_APPEND_AUTHORITY_V117
+                    // The successful save response must be sufficient for the
+                    // very next Send; do not wait for a background table GET.
+                    'status_id' => (int)($order->status_id ?? 0),
+                    'status_name' => $this->pmdOrderKitchenPhaseNameV113($order),
+                    'processed' => (int)($order->processed ?? 0),
+                    'can_append_items' => $this->pmdOrderAcceptsReceivedAppendV113($order),
                     'settlement_status' => (string)($order->settlement_status ?? 'unpaid'),
                     'settled_amount' => $settledAmount,
                     'remaining_amount' => $remainingAmount,
@@ -499,6 +506,13 @@ trait PmdWaiterPosSaveEndpoint
                 'order_total' => $orderTotal,
                 'total_items' => (int)($order->total_items ?? 0),
                 'updated_at' => (string)($order->updated_at ?? ''),
+                    // PMD_QPOS_IMMEDIATE_APPEND_AUTHORITY_V117
+                    // The successful save response must be sufficient for the
+                    // very next Send; do not wait for a background table GET.
+                    'status_id' => (int)($order->status_id ?? 0),
+                    'status_name' => $this->pmdOrderKitchenPhaseNameV113($order),
+                    'processed' => (int)($order->processed ?? 0),
+                    'can_append_items' => $this->pmdOrderAcceptsReceivedAppendV113($order),
                 'settlement_status' =>
                     (string)($order->settlement_status ?? 'unpaid'),
                 'settled_amount' => $settledAmount,
