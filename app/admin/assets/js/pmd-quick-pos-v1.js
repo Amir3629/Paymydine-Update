@@ -8674,7 +8674,21 @@
       if (entry.payer_label) {
         item.meta.push(String(entry.payer_label));
       }
-      if (entry.payment_note) {
+
+      /* PMD_QPOS_HISTORY_COMBINED_V127
+       * Batch transactions are stored once per order, but History should read
+       * as one customer action. Show the group cleanly instead of repeating
+       * the internal "Quick POS combined payment: ..." note. */
+      var combinedIdsV127 = Array.isArray(entry.combined_order_ids)
+        ? entry.combined_order_ids.map(Number).filter(Boolean)
+        : [];
+      if (combinedIdsV127.length > 1) {
+        item.meta.push(
+          'Combined · ' +
+          combinedIdsV127.map(function (id) { return '#' + id; }).join(' + ')
+        );
+        item.note = '';
+      } else if (entry.payment_note) {
         item.note = String(entry.payment_note);
       }
       return item;
@@ -8844,6 +8858,119 @@
       .join('');
   }
 
+  /* PMD_QPOS_HISTORY_COMBINED_V127
+   * A multi-check payment remains several canonical orders, but its History
+   * detail behaves as one customer bill: every selected order/item is shown,
+   * the technical per-order transaction duplication is collapsed, and Invoice
+   * opens the dedicated combined document. */
+  function historyCombinedOrderIdsV127(entries, orderId) {
+    var ids = [];
+
+    (entries || []).forEach(function (entry) {
+      if (String(entry.kind || '') !== 'payment') return;
+
+      var declared = Array.isArray(entry.combined_order_ids)
+        ? entry.combined_order_ids
+        : [];
+
+      if (!declared.length) {
+        var note = String(entry.payment_note || '');
+        var match = note.match(
+          /^Quick POS combined payment:\s*([0-9,\s]+)$/i
+        );
+        if (match) {
+          declared = String(match[1] || '').split(',');
+        }
+      }
+
+      declared.forEach(function (id) {
+        id = Number(String(id || '').trim());
+        if (id > 0 && ids.indexOf(id) === -1) ids.push(id);
+      });
+    });
+
+    orderId = Number(orderId || 0);
+    if (orderId > 0 && ids.indexOf(orderId) === -1) ids.push(orderId);
+
+    ids.sort(function (a, b) { return a - b; });
+    return ids.length > 1 ? ids : (orderId > 0 ? [orderId] : []);
+  }
+
+  function historyOrderEntryByIdV127(orderId) {
+    orderId = Number(orderId || 0);
+    return historyEntries(state.historyData).find(function (entry) {
+      return (
+        String(entry.kind || '') === 'order' &&
+        Number(entry.order_id || 0) === orderId
+      );
+    }) || null;
+  }
+
+  function historyOrderItemsV127(order) {
+    if (!order) return [];
+
+    if (Array.isArray(order.items) && order.items.length) {
+      return order.items.map(function (item) {
+        return {
+          name: String(item && item.name || 'Item').trim() || 'Item',
+          quantity: Math.max(0, num(item && item.quantity, 0))
+        };
+      }).filter(function (item) {
+        return item.quantity > 0;
+      });
+    }
+
+    return String(order.item_summary || '')
+      .split(',')
+      .map(function (part) {
+        part = part.trim();
+        if (!part) return null;
+        var match = part.match(/^\s*(\d+(?:[.,]\d+)?)\s*[×x]\s*(.+)$/i);
+        return {
+          quantity: match ? Math.max(0, num(String(match[1]).replace(',', '.'), 1)) : 1,
+          name: String(match ? match[2] : part).trim() || 'Item'
+        };
+      })
+      .filter(Boolean);
+  }
+
+  function historyCombinedItemsV127(orderIds) {
+    var grouped = Object.create(null);
+    var orderSequence = [];
+
+    (orderIds || []).forEach(function (orderId) {
+      var order = historyOrderEntryByIdV127(orderId);
+      historyOrderItemsV127(order).forEach(function (item) {
+        var key = String(item.name || 'Item').trim().toLowerCase();
+        if (!key) return;
+        if (!grouped[key]) {
+          grouped[key] = {
+            name: String(item.name || 'Item').trim() || 'Item',
+            quantity: 0
+          };
+          orderSequence.push(key);
+        }
+        grouped[key].quantity += Math.max(0, num(item.quantity, 0));
+      });
+    });
+
+    return orderSequence.map(function (key) {
+      return grouped[key];
+    });
+  }
+
+  function historyItemsMarkupV127(items) {
+    return (items || []).map(function (item) {
+      var qty = roundMoney(num(item.quantity, 0));
+      var qtyLabel = Math.abs(qty - Math.round(qty)) < 0.0001
+        ? String(Math.round(qty))
+        : String(qty);
+      return '<span class="pmd-qpos-history-item-chip-v83">' +
+        esc(qtyLabel + '× ' + String(item.name || 'Item')) +
+      '</span>';
+    }).join('');
+  }
+
   function renderHistoryDetail(orderId) {
     var detail = $('[data-qpos-history-detail]');
     if (!detail) return;
@@ -8859,7 +8986,8 @@
       return;
     }
 
-    var entries = historyEntries(state.historyData).filter(function (entry) {
+    var allEntries = historyEntries(state.historyData);
+    var entries = allEntries.filter(function (entry) {
       return Number(entry.order_id || 0) === orderId;
     });
 
@@ -8873,38 +9001,102 @@
       return;
     }
 
+    var combinedOrderIds = historyCombinedOrderIdsV127(entries, orderId);
+    var combined = combinedOrderIds.length > 1;
+    var combinedOrders = combinedOrderIds
+      .map(historyOrderEntryByIdV127)
+      .filter(Boolean);
+
+    if (!combinedOrders.length) combinedOrders = [order];
+
     var settlement = String(order.settlement_status || '').trim();
+    var settlementLabel = historySettlementLabel(settlement);
+    var settlementTone = historySettlementTone(settlement);
+
+    var totalValue = combined
+      ? combinedOrders.reduce(function (sum, row) {
+          return sum + num(row && row.total, 0);
+        }, 0)
+      : num(order.total, 0);
+
+    var total = money(totalValue);
+    var items = combined
+      ? historyCombinedItemsV127(combinedOrderIds)
+      : historyOrderItemsV127(order);
+    var itemMarkup = historyItemsMarkupV127(items);
+    var orderNote = String(order.note || '').trim();
+
     var invoiceUrl = String(order.invoice_url || '');
+    if (combined) {
+      invoiceUrl =
+        '/admin/pos/payment-batch-invoice?order_ids=' +
+        encodeURIComponent(combinedOrderIds.join(','));
+    }
+
     var invoiceReady =
       !!invoiceUrl &&
-      ['paid', 'settled', 'closed'].indexOf(
-        settlement.toLowerCase()
-      ) !== -1;
-    /* PMD_QPOS_HISTORY_DOCUMENT_ACTIONS_V75
-     * Invoice opens the canonical document. Print uses the same document with
-     * an explicit print request so browser/Desktop print handling stays on the
-     * invoice page instead of duplicating receipt rendering inside Quick POS. */
+      (
+        combined ||
+        ['paid', 'settled', 'closed'].indexOf(
+          settlement.toLowerCase()
+        ) !== -1
+      );
+
     var printInvoiceUrl = invoiceReady
       ? invoiceUrl +
         (invoiceUrl.indexOf('?') === -1 ? '?' : '&') +
         'print=1'
       : '';
-    var settlementLabel = historySettlementLabel(settlement);
-    var settlementTone = historySettlementTone(settlement);
-    var total = order.total != null ? money(order.total) : '';
-    var itemSummary = String(order.item_summary || '').trim();
-    var itemSummaryMarkupV83 = historyItemSummaryMarkupV83(itemSummary);
-    var orderNote = String(order.note || '').trim();
 
     var rawEvents = entries.filter(function (entry) {
       return String(entry.kind || '') !== 'order';
     });
 
-    var paymentEvents = historyGroupedEvents(
-      rawEvents.filter(function (entry) {
-        return ['payment', 'terminal'].indexOf(String(entry.kind || '')) !== -1;
-      })
-    );
+    var paymentRaw = rawEvents.filter(function (entry) {
+      return ['payment', 'terminal'].indexOf(String(entry.kind || '')) !== -1;
+    });
+
+    var paymentEvents;
+    if (combined) {
+      var batchPayment = paymentRaw.find(function (entry) {
+        return (
+          String(entry.kind || '') === 'payment' &&
+          (
+            (Array.isArray(entry.combined_order_ids) &&
+              entry.combined_order_ids.length > 1) ||
+            /^Quick POS combined payment:/i.test(
+              String(entry.payment_note || '')
+            )
+          )
+        );
+      }) || paymentRaw[0];
+
+      if (batchPayment) {
+        var combinedMethod = historyWords(
+          batchPayment.payment_method || 'Payment'
+        );
+        paymentEvents = [{
+          kind: 'payment',
+          title: combinedMethod
+            ? combinedMethod + ' combined payment'
+            : 'Combined payment',
+          value: money(totalValue),
+          note: '',
+          meta: [
+            'Orders ' + combinedOrderIds.map(function (id) {
+              return '#' + id;
+            }).join(' + ')
+          ],
+          time: batchPayment.time,
+          receiptUrl: '',
+          count: 1
+        }];
+      } else {
+        paymentEvents = [];
+      }
+    } else {
+      paymentEvents = historyGroupedEvents(paymentRaw);
+    }
 
     var noteEvents = historyGroupedEvents(
       rawEvents.filter(function (entry) {
@@ -8913,39 +9105,44 @@
       })
     );
 
-    /* PMD_QPOS_HISTORY_ORDER_CARD_V84
-     * The order is the first section card, using the same visual grammar as
-     * Payments. The old standalone "Order" eyebrow/header is intentionally gone. */
+    var heading = combined
+      ? combinedOrderIds.map(function (id) { return '#' + id; }).join(' + ')
+      : '#' + String(orderId);
+
+    var statusLabel = combined ? 'Paid together' : settlementLabel;
+
     detail.innerHTML =
       '<div class="pmd-qpos-history-sections pmd-qpos-history-sections-v84">' +
-        '<section class="pmd-qpos-history-section pmd-qpos-history-order-card-v84">' +
+        '<section class="pmd-qpos-history-section pmd-qpos-history-order-card-v84"' +
+          (combined ? ' data-qpos-history-combined-v127="1"' : '') + '>' +
           '<header>' +
-            '<strong>#' + esc(orderId) + '</strong>' +
-            (settlementLabel
+            '<strong>' + esc(heading) + '</strong>' +
+            (statusLabel
               ? '<span class="pmd-qpos-history-order-status-v84 is-' +
-                  esc(settlementTone) + '">' +
-                  esc(settlementLabel) +
+                  esc(combined ? 'paid' : settlementTone) + '">' +
+                  esc(statusLabel) +
                 '</span>'
               : '') +
           '</header>' +
           '<article class="pmd-qpos-history-order-event-v84">' +
             '<div class="pmd-qpos-history-simple-main pmd-qpos-history-order-main-v84">' +
               '<div>' +
-                (total
-                  ? '<strong>' + esc(total) + '</strong>'
+                '<strong>' + esc(total) + '</strong>' +
+                (combined
+                  ? '<small class="pmd-qpos-history-combined-label-v127">Combined bill</small>'
                   : '') +
               '</div>' +
               '<time>' + esc(historyShortTime(order.time)) + '</time>' +
             '</div>' +
-            (itemSummary
+            (itemMarkup
               ? '<div class="pmd-qpos-history-order-items-v84">' +
-                  '<span>Items</span>' +
+                  '<span>' + (combined ? 'Combined items' : 'Items') + '</span>' +
                   '<div class="pmd-qpos-history-item-chips-v83">' +
-                    itemSummaryMarkupV83 +
+                    itemMarkup +
                   '</div>' +
                 '</div>'
               : '') +
-            (orderNote
+            (!combined && orderNote
               ? '<div class="pmd-qpos-history-order-note-v84">' +
                   '<span>Note</span>' +
                   '<p>' + esc(orderNote) + '</p>' +
@@ -8954,10 +9151,9 @@
             (invoiceReady
               ? '<div class="pmd-qpos-history-document-actions-v75 pmd-qpos-history-document-actions-v84">' +
                   '<a class="pmd-qpos-history-invoice" href="' + esc(invoiceUrl) +
-                    '" target="_blank" rel="noopener">Invoice</a>' +
+                    '">Invoice</a>' +
                   '<a class="pmd-qpos-history-invoice pmd-qpos-history-print-v75" href="' +
-                    esc(printInvoiceUrl) +
-                    '" target="_blank" rel="noopener">Print</a>' +
+                    esc(printInvoiceUrl) + '">Print</a>' +
                 '</div>'
               : '') +
           '</article>' +
@@ -9153,6 +9349,9 @@
       String(orderId)
     );
     inline.innerHTML = detail.innerHTML;
+    if (detail.querySelector('[data-qpos-history-combined-v127]')) {
+      inline.classList.add('is-combined-v127');
+    }
     button.insertAdjacentElement('afterend', inline);
   }
 
@@ -10726,13 +10925,50 @@
     var cart = $('.pmd-qpos-cart');
     var closeCart = $('[data-qpos-cart-close]');
     if (mobileCart && cart) {
+      /* PMD_QPOS_MOBILE_CART_CHECKOUT_HIDE_V127
+       * The fixed total rail is useful while browsing food, but once the real
+       * Check card has entered the viewport it must stay out of the way. The
+       * previous z-index-only solution let the rail reappear below the card
+       * after scrolling farther down. */
+      var syncMobileCartCheckoutV127 = function () {
+        if (!isMobileCartFlowV87()) {
+          root.classList.remove('is-mobile-checkout-reached-v127');
+          return;
+        }
+
+        var rect = cart.getBoundingClientRect();
+        var viewportHeight =
+          window.innerHeight ||
+          document.documentElement.clientHeight ||
+          0;
+        var reached =
+          viewportHeight > 0 &&
+          rect.top <= Math.max(80, viewportHeight - 96);
+
+        root.classList.toggle(
+          'is-mobile-checkout-reached-v127',
+          reached
+        );
+      };
+
+      if (!mobileCart.__pmdCheckoutHideV127Bound) {
+        mobileCart.__pmdCheckoutHideV127Bound = true;
+        window.addEventListener(
+          'scroll',
+          syncMobileCartCheckoutV127,
+          {passive: true}
+        );
+        window.addEventListener(
+          'resize',
+          syncMobileCartCheckoutV127,
+          {passive: true}
+        );
+      }
+
+      window.requestAnimationFrame(syncMobileCartCheckoutV127);
+
       mobileCart.onclick = function () {
         if (isMobileCartFlowV87()) {
-          /* PMD_QPOS_MOBILE_CART_END_V122
-           * The floating total is a shortcut to Checkout. Land at the END of
-           * the document/check card, not its top edge. The check card has a
-           * higher mobile stacking layer, so the total rail naturally passes
-           * behind it as Checkout comes into view. */
           cart.classList.remove('is-mobile-open');
 
           if (cart.scrollIntoView) {
@@ -10753,6 +10989,8 @@
             } catch (ignored) {
               window.scrollTo(0, bottom);
             }
+
+            window.requestAnimationFrame(syncMobileCartCheckoutV127);
           });
           return;
         }
