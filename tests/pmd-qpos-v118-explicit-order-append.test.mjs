@@ -12,16 +12,20 @@ const save = fs.readFileSync(
   'utf8'
 );
 
+const count = (text, needle) => text.split(needle).length - 1;
+
 assert.equal(parityJs, js);
 
 assert.ok(persist.includes('PMD_QPOS_EXPLICIT_ORDER_APPEND_V118'));
 assert.ok(persist.includes('pmdOrderAcceptsExplicitAppendV118'));
 assert.ok(persist.includes("'can_append_selected_items' =>"));
 
-assert.ok(save.includes('PMD_QPOS_EXPLICIT_ORDER_APPEND_V118'));
+assert.equal(count(save, '$explicitSelectedAppendV118 ='), 2);
+assert.equal(count(save, '$existingStatusIdV118 ='), 2);
+assert.equal(count(save, "'can_append_selected_items' =>"), 2);
 assert.ok(save.includes("$payload['explicit_order_selection']"));
-assert.ok(save.includes('!$explicitSelectedAppendV118'));
-assert.ok(save.includes('$existingStatusIdV118'));
+assert.ok(save.includes("$mode === 'send' && !$paymentGate && !$explicitSelectedAppendV118"));
+assert.ok(save.includes('? $existingStatusIdV118'));
 assert.ok(save.includes("'can_append_selected_items' => $this->pmdOrderAcceptsExplicitAppendV118($order)"));
 
 assert.ok(js.includes('PMD_QPOS_EXPLICIT_ORDER_APPEND_V118'));
@@ -29,7 +33,6 @@ assert.ok(js.includes('orderAcceptsExplicitAppendV118'));
 assert.ok(js.includes('explicitSelectedAppendV118'));
 assert.ok(js.includes('explicit_order_selection: snapshot.explicitOrderSelection'));
 assert.ok(js.includes('can_append_selected_items'));
-assert.ok(js.includes('!explicitSelectedAppendV118'));
 
 assert.ok(js.includes('PMD_QPOS_APPEND_AUTHORITY_V116'));
 assert.ok(js.includes('PMD_QPOS_IMMEDIATE_APPEND_AUTHORITY_V117'));
