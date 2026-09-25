@@ -1,4 +1,4 @@
-/* PMD_RESERVATIONS_EXACT_RESERVATIONS2_CALENDAR_HOUR_V2_4
+/* PMD_RESERVATIONS_EXACT_RESERVATIONS_CALENDAR_HOUR_V2_4
  * Reservations uses the captured live Reservations Calendar/Hour DOM contract.
  * Floor is initial. Existing header calendar control opens the exact Calendar surface.
  * Selecting a Calendar day opens the exact Reservations Hour/Timeslot screen.
@@ -544,11 +544,11 @@
     var status = reservationStatus(item);
     var guests = guestCount(item);
     var id = reservationId(item);
-    return '<article class="pmd-r2-slot-booking ' + statusClass(status) + '" data-pmd-res-lab-exact-booking="' + esc(id) + '" data-pmd-res-lab-edit="' + esc(id) + '" role="button" tabindex="0">' +
+    return '<article class="pmd-r2-slot-booking ' + statusClass(status) + '" data-pmd-reservations-exact-booking="' + esc(id) + '" data-pmd-reservations-edit="' + esc(id) + '" role="button" tabindex="0">' +
       '<div class="pmd-r2-slot-booking__main"><strong>' + esc(reservationName(item)) + '</strong><span>' +
       (table ? esc((table.indexOf(',') !== -1 ? text('tables','Tables') : text('table','Table')) + ' ' + table.replace(/\s*,\s*/g, ' + ')) : esc(text('no_table',locale === 'de' ? 'Kein Tisch' : 'No table'))) +
       ' · ' + guests + ' ' + esc(guests === 1 ? text('guest',locale === 'de' ? 'Gast' : 'guest') : text('guests','Guests')) + '</span></div>' +
-      '<div class="pmd-r2-slot-booking__status"><span>' + esc(status) + '</span><a href="#" data-pmd-res-lab-edit="' + esc(id) + '">' + esc(text('open',locale === 'de' ? 'Öffnen' : 'Open')) + '</a></div></article>';
+      '<div class="pmd-r2-slot-booking__status"><span>' + esc(status) + '</span><a href="#" data-pmd-reservations-edit="' + esc(id) + '">' + esc(text('open',locale === 'de' ? 'Öffnen' : 'Open')) + '</a></div></article>';
   }
 
   function renderSelected(root) {
@@ -630,11 +630,11 @@
         : (closedSlot
           ? text('outside_opening_hours', locale === 'de' ? 'Außerhalb der Öffnungszeiten' : 'Outside opening hours')
           : text('new_reservation','New reservation') + ' ' + slotClock);
-      rows.push('<section class="pmd-r2-timeslot ' + (bookings.length ? 'has-bookings' : 'is-empty') + (pastSlot ? ' is-past-slot' : '') + (closedSlot ? ' is-closed-slot' : '') + '" data-pmd-res-lab-slot-date="' + esc(selectedDate) + '" data-pmd-res-lab-slot-time="' + slotClock + '" data-pmd-res-lab-bookable="' + (bookableSlot ? '1' : '0') + '">' +
+      rows.push('<section class="pmd-r2-timeslot ' + (bookings.length ? 'has-bookings' : 'is-empty') + (pastSlot ? ' is-past-slot' : '') + (closedSlot ? ' is-closed-slot' : '') + '" data-pmd-reservations-slot-date="' + esc(selectedDate) + '" data-pmd-reservations-slot-time="' + slotClock + '" data-pmd-reservations-bookable="' + (bookableSlot ? '1' : '0') + '">' +
         '<div class="pmd-r2-timeslot__time"><strong>' + slotClock + '</strong><span>' + (bookings.length ? bookings.length + ' ' + esc(bookings.length === 1 ? text('booking','booking') : text('bookings','bookings')) : esc(closedSlot ? text('restaurant_closed', locale === 'de' ? 'Restaurant geschlossen' : 'Restaurant closed') : text('available','Available'))) + '</span></div>' +
         '<div class="pmd-r2-timeslot__content">' +
           (bookings.length ? bookings.map(bookingChip).join('') : '<div class="pmd-r2-timeslot__free"><i></i><span>' + esc(closedSlot ? text('restaurant_closed', locale === 'de' ? 'Restaurant geschlossen' : 'Restaurant closed') : text('no_reservations','No reservations')) + '</span></div>') +
-          '<button type="button" class="pmd-r2-timeslot__create-button" data-pmd-res-lab-slot-create aria-label="' + esc(createLabel) + '" title="' + esc(createLabel) + '"' + (!bookableSlot ? ' disabled aria-disabled="true"' : '') + '>+</button>' +
+          '<button type="button" class="pmd-r2-timeslot__create-button" data-pmd-reservations-slot-create aria-label="' + esc(createLabel) + '" title="' + esc(createLabel) + '"' + (!bookableSlot ? ' disabled aria-disabled="true"' : '') + '>+</button>' +
         '</div></section>');
     });
     if (slots.unknown) {
@@ -736,10 +736,10 @@
       var clearSelection = event.target.closest('[data-r2-yc-clear-selection]');
       var previousDay = event.target.closest('[data-r2-yc-prev-day]');
       var nextDay = event.target.closest('[data-r2-yc-next-day]');
-      var editButton = event.target.closest('[data-pmd-res-lab-edit]');
-      var bookingCard = event.target.closest('.pmd-r2-slot-booking[data-pmd-res-lab-edit]');
-      var slotCreate = event.target.closest('[data-pmd-res-lab-slot-create]');
-      var slotRow = event.target.closest('[data-pmd-res-lab-slot-date][data-pmd-res-lab-slot-time]');
+      var editButton = event.target.closest('[data-pmd-reservations-edit]');
+      var bookingCard = event.target.closest('.pmd-r2-slot-booking[data-pmd-reservations-edit]');
+      var slotCreate = event.target.closest('[data-pmd-reservations-slot-create]');
+      var slotRow = event.target.closest('[data-pmd-reservations-slot-date][data-pmd-reservations-slot-time]');
       var modalClose = event.target.closest('[data-r2-yc-modal-close]');
       var modalSave = event.target.closest('[data-r2-yc-modal-save]');
       var modalDelete = event.target.closest('[data-r2-yc-modal-delete]');
@@ -762,26 +762,26 @@
       if (editButton || bookingCard) {
         event.preventDefault();
         var editOrigin = editButton || bookingCard;
-        openComposer('edit', editOrigin.getAttribute('data-pmd-res-lab-edit'), selectedDate, '', editOrigin);
+        openComposer('edit', editOrigin.getAttribute('data-pmd-reservations-edit'), selectedDate, '', editOrigin);
         return;
       }
       if (slotCreate) {
-        var slot = slotCreate.closest('[data-pmd-res-lab-slot-date][data-pmd-res-lab-slot-time]');
-        var slotDate = slot && slot.getAttribute('data-pmd-res-lab-slot-date');
-        var slotTime = slot && slot.getAttribute('data-pmd-res-lab-slot-time');
+        var slot = slotCreate.closest('[data-pmd-reservations-slot-date][data-pmd-reservations-slot-time]');
+        var slotDate = slot && slot.getAttribute('data-pmd-reservations-slot-date');
+        var slotTime = slot && slot.getAttribute('data-pmd-reservations-slot-time');
         if (slotCreate.disabled || slotCreate.getAttribute('aria-disabled') === 'true' || !pmdCanCreateAt(slotDate, slotTime)) return;
         if (slot) openComposer('create', null, slotDate, slotTime, slotCreate);
         return;
       }
-      if (slotRow && slotRow.getAttribute('data-pmd-res-lab-bookable') === '1') {
+      if (slotRow && slotRow.getAttribute('data-pmd-reservations-bookable') === '1') {
         // Time cell and unused row surface are first-class create targets.
         // Interactive controls and reservation cards keep their own action.
         if (!event.target.closest('a,button,input,select,textarea,label') && !event.target.closest('.pmd-r2-slot-booking')) {
           openComposer(
             'create',
             null,
-            slotRow.getAttribute('data-pmd-res-lab-slot-date'),
-            slotRow.getAttribute('data-pmd-res-lab-slot-time'),
+            slotRow.getAttribute('data-pmd-reservations-slot-date'),
+            slotRow.getAttribute('data-pmd-reservations-slot-time'),
             slotRow
           );
           return;
@@ -818,9 +818,9 @@
     // PMD_CASHIER_KEEP_NATIVE_HEADER_CREATE_V1
     if (route === '/admin/cashierlab') return false;
     var button = document.getElementById(HEADER_CREATE_ID);
-    if (!button || button.getAttribute('data-pmd-reservationslab-create-bound') === '1') return false;
+    if (!button || button.getAttribute('data-pmd-reservations-create-bound') === '1') return false;
 
-    button.setAttribute('data-pmd-reservationslab-create-bound', '1');
+    button.setAttribute('data-pmd-reservations-create-bound', '1');
     button.addEventListener('click', function (event) {
       event.preventDefault();
       event.stopPropagation();
@@ -837,8 +837,8 @@
 
   function bindHeaderToggle() {
     var toggle = document.getElementById(TOGGLE_ID);
-    if (!toggle || toggle.getAttribute('data-pmd-reservationslab-calendar-bound') === '1') return false;
-    toggle.setAttribute('data-pmd-reservationslab-calendar-bound', '1');
+    if (!toggle || toggle.getAttribute('data-pmd-reservations-calendar-bound') === '1') return false;
+    toggle.setAttribute('data-pmd-reservations-calendar-bound', '1');
     toggle.setAttribute('aria-pressed', 'false');
     toggle.setAttribute('aria-label', text('calendar','Calendar'));
     toggle.setAttribute('title', text('calendar','Calendar'));
@@ -1033,7 +1033,7 @@
       normalizedMode === 'edit'
       && origin
       && origin.getAttribute
-      && origin.getAttribute('data-pmd-res-lab-card-edit')
+      && origin.getAttribute('data-pmd-reservations-card-edit')
     );
     var source = normalizedMode === 'edit'
       ? (isCardEdit ? 'reservation-card' : 'hour-reservation')
@@ -1089,15 +1089,15 @@
    */
   document.addEventListener('click', function (event) {
     var target = event.target && event.target.closest ? event.target : null;
-    var cardCreate = target ? target.closest('[data-pmd-res-lab-card-create]') : null;
-    var cardEdit = target ? target.closest('[data-pmd-res-lab-card-edit]') : null;
+    var cardCreate = target ? target.closest('[data-pmd-reservations-card-create]') : null;
+    var cardEdit = target ? target.closest('[data-pmd-reservations-card-edit]') : null;
 
     if (cardCreate) {
       event.preventDefault();
       openComposer(
         'create',
         null,
-        cardCreate.getAttribute('data-pmd-res-lab-create-date') || boot.today || '',
+        cardCreate.getAttribute('data-pmd-reservations-create-date') || boot.today || '',
         '',
         cardCreate
       );
@@ -1110,9 +1110,9 @@
 
     openComposer(
       'edit',
-      cardEdit.getAttribute('data-pmd-res-lab-card-edit'),
-      cardEdit.getAttribute('data-pmd-res-lab-card-date') || '',
-      cardEdit.getAttribute('data-pmd-res-lab-card-time') || '',
+      cardEdit.getAttribute('data-pmd-reservations-card-edit'),
+      cardEdit.getAttribute('data-pmd-reservations-card-date') || '',
+      cardEdit.getAttribute('data-pmd-reservations-card-time') || '',
       cardEdit
     );
   }, true);
