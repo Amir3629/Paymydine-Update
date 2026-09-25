@@ -33,8 +33,29 @@
 
         // Catch-all: proxy all paths to Next when frontend-theme is active, otherwise run TI controller
         Route::any('{slug?}', function ($slug = null) {
-            
-            
+            // PMD_PUBLIC_BOOKING_CATCHALL_GUARD_V1
+            // Production can reach this catch-all before the dedicated booking
+            // route file is effective. Keep /book on the PHP/TI reservation
+            // authority instead of proxying it to the digital-menu Next app.
+            $pmdBookingPath = '/' . ltrim((string)request()->path(), '/');
+            $pmdBookingMethod = strtoupper((string)request()->method());
+
+            if ($pmdBookingPath === '/booking' || $pmdBookingPath === '/reserve') {
+                return redirect('/book', 302);
+            }
+
+            if ($pmdBookingPath === '/book' && $pmdBookingMethod === 'GET') {
+                return app(\\App\\Http\\Controllers\\PmdPublicBookingController::class)->show(request());
+            }
+
+            if ($pmdBookingPath === '/book/availability' && $pmdBookingMethod === 'GET') {
+                return app(\\App\\Http\\Controllers\\PmdPublicBookingController::class)->availability(request());
+            }
+
+            if ($pmdBookingPath === '/book' && $pmdBookingMethod === 'POST') {
+                return app(\\App\\Http\\Controllers\\PmdPublicBookingController::class)->store(request());
+            }
+
             // PMD_INJECT_PUBLIC_COMPAT_IN_ACTIVE_CATCHALL_20260606
             require_once base_path('routes/pmd-public-compat-handler.php');
             if (function_exists('pmd_public_compat_response_20260606')) {
