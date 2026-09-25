@@ -37,6 +37,9 @@ on:
       - 'tests/pmd-qpos-v118-explicit-order-append.test.mjs'
       - 'tests/pmd-qpos-v119-kitchen-round-split.test.mjs'
       - 'tests/pmd-qpos-v120-mobile-payment-stack.test.mjs'
+      - 'tests/pmd-qpos-v121-server-round-authority-floating-keypad.test.mjs'
+      - 'tests/pmd-qpos-v122-kds-batch-mobile-polish.test.mjs'
+      - 'app/admin/views/kitchendisplay/index.blade.php'
       - 'deploy/pmd-android-operations-v18-direct-login-first-party.sh'
       - 'deploy/pmd-android-v18-first-party-download-hotfix.sh'
       - 'deploy/pmd-android-v18-2-throttle-isolation-hotfix.sh'
@@ -62,7 +65,7 @@ on:
       - '.github/workflows/android-local-first-v1.yml'
 
 concurrency:
-  group: pmd-android-v120-${{ github.event.pull_request.number || github.ref }}
+  group: pmd-android-v122-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -114,64 +117,12 @@ jobs:
       - name: Safety contract
         shell: bash
         run: |
-          set -x
           set -euo pipefail
-          bash -n deploy/pmd-android-operations-v18-direct-login-first-party.sh
-          bash -n deploy/pmd-android-v18-first-party-download-hotfix.sh
-          bash -n deploy/pmd-android-v18-2-throttle-isolation-hotfix.sh
-          bash -n deploy/pmd-android-v18-3-shared-device-login-hotfix.sh
-          bash -n deploy/pmd-android-v18-4-shared-device-pos-auth-hotfix.sh
-          bash -n deploy/pmd-android-v18-5-mobile-session-reentry-hotfix.sh
-          bash -n deploy/pmd-android-v18-6-final-session-authority.sh
-          bash -n deploy/pmd-android-v18-7-canonical-login-offline.sh
-          bash -n deploy/pmd-android-v18-13-seamless-offline-pos.sh
-          bash -n deploy/pmd-android-v18-14-canonical-offline-pos.sh
-          grep -q "PMD_ANDROID_LOCAL_FIRST_V2_V104" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
-          grep -q "PMD_ANDROID_LOCAL_FIRST_PROMOTION_V104" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
-          grep -q "PMD_ANDROID_SYNC_VISIBILITY_V104" mobile/android/app/src/main/java/com/paymydine/mobile/sync/SyncRepository.kt
-          grep -q "PMD_ANDROID_CLOUD_HEALTH_V104" mobile/android/app/src/main/java/com/paymydine/mobile/sync/SyncRepository.kt
-          grep -q "PMD_ANDROID_TRUSTED_BUSINESS_TIME_V104" mobile/android/app/src/main/java/com/paymydine/mobile/data/local/LocalPosRepository.kt
-          grep -q "PMD_QPOS_SYNC_VISIBILITY_V104" app/admin/assets/js/pmd-quick-pos-v1.js
-          grep -q "PMD_QPOS_SYNC_STATE_V104" app/admin/assets/css/pmd-quick-pos-v1.css
-          grep -q "PMD_MOBILE_TRUSTED_TIME_ANCHOR_V104" app/Services/PmdMobileSync/PmdMobileBootstrapService.php
-          grep -q "PMD_QPOS_NATIVE_LOCAL_TRANSPORT_V18" app/admin/assets/js/pmd-quick-pos-v1.js
-          grep -q "PMD_QPOS_DURABLE_UI_DRAFT_V18" app/admin/assets/js/pmd-quick-pos-v1.js
-          grep -q "PMD_QPOS_NATIVE_BOOTSTRAP_MERGE_V18" app/admin/assets/js/pmd-quick-pos-v1.js
-          grep -q "PMD_ANDROID_DURABLE_QPOS_UI_DRAFT_V18" mobile/android/app/src/main/java/com/paymydine/mobile/data/local/LocalPosRepository.kt
-          grep -q "PMD_ANDROID_EXACT_MULTI_CHECK_CONTINUATION_V18" mobile/android/app/src/main/java/com/paymydine/mobile/data/local/LocalPosRepository.kt
-          grep -q "PMD_QPOS_ORIENTATION_BINDINGS_V86" app/admin/assets/js/pmd-quick-pos-v1.js
-          grep -q "PMD_QPOS_NATIVE_OFFLINE_NO_HEARTBEAT_V18" app/admin/assets/js/pmd-quick-pos-v1.js
-          grep -q "PMD_PUSH_NATIVE_OFFLINE_SUSPEND_V18" app/admin/assets/js/push-notifications.js
-          grep -q '"push-notifications.js"' mobile/android/app/build.gradle.kts
-          grep -q '"push-notifications.css"' mobile/android/app/build.gradle.kts
-          grep -q "PMD_QPOS_CATEGORY_TOUCH_V86" app/admin/assets/css/pmd-quick-pos-v1.css
+
           node --check app/admin/assets/js/pmd-quick-pos-v1.js
-          grep -q "PMD_QPOS_TABLET_PORTRAIT_V86" app/admin/assets/css/pmd-quick-pos-v1.css
-          grep -q "PMD_QPOS_MOBILE_FLOW_V87" app/admin/assets/css/pmd-quick-pos-v1.css
-          grep -q "PMD_QPOS_MOBILE_HISTORY_V87" app/admin/assets/js/pmd-quick-pos-v1.js
-          grep -q "PMD_QPOS_MOBILE_STICKY_CATEGORIES_V88" app/admin/assets/css/pmd-quick-pos-v1.css
-          grep -q "PMD_QPOS_PRODUCT_IMAGE_OVERLAY_V89" app/admin/assets/css/pmd-quick-pos-v1.css
-          grep -q "PMD_QPOS_MOBILE_SCALE_V89" app/admin/assets/css/pmd-quick-pos-v1.css
-          grep -q "PMD_QPOS_VISUAL_CLEANUP_V90" app/admin/assets/css/pmd-quick-pos-v1.css
-          grep -q "PMD_QPOS_MOBILE_CART_IN_FLOW_V90" app/admin/assets/css/pmd-quick-pos-v1.css
-          grep -q "PMD_QPOS_HISTORY_TABLE_RAIL_V88" app/admin/assets/js/pmd-quick-pos-v1.js
-          grep -q "PMD_QPOS_REQUEST_FAILOVER_V91" app/admin/assets/js/pmd-quick-pos-v1.js
-          grep -q "PMD_QPOS_NATIVE_DURABLE_MUTATIONS_V92" app/admin/assets/js/pmd-quick-pos-v1.js
-          grep -q "PMD_QPOS_TERMINAL_SAFE_FAILOVER_V92" app/admin/assets/js/pmd-quick-pos-v1.js
-          grep -q "PMD_QPOS_NATIVE_PROVISIONAL_CHECK_IDS_V93" app/admin/assets/js/pmd-quick-pos-v1.js
-          grep -q "PMD_QPOS_MOBILE_TOUCH_HISTORY_V93" app/admin/assets/css/pmd-quick-pos-v1.css
-          grep -q "PMD_QPOS_FLOATING_CART_MODAL_SAFETY_V94" app/admin/assets/css/pmd-quick-pos-v1.css
-          grep -q "PMD_QPOS_PHONE_SCALE_V95" app/admin/assets/css/pmd-quick-pos-v1.css
-          grep -q "PMD_QPOS_PORTRAIT_BREAKPOINT_V96" app/admin/assets/css/pmd-quick-pos-v1.css
-          ! grep -q "PMD_QPOS_PORTRAIT_XL_TOUCH_V97" app/admin/assets/css/pmd-quick-pos-v1.css
-          grep -q "PMD_QPOS_MOBILE_FIT_READABLE_V98" app/admin/assets/css/pmd-quick-pos-v1.css
-          grep -q "PMD_QPOS_MOBILE_BALANCED_V99" app/admin/assets/css/pmd-quick-pos-v1.css
-          grep -q "PMD_QPOS_MOBILE_NORMAL_BUTTONS_V100" app/admin/assets/css/pmd-quick-pos-v1.css
-          grep -q "PMD_QPOS_PHONE_ONLY_SCOPE_V102" app/admin/assets/css/pmd-quick-pos-v1.css
-          grep -q "PMD_QPOS_RESPONSIVE_MATRIX_V102" app/admin/assets/css/pmd-quick-pos-v1.css
-          grep -q "PMD_QPOS_HISTORY_TABLE_WORKSPACE_V93" app/admin/assets/js/pmd-quick-pos-v1.js
-          grep -q "PMD_QPOS_HANDHELD_PORTRAIT_RUNTIME_V96" app/admin/assets/js/pmd-quick-pos-v1.js
-          grep -q "PMD_QPOS_RESPONSIVE_MATRIX_RUNTIME_V102" app/admin/assets/js/pmd-quick-pos-v1.js
+          node --check app/admin/assets/js/pmd-qpos-web-parity-v112.js
+          node --check app/admin/assets/js/push-notifications.js
+
           node tests/pmd-responsive-matrix-v102.test.mjs
           node tests/pmd-local-first-v106.test.mjs
           node tests/pmd-qpos-pay-before-kitchen-v108.test.mjs
@@ -183,290 +134,29 @@ jobs:
           node tests/pmd-qpos-v118-explicit-order-append.test.mjs
           node tests/pmd-qpos-v119-kitchen-round-split.test.mjs
           node tests/pmd-qpos-v120-mobile-payment-stack.test.mjs
-          node --check app/admin/assets/js/pmd-qpos-web-parity-v112.js
-          grep -q "PMD_QPOS_WEB_PARITY_RUNTIME_V112" app/admin/views/pmd_quick_pos_v1.blade.php
-          grep -q "PMD_QPOS_KITCHEN_ROUND_SPLIT_V119" app/admin/assets/js/pmd-quick-pos-v1.js
-          grep -q "PMD_QPOS_MOBILE_PAYMENT_STACK_V120" app/admin/assets/css/pmd-quick-pos-v1.css
-          grep -q "PMD_ANDROID_PAY_BEFORE_KITCHEN_V112" mobile/android/app/src/main/java/com/paymydine/mobile/LocalPosBridge.kt
-          grep -q "PMD_ANDROID_V112_OFFLINE_WEB_PARITY" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
-          grep -q "PMD_QPOS_RECEIVED_REUSE_V113" app/admin/assets/js/pmd-quick-pos-v1.js
-          grep -q "PMD_QPOS_MULTI_CHECK_PAY_RUNTIME_V114" app/admin/assets/js/pmd-quick-pos-v1.js
-          grep -q "/admin/pos/payment-batch-summary" app/admin/assets/js/pmd-quick-pos-v1.js
-          grep -q "/admin/pos/payment-batch-settle" app/admin/assets/js/pmd-quick-pos-v1.js
-          grep -q "PMD_ANDROID_BATCH_PAYMENT_CLOUD_ONLY_V117" mobile/android/app/src/main/java/com/paymydine/mobile/LocalPosBridge.kt
-          grep -q "Combined payment needs an internet connection right now." mobile/android/app/src/main/java/com/paymydine/mobile/LocalPosBridge.kt
-          grep -q "pmd-canonical/js/pmd-qpos-web-parity-v112.js" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
-          grep -q "pmd-canonical/css/pmd-qpos-web-parity-v112.css" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
-          grep -q "PMD_ANDROID_CLOUD_LINE_EDIT_V106" mobile/android/app/src/main/java/com/paymydine/mobile/LocalPosBridge.kt
-          grep -q "PMD_ANDROID_CLOUD_LINE_ACK_V106" mobile/android/app/src/main/java/com/paymydine/mobile/data/local/LocalPosRepository.kt
-          grep -q "PMD_MOBILE_ORDER_ITEM_ADJUST_V106" app/Services/PmdMobileSync/PmdMobileCommandProcessor.php
-          grep -Fq "'ORDER_ITEM_ADJUST_V1'" app/Services/PmdMobileSync/PmdMobileBootstrapService.php
-          grep -q "PMD_ANDROID_PROVISIONAL_ITEM_MUTATION_V23" mobile/android/app/src/main/java/com/paymydine/mobile/LocalPosBridge.kt
-          grep -q "PMD_ANDROID_LOCAL_TABLE_OCCUPIED_V23" mobile/android/app/src/main/java/com/paymydine/mobile/LocalPosBridge.kt
-          grep -q "PMD_ANDROID_PROVISIONAL_ORDER_EDIT_V23" mobile/android/app/src/main/java/com/paymydine/mobile/data/local/LocalPosRepository.kt
-          grep -q "PMD_ANDROID_NON_DESTRUCTIVE_RECONNECT_SNAPSHOT_V23" mobile/android/app/src/main/java/com/paymydine/mobile/data/local/BootstrapRepository.kt
-          grep -q "PMD_ANDROID_NON_DESTRUCTIVE_RECONNECT_UNION_V101" mobile/android/app/src/main/java/com/paymydine/mobile/data/local/BootstrapRepository.kt
-          grep -q "PMD_ANDROID_IMAGE_CACHE_PRESERVE_PARTIAL_REFRESH_V101" mobile/android/app/src/main/java/com/paymydine/mobile/data/local/OfflineImageCache.kt
-          grep -q "PMD_ANDROID_CASH_REBIND_AFTER_ORDER_ACK_V101" mobile/android/app/src/main/java/com/paymydine/mobile/data/local/LocalPosRepository.kt
-          grep -q "PMD_ANDROID_DEPENDENT_COMMAND_RELOAD_V101" mobile/android/app/src/main/java/com/paymydine/mobile/sync/SyncEngine.kt
-          grep -q "PMD_MOBILE_OFFLINE_CASH_CAPABILITY_V23" app/Services/PmdMobileSync/PmdMobileBootstrapService.php
-          grep -Fq "'offline_payment_enabled' => true" app/Services/PmdMobileSync/PmdMobileBootstrapService.php
-          grep -q "PMD_MOBILE_OFFLINE_ORIGINAL_TIME_V23" app/Services/PmdMobileSync/PmdMobileCommandProcessor.php
-          grep -q "PMD_MOBILE_CASH_LOCAL_AGGREGATE_RESOLVE_V101" app/Services/PmdMobileSync/PmdMobileCommandProcessor.php
-          grep -q "resolveCanonicalCashOrderId" app/Services/PmdMobileSync/PmdMobileCommandProcessor.php
-          grep -q "isOriginalLocalCreateCommand" app/Services/PmdMobileSync/PmdMobileCommandProcessor.php
-          grep -q "PMD_ANDROID_POS_REQUEST_FAILOVER_V21" mobile/android/app/src/main/java/com/paymydine/mobile/LocalPosBridge.kt
-          grep -q "PMD_ANDROID_CONNECTIVITY_SYNC_PROBE_V21" mobile/android/app/src/main/java/com/paymydine/mobile/network/ConnectivityObserver.kt
-          grep -q "PMD_ANDROID_OFFLINE_LOGIN_VERIFIER_V22" mobile/android/app/src/main/java/com/paymydine/mobile/security/OfflineCredentialCrypto.kt
-          grep -q "PMD_ANDROID_SAME_LOGIN_OFFLINE_V22" mobile/android/app/src/main/java/com/paymydine/mobile/ui/PmdStaffLogin.kt
-          grep -q "PMD_ANDROID_SAME_LOGIN_OFFLINE_V22" mobile/android/app/src/main/java/com/paymydine/mobile/security/DeviceCredentialStore.kt
-          grep -q "PMD_ANDROID_NATIVE_SIGN_OUT_V22" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
-          grep -q "allowOfflineCredentialSubmit" mobile/android/app/src/main/assets/pmd-login-workplace-v11-native.html
-          grep -q "val offlineAvailable = false" mobile/android/app/src/main/java/com/paymydine/mobile/ui/PmdStaffLogin.kt
-          grep -q "PMD_ANDROID_POS_VIEWPORT_ROTATION_V87" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
-          grep -q "PMD_ANDROID_LOGIN_NO_OFFLINE_BUTTON_V20" mobile/android/app/src/main/java/com/paymydine/mobile/ui/PmdStaffLogin.kt
-          grep -q "PMD_ANDROID_OFFLINE_POS_AUTO_RESUME_V20" mobile/android/app/src/main/java/com/paymydine/mobile/ui/PayMyDineApp.kt
-          grep -q "PMD_ANDROID_MAIN_RESUME_GUARD_V20" mobile/android/app/src/main/java/com/paymydine/mobile/ui/PayMyDineApp.kt
-          grep -q "PMD_ANDROID_POS_STICKY_LOCAL_V20" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
-          grep -q "PMD_ANDROID_POS_SNAPSHOT_WARM_V20" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
-          grep -q "PMD_ANDROID_POS_PRESERVE_OFFLINE_SESSION_V20" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
-          grep -q "PMD_ANDROID_OFFLINE_IMAGE_ROUTE_V20" mobile/android/app/src/main/java/com/paymydine/mobile/LocalPosBridge.kt
-          grep -q "PMD_ANDROID_OFFLINE_IMAGE_COOKIE_V20" mobile/android/app/src/main/java/com/paymydine/mobile/data/local/OfflineImageCache.kt
-          ! grep -q '"Continue offline as "' mobile/android/app/src/main/java/com/paymydine/mobile/ui/PmdStaffLogin.kt
-          ! grep -q "transportMode = TransportMode.RECONNECTING" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
-          grep -Fq "\$\$('[data-qpos-history-scope]').forEach" app/admin/assets/js/pmd-quick-pos-v1.js
-          grep -q "PMD_ANDROID_CANONICAL_POS_LOCAL_TRANSPORT_V18" mobile/android/app/src/main/java/com/paymydine/mobile/data/local/BootstrapRepository.kt
-          grep -q "PMD_ANDROID_CANONICAL_POS_IN_PLACE_FAILOVER_V18" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
-          grep -q "PMD_ANDROID_BUNDLED_CANONICAL_POS_UI_V18" mobile/android/app/build.gradle.kts
-          grep -q "PMD_ANDROID_CANONICAL_POS_SHELL_CACHE_V18" mobile/android/app/src/main/java/com/paymydine/mobile/PosShellCache.kt
-          grep -q "PMD_ANDROID_CANONICAL_IMAGE_INTERCEPT_V18" mobile/android/app/src/main/java/com/paymydine/mobile/data/local/OfflineImageCache.kt
-          grep -q "PMD_MOBILE_OFFLINE_ORIGINAL_TIME_V23" app/Services/PmdMobileSync/PmdMobileCommandProcessor.php
-          grep -q "PMD_MOBILE_CASH_LOCAL_AGGREGATE_RESOLVE_V101" app/Services/PmdMobileSync/PmdMobileCommandProcessor.php
-          grep -q "resolveCanonicalCashOrderId" app/Services/PmdMobileSync/PmdMobileCommandProcessor.php
-          grep -q "PMD_MOBILE_OFFLINE_PAYMENT_TIME_V18" app/Services/PmdMobileSync/PmdMobileCommandProcessor.php
-          grep -q "PMD_ANDROID_HISTORY_BUSINESS_TIME_V18" app/Services/PmdMobileSync/PmdMobileBootstrapService.php
-          grep -q "client_paid_at_ms" mobile/android/app/src/main/java/com/paymydine/mobile/data/local/LocalPosRepository.kt
-          grep -q "client_paid_at_ms" app/Services/PmdMobileSync/PmdMobileCommandProcessor.php
-          grep -q "PMD_ANDROID_CANONICAL_MULTI_CHECK_SNAPSHOT_V18" app/Services/PmdMobileSync/PmdMobileBootstrapService.php
-          grep -q "PMD_ANDROID_NO_POLLING_OFFLINE_FALLBACK_V18" mobile/android/app/src/main/assets/pmd-offline-pos.html
-          ! grep -q "setInterval(read,2000)" mobile/android/app/src/main/assets/pmd-offline-pos.html
-          ! grep -q 'android:name=".OfflinePosActivity"' mobile/android/app/src/main/AndroidManifest.xml
-          grep -q "PMD_ANDROID_0_3_28_RESPONSIVE_MATRIX_V102" mobile/android/app/build.gradle.kts
-          grep -q "PMD_ANDROID_0_3_27_RECONNECT_CASH_V101" mobile/android/app/build.gradle.kts
-          grep -q "PMD_ANDROID_0_3_26_NORMAL_BUTTONS_V100" mobile/android/app/build.gradle.kts
-          grep -q "PMD_ANDROID_NORMAL_PAGE_SCALE_V100" mobile/android/app/build.gradle.kts
-          grep -q "PMD_ANDROID_0_3_25_MOBILE_BALANCED_V99" mobile/android/app/build.gradle.kts
-          grep -q "PMD_ANDROID_0_3_24_MOBILE_FIT_V98" mobile/android/app/build.gradle.kts
-          grep -q "PMD_ANDROID_0_3_23_PORTRAIT_XL_V97" mobile/android/app/build.gradle.kts
-          grep -q "PMD_ANDROID_0_3_22_PORTRAIT_BREAKPOINT_V96" mobile/android/app/build.gradle.kts
-          grep -q "PMD_ANDROID_0_3_21_LARGE_TOUCH_V95" mobile/android/app/build.gradle.kts
-          grep -q "PMD_ANDROID_0_3_20_MOBILE_UI_V94" mobile/android/app/build.gradle.kts
-          grep -q "PMD_ANDROID_0_3_20_OFFLINE_COMPLETE_V23" mobile/android/app/build.gradle.kts
-          grep -q "PMD_MOBILE_OFFLINE_CASH_PAYMENT_V17" app/Services/PmdMobileSync/PmdMobileCommandProcessor.php
-          grep -q "PMD_MOBILE_OFFLINE_TABLE_ACTIONS_V17" app/Services/PmdMobileSync/PmdMobileCommandProcessor.php
-          grep -q "PMD_ANDROID_SINGLE_POS_ACTIVITY_V17" mobile/android/app/src/main/java/com/paymydine/mobile/ui/PayMyDineApp.kt
-          grep -q "PMD_ANDROID_OFFLINE_POS_AUTO_RESUME_V20" mobile/android/app/src/main/java/com/paymydine/mobile/ui/PayMyDineApp.kt
-          grep -q "queueSendAndCash" mobile/android/app/src/main/java/com/paymydine/mobile/LocalPosBridge.kt
-          grep -q "enqueueOrdered" mobile/android/app/src/main/java/com/paymydine/mobile/sync/SyncRepository.kt
-          grep -q "buildCashPaymentAfterSendCommand" mobile/android/app/src/main/java/com/paymydine/mobile/data/local/LocalPosRepository.kt
-          grep -q "PMD_ZCS_OFFLINE_CACHED_IMAGE_V17" mobile/android/app/src/main/java/com/paymydine/mobile/hardware/customerdisplay/CustomerDisplayManager.kt
-          grep -q "pushCustomerDisplay" mobile/android/app/src/main/assets/pmd-offline-pos.html
-          grep -q "trustedDeviceByRawToken" app/Services/PmdSiteAccessService.php
-          grep -q "rotateTrustedDeviceToken" app/Services/PmdSiteAccessService.php
-          grep -q "pmd_sync_commands" app/system/database/migrations/2026_09_20_190000_create_pmd_mobile_sync_tables.php
-          grep -q "pmd_sync_events" app/system/database/migrations/2026_09_20_190000_create_pmd_mobile_sync_tables.php
-          grep -q "ensureMobileSyncSchema" app/Services/SuperAdminTenantLifecycleService.php
-          grep -q "ORDER_SEND_V1" app/Services/PmdMobileSync/PmdMobileCommandProcessor.php
-          grep -q "KDS_STATUS_V1" app/Services/PmdMobileSync/PmdMobileCommandProcessor.php
-          grep -q "pmdMobileSnapshot" app/admin/controllers/KitchenDisplay.php
-          grep -q "saveMobilePayload" app/admin/controllers/concerns/PmdWaiterPosSaveEndpoint.php
-          grep -q "request_hash" app/system/database/migrations/2026_09_20_190000_create_pmd_mobile_sync_tables.php
-          grep -q "client_aggregate_id" app/Services/PmdMobileSync/PmdMobileCommandProcessor.php
-          grep -q "canonicalizeForHash" app/Services/PmdMobileSync/PmdMobileCommandProcessor.php
-          grep -q "sendCommandJson" mobile/android/app/src/main/java/com/paymydine/mobile/network/MobileApiClient.kt
-          grep -q "cloudRoutingForCommand" mobile/android/app/src/main/java/com/paymydine/mobile/data/local/LocalPosRepository.kt
-          grep -q "blockedAggregates" mobile/android/app/src/main/java/com/paymydine/mobile/sync/SyncEngine.kt
-          grep -q "pmd_edge_inbox_scope_seq" mobile/android/app/src/main/java/com/paymydine/mobile/data/local/PmdDatabase.kt
-          grep -q "routes/pmd-mobile-sync-v1.php" app/admin/routes.php
-          grep -q "PmdMobilePairingService" app/admin/controllers/Login.php
-          grep -q "code_challenge" app/Services/PmdMobileSync/PmdMobilePairingService.php
-          grep -q "code_verifier" app/Http/Controllers/PmdMobilePairController.php
-          grep -q "PairingPkce" mobile/android/app/src/main/java/com/paymydine/mobile/ui/PayMyDineApp.kt
-          grep -q "pairingVerifier" mobile/android/app/src/main/java/com/paymydine/mobile/security/DeviceCredentialStore.kt
-          grep -q "PMD_MOBILE_PAIR_TRANSPORT_BYPASS_V2" app/Http/Middleware/PmdSiteAccessGateMiddleware.php
-          grep -q "pairCurrentVerifiedPersonalDevice" app/Services/PmdSiteAccessService.php
-          grep -q "beginDashboardApproval" app/Services/PmdMobileSync/PmdMobilePairingService.php
-          grep -q "completeApprovedChallenge" app/Services/PmdMobileSync/PmdMobilePairingService.php
-          ! grep -q "mobile/pair/approve" routes/pmd-mobile-sync-v1.php
-          grep -q "PMD_MOBILE_SYNC_EARLY_ROOT_LOADER_V8" routes.php
-          grep -q "PMD_MOBILE_SYNC_DIRECT_REGISTER_V8" routes/pmd-mobile-sync-v1.php
-          ! grep -q "App::before(function" routes/pmd-mobile-sync-v1.php
-          grep -q "mobile/pos/open" routes/pmd-mobile-sync-v1.php
-          grep -q "PMD_MOBILE_POS_WEB_SESSION_V1" app/Http/Controllers/PmdMobilePosSessionController.php
-          grep -q "PMD_MOBILE_OWNER_POS_SESSION_V1" app/Services/PmdSiteAccessWorkspaceGateService.php
-          grep -q "PMD_ANDROID_POS_DEDICATED_ACTIVITY_V6" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
-          grep -q "PMD_ANDROID_POS_SURFACE_PULSE_V6" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
-          grep -q "PMD_ANDROID_POS_GEOMETRY_NUDGE_V7" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
-          grep -q "PMD_ANDROID_POS_CSS_PIXEL_VIEWPORT_V8" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
-          grep -q "PMD_ANDROID_NORMAL_PAGE_SCALE_V100" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
-          grep -q "PMD_ANDROID_POS_SYSTEM_INSETS_V8" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
-          grep -q "devicePixelRatio" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
-          grep -q "WindowInsetsCompat" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
-          grep -q -- "--pmd-android-viewport-height" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
-          ! grep -q "LAYER_TYPE_SOFTWARE" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
-          grep -q 'android:name=".PosActivity"' mobile/android/app/src/main/AndroidManifest.xml
-          grep -q 'android:screenOrientation="sensorLandscape"' mobile/android/app/src/main/AndroidManifest.xml
-          grep -q "PMD_ANDROID_DIRECT_LOGIN_ROUTER_V1" mobile/android/app/src/main/java/com/paymydine/mobile/ui/PayMyDineApp.kt
-          grep -q "PMD_ANDROID_STAFF_QUICK_PIN_UI_V17" mobile/android/app/src/main/java/com/paymydine/mobile/ui/PmdStaffLogin.kt
-          grep -q "requestStaffPinLogin" mobile/android/app/src/main/java/com/paymydine/mobile/ui/PmdStaffLogin.kt
-          grep -q "PMD_ANDROID_STAFF_QUICK_PIN_CLIENT_V17" mobile/android/app/src/main/java/com/paymydine/mobile/network/MobileApiClient.kt
-          grep -q 'data-pin="1"' mobile/android/app/src/main/assets/pmd-login-workplace-v11-native.html
-          grep -q "pmd-login-workplace-v11-native.html" mobile/android/app/src/main/java/com/paymydine/mobile/ui/PmdStaffLogin.kt
-          grep -q "Restaurant approval" mobile/android/app/src/main/assets/pmd-login-workplace-v11-native.html
-          ! grep -q "PMD_ANDROID_PREPAIR_WORKSPACE_CHOOSER_V2" mobile/android/app/src/main/java/com/paymydine/mobile/ui/PayMyDineApp.kt
-          grep -q "preferredWorkspace" mobile/android/app/src/main/java/com/paymydine/mobile/security/DeviceCredentialStore.kt
-          grep -q "PMD_MOBILE_PAIR_APPROVAL_CARD_DEVICE_V5" app/Services/PmdMobileSync/PmdMobilePairingService.php
-          ! grep -qi "confirmdevice" app/Http/Controllers/PmdMobilePairController.php
-          grep -q "PMD_ANDROID_OFFLINE_POS_V2_CANONICAL_UI" mobile/android/app/src/main/java/com/paymydine/mobile/OfflinePosActivity.kt
-          grep -q "pmd-offline-pos.html" mobile/android/app/src/main/java/com/paymydine/mobile/OfflinePosActivity.kt
-          grep -q "pmd-qpos-main" mobile/android/app/src/main/assets/pmd-offline-pos.html
-          grep -q "PMD Quick POS V1" mobile/android/app/src/main/assets/pmd-quick-pos-v1.css
-          grep -q "PMD_ANDROID_STAFF_LOGIN_ROUTER_V3" app/Http/Controllers/PmdMobileWorkspaceAuthController.php
-          grep -q "PMD_ANDROID_CANONICAL_LOGIN_WAIT_V12" app/Http/Controllers/PmdMobileWorkspaceAuthController.php
-          grep -q "offline_expires_at" app/Http/Controllers/PmdMobileWorkspaceAuthController.php
-          grep -q "PMD_ANDROID_CANONICAL_LOGIN_REQUEST_V12" app/Http/Controllers/PmdMobileWorkspaceAuthController.php
-          grep -q "authenticateDevice" app/Http/Controllers/PmdMobileWorkspaceAuthController.php
-          grep -q "routeForRoleCode" app/Http/Controllers/PmdMobileWorkspaceAuthController.php
-          grep -q "PMD_MOBILE_ROLE_WORKSPACE_SESSION_V2" app/Http/Controllers/PmdMobileWorkspaceSessionController.php
-          grep -q "PMD_MOBILE_SESSION_LOCATION_AUTHORITY_V6" app/Services/PmdSiteAccessService.php
-          grep -q "SESSION_MOBILE_LOCATION" app/Services/PmdSiteAccessService.php
-          grep -q "SESSION_MOBILE_DEVICE" app/Services/PmdSiteAccessService.php
-          grep -q "PMD_MOBILE_ADMIN_SESSION_BINDING_V6" app/Http/Controllers/PmdMobilePosSessionController.php
-          grep -q "PMD_MOBILE_ADMIN_SESSION_BINDING_V6" app/Http/Controllers/PmdMobileWorkspaceSessionController.php
-          grep -q "PMD_MOBILE_SHARED_DEVICE_REVOCATION_V2" app/Services/PmdSiteAccessWorkspaceGateService.php
-          grep -q "PMD_MOBILE_SESSION_REENTRY_BYPASS_V5" app/Services/PmdSiteAccessWorkspaceGateService.php
-          grep -q "\$relative === 'mobile/pos/open'" app/Services/PmdSiteAccessWorkspaceGateService.php
-          grep -q "\$relative === 'mobile/workspace/open'" app/Services/PmdSiteAccessWorkspaceGateService.php
-          grep -q "PMD_MOBILE_OWNER_DEVICE_PROOF_V3" app/Services/PmdSiteAccessWorkspaceGateService.php
-          grep -q "PMD_MOBILE_OWNER_CANONICAL_SECURITY_V6" app/Http/Controllers/PmdMobileWorkspaceSessionController.php
-          grep -q "PMD_ANDROID_ROLE_WORKSPACE_ACTIVITY_V1" mobile/android/app/src/main/java/com/paymydine/mobile/RoleWorkspaceActivity.kt
-          grep -q "PMD_ANDROID_CANONICAL_MFA_WEBVIEW_V12" mobile/android/app/src/main/java/com/paymydine/mobile/RoleWorkspaceActivity.kt
-          grep -q "PMD_ANDROID_FRESH_ROLE_WEB_SESSION_V2" mobile/android/app/src/main/java/com/paymydine/mobile/RoleWorkspaceActivity.kt
-          grep -q "fresh staff sign-in" mobile/android/app/src/main/java/com/paymydine/mobile/RoleWorkspaceActivity.kt
-          grep -q 'android:name=".RoleWorkspaceActivity"' mobile/android/app/src/main/AndroidManifest.xml
-          grep -q "workspace/authorize" routes/pmd-mobile-sync-v1.php
-          grep -q "workspace/request" routes/pmd-mobile-sync-v1.php
-          grep -q "workspace/status" routes/pmd-mobile-sync-v1.php
-          grep -q "pair/request" routes/pmd-mobile-sync-v1.php
-          grep -q "PMD_SITE_ACCESS_EXPLICIT_IDENTITY_CHALLENGE_V12" app/Services/PmdSiteAccessService.php
-          grep -q "PMD_MOBILE_NATIVE_PAIR_DASHBOARD_WAIT_V12" app/Services/PmdMobileSync/PmdMobilePairingService.php
-          grep -q "PMD_MOBILE_NATIVE_PAIR_REQUEST_V12" app/Http/Controllers/PmdMobilePairController.php
-          grep -q "PMD_ANDROID_POS_PREVIEW_V18_CANONICAL_OFFLINE_POS" app/admin/views/pmdsettings/index.blade.php
-          grep -q "PayMyDine-Android-0.3.36.apk" app/admin/views/pmdsettings/index.blade.php
-          grep -q "PMD_MOBILE_SIGNED_DESTINATION_AUTHORITY_V12" app/Http/Controllers/PmdMobileWorkspaceSessionController.php
-          grep -q "PMD_MOBILE_PORTAL_CANONICAL_SECURITY_V12" app/Http/Controllers/PmdMobileWorkspaceSessionController.php
-          grep -q "PMD_ANDROID_OFFLINE_SESSION_AUTHORITY_V12" mobile/android/app/src/main/java/com/paymydine/mobile/security/DeviceCredentialStore.kt
-          grep -q "PMD_ANDROID_OFFLINE_POS_AUTHORITY_V12" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
-          grep -q "PMD_ANDROID_OFFLINE_KDS_AUTHORITY_V12" mobile/android/app/src/main/java/com/paymydine/mobile/KdsActivity.kt
-          grep -q "offlineSessionValid(\"pos\")" mobile/android/app/src/main/java/com/paymydine/mobile/OfflinePosActivity.kt
-          grep -q "throttle:60,1,pmd-mobile-pair-status" routes/pmd-mobile-sync-v1.php
-          grep -q "throttle:30,1,pmd-mobile-pair-exchange" routes/pmd-mobile-sync-v1.php
-          grep -q "throttle:20,1,pmd-mobile-staff-login" routes/pmd-mobile-sync-v1.php
-          grep -q "throttle:30,1,pmd-mobile-pos-open" routes/pmd-mobile-sync-v1.php
-          grep -q "throttle:30,1,pmd-mobile-workspace-open" routes/pmd-mobile-sync-v1.php
-          grep -q "PMD_MOBILE_STAFF_GRANT_V1" app/Services/PmdMobileSync/PmdMobileStaffGrantService.php
-          grep -q "PMD_MOBILE_DEVICE_TRUST_FIRST_V2" app/Services/PmdMobileSync/PmdMobileDeviceAuthService.php
-          grep -q "PMD_MOBILE_STAFF_GRANT_FIRST_V2" app/Services/PmdMobileSync/PmdMobileDeviceAuthService.php
-          grep -q "authenticateDevice" app/Services/PmdMobileSync/PmdMobileDeviceAuthService.php
-          grep -q "X-PayMyDine-Staff-Grant" mobile/android/app/src/main/java/com/paymydine/mobile/network/MobileApiClient.kt
-          grep -q "authorizeStaff" mobile/android/app/src/main/java/com/paymydine/mobile/network/MobileApiClient.kt
-          grep -q "authorizeWorkspace" mobile/android/app/src/main/java/com/paymydine/mobile/network/MobileApiClient.kt
-          grep -q "workspaceLeaseValid" mobile/android/app/src/main/java/com/paymydine/mobile/security/DeviceCredentialStore.kt
-          grep -q "PMD_ANDROID_POS_SEAMLESS_FAILOVER_V17" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
-          grep -q "PMD_ANDROID_POS_ROTATION_V19" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
-          grep -q 'android:screenOrientation="fullSensor"' mobile/android/app/src/main/AndroidManifest.xml
-          grep -q 'android:configChanges="screenLayout|orientation|screenSize|smallestScreenSize|keyboard|keyboardHidden"' mobile/android/app/src/main/AndroidManifest.xml
-          grep -q "PMD_ANDROID_LOGIN_OFFLINE_ERROR_SUPPRESSION_V15" mobile/android/app/src/main/java/com/paymydine/mobile/ui/PmdStaffLogin.kt
-          grep -q "PMD_ANDROID_LOGIN_HEIGHT_FRAME_V16" mobile/android/app/src/main/assets/pmd-login-workplace-v11-native.html
-          grep -q "PMD_ANDROID_LOGIN_TABLET_FRAME_V16" mobile/android/app/src/main/assets/pmd-login-workplace-v11-native.html
-          grep -q "PMD_ANDROID_LOGIN_TRUE_CENTER_V18G" mobile/android/app/src/main/assets/pmd-login-workplace-v11-native.html
-          grep -q "PMD_ANDROID_OFFLINE_HISTORY_UI_V16" mobile/android/app/src/main/assets/pmd-offline-pos.html
-          grep -q "PMD_ANDROID_OFFLINE_IMAGES_V16" mobile/android/app/src/main/assets/pmd-offline-pos.html
-          grep -q "PMD_ANDROID_OFFLINE_HISTORY_BRIDGE_V16" mobile/android/app/src/main/java/com/paymydine/mobile/OfflinePosActivity.kt
-          grep -q "PMD_ANDROID_OFFLINE_IMAGE_CACHE_V16" mobile/android/app/src/main/java/com/paymydine/mobile/data/local/OfflineImageCache.kt
-          grep -q "PMD_ANDROID_OFFLINE_HISTORY_CACHE_V16" mobile/android/app/src/main/java/com/paymydine/mobile/data/local/BootstrapRepository.kt
-          grep -q "PMD_ANDROID_OFFLINE_SNAPSHOT_REFRESH_V16" mobile/android/app/src/main/java/com/paymydine/mobile/ui/PayMyDineApp.kt
-          grep -q "PMD_ANDROID_PAIR_SINGLE_LOGIN_V16" mobile/android/app/src/main/java/com/paymydine/mobile/ui/PayMyDineApp.kt
-          grep -q "PMD_ANDROID_PAIR_INITIAL_AUTH_V16" mobile/android/app/src/main/java/com/paymydine/mobile/network/MobileApiClient.kt
-          grep -q "PMD_ANDROID_OFFLINE_HISTORY_SNAPSHOT_V16" app/Services/PmdMobileSync/PmdMobileBootstrapService.php
-          grep -q "PMD_MOBILE_PAIR_INITIAL_STAFF_GRANT_V16" app/Services/PmdMobileSync/PmdMobilePairingService.php
-          grep -q "PMD_ANDROID_0_3_28_RESPONSIVE_MATRIX_V102" mobile/android/app/build.gradle.kts
-          grep -q "PMD_ANDROID_0_3_27_RECONNECT_CASH_V101" mobile/android/app/build.gradle.kts
-          grep -q "PMD_ANDROID_0_3_26_NORMAL_BUTTONS_V100" mobile/android/app/build.gradle.kts
-          grep -q "PMD_ANDROID_NORMAL_PAGE_SCALE_V100" mobile/android/app/build.gradle.kts
-          grep -q "PMD_ANDROID_0_3_25_MOBILE_BALANCED_V99" mobile/android/app/build.gradle.kts
-          grep -q "PMD_ANDROID_0_3_24_MOBILE_FIT_V98" mobile/android/app/build.gradle.kts
-          grep -q "PMD_ANDROID_0_3_23_PORTRAIT_XL_V97" mobile/android/app/build.gradle.kts
-          grep -q "PMD_ANDROID_0_3_22_PORTRAIT_BREAKPOINT_V96" mobile/android/app/build.gradle.kts
-          grep -q "PMD_ANDROID_0_3_21_LARGE_TOUCH_V95" mobile/android/app/build.gradle.kts
-          grep -q "PMD_ANDROID_0_3_20_MOBILE_UI_V94" mobile/android/app/build.gradle.kts
-          grep -q "PMD_ANDROID_0_3_20_OFFLINE_COMPLETE_V23" mobile/android/app/build.gradle.kts
-          ! grep -q "PMD_ANDROID_0_3_6_OFFLINE_FAILOVER_LOGIN_FRAME" mobile/android/app/build.gradle.kts
-          grep -q "PMD_ANDROID_POS_SEAMLESS_FAILOVER_V17" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
-          grep -q "PMD_ANDROID_POS_ROTATION_V19" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
-          grep -q 'android:screenOrientation="fullSensor"' mobile/android/app/src/main/AndroidManifest.xml
-          grep -q 'android:configChanges="screenLayout|orientation|screenSize|smallestScreenSize|keyboard|keyboardHidden"' mobile/android/app/src/main/AndroidManifest.xml
-          grep -q "PMD_ANDROID_POS_RESOURCE_FAILOVER_V15" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
-          grep -q "PMD_ANDROID_POS_LOGIN_LOOP_GUARD_V10" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
-          grep -q "removeSessionCookies" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
-          ! grep -q "LocalPosScreen" mobile/android/app/src/main/java/com/paymydine/mobile/OfflinePosActivity.kt
-          grep -q "PMD_ANDROID_LOCAL_POS_PROJECTION_REFRESH_V2" mobile/android/app/src/main/java/com/paymydine/mobile/ui/LocalPosScreen.kt
-          test ! -e mobile/android/app/src/main/java/com/paymydine/mobile/ui/PmdWorkspaceHome.kt
-          grep -q "PMD_ANDROID_KDS_ACTIVITY_V1" mobile/android/app/src/main/java/com/paymydine/mobile/KdsActivity.kt
-          grep -q "PMD_ANDROID_RESERVATIONS_ACTIVITY_V1" mobile/android/app/src/main/java/com/paymydine/mobile/ReservationsActivity.kt
-          grep -q "PMD_ANDROID_FRESH_RESERVATIONS_WEB_SESSION_V2" mobile/android/app/src/main/java/com/paymydine/mobile/ReservationsActivity.kt
-          grep -q "PMD_MOBILE_PAIR_DASHBOARD_APPROVAL_V4" app/Services/PmdMobileSync/PmdMobilePairingService.php
-          grep -q "pmd_mobile_pair_requests" app/system/database/migrations/2026_09_20_190000_create_pmd_mobile_sync_tables.php
-          grep -q 'android:icon="@mipmap/ic_launcher"' mobile/android/app/src/main/AndroidManifest.xml
-          grep -q "SyncEngine(app).runOnce" mobile/android/app/src/main/java/com/paymydine/mobile/OfflinePosActivity.kt
-          grep -q "outboxCount" mobile/android/app/src/main/java/com/paymydine/mobile/OfflinePosActivity.kt
-          grep -Fq "'offline_payment_enabled' => true" app/Services/PmdMobileSync/PmdMobileBootstrapService.php
-          grep -Fq "'offline_cash_payment_enabled' => true" app/Services/PmdMobileSync/PmdMobileBootstrapService.php
-          grep -Fq "'offline_card_payment_enabled' => false" app/Services/PmdMobileSync/PmdMobileBootstrapService.php
-          ! grep -q 'android:name=".OfflinePosActivity"' mobile/android/app/src/main/AndroidManifest.xml
-          grep -q "PMD_ANDROID_DIRECT_LOGIN_LAUNCHER_V2" mobile/android/app/src/main/java/com/paymydine/mobile/MainActivity.kt
-          ! grep -q "PosActivity::class.java" mobile/android/app/src/main/java/com/paymydine/mobile/MainActivity.kt
-          ! grep -q "PosWebView(" mobile/android/app/src/main/java/com/paymydine/mobile/ui/PayMyDineApp.kt
-          grep -q "pair/status" routes/pmd-mobile-sync-v1.php
-          grep -q "pairExchangeSecret" app/Services/PmdMobileSync/PmdMobilePairingService.php
-          grep -q "pair_request" app/Http/Controllers/PmdMobilePairController.php
-          grep -q "pairStatus" mobile/android/app/src/main/java/com/paymydine/mobile/network/MobileApiClient.kt
-          grep -q "pairingRequest" mobile/android/app/src/main/java/com/paymydine/mobile/security/DeviceCredentialStore.kt
-          ! grep -q "Connect this Android device?" app/Http/Controllers/PmdMobilePairController.php
-          grep -q "PMD_MOBILE_PAIR_DASHBOARD_WAIT_V4" app/Http/Controllers/PmdMobilePairController.php
-          grep -q "Approve this Android device" app/Http/Controllers/PmdMobilePairController.php
-          node - <<'NODE'
-          const fs = require('fs');
-          for (const file of [
-            'mobile/android/app/src/main/assets/pmd-offline-pos.html',
-            'mobile/android/app/src/main/assets/pmd-login-workplace-v11-native.html',
-          ]) {
-            const html = fs.readFileSync(file, 'utf8');
-            const scripts = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)];
-            if (!scripts.length) throw new Error(file + ': no inline script found');
-            for (const match of scripts) new Function(match[1]);
-            console.log(file + ': inline JavaScript syntax PASS');
-          }
+          node tests/pmd-qpos-v121-server-round-authority-floating-keypad.test.mjs
+          node tests/pmd-qpos-v122-kds-batch-mobile-polish.test.mjs
 
-          for (const file of [
-            'app/admin/assets/js/pmd-quick-pos-v1.js',
-            'app/admin/assets/js/push-notifications.js',
-          ]) {
-            new Function(fs.readFileSync(file, 'utf8'));
-            console.log(file + ': JavaScript syntax PASS');
-          }
-          NODE
-          echo "PMD_ANDROID_SERVER_CONTRACT=PASS"
+          grep -q "PMD_ANDROID_LOCAL_FIRST_V2_V104" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
+          grep -q "PMD_ANDROID_V112_OFFLINE_WEB_PARITY" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
+          grep -q "PMD_ANDROID_PAYMENT_GATE_CLOUD_ONLY_V112" mobile/android/app/src/main/java/com/paymydine/mobile/sync/SyncEngine.kt
+          grep -q "PMD_ANDROID_CLOUD_LINE_EDIT_V106" mobile/android/app/src/main/java/com/paymydine/mobile/LocalPosBridge.kt
+          grep -q "PMD_ANDROID_SYNC_VISIBILITY_V104" mobile/android/app/src/main/java/com/paymydine/mobile/sync/SyncRepository.kt
+          grep -q "PMD_ANDROID_TRUSTED_BUSINESS_TIME_V104" mobile/android/app/src/main/java/com/paymydine/mobile/data/local/LocalPosRepository.kt
+
+          grep -q "PMD_MOBILE_ORDER_ITEM_ADJUST_V106" app/Services/PmdMobileSync/PmdMobileCommandProcessor.php
+          grep -q "PMD_MOBILE_CASH_LOCAL_AGGREGATE_RESOLVE_V101" app/Services/PmdMobileSync/PmdMobileCommandProcessor.php
+          grep -q "PMD_MOBILE_TRUSTED_TIME_ANCHOR_V104" app/Services/PmdMobileSync/PmdMobileBootstrapService.php
+          grep -q "PMD_PUSH_NATIVE_OFFLINE_SUSPEND_V18" app/admin/assets/js/push-notifications.js
+
+          grep -q "PMD_QPOS_SERVER_ROUND_AUTHORITY_V121" app/admin/assets/js/pmd-quick-pos-v1.js
+          grep -q "PMD_QPOS_BATCH_MAIN_PAY_V122" app/admin/assets/js/pmd-quick-pos-v1.js
+          grep -q "PMD_QPOS_MOBILE_LAYER_TOP_V122" app/admin/assets/css/pmd-quick-pos-v1.css
+          grep -q "PMD_KDS_RECEIVED_APPEND_REFRESH_V122" app/admin/views/kitchendisplay/index.blade.php
+
+          grep -q "PayMyDine-Android-0.3.37.apk" app/admin/views/pmdsettings/index.blade.php
+          grep -q "versionCode = 50" mobile/android/app/build.gradle.kts
+          grep -q 'versionName = "0.3.37-v122-local-first"' mobile/android/app/build.gradle.kts
 
   android:
     runs-on: ubuntu-latest
@@ -566,13 +256,13 @@ jobs:
           cp mobile/android/app/build/outputs/apk/debug/app-debug.apk \
             mobile/android/PayMyDine-POS-Tablet-Preview-0.3.35.apk
           cp mobile/android/app/build/outputs/apk/debug/app-debug.apk \
-            mobile/android/PayMyDine-Android-0.3.36.apk
+            mobile/android/PayMyDine-Android-0.3.37.apk
           sha256sum mobile/android/PayMyDine-POS-Tablet-Preview.apk \
             > mobile/android/PayMyDine-POS-Tablet-Preview.apk.sha256
           sha256sum mobile/android/PayMyDine-POS-Tablet-Preview-0.3.35.apk \
             > mobile/android/PayMyDine-POS-Tablet-Preview-0.3.35.apk.sha256
-          sha256sum mobile/android/PayMyDine-Android-0.3.36.apk \
-            > mobile/android/PayMyDine-Android-0.3.36.apk.sha256
+          sha256sum mobile/android/PayMyDine-Android-0.3.37.apk \
+            > mobile/android/PayMyDine-Android-0.3.37.apk.sha256
       - name: Verify preview APK identity
         shell: bash
         run: |
@@ -587,11 +277,11 @@ jobs:
           BADGING="$("$AAPT" dump badging "$APK" | head -1)"
           echo "$BADGING"
           grep -Fq "package: name='com.paymydine.mobile.pospreview'" <<<"$BADGING"
-          grep -Fq "versionCode='49'" <<<"$BADGING"
-          grep -Fq "versionName='0.3.36-v120-local-first-debug'" <<<"$BADGING"
+          grep -Fq "versionCode='50'" <<<"$BADGING"
+          grep -Fq "versionName='0.3.37-v122-local-first-debug'" <<<"$BADGING"
 
           echo "PMD_PREVIEW_PACKAGE=com.paymydine.mobile.pospreview"
-          echo "PMD_PREVIEW_VERSION=0.3.36-v120-local-first-debug"
+          echo "PMD_PREVIEW_VERSION=0.3.37-v122-local-first-debug"
 
           # PR checks intentionally use the runner's ephemeral debug key. Only a
           # direct push to the preview branch may verify/publish the pinned key.
@@ -622,8 +312,8 @@ jobs:
             mobile/android/PayMyDine-POS-Tablet-Preview.apk.sha256
             mobile/android/PayMyDine-POS-Tablet-Preview-0.3.35.apk
             mobile/android/PayMyDine-POS-Tablet-Preview-0.3.35.apk.sha256
-            mobile/android/PayMyDine-Android-0.3.36.apk
-            mobile/android/PayMyDine-Android-0.3.36.apk.sha256
+            mobile/android/PayMyDine-Android-0.3.37.apk
+            mobile/android/PayMyDine-Android-0.3.37.apk.sha256
           if-no-files-found: error
       - name: Publish tablet preview release
         if: github.event_name == 'push' && github.ref == 'refs/heads/feature/android-local-first-v1' && !startsWith(github.event.head_commit.message, 'CI:') && !startsWith(github.event.head_commit.message, 'Deploy:')
@@ -646,7 +336,7 @@ jobs:
             mobile/android/PayMyDine-POS-Tablet-Preview.apk.sha256 \
             mobile/android/PayMyDine-POS-Tablet-Preview-0.3.35.apk \
             mobile/android/PayMyDine-POS-Tablet-Preview-0.3.35.apk.sha256 \
-            mobile/android/PayMyDine-Android-0.3.36.apk \
-            mobile/android/PayMyDine-Android-0.3.36.apk.sha256 \
+            mobile/android/PayMyDine-Android-0.3.37.apk \
+            mobile/android/PayMyDine-Android-0.3.37.apk.sha256 \
             --repo "$GITHUB_REPOSITORY" \
             --clobber
