@@ -5,6 +5,7 @@ namespace Admin\Controllers;
 use Admin\Classes\PmdCleanWorkspaceControllerV1;
 use Admin\Services\PmdCleanWorkspaceSharedV1;
 use Admin\Services\PmdRoleDashboardDataV1;
+use Admin\Services\PmdDashboardAnalyticsSnapshotV132;
 use Admin\Services\PmdAdminPresenceService;
 use Illuminate\Support\Carbon;
 
@@ -28,7 +29,7 @@ class Managerlab extends PmdCleanWorkspaceControllerV1
         $this->addCss('css/pmd-role-dashboard-v1.css');
         $this->addCss('css/pmd-manager-online-staff-v1.css');
         $this->addCss('css/pmd-kitchen-today-team-v1.css');
-        $this->addJs('js/pmd-dashboard-lab-analytics-v1.js');
+        $this->addJs('js/pmd-dashboard-lab-analytics-v1.js?v=132-swr');
     }
 
     protected function pmdWorkspaceKey(): string
@@ -61,12 +62,38 @@ class Managerlab extends PmdCleanWorkspaceControllerV1
         if ((string)request()->query('pmd_analytics', '') === '1') {
             /** @var PmdRoleDashboardDataV1 $dashboard */
             $dashboard = app(PmdRoleDashboardDataV1::class);
-            return response()->json(
-                $dashboard->ownerAnalyticsPayload(
-                    (string)request()->query('period', 'month'),
-                    null
-                )
+            $period = (string)request()->query(
+                'period',
+                'month'
             );
+
+            $payload = $dashboard->ownerAnalyticsPayload(
+                $period,
+                null
+            );
+
+            // PMD_DASHBOARD_ANALYTICS_SWR_V132
+            // The endpoint remains the heavy-data authority; successful work
+            // is simply remembered for the next zero-query first paint.
+            $locationId = 0;
+            try {
+                $locationId = max(
+                    0,
+                    (int)$dashboard->resolveWorkspaceLocation()
+                );
+            } catch (\Throwable $ignored) {
+                $locationId = 0;
+            }
+
+            app(
+                PmdDashboardAnalyticsSnapshotV132::class
+            )->store(
+                $locationId,
+                $period,
+                is_array($payload) ? $payload : []
+            );
+
+            return response()->json($payload);
         }
 
         return parent::index();
@@ -115,10 +142,13 @@ class Managerlab extends PmdCleanWorkspaceControllerV1
 
         $this->vars['pmdRoleDashboardMode'] = 'manager';
         $this->vars['pmdRoleDashboardBundle'] = $bundle;
-        $this->vars['pmdRoleOwnerAnalyticsBootstrap'] = [
-            'server_first_paint' => false,
-            'periods' => [],
-        ];
+        // PMD_DASHBOARD_ANALYTICS_SWR_V132
+        // Read-only snapshot lookup only; no heavy analytics query runs here.
+        $this->vars['pmdRoleOwnerAnalyticsBootstrap'] = app(
+            PmdDashboardAnalyticsSnapshotV132::class
+        )->bootstrap(
+            max(0, (int)$shared->locationId())
+        );
         $this->vars['pmdRoleOwnerAnalyticsEndpoint'] =
             admin_url('managerlab').'?pmd_analytics=1';
         // PMD_MANAGER_REMOVE_ROLE_INSIGHT_CARDS_V3_5_2
