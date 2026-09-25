@@ -34,7 +34,6 @@ class PmdAdminRetiredPagesR77
         'categories',
         'mealtimes',
         'tables',
-        'reservations2',
         'statuses',
         'payments',
         'tips',
@@ -214,7 +213,16 @@ class PmdAdminRetiredPagesR77
          * These must remain directly accessible.
          */
         if (
-            $relative === 'dashboardlab'
+            // PMD_RESERVATIONS2_CURRENT_SURFACE_V130
+            // Reservations2 is the live shared Reservations workspace used by
+            // the Cashier side menu and Android Cloud re-entry. It must never
+            // be processed by the retired-page dashboard fallback.
+            $relative === 'reservations2'
+            || strpos(
+                $relative,
+                'reservations2/'
+            ) === 0
+            || $relative === 'dashboardlab'
             || $relative === 'pmdmenus'
             || $relative === 'pmdsmartcategories'
             || strpos(
