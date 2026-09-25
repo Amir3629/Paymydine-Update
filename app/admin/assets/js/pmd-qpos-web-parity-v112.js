@@ -958,6 +958,11 @@
     orderSelectionExplicitV72: false,
     offPremiseOrder: null,
     forceNewCheck: false,
+    // PMD_QPOS_MULTI_CHECK_STATE_V114
+    batchSelectV114: {
+      active: false,
+      selected: Object.create(null)
+    },
     cart: [],
     pendingSend: null,
     sentMutationBusy: Object.create(null),
@@ -1058,7 +1063,9 @@
       terminalTipKnown: false,
       receiptUrl: '',
       invoiceUrl: '',
-      idempotencyKey: uid('pay')
+      idempotencyKey: uid('pay'),
+      batchModeV114: false,
+      batchOrderIdsV114: []
     }
   };
 
@@ -3380,7 +3387,74 @@
   }
 
   /* PMD_QPOS_SIMPLIFIED_CHECKS_V14 */
-function renderOpenChecks() {
+/* PMD_QPOS_MULTI_CHECK_PAY_RUNTIME_V114 */
+  function batchPayableOrderV114(order) {
+    if (!order) return false;
+
+    var settlement = String(order.settlement_status || 'unpaid').toLowerCase();
+    var remaining = Math.max(
+      0,
+      roundMoney(orderTotal(order) - num(order.settled_amount, 0))
+    );
+
+    return (
+      [
+        'paid','settled','closed',
+        'cancelled','canceled','failed','refunded'
+      ].indexOf(settlement) === -1 &&
+      remaining > 0.005
+    );
+  }
+
+  function batchSelectedOrdersV114() {
+    return state.openOrders.filter(function (order) {
+      return (
+        batchPayableOrderV114(order) &&
+        !!state.batchSelectV114.selected[String(orderId(order))]
+      );
+    });
+  }
+
+  function batchSelectedRemainingV114() {
+    return roundMoney(batchSelectedOrdersV114().reduce(function (sum, order) {
+      return sum + Math.max(
+        0,
+        orderTotal(order) - num(order.settled_amount, 0)
+      );
+    }, 0));
+  }
+
+  function resetBatchSelectionV114() {
+    state.batchSelectV114.active = false;
+    state.batchSelectV114.selected = Object.create(null);
+  }
+
+  async function openBatchPaymentV114() {
+    if (state.cart.length) {
+      toast('Send current items first.', true);
+      return;
+    }
+
+    var selected = batchSelectedOrdersV114();
+    if (selected.length < 2) {
+      toast('Select at least two unpaid checks.', true);
+      return;
+    }
+
+    var ids = selected.map(orderId);
+    var total = batchSelectedRemainingV114();
+
+    showPaymentPreview(total, 0, '');
+    state.payment.batchModeV114 = true;
+    state.payment.batchOrderIdsV114 = ids;
+    state.payment.splitMode = 'full';
+    state.payment.amount = total.toFixed(2);
+    state.payment.cashReceived = total.toFixed(2);
+    renderPayment();
+    loadPaymentSummary(false);
+  }
+
+  function renderOpenChecks() {
     var box = $('[data-qpos-open-checks]');
     if (!box) return;
 
@@ -3396,66 +3470,120 @@ function renderOpenChecks() {
     ) {
       box.hidden = true;
       box.innerHTML = '';
+      resetBatchSelectionV114();
       return;
     }
 
     box.hidden = false;
+
+    Object.keys(state.batchSelectV114.selected).forEach(function (key) {
+      var keep = state.openOrders.some(function (order) {
+        return (
+          String(orderId(order)) === String(key) &&
+          batchPayableOrderV114(order)
+        );
+      });
+      if (!keep) delete state.batchSelectV114.selected[key];
+    });
+
+    var payable = state.openOrders.filter(batchPayableOrderV114);
+    var selecting =
+      state.batchSelectV114.active &&
+      payable.length >= 2;
+
+    if (!selecting && state.batchSelectV114.active) {
+      resetBatchSelectionV114();
+    }
+
+    var selected = batchSelectedOrdersV114();
     var rows = [];
+
+    if (payable.length >= 2) {
+      rows.push(
+        '<button type="button" class="pmd-qpos-check-select-v114" ' +
+          'data-qpos-check-select-v114>' +
+          (selecting ? 'Cancel' : 'Select') +
+        '</button>'
+      );
+
+      if (selecting && selected.length >= 2) {
+        rows.push(
+          '<button type="button" class="pmd-qpos-check-pay-v114" ' +
+            'data-qpos-check-pay-v114>' +
+            'Pay ' + esc(selected.length) + ' · ' +
+            esc(money(batchSelectedRemainingV114())) +
+          '</button>'
+        );
+      }
+    }
 
     state.openOrders.forEach(function (order) {
       var id = orderId(order);
       var settlement = String(order.settlement_status || '').toLowerCase();
       var isPaid = ['paid', 'settled', 'closed'].indexOf(settlement) !== -1;
+      var isSelected = !!state.batchSelectV114.selected[String(id)];
       var classes = [];
+
       if (Number(state.activeOrderId) === id) classes.push('is-active');
       if (isPaid) classes.push('is-paid-v71');
+      if (isSelected) classes.push('is-batch-selected-v114');
+
       rows.push(
         '<button type="button" data-qpos-check="' + esc(id) + '"' +
-          (classes.length ? ' class="' + classes.join(' ') + '"' : '') + '>' +
+          (classes.length ? ' class="' + classes.join(' ') + '"' : '') +
+          (selecting && !batchPayableOrderV114(order) ? ' disabled' : '') +
+        '>' +
+          (selecting && isSelected ? '✓ ' : '') +
           '#' + esc(id) + ' · ' + money(orderTotal(order)) +
           (isPaid ? ' · Paid' : '') +
         '</button>'
       );
     });
 
-    /* PMD_QPOS_CHECK_CHIP_REUSE_V41
-     * Reuse existing check buttons when the check set is unchanged. */
-    var mounted = Array.prototype.slice.call(
-      box.querySelectorAll('[data-qpos-check]')
-    );
-    var canReuse =
-      mounted.length === state.openOrders.length &&
-      mounted.every(function (button, index) {
-        return Number(button.getAttribute('data-qpos-check') || 0) ===
-          orderId(state.openOrders[index]);
-      });
+    box.innerHTML = rows.join('');
 
-    if (canReuse) {
-      mounted.forEach(function (button, index) {
-        var order = state.openOrders[index];
-        var id = orderId(order);
-        var settlement = String(order.settlement_status || '').toLowerCase();
-        var isPaid = ['paid', 'settled', 'closed'].indexOf(settlement) !== -1;
-        button.classList.toggle(
-          'is-active',
-          Number(state.activeOrderId) === id
-        );
-        button.classList.toggle('is-paid-v71', isPaid);
-        button.textContent =
-          '#' + id + ' · ' + money(orderTotal(order)) +
-          (isPaid ? ' · Paid' : '');
-      });
-    } else {
-      box.innerHTML = rows.join('');
-      mounted = Array.prototype.slice.call(
-        box.querySelectorAll('[data-qpos-check]')
-      );
+    var selectMode = $('[data-qpos-check-select-v114]', box);
+    if (selectMode) {
+      selectMode.onclick = function () {
+        if (state.batchSelectV114.active) {
+          resetBatchSelectionV114();
+        } else {
+          state.batchSelectV114.active = true;
+          state.batchSelectV114.selected = Object.create(null);
+        }
+        renderOpenChecks();
+      };
     }
 
-    mounted.forEach(function (button) {
+    var paySelected = $('[data-qpos-check-pay-v114]', box);
+    if (paySelected) {
+      paySelected.onclick = openBatchPaymentV114;
+    }
+
+    $$('[data-qpos-check]', box).forEach(function (button) {
       button.onclick = function () {
         var value = Number(button.getAttribute('data-qpos-check') || 0);
-        if (value !== 0) selectOrder(value);
+        if (!value) return;
+
+        if (state.batchSelectV114.active) {
+          var order = state.openOrders.find(function (row) {
+            return orderId(row) === value;
+          });
+
+          if (!batchPayableOrderV114(order)) return;
+
+          var key = String(value);
+          if (state.batchSelectV114.selected[key]) {
+            delete state.batchSelectV114.selected[key];
+          } else {
+            state.batchSelectV114.selected[key] = true;
+          }
+
+          renderOpenChecks();
+          return;
+        }
+
+        selectOrder(value);
       };
     });
   }
@@ -6105,6 +6233,8 @@ function renderOpenChecks() {
       invoiceUrl: '',
       idempotencyKey: uid('pay'),
       authoritative: false,
+      batchModeV114: false,
+      batchOrderIdsV114: [],
       touchKeypadTarget: 'cash',
       touchKeypadFresh: true
     };
@@ -6514,7 +6644,14 @@ function renderOpenChecks() {
   }
 
   function loadPaymentSummary(silent) {
-    if (!state.activeOrderId) {
+    if (
+      !state.activeOrderId &&
+      !(
+        state.payment.batchModeV114 &&
+        Array.isArray(state.payment.batchOrderIdsV114) &&
+        state.payment.batchOrderIdsV114.length >= 2
+      )
+    ) {
       return Promise.resolve(false);
     }
 
@@ -6529,12 +6666,24 @@ function renderOpenChecks() {
 
     state.payment.summaryPromise = (async function () {
       try {
-        var url = tokenUrl(
-          state.settings.payment_summary_url,
-          '{order}',
-          state.activeOrderId
-        );
-        var json = await fetchJson(url + '?_=' + Date.now());
+        var json;
+
+        if (state.payment.batchModeV114) {
+          json = await fetchJson('/admin/pos/payment-batch-summary', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+              order_ids: state.payment.batchOrderIdsV114
+            })
+          });
+        } else {
+          var url = tokenUrl(
+            state.settings.payment_summary_url,
+            '{order}',
+            state.activeOrderId
+          );
+          json = await fetchJson(url + '?_=' + Date.now());
+        }
         state.payment.summary = json;
         state.payment.authoritative = true;
         state.payment.amount = roundMoney(
@@ -6607,7 +6756,10 @@ function renderOpenChecks() {
       ? state.payment.summary.terminal_providers
       : [];
 
-    if (state.payment.method === 'external_terminal') {
+    if (
+      !state.payment.batchModeV114 &&
+      state.payment.method === 'external_terminal'
+    ) {
       state.payment.method = 'cash';
       state.payment.reference = '';
       state.payment.externalConfirmed = false;
@@ -6625,10 +6777,19 @@ function renderOpenChecks() {
       state.payment.touchKeypadFresh = true;
     }
 
-    var methods = [
-      {code: 'cash', name: 'Cash', disabled: false},
-      {code: 'direct_terminal', name: 'Terminal', disabled: !providers.length}
-    ];
+    var methods = state.payment.batchModeV114
+      ? [
+          {code: 'cash', name: 'Cash', disabled: false},
+          {
+            code: 'external_terminal',
+            name: 'External terminal',
+            disabled: false
+          }
+        ]
+      : [
+          {code: 'cash', name: 'Cash', disabled: false},
+          {code: 'direct_terminal', name: 'Terminal', disabled: !providers.length}
+        ];
 
     var methodSignature = methods.map(function (method) {
       return [
@@ -7155,7 +7316,9 @@ function renderOpenChecks() {
 
     if (amountEl && document.activeElement !== amountEl) {
       amountEl.value = state.payment.amount;
-      amountEl.disabled = state.payment.method === 'direct_terminal';
+      amountEl.disabled =
+        state.payment.method === 'direct_terminal' ||
+        state.payment.batchModeV114;
     }
 
     if (cashField) {
@@ -7301,12 +7464,23 @@ function renderOpenChecks() {
         'is-terminal',
         state.payment.method === 'direct_terminal'
       );
+      paymentCard.classList.toggle(
+        'is-batch-v114',
+        !!state.payment.batchModeV114
+      );
     }
 
     if (title) {
-      title.textContent = state.activeOrderId
-        ? 'Order #' + String(state.activeOrderId)
-        : 'Payment';
+      title.textContent = state.payment.batchModeV114
+        ? (
+            String(state.payment.batchOrderIdsV114.length) +
+            ' orders · Combined payment'
+          )
+        : (
+            state.activeOrderId
+              ? 'Order #' + String(state.activeOrderId)
+              : 'Payment'
+          );
     }
 
     if (summary) {
@@ -7433,8 +7607,101 @@ function renderOpenChecks() {
     renderAll();
   }
 
+  async function executeBatchPaymentV114() {
+    if (
+      !state.payment.batchModeV114 ||
+      !Array.isArray(state.payment.batchOrderIdsV114) ||
+      state.payment.batchOrderIdsV114.length < 2
+    ) {
+      return;
+    }
+
+    if (state.payment.method === 'direct_terminal') {
+      showPaymentError(
+        'Combined payment supports Cash or External terminal. Integrated terminal batching requires a provider-level batch transaction.'
+      );
+      return;
+    }
+
+    state.payment.submitting = true;
+    showPaymentError('');
+    renderPaymentTotals();
+
+    try {
+      var summary = state.payment.summary || {};
+      var json = await fetchJson('/admin/pos/payment-batch-settle', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          order_ids: state.payment.batchOrderIdsV114,
+          idempotency_key: state.payment.idempotencyKey,
+          payment_method: state.payment.method,
+          payment_reference: state.payment.reference,
+          external_confirmed:
+            state.payment.method === 'external_terminal'
+              ? state.payment.externalConfirmed
+              : false,
+          cash_received:
+            state.payment.method === 'cash'
+              ? num(state.payment.cashReceived, paymentCharge())
+              : null,
+          tip_amount: 0,
+          expected_remaining: num(
+            summary.settlement && summary.settlement.remaining_amount,
+            0
+          )
+        })
+      });
+
+      var paidIds = state.payment.batchOrderIdsV114.slice();
+
+      state.openOrders.forEach(function (order) {
+        if (paidIds.indexOf(orderId(order)) === -1) return;
+        order.settlement_status = 'paid';
+        order.settled_amount = orderTotal(order);
+        order.structural_locked = true;
+      });
+
+      var tableId =
+        state.serviceMode === 'dine_in' && state.selectedTable
+          ? Number(state.selectedTable.id)
+          : 0;
+
+      closePayment();
+      resetBatchSelectionV114();
+      state.activeOrderId = null;
+      state.orderSelectionExplicitV72 = false;
+      state.forceNewCheck = true;
+      renderAll();
+
+      if (tableId) {
+        state.liveSelectedSignatureV73 = '';
+        setTimeout(function () {
+          loadTable(tableId, true);
+        }, 0);
+      } else if (state.serviceMode === 'takeaway') {
+        state.pickupOrdersSignatureV78 = '';
+        setTimeout(function () {
+          loadPickupOrdersV78(true);
+        }, 0);
+      }
+
+      toast(json.message || 'Combined payment completed.');
+    } catch (error) {
+      showPaymentError(error.message || 'Combined payment failed.');
+      await loadPaymentSummary(true);
+    } finally {
+      state.payment.submitting = false;
+      renderPaymentTotals();
+    }
+  }
+
   async function executePayment() {
     if (!state.payment.summary || state.payment.submitting) return;
+
+    if (state.payment.batchModeV114) {
+      return executeBatchPaymentV114();
+    }
 
     /* PMD_QPOS_PAYMENT_EARLY_TAP_V52
      * If the cashier taps immediately after opening Payment, keep that action:

@@ -7,6 +7,9 @@ use Illuminate\Support\Facades\Schema;
 // New Admin controller files are normally discovered by the module loader.
 // Require the Quick POS controller explicitly so a stale generated class map
 // can never block the first deployment before runtime caches are rebuilt.
+require_once base_path(
+    'app/admin/controllers/concerns/PmdQuickPosBatchPaymentV114Concern.php'
+);
 require_once base_path('app/admin/controllers/PmdQuickPosV1.php');
 
 // PMD_QUICK_POS_V1
@@ -81,6 +84,16 @@ Route::middleware(['web'])->group(function () {
         '/admin/pos/payment-settle/{order}',
         [\Admin\Controllers\PmdQuickPosV1::class, 'settlePayment']
     )->where('order', '[0-9]+');
+
+    // PMD_QPOS_MULTI_CHECK_PAY_ROUTES_V114
+    Route::post(
+        '/admin/pos/payment-batch-summary',
+        [\Admin\Controllers\PmdQuickPosV1::class, 'batchPaymentSummary']
+    );
+    Route::post(
+        '/admin/pos/payment-batch-settle',
+        [\Admin\Controllers\PmdQuickPosV1::class, 'settleBatchPayment']
+    );
 
     // PMD_QPOS_PAYMENT_ENDPOINTS_V50
     // Keep every payment action inside the Quick POS controller so the same
