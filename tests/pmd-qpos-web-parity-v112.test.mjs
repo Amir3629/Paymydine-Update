@@ -11,8 +11,8 @@ assert.equal(parityCss, canonicalCss, 'Android CSS must be byte-for-byte Web CSS
 assert.equal(parityJs, canonicalJs, 'Android JS must be byte-for-byte Web JS');
 
 assert.ok(view.includes('PMD_QPOS_WEB_PARITY_V112'));
-assert.ok(view.includes('pmd-qpos-web-parity-v112.css?v=20260925-v120'));
-assert.ok(view.includes('pmd-qpos-web-parity-v112.js?v=20260925-v120'));
+assert.ok(view.includes('pmd-qpos-web-parity-v112.css?v=20260925-v112'));
+assert.ok(view.includes('pmd-qpos-web-parity-v112.js?v=20260925-v112'));
 
 for (const forbidden of [
   'pmd-qpos-android-form-factor-v107.css',

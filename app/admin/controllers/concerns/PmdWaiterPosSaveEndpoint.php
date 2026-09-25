@@ -46,8 +46,11 @@ trait PmdWaiterPosSaveEndpoint
         }
 
         try {
-            $result = DB::transaction(function () use ($table, $payload, $cart, $mode, $paymentGate) {
+            $result = DB::transaction(function () use ($table, $payload, $cart, $mode, $paymentGate, $quickPos) {
                 $requestedOrderId = (int)($payload['order_id'] ?? 0);
+                $roundCandidateOrderIdV121 = $quickPos
+                    ? (int)($payload['round_candidate_order_id'] ?? 0)
+                    : 0;
 
                 /*
                  * PMD_QUICK_POS_FORCE_NEW_CHECK_V1
@@ -62,17 +65,30 @@ trait PmdWaiterPosSaveEndpoint
                     FILTER_VALIDATE_BOOLEAN
                 );
 
-                $order = (
-                    $forceNewCheck
-                    && $requestedOrderId < 1
-                )
-                    ? null
-                    : $this->resolveWritableOrder(
+                // PMD_QPOS_SERVER_ROUND_AUTHORITY_V121
+                if (
+                    $mode === 'send'
+                    && !$paymentGate
+                    && $roundCandidateOrderIdV121 > 0
+                ) {
+                    $order = $this->resolveQuickPosKitchenRoundCandidateV121(
                         $table,
-                        $requestedOrderId,
-                        true,
-                        $mode === 'send' && !$paymentGate
-                    ); // PMD_QPOS_RECEIVED_APPEND_SAVE_V113
+                        $roundCandidateOrderIdV121,
+                        true
+                    );
+                } else {
+                    $order = (
+                        $forceNewCheck
+                        && $requestedOrderId < 1
+                    )
+                        ? null
+                        : $this->resolveWritableOrder(
+                            $table,
+                            $requestedOrderId,
+                            true,
+                            $mode === 'send' && !$paymentGate
+                        ); // PMD_QPOS_RECEIVED_APPEND_SAVE_V113
+                }
 
                 $isNew = !$order;
 
@@ -337,22 +353,38 @@ trait PmdWaiterPosSaveEndpoint
 
         $result = DB::transaction(function () use ($table, $payload, $cart, $mode, $paymentGate) {
             $requestedOrderId = (int)($payload['order_id'] ?? 0);
+            $roundCandidateOrderIdV121 = (int)(
+                $payload['round_candidate_order_id'] ?? 0
+            );
             $forceNewCheck = $paymentGate || filter_var(
                 $payload['force_new_check'] ?? false,
                 FILTER_VALIDATE_BOOLEAN
             );
 
-            $order = (
-                $forceNewCheck
-                && $requestedOrderId < 1
-            )
-                ? null
-                : $this->resolveWritableOrder(
+            // PMD_QPOS_SERVER_ROUND_AUTHORITY_V121
+            if (
+                $mode === 'send'
+                && !$paymentGate
+                && $roundCandidateOrderIdV121 > 0
+            ) {
+                $order = $this->resolveQuickPosKitchenRoundCandidateV121(
                     $table,
-                    $requestedOrderId,
-                    true,
-                    $mode === 'send' && !$paymentGate
-                ); // PMD_QPOS_RECEIVED_APPEND_SAVE_V113
+                    $roundCandidateOrderIdV121,
+                    true
+                );
+            } else {
+                $order = (
+                    $forceNewCheck
+                    && $requestedOrderId < 1
+                )
+                    ? null
+                    : $this->resolveWritableOrder(
+                        $table,
+                        $requestedOrderId,
+                        true,
+                        $mode === 'send' && !$paymentGate
+                    ); // PMD_QPOS_RECEIVED_APPEND_SAVE_V113
+            }
 
             $isNew = !$order;
 

@@ -1535,9 +1535,17 @@
             const signature = renderSignatureV1(order);
             let card = existing.get(id) || null;
 
-            if (card && initialRefreshHydrationPendingV1 && !card.dataset.renderSignatureV1) {
-                card.dataset.renderSignatureV1 = signature;
-            } else if (!card || card.dataset.renderSignatureV1 !== signature) {
+            /* PMD_KDS_RECEIVED_APPEND_REFRESH_V122
+             * A server-rendered card has no JS signature yet. The old first
+             * refresh stamped the NEW signature onto the OLD DOM without
+             * repainting it. If POS appended food while the ticket was still
+             * Received, KDS could then look unchanged forever. First refresh
+             * now reconciles the actual card contents immediately. */
+            if (
+                !card ||
+                !card.dataset.renderSignatureV1 ||
+                card.dataset.renderSignatureV1 !== signature
+            ) {
                 const template = document.createElement('template');
                 template.innerHTML = renderOrderCardV1(order).trim();
                 const next = template.content.firstElementChild;
@@ -1570,9 +1578,11 @@
             const formData = new URLSearchParams();
             formData.append('_handler', 'onRefresh');
             if (currentStationSlug) formData.append('station_slug', currentStationSlug);
+            formData.append('_v122', String(Date.now()));
 
             const response = await fetch(@json(admin_url('kitchendisplay/index')), {
                 method: 'POST',
+                cache: 'no-store',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
                     'X-Requested-With': 'XMLHttpRequest',

@@ -14753,3 +14753,136 @@ body.pmd-qpos-body {
     grid-template-columns: 1fr !important;
   }
 }
+
+
+/* ============================================================
+   PMD_QPOS_MOBILE_FLOATING_KEYPAD_V121
+   Keep the cashier numpad visible while the payment form scrolls behind it.
+   Extra bottom padding keeps Split/Tip/fields reachable above the sheet.
+   ============================================================ */
+@media (max-width: 599px) {
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal]
+  .pmd-qpos-payment-body {
+    padding-bottom: calc(326px + env(safe-area-inset-bottom)) !important;
+  }
+
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal]
+  .pmd-qpos-payment-keypad-column {
+    position: fixed !important;
+    z-index: 2147482500 !important;
+    left: 10px !important;
+    right: 10px !important;
+    bottom: max(8px,env(safe-area-inset-bottom)) !important;
+    width: auto !important;
+    max-width: 620px !important;
+    margin: 0 auto !important;
+    pointer-events: auto !important;
+  }
+
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal]
+  .pmd-qpos-payment-keypad-column
+  .pmd-qpos-touch-keypad {
+    width: 100% !important;
+    height: auto !important;
+    max-height: 310px !important;
+    margin: 0 !important;
+    padding: 9px !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 16px !important;
+    background: rgba(255,255,255,.98) !important;
+    box-shadow: 0 14px 34px rgba(15,23,42,.22) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+  }
+
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal]
+  .pmd-qpos-payment-keypad-column
+  .pmd-qpos-touch-keypad > header {
+    min-height: 44px !important;
+    margin: 0 0 7px !important;
+    padding: 0 3px 7px !important;
+  }
+
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal]
+  .pmd-qpos-payment-keypad-column
+  .pmd-qpos-touch-keypad > header span {
+    font-size: 10px !important;
+  }
+
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal]
+  .pmd-qpos-payment-keypad-column
+  .pmd-qpos-touch-keypad > header strong {
+    font-size: 22px !important;
+  }
+
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal]
+  .pmd-qpos-payment-keypad-column
+  .pmd-qpos-touch-keypad-grid {
+    grid-auto-rows: 52px !important;
+    gap: 6px !important;
+  }
+
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal]
+  .pmd-qpos-payment-keypad-column
+  .pmd-qpos-touch-keypad-grid button {
+    min-height: 52px !important;
+    height: 52px !important;
+    border-radius: 11px !important;
+    font-size: 19px !important;
+  }
+
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal]
+  .pmd-qpos-payment-keypad-column
+  .pmd-qpos-touch-keypad-grid .pmd-qpos-keypad-pay {
+    font-size: 12px !important;
+  }
+}
+
+@media (max-width: 380px), (max-height: 700px) and (max-width: 599px) {
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal]
+  .pmd-qpos-payment-body {
+    padding-bottom: calc(290px + env(safe-area-inset-bottom)) !important;
+  }
+
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal]
+  .pmd-qpos-payment-keypad-column
+  .pmd-qpos-touch-keypad-grid {
+    grid-auto-rows: 46px !important;
+  }
+
+  .pmd-qpos-workspace-modal[data-qpos-payment-modal]
+  .pmd-qpos-payment-keypad-column
+  .pmd-qpos-touch-keypad-grid button {
+    min-height: 46px !important;
+    height: 46px !important;
+  }
+}
+
+
+/* ============================================================
+   PMD_QPOS_MOBILE_LAYER_TOP_V122
+   - the fixed mobile total rail sits behind the in-flow Check card
+   - sticky categories touch the top edge with no artificial top gap
+   ============================================================ */
+@media (max-width: 599px) {
+  .pmd-qpos-cart {
+    position: relative !important;
+    z-index: 45 !important;
+    background: #fff !important;
+    isolation: isolate;
+  }
+
+  .pmd-qpos-mobile-cart,
+  .pmd-qpos.is-portrait-v86 .pmd-qpos-mobile-cart {
+    z-index: 40 !important;
+  }
+
+  .pmd-qpos-categories,
+  .pmd-qpos.is-portrait-v86 .pmd-qpos-categories {
+    position: sticky !important;
+    top: 0 !important;
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+    border-top: 0 !important;
+  }
+}

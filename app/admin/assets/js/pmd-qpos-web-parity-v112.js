@@ -4440,27 +4440,48 @@
     }
 
     if (pay) {
-      /* PMD_QPOS_PAY_BACKEND_AUTHORITY_V50
-       * The button is a workflow control, not a permission authority.
-       * Quick POS payment endpoints enforce authorization server-side.
-       * If a real check is already loaded, Pay must be usable immediately. */
-      var payableOrder = activeOrder();
-      var waitingForPayableOrder =
-        state.tableSwitching && !payableOrder;
+      /* PMD_QPOS_BATCH_MAIN_PAY_V122
+       * Multi-select exists to combine several checks into one payment.
+       * The normal green Pay button is therefore the primary batch action,
+       * not a disabled control that forces the cashier to hunt for another
+       * button in the check rail. */
+      var batchPayOrdersV122 = batchBillSelectionActiveV116()
+        ? batchSelectedOrdersV114()
+        : [];
+      var batchPayReadyV122 = batchPayOrdersV122.length >= 2;
 
-      pay.disabled =
-        batchBillSelectionActiveV116() ||
-        waitingForPayableOrder ||
-        !!state.pendingSend ||
-        state.submitting ||
-        (
-          !payableOrder &&
-          !(canOrderNow() && state.cart.length > 0)
-        );
+      if (batchBillSelectionActiveV116()) {
+        pay.disabled =
+          !batchPayReadyV122 ||
+          !!state.pendingSend ||
+          state.submitting;
+        pay.textContent = batchPayReadyV122
+          ? (
+              'Pay ' + String(batchPayOrdersV122.length) +
+              ' · ' + money(batchBillTotalV116())
+            )
+          : 'Select 2+ to Pay';
+      } else {
+        /* PMD_QPOS_PAY_BACKEND_AUTHORITY_V50
+         * The button is a workflow control, not a permission authority.
+         * Quick POS payment endpoints enforce authorization server-side.
+         * If a real check is already loaded, Pay must be usable immediately. */
+        var payableOrder = activeOrder();
+        var waitingForPayableOrder =
+          state.tableSwitching && !payableOrder;
 
-      /* PMD_QPOS_PAY_LABEL_V82
-       * Keep the proven send-then-pay workflow behind one simple operator label. */
-      pay.textContent = 'Pay';
+        pay.disabled =
+          waitingForPayableOrder ||
+          !!state.pendingSend ||
+          state.submitting ||
+          (
+            !payableOrder &&
+            !(canOrderNow() && state.cart.length > 0)
+          );
+
+        /* PMD_QPOS_PAY_LABEL_V82 */
+        pay.textContent = 'Pay';
+      }
     }
 
     renderContext();
@@ -5999,6 +6020,19 @@
     var order = activeOrder();
     var canAppendReceivedV113 =
       !order || orderAcceptsReceivedAppendV113(order);
+
+    /* PMD_QPOS_SERVER_ROUND_AUTHORITY_V121
+     * The browser may briefly hold a stale can_append_items value.
+     * Always carry the selected dine-in order as a candidate. The backend
+     * decides under row lock:
+     *   Received            -> append to the same order
+     *   Preparation / later -> create a fresh order / KDS ticket.
+     * order_id remains the optimistic fast path. */
+    var roundCandidateOrderIdV121 =
+      state.serviceMode === 'dine_in' && order
+        ? Number(state.activeOrderId || 0)
+        : 0;
+
     var appendOrderIdV113 =
       order && canAppendReceivedV113
         ? state.activeOrderId
@@ -6009,6 +6043,7 @@
       serviceMode: state.serviceMode,
       tableId: state.selectedTable ? Number(state.selectedTable.id) : null,
       activeOrderId: appendOrderIdV113,
+      roundCandidateOrderId: roundCandidateOrderIdV121 || null,
       expectedUpdatedAt:
         order && canAppendReceivedV113 && order.updated_at
           ? order.updated_at
@@ -6036,6 +6071,7 @@
     var payload = {
       mode: snapshot.mode,
       order_id: snapshot.activeOrderId,
+      round_candidate_order_id: snapshot.roundCandidateOrderId,
       expected_updated_at: snapshot.expectedUpdatedAt,
       guest_count: snapshot.guestCount,
       note: snapshot.note,
@@ -10319,6 +10355,11 @@
     var pay = $('[data-qpos-pay]');
     if (send) send.onclick = function () { submitOrder('send'); };
     if (pay) pay.onclick = function () {
+      if (batchBillSelectionActiveV116()) {
+        openBatchPaymentV114();
+        return;
+      }
+
       if (state.cart.length > 0) {
         var currentOrder = activeOrder();
         var payBeforeKitchen =
@@ -10340,10 +10381,32 @@
     if (mobileCart && cart) {
       mobileCart.onclick = function () {
         if (isMobileCartFlowV87()) {
+          /* PMD_QPOS_MOBILE_CART_END_V122
+           * The floating total is a shortcut to Checkout. Land at the END of
+           * the document/check card, not its top edge. The check card has a
+           * higher mobile stacking layer, so the total rail naturally passes
+           * behind it as Checkout comes into view. */
           cart.classList.remove('is-mobile-open');
+
           if (cart.scrollIntoView) {
-            cart.scrollIntoView({behavior: 'smooth', block: 'start'});
+            cart.scrollIntoView({behavior: 'smooth', block: 'end'});
           }
+
+          window.requestAnimationFrame(function () {
+            var scrolling =
+              document.scrollingElement ||
+              document.documentElement;
+            var bottom = Math.max(
+              scrolling ? scrolling.scrollHeight : 0,
+              document.body ? document.body.scrollHeight : 0
+            );
+
+            try {
+              window.scrollTo({top: bottom, behavior: 'smooth'});
+            } catch (ignored) {
+              window.scrollTo(0, bottom);
+            }
+          });
           return;
         }
 
