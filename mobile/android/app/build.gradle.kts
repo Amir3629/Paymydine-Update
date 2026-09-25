@@ -46,6 +46,7 @@ android {
         // PMD_ANDROID_0_3_33_V111_LOCAL_FIRST
         // PMD_ANDROID_0_3_33_V112_LOCAL_FIRST
         // V112 keeps Local-First transport while rendering exact Web Quick POS parity.
+        // PMD_ANDROID_0_3_33_V112_RELEASE_FINAL
         // V111 carries V108 pay-before-Kitchen intent and V111 tablet UI offline.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "SYNC_PROTOCOL_VERSION", "\"pmd-sync-v1\"")
