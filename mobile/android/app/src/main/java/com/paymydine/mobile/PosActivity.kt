@@ -84,7 +84,7 @@ class PosActivity : ComponentActivity() {
         // PMD_ANDROID_POS_LIVE_ROTATION_V87
         // Reassert sensor ownership on every POS Activity instance. The vendor
         // task/window must not keep the orientation that was active at login.
-        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR
+        applyDeviceOrientationPolicyV115()
 
         // PMD_ZCS_CUSTOMER_DISPLAY_V5
         // One display manager belongs to one physical PayMyDine POS device.
@@ -222,7 +222,7 @@ class PosActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR
+        applyDeviceOrientationPolicyV115()
         webView?.onResume()
         webView?.resumeTimers()
         webView?.let { current ->
@@ -238,7 +238,7 @@ class PosActivity : ComponentActivity() {
     // canonical Quick POS layout between landscape and portrait immediately.
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
-        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR
+        applyDeviceOrientationPolicyV115()
 
         if (::root.isInitialized) {
             ViewCompat.requestApplyInsets(root)
@@ -1275,6 +1275,24 @@ class PosActivity : ComponentActivity() {
         view.requestLayout()
         view.invalidate()
         loading.visibility = View.GONE
+    }
+
+    // PMD_ANDROID_PHONE_WEB_ORIENTATION_V115
+    // Match the proven mobile-Web ergonomics on phones while preserving free
+    // rotation on tablets. 600dp is Android's canonical tablet breakpoint.
+    private fun applyDeviceOrientationPolicyV115() {
+        val smallestWidthDp = resources.configuration.smallestScreenWidthDp
+        val isTablet = smallestWidthDp >= 600
+
+        val target = if (isTablet) {
+            ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR
+        } else {
+            ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        }
+
+        if (requestedOrientation != target) {
+            requestedOrientation = target
+        }
     }
 
     private fun showFatal(message: String) {

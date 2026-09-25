@@ -1185,7 +1185,7 @@ document.documentElement.classList.add(
             <a
                 class="pmd-cashier-launcher-v107__download"
                 {{-- PMD_ANDROID_POS_PREVIEW_V18_CANONICAL_OFFLINE_POS --}}
-                href="{{ url('/downloads/paymydine/PayMyDine-Android-0.3.33.apk') }}"
+                href="{{ url('/downloads/paymydine/PayMyDine-Android-0.3.34.apk') }}"
                 target="_blank"
                 rel="noopener noreferrer"
             >
