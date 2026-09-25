@@ -6,6 +6,7 @@ use Admin\Classes\AdminController;
 use Admin\Facades\AdminMenu;
 use Admin\Facades\Template;
 use Admin\Services\PmdRoleDashboardDataV1;
+use Admin\Services\PmdDashboardAnalyticsSnapshotV132;
 
 /**
  * PMD Dashboard Lab
@@ -86,7 +87,7 @@ class Dashboardlab extends AdminController
         $this->addJs('js/pmd-shared-floor-multi-floor-v1.js');
 
         // Clean route-scoped Analytics renderer. Dashboard2 remains data-only.
-        $this->addJs('js/pmd-dashboard-lab-analytics-v1.js');
+        $this->addJs('js/pmd-dashboard-lab-analytics-v1.js?v=132-swr');
 
         // PMD_DASHBOARD_LIVE_REFRESH_ASSET_V1
         $this->addJs('js/pmd-dashboard-live-refresh-v1.js');
@@ -135,6 +136,14 @@ class Dashboardlab extends AdminController
         } catch (\Throwable $ignored) {
             $workspaceLocationId = 0;
         }
+
+        // PMD_DASHBOARD_ANALYTICS_SWR_V132
+        // Keep one explicit location/locale identity available to the shared
+        // analytics partial and its persistent browser snapshot key.
+        $this->vars['pmdCleanWorkspaceLocationId'] = $workspaceLocationId;
+        $this->vars['pmdCleanWorkspaceLocale'] = strtolower(
+            (string)app()->getLocale()
+        );
 
         $payload = $this->resolveKpiPayload($workspaceLocationId);
         $cards = [];
@@ -363,7 +372,9 @@ class Dashboardlab extends AdminController
         /* PMD_DASHBOARD_LAB_ANALYTICS_SCROLL_FIRSTPAINT_V2 */
         // Resolve the two initial Analytics periods before Blade is returned.
         // The browser therefore does not wait for an initial Analytics fetch.
-        $analyticsBootstrap = $this->resolveAnalyticsBootstrap();
+        $analyticsBootstrap = $this->resolveAnalyticsBootstrap(
+            $workspaceLocationId
+        );
         $this->vars['pmdDashboardLabAnalyticsBootstrap'] =
             $analyticsBootstrap;
 
@@ -588,22 +599,21 @@ class Dashboardlab extends AdminController
      * only route-scoped presentation enrichment and exposes the same payload
      * for first paint and later period/refresh requests.
      */
-    private function resolveAnalyticsBootstrap(): array
-    {
+    private function resolveAnalyticsBootstrap(
+        int $locationId
+    ): array {
         /*
-         * PMD_PERF_R2_DEFER_BELOW_FOLD_ANALYTICS
+         * PMD_DASHBOARD_ANALYTICS_SWR_V132
          *
-         * The dashboard previously executed two complete analytics payloads
-         * before sending HTML. Those aggregates are below the first visible
-         * KPI/Floor area and made every Owner navigation wait on hundreds of
-         * extra queries. Return the documented empty bootstrap contract; the
-         * existing browser runtime fetches the same canonical payloads after
-         * first paint.
+         * Preserve PMD_PERF_R2: never execute the two heavy analytics queries
+         * on the dashboard navigation critical path. Instead adopt the latest
+         * successful endpoint snapshots, if present, so Blade can render final
+         * chart/card HTML immediately. The browser refreshes them in the
+         * background after first paint.
          */
-        return [
-            'server_first_paint' => false,
-            'periods' => [],
-        ];
+        return app(
+            PmdDashboardAnalyticsSnapshotV132::class
+        )->bootstrap($locationId);
     }
 
     private function resolveAnalyticsPayload(string $period): array
@@ -1015,6 +1025,17 @@ class Dashboardlab extends AdminController
                     $period.'.'
                 );
             }
+
+            // PMD_DASHBOARD_ANALYTICS_SWR_V132
+            // Successful endpoint work becomes the next server first-paint
+            // snapshot. No analytics query is added to normal navigation.
+            app(
+                PmdDashboardAnalyticsSnapshotV132::class
+            )->store(
+                (int)$locationId,
+                $period,
+                $payload
+            );
 
             return $payload;
         } catch (\Throwable $error) {
