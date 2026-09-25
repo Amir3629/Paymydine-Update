@@ -128,7 +128,11 @@
         .items tr.option-row td:first-child { padding-left:12px; }
         .items tr.option-row td:last-child { font-weight:600; }
         .badge { display:inline-block; border:1px solid #222; padding:2px 7px; font-size:10px; margin-top:5px; border-radius:10px; }
-        .print-btn { margin:10px auto 0; display:block; border:1px solid #222; background:#fff; color:#111; padding:7px 11px; font-size:12px; border-radius:6px; cursor:pointer; }
+        /* PMD_INVOICE_BACK_V127 */
+        .invoice-actions { width:var(--pmd-receipt-width,72mm); max-width:calc(100vw - 16px); margin:10px auto 0; display:grid; grid-template-columns:1fr 1fr; gap:7px; }
+        .invoice-actions button { min-height:40px; border:1px solid #222; background:#fff; color:#111; padding:7px 11px; font-size:12px; font-weight:700; border-radius:6px; cursor:pointer; }
+        .invoice-actions .back-btn { border-color:#064e3b; background:#064e3b; color:#fff; }
+        .print-btn { margin:0; display:block; width:100%; }
         .totals .row { margin:2px 0; }
         .totals .total { font-weight:700; font-size:12px; }
 
@@ -144,6 +148,7 @@
             body { background:#fff; padding:0; }
             .receipt { width:100%; max-width:100%; margin:0; padding:0; border:0; box-shadow:none; }
             .print-btn { display:none; }
+            .invoice-actions { display:none !important; }
         }
     </style>
 
@@ -820,8 +825,32 @@ $auto=$printRequested || (string)$pmdSetting('invoice_auto_print_dialog','0')===
     @endif
 </div>
 <!-- PMD_DESKTOP_INVOICE_REPRINT_R1 -->
-<button class="print-btn" onclick="return window.pmdPrintReceipt(event)">Print invoice</button>
+<!-- PMD_INVOICE_BACK_V127 -->
+<div class="invoice-actions">
+    <button
+        type="button"
+        class="back-btn"
+        onclick="return window.pmdInvoiceBackV127(event)"
+    >Back</button>
+    <button
+        type="button"
+        class="print-btn"
+        onclick="return window.pmdPrintReceipt(event)"
+    >Print invoice</button>
+</div>
 <script>
+window.pmdInvoiceBackV127 = function (event) {
+    if (event) event.preventDefault();
+
+    if (window.history && window.history.length > 1) {
+        window.history.back();
+        return false;
+    }
+
+    window.location.href = '/admin/pos/cashier';
+    return false;
+};
+
 window.pmdPrintReceipt = function (event) {
     if (event) event.preventDefault();
     try {
