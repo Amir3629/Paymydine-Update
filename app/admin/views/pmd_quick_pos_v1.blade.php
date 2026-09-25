@@ -65,14 +65,16 @@
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-reservations2-floor-reservation-v312.css?v=20260920-floor-v35b">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-dashboard-lab-exact-floor-v1.css?v=20260920-floor-v35b">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-shared-floor-multi-floor-v1.css?v=20260920-floor-v35b">
+    <!-- PMD_FLOOR_SCROLL_CHAIN_V127 -->
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-floor-scroll-chain-v127.css?v=20260925-v127">
     <link rel="stylesheet" href="/app/admin/assets/css/push-notifications.css?v=20260922-qpos-v59">
     @if($pmdAndroidWebParityV112)
         {{-- PMD_QPOS_WEB_PARITY_V112
              This file is an exact copy of the canonical Web Quick POS CSS.
              The unique path bypasses APK 0.3.28 asset interception. --}}
-        <link rel="stylesheet" href="/app/admin/assets/css/pmd-qpos-web-parity-v112.css?v=20260925-v126">
+        <link rel="stylesheet" href="/app/admin/assets/css/pmd-qpos-web-parity-v112.css?v=20260925-v127">
     @else
-        <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-pos-v1.css?v=20260925-v126">
+        <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-pos-v1.css?v=20260925-v127">
     @endif
 </head>
 <body class="pmd-qpos-body">
@@ -1024,9 +1026,9 @@ window.PMDQuickPOSConfig = {
 {{-- PMD_QPOS_WEB_PARITY_RUNTIME_V112
      Exact canonical Web Quick POS JS under a unique path so APK 0.3.28
      cannot substitute an older bundled runtime. --}}
-<script src="/app/admin/assets/js/pmd-qpos-web-parity-v112.js?v=20260925-v126"></script>
+<script src="/app/admin/assets/js/pmd-qpos-web-parity-v112.js?v=20260925-v127"></script>
 @else
-<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260925-v126"></script>
+<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260925-v127"></script>
 @endif
 <script src="/app/admin/assets/js/pmd-site-access-hub-v13.js?v=20260921-androidpair-v16"></script>
 </body>
