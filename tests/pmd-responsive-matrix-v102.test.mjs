@@ -130,14 +130,14 @@ assert.ok(
   'V105 viewport meta contract missing'
 );
 assert.ok(
-  view.includes('pmd-qpos-web-parity-v112.css?v=20260925-v120') &&
-  view.includes('pmd-quick-pos-v1.css?v=20260925-v120'),
-  'V120 CSS parity/cache-bust contract missing'
+  view.includes('pmd-qpos-web-parity-v112.css?v=20260925-v122') &&
+  view.includes('pmd-quick-pos-v1.css?v=20260925-v122'),
+  'V122 CSS parity/cache-bust contract missing'
 );
 assert.ok(
-  view.includes('pmd-qpos-web-parity-v112.js?v=20260925-v120') &&
-  view.includes('pmd-quick-pos-v1.js?v=20260925-v120'),
-  'V120 JS parity/cache-bust contract missing'
+  view.includes('pmd-qpos-web-parity-v112.js?v=20260925-v122') &&
+  view.includes('pmd-quick-pos-v1.js?v=20260925-v122'),
+  'V122 JS parity/cache-bust contract missing'
 );
 
 assert.equal(
