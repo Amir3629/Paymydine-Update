@@ -67,9 +67,9 @@ class Reservations extends \Admin\Classes\AdminController
     /*
      * PMD_QPOS_MOBILE_INVOICE_RESERVATIONS_AUTHORITY_V128
      *
-     * Reservations2 is a first-class Cashier side-menu workspace. Existing
-     * tenants may still have a Cashier role row created before that permission
-     * was added to the managed-role definition, so accept the durable Cashier
+     * /admin/reservations is the canonical clean Cashier Reservations
+     * workspace. Existing tenants may still have a Cashier role row created
+     * before Admin.Reservations was added, so accept the durable Cashier
      * workspace permission immediately as an alternative authority.
      *
      * Destructive actions remain protected below by Admin.DeleteReservations.
@@ -90,7 +90,11 @@ class Reservations extends \Admin\Classes\AdminController
 
     public function index()
     {
-        return redirect(admin_url('reservations2'));
+        // PMD_RESERVATIONS_CANONICAL_CONTROLLER_FALLBACK_V131
+        // Legacy controller entry must converge on the clean public route.
+        // Browser document navigation is then internally served by
+        // Reservationslab through routes/admin-app-before.php.
+        return redirect(admin_url('reservations'));
     }
 
     public function index_onDelete()
