@@ -1,0 +1,155 @@
+name: PayMyDine Android V129 Cloud Re-entry
+
+on:
+  push:
+    branches: [feature/android-local-first-v1]
+  workflow_dispatch:
+
+concurrency:
+  group: pmd-android-v129-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  server-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: V129 server syntax and contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          php -l app/Http/Controllers/PmdMobileWorkspaceSessionController.php
+          php -l app/Http/Controllers/PmdMobileWorkspaceAuthController.php
+          php -l app/admin/Services/PmdDefaultStaffRoleService.php
+          php -l app/admin/controllers/Reservations.php
+          node tests/pmd-qpos-v128-mobile-invoice-reservations.test.mjs
+          node tests/pmd-qpos-v129-mobile-cloud-reentry.test.mjs
+          grep -Fq 'PMD_ANDROID_CLOUD_REENTRY_V129' app/Http/Controllers/PmdMobileWorkspaceSessionController.php
+          grep -Fq 'safeNextTargetV129' app/Http/Controllers/PmdMobileWorkspaceSessionController.php
+          grep -Fq 'PMD_ANDROID_CLOUD_REENTRY_V129' mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
+          grep -Fq 'routeCloudAdminNavigationV129' mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
+          grep -Fq 'versionCode = 51' mobile/android/app/build.gradle.kts
+          grep -Fq 'versionName = "0.3.38-v129-cloud-reentry"' mobile/android/app/build.gradle.kts
+
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Android SDK 36
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          if [[ ! -x "$SDKMANAGER" ]]; then
+            SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager -print -quit)"
+          fi
+          test -n "$SDKMANAGER" && test -x "$SDKMANAGER"
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" 'platform-tools' 'platforms;android-36' 'build-tools;35.0.0'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+
+      - name: Restore stable PayMyDine preview signing key
+        if: github.event_name == 'push' && github.ref == 'refs/heads/feature/android-local-first-v1'
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: paymydine-android-preview-debug-keystore-v1
+
+      - name: Verify pinned PayMyDine preview certificate
+        if: github.event_name == 'push' && github.ref == 'refs/heads/feature/android-local-first-v1'
+        shell: bash
+        run: |
+          set -euo pipefail
+          EXPECTED_PREVIEW_SHA256="C1:A7:58:7B:41:F3:87:3B:5C:1C:45:52:D3:80:FA:45:97:F3:30:52:35:47:50:A2:B6:8C:F6:2B:75:5D:B5:C1"
+          test -f "$HOME/.android/debug.keystore" || {
+            echo "::error::Stable PayMyDine preview signing key is missing."
+            exit 1
+          }
+          ACTUAL_PREVIEW_SHA256="$(keytool -list -v             -keystore "$HOME/.android/debug.keystore"             -storepass android             -alias androiddebugkey             | sed -n 's/^[[:space:]]*SHA256:[[:space:]]*//p'             | head -1)"
+          [[ "$ACTUAL_PREVIEW_SHA256" == "$EXPECTED_PREVIEW_SHA256" ]] || {
+            echo "::error::PayMyDine preview signing certificate changed."
+            echo "expected=$EXPECTED_PREVIEW_SHA256"
+            echo "actual=$ACTUAL_PREVIEW_SHA256"
+            exit 1
+          }
+
+      - name: Unit tests
+        working-directory: mobile/android
+        run: gradle --no-daemon testDebugUnitTest
+
+      - name: Assemble V129 APK
+        working-directory: mobile/android
+        run: gradle --no-daemon assembleDebug
+
+      - name: Android lint
+        working-directory: mobile/android
+        run: gradle --no-daemon lintDebug
+
+      - name: Prepare V129 APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK_IN="mobile/android/app/build/outputs/apk/debug/app-debug.apk"
+          test -f "$APK_IN"
+          cp "$APK_IN" mobile/android/PayMyDine-POS-Tablet-Preview.apk
+          cp "$APK_IN" mobile/android/PayMyDine-Android-0.3.38.apk
+          sha256sum mobile/android/PayMyDine-POS-Tablet-Preview.apk             > mobile/android/PayMyDine-POS-Tablet-Preview.apk.sha256
+          sha256sum mobile/android/PayMyDine-Android-0.3.38.apk             > mobile/android/PayMyDine-Android-0.3.38.apk.sha256
+
+      - name: Verify V129 package, version and signing identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="mobile/android/PayMyDine-Android-0.3.38.apk"
+          AAPT="$ANDROID_HOME/build-tools/35.0.0/aapt"
+          APKSIGNER="$ANDROID_HOME/build-tools/35.0.0/apksigner"
+          BADGING="$("$AAPT" dump badging "$APK" | head -1)"
+          echo "$BADGING"
+          grep -Fq "package: name='com.paymydine.mobile.pospreview'" <<<"$BADGING"
+          grep -Fq "versionCode='51'" <<<"$BADGING"
+          grep -Fq "versionName='0.3.38-v129-cloud-reentry-debug'" <<<"$BADGING"
+
+          EXPECTED_CERT="c1a7587b41f3873b5c1c4552d380fa4597f33052354750a2b68cf62b755db5c1"
+          ACTUAL_CERT="$("$APKSIGNER" verify --print-certs "$APK"             | sed -n 's/^Signer #1 certificate SHA-256 digest: //p'             | head -1             | tr '[:upper:]' '[:lower:]')"
+          [[ "$ACTUAL_CERT" == "$EXPECTED_CERT" ]] || {
+            echo "::error::V129 signing certificate mismatch."
+            echo "expected=$EXPECTED_CERT"
+            echo "actual=$ACTUAL_CERT"
+            exit 1
+          }
+          sha256sum "$APK"
+
+      - uses: actions/upload-artifact@v4
+        if: github.event_name == 'push' && github.ref == 'refs/heads/feature/android-local-first-v1'
+        with:
+          name: paymydine-android-v129-cloud-reentry
+          path: |
+            mobile/android/PayMyDine-POS-Tablet-Preview.apk
+            mobile/android/PayMyDine-POS-Tablet-Preview.apk.sha256
+            mobile/android/PayMyDine-Android-0.3.38.apk
+            mobile/android/PayMyDine-Android-0.3.38.apk.sha256
+          if-no-files-found: error
+
+      - name: Publish V129 preview release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/feature/android-local-first-v1'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: pmd-android-local-first-preview
+        run: |
+          set -euo pipefail
+          gh release upload "$TAG"             mobile/android/PayMyDine-POS-Tablet-Preview.apk             mobile/android/PayMyDine-POS-Tablet-Preview.apk.sha256             mobile/android/PayMyDine-Android-0.3.38.apk             mobile/android/PayMyDine-Android-0.3.38.apk.sha256             --repo "$GITHUB_REPOSITORY"             --clobber
