@@ -72,6 +72,12 @@ assert.ok(bridge.includes('Card and terminal payments need an internet connectio
 assert.ok(bridge.includes('/admin/pos/payment-batch-summary'));
 assert.ok(bridge.includes('/admin/pos/payment-batch-settle'));
 assert.ok(bridge.includes('Combined payment needs an internet connection right now.'));
+assert.ok(bridge.includes('PMD_ANDROID_BATCH_PAYMENT_CLOUD_ONLY_V117'));
+assert.ok(bridge.includes('PMD_ANDROID_V117_APPEND_AUTHORITY'));
+assert.ok(bridge.includes('.put("can_append_items", false)'));
+assert.ok(qpos.includes('PMD_QPOS_APPEND_AUTHORITY_V116'));
+assert.ok(qpos.includes('PMD_QPOS_BATCH_BILL_PREVIEW_V116'));
+assert.ok(qpos.includes('PMD_QPOS_IMMEDIATE_APPEND_AUTHORITY_V117'));
 assert.ok(qpos.includes('PMD_QPOS_MULTI_CHECK_OFFLINE_GUARD_V115'));
 assert.ok(localRepo.includes('PMD_ANDROID_CLOUD_LINE_ACK_V106'));
 assert.ok(localRepo.includes('PMD_ANDROID_CLOUD_LINE_REMOTE_EVENT_V106'));
@@ -101,5 +107,5 @@ assert.ok(cloudOnlyBlock.includes('"CASH_PAYMENT_V1"'));
 assert.ok(syncEngine.includes('command.commandType != "ORDER_HOLD_V1"'));
 assert.ok(syncEngine.includes('.optBoolean("payment_gate", false)'));
 
-console.log('PMD Local-First V112 offline chaos contract matrix: PASS');
-console.log('Covered contracts: WAN cut, durable queue, process restart recovery, aggregate ordering, reconnect without WebView replacement, rejected reconciliation, multi-device remote conflict, Cash durability, Cloud-line +/- reconciliation, Cloud health split, trusted clock, image integrity, V112 exact Web parity offline bundle, V108 pay-before-Kitchen durability.');
+console.log('PMD Local-First V117 offline chaos contract matrix: PASS');
+console.log('Covered contracts: WAN cut, durable queue, process restart recovery, aggregate ordering, reconnect without WebView replacement, rejected reconciliation, multi-device remote conflict, Cash durability, Cloud-line +/- reconciliation, Cloud health split, trusted clock, image integrity, V117 exact Web parity offline bundle, V108 pay-before-Kitchen durability, V116/V117 append authority.');
