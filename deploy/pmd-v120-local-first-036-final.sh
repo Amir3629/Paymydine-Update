@@ -2,6 +2,7 @@
 set -Eeuo pipefail
 
 PMD_ROOT="${PMD_ROOT:-/var/www/paymydine}"
+SOURCE_REF="archive/v120-local-first-036-source"
 SOURCE_COMMIT="0eab32b8501acb0afed34996b0f44d4471f9b0b5"
 APK_SHA256="6f78b0a9e7c9bd9d6458b2e121dd879787ec130e34ecde5f8c7dc45e0916dffc"
 APK_NAME="PayMyDine-Android-0.3.36.apk"
@@ -41,8 +42,8 @@ sudo -n true || fail "passwordless sudo is required"
 cd "$PMD_ROOT"
 GIT=(git -c "safe.directory=$PMD_ROOT" -C "$PMD_ROOT")
 
-log "Fetching pinned V120 Local-First handoff"
-"${GIT[@]}" fetch origin main
+log "Fetching immutable V120 Local-First source snapshot"
+"${GIT[@]}" fetch origin "$SOURCE_REF"
 "${GIT[@]}" cat-file -e "${SOURCE_COMMIT}^{commit}" ||
   fail "Pinned handoff commit is unavailable: $SOURCE_COMMIT"
 
