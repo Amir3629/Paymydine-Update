@@ -21,6 +21,10 @@ const roles = fs.readFileSync(
   'app/admin/Services/PmdDefaultStaffRoleService.php',
   'utf8'
 );
+const reservationsController = fs.readFileSync(
+  'app/admin/controllers/Reservations.php',
+  'utf8'
+);
 
 assert.ok(
   menu.includes('PMD_RESERVATIONS_CANONICAL_NAV_V131'),
@@ -78,6 +82,20 @@ assert.ok(
 assert.ok(
   roles.includes("$is('reservations')"),
   'Cashier must remain authorized for canonical Reservations'
+);
+
+assert.ok(
+  reservationsController.includes('PMD_RESERVATIONS_CANONICAL_CONTROLLER_FALLBACK_V131'),
+  'Legacy Reservations controller canonical fallback marker missing'
+);
+assert.ok(
+  reservationsController.includes("return redirect(admin_url('reservations'));"),
+  'Legacy Reservations controller must not redirect to Reservations2'
+);
+assert.equal(
+  reservationsController.includes("return redirect(admin_url('reservations2'));"),
+  false,
+  'Legacy Reservations controller must not revive Reservations2'
 );
 
 console.log(
