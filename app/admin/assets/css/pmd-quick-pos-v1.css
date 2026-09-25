@@ -15070,3 +15070,113 @@ body.pmd-qpos-body {
     min-height: 0 !important;
   }
 }
+
+
+/* ============================================================
+   PMD_QPOS_HISTORY_PORTRAIT_SINGLE_PANE_V124
+   V123 inline History now owns tablet/Android portrait too. Previous V102/V105
+   tablet rules kept a narrow two-pane History, so date presets did not span
+   the portrait workspace and order details could not behave as inline rows.
+   ============================================================ */
+@media (max-width: 820px) {
+  .pmd-qpos-history-range-v84,
+  .pmd-qpos-history-range-v84 .pmd-qpos-history-presets,
+  .pmd-qpos-history-range-v84 .pmd-qpos-history-dates-v85 {
+    width: 100% !important;
+    max-width: none !important;
+    box-sizing: border-box !important;
+  }
+
+  .pmd-qpos-history-range-v84 .pmd-qpos-history-presets {
+    display: grid !important;
+    grid-template-columns: repeat(4,minmax(0,1fr)) !important;
+    gap: 7px !important;
+  }
+
+  .pmd-qpos-history-range-v84 .pmd-qpos-history-presets button {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+  }
+}
+
+@media (orientation: portrait) {
+  .pmd-qpos.is-tablet-portrait-v102
+  .pmd-qpos-workspace-modal[data-qpos-history-modal]
+  > .pmd-qpos-history-shell-v84,
+  html.pmd-qpos-android-pos-v105
+  .pmd-qpos
+  .pmd-qpos-workspace-modal[data-qpos-history-modal]
+  > .pmd-qpos-history-shell-v84,
+  html.pmd-qpos-android-pos-v107
+  .pmd-qpos
+  .pmd-qpos-workspace-modal[data-qpos-history-modal]
+  > .pmd-qpos-history-shell-v84 {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    min-height: 100dvh !important;
+    max-height: none !important;
+    display: block !important;
+    grid-template-columns: 1fr !important;
+    overflow: visible !important;
+    border-radius: 0 !important;
+  }
+
+  .pmd-qpos.is-tablet-portrait-v102 .pmd-qpos-history-left-card-v84,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-history-left-card-v84,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-history-left-card-v84 {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    min-height: 100dvh !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: visible !important;
+    box-sizing: border-box !important;
+  }
+
+  .pmd-qpos.is-tablet-portrait-v102 .pmd-qpos-history-center-card-v84,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-history-center-card-v84,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-history-center-card-v84 {
+    display: none !important;
+  }
+
+  .pmd-qpos.is-tablet-portrait-v102 .pmd-qpos-history-range-v84,
+  .pmd-qpos.is-tablet-portrait-v102 .pmd-qpos-history-range-v84 .pmd-qpos-history-presets,
+  .pmd-qpos.is-tablet-portrait-v102 .pmd-qpos-history-range-v84 .pmd-qpos-history-dates-v85,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-history-range-v84,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-history-range-v84 .pmd-qpos-history-presets,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-history-range-v84 .pmd-qpos-history-dates-v85,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-history-range-v84,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-history-range-v84 .pmd-qpos-history-presets,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-history-range-v84 .pmd-qpos-history-dates-v85 {
+    width: 100% !important;
+    max-width: none !important;
+    box-sizing: border-box !important;
+  }
+
+  .pmd-qpos.is-tablet-portrait-v102 .pmd-qpos-history-range-v84 .pmd-qpos-history-presets,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-history-range-v84 .pmd-qpos-history-presets,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-history-range-v84 .pmd-qpos-history-presets {
+    display: grid !important;
+    grid-template-columns: repeat(4,minmax(0,1fr)) !important;
+    gap: 7px !important;
+  }
+
+  .pmd-qpos.is-tablet-portrait-v102 .pmd-qpos-history-range-v84 .pmd-qpos-history-presets button,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-history-range-v84 .pmd-qpos-history-presets button,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-history-range-v84 .pmd-qpos-history-presets button {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+  }
+
+  .pmd-qpos.is-tablet-portrait-v102 .pmd-qpos-history-inline-detail-v123,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-history-inline-detail-v123,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-history-inline-detail-v123 {
+    width: 100% !important;
+    max-width: none !important;
+    box-sizing: border-box !important;
+  }
+}

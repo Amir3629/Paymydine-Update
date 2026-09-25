@@ -9287,7 +9287,7 @@
       };
     });
 
-    $('[data-qpos-history-order]', list).forEach(function (button) {
+    $$('[data-qpos-history-order]', list).forEach(function (button) {
       button.onclick = function () {
         var orderId = Number(button.getAttribute('data-qpos-history-order') || 0);
 
@@ -9642,7 +9642,7 @@
     if (fromInput) fromInput.value = from;
     if (toInput) toInput.value = to;
 
-    $('[data-qpos-history-preset]').forEach(function (button) {
+    $$('[data-qpos-history-preset]').forEach(function (button) {
       button.classList.toggle(
         'is-active',
         String(button.getAttribute('data-qpos-history-preset')) === preset
@@ -10171,8 +10171,12 @@
   /* PMD_QPOS_MOBILE_HISTORY_V87
    * Mobile History is one viewport: controls stay visible, only the list
    * scrolls, and an explicit order tap opens a full-screen detail panel. */
+  /* PMD_QPOS_HISTORY_ITERATION_HOTFIX_V124
+   * History uses one inline portrait flow on phones and tablet-portrait
+   * Android/WebViews. This matches the requested behavior: tapping a History
+   * order expands directly under that order and pushes later cards down. */
   function isMobileHistoryV87() {
-    return isPhoneViewportV102();
+    return isPhoneViewportV102() || isTabletPortraitV102();
   }
 
   function isMobileCartFlowV87() {
@@ -11035,7 +11039,7 @@
     if (historyFrom) historyFrom.onchange = function () {
       state.historyFrom = historyFrom.value || '';
       state.historyPreset = 'custom';
-      $('[data-qpos-history-preset]').forEach(function (button) {
+      $$('[data-qpos-history-preset]').forEach(function (button) {
         button.classList.remove('is-active');
       });
       syncHistoryDateRangeVisibilityV123();
@@ -11045,7 +11049,7 @@
     if (historyTo) historyTo.onchange = function () {
       state.historyTo = historyTo.value || '';
       state.historyPreset = 'custom';
-      $('[data-qpos-history-preset]').forEach(function (button) {
+      $$('[data-qpos-history-preset]').forEach(function (button) {
         button.classList.remove('is-active');
       });
       syncHistoryDateRangeVisibilityV123();

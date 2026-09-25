@@ -16,8 +16,8 @@ assert.ok(css.includes('grid-template-columns: repeat(4,minmax(0,1fr)) !importan
 assert.ok(css.includes('height: 100dvh !important'));
 assert.ok(css.includes('overflow-y: auto !important'));
 
-assert.ok(view.includes('pmd-qpos-web-parity-v112.css?v=20260925-v123'));
-assert.ok(view.includes('pmd-quick-pos-v1.css?v=20260925-v123'));
+assert.ok(view.includes('pmd-qpos-web-parity-v112.css?v=20260925-v124'));
+assert.ok(view.includes('pmd-quick-pos-v1.css?v=20260925-v124'));
 
 assert.ok(css.includes('PMD_QPOS_BATCH_BILL_PREVIEW_V116'));
 
