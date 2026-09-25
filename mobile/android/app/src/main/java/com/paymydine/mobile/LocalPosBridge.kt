@@ -237,6 +237,15 @@ class LocalPosBridge(
                 return canonicalSave(it, payload)
             }
 
+        if (
+            path == "/admin/pos/payment-batch-summary" ||
+            path == "/admin/pos/payment-batch-settle"
+        ) {
+            return unavailable(
+                "Combined payment needs an internet connection right now.",
+            )
+        }
+
         Regex("^/admin/pos/payment-summary/(-?\\d+)$")
             .matchEntire(path)
             ?.groupValues
