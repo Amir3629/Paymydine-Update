@@ -1200,7 +1200,7 @@ document.documentElement.classList.add(
                 </span>
                 <span class="pmd-cashier-launcher-v107__copy">
                     <strong>Android Restaurant App</strong>
-                    <small>Android 8+ · Local-First POS 0.3.35 · V117</small>
+                    <small>Android 8+ · Local-First POS 0.3.35 · V118</small>
                 </span>
             </a>
 

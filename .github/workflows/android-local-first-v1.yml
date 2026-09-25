@@ -34,6 +34,7 @@ on:
       - 'tests/pmd-qpos-v114-multi-check-pay.test.mjs'
       - 'tests/pmd-qpos-v116-append-batch-bill.test.mjs'
       - 'tests/pmd-qpos-v117-immediate-append-authority.test.mjs'
+      - 'tests/pmd-qpos-v118-explicit-order-append.test.mjs'
       - 'deploy/pmd-android-operations-v18-direct-login-first-party.sh'
       - 'deploy/pmd-android-v18-first-party-download-hotfix.sh'
       - 'deploy/pmd-android-v18-2-throttle-isolation-hotfix.sh'
@@ -59,7 +60,7 @@ on:
       - '.github/workflows/android-local-first-v1.yml'
 
 concurrency:
-  group: pmd-android-v117-${{ github.event.pull_request.number || github.ref }}
+  group: pmd-android-v118-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -177,6 +178,7 @@ jobs:
           node tests/pmd-qpos-v114-multi-check-pay.test.mjs
           node tests/pmd-qpos-v116-append-batch-bill.test.mjs
           node tests/pmd-qpos-v117-immediate-append-authority.test.mjs
+          node tests/pmd-qpos-v118-explicit-order-append.test.mjs
           node --check app/admin/assets/js/pmd-qpos-web-parity-v112.js
           grep -q "PMD_QPOS_WEB_PARITY_RUNTIME_V112" app/admin/views/pmd_quick_pos_v1.blade.php
           grep -q "PMD_ANDROID_PAY_BEFORE_KITCHEN_V112" mobile/android/app/src/main/java/com/paymydine/mobile/LocalPosBridge.kt
@@ -578,10 +580,10 @@ jobs:
           echo "$BADGING"
           grep -Fq "package: name='com.paymydine.mobile.pospreview'" <<<"$BADGING"
           grep -Fq "versionCode='48'" <<<"$BADGING"
-          grep -Fq "versionName='0.3.35-v117-local-first-debug'" <<<"$BADGING"
+          grep -Fq "versionName='0.3.35-v118-local-first-debug'" <<<"$BADGING"
 
           echo "PMD_PREVIEW_PACKAGE=com.paymydine.mobile.pospreview"
-          echo "PMD_PREVIEW_VERSION=0.3.35-v117-local-first-debug"
+          echo "PMD_PREVIEW_VERSION=0.3.35-v118-local-first-debug"
 
           # PR checks intentionally use the runner's ephemeral debug key. Only a
           # direct push to the preview branch may verify/publish the pinned key.
