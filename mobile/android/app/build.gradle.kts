@@ -43,6 +43,7 @@ android {
         // PMD_ANDROID_0_3_36_V120_LOCAL_FIRST
         // V120 = Local-First transport + latest V119 kitchen-round behavior
         // + V120 mobile payment layout through exact Web parity assets.
+        // PMD_ANDROID_0_3_36_V120_RELEASE_FINAL
         // PMD_ANDROID_V104_LOCAL_FIRST_RELEASE_PROMOTED
         // PMD_ANDROID_V105_BUNDLED_ASSETS_SYNCED
         // PMD_ANDROID_0_3_31_V106_LOCAL_FIRST
