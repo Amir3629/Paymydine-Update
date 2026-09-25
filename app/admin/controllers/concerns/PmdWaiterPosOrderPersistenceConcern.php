@@ -60,10 +60,21 @@ trait PmdWaiterPosOrderPersistenceConcern
                 $statusName = DB::table('statuses')->where('status_id', (int)$r['status_id'])->value('status_name');
             }
 
+            // PMD_QPOS_APPEND_AUTHORITY_V116
+            // The browser must not independently guess Kitchen lifecycle.
+            // Use the exact backend rule that protects the save endpoint.
+            $appendOrderV116 = $id > 0
+                ? Orders_model::query()->where('order_id', $id)->first()
+                : null;
+            $canAppendItemsV116 = $appendOrderV116
+                ? $this->pmdOrderAcceptsReceivedAppendV113($appendOrderV116)
+                : false;
+
             $out[] = [
                 'order_id' => $id,
                 'status_id' => $r['status_id'] ?? null,
                 'status_name' => (string)($statusName ?? ''),
+                'can_append_items' => $canAppendItemsV116,
                 'payment' => (string)($r['payment'] ?? ''),
                 'settlement_status' => (string)($r['settlement_status'] ?? 'unpaid'),
                 'settled_amount' => (float)($r['settled_amount'] ?? 0),

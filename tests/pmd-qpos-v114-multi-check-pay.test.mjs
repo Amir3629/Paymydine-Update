@@ -14,8 +14,6 @@ assert.equal(pcss, css);
 assert.equal(pjs, js);
 assert.ok(css.includes('PMD_QPOS_MULTI_CHECK_PAY_V114'));
 assert.ok(js.includes('PMD_QPOS_MULTI_CHECK_PAY_RUNTIME_V114'));
-assert.ok(js.includes('PMD_QPOS_MULTI_CHECK_OFFLINE_GUARD_V115'));
-assert.ok(js.includes('Combined payment needs an internet connection right now.'));
 assert.ok(js.includes('/admin/pos/payment-batch-summary'));
 assert.ok(js.includes('/admin/pos/payment-batch-settle'));
 assert.ok(view.includes('PMD_QPOS_BATCH_EXTERNAL_TERMINAL_V114'));

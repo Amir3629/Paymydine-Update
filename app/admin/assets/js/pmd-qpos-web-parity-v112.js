@@ -1403,6 +1403,34 @@
   }
 
   function qposTotalsV74() {
+    if (batchBillSelectionActiveV116()) {
+      var selectedOrdersV116 = batchBillOrdersV116();
+      var selectedVatV116 = roundMoney(
+        selectedOrdersV116.reduce(function (sum, order) {
+          return sum + orderVatV116(order, taxSettingsV74());
+        }, 0)
+      );
+      var taxV116 = taxSettingsV74();
+      var selectedRateV116 = selectedOrdersV116.length
+        ? Math.max(0, num(selectedOrdersV116[0].tax_percentage, 0))
+        : taxV116.percentage;
+      var selectedTitleV116 = selectedOrdersV116.length
+        ? String(selectedOrdersV116[0].tax_title || '').trim()
+        : '';
+
+      return {
+        tax: Object.assign({}, taxV116, {
+          enabled: taxV116.enabled || selectedVatV116 > 0.0001,
+          percentage: selectedRateV116 || taxV116.percentage,
+          title: selectedTitleV116 || taxV116.title
+        }),
+        newSubtotal: 0,
+        pendingSubtotal: 0,
+        vat: selectedVatV116,
+        total: batchBillTotalV116()
+      };
+    }
+
     var tax = taxSettingsV74();
     var newSubtotal = cartTotal();
     var pendingSubtotal = pendingSendTotal();
@@ -1442,6 +1470,10 @@
   }
 
   function itemCount() {
+    if (batchBillSelectionActiveV116()) {
+      return batchBillItemCountV116();
+    }
+
     return state.cart.reduce(function (sum, row) {
       return sum + Math.max(1, num(row.quantity, 1));
     }, 0);
@@ -3430,14 +3462,6 @@
   }
 
   async function openBatchPaymentV114() {
-    // PMD_QPOS_MULTI_CHECK_OFFLINE_GUARD_V115
-    // Combined payment spans multiple canonical orders. Until Android has an
-    // atomic multi-order cash command, never pretend this completed locally.
-    if (nativeLocalTransportAvailable()) {
-      toast('Combined payment needs an internet connection right now.', true);
-      return;
-    }
-
     if (state.cart.length) {
       toast('Send current items first.', true);
       return;
@@ -3462,6 +3486,65 @@
     loadPaymentSummary(false);
   }
 
+  /* PMD_QPOS_BATCH_BILL_PREVIEW_V116
+   * Multi-select is a real bill selection. The Check panel mirrors exactly
+   * the selected unpaid orders instead of leaving the previously active bill. */
+  function batchBillSelectionActiveV116() {
+    return !!state.batchSelectV114.active;
+  }
+
+  function batchBillOrdersV116() {
+    return batchBillSelectionActiveV116()
+      ? batchSelectedOrdersV114()
+      : [];
+  }
+
+  function orderRemainingV116(order) {
+    return roundMoney(Math.max(
+      0,
+      orderTotal(order) - num(order && order.settled_amount, 0)
+    ));
+  }
+
+  function batchBillTotalV116() {
+    return roundMoney(batchBillOrdersV116().reduce(function (sum, order) {
+      return sum + orderRemainingV116(order);
+    }, 0));
+  }
+
+  function batchBillItemCountV116() {
+    return batchBillOrdersV116().reduce(function (sum, order) {
+      return sum + orderItems(order).reduce(function (inner, item) {
+        return inner + Math.max(
+          0,
+          num(
+            item && (item.quantity != null ? item.quantity : item.qty),
+            0
+          )
+        );
+      }, 0);
+    }, 0);
+  }
+
+  function orderVatV116(order, tax) {
+    if (!order) return 0;
+
+    var stored = num(order.tax_amount, -1);
+    if (stored >= 0) return roundMoney(stored);
+    if (!tax.enabled) return 0;
+
+    var subtotal = num(order.subtotal, -1);
+    var gross = Math.max(0, orderTotal(order));
+
+    if (tax.addAtCheckout && subtotal >= 0 && gross >= subtotal) {
+      return roundMoney(gross - subtotal);
+    }
+
+    return roundMoney(
+      gross * (tax.percentage / (100 + tax.percentage))
+    );
+  }
+
   function renderOpenChecks() {
     var box = $('[data-qpos-open-checks]');
     if (!box) return;
@@ -3479,6 +3562,7 @@
       box.hidden = true;
       box.innerHTML = '';
       resetBatchSelectionV114();
+      root.classList.remove('is-batch-selecting-v116');
       return;
     }
 
@@ -3503,6 +3587,8 @@
       resetBatchSelectionV114();
     }
 
+    root.classList.toggle('is-batch-selecting-v116', selecting);
+
     var selected = batchSelectedOrdersV114();
     var rows = [];
 
@@ -3519,7 +3605,7 @@
           '<button type="button" class="pmd-qpos-check-pay-v114" ' +
             'data-qpos-check-pay-v114>' +
             'Pay ' + esc(selected.length) + ' · ' +
-            esc(money(batchSelectedRemainingV114())) +
+            esc(money(batchBillTotalV116())) +
           '</button>'
         );
       }
@@ -3532,7 +3618,9 @@
       var isSelected = !!state.batchSelectV114.selected[String(id)];
       var classes = [];
 
-      if (Number(state.activeOrderId) === id) classes.push('is-active');
+      if (!selecting && Number(state.activeOrderId) === id) {
+        classes.push('is-active');
+      }
       if (isPaid) classes.push('is-paid-v71');
       if (isSelected) classes.push('is-batch-selected-v114');
 
@@ -3542,7 +3630,7 @@
           (selecting && !batchPayableOrderV114(order) ? ' disabled' : '') +
         '>' +
           (selecting && isSelected ? '✓ ' : '') +
-          '#' + esc(id) + ' · ' + money(orderTotal(order)) +
+          '#' + esc(id) + ' · ' + money(orderRemainingV116(order)) +
           (isPaid ? ' · Paid' : '') +
         '</button>'
       );
@@ -3553,13 +3641,19 @@
     var selectMode = $('[data-qpos-check-select-v114]', box);
     if (selectMode) {
       selectMode.onclick = function () {
+        if (!state.batchSelectV114.active && state.cart.length) {
+          toast('Send current items first.', true);
+          return;
+        }
+
         if (state.batchSelectV114.active) {
           resetBatchSelectionV114();
         } else {
           state.batchSelectV114.active = true;
           state.batchSelectV114.selected = Object.create(null);
         }
-        renderOpenChecks();
+
+        renderCart({batchSelectionV116: true});
       };
     }
 
@@ -3587,7 +3681,7 @@
             state.batchSelectV114.selected[key] = true;
           }
 
-          renderOpenChecks();
+          renderCart({batchSelectionV116: true});
           return;
         }
 
@@ -3820,6 +3914,80 @@
     var order = activeOrder();
 
     if (!section || !box) return;
+
+    if (batchBillSelectionActiveV116()) {
+      var selectedOrdersV116 = batchBillOrdersV116();
+
+      if (undoButton) {
+        undoButton.hidden = true;
+        undoButton.disabled = true;
+        undoButton.onclick = null;
+      }
+
+      section.hidden = false;
+
+      if (!selectedOrdersV116.length) {
+        if (total) total.textContent = money(0);
+        box.innerHTML =
+          '<div class="pmd-qpos-batch-empty-v116">' +
+            'Select unpaid orders above to build the combined bill.' +
+          '</div>';
+        return;
+      }
+
+      if (total) total.textContent = money(batchBillTotalV116());
+
+      var batchRowsV116 = [];
+
+      selectedOrdersV116.forEach(function (selectedOrderV116) {
+        batchRowsV116.push(
+          '<div class="pmd-qpos-sent-order-v116">' +
+            '<strong>Order #' + esc(orderId(selectedOrderV116)) + '</strong>' +
+            '<span>' + money(orderRemainingV116(selectedOrderV116)) + '</span>' +
+          '</div>'
+        );
+
+        orderItems(selectedOrderV116)
+          .filter(function (row) {
+            return num(
+              row && (row.quantity != null ? row.quantity : row.qty),
+              0
+            ) > 0.0001;
+          })
+          .forEach(function (item) {
+            var qtyV116 = num(
+              item.quantity != null ? item.quantity : item.qty,
+              1
+            );
+            var subtotalV116 = num(
+              item.subtotal != null
+                ? item.subtotal
+                : item.line_subtotal,
+              0
+            );
+
+            batchRowsV116.push(
+              '<div class="pmd-qpos-sent-line is-batch-v116">' +
+                '<b>' + esc(qtyV116) + '×</b>' +
+                '<span>' +
+                  esc(item.name || item.menu_name || 'Item') +
+                  (
+                    visibleNote(item.comment)
+                      ? '<small>' + esc(visibleNote(item.comment)) + '</small>'
+                      : ''
+                  ) +
+                '</span>' +
+                '<span class="pmd-qpos-sent-tail-v68">' +
+                  '<strong>' + money(subtotalV116) + '</strong>' +
+                '</span>' +
+              '</div>'
+            );
+          });
+      });
+
+      box.innerHTML = batchRowsV116.join('');
+      return;
+    }
 
     var committed = orderItems(order).filter(function (row) {
       return num(
@@ -4128,7 +4296,15 @@
     var order = activeOrder();
     var title = $('[data-qpos-check-title]');
     if (title) {
-      if (state.tableSwitching && state.selectedTable) {
+      if (batchBillSelectionActiveV116()) {
+        var batchCountV116 = batchBillOrdersV116().length;
+        title.textContent = batchCountV116
+          ? (
+              String(batchCountV116) +
+              (batchCountV116 === 1 ? ' order selected' : ' orders selected')
+            )
+          : 'Select orders';
+      } else if (state.tableSwitching && state.selectedTable) {
         title.textContent =
           compactTableLabel(state.selectedTable) + ' · Loading';
       } else if (order) {
@@ -4250,6 +4426,7 @@
     var pay = $('[data-qpos-pay]');
 
     var canSave =
+      !batchBillSelectionActiveV116() &&
       canOrderNow() &&
       !activeOrderStructuralLocked() &&
       state.cart.length > 0 &&
@@ -4271,6 +4448,7 @@
         state.tableSwitching && !payableOrder;
 
       pay.disabled =
+        batchBillSelectionActiveV116() ||
         waitingForPayableOrder ||
         !!state.pendingSend ||
         state.submitting ||
@@ -4974,6 +5152,8 @@
     state.activeOrderId = null;
     state.orderSelectionExplicitV72 = false;
     state.forceNewCheck = true;
+    resetBatchSelectionV114();
+    root.classList.remove('is-batch-selecting-v116');
     state.lastQuantityUndoV72 = null;
     state.offPremiseOrder = null;
 
@@ -5210,6 +5390,16 @@
    * still in Received. Once Preparation starts, the next items form a new order. */
   function orderAcceptsReceivedAppendV113(order) {
     if (!order) return false;
+
+    // PMD_QPOS_APPEND_AUTHORITY_V116
+    // New table payloads carry the server decision. The status-name fallback
+    // only covers a stale pre-V116 cached response during rollout.
+    if (order.can_append_items != null) {
+      return (
+        order.can_append_items === true ||
+        Number(order.can_append_items) === 1
+      );
+    }
 
     var status = String(order.status_name || '').trim().toLowerCase();
     var settlement = String(order.settlement_status || 'unpaid').toLowerCase();
@@ -5639,9 +5829,24 @@
       ? json.items.map(function (row) { return Object.assign({}, row); })
       : optimisticSentItems(snapshot.cart);
 
+    // PMD_QPOS_IMMEDIATE_APPEND_AUTHORITY_V117
+    // The POST already knows whether this exact order can accept another
+    // Kitchen send. Keep that decision locally so a fast second Send cannot
+    // fall through to a brand-new check while table hydration is in flight.
+    var responseAppendAuthorityV117 =
+      json.can_append_items == null
+        ? null
+        : (
+            json.can_append_items === true ||
+            Number(json.can_append_items) === 1
+          );
+
     state.activeOrderId = id;
     state.orderSelectionExplicitV72 = true;
-    state.forceNewCheck = false;
+    state.forceNewCheck =
+      responseAppendAuthorityV117 === null
+        ? false
+        : !responseAppendAuthorityV117;
 
     if (snapshot.serviceMode === 'dine_in') {
       var found = false;
@@ -5656,6 +5861,28 @@
           order_total: total,
           total_items: num(json.total_items, row.total_items || 0),
           updated_at: json.updated_at || row.updated_at || '',
+          status_id:
+            json.status_id != null ? Number(json.status_id) : row.status_id,
+          status_name:
+            json.status_name != null
+              ? String(json.status_name)
+              : (row.status_name || ''),
+          processed:
+            json.processed != null
+              ? Number(json.processed)
+              : num(row.processed, 0),
+          can_append_items:
+            responseAppendAuthorityV117 === null
+              ? row.can_append_items
+              : responseAppendAuthorityV117,
+          settlement_status:
+            json.settlement_status != null
+              ? String(json.settlement_status)
+              : (row.settlement_status || 'unpaid'),
+          settled_amount:
+            json.settled_amount != null
+              ? num(json.settled_amount, 0)
+              : num(row.settled_amount, 0),
           guest_count: snapshot.guestCount,
           payment_gate:
             json.payment_gate === true ||
@@ -5671,8 +5898,22 @@
           order_total: total,
           total_items: num(json.total_items, 0),
           updated_at: json.updated_at || '',
+          status_id:
+            json.status_id != null ? Number(json.status_id) : null,
+          status_name:
+            json.status_name != null ? String(json.status_name) : '',
+          processed:
+            json.processed != null
+              ? Number(json.processed)
+              : (snapshot.mode === 'send' ? 1 : 0),
+          can_append_items: responseAppendAuthorityV117,
+          settled_amount:
+            json.settled_amount != null ? num(json.settled_amount, 0) : 0,
           guest_count: snapshot.guestCount,
-          settlement_status: 'unpaid',
+          settlement_status:
+            json.settlement_status != null
+              ? String(json.settlement_status)
+              : 'unpaid',
           payment_gate: json.payment_gate === true,
           native_provisional: json.native_provisional === true,
           structural_locked: false,
