@@ -502,7 +502,7 @@ class PmdPublicBookingController extends Controller
     private function hoursForDate(Locations_model $location, Carbon $date): array
     {
         $hours = $this->openingHours($location);
-        $weekday = max(0, min(6, (int)$date->dayOfWeekIso - 1));
+        $weekday = max(0, min(6, ((int)$date->isoWeekday()) - 1));
 
         return $hours[$weekday] ?? [
             'weekday' => $weekday,
