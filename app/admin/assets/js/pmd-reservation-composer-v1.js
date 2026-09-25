@@ -8,7 +8,6 @@
 
   var selectors = [
     '#pmd-r2-clean-header a.pmd-r2-clean-create',
-    '#pmd-reservations2 .pmd-r2__hero a.pmd-r2__new',
     '#pmd-r2-reservation-grid-v320 [data-r2-add-reservation] a[href]',
     '#pmd-r2-calendar-surface-v160 [data-r2-create-button]',
     '#pmd-r2-reservation-grid-v320 [data-r2-reservation-id] a[href*="/admin/reservations/edit/"]',
@@ -55,13 +54,13 @@
   function timeValue(value) { var match = clean(value).match(/^([01]\d|2[0-3]):[0-5]\d/); return match ? match[0] : null; }
   function editId(url) { var match = clean(url).match(/\/reservations\/edit\/(\d+)/); return match ? Number(match[1]) : null; }
   function currentView() {
-    var page = document.getElementById('pmd-reservations2');
+    var page = document.getElementById('pmd-dashboard-lab');
     if (page && (page.classList.contains('is-timeslot-screen') || page.classList.contains('pmd-r2-hour-layout-v38-active'))) return 'hour';
     if (page && page.classList.contains('is-calendar-mode')) return 'calendar';
     return 'floor';
   }
   function selectedDate() {
-    var page = document.getElementById('pmd-reservations2');
+    var page = document.getElementById('pmd-dashboard-lab');
     var selected = document.querySelector('[data-r2-yc-selected] [data-r2-yc-date], [data-r2-yc-date][aria-selected="true"]');
     var values = [
       selected && selected.getAttribute('data-r2-yc-date'),
@@ -187,7 +186,7 @@
   function fallbackFor(element) {
     if (element.href) return element.href;
     var row = element.closest('[data-r2-create-date][data-r2-create-time]');
-    var url = new URL((window.PMD_RESERVATIONS2_BOOT || {}).createUrl || '/admin/reservations/create', location.origin);
+    var url = new URL((window.PMD_RESERVATIONS_BOOT || {}).createUrl || '/admin/reservations/create', location.origin);
     if (row) {
       url.searchParams.set('reserve_date', row.getAttribute('data-r2-create-date'));
       url.searchParams.set('reserve_time', row.getAttribute('data-r2-create-time'));
@@ -1577,7 +1576,7 @@ function applyAvailability(result) {
     });
   }
   function refreshWorkspace(reservation, assignmentMode) {
-    var boot = window.PMD_RESERVATIONS2_BOOT || (window.PMD_RESERVATIONS2_BOOT = {});
+    var boot = window.PMD_RESERVATIONS_BOOT || (window.PMD_RESERVATIONS_BOOT = {});
     var items = Array.isArray(boot.reservations) ? boot.reservations : (boot.reservations = []);
     for (var index = items.length - 1; index >= 0; index -= 1) if (Number(items[index].reservation_id || items[index].id) === Number(reservation.reservation_id)) items.splice(index, 1);
     items.unshift(reservation);
@@ -1641,7 +1640,7 @@ function applyAvailability(result) {
   }
   function clickOwner(event) {
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-    var element = event.target.closest(selectors); var page = document.getElementById('pmd-reservations2');
+    var element = event.target.closest(selectors); var page = document.getElementById('pmd-dashboard-lab');
     if (!element || !page || !page.contains(element)) return;
     var next; try { next = normalize(element); } catch (error) { return; }
     if (!next || !window.PMDReservationComposerV1 || typeof window.PMDReservationComposerV1.open !== 'function') return;
