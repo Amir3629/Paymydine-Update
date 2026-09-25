@@ -1467,21 +1467,29 @@ class PosActivity : ComponentActivity() {
     }
 
     private fun prepareOfflineShell(html: String): String {
-        // PMD_ANDROID_V107_OFFLINE_SHELL_ASSETS
-        // Existing installations may still have a V103/V105 cached HTML shell.
-        // Inject the isolated V107 Android form-factor assets when that shell
-        // predates V107. Both URLs are served from APK assets while offline.
+        // PMD_ANDROID_V111_OFFLINE_SHELL_UPGRADE
+        // A cached shell may predate V108/V111. Replace the legacy Quick POS
+        // runtime path before parsing so V108 Pay-before-Kitchen semantics own
+        // window.PMDQuickPOSV1, then backfill isolated Android assets from APK.
+        var prepared = html
+        if (!prepared.contains("pmd-qpos-android-runtime-v108.js")) {
+            prepared = prepared.replaceFirst(
+                "/app/admin/assets/js/pmd-quick-pos-v1.js",
+                "/app/admin/assets/js/pmd-qpos-android-runtime-v108.js",
+            )
+        }
+
         val v107Css =
-            if (html.contains("pmd-qpos-android-form-factor-v107.css")) {
+            if (prepared.contains("pmd-qpos-android-form-factor-v107.css")) {
                 ""
             } else {
                 """<link rel="stylesheet" href="/app/admin/assets/css/pmd-qpos-android-form-factor-v107.css?v=20260925-v107-offline">"""
             }
-        val v107Js =
-            if (html.contains("pmd-qpos-android-form-factor-v107.js")) {
+        val v111Css =
+            if (prepared.contains("pmd-qpos-android-tablet-v111.css")) {
                 ""
             } else {
-                """<script defer src="/app/admin/assets/js/pmd-qpos-android-form-factor-v107.js?v=20260925-v107-offline"></script>"""
+                """<link rel="stylesheet" href="/app/admin/assets/css/pmd-qpos-android-tablet-v111.css?v=20260925-v111-offline">"""
             }
 
         val bootstrap = """
@@ -1491,8 +1499,6 @@ class PosActivity : ComponentActivity() {
 
             // PMD_ANDROID_V107_OFFLINE_SYNC_CHIP_BACKFILL
             // Older cached HTML shells predate the Local-First sync indicator.
-            // Backfill only the missing DOM node; the bundled Quick POS runtime
-            // owns its contents and refresh cadence.
             (function () {
               function ensurePmdSyncStateV107() {
                 var meta = document.querySelector('.pmd-qpos-work-meta');
@@ -1515,24 +1521,47 @@ class PosActivity : ComponentActivity() {
             })();
             </script>
             $v107Css
-            $v107Js
+            $v111Css
         """.trimIndent()
 
-        return when {
-            html.contains("<head>") ->
-                html.replaceFirst("<head>", "<head>$bootstrap")
-            html.contains("<head ") -> {
-                val end = html.indexOf('>', html.indexOf("<head "))
-                if (end >= 0) {
-                    html.substring(0, end + 1) +
+        prepared = when {
+            prepared.contains("<head>") ->
+                prepared.replaceFirst("<head>", "<head>$bootstrap")
+            prepared.contains("<head ") -> {
+                val headEnd = prepared.indexOf('>', prepared.indexOf("<head "))
+                if (headEnd >= 0) {
+                    prepared.substring(0, headEnd + 1) +
                         bootstrap +
-                        html.substring(end + 1)
+                        prepared.substring(headEnd + 1)
                 } else {
-                    bootstrap + html
+                    bootstrap + prepared
                 }
             }
-            else -> bootstrap + html
+            else -> bootstrap + prepared
         }
+
+        val bodyScripts = buildString {
+            if (!prepared.contains("pmd-qpos-android-runtime-v108.js")) {
+                append(
+                    """<script src="/app/admin/assets/js/pmd-qpos-android-runtime-v108.js?v=20260925-v108-offline"></script>"""
+                )
+            }
+            if (!prepared.contains("pmd-qpos-android-form-factor-v107.js")) {
+                append(
+                    """<script src="/app/admin/assets/js/pmd-qpos-android-form-factor-v107.js?v=20260925-v107-offline"></script>"""
+                )
+            }
+        }
+
+        if (bodyScripts.isNotBlank()) {
+            prepared = if (prepared.contains("</body>")) {
+                prepared.replaceFirst("</body>", "$bodyScripts</body>")
+            } else {
+                prepared + bodyScripts
+            }
+        }
+
+        return prepared
     }
 
     // PMD_ANDROID_OFFLINE_IMAGE_ROUTE_V20
