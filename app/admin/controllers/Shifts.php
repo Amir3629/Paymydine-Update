@@ -9,6 +9,7 @@ use Admin\Facades\AdminMenu;
 use Admin\Facades\Template;
 use Admin\Models\Staffs_model;
 use Admin\Services\PmdDefaultStaffRoleService;
+use Admin\Services\PmdShiftAttendanceSnapshotV134;
 use App\Services\PmdKitchenOperationsSchemaService;
 use App\Services\PmdOperationalRosterReconciler;
 use App\Services\PmdStaffPinService;
@@ -79,6 +80,8 @@ class Shifts extends AdminController
         $this->addCss('css/pmd-shifts-web-credentials-plus-pin-v18c.css');
         // PMD_SHIFTS_ROLE_CARDS_UI_V18D
         $this->addCss('css/pmd-shifts-role-cards-v18d.css');
+        // PMD_SHIFTS_LIVE_FIRST_PAINT_V134
+        $this->addCss('css/pmd-shifts-live-first-paint-v134.css');
         // PMD_SHIFTS_MIDNIGHT_TIMELINE_V17N
         // PMD_SONSTIGE_PORTAL_ONLY_UI_V18E
         // Versioned filename intentionally busts older Shifts role UI cache.
@@ -207,6 +210,43 @@ class Shifts extends AdminController
 
         $monthShifts = $shifts->filter(fn ($shift) => Carbon::parse($shift->shift_date)->betweenIncluded($monthStart, $monthEnd))->values();
         $selectedDayShifts = $shifts->filter(fn ($shift) => Carbon::parse($shift->shift_date)->toDateString() === $selectedDay->toDateString())->values();
+
+        // PMD_SHIFT_ATTENDANCE_FIRST_PAINT_V134
+        // Use the exact same staff_attendance authority as the live endpoint.
+        // Existing page data is reused so first paint adds only the attendance
+        // read instead of repeating roster/shift/assignment queries.
+        $liveAttendance = [
+            'ok' => true,
+            'ready' => false,
+            'day' => $selectedDay->toDateString(),
+            'rows' => [],
+            'present_now' => null,
+            'missing_now' => null,
+        ];
+
+        if ($ready) {
+            try {
+                $liveAttendance = app(
+                    PmdShiftAttendanceSnapshotV134::class
+                )->payload(
+                    $locationId,
+                    $selectedDay,
+                    $people,
+                    $selectedDayShifts
+                );
+            } catch (\Throwable $error) {
+                logger()->warning(
+                    'PMD Shifts V134 attendance first paint failed',
+                    [
+                        'location_id' => $locationId,
+                        'day' => $selectedDay->toDateString(),
+                        'type' => get_class($error),
+                        'message' => $error->getMessage(),
+                    ]
+                );
+            }
+        }
+
         $calendarDays = collect(range(0, $calendarStart->diffInDays($calendarEnd)))
             ->map(fn ($offset) => $calendarStart->copy()->addDays($offset));
 
@@ -259,10 +299,15 @@ class Shifts extends AdminController
             'current_shift' => $currentShift,
             'current_people' => $currentPeople,
             'current_confirmed' => (bool)$currentConfirmed,
+            'live_attendance' => $liveAttendance,
             'stats' => [
                 'scheduled_today' => $todayUnique->count(),
-                'present_now' => $currentConfirmed ? $presentCurrent : null,
-                'missing_now' => $currentConfirmed ? $missingCurrent : null,
+                'present_now' => array_key_exists('present_now', $liveAttendance)
+                    ? $liveAttendance['present_now']
+                    : ($currentConfirmed ? $presentCurrent : null),
+                'missing_now' => array_key_exists('missing_now', $liveAttendance)
+                    ? $liveAttendance['missing_now']
+                    : ($currentConfirmed ? $missingCurrent : null),
                 'month_hours' => round($scheduledHoursMonth, 1),
                 'month_shifts' => $monthShifts->count(),
                 'scheduled_days' => $monthShifts->pluck('shift_date')->map(fn ($d) => Carbon::parse($d)->toDateString())->unique()->count(),
