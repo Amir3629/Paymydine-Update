@@ -1120,6 +1120,7 @@ class LocalPosRepository(private val database: PmdDatabase) {
         staffId: Long?,
         userId: Long?,
         hold: Boolean,
+        paymentGate: Boolean = false,
     ): CommandEnvelope {
         require(draft.status == STATUS_DRAFT) {
             "This order is already queued, retrying, or awaiting reconciliation."
@@ -1137,7 +1138,15 @@ class LocalPosRepository(private val database: PmdDatabase) {
             .put("client_created_at_ms", clientCreatedAtMs)
             .put("guest_count", draft.guestCount)
             .put("note", draft.note)
-            .put("force_new_check", draft.serverId.isNullOrBlank())
+            .put(
+                "force_new_check",
+                draft.serverId.isNullOrBlank() || paymentGate,
+            )
+            // PMD_ANDROID_PAY_BEFORE_KITCHEN_V112
+            // Preserve the V108 direct-pay gate in the durable command so
+            // Cloud creates a KDS-hidden hold and releases it only after full
+            // settlement. This is business intent, not presentation state.
+            .put("payment_gate", paymentGate)
             .put(
                 "items",
                 JSONArray().apply {

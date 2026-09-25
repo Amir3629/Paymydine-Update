@@ -712,6 +712,12 @@ class LocalPosBridge(
         )
         val hold = payload.optString("mode", "send")
             .equals("hold", ignoreCase = true)
+        // PMD_ANDROID_PAY_BEFORE_KITCHEN_V112
+        // V108 direct Pay persists a KDS-hidden HOLD first. Keep that flag
+        // through SQLite/Outbox so offline Cash follows the same canonical
+        // release-to-Kitchen contract after reconciliation.
+        val paymentGate =
+            hold && payload.optBoolean("payment_gate", false)
         val command = app.localPosRepository.buildSendCommand(
             draft = draft,
             tenantHost = host,
@@ -719,6 +725,7 @@ class LocalPosBridge(
             staffId = session.staffId,
             userId = session.userId,
             hold = hold,
+            paymentGate = paymentGate,
         )
 
         check(app.syncRepository.enqueue(command)) {
@@ -753,6 +760,7 @@ class LocalPosBridge(
             .put("guest_count", queued.guestCount)
             .put("updated_at", instantString(command.createdAtMs))
             .put("native_provisional", orderId < 0L)
+            .put("payment_gate", paymentGate)
             .put("items", canonicalDraftItems(queued))
             .put(
                 "item_mutation",
@@ -764,8 +772,11 @@ class LocalPosBridge(
             )
             .put(
                 "message",
-                if (hold) "Saved on this tablet."
-                else "Order saved. It will sync automatically.",
+                when {
+                    paymentGate -> "Saved for payment on this tablet."
+                    hold -> "Saved on this tablet."
+                    else -> "Order saved. It will sync automatically."
+                },
             )
 
         if (!hold) {
