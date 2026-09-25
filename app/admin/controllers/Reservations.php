@@ -9,7 +9,7 @@ use Admin\Models\Reservations_model;
 use Admin\Models\Statuses_model;
 use Admin\Models\Tables_model;
 use Admin\Services\PmdCleanWorkspaceSharedV1;
-use Admin\Services\PmdReservationsLabScheduleV1;
+use Admin\Services\PmdReservationsScheduleV1;
 use Admin\Services\ReservationComposerService;
 use Admin\Services\PmdSharedFloorRegistryV1;
 use Carbon\Carbon;
@@ -109,7 +109,7 @@ class Reservations extends PmdCleanWorkspaceControllerV1
         array $floorBootstrap
     ): void {
         $this->vars['pmdReservationsSchedule'] =
-            app(PmdReservationsLabScheduleV1::class)->payload($shared->locationId(), $locale);
+            app(PmdReservationsScheduleV1::class)->payload($shared->locationId(), $locale);
     }
 
     public function index_onDelete()
