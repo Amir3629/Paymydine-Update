@@ -61,6 +61,9 @@ assert.ok(localRepo.includes('rejected_command_id'));
 assert.ok(localRepo.includes('offline_cash_command_id'));
 assert.ok(syncEngine.includes('"ORDER_ITEM_ADJUST_V1"'));
 assert.ok(syncEngine.includes('Item change is stored locally and waiting for PayMyDine Cloud.'));
+assert.ok(syncEngine.includes('PMD_ANDROID_PAYMENT_GATE_CLOUD_ONLY_V112'));
+assert.ok(syncEngine.includes('isPaymentGatedHold(command)'));
+assert.ok(syncEngine.includes('Pay-before-Kitchen check is stored locally and waiting for PayMyDine Cloud.'));
 assert.ok(bridge.includes('PMD_ANDROID_CLOUD_LINE_EDIT_V106'));
 assert.ok(bridge.includes('canonicalServerItemMutationV106'));
 assert.ok(bridge.includes('projectPendingItemAdjustmentsV106'));
@@ -91,6 +94,8 @@ const cloudOnlyBlock = syncEngine.slice(
 );
 assert.ok(cloudOnlyBlock.includes('"ORDER_ITEM_ADJUST_V1"'));
 assert.ok(cloudOnlyBlock.includes('"CASH_PAYMENT_V1"'));
+assert.ok(syncEngine.includes('command.commandType != "ORDER_HOLD_V1"'));
+assert.ok(syncEngine.includes('.optBoolean("payment_gate", false)'));
 
 console.log('PMD Local-First V112 offline chaos contract matrix: PASS');
 console.log('Covered contracts: WAN cut, durable queue, process restart recovery, aggregate ordering, reconnect without WebView replacement, rejected reconciliation, multi-device remote conflict, Cash durability, Cloud-line +/- reconciliation, Cloud health split, trusted clock, image integrity, V112 exact Web parity offline bundle, V108 pay-before-Kitchen durability.');

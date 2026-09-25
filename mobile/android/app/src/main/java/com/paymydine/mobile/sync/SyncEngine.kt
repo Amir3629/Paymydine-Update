@@ -92,16 +92,21 @@ class SyncEngine(
             if (!app.syncRepository.markInFlight(command.commandId)) continue
 
             // PMD_ANDROID_CASH_CLOUD_RECONCILIATION_V17
-            // Cash can be recorded while WAN is down, but its canonical
-            // settlement/cash-drawer/fiscalization effects execute only when
-            // Cloud is reachable. Restaurant Edge must never invent those
-            // financial side effects locally.
+            // PMD_ANDROID_PAYMENT_GATE_CLOUD_ONLY_V112
+            // Financial/canonical side effects and a Pay-before-Kitchen HOLD
+            // must never be provisionally applied by Restaurant Edge. A gated
+            // HOLD stays durable in SQLite until Cloud can enforce processed=0
+            // and later release it to Kitchen only after full settlement.
+            val paymentGatedHold = isPaymentGatedHold(command)
             if (
-                command.commandType in setOf(
-                    "CASH_PAYMENT_V1",
-                    "TABLE_STATE_V1",
-                    "TABLE_MOVE_V1",
-                    "ORDER_ITEM_ADJUST_V1",
+                (
+                    command.commandType in setOf(
+                        "CASH_PAYMENT_V1",
+                        "TABLE_STATE_V1",
+                        "TABLE_MOVE_V1",
+                        "ORDER_ITEM_ADJUST_V1",
+                    ) ||
+                    paymentGatedHold
                 ) &&
                 !app.connectivity.online.value
             ) {
@@ -114,6 +119,12 @@ class SyncEngine(
                         "Table move is stored locally and waiting for PayMyDine Cloud."
                     "ORDER_ITEM_ADJUST_V1" ->
                         "Item change is stored locally and waiting for PayMyDine Cloud."
+                    "ORDER_HOLD_V1" ->
+                        if (paymentGatedHold) {
+                            "Pay-before-Kitchen check is stored locally and waiting for PayMyDine Cloud."
+                        } else {
+                            "Order is stored locally and waiting for PayMyDine Cloud."
+                        }
                     else ->
                         "Operation is stored locally and waiting for PayMyDine Cloud."
                 }
@@ -429,11 +440,14 @@ class SyncEngine(
         route: AuthorityRoute,
     ): JSONObject {
         if (
-            command.commandType in setOf(
-                "CASH_PAYMENT_V1",
-                "TABLE_STATE_V1",
-                "TABLE_MOVE_V1",
-                "ORDER_ITEM_ADJUST_V1",
+            (
+                command.commandType in setOf(
+                    "CASH_PAYMENT_V1",
+                    "TABLE_STATE_V1",
+                    "TABLE_MOVE_V1",
+                    "ORDER_ITEM_ADJUST_V1",
+                ) ||
+                isPaymentGatedHold(command)
             ) &&
             app.connectivity.online.value
         ) {
@@ -488,6 +502,16 @@ class SyncEngine(
             }
             throw error
         }
+    }
+
+    // PMD_ANDROID_PAYMENT_GATE_CLOUD_ONLY_V112
+    private fun isPaymentGatedHold(command: CommandEnvelope): Boolean {
+        if (command.commandType != "ORDER_HOLD_V1") return false
+
+        return runCatching {
+            JSONObject(command.payloadJson)
+                .optBoolean("payment_gate", false)
+        }.getOrDefault(false)
     }
 
     private fun sendCloudCommand(
