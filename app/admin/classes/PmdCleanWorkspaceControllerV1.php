@@ -1582,6 +1582,8 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
             $this->addCss('css/pmd-reservations2-floor-reservation-v312.css');
             $this->addCss('css/pmd-dashboard-lab-exact-floor-v1.css');
             $this->addCss('css/pmd-shared-floor-multi-floor-v1.css');
+            // PMD_FLOOR_SCROLL_CHAIN_V127
+            $this->addCss('css/pmd-floor-scroll-chain-v127.css');
         }
 
         // Generic clean-workspace KPI chooser. Zero boot fetch/layout writes.
