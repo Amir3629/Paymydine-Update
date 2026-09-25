@@ -1202,7 +1202,8 @@ final class PmdMobilePairingService
                 $deviceIdentity,
                 $user,
                 'workspace',
-                $grantExpiresAt
+                $grantExpiresAt,
+                $surface
             ),
             'lease_expires_at' => $grantExpiresAt,
             'lease_expires_iso' => date(DATE_ATOM, $grantExpiresAt),

@@ -1,0 +1,342 @@
+/*
+ * PMD_QPOS_ANDROID_TABLET_LAYOUT_V109
+ *
+ * Android Cashier TABLET only.
+ * No phone/mobile selectors are changed.
+ *
+ * Goals:
+ * - Landscape: give Check more width and reduce the Table rail.
+ * - Portrait: keep Check permanently visible instead of a phone-style sheet.
+ * - Keep capacity inside each table tile.
+ * - Increase food-name scale in portrait.
+ */
+
+@media (orientation: landscape) {
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-main,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-main {
+    grid-template-columns: 170px minmax(0,1fr) 360px !important;
+    gap: 8px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-left,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-left {
+    min-width: 0 !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-cart,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-cart {
+    min-width: 0 !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-table-grid,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-table-grid {
+    grid-template-columns: repeat(2,minmax(0,1fr)) !important;
+    gap: 6px !important;
+    padding: 6px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-table,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-table {
+    min-height: 76px !important;
+    padding: 9px 7px 30px !important;
+    overflow: hidden !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-table strong,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-table strong {
+    font-size: 21px !important;
+    line-height: 1 !important;
+    padding-right: 0 !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-table small:not([hidden]),
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-table small:not([hidden]) {
+    position: absolute !important;
+    left: 7px !important;
+    bottom: 7px !important;
+    margin: 0 !important;
+    max-width: calc(100% - 14px) !important;
+    min-height: 20px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    padding: 2px 6px !important;
+    border-radius: 999px !important;
+    background: #f3f4f6 !important;
+    color: #4b5563 !important;
+    font-size: 11px !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-table small[hidden],
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-table small[hidden] {
+    display: none !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-open-checks,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-open-checks {
+    gap: 8px !important;
+    padding: 9px 10px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-open-checks button,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-open-checks button {
+    min-width: 112px !important;
+    min-height: 48px !important;
+    padding-inline: 12px !important;
+    font-size: 14px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-cart-head strong,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-cart-head strong {
+    font-size: 19px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-cart-line strong,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-sent-line,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-cart-line strong,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-sent-line {
+    font-size: 17px !important;
+  }
+}
+
+@media (orientation: portrait) {
+  html.pmd-qpos-android-pos-v105 body.pmd-qpos-body,
+  html.pmd-qpos-android-pos-v107 body.pmd-qpos-body {
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos {
+    height: auto !important;
+    min-height: 100dvh !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-main,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-main {
+    display: grid !important;
+    grid-template-columns: minmax(0,1fr) clamp(270px,39vw,340px) !important;
+    grid-template-areas:
+      "tables tables"
+      "catalog check" !important;
+    align-items: start !important;
+    gap: 8px !important;
+    width: 100% !important;
+    min-height: 100dvh !important;
+    height: auto !important;
+    overflow: visible !important;
+    padding: 8px !important;
+    padding-bottom: 8px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-left,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-left {
+    grid-area: tables !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    overflow: hidden !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-catalog,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-catalog {
+    grid-area: catalog !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-cart,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-cart {
+    grid-area: check !important;
+    position: sticky !important;
+    z-index: 25 !important;
+    top: 8px !important;
+    right: auto !important;
+    bottom: auto !important;
+    left: auto !important;
+    inset: auto !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    height: calc(100dvh - 16px) !important;
+    min-height: 560px !important;
+    max-height: calc(100dvh - 16px) !important;
+    margin: 0 !important;
+    border: 1px solid var(--q-line) !important;
+    border-radius: 14px !important;
+    transform: none !important;
+    transition: none !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    padding-bottom: 0 !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-cart.is-mobile-open,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-cart.is-mobile-open {
+    transform: none !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-cart-close,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-mobile-cart,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-cart-close,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-mobile-cart {
+    display: none !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-tables,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-tables {
+    min-height: 174px !important;
+    max-height: 220px !important;
+    overflow: auto !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-table-grid,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-table-grid {
+    grid-template-columns: repeat(4,minmax(0,1fr)) !important;
+    gap: 7px !important;
+    padding: 6px 8px 9px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-table,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-table {
+    min-height: 74px !important;
+    padding: 9px 8px 27px !important;
+    overflow: hidden !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-table strong,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-table strong {
+    font-size: 21px !important;
+    line-height: 1 !important;
+    padding-right: 0 !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-table small:not([hidden]),
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-table small:not([hidden]) {
+    position: absolute !important;
+    left: 8px !important;
+    bottom: 7px !important;
+    margin: 0 !important;
+    max-width: calc(100% - 16px) !important;
+    min-height: 20px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    padding: 2px 6px !important;
+    border-radius: 999px !important;
+    background: #f3f4f6 !important;
+    color: #4b5563 !important;
+    font-size: 12px !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-table small[hidden],
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-table small[hidden] {
+    display: none !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-product-grid,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-product-grid {
+    grid-template-columns: repeat(2,minmax(0,1fr)) !important;
+    gap: 10px !important;
+    padding: 8px !important;
+    overflow: visible !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-product,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-product {
+    min-width: 0 !important;
+    min-height: 0 !important;
+    aspect-ratio: 1 / 1.06 !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-product-body .pmd-qpos-product-name,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-product-body .pmd-qpos-product-name {
+    top: 13px !important;
+    left: 13px !important;
+    right: 13px !important;
+    gap: 6px !important;
+    font-size: 24px !important;
+    line-height: 1.08 !important;
+    font-weight: 900 !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-product-body .pmd-qpos-product-number,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-product-body .pmd-qpos-product-number {
+    font-size: 21px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-product-meta,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-product-meta {
+    left: 13px !important;
+    right: 13px !important;
+    bottom: 13px !important;
+    gap: 8px !important;
+    font-size: 16px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-product-meta > span,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-product-meta > span {
+    min-width: 0 !important;
+    font-size: 16px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-product-meta > b,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-product-meta > b {
+    font-size: 28px !important;
+    line-height: 1 !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-open-checks,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-open-checks {
+    gap: 8px !important;
+    padding: 9px 10px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-open-checks button,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-open-checks button {
+    min-width: 116px !important;
+    min-height: 50px !important;
+    padding-inline: 12px !important;
+    font-size: 15px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-cart-head,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-cart-head {
+    min-height: 62px !important;
+    padding: 10px 12px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-cart-head strong,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-cart-head strong {
+    font-size: 20px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-cart-line strong,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-sent-line,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-cart-line strong,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-sent-line {
+    font-size: 18px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-cart-line small,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-sent-line small,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-cart-line small,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-sent-line small {
+    font-size: 14px !important;
+  }
+}

@@ -1,71 +1,12 @@
-name: PayMyDine Android Local-First V1
+name: PayMyDine Android V129 Cloud Re-entry
 
 on:
   push:
     branches: [feature/android-local-first-v1]
-    paths:
-      - 'mobile/android/**'
-      - 'docs/ANDROID_LOCAL_FIRST_ARCHITECTURE_V1.md'
-      - 'app/Services/PmdMobileSync/**'
-      - 'app/Http/Controllers/PmdMobile*.php'
-      - 'app/Http/Controllers/PmdRestaurantSignInApprovalController.php'
-      - 'app/Http/Controllers/PmdSiteAccessHubDataController.php'
-      - 'app/admin/assets/js/pmd-site-access-hub-v13.js'
-      - 'app/admin/assets/js/pmd-quick-pos-v1.js'
-      - 'app/admin/assets/js/pmd-qpos-web-parity-v112.js'
-      - 'app/admin/assets/css/pmd-quick-pos-v1.css'
-      - 'app/admin/assets/css/pmd-qpos-web-parity-v112.css'
-      - 'app/admin/assets/js/pmd-ownerboard-workplace-access-v1.js'
-      - 'app/Services/PmdSiteAccessService.php'
-      - 'app/Services/SuperAdminTenantLifecycleService.php'
-      - 'app/admin/controllers/Login.php'
-      - 'app/admin/controllers/PmdQuickPosV1.php'
-      - 'app/admin/controllers/concerns/PmdQuickPosBatchPaymentV114Concern.php'
-      - 'routes/admin-quick-mode.php'
-      - 'app/admin/routes.php'
-      - 'app/system/database/migrations/2026_09_20_190000_create_pmd_mobile_sync_tables.php'
-      - 'routes/pmd-mobile-sync-v1.php'
-      - '.github/workflows/android-local-first-v1.yml'
-      - 'tests/pmd-responsive-matrix-v102.test.mjs'
-      - 'tests/pmd-local-first-v106.test.mjs'
-      - 'tests/pmd-qpos-pay-before-kitchen-v108.test.mjs'
-      - 'tests/pmd-qpos-web-parity-v112.test.mjs'
-      - 'tests/pmd-qpos-v113-history-received.test.mjs'
-      - 'tests/pmd-qpos-v114-multi-check-pay.test.mjs'
-      - 'tests/pmd-qpos-v116-append-batch-bill.test.mjs'
-      - 'tests/pmd-qpos-v117-immediate-append-authority.test.mjs'
-      - 'tests/pmd-qpos-v118-explicit-order-append.test.mjs'
-      - 'tests/pmd-qpos-v119-kitchen-round-split.test.mjs'
-      - 'tests/pmd-qpos-v120-mobile-payment-stack.test.mjs'
-      - 'tests/pmd-qpos-v121-server-round-authority-floating-keypad.test.mjs'
-      - 'tests/pmd-qpos-v122-kds-batch-mobile-polish.test.mjs'
-      - 'app/admin/views/kitchendisplay/index.blade.php'
-      - 'deploy/pmd-android-operations-v18-direct-login-first-party.sh'
-      - 'deploy/pmd-android-v18-first-party-download-hotfix.sh'
-      - 'deploy/pmd-android-v18-2-throttle-isolation-hotfix.sh'
-      - 'deploy/pmd-android-v18-3-shared-device-login-hotfix.sh'
-      - 'deploy/pmd-android-v18-4-shared-device-pos-auth-hotfix.sh'
-      - 'deploy/pmd-android-v18-5-mobile-session-reentry-hotfix.sh'
-      - 'deploy/pmd-android-v18-6-final-session-authority.sh'
-      - 'deploy/pmd-android-v18-7-canonical-login-offline.sh'
-      - 'deploy/pmd-android-v18-13-seamless-offline-pos.sh'
-  pull_request:
-    branches: [main]
-    paths:
-      - 'mobile/android/**'
-      - 'docs/ANDROID_LOCAL_FIRST_ARCHITECTURE_V1.md'
-      - 'app/Services/PmdMobileSync/**'
-      - 'app/Http/Controllers/PmdMobile*.php'
-      - 'app/Services/PmdSiteAccessService.php'
-      - 'app/Services/SuperAdminTenantLifecycleService.php'
-      - 'app/admin/controllers/Login.php'
-      - 'app/admin/routes.php'
-      - 'app/system/database/migrations/2026_09_20_190000_create_pmd_mobile_sync_tables.php'
-      - 'routes/pmd-mobile-sync-v1.php'
-      - '.github/workflows/android-local-first-v1.yml'
+  workflow_dispatch:
 
 concurrency:
-  group: pmd-android-v122-${{ github.event.pull_request.number || github.ref }}
+  group: pmd-android-v129-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -77,96 +18,34 @@ jobs:
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
-      - name: PHP syntax
+      - name: V129 server syntax and contract
         shell: bash
         run: |
           set -euo pipefail
-          php -l app/system/database/migrations/2026_09_20_190000_create_pmd_mobile_sync_tables.php
-          php -l app/Services/PmdMobileSync/PmdMobileDeviceAuthService.php
-          php -l app/Services/PmdMobileSync/PmdMobileStaffGrantService.php
-          php -l app/Services/PmdMobileSync/PmdMobileBootstrapService.php
-          php -l app/Services/PmdMobileSync/PmdMobilePairingService.php
-          php -l app/Services/PmdMobileSync/PmdMobileCommandProcessor.php
-          php -l app/Http/Controllers/PmdMobileBootstrapController.php
-          php -l app/Http/Controllers/PmdMobileEdgeController.php
-          php -l app/Http/Controllers/PmdMobileSyncController.php
-          php -l app/Http/Controllers/PmdMobilePairController.php
-          php -l app/Http/Controllers/PmdMobileKdsController.php
-          php -l app/Http/Controllers/PmdMobilePosSessionController.php
           php -l app/Http/Controllers/PmdMobileWorkspaceSessionController.php
           php -l app/Http/Controllers/PmdMobileWorkspaceAuthController.php
-          php -l app/Http/Controllers/PmdRestaurantSignInApprovalController.php
-          php -l app/Http/Controllers/PmdSiteAccessHubDataController.php
-          php -l app/Http/Middleware/PmdSiteAccessGateMiddleware.php
-          php -l app/Services/PmdSiteAccessService.php
-          php -l app/Services/SuperAdminTenantLifecycleService.php
-          php -l app/admin/controllers/Login.php
-          php -l app/admin/controllers/Siteaccess.php
-          php -l app/admin/controllers/PmdWaiterPosV1.php
-          php -l app/admin/controllers/KitchenDisplay.php
-          php -l app/admin/controllers/concerns/PmdWaiterPosBootstrapConcern.php
-          php -l app/admin/controllers/concerns/PmdWaiterPosSaveEndpoint.php
-          php -l app/admin/controllers/concerns/PmdWaiterPosOrderPersistenceConcern.php
-          php -l app/admin/controllers/concerns/PmdWaiterPosSettleEndpoint.php
-          php -l app/admin/controllers/PmdQuickPosV1.php
-          php -l app/admin/controllers/concerns/PmdQuickPosBatchPaymentV114Concern.php
-          php -l routes/admin-quick-mode.php
-          php -l app/Services/TerminalPayments/TerminalPaymentService.php
-          php -l routes.php
-          php -l routes/pmd-mobile-sync-v1.php
-      - name: Safety contract
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          node --check app/admin/assets/js/pmd-quick-pos-v1.js
-          node --check app/admin/assets/js/pmd-qpos-web-parity-v112.js
-          node --check app/admin/assets/js/push-notifications.js
-
-          node tests/pmd-responsive-matrix-v102.test.mjs
-          node tests/pmd-local-first-v106.test.mjs
-          node tests/pmd-qpos-pay-before-kitchen-v108.test.mjs
-          node tests/pmd-qpos-web-parity-v112.test.mjs
-          node tests/pmd-qpos-v113-history-received.test.mjs
-          node tests/pmd-qpos-v114-multi-check-pay.test.mjs
-          node tests/pmd-qpos-v116-append-batch-bill.test.mjs
-          node tests/pmd-qpos-v117-immediate-append-authority.test.mjs
-          node tests/pmd-qpos-v118-explicit-order-append.test.mjs
-          node tests/pmd-qpos-v119-kitchen-round-split.test.mjs
-          node tests/pmd-qpos-v120-mobile-payment-stack.test.mjs
-          node tests/pmd-qpos-v121-server-round-authority-floating-keypad.test.mjs
-          node tests/pmd-qpos-v122-kds-batch-mobile-polish.test.mjs
-
-          grep -q "PMD_ANDROID_LOCAL_FIRST_V2_V104" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
-          grep -q "PMD_ANDROID_V112_OFFLINE_WEB_PARITY" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
-          grep -q "PMD_ANDROID_PAYMENT_GATE_CLOUD_ONLY_V112" mobile/android/app/src/main/java/com/paymydine/mobile/sync/SyncEngine.kt
-          grep -q "PMD_ANDROID_CLOUD_LINE_EDIT_V106" mobile/android/app/src/main/java/com/paymydine/mobile/LocalPosBridge.kt
-          grep -q "PMD_ANDROID_SYNC_VISIBILITY_V104" mobile/android/app/src/main/java/com/paymydine/mobile/sync/SyncRepository.kt
-          grep -q "PMD_ANDROID_TRUSTED_BUSINESS_TIME_V104" mobile/android/app/src/main/java/com/paymydine/mobile/data/local/LocalPosRepository.kt
-
-          grep -q "PMD_MOBILE_ORDER_ITEM_ADJUST_V106" app/Services/PmdMobileSync/PmdMobileCommandProcessor.php
-          grep -q "PMD_MOBILE_CASH_LOCAL_AGGREGATE_RESOLVE_V101" app/Services/PmdMobileSync/PmdMobileCommandProcessor.php
-          grep -q "PMD_MOBILE_TRUSTED_TIME_ANCHOR_V104" app/Services/PmdMobileSync/PmdMobileBootstrapService.php
-          grep -q "PMD_PUSH_NATIVE_OFFLINE_SUSPEND_V18" app/admin/assets/js/push-notifications.js
-
-          grep -q "PMD_QPOS_SERVER_ROUND_AUTHORITY_V121" app/admin/assets/js/pmd-quick-pos-v1.js
-          grep -q "PMD_QPOS_BATCH_MAIN_PAY_V122" app/admin/assets/js/pmd-quick-pos-v1.js
-          grep -q "PMD_QPOS_MOBILE_LAYER_TOP_V122" app/admin/assets/css/pmd-quick-pos-v1.css
-          grep -q "PMD_KDS_RECEIVED_APPEND_REFRESH_V122" app/admin/views/kitchendisplay/index.blade.php
-
-          grep -q "PayMyDine-Android-0.3.37.apk" app/admin/views/pmdsettings/index.blade.php
-          grep -q "versionCode = 50" mobile/android/app/build.gradle.kts
-          grep -q 'versionName = "0.3.37-v122-local-first"' mobile/android/app/build.gradle.kts
+          php -l app/admin/Services/PmdDefaultStaffRoleService.php
+          php -l app/admin/controllers/Reservations.php
+          node tests/pmd-qpos-v128-mobile-invoice-reservations.test.mjs
+          node tests/pmd-qpos-v129-mobile-cloud-reentry.test.mjs
+          grep -Fq 'PMD_ANDROID_CLOUD_REENTRY_V129' app/Http/Controllers/PmdMobileWorkspaceSessionController.php
+          grep -Fq 'safeNextTargetV129' app/Http/Controllers/PmdMobileWorkspaceSessionController.php
+          grep -Fq 'PMD_ANDROID_CLOUD_REENTRY_V129' mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
+          grep -Fq 'routeCloudAdminNavigationV129' mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
+          grep -Fq 'versionCode = 51' mobile/android/app/build.gradle.kts
+          grep -Fq 'versionName = "0.3.38-v129-cloud-reentry"' mobile/android/app/build.gradle.kts
 
   android:
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
+
       - name: Install Android SDK 36
         shell: bash
         run: |
@@ -178,165 +57,99 @@ jobs:
           test -n "$SDKMANAGER" && test -x "$SDKMANAGER"
           yes | "$SDKMANAGER" --licenses >/dev/null || true
           "$SDKMANAGER" 'platform-tools' 'platforms;android-36' 'build-tools;35.0.0'
+
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.13'
-      - name: Restore stable preview signing key
+
+      - name: Restore stable PayMyDine preview signing key
         if: github.event_name == 'push' && github.ref == 'refs/heads/feature/android-local-first-v1'
         uses: actions/cache@v4
         with:
           path: ~/.android/debug.keystore
           key: paymydine-android-preview-debug-keystore-v1
-      - name: Verify stable preview signing key
+
+      - name: Verify pinned PayMyDine preview certificate
         if: github.event_name == 'push' && github.ref == 'refs/heads/feature/android-local-first-v1'
         shell: bash
         run: |
           set -euo pipefail
           EXPECTED_PREVIEW_SHA256="C1:A7:58:7B:41:F3:87:3B:5C:1C:45:52:D3:80:FA:45:97:F3:30:52:35:47:50:A2:B6:8C:F6:2B:75:5D:B5:C1"
-
-          if [[ ! -f "$HOME/.android/debug.keystore" ]]; then
-            echo "::error::Stable PayMyDine preview signing key is missing. Refusing to publish an APK with a new signature."
-            exit 1
-          fi
-
-          ACTUAL_PREVIEW_SHA256="$(keytool -list -v \
-            -keystore "$HOME/.android/debug.keystore" \
-            -storepass android \
-            -alias androiddebugkey \
-            | sed -n 's/^[[:space:]]*SHA256:[[:space:]]*//p' \
-            | head -1)"
-
-          [[ -n "$ACTUAL_PREVIEW_SHA256" ]] || {
-            echo "::error::Unable to read PayMyDine preview signing certificate."
+          test -f "$HOME/.android/debug.keystore" || {
+            echo "::error::Stable PayMyDine preview signing key is missing."
             exit 1
           }
-
-          if [[ "$ACTUAL_PREVIEW_SHA256" != "$EXPECTED_PREVIEW_SHA256" ]]; then
-            echo "::error::PayMyDine preview signing certificate changed. Refusing to publish an incompatible update."
+          ACTUAL_PREVIEW_SHA256="$(keytool -list -v             -keystore "$HOME/.android/debug.keystore"             -storepass android             -alias androiddebugkey             | sed -n 's/^[[:space:]]*SHA256:[[:space:]]*//p'             | head -1)"
+          [[ "$ACTUAL_PREVIEW_SHA256" == "$EXPECTED_PREVIEW_SHA256" ]] || {
+            echo "::error::PayMyDine preview signing certificate changed."
             echo "expected=$EXPECTED_PREVIEW_SHA256"
             echo "actual=$ACTUAL_PREVIEW_SHA256"
             exit 1
-          fi
+          }
 
-          echo "PMD_PREVIEW_SIGNING_SHA256=$ACTUAL_PREVIEW_SHA256"
-          echo "PMD_PREVIEW_SIGNING_PIN=PASS"
-      - name: Create isolated PR debug signing key
-        if: github.event_name == 'pull_request'
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p "$HOME/.android"
-          rm -f "$HOME/.android/debug.keystore"
-          keytool -genkeypair \
-            -keystore "$HOME/.android/debug.keystore" \
-            -storepass android \
-            -alias androiddebugkey \
-            -keypass android \
-            -keyalg RSA \
-            -keysize 2048 \
-            -validity 10000 \
-            -dname "CN=PayMyDine PR Debug,O=PayMyDine,C=DE" \
-            -noprompt
-          echo "PMD_PR_EPHEMERAL_SIGNING_KEY=READY"
       - name: Unit tests
         working-directory: mobile/android
         run: gradle --no-daemon testDebugUnitTest
-      - name: Assemble debug APK
+
+      - name: Assemble V129 APK
         working-directory: mobile/android
         run: gradle --no-daemon assembleDebug
-      - name: Lint
+
+      - name: Android lint
         working-directory: mobile/android
         run: gradle --no-daemon lintDebug
-      - name: Prepare preview APK
+
+      - name: Prepare V129 APK
         shell: bash
         run: |
           set -euo pipefail
-          cp mobile/android/app/build/outputs/apk/debug/app-debug.apk \
-            mobile/android/PayMyDine-POS-Tablet-Preview.apk
-          cp mobile/android/app/build/outputs/apk/debug/app-debug.apk \
-            mobile/android/PayMyDine-POS-Tablet-Preview-0.3.35.apk
-          cp mobile/android/app/build/outputs/apk/debug/app-debug.apk \
-            mobile/android/PayMyDine-Android-0.3.37.apk
-          sha256sum mobile/android/PayMyDine-POS-Tablet-Preview.apk \
-            > mobile/android/PayMyDine-POS-Tablet-Preview.apk.sha256
-          sha256sum mobile/android/PayMyDine-POS-Tablet-Preview-0.3.35.apk \
-            > mobile/android/PayMyDine-POS-Tablet-Preview-0.3.35.apk.sha256
-          sha256sum mobile/android/PayMyDine-Android-0.3.37.apk \
-            > mobile/android/PayMyDine-Android-0.3.37.apk.sha256
-      - name: Verify preview APK identity
+          APK_IN="mobile/android/app/build/outputs/apk/debug/app-debug.apk"
+          test -f "$APK_IN"
+          cp "$APK_IN" mobile/android/PayMyDine-POS-Tablet-Preview.apk
+          cp "$APK_IN" mobile/android/PayMyDine-Android-0.3.38.apk
+          sha256sum mobile/android/PayMyDine-POS-Tablet-Preview.apk             > mobile/android/PayMyDine-POS-Tablet-Preview.apk.sha256
+          sha256sum mobile/android/PayMyDine-Android-0.3.38.apk             > mobile/android/PayMyDine-Android-0.3.38.apk.sha256
+
+      - name: Verify V129 package, version and signing identity
         shell: bash
         run: |
           set -euo pipefail
-          APK="mobile/android/PayMyDine-POS-Tablet-Preview.apk"
+          APK="mobile/android/PayMyDine-Android-0.3.38.apk"
           AAPT="$ANDROID_HOME/build-tools/35.0.0/aapt"
           APKSIGNER="$ANDROID_HOME/build-tools/35.0.0/apksigner"
-
-          test -x "$AAPT"
-          test -x "$APKSIGNER"
-
           BADGING="$("$AAPT" dump badging "$APK" | head -1)"
           echo "$BADGING"
           grep -Fq "package: name='com.paymydine.mobile.pospreview'" <<<"$BADGING"
-          grep -Fq "versionCode='50'" <<<"$BADGING"
-          grep -Fq "versionName='0.3.37-v122-local-first-debug'" <<<"$BADGING"
+          grep -Fq "versionCode='51'" <<<"$BADGING"
+          grep -Fq "versionName='0.3.38-v129-cloud-reentry-debug'" <<<"$BADGING"
 
-          echo "PMD_PREVIEW_PACKAGE=com.paymydine.mobile.pospreview"
-          echo "PMD_PREVIEW_VERSION=0.3.37-v122-local-first-debug"
+          EXPECTED_CERT="c1a7587b41f3873b5c1c4552d380fa4597f33052354750a2b68cf62b755db5c1"
+          ACTUAL_CERT="$("$APKSIGNER" verify --print-certs "$APK"             | sed -n 's/^Signer #1 certificate SHA-256 digest: //p'             | head -1             | tr '[:upper:]' '[:lower:]')"
+          [[ "$ACTUAL_CERT" == "$EXPECTED_CERT" ]] || {
+            echo "::error::V129 signing certificate mismatch."
+            echo "expected=$EXPECTED_CERT"
+            echo "actual=$ACTUAL_CERT"
+            exit 1
+          }
+          sha256sum "$APK"
 
-          # PR checks intentionally use the runner's ephemeral debug key. Only a
-          # direct push to the preview branch may verify/publish the pinned key.
-          if [[ "$GITHUB_EVENT_NAME" == "push" && "$GITHUB_REF" == "refs/heads/feature/android-local-first-v1" ]]; then
-            EXPECTED_CERT="c1a7587b41f3873b5c1c4552d380fa4597f33052354750a2b68cf62b755db5c1"
-            ACTUAL_CERT="$("$APKSIGNER" verify --print-certs "$APK" \
-              | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' \
-              | head -1 \
-              | tr '[:upper:]' '[:lower:]')"
-
-            [[ "$ACTUAL_CERT" == "$EXPECTED_CERT" ]] || {
-              echo "::error::Built APK signing certificate does not match the pinned PayMyDine POS preview certificate."
-              echo "expected=$EXPECTED_CERT"
-              echo "actual=$ACTUAL_CERT"
-              exit 1
-            }
-
-            echo "PMD_PREVIEW_APK_SIGNING_PIN=PASS"
-          else
-            echo "PMD_PREVIEW_APK_SIGNING_PIN=SKIPPED_PR_EPHEMERAL_KEY"
-          fi
       - uses: actions/upload-artifact@v4
-        if: github.event_name == 'push' && github.ref == 'refs/heads/feature/android-local-first-v1' && !startsWith(github.event.head_commit.message, 'CI:') && !startsWith(github.event.head_commit.message, 'Deploy:')
+        if: github.event_name == 'push' && github.ref == 'refs/heads/feature/android-local-first-v1'
         with:
-          name: paymydine-pos-tablet-preview
+          name: paymydine-android-v129-cloud-reentry
           path: |
             mobile/android/PayMyDine-POS-Tablet-Preview.apk
             mobile/android/PayMyDine-POS-Tablet-Preview.apk.sha256
-            mobile/android/PayMyDine-POS-Tablet-Preview-0.3.35.apk
-            mobile/android/PayMyDine-POS-Tablet-Preview-0.3.35.apk.sha256
-            mobile/android/PayMyDine-Android-0.3.37.apk
-            mobile/android/PayMyDine-Android-0.3.37.apk.sha256
+            mobile/android/PayMyDine-Android-0.3.38.apk
+            mobile/android/PayMyDine-Android-0.3.38.apk.sha256
           if-no-files-found: error
-      - name: Publish tablet preview release
-        if: github.event_name == 'push' && github.ref == 'refs/heads/feature/android-local-first-v1' && !startsWith(github.event.head_commit.message, 'CI:') && !startsWith(github.event.head_commit.message, 'Deploy:')
+
+      - name: Publish V129 preview release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/feature/android-local-first-v1'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: pmd-android-local-first-preview
         run: |
           set -euo pipefail
-          if ! gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release create "$TAG" \
-              --repo "$GITHUB_REPOSITORY" \
-              --target "$GITHUB_SHA" \
-              --title "PayMyDine Android Local-First Preview" \
-              --prerelease \
-              --notes "Android tablet/POS preview. Native local-first POS, Waiter and KDS with Restaurant Edge. This is a test build, not the production-signed Play release."
-          fi
-          gh release upload "$TAG" \
-            mobile/android/PayMyDine-POS-Tablet-Preview.apk \
-            mobile/android/PayMyDine-POS-Tablet-Preview.apk.sha256 \
-            mobile/android/PayMyDine-POS-Tablet-Preview-0.3.35.apk \
-            mobile/android/PayMyDine-POS-Tablet-Preview-0.3.35.apk.sha256 \
-            mobile/android/PayMyDine-Android-0.3.37.apk \
-            mobile/android/PayMyDine-Android-0.3.37.apk.sha256 \
-            --repo "$GITHUB_REPOSITORY" \
-            --clobber
+          gh release upload "$TAG"             mobile/android/PayMyDine-POS-Tablet-Preview.apk             mobile/android/PayMyDine-POS-Tablet-Preview.apk.sha256             mobile/android/PayMyDine-Android-0.3.38.apk             mobile/android/PayMyDine-Android-0.3.38.apk.sha256             --repo "$GITHUB_REPOSITORY"             --clobber

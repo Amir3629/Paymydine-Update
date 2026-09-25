@@ -248,6 +248,7 @@ class FiskalySignDeService
     protected function detectPaymentMethod($order, $paymentMethod = null)
     {
         $pm = $paymentMethod
+            ?? ($order->settlement_method ?? null)
             ?? ($order->payment_method ?? null)
             ?? ($order->payment ?? null)
             ?? 'card';
@@ -261,52 +262,118 @@ class FiskalySignDeService
         return 'NON_CASH';
     }
 
-    protected function buildProcessData($order, array $menus = []): string
-    {
+    protected function buildProcessData(
+        $order,
+        array $menus = [],
+        ?string $paymentMethod = null
+    ): string {
         $items = [];
 
         $orderId = (int)($order->order_id ?? 0);
-        $paymentType = $this->detectPaymentMethod($order, null);
+        $paymentType = $this->detectPaymentMethod(
+            $order,
+            $paymentMethod
+        );
 
-        $taxMode = (string) config('billing.tax_mode', env('PMD_TAX_MODE', 'included'));
-        $taxIncluded = $taxMode === 'included';
+        /* PMD_GERMANY_FISKALY_TAX_AUTHORITY_V69
+         * Canonical PMD setting semantics are:
+         *   tax_menu_price=0 => displayed/stored menu price already includes VAT
+         *   tax_menu_price=1 => VAT is added at checkout
+         * Do not infer the opposite from the legacy billing.tax_mode name.
+         */
+        $taxEnabled = (string)$this->getSettingValue('tax_mode', '0') === '1';
+        $taxMenuPrice = (string)$this->getSettingValue('tax_menu_price', '1');
+        $taxMode = $taxMenuPrice === '1' ? 'add_at_end' : 'included';
 
-        $vatRateNum = (float) $this->getSettingValue('tax_percentage', 0);
-        $vatRate = number_format($vatRateNum, 2, '.', '');
-        $multiplier = $taxIncluded ? (1 + ($vatRateNum / 100)) : 1.0;
+        $defaultVatRateNum = $taxEnabled
+            ? max(0.0, (float)$this->getSettingValue('tax_percentage', 0))
+            : 0.0;
+        $vatRate = number_format($defaultVatRateNum, 2, '.', '');
 
         if (!empty($menus)) {
             foreach ($menus as $menu) {
-                $name = (string)($menu->name ?? $menu['name'] ?? 'Item');
-                $qty = (float)($menu->quantity ?? $menu['quantity'] ?? 1);
-                $netSubtotal = (float)($menu->subtotal ?? $menu['subtotal'] ?? 0);
-                $netUnit = (float)($menu->price ?? $menu['price'] ?? 0);
+                $menuData = is_array($menu) ? $menu : (array)$menu;
+                $name = (string)($menuData['name'] ?? 'Item');
+                $qty = (float)($menuData['quantity'] ?? 1);
+                $storedSubtotal = (float)($menuData['subtotal'] ?? 0);
+                $storedUnit = (float)($menuData['price'] ?? 0);
 
-                if ($netSubtotal <= 0 && $netUnit > 0) {
-                    $netSubtotal = round($netUnit * ($qty > 0 ? $qty : 1), 2);
+                if ($storedSubtotal <= 0 && $storedUnit > 0) {
+                    $storedSubtotal = round(
+                        $storedUnit * ($qty > 0 ? $qty : 1),
+                        2
+                    );
                 }
 
-                $signedTotalPrice = round($taxIncluded ? ($netSubtotal * $multiplier) : $netSubtotal, 2);
-                $signedUnitPrice = round($qty > 0 ? ($signedTotalPrice / $qty) : $signedTotalPrice, 2);
+                $lineVatRateNum = $defaultVatRateNum;
+                foreach ([
+                    'tax_rate',
+                    'tax_percentage',
+                    'vat_rate',
+                    'vat_percentage',
+                    'item_tax_rate',
+                    'menu_tax_rate',
+                ] as $rateField) {
+                    if (
+                        array_key_exists($rateField, $menuData)
+                        && $menuData[$rateField] !== null
+                        && $menuData[$rateField] !== ''
+                        && is_numeric($menuData[$rateField])
+                    ) {
+                        $lineVatRateNum = max(
+                            0.0,
+                            (float)$menuData[$rateField]
+                        );
+                        break;
+                    }
+                }
+
+                if (!$taxEnabled) {
+                    $lineVatRateNum = 0.0;
+                }
+
+                $lineVatRate = number_format(
+                    $lineVatRateNum,
+                    2,
+                    '.',
+                    ''
+                );
+
+                $signedTotalPrice = round(
+                    $taxMode === 'add_at_end'
+                        ? (
+                            $storedSubtotal
+                            * (1 + ($lineVatRateNum / 100))
+                        )
+                        : $storedSubtotal,
+                    2
+                );
+                $signedUnitPrice = round(
+                    $qty > 0
+                        ? ($signedTotalPrice / $qty)
+                        : $signedTotalPrice,
+                    2
+                );
 
                 $items[] = [
                     'name' => $name,
                     'quantity' => number_format($qty, 2, '.', ''),
                     'unit_price' => number_format($signedUnitPrice, 2, '.', ''),
                     'total_price' => number_format($signedTotalPrice, 2, '.', ''),
-                    'vat_rate' => $vatRate,
+                    'vat_rate' => $lineVatRate,
                 ];
 
                 \Log::info('[Fiskaly] buildProcessData line', [
                     'order_id' => $orderId,
                     'name' => $name,
                     'qty' => $qty,
-                    'raw_price' => $netUnit,
-                    'raw_subtotal' => $netSubtotal,
+                    'raw_price' => $storedUnit,
+                    'raw_subtotal' => $storedSubtotal,
                     'signed_unit_price' => $signedUnitPrice,
                     'signed_total_price' => $signedTotalPrice,
-                    'vat_rate' => $vatRate,
+                    'vat_rate' => $lineVatRate,
                     'tax_mode' => $taxMode,
+                    'tax_menu_price' => $taxMenuPrice,
                 ]);
             }
         }
@@ -366,6 +433,8 @@ class FiskalySignDeService
             'include_tip' => $includeTip,
             'tip_amount' => $tipAmount,
             'tax_mode' => $taxMode,
+            'tax_menu_price' => $taxMenuPrice,
+            'tax_enabled' => $taxEnabled,
         ]);
 
         $raw = [
@@ -397,7 +466,7 @@ class FiskalySignDeService
             'url' => $url,
             'payload_masked' => [
                 'api_key_prefix' => substr((string)$apiKey, 0, 8),
-                'api_secret_prefix' => substr((string)$apiSecret, 0, 8),
+                'api_secret_present' => $apiSecret !== '',
             ],
         ]);
 
@@ -407,7 +476,7 @@ class FiskalySignDeService
 
         \Log::info('[Fiskaly] auth response', [
             'status' => $response->status(),
-            'body' => $response->body(),
+            'successful' => $response->successful(),
         ]);
 
         if (!$response->successful()) {
@@ -429,7 +498,6 @@ class FiskalySignDeService
 
         \Log::info('[Fiskaly] bearer request', [
             'url' => $url,
-            'token_prefix' => substr((string)$accessToken, 0, 16),
             'payload' => $payload,
         ]);
 
@@ -548,7 +616,11 @@ class FiskalySignDeService
             }
 
             $items = $this->resolveMenus($order);
-            $processData = $this->buildProcessData($order, $items);
+            $processData = $this->buildProcessData(
+                $order,
+                $items,
+                $paymentMethod
+            );
 
             if (!is_string($processData) || trim($processData) === '') {
                 throw new \RuntimeException('process_data could not be built');

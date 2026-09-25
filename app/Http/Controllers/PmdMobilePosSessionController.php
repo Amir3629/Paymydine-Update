@@ -7,6 +7,7 @@ use Admin\Facades\AdminLocation;
 use Admin\Models\Locations_model;
 use Admin\Services\PmdDefaultStaffRoleService;
 use App\Services\PmdMobileSync\PmdMobileDeviceAuthService;
+use App\Services\PmdMobileSync\PmdMobileStaffGrantService;
 use App\Services\PmdSiteAccessService;
 use App\Services\PmdSiteAccessSessionBindingService;
 use App\Services\PmdWorkSessionPolicyService;
@@ -31,6 +32,7 @@ final class PmdMobilePosSessionController extends Controller
     ) {
         $identity = $deviceAuth->authenticate($request);
         $user = $identity['user'] ?? null;
+        $staff = $identity['staff'] ?? ($user ? $user->staff : null);
         $locationId = (int)($identity['location_id'] ?? 0);
         $deviceId = (int)($identity['device_id'] ?? 0);
 
@@ -63,7 +65,19 @@ final class PmdMobilePosSessionController extends Controller
 
         AdminAuth::login($user, false);
 
-        if (!AdminLocation::hasAccess($location)) {
+        // PMD_MOBILE_CANONICAL_LOCATION_AUTH_V13
+        // Mobile staff authentication accepts the canonical PayMyDine location
+        // rules: superuser, primary staff_location_id, or an explicit attached
+        // location. Do not narrow that proof through the legacy AdminLocation
+        // pivot-only check after the staff grant has already been verified.
+        if (
+            !$staff
+            || !app(PmdMobileStaffGrantService::class)->userMayUseLocation(
+                $user,
+                $staff,
+                $locationId
+            )
+        ) {
             AdminAuth::logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();

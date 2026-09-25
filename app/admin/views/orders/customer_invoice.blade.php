@@ -128,7 +128,11 @@
         .items tr.option-row td:first-child { padding-left:12px; }
         .items tr.option-row td:last-child { font-weight:600; }
         .badge { display:inline-block; border:1px solid #222; padding:2px 7px; font-size:10px; margin-top:5px; border-radius:10px; }
-        .print-btn { margin:10px auto 0; display:block; border:1px solid #222; background:#fff; color:#111; padding:7px 11px; font-size:12px; border-radius:6px; cursor:pointer; }
+        /* PMD_INVOICE_BACK_V127 */
+        .invoice-actions { width:var(--pmd-receipt-width,72mm); max-width:calc(100vw - 16px); margin:10px auto 0; display:grid; grid-template-columns:1fr 1fr; gap:7px; }
+        .invoice-actions button { min-height:40px; border:1px solid #222; background:#fff; color:#111; padding:7px 11px; font-size:12px; font-weight:700; border-radius:6px; cursor:pointer; }
+        .invoice-actions .back-btn { border-color:#064e3b; background:#064e3b; color:#fff; }
+        .print-btn { margin:0; display:block; width:100%; }
         .totals .row { margin:2px 0; }
         .totals .total { font-weight:700; font-size:12px; }
 
@@ -144,6 +148,7 @@
             body { background:#fff; padding:0; }
             .receipt { width:100%; max-width:100%; margin:0; padding:0; border:0; box-shadow:none; }
             .print-btn { display:none; }
+            .invoice-actions { display:none !important; }
         }
     </style>
 
@@ -721,7 +726,26 @@ section.pmd962-hero,
     $taxRow = $orderTotals->firstWhere('code', 'tax');
     $subtotal = (float)(optional($orderTotals->firstWhere('code', 'subtotal'))->value ?? 0);
     $vatAmount = (float)(optional($taxRow)->value ?? 0);
-    $taxTitle = (string)(optional($taxRow)->title ?? 'VAT');
+
+    // PMD_CANONICAL_INVOICE_VAT_RATE_V74
+    // Prefer the rate implied by this order's persisted tax amount so an old
+    // paid invoice does not silently adopt a later restaurant VAT setting.
+    $configuredTaxTitle = trim((string)$pmdSetting('tax_title', 'VAT'));
+    $taxTitle = $configuredTaxTitle !== ''
+        ? $configuredTaxTitle
+        : trim((string)(optional($taxRow)->title ?? 'VAT'));
+    if ($taxTitle === '' || strtolower($taxTitle) === 'tax') {
+        $taxTitle = 'VAT';
+    }
+
+    $taxPercentage = ($subtotal > 0 && $vatAmount > 0)
+        ? round(($vatAmount / $subtotal) * 100, 4)
+        : max(0, (float)$pmdSetting('tax_percentage', 0));
+
+    $taxRateLabel = rtrim(
+        rtrim(number_format($taxPercentage, 4, '.', ''), '0'),
+        '.'
+    );
 @endphp
 @php
 $receiptMode=(string)$pmdSetting('invoice_receipt_mode','1')==='1';
@@ -730,7 +754,14 @@ $wMap=['58mm'=>'50mm','80mm'=>'72mm','112mm'=>'102mm','a4'=>'190mm'];
 $rw=$wMap[$paper]??'72mm';
 $compact=(string)$pmdSetting('invoice_compact_mode','1')==='1';
 $font=(string)$pmdSetting('invoice_font_size_preset','normal');
-$auto=(string)$pmdSetting('invoice_auto_print_dialog','0')==='1';
+// PMD_CANONICAL_INVOICE_PRINT_REQUEST_V75
+// Quick POS Print opens this exact canonical invoice with ?print=1.
+$printRequested=in_array(
+    strtolower(trim((string)request()->query('print','0'))),
+    ['1','true','yes','on'],
+    true
+);
+$auto=$printRequested || (string)$pmdSetting('invoice_auto_print_dialog','0')==='1';
 @endphp
 <body style="--pmd-page-width:{{$paper}};--pmd-receipt-width:{{$rw}};" class="template-{{ $tpl === 'modern' ? 'modern' : ($tpl === 'minimal' ? 'minimal' : 'classic') }}">
 <div class="receipt">
@@ -783,7 +814,7 @@ $auto=(string)$pmdSetting('invoice_auto_print_dialog','0')==='1';
     <div class="small totals" style="line-height:1.5;">
         @if($vatAmount > 0)
             <div class="row"><span>Subtotal</span><strong>{{ number_format($subtotal, 2) }}</strong></div>
-            <div class="row"><span>{{ $taxTitle }}</span><span>{{ number_format($vatAmount,2) }}</span></div>
+            <div class="row"><span>{{ $taxTitle }}{{ $taxRateLabel !== '' ? ' ('.$taxRateLabel.'%)' : '' }}</span><span>{{ number_format($vatAmount,2) }}</span></div>
         @endif
         <div class="row total"><span>Total</span><strong>{{ number_format($orderTotal, 2) }}</strong></div>
     </div>
@@ -794,8 +825,32 @@ $auto=(string)$pmdSetting('invoice_auto_print_dialog','0')==='1';
     @endif
 </div>
 <!-- PMD_DESKTOP_INVOICE_REPRINT_R1 -->
-<button class="print-btn" onclick="return window.pmdPrintReceipt(event)">Print invoice</button>
+<!-- PMD_INVOICE_BACK_V127 -->
+<div class="invoice-actions">
+    <button
+        type="button"
+        class="back-btn"
+        onclick="return window.pmdInvoiceBackV127(event)"
+    >Back</button>
+    <button
+        type="button"
+        class="print-btn"
+        onclick="return window.pmdPrintReceipt(event)"
+    >Print invoice</button>
+</div>
 <script>
+window.pmdInvoiceBackV127 = function (event) {
+    if (event) event.preventDefault();
+
+    if (window.history && window.history.length > 1) {
+        window.history.back();
+        return false;
+    }
+
+    window.location.href = '/admin/pos/cashier';
+    return false;
+};
+
 window.pmdPrintReceipt = function (event) {
     if (event) event.preventDefault();
     try {
@@ -812,7 +867,19 @@ window.pmdPrintReceipt = function (event) {
     return false;
 };
 </script>
-@if($auto)<script>window.addEventListener('load',function(){setTimeout(function(){window.print();},250);});</script>@endif
+@if($auto)
+<script>
+window.addEventListener('load', function () {
+    window.setTimeout(function () {
+        if (typeof window.pmdPrintReceipt === 'function') {
+            window.pmdPrintReceipt();
+            return;
+        }
+        window.print();
+    }, 250);
+});
+</script>
+@endif
 <script src="/app/admin/assets/js/pmd-waiter-v98-single-source.js?v=98"></script>
 
 

@@ -62,6 +62,8 @@ class Ownerboard extends AdminController
         $this->addCss(
             'css/pmd-reservations2-floor-canvas-v310.css'
         );
+        // PMD_FLOOR_SCROLL_CHAIN_V127
+        $this->addCss('css/pmd-floor-scroll-chain-v127.css');
 
         /*
          * One clean Ownerboard presentation/runtime.

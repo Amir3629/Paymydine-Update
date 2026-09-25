@@ -1,5 +1,5 @@
 -- PayMyDine schema-only dump
--- Generated UTC: Mon Sep 21 21:13:33 UTC 2026
+-- Generated UTC: Thu Sep 24 20:59:13 UTC 2026
 -- Source server: vps-252f1bc4
 -- DATA ROWS ARE NOT INCLUDED
 
@@ -3928,7 +3928,7 @@ CREATE TABLE `ti_tenants` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `unique_domain` (`domain`(191)),
   UNIQUE KEY `unique_database` (`database`(191))
-) ENGINE=MyISAM AUTO_INCREMENT=90 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=91 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -4327,7 +4327,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-09-21 21:13:33
+-- Dump completed on 2026-09-24 20:59:14
 
 -- ==================================================
 -- DATABASE: mimoza
@@ -6702,7 +6702,7 @@ CREATE TABLE `ti_pmd_admin_presence_sessions` (
   KEY `ti_pmd_admin_presence_sessions_last_seen_at_index` (`last_seen_at`),
   KEY `ti_pmd_admin_presence_sessions_expires_at_index` (`expires_at`),
   KEY `ti_pmd_admin_presence_sessions_logout_at_index` (`logout_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=121 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=126 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -6796,7 +6796,7 @@ CREATE TABLE `ti_pmd_operational_people` (
   PRIMARY KEY (`id`),
   KEY `pmd_people_location_department_active_idx` (`location_id`,`department`,`is_active`),
   KEY `pmd_people_location_staff_idx` (`location_id`,`staff_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=40 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -6945,7 +6945,7 @@ CREATE TABLE `ti_pmd_site_access_challenges` (
   KEY `pmd_site_challenges_location_status_idx` (`location_id`,`status`,`expires_at`),
   KEY `pmd_site_challenges_user_status_idx` (`user_id`,`status`),
   KEY `pmd_site_challenges_staff_status_idx` (`staff_id`,`status`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -7005,7 +7005,7 @@ CREATE TABLE `ti_pmd_site_access_events` (
   KEY `pmd_site_events_location_created_idx` (`location_id`,`created_at`),
   KEY `pmd_site_events_staff_created_idx` (`staff_id`,`created_at`),
   KEY `pmd_site_events_type_created_idx` (`event_type`,`created_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=15 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=20 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -7801,7 +7801,7 @@ CREATE TABLE `ti_staff_roles` (
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`staff_role_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=20 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=21 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -8276,7 +8276,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-09-21 21:13:34
+-- Dump completed on 2026-09-24 20:59:14
 
 -- ==================================================
 -- DATABASE: rosana
@@ -11045,7 +11045,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-09-21 21:13:34
+-- Dump completed on 2026-09-24 20:59:14
 -- WARNING: Database 'persian' not found or not accessible.
 
 -- ==================================================
@@ -13347,4 +13347,4 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-09-21 21:13:34
+-- Dump completed on 2026-09-24 20:59:15

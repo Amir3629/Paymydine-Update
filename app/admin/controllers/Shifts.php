@@ -11,6 +11,7 @@ use Admin\Models\Staffs_model;
 use Admin\Services\PmdDefaultStaffRoleService;
 use App\Services\PmdKitchenOperationsSchemaService;
 use App\Services\PmdOperationalRosterReconciler;
+use App\Services\PmdStaffPinService;
 use App\Services\PmdShiftPlannerRuleService;
 use App\Services\PmdKitchenWorkforceService;
 use Carbon\Carbon;
@@ -74,9 +75,14 @@ class Shifts extends AdminController
         $this->addCss('css/pmd-shifts-bar-first-paint-fit-v17l.css');
         // PMD_SHIFTS_DYNAMIC_BAR_GEOMETRY_V17M
         $this->addCss('css/pmd-shifts-bar-fit-v17m.css');
+        // PMD_SHIFTS_WEB_CREDENTIALS_PLUS_PIN_UI_V18C
+        $this->addCss('css/pmd-shifts-web-credentials-plus-pin-v18c.css');
+        // PMD_SHIFTS_ROLE_CARDS_UI_V18D
+        $this->addCss('css/pmd-shifts-role-cards-v18d.css');
         // PMD_SHIFTS_MIDNIGHT_TIMELINE_V17N
-        // PMD_SHIFTS_SCROLL_MEMORY_V17O
-        $this->addJs('js/pmd-shifts-inpage-day-nav-v17o.js');
+        // PMD_SONSTIGE_PORTAL_ONLY_UI_V18E
+        // Versioned filename intentionally busts older Shifts role UI cache.
+        $this->addJs('js/pmd-shifts-inpage-day-nav-v18e.js');
         // PMD_SHIFTS_BIG_CALENDAR_V14
         $this->addJs('js/pmd-shifts-big-calendar-v14.js');
         $this->addJs('js/pmd-shifts-reservation-jade-time-v17c.js');
@@ -301,16 +307,36 @@ class Shifts extends AdminController
         $wantsAccess = true;
 
         $roleService = app(PmdDefaultStaffRoleService::class);
+        $pinService = app(PmdStaffPinService::class);
         $managedRoles = collect($roleService->ensure())
             ->reject(fn ($role) => strtolower((string)$role->code) === PmdDefaultStaffRoleService::OWNER)
             ->keyBy('staff_role_id');
 
+        $requestedRoleId = max(
+            0,
+            (int)request()->input('staff_role_id', 0)
+        );
+        $requestedRole = $managedRoles->get($requestedRoleId);
+        $requestedRoleCode = strtolower(trim(
+            (string)($requestedRole->code ?? '')
+        ));
+        $requestedUsesQuickPin = $pinService->canUseRole(
+            $requestedRoleCode
+        );
+
+        // PMD_SHIFTS_WEB_CREDENTIALS_PLUS_PIN_V18C
+        // Every Staff account keeps a real username/password for web login and
+        // usernameportal Staff Portal access. Operational roles additionally
+        // receive a Quick PIN for paired restaurant devices.
+        $username = trim((string)request()->input('username', ''));
+
         $input = [
             'display_name' => trim((string)request()->input('display_name', '')),
             'job_role' => trim((string)request()->input('job_role', '')),
-            'staff_role_id' => max(0, (int)request()->input('staff_role_id', 0)),
-            'username' => trim((string)request()->input('username', '')),
+            'staff_role_id' => $requestedRoleId,
+            'username' => $username,
             'password' => (string)request()->input('password', ''),
+            'quick_pin' => trim((string)request()->input('quick_pin', '')),
         ];
 
         $userId = $existingStaff && $existingStaff->user ? (int)$existingStaff->user->user_id : 0;
@@ -331,20 +357,82 @@ class Shifts extends AdminController
                 'unique:users,username'.($userId ? ','.$userId.',user_id' : ''),
             ];
             $rules['password'] = [$existingStaff ? 'nullable' : 'required', 'between:6,32'];
+            $rules['quick_pin'] = ['nullable', function ($attribute, $value, $fail) use ($pinService) {
+                $value = trim((string)$value);
+                if ($value === '') return;
+                if (!preg_match('/^[0-9]{6}$/', $value)) {
+                    $fail('Quick PIN must be exactly 6 digits.');
+                    return;
+                }
+                if ($pinService->isWeakPin($value)) {
+                    $fail('Choose a stronger Quick PIN. Avoid repeated or sequential digits.');
+                }
+            }];
         }
 
         $validator = Validator::make($input, $rules, [
             'display_name.unique' => 'That name already has a PMD account. Use Advanced to manage the existing account.',
             'username.unique' => 'That username is already in use.',
-            'password.required' => 'Add a password for the new PMD login.',
         ]);
         if ($validator->fails()) {
             return $this->redirectTeamFailure($validator->errors()->first());
         }
         $clean = $validator->validated();
 
+        $selectedRole = $managedRoles->get((int)$clean['staff_role_id']);
+        $selectedRoleCode = strtolower(trim((string)($selectedRole->code ?? '')));
+        $usesQuickPin = $pinService->canUseRole($selectedRoleCode);
+        $existingRoleCode = $existingStaff && $existingStaff->role
+            ? strtolower(trim((string)$existingStaff->role->code))
+            : '';
+        $existingUsedQuickPin = $pinService->canUseRole($existingRoleCode);
+        $quickPin = trim((string)($clean['quick_pin'] ?? ''));
+        $existingHasQuickPin = $userId > 0
+            && $pinService->ready()
+            && $pinService->hasPinForUser($userId);
+
+        if ($usesQuickPin) {
+            if (!$pinService->ensureReady()) {
+                return $this->redirectTeamFailure(
+                    'Quick PIN storage is not ready for this restaurant.'
+                );
+            }
+            if ($quickPin === '' && !$existingHasQuickPin) {
+                return $this->redirectTeamFailure(
+                    'Add a 6-digit Quick PIN for this operational role.'
+                );
+            }
+            if (
+                $quickPin !== ''
+                && !$pinService->availableForUser($quickPin, $userId)
+            ) {
+                return $this->redirectTeamFailure(
+                    'That Quick PIN is already used by another team member.'
+                );
+            }
+        }
+
+        if (
+            !$existingStaff
+            && trim((string)($clean['password'] ?? '')) === ''
+        ) {
+            return $this->redirectTeamFailure(
+                'Add a password for this PMD web login.'
+            );
+        }
+
         try {
-            DB::transaction(function () use ($existing, $existingStaff, $wantsAccess, $clean, $locationId, $id) {
+            DB::transaction(function () use (
+                $existing,
+                $existingStaff,
+                $wantsAccess,
+                $clean,
+                $locationId,
+                $id,
+                $pinService,
+                $usesQuickPin,
+                $quickPin
+            ) {
             $linkedStaffId = $existingStaff ? (int)$existingStaff->staff_id : null;
 
             if ($wantsAccess) {
@@ -364,10 +452,22 @@ class Shifts extends AdminController
                     'send_invite' => false,
                     'activate' => true,
                 ];
-                if (($clean['password'] ?? '') !== '') $user['password'] = $clean['password'];
-                $member->addStaffUser($user);
+                if (($clean['password'] ?? '') !== '') {
+                    $user['password'] = $clean['password'];
+                }
+
+                $userModel = $member->addStaffUser($user);
                 if ($locationId > 0) $member->addStaffLocations([$locationId]);
                 $member->addStaffGroups([]);
+
+                if ($usesQuickPin && $quickPin !== '') {
+                    $pinService->setPin(
+                        (int)$userModel->getKey(),
+                        (int)$member->staff_id,
+                        $quickPin
+                    );
+                }
+
                 $linkedStaffId = (int)$member->staff_id;
             }
 
@@ -395,7 +495,7 @@ class Shifts extends AdminController
             // from the Owner's simple Team form. Keep the transaction atomic,
             // report the real exception server-side, and return a clean error.
             report($error);
-            return $this->redirectTeamFailure('Could not save this member. Check the name, username and password, then try again.');
+            return $this->redirectTeamFailure('Could not save this member. Check the name, access role and sign-in credential, then try again.');
         }
 
         return $this->redirectBackToSchedule($wantsAccess ? 'Member + login saved.' : 'Member saved.');

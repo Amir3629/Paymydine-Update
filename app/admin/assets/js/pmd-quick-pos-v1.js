@@ -7073,13 +7073,13 @@
           {code: 'cash', name: 'Cash', disabled: false},
           {
             code: 'external_terminal',
-            name: 'External terminal',
+            name: 'Card',
             disabled: false
           }
         ]
       : [
           {code: 'cash', name: 'Cash', disabled: false},
-          {code: 'direct_terminal', name: 'Terminal', disabled: !providers.length}
+          {code: 'direct_terminal', name: 'Card', disabled: !providers.length}
         ];
 
     var methodSignature = methods.map(function (method) {
@@ -7178,7 +7178,7 @@
       return (
         '<button type="button" class="pmd-qpos-terminal' + (selected ? ' is-selected' : '') + '"' +
           ' data-terminal-index="' + index + '">' +
-          '<strong>' + esc(terminal.name || terminal.provider_code || 'Terminal') + '</strong>' +
+          '<strong>' + esc(terminal.name || terminal.provider_code || 'Card reader') + '</strong>' +
           (terminal.terminal_status ? ' · ' + esc(terminal.terminal_status) : '') +
         '</button>'
       );
@@ -8674,7 +8674,21 @@
       if (entry.payer_label) {
         item.meta.push(String(entry.payer_label));
       }
-      if (entry.payment_note) {
+
+      /* PMD_QPOS_HISTORY_COMBINED_V127
+       * Batch transactions are stored once per order, but History should read
+       * as one customer action. Show the group cleanly instead of repeating
+       * the internal "Quick POS combined payment: ..." note. */
+      var combinedIdsV127 = Array.isArray(entry.combined_order_ids)
+        ? entry.combined_order_ids.map(Number).filter(Boolean)
+        : [];
+      if (combinedIdsV127.length > 1) {
+        item.meta.push(
+          'Combined · ' +
+          combinedIdsV127.map(function (id) { return '#' + id; }).join(' + ')
+        );
+        item.note = '';
+      } else if (entry.payment_note) {
         item.note = String(entry.payment_note);
       }
       return item;
@@ -8844,6 +8858,128 @@
       .join('');
   }
 
+  /* PMD_QPOS_HISTORY_COMBINED_V127
+   * A multi-check payment remains several canonical orders, but its History
+   * detail behaves as one customer bill: every selected order/item is shown,
+   * the technical per-order transaction duplication is collapsed, and Invoice
+   * opens the dedicated combined document. */
+  function historyCombinedOrderIdsV127(entries, orderId) {
+    var ids = [];
+
+    (entries || []).forEach(function (entry) {
+      if (String(entry.kind || '') !== 'payment') return;
+
+      var declared = Array.isArray(entry.combined_order_ids)
+        ? entry.combined_order_ids
+        : [];
+
+      if (!declared.length) {
+        var note = String(entry.payment_note || '');
+        var match = note.match(
+          /^Quick POS combined payment:\s*([0-9,\s]+)$/i
+        );
+        if (match) {
+          declared = String(match[1] || '').split(',');
+        }
+      }
+
+      declared.forEach(function (id) {
+        id = Number(String(id || '').trim());
+        if (id > 0 && ids.indexOf(id) === -1) ids.push(id);
+      });
+    });
+
+    orderId = Number(orderId || 0);
+    if (orderId > 0 && ids.indexOf(orderId) === -1) ids.push(orderId);
+
+    ids.sort(function (a, b) { return a - b; });
+    return ids.length > 1 ? ids : (orderId > 0 ? [orderId] : []);
+  }
+
+  function historyOrderEntryByIdV127(orderId) {
+    orderId = Number(orderId || 0);
+
+    var lookup = Array.isArray(
+      state.historyData && state.historyData.order_entries
+    )
+      ? state.historyData.order_entries
+      : [];
+
+    return lookup.concat(historyEntries(state.historyData)).find(
+      function (entry) {
+        return (
+          String(entry.kind || '') === 'order' &&
+          Number(entry.order_id || 0) === orderId
+        );
+      }
+    ) || null;
+  }
+
+  function historyOrderItemsV127(order) {
+    if (!order) return [];
+
+    if (Array.isArray(order.items) && order.items.length) {
+      return order.items.map(function (item) {
+        return {
+          name: String(item && item.name || 'Item').trim() || 'Item',
+          quantity: Math.max(0, num(item && item.quantity, 0))
+        };
+      }).filter(function (item) {
+        return item.quantity > 0;
+      });
+    }
+
+    return String(order.item_summary || '')
+      .split(',')
+      .map(function (part) {
+        part = part.trim();
+        if (!part) return null;
+        var match = part.match(/^\s*(\d+(?:[.,]\d+)?)\s*[×x]\s*(.+)$/i);
+        return {
+          quantity: match ? Math.max(0, num(String(match[1]).replace(',', '.'), 1)) : 1,
+          name: String(match ? match[2] : part).trim() || 'Item'
+        };
+      })
+      .filter(Boolean);
+  }
+
+  function historyCombinedItemsV127(orderIds) {
+    var grouped = Object.create(null);
+    var orderSequence = [];
+
+    (orderIds || []).forEach(function (orderId) {
+      var order = historyOrderEntryByIdV127(orderId);
+      historyOrderItemsV127(order).forEach(function (item) {
+        var key = String(item.name || 'Item').trim().toLowerCase();
+        if (!key) return;
+        if (!grouped[key]) {
+          grouped[key] = {
+            name: String(item.name || 'Item').trim() || 'Item',
+            quantity: 0
+          };
+          orderSequence.push(key);
+        }
+        grouped[key].quantity += Math.max(0, num(item.quantity, 0));
+      });
+    });
+
+    return orderSequence.map(function (key) {
+      return grouped[key];
+    });
+  }
+
+  function historyItemsMarkupV127(items) {
+    return (items || []).map(function (item) {
+      var qty = roundMoney(num(item.quantity, 0));
+      var qtyLabel = Math.abs(qty - Math.round(qty)) < 0.0001
+        ? String(Math.round(qty))
+        : String(qty);
+      return '<span class="pmd-qpos-history-item-chip-v83">' +
+        esc(qtyLabel + '× ' + String(item.name || 'Item')) +
+      '</span>';
+    }).join('');
+  }
+
   function renderHistoryDetail(orderId) {
     var detail = $('[data-qpos-history-detail]');
     if (!detail) return;
@@ -8859,7 +8995,8 @@
       return;
     }
 
-    var entries = historyEntries(state.historyData).filter(function (entry) {
+    var allEntries = historyEntries(state.historyData);
+    var entries = allEntries.filter(function (entry) {
       return Number(entry.order_id || 0) === orderId;
     });
 
@@ -8873,38 +9010,102 @@
       return;
     }
 
+    var combinedOrderIds = historyCombinedOrderIdsV127(entries, orderId);
+    var combined = combinedOrderIds.length > 1;
+    var combinedOrders = combinedOrderIds
+      .map(historyOrderEntryByIdV127)
+      .filter(Boolean);
+
+    if (!combinedOrders.length) combinedOrders = [order];
+
     var settlement = String(order.settlement_status || '').trim();
+    var settlementLabel = historySettlementLabel(settlement);
+    var settlementTone = historySettlementTone(settlement);
+
+    var totalValue = combined
+      ? combinedOrders.reduce(function (sum, row) {
+          return sum + num(row && row.total, 0);
+        }, 0)
+      : num(order.total, 0);
+
+    var total = money(totalValue);
+    var items = combined
+      ? historyCombinedItemsV127(combinedOrderIds)
+      : historyOrderItemsV127(order);
+    var itemMarkup = historyItemsMarkupV127(items);
+    var orderNote = String(order.note || '').trim();
+
     var invoiceUrl = String(order.invoice_url || '');
+    if (combined) {
+      invoiceUrl =
+        '/admin/pos/payment-batch-invoice?order_ids=' +
+        encodeURIComponent(combinedOrderIds.join(','));
+    }
+
     var invoiceReady =
       !!invoiceUrl &&
-      ['paid', 'settled', 'closed'].indexOf(
-        settlement.toLowerCase()
-      ) !== -1;
-    /* PMD_QPOS_HISTORY_DOCUMENT_ACTIONS_V75
-     * Invoice opens the canonical document. Print uses the same document with
-     * an explicit print request so browser/Desktop print handling stays on the
-     * invoice page instead of duplicating receipt rendering inside Quick POS. */
+      (
+        combined ||
+        ['paid', 'settled', 'closed'].indexOf(
+          settlement.toLowerCase()
+        ) !== -1
+      );
+
     var printInvoiceUrl = invoiceReady
       ? invoiceUrl +
         (invoiceUrl.indexOf('?') === -1 ? '?' : '&') +
         'print=1'
       : '';
-    var settlementLabel = historySettlementLabel(settlement);
-    var settlementTone = historySettlementTone(settlement);
-    var total = order.total != null ? money(order.total) : '';
-    var itemSummary = String(order.item_summary || '').trim();
-    var itemSummaryMarkupV83 = historyItemSummaryMarkupV83(itemSummary);
-    var orderNote = String(order.note || '').trim();
 
     var rawEvents = entries.filter(function (entry) {
       return String(entry.kind || '') !== 'order';
     });
 
-    var paymentEvents = historyGroupedEvents(
-      rawEvents.filter(function (entry) {
-        return ['payment', 'terminal'].indexOf(String(entry.kind || '')) !== -1;
-      })
-    );
+    var paymentRaw = rawEvents.filter(function (entry) {
+      return ['payment', 'terminal'].indexOf(String(entry.kind || '')) !== -1;
+    });
+
+    var paymentEvents;
+    if (combined) {
+      var batchPayment = paymentRaw.find(function (entry) {
+        return (
+          String(entry.kind || '') === 'payment' &&
+          (
+            (Array.isArray(entry.combined_order_ids) &&
+              entry.combined_order_ids.length > 1) ||
+            /^Quick POS combined payment:/i.test(
+              String(entry.payment_note || '')
+            )
+          )
+        );
+      }) || paymentRaw[0];
+
+      if (batchPayment) {
+        var combinedMethod = historyWords(
+          batchPayment.payment_method || 'Payment'
+        );
+        paymentEvents = [{
+          kind: 'payment',
+          title: combinedMethod
+            ? combinedMethod + ' combined payment'
+            : 'Combined payment',
+          value: money(totalValue),
+          note: '',
+          meta: [
+            'Orders ' + combinedOrderIds.map(function (id) {
+              return '#' + id;
+            }).join(' + ')
+          ],
+          time: batchPayment.time,
+          receiptUrl: '',
+          count: 1
+        }];
+      } else {
+        paymentEvents = [];
+      }
+    } else {
+      paymentEvents = historyGroupedEvents(paymentRaw);
+    }
 
     var noteEvents = historyGroupedEvents(
       rawEvents.filter(function (entry) {
@@ -8913,39 +9114,44 @@
       })
     );
 
-    /* PMD_QPOS_HISTORY_ORDER_CARD_V84
-     * The order is the first section card, using the same visual grammar as
-     * Payments. The old standalone "Order" eyebrow/header is intentionally gone. */
+    var heading = combined
+      ? combinedOrderIds.map(function (id) { return '#' + id; }).join(' + ')
+      : '#' + String(orderId);
+
+    var statusLabel = combined ? 'Paid together' : settlementLabel;
+
     detail.innerHTML =
       '<div class="pmd-qpos-history-sections pmd-qpos-history-sections-v84">' +
-        '<section class="pmd-qpos-history-section pmd-qpos-history-order-card-v84">' +
+        '<section class="pmd-qpos-history-section pmd-qpos-history-order-card-v84"' +
+          (combined ? ' data-qpos-history-combined-v127="1"' : '') + '>' +
           '<header>' +
-            '<strong>#' + esc(orderId) + '</strong>' +
-            (settlementLabel
+            '<strong>' + esc(heading) + '</strong>' +
+            (statusLabel
               ? '<span class="pmd-qpos-history-order-status-v84 is-' +
-                  esc(settlementTone) + '">' +
-                  esc(settlementLabel) +
+                  esc(combined ? 'paid' : settlementTone) + '">' +
+                  esc(statusLabel) +
                 '</span>'
               : '') +
           '</header>' +
           '<article class="pmd-qpos-history-order-event-v84">' +
             '<div class="pmd-qpos-history-simple-main pmd-qpos-history-order-main-v84">' +
               '<div>' +
-                (total
-                  ? '<strong>' + esc(total) + '</strong>'
+                '<strong>' + esc(total) + '</strong>' +
+                (combined
+                  ? '<small class="pmd-qpos-history-combined-label-v127">Combined bill</small>'
                   : '') +
               '</div>' +
               '<time>' + esc(historyShortTime(order.time)) + '</time>' +
             '</div>' +
-            (itemSummary
+            (itemMarkup
               ? '<div class="pmd-qpos-history-order-items-v84">' +
-                  '<span>Items</span>' +
+                  '<span>' + (combined ? 'Combined items' : 'Items') + '</span>' +
                   '<div class="pmd-qpos-history-item-chips-v83">' +
-                    itemSummaryMarkupV83 +
+                    itemMarkup +
                   '</div>' +
                 '</div>'
               : '') +
-            (orderNote
+            (!combined && orderNote
               ? '<div class="pmd-qpos-history-order-note-v84">' +
                   '<span>Note</span>' +
                   '<p>' + esc(orderNote) + '</p>' +
@@ -8954,10 +9160,9 @@
             (invoiceReady
               ? '<div class="pmd-qpos-history-document-actions-v75 pmd-qpos-history-document-actions-v84">' +
                   '<a class="pmd-qpos-history-invoice" href="' + esc(invoiceUrl) +
-                    '" target="_blank" rel="noopener">Invoice</a>' +
+                    '">Invoice</a>' +
                   '<a class="pmd-qpos-history-invoice pmd-qpos-history-print-v75" href="' +
-                    esc(printInvoiceUrl) +
-                    '" target="_blank" rel="noopener">Print</a>' +
+                    esc(printInvoiceUrl) + '">Print</a>' +
                 '</div>'
               : '') +
           '</article>' +
@@ -8967,6 +9172,19 @@
       '</div>';
   }
 
+  /* PMD_QPOS_HISTORY_FOOD_PREVIEW_V125
+   * Show one real dish name on each order-history card. item_summary already
+   * comes from canonical History data, so this adds no request or backend load. */
+  function historyFirstFoodPreviewV125(entry) {
+    var summary = String(entry && entry.item_summary || '').trim();
+    if (!summary) return '';
+
+    var first = String(summary.split(',')[0] || '').trim();
+    return first
+      .replace(/^\s*\d+(?:[.,]\d+)?\s*[×x]\s*/i, '')
+      .trim();
+  }
+
   function historyListCompact(entry) {
     var kind = String(entry.kind || 'event');
     var orderId = Number(entry.order_id || 0);
@@ -8974,12 +9192,14 @@
     var line = '';
     var badge = '';
     var badgeTone = 'neutral';
+    var preview = '';
 
     if (kind === 'order') {
       title = '#' + String(orderId || '');
       line = entry.total != null ? money(entry.total) : '';
       badge = historySettlementLabel(entry.settlement_status || '');
       badgeTone = historySettlementTone(entry.settlement_status || '');
+      preview = historyFirstFoodPreviewV125(entry);
       if (Number(entry.item_count || 0) > 0) {
         line +=
           (line ? ' · ' : '') +
@@ -9000,6 +9220,7 @@
       line: line,
       badge: badge,
       badgeTone: badgeTone,
+      preview: preview,
       time: entry.time
     };
   }
@@ -9113,6 +9334,36 @@
     }
   }
 
+  /* PMD_QPOS_HISTORY_INLINE_V123
+   * Phone History expands the selected order in place so later cards move
+   * down naturally. Desktop keeps the existing two-card master/detail view. */
+  function historyInlineDetailActiveV123() {
+    return isMobileHistoryV87();
+  }
+
+  function renderHistoryInlineDetailV123(orderId, list) {
+    orderId = Number(orderId || 0);
+    if (!historyInlineDetailActiveV123() || !orderId || !list) return;
+
+    var button = list.querySelector(
+      '[data-qpos-history-order="' + String(orderId) + '"]'
+    );
+    var detail = $('[data-qpos-history-detail]');
+    if (!button || !detail) return;
+
+    var inline = document.createElement('div');
+    inline.className = 'pmd-qpos-history-inline-detail-v123';
+    inline.setAttribute(
+      'data-qpos-history-inline-detail-v123',
+      String(orderId)
+    );
+    inline.innerHTML = detail.innerHTML;
+    if (detail.querySelector('[data-qpos-history-combined-v127]')) {
+      inline.classList.add('is-combined-v127');
+    }
+    button.insertAdjacentElement('afterend', inline);
+  }
+
   function historySearchMatchesV84(entry, query) {
     query = String(query || '').trim().toLowerCase();
     if (!query) return true;
@@ -9216,6 +9467,12 @@
             '<strong>' + esc(row.title) + '</strong>' +
             '<time>' + esc(historyShortTime(row.time)) + '</time>' +
           '</div>' +
+          (row.preview
+            ? '<div class="pmd-qpos-history-food-preview-v125" title="' +
+                esc(row.preview) + '">' +
+                esc(row.preview) +
+              '</div>'
+            : '') +
           '<div class="pmd-qpos-history-entry-bottom">' +
             (row.line
               ? '<span>' + esc(row.line) + '</span>'
@@ -9263,6 +9520,15 @@
     $$('[data-qpos-history-order]', list).forEach(function (button) {
       button.onclick = function () {
         var orderId = Number(button.getAttribute('data-qpos-history-order') || 0);
+
+        if (historyInlineDetailActiveV123()) {
+          var sameOrder =
+            Number(state.historySelectedOrderId || 0) === orderId;
+          state.historySelectedOrderId = sameOrder ? null : (orderId || null);
+          renderHistory(state.historyData);
+          return;
+        }
+
         state.historySelectedOrderId = orderId || null;
         renderHistory(state.historyData);
         renderHistoryDetail(orderId);
@@ -9277,13 +9543,23 @@
       })
     ) {
       renderHistoryDetail(state.historySelectedOrderId);
-    } else if (kind === 'orders' && entries[0] && entries[0].order_id) {
+      renderHistoryInlineDetailV123(
+        state.historySelectedOrderId,
+        list
+      );
+    } else if (
+      !historyInlineDetailActiveV123() &&
+      kind === 'orders' &&
+      entries[0] &&
+      entries[0].order_id
+    ) {
       state.historySelectedOrderId = Number(entries[0].order_id);
       renderHistoryDetail(state.historySelectedOrderId);
       var first = $('[data-qpos-history-order="' +
         String(state.historySelectedOrderId) + '"]', list);
       if (first) first.classList.add('is-selected');
     } else {
+      state.historySelectedOrderId = null;
       renderHistoryDetail(0);
     }
   }
@@ -9295,6 +9571,276 @@
     var m = (month < 10 ? '0' : '') + String(month);
     var d = (day < 10 ? '0' : '') + String(day);
     return y + '-' + m + '-' + d;
+  }
+
+  /* PMD_QPOS_HISTORY_DATE_RANGE_V123
+   * All time has no boundaries, so blank date inputs disappear. Desktop uses
+   * an app-owned fixed calendar that is clamped inside the visible frame. */
+  function syncHistoryDateRangeVisibilityV123() {
+    var dates = $('.pmd-qpos-history-dates-v85');
+    if (!dates) return;
+
+    var hidden = String(state.historyPreset || '') === 'all';
+    dates.hidden = hidden;
+    dates.setAttribute('aria-hidden', hidden ? 'true' : 'false');
+  }
+
+  var historyDatePickerStateV123 = {
+    input: null,
+    month: null,
+    popover: null
+  };
+
+  function historyUsesCustomDatePickerV123() {
+    return window.innerWidth >= 821;
+  }
+
+  function historyDatePartsV123(value) {
+    var match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || ''));
+    if (!match) return null;
+
+    return {
+      year: Number(match[1]),
+      month: Number(match[2]) - 1,
+      day: Number(match[3])
+    };
+  }
+
+  function closeHistoryDatePickerV123() {
+    var popover = historyDatePickerStateV123.popover;
+    if (popover && popover.parentNode) {
+      popover.parentNode.removeChild(popover);
+    }
+    historyDatePickerStateV123.input = null;
+    historyDatePickerStateV123.month = null;
+    historyDatePickerStateV123.popover = null;
+  }
+
+  function positionHistoryDatePickerV123() {
+    var input = historyDatePickerStateV123.input;
+    var popover = historyDatePickerStateV123.popover;
+    if (!input || !popover) return;
+
+    var rect = input.getBoundingClientRect();
+    var width = Math.min(320, Math.max(260, window.innerWidth - 16));
+    popover.style.width = width + 'px';
+
+    var height = Math.max(300, Number(popover.offsetHeight || 0));
+    var left = Math.min(
+      Math.max(8, rect.left),
+      Math.max(8, window.innerWidth - width - 8)
+    );
+    var below = rect.bottom + 8;
+    var above = rect.top - height - 8;
+    var top = below;
+
+    if (below + height > window.innerHeight - 8 && above >= 8) {
+      top = above;
+    }
+
+    top = Math.max(
+      8,
+      Math.min(top, Math.max(8, window.innerHeight - height - 8))
+    );
+
+    popover.style.left = Math.round(left) + 'px';
+    popover.style.top = Math.round(top) + 'px';
+  }
+
+  function renderHistoryDatePickerV123() {
+    var input = historyDatePickerStateV123.input;
+    var popover = historyDatePickerStateV123.popover;
+    var monthDate = historyDatePickerStateV123.month;
+    if (!input || !popover || !monthDate) return;
+
+    var year = monthDate.getFullYear();
+    var month = monthDate.getMonth();
+    var selected = historyDatePartsV123(input.value);
+    var today = new Date();
+    var firstWeekday = (new Date(year, month, 1).getDay() + 6) % 7;
+    var daysInMonth = new Date(year, month + 1, 0).getDate();
+    var monthLabel;
+
+    try {
+      monthLabel = new Intl.DateTimeFormat([], {
+        month: 'long',
+        year: 'numeric'
+      }).format(monthDate);
+    } catch (ignored) {
+      monthLabel = String(month + 1) + '/' + String(year);
+    }
+
+    var days = [];
+    for (var blank = 0; blank < firstWeekday; blank += 1) {
+      days.push('<span class="is-empty" aria-hidden="true"></span>');
+    }
+
+    for (var day = 1; day <= daysInMonth; day += 1) {
+      var isSelected =
+        selected &&
+        selected.year === year &&
+        selected.month === month &&
+        selected.day === day;
+      var isToday =
+        today.getFullYear() === year &&
+        today.getMonth() === month &&
+        today.getDate() === day;
+      var dayClass = isSelected
+        ? ' class="is-selected"'
+        : (isToday ? ' class="is-today"' : '');
+
+      days.push(
+        '<button type="button"' +
+          ' data-qpos-history-date-day-v123="' + String(day) + '"' +
+          dayClass +
+          ' aria-label="' + esc(String(day) + ' ' + monthLabel) + '">' +
+          String(day) +
+        '</button>'
+      );
+    }
+
+    popover.innerHTML =
+      '<div class="pmd-qpos-history-date-picker-head-v123">' +
+        '<button type="button" data-qpos-history-date-prev-v123 aria-label="Previous month">‹</button>' +
+        '<strong>' + esc(monthLabel) + '</strong>' +
+        '<button type="button" data-qpos-history-date-next-v123 aria-label="Next month">›</button>' +
+      '</div>' +
+      '<div class="pmd-qpos-history-date-week-v123" aria-hidden="true">' +
+        '<span>Mo</span><span>Tu</span><span>We</span><span>Th</span>' +
+        '<span>Fr</span><span>Sa</span><span>Su</span>' +
+      '</div>' +
+      '<div class="pmd-qpos-history-date-days-v123">' +
+        days.join('') +
+      '</div>';
+
+    var previous = popover.querySelector('[data-qpos-history-date-prev-v123]');
+    var next = popover.querySelector('[data-qpos-history-date-next-v123]');
+
+    if (previous) {
+      previous.onclick = function () {
+        historyDatePickerStateV123.month =
+          new Date(year, month - 1, 1);
+        renderHistoryDatePickerV123();
+      };
+    }
+
+    if (next) {
+      next.onclick = function () {
+        historyDatePickerStateV123.month =
+          new Date(year, month + 1, 1);
+        renderHistoryDatePickerV123();
+      };
+    }
+
+    Array.prototype.slice.call(
+      popover.querySelectorAll('[data-qpos-history-date-day-v123]')
+    ).forEach(function (button) {
+      button.onclick = function () {
+        var day = Number(
+          button.getAttribute('data-qpos-history-date-day-v123') || 0
+        );
+        if (!day) return;
+
+        input.value = historyIsoDate(new Date(year, month, day));
+        input.dispatchEvent(new Event('change', {bubbles: true}));
+        closeHistoryDatePickerV123();
+      };
+    });
+
+    window.requestAnimationFrame(positionHistoryDatePickerV123);
+  }
+
+  function openHistoryDatePickerV123(input) {
+    if (!input || !historyUsesCustomDatePickerV123()) return;
+
+    closeHistoryDatePickerV123();
+
+    var selected = historyDatePartsV123(input.value);
+    var seed = selected
+      ? new Date(selected.year, selected.month, 1)
+      : new Date();
+
+    var popover = document.createElement('div');
+    popover.className = 'pmd-qpos-history-date-picker-v123';
+    popover.setAttribute('role', 'dialog');
+    popover.setAttribute('aria-label', 'Choose history date');
+
+    historyDatePickerStateV123.input = input;
+    historyDatePickerStateV123.month =
+      new Date(seed.getFullYear(), seed.getMonth(), 1);
+    historyDatePickerStateV123.popover = popover;
+
+    document.body.appendChild(popover);
+    renderHistoryDatePickerV123();
+  }
+
+  function configureHistoryDatePickersV123() {
+    var fields = [
+      $('[data-qpos-history-from]'),
+      $('[data-qpos-history-to]')
+    ].filter(Boolean);
+
+    fields.forEach(function (input) {
+      var custom = historyUsesCustomDatePickerV123();
+      input.readOnly = custom;
+      input.classList.toggle('is-custom-date-v123', custom);
+
+      if (input.getAttribute('data-qpos-date-picker-v123') === '1') return;
+      input.setAttribute('data-qpos-date-picker-v123', '1');
+
+      input.addEventListener('pointerdown', function (event) {
+        if (!historyUsesCustomDatePickerV123()) return;
+        event.preventDefault();
+        openHistoryDatePickerV123(input);
+      });
+
+      input.addEventListener('click', function (event) {
+        if (historyUsesCustomDatePickerV123()) event.preventDefault();
+      });
+
+      input.addEventListener('keydown', function (event) {
+        if (
+          historyUsesCustomDatePickerV123() &&
+          (event.key === 'Enter' || event.key === ' ')
+        ) {
+          event.preventDefault();
+          openHistoryDatePickerV123(input);
+        }
+      });
+    });
+
+    if (!window.__pmdQposHistoryDatePickerBoundV123) {
+      window.__pmdQposHistoryDatePickerBoundV123 = true;
+
+      document.addEventListener('pointerdown', function (event) {
+        var popover = historyDatePickerStateV123.popover;
+        if (!popover) return;
+
+        if (
+          popover.contains(event.target) ||
+          (
+            event.target &&
+            event.target.matches &&
+            event.target.matches(
+              '[data-qpos-history-from], [data-qpos-history-to]'
+            )
+          )
+        ) {
+          return;
+        }
+
+        closeHistoryDatePickerV123();
+      }, true);
+
+      window.addEventListener('resize', function () {
+        configureHistoryDatePickersV123();
+        closeHistoryDatePickerV123();
+      }, {passive: true});
+
+      window.addEventListener('scroll', function () {
+        closeHistoryDatePickerV123();
+      }, true);
+    }
   }
 
   function setHistoryPreset(preset, reload) {
@@ -9332,6 +9878,9 @@
         String(button.getAttribute('data-qpos-history-preset')) === preset
       );
     });
+
+    syncHistoryDateRangeVisibilityV123();
+    closeHistoryDatePickerV123();
 
     if (reload) loadHistory();
   }
@@ -9558,6 +10107,8 @@
     ensureHistoryTableWorkspaceV93();
     closeHistoryMobileDetailV87();
     syncHistoryMobileLayoutV87();
+    configureHistoryDatePickersV123();
+    syncHistoryDateRangeVisibilityV123();
 
     if (!state.historyFrom && !state.historyTo) {
       setHistoryPreset(state.historyPreset || '7d', false);
@@ -9850,8 +10401,12 @@
   /* PMD_QPOS_MOBILE_HISTORY_V87
    * Mobile History is one viewport: controls stay visible, only the list
    * scrolls, and an explicit order tap opens a full-screen detail panel. */
+  /* PMD_QPOS_HISTORY_ITERATION_HOTFIX_V124
+   * History uses one inline portrait flow on phones and tablet-portrait
+   * Android/WebViews. This matches the requested behavior: tapping a History
+   * order expands directly under that order and pushes later cards down. */
   function isMobileHistoryV87() {
-    return isPhoneViewportV102();
+    return isPhoneViewportV102() || isTabletPortraitV102();
   }
 
   function isMobileCartFlowV87() {
@@ -10379,13 +10934,50 @@
     var cart = $('.pmd-qpos-cart');
     var closeCart = $('[data-qpos-cart-close]');
     if (mobileCart && cart) {
+      /* PMD_QPOS_MOBILE_CART_CHECKOUT_HIDE_V127
+       * The fixed total rail is useful while browsing food, but once the real
+       * Check card has entered the viewport it must stay out of the way. The
+       * previous z-index-only solution let the rail reappear below the card
+       * after scrolling farther down. */
+      var syncMobileCartCheckoutV127 = function () {
+        if (!isMobileCartFlowV87()) {
+          root.classList.remove('is-mobile-checkout-reached-v127');
+          return;
+        }
+
+        var rect = cart.getBoundingClientRect();
+        var viewportHeight =
+          window.innerHeight ||
+          document.documentElement.clientHeight ||
+          0;
+        var reached =
+          viewportHeight > 0 &&
+          rect.top <= Math.max(80, viewportHeight - 96);
+
+        root.classList.toggle(
+          'is-mobile-checkout-reached-v127',
+          reached
+        );
+      };
+
+      if (!mobileCart.__pmdCheckoutHideV127Bound) {
+        mobileCart.__pmdCheckoutHideV127Bound = true;
+        window.addEventListener(
+          'scroll',
+          syncMobileCartCheckoutV127,
+          {passive: true}
+        );
+        window.addEventListener(
+          'resize',
+          syncMobileCartCheckoutV127,
+          {passive: true}
+        );
+      }
+
+      window.requestAnimationFrame(syncMobileCartCheckoutV127);
+
       mobileCart.onclick = function () {
         if (isMobileCartFlowV87()) {
-          /* PMD_QPOS_MOBILE_CART_END_V122
-           * The floating total is a shortcut to Checkout. Land at the END of
-           * the document/check card, not its top edge. The check card has a
-           * higher mobile stacking layer, so the total rail naturally passes
-           * behind it as Checkout comes into view. */
           cart.classList.remove('is-mobile-open');
 
           if (cart.scrollIntoView) {
@@ -10406,6 +10998,8 @@
             } catch (ignored) {
               window.scrollTo(0, bottom);
             }
+
+            window.requestAnimationFrame(syncMobileCartCheckoutV127);
           });
           return;
         }
@@ -10697,6 +11291,9 @@
     var historyTo = $('[data-qpos-history-to]');
     var historySearchV84 = $('[data-qpos-history-search]');
 
+    configureHistoryDatePickersV123();
+    syncHistoryDateRangeVisibilityV123();
+
     if (historySearchV84) {
       historySearchV84.oninput = function () {
         state.historySearch = String(historySearchV84.value || '');
@@ -10714,6 +11311,7 @@
       $$('[data-qpos-history-preset]').forEach(function (button) {
         button.classList.remove('is-active');
       });
+      syncHistoryDateRangeVisibilityV123();
       loadHistory();
     };
 
@@ -10723,6 +11321,7 @@
       $$('[data-qpos-history-preset]').forEach(function (button) {
         button.classList.remove('is-active');
       });
+      syncHistoryDateRangeVisibilityV123();
       loadHistory();
     };
 

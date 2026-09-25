@@ -41,6 +41,7 @@ import org.json.JSONObject
 import org.json.JSONTokener
 import java.io.ByteArrayInputStream
 import java.net.URI
+import java.net.URLEncoder
 
 /**
  * PMD_ANDROID_POS_DEDICATED_ACTIVITY_V6
@@ -72,6 +73,10 @@ class PosActivity : ComponentActivity() {
     private var snapshotWarmInFlight = false
     private var localReconnectRefreshInFlight = false
     private var localReconnectRefreshComplete = false
+    // PMD_ANDROID_CLOUD_REENTRY_V129
+    // Target waiting behind /admin/mobile/workspace/open while Local-First POS
+    // mints a fresh WebView Admin session for Cloud-only navigation.
+    private var pendingCloudAdminTargetV129: String? = null
     private lateinit var customerDisplay: CustomerDisplayManager
     private lateinit var posShellCache: PosShellCache
 
@@ -462,6 +467,16 @@ class PosActivity : ComponentActivity() {
                             uri.host.equals(host, true)
 
                     if (sameTenant) {
+                        if (
+                            routeCloudAdminNavigationV129(
+                                current,
+                                host,
+                                uri,
+                            )
+                        ) {
+                            return true
+                        }
+
                         if (uri.path == "/admin/logout") {
                             // PMD_ANDROID_NATIVE_SIGN_OUT_V22
                             // Sign out is device-local first so it also works
@@ -489,6 +504,7 @@ class PosActivity : ComponentActivity() {
                         }
 
                         if (uri.path == "/admin/login") {
+                            pendingCloudAdminTargetV129 = null
                             // PMD_ANDROID_POS_LOGIN_LOOP_GUARD_V10
                             // A redirect back to Login means the server did not
                             // create/accept the POS Admin session. Never recurse
@@ -538,6 +554,10 @@ class PosActivity : ComponentActivity() {
                         return
                     }
                     if (!isCanonicalPos(url, host)) {
+                        if (pendingCloudAdminTargetV129 == null) {
+                            loading.visibility = View.GONE
+                            current.visibility = View.VISIBLE
+                        }
                         return
                     }
 
@@ -1038,6 +1058,13 @@ class PosActivity : ComponentActivity() {
                 "PayMyDineHardware",
             )
 
+            // PMD_ANDROID_CLOUD_REENTRY_V129
+            // Cached Local-First HTML still needs to be able to receive the
+            // fresh Admin session cookie minted by mobile/workspace/open.
+            val cookieManager = CookieManager.getInstance()
+            cookieManager.setAcceptCookie(true)
+            cookieManager.setAcceptThirdPartyCookies(this, true)
+
             webViewClient = object : WebViewClient() {
                 override fun shouldInterceptRequest(
                     current: WebView,
@@ -1071,6 +1098,15 @@ class PosActivity : ComponentActivity() {
                         uri.scheme.equals("https", true) &&
                         uri.host.equals(host, true)
                     ) {
+                        if (
+                            routeCloudAdminNavigationV129(
+                                current,
+                                host,
+                                uri,
+                            )
+                        ) {
+                            return true
+                        }
                         return false
                     }
                     return true
@@ -1086,6 +1122,17 @@ class PosActivity : ComponentActivity() {
                     ) {
                         return
                     }
+
+                    if (!isCanonicalPos(url, host)) {
+                        if (pendingCloudAdminTargetV129 == null) {
+                            loading.visibility = View.GONE
+                            current.visibility = View.VISIBLE
+                        }
+                        return
+                    }
+
+                    transportMode = TransportMode.LOCAL
+                    loadedFromCachedShell = true
 
                     current.evaluateJavascript(
                         """
@@ -1673,6 +1720,126 @@ class PosActivity : ComponentActivity() {
                 assets.open(asset.first),
             )
         }.getOrNull()
+    }
+
+    // PMD_ANDROID_CLOUD_REENTRY_V129
+    // Local-First POS intentionally starts from cached canonical HTML and can
+    // therefore have no current Admin browser cookie. Cloud-only pages must
+    // first re-enter through the authenticated mobile workspace endpoint.
+    private fun routeCloudAdminNavigationV129(
+        view: WebView,
+        host: String,
+        uri: android.net.Uri,
+    ): Boolean {
+        if (
+            !uri.scheme.equals("https", true) ||
+            !uri.host.equals(host, true)
+        ) {
+            return false
+        }
+
+        val encodedPath = uri.encodedPath.orEmpty()
+        if (!encodedPath.startsWith("/admin/")) {
+            return false
+        }
+
+        val target = buildString {
+            append(encodedPath)
+            uri.encodedQuery
+                ?.takeIf { it.isNotBlank() }
+                ?.let {
+                    append("?")
+                    append(it)
+                }
+        }
+
+        if (uri.path == "/admin/mobile/workspace/open") {
+            return false
+        }
+
+        val pending = pendingCloudAdminTargetV129
+        if (pending != null && target == pending) {
+            pendingCloudAdminTargetV129 = null
+            transportMode = TransportMode.CLOUD
+            loadedFromCachedShell = false
+            return false
+        }
+
+        if (uri.path == "/admin/login") {
+            pendingCloudAdminTargetV129 = null
+            return false
+        }
+
+        if (transportMode != TransportMode.LOCAL) {
+            return false
+        }
+
+        if (
+            uri.path == "/admin/pos" ||
+            uri.path?.startsWith("/admin/pos/") == true ||
+            uri.path == "/admin/logout"
+        ) {
+            return false
+        }
+
+        if (!app.connectivity.online.value) {
+            loading.text =
+                "This PayMyDine page requires Cloud. Connect to the internet and try again."
+            loading.visibility = View.VISIBLE
+            loading.bringToFront()
+            return true
+        }
+
+        val token = app.credentials.deviceToken().orEmpty()
+        val staffGrant = app.credentials.staffSession()
+            ?.staffGrant
+            .orEmpty()
+
+        if (token.isBlank() || staffGrant.isBlank()) {
+            app.credentials.clearWorkspaceLease("pos")
+            loading.text =
+                "PayMyDine needs a fresh staff sign-in before opening this Cloud page."
+            loading.visibility = View.VISIBLE
+            loading.setOnClickListener {
+                startActivity(
+                    Intent(
+                        this@PosActivity,
+                        MainActivity::class.java,
+                    ).apply {
+                        addFlags(
+                            Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                                Intent.FLAG_ACTIVITY_SINGLE_TOP,
+                        )
+                    },
+                )
+                finish()
+            }
+            loading.bringToFront()
+            return true
+        }
+
+        pendingCloudAdminTargetV129 = target
+        view.settings.cacheMode = WebSettings.LOAD_DEFAULT
+        loading.text = "Opening PayMyDine..."
+        loading.visibility = View.VISIBLE
+        loading.bringToFront()
+
+        val next = URLEncoder.encode(
+            target,
+            Charsets.UTF_8.name(),
+        )
+
+        view.loadUrl(
+            "https://$host/admin/mobile/workspace/open" +
+                "?surface=auto&destination=workspace&next=$next",
+            buildMap {
+                put("Authorization", "Bearer $token")
+                put("X-PayMyDine-Android-Workspace", "pos")
+                put("X-PayMyDine-Staff-Grant", staffGrant)
+            },
+        )
+
+        return true
     }
 
     private fun openCanonicalPos(

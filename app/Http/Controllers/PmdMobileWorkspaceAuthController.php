@@ -7,6 +7,7 @@ use Admin\Services\PmdDefaultStaffRoleService;
 use App\Services\PmdMobileSync\PmdMobileDeviceAuthService;
 use App\Services\PmdMobileSync\PmdMobileStaffGrantService;
 use App\Services\PmdSiteAccessService;
+use App\Services\PmdStaffPinService;
 use App\Services\PmdWorkSessionPolicyService;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
@@ -15,17 +16,17 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 /**
- * PMD_ANDROID_STAFF_LOGIN_ROUTER_V3
- * PMD_ANDROID_CANONICAL_LOGIN_WAIT_V12
+ * PMD_ANDROID_STAFF_LOGIN_ROUTER_V4
+ * PMD_ANDROID_PAIRED_DEVICE_QUICK_PIN_V17
  *
- * Android has no workspace chooser. Device trust selects the restaurant,
- * canonical username/password resolves the same PayMyDine role/destination as
- * web Login, and non-Owner workspace users wait for the same Site Access
- * challenge that appears on Owner/Manager/trusted-Cashier dashboards.
+ * Android has no workspace chooser. One-time pairing establishes restaurant
+ * device trust. Operational staff then switch workspaces with their six-digit
+ * Quick PIN; Manager/Accountant and legacy clients may still use full
+ * username/password. Role, location and work-session policy remain server-side.
  *
- * Owner and usernameportal continue immediately because their canonical second
- * factor is rendered by /admin/login after the bearer-authenticated Admin
- * session is created.
+ * Do not require a second restaurant approval for every sign-in on an already
+ * paired Android device. Owner and usernameportal still continue through their
+ * canonical Owner/Portal Authenticator step inside /admin/login.
  */
 final class PmdMobileWorkspaceAuthController extends Controller
 {
@@ -48,83 +49,29 @@ final class PmdMobileWorkspaceAuthController extends Controller
         );
     }
 
-    /** PMD_ANDROID_CANONICAL_LOGIN_REQUEST_V12 */
+    /** PMD_ANDROID_PAIRED_DEVICE_QUICK_PIN_REQUEST_V17 */
     public function request(
         Request $request,
         PmdMobileDeviceAuthService $deviceAuth
     ) {
         $resolved = $this->resolveCredentials($request, $deviceAuth);
 
-        // Owner uses canonical Owner Authenticator and usernameportal uses the
-        // canonical personal Portal Authenticator after the native grant opens
-        // /admin/login. They must not receive an unrelated restaurant approval.
-        if (
-            $resolved['role_code'] === PmdDefaultStaffRoleService::OWNER
-            || $resolved['destination'] === 'staff'
-        ) {
-            return $this->authorizedResponse(
-                $resolved['device_identity'],
-                $resolved['user'],
-                $resolved['staff'],
-                $resolved['role_code'],
-                $resolved['route'],
-                $resolved['surface'],
-                $resolved['destination'],
-                $resolved['username']
-            );
-        }
-
-        $identity = $this->grantIdentity(
+        // PMD_ANDROID_NO_SECOND_APPROVAL_V13
+        // The device already passed one-time restaurant pairing approval.
+        // A workspace switch now proves the human with canonical credentials,
+        // then role/location policy selects the destination. Requiring another
+        // Owner/Manager/Cashier approval here made every non-Owner role depend
+        // on an unrelated second screen and left the Android app stuck/erroring.
+        return $this->authorizedResponse(
             $resolved['device_identity'],
             $resolved['user'],
             $resolved['staff'],
-            $resolved['role_code']
+            $resolved['role_code'],
+            $resolved['route'],
+            $resolved['surface'],
+            $resolved['destination'],
+            $resolved['username']
         );
-
-        $site = app(PmdSiteAccessService::class);
-        $challenge = $site->beginChallengeForIdentity(
-            $identity,
-            PmdSiteAccessService::PURPOSE_WORKSPACE,
-            '',
-            $request,
-            false
-        );
-
-        if (!$challenge) {
-            $this->fail(
-                409,
-                'Restaurant approval could not be started for this account.'
-            );
-        }
-
-        $token = $this->loginRequestToken([
-            'v' => 1,
-            'challenge_id' => (int)$challenge->id,
-            'public_id' => (string)$challenge->public_id,
-            'device_id' => (int)$resolved['device_identity']['device_id'],
-            'location_id' => (int)$resolved['device_identity']['location_id'],
-            'user_id' => (int)$resolved['user']->getKey(),
-            'staff_id' => (int)$resolved['staff']->getKey(),
-            'role_code' => $resolved['role_code'],
-            'route' => $resolved['route'],
-            'surface' => $resolved['surface'],
-            'destination' => $resolved['destination'],
-            'username' => $resolved['username'],
-            'iat' => time(),
-            'exp' => strtotime((string)$challenge->expires_at),
-        ]);
-
-        return response()->json([
-            'ok' => true,
-            'status' => 'pending',
-            'login_request' => $token,
-            'request_code' => $site->challengeCodeForHub($challenge),
-            'expires_at' => (string)$challenge->expires_at,
-            'role_code' => $resolved['role_code'],
-            'route' => $resolved['route'],
-            'surface' => $resolved['surface'],
-            'destination' => $resolved['destination'],
-        ], 200, ['Cache-Control' => 'no-store, private']);
     }
 
     /** PMD_ANDROID_CANONICAL_LOGIN_STATUS_V12 */
@@ -247,37 +194,78 @@ final class PmdMobileWorkspaceAuthController extends Controller
     ): array {
         $data = $request->validate([
             'surface' => ['nullable', 'string', 'in:pos,kds,reservations'],
-            'username' => ['required', 'string', 'max:191'],
-            'password' => ['required', 'string', 'min:6', 'max:191'],
+            'pin' => ['nullable', 'regex:/^[0-9]{6}$/'],
+            'username' => ['nullable', 'string', 'max:191'],
+            'password' => ['nullable', 'string', 'min:6', 'max:191'],
         ]);
 
+        // PMD_ANDROID_TRUSTED_DEVICE_QUICK_PIN_V17
+        // The bearer-authenticated paired device establishes restaurant trust
+        // before a human credential is evaluated.
         $deviceIdentity = $deviceAuth->authenticateDevice($request);
-        $typedUsername = trim((string)$data['username']);
-        if ($typedUsername === '') {
-            $this->fail(401, 'Username or password is incorrect.');
-        }
+        $locationId = (int)$deviceIdentity['location_id'];
 
-        [$lookupUsername, $destination] =
-            $this->canonicalLoginIdentity($typedUsername);
+        $pin = trim((string)($data['pin'] ?? ''));
+        $typedUsername = trim((string)($data['username'] ?? ''));
+        $password = (string)($data['password'] ?? '');
+        $usingQuickPin = $pin !== '';
+        $destination = 'workspace';
+        $pins = app(PmdStaffPinService::class);
 
-        $user = Users_model::query()
-            ->whereRaw('LOWER(username) = ?', [mb_strtolower($lookupUsername)])
-            ->first();
-        $staff = $user ? $user->staff : null;
-        $passwordHash = (string)($user->password ?? '');
+        if ($usingQuickPin) {
+            // PMD_ANDROID_PIN_STORAGE_SELFHEAL_V18F
+            // Older tenants may predate the Quick PIN table. The Shifts editor
+            // provisions it when a PIN is saved, but native login must be
+            // equally safe if schema rollout lagged behind the app release.
+            // Always repair only this additive PIN table on the already-selected
+            // tenant connection before evaluating the submitted PIN.
+            if (!$pins->ensureReady()) {
+                logger()->error('PMD Android Staff PIN storage unavailable', [
+                    'host' => $request->getHost(),
+                    'database' => DB::connection()->getDatabaseName(),
+                    'location_id' => $locationId,
+                ]);
+                $this->fail(
+                    503,
+                    'Staff PIN storage is temporarily unavailable for this restaurant.'
+                );
+            }
 
-        if (
-            !$user
-            || !$staff
-            || !$this->activeUser($user, $staff)
-            || $passwordHash === ''
-            || !Hash::check((string)$data['password'], $passwordHash)
-        ) {
-            $this->fail(401, 'Username or password is incorrect.');
+            $user = $pins->userForPin($pin);
+            $staff = $user ? $user->staff : null;
+
+            if (!$user || !$staff || !$this->activeUser($user, $staff)) {
+                $this->fail(401, 'Staff PIN is incorrect.');
+            }
+        } else {
+            if ($typedUsername === '' || $password === '') {
+                $this->fail(401, 'Username or password is incorrect.');
+            }
+
+            [$lookupUsername, $destination] =
+                $this->canonicalLoginIdentity($typedUsername);
+
+            $user = Users_model::query()
+                ->whereRaw(
+                    'LOWER(username) = ?',
+                    [mb_strtolower($lookupUsername)]
+                )
+                ->first();
+            $staff = $user ? $user->staff : null;
+            $passwordHash = (string)($user->password ?? '');
+
+            if (
+                !$user
+                || !$staff
+                || !$this->activeUser($user, $staff)
+                || $passwordHash === ''
+                || !Hash::check($password, $passwordHash)
+            ) {
+                $this->fail(401, 'Username or password is incorrect.');
+            }
         }
 
         $grants = app(PmdMobileStaffGrantService::class);
-        $locationId = (int)$deviceIdentity['location_id'];
         if (!$grants->userMayUseLocation($user, $staff, $locationId)) {
             $this->fail(
                 403,
@@ -287,6 +275,39 @@ final class PmdMobileWorkspaceAuthController extends Controller
 
         $roles = app(PmdDefaultStaffRoleService::class);
         $roleCode = $roles->roleCodeForUser($user);
+
+        if ($usingQuickPin && !$pins->canUseRole($roleCode)) {
+            $this->fail(
+                403,
+                'This account requires full username and password sign-in.'
+            );
+        }
+
+        if ($usingQuickPin) {
+            try {
+                $activePerson = DB::table('pmd_operational_people')
+                    ->where('location_id', $locationId)
+                    ->where('staff_id', (int)$staff->getKey())
+                    ->where('is_active', 1)
+                    ->exists();
+            } catch (\Throwable $error) {
+                $activePerson = false;
+            }
+
+            if (!$activePerson) {
+                $this->fail(401, 'Staff PIN is incorrect.');
+            }
+
+            try {
+                $pins->touchUser((int)$user->getKey());
+            } catch (\Throwable $error) {
+                logger()->warning('PMD Android Quick PIN usage update failed', [
+                    'user_id' => (int)$user->getKey(),
+                    'message' => $error->getMessage(),
+                ]);
+            }
+        }
+
         $route = $destination === 'staff'
             ? 'mywork'
             : $roles->routeForRoleCode($roleCode);
@@ -311,6 +332,21 @@ final class PmdMobileWorkspaceAuthController extends Controller
             );
         }
 
+        // PMD_MOBILE_REQUESTED_SURFACE_AUTHORITY_V123
+        // Owner/Manager can deliberately open Reservations. Do not replace
+        // that requested workspace with their default dashboard surface.
+        $resolvedSurface = $destination === 'staff'
+            ? 'web'
+            : (
+                $requestedSurface !== ''
+                    ? $requestedSurface
+                    : $this->surfaceForRole($roleCode)
+            );
+
+        if ($resolvedSurface === 'reservations') {
+            $route = 'reservations2';
+        }
+
         return [
             'device_identity' => $deviceIdentity,
             'user' => $user,
@@ -318,9 +354,7 @@ final class PmdMobileWorkspaceAuthController extends Controller
             'username' => trim((string)($user->username ?? $typedUsername)),
             'role_code' => $roleCode,
             'route' => $route,
-            'surface' => $destination === 'staff'
-                ? 'web'
-                : $this->surfaceForRole($roleCode),
+            'surface' => $resolvedSurface,
             'destination' => $destination,
         ];
     }
@@ -351,7 +385,8 @@ final class PmdMobileWorkspaceAuthController extends Controller
                 $deviceIdentity,
                 $user,
                 $destination,
-                $grantExpiresAt
+                $grantExpiresAt,
+                $surface
             );
 
         return response()->json([
@@ -570,7 +605,12 @@ final class PmdMobileWorkspaceAuthController extends Controller
         }
 
         if ($surface === 'reservations') {
-            return $roleCode === $roles::RESERVATIONS;
+            // PMD_ANDROID_CLOUD_REENTRY_V129
+            // Cashier owns the Reservations side-menu entry. Keep the native
+            // surface router aligned with the server route authority.
+            return $roleCode === $roles::RESERVATIONS
+                || $roleCode === $roles::CASHIER
+                || $roleCode === 'cashier';
         }
 
         return false;

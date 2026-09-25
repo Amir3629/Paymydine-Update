@@ -7,6 +7,7 @@ use Admin\Facades\AdminLocation;
 use Admin\Models\Locations_model;
 use Admin\Services\PmdDefaultStaffRoleService;
 use App\Services\PmdMobileSync\PmdMobileDeviceAuthService;
+use App\Services\PmdMobileSync\PmdMobileStaffGrantService;
 use App\Services\PmdSiteAccessService;
 use App\Services\PmdOwnerTotpService;
 use App\Services\PmdPortalTotpService;
@@ -32,6 +33,7 @@ final class PmdMobileWorkspaceSessionController extends Controller
     ) {
         $identity = $deviceAuth->authenticate($request);
         $user = $identity['user'] ?? null;
+        $staff = $identity['staff'] ?? ($user ? $user->staff : null);
         $locationId = (int)($identity['location_id'] ?? 0);
         $deviceId = (int)($identity['device_id'] ?? 0);
         $roleCode = (string)($identity['role_code'] ?? '');
@@ -63,12 +65,42 @@ final class PmdMobileWorkspaceSessionController extends Controller
         }
 
         $legacySurface = strtolower(trim((string)$request->query('surface', '')));
-        if ($legacySurface === 'reservations') {
-            if (!$user || !$user->hasPermission('Admin.Reservations')) {
+        $signedSurface = strtolower(trim((string)($identity['surface'] ?? '')));
+        $effectiveSurface = $legacySurface === 'auto'
+            ? $signedSurface
+            : $legacySurface;
+
+        // PMD_MOBILE_RESERVATIONS_ROUTE_V123
+        // PMD_ANDROID_CLOUD_REENTRY_V129
+        // Reservations2 is the canonical Admin workspace. Cashier owns the
+        // visible Reservations side-menu entry, so mobile session bootstrap
+        // must not depend on an old persisted role row already containing the
+        // newer Admin.Reservations bit.
+        $cashierMayUseReservationsV129 = in_array(
+            strtolower($roleCode),
+            [
+                PmdDefaultStaffRoleService::CASHIER,
+                'cashier',
+            ],
+            true
+        );
+
+        if ($effectiveSurface === 'reservations') {
+            if (
+                !$user
+                || (
+                    !$cashierMayUseReservationsV129
+                    && !$user->hasPermission('Admin.Reservations')
+                )
+            ) {
                 abort(403, 'This paired account cannot use PayMyDine Reservations.');
             }
-            $route = 'reservations';
-        } elseif ($legacySurface !== '' && $legacySurface !== 'auto') {
+            $route = 'reservations2';
+        } elseif (
+            $effectiveSurface !== ''
+            && $effectiveSurface !== 'auto'
+            && $effectiveSurface !== 'web'
+        ) {
             abort(404, 'This PayMyDine Android workspace is not available.');
         }
 
@@ -82,6 +114,18 @@ final class PmdMobileWorkspaceSessionController extends Controller
         ) {
             abort(403, 'This paired account has no PayMyDine workspace.');
         }
+
+        // PMD_ANDROID_CLOUD_REENTRY_V129
+        // Local-First POS can render from the cached canonical shell without a
+        // fresh WebView Admin cookie. When the operator opens a Cloud-only
+        // document/workspace, Android re-enters through this authenticated
+        // endpoint and asks to continue to one internal role-authorized target.
+        $nextTargetV129 = $this->safeNextTargetV129(
+            $request,
+            $roles,
+            $roleCode,
+            $destination
+        );
 
         $location = Locations_model::query()->find($locationId);
         if (!$location) {
@@ -98,7 +142,19 @@ final class PmdMobileWorkspaceSessionController extends Controller
 
         AdminAuth::login($user, false);
 
-        if (!AdminLocation::hasAccess($location)) {
+        // PMD_MOBILE_CANONICAL_LOCATION_AUTH_V13
+        // Mobile staff authentication accepts the canonical PayMyDine location
+        // rules: superuser, primary staff_location_id, or an explicit attached
+        // location. Do not narrow that proof through the legacy AdminLocation
+        // pivot-only check after the staff grant has already been verified.
+        if (
+            !$staff
+            || !app(PmdMobileStaffGrantService::class)->userMayUseLocation(
+                $user,
+                $staff,
+                $locationId
+            )
+        ) {
             AdminAuth::logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
@@ -187,7 +243,7 @@ final class PmdMobileWorkspaceSessionController extends Controller
             ]);
             session()->put(
                 'pmd_owner_totp_after_v1',
-                admin_url($route)
+                $nextTargetV129 ?: admin_url($route)
             );
         } else {
             $site->markWorkspaceVerified(
@@ -210,6 +266,7 @@ final class PmdMobileWorkspaceSessionController extends Controller
                 'role_code' => $roleCode,
                 'route' => $route,
                 'legacy_surface' => $legacySurface ?: null,
+                'next_target_v129' => $nextTargetV129,
                 'session_until' => $policy
                     ? $policy['expires_at']->toIso8601String()
                     : null,
@@ -223,7 +280,78 @@ final class PmdMobileWorkspaceSessionController extends Controller
         return redirect(
             $isOwner
                 ? admin_url('login')
-                : admin_url($route)
+                : ($nextTargetV129 ?: admin_url($route))
         )->header('Cache-Control', 'no-store, private');
+    }
+
+    /**
+     * PMD_ANDROID_CLOUD_REENTRY_V129
+     *
+     * Accept only one same-origin Admin continuation. The target never carries
+     * bearer credentials; it is used only after this request has authenticated
+     * the paired device + signed Staff Grant and created a normal Admin session.
+     */
+    private function safeNextTargetV129(
+        Request $request,
+        PmdDefaultStaffRoleService $roles,
+        string $roleCode,
+        string $destination
+    ): ?string {
+        if ($destination !== 'workspace') {
+            return null;
+        }
+
+        $raw = trim((string)$request->query('next', ''));
+        if ($raw === '') {
+            return null;
+        }
+
+        $parts = parse_url($raw);
+        if (
+            $parts === false
+            || isset($parts['scheme'])
+            || isset($parts['host'])
+            || isset($parts['user'])
+            || isset($parts['pass'])
+            || isset($parts['fragment'])
+        ) {
+            abort(400, 'Invalid PayMyDine mobile continuation target.');
+        }
+
+        $path = (string)($parts['path'] ?? '');
+        $adminPrefix = '/'.trim((string)config('system.adminUri', 'admin'), '/');
+
+        if (
+            $path === ''
+            || (
+                $path !== $adminPrefix
+                && !str_starts_with($path, $adminPrefix.'/')
+            )
+        ) {
+            abort(400, 'Invalid PayMyDine mobile continuation target.');
+        }
+
+        $relative = trim($path, '/');
+
+        if (
+            $relative === trim($adminPrefix, '/').'/login'
+            || $relative === trim($adminPrefix, '/').'/logout'
+            || str_starts_with(
+                $relative,
+                trim($adminPrefix, '/').'/mobile/'
+            )
+        ) {
+            abort(400, 'Invalid PayMyDine mobile continuation target.');
+        }
+
+        if (!$roles->mayOpenPath($roleCode, $relative)) {
+            abort(403, 'This paired account cannot open that PayMyDine page.');
+        }
+
+        $query = isset($parts['query']) && $parts['query'] !== ''
+            ? '?'.$parts['query']
+            : '';
+
+        return $path.$query;
     }
 }

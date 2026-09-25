@@ -97,6 +97,12 @@ class PmdDefaultStaffRoleService
                     'Admin.Dashboard' => 1,
                     'Admin.Orders' => 1,
                     'Admin.Payments' => 1,
+                    // PMD_QPOS_MOBILE_INVOICE_RESERVATIONS_AUTHORITY_V128
+                    // The canonical Cashier side menu exposes Reservations.
+                    // Keep future managed-role provisioning aligned with that
+                    // product surface; route authority below remains the
+                    // server-side boundary for what Cashier may actually open.
+                    'Admin.Reservations' => 1,
                 ],
             ],
             [
@@ -202,7 +208,10 @@ class PmdDefaultStaffRoleService
             self::ACCOUNTANT => 'accountantdashboard', 'accountant' => 'accountantdashboard',
             self::RESERVATIONS => 'reservations', 'reservation' => 'reservations', 'reservations' => 'reservations',
             self::TEAM_MEMBER => 'mywork', 'team-member' => 'mywork', 'team member' => 'mywork', 'kitchen staff' => 'mywork',
-            self::SONSTIGE => 'mywork', 'sonstige' => 'mywork',
+            // PMD_SONSTIGE_PORTAL_ONLY_V18E
+            // Sonstige has no operational/admin workspace. The personal Staff
+            // Portal still resolves directly to /admin/mywork from the explicit
+            // usernameportal destination.
         ];
         if (isset($map[$code])) return $map[$code];
         if (str_starts_with($code, self::KDS_PREFIX)) {
@@ -340,6 +349,19 @@ class PmdDefaultStaffRoleService
                 );
         }
 
+        // PMD_ANDROID_AUTHENTICATED_TRANSPORT_V14
+        // These are bearer + signed-staff-grant transport endpoints, not
+        // product workspaces. Let the normal permission map decide access
+        // inside the endpoint instead of denying every managed non-superuser
+        // purely because request()->path() is a mobile transport URL.
+        if (
+            $path === 'admin/mobile/pos/open'
+            || $path === 'admin/mobile/workspace/open'
+            || str_starts_with($path, 'admin/api/mobile/v1/')
+        ) {
+            return true;
+        }
+
         if (!$this->isManagedCode($code)) return true;
         if ($code === self::OWNER) return true;
 
@@ -374,13 +396,43 @@ class PmdDefaultStaffRoleService
                     $path
                 ) === 1;
 
+            /*
+             * PMD_QPOS_MOBILE_INVOICE_RESERVATIONS_AUTHORITY_V128
+             *
+             * Mobile POS runs under the real Cashier/Waiter role boundary.
+             * The canonical paid invoice route already requires Admin.Orders,
+             * but the role path allow-list used to reject it before the route
+             * could render. Permit that exact read-only customer document for
+             * Cashier and Waiter.
+             *
+             * Cashier also owns the visible Reservations side-menu shortcut.
+             * Authorize the canonical Reservations2 workspace plus its native
+             * reservation create/edit handlers. Waiter remains POS-only and
+             * receives no Reservations expansion.
+             */
+            $isCanonicalCashierInvoiceV128 =
+                preg_match(
+                    '#^admin/pmd-cashier-order-center/invoice/[0-9]+$#',
+                    $path
+                ) === 1;
+
+            $isCashierReservationsV128 =
+                $code === self::CASHIER
+                && (
+                    $is('reservations2')
+                    || $is('reservationslab')
+                    || $is('reservations')
+                );
+
             return $is('pos')
                 || $is('cashierlab')
                 || $is('pmd-waiter-pos-v1')
                 || $is('pmd-waiter-pos-v22')
                 || $is('terminal-payments')
                 || $isTerminalAttemptList
-                || $isPaymentDocument;
+                || $isPaymentDocument
+                || $isCanonicalCashierInvoiceV128
+                || $isCashierReservationsV128;
         }
         if ($code === self::ACCOUNTANT) return $is('accountantlab');
         if ($code === self::RESERVATIONS) return $is('reservationslab');

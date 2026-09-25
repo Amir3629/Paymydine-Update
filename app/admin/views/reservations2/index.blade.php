@@ -462,6 +462,11 @@ body.page > .page-wrapper {
   rel="stylesheet"
   href="/app/admin/assets/css/pmd-reservations2-floor-canvas-v310.css?v=kpi-direct-20260727_183227"
 >
+<!-- PMD_FLOOR_SCROLL_CHAIN_V127 -->
+<link
+  rel="stylesheet"
+  href="/app/admin/assets/css/pmd-floor-scroll-chain-v127.css?v=20260925-v127"
+>
 
 <script
   src="/app/admin/assets/js/pmd-floor-v1.js?pmd-floor-guide=2413-20260801_182507&v=20260729_d1-auth-v1"

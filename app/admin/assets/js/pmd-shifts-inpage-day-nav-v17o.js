@@ -24,12 +24,19 @@
   var teamAccessToggle = teamModal && teamModal.querySelector('[data-pmd-team-access-toggle]');
   var teamAccessFields = teamModal && teamModal.querySelector('[data-pmd-team-access-fields]');
   var teamUsernameInput = teamModal && teamModal.querySelector('[data-pmd-team-username]');
+  var teamUsernameField = teamModal && teamModal.querySelector('[data-pmd-team-username-field]');
   var teamAccessRoleInput = teamModal && teamModal.querySelector('[data-pmd-team-access-role]');
   var teamPasswordInput = teamModal && teamModal.querySelector('[data-pmd-team-password]');
   var teamPasswordHint = teamModal && teamModal.querySelector('[data-pmd-team-password-hint]');
+  var teamPasswordField = teamModal && teamModal.querySelector('[data-pmd-team-password-field]');
+  var teamPinInput = teamModal && teamModal.querySelector('[data-pmd-team-pin]');
+  var teamPinHint = teamModal && teamModal.querySelector('[data-pmd-team-pin-hint]');
+  var teamPinField = teamModal && teamModal.querySelector('[data-pmd-team-pin-field]');
   var teamFormTitle = teamModal && teamModal.querySelector('[data-pmd-team-form-title]');
   var teamUsernameTouched = false;
   var teamHasExistingAccess = false;
+  var teamHasExistingPin = false;
+  var teamOriginalRoleCode = '';
   var form = modal && modal.querySelector('[data-pmd-shift-form]');
   var title = modal && modal.querySelector('[data-pmd-shift-modal-title]');
   var idInput = modal && modal.querySelector('[data-pmd-shift-id]');
@@ -195,13 +202,67 @@
     lastTrigger = null;
   }
 
+  function selectedTeamAccessCode() {
+    if (!teamAccessRoleInput) return '';
+    var option = teamAccessRoleInput.options[teamAccessRoleInput.selectedIndex];
+    return option ? String(option.getAttribute('data-role-code') || '').toLowerCase() : '';
+  }
+
+  function roleCodeUsesQuickPin(code) {
+    code = String(code || '').toLowerCase();
+    return code === 'pmd-cashier'
+      || code === 'pmd-waiter'
+      || code === 'pmd-reservations'
+      || code === 'pmd-team-member'
+      || code === 'pmd-sonstige'
+      || code.indexOf('pmd-kds:') === 0;
+  }
+
+  function teamRoleUsesQuickPin() {
+    return roleCodeUsesQuickPin(selectedTeamAccessCode());
+  }
+
   function syncTeamAccessFields() {
     if (!teamAccessFields) return;
     teamAccessFields.hidden = false;
-    teamAccessFields.querySelectorAll('input,select').forEach(function (field) { field.disabled = false; });
-    if (teamUsernameInput) teamUsernameInput.required = true;
-    if (teamAccessRoleInput) teamAccessRoleInput.required = true;
-    if (teamPasswordInput) teamPasswordInput.required = !teamHasExistingAccess;
+    var quickPin = teamRoleUsesQuickPin();
+
+    if (teamUsernameField) teamUsernameField.hidden = quickPin;
+    if (teamUsernameInput) {
+      teamUsernameInput.disabled = quickPin;
+      teamUsernameInput.required = !quickPin;
+    }
+    if (teamAccessRoleInput) {
+      teamAccessRoleInput.disabled = false;
+      teamAccessRoleInput.required = true;
+    }
+
+    if (teamPinField) teamPinField.hidden = !quickPin;
+    if (teamPinInput) {
+      teamPinInput.disabled = !quickPin;
+      teamPinInput.required = quickPin && !teamHasExistingPin;
+    }
+    if (teamPinHint) {
+      teamPinHint.textContent = quickPin
+        ? (teamHasExistingPin ? 'leave blank to keep current PIN' : 'required · 6 digits')
+        : '';
+    }
+
+    if (teamPasswordField) teamPasswordField.hidden = quickPin;
+    if (teamPasswordInput) {
+      teamPasswordInput.disabled = quickPin;
+      teamPasswordInput.required = !quickPin
+        && (!teamHasExistingAccess || roleCodeUsesQuickPin(teamOriginalRoleCode));
+    }
+    if (teamPasswordHint) {
+      teamPasswordHint.textContent = !quickPin
+        ? (
+            roleCodeUsesQuickPin(teamOriginalRoleCode)
+              ? 'required after switching from PIN access'
+              : (teamHasExistingAccess ? 'leave blank to keep current password' : 'required')
+          )
+        : '';
+    }
   }
 
   function suggestedUsername(name) {
@@ -217,9 +278,11 @@
     if (teamFormTitle) teamFormTitle.textContent = 'Add team member';
     if (teamAccessRoleInput) teamAccessRoleInput.value = teamForm.getAttribute('data-default-access-role') || teamAccessRoleInput.value;
     if (teamPasswordInput) teamPasswordInput.value = '';
-    if (teamPasswordHint) teamPasswordHint.textContent = 'required for new login';
+    if (teamPinInput) teamPinInput.value = '';
     teamUsernameTouched = false;
     teamHasExistingAccess = false;
+    teamHasExistingPin = false;
+    teamOriginalRoleCode = '';
     syncTeamAccessFields();
   }
 
@@ -234,10 +297,12 @@
       if (teamRoleInput) teamRoleInput.value = personNode.getAttribute('data-role') || '';
       var hasAccess = personNode.getAttribute('data-has-access') === '1';
       teamHasExistingAccess = hasAccess;
+      teamHasExistingPin = personNode.getAttribute('data-has-quick-pin') === '1';
+      teamOriginalRoleCode = String(personNode.getAttribute('data-access-role-code') || '').toLowerCase();
       if (teamUsernameInput) teamUsernameInput.value = personNode.getAttribute('data-username') || suggestedUsername(personNode.getAttribute('data-name'));
       if (teamAccessRoleInput && personNode.getAttribute('data-staff-role-id')) teamAccessRoleInput.value = personNode.getAttribute('data-staff-role-id');
       if (teamPasswordInput) teamPasswordInput.value = '';
-      if (teamPasswordHint) teamPasswordHint.textContent = hasAccess ? 'leave blank to keep current password' : 'required for new login';
+      if (teamPinInput) teamPinInput.value = '';
       if (teamFormTitle) teamFormTitle.textContent = 'Edit team member';
       teamUsernameTouched = hasAccess;
       syncTeamAccessFields();
@@ -942,6 +1007,8 @@
                 ' data-name="' + escapeHtml(person.name || '') + '" data-role="' + escapeHtml(person.role || '') + '"' +
                 ' data-department="' + escapeHtml(person.department || 'other') + '" data-has-access="' + (person.has_access ? '1' : '0') + '"' +
                 ' data-username="' + escapeHtml(person.username || '') + '" data-staff-role-id="' + escapeHtml(person.staff_role_id == null ? '' : String(person.staff_role_id)) + '"' +
+                ' data-has-quick-pin="' + (person.has_quick_pin ? '1' : '0') + '"' +
+                ' data-access-role-code="' + escapeHtml(person.access_role_code || '') + '"' +
                 ' title="Edit member">' + escapeHtml(person.name || 'Team member') + '</button>' +
               '<small>' + escapeHtml(person.role || 'Team') + '</small>' +
             '</span>' +
@@ -1193,6 +1260,7 @@
   }
 
   if (teamUsernameInput) teamUsernameInput.addEventListener('input', function () { teamUsernameTouched = true; });
+  if (teamAccessRoleInput) teamAccessRoleInput.addEventListener('change', syncTeamAccessFields);
   if (startInput) startInput.addEventListener('change', function () {
     if (!idInput || !idInput.value) {
       if (endInput) endInput.value = minuteLabel(minuteValue(startInput.value, 9 * 60) + 8 * 60);
@@ -1213,6 +1281,29 @@
       var password = '';
       for (var p = 0; p < 12; p += 1) password += alphabet.charAt(Math.floor(Math.random() * alphabet.length));
       if (teamPasswordInput) { teamPasswordInput.value = password; teamPasswordInput.type = 'text'; teamPasswordInput.focus(); teamPasswordInput.select(); }
+      return;
+    }
+
+    var generatePin = event.target.closest('[data-pmd-team-pin-generate]');
+    if (generatePin && teamModal && teamModal.contains(generatePin)) {
+      event.preventDefault();
+      var pin = '';
+      var weakPins = ['012345','123456','234567','345678','456789','987654','876543','765432','654321','543210'];
+      do {
+        var randomValue = new Uint32Array(1);
+        if (window.crypto && window.crypto.getRandomValues) {
+          window.crypto.getRandomValues(randomValue);
+          pin = String(100000 + (randomValue[0] % 900000));
+        } else {
+          pin = String(Math.floor(100000 + Math.random() * 900000));
+        }
+      } while (/^([0-9])\1{5}$/.test(pin) || weakPins.indexOf(pin) !== -1);
+      if (teamPinInput) {
+        teamPinInput.value = pin;
+        teamPinInput.type = 'text';
+        teamPinInput.focus();
+        teamPinInput.select();
+      }
       return;
     }
 

@@ -578,4 +578,320 @@ trait PmdQuickPosBatchPaymentV114Concern
             ], 500);
         }
     }
+
+    /**
+     * PMD_QPOS_COMBINED_INVOICE_V127
+     *
+     * Render one customer-facing document for the exact set of orders that
+     * were settled by the same V114 combined-payment action. We deliberately
+     * verify the durable transaction note before joining orders so arbitrary
+     * unrelated order IDs cannot be turned into a combined invoice.
+     */
+    public function batchInvoiceV127()
+    {
+        $this->assertPaymentPermission();
+
+        try {
+            $rawIds = preg_split(
+                '/[\\s,]+/',
+                trim((string)request()->query('order_ids', ''))
+            ) ?: [];
+
+            $ids = $this->pmdBatchOrderIdsV114([
+                'order_ids' => $rawIds,
+            ]);
+
+            if (
+                !Schema::hasTable('order_payment_transactions')
+                || !Schema::hasColumn(
+                    'order_payment_transactions',
+                    'order_id'
+                )
+                || !Schema::hasColumn(
+                    'order_payment_transactions',
+                    'notes'
+                )
+            ) {
+                abort(404, 'Combined invoice is not available.');
+            }
+
+            $batchNote =
+                'Quick POS combined payment: '.implode(',', $ids);
+
+            $transactions = DB::table('order_payment_transactions')
+                ->whereIn('order_id', $ids)
+                ->where('notes', $batchNote)
+                ->orderByDesc(
+                    Schema::hasColumn(
+                        'order_payment_transactions',
+                        'paid_at'
+                    )
+                        ? 'paid_at'
+                        : (
+                            Schema::hasColumn(
+                                'order_payment_transactions',
+                                'created_at'
+                            )
+                                ? 'created_at'
+                                : 'id'
+                        )
+                )
+                ->get();
+
+            $transactionOrderIds = $transactions
+                ->pluck('order_id')
+                ->map(static fn ($id): int => (int)$id)
+                ->filter()
+                ->unique()
+                ->sort()
+                ->values()
+                ->all();
+
+            if ($transactionOrderIds !== $ids) {
+                abort(
+                    404,
+                    'These orders do not belong to one combined payment.'
+                );
+            }
+
+            $orders = Orders_model::query()
+                ->whereIn('order_id', $ids)
+                ->get()
+                ->keyBy(fn ($order) => (int)$order->getKey());
+
+            if ($orders->count() !== count($ids)) {
+                abort(404, 'One or more combined orders are unavailable.');
+            }
+
+            $itemsByOrder = collect();
+
+            if (
+                Schema::hasTable('order_menus')
+                && Schema::hasColumn('order_menus', 'order_id')
+            ) {
+                $itemsByOrder = DB::table('order_menus')
+                    ->whereIn('order_id', $ids)
+                    ->orderBy('order_id')
+                    ->orderBy(
+                        Schema::hasColumn(
+                            'order_menus',
+                            'order_menu_id'
+                        )
+                            ? 'order_menu_id'
+                            : (
+                                Schema::hasColumn(
+                                    'order_menus',
+                                    'id'
+                                )
+                                    ? 'id'
+                                    : 'order_id'
+                            )
+                    )
+                    ->get()
+                    ->groupBy(
+                        static fn ($row): int =>
+                            (int)($row->order_id ?? 0)
+                    );
+            }
+
+            $totalsByOrder = collect();
+
+            if (
+                Schema::hasTable('order_totals')
+                && Schema::hasColumn('order_totals', 'order_id')
+                && Schema::hasColumn('order_totals', 'code')
+                && Schema::hasColumn('order_totals', 'value')
+            ) {
+                $totalsByOrder = DB::table('order_totals')
+                    ->whereIn('order_id', $ids)
+                    ->whereIn('code', ['subtotal', 'tax', 'total'])
+                    ->get(['order_id', 'code', 'value'])
+                    ->groupBy(
+                        static fn ($row): int =>
+                            (int)($row->order_id ?? 0)
+                    );
+            }
+
+            $invoiceOrders = [];
+            $combinedSubtotal = 0.0;
+            $combinedTax = 0.0;
+            $combinedTotal = 0.0;
+
+            foreach ($ids as $id) {
+                $order = $orders->get($id);
+
+                $items = collect(
+                    $itemsByOrder->get($id, collect())
+                )->map(function ($item): array {
+                    $raw = (array)$item;
+                    $quantity = max(
+                        0.0,
+                        (float)($raw['quantity'] ?? 1)
+                    );
+
+                    if ($quantity <= 0) {
+                        $quantity = 1;
+                    }
+
+                    $subtotal = (float)($raw['subtotal'] ?? 0);
+                    $unitPrice = (float)($raw['price'] ?? 0);
+
+                    if (
+                        $subtotal > 0
+                        && $quantity > 0
+                    ) {
+                        $unitPrice = round(
+                            $subtotal / $quantity,
+                            4
+                        );
+                    }
+
+                    return [
+                        'name' => trim((string)(
+                            $raw['name'] ?? 'Item'
+                        )) ?: 'Item',
+                        'quantity' => $quantity,
+                        'unit_price' => $unitPrice,
+                        'line_total' => $subtotal > 0
+                            ? $subtotal
+                            : round($unitPrice * $quantity, 4),
+                    ];
+                })->values();
+
+                $storedTotals = collect(
+                    $totalsByOrder->get($id, collect())
+                )->mapWithKeys(function ($row): array {
+                    return [
+                        (string)($row->code ?? '') =>
+                            (float)($row->value ?? 0),
+                    ];
+                });
+
+                $subtotal = (float)(
+                    $storedTotals['subtotal']
+                    ?? $items->sum('line_total')
+                );
+
+                $tax = max(
+                    0.0,
+                    (float)($storedTotals['tax'] ?? 0)
+                );
+
+                $total = (float)(
+                    $storedTotals['total']
+                    ?? $order->order_total
+                    ?? ($subtotal + $tax)
+                );
+
+                $invoiceOrders[] = [
+                    'order_id' => $id,
+                    'items' => $items->all(),
+                    'subtotal' => $subtotal,
+                    'tax' => $tax,
+                    'total' => $total,
+                    'created_at' => $order->created_at ?? null,
+                ];
+
+                $combinedSubtotal += $subtotal;
+                $combinedTax += $tax;
+                $combinedTotal += $total;
+            }
+
+            $firstOrder = $orders->get($ids[0]);
+            $tableName = '';
+
+            if (
+                $firstOrder
+                && is_numeric($firstOrder->order_type ?? null)
+                && Schema::hasTable('tables')
+            ) {
+                $table = DB::table('tables')
+                    ->where(
+                        Schema::hasColumn('tables', 'table_id')
+                            ? 'table_id'
+                            : 'id',
+                        (int)$firstOrder->order_type
+                    )
+                    ->first();
+
+                if ($table) {
+                    $tableName = trim((string)(
+                        $table->table_name
+                        ?? $table->name
+                        ?? ''
+                    ));
+
+                    if (
+                        $tableName === ''
+                        && isset($table->table_no)
+                    ) {
+                        $tableName =
+                            'Table '.(string)$table->table_no;
+                    }
+                }
+            }
+
+            if ($tableName === '' && $firstOrder) {
+                $tableName = (string)($firstOrder->order_type ?? '');
+            }
+
+            $firstTransaction = $transactions->first();
+            $paidAt = $firstTransaction->paid_at
+                ?? $firstTransaction->created_at
+                ?? now();
+
+            return response(
+                view(
+                    'admin::orders.combined_invoice_v127',
+                    [
+                        'orderIds' => $ids,
+                        'orders' => $invoiceOrders,
+                        'combinedSubtotal' => round(
+                            $combinedSubtotal,
+                            4
+                        ),
+                        'combinedTax' => round(
+                            $combinedTax,
+                            4
+                        ),
+                        'combinedTotal' => round(
+                            $combinedTotal,
+                            4
+                        ),
+                        'currency' => $this->currencySymbol(),
+                        'tableName' => $tableName,
+                        'paymentMethod' => (string)(
+                            $firstTransaction->payment_method
+                            ?? 'payment'
+                        ),
+                        'paidAt' => $paidAt,
+                        'printRequested' => in_array(
+                            strtolower(trim((string)(
+                                request()->query('print', '0')
+                            ))),
+                            ['1', 'true', 'yes', 'on'],
+                            true
+                        ),
+                    ]
+                )->render(),
+                200,
+                [
+                    'Content-Type' =>
+                        'text/html; charset=UTF-8',
+                    'Content-Disposition' => 'inline',
+                    'Cache-Control' =>
+                        'private, no-store, max-age=0',
+                    'X-PMD-Invoice-Authority' =>
+                        'pmd-qpos-combined-v127',
+                ]
+            );
+        } catch (ValidationException $e) {
+            return response(
+                collect($e->errors())->flatten()->first()
+                    ?: 'Combined invoice is not available.',
+                422
+            );
+        }
+    }
+
 }

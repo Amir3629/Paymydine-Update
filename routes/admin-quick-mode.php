@@ -95,6 +95,12 @@ Route::middleware(['web'])->group(function () {
         [\Admin\Controllers\PmdQuickPosV1::class, 'settleBatchPayment']
     );
 
+    // PMD_QPOS_COMBINED_INVOICE_ROUTE_V127
+    Route::get(
+        '/admin/pos/payment-batch-invoice',
+        [\Admin\Controllers\PmdQuickPosV1::class, 'batchInvoiceV127']
+    );
+
     // PMD_QPOS_PAYMENT_ENDPOINTS_V50
     // Keep every payment action inside the Quick POS controller so the same
     // Quick POS operator authority is applied to Cash, Coupon and Terminal.
