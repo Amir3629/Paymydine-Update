@@ -20,6 +20,8 @@ const gradle = fs.readFileSync(
 
 assert.ok(session.includes('PMD_ANDROID_CLOUD_REENTRY_V129'));
 assert.ok(session.includes('safeNextTargetV129'));
+assert.ok(session.includes('PMD_ANDROID_CLOUD_REENTRY_POS_SURFACE_V129'));
+assert.ok(session.includes("$effectiveSurface !== 'pos'"));
 assert.ok(session.includes("'next_target_v129'"));
 assert.ok(session.includes('PmdDefaultStaffRoleService::CASHIER'));
 assert.ok(session.includes("$nextTargetV129 ?: admin_url($route)"));
