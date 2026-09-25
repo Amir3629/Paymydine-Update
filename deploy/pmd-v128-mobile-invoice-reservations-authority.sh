@@ -52,7 +52,7 @@ grep -Fq '$isCanonicalCashierInvoiceV128' "$ROLES"   || fail "Canonical invoice 
 
 grep -Fq '$isCashierReservationsV128' "$ROLES"   || fail "Cashier Reservations route authority missing"
 
-grep -Fq "$is('reservations2')" "$ROLES"   || fail "Reservations2 route allowance missing"
+grep -Fq "\$is('reservations2')" "$ROLES"   || fail "Reservations2 route allowance missing"
 
 grep -Fq "'Admin.Reservations' => 1" "$ROLES"   || fail "Future Cashier Reservations permission provisioning missing"
 
