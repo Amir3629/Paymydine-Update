@@ -15248,3 +15248,121 @@ body.pmd-qpos-body {
     box-shadow: 0 8px 18px rgba(15,23,42,.10) !important;
   }
 }
+
+
+/* ============================================================
+   PMD_QPOS_MOBILE_HISTORY_SCROLL_V127
+   - floating total disappears permanently once Checkout is reached
+   - inline single-order History stops repeating the outer card header/total
+   - combined History keeps its own useful combined header
+   - portrait touch table lists hand vertical scrolling back to the page
+   ============================================================ */
+@media (max-width: 599px) {
+  .pmd-qpos.is-mobile-checkout-reached-v127 .pmd-qpos-mobile-cart,
+  .pmd-qpos.is-mobile-checkout-reached-v127.pmd-qpos
+  .pmd-qpos-mobile-cart {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    transform: translateY(calc(100% + 32px)) !important;
+  }
+
+  .pmd-qpos-history-inline-detail-v123:not(.is-combined-v127)
+  .pmd-qpos-history-order-card-v84 > header,
+  .pmd-qpos-history-inline-detail-v123:not(.is-combined-v127)
+  .pmd-qpos-history-order-main-v84 {
+    display: none !important;
+  }
+
+  .pmd-qpos-tables {
+    min-height: 0 !important;
+    max-height: none !important;
+    height: auto !important;
+    overflow: visible !important;
+    overscroll-behavior-y: auto !important;
+  }
+
+  .pmd-qpos-table-grid,
+  .pmd-qpos[data-mode="waiter"] .pmd-qpos-table-grid,
+  .pmd-qpos-history-tables-v93 .pmd-qpos-table-grid {
+    max-height: none !important;
+    overflow: visible !important;
+    overflow-y: visible !important;
+    overscroll-behavior-y: auto !important;
+    touch-action: pan-y !important;
+  }
+
+  .pmd-qpos-table,
+  .pmd-qpos-history-tables-v93 .pmd-qpos-table {
+    touch-action: pan-y !important;
+  }
+}
+
+.pmd-qpos-history-combined-label-v127 {
+  display: block;
+  margin-top: 4px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.pmd-qpos-history-order-card-v84[data-qpos-history-combined-v127="1"] {
+  border-color: #99d8c8 !important;
+  background: #f3fffb !important;
+}
+
+.pmd-qpos-history-order-card-v84[data-qpos-history-combined-v127="1"]
+.pmd-qpos-history-order-items-v84 > span {
+  color: #065f46 !important;
+}
+
+@media (min-width: 600px) and (max-width: 1024px) and (orientation: portrait) {
+  .pmd-qpos.is-tablet-portrait-v102 .pmd-qpos-tables {
+    min-height: 0 !important;
+    max-height: none !important;
+    height: auto !important;
+    overflow: visible !important;
+    overscroll-behavior-y: auto !important;
+  }
+
+  .pmd-qpos.is-tablet-portrait-v102 .pmd-qpos-table-grid,
+  .pmd-qpos.is-tablet-portrait-v102[data-mode="waiter"] .pmd-qpos-table-grid,
+  .pmd-qpos.is-tablet-portrait-v102
+  .pmd-qpos-history-tables-v93 .pmd-qpos-table-grid {
+    max-height: none !important;
+    overflow: visible !important;
+    overflow-y: visible !important;
+    overscroll-behavior-y: auto !important;
+    touch-action: pan-y !important;
+  }
+
+  .pmd-qpos.is-tablet-portrait-v102 .pmd-qpos-table {
+    touch-action: pan-y !important;
+  }
+}
+
+@media (orientation: portrait) {
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-tables,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-tables {
+    min-height: 0 !important;
+    max-height: none !important;
+    height: auto !important;
+    overflow: visible !important;
+    overscroll-behavior-y: auto !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-table-grid,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-table-grid {
+    max-height: none !important;
+    overflow: visible !important;
+    overflow-y: visible !important;
+    overscroll-behavior-y: auto !important;
+    touch-action: pan-y !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-table,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-table {
+    touch-action: pan-y !important;
+  }
+}
