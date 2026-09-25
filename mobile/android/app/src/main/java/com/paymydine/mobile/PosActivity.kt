@@ -1627,6 +1627,9 @@ class PosActivity : ComponentActivity() {
             "/app/admin/assets/css/pmd-qpos-android-form-factor-v107.css" ->
                 "pmd-canonical/css/pmd-qpos-android-form-factor-v107.css" to
                     "text/css"
+            "/app/admin/assets/css/pmd-qpos-android-tablet-v111.css" ->
+                "pmd-canonical/css/pmd-qpos-android-tablet-v111.css" to
+                    "text/css"
             "/app/admin/assets/js/pmd-dashboard-lab-exact-floor-v1.js" ->
                 "pmd-canonical/js/pmd-dashboard-lab-exact-floor-v1.js" to
                     "application/javascript"
@@ -1638,6 +1641,9 @@ class PosActivity : ComponentActivity() {
                     "application/javascript"
             "/app/admin/assets/js/pmd-quick-pos-v1.js" ->
                 "pmd-canonical/js/pmd-quick-pos-v1.js" to
+                    "application/javascript"
+            "/app/admin/assets/js/pmd-qpos-android-runtime-v108.js" ->
+                "pmd-canonical/js/pmd-qpos-android-runtime-v108.js" to
                     "application/javascript"
             "/app/admin/assets/js/pmd-qpos-android-form-factor-v107.js" ->
                 "pmd-canonical/js/pmd-qpos-android-form-factor-v107.js" to
