@@ -4,8 +4,9 @@ Frozen platform baseline: `4d16e6a4c8d18ef581d117281c2183dbfea5b627`
 Android versionCode: `50`
 Android versionName: `0.3.37-v122-local-first`
 Sync protocol: `pmd-sync-v1`
-Android source commit: `PENDING_FINAL_RELEASE_COMMIT`
-APK SHA-256: `PENDING_FINAL_RELEASE_DIGEST`
+Android source commit: `dd42da80047384d0184fadc97e5f8a804cbdbb57`
+Immutable source branch: `archive/v122-local-first-037-source`
+APK SHA-256: `4ad8991693746b4ec3526567a033c474f356f1080a1c52f8e64e232a71970418`
 
 ## Local-First authority
 
@@ -17,12 +18,7 @@ WAN loss/reconnect does not replace the active POS WebView or discard the active
 
 ## Frozen V122 Web/Android parity
 
-The APK is built from the frozen V122 platform baseline. Android bundles the exact V122 contents of:
-
-- `pmd-qpos-web-parity-v112.css`
-- `pmd-qpos-web-parity-v112.js`
-
-Those unique paths remain the offline resource contract, while their contents are byte-for-byte the frozen V122 canonical Web Quick POS CSS/JS.
+The APK is built from the frozen V122 platform baseline. Android bundles the exact V122 contents of the canonical Web parity CSS/JS. Online and offline therefore use the same frozen V122 Quick POS presentation/runtime.
 
 ## V122 preserved behavior
 
@@ -31,7 +27,7 @@ Those unique paths remain the offline resource contract, while their contents ar
 - new Kitchen round after preparation from V119
 - combined Pay from the main Pay button for 2+ selected unpaid checks
 - floating mobile payment keypad
-- mobile payment stack and mobile cart-end behavior
+- V120 mobile payment stack and V122 mobile cart/category polish
 - V108 Pay-before-Kitchen
 
 ## Durable offline behavior
@@ -58,20 +54,19 @@ Payment-gated HOLD remains Cloud-only so Restaurant Edge cannot release it to Ki
 - payment-gated HOLD reconciliation
 - canonical operations requiring payment/KDS/manager approval
 
-## Release gates
+## Verified release gates
 
-The authoritative workflow must pass:
+Release workflow run `36126709196` completed successfully.
 
+Passed:
 - PHP syntax
-- responsive regression
-- Local-First offline/reconciliation matrix
-- V108 Pay-before-Kitchen
-- V112 parity contract
-- V113/V114/V116/V117/V118/V119/V120/V121/V122 contracts
-- pinned signing certificate
+- V102/V106/V108/V112/V113/V114/V116/V117/V118/V119/V120/V121/V122 contracts
+- stable signing certificate pin
 - Android unit tests
 - APK assembly
 - Android lint
 - package/version identity
+- artifact upload
+- GitHub prerelease publication
 
-Production deployment must pin the exact source commit and APK SHA-256 above.
+Production deployment must verify the exact APK SHA-256 before installation.
