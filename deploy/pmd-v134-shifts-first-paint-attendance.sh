@@ -68,10 +68,10 @@ grep -Fq 'PMD_SHIFT_ATTENDANCE_FIRST_PAINT_V134' "$SNAPSHOT" ||
 grep -Fq "DB::table('staff_attendance')" "$SNAPSHOT" ||
   fail "V134 real attendance authority missing"
 
-grep -Fq "'present_now' => $presentNow" "$SNAPSHOT" ||
+grep -Fq "'present_now' => \$presentNow" "$SNAPSHOT" ||
   fail "V134 Present now authority missing"
 
-grep -Fq "'missing_now' => $missingNow" "$SNAPSHOT" ||
+grep -Fq "'missing_now' => \$missingNow" "$SNAPSHOT" ||
   fail "V134 Missing now authority missing"
 
 grep -Fq 'PmdShiftAttendanceSnapshotV134::class' "$LIVE_CTRL" ||
@@ -84,13 +84,13 @@ fi
 grep -Fq 'PmdShiftAttendanceSnapshotV134' "$SHIFTS" ||
   fail "Shifts first paint is not using V134 shared authority"
 
-grep -Fq "'live_attendance' => $liveAttendance" "$SHIFTS" ||
+grep -Fq "'live_attendance' => \$liveAttendance" "$SHIFTS" ||
   fail "Shifts controller does not expose live attendance"
 
-grep -Fq "array_key_exists('present_now', $liveAttendance)" "$SHIFTS" ||
+grep -Fq "array_key_exists('present_now', \$liveAttendance)" "$SHIFTS" ||
   fail "Shifts first-paint Present now does not use live attendance"
 
-grep -Fq "array_key_exists('missing_now', $liveAttendance)" "$SHIFTS" ||
+grep -Fq "array_key_exists('missing_now', \$liveAttendance)" "$SHIFTS" ||
   fail "Shifts first-paint Missing now does not use live attendance"
 
 grep -Fq "pmd-shifts-live-first-paint-v134.css" "$SHIFTS" ||
@@ -99,7 +99,7 @@ grep -Fq "pmd-shifts-live-first-paint-v134.css" "$SHIFTS" ||
 grep -Fq "pmd-shifts-live-attendance-v2.js" "$SHIFTS" ||
   fail "Live attendance runtime is not explicitly registered"
 
-grep -Fq "'live_attendance' => $liveAttendance" "$VIEW" ||
+grep -Fq "'live_attendance' => \$liveAttendance" "$VIEW" ||
   fail "Embedded Shifts bootstrap does not contain live attendance"
 
 grep -Fq "'description' => 'checked in right now'" "$VIEW" ||
@@ -193,7 +193,7 @@ grep -Fq 'PMD_SHIFT_ATTENDANCE_FIRST_PAINT_V134'   app/admin/Services/PmdShiftAt
 grep -Fq 'PmdShiftAttendanceSnapshotV134::class'   app/Http/Controllers/PmdShiftAttendanceLiveController.php ||
   fail "Live endpoint shared-authority verification failed"
 
-grep -Fq "'live_attendance' => $liveAttendance"   app/admin/controllers/Shifts.php ||
+grep -Fq "'live_attendance' => \$liveAttendance"   app/admin/controllers/Shifts.php ||
   fail "Live Shifts first-paint payload verification failed"
 
 grep -Fq 'data-pmd-shifts-live-state-code'   app/admin/views/pmdshifts/_server_rota_v13.blade.php ||
