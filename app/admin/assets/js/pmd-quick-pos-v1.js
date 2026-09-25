@@ -3462,6 +3462,14 @@
   }
 
   async function openBatchPaymentV114() {
+    // PMD_QPOS_MULTI_CHECK_OFFLINE_GUARD_V115
+    // Combined payment spans multiple canonical orders. Until Android has an
+    // atomic multi-order cash command, never pretend this completed locally.
+    if (nativeLocalTransportAvailable()) {
+      toast('Combined payment needs an internet connection right now.', true);
+      return;
+    }
+
     if (state.cart.length) {
       toast('Send current items first.', true);
       return;
