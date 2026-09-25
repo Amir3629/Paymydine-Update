@@ -2261,6 +2261,13 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
             $mode = 'send';
         }
 
+        // PMD_QPOS_PICKUP_PAY_BEFORE_KITCHEN_V108
+        $paymentGate = $mode === 'hold'
+            && filter_var(
+                $payload['payment_gate'] ?? false,
+                FILTER_VALIDATE_BOOLEAN
+            );
+
         $cart = $payload['items'] ?? [];
         if (!is_array($cart) || count($cart) < 1) {
             return response()->json([
@@ -2270,9 +2277,29 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
         }
 
         try {
-            $result = DB::transaction(function () use ($payload, $cart, $mode) {
+            $result = DB::transaction(function () use ($payload, $cart, $mode, $paymentGate) {
                 $requestedOrderId = (int)($payload['order_id'] ?? 0);
                 $order = null;
+
+                if (
+                    $paymentGate
+                    && $requestedOrderId > 0
+                ) {
+                    $candidate = Orders_model::query()
+                        ->where('order_id', $requestedOrderId)
+                        ->lockForUpdate()
+                        ->first();
+
+                    if (
+                        !$candidate
+                        || !$this->pmdQuickPosPaymentGateV108($candidate)
+                    ) {
+                        throw ValidationException::withMessages([
+                            'order' =>
+                                'Pay-before-Kitchen cannot convert an existing Kitchen Pickup order back to a payment hold.',
+                        ]);
+                    }
+                }
 
                 if ($requestedOrderId > 0) {
                     $order = Orders_model::query()
@@ -2413,7 +2440,9 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                     $order->settled_amount = 0;
                 }
 
-                $statusId = $this->resolveStatusId($mode);
+                $statusId = $this->resolveStatusId(
+                    $paymentGate ? 'send' : $mode
+                );
                 if ($statusId && Schema::hasColumn('orders', 'status_id')) {
                     $order->status_id = $statusId;
                 }
@@ -2434,9 +2463,13 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 if ($statusId && method_exists($order, 'addStatusHistory')) {
                     try {
                         $order->addStatusHistory($statusId, [
-                            'comment' => $mode === 'send'
-                                ? 'Sent from PayMyDine Quick POS Takeaway'
-                                : 'Saved from PayMyDine Quick POS Takeaway',
+                            'comment' => $paymentGate
+                                ? 'Payment pending - release to Kitchen after full payment'
+                                : (
+                                    $mode === 'send'
+                                        ? 'Sent from PayMyDine Quick POS Takeaway'
+                                        : 'Saved from PayMyDine Quick POS Takeaway'
+                                ),
                             'notify' => false,
                         ]);
                     } catch (\Throwable $ignored) {
@@ -2460,6 +2493,7 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                     'version' => 'pmd-quick-pos-v1',
                     'service_mode' => 'takeaway',
                     'mode' => $mode,
+                    'payment_gate' => $paymentGate,
                     'created' => $isNew,
                     'order_id' => (int)$order->getKey(),
                     'order_total' => $orderTotal,

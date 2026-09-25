@@ -998,9 +998,14 @@ window.PMDQuickPOSConfig = {
      V73 also runs one lean operational-state heartbeat for table/KDS sync. --}}
 <script src="/app/admin/assets/js/push-notifications.js?v=20260922-qpos-v59"></script>
 {{-- PMD_QPOS_OFFLINE_COMPLETE_CACHE_BUSTER_V94 --}}
-<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260924-v103"></script>
 @if($pmdAndroidPosV107)
+{{-- PMD_QPOS_ANDROID_RUNTIME_V108
+     APK 0.3.28 intercepts pmd-quick-pos-v1.js. Use a unique server path so
+     payment/Kitchen semantics can update without waiting for a new APK. --}}
+<script src="/app/admin/assets/js/pmd-qpos-android-runtime-v108.js?v=20260925-v108"></script>
 <script src="/app/admin/assets/js/pmd-qpos-android-form-factor-v107.js?v=20260925-v107"></script>
+@else
+<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260925-v108"></script>
 @endif
 <script src="/app/admin/assets/js/pmd-site-access-hub-v13.js?v=20260921-androidpair-v16"></script>
 </body>
