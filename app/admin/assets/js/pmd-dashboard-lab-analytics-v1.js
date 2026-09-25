@@ -12,7 +12,7 @@
   var root = document.getElementById('pmd-dashboard-lab-analytics-v1');
   if (!root) return;
 
-  var VERSION = '1.0.1-shared-role-analytics';
+  var VERSION = '1.0.2-v132-swr';
   var ENDPOINT = root.getAttribute('data-pmd-dashboard-lab-analytics-endpoint') || (path + '?pmd_analytics=1');
   var CHART_MODE_KEY = 'pmd.dashboardlab.salesChartMode.v1';
   var PERIOD_KEYS = ['today', 'week', 'month'];
@@ -38,6 +38,113 @@
   /* PMD_DASHBOARD_LAB_ANALYTICS_SERVER_DOM_V3 */
   var serverDomReady = root.getAttribute('data-pmd-lab-server-rendered') === 'true';
   var bootRenderSkipped = false;
+
+  /* PMD_DASHBOARD_ANALYTICS_SWR_V132
+   *
+   * Server snapshots remove the refresh flash after the first successful
+   * analytics fetch without putting heavy aggregates back on the navigation
+   * critical path. localStorage is a fail-soft second snapshot layer for
+   * server-cache eviction/restart. Both are location + locale + role-route
+   * scoped and fresh network work still runs in the background.
+   */
+  var PERSISTENT_SNAPSHOT_VERSION_V132 = 'v132';
+  var PERSISTENT_SNAPSHOT_TTL_MS_V132 = 30 * 60 * 1000;
+  var analyticsLocationIdV132 = String(
+    root.getAttribute('data-pmd-dashboard-analytics-location-id') || '0'
+  ).trim();
+  var analyticsLocaleV132 = String(
+    root.getAttribute('data-pmd-dashboard-analytics-locale') ||
+    document.documentElement.lang ||
+    'en'
+  ).trim().toLowerCase();
+  var persistentBootstrapReadyV132 = false;
+  var persistentCacheAgeMsV132 = null;
+  var backgroundRevalidateStartedV132 = false;
+
+  function persistentSnapshotKeyV132() {
+    return [
+      'pmd.dashboard.analytics',
+      PERSISTENT_SNAPSHOT_VERSION_V132,
+      path || 'dashboard',
+      analyticsLocationIdV132 || '0',
+      analyticsLocaleV132 || 'en'
+    ].join('.');
+  }
+
+  function readPersistentBootstrapV132() {
+    if (!analyticsLocationIdV132 || analyticsLocationIdV132 === '0') {
+      return null;
+    }
+
+    try {
+      var raw = window.localStorage.getItem(
+        persistentSnapshotKeyV132()
+      );
+      if (!raw) return null;
+
+      var snapshot = JSON.parse(raw);
+      var savedAt = Number(snapshot && snapshot.saved_at || 0);
+      var age = Date.now() - savedAt;
+
+      if (
+        !snapshot ||
+        snapshot.version !== PERSISTENT_SNAPSHOT_VERSION_V132 ||
+        String(snapshot.location_id || '') !== analyticsLocationIdV132 ||
+        String(snapshot.locale || '') !== analyticsLocaleV132 ||
+        !Number.isFinite(age) ||
+        age < 0 ||
+        age > PERSISTENT_SNAPSHOT_TTL_MS_V132 ||
+        !snapshot.last30 ||
+        snapshot.last30.success !== true ||
+        !snapshot.month ||
+        snapshot.month.success !== true
+      ) {
+        window.localStorage.removeItem(
+          persistentSnapshotKeyV132()
+        );
+        return null;
+      }
+
+      persistentCacheAgeMsV132 = age;
+
+      return {
+        last30: snapshot.last30,
+        month: snapshot.month
+      };
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function persistAnalyticsBootstrapV132() {
+    if (
+      !analyticsLocationIdV132 ||
+      analyticsLocationIdV132 === '0' ||
+      !cache.last30 ||
+      cache.last30.success !== true ||
+      !cache.month ||
+      cache.month.success !== true
+    ) {
+      return;
+    }
+
+    try {
+      window.localStorage.setItem(
+        persistentSnapshotKeyV132(),
+        JSON.stringify({
+          version: PERSISTENT_SNAPSHOT_VERSION_V132,
+          saved_at: Date.now(),
+          location_id: analyticsLocationIdV132,
+          locale: analyticsLocaleV132,
+          last30: cache.last30,
+          month: cache.month
+        })
+      );
+      persistentCacheAgeMsV132 = 0;
+    } catch (error) {
+      // Quota/private-mode failures are non-fatal; server snapshot still works.
+    }
+  }
 
   function readServerBootstrap() {
     var node = document.getElementById(
@@ -82,6 +189,17 @@
     cache.month = initialBootstrap.month;
     bootSource = 'server';
     serverBootstrapReady = true;
+    persistAnalyticsBootstrapV132();
+  } else {
+    var persistentBootstrapV132 =
+      readPersistentBootstrapV132();
+
+    if (persistentBootstrapV132) {
+      cache.last30 = persistentBootstrapV132.last30;
+      cache.month = persistentBootstrapV132.month;
+      persistentBootstrapReadyV132 = true;
+      bootSource = 'persistent-swr';
+    }
   }
 
   try {
@@ -123,12 +241,14 @@
     return ENDPOINT + '&period=' + encodeURIComponent(period);
   }
 
-  function request(period) {
+  function request(period, forceFresh) {
     period = ['today', 'week', 'month', 'last30'].indexOf(period) !== -1
       ? period
       : 'month';
 
-    if (cache[period]) return Promise.resolve(cache[period]);
+    if (!forceFresh && cache[period]) {
+      return Promise.resolve(cache[period]);
+    }
     if (requests[period]) return requests[period];
 
     requestCount += 1;
@@ -147,8 +267,12 @@
         if (!payload || payload.success !== true) {
           throw new Error((payload && payload.reason) || 'Invalid analytics payload');
         }
+
         cache[period] = payload;
         delete errors[period];
+        delete requests[period];
+        persistAnalyticsBootstrapV132();
+
         return payload;
       })
       .catch(function (error) {
@@ -1037,9 +1161,9 @@
   });
 
   function renderInitialBootstrap() {
-    if (!serverBootstrapReady) return false;
+    if (!serverBootstrapReady && !persistentBootstrapReadyV132) return false;
 
-    if (serverDomReady) {
+    if (serverBootstrapReady && serverDomReady) {
       var salesInput = root.querySelector(
         '[data-pmd-lab-chart-window="salesOverTime"]'
       );
@@ -1071,44 +1195,86 @@
     return true;
   }
 
-  if (!renderInitialBootstrap()) {
-    var startDeferredAnalytics = function () {
-      request('last30')
-        .then(renderBase)
-        .catch(function (error) {
-          ['salesOverTime', 'salesByHour', 'liveOperations', 'recentTransactions', 'alerts', 'reviews', 'tips', 'calendarEvents']
-            .forEach(function (key) {
-              var body = bodyFor(key);
-              if (body) body.innerHTML = empty({reason: 'Analytics source unavailable'});
-              setBusy(key, false);
-            });
-          console.warn('[PMD Dashboard Lab Analytics] base request failed', error);
+  function markFreshFailureV132(keys, error, label) {
+    keys.forEach(function (key) {
+      // When a stale snapshot is already visible, never replace truthful
+      // existing content with an error/zero flash merely because revalidate
+      // failed. Cold loads still expose a source-unavailable state.
+      if (cache.last30 || cache.month) return;
+      var body = bodyFor(key);
+      if (body) {
+        body.innerHTML = empty({
+          reason: 'Analytics source unavailable'
         });
+      }
+      setBusy(key, false);
+    });
 
-      request('month')
-        .then(function (payload) {
-          Object.keys(periodByWidget).forEach(function (key) {
-            if (periodByWidget[key] === 'month') renderPeriodWidget(key, payload);
-          });
-        })
-        .catch(function (error) {
-          Object.keys(periodByWidget).forEach(function (key) {
-            var body = bodyFor(key);
-            if (body) body.innerHTML = empty({reason: 'Analytics source unavailable'});
-            setBusy(key, false);
-          });
-          console.warn('[PMD Dashboard Lab Analytics] month request failed', error);
+    console.warn(
+      '[PMD Dashboard Lab Analytics] ' + label + ' request failed',
+      error
+    );
+  }
+
+  function startFreshAnalyticsV132() {
+    if (backgroundRevalidateStartedV132) return;
+    backgroundRevalidateStartedV132 = true;
+
+    request('last30', true)
+      .then(function (payload) {
+        renderBase(payload);
+        persistAnalyticsBootstrapV132();
+      })
+      .catch(function (error) {
+        markFreshFailureV132(
+          [
+            'salesOverTime',
+            'salesByHour',
+            'liveOperations',
+            'recentTransactions',
+            'alerts',
+            'reviews',
+            'tips',
+            'calendarEvents'
+          ],
+          error,
+          'base'
+        );
+      });
+
+    request('month', true)
+      .then(function (payload) {
+        Object.keys(periodByWidget).forEach(function (key) {
+          if (periodByWidget[key] === 'month') {
+            renderPeriodWidget(key, payload);
+          }
         });
-    };
+        persistAnalyticsBootstrapV132();
+      })
+      .catch(function (error) {
+        markFreshFailureV132(
+          Object.keys(periodByWidget),
+          error,
+          'month'
+        );
+      });
+  }
 
-    // PMD_PERF_R2_FIRST_PAINT_PRIORITY
-    // Give navigation/header/Floor first paint priority, then load the same
-    // canonical analytics payloads during an idle slice.
-    if ('requestIdleCallback' in window) {
-      window.requestIdleCallback(startDeferredAnalytics, {timeout: 900});
+  var renderedInitialV132 = renderInitialBootstrap();
+
+  if (renderedInitialV132) {
+    // The browser can paint the adopted server/persistent snapshot first.
+    // Network revalidation starts immediately afterwards and never blanks it.
+    if (typeof window.queueMicrotask === 'function') {
+      window.queueMicrotask(startFreshAnalyticsV132);
     } else {
-      window.setTimeout(startDeferredAnalytics, 350);
+      window.setTimeout(startFreshAnalyticsV132, 0);
     }
+  } else {
+    // PMD_DASHBOARD_ANALYTICS_COLD_START_V132
+    // Remove the old 350-900ms artificial idle delay. fetch() is async and
+    // does not block the shell/Floor paint, so begin real data work now.
+    startFreshAnalyticsV132();
   }
 
   bootCompleted = true;
@@ -1116,15 +1282,23 @@
   window.PMDDashboardLabAnalyticsV1 = {
     version: VERSION,
     refresh: function () {
-      cache = Object.create(null);
       requests = Object.create(null);
       errors = Object.create(null);
-      return Promise.all([request('last30'), request('month')]).then(function (payloads) {
+      backgroundRevalidateStartedV132 = false;
+
+      return Promise.all([
+        request('last30', true),
+        request('month', true)
+      ]).then(function (payloads) {
         renderBase(payloads[0]);
         Object.keys(periodByWidget).forEach(function (key) {
-          if (periodByWidget[key] === 'month') renderPeriodWidget(key, payloads[1]);
-          else loadPeriodWidget(key, periodByWidget[key]);
+          if (periodByWidget[key] === 'month') {
+            renderPeriodWidget(key, payloads[1]);
+          } else {
+            loadPeriodWidget(key, periodByWidget[key]);
+          }
         });
+        persistAnalyticsBootstrapV132();
         return window.PMDDashboardLabAnalyticsV1.audit();
       });
     },
@@ -1149,6 +1323,11 @@
         serverBootstrapReady: serverBootstrapReady,
         serverDomReady: serverDomReady,
         bootRenderSkipped: bootRenderSkipped,
+        persistentBootstrapReadyV132: persistentBootstrapReadyV132,
+        persistentCacheAgeMsV132: persistentCacheAgeMsV132,
+        backgroundRevalidateStartedV132: backgroundRevalidateStartedV132,
+        snapshotLocationIdV132: analyticsLocationIdV132,
+        snapshotLocaleV132: analyticsLocaleV132,
         readyBodyCount: root.querySelectorAll('[data-pmd-lab-widget-body][data-pmd-lab-state="ready"]').length,
         bootNetworkRequests: bootNetworkRequests,
         documentScrollHeight: Math.round(document.documentElement.scrollHeight || 0),
