@@ -178,6 +178,165 @@
     white-space:nowrap!important;
   }
 </style>
+
+<style id="pmd-shifts-frame-first-paint-v135">
+  /*
+   * PMD_SHIFT_FRAME_FIRST_PAINT_V135
+   *
+   * Critical geometry is embedded immediately before the server timetable so
+   * the browser never paints a provisional button frame while external Shifts
+   * stylesheets/fonts finish settling. Inline left/width on each shift remains
+   * the horizontal authority.
+   */
+  html body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-scale-row,
+  html body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-row {
+    display:grid!important;
+    grid-template-columns:220px minmax(900px,1fr)!important;
+    width:100%!important;
+    min-width:0!important;
+  }
+
+  html body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-row {
+    min-height:72px!important;
+    border-bottom:1px solid #e5edf2!important;
+    animation:none!important;
+    transition:none!important;
+    transform:none!important;
+  }
+
+  html body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-person {
+    min-height:72px!important;
+    box-sizing:border-box!important;
+  }
+
+  html body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-track {
+    position:relative!important;
+    min-width:0!important;
+    min-height:72px!important;
+    box-sizing:border-box!important;
+    animation:none!important;
+    transition:none!important;
+    transform:none!important;
+  }
+
+  html body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-shifts {
+    position:absolute!important;
+    inset:9px 0!important;
+    z-index:3!important;
+    pointer-events:none!important;
+    animation:none!important;
+    transition:none!important;
+    transform:none!important;
+  }
+
+  html body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-row {
+    --pmd-role-bg:#f2f4f7;
+    --pmd-role-border:#a8b2bf;
+    --pmd-role-accent:#6b7787;
+    --pmd-role-text:#435063;
+  }
+  html body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-row[data-pmd-role-family="kitchen"] {
+    --pmd-role-bg:#fff4d8;--pmd-role-border:#e1aa2f;--pmd-role-accent:#c17a00;--pmd-role-text:#654400;
+  }
+  html body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-row[data-pmd-role-family="team_member"] {
+    --pmd-role-bg:#e9faf6;--pmd-role-border:#63b9a7;--pmd-role-accent:#17806c;--pmd-role-text:#17594e;
+  }
+  html body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-row[data-pmd-role-family="waiter"] {
+    --pmd-role-bg:#eaf3ff;--pmd-role-border:#80afe5;--pmd-role-accent:#2f80ed;--pmd-role-text:#174d91;
+  }
+  html body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-row[data-pmd-role-family="cashier"] {
+    --pmd-role-bg:#eaf9ef;--pmd-role-border:#72bd8d;--pmd-role-accent:#27864c;--pmd-role-text:#1e6239;
+  }
+  html body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-row[data-pmd-role-family="reservations"] {
+    --pmd-role-bg:#f3ecff;--pmd-role-border:#aa88df;--pmd-role-accent:#7c4dcc;--pmd-role-text:#55318d;
+  }
+  html body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-row[data-pmd-role-family="manager"] {
+    --pmd-role-bg:#edf0ff;--pmd-role-border:#8997dc;--pmd-role-accent:#4f5fbd;--pmd-role-text:#354080;
+  }
+  html body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-row[data-pmd-role-family="bar"] {
+    --pmd-role-bg:#fff0f4;--pmd-role-border:#dc8da4;--pmd-role-accent:#b94e70;--pmd-role-text:#7f3650;
+  }
+  html body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-row[data-pmd-role-family="accountant"] {
+    --pmd-role-bg:#eaf8fb;--pmd-role-border:#78bdcb;--pmd-role-accent:#26889d;--pmd-role-text:#246071;
+  }
+  html body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-row[data-pmd-role-family="sonstige"],
+  html body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-row[data-pmd-role-family="other"] {
+    --pmd-role-bg:#f2f4f7;--pmd-role-border:#a8b2bf;--pmd-role-accent:#6b7787;--pmd-role-text:#435063;
+  }
+
+  html body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-shift {
+    position:absolute!important;
+    top:0!important;
+    bottom:0!important;
+    display:grid!important;
+    align-content:center!important;
+    grid-template-rows:min-content min-content!important;
+    row-gap:1px!important;
+    min-width:24px!important;
+    max-width:none!important;
+    margin:0!important;
+    padding:4px 10px!important;
+    border:1px solid var(--pmd-role-border)!important;
+    border-left:4px solid var(--pmd-role-accent)!important;
+    border-radius:10px!important;
+    background:var(--pmd-role-bg)!important;
+    color:var(--pmd-role-text)!important;
+    box-shadow:none!important;
+    box-sizing:border-box!important;
+    appearance:none!important;
+    -webkit-appearance:none!important;
+    text-align:left!important;
+    overflow:hidden!important;
+    pointer-events:auto!important;
+    transform:none!important;
+    translate:none!important;
+    animation:none!important;
+    transition:none!important;
+    will-change:auto!important;
+    font-family:"PMDShiftsRobotoStable",Arial,Helvetica,sans-serif!important;
+    font-synthesis:none!important;
+    font-variant-numeric:tabular-nums!important;
+    font-feature-settings:"tnum" 1!important;
+  }
+
+  html body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-shift.is-confirmed {
+    border-color:var(--pmd-role-border)!important;
+    border-left-color:var(--pmd-role-accent)!important;
+    background:var(--pmd-role-bg)!important;
+    color:var(--pmd-role-text)!important;
+    box-shadow:inset 0 0 0 1px rgba(23,128,108,.22)!important;
+  }
+
+  html body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-shift.is-absent {
+    border-color:#e0a0a0!important;
+    border-left-color:#d34b4b!important;
+    background:#fff1f1!important;
+    color:#8b2929!important;
+    box-shadow:none!important;
+  }
+
+  html body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-shift > strong {
+    display:block!important;
+    margin:0!important;
+    font-size:12px!important;
+    font-weight:900!important;
+    line-height:1.1!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+    white-space:nowrap!important;
+  }
+
+  html body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-shift > span {
+    display:block!important;
+    margin:0!important;
+    font-size:10px!important;
+    font-weight:750!important;
+    line-height:1.1!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+    white-space:nowrap!important;
+  }
+</style>
 <div
     class="pmd-shifts-final-screen"
     data-pmd-shifts-server-initial
