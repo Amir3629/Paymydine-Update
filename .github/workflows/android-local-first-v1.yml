@@ -19,6 +19,9 @@ on:
       - 'app/Services/PmdSiteAccessService.php'
       - 'app/Services/SuperAdminTenantLifecycleService.php'
       - 'app/admin/controllers/Login.php'
+      - 'app/admin/controllers/PmdQuickPosV1.php'
+      - 'app/admin/controllers/concerns/PmdQuickPosBatchPaymentV114Concern.php'
+      - 'routes/admin-quick-mode.php'
       - 'app/admin/routes.php'
       - 'app/system/database/migrations/2026_09_20_190000_create_pmd_mobile_sync_tables.php'
       - 'routes/pmd-mobile-sync-v1.php'
@@ -27,6 +30,8 @@ on:
       - 'tests/pmd-local-first-v106.test.mjs'
       - 'tests/pmd-qpos-pay-before-kitchen-v108.test.mjs'
       - 'tests/pmd-qpos-web-parity-v112.test.mjs'
+      - 'tests/pmd-qpos-v113-history-received.test.mjs'
+      - 'tests/pmd-qpos-v114-multi-check-pay.test.mjs'
       - 'deploy/pmd-android-operations-v18-direct-login-first-party.sh'
       - 'deploy/pmd-android-v18-first-party-download-hotfix.sh'
       - 'deploy/pmd-android-v18-2-throttle-isolation-hotfix.sh'
@@ -52,7 +57,7 @@ on:
       - '.github/workflows/android-local-first-v1.yml'
 
 concurrency:
-  group: pmd-android-v112-${{ github.event.pull_request.number || github.ref }}
+  group: pmd-android-v115-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -96,6 +101,8 @@ jobs:
           php -l app/admin/controllers/concerns/PmdWaiterPosOrderPersistenceConcern.php
           php -l app/admin/controllers/concerns/PmdWaiterPosSettleEndpoint.php
           php -l app/admin/controllers/PmdQuickPosV1.php
+          php -l app/admin/controllers/concerns/PmdQuickPosBatchPaymentV114Concern.php
+          php -l routes/admin-quick-mode.php
           php -l app/Services/TerminalPayments/TerminalPaymentService.php
           php -l routes.php
           php -l routes/pmd-mobile-sync-v1.php
@@ -164,10 +171,16 @@ jobs:
           node tests/pmd-local-first-v106.test.mjs
           node tests/pmd-qpos-pay-before-kitchen-v108.test.mjs
           node tests/pmd-qpos-web-parity-v112.test.mjs
+          node tests/pmd-qpos-v113-history-received.test.mjs
+          node tests/pmd-qpos-v114-multi-check-pay.test.mjs
           node --check app/admin/assets/js/pmd-qpos-web-parity-v112.js
           grep -q "PMD_QPOS_WEB_PARITY_RUNTIME_V112" app/admin/views/pmd_quick_pos_v1.blade.php
           grep -q "PMD_ANDROID_PAY_BEFORE_KITCHEN_V112" mobile/android/app/src/main/java/com/paymydine/mobile/LocalPosBridge.kt
           grep -q "PMD_ANDROID_V112_OFFLINE_WEB_PARITY" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
+          grep -q "PMD_QPOS_RECEIVED_REUSE_V113" app/admin/assets/js/pmd-quick-pos-v1.js
+          grep -q "PMD_QPOS_MULTI_CHECK_PAY_RUNTIME_V114" app/admin/assets/js/pmd-quick-pos-v1.js
+          grep -q "PMD_QPOS_MULTI_CHECK_OFFLINE_GUARD_V115" app/admin/assets/js/pmd-quick-pos-v1.js
+          grep -q "Combined payment needs an internet connection right now." mobile/android/app/src/main/java/com/paymydine/mobile/LocalPosBridge.kt
           grep -q "pmd-canonical/js/pmd-qpos-web-parity-v112.js" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
           grep -q "pmd-canonical/css/pmd-qpos-web-parity-v112.css" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
           grep -q "PMD_ANDROID_CLOUD_LINE_EDIT_V106" mobile/android/app/src/main/java/com/paymydine/mobile/LocalPosBridge.kt
