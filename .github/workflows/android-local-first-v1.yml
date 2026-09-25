@@ -191,7 +191,9 @@ jobs:
           grep -q "PMD_ANDROID_V112_OFFLINE_WEB_PARITY" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
           grep -q "PMD_QPOS_RECEIVED_REUSE_V113" app/admin/assets/js/pmd-quick-pos-v1.js
           grep -q "PMD_QPOS_MULTI_CHECK_PAY_RUNTIME_V114" app/admin/assets/js/pmd-quick-pos-v1.js
-          grep -q "PMD_QPOS_MULTI_CHECK_OFFLINE_GUARD_V115" app/admin/assets/js/pmd-quick-pos-v1.js
+          grep -q "/admin/pos/payment-batch-summary" app/admin/assets/js/pmd-quick-pos-v1.js
+          grep -q "/admin/pos/payment-batch-settle" app/admin/assets/js/pmd-quick-pos-v1.js
+          grep -q "PMD_ANDROID_BATCH_PAYMENT_CLOUD_ONLY_V117" mobile/android/app/src/main/java/com/paymydine/mobile/LocalPosBridge.kt
           grep -q "Combined payment needs an internet connection right now." mobile/android/app/src/main/java/com/paymydine/mobile/LocalPosBridge.kt
           grep -q "pmd-canonical/js/pmd-qpos-web-parity-v112.js" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
           grep -q "pmd-canonical/css/pmd-qpos-web-parity-v112.css" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
