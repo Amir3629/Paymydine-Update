@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 
 PMD_ROOT="${PMD_ROOT:-/var/www/paymydine}"
-SOURCE_COMMIT="8c2e698138bf6d632c29211d8c01b09a9f375624"
+SOURCE_COMMIT="14a2f7aeebb5b4b9a1b3370223f68b6d9a547ddf"
 
 APK_NAME="PayMyDine-Android-0.3.38.apk"
 APK_SHA256="cf81d646012e68a1039326b2234d23c1b717a41eb796b0c1b6af7ecc9e9ce0a2"
@@ -75,7 +75,7 @@ grep -Fq '$isCanonicalCashierInvoiceV128' "$ROLES" ||
 grep -Fq '$isCashierReservationsV128' "$ROLES" ||
   fail "Cashier Reservations route authority missing"
 
-grep -Fq "$is('reservations2')" "$ROLES" ||
+grep -Fq "\$is('reservations2')" "$ROLES" ||
   fail "Reservations2 route allowance missing"
 
 grep -Fq "'PMD.Workspace.Cashier'" "$RESERVATIONS" ||
@@ -89,6 +89,12 @@ grep -Fq 'PMD_ANDROID_CLOUD_REENTRY_V129' "$SESSION" ||
 
 grep -Fq 'safeNextTargetV129' "$SESSION" ||
   fail "V129 safe Admin continuation missing"
+
+grep -Fq 'PMD_ANDROID_CLOUD_REENTRY_POS_SURFACE_V129' "$SESSION" ||
+  fail "V129 signed POS surface Cloud re-entry authority missing"
+
+grep -Fq "\$effectiveSurface !== 'pos'" "$SESSION" ||
+  fail "Signed POS surface is not accepted by mobile session bootstrap"
 
 grep -Fq "'next_target_v129'" "$SESSION" ||
   fail "V129 continuation audit marker missing"
