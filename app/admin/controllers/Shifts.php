@@ -92,6 +92,9 @@ class Shifts extends AdminController
         $this->addJs('js/pmd-shifts-planner-polish-v17d.js');
         // PMD_SHIFTS_PORTAL_MFA_RESET_ASSET_V1
         $this->addJs('js/pmd-shifts-portal-mfa-reset-v1.js');
+        // PMD_SHIFT_ATTENDANCE_IDEMPOTENT_V134
+        // Register the attendance runtime explicitly on the Shifts surface.
+        $this->addJs('js/pmd-shifts-live-attendance-v2.js');
         AdminMenu::setContext('dashboard');
     }
 
