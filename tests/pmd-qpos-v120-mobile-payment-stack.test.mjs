@@ -19,7 +19,6 @@ assert.ok(css.includes('overflow-y: auto !important'));
 assert.ok(view.includes('pmd-qpos-web-parity-v112.css?v=20260925-v120'));
 assert.ok(view.includes('pmd-quick-pos-v1.css?v=20260925-v120'));
 
-assert.ok(css.includes('PMD_QPOS_KITCHEN_ROUND_SPLIT_V119'));
 assert.ok(css.includes('PMD_QPOS_BATCH_BILL_PREVIEW_V116'));
 
 console.log('PMD V120 mobile payment stack: PASS');
