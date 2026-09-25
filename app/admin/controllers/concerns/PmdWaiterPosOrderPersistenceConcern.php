@@ -150,11 +150,105 @@ trait PmdWaiterPosOrderPersistenceConcern
             return false;
         }
 
-        return in_array(
-            $this->pmdOrderKitchenPhaseNameV113($order),
-            ['received', 'accepted', 'confirmed'],
-            true
+        /*
+         * PMD_QPOS_SERVER_ROUND_AUTHORITY_V121
+         * Some installations decorate the canonical Kitchen labels.
+         * Treat Received/Accepted/Confirmed semantically, but reject every
+         * phase that means Kitchen work has already started.
+         */
+        $phase = strtolower(
+            trim(
+                preg_replace(
+                    '/\\s+/',
+                    ' ',
+                    $this->pmdOrderKitchenPhaseNameV113($order)
+                ) ?? ''
+            )
         );
+
+        if ($phase === '') {
+            return false;
+        }
+
+        foreach (
+            [
+                'preparation',
+                'preparing',
+                'processing',
+                'cooking',
+                'ready',
+                'delivery',
+                'delivered',
+                'served',
+                'completed',
+                'complete',
+                'done',
+            ] as $started
+        ) {
+            if (strpos($phase, $started) !== false) {
+                return false;
+            }
+        }
+
+        foreach (['received', 'accepted', 'confirmed'] as $received) {
+            if (strpos($phase, $received) !== false) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * PMD_QPOS_SERVER_ROUND_AUTHORITY_V121
+     *
+     * The selected order is only a candidate. Under row lock:
+     * Received + financially open => append to it.
+     * Preparation/Ready/later or financially locked => return null so caller
+     * creates a fresh order/KDS ticket.
+     */
+    protected function resolveQuickPosKitchenRoundCandidateV121(
+        array $table,
+        int $candidateOrderId,
+        bool $lock = false
+    ): ?Orders_model {
+        if ($candidateOrderId < 1) {
+            return $this->resolveWritableOrder(
+                $table,
+                0,
+                $lock,
+                true
+            );
+        }
+
+        $q = Orders_model::query()
+            ->where('order_id', $candidateOrderId);
+
+        if ($lock) {
+            $q->lockForUpdate();
+        }
+
+        $order = $q->first();
+
+        if (!$order) {
+            throw ValidationException::withMessages([
+                'order' => 'The selected order no longer exists.',
+            ]);
+        }
+
+        if (!$this->orderBelongsToTable($order, $table)) {
+            throw ValidationException::withMessages([
+                'order' => 'The selected order no longer belongs to this table.',
+            ]);
+        }
+
+        if (!$this->orderIsOpen($order)) {
+            return null;
+        }
+
+        return $this->pmdOrderAcceptsReceivedAppendV113($order)
+            ? $order
+            : null;
     }
 
     protected function resolveWritableOrder(

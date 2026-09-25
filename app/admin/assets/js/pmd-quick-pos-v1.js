@@ -5999,6 +5999,19 @@
     var order = activeOrder();
     var canAppendReceivedV113 =
       !order || orderAcceptsReceivedAppendV113(order);
+
+    /* PMD_QPOS_SERVER_ROUND_AUTHORITY_V121
+     * The browser may briefly hold a stale can_append_items value.
+     * Always carry the selected dine-in order as a candidate. The backend
+     * decides under row lock:
+     *   Received            -> append to the same order
+     *   Preparation / later -> create a fresh order / KDS ticket.
+     * order_id remains the optimistic fast path. */
+    var roundCandidateOrderIdV121 =
+      state.serviceMode === 'dine_in' && order
+        ? Number(state.activeOrderId || 0)
+        : 0;
+
     var appendOrderIdV113 =
       order && canAppendReceivedV113
         ? state.activeOrderId
@@ -6009,6 +6022,7 @@
       serviceMode: state.serviceMode,
       tableId: state.selectedTable ? Number(state.selectedTable.id) : null,
       activeOrderId: appendOrderIdV113,
+      roundCandidateOrderId: roundCandidateOrderIdV121 || null,
       expectedUpdatedAt:
         order && canAppendReceivedV113 && order.updated_at
           ? order.updated_at
@@ -6036,6 +6050,7 @@
     var payload = {
       mode: snapshot.mode,
       order_id: snapshot.activeOrderId,
+      round_candidate_order_id: snapshot.roundCandidateOrderId,
       expected_updated_at: snapshot.expectedUpdatedAt,
       guest_count: snapshot.guestCount,
       note: snapshot.note,
