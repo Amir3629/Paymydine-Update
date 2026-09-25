@@ -406,9 +406,10 @@ class PmdDefaultStaffRoleService
              * Cashier and Waiter.
              *
              * Cashier also owns the visible Reservations side-menu shortcut.
-             * Authorize the canonical Reservations2 workspace plus its native
-             * reservation create/edit handlers. Waiter remains POS-only and
-             * receives no Reservations expansion.
+             * Authorize the canonical /admin/reservations clean workspace,
+             * its Reservationslab implementation, and the Reservations2 legacy
+             * alias so stale Android shells migrate cleanly. Waiter remains
+             * POS-only and receives no Reservations expansion.
              */
             $isCanonicalCashierInvoiceV128 =
                 preg_match(
