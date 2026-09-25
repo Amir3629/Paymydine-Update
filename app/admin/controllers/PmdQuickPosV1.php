@@ -3444,6 +3444,16 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 <=> (strtotime((string)($a['time'] ?? '')) ?: 0);
         });
 
+        /* PMD_QPOS_HISTORY_COMBINED_DATA_V127
+         * Keep all in-range order rows available as a lightweight lookup even
+         * when high-volume payment/status events push one linked order beyond
+         * the visible entry slice. */
+        $historyOrderEntriesV127 = array_values(array_filter(
+            $entries,
+            static fn (array $entry): bool =>
+                (string)($entry['kind'] ?? '') === 'order'
+        ));
+
         return response()->json([
             'ok' => true,
             'version' => 'pmd-qpos-history-v127',
@@ -3451,6 +3461,7 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
             'scope_label' => $scopeLabel,
             'from' => $fromDate,
             'to' => $toDate,
+            'order_entries' => $historyOrderEntriesV127,
             'entries' => array_slice($entries, 0, $limit),
         ]);
     }
