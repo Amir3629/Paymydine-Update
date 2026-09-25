@@ -605,7 +605,12 @@ final class PmdMobileWorkspaceAuthController extends Controller
         }
 
         if ($surface === 'reservations') {
-            return $roleCode === $roles::RESERVATIONS;
+            // PMD_ANDROID_CLOUD_REENTRY_V129
+            // Cashier owns the Reservations side-menu entry. Keep the native
+            // surface router aligned with the server route authority.
+            return $roleCode === $roles::RESERVATIONS
+                || $roleCode === $roles::CASHIER
+                || $roleCode === 'cashier';
         }
 
         return false;
