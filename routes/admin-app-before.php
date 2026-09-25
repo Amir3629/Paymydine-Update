@@ -1258,7 +1258,11 @@ App::before(function () {
         Route::any(
             'reservations',
             static function (Request $request) use ($__pmdRunInternalR81E) {
-                return $__pmdRunInternalR81E($request, 'reservations', 'canonical');
+                // PMD_RESERVATIONS_FORM_CALENDAR_SPLIT_V139
+                // Exact /admin/reservations stays on the clean workspace.
+                // Descendants (/create, /edit/*, /calendar) are intentionally
+                // left to the native Reservations controller and TI actions.
+                return $__pmdRunInternalR81E($request, 'reservationslab', 'canonical');
             }
         );
 
