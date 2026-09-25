@@ -8967,6 +8967,19 @@
       '</div>';
   }
 
+  /* PMD_QPOS_HISTORY_FOOD_PREVIEW_V125
+   * Show one real dish name on each order-history card. item_summary already
+   * comes from canonical History data, so this adds no request or backend load. */
+  function historyFirstFoodPreviewV125(entry) {
+    var summary = String(entry && entry.item_summary || '').trim();
+    if (!summary) return '';
+
+    var first = String(summary.split(',')[0] || '').trim();
+    return first
+      .replace(/^\s*\d+(?:[.,]\d+)?\s*[×x]\s*/i, '')
+      .trim();
+  }
+
   function historyListCompact(entry) {
     var kind = String(entry.kind || 'event');
     var orderId = Number(entry.order_id || 0);
@@ -8974,12 +8987,14 @@
     var line = '';
     var badge = '';
     var badgeTone = 'neutral';
+    var preview = '';
 
     if (kind === 'order') {
       title = '#' + String(orderId || '');
       line = entry.total != null ? money(entry.total) : '';
       badge = historySettlementLabel(entry.settlement_status || '');
       badgeTone = historySettlementTone(entry.settlement_status || '');
+      preview = historyFirstFoodPreviewV125(entry);
       if (Number(entry.item_count || 0) > 0) {
         line +=
           (line ? ' · ' : '') +
@@ -9000,6 +9015,7 @@
       line: line,
       badge: badge,
       badgeTone: badgeTone,
+      preview: preview,
       time: entry.time
     };
   }
@@ -9243,6 +9259,12 @@
             '<strong>' + esc(row.title) + '</strong>' +
             '<time>' + esc(historyShortTime(row.time)) + '</time>' +
           '</div>' +
+          (row.preview
+            ? '<div class="pmd-qpos-history-food-preview-v125" title="' +
+                esc(row.preview) + '">' +
+                esc(row.preview) +
+              '</div>'
+            : '') +
           '<div class="pmd-qpos-history-entry-bottom">' +
             (row.line
               ? '<span>' + esc(row.line) + '</span>'

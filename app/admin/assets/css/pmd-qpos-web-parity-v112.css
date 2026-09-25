@@ -15180,3 +15180,26 @@ body.pmd-qpos-body {
     box-sizing: border-box !important;
   }
 }
+
+
+/* ============================================================
+   PMD_QPOS_HISTORY_FOOD_PREVIEW_V125
+   One dish-name preview per order History card. Keep it compact and
+   single-line so fast scanning stays clean on phone, tablet and desktop.
+   ============================================================ */
+.pmd-qpos-history-food-preview-v125 {
+  min-width: 0;
+  overflow: hidden;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 820px) {
+  .pmd-qpos-history-food-preview-v125 {
+    font-size: 14px;
+  }
+}
