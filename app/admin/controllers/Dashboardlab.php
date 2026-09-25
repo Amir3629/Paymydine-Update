@@ -70,6 +70,8 @@ class Dashboardlab extends AdminController
         $this->addCss('css/pmd-dashboard-lab-exact-floor-v1.css');
         // PMD_SHARED_FLOOR_DASHBOARDLAB_BRIDGE_V1_3_1
         $this->addCss('css/pmd-shared-floor-multi-floor-v1.css');
+        // PMD_FLOOR_SCROLL_CHAIN_V127
+        $this->addCss('css/pmd-floor-scroll-chain-v127.css');
 
         /* PMD_DASHBOARD_LAB_STEP4_ALL_DASHBOARD2_ANALYTICS_ASSETS_V1 */
         $this->addCss('css/pmd-dashboard-lab-analytics-v1.css');
