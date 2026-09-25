@@ -87,7 +87,22 @@ class Dashboardlab extends AdminController
         $this->addJs('js/pmd-shared-floor-multi-floor-v1.js');
 
         // Clean route-scoped Analytics renderer. Dashboard2 remains data-only.
-        $this->addJs('js/pmd-dashboard-lab-analytics-v1.js?v=132-swr');
+        // PMD_DASHBOARD_ANALYTICS_ASSET_URL_V133
+        // AssetMaker resolves local files before building their public URL.
+        // A query string inside a local relative path makes File::isFile()
+        // fail and leaves the browser with the wrong /js/... URL. Build the
+        // canonical public asset URL first, then append filemtime.
+        $this->addJs(
+            asset('app/admin/assets/js/pmd-dashboard-lab-analytics-v1.js')
+            .'?v='
+            .(string)(
+                @filemtime(
+                    base_path(
+                        'app/admin/assets/js/pmd-dashboard-lab-analytics-v1.js'
+                    )
+                ) ?: '133'
+            )
+        );
 
         // PMD_DASHBOARD_LIVE_REFRESH_ASSET_V1
         $this->addJs('js/pmd-dashboard-live-refresh-v1.js');
