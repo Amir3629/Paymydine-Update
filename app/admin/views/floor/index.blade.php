@@ -47,3 +47,9 @@
 >
 <!-- PMD_FLOOR_NATIVE_SMART_V20_END -->
 
+<!-- PMD_FLOOR_SCROLL_CHAIN_V127 -->
+<link
+  rel="stylesheet"
+  href="/app/admin/assets/css/pmd-floor-scroll-chain-v127.css?v=20260925-v127"
+>
+
