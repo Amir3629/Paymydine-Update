@@ -780,6 +780,10 @@ class LocalPosBridge(
             // received canonical append authority from Cloud. Do not let a
             // fast second Send assume it can append to the same check.
             .put("can_append_items", false)
+            // PMD_ANDROID_V118_SELECTED_APPEND_AUTHORITY
+            // Exact selected-order append is canonical Cloud authority too.
+            // Keep it locked while this mutation is only local/outbox state.
+            .put("can_append_selected_items", false)
             .put("processed", 0)
             .put(
                 "status_name",
