@@ -295,6 +295,9 @@
                 </label>
 
                 <div class="pmd-qpos-work-meta">
+                    @if($pmdAndroidWebParityV112)
+                        <span class="pmd-qpos-sync-state-v104" data-qpos-sync-state>Checking sync…</span>
+                    @endif
                     <time class="pmd-qpos-clock" data-qpos-clock>{{ now()->format('H:i') }}</time>
                 </div>
             </div>
@@ -1024,9 +1027,9 @@ window.PMDQuickPOSConfig = {
 {{-- PMD_QPOS_WEB_PARITY_RUNTIME_V112
      Exact canonical Web Quick POS JS under a unique path so APK 0.3.28
      cannot substitute an older bundled runtime. --}}
-<script src="/app/admin/assets/js/pmd-qpos-web-parity-v112.js?v=20260925-v112"></script>
+<script src="/app/admin/assets/js/pmd-qpos-web-parity-v112.js?v=20260925-v120"></script>
 @else
-<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260925-v112"></script>
+<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260925-v120"></script>
 @endif
 <script src="/app/admin/assets/js/pmd-site-access-hub-v13.js?v=20260921-androidpair-v16"></script>
 </body>
