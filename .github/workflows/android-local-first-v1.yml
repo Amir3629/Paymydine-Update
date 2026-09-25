@@ -12,7 +12,10 @@ on:
       - 'app/Http/Controllers/PmdSiteAccessHubDataController.php'
       - 'app/admin/assets/js/pmd-site-access-hub-v13.js'
       - 'app/admin/assets/js/pmd-quick-pos-v1.js'
+      - 'app/admin/assets/js/pmd-qpos-android-runtime-v108.js'
       - 'app/admin/assets/css/pmd-quick-pos-v1.css'
+      - 'app/admin/assets/css/pmd-qpos-android-form-factor-v107.css'
+      - 'app/admin/assets/css/pmd-qpos-android-tablet-v111.css'
       - 'app/admin/assets/js/pmd-ownerboard-workplace-access-v1.js'
       - 'app/Services/PmdSiteAccessService.php'
       - 'app/Services/SuperAdminTenantLifecycleService.php'
@@ -48,7 +51,7 @@ on:
       - '.github/workflows/android-local-first-v1.yml'
 
 concurrency:
-  group: pmd-android-v107-${{ github.event.pull_request.number || github.ref }}
+  group: pmd-android-v111-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -154,6 +157,13 @@ jobs:
           grep -q "PMD_QPOS_RESPONSIVE_MATRIX_RUNTIME_V102" app/admin/assets/js/pmd-quick-pos-v1.js
           node tests/pmd-responsive-matrix-v102.test.mjs
           node tests/pmd-local-first-v106.test.mjs
+          node --check app/admin/assets/js/pmd-qpos-android-runtime-v108.js
+          grep -q "PMD_QPOS_PAY_BEFORE_KITCHEN_V108" app/admin/assets/js/pmd-qpos-android-runtime-v108.js
+          grep -q "PMD_QPOS_ANDROID_TABLET_SQUARE_GEOMETRY_V111" app/admin/assets/css/pmd-qpos-android-tablet-v111.css
+          grep -q "PMD_ANDROID_PAY_BEFORE_KITCHEN_V112" mobile/android/app/src/main/java/com/paymydine/mobile/LocalPosBridge.kt
+          grep -q "PMD_ANDROID_V111_OFFLINE_SHELL_UPGRADE" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
+          grep -q "pmd-canonical/js/pmd-qpos-android-runtime-v108.js" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
+          grep -q "pmd-canonical/css/pmd-qpos-android-tablet-v111.css" mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
           grep -q "PMD_ANDROID_CLOUD_LINE_EDIT_V106" mobile/android/app/src/main/java/com/paymydine/mobile/LocalPosBridge.kt
           grep -q "PMD_ANDROID_CLOUD_LINE_ACK_V106" mobile/android/app/src/main/java/com/paymydine/mobile/data/local/LocalPosRepository.kt
           grep -q "PMD_MOBILE_ORDER_ITEM_ADJUST_V106" app/Services/PmdMobileSync/PmdMobileCommandProcessor.php
@@ -319,7 +329,7 @@ jobs:
           grep -q "PMD_MOBILE_NATIVE_PAIR_DASHBOARD_WAIT_V12" app/Services/PmdMobileSync/PmdMobilePairingService.php
           grep -q "PMD_MOBILE_NATIVE_PAIR_REQUEST_V12" app/Http/Controllers/PmdMobilePairController.php
           grep -q "PMD_ANDROID_POS_PREVIEW_V18_CANONICAL_OFFLINE_POS" app/admin/views/pmdsettings/index.blade.php
-          grep -q "PayMyDine-Android-0.3.32.apk" app/admin/views/pmdsettings/index.blade.php
+          grep -q "PayMyDine-Android-0.3.33.apk" app/admin/views/pmdsettings/index.blade.php
           grep -q "PMD_MOBILE_SIGNED_DESTINATION_AUTHORITY_V12" app/Http/Controllers/PmdMobileWorkspaceSessionController.php
           grep -q "PMD_MOBILE_PORTAL_CANONICAL_SECURITY_V12" app/Http/Controllers/PmdMobileWorkspaceSessionController.php
           grep -q "PMD_ANDROID_OFFLINE_SESSION_AUTHORITY_V12" mobile/android/app/src/main/java/com/paymydine/mobile/security/DeviceCredentialStore.kt
@@ -521,15 +531,15 @@ jobs:
           cp mobile/android/app/build/outputs/apk/debug/app-debug.apk \
             mobile/android/PayMyDine-POS-Tablet-Preview.apk
           cp mobile/android/app/build/outputs/apk/debug/app-debug.apk \
-            mobile/android/PayMyDine-POS-Tablet-Preview-0.3.32.apk
+            mobile/android/PayMyDine-POS-Tablet-Preview-0.3.33.apk
           cp mobile/android/app/build/outputs/apk/debug/app-debug.apk \
-            mobile/android/PayMyDine-Android-0.3.32.apk
+            mobile/android/PayMyDine-Android-0.3.33.apk
           sha256sum mobile/android/PayMyDine-POS-Tablet-Preview.apk \
             > mobile/android/PayMyDine-POS-Tablet-Preview.apk.sha256
-          sha256sum mobile/android/PayMyDine-POS-Tablet-Preview-0.3.32.apk \
-            > mobile/android/PayMyDine-POS-Tablet-Preview-0.3.32.apk.sha256
-          sha256sum mobile/android/PayMyDine-Android-0.3.32.apk \
-            > mobile/android/PayMyDine-Android-0.3.32.apk.sha256
+          sha256sum mobile/android/PayMyDine-POS-Tablet-Preview-0.3.33.apk \
+            > mobile/android/PayMyDine-POS-Tablet-Preview-0.3.33.apk.sha256
+          sha256sum mobile/android/PayMyDine-Android-0.3.33.apk \
+            > mobile/android/PayMyDine-Android-0.3.33.apk.sha256
       - name: Verify preview APK identity
         shell: bash
         run: |
@@ -544,11 +554,11 @@ jobs:
           BADGING="$("$AAPT" dump badging "$APK" | head -1)"
           echo "$BADGING"
           grep -Fq "package: name='com.paymydine.mobile.pospreview'" <<<"$BADGING"
-          grep -Fq "versionCode='45'" <<<"$BADGING"
-          grep -Fq "versionName='0.3.32-v107-local-first-debug'" <<<"$BADGING"
+          grep -Fq "versionCode='46'" <<<"$BADGING"
+          grep -Fq "versionName='0.3.33-v111-local-first-debug'" <<<"$BADGING"
 
           echo "PMD_PREVIEW_PACKAGE=com.paymydine.mobile.pospreview"
-          echo "PMD_PREVIEW_VERSION=0.3.32-v107-local-first-debug"
+          echo "PMD_PREVIEW_VERSION=0.3.33-v111-local-first-debug"
 
           # PR checks intentionally use the runner's ephemeral debug key. Only a
           # direct push to the preview branch may verify/publish the pinned key.
@@ -577,10 +587,10 @@ jobs:
           path: |
             mobile/android/PayMyDine-POS-Tablet-Preview.apk
             mobile/android/PayMyDine-POS-Tablet-Preview.apk.sha256
-            mobile/android/PayMyDine-POS-Tablet-Preview-0.3.32.apk
-            mobile/android/PayMyDine-POS-Tablet-Preview-0.3.32.apk.sha256
-            mobile/android/PayMyDine-Android-0.3.32.apk
-            mobile/android/PayMyDine-Android-0.3.32.apk.sha256
+            mobile/android/PayMyDine-POS-Tablet-Preview-0.3.33.apk
+            mobile/android/PayMyDine-POS-Tablet-Preview-0.3.33.apk.sha256
+            mobile/android/PayMyDine-Android-0.3.33.apk
+            mobile/android/PayMyDine-Android-0.3.33.apk.sha256
           if-no-files-found: error
       - name: Publish tablet preview release
         if: github.event_name == 'push' && github.ref == 'refs/heads/feature/android-local-first-v1' && !startsWith(github.event.head_commit.message, 'CI:') && !startsWith(github.event.head_commit.message, 'Deploy:')
@@ -601,9 +611,9 @@ jobs:
           gh release upload "$TAG" \
             mobile/android/PayMyDine-POS-Tablet-Preview.apk \
             mobile/android/PayMyDine-POS-Tablet-Preview.apk.sha256 \
-            mobile/android/PayMyDine-POS-Tablet-Preview-0.3.32.apk \
-            mobile/android/PayMyDine-POS-Tablet-Preview-0.3.32.apk.sha256 \
-            mobile/android/PayMyDine-Android-0.3.32.apk \
-            mobile/android/PayMyDine-Android-0.3.32.apk.sha256 \
+            mobile/android/PayMyDine-POS-Tablet-Preview-0.3.33.apk \
+            mobile/android/PayMyDine-POS-Tablet-Preview-0.3.33.apk.sha256 \
+            mobile/android/PayMyDine-Android-0.3.33.apk \
+            mobile/android/PayMyDine-Android-0.3.33.apk.sha256 \
             --repo "$GITHUB_REPOSITORY" \
             --clobber
