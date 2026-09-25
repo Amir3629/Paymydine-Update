@@ -51,8 +51,8 @@ VIEW="$STAGE/app/admin/views/pmd_quick_pos_v1.blade.php"
 log "Validating V124 before touching live files"
 
 grep -Fq 'PMD_QPOS_HISTORY_ITERATION_HOTFIX_V124' "$JS"   || fail "V124 History iteration fix missing"
-grep -Fq '$$('''[data-qpos-history-order]''', list).forEach' "$JS"   || fail "History order querySelectorAll fix missing"
-grep -Fq '$$('''[data-qpos-history-preset]''').forEach' "$JS"   || fail "History preset querySelectorAll fix missing"
+grep -Fq "\$\$('[data-qpos-history-order]', list).forEach" "$JS"   || fail "History order querySelectorAll fix missing"
+grep -Fq "\$\$('[data-qpos-history-preset]').forEach" "$JS"   || fail "History preset querySelectorAll fix missing"
 grep -Fq 'return isPhoneViewportV102() || isTabletPortraitV102();' "$JS"   || fail "Portrait History authority missing"
 
 grep -Fq 'PMD_QPOS_HISTORY_PORTRAIT_SINGLE_PANE_V124' "$CSS"   || fail "V124 portrait History CSS missing"
