@@ -770,6 +770,20 @@ class LocalPosBridge(
             .put("updated_at", instantString(command.createdAtMs))
             .put("native_provisional", orderId < 0L)
             .put("payment_gate", paymentGate)
+            // PMD_ANDROID_V117_APPEND_AUTHORITY
+            // The just-saved mutation is still durable/local and has not yet
+            // received canonical append authority from Cloud. Do not let a
+            // fast second Send assume it can append to the same check.
+            .put("can_append_items", false)
+            .put("processed", 0)
+            .put(
+                "status_name",
+                when {
+                    paymentGate -> "Awaiting payment sync"
+                    hold -> "Held locally"
+                    else -> "Waiting to sync"
+                },
+            )
             .put("items", canonicalDraftItems(queued))
             .put(
                 "item_mutation",
