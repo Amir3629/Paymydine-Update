@@ -1,11 +1,8 @@
 @php
-    $pmdAndroidPosV107 = request()->header('X-PayMyDine-Android-POS') === '1';
+    $pmdAndroidWebParityV112 = request()->header('X-PayMyDine-Android-POS') === '1';
 @endphp
 <!doctype html>
-<html
-    lang="{{ str_replace('_', '-', app()->getLocale()) }}"
-    class="{{ $pmdAndroidPosV107 ? 'pmd-qpos-android-pos-v107' : '' }}"
->
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
     <meta charset="utf-8">
     <meta
@@ -69,17 +66,16 @@
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-dashboard-lab-exact-floor-v1.css?v=20260920-floor-v35b">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-shared-floor-multi-floor-v1.css?v=20260920-floor-v35b">
     <link rel="stylesheet" href="/app/admin/assets/css/push-notifications.css?v=20260922-qpos-v59">
-    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-pos-v1.css?v=20260924-v103">
-    @if($pmdAndroidPosV107)
-        {{-- PMD_QPOS_ANDROID_SAFE_OVERRIDE_V107
-             Unique path: Android 0.3.28 does not intercept this resource. --}}
-        <link rel="stylesheet" href="/app/admin/assets/css/pmd-qpos-android-form-factor-v107.css?v=20260925-v107">
-        {{-- PMD_QPOS_ANDROID_TABLET_SQUARE_GEOMETRY_V111
-             V110 Desktop parity + square Table and Food cards on Android tablet. --}}
-        <link rel="stylesheet" href="/app/admin/assets/css/pmd-qpos-android-tablet-v111.css?v=20260925-v111">
+    @if($pmdAndroidWebParityV112)
+        {{-- PMD_QPOS_WEB_PARITY_V112
+             This file is an exact copy of the canonical Web Quick POS CSS.
+             The unique path bypasses APK 0.3.28 asset interception. --}}
+        <link rel="stylesheet" href="/app/admin/assets/css/pmd-qpos-web-parity-v112.css?v=20260925-v112">
+    @else
+        <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-pos-v1.css?v=20260925-v112">
     @endif
 </head>
-<body class="pmd-qpos-body {{ $pmdAndroidPosV107 ? 'pmd-qpos-android-pos-v107' : '' }}">
+<body class="pmd-qpos-body">
 @php
     $pmdInitialFloors = array_values((array)($initialBootstrap['floors'] ?? []));
     $pmdInitialFloorId = (string)(
@@ -1001,14 +997,13 @@ window.PMDQuickPOSConfig = {
      V73 also runs one lean operational-state heartbeat for table/KDS sync. --}}
 <script src="/app/admin/assets/js/push-notifications.js?v=20260922-qpos-v59"></script>
 {{-- PMD_QPOS_OFFLINE_COMPLETE_CACHE_BUSTER_V94 --}}
-@if($pmdAndroidPosV107)
-{{-- PMD_QPOS_ANDROID_RUNTIME_V108
-     APK 0.3.28 intercepts pmd-quick-pos-v1.js. Use a unique server path so
-     payment/Kitchen semantics can update without waiting for a new APK. --}}
-<script src="/app/admin/assets/js/pmd-qpos-android-runtime-v108.js?v=20260925-v108"></script>
-<script src="/app/admin/assets/js/pmd-qpos-android-form-factor-v107.js?v=20260925-v107"></script>
+@if($pmdAndroidWebParityV112)
+{{-- PMD_QPOS_WEB_PARITY_RUNTIME_V112
+     Exact canonical Web Quick POS JS under a unique path so APK 0.3.28
+     cannot substitute an older bundled runtime. --}}
+<script src="/app/admin/assets/js/pmd-qpos-web-parity-v112.js?v=20260925-v112"></script>
 @else
-<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260925-v108"></script>
+<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260925-v112"></script>
 @endif
 <script src="/app/admin/assets/js/pmd-site-access-hub-v13.js?v=20260921-androidpair-v16"></script>
 </body>
