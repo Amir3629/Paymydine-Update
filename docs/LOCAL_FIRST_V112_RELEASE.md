@@ -4,7 +4,7 @@ Release target: `0.3.33-v112-local-first`
 Version code: `46`
 Sync protocol: `pmd-sync-v1`
 Server/Web baseline: `8302ee4fa77ddc776763a14f307198a43b2c09eb` (V112 Android/Web parity)
-Android source: `PENDING_FINAL_RELEASE_COMMIT`
+Android source: `6e7e43596c7d78b10a070cf6c0c0e9df7189bbc7`
 APK SHA-256: `PENDING_FINAL_RELEASE_DIGEST`
 
 ## Runtime contract
