@@ -13,6 +13,7 @@ android {
         versionCode = 47
         // PMD_ANDROID_0_3_34_PHONE_WEB_ORIENTATION_V115
         // Phones stay portrait like mobile Web; tablets retain full-sensor rotation.
+        // PMD_ANDROID_0_3_34_V115_V114_RELEASE_FINAL
         // PMD_ANDROID_0_3_30_LOCAL_FIRST_V104
         // V104 Local-First V2 keeps SQLite as the cashier-facing authority; Cloud is background sync.
         // PMD_ANDROID_0_3_30_PAGE_SCALE_V104
