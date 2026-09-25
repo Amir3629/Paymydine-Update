@@ -22,7 +22,7 @@
   var ROUTES = {
     '/admin/dashboardlab': true,
     '/admin/managerlab': true,
-    '/admin/reservationslab': true,
+    '/admin/reservations': true,
     '/admin/cashierlab': true
   };
 

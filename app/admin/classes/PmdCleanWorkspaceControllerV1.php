@@ -35,6 +35,16 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
     abstract protected function pmdKpiMode(): string;
     abstract protected function pmdKpiDefaults(): array;
 
+    protected function pmdWorkspacePath(): string
+    {
+        return '/admin/'.$this->pmdWorkspaceKey().'lab';
+    }
+
+    protected function pmdWorkspaceView(): string
+    {
+        return $this->pmdWorkspaceKey().'lab/index';
+    }
+
     protected function pmdUsesFloor(): bool
     {
         return true;
@@ -1569,7 +1579,7 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
 
         // Exact same proven shell and KPI visual authorities as Dashboard Lab.
         $this->addCss('css/pmd-settings-suite-first-paint-v1.css');
-        $this->addCss('css/pmd-reservations2-kpis-v307.css');
+        $this->addCss('css/pmd-reservations-kpis-v307.css');
         $this->addCss('css/pmd-dashboard-lab-v1.css');
 
         // Exact same proven shared Floor visual authorities as Dashboard Lab.
@@ -1577,9 +1587,9 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
             $this->addCss('css/pmd-floor-v1.css');
             $this->addCss('css/pmd-floor-v1-stable-v11.css');
             $this->addCss('css/pmd-floor-v1-native-smart-v20.css');
-            $this->addCss('css/pmd-reservations2-floor-canvas-v310.css');
-            $this->addCss('css/pmd-reservations2-floor-toolbar-v316.css');
-            $this->addCss('css/pmd-reservations2-floor-reservation-v312.css');
+            $this->addCss('css/pmd-reservations-floor-canvas-v310.css');
+            $this->addCss('css/pmd-reservations-floor-toolbar-v316.css');
+            $this->addCss('css/pmd-reservations-floor-reservation-v312.css');
             $this->addCss('css/pmd-dashboard-lab-exact-floor-v1.css');
             $this->addCss('css/pmd-shared-floor-multi-floor-v1.css');
             // PMD_FLOOR_SCROLL_CHAIN_V127
@@ -1600,7 +1610,7 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
         // Other clean workspaces keep the normal asset-pipeline load order.
         if (
             $this->pmdUsesFloor()
-            && !request()->is('admin/reservationslab*')
+            && !request()->is('admin/reservations*')
             && !request()->is('admin/cashierlab*')
         ) {
             $this->addJs('js/pmd-dashboard-lab-exact-floor-v1.js');
@@ -1865,7 +1875,7 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
 
         $this->vars['pmdCleanWorkspaceKey'] = $key;
         $this->vars['pmdCleanWorkspaceTitle'] = $title;
-        $this->vars['pmdCleanWorkspacePath'] = '/admin/'.$key.'lab';
+        $this->vars['pmdCleanWorkspacePath'] = $this->pmdWorkspacePath();
         $this->vars['pmdCleanWorkspaceLocale'] = $locale;
         // PMD_CLEAN_WORKSPACE_LOCATION_CONTEXT_V1
         // One explicit location identity for shared Floor reservation-busy reads.
@@ -1973,7 +1983,7 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
             foreach ([
                 'cashier_orders' => 'pmdCashierCurrentOrders',
                 'cashier_history_mode' => 'pmdCashierHistoryMode',
-                'reservations_schedule' => 'pmdReservationsLabSchedule',
+                'reservations_schedule' => 'pmdReservationsSchedule',
                 'manager_online_staff' => 'pmdManagerOnlineStaff',
                 'role_bundle' => 'pmdRoleDashboardBundle',
             ] as $payloadKey => $varKey) {
@@ -2002,7 +2012,7 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
             ]);
         }
 
-        return $this->makeView($key.'lab/index');
+        return $this->makeView($this->pmdWorkspaceView());
     }
 
     /**

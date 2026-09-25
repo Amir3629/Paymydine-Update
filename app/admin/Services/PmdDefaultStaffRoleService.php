@@ -247,9 +247,6 @@ class PmdDefaultStaffRoleService
             'admin/orders' =>
                 'admin/cashierlab',
 
-            'admin/reservations' =>
-                'admin/reservationslab',
-
             'admin/menu' =>
                 'admin/pmdmenus',
 
@@ -407,7 +404,7 @@ class PmdDefaultStaffRoleService
              *
              * Cashier also owns the visible Reservations side-menu shortcut.
              * Authorize the canonical /admin/reservations clean workspace,
-             * its Reservationslab implementation, and the Reservations2 legacy
+             * its Reservations implementation, and the Reservations legacy
              * alias so stale Android shells migrate cleanly. Waiter remains
              * POS-only and receives no Reservations expansion.
              */
@@ -420,9 +417,7 @@ class PmdDefaultStaffRoleService
             $isCashierReservationsV128 =
                 $code === self::CASHIER
                 && (
-                    $is('reservations2')
-                    || $is('reservationslab')
-                    || $is('reservations')
+                    $is('reservations')
                 );
 
             return $is('pos')
@@ -436,7 +431,7 @@ class PmdDefaultStaffRoleService
                 || $isCashierReservationsV128;
         }
         if ($code === self::ACCOUNTANT) return $is('accountantlab');
-        if ($code === self::RESERVATIONS) return $is('reservationslab');
+        if ($code === self::RESERVATIONS) return $is('reservations');
 
         if (str_starts_with($code, self::KDS_PREFIX)) {
             $slug = trim(substr($code, strlen(self::KDS_PREFIX)));

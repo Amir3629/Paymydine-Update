@@ -884,7 +884,7 @@
 
         <link
             rel="stylesheet"
-            href="{{ asset('app/admin/assets/css/pmd-reservations-lab-schedule-v1.css') }}?v={{ $pmdDashboardScheduleCssVersion }}"
+            href="{{ asset('app/admin/assets/css/pmd-reservations-schedule-v1.css') }}?v={{ $pmdDashboardScheduleCssVersion }}"
         >
 
         @include(
@@ -925,7 +925,7 @@
         window.PMD_RESERVATION_COMPOSER_V1 =
             Object.freeze({
                 endpoint:
-                    @json(admin_url('reservations2'))
+                    @json(admin_url('reservations'))
             });
         </script>
 
@@ -938,7 +938,7 @@
         <script
             defer
             id="pmd-dashboardlab-reservation-calendar-v2"
-            src="{{ asset('app/admin/assets/js/pmd-reservations-lab-schedule-v1.js') }}?v={{ $pmdDashboardScheduleJsVersion }}"
+            src="{{ asset('app/admin/assets/js/pmd-reservations-schedule-v1.js') }}?v={{ $pmdDashboardScheduleJsVersion }}"
         ></script>
 
 @include('admin::_partials.pmd_dashboard_lab_analytics_v1', [

@@ -83,8 +83,7 @@
 
     $pmdSm2OrdersIsActive = $pmdActive(['pos', 'orders'])
         || ($pmdSm2DashboardRoute !== 'cashierlab' && $pmdActive(['cashierlab']));
-    $pmdSm2ReservationsIsActive = $pmdActive(['reservations', 'reservations2'])
-        || ($pmdSm2DashboardRoute !== 'reservationslab' && $pmdActive(['reservationslab']));
+    $pmdSm2ReservationsIsActive = $pmdActive(['reservations']);
 
     /* PMD_SIDE_MENU_AI_V1
      * Navigation visibility follows the same Admin.Dashboard permission as the

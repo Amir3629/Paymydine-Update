@@ -10,7 +10,6 @@ use Illuminate\Support\Facades\Schema;
 use Throwable;
 
 require_once base_path('app/admin/controllers/Reservations.php');
-require_once base_path('app/admin/controllers/Reservations2.php');
 require_once base_path('app/admin/controllers/Dashboard2.php');
 require_once base_path('app/admin/controllers/Pmdreports.php');
 

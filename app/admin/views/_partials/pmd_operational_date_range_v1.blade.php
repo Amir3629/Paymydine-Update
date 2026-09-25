@@ -39,11 +39,11 @@
     /* PMD_RESERVATIONS_FUTURE_RANGE_PRESETS_V1
      * Reservations are an upcoming-booking workflow. Historical presets such
      * as Yesterday / Last 7 days belong to order/accounting surfaces, not the
-     * ReservationsLab quick picker. Keep the shared component unchanged for
-     * Cashier and switch only ReservationsLab to future-facing presets.
+     * Reservations quick picker. Keep the shared component unchanged for
+     * Cashier and switch only Reservations to future-facing presets.
      */
     $pmdRangeFuturePresets = function_exists('request')
-        && request()->is('admin/reservationslab*');
+        && request()->is('admin/reservations*');
 
     // PMD_OPERATIONAL_DATE_RANGE_TR_R2A
     $pmdRangeIsGerman = $pmdRangeLocale === 'de';
@@ -183,7 +183,7 @@
             '/admin/reservations'
         ) {
             url.pathname =
-                '/admin/reservationslab';
+                '/admin/reservations';
         }
 
         return url;

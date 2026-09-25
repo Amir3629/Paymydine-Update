@@ -19,8 +19,8 @@ use Throwable;
  *
  * Important architecture:
  * - does NOT inherit Dashboard2
- * - does NOT inherit Reservations2
- * - does NOT render Dashboard2/Reservations2 views
+ * - does NOT inherit Reservations
+ * - does NOT render Dashboard2/Reservations views
  * - Dashboard2 is reused only as proven JSON data authority
  * - the shared PMD Floor engine is reused as the canonical Floor authority
  */
@@ -60,7 +60,7 @@ class Ownerboard extends AdminController
         $this->addCss('css/pmd-floor-v1-stable-v11.css');
         $this->addCss('css/pmd-floor-v1-native-smart-v20.css');
         $this->addCss(
-            'css/pmd-reservations2-floor-canvas-v310.css'
+            'css/pmd-reservations-floor-canvas-v310.css'
         );
         // PMD_FLOOR_SCROLL_CHAIN_V127
         $this->addCss('css/pmd-floor-scroll-chain-v127.css');
@@ -111,7 +111,7 @@ class Ownerboard extends AdminController
 
         /*
          * Use the exact same persisted Floor view preference as
-         * Dashboard2 / Reservations2 so the user's One Row / Full
+         * Dashboard2 / Reservations so the user's One Row / Full
          * Floor choice and Full Floor zoom carry over unchanged.
          */
         $this->vars['pmdOwnerboardFloorView'] =

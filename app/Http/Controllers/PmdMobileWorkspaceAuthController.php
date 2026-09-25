@@ -344,7 +344,7 @@ final class PmdMobileWorkspaceAuthController extends Controller
             );
 
         if ($resolvedSurface === 'reservations') {
-            $route = 'reservations2';
+            $route = 'reservations';
         }
 
         return [

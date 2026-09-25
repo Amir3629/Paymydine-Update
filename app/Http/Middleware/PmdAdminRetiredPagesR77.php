@@ -78,7 +78,7 @@ class PmdAdminRetiredPagesR77
      * Old experimental/page generations.
      *
      * Browser/document access is redirected.
-     * Source code is NOT deleted.
+     * Retired routes are isolated from current product surfaces.
      */
     private const LEGACY_PAGE_PREFIXES = [
         'dashboard2',
@@ -98,8 +98,6 @@ class PmdAdminRetiredPagesR77
         'dashboardwaiternewfinal3',
         'dashboardwaiterworkstation',
         'waiter-workstation',
-        'reservations3',
-        'reservationsnew',
 
         /*
          * All Foods has active POST authority for pmdmenus,
@@ -332,17 +330,6 @@ class PmdAdminRetiredPagesR77
             'cashierlab' =>
                 'pos',
 
-            'reservationslab' =>
-                'reservations',
-
-            // PMD_RESERVATIONS2_LEGACY_ALIAS_V131
-            // V130 temporarily exposed Reservations2 directly. The product
-            // authority is the newer clean /admin/reservations workspace, so
-            // old bookmarks and cached Android side-menu HTML are migrated to
-            // the canonical route instead of rendering the obsolete page.
-            'reservations2' =>
-                'reservations',
-
             'pmdmenus' =>
                 'menu',
 
@@ -406,8 +393,6 @@ class PmdAdminRetiredPagesR77
         }
 
         $prefixMap = [
-            'reservations2/' =>
-                'reservations/',
 
             'pmdmenus/' =>
                 'menu/',

@@ -17,7 +17,7 @@ use Admin\Services\PmdDashboardAnalyticsSnapshotV132;
  * - the page remains a plain AdminController page
  * - Dashboard2 is used only as the existing KPI DATA authority
  * - KPI values are resolved on the server before Blade is returned
- * - no Dashboard2/Reservations2 browser runtime is imported
+ * - no Dashboard2/Reservations browser runtime is imported
  */
 class Dashboardlab extends AdminController
 {
@@ -54,20 +54,20 @@ class Dashboardlab extends AdminController
         $this->addCss('css/pmd-settings-suite-first-paint-v1.css');
 
         // Same shared KPI visual authority already used by Dashboard2.
-        $this->addCss('css/pmd-reservations2-kpis-v307.css');
+        $this->addCss('css/pmd-reservations-kpis-v307.css');
 
         // Lab route geometry + placement only.
         $this->addCss('css/pmd-dashboard-lab-v1.css');
         $this->addCss('css/pmd-kitchen-today-team-v1.css');
 
         /* PMD_DASHBOARD_LAB_STEP3_EXACT_RESERVATIONS_FLOOR_ASSETS_V1 */
-        // The same LIVE visual authorities used by Reservations2.
+        // The same LIVE visual authorities used by Reservations.
         $this->addCss('css/pmd-floor-v1.css');
         $this->addCss('css/pmd-floor-v1-stable-v11.css');
         $this->addCss('css/pmd-floor-v1-native-smart-v20.css');
-        $this->addCss('css/pmd-reservations2-floor-canvas-v310.css');
-        $this->addCss('css/pmd-reservations2-floor-toolbar-v316.css');
-        $this->addCss('css/pmd-reservations2-floor-reservation-v312.css');
+        $this->addCss('css/pmd-reservations-floor-canvas-v310.css');
+        $this->addCss('css/pmd-reservations-floor-toolbar-v316.css');
+        $this->addCss('css/pmd-reservations-floor-reservation-v312.css');
         $this->addCss('css/pmd-dashboard-lab-exact-floor-v1.css');
         // PMD_SHARED_FLOOR_DASHBOARDLAB_BRIDGE_V1_3_1
         $this->addCss('css/pmd-shared-floor-multi-floor-v1.css');
@@ -334,9 +334,9 @@ class Dashboardlab extends AdminController
         /*
          * PMD_DASHBOARDLAB_RESERVATION_CALENDAR_PAYLOAD_V2
          *
-         * DashboardLab hosts the SAME ReservationsLab Calendar/Hour runtime.
+         * DashboardLab hosts the SAME Reservations Calendar/Hour runtime.
          * Only the host route changes; schedule data authority remains
-         * PmdReservationsLabScheduleV1.
+         * PmdReservationsScheduleV1.
          */
         try {
             $pmdDashboardCalendarLocationId = max(
@@ -365,9 +365,9 @@ class Dashboardlab extends AdminController
                 $pmdDashboardCalendarLocale = 'en';
             }
 
-            $this->vars['pmdReservationsLabSchedule'] =
+            $this->vars['pmdReservationsSchedule'] =
                 app(
-                    \Admin\Services\PmdReservationsLabScheduleV1::class
+                    \Admin\Services\PmdReservationsScheduleV1::class
                 )->payload(
                     $pmdDashboardCalendarLocationId,
                     $pmdDashboardCalendarLocale
@@ -381,7 +381,7 @@ class Dashboardlab extends AdminController
                 ]
             );
 
-            $this->vars['pmdReservationsLabSchedule'] = [];
+            $this->vars['pmdReservationsSchedule'] = [];
         }
 
         /* PMD_DASHBOARD_LAB_ANALYTICS_SCROLL_FIRSTPAINT_V2 */
@@ -402,7 +402,7 @@ class Dashboardlab extends AdminController
 
     /**
      * Use the existing Dashboard2 aggregate implementation without calling
-     * Dashboard2::index() and therefore without rendering Reservations2.
+     * Dashboard2::index() and therefore without rendering Reservations.
      */
     /*
      * PMD_DASHBOARDLAB_USER_PAGE_FLOOR_VIEW_SAVE_V1
@@ -1253,7 +1253,7 @@ class Dashboardlab extends AdminController
     }
 
     /**
-     * Resolve the SAME live Floor authorities already used by Reservations2,
+     * Resolve the SAME live Floor authorities already used by Reservations,
      * but do it before Blade is returned so Dashboard Lab can paint the table
      * row immediately instead of waiting for three browser requests.
      */

@@ -124,7 +124,7 @@
     }
 
     $pmdRoleWorkspaceStandaloneRoute = in_array($pmdPath, [
-        'admin/reservationslab',
+        'admin/reservations',
         'admin/cashierlab',
         'admin/accountantlab',
     ], true);
@@ -140,9 +140,6 @@
          * operational roles, but Owner/Manager retain their normal Side Menu.
          */
         ($pmdRoleWorkspaceStandaloneRoute && !($pmdSideMenuRoleResolved && $pmdRoleUsesSideMenu));
-
-    $pmdIsReservations2 =
-        str_starts_with($pmdPath, 'admin/reservations2');
 
     /*
      * PMD_SETTINGS_SUITE_ROUTE_AUTHORITY_V6
@@ -207,7 +204,7 @@
     };
 @endphp
 
-@if(!$pmdSideMenuExcluded && !$pmdIsReservations2)
+@if(!$pmdSideMenuExcluded)
 <script>
 (function () {
     var state = 'collapsed';
@@ -817,7 +814,7 @@
    *
    * All internal visual styling—logo, brand, navigation,
    * dropdowns and footer—is owned by the shared
-   * Reservations2 Side Menu sources.
+   * Reservations Side Menu sources.
    */
   html.pmd-side-menu2-global-page {
     --pmd-admin-gap: 14px;
@@ -1087,11 +1084,11 @@
 <style id="pmd-dashboard2-static-shell-first-paint-v1">
   /*
    * Match the FINAL pmd-admin-exact-layout geometry before the browser can
-   * paint Dashboard2. This also beats the embedded Reservations2 :has()
+   * paint Dashboard2. This also beats the embedded legacy embedded-root
    * wrapper reset which otherwise changes the parent shell after parsing.
    */
   html.pmd-dashboard2-static-shell-v1 .page-wrapper,
-  html.pmd-dashboard2-static-shell-v1 body:has(#pmd-reservations2) .page-wrapper {
+  html.pmd-dashboard2-static-shell-v1 .page-wrapper {
     position: absolute !important;
     left: 86px !important;
     right: auto !important;
@@ -1108,13 +1105,13 @@
   }
 
   html.pmd-dashboard2-static-shell-v1.pmd-sm2-expanded .page-wrapper,
-  html.pmd-dashboard2-static-shell-v1.pmd-sm2-expanded body:has(#pmd-reservations2) .page-wrapper {
+  html.pmd-dashboard2-static-shell-v1.pmd-sm2-expanded .page-wrapper {
     left: 174px !important;
     width: calc(100vw - 174px) !important;
   }
 
   html.pmd-dashboard2-static-shell-v1 .page-content,
-  html.pmd-dashboard2-static-shell-v1 body:has(#pmd-reservations2) .page-content {
+  html.pmd-dashboard2-static-shell-v1 .page-content {
     position: relative !important;
     left: 0 !important;
     right: auto !important;
@@ -1157,13 +1154,13 @@
   @media (max-width: 767px) {
     html.pmd-dashboard2-static-shell-v1 .page-wrapper,
     html.pmd-dashboard2-static-shell-v1.pmd-sm2-expanded .page-wrapper,
-    html.pmd-dashboard2-static-shell-v1 body:has(#pmd-reservations2) .page-wrapper {
+    html.pmd-dashboard2-static-shell-v1 .page-wrapper {
       left: 0 !important;
       width: 100vw !important;
     }
 
     html.pmd-dashboard2-static-shell-v1 .page-content,
-    html.pmd-dashboard2-static-shell-v1 body:has(#pmd-reservations2) .page-content {
+    html.pmd-dashboard2-static-shell-v1 .page-content {
       padding: 10px !important;
     }
   }

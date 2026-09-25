@@ -110,7 +110,7 @@
         [
             'admin/dashboardlab',
             'admin/managerlab',
-            'admin/reservationslab',
+            'admin/reservations',
             'admin/cashierlab',
             'admin/accountantlab',
         ],
@@ -122,7 +122,7 @@
         [
             'admin/dashboardlab',
             'admin/managerlab',
-            'admin/reservationslab',
+            'admin/reservations',
             'admin/cashierlab',
         ],
         true

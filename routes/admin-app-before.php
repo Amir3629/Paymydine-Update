@@ -419,9 +419,6 @@ App::before(function () {
                     'cashierlab' =>
                         'orders',
 
-                    'reservationslab' =>
-                        'reservations',
-
                     'coupons' =>
                         'discounts',
 
@@ -1260,46 +1257,8 @@ App::before(function () {
 
         Route::any(
             'reservations',
-            static function (
-                Request $request
-            ) use (
-                $__pmdRunInternalR81E,
-                $__pmdIsDocumentR81E,
-                $__pmdRefererIsCleanR81E,
-                $__pmdCurrentWorkspaceQueryR81E
-            ) {
-                $current =
-                    (
-                        (
-                            $request->isMethod(
-                                'GET'
-                            )
-                            || $request->isMethod(
-                                'HEAD'
-                            )
-                        )
-                        && $__pmdIsDocumentR81E(
-                            $request
-                        )
-                    )
-                    || $__pmdRefererIsCleanR81E(
-                        $request,
-                        'reservations'
-                    )
-                    || $__pmdCurrentWorkspaceQueryR81E(
-                        $request
-                    );
-
-                return
-                    $__pmdRunInternalR81E(
-                        $request,
-                        $current
-                            ? 'reservationslab'
-                            : 'reservations',
-                        $current
-                            ? 'canonical'
-                            : 'legacy'
-                    );
+            static function (Request $request) use ($__pmdRunInternalR81E) {
+                return $__pmdRunInternalR81E($request, 'reservations', 'canonical');
             }
         );
 

@@ -21,7 +21,7 @@
             '/admin/dashboardlab',
             '/admin/managerlab',
             '/admin/cashierlab',
-            '/admin/reservationslab',
+            '/admin/reservations',
             '/admin/accountantlab',
             '/admin/pmdmenus',
             '/admin/discounts',

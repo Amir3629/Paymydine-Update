@@ -2,6 +2,9 @@
 
 namespace Admin\Controllers;
 
+use Admin\Classes\AdminController;
+use Admin\Facades\AdminMenu;
+
 use Admin\Models\Categories_model;
 use Admin\Models\Menus_model;
 use Admin\Models\Payments_model;
@@ -20,9 +23,16 @@ use Illuminate\Support\Facades\Schema;
  * Locationable relation, so their model scopes must be used instead of an
  * assumed location_id column.
  */
-class Dashboard2 extends Reservations2
+class Dashboard2 extends AdminController
 {
     private const VERSION = '3.0.0';
+    protected $requiredPermissions = 'Admin.Dashboard';
+
+    public function __construct()
+    {
+        parent::__construct();
+        AdminMenu::setContext('dashboard');
+    }
     private array $analyticsAuthorityCache = [];
 
     // PMD_PERF_R2_REQUEST_LOCAL_METADATA_CACHE
@@ -44,13 +54,7 @@ class Dashboard2 extends Reservations2
             return response()->json($this->kpiPayload());
         }
 
-        parent::index();
-        // The browser performs exactly one aggregate request. Do not execute
-        // the same eight queries again while rendering the HTML shell.
-        $this->vars['pmdDashboard2Kpis'] = $this->cards([], $this->currency());
-        $this->vars['pmdDashboard2KpiPayload'] = null;
-
-        return $this->makeView('dashboard2_reservations2_exact');
+        return redirect(admin_url('ownerdashboard'));
     }
 
     protected function kpiPayload(): array
@@ -130,7 +134,7 @@ class Dashboard2 extends Reservations2
      * PMD_DASHBOARD2_CANONICAL_LOCATION_FIX_V1
      *
      * Use the same authenticated location resolution authority as the
-     * parent Reservations2 controller.
+     * parent Reservations controller.
      */
     protected function locationId(): ?int
     {

@@ -1236,12 +1236,6 @@
 
 /* Light blur, not black overlay */
 
-body.pmd-reservation-composer-open-v1
-  #pmd-reservations2 {
-  filter: blur(6px) !important;
-  transform: translateZ(0) !important;
-}
-
 .pmd-reservation-composer-backdrop-v1 {
   background:
     rgba(241,247,245,.36)

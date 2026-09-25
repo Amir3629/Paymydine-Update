@@ -5,13 +5,13 @@
     $pmdCleanWorkspaceUsesFloor = $pmdCleanWorkspaceUsesFloor ?? true;
     $pmdCleanWorkspaceAfterFloorPartial = $pmdCleanWorkspaceAfterFloorPartial ?? null;
     $pmdCleanWorkspaceBelowFloorPartial = $pmdCleanWorkspaceBelowFloorPartial ?? null;
-    $pmdCleanWorkspaceReservationsSurface = (($pmdCleanWorkspacePath ?? '') === '/admin/reservationslab');
+    $pmdCleanWorkspaceReservationsSurface = (($pmdCleanWorkspacePath ?? '') === '/admin/reservations');
     $pmdCleanWorkspaceCashierSurface = (($pmdCleanWorkspacePath ?? '') === '/admin/cashierlab');
 
     /*
      * PMD_CLEAN_WORKSPACE_MANAGER_CALENDAR_SURFACE_V1
      *
-     * ReservationsLab + ManagerLab use ONE Calendar/Hour authority.
+     * Reservations + ManagerLab use ONE Calendar/Hour authority.
      */
     $pmdCleanWorkspaceManagerCalendarSurface =
         (($pmdCleanWorkspacePath ?? '') === '/admin/managerlab');
@@ -40,8 +40,8 @@
 
 
     // PMD_CLEAN_WORKSPACE_CANONICAL_RESERVATION_COMPOSER_SURFACE_V1
-    // Cashier may create a reservation, but it must not become a ReservationsLab
-    // Calendar/Hour surface. Only the exact Reservations2 Composer is shared.
+    // Cashier may create a reservation, but it must not become a Reservations
+    // Calendar/Hour surface. Only the exact Reservations Composer is shared.
     $pmdCleanWorkspaceComposerSurface = $pmdCleanWorkspaceReservationsSurface || $pmdCleanWorkspaceCashierSurface;
     $pmdCleanWorkspaceHeaderCreateVisible =
         $pmdCleanWorkspaceComposerSurface
@@ -709,8 +709,8 @@ html body.page.pmd-clean-workspace-page #pmd-dashboard-lab {
             @if($pmdCleanWorkspaceHeaderCreateVisible)
                 <button
                     type="button"
-                    id="pmd-reservations-lab-header-create-v1"
-                    class="pmd-dashboard-lab__header-action pmd-reservations-lab__header-create"
+                    id="pmd-reservations-header-create-v1"
+                    class="pmd-dashboard-lab__header-action pmd-reservations__header-create"
                     @if($pmdCleanWorkspaceCashierSurface) data-pmd-cashier-reservation-create="1" @endif
                     aria-label="{{ $pmdCleanWorkspaceAddReservationLabel }}"
                     title="{{ $pmdCleanWorkspaceAddReservationLabel }}"
@@ -1223,8 +1223,8 @@ html body.page.pmd-clean-workspace-page #pmd-dashboard-lab {
             class="pmd-dashboard-lab__stage"
             aria-label="{{ $pmdCleanWorkspaceTitle }}"
         >
-            {{-- PMD_RESERVATIONS_LAB_THREE_SURFACES_V2_3
-                 Reservations Lab is one primary workspace surface: Floor -> Calendar -> Hour.
+            {{-- PMD_RESERVATIONS_THREE_SURFACES_V2_3
+                 Reservations is one primary workspace surface: Floor -> Calendar -> Hour.
                  The Calendar/Hour partial is placed before the Floor only so its server-rendered
                  view controls can switch the same visual slot. It is NOT below-Floor content. --}}
             @if($pmdCleanWorkspaceReservationsSurface && $pmdCleanWorkspaceAfterFloorPartial)
@@ -1237,7 +1237,7 @@ html body.page.pmd-clean-workspace-page #pmd-dashboard-lab {
                     $pmdManagerCalendarCssPath =
                         base_path(
                             'app/admin/assets/css/'.
-                            'pmd-reservations-lab-schedule-v1.css'
+                            'pmd-reservations-schedule-v1.css'
                         );
 
                     $pmdManagerCalendarCssVersion =
@@ -1255,11 +1255,11 @@ html body.page.pmd-clean-workspace-page #pmd-dashboard-lab {
 
                 <link
                     rel="stylesheet"
-                    href="{{ asset('app/admin/assets/css/pmd-reservations-lab-schedule-v1.css') }}?v={{ $pmdManagerCalendarCssVersion }}"
+                    href="{{ asset('app/admin/assets/css/pmd-reservations-schedule-v1.css') }}?v={{ $pmdManagerCalendarCssVersion }}"
                 >
 
                 @include(
-                    'admin::_partials.pmd_reservations_lab_schedule_v1'
+                    'admin::_partials.pmd_reservations_schedule_v1'
                 )
             @endif
 
@@ -1277,7 +1277,7 @@ html body.page.pmd-clean-workspace-page #pmd-dashboard-lab {
                 ])
 
                 @if($pmdCleanWorkspaceReservationsSurface && $pmdCleanWorkspaceBelowFloorPartial)
-                    {{-- PMD_RESERVATIONSLAB_SERVER_CARDS_PRE_RUNTIME_V1
+                    {{-- PMD_RESERVATIONS_SERVER_CARDS_PRE_RUNTIME_V1
                          Reservation cards are already server-rendered. Parse them immediately
                          after the Floor DOM and BEFORE the synchronous Floor mount/Composer
                          runtime work, so refresh cannot show the Floor first and cards later. --}}
@@ -1291,7 +1291,7 @@ html body.page.pmd-clean-workspace-page #pmd-dashboard-lab {
                     @include($pmdCleanWorkspaceAfterFloorPartial)
                 @endif
 
-                {{-- PMD_RESERVATIONSLAB_PARSER_SYNC_FLOOR_BOOT_V1
+                {{-- PMD_RESERVATIONS_PARSER_SYNC_FLOOR_BOOT_V1
                      English does not use the global German pmd-i18n-pending body gate.
                      Previously the exact Floor runtime arrived through get_script_tags()
                      at the end of the document, so English could paint the server Floor
@@ -1310,10 +1310,10 @@ html body.page.pmd-clean-workspace-page #pmd-dashboard-lab {
                         $pmdExactFloorRuntimeVersion = 'r10-20260918';
                     @endphp
                     <script
-                        id="pmd-reservationslab-parser-floor-runtime-v1"
+                        id="pmd-reservations-parser-floor-runtime-v1"
                         src="{{ asset('app/admin/assets/js/pmd-dashboard-lab-exact-floor-v1.js') }}?v={{ $pmdExactFloorRuntimeVersion }}"
                     ></script>
-                    <script id="pmd-reservationslab-parser-floor-mount-v1">
+                    <script id="pmd-reservations-parser-floor-mount-v1">
                     (function () {
                         'use strict';
                         if (
@@ -1322,7 +1322,7 @@ html body.page.pmd-clean-workspace-page #pmd-dashboard-lab {
                         ) {
                             window.PMDDashboardLabExactFloorV1.mount(document);
                             document.documentElement.setAttribute(
-                                'data-pmd-reservationslab-floor-parser-mounted',
+                                'data-pmd-reservations-floor-parser-mounted',
                                 '1'
                             );
                         }
@@ -1333,8 +1333,8 @@ html body.page.pmd-clean-workspace-page #pmd-dashboard-lab {
 
             @if($pmdCleanWorkspaceComposerRuntimeSurface)
                 {{-- PMD_CLEAN_WORKSPACE_CANONICAL_RESERVATION_COMPOSER_SURFACE_V1_START
-                     ReservationsLab and CashierLab share the literal canonical Reservations2
-                     Composer. Cashier does NOT load ReservationsLab Calendar/Hour runtime. --}}
+                     Reservations and CashierLab share the literal canonical Reservations
+                     Composer. Cashier does NOT load Reservations Calendar/Hour runtime. --}}
                 {{-- PMD_RESERVATION_COMPOSER_CONTENT_HASH_ASSETS_V1_0_2
                      The canonical Composer previously used a permanent v=1.0.0 URL,
                      so Safari could revive an old Composer while Schedule was fresh.
@@ -1347,10 +1347,10 @@ html body.page.pmd-clean-workspace-page #pmd-dashboard-lab {
                     $pmdReservationComposerJsVersion = 'r8-20260918';
                 @endphp
                 <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-reservation-composer-v1.css') }}?v={{ $pmdReservationComposerCssVersion }}">
-                @include('admin::reservations2._reservation_composer')
+                @include('admin::reservations._reservation_composer')
                 <script>
                 window.PMD_RESERVATION_COMPOSER_V1 = Object.freeze({
-                  endpoint: @json(admin_url('reservations2'))
+                  endpoint: @json(admin_url('reservations'))
                 });
                 </script>
                 <script defer id="pmd-reservation-composer-content-hash-v1-0-2" src="{{ asset('app/admin/assets/js/pmd-reservation-composer-v1.js') }}?v={{ $pmdReservationComposerJsVersion }}"></script>
@@ -1434,17 +1434,17 @@ html body.page.pmd-clean-workspace-page #pmd-dashboard-lab {
                 @endif
 
                 @if($pmdCleanWorkspaceCalendarSurface)
-                    {{-- PMD_RESERVATIONSLAB_SCHEDULE_DIRECT_AUTHORITY_V1_2
+                    {{-- PMD_RESERVATIONS_SCHEDULE_DIRECT_AUTHORITY_V1_2
                          One schedule runtime owner, loaded directly after the canonical
-                         Composer with a content-derived cache key. Reservationslab.php
+                         Composer with a content-derived cache key. Reservations.php
                          no longer enqueues this file through the combined Admin asset pipeline. --}}
                     @php
-                        $pmdReservationsLabScheduleRuntimePath = base_path('app/admin/assets/js/pmd-reservations-lab-schedule-v1.js');
-                        $pmdReservationsLabScheduleRuntimeVersion = is_file($pmdReservationsLabScheduleRuntimePath)
-                            ? substr(hash_file('sha256', $pmdReservationsLabScheduleRuntimePath), 0, 16)
+                        $pmdReservationsScheduleRuntimePath = base_path('app/admin/assets/js/pmd-reservations-schedule-v1.js');
+                        $pmdReservationsScheduleRuntimeVersion = is_file($pmdReservationsScheduleRuntimePath)
+                            ? substr(hash_file('sha256', $pmdReservationsScheduleRuntimePath), 0, 16)
                             : '1';
                     @endphp
-                    <script defer id="pmd-reservationslab-schedule-direct-v1-2" src="{{ asset('app/admin/assets/js/pmd-reservations-lab-schedule-v1.js') }}?v={{ $pmdReservationsLabScheduleRuntimeVersion }}"></script>
+                    <script defer id="pmd-reservations-schedule-direct-v1-2" src="{{ asset('app/admin/assets/js/pmd-reservations-schedule-v1.js') }}?v={{ $pmdReservationsScheduleRuntimeVersion }}"></script>
                 @endif
                 {{-- PMD_CLEAN_WORKSPACE_CANONICAL_RESERVATION_COMPOSER_SURFACE_V1_END --}}
             @endif
