@@ -213,16 +213,7 @@ class PmdAdminRetiredPagesR77
          * These must remain directly accessible.
          */
         if (
-            // PMD_RESERVATIONS2_CURRENT_SURFACE_V130
-            // Reservations2 is the live shared Reservations workspace used by
-            // the Cashier side menu and Android Cloud re-entry. It must never
-            // be processed by the retired-page dashboard fallback.
-            $relative === 'reservations2'
-            || strpos(
-                $relative,
-                'reservations2/'
-            ) === 0
-            || $relative === 'dashboardlab'
+            $relative === 'dashboardlab'
             || $relative === 'pmdmenus'
             || $relative === 'pmdsmartcategories'
             || strpos(
@@ -344,6 +335,14 @@ class PmdAdminRetiredPagesR77
             'reservationslab' =>
                 'reservations',
 
+            // PMD_RESERVATIONS2_LEGACY_ALIAS_V131
+            // V130 temporarily exposed Reservations2 directly. The product
+            // authority is the newer clean /admin/reservations workspace, so
+            // old bookmarks and cached Android side-menu HTML are migrated to
+            // the canonical route instead of rendering the obsolete page.
+            'reservations2' =>
+                'reservations',
+
             'pmdmenus' =>
                 'menu',
 
@@ -407,6 +406,9 @@ class PmdAdminRetiredPagesR77
         }
 
         $prefixMap = [
+            'reservations2/' =>
+                'reservations/',
+
             'pmdmenus/' =>
                 'menu/',
 
