@@ -3,7 +3,7 @@
 
      Single clean HTML surface:
      - no Dashboard2 view include
-     - no Reservations2 view include
+     - no Reservations view include
      - no whole-page visibility guard
      - final geometry exists in initial HTML/CSS
      ========================================================= --}}
@@ -222,7 +222,7 @@
         <div class="pmd-ownerboard-v2__header-actions">
             <a
                 class="pmd-ownerboard-v2__header-button"
-                href="{{ admin_url('reservations2') }}"
+                href="{{ admin_url('reservations') }}"
                 aria-label="{{ $pmdObT('Reservations', 'Reservierungen') }}"
                 title="{{ $pmdObT('Reservations', 'Reservierungen') }}"
             >

@@ -60,9 +60,9 @@
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-floor-v1.css?v=20260920-floor-v35b">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-floor-v1-stable-v11.css?v=20260920-floor-v35b">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-floor-v1-native-smart-v20.css?v=20260920-floor-v35b">
-    <link rel="stylesheet" href="/app/admin/assets/css/pmd-reservations2-floor-canvas-v310.css?v=20260920-floor-v35b">
-    <link rel="stylesheet" href="/app/admin/assets/css/pmd-reservations2-floor-toolbar-v316.css?v=20260920-floor-v35b">
-    <link rel="stylesheet" href="/app/admin/assets/css/pmd-reservations2-floor-reservation-v312.css?v=20260920-floor-v35b">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-reservations-floor-canvas-v310.css?v=20260920-floor-v35b">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-reservations-floor-toolbar-v316.css?v=20260920-floor-v35b">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-reservations-floor-reservation-v312.css?v=20260920-floor-v35b">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-dashboard-lab-exact-floor-v1.css?v=20260920-floor-v35b">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-shared-floor-multi-floor-v1.css?v=20260920-floor-v35b">
     <!-- PMD_FLOOR_SCROLL_CHAIN_V127 -->

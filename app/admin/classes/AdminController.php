@@ -199,7 +199,7 @@ class AdminController extends BaseController
             || Request::is('admin/accountantlab*')
             || Request::is('admin/cashierlab*')
             || Request::is('admin/pos*')
-            || Request::is('admin/reservationslab*')
+            || Request::is('admin/reservations*')
             || Request::is('admin/pmdreports*')
             || Request::is('admin/pmdreportchannels*')
             || Request::is('admin/pmdreporttips*')

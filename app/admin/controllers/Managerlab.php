@@ -125,19 +125,19 @@ class Managerlab extends PmdCleanWorkspaceControllerV1
         /*
          * PMD_MANAGER_RESERVATION_CALENDAR_PAYLOAD_V1
          *
-         * SAME authority as ReservationsLab.
+         * SAME authority as Reservations.
          * Manager is only another host surface.
          */
         try {
-            $this->vars['pmdReservationsLabSchedule'] =
+            $this->vars['pmdReservationsSchedule'] =
                 app(
-                    \Admin\Services\PmdReservationsLabScheduleV1::class
+                    \Admin\Services\PmdReservationsScheduleV1::class
                 )->payload(
                     $shared->locationId(),
                     $locale
                 );
         } catch (\Throwable $error) {
-            $this->vars['pmdReservationsLabSchedule'] = [];
+            $this->vars['pmdReservationsSchedule'] = [];
         }
 
 

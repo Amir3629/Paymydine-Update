@@ -1764,7 +1764,7 @@
     ready: true,
     version: '1.2.8-always-jiggle',
     route: '/admin/pmdmenus',
-    headerContract: 'DashboardLab/ReservationsLab 64px + 46px actions',
+    headerContract: 'DashboardLab/Reservations 64px + 46px actions',
     singleHeaderGlyphPerAction: true,
     canonicalFirstPaintShell: true,
     nativeHeaderHiddenBeforePaint: true,

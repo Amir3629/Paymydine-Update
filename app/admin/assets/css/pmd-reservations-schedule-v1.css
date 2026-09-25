@@ -1,5 +1,5 @@
-/* PMD_RESERVATIONS_LAB_EXACT_LIVE_RESERVATIONS2_VISUAL_V2_4 */
-/* PMD Reservations2 calendar toggle V1.11 */
+/* PMD_RESERVATIONS_EXACT_LIVE_RESERVATIONS2_VISUAL_V2_4 */
+/* PMD Reservations calendar toggle V1.11 */
 #pmd-r2-clean-header .pmd-r2-clean-actions{display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:8px!important;flex-wrap:nowrap!important;opacity:1!important;visibility:visible!important;transform:none!important}
 #pmd-r2-clean-header .pmd-r2-clean-actions>#pmd-r2-date-popover-v318:empty{display:none!important}
 #pmd-r2-clean-header .pmd-r2-clean-actions>.pmd-r2-mobile-toggle{order:-10}
@@ -110,7 +110,7 @@ html.pmd-r2-yc-modal-open{overflow:hidden!important}
 @media(max-width:700px){#pmd-r2-date-button-v430,#pmd-r2-calendar-toggle-v1,#pmd-r2-clean-header .pmd-r2-clean-create,#pmd-r2-clean-header #notifDropdown{width:42px!important;height:42px!important;min-width:42px!important;min-height:42px!important;max-width:42px!important;border-radius:11px!important}#pmd-r2-calendar-surface-v160 .pmd-yc__toolbar{padding:10px;gap:10px}#pmd-r2-calendar-surface-v160 .pmd-yc__months{grid-template-columns:1fr;gap:10px;padding-top:10px}#pmd-r2-calendar-surface-v160 .pmd-yc-month.is-month-view{overflow-x:auto}#pmd-r2-calendar-surface-v160 .pmd-yc-month.is-month-view .pmd-yc-weekdays,#pmd-r2-calendar-surface-v160 .pmd-yc-month.is-month-view .pmd-yc-days{min-width:760px}#pmd-r2-calendar-surface-v160 .pmd-r2-yc-selected__head{align-items:flex-start;flex-direction:column}#pmd-r2-calendar-surface-v160 .pmd-r2-yc-selected__actions{justify-content:flex-start}#pmd-r2-calendar-surface-v160 .pmd-r2-yc-selected__grid{grid-template-columns:1fr}}
 
 /* =========================================================
-   PMD Reservations2 Calendar Toggle V1.12
+   PMD Reservations Calendar Toggle V1.12
    Plain selected-day results — no outer card/frame
    ========================================================= */
 
@@ -239,7 +239,7 @@ html.pmd-r2-yc-modal-open{overflow:hidden!important}
 
 
 /* =========================================================
-   PMD Reservations2 Calendar Toggle V1.13
+   PMD Reservations Calendar Toggle V1.13
    Selected-day results outside calendar surface
    ========================================================= */
 
@@ -306,7 +306,7 @@ html.pmd-r2-yc-modal-open{overflow:hidden!important}
 
 
 /* =========================================================
-   PMD Reservations2 Calendar Toggle V1.16
+   PMD Reservations Calendar Toggle V1.16
    Calendar frame separate from selected-day results
    ========================================================= */
 
@@ -419,7 +419,7 @@ html.pmd-r2-yc-modal-open{overflow:hidden!important}
 }
 
 /* =========================================================
-   PMD Reservations2 Calendar Visual Separation V1.18
+   PMD Reservations Calendar Visual Separation V1.18
    Calendar owns its frame; selected-day results remain plain
    ========================================================= */
 
@@ -583,7 +583,7 @@ section.pmd-r2-yc-selected[data-r2-yc-selected] {
 
 
 /* =========================================================
-   PMD Reservations2 Calendar Frame Ownership V1.19
+   PMD Reservations Calendar Frame Ownership V1.19
    Only the calendar grid owns a visual frame
    ========================================================= */
 
@@ -683,7 +683,7 @@ section.pmd-r2-yc-selected[data-r2-yc-selected] {
   transform: translateY(-6px) scale(.99);
 }
 
-/* PMD_RESERVATIONS_LAB_HOUR_REPLACES_CALENDAR_V2_4_2
+/* PMD_RESERVATIONS_HOUR_REPLACES_CALENDAR_V2_4_2
  * Calendar V1.18 above forces display:block!important with a stronger
  * page-scoped selector. Strengthen the EXISTING Timeslot authority so
  * Hour replaces Calendar instead of stacking underneath it.
@@ -2302,11 +2302,11 @@ section.pmd-r2-yc-selected[data-r2-yc-selected] {
 
 
 /* Clean reservation composer. */
-.pmd-reservations-lab-composer[hidden] {
+.pmd-reservations-composer[hidden] {
   display: none !important;
 }
 
-.pmd-reservations-lab-composer {
+.pmd-reservations-composer {
   position: fixed;
   inset: 0;
   z-index: 12000;
@@ -2315,13 +2315,13 @@ section.pmd-r2-yc-selected[data-r2-yc-selected] {
   padding: 18px;
 }
 
-.pmd-reservations-lab-composer__backdrop {
+.pmd-reservations-composer__backdrop {
   position: absolute;
   inset: 0;
   background: rgba(19, 42, 58, .34);
 }
 
-.pmd-reservations-lab-composer__card {
+.pmd-reservations-composer__card {
   position: relative;
   z-index: 1;
   width: min(760px, 96vw);
@@ -2333,7 +2333,7 @@ section.pmd-r2-yc-selected[data-r2-yc-selected] {
   box-shadow: 0 24px 70px rgba(22, 49, 65, .22);
 }
 
-.pmd-reservations-lab-composer__card > header {
+.pmd-reservations-composer__card > header {
   position: sticky;
   top: 0;
   z-index: 2;
@@ -2346,7 +2346,7 @@ section.pmd-r2-yc-selected[data-r2-yc-selected] {
   background: #fff;
 }
 
-.pmd-reservations-lab-composer__card > header small {
+.pmd-reservations-composer__card > header small {
   display: block;
   margin-bottom: 2px;
   color: #708493;
@@ -2355,14 +2355,14 @@ section.pmd-r2-yc-selected[data-r2-yc-selected] {
   text-transform: uppercase;
 }
 
-.pmd-reservations-lab-composer__card > header h2 {
+.pmd-reservations-composer__card > header h2 {
   margin: 0;
   color: #173752;
   font-size: 20px;
   font-weight: 850;
 }
 
-.pmd-reservations-lab-composer__card > header > button {
+.pmd-reservations-composer__card > header > button {
   width: 36px;
   height: 36px;
   padding: 0;
@@ -2375,32 +2375,32 @@ section.pmd-r2-yc-selected[data-r2-yc-selected] {
   cursor: pointer;
 }
 
-.pmd-reservations-lab-composer form {
+.pmd-reservations-composer form {
   padding: 17px 18px 18px;
 }
 
-.pmd-reservations-lab-composer__grid {
+.pmd-reservations-composer__grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
 
-.pmd-reservations-lab-composer label,
-.pmd-reservations-lab-composer__assignment {
+.pmd-reservations-composer label,
+.pmd-reservations-composer__assignment {
   color: #324f62;
   font-size: 12px;
   font-weight: 760;
 }
 
-.pmd-reservations-lab-composer label > span,
-.pmd-reservations-lab-composer__assignment legend {
+.pmd-reservations-composer label > span,
+.pmd-reservations-composer__assignment legend {
   display: block;
   margin-bottom: 5px;
 }
 
-.pmd-reservations-lab-composer input,
-.pmd-reservations-lab-composer select,
-.pmd-reservations-lab-composer textarea {
+.pmd-reservations-composer input,
+.pmd-reservations-composer select,
+.pmd-reservations-composer textarea {
   width: 100%;
   min-height: 40px;
   padding: 8px 10px;
@@ -2412,35 +2412,35 @@ section.pmd-r2-yc-selected[data-r2-yc-selected] {
   outline: none;
 }
 
-.pmd-reservations-lab-composer input:focus,
-.pmd-reservations-lab-composer select:focus,
-.pmd-reservations-lab-composer textarea:focus {
+.pmd-reservations-composer input:focus,
+.pmd-reservations-composer select:focus,
+.pmd-reservations-composer textarea:focus {
   border-color: #54b596;
   box-shadow: 0 0 0 3px rgba(84,181,150,.12);
 }
 
-.pmd-reservations-lab-composer__assignment {
+.pmd-reservations-composer__assignment {
   margin: 15px 0 0;
   padding: 13px;
   border: 1px solid #dce7ea;
   border-radius: 13px;
 }
 
-.pmd-reservations-lab-composer__assignment legend {
+.pmd-reservations-composer__assignment legend {
   padding: 0 4px;
   color: #173752;
   font-size: 12px;
   font-weight: 820;
 }
 
-.pmd-reservations-lab-composer__modes {
+.pmd-reservations-composer__modes {
   display: flex;
   flex-wrap: wrap;
   gap: 7px;
   margin-bottom: 10px;
 }
 
-.pmd-reservations-lab-composer__modes label {
+.pmd-reservations-composer__modes label {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -2452,13 +2452,13 @@ section.pmd-r2-yc-selected[data-r2-yc-selected] {
   cursor: pointer;
 }
 
-.pmd-reservations-lab-composer__modes input {
+.pmd-reservations-composer__modes input {
   width: auto;
   min-height: 0;
   margin: 0;
 }
 
-.pmd-reservations-lab-composer__availability {
+.pmd-reservations-composer__availability {
   min-height: 18px;
   margin: 9px 0;
   color: #607989;
@@ -2466,16 +2466,16 @@ section.pmd-r2-yc-selected[data-r2-yc-selected] {
   font-weight: 700;
 }
 
-.pmd-reservations-lab-composer__availability.is-ok {
+.pmd-reservations-composer__availability.is-ok {
   color: #08795d;
 }
 
-.pmd-reservations-lab-composer__availability.is-error,
-.pmd-reservations-lab-composer__error {
+.pmd-reservations-composer__availability.is-error,
+.pmd-reservations-composer__error {
   color: #b83535;
 }
 
-.pmd-reservations-lab-composer__error {
+.pmd-reservations-composer__error {
   margin-bottom: 12px;
   padding: 9px 11px;
   border: 1px solid #efd0d0;
@@ -2485,7 +2485,7 @@ section.pmd-r2-yc-selected[data-r2-yc-selected] {
   font-weight: 700;
 }
 
-.pmd-reservations-lab-composer__check {
+.pmd-reservations-composer__check {
   min-height: 36px;
   padding: 0 11px;
   border: 1px solid #bddad1;
@@ -2497,17 +2497,17 @@ section.pmd-r2-yc-selected[data-r2-yc-selected] {
   cursor: pointer;
 }
 
-.pmd-reservations-lab-composer__notes {
+.pmd-reservations-composer__notes {
   display: block;
   margin-top: 12px;
 }
 
-.pmd-reservations-lab-composer textarea {
+.pmd-reservations-composer textarea {
   min-height: 78px;
   resize: vertical;
 }
 
-.pmd-reservations-lab-composer footer {
+.pmd-reservations-composer footer {
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -2515,7 +2515,7 @@ section.pmd-r2-yc-selected[data-r2-yc-selected] {
   margin-top: 16px;
 }
 
-.pmd-reservations-lab-composer footer button {
+.pmd-reservations-composer footer button {
   min-height: 39px;
   padding: 0 14px;
   border: 1px solid #cfdde2;
@@ -2527,7 +2527,7 @@ section.pmd-r2-yc-selected[data-r2-yc-selected] {
   cursor: pointer;
 }
 
-.pmd-reservations-lab-composer footer button.is-primary {
+.pmd-reservations-composer footer button.is-primary {
   border-color: #0a9b74;
   background: #0a9b74;
   color: #fff;
@@ -2535,10 +2535,10 @@ section.pmd-r2-yc-selected[data-r2-yc-selected] {
 
 
 
-/* PMD_RESERVATIONS_LAB_EXACT_R2_BRIDGE_V2_4
- * The Reservations2 Calendar/Hour visual authority above is copied from
+/* PMD_RESERVATIONS_EXACT_R2_BRIDGE_V2_4
+ * The Reservations Calendar/Hour visual authority above is copied from
  * the captured live page and only remapped from #pmd-reservations2 to
- * the clean Reservations Lab root #pmd-dashboard-lab.
+ * the clean Reservations root #pmd-dashboard-lab.
  */
 html body.pmd-clean-workspace-reservations #pmd-dashboard-lab-calendar-v4.is-active {
   background: #f1f7fb !important;
@@ -2558,22 +2558,22 @@ html body.pmd-clean-workspace-reservations #pmd-dashboard-lab.is-calendar-mode #
   width: 100% !important;
   max-width: 100% !important;
 }
-html body.pmd-clean-workspace-reservations .pmd-reservations-lab-composer,
-html body.pmd-clean-workspace-reservations .pmd-reservations-lab-composer * {
+html body.pmd-clean-workspace-reservations .pmd-reservations-composer,
+html body.pmd-clean-workspace-reservations .pmd-reservations-composer * {
   box-sizing: border-box;
 }
-.pmd-reservations-lab-composer button,
-.pmd-reservations-lab-composer input,
-.pmd-reservations-lab-composer select,
-.pmd-reservations-lab-composer textarea { font: inherit; }
+.pmd-reservations-composer button,
+.pmd-reservations-composer input,
+.pmd-reservations-composer select,
+.pmd-reservations-composer textarea { font: inherit; }
 @media (max-width: 720px) {
-  .pmd-reservations-lab-composer__grid { grid-template-columns: 1fr; }
+  .pmd-reservations-composer__grid { grid-template-columns: 1fr; }
 }
 
 /* =========================================================
-   PMD_RESERVATIONS_LAB_EXACT_FINAL_TOOLBAR_COMPOSER_V2_5
-   Exact final Reservations2 Calendar toolbar visual contract.
-   Visual-only: no Reservations2 toolbar runtime imported.
+   PMD_RESERVATIONS_EXACT_FINAL_TOOLBAR_COMPOSER_V2_5
+   Exact final Reservations Calendar toolbar visual contract.
+   Visual-only: no Reservations toolbar runtime imported.
    ========================================================= */
 
 /* V15: same floating Hour-style Calendar toolbar. */
@@ -2731,7 +2731,7 @@ html body.pmd-clean-workspace-reservations .pmd-reservations-lab-composer * {
   font-weight: 850 !important;
 }
 
-/* Exact current Reservations2 rule: no black active buttons. */
+/* Exact current Reservations rule: no black active buttons. */
 #pmd-r2-calendar-surface-v160 .pmd-yc__view-switch > button.is-active,
 #pmd-r2-calendar-surface-v160 .pmd-yc__filters > button.is-active {
   color: #102a43 !important;
@@ -2893,7 +2893,7 @@ html body.pmd-clean-workspace-reservations .pmd-reservations-lab-composer * {
   }
 }
 
-/* Clean bridge: exact Reservations2 Composer CSS, Lab-owned interaction handlers. */
+/* Clean bridge: exact Reservations Composer CSS, Lab-owned interaction handlers. */
 #pmd-reservation-composer-v1[data-pmd-res-lab-composer][hidden] {
   display: none !important;
 }
@@ -2954,13 +2954,13 @@ html body.pmd-clean-workspace-reservations .pmd-reservations-lab-composer * {
   border-color: #9ebed3 !important;
 }
 
-body.pmd-reservations-lab-composer-open {
+body.pmd-reservations-composer-open {
   overflow: hidden !important;
 }
 
 
 /* =========================================================
-   PMD_RESERVATIONSLAB_FUTURE_BOOKING_POLICY_V1
+   PMD_RESERVATIONS_FUTURE_BOOKING_POLICY_V1
    Past dates remain viewable for operational history, but past
    times never expose an active create action.
    ========================================================= */
@@ -2996,7 +2996,7 @@ body.pmd-reservations-lab-composer-open {
 
 
 /* =========================================================
-   PMD_RESERVATIONSLAB_HOUR_INTERACTION_OPENING_HOURS_V1
+   PMD_RESERVATIONS_HOUR_INTERACTION_OPENING_HOURS_V1
    Existing Hour owner only: clickable time/row/card surfaces and shared
    working_hours closed-state presentation. No animation/settle runtime.
    ========================================================= */
@@ -3067,7 +3067,7 @@ body.pmd-reservations-lab-composer-open {
 
 
 /* =========================================================
-   PMD_RESERVATIONSLAB_CLOSED_CALENDAR_DATES_V1_4
+   PMD_RESERVATIONS_CLOSED_CALENDAR_DATES_V1_4
    working_hours is the authority: a fully closed date is not a navigation
    target and cannot open Hour/create surfaces.
    ========================================================= */
@@ -3095,7 +3095,7 @@ body.pmd-reservations-lab-composer-open {
 
 
 /* =========================================================
-   PMD_RESERVATIONSLAB_SPLIT_ROW_DIVIDER_V1_4_1
+   PMD_RESERVATIONS_SPLIT_ROW_DIVIDER_V1_4_1
    The Hour DOM is split into two display:contents wrappers. The generic
    .pmd-r2-timeslot:last-child rule removed the divider after the last row of
    the FIRST wrapper too (for 12 rows, exactly between 09:30 and 10:00).

@@ -665,7 +665,7 @@ HTML;
          * PMD_PERF_R7_CASHIER_NO_HIDDEN_CALENDAR
          *
          * Cashier is a Floor + Orders + Reservation Composer surface, not a
-         * Calendar/Hour surface. Do not build the full ReservationsLab schedule
+         * Calendar/Hour surface. Do not build the full Reservations schedule
          * payload on every Cashier request; the canonical Composer remains
          * available independently below.
          */

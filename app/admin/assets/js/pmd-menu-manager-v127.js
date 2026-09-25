@@ -1730,7 +1730,7 @@
     ready: true,
     version: '1.2.7-gentle-jiggle',
     route: '/admin/pmdmenus',
-    headerContract: 'DashboardLab/ReservationsLab 64px + 46px actions',
+    headerContract: 'DashboardLab/Reservations 64px + 46px actions',
     singleHeaderGlyphPerAction: true,
     canonicalFirstPaintShell: true,
     nativeHeaderHiddenBeforePaint: true,

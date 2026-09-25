@@ -137,7 +137,7 @@
     <div class="pmd-ops-grid">
         @if(!$pmdCashierHistoryMode)
         {{-- PMD_CASHIERLAB_ADD_ORDER_CARD_R41
-             Cashier + means ordering. Reservation creation stays on ReservationsLab. --}}
+             Cashier + means ordering. Reservation creation stays on Reservations. --}}
         <a
             class="pmd-ops-add-card pmd-r2-simple-add-link-v460"
             href="#pmd-cashier-order-composer"

@@ -3,7 +3,7 @@
 
     // PMD_CLEAN_ROLE_WORKSPACE_I18N_PAGE_SKIP_V1
     // These role workspaces render their EN/DE copy server-first. Do not boot
-    // the observer/RAF page-translator that owns Dashboard2/Reservations2/DashboardLab.
+    // the observer/RAF page-translator that owns Dashboard2/Reservations/DashboardLab.
     if (/^\/admin\/(?:managerlab|accountantlab|cashierlab|reservationslab)(?:\/|$)/.test(String((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname) || ''))) {
         return;
     }
@@ -20,7 +20,7 @@
 
     var allowedRoutes = [
         '/admin/dashboard2',
-        '/admin/reservations2',
+        '/admin/reservations',
         '/admin/dashboardlab'
     ];
 

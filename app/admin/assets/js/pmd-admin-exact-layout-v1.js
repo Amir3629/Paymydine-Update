@@ -32,11 +32,11 @@
      * Never rewrite its wrapper/content after load.
      */
     path.indexOf('/admin/shifts') === 0 ||
-    path.indexOf('/admin/reservations2') === 0 ||
+    path.indexOf('/admin/reservations') === 0 ||
     /* PMD_DASHBOARD_LAB_EXACT_LAYOUT_BYPASS_V1 */
     path.indexOf('/admin/dashboardlab') === 0 ||
     /* PMD_CLEAN_WORKSPACES_EXACT_LAYOUT_BYPASS_V1 */
-    path.indexOf('/admin/reservationslab') === 0 ||
+    path.indexOf('/admin/reservations') === 0 ||
     path.indexOf('/admin/cashierlab') === 0 ||
     path.indexOf('/admin/managerlab') === 0 ||
     path.indexOf('/admin/accountantlab') === 0;

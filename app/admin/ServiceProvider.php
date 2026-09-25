@@ -474,7 +474,7 @@ class ServiceProvider extends AppServiceProvider
                         'reservations' => [
                             'priority' => 20,
                             'class' => 'reservations',
-                            'href' => admin_url('reservations2'),
+                            'href' => admin_url('reservations'),
                             'title' => lang('admin::lang.side_menu.reservation'),
                             'permission' => 'Admin.Reservations',
                         ],

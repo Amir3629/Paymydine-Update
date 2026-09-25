@@ -68,7 +68,7 @@
       page && page.getAttribute('data-pmd-selected-date'),
       page && page.getAttribute('data-r2-selected-date')
     ];
-    var api = window.PMDReservations2FloorExperience;
+    var api = window.PMDReservationsFloorExperience;
     if (api && api.getState) values.push(api.getState().start);
     for (var i = 0; i < values.length; i += 1) if (dateValue(values[i])) return dateValue(values[i]);
     return null;
@@ -160,9 +160,9 @@
       };
     }
 
-    /* Reservations2 compatibility fallback. Keep its existing FloorExperience
+    /* Reservations compatibility fallback. Keep its existing FloorExperience
      * state path, but never treat exact Floor data-floor-table as a DB id. */
-    var api = window.PMDReservations2FloorExperience;
+    var api = window.PMDReservationsFloorExperience;
     var state = api && api.getState ? api.getState() : {};
     var exactFloorNode = Boolean(node && node.classList && node.classList.contains('pmd-floor-v1__table'));
     var members = !exactFloorNode && node
@@ -226,7 +226,7 @@
   }
   function csrf() { var meta = document.querySelector('meta[name="csrf-token"]'); return meta ? meta.content : ''; }
   function request(handler, data) {
-    return fetch(config.endpoint || '/admin/reservations2', {
+    return fetch(config.endpoint || '/admin/reservations', {
       method: 'POST', credentials: 'same-origin',
       headers: {'Accept':'application/json','Content-Type':'application/json','X-Requested-With':'XMLHttpRequest','X-CSRF-TOKEN':csrf(),'X-IGNITER-REQUEST-HANDLER':handler},
       body: JSON.stringify(data || {})
@@ -668,7 +668,7 @@
       ? selectedNames.join(', ')
       : 'Choose matching table(s)';
 
-    /* PMD_RESERVATIONSLAB_VISIBLE_CHOOSE_CONTEXT_V1_2
+    /* PMD_RESERVATIONS_VISIBLE_CHOOSE_CONTEXT_V1_2
      * The enhanced V224/V225 UI hides the native picker trigger and uses
      * the assignment_mode=choose label as the visible control. Mirror the
      * canonical selected table names there so Floor context is visible.
@@ -1581,8 +1581,8 @@ function applyAvailability(result) {
     var items = Array.isArray(boot.reservations) ? boot.reservations : (boot.reservations = []);
     for (var index = items.length - 1; index >= 0; index -= 1) if (Number(items[index].reservation_id || items[index].id) === Number(reservation.reservation_id)) items.splice(index, 1);
     items.unshift(reservation);
-    if (window.PMDReservations2KpisV309) window.PMDReservations2KpisV309.refresh();
-    var cards = window.PMDReservations2FloorExperience || window.PMDReservations2CardsV320;
+    if (window.PMDReservationsKpisV309) window.PMDReservationsKpisV309.refresh();
+    var cards = window.PMDReservationsFloorExperience || window.PMDReservationsCardsV320;
     if (!cards || !(cards.renderReservations || cards.refresh)) {
       return Promise.reject(new Error('Reservation card refresh is unavailable.'));
     }
@@ -1591,14 +1591,14 @@ function applyAvailability(result) {
       if (window.PMDCalendarRealCountsFloatingV1) window.PMDCalendarRealCountsFloatingV1.refresh();
       if (window.PMDCalendarCountsToolbarV111) window.PMDCalendarCountsToolbarV111.refresh();
       if (window.PMDCalendarNativeCountV14) window.PMDCalendarNativeCountV14.refresh();
-      if (context.returnView === 'calendar' && window.PMDReservations2CalendarToggleV1) window.PMDReservations2CalendarToggleV1.render();
+      if (context.returnView === 'calendar' && window.PMDReservationsCalendarToggleV1) window.PMDReservationsCalendarToggleV1.render();
       if (context.returnView === 'hour') {
         if (window.PMDRealHourTimelineV1) window.PMDRealHourTimelineV1.render();
         if (window.PMDHourEntryAuthorityV11) window.PMDHourEntryAuthorityV11.run();
       }
-      if (window.PMDReservations2FloorV312) window.PMDReservations2FloorV312.refresh();
-      if (window.PMDReservations2FinalFloorUIV466) window.PMDReservations2FinalFloorUIV466.refresh();
-      if (window.PMDReservations2KpiTableColorsV467) window.PMDReservations2KpiTableColorsV467.refresh();
+      if (window.PMDReservationsFloorV312) window.PMDReservationsFloorV312.refresh();
+      if (window.PMDReservationsFinalFloorUIV466) window.PMDReservationsFinalFloorUIV466.refresh();
+      if (window.PMDReservationsKpiTableColorsV467) window.PMDReservationsKpiTableColorsV467.refresh();
       window.dispatchEvent(new CustomEvent('pmd:reservation-saved', {detail:{version:1,mode:context.mode,source:context.source,reservationId:reservation.reservation_id,reservation:reservation,assignmentMode:assignmentMode,selectedDate:context.selectedDate,tableIds:(reservation.tables || []).map(function (table) { return table.table_id; }),returnView:context.returnView,refreshSucceeded:true}}));
     });
   }
@@ -1707,7 +1707,7 @@ function applyAvailability(result) {
 
 /* ============================================================
    PMD_RESERVATION_COMPOSER_FUTURE_ONLY_V1
-   Canonical Reservations2 + ReservationsLab create policy.
+   Canonical Reservations + Reservations create policy.
    SAME OWNER, extended to the shared PMD Settings working_hours authority.
    - Europe/Berlin booking clock
    - no past bookings
@@ -1783,7 +1783,7 @@ function applyAvailability(result) {
   }
   function scheduleOpeningHoursFallback() {
     try {
-      var api = window.PMDReservationsLabScheduleV1;
+      var api = window.PMDReservationsScheduleV1;
       if (api && typeof api.getOpeningHours === 'function') {
         return api.getOpeningHours();
       }
@@ -1797,7 +1797,7 @@ function applyAvailability(result) {
   function setOpeningHours(rows) {
     var normalized = normalizeHours(rows);
     /* PMD_COMPOSER_WORKING_HOURS_SINGLE_CONTEXT_V1_4_1_20260815
-     * ReservationsLab already bootstraps the SAME working_hours rows for its
+     * Reservations already bootstraps the SAME working_hours rows for its
      * Hour screen. If the Composer load response omits that optional copy,
      * reuse the schedule runtime's exact rows rather than behaving as 24/7. */
     if (!normalized.length) normalized = normalizeHours(scheduleOpeningHoursFallback());
@@ -6522,7 +6522,7 @@ function applyAvailability(result) {
             return null;
         }
 
-        /* PMD_RESERVATIONSLAB_VISIBLE_CHOOSE_CONTEXT_V1_2
+        /* PMD_RESERVATIONS_VISIBLE_CHOOSE_CONTEXT_V1_2
          * Do not identify the control by its mutable visible text. When a
          * Floor table is selected, the label intentionally becomes Table N.
          */

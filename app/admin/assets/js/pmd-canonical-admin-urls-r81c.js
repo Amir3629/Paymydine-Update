@@ -45,7 +45,7 @@
     '/admin/cashierlab':
       '/admin/orders',
 
-    '/admin/reservationslab':
+    '/admin/reservations':
       '/admin/reservations',
 
     '/admin/pmdmenus':

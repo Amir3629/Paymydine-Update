@@ -398,7 +398,7 @@ function handleNavigationDropdownReset(event) {
      *
      * A page load/refresh is never a user animation. Keep the shared
      * transition gate OFF while restoring persisted state. This prevents
-     * the entire page wrapper (including ReservationsLab Floor) from
+     * the entire page wrapper (including Reservations Floor) from
      * animating after first paint.
      */
     document.documentElement.classList.remove(

@@ -105,7 +105,7 @@ class MediaManager extends BaseWidget
             request()->is('admin/cashierlab*') ||
             request()->is('admin/orders') ||
             request()->is('admin/pos*') ||
-            request()->is('admin/reservationslab*') ||
+            request()->is('admin/reservations*') ||
             request()->is('admin/pmdreports*') ||
             request()->is('admin/pmdreportchannels*') ||
             request()->is('admin/pmdreporttips*')
