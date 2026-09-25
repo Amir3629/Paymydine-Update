@@ -45,15 +45,15 @@
             }
 
             if ($pmdBookingPath === '/book' && $pmdBookingMethod === 'GET') {
-                return app(\\App\\Http\\Controllers\\PmdPublicBookingController::class)->show(request());
+                return app(\App\Http\Controllers\PmdPublicBookingController::class)->show(request());
             }
 
             if ($pmdBookingPath === '/book/availability' && $pmdBookingMethod === 'GET') {
-                return app(\\App\\Http\\Controllers\\PmdPublicBookingController::class)->availability(request());
+                return app(\App\Http\Controllers\PmdPublicBookingController::class)->availability(request());
             }
 
             if ($pmdBookingPath === '/book' && $pmdBookingMethod === 'POST') {
-                return app(\\App\\Http\\Controllers\\PmdPublicBookingController::class)->store(request());
+                return app(\App\Http\Controllers\PmdPublicBookingController::class)->store(request());
             }
 
             // PMD_INJECT_PUBLIC_COMPAT_IN_ACTIVE_CATCHALL_20260606
