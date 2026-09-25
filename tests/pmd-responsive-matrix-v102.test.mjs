@@ -129,8 +129,16 @@ assert.ok(
   view.includes('viewport-fit=cover'),
   'V105 viewport meta contract missing'
 );
-assert.ok(view.includes('pmd-quick-pos-v1.css?v=20260924-v105'), 'V102 CSS cache bust missing');
-assert.ok(view.includes('pmd-quick-pos-v1.js?v=20260924-v105'), 'V102 JS cache bust missing');
+assert.ok(
+  view.includes('pmd-qpos-web-parity-v112.css?v=20260925-v112') &&
+  view.includes('pmd-quick-pos-v1.css?v=20260925-v112'),
+  'V112 CSS parity/cache-bust contract missing'
+);
+assert.ok(
+  view.includes('pmd-qpos-web-parity-v112.js?v=20260925-v112') &&
+  view.includes('pmd-quick-pos-v1.js?v=20260925-v112'),
+  'V112 JS parity/cache-bust contract missing'
+);
 
 assert.equal(
   (posActivity.match(/textZoom = 100/g) || []).length,
