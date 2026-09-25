@@ -28,8 +28,14 @@ class PmdPublicBookingController extends Controller
         $timezone = $this->timezone();
         $locale = $this->locale($request);
 
-        return response()
-            ->view('pmd.public-booking', [
+        // PMD_PUBLIC_BOOKING_DIRECT_VIEW_FILE_R2
+        // TastyIgniter's runtime view finder does not include Laravel's
+        // resources/views path on this deployment. Render this standalone
+        // public Blade by absolute file path so /book remains independent
+        // from the active TastyIgniter theme/view namespace.
+        $html = view()->file(
+            base_path('resources/views/pmd/public-booking.blade.php'),
+            [
                 'bookingProfile' => $this->profile($location),
                 'bookingHours' => $this->openingHours($location),
                 'bookingLocale' => $locale,
@@ -38,7 +44,11 @@ class PmdPublicBookingController extends Controller
                 'bookingMaxDate' => Carbon::now($timezone)->addDays(self::MAX_BOOKING_DAYS)->toDateString(),
                 'bookingMaxGuests' => $this->maxBookableGuests($location),
                 'bookingStayMinutes' => $this->stayMinutes($location),
-            ])
+            ]
+        )->render();
+
+        return response($html, 200)
+            ->header('Content-Type', 'text/html; charset=UTF-8')
             ->header('Cache-Control', 'private, no-store, max-age=0')
             ->header('Pragma', 'no-cache');
     }
