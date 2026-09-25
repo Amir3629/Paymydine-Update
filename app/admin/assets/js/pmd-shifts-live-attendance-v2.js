@@ -1,6 +1,6 @@
 /* PMD_SHIFTS_LIVE_ATTENDANCE_V1 */
 /* PMD_SHIFTS_LIVE_ATTENDANCE_V2_NO_LATE_SHIFT_PAINT
-/* PMD_SHIFT_ATTENDANCE_IDEMPOTENT_V134 */
+ * PMD_SHIFT_ATTENDANCE_IDEMPOTENT_V134
  * Attendance may update badges/KPIs after load, but it must never restyle
  * or recompute already-painted shift bars. Server/V17 own bar geometry/text.
  */
