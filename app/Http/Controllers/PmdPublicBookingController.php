@@ -474,7 +474,6 @@ class PmdPublicBookingController extends Controller
                 ->where('location_id', (int)$location->getKey())
                 ->where('type', 'opening')
                 ->orderBy('weekday')
-                ->orderBy('id')
                 ->get();
 
             foreach ($rows as $row) {
