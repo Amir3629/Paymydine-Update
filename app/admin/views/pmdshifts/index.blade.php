@@ -9,6 +9,12 @@
     $selectedDay = $data['selected_day'] ?? now()->startOfDay();
     $weekStart = $data['week_start'] ?? now()->startOfWeek();
     $currentConfirmed = !empty($data['current_confirmed']);
+    $liveAttendance = is_array($data['live_attendance'] ?? null)
+        ? $data['live_attendance']
+        : [];
+    $liveAttendanceRows = is_array($liveAttendance['rows'] ?? null)
+        ? $liveAttendance['rows']
+        : [];
     $stats = $data['stats'] ?? [];
     $departments = $data['departments'] ?? [];
     $accessRoles = collect($data['access_roles'] ?? []);
@@ -116,14 +122,14 @@
         'present_now' => [
             'title' => 'Present now',
             'value' => ($stats['present_now'] ?? null) === null ? '—' : (string)(int)$stats['present_now'],
-            'description' => $currentConfirmed ? 'confirmed for the active shift' : 'confirm from Dashboard at shift start',
+            'description' => 'checked in right now',
             'tone' => 'magenta',
             'icon' => 'check',
         ],
         'missing_now' => [
             'title' => 'Missing now',
             'value' => ($stats['missing_now'] ?? null) === null ? '—' : (string)(int)$stats['missing_now'],
-            'description' => 'only known after team confirmation',
+            'description' => 'scheduled now · not checked in',
             'tone' => 'yellow',
             'icon' => 'alert',
         ],
@@ -438,6 +444,8 @@
         'selected_day' => $selectedDay->toDateString(),
         'month' => $monthStart->toDateString(),
         'open_hour_on_boot' => true,
+        // PMD_SHIFT_ATTENDANCE_FIRST_PAINT_V134
+        'live_attendance' => $liveAttendance,
         'people' => $bootPeople,
         'shifts' => $bootShifts,
         'csrf' => csrf_token(),
