@@ -3,8 +3,8 @@
   'use strict';
 
   // PMD_PUSH_NATIVE_OFFLINE_SUSPEND_V18
-  // Native Android POS owns local History/attention while offline. Do not
-  // wake a dead WAN every 15 seconds from the shared Web notification loop.
+  // Canonical Android POS has its own cached History/attention projection.
+  // Do not wake a dead WAN every 15 seconds while the same POS UI is offline.
   function nativeOffline() {
     return window.__PMD_NATIVE_OFFLINE__ === true;
   }
