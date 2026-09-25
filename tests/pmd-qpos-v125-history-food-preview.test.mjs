@@ -20,10 +20,10 @@ assert.ok(css.includes('PMD_QPOS_HISTORY_FOOD_PREVIEW_V125'));
 assert.ok(css.includes('.pmd-qpos-history-food-preview-v125'));
 assert.ok(css.includes('text-overflow: ellipsis'));
 
-assert.ok(view.includes('pmd-qpos-web-parity-v112.css?v=20260925-v125'));
-assert.ok(view.includes('pmd-quick-pos-v1.css?v=20260925-v125'));
-assert.ok(view.includes('pmd-qpos-web-parity-v112.js?v=20260925-v125'));
-assert.ok(view.includes('pmd-quick-pos-v1.js?v=20260925-v125'));
+assert.ok(view.includes('pmd-qpos-web-parity-v112.css?v=20260925-v126'));
+assert.ok(view.includes('pmd-quick-pos-v1.css?v=20260925-v126'));
+assert.ok(view.includes('pmd-qpos-web-parity-v112.js?v=20260925-v126'));
+assert.ok(view.includes('pmd-quick-pos-v1.js?v=20260925-v126'));
 
 assert.ok(js.includes('PMD_QPOS_HISTORY_ITERATION_HOTFIX_V124'));
 assert.ok(js.includes('PMD_QPOS_HISTORY_INLINE_V123'));
