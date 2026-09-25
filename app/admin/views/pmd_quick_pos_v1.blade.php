@@ -572,6 +572,29 @@
                         <button type="button" class="is-active" data-payment-method="cash">Cash</button>
                     </div>
 
+                    {{-- PMD_QPOS_BATCH_EXTERNAL_TERMINAL_V114
+                         Combined payment may use a manually confirmed external terminal.
+                         Integrated terminal attempts remain one-order-per-attempt. --}}
+                    <div
+                        class="pmd-qpos-external-fields-v114"
+                        data-qpos-external-fields
+                        hidden
+                    >
+                        <label class="pmd-qpos-field">
+                            <span>Terminal receipt / approval reference</span>
+                            <input
+                                type="text"
+                                autocomplete="off"
+                                spellcheck="false"
+                                data-qpos-payment-reference
+                            >
+                        </label>
+                        <label class="pmd-qpos-external-confirm-v114">
+                            <input type="checkbox" data-qpos-external-confirm>
+                            <span>Confirmed approved on the external terminal</span>
+                        </label>
+                    </div>
+
                     {{-- PMD_QPOS_CASH_FIRST_FIELD_V46
                          Cash received is intentionally first so the payment
                          screen opens ready for cashier entry. --}}

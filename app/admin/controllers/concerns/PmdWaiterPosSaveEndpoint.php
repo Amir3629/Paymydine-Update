@@ -70,8 +70,9 @@ trait PmdWaiterPosSaveEndpoint
                     : $this->resolveWritableOrder(
                         $table,
                         $requestedOrderId,
-                        true
-                    );
+                        true,
+                        $mode === 'send' && !$paymentGate
+                    ); // PMD_QPOS_RECEIVED_APPEND_SAVE_V113
 
                 $isNew = !$order;
 
@@ -342,8 +343,9 @@ trait PmdWaiterPosSaveEndpoint
                 : $this->resolveWritableOrder(
                     $table,
                     $requestedOrderId,
-                    true
-                );
+                    true,
+                    $mode === 'send' && !$paymentGate
+                ); // PMD_QPOS_RECEIVED_APPEND_SAVE_V113
 
             $isNew = !$order;
 

@@ -21,6 +21,8 @@ use Illuminate\Validation\ValidationException;
  */
 class PmdQuickPosV1 extends PmdWaiterPosV1
 {
+    use \Admin\Controllers\Concerns\PmdQuickPosBatchPaymentV114Concern;
+
     protected $requiredPermissions = 'Admin.Orders';
 
     /**
