@@ -5,7 +5,7 @@ Android versionCode: `49`
 Android versionName: `0.3.36-v120-local-first`
 Sync protocol: `pmd-sync-v1`
 Android source commit: `821b5b82905f7fb1947f996ebb068f1fac935b35`
-APK SHA-256: `PENDING_FINAL_RELEASE_DIGEST`
+APK SHA-256: `6f78b0a9e7c9bd9d6458b2e121dd879787ec130e34ecde5f8c7dc45e0916dffc`
 
 ## Local-First authority
 
