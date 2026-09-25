@@ -15203,3 +15203,48 @@ body.pmd-qpos-body {
     font-size: 14px;
   }
 }
+
+
+/* ============================================================
+   PMD_QPOS_KEYBOARD_CATEGORY_POSITION_V126
+   - Space participates in the keyboard grid instead of forcing a 260px
+     minimum that can overlap Clear.
+   - On phones the whole sticky category BAR, not just its buttons, clears
+     the outer 10px Quick POS shell padding and reaches the visual top edge.
+   ============================================================ */
+.pmd-qpos-text-keyboard-row:last-child {
+  grid-auto-flow: initial !important;
+  grid-auto-columns: unset !important;
+  grid-template-columns:
+    repeat(4,minmax(0,1fr))
+    minmax(0,2fr)
+    minmax(0,1fr) !important;
+}
+
+.pmd-qpos-text-keyboard-row:last-child > button {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.pmd-qpos-text-keyboard-row:last-child > button.space {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+}
+
+@media (max-width: 599px) {
+  .pmd-qpos-categories,
+  .pmd-qpos.is-portrait-v86 .pmd-qpos-categories {
+    position: sticky !important;
+    top: -10px !important;
+    z-index: 80 !important;
+    margin-top: 0 !important;
+    padding-top: 8px !important;
+    padding-bottom: 8px !important;
+    border-top: 0 !important;
+    background: #fff !important;
+    box-shadow: 0 8px 18px rgba(15,23,42,.10) !important;
+  }
+}
