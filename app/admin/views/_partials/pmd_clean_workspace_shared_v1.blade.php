@@ -1436,7 +1436,7 @@ html body.page.pmd-clean-workspace-page #pmd-dashboard-lab {
                 @if($pmdCleanWorkspaceCalendarSurface)
                     {{-- PMD_RESERVATIONS_SCHEDULE_DIRECT_AUTHORITY_V1_2
                          One schedule runtime owner, loaded directly after the canonical
-                         Composer with a content-derived cache key. Reservationslab.php
+                         Composer with a content-derived cache key. Reservations.php
                          no longer enqueues this file through the combined Admin asset pipeline. --}}
                     @php
                         $pmdReservationsScheduleRuntimePath = base_path('app/admin/assets/js/pmd-reservations-schedule-v1.js');
