@@ -7,6 +7,7 @@ use Admin\Models\Menus_model;
 use Admin\Models\Orders_model;
 use Admin\Models\Payments_model;
 use App\Services\TerminalPayments\TerminalPaymentService;
+use App\Services\Fiscal\GermanyFiscalSettlementBridge;
 use Admin\Services\CashDrawerService\CashDrawerSettlementBridge;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -29,18 +30,39 @@ trait PmdWaiterPosSettleEndpoint
             $existing = DB::table('order_payment_transactions')->where('idempotency_key', $idempotencyKey)->first();
             if ($existing) {
                 $fresh = $this->findOrder($orderId);
+                $freshSummary = $fresh
+                    ? $this->buildPaymentSummary($fresh)
+                    : null;
                 $tableRelease = $fresh
                     ? $this->pmdR44ReleaseTableAfterFullSettlement($fresh)
                     : null;
+                $remaining = (float)data_get(
+                    $freshSummary,
+                    'settlement.remaining_amount',
+                    0
+                );
+                $fiscalization = (
+                    $fresh
+                    && $remaining <= 0.0001
+                )
+                    ? app(GermanyFiscalSettlementBridge::class)
+                        ->finalizeIfEnabled(
+                            $orderId,
+                            (string)($fresh->settlement_method ?? $fresh->payment ?? ''),
+                            (string)($fresh->settlement_reference ?? '')
+                        )
+                    : null;
+
                 return response()->json([
                     'ok' => true,
                     'duplicate' => true,
                     'message' => 'This payment was already recorded.',
                     'transaction_id' => (int)$existing->id,
-                    'summary' => $fresh ? $this->buildPaymentSummary($fresh) : null,
+                    'summary' => $freshSummary,
                     'receipt_url' => '/admin/orders/split-receipt/'.(int)$existing->id,
                     'invoice_url' => '/admin/orders/split-invoice/'.(int)$existing->id,
                     'table_release' => $tableRelease,
+                    'fiscalization' => $fiscalization,
                 ]);
             }
         }
@@ -258,12 +280,43 @@ trait PmdWaiterPosSettleEndpoint
                     'settlement_status' => $newStatus,
                     'remaining_amount' => $newRemaining,
                     'cash_drawer' => $cashDrawerResult,
+                    'payment_method' => $method,
+                    'payment_reference' => $reference,
                 ];
             });
 
             $tableRelease = !empty($result['order'])
                 ? $this->pmdR44ReleaseTableAfterFullSettlement($result['order'])
                 : null;
+
+            /* PMD_GERMANY_FISCAL_SETTLEMENT_V69
+             * External TSE work is deliberately outside the payment DB
+             * transaction. A valid recorded payment is never rolled back by a
+             * temporary Fiskaly outage; the failure is surfaced for mandatory
+             * reconciliation instead.
+             */
+            $fiscalization = null;
+            $isFullyPaid = !empty($result['already_paid'])
+                || strtolower((string)($result['settlement_status'] ?? '')) === 'paid'
+                || (float)($result['remaining_amount'] ?? 0) <= 0.0001;
+
+            if ($isFullyPaid && !empty($result['order'])) {
+                $fiscalization = app(GermanyFiscalSettlementBridge::class)
+                    ->finalizeIfEnabled(
+                        $orderId,
+                        (string)(
+                            $result['payment_method']
+                            ?? $result['order']->settlement_method
+                            ?? $result['order']->payment
+                            ?? ''
+                        ),
+                        (string)(
+                            $result['payment_reference']
+                            ?? $result['order']->settlement_reference
+                            ?? ''
+                        )
+                    );
+            }
 
             if (!empty($result['already_paid'])) {
                 return response()->json([
@@ -272,6 +325,7 @@ trait PmdWaiterPosSettleEndpoint
                     'message' => 'Order is already fully paid.',
                     'summary' => $result['summary'],
                     'table_release' => $tableRelease,
+                    'fiscalization' => $fiscalization,
                 ]);
             }
 
@@ -294,6 +348,7 @@ trait PmdWaiterPosSettleEndpoint
                 'cash_drawer' => $result['cash_drawer'] ?? null,
                 'summary' => $result['summary'],
                 'table_release' => $tableRelease,
+                'fiscalization' => $fiscalization,
             ]);
         } catch (ValidationException $e) {
             return response()->json([

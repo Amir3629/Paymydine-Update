@@ -30,13 +30,23 @@ trait PmdWaiterPosSaveEndpoint
             $mode = 'send';
         }
 
+        // PMD_QPOS_PAY_BEFORE_KITCHEN_V108
+        // This is an internal payment gate, not a Kitchen send. It is allowed
+        // only from Quick POS and keeps processed=0 until full settlement.
+        $paymentGate = $quickPos
+            && $mode === 'hold'
+            && filter_var(
+                $payload['payment_gate'] ?? false,
+                FILTER_VALIDATE_BOOLEAN
+            );
+
         $cart = $payload['items'] ?? [];
         if (!is_array($cart) || count($cart) < 1) {
             return response()->json(['ok' => false, 'message' => 'Add at least one item.'], 422);
         }
 
         try {
-            $result = DB::transaction(function () use ($table, $payload, $cart, $mode) {
+            $result = DB::transaction(function () use ($table, $payload, $cart, $mode, $paymentGate) {
                 $requestedOrderId = (int)($payload['order_id'] ?? 0);
 
                 /*
@@ -47,7 +57,7 @@ trait PmdWaiterPosSaveEndpoint
                  * explicit "New check" action, so only its opt-in flag bypasses
                  * that legacy fallback. Existing clients keep identical behavior.
                  */
-                $forceNewCheck = filter_var(
+                $forceNewCheck = $paymentGate || filter_var(
                     $payload['force_new_check'] ?? false,
                     FILTER_VALIDATE_BOOLEAN
                 );
@@ -64,6 +74,17 @@ trait PmdWaiterPosSaveEndpoint
                     );
 
                 $isNew = !$order;
+
+                if (
+                    $paymentGate
+                    && $order
+                    && !$this->pmdQuickPosPaymentGateV108($order)
+                ) {
+                    throw ValidationException::withMessages([
+                        'order' =>
+                            'Pay-before-Kitchen can only create a new check or continue its existing payment-held check.',
+                    ]);
+                }
 
                 if ($order) {
                     $expectedUpdatedAt = trim((string)($payload['expected_updated_at'] ?? ''));
@@ -114,7 +135,9 @@ trait PmdWaiterPosSaveEndpoint
                     $order->settled_amount = 0;
                 }
 
-                $statusId = $this->resolveStatusId($mode);
+                $statusId = $this->resolveStatusId(
+                    $paymentGate ? 'send' : $mode
+                );
                 if ($statusId && Schema::hasColumn('orders', 'status_id')) {
                     $order->status_id = $statusId;
                 }
@@ -134,9 +157,13 @@ trait PmdWaiterPosSaveEndpoint
                 if ($statusId && method_exists($order, 'addStatusHistory')) {
                     try {
                         $order->addStatusHistory($statusId, [
-                            'comment' => $mode === 'send'
-                                ? 'Sent from PayMyDine Waiter POS'
-                                : 'Saved / held from PayMyDine Waiter POS',
+                            'comment' => $paymentGate
+                                ? 'Payment pending - release to Kitchen after full payment'
+                                : (
+                                    $mode === 'send'
+                                        ? 'Sent from PayMyDine Waiter POS'
+                                        : 'Saved / held from PayMyDine Waiter POS'
+                                ),
                             'notify' => false,
                         ]);
                     } catch (\Throwable $ignored) {
@@ -159,6 +186,7 @@ trait PmdWaiterPosSaveEndpoint
                     'ok' => true,
                     'version' => 'pmd-waiter-pos-v2.6',
                     'mode' => $mode,
+                    'payment_gate' => $paymentGate,
                     'created' => $isNew,
                     'order_id' => (int)$order->getKey(),
                     'order_total' => $orderTotal,
@@ -285,6 +313,13 @@ trait PmdWaiterPosSaveEndpoint
             $mode = 'send';
         }
 
+        // PMD_MOBILE_PAY_BEFORE_KITCHEN_V108
+        $paymentGate = $mode === 'hold'
+            && filter_var(
+                $payload['payment_gate'] ?? false,
+                FILTER_VALIDATE_BOOLEAN
+            );
+
         $cart = $payload['items'] ?? [];
         if (!is_array($cart) || count($cart) < 1) {
             throw ValidationException::withMessages([
@@ -292,9 +327,9 @@ trait PmdWaiterPosSaveEndpoint
             ]);
         }
 
-        $result = DB::transaction(function () use ($table, $payload, $cart, $mode) {
+        $result = DB::transaction(function () use ($table, $payload, $cart, $mode, $paymentGate) {
             $requestedOrderId = (int)($payload['order_id'] ?? 0);
-            $forceNewCheck = filter_var(
+            $forceNewCheck = $paymentGate || filter_var(
                 $payload['force_new_check'] ?? false,
                 FILTER_VALIDATE_BOOLEAN
             );
@@ -311,6 +346,17 @@ trait PmdWaiterPosSaveEndpoint
                 );
 
             $isNew = !$order;
+
+            if (
+                $paymentGate
+                && $order
+                && !$this->pmdQuickPosPaymentGateV108($order)
+            ) {
+                throw ValidationException::withMessages([
+                    'order' =>
+                        'Pay-before-Kitchen can only create a new check or continue its payment-held check.',
+                ]);
+            }
 
             if ($order) {
                 $expectedUpdatedAt = trim(
@@ -390,7 +436,9 @@ trait PmdWaiterPosSaveEndpoint
                 $order->settled_amount = 0;
             }
 
-            $statusId = $this->resolveStatusId($mode);
+            $statusId = $this->resolveStatusId(
+                $paymentGate ? 'send' : $mode
+            );
             if ($statusId && Schema::hasColumn('orders', 'status_id')) {
                 $order->status_id = $statusId;
             }
@@ -413,9 +461,13 @@ trait PmdWaiterPosSaveEndpoint
             if ($statusId && method_exists($order, 'addStatusHistory')) {
                 try {
                     $order->addStatusHistory($statusId, [
-                        'comment' => $mode === 'send'
-                            ? 'Sent from PayMyDine Android'
-                            : 'Saved / held from PayMyDine Android',
+                        'comment' => $paymentGate
+                            ? 'Payment pending - release to Kitchen after full payment'
+                            : (
+                                $mode === 'send'
+                                    ? 'Sent from PayMyDine Android'
+                                    : 'Saved / held from PayMyDine Android'
+                            ),
                         'notify' => false,
                     ]);
                 } catch (\Throwable $ignored) {
@@ -438,6 +490,7 @@ trait PmdWaiterPosSaveEndpoint
                 'ok' => true,
                 'version' => 'pmd-mobile-order-command-v1',
                 'mode' => $mode,
+                'payment_gate' => $paymentGate,
                 'created' => $isNew,
                 'order_id' => (int)$order->getKey(),
                 'table_id' => (int)($table['id'] ?? 0),
@@ -497,6 +550,14 @@ trait PmdWaiterPosSaveEndpoint
             $mode = 'send';
         }
 
+        // PMD_DELIVERY_PAY_BEFORE_KITCHEN_V108
+        $paymentGate =
+            $mode === 'hold' &&
+            filter_var(
+                $payload['payment_gate'] ?? false,
+                FILTER_VALIDATE_BOOLEAN
+            );
+
         $cart =
             $payload['items'] ?? [];
 
@@ -520,7 +581,8 @@ trait PmdWaiterPosSaveEndpoint
                     function () use (
                         $payload,
                         $cart,
-                        $mode
+                        $mode,
+                        $paymentGate
                     ) {
                         $requestedOrderId =
                             (int)(
@@ -529,6 +591,27 @@ trait PmdWaiterPosSaveEndpoint
                             );
 
                         $order = null;
+
+                        if (
+                            $paymentGate &&
+                            $requestedOrderId > 0
+                        ) {
+                            $candidate =
+                                Orders_model::query()
+                                    ->where('order_id', $requestedOrderId)
+                                    ->lockForUpdate()
+                                    ->first();
+
+                            if (
+                                !$candidate ||
+                                !$this->pmdQuickPosPaymentGateV108($candidate)
+                            ) {
+                                throw ValidationException::withMessages([
+                                    'order' =>
+                                        'Pay-before-Kitchen cannot convert an existing Kitchen delivery order back to a payment hold.',
+                                ]);
+                            }
+                        }
 
                         if ($requestedOrderId > 0) {
                             $order =
@@ -788,7 +871,9 @@ trait PmdWaiterPosSaveEndpoint
 
                         $statusId =
                             $this->resolveStatusId(
-                                $mode
+                                $paymentGate
+                                    ? 'send'
+                                    : $mode
                             );
 
                         if (
@@ -843,9 +928,13 @@ trait PmdWaiterPosSaveEndpoint
                                     $statusId,
                                     [
                                         'comment' =>
-                                            $mode === 'send'
-                                                ? 'Sent from PayMyDine Cashier delivery'
-                                                : 'Saved from PayMyDine Cashier delivery',
+                                            $paymentGate
+                                                ? 'Payment pending - release to Kitchen after full payment'
+                                                : (
+                                                    $mode === 'send'
+                                                        ? 'Sent from PayMyDine Cashier delivery'
+                                                        : 'Saved from PayMyDine Cashier delivery'
+                                                ),
 
                                         'notify' =>
                                             false,
@@ -867,6 +956,9 @@ trait PmdWaiterPosSaveEndpoint
 
                             'mode' =>
                                 $mode,
+
+                            'payment_gate' =>
+                                $paymentGate,
 
                             'order_type' =>
                                 Orders_model::DELIVERY,

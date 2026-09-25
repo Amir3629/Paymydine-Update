@@ -547,11 +547,123 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
 
     public function bootstrap($mode = 'cashier')
     {
+        $mode = $this->quickPosMode((string)$mode);
+
+        /* PMD_QPOS_LIVE_STATE_V73
+         * Keep the cashier rail and the currently opened check synchronized
+         * without reloading the full menu catalogue on every heartbeat. */
+        if (request()->boolean('live')) {
+            if (!$this->currentUser()) {
+                return response()->json([
+                    'ok' => false,
+                    'message' => 'Unauthenticated.',
+                ], 401);
+            }
+
+            return response()->json(
+                $this->quickPosLiveStatePayloadV73($mode)
+            );
+        }
+
         return response()->json(
-            $this->quickPosBootstrapPayload(
-                $this->quickPosMode((string)$mode)
-            )
+            $this->quickPosBootstrapPayload($mode)
         );
+    }
+
+    protected function quickPosLiveStatePayloadV73(string $mode): array
+    {
+        $mode = $this->quickPosMode($mode);
+        $locationId = $this->quickPosLocationId();
+        $floorService = app(
+            \Admin\Services\PmdSharedFloorRegistryV1::class
+        );
+
+        try {
+            $floorSnapshot = $floorService->snapshot($locationId);
+        } catch (\Throwable $error) {
+            $floorSnapshot = [
+                'floors' => [[
+                    'id' => $floorService->defaultFloorId(),
+                    'name' => 'Main Floor',
+                    'is_default' => true,
+                    'sort' => 0,
+                ]],
+                'table_assignments' => [],
+            ];
+        }
+
+        $defaultFloorId = '';
+        foreach ((array)($floorSnapshot['floors'] ?? []) as $floor) {
+            if (!empty($floor['is_default'])) {
+                $defaultFloorId = trim((string)($floor['id'] ?? ''));
+                break;
+            }
+        }
+        if ($defaultFloorId === '') {
+            $floorRows = (array)($floorSnapshot['floors'] ?? []);
+            $firstFloor = $floorRows
+                ? (array)reset($floorRows)
+                : [];
+            $defaultFloorId = trim((string)($firstFloor['id'] ?? ''));
+        }
+        if ($defaultFloorId === '') {
+            $defaultFloorId = (string)$floorService->defaultFloorId();
+        }
+
+        $tables = $this->quickPosTables(
+            $locationId,
+            $floorSnapshot,
+            $defaultFloorId
+        );
+
+        $selectedPayload = null;
+        $selectedTableId = max(
+            0,
+            (int)request()->query('table', 0)
+        );
+
+        if ($selectedTableId > 0) {
+            $table = $this->resolveTable($selectedTableId);
+            if ($table) {
+                $orders = $this->quickPosOpenOrdersForTable($table);
+                $selectedPayload = [
+                    'ok' => true,
+                    'version' => 'pmd-quick-pos-v2',
+                    'table' => $table,
+                    'open_orders' => $orders,
+                    'active_order_id' => count($orders)
+                        ? (int)$orders[0]['order_id']
+                        : null,
+                ];
+            }
+        }
+
+        /* PMD_QPOS_PICKUP_LIVE_CHECKS_V78
+         * Pickup is a real multi-check context too. Feed the same live
+         * heartbeat with active collection checks so KDS Ready removes a
+         * Pickup chip without requiring a POS refresh. */
+        $pickupOrders = request()->boolean('pickup')
+            ? $this->quickPosOpenPickupOrdersV78($locationId)
+            : [];
+
+        $revisionSource = json_encode(
+            [$tables, $selectedPayload, $pickupOrders],
+            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+        );
+
+        return [
+            'ok' => true,
+            'version' => 'pmd-quick-pos-live-v73',
+            'mode' => $mode,
+            'location_id' => $locationId,
+            'poll_after_ms' => 2000,
+            'revision' => sha1(
+                is_string($revisionSource) ? $revisionSource : ''
+            ),
+            'tables' => $tables,
+            'selected_table' => $selectedPayload,
+            'pickup_orders' => $pickupOrders,
+        ];
     }
 
     protected function quickPosBootstrapPayload(string $mode): array
@@ -679,9 +791,30 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
             'settings' => [
                 'currency' => $this->currencySymbol(),
                 'currency_code' => $this->currencyCode(),
+                /* PMD_QPOS_VAT_SUMMARY_V74
+                 * Mirror the same tenant tax authority used by order
+                 * persistence so the POS preview matches the committed bill. */
+                'tax_enabled' =>
+                    (string)setting(
+                        'tax_mode',
+                        setting('tax_enabled', '0')
+                    ) === '1',
+                'tax_percentage' => max(
+                    0.0,
+                    (float)setting('tax_percentage', 0)
+                ),
+                'tax_menu_price' =>
+                    (string)setting('tax_menu_price', '1') === '0'
+                        ? 0
+                        : 1,
+                'tax_title' =>
+                    trim((string)setting('tax_title', 'VAT')) ?: 'VAT',
                 'table_data_url' => '/admin/pos/table/{table}',
                 'table_save_url' => '/admin/pos/save/{table}',
+                'pickup_data_url' => '/admin/pos/pickup',
                 'off_premise_save_url' => '/admin/pos/save-off-premise',
+                'item_decrease_url' => '/admin/pmd-waiter-pos-v22/operations/{order}/void-item',
+                'item_increase_url' => '/admin/pmd-waiter-pos-v22/operations/{order}/increase-item',
                 'payment_summary_url' => '/admin/pos/payment-summary/{order}',
                 'payment_settle_url' => '/admin/pos/payment-settle/{order}',
                 'payment_coupon_url' => '/admin/pos/payment-coupon/{order}',
@@ -1026,6 +1159,26 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
             'active_order_id' => count($orders)
                 ? (int)$orders[0]['order_id']
                 : null,
+        ]);
+    }
+
+    /**
+     * PMD_QPOS_PICKUP_DATA_V78
+     * Return every active Pickup check for the current restaurant location.
+     * No check is auto-selected: tapping Pickup means "new pickup", while
+     * tapping a #check chip explicitly reopens that existing check.
+     */
+    public function pickupData()
+    {
+        $orders = $this->quickPosOpenPickupOrdersV78(
+            $this->quickPosLocationId()
+        );
+
+        return response()->json([
+            'ok' => true,
+            'version' => 'pmd-quick-pos-pickup-v78',
+            'open_orders' => $orders,
+            'active_order_id' => null,
         ]);
     }
 
@@ -1566,6 +1719,64 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
     }
 
     /**
+     * PMD_QPOS_ACTIVE_VISIT_SCOPE_V71
+     *
+     * Payment completes a bill, not the physical table visit. While staff have
+     * not explicitly made the table Free, keep paid/settled checks visible in
+     * Quick POS for table overview. They remain financially/structurally locked.
+     */
+    protected function applyQuickPosActiveVisitScopeV71(
+        $query,
+        array $columns,
+        array $table
+    ): void {
+        $physicalStatus = strtolower(trim((string)(
+            $table['status']
+            ?? $table['operational_status']
+            ?? 'available'
+        )));
+
+        if (in_array($physicalStatus, ['', 'available', 'free'], true)) {
+            $this->applyQuickPosPayableScope($query, $columns);
+            return;
+        }
+
+        $cancelled = array_values(array_filter(array_map('intval', [
+            setting('canceled_order_status'),
+        ])));
+
+        if ($cancelled && in_array('status_id', $columns, true)) {
+            $query->whereNotIn('status_id', $cancelled);
+        }
+
+        $hiddenFinancialStates = [
+            'cancelled',
+            'canceled',
+            'refunded',
+            'void',
+            'voided',
+        ];
+
+        if (in_array('settlement_status', $columns, true)) {
+            $query->where(function ($q) use ($hiddenFinancialStates) {
+                $q->whereNull('settlement_status')
+                    ->orWhereNotIn(
+                        'settlement_status',
+                        $hiddenFinancialStates
+                    );
+            });
+        } elseif (in_array('payment_status', $columns, true)) {
+            $query->where(function ($q) use ($hiddenFinancialStates) {
+                $q->whereNull('payment_status')
+                    ->orWhereNotIn(
+                        'payment_status',
+                        $hiddenFinancialStates
+                    );
+            });
+        }
+    }
+
+    /**
      * PMD_QPOS_FAST_WHOLE_TABLE_IDS_V44
      *
      * Transfer validation only needs payable order IDs. Avoid hydrating
@@ -1605,8 +1816,11 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
             ->all();
     }
 
-    protected function quickPosOpenOrdersForTable(array $table): array
-    {
+    protected function quickPosOpenOrdersForTable(
+        array $table,
+        ?callable $scope = null,
+        int $limit = 20
+    ): array {
         if (!Schema::hasTable('orders')) {
             return [];
         }
@@ -1614,8 +1828,17 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
         $columns = Schema::getColumnListing('orders');
         $query = DB::table('orders');
 
-        $this->applyTableScope($query, $columns, $table);
-        $this->applyQuickPosPayableScope($query, $columns);
+        if ($scope) {
+            $scope($query, $columns);
+        } else {
+            $this->applyTableScope($query, $columns, $table);
+        }
+
+        $this->applyQuickPosActiveVisitScopeV71(
+            $query,
+            $columns,
+            $table
+        );
 
         $primaryKey = in_array('order_id', $columns, true)
             ? 'order_id'
@@ -1623,7 +1846,7 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
 
         $rows = $query
             ->orderByDesc($primaryKey)
-            ->limit(20)
+            ->limit(max(1, min(200, $limit)))
             ->get();
 
         if ($rows->isEmpty()) {
@@ -1655,6 +1878,35 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 });
         }
 
+        /* PMD_QPOS_ORDER_TAX_BREAKDOWN_V74
+         * Load canonical subtotal/tax/total rows in one batch. This lets the
+         * cart show the VAT amount of an existing check without recomputing a
+         * historical bill from today's menu/settings. */
+        $totalsByOrder = collect();
+
+        if (
+            $orderIds
+            && Schema::hasTable('order_totals')
+            && Schema::hasColumn('order_totals', 'order_id')
+            && Schema::hasColumn('order_totals', 'code')
+            && Schema::hasColumn('order_totals', 'value')
+        ) {
+            $totalsByOrder = DB::table('order_totals')
+                ->whereIn('order_id', $orderIds)
+                ->whereIn('code', ['subtotal', 'tax', 'total'])
+                ->get(['order_id', 'code', 'value'])
+                ->groupBy(function ($row) {
+                    return (int)($row->order_id ?? 0);
+                });
+        }
+
+        $taxPercentageV74 = max(
+            0.0,
+            (float)setting('tax_percentage', 0)
+        );
+        $taxTitleV74 =
+            trim((string)setting('tax_title', 'VAT')) ?: 'VAT';
+
         $statusIds = $rows
             ->map(fn ($row) => (int)($row->status_id ?? 0))
             ->filter()
@@ -1678,10 +1930,35 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 ->all();
         }
 
+        /* PMD_QPOS_ITEM_MUTATION_BATCH_V68
+         * The rows above are query-builder stdClass rows, not Orders_model
+         * instances. Batch payment-history presence once and build the item
+         * mutation authority without an N+1 Eloquent lookup.
+         */
+        $paymentTransactionLookup = [];
+
+        if (
+            $orderIds
+            && Schema::hasTable('order_payment_transactions')
+            && Schema::hasColumn('order_payment_transactions', 'order_id')
+        ) {
+            $paymentTransactionLookup = DB::table('order_payment_transactions')
+                ->whereIn('order_id', $orderIds)
+                ->pluck('order_id')
+                ->mapWithKeys(function ($id) {
+                    return [(int)$id => true];
+                })
+                ->all();
+        }
+
         return $rows->map(function ($row) use (
             $primaryKey,
             $itemsByOrder,
-            $statusNames
+            $statusNames,
+            $paymentTransactionLookup,
+            $totalsByOrder,
+            $taxPercentageV74,
+            $taxTitleV74
         ) {
             $raw = (array)$row;
             $orderId = (int)(
@@ -1716,12 +1993,44 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 ->values()
                 ->all();
 
+            $orderTotalsV74 = collect(
+                $totalsByOrder->get($orderId, collect())
+            )->mapWithKeys(function ($totalRow) {
+                return [
+                    (string)($totalRow->code ?? '') =>
+                        (float)($totalRow->value ?? 0),
+                ];
+            });
+
+            $subtotalV74 = (float)(
+                $orderTotalsV74['subtotal']
+                ?? collect($items)->sum('subtotal')
+            );
+            $taxAmountV74 = max(
+                0.0,
+                (float)($orderTotalsV74['tax'] ?? 0)
+            );
+            $orderTotalV74 = (float)(
+                $orderTotalsV74['total']
+                ?? $raw['order_total']
+                ?? $raw['total']
+                ?? 0
+            );
+            $orderTaxPercentageV74 =
+                $subtotalV74 > 0 && $taxAmountV74 > 0
+                    ? round(
+                        ($taxAmountV74 / $subtotalV74) * 100,
+                        4
+                    )
+                    : $taxPercentageV74;
+
             $statusId = (int)($raw['status_id'] ?? 0);
+            $statusName = (string)($statusNames[$statusId] ?? '');
 
             return [
                 'order_id' => $orderId,
                 'status_id' => $statusId ?: null,
-                'status_name' => (string)($statusNames[$statusId] ?? ''),
+                'status_name' => $statusName,
                 'payment' => (string)($raw['payment'] ?? ''),
                 'settlement_status' => (string)($raw['settlement_status'] ?? 'unpaid'),
                 'settled_amount' => (float)($raw['settled_amount'] ?? 0),
@@ -1732,7 +2041,11 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                         ['partial', 'paid', 'settled', 'closed', 'refunded'],
                         true
                     ),
-                'total' => (float)($raw['order_total'] ?? $raw['total'] ?? 0),
+                'subtotal' => $subtotalV74,
+                'tax_amount' => $taxAmountV74,
+                'tax_percentage' => $orderTaxPercentageV74,
+                'tax_title' => $taxTitleV74,
+                'total' => $orderTotalV74,
                 'total_items' => (int)($raw['total_items'] ?? 0),
                 'guest_count' => max(1, (int)($raw['guest_count'] ?? 1)),
                 'created_at' => (string)($raw['created_at'] ?? ''),
@@ -1740,10 +2053,169 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 'comment' => $this->quickPosVisibleNote(
                     (string)($raw['comment'] ?? '')
                 ),
+                'item_mutation' => $this->quickPosItemMutationStateV68(
+                    $raw,
+                    $statusName,
+                    !empty($paymentTransactionLookup[$orderId])
+                ),
                 'items' => $items,
                 'urls' => $this->orderUrls($orderId),
             ];
+        })->filter(function (array $order): bool {
+            return $this->quickPosCheckRailVisibleV78($order);
         })->values()->all();
+    }
+
+    /**
+     * PMD_QPOS_CHECK_RAIL_READY_EXIT_V78
+     *
+     * The check rail is an active-service workspace, not History. Received and
+     * Preparation stay visible. KDS maps Delivery to the operator-facing
+     * "Ready / Delivery" action, so Ready/Delivery and every later terminal
+     * state leave the rail immediately while remaining in normal History.
+     */
+    protected function quickPosCheckRailVisibleV78(array $order): bool
+    {
+        $status = strtolower(trim((string)($order['status_name'] ?? '')));
+
+        if ($status === '') {
+            return true;
+        }
+
+        return !preg_match(
+            '/ready|delivery|served|done|complete|completed|cancel|void|closed/',
+            $status
+        );
+    }
+
+    /**
+     * PMD_QPOS_PICKUP_ACTIVE_CHECKS_V78
+     *
+     * Reuse the exact table-check hydrator (items, VAT, payment state and
+     * mutation authority), but scope it to this location's Collection orders.
+     * A virtual occupied context keeps a paid Pickup visible until KDS Ready;
+     * Ready itself is removed by quickPosCheckRailVisibleV78().
+     */
+    protected function quickPosOpenPickupOrdersV78(int $locationId): array
+    {
+        $virtualPickup = [
+            'id' => 0,
+            'number' => '',
+            'name' => 'Pickup',
+            'status' => 'occupied',
+            'location_id' => $locationId,
+        ];
+
+        return $this->quickPosOpenOrdersForTable(
+            $virtualPickup,
+            function ($query, array $columns) use ($locationId): void {
+                if (
+                    $locationId > 0
+                    && in_array('location_id', $columns, true)
+                ) {
+                    $query->where('location_id', $locationId);
+                }
+
+                if (!in_array('order_type', $columns, true)) {
+                    $query->whereRaw('1 = 0');
+                    return;
+                }
+
+                $query->whereIn('order_type', array_values(array_unique([
+                    Orders_model::COLLECTION,
+                    'collection',
+                    'pickup',
+                    'pick-up',
+                    'takeaway',
+                    'take-away',
+                ])));
+            },
+            100
+        );
+    }
+
+    /**
+     * PMD_QPOS_ITEM_MUTATION_STATE_V68
+     * Read-only mirror of the server write guard for Quick POS rendering.
+     * The actual mutation endpoints still re-check under row locks.
+     */
+    protected function quickPosItemMutationStateV68(
+        array $raw,
+        string $statusName,
+        bool $hasTransaction
+    ): array {
+        $settledAmount = max(
+            0,
+            (float)($raw['settled_amount'] ?? 0)
+        );
+        $settlementStatus = strtolower(trim((string)(
+            $raw['settlement_status']
+            ?? $raw['payment_status']
+            ?? 'unpaid'
+        )));
+        $operationalStatus = strtolower(trim($statusName));
+
+        $kitchenStarted = (bool)preg_match(
+            '/prepar|cook|delivery|ready|served/',
+            $operationalStatus
+        );
+        $operationalLocked = (bool)preg_match(
+            '/cancel|void|closed|complete|completed/',
+            $operationalStatus
+        );
+        $paymentStarted =
+            $settledAmount > 0.0001
+            || in_array(
+                $settlementStatus,
+                [
+                    'partial',
+                    'paid',
+                    'settled',
+                    'closed',
+                    'cancelled',
+                    'canceled',
+                    'refunded',
+                ],
+                true
+            )
+            || $hasTransaction;
+
+        $locked =
+            $operationalLocked
+            || $kitchenStarted
+            || $paymentStarted;
+
+        $reason = '';
+        if ($locked) {
+            if ($kitchenStarted) {
+                $reason =
+                    'Kitchen preparation has started. '
+                    .'Ordered item quantities are locked.';
+            } elseif ($operationalLocked) {
+                $reason =
+                    'This order is cancelled or closed. '
+                    .'Order items are locked.';
+            } elseif ($hasTransaction || $settledAmount > 0.0001) {
+                $reason =
+                    'Payment has already started. '
+                    .'Paid item quantities are locked; use a refund/correction flow.';
+            } else {
+                $reason =
+                    'This bill is no longer financially mutable.';
+            }
+        }
+
+        return [
+            'allowed' => !$locked,
+            'locked' => $locked,
+            'payment_started' => $paymentStarted,
+            'kitchen_started' => $kitchenStarted,
+            'operational_status' => $operationalStatus,
+            'settlement_status' => $settlementStatus,
+            'settled_amount' => $settledAmount,
+            'has_payment_transaction' => $hasTransaction,
+            'reason' => $reason,
+        ];
     }
 
     protected function quickPosVisibleNote(string $value): string
@@ -1754,8 +2226,18 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
             $value
         ) ?? $value;
 
+        /* PMD_QPOS_HIDE_INTERNAL_VOID_NOTE_V71
+         * Internal quantity-correction audit stays in audit/meta storage and
+         * never appears beneath a food item in Quick POS. */
+        $value = preg_replace(
+            '/(?:^|\\R)\\s*\\[VOID\\s+[0-9.]+\\]\\s*[^\\r\\n]*/iu',
+            '',
+            $value
+        ) ?? $value;
+
         $value = preg_replace('/\\s*\\|\\s*\\|\\s*/u', ' | ', $value) ?? $value;
-        $value = preg_replace('/\\s{2,}/u', ' ', $value) ?? $value;
+        $value = preg_replace('/[ \\t]{2,}/u', ' ', $value) ?? $value;
+        $value = preg_replace('/(?:\\R\\s*){2,}/u', "\\n", $value) ?? $value;
 
         return trim($value, " |\\t\\n\\r\\0\\x0B");
     }
@@ -1779,6 +2261,13 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
             $mode = 'send';
         }
 
+        // PMD_QPOS_PICKUP_PAY_BEFORE_KITCHEN_V108
+        $paymentGate = $mode === 'hold'
+            && filter_var(
+                $payload['payment_gate'] ?? false,
+                FILTER_VALIDATE_BOOLEAN
+            );
+
         $cart = $payload['items'] ?? [];
         if (!is_array($cart) || count($cart) < 1) {
             return response()->json([
@@ -1788,9 +2277,29 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
         }
 
         try {
-            $result = DB::transaction(function () use ($payload, $cart, $mode) {
+            $result = DB::transaction(function () use ($payload, $cart, $mode, $paymentGate) {
                 $requestedOrderId = (int)($payload['order_id'] ?? 0);
                 $order = null;
+
+                if (
+                    $paymentGate
+                    && $requestedOrderId > 0
+                ) {
+                    $candidate = Orders_model::query()
+                        ->where('order_id', $requestedOrderId)
+                        ->lockForUpdate()
+                        ->first();
+
+                    if (
+                        !$candidate
+                        || !$this->pmdQuickPosPaymentGateV108($candidate)
+                    ) {
+                        throw ValidationException::withMessages([
+                            'order' =>
+                                'Pay-before-Kitchen cannot convert an existing Kitchen Pickup order back to a payment hold.',
+                        ]);
+                    }
+                }
 
                 if ($requestedOrderId > 0) {
                     $order = Orders_model::query()
@@ -1816,6 +2325,21 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                     if (!$this->orderIsOpen($order)) {
                         throw ValidationException::withMessages([
                             'order' => 'This Pickup order can no longer accept item changes because payment has started or the order was cancelled.',
+                        ]);
+                    }
+
+                    /* PMD_QPOS_PICKUP_KITCHEN_EDIT_GUARD_V78
+                     * Collection orders use the same mutation authority as
+                     * sent table lines. Received is editable; Preparation,
+                     * Ready/Delivery, payment, cancellation and later states
+                     * are server-locked even if a stale browser tries to append. */
+                    $mutationStateV78 = $this->pmdR39ItemMutationState($order);
+                    if (empty($mutationStateV78['allowed'])) {
+                        throw ValidationException::withMessages([
+                            'order' => (string)(
+                                $mutationStateV78['reason']
+                                ?? 'This Pickup order can no longer be changed.'
+                            ),
                         ]);
                     }
 
@@ -1916,7 +2440,9 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                     $order->settled_amount = 0;
                 }
 
-                $statusId = $this->resolveStatusId($mode);
+                $statusId = $this->resolveStatusId(
+                    $paymentGate ? 'send' : $mode
+                );
                 if ($statusId && Schema::hasColumn('orders', 'status_id')) {
                     $order->status_id = $statusId;
                 }
@@ -1937,9 +2463,13 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 if ($statusId && method_exists($order, 'addStatusHistory')) {
                     try {
                         $order->addStatusHistory($statusId, [
-                            'comment' => $mode === 'send'
-                                ? 'Sent from PayMyDine Quick POS Takeaway'
-                                : 'Saved from PayMyDine Quick POS Takeaway',
+                            'comment' => $paymentGate
+                                ? 'Payment pending - release to Kitchen after full payment'
+                                : (
+                                    $mode === 'send'
+                                        ? 'Sent from PayMyDine Quick POS Takeaway'
+                                        : 'Saved from PayMyDine Quick POS Takeaway'
+                                ),
                             'notify' => false,
                         ]);
                     } catch (\Throwable $ignored) {
@@ -1963,6 +2493,7 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                     'version' => 'pmd-quick-pos-v1',
                     'service_mode' => 'takeaway',
                     'mode' => $mode,
+                    'payment_gate' => $paymentGate,
                     'created' => $isNew,
                     'order_id' => (int)$order->getKey(),
                     'order_total' => $orderTotal,
@@ -2020,6 +2551,115 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 'ok' => false,
                 'version' => 'pmd-quick-pos-v1',
                 'message' => 'The Pickup order could not be saved. '.$error->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * PMD_QPOS_ATTENTION_SEEN_V76
+     *
+     * Acknowledge one waiter-call/table-note notification. This deliberately
+     * changes notification state only. The physical table remains Busy until
+     * Cashier/Waiter explicitly uses the Table Free action.
+     */
+    public function markAttentionSeen($notificationId = null)
+    {
+        $notificationId = max(0, (int)$notificationId);
+
+        if (
+            $notificationId < 1
+            || !Schema::hasTable('notifications')
+        ) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Notification not found.',
+            ], 404);
+        }
+
+        $columns = Schema::getColumnListing('notifications');
+        $primaryKey = in_array('notification_id', $columns, true)
+            ? 'notification_id'
+            : (in_array('id', $columns, true) ? 'id' : null);
+
+        if (!$primaryKey) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Notification storage is unavailable.',
+            ], 409);
+        }
+
+        try {
+            $result = DB::transaction(function () use (
+                $notificationId,
+                $columns,
+                $primaryKey
+            ) {
+                $query = DB::table('notifications')
+                    ->where($primaryKey, $notificationId);
+
+                if (in_array('type', $columns, true)) {
+                    $query->whereIn('type', ['waiter_call', 'table_note']);
+                }
+
+                $row = $query->lockForUpdate()->first();
+
+                if (!$row) {
+                    return null;
+                }
+
+                $raw = (array)$row;
+                $updates = [];
+
+                if (in_array('status', $columns, true)) {
+                    $updates['status'] = 'seen';
+                }
+                if (in_array('seen_at', $columns, true)) {
+                    $updates['seen_at'] = now();
+                }
+                if (in_array('acted_by', $columns, true)) {
+                    $updates['acted_by'] = $this->currentUserId();
+                }
+                if (in_array('acted_at', $columns, true)) {
+                    $updates['acted_at'] = now();
+                }
+                if (in_array('updated_at', $columns, true)) {
+                    $updates['updated_at'] = now();
+                }
+
+                if ($updates) {
+                    DB::table('notifications')
+                        ->where($primaryKey, $notificationId)
+                        ->update($updates);
+                }
+
+                return [
+                    'notification_id' => $notificationId,
+                    'table_id' => (int)($raw['table_id'] ?? 0),
+                    'kind' => strtolower(trim((string)($raw['type'] ?? ''))),
+                ];
+            });
+
+            if (!$result) {
+                return response()->json([
+                    'ok' => false,
+                    'message' => 'Notification not found.',
+                ], 404);
+            }
+
+            return response()->json([
+                'ok' => true,
+                'version' => 'pmd-qpos-attention-seen-v76',
+                'notification_id' => $result['notification_id'],
+                'table_id' => $result['table_id'],
+                'kind' => $result['kind'],
+                'status' => 'seen',
+            ]);
+        } catch (\Throwable $error) {
+            report($error);
+
+            return response()->json([
+                'ok' => false,
+                'message' => 'Could not mark attention as seen.',
             ], 500);
         }
     }
@@ -2179,6 +2819,25 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 $parts[] = ucfirst($settlement);
             }
 
+            /* PMD_QPOS_HISTORY_INVOICE_READY_V74
+             * The canonical invoice route intentionally serves final customer
+             * invoices only after full payment. Do not expose a dead invoice
+             * action for an unpaid/partial history entry. */
+            $settledAmount = max(
+                0.0,
+                (float)($raw['settled_amount'] ?? 0)
+            );
+            $invoiceReady =
+                in_array(
+                    strtolower($settlement),
+                    ['paid', 'settled', 'closed'],
+                    true
+                )
+                || (
+                    $total > 0
+                    && $settledAmount >= $total - 0.0001
+                );
+
             $itemRows = collect($itemsByOrder->get($orderId, collect()));
             $itemSummary = '';
             $itemCount = (int)$itemRows->count();
@@ -2222,7 +2881,9 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 'status' => $statusName,
                 'settlement_status' => $settlement,
                 'invoice_number' => $invoiceNumber,
-                'invoice_url' => '/admin/orders/invoice/'.$orderId,
+                'invoice_url' => $invoiceReady
+                    ? '/admin/pmd-cashier-order-center/invoice/'.$orderId
+                    : null,
                 'item_count' => $itemCount,
                 'item_summary' => $itemSummary,
                 'note' => $comment,
@@ -2575,6 +3236,14 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                     $title = trim((string)($raw['title'] ?? ''));
                     $message = trim((string)($raw['message'] ?? ''));
                     $notificationTableId = (int)($raw['table_id'] ?? 0);
+                    $notificationId = (int)(
+                        $raw['notification_id']
+                        ?? $raw['id']
+                        ?? 0
+                    );
+                    $notificationStatus = strtolower(trim((string)(
+                        $raw['status'] ?? ''
+                    )));
 
                     $entries[] = [
                         'kind' => $type === 'waiter_call'
@@ -2595,7 +3264,14 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                         'detail' => $message,
                         'order_id' => null,
                         'table_id' => $notificationTableId,
-                        'status' => (string)($raw['status'] ?? ''),
+                        /* PMD_QPOS_HISTORY_SEEN_PAYLOAD_V76
+                         * The client needs the canonical notification id to
+                         * restore the Seen action for NEW calls/notes. */
+                        'notification_id' => $notificationId ?: null,
+                        'status' => $notificationStatus,
+                        'is_new' => $notificationStatus === ''
+                            || $notificationStatus === 'new',
+                        'seen_at' => (string)($raw['seen_at'] ?? ''),
                         'priority' => (string)($raw['priority'] ?? ''),
                     ];
                 }
@@ -3371,6 +4047,7 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 'due_amount' => 0.0,
                 'waiter_calls' => 0,
                 'note_count' => 0,
+                'force_occupied' => false,
             ];
             $tableById[$id] = $table;
 
@@ -3530,9 +4207,13 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                         ->whereIn('type', ['waiter_call', 'table_note']);
 
                     if (in_array('status', $cols, true)) {
+                        /* PMD_QPOS_ATTENTION_NEW_ONLY_V76
+                         * Seen acknowledges the alert only. Do not keep a seen
+                         * call/note in the active attention counter; physical
+                         * Busy remains persisted on tables.operational_status. */
                         $query->where(function ($q) {
                             $q->whereNull('status')
-                                ->orWhere('status', '!=', 'resolved');
+                                ->orWhere('status', 'new');
                         });
                     }
 
@@ -3552,6 +4233,38 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                         }
 
                         $type = strtolower(trim((string)($raw['type'] ?? '')));
+                        $activityAt = trim((string)($raw['created_at'] ?? ''));
+                        $physicalStatus = strtolower(trim((string)(
+                            $tableById[$tableId]['status'] ?? 'available'
+                        )));
+
+                        /* PMD_QPOS_ATTENTION_BUSY_RECONCILE_V76B
+                         * Backfill NEW attention that predates V76 deployment,
+                         * but only when the event is newer than the last table
+                         * lifecycle change. An explicit later Free always wins. */
+                        if (
+                            in_array(
+                                $physicalStatus,
+                                ['', 'available', 'free'],
+                                true
+                            )
+                            && $activityAt !== ''
+                        ) {
+                            $reason = $type === 'waiter_call'
+                                ? 'reconcile_waiter_call'
+                                : 'reconcile_table_note';
+
+                            if (
+                                \App\Helpers\TableHelper::markOccupiedFromActivity(
+                                    $tableId,
+                                    $reason,
+                                    $activityAt
+                                )
+                            ) {
+                                $signals[$tableId]['force_occupied'] = true;
+                            }
+                        }
+
                         if ($type === 'waiter_call') {
                             $signals[$tableId]['waiter_calls']++;
                         } elseif ($type === 'table_note') {
@@ -3571,7 +4284,17 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 'due_amount' => 0.0,
                 'waiter_calls' => 0,
                 'note_count' => 0,
+                'force_occupied' => false,
             ];
+
+            if (
+                !empty($signal['force_occupied'])
+                && $this->quickPosNormalizeTableStatus(
+                    (string)($table['status'] ?? 'available')
+                ) === 'available'
+            ) {
+                $table['status'] = 'occupied';
+            }
 
             $table['payment_state'] = (string)$signal['payment_state'];
             $table['due_amount'] = (float)$signal['due_amount'];

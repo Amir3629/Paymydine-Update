@@ -28,6 +28,11 @@ trait PmdWaiterPosOrderPersistenceConcern
         $rows = $q->orderByDesc($pk)->limit(20)->get();
         $out = [];
 
+        // PMD_QPOS_PAYMENT_GATE_IDENTITY_V108
+        // Direct-pay holds deliberately use the normal Kitchen/Received status
+        // while processed=0. That pair is the durable, schema-free gate marker.
+        $sendStatusIdV108 = $this->resolveStatusId('send');
+
         foreach ($rows as $row) {
             $r = (array)$row;
             $id = (int)($r['order_id'] ?? $r['id'] ?? 0);
@@ -62,6 +67,16 @@ trait PmdWaiterPosOrderPersistenceConcern
                 'payment' => (string)($r['payment'] ?? ''),
                 'settlement_status' => (string)($r['settlement_status'] ?? 'unpaid'),
                 'settled_amount' => (float)($r['settled_amount'] ?? 0),
+                'processed' => (int)($r['processed'] ?? 0),
+                'payment_gate' =>
+                    (int)($r['processed'] ?? 0) !== 1
+                    && $sendStatusIdV108
+                    && (int)($r['status_id'] ?? 0) === (int)$sendStatusIdV108
+                    && !in_array(
+                        strtolower((string)($r['settlement_status'] ?? 'unpaid')),
+                        ['paid', 'settled', 'cancelled', 'canceled', 'failed', 'refunded', 'void', 'voided'],
+                        true
+                    ),
                 'total' => (float)($r['order_total'] ?? $r['total'] ?? 0),
                 'total_items' => (int)($r['total_items'] ?? 0),
                 'created_at' => (string)($r['created_at'] ?? ''),
@@ -165,6 +180,34 @@ trait PmdWaiterPosOrderPersistenceConcern
         }
 
         return null;
+    }
+
+    /**
+     * PMD_QPOS_PAYMENT_GATE_IDENTITY_V108
+     *
+     * Payment-before-Kitchen uses the normal send/Received status but keeps
+     * processed=0. This makes it invisible to KDS while remaining safely
+     * identifiable across retries/reloads without adding a database column.
+     */
+    protected function pmdQuickPosPaymentGateV108(Orders_model $order): bool
+    {
+        if ((int)($order->processed ?? 0) === 1) {
+            return false;
+        }
+
+        $settlement = strtolower(trim((string)($order->settlement_status ?? 'unpaid')));
+        if (in_array(
+            $settlement,
+            ['paid', 'settled', 'cancelled', 'canceled', 'failed', 'refunded', 'void', 'voided'],
+            true
+        )) {
+            return false;
+        }
+
+        $sendStatusId = $this->resolveStatusId('send');
+
+        return $sendStatusId
+            && (int)($order->status_id ?? 0) === (int)$sendStatusId;
     }
 
     protected function fillNewOrder(Orders_model $order, array $table, array $payload, string $mode): void
