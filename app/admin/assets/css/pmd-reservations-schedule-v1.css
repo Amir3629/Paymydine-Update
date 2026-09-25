@@ -1,4 +1,4 @@
-/* PMD_RESERVATIONS_EXACT_LIVE_RESERVATIONS2_VISUAL_V2_4 */
+/* PMD_RESERVATIONS_EXACT_LIVE_RESERVATIONS_VISUAL_V2_4 */
 /* PMD Reservations calendar toggle V1.11 */
 #pmd-r2-clean-header .pmd-r2-clean-actions{display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:8px!important;flex-wrap:nowrap!important;opacity:1!important;visibility:visible!important;transform:none!important}
 #pmd-r2-clean-header .pmd-r2-clean-actions>#pmd-r2-date-popover-v318:empty{display:none!important}
@@ -2002,7 +2002,7 @@ section.pmd-r2-yc-selected[data-r2-yc-selected] {
 }
 
 
-/* EXACT LIVE RESERVATIONS2 HOUR LAYOUT V38 */
+/* EXACT LIVE RESERVATIONS HOUR LAYOUT V38 */
 
     :root {
         --pmd-r2-structure-gap-v38: 14px;
@@ -2188,7 +2188,7 @@ section.pmd-r2-yc-selected[data-r2-yc-selected] {
     }
 
 
-/* EXACT LIVE RESERVATIONS2 HOUR BOTTOM V38.1 */
+/* EXACT LIVE RESERVATIONS HOUR BOTTOM V38.1 */
 
     /*
      * V38.1
@@ -2537,7 +2537,7 @@ section.pmd-r2-yc-selected[data-r2-yc-selected] {
 
 /* PMD_RESERVATIONS_EXACT_R2_BRIDGE_V2_4
  * The Reservations Calendar/Hour visual authority above is copied from
- * the captured live page and only remapped from #pmd-reservations2 to
+ * the captured live page and only remapped from #pmd-dashboard-lab to
  * the clean Reservations root #pmd-dashboard-lab.
  */
 html body.pmd-clean-workspace-reservations #pmd-dashboard-lab-calendar-v4.is-active {
