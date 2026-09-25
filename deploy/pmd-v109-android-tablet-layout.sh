@@ -72,9 +72,9 @@ if (strpos($s, "PMD_QPOS_ANDROID_TABLET_LAYOUT_V109") !== false) {
 }
 
 if (strpos($s, "PMD_QPOS_ANDROID_SERVER_CSS_OVERRIDE_V105") !== false) {
-    $condition = "\\$pmdAndroidPosV105";
+    $condition = "\$pmdAndroidPosV105";
 } elseif (strpos($s, "PMD_QPOS_ANDROID_SAFE_OVERRIDE_V107") !== false) {
-    $condition = "\\$pmdAndroidPosV107";
+    $condition = "\$pmdAndroidPosV107";
 } else {
     fwrite(STDERR, "unsupported Android Quick POS view\n");
     exit(3);
