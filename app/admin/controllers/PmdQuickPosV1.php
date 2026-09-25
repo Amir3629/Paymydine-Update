@@ -2841,6 +2841,37 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 );
 
             $itemRows = collect($itemsByOrder->get($orderId, collect()));
+
+            /* PMD_QPOS_HISTORY_COMBINED_DATA_V127
+             * Keep the compact item_summary for list cards, but also expose
+             * every real order-menu row so a combined History bill can show
+             * ALL dishes instead of the six-row preview. */
+            $historyItemsV127 = $itemRows
+                ->map(function ($item): array {
+                    $rawItem = (array)$item;
+                    $quantity = max(
+                        0.0,
+                        (float)($rawItem['quantity'] ?? 1)
+                    );
+                    $subtotal = (float)($rawItem['subtotal'] ?? 0);
+                    $price = (float)($rawItem['price'] ?? 0);
+
+                    if ($price <= 0 && $quantity > 0 && $subtotal > 0) {
+                        $price = round($subtotal / $quantity, 4);
+                    }
+
+                    return [
+                        'name' => trim((string)(
+                            $rawItem['name'] ?? 'Item'
+                        )) ?: 'Item',
+                        'quantity' => $quantity > 0 ? $quantity : 1,
+                        'price' => $price,
+                        'subtotal' => $subtotal,
+                    ];
+                })
+                ->values()
+                ->all();
+
             $itemSummary = '';
             $itemCount = (int)$itemRows->count();
             if ($itemRows->isNotEmpty()) {
@@ -2888,6 +2919,7 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                     : null,
                 'item_count' => $itemCount,
                 'item_summary' => $itemSummary,
+                'items' => $historyItemsV127,
                 'note' => $comment,
             ];
 
@@ -2977,9 +3009,39 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                         $parts[] = 'Ref '.$reference;
                     }
                     $paymentNote = trim((string)($raw['notes'] ?? ''));
-                    if ($paymentNote !== '') {
+
+                    /* PMD_QPOS_HISTORY_COMBINED_DATA_V127
+                     * V114 stores one canonical payment transaction per order.
+                     * The shared note is the durable batch identity; expose the
+                     * linked order IDs explicitly so History does not have to
+                     * present those technical rows as separate customer bills. */
+                    $combinedOrderIdsV127 = [];
+                    if (
+                        preg_match(
+                            '/^Quick POS combined payment:\\s*([0-9,\\s]+)$/i',
+                            $paymentNote,
+                            $combinedMatchV127
+                        )
+                    ) {
+                        $combinedOrderIdsV127 = array_values(array_unique(
+                            array_filter(array_map(
+                                'intval',
+                                preg_split(
+                                    '/[\\s,]+/',
+                                    trim((string)($combinedMatchV127[1] ?? ''))
+                                ) ?: []
+                            ))
+                        ));
+                        sort($combinedOrderIdsV127, SORT_NUMERIC);
+                    }
+
+                    if (
+                        $paymentNote !== ''
+                        && count($combinedOrderIdsV127) < 2
+                    ) {
                         $parts[] = 'Note: '.$paymentNote;
                     }
+
                     $transactionId = (int)(
                         $raw['id']
                         ?? $raw['transaction_id']
@@ -3003,6 +3065,14 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                         'payer_label' => $payer,
                         'payment_reference' => $reference,
                         'payment_note' => $paymentNote,
+                        'combined_order_ids' => $combinedOrderIdsV127,
+                        'combined_invoice_url' =>
+                            count($combinedOrderIdsV127) > 1
+                                ? '/admin/pos/payment-batch-invoice?order_ids='
+                                    .rawurlencode(
+                                        implode(',', $combinedOrderIdsV127)
+                                    )
+                                : null,
                         'transaction_id' => $transactionId ?: null,
                         'receipt_url' => $transactionId > 0
                             ? '/admin/orders/split-receipt/'.$transactionId
@@ -3376,7 +3446,7 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
 
         return response()->json([
             'ok' => true,
-            'version' => 'pmd-qpos-history-v15',
+            'version' => 'pmd-qpos-history-v127',
             'scope' => $scope,
             'scope_label' => $scopeLabel,
             'from' => $fromDate,
