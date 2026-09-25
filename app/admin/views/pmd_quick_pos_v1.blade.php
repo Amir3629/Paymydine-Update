@@ -70,9 +70,9 @@
         {{-- PMD_QPOS_WEB_PARITY_V112
              This file is an exact copy of the canonical Web Quick POS CSS.
              The unique path bypasses APK 0.3.28 asset interception. --}}
-        <link rel="stylesheet" href="/app/admin/assets/css/pmd-qpos-web-parity-v112.css?v=20260925-v112">
+        <link rel="stylesheet" href="/app/admin/assets/css/pmd-qpos-web-parity-v112.css?v=20260925-v120">
     @else
-        <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-pos-v1.css?v=20260925-v112">
+        <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-pos-v1.css?v=20260925-v120">
     @endif
 </head>
 <body class="pmd-qpos-body">

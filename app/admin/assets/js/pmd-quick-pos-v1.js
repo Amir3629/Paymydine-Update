@@ -1290,7 +1290,6 @@
 
     return (
       pickupKitchenLocked ||
-      order.can_append_selected_items === false ||
       order.structural_locked === true ||
       num(order.settled_amount, 0) > 0.0001 ||
       ['partial', 'paid', 'settled', 'closed', 'refunded'].indexOf(status) !== -1
@@ -3463,14 +3462,6 @@
   }
 
   async function openBatchPaymentV114() {
-    // PMD_QPOS_MULTI_CHECK_OFFLINE_GUARD_V115
-    // Combined payment spans multiple canonical orders. Until Android has an
-    // atomic multi-order cash command, never pretend this completed locally.
-    if (nativeLocalTransportAvailable()) {
-      toast('Combined payment needs an internet connection right now.', true);
-      return;
-    }
-
     if (state.cart.length) {
       toast('Send current items first.', true);
       return;
@@ -4124,18 +4115,19 @@
       );
     });
 
+    /* PMD_QPOS_SILENT_KITCHEN_LOCK_V119
+     * Preparation/Ready already disables committed +/- controls. Do not add
+     * explanatory noise to the Check card; the locked controls are enough.
+     * Financial locks still keep their explicit correction guidance. */
     if (
       order &&
       mutation.allowed === false &&
-      (mutation.reason || mutation.kitchen_started || mutation.payment_started)
+      !mutation.kitchen_started &&
+      (mutation.reason || mutation.payment_started)
     ) {
-      var lockText = mutation.kitchen_started
-        ? 'Kitchen preparing/ready · sent item quantities are locked.'
-        : (
-            mutation.payment_started
-              ? 'Payment started · paid item quantities are locked. Add new food with + Check; reduce paid value only through refund/correction.'
-              : String(mutation.reason || 'Sent item quantities are locked.')
-          );
+      var lockText = mutation.payment_started
+        ? 'Payment started · paid item quantities are locked. Add new food with + Check; reduce paid value only through refund/correction.'
+        : String(mutation.reason || 'Sent item quantities are locked.');
 
       rows.push(
         '<div class="pmd-qpos-sent-lock-v68">' +
@@ -5394,7 +5386,12 @@
     }
   }
 
-  /* PMD_QPOS_RECEIVED_REUSE_V113
+  /* PMD_QPOS_KITCHEN_ROUND_SPLIT_V119
+   * One bill may have several Kitchen rounds. New food can reuse the current
+   * order only before Preparation begins; after that, Send creates a new order
+   * so KDS receives a fresh ticket instead of mutating an in-flight ticket.
+   *
+   * PMD_QPOS_RECEIVED_REUSE_V113
    * Same-table additions continue the current order only while Kitchen is
    * still in Received. Once Preparation starts, the next items form a new order. */
   function orderAcceptsReceivedAppendV113(order) {
@@ -5429,31 +5426,6 @@
 
   function reusableReceivedOrderV113() {
     return state.openOrders.find(orderAcceptsReceivedAppendV113) || null;
-  }
-
-  /* PMD_QPOS_EXPLICIT_ORDER_APPEND_V118
-   * A tapped #check is an exact bill target. Kitchen phase does not split it.
-   * Financial/cancellation authority still comes from the backend payload. */
-  function orderAcceptsExplicitAppendV118(order) {
-    if (!order) return false;
-
-    if (order.can_append_selected_items != null) {
-      return (
-        order.can_append_selected_items === true ||
-        Number(order.can_append_selected_items) === 1
-      );
-    }
-
-    var settlement = String(order.settlement_status || 'unpaid').toLowerCase();
-    return (
-      order.payment_gate !== true &&
-      order.structural_locked !== true &&
-      num(order.settled_amount, 0) <= 0.0001 &&
-      [
-        'partial','paid','settled','closed',
-        'cancelled','canceled','failed','refunded'
-      ].indexOf(settlement) === -1
-    );
   }
 
   function applyTablePayload(id, json) {
@@ -5497,20 +5469,10 @@
       state.orderSelectionExplicitV72 = false;
     }
 
-    var activeOrderV118 = activeOrder();
-    var explicitAppendV118 =
-      !!activeOrderV118 &&
-      state.orderSelectionExplicitV72 &&
-      orderAcceptsExplicitAppendV118(activeOrderV118);
-
     state.forceNewCheck =
       !state.activeOrderId ||
       activeOrderStructuralLocked() ||
-      (
-        !!activeOrderV118 &&
-        !explicitAppendV118 &&
-        !orderAcceptsReceivedAppendV113(activeOrderV118)
-      );
+      (!!activeOrder() && !orderAcceptsReceivedAppendV113(activeOrder()));
 
     var table = json.table || null;
     if (table && state.selectedTable) {
@@ -5885,25 +5847,12 @@
             Number(json.can_append_items) === 1
           );
 
-    // PMD_QPOS_EXPLICIT_ORDER_APPEND_V118
-    var responseSelectedAppendAuthorityV118 =
-      json.can_append_selected_items == null
-        ? null
-        : (
-            json.can_append_selected_items === true ||
-            Number(json.can_append_selected_items) === 1
-          );
-
     state.activeOrderId = id;
     state.orderSelectionExplicitV72 = true;
     state.forceNewCheck =
-      responseSelectedAppendAuthorityV118 !== null
-        ? !responseSelectedAppendAuthorityV118
-        : (
-            responseAppendAuthorityV117 === null
-              ? false
-              : !responseAppendAuthorityV117
-          );
+      responseAppendAuthorityV117 === null
+        ? false
+        : !responseAppendAuthorityV117;
 
     if (snapshot.serviceMode === 'dine_in') {
       var found = false;
@@ -5932,10 +5881,6 @@
             responseAppendAuthorityV117 === null
               ? row.can_append_items
               : responseAppendAuthorityV117,
-          can_append_selected_items:
-            responseSelectedAppendAuthorityV118 === null
-              ? row.can_append_selected_items
-              : responseSelectedAppendAuthorityV118,
           settlement_status:
             json.settlement_status != null
               ? String(json.settlement_status)
@@ -5968,7 +5913,6 @@
               ? Number(json.processed)
               : (snapshot.mode === 'send' ? 1 : 0),
           can_append_items: responseAppendAuthorityV117,
-          can_append_selected_items: responseSelectedAppendAuthorityV118,
           settled_amount:
             json.settled_amount != null ? num(json.settled_amount, 0) : 0,
           guest_count: snapshot.guestCount,
@@ -6053,23 +5997,10 @@
     }
 
     var order = activeOrder();
-
-    // PMD_QPOS_EXPLICIT_ORDER_APPEND_V118
-    // If the cashier tapped #241, #241 is the target. Do not silently turn a
-    // later Send into #242 because Kitchen moved from Received to Preparation.
-    var explicitSelectedAppendV118 =
-      !!order &&
-      state.orderSelectionExplicitV72 &&
-      orderAcceptsExplicitAppendV118(order);
-
     var canAppendReceivedV113 =
       !order || orderAcceptsReceivedAppendV113(order);
-    var canAppendExistingV118 =
-      !order ||
-      explicitSelectedAppendV118 ||
-      canAppendReceivedV113;
-    var appendOrderIdV118 =
-      order && canAppendExistingV118
+    var appendOrderIdV113 =
+      order && canAppendReceivedV113
         ? state.activeOrderId
         : null;
 
@@ -6077,21 +6008,16 @@
       mode: mode,
       serviceMode: state.serviceMode,
       tableId: state.selectedTable ? Number(state.selectedTable.id) : null,
-      activeOrderId: appendOrderIdV118,
-      explicitOrderSelection: explicitSelectedAppendV118,
+      activeOrderId: appendOrderIdV113,
       expectedUpdatedAt:
-        order &&
-        canAppendExistingV118 &&
-        !explicitSelectedAppendV118 &&
-        order.updated_at
+        order && canAppendReceivedV113 && order.updated_at
           ? order.updated_at
           : null,
       guestCount: state.guestCount,
       note: state.note,
       forceNewCheck:
-        order
-          ? !canAppendExistingV118
-          : !!state.forceNewCheck,
+        !!state.forceNewCheck ||
+        (!!order && !canAppendReceivedV113),
       // PMD_QPOS_PAY_BEFORE_KITCHEN_V108
       // Fresh direct-pay checks are persisted as payment-gated orders:
       // KDS-compatible status, processed=0 until full settlement.
@@ -6114,7 +6040,6 @@
       guest_count: snapshot.guestCount,
       note: snapshot.note,
       payment_gate: snapshot.paymentGate,
-      explicit_order_selection: snapshot.explicitOrderSelection,
       force_new_check:
         snapshot.serviceMode === 'dine_in'
           ? (
