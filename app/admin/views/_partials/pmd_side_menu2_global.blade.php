@@ -1084,7 +1084,7 @@
 <style id="pmd-dashboard2-static-shell-first-paint-v1">
   /*
    * Match the FINAL pmd-admin-exact-layout geometry before the browser can
-   * paint Dashboard2. This also beats the embedded Reservations :has()
+   * paint Dashboard2. This also beats the embedded legacy embedded-root
    * wrapper reset which otherwise changes the parent shell after parsing.
    */
   html.pmd-dashboard2-static-shell-v1 .page-wrapper,
