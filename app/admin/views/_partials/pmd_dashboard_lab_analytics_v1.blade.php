@@ -1194,6 +1194,35 @@
 
     $analyticsBusy = $analyticsServerReady ? 'false' : 'true';
     $analyticsState = $analyticsServerReady ? 'ready' : 'loading';
+
+    /* PMD_DASHBOARD_ANALYTICS_SWR_V132
+     * Browser fallback snapshots are scoped to the same explicit workspace
+     * location and locale as the server snapshot cache.
+     */
+    $analyticsLocationIdV132 = max(
+        0,
+        (int)(
+            $pmdCleanWorkspaceLocationId
+            ?? $analyticsBootstrap['location_id']
+            ?? 0
+        )
+    );
+    $analyticsLocaleV132 = strtolower(
+        trim(
+            (string)(
+                $pmdCleanWorkspaceLocale
+                ?? app()->getLocale()
+            )
+        )
+    );
+    $analyticsSnapshotSourceV132 = (string)(
+        $analyticsBootstrap['snapshot_source']
+        ?? (
+            $analyticsServerReady
+                ? 'server'
+                : 'cold'
+        )
+    );
 @endphp
 
 <script
@@ -1244,6 +1273,9 @@
     class="pmd-dashboard-lab-analytics"
     data-pmd-dashboard-lab-analytics="dashboard2-clean-v1"
     data-pmd-dashboard-lab-analytics-endpoint="{{ $pmdDashboardLabAnalyticsEndpoint ?? '/admin/dashboardlab?pmd_analytics=1' }}"
+    data-pmd-dashboard-analytics-location-id="{{ $analyticsLocationIdV132 }}"
+    data-pmd-dashboard-analytics-locale="{{ $analyticsLocaleV132 }}"
+    data-pmd-dashboard-analytics-snapshot-source="{{ $analyticsSnapshotSourceV132 }}"
     data-pmd-lab-server-rendered="{{ $analyticsServerReady ? 'true' : 'false' }}"
     data-pmd-lab-initial-chart-mode="{{ $analyticsChartMode }}"
     aria-label="Dashboard analytics"
