@@ -15,6 +15,8 @@ const qpos = read('app/admin/assets/js/pmd-quick-pos-v1.js');
 const qposCss = read('app/admin/assets/css/pmd-quick-pos-v1.css');
 const androidV107Css = read('app/admin/assets/css/pmd-qpos-android-form-factor-v107.css');
 const androidV107Js = read('app/admin/assets/js/pmd-qpos-android-form-factor-v107.js');
+const androidV108Js = read('app/admin/assets/js/pmd-qpos-android-runtime-v108.js');
+const androidV111Css = read('app/admin/assets/css/pmd-qpos-android-tablet-v111.css');
 const gradle = read('mobile/android/app/build.gradle.kts');
 
 assert.ok(pos.includes('PMD_ANDROID_LOCAL_FIRST_V2_V104'));
@@ -31,6 +33,20 @@ assert.ok(gradle.includes('"pmd-qpos-android-form-factor-v107.css"'));
 assert.ok(gradle.includes('"pmd-qpos-android-form-factor-v107.js"'));
 assert.ok(androidV107Css.includes('PMD_QPOS_ANDROID_SAFE_MATRIX_V107'));
 assert.ok(androidV107Js.includes('PMD_QPOS_ANDROID_SAFE_RUNTIME_V107'));
+assert.ok(androidV108Js.includes('PMD_QPOS_PAY_BEFORE_KITCHEN_V108'));
+assert.ok(androidV111Css.includes('PMD_QPOS_ANDROID_TABLET_SQUARE_GEOMETRY_V111'));
+assert.ok(pos.includes('PMD_ANDROID_V111_OFFLINE_SHELL_UPGRADE'));
+assert.ok(pos.includes('/app/admin/assets/js/pmd-qpos-android-runtime-v108.js'));
+assert.ok(pos.includes('/app/admin/assets/css/pmd-qpos-android-tablet-v111.css'));
+assert.ok(pos.includes('pmd-canonical/js/pmd-qpos-android-runtime-v108.js'));
+assert.ok(pos.includes('pmd-canonical/css/pmd-qpos-android-tablet-v111.css'));
+assert.ok(gradle.includes('PMD_ANDROID_V111_OFFLINE_UI_BUNDLE'));
+assert.ok(gradle.includes('"pmd-qpos-android-runtime-v108.js"'));
+assert.ok(gradle.includes('"pmd-qpos-android-tablet-v111.css"'));
+assert.ok(bridge.includes('PMD_ANDROID_PAY_BEFORE_KITCHEN_V112'));
+assert.ok(bridge.includes('.put("payment_gate", paymentGate)'));
+assert.ok(localRepo.includes('PMD_ANDROID_PAY_BEFORE_KITCHEN_V112'));
+assert.ok(localRepo.includes('.put("payment_gate", paymentGate)'));
 assert.ok(syncRepo.includes('PMD_ANDROID_SYNC_VISIBILITY_V104'));
 assert.ok(syncRepo.includes('PMD_ANDROID_CLOUD_HEALTH_V104'));
 assert.ok(syncRepo.includes('PMD_ANDROID_CLOUD_LINE_OUTBOX_PROJECTION_V106'));
@@ -79,5 +95,5 @@ const cloudOnlyBlock = syncEngine.slice(
 assert.ok(cloudOnlyBlock.includes('"ORDER_ITEM_ADJUST_V1"'));
 assert.ok(cloudOnlyBlock.includes('"CASH_PAYMENT_V1"'));
 
-console.log('PMD Local-First V106 offline chaos contract matrix: PASS');
-console.log('Covered contracts: WAN cut, durable queue, process restart recovery, aggregate ordering, reconnect without WebView replacement, rejected reconciliation, multi-device remote conflict, Cash durability, Cloud-line +/- reconciliation, Cloud health split, trusted clock, image integrity, V107 offline-safe Android form-factor bundle.');
+console.log('PMD Local-First V111 offline chaos contract matrix: PASS');
+console.log('Covered contracts: WAN cut, durable queue, process restart recovery, aggregate ordering, reconnect without WebView replacement, rejected reconciliation, multi-device remote conflict, Cash durability, Cloud-line +/- reconciliation, Cloud health split, trusted clock, image integrity, V111 offline-safe Android UI bundle, V108 pay-before-Kitchen durability.');
