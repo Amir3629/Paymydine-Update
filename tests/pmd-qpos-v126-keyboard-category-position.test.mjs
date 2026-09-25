@@ -16,10 +16,10 @@ assert.ok(css.includes('padding-top: 8px !important'));
 assert.ok(css.includes('padding-bottom: 8px !important'));
 assert.ok(css.includes('z-index: 80 !important'));
 
-assert.ok(view.includes('pmd-qpos-web-parity-v112.css?v=20260925-v126'));
-assert.ok(view.includes('pmd-quick-pos-v1.css?v=20260925-v126'));
-assert.ok(view.includes('pmd-qpos-web-parity-v112.js?v=20260925-v126'));
-assert.ok(view.includes('pmd-quick-pos-v1.js?v=20260925-v126'));
+assert.ok(view.includes('pmd-qpos-web-parity-v112.css?v=20260925-v127'));
+assert.ok(view.includes('pmd-quick-pos-v1.css?v=20260925-v127'));
+assert.ok(view.includes('pmd-qpos-web-parity-v112.js?v=20260925-v127'));
+assert.ok(view.includes('pmd-quick-pos-v1.js?v=20260925-v127'));
 
 assert.ok(css.includes('PMD_QPOS_HISTORY_FOOD_PREVIEW_V125'));
 assert.ok(css.includes('PMD_QPOS_HISTORY_PORTRAIT_SINGLE_PANE_V124'));
