@@ -63,7 +63,8 @@ grep -Fq "\$payload['explicit_order_selection']" "$SAVE"   || fail "Save explici
 grep -Fq "!\$explicitSelectedAppendV118" "$SAVE"   || fail "Received-only gate override missing"
 grep -Fq "'can_append_selected_items' => \$this->pmdOrderAcceptsExplicitAppendV118(\$order)" "$SAVE"   || fail "Save response selected-order authority missing"
 
-[[ "$(grep -Fc '\$explicitSelectedAppendV118 =' "$SAVE")" -eq 2 ]]   || fail "Unexpected V118 explicit selection declaration count"
+EXPLICIT_DECL_COUNT="$(grep -Fc '$explicitSelectedAppendV118 =' "$SAVE" || true)"
+[[ "$EXPLICIT_DECL_COUNT" -eq 2 ]]   || fail "Unexpected V118 explicit selection declaration count: $EXPLICIT_DECL_COUNT (expected 2)"
 [[ "$(grep -Fc "'can_append_selected_items' =>" "$SAVE")" -eq 2 ]]   || fail "Unexpected V118 response authority count"
 
 grep -Fq "PMD_QPOS_IMMEDIATE_APPEND_AUTHORITY_V117" "$JS"   || fail "V117 immediate authority was lost"
