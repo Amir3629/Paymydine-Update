@@ -4,7 +4,7 @@ Frozen platform baseline: `ec5eafa8152a618b2c84f47f952ae8e81c545a8b`
 Android versionCode: `49`
 Android versionName: `0.3.36-v120-local-first`
 Sync protocol: `pmd-sync-v1`
-Android source commit: `PENDING_FINAL_RELEASE_COMMIT`
+Android source commit: `821b5b82905f7fb1947f996ebb068f1fac935b35`
 APK SHA-256: `PENDING_FINAL_RELEASE_DIGEST`
 
 ## Local-First authority
