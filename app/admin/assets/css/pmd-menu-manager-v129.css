@@ -4427,3 +4427,18 @@ body.pmd-menu-manager-page .pmd-menu-kpi__copy > small {
     font-size: 9px !important;
   }
 }
+
+/* ============================================================
+   PMD_MENU_KPI_COLOR_SEPARATION_V147
+
+   Content and KPI meaning stay unchanged.
+   Give Categories its own blue visual identity so the first two KPI
+   cards no longer share the same green tone.
+   ============================================================ */
+body.pmd-menu-manager-page
+.pmd-menu-kpi[data-pmd-menu-kpi="categories"]
+.pmd-menu-kpi__icon {
+  border-color: #c9dff1 !important;
+  background: #eef6ff !important;
+  color: #285f91 !important;
+}

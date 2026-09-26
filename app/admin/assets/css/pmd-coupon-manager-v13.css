@@ -1666,3 +1666,18 @@ body.pmd-coupon-manager-page
     font-size: 9px !important;
   }
 }
+
+/* ============================================================
+   PMD_DISCOUNT_KPI_COLOR_SEPARATION_V147
+
+   Content and KPI meaning stay unchanged.
+   Keep Codes green; give Active a purple identity so all four
+   Discount KPI icons have distinct semantic tones.
+   ============================================================ */
+body.pmd-coupon-manager-page
+.pmd-coupon-kpis > .pmd-coupon-kpi:nth-child(2)
+.pmd-coupon-kpi__icon {
+  border-color: #eadcf7 !important;
+  background: #f7f1fd !important;
+  color: #7a43a7 !important;
+}
