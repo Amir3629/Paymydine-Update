@@ -7526,3 +7526,66 @@ html body #pmd-reservation-composer-v1
     max-width: 108px !important;
   }
 }
+
+
+/* ============================================================
+   PMD_RESERVATION_COMPOSER_ALIGNMENT_FIELDS_R15
+   Center compact steppers and unify editable field roundness.
+   ============================================================ */
+
+/* Duration + Guest Number sit centered inside their own half-width columns. */
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__primary-grid
+> .pmd-composer-v223-area-duration
+.pmd-composer-stepper-r12,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__primary-grid
+> .pmd-composer-v223-area-guests
+.pmd-composer-stepper-r12,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__primary-grid
+> .pmd-composer-area-duration-v222
+.pmd-composer-stepper-r12,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__primary-grid
+> .pmd-composer-area-guests-v222
+.pmd-composer-stepper-r12 {
+  justify-self: center !important;
+  align-self: start !important;
+}
+
+/* Editable information fields use the same soft radius as the other controls. */
+html body #pmd-reservation-composer-v1
+form#pmd-reservation-composer-form-v1
+.pmd-reservation-composer-v1__primary-grid
+> label
+> input:not([type="hidden"]):not([type="radio"]):not([type="checkbox"]),
+html body #pmd-reservation-composer-v1
+form#pmd-reservation-composer-form-v1
+.pmd-reservation-composer-v1__contact-grid
+> label
+> input:not([type="hidden"]):not([type="radio"]):not([type="checkbox"]),
+html body #pmd-reservation-composer-v1
+form#pmd-reservation-composer-form-v1
+.pmd-reservation-composer-v1__notes
+> textarea {
+  border-radius: 20px !important;
+  background-clip: padding-box !important;
+}
+
+/* Keep compact stepper number inputs on their intentional smaller radius. */
+html body #pmd-reservation-composer-v1
+form#pmd-reservation-composer-form-v1
+.pmd-composer-stepper-r12
+.pmd-composer-stepper-r12__value
+> input[type="number"] {
+  border-radius: 16px !important;
+}
+
+@media (max-width:700px) {
+  html body #pmd-reservation-composer-v1
+  .pmd-reservation-composer-v1__primary-grid
+  .pmd-composer-stepper-r12 {
+    justify-self: stretch !important;
+  }
+}
