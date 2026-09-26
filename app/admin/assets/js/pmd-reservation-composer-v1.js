@@ -1539,10 +1539,38 @@ function applyAvailability(result) {
   );
 
   function open(nextContext, origin) {
-    context = nextContext; trigger = origin; baseline = ''; clearErrors();
-    root.querySelector('[data-pmd-composer-loading]').hidden = false; root.querySelector('[data-pmd-composer-content]').hidden = true;
-    ensureModal().show(); document.body.classList.add('pmd-reservation-composer-open-v1');
-    window.requestAnimationFrame(tagBackdrop);
+    /*
+     * PMD_COMPOSER_PRELOAD_BEFORE_SHOW_V1
+     *
+     * Do not open the Bootstrap modal in its temporary "Loading reservation"
+     * state. That state is much shorter than the hydrated Composer, so showing
+     * it first makes the card visibly blink/jump when the async payload lands.
+     *
+     * Populate while the modal is still hidden, then show the final card once.
+     */
+    context = nextContext;
+    trigger = origin;
+    baseline = '';
+    clearErrors();
+
+    var loadingState = root.querySelector(
+      '[data-pmd-composer-loading]'
+    );
+
+    var contentState = root.querySelector(
+      '[data-pmd-composer-content]'
+    );
+
+    if (loadingState) {
+      loadingState.hidden = false;
+      loadingState.removeAttribute('aria-hidden');
+    }
+
+    if (contentState) {
+      contentState.hidden = true;
+      contentState.setAttribute('aria-hidden', 'true');
+    }
+
     return request('onLoadReservationComposer', {
       mode: context.mode,
       reservation_id: context.reservationId,
@@ -1554,24 +1582,42 @@ function applyAvailability(result) {
       pmd_floor_id: clean(context.floorId),
       pmd_floor_name: clean(context.floorName),
       pmd_floor_locked: context.floorLocked ? 1 : 0
-    }).then(populate).catch(function (error) {
-      var loadingState = root.querySelector(
-        '[data-pmd-composer-loading]'
+    }).then(function (response) {
+      populate(response);
+
+      ensureModal().show();
+      document.body.classList.add(
+        'pmd-reservation-composer-open-v1'
       );
 
-      var contentState = root.querySelector(
-        '[data-pmd-composer-content]'
-      );
+      window.requestAnimationFrame(tagBackdrop);
 
+      return response;
+    }).catch(function (error) {
+      /*
+       * Load failures still get a visible Composer so the canonical validation
+       * summary can explain the problem; only successful opens skip the
+       * transient loading card.
+       */
       if (loadingState) {
         loadingState.hidden = true;
+        loadingState.setAttribute('aria-hidden', 'true');
       }
 
       if (contentState) {
         contentState.hidden = false;
+        contentState.removeAttribute('aria-hidden');
       }
 
       showError(error);
+
+      ensureModal().show();
+      document.body.classList.add(
+        'pmd-reservation-composer-open-v1'
+      );
+
+      window.requestAnimationFrame(tagBackdrop);
+
       throw error;
     });
   }
