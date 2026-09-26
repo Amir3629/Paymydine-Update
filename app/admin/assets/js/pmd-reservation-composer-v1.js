@@ -3832,6 +3832,169 @@ function applyAvailability(result) {
     }
     return result;
   }
+  /*
+   * PMD_COMPOSER_TIME_INTENT_RESOLVER_R23
+   *
+   * Wheel columns are independent user intents, not a rigid three-part lock.
+   * Example: 08:00 AM is current, but the restaurant is open until 19:00.
+   * Selecting PM must succeed even though 08:00 PM is invalid. The resolver
+   * keeps the user's chosen component and automatically moves the other
+   * component(s) to the nearest valid opening-hours/future slot.
+   */
+  function slotParts(value) {
+    var minutes = timeMinutes(value);
+    if (minutes === null) {
+      return null;
+    }
+
+    var hour24 = Math.floor(minutes / 60);
+    var minute = minutes % 60;
+
+    return {
+      value: pad(hour24) + ':' + pad(minute),
+      minutes: minutes,
+      hour24: hour24,
+      hour12: hour24 % 12 || 12,
+      minute: minute,
+      period: hour24 >= 12 ? 'PM' : 'AM'
+    };
+  }
+
+  function nearestSlot(times, reference) {
+    if (!times.length) {
+      return '';
+    }
+
+    var referenceMinutes = timeMinutes(reference);
+
+    if (referenceMinutes === null) {
+      return times[0];
+    }
+
+    var best = times[0];
+    var bestDistance = Math.abs(
+      timeMinutes(best) - referenceMinutes
+    );
+
+    for (var index = 1; index < times.length; index += 1) {
+      var distance = Math.abs(
+        timeMinutes(times[index]) - referenceMinutes
+      );
+
+      if (distance < bestDistance) {
+        best = times[index];
+        bestDistance = distance;
+      }
+    }
+
+    return best;
+  }
+
+  function resolveWheelIntent(
+    kind,
+    value,
+    currentValue,
+    rawValue
+  ) {
+    var date =
+      form.elements.reserve_date
+        ? form.elements.reserve_date.value
+        : '';
+
+    var times = allowedTimes(date);
+
+    if (!times.length) {
+      return '';
+    }
+
+    if (
+      rawValue
+      && times.indexOf(rawValue) >= 0
+    ) {
+      return rawValue;
+    }
+
+    var normalizedKind = String(kind || '');
+    var wanted = String(value == null ? '' : value);
+    var rawParts = slotParts(rawValue || currentValue || '');
+
+    var candidates = times.filter(function (time) {
+      var parts = slotParts(time);
+      if (!parts) return false;
+
+      if (normalizedKind === 'period') {
+        return parts.period === wanted;
+      }
+
+      if (normalizedKind === 'hour') {
+        return String(parts.hour12) === wanted;
+      }
+
+      if (normalizedKind === 'minute') {
+        return String(parts.minute) === wanted;
+      }
+
+      return true;
+    });
+
+    if (!candidates.length) {
+      return nearestSlot(
+        times,
+        currentValue || rawValue
+      );
+    }
+
+    /*
+     * When AM/PM or Hour changes, preserve the current minute when possible.
+     * 08:00 AM -> PM therefore resolves to a valid xx:00 PM slot instead of
+     * unexpectedly changing the minute too.
+     */
+    if (
+      rawParts
+      && (
+        normalizedKind === 'period'
+        || normalizedKind === 'hour'
+      )
+    ) {
+      var sameMinute = candidates.filter(function (time) {
+        var parts = slotParts(time);
+        return parts && parts.minute === rawParts.minute;
+      });
+
+      if (sameMinute.length) {
+        candidates = sameMinute;
+      }
+    }
+
+    return nearestSlot(
+      candidates,
+      rawValue || currentValue
+    );
+  }
+
+  function wheelAvailability(date) {
+    var times = allowedTimes(date);
+    var periods = Object.create(null);
+    var hours = Object.create(null);
+    var minutes = Object.create(null);
+
+    times.forEach(function (time) {
+      var parts = slotParts(time);
+      if (!parts) return;
+
+      periods[parts.period] = true;
+      hours[String(parts.hour12)] = true;
+      minutes[String(parts.minute)] = true;
+    });
+
+    return {
+      times: times,
+      periods: periods,
+      hours: hours,
+      minutes: minutes
+    };
+  }
+
   function firstAllowedTime(date) {
     var times = allowedTimes(date);
     return times.length ? times[0] : '';
@@ -3937,71 +4100,132 @@ function applyAvailability(result) {
     if (target) wheelRef = target;
     var wheel = wheelRef;
     if (!wheel) return;
+
     var date = form.elements.reserve_date;
     var field = form.elements.reserve_time;
+
     if (!isCreate() || !date || !validDate(date.value)) {
       setNoAvailableTimeState(wheel, false);
-      [wheel.hour,wheel.minute,wheel.period].forEach(function(col){ setDisabledByValue(col,function(){return false;}); });
+      [wheel.hour,wheel.minute,wheel.period].forEach(function(col){
+        setDisabledByValue(col,function(){return false;});
+      });
       return;
     }
 
-    var desired = field && validTime(field.value) && allowed(date.value, field.value, durationMinutes())
-      ? String(field.value).slice(0,5)
-      : firstAllowedTime(date.value);
+    /*
+     * PMD_COMPOSER_TIME_ONE_PASS_AVAILABILITY_R23
+     *
+     * Compute valid slots ONCE. The old implementation repeatedly called
+     * allowed()/opening-hours logic for every repeated wheel button, which made
+     * the wheel feel heavy. Component availability is date/duration-wide:
+     * PM is enabled if ANY valid PM slot exists; Hour 6 is enabled if 06:xx or
+     * 18:xx has a valid slot; minute values behave the same way.
+     */
+    var availability = wheelAvailability(date.value);
+    var validTimes = availability.times;
 
-    if (!desired) {
+    if (!validTimes.length) {
       [wheel.hour,wheel.minute,wheel.period].forEach(function (column) {
         setDisabledByValue(column, function () { return true; });
-        Array.prototype.forEach.call(column.querySelectorAll('.pmd-jade-wheel-v221__item'), function (item) {
-          item.classList.remove('is-selected');
-          item.setAttribute('aria-selected', 'false');
-        });
+        Array.prototype.forEach.call(
+          column.querySelectorAll('.pmd-jade-wheel-v221__item'),
+          function (item) {
+            item.classList.remove('is-selected');
+            item.setAttribute('aria-selected', 'false');
+          }
+        );
       });
+
       if (field) field.value = '';
       setNoAvailableTimeState(wheel, true);
-      var emptyHighlight = wheel.container && wheel.container.querySelector('.pmd-jade-wheel-v221__highlight');
-      if (emptyHighlight && validDate(date.value) && hoursConfigured() && !dateHasOpeningWindow(date.value)) {
-        var emptyLang = String(document.documentElement.lang || '').toLowerCase();
+
+      var emptyHighlight =
+        wheel.container
+        && wheel.container.querySelector(
+          '.pmd-jade-wheel-v221__highlight'
+        );
+
+      if (
+        emptyHighlight
+        && validDate(date.value)
+        && hoursConfigured()
+        && !dateHasOpeningWindow(date.value)
+      ) {
+        var emptyLang =
+          String(document.documentElement.lang || '')
+            .toLowerCase();
+
         emptyHighlight.setAttribute(
           'data-pmd-no-time-label',
-          emptyLang.indexOf('de') === 0 ? 'Restaurant geschlossen' : 'Restaurant closed'
+          emptyLang.indexOf('de') === 0
+            ? 'Restaurant geschlossen'
+            : 'Restaurant closed'
         );
       }
       return;
     }
 
     setNoAvailableTimeState(wheel, false);
-    var desiredMinutes = timeMinutes(desired);
-    var desiredHour24 = Math.floor(desiredMinutes / 60);
-    var desiredMinute = desiredMinutes % 60;
-    var desiredPeriod = desiredHour24 >= 12 ? 'PM' : 'AM';
-    var desiredHour12 = desiredHour24 % 12 || 12;
-    var minutes = [0,15,30,45];
 
-    setDisabledByValue(wheel.period, function (period) {
-      for (var h = 1; h <= 12; h += 1) {
-        for (var m = 0; m < minutes.length; m += 1) {
-          if (allowed(date.value, pad(to24(h, period))+':'+pad(minutes[m]), durationMinutes())) return false;
-        }
+    setDisabledByValue(
+      wheel.period,
+      function (period) {
+        return !availability.periods[String(period)];
       }
-      return true;
-    });
+    );
 
-    setDisabledByValue(wheel.hour, function (value) {
-      var h24 = to24(Number(value), desiredPeriod);
-      return !minutes.some(function (minute) {
-        return allowed(date.value, pad(h24)+':'+pad(minute), durationMinutes());
-      });
-    });
+    setDisabledByValue(
+      wheel.hour,
+      function (value) {
+        return !availability.hours[String(Number(value))];
+      }
+    );
 
-    setDisabledByValue(wheel.minute, function (value) {
-      return !allowed(date.value, pad(desiredHour24)+':'+pad(Number(value)), durationMinutes());
-    });
+    setDisabledByValue(
+      wheel.minute,
+      function (value) {
+        return !availability.minutes[String(Number(value))];
+      }
+    );
 
-    if (field && field.value !== desired) field.value = desired;
-    selectWheelValue(wheel.period, desiredPeriod, false);
-    selectWheelValue(wheel.hour, desiredHour12, false);
-    selectWheelValue(wheel.minute, desiredMinute, false);
+    var desired =
+      field
+      && validTime(field.value)
+      && validTimes.indexOf(
+        String(field.value).slice(0,5)
+      ) >= 0
+        ? String(field.value).slice(0,5)
+        : nearestSlot(
+            validTimes,
+            field && field.value
+          );
+
+    if (!desired) {
+      desired = validTimes[0];
+    }
+
+    if (field && field.value !== desired) {
+      field.value = desired;
+    }
+
+    var parts = slotParts(desired);
+    if (!parts) return;
+
+    selectWheelValue(
+      wheel.period,
+      parts.period,
+      false
+    );
+    selectWheelValue(
+      wheel.hour,
+      parts.hour12,
+      false
+    );
+    selectWheelValue(
+      wheel.minute,
+      parts.minute,
+      false
+    );
   }
   function coerceTime(value) {
     var date = form.elements.reserve_date;
@@ -4050,6 +4274,7 @@ function applyAvailability(result) {
     version:'1.2.0', minimum:minimum, isCreate:isCreate, allowed:allowed,
     apply:apply, validate:validate, message:message, coerceTime:coerceTime,
     allowedTimes:allowedTimes, nearestAllowedTime:nearestAllowedTime,
+    resolveWheelIntent:resolveWheelIntent,
     attachWheel:attachWheel, refreshWheel:refreshWheel,
     setOpeningHours:setOpeningHours, openingHours:function(){return openingHours.slice();}
   });
@@ -4163,6 +4388,7 @@ function applyAvailability(result) {
     column.className =
       'pmd-jade-wheel-v221__column is-' + name;
 
+    column.dataset.pmdWheelKind = name;
     column.tabIndex = 0;
     column.setAttribute('role', 'listbox');
     column.setAttribute('aria-label', label);
@@ -4289,7 +4515,52 @@ function applyAvailability(result) {
     return item ? item.dataset.value : '';
   }
 
-  function publishTime() {
+  function syncResolvedTime(
+    value,
+    changedColumn
+  ) {
+    if (!wheel || !value) {
+      return;
+    }
+
+    var parsed = parseTime(value);
+    var targets = [
+      [wheel.hour, parsed.hour],
+      [wheel.minute, parsed.minute],
+      [wheel.period, parsed.period]
+    ];
+
+    syncing = true;
+
+    targets.forEach(function (entry) {
+      var column = entry[0];
+      var item = middleItem(
+        column,
+        entry[1]
+      );
+
+      if (!item) return;
+
+      setSelected(column, item);
+
+      /*
+       * The column the user touched stays under their finger. Any dependent
+       * column that must auto-correct glides to the valid value instead of
+       * snapping/jumping.
+       */
+      centerItem(
+        column,
+        item,
+        column !== changedColumn
+      );
+    });
+
+    window.requestAnimationFrame(function () {
+      syncing = false;
+    });
+  }
+
+  function publishTime(changedColumn) {
     if (!wheel || syncing || publishingFromWheel) {
       return;
     }
@@ -4319,26 +4590,47 @@ function applyAvailability(result) {
     );
 
     var next = rawNext;
+    var futureApi =
+      window.PMDReservationComposerFutureOnlyV1;
 
     if (
-      window.PMDReservationComposerFutureOnlyV1
-      && typeof window.PMDReservationComposerFutureOnlyV1.coerceTime === 'function'
+      futureApi
+      && typeof futureApi.resolveWheelIntent === 'function'
+      && changedColumn
     ) {
-      next = window.PMDReservationComposerFutureOnlyV1.coerceTime(next);
+      var kind =
+        changedColumn.dataset.pmdWheelKind
+        || (
+          changedColumn.classList.contains('is-hour')
+            ? 'hour'
+            : changedColumn.classList.contains('is-minute')
+              ? 'minute'
+              : 'period'
+        );
+
+      next = futureApi.resolveWheelIntent(
+        kind,
+        valueOf(changedColumn),
+        field.value,
+        rawNext
+      );
+    } else if (
+      futureApi
+      && typeof futureApi.coerceTime === 'function'
+    ) {
+      next = futureApi.coerceTime(rawNext);
     }
 
     if (!next || field.value === next) {
+      if (next && next !== rawNext) {
+        syncResolvedTime(
+          next,
+          changedColumn
+        );
+      }
       return;
     }
 
-    /*
-     * PMD_COMPOSER_TIME_NO_FEEDBACK_LOOP_R13
-     *
-     * A wheel commit must still dispatch native input/change so availability
-     * updates, but those two events must not immediately force all three wheel
-     * columns back to their middle clones. That feedback loop was the main
-     * source of the broken/jumpy feel during fast touch and mouse-wheel use.
-     */
     publishingFromWheel = true;
     field.value = next;
 
@@ -4357,12 +4649,11 @@ function applyAvailability(result) {
     window.requestAnimationFrame(function () {
       publishingFromWheel = false;
 
-      /*
-       * Disabled/closed-time coercion is rare. Only in that case do we perform
-       * one authoritative visual sync to the corrected canonical time.
-       */
       if (next !== rawNext) {
-        syncFromNative();
+        syncResolvedTime(
+          next,
+          changedColumn
+        );
       }
     });
   }
@@ -4380,7 +4671,7 @@ function applyAvailability(result) {
      * PMD_COMPOSER_TIME_NO_EDGE_RECENTER_R14
      *
      * Never teleport the column to another repeated clone after a fast fling.
-     * The long 31-cycle runway makes edge exhaustion impractical in normal use,
+     * The repeated runway makes edge exhaustion impractical in normal use,
      * so the wheel can stay exactly where the user's momentum finished.
      */
     var targetTop =
@@ -4399,7 +4690,7 @@ function applyAvailability(result) {
       centerItem(column, selected, false);
     }
 
-    publishTime();
+    publishTime(column);
   }
 
   function bindColumn(column) {
@@ -4442,7 +4733,7 @@ function applyAvailability(result) {
           column,
           window.setTimeout(
             settleAfterInertia,
-            180
+            90
           )
         );
       },
@@ -4465,7 +4756,7 @@ function applyAvailability(result) {
         clearSettleTimer();
         setSelected(column, item);
         centerItem(column, item, true);
-        publishTime();
+        publishTime(column);
       }
     );
 
@@ -4512,7 +4803,7 @@ function applyAvailability(result) {
 
         setSelected(column, selected);
         centerItem(column, selected, true);
-        publishTime();
+        publishTime(column);
       }
     );
   }
