@@ -1202,6 +1202,7 @@ function applyAvailability(result) {
     if (
       duration
       && duration.tagName !== 'SELECT'
+      && !duration.closest('[data-pmd-composer-stepper]')
     ) {
       var select = document.createElement('select');
 
@@ -1534,6 +1535,8 @@ function applyAvailability(result) {
     ) {
       form.elements.duration.value = '45';
     }
+
+    pmdSyncAllSteppersR12();
 
     if (
       window.PMDReservationComposerFutureOnlyV1
@@ -2438,7 +2441,115 @@ function applyAvailability(result) {
     catch (error) { location.href = next.fallbackUrl; }
   }
 
+  /* PMD_COMPOSER_TOUCH_STEPPERS_R12 */
+  var pmdDurationStepsR12 = [
+    30, 45, 60, 75, 90, 120, 150, 180
+  ];
+
+  function pmdStepperBoundsR12(field) {
+    return {
+      min: Number(field.min || 1),
+      max: Number(field.max || 999)
+    };
+  }
+
+  function pmdDurationStepR12(current, direction) {
+    current = Number(current || 45);
+
+    if (direction > 0) {
+      for (var i = 0; i < pmdDurationStepsR12.length; i += 1) {
+        if (pmdDurationStepsR12[i] > current) {
+          return pmdDurationStepsR12[i];
+        }
+      }
+
+      return pmdDurationStepsR12[
+        pmdDurationStepsR12.length - 1
+      ];
+    }
+
+    for (var j = pmdDurationStepsR12.length - 1; j >= 0; j -= 1) {
+      if (pmdDurationStepsR12[j] < current) {
+        return pmdDurationStepsR12[j];
+      }
+    }
+
+    return pmdDurationStepsR12[0];
+  }
+
+  function pmdSyncStepperR12(wrapper) {
+    if (!wrapper) return;
+
+    var field = wrapper.querySelector('input[type="number"]');
+    var minus = wrapper.querySelector('[data-pmd-stepper-minus]');
+    var plus = wrapper.querySelector('[data-pmd-stepper-plus]');
+
+    if (!field || !minus || !plus) return;
+
+    var type = clean(wrapper.getAttribute('data-pmd-composer-stepper'));
+    var current = Number(field.value || (type === 'duration' ? 45 : 1));
+    var bounds = pmdStepperBoundsR12(field);
+
+    if (type === 'duration') {
+      minus.disabled = current <= pmdDurationStepsR12[0];
+      plus.disabled = current >= pmdDurationStepsR12[pmdDurationStepsR12.length - 1];
+    } else {
+      minus.disabled = current <= bounds.min;
+      plus.disabled = current >= bounds.max;
+    }
+  }
+
+  function pmdSyncAllSteppersR12() {
+    root.querySelectorAll('[data-pmd-composer-stepper]').forEach(function (wrapper) {
+      pmdSyncStepperR12(wrapper);
+    });
+  }
+
+  function pmdBindSteppersR12() {
+    root.querySelectorAll('[data-pmd-composer-stepper]').forEach(function (wrapper) {
+      if (wrapper.getAttribute('data-pmd-stepper-bound-r12') === '1') {
+        pmdSyncStepperR12(wrapper);
+        return;
+      }
+
+      var field = wrapper.querySelector('input[type="number"]');
+      var minus = wrapper.querySelector('[data-pmd-stepper-minus]');
+      var plus = wrapper.querySelector('[data-pmd-stepper-plus]');
+
+      if (!field || !minus || !plus) return;
+
+      function change(direction) {
+        var type = clean(wrapper.getAttribute('data-pmd-composer-stepper'));
+        var bounds = pmdStepperBoundsR12(field);
+        var current = Number(field.value || (type === 'duration' ? 45 : 1));
+        var next = type === 'duration'
+          ? pmdDurationStepR12(current, direction)
+          : Math.max(bounds.min, Math.min(bounds.max, current + direction));
+
+        if (Number(field.value) === next) {
+          pmdSyncStepperR12(wrapper);
+          return;
+        }
+
+        field.value = String(next);
+        pmdSyncStepperR12(wrapper);
+
+        field.dispatchEvent(new Event('input', {bubbles:true}));
+        field.dispatchEvent(new Event('change', {bubbles:true}));
+      }
+
+      minus.addEventListener('click', function () { change(-1); });
+      plus.addEventListener('click', function () { change(1); });
+      field.addEventListener('input', function () { pmdSyncStepperR12(wrapper); });
+      field.addEventListener('change', function () { pmdSyncStepperR12(wrapper); });
+
+      wrapper.setAttribute('data-pmd-stepper-bound-r12', '1');
+      pmdSyncStepperR12(wrapper);
+    });
+  }
+
   form.insertAdjacentHTML('afterbegin', '<input type="hidden" name="reservation_id"><input type="hidden" name="source">');
+  pmdBindSteppersR12();
   form.addEventListener('submit', submit);
 
   form.addEventListener('change', function (event) {
@@ -2536,6 +2647,47 @@ function applyAvailability(result) {
         nextContext,
         force === true
       );
+    },
+    audit:function () {
+      var x =
+        config
+        && config.initialCreateBootstrap
+        && typeof config.initialCreateBootstrap === 'object'
+          ? config.initialCreateBootstrap
+          : null;
+
+      var defaults =
+        x && x.defaults && typeof x.defaults === 'object'
+          ? x.defaults
+          : {};
+
+      var availability =
+        x
+        && x.pmdInitialAvailability
+        && typeof x.pmdInitialAvailability === 'object'
+          ? x.pmdInitialAvailability
+          : {};
+
+      var primer =
+        x
+        && x.pmdServerPrimerContext
+        && typeof x.pmdServerPrimerContext === 'object'
+          ? x.pmdServerPrimerContext
+          : {};
+
+      return {
+        serverBootstrap: Boolean(x),
+        date: defaults.reserve_date || null,
+        time: defaults.reserve_time || null,
+        initialAvailability: Boolean(x && x.pmdInitialAvailability),
+        suggestedTables: positiveIds(availability.recommendedTableIds || []),
+        policy: clean(availability.pmdPolicyMessage),
+        floor: clean(primer.floor_name),
+        liveDate: form.elements.reserve_date ? form.elements.reserve_date.value : null,
+        liveTime: form.elements.reserve_time ? form.elements.reserve_time.value : null,
+        liveDuration: form.elements.duration ? Number(form.elements.duration.value || 0) : null,
+        liveGuests: form.elements.guest_num ? Number(form.elements.guest_num.value || 0) : null
+      };
     }
   };
 
@@ -3524,7 +3676,20 @@ function applyAvailability(result) {
     container.appendChild(period);
     container.appendChild(highlight);
 
-    label.appendChild(container);
+    /*
+     * PMD_COMPOSER_TIME_VERTICAL_ALIGN_R12
+     * Keep the wheel before the error slot. The old append placed the
+     * 15px validation placeholder above the wheel, visually pushing Time
+     * below Name even when both labels started on the same baseline.
+     */
+    var timeError =
+      label.querySelector('[data-error-for="reserve_time"]');
+
+    if (timeError) {
+      label.insertBefore(container, timeError);
+    } else {
+      label.appendChild(container);
+    }
 
     wheel = {
       container: container,
