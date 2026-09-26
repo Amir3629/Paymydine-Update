@@ -112,6 +112,19 @@ html body .pmd-floor-table-manager__card {
   animation: pmdOverlayCardInV2 var(--pmd-overlay-v2-duration) var(--pmd-overlay-v2-ease) both !important;
 }
 
+/* PMD_RESERVATION_COMPOSER_INSTANT_OPEN_V1
+ *
+ * The Reservations Composer owns its own stable-shell hydration lifecycle.
+ * Do not apply the platform-wide 180ms card entrance animation here: it makes
+ * an otherwise immediate Bootstrap show feel delayed and reintroduces a blink.
+ */
+html body #pmd-reservation-composer-v1.show .modal-dialog {
+  animation: none !important;
+  transition: none !important;
+  opacity: 1 !important;
+  transform: none !important;
+}
+
 /* Do not fight the confirm modal's own closing lifecycle. */
 html body:has(#adminConfirmModal.modal-closing) .modal-backdrop {
   opacity: 0 !important;
