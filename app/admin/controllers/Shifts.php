@@ -95,7 +95,9 @@ class Shifts extends AdminController
         $this->addJs('js/pmd-shifts-inpage-day-nav-v18e.js');
         // PMD_SHIFTS_KPI_INFO_ASSET_PARITY_V155
         // @scripts renders after the Shifts DOM, so the shared info runtime can bind normally.
-        $this->addJs('js/pmd-kpi-info-v1.js');
+        // PMD_KPI_INFO_DYNAMIC_SELECTION_V157
+        // Unique V2 filename also prevents a cached pre-V157 runtime on Shifts.
+        $this->addJs('js/pmd-kpi-info-v2.js');
         // PMD_SHIFTS_BIG_CALENDAR_V14
         $this->addJs('js/pmd-shifts-big-calendar-v14.js');
         $this->addJs('js/pmd-shifts-reservation-jade-time-v17c.js');
