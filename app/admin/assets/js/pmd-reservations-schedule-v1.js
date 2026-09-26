@@ -7,7 +7,59 @@
 (function () {
   'use strict';
 
-  var route = String((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : window.location.pathname) || '').replace(/\/+$/, '');
+  /*
+   * PMD_RESERVATIONS_CANONICAL_BOOT_RECOVERY_V1
+   *
+   * R81E can expose an internal logical controller path while the browser is
+   * already on the canonical /admin/reservations URL. The old ReservationsLab
+   * runtime tolerated that because its internal route and browser route were
+   * the same generation. After consolidation, a stale logical alias can make
+   * the canonical runtime return before it mounts.
+   *
+   * Prefer an allowed logical path, otherwise trust the actual browser path.
+   * Legacy numbered/lab aliases are normalized only for runtime boot; no
+   * browser route is resurrected.
+   */
+  var browserRoute = String(
+    (window.location && window.location.pathname) || ''
+  ).replace(/\/+$/, '');
+
+  var logicalRoute = '';
+  try {
+    logicalRoute = String(
+      window.PMDAdminCanonicalURLR81E
+      && typeof window.PMDAdminCanonicalURLR81E.logicalPath === 'function'
+        ? window.PMDAdminCanonicalURLR81E.logicalPath()
+        : ''
+    ).replace(/\/+$/, '');
+  } catch (error) {
+    logicalRoute = '';
+  }
+
+  var routeAliases = {
+    '/admin/reservationslab': '/admin/reservations',
+    '/admin/reservations2': '/admin/reservations',
+    '/admin/reservations3': '/admin/reservations',
+    '/admin/reservationsnew': '/admin/reservations'
+  };
+
+  function normalizeRoute(value) {
+    value = String(value || '').replace(/\/+$/, '');
+    return routeAliases[value] || value;
+  }
+
+  function allowedRoute(value) {
+    return value === '/admin/reservations'
+      || value === '/admin/dashboardlab'
+      || value === '/admin/managerlab'
+      || value === '/admin/cashierlab';
+  }
+
+  var route = normalizeRoute(logicalRoute);
+  if (!allowedRoute(route)) {
+    route = normalizeRoute(browserRoute);
+  }
+
   /*
    * PMD_RESERVATIONS_MANAGERLAB_SHARED_HOST_V3
    *
@@ -17,12 +69,7 @@
    * - DashboardLab
    * - ManagerLab
    */
-  if (
-    route !== '/admin/reservations'
-    && route !== '/admin/dashboardlab'
-    && route !== '/admin/managerlab'
-    && route !== '/admin/cashierlab'
-  ) return;
+  if (!allowedRoute(route)) return;
 
   var PAGE_ID = 'pmd-dashboard-lab';
   var FLOOR_ID = 'pmd-r2-shared-floor-canvas-v310';
