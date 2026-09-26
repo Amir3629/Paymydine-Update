@@ -174,9 +174,16 @@ html #pmd-sidebar-language {
             <span class="pmd-sm2__label">{{ $pmdSm2T('nav.reservations', 'Reservations') }}</span>
         </a>
         @if($pmdSm2IsOwnerNav || $pmdSm2IsManagerNav)
-        {{-- PMD_SHIFTS_CANONICAL_NAV_V1 --}}
+        {{-- PMD_SHIFTS_CANONICAL_NAV_V153
+             Distinct Staff + Clock glyph: deliberately no calendar frame so
+             Shifts cannot be confused with the Reservations navigation icon. --}}
         <a class="pmd-sm2__item {{ $pmdActive(['shifts']) ? 'is-active' : '' }}" href="{{ admin_url('shifts') }}">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 9h18"/><circle cx="12" cy="14" r="3"/><path d="M12 12.5V14l1 1"/></svg>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="8.5" cy="7.5" r="3"/>
+                <path d="M3.5 18.5c.55-3.25 2.35-5 5-5 1.3 0 2.4.42 3.25 1.2"/>
+                <circle cx="17" cy="16.5" r="4"/>
+                <path d="M17 14.5v2.2l1.45.9"/>
+            </svg>
             <span class="pmd-sm2__label">{{ $pmdSm2T('nav.shifts', 'Shifts') }}</span>
         </a>
         @endif
