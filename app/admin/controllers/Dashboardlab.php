@@ -77,6 +77,11 @@ class Dashboardlab extends AdminController
         /* PMD_DASHBOARD_LAB_STEP4_ALL_DASHBOARD2_ANALYTICS_ASSETS_V1 */
         $this->addCss('css/pmd-dashboard-lab-analytics-v1.css');
 
+        // PMD_DASHBOARD_FIRSTPAINT_V141
+        // Load KPI geometry authority after dashboard analytics/layout CSS so
+        // the server-first-paint cards keep their final geometry from frame 1.
+        $this->addCss('css/pmd-dashboard-kpi-recovery-v136.css');
+
         // Interaction only: KPI chooser. No boot fetch and no layout writer.
         $this->addJs('js/pmd-dashboard-lab-kpis-v1.js');
 

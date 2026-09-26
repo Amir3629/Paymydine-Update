@@ -1,0 +1,252 @@
+/* PMD_DASHBOARD_KPI_RECOVERY_V136
+ *
+ * Emergency presentation authority for Owner / Manager / Accountant dashboard
+ * KPI cards. These routes all render the shared #pmd-dashboard-lab root.
+ *
+ * The rules intentionally restore the proven V132 card geometry without
+ * depending on legacy Reservations2 filenames. Data ownership is unchanged.
+ */
+
+#pmd-dashboard-lab #pmd-r2-reservation-kpis-v307 {
+  position: relative !important;
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  grid-auto-flow: row !important;
+  grid-auto-rows: auto !important;
+  align-items: stretch !important;
+  gap: 14px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  margin: 16px 0 0 !important;
+  padding: 0 2px 8px !important;
+  inset: auto !important;
+  overflow: visible !important;
+  box-sizing: border-box !important;
+  transform: none !important;
+}
+
+#pmd-dashboard-lab
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-card {
+  --kpi-bg: #e8f7f0;
+  --kpi-border: #88c8b4;
+  --kpi-accent: #075548;
+  --kpi-icon: #d4eee4;
+
+  position: relative !important;
+  display: grid !important;
+  grid-template-columns: 52px minmax(0, 1fr) 22px !important;
+  grid-template-rows: auto !important;
+  align-items: center !important;
+  align-self: stretch !important;
+  gap: 13px !important;
+
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  height: auto !important;
+  min-height: 118px !important;
+  max-height: none !important;
+
+  margin: 0 !important;
+  padding: 15px !important;
+  inset: auto !important;
+
+  border: 2px solid var(--kpi-border) !important;
+  border-radius: 18px !important;
+  background: var(--kpi-bg) !important;
+  color: var(--kpi-accent) !important;
+  box-shadow: none !important;
+
+  overflow: visible !important;
+  box-sizing: border-box !important;
+  isolation: isolate !important;
+  transform: none !important;
+}
+
+#pmd-dashboard-lab
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-card[data-pmd-kpi-v2401-tone="orange"] {
+  --kpi-bg: #ff8811;
+  --kpi-border: #a54d00;
+  --kpi-accent: #351800;
+  --kpi-icon: rgba(255,255,255,.90);
+}
+
+#pmd-dashboard-lab
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-card[data-pmd-kpi-v2401-tone="blue"],
+#pmd-dashboard-lab
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-card[data-pmd-kpi-v2401-tone="cyan"] {
+  --kpi-bg: #35afd1;
+  --kpi-border: #087493;
+  --kpi-accent: #062b36;
+  --kpi-icon: rgba(255,255,255,.90);
+}
+
+#pmd-dashboard-lab
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-card[data-pmd-kpi-v2401-tone="red"] {
+  --kpi-bg: #ff3954;
+  --kpi-border: #ad102b;
+  --kpi-accent: #36040c;
+  --kpi-icon: rgba(255,255,255,.92);
+}
+
+#pmd-dashboard-lab
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-card[data-pmd-kpi-v2401-tone="purple"] {
+  --kpi-bg: #a66ce6;
+  --kpi-border: #6530a0;
+  --kpi-accent: #241036;
+  --kpi-icon: rgba(255,255,255,.91);
+}
+
+#pmd-dashboard-lab
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-icon {
+  position: relative !important;
+  display: inline-flex !important;
+  width: 52px !important;
+  min-width: 52px !important;
+  max-width: 52px !important;
+  height: 52px !important;
+  min-height: 52px !important;
+  max-height: 52px !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 15px !important;
+  background: var(--kpi-icon) !important;
+  color: var(--kpi-accent) !important;
+  box-sizing: border-box !important;
+}
+
+#pmd-dashboard-lab
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-icon svg {
+  display: block !important;
+  width: 24px !important;
+  height: 24px !important;
+  fill: none !important;
+  stroke: currentColor !important;
+}
+
+#pmd-dashboard-lab
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-copy {
+  position: relative !important;
+  display: flex !important;
+  min-width: 0 !important;
+  width: auto !important;
+  height: auto !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  align-self: center !important;
+  overflow: hidden !important;
+}
+
+#pmd-dashboard-lab
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-title {
+  display: block !important;
+  margin: 0 0 3px !important;
+  color: var(--kpi-accent) !important;
+  font-size: 14px !important;
+  font-weight: 850 !important;
+  line-height: 1.15 !important;
+}
+
+#pmd-dashboard-lab
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-value {
+  display: block !important;
+  margin: 0 !important;
+  color: var(--kpi-accent) !important;
+  font-size: 30px !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+}
+
+#pmd-dashboard-lab
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-description {
+  display: block !important;
+  margin: 6px 0 0 !important;
+  overflow: hidden !important;
+  color: var(--kpi-accent) !important;
+  font-size: 11px !important;
+  font-weight: 650 !important;
+  line-height: 1.2 !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+#pmd-dashboard-lab
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-more,
+#pmd-dashboard-lab
+#pmd-r2-reservation-kpis-v307
+.pmd-kpi-info-button {
+  position: relative !important;
+  z-index: 3 !important;
+  max-width: 34px !important;
+  max-height: 40px !important;
+}
+
+@media (min-width: 821px) and (max-width: 1100px) {
+  #pmd-dashboard-lab #pmd-r2-reservation-kpis-v307 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 820px) {
+  #pmd-dashboard-lab #pmd-r2-reservation-kpis-v307 {
+    display: grid !important;
+    grid-template-columns: none !important;
+    grid-template-rows: 1fr !important;
+    grid-auto-flow: column !important;
+    grid-auto-columns: calc((100% - 10px) / 2) !important;
+    gap: 10px !important;
+    max-width: 100% !important;
+    margin-top: 10px !important;
+    padding: 2px 9px 10px 2px !important;
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+    scroll-snap-type: x mandatory !important;
+  }
+
+  #pmd-dashboard-lab
+  #pmd-r2-reservation-kpis-v307
+  .pmd-r2-kpi-v2401-card {
+    grid-template-columns: 36px minmax(0, 1fr) 20px !important;
+    gap: 7px !important;
+    min-height: 116px !important;
+    height: 116px !important;
+    padding: 10px !important;
+    border-radius: 15px !important;
+    scroll-snap-align: start !important;
+  }
+
+  #pmd-dashboard-lab
+  #pmd-r2-reservation-kpis-v307
+  .pmd-r2-kpi-v2401-icon {
+    width: 36px !important;
+    min-width: 36px !important;
+    max-width: 36px !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    max-height: 36px !important;
+    border-radius: 10px !important;
+  }
+
+  #pmd-dashboard-lab
+  #pmd-r2-reservation-kpis-v307
+  .pmd-r2-kpi-v2401-value {
+    font-size: 24px !important;
+  }
+}
