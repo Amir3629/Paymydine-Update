@@ -4973,3 +4973,22 @@ html body #pmd-reservation-composer-v1
     min-width: 0 !important;
   }
 }
+
+
+/* PMD_COMPOSER_FINAL_NO_MOTION_GUARD_R1
+ * Higher specificity than the platform-wide overlay authority, even when an
+ * older cached overlay stylesheet is still present later in the cascade.
+ */
+html body
+#pmd-reservation-composer-v1.pmd-reservation-composer-v1--glass-r1.show
+> #pmd-reservation-composer-dialog-v1.modal-dialog,
+html body
+#pmd-reservation-composer-v1.pmd-reservation-composer-v1--glass-r1
+> #pmd-reservation-composer-dialog-v1.modal-dialog {
+  opacity: 1 !important;
+  transform: none !important;
+  animation: none !important;
+  transition: none !important;
+  filter: none !important;
+  -webkit-filter: none !important;
+}
