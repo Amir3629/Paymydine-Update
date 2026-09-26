@@ -41,6 +41,19 @@
    */
   var pmdLastAvailabilitySignatureV3 = null;
 
+  /*
+   * PMD_COMPOSER_PRIMER_CACHE_R10
+   *
+   * New-reservation opens are primed before the user clicks. The cached
+   * response already contains canonical defaults + the first availability
+   * recommendation, so repeated opens never start from an empty policy row.
+   *
+   * Memory-only cache: no cross-page stale state and no persistence risk.
+   */
+  var pmdCreatePrimerCacheR10 = Object.create(null);
+  var pmdCreatePrimerInflightR10 = Object.create(null);
+  var PMD_CREATE_PRIMER_TTL_R10 = 120000;
+
 
   function clean(value) { return String(value == null ? '' : value).trim(); }
   function positiveIds(values) {
