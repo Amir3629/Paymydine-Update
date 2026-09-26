@@ -3248,6 +3248,7 @@ function applyAvailability(result) {
   var initialized = false;
   var wheel = null;
   var syncing = false;
+  var publishingFromWheel = false;
   var settleTimers = new WeakMap();
 
   function pad(value) {
@@ -3327,7 +3328,12 @@ function applyAvailability(result) {
     column.setAttribute('role', 'listbox');
     column.setAttribute('aria-label', label);
 
-    valuesRepeated(values, 5).forEach(function (value) {
+    /*
+     * PMD_COMPOSER_TIME_INERTIA_R13
+     * More repeated cycles give fast touch/mouse-wheel flings enough runway
+     * without hitting a finite edge before we can quietly re-center.
+     */
+    valuesRepeated(values, 9).forEach(function (value) {
       var item = document.createElement('button');
 
       item.type = 'button';
@@ -3432,7 +3438,7 @@ function applyAvailability(result) {
   }
 
   function publishTime() {
-    if (!wheel || syncing) {
+    if (!wheel || syncing || publishingFromWheel) {
       return;
     }
 
@@ -3454,11 +3460,13 @@ function applyAvailability(result) {
       return;
     }
 
-    var next = nativeTime(
+    var rawNext = nativeTime(
       hour,
       minute,
       period
     );
+
+    var next = rawNext;
 
     if (
       window.PMDReservationComposerFutureOnlyV1
@@ -3467,11 +3475,19 @@ function applyAvailability(result) {
       next = window.PMDReservationComposerFutureOnlyV1.coerceTime(next);
     }
 
-    if (field.value === next) {
-      if (window.PMDReservationComposerFutureOnlyV1) window.PMDReservationComposerFutureOnlyV1.refreshWheel(wheel);
+    if (!next || field.value === next) {
       return;
     }
 
+    /*
+     * PMD_COMPOSER_TIME_NO_FEEDBACK_LOOP_R13
+     *
+     * A wheel commit must still dispatch native input/change so availability
+     * updates, but those two events must not immediately force all three wheel
+     * columns back to their middle clones. That feedback loop was the main
+     * source of the broken/jumpy feel during fast touch and mouse-wheel use.
+     */
+    publishingFromWheel = true;
     field.value = next;
 
     field.dispatchEvent(
@@ -3485,47 +3501,113 @@ function applyAvailability(result) {
         bubbles: true
       })
     );
+
+    window.requestAnimationFrame(function () {
+      publishingFromWheel = false;
+
+      /*
+       * Disabled/closed-time coercion is rare. Only in that case do we perform
+       * one authoritative visual sync to the corrected canonical time.
+       */
+      if (next !== rawNext) {
+        syncFromNative();
+      }
+    });
   }
 
   function settle(column) {
     var selected = closestItem(column);
 
     if (!selected) {
-      if (window.PMDReservationComposerFutureOnlyV1) {
-        window.PMDReservationComposerFutureOnlyV1.refreshWheel(wheel);
-      }
       return;
     }
 
-    /* PMD_JADE_RECENTER_MIDDLE_CYCLE_V1_4_20260815
-     * Each value is repeated five times. Always settle on the middle clone so
-     * Safari cannot accumulate at the finite scroll edge and expose a white
-     * center band after aggressive wheel scrolling. */
-    var middle = middleItem(column, selected.dataset.value) || selected;
-    setSelected(column, middle);
-    centerItem(column, middle, false);
+    var allItems = items(column);
+    var selectedIndex = allItems.indexOf(selected);
+    var selectedValue = selected.dataset.value;
+
+    setSelected(column, selected);
+
+    /*
+     * Native scroll inertia and CSS snap do almost all positioning. We only
+     * make a tiny final exact-center correction after scrolling has ended.
+     */
+    centerItem(column, selected, false);
     publishTime();
+
+    /*
+     * Re-center repeated cycles only near an actual edge. Re-centering on every
+     * release looked identical visually but created extra scroll events and
+     * made Safari/touch input feel sticky.
+     */
+    var edgeThreshold = Math.max(
+      3,
+      Math.floor(allItems.length * 0.16)
+    );
+
+    if (
+      selectedIndex >= 0
+      && (
+        selectedIndex < edgeThreshold
+        || selectedIndex > allItems.length - 1 - edgeThreshold
+      )
+    ) {
+      window.requestAnimationFrame(function () {
+        var middle = middleItem(column, selectedValue);
+
+        if (!middle || middle === selected) {
+          return;
+        }
+
+        setSelected(column, middle);
+        centerItem(column, middle, false);
+      });
+    }
   }
 
   function bindColumn(column) {
+    function clearSettleTimer() {
+      var previous = settleTimers.get(column);
+
+      if (previous) {
+        window.clearTimeout(previous);
+        settleTimers.delete(column);
+      }
+    }
+
+    function settleAfterInertia() {
+      clearSettleTimer();
+      settle(column);
+    }
+
+    /*
+     * Prefer the browser's scrollend event. The debounce is a fallback for
+     * Safari versions that do not expose it yet.
+     */
+    if ('onscrollend' in column) {
+      column.addEventListener(
+        'scrollend',
+        settleAfterInertia,
+        { passive: true }
+      );
+    }
+
     column.addEventListener(
       'scroll',
       function () {
-        var previous =
-          settleTimers.get(column);
-
-        if (previous) {
-          window.clearTimeout(previous);
+        if ('onscrollend' in column) {
+          return;
         }
 
-        var timer = window.setTimeout(
-          function () {
-            settle(column);
-          },
-          100
-        );
+        clearSettleTimer();
 
-        settleTimers.set(column, timer);
+        settleTimers.set(
+          column,
+          window.setTimeout(
+            settleAfterInertia,
+            180
+          )
+        );
       },
       {
         passive: true
@@ -3543,6 +3625,7 @@ function applyAvailability(result) {
           return;
         }
 
+        clearSettleTimer();
         setSelected(column, item);
         centerItem(column, item, true);
         publishTime();
@@ -3560,9 +3643,11 @@ function applyAvailability(result) {
         }
 
         event.preventDefault();
+        clearSettleTimer();
 
         var allItems = items(column).filter(function (item) { return !item.disabled; });
         if (!allItems.length) return;
+
         var current =
           activeItem(column)
           || closestItem(column);
@@ -3722,7 +3807,7 @@ function applyAvailability(result) {
   }
 
   function syncFromNative() {
-    if (!wheel) {
+    if (!wheel || publishingFromWheel) {
       return;
     }
 
@@ -4788,33 +4873,43 @@ function applyAvailability(result) {
   }
 
   function recommendationText() {
-    /*
-     * PMD_AUTO_TABLE_BUTTON_STABLE_R5
-     *
-     * The left control is a MODE selector, not a live status ticker.
-     * Keep its visible label constant so opening the Composer never flashes
-     * Table N -> Automatic table -> Table N while availability hydrates.
-     *
-     * The actual recommendation remains visible in the dedicated green
-     * suggestion/status row and in label.title below.
-     */
-    return 'Automatic table';
+    var ids = autoRecommendationIds();
+
+    if (!ids.length) {
+      return 'Automatic table';
+    }
+
+    var catalog = tableCatalog();
+
+    var names = ids.map(function (id) {
+      /*
+       * The select option may include "· Floor". Keep the visible control
+       * compact and show the actual suggested table name/number.
+       */
+      return nameFor(id, catalog)
+        .split(' · ')[0]
+        .trim();
+    });
+
+    return 'Automatic table · ' + names.join(' + ');
   }
 
   function updateRecommendationButton() {
     var auto = assignmentRadio('auto');
     var label = labelForRadio(auto);
+    var visible = visibleLabelNode(label);
 
-    if (!label) {
+    if (!label || !visible) {
       return;
     }
 
     /*
-     * PMD_AUTO_MODE_IMMUTABLE_PRESENTATION_R8
+     * PMD_AUTO_RECOMMENDATION_IN_BUTTON_R13
      *
-     * Availability may change metadata/title only. It must never add/remove
-     * classes that alter the visible Auto control, because those class flips
-     * were still producing Safari repaint flashes.
+     * The removed green policy row no longer owns recommendation text.
+     * The canonical recommendation is rendered directly inside the Automatic
+     * table control. Geometry/classes remain stable, so availability updates
+     * change text only and do not re-paint the whole button.
      */
     label.classList.remove(
       'pmd-smart-recommendation-v224',
@@ -4826,12 +4921,18 @@ function applyAvailability(result) {
       '1'
     );
 
+    var text = recommendationText();
     var ids = autoRecommendationIds();
+    var catalog = tableCatalog();
 
-    if (!latestAvailability) {
-      label.title = 'Automatic table';
-    } else if (ids.length) {
-      var catalog = tableCatalog();
+    visible.setAttribute(
+      'data-pmd-auto-mode-label',
+      text
+    );
+    visible.textContent = text;
+    label.setAttribute('aria-label', text);
+
+    if (ids.length) {
       label.title = 'Automatic table · Recommended: ' + ids.map(function (id) {
         return nameFor(id, catalog);
       }).join(' + ');
