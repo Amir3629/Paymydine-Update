@@ -5058,9 +5058,12 @@ function applyAvailability(result) {
 
 
 /* ============================================================
-   PMD_COMPOSER_MODAL_BACKGROUND_STATE_R14
-   Make the Side Menu participate in the same blurred background plane while
-   the Reservation Composer is open.
+   PMD_COMPOSER_MODAL_BACKGROUND_STATE_R18
+
+   The card must paint BEFORE expensive full-viewport blur work starts.
+   Open state is committed synchronously, then background/sidebar blur is
+   enabled one painted frame later. This keeps the Composer click immediate
+   while the rest of the application eases into the same glass plane.
    ============================================================ */
 (function () {
   'use strict';
@@ -5072,12 +5075,15 @@ function applyAvailability(result) {
 
   if (
     !root
-    || root.dataset.pmdBackgroundStateR14 === '1'
+    || root.dataset.pmdBackgroundStateR18 === '1'
   ) {
     return;
   }
 
-  root.dataset.pmdBackgroundStateR14 = '1';
+  root.dataset.pmdBackgroundStateR18 = '1';
+
+  var blurFrameA = 0;
+  var blurFrameB = 0;
 
   function setOpen(active) {
     document.documentElement.classList.toggle(
@@ -5086,10 +5092,59 @@ function applyAvailability(result) {
     );
   }
 
+  function setBlur(active) {
+    document.documentElement.classList.toggle(
+      'pmd-reservation-composer-blur-r18',
+      Boolean(active)
+    );
+  }
+
+  function cancelBlurFrames() {
+    if (blurFrameA) {
+      window.cancelAnimationFrame(blurFrameA);
+      blurFrameA = 0;
+    }
+
+    if (blurFrameB) {
+      window.cancelAnimationFrame(blurFrameB);
+      blurFrameB = 0;
+    }
+  }
+
+  function stageBlurAfterFirstPaint() {
+    cancelBlurFrames();
+    setBlur(false);
+
+    /*
+     * First RAF = before the first Composer paint.
+     * Second RAF = next frame, after the finished card has already painted.
+     */
+    blurFrameA =
+      window.requestAnimationFrame(
+        function () {
+          blurFrameA = 0;
+
+          blurFrameB =
+            window.requestAnimationFrame(
+              function () {
+                blurFrameB = 0;
+
+                if (
+                  root.classList.contains('show')
+                ) {
+                  setBlur(true);
+                }
+              }
+            );
+        }
+      );
+  }
+
   root.addEventListener(
     'show.bs.modal',
     function () {
       setOpen(true);
+      stageBlurAfterFirstPaint();
     }
   );
 
@@ -5097,18 +5152,31 @@ function applyAvailability(result) {
     'shown.bs.modal',
     function () {
       setOpen(true);
+
+      if (
+        !document.documentElement.classList.contains(
+          'pmd-reservation-composer-blur-r18'
+        )
+        && !blurFrameA
+        && !blurFrameB
+      ) {
+        stageBlurAfterFirstPaint();
+      }
     }
   );
 
   root.addEventListener(
     'hidden.bs.modal',
     function () {
+      cancelBlurFrames();
+      setBlur(false);
       setOpen(false);
     }
   );
 
   if (root.classList.contains('show')) {
     setOpen(true);
+    stageBlurAfterFirstPaint();
   }
 }());
 
