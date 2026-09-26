@@ -50,7 +50,7 @@
               <label><input type="radio" name="assignment_mode" value="later"><span>Assign later</span></label>
             </div>
             <div class="pmd-reservation-composer-v1__feature-preferences" data-pmd-composer-feature-preferences hidden>
-              <span class="pmd-reservation-composer-v1__feature-title">{{ $pmdComposerFeatureText['title'] }}</span>
+              <span class="pmd-reservation-composer-v1__feature-title"><svg aria-hidden="true"><use href="#pmd-composer-icon-preferences"/></svg><b>{{ $pmdComposerFeatureText['title'] }}</b></span>
               <div class="pmd-reservation-composer-v1__feature-options">
                 <label data-pmd-composer-feature-option="near_window" hidden>
                   <input type="checkbox" name="pmd_table_features[]" value="near_window">
@@ -115,5 +115,6 @@
   <symbol id="pmd-composer-icon-bell" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></symbol>
   <symbol id="pmd-composer-icon-x" viewBox="0 0 24 24"><path d="m18 6-12 12M6 6l12 12"/></symbol>
   <symbol id="pmd-composer-icon-chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="pmd-composer-icon-preferences" viewBox="0 0 24 24"><path d="M4 6h6M14 6h6M10 4v4M4 12h10M18 12h2M14 10v4M4 18h2M10 18h10M6 16v4"/></symbol>
   <symbol id="pmd-composer-icon-device-floppy" viewBox="0 0 24 24"><path d="M6 4h11l3 3v13H4V6a2 2 0 0 1 2-2M8 4v6h8V4M8 20v-6h8v6"/></symbol>
 </defs></svg>
