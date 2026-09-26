@@ -45,7 +45,7 @@
           <section class="pmd-reservation-composer-v1__assignment" aria-labelledby="pmd-composer-assignment-title">
             <h3 id="pmd-composer-assignment-title"><svg aria-hidden="true"><use href="#pmd-composer-icon-table"/></svg>Table assignment</h3>
             <div class="pmd-reservation-composer-v1__modes">
-              <label data-pmd-auto-mode-control><input type="radio" name="assignment_mode" value="auto"><span data-pmd-auto-mode-label>Automatic table</span></label>
+              <label data-pmd-auto-mode-control aria-label="Automatic table"><input type="radio" name="assignment_mode" value="auto"><span data-pmd-auto-mode-label="Automatic table"></span></label>
               <label><input type="radio" name="assignment_mode" value="choose"><span>Choose table(s)</span></label>
               <label><input type="radio" name="assignment_mode" value="later"><span>Assign later</span></label>
             </div>
