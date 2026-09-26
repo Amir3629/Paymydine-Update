@@ -77,6 +77,12 @@ class Dashboardlab extends AdminController
         /* PMD_DASHBOARD_LAB_STEP4_ALL_DASHBOARD2_ANALYTICS_ASSETS_V1 */
         $this->addCss('css/pmd-dashboard-lab-analytics-v1.css');
 
+        // PMD_DASHBOARD_KPI_RECOVERY_V137_REGISTRATION
+        // V136 restored the proven KPI geometry but had no live registration.
+        // Load it last so mixed Reservations2/canonical asset generations cannot
+        // stretch a KPI card into the dashboard stage.
+        $this->addCss('css/pmd-dashboard-kpi-recovery-v136.css');
+
         // Interaction only: KPI chooser. No boot fetch and no layout writer.
         $this->addJs('js/pmd-dashboard-lab-kpis-v1.js');
 
@@ -141,16 +147,7 @@ class Dashboardlab extends AdminController
          * Reuse one workspace-location resolution across KPI, workforce,
          * Floor preference/registry and Calendar work in this request.
          */
-        $workspaceLocationId = 0;
-        try {
-            $workspaceLocationId = max(
-                0,
-                (int)app(PmdRoleDashboardDataV1::class)
-                    ->resolveWorkspaceLocation()
-            );
-        } catch (\Throwable $ignored) {
-            $workspaceLocationId = 0;
-        }
+        $workspaceLocationId = $this->resolveWorkspaceLocationV137();
 
         // PMD_DASHBOARD_ANALYTICS_SWR_V132
         // Keep one explicit location/locale identity available to the shared
@@ -486,10 +483,7 @@ class Dashboardlab extends AdminController
         }
 
         try {
-            $locationId =
-                (int)app(
-                    PmdRoleDashboardDataV1::class
-                )->resolveWorkspaceLocation();
+            $locationId = $this->resolveWorkspaceLocationV137();
 
             if ($locationId < 1) {
                 return response()->json(
@@ -539,13 +533,52 @@ class Dashboardlab extends AdminController
         }
     }
 
+    /**
+     * PMD_ROLE_DASHBOARD_LOCATION_FAILOPEN_V137
+     *
+     * PmdRoleDashboardDataV1 has been referenced by role dashboards for a long
+     * time but is not present in the tracked repository tree. Prefer it when a
+     * live installation legitimately provides it, otherwise fall back to the
+     * canonical clean-workspace location authority already used by shared Floor.
+     */
+    private function resolveWorkspaceLocationV137(): int
+    {
+        $locationId = 0;
+
+        if (class_exists(PmdRoleDashboardDataV1::class)) {
+            try {
+                $locationId = max(
+                    0,
+                    (int)app(PmdRoleDashboardDataV1::class)
+                        ->resolveWorkspaceLocation()
+                );
+            } catch (\Throwable $ignored) {
+                $locationId = 0;
+            }
+        }
+
+        if ($locationId > 0) {
+            return $locationId;
+        }
+
+        try {
+            return max(
+                0,
+                (int)app(
+                    \Admin\Services\PmdCleanWorkspaceSharedV1::class
+                )->locationId()
+            );
+        } catch (\Throwable $ignored) {
+            return 0;
+        }
+    }
+
     private function resolveKpiPayload(int $locationId = 0): array
     {
         try {
             /* PMD_DASHBOARD_LAB_EXPLICIT_LOCATION_V3_4_3 */
             if ($locationId < 1) {
-                $locationId = (int)app(PmdRoleDashboardDataV1::class)
-                    ->resolveWorkspaceLocation();
+                $locationId = $this->resolveWorkspaceLocationV137();
             }
 
             if (!$locationId) {
@@ -641,8 +674,7 @@ class Dashboardlab extends AdminController
 
         try {
             /* PMD_DASHBOARD_LAB_ANALYTICS_LOCATION_PIN_V3_4_3 */
-            $locationId = app(PmdRoleDashboardDataV1::class)
-                ->resolveWorkspaceLocation();
+            $locationId = $this->resolveWorkspaceLocationV137();
 
             if (!$locationId) {
                 throw new \RuntimeException(

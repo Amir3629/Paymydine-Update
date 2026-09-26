@@ -29,6 +29,8 @@ class Managerlab extends PmdCleanWorkspaceControllerV1
         $this->addCss('css/pmd-role-dashboard-v1.css');
         $this->addCss('css/pmd-manager-online-staff-v1.css');
         $this->addCss('css/pmd-kitchen-today-team-v1.css');
+        // PMD_DASHBOARD_KPI_RECOVERY_V137_REGISTRATION
+        $this->addCss('css/pmd-dashboard-kpi-recovery-v136.css');
         // PMD_DASHBOARD_ANALYTICS_ASSET_URL_V133
         // AssetMaker resolves local files before building their public URL.
         // A query string inside a local relative path makes File::isFile()
@@ -45,6 +47,32 @@ class Managerlab extends PmdCleanWorkspaceControllerV1
                 ) ?: '133'
             )
         );
+    }
+
+    /**
+     * PMD_ROLE_DASHBOARD_SERVICE_FAILOPEN_V137
+     *
+     * Keep the Manager workspace available even when the historical optional
+     * PmdRoleDashboardDataV1 service is absent from a clean tracked checkout.
+     * Shared server KPIs, Floor, Reservations schedule and staff presence remain
+     * canonical; only the optional role bundle/analytics adapter is skipped.
+     */
+    private function pmdRoleDashboardDataV137()
+    {
+        if (!class_exists(PmdRoleDashboardDataV1::class)) {
+            return null;
+        }
+
+        try {
+            return app(PmdRoleDashboardDataV1::class);
+        } catch (\Throwable $error) {
+            logger()->warning(
+                'Manager role dashboard service unavailable',
+                ['message' => $error->getMessage()]
+            );
+
+            return null;
+        }
     }
 
     protected function pmdWorkspaceKey(): string
@@ -75,8 +103,16 @@ class Managerlab extends PmdCleanWorkspaceControllerV1
     public function index()
     {
         if ((string)request()->query('pmd_analytics', '') === '1') {
-            /** @var PmdRoleDashboardDataV1 $dashboard */
-            $dashboard = app(PmdRoleDashboardDataV1::class);
+            $dashboard = $this->pmdRoleDashboardDataV137();
+
+            if (!$dashboard) {
+                return response()->json([
+                    'success' => false,
+                    'unavailable' => true,
+                    'reason' => 'role-dashboard-service-unavailable',
+                ]);
+            }
+
             $period = (string)request()->query(
                 'period',
                 'month'
@@ -119,8 +155,7 @@ class Managerlab extends PmdCleanWorkspaceControllerV1
         string $locale,
         array $floorBootstrap
     ): void {
-        /** @var PmdRoleDashboardDataV1 $dashboard */
-        $dashboard = app(PmdRoleDashboardDataV1::class);
+        $dashboard = $this->pmdRoleDashboardDataV137();
 
         /*
          * PMD_MANAGER_RESERVATION_CALENDAR_PAYLOAD_V1
@@ -141,19 +176,34 @@ class Managerlab extends PmdCleanWorkspaceControllerV1
         }
 
 
-        $bundle = $dashboard->bundle([
-            'liveorders' => ['type' => 'liveorders', 'period' => 'today'],
-            'alerts' => ['type' => 'alerts', 'period' => 'today'],
-            'reservations' => ['type' => 'reservations', 'period' => 'today'],
-        ], $shared->locationId(), $locale);
+        $bundle = [];
 
-        /*
-         * PMD_MANAGER_FLOOR_VISIBLE_OCCUPANCY_V3_3_2
-         * The Manager sees the Floor directly above these cards. Use that same
-         * already-resolved Floor display authority for table counts so KPI and
-         * visible Floor cannot disagree.
-         */
-        $bundle = $this->syncVisibleFloorCounts($bundle, $floorBootstrap);
+        if ($dashboard) {
+            try {
+                $bundle = $dashboard->bundle([
+                    'liveorders' => ['type' => 'liveorders', 'period' => 'today'],
+                    'alerts' => ['type' => 'alerts', 'period' => 'today'],
+                    'reservations' => ['type' => 'reservations', 'period' => 'today'],
+                ], $shared->locationId(), $locale);
+
+                /*
+                 * PMD_MANAGER_FLOOR_VISIBLE_OCCUPANCY_V3_3_2
+                 * The Manager sees the Floor directly above these cards. Use that same
+                 * already-resolved Floor display authority for table counts so KPI and
+                 * visible Floor cannot disagree.
+                 */
+                $bundle = $this->syncVisibleFloorCounts(
+                    $bundle,
+                    $floorBootstrap
+                );
+            } catch (\Throwable $error) {
+                logger()->warning(
+                    'Manager role dashboard bundle unavailable; shared workspace preserved',
+                    ['message' => $error->getMessage()]
+                );
+                $bundle = [];
+            }
+        }
 
         $this->vars['pmdRoleDashboardMode'] = 'manager';
         $this->vars['pmdRoleDashboardBundle'] = $bundle;
@@ -165,7 +215,9 @@ class Managerlab extends PmdCleanWorkspaceControllerV1
             max(0, (int)$shared->locationId())
         );
         $this->vars['pmdRoleOwnerAnalyticsEndpoint'] =
-            admin_url('managerlab').'?pmd_analytics=1';
+            $dashboard
+                ? admin_url('managerlab').'?pmd_analytics=1'
+                : admin_url('dashboardlab').'?pmd_analytics=1';
         // PMD_MANAGER_REMOVE_ROLE_INSIGHT_CARDS_V3_5_2
         // Service pulse / Floor pressure / Guest flow / Menu demand /
         // Operational exceptions / Guest feedback are intentionally gone.
