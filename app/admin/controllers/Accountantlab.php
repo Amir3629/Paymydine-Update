@@ -24,6 +24,8 @@ class Accountantlab extends PmdCleanWorkspaceControllerV1
         parent::__construct();
         $this->addCss('css/pmd-dashboard-lab-analytics-v1.css');
         $this->addCss('css/pmd-role-dashboard-v1.css');
+        // PMD_DASHBOARD_KPI_RECOVERY_V137_REGISTRATION
+        $this->addCss('css/pmd-dashboard-kpi-recovery-v136.css');
         // PMD_DASHBOARD_ANALYTICS_ASSET_URL_V133
         // AssetMaker resolves local files before building their public URL.
         // A query string inside a local relative path makes File::isFile()
@@ -40,6 +42,29 @@ class Accountantlab extends PmdCleanWorkspaceControllerV1
                 ) ?: '133'
             )
         );
+    }
+
+    /**
+     * PMD_ROLE_DASHBOARD_SERVICE_FAILOPEN_V137
+     * Same optional-service guard as Manager. Finance KPI authority stays in
+     * PmdCleanWorkspaceFinanceV1 and is not replaced or synthesized here.
+     */
+    private function pmdRoleDashboardDataV137()
+    {
+        if (!class_exists(PmdRoleDashboardDataV1::class)) {
+            return null;
+        }
+
+        try {
+            return app(PmdRoleDashboardDataV1::class);
+        } catch (\Throwable $error) {
+            logger()->warning(
+                'Accountant role dashboard service unavailable',
+                ['message' => $error->getMessage()]
+            );
+
+            return null;
+        }
     }
 
     protected function pmdWorkspaceKey(): string
@@ -75,8 +100,16 @@ class Accountantlab extends PmdCleanWorkspaceControllerV1
     public function index()
     {
         if ((string)request()->query('pmd_analytics', '') === '1') {
-            /** @var PmdRoleDashboardDataV1 $dashboard */
-            $dashboard = app(PmdRoleDashboardDataV1::class);
+            $dashboard = $this->pmdRoleDashboardDataV137();
+
+            if (!$dashboard) {
+                return response()->json([
+                    'success' => false,
+                    'unavailable' => true,
+                    'reason' => 'role-dashboard-service-unavailable',
+                ]);
+            }
+
             $period = (string)request()->query(
                 'period',
                 'month'
@@ -119,8 +152,7 @@ class Accountantlab extends PmdCleanWorkspaceControllerV1
         string $locale,
         array $floorBootstrap
     ): void {
-        /** @var PmdRoleDashboardDataV1 $dashboard */
-        $dashboard = app(PmdRoleDashboardDataV1::class);
+        $dashboard = $this->pmdRoleDashboardDataV137();
 
         $this->vars['pmdRoleDashboardMode'] = 'accountant';
         // PMD_DASHBOARD_ANALYTICS_SWR_V132
@@ -131,7 +163,9 @@ class Accountantlab extends PmdCleanWorkspaceControllerV1
             max(0, (int)$shared->locationId())
         );
         $this->vars['pmdRoleOwnerAnalyticsEndpoint'] =
-            admin_url('accountantlab').'?pmd_analytics=1';
+            $dashboard
+                ? admin_url('accountantlab').'?pmd_analytics=1'
+                : admin_url('dashboardlab').'?pmd_analytics=1';
 
         /*
          * PMD_ACCOUNTANT_TOP_KPI_SURFACE_RESTORE_V3_5_1
