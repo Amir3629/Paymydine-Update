@@ -125,6 +125,18 @@ html body #pmd-reservation-composer-v1.show .modal-dialog {
   transform: none !important;
 }
 
+/* PMD_RESERVATION_COMPOSER_ZERO_MOTION_R17
+ * The Composer appears on the click frame. Its backdrop must not replay the
+ * platform-wide 180ms glass animation after the card is already ready.
+ */
+html body.pmd-reservation-composer-open-v1 .modal-backdrop,
+html body .pmd-reservation-composer-backdrop-v1,
+html body .pmd-reservation-composer-backdrop-v1.show {
+  animation: none !important;
+  transition: none !important;
+  opacity: 1 !important;
+}
+
 /* Do not fight the confirm modal's own closing lifecycle. */
 html body:has(#adminConfirmModal.modal-closing) .modal-backdrop {
   opacity: 0 !important;
