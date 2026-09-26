@@ -1280,6 +1280,11 @@ function applyAvailability(result) {
       contentState.removeAttribute('aria-hidden');
     }
 
+    root.classList.remove(
+      'pmd-composer-hydrating-v1'
+    );
+    root.setAttribute('aria-busy', 'false');
+
     baseline = snapshot();
 
     window.requestAnimationFrame(function () {
@@ -1540,13 +1545,11 @@ function applyAvailability(result) {
 
   function open(nextContext, origin) {
     /*
-     * PMD_COMPOSER_PRELOAD_BEFORE_SHOW_V1
+     * PMD_COMPOSER_IMMEDIATE_STABLE_SHELL_V2
      *
-     * Do not open the Bootstrap modal in its temporary "Loading reservation"
-     * state. That state is much shorter than the hydrated Composer, so showing
-     * it first makes the card visibly blink/jump when the async payload lands.
-     *
-     * Populate while the modal is still hidden, then show the final card once.
+     * Open immediately, but keep the complete Composer body in layout while
+     * its payload is hydrating. CSS hides only the body paint, not its geometry,
+     * so the modal has its final height from the first frame and never jumps.
      */
     context = nextContext;
     trigger = origin;
@@ -1561,15 +1564,30 @@ function applyAvailability(result) {
       '[data-pmd-composer-content]'
     );
 
+    root.classList.add(
+      'pmd-composer-hydrating-v1'
+    );
+    root.setAttribute('aria-busy', 'true');
+
     if (loadingState) {
       loadingState.hidden = false;
       loadingState.removeAttribute('aria-hidden');
     }
 
     if (contentState) {
-      contentState.hidden = true;
+      /*
+       * It MUST participate in layout during hydration. The hydrating CSS uses
+       * visibility:hidden instead of display:none.
+       */
+      contentState.hidden = false;
       contentState.setAttribute('aria-hidden', 'true');
     }
+
+    ensureModal().show();
+    document.body.classList.add(
+      'pmd-reservation-composer-open-v1'
+    );
+    window.requestAnimationFrame(tagBackdrop);
 
     return request('onLoadReservationComposer', {
       mode: context.mode,
@@ -1584,21 +1602,13 @@ function applyAvailability(result) {
       pmd_floor_locked: context.floorLocked ? 1 : 0
     }).then(function (response) {
       populate(response);
-
-      ensureModal().show();
-      document.body.classList.add(
-        'pmd-reservation-composer-open-v1'
-      );
-
-      window.requestAnimationFrame(tagBackdrop);
-
       return response;
     }).catch(function (error) {
-      /*
-       * Load failures still get a visible Composer so the canonical validation
-       * summary can explain the problem; only successful opens skip the
-       * transient loading card.
-       */
+      root.classList.remove(
+        'pmd-composer-hydrating-v1'
+      );
+      root.setAttribute('aria-busy', 'false');
+
       if (loadingState) {
         loadingState.hidden = true;
         loadingState.setAttribute('aria-hidden', 'true');
@@ -1610,14 +1620,6 @@ function applyAvailability(result) {
       }
 
       showError(error);
-
-      ensureModal().show();
-      document.body.classList.add(
-        'pmd-reservation-composer-open-v1'
-      );
-
-      window.requestAnimationFrame(tagBackdrop);
-
       throw error;
     });
   }
@@ -3744,6 +3746,17 @@ function applyAvailability(result) {
     var ids = autoRecommendationIds();
 
     /*
+     * PMD_AUTO_TABLE_STABLE_FIRST_PAINT_V1
+     *
+     * A missing availability payload means "not checked yet", not "no table".
+     * Showing "No table found" before the first canonical response caused the
+     * Auto button to flash and then change immediately after opening.
+     */
+    if (!latestAvailability) {
+      return 'Finding best table…';
+    }
+
+    /*
      * Automatic assignment never falls back to previously
      * selected tables. It is availability-owned only.
      */
@@ -3775,13 +3788,23 @@ function applyAvailability(result) {
       'pmd-smart-recommendation-v224'
     );
 
+    var pending = !latestAvailability;
+    label.classList.toggle(
+      'pmd-smart-recommendation-pending-v224',
+      pending
+    );
+
     text.textContent = recommendationText();
 
     var ids = autoRecommendationIds();
 
-    label.title = ids.length
-      ? 'Recommended available table'
-      : 'The recommendation updates with date, time, duration and guests';
+    label.title = pending
+      ? 'Checking table availability'
+      : (
+          ids.length
+            ? 'Recommended available table'
+            : 'No matching table is currently available'
+        );
   }
 
   function ensureDurationIcon() {
@@ -4035,6 +4058,12 @@ function applyAvailability(result) {
     function () {
       /* PMD_COMPOSER_AUTO_RECOMMENDATION_SESSION_RESET_V2427 */
       latestAvailability = null;
+
+      /*
+       * Set the pending label before Bootstrap paints the modal so a previous
+       * reservation's recommendation can never flash on the next open.
+       */
+      updateRecommendationButton();
     }
   );
 
