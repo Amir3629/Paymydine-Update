@@ -3,8 +3,9 @@
 namespace Admin\Controllers;
 
 use Admin\Facades\AdminMenu;
+use Admin\Facades\AdminAuth;
 use Admin\Classes\AdminController;
-use System\Classes\ApplicationException;
+use Admin\Services\PmdDefaultStaffRoleService;
 
 class History extends AdminController
 {
@@ -20,11 +21,15 @@ class History extends AdminController
         ],
     ];
 
-    protected $requiredPermissions = 'Admin.History';
+    // PMD_HISTORY_ROLE_ACCESS_V154
+    // Admin.History was never registered in PermissionManager, so managed
+    // Owner/Manager roles could be rejected before the page rendered.
+    protected $requiredPermissions = null;
 
     public function __construct()
     {
         parent::__construct();
+        $this->pmdAssertHistoryAccess();
 
         /* PMD_HISTORY_ENGLISH_RUNTIME_R22
          * History is intentionally an English-only clean PayMyDine surface.
@@ -47,6 +52,22 @@ class History extends AdminController
         );
 
         AdminMenu::setContext('history', 'sales');
+    }
+
+    private function pmdAssertHistoryAccess(): void
+    {
+        try {
+            $code = app(PmdDefaultStaffRoleService::class)->roleCodeForUser(AdminAuth::getUser());
+            if (in_array($code, [
+                PmdDefaultStaffRoleService::OWNER,
+                PmdDefaultStaffRoleService::MANAGER,
+            ], true)) {
+                return;
+            }
+        } catch (\Throwable $error) {
+        }
+
+        abort(403);
     }
 
     private function pmdForceEnglishHistoryLocale(): void
@@ -81,9 +102,7 @@ class History extends AdminController
         // Re-assert English immediately before ListController builds flash copy.
         $this->pmdForceEnglishHistoryLocale();
 
-        if (!$this->getUser()->hasPermission('Admin.History'))
-            throw new ApplicationException(lang('admin::lang.alert_user_restricted'));
-
+        // Access was already checked by the managed Owner/Manager role guard.
         // Delegate to ListController's built-in bulk delete handler.
         return $this->asExtension('Admin\\Actions\\ListController')->index_onDelete();
     }
