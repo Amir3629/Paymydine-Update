@@ -1264,6 +1264,24 @@ function applyAvailability(result) {
       window.PMDReservationComposerFutureOnlyV1.apply(true);
     }
 
+    /*
+     * PMD_COMPOSER_CANONICAL_TIME_COMMIT_R7
+     *
+     * FutureOnly has now received the current opening hours and has committed
+     * the final native reserve_time. Synchronize the visual wheel while it is
+     * still masked, then reveal the final value only once.
+     */
+    if (
+      window.PMDComposerStableJadeV221
+      && typeof window.PMDComposerStableJadeV221.refresh === 'function'
+    ) {
+      window.PMDComposerStableJadeV221.refresh();
+    }
+
+    root.classList.remove(
+      'pmd-composer-time-pending-r7'
+    );
+
     // PMD_COMPOSER_REVEAL_AND_BLUR_V18
     // Load succeeded: replace the Loading state with the populated form.
     var loadingState = root.querySelector(
@@ -1619,9 +1637,53 @@ function applyAvailability(result) {
         dateValue(nextContext && nextContext.selectedDate) || '';
     }
 
+    var shellTime =
+      timeValue(
+        nextContext
+        && nextContext.selectedTime
+      ) || '';
+
     if (form.elements.reserve_time) {
       form.elements.reserve_time.value =
-        timeValue(nextContext && nextContext.selectedTime) || '';
+        shellTime;
+    }
+
+    /*
+     * PMD_COMPOSER_TIME_SHELL_R7
+     *
+     * Generic New/Edit opens often have no explicit time in their launch
+     * context. Never display the previous wheel value or a guessed time while
+     * onLoadReservationComposer is still resolving. CSS keeps the exact wheel
+     * geometry and shows a neutral "-- : -- --" center row until populate()
+     * commits the canonical value.
+     */
+    var timePending = !shellTime;
+
+    root.classList.toggle(
+      'pmd-composer-time-pending-r7',
+      timePending
+    );
+
+    if (timePending) {
+      var shellWheel = root.querySelector(
+        '.pmd-jade-wheel-v221'
+      );
+
+      if (shellWheel) {
+        shellWheel.classList.remove(
+          'is-no-available-time'
+        );
+      }
+
+      root.querySelectorAll(
+        '.pmd-jade-wheel-v221__item.is-selected'
+      ).forEach(function (item) {
+        item.classList.remove('is-selected');
+        item.setAttribute(
+          'aria-selected',
+          'false'
+        );
+      });
     }
 
     var auto = form.querySelector(
@@ -1704,7 +1766,8 @@ function applyAvailability(result) {
       return response;
     }).catch(function (error) {
       root.classList.remove(
-        'pmd-composer-hydrating-v1'
+        'pmd-composer-hydrating-v1',
+        'pmd-composer-time-pending-r7'
       );
       root.setAttribute('aria-busy', 'false');
 
@@ -2251,7 +2314,28 @@ function applyAvailability(result) {
   root.addEventListener('change', function (event) {
     if (event.target && String(event.target.name || '') === 'duration') apply(false);
   });
-  root.addEventListener('shown.bs.modal', function () { apply(true); });
+  root.addEventListener(
+    'shown.bs.modal',
+    function () {
+      /*
+       * PMD_COMPOSER_CANONICAL_TIME_FIRST_PAINT_R7
+       *
+       * The modal is intentionally shown before its load request completes.
+       * Do not coerce an empty shell time using stale/previous opening-hours
+       * data. populate() will install the canonical opening hours and call
+       * apply(true) once, before the time wheel is revealed.
+       */
+      if (
+        root.classList.contains(
+          'pmd-composer-hydrating-v1'
+        )
+      ) {
+        return;
+      }
+
+      apply(true);
+    }
+  );
 
   window.PMDReservationComposerFutureOnlyV1 = Object.freeze({
     version:'1.2.0', minimum:minimum, isCreate:isCreate, allowed:allowed,
@@ -2765,6 +2849,24 @@ function applyAvailability(result) {
       return;
     }
 
+    var hydrating =
+      root.classList.contains(
+        'pmd-composer-hydrating-v1'
+      );
+
+    /*
+     * PMD_COMPOSER_CANONICAL_TIME_FIRST_PAINT_R7
+     *
+     * Empty reserve_time is a hydration state, not a real 12:30 reservation.
+     * Leave the wheel visually neutral until the canonical load payload lands.
+     */
+    if (
+      hydrating
+      && !String(field.value || '').trim()
+    ) {
+      return;
+    }
+
     syncing = true;
 
     var value = parseTime(field.value);
@@ -2794,7 +2896,10 @@ function applyAvailability(result) {
       centerItem(entry[0], item, false);
     });
 
-    if (window.PMDReservationComposerFutureOnlyV1) {
+    if (
+      !hydrating
+      && window.PMDReservationComposerFutureOnlyV1
+    ) {
       window.PMDReservationComposerFutureOnlyV1.refreshWheel(wheel);
     }
 
