@@ -95,6 +95,38 @@
         </button>
 
 
+        {{-- PMD_HEADER_EXPAND_SEARCH_V159: Discounts --}}
+        <div
+            class="pmd-header-expand-search"
+            data-pmd-header-expand-search
+            data-pmd-header-search-surface="discounts"
+        >
+            <label class="pmd-header-expand-search__field">
+                <span class="sr-only">{{ $pmdT('search') }}</span>
+                <input
+                    type="search"
+                    placeholder="{{ $pmdT('search') }}"
+                    autocomplete="off"
+                    data-pmd-header-search-input
+                    data-pmd-coupon-search
+                    aria-label="{{ $pmdT('search') }}"
+                >
+            </label>
+            <button
+                type="button"
+                class="pmd-dashboard-lab__header-action pmd-header-expand-search__toggle"
+                data-pmd-header-search-toggle
+                aria-expanded="false"
+                aria-label="{{ $pmdT('search') }}"
+                title="{{ $pmdT('search') }}"
+            >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <circle cx="11" cy="11" r="7"></circle>
+                    <path d="m20 20-3.5-3.5"></path>
+                </svg>
+            </button>
+        </div>
+
             <span
                 data-pmd-main-header-notification-gap-r67=""
                 aria-hidden="true"
@@ -633,10 +665,6 @@
 
     <section class="pmd-coupon-manager__panel">
         <div class="pmd-coupon-manager__toolbar">
-            <label class="pmd-coupon-manager__search">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
-                <input type="search" placeholder="{{ $pmdT('search') }}" autocomplete="off" data-pmd-coupon-search>
-            </label>
             <div class="pmd-coupon-manager__status-filters" aria-label="{{ $pmdT('status_filter') }}">
                 <button type="button" class="is-active" data-pmd-status-filter="all">{{ $pmdT('all') }}</button>
                 <button type="button" data-pmd-status-filter="active">{{ $pmdT('active_only') }}</button>

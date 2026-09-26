@@ -310,6 +310,38 @@
             <span aria-hidden="true">AI</span>
         </button>
 
+        {{-- PMD_HEADER_EXPAND_SEARCH_V159: Menu --}}
+        <div
+            class="pmd-header-expand-search"
+            data-pmd-header-expand-search
+            data-pmd-header-search-surface="menu"
+        >
+            <label class="pmd-header-expand-search__field">
+                <span class="sr-only">{{ $pmdT('search_menu') }}</span>
+                <input
+                    type="search"
+                    placeholder="{{ $pmdT('search_menu') }}"
+                    autocomplete="off"
+                    data-pmd-header-search-input
+                    data-pmd-menu-search
+                    aria-label="{{ $pmdT('search_menu') }}"
+                >
+            </label>
+            <button
+                type="button"
+                class="pmd-dashboard-lab__header-action pmd-header-expand-search__toggle"
+                data-pmd-header-search-toggle
+                aria-expanded="false"
+                aria-label="{{ $pmdT('search_menu') }}"
+                title="{{ $pmdT('search_menu') }}"
+            >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <circle cx="11" cy="11" r="7"></circle>
+                    <path d="m20 20-3.5-3.5"></path>
+                </svg>
+            </button>
+        </div>
+
             <span
                 data-pmd-main-header-notification-gap-r67=""
                 aria-hidden="true"
@@ -868,10 +900,6 @@
 
     <section class="pmd-menu-manager__panel" aria-label="{{ $pmdT('menu_catalogue') }}">
         <div class="pmd-menu-manager__toolbar" data-pmd-food-toolbar>
-            <label class="pmd-menu-manager__search">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
-                <input type="search" placeholder="{{ $pmdT('search_menu') }}" autocomplete="off" data-pmd-menu-search>
-            </label>
             <div class="pmd-menu-manager__toolbar-actions">
                 <div class="pmd-menu-manager__stock-filters" aria-label="{{ $pmdT('stock_filter') }}">
                     <button type="button" class="is-active" data-pmd-stock-filter="all">{{ $pmdT('all') }}</button>
