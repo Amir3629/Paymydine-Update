@@ -24,7 +24,7 @@
     );
   }
 @endphp
-<div class="modal fade pmd-reservation-composer-v1" id="pmd-reservation-composer-v1" tabindex="-1" aria-labelledby="pmd-reservation-composer-title-v1" aria-hidden="true">
+<div class="modal pmd-reservation-composer-v1" id="pmd-reservation-composer-v1" tabindex="-1" aria-labelledby="pmd-reservation-composer-title-v1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-xl" id="pmd-reservation-composer-dialog-v1">
     <div class="modal-content">
       <form id="pmd-reservation-composer-form-v1" novalidate>
