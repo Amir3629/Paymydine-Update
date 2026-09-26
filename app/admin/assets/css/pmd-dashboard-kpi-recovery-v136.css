@@ -188,10 +188,7 @@
 
 #pmd-dashboard-lab
 #pmd-r2-reservation-kpis-v307
-.pmd-r2-kpi-v2401-more,
-#pmd-dashboard-lab
-#pmd-r2-reservation-kpis-v307
-.pmd-kpi-info-button {
+.pmd-r2-kpi-v2401-more {
   position: relative !important;
   z-index: 3 !important;
   max-width: 34px !important;
@@ -265,5 +262,36 @@
   .pmd-r2-kpi-v2401-card {
     min-height: 100px !important;
     padding: 12px 14px !important;
+  }
+}
+
+/* ============================================================
+   PMD_DASHBOARD_KPI_FLOW_V143
+
+   V136 accidentally pulled the KPI info button into CSS Grid flow.
+   That consumed the third grid cell and pushed the three-dot control
+   into an implicit second row, making role-dashboard cards much taller.
+
+   Keep info as the existing overlay authority and lock desktop cards
+   to one compact first-paint row. No data/runtime ownership changes.
+   ============================================================ */
+@media (min-width: 821px) {
+  #pmd-dashboard-lab
+  #pmd-r2-reservation-kpis-v307
+  .pmd-r2-kpi-v2401-card {
+    grid-template-rows: minmax(0, 1fr) !important;
+    height: 100px !important;
+    min-height: 100px !important;
+    max-height: 100px !important;
+    align-self: start !important;
+  }
+
+  #pmd-dashboard-lab
+  #pmd-r2-reservation-kpis-v307
+  button.pmd-kpi-info-button {
+    position: absolute !important;
+    right: 10px !important;
+    bottom: 10px !important;
+    z-index: 25 !important;
   }
 }
