@@ -3,7 +3,6 @@
 namespace Admin\Controllers;
 
 use Admin\Facades\AdminMenu;
-use Admin\Facades\AdminAuth;
 use Admin\Classes\AdminController;
 use Admin\Services\PmdDefaultStaffRoleService;
 
@@ -29,7 +28,6 @@ class History extends AdminController
     public function __construct()
     {
         parent::__construct();
-        $this->pmdAssertHistoryAccess();
 
         /* PMD_HISTORY_ENGLISH_RUNTIME_R22
          * History is intentionally an English-only clean PayMyDine surface.
@@ -56,11 +54,26 @@ class History extends AdminController
 
     private function pmdAssertHistoryAccess(): void
     {
+        // PMD_HISTORY_AUTH_LIFECYCLE_V155
+        // System Controller calls initialize() before index(), and initialize()
+        // is where the authenticated Admin user is attached to this controller.
+        // Never run this check from __construct().
+        $user = $this->getUser();
+        if (!$user) {
+            abort(403);
+        }
+
         try {
-            $code = app(PmdDefaultStaffRoleService::class)->roleCodeForUser(AdminAuth::getUser());
+            if (method_exists($user, 'isSuperUser') && $user->isSuperUser()) {
+                return;
+            }
+
+            $code = app(PmdDefaultStaffRoleService::class)->roleCodeForUser($user);
             if (in_array($code, [
                 PmdDefaultStaffRoleService::OWNER,
                 PmdDefaultStaffRoleService::MANAGER,
+                'owner',
+                'manager',
             ], true)) {
                 return;
             }
@@ -81,6 +94,7 @@ class History extends AdminController
 
     public function index()
     {
+        $this->pmdAssertHistoryAccess();
         $this->pmdForceEnglishHistoryLocale();
 
         \Log::info('TRACE', [
@@ -98,6 +112,8 @@ class History extends AdminController
 
     public function index_onDelete()
     {
+        $this->pmdAssertHistoryAccess();
+
         // AJAX requests may re-bootstrap locale independently of the page load.
         // Re-assert English immediately before ListController builds flash copy.
         $this->pmdForceEnglishHistoryLocale();

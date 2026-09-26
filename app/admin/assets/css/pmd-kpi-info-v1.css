@@ -217,3 +217,24 @@
     visibility: visible;
 }
 /* PMD_KPI_CARD_NO_SUBTITLE_R58_END */
+
+/* PMD_SHIFTS_KPI_INFO_PARITY_V155
+ * Shifts uses the same KPI card component without the #pmd-dashboard-lab wrapper.
+ * Match the other KPI pages: explanation text belongs behind the (i) control.
+ */
+body.pmd-shifts-page
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-description {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    width: 0 !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    max-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    pointer-events: none !important;
+}
+/* PMD_SHIFTS_KPI_INFO_PARITY_V155_END */

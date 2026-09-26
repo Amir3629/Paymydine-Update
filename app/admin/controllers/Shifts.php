@@ -86,10 +86,16 @@ class Shifts extends AdminController
         // Load last so old Shifts-specific 118px KPI rules cannot override the
         // shared 100px PMD KPI frame.
         $this->addCss('css/pmd-dashboard-kpi-recovery-v136.css');
+        // PMD_SHIFTS_KPI_INFO_ASSET_PARITY_V155
+        // Load the exact shared KPI info visual authority used by the other KPI pages.
+        $this->addCss('css/pmd-kpi-info-v1.css');
         // PMD_SHIFTS_MIDNIGHT_TIMELINE_V17N
         // PMD_SONSTIGE_PORTAL_ONLY_UI_V18E
         // Versioned filename intentionally busts older Shifts role UI cache.
         $this->addJs('js/pmd-shifts-inpage-day-nav-v18e.js');
+        // PMD_SHIFTS_KPI_INFO_ASSET_PARITY_V155
+        // @scripts renders after the Shifts DOM, so the shared info runtime can bind normally.
+        $this->addJs('js/pmd-kpi-info-v1.js');
         // PMD_SHIFTS_BIG_CALENDAR_V14
         $this->addJs('js/pmd-shifts-big-calendar-v14.js');
         $this->addJs('js/pmd-shifts-reservation-jade-time-v17c.js');
