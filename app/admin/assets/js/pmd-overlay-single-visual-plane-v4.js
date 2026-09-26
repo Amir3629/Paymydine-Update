@@ -338,6 +338,21 @@
   function chooseCard(root) {
     if (!root || !root.querySelector) return null;
 
+    /*
+     * PMD_RESERVATION_COMPOSER_SINGLE_FRAME_V1
+     *
+     * Bootstrap's .modal-dialog is only the positioning shell. Treating it as
+     * the visual card while .modal-content already owns its own border,
+     * radius, background and shadow creates a visible second frame beneath the
+     * Reservations Composer. For this one modal, the content is the card.
+     */
+    if (root.id === 'pmd-reservation-composer-v1') {
+      try {
+        const composerContent = root.querySelector('.modal-content');
+        if (composerContent && isVisible(composerContent)) return composerContent;
+      } catch (_) {}
+    }
+
     try {
       const preferred = root.querySelector(preferredCardSelector);
       if (preferred && isVisible(preferred)) return preferred;
@@ -434,7 +449,11 @@
       );
     } catch (_) {}
 
-    if (card) {
+    /*
+     * Reservations Composer owns a stable, no-jump open state. Do not layer a
+     * second Web Animation on top of Bootstrap/composer lifecycle.
+     */
+    if (card && root.id !== 'pmd-reservation-composer-v1') {
       try {
         card.animate(
           [
@@ -459,6 +478,18 @@
     setImportant(root, '-webkit-filter', 'none');
 
     const card = chooseCard(root);
+
+    /*
+     * Keep exactly one chrome owner per modal. This also clears the old
+     * .modal-dialog card tag after the Reservations Composer switches to
+     * .modal-content.
+     */
+    try {
+      root.querySelectorAll(`[${CARD_ATTR}="1"]`).forEach(existing => {
+        if (existing !== card) existing.removeAttribute(CARD_ATTR);
+      });
+    } catch (_) {}
+
     if (card) {
       if (card.getAttribute(CARD_ATTR) !== '1') card.setAttribute(CARD_ATTR, '1');
       setImportant(card, 'filter', 'none');
@@ -484,15 +515,17 @@
     } else {
       try { root.querySelector(':scope > .' + PLANE_CLASS)?.remove(); } catch (_) {}
       if (!animatedOpenRoots.has(root) && card) {
-        try {
-          card.animate(
-            [
-              { opacity: 0, transform: 'translateY(6px) scale(.985)' },
-              { opacity: 1, transform: 'none' }
-            ],
-            { duration: DURATION, easing: EASE }
-          );
-        } catch (_) {}
+        if (root.id !== 'pmd-reservation-composer-v1') {
+          try {
+            card.animate(
+              [
+                { opacity: 0, transform: 'translateY(6px) scale(.985)' },
+                { opacity: 1, transform: 'none' }
+              ],
+              { duration: DURATION, easing: EASE }
+            );
+          } catch (_) {}
+        }
         animatedOpenRoots.add(root);
       }
     }
