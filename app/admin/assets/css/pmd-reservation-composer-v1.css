@@ -7589,3 +7589,72 @@ form#pmd-reservation-composer-form-v1
     justify-self: stretch !important;
   }
 }
+
+
+/* ============================================================
+   PMD_RESERVATION_COMPOSER_ONE_RADIUS_R16
+
+   One visible corner language for Composer controls.
+   Every field, button, switch-like choice, picker frame and footer action
+   uses the same 18px radius. Structural shells that are intentionally
+   borderless remain untouched.
+   ============================================================ */
+
+html body #pmd-reservation-composer-v1 {
+  --pmd-composer-radius-r16: 18px;
+}
+
+html body #pmd-reservation-composer-v1
+input:not([type="hidden"]):not([type="radio"]):not([type="checkbox"]),
+html body #pmd-reservation-composer-v1
+select,
+html body #pmd-reservation-composer-v1
+textarea,
+html body #pmd-reservation-composer-v1
+button:not(.pmd-jade-wheel-v221__item),
+html body #pmd-reservation-composer-v1
+.pmd-jade-wheel-v221,
+html body #pmd-reservation-composer-v1
+.pmd-jade-wheel-v221__highlight,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__modes > label,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__modes > label > span,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__feature-options label > span,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__table-trigger,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__table-panel,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__table-option,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__table-chip,
+html body #pmd-reservation-composer-v1
+[data-pmd-auto-mode-control],
+html body #pmd-reservation-composer-v1
+.pmd-smart-choose-dropdown-v224,
+html body #pmd-reservation-composer-v1
+[data-pmd-composer-cancel],
+html body #pmd-reservation-composer-v1
+[data-pmd-composer-save],
+html body #pmd-reservation-composer-v1
+.pmd-composer-stepper-r12 > button,
+html body #pmd-reservation-composer-v1
+.pmd-composer-stepper-r12__value > input[type="number"] {
+  border-radius: var(--pmd-composer-radius-r16) !important;
+}
+
+/* Icon-only header close button follows the same control radius too. */
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__header button {
+  border-radius: var(--pmd-composer-radius-r16) !important;
+}
+
+/* Keep borderless structural wrappers borderless rather than inventing frames. */
+html body #pmd-reservation-composer-v1
+.pmd-composer-stepper-r12,
+html body #pmd-reservation-composer-v1
+.pmd-composer-stepper-r12__value {
+  border-radius: 0 !important;
+}
