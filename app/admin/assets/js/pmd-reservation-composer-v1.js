@@ -1684,6 +1684,34 @@ function applyAvailability(result) {
         dateValue(nextContext && nextContext.selectedDate) || '';
     }
 
+    /*
+     * PMD_COMPOSER_PREPAINT_IDENTITY_R9
+     *
+     * FutureOnly decides whether it may calculate a create-time from the
+     * Reservations page working-hours authority. Reset reservation identity
+     * BEFORE asking it for the first visible time so a previous Edit session
+     * can never make the next New reservation look like an edit.
+     */
+    if (form.elements.reservation_id) {
+      form.elements.reservation_id.value =
+        isCreate
+          ? ''
+          : String(
+              Number(
+                nextContext
+                && nextContext.reservationId
+              ) || ''
+            );
+    }
+
+    if (form.elements.source) {
+      form.elements.source.value =
+        clean(
+          nextContext
+          && nextContext.source
+        );
+    }
+
     var shellTime =
       timeValue(
         nextContext
@@ -1696,13 +1724,82 @@ function applyAvailability(result) {
     }
 
     /*
-     * PMD_COMPOSER_TIME_SHELL_R7
+     * PMD_COMPOSER_CANONICAL_TIME_PREPAINT_R9
      *
-     * Generic New/Edit opens often have no explicit time in their launch
-     * context. Never display the previous wheel value or a guessed time while
-     * onLoadReservationComposer is still resolving. CSS keeps the exact wheel
-     * geometry and shows a neutral "-- : -- --" center row until populate()
-     * commits the canonical value.
+     * Header/card creates often have a date but intentionally no explicit
+     * time. The Reservations schedule has already booted the SAME canonical
+     * working_hours rows used by the Composer. Seed FutureOnly from that
+     * authority before Bootstrap paints the modal and let it calculate the
+     * first valid 15-minute start synchronously.
+     *
+     * Result: the wheel opens directly on e.g. 07:00 PM instead of rendering
+     * "-- : -- --" for the duration of onLoadReservationComposer.
+     */
+    if (
+      isCreate
+      && !shellTime
+      && form.elements.reserve_date
+      && dateValue(form.elements.reserve_date.value)
+      && window.PMDReservationComposerFutureOnlyV1
+      && typeof window.PMDReservationComposerFutureOnlyV1.setOpeningHours === 'function'
+      && typeof window.PMDReservationComposerFutureOnlyV1.apply === 'function'
+    ) {
+      var scheduleApi =
+        window.PMDReservationsScheduleV1;
+
+      var scheduleHours = [];
+
+      try {
+        if (
+          scheduleApi
+          && typeof scheduleApi.getOpeningHours === 'function'
+        ) {
+          scheduleHours =
+            scheduleApi.getOpeningHours();
+        } else if (
+          scheduleApi
+          && typeof scheduleApi.audit === 'function'
+        ) {
+          var scheduleAudit =
+            scheduleApi.audit();
+
+          scheduleHours =
+            scheduleAudit
+            && Array.isArray(
+              scheduleAudit.openingHours
+            )
+              ? scheduleAudit.openingHours
+              : [];
+        }
+      } catch (ignore) {
+        scheduleHours = [];
+      }
+
+      if (
+        Array.isArray(scheduleHours)
+        && scheduleHours.length
+      ) {
+        window.PMDReservationComposerFutureOnlyV1
+          .setOpeningHours(scheduleHours);
+
+        window.PMDReservationComposerFutureOnlyV1
+          .apply(true);
+
+        shellTime =
+          timeValue(
+            form.elements.reserve_time
+            && form.elements.reserve_time.value
+          ) || '';
+      }
+    }
+
+    /*
+     * PMD_COMPOSER_TIME_SHELL_R9
+     *
+     * Only keep the neutral time mask when there truly is no deterministic
+     * create-time available from the canonical Reservations working-hours
+     * bootstrap (or while loading an Edit whose saved time must come from the
+     * record itself).
      */
     var timePending = !shellTime;
 
