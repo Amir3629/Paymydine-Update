@@ -1294,7 +1294,14 @@ function applyAvailability(result) {
       }
       }
 
-      scheduleAvailability();
+      /*
+       * PMD_COMPOSER_INITIAL_AVAILABILITY_IMMEDIATE_V1
+       *
+       * Initial Composer hydration already finished; do not add the normal
+       * 300ms field-edit debounce before asking for the first recommendation.
+       * Field changes still keep their debounce through ordinary listeners.
+       */
+      scheduleAvailability(true);
     });
   }
   function payload() {
