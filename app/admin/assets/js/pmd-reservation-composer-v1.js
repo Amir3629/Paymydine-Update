@@ -54,6 +54,18 @@
   var pmdCreatePrimerInflightR10 = Object.create(null);
   var PMD_CREATE_PRIMER_TTL_R10 = 120000;
 
+  /*
+   * PMD_COMPOSER_HIDDEN_PREHYDRATE_R16
+   *
+   * The server primer already ships with the page. Hydrate the hidden Composer
+   * immediately after the full JS bundle finishes booting, not on the user's
+   * click. A normal New reservation click can therefore do almost nothing more
+   * than Bootstrap.show(): no network wait and no heavy table/wheel DOM build
+   * on the interaction path.
+   */
+  var pmdHiddenPrimerR16 = null;
+  var pmdHiddenPrimerTimerR16 = null;
+
 
   function clean(value) { return String(value == null ? '' : value).trim(); }
   function positiveIds(values) {
@@ -397,12 +409,20 @@
     var key = pmdPrimerKeyR10(nextContext);
     if (!key) return Promise.resolve(null);
 
+    var cachedPrimerR16 =
+      pmdReadPrimerR10(nextContext);
+
     if (
       force !== true
-      && pmdReadPrimerR10(nextContext)
+      && cachedPrimerR16
     ) {
+      pmdScheduleHiddenComposerPrimeR16(
+        nextContext,
+        cachedPrimerR16
+      );
+
       return Promise.resolve(
-        pmdReadPrimerR10(nextContext)
+        cachedPrimerR16
       );
     }
 
@@ -419,10 +439,18 @@
         pmdLoadRequestDataR10(primerContext)
       )
         .then(function (response) {
-          return pmdRememberPrimerR10(
+          var remembered =
+            pmdRememberPrimerR10(
+              primerContext,
+              response
+            );
+
+          pmdScheduleHiddenComposerPrimeR16(
             primerContext,
-            response
+            remembered
           );
+
+          return remembered;
         })
         .catch(function () {
           return null;
@@ -432,6 +460,288 @@
         });
 
     return pmdCreatePrimerInflightR10[key];
+  }
+
+  function pmdPrimerDateR16(nextContext, response) {
+    var serverContext =
+      response
+      && response.pmdServerPrimerContext
+      && typeof response.pmdServerPrimerContext === 'object'
+        ? response.pmdServerPrimerContext
+        : null;
+
+    return (
+      dateValue(
+        nextContext
+        && nextContext.selectedDate
+      )
+      || dateValue(
+        serverContext
+        && serverContext.selected_date
+      )
+      || dateValue(
+        response
+        && response.defaults
+        && response.defaults.reserve_date
+      )
+      || ''
+    );
+  }
+
+  function pmdPrimeHiddenComposerR16(
+    nextContext,
+    response
+  ) {
+    var key =
+      pmdPrimerKeyR10(nextContext);
+
+    if (
+      !key
+      || !response
+      || response.reservation
+      || !response.defaults
+      || !response.pmdInitialAvailability
+      || root.classList.contains('show')
+    ) {
+      return false;
+    }
+
+    var hiddenContext =
+      pmdClonePrimerDataR10(
+        nextContext
+      );
+
+    var hiddenResponse =
+      pmdClonePrimerDataR10(
+        response
+      );
+
+    context = hiddenContext;
+    baseline = '';
+    clearErrors();
+
+    prepareImmediateShell(context);
+
+    populate(
+      hiddenResponse,
+      {
+        suppressInitialAvailability: true
+      }
+    );
+
+    pmdHiddenPrimerR16 = {
+      key: key,
+      date: pmdPrimerDateR16(
+        hiddenContext,
+        hiddenResponse
+      ),
+      generic: (
+        hiddenContext.mode === 'create'
+        && !timeValue(
+          hiddenContext.selectedTime
+        )
+        && positiveIds(
+          hiddenContext.tableIds || []
+        ).length === 0
+        && !hiddenContext.floorLocked
+      )
+    };
+
+    root.setAttribute(
+      'data-pmd-composer-prehydrated-r16',
+      '1'
+    );
+
+    return true;
+  }
+
+  function pmdScheduleHiddenComposerPrimeR16(
+    nextContext,
+    response
+  ) {
+    if (
+      !nextContext
+      || !response
+      || response.reservation
+    ) {
+      return;
+    }
+
+    var scheduledContext =
+      pmdClonePrimerDataR10(
+        nextContext
+      );
+
+    var scheduledResponse =
+      pmdClonePrimerDataR10(
+        response
+      );
+
+    if (pmdHiddenPrimerTimerR16) {
+      window.clearTimeout(
+        pmdHiddenPrimerTimerR16
+      );
+    }
+
+    pmdHiddenPrimerTimerR16 =
+      window.setTimeout(
+        function () {
+          pmdHiddenPrimerTimerR16 = null;
+
+          if (
+            root.classList.contains('show')
+          ) {
+            return;
+          }
+
+          pmdPrimeHiddenComposerR16(
+            scheduledContext,
+            scheduledResponse
+          );
+        },
+        0
+      );
+  }
+
+  function pmdCanUseHiddenPrimerR16(
+    nextContext,
+    response
+  ) {
+    if (
+      !pmdHiddenPrimerR16
+      || !nextContext
+      || !response
+      || root.classList.contains('show')
+    ) {
+      return false;
+    }
+
+    var key =
+      pmdPrimerKeyR10(nextContext);
+
+    if (
+      key
+      && pmdHiddenPrimerR16.key === key
+    ) {
+      return true;
+    }
+
+    return Boolean(
+      pmdHiddenPrimerR16.generic
+      && nextContext.mode === 'create'
+      && !timeValue(
+        nextContext.selectedTime
+      )
+      && positiveIds(
+        nextContext.tableIds || []
+      ).length === 0
+      && !nextContext.floorLocked
+      && dateValue(
+        nextContext.selectedDate
+      )
+      && pmdHiddenPrimerR16.date ===
+        dateValue(
+          nextContext.selectedDate
+        )
+    );
+  }
+
+  function pmdConsumeHiddenPrimerR16(
+    response
+  ) {
+    var serverContext =
+      response
+      && response.pmdServerPrimerContext
+      && typeof response.pmdServerPrimerContext === 'object'
+        ? response.pmdServerPrimerContext
+        : null;
+
+    if (
+      serverContext
+      && context
+      && context.mode === 'create'
+      && !timeValue(
+        context.selectedTime
+      )
+      && positiveIds(
+        context.tableIds || []
+      ).length === 0
+      && !context.floorLocked
+    ) {
+      context.floorId =
+        clean(serverContext.floor_id);
+
+      context.floorName =
+        clean(serverContext.floor_name);
+
+      context.floorLocked = false;
+    }
+
+    if (form.elements.reservation_id) {
+      form.elements.reservation_id.value = '';
+    }
+
+    if (form.elements.source) {
+      form.elements.source.value =
+        clean(
+          context
+          && context.source
+        );
+    }
+
+    if (form.elements.pmd_floor_id) {
+      form.elements.pmd_floor_id.value =
+        clean(
+          context
+          && context.floorId
+        );
+    }
+
+    if (form.elements.pmd_floor_name) {
+      form.elements.pmd_floor_name.value =
+        clean(
+          context
+          && context.floorName
+        );
+    }
+
+    if (form.elements.pmd_floor_locked) {
+      form.elements.pmd_floor_locked.value =
+        context
+        && context.floorLocked
+          ? '1'
+          : '0';
+    }
+
+    root.classList.remove(
+      'pmd-composer-hydrating-v1',
+      'pmd-composer-time-pending-r7'
+    );
+
+    root.setAttribute(
+      'aria-busy',
+      'false'
+    );
+
+    baseline = snapshot();
+
+    ensureModal().show();
+
+    document.body.classList.add(
+      'pmd-reservation-composer-open-v1'
+    );
+
+    window.requestAnimationFrame(
+      tagBackdrop
+    );
+
+    pmdHiddenPrimerR16 = null;
+
+    root.removeAttribute(
+      'data-pmd-composer-prehydrated-r16'
+    );
+
+    return response;
   }
 
   function pmdDefaultPrimerContextR10() {
@@ -2378,11 +2688,35 @@ function applyAvailability(result) {
     var primer =
       pmdReadPrimerR10(context);
 
+    if (
+      primer
+      && pmdCanUseHiddenPrimerR16(
+        context,
+        primer
+      )
+    ) {
+      return Promise.resolve(
+        pmdConsumeHiddenPrimerR16(
+          primer
+        )
+      );
+    }
+
     if (primer) {
+      pmdHiddenPrimerR16 = null;
+      root.removeAttribute(
+        'data-pmd-composer-prehydrated-r16'
+      );
+
       return Promise.resolve(
         showHydrated(primer)
       );
     }
+
+    pmdHiddenPrimerR16 = null;
+    root.removeAttribute(
+      'data-pmd-composer-prehydrated-r16'
+    );
 
     return showImmediateAndLoad()
       .catch(handleOpenError);
@@ -2783,6 +3117,11 @@ function applyAvailability(result) {
         response
       )
     };
+
+    pmdScheduleHiddenComposerPrimeR16(
+      nextContext,
+      response
+    );
 
     return true;
   }
