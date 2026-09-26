@@ -730,7 +730,7 @@
      * second synchronous form snapshot before the browser can paint the card.
      * Show now, then refresh the dirty-check baseline after the first frame.
      */
-    ensureModal().show();
+    pmdShowDirectR20();
 
     document.body.classList.add(
       'pmd-reservation-composer-open-v1'
@@ -822,9 +822,236 @@
     if (!modal) modal = new window.bootstrap.Modal(root, {backdrop:true, keyboard:false, focus:true});
     return modal;
   }
+
+  /*
+   * PMD_COMPOSER_DIRECT_MODAL_R20
+   *
+   * The Composer no longer waits on Bootstrap's synchronous show() pipeline.
+   * The already-prehydrated card is made visible directly in this task. The
+   * one and only blur plane is attached after that card has painted once.
+   *
+   * Internal Composer lifecycle listeners still receive non-bubbling Bootstrap-
+   * named events after first paint, so legacy document-wide modal handlers never
+   * get a chance to block the click-to-card path.
+   */
+  var pmdDirectBackdropR20 = null;
+  var pmdDirectFrameA_R20 = 0;
+  var pmdDirectFrameB_R20 = 0;
+
+  function pmdDispatchModalEventR20(name, cancelable) {
+    var event = new Event(
+      name,
+      {
+        bubbles: false,
+        cancelable: Boolean(cancelable)
+      }
+    );
+
+    root.dispatchEvent(event);
+    return !event.defaultPrevented;
+  }
+
+  function pmdCancelDirectFramesR20() {
+    if (pmdDirectFrameA_R20) {
+      window.cancelAnimationFrame(
+        pmdDirectFrameA_R20
+      );
+      pmdDirectFrameA_R20 = 0;
+    }
+
+    if (pmdDirectFrameB_R20) {
+      window.cancelAnimationFrame(
+        pmdDirectFrameB_R20
+      );
+      pmdDirectFrameB_R20 = 0;
+    }
+  }
+
+  function pmdRemoveDirectBackdropR20() {
+    pmdCancelDirectFramesR20();
+
+    if (
+      pmdDirectBackdropR20
+      && pmdDirectBackdropR20.parentNode
+    ) {
+      pmdDirectBackdropR20.parentNode.removeChild(
+        pmdDirectBackdropR20
+      );
+    }
+
+    pmdDirectBackdropR20 = null;
+
+    document
+      .querySelectorAll(
+        '.pmd-reservation-composer-backdrop-r20'
+      )
+      .forEach(function (node) {
+        node.remove();
+      });
+  }
+
+  function pmdAttachDirectBackdropR20() {
+    if (
+      !root.classList.contains('show')
+      || pmdDirectBackdropR20
+    ) {
+      return;
+    }
+
+    var backdrop =
+      document.createElement('div');
+
+    backdrop.className =
+      'pmd-reservation-composer-backdrop-r20';
+
+    backdrop.setAttribute(
+      'aria-hidden',
+      'true'
+    );
+
+    backdrop.addEventListener(
+      'click',
+      function () {
+        close(false);
+      }
+    );
+
+    document.body.appendChild(
+      backdrop
+    );
+
+    pmdDirectBackdropR20 = backdrop;
+  }
+
+  function pmdStagePostPaintR20() {
+    pmdCancelDirectFramesR20();
+
+    /*
+     * Paint #1 contains only the complete card.
+     * Paint #2 adds ONE backdrop-filter plane over the entire application,
+     * including Side Menu, and runs internal post-open listeners.
+     */
+    pmdDirectFrameA_R20 =
+      window.requestAnimationFrame(
+        function () {
+          pmdDirectFrameA_R20 = 0;
+
+          pmdDirectFrameB_R20 =
+            window.requestAnimationFrame(
+              function () {
+                pmdDirectFrameB_R20 = 0;
+
+                if (
+                  !root.classList.contains('show')
+                ) {
+                  return;
+                }
+
+                pmdAttachDirectBackdropR20();
+
+                pmdDispatchModalEventR20(
+                  'show.bs.modal',
+                  false
+                );
+
+                pmdDispatchModalEventR20(
+                  'shown.bs.modal',
+                  false
+                );
+              }
+            );
+        }
+      );
+  }
+
+  function pmdShowDirectR20() {
+    if (root.classList.contains('show')) {
+      return root;
+    }
+
+    pmdRemoveDirectBackdropR20();
+
+    root.style.display = 'block';
+    root.removeAttribute('aria-hidden');
+    root.setAttribute(
+      'aria-modal',
+      'true'
+    );
+    root.setAttribute(
+      'role',
+      'dialog'
+    );
+    root.classList.add('show');
+
+    document.body.classList.add(
+      'modal-open',
+      'pmd-reservation-composer-open-v1'
+    );
+
+    document.documentElement.classList.add(
+      'pmd-reservation-composer-open-r14',
+      'pmd-reservation-composer-direct-r20'
+    );
+
+    pmdStagePostPaintR20();
+
+    return root;
+  }
+
+  function pmdHideDirectR20() {
+    if (!root.classList.contains('show')) {
+      pmdRemoveDirectBackdropR20();
+      return;
+    }
+
+    if (
+      !pmdDispatchModalEventR20(
+        'hide.bs.modal',
+        true
+      )
+    ) {
+      return;
+    }
+
+    pmdRemoveDirectBackdropR20();
+
+    root.classList.remove(
+      'show',
+      'pmd-reservation-composer-v1--closing'
+    );
+
+    root.style.display = 'none';
+    root.setAttribute(
+      'aria-hidden',
+      'true'
+    );
+    root.removeAttribute('aria-modal');
+    root.removeAttribute('role');
+
+    document.body.classList.remove(
+      'pmd-reservation-composer-open-v1'
+    );
+
+    if (!document.querySelector('.modal.show')) {
+      document.body.classList.remove(
+        'modal-open'
+      );
+    }
+
+    document.documentElement.classList.remove(
+      'pmd-reservation-composer-open-r14',
+      'pmd-reservation-composer-blur-r18',
+      'pmd-reservation-composer-direct-r20'
+    );
+
+    pmdDispatchModalEventR20(
+      'hidden.bs.modal',
+      false
+    );
+  }
+
   function tagBackdrop() {
-    var backdrops = document.querySelectorAll('.modal-backdrop:not(.pmd-reservation-composer-backdrop-v1)');
-    if (backdrops.length) backdrops[backdrops.length - 1].classList.add('pmd-reservation-composer-backdrop-v1');
+    /* R20 owns one direct blur plane. Bootstrap backdrop tagging is obsolete. */
   }
   function snapshot() {
     return JSON.stringify(Array.from(new FormData(form).entries()).sort(function (a,b) { return a[0].localeCompare(b[0]) || clean(a[1]).localeCompare(clean(b[1])); }));
@@ -844,9 +1071,13 @@
       window.PMDReservationComposerSoftDraftV2426.capture();
     }
     if (closing) return;
-    closing = true; root.classList.add('pmd-reservation-composer-v1--closing');
-    var delay = matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 190;
-    window.setTimeout(function () { allowHide = true; ensureModal().hide(); }, delay);
+    closing = true;
+    root.classList.add(
+      'pmd-reservation-composer-v1--closing'
+    );
+
+    allowHide = true;
+    pmdHideDirectR20();
   }
   function clearErrors() {
     root.querySelectorAll('[aria-invalid=true]').forEach(function (field) { field.removeAttribute('aria-invalid'); });
@@ -2647,7 +2878,7 @@ function applyAvailability(result) {
         }
       );
 
-      ensureModal().show();
+      pmdShowDirectR20();
       document.body.classList.add(
         'pmd-reservation-composer-open-v1'
       );
@@ -2661,7 +2892,7 @@ function applyAvailability(result) {
     function showImmediateAndLoad() {
       prepareImmediateShell(context);
 
-      ensureModal().show();
+      pmdShowDirectR20();
       document.body.classList.add(
         'pmd-reservation-composer-open-v1'
       );
