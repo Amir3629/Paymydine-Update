@@ -310,7 +310,23 @@
             <span aria-hidden="true">AI</span>
         </button>
 
-        {{-- PMD_HEADER_EXPAND_SEARCH_V159: Menu --}}
+        {{-- PMD_MENU_SORT_HEADER_ACTION_V160 --}}
+        <button
+            type="button"
+            class="pmd-dashboard-lab__header-action pmd-menu-manager__sort-toggle pmd-menu-manager__sort-toggle--header"
+            data-pmd-menu-sort-toggle
+            aria-pressed="false"
+            aria-label="{{ $pmdT('sort_title') }}"
+            title="{{ $pmdT('sort_title') }}"
+        >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M8 6h12M8 12h12M8 18h12"></path>
+                <path d="M4 5v2M4 11v2M4 17v2"></path>
+            </svg>
+            <span class="sr-only" data-pmd-menu-sort-label>{{ $pmdT('sort_edit') }}</span>
+        </button>
+
+        {{-- PMD_HEADER_SINGLE_FRAME_SEARCH_V160: Menu --}}
         <div
             class="pmd-header-expand-search"
             data-pmd-header-expand-search
@@ -899,21 +915,6 @@
     </section>
 
     <section class="pmd-menu-manager__panel" aria-label="{{ $pmdT('menu_catalogue') }}">
-        <div class="pmd-menu-manager__toolbar" data-pmd-food-toolbar>
-            <div class="pmd-menu-manager__toolbar-actions">
-                <div class="pmd-menu-manager__stock-filters" aria-label="{{ $pmdT('stock_filter') }}">
-                    <button type="button" class="is-active" data-pmd-stock-filter="all">{{ $pmdT('all') }}</button>
-                    <button type="button" data-pmd-stock-filter="in">{{ $pmdT('in_stock') }}</button>
-                    <button type="button" data-pmd-stock-filter="out">{{ $pmdT('stock_out') }}</button>
-                </div>
-                <button type="button" class="pmd-menu-manager__sort-toggle" data-pmd-menu-sort-toggle aria-pressed="false" title="{{ $pmdT('sort_title') }}">
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12"></path><path d="M4 5v2M4 11v2M4 17v2"></path></svg>
-                    <span data-pmd-menu-sort-label>{{ $pmdT('sort_edit') }}</span>
-                </button>
-                <span class="pmd-menu-manager__sort-status" data-pmd-menu-sort-status aria-live="polite"></span>
-            </div>
-        </div>
-
         <div class="pmd-menu-manager__categories" aria-label="{{ $pmdT('menu_categories') }}" data-pmd-food-categories>
             <button type="button" class="is-active" data-pmd-category-filter="all" data-pmd-category-fixed>{{ $pmdT('all_foods') }}</button>
             <!-- PMD_MENU_CATEGORY_DELETE_OWNER_MANAGER_V130 -->
@@ -952,6 +953,23 @@
                     title="{{ $pmdT('add_category') }}"
                 ><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg></button>
             @endif
+
+            {{-- PMD_MENU_STOCK_FILTERS_IN_CATEGORY_RAIL_V160 --}}
+            <span class="pmd-menu-manager__category-filter-divider" aria-hidden="true"></span>
+            <div
+                class="pmd-menu-manager__stock-filters pmd-menu-manager__stock-filters--categories"
+                aria-label="{{ $pmdT('stock_filter') }}"
+            >
+                <button type="button" class="is-active" data-pmd-stock-filter="all">{{ $pmdT('all') }}</button>
+                <button type="button" data-pmd-stock-filter="in">{{ $pmdT('in_stock') }}</button>
+                <button type="button" data-pmd-stock-filter="out">{{ $pmdT('stock_out') }}</button>
+            </div>
+
+            <span
+                class="pmd-menu-manager__sort-status pmd-menu-manager__sort-status--categories"
+                data-pmd-menu-sort-status
+                aria-live="polite"
+            ></span>
         </div>
 
         {{-- PMD_MENU_SERVER_FIRST_ACTION_CARD_V1_6_7 --}}
