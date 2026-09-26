@@ -8022,3 +8022,82 @@ body
   transition: none !important;
   animation: none !important;
 }
+
+
+/* ============================================================
+   PMD_COMPOSER_ICON_GREEN_AND_WHEEL_R23
+
+   Final visual/performance authority for the Reservation Composer:
+   - icon tiles use a clearly light-green frame/fill
+   - time wheel stays native/momentum-driven and visually calm
+   - impossible time components are dimmed only when there is no valid slot
+     anywhere on the selected date/duration
+   ============================================================ */
+
+/* Light-green icon frames requested for every Composer section label. */
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__primary-grid > label > span > svg,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__contact-grid > label > span > svg,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__notes > span > svg,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__assignment > h3 > svg {
+  background:
+    linear-gradient(
+      145deg,
+      rgba(244,253,248,.99) 0%,
+      rgba(225,246,234,.98) 58%,
+      rgba(215,241,227,.96) 100%
+    ) !important;
+  border:
+    1px solid rgba(70,151,116,.24)
+    !important;
+  color: #08705b !important;
+  box-shadow:
+    0 6px 16px rgba(42,112,87,.10),
+    inset 0 1px 0 rgba(255,255,255,.96)
+    !important;
+  border-radius:
+    var(--pmd-composer-control-radius-r19)
+    !important;
+}
+
+/* Reservation Time: native momentum, lighter painting, no visual jank. */
+html body #pmd-reservation-composer-v1
+.pmd-jade-wheel-v221__column {
+  scroll-snap-type: y proximity !important;
+  scroll-snap-stop: normal !important;
+  scroll-behavior: auto !important;
+  overscroll-behavior-y: contain !important;
+  -webkit-overflow-scrolling: touch !important;
+  touch-action: pan-y !important;
+  contain: layout paint !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-jade-wheel-v221__item {
+  scroll-snap-align: center !important;
+  scroll-snap-stop: normal !important;
+  transition:
+    opacity 80ms linear,
+    color 80ms linear
+    !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-jade-wheel-v221__item:disabled,
+html body #pmd-reservation-composer-v1
+.pmd-jade-wheel-v221__item[aria-disabled="true"] {
+  opacity: .14 !important;
+  cursor: default !important;
+}
+
+/* Selected row remains stable while dependent columns auto-correct smoothly. */
+html body #pmd-reservation-composer-v1
+.pmd-jade-wheel-v221__item.is-selected,
+html body #pmd-reservation-composer-v1
+.pmd-jade-wheel-v221__item[aria-selected="true"] {
+  opacity: 1 !important;
+  transform: none !important;
+}
