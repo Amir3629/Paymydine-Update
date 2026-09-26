@@ -151,14 +151,19 @@ class Reservations extends PmdCleanWorkspaceControllerV1
             'pmd_floor_locked' => 0,
         ];
 
-        try {
-            $this->vars['pmdReservationComposerInitialCreate'] =
-                $this->pmdComposerBuildLoadPayload(
-                    $bootstrapContext
-                );
-        } catch (Throwable $error) {
-            $this->vars['pmdReservationComposerInitialCreate'] =
-                null;
+        $this->vars['pmdReservationComposerInitialCreate'] =
+            null;
+
+        if ((string)request()->query('pmd_live', '') !== '1') {
+            try {
+                $this->vars['pmdReservationComposerInitialCreate'] =
+                    $this->pmdComposerBuildLoadPayload(
+                        $bootstrapContext
+                    );
+            } catch (Throwable $error) {
+                $this->vars['pmdReservationComposerInitialCreate'] =
+                    null;
+            }
         }
     }
 
