@@ -6181,3 +6181,150 @@ html body #pmd-reservation-composer-v1
     padding-bottom: 43px !important;
   }
 }
+
+
+/* PMD_RESERVATION_COMPOSER_ORGANIZED_TIME_R7
+ *
+ * Desktop visual balance:
+ * - Time stays to the right of Name + Date.
+ * - Its wheel fills that two-field stack more cleanly.
+ * - During async Composer hydration, reserve the exact geometry but never show
+ *   a provisional/stale time; reveal only the canonical value once.
+ */
+html body #pmd-reservation-composer-v1
+.pmd-composer-v223-area-time.pmd-jade-time-field-v221,
+html body #pmd-reservation-composer-v1
+.pmd-composer-area-time-v222.pmd-jade-time-field-v221 {
+  align-self: stretch !important;
+  display: grid !important;
+  grid-template-rows: auto minmax(0, 1fr) !important;
+  align-content: stretch !important;
+  gap: 1px !important;
+  min-height: 0 !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-composer-v223-area-time
+.pmd-jade-wheel-v221,
+html body #pmd-reservation-composer-v1
+.pmd-composer-area-time-v222
+.pmd-jade-wheel-v221 {
+  width: 100% !important;
+  height: 158px !important;
+  min-height: 158px !important;
+  margin: 0 !important;
+  border-radius: 17px !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-composer-v223-area-time
+.pmd-jade-wheel-v221__column,
+html body #pmd-reservation-composer-v1
+.pmd-composer-area-time-v222
+.pmd-jade-wheel-v221__column {
+  height: 156px !important;
+  min-height: 156px !important;
+  padding-top: 56px !important;
+  padding-bottom: 56px !important;
+}
+
+/* Keep the selected row visually centered and a touch more substantial. */
+html body #pmd-reservation-composer-v1
+.pmd-composer-v223-area-time
+.pmd-jade-wheel-v221__highlight,
+html body #pmd-reservation-composer-v1
+.pmd-composer-area-time-v222
+.pmd-jade-wheel-v221__highlight {
+  height: 48px !important;
+  border-radius: 14px !important;
+}
+
+/*
+ * Canonical-time first paint.
+ * The card still opens immediately, but the wheel never flashes an invented
+ * 12:30/current-time value and then jumps to the restaurant's real first slot.
+ */
+html body
+#pmd-reservation-composer-v1.pmd-composer-time-pending-r7
+.pmd-jade-wheel-v221__item,
+html body
+#pmd-reservation-composer-v1.pmd-composer-time-pending-r7
+.pmd-jade-wheel-v221__separator {
+  visibility: hidden !important;
+  opacity: 0 !important;
+}
+
+html body
+#pmd-reservation-composer-v1.pmd-composer-time-pending-r7
+.pmd-jade-wheel-v221__highlight {
+  z-index: 8 !important;
+  border-color: rgba(7,82,69,.08) !important;
+  background:
+    linear-gradient(
+      90deg,
+      rgba(232,241,230,.62),
+      rgba(239,246,237,.92),
+      rgba(232,241,230,.62)
+    ) !important;
+}
+
+html body
+#pmd-reservation-composer-v1.pmd-composer-time-pending-r7
+.pmd-jade-wheel-v221__highlight::after {
+  content: "--   :   --   --";
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(18,70,60,.42);
+  font-size: 17px;
+  font-weight: 760;
+  line-height: 1;
+  letter-spacing: .08em;
+  white-space: pre;
+}
+
+/* No transition is allowed when canonical time replaces the neutral shell. */
+html body #pmd-reservation-composer-v1
+.pmd-jade-wheel-v221,
+html body #pmd-reservation-composer-v1
+.pmd-jade-wheel-v221__column,
+html body #pmd-reservation-composer-v1
+.pmd-jade-wheel-v221__item,
+html body #pmd-reservation-composer-v1
+.pmd-jade-wheel-v221__highlight {
+  animation: none !important;
+  transition: none !important;
+}
+
+@media (max-width: 700px) {
+  html body #pmd-reservation-composer-v1
+  .pmd-composer-v223-area-time.pmd-jade-time-field-v221,
+  html body #pmd-reservation-composer-v1
+  .pmd-composer-area-time-v222.pmd-jade-time-field-v221 {
+    gap: 7px !important;
+  }
+
+  html body #pmd-reservation-composer-v1
+  .pmd-composer-v223-area-time
+  .pmd-jade-wheel-v221,
+  html body #pmd-reservation-composer-v1
+  .pmd-composer-area-time-v222
+  .pmd-jade-wheel-v221 {
+    height: 136px !important;
+    min-height: 136px !important;
+  }
+
+  html body #pmd-reservation-composer-v1
+  .pmd-composer-v223-area-time
+  .pmd-jade-wheel-v221__column,
+  html body #pmd-reservation-composer-v1
+  .pmd-composer-area-time-v222
+  .pmd-jade-wheel-v221__column {
+    height: 134px !important;
+    min-height: 134px !important;
+    padding-top: 45px !important;
+    padding-bottom: 45px !important;
+  }
+}
