@@ -125,13 +125,141 @@ class Accountantlab extends PmdCleanWorkspaceControllerV1
         $this->vars['pmdRoleDashboardMode'] = 'accountant';
         // PMD_DASHBOARD_ANALYTICS_SWR_V132
         // Read-only snapshot lookup only; no heavy analytics query runs here.
-        $this->vars['pmdRoleOwnerAnalyticsBootstrap'] = app(
+        $analyticsBootstrap = app(
             PmdDashboardAnalyticsSnapshotV132::class
         )->bootstrap(
             max(0, (int)$shared->locationId())
         );
+        $this->vars['pmdRoleOwnerAnalyticsBootstrap'] = $analyticsBootstrap;
         $this->vars['pmdRoleOwnerAnalyticsEndpoint'] =
             admin_url('accountantlab').'?pmd_analytics=1';
+
+        /*
+         * PMD_ACCOUNTANT_EXTRA_CHOOSER_KPIS_V161
+         *
+         * Accountant still shows exactly four cards, but a chooser with only
+         * those same four cards has nothing actionable to select. Add two
+         * finance-relevant alternatives from the already-cached shared
+         * analytics snapshot. No extra DB query is introduced here.
+         */
+        $monthPayload = is_array(
+            $analyticsBootstrap['periods']['month'] ?? null
+        )
+            ? $analyticsBootstrap['periods']['month']
+            : [];
+
+        $tipsPayload = is_array($monthPayload['tips'] ?? null)
+            ? $monthPayload['tips']
+            : [];
+
+        $tipsConnected =
+            !empty($tipsPayload)
+            && (($tipsPayload['available'] ?? true) !== false);
+
+        $tipsMonth = (float)($tipsPayload['month'] ?? 0);
+        $tippedOrders = max(
+            0,
+            (int)($tipsPayload['tipped_orders'] ?? 0)
+        );
+
+        try {
+            $tipsMonthDisplay = function_exists('currency_format')
+                ? currency_format($tipsMonth)
+                : '€'.number_format($tipsMonth, 2);
+        } catch (\Throwable $ignored) {
+            $tipsMonthDisplay = '€'.number_format($tipsMonth, 2);
+        }
+
+        $pmdAccountantText = static function (
+            string $english,
+            string $german
+        ) use ($shared, $locale): string {
+            if ($locale === 'tr') {
+                return \Admin\Classes\PmdPlatformI18n::fromEnglish(
+                    $english,
+                    '',
+                    [],
+                    'tr',
+                    $english
+                );
+            }
+
+            return $shared->text(
+                $english,
+                $german,
+                $locale
+            );
+        };
+
+        $accountantCards = is_array(
+            $this->vars['pmdCleanWorkspaceKpiCards'] ?? null
+        )
+            ? $this->vars['pmdCleanWorkspaceKpiCards']
+            : [];
+
+        $accountantOrder = is_array(
+            $this->vars['pmdCleanWorkspaceKpiOrder'] ?? null
+        )
+            ? array_values($this->vars['pmdCleanWorkspaceKpiOrder'])
+            : array_keys($accountantCards);
+
+        $extraAccountantCards = [
+            'tips_month' => [
+                'key' => 'tips_month',
+                'title' => $pmdAccountantText(
+                    'Tips this month',
+                    'Trinkgeld diesen Monat'
+                ),
+                'value' => $tipsMonthDisplay,
+                'description' => $pmdAccountantText(
+                    'Tips recorded during the current month.',
+                    'Im aktuellen Monat erfasstes Trinkgeld.'
+                ),
+                'info' => $pmdAccountantText(
+                    'Total tips recorded during the current month.',
+                    'Gesamtes im aktuellen Monat erfasstes Trinkgeld.'
+                ),
+                'icon' => 'star',
+                'tone' => 'green',
+                'connected' => $tipsConnected,
+                'period' => 'month',
+                'source' => 'Shared analytics snapshot · tips.month',
+            ],
+            'tipped_orders' => [
+                'key' => 'tipped_orders',
+                'title' => $pmdAccountantText(
+                    'Tipped orders',
+                    'Bestellungen mit Trinkgeld'
+                ),
+                'value' => (string)$tippedOrders,
+                'description' => $pmdAccountantText(
+                    'Orders with recorded tips in the current month.',
+                    'Bestellungen mit erfasstem Trinkgeld im aktuellen Monat.'
+                ),
+                'info' => $pmdAccountantText(
+                    'Number of orders with recorded tips in the current month.',
+                    'Anzahl der Bestellungen mit erfasstem Trinkgeld im aktuellen Monat.'
+                ),
+                'icon' => 'list',
+                'tone' => 'blue',
+                'connected' => $tipsConnected,
+                'period' => 'month',
+                'source' => 'Shared analytics snapshot · tips.tipped_orders',
+            ],
+        ];
+
+        foreach ($extraAccountantCards as $extraKey => $extraCard) {
+            $accountantCards[$extraKey] = $extraCard;
+
+            if (!in_array($extraKey, $accountantOrder, true)) {
+                $accountantOrder[] = $extraKey;
+            }
+        }
+
+        $this->vars['pmdCleanWorkspaceKpiCards'] =
+            $accountantCards;
+        $this->vars['pmdCleanWorkspaceKpiOrder'] =
+            $accountantOrder;
 
         /*
          * PMD_ACCOUNTANT_TOP_KPI_SURFACE_RESTORE_V3_5_1
