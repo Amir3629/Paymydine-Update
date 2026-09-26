@@ -154,3 +154,42 @@ html body:has(#adminConfirmModal.modal-closing) .modal-backdrop {
     transition: none !important;
   }
 }
+
+
+/* ============================================================
+   PMD_RESERVATION_COMPOSER_SIDEBAR_GLASS_R14
+   Side Menu 2 sits in a very high stacking layer, above the normal modal
+   backdrop. Blur it explicitly while the Reservation Composer is open so the
+   whole application reads as one background plane.
+   ============================================================ */
+html.pmd-reservation-composer-open-r14
+body
+#pmd-side-menu2 {
+  filter:
+    blur(7px)
+    saturate(.82)
+    brightness(.96)
+    !important;
+  -webkit-filter:
+    blur(7px)
+    saturate(.82)
+    brightness(.96)
+    !important;
+  opacity: .76 !important;
+  pointer-events: none !important;
+}
+
+html.pmd-reservation-composer-open-r14
+body
+#pmd-side-menu2
+* {
+  pointer-events: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.pmd-reservation-composer-open-r14
+  body
+  #pmd-side-menu2 {
+    transition: none !important;
+  }
+}
