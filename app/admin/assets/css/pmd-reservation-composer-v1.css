@@ -7847,3 +7847,98 @@ html body #pmd-reservation-composer-v1
     transition: none !important;
   }
 }
+
+
+/* ============================================================
+   PMD_RESERVATION_COMPOSER_DIRECT_PLANE_R20
+
+   One immediate card. One blur plane. No Bootstrap visual pipeline.
+   The SAME backdrop-filter covers workspace and Side Menu together, so they
+   can never blur on different timelines.
+   ============================================================ */
+
+/* Highest application plane: Composer card. */
+html.pmd-reservation-composer-direct-r20
+body
+#pmd-reservation-composer-v1 {
+  z-index: 2147483647 !important;
+}
+
+/*
+ * The Side Menu normally owns an extremely high layer. While Composer is open,
+ * place it directly under the single shared blur plane. Do NOT blur the menu
+ * itself; that was the source of the visibly later/different sidebar effect.
+ */
+html.pmd-reservation-composer-direct-r20
+body
+#pmd-side-menu2 {
+  z-index: 2147483645 !important;
+  filter: none !important;
+  -webkit-filter: none !important;
+  opacity: 1 !important;
+  transition: none !important;
+  animation: none !important;
+  pointer-events: none !important;
+}
+
+/* Retire any Bootstrap backdrop if another runtime tries to create one. */
+html.pmd-reservation-composer-direct-r20
+body
+.modal-backdrop {
+  display: none !important;
+}
+
+/*
+ * ONE shared fixed glass plane. Because it sits above Side Menu and workspace,
+ * both receive exactly the same blur in exactly the same frame.
+ */
+html body .pmd-reservation-composer-backdrop-r20 {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 2147483646 !important;
+  display: block !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: rgba(255,255,255,.035) !important;
+  background-color: rgba(255,255,255,.035) !important;
+  opacity: 1 !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  filter: none !important;
+  -webkit-filter: none !important;
+  transition: none !important;
+  animation: none !important;
+  pointer-events: auto !important;
+}
+
+/* Card itself has zero entrance/exit motion. */
+html body #pmd-reservation-composer-v1,
+html body #pmd-reservation-composer-v1 .modal-dialog,
+html body #pmd-reservation-composer-v1.show .modal-dialog,
+html body #pmd-reservation-composer-v1 .modal-content {
+  animation: none !important;
+}
+
+html body #pmd-reservation-composer-v1 .modal-dialog,
+html body #pmd-reservation-composer-v1.show .modal-dialog {
+  transform: none !important;
+  opacity: 1 !important;
+  transition: none !important;
+}
+
+/*
+ * No separate sidebar/background blur authorities while the direct plane owns
+ * the Composer. This prevents R18/R19 from reintroducing staggered blur.
+ */
+html.pmd-reservation-composer-direct-r20.pmd-reservation-composer-blur-r18
+body
+#pmd-side-menu2,
+html.pmd-reservation-composer-direct-r20.pmd-reservation-composer-open-r14
+body
+#pmd-side-menu2 {
+  filter: none !important;
+  -webkit-filter: none !important;
+  opacity: 1 !important;
+  transition: none !important;
+}
