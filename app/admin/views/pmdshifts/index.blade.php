@@ -16,6 +16,7 @@
         ? $liveAttendance['rows']
         : [];
     $stats = $data['stats'] ?? [];
+    $kpiMonthName = trim((string)($stats['month_name'] ?? now()->format('F'))) ?: now()->format('F');
     $departments = $data['departments'] ?? [];
     $accessRoles = collect($data['access_roles'] ?? []);
     $accessStaff = collect($data['access_staff'] ?? []);
@@ -116,6 +117,7 @@
             'title' => 'Scheduled today',
             'value' => (string)(int)($stats['scheduled_today'] ?? 0),
             'description' => 'people across today’s shifts',
+            'info' => 'How many different team members are scheduled to work today.',
             'tone' => 'mauve',
             'icon' => 'calendar',
         ],
@@ -123,6 +125,7 @@
             'title' => 'Present now',
             'value' => ($stats['present_now'] ?? null) === null ? '—' : (string)(int)$stats['present_now'],
             'description' => 'checked in right now',
+            'info' => 'How many scheduled team members are checked in right now.',
             'tone' => 'magenta',
             'icon' => 'check',
         ],
@@ -130,20 +133,23 @@
             'title' => 'Missing now',
             'value' => ($stats['missing_now'] ?? null) === null ? '—' : (string)(int)$stats['missing_now'],
             'description' => 'scheduled now · not checked in',
+            'info' => 'How many scheduled team members should be here now but are not checked in.',
             'tone' => 'yellow',
             'icon' => 'alert',
         ],
         'month_hours' => [
-            'title' => $monthStart->format('F').' hours',
+            'title' => $kpiMonthName.' hours',
             'value' => number_format((float)($stats['month_hours'] ?? 0), 1),
             'description' => (int)($stats['month_shifts'] ?? 0).' shifts · '.(int)($stats['scheduled_days'] ?? 0).' scheduled days',
+            'info' => 'Total planned staff hours for the current month.',
             'tone' => 'cyan',
             'icon' => 'timer',
         ],
         'month_shifts' => [
             'title' => 'Month shifts',
             'value' => (string)(int)($stats['month_shifts'] ?? 0),
-            'description' => 'planned shifts in '.$monthStart->format('F'),
+            'description' => 'planned shifts in '.$kpiMonthName,
+            'info' => 'Number of planned shifts in the current month.',
             'tone' => 'orange',
             'icon' => 'layers',
         ],
@@ -151,6 +157,7 @@
             'title' => 'Scheduled days',
             'value' => (string)(int)($stats['scheduled_days'] ?? 0),
             'description' => 'days with at least one planned shift',
+            'info' => 'How many days in the current month have at least one planned shift.',
             'tone' => 'green',
             'icon' => 'days',
         ],
@@ -158,6 +165,7 @@
             'title' => 'Active team',
             'value' => (string)$people->count(),
             'description' => 'people available for shift planning',
+            'info' => 'How many active team members can be used in shift planning.',
             'tone' => 'blue',
             'icon' => 'users',
         ],
@@ -265,6 +273,8 @@
                     class="pmd-r2-kpi-v2401-card"
                     data-pmd-shifts-kpi-slot="{{ $slot }}"
                     data-pmd-shifts-kpi-key="{{ $key }}"
+                    data-pmd-dashboard2-kpi="{{ $key }}"
+                    data-pmd-kpi-info-copy="{{ $card['info'] ?? '' }}"
                     data-pmd-kpi-v2401-tone="{{ $card['tone'] }}"
                 >
                     <div class="pmd-r2-kpi-v2401-icon" aria-hidden="true"><svg viewBox="0 0 24 24">{!! $pmdShiftIcon($card['icon']) !!}</svg></div>
@@ -273,6 +283,25 @@
                         <strong class="pmd-r2-kpi-v2401-value">{{ $card['value'] }}</strong>
                         <span class="pmd-r2-kpi-v2401-description">{{ $card['description'] }}</span>
                     </div>
+                    {{-- PMD_SHIFTS_KPI_INFO_V154 --}}
+                    <div class="pmd-kpi-info-panel" data-pmd-kpi-info-panel="1" aria-live="polite">
+                        <strong></strong>
+                        <span></span>
+                    </div>
+                    <button
+                        type="button"
+                        class="pmd-kpi-info-button"
+                        data-pmd-kpi-info-button="1"
+                        aria-pressed="false"
+                        aria-label="About this KPI"
+                        title="About this KPI"
+                    >
+                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="9"></circle>
+                            <path d="M12 11v5"></path>
+                            <path d="M12 8h.01"></path>
+                        </svg>
+                    </button>
                     <button type="button" class="pmd-r2-kpi-v2401-more" data-pmd-shifts-kpi-menu-button aria-label="Choose KPI" aria-haspopup="menu" aria-expanded="false"><span></span><span></span><span></span></button>
                     <div class="pmd-r2-kpi-v2401-menu pmd-shifts__kpi-menu" data-pmd-shifts-kpi-menu role="menu" hidden>
                         <span class="pmd-dashboard-lab__kpi-menu-heading">Choose KPI</span>

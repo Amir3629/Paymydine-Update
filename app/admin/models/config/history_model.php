@@ -22,7 +22,6 @@ $config['list']['bulkActions'] = [
         'label' => 'Delete',
         'class' => 'btn btn-light text-danger',
         'data-request-confirm' => 'This action cannot be undone. Delete the selected history records?',
-        'permissions' => 'Admin.History',
     ],
 ];
 

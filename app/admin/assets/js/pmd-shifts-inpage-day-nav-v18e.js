@@ -554,6 +554,8 @@
     var data = kpiCards[key];
     if (!card || !data) return;
     card.setAttribute('data-pmd-shifts-kpi-key', key);
+    card.setAttribute('data-pmd-dashboard2-kpi', key);
+    card.setAttribute('data-pmd-kpi-info-copy', data.info || '');
     card.setAttribute('data-pmd-kpi-v2401-tone', data.tone || 'cyan');
     var icon = card.querySelector('.pmd-r2-kpi-v2401-icon');
     var titleNode = card.querySelector('.pmd-r2-kpi-v2401-title');

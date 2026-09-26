@@ -50,6 +50,12 @@
   }
 
   function explanation(card) {
+    // PMD_KPI_PAGE_COPY_V154
+    // A page may provide a short, plain-language explanation while keeping
+    // the shared info-button behavior and visual authority.
+    var directCopy = String(card.getAttribute('data-pmd-kpi-info-copy') || '').trim();
+    if (directCopy) return directCopy;
+
     var key = canonicalKey(card.getAttribute('data-pmd-dashboard2-kpi'));
     var messageKey = PMD_KPI_MESSAGE_KEYS[key] || '';
     var copy = messageKey ? pmdT(messageKey, '') : '';
