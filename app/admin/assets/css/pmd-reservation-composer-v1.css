@@ -4075,3 +4075,64 @@ html body #pmd-reservation-composer-v1.fade,
 html body #pmd-reservation-composer-v1.modal.fade {
   transition: none !important;
 }
+
+
+/* PMD_COMPOSER_IMMEDIATE_STABLE_SHELL_V2
+ *
+ * Keep the final Composer geometry from frame one. During the initial payload
+ * request, the real body occupies its final space but is not painted. The
+ * loading label floats over that stable space and therefore cannot resize or
+ * blink the modal.
+ */
+html body #pmd-reservation-composer-v1.pmd-composer-hydrating-v1
+form {
+  position: relative !important;
+}
+
+html body #pmd-reservation-composer-v1.pmd-composer-hydrating-v1
+[data-pmd-composer-content] {
+  display: block !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+html body #pmd-reservation-composer-v1.pmd-composer-hydrating-v1
+[data-pmd-composer-loading] {
+  position: absolute !important;
+  z-index: 6 !important;
+  top: 50% !important;
+  left: 50% !important;
+  width: auto !important;
+  min-width: 220px !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 12px 18px !important;
+  transform: translate(-50%, -50%) !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: #647b8f !important;
+  text-align: center !important;
+  box-shadow: none !important;
+}
+
+html body #pmd-reservation-composer-v1:not(.pmd-composer-hydrating-v1)
+[data-pmd-composer-loading] {
+  display: none !important;
+}
+
+/* Auto-table first paint is a stable pending state; no fade/flash between
+ * stale/default text and the first canonical recommendation.
+ */
+html body #pmd-reservation-composer-v1
+.pmd-smart-recommendation-pending-v224,
+html body #pmd-reservation-composer-v1
+.pmd-smart-recommendation-pending-v224 > span {
+  transition: none !important;
+  animation: none !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-smart-recommendation-pending-v224 > span {
+  opacity: .86 !important;
+}
