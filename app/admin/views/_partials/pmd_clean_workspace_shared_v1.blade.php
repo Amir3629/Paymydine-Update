@@ -1444,7 +1444,24 @@ html body.page.pmd-clean-workspace-page #pmd-dashboard-lab {
                             ? substr(hash_file('sha256', $pmdReservationsScheduleRuntimePath), 0, 16)
                             : '1';
                     @endphp
-                    <script defer id="pmd-reservations-schedule-direct-v1-2" src="{{ asset('app/admin/assets/js/pmd-reservations-schedule-v1.js') }}?v={{ $pmdReservationsScheduleRuntimeVersion }}"></script>
+                    <script id="pmd-reservations-schedule-direct-v1-3" src="{{ asset('app/admin/assets/js/pmd-reservations-schedule-v1.js') }}?v={{ $pmdReservationsScheduleRuntimeVersion }}"></script>
+                    <script id="pmd-reservations-schedule-boot-check-v1">
+                    (function () {
+                        'use strict';
+                        if (window.PMDReservationsScheduleV1) return;
+                        var script = document.getElementById('pmd-reservations-schedule-direct-v1-3');
+                        console.error('[PMD Reservations] Schedule runtime did not mount', {
+                            browserPath: window.location ? window.location.pathname : '',
+                            logicalPath: (
+                                window.PMDAdminCanonicalURLR81E
+                                && typeof window.PMDAdminCanonicalURLR81E.logicalPath === 'function'
+                            ) ? window.PMDAdminCanonicalURLR81E.logicalPath() : null,
+                            src: script ? script.src : null,
+                            bootstrap: Boolean(document.getElementById('pmd-reservations-schedule-bootstrap-v1')),
+                            floor: Boolean(document.getElementById('pmd-r2-shared-floor-canvas-v310'))
+                        });
+                    })();
+                    </script>
                 @endif
                 {{-- PMD_CLEAN_WORKSPACE_CANONICAL_RESERVATION_COMPOSER_SURFACE_V1_END --}}
             @endif
