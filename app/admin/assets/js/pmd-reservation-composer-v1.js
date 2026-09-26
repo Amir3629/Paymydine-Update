@@ -897,7 +897,7 @@ function applyAvailability(result) {
 
     if (firstName) {
       firstName.autocomplete = 'name';
-      firstName.placeholder = '';
+      firstName.placeholder = 'Guest name';
 
       var firstLabel = fieldLabel(firstName);
       var firstTitle = labelTitle(firstLabel);
@@ -927,13 +927,17 @@ function applyAvailability(result) {
     }
 
     [
-      [telephone, 'Telefon (optional)'],
-      [email, 'E-Mail (optional)']
+      [telephone, 'Telefon (optional)', 'Phone number'],
+      [email, 'E-Mail (optional)', 'name@example.com']
     ].forEach(function (entry) {
       replaceLabelText(
         labelTitle(fieldLabel(entry[0])),
         entry[1]
       );
+
+      if (entry[0]) {
+        entry[0].placeholder = entry[2];
+      }
     });
 
     if (reserveTime) {
@@ -1288,12 +1292,6 @@ function applyAvailability(result) {
     baseline = snapshot();
 
     window.requestAnimationFrame(function () {
-      if (form.elements.first_name) {
-        if (form.elements.first_name) {
-        form.elements.first_name.focus();
-      }
-      }
-
       /*
        * PMD_COMPOSER_INITIAL_AVAILABILITY_IMMEDIATE_V1
        *
@@ -1550,45 +1548,123 @@ function applyAvailability(result) {
     }
   );
 
+  function prepareImmediateShell(nextContext) {
+    var isCreate = !nextContext || nextContext.mode !== 'edit';
+
+    root.classList.add('pmd-composer-hydrating-v1');
+    root.setAttribute('aria-busy', 'true');
+
+    var loadingState = root.querySelector(
+      '[data-pmd-composer-loading]'
+    );
+    var contentState = root.querySelector(
+      '[data-pmd-composer-content]'
+    );
+
+    if (loadingState) {
+      loadingState.hidden = true;
+      loadingState.setAttribute('aria-hidden', 'true');
+    }
+
+    if (contentState) {
+      contentState.hidden = false;
+      contentState.removeAttribute('aria-hidden');
+    }
+
+    var title = root.querySelector(
+      '[data-pmd-composer-title]'
+    );
+    var subtitle = root.querySelector(
+      '[data-pmd-composer-subtitle]'
+    );
+
+    if (title) {
+      title.textContent = isCreate
+        ? 'New reservation'
+        : 'Edit reservation';
+    }
+
+    if (subtitle) {
+      subtitle.textContent = isCreate
+        ? 'Create a memorable dining experience'
+        : 'Review and update this reservation';
+    }
+
+    /*
+     * No stale guest/customer/table state may flash from a previous open.
+     * Seed only values that are safe and deterministic before the payload.
+     */
+    [
+      'first_name',
+      'last_name',
+      'telephone',
+      'email',
+      'comment'
+    ].forEach(function (name) {
+      if (form.elements[name]) {
+        form.elements[name].value = '';
+      }
+    });
+
+    if (form.elements.guest_num) {
+      form.elements.guest_num.value = '1';
+    }
+
+    if (form.elements.duration) {
+      form.elements.duration.value = '45';
+    }
+
+    if (form.elements.reserve_date) {
+      form.elements.reserve_date.value =
+        dateValue(nextContext && nextContext.selectedDate) || '';
+    }
+
+    if (form.elements.reserve_time) {
+      form.elements.reserve_time.value =
+        timeValue(nextContext && nextContext.selectedTime) || '';
+    }
+
+    var auto = form.querySelector(
+      '[name="assignment_mode"][value="auto"]'
+    );
+    if (auto && isCreate) {
+      auto.checked = true;
+    }
+
+    var choose = form.querySelector(
+      '[name="assignment_mode"][value="choose"]'
+    );
+    if (choose && isCreate) {
+      choose.checked = false;
+    }
+
+    root.querySelectorAll(
+      '[data-pmd-console-eq-card]'
+    ).forEach(function (node) {
+      if (
+        !node.classList.contains('modal-content')
+      ) {
+        node.removeAttribute(
+          'data-pmd-console-eq-card'
+        );
+      }
+    });
+  }
+
   function open(nextContext, origin) {
     /*
-     * PMD_COMPOSER_IMMEDIATE_STABLE_SHELL_V2
+     * PMD_COMPOSER_GLASS_IMMEDIATE_OPEN_V1
      *
-     * Open immediately, but keep the complete Composer body in layout while
-     * its payload is hydrating. CSS hides only the body paint, not its geometry,
-     * so the modal has its final height from the first frame and never jumps.
+     * The complete glass card appears on the click frame. There is no visible
+     * loading card and no delayed show. The payload hydrates the already-open
+     * stable form in place.
      */
     context = nextContext;
     trigger = origin;
     baseline = '';
     clearErrors();
 
-    var loadingState = root.querySelector(
-      '[data-pmd-composer-loading]'
-    );
-
-    var contentState = root.querySelector(
-      '[data-pmd-composer-content]'
-    );
-
-    root.classList.add(
-      'pmd-composer-hydrating-v1'
-    );
-    root.setAttribute('aria-busy', 'true');
-
-    if (loadingState) {
-      loadingState.hidden = false;
-      loadingState.removeAttribute('aria-hidden');
-    }
-
-    if (contentState) {
-      /*
-       * It MUST participate in layout during hydration. The hydrating CSS uses
-       * visibility:hidden instead of display:none.
-       */
-      contentState.hidden = false;
-      contentState.setAttribute('aria-hidden', 'true');
-    }
+    prepareImmediateShell(context);
 
     ensureModal().show();
     document.body.classList.add(
@@ -1615,16 +1691,6 @@ function applyAvailability(result) {
         'pmd-composer-hydrating-v1'
       );
       root.setAttribute('aria-busy', 'false');
-
-      if (loadingState) {
-        loadingState.hidden = true;
-        loadingState.setAttribute('aria-hidden', 'true');
-      }
-
-      if (contentState) {
-        contentState.hidden = false;
-        contentState.removeAttribute('aria-hidden');
-      }
 
       showError(error);
       throw error;
@@ -2852,33 +2918,10 @@ function applyAvailability(result) {
     }
   );
 
-  /*
-   * One delayed refresh after a genuine Composer trigger.
-   * This is not recurring and does not observe the page.
+  /* PMD_COMPOSER_NO_DELAYED_PRESENTATION_REFRESH_V1
+   * shown.bs.modal + populate() are the only initial visual refresh owners.
+   * No delayed post-click mutation is allowed on the Composer.
    */
-  document.addEventListener(
-    'click',
-    function (event) {
-      var trigger = event.target.closest(
-        [
-          '[data-r2-add-reservation]',
-          '[data-pmd-add-reservation]',
-          'a[href*="/reservations/create"]',
-          'a[href*="/reservations/edit/"]'
-        ].join(',')
-      );
-
-      if (!trigger) {
-        return;
-      }
-
-      window.setTimeout(function () {
-        initialize();
-        syncFromNative();
-      }, 180);
-    },
-    true
-  );
 
   window.PMDComposerStableJadeV221 = {
     version: VERSION,
@@ -3244,22 +3287,29 @@ function applyAvailability(result) {
     var smart =
       window.PMDSmartContextTablesV224;
 
-    var recommendation = '';
-
+    /*
+     * Never invent an initial "No table found" state. V224 owns the
+     * recommendation and commits it only when canonical availability exists.
+     */
     if (
-      smart
-      && typeof smart.audit === 'function'
+      !smart
+      || typeof smart.audit !== 'function'
     ) {
-      try {
-        recommendation =
-          String(
-            smart.audit().recommendation || ''
-          ).trim();
-      } catch (ignore) {}
+      return;
     }
 
-    visual.textContent =
-      recommendation || 'No table found';
+    var recommendation = '';
+
+    try {
+      recommendation =
+        String(
+          smart.audit().recommendation || ''
+        ).trim();
+    } catch (ignore) {}
+
+    if (recommendation) {
+      visual.textContent = recommendation;
+    }
   }
 
   function nativeTableTrigger() {
@@ -3503,7 +3553,6 @@ function applyAvailability(result) {
     'shown.bs.modal',
     function () {
       apply();
-      scheduleRefresh(450);
     }
   );
 
@@ -3542,7 +3591,6 @@ function applyAvailability(result) {
   );
 
   apply();
-  scheduleRefresh(500);
 
   window.PMDComposerCompactAssignmentV223 = {
     version: VERSION,
@@ -3760,7 +3808,7 @@ function applyAvailability(result) {
      * Auto button to flash and then change immediately after opening.
      */
     if (!latestAvailability) {
-      return 'Finding best table…';
+      return 'Automatic table';
     }
 
     /*
