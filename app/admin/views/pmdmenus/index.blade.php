@@ -915,61 +915,71 @@
     </section>
 
     <section class="pmd-menu-manager__panel" aria-label="{{ $pmdT('menu_catalogue') }}">
-        <div class="pmd-menu-manager__categories" aria-label="{{ $pmdT('menu_categories') }}" data-pmd-food-categories>
-            <button type="button" class="is-active" data-pmd-category-filter="all" data-pmd-category-fixed>{{ $pmdT('all_foods') }}</button>
-            <!-- PMD_MENU_CATEGORY_DELETE_OWNER_MANAGER_V130 -->
-            @foreach($categories as $category)
-                <button
-                    type="button"
-                    data-pmd-category-filter="{{ (int)$category->category_id }}"
-                    data-pmd-category-id="{{ (int)$category->category_id }}"
-                    data-pmd-category-kind="{{ strtolower(trim((string)($category->pmd_kind ?? 'regular'))) }}"
-                    @if($canManageCategories) data-pmd-category-sortable @endif
-                >
-                    <span class="pmd-menu-manager__category-label">{{ $pmdCategoryDisplayName($category) }}</span>
+        {{-- PMD_MENU_CATEGORY_SCROLL_FIXED_FILTERS_V161
+             Only the category strip scrolls horizontally. Stock filters stay
+             pinned on the right regardless of how many categories exist. --}}
+        <div class="pmd-menu-manager__category-rail-shell">
+            <div
+                class="pmd-menu-manager__categories pmd-menu-manager__categories--scroll"
+                aria-label="{{ $pmdT('menu_categories') }}"
+                data-pmd-food-categories
+            >
+                <button type="button" class="is-active" data-pmd-category-filter="all" data-pmd-category-fixed>{{ $pmdT('all_foods') }}</button>
+                <!-- PMD_MENU_CATEGORY_DELETE_OWNER_MANAGER_V130 -->
+                @foreach($categories as $category)
+                    <button
+                        type="button"
+                        data-pmd-category-filter="{{ (int)$category->category_id }}"
+                        data-pmd-category-id="{{ (int)$category->category_id }}"
+                        data-pmd-category-kind="{{ strtolower(trim((string)($category->pmd_kind ?? 'regular'))) }}"
+                        @if($canManageCategories) data-pmd-category-sortable @endif
+                    >
+                        <span class="pmd-menu-manager__category-label">{{ $pmdCategoryDisplayName($category) }}</span>
 
-                    @if($canDeleteCategories)
-                        <span
-                            class="pmd-menu-manager__category-delete-hit"
-                            data-pmd-category-delete="{{ (int)$category->category_id }}"
-                            aria-hidden="true"
-                        >
-                            <svg
-                                viewBox="0 0 24 24"
+                        @if($canDeleteCategories)
+                            <span
+                                class="pmd-menu-manager__category-delete-hit"
+                                data-pmd-category-delete="{{ (int)$category->category_id }}"
                                 aria-hidden="true"
                             >
-                                <path d="M7 12h10"></path>
-                            </svg>
-                        </span>
-                    @endif
-                </button>
-            @endforeach
-            @if($canManageCategories)
-                <button
-                    type="button"
-                    class="pmd-menu-manager__category-add"
-                    data-pmd-category-create
-                    aria-label="{{ $pmdT('add_category') }}"
-                    title="{{ $pmdT('add_category') }}"
-                ><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg></button>
-            @endif
-
-            {{-- PMD_MENU_STOCK_FILTERS_IN_CATEGORY_RAIL_V160 --}}
-            <span class="pmd-menu-manager__category-filter-divider" aria-hidden="true"></span>
-            <div
-                class="pmd-menu-manager__stock-filters pmd-menu-manager__stock-filters--categories"
-                aria-label="{{ $pmdT('stock_filter') }}"
-            >
-                <button type="button" class="is-active" data-pmd-stock-filter="all">{{ $pmdT('all') }}</button>
-                <button type="button" data-pmd-stock-filter="in">{{ $pmdT('in_stock') }}</button>
-                <button type="button" data-pmd-stock-filter="out">{{ $pmdT('stock_out') }}</button>
+                                <svg
+                                    viewBox="0 0 24 24"
+                                    aria-hidden="true"
+                                >
+                                    <path d="M7 12h10"></path>
+                                </svg>
+                            </span>
+                        @endif
+                    </button>
+                @endforeach
+                @if($canManageCategories)
+                    <button
+                        type="button"
+                        class="pmd-menu-manager__category-add"
+                        data-pmd-category-create
+                        aria-label="{{ $pmdT('add_category') }}"
+                        title="{{ $pmdT('add_category') }}"
+                    ><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg></button>
+                @endif
             </div>
 
-            <span
-                class="pmd-menu-manager__sort-status pmd-menu-manager__sort-status--categories"
-                data-pmd-menu-sort-status
-                aria-live="polite"
-            ></span>
+            <div class="pmd-menu-manager__category-fixed-actions">
+                <span class="pmd-menu-manager__category-filter-divider" aria-hidden="true"></span>
+                <div
+                    class="pmd-menu-manager__stock-filters pmd-menu-manager__stock-filters--categories"
+                    aria-label="{{ $pmdT('stock_filter') }}"
+                >
+                    <button type="button" class="is-active" data-pmd-stock-filter="all">{{ $pmdT('all') }}</button>
+                    <button type="button" data-pmd-stock-filter="in">{{ $pmdT('in_stock') }}</button>
+                    <button type="button" data-pmd-stock-filter="out">{{ $pmdT('stock_out') }}</button>
+                </div>
+
+                <span
+                    class="pmd-menu-manager__sort-status pmd-menu-manager__sort-status--categories"
+                    data-pmd-menu-sort-status
+                    aria-live="polite"
+                ></span>
+            </div>
         </div>
 
         {{-- PMD_MENU_SERVER_FIRST_ACTION_CARD_V1_6_7 --}}
