@@ -8124,16 +8124,16 @@ html body #pmd-reservation-composer-v1
   background:
     linear-gradient(
       145deg,
-      rgba(249,255,250,.99) 0%,
-      rgba(239,251,242,.99) 58%,
-      rgba(231,247,236,.98) 100%
+      rgba(253,255,254,.995) 0%,
+      rgba(248,253,249,.995) 58%,
+      rgba(242,250,245,.99) 100%
     ) !important;
   border:
-    1px solid rgba(83,166,111,.16)
+    1px solid rgba(83,166,111,.095)
     !important;
-  color: #0a6b55 !important;
+  color: #2f866f !important;
   box-shadow:
-    0 5px 14px rgba(52,105,76,.055),
+    0 4px 12px rgba(52,105,76,.035),
     inset 0 1px 0 rgba(255,255,255,1)
     !important;
   border-radius:
@@ -8171,3 +8171,7 @@ html body #pmd-reservation-composer-v1
   color: inherit !important;
   font: inherit !important;
 }
+
+
+/* PMD_COMPOSER_ULTRA_PALE_MINT_R25
+   Icon tiles are intentionally almost-white mint with only a faint green cast. */
