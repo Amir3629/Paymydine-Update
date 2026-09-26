@@ -39,8 +39,8 @@
             <label><span><svg aria-hidden="true"><use href="#pmd-composer-icon-user"/></svg>@lang('admin::lang.reservations.label_first_name')</span><input name="first_name" autocomplete="given-name" placeholder="Guest name"><em data-error-for="first_name"></em></label>
             <label><span><svg aria-hidden="true"><use href="#pmd-composer-icon-calendar"/></svg>@lang('admin::lang.reservations.label_reservation_date')</span><input name="reserve_date" type="date"><em data-error-for="reserve_date"></em></label>
             <label><span><svg aria-hidden="true"><use href="#pmd-composer-icon-clock"/></svg>@lang('admin::lang.reservations.label_reservation_time')</span><input name="reserve_time" type="time"><em data-error-for="reserve_time"></em></label>
-            <label><span><svg aria-hidden="true"><use href="#pmd-composer-icon-hourglass"/></svg>@lang('admin::lang.reservations.label_reservation_duration')</span><input name="duration" type="number" min="1" step="1"><em data-error-for="duration"></em></label>
-            <label><span><svg aria-hidden="true"><use href="#pmd-composer-icon-users"/></svg>@lang('admin::lang.reservations.label_guest')</span><input name="guest_num" type="number" min="1" step="1"><em data-error-for="guest_num"></em></label>
+            <label><span><svg aria-hidden="true"><use href="#pmd-composer-icon-hourglass"/></svg>@lang('admin::lang.reservations.label_reservation_duration')</span><div class="pmd-composer-stepper-r12" data-pmd-composer-stepper="duration" role="group" aria-label="Reservation duration"><button type="button" data-pmd-stepper-minus aria-label="Decrease reservation duration"><span aria-hidden="true">−</span></button><div class="pmd-composer-stepper-r12__value"><input name="duration" type="number" min="30" max="180" step="15" inputmode="numeric"><span class="pmd-composer-stepper-r12__suffix" aria-hidden="true">min</span></div><button type="button" data-pmd-stepper-plus aria-label="Increase reservation duration"><span aria-hidden="true">+</span></button></div><em data-error-for="duration"></em></label>
+            <label><span><svg aria-hidden="true"><use href="#pmd-composer-icon-users"/></svg>@lang('admin::lang.reservations.label_guest')</span><div class="pmd-composer-stepper-r12" data-pmd-composer-stepper="guests" role="group" aria-label="Guest number"><button type="button" data-pmd-stepper-minus aria-label="Decrease guest number"><span aria-hidden="true">−</span></button><div class="pmd-composer-stepper-r12__value"><input name="guest_num" type="number" min="1" max="99" step="1" inputmode="numeric"></div><button type="button" data-pmd-stepper-plus aria-label="Increase guest number"><span aria-hidden="true">+</span></button></div><em data-error-for="guest_num"></em></label>
           </section>
           <section class="pmd-reservation-composer-v1__assignment" aria-labelledby="pmd-composer-assignment-title">
             <h3 id="pmd-composer-assignment-title"><svg aria-hidden="true"><use href="#pmd-composer-icon-table"/></svg>Table assignment</h3>
@@ -97,8 +97,8 @@
 
         </div>
         <footer class="pmd-reservation-composer-v1__footer">
-          <button type="button" data-pmd-composer-cancel><span>Cancel</span></button>
-          <button type="submit" data-pmd-composer-save><svg aria-hidden="true"><use href="#pmd-composer-icon-device-floppy"/></svg><span>Save Reservation</span></button>
+          <button type="button" data-pmd-composer-cancel data-pmd-modal-ui-button="secondary"><span>Cancel</span></button>
+          <button type="submit" data-pmd-composer-save data-pmd-modal-ui-button="primary"><svg aria-hidden="true"><use href="#pmd-composer-icon-device-floppy"/></svg><span>Save Reservation</span></button>
         </footer>
       </form>
     </div>
