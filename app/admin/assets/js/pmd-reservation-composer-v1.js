@@ -2183,26 +2183,24 @@ function applyAvailability(result) {
     /*
      * PMD_COMPOSER_PRIMED_OPEN_R10
      *
-     * New reservation opens first from a short-lived canonical primer cached
-     * before the click (or refreshed after the previous close). That means the
-     * first painted frame already contains the real time and recommendation.
+     * Normal New-reservation opens are served entirely from the primer that
+     * was fetched BEFORE the click. No request is started by the click.
      *
-     * A cache miss keeps the immediate-open fallback, but its one load request
-     * now also contains initial availability.
+     * If the user clicks unusually early and the primer is still missing, wait
+     * for that single canonical primer response before showing the modal. This
+     * rare cache-miss path trades a short click-to-open delay for a zero-empty,
+     * zero-jump first frame.
      */
     context = nextContext;
     trigger = origin;
     baseline = '';
     clearErrors();
 
-    var primer =
-      pmdReadPrimerR10(context);
+    function showHydrated(response) {
+      prepareImmediateShell(context);
 
-    prepareImmediateShell(context);
-
-    if (primer) {
       populate(
-        primer,
+        response,
         {
           suppressInitialAvailability: true
         }
@@ -2216,39 +2214,81 @@ function applyAvailability(result) {
         tagBackdrop
       );
 
-      return Promise.resolve(primer);
+      return response;
     }
 
-    ensureModal().show();
-    document.body.classList.add(
-      'pmd-reservation-composer-open-v1'
-    );
-    window.requestAnimationFrame(tagBackdrop);
+    function showImmediateAndLoad() {
+      prepareImmediateShell(context);
 
-    var requestContext =
-      pmdClonePrimerDataR10(context);
-
-    return request(
-      'onLoadReservationComposer',
-      pmdLoadRequestDataR10(requestContext)
-    ).then(function (response) {
-      pmdRememberPrimerR10(
-        requestContext,
-        response
+      ensureModal().show();
+      document.body.classList.add(
+        'pmd-reservation-composer-open-v1'
+      );
+      window.requestAnimationFrame(
+        tagBackdrop
       );
 
-      populate(response);
-      return response;
-    }).catch(function (error) {
-      root.classList.remove(
-        'pmd-composer-hydrating-v1',
-        'pmd-composer-time-pending-r7'
-      );
-      root.setAttribute('aria-busy', 'false');
+      var requestContext =
+        pmdClonePrimerDataR10(context);
 
-      showError(error);
-      throw error;
-    });
+      return request(
+        'onLoadReservationComposer',
+        pmdLoadRequestDataR10(
+          requestContext
+        )
+      ).then(function (response) {
+        pmdRememberPrimerR10(
+          requestContext,
+          response
+        );
+
+        populate(response);
+        return response;
+      });
+    }
+
+    var primer =
+      pmdReadPrimerR10(context);
+
+    if (primer) {
+      return Promise.resolve(
+        showHydrated(primer)
+      );
+    }
+
+    /*
+     * Header/add-card creates have no explicit time. They are the only opens
+     * that used to flash a guessed time and an empty suggestion row.
+     */
+    if (pmdPrimerKeyR10(context)) {
+      return pmdWarmPrimerR10(
+        pmdClonePrimerDataR10(context),
+        true
+      ).then(function (response) {
+        if (response) {
+          return showHydrated(response);
+        }
+
+        return showImmediateAndLoad();
+      }).catch(function () {
+        return showImmediateAndLoad();
+      });
+    }
+
+    return showImmediateAndLoad()
+      .catch(function (error) {
+        root.classList.remove(
+          'pmd-composer-hydrating-v1',
+          'pmd-composer-time-pending-r7'
+        );
+        root.setAttribute(
+          'aria-busy',
+          'false'
+        );
+
+        showError(error);
+        throw error;
+      });
   }
   function refreshWorkspace(reservation, assignmentMode) {
     var boot = window.PMD_RESERVATIONS_BOOT || (window.PMD_RESERVATIONS_BOOT = {});
