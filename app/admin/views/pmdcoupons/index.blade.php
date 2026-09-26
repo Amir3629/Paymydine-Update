@@ -95,7 +95,7 @@
         </button>
 
 
-        {{-- PMD_HEADER_EXPAND_SEARCH_V159: Discounts --}}
+        {{-- PMD_HEADER_SINGLE_FRAME_SEARCH_V160: Discounts --}}
         <div
             class="pmd-header-expand-search"
             data-pmd-header-expand-search
@@ -664,19 +664,23 @@
     </section>
 
     <section class="pmd-coupon-manager__panel">
+        {{-- PMD_DISCOUNT_FILTERS_SINGLE_TOOLBAR_V160 --}}
         <div class="pmd-coupon-manager__toolbar">
+            <div
+                class="pmd-coupon-manager__types pmd-coupon-manager__types--toolbar"
+                aria-label="{{ $pmdT('types') }}"
+            >
+                <button type="button" class="is-active" data-pmd-type-filter="all">{{ $pmdT('all_types') }}</button>
+                @foreach(['coupon', 'gift_card', 'voucher', 'credit', 'comp'] as $type)
+                    <button type="button" data-pmd-type-filter="{{ $type }}">{{ $typeLabel($type) }}</button>
+                @endforeach
+            </div>
+
             <div class="pmd-coupon-manager__status-filters" aria-label="{{ $pmdT('status_filter') }}">
                 <button type="button" class="is-active" data-pmd-status-filter="all">{{ $pmdT('all') }}</button>
                 <button type="button" data-pmd-status-filter="active">{{ $pmdT('active_only') }}</button>
                 <button type="button" data-pmd-status-filter="inactive">{{ $pmdT('inactive') }}</button>
             </div>
-        </div>
-
-        <div class="pmd-coupon-manager__types" aria-label="{{ $pmdT('types') }}">
-            <button type="button" class="is-active" data-pmd-type-filter="all">{{ $pmdT('all_types') }}</button>
-            @foreach(['coupon', 'gift_card', 'voucher', 'credit', 'comp'] as $type)
-                <button type="button" data-pmd-type-filter="{{ $type }}">{{ $typeLabel($type) }}</button>
-            @endforeach
         </div>
 
 
