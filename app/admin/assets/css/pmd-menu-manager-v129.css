@@ -4357,3 +4357,73 @@ html body.pmd-menu-manager-page
     box-sizing: border-box !important;
   }
 }
+
+/* ============================================================
+   PMD_MENU_KPI_TYPOGRAPHY_V146
+
+   Keep Menu KPI content/data exactly as-is; normalize only presentation to
+   the proven PMD Dashboard KPI hierarchy:
+   title 14/850 -> value 30/900 -> description 11/650.
+   ============================================================ */
+body.pmd-menu-manager-page .pmd-menu-kpi__copy {
+  display: flex !important;
+  min-width: 0 !important;
+  flex: 1 1 auto !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  justify-content: center !important;
+  gap: 0 !important;
+}
+
+body.pmd-menu-manager-page .pmd-menu-kpi__copy > span {
+  order: 1 !important;
+  margin: 0 0 3px !important;
+  font-family: inherit !important;
+  font-size: 14px !important;
+  font-weight: 850 !important;
+  line-height: 1.15 !important;
+}
+
+body.pmd-menu-manager-page .pmd-menu-kpi__copy > strong {
+  order: 2 !important;
+  grid-row: auto !important;
+  grid-column: auto !important;
+  align-self: flex-start !important;
+  margin: 0 !important;
+  font-family: inherit !important;
+  font-size: 30px !important;
+  font-weight: 900 !important;
+  letter-spacing: normal !important;
+  line-height: 1 !important;
+  font-variant-numeric: tabular-nums !important;
+  white-space: nowrap !important;
+}
+
+body.pmd-menu-manager-page .pmd-menu-kpi__copy > small {
+  order: 3 !important;
+  grid-column: auto !important;
+  margin: 6px 0 0 !important;
+  overflow: hidden !important;
+  font-family: inherit !important;
+  font-size: 11px !important;
+  font-weight: 650 !important;
+  line-height: 1.2 !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  max-width: 100% !important;
+}
+
+@media (max-width: 900px) {
+  body.pmd-menu-manager-page .pmd-menu-kpi__copy > span {
+    font-size: 11px !important;
+  }
+
+  body.pmd-menu-manager-page .pmd-menu-kpi__copy > strong {
+    font-size: 24px !important;
+  }
+
+  body.pmd-menu-manager-page .pmd-menu-kpi__copy > small {
+    margin-top: 4px !important;
+    font-size: 9px !important;
+  }
+}
