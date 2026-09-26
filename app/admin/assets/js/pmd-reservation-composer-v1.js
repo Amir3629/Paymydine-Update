@@ -2181,15 +2181,16 @@ function applyAvailability(result) {
 
   function open(nextContext, origin) {
     /*
-     * PMD_COMPOSER_PRIMED_OPEN_R10
+     * PMD_COMPOSER_SERVER_FIRST_PAINT_R11
      *
-     * Normal New-reservation opens are served entirely from the primer that
-     * was fetched BEFORE the click. No request is started by the click.
+     * The Reservations page now embeds the canonical New-reservation payload
+     * in its original HTML. A normal header/card create therefore hydrates the
+     * whole Composer BEFORE Bootstrap paints the modal: time, table catalogue,
+     * recommendation and policy notice are already final on frame one.
      *
-     * If the user clicks unusually early and the primer is still missing, wait
-     * for that single canonical primer response before showing the modal. This
-     * rare cache-miss path trades a short click-to-open delay for a zero-empty,
-     * zero-jump first frame.
+     * There is deliberately NO click-time "wait for primer" path. A cache miss
+     * (edit, explicit Hour slot, changed Floor/table context) opens immediately
+     * and falls back to the canonical request in place.
      */
     context = nextContext;
     trigger = origin;
@@ -2247,19 +2248,6 @@ function applyAvailability(result) {
       });
     }
 
-    var primer =
-      pmdReadPrimerR10(context);
-
-    if (primer) {
-      return Promise.resolve(
-        showHydrated(primer)
-      );
-    }
-
-    /*
-     * Header/add-card creates have no explicit time. They are the only opens
-     * that used to flash a guessed time and an empty suggestion row.
-     */
     function handleOpenError(error) {
       root.classList.remove(
         'pmd-composer-hydrating-v1',
@@ -2274,17 +2262,13 @@ function applyAvailability(result) {
       throw error;
     }
 
-    if (pmdPrimerKeyR10(context)) {
-      return pmdWarmPrimerR10(
-        pmdClonePrimerDataR10(context),
-        true
-      ).then(function (response) {
-        if (response) {
-          return showHydrated(response);
-        }
+    var primer =
+      pmdReadPrimerR10(context);
 
-        return showImmediateAndLoad();
-      }).catch(handleOpenError);
+    if (primer) {
+      return Promise.resolve(
+        showHydrated(primer)
+      );
     }
 
     return showImmediateAndLoad()
@@ -2465,52 +2449,87 @@ function applyAvailability(result) {
     }
   };
 
-  function pmdPrimeDefaultCreateR10() {
-    var primerContext =
-      pmdDefaultPrimerContextR10();
+  function pmdInstallServerPrimerR11() {
+    var response =
+      config
+      && config.initialCreateBootstrap
+      && typeof config.initialCreateBootstrap === 'object'
+        ? config.initialCreateBootstrap
+        : null;
 
-    if (primerContext) {
-      pmdWarmPrimerR10(
-        primerContext,
-        false
-      );
+    var serverContext =
+      response
+      && response.pmdServerPrimerContext
+      && typeof response.pmdServerPrimerContext === 'object'
+        ? response.pmdServerPrimerContext
+        : null;
+
+    if (
+      !response
+      || !serverContext
+      || !response.defaults
+      || !response.pmdInitialAvailability
+    ) {
+      return false;
     }
-  }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener(
-      'DOMContentLoaded',
-      pmdPrimeDefaultCreateR10,
-      {once:true}
-    );
-  } else {
-    window.setTimeout(
-      pmdPrimeDefaultCreateR10,
-      0
-    );
+    var nextContext = {
+      version: 1,
+      mode: 'create',
+      source: 'server-first-paint',
+      reservationId: null,
+      selectedDate:
+        dateValue(serverContext.selected_date)
+        || dateValue(
+          response.defaults.reserve_date
+        ),
+      selectedTime: null,
+      duration: null,
+      tableIds: positiveIds(
+        serverContext.table_ids || []
+      ),
+      tableNames: [],
+      floorId: clean(
+        serverContext.floor_id
+      ),
+      floorName: clean(
+        serverContext.floor_name
+      ),
+      floorLocked: Boolean(
+        Number(
+          serverContext.floor_locked || 0
+        )
+      ),
+      locationId:
+        Number(
+          response.defaults.location_id
+          || 0
+        ) || null,
+      returnView: 'floor',
+      fallbackUrl:
+        '/admin/reservations/create'
+    };
+
+    var key =
+      pmdPrimerKeyR10(nextContext);
+
+    if (!key) return false;
+
+    pmdCreatePrimerCacheR10[key] = {
+      at: Date.now(),
+      response: pmdClonePrimerDataR10(
+        response
+      )
+    };
+
+    return true;
   }
 
   /*
-   * The exact Floor runtime is deferred and may attach its active-floor state
-   * just after the Composer runtime. Prime once more after that boot window and
-   * whenever the operator changes Floor. Cache protection prevents duplicate
-   * requests for the same context.
+   * No network prefetch is needed on initial page load anymore. The first
+   * create payload arrived with the HTML itself.
    */
-  window.setTimeout(
-    pmdPrimeDefaultCreateR10,
-    700
-  );
-
-  window.addEventListener(
-    'pmd:floor:changed',
-    function () {
-      window.setTimeout(
-        pmdPrimeDefaultCreateR10,
-        0
-      );
-    },
-    false
-  );
+  pmdInstallServerPrimerR11();
 }());
 
 /* ============================================================
