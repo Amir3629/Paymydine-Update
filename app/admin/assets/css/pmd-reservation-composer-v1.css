@@ -8413,3 +8413,93 @@ html body #pmd-reservation-composer-v1
     max-width: 800px !important;
   }
 }
+
+
+/* ============================================================
+   PMD_COMPOSER_STEPPER_TRUE_HIT_TARGET_R30
+
+   Duration/Guest used to live inside <label>. A label containing buttons and
+   a number input creates implicit label activation, so clicks in surrounding
+   label space could activate the first control (the minus button). R30 markup
+   uses a neutral field wrapper; these rules preserve the exact R29 appearance
+   while making ONLY the real +/- buttons interactive.
+   ============================================================ */
+
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__primary-grid
+> .pmd-reservation-composer-v1__field {
+  display: grid !important;
+  gap: 7px !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  cursor: default !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__primary-grid
+> .pmd-reservation-composer-v1__field
+> span {
+  display: flex !important;
+  align-items: center !important;
+  min-height: 34px !important;
+  gap: 9px !important;
+  color: #28463f !important;
+  font-size: 13px !important;
+  font-weight: 680 !important;
+  line-height: 1.2 !important;
+  cursor: default !important;
+  pointer-events: none !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__primary-grid
+> .pmd-reservation-composer-v1__field
+> span
+> svg {
+  width: 38px !important;
+  height: 38px !important;
+  flex: 0 0 38px !important;
+  box-sizing: border-box !important;
+  padding: 8px !important;
+  background:
+    linear-gradient(
+      145deg,
+      rgba(253,255,254,.995) 0%,
+      rgba(248,253,249,.995) 58%,
+      rgba(242,250,245,.99) 100%
+    ) !important;
+  border: 1px solid rgba(83,166,111,.095) !important;
+  color: #2f866f !important;
+  box-shadow:
+    0 4px 12px rgba(52,105,76,.035),
+    inset 0 1px 0 rgba(255,255,255,1)
+    !important;
+  border-radius:
+    var(--pmd-composer-surface-radius-r26)
+    !important;
+}
+
+/* Only the visible rounded +/- surfaces advertise interactivity. */
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__field
+.pmd-composer-stepper-r12 {
+  cursor: default !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__field
+.pmd-composer-stepper-r12
+> button:not(:disabled) {
+  pointer-events: auto !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__field
+.pmd-composer-stepper-r12
+> button:disabled {
+  pointer-events: none !important;
+}
