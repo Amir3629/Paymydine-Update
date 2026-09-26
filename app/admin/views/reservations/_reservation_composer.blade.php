@@ -24,22 +24,36 @@
     );
   }
 @endphp
-<div class="modal fade pmd-reservation-composer-v1" id="pmd-reservation-composer-v1" tabindex="-1" aria-labelledby="pmd-reservation-composer-title-v1" aria-hidden="true">
+<div class="modal pmd-reservation-composer-v1 pmd-reservation-composer-v1--glass-r1" id="pmd-reservation-composer-v1" tabindex="-1" aria-labelledby="pmd-reservation-composer-title-v1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-xl" id="pmd-reservation-composer-dialog-v1">
     <div class="modal-content">
       <form id="pmd-reservation-composer-form-v1" novalidate>
         <header class="pmd-reservation-composer-v1__header">
-          <div><small data-pmd-composer-kicker>Reservation</small><h2 id="pmd-reservation-composer-title-v1" data-pmd-composer-title>New reservation</h2></div>
+          <div class="pmd-reservation-composer-v1__brand" aria-label="Pay My Dine Reservations">
+            <span class="pmd-reservation-composer-v1__brand-mark" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><use href="#pmd-composer-icon-leaf"/></svg>
+            </span>
+            <span class="pmd-reservation-composer-v1__brand-copy">
+              <strong>Pay My Dine</strong>
+              <small>RESERVATIONS</small>
+            </span>
+          </div>
+
+          <div class="pmd-reservation-composer-v1__header-copy">
+            <h2 id="pmd-reservation-composer-title-v1" data-pmd-composer-title>New reservation</h2>
+            <p data-pmd-composer-subtitle>Create a memorable dining experience</p>
+          </div>
+
           <button type="button" data-pmd-composer-close aria-label="@lang('admin::lang.button_close')"><svg aria-hidden="true"><use href="#pmd-composer-icon-x"/></svg></button>
         </header>
-        <div class="pmd-reservation-composer-v1__loading" data-pmd-composer-loading role="status">Loading reservation…</div>
+        <div class="pmd-reservation-composer-v1__loading" data-pmd-composer-loading role="status" hidden aria-hidden="true">Preparing reservation…</div>
         <div class="pmd-reservation-composer-v1__content" data-pmd-composer-content hidden>
           <div class="pmd-reservation-composer-v1__summary" data-pmd-composer-summary hidden tabindex="-1"></div>
           <section class="pmd-reservation-composer-v1__grid">
-            <label><span><svg aria-hidden="true"><use href="#pmd-composer-icon-user"/></svg>@lang('admin::lang.reservations.label_first_name')</span><input name="first_name" autocomplete="given-name"><em data-error-for="first_name"></em></label>
+            <label><span><svg aria-hidden="true"><use href="#pmd-composer-icon-user"/></svg>@lang('admin::lang.reservations.label_first_name')</span><input name="first_name" autocomplete="given-name" placeholder="Guest name"><em data-error-for="first_name"></em></label>
             <label><span>@lang('admin::lang.reservations.label_last_name')</span><input name="last_name" autocomplete="family-name"><em data-error-for="last_name"></em></label>
-            <label><span><svg aria-hidden="true"><use href="#pmd-composer-icon-phone"/></svg>@lang('admin::lang.reservations.label_customer_telephone')</span><input name="telephone" type="tel" autocomplete="tel"><em data-error-for="telephone"></em></label>
-            <label><span><svg aria-hidden="true"><use href="#pmd-composer-icon-mail"/></svg>@lang('admin::lang.label_email')</span><input name="email" type="email" autocomplete="email"><em data-error-for="email"></em></label>
+            <label><span><svg aria-hidden="true"><use href="#pmd-composer-icon-phone"/></svg>@lang('admin::lang.reservations.label_customer_telephone')</span><input name="telephone" type="tel" autocomplete="tel" placeholder="Phone number"><em data-error-for="telephone"></em></label>
+            <label><span><svg aria-hidden="true"><use href="#pmd-composer-icon-mail"/></svg>@lang('admin::lang.label_email')</span><input name="email" type="email" autocomplete="email" placeholder="name@example.com"><em data-error-for="email"></em></label>
             <label><span><svg aria-hidden="true"><use href="#pmd-composer-icon-users"/></svg>@lang('admin::lang.reservations.label_guest')</span><input name="guest_num" type="number" min="1" step="1"><em data-error-for="guest_num"></em></label>
             <label><span><svg aria-hidden="true"><use href="#pmd-composer-icon-calendar"/></svg>@lang('admin::lang.reservations.label_reservation_date')</span><input name="reserve_date" type="date"><em data-error-for="reserve_date"></em></label>
             <label><span><svg aria-hidden="true"><use href="#pmd-composer-icon-clock"/></svg>@lang('admin::lang.reservations.label_reservation_time')</span><input name="reserve_time" type="time"><em data-error-for="reserve_time"></em></label>
@@ -104,6 +118,7 @@
   </div>
 </div>
 <svg class="pmd-reservation-composer-v1__sprite" aria-hidden="true" width="0" height="0"><defs>
+  <symbol id="pmd-composer-icon-leaf" viewBox="0 0 24 24"><path d="M20.5 3.5C13 3.9 6.8 7.5 4.6 13.3c-1 2.6-.6 5.2.9 7.2 2-5 5.5-8.9 10.9-11.8-4.2 3.1-7.1 6.8-8.8 11.4 2.4.4 4.9-.3 7-2 4.2-3.4 5.7-8.8 5.9-14.6z"/></symbol>
   <symbol id="pmd-composer-icon-calendar" viewBox="0 0 24 24"><path d="M4 5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2zM16 3v4M8 3v4M4 11h16"/></symbol>
   <symbol id="pmd-composer-icon-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
   <symbol id="pmd-composer-icon-users" viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2M16 3.13a4 4 0 0 1 0 7.75M21 21v-2a4 4 0 0 0-3-3.85"/></symbol>
