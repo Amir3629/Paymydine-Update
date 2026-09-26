@@ -1634,6 +1634,41 @@ ${ROOT} [${BUTTON_ATTR}][aria-disabled="true"] {
             return;
         }
 
+        /*
+         * PMD_RESERVATION_COMPOSER_SKIP_MODAL_CHROME_R18
+         *
+         * Reservation Composer owns its own buttons/radii/chrome. The global
+         * modal equalizer must not traverse or reclassify that card on open.
+         */
+        if (
+            card.closest
+            && card.closest(
+                '#pmd-reservation-composer-v1'
+            )
+        ) {
+            card
+                .querySelectorAll(
+                    [
+                        `[${TITLE_ATTR}]`,
+                        `[${CLOSE_ATTR}]`,
+                        `[${BUTTON_ATTR}]`
+                    ].join(',')
+                )
+                .forEach(function (node) {
+                    node.removeAttribute(
+                        TITLE_ATTR
+                    );
+                    node.removeAttribute(
+                        CLOSE_ATTR
+                    );
+                    node.removeAttribute(
+                        BUTTON_ATTR
+                    );
+                });
+
+            return;
+        }
+
 
         card
             .querySelectorAll(
@@ -1750,6 +1785,22 @@ ${ROOT} [${BUTTON_ATTR}][aria-disabled="true"] {
         if (
             destroyed ||
             !rootNode?.querySelectorAll
+        ) {
+            return;
+        }
+
+        /*
+         * The Composer's own CSS/runtime is complete. Avoid a second
+         * document-wide modal-chrome pass in the same opening frames.
+         */
+        const composer =
+            document.getElementById(
+                'pmd-reservation-composer-v1'
+            );
+
+        if (
+            composer
+            && composer.classList.contains('show')
         ) {
             return;
         }
