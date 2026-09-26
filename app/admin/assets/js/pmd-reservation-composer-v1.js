@@ -1631,6 +1631,29 @@ function applyAvailability(result) {
       auto.checked = true;
     }
 
+    /*
+     * PMD_AUTO_TABLE_PREPAINT_RESET_R5
+     * Reset the visible mode label before the modal is shown. This prevents a
+     * recommendation from the previous open appearing for a frame.
+     */
+    if (auto) {
+      var autoLabel = auto.closest('label');
+      var autoText = autoLabel
+        ? autoLabel.querySelector(':scope > span')
+        : null;
+
+      if (autoText) {
+        autoText.textContent = 'Automatic table';
+      }
+
+      if (autoLabel) {
+        autoLabel.classList.add(
+          'pmd-smart-recommendation-v224',
+          'pmd-smart-recommendation-pending-v224'
+        );
+      }
+    }
+
     var choose = form.querySelector(
       '[name="assignment_mode"][value="choose"]'
     );
@@ -3821,37 +3844,17 @@ function applyAvailability(result) {
   }
 
   function recommendationText() {
-    var catalog = tableCatalog();
-    var ids = autoRecommendationIds();
-
     /*
-     * PMD_AUTO_TABLE_STABLE_FIRST_PAINT_V1
+     * PMD_AUTO_TABLE_BUTTON_STABLE_R5
      *
-     * A missing availability payload means "not checked yet", not "no table".
-     * Showing "No table found" before the first canonical response caused the
-     * Auto button to flash and then change immediately after opening.
+     * The left control is a MODE selector, not a live status ticker.
+     * Keep its visible label constant so opening the Composer never flashes
+     * Table N -> Automatic table -> Table N while availability hydrates.
+     *
+     * The actual recommendation remains visible in the dedicated green
+     * suggestion/status row and in label.title below.
      */
-    if (!latestAvailability) {
-      return 'Automatic table';
-    }
-
-    /*
-     * Automatic assignment never falls back to previously
-     * selected tables. It is availability-owned only.
-     */
-    if (!ids.length) {
-      return 'No table found';
-    }
-
-    var label = ids.map(function (id) {
-      return nameFor(id, catalog);
-    }).join(' + ');
-    var floorName = String(
-      latestAvailability && latestAvailability.pmdRecommendationFloorName || ''
-    ).trim();
-    return floorName && label.indexOf('· ' + floorName) < 0
-      ? (label + ' · ' + floorName)
-      : label;
+    return 'Automatic table';
   }
 
   function updateRecommendationButton() {
@@ -3877,13 +3880,16 @@ function applyAvailability(result) {
 
     var ids = autoRecommendationIds();
 
-    label.title = pending
-      ? 'Checking table availability'
-      : (
-          ids.length
-            ? 'Recommended available table'
-            : 'No matching table is currently available'
-        );
+    if (pending) {
+      label.title = 'Checking table availability';
+    } else if (ids.length) {
+      var catalog = tableCatalog();
+      label.title = 'Recommended: ' + ids.map(function (id) {
+        return nameFor(id, catalog);
+      }).join(' + ');
+    } else {
+      label.title = 'No matching table is currently available';
+    }
   }
 
   function ensureDurationIcon() {
@@ -6809,9 +6815,16 @@ function applyAvailability(result) {
         }
 
         /*
-         * Do not present a stale recommendation as valid.
+         * PMD_AUTO_TABLE_SINGLE_VISIBLE_OWNER_R5
+         *
+         * Do not rewrite the Auto mode button. V224 keeps that button's text
+         * permanently "Automatic table"; the canonical recommendation is
+         * rendered by the separate suggestion/status row.
          */
         if (!state || !ids.length) {
+            control.removeAttribute(
+                'data-pmd-recommended-table-ids'
+            );
             return;
         }
 
@@ -6819,24 +6832,14 @@ function applyAvailability(result) {
             .map(nativeLabel)
             .filter(Boolean);
 
-        if (!labels.length) {
-            return;
-        }
+        control.setAttribute(
+            'data-pmd-recommended-table-ids',
+            ids.join(',')
+        );
 
-        /*
-         * Preserve any existing structure where possible.
-         * Update visible text node only.
-         */
-        var textNodes =
-            Array.prototype.slice
-                .call(control.childNodes)
-                .filter(function (node) {
-                    return node.nodeType === 3;
-                });
-
-        if (textNodes.length) {
-            textNodes[0].nodeValue =
-                ' ' + labels.join(' + ') + ' ';
+        if (labels.length) {
+            control.title =
+                'Recommended: ' + labels.join(' + ');
         }
     }
 
