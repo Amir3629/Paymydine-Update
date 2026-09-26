@@ -4018,3 +4018,60 @@ button.pmd-real-table-dropdown-v1__option.is-selected {
     width: 100%;
   }
 }
+
+
+/* PMD_RESERVATION_COMPOSER_SINGLE_FRAME_NO_BLINK_V1
+ *
+ * The Composer already has one visual card: .modal-content.
+ * Keep .modal-dialog as a transparent positioning shell and remove competing
+ * entrance transforms/transitions so opening the Composer does not jump/blink.
+ */
+html body #pmd-reservation-composer-v1 .modal-dialog,
+html body #pmd-reservation-composer-v1.show .modal-dialog,
+html body #pmd-reservation-composer-v1.pmd-reservation-composer-v1--closing .modal-dialog,
+html body #pmd-reservation-composer-v1.is-closing .modal-dialog {
+  opacity: 1 !important;
+  transform: none !important;
+  transition: none !important;
+  animation: none !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+html body #pmd-reservation-composer-v1 .modal-content {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  transform: none !important;
+  transition: none !important;
+  animation: none !important;
+  border-radius: 22px !important;
+  box-shadow: 0 24px 64px rgba(12, 39, 58, .16) !important;
+}
+
+html body #pmd-reservation-composer-v1 form {
+  width: 100% !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+html body #pmd-reservation-composer-v1 .pmd-reservation-composer-v1__footer {
+  position: relative !important;
+  inset: auto !important;
+  flex: 0 0 auto !important;
+  margin: 0 !important;
+  border-radius: 0 0 21px 21px !important;
+  box-shadow: none !important;
+  transform: none !important;
+  transition: none !important;
+}
+
+/* The glass plane may fade, but the actual reservation card must stay stable. */
+html body #pmd-reservation-composer-v1.fade,
+html body #pmd-reservation-composer-v1.modal.fade {
+  transition: none !important;
+}
