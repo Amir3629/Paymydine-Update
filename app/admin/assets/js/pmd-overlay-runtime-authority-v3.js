@@ -164,7 +164,28 @@
     return r.left <= w * 0.22 && r.top <= h * 0.22 && r.right >= w * 0.78 && r.bottom >= h * 0.78;
   }
 
+  /*
+   * PMD_RESERVATION_COMPOSER_ZERO_BLOCKING_OVERLAY_R17
+   *
+   * Reservation Composer owns its visual plane in its own CSS/runtime. The
+   * generic overlay authority must never synchronously scan its large subtree
+   * on show.bs.modal and must never add a second 180ms Web Animation.
+   */
+  function isReservationComposerNode(el) {
+    if (!el || el.nodeType !== 1) return false;
+    if (el.id === 'pmd-reservation-composer-v1') return true;
+    try {
+      return Boolean(
+        el.closest
+        && el.closest('#pmd-reservation-composer-v1')
+      );
+    } catch (e) {
+      return false;
+    }
+  }
+
   function excluded(el) {
+    if (isReservationComposerNode(el)) return true;
     var s = semantic(el);
     if (/tour|tooltip|popover|dropdown|daterange|datepicker|timepicker|clockpicker/.test(s)) return true;
     if (el && el.getAttribute && el.getAttribute('data-pmd-pos-viewport-host') === 'overlay') return true;
@@ -204,7 +225,12 @@
   }
 
   function animateCard(card) {
-    if (reduceMotion || !card || typeof card.animate !== 'function') return;
+    if (
+      reduceMotion
+      || !card
+      || isReservationComposerNode(card)
+      || typeof card.animate !== 'function'
+    ) return;
     try {
       if (card.__pmdOverlayV3CardAnimation) card.__pmdOverlayV3CardAnimation.cancel();
       card.__pmdOverlayV3CardAnimation = card.animate([
@@ -429,6 +455,14 @@
 
   function processElement(el) {
     if (!el || el.nodeType !== 1) return;
+
+    /*
+     * Critical click-to-paint fast path for Reservations.
+     * Bootstrap dispatches show.bs.modal synchronously. Returning here prevents
+     * the generic candidate scan/getComputedStyle/getBoundingClientRect loop
+     * from blocking the first Composer paint.
+     */
+    if (isReservationComposerNode(el)) return;
 
     if (el.shadowRoot) installRoot(el.shadowRoot);
     try {
