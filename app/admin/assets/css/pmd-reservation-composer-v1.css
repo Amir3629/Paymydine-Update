@@ -4136,3 +4136,840 @@ html body #pmd-reservation-composer-v1
 .pmd-smart-recommendation-pending-v224 > span {
   opacity: .86 !important;
 }
+
+
+/* PMD_RESERVATION_COMPOSER_GLASS_REDESIGN_R1
+ *
+ * Visual authority for the canonical Reservations Composer.
+ * Reference direction: warm white glass, jade accents, white field surfaces,
+ * soft icon tiles, zero layout animation, zero loading-card swap.
+ */
+#pmd-reservation-composer-v1 {
+  --pmd-glass-jade: #064d43;
+  --pmd-glass-jade-dark: #043b34;
+  --pmd-glass-jade-soft: #e9f2e8;
+  --pmd-glass-ink: #16332f;
+  --pmd-glass-muted: #6f7e7b;
+  --pmd-glass-line: rgba(45, 78, 70, .13);
+  --pmd-glass-field: rgba(255, 255, 255, .90);
+  --pmd-glass-card: rgba(248, 250, 247, .79);
+  --pmd-glass-shadow: 0 34px 96px rgba(35, 54, 49, .18);
+  color: var(--pmd-glass-ink) !important;
+}
+
+html body .pmd-reservation-composer-backdrop-v1,
+html body .pmd-reservation-composer-backdrop-v1.show {
+  background: rgba(242, 246, 242, .22) !important;
+  background-color: rgba(242, 246, 242, .22) !important;
+  opacity: 1 !important;
+  backdrop-filter: blur(18px) saturate(115%) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(115%) !important;
+  animation: none !important;
+  transition: none !important;
+}
+
+html body #pmd-reservation-composer-v1,
+html body #pmd-reservation-composer-v1.show {
+  animation: none !important;
+  transition: none !important;
+}
+
+html body #pmd-reservation-composer-v1 .modal-dialog,
+html body #pmd-reservation-composer-v1.show .modal-dialog,
+html body #pmd-reservation-composer-v1.pmd-reservation-composer-v1--closing .modal-dialog,
+html body #pmd-reservation-composer-v1.is-closing .modal-dialog {
+  width: min(1060px, calc(100vw - 36px)) !important;
+  max-width: 1060px !important;
+  margin: 22px auto !important;
+  opacity: 1 !important;
+  transform: none !important;
+  animation: none !important;
+  transition: none !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+html body #pmd-reservation-composer-v1 .modal-content {
+  position: relative !important;
+  overflow: hidden !important;
+  border: 1px solid rgba(255,255,255,.86) !important;
+  border-radius: 30px !important;
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255,255,255,.88) 0%,
+      rgba(247,250,247,.80) 48%,
+      rgba(240,245,241,.76) 100%
+    ) !important;
+  box-shadow:
+    var(--pmd-glass-shadow),
+    inset 0 1px 0 rgba(255,255,255,.96),
+    inset 0 -1px 0 rgba(81,105,97,.06) !important;
+  backdrop-filter: blur(30px) saturate(145%) !important;
+  -webkit-backdrop-filter: blur(30px) saturate(145%) !important;
+  transform: none !important;
+  animation: none !important;
+  transition: none !important;
+}
+
+html body #pmd-reservation-composer-v1 .modal-content::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 10% 8%, rgba(226,238,224,.72), transparent 25%),
+    radial-gradient(circle at 88% 12%, rgba(255,255,255,.88), transparent 26%);
+  opacity: .72;
+}
+
+html body #pmd-reservation-composer-v1 form {
+  position: relative !important;
+  z-index: 1 !important;
+  display: flex !important;
+  max-height: min(92vh, 940px) !important;
+  min-height: 0 !important;
+  flex-direction: column !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+}
+
+/* ---------- Header / brand ---------- */
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__header {
+  display: grid !important;
+  grid-template-columns: minmax(280px, 1fr) minmax(300px, .9fr) auto !important;
+  align-items: center !important;
+  gap: 24px !important;
+  min-height: 118px !important;
+  padding: 24px 30px 22px !important;
+  border: 0 !important;
+  border-bottom: 1px solid rgba(43,75,67,.09) !important;
+  background: rgba(255,255,255,.18) !important;
+  box-shadow: none !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__brand {
+  display: flex !important;
+  align-items: center !important;
+  gap: 16px !important;
+  min-width: 0 !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__brand-mark {
+  display: inline-grid !important;
+  width: 60px !important;
+  height: 60px !important;
+  flex: 0 0 60px !important;
+  place-items: center !important;
+  border: 1px solid rgba(255,255,255,.92) !important;
+  border-radius: 21px !important;
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255,255,255,.94),
+      rgba(231,241,229,.78)
+    ) !important;
+  color: var(--pmd-glass-jade) !important;
+  box-shadow:
+    0 12px 26px rgba(49,77,68,.12),
+    inset 0 1px 0 #fff !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__brand-mark svg {
+  width: 31px !important;
+  height: 31px !important;
+  fill: currentColor !important;
+  stroke: none !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__brand-copy {
+  display: grid !important;
+  gap: 2px !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__brand-copy strong {
+  color: #173d36 !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-size: clamp(24px, 2.25vw, 34px) !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  letter-spacing: -.025em !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__brand-copy small {
+  color: #77827f !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  letter-spacing: .30em !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__header-copy {
+  display: grid !important;
+  justify-items: end !important;
+  gap: 5px !important;
+  min-width: 0 !important;
+  text-align: right !important;
+}
+
+html body #pmd-reservation-composer-v1
+[data-pmd-composer-title] {
+  margin: 0 !important;
+  color: #38544f !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  line-height: 1.2 !important;
+  letter-spacing: .34em !important;
+  text-transform: uppercase !important;
+}
+
+html body #pmd-reservation-composer-v1
+[data-pmd-composer-subtitle] {
+  margin: 0 !important;
+  color: #8a9692 !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  line-height: 1.35 !important;
+  letter-spacing: .06em !important;
+}
+
+html body #pmd-reservation-composer-v1
+[data-pmd-composer-close] {
+  display: inline-grid !important;
+  width: 50px !important;
+  height: 50px !important;
+  min-width: 50px !important;
+  padding: 0 !important;
+  place-items: center !important;
+  border: 1px solid rgba(20,91,78,.18) !important;
+  border-radius: 17px !important;
+  background: rgba(255,255,255,.72) !important;
+  color: #174c43 !important;
+  box-shadow:
+    0 8px 20px rgba(36,70,61,.08),
+    inset 0 1px 0 rgba(255,255,255,.98) !important;
+  transform: none !important;
+  animation: none !important;
+  transition: border-color 120ms ease, background-color 120ms ease !important;
+}
+
+html body #pmd-reservation-composer-v1
+[data-pmd-composer-close]:hover {
+  border-color: rgba(6,77,67,.34) !important;
+  background: rgba(255,255,255,.94) !important;
+}
+
+html body #pmd-reservation-composer-v1
+[data-pmd-composer-close] svg {
+  width: 22px !important;
+  height: 22px !important;
+  stroke: currentColor !important;
+}
+
+/* Loading is semantic only. Never swap a visible loading card into the UI. */
+html body #pmd-reservation-composer-v1
+[data-pmd-composer-loading] {
+  display: none !important;
+}
+
+/* ---------- Stable body / zero blink ---------- */
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__content,
+html body #pmd-reservation-composer-v1.pmd-composer-hydrating-v1
+[data-pmd-composer-content] {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  padding: 22px 30px 18px !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  background: transparent !important;
+  pointer-events: auto !important;
+  transform: none !important;
+  animation: none !important;
+  transition: none !important;
+  scrollbar-gutter: stable !important;
+}
+
+html body #pmd-reservation-composer-v1.pmd-composer-hydrating-v1
+[data-pmd-composer-content] {
+  pointer-events: none !important;
+}
+
+html body #pmd-reservation-composer-v1.pmd-composer-hydrating-v1
+.pmd-jade-wheel-v221__item,
+html body #pmd-reservation-composer-v1.pmd-composer-hydrating-v1
+.pmd-smart-recommendation-v224 > span {
+  transition: none !important;
+  animation: none !important;
+}
+
+/* ---------- New field composition ---------- */
+html body #pmd-reservation-composer-v1
+.pmd-composer-grid-v223,
+html body #pmd-reservation-composer-v1
+.pmd-composer-layout-grid-v222 {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+  grid-template-areas:
+    "name name"
+    "date time"
+    "duration guests"
+    "phone email"
+    !important;
+  gap: 18px 22px !important;
+  align-items: start !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-composer-v223-area-name,
+html body #pmd-reservation-composer-v1
+.pmd-composer-area-name-v222 {
+  grid-area: name !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-composer-v223-area-date,
+html body #pmd-reservation-composer-v1
+.pmd-composer-area-date-v222 {
+  grid-area: date !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-composer-v223-area-time,
+html body #pmd-reservation-composer-v1
+.pmd-composer-area-time-v222 {
+  grid-area: time !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-composer-v223-area-duration,
+html body #pmd-reservation-composer-v1
+.pmd-composer-area-duration-v222 {
+  grid-area: duration !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-composer-v223-area-guests,
+html body #pmd-reservation-composer-v1
+.pmd-composer-area-guests-v222 {
+  grid-area: guests !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-composer-v223-area-phone,
+html body #pmd-reservation-composer-v1
+.pmd-composer-area-phone-v222 {
+  grid-area: phone !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-composer-v223-area-email,
+html body #pmd-reservation-composer-v1
+.pmd-composer-area-email-v222 {
+  grid-area: email !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-composer-grid-v223 > label,
+html body #pmd-reservation-composer-v1
+.pmd-composer-layout-grid-v222 > label {
+  display: grid !important;
+  align-content: start !important;
+  gap: 8px !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-composer-grid-v223 > label > span,
+html body #pmd-reservation-composer-v1
+.pmd-composer-layout-grid-v222 > label > span,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__notes > span {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  min-height: 43px !important;
+  margin: 0 !important;
+  color: #28463f !important;
+  font-size: 14px !important;
+  font-weight: 650 !important;
+  line-height: 1.2 !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-composer-grid-v223 > label > span > svg,
+html body #pmd-reservation-composer-v1
+.pmd-composer-layout-grid-v222 > label > span > svg,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__notes > span > svg,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__assignment > h3 > svg {
+  display: inline-grid !important;
+  width: 42px !important;
+  height: 42px !important;
+  flex: 0 0 42px !important;
+  padding: 10px !important;
+  box-sizing: border-box !important;
+  border: 1px solid rgba(255,255,255,.92) !important;
+  border-radius: 14px !important;
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255,255,255,.94),
+      rgba(231,240,227,.78)
+    ) !important;
+  color: #0a5a4e !important;
+  stroke: currentColor !important;
+  fill: none !important;
+  box-shadow:
+    0 8px 18px rgba(51,78,69,.10),
+    inset 0 1px 0 #fff !important;
+}
+
+html body #pmd-reservation-composer-v1
+input:not([type="hidden"]):not([type="radio"]):not([type="checkbox"]),
+html body #pmd-reservation-composer-v1
+select,
+html body #pmd-reservation-composer-v1
+textarea {
+  min-height: 54px !important;
+  border: 1px solid rgba(46,83,74,.15) !important;
+  border-radius: 17px !important;
+  background: var(--pmd-glass-field) !important;
+  color: #173b34 !important;
+  font-size: 16px !important;
+  font-weight: 560 !important;
+  line-height: 1.3 !important;
+  box-shadow:
+    0 7px 20px rgba(40,68,60,.045),
+    inset 0 1px 0 rgba(255,255,255,.98) !important;
+  outline: none !important;
+  transform: none !important;
+  animation: none !important;
+  transition: border-color 120ms ease, box-shadow 120ms ease, background-color 120ms ease !important;
+}
+
+html body #pmd-reservation-composer-v1
+input::placeholder,
+html body #pmd-reservation-composer-v1
+textarea::placeholder {
+  color: #a2aeaa !important;
+  opacity: 1 !important;
+}
+
+html body #pmd-reservation-composer-v1
+input:not([type="hidden"]):not([type="radio"]):not([type="checkbox"]):focus,
+html body #pmd-reservation-composer-v1
+select:focus,
+html body #pmd-reservation-composer-v1
+textarea:focus {
+  border-color: rgba(6,77,67,.36) !important;
+  background: rgba(255,255,255,.98) !important;
+  box-shadow:
+    0 0 0 4px rgba(6,77,67,.075),
+    0 10px 26px rgba(31,65,56,.06) !important;
+}
+
+/* ---------- Compact time selector ---------- */
+html body #pmd-reservation-composer-v1
+.pmd-jade-time-field-v221 {
+  display: grid !important;
+  align-content: start !important;
+  gap: 8px !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-jade-wheel-v221 {
+  position: relative !important;
+  display: grid !important;
+  grid-template-columns: minmax(0,1fr) 14px minmax(0,1fr) minmax(72px,.8fr) !important;
+  align-items: center !important;
+  width: 100% !important;
+  height: 64px !important;
+  min-height: 64px !important;
+  overflow: hidden !important;
+  border: 1px solid rgba(46,83,74,.15) !important;
+  border-radius: 17px !important;
+  background: rgba(255,255,255,.91) !important;
+  box-shadow:
+    0 7px 20px rgba(40,68,60,.045),
+    inset 0 1px 0 rgba(255,255,255,.98) !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-jade-wheel-v221__column {
+  z-index: 2 !important;
+  height: 62px !important;
+  padding-top: 8px !important;
+  padding-bottom: 8px !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain !important;
+  scrollbar-width: none !important;
+  scroll-snap-type: y mandatory !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-jade-wheel-v221__column::-webkit-scrollbar {
+  display: none !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-jade-wheel-v221__item {
+  display: grid !important;
+  height: 46px !important;
+  min-height: 46px !important;
+  place-items: center !important;
+  padding: 0 4px !important;
+  color: #a7b1ae !important;
+  font-size: 17px !important;
+  font-weight: 650 !important;
+  line-height: 46px !important;
+  opacity: .24 !important;
+  scroll-snap-align: center !important;
+  transform: none !important;
+  transition: none !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-jade-wheel-v221__item.is-selected {
+  color: #0e4037 !important;
+  font-weight: 800 !important;
+  opacity: 1 !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-jade-wheel-v221__separator {
+  z-index: 3 !important;
+  color: #19483f !important;
+  font-size: 20px !important;
+  font-weight: 800 !important;
+  text-align: center !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-jade-wheel-v221__highlight {
+  z-index: 1 !important;
+  top: 8px !important;
+  right: 7px !important;
+  bottom: auto !important;
+  left: 7px !important;
+  height: 46px !important;
+  border: 0 !important;
+  border-radius: 14px !important;
+  background: rgba(232,241,230,.58) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.9) !important;
+  pointer-events: none !important;
+}
+
+/* ---------- Table assignment ---------- */
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__assignment {
+  margin: 20px 0 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__assignment > h3 {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  min-height: 43px !important;
+  margin: 0 0 8px !important;
+  color: #28463f !important;
+  font-size: 14px !important;
+  font-weight: 650 !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__modes {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr) !important;
+  gap: 12px !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__modes > label {
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__modes > label > span {
+  display: flex !important;
+  min-height: 56px !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 0 18px !important;
+  overflow: hidden !important;
+  border: 1px solid rgba(46,83,74,.15) !important;
+  border-radius: 17px !important;
+  background: rgba(255,255,255,.90) !important;
+  color: #25443d !important;
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  text-align: left !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  box-shadow:
+    0 7px 20px rgba(40,68,60,.045),
+    inset 0 1px 0 rgba(255,255,255,.98) !important;
+  transform: none !important;
+  animation: none !important;
+  transition: border-color 120ms ease, background-color 120ms ease !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__modes
+> label.pmd-smart-recommendation-v224
+> span,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__modes
+> label.pmd-v225-recommendation
+> span,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__modes
+> label.pmd-smart-recommendation-v224
+> input[name="assignment_mode"]:checked + span,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__modes
+> label.pmd-v225-recommendation
+> input[name="assignment_mode"]:checked + span {
+  border-color: rgba(8,91,78,.22) !important;
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255,255,255,.96),
+      rgba(232,242,230,.82)
+    ) !important;
+  color: #0b5146 !important;
+  box-shadow:
+    0 8px 22px rgba(31,70,59,.07),
+    inset 0 1px 0 #fff !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-smart-recommendation-pending-v224 > span {
+  color: #60766f !important;
+  opacity: 1 !important;
+  animation: none !important;
+  transition: none !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-smart-choose-dropdown-v224[aria-expanded="true"] > span,
+html body #pmd-reservation-composer-v1
+.pmd-smart-choose-dropdown-v224:hover > span {
+  border-color: rgba(6,77,67,.32) !important;
+  background: rgba(249,252,249,.98) !important;
+  color: #0b5146 !important;
+  box-shadow: 0 0 0 4px rgba(6,77,67,.055) !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__table-panel {
+  margin-top: 8px !important;
+  border: 1px solid rgba(46,83,74,.13) !important;
+  border-radius: 20px !important;
+  background: rgba(255,255,255,.96) !important;
+  box-shadow: 0 22px 60px rgba(34,64,56,.14) !important;
+  backdrop-filter: blur(18px) !important;
+  -webkit-backdrop-filter: blur(18px) !important;
+  transform: none !important;
+  animation: none !important;
+  transition: none !important;
+}
+
+/* ---------- Contact / notes ---------- */
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__notes {
+  display: grid !important;
+  gap: 8px !important;
+  margin: 18px 0 0 !important;
+  padding: 0 !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__notes textarea {
+  min-height: 82px !important;
+  resize: vertical !important;
+}
+
+/* ---------- Footer ---------- */
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__footer {
+  position: relative !important;
+  display: flex !important;
+  inset: auto !important;
+  flex: 0 0 auto !important;
+  justify-content: flex-end !important;
+  gap: 14px !important;
+  min-height: 88px !important;
+  margin: 0 !important;
+  padding: 17px 30px 22px !important;
+  border-top: 1px solid rgba(43,75,67,.10) !important;
+  border-radius: 0 0 29px 29px !important;
+  background: rgba(255,255,255,.30) !important;
+  box-shadow: none !important;
+  backdrop-filter: blur(18px) !important;
+  -webkit-backdrop-filter: blur(18px) !important;
+  transform: none !important;
+  animation: none !important;
+  transition: none !important;
+}
+
+html body #pmd-reservation-composer-v1
+[data-pmd-composer-cancel],
+html body #pmd-reservation-composer-v1
+[data-pmd-composer-save] {
+  min-height: 54px !important;
+  border-radius: 17px !important;
+  font-size: 15px !important;
+  font-weight: 760 !important;
+  transform: none !important;
+  animation: none !important;
+  transition: border-color 120ms ease, background-color 120ms ease, box-shadow 120ms ease !important;
+}
+
+html body #pmd-reservation-composer-v1
+[data-pmd-composer-cancel] {
+  min-width: 150px !important;
+  border: 1px solid rgba(46,83,74,.14) !important;
+  background: rgba(255,255,255,.74) !important;
+  color: #26443d !important;
+  box-shadow:
+    0 8px 20px rgba(41,67,60,.045),
+    inset 0 1px 0 #fff !important;
+}
+
+html body #pmd-reservation-composer-v1
+[data-pmd-composer-save] {
+  min-width: 220px !important;
+  border: 1px solid rgba(3,55,47,.82) !important;
+  background:
+    linear-gradient(
+      180deg,
+      #08705f 0%,
+      #064d43 56%,
+      #043e36 100%
+    ) !important;
+  color: #fff !important;
+  box-shadow:
+    0 15px 30px rgba(4,66,57,.20),
+    inset 0 1px 0 rgba(255,255,255,.22) !important;
+}
+
+html body #pmd-reservation-composer-v1
+[data-pmd-composer-save]:hover {
+  background:
+    linear-gradient(
+      180deg,
+      #087967 0%,
+      #07584b 56%,
+      #04463d 100%
+    ) !important;
+  box-shadow:
+    0 17px 34px rgba(4,66,57,.24),
+    inset 0 1px 0 rgba(255,255,255,.24) !important;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 820px) {
+  html body #pmd-reservation-composer-v1 .modal-dialog {
+    width: min(760px, calc(100vw - 22px)) !important;
+    margin: 11px auto !important;
+  }
+
+  html body #pmd-reservation-composer-v1
+  .pmd-reservation-composer-v1__header {
+    grid-template-columns: 1fr auto !important;
+    gap: 14px !important;
+    min-height: 96px !important;
+    padding: 19px 20px 17px !important;
+  }
+
+  html body #pmd-reservation-composer-v1
+  .pmd-reservation-composer-v1__header-copy {
+    display: none !important;
+  }
+
+  html body #pmd-reservation-composer-v1
+  .pmd-reservation-composer-v1__content {
+    padding: 18px 20px 14px !important;
+  }
+
+  html body #pmd-reservation-composer-v1
+  .pmd-reservation-composer-v1__footer {
+    padding: 15px 20px 18px !important;
+  }
+}
+
+@media (max-width: 650px) {
+  html body #pmd-reservation-composer-v1
+  .pmd-composer-grid-v223,
+  html body #pmd-reservation-composer-v1
+  .pmd-composer-layout-grid-v222 {
+    grid-template-columns: 1fr !important;
+    grid-template-areas:
+      "name"
+      "date"
+      "time"
+      "duration"
+      "guests"
+      "phone"
+      "email"
+      !important;
+  }
+
+  html body #pmd-reservation-composer-v1
+  .pmd-reservation-composer-v1__modes {
+    grid-template-columns: 1fr !important;
+  }
+
+  html body #pmd-reservation-composer-v1
+  .pmd-reservation-composer-v1__brand-mark {
+    width: 50px !important;
+    height: 50px !important;
+    flex-basis: 50px !important;
+    border-radius: 17px !important;
+  }
+
+  html body #pmd-reservation-composer-v1
+  .pmd-reservation-composer-v1__brand-copy strong {
+    font-size: 24px !important;
+  }
+
+  html body #pmd-reservation-composer-v1
+  .pmd-reservation-composer-v1__footer {
+    display: grid !important;
+    grid-template-columns: 1fr 1.35fr !important;
+  }
+
+  html body #pmd-reservation-composer-v1
+  [data-pmd-composer-cancel],
+  html body #pmd-reservation-composer-v1
+  [data-pmd-composer-save] {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+}
