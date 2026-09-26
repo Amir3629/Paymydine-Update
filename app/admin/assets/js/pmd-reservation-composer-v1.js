@@ -1916,6 +1916,26 @@ function applyAvailability(result) {
   function prepareImmediateShell(nextContext) {
     var isCreate = !nextContext || nextContext.mode !== 'edit';
 
+    /*
+     * PMD_COMPOSER_AUTO_SESSION_PREPAINT_RESET_R15
+     *
+     * Clear the previous modal session's recommendation while the Composer is
+     * still hidden. If the server primer is available, populate() immediately
+     * commits its canonical recommendation before Bootstrap paints frame one.
+     * This avoids both stale text and the old "Automatic table -> Table 2"
+     * visible delay on a normal create open.
+     */
+    root.dispatchEvent(
+      new CustomEvent(
+        'pmd:composer:availability-reset',
+        {
+          detail: {
+            mode: isCreate ? 'create' : 'edit'
+          }
+        }
+      )
+    );
+
     root.classList.add('pmd-composer-hydrating-v1');
     root.setAttribute('aria-busy', 'true');
 
@@ -5258,14 +5278,30 @@ function applyAvailability(result) {
   );
 
   root.addEventListener(
+    'pmd:composer:availability-reset',
+    function () {
+      /*
+       * PMD_COMPOSER_AUTO_PREPAINT_OWNER_R15
+       *
+       * The core dispatches this while the modal is still hidden. A server
+       * primer can then synchronously replace this neutral state with the real
+       * recommendation before show.bs.modal fires.
+       */
+      latestAvailability = null;
+      updateRecommendationButton();
+    }
+  );
+
+  root.addEventListener(
     'show.bs.modal',
     function () {
-      /* PMD_COMPOSER_AUTO_RECOMMENDATION_SESSION_RESET_V2427 */
-      latestAvailability = null;
-
       /*
-       * Set the pending label before Bootstrap paints the modal so a previous
-       * reservation's recommendation can never flash on the next open.
+       * PMD_COMPOSER_AUTO_KEEP_HYDRATED_FIRST_FRAME_R15
+       *
+       * Do NOT clear latestAvailability here. For the normal create path,
+       * populate() already applied pmdInitialAvailability before Bootstrap
+       * opens the card. Clearing it in show.bs.modal was the exact source of
+       * the visible "Automatic table" delay.
        */
       updateRecommendationButton();
     }
