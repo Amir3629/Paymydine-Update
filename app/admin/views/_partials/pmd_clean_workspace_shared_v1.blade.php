@@ -1291,6 +1291,14 @@ html body.page.pmd-clean-workspace-page #pmd-dashboard-lab {
                     @include($pmdCleanWorkspaceAfterFloorPartial)
                 @endif
 
+                @if($pmdCleanWorkspaceManagerCalendarSurface && $pmdCleanWorkspaceAfterFloorPartial)
+                    {{-- PMD_MANAGER_SERVER_ANALYTICS_PRE_RUNTIME_V150
+                         Manager analytics is already server-rendered. Parse it immediately
+                         after the Floor and BEFORE Composer/Calendar runtime markup so refresh
+                         cannot paint Header/KPI/Floor first and append Analytics later. --}}
+                    @include($pmdCleanWorkspaceAfterFloorPartial)
+                @endif
+
                 {{-- PMD_RESERVATIONS_PARSER_SYNC_FLOOR_BOOT_V1
                      English does not use the global German pmd-i18n-pending body gate.
                      Previously the exact Floor runtime arrived through get_script_tags()
@@ -1449,7 +1457,12 @@ html body.page.pmd-clean-workspace-page #pmd-dashboard-lab {
                 {{-- PMD_CLEAN_WORKSPACE_CANONICAL_RESERVATION_COMPOSER_SURFACE_V1_END --}}
             @endif
 
-            @if(!$pmdCleanWorkspaceReservationsSurface && !$pmdCleanWorkspaceCashierSurface && $pmdCleanWorkspaceAfterFloorPartial)
+            @if(
+                !$pmdCleanWorkspaceReservationsSurface
+                && !$pmdCleanWorkspaceCashierSurface
+                && !$pmdCleanWorkspaceManagerCalendarSurface
+                && $pmdCleanWorkspaceAfterFloorPartial
+            )
                 @include($pmdCleanWorkspaceAfterFloorPartial)
             @endif
 
