@@ -322,15 +322,75 @@
     var entry = key ? pmdCreatePrimerCacheR10[key] : null;
 
     if (
-      !entry
-      || !entry.response
-      || Date.now() - Number(entry.at || 0) > PMD_CREATE_PRIMER_TTL_R10
+      entry
+      && entry.response
+      && Date.now() - Number(entry.at || 0) <= PMD_CREATE_PRIMER_TTL_R10
     ) {
-      if (key) delete pmdCreatePrimerCacheR10[key];
-      return null;
+      return pmdClonePrimerDataR10(
+        entry.response
+      );
     }
 
-    return pmdClonePrimerDataR10(entry.response);
+    if (key) {
+      delete pmdCreatePrimerCacheR10[key];
+    }
+
+    /*
+     * PMD_COMPOSER_SERVER_PRIMER_FALLBACK_R11
+     *
+     * Floor runtime attachment order must never make the header create miss
+     * the server-rendered primer. For a generic create (no explicit time/table)
+     * the active Floor is only a preference, not a lock, so the page bootstrap
+     * is safe to use even if one side has not attached the Floor id yet.
+     */
+    var response =
+      config
+      && config.initialCreateBootstrap
+      && typeof config.initialCreateBootstrap === 'object'
+        ? config.initialCreateBootstrap
+        : null;
+
+    var serverContext =
+      response
+      && response.pmdServerPrimerContext
+      && typeof response.pmdServerPrimerContext === 'object'
+        ? response.pmdServerPrimerContext
+        : null;
+
+    var requestedDate =
+      dateValue(
+        nextContext
+        && nextContext.selectedDate
+      );
+
+    var serverDate =
+      dateValue(
+        serverContext
+        && serverContext.selected_date
+      )
+      || dateValue(
+        response
+        && response.defaults
+        && response.defaults.reserve_date
+      );
+
+    if (
+      response
+      && response.pmdInitialAvailability
+      && nextContext
+      && nextContext.mode === 'create'
+      && !timeValue(nextContext.selectedTime)
+      && positiveIds(nextContext.tableIds || []).length === 0
+      && !nextContext.floorLocked
+      && requestedDate
+      && serverDate === requestedDate
+    ) {
+      return pmdClonePrimerDataR10(
+        response
+      );
+    }
+
+    return null;
   }
 
   function pmdWarmPrimerR10(nextContext, force) {
@@ -2198,6 +2258,36 @@ function applyAvailability(result) {
     clearErrors();
 
     function showHydrated(response) {
+      /*
+       * Generic header/add-card create is not Floor-locked. Align it to the
+       * exact server primer context before populate() builds the availability
+       * signature, otherwise a late Floor runtime can create a harmless
+       * floor-id mismatch and suppress the already-computed recommendation.
+       */
+      var serverContext =
+        response
+        && response.pmdServerPrimerContext
+        && typeof response.pmdServerPrimerContext === 'object'
+          ? response.pmdServerPrimerContext
+          : null;
+
+      if (
+        serverContext
+        && context
+        && context.mode === 'create'
+        && !timeValue(context.selectedTime)
+        && positiveIds(context.tableIds || []).length === 0
+        && !context.floorLocked
+      ) {
+        context.floorId =
+          clean(serverContext.floor_id);
+
+        context.floorName =
+          clean(serverContext.floor_name);
+
+        context.floorLocked = false;
+      }
+
       prepareImmediateShell(context);
 
       populate(
