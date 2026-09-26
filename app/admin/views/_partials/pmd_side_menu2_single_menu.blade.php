@@ -205,13 +205,15 @@ html #pmd-sidebar-language {
         <!-- PMD_SM2_INLINE_ACTIONS_R2_START -->
         <button
             type="button"
-            class="pmd-sm2__item pmd-sm2__language-item"
+            class="pmd-sm2__item"
             data-pmd-sm2-language-inline
             aria-label="Switch language to {{ $pmdSm2LanguageFirstPaintCode }}"
             title="Switch language to {{ $pmdSm2LanguageFirstPaintCode }}"
         >
-            {{-- PMD_SM2_LANGUAGE_GLOBE_ICON_V154 --}}
-            <svg class="pmd-sm2__language-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            {{-- PMD_SM2_LANGUAGE_NATIVE_ITEM_PARITY_V157
+       Intentionally no language-only layout/icon classes: this button and its
+       SVG inherit the exact same pmd-sm2__item geometry as every nav sibling. --}}
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <circle cx="12" cy="12" r="9"></circle>
                 <path d="M3 12h18"></path>
                 <path d="M12 3c2.6 2.45 4 5.45 4 9s-1.4 6.55-4 9"></path>
