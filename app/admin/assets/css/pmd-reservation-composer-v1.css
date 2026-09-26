@@ -7217,3 +7217,312 @@ html body #pmd-reservation-composer-v1
     min-width: 104px !important;
   }
 }
+
+
+/* ============================================================
+   PMD_RESERVATION_COMPOSER_VISUAL_AUTHORITY_R14
+   Single-frame steppers, consistent field radii, one Auto label.
+   ============================================================ */
+
+html body #pmd-reservation-composer-v1 {
+  --pmd-composer-field-radius-r14: 18px;
+  --pmd-composer-small-radius-r14: 16px;
+}
+
+/* AUTO recommendation: one text owner only. R8's pseudo copy is retired. */
+html body #pmd-reservation-composer-v1
+[data-pmd-auto-mode-control]
+> [data-pmd-auto-mode-label] {
+  color: #0b5146 !important;
+  font-size: 14px !important;
+  line-height: 1.2 !important;
+  font-weight: 760 !important;
+  text-indent: 0 !important;
+  opacity: 1 !important;
+}
+
+html body #pmd-reservation-composer-v1
+[data-pmd-auto-mode-control]
+> [data-pmd-auto-mode-label]::before {
+  content: none !important;
+  display: none !important;
+}
+
+/* One radius language for every full-size visible field/control. */
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__primary-grid
+> label
+> input:not([type="hidden"]),
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__contact-grid
+input,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__notes
+textarea,
+html body #pmd-reservation-composer-v1
+.pmd-jade-wheel-v221,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__modes
+> label,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__modes
+> label
+> span,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__feature-options
+label
+> span,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__table-trigger,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__table-panel,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__table-option {
+  border-radius:
+    var(--pmd-composer-field-radius-r14)
+    !important;
+}
+
+/* ------------------------------------------------------------
+   Duration / Guest controls
+   The center value has exactly ONE visible frame: the native input itself.
+   The wrapper is only a positioning shell, so there is no frame-inside-frame.
+   ------------------------------------------------------------ */
+html body #pmd-reservation-composer-v1
+.pmd-composer-stepper-r12 {
+  display: inline-grid !important;
+  grid-template-columns: 46px 116px 46px !important;
+  align-items: center !important;
+  justify-items: center !important;
+  gap: 10px !important;
+  width: max-content !important;
+  min-width: 0 !important;
+  height: 46px !important;
+  min-height: 46px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: visible !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-composer-stepper-r12__value {
+  position: relative !important;
+  display: grid !important;
+  place-items: center !important;
+  width: 116px !important;
+  min-width: 116px !important;
+  max-width: 116px !important;
+  height: 46px !important;
+  min-height: 46px !important;
+  max-height: 46px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: visible !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__primary-grid
+.pmd-composer-stepper-r12
+.pmd-composer-stepper-r12__value
+> input[type="number"] {
+  display: block !important;
+  box-sizing: border-box !important;
+  width: 116px !important;
+  min-width: 116px !important;
+  max-width: 116px !important;
+  height: 46px !important;
+  min-height: 46px !important;
+  max-height: 46px !important;
+  margin: 0 !important;
+  padding: 0 14px !important;
+  border: 1px solid #cbdde9 !important;
+  border-radius:
+    var(--pmd-composer-small-radius-r14)
+    !important;
+  outline: 0 !important;
+  background: rgba(255,255,255,.91) !important;
+  box-shadow:
+    0 5px 14px rgba(28,42,52,.04),
+    inset 0 1px 0 rgba(255,255,255,.98)
+    !important;
+  color: #102a43 !important;
+  font-size: 16px !important;
+  font-weight: 760 !important;
+  line-height: 44px !important;
+  text-align: center !important;
+  appearance: textfield !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: textfield !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__primary-grid
+.pmd-composer-stepper-r12[data-pmd-composer-stepper="duration"]
+.pmd-composer-stepper-r12__value
+> input[type="number"] {
+  padding-right: 42px !important;
+  padding-left: 10px !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-composer-stepper-r12__suffix {
+  position: absolute !important;
+  top: 50% !important;
+  right: 13px !important;
+  z-index: 2 !important;
+  display: block !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  transform: translateY(-50%) !important;
+  color: #71818d !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  pointer-events: none !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-composer-stepper-r12
+> button {
+  display: grid !important;
+  place-items: center !important;
+  box-sizing: border-box !important;
+  width: 46px !important;
+  min-width: 46px !important;
+  max-width: 46px !important;
+  height: 46px !important;
+  min-height: 46px !important;
+  max-height: 46px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 1px solid #cbdde9 !important;
+  border-radius:
+    var(--pmd-composer-small-radius-r14)
+    !important;
+  background: rgba(255,255,255,.91) !important;
+  box-shadow:
+    0 5px 14px rgba(28,42,52,.04),
+    inset 0 1px 0 rgba(255,255,255,.98)
+    !important;
+  color: #075f4f !important;
+  font-size: 22px !important;
+  font-weight: 720 !important;
+  line-height: 1 !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-composer-stepper-r12
+> button
+> span {
+  display: block !important;
+  line-height: 1 !important;
+  transform: translateY(-1px) !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-composer-stepper-r12
+> button:focus-visible,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__primary-grid
+.pmd-composer-stepper-r12
+.pmd-composer-stepper-r12__value
+> input[type="number"]:focus-visible {
+  border-color: #71b7e6 !important;
+  outline: none !important;
+  box-shadow:
+    0 0 0 3px rgba(113,183,230,.14),
+    inset 0 1px 0 rgba(255,255,255,.98)
+    !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-composer-stepper-r12
+input[type="number"]::-webkit-inner-spin-button,
+html body #pmd-reservation-composer-v1
+.pmd-composer-stepper-r12
+input[type="number"]::-webkit-outer-spin-button {
+  margin: 0 !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+}
+
+/* Keep the compact controls aligned under their own label, never stretched. */
+html body #pmd-reservation-composer-v1
+.pmd-composer-v223-area-duration
+.pmd-composer-stepper-r12,
+html body #pmd-reservation-composer-v1
+.pmd-composer-v223-area-guests
+.pmd-composer-stepper-r12,
+html body #pmd-reservation-composer-v1
+.pmd-composer-area-duration-v222
+.pmd-composer-stepper-r12,
+html body #pmd-reservation-composer-v1
+.pmd-composer-area-guests-v222
+.pmd-composer-stepper-r12 {
+  justify-self: start !important;
+  align-self: start !important;
+}
+
+/* Explicit roundness for controls that older global CSS targets separately. */
+html body #pmd-reservation-composer-v1
+[data-pmd-auto-mode-control],
+html body #pmd-reservation-composer-v1
+.pmd-smart-choose-dropdown-v224,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__feature-options
+label
+> span,
+html body #pmd-reservation-composer-v1
+[data-pmd-composer-cancel],
+html body #pmd-reservation-composer-v1
+[data-pmd-composer-save] {
+  border-radius:
+    var(--pmd-composer-field-radius-r14)
+    !important;
+}
+
+/* Time wheel: preserve native momentum and never show a scrollbar. */
+html body #pmd-reservation-composer-v1
+.pmd-jade-wheel-v221__column {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+  -webkit-overflow-scrolling: touch !important;
+  scroll-behavior: auto !important;
+  scroll-snap-type: y proximity !important;
+  overscroll-behavior-y: contain !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-jade-wheel-v221__column::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
+}
+
+@media (max-width:700px) {
+  html body #pmd-reservation-composer-v1
+  .pmd-composer-stepper-r12 {
+    grid-template-columns: 44px 108px 44px !important;
+    gap: 8px !important;
+  }
+
+  html body #pmd-reservation-composer-v1
+  .pmd-composer-stepper-r12__value,
+  html body #pmd-reservation-composer-v1
+  .pmd-reservation-composer-v1__primary-grid
+  .pmd-composer-stepper-r12
+  .pmd-composer-stepper-r12__value
+  > input[type="number"] {
+    width: 108px !important;
+    min-width: 108px !important;
+    max-width: 108px !important;
+  }
+}
