@@ -1960,6 +1960,16 @@ function applyAvailability(result) {
 
   function populate(data, options) {
     options = options || {};
+
+    /*
+     * PMD_COMPOSER_TABLE_CATALOG_READY_R31
+     *
+     * New-tenant onboarding must never infer "no tables" from the transient
+     * empty <select> that exists while Composer hydration is in progress.
+     */
+    root.dataset.pmdTableCatalogReady = '0';
+    root.removeAttribute('data-pmd-table-count');
+
     applySmartComposerFields();
 
     var values = data.reservation || data.defaults;
@@ -2046,6 +2056,16 @@ function applyAvailability(result) {
         selectedTables.indexOf(Number(table.table_id)) >= 0
       );
     });
+
+    /*
+     * Publish catalog readiness only AFTER every real table option is present.
+     * Mutation observers may now safely decide whether the tenant truly has
+     * zero tables.
+     */
+    root.dataset.pmdTableCount = String(
+      tableCatalog.length
+    );
+    root.dataset.pmdTableCatalogReady = '1';
 
     lastAvailability = null;
     ensureTablePicker();
