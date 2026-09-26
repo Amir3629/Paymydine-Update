@@ -901,6 +901,10 @@
    * Reservations owns composer markup, styling, modal lifecycle,
    * Jade time wheel, smart assignment, availability and save behavior.
    * Reservations supplies only context and its existing endpoint.
+   *
+   * PMD_RESERVATIONS_SCHEDULE_NO_NATIVE_FALLBACK_R21
+   * The native create/edit pages are retired UI. A Composer failure must stay
+   * on this workspace; never navigate to those legacy pages.
    */
   function composerFallback(mode, reservationId, date, time) {
     var id = Number(reservationId || 0);
@@ -1110,23 +1114,25 @@
     var api = canonicalComposerApi();
 
     if (!api) {
-      console.error('[PMD Reservations] Canonical Reservations Composer runtime is unavailable');
-      window.location.href = fallback;
+      console.error(
+        '[PMD Reservations] Canonical Reservations Composer runtime is unavailable; staying in workspace'
+      );
       return Promise.resolve(false);
     }
 
     try {
       return api.open(context, origin || null).catch(function (error) {
-        console.error('[PMD Reservations] Canonical Reservations Composer open failed', error);
-        var composerRoot = document.getElementById('pmd-reservation-composer-v1');
-        if (!composerRoot || !composerRoot.classList.contains('show')) {
-          window.location.href = fallback;
-        }
+        console.error(
+          '[PMD Reservations] Canonical Reservations Composer open failed; staying in workspace',
+          error
+        );
         return false;
       });
     } catch (error) {
-      console.error('[PMD Reservations] Canonical Reservations Composer open failed', error);
-      window.location.href = fallback;
+      console.error(
+        '[PMD Reservations] Canonical Reservations Composer open failed; staying in workspace',
+        error
+      );
       return Promise.resolve(false);
     }
   }
