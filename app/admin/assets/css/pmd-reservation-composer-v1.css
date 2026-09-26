@@ -8175,3 +8175,152 @@ html body #pmd-reservation-composer-v1
 
 /* PMD_COMPOSER_ULTRA_PALE_MINT_R25
    Icon tiles are intentionally almost-white mint with only a faint green cast. */
+
+
+/* ============================================================
+   PMD_COMPOSER_UNIVERSAL_CORNER_AUTHORITY_R26
+
+   One corner angle for every visible control surface inside the Composer.
+   Long text fields no longer look pill-shaped while steppers look squarer.
+   The outer modal shell remains the shell; all controls inside it share 12px.
+   ============================================================ */
+
+html body #pmd-reservation-composer-v1 {
+  --pmd-composer-surface-radius-r26: 12px;
+}
+
+/* Preferences are intentionally presented before table assignment. */
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__feature-preferences {
+  margin: 0 0 18px !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__assignment
+> h3 {
+  margin-top: 0 !important;
+}
+
+/* Primary/contact/notes fields: exact same angle. */
+html body #pmd-reservation-composer-v1
+form#pmd-reservation-composer-form-v1
+.pmd-reservation-composer-v1__primary-grid
+> label
+> input:not([type="hidden"]):not([type="radio"]):not([type="checkbox"]),
+html body #pmd-reservation-composer-v1
+form#pmd-reservation-composer-form-v1
+.pmd-reservation-composer-v1__contact-grid
+> label
+> input:not([type="hidden"]):not([type="radio"]):not([type="checkbox"]),
+html body #pmd-reservation-composer-v1
+form#pmd-reservation-composer-form-v1
+.pmd-reservation-composer-v1__notes
+> textarea,
+html body #pmd-reservation-composer-v1
+form#pmd-reservation-composer-form-v1
+select {
+  border-radius:
+    var(--pmd-composer-surface-radius-r26)
+    !important;
+}
+
+/* Duration + Guest center values and +/- buttons use the SAME 12px. */
+html body #pmd-reservation-composer-v1
+form#pmd-reservation-composer-form-v1
+.pmd-composer-stepper-r12
+> button,
+html body #pmd-reservation-composer-v1
+form#pmd-reservation-composer-form-v1
+.pmd-composer-stepper-r12
+.pmd-composer-stepper-r12__value
+> input[type="number"] {
+  border-radius:
+    var(--pmd-composer-surface-radius-r26)
+    !important;
+}
+
+/* Time wheel outer frame + selected row use the SAME 12px. */
+html body #pmd-reservation-composer-v1
+.pmd-jade-wheel-v221,
+html body #pmd-reservation-composer-v1
+.pmd-jade-wheel-v221__highlight {
+  border-radius:
+    var(--pmd-composer-surface-radius-r26)
+    !important;
+}
+
+/* Assignment, preferences, table picker and policy controls. */
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__modes
+> label,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__modes
+> label
+> span,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__feature-options
+label
+> span,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__table-trigger,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__table-panel,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__table-option,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__table-chip,
+html body #pmd-reservation-composer-v1
+[data-pmd-auto-mode-control],
+html body #pmd-reservation-composer-v1
+.pmd-smart-choose-dropdown-v224,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__policy-notice {
+  border-radius:
+    var(--pmd-composer-surface-radius-r26)
+    !important;
+}
+
+/* Footer actions use the same angle too. */
+html body #pmd-reservation-composer-v1
+[data-pmd-composer-cancel],
+html body #pmd-reservation-composer-v1
+[data-pmd-composer-save] {
+  border-radius:
+    var(--pmd-composer-surface-radius-r26)
+    !important;
+}
+
+/* Every framed section icon follows exactly the same corner geometry. */
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__primary-grid
+> label
+> span
+> svg,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__contact-grid
+> label
+> span
+> svg,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__notes
+> span
+> svg,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__assignment
+> h3
+> svg,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__feature-title
+> svg {
+  border-radius:
+    var(--pmd-composer-surface-radius-r26)
+    !important;
+}
+
+/* Structural wrappers stay borderless: only their visible children own corners. */
+html body #pmd-reservation-composer-v1
+.pmd-composer-stepper-r12,
+html body #pmd-reservation-composer-v1
+.pmd-composer-stepper-r12__value {
+  border-radius: 0 !important;
+}
