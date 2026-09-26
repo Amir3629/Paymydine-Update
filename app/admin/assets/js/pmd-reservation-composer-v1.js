@@ -2164,18 +2164,43 @@ function applyAvailability(result) {
 
   function open(nextContext, origin) {
     /*
-     * PMD_COMPOSER_GLASS_IMMEDIATE_OPEN_V1
+     * PMD_COMPOSER_PRIMED_OPEN_R10
      *
-     * The complete glass card appears on the click frame. There is no visible
-     * loading card and no delayed show. The payload hydrates the already-open
-     * stable form in place.
+     * New reservation opens first from a short-lived canonical primer cached
+     * before the click (or refreshed after the previous close). That means the
+     * first painted frame already contains the real time and recommendation.
+     *
+     * A cache miss keeps the immediate-open fallback, but its one load request
+     * now also contains initial availability.
      */
     context = nextContext;
     trigger = origin;
     baseline = '';
     clearErrors();
 
+    var primer =
+      pmdReadPrimerR10(context);
+
     prepareImmediateShell(context);
+
+    if (primer) {
+      populate(
+        primer,
+        {
+          suppressInitialAvailability: true
+        }
+      );
+
+      ensureModal().show();
+      document.body.classList.add(
+        'pmd-reservation-composer-open-v1'
+      );
+      window.requestAnimationFrame(
+        tagBackdrop
+      );
+
+      return Promise.resolve(primer);
+    }
 
     ensureModal().show();
     document.body.classList.add(
@@ -2183,18 +2208,18 @@ function applyAvailability(result) {
     );
     window.requestAnimationFrame(tagBackdrop);
 
-    return request('onLoadReservationComposer', {
-      mode: context.mode,
-      reservation_id: context.reservationId,
-      source: context.source,
-      selected_date: context.selectedDate,
-      selected_time: context.selectedTime,
-      table_ids: context.tableIds,
-      location_id: context.locationId,
-      pmd_floor_id: clean(context.floorId),
-      pmd_floor_name: clean(context.floorName),
-      pmd_floor_locked: context.floorLocked ? 1 : 0
-    }).then(function (response) {
+    var requestContext =
+      pmdClonePrimerDataR10(context);
+
+    return request(
+      'onLoadReservationComposer',
+      pmdLoadRequestDataR10(requestContext)
+    ).then(function (response) {
+      pmdRememberPrimerR10(
+        requestContext,
+        response
+      );
+
       populate(response);
       return response;
     }).catch(function (error) {
@@ -2330,11 +2355,83 @@ function applyAvailability(result) {
   if (policySuggestionButton) policySuggestionButton.addEventListener('click', applyPolicySuggestion);
   root.querySelectorAll('[data-pmd-composer-close],[data-pmd-composer-cancel]').forEach(function (button) { button.addEventListener('click', function () { close(false); }); });
   root.addEventListener('hide.bs.modal', function (event) { if (!allowHide) { event.preventDefault(); close(false); } });
-  root.addEventListener('hidden.bs.modal', function () { allowHide = false; closing = false; root.classList.remove('pmd-reservation-composer-v1--closing'); document.body.classList.remove('pmd-reservation-composer-open-v1'); if (!document.querySelector('.modal.show')) document.body.classList.remove('modal-open'); if (trigger && trigger.isConnected) trigger.focus(); });
+  root.addEventListener('hidden.bs.modal', function () {
+    var primerContext =
+      context
+        ? pmdClonePrimerDataR10(context)
+        : null;
+
+    allowHide = false;
+    closing = false;
+    root.classList.remove(
+      'pmd-reservation-composer-v1--closing'
+    );
+    document.body.classList.remove(
+      'pmd-reservation-composer-open-v1'
+    );
+
+    if (!document.querySelector('.modal.show')) {
+      document.body.classList.remove('modal-open');
+    }
+
+    if (trigger && trigger.isConnected) {
+      trigger.focus();
+    }
+
+    /*
+     * Refresh the NEXT open after the card is already closed. No network
+     * request is needed when the user clicks New reservation again.
+     */
+    if (primerContext) {
+      window.setTimeout(function () {
+        pmdWarmPrimerR10(
+          primerContext,
+          true
+        );
+      }, 0);
+    }
+  });
   root.addEventListener('keydown', function (event) { if (event.key === 'Escape') { event.preventDefault(); close(false); } });
   document.addEventListener('click', clickOwner, true);
 
-  window.PMDReservationComposerV1 = {version:'1.0.0', open:open, normalizeContext:normalize, getFloorSelection:floorSelection, close:close};
+  window.PMDReservationComposerV1 = {
+    version:'1.0.0',
+    open:open,
+    normalizeContext:normalize,
+    getFloorSelection:floorSelection,
+    close:close,
+    prime:function (nextContext, force) {
+      return pmdWarmPrimerR10(
+        nextContext,
+        force === true
+      );
+    }
+  };
+
+  function pmdPrimeDefaultCreateR10() {
+    var primerContext =
+      pmdDefaultPrimerContextR10();
+
+    if (primerContext) {
+      pmdWarmPrimerR10(
+        primerContext,
+        false
+      );
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener(
+      'DOMContentLoaded',
+      pmdPrimeDefaultCreateR10,
+      {once:true}
+    );
+  } else {
+    window.setTimeout(
+      pmdPrimeDefaultCreateR10,
+      0
+    );
+  }
 }());
 
 /* ============================================================
