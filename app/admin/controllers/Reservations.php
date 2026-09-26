@@ -443,6 +443,12 @@ class Reservations extends PmdCleanWorkspaceControllerV1
                 + (int)$match[2];
         };
 
+        /*
+         * PMD_RESERVATION_OPENING_HOURS_FAIL_CLOSED_R24
+         *
+         * Never manufacture an unrestricted 24/7 create-time when the
+         * location's working-hours authority is missing.
+         */
         $openingAllows = function (
             string $candidateDate,
             int $minute
@@ -453,7 +459,7 @@ class Reservations extends PmdCleanWorkspaceControllerV1
             $duration
         ): bool {
             if (!$hours) {
-                return true;
+                return false;
             }
 
             try {
@@ -866,7 +872,7 @@ class Reservations extends PmdCleanWorkspaceControllerV1
     {
         $hours = $this->pmdComposerOpeningHours($this->pmdComposerLocationId($data));
         if (!$hours) {
-            return true;
+            return false;
         }
 
         $date = trim((string)($data['reserve_date'] ?? ''));
@@ -875,13 +881,13 @@ class Reservations extends PmdCleanWorkspaceControllerV1
 
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)
             || !preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $time)) {
-            return true;
+            return false;
         }
 
         try {
             $requestedStart = Carbon::createFromFormat('!Y-m-d H:i', $date.' '.$time, 'Europe/Berlin');
         } catch (Throwable $error) {
-            return true;
+            return false;
         }
         $requestedEnd = $requestedStart->copy()->addMinutes($duration);
 
@@ -944,7 +950,7 @@ class Reservations extends PmdCleanWorkspaceControllerV1
 
         if (!$this->pmdComposerOpeningWindowAllows($data)) {
             throw ValidationException::withMessages([
-                'reserve_time' => 'Reservation time must be inside the restaurant opening hours.',
+                'reserve_time' => 'Reservation time must be inside the restaurant opening hours. If opening hours are unavailable, configure them in Settings before creating reservations.',
             ]);
         }
     }
