@@ -1560,3 +1560,22 @@ html body.pmd-coupon-manager-page #pmd-coupon-manager-main
   overflow: hidden;
 }
 /* PMD_COUPON_KPI_STABLE_TIERS_R79D END */
+
+/* ============================================================
+   PMD_DISCOUNT_KPI_FRAME_V145
+
+   Match the shared PMD desktop KPI frame established by V143/V144.
+   Discount value autofit remains typography-only and does not own height.
+   Existing <=900px responsive geometry remains unchanged.
+   ============================================================ */
+@media (min-width: 901px) {
+  body.pmd-coupon-manager-page
+  .pmd-coupon-kpi {
+    height: 100px !important;
+    min-height: 100px !important;
+    max-height: 100px !important;
+    padding: 12px 14px !important;
+    align-self: start !important;
+    box-sizing: border-box !important;
+  }
+}

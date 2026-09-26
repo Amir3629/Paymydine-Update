@@ -64,7 +64,18 @@ class Coupons extends AdminController
         $this->bodyClass = trim(($this->bodyClass ?? '').' pmd-settings-suite pmd-owner-settings-page pmd-coupon-manager-page pmd-coupon-manager-v1 pmd-coupon-manager-v11');
         $this->addCss('css/pmd-owner-settings-v1.css');
         $this->addCss('css/pmd-settings-suite-first-paint-v1.css');
-        $this->addCss('css/pmd-coupon-manager-v13.css');
+        // PMD_DISCOUNT_KPI_FRAME_CACHE_BUST_V145
+        $this->addCss(
+            asset('app/admin/assets/css/pmd-coupon-manager-v13.css')
+            .'?v='
+            .(string)(
+                @filemtime(
+                    base_path(
+                        'app/admin/assets/css/pmd-coupon-manager-v13.css'
+                    )
+                ) ?: '1'
+            )
+        );
         $this->addCss('css/pmd-coupon-stable-r24.css');
         $this->addJs('js/pmd-coupon-manager-v13.js');
         $this->addJs('js/pmd-coupon-stable-r24.js');

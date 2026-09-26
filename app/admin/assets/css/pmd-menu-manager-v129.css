@@ -4338,3 +4338,22 @@ html body.pmd-menu-manager-page
 .pmd-menu-card[data-item-type="food"] .pmd-menu-card__number {
   background: #0f766e;
 }
+
+/* ============================================================
+   PMD_MENU_KPI_FRAME_V145
+
+   Match the shared PMD desktop KPI frame established by V143/V144.
+   Menu keeps its own content/icon styling; only the outer frame geometry
+   is normalized. Existing <=900px responsive geometry remains unchanged.
+   ============================================================ */
+@media (min-width: 901px) {
+  body.pmd-menu-manager-page
+  .pmd-menu-kpi {
+    height: 100px !important;
+    min-height: 100px !important;
+    max-height: 100px !important;
+    padding: 12px 14px !important;
+    align-self: start !important;
+    box-sizing: border-box !important;
+  }
+}
