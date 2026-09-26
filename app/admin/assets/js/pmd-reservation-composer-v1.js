@@ -934,14 +934,23 @@
     pmdDirectBackdropR20 = backdrop;
   }
 
+  /*
+   * PMD_COMPOSER_LIGHTWEIGHT_OPEN_R22
+   *
+   * The old R20 post-paint path still fired every legacy show/shown listener.
+   * That caused multiple full Composer passes (time-policy wheel scans, layout,
+   * table UI, labels) immediately after the card appeared and made the open
+   * card feel frozen. Those authorities already initialize at script boot and
+   * are refreshed by populate()/availability events, so do not replay them.
+   *
+   * Blur is also no longer a live backdrop-filter. After the card gets its own
+   * first paint, one class blurs the workspace and Side Menu with the exact
+   * same CSS filter in the exact same frame. The overlay is only a cheap click
+   * catcher/tint.
+   */
   function pmdStagePostPaintR20() {
     pmdCancelDirectFramesR20();
 
-    /*
-     * Paint #1 contains only the complete card.
-     * Paint #2 adds ONE backdrop-filter plane over the entire application,
-     * including Side Menu, and runs internal post-open listeners.
-     */
     pmdDirectFrameA_R20 =
       window.requestAnimationFrame(
         function () {
@@ -958,17 +967,11 @@
                   return;
                 }
 
+                document.documentElement.classList.add(
+                  'pmd-reservation-composer-bgblur-r22'
+                );
+
                 pmdAttachDirectBackdropR20();
-
-                pmdDispatchModalEventR20(
-                  'show.bs.modal',
-                  false
-                );
-
-                pmdDispatchModalEventR20(
-                  'shown.bs.modal',
-                  false
-                );
               }
             );
         }
@@ -981,6 +984,18 @@
     }
 
     pmdRemoveDirectBackdropR20();
+
+    /*
+     * Keep the modal outside the blurred workspace subtree. Moving an existing
+     * DOM node preserves all listeners and form state.
+     */
+    if (root.parentNode !== document.body) {
+      document.body.appendChild(root);
+    }
+
+    document.documentElement.classList.remove(
+      'pmd-reservation-composer-bgblur-r22'
+    );
 
     root.style.display = 'block';
     root.removeAttribute('aria-hidden');
@@ -1052,7 +1067,8 @@
     document.documentElement.classList.remove(
       'pmd-reservation-composer-open-r14',
       'pmd-reservation-composer-blur-r18',
-      'pmd-reservation-composer-direct-r20'
+      'pmd-reservation-composer-direct-r20',
+      'pmd-reservation-composer-bgblur-r22'
     );
 
     pmdDispatchModalEventR20(
@@ -3054,7 +3070,6 @@ function applyAvailability(result) {
   function pmdCanRevealBeforeNormalizeR20(element) {
     if (
       !element
-      || !pmdHiddenPrimerR16
       || root.classList.contains('show')
     ) {
       return false;
@@ -4164,7 +4179,13 @@ function applyAvailability(result) {
      * trackpad/touch flings must not hit a finite edge and then visually jump
      * back into the middle of the wheel.
      */
-    valuesRepeated(values, 31).forEach(function (value) {
+    /*
+     * PMD_COMPOSER_LIGHT_WHEEL_R22
+     * 31 cycles created 558 live buttons and made every policy/time refresh
+     * expensive. 11 cycles still provide a long wheel runway while cutting the
+     * hot DOM by roughly two thirds.
+     */
+    valuesRepeated(values, 11).forEach(function (value) {
       var item = document.createElement('button');
 
       item.type = 'button';
