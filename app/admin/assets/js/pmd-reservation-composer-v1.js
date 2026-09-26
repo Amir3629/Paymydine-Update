@@ -394,19 +394,36 @@
 
     if (!day) return null;
 
+    /*
+     * Match the same active-Floor context that Reservations will pass when the
+     * header create button is clicked. Otherwise a perfectly good primer for
+     * Main Floor would live under the wrong cache key and the first click
+     * would miss it.
+     */
+    var floor = floorSelection();
+
     return {
       version: 1,
       mode: 'create',
-      source: 'header-primer',
+      source: floor.ids.length
+        ? 'floor-selection-primer'
+        : 'header-primer',
       reservationId: null,
       selectedDate: day,
       selectedTime: null,
       duration: null,
-      tableIds: [],
-      tableNames: [],
-      floorId: '',
-      floorName: '',
-      floorLocked: false,
+      tableIds: positiveIds(
+        floor.ids || []
+      ),
+      tableNames: Array.isArray(floor.names)
+        ? floor.names.slice()
+        : [],
+      floorId: clean(floor.floorId),
+      floorName: clean(floor.floorName),
+      floorLocked: Boolean(
+        floor.floorLocked
+        || (floor.ids && floor.ids.length)
+      ),
       locationId: null,
       returnView: 'floor',
       fallbackUrl: '/admin/reservations/create'
