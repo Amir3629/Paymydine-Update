@@ -1295,7 +1295,8 @@ function applyAvailability(result) {
     scheduleAvailability(true);
   }
 
-  function populate(data) {
+  function populate(data, options) {
+    options = options || {};
     applySmartComposerFields();
 
     var values = data.reservation || data.defaults;
@@ -1511,6 +1512,46 @@ function applyAvailability(result) {
       contentState.removeAttribute('aria-hidden');
     }
 
+    /*
+     * PMD_COMPOSER_INITIAL_AVAILABILITY_INLINE_R10
+     *
+     * onLoadReservationComposer now returns the first canonical availability
+     * result in the same response. Apply it before hydration finishes so the
+     * green recommendation row never paints empty.
+     *
+     * The signature guard prevents a stale load-time result from being used if
+     * FutureOnly had to coerce date/time/duration after the response was built.
+     */
+    var initialAvailabilityApplied = false;
+    if (
+      data
+      && data.pmdInitialAvailability
+      && data.pmdInitialAvailabilityInput
+    ) {
+      var currentAvailabilityInput =
+        payload();
+
+      if (
+        pmdAvailabilitySignatureV3(
+          currentAvailabilityInput
+        ) ===
+        pmdAvailabilitySignatureV3(
+          data.pmdInitialAvailabilityInput
+        )
+      ) {
+        pmdLastAvailabilitySignatureV3 =
+          pmdAvailabilitySignatureV3(
+            currentAvailabilityInput
+          );
+
+        applyAvailability(
+          data.pmdInitialAvailability
+        );
+
+        initialAvailabilityApplied = true;
+      }
+    }
+
     root.classList.remove(
       'pmd-composer-hydrating-v1'
     );
@@ -1518,16 +1559,18 @@ function applyAvailability(result) {
 
     baseline = snapshot();
 
-    window.requestAnimationFrame(function () {
-      /*
-       * PMD_COMPOSER_INITIAL_AVAILABILITY_IMMEDIATE_V1
-       *
-       * Initial Composer hydration already finished; do not add the normal
-       * 300ms field-edit debounce before asking for the first recommendation.
-       * Field changes still keep their debounce through ordinary listeners.
-       */
-      scheduleAvailability(true);
-    });
+    if (
+      !initialAvailabilityApplied
+      && options.suppressInitialAvailability !== true
+    ) {
+      window.requestAnimationFrame(function () {
+        /*
+         * Fallback only. Normal R10 load responses already include initial
+         * availability, so no second request is made on open.
+         */
+        scheduleAvailability(true);
+      });
+    }
   }
   function payload() {
     var data = {};
