@@ -3333,7 +3333,14 @@ function applyAvailability(result) {
      * More repeated cycles give fast touch/mouse-wheel flings enough runway
      * without hitting a finite edge before we can quietly re-center.
      */
-    valuesRepeated(values, 9).forEach(function (value) {
+    /*
+     * PMD_COMPOSER_TIME_LONG_RUNWAY_R14
+     *
+     * Keep many repeated cycles on both sides of the active value. Fast
+     * trackpad/touch flings must not hit a finite edge and then visually jump
+     * back into the middle of the wheel.
+     */
+    valuesRepeated(values, 31).forEach(function (value) {
       var item = document.createElement('button');
 
       item.type = 'button';
@@ -3522,47 +3529,32 @@ function applyAvailability(result) {
       return;
     }
 
-    var allItems = items(column);
-    var selectedIndex = allItems.indexOf(selected);
-    var selectedValue = selected.dataset.value;
-
     setSelected(column, selected);
 
     /*
-     * Native scroll inertia and CSS snap do almost all positioning. We only
-     * make a tiny final exact-center correction after scrolling has ended.
+     * PMD_COMPOSER_TIME_NO_EDGE_RECENTER_R14
+     *
+     * Never teleport the column to another repeated clone after a fast fling.
+     * The long 31-cycle runway makes edge exhaustion impractical in normal use,
+     * so the wheel can stay exactly where the user's momentum finished.
      */
-    centerItem(column, selected, false);
-    publishTime();
-
-    /*
-     * Re-center repeated cycles only near an actual edge. Re-centering on every
-     * release looked identical visually but created extra scroll events and
-     * made Safari/touch input feel sticky.
-     */
-    var edgeThreshold = Math.max(
-      3,
-      Math.floor(allItems.length * 0.16)
-    );
+    var targetTop =
+      selected.offsetTop
+      - (
+        column.clientHeight
+        - selected.offsetHeight
+      ) / 2;
 
     if (
-      selectedIndex >= 0
-      && (
-        selectedIndex < edgeThreshold
-        || selectedIndex > allItems.length - 1 - edgeThreshold
-      )
+      Math.abs(
+        column.scrollTop
+        - Math.max(0, targetTop)
+      ) > 2
     ) {
-      window.requestAnimationFrame(function () {
-        var middle = middleItem(column, selectedValue);
-
-        if (!middle || middle === selected) {
-          return;
-        }
-
-        setSelected(column, middle);
-        centerItem(column, middle, false);
-      });
+      centerItem(column, selected, false);
     }
+
+    publishTime();
   }
 
   function bindColumn(column) {
@@ -4703,6 +4695,62 @@ function applyAvailability(result) {
     '[PMD Composer Compact Assignment V2.2.3] Ready',
     window.PMDComposerCompactAssignmentV223.audit()
   );
+}());
+
+
+/* ============================================================
+   PMD_COMPOSER_MODAL_BACKGROUND_STATE_R14
+   Make the Side Menu participate in the same blurred background plane while
+   the Reservation Composer is open.
+   ============================================================ */
+(function () {
+  'use strict';
+
+  var root =
+    document.getElementById(
+      'pmd-reservation-composer-v1'
+    );
+
+  if (
+    !root
+    || root.dataset.pmdBackgroundStateR14 === '1'
+  ) {
+    return;
+  }
+
+  root.dataset.pmdBackgroundStateR14 = '1';
+
+  function setOpen(active) {
+    document.documentElement.classList.toggle(
+      'pmd-reservation-composer-open-r14',
+      Boolean(active)
+    );
+  }
+
+  root.addEventListener(
+    'show.bs.modal',
+    function () {
+      setOpen(true);
+    }
+  );
+
+  root.addEventListener(
+    'shown.bs.modal',
+    function () {
+      setOpen(true);
+    }
+  );
+
+  root.addEventListener(
+    'hidden.bs.modal',
+    function () {
+      setOpen(false);
+    }
+  );
+
+  if (root.classList.contains('show')) {
+    setOpen(true);
+  }
 }());
 
 
