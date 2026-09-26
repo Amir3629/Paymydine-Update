@@ -249,6 +249,170 @@
       });
     });
   }
+
+  function pmdLoadRequestDataR10(nextContext) {
+    nextContext = nextContext || {};
+    return {
+      mode: nextContext.mode,
+      reservation_id: nextContext.reservationId,
+      source: nextContext.source,
+      selected_date: nextContext.selectedDate,
+      selected_time: nextContext.selectedTime,
+      table_ids: positiveIds(nextContext.tableIds || []),
+      location_id: nextContext.locationId,
+      pmd_floor_id: clean(nextContext.floorId),
+      pmd_floor_name: clean(nextContext.floorName),
+      pmd_floor_locked: nextContext.floorLocked ? 1 : 0
+    };
+  }
+
+  function pmdPrimerKeyR10(nextContext) {
+    if (
+      !nextContext
+      || nextContext.mode === 'edit'
+      || timeValue(nextContext.selectedTime)
+    ) {
+      return '';
+    }
+
+    var day = dateValue(nextContext.selectedDate);
+    if (!day) return '';
+
+    return [
+      day,
+      clean(nextContext.floorId),
+      nextContext.floorLocked ? '1' : '0',
+      positiveIds(nextContext.tableIds || [])
+        .sort(function (a, b) { return a - b; })
+        .join(',')
+    ].join('|');
+  }
+
+  function pmdClonePrimerDataR10(value) {
+    try {
+      return JSON.parse(JSON.stringify(value));
+    } catch (ignore) {
+      return value;
+    }
+  }
+
+  function pmdRememberPrimerR10(nextContext, response) {
+    var key = pmdPrimerKeyR10(nextContext);
+
+    if (
+      !key
+      || !response
+      || response.reservation
+      || !response.defaults
+      || !response.pmdInitialAvailability
+    ) {
+      return response;
+    }
+
+    pmdCreatePrimerCacheR10[key] = {
+      at: Date.now(),
+      response: pmdClonePrimerDataR10(response)
+    };
+
+    return response;
+  }
+
+  function pmdReadPrimerR10(nextContext) {
+    var key = pmdPrimerKeyR10(nextContext);
+    var entry = key ? pmdCreatePrimerCacheR10[key] : null;
+
+    if (
+      !entry
+      || !entry.response
+      || Date.now() - Number(entry.at || 0) > PMD_CREATE_PRIMER_TTL_R10
+    ) {
+      if (key) delete pmdCreatePrimerCacheR10[key];
+      return null;
+    }
+
+    return pmdClonePrimerDataR10(entry.response);
+  }
+
+  function pmdWarmPrimerR10(nextContext, force) {
+    var key = pmdPrimerKeyR10(nextContext);
+    if (!key) return Promise.resolve(null);
+
+    if (
+      force !== true
+      && pmdReadPrimerR10(nextContext)
+    ) {
+      return Promise.resolve(
+        pmdReadPrimerR10(nextContext)
+      );
+    }
+
+    if (pmdCreatePrimerInflightR10[key]) {
+      return pmdCreatePrimerInflightR10[key];
+    }
+
+    var primerContext =
+      pmdClonePrimerDataR10(nextContext);
+
+    pmdCreatePrimerInflightR10[key] =
+      request(
+        'onLoadReservationComposer',
+        pmdLoadRequestDataR10(primerContext)
+      )
+        .then(function (response) {
+          return pmdRememberPrimerR10(
+            primerContext,
+            response
+          );
+        })
+        .catch(function () {
+          return null;
+        })
+        .finally(function () {
+          delete pmdCreatePrimerInflightR10[key];
+        });
+
+    return pmdCreatePrimerInflightR10[key];
+  }
+
+  function pmdDefaultPrimerContextR10() {
+    var node = document.getElementById(
+      'pmd-reservations-schedule-bootstrap-v1'
+    );
+
+    var boot = {};
+    try {
+      boot = node
+        ? JSON.parse(node.textContent || '{}') || {}
+        : {};
+    } catch (ignore) {
+      boot = {};
+    }
+
+    var day =
+      dateValue(boot.today)
+      || selectedDate();
+
+    if (!day) return null;
+
+    return {
+      version: 1,
+      mode: 'create',
+      source: 'header-primer',
+      reservationId: null,
+      selectedDate: day,
+      selectedTime: null,
+      duration: null,
+      tableIds: [],
+      tableNames: [],
+      floorId: '',
+      floorName: '',
+      floorLocked: false,
+      locationId: null,
+      returnView: 'floor',
+      fallbackUrl: '/admin/reservations/create'
+    };
+  }
+
   function ensureModal() {
     if (!window.bootstrap || !window.bootstrap.Modal) throw new Error('Bootstrap Modal is unavailable.');
     if (!modal) modal = new window.bootstrap.Modal(root, {backdrop:true, keyboard:false, focus:true});
