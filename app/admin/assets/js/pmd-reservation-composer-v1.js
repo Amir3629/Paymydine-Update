@@ -3722,8 +3722,15 @@ function applyAvailability(result) {
   function durationMinutes() {
     return Math.max(1, Number((form.elements.duration && form.elements.duration.value) || 45));
   }
+  /*
+   * PMD_COMPOSER_OPENING_HOURS_HARD_GUARD_R24
+   *
+   * Creating a reservation is fail-closed: no working-hours authority means
+   * no bookable time. This prevents a missing/stale bootstrap from silently
+   * behaving as 24/7.
+   */
   function openingAllows(date, time, duration) {
-    if (!hoursConfigured()) return true;
+    if (!hoursConfigured()) return false;
     var weekday = weekdayForDate(date);
     var start = timeMinutes(time);
     if (weekday === null || start === null) return false;
@@ -3746,7 +3753,7 @@ function applyAvailability(result) {
     return start >= open && end <= close;
   }
   function dateHasOpeningWindow(date) {
-    if (!hoursConfigured()) return true;
+    if (!hoursConfigured()) return false;
     if (!validDate(date)) return false;
     for (var minute = 0; minute < 1440; minute += 15) {
       var clock = pad(Math.floor(minute / 60)) + ':' + pad(minute % 60);
@@ -3762,8 +3769,23 @@ function applyAvailability(result) {
     if (!isCreate()) return true;
     var day = String(date || '');
     var clock = String(time || '').slice(0,5);
-    if (!validDate(day) || !validTime(clock)) return true;
-    return futureAllows(day, clock) && openingAllows(day, clock, duration == null ? durationMinutes() : duration);
+
+    if (
+      !hoursConfigured()
+      || !validDate(day)
+      || !validTime(clock)
+    ) {
+      return false;
+    }
+
+    return futureAllows(day, clock)
+      && openingAllows(
+        day,
+        clock,
+        duration == null
+          ? durationMinutes()
+          : duration
+      );
   }
   function reason(date, time, duration) {
     if (!isCreate()) return '';
@@ -3784,6 +3806,13 @@ function applyAvailability(result) {
     var lang = String(document.documentElement.lang || '').toLowerCase();
     var date = form.elements.reserve_date ? form.elements.reserve_date.value : '';
     var time = form.elements.reserve_time ? form.elements.reserve_time.value : '';
+
+    if (isCreate() && !hoursConfigured()) {
+      return lang.indexOf('de') === 0
+        ? 'Öffnungszeiten sind nicht verfügbar. Bitte zuerst die Öffnungszeiten konfigurieren.'
+        : 'Opening hours are unavailable. Configure opening hours before creating reservations.';
+    }
+
     if (validDate(date) && hoursConfigured() && !dateHasOpeningWindow(date)) {
       return lang.indexOf('de') === 0
         ? 'Das Restaurant ist an diesem Tag geschlossen.'
@@ -4038,14 +4067,42 @@ function applyAvailability(result) {
     }
     return min;
   }
+  /*
+   * PMD_COMPOSER_EXACT_TIME_VALIDATE_R24
+   *
+   * Submit validation must NEVER silently move a closed time to another slot.
+   * Wheel interaction may intelligently resolve an AM/PM/hour intent, but by
+   * Save time the exact native reserve_time must itself be a valid slot.
+   */
   function validate(show) {
-    if (!isCreate()) { clearPolicyError(); return true; }
-    apply(true);
+    if (!isCreate()) {
+      clearPolicyError();
+      return true;
+    }
+
     var date = form.elements.reserve_date;
     var time = form.elements.reserve_time;
-    var ok = date && time && validDate(date.value) && validTime(time.value) && allowed(date.value, time.value, durationMinutes());
-    if (ok) clearPolicyError(); else if (show) showPolicyError();
-    return Boolean(ok);
+
+    var ok = Boolean(
+      date
+      && time
+      && hoursConfigured()
+      && validDate(date.value)
+      && validTime(time.value)
+      && allowed(
+        date.value,
+        time.value,
+        durationMinutes()
+      )
+    );
+
+    if (ok) {
+      clearPolicyError();
+    } else if (show) {
+      showPolicyError();
+    }
+
+    return ok;
   }
   function to24(hour, period) {
     var h = Number(hour) % 12;
