@@ -3515,13 +3515,13 @@ function applyAvailability(result) {
         || 0
       ) || null;
 
-    var selectedDate =
+    var redirectedDate =
       dateValue(
         params.get('reserve_date')
       )
       || selectedDate();
 
-    var selectedTime =
+    var redirectedTime =
       timeValue(
         params.get('reserve_time')
       );
@@ -3573,8 +3573,8 @@ function applyAvailability(result) {
               mode === 'edit'
                 ? reservationId
                 : null,
-            selectedDate: selectedDate,
-            selectedTime: selectedTime,
+            selectedDate: redirectedDate,
+            selectedTime: redirectedTime,
             duration: null,
             tableIds: [],
             tableNames: [],
