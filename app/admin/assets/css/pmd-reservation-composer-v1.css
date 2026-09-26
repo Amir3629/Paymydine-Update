@@ -8182,15 +8182,15 @@ html body #pmd-reservation-composer-v1
 
    One corner angle for every visible surface inside the Composer.
    Long text fields no longer look pill-shaped while steppers look squarer.
-   Card shell, fields, steppers, wheel, buttons, icon tiles and panels share 12px.
+   Card shell, fields, steppers, wheel, buttons, icon tiles and panels share 16px.
    ============================================================ */
 
 html body #pmd-reservation-composer-v1 {
-  --pmd-composer-surface-radius-r26: 12px;
+  --pmd-composer-surface-radius-r26: 16px;
 }
 
 
-/* The card shell itself now follows the same 12px corner language. */
+/* The card shell itself now follows the same 16px corner language. */
 html body #pmd-reservation-composer-v1
 .modal-content,
 html body #pmd-reservation-composer-v1
@@ -8244,7 +8244,7 @@ select {
     !important;
 }
 
-/* Duration + Guest center values and +/- buttons use the SAME 12px. */
+/* Duration + Guest center values and +/- buttons use the SAME 16px. */
 html body #pmd-reservation-composer-v1
 form#pmd-reservation-composer-form-v1
 .pmd-composer-stepper-r12
@@ -8259,7 +8259,7 @@ form#pmd-reservation-composer-form-v1
     !important;
 }
 
-/* Time wheel outer frame + selected row use the SAME 12px. */
+/* Time wheel outer frame + selected row use the SAME 16px. */
 html body #pmd-reservation-composer-v1
 .pmd-jade-wheel-v221,
 html body #pmd-reservation-composer-v1
@@ -8343,4 +8343,53 @@ html body #pmd-reservation-composer-v1
 html body #pmd-reservation-composer-v1
 .pmd-composer-stepper-r12__value {
   border-radius: 0 !important;
+}
+
+
+/* ============================================================
+   PMD_COMPOSER_ROUNDER_EXACT_HIT_R27
+
+   Keep the universal 16px corner language and make the +/- pointer target
+   follow the visible rounded button instead of the browser's rectangular box.
+   This prevents hover/click feedback from firing in the transparent corners.
+   ============================================================ */
+
+html body #pmd-reservation-composer-v1
+.pmd-composer-stepper-r12
+> button {
+  border-radius:
+    var(--pmd-composer-surface-radius-r26)
+    !important;
+  -webkit-clip-path:
+    inset(
+      0 round
+      var(--pmd-composer-surface-radius-r26)
+    )
+    !important;
+  clip-path:
+    inset(
+      0 round
+      var(--pmd-composer-surface-radius-r26)
+    )
+    !important;
+  overflow: hidden !important;
+  cursor: default !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.98)
+    !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-composer-stepper-r12
+> button:not(:disabled):hover,
+html body #pmd-reservation-composer-v1
+.pmd-composer-stepper-r12
+> button:not(:disabled):focus-visible {
+  cursor: pointer !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-composer-stepper-r12
+> button:disabled {
+  cursor: default !important;
 }
