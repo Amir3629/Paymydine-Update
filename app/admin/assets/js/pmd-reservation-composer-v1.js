@@ -2260,6 +2260,20 @@ function applyAvailability(result) {
      * Header/add-card creates have no explicit time. They are the only opens
      * that used to flash a guessed time and an empty suggestion row.
      */
+    function handleOpenError(error) {
+      root.classList.remove(
+        'pmd-composer-hydrating-v1',
+        'pmd-composer-time-pending-r7'
+      );
+      root.setAttribute(
+        'aria-busy',
+        'false'
+      );
+
+      showError(error);
+      throw error;
+    }
+
     if (pmdPrimerKeyR10(context)) {
       return pmdWarmPrimerR10(
         pmdClonePrimerDataR10(context),
@@ -2270,25 +2284,11 @@ function applyAvailability(result) {
         }
 
         return showImmediateAndLoad();
-      }).catch(function () {
-        return showImmediateAndLoad();
-      });
+      }).catch(handleOpenError);
     }
 
     return showImmediateAndLoad()
-      .catch(function (error) {
-        root.classList.remove(
-          'pmd-composer-hydrating-v1',
-          'pmd-composer-time-pending-r7'
-        );
-        root.setAttribute(
-          'aria-busy',
-          'false'
-        );
-
-        showError(error);
-        throw error;
-      });
+      .catch(handleOpenError);
   }
   function refreshWorkspace(reservation, assignmentMode) {
     var boot = window.PMD_RESERVATIONS_BOOT || (window.PMD_RESERVATIONS_BOOT = {});
