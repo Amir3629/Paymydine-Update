@@ -1356,7 +1356,11 @@ html body.page.pmd-clean-workspace-page #pmd-dashboard-lab {
                 @include('admin::reservations._reservation_composer')
                 <script>
                 window.PMD_RESERVATION_COMPOSER_V1 = Object.freeze({
-                  endpoint: @json(admin_url('reservations'))
+                  endpoint: @json(admin_url('reservations')),
+                  initialCreateBootstrap: @json(
+                    $pmdReservationComposerInitialCreate
+                    ?? null
+                  )
                 });
                 </script>
                 <script defer id="pmd-reservation-composer-content-hash-v1-0-2" src="{{ asset('app/admin/assets/js/pmd-reservation-composer-v1.js') }}?v={{ $pmdReservationComposerJsVersion }}"></script>
