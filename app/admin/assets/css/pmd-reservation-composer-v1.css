@@ -5986,3 +5986,198 @@ html body #pmd-reservation-composer-v1
       !important;
   }
 }
+
+
+/* PMD_RESERVATION_COMPOSER_LAYOUT_R6
+ *
+ * Requested desktop order:
+ *
+ *   Name              Reservation Time
+ *   Reservation Date  Reservation Time
+ *   Duration          Guest Number
+ *
+ * The timer owns the full right side of the first two rows. This removes the
+ * oversized full-width timer row while keeping the wheel tall and readable.
+ */
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__primary-grid,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__primary-grid.pmd-composer-grid-v223,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__primary-grid.pmd-composer-layout-grid-v222 {
+  display: grid !important;
+  grid-template-columns:
+    minmax(0, 1fr)
+    minmax(0, 1fr)
+    !important;
+  grid-template-areas:
+    "name time"
+    "date time"
+    "duration guests"
+    !important;
+  column-gap: 18px !important;
+  row-gap: 13px !important;
+  align-items: start !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__primary-grid
+.pmd-composer-grid-v223
+> .pmd-composer-v223-area-name,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__primary-grid
+> .pmd-composer-area-name-v222 {
+  grid-area: name !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__primary-grid
+.pmd-composer-grid-v223
+> .pmd-composer-v223-area-date,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__primary-grid
+> .pmd-composer-area-date-v222 {
+  grid-area: date !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__primary-grid
+.pmd-composer-grid-v223
+> .pmd-composer-v223-area-time,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__primary-grid
+> .pmd-composer-area-time-v222 {
+  grid-area: time !important;
+  align-self: stretch !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__primary-grid
+.pmd-composer-grid-v223
+> .pmd-composer-v223-area-duration,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__primary-grid
+> .pmd-composer-area-duration-v222 {
+  grid-area: duration !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__primary-grid
+.pmd-composer-grid-v223
+> .pmd-composer-v223-area-guests,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__primary-grid
+> .pmd-composer-area-guests-v222 {
+  grid-area: guests !important;
+}
+
+/* Let the wheel visually fill the same vertical block as Name + Date. */
+html body #pmd-reservation-composer-v1
+.pmd-composer-v223-area-time
+.pmd-jade-wheel-v221,
+html body #pmd-reservation-composer-v1
+.pmd-composer-area-time-v222
+.pmd-jade-wheel-v221 {
+  height: 150px !important;
+  min-height: 150px !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-composer-v223-area-time
+.pmd-jade-wheel-v221__column,
+html body #pmd-reservation-composer-v1
+.pmd-composer-area-time-v222
+.pmd-jade-wheel-v221__column {
+  height: 148px !important;
+  min-height: 148px !important;
+  padding-top: 52px !important;
+  padding-bottom: 52px !important;
+}
+
+/* One immutable visible owner for the Auto-mode text. */
+html body #pmd-reservation-composer-v1
+[data-pmd-auto-mode-control],
+html body #pmd-reservation-composer-v1
+[data-pmd-auto-mode-control].pmd-smart-recommendation-v224,
+html body #pmd-reservation-composer-v1
+[data-pmd-auto-mode-control].pmd-smart-recommendation-pending-v224,
+html body #pmd-reservation-composer-v1
+[data-pmd-auto-mode-control].pmd-v225-recommendation {
+  overflow: visible !important;
+  text-indent: 0 !important;
+  transform: none !important;
+  animation: none !important;
+  transition: none !important;
+  contain: none !important;
+}
+
+html body #pmd-reservation-composer-v1
+[data-pmd-auto-mode-label] {
+  display: flex !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 48px !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 14px !important;
+  overflow: visible !important;
+  clip: auto !important;
+  clip-path: none !important;
+  mask: none !important;
+  -webkit-mask: none !important;
+  color: #0b5146 !important;
+  font-weight: 760 !important;
+  line-height: 1.2 !important;
+  text-align: center !important;
+  text-indent: 0 !important;
+  white-space: nowrap !important;
+  opacity: 1 !important;
+  transform: none !important;
+  animation: none !important;
+  transition: none !important;
+  will-change: auto !important;
+}
+
+/* Prevent older recommendation selectors from overriding the static span. */
+html body #pmd-reservation-composer-v1
+[data-pmd-auto-mode-control]
+> [data-pmd-auto-mode-label] {
+  color: #0b5146 !important;
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+@media (max-width: 700px) {
+  html body #pmd-reservation-composer-v1
+  .pmd-reservation-composer-v1__primary-grid,
+  html body #pmd-reservation-composer-v1
+  .pmd-reservation-composer-v1__primary-grid.pmd-composer-grid-v223,
+  html body #pmd-reservation-composer-v1
+  .pmd-reservation-composer-v1__primary-grid.pmd-composer-layout-grid-v222 {
+    grid-template-columns: 1fr !important;
+    grid-template-areas:
+      "name"
+      "date"
+      "time"
+      "duration"
+      "guests"
+      !important;
+  }
+
+  html body #pmd-reservation-composer-v1
+  .pmd-jade-wheel-v221 {
+    height: 132px !important;
+    min-height: 132px !important;
+  }
+
+  html body #pmd-reservation-composer-v1
+  .pmd-jade-wheel-v221__column {
+    height: 130px !important;
+    min-height: 130px !important;
+    padding-top: 43px !important;
+    padding-bottom: 43px !important;
+  }
+}
