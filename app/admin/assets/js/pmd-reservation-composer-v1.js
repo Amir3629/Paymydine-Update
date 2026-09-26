@@ -927,8 +927,8 @@ function applyAvailability(result) {
     }
 
     [
-      [telephone, 'Telefon (optional)', 'Phone number'],
-      [email, 'E-Mail (optional)', 'name@example.com']
+      [telephone, 'Contact (optional)', 'Phone number'],
+      [email, 'E-mail (optional)', 'name@example.com']
     ].forEach(function (entry) {
       replaceLabelText(
         labelTitle(fieldLabel(entry[0])),
@@ -2994,12 +2994,27 @@ function applyAvailability(result) {
   function mark(fieldName, className) {
     var field = form.elements[fieldName];
     var wrapper = closestField(field);
+    var grid = root.querySelector(
+      '.pmd-reservation-composer-v1__grid'
+    );
 
     if (!wrapper) {
       return null;
     }
 
-    wrapper.classList.add(className);
+    /*
+     * PMD_COMPOSER_LAYOUT_SCOPE_GUARD_R3
+     *
+     * V222 predates the separate Contact grid. Grid-area classes belong only
+     * to direct descendants of the primary reservation grid; applying them to
+     * Phone/E-mail inside their own grid creates implicit CSS tracks and causes
+     * the controls/labels to overlap.
+     */
+    if (grid && grid.contains(wrapper)) {
+      wrapper.classList.add(className);
+    } else {
+      wrapper.classList.remove(className);
+    }
 
     return wrapper;
   }
@@ -3453,9 +3468,18 @@ function applyAvailability(result) {
       var wrapper = fieldWrapper(entry[0]);
 
       if (wrapper) {
-        wrapper.classList.add(
-          'pmd-composer-v223-area-' + entry[1]
-        );
+        var areaClass =
+          'pmd-composer-v223-area-' + entry[1];
+
+        /*
+         * PMD_COMPOSER_LAYOUT_SCOPE_GUARD_R3
+         * Only the primary grid may receive legacy V223 grid-area classes.
+         */
+        if (grid.contains(wrapper)) {
+          wrapper.classList.add(areaClass);
+        } else {
+          wrapper.classList.remove(areaClass);
+        }
       }
     });
 
@@ -3874,12 +3898,31 @@ function applyAvailability(result) {
       ? label.querySelector(':scope > span')
       : null;
 
+    if (!title) {
+      return;
+    }
+
     if (
-      !title
-      || title.querySelector(
+      title.querySelector(
         '[data-pmd-duration-icon-v224]'
       )
     ) {
+      return;
+    }
+
+    /*
+     * PMD_COMPOSER_DURATION_ICON_SINGLE_OWNER_R3
+     * The redesigned Blade already supplies the reference hourglass tile.
+     * Adopt that SVG as V224's icon instead of injecting a second clock.
+     */
+    var existingIcon =
+      title.querySelector(':scope > svg');
+
+    if (existingIcon) {
+      existingIcon.setAttribute(
+        'data-pmd-duration-icon-v224',
+        ''
+      );
       return;
     }
 
@@ -3922,10 +3965,13 @@ function applyAvailability(result) {
     }
 
     if (heading) {
-      heading.hidden = true;
-      heading.setAttribute(
-        'aria-hidden',
-        'true'
+      /*
+       * PMD_COMPOSER_ASSIGNMENT_TITLE_VISIBLE_R3
+       * The reference card includes a compact "Table assignment" label.
+       */
+      heading.hidden = false;
+      heading.removeAttribute(
+        'aria-hidden'
       );
     }
   }
