@@ -75,10 +75,6 @@
                 </label>
               </div>
             </div>
-            <div class="pmd-reservation-composer-v1__policy-notice" data-pmd-composer-policy-notice hidden>
-              <span data-pmd-composer-policy-message></span>
-              <button type="button" data-pmd-composer-use-suggestion hidden>{{ $pmdComposerFeatureText['use_suggestion'] }}</button>
-            </div>
             <label class="pmd-reservation-composer-v1__tables"><span>Tables</span><select name="tables[]" multiple></select><em data-error-for="tables"></em></label>
             <div class="pmd-reservation-composer-v1__availability" data-pmd-composer-availability aria-live="polite"></div>
           </section>
