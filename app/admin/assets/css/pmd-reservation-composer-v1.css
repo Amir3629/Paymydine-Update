@@ -8180,13 +8180,33 @@ html body #pmd-reservation-composer-v1
 /* ============================================================
    PMD_COMPOSER_UNIVERSAL_CORNER_AUTHORITY_R26
 
-   One corner angle for every visible control surface inside the Composer.
+   One corner angle for every visible surface inside the Composer.
    Long text fields no longer look pill-shaped while steppers look squarer.
-   The outer modal shell remains the shell; all controls inside it share 12px.
+   Card shell, fields, steppers, wheel, buttons, icon tiles and panels share 12px.
    ============================================================ */
 
 html body #pmd-reservation-composer-v1 {
   --pmd-composer-surface-radius-r26: 12px;
+}
+
+
+/* The card shell itself now follows the same 12px corner language. */
+html body #pmd-reservation-composer-v1
+.modal-content,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__assignment {
+  border-radius:
+    var(--pmd-composer-surface-radius-r26)
+    !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__footer {
+  border-radius:
+    0 0
+    var(--pmd-composer-surface-radius-r26)
+    var(--pmd-composer-surface-radius-r26)
+    !important;
 }
 
 /* Preferences are intentionally presented before table assignment. */
