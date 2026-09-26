@@ -1016,7 +1016,13 @@ function applyAvailability(result) {
       var key = clean(label.getAttribute('data-pmd-composer-feature-option'));
       var input = label.querySelector('input[name="pmd_table_features[]"]');
       var exists = Boolean(key && available[key] > 0);
+
       label.hidden = !exists;
+      label.classList.toggle(
+        'pmd-feature-unavailable-r8',
+        !exists
+      );
+
       if (input) {
         input.checked = false;
         input.disabled = !exists;
@@ -1027,6 +1033,10 @@ function applyAvailability(result) {
       container.hidden = !Object.keys(available).some(function (key) {
         return available[key] > 0;
       });
+
+      container.classList.remove(
+        'pmd-feature-preferences-pending-r8'
+      );
     }
   }
 
@@ -1044,6 +1054,24 @@ function applyAvailability(result) {
     var action = notice && notice.querySelector('[data-pmd-composer-use-suggestion]');
     if (!notice || !message || !action) return;
 
+    /*
+     * PMD_POLICY_NOTICE_STABLE_SHELL_R8
+     *
+     * populate() calls this before the first canonical availability response.
+     * Keep the reserved policy row in place instead of hiding it and then
+     * re-inserting it a moment later.
+     */
+    if (
+      !result
+      && notice.classList.contains(
+        'pmd-policy-notice-pending-r8'
+      )
+    ) {
+      notice.hidden = false;
+      action.hidden = true;
+      return;
+    }
+
     var text = clean(result && result.pmdPolicyMessage);
     var modeNode = form.querySelector('[name="assignment_mode"]:checked');
     var mode = modeNode ? clean(modeNode.value) : 'auto';
@@ -1052,6 +1080,10 @@ function applyAvailability(result) {
     var same = suggested.length === selected.length && suggested.every(function (id) {
       return selected.indexOf(id) >= 0;
     });
+
+    notice.classList.remove(
+      'pmd-policy-notice-pending-r8'
+    );
 
     message.textContent = text;
     notice.hidden = !text;
@@ -1510,8 +1542,15 @@ function applyAvailability(result) {
     var availabilityDelay = force === true ? 0 : 300;
 
     checkingTimer = window.setTimeout(function () {
-      status.textContent = 'Checking availability…';
-      status.classList.remove('is-error', 'is-success');
+      /*
+       * PMD_AVAILABILITY_NO_INTERIM_FLASH_R8
+       *
+       * Keep the last committed presentation while the next canonical request
+       * is in flight. Never replace it with a transient "Checking..." message.
+       */
+      root.classList.add(
+        'pmd-availability-request-pending-r8'
+      );
 
       request(
         'onCheckReservationAvailability',
@@ -1521,6 +1560,10 @@ function applyAvailability(result) {
           return;
         }
 
+        root.classList.remove(
+          'pmd-availability-request-pending-r8'
+        );
+
         pmdLastAvailabilitySignatureV3 =
           pmdAvailabilitySignature;
 
@@ -1529,6 +1572,10 @@ function applyAvailability(result) {
         if (generation !== availabilityGeneration) {
           return;
         }
+
+        root.classList.remove(
+          'pmd-availability-request-pending-r8'
+        );
 
         lastAvailability = null;
         renderTablePicker(null);
@@ -1694,18 +1741,87 @@ function applyAvailability(result) {
     }
 
     /*
-     * PMD_AUTO_TABLE_PREPAINT_RESET_R5
-     * Reset the visible mode label before the modal is shown. This prevents a
-     * recommendation from the previous open appearing for a frame.
+     * PMD_ASSIGNMENT_STABLE_PREPAINT_R8
+     *
+     * Reset only semantic state. The visible Auto control is immutable.
      */
     if (auto) {
       var autoLabel = auto.closest('label');
 
       if (autoLabel) {
-        autoLabel.classList.add(
+        autoLabel.classList.remove(
           'pmd-smart-recommendation-v224',
-          'pmd-smart-recommendation-pending-v224'
+          'pmd-smart-recommendation-pending-v224',
+          'pmd-v225-recommendation'
         );
+        autoLabel.setAttribute(
+          'data-pmd-auto-static-r8',
+          '1'
+        );
+      }
+    }
+
+    /*
+     * Reserve the exact feature-preference geometry before the async load.
+     * On the current tenant all supported options remain in the same positions
+     * when configureFeaturePreferences() commits the canonical payload.
+     */
+    var featureContainer = root.querySelector(
+      '[data-pmd-composer-feature-preferences]'
+    );
+
+    if (featureContainer) {
+      featureContainer.hidden = false;
+      featureContainer.classList.add(
+        'pmd-feature-preferences-pending-r8'
+      );
+
+      root.querySelectorAll(
+        '[data-pmd-composer-feature-option]'
+      ).forEach(function (label) {
+        label.hidden = false;
+        label.classList.remove(
+          'pmd-feature-unavailable-r8'
+        );
+
+        var input = label.querySelector(
+          'input[name="pmd_table_features[]"]'
+        );
+
+        if (input) {
+          input.checked = false;
+          input.disabled = true;
+        }
+      });
+    }
+
+    var policyNotice = root.querySelector(
+      '[data-pmd-composer-policy-notice]'
+    );
+
+    if (policyNotice) {
+      var policyMessage = policyNotice.querySelector(
+        '[data-pmd-composer-policy-message]'
+      );
+      var policyAction = policyNotice.querySelector(
+        '[data-pmd-composer-use-suggestion]'
+      );
+
+      policyNotice.hidden = false;
+      policyNotice.classList.remove(
+        'is-warning',
+        'is-success'
+      );
+      policyNotice.classList.add(
+        'pmd-policy-notice-pending-r8'
+      );
+
+      if (policyMessage) {
+        policyMessage.textContent = '';
+      }
+
+      if (policyAction) {
+        policyAction.hidden = true;
       }
     }
 
@@ -3927,32 +4043,33 @@ function applyAvailability(result) {
     }
 
     /*
-     * PMD_AUTO_MODE_STATIC_LABEL_R6
+     * PMD_AUTO_MODE_IMMUTABLE_PRESENTATION_R8
      *
-     * Never touch the visible label text here. The live recommendation is
-     * already rendered in the dedicated suggestion/status row.
+     * Availability may change metadata/title only. It must never add/remove
+     * classes that alter the visible Auto control, because those class flips
+     * were still producing Safari repaint flashes.
      */
-    label.classList.add(
-      'pmd-smart-recommendation-v224'
-    );
-
-    var pending = !latestAvailability;
-    label.classList.toggle(
+    label.classList.remove(
+      'pmd-smart-recommendation-v224',
       'pmd-smart-recommendation-pending-v224',
-      pending
+      'pmd-v225-recommendation'
+    );
+    label.setAttribute(
+      'data-pmd-auto-static-r8',
+      '1'
     );
 
     var ids = autoRecommendationIds();
 
-    if (pending) {
-      label.title = 'Checking table availability';
+    if (!latestAvailability) {
+      label.title = 'Automatic table';
     } else if (ids.length) {
       var catalog = tableCatalog();
-      label.title = 'Recommended: ' + ids.map(function (id) {
+      label.title = 'Automatic table · Recommended: ' + ids.map(function (id) {
         return nameFor(id, catalog);
       }).join(' + ');
     } else {
-      label.title = 'No matching table is currently available';
+      label.title = 'Automatic table';
     }
   }
 
@@ -4455,8 +4572,14 @@ function applyAvailability(result) {
       ? 'Automatic table · recommendation available'
       : 'Automatic table';
 
-    label.classList.add(
+    label.classList.remove(
+      'pmd-smart-recommendation-v224',
+      'pmd-smart-recommendation-pending-v224',
       'pmd-v225-recommendation'
+    );
+    label.setAttribute(
+      'data-pmd-auto-static-r8',
+      '1'
     );
   }
 
