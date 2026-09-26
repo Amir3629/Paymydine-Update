@@ -205,3 +205,168 @@ body
     transition: none !important;
   }
 }
+
+
+/* ============================================================
+   PMD_RESERVATION_COMPOSER_FAST_GLASS_AND_RADIUS_R18
+
+   1) Paint the finished reservation card first.
+   2) Ease the page + Side Menu into blur on the following frame.
+   3) One exact 16px corner token owns every visible Composer control surface.
+   ============================================================ */
+
+html body #pmd-reservation-composer-v1 {
+  --pmd-reservation-control-radius-r18: 16px;
+}
+
+/* First Composer paint: cheap clear plane, no full-viewport blur yet. */
+html.pmd-reservation-composer-open-r14
+body
+.modal-backdrop,
+html.pmd-reservation-composer-open-r14
+body
+.pmd-reservation-composer-backdrop-v1,
+html.pmd-reservation-composer-open-r14
+body
+.pmd-reservation-composer-backdrop-v1.show {
+  background: rgba(255,255,255,.04) !important;
+  background-color: rgba(255,255,255,.04) !important;
+  backdrop-filter: blur(0px) !important;
+  -webkit-backdrop-filter: blur(0px) !important;
+  animation: none !important;
+  opacity: 1 !important;
+  transition:
+    backdrop-filter 140ms cubic-bezier(.2,.8,.2,1),
+    -webkit-backdrop-filter 140ms cubic-bezier(.2,.8,.2,1),
+    background-color 140ms ease
+    !important;
+}
+
+/* Background blur starts only after the card has already painted once. */
+html.pmd-reservation-composer-blur-r18
+body
+.modal-backdrop,
+html.pmd-reservation-composer-blur-r18
+body
+.pmd-reservation-composer-backdrop-v1,
+html.pmd-reservation-composer-blur-r18
+body
+.pmd-reservation-composer-backdrop-v1.show {
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+}
+
+/* Side Menu joins the same glass plane, but never blocks the card's first paint. */
+html.pmd-reservation-composer-open-r14
+body
+#pmd-side-menu2 {
+  filter:
+    blur(0px)
+    saturate(1)
+    brightness(1)
+    !important;
+  -webkit-filter:
+    blur(0px)
+    saturate(1)
+    brightness(1)
+    !important;
+  opacity: 1 !important;
+  pointer-events: none !important;
+  transition:
+    filter 150ms cubic-bezier(.2,.8,.2,1),
+    -webkit-filter 150ms cubic-bezier(.2,.8,.2,1),
+    opacity 150ms ease
+    !important;
+}
+
+html.pmd-reservation-composer-blur-r18
+body
+#pmd-side-menu2 {
+  filter:
+    blur(7px)
+    saturate(.82)
+    brightness(.96)
+    !important;
+  -webkit-filter:
+    blur(7px)
+    saturate(.82)
+    brightness(.96)
+    !important;
+  opacity: .76 !important;
+}
+
+/* ONE radius authority for every visible interactive/control surface. */
+html body #pmd-reservation-composer-v1
+input:not([type="hidden"]):not([type="radio"]):not([type="checkbox"]),
+html body #pmd-reservation-composer-v1
+select,
+html body #pmd-reservation-composer-v1
+textarea,
+html body #pmd-reservation-composer-v1
+button:not(.pmd-jade-wheel-v221__item),
+html body #pmd-reservation-composer-v1
+.pmd-jade-wheel-v221,
+html body #pmd-reservation-composer-v1
+.pmd-jade-wheel-v221__highlight,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__modes > label,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__modes > label > span,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__feature-options label > span,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__table-trigger,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__table-panel,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__table-option,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__table-chip,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__policy-notice,
+html body #pmd-reservation-composer-v1
+[data-pmd-auto-mode-control],
+html body #pmd-reservation-composer-v1
+.pmd-smart-choose-dropdown-v224,
+html body #pmd-reservation-composer-v1
+[data-pmd-composer-cancel],
+html body #pmd-reservation-composer-v1
+[data-pmd-composer-save],
+html body #pmd-reservation-composer-v1
+.pmd-composer-stepper-r12 > button,
+html body #pmd-reservation-composer-v1
+.pmd-composer-stepper-r12__value > input[type="number"],
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__primary-grid > label > span > svg,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__contact-grid > label > span > svg,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__notes > span > svg,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__assignment > h3 > svg {
+  border-radius:
+    var(--pmd-reservation-control-radius-r18)
+    !important;
+}
+
+/* Structural wrappers stay frame-less. */
+html body #pmd-reservation-composer-v1
+.pmd-composer-stepper-r12,
+html body #pmd-reservation-composer-v1
+.pmd-composer-stepper-r12__value {
+  border-radius: 0 !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.pmd-reservation-composer-open-r14
+  body
+  .modal-backdrop,
+  html.pmd-reservation-composer-open-r14
+  body
+  .pmd-reservation-composer-backdrop-v1,
+  html.pmd-reservation-composer-open-r14
+  body
+  #pmd-side-menu2 {
+    transition: none !important;
+  }
+}
