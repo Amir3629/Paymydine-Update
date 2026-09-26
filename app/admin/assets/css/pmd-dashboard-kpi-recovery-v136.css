@@ -250,3 +250,20 @@
     font-size: 24px !important;
   }
 }
+
+/* ============================================================
+   PMD_DASHBOARD_KPI_COMPACT_V142
+
+   Keep V136/V141 first-paint geometry authority, but restore the
+   shorter desktop KPI proportions used before the recovery layer.
+   Owner / Manager / Accountant share this dashboard root.
+   Mobile keeps the existing 116px touch geometry unchanged.
+   ============================================================ */
+@media (min-width: 821px) {
+  #pmd-dashboard-lab
+  #pmd-r2-reservation-kpis-v307
+  .pmd-r2-kpi-v2401-card {
+    min-height: 100px !important;
+    padding: 12px 14px !important;
+  }
+}
