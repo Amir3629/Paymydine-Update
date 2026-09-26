@@ -141,8 +141,28 @@
     var select = wrapper && wrapper.querySelector('[name="tables[]"]');
     if (!wrapper || !select) return;
 
-    var noTables = positiveTableOptions(select).length === 0;
     var existing = root.querySelector('[data-pmd-table-setup-r7]');
+
+    /*
+     * PMD_ONBOARDING_TABLE_CATALOG_STABLE_R31
+     *
+     * The Composer intentionally empties/rebuilds tables[] while hydrating.
+     * That transient empty select is NOT a tenant setup state. Only inspect it
+     * after the Composer explicitly publishes that the table catalog is ready.
+     */
+    if (root.dataset.pmdTableCatalogReady !== '1') {
+      if (existing) existing.remove();
+      root.classList.remove('pmd-reservation-composer--needs-tables-r7');
+      return;
+    }
+
+    var declaredCount = Number(
+      root.dataset.pmdTableCount
+    );
+
+    var noTables = Number.isFinite(declaredCount)
+      ? declaredCount === 0
+      : positiveTableOptions(select).length === 0;
 
     if (!noTables) {
       if (existing) existing.remove();
