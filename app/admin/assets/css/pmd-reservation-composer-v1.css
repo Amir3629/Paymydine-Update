@@ -7942,3 +7942,83 @@ body
   opacity: 1 !important;
   transition: none !important;
 }
+
+
+/* ============================================================
+   PMD_RESERVATION_COMPOSER_LIGHTWEIGHT_BLUR_R22
+
+   Performance authority:
+   - no live full-screen backdrop-filter while the card is open
+   - workspace + Side Menu use the SAME filter rule in the SAME frame
+   - Composer is moved to <body>, so it never inherits the background blur
+   - overlay is only a cheap tint / outside-click catcher
+   ============================================================ */
+
+html body .pmd-reservation-composer-backdrop-r20 {
+  background: rgba(255,255,255,.14) !important;
+  background-color: rgba(255,255,255,.14) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  filter: none !important;
+  -webkit-filter: none !important;
+  transition: none !important;
+  animation: none !important;
+}
+
+/* One exact blur authority for BOTH workspace and Side Menu. */
+html.pmd-reservation-composer-bgblur-r22
+body
+#pmd-dashboard-lab,
+html.pmd-reservation-composer-bgblur-r22
+body
+#pmd-side-menu2 {
+  filter:
+    blur(6px)
+    saturate(.92)
+    !important;
+  -webkit-filter:
+    blur(6px)
+    saturate(.92)
+    !important;
+  opacity: 1 !important;
+  transition: none !important;
+  animation: none !important;
+  will-change: filter !important;
+  pointer-events: none !important;
+}
+
+/* R18/R19/R20 sidebar-specific visual effects are superseded by the one rule above. */
+html.pmd-reservation-composer-bgblur-r22
+body
+#pmd-side-menu2 {
+  z-index: 2147483645 !important;
+}
+
+/* Composer remains sharp and fully interactive on its own body-level layer. */
+html.pmd-reservation-composer-direct-r20
+body
+#pmd-reservation-composer-v1 {
+  filter: none !important;
+  -webkit-filter: none !important;
+  opacity: 1 !important;
+  transform: none !important;
+  transition: none !important;
+  animation: none !important;
+  will-change: auto !important;
+  pointer-events: auto !important;
+}
+
+html.pmd-reservation-composer-direct-r20
+body
+#pmd-reservation-composer-v1
+.modal-dialog,
+html.pmd-reservation-composer-direct-r20
+body
+#pmd-reservation-composer-v1
+.modal-content {
+  filter: none !important;
+  -webkit-filter: none !important;
+  transform: none !important;
+  transition: none !important;
+  animation: none !important;
+}
