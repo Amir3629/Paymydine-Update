@@ -5447,3 +5447,83 @@ html body #pmd-reservation-composer-v1
     min-width: 0 !important;
   }
 }
+
+
+/* PMD_RESERVATION_COMPOSER_LAYOUT_COLLISION_FIX_R3
+ *
+ * Contact now has its own two-column grid. Legacy V222/V223 grid-area classes
+ * must never create implicit rows/columns inside it.
+ */
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__contact-grid
+> label,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__contact-grid
+> .pmd-composer-area-phone-v222,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__contact-grid
+> .pmd-composer-area-email-v222,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__contact-grid
+> .pmd-composer-v223-area-phone,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__contact-grid
+> .pmd-composer-v223-area-email {
+  grid-area: auto !important;
+  position: static !important;
+  width: auto !important;
+  min-width: 0 !important;
+  transform: none !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__contact-grid
+> label {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  align-content: start !important;
+  gap: 7px !important;
+}
+
+/* One icon only for Duration. */
+html body #pmd-reservation-composer-v1
+.pmd-composer-v223-area-duration
+> span
+> svg + svg,
+html body #pmd-reservation-composer-v1
+.pmd-composer-area-duration-v222
+> span
+> svg + svg {
+  display: none !important;
+}
+
+/* Keep the compact assignment title visible and aligned with the reference. */
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__assignment
+> h3 {
+  display: flex !important;
+  align-items: center !important;
+  min-height: 34px !important;
+  margin: 0 0 8px !important;
+}
+
+/* Selected time must read as an active control, not a disabled/ghost state. */
+html body #pmd-reservation-composer-v1
+.pmd-jade-wheel-v221__item.is-selected,
+html body #pmd-reservation-composer-v1
+.pmd-jade-wheel-v221__item[aria-selected="true"] {
+  color: #0d473c !important;
+  opacity: 1 !important;
+  font-weight: 800 !important;
+}
+
+/* Keep contact + notes visually compact so the card doesn't grow needlessly. */
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__contact-grid {
+  margin-top: 16px !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__notes {
+  margin-top: 16px !important;
+}
