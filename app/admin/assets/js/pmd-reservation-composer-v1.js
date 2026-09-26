@@ -1638,13 +1638,6 @@ function applyAvailability(result) {
      */
     if (auto) {
       var autoLabel = auto.closest('label');
-      var autoText = autoLabel
-        ? autoLabel.querySelector(':scope > span')
-        : null;
-
-      if (autoText) {
-        autoText.textContent = 'Automatic table';
-      }
 
       if (autoLabel) {
         autoLabel.classList.add(
@@ -3304,50 +3297,13 @@ function applyAvailability(result) {
   }
 
   function updateAutoLabel() {
-    var radio = assignmentRadio('auto');
-    var visual = radioVisual(radio);
-
-    if (!visual) {
-      return;
-    }
-
     /*
-     * PMD_COMPOSER_SINGLE_RECOMMENDATION_AUTHORITY_20260807
+     * PMD_AUTO_MODE_STATIC_LABEL_R6
      *
-     * V223 is no longer allowed to invent:
-     *
-     *   Auto assignment
-     *   Auto · Table X
-     *
-     * Availability-owned V224 is the only source of the
-     * recommendation label.
+     * This control is a mode selector, not an availability display.
+     * Its visible text is owned by Blade and must never be rewritten by V223.
      */
-    var smart =
-      window.PMDSmartContextTablesV224;
-
-    /*
-     * Never invent an initial "No table found" state. V224 owns the
-     * recommendation and commits it only when canonical availability exists.
-     */
-    if (
-      !smart
-      || typeof smart.audit !== 'function'
-    ) {
-      return;
-    }
-
-    var recommendation = '';
-
-    try {
-      recommendation =
-        String(
-          smart.audit().recommendation || ''
-        ).trim();
-    } catch (ignore) {}
-
-    if (recommendation) {
-      visual.textContent = recommendation;
-    }
+    return;
   }
 
   function nativeTableTrigger() {
@@ -3860,12 +3816,17 @@ function applyAvailability(result) {
   function updateRecommendationButton() {
     var auto = assignmentRadio('auto');
     var label = labelForRadio(auto);
-    var text = visibleLabelNode(label);
 
-    if (!label || !text) {
+    if (!label) {
       return;
     }
 
+    /*
+     * PMD_AUTO_MODE_STATIC_LABEL_R6
+     *
+     * Never touch the visible label text here. The live recommendation is
+     * already rendered in the dedicated suggestion/status row.
+     */
     label.classList.add(
       'pmd-smart-recommendation-v224'
     );
@@ -3875,8 +3836,6 @@ function applyAvailability(result) {
       'pmd-smart-recommendation-pending-v224',
       pending
     );
-
-    text.textContent = recommendationText();
 
     var ids = autoRecommendationIds();
 
@@ -4360,33 +4319,7 @@ function applyAvailability(result) {
   }
 
   function recommendedText() {
-    var audit = availabilityResult();
-
-    if (
-      audit
-      && audit.recommendation
-    ) {
-      var value =
-        String(audit.recommendation)
-          .replace(
-            /^auto assign(?:ment)?\s*[·:–-]?\s*/i,
-            ''
-          )
-          .replace(
-            /^auto\s*[·:–-]?\s*/i,
-            ''
-          )
-          .trim();
-
-      if (
-        value
-        && !/^finding best table/i.test(value)
-      ) {
-        return value;
-      }
-    }
-
-    return 'No table found';
+    return 'Automatic table';
   }
 
   function enforceRecommendationLabel() {
@@ -4396,45 +4329,30 @@ function applyAvailability(result) {
       return;
     }
 
-    var span = label.querySelector('span');
-
-    if (!span) {
-      span = document.createElement('span');
-      label.appendChild(span);
-    }
-
-    var text = recommendedText();
-
-    span.textContent = text;
+    /*
+     * PMD_AUTO_MODE_STATIC_LABEL_R6
+     *
+     * V225 may attach accessibility metadata, but it must never replace the
+     * visible Auto-mode label. Rewriting this span on every refresh was the
+     * remaining source of the one-frame "matic table" / table-name blink.
+     */
+    var audit = availabilityResult();
+    var ids = audit && Array.isArray(audit.recommendedTableIds)
+      ? audit.recommendedTableIds
+      : [];
 
     label.setAttribute(
       'aria-label',
-      text
+      'Automatic table'
     );
 
-    label.title = text;
+    label.title = ids.length
+      ? 'Automatic table · recommendation available'
+      : 'Automatic table';
 
     label.classList.add(
       'pmd-v225-recommendation'
     );
-
-    /*
-     * Remove leftover text nodes such as:
-     * Auto assign
-     * Auto assignment
-     */
-    Array.prototype.slice.call(
-      label.childNodes
-    ).forEach(function (node) {
-      if (
-        node.nodeType === Node.TEXT_NODE
-        && /auto\s+assign/i.test(
-          String(node.textContent || '')
-        )
-      ) {
-        node.textContent = '';
-      }
-    });
   }
 
   function scheduleLabelEnforcement() {
