@@ -633,6 +633,27 @@
     scheduled = true;
     requestAnimationFrame(() => {
       scheduled = false;
+
+      /*
+       * PMD_RESERVATION_COMPOSER_SKIP_GLOBAL_SCAN_R17
+       *
+       * A document-wide equalizer scan before the first paint defeats the
+       * Composer's prehydrated instant-open path. While the Reservation
+       * Composer is visible its own visual authority is complete, so postpone
+       * this generic scan until the Composer closes.
+       */
+      const composer =
+        document.getElementById(
+          'pmd-reservation-composer-v1'
+        );
+
+      if (
+        composer
+        && composer.classList.contains('show')
+      ) {
+        return;
+      }
+
       observedRoots.forEach((_, rootNode) => scanRoot(rootNode));
     });
   }
@@ -662,7 +683,26 @@
     });
   }
 
-  function eventScanHandler() { scheduleScan(); }
+  function eventScanHandler(event) {
+    const target = event && event.target;
+    if (
+      target
+      && target.nodeType === 1
+      && (
+        target.id === 'pmd-reservation-composer-v1'
+        || (
+          target.closest
+          && target.closest(
+            '#pmd-reservation-composer-v1'
+          )
+        )
+      )
+    ) {
+      return;
+    }
+
+    scheduleScan();
+  }
 
   function report() {
     const rows = [];
