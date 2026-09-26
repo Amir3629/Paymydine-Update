@@ -1194,6 +1194,86 @@ class Reservations extends PmdCleanWorkspaceControllerV1
             $payload['pmdFloorAwareTableFinder'] = true;
             $payload['pmdPolicyTransportNormalized'] = !is_array($response);
 
+            /*
+             * PMD_RESERVATION_COMPOSER_INITIAL_AVAILABILITY_R10
+             *
+             * The Composer used to require a second Ajax request after load
+             * before it could show the first table recommendation. That left
+             * the policy row empty for a visible frame and caused the first
+             * Auto recommendation to "pop in".
+             *
+             * Resolve the initial availability from the SAME canonical
+             * availability service while the load request is already on the
+             * server. The browser can therefore hydrate time + table policy in
+             * one response. Save-time validation remains unchanged.
+             */
+            $values = is_array($payload['reservation'] ?? null)
+                ? $payload['reservation']
+                : (is_array($payload['defaults'] ?? null) ? $payload['defaults'] : []);
+
+            $contextTableIds = $this->pmdPositiveTableIds(
+                $data['table_ids'] ?? []
+            );
+
+            $initialAvailabilityInput = array_merge($data, [
+                'guest_num' => max(1, (int)($values['guest_num'] ?? 1)),
+                'reserve_date' => trim((string)(
+                    $data['selected_date']
+                    ?? $values['reserve_date']
+                    ?? ''
+                )),
+                'reserve_time' => substr(trim((string)(
+                    $data['selected_time']
+                    ?? $values['reserve_time']
+                    ?? ''
+                )), 0, 5),
+                'duration' => max(1, (int)($values['duration'] ?? 45)),
+                'assignment_mode' => $contextTableIds ? 'choose' : 'auto',
+                'tables' => $contextTableIds,
+                'pmd_table_features' => $this->pmdComposerNormalizeFeatures(
+                    $values['pmd_table_features'] ?? []
+                ),
+                'location_id' => $locationId,
+            ]);
+
+            if ((int)($data['reservation_id'] ?? 0) > 0) {
+                $initialAvailabilityInput['reservation_id'] = (int)$data['reservation_id'];
+            } else {
+                unset($initialAvailabilityInput['reservation_id']);
+            }
+
+            $payload['pmdInitialAvailability'] = null;
+            $payload['pmdInitialAvailabilityInput'] = $initialAvailabilityInput;
+
+            try {
+                $initialAvailabilityResponse =
+                    app(ReservationComposerService::class)
+                        ->availability($initialAvailabilityInput);
+
+                $initialAvailabilityResponse =
+                    $this->pmdFilterComposerAvailabilityConflicts(
+                        $initialAvailabilityResponse,
+                        $initialAvailabilityInput
+                    );
+
+                $initialAvailabilityPayload =
+                    $this->pmdComposerResponsePayload(
+                        $initialAvailabilityResponse
+                    );
+
+                if (
+                    is_array($initialAvailabilityPayload)
+                    && isset($initialAvailabilityPayload['availability'])
+                    && is_array($initialAvailabilityPayload['availability'])
+                ) {
+                    $payload['pmdInitialAvailability'] =
+                        $initialAvailabilityPayload['availability'];
+                }
+            } catch (Throwable $error) {
+                // Initial recommendation is an optimization only. The normal
+                // event-driven availability request remains the fallback.
+            }
+
             return $this->pmdComposerResponseApplyPayload($response, $payload);
         }
 
