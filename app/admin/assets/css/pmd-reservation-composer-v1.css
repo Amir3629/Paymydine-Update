@@ -6328,3 +6328,194 @@ html body #pmd-reservation-composer-v1
     padding-bottom: 45px !important;
   }
 }
+
+
+/* PMD_RESERVATION_COMPOSER_ZERO_FLASH_R8
+ *
+ * Final presentation authority for the availability-driven part of the
+ * Reservations Composer. Dynamic backend state may change metadata/content,
+ * but it must not change geometry or repaint the Auto mode control.
+ */
+
+/* ---------- Immutable Automatic table button ---------- */
+html body #pmd-reservation-composer-v1
+[data-pmd-auto-mode-control],
+html body #pmd-reservation-composer-v1
+[data-pmd-auto-mode-control][data-pmd-auto-static-r8="1"] {
+  position: relative !important;
+  overflow: hidden !important;
+  min-height: 50px !important;
+  border: 1px solid rgba(7,88,74,.52) !important;
+  border-radius: 15px !important;
+  background:
+    linear-gradient(
+      145deg,
+      rgba(251,253,250,.98),
+      rgba(232,242,229,.88)
+    ) !important;
+  box-shadow:
+    0 8px 20px rgba(33,70,60,.07),
+    inset 0 1px 0 rgba(255,255,255,.98)
+    !important;
+  opacity: 1 !important;
+  transform: none !important;
+  animation: none !important;
+  transition: none !important;
+  contain: layout paint !important;
+}
+
+html body #pmd-reservation-composer-v1
+[data-pmd-auto-mode-control]
+> [data-pmd-auto-mode-label] {
+  position: relative !important;
+  display: flex !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 48px !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 14px !important;
+  overflow: hidden !important;
+
+  /*
+   * Hide any raw text a legacy runtime might still inject. The only visible
+   * text is the CSS-generated label below, sourced from the immutable data
+   * attribute in Blade.
+   */
+  color: transparent !important;
+  font-size: 0 !important;
+  line-height: 1 !important;
+  text-indent: 0 !important;
+  white-space: nowrap !important;
+  opacity: 1 !important;
+  transform: none !important;
+  animation: none !important;
+  transition: none !important;
+  will-change: auto !important;
+}
+
+html body #pmd-reservation-composer-v1
+[data-pmd-auto-mode-control]
+> [data-pmd-auto-mode-label]::before {
+  content: attr(data-pmd-auto-mode-label) !important;
+  display: block !important;
+  color: #0b5146 !important;
+  font-size: 14px !important;
+  font-weight: 760 !important;
+  line-height: 1.2 !important;
+  text-align: center !important;
+  letter-spacing: 0 !important;
+  white-space: nowrap !important;
+  opacity: 1 !important;
+  transform: none !important;
+  animation: none !important;
+  transition: none !important;
+}
+
+/* Old recommendation classes are presentation no-ops if they survive in cache. */
+html body #pmd-reservation-composer-v1
+[data-pmd-auto-mode-control].pmd-smart-recommendation-v224,
+html body #pmd-reservation-composer-v1
+[data-pmd-auto-mode-control].pmd-smart-recommendation-pending-v224,
+html body #pmd-reservation-composer-v1
+[data-pmd-auto-mode-control].pmd-v225-recommendation,
+html body #pmd-reservation-composer-v1
+[data-pmd-auto-mode-control].pmd-smart-recommendation-v224
+> [data-pmd-auto-mode-label],
+html body #pmd-reservation-composer-v1
+[data-pmd-auto-mode-control].pmd-smart-recommendation-pending-v224
+> [data-pmd-auto-mode-label],
+html body #pmd-reservation-composer-v1
+[data-pmd-auto-mode-control].pmd-v225-recommendation
+> [data-pmd-auto-mode-label] {
+  transform: none !important;
+  animation: none !important;
+  transition: none !important;
+  opacity: 1 !important;
+}
+
+/* ---------- Stable feature-preference first paint ---------- */
+html body #pmd-reservation-composer-v1
+.pmd-feature-preferences-pending-r8 {
+  display: block !important;
+  min-height: 82px !important;
+  opacity: 1 !important;
+  transform: none !important;
+  animation: none !important;
+  transition: none !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-feature-preferences-pending-r8
+[data-pmd-composer-feature-option] {
+  display: block !important;
+  opacity: 1 !important;
+  pointer-events: none !important;
+  transform: none !important;
+  animation: none !important;
+  transition: none !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-feature-preferences-pending-r8
+[data-pmd-composer-feature-option]
+> span,
+html body #pmd-reservation-composer-v1
+.pmd-feature-preferences-pending-r8
+[data-pmd-composer-feature-option]
+> input:disabled + span {
+  opacity: 1 !important;
+  filter: none !important;
+  transform: none !important;
+  animation: none !important;
+  transition: none !important;
+}
+
+/* ---------- Stable policy/suggestion row ---------- */
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__policy-notice {
+  min-height: 40px !important;
+  box-sizing: border-box !important;
+  transform: none !important;
+  animation: none !important;
+  transition: none !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__policy-notice.pmd-policy-notice-pending-r8 {
+  display: flex !important;
+  min-height: 40px !important;
+  border-color: #c8e6d9 !important;
+  background: #f1faf6 !important;
+  color: transparent !important;
+  box-shadow: none !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__policy-notice.pmd-policy-notice-pending-r8
+[data-pmd-composer-policy-message] {
+  visibility: hidden !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__policy-notice.is-success,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__policy-notice.is-warning {
+  transform: none !important;
+  animation: none !important;
+  transition: none !important;
+}
+
+/* Availability requests never visually dim/animate the assignment controls. */
+html body #pmd-reservation-composer-v1.pmd-availability-request-pending-r8
+.pmd-reservation-composer-v1__assignment,
+html body #pmd-reservation-composer-v1.pmd-availability-request-pending-r8
+.pmd-reservation-composer-v1__modes,
+html body #pmd-reservation-composer-v1.pmd-availability-request-pending-r8
+.pmd-reservation-composer-v1__feature-preferences {
+  opacity: 1 !important;
+  filter: none !important;
+  transform: none !important;
+  animation: none !important;
+  transition: none !important;
+}
