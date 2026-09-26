@@ -99,8 +99,8 @@
 
     // PMD_KPI_INFO_LOADER_V1
     $pmdKpiInfoCssPath = base_path('app/admin/assets/css/pmd-kpi-info-v1.css');
-    // PMD_KPI_INFO_DYNAMIC_SELECTION_V157
-    $pmdKpiInfoJsPath = base_path('app/admin/assets/js/pmd-kpi-info-v2.js');
+    // PMD_KPI_INFO_CURRENT_CARD_AUTHORITY_V158
+    $pmdKpiInfoJsPath = base_path('app/admin/assets/js/pmd-kpi-info-v3.js');
     $pmdKpiInfoCssVersion = is_file($pmdKpiInfoCssPath) ? (string)filemtime($pmdKpiInfoCssPath) : '1';
     $pmdKpiInfoJsVersion = is_file($pmdKpiInfoJsPath) ? (string)filemtime($pmdKpiInfoJsPath) : '1';
 
@@ -351,7 +351,7 @@
     href="/app/admin/assets/css/pmd-kpi-info-v1.css?v={{ $pmdKpiInfoCssVersion }}"
 >
 <script
-    src="/app/admin/assets/js/pmd-kpi-info-v2.js?v={{ $pmdKpiInfoJsVersion }}"
+    src="/app/admin/assets/js/pmd-kpi-info-v3.js?v={{ $pmdKpiInfoJsVersion }}"
     defer
 ></script>
 @endif
