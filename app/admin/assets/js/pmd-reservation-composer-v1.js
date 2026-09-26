@@ -2449,6 +2449,28 @@ function applyAvailability(result) {
       0
     );
   }
+
+  /*
+   * The exact Floor runtime is deferred and may attach its active-floor state
+   * just after the Composer runtime. Prime once more after that boot window and
+   * whenever the operator changes Floor. Cache protection prevents duplicate
+   * requests for the same context.
+   */
+  window.setTimeout(
+    pmdPrimeDefaultCreateR10,
+    700
+  );
+
+  window.addEventListener(
+    'pmd:floor:changed',
+    function () {
+      window.setTimeout(
+        pmdPrimeDefaultCreateR10,
+        0
+      );
+    },
+    false
+  );
 }());
 
 /* ============================================================
