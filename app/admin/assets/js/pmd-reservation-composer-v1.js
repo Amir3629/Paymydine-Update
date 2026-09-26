@@ -6,10 +6,22 @@
   var form = document.getElementById('pmd-reservation-composer-form-v1');
   if (!root || !form || window.PMDReservationComposerV1) return;
 
+  /*
+   * PMD_RESERVATIONS_NEVER_LEAVE_WORKSPACE_R21
+   *
+   * Every Reservations create/edit entry point is owned by the in-page
+   * Composer. Legacy /reservations/create and /reservations/edit/* URLs remain
+   * data/fallback hints only; a click in the Reservations workspace must never
+   * navigate away to the retired native form.
+   */
   var selectors = [
     '#pmd-r2-clean-header a.pmd-r2-clean-create',
     '#pmd-r2-reservation-grid-v320 [data-r2-add-reservation] a[href]',
     '#pmd-r2-calendar-surface-v160 [data-r2-create-button]',
+    '#pmd-dashboard-lab [data-pmd-reservations-card-create]',
+    '#pmd-dashboard-lab [data-pmd-reservations-card-edit]',
+    '#pmd-dashboard-lab a[href*="/admin/reservations/create"]',
+    '#pmd-dashboard-lab a[href*="/admin/reservations/edit/"]',
     '#pmd-r2-reservation-grid-v320 [data-r2-reservation-id] a[href*="/admin/reservations/edit/"]',
     '#pmd-r2-calendar-surface-v160 .pmd-r2-slot-booking[data-r2-reservation-id] a[href*="/admin/reservations/edit/"]',
     '#pmd-r2-calendar-surface-v160 .pmd-r2-yc-detail-card[data-reservation] a[href*="/admin/reservations/edit/"]'
@@ -3078,6 +3090,13 @@ function applyAvailability(result) {
     var element = event.target.closest(selectors); var page = document.getElementById('pmd-dashboard-lab');
     if (!element || !page || !page.contains(element)) return;
 
+    /*
+     * Cancel the anchor FIRST. No later normalization/runtime failure is ever
+     * allowed to fall through to the retired native create/edit page.
+     */
+    event.preventDefault();
+    event.stopImmediatePropagation();
+
     if (
       pmdCanRevealBeforeNormalizeR20(
         element
@@ -3086,11 +3105,43 @@ function applyAvailability(result) {
       pmdShowDirectR20();
     }
 
-    var next; try { next = normalize(element); } catch (error) { return; }
-    if (!next || !window.PMDReservationComposerV1 || typeof window.PMDReservationComposerV1.open !== 'function') return;
-    event.preventDefault(); event.stopImmediatePropagation();
-    try { window.PMDReservationComposerV1.open(next, element).catch(function () { if (!root.classList.contains('show')) location.href = next.fallbackUrl; }); }
-    catch (error) { location.href = next.fallbackUrl; }
+    var next;
+    try {
+      next = normalize(element);
+    } catch (error) {
+      console.error(
+        '[PMD Reservations] Composer context normalization failed; staying in workspace',
+        error
+      );
+      return;
+    }
+
+    if (
+      !next
+      || !window.PMDReservationComposerV1
+      || typeof window.PMDReservationComposerV1.open !== 'function'
+    ) {
+      console.error(
+        '[PMD Reservations] Composer runtime unavailable; staying in workspace'
+      );
+      return;
+    }
+
+    try {
+      window.PMDReservationComposerV1
+        .open(next, element)
+        .catch(function (error) {
+          console.error(
+            '[PMD Reservations] Composer open failed; staying in workspace',
+            error
+          );
+        });
+    } catch (error) {
+      console.error(
+        '[PMD Reservations] Composer open failed; staying in workspace',
+        error
+      );
+    }
   }
 
   /* PMD_COMPOSER_TOUCH_STEPPERS_R12 */
@@ -3429,6 +3480,122 @@ function applyAvailability(result) {
    * create payload arrived with the HTML itself.
    */
   pmdInstallServerPrimerR11();
+
+  /*
+   * PMD_RESERVATIONS_LEGACY_ROUTE_RETURN_R21
+   *
+   * Server redirects retired native create/edit GET routes back to the
+   * Reservations workspace with pmd_mode. Re-open the canonical Composer here
+   * and immediately clean the URL so the workspace remains the only UI.
+   */
+  (function pmdOpenRedirectedComposerR21() {
+    var params;
+
+    try {
+      params = new URLSearchParams(
+        window.location.search || ''
+      );
+    } catch (ignore) {
+      return;
+    }
+
+    var mode =
+      clean(params.get('pmd_mode'));
+
+    if (
+      mode !== 'create'
+      && mode !== 'edit'
+    ) {
+      return;
+    }
+
+    var reservationId =
+      Number(
+        params.get('pmd_id')
+        || 0
+      ) || null;
+
+    var selectedDate =
+      dateValue(
+        params.get('reserve_date')
+      )
+      || selectedDate();
+
+    var selectedTime =
+      timeValue(
+        params.get('reserve_time')
+      );
+
+    [
+      'pmd_mode',
+      'pmd_id',
+      'reserve_date',
+      'reserve_time'
+    ].forEach(function (key) {
+      params.delete(key);
+    });
+
+    var cleanQuery =
+      params.toString();
+
+    try {
+      window.history.replaceState(
+        window.history.state,
+        '',
+        window.location.pathname
+          + (cleanQuery ? '?' + cleanQuery : '')
+          + window.location.hash
+      );
+    } catch (ignore) {}
+
+    window.setTimeout(
+      function () {
+        var api =
+          window.PMDReservationComposerV1;
+
+        if (
+          !api
+          || typeof api.open !== 'function'
+        ) {
+          return;
+        }
+
+        api.open(
+          {
+            version: 1,
+            mode:
+              mode === 'edit'
+              && reservationId
+                ? 'edit'
+                : 'create',
+            source: 'legacy-route-return-r21',
+            reservationId:
+              mode === 'edit'
+                ? reservationId
+                : null,
+            selectedDate: selectedDate,
+            selectedTime: selectedTime,
+            duration: null,
+            tableIds: [],
+            tableNames: [],
+            floorId: '',
+            floorName: '',
+            floorLocked: false,
+            locationId: null,
+            returnView: 'floor',
+            fallbackUrl: '/admin/reservations'
+          },
+          null
+        ).catch(function (error) {
+          console.error(
+            '[PMD Reservations] Redirected Composer open failed; staying in workspace',
+            error
+          );
+        });
+      },
+      0
+    );
+  }());
 }());
 
 /* ============================================================
