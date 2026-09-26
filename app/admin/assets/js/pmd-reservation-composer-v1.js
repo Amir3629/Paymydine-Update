@@ -611,7 +611,6 @@
       !pmdHiddenPrimerR16
       || !nextContext
       || !response
-      || root.classList.contains('show')
     ) {
       return false;
     }
@@ -3032,10 +3031,61 @@ function applyAvailability(result) {
       }).catch(controlledReload);
     }).catch(showError).finally(function () { saving = false; save.disabled = false; });
   }
+  /*
+   * PMD_COMPOSER_CLICK_FIRST_REVEAL_R20
+   *
+   * For the normal New reservation entry points, reveal the already-prehydrated
+   * card BEFORE floor/context normalization. That makes click -> visible card
+   * the first meaningful work in the handler. Context reconciliation continues
+   * immediately afterwards without holding the first paint hostage.
+   */
+  function pmdCanRevealBeforeNormalizeR20(element) {
+    if (
+      !element
+      || !pmdHiddenPrimerR16
+      || root.classList.contains('show')
+    ) {
+      return false;
+    }
+
+    if (
+      element.closest(
+        '[data-r2-reservation-id], [data-reservation], [data-r2-create-date][data-r2-create-time]'
+      )
+    ) {
+      return false;
+    }
+
+    var href =
+      clean(
+        element.getAttribute
+          ? element.getAttribute('href')
+          : ''
+      );
+
+    if (
+      /\/admin\/reservations\/edit\//.test(href)
+      || /[?&]reserve_time=/.test(href)
+    ) {
+      return false;
+    }
+
+    return true;
+  }
+
   function clickOwner(event) {
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     var element = event.target.closest(selectors); var page = document.getElementById('pmd-dashboard-lab');
     if (!element || !page || !page.contains(element)) return;
+
+    if (
+      pmdCanRevealBeforeNormalizeR20(
+        element
+      )
+    ) {
+      pmdShowDirectR20();
+    }
+
     var next; try { next = normalize(element); } catch (error) { return; }
     if (!next || !window.PMDReservationComposerV1 || typeof window.PMDReservationComposerV1.open !== 'function') return;
     event.preventDefault(); event.stopImmediatePropagation();
