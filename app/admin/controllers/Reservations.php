@@ -91,6 +91,59 @@ class Reservations extends PmdCleanWorkspaceControllerV1
         $this->addJs('js/pmd-reservations-table-card-filter-v1.js');
     }
 
+    /*
+     * PMD_RESERVATIONS_RETIRE_NATIVE_FORM_ROUTES_R21
+     *
+     * Reservations is one in-page card workspace. Browser GETs for the old
+     * FormController create/edit pages are redirected back to that workspace;
+     * POST/AJAX compatibility remains available for legacy internals.
+     */
+    public function create()
+    {
+        if (request()->isMethod('get') && !request()->ajax()) {
+            $query = [
+                'pmd_mode' => 'create',
+            ];
+
+            foreach (['reserve_date', 'reserve_time'] as $key) {
+                $value = trim((string)request()->query($key, ''));
+                if ($value !== '') {
+                    $query[$key] = $value;
+                }
+            }
+
+            return redirect(
+                admin_url('reservations').'?'.http_build_query($query)
+            );
+        }
+
+        $this->asExtension('Admin\\Actions\\FormController')->create();
+
+        return $this->makeView('reservations/create');
+    }
+
+    public function edit($context = null, $recordId = null)
+    {
+        if ($recordId === null && is_numeric($context)) {
+            $recordId = (int)$context;
+            $context = null;
+        }
+
+        if (request()->isMethod('get') && !request()->ajax()) {
+            $id = $recordId ?: (int)basename(request()->path());
+
+            return redirect(
+                admin_url('reservations')
+                .'?pmd_mode=edit&pmd_id='.(int)$id
+            );
+        }
+
+        $this->asExtension('Admin\\Actions\\FormController')
+            ->edit($context, $recordId);
+
+        return $this->makeView('reservations/edit');
+    }
+
     protected function pmdWorkspaceKey(): string { return 'reservations'; }
     protected function pmdWorkspacePath(): string { return '/admin/reservations'; }
     protected function pmdWorkspaceView(): string { return 'reservations/index'; }
