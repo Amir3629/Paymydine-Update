@@ -43,12 +43,7 @@
             <label><span><svg aria-hidden="true"><use href="#pmd-composer-icon-users"/></svg>@lang('admin::lang.reservations.label_guest')</span><div class="pmd-composer-stepper-r12" data-pmd-composer-stepper="guests" role="group" aria-label="Guest number"><button type="button" data-pmd-stepper-minus aria-label="Decrease guest number"><span aria-hidden="true">−</span></button><div class="pmd-composer-stepper-r12__value"><input name="guest_num" type="number" min="1" max="99" step="1" inputmode="numeric"></div><button type="button" data-pmd-stepper-plus aria-label="Increase guest number"><span aria-hidden="true">+</span></button></div><em data-error-for="guest_num"></em></label>
           </section>
           <section class="pmd-reservation-composer-v1__assignment" aria-labelledby="pmd-composer-assignment-title">
-            <h3 id="pmd-composer-assignment-title"><svg aria-hidden="true"><use href="#pmd-composer-icon-table"/></svg>Table assignment</h3>
-            <div class="pmd-reservation-composer-v1__modes">
-              <label data-pmd-auto-mode-control aria-label="Automatic table"><input type="radio" name="assignment_mode" value="auto"><span data-pmd-auto-mode-label="Automatic table"></span></label>
-              <label><input type="radio" name="assignment_mode" value="choose"><span>Choose table(s)</span></label>
-              <label><input type="radio" name="assignment_mode" value="later"><span>Assign later</span></label>
-            </div>
+            <!-- PMD_COMPOSER_PREFERENCES_BEFORE_ASSIGNMENT_R26 -->
             <div class="pmd-reservation-composer-v1__feature-preferences" data-pmd-composer-feature-preferences hidden>
               <span class="pmd-reservation-composer-v1__feature-title"><svg aria-hidden="true"><use href="#pmd-composer-icon-preferences"/></svg><b>{{ $pmdComposerFeatureText['title'] }}</b></span>
               <div class="pmd-reservation-composer-v1__feature-options">
@@ -74,6 +69,12 @@
                   </span>
                 </label>
               </div>
+            </div>
+            <h3 id="pmd-composer-assignment-title"><svg aria-hidden="true"><use href="#pmd-composer-icon-table"/></svg>Table assignment</h3>
+            <div class="pmd-reservation-composer-v1__modes">
+              <label data-pmd-auto-mode-control aria-label="Automatic table"><input type="radio" name="assignment_mode" value="auto"><span data-pmd-auto-mode-label="Automatic table"></span></label>
+              <label><input type="radio" name="assignment_mode" value="choose"><span>Choose table(s)</span></label>
+              <label><input type="radio" name="assignment_mode" value="later"><span>Assign later</span></label>
             </div>
             <label class="pmd-reservation-composer-v1__tables"><span>Tables</span><select name="tables[]" multiple></select><em data-error-for="tables"></em></label>
             <div class="pmd-reservation-composer-v1__availability" data-pmd-composer-availability aria-live="polite"></div>
