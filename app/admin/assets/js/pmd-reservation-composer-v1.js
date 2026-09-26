@@ -723,8 +723,13 @@
       'false'
     );
 
-    baseline = snapshot();
-
+    /*
+     * PMD_COMPOSER_CLICK_PATH_YIELD_R19
+     *
+     * Hidden prehydrate already built the complete visible form. Do not run a
+     * second synchronous form snapshot before the browser can paint the card.
+     * Show now, then refresh the dirty-check baseline after the first frame.
+     */
     ensureModal().show();
 
     document.body.classList.add(
@@ -733,6 +738,18 @@
 
     window.requestAnimationFrame(
       tagBackdrop
+    );
+
+    window.requestAnimationFrame(
+      function () {
+        window.requestAnimationFrame(
+          function () {
+            if (root.classList.contains('show')) {
+              baseline = snapshot();
+            }
+          }
+        );
+      }
     );
 
     pmdHiddenPrimerR16 = null;
