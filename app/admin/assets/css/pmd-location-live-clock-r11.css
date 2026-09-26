@@ -1,4 +1,8 @@
-/* PMD_LOCATION_LIVE_CLOCK_R10 */
+/* PMD_LOCATION_LIVE_CLOCK_R11 */
+/* PMD_GLOBAL_CLOCK_VIEWPORT_CENTER_V152
+ * Cache-proof asset generation: new filename + manifest key.
+ * The clock is centered on the physical viewport, never the content column.
+ */
 
 #pmd-location-live-clock-r10 {
     position: fixed;

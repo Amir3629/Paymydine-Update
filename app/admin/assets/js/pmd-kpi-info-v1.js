@@ -50,6 +50,12 @@
   }
 
   function explanation(card) {
+    // PMD_KPI_PAGE_COPY_V154
+    // A page may provide a short, plain-language explanation while keeping
+    // the shared info-button behavior and visual authority.
+    var directCopy = String(card.getAttribute('data-pmd-kpi-info-copy') || '').trim();
+    if (directCopy) return directCopy;
+
     var key = canonicalKey(card.getAttribute('data-pmd-dashboard2-kpi'));
     var messageKey = PMD_KPI_MESSAGE_KEYS[key] || '';
     var copy = messageKey ? pmdT(messageKey, '') : '';
@@ -110,8 +116,12 @@
       return;
     }
 
-    var menu = card.querySelector('[data-pmd-dashboard-lab-kpi-menu]');
-    var more = card.querySelector('[data-pmd-dashboard-lab-kpi-menu-button]');
+    var menu = card.querySelector(
+      '[data-pmd-dashboard-lab-kpi-menu], [data-pmd-shifts-kpi-menu]'
+    );
+    var more = card.querySelector(
+      '[data-pmd-dashboard-lab-kpi-menu-button], [data-pmd-shifts-kpi-menu-button]'
+    );
     if (menu) menu.hidden = true;
     if (more) more.setAttribute('aria-expanded', 'false');
 
@@ -130,7 +140,9 @@
   });
 
   document.addEventListener('click', function (event) {
-    var option = event.target.closest && event.target.closest('[data-pmd-dashboard-lab-kpi-option]');
+    var option = event.target.closest && event.target.closest(
+      '[data-pmd-dashboard-lab-kpi-option], [data-pmd-shifts-kpi-option]'
+    );
     if (option && section.contains(option)) {
       var changedCard = option.closest('.pmd-r2-kpi-v2401-card');
       close(changedCard);
@@ -152,7 +164,7 @@
   }
 
   window.PMDKpiInfoV1 = {
-    version: '1.2.0-server-first-paint',
+    version: '1.3.0-shifts-parity-v155',
     mount: mount,
     audit: function () {
       var cards = section.querySelectorAll('.pmd-r2-kpi-v2401-card[data-pmd-dashboard2-kpi]');

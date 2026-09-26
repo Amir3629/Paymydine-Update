@@ -27,6 +27,222 @@
         : 'Manager role insights';
 @endphp
 
+@if($pmdRoleMode === 'manager')
+    {{-- PMD_MANAGER_ANALYTICS_FIRSTPAINT_V148
+         Critical role geometry is emitted with the server HTML so Manager
+         never paints an empty post-Floor region while role/analytics assets
+         and SWR data finish loading. This owns geometry only; analytics data
+         remains V132 stale-while-revalidate. --}}
+    <style id="pmd-manager-analytics-firstpaint-v148">
+        html body.pmd-dashboard-lab-page
+        #pmd-dashboard-lab
+        [data-pmd-role-dashboard="manager"] {
+            width: 100% !important;
+            min-width: 0 !important;
+        }
+
+        html body.pmd-dashboard-lab-page
+        #pmd-dashboard-lab
+        [data-pmd-role-dashboard="manager"]
+        #pmd-dashboard-lab-analytics-v1 {
+            display: block !important;
+            width: 100% !important;
+            min-width: 0 !important;
+            height: auto !important;
+            min-height: 0 !important;
+            margin: 18px auto 0 !important;
+            padding: 0 0 28px !important;
+            overflow: visible !important;
+        }
+
+        html body.pmd-dashboard-lab-page
+        #pmd-dashboard-lab
+        [data-pmd-role-dashboard="manager"]
+        #pmd-dashboard-lab-analytics-v1
+        .pmd-dashboard-lab-analytics__grid {
+            display: grid !important;
+            grid-template-columns: repeat(12, minmax(0, 1fr)) !important;
+            gap: 14px !important;
+            width: 100% !important;
+            min-width: 0 !important;
+            height: auto !important;
+            overflow: visible !important;
+        }
+
+        html body.pmd-dashboard-lab-page
+        #pmd-dashboard-lab
+        [data-pmd-role-dashboard="manager"]
+        #pmd-dashboard-lab-analytics-v1
+        .pmd-dashboard-lab-analytics__card {
+            display: none !important;
+        }
+
+        html body.pmd-dashboard-lab-page
+        #pmd-dashboard-lab
+        [data-pmd-role-dashboard="manager"]
+        #pmd-dashboard-lab-analytics-v1
+        [data-pmd-lab-analytics-widget="salesByHour"],
+        html body.pmd-dashboard-lab-page
+        #pmd-dashboard-lab
+        [data-pmd-role-dashboard="manager"]
+        #pmd-dashboard-lab-analytics-v1
+        [data-pmd-lab-analytics-widget="alerts"],
+        html body.pmd-dashboard-lab-page
+        #pmd-dashboard-lab
+        [data-pmd-role-dashboard="manager"]
+        #pmd-dashboard-lab-analytics-v1
+        [data-pmd-lab-analytics-widget="liveOperations"],
+        html body.pmd-dashboard-lab-page
+        #pmd-dashboard-lab
+        [data-pmd-role-dashboard="manager"]
+        #pmd-dashboard-lab-analytics-v1
+        [data-pmd-lab-analytics-widget="topItems"],
+        html body.pmd-dashboard-lab-page
+        #pmd-dashboard-lab
+        [data-pmd-role-dashboard="manager"]
+        #pmd-dashboard-lab-analytics-v1
+        [data-pmd-lab-analytics-widget="reviews"],
+        html body.pmd-dashboard-lab-page
+        #pmd-dashboard-lab
+        [data-pmd-role-dashboard="manager"]
+        #pmd-dashboard-lab-analytics-v1
+        [data-pmd-lab-analytics-widget="calendarEvents"] {
+            display: grid !important;
+            grid-template-rows: auto minmax(0, 1fr) !important;
+            align-items: stretch !important;
+            width: 100% !important;
+            min-width: 0 !important;
+            align-self: stretch !important;
+        }
+
+        @media (min-width: 1281px) {
+            html body.pmd-dashboard-lab-page
+            #pmd-dashboard-lab
+            [data-pmd-role-dashboard="manager"]
+            [data-pmd-lab-analytics-widget="salesByHour"] {
+                grid-column: span 9 !important;
+                height: 430px !important;
+                min-height: 430px !important;
+                max-height: 430px !important;
+                order: 1 !important;
+            }
+
+            html body.pmd-dashboard-lab-page
+            #pmd-dashboard-lab
+            [data-pmd-role-dashboard="manager"]
+            [data-pmd-lab-analytics-widget="alerts"] {
+                grid-column: span 3 !important;
+                height: 430px !important;
+                min-height: 430px !important;
+                max-height: 430px !important;
+                order: 2 !important;
+            }
+
+            html body.pmd-dashboard-lab-page
+            #pmd-dashboard-lab
+            [data-pmd-role-dashboard="manager"]
+            [data-pmd-lab-analytics-widget="liveOperations"],
+            html body.pmd-dashboard-lab-page
+            #pmd-dashboard-lab
+            [data-pmd-role-dashboard="manager"]
+            [data-pmd-lab-analytics-widget="topItems"],
+            html body.pmd-dashboard-lab-page
+            #pmd-dashboard-lab
+            [data-pmd-role-dashboard="manager"]
+            [data-pmd-lab-analytics-widget="reviews"],
+            html body.pmd-dashboard-lab-page
+            #pmd-dashboard-lab
+            [data-pmd-role-dashboard="manager"]
+            [data-pmd-lab-analytics-widget="calendarEvents"] {
+                grid-column: span 3 !important;
+                height: 255px !important;
+                min-height: 255px !important;
+                max-height: 255px !important;
+            }
+        }
+
+        @media (min-width: 761px) and (max-width: 1280px) {
+            html body.pmd-dashboard-lab-page
+            #pmd-dashboard-lab
+            [data-pmd-role-dashboard="manager"]
+            [data-pmd-lab-analytics-widget="salesByHour"] {
+                grid-column: span 12 !important;
+                height: 390px !important;
+                min-height: 390px !important;
+                max-height: 390px !important;
+                order: 1 !important;
+            }
+
+            html body.pmd-dashboard-lab-page
+            #pmd-dashboard-lab
+            [data-pmd-role-dashboard="manager"]
+            [data-pmd-lab-analytics-widget="alerts"] {
+                grid-column: span 6 !important;
+                height: 390px !important;
+                min-height: 390px !important;
+                max-height: 390px !important;
+                order: 2 !important;
+            }
+
+            html body.pmd-dashboard-lab-page
+            #pmd-dashboard-lab
+            [data-pmd-role-dashboard="manager"]
+            [data-pmd-lab-analytics-widget="liveOperations"],
+            html body.pmd-dashboard-lab-page
+            #pmd-dashboard-lab
+            [data-pmd-role-dashboard="manager"]
+            [data-pmd-lab-analytics-widget="topItems"],
+            html body.pmd-dashboard-lab-page
+            #pmd-dashboard-lab
+            [data-pmd-role-dashboard="manager"]
+            [data-pmd-lab-analytics-widget="reviews"],
+            html body.pmd-dashboard-lab-page
+            #pmd-dashboard-lab
+            [data-pmd-role-dashboard="manager"]
+            [data-pmd-lab-analytics-widget="calendarEvents"] {
+                grid-column: span 6 !important;
+                height: 250px !important;
+                min-height: 250px !important;
+                max-height: 250px !important;
+            }
+        }
+
+        @media (max-width: 760px) {
+            html body.pmd-dashboard-lab-page
+            #pmd-dashboard-lab
+            [data-pmd-role-dashboard="manager"]
+            #pmd-dashboard-lab-analytics-v1 {
+                margin-top: 10px !important;
+            }
+
+            html body.pmd-dashboard-lab-page
+            #pmd-dashboard-lab
+            [data-pmd-role-dashboard="manager"]
+            #pmd-dashboard-lab-analytics-v1
+            .pmd-dashboard-lab-analytics__grid {
+                gap: 10px !important;
+            }
+
+            html body.pmd-dashboard-lab-page
+            #pmd-dashboard-lab
+            [data-pmd-role-dashboard="manager"]
+            [data-pmd-lab-analytics-widget] {
+                grid-column: span 12 !important;
+                height: auto !important;
+                min-height: 255px !important;
+                max-height: none !important;
+            }
+
+            html body.pmd-dashboard-lab-page
+            #pmd-dashboard-lab
+            [data-pmd-role-dashboard="manager"]
+            [data-pmd-lab-analytics-widget="salesByHour"] {
+                min-height: 370px !important;
+            }
+        }
+    </style>
+@endif
+
 <div
     class="pmd-role-dashboard-exact-owner"
     data-pmd-role-dashboard="{{ $pmdRoleMode }}"

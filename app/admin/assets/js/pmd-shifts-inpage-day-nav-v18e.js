@@ -512,14 +512,47 @@
     });
   }
 
+  // PMD_SHIFTS_KPI_DROPDOWN_LAYER_V156
+  function clearKpiMenuLayerState() {
+    var section = kpiSection();
+    if (section) section.classList.remove('is-pmd-kpi-menu-open');
+    visibleKpiCards().forEach(function (card) {
+      card.classList.remove('is-pmd-kpi-menu-open');
+    });
+  }
+
   function closeKpiMenu() {
-    if (!activeKpiMenu) return;
+    if (!activeKpiMenu) {
+      clearKpiMenuLayerState();
+      return;
+    }
     var menu = activeKpiMenu;
     var card = menu.closest('[data-pmd-shifts-kpi-slot]');
     var button = card && card.querySelector('[data-pmd-shifts-kpi-menu-button]');
     menu.hidden = true;
     activeKpiMenu = null;
     if (button) button.setAttribute('aria-expanded', 'false');
+    clearKpiMenuLayerState();
+  }
+
+  function closeKpiInfo(card) {
+    if (!card) return;
+    card.classList.remove('is-pmd-kpi-info-open');
+    card.removeAttribute('data-pmd-kpi-info-open');
+    var button = card.querySelector('[data-pmd-kpi-info-button]');
+    if (button) button.setAttribute('aria-pressed', 'false');
+  }
+
+  function syncKpiInfo(card, data) {
+    if (!card || !data) return;
+    var panel = card.querySelector('[data-pmd-kpi-info-panel]');
+    if (panel) {
+      var heading = panel.querySelector('strong');
+      var body = panel.querySelector('span');
+      if (heading) heading.textContent = data.title || '';
+      if (body) body.textContent = data.info || data.description || '';
+    }
+    closeKpiInfo(card);
   }
 
   function syncKpiMenus() {
@@ -554,6 +587,8 @@
     var data = kpiCards[key];
     if (!card || !data) return;
     card.setAttribute('data-pmd-shifts-kpi-key', key);
+    card.setAttribute('data-pmd-dashboard2-kpi', key);
+    card.setAttribute('data-pmd-kpi-info-copy', data.info || '');
     card.setAttribute('data-pmd-kpi-v2401-tone', data.tone || 'cyan');
     var icon = card.querySelector('.pmd-r2-kpi-v2401-icon');
     var titleNode = card.querySelector('.pmd-r2-kpi-v2401-title');
@@ -563,6 +598,13 @@
     if (titleNode) titleNode.textContent = data.title || key;
     if (valueNode) valueNode.textContent = data.value == null ? '0' : String(data.value);
     if (descriptionNode) descriptionNode.textContent = data.description || '';
+
+    // PMD_SHIFTS_KPI_INFO_SYNC_V156
+    // The dropdown click is handled inside the Shifts root and stops bubbling,
+    // so the global KPI-info listener never sees that option click. Update the
+    // already-rendered explanation panel here from the newly selected KPI.
+    syncKpiInfo(card, data);
+
     persistKpis();
     syncKpiMenus();
   }
@@ -1368,8 +1410,15 @@
       var opening = menu.hidden;
       closeKpiMenu();
       if (opening) {
+        // Never let an old info explanation survive behind a newly opened
+        // chooser, and raise the whole KPI stacking context while the chooser
+        // is open so day-navigation/actions cannot paint above it.
+        closeKpiInfo(card);
         menu.hidden = false;
         activeKpiMenu = menu;
+        card.classList.add('is-pmd-kpi-menu-open');
+        var section = kpiSection();
+        if (section) section.classList.add('is-pmd-kpi-menu-open');
         kpiButton.setAttribute('aria-expanded', 'true');
       }
       return;

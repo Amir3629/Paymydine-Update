@@ -872,6 +872,51 @@
     if ($pmdSharedFloorMultiFloorJson === false) $pmdSharedFloorMultiFloorJson = '{}';
 @endphp
 
+{{-- PMD_FLOOR_ONE_ROW_CRITICAL_GEOMETRY_V149
+     pmd-floor-v1.css gives data-size="large" stages a 640px minimum height.
+     The exact Floor stylesheet later overrides One-row to 156/146px, but a
+     refresh can paint the base 640px stage before that final role stylesheet
+     wins, pushing every below-Floor block down and then snapping it upward.
+
+     Put ONLY the already-approved final One-row geometry in the server HTML.
+     It is class-scoped, so switching to Full Floor releases this rule
+     immediately; no JS/timer/observer geometry authority is added. --}}
+<style id="pmd-floor-one-row-critical-geometry-v149">
+body.pmd-dashboard-lab-page
+#pmd-r2-shared-floor-canvas-v310.is-strip-mode
+> .pmd-floor-v1__stage {
+    height: 156px !important;
+    min-height: 156px !important;
+    max-height: 156px !important;
+    transition: none !important;
+    animation: none !important;
+}
+
+body.pmd-dashboard-lab-page
+#pmd-r2-shared-floor-canvas-v310.is-strip-mode
+[data-floor-scroll] {
+    height: 146px !important;
+    min-height: 146px !important;
+    max-height: 146px !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    scroll-behavior: auto !important;
+    transform: none !important;
+    transition: none !important;
+    animation: none !important;
+}
+
+body.pmd-dashboard-lab-page
+#pmd-r2-shared-floor-canvas-v310.is-strip-mode
+[data-floor-canvas] {
+    min-height: 146px !important;
+    transform: none !important;
+    transform-origin: 0 0 !important;
+    transition: none !important;
+    animation: none !important;
+}
+</style>
+
 <section
     id="pmd-r2-shared-floor-canvas-v310"
     class="pmd-floor-v1 pmd-dashboard-lab-exact-floor-v1{{ $floorMode === 'row' ? ' is-strip-mode is-strip-calibrated' : '' }}"

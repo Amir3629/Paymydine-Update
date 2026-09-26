@@ -1560,3 +1560,124 @@ html body.pmd-coupon-manager-page #pmd-coupon-manager-main
   overflow: hidden;
 }
 /* PMD_COUPON_KPI_STABLE_TIERS_R79D END */
+
+/* ============================================================
+   PMD_DISCOUNT_KPI_FRAME_V145
+
+   Match the shared PMD desktop KPI frame established by V143/V144.
+   Discount value autofit remains typography-only and does not own height.
+   Existing <=900px responsive geometry remains unchanged.
+   ============================================================ */
+@media (min-width: 901px) {
+  body.pmd-coupon-manager-page
+  .pmd-coupon-kpi {
+    height: 100px !important;
+    min-height: 100px !important;
+    max-height: 100px !important;
+    padding: 12px 14px !important;
+    align-self: start !important;
+    box-sizing: border-box !important;
+  }
+}
+
+/* ============================================================
+   PMD_DISCOUNT_KPI_TYPOGRAPHY_V146
+
+   Keep Discount KPI labels, descriptions, values and calculations unchanged.
+   Only align information hierarchy/typography with PMD Dashboard KPI cards.
+   ============================================================ */
+body.pmd-coupon-manager-page .pmd-coupon-kpi__copy {
+  display: flex !important;
+  min-width: 0 !important;
+  flex: 1 1 auto !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  justify-content: center !important;
+  gap: 0 !important;
+}
+
+body.pmd-coupon-manager-page .pmd-coupon-kpi__copy > span {
+  order: 1 !important;
+  margin: 0 0 3px !important;
+  font-family: inherit !important;
+  font-size: 14px !important;
+  font-weight: 850 !important;
+  line-height: 1.15 !important;
+}
+
+body.pmd-coupon-manager-page .pmd-coupon-kpi__copy > strong {
+  order: 2 !important;
+  grid-row: auto !important;
+  grid-column: auto !important;
+  align-self: flex-start !important;
+  margin: 0 !important;
+  font-family: inherit !important;
+  font-size: 30px !important;
+  font-weight: 900 !important;
+  letter-spacing: normal !important;
+  line-height: 1 !important;
+  font-variant-numeric: tabular-nums !important;
+  white-space: nowrap !important;
+}
+
+body.pmd-coupon-manager-page .pmd-coupon-kpi__copy > small {
+  order: 3 !important;
+  grid-column: auto !important;
+  margin: 6px 0 0 !important;
+  overflow: hidden !important;
+  font-family: inherit !important;
+  font-size: 11px !important;
+  font-weight: 650 !important;
+  line-height: 1.2 !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  max-width: 100% !important;
+}
+
+/* Preserve Discount's existing safe shrink tiers for unusually long values. */
+body.pmd-coupon-manager-page
+.pmd-coupon-kpi__copy > strong[data-pmd-kpi-size="compact"] {
+  font-size: 26px !important;
+}
+body.pmd-coupon-manager-page
+.pmd-coupon-kpi__copy > strong[data-pmd-kpi-size="tight"] {
+  font-size: 22px !important;
+}
+body.pmd-coupon-manager-page
+.pmd-coupon-kpi__copy > strong[data-pmd-kpi-size="micro"] {
+  font-size: 18px !important;
+}
+body.pmd-coupon-manager-page
+.pmd-coupon-kpi__copy > strong[data-pmd-kpi-size="nano"] {
+  font-size: 14px !important;
+}
+
+@media (max-width: 900px) {
+  body.pmd-coupon-manager-page .pmd-coupon-kpi__copy > span {
+    font-size: 11px !important;
+  }
+
+  body.pmd-coupon-manager-page .pmd-coupon-kpi__copy > strong {
+    font-size: 24px !important;
+  }
+
+  body.pmd-coupon-manager-page .pmd-coupon-kpi__copy > small {
+    margin-top: 4px !important;
+    font-size: 9px !important;
+  }
+}
+
+/* ============================================================
+   PMD_DISCOUNT_KPI_COLOR_SEPARATION_V147
+
+   Content and KPI meaning stay unchanged.
+   Keep Codes green; give Active a purple identity so all four
+   Discount KPI icons have distinct semantic tones.
+   ============================================================ */
+body.pmd-coupon-manager-page
+.pmd-coupon-kpis > .pmd-coupon-kpi:nth-child(2)
+.pmd-coupon-kpi__icon {
+  border-color: #eadcf7 !important;
+  background: #f7f1fd !important;
+  color: #7a43a7 !important;
+}

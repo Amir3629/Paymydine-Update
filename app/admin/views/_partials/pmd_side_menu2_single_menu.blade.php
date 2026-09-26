@@ -174,9 +174,16 @@ html #pmd-sidebar-language {
             <span class="pmd-sm2__label">{{ $pmdSm2T('nav.reservations', 'Reservations') }}</span>
         </a>
         @if($pmdSm2IsOwnerNav || $pmdSm2IsManagerNav)
-        {{-- PMD_SHIFTS_CANONICAL_NAV_V1 --}}
+        {{-- PMD_SHIFTS_CANONICAL_NAV_V153
+             Distinct Staff + Clock glyph: deliberately no calendar frame so
+             Shifts cannot be confused with the Reservations navigation icon. --}}
         <a class="pmd-sm2__item {{ $pmdActive(['shifts']) ? 'is-active' : '' }}" href="{{ admin_url('shifts') }}">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 9h18"/><circle cx="12" cy="14" r="3"/><path d="M12 12.5V14l1 1"/></svg>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="8.5" cy="7.5" r="3"/>
+                <path d="M3.5 18.5c.55-3.25 2.35-5 5-5 1.3 0 2.4.42 3.25 1.2"/>
+                <circle cx="17" cy="16.5" r="4"/>
+                <path d="M17 14.5v2.2l1.45.9"/>
+            </svg>
             <span class="pmd-sm2__label">{{ $pmdSm2T('nav.shifts', 'Shifts') }}</span>
         </a>
         @endif
@@ -198,12 +205,20 @@ html #pmd-sidebar-language {
         <!-- PMD_SM2_INLINE_ACTIONS_R2_START -->
         <button
             type="button"
-            class="pmd-sm2__item pmd-sm2__language-item"
+            class="pmd-sm2__item"
             data-pmd-sm2-language-inline
             aria-label="Switch language to {{ $pmdSm2LanguageFirstPaintCode }}"
             title="Switch language to {{ $pmdSm2LanguageFirstPaintCode }}"
         >
-            <span class="pmd-sm2__language-code" aria-hidden="true">{{ $pmdSm2LanguageFirstPaintCode }}</span>
+            {{-- PMD_SM2_LANGUAGE_NATIVE_ITEM_PARITY_V157
+       Intentionally no language-only layout/icon classes: this button and its
+       SVG inherit the exact same pmd-sm2__item geometry as every nav sibling. --}}
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <circle cx="12" cy="12" r="9"></circle>
+                <path d="M3 12h18"></path>
+                <path d="M12 3c2.6 2.45 4 5.45 4 9s-1.4 6.55-4 9"></path>
+                <path d="M12 3c-2.6 2.45-4 5.45-4 9s1.4 6.55 4 9"></path>
+            </svg>
             <span class="pmd-sm2__label" data-pmd-sm2-language-label>{{ $pmdSm2LanguageFirstPaintLabel }}</span>
         </button>
 
@@ -298,10 +313,8 @@ html #pmd-sidebar-language {
     var legacyTitle = String(legacyTrigger.getAttribute('title') || '').trim();
     var friendlyLabel = legacyTitle.replace(/^Switch(?: language)? to\s+/i, '').trim();
 
-    var codeNode = inlineButton.querySelector('.pmd-sm2__language-code');
     var labelNode = inlineButton.querySelector('[data-pmd-sm2-language-label]');
 
-    if (codeNode) codeNode.textContent = nextLocale || 'LANG';
     if (labelNode) labelNode.textContent = friendlyLabel || nextLocale || 'Language';
 
     inlineButton.setAttribute('aria-label', legacyTitle || ('Switch language to ' + nextLocale));

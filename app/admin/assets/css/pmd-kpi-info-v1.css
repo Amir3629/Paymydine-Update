@@ -217,3 +217,72 @@
     visibility: visible;
 }
 /* PMD_KPI_CARD_NO_SUBTITLE_R58_END */
+
+/* PMD_SHIFTS_KPI_INFO_PARITY_V155
+ * Shifts uses the same KPI card component without the #pmd-dashboard-lab wrapper.
+ * Match the other KPI pages: explanation text belongs behind the (i) control.
+ */
+body.pmd-shifts-page
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-description {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    width: 0 !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    max-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    pointer-events: none !important;
+}
+/* PMD_SHIFTS_KPI_INFO_PARITY_V155_END */
+
+
+/* ============================================================
+   PMD_SHIFTS_KPI_DROPDOWN_TOP_LAYER_V156
+
+   The Shifts KPI chooser is a temporary overlay. While open, its whole
+   stacking context must sit above the rota date arrows, + Member, Today,
+   calendar trigger, timeline and all other normal Shifts page controls.
+   Modal/calendar overlays keep their intentionally higher authorities.
+   ============================================================ */
+body.pmd-shifts-page
+#pmd-r2-reservation-kpis-v307 {
+  position: relative !important;
+  overflow: visible !important;
+}
+
+body.pmd-shifts-page
+#pmd-r2-reservation-kpis-v307.is-pmd-kpi-menu-open {
+  z-index: 2147482000 !important;
+  overflow: visible !important;
+}
+
+body.pmd-shifts-page
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-card.is-pmd-kpi-menu-open {
+  position: relative !important;
+  z-index: 2147482100 !important;
+  overflow: visible !important;
+}
+
+body.pmd-shifts-page
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-card.is-pmd-kpi-menu-open
+.pmd-shifts__kpi-menu {
+  z-index: 2147482200 !important;
+  pointer-events: auto !important;
+}
+
+/* Explicitly keep ordinary day/planner chrome below the chooser plane. */
+body.pmd-shifts-page #pmd-shifts-day-surface,
+body.pmd-shifts-page .pmd-shifts-final-screen,
+body.pmd-shifts-page .pmd-shifts-final-toolbar,
+body.pmd-shifts-page .pmd-shifts-final-date,
+body.pmd-shifts-page .pmd-shifts-final-actions {
+  position: relative !important;
+  z-index: 1 !important;
+}
+/* PMD_SHIFTS_KPI_DROPDOWN_TOP_LAYER_V156_END */

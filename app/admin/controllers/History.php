@@ -4,7 +4,7 @@ namespace Admin\Controllers;
 
 use Admin\Facades\AdminMenu;
 use Admin\Classes\AdminController;
-use System\Classes\ApplicationException;
+use Admin\Services\PmdDefaultStaffRoleService;
 
 class History extends AdminController
 {
@@ -20,7 +20,10 @@ class History extends AdminController
         ],
     ];
 
-    protected $requiredPermissions = 'Admin.History';
+    // PMD_HISTORY_ROLE_ACCESS_V154
+    // Admin.History was never registered in PermissionManager, so managed
+    // Owner/Manager roles could be rejected before the page rendered.
+    protected $requiredPermissions = null;
 
     public function __construct()
     {
@@ -49,6 +52,37 @@ class History extends AdminController
         AdminMenu::setContext('history', 'sales');
     }
 
+    private function pmdAssertHistoryAccess(): void
+    {
+        // PMD_HISTORY_AUTH_LIFECYCLE_V155
+        // System Controller calls initialize() before index(), and initialize()
+        // is where the authenticated Admin user is attached to this controller.
+        // Never run this check from __construct().
+        $user = $this->getUser();
+        if (!$user) {
+            abort(403);
+        }
+
+        try {
+            if (method_exists($user, 'isSuperUser') && $user->isSuperUser()) {
+                return;
+            }
+
+            $code = app(PmdDefaultStaffRoleService::class)->roleCodeForUser($user);
+            if (in_array($code, [
+                PmdDefaultStaffRoleService::OWNER,
+                PmdDefaultStaffRoleService::MANAGER,
+                'owner',
+                'manager',
+            ], true)) {
+                return;
+            }
+        } catch (\Throwable $error) {
+        }
+
+        abort(403);
+    }
+
     private function pmdForceEnglishHistoryLocale(): void
     {
         app()->setLocale('en');
@@ -60,6 +94,7 @@ class History extends AdminController
 
     public function index()
     {
+        $this->pmdAssertHistoryAccess();
         $this->pmdForceEnglishHistoryLocale();
 
         \Log::info('TRACE', [
@@ -77,13 +112,13 @@ class History extends AdminController
 
     public function index_onDelete()
     {
+        $this->pmdAssertHistoryAccess();
+
         // AJAX requests may re-bootstrap locale independently of the page load.
         // Re-assert English immediately before ListController builds flash copy.
         $this->pmdForceEnglishHistoryLocale();
 
-        if (!$this->getUser()->hasPermission('Admin.History'))
-            throw new ApplicationException(lang('admin::lang.alert_user_restricted'));
-
+        // Access was already checked by the managed Owner/Manager role guard.
         // Delegate to ListController's built-in bulk delete handler.
         return $this->asExtension('Admin\\Actions\\ListController')->index_onDelete();
     }

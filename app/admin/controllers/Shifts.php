@@ -82,10 +82,23 @@ class Shifts extends AdminController
         $this->addCss('css/pmd-shifts-role-cards-v18d.css');
         // PMD_SHIFTS_LIVE_FIRST_PAINT_V134
         $this->addCss('css/pmd-shifts-live-first-paint-v134.css');
+        // PMD_GLOBAL_KPI_FRAME_V144
+        // Load last so old Shifts-specific 118px KPI rules cannot override the
+        // shared 100px PMD KPI frame.
+        $this->addCss('css/pmd-dashboard-kpi-recovery-v136.css');
+        // PMD_SHIFTS_KPI_INFO_ASSET_PARITY_V155
+        // Load the exact shared KPI info visual authority used by the other KPI pages.
+        $this->addCss('css/pmd-kpi-info-v1.css');
         // PMD_SHIFTS_MIDNIGHT_TIMELINE_V17N
         // PMD_SONSTIGE_PORTAL_ONLY_UI_V18E
         // Versioned filename intentionally busts older Shifts role UI cache.
         $this->addJs('js/pmd-shifts-inpage-day-nav-v18e.js');
+        // PMD_SHIFTS_KPI_INFO_ASSET_PARITY_V155
+        // @scripts renders after the Shifts DOM, so the shared info runtime can bind normally.
+        // PMD_KPI_INFO_CURRENT_CARD_AUTHORITY_V158
+        // V3 resolves the KPI from the card currently visible to the user and
+        // uses a new filename so no older KPI-info runtime can survive cache.
+        $this->addJs('js/pmd-kpi-info-v3.js');
         // PMD_SHIFTS_BIG_CALENDAR_V14
         $this->addJs('js/pmd-shifts-big-calendar-v14.js');
         $this->addJs('js/pmd-shifts-reservation-jade-time-v17c.js');
@@ -183,8 +196,46 @@ class Shifts extends AdminController
                 ->get();
         }
 
-        $todayDate = now()->toDateString();
-        $todayShifts = $shifts->filter(fn ($shift) => Carbon::parse($shift->shift_date)->toDateString() === $todayDate)->values();
+        // PMD_SHIFTS_KPI_CALENDAR_INDEPENDENT_V154
+        // Calendar navigation owns the planner only. Top KPIs always describe
+        // real "now": today plus the current calendar month.
+        $kpiToday = now()->startOfDay();
+        $kpiMonthStart = $kpiToday->copy()->startOfMonth();
+        $kpiMonthEnd = $kpiToday->copy()->endOfMonth();
+        $kpiMonthShifts = collect();
+
+        if ($ready) {
+            if ($monthStart->isSameMonth($kpiMonthStart)) {
+                $kpiMonthShifts = $shifts
+                    ->filter(fn ($shift) => Carbon::parse($shift->shift_date)->betweenIncluded($kpiMonthStart, $kpiMonthEnd))
+                    ->values();
+            } else {
+                $kpiMonthShifts = DB::table('pmd_operational_shifts')
+                    ->where('location_id', $locationId)
+                    ->whereBetween('shift_date', [$kpiMonthStart->toDateString(), $kpiMonthEnd->toDateString()])
+                    ->whereNotIn('status', ['cancelled', 'canceled'])
+                    ->orderBy('shift_date')
+                    ->orderByRaw('CASE WHEN starts_at IS NULL THEN 1 ELSE 0 END')
+                    ->orderBy('starts_at')
+                    ->orderBy('id')
+                    ->get();
+
+                $kpiShiftIds = $kpiMonthShifts->pluck('id')->map('intval')->all();
+                $kpiAssignments = $kpiShiftIds
+                    ? DB::table('pmd_operational_shift_people')->whereIn('shift_id', $kpiShiftIds)->orderBy('id')->get()->groupBy('shift_id')
+                    : collect();
+
+                $kpiMonthShifts = $kpiMonthShifts->map(function ($shift) use ($kpiAssignments) {
+                    $shift->people = ($kpiAssignments->get($shift->id) ?: collect())->values();
+                    return $shift;
+                });
+            }
+        }
+
+        $todayDate = $kpiToday->toDateString();
+        $todayShifts = $kpiMonthShifts
+            ->filter(fn ($shift) => Carbon::parse($shift->shift_date)->toDateString() === $todayDate)
+            ->values();
         $todayAssignments = $todayShifts->flatMap(fn ($shift) => collect($shift->people ?? []));
         $todayUnique = $todayAssignments
             ->map(fn ($row) => $row->person_id ? 'p:'.(int)$row->person_id : 'n:'.strtolower(trim((string)$row->display_name_snapshot)))
@@ -198,9 +249,7 @@ class Shifts extends AdminController
 
         $scheduledHoursMonth = 0.0;
         $hasBreakMinutes = $ready && Schema::hasColumn('pmd_operational_shifts', 'break_minutes');
-        foreach ($shifts as $shift) {
-            $date = Carbon::parse($shift->shift_date);
-            if (!$date->betweenIncluded($monthStart, $monthEnd)) continue;
+        foreach ($kpiMonthShifts as $shift) {
             $start = $this->minutesOfDay($shift->starts_at ?? null);
             $end = $this->minutesOfDay($shift->ends_at ?? null);
             if ($start === null || $end === null) continue;
@@ -212,6 +261,7 @@ class Shifts extends AdminController
             $scheduledHoursMonth += ($workedMinutes / 60) * $assigned;
         }
 
+        // Planner data remains tied to the selected calendar month/day.
         $monthShifts = $shifts->filter(fn ($shift) => Carbon::parse($shift->shift_date)->betweenIncluded($monthStart, $monthEnd))->values();
         $selectedDayShifts = $shifts->filter(fn ($shift) => Carbon::parse($shift->shift_date)->toDateString() === $selectedDay->toDateString())->values();
 
@@ -248,6 +298,30 @@ class Shifts extends AdminController
                         'message' => $error->getMessage(),
                     ]
                 );
+            }
+        }
+
+        // KPI attendance is deliberately independent from the selected planner day.
+        $kpiAttendance = [
+            'present_now' => null,
+            'missing_now' => null,
+        ];
+        if ($ready) {
+            try {
+                $kpiAttendance = app(
+                    PmdShiftAttendanceSnapshotV134::class
+                )->payload(
+                    $locationId,
+                    $kpiToday,
+                    $people,
+                    $todayShifts
+                );
+            } catch (\Throwable $error) {
+                logger()->warning('PMD Shifts V154 KPI attendance failed', [
+                    'location_id' => $locationId,
+                    'day' => $kpiToday->toDateString(),
+                    'message' => $error->getMessage(),
+                ]);
             }
         }
 
@@ -306,15 +380,16 @@ class Shifts extends AdminController
             'live_attendance' => $liveAttendance,
             'stats' => [
                 'scheduled_today' => $todayUnique->count(),
-                'present_now' => array_key_exists('present_now', $liveAttendance)
-                    ? $liveAttendance['present_now']
+                'present_now' => array_key_exists('present_now', $kpiAttendance)
+                    ? $kpiAttendance['present_now']
                     : ($currentConfirmed ? $presentCurrent : null),
-                'missing_now' => array_key_exists('missing_now', $liveAttendance)
-                    ? $liveAttendance['missing_now']
+                'missing_now' => array_key_exists('missing_now', $kpiAttendance)
+                    ? $kpiAttendance['missing_now']
                     : ($currentConfirmed ? $missingCurrent : null),
                 'month_hours' => round($scheduledHoursMonth, 1),
-                'month_shifts' => $monthShifts->count(),
-                'scheduled_days' => $monthShifts->pluck('shift_date')->map(fn ($d) => Carbon::parse($d)->toDateString())->unique()->count(),
+                'month_shifts' => $kpiMonthShifts->count(),
+                'scheduled_days' => $kpiMonthShifts->pluck('shift_date')->map(fn ($d) => Carbon::parse($d)->toDateString())->unique()->count(),
+                'month_name' => $kpiMonthStart->format('F'),
             ],
             'capacity' => [
                 'busy_item_threshold' => $busyThreshold,
