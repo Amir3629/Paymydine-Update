@@ -467,7 +467,16 @@ html.pmd-new-pages-antiflash-v40:not(.pmd-new-pages-antiflash-rendered-v40):not(
 
 
 <!-- PMD_OVERLAY_SINGLE_VISUAL_PLANE_V4 -->
-<script id="pmd-overlay-single-visual-plane-v4-script" src="/app/admin/assets/js/pmd-overlay-single-visual-plane-v4.js?v=20260826-r76-cashier-payment-stable"></script>
+@php
+    $pmdOverlaySingleVisualPlanePath = base_path('app/admin/assets/js/pmd-overlay-single-visual-plane-v4.js');
+    $pmdOverlaySingleVisualPlaneVersion = is_file($pmdOverlaySingleVisualPlanePath)
+        ? substr(hash_file('sha256', $pmdOverlaySingleVisualPlanePath), 0, 16)
+        : '1';
+@endphp
+<script
+    id="pmd-overlay-single-visual-plane-v4-script"
+    src="{{ asset('app/admin/assets/js/pmd-overlay-single-visual-plane-v4.js') }}?v={{ $pmdOverlaySingleVisualPlaneVersion }}"
+></script>
 <!-- /PMD_OVERLAY_SINGLE_VISUAL_PLANE_V4 -->
 
 <!-- PMD_PLATFORM_CARD_SYSTEM_V2_FINAL_CASCADE -->
