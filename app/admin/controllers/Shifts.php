@@ -82,6 +82,10 @@ class Shifts extends AdminController
         $this->addCss('css/pmd-shifts-role-cards-v18d.css');
         // PMD_SHIFTS_LIVE_FIRST_PAINT_V134
         $this->addCss('css/pmd-shifts-live-first-paint-v134.css');
+        // PMD_GLOBAL_KPI_FRAME_V144
+        // Load last so old Shifts-specific 118px KPI rules cannot override the
+        // shared 100px PMD KPI frame.
+        $this->addCss('css/pmd-dashboard-kpi-recovery-v136.css');
         // PMD_SHIFTS_MIDNIGHT_TIMELINE_V17N
         // PMD_SONSTIGE_PORTAL_ONLY_UI_V18E
         // Versioned filename intentionally busts older Shifts role UI cache.

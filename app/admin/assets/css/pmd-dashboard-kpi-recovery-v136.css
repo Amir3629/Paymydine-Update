@@ -295,3 +295,42 @@
     z-index: 25 !important;
   }
 }
+
+/* ============================================================
+   PMD_GLOBAL_KPI_FRAME_V144
+
+   One desktop frame geometry for every current PMD surface that renders the
+   shared KPI card component. Clean workspaces already match through V143;
+   Shifts has its own higher-specificity legacy KPI rules, so it receives the
+   same final 100px frame here.
+
+   Responsive/mobile geometry remains owned by the existing <=820px rules.
+   ============================================================ */
+@media (min-width: 821px) {
+  body.pmd-shifts-page
+  #pmd-r2-reservation-kpis-v307
+  .pmd-r2-kpi-v2401-card {
+    grid-template-columns: 52px minmax(0, 1fr) 22px !important;
+    grid-template-rows: minmax(0, 1fr) !important;
+    gap: 13px !important;
+
+    height: 100px !important;
+    min-height: 100px !important;
+    max-height: 100px !important;
+
+    padding: 12px 14px !important;
+    border-radius: 18px !important;
+    align-self: start !important;
+  }
+
+  body.pmd-shifts-page
+  #pmd-r2-reservation-kpis-v307
+  .pmd-r2-kpi-v2401-more {
+    width: 22px !important;
+    min-width: 22px !important;
+    max-width: 22px !important;
+    height: 30px !important;
+    min-height: 30px !important;
+    max-height: 30px !important;
+  }
+}

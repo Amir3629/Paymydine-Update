@@ -1582,6 +1582,11 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
         $this->addCss('css/pmd-reservations-kpis-v307.css');
         $this->addCss('css/pmd-dashboard-lab-v1.css');
 
+        // PMD_GLOBAL_KPI_FRAME_V144
+        // Final shared KPI frame authority for Reservations, Cashier and every
+        // role workspace built on this clean-workspace controller.
+        $this->addCss('css/pmd-dashboard-kpi-recovery-v136.css');
+
         // Exact same proven shared Floor visual authorities as Dashboard Lab.
         if ($this->pmdUsesFloor()) {
             $this->addCss('css/pmd-floor-v1.css');
