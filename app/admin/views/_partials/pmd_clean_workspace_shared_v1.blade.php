@@ -1343,8 +1343,14 @@ html body.page.pmd-clean-workspace-page #pmd-dashboard-lab {
                     // PMD_PERF_R8_RELEASE_ASSET_VERSION
                     // Composer CSS/JS are immutable for this deploy. Avoid full-file
                     // SHA-256 reads from PHP on every Cashier/Reservations render.
-                    $pmdReservationComposerCssVersion = 'r8-20260918';
-                    $pmdReservationComposerJsVersion = 'r8-20260918';
+                    $pmdReservationComposerCssPath = base_path('app/admin/assets/css/pmd-reservation-composer-v1.css');
+                    $pmdReservationComposerJsPath = base_path('app/admin/assets/js/pmd-reservation-composer-v1.js');
+                    $pmdReservationComposerCssVersion = is_file($pmdReservationComposerCssPath)
+                        ? substr(hash_file('sha256', $pmdReservationComposerCssPath), 0, 16)
+                        : '1';
+                    $pmdReservationComposerJsVersion = is_file($pmdReservationComposerJsPath)
+                        ? substr(hash_file('sha256', $pmdReservationComposerJsPath), 0, 16)
+                        : '1';
                 @endphp
                 <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-reservation-composer-v1.css') }}?v={{ $pmdReservationComposerCssVersion }}">
                 @include('admin::reservations._reservation_composer')
