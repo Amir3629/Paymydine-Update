@@ -108,8 +108,58 @@ class Reservations extends PmdCleanWorkspaceControllerV1
         string $locale,
         array $floorBootstrap
     ): void {
+        $locationId = $shared->locationId();
+
+        $schedule =
+            app(PmdReservationsScheduleV1::class)
+                ->payload($locationId, $locale);
+
         $this->vars['pmdReservationsSchedule'] =
-            app(PmdReservationsScheduleV1::class)->payload($shared->locationId(), $locale);
+            $schedule;
+
+        /*
+         * PMD_RESERVATION_COMPOSER_SERVER_PRIMER_R11
+         *
+         * Build the normal New-reservation payload while the Reservations page
+         * itself is rendering. The browser therefore receives date, canonical
+         * time, table catalogue and first recommendation in the HTML response.
+         * Opening the modal no longer needs to wait for an Ajax primer.
+         */
+        $activeFloor = (array)(
+            $this->vars['pmdCleanWorkspaceFloorActive']
+            ?? []
+        );
+
+        $bootstrapContext = [
+            'mode' => 'create',
+            'source' => 'server-first-paint',
+            'selected_date' => (string)(
+                $schedule['today']
+                ?? Carbon::now('Europe/Berlin')->toDateString()
+            ),
+            'selected_time' => '',
+            'table_ids' => [],
+            'location_id' => $locationId,
+            'pmd_floor_id' => trim((string)(
+                $activeFloor['id']
+                ?? ''
+            )),
+            'pmd_floor_name' => trim((string)(
+                $activeFloor['name']
+                ?? ''
+            )),
+            'pmd_floor_locked' => 0,
+        ];
+
+        try {
+            $this->vars['pmdReservationComposerInitialCreate'] =
+                $this->pmdComposerBuildLoadPayload(
+                    $bootstrapContext
+                );
+        } catch (Throwable $error) {
+            $this->vars['pmdReservationComposerInitialCreate'] =
+                null;
+        }
     }
 
     public function index_onDelete()
@@ -277,6 +327,481 @@ class Reservations extends PmdCleanWorkspaceControllerV1
             // No configured policy must not invent a closed restaurant.
             return [];
         }
+    }
+
+    protected function pmdComposerCanonicalCreateDateTime(
+        int $locationId,
+        string $date,
+        string $time,
+        int $duration
+    ): array {
+        $duration = max(1, $duration);
+        $hours = $this->pmdComposerOpeningHours($locationId);
+        $now = Carbon::now('Europe/Berlin');
+
+        $rawMinutes =
+            ((int)$now->hour * 60)
+            + (int)$now->minute
+            + ((int)$now->second > 0 ? 1 : 0);
+
+        $minimumMinutes =
+            (int)(ceil($rawMinutes / 15) * 15);
+
+        $minimumDate =
+            $now->toDateString();
+
+        if ($minimumMinutes >= 1440) {
+            $minimumDate =
+                $now->copy()->addDay()->toDateString();
+            $minimumMinutes = 0;
+        }
+
+        if (
+            !preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)
+            || $date < $minimumDate
+        ) {
+            $date = $minimumDate;
+        }
+
+        $byWeekday = [];
+        foreach ($hours as $row) {
+            $weekday = (int)($row['weekday'] ?? -1);
+            if ($weekday >= 0 && $weekday <= 6) {
+                $byWeekday[$weekday] = $row;
+            }
+        }
+
+        $clockMinutes = static function (string $value): ?int {
+            if (!preg_match(
+                '/^([01]\d|2[0-3]):([0-5]\d)$/',
+                substr(trim($value), 0, 5),
+                $match
+            )) {
+                return null;
+            }
+
+            return
+                ((int)$match[1] * 60)
+                + (int)$match[2];
+        };
+
+        $openingAllows = function (
+            string $candidateDate,
+            int $minute
+        ) use (
+            $hours,
+            $byWeekday,
+            $clockMinutes,
+            $duration
+        ): bool {
+            if (!$hours) {
+                return true;
+            }
+
+            try {
+                $requestedStart =
+                    Carbon::createFromFormat(
+                        '!Y-m-d H:i',
+                        $candidateDate.' '
+                        .sprintf(
+                            '%02d:%02d',
+                            intdiv($minute, 60),
+                            $minute % 60
+                        ),
+                        'Europe/Berlin'
+                    );
+            } catch (Throwable $error) {
+                return false;
+            }
+
+            $requestedEnd =
+                $requestedStart
+                    ->copy()
+                    ->addMinutes($duration);
+
+            foreach ([
+                $requestedStart->copy()->startOfDay(),
+                $requestedStart->copy()->subDay()->startOfDay(),
+            ] as $serviceDate) {
+                $weekday =
+                    ((int)$serviceDate->isoWeekday()) - 1;
+
+                $row =
+                    $byWeekday[$weekday]
+                    ?? null;
+
+                if (
+                    !$row
+                    || empty($row['enabled'])
+                ) {
+                    continue;
+                }
+
+                $opening =
+                    substr(
+                        (string)($row['opening_time'] ?? ''),
+                        0,
+                        5
+                    );
+
+                $closing =
+                    substr(
+                        (string)($row['closing_time'] ?? ''),
+                        0,
+                        5
+                    );
+
+                if (
+                    $clockMinutes($opening) === null
+                    || $clockMinutes($closing) === null
+                ) {
+                    continue;
+                }
+
+                $windowStart =
+                    Carbon::createFromFormat(
+                        '!Y-m-d H:i',
+                        $serviceDate->format('Y-m-d')
+                        .' '.$opening,
+                        'Europe/Berlin'
+                    );
+
+                $windowEnd =
+                    Carbon::createFromFormat(
+                        '!Y-m-d H:i',
+                        $serviceDate->format('Y-m-d')
+                        .' '.$closing,
+                        'Europe/Berlin'
+                    );
+
+                if ($opening === $closing) {
+                    $windowStart =
+                        $serviceDate->copy();
+                    $windowEnd =
+                        $serviceDate
+                            ->copy()
+                            ->addDay();
+                } elseif ($windowEnd->lte($windowStart)) {
+                    $windowEnd->addDay();
+                }
+
+                if (
+                    $requestedStart->gte($windowStart)
+                    && $requestedEnd->lte($windowEnd)
+                ) {
+                    return true;
+                }
+            }
+
+            return false;
+        };
+
+        $allowed = [];
+        for ($minute = 0; $minute < 1440; $minute += 15) {
+            if (
+                $date === $minimumDate
+                && $minute < $minimumMinutes
+            ) {
+                continue;
+            }
+
+            if (!$openingAllows($date, $minute)) {
+                continue;
+            }
+
+            $allowed[] = $minute;
+        }
+
+        if (!$allowed) {
+            return [
+                'date' => $date,
+                'time' => '',
+            ];
+        }
+
+        $target =
+            $clockMinutes($time);
+
+        $selected =
+            $allowed[0];
+
+        if ($target !== null) {
+            $bestDistance =
+                abs($selected - $target);
+
+            foreach ($allowed as $candidate) {
+                $distance =
+                    abs($candidate - $target);
+
+                if ($distance < $bestDistance) {
+                    $selected = $candidate;
+                    $bestDistance = $distance;
+                }
+            }
+        }
+
+        return [
+            'date' => $date,
+            'time' => sprintf(
+                '%02d:%02d',
+                intdiv($selected, 60),
+                $selected % 60
+            ),
+        ];
+    }
+
+    protected function pmdComposerDecorateLoadPayload(
+        array $payload,
+        array $data
+    ): array {
+        $locationId =
+            $this->pmdComposerLocationId($data);
+
+        if ($locationId < 1) {
+            $locationId = (int)(
+                $payload['locationId']
+                ?? $payload['location_id']
+                ?? 0
+            );
+        }
+
+        $openingHours =
+            $this->pmdComposerOpeningHours(
+                $locationId
+            );
+
+        $payload['pmdOpeningHours'] =
+            $openingHours;
+
+        $tableIds = [];
+        foreach ((array)($payload['tables'] ?? []) as $table) {
+            if (is_array($table)) {
+                $tableIds[] =
+                    (int)($table['table_id'] ?? 0);
+            } elseif (is_object($table)) {
+                $tableIds[] =
+                    (int)($table->table_id ?? 0);
+            }
+        }
+
+        $tableMeta =
+            $this->pmdComposerTableMeta(
+                $locationId,
+                $tableIds
+            );
+
+        $payload['pmdTableMeta'] =
+            $tableMeta;
+
+        $payload['pmdTableFeatureOptions'] =
+            $this->pmdComposerFeatureOptions(
+                $tableMeta
+            );
+
+        $payload['pmdFloorAwareTableFinder'] = true;
+
+        $isEdit =
+            (int)($data['reservation_id'] ?? 0) > 0
+            || is_array($payload['reservation'] ?? null);
+
+        if ($isEdit) {
+            return $payload;
+        }
+
+        $values =
+            is_array($payload['defaults'] ?? null)
+                ? $payload['defaults']
+                : [];
+
+        $date =
+            trim((string)(
+                $data['selected_date']
+                ?? $values['reserve_date']
+                ?? Carbon::now('Europe/Berlin')->toDateString()
+            ));
+
+        $requestedTime =
+            substr(
+                trim((string)(
+                    $data['selected_time']
+                    ?? $values['reserve_time']
+                    ?? ''
+                )),
+                0,
+                5
+            );
+
+        $duration =
+            max(
+                1,
+                (int)($values['duration'] ?? 45)
+            );
+
+        $canonical =
+            $this->pmdComposerCanonicalCreateDateTime(
+                $locationId,
+                $date,
+                $requestedTime,
+                $duration
+            );
+
+        $values['reserve_date'] =
+            $canonical['date'];
+
+        $values['reserve_time'] =
+            $canonical['time'];
+
+        $values['duration'] =
+            $duration;
+
+        $values['guest_num'] =
+            max(
+                1,
+                (int)($values['guest_num'] ?? 1)
+            );
+
+        $values['location_id'] =
+            $locationId;
+
+        $payload['defaults'] =
+            $values;
+
+        $contextTableIds =
+            $this->pmdPositiveTableIds(
+                $data['table_ids']
+                ?? []
+            );
+
+        $initialAvailabilityInput =
+            array_merge(
+                $data,
+                [
+                    'guest_num' =>
+                        $values['guest_num'],
+                    'reserve_date' =>
+                        $values['reserve_date'],
+                    'reserve_time' =>
+                        $values['reserve_time'],
+                    'duration' =>
+                        $duration,
+                    'assignment_mode' =>
+                        $contextTableIds
+                            ? 'choose'
+                            : 'auto',
+                    'tables' =>
+                        $contextTableIds,
+                    'pmd_table_features' =>
+                        $this->pmdComposerNormalizeFeatures(
+                            $values['pmd_table_features']
+                            ?? []
+                        ),
+                    'location_id' =>
+                        $locationId,
+                ]
+            );
+
+        unset(
+            $initialAvailabilityInput[
+                'reservation_id'
+            ]
+        );
+
+        $payload['pmdInitialAvailability'] =
+            null;
+
+        $payload['pmdInitialAvailabilityInput'] =
+            $initialAvailabilityInput;
+
+        $payload['pmdServerPrimerContext'] = [
+            'selected_date' =>
+                $values['reserve_date'],
+            'selected_time' => '',
+            'floor_id' =>
+                trim((string)(
+                    $data['pmd_floor_id']
+                    ?? ''
+                )),
+            'floor_name' =>
+                trim((string)(
+                    $data['pmd_floor_name']
+                    ?? ''
+                )),
+            'floor_locked' =>
+                !empty($data['pmd_floor_locked'])
+                    ? 1
+                    : 0,
+            'table_ids' =>
+                $contextTableIds,
+        ];
+
+        if ($values['reserve_time'] === '') {
+            return $payload;
+        }
+
+        try {
+            $initialAvailabilityResponse =
+                app(ReservationComposerService::class)
+                    ->availability(
+                        $initialAvailabilityInput
+                    );
+
+            $initialAvailabilityResponse =
+                $this->pmdFilterComposerAvailabilityConflicts(
+                    $initialAvailabilityResponse,
+                    $initialAvailabilityInput
+                );
+
+            $initialAvailabilityPayload =
+                $this->pmdComposerResponsePayload(
+                    $initialAvailabilityResponse
+                );
+
+            if (
+                is_array($initialAvailabilityPayload)
+                && isset(
+                    $initialAvailabilityPayload[
+                        'availability'
+                    ]
+                )
+                && is_array(
+                    $initialAvailabilityPayload[
+                        'availability'
+                    ]
+                )
+            ) {
+                $payload['pmdInitialAvailability'] =
+                    $initialAvailabilityPayload[
+                        'availability'
+                    ];
+            }
+        } catch (Throwable $error) {
+            // The normal event-driven availability request remains fallback.
+        }
+
+        return $payload;
+    }
+
+    protected function pmdComposerBuildLoadPayload(
+        array $data
+    ): ?array {
+        $response =
+            app(ReservationComposerService::class)
+                ->load($data);
+
+        $payload =
+            $this->pmdComposerResponsePayload(
+                $response
+            );
+
+        if (!is_array($payload)) {
+            return null;
+        }
+
+        return
+            $this->pmdComposerDecorateLoadPayload(
+                $payload,
+                $data
+            );
     }
 
     protected function pmdComposerOpeningWindowAllows(array $data): bool
@@ -1170,114 +1695,34 @@ class Reservations extends PmdCleanWorkspaceControllerV1
     public function onLoadReservationComposer()
     {
         $data = request()->all();
-        $response = app(ReservationComposerService::class)->load($data);
-        $payload = $this->pmdComposerResponsePayload($response);
 
-        if (is_array($payload)) {
-            $locationId = $this->pmdComposerLocationId($data);
-            if ($locationId < 1) {
-                $locationId = (int)($payload['locationId'] ?? $payload['location_id'] ?? 0);
-            }
-            $payload['pmdOpeningHours'] = $this->pmdComposerOpeningHours($locationId);
+        $response =
+            app(ReservationComposerService::class)
+                ->load($data);
 
-            $tableIds = [];
-            foreach ((array)($payload['tables'] ?? []) as $table) {
-                if (is_array($table)) {
-                    $tableIds[] = (int)($table['table_id'] ?? 0);
-                } elseif (is_object($table)) {
-                    $tableIds[] = (int)($table->table_id ?? 0);
-                }
-            }
-            $tableMeta = $this->pmdComposerTableMeta($locationId, $tableIds);
-            $payload['pmdTableMeta'] = $tableMeta;
-            $payload['pmdTableFeatureOptions'] = $this->pmdComposerFeatureOptions($tableMeta);
-            $payload['pmdFloorAwareTableFinder'] = true;
-            $payload['pmdPolicyTransportNormalized'] = !is_array($response);
-
-            /*
-             * PMD_RESERVATION_COMPOSER_INITIAL_AVAILABILITY_R10
-             *
-             * The Composer used to require a second Ajax request after load
-             * before it could show the first table recommendation. That left
-             * the policy row empty for a visible frame and caused the first
-             * Auto recommendation to "pop in".
-             *
-             * Resolve the initial availability from the SAME canonical
-             * availability service while the load request is already on the
-             * server. The browser can therefore hydrate time + table policy in
-             * one response. Save-time validation remains unchanged.
-             */
-            $values = is_array($payload['reservation'] ?? null)
-                ? $payload['reservation']
-                : (is_array($payload['defaults'] ?? null) ? $payload['defaults'] : []);
-
-            $contextTableIds = $this->pmdPositiveTableIds(
-                $data['table_ids'] ?? []
+        $payload =
+            $this->pmdComposerResponsePayload(
+                $response
             );
 
-            $initialAvailabilityInput = array_merge($data, [
-                'guest_num' => max(1, (int)($values['guest_num'] ?? 1)),
-                'reserve_date' => trim((string)(
-                    $data['selected_date']
-                    ?? $values['reserve_date']
-                    ?? ''
-                )),
-                'reserve_time' => substr(trim((string)(
-                    $data['selected_time']
-                    ?? $values['reserve_time']
-                    ?? ''
-                )), 0, 5),
-                'duration' => max(1, (int)($values['duration'] ?? 45)),
-                'assignment_mode' => $contextTableIds ? 'choose' : 'auto',
-                'tables' => $contextTableIds,
-                'pmd_table_features' => $this->pmdComposerNormalizeFeatures(
-                    $values['pmd_table_features'] ?? []
-                ),
-                'location_id' => $locationId,
-            ]);
-
-            if ((int)($data['reservation_id'] ?? 0) > 0) {
-                $initialAvailabilityInput['reservation_id'] = (int)$data['reservation_id'];
-            } else {
-                unset($initialAvailabilityInput['reservation_id']);
-            }
-
-            $payload['pmdInitialAvailability'] = null;
-            $payload['pmdInitialAvailabilityInput'] = $initialAvailabilityInput;
-
-            try {
-                $initialAvailabilityResponse =
-                    app(ReservationComposerService::class)
-                        ->availability($initialAvailabilityInput);
-
-                $initialAvailabilityResponse =
-                    $this->pmdFilterComposerAvailabilityConflicts(
-                        $initialAvailabilityResponse,
-                        $initialAvailabilityInput
-                    );
-
-                $initialAvailabilityPayload =
-                    $this->pmdComposerResponsePayload(
-                        $initialAvailabilityResponse
-                    );
-
-                if (
-                    is_array($initialAvailabilityPayload)
-                    && isset($initialAvailabilityPayload['availability'])
-                    && is_array($initialAvailabilityPayload['availability'])
-                ) {
-                    $payload['pmdInitialAvailability'] =
-                        $initialAvailabilityPayload['availability'];
-                }
-            } catch (Throwable $error) {
-                // Initial recommendation is an optimization only. The normal
-                // event-driven availability request remains the fallback.
-            }
-
-            return $this->pmdComposerResponseApplyPayload($response, $payload);
+        if (!is_array($payload)) {
+            return $response;
         }
 
-        return $response;
+        $payload =
+            $this->pmdComposerDecorateLoadPayload(
+                $payload,
+                $data
+            );
+
+        $payload['pmdPolicyTransportNormalized'] =
+            !is_array($response);
+
+        return
+            $this->pmdComposerResponseApplyPayload(
+                $response,
+                $payload
+            );
     }
 
     public function onCheckReservationAvailability()
