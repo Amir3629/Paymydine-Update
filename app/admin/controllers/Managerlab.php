@@ -29,6 +29,9 @@ class Managerlab extends PmdCleanWorkspaceControllerV1
         $this->addCss('css/pmd-role-dashboard-v1.css');
         $this->addCss('css/pmd-manager-online-staff-v1.css');
         $this->addCss('css/pmd-kitchen-today-team-v1.css');
+        // PMD_DASHBOARD_FIRSTPAINT_V141
+        // Keep the shared KPI grid at final geometry on the first visible paint.
+        $this->addCss('css/pmd-dashboard-kpi-recovery-v136.css');
         // PMD_DASHBOARD_ANALYTICS_ASSET_URL_V133
         // AssetMaker resolves local files before building their public URL.
         // A query string inside a local relative path makes File::isFile()
