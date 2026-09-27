@@ -213,7 +213,7 @@ class Pmdsettings extends AdminController
             'table_id' => $tableId,
             'table_name' => 'Table '.$tableNo,
             'restaurant_name' => (string)($identity['name'] ?? 'Restaurant'),
-            'restaurant_logo' => (string)($identity['logo'] ?? ''),
+            'restaurant_logo' => $this->restaurantLogoPreviewR20((string)($identity['logo'] ?? '')),
             'active' => (bool)($table->table_status ?? true),
         ]);
     }
