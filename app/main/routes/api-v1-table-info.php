@@ -44,7 +44,7 @@
                                     'table_name' => $table->table_name ?? null,
                                     'status' => false,
                                 ],
-                            ], 410);
+                            ], 200);
                         }
 
                         // PMD_TABLE_INFO_RESOLVED_LOCATION_R35
