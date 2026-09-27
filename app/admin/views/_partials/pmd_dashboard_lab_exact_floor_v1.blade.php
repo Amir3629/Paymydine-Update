@@ -1214,7 +1214,7 @@ body.pmd-dashboard-lab-page
                         }
 
                         $pmdReservationBusyNow = $pmdFloorDisplayIsReservationBusy($table);
-                        if ($pmdReservationBusyNow && !in_array($status, ['attention', 'cleaning'], true)) {
+                        if ($pmdReservationBusyNow && !in_array($status, ['attention', 'cleaning', 'disabled'], true)) {
                             $status = 'occupied';
                         }
                         $rangeColor = $status === 'available'
@@ -1238,13 +1238,14 @@ body.pmd-dashboard-lab-page
                         @if($pmdReservationBusyNow) data-pmd-reservation-busy="true" @endif
                         @if($rangeColor !== '') data-pmd-range-color="{{ $rangeColor }}" @endif
                         style="left:{{ $table['x'] }}px;top:{{ $table['y'] }}px;width:{{ $table['w'] }}px;height:{{ $table['h'] }}px"
-                        aria-label="{{ $table['name'] }}"
+                        aria-label="{{ $table['name'] }}{{ $status === 'disabled' ? ' · Disabled' : '' }}{{ !empty($table['note']) ? ' · Internal note: '.$table['note'] : '' }}"
+                        @if($status === 'disabled') aria-disabled="true" @endif
                     >
                         @if($isMerged || !empty($table['waiter_call']) || !empty($table['note']) || !empty($table['cleaning']))
                             <span class="pmd-floor-v1__badges">
                                 @if($isMerged)<span class="pmd-floor-v1__badge is-merge" title="Merged tables">↔</span>@endif
                                 @if(!empty($table['waiter_call']))<span class="pmd-floor-v1__badge is-call" title="Waiter call">♟</span>@endif
-                                @if(!empty($table['note']))<span class="pmd-floor-v1__badge is-note" title="Note">✎</span>@endif
+                                @if(!empty($table['note']))<span class="pmd-floor-v1__badge is-note" title="{{ 'Internal note: '.$table['note'] }}">✎</span>@endif
                                 @if(!empty($table['cleaning']))<span class="pmd-floor-v1__badge is-clean" title="Needs cleaning">✦</span>@endif
                             </span>
                         @endif
@@ -1287,6 +1288,7 @@ body.pmd-dashboard-lab-page
         <aside class="pmd-floor-v1__guide" data-floor-guide-card aria-label="Floor guide" hidden>
             <p data-floor-guide-status="available"><i class="is-available"></i>Available</p>
             <p data-floor-guide-status="occupied"><i class="is-occupied"></i>Occupied / open order</p>
+            <p data-floor-guide-status="disabled"><i class="is-disabled"></i>Disabled / unavailable</p>
         </aside>
     </div>
 
