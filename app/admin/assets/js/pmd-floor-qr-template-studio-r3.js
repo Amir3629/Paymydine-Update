@@ -83,7 +83,7 @@
         {
             id: 'mono',
             name: 'Maximum Scan',
-            description: 'Black and white, no center overlay.',
+            description: 'High-contrast black and white scan style.',
             background: '#ffffff',
             panel: '#ffffff',
             text: '#111111',
@@ -92,7 +92,7 @@
             qrPanel: '#ffffff',
             border: '#111111',
             decor: 'mono',
-            centerBadge: false,
+            centerBadge: true,
         },
         {
             id: 'gold',
@@ -148,7 +148,7 @@
             qrPanel: '#ffffff',
             border: '#d8e0cf',
             decor: 'botanical',
-            centerBadge: false,
+            centerBadge: true,
         },
     ];
 
@@ -356,12 +356,26 @@
             ctx.restore();
         }
 
+        /*
+         * PMD_QR_STUDIO_PMD_BADGE_PREPARED_R35
+         * Every downloadable design carries the PayMyDine mark in the QR
+         * centre. Restaurant identity remains in the header; PMD branding is
+         * deliberately smaller and uses the high-ECC source QR underneath.
+         */
         if (config.centerBadge) {
-            const badgeSize = qrSize * .145;
+            const badgeSize = qrSize * .115;
             const badgeX = qrX + (qrSize - badgeSize) / 2;
             const badgeY = qrY + (qrSize - badgeSize) / 2;
-            // Keep the badge deliberately small. The QR finder corners are never touched.
-            drawLogoBadge(ctx, assets.logo, data.restaurantName, badgeX, badgeY, badgeSize, config.accent, 'rounded');
+            drawLogoBadge(
+                ctx,
+                assets.brandLogo || assets.logo,
+                'PayMyDine',
+                badgeX,
+                badgeY,
+                badgeSize,
+                config.accent,
+                'rounded'
+            );
         }
 
         const tableY = qrY + qrSize + h * .082;
@@ -461,9 +475,13 @@
         requestAnimationFrame(() => modal.classList.add('is-open'));
         document.documentElement.classList.add('pmd-qr-template-modal-open-v1');
 
-        Promise.all([loadImage(data.qrSrc), loadImage(data.restaurantLogo)]).then(([qr, logo]) => {
+        Promise.all([
+            loadImage(data.qrSrc),
+            loadImage(data.restaurantLogo),
+            loadImage('/brand/paymydine-logo.svg')
+        ]).then(([qr, logo, brandLogo]) => {
             grid.innerHTML = '';
-            const assets = { qr, logo };
+            const assets = { qr, logo, brandLogo };
 
             templates.forEach((template, index) => {
                 const card = document.createElement('article');
@@ -598,11 +616,15 @@
         var panel = button.closest('[data-pmd-floor-table-manager-panel]');
         var root = document.querySelector('[data-pmd-floor-table-manager="true"]');
         var tableIdField = panel && panel.querySelector('[data-pmd-floor-table-field="table_id"]');
+        var tableNoField = panel && panel.querySelector('[data-pmd-floor-table-field="table_no"]');
+        var capacityField = panel && panel.querySelector('[data-pmd-floor-table-field="preferred_capacity"]');
         var tableId = Number(tableIdField ? tableIdField.value : 0) || 0;
+        var tableNo = String(tableNoField ? tableNoField.value : '').trim();
+        var preferredCapacity = Math.max(1, Number(capacityField ? capacityField.value : 1) || 1);
         var locationId = Number(root ? root.getAttribute('data-pmd-floor-table-manager-location') : 0) || 0;
         var url = root ? root.getAttribute('data-pmd-floor-table-manager-url') : '';
         if (!url) url = window.location.href;
-        if (tableId < 1) throw new Error('Save the table first, then choose a QR design.');
+        if (tableId < 1 && !tableNo) throw new Error('Choose a table number first.');
 
         var originalText = button.textContent;
         button.disabled = true;
@@ -623,7 +645,12 @@
             credentials: 'same-origin',
             cache: 'no-store',
             headers: headers,
-            body: JSON.stringify({ location_id: locationId, table_id: tableId })
+            body: JSON.stringify({
+                location_id: locationId,
+                table_id: tableId,
+                table_no: tableNo,
+                preferred_capacity: preferredCapacity
+            })
         }).then(function (response) {
             return response.text().then(function (body) {
                 var payload = {};
@@ -664,7 +691,7 @@
     }, true);
 
     window.PMDFloorQrTemplateStudioR3 = {
-        version: '3.0.0',
+        version: '3.1.0-r35',
         backendHandler: 'onPmdFloorTableManagerQrDownload',
         templates: 10
     };
