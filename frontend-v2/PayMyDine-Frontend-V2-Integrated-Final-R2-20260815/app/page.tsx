@@ -41,6 +41,55 @@ export default async function CustomerMenuPage({ searchParams }: PageProps) {
     return <TenantSetupSplashV1 />
   }
 
+  // PMD_TABLE_ENABLE_DISABLE_R40
+  if (bootstrap.table.disabled) {
+    const tableLabel = bootstrap.table.number || bootstrap.table.id
+    return (
+      <main
+        style={{
+          minHeight: '100vh',
+          display: 'grid',
+          placeItems: 'center',
+          padding: 24,
+          background: '#fbf8f2',
+          color: '#242320',
+          textAlign: 'center',
+        }}
+      >
+        <section
+          style={{
+            width: 'min(440px, 100%)',
+            padding: 28,
+            border: '1px solid #d8b982',
+            borderRadius: 24,
+            background: 'rgba(255,255,255,.92)',
+            boxShadow: '0 16px 44px rgba(36,35,32,.08)',
+          }}
+        >
+          <h1 style={{ margin: 0, fontSize: 24 }}>This table is currently unavailable.</h1>
+          <p style={{ margin: '12px 0 0', color: '#6b6258', lineHeight: 1.6 }}>
+            Please ask a member of staff for another table before ordering.
+          </p>
+          {tableLabel ? (
+            <div
+              style={{
+                display: 'inline-flex',
+                marginTop: 18,
+                padding: '8px 14px',
+                borderRadius: 999,
+                background: '#eef7f3',
+                color: '#075c47',
+                fontWeight: 800,
+              }}
+            >
+              Table {tableLabel}
+            </div>
+          ) : null}
+        </section>
+      </main>
+    )
+  }
+
   return (
     <MenuRuntimeProvider bootstrap={bootstrap}>
       <ThemeRenderer themeId={bootstrap.theme.id} />
