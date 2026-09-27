@@ -3400,3 +3400,107 @@ html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
     padding-right: 16px !important;
   }
 }
+
+
+/* ============================================================
+   PMD_TABLE_MANAGER_QR_POLISH_R37
+   QR preview is content, not a nested card. Keep the table-manager
+   shell unchanged while making its two QR actions share one exact
+   control geometry. Preview-only QR sizing does not affect the
+   downloadable 10-design studio.
+   ============================================================ */
+
+html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+.pmd-floor-table-manager__qr-preview {
+  margin-top: 14px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+.pmd-floor-table-manager__qr-content--clean-r34 {
+  grid-template-columns: 144px minmax(0,1fr) !important;
+  gap: 16px !important;
+}
+
+html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+.pmd-floor-table-manager__qr-image-wrap-r34,
+html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+.pmd-floor-table-manager__qr-image-wrap-r34 > img[data-pmd-floor-table-qr-image] {
+  width: 144px !important;
+  min-width: 144px !important;
+  max-width: 144px !important;
+  height: 144px !important;
+  min-height: 144px !important;
+  max-height: 144px !important;
+}
+
+html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+.pmd-floor-table-manager__qr-image-wrap-r34 > img[data-pmd-floor-table-qr-image] {
+  padding: 6px !important;
+}
+
+html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+.pmd-floor-table-manager__qr-brand-r34 {
+  width: 26px !important;
+  height: 26px !important;
+  padding: 3px !important;
+  border-radius: 8px !important;
+}
+
+html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+.pmd-floor-table-manager__qr-brand-r34 > img {
+  width: 16px !important;
+  height: 16px !important;
+  min-width: 16px !important;
+  min-height: 16px !important;
+  max-width: 16px !important;
+  max-height: 16px !important;
+}
+
+html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+.pmd-floor-table-manager__qr-actions {
+  display: flex !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+  margin-top: 0 !important;
+}
+
+html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+.pmd-floor-table-manager__qr-actions a,
+html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+.pmd-floor-table-manager__qr-actions button {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+  width: auto !important;
+  min-width: 0 !important;
+  height: 38px !important;
+  min-height: 38px !important;
+  max-height: 38px !important;
+  margin: 0 !important;
+  padding: 0 13px !important;
+  border: 1px solid #c9dce8 !important;
+  border-radius: 14px !important;
+  background: rgba(255,255,255,.94) !important;
+  color: #14384a !important;
+  font: inherit !important;
+  font-size: 12px !important;
+  line-height: 1 !important;
+  font-weight: 800 !important;
+  text-decoration: none !important;
+  vertical-align: middle !important;
+  white-space: nowrap !important;
+}
+
+@media(max-width:700px) {
+  html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+  .pmd-floor-table-manager__qr-content--clean-r34 {
+    grid-template-columns: 1fr !important;
+  }
+}
