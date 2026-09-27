@@ -105,7 +105,7 @@
                             .'.n{display:inline-block;margin-top:18px;padding:8px 13px;border-radius:14px;background:#eef7f3;color:#075c47;font-weight:800}</style>'
                             .'</head><body><main class="c"><img src="/brand/paymydine-logo.svg" alt="PayMyDine">'
                             .'<h1>This table is not active yet</h1>'
-                            .'<p>Please ask a staff member to finish setting up this table.</p>'
+                            .'<p>Please ask a staff member to guide you with ordering.</p>'
                             .'<span class="n">Table '.$safeTableNo.'</span></main></body></html>';
 
                         return response($html, 404)
