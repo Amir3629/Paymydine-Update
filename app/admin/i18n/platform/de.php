@@ -1783,7 +1783,7 @@ return [
     'r3.qr_desc_emerald' => 'Frischer PayMyDine-Grün-Stil.',
     'r3.qr_desc_bistro' => 'Warme Tischpräsentation fürs Restaurant.',
     'r3.qr_desc_ocean' => 'Moderne blaue Gastronomie-Karte.',
-    'r3.qr_desc_mono' => 'Schwarz-Weiß, ohne mittlere Überlagerung.',
+    'r3.qr_desc_mono' => 'Kontrastreicher Schwarz-Weiß-Scan-Stil.',
     'r3.qr_desc_gold' => 'Elegantes dunkles Gold-Finish.',
     'r3.qr_desc_coral' => 'Freundlich und farbenfroh.',
     'r3.qr_desc_tent' => 'Kräftiger Kopfbereich für Theken- oder Tischaufsteller.',
