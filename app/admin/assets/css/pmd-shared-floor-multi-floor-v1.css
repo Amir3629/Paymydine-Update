@@ -2735,3 +2735,352 @@ html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
     inset 0 1px 0 rgba(255,255,255,1)
     !important;
 }
+
+
+/* ============================================================
+   PMD_TABLE_MANAGER_CONTROLS_QR_R34
+   Reservation Composer control language carried into Create/Edit Table:
+   true +/- steppers, explicit Floor choices, one 16px radius, quiet branded QR.
+   ============================================================ */
+
+html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+.pmd-floor-table-manager__minimal-grid--steppers-r34 {
+  grid-template-columns: repeat(2,minmax(0,1fr)) !important;
+  gap: 22px !important;
+}
+
+html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+.pmd-floor-table-manager__field--stepper-r34 {
+  align-items: start !important;
+}
+
+html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+.pmd-floor-table-manager__stepper-r34 {
+  display: grid !important;
+  grid-template-columns: 48px 120px 48px !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 10px !important;
+  width: max-content !important;
+  max-width: 100% !important;
+  justify-self: center !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  cursor: default !important;
+}
+
+html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+.pmd-floor-table-manager__stepper-r34 > button {
+  display: inline-grid !important;
+  place-items: center !important;
+  box-sizing: border-box !important;
+  width: 48px !important;
+  min-width: 48px !important;
+  max-width: 48px !important;
+  height: 48px !important;
+  min-height: 48px !important;
+  max-height: 48px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 1px solid #c9dce8 !important;
+  border-radius: 16px !important;
+  background: rgba(255,255,255,.94) !important;
+  color: #075c47 !important;
+  font: inherit !important;
+  font-size: 24px !important;
+  line-height: 1 !important;
+  font-weight: 780 !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.98) !important;
+  cursor: pointer !important;
+  transition: none !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+
+html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+.pmd-floor-table-manager__stepper-r34 > button > span {
+  display: block !important;
+  width: auto !important;
+  height: auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  color: inherit !important;
+  font: inherit !important;
+  line-height: 1 !important;
+  pointer-events: none !important;
+}
+
+html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+.pmd-floor-table-manager__stepper-r34 > button:disabled {
+  opacity: .28 !important;
+  cursor: default !important;
+}
+
+html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+.pmd-floor-table-manager__stepper-value-r34 {
+  display: grid !important;
+  place-items: center !important;
+  box-sizing: border-box !important;
+  width: 120px !important;
+  min-width: 120px !important;
+  height: 48px !important;
+  min-height: 48px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 1px solid #c9dce8 !important;
+  border-radius: 16px !important;
+  background: rgba(255,255,255,.94) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.98) !important;
+  overflow: hidden !important;
+}
+
+html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+.pmd-floor-table-manager__field
+.pmd-floor-table-manager__stepper-value-r34
+> input[data-pmd-floor-table-field] {
+  display: block !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  height: 46px !important;
+  min-height: 46px !important;
+  max-height: 46px !important;
+  margin: 0 !important;
+  padding: 0 10px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  outline: 0 !important;
+  background: transparent !important;
+  color: #102a43 !important;
+  font: inherit !important;
+  font-size: 16px !important;
+  line-height: 46px !important;
+  font-weight: 800 !important;
+  text-align: center !important;
+  box-shadow: none !important;
+  appearance: textfield !important;
+  -moz-appearance: textfield !important;
+}
+
+html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+.pmd-floor-table-manager__stepper-value-r34
+> input::-webkit-inner-spin-button,
+html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+.pmd-floor-table-manager__stepper-value-r34
+> input::-webkit-outer-spin-button {
+  margin: 0 !important;
+  -webkit-appearance: none !important;
+}
+
+/* Floor is a choice, never a dropdown. */
+html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+.pmd-floor-table-manager__floor-picker-r34 {
+  box-sizing: border-box !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  margin: 18px 0 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+}
+
+html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+.pmd-floor-table-manager__floor-picker-r34 > legend {
+  display: block !important;
+  width: 100% !important;
+  margin: 0 0 9px !important;
+  padding: 0 !important;
+}
+
+html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+.pmd-floor-table-manager__floor-options-r34 {
+  display: grid !important;
+  grid-template-columns: repeat(3,minmax(0,1fr)) !important;
+  gap: 10px !important;
+  width: 100% !important;
+}
+
+html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+.pmd-floor-table-manager__floor-choice-r34 {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 48px !important;
+  height: 48px !important;
+  margin: 0 !important;
+  padding: 8px 12px !important;
+  border: 1px solid #c9dce8 !important;
+  border-radius: 16px !important;
+  background: rgba(255,255,255,.92) !important;
+  color: #14384a !important;
+  font: inherit !important;
+  font-size: 13px !important;
+  line-height: 1.2 !important;
+  font-weight: 800 !important;
+  box-shadow: none !important;
+  cursor: pointer !important;
+  transition: none !important;
+}
+
+html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+.pmd-floor-table-manager__floor-choice-r34[aria-pressed="true"] {
+  border-color: #0a755e !important;
+  background: #0a6b55 !important;
+  color: #fff !important;
+  box-shadow: 0 8px 18px rgba(7,92,71,.12) !important;
+}
+
+/* The QR token is internal. The card only shows a branded, scannable preview. */
+html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+.pmd-floor-table-manager__qr-pending {
+  min-height: 42px !important;
+}
+
+html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+.pmd-floor-table-manager__qr-content--clean-r34 {
+  grid-template-columns: 150px minmax(0,1fr) !important;
+  gap: 18px !important;
+  align-items: center !important;
+}
+
+html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+.pmd-floor-table-manager__qr-image-wrap-r34 {
+  position: relative !important;
+  display: block !important;
+  box-sizing: border-box !important;
+  width: 150px !important;
+  height: 150px !important;
+  min-width: 150px !important;
+  min-height: 150px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+.pmd-floor-table-manager__qr-image-wrap-r34
+> img[data-pmd-floor-table-qr-image] {
+  display: block !important;
+  box-sizing: border-box !important;
+  width: 150px !important;
+  height: 150px !important;
+  min-width: 150px !important;
+  min-height: 150px !important;
+  margin: 0 !important;
+  padding: 7px !important;
+  border: 1px solid #d8e7f1 !important;
+  border-radius: 16px !important;
+  background: #fff !important;
+  object-fit: contain !important;
+  image-rendering: pixelated !important;
+}
+
+html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+.pmd-floor-table-manager__qr-brand-r34 {
+  position: absolute !important;
+  left: 50% !important;
+  top: 50% !important;
+  z-index: 2 !important;
+  display: grid !important;
+  place-items: center !important;
+  box-sizing: border-box !important;
+  width: 44px !important;
+  height: 44px !important;
+  padding: 5px !important;
+  border: 1px solid rgba(7,92,71,.12) !important;
+  border-radius: 12px !important;
+  background: #fff !important;
+  box-shadow: 0 3px 10px rgba(7,45,37,.14) !important;
+  transform: translate(-50%,-50%) !important;
+  pointer-events: none !important;
+}
+
+html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+.pmd-floor-table-manager__qr-brand-r34 > img {
+  display: block !important;
+  width: 34px !important;
+  height: 34px !important;
+  min-width: 34px !important;
+  min-height: 34px !important;
+  max-width: 34px !important;
+  max-height: 34px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  object-fit: contain !important;
+  box-shadow: none !important;
+}
+
+html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+.pmd-floor-table-manager__qr-copy--actions-only-r34 {
+  display: flex !important;
+  align-items: center !important;
+  min-width: 0 !important;
+}
+
+html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+.pmd-floor-table-manager__qr-copy--actions-only-r34
+.pmd-floor-table-manager__qr-copy
+.pmd-floor-table-manager__qr-copy {
+  min-width: 0 !important;
+}
+
+html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+.pmd-floor-table-manager__qr-copy--actions-only-r34
+.pmd-floor-table-manager__qr-copy
+.pmd-floor-table-manager__qr-actions,
+html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+.pmd-floor-table-manager__qr-copy--actions-only-r34
+.pmd-floor-table-manager__qr-actions {
+  margin-top: 0 !important;
+}
+
+/* Remove is destructive in colour only; geometry matches Cancel. */
+html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+.pmd-floor-table-manager__delete {
+  box-sizing: border-box !important;
+  width: 118px !important;
+  min-width: 118px !important;
+  max-width: 118px !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  max-height: 44px !important;
+  margin: 0 !important;
+  padding: 0 12px !important;
+  border-radius: 16px !important;
+  font-size: 13px !important;
+  line-height: 1 !important;
+  font-weight: 820 !important;
+}
+
+@media(max-width:700px) {
+  html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+  .pmd-floor-table-manager__minimal-grid--steppers-r34,
+  html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+  .pmd-floor-table-manager__floor-options-r34 {
+    grid-template-columns: 1fr !important;
+  }
+
+  html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+  .pmd-floor-table-manager__qr-content--clean-r34 {
+    grid-template-columns: 1fr !important;
+  }
+
+  html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+  .pmd-floor-table-manager__qr-image-wrap-r34 {
+    justify-self: start !important;
+  }
+
+  html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+  .pmd-floor-table-manager__delete {
+    width: 118px !important;
+    min-width: 118px !important;
+    max-width: 118px !important;
+  }
+}
