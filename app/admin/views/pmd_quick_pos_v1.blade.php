@@ -165,6 +165,7 @@
                                 <span><i class="busy"></i>Busy</span>
                                 <span><i class="reserved"></i>Reserved</span>
                                 <span><i class="clean"></i>Clean</span>
+                                <span><i class="disabled"></i>Disabled</span>
                             </div>
 
                             <div class="pmd-qpos-table-guide-icons">
@@ -194,6 +195,18 @@
                             $pmdWaiterCalls = max(0, (int)($table['waiter_calls'] ?? 0));
                             $pmdNoteCount = max(0, (int)($table['note_count'] ?? 0));
                             $pmdHasAttention = $pmdWaiterCalls > 0 || $pmdNoteCount > 0;
+                            $pmdFloorNoteR39 = trim((string)(
+                                $table['floor_notes']
+                                ?? $table['note']
+                                ?? $table['notes']
+                                ?? ''
+                            ));
+                            $pmdDisabledR39 =
+                                $pmdStatus === 'disabled'
+                                || (
+                                    array_key_exists('enabled', $table)
+                                    && empty($table['enabled'])
+                                );
                             $pmdAttentionTitleV81 =
                                 $pmdWaiterCalls > 0 && $pmdNoteCount > 0
                                     ? 'Waiter call + table note'
@@ -201,10 +214,12 @@
                         @endphp
                         <button
                             type="button"
-                            class="pmd-qpos-table{{ $pmdHasAttention ? ' has-attention' : '' }}"
+                            class="pmd-qpos-table{{ $pmdHasAttention ? ' has-attention' : '' }}{{ $pmdDisabledR39 ? ' is-disabled-table-r39' : '' }}"
                             data-qpos-table="{{ $table['id'] ?? 0 }}"
                             data-status="{{ $pmdStatus }}"
                             data-payment-state="{{ $pmdPaymentState }}"
+                            @if($pmdFloorNoteR39 !== '') title="{{ 'Internal note: '.$pmdFloorNoteR39 }}" @endif
+                            @if($pmdDisabledR39) aria-disabled="true" disabled @endif
                             @if($pmdHasAttention)
                                 data-qpos-attention="1"
                                 data-qpos-attention-kind-default="attention"
@@ -212,7 +227,7 @@
                         >
                             <strong>{{ $table['number'] ?? ($table['id'] ?? '') }}</strong>
                             <small>{{ $pmdCapacity > 0 ? $pmdCapacity . 's' : '' }}</small>
-                            @if($pmdHasAttention || in_array($pmdPaymentState, ['partial', 'paid'], true))
+                            @if($pmdHasAttention || $pmdFloorNoteR39 !== '' || in_array($pmdPaymentState, ['partial', 'paid'], true))
                                 <span class="pmd-qpos-table-signals-v57">
                                     @if($pmdHasAttention)
                                         {{-- PMD_QPOS_UNIFIED_ATTENTION_ICON_V81 --}}
@@ -227,6 +242,13 @@
                                         <span class="pmd-qpos-table-signal is-partial" title="Part paid" aria-label="Part paid"><b>½</b></span>
                                     @elseif($pmdPaymentState === 'paid')
                                         <span class="pmd-qpos-table-signal is-paid" title="Paid" aria-label="Paid"><b>✓</b></span>
+                                    @endif
+                                    @if($pmdFloorNoteR39 !== '')
+                                        <span
+                                            class="pmd-qpos-table-signal is-internal-note-r39"
+                                            title="{{ 'Internal note: '.$pmdFloorNoteR39 }}"
+                                            aria-label="{{ 'Internal note: '.$pmdFloorNoteR39 }}"
+                                        ><b>✎</b></span>
                                     @endif
                                 </span>
                             @endif
