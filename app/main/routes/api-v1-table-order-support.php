@@ -33,8 +33,17 @@
                         $tableNo = (string)($table->table_no ?? $tableNo);
                         if ($qr === '' && !empty($table->qr_code)) $qr = (string)$table->qr_code;
                     }
+
+                    // PMD_TABLE_ENABLE_DISABLE_R40
+                    // Every guest table-order route receives this same context,
+                    // so product availability can be enforced server-side too.
+                    $disabled = $table
+                        && property_exists($table, 'table_status')
+                        && !(bool)$table->table_status;
+
                     return [
                         'table' => $table,
+                        'disabled' => $disabled,
                         'table_id' => $tableId,
                         'table_no' => $tableNo,
                         'table_name' => $table ? (string)($table->table_name ?? '') : '',
