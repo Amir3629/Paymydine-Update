@@ -77,16 +77,16 @@ class Coupons extends AdminController
             )
         );
         $this->addCss('css/pmd-coupon-stable-r24.css');
-        // PMD_HEADER_EXPAND_SEARCH_ASSETS_V159
+        // PMD_HEADER_SINGLE_FRAME_SEARCH_ASSETS_V160
         $this->addCss(
-            asset('app/admin/assets/css/pmd-header-expand-search-v159.css')
-            .'?v='.(string)(@filemtime(base_path('app/admin/assets/css/pmd-header-expand-search-v159.css')) ?: '1')
+            asset('app/admin/assets/css/pmd-header-expand-search-v160.css')
+            .'?v='.(string)(@filemtime(base_path('app/admin/assets/css/pmd-header-expand-search-v160.css')) ?: '1')
         );
         $this->addJs('js/pmd-coupon-manager-v13.js');
         $this->addJs('js/pmd-coupon-stable-r24.js');
         $this->addJs(
-            asset('app/admin/assets/js/pmd-header-expand-search-v159.js')
-            .'?v='.(string)(@filemtime(base_path('app/admin/assets/js/pmd-header-expand-search-v159.js')) ?: '1')
+            asset('app/admin/assets/js/pmd-header-expand-search-v160.js')
+            .'?v='.(string)(@filemtime(base_path('app/admin/assets/js/pmd-header-expand-search-v160.js')) ?: '1')
         );
 
         AdminMenu::setContext('coupons', 'marketing');

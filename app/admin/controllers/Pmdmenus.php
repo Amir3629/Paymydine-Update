@@ -68,15 +68,15 @@ class Pmdmenus extends AdminController
                 ) ?: '1'
             )
         );
-        // PMD_HEADER_EXPAND_SEARCH_ASSETS_V159
+        // PMD_HEADER_SINGLE_FRAME_SEARCH_ASSETS_V160
         $this->addCss(
-            asset('app/admin/assets/css/pmd-header-expand-search-v159.css')
-            .'?v='.(string)(@filemtime(base_path('app/admin/assets/css/pmd-header-expand-search-v159.css')) ?: '1')
+            asset('app/admin/assets/css/pmd-header-expand-search-v160.css')
+            .'?v='.(string)(@filemtime(base_path('app/admin/assets/css/pmd-header-expand-search-v160.css')) ?: '1')
         );
         $this->addJs('js/pmd-menu-manager-v130.js');
         $this->addJs(
-            asset('app/admin/assets/js/pmd-header-expand-search-v159.js')
-            .'?v='.(string)(@filemtime(base_path('app/admin/assets/js/pmd-header-expand-search-v159.js')) ?: '1')
+            asset('app/admin/assets/js/pmd-header-expand-search-v160.js')
+            .'?v='.(string)(@filemtime(base_path('app/admin/assets/js/pmd-header-expand-search-v160.js')) ?: '1')
         );
         $this->addJs(
             asset('app/admin/assets/js/pmd-menu-prep-presets.js')
