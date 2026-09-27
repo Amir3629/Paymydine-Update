@@ -936,8 +936,7 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
             }
 
             $preparedTargetUrl = rtrim(request()->getSchemeAndHttpHost(), '/')
-                .'/table/'.rawurlencode($tableNoInput)
-                .'?'.http_build_query([
+                .'/api/v1/table-entry?'.http_build_query([
                     'location' => $locationId,
                     'guest' => $preparedCapacity,
                     'table_no' => $tableNoInput,
