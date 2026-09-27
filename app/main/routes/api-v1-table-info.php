@@ -31,6 +31,22 @@
                             ], 404);
                         }
 
+                        // PMD_TABLE_ENABLE_DISABLE_R40
+                        if (!(bool)($table->table_status ?? true)) {
+                            return response()->json([
+                                'success' => false,
+                                'error' => 'This table is currently unavailable.',
+                                'code' => 'table_disabled',
+                                'table_disabled' => true,
+                                'data' => [
+                                    'table_id' => (int)($table->table_id ?? 0),
+                                    'table_no' => $table->table_no ?? null,
+                                    'table_name' => $table->table_name ?? null,
+                                    'status' => false,
+                                ],
+                            ], 410);
+                        }
+
                         // PMD_TABLE_INFO_RESOLVED_LOCATION_R35
                         // Use the table we actually resolved (QR/table_no/table_id),
                         // not only the optional table_id query parameter.
