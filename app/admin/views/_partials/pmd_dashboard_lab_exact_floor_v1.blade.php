@@ -600,10 +600,12 @@
             'visible' => 'Auf Floor sichtbar',
             'joinable' => 'Zusammenstellbar',
             'notes' => 'Interne Floor-Notiz',
-            'notes_placeholder' => 'Optional, z. B. Fensterplatz oder betriebliche Hinweise',
+            'notes_placeholder' => 'Optional, z. B. in Stoßzeiten nicht nutzen oder Steckdose neben dem Tisch',
             'cancel' => 'Abbrechen',
             'save' => 'Tisch speichern',
             'delete' => 'Tisch entfernen',
+            'disable' => 'Tisch deaktivieren',
+            'enable' => 'Tisch aktivieren',
             'deleting' => 'Entfernen…',
             'delete_confirm' => 'Diesen Tisch dauerhaft entfernen? Der QR-Code dieses Tisches funktioniert danach nicht mehr.',
             'saving' => 'Speichern…',
@@ -635,10 +637,12 @@
             'visible' => 'Visible on Floor',
             'joinable' => 'Joinable',
             'notes' => 'Internal Floor note',
-            'notes_placeholder' => 'Optional, for example window seat or operational notes',
+            'notes_placeholder' => 'Optional, e.g. avoid during rush hours or power outlet next to this table',
             'cancel' => 'Cancel',
             'save' => 'Save table',
             'delete' => 'Remove table',
+            'disable' => 'Disable table',
+            'enable' => 'Enable table',
             'deleting' => 'Removing…',
             'delete_confirm' => 'Remove this table permanently? Its QR code will stop working after deletion.',
             'saving' => 'Saving…',
@@ -1532,6 +1536,8 @@ body.pmd-dashboard-lab-page
             data-save-label="{{ $pmdFloorTableManagerText['save'] }}"
             data-saving-label="{{ $pmdFloorTableManagerText['saving'] }}"
             data-delete-label="{{ $pmdFloorTableManagerText['delete'] }}"
+            data-disable-label="{{ $pmdFloorTableManagerText['disable'] }}"
+            data-enable-label="{{ $pmdFloorTableManagerText['enable'] }}"
             data-deleting-label="{{ $pmdFloorTableManagerText['deleting'] }}"
             data-delete-confirm="{{ $pmdFloorTableManagerText['delete_confirm'] }}"
             data-loading-label="{{ $pmdFloorTableManagerText['loading'] }}"
@@ -1724,14 +1730,24 @@ body.pmd-dashboard-lab-page
 
                 {{-- PMD_FLOOR_TABLE_DELETE_R36B --}}
                 <footer class="pmd-floor-table-manager__footer">
-                    {{-- PMD_FLOOR_TABLE_VISUAL_R36C --}}
-                    <button
-                        type="button"
-                        class="pmd-floor-table-manager__delete"
-                        data-pmd-floor-table-manager-delete
-                        hidden
-                        data-pmd-floor-table-delete-geometry-r34="1"
-                    >{{ $pmdFloorTableManagerText['delete'] }}</button>
+                    {{-- PMD_TABLE_ENABLE_DISABLE_R39 --}}
+                    <div class="pmd-floor-table-manager__footer-left-r39">
+                        <button
+                            type="button"
+                            class="pmd-floor-table-manager__enabled-toggle-r39"
+                            data-pmd-floor-table-enabled-toggle-r39
+                            hidden
+                        >{{ $pmdFloorTableManagerText['disable'] }}</button>
+
+                        {{-- PMD_FLOOR_TABLE_VISUAL_R36C --}}
+                        <button
+                            type="button"
+                            class="pmd-floor-table-manager__delete"
+                            data-pmd-floor-table-manager-delete
+                            hidden
+                            data-pmd-floor-table-delete-geometry-r34="1"
+                        >{{ $pmdFloorTableManagerText['delete'] }}</button>
+                    </div>
 
                     <div class="pmd-floor-table-manager__footer-actions">
                         <button type="button" class="pmd-floor-table-manager__cancel" data-pmd-floor-table-manager-close>{{ $pmdFloorTableManagerText['cancel'] }}</button>
