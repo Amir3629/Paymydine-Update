@@ -1532,6 +1532,16 @@ class Dashboardlab extends AdminController
                 ?? ''
             )));
 
+            // PMD_TABLE_ENABLE_DISABLE_R40
+            // Product availability is stronger than operational occupancy.
+            $tableEnabled = array_key_exists('table_status', $raw)
+                ? $this->floorBool($raw['table_status'])
+                : (
+                    array_key_exists('enabled', $raw)
+                        ? $this->floorBool($raw['enabled'])
+                        : !in_array($rawStatus, ['disabled', 'inactive'], true)
+                );
+
             // PMD_R65_ORDERS_SWITCH_PHYSICAL_FLOOR_AUTHORITY
             // Physical table occupancy is independent from kitchen/payment state.
             // If the canonical table row provides operational_status, it owns the
@@ -1575,17 +1585,21 @@ class Dashboardlab extends AdminController
             $note = trim((string)(
                 $custom['note']
                 ?? $raw['note']
+                ?? $raw['notes']
+                ?? $raw['floor_notes']
                 ?? $raw['comment']
                 ?? ''
             ));
 
-            $status = ($waiterCall || $note !== '' || $linkedOrderHasNote)
-                ? 'attention'
-                : ($cleaning
-                    ? 'cleaning'
-                    : ($reserved
-                        ? 'reserved'
-                        : ($occupied ? 'occupied' : 'available')));
+            $status = !$tableEnabled
+                ? 'disabled'
+                : (($waiterCall || $note !== '' || $linkedOrderHasNote)
+                    ? 'attention'
+                    : ($cleaning
+                        ? 'cleaning'
+                        : ($reserved
+                            ? 'reserved'
+                            : ($occupied ? 'occupied' : 'available'))));
 
             /*
              * Match Floor V1 normalize() exactly for first paint.
@@ -1636,6 +1650,8 @@ class Dashboardlab extends AdminController
                     ?? $raw['table_capacity']
                     ?? 0
                 ),
+                'enabled' => $tableEnabled,
+                'table_status' => $tableEnabled,
                 'status' => $status,
                 'waiter_call' => $waiterCall,
                 'cleaning' => $cleaning,
@@ -1708,6 +1724,7 @@ class Dashboardlab extends AdminController
                 'cleaning' => 4,
                 'attention' => 5,
                 'waiter-call' => 5,
+                'disabled' => 6,
             ];
 
             $status = 'available';
@@ -1724,6 +1741,8 @@ class Dashboardlab extends AdminController
                 'name' => 'Merged tables '.implode(', ', $numbers),
                 'area' => $members[0]['area'],
                 'capacity' => array_sum(array_column($members, 'capacity')),
+                'enabled' => $status !== 'disabled',
+                'table_status' => $status !== 'disabled',
                 'status' => $status,
                 'waiter_call' => count(array_filter(
                     $members,
