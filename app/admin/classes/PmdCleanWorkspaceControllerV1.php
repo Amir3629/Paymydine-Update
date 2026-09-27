@@ -873,18 +873,83 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
             return response()->json(['ok' => false, 'message' => 'Active Floor location changed.'], 409);
         }
 
+        /*
+         * PMD_TABLE_QR_PREPARED_DOWNLOAD_R35
+         *
+         * Create mode is allowed to prepare/print the next table-number QR
+         * before the table row exists. The URL resolves by table_no, so it
+         * remains useful after Save; before Save the customer lookup returns
+         * Table not found. Existing rows continue to use Tables_model QR data.
+         */
         $tableId = max(0, (int)request()->input('table_id', 0));
-        $table = $tableId > 0 ? \Admin\Models\Tables_model::query()->find($tableId) : null;
-        if (!$table) {
-            return response()->json(['ok' => false, 'message' => 'Table not found.'], 404);
-        }
+        $tableNoInput = trim((string)request()->input('table_no', ''));
+        $preparedCapacity = max(
+            1,
+            (int)request()->input(
+                'preferred_capacity',
+                1
+            )
+        );
 
-        $this->pmdFloorTableManagerAssertLocation($table, $locationId);
-        $serialized = $this->pmdFloorTableManagerSerialize($table, $locationId);
-        $imageUrl = trim((string)($serialized['qr_image_url'] ?? ''));
-        $qrCode = trim((string)($serialized['qr_code'] ?? ''));
-        if ($imageUrl === '' || $qrCode === '') {
-            return response()->json(['ok' => false, 'message' => 'This table does not have a QR code yet.'], 404);
+        $serialized = [];
+        $imageUrl = '';
+        $displayNo = '';
+        $prepared = false;
+
+        if ($tableId > 0) {
+            $table = \Admin\Models\Tables_model::query()->find($tableId);
+            if (!$table) {
+                return response()->json(['ok' => false, 'message' => 'Table not found.'], 404);
+            }
+
+            $this->pmdFloorTableManagerAssertLocation($table, $locationId);
+            $serialized = $this->pmdFloorTableManagerSerialize($table, $locationId);
+            $imageUrl = trim((string)($serialized['qr_image_url'] ?? ''));
+            $qrCode = trim((string)($serialized['qr_code'] ?? ''));
+
+            if ($imageUrl === '' || $qrCode === '') {
+                return response()->json(['ok' => false, 'message' => 'This table does not have a QR code yet.'], 404);
+            }
+
+            $displayNo = trim((string)($serialized['table_no'] ?? $tableId));
+        } else {
+            if (
+                $tableNoInput === ''
+                || !ctype_digit($tableNoInput)
+                || (int)$tableNoInput < 1
+            ) {
+                return response()->json([
+                    'ok' => false,
+                    'message' => 'Choose a valid table number first.',
+                ], 422);
+            }
+
+            $duplicate = \Illuminate\Support\Facades\DB::table('tables')
+                ->where('table_no', (int)$tableNoInput)
+                ->exists();
+
+            if ($duplicate) {
+                return response()->json([
+                    'ok' => false,
+                    'message' => 'This table number already exists. Choose the next free number first.',
+                ], 409);
+            }
+
+            $preparedTargetUrl = rtrim(request()->getSchemeAndHttpHost(), '/')
+                .'/table/'.rawurlencode($tableNoInput)
+                .'?'.http_build_query([
+                    'location' => $locationId,
+                    'guest' => $preparedCapacity,
+                    'table_no' => $tableNoInput,
+                    'table' => $tableNoInput,
+                    'pmd_prepared' => 1,
+                ]);
+
+            $imageUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=320x320&ecc=H&qzone=4&data='
+                .rawurlencode($preparedTargetUrl);
+
+            $displayNo = $tableNoInput;
+            $prepared = true;
         }
 
         $context = stream_context_create([
@@ -906,16 +971,17 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
             ], 502);
         }
 
-        $displayNo = trim((string)($serialized['table_no'] ?? $tableId));
-        $safeNo = preg_replace('/[^A-Za-z0-9_-]+/', '-', $displayNo) ?: (string)$tableId;
+        $safeNo = preg_replace('/[^A-Za-z0-9_-]+/', '-', $displayNo)
+            ?: ($tableId > 0 ? (string)$tableId : 'prepared');
 
         return response()->json([
             'ok' => true,
             'filename' => 'paymydine-table-'.$safeNo.'-qr.png',
             'mime' => 'image/png',
             'data_url' => 'data:image/png;base64,'.base64_encode($png),
-            'qr_authority' => 'Tables_model',
+            'qr_authority' => $prepared ? 'prepared_table_number' : 'Tables_model',
             'qr_regenerated' => false,
+            'qr_prepared' => $prepared,
         ]);
     }
 
