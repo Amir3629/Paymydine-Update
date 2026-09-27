@@ -3656,7 +3656,7 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
             if ($operationalStatus === 'free') $operationalStatus = 'available';
             $hasOperationalAuthority = in_array(
                 $operationalStatus,
-                ['available', 'occupied', 'cleaning', 'reserved'],
+                ['available', 'occupied', 'cleaning', 'reserved', 'disabled'],
                 true
             );
 
@@ -3949,6 +3949,8 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 'min_capacity',
                 'max_capacity',
                 'operational_status',
+                'table_status',
+                'floor_notes',
                 'location_id',
                 'floor_x',
                 'floor_y',
@@ -3971,10 +3973,9 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 }
             }
 
-            try {
-                $query->isEnabled();
-            } catch (\Throwable $ignored) {
-            }
+            // PMD_TABLE_ENABLE_DISABLE_R39
+            // Keep disabled physical tables in the POS rail/Floor map. They are
+            // rendered inert instead of disappearing from the restaurant layout.
 
             $orderColumn = in_array('table_no', $columns, true)
                 ? 'table_no'
@@ -4044,6 +4045,10 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                             ? max(58.0, (float)$row->floor_height)
                             : 88.0;
 
+                    $enabled = !isset($row->table_status)
+                        || (bool)$row->table_status;
+                    $floorNote = trim((string)($row->floor_notes ?? ''));
+
                     return [
                         'id' => $id,
                         'number' => $number,
@@ -4075,9 +4080,16 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                             $row->table_section
                             ?? ''
                         )),
-                        'status' => $this->quickPosNormalizeTableStatus(
-                            (string)($row->operational_status ?? 'available')
-                        ),
+                        'table_status' => $enabled,
+                        'enabled' => $enabled,
+                        'note' => $floorNote,
+                        'notes' => $floorNote,
+                        'floor_notes' => $floorNote,
+                        'status' => $enabled
+                            ? $this->quickPosNormalizeTableStatus(
+                                (string)($row->operational_status ?? 'available')
+                            )
+                            : 'disabled',
                     ];
                 })
                 ->filter(fn ($row) => (int)$row['id'] > 0)
