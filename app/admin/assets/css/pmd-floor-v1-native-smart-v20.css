@@ -2009,3 +2009,42 @@ html body .pmd-floor-v1__badge.is-merge:active {
 
 /* PMD_ONE_ROW_WIDE_MERGED_V298_END */
 
+
+
+/* PMD_FLOOR_DISABLED_TABLE_R39
+   Product-disabled physical tables stay visible, muted and non-operational. */
+.pmd-floor-v1
+.pmd-floor-v1__table[data-status="disabled"] {
+  filter: grayscale(.72) !important;
+  opacity: .48 !important;
+  border-color: #aeb8b4 !important;
+  background: #e6ebe9 !important;
+  background-image: none !important;
+  color: #64716d !important;
+  box-shadow: none !important;
+  cursor: default !important;
+  transition: none !important;
+}
+
+.pmd-floor-v1
+.pmd-floor-v1__table[data-status="disabled"]:hover,
+.pmd-floor-v1
+.pmd-floor-v1__table[data-status="disabled"]:focus {
+  filter: grayscale(.72) !important;
+  opacity: .48 !important;
+  border-color: #aeb8b4 !important;
+  background: #e6ebe9 !important;
+  background-image: none !important;
+  color: #64716d !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.pmd-floor-v1
+.pmd-floor-v1__table[data-status="disabled"]
+.pmd-floor-v1__table-number,
+.pmd-floor-v1
+.pmd-floor-v1__table[data-status="disabled"]
+.pmd-floor-v1__table-meta {
+  color: #64716d !important;
+}
