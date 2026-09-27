@@ -706,7 +706,14 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
                     'qr' => $pmdQrCode,
                     'table' => $pmdRouteTable,
                 ]);
-            $pmdQrImageUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data='
+            /*
+             * PMD_TABLE_QR_HIGH_ECC_FOR_CENTER_BRAND_R34
+             *
+             * The Admin preview carries a small PayMyDine center badge. Request
+             * high error correction + a proper quiet zone so the canonical QR
+             * remains comfortably scannable underneath that presentation layer.
+             */
+            $pmdQrImageUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=320x320&ecc=H&qzone=4&data='
                 .rawurlencode($pmdQrTargetUrl);
         }
 
