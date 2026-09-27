@@ -2683,3 +2683,55 @@ html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
     grid-template-columns: 1fr !important;
   }
 }
+
+
+/* PMD_CARD_LANGUAGE_V1_TABLE_MANAGER_SPECIFICITY_R32
+   Beat older portal selectors that targeted generic field spans / QR svgs. */
+html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+.pmd-floor-table-manager__field
+> .pmd-floor-table-manager__field-title {
+  display: flex !important;
+  align-items: center !important;
+  gap: 9px !important;
+  min-height: 40px !important;
+  margin: 0 !important;
+  color: #28463f !important;
+  font-size: 13px !important;
+  line-height: 1.2 !important;
+  font-weight: 680 !important;
+}
+
+html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+.pmd-floor-table-manager__field
+> .pmd-floor-table-manager__field-title
+> svg,
+html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+.pmd-floor-table-manager__features
+.pmd-floor-table-manager__section-title
+> svg,
+html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+.pmd-floor-table-manager__qr-pending
+> .pmd-floor-table-manager__qr-icon {
+  display: block !important;
+  box-sizing: border-box !important;
+  width: 38px !important;
+  height: 38px !important;
+  flex: 0 0 38px !important;
+  padding: 8px !important;
+  border: 1px solid rgba(83,166,111,.095) !important;
+  border-radius: var(--pmd-card-v1-radius) !important;
+  background:
+    linear-gradient(
+      145deg,
+      var(--pmd-card-v1-mint-1) 0%,
+      var(--pmd-card-v1-mint-2) 58%,
+      var(--pmd-card-v1-mint-3) 100%
+    ) !important;
+  color: #2f866f !important;
+  stroke: currentColor !important;
+  fill: none !important;
+  box-shadow:
+    0 4px 12px rgba(52,105,76,.035),
+    inset 0 1px 0 rgba(255,255,255,1)
+    !important;
+}
