@@ -2157,7 +2157,8 @@
       available: 'Free',
       occupied: 'Busy',
       cleaning: 'Clean',
-      reserved: 'Res.'
+      reserved: 'Res.',
+      disabled: 'Disabled'
     }[String(status || '').toLowerCase()] || 'Free';
   }
 
@@ -2196,6 +2197,21 @@
     var status = String(
       table && table.status != null ? table.status : 'available'
     ).toLowerCase().trim();
+
+    // PMD_TABLE_ENABLE_DISABLE_R39
+    if (
+      table &&
+      (
+        table.enabled === false ||
+        table.enabled === 0 ||
+        table.enabled === '0' ||
+        table.table_status === false ||
+        table.table_status === 0 ||
+        table.table_status === '0'
+      )
+    ) {
+      return 'disabled';
+    }
 
     if (!status || status === 'free') status = 'available';
 
@@ -2943,6 +2959,11 @@
       var noteCount = Math.max(0, num(table.note_count, 0));
       var hasAttention = waiterCalls > 0 || noteCount > 0;
       var attentionHistoryKind = hasAttention ? 'attention' : '';
+      var internalFloorNoteR39 = String(
+        table.floor_notes || table.note || table.notes || ''
+      ).trim();
+      var tableDisabledR39 =
+        effectiveTableStatusV62(table) === 'disabled';
       var signals = [];
 
       /* PMD_QPOS_UNIFIED_ATTENTION_ICON_V81
@@ -2983,12 +3004,22 @@
         });
       }
 
+      if (internalFloorNoteR39) {
+        signals.push({
+          kind: 'internal-note-r39',
+          icon: '✎',
+          title: 'Internal note: ' + internalFloorNoteR39,
+          count: 0
+        });
+      }
+
       rows.push(
         '<button type="button" class="pmd-qpos-table' +
           (selected ? ' is-selected' : '') +
           (isMoveSource ? ' is-move-source' : '') +
           (isMoveTarget ? ' is-move-target' : '') +
-          (hasAttention ? ' has-attention' : '') + '"' +
+          (hasAttention ? ' has-attention' : '') +
+          (tableDisabledR39 ? ' is-disabled-table-r39' : '') + '"' +
           ' data-qpos-table="' + esc(table.id) + '"' +
           ' data-status="' + esc(effectiveTableStatusV62(table)) + '"' +
           ' data-payment-state="' + esc(paymentState) + '"' +
@@ -2996,7 +3027,17 @@
           (attentionHistoryKind
             ? ' data-qpos-attention-kind-default="' + esc(attentionHistoryKind) + '"'
             : '') +
-          (isMoveSource || (directMove && !isMoveTarget) || state.transfer.submitting
+          (tableDisabledR39
+            ? ' aria-disabled="true" title="' +
+              esc(
+                internalFloorNoteR39
+                  ? 'Disabled · Internal note: ' + internalFloorNoteR39
+                  : 'Disabled table'
+              ) + '"'
+            : (internalFloorNoteR39
+                ? ' title="' + esc('Internal note: ' + internalFloorNoteR39) + '"'
+                : '')) +
+          (tableDisabledR39 || isMoveSource || (directMove && !isMoveTarget) || state.transfer.submitting
             ? ' disabled'
             : '') +
           (isMoveTarget
@@ -3050,7 +3091,7 @@
       /* PMD_QPOS_TABLE_HOVER_PREFETCH_V41
        * Warm only the table the pointer/focus is already heading toward. */
       var prefetch = function () {
-        if (directMove) return;
+        if (directMove || button.disabled) return;
         var id = Number(button.getAttribute('data-qpos-table') || 0);
         if (id) {
           prefetchTableData(id);
@@ -5143,6 +5184,11 @@
       return Number(row.id) === Number(id);
     });
     if (!table) return;
+
+    if (effectiveTableStatusV62(table) === 'disabled') {
+      toast('This table is disabled.', true);
+      return;
+    }
 
     if (state.payment.open) {
       toast('Close payment first.', true);
