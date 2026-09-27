@@ -1205,6 +1205,91 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
     }
 
     /**
+     * PMD_TABLE_ENABLE_DISABLE_R40
+     *
+     * Availability is an immediate table action, not a staged form field.
+     * Persist only the canonical legacy table_status flag so clicking
+     * Disable/Enable never accidentally saves unrelated unsaved edits.
+     */
+    public function onPmdFloorTableManagerSetEnabled()
+    {
+        $this->pmdAssertCanManageFloorTables();
+
+        $locationId = $this->pmdFloorTableManagerLocationId();
+        $requestedLocationId = max(0, (int)request()->input('location_id', 0));
+        if ($requestedLocationId > 0 && $locationId > 0 && $requestedLocationId !== $locationId) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Active Floor location changed. Refresh the page and try again.',
+            ], 409);
+        }
+
+        $tableId = max(0, (int)request()->input('table_id', 0));
+        if ($tableId < 1) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Table not found.',
+            ], 404);
+        }
+
+        $enabledInput = request()->input('enabled', null);
+        $enabled = filter_var(
+            $enabledInput,
+            FILTER_VALIDATE_BOOLEAN,
+            FILTER_NULL_ON_FAILURE
+        );
+
+        if ($enabled === null) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Invalid table availability value.',
+            ], 422);
+        }
+
+        $table = \Admin\Models\Tables_model::query()->find($tableId);
+        if (!$table) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Table not found.',
+            ], 404);
+        }
+
+        $this->pmdFloorTableManagerAssertLocation($table, $locationId);
+
+        $systemName = strtolower(trim((string)($table->table_name ?? '')));
+        if (in_array($systemName, ['cashier', 'delivery'], true)) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Default system tables cannot be disabled.',
+            ], 403);
+        }
+
+        $table->table_status = $enabled;
+        $table->save();
+
+        $fresh = $table->fresh();
+        if (!$fresh || (bool)($fresh->table_status ?? false) !== $enabled) {
+            logger()->error('PMD table availability persistence verification failed', [
+                'location_id' => $locationId,
+                'table_id' => $tableId,
+                'requested_enabled' => $enabled,
+            ]);
+
+            return response()->json([
+                'ok' => false,
+                'message' => 'Table availability could not be persisted. Please retry.',
+            ], 500);
+        }
+
+        return response()->json([
+            'ok' => true,
+            'action' => $enabled ? 'enabled' : 'disabled',
+            'message' => $enabled ? 'Table enabled.' : 'Table disabled.',
+            'table' => $this->pmdFloorTableManagerSerialize($fresh, $locationId),
+        ]);
+    }
+
+    /**
      * PMD_FLOOR_TABLE_DELETE_R36B
      * Owner/Manager destructive action for the inline Floor table card.
      * Uses canonical Tables_model deletion, preserves its default-table guard,
