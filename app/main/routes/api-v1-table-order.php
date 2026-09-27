@@ -77,6 +77,13 @@ $pmdFindOpenTableOrderForContext = function (array $context, $fallbackFinder = n
                 Route::get('/table-order-draft', function (\Illuminate\Http\Request $request) use ($ensureTableOrderDraftTable, $resolveTableDraftContext, $formatTableOrderResponse, $findActiveSubmittedTableOrder, $pmdFindOpenTableOrderForContext) {
                     $ensureTableOrderDraftTable();
                     $context = $resolveTableDraftContext($request);
+                    if (!empty($context['disabled'])) {
+                        return response()->json([
+                            'success' => false,
+                            'code' => 'table_disabled',
+                            'error' => 'This table is currently unavailable.',
+                        ], 409);
+                    }
                     if (($context['table_id'] ?? '') === '' && ($context['table_no'] ?? '') === '' && ($context['qr'] ?? '') === '') {
                         return response()->json(['success' => false, 'error' => 'table_id, table_no, or qr is required'], 422);
                     }
@@ -98,6 +105,13 @@ $pmdFindOpenTableOrderForContext = function (array $context, $fallbackFinder = n
                     $ensureTableOrderDraftTable();
                     $request->validate(['guest_session_id' => 'required|string|max:191', 'items' => 'required|array|min:1']);
                     $context = $resolveTableDraftContext($request);
+                    if (!empty($context['disabled'])) {
+                        return response()->json([
+                            'success' => false,
+                            'code' => 'table_disabled',
+                            'error' => 'This table is currently unavailable.',
+                        ], 409);
+                    }
                     $items = $normalizeDraftItems((array)$request->input('items', []));
                     if (empty($items)) return response()->json(['success' => false, 'error' => 'No valid menu items'], 422);
                     $draft = DB::transaction(function () use ($context, $items) {
@@ -133,6 +147,13 @@ $pmdFindOpenTableOrderForContext = function (array $context, $fallbackFinder = n
                 Route::post('/table-order-draft/submit', function (\Illuminate\Http\Request $request) use ($ensureTableOrderDraftTable, $resolveTableDraftContext, $formatTableOrderResponse, $findActiveSubmittedTableOrder, $pmdFindOpenTableOrderForContext) {
                     $ensureTableOrderDraftTable();
                     $context = $resolveTableDraftContext($request);
+                    if (!empty($context['disabled'])) {
+                        return response()->json([
+                            'success' => false,
+                            'code' => 'table_disabled',
+                            'error' => 'This table is currently unavailable.',
+                        ], 409);
+                    }
                     $draftId = (int)$request->input('draft_id', 0);
                     $orderId = null;
                     $draft = null;
