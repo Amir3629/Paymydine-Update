@@ -1694,7 +1694,7 @@ body.pmd-dashboard-lab-page
                             <div class="pmd-floor-table-manager__qr-image-wrap-r34">
                                 <img data-pmd-floor-table-qr-image alt="QR Code">
                                 <span class="pmd-floor-table-manager__qr-brand-r34" aria-hidden="true">
-                                    <img src="/brand/paymydine-logo.svg" width="34" height="34" alt="" style="width:34px!important;height:34px!important;object-fit:contain!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important;">
+                                    <img src="/brand/paymydine-logo.svg" width="26" height="26" alt="" style="width:26px!important;height:26px!important;object-fit:contain!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important;">
                                 </span>
                             </div>
                             <div class="pmd-floor-table-manager__qr-copy pmd-floor-table-manager__qr-copy--actions-only-r34">
