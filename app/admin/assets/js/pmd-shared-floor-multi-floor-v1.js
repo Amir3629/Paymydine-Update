@@ -961,9 +961,7 @@
 
       var targetUrl =
         window.location.origin
-        + '/table/'
-        + encodeURIComponent(tableNo)
-        + '?'
+        + '/api/v1/table-entry?'
         + params.toString();
 
       return {
