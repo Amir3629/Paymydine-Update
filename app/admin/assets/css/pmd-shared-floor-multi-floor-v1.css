@@ -3707,3 +3707,114 @@ html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
     resize: vertical !important;
   }
 }
+
+
+/* ============================================================
+   PMD_TABLE_MANAGER_ENABLE_DISABLED_VISUAL_R39
+   Existing table_status is the enable/disable authority. No schema change.
+   ============================================================ */
+
+html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+.pmd-floor-table-manager__footer {
+  padding-left: 24px !important;
+  padding-right: 24px !important;
+}
+
+html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+.pmd-floor-table-manager__footer-left-r39 {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  min-width: 0 !important;
+}
+
+html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+.pmd-floor-table-manager__enabled-toggle-r39 {
+  box-sizing: border-box !important;
+  height: 42px !important;
+  min-height: 42px !important;
+  max-height: 42px !important;
+  min-width: 112px !important;
+  margin: 0 !important;
+  padding: 0 14px !important;
+  border: 1px solid #d69a51 !important;
+  border-radius: 16px !important;
+  background: #fffaf2 !important;
+  color: #8a4b08 !important;
+  box-shadow: none !important;
+  font: inherit !important;
+  font-size: 12px !important;
+  line-height: 1 !important;
+  font-weight: 800 !important;
+  cursor: pointer !important;
+}
+
+html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+.pmd-floor-table-manager__enabled-toggle-r39.is-enable-r39 {
+  border-color: #8cc8b8 !important;
+  background: #f2fbf7 !important;
+  color: #075c47 !important;
+}
+
+html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+.pmd-floor-table-manager__enabled-toggle-r39:disabled {
+  opacity: .55 !important;
+  cursor: default !important;
+}
+
+/* Disabled physical tables remain visible but deliberately non-operational. */
+html body #pmd-r2-shared-floor-canvas-v310
+[data-floor-table][data-status="disabled"],
+html body .pmd-floor-v1
+.pmd-floor-v1__table[data-status="disabled"] {
+  filter: grayscale(.72) !important;
+  opacity: .48 !important;
+  border-color: #aeb8b4 !important;
+  background: #e6ebe9 !important;
+  background-image: none !important;
+  color: #64716d !important;
+  box-shadow: none !important;
+  cursor: default !important;
+  transition: none !important;
+}
+
+html body #pmd-r2-shared-floor-canvas-v310
+[data-floor-table][data-status="disabled"]:hover,
+html body .pmd-floor-v1
+.pmd-floor-v1__table[data-status="disabled"]:hover {
+  filter: grayscale(.72) !important;
+  opacity: .48 !important;
+  border-color: #aeb8b4 !important;
+  background: #e6ebe9 !important;
+  background-image: none !important;
+  color: #64716d !important;
+  box-shadow: none !important;
+  transform: translate(-50%, -50%) !important;
+}
+
+html body #pmd-r2-shared-floor-canvas-v310
+[data-floor-table][data-status="disabled"]
+.pmd-floor-v1__table-meta,
+html body #pmd-r2-shared-floor-canvas-v310
+[data-floor-table][data-status="disabled"]
+.pmd-floor-v1__table-number {
+  color: #64716d !important;
+}
+
+@media(max-width:700px) {
+  html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+  .pmd-floor-table-manager__footer {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+
+  html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+  .pmd-floor-table-manager__footer-left-r39 {
+    gap: 6px !important;
+  }
+
+  html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+  .pmd-floor-table-manager__enabled-toggle-r39 {
+    min-width: 0 !important;
+  }
+}
