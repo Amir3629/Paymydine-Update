@@ -70,7 +70,16 @@ class Dashboardlab extends AdminController
         $this->addCss('css/pmd-reservations-floor-reservation-v312.css');
         $this->addCss('css/pmd-dashboard-lab-exact-floor-v1.css');
         // PMD_SHARED_FLOOR_DASHBOARDLAB_BRIDGE_V1_3_1
-        $this->addCss('css/pmd-shared-floor-multi-floor-v1.css');
+        // PMD_FLOOR_CARD_ASSET_FINGERPRINT_R33
+        // The Table Manager markup now includes inline SVG labels; stale CSS
+        // would expose browser-default 300x150 SVG sizing. Fingerprint this
+        // authority so markup and card CSS can never split across cache eras.
+        $pmdSharedFloorCssPath = base_path('app/admin/assets/css/pmd-shared-floor-multi-floor-v1.css');
+        $this->addCss(
+            asset('app/admin/assets/css/pmd-shared-floor-multi-floor-v1.css')
+            .'?v='
+            .(string)(@filemtime($pmdSharedFloorCssPath) ?: 'r33')
+        );
         // PMD_FLOOR_SCROLL_CHAIN_V127
         $this->addCss('css/pmd-floor-scroll-chain-v127.css');
 
@@ -87,7 +96,12 @@ class Dashboardlab extends AdminController
 
         // Route-scoped copy of the LIVE Floor V1 core only. Appended legacy
         // observer/retry patches are excluded; first geometry comes from Blade.
-        $this->addJs('js/pmd-dashboard-lab-exact-floor-v1.js');
+        $pmdExactFloorJsPath = base_path('app/admin/assets/js/pmd-dashboard-lab-exact-floor-v1.js');
+        $this->addJs(
+            asset('app/admin/assets/js/pmd-dashboard-lab-exact-floor-v1.js')
+            .'?v='
+            .(string)(@filemtime($pmdExactFloorJsPath) ?: 'r33')
+        );
         // Same coordinator used by Manager/Cashier/Reservations shared Floor.
         $this->addJs('js/pmd-shared-floor-multi-floor-v1.js');
 
