@@ -907,7 +907,7 @@
             // PMD_PERF_R8_RELEASE_ASSET_VERSION
             // These files are deployment artifacts. A release version is enough
             // to invalidate browser caches and avoids three SHA-256 file reads.
-            $pmdDashboardComposerCssVersion = 'r8-20260918';
+            $pmdDashboardComposerCssVersion = 'r35-20260927';
             $pmdDashboardComposerJsVersion = 'r8-20260918';
             $pmdDashboardScheduleJsVersion = 'r8-20260918';
         @endphp
