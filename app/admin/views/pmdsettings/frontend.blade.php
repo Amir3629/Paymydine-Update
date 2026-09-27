@@ -52,6 +52,23 @@ body,
         'de'=>'Deutsch','en'=>'English','fa'=>'فارسی','tr'=>'Türkçe','ja'=>'日本語',
         'fr'=>'Français','es'=>'Español','it'=>'Italiano','ar'=>'العربية',
     ];
+
+    // PMD_CUSTOMER_EXPERIENCE_QR_LIBRARY_R39
+    // Keep these ten presentation labels/colors aligned with the existing
+    // pmd-floor-qr-template-studio-r3.js design authority.
+    $pmdCustomerQrTables = array_values((array)($pmdCustomerQrTables ?? []));
+    $pmdQrTemplatesR39 = [
+        ['id'=>'classic','name'=>'Classic White','desc'=>'Clean, bright and easy to print.','bg'=>'#eef4f8','panel'=>'#ffffff','accent'=>'#1f5b91','ink'=>'#12314f'],
+        ['id'=>'midnight','name'=>'Midnight','desc'=>'Premium dark table card.','bg'=>'#071b18','panel'=>'#0d2a25','accent'=>'#8de64e','ink'=>'#ffffff'],
+        ['id'=>'emerald','name'=>'Emerald','desc'=>'Fresh PayMyDine green style.','bg'=>'#e7f7ef','panel'=>'#ffffff','accent'=>'#0f8a68','ink'=>'#103d32'],
+        ['id'=>'bistro','name'=>'Warm Bistro','desc'=>'Warm restaurant table presentation.','bg'=>'#f8efe1','panel'=>'#fffaf2','accent'=>'#a9473d','ink'=>'#4b2b27'],
+        ['id'=>'ocean','name'=>'Ocean Blue','desc'=>'Modern blue hospitality card.','bg'=>'#e8f3ff','panel'=>'#ffffff','accent'=>'#2674c7','ink'=>'#173a63'],
+        ['id'=>'mono','name'=>'Maximum Scan','desc'=>'High-contrast black and white scan style.','bg'=>'#ffffff','panel'=>'#ffffff','accent'=>'#111111','ink'=>'#111111'],
+        ['id'=>'gold','name'=>'Gold Dining','desc'=>'Elegant dark and gold finish.','bg'=>'#171714','panel'=>'#22221d','accent'=>'#d4ad4f','ink'=>'#fff8e3'],
+        ['id'=>'coral','name'=>'Coral Welcome','desc'=>'Friendly and colourful.','bg'=>'#fff0eb','panel'=>'#fffaf8','accent'=>'#ef715f','ink'=>'#502f31'],
+        ['id'=>'tent','name'=>'Table Tent','desc'=>'Bold header for counter or table stands.','bg'=>'#eaf0f5','panel'=>'#ffffff','accent'=>'#15324d','ink'=>'#15324d'],
+        ['id'=>'botanical','name'=>'Botanical','desc'=>'Soft natural restaurant style.','bg'=>'#f0f3e9','panel'=>'#fbfcf7','accent'=>'#718b62','ink'=>'#31432f'],
+    ];
 @endphp
 
 @include('admin::_partials.pmd_settings_family_first_paint_v18')
@@ -63,8 +80,8 @@ body,
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg>
             </a>
             <div>
-                <h1>{{ $pmdSettingsText('Customer menu & themes') }}</h1>
-                <p>{{ $pmdSettingsText('Choose the QR menu design and control the guest experience.') }}</p>
+                <h1>{{ $pmdSettingsText('Customer Experience & Design') }}</h1>
+                <p>{{ $pmdSettingsText('Themes, QR designs and guest-facing settings in one place.') }}</p>
             </div>
         </div>
         <div class="pmd-frontend-header__actions">
@@ -105,6 +122,83 @@ body,
                                 </span>
                                 <span class="pmd-theme-option__check"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"></path></svg></span>
                             </label>
+                        @endforeach
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        {{-- PMD_CUSTOMER_EXPERIENCE_QR_LIBRARY_R39 --}}
+        <section class="pmd-frontend-section pmd-customer-qr-library-r39" data-pmd-customer-qr-library-r39>
+            <div class="pmd-frontend-card">
+                <div class="pmd-frontend-card__header">
+                    <span class="pmd-frontend-section-icon is-emerald">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <rect x="4" y="4" width="6" height="6" rx="1"></rect>
+                            <rect x="14" y="4" width="6" height="6" rx="1"></rect>
+                            <rect x="4" y="14" width="6" height="6" rx="1"></rect>
+                            <path d="M14 14h2v2h-2zM18 14h2v6h-6v-2M16 18h2"></path>
+                        </svg>
+                    </span>
+                    <div>
+                        <h2>{{ $pmdSettingsText('QR Design Library') }}</h2>
+                        <p>{{ $pmdSettingsText('The same 10 table QR designs are available here centrally. Choose a table, then open the studio to preview and download any design.') }}</p>
+                    </div>
+                </div>
+
+                <div class="pmd-frontend-card__body">
+                    <div class="pmd-customer-qr-toolbar-r39">
+                        <label class="pmd-field pmd-customer-qr-table-field-r39">
+                            <span>{{ $pmdSettingsText('Table for preview & download') }}</span>
+                            <select data-pmd-customer-qr-table-r39 {{ empty($pmdCustomerQrTables) ? 'disabled' : '' }}>
+                                @forelse($pmdCustomerQrTables as $table)
+                                    <option
+                                        value="{{ (int)($table['id'] ?? 0) }}"
+                                        data-active="{{ !empty($table['active']) ? '1' : '0' }}"
+                                    >
+                                        {{ $table['name'] ?? ('Table '.($table['number'] ?? '')) }}{{ empty($table['active']) ? ' — Disabled' : '' }}
+                                    </option>
+                                @empty
+                                    <option value="">{{ $pmdSettingsText('No tables available') }}</option>
+                                @endforelse
+                            </select>
+                        </label>
+
+                        <button
+                            type="button"
+                            class="pmd-customer-qr-open-r39"
+                            data-pmd-customer-qr-studio-open-r39
+                            {{ empty($pmdCustomerQrTables) ? 'disabled' : '' }}
+                        >
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M12 3v12"></path>
+                                <path d="m7 10 5 5 5-5"></path>
+                                <path d="M5 19h14"></path>
+                            </svg>
+                            <span>{{ $pmdSettingsText('Preview & download QR designs') }}</span>
+                        </button>
+
+                        <span class="pmd-customer-qr-status-r39" data-pmd-customer-qr-status-r39 aria-live="polite"></span>
+                    </div>
+
+                    <div class="pmd-customer-qr-grid-r39" aria-label="{{ $pmdSettingsText('Available QR designs') }}">
+                        @foreach($pmdQrTemplatesR39 as $index => $template)
+                            <article
+                                class="pmd-customer-qr-template-r39"
+                                style="--pmd-qr-bg:{{ $template['bg'] }};--pmd-qr-panel:{{ $template['panel'] }};--pmd-qr-accent:{{ $template['accent'] }};--pmd-qr-ink:{{ $template['ink'] }}"
+                                data-pmd-customer-qr-template-r39="{{ $template['id'] }}"
+                            >
+                                <div class="pmd-customer-qr-template-preview-r39" aria-hidden="true">
+                                    <span class="pmd-customer-qr-template-number-r39">{{ str_pad((string)($index + 1), 2, '0', STR_PAD_LEFT) }}</span>
+                                    <span class="pmd-customer-qr-template-brand-r39">PayMyDine</span>
+                                    <span class="pmd-customer-qr-template-code-r39"></span>
+                                    <span class="pmd-customer-qr-template-accent-r39"></span>
+                                </div>
+                                <div class="pmd-customer-qr-template-copy-r39">
+                                    <strong>{{ $template['name'] }}</strong>
+                                    <small>{{ $pmdSettingsText($template['desc']) }}</small>
+                                </div>
+                            </article>
                         @endforeach
                     </div>
                 </div>
@@ -240,4 +334,7 @@ body,
     </form>
 </div>
 
-<script defer src="/app/admin/assets/js/pmd-settings-frontend-v2.js?v=20260815_1"></script>
+<link rel="stylesheet" href="/app/admin/assets/css/pmd-floor-qr-template-studio-r3.css?v=20260919-r16">
+<script defer src="/app/admin/assets/js/pmd-floor-qr-template-studio-r3.js?v=20260919-r16"></script>
+<script defer src="/app/admin/assets/js/pmd-settings-frontend-v2.js?v=20260927-r39"></script>
+<script defer src="/app/admin/assets/js/pmd-settings-customer-qr-r39.js?v=20260927-r39"></script>
