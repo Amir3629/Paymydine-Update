@@ -239,9 +239,16 @@
       ) || root.querySelector('[data-pmd-floor-table-manager-panel]');
     }
 
+    /*
+     * PMD_TABLE_MANAGER_FLOOR_CHOICES_R34
+     *
+     * Floor assignment is now an explicit choice surface (same interaction
+     * language as Table features), not a dropdown. The hidden floor_name input
+     * remains the canonical payload field, so backend semantics stay unchanged.
+     */
     function updateTableFloorSelect() {
       var managerPanel = tableManagerPanel();
-      var select = managerPanel
+      var input = managerPanel
         ? managerPanel.querySelector('[data-pmd-floor-table-field="floor_name"]')
         : root.querySelector('[data-pmd-floor-table-field="floor_name"]');
       var field = managerPanel
@@ -250,6 +257,9 @@
       var form = managerPanel
         ? managerPanel.querySelector('[data-pmd-floor-table-manager-form]')
         : root.querySelector('[data-pmd-floor-table-manager-form]');
+      var list = managerPanel
+        ? managerPanel.querySelector('[data-pmd-floor-choice-list]')
+        : root.querySelector('[data-pmd-floor-choice-list]');
       var showFloorField = floors.length > 1;
 
       if (field) field.hidden = !showFloorField;
@@ -260,23 +270,60 @@
         );
       }
 
-      if (!select || select.tagName !== 'SELECT') return;
-      var current = clean(select.value);
-      select.innerHTML = floors.map(function (floor) {
-        var name = clean(floor.name);
-        var option = document.createElement('option');
-        option.value = name;
-        option.textContent = name;
-        return option.outerHTML;
-      }).join('');
+      if (!input) return;
 
-      if (floors.some(function (floor) { return clean(floor.name) === current; })) {
-        select.value = current;
-      } else if (floors.length === 1) {
-        select.value = clean(floors[0].name) || activeName;
-      } else {
-        select.value = activeName;
+      var current = clean(input.value);
+      var exists = floors.some(function (floor) {
+        return clean(floor.name) === current;
+      });
+
+      if (!exists) {
+        if (floors.length === 1) {
+          current = clean(floors[0].name) || activeName;
+        } else {
+          current = activeName;
+        }
       }
+
+      input.value = current;
+
+      if (!list) return;
+      list.innerHTML = '';
+
+      floors.forEach(function (floor) {
+        var name = clean(floor.name);
+        if (!name) return;
+
+        var button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'pmd-floor-table-manager__floor-choice-r34';
+        button.setAttribute('data-pmd-floor-choice', name);
+        button.setAttribute(
+          'aria-pressed',
+          name === current ? 'true' : 'false'
+        );
+        button.textContent = name;
+
+        button.addEventListener('click', function () {
+          input.value = name;
+
+          Array.prototype.forEach.call(
+            list.querySelectorAll('[data-pmd-floor-choice]'),
+            function (choice) {
+              choice.setAttribute(
+                'aria-pressed',
+                choice === button ? 'true' : 'false'
+              );
+            }
+          );
+
+          input.dispatchEvent(
+            new Event('change', { bubbles: true })
+          );
+        });
+
+        list.appendChild(button);
+      });
     }
 
     // PMD_EDIT_FLOOR_CUSTOM_EXISTENCE_V5_JS_START
@@ -812,14 +859,20 @@
       };
     }
 
+    /*
+     * PMD_TABLE_MANAGER_CLEAN_BRANDED_QR_R34
+     *
+     * Keep the canonical QR token in the URL/backend only. Human-facing card
+     * shows the QR + actions; no internal token/explanatory copy is exposed.
+     */
     function renderTableQr(table) {
       var panel = tableManagerPanel();
       if (!panel) return;
+
       var pending = panel.querySelector('[data-pmd-floor-table-qr-pending]');
       var content = panel.querySelector('[data-pmd-floor-table-qr-content]');
       var image = panel.querySelector('[data-pmd-floor-table-qr-image]');
       var link = panel.querySelector('[data-pmd-floor-table-qr-link]');
-      var code = panel.querySelector('[data-pmd-floor-table-qr-code]');
 
       var imageUrl = clean(table && table.qr_image_url);
       var targetUrl = clean(table && table.qr_target_url);
@@ -828,19 +881,21 @@
 
       if (pending) pending.hidden = ready;
       if (content) content.hidden = !ready;
+
       if (image) {
         if (ready) {
           image.src = imageUrl;
           image.alt = 'QR Code for table ' + clean(table.table_no || '');
+          image.decoding = 'async';
         } else {
           image.removeAttribute('src');
         }
       }
+
       if (link) {
         if (ready) link.href = targetUrl;
         else link.removeAttribute('href');
       }
-      if (code) code.textContent = token;
     }
 
     function recaptureAfterRefresh() {
@@ -1283,6 +1338,8 @@
     window.addEventListener('pmd:floor:table-manager:loaded', function (event) {
       var detail = event && event.detail ? event.detail : {};
       if (detail.root !== root) return;
+
+      updateTableFloorSelect();
       renderTableQr(detail.table || {});
     });
 
