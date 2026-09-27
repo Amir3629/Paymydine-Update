@@ -7989,7 +7989,7 @@ function saveLayout() {
     var title = panel.querySelector('[data-pmd-floor-table-manager-title]');
     var subtitle = panel.querySelector('[data-pmd-floor-table-manager-subtitle]');
     var numberLock = panel.querySelector('[data-pmd-floor-table-number-lock]');
-    var qrDownloadButton = panel.querySelector('[data-pmd-floor-table-qr-download]');
+    var qrDownloadButton = panel.querySelector('[data-pmd-floor-table-qr-direct-download]');
     var locationId = asInt(root.getAttribute('data-pmd-floor-table-manager-location'), 0);
     var busy = false;
     var busyPurpose = '';
@@ -8689,8 +8689,23 @@ function saveLayout() {
 
     function downloadQr() {
       if (!qrDownloadButton || qrDownloadButton.disabled) return;
+
       var tableId = asInt(field('table_id') && field('table_id').value, 0);
-      if (tableId < 1) return;
+      var tableNo = String(field('table_no') && field('table_no').value || '').trim();
+      var preferredCapacity = Math.max(
+        1,
+        asInt(
+          field('preferred_capacity') && field('preferred_capacity').value,
+          1
+        )
+      );
+
+      if (tableId < 1 && !tableNo) {
+        showError(new Error('Choose a table number first.'));
+        return;
+      }
+
+      clearErrors();
 
       var originalText = qrDownloadButton.textContent;
       qrDownloadButton.disabled = true;
@@ -8698,12 +8713,14 @@ function saveLayout() {
 
       request(root, 'onPmdFloorTableManagerQrDownload', {
         location_id: locationId,
-        table_id: tableId
+        table_id: tableId,
+        table_no: tableNo,
+        preferred_capacity: preferredCapacity
       }).then(function (payload) {
         if (!payload || !payload.data_url) throw new Error('QR download data is unavailable.');
         var link = document.createElement('a');
         link.href = payload.data_url;
-        link.download = payload.filename || ('paymydine-table-' + tableId + '-qr.png');
+        link.download = payload.filename || ('paymydine-table-' + (tableNo || tableId) + '-qr.png');
         document.body.appendChild(link);
         link.click();
         link.remove();
