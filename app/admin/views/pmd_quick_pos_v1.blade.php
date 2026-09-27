@@ -57,14 +57,14 @@
     <link rel="icon" type="image/svg+xml" href="/app/admin/assets/images/pmd-favicon-final-20260822.svg">
     {{-- PMD_QPOS_EXACT_DASHBOARD_FLOOR_VIEW_V35B
          Reuse the live canonical Dashboard Floor visual stack. --}}
-    <link rel="stylesheet" href="/app/admin/assets/css/pmd-floor-v1.css?v=20260927-floor-card-r33">
-    <link rel="stylesheet" href="/app/admin/assets/css/pmd-floor-v1-stable-v11.css?v=20260927-floor-card-r33">
-    <link rel="stylesheet" href="/app/admin/assets/css/pmd-floor-v1-native-smart-v20.css?v=20260927-floor-card-r33">
-    <link rel="stylesheet" href="/app/admin/assets/css/pmd-reservations-floor-canvas-v310.css?v=20260927-floor-card-r33">
-    <link rel="stylesheet" href="/app/admin/assets/css/pmd-reservations-floor-toolbar-v316.css?v=20260927-floor-card-r33">
-    <link rel="stylesheet" href="/app/admin/assets/css/pmd-reservations-floor-reservation-v312.css?v=20260927-floor-card-r33">
-    <link rel="stylesheet" href="/app/admin/assets/css/pmd-dashboard-lab-exact-floor-v1.css?v=20260927-floor-card-r33">
-    <link rel="stylesheet" href="/app/admin/assets/css/pmd-shared-floor-multi-floor-v1.css?v=20260927-floor-card-r33">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-floor-v1.css?v=20260927-floor-card-r34">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-floor-v1-stable-v11.css?v=20260927-floor-card-r34">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-floor-v1-native-smart-v20.css?v=20260927-floor-card-r34">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-reservations-floor-canvas-v310.css?v=20260927-floor-card-r34">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-reservations-floor-toolbar-v316.css?v=20260927-floor-card-r34">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-reservations-floor-reservation-v312.css?v=20260927-floor-card-r34">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-dashboard-lab-exact-floor-v1.css?v=20260927-floor-card-r34">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-shared-floor-multi-floor-v1.css?v=20260927-floor-card-r34">
     <!-- PMD_FLOOR_SCROLL_CHAIN_V127 -->
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-floor-scroll-chain-v127.css?v=20260925-v127">
     <link rel="stylesheet" href="/app/admin/assets/css/push-notifications.css?v=20260922-qpos-v59">
@@ -1015,8 +1015,8 @@ window.PMDQuickPOSConfig = {
 })();
 </script>
 {{-- Canonical Floor runtime mounts after the Quick POS endpoint override. --}}
-<script src="/app/admin/assets/js/pmd-dashboard-lab-exact-floor-v1.js?v=20260927-floor-card-r33"></script>
-<script src="/app/admin/assets/js/pmd-shared-floor-multi-floor-v1.js?v=20260927-floor-card-r33"></script>
+<script src="/app/admin/assets/js/pmd-dashboard-lab-exact-floor-v1.js?v=20260927-floor-card-r34"></script>
+<script src="/app/admin/assets/js/pmd-shared-floor-multi-floor-v1.js?v=20260927-floor-card-r34"></script>
 {{-- PMD_QPOS_PUSH_NOTIFICATIONS_V57
      Reuse the canonical Admin push stream for immediate notifications.
      V73 also runs one lean operational-state heartbeat for table/KDS sync. --}}
