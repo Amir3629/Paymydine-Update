@@ -62,7 +62,8 @@
     var root = document.getElementById('pmd-frontend-settings');
     if (!root) return;
 
-    root.setAttribute('data-pmd-theme-only-r1', '1');
+    root.removeAttribute('data-pmd-theme-only-r1');
+    root.setAttribute('data-pmd-customer-experience-r39', '1');
 
     setText(
       root.querySelector('.pmd-frontend-header h1'),
@@ -74,7 +75,7 @@
     );
     setText(
       root.querySelector('.pmd-frontend-bottom-save .pmd-frontend-primary-button span'),
-      pmdStableT('settings.frontend.save_theme', 'Save theme')
+      pmdStableT('settings.frontend.save_customer_experience', 'Save customer experience')
     );
   }
 
