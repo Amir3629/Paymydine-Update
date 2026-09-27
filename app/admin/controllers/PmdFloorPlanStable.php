@@ -15,7 +15,80 @@ class PmdFloorPlanStable extends \Admin\Classes\AdminController
     private function firstTable($names) { foreach($names as $n) if (Schema::hasTable($n)) return $n; return null; }
     private function detect() { return ['tables'=>'tables','menus'=>$this->firstTable(['menus','menu_items']),'orders'=>$this->firstTable(['orders']),'order_items'=>$this->firstTable(['order_menus','order_items']),'reservations'=>$this->firstTable(['reservations']),'waiter_calls'=>$this->firstTable(['waiter_calls','table_notes']),'merges'=>$this->firstTable(['pmd_table_merges','table_merge_groups'])]; }
     private function menuRows($d) { $t=$d['menus']; if(!$t) return []; $c=$this->cols($t); $pk=$this->pk($t,['menu_id','id']); $name=$this->col($c,['menu_name','name','title']); $price=$this->col($c,['menu_price','price']); $active=$this->col($c,['menu_status','status','is_enabled','enabled']); $q=DB::table($t); if($active) $q->where($active,1); $out=[]; foreach($q->limit(300)->get() as $r){ if($active && !$this->active($r->$active ?? null)) continue; $out[]=['id'=>$r->$pk,'menu_id'=>$r->$pk,'name'=>(string)($r->$name ?? ('Item '.$r->$pk)),'price'=>(float)($price?($r->$price ?? 0):0)]; } return $out; }
-    private function tableRows($d) { $c=$this->cols('tables'); $pk=$this->pk('tables',['table_id','id']); $q=DB::table('tables')->where('table_status',1); if(isset($c['visible_on_floor_plan'])) $q->where('visible_on_floor_plan',1); if(isset($c['priority'])) $q->orderBy('priority'); $q->orderBy($pk); $rows=$q->get(); $out=[]; $i=0; foreach($rows as $r){ $i++; $features=$r->table_features ?? []; if(is_string($features)) $features=json_decode($features,true) ?: []; $min=(int)($r->min_capacity ?? 0); $max=(int)($r->max_capacity ?? 0); $extra=(int)($r->extra_capacity ?? 0); $label=trim((string)($r->table_name ?: ('Table '.($r->table_no ?: $r->$pk)))); $x=$r->floor_x ?? null; $y=$r->floor_y ?? null; if($x===null || $y===null){ $x=20+(($i-1)%5)*170; $y=30+floor(($i-1)/5)*130; } $out[]=['id'=>(int)$r->$pk,'number'=>(string)($r->table_no ?? $r->$pk),'name'=>$label,'label'=>$label,'enabled'=>true,'visible_on_floor_plan'=>true,'section'=>$r->table_section ?? 'indoor','min_capacity'=>$min,'max_capacity'=>$max,'extra_capacity'=>$extra,'preferred_capacity'=>$r->preferred_capacity ?? null,'capacity_label'=>($min&&$max?"$min-$max":($max?:$min)).($extra?' +'.$extra:''),'features'=>array_values($features),'floor'=>['x'=>(float)$x,'y'=>(float)$y,'w'=>(float)($r->floor_width ?? 140),'h'=>(float)($r->floor_height ?? 90),'shape'=>$r->floor_shape ?? 'rectangle'],'reservation'=>['status'=>'none','next_time'=>null,'guest_name'=>null,'party_size'=>null,'notes'=>null],'order'=>['status'=>'free','open_orders'=>0,'ready_items'=>0,'due'=>0,'last_order_time'=>null,'order_ids'=>[]],'waiter'=>['assigned_to_me'=>$this->role()!=='waiter','assigned_waiter_id'=>null,'assigned_waiter_name'=>null],'alerts'=>['waiter_call'=>false,'guest_note'=>false,'allergy'=>false,'payment_pending'=>false]]; } return $out; }
+    private function tableRows($d) {
+        $c=$this->cols('tables');
+        $pk=$this->pk('tables',['table_id','id']);
+        // PMD_TABLE_ENABLE_DISABLE_R39: keep disabled physical tables visible.
+        $q=DB::table('tables');
+        if(isset($c['visible_on_floor_plan'])) $q->where('visible_on_floor_plan',1);
+        if(isset($c['priority'])) $q->orderBy('priority');
+        $q->orderBy($pk);
+        $rows=$q->get();
+        $out=[];
+        $i=0;
+        foreach($rows as $r){
+            $i++;
+            $features=$r->table_features ?? [];
+            if(is_string($features)) $features=json_decode($features,true) ?: [];
+            $min=(int)($r->min_capacity ?? 0);
+            $max=(int)($r->max_capacity ?? 0);
+            $extra=(int)($r->extra_capacity ?? 0);
+            $label=trim((string)($r->table_name ?: ('Table '.($r->table_no ?: $r->$pk))));
+            $x=$r->floor_x ?? null;
+            $y=$r->floor_y ?? null;
+            if($x===null || $y===null){
+                $x=20+(($i-1)%5)*170;
+                $y=30+floor(($i-1)/5)*130;
+            }
+            $enabled=!isset($c['table_status']) || (bool)($r->table_status ?? true);
+            $floorNote=trim((string)($r->floor_notes ?? ''));
+            $out[]=[
+                'id'=>(int)$r->$pk,
+                'table_id'=>(int)$r->$pk,
+                'number'=>(string)($r->table_no ?? $r->$pk),
+                'name'=>$label,
+                'label'=>$label,
+                'enabled'=>$enabled,
+                'table_status'=>$enabled,
+                'status'=>$enabled ? 'available' : 'disabled',
+                'visible_on_floor_plan'=>true,
+                'section'=>$r->table_section ?? 'indoor',
+                'min_capacity'=>$min,
+                'max_capacity'=>$max,
+                'extra_capacity'=>$extra,
+                'preferred_capacity'=>$r->preferred_capacity ?? null,
+                'capacity_label'=>($min&&$max?"$min-$max":($max?:$min)).($extra?' +'.$extra:''),
+                'features'=>array_values($features),
+                'note'=>$floorNote,
+                'notes'=>$floorNote,
+                'floor_notes'=>$floorNote,
+                'floor'=>[
+                    'x'=>(float)$x,
+                    'y'=>(float)$y,
+                    'w'=>(float)($r->floor_width ?? 140),
+                    'h'=>(float)($r->floor_height ?? 90),
+                    'shape'=>$r->floor_shape ?? 'rectangle'
+                ],
+                'reservation'=>[
+                    'status'=>'none','next_time'=>null,'guest_name'=>null,
+                    'party_size'=>null,'notes'=>null
+                ],
+                'order'=>[
+                    'status'=>'free','open_orders'=>0,'ready_items'=>0,
+                    'due'=>0,'last_order_time'=>null,'order_ids'=>[]
+                ],
+                'waiter'=>[
+                    'assigned_to_me'=>$this->role()!=='waiter',
+                    'assigned_waiter_id'=>null,'assigned_waiter_name'=>null
+                ],
+                'alerts'=>[
+                    'waiter_call'=>false,'guest_note'=>false,'allergy'=>false,
+                    'payment_pending'=>false
+                ]
+            ];
+        }
+        return $out;
+    }
     private function dataArray(){ $d=$this->detect(); $tables=$this->tableRows($d); $menus=$this->menuRows($d); $k=['tables'=>count($tables),'assigned'=>0,'ready'=>0,'active_orders'=>0,'attention'=>0,'checks_due'=>0]; foreach($tables as $t){ if($t['waiter']['assigned_to_me']) $k['assigned']++; } return ['ok'=>true,'version'=>'stable-floor-v1','role'=>$this->role(),'generated_at'=>date('c'),'tables'=>$tables,'menus'=>$menus,'menu_items'=>$menus,'kpis'=>$k,'sources'=>['tables'=>'Admin\\Models\\Tables_model / tables table used by /admin/tables','menus'=>$d['menus'],'reservations'=>$d['reservations'],'orders'=>$d['orders'],'order_items'=>$d['order_items'],'waiter_calls'=>$d['waiter_calls'],'merges'=>$d['merges']]]; }
     public function data(){ if($this->role()==='kds') return $this->json(['ok'=>true,'version'=>'stable-floor-v1','role'=>'kds','tables'=>[],'menus'=>[],'kpis'=>['tables'=>0]]); return $this->json($this->dataArray()); }
     public function audit(){ $d=$this->detect(); $cols=$this->cols('tables'); $missing=array_values(array_diff(['floor_x','floor_y','floor_width','floor_height','floor_shape','table_section','preferred_capacity','table_features','floor_notes','reservable','reservation_priority','visible_on_floor_plan'], array_keys($cols))); $enabled=Schema::hasTable('tables')?DB::table('tables')->where('table_status',1)->count():0; $visible=Schema::hasColumn('tables','visible_on_floor_plan')?DB::table('tables')->where('table_status',1)->where('visible_on_floor_plan',1)->count():$enabled; return $this->json(['ok'=>true,'version'=>'stable-floor-v1','role'=>$this->role(),'user'=>['id'=>optional($this->user())->id ?? optional($this->user())->staff_id ?? null],'detected'=>['table_model'=>'Admin\\Models\\Tables_model','table_name'=>'tables','menu_table'=>$d['menus'],'orders_table'=>$d['orders'],'order_items_table'=>$d['order_items'],'reservations_table'=>$d['reservations'],'waiter_calls_notes_source'=>$d['waiter_calls'],'merges_table'=>$d['merges']],'counts'=>['enabled_tables'=>$enabled,'visible_on_floor_plan_tables'=>$visible,'enabled_menu_items'=>count($this->menuRows($d))],'missing_fields'=>$missing,'warnings'=>$missing?['Run migrations to add floor metadata columns.']:[]]); }
