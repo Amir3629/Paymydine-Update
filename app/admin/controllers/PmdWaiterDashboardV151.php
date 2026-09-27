@@ -47,7 +47,24 @@ class PmdWaiterDashboardV151 extends PmdWaiterDashboardV150
         // Payment and the physical table lifecycle are independent. A settled
         // order is allowed to disappear from open_orders, but the table stays
         // busy until Waiter/Cashier explicitly changes operational_status.
+        $disabled = count(array_filter($tables, function ($table) {
+            return (
+                array_key_exists('table_status', $table)
+                && !$table['table_status']
+            ) || (
+                array_key_exists('enabled', $table)
+                && !$table['enabled']
+            );
+        }));
+
         $busy = count(array_filter($tables, function ($table) {
+            if (
+                (array_key_exists('table_status', $table) && !$table['table_status'])
+                || (array_key_exists('enabled', $table) && !$table['enabled'])
+            ) {
+                return false;
+            }
+
             $operational = strtolower(trim((string)($table['operational_status'] ?? '')));
             return (int)($table['open_orders'] ?? 0) > 0
                 || in_array($operational, ['occupied', 'cleaning', 'reserved'], true);
@@ -95,7 +112,7 @@ class PmdWaiterDashboardV151 extends PmdWaiterDashboardV150
         unset($order);
 
         $totalTables = count($tables);
-        $free = max(0, $totalTables - $busy);
+        $free = max(0, $totalTables - $busy - $disabled);
 
         return array_merge($base, [
             'ok' => true,
@@ -122,6 +139,7 @@ class PmdWaiterDashboardV151 extends PmdWaiterDashboardV150
                         'total' => $totalTables,
                         'busy' => $busy,
                         'free' => $free,
+                        'disabled' => $disabled,
                         'active' => $busy,
                     ],
                 ],
