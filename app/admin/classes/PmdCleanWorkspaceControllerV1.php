@@ -2232,6 +2232,9 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
             if (!$pk) return $bootstrap;
 
             $select = [$pk, 'operational_status'];
+            if (in_array('table_status', $columns, true)) {
+                $select[] = 'table_status';
+            }
             foreach (['table_no', 'pos_table_label'] as $column) {
                 if (in_array($column, $columns, true)) {
                     $select[] = $column;
@@ -2246,14 +2249,23 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
                     ->get(array_values(array_unique($select)))
                 as $table
             ) {
-                $status = strtolower(trim((string)(
-                    $table->operational_status ?? ''
-                )));
+                $productEnabled = !in_array(
+                    'table_status',
+                    $columns,
+                    true
+                ) || (bool)($table->table_status ?? true);
+
+                $status = $productEnabled
+                    ? strtolower(trim((string)(
+                        $table->operational_status ?? ''
+                    )))
+                    : 'disabled';
+
                 if ($status === 'free') $status = 'available';
 
                 if (!in_array(
                     $status,
-                    ['available', 'occupied', 'cleaning', 'reserved'],
+                    ['available', 'occupied', 'cleaning', 'reserved', 'disabled'],
                     true
                 )) {
                     continue;
@@ -2278,6 +2290,7 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
                 'occupied' => 2,
                 'reserved' => 3,
                 'cleaning' => 4,
+                'disabled' => 5,
             ];
 
             $resolve = static function (array $row) use (
@@ -2351,9 +2364,18 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
                     $physical = $resolve($row);
                     if ($physical === null) continue;
 
-                    $row['operational_status'] = $physical;
-                    $row['table_operational_status'] = $physical;
                     $row['physical_status'] = $physical;
+                    $row['table_status'] = $physical !== 'disabled';
+                    $row['enabled'] = $physical !== 'disabled';
+
+                    if ($physical === 'disabled') {
+                        // Keep the last operational lifecycle state separate from
+                        // product availability. Disabled owns the rendered Floor state.
+                        $row['status'] = 'disabled';
+                    } else {
+                        $row['operational_status'] = $physical;
+                        $row['table_operational_status'] = $physical;
+                    }
 
                     $current = strtolower(trim((string)(
                         $row['status'] ?? ''
@@ -2366,9 +2388,11 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
                         || !empty($row['waiter_call'])
                         || trim((string)($row['note'] ?? '')) !== '';
 
-                    // Attention can decorate an occupied table. Otherwise the
-                    // canonical physical state owns the Floor colour outright.
-                    if (!$hasAttention) {
+                    // Product-disabled always wins. Otherwise attention may
+                    // decorate an occupied table without changing lifecycle state.
+                    if ($physical === 'disabled') {
+                        $row['status'] = 'disabled';
+                    } elseif (!$hasAttention) {
                         $row['status'] = $physical;
                     }
                 }
