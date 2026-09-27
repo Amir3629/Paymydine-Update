@@ -1370,8 +1370,16 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
         try {
             \Illuminate\Support\Facades\DB::transaction(function () use ($table, $locationId, $tableId) {
                 if ($locationId > 0) {
-                    app(\Admin\Services\PmdSharedFloorRegistryV1::class)
-                        ->assignTable($locationId, $tableId, 'Main Floor');
+                    // PMD_TABLE_DELETE_RENAMED_DEFAULT_FLOOR_R41
+                    // "Main Floor" is only the initial display name. The default
+                    // Floor can be renamed (for example to "Indoor"), so delete
+                    // must clear the assignment using its immutable floor id.
+                    $registry = app(\Admin\Services\PmdSharedFloorRegistryV1::class);
+                    $registry->assignTable(
+                        $locationId,
+                        $tableId,
+                        $registry->defaultFloorId()
+                    );
                 }
 
                 $table->delete();
