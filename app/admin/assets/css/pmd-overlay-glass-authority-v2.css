@@ -370,3 +370,27 @@ html body #pmd-reservation-composer-v1
     transition: none !important;
   }
 }
+
+
+/* ============================================================
+   PMD_TABLE_MANAGER_ZERO_MOTION_R32
+   Create/Edit Table owns the lightweight Card Language V1 plane.
+   Do not replay the platform 180ms modal animation or live backdrop blur.
+   ============================================================ */
+html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+.pmd-floor-table-manager__card,
+html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+.pmd-floor-table-manager__backdrop {
+  animation: none !important;
+  transition: none !important;
+  transform: none !important;
+  opacity: 1 !important;
+}
+
+html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+.pmd-floor-table-manager__backdrop {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  filter: none !important;
+  -webkit-filter: none !important;
+}
