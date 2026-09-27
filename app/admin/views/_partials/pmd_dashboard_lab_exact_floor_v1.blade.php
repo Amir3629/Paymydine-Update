@@ -1676,35 +1676,48 @@ body.pmd-dashboard-lab-page
                         </div>
                     </fieldset>
 
-                    <label class="pmd-floor-table-manager__field is-notes">
-                        <span class="pmd-floor-table-manager__field-title">
-                            <svg width="38" height="38" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h14v16H5z"></path><path d="M8 8h8M8 12h8M8 16h5"></path></svg>
-                            <b>{{ $pmdFloorTableManagerText['notes'] }}</b>
-                        </span>
-                        <textarea rows="2" maxlength="1000" data-pmd-floor-table-field="floor_notes" placeholder="{{ $pmdFloorTableManagerText['notes_placeholder'] }}"></textarea>
-                    </label>
-
-                    <section class="pmd-floor-table-manager__qr-preview" data-pmd-floor-table-qr-preview aria-label="QR Code">
-                        <div class="pmd-floor-table-manager__qr-pending" data-pmd-floor-table-qr-pending>
-                            <svg class="pmd-floor-table-manager__qr-icon" width="38" height="38" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="6" height="6" rx="1"></rect><rect x="14" y="4" width="6" height="6" rx="1"></rect><rect x="4" y="14" width="6" height="6" rx="1"></rect><path d="M14 14h2v2h-2zM18 14h2v6h-6v-2M16 18h2"></path></svg>
-                            <strong>{{ $pmdFloorTableManagerLocale === 'de' ? 'QR-Code' : 'QR code' }}</strong>
-                        </div>
-
-                        <div class="pmd-floor-table-manager__qr-content pmd-floor-table-manager__qr-content--clean-r34" data-pmd-floor-table-qr-content hidden>
-                            <div class="pmd-floor-table-manager__qr-image-wrap-r34">
-                                <img data-pmd-floor-table-qr-image alt="QR Code">
-                                <span class="pmd-floor-table-manager__qr-brand-r34" aria-hidden="true">
-                                    <img src="/brand/paymydine-logo.svg" width="26" height="26" alt="" style="width:26px!important;height:26px!important;object-fit:contain!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important;">
-                                </span>
+                    <!-- PMD_TABLE_MANAGER_NOTE_QR_ROW_R38 -->
+                    <div class="pmd-floor-table-manager__note-qr-row-r38">
+                        <section class="pmd-floor-table-manager__qr-preview" data-pmd-floor-table-qr-preview aria-label="QR Code">
+                            <div class="pmd-floor-table-manager__qr-heading-r38">
+                                <svg class="pmd-floor-table-manager__qr-icon" width="38" height="38" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="6" height="6" rx="1"></rect><rect x="14" y="4" width="6" height="6" rx="1"></rect><rect x="4" y="14" width="6" height="6" rx="1"></rect><path d="M14 14h2v2h-2zM18 14h2v6h-6v-2M16 18h2"></path></svg>
+                                <strong>{{ $pmdFloorTableManagerLocale === 'de' ? 'QR-Code' : 'QR code' }}</strong>
                             </div>
-                            <div class="pmd-floor-table-manager__qr-copy pmd-floor-table-manager__qr-copy--actions-only-r34">
-                                <div class="pmd-floor-table-manager__qr-actions">
-                                    <a data-pmd-floor-table-qr-link target="_blank" rel="noopener noreferrer">{{ $pmdFloorTableManagerLocale === 'de' ? 'Kundenmenü öffnen' : 'Open customer menu' }}</a>
-                                    <button type="button" data-pmd-floor-table-qr-download data-pmd-floor-qr-template-trigger-r3="1">{{ $pmdFloorTableManagerLocale === 'de' ? 'Design wählen & herunterladen' : 'Choose design & download' }}</button>
+
+                            <div class="pmd-floor-table-manager__qr-content pmd-floor-table-manager__qr-content--clean-r34" data-pmd-floor-table-qr-content hidden>
+                                <div class="pmd-floor-table-manager__qr-stack-r38">
+                                    <a
+                                        class="pmd-floor-table-manager__qr-link-r38"
+                                        data-pmd-floor-table-qr-link
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        aria-label="{{ $pmdFloorTableManagerLocale === 'de' ? 'Kundenmenü öffnen' : 'Open customer menu' }}"
+                                    >
+                                        <span class="pmd-floor-table-manager__qr-image-wrap-r34">
+                                            <img data-pmd-floor-table-qr-image alt="QR Code">
+                                            <span class="pmd-floor-table-manager__qr-brand-r34" aria-hidden="true">
+                                                <img src="/brand/paymydine-logo.svg" width="26" height="26" alt="" style="width:26px!important;height:26px!important;object-fit:contain!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important;">
+                                            </span>
+                                        </span>
+                                    </a>
+
+                                    <button
+                                        type="button"
+                                        class="pmd-floor-table-manager__qr-direct-download-r38"
+                                        data-pmd-floor-table-qr-direct-download
+                                    >{{ $pmdFloorTableManagerLocale === 'de' ? 'QR-Code herunterladen' : 'Download QR code' }}</button>
                                 </div>
                             </div>
-                        </div>
-                    </section>
+                        </section>
+
+                        <label class="pmd-floor-table-manager__field is-notes pmd-floor-table-manager__field--notes-r38">
+                            <span class="pmd-floor-table-manager__field-title">
+                                <svg width="38" height="38" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h14v16H5z"></path><path d="M8 8h8M8 12h8M8 16h5"></path></svg>
+                                <b>{{ $pmdFloorTableManagerText['notes'] }}</b>
+                            </span>
+                            <textarea rows="2" maxlength="1000" data-pmd-floor-table-field="floor_notes" placeholder="{{ $pmdFloorTableManagerText['notes_placeholder'] }}"></textarea>
+                        </label>
+                    </div>
 
                     <div class="pmd-floor-table-manager__error" data-pmd-floor-table-manager-error hidden></div>
                 </form>
