@@ -1670,14 +1670,21 @@ ${ROOT} [${BUTTON_ATTR}][aria-disabled="true"] {
 
         /*
          * PMD_RESERVATION_COMPOSER_SKIP_MODAL_CHROME_R18
+         * PMD_TABLE_MANAGER_SKIP_MODAL_CHROME_R33
          *
-         * Reservation Composer owns its own buttons/radii/chrome. The global
-         * modal equalizer must not traverse or reclassify that card on open.
+         * Reservation Composer and the canonical Table Manager own their own
+         * buttons/radii/chrome. The global modal equalizer must not traverse
+         * or reclassify either card on open.
          */
         if (
             card.closest
-            && card.closest(
-                '#pmd-reservation-composer-v1'
+            && (
+                card.closest(
+                    '#pmd-reservation-composer-v1'
+                )
+                || card.closest(
+                    '.pmd-floor-table-manager'
+                )
             )
         ) {
             card
