@@ -481,6 +481,13 @@ Route::get('/table-orders/state', function (\Illuminate\Http\Request $request) u
 ) {
     $pmdRoundEnsureSchema();
     $context = $resolveTableDraftContext($request);
+    if (!empty($context['disabled'])) {
+        return response()->json([
+            'success' => false,
+            'code' => 'table_disabled',
+            'error' => 'This table is currently unavailable.',
+        ], 409);
+    }
     if (!$context['table']) return response()->json(['success' => false, 'error' => 'A valid table is required'], 422);
     $guestSessionId = trim((string)$request->query('guest_session_id', ''));
     $sessionKey = $pmdRoundResolveSessionKey($context, $guestSessionId, true);
@@ -613,6 +620,13 @@ Route::post('/table-orders/confirm-items', function (\Illuminate\Http\Request $r
         'confirmation_id' => 'nullable|string|max:191',
     ]);
     $context = $resolveTableDraftContext($request);
+    if (!empty($context['disabled'])) {
+        return response()->json([
+            'success' => false,
+            'code' => 'table_disabled',
+            'error' => 'This table is currently unavailable.',
+        ], 409);
+    }
     if (!$context['table']) return response()->json(['success' => false, 'error' => 'A valid table is required'], 422);
     $guestSessionId = trim((string)$request->input('guest_session_id', ''));
     $confirmationId = trim((string)$request->input('confirmation_id', ''));
@@ -729,6 +743,13 @@ Route::post('/table-orders/submit', function (\Illuminate\Http\Request $request)
 ) {
     $pmdRoundEnsureSchema();
     $context = $resolveTableDraftContext($request);
+    if (!empty($context['disabled'])) {
+        return response()->json([
+            'success' => false,
+            'code' => 'table_disabled',
+            'error' => 'This table is currently unavailable.',
+        ], 409);
+    }
     if (!$context['table']) return response()->json(['success' => false, 'error' => 'A valid table is required'], 422);
     $draftId = (int)$request->input('draft_id', 0);
     if ($draftId <= 0) return response()->json(['success' => false, 'error' => 'draft_id is required'], 422);
