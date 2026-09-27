@@ -82,9 +82,8 @@ class PmdFloorPlanCleanV139
 
         $q = DB::table('tables');
 
-        if ($has('table_status')) {
-            $q->where('table_status', 1);
-        }
+        // PMD_TABLE_ENABLE_DISABLE_R39
+        // Keep disabled tables visible in this legacy Floor payload.
 
         if ($has('visible_on_floor_plan')) {
             $q->where(function ($x) {
@@ -145,6 +144,8 @@ class PmdFloorPlanCleanV139
             }
 
             $features = $this->parseFeatures($a['table_features'] ?? null);
+            $enabled = !$has('table_status') || (bool)($a['table_status'] ?? true);
+            $floorNote = trim((string)($a['floor_notes'] ?? ''));
 
             $out[] = [
                 'id' => $id,
@@ -153,7 +154,9 @@ class PmdFloorPlanCleanV139
                 'table_no' => $number,
                 'name' => $name,
                 'label' => $label,
-                'enabled' => true,
+                'enabled' => $enabled,
+                'table_status' => $enabled,
+                'status' => $enabled ? 'free' : 'disabled',
                 'visible_on_floor_plan' => true,
                 'section' => $a['table_section'] ?? 'main',
                 'min_capacity' => $min,
@@ -162,7 +165,9 @@ class PmdFloorPlanCleanV139
                 'preferred_capacity' => $this->num($a['preferred_capacity'] ?? null),
                 'capacity_label' => $this->capacityLabel($min, $max, $extra),
                 'features' => $features,
-                'notes' => $a['floor_notes'] ?? null,
+                'note' => $floorNote,
+                'notes' => $floorNote,
+                'floor_notes' => $floorNote,
                 'reservable' => (bool)($a['reservable'] ?? true),
                 'reservation_priority' => (int)($a['reservation_priority'] ?? 0),
                 'floor' => [
