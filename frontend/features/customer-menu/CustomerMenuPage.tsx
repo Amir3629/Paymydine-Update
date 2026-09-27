@@ -425,6 +425,32 @@ function MenuContent() {
     )
   }
 
+  // PMD_TABLE_ENABLE_DISABLE_R40
+  const shouldShowDisabledTableFallback =
+    !isLoading &&
+    Boolean(tableInfo?.table_disabled || tableInfo?.disabled)
+
+  if (shouldShowDisabledTableFallback) {
+    const disabledTableLabel =
+      tableInfo?.table_no ?? tableInfo?.table_id ?? displayTableNumber ?? null
+
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#fbf8f2] px-6 text-center text-[#242320]">
+        <div className="max-w-md rounded-3xl border border-[#d8b982] bg-white/90 p-6 shadow-sm">
+          <h1 className="text-xl font-bold">This table is currently unavailable.</h1>
+          <p className="mt-3 text-sm leading-6 text-[#6b6258]">
+            Please ask a member of staff for another table before ordering.
+          </p>
+          {disabledTableLabel != null ? (
+            <div className="mt-4 inline-flex rounded-full bg-[#eef7f3] px-4 py-2 text-sm font-bold text-[#075c47]">
+              Table {String(disabledTableLabel)}
+            </div>
+          ) : null}
+        </div>
+      </div>
+    )
+  }
+
   // PMD_AUDIT_PHASE2_MISSING_TABLE_FALLBACK
   const hasTableLookupHint = Boolean(
     tableIdString ||
