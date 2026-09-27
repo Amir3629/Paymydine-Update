@@ -2173,8 +2173,8 @@ html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
 }
 
 /* Sidebar and workspace blur in the same frame with the exact same filter. */
-html.pmd-floor-table-manager-open body #pmd-dashboard-lab,
-html.pmd-floor-table-manager-open body #pmd-side-menu2 {
+html.pmd-floor-table-manager-bgblur-r32 body #pmd-dashboard-lab,
+html.pmd-floor-table-manager-bgblur-r32 body #pmd-side-menu2 {
   filter: blur(6px) saturate(.92) !important;
   -webkit-filter: blur(6px) saturate(.92) !important;
   opacity: 1 !important;
@@ -2184,7 +2184,7 @@ html.pmd-floor-table-manager-open body #pmd-side-menu2 {
   pointer-events: none !important;
 }
 
-html.pmd-floor-table-manager-open body #pmd-side-menu2 {
+html.pmd-floor-table-manager-bgblur-r32 body #pmd-side-menu2 {
   z-index: 2147483645 !important;
 }
 
