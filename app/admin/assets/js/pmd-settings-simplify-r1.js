@@ -33,8 +33,8 @@
       }
 
       if (/\/admin\/pmdsettings\/frontend(?:$|\?)/.test(href)) {
-        if (title) title.textContent = 'Customer menu theme';
-        if (description) description.textContent = 'Choose the active QR menu theme.';
+        if (title) title.textContent = 'Customer Experience';
+        if (description) description.textContent = 'Themes, QR designs and guest-facing settings.';
       }
     });
   }
@@ -44,22 +44,27 @@
 
     var root = document.getElementById('pmd-frontend-settings');
     if (!root) return;
-    root.setAttribute('data-pmd-theme-only-r1', '1');
 
-    var sections = Array.prototype.slice.call(root.querySelectorAll('.pmd-frontend-form > .pmd-frontend-section'));
-    sections.forEach(function (section, index) {
-      if (index > 0) hideNode(section);
+    // PMD_SETTINGS_CUSTOMER_EXPERIENCE_R39
+    // This page is no longer theme-only. Theme, QR designs and guest-facing
+    // options intentionally remain visible together.
+    root.removeAttribute('data-pmd-theme-only-r1');
+    root.setAttribute('data-pmd-customer-experience-r39', '1');
+
+    Array.prototype.slice.call(
+      root.querySelectorAll('.pmd-frontend-form > .pmd-frontend-section[hidden], .pmd-frontend-advanced[hidden]')
+    ).forEach(function (node) {
+      node.hidden = false;
+      node.removeAttribute('aria-hidden');
     });
-
-    Array.prototype.slice.call(root.querySelectorAll('.pmd-frontend-advanced')).forEach(hideNode);
 
     var heading = root.querySelector('.pmd-frontend-header h1');
     var subtitle = root.querySelector('.pmd-frontend-header__left p');
-    if (heading) heading.textContent = 'Customer menu theme';
-    if (subtitle) subtitle.textContent = 'Choose the active QR menu design.';
+    if (heading) heading.textContent = 'Customer Experience & Design';
+    if (subtitle) subtitle.textContent = 'Themes, QR designs and guest-facing settings in one place.';
 
     var saveCopy = root.querySelector('.pmd-frontend-bottom-save .pmd-frontend-primary-button span');
-    if (saveCopy) saveCopy.textContent = 'Save theme';
+    if (saveCopy) saveCopy.textContent = 'Save customer experience';
   }
 
   function cleanLogoRemoveControl() {
