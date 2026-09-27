@@ -861,9 +861,12 @@
 
     /*
      * PMD_TABLE_MANAGER_CLEAN_BRANDED_QR_R34
+     * PMD_TABLE_MANAGER_PREPARED_QR_R35
      *
-     * Keep the canonical QR token in the URL/backend only. Human-facing card
-     * shows the QR + actions; no internal token/explanatory copy is exposed.
+     * Existing tables keep their canonical QR. Create mode also gets a stable
+     * table-number QR immediately, before the row exists. That prepared URL
+     * resolves by table_no after save and naturally returns "Table not found"
+     * before the table has been created.
      */
     function renderTableQr(table) {
       var panel = tableManagerPanel();
@@ -876,8 +879,7 @@
 
       var imageUrl = clean(table && table.qr_image_url);
       var targetUrl = clean(table && table.qr_target_url);
-      var token = clean(table && table.qr_code);
-      var ready = Boolean(imageUrl && targetUrl && token);
+      var ready = Boolean(imageUrl && targetUrl);
 
       if (pending) pending.hidden = ready;
       if (content) content.hidden = !ready;
@@ -896,6 +898,94 @@
         if (ready) link.href = targetUrl;
         else link.removeAttribute('href');
       }
+    }
+
+    function preparedCreateQrFromFields() {
+      var panel = tableManagerPanel();
+      if (!panel) return null;
+
+      var idField = panel.querySelector(
+        '[data-pmd-floor-table-field="table_id"]'
+      );
+      if (Number(idField && idField.value || 0) > 0) {
+        return null;
+      }
+
+      var numberField = panel.querySelector(
+        '[data-pmd-floor-table-field="table_no"]'
+      );
+      var capacityField = panel.querySelector(
+        '[data-pmd-floor-table-field="preferred_capacity"]'
+      );
+
+      var tableNo = clean(
+        numberField
+        && numberField.value
+      );
+
+      if (!tableNo) return null;
+
+      var capacity = Math.max(
+        1,
+        Number(
+          capacityField
+          && capacityField.value
+        )
+        || 1
+      );
+
+      var params = new URLSearchParams();
+      params.set(
+        'location',
+        String(
+          Number(config.location_id || 0)
+          || 0
+        )
+      );
+      params.set(
+        'guest',
+        String(capacity)
+      );
+      params.set(
+        'table_no',
+        tableNo
+      );
+      params.set(
+        'table',
+        tableNo
+      );
+      params.set(
+        'pmd_prepared',
+        '1'
+      );
+
+      var targetUrl =
+        window.location.origin
+        + '/table/'
+        + encodeURIComponent(tableNo)
+        + '?'
+        + params.toString();
+
+      return {
+        table_id: 0,
+        table_no: tableNo,
+        qr_code: '',
+        qr_prepared: true,
+        qr_target_url: targetUrl,
+        qr_image_url:
+          'https://api.qrserver.com/v1/create-qr-code/?size=320x320&ecc=H&qzone=4&data='
+          + encodeURIComponent(targetUrl)
+      };
+    }
+
+    function renderPreparedCreateQr() {
+      var prepared =
+        preparedCreateQrFromFields();
+
+      if (!prepared) return false;
+
+      renderTableQr(prepared);
+      return true;
     }
 
     function recaptureAfterRefresh() {
@@ -1340,8 +1430,51 @@
       if (detail.root !== root) return;
 
       updateTableFloorSelect();
+
+      if (detail.mode === 'create') {
+        if (!renderPreparedCreateQr()) {
+          renderTableQr(detail.table || {});
+        }
+        return;
+      }
+
       renderTableQr(detail.table || {});
     });
+
+    var tableManagerQrPanel = tableManagerPanel();
+    if (
+      tableManagerQrPanel
+      && !tableManagerQrPanel.__pmdPreparedQrR35
+    ) {
+      var syncPreparedQrFromEvent = function (event) {
+        var node =
+          event
+          && event.target;
+
+        if (
+          !node
+          || !node.matches
+          || !node.matches(
+            '[data-pmd-floor-table-field="table_no"],'
+            + '[data-pmd-floor-table-field="preferred_capacity"]'
+          )
+        ) {
+          return;
+        }
+
+        renderPreparedCreateQr();
+      };
+
+      tableManagerQrPanel.addEventListener(
+        'input',
+        syncPreparedQrFromEvent
+      );
+      tableManagerQrPanel.addEventListener(
+        'change',
+        syncPreparedQrFromEvent
+      );
+      tableManagerQrPanel.__pmdPreparedQrR35 = true;
+    }
 
     window.addEventListener('pmd:floor:table-manager:saved', function (event) {
       var detail = event && event.detail ? event.detail : {};
