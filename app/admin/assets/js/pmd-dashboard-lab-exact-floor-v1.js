@@ -8172,6 +8172,108 @@ function saveLayout() {
       return panel.querySelector('[data-pmd-floor-table-field="' + name + '"]');
     }
 
+    /*
+     * PMD_TABLE_MANAGER_TRUE_STEPPERS_R34
+     *
+     * Table number + Capacity use the same interaction contract as the
+     * Reservation Composer: the minus/plus buttons are the only pointer hit
+     * targets, the numeric value remains directly editable, and disabled/locked
+     * states are reflected on the buttons immediately.
+     */
+    function stepperRoot(name) {
+      return panel.querySelector(
+        '[data-pmd-floor-stepper="' + name + '"]'
+      );
+    }
+
+    function stepperBounds(input) {
+      var min = input && input.hasAttribute('min')
+        ? asInt(input.getAttribute('min'), 1)
+        : 1;
+
+      var max = input && input.hasAttribute('max')
+        ? asInt(input.getAttribute('max'), 0)
+        : 0;
+
+      return {
+        min: min,
+        max: max
+      };
+    }
+
+    function syncStepper(name) {
+      var rootNode = stepperRoot(name);
+      var input = field(name);
+      if (!rootNode || !input) return;
+
+      var minus = rootNode.querySelector(
+        '[data-pmd-floor-stepper-minus]'
+      );
+      var plus = rootNode.querySelector(
+        '[data-pmd-floor-stepper-plus]'
+      );
+
+      var bounds = stepperBounds(input);
+      var value = asInt(input.value, bounds.min);
+      var blocked = Boolean(
+        busy
+        || input.disabled
+        || input.getAttribute('data-number-locked') === '1'
+      );
+
+      if (minus) {
+        minus.disabled = blocked || value <= bounds.min;
+      }
+
+      if (plus) {
+        plus.disabled = blocked || (
+          bounds.max > 0
+          && value >= bounds.max
+        );
+      }
+
+      rootNode.classList.toggle(
+        'is-disabled',
+        blocked
+      );
+    }
+
+    function syncAllSteppers() {
+      syncStepper('table_no');
+      syncStepper('preferred_capacity');
+    }
+
+    function stepNumericField(name, direction) {
+      var input = field(name);
+      if (!input || input.disabled || busy) return;
+
+      var bounds = stepperBounds(input);
+      var current = asInt(input.value, bounds.min);
+      var next = Math.max(
+        bounds.min,
+        current + direction
+      );
+
+      if (bounds.max > 0) {
+        next = Math.min(bounds.max, next);
+      }
+
+      if (next === current) {
+        syncStepper(name);
+        return;
+      }
+
+      input.value = String(next);
+      input.dispatchEvent(
+        new Event('input', { bubbles: true })
+      );
+      input.dispatchEvent(
+        new Event('change', { bubbles: true })
+      );
+
+      syncStepper(name);
+    }
+
     function featureFields() {
       return Array.prototype.slice.call(panel.querySelectorAll('[data-pmd-floor-table-feature]'));
     }
@@ -8291,6 +8393,8 @@ function saveLayout() {
       } else {
         saveButton.textContent = buttonLabel;
       }
+
+      syncAllSteppers();
     }
 
     function clearErrors() {
@@ -8383,6 +8487,15 @@ function saveLayout() {
       numberField.setAttribute('data-number-locked', locked ? '1' : '0');
       numberField.disabled = locked;
       numberLock.hidden = !locked;
+
+      syncAllSteppers();
+
+      var floorField = field('floor_name');
+      if (floorField) {
+        floorField.dispatchEvent(
+          new Event('change', { bubbles: true })
+        );
+      }
 
       title.textContent = currentMode === 'edit'
         ? (panel.getAttribute('data-edit-title') || 'Edit table')
@@ -8544,6 +8657,11 @@ function saveLayout() {
         var node = field(name);
         return Boolean(node && node.checked);
       }
+      var preferredCapacity = integerValue('preferred_capacity');
+      preferredCapacity = preferredCapacity === null
+        ? 1
+        : Math.max(1, preferredCapacity);
+
       return {
         location_id: locationId,
         table: {
@@ -8552,9 +8670,9 @@ function saveLayout() {
           table_section: field('table_section').value.trim(),
           floor_name: field('floor_name').value.trim(),
           floor_shape: field('floor_shape').value,
-          min_capacity: integerValue('min_capacity'),
-          preferred_capacity: integerValue('preferred_capacity'),
-          max_capacity: integerValue('max_capacity'),
+          min_capacity: 1,
+          preferred_capacity: preferredCapacity,
+          max_capacity: preferredCapacity,
           extra_capacity: integerValue('extra_capacity'),
           priority: integerValue('priority'),
           reservation_priority: integerValue('reservation_priority'),
@@ -8712,6 +8830,76 @@ function saveLayout() {
     saveButton.addEventListener('click', save);
     if (deleteButton) deleteButton.addEventListener('click', removeTable);
     if (qrDownloadButton) qrDownloadButton.addEventListener('click', downloadQr);
+
+    panel
+      .querySelectorAll('[data-pmd-floor-stepper]')
+      .forEach(function (stepper) {
+        var name = stepper.getAttribute(
+          'data-pmd-floor-stepper'
+        );
+
+        var input = field(name);
+        var minus = stepper.querySelector(
+          '[data-pmd-floor-stepper-minus]'
+        );
+        var plus = stepper.querySelector(
+          '[data-pmd-floor-stepper-plus]'
+        );
+
+        if (minus) {
+          minus.addEventListener(
+            'click',
+            function () {
+              stepNumericField(name, -1);
+            }
+          );
+        }
+
+        if (plus) {
+          plus.addEventListener(
+            'click',
+            function () {
+              stepNumericField(name, 1);
+            }
+          );
+        }
+
+        if (input) {
+          input.addEventListener(
+            'input',
+            function () {
+              syncStepper(name);
+            }
+          );
+          input.addEventListener(
+            'change',
+            function () {
+              var bounds = stepperBounds(input);
+              var value = asInt(
+                input.value,
+                bounds.min
+              );
+
+              value = Math.max(
+                bounds.min,
+                value
+              );
+
+              if (bounds.max > 0) {
+                value = Math.min(
+                  bounds.max,
+                  value
+                );
+              }
+
+              input.value = String(value);
+              syncStepper(name);
+            }
+          );
+        }
+      });
+
+    syncAllSteppers();
 
     panel.querySelectorAll('[data-pmd-floor-table-manager-close]').forEach(function (button) {
       button.addEventListener('click', closePanel);
