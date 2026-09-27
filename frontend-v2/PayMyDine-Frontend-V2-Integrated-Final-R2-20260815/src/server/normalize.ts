@@ -410,13 +410,18 @@ export function normalizeTable(payload: unknown, query: { tableId?: string|null;
   const resolvedId = str(first(root, ['table_id','id'])) || null
   const resolvedNumber = str(first(root, ['table_no','table_number','number'])) || null
   const resolvedQr = str(first(root, ['qr_code','qr'])) || null
-  const valid = root.success !== false && Boolean(resolvedId || resolvedNumber || resolvedQr)
+  const disabled =
+    root.table_disabled === true ||
+    str(root.code).toLowerCase() === 'table_disabled' ||
+    root.disabled === true
+  const valid = !disabled && root.success !== false && Boolean(resolvedId || resolvedNumber || resolvedQr)
   return {
     valid,
-    id: resolvedId || (valid ? query.tableId || null : null),
-    number: resolvedNumber || (valid ? query.tableNo || null : null),
+    disabled,
+    id: resolvedId || (disabled || valid ? query.tableId || null : null),
+    number: resolvedNumber || (disabled || valid ? query.tableNo || null : null),
     name: str(first(root, ['table_name','name'])) || null,
-    qr: resolvedQr || (valid ? query.qr || null : null),
+    qr: resolvedQr || (disabled || valid ? query.qr || null : null),
     locationId: first(root, ['location_id']) == null ? null : num(root.location_id),
   }
 }
