@@ -8589,3 +8589,30 @@ html body #pmd-reservation-composer-v1
   color: #075c47 !important;
   box-shadow: none !important;
 }
+
+
+/* ============================================================
+   PMD_RESERVATION_COMPOSER_WIDTH_PARITY_R37
+   Create/Edit Reservation uses the exact same outer width contract
+   as Create/Edit Table: 650px desktop, viewport-safe on mobile.
+   Internal reservation control sizing remains unchanged.
+   ============================================================ */
+
+@media (min-width: 701px) {
+  html body #pmd-reservation-composer-v1 .modal-dialog,
+  html body #pmd-reservation-composer-v1.show .modal-dialog {
+    width: min(650px, calc(100vw - 32px)) !important;
+    max-width: 650px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+}
+
+@media (max-width: 700px) {
+  html body #pmd-reservation-composer-v1 .modal-dialog,
+  html body #pmd-reservation-composer-v1.show .modal-dialog {
+    width: calc(100vw - 16px) !important;
+    max-width: calc(100vw - 16px) !important;
+    margin: 8px auto !important;
+  }
+}
