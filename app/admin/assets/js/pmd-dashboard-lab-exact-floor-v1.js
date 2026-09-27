@@ -973,9 +973,11 @@
         if (!table) return;
         var base = clean(table.baseStatus || table.status || 'available');
         var busy = reservationBusyAt(table.dbTableId, table.number, now);
-        var next = (base === 'attention' || base === 'cleaning')
-          ? base
-          : (busy ? 'occupied' : base);
+        var next = base === 'disabled'
+          ? 'disabled'
+          : (base === 'attention' || base === 'cleaning')
+            ? base
+            : (busy ? 'occupied' : base);
         if (table.reservationBusy !== busy || table.status !== next) {
           table.reservationBusy = busy;
           table.status = next;
@@ -1132,6 +1134,24 @@
               ''
             ).toLowerCase();
 
+          // PMD_TABLE_ENABLE_DISABLE_R39
+          // Product enable/disable is independent from operational Busy/Clean.
+          var tableEnabled =
+            raw.table_status == null
+              ? (
+                raw.enabled == null
+                  ? true
+                  : yes(raw.enabled)
+              )
+              : yes(raw.table_status);
+
+          if (
+            rawStatus === 'disabled'
+            || rawStatus === 'inactive'
+          ) {
+            tableEnabled = false;
+          }
+
           var waiterCall =
             rawStatus === 'waiter-call' ||
             yes(raw.waiter_call) ||
@@ -1171,6 +1191,8 @@
             clean(
               custom.note ||
               raw.note ||
+              raw.notes ||
+              raw.floor_notes ||
               raw.comment ||
               ''
             ) ||
@@ -1185,18 +1207,20 @@
             );
 
           var baseStatus =
-            (
-              waiterCall ||
-              !!note
-            )
-              ? 'attention'
-              : cleaning
-                ? 'cleaning'
-                : reserved
-                  ? 'reserved'
-                  : occupied
-                    ? 'occupied'
-                    : 'available';
+            !tableEnabled
+              ? 'disabled'
+              : (
+                waiterCall ||
+                !!note
+              )
+                ? 'attention'
+                : cleaning
+                  ? 'cleaning'
+                  : reserved
+                    ? 'reserved'
+                    : occupied
+                      ? 'occupied'
+                      : 'available';
 
           var reservationBusy = reservationBusyAt(
             dbTableId,
@@ -1205,11 +1229,13 @@
           );
 
           var status =
-            (baseStatus === 'attention' || baseStatus === 'cleaning')
-              ? baseStatus
-              : reservationBusy
-                ? 'occupied'
-                : baseStatus;
+            baseStatus === 'disabled'
+              ? 'disabled'
+              : (baseStatus === 'attention' || baseStatus === 'cleaning')
+                ? baseStatus
+                : reservationBusy
+                  ? 'occupied'
+                  : baseStatus;
 
           var floor =
             raw.floor || {};
@@ -1266,6 +1292,8 @@
 
             status: status,
             baseStatus: baseStatus,
+            enabled: tableEnabled,
+            tableStatus: tableEnabled,
             reservationBusy: reservationBusy,
 
             waiterCall:
@@ -1277,6 +1305,9 @@
             note:
               clean(
                 custom.note ||
+                raw.note ||
+                raw.notes ||
+                raw.floor_notes ||
                 (
                   typeof note === 'string'
                     ? note
@@ -1357,6 +1388,7 @@
 
     function statusPriority(status) {
       return {
+        disabled: 6,
         'waiter-call': 5,
         attention: 5,
         cleaning: 4,
@@ -1690,7 +1722,9 @@
           '<span class="' +
           'pmd-floor-v1__badge ' +
           'is-note" ' +
-          'title="Note">' +
+          'title="' +
+          escapeHtml('Internal note: ' + table.note) +
+          '">' +
           '✎</span>'
         );
       }
@@ -2249,8 +2283,16 @@
               'px" ' +
 
               'aria-label="' +
-              escapeHtml(table.name) +
-              '">' +
+              escapeHtml(
+                table.name +
+                (table.status === 'disabled' ? ' · Disabled' : '') +
+                (table.note ? ' · Internal note: ' + table.note : '')
+              ) +
+              '" ' +
+              (table.status === 'disabled'
+                ? 'aria-disabled="true" tabindex="-1" '
+                : '') +
+              '>' +
 
               badges(table) +
 
@@ -6429,7 +6471,8 @@ function saveLayout() {
             !permitted;
 
           button.disabled =
-            !selected;
+            !selected ||
+            selected.status === 'disabled';
         });
 
       root.classList.toggle(
@@ -6623,6 +6666,14 @@ function saveLayout() {
           true
         );
 
+        return;
+      }
+
+      if (table.status === 'disabled') {
+        toast(
+          'This table is disabled. Enable it from Edit table first.',
+          true
+        );
         return;
       }
 
@@ -6824,6 +6875,20 @@ function saveLayout() {
             );
 
           if (!table) return;
+
+          if (table.status === 'disabled') {
+            // Staff/POS surfaces cannot operate a disabled table. Owner/Manager
+            // management Floors may still select it so Edit table can re-enable it.
+            if (
+              state.mergeMode ||
+              root.getAttribute('data-pmd-floor-table-manager') !== 'true'
+            ) {
+              return;
+            }
+
+            selectOperationalTable(table);
+            return;
+          }
 
           if (state.mergeMode) {
             selectForMerge(table);
@@ -7382,6 +7447,13 @@ function saveLayout() {
           );
 
         if (table) {
+          if (
+            table.status === 'disabled' &&
+            !state.editing
+          ) {
+            return;
+          }
+
           pointerDown(
             event,
             table
