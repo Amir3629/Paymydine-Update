@@ -261,6 +261,20 @@
     if (!el || el.nodeType !== 1 || !isVisible(el)) return false;
     if (el.classList && el.classList.contains(PLANE_CLASS)) return false;
 
+    /*
+     * PMD_TABLE_MANAGER_SKIP_GLOBAL_PLANE_R32
+     *
+     * The body-portaled Table Manager owns one cheap tint + one shared
+     * workspace/sidebar blur. Exclude it from this generic equalizer so no
+     * second visual plane or 180ms Web Animation is created.
+     */
+    if (
+      el.matches
+      && el.matches('.pmd-floor-table-manager')
+    ) {
+      return false;
+    }
+
     // PMD_R76_CASHIER_PAYMENT_SKIP_GLOBAL_VISUAL_PLANE
     // Cashier Composer is already a modal visual plane. Its nested Payment
     // modal must not receive a second 180ms blur/fade/scale animation from
@@ -694,6 +708,18 @@
           target.closest
           && target.closest(
             '#pmd-reservation-composer-v1'
+          )
+        )
+        || (
+          target.matches
+          && target.matches(
+            '.pmd-floor-table-manager'
+          )
+        )
+        || (
+          target.closest
+          && target.closest(
+            '.pmd-floor-table-manager'
           )
         )
       )
