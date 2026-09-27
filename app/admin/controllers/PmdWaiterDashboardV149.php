@@ -217,7 +217,9 @@ class PmdWaiterDashboardV149
 
         $q = DB::table('tables');
         if (in_array('deleted_at', $cols, true)) $q->whereNull('deleted_at');
-        if (in_array('table_status', $cols, true)) $q->where('table_status', 1);
+        // PMD_TABLE_ENABLE_DISABLE_R39
+        // Disabled physical tables remain in staff/Floor payloads so every role
+        // can see the same table layout. UI layers decide whether interaction is allowed.
         if (in_array('visible_on_floor_plan', $cols, true)) {
             $q->where(function($qq) { $qq->whereNull('visible_on_floor_plan')->orWhere('visible_on_floor_plan', '<>', 0); });
         }
@@ -251,6 +253,8 @@ class PmdWaiterDashboardV149
             $pos = $this->autoPosition($i);
             $floor = $this->cleanName($a['floor_name'] ?? $a['floor'] ?? $a['table_section'] ?? 'Main') ?: 'Main';
             $assigned = !$user['is_waiter'] ? true : ($hasAssignments ? in_array($id, $assignedIds, true) : true);
+            $enabled = !array_key_exists('table_status', $a) || (bool)$a['table_status'];
+            $floorNote = trim((string)($a['floor_notes'] ?? ''));
 
             $features = $this->decodeFeatures($a['table_features'] ?? null);
             foreach (['near_window','near_heater','quiet_area','outdoor','vip','accessible'] as $flag) {
@@ -279,7 +283,13 @@ class PmdWaiterDashboardV149
                 'section' => $this->cleanName($a['table_section'] ?? $a['table_zone'] ?? 'main') ?: 'main',
                 'zone' => $this->cleanName($a['table_zone'] ?? ''),
                 'features' => array_values(array_unique(array_filter($features))),
-                'notes' => (string)($a['floor_notes'] ?? ''),
+                'table_status' => $enabled,
+                'enabled' => $enabled,
+                // Same persistent internal Floor note under every naming shape
+                // currently consumed by Floor/POS generations.
+                'note' => $floorNote,
+                'notes' => $floorNote,
+                'floor_notes' => $floorNote,
                 'reservable' => array_key_exists('reservable', $a) ? (bool)$a['reservable'] : true,
                 'assigned' => $assigned,
                 'assignment_source' => $hasAssignments ? 'pmd_waiter_table_assignments' : 'fallback_all_tables',
@@ -419,6 +429,15 @@ class PmdWaiterDashboardV149
 
     protected function statusFor($t, $m, $r, $user)
     {
+        // PMD_TABLE_ENABLE_DISABLE_R39
+        // Product-disabled is stronger than operational Busy/Clean/Reserved.
+        if (
+            (array_key_exists('table_status', $t) && !$t['table_status'])
+            || (array_key_exists('enabled', $t) && !$t['enabled'])
+        ) {
+            return ['key' => 'disabled', 'label' => 'Disabled', 'color' => '#9ca3af'];
+        }
+
         if ($user['is_waiter'] && empty($t['assigned'])) return ['key' => 'unassigned', 'label' => 'Not my table', 'color' => '#cbd5e1'];
         if ((int)$m['ready'] > 0) return ['key' => 'ready', 'label' => 'Ready', 'color' => '#7c3aed'];
         if ((int)$m['kitchen'] > 0) return ['key' => 'kitchen', 'label' => 'Sent to kitchen', 'color' => '#f59e0b'];
