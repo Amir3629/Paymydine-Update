@@ -7996,6 +7996,62 @@ function saveLayout() {
     var currentMode = 'create';
 
     /*
+     * PMD_FLOOR_TABLE_MANAGER_STAGED_BLUR_R32
+     *
+     * Paint the complete card first. The next visual frame applies the exact
+     * same blur to workspace + side menu together, matching Reservation R22
+     * without making click-to-card wait on a large background filter.
+     */
+    var tableManagerBlurFrameA = 0;
+    var tableManagerBlurFrameB = 0;
+
+    function cancelTableManagerBlurFrames() {
+      if (tableManagerBlurFrameA) {
+        window.cancelAnimationFrame(
+          tableManagerBlurFrameA
+        );
+        tableManagerBlurFrameA = 0;
+      }
+
+      if (tableManagerBlurFrameB) {
+        window.cancelAnimationFrame(
+          tableManagerBlurFrameB
+        );
+        tableManagerBlurFrameB = 0;
+      }
+    }
+
+    function stageTableManagerBlur() {
+      cancelTableManagerBlurFrames();
+
+      document.documentElement.classList.remove(
+        'pmd-floor-table-manager-bgblur-r32'
+      );
+
+      tableManagerBlurFrameA =
+        window.requestAnimationFrame(
+          function () {
+            tableManagerBlurFrameA = 0;
+
+            tableManagerBlurFrameB =
+              window.requestAnimationFrame(
+                function () {
+                  tableManagerBlurFrameB = 0;
+
+                  if (panel.hidden) {
+                    return;
+                  }
+
+                  document.documentElement.classList.add(
+                    'pmd-floor-table-manager-bgblur-r32'
+                  );
+                }
+              );
+          }
+        );
+    }
+
+    /*
      * PMD_FLOOR_TABLE_MANAGER_CREATE_PREWARM_R32
      *
      * Create Table has deterministic server defaults (next table number,
@@ -8366,6 +8422,7 @@ function saveLayout() {
         'pmd-floor-table-manager-open'
       );
 
+      stageTableManagerBlur();
       clearErrors();
 
       if (normalizedMode === 'create') {
@@ -8464,8 +8521,16 @@ function saveLayout() {
 
     function closePanel() {
       if (busy) return;
+
+      cancelTableManagerBlurFrames();
+
       panel.hidden = true;
-      document.documentElement.classList.remove('pmd-floor-table-manager-open');
+
+      document.documentElement.classList.remove(
+        'pmd-floor-table-manager-open',
+        'pmd-floor-table-manager-bgblur-r32'
+      );
+
       clearErrors();
       syncToolbar();
     }
