@@ -391,6 +391,13 @@ Route::post('/guest-orders/activate', function (\Illuminate\Http\Request $reques
         'qr' => 'required|string|max:255',
     ]);
     $context = $resolveTableDraftContext($request);
+    if (!empty($context['disabled'])) {
+        return response()->json([
+            'success' => false,
+            'code' => 'table_disabled',
+            'error' => 'This table is currently unavailable.',
+        ], 409);
+    }
     if (!$context['table']) return response()->json(['success' => false, 'error' => 'A valid table is required'], 422);
 
     $tableId = $pmdR61ActualTableId($context);
@@ -464,6 +471,13 @@ Route::get('/guest-orders/state', function (\Illuminate\Http\Request $request) u
     $pmdR61ExpiredState
 ) {
     $context = $resolveTableDraftContext($request);
+    if (!empty($context['disabled'])) {
+        return response()->json([
+            'success' => false,
+            'code' => 'table_disabled',
+            'error' => 'This table is currently unavailable.',
+        ], 409);
+    }
     if (!$context['table']) return response()->json(['success' => false, 'error' => 'A valid table is required'], 422);
     $guestSessionId = trim((string)$request->query('guest_session_id', ''));
     if ($guestSessionId === '') return response()->json(['success' => false, 'error' => 'guest_session_id is required'], 422);
@@ -583,6 +597,13 @@ Route::post('/guest-orders/prepare', function (\Illuminate\Http\Request $request
         'items' => 'required|array|min:1',
     ]);
     $context = $resolveTableDraftContext($request);
+    if (!empty($context['disabled'])) {
+        return response()->json([
+            'success' => false,
+            'code' => 'table_disabled',
+            'error' => 'This table is currently unavailable.',
+        ], 409);
+    }
     if (!$context['table']) return response()->json(['success' => false, 'error' => 'A valid table is required'], 422);
     $guestSessionId = trim((string)$request->input('guest_session_id'));
     if (!$pmdR61LeaseValid($context, $guestSessionId)) return $pmdR61ExpiredAction();
