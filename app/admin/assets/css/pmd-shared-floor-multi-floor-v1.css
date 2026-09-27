@@ -3171,8 +3171,8 @@ html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
 
 html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
 .pmd-floor-table-manager__card[data-pmd-card-language-v1="table-manager"] {
-  width: min(690px, calc(100vw - 32px)) !important;
-  max-width: 690px !important;
+  width: min(650px, calc(100vw - 32px)) !important;
+  max-width: 650px !important;
 }
 
 html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
