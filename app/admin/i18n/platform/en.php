@@ -1785,7 +1785,7 @@ return [
     'r3.qr_desc_emerald' => 'Fresh PayMyDine green style.',
     'r3.qr_desc_bistro' => 'Warm restaurant table presentation.',
     'r3.qr_desc_ocean' => 'Modern blue hospitality card.',
-    'r3.qr_desc_mono' => 'Black and white, no center overlay.',
+    'r3.qr_desc_mono' => 'High-contrast black and white scan style.',
     'r3.qr_desc_gold' => 'Elegant dark and gold finish.',
     'r3.qr_desc_coral' => 'Friendly and colourful.',
     'r3.qr_desc_tent' => 'Bold header for counter or table stands.',
