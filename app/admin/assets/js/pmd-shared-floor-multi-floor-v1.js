@@ -779,6 +779,22 @@
       var tableName = clean(row.table_name) || ('Table ' + numberText);
       var capacity = managerCapacity(row);
       var targetFloor = canonicalFloorName(row.floor_name || activeName);
+      var tableEnabled =
+        row.table_status == null
+          ? (
+              row.enabled == null
+                ? true
+                : !(
+                    row.enabled === false
+                    || row.enabled === 0
+                    || row.enabled === '0'
+                  )
+            )
+          : !(
+              row.table_status === false
+              || row.table_status === 0
+              || row.table_status === '0'
+            );
 
       if (existing) {
         if (!existing.raw || typeof existing.raw !== 'object') existing.raw = {};
@@ -791,6 +807,9 @@
         existing.raw.max_capacity = capacity;
         existing.raw.min_capacity = 1;
         existing.raw.floor_notes = clean(row.floor_notes);
+        existing.raw.table_status = tableEnabled;
+        existing.raw.enabled = tableEnabled;
+        existing.raw.status = tableEnabled ? 'available' : 'disabled';
         existing.raw.features = managedFeatures(row.table_features);
         existing.raw.table_features = managedFeatures(row.table_features);
         existing.features = managedFeatures(row.table_features);
@@ -799,6 +818,20 @@
         existing.name = tableName;
         existing.capacity = capacity;
         existing.note = clean(row.floor_notes);
+        existing.enabled = tableEnabled;
+        existing.tableStatus = tableEnabled;
+
+        if (!tableEnabled) {
+          existing.baseStatus = 'disabled';
+          existing.status = 'disabled';
+          existing.reservationBusy = false;
+        } else if (
+          existing.status === 'disabled'
+          || existing.baseStatus === 'disabled'
+        ) {
+          existing.baseStatus = 'available';
+          existing.status = 'available';
+        }
       } else {
         var fallback = defaultPositionForFloor(targetFloor, dbId);
         if (!fallback) {
@@ -825,6 +858,9 @@
             max_capacity: capacity,
             min_capacity: 1,
             floor_notes: clean(row.floor_notes),
+            table_status: tableEnabled,
+            enabled: tableEnabled,
+            status: tableEnabled ? 'available' : 'disabled',
             features: managedFeatures(row.table_features),
             table_features: managedFeatures(row.table_features),
             floor_x: x,
@@ -836,8 +872,10 @@
           name: tableName,
           area: 'Main',
           capacity: capacity,
-          status: 'available',
-          baseStatus: 'available',
+          enabled: tableEnabled,
+          tableStatus: tableEnabled,
+          status: tableEnabled ? 'available' : 'disabled',
+          baseStatus: tableEnabled ? 'available' : 'disabled',
           reservationBusy: false,
           waiterCall: false,
           cleaning: false,
@@ -1576,6 +1614,16 @@
         if (!tableMatchesNotification(table, candidates)) return;
         if (!table.raw || typeof table.raw !== 'object') table.raw = {};
 
+        if (
+          table.status === 'disabled'
+          || table.enabled === false
+          || table.raw.table_status === false
+          || table.raw.table_status === 0
+          || table.raw.table_status === '0'
+        ) {
+          return;
+        }
+
         // PMD_NOTIFICATION_FRESH_ORDER_OCCUPANCY_V1
         // pmd:notification:new is emitted only after the notification cursor
         // advances to a genuinely new notification. A fresh open-order event
@@ -1642,11 +1690,40 @@
         ? row.raw
         : {};
 
+      var productEnabled =
+        row.table_status == null
+          ? (
+              row.enabled == null
+                ? (
+                    raw.table_status == null
+                      ? raw.enabled
+                      : raw.table_status
+                  )
+                : row.enabled
+            )
+          : row.table_status;
+
+      if (
+        productEnabled === false
+        || productEnabled === 0
+        || productEnabled === '0'
+      ) {
+        return 'disabled';
+      }
+
+      var explicit = key(
+        row.status ||
+        raw.status ||
+        ''
+      );
+      if (explicit === 'disabled' || explicit === 'inactive') {
+        return 'disabled';
+      }
+
       var status = key(
         row.operational_status ||
         raw.operational_status ||
-        row.status ||
-        raw.status ||
+        explicit ||
         ''
       );
 
@@ -1685,11 +1762,17 @@
             ? serverRow.raw
             : {};
 
-        var operational = key(
-          serverRow.operational_status ||
-          serverRaw.operational_status ||
-          status
-        );
+        var operational = status === 'disabled'
+          ? key(
+              serverRow.operational_status
+              || serverRaw.operational_status
+              || 'available'
+            )
+          : key(
+              serverRow.operational_status
+              || serverRaw.operational_status
+              || status
+            );
 
         if (operational === 'free') {
           operational = 'available';
@@ -1729,11 +1812,15 @@
           changed = true;
         }
 
-        raw.operational_status = operational || status;
+        raw.operational_status = operational || 'available';
         raw.status = status;
+        raw.table_status = status !== 'disabled';
+        raw.enabled = status !== 'disabled';
         raw.open_orders = Math.max(0, openOrders);
 
-        table.operational_status = operational || status;
+        table.operational_status = operational || 'available';
+        table.enabled = status !== 'disabled';
+        table.tableStatus = status !== 'disabled';
         table.openOrders = Math.max(0, openOrders);
         table.baseStatus = status;
         table.status = status;
