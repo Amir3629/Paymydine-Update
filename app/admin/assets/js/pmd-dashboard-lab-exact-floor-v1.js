@@ -8368,13 +8368,14 @@ function saveLayout() {
       );
 
       /*
-       * Loading chrome is only for a genuinely cold card hydrate. Save/Delete
-       * keep the fully-painted card stable and communicate through buttons.
+       * PMD_TABLE_MANAGER_NO_LOADING_STRIP_R35
+       * The card paints immediately. Never flash a second "Loading table
+       * details..." surface above the already-visible form.
        */
-      loading.hidden = !(
-        busy
-        && busyPurpose === 'load'
-      );
+      if (loading) {
+        loading.hidden = true;
+        loading.setAttribute('aria-hidden', 'true');
+      }
 
       var buttonLabel =
         busy
