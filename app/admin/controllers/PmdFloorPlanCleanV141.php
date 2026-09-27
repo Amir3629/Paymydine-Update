@@ -161,9 +161,8 @@ class PmdFloorPlanCleanV141
 
         $query = DB::table('tables');
 
-        if ($has('table_status')) {
-            $query->where('table_status', 1);
-        }
+        // PMD_TABLE_ENABLE_DISABLE_R39
+        // Keep disabled tables in Floor data; UI renders them muted/inert.
 
         if ($has('visible_on_floor_plan')) {
             $query->where(function ($q) {
@@ -223,6 +222,8 @@ class PmdFloorPlanCleanV141
             if (!in_array($shape, $allowed, true)) $shape = 'rectangle';
 
             $features = $this->features($a, $section, $zone);
+            $enabled = !$has('table_status') || (bool)($a['table_status'] ?? true);
+            $floorNote = trim((string)($a['floor_notes'] ?? ''));
 
             $w = (float)($a['floor_width'] ?? 150);
             $h = (float)($a['floor_height'] ?? 76);
@@ -242,8 +243,13 @@ class PmdFloorPlanCleanV141
                 'table_no' => $number,
                 'name' => $label,
                 'label' => $label,
-                'status' => 'free',
-                'status_label' => 'FREE',
+                'enabled' => $enabled,
+                'table_status' => $enabled,
+                'status' => $enabled ? 'free' : 'disabled',
+                'status_label' => $enabled ? 'FREE' : 'DISABLED',
+                'note' => $floorNote,
+                'notes' => $floorNote,
+                'floor_notes' => $floorNote,
                 'floor_name' => $floorName,
                 'floor_id' => $this->slug($floorName),
                 'floor_sort' => $floorSort,
