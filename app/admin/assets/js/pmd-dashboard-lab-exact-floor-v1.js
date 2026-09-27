@@ -7984,6 +7984,7 @@ function saveLayout() {
     var saveButton = panel.querySelector('[data-pmd-floor-table-manager-save]');
     var saveButtonText = panel.querySelector('[data-pmd-floor-table-manager-save-text]');
     var deleteButton = panel.querySelector('[data-pmd-floor-table-manager-delete]');
+    var enabledToggleButton = panel.querySelector('[data-pmd-floor-table-enabled-toggle-r39]');
     var loading = panel.querySelector('[data-pmd-floor-table-manager-loading]');
     var errorBox = panel.querySelector('[data-pmd-floor-table-manager-error]');
     var title = panel.querySelector('[data-pmd-floor-table-manager-title]');
@@ -8351,6 +8352,7 @@ function saveLayout() {
       panel.setAttribute('aria-busy', busy ? 'true' : 'false');
       saveButton.disabled = busy;
       if (deleteButton) deleteButton.disabled = busy;
+      if (enabledToggleButton) enabledToggleButton.disabled = busy;
 
       Array.prototype.forEach.call(
         form.querySelectorAll('input,select,textarea'),
@@ -8447,6 +8449,24 @@ function saveLayout() {
       }
     }
 
+    // PMD_TABLE_ENABLE_DISABLE_R39
+    function syncEnabledToggleR39() {
+      if (!enabledToggleButton) return;
+
+      var statusField = field('table_status');
+      var isEnabled = !statusField || statusField.checked;
+
+      enabledToggleButton.hidden = currentMode !== 'edit';
+      enabledToggleButton.textContent = isEnabled
+        ? (panel.getAttribute('data-disable-label') || 'Disable table')
+        : (panel.getAttribute('data-enable-label') || 'Enable table');
+      enabledToggleButton.classList.toggle('is-enable-r39', !isEnabled);
+      enabledToggleButton.setAttribute(
+        'aria-pressed',
+        isEnabled ? 'false' : 'true'
+      );
+    }
+
     function applyTable(table, mode) {
       currentMode = mode === 'edit' ? 'edit' : 'create';
       clearErrors();
@@ -8484,6 +8504,7 @@ function saveLayout() {
         setValue(name, table ? table[name] : '');
       });
       setFeatureValues(table ? table.table_features : []);
+      syncEnabledToggleR39();
 
       numberField.setAttribute('data-number-locked', locked ? '1' : '0');
       numberField.disabled = locked;
@@ -8847,6 +8868,16 @@ function saveLayout() {
 
     saveButton.addEventListener('click', save);
     if (deleteButton) deleteButton.addEventListener('click', removeTable);
+    if (enabledToggleButton) {
+      enabledToggleButton.addEventListener('click', function () {
+        if (busy || currentMode !== 'edit') return;
+        var statusField = field('table_status');
+        if (!statusField) return;
+        statusField.checked = !statusField.checked;
+        statusField.dispatchEvent(new Event('change', { bubbles: true }));
+        syncEnabledToggleR39();
+      });
+    }
     if (qrDownloadButton) qrDownloadButton.addEventListener('click', downloadQr);
 
     panel
