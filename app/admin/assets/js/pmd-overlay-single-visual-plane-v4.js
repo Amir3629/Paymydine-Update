@@ -661,9 +661,17 @@
           'pmd-reservation-composer-v1'
         );
 
+      const tableManager =
+        document.querySelector(
+          '.pmd-floor-table-manager:not([hidden])'
+        );
+
       if (
-        composer
-        && composer.classList.contains('show')
+        (
+          composer
+          && composer.classList.contains('show')
+        )
+        || tableManager
       ) {
         return;
       }
