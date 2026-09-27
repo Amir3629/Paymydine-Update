@@ -893,7 +893,7 @@ export class ApiClient {
   }
 
   // Table-specific methods
-  async getTableInfo(tableId: string, qrCode?: string, useTableNo: boolean = false): Promise<{ success: boolean; data?: any; error?: string }> {
+  async getTableInfo(tableId: string, qrCode?: string, useTableNo: boolean = false): Promise<{ success: boolean; data?: any; error?: string; code?: string; table_disabled?: boolean }> {
     try {
       const params = new URLSearchParams();
       if (tableId) {
