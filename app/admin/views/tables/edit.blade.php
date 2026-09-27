@@ -565,7 +565,7 @@ $qr_code_url = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' 
         {
             id: 'mono',
             name: pmdQrT('r3.qr_max_scan', 'Maximum Scan'),
-            description: pmdQrT('r3.qr_desc_mono', 'Black and white, no center overlay.'),
+            description: pmdQrT('r3.qr_desc_mono', 'High-contrast black and white scan style.'),
             background: '#ffffff',
             panel: '#ffffff',
             text: '#111111',
@@ -574,7 +574,7 @@ $qr_code_url = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' 
             qrPanel: '#ffffff',
             border: '#111111',
             decor: 'mono',
-            centerBadge: false,
+            centerBadge: true,
         },
         {
             id: 'gold',
@@ -630,7 +630,7 @@ $qr_code_url = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' 
             qrPanel: '#ffffff',
             border: '#d8e0cf',
             decor: 'botanical',
-            centerBadge: false,
+            centerBadge: true,
         },
     ];
 
@@ -838,12 +838,21 @@ $qr_code_url = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' 
             ctx.restore();
         }
 
+        /* PMD_QR_STUDIO_PMD_BADGE_ALL_DESIGNS_R35 */
         if (config.centerBadge) {
-            const badgeSize = qrSize * .145;
+            const badgeSize = qrSize * .115;
             const badgeX = qrX + (qrSize - badgeSize) / 2;
             const badgeY = qrY + (qrSize - badgeSize) / 2;
-            // Keep the badge deliberately small. The QR finder corners are never touched.
-            drawLogoBadge(ctx, assets.logo, data.restaurantName, badgeX, badgeY, badgeSize, config.accent, 'rounded');
+            drawLogoBadge(
+                ctx,
+                assets.brandLogo || assets.logo,
+                'PayMyDine',
+                badgeX,
+                badgeY,
+                badgeSize,
+                config.accent,
+                'rounded'
+            );
         }
 
         const tableY = qrY + qrSize + h * .082;
@@ -943,9 +952,13 @@ $qr_code_url = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' 
         requestAnimationFrame(() => modal.classList.add('is-open'));
         document.documentElement.classList.add('pmd-qr-template-modal-open-v1');
 
-        Promise.all([loadImage(data.qrSrc), loadImage(data.restaurantLogo)]).then(([qr, logo]) => {
+        Promise.all([
+            loadImage(data.qrSrc),
+            loadImage(data.restaurantLogo),
+            loadImage('/brand/paymydine-logo.svg')
+        ]).then(([qr, logo, brandLogo]) => {
             grid.innerHTML = '';
-            const assets = { qr, logo };
+            const assets = { qr, logo, brandLogo };
 
             templates.forEach((template, index) => {
                 const card = document.createElement('article');
