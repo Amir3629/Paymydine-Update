@@ -8503,3 +8503,89 @@ html body #pmd-reservation-composer-v1
 > button:disabled {
   pointer-events: none !important;
 }
+
+
+/* ============================================================
+   PMD_COMPOSER_SAVE_SELECTION_PARITY_R35
+   Selected choices use the same visual authority as the primary Save action.
+   ============================================================ */
+
+html body #pmd-reservation-composer-v1 {
+  --pmd-composer-save-border-r35: #064b3c;
+  --pmd-composer-save-top-r35: #0b765e;
+  --pmd-composer-save-bottom-r35: #075c47;
+  --pmd-composer-save-shadow-r35:
+    0 9px 20px rgba(7,92,71,.15),
+    inset 0 1px 0 rgba(255,255,255,.16);
+}
+
+html body #pmd-reservation-composer-v1
+[data-pmd-composer-save],
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__modes
+> label:has(input:checked),
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__feature-options
+input:checked
++ span,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__table-option.is-selected,
+html body #pmd-reservation-composer-v1
+button.pmd-real-table-dropdown-v1__option.is-selected,
+html body #pmd-manual-table-dropdown-v3
+.pmd-manual-table-dropdown-v3__row.is-selected {
+  border-color:
+    var(--pmd-composer-save-border-r35)
+    !important;
+  background:
+    linear-gradient(
+      180deg,
+      var(--pmd-composer-save-top-r35) 0%,
+      var(--pmd-composer-save-bottom-r35) 100%
+    )
+    !important;
+  background-image:
+    linear-gradient(
+      180deg,
+      var(--pmd-composer-save-top-r35) 0%,
+      var(--pmd-composer-save-bottom-r35) 100%
+    )
+    !important;
+  color: #fff !important;
+  box-shadow:
+    var(--pmd-composer-save-shadow-r35)
+    !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__modes
+> label:has(input:checked)
+> span,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__feature-options
+input:checked
++ span
+b,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__feature-options
+input:checked
++ span
+svg,
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__table-option.is-selected
+*,
+html body #pmd-reservation-composer-v1
+button.pmd-real-table-dropdown-v1__option.is-selected
+*,
+html body #pmd-manual-table-dropdown-v3
+.pmd-manual-table-dropdown-v3__row.is-selected
+* {
+  color: #fff !important;
+}
+
+html body #pmd-reservation-composer-v1
+.pmd-reservation-composer-v1__table-option.is-selected::after {
+  background: #fff !important;
+  color: #075c47 !important;
+  box-shadow: none !important;
+}
