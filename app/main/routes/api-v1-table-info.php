@@ -92,7 +92,16 @@
                         ->where('table_no', (int)$tableNo)
                         ->first();
 
-                    if (!$table) {
+                    // PMD_TABLE_ENABLE_DISABLE_R39
+                    // Missing and deliberately disabled tables use the same safe
+                    // guest-facing inactive state; no menu/order entry is allowed.
+                    $tableInactive = !$table
+                        || (
+                            property_exists($table, 'table_status')
+                            && !(bool)$table->table_status
+                        );
+
+                    if ($tableInactive) {
                         $safeTableNo = e($tableNo);
                         $html = '<!doctype html><html><head><meta charset="utf-8">'
                             .'<meta name="viewport" content="width=device-width,initial-scale=1">'
