@@ -110,9 +110,13 @@ class PmdWaiterMobileActionV107
                 }
 
                 $status = $t['enabled'] ? 'free' : 'disabled';
-                if (($metric['open_orders'] ?? 0) > 0) $status = 'open';
-                if (($metric['ready'] ?? 0) > 0) $status = 'ready';
-                if (($metric['due'] ?? 0) > 0) $status = 'unpaid';
+                // PMD_TABLE_ENABLE_DISABLE_R40
+                // Product-disabled is stronger than order/KDS/payment signals.
+                if ($t['enabled']) {
+                    if (($metric['open_orders'] ?? 0) > 0) $status = 'open';
+                    if (($metric['ready'] ?? 0) > 0) $status = 'ready';
+                    if (($metric['due'] ?? 0) > 0) $status = 'unpaid';
+                }
 
                 $rows[] = array_merge($t, $metric, [
                     'x' => $x,
@@ -268,6 +272,7 @@ class PmdWaiterMobileActionV107
                 'name' => (string)$label,
                 'label' => (string)$label,
                 'enabled' => $enabled,
+                'table_status' => $enabled,
                 'raw_status' => $this->first($a, ['table_status', 'status'], null),
 
                 'capacity' => $this->num($this->first($a, ['capacity', 'table_capacity', 'min_capacity'], 0)),
@@ -287,6 +292,8 @@ class PmdWaiterMobileActionV107
                 'features' => $features,
                 'table_features' => $features,
                 'floor_notes' => $this->first($a, ['floor_notes', 'notes', 'description'], null),
+                'note' => $this->first($a, ['floor_notes', 'notes', 'description'], null),
+                'notes' => $this->first($a, ['floor_notes', 'notes', 'description'], null),
 
                 'reservable' => $this->bool($this->first($a, ['reservable', 'is_reservable'], true)),
                 'reservation_priority' => $this->num($this->first($a, ['reservation_priority'], 0)),
