@@ -1541,7 +1541,8 @@ body.pmd-dashboard-lab-page
         >
             <button type="button" class="pmd-floor-table-manager__backdrop" data-pmd-floor-table-manager-close aria-label="{{ $pmdFloorTableManagerText['cancel'] }}"></button>
 
-            <section class="pmd-floor-table-manager__card" role="dialog" aria-modal="true" aria-labelledby="pmd-floor-table-manager-title-v1">
+            <section class="pmd-floor-table-manager__card" data-pmd-card-language-v1="table-manager" role="dialog" aria-modal="true" aria-labelledby="pmd-floor-table-manager-title-v1">
+                <!-- PMD_CARD_LANGUAGE_V1_TABLE_MANAGER_R32 -->
                 <header class="pmd-floor-table-manager__header">
                     <div class="pmd-floor-table-manager__heading">
                         <span class="pmd-floor-table-manager__eyebrow">{{ $pmdFloorTableManagerText['manage'] }}</span>
@@ -1578,7 +1579,10 @@ body.pmd-dashboard-lab-page
 
                     <div class="pmd-floor-table-manager__minimal-grid">
                         <label class="pmd-floor-table-manager__field">
-                            <span>{{ $pmdFloorTableManagerText['number'] }}</span>
+                            <span class="pmd-floor-table-manager__field-title">
+                                <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"></rect><path d="M9 4v16M15 4v16M4 10h16M4 15h16"></path></svg>
+                                <b>{{ $pmdFloorTableManagerText['number'] }}</b>
+                            </span>
                             <input type="number" min="1" step="1" inputmode="numeric" data-pmd-floor-table-field="table_no" required>
                             <small data-pmd-floor-table-number-lock hidden>{{ $pmdFloorTableManagerText['locked'] }}</small>
                         </label>
@@ -1588,7 +1592,10 @@ body.pmd-dashboard-lab-page
                             data-pmd-floor-table-floor-field
                             @if(!$pmdShowFloorTabs) hidden @endif
                         >
-                            <span>{{ $pmdFloorTableManagerText['floor'] }}</span>
+                            <span class="pmd-floor-table-manager__field-title">
+                                <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 8 4-8 4-8-4 8-4z"></path><path d="m4 12 8 4 8-4M4 17l8 4 8-4"></path></svg>
+                                <b>{{ $pmdFloorTableManagerText['floor'] }}</b>
+                            </span>
                             <select data-pmd-floor-table-field="floor_name" required>
                                 @foreach($pmdFloorRegistry as $pmdFloorRegistryItem)
                                     <option value="{{ $pmdFloorRegistryItem['name'] }}">{{ $pmdFloorRegistryItem['name'] }}</option>
@@ -1597,13 +1604,21 @@ body.pmd-dashboard-lab-page
                         </label>
 
                         <label class="pmd-floor-table-manager__field">
-                            <span>{{ $pmdFloorTableManagerLocale === 'de' ? 'Plätze' : 'Capacity' }}</span>
+                            <span class="pmd-floor-table-manager__field-title">
+                                <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="7" r="3"></circle><circle cx="17" cy="8" r="2"></circle><path d="M3 20v-2a5 5 0 0 1 10 0v2M14 20v-1a4 4 0 0 1 7-2.6V20"></path></svg>
+                                <b>{{ $pmdFloorTableManagerLocale === 'de' ? 'Plätze' : 'Capacity' }}</b>
+                            </span>
                             <input type="number" min="1" max="999" step="1" inputmode="numeric" data-pmd-floor-table-field="preferred_capacity" required>
                         </label>
                     </div>
 
                     <fieldset class="pmd-floor-table-manager__features" data-pmd-floor-table-features-picker>
-                        <legend>{{ $pmdFloorTableManagerLocale === 'de' ? 'Tischmerkmale' : 'Table features' }}</legend>
+                        <legend>
+                            <span class="pmd-floor-table-manager__section-title">
+                                <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h6M14 6h6M10 4v4M4 12h10M18 12h2M14 10v4M4 18h2M10 18h10M6 16v4"></path></svg>
+                                <b>{{ $pmdFloorTableManagerLocale === 'de' ? 'Tischmerkmale' : 'Table features' }}</b>
+                            </span>
+                        </legend>
                         <div class="pmd-floor-table-manager__feature-options">
                             <label class="pmd-floor-table-manager__feature-option">
                                 <input type="checkbox" value="near_window" data-pmd-floor-table-feature>
@@ -1630,13 +1645,16 @@ body.pmd-dashboard-lab-page
                     </fieldset>
 
                     <label class="pmd-floor-table-manager__field is-notes">
-                        <span>{{ $pmdFloorTableManagerText['notes'] }}</span>
+                        <span class="pmd-floor-table-manager__field-title">
+                            <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h14v16H5z"></path><path d="M8 8h8M8 12h8M8 16h5"></path></svg>
+                            <b>{{ $pmdFloorTableManagerText['notes'] }}</b>
+                        </span>
                         <textarea rows="2" maxlength="1000" data-pmd-floor-table-field="floor_notes" placeholder="{{ $pmdFloorTableManagerText['notes_placeholder'] }}"></textarea>
                     </label>
 
                     <section class="pmd-floor-table-manager__qr-preview" data-pmd-floor-table-qr-preview aria-label="QR Code">
                         <div class="pmd-floor-table-manager__qr-pending" data-pmd-floor-table-qr-pending>
-                            <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="6" height="6" rx="1"></rect><rect x="14" y="4" width="6" height="6" rx="1"></rect><rect x="4" y="14" width="6" height="6" rx="1"></rect><path d="M14 14h2v2h-2zM18 14h2v6h-6v-2M16 18h2"></path></svg>
+                            <svg class="pmd-floor-table-manager__qr-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="6" height="6" rx="1"></rect><rect x="14" y="4" width="6" height="6" rx="1"></rect><rect x="4" y="14" width="6" height="6" rx="1"></rect><path d="M14 14h2v2h-2zM18 14h2v6h-6v-2M16 18h2"></path></svg>
                             <div>
                                 <strong>{{ $pmdFloorTableManagerLocale === 'de' ? 'QR-Code' : 'QR code' }}</strong>
                                 <span>{{ $pmdFloorTableManagerLocale === 'de' ? 'Wird beim ersten Speichern automatisch erstellt.' : 'Created automatically on the first save.' }}</span>
@@ -1668,12 +1686,15 @@ body.pmd-dashboard-lab-page
                         class="pmd-floor-table-manager__delete"
                         data-pmd-floor-table-manager-delete
                         hidden
-                        style="margin-right:auto!important;align-items:center!important;justify-content:center!important;min-height:48px!important;height:48px!important;padding:0 20px!important;border:1px solid #d98d99!important;border-radius:12px!important;background:#fff!important;background-image:none!important;color:#a12638!important;font-size:15px!important;line-height:1!important;font-weight:800!important;box-shadow:none!important;text-shadow:none!important;appearance:none!important;-webkit-appearance:none!important;cursor:pointer!important;"
+                        style="margin-right:auto!important;align-items:center!important;justify-content:center!important;min-height:48px!important;height:48px!important;padding:0 20px!important;border:1px solid #d98d99!important;border-radius:16px!important;background:#fff!important;background-image:none!important;color:#a12638!important;font-size:15px!important;line-height:1!important;font-weight:800!important;box-shadow:none!important;text-shadow:none!important;appearance:none!important;-webkit-appearance:none!important;cursor:pointer!important;"
                     >{{ $pmdFloorTableManagerText['delete'] }}</button>
 
                     <div class="pmd-floor-table-manager__footer-actions">
                         <button type="button" class="pmd-floor-table-manager__cancel" data-pmd-floor-table-manager-close>{{ $pmdFloorTableManagerText['cancel'] }}</button>
-                        <button type="button" class="pmd-floor-table-manager__save" data-pmd-floor-table-manager-save>{{ $pmdFloorTableManagerText['save'] }}</button>
+                        <button type="button" class="pmd-floor-table-manager__save" data-pmd-floor-table-manager-save>
+                            <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h11l3 3v13H5z"></path><path d="M8 4v6h8V4M8 20v-6h8v6"></path></svg>
+                            <span data-pmd-floor-table-manager-save-text>{{ $pmdFloorTableManagerText['save'] }}</span>
+                        </button>
                     </div>
                 </footer>
             </section>
