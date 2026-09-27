@@ -184,8 +184,33 @@
     }
   }
 
+  /*
+   * PMD_TABLE_MANAGER_SKIP_GLOBAL_OVERLAY_R32
+   *
+   * Create/Edit Table now owns the same lightweight visual plane as the
+   * Reservation Composer. Do not add generic 180ms overlay/card animations or
+   * live backdrop-filter work on top of it.
+   */
+  function isFloorTableManagerNode(el) {
+    if (!el || el.nodeType !== 1) return false;
+    try {
+      return Boolean(
+        (el.matches && el.matches('.pmd-floor-table-manager'))
+        || (
+          el.closest
+          && el.closest('.pmd-floor-table-manager')
+        )
+      );
+    } catch (e) {
+      return false;
+    }
+  }
+
   function excluded(el) {
-    if (isReservationComposerNode(el)) return true;
+    if (
+      isReservationComposerNode(el)
+      || isFloorTableManagerNode(el)
+    ) return true;
     var s = semantic(el);
     if (/tour|tooltip|popover|dropdown|daterange|datepicker|timepicker|clockpicker/.test(s)) return true;
     if (el && el.getAttribute && el.getAttribute('data-pmd-pos-viewport-host') === 'overlay') return true;
@@ -462,7 +487,10 @@
      * the generic candidate scan/getComputedStyle/getBoundingClientRect loop
      * from blocking the first Composer paint.
      */
-    if (isReservationComposerNode(el)) return;
+    if (
+      isReservationComposerNode(el)
+      || isFloorTableManagerNode(el)
+    ) return;
 
     if (el.shadowRoot) installRoot(el.shadowRoot);
     try {
