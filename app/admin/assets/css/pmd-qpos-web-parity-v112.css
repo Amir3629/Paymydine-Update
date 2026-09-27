@@ -15366,3 +15366,52 @@ body.pmd-qpos-body {
     touch-action: pan-y !important;
   }
 }
+
+
+/* PMD_QPOS_DISABLED_TABLE_R39
+   Disabled physical tables stay in the POS rail but cannot be operated. */
+.pmd-qpos-table-guide-statuses .disabled,
+.pmd-qpos-table-legend .disabled {
+  background: #9ca3af !important;
+}
+
+.pmd-qpos-table[data-status="disabled"],
+.pmd-qpos-table.is-disabled-table-r39 {
+  filter: grayscale(.72) !important;
+  opacity: .48 !important;
+  border-color: #aeb8b4 !important;
+  background: #e6ebe9 !important;
+  background-image: none !important;
+  color: #64716d !important;
+  box-shadow: none !important;
+  cursor: default !important;
+  transform: none !important;
+  transition: none !important;
+  pointer-events: none !important;
+}
+
+.pmd-qpos-table[data-status="disabled"]:hover,
+.pmd-qpos-table[data-status="disabled"]:focus,
+.pmd-qpos-table.is-disabled-table-r39:hover,
+.pmd-qpos-table.is-disabled-table-r39:focus {
+  filter: grayscale(.72) !important;
+  opacity: .48 !important;
+  border-color: #aeb8b4 !important;
+  background: #e6ebe9 !important;
+  background-image: none !important;
+  color: #64716d !important;
+  box-shadow: none !important;
+  transform: none !important;
+  outline: none !important;
+}
+
+.pmd-qpos-table[data-status="disabled"]::after,
+.pmd-qpos-table.is-disabled-table-r39::after {
+  background: #8d9894 !important;
+}
+
+.pmd-qpos-table-signal.is-internal-note-r39 {
+  background: #eef6f3 !important;
+  border-color: #b6d8cc !important;
+  color: #356b5d !important;
+}
