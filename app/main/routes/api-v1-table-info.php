@@ -31,9 +31,11 @@
                             ], 404);
                         }
 
-                        // Get location information
+                        // PMD_TABLE_INFO_RESOLVED_LOCATION_R35
+                        // Use the table we actually resolved (QR/table_no/table_id),
+                        // not only the optional table_id query parameter.
                         $location = DB::table('locationables')
-                            ->where('locationable_id', $table_id)
+                            ->where('locationable_id', (int)($table->table_id ?? 0))
                             ->where('locationable_type', 'tables')
                             ->first();
 
