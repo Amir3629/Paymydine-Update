@@ -1596,7 +1596,16 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
             $this->addCss('css/pmd-reservations-floor-toolbar-v316.css');
             $this->addCss('css/pmd-reservations-floor-reservation-v312.css');
             $this->addCss('css/pmd-dashboard-lab-exact-floor-v1.css');
-            $this->addCss('css/pmd-shared-floor-multi-floor-v1.css');
+
+            // PMD_FLOOR_CARD_ASSET_FINGERPRINT_R33
+            // Keep the shared Floor card markup and its icon/radius authority
+            // in the same cache generation on every clean-workspace route.
+            $pmdSharedFloorCssPath = base_path('app/admin/assets/css/pmd-shared-floor-multi-floor-v1.css');
+            $this->addCss(
+                asset('app/admin/assets/css/pmd-shared-floor-multi-floor-v1.css')
+                .'?v='
+                .(string)(@filemtime($pmdSharedFloorCssPath) ?: 'r33')
+            );
             // PMD_FLOOR_SCROLL_CHAIN_V127
             $this->addCss('css/pmd-floor-scroll-chain-v127.css');
         }
@@ -1618,7 +1627,12 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
             && !request()->is('admin/reservations*')
             && !request()->is('admin/cashierlab*')
         ) {
-            $this->addJs('js/pmd-dashboard-lab-exact-floor-v1.js');
+            $pmdExactFloorJsPath = base_path('app/admin/assets/js/pmd-dashboard-lab-exact-floor-v1.js');
+            $this->addJs(
+                asset('app/admin/assets/js/pmd-dashboard-lab-exact-floor-v1.js')
+                .'?v='
+                .(string)(@filemtime($pmdExactFloorJsPath) ?: 'r33')
+            );
         }
 
         if ($this->pmdUsesFloor()) {
