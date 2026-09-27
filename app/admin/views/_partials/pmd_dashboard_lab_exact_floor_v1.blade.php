@@ -1717,7 +1717,7 @@ body.pmd-dashboard-lab-page
                         class="pmd-floor-table-manager__delete"
                         data-pmd-floor-table-manager-delete
                         hidden
-                        style="margin-right:auto!important;align-items:center!important;justify-content:center!important;min-height:48px!important;height:48px!important;padding:0 20px!important;border:1px solid #d98d99!important;border-radius:16px!important;background:#fff!important;background-image:none!important;color:#a12638!important;font-size:15px!important;line-height:1!important;font-weight:800!important;box-shadow:none!important;text-shadow:none!important;appearance:none!important;-webkit-appearance:none!important;cursor:pointer!important;"
+                        data-pmd-floor-table-delete-geometry-r34="1"
                     >{{ $pmdFloorTableManagerText['delete'] }}</button>
 
                     <div class="pmd-floor-table-manager__footer-actions">
