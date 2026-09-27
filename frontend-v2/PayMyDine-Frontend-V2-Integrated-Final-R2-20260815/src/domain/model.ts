@@ -40,6 +40,7 @@ export type RestaurantBrand = {
 
 export type TableContext = {
   valid: boolean
+  disabled: boolean
   id: string | null
   number: string | null
   name: string | null
