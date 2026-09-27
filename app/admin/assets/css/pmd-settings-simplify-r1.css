@@ -13,9 +13,7 @@
 #pmd-settings-center a[data-pmd-settings-card][href*="/admin/pmdmenu"],
 #pmd-restaurant-profile .pmd-profile-field:has(input[name="profile[email]"]),
 #pmd-restaurant-profile .pmd-profile-field:has(input[name="profile[telephone]"]),
-#pmd-restaurant-profile .pmd-profile-form > .pmd-profile-section:nth-of-type(2),
-#pmd-frontend-settings .pmd-frontend-form > .pmd-frontend-section:not(:first-of-type),
-#pmd-frontend-settings .pmd-frontend-advanced {
+#pmd-restaurant-profile .pmd-profile-form > .pmd-profile-section:nth-of-type(2) {
   display: none !important;
 }
 
@@ -123,4 +121,15 @@
     min-height: 58px !important;
     margin-bottom: 12px !important;
   }
+}
+
+
+/* PMD_SETTINGS_CUSTOMER_EXPERIENCE_R39
+   Frontend settings is intentionally a complete Customer Experience surface. */
+#pmd-frontend-settings[data-pmd-customer-experience-r39] .pmd-frontend-form > .pmd-frontend-section,
+#pmd-frontend-settings[data-pmd-customer-experience-r39] .pmd-frontend-advanced {
+  display: block !important;
+}
+#pmd-frontend-settings[data-pmd-customer-experience-r39] .pmd-frontend-section {
+  margin: 0 0 22px !important;
 }
