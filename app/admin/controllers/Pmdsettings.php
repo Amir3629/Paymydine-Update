@@ -104,10 +104,157 @@ class Pmdsettings extends AdminController
     /* PMD_FRONTEND_SETTINGS_V2_CONTROLLER */
     public function frontend()
     {
-        Template::setTitle(\Admin\Classes\PmdPlatformI18n::fromEnglish('Customer menu & themes', 'settings.'));
-        Template::setHeading(\Admin\Classes\PmdPlatformI18n::fromEnglish('Customer menu & themes', 'settings.'));
+        Template::setTitle(\Admin\Classes\PmdPlatformI18n::fromEnglish('Customer Experience & Design', 'settings.'));
+        Template::setHeading(\Admin\Classes\PmdPlatformI18n::fromEnglish('Customer Experience & Design', 'settings.'));
         $this->vars['pmdFrontend'] = $this->frontendExperiencePayload();
+
+        // PMD_CUSTOMER_EXPERIENCE_QR_LIBRARY_R39
+        // QR design tools are presentation-only. They reuse the existing table
+        // QR authority and never persist or regenerate a table identity.
+        $this->vars['pmdCustomerQrTables'] = $this->customerQrDesignTablesR39();
+        $this->vars['pmdCustomerQrIdentity'] = $this->resolvedRestaurantIdentityR25(true);
+
         return $this->makeView('pmdsettings/frontend');
+    }
+
+    public function onPmdCustomerQrDesignData()
+    {
+        $tableId = max(0, (int)request()->input('table_id', 0));
+        if ($tableId < 1) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Choose a table first.',
+            ], 422);
+        }
+
+        $locationId = $this->currentLocationId();
+        $query = \Admin\Models\Tables_model::query()
+            ->where('table_id', $tableId);
+
+        try {
+            $query->whereHasLocation($locationId);
+        } catch (\Throwable $ignored) {
+            try {
+                if (Schema::hasColumn('tables', 'location_id')) {
+                    $query->where('location_id', $locationId);
+                }
+            } catch (\Throwable $ignoredAgain) {
+            }
+        }
+
+        $table = $query->first();
+        if (!$table) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Table not found for this restaurant.',
+            ], 404);
+        }
+
+        $tableNo = trim((string)($table->table_no ?? $tableId));
+        $routeTable = trim((string)($table->pos_table_label ?? '')) ?: $tableNo;
+        $capacity = max(1, (int)($table->preferred_capacity ?? $table->max_capacity ?? 1));
+        $qrCode = trim((string)($table->qr_code ?? ''));
+
+        if ($qrCode === '') {
+            return response()->json([
+                'ok' => false,
+                'message' => 'This table does not have a QR code yet.',
+            ], 404);
+        }
+
+        $updatedAt = $table->updated_at ?? null;
+        $updatedTime = $updatedAt && method_exists($updatedAt, 'format')
+            ? $updatedAt->format('H:i')
+            : date('H:i');
+        $updatedDate = $updatedAt && method_exists($updatedAt, 'format')
+            ? $updatedAt->format('Y-m-d')
+            : date('Y-m-d');
+
+        $targetUrl = rtrim(request()->getSchemeAndHttpHost(), '/')
+            .'/table/'.rawurlencode($routeTable)
+            .'?'.http_build_query([
+                'location' => $locationId,
+                'guest' => $capacity,
+                'date' => $updatedDate,
+                'time' => $updatedTime,
+                'qr' => $qrCode,
+                'table' => $routeTable,
+            ]);
+
+        $imageUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=320x320&ecc=H&qzone=4&data='
+            .rawurlencode($targetUrl);
+
+        $context = stream_context_create([
+            'http' => [
+                'timeout' => 8,
+                'user_agent' => 'PayMyDine Customer Experience QR/1.0',
+            ],
+            'ssl' => [
+                'verify_peer' => true,
+                'verify_peer_name' => true,
+            ],
+        ]);
+
+        $png = @file_get_contents($imageUrl, false, $context);
+        if (!is_string($png) || $png === '') {
+            return response()->json([
+                'ok' => false,
+                'message' => 'QR preview could not be prepared. Please try again.',
+            ], 502);
+        }
+
+        $identity = $this->resolvedRestaurantIdentityR25(false);
+        $safeNo = preg_replace('/[^A-Za-z0-9_-]+/', '-', $tableNo) ?: (string)$tableId;
+
+        return response()->json([
+            'ok' => true,
+            'data_url' => 'data:image/png;base64,'.base64_encode($png),
+            'filename' => 'paymydine-table-'.$safeNo.'-qr.png',
+            'table_id' => $tableId,
+            'table_name' => 'Table '.$tableNo,
+            'restaurant_name' => (string)($identity['name'] ?? 'Restaurant'),
+            'restaurant_logo' => (string)($identity['logo'] ?? ''),
+            'active' => (bool)($table->table_status ?? true),
+        ]);
+    }
+
+    protected function customerQrDesignTablesR39(): array
+    {
+        $locationId = $this->currentLocationId();
+
+        try {
+            $query = \Admin\Models\Tables_model::query();
+
+            try {
+                $query->whereHasLocation($locationId);
+            } catch (\Throwable $ignored) {
+                if (Schema::hasColumn('tables', 'location_id')) {
+                    $query->where('location_id', $locationId);
+                }
+            }
+
+            return $query
+                ->orderBy('table_no')
+                ->limit(250)
+                ->get()
+                ->map(static function ($table) {
+                    $id = (int)($table->table_id ?? $table->id ?? 0);
+                    $number = trim((string)($table->table_no ?? $id));
+
+                    return [
+                        'id' => $id,
+                        'number' => $number,
+                        'name' => trim((string)($table->table_name ?? '')) ?: 'Table '.$number,
+                        'active' => (bool)($table->table_status ?? true),
+                    ];
+                })
+                ->filter(static fn ($table) => (int)$table['id'] > 0)
+                ->values()
+                ->all();
+        } catch (\Throwable $error) {
+            report($error);
+            return [];
+        }
     }
 
     public function onSaveFrontendExperience()
@@ -947,7 +1094,7 @@ class Pmdsettings extends AdminController
             [
                 'id' => 'guest', 'eyebrow' => '', 'title' => 'Menu & Guest Experience', 'description' => '',
                 'items' => [
-                    $this->item('Customer menu theme', 'Choose your digital menu theme.', 'palette', admin_url('pmdsettings/frontend'), ''),
+                    $this->item('Customer Experience', 'Themes, QR designs and guest-facing settings.', 'palette', admin_url('pmdsettings/frontend'), ''),
                     // PMD_SETTINGS_REMOVE_MENU_CHECKOUT_CARD_R85
                     // Intentionally not exposed in the Settings Center.
                     // Pmdmenu remains available only as an internal/compatibility authority.
