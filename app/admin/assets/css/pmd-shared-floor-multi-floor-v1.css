@@ -3084,3 +3084,79 @@ html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
     max-width: 118px !important;
   }
 }
+
+
+/* ============================================================
+   PMD_TABLE_MANAGER_FINISH_R35
+   - no transient loading strip
+   - Floor choices always consume the available row width
+   - selected Floor/features use the exact Save-table jade treatment
+   - smaller PMD centre badge on the QR preview
+   ============================================================ */
+
+html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+.pmd-floor-table-manager__loading {
+  display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  overflow: hidden !important;
+}
+
+html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+.pmd-floor-table-manager__floor-options-r34 {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit,minmax(120px,1fr)) !important;
+  gap: 10px !important;
+  width: 100% !important;
+}
+
+html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+.pmd-floor-table-manager__floor-choice-r34[aria-pressed="true"],
+html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+.pmd-floor-table-manager__feature-option > input:checked + span {
+  border-color: var(--pmd-card-v1-jade-dark) !important;
+  background:
+    linear-gradient(180deg,#0b765e 0%,#075c47 100%)
+    !important;
+  color: #fff !important;
+  box-shadow:
+    0 9px 20px rgba(7,92,71,.15),
+    inset 0 1px 0 rgba(255,255,255,.16)
+    !important;
+}
+
+html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+.pmd-floor-table-manager__feature-option > input:checked + span svg,
+html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+.pmd-floor-table-manager__feature-option > input:checked + span b {
+  color: #fff !important;
+}
+
+html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+.pmd-floor-table-manager__qr-brand-r34 {
+  width: 36px !important;
+  height: 36px !important;
+  padding: 4px !important;
+  border-radius: 10px !important;
+}
+
+html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+.pmd-floor-table-manager__qr-brand-r34 > img {
+  width: 26px !important;
+  height: 26px !important;
+  min-width: 26px !important;
+  min-height: 26px !important;
+  max-width: 26px !important;
+  max-height: 26px !important;
+}
+
+@media(max-width:700px) {
+  html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
+  .pmd-floor-table-manager__floor-options-r34 {
+    grid-template-columns: repeat(auto-fit,minmax(120px,1fr)) !important;
+  }
+}
