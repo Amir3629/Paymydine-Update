@@ -3818,3 +3818,22 @@ html body #pmd-r2-shared-floor-canvas-v310
     min-width: 0 !important;
   }
 }
+
+
+/* ============================================================
+   PMD_TABLE_MANAGER_HYDRATION_NO_FLICKER_R40
+   Do not paint stale/temporarily-disabled controls while Edit table data loads.
+   The card keeps its geometry, then reveals the fully-hydrated form in one frame.
+   ============================================================ */
+html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"][data-pmd-floor-table-manager-hydrating-r40="1"]
+.pmd-floor-table-manager__form,
+html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"][data-pmd-floor-table-manager-hydrating-r40="1"]
+.pmd-floor-table-manager__footer {
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"][data-pmd-floor-table-manager-hydrating-r40="1"]
+.pmd-floor-table-manager__card {
+  transition: none !important;
+}
