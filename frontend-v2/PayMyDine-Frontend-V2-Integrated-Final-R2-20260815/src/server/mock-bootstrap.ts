@@ -223,7 +223,7 @@ export function createMockBootstrap(themeId: ThemeId = 'verdant_modern', host = 
     tax: { enabled: true, percentage: 19, includedInMenuPrice: true },
     tips: { enabled: true, presets: [0, 5, 10, 15] },
     serviceCharge: { enabled: false, type: 'percentage', value: 0, label: 'Service charge' },
-    table: { valid: true, id: '7', number: '07', name: 'Table 07', qr: 'preview-table-07', locationId: 1 },
+    table: { valid: true, disabled: false, id: '7', number: '07', name: 'Table 07', qr: 'preview-table-07', locationId: 1 },
     menu: {
       categories: [
         { id: 'starters', name: 'Starters', description: 'Small beginnings', imageUrl: null, priority: 1 },
