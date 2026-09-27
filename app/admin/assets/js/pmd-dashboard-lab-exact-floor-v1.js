@@ -8063,16 +8063,16 @@ function saveLayout() {
         return payload;
       });
 
-      createDefaultsPromise = promise.then(
+      var trackedPromise = promise.then(
         function (payload) {
-          if (createDefaultsPromise === promise) {
+          if (createDefaultsPromise === trackedPromise) {
             createDefaultsPromise = null;
             createDefaultsPromiseKey = '';
           }
           return payload;
         },
         function (error) {
-          if (createDefaultsPromise === promise) {
+          if (createDefaultsPromise === trackedPromise) {
             createDefaultsPromise = null;
             createDefaultsPromiseKey = '';
           }
@@ -8080,7 +8080,9 @@ function saveLayout() {
         }
       );
 
-      return createDefaultsPromise;
+      createDefaultsPromise = trackedPromise;
+
+      return trackedPromise;
     }
 
     function invalidateCreateDefaults() {
