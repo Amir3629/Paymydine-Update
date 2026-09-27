@@ -8619,6 +8619,22 @@ function saveLayout() {
           ? 'edit'
           : 'create';
 
+      var createCacheReady =
+        normalizedMode === 'create'
+        && createDefaultsPayload
+        && createDefaultsKey === createDefaultsCacheKey();
+
+      if (normalizedMode === 'edit' || !createCacheReady) {
+        panel.setAttribute(
+          'data-pmd-floor-table-manager-hydrating-r40',
+          '1'
+        );
+      } else {
+        panel.removeAttribute(
+          'data-pmd-floor-table-manager-hydrating-r40'
+        );
+      }
+
       panel.hidden = false;
       panel.setAttribute(
         'data-pmd-floor-table-manager-mode',
@@ -8645,6 +8661,9 @@ function saveLayout() {
           );
 
           setBusy(false);
+          panel.removeAttribute(
+            'data-pmd-floor-table-manager-hydrating-r40'
+          );
 
           var cachedNumberField =
             field('table_no');
@@ -8673,6 +8692,9 @@ function saveLayout() {
             );
 
             setBusy(false);
+            panel.removeAttribute(
+              'data-pmd-floor-table-manager-hydrating-r40'
+            );
 
             var numberField =
               field('table_no');
@@ -8686,6 +8708,9 @@ function saveLayout() {
           })
           .catch(function (error) {
             setBusy(false);
+            panel.removeAttribute(
+              'data-pmd-floor-table-manager-hydrating-r40'
+            );
             showError(error);
           });
 
@@ -8710,6 +8735,9 @@ function saveLayout() {
         );
 
         setBusy(false);
+        panel.removeAttribute(
+          'data-pmd-floor-table-manager-hydrating-r40'
+        );
 
         var numberField =
           field('table_no');
@@ -8722,6 +8750,9 @@ function saveLayout() {
         }
       }).catch(function (error) {
         setBusy(false);
+        panel.removeAttribute(
+          'data-pmd-floor-table-manager-hydrating-r40'
+        );
         showError(error);
       });
     }
@@ -8732,6 +8763,9 @@ function saveLayout() {
       cancelTableManagerBlurFrames();
 
       panel.hidden = true;
+      panel.removeAttribute(
+        'data-pmd-floor-table-manager-hydrating-r40'
+      );
 
       document.documentElement.classList.remove(
         'pmd-floor-table-manager-open',
@@ -8943,11 +8977,80 @@ function saveLayout() {
     if (enabledToggleButton) {
       enabledToggleButton.addEventListener('click', function () {
         if (busy || currentMode !== 'edit') return;
+
         var statusField = field('table_status');
-        if (!statusField) return;
-        statusField.checked = !statusField.checked;
-        statusField.dispatchEvent(new Event('change', { bubbles: true }));
-        syncEnabledToggleR39();
+        var tableId = asInt(
+          field('table_id') && field('table_id').value,
+          0
+        );
+        if (!statusField || tableId < 1) return;
+
+        // PMD_TABLE_ENABLE_DISABLE_R40
+        // Availability is an immediate action. Do not require the separate
+        // Save table button and do not save unrelated unsaved form edits.
+        var nextEnabled = !statusField.checked;
+
+        clearErrors();
+        setBusy(true, 'availability');
+        enabledToggleButton.textContent =
+          nextEnabled ? 'Enabling…' : 'Disabling…';
+
+        request(
+          root,
+          'onPmdFloorTableManagerSetEnabled',
+          {
+            location_id: locationId,
+            table_id: tableId,
+            enabled: nextEnabled
+          }
+        ).then(function (responsePayload) {
+          applyTable(
+            responsePayload && responsePayload.table
+              ? responsePayload.table
+              : {},
+            'edit'
+          );
+
+          var detail = emitManagerEvent(
+            'pmd:floor:table-manager:saved',
+            {
+              payload: responsePayload || {},
+              mode: 'edit',
+              action: nextEnabled ? 'enabled' : 'disabled',
+              refreshHandled: false
+            }
+          );
+
+          if (detail.refreshHandled) {
+            if (
+              detail.afterSave
+              && typeof detail.afterSave.then === 'function'
+            ) {
+              return Promise.resolve(detail.afterSave).then(
+                function () { return responsePayload; }
+              );
+            }
+            return responsePayload;
+          }
+
+          var instance = root.__pmdFloorV1;
+          if (instance && typeof instance.refresh === 'function') {
+            return Promise.resolve(instance.refresh()).then(
+              function () { return responsePayload; }
+            );
+          }
+
+          return responsePayload;
+        }).then(function () {
+          setBusy(false);
+          invalidateCreateDefaults();
+          closePanel();
+          syncToolbar();
+        }).catch(function (error) {
+          setBusy(false);
+          syncEnabledToggleR39();
+          showError(error);
+        });
       });
     }
     if (qrDownloadButton) qrDownloadButton.addEventListener('click', downloadQr);
@@ -9078,7 +9181,7 @@ function saveLayout() {
   }
 
   window.PMDFloorInlineTableManagerV1 = {
-    version: '1.2.1',
+    version: '1.2.2-r40',
     mount: mount,
     audit: function () {
       var root = document.querySelector('[data-pmd-floor-table-manager="true"]');
