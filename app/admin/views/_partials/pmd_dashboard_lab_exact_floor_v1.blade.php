@@ -1747,9 +1747,14 @@ body.pmd-dashboard-lab-page
     rel="stylesheet"
     href="{{ asset('app/admin/assets/css/pmd-floor-qr-template-studio-r3.css') }}?v=20260919-r16"
 >
+@php
+    // PMD_FLOOR_QR_STUDIO_FINGERPRINT_R35
+    $pmdFloorQrStudioPathR35 = base_path('app/admin/assets/js/pmd-floor-qr-template-studio-r3.js');
+    $pmdFloorQrStudioVersionR35 = (string)(@filemtime($pmdFloorQrStudioPathR35) ?: 'r35');
+@endphp
 <script
     defer
-    src="{{ asset('app/admin/assets/js/pmd-floor-qr-template-studio-r3.js') }}?v=20260919-r16"
+    src="{{ asset('app/admin/assets/js/pmd-floor-qr-template-studio-r3.js') }}?v={{ $pmdFloorQrStudioVersionR35 }}"
 ></script>
 @endif
 
