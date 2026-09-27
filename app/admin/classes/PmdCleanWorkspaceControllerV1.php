@@ -1643,7 +1643,13 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
         }
 
         if ($this->pmdUsesFloor()) {
-            $this->addJs('js/pmd-shared-floor-multi-floor-v1.js');
+            // PMD_SHARED_FLOOR_JS_FINGERPRINT_R34
+            $pmdSharedFloorJsPath = base_path('app/admin/assets/js/pmd-shared-floor-multi-floor-v1.js');
+            $this->addJs(
+                asset('app/admin/assets/js/pmd-shared-floor-multi-floor-v1.js')
+                .'?v='
+                .(string)(@filemtime($pmdSharedFloorJsPath) ?: 'r34')
+            );
         }
 
         $this->applyMenuContext();
