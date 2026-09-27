@@ -7992,6 +7992,7 @@ function saveLayout() {
     var qrDownloadButton = panel.querySelector('[data-pmd-floor-table-qr-download]');
     var locationId = asInt(root.getAttribute('data-pmd-floor-table-manager-location'), 0);
     var busy = false;
+    var busyPurpose = '';
     var currentMode = 'create';
 
     /*
@@ -8183,23 +8184,51 @@ function saveLayout() {
       editButton.setAttribute('aria-disabled', editable ? 'false' : 'true');
     }
 
-    function setBusy(next) {
+    function setBusy(next, purpose) {
       busy = Boolean(next);
+      busyPurpose = busy
+        ? (purpose || 'save')
+        : '';
+
       panel.setAttribute('aria-busy', busy ? 'true' : 'false');
       saveButton.disabled = busy;
       if (deleteButton) deleteButton.disabled = busy;
-      Array.prototype.forEach.call(form.querySelectorAll('input,select,textarea'), function (node) {
-        if (node === field('table_no') && node.getAttribute('data-number-locked') === '1') {
-          node.disabled = true;
-          return;
-        }
-        node.disabled = busy;
-      });
-      loading.hidden = !busy;
 
-      var buttonLabel = busy
-        ? (panel.getAttribute('data-saving-label') || 'Saving…')
-        : (panel.getAttribute('data-save-label') || 'Save table');
+      Array.prototype.forEach.call(
+        form.querySelectorAll('input,select,textarea'),
+        function (node) {
+          if (
+            node === field('table_no')
+            && node.getAttribute('data-number-locked') === '1'
+          ) {
+            node.disabled = true;
+            return;
+          }
+
+          node.disabled = busy;
+        }
+      );
+
+      /*
+       * Loading chrome is only for a genuinely cold card hydrate. Save/Delete
+       * keep the fully-painted card stable and communicate through buttons.
+       */
+      loading.hidden = !(
+        busy
+        && busyPurpose === 'load'
+      );
+
+      var buttonLabel =
+        busy
+        && busyPurpose !== 'load'
+          ? (
+              panel.getAttribute('data-saving-label')
+              || 'Saving…'
+            )
+          : (
+              panel.getAttribute('data-save-label')
+              || 'Save table'
+            );
 
       if (saveButtonText) {
         saveButtonText.textContent = buttonLabel;
@@ -8370,7 +8399,7 @@ function saveLayout() {
          * Cold first click: paint the card immediately, then hydrate the tiny
          * create payload. Prewarm normally makes this branch invisible.
          */
-        setBusy(true);
+        setBusy(true, 'load');
 
         loadCreateDefaults(false)
           .then(function (payload) {
@@ -8399,7 +8428,7 @@ function saveLayout() {
         return;
       }
 
-      setBusy(true);
+      setBusy(true, 'load');
 
       // PMD_TABLE_MANAGER_SEND_ACTIVE_FLOOR_V2
       request(
@@ -8582,6 +8611,7 @@ function saveLayout() {
         })
         .then(function () {
           setBusy(false);
+          invalidateCreateDefaults();
           closePanel();
           syncToolbar();
         })
