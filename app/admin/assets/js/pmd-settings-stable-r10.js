@@ -66,11 +66,11 @@
 
     setText(
       root.querySelector('.pmd-frontend-header h1'),
-      pmdStableT('r3.customer_menu_theme', 'Customer menu theme')
+      pmdStableT('settings.customer_experience_design', 'Customer Experience & Design')
     );
     setText(
       root.querySelector('.pmd-frontend-header__left p'),
-      pmdStableT('r4.settings.choose_look', 'Choose the look of your digital menu.')
+      pmdStableT('settings.customer_experience_design_desc', 'Themes, QR designs and guest-facing settings in one place.')
     );
     setText(
       root.querySelector('.pmd-frontend-bottom-save .pmd-frontend-primary-button span'),
