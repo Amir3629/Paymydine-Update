@@ -7982,6 +7982,7 @@ function saveLayout() {
 
     var form = panel.querySelector('[data-pmd-floor-table-manager-form]');
     var saveButton = panel.querySelector('[data-pmd-floor-table-manager-save]');
+    var saveButtonText = panel.querySelector('[data-pmd-floor-table-manager-save-text]');
     var deleteButton = panel.querySelector('[data-pmd-floor-table-manager-delete]');
     var loading = panel.querySelector('[data-pmd-floor-table-manager-loading]');
     var errorBox = panel.querySelector('[data-pmd-floor-table-manager-error]');
@@ -7992,6 +7993,112 @@ function saveLayout() {
     var locationId = asInt(root.getAttribute('data-pmd-floor-table-manager-location'), 0);
     var busy = false;
     var currentMode = 'create';
+
+    /*
+     * PMD_FLOOR_TABLE_MANAGER_CREATE_PREWARM_R32
+     *
+     * Create Table has deterministic server defaults (next table number,
+     * active Floor, default capacity/features). Warm that tiny payload as soon
+     * as the Floor runtime mounts so clicking + Table can paint a complete card
+     * immediately instead of opening a loading card and waiting on the network.
+     */
+    var createDefaultsPayload = null;
+    var createDefaultsKey = '';
+    var createDefaultsPromise = null;
+    var createDefaultsPromiseKey = '';
+
+    function activeFloorId() {
+      return root.getAttribute(
+        'data-pmd-active-floor-id'
+      ) || '';
+    }
+
+    function createDefaultsCacheKey() {
+      return String(locationId)
+        + '|'
+        + activeFloorId();
+    }
+
+    function loadCreateDefaults(force) {
+      var key = createDefaultsCacheKey();
+
+      if (
+        !force
+        && createDefaultsPayload
+        && createDefaultsKey === key
+      ) {
+        return Promise.resolve(
+          createDefaultsPayload
+        );
+      }
+
+      if (
+        !force
+        && createDefaultsPromise
+        && createDefaultsPromiseKey === key
+      ) {
+        return createDefaultsPromise;
+      }
+
+      createDefaultsPromiseKey = key;
+
+      var promise = request(
+        root,
+        'onPmdFloorTableManagerLoad',
+        {
+          location_id: locationId,
+          table_id: 0,
+          active_floor_id: activeFloorId()
+        }
+      ).then(function (payload) {
+        if (
+          createDefaultsCacheKey() === key
+          && payload
+          && payload.mode === 'create'
+        ) {
+          createDefaultsPayload = payload;
+          createDefaultsKey = key;
+        }
+
+        return payload;
+      });
+
+      createDefaultsPromise = promise.then(
+        function (payload) {
+          if (createDefaultsPromise === promise) {
+            createDefaultsPromise = null;
+            createDefaultsPromiseKey = '';
+          }
+          return payload;
+        },
+        function (error) {
+          if (createDefaultsPromise === promise) {
+            createDefaultsPromise = null;
+            createDefaultsPromiseKey = '';
+          }
+          throw error;
+        }
+      );
+
+      return createDefaultsPromise;
+    }
+
+    function invalidateCreateDefaults() {
+      createDefaultsPayload = null;
+      createDefaultsKey = '';
+      createDefaultsPromise = null;
+      createDefaultsPromiseKey = '';
+
+      window.requestAnimationFrame(function () {
+        loadCreateDefaults(false).catch(function () {});
+      });
+    }
+
+    function prewarmCreateDefaults() {
+      window.requestAnimationFrame(function () {
+        loadCreateDefaults(false).catch(function () {});
+      });
+    }
 
     // PMD_FLOOR_TABLE_MANAGER_EVENT_BRIDGE_V1_3
     function emitManagerEvent(name, detail) {
@@ -8087,9 +8194,16 @@ function saveLayout() {
         node.disabled = busy;
       });
       loading.hidden = !busy;
-      saveButton.textContent = busy
+
+      var buttonLabel = busy
         ? (panel.getAttribute('data-saving-label') || 'Saving…')
         : (panel.getAttribute('data-save-label') || 'Save table');
+
+      if (saveButtonText) {
+        saveButtonText.textContent = buttonLabel;
+      } else {
+        saveButton.textContent = buttonLabel;
+      }
     }
 
     function clearErrors() {
@@ -8196,27 +8310,121 @@ function saveLayout() {
       });
     }
 
+    /*
+     * PMD_FLOOR_TABLE_MANAGER_INSTANT_CREATE_R32
+     *
+     * The card always appears in this click task. Create mode uses the warmed
+     * server payload synchronously when available; edit mode keeps its canonical
+     * server read. There is no modal entrance animation in either path.
+     */
     function openPanel(mode, tableId) {
       if (busy) return;
+
+      var normalizedMode =
+        mode === 'edit'
+          ? 'edit'
+          : 'create';
+
       panel.hidden = false;
-      document.documentElement.classList.add('pmd-floor-table-manager-open');
+      panel.setAttribute(
+        'data-pmd-floor-table-manager-mode',
+        normalizedMode
+      );
+
+      document.documentElement.classList.add(
+        'pmd-floor-table-manager-open'
+      );
+
       clearErrors();
+
+      if (normalizedMode === 'create') {
+        var cacheKey = createDefaultsCacheKey();
+
+        if (
+          createDefaultsPayload
+          && createDefaultsKey === cacheKey
+        ) {
+          applyTable(
+            createDefaultsPayload.table || {},
+            'create'
+          );
+
+          setBusy(false);
+
+          var cachedNumberField =
+            field('table_no');
+
+          if (
+            cachedNumberField
+            && !cachedNumberField.disabled
+          ) {
+            cachedNumberField.focus();
+          }
+
+          return;
+        }
+
+        /*
+         * Cold first click: paint the card immediately, then hydrate the tiny
+         * create payload. Prewarm normally makes this branch invisible.
+         */
+        setBusy(true);
+
+        loadCreateDefaults(false)
+          .then(function (payload) {
+            applyTable(
+              payload.table || {},
+              payload.mode || 'create'
+            );
+
+            setBusy(false);
+
+            var numberField =
+              field('table_no');
+
+            if (
+              numberField
+              && !numberField.disabled
+            ) {
+              numberField.focus();
+            }
+          })
+          .catch(function (error) {
+            setBusy(false);
+            showError(error);
+          });
+
+        return;
+      }
+
       setBusy(true);
 
       // PMD_TABLE_MANAGER_SEND_ACTIVE_FLOOR_V2
-      request(root, 'onPmdFloorTableManagerLoad', {
-        location_id: locationId,
-        table_id: asInt(tableId, 0),
+      request(
+        root,
+        'onPmdFloorTableManagerLoad',
+        {
+          location_id: locationId,
+          table_id: asInt(tableId, 0),
+          active_floor_id: activeFloorId()
+        }
+      ).then(function (payload) {
+        applyTable(
+          payload.table || {},
+          payload.mode || normalizedMode
+        );
 
-        active_floor_id:
-          root.getAttribute(
-            'data-pmd-active-floor-id'
-          ) || ''
-      }).then(function (payload) {
-        applyTable(payload.table || {}, payload.mode || mode);
         setBusy(false);
-        var numberField = field('table_no');
-        if (numberField && !numberField.disabled) numberField.focus();
+
+        var numberField =
+          field('table_no');
+
+        if (
+          numberField
+          && !numberField.disabled
+        ) {
+          numberField.focus();
+        }
       }).catch(function (error) {
         setBusy(false);
         showError(error);
@@ -8328,6 +8536,7 @@ function saveLayout() {
         })
         .then(function () {
           setBusy(false);
+          invalidateCreateDefaults();
           closePanel();
           syncToolbar();
         })
@@ -8380,6 +8589,14 @@ function saveLayout() {
         });
     }
 
+    addButton.addEventListener('pointerenter', function () {
+      loadCreateDefaults(false).catch(function () {});
+    });
+
+    addButton.addEventListener('focus', function () {
+      loadCreateDefaults(false).catch(function () {});
+    });
+
     addButton.addEventListener('click', function () {
       syncToolbar();
       if (addButton.disabled) return;
@@ -8418,6 +8635,8 @@ function saveLayout() {
     });
 
     syncToolbar();
+    prewarmCreateDefaults();
+
     root.__pmdInlineTableManagerV1 = {
       openCreate: function () { openPanel('create', 0); },
       openSelected: function () {
