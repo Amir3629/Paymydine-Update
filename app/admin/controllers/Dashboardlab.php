@@ -103,7 +103,13 @@ class Dashboardlab extends AdminController
             .(string)(@filemtime($pmdExactFloorJsPath) ?: 'r33')
         );
         // Same coordinator used by Manager/Cashier/Reservations shared Floor.
-        $this->addJs('js/pmd-shared-floor-multi-floor-v1.js');
+        // PMD_SHARED_FLOOR_JS_FINGERPRINT_R34
+        $pmdSharedFloorJsPath = base_path('app/admin/assets/js/pmd-shared-floor-multi-floor-v1.js');
+        $this->addJs(
+            asset('app/admin/assets/js/pmd-shared-floor-multi-floor-v1.js')
+            .'?v='
+            .(string)(@filemtime($pmdSharedFloorJsPath) ?: 'r34')
+        );
 
         // Clean route-scoped Analytics renderer. Dashboard2 remains data-only.
         // PMD_DASHBOARD_ANALYTICS_ASSET_URL_V133
