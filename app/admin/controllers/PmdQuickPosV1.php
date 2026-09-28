@@ -70,6 +70,90 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
         ], true);
     }
 
+    /**
+     * PMD_QPOS_QUICK_RESERVATIONS_R128
+     *
+     * Read-only reservation schedule transport for the combined POS workspace.
+     * The canonical Reservations controller/composer remains the only write
+     * authority; this endpoint only projects its schedule into Quick POS.
+     */
+    public function reservationsData()
+    {
+        $locationId = $this->quickPosLocationId();
+        $rawDate = trim((string)request()->query('date', ''));
+
+        try {
+            $date = preg_match('/^\d{4}-\d{2}-\d{2}$/', $rawDate)
+                ? \Carbon\Carbon::createFromFormat('!Y-m-d', $rawDate, 'Europe/Berlin')
+                : \Carbon\Carbon::now('Europe/Berlin');
+        } catch (\Throwable $ignored) {
+            $date = \Carbon\Carbon::now('Europe/Berlin');
+        }
+
+        $selectedDate = $date->format('Y-m-d');
+        $tableId = max(0, (int)request()->query('table_id', 0));
+
+        try {
+            $payload = app(
+                \Admin\Services\PmdReservationsScheduleV1::class
+            )->payload(
+                $locationId,
+                (string)app()->getLocale()
+            );
+
+            $reservations = collect(
+                (array)($payload['reservations'] ?? [])
+            )->filter(function ($reservation) use ($selectedDate, $tableId) {
+                if (
+                    (string)($reservation['reserve_date'] ?? '') !==
+                    $selectedDate
+                ) {
+                    return false;
+                }
+
+                if ($tableId < 1) {
+                    return true;
+                }
+
+                return in_array(
+                    $tableId,
+                    array_map(
+                        'intval',
+                        (array)($reservation['table_ids'] ?? [])
+                    ),
+                    true
+                );
+            })->sortBy(function ($reservation) {
+                return sprintf(
+                    '%s-%010d',
+                    (string)($reservation['reserve_time'] ?? '99:99'),
+                    (int)($reservation['reservation_id'] ?? 0)
+                );
+            })->values()->all();
+
+            return response()->json([
+                'ok' => true,
+                'version' => 'pmd-qpos-quick-reservations-r128',
+                'location_id' => $locationId,
+                'date' => $selectedDate,
+                'today' => (string)($payload['today'] ?? $selectedDate),
+                'table_id' => $tableId ?: null,
+                'reservations' => $reservations,
+                'count' => count($reservations),
+            ]);
+        } catch (\Throwable $error) {
+            report($error);
+
+            return response()->json([
+                'ok' => false,
+                'version' => 'pmd-qpos-quick-reservations-r128',
+                'date' => $selectedDate,
+                'reservations' => [],
+                'error' => 'Reservations could not be loaded.',
+            ], 500);
+        }
+    }
+
     public function index($mode = 'cashier')
     {
         $mode = $this->quickPosMode((string)$mode);
