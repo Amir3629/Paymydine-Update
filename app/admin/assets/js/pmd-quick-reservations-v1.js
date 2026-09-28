@@ -466,6 +466,21 @@
       event.stopPropagation();
       event.stopImmediatePropagation();
       toast('Pickup is available in POS mode.');
+      return;
+    }
+
+    var floorButton = event.target && event.target.closest
+      ? event.target.closest('[data-qpos-floor]')
+      : null;
+    if (floorButton && root.contains(floorButton)) {
+      // PMD_QPOS_RESERVATION_FLOOR_FILTER_R128
+      // The floor tabs remain owned by canonical Quick POS. Changing floor only
+      // clears the presentation-only reservation table filter; it never blocks
+      // the original floor switch handler.
+      state.selectedTableId = 0;
+      state.selectedTableName = '';
+      renderTableFilter();
+      window.setTimeout(loadReservations, 0);
     }
   }, true);
 
