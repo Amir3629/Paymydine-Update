@@ -13,6 +13,10 @@
   var select = root.querySelector('[data-pmd-customer-qr-table-r39]');
   var openButton = root.querySelector('[data-pmd-customer-qr-studio-open-r39]');
   var status = root.querySelector('[data-pmd-customer-qr-status-r39]');
+  var templateButtons = Array.prototype.slice.call(
+    root.querySelectorAll('[data-pmd-customer-qr-template-r39]')
+  );
+  var selectedTemplateId = '';
 
   function csrfToken() {
     var meta = document.querySelector('meta[name="csrf-token"]');
@@ -33,6 +37,37 @@
 
   function selectedTableId() {
     return Number(select && select.value || 0) || 0;
+  }
+
+  function selectTemplate(button, announce) {
+    if (!button) return;
+    var id = String(
+      button.getAttribute('data-pmd-customer-qr-template-r39') || ''
+    ).trim();
+    if (!id) return;
+
+    selectedTemplateId = id;
+    templateButtons.forEach(function (node) {
+      var active = node === button;
+      node.classList.toggle('is-selected', active);
+      node.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+
+    if (announce) {
+      var name = String(
+        button.getAttribute('data-pmd-customer-qr-template-name-r42') || id
+      ).trim();
+      setStatus(name + ' selected.', false);
+    }
+  }
+
+  function initializeTemplateSelection() {
+    var initial = templateButtons.find(function (button) {
+      return button.getAttribute('aria-pressed') === 'true'
+        || button.classList.contains('is-selected');
+    }) || templateButtons[0] || null;
+
+    if (initial) selectTemplate(initial, false);
   }
 
   function selectedTableIsActive() {
@@ -83,7 +118,7 @@
     });
   }
 
-  function openStudio(payload) {
+  function openStudio(payload, preferredTemplateId) {
     if (
       !window.PMDQrTemplateStudioV1 ||
       typeof window.PMDQrTemplateStudioV1.boot !== 'function'
@@ -98,6 +133,12 @@
     adapter.setAttribute('data-pmd-restaurant-name', String(payload.restaurant_name || 'Restaurant'));
     adapter.setAttribute('data-pmd-restaurant-logo', normalizeLogo(payload.restaurant_logo));
     adapter.setAttribute('data-pmd-table-name', String(payload.table_name || 'Table'));
+    if (preferredTemplateId) {
+      adapter.setAttribute(
+        'data-pmd-qr-template-preselect',
+        String(preferredTemplateId)
+      );
+    }
 
     var trigger = document.createElement('button');
     trigger.type = 'button';
@@ -127,12 +168,25 @@
 
     fetchDesignData(tableId)
       .then(function (payload) {
-        openStudio(payload);
+        openStudio(payload, selectedTemplateId);
 
         if (payload.active === false || !selectedTableIsActive()) {
           setStatus('This table is disabled. Its QR stays inactive until the table is enabled.', false);
         } else {
-          setStatus('10 QR designs ready.', false);
+          var selectedButton = templateButtons.find(function (button) {
+            return String(
+              button.getAttribute('data-pmd-customer-qr-template-r39') || ''
+            ) === selectedTemplateId;
+          });
+          var selectedName = selectedButton
+            ? String(selectedButton.getAttribute('data-pmd-customer-qr-template-name-r42') || '').trim()
+            : '';
+          setStatus(
+            selectedName
+              ? selectedName + ' ready to preview or download.'
+              : '10 QR designs ready.',
+            false
+          );
         }
       })
       .catch(function (error) {
@@ -144,6 +198,14 @@
         openButton.innerHTML = original;
       });
   }
+
+  initializeTemplateSelection();
+
+  templateButtons.forEach(function (button) {
+    button.addEventListener('click', function () {
+      selectTemplate(button, true);
+    });
+  });
 
   if (select) {
     chooseFirstActiveTable();
@@ -165,7 +227,7 @@
   }
 
   window.PMDSettingsCustomerQrR39 = {
-    version: '1.0.0',
+    version: '1.1.0-r42',
     open: onOpen
   };
 })();
