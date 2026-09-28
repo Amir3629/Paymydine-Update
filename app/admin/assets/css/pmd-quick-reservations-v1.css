@@ -77,7 +77,7 @@
   border: 0;
   border-radius: 12px;
   padding: 0 14px;
-  background: var(--q-primary, #064e3b);
+  background: #032f25;
   color: #fff;
   font: inherit;
   font-size: 13px;
@@ -153,8 +153,8 @@
 }
 
 .pmd-qres-filter-row button.is-active {
-  border-color: var(--q-primary, #064e3b);
-  background: var(--q-primary, #064e3b);
+  border-color: #032f25;
+  background: #032f25;
   color: #fff;
 }
 
@@ -216,7 +216,7 @@
   align-items: flex-start;
   justify-content: center;
   padding-top: 2px;
-  color: #075f4b;
+  color: #032f25;
   font-size: 15px;
   font-weight: 900;
 }
@@ -366,7 +366,7 @@
   margin: 0 0 10px;
   padding: 13px 14px;
   border: 1px solid #dce6e1;
-  border-left: 4px solid #0a765e;
+  border-left: 4px solid #032f25;
   border-radius: 14px;
   background: #fff;
   color: #17231f;
@@ -377,7 +377,7 @@
 .pmd-qres-timeline-card:hover {
   background: #fbfdfc;
   border-color: #a9c9bd;
-  border-left-color: #075f4b;
+  border-left-color: #032f25;
 }
 
 .pmd-qres-timeline-card-head {
@@ -396,7 +396,7 @@
 }
 .pmd-qres-timeline-card-head span {
   flex: 0 0 auto;
-  color: #075f4b;
+  color: #032f25;
   font-size: 12px;
   font-weight: 900;
 }
@@ -432,9 +432,9 @@
 }
 
 .pmd-qpos[data-workspace="reservations"] .pmd-qpos-table.is-reservation-filter-r128 {
-  outline: 3px solid #075f4b !important;
+  outline: 3px solid #032f25 !important;
   outline-offset: 2px !important;
-  box-shadow: 0 0 0 4px rgba(7,95,75,.12) !important;
+  box-shadow: 0 0 0 4px rgba(3,47,37,.12) !important;
 }
 
 @media (max-width: 820px) {
