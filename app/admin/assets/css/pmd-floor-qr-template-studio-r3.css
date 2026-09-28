@@ -313,3 +313,17 @@ html.pmd-qr-template-modal-open-v1 body {
 }
 
 .pmd-qr-template-modal-v1{z-index:2147483647!important;}
+
+
+/* PMD_QR_STUDIO_PRESELECT_R42 */
+.pmd-qr-template-card-v1.is-preselected-r42 {
+    border-color: #08705b !important;
+    box-shadow:
+        0 0 0 3px rgba(8,112,91,.12),
+        0 16px 34px rgba(22,47,70,.10) !important;
+}
+.pmd-qr-template-card-v1.is-preselected-r42
+.pmd-qr-template-number-v1 {
+    background: #08705b !important;
+    color: #fff !important;
+}
