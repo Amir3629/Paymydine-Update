@@ -2066,3 +2066,33 @@ html body .pmd-floor-v1__badge.is-merge:active {
   color: #5f716b !important;
   opacity: 1 !important;
 }
+
+
+/* ============================================================
+   PMD_DISABLED_TABLE_FINAL_ROLE_R129
+   Standalone Floor parity: a disabled card never changes on hover.
+   ============================================================ */
+html body [data-pmd-floor]
+.pmd-floor-v1__table[data-status="disabled"],
+html body [data-pmd-floor]
+.pmd-floor-v1__table[data-status="disabled"]:hover,
+html body [data-pmd-floor]
+.pmd-floor-v1__table[data-status="disabled"]:focus,
+html body [data-pmd-floor]
+.pmd-floor-v1__table[data-status="disabled"]:focus-visible,
+html body [data-pmd-floor]
+.pmd-floor-v1__table[data-status="disabled"]:active {
+  border-color: #a6b3ae !important;
+  background: #e9efec !important;
+  background-color: #e9efec !important;
+  background-image: none !important;
+  color: #31433d !important;
+  opacity: 1 !important;
+  filter: none !important;
+  -webkit-filter: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  transform: translate(-50%, -50%) !important;
+  transition: none !important;
+  animation: none !important;
+}
