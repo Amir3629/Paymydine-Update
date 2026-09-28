@@ -95,64 +95,94 @@
                  * is available.
                  */
                 Route::get('/table-entry', function () {
+                    // PMD_CUSTOMER_TABLE_ENTRY_FALLBACK_R43
+                    // Printed QR codes land here before Frontend V2. Every invalid,
+                    // missing, removed or disabled table therefore needs the same
+                    // branded guest-safe UI here too; never leak plain framework
+                    // 404/422/500 pages into the QR journey.
+                    $renderGuestFallback = static function (
+                        ?string $tableLabel = null,
+                        bool $technicalError = false
+                    ) {
+                        $cleanTable = trim((string)$tableLabel);
+                        $safeTable = $cleanTable !== '' ? e($cleanTable) : '';
+                        $title = $technicalError
+                            ? 'We could not open this menu'
+                            : 'This table is not active';
+                        $message = $technicalError
+                            ? 'Please try again, or ask a staff member to guide you with ordering.'
+                            : 'Please ask a staff member to guide you with ordering.';
+                        $status = $technicalError ? 503 : 404;
+
+                        $tableChip = $safeTable !== ''
+                            ? '<span class="n">Table '.$safeTable.'</span>'
+                            : '';
+
+                        $html = '<!doctype html><html><head><meta charset="utf-8">'
+                            .'<meta name="viewport" content="width=device-width,initial-scale=1">'
+                            .'<title>'.e($title).'</title>'
+                            .'<style>*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:Inter,Arial,Helvetica,sans-serif;background:#f8fbf9;color:#16312a}'
+                            .'body{min-height:100vh;display:grid;place-items:center;padding:24px}'
+                            .'.c{width:min(460px,100%);padding:34px 30px 30px;border:1px solid #d7e6df;border-radius:28px;background:rgba(255,255,255,.96);box-shadow:0 24px 64px rgba(24,57,47,.10);text-align:center}'
+                            .'img{display:block;width:74px;height:74px;object-fit:contain;margin:0 auto 20px}'
+                            .'h1{margin:0;color:#143c31;font-size:28px;line-height:1.15;font-weight:850;letter-spacing:-.025em}'
+                            .'p{margin:14px auto 0;max-width:34ch;color:#65756f;line-height:1.65;font-size:15px}'
+                            .'.n{display:inline-flex;align-items:center;justify-content:center;min-height:42px;margin-top:22px;padding:0 17px;border:1px solid #cce3d9;border-radius:999px;background:#eff8f4;color:#075f4b;font-size:14px;font-weight:850}</style>'
+                            .'</head><body><main class="c"><img src="/brand/paymydine-logo.svg" alt="PayMyDine">'
+                            .'<h1>'.e($title).'</h1>'
+                            .'<p>'.e($message).'</p>'
+                            .$tableChip
+                            .'</main></body></html>';
+
+                        return response($html, $status)
+                            ->header('Content-Type', 'text/html; charset=UTF-8')
+                            ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+                    };
+
                     $tableNo = trim((string)request()->query('table_no', ''));
                     $locationId = max(0, (int)request()->query('location', 0));
                     $guest = max(1, min(999, (int)request()->query('guest', 1)));
 
                     if ($tableNo === '' || !ctype_digit($tableNo) || (int)$tableNo < 1) {
-                        return response('Invalid table number.', 422)
-                            ->header('Content-Type', 'text/plain; charset=UTF-8');
+                        return $renderGuestFallback(null, false);
                     }
 
-                    $table = DB::table('tables')
-                        ->where('table_no', (int)$tableNo)
-                        ->first();
+                    try {
+                        $table = DB::table('tables')
+                            ->where('table_no', (int)$tableNo)
+                            ->first();
 
-                    // PMD_TABLE_ENABLE_DISABLE_R39
-                    // Missing and deliberately disabled tables use the same safe
-                    // guest-facing inactive state; no menu/order entry is allowed.
-                    $tableInactive = !$table
-                        || (
-                            property_exists($table, 'table_status')
-                            && !(bool)$table->table_status
+                        // Missing/removed and deliberately disabled tables share
+                        // the same guest-facing inactive state.
+                        $tableInactive = !$table
+                            || (
+                                property_exists($table, 'table_status')
+                                && !(bool)$table->table_status
+                            );
+
+                        if ($tableInactive) {
+                            return $renderGuestFallback($tableNo, false);
+                        }
+
+                        $targetParams = [
+                            'location' => $locationId,
+                            'guest' => $guest,
+                            'table_no' => $tableNo,
+                            'table' => $tableNo,
+                        ];
+
+                        $qrCode = trim((string)($table->qr_code ?? ''));
+                        if ($qrCode !== '') {
+                            $targetParams['qr'] = $qrCode;
+                        }
+
+                        return redirect(
+                            '/table/'.rawurlencode($tableNo).'?'.http_build_query($targetParams),
+                            302
                         );
-
-                    if ($tableInactive) {
-                        $safeTableNo = e($tableNo);
-                        $html = '<!doctype html><html><head><meta charset="utf-8">'
-                            .'<meta name="viewport" content="width=device-width,initial-scale=1">'
-                            .'<title>Table not active yet</title>'
-                            .'<style>html,body{margin:0;min-height:100%;font-family:Arial,Helvetica,sans-serif;background:#f4faf7;color:#173b32}'
-                            .'body{min-height:100vh;display:grid;place-items:center;padding:24px;box-sizing:border-box}'
-                            .'.c{width:min(440px,100%);box-sizing:border-box;padding:30px;border:1px solid #d8e8e1;border-radius:22px;background:#fff;box-shadow:0 18px 48px rgba(7,92,71,.10);text-align:center}'
-                            .'img{display:block;width:64px;height:64px;object-fit:contain;margin:0 auto 18px}'
-                            .'h1{margin:0 0 10px;font-size:23px;line-height:1.2}p{margin:0;color:#60756f;line-height:1.55;font-size:15px}'
-                            .'.n{display:inline-block;margin-top:18px;padding:8px 13px;border-radius:14px;background:#eef7f3;color:#075c47;font-weight:800}</style>'
-                            .'</head><body><main class="c"><img src="/brand/paymydine-logo.svg" alt="PayMyDine">'
-                            .'<h1>This table is not active yet</h1>'
-                            .'<p>Please ask a staff member to guide you with ordering.</p>'
-                            .'<span class="n">Table '.$safeTableNo.'</span></main></body></html>';
-
-                        return response($html, 404)
-                            ->header('Content-Type', 'text/html; charset=UTF-8')
-                            ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+                    } catch (\Throwable $error) {
+                        report($error);
+                        return $renderGuestFallback($tableNo, true);
                     }
-
-                    $targetParams = [
-                        'location' => $locationId,
-                        'guest' => $guest,
-                        'table_no' => $tableNo,
-                        'table' => $tableNo,
-                    ];
-
-                    $qrCode = trim((string)($table->qr_code ?? ''));
-                    if ($qrCode !== '') {
-                        $targetParams['qr'] = $qrCode;
-                    }
-
-                    return redirect(
-                        '/table/'.rawurlencode($tableNo).'?'.http_build_query($targetParams),
-                        302
-                    );
                 });
 
