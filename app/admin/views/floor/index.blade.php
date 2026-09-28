@@ -25,7 +25,7 @@
 </main>
 
 <script src="/app/admin/assets/js/pmd-side-menu2-v1.js?v=pmd-floor-v1"></script>
-<script src="/app/admin/assets/js/pmd-floor-v1.js?pmd-floor-guide=2412-20260801_181938&v=20260726_122015" defer></script>
+<script src="/app/admin/assets/js/pmd-floor-v1.js?pmd-floor-guide=2412-20260801_181938&v=20260928-r129" defer></script>
 
 
 <!-- PMD_FLOOR_STABLE_V11_START -->
@@ -43,7 +43,7 @@
 <!-- PMD_FLOOR_NATIVE_SMART_V20_START -->
 <link
   rel="stylesheet"
-  href="/app/admin/assets/css/pmd-floor-v1-native-smart-v20.css?v=20260721_171617"
+  href="/app/admin/assets/css/pmd-floor-v1-native-smart-v20.css?v=20260928-r129"
 >
 <!-- PMD_FLOOR_NATIVE_SMART_V20_END -->
 
