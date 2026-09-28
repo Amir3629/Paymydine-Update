@@ -550,3 +550,50 @@ html body #pmd-frontend-settings label:focus-within {
     max-height: 76px !important;
   }
 }
+
+
+/* =========================================================
+   PMD_CUSTOMER_EXPERIENCE_VISIBLE_R42
+   R10 originally made this route theme-only. The route now owns Theme + QR
+   designs + guest-facing controls, so every intended section must paint from
+   first render. The header also uses its real server copy instead of obsolete
+   R8 pseudo-content attributes.
+   ========================================================= */
+html body #pmd-frontend-settings[data-pmd-customer-experience-r39="1"]
+.pmd-frontend-form > .pmd-frontend-section,
+html body #pmd-frontend-settings[data-pmd-customer-experience-r39="1"]
+.pmd-frontend-advanced {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+html body #pmd-frontend-settings[data-pmd-customer-experience-r39="1"]
+.pmd-frontend-form > .pmd-frontend-section {
+  margin: 0 0 22px !important;
+}
+
+html body #pmd-frontend-settings[data-pmd-customer-experience-r39="1"]
+.pmd-frontend-header h1 {
+  font-size: 22px !important;
+  line-height: 1.15 !important;
+}
+
+html body #pmd-frontend-settings[data-pmd-customer-experience-r39="1"]
+.pmd-frontend-header__left p {
+  display: block !important;
+  margin: 4px 0 0 !important;
+  font-size: 13px !important;
+  line-height: 1.4 !important;
+}
+
+html body #pmd-frontend-settings[data-pmd-customer-experience-r39="1"]
+.pmd-frontend-header h1::after,
+html body #pmd-frontend-settings[data-pmd-customer-experience-r39="1"]
+.pmd-frontend-header__left p::after,
+html body #pmd-frontend-settings[data-pmd-customer-experience-r39="1"]
+.pmd-frontend-form > .pmd-frontend-section:first-of-type
+.pmd-frontend-card__header p::after {
+  content: none !important;
+  display: none !important;
+}
