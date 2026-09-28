@@ -76,6 +76,11 @@
     @else
         <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-pos-v1.css?v=20260925-v127">
     @endif
+    {{-- PMD_QPOS_QUICK_RESERVATIONS_R128
+         Reservation mode reuses the canonical Composer but keeps the Quick POS
+         shell/table rail as the visual authority. --}}
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-reservation-composer-v1.css?v=20260928-r128">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-reservations-v1.css?v=20260928-r128">
 </head>
 <body class="pmd-qpos-body">
 @php
@@ -117,12 +122,18 @@
     $pmdProfileInitial = mb_strtoupper(mb_substr($pmdProfileName, 0, 1));
     $pmdDashboardUrl = $pmdProfile['dashboard_url'] ?? null;
     $pmdLogoutUrl = (string)($pmdProfile['logout_url'] ?? admin_url('logout'));
+    $pmdInitialWorkspace = request()->query('workspace') === 'reservations'
+        ? 'reservations'
+        : 'pos';
+    $pmdQuickReservationsToday = \Carbon\Carbon::now('Europe/Berlin')->toDateString();
 @endphp
 <div
     id="pmd-quick-pos"
     class="pmd-qpos"
     data-mode="{{ $mode }}"
     data-bootstrap-url="/admin/pos/bootstrap/{{ $mode }}"
+    data-workspace="{{ $pmdInitialWorkspace }}"
+    data-qpos-reservations-today="{{ $pmdQuickReservationsToday }}"
 >
     <main class="pmd-qpos-main">
         <aside class="pmd-qpos-left">
@@ -276,6 +287,16 @@
                             <strong>{{ $pmdProfileName }}</strong>
                             @if($pmdProfileRole)<small>{{ $pmdProfileRole }}</small>@endif
                         </div>
+                        <button
+                            type="button"
+                            data-qpos-workspace-switch="reservations"
+                            @if($pmdInitialWorkspace === 'reservations') hidden @endif
+                        >Reservations</button>
+                        <button
+                            type="button"
+                            data-qpos-workspace-switch="pos"
+                            @if($pmdInitialWorkspace !== 'reservations') hidden @endif
+                        >POS</button>
                         @if($pmdDashboardUrl)
                             <a
                                 class="pmd-qpos-profile-dashboard-v85"
@@ -398,6 +419,87 @@
                 @empty
                     <div class="pmd-qpos-no-products">No menu items match this filter.</div>
                 @endforelse
+            </div>
+        </section>
+
+        {{-- PMD_QPOS_QUICK_RESERVATIONS_WORKSPACE_R128
+             Exact same three-column Quick POS shell:
+             Reservations | Schedule | canonical table rail. --}}
+        <aside
+            class="pmd-qpos-reservations-left"
+            data-qpos-reservations-left
+            @if($pmdInitialWorkspace !== 'reservations') hidden @endif
+        >
+            <header class="pmd-qres-head">
+                <h2>Reservations</h2>
+                <button type="button" class="pmd-qres-new" data-qres-new>+ New</button>
+            </header>
+
+            <div class="pmd-qres-datebar">
+                <button type="button" data-qres-shift="-1" aria-label="Previous day">‹</button>
+                <input
+                    type="date"
+                    value="{{ $pmdQuickReservationsToday }}"
+                    data-qres-date
+                    aria-label="Reservation date"
+                >
+                <button type="button" data-qres-shift="1" aria-label="Next day">›</button>
+            </div>
+
+            <label class="pmd-qres-search">
+                <span>⌕</span>
+                <input type="search" autocomplete="off" placeholder="Search reservations…" data-qres-search>
+            </label>
+
+            <div class="pmd-qres-filter-row">
+                <button type="button" class="is-active" data-qres-filter="all">All</button>
+                <button type="button" data-qres-filter="upcoming">Upcoming</button>
+                <button type="button" data-qres-filter="past">Past</button>
+            </div>
+
+            <div class="pmd-qres-table-filter" data-qres-table-filter>
+                <span data-qres-table-filter-text></span>
+                <button type="button" data-qres-clear-table aria-label="Clear table filter">×</button>
+            </div>
+
+            <div class="pmd-qres-list" data-qres-list>
+                <div class="pmd-qres-loading">Loading reservations…</div>
+            </div>
+        </aside>
+
+        <section
+            class="pmd-qpos-reservations-center"
+            data-qpos-reservations-center
+            @if($pmdInitialWorkspace !== 'reservations') hidden @endif
+        >
+            <header class="pmd-qres-center-head">
+                <div class="pmd-qres-center-title">
+                    <h2>Daily reservations</h2>
+                    <small data-qres-date-label>{{ $pmdQuickReservationsToday }}</small>
+                </div>
+                <div class="pmd-qres-center-actions">
+                    <button type="button" class="pmd-qres-today" data-qres-today>Today</button>
+                    <time class="pmd-qres-clock" data-qres-clock>{{ now()->format('H:i') }}</time>
+                </div>
+            </header>
+
+            <div class="pmd-qres-stats">
+                <div class="pmd-qres-stat">
+                    <span>Reservations</span>
+                    <strong data-qres-count>0</strong>
+                </div>
+                <div class="pmd-qres-stat">
+                    <span>Guests</span>
+                    <strong data-qres-guests>0</strong>
+                </div>
+                <div class="pmd-qres-stat">
+                    <span>Tables</span>
+                    <strong data-qres-tables>0</strong>
+                </div>
+            </div>
+
+            <div class="pmd-qres-timeline" data-qres-timeline>
+                <div class="pmd-qres-loading">Loading schedule…</div>
             </div>
         </section>
 
@@ -1017,6 +1119,17 @@
     <div class="pmd-qpos-toast" data-qpos-toast role="status"></div>
 </div>
 
+{{-- PMD_QPOS_CANONICAL_RESERVATION_COMPOSER_R128
+     Writes still go through /admin/reservations and ReservationComposerService. --}}
+@include('admin::reservations._reservation_composer')
+<script>
+window.PMD_RESERVATION_COMPOSER_V1 = Object.freeze({
+    endpoint: @json(admin_url('reservations')),
+    initialCreateBootstrap: null
+});
+</script>
+<script defer src="/app/admin/assets/js/pmd-reservation-composer-v1.js?v=20260928-r128"></script>
+
 <script>
 window.PMDQuickPOSConfig = {
     mode: @json($mode),
@@ -1052,6 +1165,7 @@ window.PMDQuickPOSConfig = {
 @else
 <script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260925-v127"></script>
 @endif
+<script defer src="/app/admin/assets/js/pmd-quick-reservations-v1.js?v=20260928-r128"></script>
 <script src="/app/admin/assets/js/pmd-site-access-hub-v13.js?v=20260921-androidpair-v16"></script>
 </body>
 </html>
