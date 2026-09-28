@@ -1927,6 +1927,8 @@
       return Object.assign({}, previous, table);
     });
 
+    var removedSelectedTableR128 = false;
+
     if (selectedId) {
       var nextSelected = state.tables.find(function (table) {
         return Number(table.id || 0) === selectedId;
@@ -1938,11 +1940,30 @@
           state.selectedTable || {},
           nextSelected
         );
+      } else {
+        // PMD_QPOS_REMOVED_TABLE_DISAPPEARS_R128
+        // A physically deleted table must vanish completely on the next live
+        // heartbeat. Never keep its former selection/check context alive.
+        removedSelectedTableR128 = true;
+        tableCacheDrop(selectedId);
+        state.selectedTable = null;
+        state.liveSelectedSignatureV73 = '';
+        resetCurrentOrder(true);
+        state.forceNewCheck = true;
+        state.guestCount = 1;
       }
     }
 
     renderTables();
     renderContext();
+
+    if (removedSelectedTableR128) {
+      renderCart({orderSwitch: true});
+      renderProducts();
+      if (state.cart.length) {
+        toast('The selected table was removed. Unsent items are still in the cart.');
+      }
+    }
 
     rail = $('[data-qpos-tables]');
     if (rail && Number.isFinite(scrollLeft)) {
@@ -3150,6 +3171,14 @@
 
     /* PMD_QPOS_IDLE_TABLE_WARMUP_CALL_V42 */
     scheduleTableWarmupV42();
+
+    // PMD_QPOS_TABLE_RAIL_RENDER_EVENT_R128
+    // Quick Reservations keeps the canonical rail and only reapplies its
+    // presentation-only table filter after the rail is rebuilt.
+    try {
+      window.dispatchEvent(new CustomEvent('pmd:qpos:tables-rendered'));
+    } catch (ignored) {
+    }
   }
 
   function setSelectedTablePaymentSignal(paymentState, dueAmount) {
