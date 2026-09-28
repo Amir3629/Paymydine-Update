@@ -73,7 +73,7 @@ body,
 
 @include('admin::_partials.pmd_settings_family_first_paint_v18')
 
-<div id="pmd-frontend-settings" class="pmd-frontend-settings" data-pmd-frontend-settings>
+<div id="pmd-frontend-settings" class="pmd-frontend-settings" data-pmd-frontend-settings data-pmd-customer-experience-r39="1">
     <header class="pmd-frontend-header">
         <div class="pmd-frontend-header__left">
             <a class="pmd-frontend-icon-button" href="{{ admin_url('pmdsettings') }}" aria-label="{{ $pmdSettingsText('Back to Settings') }}" title="{{ $pmdSettingsText('Back to Settings') }}">
@@ -175,7 +175,7 @@ body,
                                 <path d="m7 10 5 5 5-5"></path>
                                 <path d="M5 19h14"></path>
                             </svg>
-                            <span>{{ $pmdSettingsText('Preview & download QR designs') }}</span>
+                            <span>{{ $pmdSettingsText('Preview & download selected design') }}</span>
                         </button>
 
                         <span class="pmd-customer-qr-status-r39" data-pmd-customer-qr-status-r39 aria-live="polite"></span>
@@ -183,22 +183,26 @@ body,
 
                     <div class="pmd-customer-qr-grid-r39" aria-label="{{ $pmdSettingsText('Available QR designs') }}">
                         @foreach($pmdQrTemplatesR39 as $index => $template)
-                            <article
-                                class="pmd-customer-qr-template-r39"
+                            <button
+                                type="button"
+                                class="pmd-customer-qr-template-r39{{ $index === 0 ? ' is-selected' : '' }}"
                                 style="--pmd-qr-bg:{{ $template['bg'] }};--pmd-qr-panel:{{ $template['panel'] }};--pmd-qr-accent:{{ $template['accent'] }};--pmd-qr-ink:{{ $template['ink'] }}"
                                 data-pmd-customer-qr-template-r39="{{ $template['id'] }}"
+                                data-pmd-customer-qr-template-name-r42="{{ $template['name'] }}"
+                                aria-pressed="{{ $index === 0 ? 'true' : 'false' }}"
                             >
-                                <div class="pmd-customer-qr-template-preview-r39" aria-hidden="true">
+                                <span class="pmd-customer-qr-template-selected-r42" aria-hidden="true">✓</span>
+                                <span class="pmd-customer-qr-template-preview-r39" aria-hidden="true">
                                     <span class="pmd-customer-qr-template-number-r39">{{ str_pad((string)($index + 1), 2, '0', STR_PAD_LEFT) }}</span>
                                     <span class="pmd-customer-qr-template-brand-r39">PayMyDine</span>
                                     <span class="pmd-customer-qr-template-code-r39"></span>
                                     <span class="pmd-customer-qr-template-accent-r39"></span>
-                                </div>
-                                <div class="pmd-customer-qr-template-copy-r39">
+                                </span>
+                                <span class="pmd-customer-qr-template-copy-r39">
                                     <strong>{{ $template['name'] }}</strong>
                                     <small>{{ $pmdSettingsText($template['desc']) }}</small>
-                                </div>
-                            </article>
+                                </span>
+                            </button>
                         @endforeach
                     </div>
                 </div>
@@ -334,7 +338,7 @@ body,
     </form>
 </div>
 
-<link rel="stylesheet" href="/app/admin/assets/css/pmd-floor-qr-template-studio-r3.css?v=20260919-r16">
-<script defer src="/app/admin/assets/js/pmd-floor-qr-template-studio-r3.js?v=20260919-r16"></script>
-<script defer src="/app/admin/assets/js/pmd-settings-frontend-v2.js?v=20260927-r39"></script>
-<script defer src="/app/admin/assets/js/pmd-settings-customer-qr-r39.js?v=20260927-r39"></script>
+<link rel="stylesheet" href="/app/admin/assets/css/pmd-floor-qr-template-studio-r3.css?v=20260928-r42">
+<script defer src="/app/admin/assets/js/pmd-floor-qr-template-studio-r3.js?v=20260928-r42"></script>
+<script defer src="/app/admin/assets/js/pmd-settings-frontend-v2.js?v=20260928-r42"></script>
+<script defer src="/app/admin/assets/js/pmd-settings-customer-qr-r39.js?v=20260928-r42"></script>
