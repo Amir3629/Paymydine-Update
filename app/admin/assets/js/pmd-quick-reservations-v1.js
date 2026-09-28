@@ -345,6 +345,11 @@
       button.hidden = button.getAttribute('data-qpos-workspace-switch') === next;
     });
 
+    var profileMenu = root.querySelector('[data-qpos-profile-menu]');
+    var profileToggle = root.querySelector('[data-qpos-profile-toggle]');
+    if (profileMenu) profileMenu.hidden = true;
+    if (profileToggle) profileToggle.setAttribute('aria-expanded', 'false');
+
     if (updateUrl && window.history && window.history.replaceState) {
       var url = new URL(window.location.href);
       if (next === 'reservations') url.searchParams.set('workspace', 'reservations');
