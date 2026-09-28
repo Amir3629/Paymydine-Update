@@ -112,7 +112,12 @@
                         $message = $technicalError
                             ? 'Please try again, or ask a staff member to guide you with ordering.'
                             : 'Please ask a staff member to guide you with ordering.';
-                        $status = $technicalError ? 503 : 404;
+                        // QR fallback is a real guest-facing destination,
+                        // not a browser/framework error document. Keep HTTP 200 so
+                        // reverse proxies cannot replace the branded page with their
+                        // own 404/5xx body; expose the state in a response header.
+                        $status = 200;
+                        $guestState = $technicalError ? 'menu-error' : 'table-inactive';
 
                         $tableChip = $safeTable !== ''
                             ? '<span class="n">Table '.$safeTable.'</span>'
@@ -136,6 +141,7 @@
 
                         return response($html, $status)
                             ->header('Content-Type', 'text/html; charset=UTF-8')
+                            ->header('X-PMD-Guest-State', $guestState)
                             ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
                     };
 
