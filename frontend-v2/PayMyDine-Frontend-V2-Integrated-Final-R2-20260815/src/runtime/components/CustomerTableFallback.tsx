@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import styles from './CustomerTableFallback.module.css'
 
 type CustomerTableFallbackProps = {
@@ -5,7 +6,7 @@ type CustomerTableFallbackProps = {
   title?: string
   message?: string
   tone?: 'table' | 'error'
-  action?: React.ReactNode
+  action?: ReactNode
 }
 
 export function CustomerTableFallback({
