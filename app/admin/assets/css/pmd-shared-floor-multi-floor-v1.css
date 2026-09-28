@@ -3964,3 +3964,19 @@ html body .pmd-floor-v1
   color: #5f716b !important;
   opacity: 1 !important;
 }
+
+
+/* PMD_DISABLED_OWNER_MANAGER_SELECTION_R129
+   Click selection is not a hover effect. Owner/Manager get one quiet selection
+   ring after choosing a disabled table so Edit table is obvious; all hover
+   pixels remain identical before and after pointer entry. */
+html body #pmd-r2-shared-floor-canvas-v310[data-pmd-floor-table-manager="true"]
+[data-floor-table][data-status="disabled"].is-selected,
+html body #pmd-r2-shared-floor-canvas-v310[data-pmd-floor-table-manager="true"]
+[data-floor-table][data-status="disabled"].pmd-r2-table-selected-v317,
+html body #pmd-r2-shared-floor-canvas-v310[data-pmd-floor-table-manager="true"]
+[data-floor-table][data-status="disabled"][data-pmd-r2-selected-table-v320="true"] {
+  outline: 3px solid #032f25 !important;
+  outline-offset: 3px !important;
+  box-shadow: 0 0 0 3px rgba(3,47,37,.10) !important;
+}
