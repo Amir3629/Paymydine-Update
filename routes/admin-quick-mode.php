@@ -40,6 +40,12 @@ Route::middleware(['web'])->group(function () {
         [\Admin\Controllers\PmdQuickPosV1::class, 'tableData']
     )->where('table', '[0-9]+');
 
+    // PMD_QPOS_QUICK_RESERVATIONS_ROUTE_R128
+    Route::get(
+        '/admin/pos/reservations-data',
+        [\Admin\Controllers\PmdQuickPosV1::class, 'reservationsData']
+    );
+
     // PMD_QPOS_PICKUP_DATA_ROUTE_V78
     Route::get(
         '/admin/pos/pickup',
