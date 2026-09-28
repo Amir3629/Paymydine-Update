@@ -2290,8 +2290,11 @@
               ) +
               '" ' +
               (table.status === 'disabled'
+                && root.getAttribute('data-pmd-floor-table-manager') !== 'true'
                 ? 'aria-disabled="true" tabindex="-1" '
-                : '') +
+                : (table.status === 'disabled'
+                    ? 'data-pmd-disabled-editable-r129="true" '
+                    : '')) +
               '>' +
 
               badges(table) +
