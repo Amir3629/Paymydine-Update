@@ -333,6 +333,17 @@
   font-weight: 800;
 }
 
+.pmd-qres-loading {
+  min-height: 180px;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  color: #74807b;
+  font-size: 13px;
+  font-weight: 800;
+  text-align: center;
+}
+
 .pmd-qres-list-loading {
   display: grid;
   gap: 8px;
