@@ -419,6 +419,7 @@
             restaurantName: root.getAttribute('data-pmd-restaurant-name') || 'Restaurant',
             restaurantLogo: root.getAttribute('data-pmd-restaurant-logo') || '',
             tableName: root.getAttribute('data-pmd-table-name') || 'Table',
+            preferredTemplateId: root.getAttribute('data-pmd-qr-template-preselect') || '',
         };
     }
 
@@ -487,6 +488,10 @@
                 const card = document.createElement('article');
                 card.className = 'pmd-qr-template-card-v1';
                 card.setAttribute('data-template-id', template.id);
+                if (data.preferredTemplateId === template.id) {
+                    card.classList.add('is-preselected-r42');
+                    card.setAttribute('data-pmd-preselected-r42', '1');
+                }
 
                 const previewWrap = document.createElement('div');
                 previewWrap.className = 'pmd-qr-template-preview-v1';
@@ -522,6 +527,21 @@
 
                 grid.appendChild(card);
             });
+
+            if (data.preferredTemplateId) {
+                const preferredCard = grid.querySelector(
+                    '[data-template-id="' + data.preferredTemplateId + '"]'
+                );
+                if (preferredCard && typeof preferredCard.scrollIntoView === 'function') {
+                    window.setTimeout(function () {
+                        preferredCard.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'center',
+                            inline: 'nearest'
+                        });
+                    }, 90);
+                }
+            }
         });
 
         return modal;
