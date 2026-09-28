@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
-import styles from './error.module.css'
+import { CustomerTableFallback } from '@/src/runtime/components/CustomerTableFallback'
 
 export default function CustomerFrontendError({
   error,
@@ -17,13 +17,11 @@ export default function CustomerFrontendError({
   }, [error])
 
   return (
-    <main className={styles.page}>
-      <section className={styles.card} role="alert">
-        <img className={styles.mark} src="/app/admin/assets/images/paymydine-logo.svg" alt="PayMyDine" width={56} height={56} />
-        <h1>The menu is temporarily unavailable</h1>
-        <p>We could not load the restaurant information safely. Please try again, or ask a member of staff for help.</p>
-        <button className={styles.retry} type="button" onClick={reset}>Try again</button>
-      </section>
-    </main>
+    <CustomerTableFallback
+      tone="error"
+      title="We could not open this menu"
+      message="Please try again, or ask a staff member to guide you with ordering."
+      action={<button type="button" onClick={reset}>Try again</button>}
+    />
   )
 }
