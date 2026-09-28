@@ -1870,6 +1870,14 @@
     function render() {
       if (!canvas) return;
 
+      // PMD_FLOOR_DISABLED_ROLE_CLICK_R129
+      // Only Owner/Manager Floor surfaces receive the table-manager authority
+      // attribute. Disabled tables stay completely inert everywhere else, but
+      // remain selectable here so those two roles can open Edit Table and
+      // enable/remove the physical table.
+      var canManageDisabledTableR129 =
+        root.getAttribute('data-pmd-floor-table-manager') === 'true';
+
       var structuralSnapshot =
         transitionSnapshot();
 
@@ -1988,9 +1996,11 @@
                 (table.note ? ' · Internal note: ' + table.note : '')
               ) +
               '" ' +
-              (table.status === 'disabled'
+              (table.status === 'disabled' && !canManageDisabledTableR129
                 ? 'aria-disabled="true" tabindex="-1" '
-                : '') +
+                : (table.status === 'disabled'
+                    ? 'data-pmd-disabled-editable-r129="true" '
+                    : '')) +
               '>' +
 
               badges(table) +
@@ -6411,7 +6421,10 @@ function saveLayout() {
 
           if (!table) return;
 
-          if (table.status === 'disabled') {
+          if (
+            table.status === 'disabled' &&
+            root.getAttribute('data-pmd-floor-table-manager') !== 'true'
+          ) {
             return;
           }
 
