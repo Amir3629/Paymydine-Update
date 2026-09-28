@@ -38,14 +38,10 @@ export default async function CustomerMenuPage({ searchParams }: PageProps) {
     && setupStatus.hasMenuItems === false,
   )
 
-  if (setup?.frontendConfigured === false || explicitlyEmptyCatalog) {
-    return <TenantSetupSplashV1 />
-  }
-
   // PMD_CUSTOMER_TABLE_FALLBACK_R43
-  // A table/QR lookup must fail closed into PayMyDine UI. The naked customer
-  // menu route remains valid for non-table browsing, but a bad/removed/disabled
-  // table reference must never fall through to a live ordering surface.
+  // A table/QR lookup must fail closed into PayMyDine UI before any setup/menu
+  // branch. This guarantees stale/removed/wrong table QR links never reveal an
+  // unrelated page just because the tenant is also in first-time setup.
   const hasTableLookup = Boolean(context.tableId || context.tableNo || context.qr)
   if (bootstrap.table.disabled || (hasTableLookup && !bootstrap.table.valid)) {
     const tableLabel =
@@ -55,6 +51,10 @@ export default async function CustomerMenuPage({ searchParams }: PageProps) {
       || context.tableId
 
     return <CustomerTableFallback tableLabel={tableLabel} />
+  }
+
+  if (setup?.frontendConfigured === false || explicitlyEmptyCatalog) {
+    return <TenantSetupSplashV1 />
   }
 
   return (
