@@ -3762,43 +3762,90 @@ html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
   cursor: default !important;
 }
 
-/* Disabled physical tables remain visible but deliberately non-operational. */
+/* PMD_FLOOR_DISABLED_VISUAL_R42
+   Disabled tables stay clearly readable. The disabled state is communicated by
+   a neutral surface/border, not by fading the entire card. Hover/focus/active
+   must never move, glow or lift the card. */
 html body #pmd-r2-shared-floor-canvas-v310
 [data-floor-table][data-status="disabled"],
 html body .pmd-floor-v1
 .pmd-floor-v1__table[data-status="disabled"] {
-  filter: grayscale(.72) !important;
-  opacity: .48 !important;
-  border-color: #aeb8b4 !important;
-  background: #e6ebe9 !important;
+  --state-color: #a6b3ae !important;
+  filter: none !important;
+  opacity: 1 !important;
+  border-color: #a6b3ae !important;
+  background: #e9efec !important;
   background-image: none !important;
-  color: #64716d !important;
+  color: #31433d !important;
   box-shadow: none !important;
+  outline: none !important;
   cursor: default !important;
   transition: none !important;
+  animation: none !important;
+  transform: translate(-50%, -50%) !important;
+  will-change: auto !important;
 }
 
 html body #pmd-r2-shared-floor-canvas-v310
 [data-floor-table][data-status="disabled"]:hover,
+html body #pmd-r2-shared-floor-canvas-v310
+[data-floor-table][data-status="disabled"]:focus,
+html body #pmd-r2-shared-floor-canvas-v310
+[data-floor-table][data-status="disabled"]:focus-visible,
+html body #pmd-r2-shared-floor-canvas-v310
+[data-floor-table][data-status="disabled"]:active,
 html body .pmd-floor-v1
-.pmd-floor-v1__table[data-status="disabled"]:hover {
-  filter: grayscale(.72) !important;
-  opacity: .48 !important;
-  border-color: #aeb8b4 !important;
-  background: #e6ebe9 !important;
+.pmd-floor-v1__table[data-status="disabled"]:hover,
+html body .pmd-floor-v1
+.pmd-floor-v1__table[data-status="disabled"]:focus,
+html body .pmd-floor-v1
+.pmd-floor-v1__table[data-status="disabled"]:focus-visible,
+html body .pmd-floor-v1
+.pmd-floor-v1__table[data-status="disabled"]:active {
+  filter: none !important;
+  opacity: 1 !important;
+  border-color: #a6b3ae !important;
+  background: #e9efec !important;
   background-image: none !important;
-  color: #64716d !important;
+  color: #31433d !important;
+  box-shadow: none !important;
+  outline: none !important;
+  transform: translate(-50%, -50%) !important;
+}
+
+html body #pmd-r2-shared-floor-canvas-v310
+[data-floor-table][data-status="disabled"].is-selected,
+html body #pmd-r2-shared-floor-canvas-v310
+[data-floor-table][data-status="disabled"].pmd-r2-table-selected-v317,
+html body #pmd-r2-shared-floor-canvas-v310
+[data-floor-table][data-status="disabled"][data-pmd-r2-selected-table-v320="true"],
+html body .pmd-floor-v1
+.pmd-floor-v1__table[data-status="disabled"].is-selected {
+  outline: none !important;
+  outline-offset: 0 !important;
   box-shadow: none !important;
   transform: translate(-50%, -50%) !important;
 }
 
 html body #pmd-r2-shared-floor-canvas-v310
 [data-floor-table][data-status="disabled"]
-.pmd-floor-v1__table-meta,
+.pmd-floor-v1__table-number,
+html body .pmd-floor-v1
+.pmd-floor-v1__table[data-status="disabled"]
+.pmd-floor-v1__table-number {
+  color: #20342d !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+
 html body #pmd-r2-shared-floor-canvas-v310
 [data-floor-table][data-status="disabled"]
-.pmd-floor-v1__table-number {
-  color: #64716d !important;
+.pmd-floor-v1__table-meta,
+html body .pmd-floor-v1
+.pmd-floor-v1__table[data-status="disabled"]
+.pmd-floor-v1__table-meta {
+  color: #5f716b !important;
+  opacity: 1 !important;
 }
 
 @media(max-width:700px) {
