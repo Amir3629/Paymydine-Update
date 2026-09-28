@@ -81,13 +81,14 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
     {
         $locationId = $this->quickPosLocationId();
         $rawDate = trim((string)request()->query('date', ''));
+        $berlinNow = \Carbon\Carbon::now('Europe/Berlin');
 
         try {
             $date = preg_match('/^\d{4}-\d{2}-\d{2}$/', $rawDate)
                 ? \Carbon\Carbon::createFromFormat('!Y-m-d', $rawDate, 'Europe/Berlin')
-                : \Carbon\Carbon::now('Europe/Berlin');
+                : $berlinNow->copy()->startOfDay();
         } catch (\Throwable $ignored) {
-            $date = \Carbon\Carbon::now('Europe/Berlin');
+            $date = $berlinNow->copy()->startOfDay();
         }
 
         $selectedDate = $date->format('Y-m-d');
@@ -131,12 +132,62 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 );
             })->values()->all();
 
+            /*
+             * PMD_QPOS_RESERVATION_HOURS_R129
+             * Quick Reservations uses the exact same location-scoped opening
+             * hours authority as the full Reservations Hour screen and the
+             * canonical Composer. This is read-only presentation data.
+             */
+            $openingHours = [];
+
+            try {
+                if (
+                    $locationId > 0
+                    && Schema::hasTable('working_hours')
+                ) {
+                    $rows = DB::table('working_hours')
+                        ->where('location_id', $locationId)
+                        ->where('type', 'opening')
+                        ->orderBy('weekday')
+                        ->get();
+
+                    foreach ($rows as $row) {
+                        $weekday = (int)($row->weekday ?? -1);
+                        if ($weekday < 0 || $weekday > 6) {
+                            continue;
+                        }
+
+                        $openingHours[$weekday] = [
+                            'weekday' => $weekday,
+                            'enabled' => (bool)($row->status ?? false),
+                            'opening_time' => substr(
+                                (string)($row->opening_time ?? ''),
+                                0,
+                                5
+                            ),
+                            'closing_time' => substr(
+                                (string)($row->closing_time ?? ''),
+                                0,
+                                5
+                            ),
+                        ];
+                    }
+                }
+            } catch (\Throwable $openingHoursError) {
+                report($openingHoursError);
+                $openingHours = [];
+            }
+
+            ksort($openingHours);
+
             return response()->json([
                 'ok' => true,
-                'version' => 'pmd-qpos-quick-reservations-r128',
+                'version' => 'pmd-qpos-quick-reservations-r129',
                 'location_id' => $locationId,
                 'date' => $selectedDate,
-                'today' => (string)($payload['today'] ?? $selectedDate),
+                'today' => (string)($payload['today'] ?? $berlinNow->format('Y-m-d')),
+                'server_now_berlin' => $berlinNow->format('Y-m-d\TH:i:sP'),
+                'opening_hours' => array_values($openingHours),
                 'table_id' => $tableId ?: null,
                 'reservations' => $reservations,
                 'count' => count($reservations),
@@ -146,9 +197,10 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
 
             return response()->json([
                 'ok' => false,
-                'version' => 'pmd-qpos-quick-reservations-r128',
+                'version' => 'pmd-qpos-quick-reservations-r129',
                 'date' => $selectedDate,
                 'reservations' => [],
+                'opening_hours' => [],
                 'error' => 'Reservations could not be loaded.',
             ], 500);
         }
