@@ -3884,3 +3884,83 @@ html body > .pmd-floor-table-manager[data-pmd-floor-table-manager-portal="true"]
 .pmd-floor-table-manager__card {
   transition: none !important;
 }
+
+
+/* ============================================================
+   PMD_DISABLED_TABLE_FINAL_ROLE_R129
+   Final disabled-table authority:
+   - absolutely no hover/focus/active visual mutation
+   - inert on cashier/reservations/waiter/other operational surfaces
+   - Owner/Manager keep click selection solely because their shared Floor root
+     carries data-pmd-floor-table-manager="true".
+   ============================================================ */
+html body #pmd-r2-shared-floor-canvas-v310
+[data-floor-table][data-status="disabled"],
+html body #pmd-r2-shared-floor-canvas-v310
+[data-floor-table][data-status="disabled"]:hover,
+html body #pmd-r2-shared-floor-canvas-v310
+[data-floor-table][data-status="disabled"]:focus,
+html body #pmd-r2-shared-floor-canvas-v310
+[data-floor-table][data-status="disabled"]:focus-visible,
+html body #pmd-r2-shared-floor-canvas-v310
+[data-floor-table][data-status="disabled"]:active,
+html body .pmd-floor-v1
+.pmd-floor-v1__table[data-status="disabled"],
+html body .pmd-floor-v1
+.pmd-floor-v1__table[data-status="disabled"]:hover,
+html body .pmd-floor-v1
+.pmd-floor-v1__table[data-status="disabled"]:focus,
+html body .pmd-floor-v1
+.pmd-floor-v1__table[data-status="disabled"]:focus-visible,
+html body .pmd-floor-v1
+.pmd-floor-v1__table[data-status="disabled"]:active {
+  --state-color: #a6b3ae !important;
+  border-color: #a6b3ae !important;
+  background: #e9efec !important;
+  background-color: #e9efec !important;
+  background-image: none !important;
+  color: #31433d !important;
+  opacity: 1 !important;
+  filter: none !important;
+  -webkit-filter: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  text-shadow: none !important;
+  transform: translate(-50%, -50%) !important;
+  transition: none !important;
+  animation: none !important;
+  will-change: auto !important;
+}
+
+html body #pmd-r2-shared-floor-canvas-v310
+[data-floor-table][data-status="disabled"] {
+  pointer-events: none !important;
+  cursor: default !important;
+}
+
+html body #pmd-r2-shared-floor-canvas-v310[data-pmd-floor-table-manager="true"]
+[data-floor-table][data-status="disabled"] {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+}
+
+html body #pmd-r2-shared-floor-canvas-v310
+[data-floor-table][data-status="disabled"]
+.pmd-floor-v1__table-number,
+html body .pmd-floor-v1
+.pmd-floor-v1__table[data-status="disabled"]
+.pmd-floor-v1__table-number {
+  color: #20342d !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+
+html body #pmd-r2-shared-floor-canvas-v310
+[data-floor-table][data-status="disabled"]
+.pmd-floor-v1__table-meta,
+html body .pmd-floor-v1
+.pmd-floor-v1__table[data-status="disabled"]
+.pmd-floor-v1__table-meta {
+  color: #5f716b !important;
+  opacity: 1 !important;
+}
