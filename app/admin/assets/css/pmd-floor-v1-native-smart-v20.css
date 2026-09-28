@@ -2011,40 +2011,58 @@ html body .pmd-floor-v1__badge.is-merge:active {
 
 
 
-/* PMD_FLOOR_DISABLED_TABLE_R39
-   Product-disabled physical tables stay visible, muted and non-operational. */
+/* PMD_FLOOR_DISABLED_TABLE_R42
+   Readable neutral disabled card; no fading and no hover/focus motion. */
 .pmd-floor-v1
 .pmd-floor-v1__table[data-status="disabled"] {
-  filter: grayscale(.72) !important;
-  opacity: .48 !important;
-  border-color: #aeb8b4 !important;
-  background: #e6ebe9 !important;
+  --state-color: #a6b3ae !important;
+  filter: none !important;
+  opacity: 1 !important;
+  border-color: #a6b3ae !important;
+  background: #e9efec !important;
   background-image: none !important;
-  color: #64716d !important;
+  color: #31433d !important;
   box-shadow: none !important;
+  outline: none !important;
   cursor: default !important;
   transition: none !important;
+  animation: none !important;
+  transform: translate(-50%, -50%) !important;
+  will-change: auto !important;
 }
 
 .pmd-floor-v1
 .pmd-floor-v1__table[data-status="disabled"]:hover,
 .pmd-floor-v1
-.pmd-floor-v1__table[data-status="disabled"]:focus {
-  filter: grayscale(.72) !important;
-  opacity: .48 !important;
-  border-color: #aeb8b4 !important;
-  background: #e6ebe9 !important;
+.pmd-floor-v1__table[data-status="disabled"]:focus,
+.pmd-floor-v1
+.pmd-floor-v1__table[data-status="disabled"]:focus-visible,
+.pmd-floor-v1
+.pmd-floor-v1__table[data-status="disabled"]:active,
+.pmd-floor-v1
+.pmd-floor-v1__table[data-status="disabled"].is-selected {
+  filter: none !important;
+  opacity: 1 !important;
+  border-color: #a6b3ae !important;
+  background: #e9efec !important;
   background-image: none !important;
-  color: #64716d !important;
+  color: #31433d !important;
   box-shadow: none !important;
   outline: none !important;
+  transform: translate(-50%, -50%) !important;
 }
 
 .pmd-floor-v1
 .pmd-floor-v1__table[data-status="disabled"]
-.pmd-floor-v1__table-number,
+.pmd-floor-v1__table-number {
+  color: #20342d !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+
 .pmd-floor-v1
 .pmd-floor-v1__table[data-status="disabled"]
 .pmd-floor-v1__table-meta {
-  color: #64716d !important;
+  color: #5f716b !important;
+  opacity: 1 !important;
 }
