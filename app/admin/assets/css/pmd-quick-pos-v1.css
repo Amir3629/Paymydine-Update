@@ -15415,3 +15415,44 @@ body.pmd-qpos-body {
   border-color: #b6d8cc !important;
   color: #356b5d !important;
 }
+
+
+/* ============================================================
+   PMD_DISABLED_TABLE_FINAL_ROLE_R129
+   Quick POS / Quick Reservations: disabled means display-only. No hover,
+   focus, lift, whitening or click target is allowed on operational rails.
+   ============================================================ */
+.pmd-qpos .pmd-qpos-table[data-status="disabled"],
+.pmd-qpos .pmd-qpos-table[data-status="disabled"]:hover,
+.pmd-qpos .pmd-qpos-table[data-status="disabled"]:focus,
+.pmd-qpos .pmd-qpos-table[data-status="disabled"]:focus-visible,
+.pmd-qpos .pmd-qpos-table[data-status="disabled"]:active,
+.pmd-qpos .pmd-qpos-table.is-disabled-table-r39,
+.pmd-qpos .pmd-qpos-table.is-disabled-table-r39:hover,
+.pmd-qpos .pmd-qpos-table.is-disabled-table-r39:focus,
+.pmd-qpos .pmd-qpos-table.is-disabled-table-r39:focus-visible,
+.pmd-qpos .pmd-qpos-table.is-disabled-table-r39:active {
+  border-color: #a6b3ae !important;
+  background: #e9efec !important;
+  background-color: #e9efec !important;
+  background-image: none !important;
+  color: #31433d !important;
+  opacity: 1 !important;
+  filter: none !important;
+  -webkit-filter: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  transform: none !important;
+  transition: none !important;
+  animation: none !important;
+  pointer-events: none !important;
+  cursor: default !important;
+}
+
+.pmd-qpos .pmd-qpos-table[data-status="disabled"] strong,
+.pmd-qpos .pmd-qpos-table[data-status="disabled"] small,
+.pmd-qpos .pmd-qpos-table.is-disabled-table-r39 strong,
+.pmd-qpos .pmd-qpos-table.is-disabled-table-r39 small {
+  color: #31433d !important;
+  opacity: 1 !important;
+}
