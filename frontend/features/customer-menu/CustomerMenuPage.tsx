@@ -435,14 +435,21 @@ function MenuContent() {
       tableInfo?.table_no ?? tableInfo?.table_id ?? displayTableNumber ?? null
 
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#fbf8f2] px-6 text-center text-[#242320]">
-        <div className="max-w-md rounded-3xl border border-[#d8b982] bg-white/90 p-6 shadow-sm">
-          <h1 className="text-xl font-bold">This table is currently unavailable.</h1>
-          <p className="mt-3 text-sm leading-6 text-[#6b6258]">
-            Please ask a member of staff for another table before ordering.
+      <div className="flex min-h-screen items-center justify-center bg-[#f8fbf9] px-6 text-center text-[#16312a]">
+        <div className="w-full max-w-md rounded-[28px] border border-[#d7e6df] bg-white/95 px-7 py-8 shadow-[0_24px_64px_rgba(24,57,47,.10)]">
+          <img
+            src="/brand/paymydine-logo.svg"
+            alt="PayMyDine"
+            className="mx-auto mb-5 h-[74px] w-[74px] object-contain"
+          />
+          <h1 className="text-2xl font-extrabold tracking-[-0.025em] text-[#143c31]">
+            This table is not active
+          </h1>
+          <p className="mx-auto mt-3 max-w-[34ch] text-sm leading-6 text-[#65756f]">
+            Please ask a staff member to guide you with ordering.
           </p>
           {disabledTableLabel != null ? (
-            <div className="mt-4 inline-flex rounded-full bg-[#eef7f3] px-4 py-2 text-sm font-bold text-[#075c47]">
+            <div className="mt-5 inline-flex min-h-10 items-center rounded-full border border-[#cce3d9] bg-[#eff8f4] px-4 text-sm font-extrabold text-[#075f4b]">
               Table {String(disabledTableLabel)}
             </div>
           ) : null}
@@ -463,11 +470,53 @@ function MenuContent() {
     searchParams.get("qr")
   )
 
+  const customerPath =
+    typeof window !== "undefined"
+      ? window.location.pathname.replace(/\/+$/, "")
+      : ""
+
+  const shouldShowInvalidTableFallback =
+    !isLoading &&
+    hasTableLookupHint &&
+    !tableInfo?.table_id &&
+    !tableInfo?.table_no &&
+    (
+      customerPath.startsWith("/table/") ||
+      Boolean(
+        searchParams.get("table") ||
+        searchParams.get("table_id") ||
+        searchParams.get("table_no") ||
+        searchParams.get("qr")
+      )
+    )
+
+  if (shouldShowInvalidTableFallback) {
+    const invalidLabel =
+      displayTableNumber ||
+      searchParams.get("table_no") ||
+      searchParams.get("table") ||
+      searchParams.get("table_id")
+
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#f8fbf9] px-6 text-center text-[#16312a]">
+        <div className="w-full max-w-md rounded-[28px] border border-[#d7e6df] bg-white/95 px-7 py-8 shadow-[0_24px_64px_rgba(24,57,47,.10)]">
+          <img src="/brand/paymydine-logo.svg" alt="PayMyDine" className="mx-auto mb-5 h-[74px] w-[74px] object-contain" />
+          <h1 className="text-2xl font-extrabold tracking-[-0.025em] text-[#143c31]">This table is not active</h1>
+          <p className="mx-auto mt-3 max-w-[34ch] text-sm leading-6 text-[#65756f]">Please ask a staff member to guide you with ordering.</p>
+          {invalidLabel ? (
+            <div className="mt-5 inline-flex min-h-10 items-center rounded-full border border-[#cce3d9] bg-[#eff8f4] px-4 text-sm font-extrabold text-[#075f4b]">
+              Table {String(invalidLabel)}
+            </div>
+          ) : null}
+        </div>
+      </div>
+    )
+  }
+
   const shouldShowMissingTableFallback =
     !isLoading &&
     !hasTableLookupHint &&
-    typeof window !== "undefined" &&
-    window.location.pathname.replace(/\/+$/, "") === "/menu"
+    customerPath === "/menu"
 
   if (shouldShowMissingTableFallback) {
     return (
