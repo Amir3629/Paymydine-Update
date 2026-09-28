@@ -59,12 +59,12 @@
          Reuse the live canonical Dashboard Floor visual stack. --}}
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-floor-v1.css?v=20260927-floor-card-r35">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-floor-v1-stable-v11.css?v=20260927-floor-card-r35">
-    <link rel="stylesheet" href="/app/admin/assets/css/pmd-floor-v1-native-smart-v20.css?v=20260927-floor-card-r35">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-floor-v1-native-smart-v20.css?v=20260928-r129">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-reservations-floor-canvas-v310.css?v=20260927-floor-card-r35">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-reservations-floor-toolbar-v316.css?v=20260927-floor-card-r35">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-reservations-floor-reservation-v312.css?v=20260927-floor-card-r35">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-dashboard-lab-exact-floor-v1.css?v=20260927-floor-card-r35">
-    <link rel="stylesheet" href="/app/admin/assets/css/pmd-shared-floor-multi-floor-v1.css?v=20260927-floor-card-r35">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-shared-floor-multi-floor-v1.css?v=20260928-r129">
     <!-- PMD_FLOOR_SCROLL_CHAIN_V127 -->
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-floor-scroll-chain-v127.css?v=20260925-v127">
     <link rel="stylesheet" href="/app/admin/assets/css/push-notifications.css?v=20260922-qpos-v59">
@@ -72,15 +72,15 @@
         {{-- PMD_QPOS_WEB_PARITY_V112
              This file is an exact copy of the canonical Web Quick POS CSS.
              The unique path bypasses APK 0.3.28 asset interception. --}}
-        <link rel="stylesheet" href="/app/admin/assets/css/pmd-qpos-web-parity-v112.css?v=20260925-v127">
+        <link rel="stylesheet" href="/app/admin/assets/css/pmd-qpos-web-parity-v112.css?v=20260928-r129">
     @else
-        <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-pos-v1.css?v=20260925-v127">
+        <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-pos-v1.css?v=20260928-r129">
     @endif
     {{-- PMD_QPOS_QUICK_RESERVATIONS_R128
          Reservation mode reuses the canonical Composer but keeps the Quick POS
          shell/table rail as the visual authority. --}}
-    <link rel="stylesheet" href="/app/admin/assets/css/pmd-reservation-composer-v1.css?v=20260928-r128">
-    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-reservations-v1.css?v=20260928-r128">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-reservation-composer-v1.css?v=20260928-r129">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-reservations-v1.css?v=20260928-r129">
 </head>
 <body class="pmd-qpos-body">
 @php
@@ -482,21 +482,6 @@
                     <time class="pmd-qres-clock" data-qres-clock>{{ now()->format('H:i') }}</time>
                 </div>
             </header>
-
-            <div class="pmd-qres-stats">
-                <div class="pmd-qres-stat">
-                    <span>Reservations</span>
-                    <strong data-qres-count>0</strong>
-                </div>
-                <div class="pmd-qres-stat">
-                    <span>Guests</span>
-                    <strong data-qres-guests>0</strong>
-                </div>
-                <div class="pmd-qres-stat">
-                    <span>Tables</span>
-                    <strong data-qres-tables>0</strong>
-                </div>
-            </div>
 
             <div class="pmd-qres-timeline" data-qres-timeline>
                 <div class="pmd-qres-loading">Loading schedule…</div>
@@ -1128,7 +1113,7 @@ window.PMD_RESERVATION_COMPOSER_V1 = Object.freeze({
     initialCreateBootstrap: null
 });
 </script>
-<script defer src="/app/admin/assets/js/pmd-reservation-composer-v1.js?v=20260928-r128"></script>
+<script defer src="/app/admin/assets/js/pmd-reservation-composer-v1.js?v=20260928-r129"></script>
 
 <script>
 window.PMDQuickPOSConfig = {
@@ -1161,11 +1146,11 @@ window.PMDQuickPOSConfig = {
 {{-- PMD_QPOS_WEB_PARITY_RUNTIME_V112
      Exact canonical Web Quick POS JS under a unique path so APK 0.3.28
      cannot substitute an older bundled runtime. --}}
-<script src="/app/admin/assets/js/pmd-qpos-web-parity-v112.js?v=20260928-r128"></script>
+<script src="/app/admin/assets/js/pmd-qpos-web-parity-v112.js?v=20260928-r129"></script>
 @else
-<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260928-r128"></script>
+<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260928-r129"></script>
 @endif
-<script defer src="/app/admin/assets/js/pmd-quick-reservations-v1.js?v=20260928-r128"></script>
+<script defer src="/app/admin/assets/js/pmd-quick-reservations-v1.js?v=20260928-r129"></script>
 <script src="/app/admin/assets/js/pmd-site-access-hub-v13.js?v=20260921-androidpair-v16"></script>
 </body>
 </html>
