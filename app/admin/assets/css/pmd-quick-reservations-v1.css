@@ -450,3 +450,8 @@
   .pmd-qres-center-head { align-items: flex-start; }
   .pmd-qres-center-actions { flex-wrap: wrap; justify-content: flex-end; }
 }
+
+
+.pmd-qpos-profile-menu [data-qpos-workspace-switch][hidden] {
+  display: none !important;
+}
