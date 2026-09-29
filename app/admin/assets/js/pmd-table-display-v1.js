@@ -6,6 +6,7 @@
 
   var boot = window.PMD_TABLE_DISPLAY_BOOT || {};
   var stateUrl = root.getAttribute('data-state-url') || '/admin/pmddevices/tabledisplaystate';
+  var setupCodeUrl = root.getAttribute('data-setup-code-url') || '/admin/table-display/setup-code';
   var tableSelect = root.querySelector('[data-pmd-table-display-table]');
   var idle = root.querySelector('[data-pmd-table-display-idle]');
   var reaction = root.querySelector('[data-pmd-table-display-reaction]');
@@ -119,6 +120,57 @@
     }
   }
 
+  function csrf() {
+    var meta = document.querySelector('meta[name="csrf-token"]');
+    return meta ? String(meta.content || '') : '';
+  }
+
+  async function generateSetupCode() {
+    var button = root.querySelector('[data-pmd-table-display-pair]');
+    var box = root.querySelector('[data-pmd-table-display-setup-code]');
+    var value = root.querySelector('[data-pmd-table-display-setup-code-value]');
+    var expiry = root.querySelector('[data-pmd-table-display-setup-code-expiry]');
+    var errorBox = root.querySelector('[data-pmd-table-display-setup-error]');
+
+    if (!button || !tableSelect || !tableSelect.value) return;
+    button.disabled = true;
+    if (errorBox) {
+      errorBox.hidden = true;
+      errorBox.textContent = '';
+    }
+
+    try {
+      var response = await fetch(setupCodeUrl, {
+        method: 'POST',
+        credentials: 'same-origin',
+        cache: 'no-store',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRF-TOKEN': csrf()
+        },
+        body: JSON.stringify({table_id: Number(tableSelect.value || 0)})
+      });
+      var payload = {};
+      try { payload = await response.json(); } catch (ignored) {}
+      if (!response.ok || payload.ok === false) {
+        throw new Error(payload.message || payload.error || ('HTTP ' + response.status));
+      }
+
+      if (value) value.textContent = String(payload.code || '------');
+      if (expiry) expiry.textContent = 'Valid for 10 minutes · enter once in the Android app';
+      if (box) box.hidden = false;
+    } catch (error) {
+      if (errorBox) {
+        errorBox.hidden = false;
+        errorBox.textContent = (error && error.message) || 'Could not generate a setup code.';
+      }
+    } finally {
+      button.disabled = false;
+    }
+  }
+
   async function refresh() {
     if (!tableSelect || !tableSelect.value) return;
     var serial = ++requestSerial;
@@ -158,6 +210,9 @@
     });
   }
 
+  var pairButton = root.querySelector('[data-pmd-table-display-pair]');
+  if (pairButton) pairButton.addEventListener('click', generateSetupCode);
+
   root.querySelectorAll('[data-pmd-table-display-sim]').forEach(function (button) {
     button.addEventListener('click', function () {
       simulate(button.getAttribute('data-pmd-table-display-sim') || 'idle');
@@ -169,5 +224,5 @@
   refresh();
   window.setInterval(refresh, 2000);
 
-  window.PMDTableDisplayV1 = {refresh:refresh, simulate:simulate};
+  window.PMDTableDisplayV1 = {refresh:refresh, simulate:simulate, generateSetupCode:generateSetupCode};
 })();
