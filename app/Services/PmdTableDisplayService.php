@@ -247,10 +247,46 @@ final class PmdTableDisplayService
 
     private function latestWaiterCall(int $tableId): ?array
     {
+        /*
+         * PMD_TABLE_DISPLAY_V1_1
+         * Tenant notification schemas are not perfectly uniform: newer
+         * restaurants use notification_id while some older tenant databases
+         * still expose id (or only created_at). Never assume one primary-key
+         * name just to paint a guest-facing reaction.
+         */
         if (!Schema::hasTable('notifications')) return null;
-        $row = DB::table('notifications')->where('table_id', $tableId)->where('type', 'waiter_call')->orderByDesc('notification_id')->first();
+        if (
+            !Schema::hasColumn('notifications', 'table_id')
+            || !Schema::hasColumn('notifications', 'type')
+        ) {
+            return null;
+        }
+
+        $query = DB::table('notifications')
+            ->where('table_id', $tableId)
+            ->where('type', 'waiter_call');
+
+        $idColumn = null;
+        foreach (['notification_id', 'id'] as $candidate) {
+            if (Schema::hasColumn('notifications', $candidate)) {
+                $idColumn = $candidate;
+                break;
+            }
+        }
+
+        if ($idColumn !== null) {
+            $query->orderByDesc($idColumn);
+        } elseif (Schema::hasColumn('notifications', 'created_at')) {
+            $query->orderByDesc('created_at');
+        }
+
+        $row = $query->first();
         if (!$row) return null;
-        return ['id' => (int)($row->notification_id ?? 0), 'created_at' => $this->iso($row->created_at ?? null)];
+
+        return [
+            'id' => $idColumn !== null ? (int)($row->{$idColumn} ?? 0) : 0,
+            'created_at' => $this->iso($row->created_at ?? null),
+        ];
     }
 
     private function latestPaymentRequest(int $locationId, int $tableId): ?array
