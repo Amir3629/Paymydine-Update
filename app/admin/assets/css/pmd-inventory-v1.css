@@ -452,6 +452,32 @@ body.pmd-inventory-page .page-content {
   font-weight: 900;
 }
 
+.pmd-inv__item-edit {
+  max-width: 100%;
+  display: block;
+  overflow: hidden;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--pmd-inv-ink);
+  font-size: 12.5px;
+  font-weight: 900;
+  text-align: left;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 3px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.pmd-inv__item-edit:hover,
+.pmd-inv__item-edit:focus-visible {
+  color: var(--pmd-inv-blue);
+  outline: none;
+  text-decoration-color: currentColor;
+}
+
 .pmd-inv__item-name small {
   display: block;
   margin-top: 3px;
