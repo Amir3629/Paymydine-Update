@@ -815,6 +815,12 @@
     });
   }
 
+  function quickLocationId() {
+    var config = window.PMDQuickPOSConfig || {};
+    var bootstrap = config.initialBootstrap || {};
+    return Math.max(0, Number(bootstrap.location_id || 0));
+  }
+
   function quickPayload() {
     var floor = currentFloorMeta();
     var ids = state.editor.tableIds.slice();
@@ -835,7 +841,7 @@
       occasion_id: 0,
       notify: 0,
       source: 'quick-pos-reservations-r130',
-      location_id: null,
+      location_id: quickLocationId() || null,
       pmd_floor_id: floor.id || '',
       pmd_floor_name: floor.name || '',
       pmd_floor_locked: ids.length ? 1 : 0
